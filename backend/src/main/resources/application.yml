@@ -1,0 +1,20 @@
+spring:
+  application:
+    name: linewatch-backend
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://127.0.0.1:5434/linewatch}
+    username: ${SPRING_DATASOURCE_USERNAME:linewatch}
+    password: ${SPRING_DATASOURCE_PASSWORD:linewatch_dev_password}
+  flyway:
+    enabled: true
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+  data:
+    redis:
+      host: ${SPRING_DATA_REDIS_HOST:127.0.0.1}
+      port: ${SPRING_DATA_REDIS_PORT:6380}
+
+server:
+  port: ${SERVER_PORT:8080}
