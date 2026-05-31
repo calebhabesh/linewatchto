@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="52.652084mm"
+   height="52.652084mm"
+   viewBox="0 0 52.652084 52.652084"
+   version="1.1"
+   id="svg1"
+   sodipodi:docname="Line_4_Legend.svg"
+   inkscape:version="1.4.4 (dcaf3e7d9e, 2026-05-05)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview1"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:document-units="mm"
+     inkscape:zoom="1.0307169"
+     inkscape:cx="-150.38077"
+     inkscape:cy="86.832767"
+     inkscape:window-width="2560"
+     inkscape:window-height="1363"
+     inkscape:window-x="0"
+     inkscape:window-y="0"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="layer1" />
+  <defs
+     id="defs1" />
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1"
+     transform="translate(-26.722881,-87.577076)">
+    <g
+       id="_1615690582816"
+       transform="matrix(0.26458333,0,0,0.26458333,-1516.3271,-217.22292)"
+       style="clip-rule:evenodd;fill-rule:evenodd;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision">
+   <path
+   class="fil3"
+   d="m 5931,1152 c 55,0 100,45 100,100 0,55 -45,99 -100,99 -55,0 -99,-44 -99,-99 0,-55 44,-100 99,-100 z"
+   id="path7"
+   style="fill:#ffffff" />
+
+   <path
+   class="fil5"
+   d="m 5931,1165 c 48,0 87,39 87,87 0,48 -39,87 -87,87 -48,0 -87,-39 -87,-87 0,-48 39,-87 87,-87 z"
+   id="path8"
+   style="fill:#a21a68" />
+
+   <path
+   class="fil7"
+   d="m 5934,1263 v -39 l -25,39 z m -1,34 v -20 h -39 v -16 l 34,-53 h 23 v 55 h 11 v 14 h -11 v 20 z"
+   id="path9"
+   style="fill:#ffffff;fill-rule:nonzero" />
+
+  </g>
+  </g>
+</svg>

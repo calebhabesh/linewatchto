@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="52.652084mm"
+   height="52.387501mm"
+   viewBox="0 0 52.652084 52.387501"
+   version="1.1"
+   id="svg1"
+   sodipodi:docname="Line_2_Legend.svg"
+   inkscape:version="1.4.4 (dcaf3e7d9e, 2026-05-05)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview1"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:document-units="mm"
+     inkscape:zoom="1.0307169"
+     inkscape:cx="-570.47673"
+     inkscape:cy="-90.713561"
+     inkscape:window-width="2560"
+     inkscape:window-height="1363"
+     inkscape:window-x="0"
+     inkscape:window-y="0"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="layer1" />
+  <defs
+     id="defs1" />
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1"
+     transform="translate(-102.92292,-62.441658)">
+    <g
+       id="_1615733386720"
+       style="clip-rule:evenodd;fill-rule:evenodd;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
+       transform="matrix(0.26458333,0,0,0.26458333,-21.166663,-600.075)">
+   <path
+   class="fil3"
+   d="m 569,2504 c 54,0 99,44 99,99 0,55 -45,99 -99,99 -55,0 -100,-44 -100,-99 0,-55 45,-99 100,-99 z"
+   id="path1466"
+   style="fill:#ffffff" />
+
+   <path
+   class="fil4"
+   d="m 569,2516 c 48,0 87,39 87,87 0,48 -39,87 -87,87 -48,0 -87,-39 -87,-87 0,-48 39,-87 87,-87 z"
+   id="path1467"
+   style="fill:#00923f" />
+
+   <path
+   class="fil7"
+   d="m 535,2647 c 0,-8 2,-15 5,-21 4,-5 10,-11 19,-17 1,-1 3,-2 5,-4 12,-7 18,-14 18,-21 0,-4 -1,-7 -4,-10 -2,-2 -6,-3 -10,-3 -4,0 -8,1 -11,4 -2,3 -3,7 -3,12 v 1 h -17 c 0,-10 3,-19 8,-24 6,-6 14,-9 24,-9 10,0 17,3 23,8 6,5 9,12 9,21 0,6 -2,11 -5,15 -3,5 -9,10 -17,16 -2,1 -4,3 -8,5 -8,5 -12,9 -13,12 h 42 v 15 z"
+   id="path1468"
+   style="fill:#ffffff;fill-rule:nonzero" />
+
+  </g>
+  </g>
+</svg>
