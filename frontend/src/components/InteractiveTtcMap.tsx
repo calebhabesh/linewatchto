@@ -43,6 +43,7 @@ export function InteractiveTtcMap({
     recenter,
     zoomIn,
     zoomOut,
+    zoomToScale,
   } = usePanZoom();
 
   // Load SVG
@@ -126,14 +127,7 @@ export function InteractiveTtcMap({
         >
           <Locate size={20} />
         </button>
-        <button
-          onClick={zoomIn}
-          className="p-2 hover:bg-slate-200 dark:hover:bg-white/10 rounded-xl transition-colors text-slate-700 dark:text-white/70 hover:text-slate-900 dark:hover:text-white cursor-pointer"
-          title="Zoom in"
-          aria-label="Zoom in"
-        >
-          <ZoomIn size={20} />
-        </button>
+        <span className="w-px h-5 bg-slate-300 dark:bg-white/10 mx-1" />
         <button
           onClick={zoomOut}
           className="p-2 hover:bg-slate-200 dark:hover:bg-white/10 rounded-xl transition-colors text-slate-700 dark:text-white/70 hover:text-slate-900 dark:hover:text-white cursor-pointer"
@@ -142,6 +136,28 @@ export function InteractiveTtcMap({
         >
           <ZoomOut size={20} />
         </button>
+        <input
+          type="range"
+          min="0.2"
+          max="5"
+          step="0.05"
+          value={transform.scale}
+          onChange={(e) => zoomToScale(parseFloat(e.target.value))}
+          className="w-16 md:w-24 accent-slate-700 dark:accent-white cursor-pointer h-1 rounded-lg appearance-none bg-slate-300 dark:bg-white/20 mx-1"
+          title="Zoom level"
+          aria-label="Zoom level slider"
+        />
+        <button
+          onClick={zoomIn}
+          className="p-2 hover:bg-slate-200 dark:hover:bg-white/10 rounded-xl transition-colors text-slate-700 dark:text-white/70 hover:text-slate-900 dark:hover:text-white cursor-pointer"
+          title="Zoom in"
+          aria-label="Zoom in"
+        >
+          <ZoomIn size={20} />
+        </button>
+        <span className="text-[11px] font-mono text-slate-500 dark:text-white/60 min-w-[36px] text-right pr-1 select-none">
+          {Math.round(transform.scale * 100)}%
+        </span>
         <span className="w-px h-5 bg-slate-300 dark:bg-white/10 mx-1.5" />
         <ThemeToggle isDark={isDark} onToggle={onToggleTheme} />
       </div>

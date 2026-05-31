@@ -71,16 +71,49 @@ export function usePanZoom() {
   }, []);
 
   const zoomIn = useCallback(() => {
+    if (!containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    const centerX = rect.width / 2;
+    const centerY = rect.height / 2;
+
     setTransform(prev => {
-      const newScale = Math.min(prev.scale * 1.2, 5);
-      return { ...prev, scale: newScale };
+      let newScale = prev.scale * 1.25;
+      newScale = Math.min(newScale, 5); // Limit zoom to 5x
+      const scaleRatio = newScale / prev.scale;
+      const newX = centerX - (centerX - prev.x) * scaleRatio;
+      const newY = centerY - (centerY - prev.y) * scaleRatio;
+      return { x: newX, y: newY, scale: newScale };
     });
   }, []);
 
   const zoomOut = useCallback(() => {
+    if (!containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    const centerX = rect.width / 2;
+    const centerY = rect.height / 2;
+
     setTransform(prev => {
-      const newScale = Math.max(prev.scale / 1.2, 0.2);
-      return { ...prev, scale: newScale };
+      let newScale = prev.scale / 1.25;
+      newScale = Math.max(newScale, 0.2); // Limit zoom to 0.2x
+      const scaleRatio = newScale / prev.scale;
+      const newX = centerX - (centerX - prev.x) * scaleRatio;
+      const newY = centerY - (centerY - prev.y) * scaleRatio;
+      return { x: newX, y: newY, scale: newScale };
+    });
+  }, []);
+
+  const zoomToScale = useCallback((newScale: number) => {
+    if (!containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    const centerX = rect.width / 2;
+    const centerY = rect.height / 2;
+
+    setTransform(prev => {
+      const clampedScale = Math.min(Math.max(newScale, 0.2), 5);
+      const scaleRatio = clampedScale / prev.scale;
+      const newX = centerX - (centerX - prev.x) * scaleRatio;
+      const newY = centerY - (centerY - prev.y) * scaleRatio;
+      return { x: newX, y: newY, scale: clampedScale };
     });
   }, []);
 
@@ -94,6 +127,7 @@ export function usePanZoom() {
     handleWheel,
     recenter,
     zoomIn,
-    zoomOut
+    zoomOut,
+    zoomToScale,
   };
 }
