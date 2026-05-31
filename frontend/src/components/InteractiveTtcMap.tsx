@@ -21,6 +21,7 @@ export function InteractiveTtcMap({
   onSelectClosureId,
   isDark,
   onToggleTheme,
+  layoutResetSignal,
 }: {
   selectedAlertId: string | null;
   selectedClosureId: string | null;
@@ -28,6 +29,7 @@ export function InteractiveTtcMap({
   onSelectClosureId: (id: string | null) => void;
   isDark: boolean;
   onToggleTheme: () => void;
+  layoutResetSignal?: number;
 }) {
   const [svgMarkup, setSvgMarkup] = useState<string>("");
   const [loadState, setLoadState] = useState<"loading" | "ready" | "error">("loading");
@@ -100,6 +102,13 @@ export function InteractiveTtcMap({
     checkAndCenter();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loadState, recenter]);
+
+  useEffect(() => {
+    if (!layoutResetSignal || loadState !== "ready") return;
+
+    const resetTimer = window.setTimeout(() => recenter(), 320);
+    return () => window.clearTimeout(resetTimer);
+  }, [layoutResetSignal, loadState, recenter]);
 
   const selectedAlert = useMemo(() => {
     return activeAlerts.find((a) => a.id === selectedAlertId);

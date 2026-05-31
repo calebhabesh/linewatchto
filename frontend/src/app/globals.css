@@ -13,6 +13,29 @@
 
 * {
   box-sizing: border-box;
+  scrollbar-color: rgba(148, 163, 184, 0.28) transparent;
+  scrollbar-width: thin;
+}
+
+*::-webkit-scrollbar {
+  height: 9px;
+  width: 9px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.24);
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background-clip: padding-box;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.42);
+  background-clip: padding-box;
 }
 
 html {
@@ -511,10 +534,12 @@ button {
 }
 
 .line-row {
-  align-items: center;
-  display: grid;
+  align-items: flex-start;
+  display: flex;
+  flex-wrap: wrap;
   gap: 10px;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  justify-content: space-between;
+  min-width: 0;
 }
 
 .line-row strong,
@@ -525,7 +550,10 @@ button {
 .closure-card p,
 .commute-card h3,
 .commute-card p {
-  overflow-wrap: anywhere;
+  min-width: 0;
+  overflow-wrap: break-word;
+  white-space: normal;
+  word-break: normal;
 }
 
 .line-badge {
@@ -557,7 +585,6 @@ button {
 
 .status-pill,
 .quiet-pill,
-.commute-card span,
 .preview-button {
   border-radius: 999px;
   font-size: 0.76rem;
@@ -591,9 +618,9 @@ button {
   align-items: flex-start;
   background: var(--panel-soft);
   color: var(--text);
-  display: grid;
+  display: block;
   gap: 10px;
-  grid-template-columns: auto minmax(0, 1fr);
+  min-width: 0;
   padding: 12px;
   text-align: left;
   width: 100%;
@@ -612,16 +639,19 @@ button {
   border-left: 4px solid var(--warning);
 }
 
-.alert-card p,
-.alert-card span {
+.alert-card > p {
   color: var(--muted);
   display: block;
   font-size: 0.8rem;
   margin: 4px 0 0;
+  overflow-wrap: break-word;
+  white-space: normal;
+  word-break: normal;
 }
 
 .closure-card {
   background: var(--panel-soft);
+  min-width: 0;
   padding: 12px;
 }
 
@@ -646,7 +676,7 @@ button {
 .commute-grid {
   display: grid;
   gap: 12px;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr);
   padding: 12px;
 }
 
@@ -654,6 +684,7 @@ button {
   background: var(--panel-soft);
   border-left: 4px solid var(--border-strong);
   min-height: 172px;
+  min-width: 0;
   padding: 13px;
 }
 
@@ -661,9 +692,8 @@ button {
   font-size: 1.03rem;
 }
 
-.commute-card span {
+.commute-card .status-pill {
   display: inline-flex;
-  margin-top: 12px;
 }
 
 .commute-card.danger {
@@ -678,17 +708,17 @@ button {
   border-left-color: var(--ok);
 }
 
-.commute-card.danger span {
+.commute-card.danger .status-pill {
   background: rgba(255, 69, 69, 0.12);
   color: var(--danger);
 }
 
-.commute-card.warning span {
+.commute-card.warning .status-pill {
   background: rgba(255, 159, 28, 0.12);
   color: var(--warning);
 }
 
-.commute-card.ok span {
+.commute-card.ok .status-pill {
   background: rgba(48, 209, 117, 0.12);
   color: var(--ok);
 }
@@ -710,11 +740,12 @@ button {
 }
 
 .reliability-row {
-  align-items: center;
+  align-items: stretch;
   background: var(--panel-soft);
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 10px;
-  grid-template-columns: auto minmax(130px, 1fr) minmax(120px, 0.8fr) auto;
+  min-width: 0;
   padding: 10px;
 }
 
@@ -737,7 +768,7 @@ button {
 }
 
 .health-grid {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .health-item {

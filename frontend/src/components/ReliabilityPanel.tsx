@@ -5,22 +5,22 @@ import { BarChart3, ShieldCheck } from "lucide-react";
 
 export function ReliabilityPanel() {
   return (
-    <section className="analytics-panel bg-[#12151c]/90 border border-black/10 dark:border-white/10 rounded-lg shadow-lg">
+    <section className="analytics-panel min-w-0 bg-[#12151c]/90 border border-black/10 dark:border-white/10 rounded-lg shadow-lg">
       <div className="panel-heading border-b border-black/10 dark:border-white/10 px-4 py-3">
-        <h2 className="text-base font-semibold text-slate-900 dark:text-white flex items-center gap-2">
+        <h2 className="text-base font-semibold text-slate-900 dark:text-white flex min-w-0 items-center gap-2">
           <BarChart3 size={18} className="text-purple-500" />
           Reliability Analytics (7-Day)
         </h2>
       </div>
-      <div className="reliability-list p-3 flex flex-col gap-2">
+      <div className="reliability-list min-w-0 p-3 flex flex-col gap-2">
         {reliabilitySummaries.map((item) => (
           <div
             key={item.lineId}
-            className="reliability-row p-3 rounded-lg bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+            className="reliability-row min-w-0 p-3 rounded-lg bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5 flex flex-col justify-between gap-3"
           >
-            <div className="flex items-center gap-2.5">
+            <div className="flex min-w-0 items-start gap-2.5">
               <span
-                className="line-badge"
+                className="line-badge shrink-0"
                 style={{
                   backgroundColor: item.lineId === "line-1" ? "#f4c430" : item.lineId === "line-2" ? "#14a44d" : item.lineId === "line-4" ? "#b84ed8" : item.lineId === "line-5" ? "#f57c00" : "#969594",
                   color: item.lineId === "line-1" ? "#000000" : "#ffffff",
@@ -28,18 +28,18 @@ export function ReliabilityPanel() {
               >
                 {item.lineNumber}
               </span>
-              <div className="reliability-copy">
-                <strong className="text-sm font-bold text-slate-800 dark:text-white">
+              <div className="reliability-copy min-w-0">
+                <strong className="text-sm font-bold text-slate-800 dark:text-white whitespace-normal break-words">
                   {item.label}
                 </strong>
-                <span className="text-xs text-slate-500 dark:text-slate-400">
+                <span className="text-xs text-slate-500 dark:text-slate-400 whitespace-normal break-words">
                   {item.incidents7d} incidents • {item.medianDuration} median delay
                 </span>
               </div>
             </div>
 
-            <div className="flex items-center gap-3 w-full sm:w-auto">
-              <div className="score-track flex-1 sm:w-28 bg-black/10 dark:bg-white/10 rounded-full h-2 overflow-hidden">
+            <div className="flex min-w-0 items-center gap-3 w-full">
+              <div className="score-track flex-1 bg-black/10 dark:bg-white/10 rounded-full h-2 overflow-hidden">
                 <div
                   className="bg-gradient-to-r from-amber-500 to-green-500 h-full rounded-full"
                   style={{ width: `${item.score}%` }}
@@ -58,25 +58,25 @@ export function ReliabilityPanel() {
 
 export function IngestionHealthPanel() {
   return (
-    <section className="health-panel bg-[#12151c]/90 border border-black/10 dark:border-white/10 rounded-lg shadow-lg">
+    <section className="health-panel min-w-0 bg-[#12151c]/90 border border-black/10 dark:border-white/10 rounded-lg shadow-lg">
       <div className="panel-heading border-b border-black/10 dark:border-white/10 px-4 py-3">
-        <h2 className="text-base font-semibold text-slate-900 dark:text-white flex items-center gap-2">
+        <h2 className="text-base font-semibold text-slate-900 dark:text-white flex min-w-0 items-center gap-2">
           <ShieldCheck size={18} className="text-emerald-500" />
           Ingestion System Health
         </h2>
       </div>
-      <div className="health-grid p-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <div className="health-grid min-w-0 p-3 grid grid-cols-1 gap-3">
         {ingestionHealth.map((health, idx) => (
           <div
             key={idx}
-            className="health-item p-3 rounded-lg bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5 flex gap-3 items-start"
+            className="health-item min-w-0 p-3 rounded-lg bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5 flex gap-3 items-start"
           >
             <span className="flex-shrink-0 w-2.5 h-2.5 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)] mt-1.5" />
-            <div>
-              <strong className="text-xs font-bold text-slate-800 dark:text-white">
+            <div className="min-w-0">
+              <strong className="text-xs font-bold text-slate-800 dark:text-white whitespace-normal break-words">
                 {health.label}
               </strong>
-              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium whitespace-normal break-words">
                 {health.value}
               </p>
             </div>
