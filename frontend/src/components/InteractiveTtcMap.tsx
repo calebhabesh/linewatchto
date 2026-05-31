@@ -34,6 +34,7 @@ export function InteractiveTtcMap({
 
   const {
     transform,
+    relativeScale,
     isDragging,
     containerRef,
     handlePointerDown,
@@ -141,7 +142,7 @@ export function InteractiveTtcMap({
           min="0.2"
           max="5"
           step="0.05"
-          value={transform.scale}
+          value={relativeScale}
           onChange={(e) => zoomToScale(parseFloat(e.target.value))}
           className="w-16 md:w-24 accent-slate-700 dark:accent-white cursor-pointer h-1 rounded-lg appearance-none bg-slate-300 dark:bg-white/20 mx-1"
           title="Zoom level"
@@ -156,7 +157,7 @@ export function InteractiveTtcMap({
           <ZoomIn size={20} />
         </button>
         <span className="text-[11px] font-mono text-slate-500 dark:text-white/60 min-w-[36px] text-right pr-1 select-none">
-          {Math.round(transform.scale * 100)}%
+          {Math.round(relativeScale * 100)}%
         </span>
         <span className="w-px h-5 bg-slate-300 dark:bg-white/10 mx-1.5" />
         <ThemeToggle isDark={isDark} onToggle={onToggleTheme} />

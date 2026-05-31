@@ -1,10 +1,57 @@
-import { useState, useCallback, useRef, type PointerEvent, type WheelEvent } from "react";
+import { useState, useCallback, useRef, useEffect, type PointerEvent, type WheelEvent } from "react";
 
 export function usePanZoom() {
   const [transform, setTransform] = useState({ x: 0, y: 0, scale: 1 });
+  const [fitScale, setFitScale] = useState(1);
   const [isDragging, setIsDragging] = useState(false);
   const startPos = useRef({ x: 0, y: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // ResizeObserver to track container size changes, update fitScale, and scale map proportionally
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const { width, height } = entry.contentRect;
+        if (width > 0 && height > 0) {
+          const mapWidth = 4500;
+          const mapHeight = 2181.82;
+          const newFit = Math.min(width / mapWidth, height / mapHeight);
+          
+          setFitScale((prevFit) => {
+            if (prevFit !== newFit) {
+              setTransform((prevTransform) => {
+                const currentRelative = prevTransform.scale / (prevFit || 1);
+                const targetAbsolute = currentRelative * newFit;
+                
+                // If it was default scale (1.0) and uninitialized fit (1.0), center it cleanly
+                if (prevTransform.scale === 1 && prevFit === 1) {
+                  return {
+                    x: width / 2 - (mapWidth / 2) * targetAbsolute,
+                    y: height / 2 - (mapHeight * 0.435) * targetAbsolute,
+                    scale: targetAbsolute
+                  };
+                }
+
+                const ratio = targetAbsolute / prevTransform.scale;
+                return {
+                  x: prevTransform.x * ratio,
+                  y: prevTransform.y * ratio,
+                  scale: targetAbsolute
+                };
+              });
+            }
+            return newFit;
+          });
+        }
+      }
+    });
+
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
   const handlePointerDown = useCallback((e: PointerEvent<HTMLDivElement>) => {
     // Only allow left click panning
@@ -29,9 +76,6 @@ export function usePanZoom() {
   }, []);
 
   const handleWheel = useCallback((e: WheelEvent<HTMLDivElement>) => {
-    // Prevent default scroll in the container via an effect or passive=false event listener, 
-    // but React's onWheel is passive. We will add a manual ref event listener in the component.
-    
     if (!containerRef.current) return;
     
     const rect = containerRef.current.getBoundingClientRect();
@@ -43,16 +87,18 @@ export function usePanZoom() {
     
     setTransform(prev => {
       let newScale = prev.scale * (1 + delta);
-      newScale = Math.min(Math.max(0.2, newScale), 5); // Limit zoom between 0.2x and 5x
+      // Limit zoom between 0.2x and 5x of the fit scale
+      const minScale = 0.2 * fitScale;
+      const maxScale = 5 * fitScale;
+      newScale = Math.min(Math.max(minScale, newScale), maxScale);
 
       const scaleRatio = newScale / prev.scale;
-
       const newX = mouseX - (mouseX - prev.x) * scaleRatio;
       const newY = mouseY - (mouseY - prev.y) * scaleRatio;
 
       return { x: newX, y: newY, scale: newScale };
     });
-  }, []);
+  }, [fitScale]);
 
   const recenter = useCallback(() => {
     if (!containerRef.current) return;
@@ -68,6 +114,7 @@ export function usePanZoom() {
     const y = rect.height / 2 - (mapHeight * 0.435) * scale;
     
     setTransform({ x, y, scale });
+    setFitScale(scale);
   }, []);
 
   const zoomIn = useCallback(() => {
@@ -78,13 +125,13 @@ export function usePanZoom() {
 
     setTransform(prev => {
       let newScale = prev.scale * 1.25;
-      newScale = Math.min(newScale, 5); // Limit zoom to 5x
+      newScale = Math.min(newScale, 5 * fitScale); // Limit zoom to 5x of fit scale
       const scaleRatio = newScale / prev.scale;
       const newX = centerX - (centerX - prev.x) * scaleRatio;
       const newY = centerY - (centerY - prev.y) * scaleRatio;
       return { x: newX, y: newY, scale: newScale };
     });
-  }, []);
+  }, [fitScale]);
 
   const zoomOut = useCallback(() => {
     if (!containerRef.current) return;
@@ -94,31 +141,36 @@ export function usePanZoom() {
 
     setTransform(prev => {
       let newScale = prev.scale / 1.25;
-      newScale = Math.max(newScale, 0.2); // Limit zoom to 0.2x
+      newScale = Math.max(newScale, 0.2 * fitScale); // Limit zoom to 0.2x of fit scale
       const scaleRatio = newScale / prev.scale;
       const newX = centerX - (centerX - prev.x) * scaleRatio;
       const newY = centerY - (centerY - prev.y) * scaleRatio;
       return { x: newX, y: newY, scale: newScale };
     });
-  }, []);
+  }, [fitScale]);
 
-  const zoomToScale = useCallback((newScale: number) => {
+  const zoomToScale = useCallback((relativeScale: number) => {
     if (!containerRef.current) return;
     const rect = containerRef.current.getBoundingClientRect();
     const centerX = rect.width / 2;
     const centerY = rect.height / 2;
+    const targetAbsoluteScale = relativeScale * fitScale;
 
     setTransform(prev => {
-      const clampedScale = Math.min(Math.max(newScale, 0.2), 5);
+      const clampedScale = Math.min(Math.max(targetAbsoluteScale, 0.2 * fitScale), 5 * fitScale);
       const scaleRatio = clampedScale / prev.scale;
       const newX = centerX - (centerX - prev.x) * scaleRatio;
       const newY = centerY - (centerY - prev.y) * scaleRatio;
       return { x: newX, y: newY, scale: clampedScale };
     });
-  }, []);
+  }, [fitScale]);
+
+  // Compute the current user-facing relative zoom level (e.g. 1.0 = 100%)
+  const relativeScale = transform.scale / (fitScale || 1);
 
   return {
     transform,
+    relativeScale,
     isDragging,
     containerRef,
     handlePointerDown,
