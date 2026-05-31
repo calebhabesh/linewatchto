@@ -1,22 +1,33 @@
 "use client";
 
 import { reliabilitySummaries, ingestionHealth } from "../app/linewatch-data";
-import { BarChart3, ShieldCheck } from "lucide-react";
+import { BarChart3, ShieldCheck, ChevronLeft } from "lucide-react";
 
-export function ReliabilityPanel() {
+interface ReliabilityProps {
+  onBack?: () => void;
+}
+
+export function ReliabilityPanel({ onBack }: ReliabilityProps = {}) {
   return (
-    <section className="analytics-panel min-w-0 bg-[#12151c]/90 border border-black/10 dark:border-white/10 rounded-lg shadow-lg">
+    <section className="analytics-panel min-w-0 border border-black/10 dark:border-white/10 rounded-lg shadow-xl" style={{ WebkitBackfaceVisibility: "hidden", backfaceVisibility: "hidden" }}>
       <div className="panel-heading border-b border-black/10 dark:border-white/10 px-4 py-3">
-        <h2 className="text-base font-semibold text-slate-900 dark:text-white flex min-w-0 items-center gap-2">
-          <BarChart3 size={18} className="text-purple-500" />
-          Reliability Analytics (7-Day)
-        </h2>
+        <div className="flex items-center gap-1">
+          {onBack && (
+            <button onClick={onBack} className="p-2 -ml-3 mr-1 hover:bg-black/10 dark:hover:bg-white/10 rounded-lg transition-colors cursor-pointer shrink-0">
+              <ChevronLeft size={28} className="text-slate-700 dark:text-slate-300" />
+            </button>
+          )}
+          <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2 whitespace-nowrap">
+            <BarChart3 size={22} className="text-purple-500 shrink-0" />
+            Reliability Analytics (7-Day)
+          </h2>
+        </div>
       </div>
       <div className="reliability-list min-w-0 p-3 flex flex-col gap-2">
         {reliabilitySummaries.map((item) => (
           <div
             key={item.lineId}
-            className="reliability-row min-w-0 p-3 rounded-lg bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5 flex flex-col justify-between gap-3"
+            className="reliability-row min-w-0 p-3 rounded-lg !bg-slate-50 dark:!bg-[#12151c] border border-black/5 dark:border-white/5 flex flex-col justify-between gap-3"
           >
             <div className="flex min-w-0 items-start gap-2.5">
               <span
@@ -58,7 +69,7 @@ export function ReliabilityPanel() {
 
 export function IngestionHealthPanel() {
   return (
-    <section className="health-panel min-w-0 bg-[#12151c]/90 border border-black/10 dark:border-white/10 rounded-lg shadow-lg">
+    <section className="health-panel min-w-0 border border-black/10 dark:border-white/10 rounded-lg shadow-xl">
       <div className="panel-heading border-b border-black/10 dark:border-white/10 px-4 py-3">
         <h2 className="text-base font-semibold text-slate-900 dark:text-white flex min-w-0 items-center gap-2">
           <ShieldCheck size={18} className="text-emerald-500" />
@@ -69,7 +80,7 @@ export function IngestionHealthPanel() {
         {ingestionHealth.map((health, idx) => (
           <div
             key={idx}
-            className="health-item min-w-0 p-3 rounded-lg bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5 flex gap-3 items-start"
+            className="health-item min-w-0 p-3 rounded-lg !bg-slate-50 dark:!bg-[#12151c] border border-black/5 dark:border-white/5 flex gap-3 items-start"
           >
             <span className="flex-shrink-0 w-2.5 h-2.5 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)] mt-1.5" />
             <div className="min-w-0">

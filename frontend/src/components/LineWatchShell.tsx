@@ -1,29 +1,28 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Image from "next/image";
 import { DynamicBackground } from "./DynamicBackground";
 import { InteractiveTtcMap } from "./InteractiveTtcMap";
-import { LineStatusPanel } from "./LineStatusPanel";
 import { ActiveAlertsPanel } from "./ActiveAlertsPanel";
 import { PlannedClosuresPanel } from "./PlannedClosuresPanel";
 import { SavedCommutesPanel } from "./SavedCommutesPanel";
-import { ReliabilityPanel, IngestionHealthPanel } from "./ReliabilityPanel";
+import { ReliabilityPanel } from "./ReliabilityPanel";
 import { LineLegend } from "./LineLegend";
-import { generatedAt, activeAlerts } from "../app/linewatch-data";
-import { Menu, PanelLeftClose, PanelLeftOpen, X } from "lucide-react";
+import { generatedAt, activeAlerts, lineStatuses, ingestionHealth, plannedClosures } from "../app/linewatch-data";
+import { Menu, X, Map as MapIcon, AlertTriangle, Calendar, Navigation, ShieldCheck, BarChart3 } from "lucide-react";
+
+type ActiveView = "map" | "menu" | "alerts" | "closures" | "commutes" | "analytics";
 
 export function LineWatchShell() {
   const [isDark, setIsDark] = useState(true);
   const [reducedMotion, setReducedMotion] = useState(false);
-  const [drawerOpen, setDrawerOpen] = useState(false);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [mapLayoutSignal, setMapLayoutSignal] = useState(0);
+  const [activeView, setActiveView] = useState<ActiveView>("map");
   
   // Interactive linking state
   const [selectedAlertId, setSelectedAlertId] = useState<string | null>(null);
   const [selectedClosureId, setSelectedClosureId] = useState<string | null>(null);
 
-  // Check system preference for reduced motion
   useEffect(() => {
     const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
     Promise.resolve().then(() => setReducedMotion(mediaQuery.matches));
@@ -32,64 +31,161 @@ export function LineWatchShell() {
     return () => mediaQuery.removeEventListener("change", handler);
   }, []);
 
-  const desktopOffsetClasses = sidebarCollapsed
-    ? "lg:left-0 lg:w-full"
-    : "lg:left-[520px] lg:w-[calc(100%-520px)]";
-  const desktopMapOffsetClasses = sidebarCollapsed ? "lg:left-0" : "lg:left-[520px]";
-  const desktopSidebarTransformClasses = sidebarCollapsed ? "lg:-translate-x-full" : "lg:translate-x-0";
-
-  const handleOpenStatusMenu = () => {
-    if (sidebarCollapsed) {
-      setMapLayoutSignal((signal) => signal + 1);
-    }
-    setSidebarCollapsed(false);
-    setDrawerOpen(true);
-  };
-
-  const handleCollapseStatusSidebar = () => {
-    setSidebarCollapsed(true);
-    setMapLayoutSignal((signal) => signal + 1);
+  const handleToggleMenu = () => {
+    setActiveView(prev => {
+      if (prev !== "menu" && prev !== "map") {
+        setSelectedAlertId(null);
+        setSelectedClosureId(null);
+      }
+      return prev === "menu" ? "map" : "menu";
+    });
   };
 
   return (
-    <div className={`relative w-full h-screen overflow-hidden transition-colors duration-500 ${isDark ? "dark bg-[#0d0808] text-slate-100" : "bg-slate-50 text-slate-900"}`}>
+    <div className={`linewatch-shell relative w-full h-screen overflow-hidden transition-colors duration-500 ${isDark ? "dark bg-[#0d0808] text-slate-100" : "bg-slate-50 text-slate-900"}`}>
       {/* Background */}
       <DynamicBackground reducedMotion={reducedMotion} isDark={isDark} />
       
       {/* Top Floating Header Controls */}
-      <header className={`absolute top-0 left-0 w-full p-4 sm:p-6 z-20 flex justify-between items-start pointer-events-none transition-[left,width] duration-300 ${desktopOffsetClasses}`}>
-        <div className="flex items-center gap-3 pointer-events-auto">
-          {/* Menu Drawer Toggle Button */}
+      <header className={`absolute top-0 left-0 w-full p-4 sm:p-6 z-40 flex justify-between items-start pointer-events-none`}>
+        <div className="flex items-start gap-3 pointer-events-auto relative">
+          {/* Menu Toggle Button */}
           <button
-            onClick={handleOpenStatusMenu}
-            className={`relative flex items-center justify-center w-12 h-12 rounded-xl bg-white/80 dark:bg-[#12151c]/80 border border-black/10 dark:border-white/10 backdrop-blur-md shadow-lg text-slate-800 dark:text-white hover:bg-slate-100 dark:hover:bg-[#1b1f2b] transition-all cursor-pointer ${
-              sidebarCollapsed ? "lg:flex" : "lg:hidden"
-            }`}
-            aria-label={sidebarCollapsed ? "Open status sidebar" : "Open status menu"}
+            onClick={handleToggleMenu}
+            className={`panel relative flex items-center justify-center w-14 h-14 rounded-xl border border-black/10 dark:border-white/10 shadow-lg hover:!bg-slate-100 dark:hover:!bg-[#1a1e28] hover:scale-105 active:scale-95 outline-none focus-visible:ring-4 focus-visible:ring-black/10 dark:focus-visible:ring-white/10 transition-all cursor-pointer`}
+            aria-label={"Toggle menu"}
           >
-            {sidebarCollapsed ? <PanelLeftOpen size={22} /> : <Menu size={22} />}
-            {activeAlerts.length > 0 && (
+            <div className="relative w-7 h-7 flex items-center justify-center">
+               <Menu 
+                  className={`absolute text-slate-800 dark:text-white transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] ${activeView === "menu" ? "opacity-0 rotate-90 scale-50" : "opacity-100 rotate-0 scale-100"}`} 
+                  size={26} 
+               />
+               <X 
+                  className={`absolute text-slate-800 dark:text-white transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] ${activeView === "menu" ? "opacity-100 rotate-0 scale-100" : "opacity-0 -rotate-90 scale-50"}`} 
+                  size={26} 
+               />
+            </div>
+            {activeAlerts.length > 0 && activeView !== "menu" && (
               <span className="absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-black text-white shadow-md border border-white dark:border-[#12151c]">
                 {activeAlerts.length}
               </span>
             )}
           </button>
-          
-          {/* Branding Block */}
-          <div className="flex items-center gap-4 bg-white/80 dark:bg-[#12151c]/80 p-3 pr-6 rounded-2xl border border-black/10 dark:border-white/10 backdrop-blur-md shadow-lg">
-            <div className="flex items-center justify-center w-10 h-10 bg-red-600 font-black text-white rounded-xl shadow-inner tracking-tighter text-lg border border-red-500">
-              LW
+
+          {/* Floating Dropdown Menu */}
+          <div className={`panel-strong absolute top-[72px] left-0 w-[min(calc(100vw-32px),360px)] border border-black/10 dark:border-white/10 rounded-2xl shadow-2xl overflow-hidden flex flex-col origin-top-left [transition-property:opacity,transform] duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] ${activeView === "menu" ? "opacity-100 scale-100 translate-y-0 pointer-events-auto" : "opacity-0 scale-95 -translate-y-4 pointer-events-none"}`}>
+               {/* Branding */}
+               <div className="flex items-center gap-3 p-4 border-b border-black/10 dark:border-white/10 bg-white/40 dark:bg-black/20">
+                 <div className="flex items-center justify-center shrink-0 w-8 h-8 rounded-lg shadow-sm border border-black/10 dark:border-white/10 bg-white dark:bg-white/10 p-1">
+                    <Image src="/assets/linewatch/logo.svg" alt="LineWatch TO Logo" width={24} height={24} className="drop-shadow-sm dark:brightness-200" />
+                 </div>
+                 <strong className="text-slate-900 dark:text-white font-bold tracking-wide">LineWatch TO</strong>
+               </div>
+               
+               {/* Nav Links */}
+               <div className="flex flex-col p-2 border-b border-black/10 dark:border-white/10">
+                 <button onClick={() => { setActiveView("map"); setSelectedAlertId(null); setSelectedClosureId(null); }} className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors">
+                   <MapIcon size={18} className="text-slate-500 dark:text-slate-400" /> Map
+                 </button>
+                 <button onClick={() => setActiveView("alerts")} className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors">
+                   <div className="flex items-center gap-3">
+                     <AlertTriangle size={18} className="text-slate-500 dark:text-slate-400" /> Active Alerts
+                   </div>
+                   {activeAlerts.length > 0 && (
+                     <span className="flex h-5 items-center justify-center rounded-full bg-red-500/20 px-2 text-[10px] font-bold text-red-600 dark:text-red-400">
+                       {activeAlerts.length}
+                     </span>
+                   )}
+                 </button>
+                 <button onClick={() => setActiveView("closures")} className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors">
+                   <div className="flex items-center gap-3">
+                     <Calendar size={18} className="text-slate-500 dark:text-slate-400" /> Upcoming Closures
+                   </div>
+                   {plannedClosures.length > 0 && (
+                     <span className="flex h-5 items-center justify-center rounded-full bg-blue-500/20 px-2 text-[10px] font-bold text-blue-600 dark:text-blue-400">
+                       {plannedClosures.length}
+                     </span>
+                   )}
+                 </button>
+                 <button onClick={() => setActiveView("commutes")} className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors">
+                   <Navigation size={18} className="text-slate-500 dark:text-slate-400" /> Saved Commutes
+                 </button>
+                 <button onClick={() => setActiveView("analytics")} className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors">
+                   <BarChart3 size={18} className="text-slate-500 dark:text-slate-400" /> Reliability Analytics
+                 </button>
+               </div>
+
+               {/* Toggles */}
+               <div className="flex flex-col p-2 border-b border-black/10 dark:border-white/10">
+                 <div className="flex items-center justify-between px-3 py-2.5">
+                   <span className="text-sm font-medium text-slate-700 dark:text-slate-200">High Contrast Mode</span>
+                   <button 
+                      onClick={() => setIsDark(!isDark)}
+                      className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${!isDark ? 'bg-blue-500' : 'bg-slate-300 dark:bg-slate-600'}`}
+                   >
+                     <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${!isDark ? 'translate-x-4' : 'translate-x-1'}`} />
+                   </button>
+                 </div>
+                 <div className="flex items-center justify-between px-3 py-2.5">
+                   <span className="text-sm font-medium text-slate-700 dark:text-slate-200">Reduced Motion</span>
+                   <button 
+                      onClick={() => setReducedMotion(!reducedMotion)}
+                      className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${reducedMotion ? 'bg-blue-500' : 'bg-slate-300 dark:bg-slate-600'}`}
+                   >
+                     <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${reducedMotion ? 'translate-x-4' : 'translate-x-1'}`} />
+                   </button>
+                 </div>
+               </div>
+
+               {/* At-A-Glance Integrated Sub-panels */}
+               <div className="flex flex-col p-4 gap-4">
+                 <div className="flex flex-col gap-2">
+                   <span className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 tracking-wider">Line Status</span>
+                   <div className="flex flex-col gap-2">
+                     {lineStatuses.map(l => (
+                       <div key={l.id} className="flex items-start gap-3 px-2 py-2 rounded-lg !bg-white dark:!bg-[#12151c] border border-black/5 dark:border-white/5 shadow-sm">
+                          <span className="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold shadow-sm border border-black dark:border-white/30" style={{ backgroundColor: l.color, color: l.id === "line-1" ? "#000" : "#fff" }}>
+                            {l.number}
+                          </span>
+                          <div className="flex flex-col">
+                             <div className="flex items-center gap-2">
+                               <span className="text-sm font-bold text-slate-800 dark:text-slate-200">{l.name}</span>
+                               {l.status === "suspension" && <span className="text-[10px] font-bold text-red-600 dark:text-red-400 uppercase tracking-wider flex items-center gap-1"><AlertTriangle size={12}/> Suspended</span>}
+                               {l.status === "delay" && <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider flex items-center gap-1"><AlertTriangle size={12}/> Delay</span>}
+                               {l.status === "normal" && <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">Good Service</span>}
+                             </div>
+                             {(l.status === "suspension" || l.status === "delay") && <span className="text-xs text-slate-600 dark:text-slate-400 leading-snug mt-1">{l.summary}</span>}
+                          </div>
+                       </div>
+                     ))}
+                   </div>
+                 </div>
+                 
+                 <div className="flex flex-col mt-2 pt-3 border-t border-black/10 dark:border-white/10">
+                   <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 mb-2">
+                     <ShieldCheck size={16} />
+                     <span className="text-[11px] font-bold uppercase tracking-wider">Ingestion Health (Poll: {generatedAt.lastPoll})</span>
+                   </div>
+                   <div className="grid grid-cols-2 gap-2">
+                     {ingestionHealth.map((health, idx) => (
+                       <div key={idx} className="flex flex-col !bg-white dark:!bg-[#12151c] p-2 rounded-lg border border-black/5 dark:border-white/5">
+                          <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{health.label}</span>
+                          <span className="text-xs font-medium text-slate-800 dark:text-slate-300 leading-tight mt-1">{health.value}</span>
+                       </div>
+                     ))}
+                   </div>
+                 </div>
+               </div>
             </div>
-            <div className="flex flex-col">
-              <h1 className="text-slate-900 dark:text-white font-bold leading-tight tracking-wide">LineWatch TO</h1>
-              <span className="text-slate-500 dark:text-white/50 text-xs font-semibold uppercase tracking-widest">Network Status</span>
-            </div>
-          </div>
         </div>
 
         {/* Floating Time Capsule (Top Center) */}
         <div className="hidden sm:flex absolute top-6 left-1/2 -translate-x-1/2 z-20 pointer-events-auto">
-          <div className="bg-white/80 dark:bg-[#12151c]/80 border border-black/10 dark:border-white/10 backdrop-blur-md shadow-lg rounded-2xl px-5 py-2.5 flex items-center gap-3">
+          <div className="bg-white dark:bg-[#0a0c10] border border-black/10 dark:border-white/10 shadow-lg rounded-2xl p-1.5 flex items-center gap-3 pr-5 transition-transform hover:scale-105">
+            <div className="flex items-center justify-center shrink-0 w-8 h-8 rounded-xl shadow-sm border border-black/10 dark:border-white/10 bg-slate-50 dark:bg-white/10 p-1 ml-0.5">
+               <Image src="/assets/linewatch/logo.svg" alt="LineWatch TO Logo" width={24} height={24} className="drop-shadow-sm dark:brightness-200" />
+            </div>
+            <span className="h-4 w-px bg-slate-300 dark:bg-white/10" />
             <span className="text-slate-500 dark:text-slate-400 text-xs font-semibold uppercase tracking-wider">Last poll:</span>
             <strong className="text-sm font-bold text-slate-800 dark:text-white">{generatedAt.lastPoll}</strong>
             <span className="h-4 w-px bg-slate-300 dark:bg-white/10" />
@@ -99,12 +195,44 @@ export function LineWatchShell() {
           </div>
         </div>
         
-        {/* Balanced spacer for flex alignment since controls are now embedded in map */}
         <div className="w-12 h-12" />
       </header>
 
+      {/* Floating Submenus (Alerts, Closures, Commutes, Analytics) */}
+      <div className={`absolute top-[88px] sm:top-[104px] left-4 sm:left-6 z-30 w-[min(calc(100vw-32px),540px)] flex flex-col [transition-property:opacity,transform] duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] ${activeView === "alerts" ? "opacity-100 translate-x-0 pointer-events-auto" : "opacity-0 -translate-x-8 pointer-events-none"}`}>
+         <div className="max-h-[85vh] overflow-y-auto pr-1 pb-4 flex flex-col gap-4">
+           <ActiveAlertsPanel 
+             selectedAlertId={selectedAlertId}
+             onSelectAlertId={setSelectedAlertId}
+             onBack={() => { setActiveView("menu"); setSelectedAlertId(null); }}
+           />
+         </div>
+      </div>
+
+      <div className={`absolute top-[88px] sm:top-[104px] left-4 sm:left-6 z-30 w-[min(calc(100vw-32px),540px)] flex flex-col [transition-property:opacity,transform] duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] ${activeView === "closures" ? "opacity-100 translate-x-0 pointer-events-auto" : "opacity-0 -translate-x-8 pointer-events-none"}`}>
+         <div className="max-h-[85vh] overflow-y-auto pr-1 pb-4 flex flex-col gap-4">
+           <PlannedClosuresPanel 
+             selectedClosureId={selectedClosureId}
+             onSelectClosureId={setSelectedClosureId}
+             onBack={() => { setActiveView("menu"); setSelectedClosureId(null); }}
+           />
+         </div>
+      </div>
+
+      <div className={`absolute top-[88px] sm:top-[104px] left-4 sm:left-6 z-30 w-[min(calc(100vw-32px),540px)] flex flex-col [transition-property:opacity,transform] duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] ${activeView === "commutes" ? "opacity-100 translate-x-0 pointer-events-auto" : "opacity-0 -translate-x-8 pointer-events-none"}`}>
+         <div className="max-h-[85vh] overflow-y-auto pr-1 pb-4 flex flex-col gap-4">
+           <SavedCommutesPanel onBack={() => setActiveView("menu")} />
+         </div>
+      </div>
+
+      <div className={`absolute top-[88px] sm:top-[104px] left-4 sm:left-6 z-30 w-[min(calc(100vw-32px),540px)] flex flex-col [transition-property:opacity,transform] duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] ${activeView === "analytics" ? "opacity-100 translate-x-0 pointer-events-auto" : "opacity-0 -translate-x-8 pointer-events-none"}`}>
+         <div className="max-h-[85vh] overflow-y-auto pr-1 pb-4 flex flex-col gap-4">
+           <ReliabilityPanel onBack={() => setActiveView("menu")} />
+         </div>
+      </div>
+
       {/* Main Viewport (TTC Map Front & Center, Borderless) */}
-      <main className={`absolute inset-0 z-10 transition-[left] duration-300 ${desktopMapOffsetClasses}`}>
+      <main className={`absolute inset-0 z-10`}>
         <InteractiveTtcMap 
           selectedAlertId={selectedAlertId}
           selectedClosureId={selectedClosureId}
@@ -112,75 +240,22 @@ export function LineWatchShell() {
           onSelectClosureId={setSelectedClosureId}
           isDark={isDark}
           onToggleTheme={() => setIsDark(!isDark)}
-          layoutResetSignal={mapLayoutSignal}
+          layoutResetSignal={0}
         />
       </main>
 
+      {/* Cardinal North Compass (Custom Positioning) */}
+      <div className="fixed bottom-95 right-20 z-20 pointer-events-auto select-none">
+        {/* You can change 'bottom-36' and 'right-8' to any value, or use exact pixels like 'bottom-[120px] right-[40px]' */}
+        <Image src="/assets/linewatch/cardinal-north.svg" alt="North arrow" width={75} height={100} className="dark:invert drop-shadow-md" />
+      </div>
+
       {/* Fixed borderless legend at the bottom right */}
-      <aside className="fixed bottom-6 right-6 z-20 pointer-events-none">
-        <LineLegend />
-      </aside>
-
-      {/* Backdrop overlay for active drawer */}
-      {drawerOpen && (
-        <div 
-          className="fixed inset-0 bg-black/40 backdrop-blur-sm z-30 pointer-events-auto transition-opacity duration-300 lg:hidden"
-          onClick={() => setDrawerOpen(false)}
+      <aside className="fixed bottom-6 right-6 z-20 pointer-events-auto">
+        <LineLegend 
+          onAlertClick={(id) => { setActiveView("alerts"); setSelectedAlertId(id); }} 
+          onClosureClick={(id) => { setActiveView("closures"); setSelectedClosureId(id); }}
         />
-      )}
-
-      {/* Side Menu Drawer (Left Side Slide-out) */}
-      <aside 
-        className={`fixed top-0 left-0 bottom-0 z-40 w-[min(100vw,520px)] max-w-[520px] lg:w-[520px] lg:max-w-[520px] bg-[#f8fafc]/95 dark:bg-[#0a0c10]/95 backdrop-blur-xl border-r border-black/10 dark:border-white/10 shadow-2xl p-4 sm:p-6 transition-transform duration-300 transform overflow-y-auto flex flex-col gap-6 pointer-events-auto ${
-          drawerOpen ? "translate-x-0" : "-translate-x-full"
-        } ${desktopSidebarTransformClasses}`}
-      >
-        {/* Drawer Header */}
-        <div className="flex items-center justify-between border-b border-black/10 dark:border-white/10 pb-4">
-          <div className="flex items-center gap-3">
-            <div className="flex items-center justify-center w-8 h-8 bg-red-600 font-black text-white rounded-lg shadow-inner tracking-tighter text-sm border border-red-500">
-              LW
-            </div>
-            <strong className="text-slate-900 dark:text-white font-bold tracking-wide">Transit Operations</strong>
-          </div>
-          <div className="flex items-center gap-2">
-            <button 
-              onClick={handleCollapseStatusSidebar}
-              className="hidden lg:flex p-1.5 hover:bg-black/5 dark:hover:bg-white/10 rounded-md transition-colors text-slate-500 dark:text-white/50 hover:text-slate-900 dark:hover:text-white cursor-pointer"
-              aria-label="Collapse status sidebar"
-              title="Collapse status sidebar"
-            >
-              <PanelLeftClose size={18} />
-            </button>
-            <button 
-              onClick={() => setDrawerOpen(false)}
-              className="p-1.5 hover:bg-black/5 dark:hover:bg-white/10 rounded-md transition-colors text-slate-500 dark:text-white/50 hover:text-slate-900 dark:hover:text-white cursor-pointer lg:hidden"
-              aria-label="Close menu"
-            >
-              <X size={18} />
-            </button>
-          </div>
-        </div>
-
-        {/* Scrollable Panel content */}
-        <div className="flex min-w-0 flex-col gap-5 pr-1 pb-4">
-          <LineStatusPanel />
-          <ActiveAlertsPanel 
-            selectedAlertId={selectedAlertId}
-            onSelectAlertId={(id) => {
-              setSelectedAlertId(id);
-            }}
-          />
-          <PlannedClosuresPanel 
-            selectedClosureId={selectedClosureId}
-            onSelectClosureId={(id) => {
-              setSelectedClosureId(id);
-            }}
-          />
-          <SavedCommutesPanel />
-          <ReliabilityPanel />
-          <IngestionHealthPanel />
-        </div>
       </aside>
     </div>
   );

@@ -49,6 +49,51 @@ body {
   font-family: var(--font-sans);
 }
 
+.linewatch-shell {
+  --panel: rgba(255, 255, 255, 0.94);
+  --panel-strong: rgba(255, 255, 255, 0.98);
+  --panel-soft: rgba(15, 23, 42, 0.08);
+  --border: rgba(15, 23, 42, 0.12);
+  --border-strong: rgba(15, 23, 42, 0.22);
+  --text: #0f172a;
+  --muted: #475569;
+  --quiet: #64748b;
+  --danger: #dc2626;
+  --warning: #d97706;
+  --ok: #16a34a;
+  --planned: #2563eb;
+  --shadow: 0 8px 30px rgba(15, 23, 42, 0.12);
+}
+
+.linewatch-shell.dark {
+  --panel: rgba(10, 12, 16, 0.94);
+  --panel-strong: rgba(10, 12, 16, 0.98);
+  --panel-soft: rgba(255, 255, 255, 0.07);
+  --border: rgba(255, 255, 255, 0.16);
+  --border-strong: rgba(255, 255, 255, 0.26);
+  --text: #f7f8fb;
+  --muted: #aab1bd;
+  --quiet: #747d8c;
+  --danger: #ff4545;
+  --warning: #ff9f1c;
+  --ok: #30d175;
+  --planned: #4aa3ff;
+  --shadow: 0 10px 40px rgba(0, 0, 0, 0.35);
+}
+
+.linewatch-backdrop {
+  background-color: #f8fafc;
+}
+
+.linewatch-backdrop--dark {
+  background-color: #0d0808;
+}
+
+.linewatch-backdrop canvas {
+  inset: 0;
+  position: absolute !important;
+}
+
 button,
 input,
 select,
@@ -280,6 +325,13 @@ button {
 .analytics-panel,
 .health-panel {
   background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+}
+
+.panel-strong {
+  background: var(--panel-strong);
   border: 1px solid var(--border);
   border-radius: 8px;
   box-shadow: var(--shadow);
@@ -559,7 +611,7 @@ button {
 .line-badge {
   align-items: center;
   background: #f4c430;
-  border: 1px solid rgba(255, 255, 255, 0.32);
+  border: 1px solid #000000;
   border-radius: 999px;
   color: #08090d;
   display: inline-grid;
@@ -569,6 +621,10 @@ button {
   justify-items: center;
   min-width: 28px;
   padding: 0 7px;
+}
+
+.dark .line-badge {
+  border-color: rgba(255, 255, 255, 0.32);
 }
 
 .line-badge.small {
@@ -950,4 +1006,16 @@ button {
     padding-left: 10px;
     padding-right: 10px;
   }
+}
+
+@keyframes highlight-glow {
+  0% { box-shadow: 0 0 0px rgba(59, 130, 246, 0), inset 0 0 0px rgba(59, 130, 246, 0); }
+  25% { box-shadow: 0 0 25px rgba(59, 130, 246, 1), inset 0 0 8px rgba(59, 130, 246, 0.6); }
+  50% { box-shadow: 0 0 10px rgba(59, 130, 246, 0.4), inset 0 0 4px rgba(59, 130, 246, 0.2); }
+  75% { box-shadow: 0 0 25px rgba(59, 130, 246, 1), inset 0 0 8px rgba(59, 130, 246, 0.6); }
+  100% { box-shadow: 0 0 10px rgba(59, 130, 246, 0.35), inset 0 0 4px rgba(59, 130, 246, 0.1); }
+}
+
+.highlight-active-card {
+  animation: highlight-glow 2s ease-in-out forwards;
 }

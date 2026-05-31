@@ -1,43 +1,66 @@
 "use client";
 
+import { useState, useRef, useEffect } from "react";
 import { plannedClosures } from "../app/linewatch-data";
-import { Calendar, Eye, EyeOff, Bus } from "lucide-react";
+import { Calendar, Eye, EyeOff, Bus, ChevronLeft } from "lucide-react";
 
-export function PlannedClosuresPanel({
-  selectedClosureId,
-  onSelectClosureId,
-}: {
-  selectedClosureId: string | null;
-  onSelectClosureId: (id: string | null) => void;
-}) {
-  const handleClosureClick = (closureId: string) => {
-    if (selectedClosureId === closureId) {
-      onSelectClosureId(null);
+interface Props {
+  selectedClosureId?: string | null;
+  onSelectClosureId?: (id: string | null) => void;
+  onBack?: () => void;
+}
+
+export function PlannedClosuresPanel({ selectedClosureId, onSelectClosureId, onBack }: Props) {
+  const internalClickRef = useRef(false);
+  const [flashId, setFlashId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (internalClickRef.current) {
+      internalClickRef.current = false;
+      setFlashId(null);
     } else {
-      onSelectClosureId(closureId);
+      setFlashId(selectedClosureId || null);
+    }
+  }, [selectedClosureId]);
+
+  const handleClosureClick = (closureId: string) => {
+    internalClickRef.current = true;
+    if (onSelectClosureId) {
+      if (selectedClosureId === closureId) {
+        onSelectClosureId(null);
+      } else {
+        onSelectClosureId(closureId);
+      }
     }
   };
 
   return (
-    <section className="panel min-w-0 bg-[#12151c]/90 border border-black/10 dark:border-white/10 rounded-lg shadow-lg">
+    <section className="panel min-w-0 border border-black/10 dark:border-white/10 rounded-lg shadow-xl">
       <div className="panel-heading border-b border-black/10 dark:border-white/10 px-4 py-3 flex items-center justify-between gap-3">
-        <h2 className="text-base font-semibold text-slate-900 dark:text-white flex min-w-0 items-center gap-2">
-          <Calendar size={18} className="text-blue-500" />
-          Planned Closures
-        </h2>
+        <div className="flex items-center gap-1">
+          {onBack && (
+            <button onClick={onBack} className="p-2 -ml-3 mr-1 hover:bg-black/10 dark:hover:bg-white/10 rounded-lg transition-colors cursor-pointer shrink-0">
+              <ChevronLeft size={28} className="text-slate-700 dark:text-slate-300" />
+            </button>
+          )}
+          <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2 whitespace-nowrap">
+            <Calendar size={22} className="text-blue-500 shrink-0" />
+            Upcoming Closures
+          </h2>
+        </div>
         <span className="shrink-0 text-xs bg-blue-500/10 text-blue-500 px-2 py-0.5 rounded-full font-bold">
           {plannedClosures.length} Upcoming
         </span>
       </div>
-      <div className="closure-stack min-w-0 p-3 flex flex-col gap-2 max-h-[300px] overflow-y-auto">
+      <div className="closure-stack min-w-0 p-3 flex flex-col gap-2">
         {plannedClosures.map((closure) => {
           const isActive = selectedClosureId === closure.id;
           return (
             <div
               key={closure.id}
-              className={`closure-card min-w-0 p-3 rounded-lg bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 transition-all ${
-                isActive ? "border-blue-500/50 bg-blue-500/5 dark:bg-blue-500/5" : ""
-              }`}
+              className={`closure-card min-w-0 p-3 rounded-lg !bg-slate-50 dark:!bg-[#12151c] border border-black/10 dark:border-white/10 transition-all ${
+                isActive ? "!bg-blue-50 dark:!bg-blue-950" : ""
+              } ${flashId === closure.id ? "highlight-active-card" : ""}`}
             >
               <div className="flex items-start justify-between gap-3 w-full min-w-0">
                 <div className="flex min-w-0 flex-1 items-start gap-2">

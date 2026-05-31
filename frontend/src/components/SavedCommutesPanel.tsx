@@ -1,9 +1,13 @@
 "use client";
 
 import { commuteImpacts } from "../app/linewatch-data";
-import { Navigation, CheckCircle2, AlertCircle, AlertOctagon } from "lucide-react";
+import { Navigation, CheckCircle2, AlertCircle, AlertOctagon, ChevronLeft } from "lucide-react";
 
-export function SavedCommutesPanel() {
+interface Props {
+  onBack?: () => void;
+}
+
+export function SavedCommutesPanel({ onBack }: Props = {}) {
   const getImpactClass = (impact: string) => {
     switch (impact) {
       case "suspended":
@@ -48,20 +52,30 @@ export function SavedCommutesPanel() {
   };
 
   return (
-    <section className="commute-panel min-w-0 bg-[#12151c]/90 border border-black/10 dark:border-white/10 rounded-lg shadow-lg">
+    <section className="commute-panel min-w-0 border border-black/10 dark:border-white/10 rounded-lg shadow-xl">
       <div className="panel-heading border-b border-black/10 dark:border-white/10 px-4 py-3">
-        <h2 className="text-base font-semibold text-slate-900 dark:text-white flex min-w-0 items-center gap-2">
-          <Navigation size={18} className="text-emerald-500" />
-          Saved Commute Impacts
-        </h2>
+        <div className="flex items-center gap-1">
+          {onBack && (
+            <button onClick={onBack} className="p-2 -ml-3 mr-1 hover:bg-black/10 dark:hover:bg-white/10 rounded-lg transition-colors cursor-pointer shrink-0">
+              <ChevronLeft size={28} className="text-slate-700 dark:text-slate-300" />
+            </button>
+          )}
+          <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2 whitespace-nowrap">
+            <Navigation size={22} className="text-emerald-500 shrink-0" />
+            Saved Commutes
+          </h2>
+        </div>
       </div>
       <div className="commute-grid min-w-0 p-3 grid grid-cols-1 gap-3">
         {commuteImpacts.map((commute) => {
           const impactClass = getImpactClass(commute.impact);
+          const hasImpact = commute.impact !== "clear";
           return (
             <div
               key={commute.id}
-              className={`commute-card min-w-0 border-l-4 ${impactClass} p-3 rounded-lg bg-black/5 dark:bg-white/5 flex flex-col justify-between`}
+              className={`commute-card min-w-0 border-l-4 ${impactClass} p-3 rounded-lg border border-black/10 dark:border-white/10 flex flex-col justify-between ${
+                hasImpact ? "!bg-orange-50 dark:!bg-orange-950" : "!bg-slate-50 dark:!bg-[#12151c]"
+              }`}
             >
               <div>
                 <div className="flex min-w-0 items-start justify-between gap-3">

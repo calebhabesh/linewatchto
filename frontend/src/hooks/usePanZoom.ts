@@ -4,8 +4,16 @@ export function usePanZoom() {
   const [transform, setTransform] = useState({ x: 0, y: 0, scale: 1 });
   const [fitScale, setFitScale] = useState(1);
   const [isDragging, setIsDragging] = useState(false);
+  const [isAnimating, setIsAnimating] = useState(false);
+  const animTimeoutRef = useRef<number | null>(null);
   const startPos = useRef({ x: 0, y: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
+
+  const startAnimation = useCallback(() => {
+    setIsAnimating(true);
+    if (animTimeoutRef.current) window.clearTimeout(animTimeoutRef.current);
+    animTimeoutRef.current = window.setTimeout(() => setIsAnimating(false), 400);
+  }, []);
 
   // ResizeObserver to track container size changes, update fitScale, and scale map proportionally
   useEffect(() => {
@@ -115,7 +123,8 @@ export function usePanZoom() {
     
     setTransform({ x, y, scale });
     setFitScale(scale);
-  }, []);
+    startAnimation();
+  }, [startAnimation]);
 
   const zoomIn = useCallback(() => {
     if (!containerRef.current) return;
@@ -172,6 +181,7 @@ export function usePanZoom() {
     transform,
     relativeScale,
     isDragging,
+    isAnimating,
     containerRef,
     handlePointerDown,
     handlePointerMove,

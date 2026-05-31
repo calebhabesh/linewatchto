@@ -2,8 +2,7 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { usePanZoom } from "../hooks/usePanZoom";
-import { ZoomIn, ZoomOut, Locate } from "lucide-react";
-import { ThemeToggle } from "./ThemeToggle";
+import { ZoomIn, ZoomOut, Locate, Sun, Moon } from "lucide-react";
 import {
   networkSegments,
   activeAlerts,
@@ -38,6 +37,7 @@ export function InteractiveTtcMap({
     transform,
     relativeScale,
     isDragging,
+    isAnimating,
     containerRef,
     handlePointerDown,
     handlePointerMove,
@@ -127,49 +127,64 @@ export function InteractiveTtcMap({
 
   return (
     <div className="relative w-full h-full flex flex-col overflow-hidden bg-transparent">
-      {/* Top right controls toolbar aligned horizontally side-by-side */}
-      <div className="absolute top-6 right-6 z-20 flex flex-row items-center gap-1.5 bg-white/80 dark:bg-[#12151c]/90 p-2 rounded-2xl border border-black/10 dark:border-white/10 shadow-lg backdrop-blur-md pointer-events-auto">
+      {/* Top right Theme toggle (styled like hamburger) */}
+      <button
+        onClick={onToggleTheme}
+        className="absolute top-4 sm:top-6 right-4 sm:right-6 z-20 panel flex items-center justify-center w-14 h-14 rounded-xl border border-black/10 dark:border-white/10 shadow-lg hover:!bg-slate-100 dark:hover:!bg-[#1a1e28] hover:scale-105 active:scale-95 outline-none focus-visible:ring-4 focus-visible:ring-black/10 dark:focus-visible:ring-white/10 transition-all cursor-pointer pointer-events-auto"
+        aria-label="Toggle theme"
+      >
+        {isDark ? <Sun size={26} className="text-slate-800 dark:text-white" /> : <Moon size={26} className="text-slate-800 dark:text-white" />}
+      </button>
+
+      {/* Top center map controls */}
+      {/* Note: ml-2 sm:ml-3 is added to visually center the mass of the controls, since the left side has 2 buttons and is visually heavier than the right side */}
+      <div className="absolute top-6 sm:top-[72px] left-1/2 -translate-x-1/2 ml-2 sm:ml-0.75 z-20 flex flex-row items-center justify-center gap-1 sm:gap-2 pointer-events-auto">
         <button
           onClick={recenter}
-          className="p-2 hover:bg-slate-200 dark:hover:bg-white/10 rounded-xl transition-colors text-slate-700 dark:text-white/70 hover:text-slate-900 dark:hover:text-white cursor-pointer"
+          className="group w-16 sm:w-[68px] h-[60px] flex flex-col items-center justify-center gap-1.5 text-slate-900 dark:text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.9)] dark:drop-shadow-[0_0_12px_rgba(0,0,0,0.9)] hover:bg-black/10 dark:hover:bg-white/10 focus-visible:bg-black/10 dark:focus-visible:bg-white/10 rounded-2xl active:scale-95 outline-none transition-all cursor-pointer"
           title="Center view"
           aria-label="Center map view"
         >
-          <Locate size={20} />
+          <Locate size={24} className="group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors" />
+          <span className="text-[10px] font-black uppercase tracking-widest group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">Center</span>
         </button>
-        <span className="w-px h-5 bg-slate-300 dark:bg-white/10 mx-1" />
+        
         <button
           onClick={zoomOut}
-          className="p-2 hover:bg-slate-200 dark:hover:bg-white/10 rounded-xl transition-colors text-slate-700 dark:text-white/70 hover:text-slate-900 dark:hover:text-white cursor-pointer"
+          className="group w-16 sm:w-[68px] h-[60px] flex flex-col items-center justify-center gap-1.5 text-slate-900 dark:text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.9)] dark:drop-shadow-[0_0_12px_rgba(0,0,0,0.9)] hover:bg-black/10 dark:hover:bg-white/10 focus-visible:bg-black/10 dark:focus-visible:bg-white/10 rounded-2xl active:scale-95 outline-none transition-all cursor-pointer"
           title="Zoom out"
           aria-label="Zoom out"
         >
-          <ZoomOut size={20} />
+          <ZoomOut size={24} className="group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors" />
+          <span className="text-[10px] font-black uppercase tracking-widest group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">Out</span>
         </button>
-        <input
-          type="range"
-          min="0.2"
-          max="5"
-          step="0.05"
-          value={relativeScale}
-          onChange={(e) => zoomToScale(parseFloat(e.target.value))}
-          className="w-16 md:w-24 accent-slate-700 dark:accent-white cursor-pointer h-1 rounded-lg appearance-none bg-slate-300 dark:bg-white/20 mx-1"
-          title="Zoom level"
-          aria-label="Zoom level slider"
-        />
+        
+        <div className="flex flex-col items-center justify-center gap-1.5 mx-0.5 sm:mx-1 drop-shadow-[0_0_8px_rgba(255,255,255,0.9)] dark:drop-shadow-[0_0_12px_rgba(0,0,0,0.9)]">
+          <input
+            type="range"
+            min="0.2"
+            max="5"
+            step="0.05"
+            value={relativeScale}
+            onChange={(e) => zoomToScale(parseFloat(e.target.value))}
+            className="w-16 md:w-24 accent-slate-900 dark:accent-white hover:accent-blue-600 dark:hover:accent-blue-400 cursor-pointer h-1.5 rounded-lg appearance-none bg-slate-900/20 dark:bg-white/30 transition-all outline-none"
+            title="Zoom level"
+            aria-label="Zoom level slider"
+          />
+          <span className="text-[10px] font-mono font-black text-slate-900 dark:text-white select-none tracking-wider">
+            {Math.round(relativeScale * 100)}%
+          </span>
+        </div>
+        
         <button
           onClick={zoomIn}
-          className="p-2 hover:bg-slate-200 dark:hover:bg-white/10 rounded-xl transition-colors text-slate-700 dark:text-white/70 hover:text-slate-900 dark:hover:text-white cursor-pointer"
+          className="group w-16 sm:w-[68px] h-[60px] flex flex-col items-center justify-center gap-1.5 text-slate-900 dark:text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.9)] dark:drop-shadow-[0_0_12px_rgba(0,0,0,0.9)] hover:bg-black/10 dark:hover:bg-white/10 focus-visible:bg-black/10 dark:focus-visible:bg-white/10 rounded-2xl active:scale-95 outline-none transition-all cursor-pointer"
           title="Zoom in"
           aria-label="Zoom in"
         >
-          <ZoomIn size={20} />
+          <ZoomIn size={24} className="group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors" />
+          <span className="text-[10px] font-black uppercase tracking-widest group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">In</span>
         </button>
-        <span className="text-[11px] font-mono text-slate-500 dark:text-white/60 min-w-[36px] text-right pr-1 select-none">
-          {Math.round(relativeScale * 100)}%
-        </span>
-        <span className="w-px h-5 bg-slate-300 dark:bg-white/10 mx-1.5" />
-        <ThemeToggle isDark={isDark} onToggle={onToggleTheme} />
       </div>
 
       {/* Map Viewport */}
@@ -197,11 +212,11 @@ export function InteractiveTtcMap({
 
         {loadState === "ready" && (
           <div
-            className="absolute top-0 left-0 w-full h-full origin-top-left will-change-transform"
+            className={`absolute top-0 left-0 w-full h-full origin-top-left ${isDragging || isAnimating ? 'will-change-transform' : ''}`}
             style={{
               transform: `translate(${transform.x}px, ${transform.y}px) scale(${transform.scale})`,
               transformOrigin: "0 0",
-              transition: isDragging ? "none" : "transform 0.1s ease-out",
+              transition: isAnimating ? "transform 0.4s cubic-bezier(0.25, 1, 0.5, 1)" : isDragging ? "none" : "transform 0.1s ease-out",
             }}
           >
             <style>
@@ -229,6 +244,16 @@ export function InteractiveTtcMap({
                 /* Keep Spadina transfer capsule connector inner black */
                 .dark .ttc-svg-container svg #path770 {
                   fill: #000000 !important;
+                }
+
+                /* Hide the white outline behind line numbers, but leave station dots alone */
+                .ttc-svg-container svg .fil3:has(+ .fil0),
+                .ttc-svg-container svg .fil3:has(+ .fil2),
+                .ttc-svg-container svg .fil3:has(+ .fil4),
+                .ttc-svg-container svg .fil3:has(+ .fil5),
+                .ttc-svg-container svg .fil3:has(+ .fil8),
+                .ttc-svg-container svg .fil3:has(+ .fil9) {
+                  display: none !important;
                 }
               `}
             </style>

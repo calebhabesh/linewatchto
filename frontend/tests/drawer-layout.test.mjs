@@ -11,18 +11,21 @@ const savedCommutesSource = readFileSync(new URL("../src/components/SavedCommute
 const reliabilitySource = readFileSync(new URL("../src/components/ReliabilityPanel.tsx", import.meta.url), "utf8");
 const globalCss = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
 
-describe("drawer layout", () => {
-  it("uses a wider desktop sidebar that can collapse back to the full map", () => {
-    assert.match(shellSource, /sidebarCollapsed/);
-    assert.match(shellSource, /mapLayoutSignal/);
+describe("floating menu layout", () => {
+  it("keeps the map first while exposing floating menu and submenu states", () => {
+    assert.match(shellSource, /type ActiveView = "map" \| "menu" \| "alerts" \| "closures" \| "commutes" \| "analytics"/);
+    assert.match(shellSource, /handleToggleMenu/);
+    assert.match(shellSource, /Toggle menu/);
+    assert.match(shellSource, /Floating Dropdown Menu/);
+    assert.match(shellSource, /Floating Submenus/);
+    assert.match(shellSource, /activeView === "alerts"/);
+    assert.match(shellSource, /activeView === "closures"/);
+    assert.match(shellSource, /activeView === "commutes"/);
+    assert.match(shellSource, /activeView === "analytics"/);
     assert.match(interactiveMapSource, /layoutResetSignal/);
-    assert.match(interactiveMapSource, /setTimeout\(\(\) => recenter\(\), 320\)/);
-    assert.match(shellSource, /lg:w-\[520px\]/);
-    assert.match(shellSource, /lg:translate-x-0/);
-    assert.match(shellSource, /lg:left-\[520px\]/);
-    assert.match(shellSource, /lg:left-0/);
-    assert.match(shellSource, /Collapse status sidebar/);
-    assert.match(shellSource, /Open status sidebar/);
+    assert.doesNotMatch(shellSource, /sidebarCollapsed/);
+    assert.doesNotMatch(shellSource, /lg:left-\[520px\]/);
+    assert.doesNotMatch(shellSource, /Collapse status sidebar/);
   });
 
   it("allows alert and planned closure copy to wrap instead of collapsing into narrow columns", () => {
@@ -35,7 +38,7 @@ describe("drawer layout", () => {
     assert.doesNotMatch(globalCss, /\.alert-card\s*\{[^}]*display:\s*grid/s);
   });
 
-  it("keeps drawer-only panels single-column even at desktop viewport widths", () => {
+  it("keeps floating panels single-column even at desktop viewport widths", () => {
     assert.match(lineStatusSource, /flex-wrap/);
     assert.match(lineStatusSource, /min-w-0/);
     assert.match(savedCommutesSource, /grid-cols-1/);
@@ -50,7 +53,7 @@ describe("drawer layout", () => {
     assert.doesNotMatch(globalCss, /\.commute-card span,/);
   });
 
-  it("keeps drawer scrollbars visually quiet", () => {
+  it("keeps panel scrollbars visually quiet", () => {
     assert.match(globalCss, /scrollbar-width:\s*thin/);
     assert.match(globalCss, /scrollbar-color:\s*rgba\(148, 163, 184, 0\.28\) transparent/);
     assert.match(globalCss, /::-webkit-scrollbar-thumb/);
