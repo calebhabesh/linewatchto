@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { usePanZoom } from "../hooks/usePanZoom";
-import { ZoomIn, ZoomOut, Maximize } from "lucide-react";
+import { ZoomIn, ZoomOut, Locate } from "lucide-react";
 import { ThemeToggle } from "./ThemeToggle";
 import {
   networkSegments,
@@ -124,7 +124,7 @@ export function InteractiveTtcMap({
           title="Center view"
           aria-label="Center map view"
         >
-          <Maximize size={20} />
+          <Locate size={20} />
         </button>
         <button
           onClick={zoomIn}
