@@ -1,6 +1,6 @@
 "use client";
 
-import { commuteImpacts } from "../app/linewatch-data";
+import { useDashboardData } from "../app/DataContext";
 import { Navigation, CheckCircle2, AlertCircle, AlertOctagon, ChevronLeft } from "lucide-react";
 
 interface Props {
@@ -8,6 +8,7 @@ interface Props {
 }
 
 export function SavedCommutesPanel({ onBack }: Props = {}) {
+  const { commuteImpacts } = useDashboardData();
   const getImpactClass = (impact: string) => {
     switch (impact) {
       case "suspended":

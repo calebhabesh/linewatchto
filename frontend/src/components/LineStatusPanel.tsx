@@ -1,9 +1,10 @@
 "use client";
 
-import { lineStatuses } from "../app/linewatch-data";
+import { useDashboardData } from "../app/DataContext";
 import { Activity } from "lucide-react";
 
 export function LineStatusPanel() {
+  const { lineStatuses } = useDashboardData();
   const getStatusPill = (status: string, label: string) => {
     let classes = "status-pill neutral";
     if (status === "suspension") {

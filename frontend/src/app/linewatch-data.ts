@@ -78,10 +78,16 @@ export type ReliabilitySummary = {
   medianDuration: string;
 };
 
+export type IngestionHealthItem = {
+  label: string;
+  value: string;
+  state: "ok";
+};
+
 export const generatedAt = {
   time: "9:24 PM",
   date: "Mon, Feb 16",
-  live: true,
+  live: false,
   lastPoll: "52 sec ago",
 };
 
@@ -119,10 +125,10 @@ export const lineStatuses: LineStatus[] = [
     name: "Bloor-Danforth",
     route: "Kipling - Kennedy",
     color: "#14a44d",
-    status: "delay",
-    statusLabel: "Delay",
-    summary: "Eastbound trains are slower through Sherbourne and Castle Frank.",
-    updatedAgo: "Updated 8 min ago",
+    status: "suspension",
+    statusLabel: "Suspended",
+    summary: "No service between Jane and Ossington. Slower trains near Sherbourne.",
+    updatedAgo: "Updated 1 min ago",
   },
   {
     id: "line-4",
@@ -161,80 +167,27 @@ export const lineStatuses: LineStatus[] = [
 
 export const networkSegments: NetworkSegment[] = [
   {
-    id: "line-1-eglinton-lawrence",
+    id: "line-1-finch-eglinton",
     lineId: "line-1",
-    label: "Eglinton to Lawrence",
-    pathD: "M 4547 1808 L 4548 1516",
+    label: "Finch to Eglinton",
+    pathD: "M 4547 1808 L 4548 1516 L 4547 1246 L 4546 1086 L 4547 926 L 4546 760",
     overlay: "suspension",
     alertId: "alert-line-1-north",
   },
   {
-    id: "line-1-lawrence-york-mills",
-    lineId: "line-1",
-    label: "Lawrence to York Mills",
-    pathD: "M 4548 1516 L 4547 1246",
-    overlay: "suspension",
-    alertId: "alert-line-1-north",
-  },
-  {
-    id: "line-1-york-mills-sheppard-yonge",
-    lineId: "line-1",
-    label: "York Mills to Sheppard-Yonge",
-    pathD: "M 4547 1246 L 4546 1086",
-    overlay: "suspension",
-    alertId: "alert-line-1-north",
-  },
-  {
-    id: "line-1-sheppard-yonge-north-york-centre",
-    lineId: "line-1",
-    label: "Sheppard-Yonge to North York Centre",
-    pathD: "M 4546 1086 L 4547 926",
-    overlay: "suspension",
-    alertId: "alert-line-1-north",
-  },
-  {
-    id: "line-1-north-york-centre-finch",
-    lineId: "line-1",
-    label: "North York Centre to Finch",
-    pathD: "M 4547 926 L 4546 760",
-    overlay: "suspension",
-    alertId: "alert-line-1-north",
-  },
-  {
-    id: "line-2-kipling-islington",
+    id: "line-2-kipling-jane",
     lineId: "line-2",
-    label: "Kipling to Islington",
-    pathD: "M 1076 2601 L 1248 2603",
+    label: "Kipling to Jane",
+    pathD: "M 1076 2601 L 1248 2603 L 1430 2603 L 1611 2603 L 1792 2603",
     overlay: "clear",
   },
   {
-    id: "line-2-islington-royal-york",
+    id: "line-2-jane-ossington",
     lineId: "line-2",
-    label: "Islington to Royal York",
-    pathD: "M 1248 2603 L 1430 2603",
-    overlay: "clear",
-  },
-  {
-    id: "line-2-royal-york-old-mill",
-    lineId: "line-2",
-    label: "Royal York to Old Mill",
-    pathD: "M 1430 2603 L 1611 2603",
-    overlay: "clear",
-  },
-  {
-    id: "line-2-old-mill-jane",
-    lineId: "line-2",
-    label: "Old Mill to Jane",
-    pathD: "M 1611 2603 L 1792 2603",
-    overlay: "clear",
-  },
-  {
-    id: "line-2-bloor-yonge-sherbourne",
-    lineId: "line-2",
-    label: "Bloor-Yonge to Sherbourne",
-    pathD: "M 4546 2602 L 4862 2603",
-    overlay: "delay",
-    alertId: "alert-line-2-east",
+    label: "Jane to Ossington",
+    pathD: "M 1792 2603 L 3062 2603",
+    overlay: "suspension",
+    alertId: "alert-line-2-jane-ossington",
   },
   {
     id: "line-2-sherbourne-castle-frank",
@@ -288,6 +241,20 @@ export const stations: Station[] = [
 
 export const activeAlerts: ActiveAlert[] = [
   {
+    id: "alert-line-2-jane-ossington",
+    lineId: "line-2",
+    lineNumber: "2",
+    title: "Planned track work",
+    severity: "suspension",
+    location: "Jane to Ossington",
+    description:
+      "No subway service between Jane and Ossington due to planned track work. Shuttle buses are operating.",
+    updatedAgo: "Updated 10 min ago",
+    affectedSegmentIds: ["line-2-jane-ossington"],
+    shuttle: true,
+    source: "TTC service alert",
+  },
+  {
     id: "alert-line-1-north",
     lineId: "line-1",
     lineNumber: "1",
@@ -297,13 +264,7 @@ export const activeAlerts: ActiveAlert[] = [
     description:
       "No subway service between Finch and Eglinton while crews respond to a signal problem. Shuttle buses are operating.",
     updatedAgo: "Updated 4 min ago",
-    affectedSegmentIds: [
-      "line-1-eglinton-lawrence",
-      "line-1-lawrence-york-mills",
-      "line-1-york-mills-sheppard-yonge",
-      "line-1-sheppard-yonge-north-york-centre",
-      "line-1-north-york-centre-finch",
-    ],
+    affectedSegmentIds: ["line-1-finch-eglinton"],
     shuttle: true,
     source: "TTC service alert",
   },
@@ -317,7 +278,7 @@ export const activeAlerts: ActiveAlert[] = [
     description:
       "Eastbound trains are moving slower than usual between Sherbourne and Castle Frank due to track issues.",
     updatedAgo: "Updated 8 min ago",
-    affectedSegmentIds: ["line-2-bloor-yonge-sherbourne", "line-2-sherbourne-castle-frank"],
+    affectedSegmentIds: ["line-2-sherbourne-castle-frank"],
     shuttle: false,
     source: "TTC service alert",
   },
@@ -333,13 +294,7 @@ export const plannedClosures: PlannedClosure[] = [
     location: "Finch to Eglinton",
     description:
       "Weekend signal upgrade work will close the north Yonge segment. Shuttle buses will operate through the affected corridor.",
-    previewSegmentIds: [
-      "line-1-eglinton-lawrence",
-      "line-1-lawrence-york-mills",
-      "line-1-york-mills-sheppard-yonge",
-      "line-1-sheppard-yonge-north-york-centre",
-      "line-1-north-york-centre-finch",
-    ],
+    previewSegmentIds: ["line-1-finch-eglinton"],
     shuttle: true,
     source: "Planned TTC closure",
   },
@@ -352,12 +307,7 @@ export const plannedClosures: PlannedClosure[] = [
     location: "Kipling to Jane",
     description:
       "Late-week track work will replace eastbound service with shuttle buses on the west end of Line 2.",
-    previewSegmentIds: [
-      "line-2-kipling-islington",
-      "line-2-islington-royal-york",
-      "line-2-royal-york-old-mill",
-      "line-2-old-mill-jane",
-    ],
+    previewSegmentIds: ["line-2-kipling-jane"],
     shuttle: true,
     source: "Planned TTC closure",
   },
@@ -400,7 +350,7 @@ export const reliabilitySummaries: ReliabilitySummary[] = [
   { lineId: "line-6", lineNumber: "6", label: "Finch West", score: 93, incidents7d: 1, medianDuration: "10 min" },
 ];
 
-export const ingestionHealth = [
+export const ingestionHealth: IngestionHealthItem[] = [
   { label: "GTFS snapshot", value: "4 lines / 16 display stops", state: "ok" },
   { label: "Service alerts", value: "2 active / 52 sec old", state: "ok" },
   { label: "Planned closures", value: "2 upcoming windows", state: "ok" },

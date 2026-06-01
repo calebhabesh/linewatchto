@@ -1,6 +1,6 @@
 "use client";
 
-import { reliabilitySummaries, ingestionHealth } from "../app/linewatch-data";
+import { useDashboardData } from "../app/DataContext";
 import { BarChart3, ShieldCheck, ChevronLeft } from "lucide-react";
 
 interface ReliabilityProps {
@@ -8,6 +8,7 @@ interface ReliabilityProps {
 }
 
 export function ReliabilityPanel({ onBack }: ReliabilityProps = {}) {
+  const { reliabilitySummaries } = useDashboardData();
   return (
     <section className="analytics-panel min-w-0 border border-black/10 dark:border-white/10 rounded-lg shadow-xl" style={{ WebkitBackfaceVisibility: "hidden", backfaceVisibility: "hidden" }}>
       <div className="panel-heading border-b border-black/10 dark:border-white/10 px-4 py-3">
@@ -68,6 +69,7 @@ export function ReliabilityPanel({ onBack }: ReliabilityProps = {}) {
 }
 
 export function IngestionHealthPanel() {
+  const { ingestionHealth } = useDashboardData();
   return (
     <section className="health-panel min-w-0 border border-black/10 dark:border-white/10 rounded-lg shadow-xl">
       <div className="panel-heading border-b border-black/10 dark:border-white/10 px-4 py-3">

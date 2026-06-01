@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { activeAlerts, plannedClosures } from "../app/linewatch-data";
+import { useDashboardData } from "../app/DataContext";
 import { AlertTriangle, Calendar } from "lucide-react";
 
 const LINES = [
@@ -19,6 +19,7 @@ export function LineLegend({
   onAlertClick?: (id: string) => void;
   onClosureClick?: (id: string) => void;
 }) {
+  const { activeAlerts, plannedClosures } = useDashboardData();
   return (
     <div className="flex flex-col gap-4 select-none pointer-events-none">
       {LINES.map(line => {

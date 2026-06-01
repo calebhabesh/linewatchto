@@ -3,21 +3,18 @@
 import { useEffect, useState, useMemo } from "react";
 import { usePanZoom } from "../hooks/usePanZoom";
 import { ZoomIn, ZoomOut, Locate, Sun, Moon } from "lucide-react";
-import {
-  networkSegments,
-  activeAlerts,
-  plannedClosures,
-  findAlertBySegmentId,
-  type NetworkSegment,
-  type ActiveAlert,
-  type PlannedClosure,
-} from "../app/linewatch-data";
+import { useDashboardData } from "../app/DataContext";
+import type { NetworkSegment, ActiveAlert, PlannedClosure } from "../app/linewatch-data";
+import type { StationSummary } from "../app/station-data";
 
 export function InteractiveTtcMap({
   selectedAlertId,
   selectedClosureId,
   onSelectAlertId,
   onSelectClosureId,
+  stations,
+  selectedStationId,
+  onSelectStationId,
   isDark,
   onToggleTheme,
   layoutResetSignal,
@@ -26,11 +23,15 @@ export function InteractiveTtcMap({
   selectedClosureId: string | null;
   onSelectAlertId: (id: string | null) => void;
   onSelectClosureId: (id: string | null) => void;
+  stations: StationSummary[];
+  selectedStationId: string | null;
+  onSelectStationId: (id: string | null) => void;
   isDark: boolean;
   onToggleTheme: () => void;
   layoutResetSignal?: number;
 }) {
-  const [svgMarkup, setSvgMarkup] = useState<string>("");
+  const { networkSegments, activeAlerts, plannedClosures } = useDashboardData();
+  const [svgParts, setSvgParts] = useState<{ part1: string; part2: string } | null>(null);
   const [loadState, setLoadState] = useState<"loading" | "ready" | "error">("loading");
 
   const {
@@ -56,11 +57,17 @@ export function InteractiveTtcMap({
       try {
         const response = await fetch("/assets/linewatch/ttc-subway-map-edited.svg");
         if (!response.ok) throw new Error("Map load failed");
-        const markup = await response.text();
+        const text = await response.text();
 
         if (!cancelled) {
-          setSvgMarkup(markup);
-          setLoadState("ready");
+          const innerMatch = text.match(/<svg[^>]*>([\s\S]*?)<\/svg>/i);
+          if (innerMatch) {
+            const splitMatch = innerMatch[1].match(/([\s\S]*?)(<g\s+id="layer6"[\s\S]*)/);
+            if (splitMatch) {
+              setSvgParts({ part1: splitMatch[1], part2: splitMatch[2] });
+              setLoadState("ready");
+            } else throw new Error("Missing layer6");
+          } else throw new Error("Missing svg");
         }
       } catch {
         if (!cancelled) setLoadState("error");
@@ -112,18 +119,22 @@ export function InteractiveTtcMap({
 
   const selectedAlert = useMemo(() => {
     return activeAlerts.find((a) => a.id === selectedAlertId);
-  }, [selectedAlertId]);
+  }, [activeAlerts, selectedAlertId]);
 
   const selectedClosure = useMemo(() => {
     return plannedClosures.find((c) => c.id === selectedClosureId);
-  }, [selectedClosureId]);
+  }, [plannedClosures, selectedClosureId]);
 
+  // Helpers
+  const findAlertBySegmentId = (segmentId: string) => activeAlerts.find(a => a.affectedSegmentIds.includes(segmentId));
+
+  // Determine what overlays to render based on selection and hover
   const overlaySegments = useMemo(() => {
     return networkSegments.filter((segment) => {
       const isClosurePreview = selectedClosure?.previewSegmentIds.includes(segment.id) ?? false;
       return segment.overlay !== "clear" || isClosurePreview;
     });
-  }, [selectedClosure]);
+  }, [networkSegments, selectedClosure]);
 
   return (
     <div className="relative w-full h-full flex flex-col overflow-hidden bg-transparent">
@@ -258,37 +269,86 @@ export function InteractiveTtcMap({
               `}
             </style>
 
-            {/* Bottom Layer: Base Subway tracks and base graphics */}
-            <div
-              className="w-[4500px] h-[2181.8px] max-w-none ttc-svg-container pointer-events-none absolute top-0 left-0 [&>svg]:w-full [&>svg]:h-full"
-              dangerouslySetInnerHTML={{ __html: svgMarkup }}
-            />
+            {/* The single synchronized SVG viewport with perfect z-indexing */}
+            <div className="w-[4500px] h-[2181.8px] max-w-none ttc-svg-container pointer-events-none absolute top-0 left-0">
+              <svg
+                className="w-full h-full pointer-events-none"
+                viewBox="0 0 8250 4000"
+                preserveAspectRatio="xMidYMid meet"
+              >
+                {/* Bottom Layer: Base tracks */}
+                <g dangerouslySetInnerHTML={{ __html: svgParts?.part1 ?? "" }} />
 
-            {/* Middle Layer: Highlighted overlays for active delays/closures */}
+                {/* Middle Layer: Highlighted overlays injected underneath stations */}
+                <defs>
+                  <pattern id="suspension-hash" width="60" height="60" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+                    <rect width="60" height="60" fill="#f87171" />
+                    <line x1="0" y1="0" x2="0" y2="60" stroke="#ffffff" strokeWidth="25" />
+                  </pattern>
+                </defs>
+                <g aria-label="Disruption overlays">
+                  {overlaySegments.map((segment) => (
+                    <OverlaySegment
+                      key={segment.id}
+                      segment={segment}
+                      selectedAlert={selectedAlert}
+                      selectedClosure={selectedClosure}
+                      onSelectAlert={onSelectAlertId}
+                      onSelectClosure={onSelectClosureId}
+                      findAlertBySegmentId={findAlertBySegmentId}
+                    />
+                  ))}
+                </g>
+
+                {/* Top Layer: Stations (layer6) and text */}
+                <g dangerouslySetInnerHTML={{ __html: svgParts?.part2 ?? "" }} />
+
+                {/* Cardinal North Compass fixed to map */}
+                <g aria-label="Cardinal North Compass" transform="translate(7600, 2300) scale(4)">
+                  <image href="/assets/linewatch/cardinal-north.svg" width="75" height="100" className="opacity-90" style={{ filter: isDark ? "invert(1)" : "none" }} />
+                </g>
+              </svg>
+            </div>
+
+            {/* Interactive Layer: Hit targets on the very top so they hover ABOVE stations */}
             <svg
               className="absolute top-0 left-0 w-[4500px] h-[2181.8px] pointer-events-none"
               viewBox="0 0 8250 4000"
               preserveAspectRatio="xMidYMid meet"
             >
-              <g aria-label="Disruption overlays">
-                {overlaySegments.map((segment) => (
-                  <OverlaySegment
-                    key={segment.id}
-                    segment={segment}
-                    selectedAlert={selectedAlert}
-                    selectedClosure={selectedClosure}
-                    onSelectAlert={onSelectAlertId}
-                    onSelectClosure={onSelectClosureId}
-                  />
-                ))}
+              <g aria-label="Station hit targets">
+                {stations.map((station) => {
+                  const selected = selectedStationId === station.id;
+                  const radius = station.interchange ? 96 : 76;
+
+                  return (
+                    <circle
+                      key={station.id}
+                      aria-label={`${station.name} station details`}
+                      className={`station-hit-target ${selected ? "selected" : ""} ${
+                        station.hasActiveImpact ? "has-impact" : ""
+                      } access-${station.accessStatus}`}
+                      cx={station.mapX}
+                      cy={station.mapY}
+                      r={radius}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        onSelectStationId(selected ? null : station.id);
+                      }}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                          event.preventDefault();
+                          onSelectStationId(selected ? null : station.id);
+                        }
+                      }}
+                      onPointerDown={(event) => event.stopPropagation()}
+                      role="button"
+                      tabIndex={0}
+                    />
+                  );
+                })}
               </g>
             </svg>
-
-            {/* Top Layer: Stations and labels (Sandwiched on top so overlays don't cover text) */}
-            <div
-              className="w-[4500px] h-[2181.8px] max-w-none ttc-svg-container pointer-events-none absolute top-0 left-0 [&>svg]:w-full [&>svg]:h-full"
-              dangerouslySetInnerHTML={{ __html: svgMarkup }}
-            />
           </div>
         )}
       </div>
@@ -302,12 +362,14 @@ function OverlaySegment({
   selectedClosure,
   onSelectAlert,
   onSelectClosure,
+  findAlertBySegmentId,
 }: {
   segment: NetworkSegment;
   selectedAlert?: ActiveAlert;
   selectedClosure?: PlannedClosure;
   onSelectAlert: (alertId: string | null) => void;
   onSelectClosure: (closureId: string | null) => void;
+  findAlertBySegmentId: (id: string) => ActiveAlert | undefined;
 }) {
   const alert = segment.alertId ? findAlertBySegmentId(segment.id) : undefined;
   const isClosurePreview = selectedClosure?.previewSegmentIds.includes(segment.id) ?? false;
@@ -317,6 +379,32 @@ function OverlaySegment({
   if (visualState === "clear") {
     return null;
   }
+
+  const nums = segment.pathD.match(/-?\d+(\.\d+)?/g)?.map(Number) || [];
+  const firstX = nums[0] || 0;
+  const firstY = nums[1] || 0;
+
+  let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+  for (let i = 0; i < nums.length - 1; i += 2) {
+    minX = Math.min(minX, nums[i]);
+    maxX = Math.max(maxX, nums[i]);
+    minY = Math.min(minY, nums[i + 1]);
+    maxY = Math.max(maxY, nums[i + 1]);
+  }
+  const isHoriz = (maxX - minX) >= (maxY - minY);
+
+  const strokeWidth = 96;
+  const halfStroke = strokeWidth / 2;
+
+  // Transform to align pattern to the stroke's top-left
+  const translateX = isHoriz ? 0 : firstX - halfStroke;
+  const translateY = isHoriz ? firstY - halfStroke : 0;
+  const patternTransform = `translate(${translateX}, ${translateY}) ${isHoriz ? "" : "rotate(90 48 48)"}`;
+  const patternId = `${segment.id}-${visualState}-chevron`;
+
+  const isChevron = visualState === "delay";
+  const chevronBg = "#f59e0b";
+  const chevronStroke = "#1e293b";
 
   const handleSelect = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -346,17 +434,67 @@ function OverlaySegment({
   };
 
   return (
-    <path
-      aria-label={alert ? `${alert.title}: ${segment.label}` : `${selectedClosure?.title}: ${segment.label}`}
-      className={`asset-alert-path cursor-pointer pointer-events-auto ${visualState} ${
-        isSelectedAlert ? "selected" : ""
-      }`}
-      d={segment.pathD}
-      onClick={handleSelect}
-      onKeyDown={handleKeyDown}
-      onPointerDown={(e) => e.stopPropagation()} // Prevent initiating map drag when clicking paths
-      role="button"
-      tabIndex={0}
-    />
+    <g>
+      {isChevron && (
+        <defs>
+          <pattern id={patternId} width="60" height="96" patternUnits="userSpaceOnUse" patternTransform={patternTransform}>
+            <rect width="60" height="96" fill={chevronBg} />
+            <path d="M 0,12 L 24,12 L 48,28 L 24,44 L 0,44 L 24,28 Z M -60,12 L -36,12 L -12,28 L -36,44 L -60,44 L -36,28 Z" fill={chevronStroke}>
+              <animateTransform attributeName="transform" type="translate" from="0 0" to="60 0" dur="4s" repeatCount="indefinite" />
+            </path>
+            <path d="M 60,52 L 36,52 L 12,68 L 36,84 L 60,84 L 36,68 Z M 120,52 L 96,52 L 72,68 L 96,84 L 120,84 L 96,68 Z" fill={chevronStroke}>
+              <animateTransform attributeName="transform" type="translate" from="0 0" to="-60 0" dur="4s" repeatCount="indefinite" />
+            </path>
+          </pattern>
+        </defs>
+      )}
+
+      {/* 1. Base Glow (Always pulses, never stops, mathematically perfect unison) */}
+      <path
+        className={`asset-alert-path-glow ${visualState}`}
+        d={segment.pathD}
+      />
+
+      {/* 2. Interactive Glow (Only appears on hover/selection, NO animation to avoid keyframe overrides) */}
+      {(visualState === "delay" || visualState === "suspension") && (
+        <path
+          className={`asset-alert-path-glow interactive-glow ${visualState} ${
+            isSelectedAlert ? "selected" : ""
+          }`}
+          d={segment.pathD}
+          style={{ pointerEvents: 'none' }}
+        />
+      )}
+
+      {/* 3. Hit Target (Always invisible, handles clicks and triggers interactive glow via CSS :has) */}
+      <path
+        aria-label={alert ? `${alert.title}: ${segment.label}` : `${selectedClosure?.title}: ${segment.label}`}
+        className={`asset-alert-path cursor-pointer pointer-events-auto ${visualState} ${
+          isSelectedAlert ? "selected" : ""
+        }`}
+        d={segment.pathD}
+        onClick={handleSelect}
+        onKeyDown={handleKeyDown}
+        onPointerDown={(e) => e.stopPropagation()} // Prevent map drag
+        role="button"
+        tabIndex={0}
+      />
+
+      {/* 4. Chevron Stripes */}
+      {visualState === "delay" && (
+        <path
+          className="asset-alert-path delay-candy pointer-events-none"
+          d={segment.pathD}
+          style={{ stroke: `url(#${patternId})` }}
+        />
+      )}
+      {visualState === "suspension" && (
+        <path
+          className="asset-alert-path suspension-candy pointer-events-none"
+          d={segment.pathD}
+          style={{ stroke: "url(#suspension-hash)" }}
+        />
+      )}
+    </g>
   );
 }

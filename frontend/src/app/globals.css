@@ -475,23 +475,90 @@ button {
   display: none;
 }
 
+.asset-alert-path-glow {
+  fill: none;
+  pointer-events: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 220;
+  filter: blur(16px);
+  transition: all 0.3s ease;
+  opacity: 0.8;
+}
+
+@keyframes aura-pulse {
+  0% {
+    stroke-width: 140;
+    filter: blur(14px);
+    opacity: 0.6;
+  }
+  100% {
+    stroke-width: 170;
+    filter: blur(18px);
+    opacity: 0.9;
+  }
+}
+
+@keyframes candy-pulse {
+  0% {
+    stroke-width: 80;
+  }
+  100% {
+    stroke-width: 96;
+  }
+}
+
+.asset-alert-path-glow.suspension {
+  stroke: rgba(147, 197, 253, 0.7); /* Light blue aura for shuttles */
+  animation: aura-pulse 1.2s infinite alternate ease-in-out;
+}
+
+.asset-alert-path.suspension-candy {
+  animation: candy-pulse 1.2s infinite alternate ease-in-out;
+  transition: none !important;
+}
+
+.asset-alert-path-glow.delay {
+  stroke: rgba(245, 158, 11, 0.7); /* Orange aura for delays */
+  animation: aura-pulse 1.2s infinite alternate ease-in-out;
+}
+
+.asset-alert-path.delay-candy {
+  animation: candy-pulse 1.2s infinite alternate ease-in-out;
+  transition: none !important;
+}
+
+.asset-alert-path-glow.planned-preview {
+  stroke: rgba(147, 197, 253, 0.3);
+  stroke-width: 180;
+}
+
+g:has(.asset-alert-path:hover) .asset-alert-path-glow,
+g:has(.asset-alert-path:focus-visible) .asset-alert-path-glow,
+.asset-alert-path-glow.selected {
+  stroke-width: 260;
+  filter: blur(20px);
+  opacity: 1;
+}
+
+.asset-alert-path-glow.selected.suspension {
+  stroke: rgba(59, 130, 246, 0.9);
+}
+
 .asset-alert-path {
   cursor: pointer;
   fill: none;
-  filter: drop-shadow(0 0 18px rgba(0, 0, 0, 0.34));
   pointer-events: stroke;
   stroke-linecap: round;
   stroke-linejoin: round;
-  stroke-opacity: 0.9;
+  stroke-opacity: 0.95;
   stroke-width: 96;
+  transition: stroke-width 0.3s ease;
 }
 
-.asset-alert-path.suspension {
-  stroke: var(--danger);
-}
-
+.asset-alert-path.suspension,
 .asset-alert-path.delay {
-  stroke: var(--warning);
+  stroke: transparent;
 }
 
 .asset-alert-path.planned-preview {
@@ -502,8 +569,7 @@ button {
 }
 
 .asset-alert-path.selected {
-  filter: drop-shadow(0 0 24px rgba(255, 255, 255, 0.36));
-  stroke-width: 116;
+  stroke-width: 108;
 }
 
 .map-detail-strip {
@@ -1018,4 +1084,47 @@ button {
 
 .highlight-active-card {
   animation: highlight-glow 2s ease-in-out forwards;
+}
+
+.station-hit-target {
+  cursor: pointer;
+  fill: transparent;
+  outline: none;
+  pointer-events: auto;
+  stroke: transparent;
+  stroke-width: 0;
+  transition: all 0.2s ease-in-out;
+}
+
+.station-hit-target:hover,
+.station-hit-target:focus-visible {
+  fill: rgba(59, 130, 246, 0.15);
+  stroke: rgba(59, 130, 246, 0.6);
+  stroke-width: 10;
+}
+
+
+.station-hit-target.selected {
+  animation: station-selected-pulse 1.8s ease-in-out infinite;
+  fill: rgba(59, 130, 246, 0.28);
+  stroke: rgba(96, 165, 250, 1);
+}
+
+@keyframes station-selected-pulse {
+  0%,
+  100% {
+    stroke-opacity: 0.65;
+    stroke-width: 10;
+  }
+
+  50% {
+    stroke-opacity: 1;
+    stroke-width: 22;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .station-hit-target.selected {
+    animation: none;
+  }
 }

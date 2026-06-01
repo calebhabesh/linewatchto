@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { plannedClosures } from "../app/linewatch-data";
+import { useDashboardData } from "../app/DataContext";
 import { Calendar, Eye, EyeOff, Bus, ChevronLeft } from "lucide-react";
 
 interface Props {
@@ -13,6 +13,7 @@ interface Props {
 export function PlannedClosuresPanel({ selectedClosureId, onSelectClosureId, onBack }: Props) {
   const internalClickRef = useRef(false);
   const [flashId, setFlashId] = useState<string | null>(null);
+  const { plannedClosures } = useDashboardData();
 
   useEffect(() => {
     if (internalClickRef.current) {

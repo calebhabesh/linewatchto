@@ -18,3 +18,12 @@ spring:
 
 server:
   port: ${SERVER_PORT:8080}
+
+linewatch:
+  ingestion:
+    alerts:
+      enabled: ${LINEWATCH_INGESTION_ALERTS_ENABLED:false}
+      url: ${LINEWATCH_INGESTION_ALERTS_URL:https://alerts.ttc.ca/api/alerts/live-alerts}
+      fixed-delay: ${LINEWATCH_INGESTION_ALERTS_FIXED_DELAY:PT2M}
+      connect-timeout: ${LINEWATCH_INGESTION_ALERTS_CONNECT_TIMEOUT:PT3S}
+      read-timeout: ${LINEWATCH_INGESTION_ALERTS_READ_TIMEOUT:PT8S}

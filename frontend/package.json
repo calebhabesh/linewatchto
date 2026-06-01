@@ -9,6 +9,8 @@
     "start": "next start",
     "lint": "eslint",
     "test:fixtures": "node --test tests/*.test.mjs",
+    "test:smoke": "playwright test",
+    "test:smoke:install": "playwright install chromium",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
@@ -19,6 +21,7 @@
     "recharts": "^3.8.1"
   },
   "devDependencies": {
+    "@playwright/test": "^1.60.0",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",

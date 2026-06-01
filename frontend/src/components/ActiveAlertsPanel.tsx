@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { activeAlerts } from "../app/linewatch-data";
+import { useDashboardData } from "../app/DataContext";
 import { AlertTriangle, Bus, ChevronLeft, Eye, EyeOff } from "lucide-react";
 
 interface Props {
@@ -17,6 +17,7 @@ export function ActiveAlertsPanel({
 }: Props) {
   const internalClickRef = useRef(false);
   const [flashId, setFlashId] = useState<string | null>(null);
+  const { activeAlerts } = useDashboardData();
 
   useEffect(() => {
     if (internalClickRef.current) {

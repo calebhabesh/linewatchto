@@ -8,7 +8,7 @@ The project is intentionally scoped as a full-stack portfolio build: practical e
 
 ## Current Status
 
-The current app is a polished frontend demo backed by typed local fixtures. It is designed to resemble a transit operations dashboard inspired by subwaystatus.live while keeping the data shapes close to the future Spring API contract.
+The current app is a seeded full-stack dashboard demo with a graceful local-fixture fallback. Next.js fetches seeded Spring Boot dashboard boundaries on initial render when the backend is available and falls back to typed local fixtures when any required dashboard request fails. The backend can now poll and normalize the official TTC Live Alerts feed when explicitly enabled, but the visible dashboard APIs still return demo data until the next live-mode slice.
 
 Implemented now:
 
@@ -29,14 +29,31 @@ Implemented now:
 - Mobile bottom navigation.
 - Backend Spring Boot health endpoint.
 - Frontend fixture tests and backend health-controller test.
+- Clickable/tappable station detail overlays for supported rapid transit stations.
+- Backend `/api/stations` and `/api/stations/{id}` endpoints backed by Flyway-seeded PostgreSQL station data.
+- Station detail panel with desktop right dock and mobile bottom sheet behavior.
+- Seeded station access and station impact records.
+- Demo station arrivals clearly labeled as placeholders, not live TTC predictions.
+- PostGIS-enabled Flyway schema for stations, transit lines, line segments, alerts, alert-segment links, snapshots, and ingestion runs.
+- Seeded `/api/map`, `/api/status`, and `/api/alerts?type=live|planned` demo boundaries.
+- Next.js Server Component dashboard loading with complete local-fixture fallback.
+- Playwright Chromium smoke tests for seeded API and fallback rendering on desktop and mobile viewports.
+- Opt-in scheduled polling for the official TTC Live Alerts feed at `https://alerts.ttc.ca/api/alerts/live-alerts`.
+- Raw staging for route and accessibility source records so unsupported records are retained for later analysis.
+- Normalization and source-ID upserts for supported subway/LRT delays, suspensions, and planned closures.
+- Elevator and escalator outage normalization with station links where TTC station names resolve.
+- Alert snapshots for new, changed, deactivated, and reactivated normalized route alerts.
+- Durable ingestion-run tracking and `/api/health/ingestion`.
 
 Not implemented yet:
 
-- Live TTC service-alert ingestion.
 - Static GTFS import.
-- PostGIS transit geometry schema.
+- Populated geographic segment geometry for PostGIS intersect logic.
+- User-facing live-mode reads for `/api/alerts`, `/api/status`, station detail, and map overlays.
+- Live TTC station-arrival predictions. Station times remain clearly labeled demo estimates.
+- Production alert-to-segment matching.
 - Redis-backed live status cache.
-- Backend `/api/map`, `/api/status`, `/api/alerts`, or commute-impact endpoints.
+- Backend commute-impact endpoint.
 - Real historical reliability aggregation.
 - Deployment.
 
@@ -131,6 +148,7 @@ npm --prefix frontend run test:fixtures
 npm --prefix frontend run typecheck
 npm --prefix frontend run lint
 npm --prefix frontend run build
+npm --prefix frontend run test:smoke
 ```
 
 Fixture data lives in:
@@ -173,22 +191,39 @@ Health endpoint:
 curl http://localhost:8080/api/health
 ```
 
+Alert ingestion is disabled by default. Enable one scheduled poller process with:
+
+```bash
+LINEWATCH_INGESTION_ALERTS_ENABLED=true \
+LINEWATCH_INGESTION_ALERTS_FIXED_DELAY=PT2M \
+mvn -f backend/pom.xml spring-boot:run
+```
+
+Inspect its latest poll result:
+
+```bash
+curl http://localhost:8080/api/health/ingestion
+```
+
 Current backend scope:
 
-- `GET /api/health`
+| Method | Endpoint | Purpose |
+| --- | --- | --- |
+| `GET` | `/api/health` | Backend service health. |
+| `GET` | `/api/health/ingestion` | Latest TTC Live Alerts poll status and record counts. |
+| `GET` | `/api/map` | Seeded stations and SVG-backed line segments. |
+| `GET` | `/api/status` | Seeded line status demo payload. |
+| `GET` | `/api/alerts?type=live\|planned` | Hard-coded live-style or planned demo alerts. |
+| `GET` | `/api/stations?query={q}` | Seeded station summaries and search. |
+| `GET` | `/api/stations/{id}` | Seeded station detail payload. |
 
 Planned backend API:
 
 | Method | Endpoint | Purpose |
 | --- | --- | --- |
-| `GET` | `/api/status` | Current line health, active alerts, and last refresh time. |
-| `GET` | `/api/map` | Stations, line segments, and active disruption overlays. |
-| `GET` | `/api/alerts?type=live\|planned` | Normalized live disruptions or planned closures. |
-| `GET` | `/api/stations?query={q}` | Station search/autocomplete. |
 | `POST` | `/api/commutes/impact` | Return impact summary for an origin/destination pair. |
 | `GET` | `/api/reliability/lines` | Line-level disruption frequency and duration summaries. |
 | `GET` | `/api/reliability/stations/{id}` | Station-specific alert history and reliability summary. |
-| `GET` | `/api/health/ingestion` | Poll age, run status, record counts, and failure counts. |
 
 ## Product Scope
 
@@ -261,6 +296,7 @@ Next.js dashboard
 
 LineWatch TO should use public and source-linked data. It should also be honest about uncertainty:
 
+- The implemented poller reads the public TTC Live Alerts endpoint at `https://alerts.ttc.ca/api/alerts/live-alerts`.
 - TTC alerts can be vague.
 - Some alerts name broad corridors rather than exact station-to-station segments.
 - Planned closure pages or feeds may change format.
@@ -275,6 +311,7 @@ Before claiming a frontend change is complete, run:
 npm --prefix frontend run test:fixtures
 npm --prefix frontend run typecheck
 npm --prefix frontend run lint
+npm --prefix frontend run test:smoke
 ```
 
 For substantial UI changes, also run:
@@ -313,16 +350,11 @@ Suggested resume bullet once backend and live data are implemented:
 
 ## Roadmap
 
-1. Polish the fixture-backed frontend until desktop and mobile screenshots are portfolio-ready.
-2. Add browser smoke tests for the primary dashboard once a browser test dependency is accepted.
-3. Add Flyway migrations for lines, stations, line segments, alert events, alert impacts, alert snapshots, saved commutes, and ingestion runs.
-4. Seed or import subway/LRT geometry and expose `/api/map`.
-5. Implement alert source clients and normalization.
-6. Expose `/api/status` and `/api/alerts`.
-7. Connect frontend data adapters to backend endpoints while retaining fixture mode.
-8. Implement saved commute impact matching.
-9. Add reliability aggregation and ingestion health endpoints.
-10. Deploy and publish measured API/build/test metrics.
+1. Switch user-facing alert, status, station-outage, and map-overlay reads onto normalized TTC records while retaining fixture mode for demos and tests.
+2. Add a public live-arrival provider and replace station-panel demo estimates with source-labeled predictions.
+3. Import static GTFS shapes and implement production alert-to-segment matching.
+4. Implement saved commute impact matching and reliability aggregation.
+5. Deploy and publish measured API/build/test metrics.
 
 ## License and Disclaimer
 

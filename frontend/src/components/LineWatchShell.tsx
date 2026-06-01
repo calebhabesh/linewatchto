@@ -9,12 +9,23 @@ import { PlannedClosuresPanel } from "./PlannedClosuresPanel";
 import { SavedCommutesPanel } from "./SavedCommutesPanel";
 import { ReliabilityPanel } from "./ReliabilityPanel";
 import { LineLegend } from "./LineLegend";
-import { generatedAt, activeAlerts, lineStatuses, ingestionHealth, plannedClosures } from "../app/linewatch-data";
+import { DataProvider, DashboardData } from "../app/DataContext";
+import {
+  fallbackStationSummaries,
+  getStationDetail,
+  getStationSummaries,
+  type StationDataResult,
+  type StationDetail,
+  type StationSummary,
+} from "../app/station-data";
+import { StationDetailPanel } from "./StationDetailPanel";
 import { Menu, X, Map as MapIcon, AlertTriangle, Calendar, Navigation, ShieldCheck, BarChart3 } from "lucide-react";
 
 type ActiveView = "map" | "menu" | "alerts" | "closures" | "commutes" | "analytics";
 
-export function LineWatchShell() {
+export function LineWatchShell({ initialData }: { initialData: DashboardData }) {
+  const { generatedAt, activeAlerts, lineStatuses, ingestionHealth, plannedClosures } = initialData;
+  const dataModeLabel = generatedAt.live ? "Live status" : "Demo status";
   const [isDark, setIsDark] = useState(true);
   const [reducedMotion, setReducedMotion] = useState(false);
   const [activeView, setActiveView] = useState<ActiveView>("map");
@@ -22,6 +33,10 @@ export function LineWatchShell() {
   // Interactive linking state
   const [selectedAlertId, setSelectedAlertId] = useState<string | null>(null);
   const [selectedClosureId, setSelectedClosureId] = useState<string | null>(null);
+  const [stationSummaries, setStationSummaries] = useState<StationSummary[]>(fallbackStationSummaries.stations);
+  const [selectedStationId, setSelectedStationId] = useState<string | null>(null);
+  const [stationResult, setStationResult] = useState<StationDataResult<StationDetail | null> | null>(null);
+  const [stationLoading, setStationLoading] = useState(false);
 
   useEffect(() => {
     const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -31,18 +46,59 @@ export function LineWatchShell() {
     return () => mediaQuery.removeEventListener("change", handler);
   }, []);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    getStationSummaries().then((result) => {
+      if (!cancelled) {
+        setStationSummaries(result.data.stations);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    if (!selectedStationId) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setStationResult(null);
+      setStationLoading(false);
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    setStationLoading(true);
+    getStationDetail(selectedStationId).then((result) => {
+      if (!cancelled) {
+        setStationResult(result);
+        setStationLoading(false);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedStationId]);
+
   const handleToggleMenu = () => {
     setActiveView(prev => {
       if (prev !== "menu" && prev !== "map") {
         setSelectedAlertId(null);
         setSelectedClosureId(null);
+        setSelectedStationId(null);
       }
       return prev === "menu" ? "map" : "menu";
     });
   };
 
   return (
-    <div className={`linewatch-shell relative w-full h-screen overflow-hidden transition-colors duration-500 ${isDark ? "dark bg-[#0d0808] text-slate-100" : "bg-slate-50 text-slate-900"}`}>
+    <DataProvider data={initialData}>
+      <div className={`linewatch-shell relative w-full h-screen overflow-hidden transition-colors duration-500 ${isDark ? "dark bg-[#0d0808] text-slate-100" : "bg-slate-50 text-slate-900"}`}>
       {/* Background */}
       <DynamicBackground reducedMotion={reducedMotion} isDark={isDark} />
       
@@ -73,7 +129,7 @@ export function LineWatchShell() {
           </button>
 
           {/* Floating Dropdown Menu */}
-          <div className={`panel-strong absolute top-[72px] left-0 w-[min(calc(100vw-32px),360px)] border border-black/10 dark:border-white/10 rounded-2xl shadow-2xl overflow-hidden flex flex-col origin-top-left [transition-property:opacity,transform] duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] ${activeView === "menu" ? "opacity-100 scale-100 translate-y-0 pointer-events-auto" : "opacity-0 scale-95 -translate-y-4 pointer-events-none"}`}>
+          <div className={`panel-strong absolute top-[72px] left-0 w-[min(calc(100vw-32px),360px)] border border-black/10 dark:border-white/10 rounded-2xl shadow-2xl overflow-hidden flex flex-col origin-top-left transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] ${activeView === "menu" ? "opacity-100 scale-100 translate-y-0 pointer-events-auto" : "opacity-0 scale-90 -translate-y-4 pointer-events-none"}`}>
                {/* Branding */}
                <div className="flex items-center gap-3 p-4 border-b border-black/10 dark:border-white/10 bg-white/40 dark:bg-black/20">
                  <div className="flex items-center justify-center shrink-0 w-8 h-8 rounded-lg shadow-sm border border-black/10 dark:border-white/10 bg-white dark:bg-white/10 p-1">
@@ -162,9 +218,10 @@ export function LineWatchShell() {
                  </div>
                  
                  <div className="flex flex-col mt-2 pt-3 border-t border-black/10 dark:border-white/10">
-                   <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 mb-2">
+                   <div className="flex flex-wrap items-center gap-1.5 text-emerald-600 dark:text-emerald-400 mb-2">
                      <ShieldCheck size={16} />
                      <span className="text-[11px] font-bold uppercase tracking-wider">Ingestion Health (Poll: {generatedAt.lastPoll})</span>
+                     <span data-testid="menu-dashboard-data-mode" className="text-[11px] font-bold uppercase tracking-wider">{dataModeLabel}</span>
                    </div>
                    <div className="grid grid-cols-2 gap-2">
                      {ingestionHealth.map((health, idx) => (
@@ -189,8 +246,8 @@ export function LineWatchShell() {
             <span className="text-slate-500 dark:text-slate-400 text-xs font-semibold uppercase tracking-wider">Last poll:</span>
             <strong className="text-sm font-bold text-slate-800 dark:text-white">{generatedAt.lastPoll}</strong>
             <span className="h-4 w-px bg-slate-300 dark:bg-white/10" />
-            <b className="text-[10px] font-bold uppercase tracking-wider bg-green-500/10 text-green-600 dark:text-green-400 px-2.5 py-0.5 rounded-full border border-green-500/20">
-              Live status
+            <b data-testid="dashboard-data-mode" className="text-[10px] font-bold uppercase tracking-wider bg-green-500/10 text-green-600 dark:text-green-400 px-2.5 py-0.5 rounded-full border border-green-500/20">
+              {dataModeLabel}
             </b>
           </div>
         </div>
@@ -199,7 +256,7 @@ export function LineWatchShell() {
       </header>
 
       {/* Floating Submenus (Alerts, Closures, Commutes, Analytics) */}
-      <div className={`absolute top-[88px] sm:top-[104px] left-4 sm:left-6 z-30 w-[min(calc(100vw-32px),540px)] flex flex-col [transition-property:opacity,transform] duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] ${activeView === "alerts" ? "opacity-100 translate-x-0 pointer-events-auto" : "opacity-0 -translate-x-8 pointer-events-none"}`}>
+      <div className={`absolute top-[88px] sm:top-[104px] left-4 sm:left-6 z-30 w-[min(calc(100vw-32px),540px)] flex flex-col transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] ${activeView === "alerts" ? "opacity-100 translate-x-0 pointer-events-auto" : "opacity-0 -translate-x-8 pointer-events-none"}`}>
          <div className="max-h-[85vh] overflow-y-auto pr-1 pb-4 flex flex-col gap-4">
            <ActiveAlertsPanel 
              selectedAlertId={selectedAlertId}
@@ -209,7 +266,7 @@ export function LineWatchShell() {
          </div>
       </div>
 
-      <div className={`absolute top-[88px] sm:top-[104px] left-4 sm:left-6 z-30 w-[min(calc(100vw-32px),540px)] flex flex-col [transition-property:opacity,transform] duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] ${activeView === "closures" ? "opacity-100 translate-x-0 pointer-events-auto" : "opacity-0 -translate-x-8 pointer-events-none"}`}>
+      <div className={`absolute top-[88px] sm:top-[104px] left-4 sm:left-6 z-30 w-[min(calc(100vw-32px),540px)] flex flex-col transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] ${activeView === "closures" ? "opacity-100 translate-x-0 pointer-events-auto" : "opacity-0 -translate-x-8 pointer-events-none"}`}>
          <div className="max-h-[85vh] overflow-y-auto pr-1 pb-4 flex flex-col gap-4">
            <PlannedClosuresPanel 
              selectedClosureId={selectedClosureId}
@@ -219,13 +276,13 @@ export function LineWatchShell() {
          </div>
       </div>
 
-      <div className={`absolute top-[88px] sm:top-[104px] left-4 sm:left-6 z-30 w-[min(calc(100vw-32px),540px)] flex flex-col [transition-property:opacity,transform] duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] ${activeView === "commutes" ? "opacity-100 translate-x-0 pointer-events-auto" : "opacity-0 -translate-x-8 pointer-events-none"}`}>
+      <div className={`absolute top-[88px] sm:top-[104px] left-4 sm:left-6 z-30 w-[min(calc(100vw-32px),540px)] flex flex-col transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] ${activeView === "commutes" ? "opacity-100 translate-x-0 pointer-events-auto" : "opacity-0 -translate-x-8 pointer-events-none"}`}>
          <div className="max-h-[85vh] overflow-y-auto pr-1 pb-4 flex flex-col gap-4">
            <SavedCommutesPanel onBack={() => setActiveView("menu")} />
          </div>
       </div>
 
-      <div className={`absolute top-[88px] sm:top-[104px] left-4 sm:left-6 z-30 w-[min(calc(100vw-32px),540px)] flex flex-col [transition-property:opacity,transform] duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] ${activeView === "analytics" ? "opacity-100 translate-x-0 pointer-events-auto" : "opacity-0 -translate-x-8 pointer-events-none"}`}>
+      <div className={`absolute top-[88px] sm:top-[104px] left-4 sm:left-6 z-30 w-[min(calc(100vw-32px),540px)] flex flex-col transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] ${activeView === "analytics" ? "opacity-100 translate-x-0 pointer-events-auto" : "opacity-0 -translate-x-8 pointer-events-none"}`}>
          <div className="max-h-[85vh] overflow-y-auto pr-1 pb-4 flex flex-col gap-4">
            <ReliabilityPanel onBack={() => setActiveView("menu")} />
          </div>
@@ -236,19 +293,31 @@ export function LineWatchShell() {
         <InteractiveTtcMap 
           selectedAlertId={selectedAlertId}
           selectedClosureId={selectedClosureId}
+          selectedStationId={selectedStationId}
+          stations={stationSummaries}
           onSelectAlertId={setSelectedAlertId}
           onSelectClosureId={setSelectedClosureId}
+          onSelectStationId={(id) => {
+            setSelectedStationId(id);
+            setSelectedAlertId(null);
+            setSelectedClosureId(null);
+          }}
           isDark={isDark}
           onToggleTheme={() => setIsDark(!isDark)}
           layoutResetSignal={0}
         />
       </main>
 
-      {/* Cardinal North Compass (Custom Positioning) */}
-      <div className="fixed bottom-95 right-20 z-20 pointer-events-auto select-none">
-        {/* You can change 'bottom-36' and 'right-8' to any value, or use exact pixels like 'bottom-[120px] right-[40px]' */}
-        <Image src="/assets/linewatch/cardinal-north.svg" alt="North arrow" width={75} height={100} className="dark:invert drop-shadow-md" />
-      </div>
+      {selectedStationId && (
+        <StationDetailPanel
+          stationResult={stationResult}
+          loading={stationLoading}
+          selectedStationName={stationSummaries.find((station) => station.id === selectedStationId)?.name}
+          onClose={() => setSelectedStationId(null)}
+        />
+      )}
+
+
 
       {/* Fixed borderless legend at the bottom right */}
       <aside className="fixed bottom-6 right-6 z-20 pointer-events-auto">
@@ -258,5 +327,6 @@ export function LineWatchShell() {
         />
       </aside>
     </div>
+    </DataProvider>
   );
 }

@@ -9,6 +9,7 @@ const activeAlertsSource = readFileSync(new URL("../src/components/ActiveAlertsP
 const plannedClosuresSource = readFileSync(new URL("../src/components/PlannedClosuresPanel.tsx", import.meta.url), "utf8");
 const savedCommutesSource = readFileSync(new URL("../src/components/SavedCommutesPanel.tsx", import.meta.url), "utf8");
 const reliabilitySource = readFileSync(new URL("../src/components/ReliabilityPanel.tsx", import.meta.url), "utf8");
+const pageSource = readFileSync(new URL("../src/app/page.tsx", import.meta.url), "utf8");
 const globalCss = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
 
 describe("floating menu layout", () => {
@@ -58,5 +59,18 @@ describe("floating menu layout", () => {
     assert.match(globalCss, /scrollbar-color:\s*rgba\(148, 163, 184, 0\.28\) transparent/);
     assert.match(globalCss, /::-webkit-scrollbar-thumb/);
     assert.match(globalCss, /background:\s*rgba\(148, 163, 184, 0\.24\)/);
+  });
+
+  it("keeps station detail separate from the left-side floating panels", () => {
+    assert.match(shellSource, /StationDetailPanel/);
+    assert.match(shellSource, /selectedStationId/);
+    assert.match(shellSource, /setSelectedStationId\(null\)/);
+  });
+
+  it("labels fallback mode without claiming live TTC status", () => {
+    assert.match(pageSource, /Backend offline \(Fixture mode\)/);
+    assert.match(shellSource, /generatedAt\.live \? "Live status" : "Demo status"/);
+    assert.match(shellSource, /data-testid="menu-dashboard-data-mode"/);
+    assert.match(shellSource, /data-testid="dashboard-data-mode"/);
   });
 });

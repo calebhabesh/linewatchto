@@ -5,6 +5,7 @@ import {
   activeAlerts,
   commuteImpacts,
   findAlertBySegmentId,
+  generatedAt,
   lineStatuses,
   mapAsset,
   networkSegments,
@@ -13,6 +14,10 @@ import {
 } from "../src/app/linewatch-data.ts";
 
 describe("LineWatch dashboard fixture data", () => {
+  it("labels local fixture metadata as demo data", () => {
+    assert.equal(generatedAt.live, false);
+  });
+
   it("marks disrupted network segments as clickable alert overlays", () => {
     const disruptedSegments = networkSegments.filter((segment) => segment.alertId);
 

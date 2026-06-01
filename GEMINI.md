@@ -1,6 +1,6 @@
 # Agent Guide for LineWatch TO
 
-Last updated: 2026-05-30
+Last updated: 2026-06-01
 
 This repository contains LineWatch TO, an unofficial TTC reliability dashboard. The app is a portfolio-grade full-stack project intended to show Java/Spring backend engineering, PostgreSQL/PostGIS data modeling, Redis caching, public transit ingestion, and a polished Next.js interface for Toronto subway and LRT reliability.
 
@@ -15,11 +15,18 @@ The project is early but no longer an empty scaffold.
 - `frontend/src/app/transit-map.tsx` loads the edited map asset and renders interactive overlay paths in the same SVG coordinate system.
 - `frontend/public/assets/linewatch/` contains the edited TTC map SVG and line legend SVG icons.
 - `frontend/tests/linewatch-data.test.mjs` verifies the fixture layer with Node's built-in test runner.
-- `backend/` contains a Spring Boot app with a health endpoint and baseline test.
-- `docker-compose.yml` provides PostgreSQL/PostGIS and Redis for later backend phases.
-- Live TTC ingestion, GTFS import, PostGIS schema, Redis caching, commute-impact API, and reliability aggregation are planned but not yet implemented.
+- `backend/` contains a Spring Boot app with seeded dashboard APIs, TTC alert ingestion services, health endpoints, and backend tests.
+- `docker-compose.yml` provides PostgreSQL/PostGIS and Redis.
+- The project includes seeded PostGIS migrations for stations and transit lines.
+- Seeded demo dashboard APIs (`/api/map`, `/api/status`, `/api/alerts`, `/api/stations`) are implemented.
+- Next.js Server Component loads data with complete local-fixture fallback.
+- Playwright Chromium smoke tests cover seeded API and fixture-fallback rendering.
+- Opt-in TTC Live Alerts polling, raw source staging, supported subway/LRT normalization, accessibility-outage normalization, alert snapshotting, and `/api/health/ingestion` are implemented.
+- TTC alert polling is disabled by default. Enable it with `LINEWATCH_INGESTION_ALERTS_ENABLED=true`.
+- Visible `/api/alerts`, `/api/status`, station-detail, and map-overlay payloads remain seeded demo data. Live station arrivals remain demo-only estimates.
+- GTFS import, populated geographic geometry, production segment matching, Redis caching, commute-impact API, and reliability aggregation are planned but not yet implemented.
 
-Do not claim live TTC data, production deployment, account-backed saved routes, notifications, or real GTFS import until those features exist in code and have passing verification.
+Do not claim that the visible dashboard is live, or claim imported GTFS geometry, production geospatial matching, Redis-backed status, real analytics, or real station arrivals until those features exist in code and have passing verification.
 
 ## Product Target
 
@@ -90,6 +97,7 @@ npm --prefix frontend run typecheck
 npm --prefix frontend run lint
 npm --prefix frontend run build
 npm --prefix frontend run dev
+npm --prefix frontend run test:smoke
 ```
 
 Backend:
@@ -110,6 +118,7 @@ Health check:
 
 ```bash
 curl http://localhost:8080/api/health
+curl http://localhost:8080/api/health/ingestion
 ```
 
 ## Verification Policy
@@ -128,6 +137,7 @@ For substantial frontend changes, also run:
 
 ```bash
 npm --prefix frontend run build
+npm --prefix frontend run test:smoke
 ```
 
 For backend changes, run:
@@ -173,18 +183,23 @@ For cross-stack changes, run both frontend and backend checks. If a command cann
 
 ## Backend Direction
 
+The backend now owns:
+
+- Opt-in scheduled polling for the official TTC Live Alerts feed.
+- Raw staging for route and accessibility alert records.
+- Supported subway/LRT delay, suspension, and planned-closure normalization.
+- Elevator and escalator outage normalization with seeded station links where names resolve.
+- Source-ID upserts, alert snapshots, ingestion-run tracking, and `/api/health/ingestion`.
+
 The backend should eventually own:
 
 - Static TTC GTFS import for subway/LRT routes, stops, trips, and shapes.
 - PostGIS modeling for stations, line segments, and shapes.
-- Live alert polling.
-- Planned closure ingestion.
-- Alert normalization and deduplication.
+- Additional planned-closure source ingestion if needed beyond the live-alert feed.
 - Alert-to-line/station/segment impact matching.
-- Historical alert snapshots.
 - Reliability aggregation.
 - Commute impact matching.
-- Ingestion health endpoints.
+- User-facing live status reads and source-labeled live station arrivals.
 
 Planned API contract:
 
@@ -199,7 +214,7 @@ GET  /api/reliability/stations/{id}
 GET  /api/health/ingestion
 ```
 
-The current backend only exposes health. Build backend features incrementally and test normalization, deduplication, impact matching, and API contracts before wiring the UI to live endpoints.
+The current backend implements seeded-demo dashboard boundaries (`/api/map`, `/api/status`, `/api/alerts`, `/api/stations`), service health (`/api/health`), and an opt-in TTC alert ingestion pipeline with `/api/health/ingestion`. Build the live read switch incrementally and keep fixture mode available for demos and tests.
 
 ## Data Source Guardrails
 
@@ -229,15 +244,11 @@ When changing agent instructions, update both `AGENTS.md` and `GEMINI.md` togeth
 
 ## Suggested Next Implementation Order
 
-1. Keep polishing the frontend demo until it is clearly portfolio-worthy on desktop and mobile.
-2. Add Playwright smoke tests once a browser test dependency is accepted.
-3. Add backend Flyway migrations for transit lines, stations, line segments, alerts, snapshots, and ingestion runs.
-4. Implement `/api/map` from seeded or imported transit geometry.
-5. Move frontend fixtures behind a typed adapter that can read from `/api/map`, `/api/status`, and `/api/alerts`.
-6. Implement alert normalization and deduplication.
-7. Implement commute impact matching.
-8. Add reliability aggregation and ingestion health.
-9. Replace fixture mode with live mode while keeping fixture mode for demos/tests.
+1. Switch user-facing alert, status, station-outage, and map-overlay reads onto normalized TTC records while keeping fixture mode for demos and tests.
+2. Add a public live-arrival provider and replace station-panel demo estimates with source-labeled predictions.
+3. Import static GTFS shapes and implement production alert-to-segment matching.
+4. Implement commute impact matching.
+5. Add reliability aggregation and Redis-backed status caching.
 
 ## Agent Handoff Notes
 

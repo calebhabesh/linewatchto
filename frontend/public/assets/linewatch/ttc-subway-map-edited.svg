@@ -31,7 +31,7 @@
    inkscape:window-x="0"
    inkscape:window-y="0"
    inkscape:window-maximized="1"
-   inkscape:current-layer="layer6" />
+   inkscape:current-layer="station-o_connor" />
  <defs
    id="defs1">
   <style
@@ -7075,7 +7075,8 @@
   </g><g
      id="station-o_connor"
      style="clip-rule:evenodd;fill-rule:evenodd;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
-     transform="translate(4624.6017,-792.42377)">
+     transform="translate(4624.6017,-792.42377)"
+     inkscape:label="station-o'connor">
    <path
    class="fil6"
    d="m 1578,2603 c 0,-18 15,-33 33,-33 18,0 33,15 33,33 0,18 -15,33 -33,33 -18,0 -33,-15 -33,-33 z"
