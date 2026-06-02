@@ -20,16 +20,25 @@ import {
   type StationSummary,
 } from "../app/station-data";
 import { StationDetailPanel } from "./StationDetailPanel";
-import { Menu, X, Map as MapIcon, AlertTriangle, Calendar, Navigation, ShieldCheck, BarChart3 } from "lucide-react";
+import { useTorontoClock } from "../hooks/useTorontoClock";
+import { Menu, X, Map as MapIcon, AlertTriangle, Calendar, Navigation, ShieldCheck, BarChart3, Construction } from "lucide-react";
 
 type ActiveView = "map" | "menu" | "alerts" | "reduced-speed-zones" | "closures" | "commutes" | "analytics";
 
 export function LineWatchShell({ initialData }: { initialData: DashboardData }) {
   const { generatedAt, activeAlerts, reducedSpeedZones, lineStatuses, ingestionHealth, plannedClosures } = initialData;
+  const formatPoll = (p: string) => {
+    const str = p.replace(/succeeded\s*/i, "");
+    if (str.toLowerCase() === "just now") return "Just Now";
+    return str;
+  };
+  const pollText = formatPoll(generatedAt.lastPoll);
+
   const dataModeLabel = generatedAt.live ? "Live status" : "Demo status";
   const [isDark, setIsDark] = useState(true);
   const [reducedMotion, setReducedMotion] = useState(false);
   const [activeView, setActiveView] = useState<ActiveView>("map");
+  const clock = useTorontoClock(generatedAt.time);
 
   // Interactive linking state
   const [selectedAlertId, setSelectedAlertId] = useState<string | null>(null);
@@ -155,9 +164,9 @@ export function LineWatchShell({ initialData }: { initialData: DashboardData }) 
                    )}
                  </button>
                  <button onClick={() => setActiveView("reduced-speed-zones")} className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors">
-                   <div className="flex items-center gap-3">
-                     <AlertTriangle size={18} className="text-slate-500 dark:text-slate-400" /> Reduced Speed Zones
-                   </div>
+                    <div className="flex items-center gap-3">
+                      <Construction size={18} className="text-slate-500 dark:text-slate-400" /> Reduced Speed Zones
+                    </div>
                    {reducedSpeedZones.length > 0 && (
                      <span className="flex h-5 items-center justify-center rounded-full bg-amber-500/20 px-2 text-[10px] font-bold text-amber-700 dark:text-amber-400">
                        {reducedSpeedZones.length}
@@ -209,39 +218,49 @@ export function LineWatchShell({ initialData }: { initialData: DashboardData }) 
                  <div className="flex flex-col gap-2">
                    <span className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 tracking-wider">Line Status</span>
                    <div className="flex flex-col gap-2">
-                     {lineStatuses.map(l => (
-                       <div key={l.id} className="flex items-start gap-3 px-2 py-2 rounded-lg !bg-white dark:!bg-[#12151c] border border-black/5 dark:border-white/5 shadow-sm">
-                          <span className="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold shadow-sm border border-black dark:border-white/30" style={{ backgroundColor: l.color, color: l.id === "line-1" ? "#000" : "#fff" }}>
-                            {l.number}
-                          </span>
-                          <div className="flex flex-col">
-                             <div className="flex items-center gap-2">
-                               <span className="text-sm font-bold text-slate-800 dark:text-slate-200">{l.name}</span>
-                               {l.status === "suspension" && <span className="text-[10px] font-bold text-red-600 dark:text-red-400 uppercase tracking-wider flex items-center gap-1"><AlertTriangle size={12}/> Suspended</span>}
-                               {l.status === "delay" && <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider flex items-center gap-1"><AlertTriangle size={12}/> Delay</span>}
-                               {l.status === "normal" && <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">Good Service</span>}
+                      {lineStatuses.map(l => {
+                        const hasAlert = activeAlerts.some(a => a.lineId === l.id);
+                        const hasRSZ = reducedSpeedZones.some(z => z.lineId === l.id);
+                        const hasClosure = plannedClosures.some(c => c.lineId === l.id);
+                        const isClear = !hasAlert && !hasRSZ && !hasClosure;
+                        
+                        return (
+                          <div key={l.id} className="flex items-center gap-3 px-2 py-2 rounded-lg !bg-white dark:!bg-[#12151c] border border-black/5 dark:border-white/5 shadow-sm">
+                             <span className="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold shadow-sm border border-black dark:border-white/30" style={{ backgroundColor: l.color, color: l.id === "line-1" ? "#000" : "#fff" }}>
+                               {l.number}
+                             </span>
+                             <div className="flex flex-col justify-center">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-sm font-bold text-slate-800 dark:text-slate-200">{l.name}</span>
+                                  <div className="flex items-center gap-1.5 ml-1">
+                                    {hasAlert && <AlertTriangle size={14} className="text-red-500 dark:text-red-400" />}
+                                    {hasRSZ && <Construction size={14} className="text-amber-500 dark:text-amber-400" />}
+                                    {hasClosure && <Calendar size={14} className="text-blue-500 dark:text-blue-400" />}
+                                  </div>
+                                  {isClear && <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider ml-1">Good Service</span>}
+                                </div>
                              </div>
-                             {(l.status === "suspension" || l.status === "delay") && <span className="text-xs text-slate-600 dark:text-slate-400 leading-snug mt-1">{l.summary}</span>}
                           </div>
-                       </div>
-                     ))}
+                        );
+                      })}
                    </div>
                  </div>
 
                  <div className="flex flex-col mt-2 pt-3 border-t border-black/10 dark:border-white/10">
-                   <div className="flex flex-wrap items-center gap-1.5 text-emerald-600 dark:text-emerald-400 mb-2">
-                     <ShieldCheck size={16} />
-                     <span className="text-[11px] font-bold uppercase tracking-wider">Ingestion Health (Poll: {generatedAt.lastPoll})</span>
-                     <span data-testid="menu-dashboard-data-mode" className="text-[11px] font-bold uppercase tracking-wider">{dataModeLabel}</span>
-                   </div>
-                   <div className="grid grid-cols-2 gap-2">
-                     {ingestionHealth.map((health, idx) => (
-                       <div key={idx} className="flex flex-col !bg-white dark:!bg-[#12151c] p-2 rounded-lg border border-black/5 dark:border-white/5">
+                     <div className="flex flex-wrap items-center gap-1.5 text-emerald-600 dark:text-emerald-400 mb-2">
+                       <ShieldCheck size={16} />
+                       <span className="text-[11px] font-bold uppercase tracking-wider">Ingestion Status</span>
+                       <span className="text-[11px] font-bold uppercase tracking-wider bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-1.5 py-0.5 rounded ml-1">Last Polled: {pollText}</span>
+                       <span data-testid="menu-dashboard-data-mode" className="text-[11px] font-bold uppercase tracking-wider bg-green-500/10 text-green-600 dark:text-green-400 px-1.5 py-0.5 rounded">{dataModeLabel}</span>
+                     </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      {ingestionHealth.map((health, idx) => (
+                        <div key={idx} className="flex flex-col !bg-white dark:!bg-[#12151c] p-2 rounded-lg border border-black/5 dark:border-white/5">
                           <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{health.label}</span>
                           <span className="text-xs font-medium text-slate-800 dark:text-slate-300 leading-tight mt-1">{health.value}</span>
-                       </div>
-                     ))}
-                   </div>
+                        </div>
+                      ))}
+                    </div>
                  </div>
                </div>
             </div>
@@ -250,16 +269,20 @@ export function LineWatchShell({ initialData }: { initialData: DashboardData }) 
         {/* Floating Time Capsule (Top Center) */}
         <div className="hidden sm:flex absolute top-6 left-1/2 -translate-x-1/2 z-20 pointer-events-auto">
           <div className="bg-white dark:bg-[#0a0c10] border border-black/10 dark:border-white/10 shadow-lg rounded-2xl p-1.5 flex items-center gap-3 pr-5 transition-transform hover:scale-105">
-            <div className="flex items-center justify-center shrink-0 w-8 h-8 rounded-xl shadow-sm border border-black/10 dark:border-white/10 bg-slate-50 dark:bg-white/10 p-1 ml-0.5">
-               <Image src="/assets/linewatch/logo.svg" alt="LineWatch TO Logo" width={24} height={24} className="drop-shadow-sm dark:brightness-200" />
+            <div className="flex items-center justify-center shrink-0 w-10 h-10 rounded-xl shadow-sm border border-black/10 dark:border-white/10 bg-slate-50 dark:bg-white/10 p-1 ml-0.5">
+               <Image src="/assets/linewatch/logo.svg" alt="LineWatch TO Logo" width={32} height={32} className="drop-shadow-sm dark:brightness-200" />
             </div>
-            <span className="h-4 w-px bg-slate-300 dark:bg-white/10" />
-            <span className="text-slate-500 dark:text-slate-400 text-xs font-semibold uppercase tracking-wider">Last poll:</span>
-            <strong className="text-sm font-bold text-slate-800 dark:text-white">{generatedAt.lastPoll}</strong>
-            <span className="h-4 w-px bg-slate-300 dark:bg-white/10" />
-            <b data-testid="dashboard-data-mode" className="text-[10px] font-bold uppercase tracking-wider bg-green-500/10 text-green-600 dark:text-green-400 px-2.5 py-0.5 rounded-full border border-green-500/20">
-              {dataModeLabel}
-            </b>
+            <span className="h-6 w-px bg-slate-300 dark:bg-white/10" />
+            {clock.date ? (
+              <div className="flex flex-col">
+                <strong className="text-sm font-bold text-slate-800 dark:text-white leading-none mb-1">
+                  {clock.time} <span className="text-[10px] text-slate-400 font-medium tracking-wider ml-0.5">{clock.zone}</span>
+                </strong>
+                <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 leading-none">{clock.date}</span>
+              </div>
+            ) : (
+              <strong className="text-sm font-bold text-slate-800 dark:text-white">{clock.time}</strong>
+            )}
           </div>
         </div>
 
@@ -327,6 +350,8 @@ export function LineWatchShell({ initialData }: { initialData: DashboardData }) 
           onToggleTheme={() => setIsDark(!isDark)}
           layoutResetSignal={0}
           reducedMotion={reducedMotion}
+          lastPoll={generatedAt.lastPoll}
+          dataModeLabel={dataModeLabel}
         />
       </main>
 
@@ -344,9 +369,21 @@ export function LineWatchShell({ initialData }: { initialData: DashboardData }) 
       {/* Fixed borderless legend at the bottom right */}
       <aside className="fixed bottom-6 right-6 z-20 pointer-events-auto">
         <LineLegend
-          onAlertClick={(id) => { setActiveView("alerts"); setSelectedAlertId(id); }}
-          onReducedSpeedZoneClick={(id) => { setActiveView("reduced-speed-zones"); setSelectedAlertId(id); }}
-          onClosureClick={(id) => { setActiveView("closures"); setSelectedClosureId(id); }}
+          onAlertClick={() => {
+            setActiveView("alerts");
+            setSelectedAlertId(null);
+            setSelectedClosureId(null);
+          }}
+          onReducedSpeedZoneClick={() => {
+            setActiveView("reduced-speed-zones");
+            setSelectedAlertId(null);
+            setSelectedClosureId(null);
+          }}
+          onClosureClick={() => {
+            setActiveView("closures");
+            setSelectedAlertId(null);
+            setSelectedClosureId(null);
+          }}
         />
       </aside>
     </div>

@@ -20,6 +20,8 @@ export type ReducedSpeedZone = {
   location: string;
   displayDirection: string;
   description: string;
+  reason?: string | null;
+  targetRemoval?: string | null;
   updatedAgo: string;
   affectedSegmentIds: string[];
   sourceAlertIds: string[];
@@ -76,6 +78,8 @@ export type ActiveAlert = {
   severity: AlertSeverity;
   location: string;
   description: string;
+  reason?: string | null;
+  targetRemoval?: string | null;
   updatedAgo: string;
   affectedSegmentIds: string[];
   shuttle: boolean;
@@ -90,6 +94,9 @@ export type PlannedClosure = {
   window: string;
   location: string;
   description: string;
+  reason?: string | null;
+  targetRemoval?: string | null;
+  updatedAgo: string;
   previewSegmentIds: string[];
   shuttle: boolean;
   source: string;
@@ -124,7 +131,7 @@ export const generatedAt = {
   time: "Fixture mode",
   date: "Local demo",
   live: false,
-  lastPoll: "Backend offline (Fixture mode)",
+  lastPoll: "fixture mode",
 };
 
 export const mapAsset: {

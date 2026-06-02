@@ -120,6 +120,8 @@ class AlertDashboardServiceTest {
             OffsetDateTime.parse("2026-06-01T11:55:00Z"), null
         );
         ReflectionTestUtils.setField(northbound, "direction", "northbound");
+        ReflectionTestUtils.setField(northbound, "causeDescription", "Track issue");
+        ReflectionTestUtils.setField(northbound, "targetRemoval", "Mid-June");
         AlertEntity southbound = alert(
             "ttc-route-south", "active-alert", "delay", "Reduced speed",
             "Southbound trains are moving slowly.", "wilson", "yorkdale",
@@ -138,6 +140,8 @@ class AlertDashboardServiceTest {
             assertThat(zone.sourceAlertIds())
                 .containsExactlyInAnyOrder("ttc-route-north", "ttc-route-south");
             assertThat(zone.directionalDetails()).hasSize(2);
+            assertThat(zone.reason()).isEqualTo("Track issue");
+            assertThat(zone.targetRemoval()).isEqualTo("Mid-June");
         });
     }
 

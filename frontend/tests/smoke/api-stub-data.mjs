@@ -38,7 +38,7 @@ export const statusResponse = {
     time: "Seeded demo",
     date: "Smoke fixture",
     live: false,
-    lastPoll: "Stub API poll",
+    lastPoll: "succeeded just now",
   },
   lines: [
     {
@@ -64,6 +64,8 @@ export const activeAlertsResponse = [
     severity: "suspension",
     location: "Stub Station to Stub Terminal",
     description: "Seeded smoke alert for browser verification.",
+    reason: "Signal issue",
+    targetRemoval: "TBD",
     updatedAgo: "Seeded demo",
     affectedSegmentIds: ["stub-line-1-segment"],
     shuttle: true,
@@ -80,7 +82,9 @@ export const reducedSpeedZonesResponse = [
     location: "Eglinton to Davisville",
     displayDirection: "Southbound",
     description: "Southbound trains are moving slower than usual.",
-    updatedAgo: "Seeded demo",
+    reason: "Track issue",
+    targetRemoval: "Mid-June",
+    updatedAgo: "Updated 2 hr ago",
     affectedSegmentIds: ["stub-line-1-eglinton-davisville"],
     sourceAlertIds: ["stub-zone-south-source"],
     directionalDetails: [
@@ -104,6 +108,8 @@ export const plannedClosuresResponse = [
     window: "Seeded smoke window",
     location: "Stub Station to Stub Terminal",
     description: "Seeded smoke closure for browser verification.",
+    reason: "Track work",
+    targetRemoval: "End of weekend",
     previewSegmentIds: ["stub-line-1-segment"],
     shuttle: false,
     source: "Playwright API stub",

@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+
 import { useDashboardData } from "../app/DataContext";
 import { Calendar, Eye, EyeOff, Bus, ChevronLeft } from "lucide-react";
+import { LineBadge, ImpactRouteHeader, MetadataGrid } from "./ImpactCardFields";
 
 interface Props {
   selectedClosureId?: string | null;
@@ -11,21 +12,9 @@ interface Props {
 }
 
 export function PlannedClosuresPanel({ selectedClosureId, onSelectClosureId, onBack }: Props) {
-  const internalClickRef = useRef(false);
-  const [flashId, setFlashId] = useState<string | null>(null);
   const { plannedClosures } = useDashboardData();
 
-  useEffect(() => {
-    if (internalClickRef.current) {
-      internalClickRef.current = false;
-      setFlashId(null);
-    } else {
-      setFlashId(selectedClosureId || null);
-    }
-  }, [selectedClosureId]);
-
   const handleClosureClick = (closureId: string) => {
-    internalClickRef.current = true;
     if (onSelectClosureId) {
       if (selectedClosureId === closureId) {
         onSelectClosureId(null);
@@ -44,7 +33,7 @@ export function PlannedClosuresPanel({ selectedClosureId, onSelectClosureId, onB
               <ChevronLeft size={28} className="text-slate-700 dark:text-slate-300" />
             </button>
           )}
-          <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2 whitespace-nowrap">
+          <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-3 whitespace-nowrap">
             <Calendar size={22} className="text-blue-500 shrink-0" />
             Upcoming Closures
           </h2>
@@ -61,20 +50,12 @@ export function PlannedClosuresPanel({ selectedClosureId, onSelectClosureId, onB
               key={closure.id}
               className={`closure-card min-w-0 p-3 rounded-lg !bg-slate-50 dark:!bg-[#12151c] border border-black/10 dark:border-white/10 transition-all ${
                 isActive ? "!bg-blue-50 dark:!bg-blue-950" : ""
-              } ${flashId === closure.id ? "highlight-active-card" : ""}`}
+              }`}
             >
               <div className="flex items-start justify-between gap-3 w-full min-w-0">
                 <div className="flex min-w-0 flex-1 items-start gap-2">
-                  <span
-                    className="line-badge small shrink-0"
-                    style={{
-                      backgroundColor: closure.lineId === "line-1" ? "#f4c430" : closure.lineId === "line-2" ? "#14a44d" : closure.lineId === "line-4" ? "#b84ed8" : "#f57c00",
-                      color: closure.lineId === "line-1" ? "#000000" : "#ffffff",
-                    }}
-                  >
-                    {closure.lineNumber}
-                  </span>
-                  <strong className="block min-w-0 text-sm font-semibold text-slate-800 dark:text-slate-100 whitespace-normal break-words">
+                  <LineBadge lineId={closure.lineId} lineNumber={closure.lineNumber} />
+                  <strong className="block min-w-0 text-sm font-semibold text-slate-800 dark:text-slate-100 whitespace-normal break-words mt-0.5">
                     {closure.title}
                   </strong>
                 </div>
@@ -86,16 +67,22 @@ export function PlannedClosuresPanel({ selectedClosureId, onSelectClosureId, onB
                 )}
               </div>
               
-              <div className="max-w-full text-[10px] text-blue-600 dark:text-blue-400 font-bold mt-1 bg-blue-500/5 dark:bg-blue-500/10 px-2 py-0.5 rounded-md inline-block whitespace-normal break-words">
+              <div className="max-w-full text-[10px] text-blue-600 dark:text-blue-400 font-bold mt-2 bg-blue-500/5 dark:bg-blue-500/10 px-2 py-0.5 rounded-md inline-block whitespace-normal break-words">
                 {closure.window}
               </div>
 
-              <p className="text-xs text-slate-600 dark:text-slate-400 mt-2 font-medium whitespace-normal break-words">
-                {closure.location}
-              </p>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed whitespace-normal break-words">
+              <ImpactRouteHeader location={closure.location} />
+              
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 leading-relaxed whitespace-normal break-words">
                 {closure.description}
               </p>
+
+              <MetadataGrid 
+                reason={closure.reason} 
+                targetRemoval={closure.targetRemoval} 
+                source={closure.source} 
+                updatedAgo={closure.updatedAgo} 
+              />
 
               <button
                 onClick={() => handleClosureClick(closure.id)}
@@ -108,12 +95,12 @@ export function PlannedClosuresPanel({ selectedClosureId, onSelectClosureId, onB
                 {isActive ? (
                   <>
                     <EyeOff size={14} />
-                    Hide Map Preview
+                    Clear Highlight
                   </>
                 ) : (
                   <>
                     <Eye size={14} />
-                    Preview on Map
+                    Highlight on Map
                   </>
                 )}
               </button>

@@ -70,7 +70,7 @@ export default async function Home() {
   if (useFallback) {
     initialData.generatedAt = {
       ...fallbackGeneratedAt,
-      lastPoll: "Backend offline (Fixture mode)",
+      lastPoll: "fixture mode",
       live: false,
     };
   }

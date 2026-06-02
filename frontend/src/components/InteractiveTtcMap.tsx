@@ -25,6 +25,8 @@ export function InteractiveTtcMap({
   onToggleTheme,
   layoutResetSignal,
   reducedMotion,
+  lastPoll,
+  dataModeLabel,
 }: {
   selectedAlertId: string | null;
   selectedClosureId: string | null;
@@ -37,6 +39,8 @@ export function InteractiveTtcMap({
   onToggleTheme: () => void;
   layoutResetSignal?: number;
   reducedMotion: boolean;
+  lastPoll: string;
+  dataModeLabel: string;
 }) {
   const { networkSegments, activeAlerts, reducedSpeedZones, plannedClosures, stations: mapStations } = useDashboardData();
   const [svgParts, setSvgParts] = useState<{ part1: string; part2: string } | null>(null);
@@ -144,6 +148,32 @@ export function InteractiveTtcMap({
     return plannedClosures.find((c) => c.id === selectedClosureId);
   }, [plannedClosures, selectedClosureId]);
 
+  const [flashSelection, setFlashSelection] = useState<{ type: "alert" | "closure"; id: string } | null>(null);
+
+  useEffect(() => {
+    let timer0: number;
+    let timer: number;
+    
+    if (selectedAlertId) {
+      timer0 = window.setTimeout(() => setFlashSelection({ type: "alert", id: selectedAlertId }), 0);
+      timer = window.setTimeout(() => {
+        setFlashSelection(null);
+        onSelectAlertId(null);
+      }, 2500);
+      return () => { window.clearTimeout(timer0); window.clearTimeout(timer); };
+    }
+    if (selectedClosureId) {
+      timer0 = window.setTimeout(() => setFlashSelection({ type: "closure", id: selectedClosureId }), 0);
+      timer = window.setTimeout(() => {
+        setFlashSelection(null);
+        onSelectClosureId(null);
+      }, 2500);
+      return () => { window.clearTimeout(timer0); window.clearTimeout(timer); };
+    }
+    const fallbackTimer = window.setTimeout(() => setFlashSelection(null), 0);
+    return () => window.clearTimeout(fallbackTimer);
+  }, [selectedAlertId, selectedClosureId, onSelectAlertId, onSelectClosureId]);
+
   type SelectableMapImpact =
     | Pick<ActiveAlert, "id" | "title" | "affectedSegmentIds">
     | Pick<ReducedSpeedZone, "id" | "title" | "affectedSegmentIds">;
@@ -202,14 +232,29 @@ export function InteractiveTtcMap({
 
   return (
     <div className="relative w-full h-full flex flex-col overflow-hidden bg-transparent">
-      {/* Top right Theme toggle (styled like hamburger) */}
-      <button
-        onClick={onToggleTheme}
-        className="absolute top-4 sm:top-6 right-4 sm:right-6 z-20 panel flex items-center justify-center w-14 h-14 rounded-xl border border-black/10 dark:border-white/10 shadow-lg hover:!bg-slate-100 dark:hover:!bg-[#1a1e28] hover:scale-105 active:scale-95 outline-none focus-visible:ring-4 focus-visible:ring-black/10 dark:focus-visible:ring-white/10 transition-all cursor-pointer pointer-events-auto"
-        aria-label="Toggle theme"
-      >
-        {isDark ? <Sun size={26} className="text-slate-800 dark:text-white" /> : <Moon size={26} className="text-slate-800 dark:text-white" />}
-      </button>
+      {/* Top right Theme toggle (styled like hamburger) and poll chip */}
+      <div className="absolute top-4 sm:top-6 right-4 sm:right-6 z-20 flex items-center gap-2 pointer-events-auto">
+        <div className="panel hidden min-h-10 max-w-[min(52vw,240px)] items-center gap-2 rounded-lg border border-black/10 px-3 py-2 text-xs font-bold shadow-lg dark:border-white/10 sm:flex bg-white dark:bg-[#0a0c10]">
+          <span className="text-slate-500 dark:text-slate-400">Last Polled:</span>
+          <span className="truncate text-slate-800 dark:text-white capitalize">{
+            lastPoll.replace(/succeeded\s*/i, "").toLowerCase().includes("just now") ? "Just Now" : lastPoll.replace(/succeeded\s*/i, "")
+          }</span>
+          <span className="h-4 w-px bg-slate-300 dark:bg-white/10" />
+          <div className="flex items-center gap-1.5 bg-green-500/10 text-green-600 dark:text-green-400 px-1.5 py-0.5 rounded border border-green-500/20 shrink-0">
+             <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+             <b data-testid="dashboard-data-mode" className="text-[10px] uppercase tracking-wider truncate">
+               {dataModeLabel.includes("demo") || dataModeLabel.includes("mode") ? dataModeLabel : "Live Status"}
+             </b>
+          </div>
+        </div>
+        <button
+          onClick={onToggleTheme}
+          className="panel flex items-center justify-center w-10 sm:w-14 h-10 sm:h-14 rounded-xl border border-black/10 dark:border-white/10 shadow-lg hover:!bg-slate-100 dark:hover:!bg-[#1a1e28] hover:scale-105 active:scale-95 outline-none focus-visible:ring-4 focus-visible:ring-black/10 dark:focus-visible:ring-white/10 transition-all cursor-pointer bg-white dark:bg-[#0a0c10]"
+          aria-label="Toggle theme"
+        >
+          {isDark ? <Sun size={24} className="text-slate-800 dark:text-white" /> : <Moon size={24} className="text-slate-800 dark:text-white" />}
+        </button>
+      </div>
 
       {/* Top center map controls */}
       {/* Note: ml-2 sm:ml-3 is added to visually center the mass of the controls, since the left side has 2 buttons and is visually heavier than the right side */}
@@ -362,6 +407,7 @@ export function InteractiveTtcMap({
                       onSelectClosure={onSelectClosureId}
                       findSelectableImpactBySegment={findSelectableImpactBySegment}
                       reducedMotion={reducedMotion}
+                      flashSelection={flashSelection}
                     />
                   ))}
                 </g>
@@ -430,19 +476,33 @@ function OverlaySegment({
   onSelectClosure,
   findSelectableImpactBySegment,
   reducedMotion,
+  flashSelection,
 }: {
   segment: NetworkSegment;
-  selectedAlert?: ActiveAlert | ReducedSpeedZone;
-  selectedClosure?: PlannedClosure;
+  selectedAlert: ActiveAlert | ReducedSpeedZone | undefined;
+  selectedClosure: PlannedClosure | undefined;
   onSelectAlert: (alertId: string | null) => void;
   onSelectClosure: (closureId: string | null) => void;
   findSelectableImpactBySegment: (segment: NetworkSegment) => Pick<ActiveAlert, "id" | "title" | "affectedSegmentIds"> | Pick<ReducedSpeedZone, "id" | "title" | "affectedSegmentIds"> | undefined;
   reducedMotion: boolean;
+  flashSelection: { type: "alert" | "closure"; id: string } | null;
 }) {
   const alert = findSelectableImpactBySegment(segment);
   const isClosurePreview = selectedClosure?.previewSegmentIds.includes(segment.id) ?? false;
   const isSelectedAlert = Boolean(selectedAlert?.affectedSegmentIds.includes(segment.id));
   const visualState = segment.overlay !== "clear" ? segment.overlay : isClosurePreview ? "planned-preview" : "clear";
+
+  const isFlashingAlert =
+    flashSelection?.type === "alert" &&
+    selectedAlert?.id === flashSelection.id &&
+    selectedAlert.affectedSegmentIds.includes(segment.id);
+
+  const isFlashingClosure =
+    flashSelection?.type === "closure" &&
+    selectedClosure?.id === flashSelection.id &&
+    selectedClosure.previewSegmentIds.includes(segment.id);
+
+  const isMapFlash = isFlashingAlert || isFlashingClosure;
 
   if (visualState === "clear") {
     return null;
@@ -567,6 +627,14 @@ function OverlaySegment({
           className="asset-alert-path suspension-candy pointer-events-none"
           d={segment.pathD}
           style={{ stroke: "url(#suspension-hash)" }}
+        />
+      )}
+      
+      {isMapFlash && (
+        <path
+          data-map-highlight-id={flashSelection.id}
+          className="asset-alert-path map-selection-flash pointer-events-none"
+          d={segment.pathD}
         />
       )}
     </g>

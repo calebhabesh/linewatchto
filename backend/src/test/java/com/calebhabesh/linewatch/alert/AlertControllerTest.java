@@ -25,7 +25,9 @@ class AlertControllerTest {
                 "Updated 2 min ago",
                 List.of("line-2-jane-ossington"),
                 true,
-                "TTC Live Alert"
+                "TTC Live Alert",
+                null,
+                null
             )
         );
         when(dashboardService.activeAlerts()).thenReturn(alerts);
@@ -48,7 +50,10 @@ class AlertControllerTest {
                 "No subway service this weekend.",
                 List.of("line-1-finch-eglinton"),
                 true,
-                "TTC Service Advisory"
+                "TTC Service Advisory",
+                null,
+                null,
+                null
             )
         );
         when(dashboardService.plannedClosures()).thenReturn(closures);
@@ -73,7 +78,9 @@ class AlertControllerTest {
                 List.of("line-2-jane-ossington"),
                 List.of("123"),
                 List.of(),
-                "TTC Live Alert"
+                "TTC Live Alert",
+                null,
+                null
             )
         );
         when(dashboardService.reducedSpeedZones()).thenReturn(slowdowns);

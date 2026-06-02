@@ -72,14 +72,14 @@ public class TtcAlertStore {
             insert into alerts (
                 id, source_id, line_id, type, severity, title, description, active,
                 source_alert_type, effect, effect_description, direction, cause,
-                cause_description, start_station_id, end_station_id,
+                cause_description, target_removal, start_station_id, end_station_id,
                 active_period_start, active_period_end, source_updated_at,
                 shuttle_type, shuttle_start, shuttle_end, raw_payload,
                 normalized_fingerprint, updated_at
             ) values (
                 :id, :sourceId, :lineId, :type, :severity, :title, :description, true,
                 :sourceAlertType, :effect, :effectDescription, :direction, :cause,
-                :causeDescription, :startStationId, :endStationId,
+                :causeDescription, :targetRemoval, :startStationId, :endStationId,
                 :activePeriodStart, :activePeriodEnd, :sourceUpdatedAt,
                 :shuttleType, :shuttleStart, :shuttleEnd, :rawPayload,
                 :fingerprint, :now
@@ -97,6 +97,7 @@ public class TtcAlertStore {
                 direction = excluded.direction,
                 cause = excluded.cause,
                 cause_description = excluded.cause_description,
+                target_removal = excluded.target_removal,
                 start_station_id = excluded.start_station_id,
                 end_station_id = excluded.end_station_id,
                 active_period_start = excluded.active_period_start,
@@ -284,6 +285,7 @@ public class TtcAlertStore {
             .addValue("direction", alert.direction().wireValue())
             .addValue("cause", alert.cause())
             .addValue("causeDescription", alert.causeDescription())
+            .addValue("targetRemoval", alert.targetRemoval())
             .addValue("startStationId", alert.startStationId())
             .addValue("endStationId", alert.endStationId())
             .addValue("activePeriodStart", alert.activePeriodStart())

@@ -27,7 +27,10 @@ describe("floating menu layout", () => {
     assert.match(reducedSpeedZonesSource, /Reduced Speed Zones/);
     assert.match(reducedSpeedZonesSource, /zone\.displayDirection/);
     assert.match(reducedSpeedZonesSource, /zone\.directionalDetails/);
+    assert.match(reducedSpeedZonesSource, /Construction/);
+    assert.match(lineLegendSource, /Construction/);
     assert.match(lineLegendSource, /View reduced speed zone/);
+    assert.doesNotMatch(reducedSpeedZonesSource, />\s*Degraded\s*</);
     assert.doesNotMatch(shellSource, /> Slowdowns</);
 
     assert.match(shellSource, /activeView === "closures"/);
@@ -81,9 +84,26 @@ describe("floating menu layout", () => {
   });
 
   it("labels fallback mode without claiming live TTC status", () => {
-    assert.match(pageSource, /Backend offline \(Fixture mode\)/);
+    assert.match(pageSource, /fixture mode/);
     assert.match(shellSource, /generatedAt\.live \? "Live status" : "Demo status"/);
     assert.match(shellSource, /data-testid="menu-dashboard-data-mode"/);
-    assert.match(shellSource, /data-testid="dashboard-data-mode"/);
+    assert.match(interactiveMapSource, /data-testid="dashboard-data-mode"/);
+  });
+
+  it("LineLegend calls onReducedSpeedZoneClick with line.id", () => {
+    assert.match(lineLegendSource, /onReducedSpeedZoneClick\?\.\(line\.id\)/);
+    assert.doesNotMatch(lineLegendSource, /onReducedSpeedZoneClick\?\.\(rsz\.id\)/);
+  });
+
+  it("Card actions are renamed properly", () => {
+    assert.doesNotMatch(activeAlertsSource, /Preview on Map|Hide Map Preview/);
+    assert.doesNotMatch(reducedSpeedZonesSource, /Preview Reduced Speed Zone|Hide Map Preview/);
+    assert.doesNotMatch(plannedClosuresSource, /Preview on Map|Hide Map Preview/);
+    assert.match(activeAlertsSource, /Highlight on Map/);
+    assert.match(activeAlertsSource, /Clear Highlight/);
+    assert.match(reducedSpeedZonesSource, /Highlight on Map/);
+    assert.match(reducedSpeedZonesSource, /Clear Highlight/);
+    assert.match(plannedClosuresSource, /Highlight on Map/);
+    assert.match(plannedClosuresSource, /Clear Highlight/);
   });
 });

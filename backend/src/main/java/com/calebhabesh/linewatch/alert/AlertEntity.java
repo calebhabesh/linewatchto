@@ -43,6 +43,9 @@ public class AlertEntity {
     @Column(name = "cause_description")
     private String causeDescription;
 
+    @Column(name = "target_removal")
+    private String targetRemoval;
+
     @Column(name = "start_station_id")
     private String startStationId;
 
@@ -92,6 +95,7 @@ public class AlertEntity {
     public String getDirection() { return direction; }
     public String getCause() { return cause; }
     public String getCauseDescription() { return causeDescription; }
+    public String getTargetRemoval() { return targetRemoval; }
     public String getStartStationId() { return startStationId; }
     public String getEndStationId() { return endStationId; }
     public OffsetDateTime getActivePeriodStart() { return activePeriodStart; }

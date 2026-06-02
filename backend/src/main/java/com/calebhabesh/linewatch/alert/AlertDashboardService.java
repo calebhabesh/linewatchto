@@ -141,7 +141,9 @@ public class AlertDashboardService {
             updatedAgo(alert.getSourceUpdatedAt()),
             affectedSegmentIds(alert, segments),
             !isBlank(alert.getShuttleType()),
-            "TTC Live Alert"
+            "TTC Live Alert",
+            reason(alert),
+            targetRemoval(alert)
         );
     }
 
@@ -157,7 +159,10 @@ public class AlertDashboardService {
             alert.getDescription(),
             affectedSegmentIds(alert, segments),
             !isBlank(alert.getShuttleType()),
-            "TTC Service Advisory"
+            "TTC Service Advisory",
+            updatedAgo(alert.getSourceUpdatedAt()),
+            reason(alert),
+            targetRemoval(alert)
         );
     }
 
@@ -183,6 +188,34 @@ public class AlertDashboardService {
     ) {
         AlertEntity first = zone.sourceAlerts().getFirst();
         TransitLineEntity line = first.getLine();
+
+        String reason = null;
+        for (AlertEntity a : zone.sourceAlerts()) {
+            String r = reason(a);
+            if (r != null) {
+                reason = r;
+                break;
+            }
+        }
+        
+        String targetRemoval = null;
+        boolean firstTargetRemovalSet = false;
+        boolean multipleDates = false;
+        for (AlertEntity a : zone.sourceAlerts()) {
+            String tr = targetRemoval(a);
+            if (tr != null) {
+                if (!firstTargetRemovalSet) {
+                    targetRemoval = tr;
+                    firstTargetRemovalSet = true;
+                } else if (!targetRemoval.equals(tr)) {
+                    multipleDates = true;
+                }
+            }
+        }
+        if (multipleDates) {
+            targetRemoval = "Multiple dates";
+        }
+
         return new ReducedSpeedZoneDto(
             zone.id(),
             line == null ? null : line.getId(),
@@ -209,7 +242,9 @@ public class AlertDashboardService {
                     detail.description()
                 ))
                 .toList(),
-            "TTC Live Alert"
+            "TTC Live Alert",
+            reason,
+            targetRemoval
         );
     }
 
@@ -255,15 +290,54 @@ public class AlertDashboardService {
         if (sourceUpdatedAt == null) {
             return "Updated recently";
         }
+        return "Updated " + relativeAge(sourceUpdatedAt);
+    }
 
-        long minutes = Duration.between(sourceUpdatedAt, OffsetDateTime.now(clock)).toMinutes();
-        if (minutes <= 0) {
-            return "Updated just now";
+    private String relativeAge(OffsetDateTime timestamp) {
+        long minutes = Math.max(0, Duration.between(timestamp, OffsetDateTime.now(clock)).toMinutes());
+        if (minutes == 0) {
+            return "just now";
         }
         if (minutes == 1) {
-            return "Updated 1 min ago";
+            return "1 min ago";
         }
-        return "Updated " + minutes + " min ago";
+        if (minutes < 60) {
+            return minutes + " min ago";
+        }
+        long hours = minutes / 60;
+        if (hours == 1) {
+            return "1 hr ago";
+        }
+        if (hours < 24) {
+            return hours + " hr ago";
+        }
+        long days = hours / 24;
+        return days == 1 ? "1 day ago" : days + " days ago";
+    }
+
+    private String reason(AlertEntity alert) {
+        if (!isBlank(alert.getCauseDescription())) {
+            return cleanMetadataValue(alert.getCauseDescription());
+        }
+        if (!isBlank(alert.getEffectDescription())) {
+            return cleanMetadataValue(alert.getEffectDescription());
+        }
+        return null;
+    }
+
+    private String targetRemoval(AlertEntity alert) {
+        if (!isBlank(alert.getTargetRemoval())) {
+            return cleanMetadataValue(alert.getTargetRemoval());
+        }
+        return null;
+    }
+
+    private String cleanMetadataValue(String value) {
+        if (value == null) {
+            return null;
+        }
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
     }
 
     private String window(OffsetDateTime startsAt, OffsetDateTime endsAt) {
@@ -300,7 +374,9 @@ public class AlertDashboardService {
         String updatedAgo,
         List<String> affectedSegmentIds,
         boolean shuttle,
-        String source
+        String source,
+        String reason,
+        String targetRemoval
     ) {}
 
     public record PlannedClosureDto(
@@ -313,7 +389,10 @@ public class AlertDashboardService {
         String description,
         List<String> previewSegmentIds,
         boolean shuttle,
-        String source
+        String source,
+        String updatedAgo,
+        String reason,
+        String targetRemoval
     ) {}
 
     public record DirectionalDetailDto(
@@ -335,7 +414,9 @@ public class AlertDashboardService {
         List<String> affectedSegmentIds,
         List<String> sourceAlertIds,
         List<DirectionalDetailDto> directionalDetails,
-        String source
+        String source,
+        String reason,
+        String targetRemoval
     ) {}
 
     public record SegmentImpact(

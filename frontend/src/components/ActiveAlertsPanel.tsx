@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+
 import { useDashboardData } from "../app/DataContext";
 import { AlertTriangle, Bus, ChevronLeft, Eye, EyeOff } from "lucide-react";
+import { LineBadge, ImpactRouteHeader, MetadataGrid } from "./ImpactCardFields";
 
 interface Props {
   selectedAlertId?: string | null;
@@ -15,21 +16,9 @@ export function ActiveAlertsPanel({
   onSelectAlertId,
   onBack,
 }: Props) {
-  const internalClickRef = useRef(false);
-  const [flashId, setFlashId] = useState<string | null>(null);
   const { activeAlerts } = useDashboardData();
 
-  useEffect(() => {
-    if (internalClickRef.current) {
-      internalClickRef.current = false;
-      setFlashId(null);
-    } else {
-      setFlashId(selectedAlertId || null);
-    }
-  }, [selectedAlertId]);
-
   const handleAlertClick = (alertId: string) => {
-    internalClickRef.current = true;
     if (onSelectAlertId) {
       if (selectedAlertId === alertId) {
         onSelectAlertId(null);
@@ -59,7 +48,7 @@ export function ActiveAlertsPanel({
               <ChevronLeft size={28} className="text-slate-700 dark:text-slate-300" />
             </button>
           )}
-          <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2 whitespace-nowrap">
+          <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-3 whitespace-nowrap">
             <AlertTriangle size={22} className="text-red-500 shrink-0" />
             Active Alerts
           </h2>
@@ -78,20 +67,12 @@ export function ActiveAlertsPanel({
                 alert.severity
               )} !bg-slate-50 dark:!bg-[#12151c] transition-all ${
                 isActive ? "!bg-blue-50 dark:!bg-blue-950" : ""
-              } ${flashId === alert.id ? "highlight-active-card" : ""}`}
+              }`}
             >
               <div className="flex items-start justify-between gap-3 w-full min-w-0">
                 <div className="flex min-w-0 flex-1 items-start gap-2">
-                  <span
-                    className="line-badge small shrink-0"
-                    style={{
-                      backgroundColor: alert.lineId === "line-1" ? "#f4c430" : alert.lineId === "line-2" ? "#14a44d" : alert.lineId === "line-4" ? "#b84ed8" : "#f57c00",
-                      color: alert.lineId === "line-1" ? "#000000" : "#ffffff",
-                    }}
-                  >
-                    {alert.lineNumber}
-                  </span>
-                  <strong className="block min-w-0 text-sm font-semibold text-slate-800 dark:text-slate-100 whitespace-normal break-words">
+                  <LineBadge lineId={alert.lineId} lineNumber={alert.lineNumber} />
+                  <strong className="block min-w-0 text-sm font-semibold text-slate-800 dark:text-slate-100 whitespace-normal break-words mt-0.5">
                     {alert.title}
                   </strong>
                 </div>
@@ -102,16 +83,19 @@ export function ActiveAlertsPanel({
                   </span>
                 )}
               </div>
-              <p className="text-xs text-slate-600 dark:text-slate-400 mt-1 font-medium whitespace-normal break-words">
-                {alert.location}
-              </p>
+              
+              <ImpactRouteHeader location={alert.location} />
+              
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 leading-relaxed whitespace-normal break-words">
                 {alert.description}
               </p>
-              <div className="flex flex-wrap items-center justify-between gap-2 text-[10px] text-slate-400 dark:text-slate-500 mt-3 pt-2 border-t border-black/5 dark:border-white/5">
-                <span className="whitespace-normal break-words">{alert.source}</span>
-                <span className="whitespace-normal break-words">{alert.updatedAgo}</span>
-              </div>
+              
+              <MetadataGrid 
+                reason={alert.reason} 
+                targetRemoval={alert.targetRemoval} 
+                source={alert.source} 
+                updatedAgo={alert.updatedAgo} 
+              />
               
               <button
                 onClick={() => handleAlertClick(alert.id)}
@@ -124,12 +108,12 @@ export function ActiveAlertsPanel({
                 {isActive ? (
                   <>
                     <EyeOff size={14} />
-                    Hide Map Preview
+                    Clear Highlight
                   </>
                 ) : (
                   <>
                     <Eye size={14} />
-                    Preview on Map
+                    Highlight on Map
                   </>
                 )}
               </button>

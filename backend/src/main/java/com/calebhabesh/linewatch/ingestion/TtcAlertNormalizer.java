@@ -101,6 +101,7 @@ public class TtcAlertNormalizer {
             direction,
             record.cause(),
             record.causeDescription(),
+            record.targetRemoval(),
             startStation.stationId().orElse(null),
             endStation.stationId().orElse(null),
             activePeriodStart,

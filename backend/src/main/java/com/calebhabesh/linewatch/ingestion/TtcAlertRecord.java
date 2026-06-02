@@ -24,6 +24,7 @@ public record TtcAlertRecord(
     String direction,
     String cause,
     String causeDescription,
+    String targetRemoval,
     String shuttleType,
     String shuttleStart,
     String shuttleEnd,

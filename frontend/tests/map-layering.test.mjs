@@ -41,5 +41,9 @@ describe("asset-backed map layering", () => {
     assert.match(interactiveMapSource, /reducedMotion \? null : \(/);
     assert.match(globalCss, /\.motion-paused \.asset-alert-path-glow/);
     assert.match(globalCss, /prefers-reduced-motion:\s*reduce/);
+
+    assert.match(interactiveMapSource, /data-map-highlight-id/);
+    assert.match(interactiveMapSource, /map-selection-flash/);
+    assert.match(interactiveMapSource, /setTimeout\([^,]+,\s*2500\s*\)/);
   });
 });

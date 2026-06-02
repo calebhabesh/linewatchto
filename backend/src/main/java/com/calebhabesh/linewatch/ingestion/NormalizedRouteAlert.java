@@ -17,6 +17,7 @@ public record NormalizedRouteAlert(
     AlertDirection direction,
     String cause,
     String causeDescription,
+    String targetRemoval,
     String startStationId,
     String endStationId,
     OffsetDateTime activePeriodStart,
