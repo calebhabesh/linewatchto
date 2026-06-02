@@ -12,6 +12,20 @@ export function useScrollSelectedImpactCard(
     const card = document.querySelector<HTMLElement>(
       `[data-impact-card-id="${CSS.escape(selection.id)}"]`,
     );
-    card?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    if (!card) return;
+
+    card.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    card.classList.remove("highlight-active-card");
+    void card.offsetWidth;
+    card.classList.add("highlight-active-card");
+
+    const timeout = window.setTimeout(() => {
+      card.classList.remove("highlight-active-card");
+    }, 2500);
+
+    return () => {
+      window.clearTimeout(timeout);
+      card.classList.remove("highlight-active-card");
+    };
   }, [kind, selection]);
 }

@@ -1,6 +1,7 @@
 import { createServer } from "node:http";
 import {
   activeAlertsResponse,
+  delaysResponse,
   mapResponse,
   plannedClosuresResponse,
   reducedSpeedZonesResponse,
@@ -79,6 +80,10 @@ const server = createServer(async (request, response) => {
     }
     if (type === "slowdown") {
       sendJson(response, 200, reducedSpeedZonesResponse);
+      return;
+    }
+    if (type === "delay") {
+      sendJson(response, 200, delaysResponse);
       return;
     }
     sendJson(response, 200, activeAlertsResponse);

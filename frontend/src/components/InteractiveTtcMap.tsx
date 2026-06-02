@@ -459,38 +459,6 @@ export function InteractiveTtcMap({
               viewBox="0 0 8250 4000"
               preserveAspectRatio="xMidYMid meet"
             >
-              <g aria-label="Station impact rings">
-                {stationNodeImpacts.map((impact) => {
-                  const station = stationBySummaryId.get(impact.stationId);
-                  if (!station) return null;
-                  const selected = selection?.kind === impact.kind && selection.id === impact.cardId;
-
-                  return (
-                    <circle
-                      key={`${impact.kind}-${impact.cardId}-${impact.stationId}`}
-                      aria-label={`${impact.title}: ${station.name}`}
-                      className={`station-impact-ring ${impact.kind} ${selected ? "selected" : ""}`}
-                      cx={station.mapX}
-                      cy={station.mapY}
-                      r={station.interchange ? 108 : 88}
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        onSelectImpact({ kind: impact.kind, id: impact.cardId });
-                      }}
-                      onKeyDown={(event) => {
-                        if (event.key === "Enter" || event.key === " ") {
-                          event.preventDefault();
-                          onSelectImpact({ kind: impact.kind, id: impact.cardId });
-                        }
-                      }}
-                      onPointerDown={(event) => event.stopPropagation()}
-                      pointerEvents="stroke"
-                      role="button"
-                      tabIndex={0}
-                    />
-                  );
-                })}
-              </g>
               <g aria-label="Station hit targets">
                 {stations.map((station) => {
                   const selected = selectedStationId === station.id;
@@ -517,6 +485,39 @@ export function InteractiveTtcMap({
                         }
                       }}
                       onPointerDown={(event) => event.stopPropagation()}
+                      role="button"
+                      tabIndex={0}
+                    />
+                  );
+                })}
+              </g>
+              <g aria-label="Station impact rings">
+                {stationNodeImpacts.map((impact) => {
+                  const station = stationBySummaryId.get(impact.stationId);
+                  if (!station) return null;
+                  const selected = selection?.kind === impact.kind && selection.id === impact.cardId;
+
+                  return (
+                    <circle
+                      key={`${impact.kind}-${impact.cardId}-${impact.stationId}`}
+                      aria-label={`${impact.title}: ${station.name}`}
+                      className={`station-impact-ring ${impact.kind} ${selected ? "selected" : ""}`}
+                      cx={station.mapX}
+                      cy={station.mapY}
+                      r={station.interchange ? 128 : 108}
+                      fill="none"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        onSelectImpact({ kind: impact.kind, id: impact.cardId });
+                      }}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                          event.preventDefault();
+                          onSelectImpact({ kind: impact.kind, id: impact.cardId });
+                        }
+                      }}
+                      onPointerDown={(event) => event.stopPropagation()}
+                      pointerEvents="stroke"
                       role="button"
                       tabIndex={0}
                     />
@@ -695,10 +696,12 @@ function OverlaySegment({
           <path
             className="asset-alert-path delay-static-base pointer-events-none"
             d={segment.pathD}
+            style={{ pointerEvents: "none" }}
           />
           <path
             className="asset-alert-path delay-static-path pointer-events-none"
             d={segment.pathD}
+            style={{ pointerEvents: "none" }}
           />
         </>
       )}
@@ -719,14 +722,14 @@ function OverlaySegment({
         <path
           className="asset-alert-path delay-candy pointer-events-none"
           d={segment.pathD}
-          style={{ stroke: `url(#${patternId})` }}
+          style={{ pointerEvents: "none", stroke: `url(#${patternId})` }}
         />
       )}
       {visualState === "suspension" && (
         <path
           className="asset-alert-path suspension-candy pointer-events-none"
           d={segment.pathD}
-          style={{ stroke: "url(#suspension-hash)" }}
+          style={{ pointerEvents: "none", stroke: "url(#suspension-hash)" }}
         />
       )}
 
