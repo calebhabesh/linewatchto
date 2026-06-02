@@ -9,6 +9,8 @@ import {
 } from "../src/app/station-data.ts";
 
 describe("station data adapter", () => {
+  const stationById = (id) => fallbackStationSummaries.stations.find((station) => station.id === id);
+
   it("uses backend station summaries when fetch succeeds", async () => {
     const response = await getStationSummaries({
       fetcher: async () =>
@@ -61,5 +63,33 @@ describe("station data adapter", () => {
   it("does not invent active station impacts in fallback mode", () => {
     assert.ok(fallbackStationSummaries.stations.every((station) => !station.hasActiveImpact));
     assert.ok(Object.values(fallbackStationDetails).every((station) => station.impacts.length === 0));
+  });
+
+  it("provides fallback details and correct line ids for every mapped station", () => {
+    assert.equal(
+      Object.keys(fallbackStationDetails).length,
+      fallbackStationSummaries.stations.length
+    );
+    assert.deepEqual(stationById("kipling").lineIds, ["line-2"]);
+    assert.deepEqual(stationById("castle-frank").lineIds, ["line-2"]);
+    assert.deepEqual(stationById("don-mills").lineIds, ["line-4"]);
+    assert.deepEqual(stationById("mount-dennis").lineIds, ["line-5"]);
+    assert.deepEqual(stationById("humber-college").lineIds, ["line-6"]);
+  });
+
+  it("keeps Spadina accessibility distinct per line", () => {
+    assert.deepEqual(
+      fallbackStationDetails.spadina.lines.map(
+        ({ id, wheelchairAccessible, hasElevator }) => ({
+          id,
+          wheelchairAccessible,
+          hasElevator,
+        })
+      ),
+      [
+        { id: "line-1", wheelchairAccessible: false, hasElevator: false },
+        { id: "line-2", wheelchairAccessible: true, hasElevator: true },
+      ]
+    );
   });
 });

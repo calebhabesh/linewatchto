@@ -24,12 +24,24 @@ export type StationLine = {
   name: string;
   color: string;
   platformLabel: string;
+  wheelchairAccessible: boolean;
+  hasElevator: boolean;
+};
+
+export type StationFacilityOutage = {
+  id: string;
+  assetType: "elevator" | "escalator";
+  title: string;
+  description: string;
+  updatedAt: string;
+  source: string;
 };
 
 export type StationAccess = {
   status: StationAccessStatus;
   summary: string;
   updatedAgo: string;
+  outages: StationFacilityOutage[];
 };
 
 export type StationImpact = {
@@ -39,6 +51,7 @@ export type StationImpact = {
   title: string;
   summary: string;
   updatedAgo: string;
+  updatedAt?: string;
   source: string;
 };
 
@@ -59,6 +72,7 @@ export type StationDetail = {
   access: StationAccess;
   impacts: StationImpact[];
   arrivals: StationArrival[];
+  arrivalsSource: "Demo estimates";
   dataMode: "seeded-demo";
   disclaimer: string;
 };
@@ -75,7 +89,119 @@ export type StationFetchOptions = {
 
 const DEFAULT_API_BASE_URL = process.env.NEXT_PUBLIC_LINEWATCH_API_BASE_URL ?? "http://localhost:8080";
 
-export const fallbackStationSummaries: StationListResponse = {
+const FALLBACK_LINE_DEFINITIONS: Record<string, Omit<StationLine, "wheelchairAccessible" | "hasElevator">> = {
+  "line-1": {
+    id: "line-1",
+    number: "1",
+    name: "Yonge-University",
+    color: "#f4c430",
+    platformLabel: "Northbound / Southbound",
+  },
+  "line-2": {
+    id: "line-2",
+    number: "2",
+    name: "Bloor-Danforth",
+    color: "#14a44d",
+    platformLabel: "Eastbound / Westbound",
+  },
+  "line-4": {
+    id: "line-4",
+    number: "4",
+    name: "Sheppard",
+    color: "#b84ed8",
+    platformLabel: "Eastbound / Westbound",
+  },
+  "line-5": {
+    id: "line-5",
+    number: "5",
+    name: "Eglinton Crosstown",
+    color: "#f57c00",
+    platformLabel: "Eastbound / Westbound",
+  },
+  "line-6": {
+    id: "line-6",
+    number: "6",
+    name: "Finch West",
+    color: "#969594",
+    platformLabel: "Eastbound / Westbound",
+  },
+};
+
+const FALLBACK_LINE_STATION_IDS: Record<string, string[]> = {
+  "line-1": [
+    "vaughan-metropolitan-centre", "highway-407", "pioneer-village",
+    "york-university", "finch-west", "downsview-park", "sheppard-west",
+    "wilson", "yorkdale", "lawrence-west", "glencairn", "cedarvale",
+    "st-clair-west", "dupont", "spadina", "st-george", "museum",
+    "queens-park", "st-patrick", "osgoode", "st-andrew", "union", "finch",
+    "north-york-centre", "sheppard-yonge", "york-mills", "lawrence",
+    "eglinton", "davisville", "st-clair", "summerhill", "rosedale",
+    "bloor-yonge", "wellesley", "college", "tmu", "queen", "king",
+  ],
+  "line-2": [
+    "kipling", "islington", "royal-york", "old-mill", "jane", "runnymede",
+    "high-park", "keele", "dundas-west", "lansdowne", "dufferin",
+    "ossington", "christie", "bathurst", "spadina", "st-george", "bay",
+    "bloor-yonge", "sherbourne", "castle-frank", "broadview", "chester",
+    "pape", "donlands", "greenwoood", "coxwell", "woodbine", "main-street",
+    "victoria-park", "warden", "kennedy",
+  ],
+  "line-4": ["sheppard-yonge", "bayview", "bessarion", "leslie", "don-mills"],
+  "line-5": [
+    "mount-dennis", "keelesdale", "caledonia", "fairbank", "oakwood",
+    "cedarvale", "forest-hill", "chaplin", "avenue", "eglinton",
+    "mount-pleasant", "leaside", "laird", "sunnybrook-park", "don-valley",
+    "aga-khan-park-and-museum", "wynford", "sloane", "o_connor", "pharmacy",
+    "hakimi-lebovic", "golden-mile", "birchmount", "ionview", "kennedy",
+  ],
+  "line-6": [
+    "humber-college", "westmore", "martin-grove", "albion", "stevenson",
+    "mount-olive", "rowntree-mills", "pearldale", "duncanwoods",
+    "milvan-rumike", "emery", "signet-arrow", "norfinch-oakdale",
+    "jane-and-finch", "driftwood", "tobermory", "sentinel", "finch-west",
+  ],
+};
+
+const FALLBACK_NOT_WHEELCHAIR_ACCESSIBLE = new Set([
+  "spadina:line-1",
+  "museum:line-1",
+  "college:line-1",
+  "king:line-1",
+  "islington:line-2",
+  "old-mill:line-2",
+]);
+
+const FALLBACK_WITHOUT_ELEVATOR = new Set([
+  ...FALLBACK_NOT_WHEELCHAIR_ACCESSIBLE,
+  "sunnybrook-park:line-5",
+  "aga-khan-park-and-museum:line-5",
+  "wynford:line-5",
+  "sloane:line-5",
+  "o_connor:line-5",
+  "pharmacy:line-5",
+  "hakimi-lebovic:line-5",
+  "golden-mile:line-5",
+  "birchmount:line-5",
+  "ionview:line-5",
+  "westmore:line-6",
+  "martin-grove:line-6",
+  "albion:line-6",
+  "stevenson:line-6",
+  "mount-olive:line-6",
+  "rowntree-mills:line-6",
+  "pearldale:line-6",
+  "duncanwoods:line-6",
+  "milvan-rumike:line-6",
+  "emery:line-6",
+  "signet-arrow:line-6",
+  "norfinch-oakdale:line-6",
+  "jane-and-finch:line-6",
+  "driftwood:line-6",
+  "tobermory:line-6",
+  "sentinel:line-6",
+]);
+
+const fallbackStationSummarySeed: StationListResponse = {
   generatedAt: "fallback-demo",
   stations: [
     {
@@ -1396,7 +1522,23 @@ export const fallbackStationSummaries: StationListResponse = {
 ]
 };
 
-export const fallbackStationDetails: Record<string, StationDetail> = {
+const fallbackLineIdsByStationId = Object.entries(FALLBACK_LINE_STATION_IDS)
+  .reduce<Record<string, string[]>>((lineIdsByStation, [lineId, stationIds]) => {
+    for (const stationId of stationIds) {
+      lineIdsByStation[stationId] = [...(lineIdsByStation[stationId] ?? []), lineId];
+    }
+    return lineIdsByStation;
+  }, {});
+
+export const fallbackStationSummaries: StationListResponse = {
+  ...fallbackStationSummarySeed,
+  stations: fallbackStationSummarySeed.stations.map((station) => ({
+    ...station,
+    lineIds: fallbackLineIdsByStationId[station.id] ?? [],
+  })),
+};
+
+const fallbackStationDetailSeed = {
   union: {
     id: "union",
     name: "Union",
@@ -1494,6 +1636,64 @@ export const fallbackStationDetails: Record<string, StationDetail> = {
     disclaimer: "Station details use fallback demo data. Arrivals are demo placeholders, not live TTC predictions.",
   },
 };
+
+function toFallbackStationLine(stationId: string, lineId: string): StationLine {
+  const line = FALLBACK_LINE_DEFINITIONS[lineId];
+  const stationLineId = `${stationId}:${lineId}`;
+  return {
+    ...line,
+    wheelchairAccessible: !FALLBACK_NOT_WHEELCHAIR_ACCESSIBLE.has(stationLineId),
+    hasElevator: !FALLBACK_WITHOUT_ELEVATOR.has(stationLineId),
+  };
+}
+
+function toFallbackArrivals(line: StationLine): StationArrival[] {
+  const directions = line.id === "line-1"
+    ? ["Northbound", "Southbound"]
+    : ["Eastbound", "Westbound"];
+  return directions.map((direction, index) => ({
+    lineId: line.id,
+    direction,
+    minutes: index === 0 ? 3 : 6,
+    label: "Demo arrival",
+  }));
+}
+
+function toFallbackStationDetail(station: StationSummary): StationDetail {
+  const seed = fallbackStationDetailSeed[
+    station.id as keyof typeof fallbackStationDetailSeed
+  ];
+  const lines = station.lineIds.map((lineId) => toFallbackStationLine(station.id, lineId));
+  const advisory = station.id === "st-george";
+  return {
+    id: station.id,
+    name: station.name,
+    mapX: station.mapX,
+    mapY: station.mapY,
+    interchange: station.interchange,
+    lines,
+    access: {
+      status: advisory ? "advisory" : "normal",
+      summary: advisory
+        ? "One elevator advisory is included as fallback demo data."
+        : "No station access advisories in fallback demo data.",
+      updatedAgo: "Fallback fixture",
+      outages: [],
+    },
+    impacts: [],
+    arrivals: seed?.arrivals ?? lines.flatMap(toFallbackArrivals),
+    arrivalsSource: "Demo estimates",
+    dataMode: "seeded-demo",
+    disclaimer: "Station details use fallback demo data. Arrivals are demo placeholders, not live TTC predictions.",
+  };
+}
+
+export const fallbackStationDetails: Record<string, StationDetail> = Object.fromEntries(
+  fallbackStationSummaries.stations.map((station) => [
+    station.id,
+    toFallbackStationDetail(station),
+  ])
+);
 
 export async function getStationSummaries(
   options: StationFetchOptions = {}
