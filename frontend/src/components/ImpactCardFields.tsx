@@ -1,4 +1,6 @@
 import { ArrowRight, ArrowLeftRight } from "lucide-react";
+import type { ReactNode } from "react";
+import { ImpactTimestamp } from "./ImpactTimestamp";
 
 export function lineColor(lineId: string) {
   switch (lineId) {
@@ -88,22 +90,47 @@ export function ImpactRouteHeader({
 }
 
 export function MetadataGrid({
+  cause,
+  resolution,
   reason,
   targetRemoval,
   source,
+  startedAt,
+  updatedAt,
   updatedAgo,
+  extraRows,
 }: {
+  cause?: string | null;
+  resolution?: string | null;
   reason?: string | null;
   targetRemoval?: string | null;
   source?: string | null;
+  startedAt?: string | null;
+  updatedAt?: string | null;
   updatedAgo?: string | null;
+  extraRows?: Array<{ label: string; value?: string | null }>;
 }) {
+  const causeValue = cause ?? reason;
+  const resolutionValue = resolution ?? targetRemoval;
+  const renderedExtraRows = (extraRows ?? [])
+    .filter((row) => row.value && row.value.trim().length > 0)
+    .map((row) => [row.label, row.value] as const);
+
   const rows = [
-    reason ? ["Reason", reason] as const : null,
-    targetRemoval ? ["Resolution", targetRemoval] as const : null,
+    causeValue ? ["Cause", causeValue] as const : null,
+    resolutionValue ? ["Resolution", resolutionValue] as const : null,
+    ...renderedExtraRows,
     source ? ["Source", source] as const : null,
-    updatedAgo ? ["Updated", formatElapsed(updatedAgo)] as const : null,
-  ].filter(Boolean) as Array<[string, string]>;
+    ["Started", <ImpactTimestamp timestamp={startedAt} />] as const,
+    [
+      "Updated",
+      updatedAt
+        ? <ImpactTimestamp timestamp={updatedAt} />
+        : updatedAgo
+          ? formatElapsed(updatedAgo)
+          : <ImpactTimestamp timestamp={updatedAt} />,
+    ] as const,
+  ].filter(Boolean) as Array<[string, ReactNode]>;
 
   if (rows.length === 0) return null;
 

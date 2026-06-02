@@ -69,10 +69,21 @@ export function ReducedSpeedZonesPanel({
               />
 
               <MetadataGrid 
+                cause={zone.cause}
+                resolution={zone.resolution}
                 reason={zone.reason} 
                 targetRemoval={zone.targetRemoval} 
                 source={zone.source} 
+                startedAt={zone.startedAt}
+                updatedAt={zone.updatedAt}
                 updatedAgo={zone.updatedAgo} 
+                extraRows={[
+                  { label: "Length", value: zone.rszLength },
+                  { label: "Station Distance", value: zone.stationDistance },
+                  { label: "Track", value: zone.trackPercent },
+                  { label: "Reduced Speed", value: zone.reducedSpeed },
+                  { label: "Average Speed", value: zone.averageSpeed },
+                ]}
               />
 
               <button

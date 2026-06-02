@@ -78,9 +78,13 @@ export function PlannedClosuresPanel({ selectedClosureId, onSelectClosureId, onB
               </p>
 
               <MetadataGrid 
+                cause={closure.cause}
+                resolution={closure.resolution}
                 reason={closure.reason} 
                 targetRemoval={closure.targetRemoval} 
                 source={closure.source} 
+                startedAt={closure.startedAt}
+                updatedAt={closure.updatedAt}
                 updatedAgo={closure.updatedAgo} 
               />
 

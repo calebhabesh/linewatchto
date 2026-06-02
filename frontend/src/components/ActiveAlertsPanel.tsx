@@ -91,9 +91,13 @@ export function ActiveAlertsPanel({
               </p>
               
               <MetadataGrid 
+                cause={alert.cause}
+                resolution={alert.resolution}
                 reason={alert.reason} 
                 targetRemoval={alert.targetRemoval} 
                 source={alert.source} 
+                startedAt={alert.startedAt}
+                updatedAt={alert.updatedAt}
                 updatedAgo={alert.updatedAgo} 
               />
               
