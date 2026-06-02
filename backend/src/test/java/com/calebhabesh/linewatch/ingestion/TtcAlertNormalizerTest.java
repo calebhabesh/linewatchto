@@ -10,8 +10,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.nio.charset.StandardCharsets;
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.web.client.RestClient;
 
 class TtcAlertNormalizerTest {
@@ -37,8 +41,10 @@ class TtcAlertNormalizerTest {
 
     @Test
     void normalizesRecurringPlannedClosureWithChildPeriod() {
+        TtcAlertRecord record = feed.routes().getFirst().record();
+        record = copyRszMetadata(record, record.effectDesc(), "600 metres", null, null);
         NormalizationResult<NormalizedRouteAlert> result =
-            normalizer.normalizeRoute(feed.routes().getFirst());
+            normalizer.normalizeRoute(fetched(record));
 
         assertThat(result.status()).isEqualTo(NormalizationStatus.MATCHED);
         assertThat(result.projection()).get()
@@ -46,9 +52,16 @@ class TtcAlertNormalizerTest {
                 NormalizedRouteAlert::id,
                 NormalizedRouteAlert::lineId,
                 NormalizedRouteAlert::type,
-                NormalizedRouteAlert::severity
+                NormalizedRouteAlert::severity,
+                NormalizedRouteAlert::impactKind
             )
-            .containsExactly("ttc-route-synthetic-planned-line-1", "line-1", "planned-closure", "planned");
+            .containsExactly(
+                "ttc-route-synthetic-planned-line-1",
+                "line-1",
+                "planned-closure",
+                "planned",
+                AlertImpactKind.PLANNED_CLOSURE
+            );
         assertThat(result.projection().orElseThrow().periods())
             .containsExactly(new NormalizedAlertPeriod(
                 "synthetic-planned-line-1-period",
@@ -65,6 +78,7 @@ class TtcAlertNormalizerTest {
 
         assertThat(alert.type()).isEqualTo("active-alert");
         assertThat(alert.severity()).isEqualTo("delay");
+        assertThat(alert.impactKind()).isEqualTo(AlertImpactKind.REDUCED_SPEED_ZONE);
         assertThat(alert.direction()).isEqualTo(AlertDirection.SOUTHBOUND);
         assertThat(alert.activePeriodEnd()).isNull();
         assertThat(alert.periods())
@@ -115,14 +129,65 @@ class TtcAlertNormalizerTest {
 
     @Test
     void normalizesCurrentNoServiceAsSuspension() {
+        TtcAlertRecord record = fetchedRecord("2", "Subway", "NO_SERVICE").record();
+        record = copyRszMetadata(record, record.effectDesc(), null, "15 km/h", null);
         NormalizedRouteAlert alert =
-            normalizer.normalizeRoute(fetchedRecord("2", "Subway", "NO_SERVICE"))
+            normalizer.normalizeRoute(fetched(record))
                 .projection()
                 .orElseThrow();
 
         assertThat(alert.lineId()).isEqualTo("line-2");
         assertThat(alert.type()).isEqualTo("active-alert");
         assertThat(alert.severity()).isEqualTo("suspension");
+        assertThat(alert.impactKind()).isEqualTo(AlertImpactKind.SUSPENSION);
+    }
+
+    @Test
+    void normalizesSignificantDelayWithoutRszMetadataAsOrdinaryDelay() {
+        NormalizedRouteAlert alert =
+            normalizer.normalizeRoute(fetchedRecord("1", "Subway", "SIGNIFICANT_DELAYS"))
+                .projection()
+                .orElseThrow();
+
+        assertThat(alert.impactKind()).isEqualTo(AlertImpactKind.DELAY);
+    }
+
+    @Test
+    void normalizesExplicitReducedSpeedZoneDescription() {
+        TtcAlertRecord record = fetchedRecord("1", "Subway", "UNKNOWN").record();
+        record = copyRszMetadata(record, "Reduced Speed Zone", null, null, null);
+
+        NormalizedRouteAlert alert = normalizer.normalizeRoute(fetched(record))
+            .projection()
+            .orElseThrow();
+
+        assertThat(alert.impactKind()).isEqualTo(AlertImpactKind.REDUCED_SPEED_ZONE);
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("rszMetadata")
+    void normalizesRszSpecificMetadataWithoutReducedSpeedZoneDescription(
+        String metadataName,
+        String rszLength,
+        String reducedSpeed,
+        String averageSpeed
+    ) {
+        TtcAlertRecord record = fetchedRecord("1", "Subway", "UNKNOWN").record();
+        record = copyRszMetadata(record, "Service change", rszLength, reducedSpeed, averageSpeed);
+
+        NormalizedRouteAlert alert = normalizer.normalizeRoute(fetched(record))
+            .projection()
+            .orElseThrow();
+
+        assertThat(alert.impactKind()).isEqualTo(AlertImpactKind.REDUCED_SPEED_ZONE);
+    }
+
+    @Test
+    void reportsUnrelatedSupportedRapidTransitRecordAsUnmatched() {
+        NormalizationResult<NormalizedRouteAlert> result =
+            normalizer.normalizeRoute(fetchedRecord("1", "Subway", "UNKNOWN"));
+
+        assertThat(result.status()).isEqualTo(NormalizationStatus.UNMATCHED);
     }
 
     @Test
@@ -271,6 +336,20 @@ class TtcAlertNormalizerTest {
     }
 
     @Test
+    void hashesReducedSpeedZoneMetadata() {
+        TtcAlertRecord record = fetchedRecord("1", "Subway", "SIGNIFICANT_DELAYS").record();
+        record = copyRszMetadata(record, "Reduced Speed Zone", "600 metres", null, null);
+        NormalizedRouteAlert original = normalizer.normalizeRoute(fetched(record))
+            .projection()
+            .orElseThrow();
+        NormalizedRouteAlert changedRszLength = normalizer.normalizeRoute(fetched(
+            copyRszMetadata(record, record.effectDesc(), "700 metres", null, null)
+        )).projection().orElseThrow();
+
+        assertThat(original.fingerprint()).isNotEqualTo(changedRszLength.fingerprint());
+    }
+
+    @Test
     void fillsRequiredTextFieldsWhenTtcOmitsOptionalDescriptions() {
         TtcAlertRecord route = copyTextFields(
             fetchedRecord("1", "Subway", "SIGNIFICANT_DELAYS").record(),
@@ -388,6 +467,14 @@ class TtcAlertNormalizerTest {
         return new TtcFetchedRecord(record, "{\"id\":\"" + record.id() + "\"}");
     }
 
+    private static Stream<Arguments> rszMetadata() {
+        return Stream.of(
+            Arguments.of("rsz length", "600 metres", null, null),
+            Arguments.of("reduced speed", null, "15 km/h", null),
+            Arguments.of("average speed", null, null, "35 km/h")
+        );
+    }
+
     private TtcAlertRecord copy(
         TtcAlertRecord record,
         String id,
@@ -416,6 +503,26 @@ class TtcAlertNormalizerTest {
             record.effectDesc(), record.direction(), record.cause(), record.causeDescription(),
             record.targetRemoval(), record.rszLength(), record.distance(), record.trackPercent(),
             record.reducedSpeed(), record.averageSpeed(), record.shuttleType(), record.shuttleStart(),
+            record.shuttleEnd(),
+            record.elevatorCode(), record.escalatorCode(), record.childAlerts()
+        );
+    }
+
+    private TtcAlertRecord copyRszMetadata(
+        TtcAlertRecord record,
+        String effectDesc,
+        String rszLength,
+        String reducedSpeed,
+        String averageSpeed
+    ) {
+        return new TtcAlertRecord(
+            record.id(), record.alertType(), record.lastUpdated(), record.activePeriod(),
+            record.activePeriodGroup(), record.route(), record.routeType(),
+            record.stopStart(), record.stopEnd(), record.stopIDList(),
+            record.title(), record.description(), record.headerText(), record.effect(),
+            effectDesc, record.direction(), record.cause(), record.causeDescription(),
+            record.targetRemoval(), rszLength, record.distance(), record.trackPercent(),
+            reducedSpeed, averageSpeed, record.shuttleType(), record.shuttleStart(),
             record.shuttleEnd(),
             record.elevatorCode(), record.escalatorCode(), record.childAlerts()
         );

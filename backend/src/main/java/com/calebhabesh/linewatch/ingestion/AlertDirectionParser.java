@@ -30,7 +30,9 @@ public class AlertDirectionParser {
         }
 
         String text = value.toLowerCase(Locale.ROOT);
-        if (text.contains("both directions") || text.contains("in both directions")) {
+        if (text.contains("both directions")
+            || text.contains("in both directions")
+            || text.contains("both ways")) {
             return AlertDirection.BIDIRECTIONAL;
         }
 
