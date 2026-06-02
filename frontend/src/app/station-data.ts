@@ -50,8 +50,8 @@ export type StationImpact = {
   severity: StationImpactSeverity;
   title: string;
   summary: string;
-  updatedAgo: string;
-  updatedAt?: string;
+  updatedAgo: string | null;
+  updatedAt?: string | null;
   source: string;
 };
 
