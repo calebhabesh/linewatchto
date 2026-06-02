@@ -13,20 +13,20 @@ The project is early but no longer an empty scaffold.
 - `frontend/` contains a Next.js App Router dashboard with an edited SVG-backed subway/LRT map, React-controlled alert overlays, active alerts, separate delay and Reduced Speed Zone submenus, upcoming closures, saved commute impact cards, reliability summaries, display toggles, and a mobile bottom nav.
 - `frontend/src/app/linewatch-data.ts` is the current typed fixture/API-shape seam.
 - `frontend/src/app/transit-map.tsx` loads the edited map asset and renders interactive overlay paths in the same SVG coordinate system.
-- `frontend/public/assets/linewatch/` contains the edited TTC map SVG and line legend SVG icons.
+- `frontend/public/assets/linewatch/` contains the edited TTC map SVG, line legend SVG icons, and station accessibility SVG icons.
 - `frontend/tests/linewatch-data.test.mjs` verifies the fixture layer with Node's built-in test runner.
 - `backend/` contains a Spring Boot app with seeded dashboard APIs, TTC alert ingestion services, health endpoints, and backend tests.
 - `docker-compose.yml` provides PostgreSQL/PostGIS and Redis.
 - The project includes seeded PostGIS migrations for stations and transit lines.
 - Seeded demo dashboard APIs (`/api/map`, `/api/status`, `/api/alerts`, `/api/stations`) are implemented.
 - Next.js Server Component loads data with complete local-fixture fallback.
-- Playwright Chromium smoke tests cover seeded API rendering, fixture-fallback rendering, delay overlay clicks, and single-station impact ring interactions.
+- Playwright Chromium smoke tests cover seeded API rendering, fixture-fallback rendering, delay overlay clicks, single-station impact ring interactions, and station accessibility details.
 - Opt-in TTC Live Alerts polling, raw source staging, supported subway/LRT normalization, accessibility-outage normalization, alert snapshotting, and `/api/health/ingestion` are implemented.
 - TTC alert polling is disabled by default. For local live overlays, run `scripts/dev-backend-live.sh`, which starts the backend with the `dev-live` Spring profile.
-- Visible `/api/alerts`, `/api/status`, and `/api/map` can read normalized TTC alert records while the latest successful ingestion run is fresh; stale successful runs are suppressed from alert cards, line status, and map overlays after the configured dashboard freshness window.
+- Visible `/api/alerts`, `/api/status`, `/api/map`, and dynamic `/api/stations/{id}` rows can read normalized TTC alert records while the latest successful ingestion run is fresh; stale successful runs are suppressed from alert cards, line status, map overlays, and station details after the configured dashboard freshness window.
 - Delay cards are distinct from explicit Reduced Speed Zone cards. Started timing comes from `activePeriod.start` where available, and Updated timing comes from TTC `lastUpdated` where available.
 - Map segment overlays and single-station alert rings are clickable/tappable and open the corresponding submenu card.
-- Live station arrivals remain demo-only estimates, and station-detail live source reads are not implemented. Full station accessibility CSV import, every-stop line tagging in station detail, and nightly closure active-window gating remain follow-up work.
+- Every mapped Line 1, 2, 4, 5, and 6 stop has station-line tags and reviewed line-specific wheelchair/elevator metadata. Station detail shows authored accessibility icons plus fresh directly linked TTC station alerts and elevator/escalator outages. Live station arrivals remain demo-only estimates, and nightly closure active-window gating remains follow-up work.
 - GTFS import, populated geographic geometry, production segment matching, Redis caching, commute-impact API, and reliability aggregation are planned but not yet implemented.
 
 Do not claim that the visible dashboard is live unless there is a fresh successful ingestion run. Do not claim imported GTFS geometry, production geospatial matching, Redis-backed status, real analytics, or real station arrivals until those features exist in code and have passing verification.
@@ -197,6 +197,8 @@ The backend now owns:
 - `/api/alerts?type=delay` returns ordinary delay cards separately from `/api/alerts?type=slowdown` Reduced Speed Zone groups.
 - Active alert, delay, planned-closure, and Reduced Speed Zone DTOs expose Started and Updated timestamps from normalized source timing.
 - Elevator and escalator outage normalization with seeded station links where names resolve.
+- Complete station-line tagging with reviewed line-specific wheelchair/elevator metadata and authored station-detail icons.
+- Fresh directly linked TTC station alerts and elevator/escalator outages in `/api/stations/{id}`, suppressed when ingestion is stale.
 - Source-ID upserts, alert snapshots, ingestion-run tracking, and `/api/health/ingestion`.
 - Live Alerts reduced-speed records now derive explicit cardinal direction from TTC wording.
 - `Both ways` and `both ways` source directions resolve to bidirectional travel with line-aware cardinal labels.
@@ -261,11 +263,10 @@ When changing agent instructions, update both `AGENTS.md` and `GEMINI.md` togeth
 
 ## Suggested Next Implementation Order
 
-1. Populate richer station detail data: every-stop line tags, accessibility CSV/icons, elevator/escalator outages, station emergencies, and source-labeled arrivals.
-2. Add nightly closure active-window gating so nightly overlays only appear during the affected hours.
-3. Add a public live-arrival provider and replace station-panel demo estimates with source-labeled predictions.
-4. Import static GTFS shapes and implement production alert-to-segment matching.
-5. Implement commute impact matching, reliability aggregation, and Redis-backed status caching.
+1. Add nightly closure active-window gating so nightly overlays only appear during the affected hours.
+2. Add a public live-arrival provider and replace station-panel demo estimates with source-labeled predictions.
+3. Import static GTFS shapes and implement production alert-to-segment matching.
+4. Implement commute impact matching, reliability aggregation, and Redis-backed status caching.
 
 ## Agent Handoff Notes
 

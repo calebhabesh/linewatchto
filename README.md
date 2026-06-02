@@ -8,13 +8,13 @@ The project is intentionally scoped as a full-stack portfolio build: practical e
 
 ## Current Status
 
-The current app is a full-stack dashboard demo with graceful local-fixture fallback. Next.js fetches Spring Boot dashboard boundaries on initial render when the backend is available and falls back to typed local fixtures when any required dashboard request fails. The backend can poll and normalize the official TTC Live Alerts feed when explicitly enabled. User-facing alert, status, and map-overlay reads use those normalized records only while the latest successful ingestion run is fresh; stale live rows are suppressed instead of remaining on the map.
+The current app is a full-stack dashboard demo with graceful local-fixture fallback. Next.js fetches Spring Boot dashboard boundaries on initial render when the backend is available and falls back to typed local fixtures when any required dashboard request fails. The backend can poll and normalize the official TTC Live Alerts feed when explicitly enabled. User-facing alert, status, map-overlay, and station-detail dynamic reads use those normalized records only while the latest successful ingestion run is fresh; stale live rows are suppressed instead of remaining visible.
 
 Implemented now:
 
 - Dark, map-first Next.js dashboard.
 - Edited SVG-backed subway/LRT network map from `frontend/public/assets/linewatch/ttc-subway-map-edited.svg`.
-- TTC-style line colors for Lines 1, 2, 4, and 5.
+- TTC-style line colors for Lines 1, 2, 4, 5, and 6.
 - Red suspended-service overlays.
 - Orange ordinary-delay overlays with a static effect.
 - Explicit Reduced Speed Zone overlays with directional chevrons.
@@ -36,12 +36,14 @@ Implemented now:
 - Clickable/tappable station detail overlays for supported rapid transit stations.
 - Backend `/api/stations` and `/api/stations/{id}` endpoints backed by Flyway-seeded PostgreSQL station data.
 - Station detail panel with desktop right dock and mobile bottom sheet behavior.
-- Seeded station access and station impact records.
+- Reviewed line-specific wheelchair and elevator metadata for every mapped Line 1, 2, 4, 5, and 6 stop, including distinct Spadina Line 1 and Line 2 values.
+- Authored wheelchair and elevator icons in station detail panels.
+- Fresh directly linked TTC station alerts and elevator/escalator outage rows when ingestion is current.
 - Demo station arrivals clearly labeled as placeholders, not live TTC predictions.
 - PostGIS-enabled Flyway schema for stations, transit lines, line segments, alerts, alert-segment links, snapshots, and ingestion runs.
 - Dashboard API boundaries for `/api/map`, `/api/status`, and `/api/alerts`, with fixture fallback when backend data is unavailable.
 - Next.js Server Component dashboard loading with complete local-fixture fallback.
-- Playwright Chromium smoke tests for seeded API, fallback rendering, delay overlay clicks, and station-ring interactions on desktop and mobile viewports.
+- Playwright Chromium smoke tests for seeded API, fallback rendering, delay overlay clicks, station-ring interactions, and station accessibility details on desktop and mobile viewports.
 - Opt-in scheduled polling for the official TTC Live Alerts feed at `https://alerts.ttc.ca/api/alerts/live-alerts`.
 - Raw staging for route and accessibility source records so unsupported records are retained for later analysis.
 - Normalization and source-ID upserts for supported subway/LRT ordinary delays, suspensions, Reduced Speed Zones, and planned closures.
@@ -51,7 +53,7 @@ Implemented now:
 - Persisted route-alert impact kind so ordinary delays are not categorized as Reduced Speed Zones.
 - Live Alerts reduced-speed records now derive explicit cardinal direction from TTC wording.
 - `Both ways` alert directions are interpreted bidirectionally with line-aware cardinal labels.
-- Stale successful ingestion runs no longer drive visible alert cards, line status, or map overlays after the dashboard freshness window expires.
+- Stale successful ingestion runs no longer drive visible alert cards, line status, map overlays, or dynamic station detail rows after the dashboard freshness window expires.
 - Map overlays expose layered impact metadata and project onto adjacent rapid-transit topology links.
 - Ordinary overlay links resolve from SVG station-dot anchors.
 - Nonlinear overlays resolve from the authored hidden segment-guides-layer.
@@ -66,8 +68,7 @@ Not implemented yet:
 - Production geospatial matching remains unimplemented.
 - TTC Reduced Speed Zones webpage ingestion remains unimplemented.
 - Live station arrivals remain demo-only estimates.
-- Live station-arrival and station-detail source reads remain unimplemented.
-- Full station accessibility CSV import, wheelchair/elevator station icons, and every-stop line tags remain follow-up work.
+- Live station-arrival source reads remain unimplemented.
 - Nightly closure start/end window gating remains follow-up work.
 - Redis-backed live status cache.
 - Backend commute-impact endpoint.
@@ -240,7 +241,7 @@ Current backend scope:
 | `GET` | `/api/status` | Line status derived from fresh normalized alerts, otherwise no stale live impacts. |
 | `GET` | `/api/alerts?type=live\|delay\|planned\|slowdown` | Fresh normalized suspension/active alert cards, ordinary delay cards, planned closures, and Reduced Speed Zone groups. |
 | `GET` | `/api/stations?query={q}` | Seeded station summaries and search. |
-| `GET` | `/api/stations/{id}` | Seeded station detail payload. |
+| `GET` | `/api/stations/{id}` | Station detail with reviewed facilities, demo arrivals, and fresh directly linked TTC outage/alert rows when ingestion is current. |
 
 Planned backend API:
 
@@ -377,7 +378,7 @@ Suggested resume bullet once backend and live data are implemented:
 
 ## Roadmap
 
-1. Switch user-facing alert, status, station-outage, and map-overlay reads onto normalized TTC records while retaining fixture mode for demos and tests.
+1. Add nightly closure active-window gating so overlays only appear during affected hours.
 2. Add a public live-arrival provider and replace station-panel demo estimates with source-labeled predictions.
 3. Import static GTFS shapes and implement production alert-to-segment matching.
 4. Implement saved commute impact matching and reliability aggregation.
