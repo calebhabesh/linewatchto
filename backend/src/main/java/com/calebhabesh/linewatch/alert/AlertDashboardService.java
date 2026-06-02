@@ -5,20 +5,25 @@ import com.calebhabesh.linewatch.station.LineSegmentRepository;
 import com.calebhabesh.linewatch.station.TransitLineEntity;
 import com.calebhabesh.linewatch.ingestion.IngestionFreshness;
 import java.time.Clock;
-import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.function.Function;
 import org.springframework.stereotype.Service;
 
 @Service
 public class AlertDashboardService {
     public static final String ACTIVE_ALERT_TYPE = "active-alert";
     public static final String PLANNED_CLOSURE_TYPE = "planned-closure";
+    private static final String SUSPENSION_KIND = "suspension";
+    private static final String DELAY_KIND = "delay";
+    private static final String REDUCED_SPEED_ZONE_KIND = "reduced-speed-zone";
+    private static final String PLANNED_CLOSURE_KIND = "planned-closure";
 
     private static final ZoneId TORONTO_ZONE = ZoneId.of("America/Toronto");
     private static final DateTimeFormatter WINDOW_FORMATTER =
@@ -53,8 +58,19 @@ public class AlertDashboardService {
         }
         List<LineSegmentEntity> segments = lineSegmentRepository.findAllByOrderBySortOrderAsc();
         return alertRepository.findByActiveTrueAndType(ACTIVE_ALERT_TYPE).stream()
-            .filter(alert -> "suspension".equalsIgnoreCase(alert.getSeverity()))
+            .filter(alert -> hasImpactKind(alert, SUSPENSION_KIND))
             .map(alert -> toActiveAlert(alert, segments))
+            .toList();
+    }
+
+    public List<DelayAlertDto> delays() {
+        if (!ingestionFreshness.isDashboardFresh()) {
+            return List.of();
+        }
+        List<LineSegmentEntity> segments = lineSegmentRepository.findAllByOrderBySortOrderAsc();
+        return alertRepository.findByActiveTrueAndType(ACTIVE_ALERT_TYPE).stream()
+            .filter(alert -> hasImpactKind(alert, DELAY_KIND))
+            .map(alert -> toDelayAlert(alert, segments))
             .toList();
     }
 
@@ -71,10 +87,10 @@ public class AlertDashboardService {
     private ReducedSpeedZoneProjector.Projection reducedSpeedProjection(
         List<LineSegmentEntity> segments
     ) {
-        List<AlertEntity> delays = alertRepository.findByActiveTrueAndType(ACTIVE_ALERT_TYPE).stream()
-            .filter(alert -> "delay".equalsIgnoreCase(alert.getSeverity()))
+        List<AlertEntity> reducedSpeedZones = alertRepository.findByActiveTrueAndType(ACTIVE_ALERT_TYPE).stream()
+            .filter(alert -> hasImpactKind(alert, REDUCED_SPEED_ZONE_KIND))
             .toList();
-        return reducedSpeedZoneProjector.project(delays, segments);
+        return reducedSpeedZoneProjector.project(reducedSpeedZones, segments);
     }
 
     public List<PlannedClosureDto> plannedClosures() {
@@ -83,6 +99,7 @@ public class AlertDashboardService {
         }
         List<LineSegmentEntity> segments = lineSegmentRepository.findAllByOrderBySortOrderAsc();
         return alertRepository.findByActiveTrueAndType(PLANNED_CLOSURE_TYPE).stream()
+            .filter(alert -> hasImpactKind(alert, PLANNED_CLOSURE_KIND))
             .filter(this::isCurrentOrFuture)
             .map(alert -> toPlannedClosure(alert, segments))
             .toList();
@@ -138,12 +155,30 @@ public class AlertDashboardService {
             isBlank(alert.getSeverity()) ? "delay" : alert.getSeverity(),
             location(alert),
             alert.getDescription(),
-            updatedAgo(alert.getSourceUpdatedAt()),
+            alert.getActivePeriodStart(),
+            alert.getSourceUpdatedAt(),
             affectedSegmentIds(alert, segments),
             !isBlank(alert.getShuttleType()),
             "TTC Live Alert",
-            reason(alert),
-            targetRemoval(alert)
+            cause(alert),
+            resolution(alert)
+        );
+    }
+
+    private DelayAlertDto toDelayAlert(AlertEntity alert, List<LineSegmentEntity> segments) {
+        TransitLineEntity line = alert.getLine();
+        return new DelayAlertDto(
+            alert.getId(),
+            line == null ? null : line.getId(),
+            line == null ? null : line.getNumber(),
+            alert.getTitle(),
+            location(alert),
+            alert.getDescription(),
+            affectedSegmentIds(alert, segments),
+            alert.getActivePeriodStart(),
+            alert.getSourceUpdatedAt(),
+            "TTC Live Alert",
+            cause(alert)
         );
     }
 
@@ -157,12 +192,13 @@ public class AlertDashboardService {
             window(alert.getActivePeriodStart(), alert.getActivePeriodEnd()),
             location(alert),
             alert.getDescription(),
+            alert.getActivePeriodStart(),
+            alert.getSourceUpdatedAt(),
             affectedSegmentIds(alert, segments),
             !isBlank(alert.getShuttleType()),
             "TTC Service Advisory",
-            updatedAgo(alert.getSourceUpdatedAt()),
-            reason(alert),
-            targetRemoval(alert)
+            cause(alert),
+            resolution(alert)
         );
     }
 
@@ -189,33 +225,6 @@ public class AlertDashboardService {
         AlertEntity first = zone.sourceAlerts().getFirst();
         TransitLineEntity line = first.getLine();
 
-        String reason = null;
-        for (AlertEntity a : zone.sourceAlerts()) {
-            String r = reason(a);
-            if (r != null) {
-                reason = r;
-                break;
-            }
-        }
-        
-        String targetRemoval = null;
-        boolean firstTargetRemovalSet = false;
-        boolean multipleDates = false;
-        for (AlertEntity a : zone.sourceAlerts()) {
-            String tr = targetRemoval(a);
-            if (tr != null) {
-                if (!firstTargetRemovalSet) {
-                    targetRemoval = tr;
-                    firstTargetRemovalSet = true;
-                } else if (!targetRemoval.equals(tr)) {
-                    multipleDates = true;
-                }
-            }
-        }
-        if (multipleDates) {
-            targetRemoval = "Multiple dates";
-        }
-
         return new ReducedSpeedZoneDto(
             zone.id(),
             line == null ? null : line.getId(),
@@ -226,12 +235,8 @@ public class AlertDashboardService {
             zone.sourceAlerts().size() == 1
                 ? first.getDescription()
                 : "TTC reports reduced speeds on this corridor.",
-            zone.sourceAlerts().stream()
-                .map(AlertEntity::getSourceUpdatedAt)
-                .filter(java.util.Objects::nonNull)
-                .max(java.util.Comparator.naturalOrder())
-                .map(this::updatedAgo)
-                .orElse("Updated recently"),
+            earliestStartedAt(zone.sourceAlerts()),
+            latestUpdatedAt(zone.sourceAlerts()),
             zone.affectedSegmentIds(),
             zone.sourceAlertIds(),
             zone.directionalDetails().stream()
@@ -243,8 +248,13 @@ public class AlertDashboardService {
                 ))
                 .toList(),
             "TTC Live Alert",
-            reason,
-            targetRemoval
+            firstNonBlank(zone.sourceAlerts(), this::cause),
+            groupedResolution(zone.sourceAlerts()),
+            firstNonBlank(zone.sourceAlerts(), AlertEntity::getRszLength),
+            firstNonBlank(zone.sourceAlerts(), AlertEntity::getStationDistance),
+            firstNonBlank(zone.sourceAlerts(), AlertEntity::getTrackPercent),
+            firstNonBlank(zone.sourceAlerts(), AlertEntity::getReducedSpeed),
+            firstNonBlank(zone.sourceAlerts(), AlertEntity::getAverageSpeed)
         );
     }
 
@@ -286,46 +296,65 @@ public class AlertDashboardService {
         return label.toString();
     }
 
-    private String updatedAgo(OffsetDateTime sourceUpdatedAt) {
-        if (sourceUpdatedAt == null) {
-            return "Updated recently";
-        }
-        return "Updated " + relativeAge(sourceUpdatedAt);
+    private OffsetDateTime earliestStartedAt(List<AlertEntity> alerts) {
+        return alerts.stream()
+            .map(AlertEntity::getActivePeriodStart)
+            .filter(java.util.Objects::nonNull)
+            .min(Comparator.naturalOrder())
+            .orElse(null);
     }
 
-    private String relativeAge(OffsetDateTime timestamp) {
-        long minutes = Math.max(0, Duration.between(timestamp, OffsetDateTime.now(clock)).toMinutes());
-        if (minutes == 0) {
-            return "just now";
-        }
-        if (minutes == 1) {
-            return "1 min ago";
-        }
-        if (minutes < 60) {
-            return minutes + " min ago";
-        }
-        long hours = minutes / 60;
-        if (hours == 1) {
-            return "1 hr ago";
-        }
-        if (hours < 24) {
-            return hours + " hr ago";
-        }
-        long days = hours / 24;
-        return days == 1 ? "1 day ago" : days + " days ago";
+    private OffsetDateTime latestUpdatedAt(List<AlertEntity> alerts) {
+        return alerts.stream()
+            .map(AlertEntity::getSourceUpdatedAt)
+            .filter(java.util.Objects::nonNull)
+            .max(Comparator.naturalOrder())
+            .orElse(null);
     }
 
-    private String reason(AlertEntity alert) {
-        if (!isBlank(alert.getCauseDescription())) {
-            return cleanMetadataValue(alert.getCauseDescription());
-        }
-        if (!isBlank(alert.getEffectDescription())) {
-            return cleanMetadataValue(alert.getEffectDescription());
+    private String firstNonBlank(
+        List<AlertEntity> alerts,
+        Function<AlertEntity, String> extractor
+    ) {
+        for (AlertEntity alert : alerts) {
+            String value = cleanMetadataValue(extractor.apply(alert));
+            if (value != null) {
+                return value;
+            }
         }
         return null;
     }
 
-    private String targetRemoval(AlertEntity alert) {
+    private String groupedResolution(List<AlertEntity> alerts) {
+        String resolution = null;
+        boolean firstResolutionSet = false;
+        boolean multipleDates = false;
+        for (AlertEntity alert : alerts) {
+            String value = resolution(alert);
+            if (value == null) {
+                continue;
+            }
+            if (!firstResolutionSet) {
+                resolution = value;
+                firstResolutionSet = true;
+            } else if (!resolution.equals(value)) {
+                multipleDates = true;
+            }
+        }
+        return multipleDates ? "Multiple dates" : resolution;
+    }
+
+    private String cause(AlertEntity alert) {
+        if (!isBlank(alert.getCauseDescription())) {
+            return cleanMetadataValue(alert.getCauseDescription());
+        }
+        if (!isBlank(alert.getCause())) {
+            return cleanMetadataValue(alert.getCause());
+        }
+        return null;
+    }
+
+    private String resolution(AlertEntity alert) {
         if (!isBlank(alert.getTargetRemoval())) {
             return cleanMetadataValue(alert.getTargetRemoval());
         }
@@ -359,6 +388,10 @@ public class AlertDashboardService {
         return "suspension".equalsIgnoreCase(overlay) ? 2 : 1;
     }
 
+    private boolean hasImpactKind(AlertEntity alert, String kind) {
+        return kind.equalsIgnoreCase(alert.getImpactKind());
+    }
+
     private boolean isBlank(String value) {
         return value == null || value.isBlank();
     }
@@ -371,12 +404,27 @@ public class AlertDashboardService {
         String severity,
         String location,
         String description,
-        String updatedAgo,
+        OffsetDateTime startedAt,
+        OffsetDateTime updatedAt,
         List<String> affectedSegmentIds,
         boolean shuttle,
         String source,
-        String reason,
-        String targetRemoval
+        String cause,
+        String resolution
+    ) {}
+
+    public record DelayAlertDto(
+        String id,
+        String lineId,
+        String lineNumber,
+        String title,
+        String location,
+        String description,
+        List<String> affectedSegmentIds,
+        OffsetDateTime startedAt,
+        OffsetDateTime updatedAt,
+        String source,
+        String cause
     ) {}
 
     public record PlannedClosureDto(
@@ -387,12 +435,13 @@ public class AlertDashboardService {
         String window,
         String location,
         String description,
+        OffsetDateTime startedAt,
+        OffsetDateTime updatedAt,
         List<String> previewSegmentIds,
         boolean shuttle,
         String source,
-        String updatedAgo,
-        String reason,
-        String targetRemoval
+        String cause,
+        String resolution
     ) {}
 
     public record DirectionalDetailDto(
@@ -410,13 +459,19 @@ public class AlertDashboardService {
         String location,
         String displayDirection,
         String description,
-        String updatedAgo,
+        OffsetDateTime startedAt,
+        OffsetDateTime updatedAt,
         List<String> affectedSegmentIds,
         List<String> sourceAlertIds,
         List<DirectionalDetailDto> directionalDetails,
         String source,
-        String reason,
-        String targetRemoval
+        String cause,
+        String resolution,
+        String rszLength,
+        String stationDistance,
+        String trackPercent,
+        String reducedSpeed,
+        String averageSpeed
     ) {}
 
     public record SegmentImpact(

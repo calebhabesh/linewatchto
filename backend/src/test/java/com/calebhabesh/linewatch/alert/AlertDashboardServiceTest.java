@@ -64,7 +64,8 @@ class AlertDashboardServiceTest {
             assertThat(dto.lineNumber()).isEqualTo("2");
             assertThat(dto.severity()).isEqualTo("suspension");
             assertThat(dto.location()).isEqualTo("Kipling to Ossington");
-            assertThat(dto.updatedAgo()).isEqualTo("Updated 10 min ago");
+            assertThat(dto.startedAt()).isEqualTo(OffsetDateTime.parse("2026-06-01T11:45:00Z"));
+            assertThat(dto.updatedAt()).isEqualTo(OffsetDateTime.parse("2026-06-01T11:50:00Z"));
             assertThat(dto.affectedSegmentIds()).containsExactly(
                 "line-2-kipling-jane",
                 "line-2-jane-ossington"
@@ -112,36 +113,125 @@ class AlertDashboardServiceTest {
     }
 
     @Test
+    void delayCardsAreSeparateFromReducedSpeedZonesAndExposePreciseMetadata() {
+        when(ingestionFreshness.isDashboardFresh()).thenReturn(true);
+        OffsetDateTime delayStartedAt = OffsetDateTime.parse("2026-06-01T22:15:00-04:00");
+        OffsetDateTime delayUpdatedAt = OffsetDateTime.parse("2026-06-01T22:39:00-04:00");
+        AlertEntity delay = withLine(alert(
+            "delay-line-4",
+            "active-alert",
+            "delay",
+            "Delay",
+            "Delays between Sheppard-Yonge and Don Mills.",
+            "sheppard-yonge",
+            "don-mills",
+            delayUpdatedAt,
+            null
+        ), "line-4", "4");
+        ReflectionTestUtils.setField(delay, "impactKind", "delay");
+        ReflectionTestUtils.setField(delay, "activePeriodStart", delayStartedAt);
+        ReflectionTestUtils.setField(delay, "causeDescription", "Signal issue");
+
+        OffsetDateTime rszStartedAt = OffsetDateTime.parse("2026-06-01T21:45:00-04:00");
+        OffsetDateTime rszUpdatedAt = OffsetDateTime.parse("2026-06-01T22:20:00-04:00");
+        AlertEntity rsz = withLine(alert(
+            "rsz-line-1",
+            "active-alert",
+            "delay",
+            "Reduced Speed Zone",
+            "Reduced speed zone between Dupont and St Clair West.",
+            "dupont",
+            "st-clair-west",
+            rszUpdatedAt,
+            null
+        ), "line-1", "1");
+        ReflectionTestUtils.setField(rsz, "impactKind", "reduced-speed-zone");
+        ReflectionTestUtils.setField(rsz, "activePeriodStart", rszStartedAt);
+        ReflectionTestUtils.setField(rsz, "causeDescription", "Track maintenance");
+        ReflectionTestUtils.setField(rsz, "targetRemoval", "June 8");
+        ReflectionTestUtils.setField(rsz, "rszLength", "600 metres");
+        ReflectionTestUtils.setField(rsz, "stationDistance", "900 metres");
+        ReflectionTestUtils.setField(rsz, "trackPercent", "67%");
+        ReflectionTestUtils.setField(rsz, "reducedSpeed", "15 km/h");
+        ReflectionTestUtils.setField(rsz, "averageSpeed", "35 km/h");
+
+        when(alertRepository.findByActiveTrueAndType("active-alert"))
+            .thenReturn(List.of(delay, rsz));
+        when(lineSegmentRepository.findAllByOrderBySortOrderAsc()).thenReturn(List.of(
+            segment("line-4-sheppard-yonge-don-mills", "line-4", "sheppard-yonge", "don-mills", 10, "eastbound"),
+            segment("line-1-dupont-st-clair-west", "line-1", "dupont", "st-clair-west", 20, "northbound")
+        ));
+
+        assertThat(service.delays()).singleElement().satisfies(dto -> {
+            assertThat(dto.id()).isEqualTo("delay-line-4");
+            assertThat(dto.lineId()).isEqualTo("line-4");
+            assertThat(dto.lineNumber()).isEqualTo("4");
+            assertThat(dto.location()).isEqualTo("Sheppard Yonge to Don Mills");
+            assertThat(dto.startedAt()).isEqualTo(delayStartedAt);
+            assertThat(dto.updatedAt()).isEqualTo(delayUpdatedAt);
+            assertThat(dto.affectedSegmentIds())
+                .containsExactly("line-4-sheppard-yonge-don-mills");
+            assertThat(dto.source()).isEqualTo("TTC Live Alert");
+            assertThat(dto.cause()).isEqualTo("Signal issue");
+        });
+
+        assertThat(service.reducedSpeedZones()).singleElement().satisfies(dto -> {
+            assertThat(dto.id()).isEqualTo("reduced-speed-zone-rsz-line-1");
+            assertThat(dto.lineId()).isEqualTo("line-1");
+            assertThat(dto.lineNumber()).isEqualTo("1");
+            assertThat(dto.startedAt()).isEqualTo(rszStartedAt);
+            assertThat(dto.updatedAt()).isEqualTo(rszUpdatedAt);
+            assertThat(dto.cause()).isEqualTo("Track maintenance");
+            assertThat(dto.resolution()).isEqualTo("June 8");
+            assertThat(dto.rszLength()).isEqualTo("600 metres");
+            assertThat(dto.stationDistance()).isEqualTo("900 metres");
+            assertThat(dto.trackPercent()).isEqualTo("67%");
+            assertThat(dto.reducedSpeed()).isEqualTo("15 km/h");
+            assertThat(dto.averageSpeed()).isEqualTo("35 km/h");
+        });
+    }
+
+    @Test
     void reducedSpeedZonesGroupOpposingSourceAlertsAndExposeDirectionalDetails() {
         when(ingestionFreshness.isDashboardFresh()).thenReturn(true);
-        AlertEntity northbound = alert(
+        AlertEntity northbound = withLine(alert(
             "ttc-route-north", "active-alert", "delay", "Reduced speed",
             "Northbound trains are moving slowly.", "yorkdale", "wilson",
             OffsetDateTime.parse("2026-06-01T11:55:00Z"), null
-        );
+        ), "line-1", "1");
         ReflectionTestUtils.setField(northbound, "direction", "northbound");
+        ReflectionTestUtils.setField(northbound, "impactKind", "reduced-speed-zone");
+        ReflectionTestUtils.setField(northbound, "activePeriodStart", OffsetDateTime.parse("2026-06-01T11:30:00Z"));
         ReflectionTestUtils.setField(northbound, "causeDescription", "Track issue");
         ReflectionTestUtils.setField(northbound, "targetRemoval", "Mid-June");
-        AlertEntity southbound = alert(
+        ReflectionTestUtils.setField(northbound, "rszLength", "300 metres");
+        ReflectionTestUtils.setField(northbound, "averageSpeed", "35 km/h");
+        AlertEntity southbound = withLine(alert(
             "ttc-route-south", "active-alert", "delay", "Reduced speed",
             "Southbound trains are moving slowly.", "wilson", "yorkdale",
             OffsetDateTime.parse("2026-06-01T11:54:00Z"), null
-        );
+        ), "line-1", "1");
         ReflectionTestUtils.setField(southbound, "direction", "southbound");
+        ReflectionTestUtils.setField(southbound, "impactKind", "reduced-speed-zone");
+        ReflectionTestUtils.setField(southbound, "activePeriodStart", OffsetDateTime.parse("2026-06-01T11:40:00Z"));
         when(alertRepository.findByActiveTrueAndType("active-alert"))
             .thenReturn(List.of(northbound, southbound));
         when(lineSegmentRepository.findAllByOrderBySortOrderAsc()).thenReturn(List.of(
-            segment("line-2-wilson-yorkdale", "line-2", "wilson", "yorkdale", 10, "southbound")
+            segment("line-1-wilson-yorkdale", "line-1", "wilson", "yorkdale", 10, "southbound")
         ));
 
         assertThat(service.reducedSpeedZones()).singleElement().satisfies(zone -> {
-            assertThat(zone.displayDirection()).isEqualTo("Both directions");
-            assertThat(zone.affectedSegmentIds()).containsExactly("line-2-wilson-yorkdale");
+            assertThat(zone.displayDirection()).isEqualTo("Northbound & Southbound");
+            assertThat(zone.startedAt()).isEqualTo(OffsetDateTime.parse("2026-06-01T11:30:00Z"));
+            assertThat(zone.updatedAt()).isEqualTo(OffsetDateTime.parse("2026-06-01T11:55:00Z"));
+            assertThat(zone.affectedSegmentIds()).containsExactly("line-1-wilson-yorkdale");
             assertThat(zone.sourceAlertIds())
                 .containsExactlyInAnyOrder("ttc-route-north", "ttc-route-south");
             assertThat(zone.directionalDetails()).hasSize(2);
-            assertThat(zone.reason()).isEqualTo("Track issue");
-            assertThat(zone.targetRemoval()).isEqualTo("Mid-June");
+            assertThat(zone.cause()).isEqualTo("Track issue");
+            assertThat(zone.resolution()).isEqualTo("Mid-June");
+            assertThat(zone.rszLength()).isEqualTo("300 metres");
+            assertThat(zone.averageSpeed()).isEqualTo("35 km/h");
         });
     }
 
@@ -183,6 +273,8 @@ class AlertDashboardServiceTest {
             assertThat(dto.lineNumber()).isEqualTo("2");
             assertThat(dto.location()).isEqualTo("Jane to Ossington");
             assertThat(dto.window()).isEqualTo("Sat 12:00 AM - Mon 5:00 AM");
+            assertThat(dto.startedAt()).isEqualTo(OffsetDateTime.parse("2026-06-06T04:00:00Z"));
+            assertThat(dto.updatedAt()).isEqualTo(OffsetDateTime.parse("2026-06-01T11:45:00Z"));
             assertThat(dto.previewSegmentIds()).containsExactly("line-2-jane-ossington");
             assertThat(dto.shuttle()).isFalse();
             assertThat(dto.source()).isEqualTo("TTC Service Advisory");
@@ -261,6 +353,7 @@ class AlertDashboardServiceTest {
             null
         );
         ReflectionTestUtils.setField(alert, "direction", "eastbound");
+        ReflectionTestUtils.setField(alert, "impactKind", "reduced-speed-zone");
         when(alertRepository.findByActiveTrueAndType("active-alert"))
             .thenReturn(List.of(alert));
         when(lineSegmentRepository.findAllByOrderBySortOrderAsc()).thenReturn(List.of(
@@ -313,10 +406,34 @@ class AlertDashboardServiceTest {
         ReflectionTestUtils.setField(alert, "title", title);
         ReflectionTestUtils.setField(alert, "description", description);
         ReflectionTestUtils.setField(alert, "active", true);
+        ReflectionTestUtils.setField(alert, "impactKind", defaultImpactKind(severity));
         ReflectionTestUtils.setField(alert, "startStationId", startStationId);
         ReflectionTestUtils.setField(alert, "endStationId", endStationId);
+        if (sourceUpdatedAt != null) {
+            ReflectionTestUtils.setField(alert, "activePeriodStart", sourceUpdatedAt.minusMinutes(5));
+        }
         ReflectionTestUtils.setField(alert, "sourceUpdatedAt", sourceUpdatedAt);
         ReflectionTestUtils.setField(alert, "shuttleType", shuttleType);
+        return alert;
+    }
+
+    private String defaultImpactKind(String severity) {
+        return switch (severity) {
+            case "suspension" -> "suspension";
+            case "planned" -> "planned-closure";
+            case "delay" -> "reduced-speed-zone";
+            default -> severity;
+        };
+    }
+
+    private AlertEntity withLine(AlertEntity alert, String lineId, String lineNumber) {
+        ReflectionTestUtils.setField(alert, "line", new TransitLineEntity(
+            lineId,
+            lineNumber,
+            lineId,
+            "#000",
+            Integer.parseInt(lineNumber)
+        ));
         return alert;
     }
 

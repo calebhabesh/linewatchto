@@ -46,7 +46,7 @@ public class ReducedSpeedZoneProjector {
             List<AlertEntity> groupAlerts = group.sources.stream().map(ProjectedSource::alert).toList();
             List<String> sourceAlertIds = groupAlerts.stream().map(AlertEntity::getId).sorted().toList();
             String zoneId = "reduced-speed-zone-" + sourceAlertIds.getFirst();
-            String displayDirection = displayDirection(group.sources);
+            String displayDirection = displayDirection(group.lineId, group.sources);
 
             List<DirectionalDetail> directionalDetails = new ArrayList<>();
             for (ProjectedSource source : group.sources) {
@@ -119,7 +119,7 @@ public class ReducedSpeedZoneProjector {
         return groups;
     }
 
-    private String displayDirection(List<ProjectedSource> sources) {
+    private String displayDirection(String lineId, List<ProjectedSource> sources) {
         Set<AlertDirection> directions = sources.stream()
             .map(source -> effectiveDirection(source.alert()))
             .collect(Collectors.toSet());
@@ -127,9 +127,15 @@ public class ReducedSpeedZoneProjector {
             return "Direction not specified";
         }
         if (directions.size() != 1 || directions.contains(AlertDirection.BIDIRECTIONAL)) {
-            return "Both directions";
+            return bidirectionalLabel(lineId);
         }
         return formatDirection(directions.iterator().next());
+    }
+
+    private String bidirectionalLabel(String lineId) {
+        return "line-1".equals(lineId)
+            ? "Northbound & Southbound"
+            : "Eastbound & Westbound";
     }
 
     private AlertDirection effectiveDirection(AlertEntity alert) {

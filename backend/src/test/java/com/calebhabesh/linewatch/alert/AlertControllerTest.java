@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.time.OffsetDateTime;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
@@ -22,7 +23,8 @@ class AlertControllerTest {
                 "suspension",
                 "Jane to Ossington",
                 "No subway service between Jane and Ossington.",
-                "Updated 2 min ago",
+                OffsetDateTime.parse("2026-06-01T11:55:00Z"),
+                OffsetDateTime.parse("2026-06-01T11:58:00Z"),
                 List.of("line-2-jane-ossington"),
                 true,
                 "TTC Live Alert",
@@ -48,10 +50,11 @@ class AlertControllerTest {
                 "Sat 12:00 AM - Mon 5:00 AM",
                 "Finch to Eglinton",
                 "No subway service this weekend.",
+                OffsetDateTime.parse("2026-06-06T04:00:00Z"),
+                OffsetDateTime.parse("2026-06-01T11:00:00Z"),
                 List.of("line-1-finch-eglinton"),
                 true,
                 "TTC Service Advisory",
-                null,
                 null,
                 null
             )
@@ -61,6 +64,30 @@ class AlertControllerTest {
         Object response = controller.getAlerts("planned");
 
         assertThat(response).isEqualTo(closures);
+    }
+
+    @Test
+    void returnsDelaysFromDashboardServiceWhenRequested() {
+        List<AlertDashboardService.DelayAlertDto> delays = List.of(
+            new AlertDashboardService.DelayAlertDto(
+                "delay-line-4",
+                "line-4",
+                "4",
+                "Delay",
+                "Sheppard Yonge to Don Mills",
+                "Delays between Sheppard-Yonge and Don Mills.",
+                List.of("line-4-sheppard-yonge-don-mills"),
+                OffsetDateTime.parse("2026-06-01T22:15:00-04:00"),
+                OffsetDateTime.parse("2026-06-01T22:39:00-04:00"),
+                "TTC Live Alert",
+                "Signal issue"
+            )
+        );
+        when(dashboardService.delays()).thenReturn(delays);
+
+        Object response = controller.getAlerts("delay");
+
+        assertThat(response).isEqualTo(delays);
     }
 
     @Test
@@ -74,11 +101,17 @@ class AlertControllerTest {
                 "Jane to Ossington",
                 "Both directions",
                 "Trains are moving slower than usual.",
-                "Updated 2 min ago",
+                OffsetDateTime.parse("2026-06-01T11:55:00Z"),
+                OffsetDateTime.parse("2026-06-01T11:58:00Z"),
                 List.of("line-2-jane-ossington"),
                 List.of("123"),
                 List.of(),
                 "TTC Live Alert",
+                null,
+                null,
+                null,
+                null,
+                null,
                 null,
                 null
             )

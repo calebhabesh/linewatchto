@@ -20,6 +20,9 @@ public class AlertController {
         if ("planned".equals(type)) {
             return dashboardService.plannedClosures();
         }
+        if ("delay".equals(type)) {
+            return dashboardService.delays();
+        }
         if ("slowdown".equals(type)) {
             return dashboardService.reducedSpeedZones();
         }
