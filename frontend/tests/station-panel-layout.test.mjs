@@ -32,4 +32,13 @@ describe("station detail panel layout", () => {
     assert.match(panelSource, /overflow-y-auto/);
     assert.doesNotMatch(panelSource, /backdrop-blur/);
   });
+
+  it("renders authored accessibility icons with accessible warning state labels", () => {
+    assert.match(panelSource, /wheel-chair-symbol\.svg/);
+    assert.match(panelSource, /elevator-icon\.svg/);
+    assert.match(panelSource, /Wheelchair accessible/);
+    assert.match(panelSource, /Elevator available/);
+    assert.match(panelSource, /data-facility-warning/);
+    assert.match(panelSource, /formatRelativeImpactTime/);
+  });
 });

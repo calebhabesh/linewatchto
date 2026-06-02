@@ -1,6 +1,8 @@
 "use client";
 
 import { AlertTriangle, Accessibility, Clock3, X } from "lucide-react";
+import Image from "next/image";
+import { formatRelativeImpactTime } from "../app/impact-time";
 import type { StationDataResult, StationDetail } from "../app/station-data";
 
 type Props = {
@@ -13,6 +15,9 @@ type Props = {
 export function StationDetailPanel({ stationResult, loading, selectedStationName, onClose }: Props) {
   const station = stationResult?.data ?? null;
   const source = stationResult?.source;
+  const hasElevatorOutage = station?.access.outages.some(
+    (outage) => outage.assetType === "elevator"
+  ) ?? false;
 
   return (
     <aside
@@ -59,17 +64,65 @@ export function StationDetailPanel({ stationResult, loading, selectedStationName
             </div>
           )}
 
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-col gap-2">
             {station.lines.map((line) => (
-              <span
+              <div
                 key={line.id}
-                className="inline-flex min-h-8 items-center gap-2 rounded-full border border-black/10 px-3 py-1 text-xs font-black dark:border-white/10"
-                style={{ backgroundColor: line.color, color: line.id === "line-1" ? "#000000" : "#ffffff" }}
-                title={line.platformLabel}
+                className="rounded-lg border border-black/10 bg-slate-50 p-3 dark:border-white/10 dark:bg-white/5"
               >
-                {line.number}
-                <span>{line.name}</span>
-              </span>
+                <span
+                  className="inline-flex min-h-8 items-center gap-2 rounded-full border border-black/10 px-3 py-1 text-xs font-black dark:border-white/10"
+                  style={{ backgroundColor: line.color, color: line.id === "line-1" ? "#000000" : "#ffffff" }}
+                  title={line.platformLabel}
+                >
+                  {line.number}
+                  <span>{line.name}</span>
+                </span>
+                <p className="mt-2 text-xs font-semibold text-slate-500 dark:text-slate-400">
+                  {line.platformLabel}
+                </p>
+                <div className="mt-2 flex flex-wrap gap-2 text-xs font-semibold text-slate-700 dark:text-slate-200">
+                  {line.wheelchairAccessible ? (
+                    <span className="inline-flex items-center gap-1.5 rounded-md border border-black/10 bg-white px-2 py-1 dark:border-white/10 dark:bg-[#12151c]">
+                      <Image
+                        src="/assets/linewatch/wheel-chair-symbol.svg"
+                        alt=""
+                        aria-hidden="true"
+                        width={16}
+                        height={16}
+                      />
+                      Wheelchair accessible
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center rounded-md border border-black/10 bg-white px-2 py-1 text-slate-500 dark:border-white/10 dark:bg-[#12151c] dark:text-slate-400">
+                      Not wheelchair accessible
+                    </span>
+                  )}
+                  {line.hasElevator ? (
+                    <span
+                      className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-1 ${
+                        hasElevatorOutage
+                          ? "border-amber-500/50 bg-amber-500/10 text-amber-700 dark:text-amber-300"
+                          : "border-black/10 bg-white dark:border-white/10 dark:bg-[#12151c]"
+                      }`}
+                      data-facility-warning={hasElevatorOutage ? "elevator" : undefined}
+                    >
+                      <Image
+                        src="/assets/linewatch/elevator-icon.svg"
+                        alt=""
+                        aria-hidden="true"
+                        width={16}
+                        height={16}
+                      />
+                      Elevator available{hasElevatorOutage ? ", outage reported" : ""}
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center rounded-md border border-black/10 bg-white px-2 py-1 text-slate-500 dark:border-white/10 dark:bg-[#12151c] dark:text-slate-400">
+                      No elevator
+                    </span>
+                  )}
+                </div>
+              </div>
             ))}
           </div>
 
@@ -82,6 +135,19 @@ export function StationDetailPanel({ stationResult, loading, selectedStationName
             <p className="mt-1 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
               {station.access.updatedAgo}
             </p>
+            {station.access.outages.length > 0 && (
+              <div className="mt-3 flex flex-col gap-2">
+                {station.access.outages.map((outage) => (
+                  <div key={outage.id} className="rounded-md border border-amber-500/30 bg-amber-500/10 p-2 text-sm">
+                    <strong className="block text-amber-800 dark:text-amber-200">{outage.title}</strong>
+                    <p className="mt-1 text-slate-600 dark:text-slate-300">{outage.description}</p>
+                    <p className="mt-1 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                      {outage.source} / {formatRelativeImpactTime(outage.updatedAt)}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
           </section>
 
           <section className="rounded-lg border border-black/10 bg-slate-50 p-3 dark:border-white/10 dark:bg-white/5">
@@ -90,7 +156,7 @@ export function StationDetailPanel({ stationResult, loading, selectedStationName
               Station impacts
             </h3>
             {station.impacts.length === 0 ? (
-              <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">No seeded impacts for this station.</p>
+              <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">No active impacts for this station.</p>
             ) : (
               <div className="mt-2 flex flex-col gap-2">
                 {station.impacts.map((impact) => (
@@ -98,7 +164,9 @@ export function StationDetailPanel({ stationResult, loading, selectedStationName
                     <strong className="block text-slate-900 dark:text-white">{impact.title}</strong>
                     <p className="mt-1 text-slate-600 dark:text-slate-300">{impact.summary}</p>
                     <p className="mt-1 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-                      {impact.source} / {impact.updatedAgo}
+                      {impact.source} / {impact.updatedAt
+                        ? formatRelativeImpactTime(impact.updatedAt)
+                        : impact.updatedAgo}
                     </p>
                   </div>
                 ))}
@@ -111,6 +179,9 @@ export function StationDetailPanel({ stationResult, loading, selectedStationName
               <Clock3 size={16} />
               Demo arrivals
             </h3>
+            <p className="mt-1 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+              {station.arrivalsSource}
+            </p>
             <div className="mt-2 flex flex-col gap-2">
               {station.arrivals.map((arrival, index) => (
                 <div key={`${arrival.lineId}-${arrival.direction}-${index}`} className="flex items-center justify-between gap-3 rounded-md bg-white p-2 text-sm dark:bg-[#12151c]">
