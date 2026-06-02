@@ -119,19 +119,6 @@ export function LineWatchShell({ initialData }: { initialData: DashboardData }) 
     }
   }
 
-  const selectionForAlertId = (id: string): ImpactSelection => {
-    if (activeAlerts.some((alert) => alert.id === id)) {
-      return { kind: "suspension", id };
-    }
-    if (delays.some((delay) => delay.id === id)) {
-      return { kind: "delay", id };
-    }
-    if (reducedSpeedZones.some((zone) => zone.id === id)) {
-      return { kind: "reduced-speed-zone", id };
-    }
-    return null;
-  };
-
   const handleMapSelectImpact = (nextSelection: ImpactSelection) => {
     setSelectedStationId(null);
     if (!nextSelection) {
@@ -141,12 +128,6 @@ export function LineWatchShell({ initialData }: { initialData: DashboardData }) 
     setActiveView(viewForImpactKind(nextSelection.kind));
     setSelection(nextSelection);
   };
-
-  const selectedAlertId = selection
-    && ["suspension", "delay", "reduced-speed-zone"].includes(selection.kind)
-      ? selection.id
-      : null;
-  const selectedClosureId = selection?.kind === "planned-closure" ? selection.id : null;
 
   return (
     <DataProvider data={initialData}>
@@ -399,12 +380,10 @@ export function LineWatchShell({ initialData }: { initialData: DashboardData }) 
       {/* Main Viewport (TTC Map Front & Center, Borderless) */}
       <main className={`absolute inset-0 z-10`}>
         <InteractiveTtcMap
-          selectedAlertId={selectedAlertId}
-          selectedClosureId={selectedClosureId}
+          selection={selection}
           selectedStationId={selectedStationId}
           stations={stationSummaries}
-          onSelectAlertId={(id) => handleMapSelectImpact(id ? selectionForAlertId(id) : null)}
-          onSelectClosureId={(id) => handleMapSelectImpact(id ? { kind: "planned-closure", id } : null)}
+          onSelectImpact={handleMapSelectImpact}
           onSelectStationId={(id) => {
             setSelectedStationId(id);
             setSelection(null);

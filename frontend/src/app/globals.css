@@ -518,7 +518,9 @@ button {
   transition: none !important;
 }
 
-.asset-alert-path-glow.delay {
+.asset-alert-path-glow.delay,
+.asset-alert-path-glow.delay-static,
+.asset-alert-path-glow.reduced-speed-zone {
   stroke: rgba(245, 158, 11, 0.7); /* Orange aura for delays */
   animation: aura-pulse 1.2s infinite alternate ease-in-out;
 }
@@ -535,14 +537,16 @@ button {
 
 .motion-paused .asset-alert-path-glow,
 .motion-paused .asset-alert-path.delay-candy,
-.motion-paused .asset-alert-path.suspension-candy {
+.motion-paused .asset-alert-path.suspension-candy,
+.motion-paused .delay-static-path {
   animation: none !important;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .asset-alert-path-glow,
   .asset-alert-path.delay-candy,
-  .asset-alert-path.suspension-candy {
+  .asset-alert-path.suspension-candy,
+  .delay-static-path {
     animation: none !important;
   }
 }
@@ -571,8 +575,31 @@ g:has(.asset-alert-path:focus-visible) .asset-alert-path-glow,
 }
 
 .asset-alert-path.suspension,
-.asset-alert-path.delay {
+.asset-alert-path.delay,
+.asset-alert-path.delay-static,
+.asset-alert-path.reduced-speed-zone {
   stroke: transparent;
+}
+
+.asset-alert-path.delay-static-base {
+  stroke: rgba(245, 158, 11, 0.88);
+  stroke-width: 88;
+}
+
+.delay-static-path {
+  filter: url("#delay-static-filter");
+  stroke: #f59e0b;
+  stroke-dasharray: 2 5 11 3;
+  animation: delay-static-shift 700ms steps(4, end) infinite;
+}
+
+@keyframes delay-static-shift {
+  0% {
+    stroke-dashoffset: 0;
+  }
+  100% {
+    stroke-dashoffset: -72;
+  }
 }
 
 .asset-alert-path.planned-preview {
@@ -1124,6 +1151,33 @@ g:has(.asset-alert-path:focus-visible) .asset-alert-path-glow,
   stroke: rgba(96, 165, 250, 1);
 }
 
+.station-impact-ring {
+  cursor: pointer;
+  fill: none;
+  opacity: 0.92;
+  stroke: #f59e0b;
+  stroke-dasharray: 18 16;
+  stroke-linecap: round;
+  stroke-width: 18;
+  transition: opacity 0.2s ease, stroke-width 0.2s ease;
+}
+
+.station-impact-ring.suspension {
+  stroke: #ef4444;
+}
+
+.station-impact-ring.reduced-speed-zone,
+.station-impact-ring.delay {
+  stroke: #f59e0b;
+}
+
+.station-impact-ring.selected,
+.station-impact-ring:hover,
+.station-impact-ring:focus-visible {
+  opacity: 1;
+  stroke-width: 26;
+}
+
 @keyframes station-selected-pulse {
   0%,
   100% {
@@ -1138,7 +1192,8 @@ g:has(.asset-alert-path:focus-visible) .asset-alert-path-glow,
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .station-hit-target.selected {
+  .station-hit-target.selected,
+  .station-impact-ring {
     animation: none;
   }
 }

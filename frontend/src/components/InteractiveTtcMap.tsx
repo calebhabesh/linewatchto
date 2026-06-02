@@ -10,14 +10,12 @@ import {
 import { usePanZoom } from "../hooks/usePanZoom";
 import { ZoomIn, ZoomOut, Locate, Sun, Moon } from "lucide-react";
 import { useDashboardData } from "../app/DataContext";
-import type { NetworkSegment, ActiveAlert, PlannedClosure, ReducedSpeedZone } from "../app/linewatch-data";
+import type { ImpactSelection, MapImpact, MapImpactKind, NetworkSegment, PlannedClosure } from "../app/linewatch-data";
 import type { StationSummary } from "../app/station-data";
 
 export function InteractiveTtcMap({
-  selectedAlertId,
-  selectedClosureId,
-  onSelectAlertId,
-  onSelectClosureId,
+  selection,
+  onSelectImpact,
   stations,
   selectedStationId,
   onSelectStationId,
@@ -28,10 +26,8 @@ export function InteractiveTtcMap({
   lastPoll,
   dataModeLabel,
 }: {
-  selectedAlertId: string | null;
-  selectedClosureId: string | null;
-  onSelectAlertId: (id: string | null) => void;
-  onSelectClosureId: (id: string | null) => void;
+  selection: ImpactSelection;
+  onSelectImpact: (selection: ImpactSelection) => void;
   stations: StationSummary[];
   selectedStationId: string | null;
   onSelectStationId: (id: string | null) => void;
@@ -42,7 +38,7 @@ export function InteractiveTtcMap({
   lastPoll: string;
   dataModeLabel: string;
 }) {
-  const { networkSegments, activeAlerts, reducedSpeedZones, plannedClosures, stations: mapStations } = useDashboardData();
+  const { networkSegments, activeAlerts, delays, reducedSpeedZones, plannedClosures, stationNodeImpacts, stations: mapStations } = useDashboardData();
   const [svgParts, setSvgParts] = useState<{ part1: string; part2: string } | null>(null);
   const [loadState, setLoadState] = useState<"loading" | "ready" | "error">("loading");
 
@@ -140,58 +136,46 @@ export function InteractiveTtcMap({
     return () => window.clearTimeout(resetTimer);
   }, [layoutResetSignal, loadState, recenter]);
 
-  const selectedAlert = useMemo(() => {
-    return [...activeAlerts, ...reducedSpeedZones].find((a) => a.id === selectedAlertId);
-  }, [activeAlerts, reducedSpeedZones, selectedAlertId]);
-
   const selectedClosure = useMemo(() => {
-    return plannedClosures.find((c) => c.id === selectedClosureId);
-  }, [plannedClosures, selectedClosureId]);
+    if (selection?.kind !== "planned-closure") return undefined;
+    return plannedClosures.find((c) => c.id === selection.id);
+  }, [plannedClosures, selection]);
 
-  const [flashSelection, setFlashSelection] = useState<{ type: "alert" | "closure"; id: string } | null>(null);
+  const selectedSegmentIds = useMemo(() => {
+    if (!selection) return [];
+    if (selection.kind === "planned-closure") {
+      return plannedClosures.find((closure) => closure.id === selection.id)?.previewSegmentIds ?? [];
+    }
+    if (selection.kind === "suspension") {
+      return activeAlerts.find((alert) => alert.id === selection.id)?.affectedSegmentIds ?? [];
+    }
+    if (selection.kind === "delay") {
+      return delays.find((delay) => delay.id === selection.id)?.affectedSegmentIds ?? [];
+    }
+    return reducedSpeedZones.find((zone) => zone.id === selection.id)?.affectedSegmentIds ?? [];
+  }, [activeAlerts, delays, plannedClosures, reducedSpeedZones, selection]);
+
+  const [flashSelection, setFlashSelection] = useState<ImpactSelection>(null);
 
   useEffect(() => {
-    let timer0: number;
-    let timer: number;
-    
-    if (selectedAlertId) {
-      timer0 = window.setTimeout(() => setFlashSelection({ type: "alert", id: selectedAlertId }), 0);
-      timer = window.setTimeout(() => {
-        setFlashSelection(null);
-        onSelectAlertId(null);
-      }, 2500);
-      return () => { window.clearTimeout(timer0); window.clearTimeout(timer); };
+    if (!selection) {
+      const fallbackTimer = window.setTimeout(() => setFlashSelection(null), 0);
+      return () => window.clearTimeout(fallbackTimer);
     }
-    if (selectedClosureId) {
-      timer0 = window.setTimeout(() => setFlashSelection({ type: "closure", id: selectedClosureId }), 0);
-      timer = window.setTimeout(() => {
-        setFlashSelection(null);
-        onSelectClosureId(null);
-      }, 2500);
-      return () => { window.clearTimeout(timer0); window.clearTimeout(timer); };
-    }
-    const fallbackTimer = window.setTimeout(() => setFlashSelection(null), 0);
-    return () => window.clearTimeout(fallbackTimer);
-  }, [selectedAlertId, selectedClosureId, onSelectAlertId, onSelectClosureId]);
+    const timer0 = window.setTimeout(() => setFlashSelection(selection), 0);
+    const timer = window.setTimeout(() => setFlashSelection(null), 2500);
+    return () => { window.clearTimeout(timer0); window.clearTimeout(timer); };
+  }, [selection]);
 
-  type SelectableMapImpact =
-    | Pick<ActiveAlert, "id" | "title" | "affectedSegmentIds">
-    | Pick<ReducedSpeedZone, "id" | "title" | "affectedSegmentIds">;
-
-  const findSelectableImpactBySegment = (segment: NetworkSegment): SelectableMapImpact | undefined => {
-    if (segment.alertId) {
-      return activeAlerts.find((alert) => alert.id === segment.alertId);
-    }
-    return reducedSpeedZones.find((zone) =>
-      segment.reducedSpeedZoneIds?.includes(zone.id),
-    );
-  };
+  const stationBySummaryId = useMemo(() => {
+    return new Map(stations.map((station) => [station.id, station]));
+  }, [stations]);
 
   // Determine what overlays to render based on selection and hover
   const overlaySegments = useMemo(() => {
     return networkSegments.filter((segment) => {
       const isClosurePreview = selectedClosure?.previewSegmentIds.includes(segment.id) ?? false;
-      return segment.overlay !== "clear" || isClosurePreview;
+      return Boolean(segment.impacts?.length) || segment.overlay !== "clear" || isClosurePreview;
     });
   }, [networkSegments, selectedClosure]);
 
@@ -229,6 +213,20 @@ export function InteractiveTtcMap({
       })
       .filter((segment) => segment.pathD);
   }, [overlaySegments, mapStations, anchorPoints, guidePaths]);
+
+  const renderedImpactLayers = useMemo(() => {
+    return renderedOverlaySegments.flatMap((segment) => {
+      const impacts = segment.impacts?.length ? segment.impacts : legacyImpactsForSegment(segment);
+      return impacts.map((impact) => ({ segment, impact }));
+    });
+  }, [renderedOverlaySegments]);
+
+  const plannedPreviewLayers = useMemo(() => {
+    if (!selectedClosure) return [];
+    return renderedOverlaySegments
+      .filter((segment) => selectedClosure.previewSegmentIds.includes(segment.id))
+      .map((segment) => ({ segment, closure: selectedClosure }));
+  }, [renderedOverlaySegments, selectedClosure]);
 
   return (
     <div className="relative w-full h-full flex flex-col overflow-hidden bg-transparent">
@@ -395,17 +393,50 @@ export function InteractiveTtcMap({
                     <rect width="60" height="60" fill="#f87171" />
                     <line x1="0" y1="0" x2="0" y2="60" stroke="#ffffff" strokeWidth="25" />
                   </pattern>
+                  <filter id="delay-static-filter" x="-20%" y="-20%" width="140%" height="140%">
+                    <feTurbulence
+                      type="fractalNoise"
+                      baseFrequency="0.85"
+                      numOctaves="2"
+                      seed="7"
+                      result="noise"
+                    >
+                      {reducedMotion ? null : (
+                        <animate
+                          attributeName="seed"
+                          values="7;19;3;31;11;7"
+                          dur="700ms"
+                          repeatCount="indefinite"
+                        />
+                      )}
+                    </feTurbulence>
+                    <feColorMatrix in="noise" type="saturate" values="0" result="monoNoise" />
+                    <feComposite in="monoNoise" in2="SourceGraphic" operator="in" />
+                  </filter>
                 </defs>
                 <g aria-label="Disruption overlays">
-                  {renderedOverlaySegments.map((segment) => (
+                  {renderedImpactLayers.map(({ segment, impact }, index) => (
                     <OverlaySegment
-                      key={segment.id}
+                      key={`${segment.id}-${impact.kind}-${impact.cardId}-${index}`}
                       segment={segment}
-                      selectedAlert={selectedAlert}
-                      selectedClosure={selectedClosure}
-                      onSelectAlert={onSelectAlertId}
-                      onSelectClosure={onSelectClosureId}
-                      findSelectableImpactBySegment={findSelectableImpactBySegment}
+                      impact={impact}
+                      plannedClosure={undefined}
+                      selection={selection}
+                      selectedSegmentIds={selectedSegmentIds}
+                      onSelectImpact={onSelectImpact}
+                      reducedMotion={reducedMotion}
+                      flashSelection={flashSelection}
+                    />
+                  ))}
+                  {plannedPreviewLayers.map(({ segment, closure }) => (
+                    <OverlaySegment
+                      key={`${segment.id}-planned-preview-${closure.id}`}
+                      segment={segment}
+                      impact={null}
+                      plannedClosure={closure}
+                      selection={selection}
+                      selectedSegmentIds={selectedSegmentIds}
+                      onSelectImpact={onSelectImpact}
                       reducedMotion={reducedMotion}
                       flashSelection={flashSelection}
                     />
@@ -428,6 +459,38 @@ export function InteractiveTtcMap({
               viewBox="0 0 8250 4000"
               preserveAspectRatio="xMidYMid meet"
             >
+              <g aria-label="Station impact rings">
+                {stationNodeImpacts.map((impact) => {
+                  const station = stationBySummaryId.get(impact.stationId);
+                  if (!station) return null;
+                  const selected = selection?.kind === impact.kind && selection.id === impact.cardId;
+
+                  return (
+                    <circle
+                      key={`${impact.kind}-${impact.cardId}-${impact.stationId}`}
+                      aria-label={`${impact.title}: ${station.name}`}
+                      className={`station-impact-ring ${impact.kind} ${selected ? "selected" : ""}`}
+                      cx={station.mapX}
+                      cy={station.mapY}
+                      r={station.interchange ? 108 : 88}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        onSelectImpact({ kind: impact.kind, id: impact.cardId });
+                      }}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                          event.preventDefault();
+                          onSelectImpact({ kind: impact.kind, id: impact.cardId });
+                        }
+                      }}
+                      onPointerDown={(event) => event.stopPropagation()}
+                      pointerEvents="stroke"
+                      role="button"
+                      tabIndex={0}
+                    />
+                  );
+                })}
+              </g>
               <g aria-label="Station hit targets">
                 {stations.map((station) => {
                   const selected = selectedStationId === station.id;
@@ -468,54 +531,87 @@ export function InteractiveTtcMap({
   );
 }
 
+type RenderedNetworkSegment = NetworkSegment & {
+  patternOriginX?: number;
+  patternOriginY?: number;
+  patternAngle?: number;
+};
+
+type OverlayVisualState =
+  | "suspension"
+  | "delay-static"
+  | "reduced-speed-zone"
+  | "planned-preview";
+
+function legacyImpactsForSegment(segment: NetworkSegment): MapImpact[] {
+  if (segment.overlay === "clear") {
+    return [];
+  }
+
+  const sourceAlertIds = segment.sourceAlertIds ?? [];
+  const reducedSpeedZoneId = segment.reducedSpeedZoneIds?.[0];
+  const cardId = reducedSpeedZoneId ?? segment.alertId ?? sourceAlertIds[0] ?? segment.id;
+  const kind: MapImpactKind = segment.overlay === "suspension"
+    ? "suspension"
+    : reducedSpeedZoneId
+      ? "reduced-speed-zone"
+      : "delay";
+
+  return [{
+    kind,
+    cardId,
+    travelDirection: segment.travelDirection ?? "bidirectional",
+    sourceAlertIds: sourceAlertIds.length ? sourceAlertIds : [cardId],
+  }];
+}
+
+function visualStateForImpactKind(kind: MapImpactKind): OverlayVisualState {
+  switch (kind) {
+    case "suspension":
+      return "suspension";
+    case "delay":
+      return "delay-static";
+    case "reduced-speed-zone":
+      return "reduced-speed-zone";
+  }
+}
+
 function OverlaySegment({
   segment,
-  selectedAlert,
-  selectedClosure,
-  onSelectAlert,
-  onSelectClosure,
-  findSelectableImpactBySegment,
+  impact,
+  plannedClosure,
+  selection,
+  selectedSegmentIds,
+  onSelectImpact,
   reducedMotion,
   flashSelection,
 }: {
-  segment: NetworkSegment;
-  selectedAlert: ActiveAlert | ReducedSpeedZone | undefined;
-  selectedClosure: PlannedClosure | undefined;
-  onSelectAlert: (alertId: string | null) => void;
-  onSelectClosure: (closureId: string | null) => void;
-  findSelectableImpactBySegment: (segment: NetworkSegment) => Pick<ActiveAlert, "id" | "title" | "affectedSegmentIds"> | Pick<ReducedSpeedZone, "id" | "title" | "affectedSegmentIds"> | undefined;
+  segment: RenderedNetworkSegment;
+  impact: MapImpact | null;
+  plannedClosure: PlannedClosure | undefined;
+  selection: ImpactSelection;
+  selectedSegmentIds: string[];
+  onSelectImpact: (selection: ImpactSelection) => void;
   reducedMotion: boolean;
-  flashSelection: { type: "alert" | "closure"; id: string } | null;
+  flashSelection: ImpactSelection;
 }) {
-  const alert = findSelectableImpactBySegment(segment);
-  const isClosurePreview = selectedClosure?.previewSegmentIds.includes(segment.id) ?? false;
-  const isSelectedAlert = Boolean(selectedAlert?.affectedSegmentIds.includes(segment.id));
-  const visualState = segment.overlay !== "clear" ? segment.overlay : isClosurePreview ? "planned-preview" : "clear";
-
-  const isFlashingAlert =
-    flashSelection?.type === "alert" &&
-    selectedAlert?.id === flashSelection.id &&
-    selectedAlert.affectedSegmentIds.includes(segment.id);
-
-  const isFlashingClosure =
-    flashSelection?.type === "closure" &&
-    selectedClosure?.id === flashSelection.id &&
-    selectedClosure.previewSegmentIds.includes(segment.id);
-
-  const isMapFlash = isFlashingAlert || isFlashingClosure;
-
-  if (visualState === "clear") {
-    return null;
-  }
-
   if (!segment.pathD) {
     return null;
   }
 
+  const visualState = impact ? visualStateForImpactKind(impact.kind) : "planned-preview";
+  const isSelectedImpact = impact
+    ? selection?.kind === impact.kind && selection.id === impact.cardId
+    : selection?.kind === "planned-closure" && selection.id === plannedClosure?.id;
+  const isSelectedSegment = selectedSegmentIds.includes(segment.id);
+  const isMapFlash = impact
+    ? flashSelection?.kind === impact.kind && flashSelection.id === impact.cardId
+    : flashSelection?.kind === "planned-closure" && flashSelection.id === plannedClosure?.id;
+
   const patternTransform = `translate(${segment.patternOriginX || 0}, ${(segment.patternOriginY || 0) - 48}) rotate(${segment.patternAngle || 0} 0 48)`;
   const patternId = `${segment.id}-${visualState}-chevron`;
 
-  const isChevron = visualState === "delay";
+  const isChevron = visualState === "reduced-speed-zone";
   const chevronBg = "#f59e0b";
   const chevronStroke = "#1e293b";
 
@@ -524,32 +620,32 @@ function OverlaySegment({
   const renderReverseLane = travelDirection !== "forward";
   const singleLaneOffset = travelDirection === "bidirectional" ? 0 : 20;
 
-  const handleSelect = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (alert) {
-      onSelectAlert(alert.id === selectedAlert?.id ? null : alert.id);
-      onSelectClosure(null);
+  const selectCurrentImpact = () => {
+    if (impact) {
+      onSelectImpact({ kind: impact.kind, id: impact.cardId });
       return;
     }
-
-    if (selectedClosure) {
-      onSelectClosure(selectedClosure.id === selectedClosure?.id ? null : selectedClosure.id);
-      onSelectAlert(null);
+    if (plannedClosure) {
+      onSelectImpact({ kind: "planned-closure", id: plannedClosure.id });
     }
+  };
+
+  const handleSelect = (event: React.MouseEvent<SVGPathElement>) => {
+    event.stopPropagation();
+    selectCurrentImpact();
   };
 
   const handleKeyDown = (event: React.KeyboardEvent<SVGPathElement>) => {
     if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
-      if (alert) {
-        onSelectAlert(alert.id === selectedAlert?.id ? null : alert.id);
-        onSelectClosure(null);
-      } else if (selectedClosure) {
-        onSelectClosure(selectedClosure.id === selectedClosure?.id ? null : selectedClosure.id);
-        onSelectAlert(null);
-      }
+      selectCurrentImpact();
     }
   };
+
+  const ariaLabel = impact
+    ? `${impact.kind}: ${segment.label}`
+    : `${plannedClosure?.title ?? "Planned closure"}: ${segment.label}`;
+  const selectedClass = isSelectedImpact || isSelectedSegment ? "selected" : "";
 
   return (
     <g>
@@ -583,39 +679,43 @@ function OverlaySegment({
         </defs>
       )}
 
-      {/* 1. Base Glow (Always pulses, never stops, mathematically perfect unison) */}
       <path
         className={`asset-alert-path-glow ${visualState}`}
         d={segment.pathD}
       />
 
-      {/* 2. Interactive Glow (Only appears on hover/selection, NO animation to avoid keyframe overrides) */}
-      {(visualState === "delay" || visualState === "suspension") && (
-        <path
-          className={`asset-alert-path-glow interactive-glow ${visualState} ${
-            isSelectedAlert ? "selected" : ""
-          }`}
-          d={segment.pathD}
-          style={{ pointerEvents: 'none' }}
-        />
+      <path
+        className={`asset-alert-path-glow interactive-glow ${visualState} ${selectedClass}`}
+        d={segment.pathD}
+        style={{ pointerEvents: "none" }}
+      />
+
+      {visualState === "delay-static" && (
+        <>
+          <path
+            className="asset-alert-path delay-static-base pointer-events-none"
+            d={segment.pathD}
+          />
+          <path
+            className="asset-alert-path delay-static-path pointer-events-none"
+            d={segment.pathD}
+          />
+        </>
       )}
 
-      {/* 3. Hit Target (Always invisible, handles clicks and triggers interactive glow via CSS :has) */}
       <path
-        aria-label={alert ? `${alert.title}: ${segment.label}` : `${selectedClosure?.title}: ${segment.label}`}
-        className={`asset-alert-path cursor-pointer pointer-events-auto ${visualState} ${
-          isSelectedAlert ? "selected" : ""
-        }`}
+        aria-label={ariaLabel}
+        className={`asset-alert-path cursor-pointer pointer-events-auto ${visualState} ${selectedClass}`}
         d={segment.pathD}
         onClick={handleSelect}
         onKeyDown={handleKeyDown}
-        onPointerDown={(e) => e.stopPropagation()} // Prevent map drag
+        onPointerDown={(event) => event.stopPropagation()}
+        pointerEvents="stroke"
         role="button"
         tabIndex={0}
       />
 
-      {/* 4. Chevron Stripes */}
-      {visualState === "delay" && (
+      {visualState === "reduced-speed-zone" && (
         <path
           className="asset-alert-path delay-candy pointer-events-none"
           d={segment.pathD}
@@ -629,8 +729,8 @@ function OverlaySegment({
           style={{ stroke: "url(#suspension-hash)" }}
         />
       )}
-      
-      {isMapFlash && (
+
+      {isMapFlash && flashSelection && (
         <path
           data-map-highlight-id={flashSelection.id}
           className="asset-alert-path map-selection-flash pointer-events-none"

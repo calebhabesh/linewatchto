@@ -41,6 +41,12 @@ describe("asset-backed map layering", () => {
     assert.match(interactiveMapSource, /reducedMotion \? null : \(/);
     assert.match(globalCss, /\.motion-paused \.asset-alert-path-glow/);
     assert.match(globalCss, /prefers-reduced-motion:\s*reduce/);
+    assert.match(interactiveMapSource, /segment\.impacts/);
+    assert.match(interactiveMapSource, /stationNodeImpacts/);
+    assert.match(interactiveMapSource, /pointerEvents="stroke"/);
+    assert.match(interactiveMapSource, /onSelectImpact\(\{ kind: impact\.kind, id: impact\.cardId \}\)/);
+    assert.match(interactiveMapSource, /feTurbulence/);
+    assert.match(globalCss, /\.delay-static-path/);
 
     assert.match(interactiveMapSource, /data-map-highlight-id/);
     assert.match(interactiveMapSource, /map-selection-flash/);
