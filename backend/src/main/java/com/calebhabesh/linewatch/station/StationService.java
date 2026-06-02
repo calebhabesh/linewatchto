@@ -1,8 +1,10 @@
 package com.calebhabesh.linewatch.station;
 
+import com.calebhabesh.linewatch.ingestion.IngestionFreshness;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -19,19 +21,25 @@ public class StationService {
     private final StationLineRepository stationLineRepository;
     private final StationAccessStatusRepository accessStatusRepository;
     private final StationImpactRepository impactRepository;
+    private final StationLiveReadRepository liveReadRepository;
+    private final IngestionFreshness ingestionFreshness;
 
     public StationService(
         StationRepository stationRepository,
         TransitLineRepository transitLineRepository,
         StationLineRepository stationLineRepository,
         StationAccessStatusRepository accessStatusRepository,
-        StationImpactRepository impactRepository
+        StationImpactRepository impactRepository,
+        StationLiveReadRepository liveReadRepository,
+        IngestionFreshness ingestionFreshness
     ) {
         this.stationRepository = stationRepository;
         this.transitLineRepository = transitLineRepository;
         this.stationLineRepository = stationLineRepository;
         this.accessStatusRepository = accessStatusRepository;
         this.impactRepository = impactRepository;
+        this.liveReadRepository = liveReadRepository;
+        this.ingestionFreshness = ingestionFreshness;
     }
 
     public StationResponses.StationListResponse stationSummaries() {
@@ -42,16 +50,24 @@ public class StationService {
                 StationLineEntity::getStationId,
                 Collectors.mapping(StationLineEntity::getLineId, Collectors.toList())
             ));
-        Map<String, String> accessByStation = accessStatusRepository.findAll()
-            .stream()
-            .collect(Collectors.toMap(StationAccessStatusEntity::getStationId, StationAccessStatusEntity::getStatus));
-        Map<String, Boolean> activeImpactByStation = impactRepository.findAll()
-            .stream()
-            .collect(Collectors.toMap(
-                StationImpactEntity::getStationId,
-                impact -> impact.getType().equals("active-alert"),
-                Boolean::logicalOr
-            ));
+        boolean dashboardFresh = ingestionFreshness.isDashboardFresh();
+        Map<String, String> accessByStation = dashboardFresh
+            ? statuses(liveReadRepository.findStationIdsWithActiveOutages(), "outage")
+            : accessStatusRepository.findAll()
+                .stream()
+                .collect(Collectors.toMap(
+                    StationAccessStatusEntity::getStationId,
+                    StationAccessStatusEntity::getStatus
+                ));
+        Map<String, Boolean> activeImpactByStation = dashboardFresh
+            ? flags(liveReadRepository.findStationIdsWithActiveAlerts())
+            : impactRepository.findAll()
+                .stream()
+                .collect(Collectors.toMap(
+                    StationImpactEntity::getStationId,
+                    impact -> impact.getType().equals("active-alert"),
+                    Boolean::logicalOr
+                ));
 
         List<StationResponses.StationSummaryResponse> summaries = stations.stream()
             .map(station -> new StationResponses.StationSummaryResponse(
@@ -84,19 +100,27 @@ public class StationService {
             .sorted(Comparator.comparing(StationResponses.StationLineResponse::id))
             .toList();
 
-        StationResponses.StationAccessResponse access = accessStatusRepository.findById(id)
-            .map(this::toAccessResponse)
-            .orElse(new StationResponses.StationAccessResponse(
-                "normal",
-                "No station access advisories in demo data.",
-                "Fixture seed",
-                List.of()
-            ));
+        boolean dashboardFresh = ingestionFreshness.isDashboardFresh();
+        StationResponses.StationAccessResponse access = dashboardFresh
+            ? toLiveAccessResponse(liveReadRepository.findActiveOutagesByStationId(id))
+            : accessStatusRepository.findById(id)
+                .map(this::toAccessResponse)
+                .orElse(new StationResponses.StationAccessResponse(
+                    "normal",
+                    "No station access advisories in demo data.",
+                    "Fixture seed",
+                    List.of()
+                ));
 
-        List<StationResponses.StationImpactResponse> impacts = impactRepository.findByStationIdOrderBySortOrderAsc(id)
-            .stream()
-            .map(this::toImpactResponse)
-            .toList();
+        List<StationResponses.StationImpactResponse> impacts = dashboardFresh
+            ? liveReadRepository.findActiveAlertsByStationId(id)
+                .stream()
+                .map(this::toImpactResponse)
+                .toList()
+            : impactRepository.findByStationIdOrderBySortOrderAsc(id)
+                .stream()
+                .map(this::toImpactResponse)
+                .toList();
 
         List<StationResponses.StationArrivalResponse> arrivals = lines.stream()
             .flatMap(line -> List.of(
@@ -149,6 +173,32 @@ public class StationService {
         );
     }
 
+    private StationResponses.StationAccessResponse toLiveAccessResponse(
+        List<StationLiveReadRepository.FacilityOutage> outages
+    ) {
+        List<StationResponses.StationFacilityOutageResponse> responses = outages.stream()
+            .map(outage -> new StationResponses.StationFacilityOutageResponse(
+                outage.id(),
+                outage.assetType(),
+                outage.title(),
+                outage.description(),
+                outage.updatedAt(),
+                "TTC Live Alerts"
+            ))
+            .toList();
+        String summary = responses.isEmpty()
+            ? "No active TTC accessibility outages are linked to this station."
+            : responses.size() + " active TTC accessibility "
+                + (responses.size() == 1 ? "outage is" : "outages are")
+                + " linked to this station.";
+        return new StationResponses.StationAccessResponse(
+            responses.isEmpty() ? "normal" : "outage",
+            summary,
+            "TTC Live Alerts",
+            responses
+        );
+    }
+
     private StationResponses.StationImpactResponse toImpactResponse(StationImpactEntity impact) {
         return new StationResponses.StationImpactResponse(
             impact.getId(),
@@ -160,5 +210,28 @@ public class StationService {
             null,
             impact.getSource()
         );
+    }
+
+    private StationResponses.StationImpactResponse toImpactResponse(
+        StationLiveReadRepository.LinkedAlert alert
+    ) {
+        return new StationResponses.StationImpactResponse(
+            alert.id(),
+            alert.type(),
+            alert.severity(),
+            alert.title(),
+            alert.description(),
+            null,
+            alert.updatedAt(),
+            "TTC Live Alerts"
+        );
+    }
+
+    private Map<String, String> statuses(Set<String> stationIds, String status) {
+        return stationIds.stream().collect(Collectors.toMap(Function.identity(), ignored -> status));
+    }
+
+    private Map<String, Boolean> flags(Set<String> stationIds) {
+        return stationIds.stream().collect(Collectors.toMap(Function.identity(), ignored -> true));
     }
 }

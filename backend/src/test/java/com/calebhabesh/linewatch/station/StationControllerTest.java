@@ -51,7 +51,7 @@ class StationControllerTest {
 
     private static final class StubStationService extends StationService {
         StubStationService() {
-            super(null, null, null, null, null);
+            super(null, null, null, null, null, null, null);
         }
 
         @Override
