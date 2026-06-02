@@ -1,14 +1,19 @@
 package com.calebhabesh.linewatch.alert;
 
 import com.calebhabesh.linewatch.station.TransitLineEntity;
+import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
+import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OrderColumn;
 import jakarta.persistence.Table;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "alerts")
@@ -46,6 +51,24 @@ public class AlertEntity {
     @Column(name = "target_removal")
     private String targetRemoval;
 
+    @Column(name = "impact_kind", nullable = false, length = 32)
+    private String impactKind;
+
+    @Column(name = "rsz_length", length = 80)
+    private String rszLength;
+
+    @Column(name = "station_distance", length = 80)
+    private String stationDistance;
+
+    @Column(name = "track_percent", length = 80)
+    private String trackPercent;
+
+    @Column(name = "reduced_speed", length = 80)
+    private String reducedSpeed;
+
+    @Column(name = "average_speed", length = 80)
+    private String averageSpeed;
+
     @Column(name = "start_station_id")
     private String startStationId;
 
@@ -79,6 +102,12 @@ public class AlertEntity {
     @Column(name = "updated_at")
     private OffsetDateTime updatedAt;
 
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "alert_stations", joinColumns = @JoinColumn(name = "alert_id"))
+    @OrderColumn(name = "sort_order")
+    @Column(name = "station_id")
+    private List<String> stationIds = new ArrayList<>();
+
     protected AlertEntity() {}
 
     public String getId() { return id; }
@@ -96,6 +125,12 @@ public class AlertEntity {
     public String getCause() { return cause; }
     public String getCauseDescription() { return causeDescription; }
     public String getTargetRemoval() { return targetRemoval; }
+    public String getImpactKind() { return impactKind; }
+    public String getRszLength() { return rszLength; }
+    public String getStationDistance() { return stationDistance; }
+    public String getTrackPercent() { return trackPercent; }
+    public String getReducedSpeed() { return reducedSpeed; }
+    public String getAverageSpeed() { return averageSpeed; }
     public String getStartStationId() { return startStationId; }
     public String getEndStationId() { return endStationId; }
     public OffsetDateTime getActivePeriodStart() { return activePeriodStart; }
@@ -107,4 +142,5 @@ public class AlertEntity {
     public String getRawPayload() { return rawPayload; }
     public String getNormalizedFingerprint() { return normalizedFingerprint; }
     public OffsetDateTime getUpdatedAt() { return updatedAt; }
+    public List<String> getStationIds() { return stationIds; }
 }

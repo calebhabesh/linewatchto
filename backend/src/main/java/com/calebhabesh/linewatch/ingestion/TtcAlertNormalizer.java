@@ -102,6 +102,12 @@ public class TtcAlertNormalizer {
             record.cause(),
             record.causeDescription(),
             record.targetRemoval(),
+            classification.impactKind(),
+            record.rszLength(),
+            record.distance(),
+            record.trackPercent(),
+            record.reducedSpeed(),
+            record.averageSpeed(),
             startStation.stationId().orElse(null),
             endStation.stationId().orElse(null),
             activePeriodStart,
@@ -163,21 +169,26 @@ public class TtcAlertNormalizer {
     }
 
     private Classification classifyRoute(TtcAlertRecord record) {
-        if (
-            equalsIgnoreCase(record.effect(), "SIGNIFICANT_DELAYS")
-                || equalsIgnoreCase(record.effectDesc(), "Reduced Speed Zone")
-        ) {
-            return new Classification("active-alert", "delay");
+        if (equalsIgnoreCase(record.effectDesc(), "Reduced Speed Zone")) {
+            return new Classification("active-alert", "delay", AlertImpactKind.REDUCED_SPEED_ZONE);
+        }
+
+        if (equalsIgnoreCase(record.effect(), "SIGNIFICANT_DELAYS")) {
+            return new Classification("active-alert", "delay", AlertImpactKind.DELAY);
         }
 
         boolean hasChildPeriods = record.childAlerts() != null && !record.childAlerts().isEmpty();
         boolean hasClosureText = hasClosureText(record);
         if (equalsIgnoreCase(record.alertType(), "Planned") && (hasChildPeriods || hasClosureText)) {
-            return new Classification("planned-closure", "planned");
+            return new Classification(
+                "planned-closure",
+                "planned",
+                AlertImpactKind.PLANNED_CLOSURE
+            );
         }
 
         if (equalsIgnoreCase(record.effect(), "NO_SERVICE") || hasClosureText) {
-            return new Classification("active-alert", "suspension");
+            return new Classification("active-alert", "suspension", AlertImpactKind.SUSPENSION);
         }
 
         return null;
@@ -317,7 +328,7 @@ public class TtcAlertNormalizer {
         return isBlank(record.headerText()) ? fallback : record.headerText();
     }
 
-    private record Classification(String type, String severity) {}
+    private record Classification(String type, String severity, AlertImpactKind impactKind) {}
 
     private record ResolvedStation(Optional<String> stationId, boolean unresolved) {}
 

@@ -237,7 +237,9 @@ class TtcAlertNormalizerTest {
             "Eglinton", "Imaginary Station", List.of("Eglinton", "Imaginary Station"),
             record.title(), record.description(), record.headerText(), record.effect(),
             record.effectDesc(), record.direction(), record.cause(), record.causeDescription(),
-            record.targetRemoval(), record.shuttleType(), record.shuttleStart(), record.shuttleEnd(),
+            record.targetRemoval(), record.rszLength(), record.distance(), record.trackPercent(),
+            record.reducedSpeed(), record.averageSpeed(), record.shuttleType(), record.shuttleStart(),
+            record.shuttleEnd(),
             record.elevatorCode(), record.escalatorCode(), record.childAlerts()
         ));
 
@@ -335,6 +337,11 @@ class TtcAlertNormalizerTest {
             null,
             null,
             null,
+            null,
+            null,
+            null,
+            null,
+            null,
             List.of()
         ));
     }
@@ -366,6 +373,11 @@ class TtcAlertNormalizerTest {
             null,
             null,
             null,
+            null,
+            null,
+            null,
+            null,
+            null,
             "TEST",
             null,
             List.of()
@@ -388,7 +400,9 @@ class TtcAlertNormalizerTest {
             record.stopStart(), record.stopEnd(), stopIDList,
             title, record.description(), record.headerText(), record.effect(),
             record.effectDesc(), record.direction(), record.cause(), record.causeDescription(),
-            record.targetRemoval(), record.shuttleType(), record.shuttleStart(), record.shuttleEnd(),
+            record.targetRemoval(), record.rszLength(), record.distance(), record.trackPercent(),
+            record.reducedSpeed(), record.averageSpeed(), record.shuttleType(), record.shuttleStart(),
+            record.shuttleEnd(),
             record.elevatorCode(), record.escalatorCode(), record.childAlerts()
         );
     }
@@ -400,7 +414,9 @@ class TtcAlertNormalizerTest {
             record.stopStart(), record.stopEnd(), record.stopIDList(),
             record.title(), record.description(), record.headerText(), record.effect(),
             record.effectDesc(), record.direction(), record.cause(), record.causeDescription(),
-            record.targetRemoval(), record.shuttleType(), record.shuttleStart(), record.shuttleEnd(),
+            record.targetRemoval(), record.rszLength(), record.distance(), record.trackPercent(),
+            record.reducedSpeed(), record.averageSpeed(), record.shuttleType(), record.shuttleStart(),
+            record.shuttleEnd(),
             record.elevatorCode(), record.escalatorCode(), record.childAlerts()
         );
     }
@@ -415,7 +431,9 @@ class TtcAlertNormalizerTest {
             record.stopStart(), record.stopEnd(), record.stopIDList(),
             record.title(), record.description(), record.headerText(), record.effect(),
             record.effectDesc(), record.direction(), record.cause(), record.causeDescription(),
-            record.targetRemoval(), record.shuttleType(), record.shuttleStart(), record.shuttleEnd(),
+            record.targetRemoval(), record.rszLength(), record.distance(), record.trackPercent(),
+            record.reducedSpeed(), record.averageSpeed(), record.shuttleType(), record.shuttleStart(),
+            record.shuttleEnd(),
             record.elevatorCode(), record.escalatorCode(), childAlerts
         );
     }
@@ -427,7 +445,9 @@ class TtcAlertNormalizerTest {
             record.stopStart(), record.stopEnd(), record.stopIDList(),
             title, description, record.headerText(), record.effect(),
             record.effectDesc(), record.direction(), record.cause(), record.causeDescription(),
-            record.targetRemoval(), record.shuttleType(), record.shuttleStart(), record.shuttleEnd(),
+            record.targetRemoval(), record.rszLength(), record.distance(), record.trackPercent(),
+            record.reducedSpeed(), record.averageSpeed(), record.shuttleType(), record.shuttleStart(),
+            record.shuttleEnd(),
             record.elevatorCode(), record.escalatorCode(), record.childAlerts()
         );
     }
