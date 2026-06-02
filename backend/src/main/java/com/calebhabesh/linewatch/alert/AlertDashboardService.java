@@ -8,11 +8,13 @@ import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Function;
 import org.springframework.stereotype.Service;
 
@@ -105,36 +107,79 @@ public class AlertDashboardService {
             .toList();
     }
 
-    public Map<String, SegmentImpact> activeSegmentImpacts() {
+    public Map<String, List<SegmentImpact>> activeSegmentImpacts() {
         if (!ingestionFreshness.isDashboardFresh()) {
             return Map.of();
         }
         List<LineSegmentEntity> segments = lineSegmentRepository.findAllByOrderBySortOrderAsc();
-        Map<String, SegmentImpact> impacts = new LinkedHashMap<>();
+        Map<String, List<SegmentImpact>> impacts = new LinkedHashMap<>();
+        List<AlertEntity> activeRouteAlerts =
+            alertRepository.findByActiveTrueAndType(ACTIVE_ALERT_TYPE);
 
-        for (ActiveAlertDto alert : activeAlerts()) {
-            for (String segmentId : alert.affectedSegmentIds()) {
-                impacts.put(segmentId, new SegmentImpact(
-                    segmentId,
-                    "suspension",
+        for (AlertEntity alert : activeRouteAlerts) {
+            if (!hasImpactKind(alert, DELAY_KIND) && !hasImpactKind(alert, SUSPENSION_KIND)) {
+                continue;
+            }
+            for (String segmentId : affectedSegmentIds(alert, segments)) {
+                appendImpact(impacts, segmentId, new SegmentImpact(
+                    alert.getImpactKind(),
+                    alert.getId(),
                     "bidirectional",
-                    List.of(alert.id()),
-                    List.of(),
-                    alert.id()
+                    List.of(alert.getId())
                 ));
             }
         }
 
         ReducedSpeedZoneProjector.Projection projection = reducedSpeedProjection(segments);
         for (ReducedSpeedZoneProjector.SegmentImpact impact : projection.segmentImpacts().values()) {
-            impacts.putIfAbsent(impact.segmentId(), new SegmentImpact(
-                impact.segmentId(),
-                "delay",
+            String cardId = impact.reducedSpeedZoneIds().isEmpty()
+                ? null
+                : impact.reducedSpeedZoneIds().getFirst();
+            appendImpact(impacts, impact.segmentId(), new SegmentImpact(
+                REDUCED_SPEED_ZONE_KIND,
+                cardId,
                 impact.travelDirection().wireValue(),
-                impact.sourceAlertIds(),
-                impact.reducedSpeedZoneIds(),
-                null
+                impact.sourceAlertIds()
             ));
+        }
+        impacts.replaceAll((segmentId, segmentImpacts) -> segmentImpacts.stream()
+            .sorted(Comparator.comparingInt(this::impactPriority))
+            .toList());
+
+        return impacts;
+    }
+
+    public List<StationNodeImpact> activeStationNodeImpacts() {
+        if (!ingestionFreshness.isDashboardFresh()) {
+            return List.of();
+        }
+        List<LineSegmentEntity> segments = lineSegmentRepository.findAllByOrderBySortOrderAsc();
+        List<StationNodeImpact> impacts = new ArrayList<>();
+
+        for (AlertEntity alert : alertRepository.findByActiveTrueAndType(ACTIVE_ALERT_TYPE)) {
+            if (!hasImpactKind(alert, DELAY_KIND) && !hasImpactKind(alert, SUSPENSION_KIND)) {
+                continue;
+            }
+            List<String> affectedSegmentIds = affectedSegmentIds(alert, segments);
+            resolvedNodeStationId(alert.getStationIds(), affectedSegmentIds)
+                .ifPresent(stationId -> impacts.add(new StationNodeImpact(
+                    stationId,
+                    alert.getImpactKind(),
+                    alert.getId(),
+                    alert.getTitle()
+                )));
+        }
+
+        for (ReducedSpeedZoneProjector.ReducedSpeedZone zone : reducedSpeedProjection(segments).zones()) {
+            resolvedNodeStationId(rszStationIds(zone), zone.affectedSegmentIds())
+                .ifPresent(stationId -> impacts.add(new StationNodeImpact(
+                    stationId,
+                    REDUCED_SPEED_ZONE_KIND,
+                    zone.id(),
+                    zone.displayDirection().equals("Direction not specified")
+                        ? "Reduced Speed Zone"
+                        : "Reduced Speed Zone " + zone.displayDirection()
+                )));
         }
 
         return impacts;
@@ -143,6 +188,14 @@ public class AlertDashboardService {
     private boolean isCurrentOrFuture(AlertEntity alert) {
         OffsetDateTime endsAt = alert.getActivePeriodEnd();
         return endsAt == null || !endsAt.isBefore(OffsetDateTime.now(clock));
+    }
+
+    private void appendImpact(
+        Map<String, List<SegmentImpact>> impacts,
+        String segmentId,
+        SegmentImpact impact
+    ) {
+        impacts.computeIfAbsent(segmentId, ignored -> new ArrayList<>()).add(impact);
     }
 
     private ActiveAlertDto toActiveAlert(AlertEntity alert, List<LineSegmentEntity> segments) {
@@ -278,6 +331,28 @@ public class AlertDashboardService {
         return bounds.length == 2 ? bounds[1] + " to " + bounds[0] : location;
     }
 
+    private List<String> rszStationIds(ReducedSpeedZoneProjector.ReducedSpeedZone zone) {
+        return zone.sourceAlerts().stream()
+            .flatMap(alert -> alert.getStationIds().stream())
+            .toList();
+    }
+
+    private Optional<String> resolvedNodeStationId(
+        List<String> stationIds,
+        List<String> affectedSegmentIds
+    ) {
+        if (!affectedSegmentIds.isEmpty()) {
+            return Optional.empty();
+        }
+        List<String> distinctStations = stationIds.stream()
+            .filter(stationId -> !isBlank(stationId))
+            .distinct()
+            .toList();
+        return distinctStations.size() == 1
+            ? Optional.of(distinctStations.getFirst())
+            : Optional.empty();
+    }
+
     private String stationLabel(String stationId) {
         String[] words = stationId.replace('_', '-').split("-");
         StringBuilder label = new StringBuilder();
@@ -384,8 +459,13 @@ public class AlertDashboardService {
             + WINDOW_FORMATTER.format(endsAt.atZoneSameInstant(TORONTO_ZONE));
     }
 
-    private int severityPriority(String overlay) {
-        return "suspension".equalsIgnoreCase(overlay) ? 2 : 1;
+    private int impactPriority(SegmentImpact impact) {
+        return switch (impact.kind()) {
+            case REDUCED_SPEED_ZONE_KIND -> 1;
+            case DELAY_KIND -> 2;
+            case SUSPENSION_KIND -> 3;
+            default -> 0;
+        };
     }
 
     private boolean hasImpactKind(AlertEntity alert, String kind) {
@@ -475,11 +555,16 @@ public class AlertDashboardService {
     ) {}
 
     public record SegmentImpact(
-        String segmentId,
-        String overlay,
+        String kind,
+        String cardId,
         String travelDirection,
-        List<String> sourceAlertIds,
-        List<String> reducedSpeedZoneIds,
-        String alertId
+        List<String> sourceAlertIds
+    ) {}
+
+    public record StationNodeImpact(
+        String stationId,
+        String kind,
+        String cardId,
+        String title
     ) {}
 }

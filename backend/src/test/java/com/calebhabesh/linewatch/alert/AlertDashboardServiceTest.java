@@ -362,12 +362,82 @@ class AlertDashboardServiceTest {
 
         assertThat(service.activeSegmentImpacts())
             .hasEntrySatisfying("line-2-jane-ossington", impact -> {
-                assertThat(impact.overlay()).isEqualTo("delay");
-                assertThat(impact.travelDirection()).isEqualTo("forward");
-                assertThat(impact.sourceAlertIds()).containsExactly("ttc-route-300");
-                assertThat(impact.reducedSpeedZoneIds()).containsExactly("reduced-speed-zone-ttc-route-300");
-                assertThat(impact.alertId()).isNull();
+                assertThat(impact).singleElement().satisfies(segmentImpact -> {
+                    assertThat(segmentImpact.kind()).isEqualTo("reduced-speed-zone");
+                    assertThat(segmentImpact.cardId()).isEqualTo("reduced-speed-zone-ttc-route-300");
+                    assertThat(segmentImpact.travelDirection()).isEqualTo("forward");
+                    assertThat(segmentImpact.sourceAlertIds()).containsExactly("ttc-route-300");
+                });
             });
+    }
+
+    @Test
+    void activeSegmentImpactsLayerDelayBelowSuspensionOnSameSegment() {
+        when(ingestionFreshness.isDashboardFresh()).thenReturn(true);
+        AlertEntity delay = alert(
+            "delay-line-2-christie-ossington",
+            "active-alert",
+            "delay",
+            "Delay",
+            "Delays between Christie and Ossington.",
+            "christie",
+            "ossington",
+            OffsetDateTime.parse("2026-06-01T11:50:00Z"),
+            null
+        );
+        ReflectionTestUtils.setField(delay, "impactKind", "delay");
+        AlertEntity suspension = alert(
+            "suspension-line-2-christie-ossington",
+            "active-alert",
+            "suspension",
+            "No service",
+            "No service between Christie and Ossington.",
+            "christie",
+            "ossington",
+            OffsetDateTime.parse("2026-06-01T11:55:00Z"),
+            null
+        );
+        ReflectionTestUtils.setField(suspension, "impactKind", "suspension");
+        when(alertRepository.findByActiveTrueAndType("active-alert"))
+            .thenReturn(List.of(suspension, delay));
+        when(lineSegmentRepository.findAllByOrderBySortOrderAsc()).thenReturn(List.of(
+            segment("line-2-christie-ossington", "line-2", "christie", "ossington", 10, "eastbound")
+        ));
+
+        assertThat(service.activeSegmentImpacts().get("line-2-christie-ossington"))
+            .extracting(AlertDashboardService.SegmentImpact::kind)
+            .containsExactly("delay", "suspension");
+    }
+
+    @Test
+    void activeStationNodeImpactsExposeSingleStationDelayWithoutSegments() {
+        when(ingestionFreshness.isDashboardFresh()).thenReturn(true);
+        AlertEntity delay = withLine(alert(
+            "delay-line-4-sheppard-yonge",
+            "active-alert",
+            "delay",
+            "Delay at Sheppard-Yonge",
+            "Delays at Sheppard-Yonge Station.",
+            "sheppard-yonge",
+            "sheppard-yonge",
+            OffsetDateTime.parse("2026-06-01T22:39:00-04:00"),
+            null
+        ), "line-4", "4");
+        ReflectionTestUtils.setField(delay, "impactKind", "delay");
+        delay.getStationIds().add("sheppard-yonge");
+        when(alertRepository.findByActiveTrueAndType("active-alert"))
+            .thenReturn(List.of(delay));
+        when(lineSegmentRepository.findAllByOrderBySortOrderAsc()).thenReturn(List.of(
+            segment("line-4-sheppard-yonge-don-mills", "line-4", "sheppard-yonge", "don-mills", 10, "eastbound")
+        ));
+
+        assertThat(service.activeStationNodeImpacts())
+            .containsExactly(new AlertDashboardService.StationNodeImpact(
+                "sheppard-yonge",
+                "delay",
+                "delay-line-4-sheppard-yonge",
+                "Delay at Sheppard-Yonge"
+            ));
     }
 
     @Test
@@ -378,6 +448,7 @@ class AlertDashboardServiceTest {
         assertThat(service.reducedSpeedZones()).isEmpty();
         assertThat(service.plannedClosures()).isEmpty();
         assertThat(service.activeSegmentImpacts()).isEqualTo(Map.of());
+        assertThat(service.activeStationNodeImpacts()).isEmpty();
     }
 
     private AlertEntity alert(
