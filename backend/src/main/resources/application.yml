@@ -25,5 +25,6 @@ linewatch:
       enabled: ${LINEWATCH_INGESTION_ALERTS_ENABLED:false}
       url: ${LINEWATCH_INGESTION_ALERTS_URL:https://alerts.ttc.ca/api/alerts/live-alerts}
       fixed-delay: ${LINEWATCH_INGESTION_ALERTS_FIXED_DELAY:PT2M}
+      max-dashboard-age: ${LINEWATCH_INGESTION_ALERTS_MAX_DASHBOARD_AGE:PT10M}
       connect-timeout: ${LINEWATCH_INGESTION_ALERTS_CONNECT_TIMEOUT:PT3S}
       read-timeout: ${LINEWATCH_INGESTION_ALERTS_READ_TIMEOUT:PT8S}

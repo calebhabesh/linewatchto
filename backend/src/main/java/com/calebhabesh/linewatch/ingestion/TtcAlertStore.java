@@ -281,7 +281,7 @@ public class TtcAlertStore {
             .addValue("sourceAlertType", alert.sourceAlertType())
             .addValue("effect", alert.effect())
             .addValue("effectDescription", alert.effectDescription())
-            .addValue("direction", alert.direction())
+            .addValue("direction", alert.direction().wireValue())
             .addValue("cause", alert.cause())
             .addValue("causeDescription", alert.causeDescription())
             .addValue("startStationId", alert.startStationId())

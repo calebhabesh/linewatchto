@@ -14,7 +14,7 @@ public record NormalizedRouteAlert(
     String sourceAlertType,
     String effect,
     String effectDescription,
-    String direction,
+    AlertDirection direction,
     String cause,
     String causeDescription,
     String startStationId,

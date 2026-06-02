@@ -6,11 +6,14 @@ import {
   commuteImpacts,
   findAlertBySegmentId,
   generatedAt,
+  ingestionHealth,
   lineStatuses,
   mapAsset,
   networkSegments,
   plannedClosures,
+  reducedSpeedZones,
   reliabilitySummaries,
+  stations,
 } from "../src/app/linewatch-data.ts";
 
 describe("LineWatch dashboard fixture data", () => {
@@ -18,13 +21,14 @@ describe("LineWatch dashboard fixture data", () => {
     assert.equal(generatedAt.live, false);
   });
 
-  it("marks disrupted network segments as clickable alert overlays", () => {
+  it("does not invent current disruption overlays in fixture mode", () => {
     const disruptedSegments = networkSegments.filter((segment) => segment.alertId);
 
-    assert.ok(disruptedSegments.length >= 3);
-    assert.ok(disruptedSegments.every((segment) => segment.pathD.startsWith("M ")));
-    assert.ok(disruptedSegments.every((segment) => segment.overlay !== "clear"));
-    assert.ok(disruptedSegments.every((segment) => findAlertBySegmentId(segment.id)));
+    assert.equal(disruptedSegments.length, 0);
+    assert.ok(networkSegments.every((segment) => segment.pathD.startsWith("M ")));
+    assert.ok(networkSegments.every((segment) => segment.overlay === "clear"));
+    assert.equal(findAlertBySegmentId("line-2-jane-ossington"), undefined);
+    assert.equal(findAlertBySegmentId("line-1-finch-eglinton"), undefined);
   });
 
   it("uses the edited TTC SVG asset as the map base", () => {
@@ -34,16 +38,33 @@ describe("LineWatch dashboard fixture data", () => {
     assert.ok(mapAsset.legendIcons["line-6"].endsWith("line-6-legend.svg"));
   });
 
-  it("separates live alerts from planned closures with source and shuttle metadata", () => {
-    assert.ok(activeAlerts.some((alert) => alert.severity === "suspension"));
-    assert.ok(activeAlerts.some((alert) => alert.severity === "delay"));
-    assert.ok(plannedClosures.some((closure) => closure.shuttle === true));
-    assert.ok(plannedClosures.every((closure) => closure.previewSegmentIds.length > 0));
+  it("uses station ids that match the station detail adapter", () => {
+    const stationIds = stations.map((station) => station.id);
+
+    assert.ok(stationIds.includes("eglinton"));
+    assert.ok(!stationIds.includes("eglington"));
+  });
+
+  it("does not expose stale current or planned service impacts in fixture mode", () => {
+    assert.equal(activeAlerts.length, 0);
+    assert.ok(activeAlerts.every((alert) => alert.severity === "suspension"));
+    assert.equal(reducedSpeedZones.length, 0);
+    assert.equal(plannedClosures.length, 0);
+    assert.ok(lineStatuses.every((line) => ["normal", "ready"].includes(line.status)));
+    assert.ok(commuteImpacts.every((commute) => commute.impact === "clear"));
+    assert.equal(
+      ingestionHealth.find((item) => item.label === "Service alerts")?.value,
+      "0 active in fixture mode",
+    );
+    assert.equal(
+      ingestionHealth.find((item) => item.label === "Planned closures")?.value,
+      "0 upcoming in fixture mode",
+    );
   });
 
   it("includes commute impact and reliability metrics for portfolio storytelling", () => {
-    assert.ok(commuteImpacts.some((commute) => commute.impact !== "clear"));
-    assert.ok(lineStatuses.some((line) => line.status !== "normal"));
+    assert.ok(commuteImpacts.every((commute) => commute.route.includes("->")));
+    assert.ok(lineStatuses.every((line) => line.statusLabel.length > 0));
     assert.ok(reliabilitySummaries.every((summary) => summary.score >= 0 && summary.score <= 100));
   });
 });

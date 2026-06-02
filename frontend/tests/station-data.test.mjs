@@ -57,4 +57,9 @@ describe("station data adapter", () => {
     assert.ok(ids.includes("eglinton"));
     assert.ok(!ids.includes("eglington"));
   });
+
+  it("does not invent active station impacts in fallback mode", () => {
+    assert.ok(fallbackStationSummaries.stations.every((station) => !station.hasActiveImpact));
+    assert.ok(Object.values(fallbackStationDetails).every((station) => station.impacts.length === 0));
+  });
 });

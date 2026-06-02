@@ -3,6 +3,7 @@ import {
   activeAlertsResponse,
   mapResponse,
   plannedClosuresResponse,
+  reducedSpeedZonesResponse,
   stationSummariesResponse,
   statusResponse,
 } from "./api-stub-data.mjs";
@@ -71,11 +72,16 @@ const server = createServer(async (request, response) => {
   }
 
   if (request.method === "GET" && url.pathname === "/api/alerts") {
-    sendJson(
-      response,
-      200,
-      url.searchParams.get("type") === "planned" ? plannedClosuresResponse : activeAlertsResponse
-    );
+    const type = url.searchParams.get("type");
+    if (type === "planned") {
+      sendJson(response, 200, plannedClosuresResponse);
+      return;
+    }
+    if (type === "slowdown") {
+      sendJson(response, 200, reducedSpeedZonesResponse);
+      return;
+    }
+    sendJson(response, 200, activeAlertsResponse);
     return;
   }
 

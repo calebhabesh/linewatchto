@@ -28,10 +28,14 @@ final class TestAlertRecords {
     }
 
     static NormalizedRouteAlert normalizedRoute(String sourceId) {
+        return normalizedRoute(sourceId, AlertDirection.UNKNOWN);
+    }
+
+    static NormalizedRouteAlert normalizedRoute(String sourceId, AlertDirection direction) {
         return new NormalizedRouteAlert(
             "ttc-route-" + sourceId, sourceId, "line-1", "active-alert", "delay",
             "Route alert", "Route description", "Live", "SIGNIFICANT_DELAYS",
-            "Significant delays", null, null, null, "eglinton", "davisville",
+            "Significant delays", direction, null, null, "eglinton", "davisville",
             SOURCE_UPDATED_AT, null, SOURCE_UPDATED_AT, null, null, null,
             "{\"id\":\"" + sourceId + "\"}", List.of("eglinton", "davisville"),
             List.of(new NormalizedAlertPeriod("parent", SOURCE_UPDATED_AT, null, 0)),

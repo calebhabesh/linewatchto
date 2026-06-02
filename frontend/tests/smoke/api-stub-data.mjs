@@ -1,6 +1,8 @@
 export const mapResponse = {
   stations: [
     { id: "stub-station", name: "Stub Station", x: 4547, y: 1808, interchange: false },
+    { id: "stub-eglinton", name: "Eglinton", x: 4547, y: 1808, interchange: false },
+    { id: "stub-davisville", name: "Davisville", x: 4547, y: 2005, interchange: false },
   ],
   segments: [
     {
@@ -10,6 +12,23 @@ export const mapResponse = {
       pathD: "M 4547 1808 L 4546 1086",
       overlay: "suspension",
       alertId: "stub-alert-line-1",
+    },
+    {
+      id: "stub-line-1-eglinton-davisville",
+      lineId: "line-1",
+      label: "Eglinton to Davisville",
+      stationAId: "stub-eglinton",
+      stationBId: "stub-davisville",
+      stationAAnchorId: "station-eglinton",
+      stationBAnchorId: "station-davisville",
+      guidePathId: null,
+      guidePathReversed: false,
+      pathD: "M 4547 1808 L 4547 2005",
+      overlay: "delay",
+      travelDirection: "forward",
+      sourceAlertIds: ["stub-zone-south-source"],
+      reducedSpeedZoneIds: ["reduced-speed-zone-stub-zone-south-source"],
+      alertId: null,
     },
   ],
 };
@@ -48,6 +67,30 @@ export const activeAlertsResponse = [
     updatedAgo: "Seeded demo",
     affectedSegmentIds: ["stub-line-1-segment"],
     shuttle: true,
+    source: "Playwright API stub",
+  },
+];
+
+export const reducedSpeedZonesResponse = [
+  {
+    id: "reduced-speed-zone-stub-zone-south-source",
+    lineId: "line-1",
+    lineNumber: "1",
+    title: "Reduced Speed Zone",
+    location: "Eglinton to Davisville",
+    displayDirection: "Southbound",
+    description: "Southbound trains are moving slower than usual.",
+    updatedAgo: "Seeded demo",
+    affectedSegmentIds: ["stub-line-1-eglinton-davisville"],
+    sourceAlertIds: ["stub-zone-south-source"],
+    directionalDetails: [
+      {
+        sourceAlertId: "stub-zone-south-source",
+        displayDirection: "Southbound",
+        location: "Eglinton to Davisville",
+        description: "Southbound trains are moving slower than usual.",
+      },
+    ],
     source: "Playwright API stub",
   },
 ];

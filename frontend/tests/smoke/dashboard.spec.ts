@@ -23,6 +23,11 @@ test("renders the seeded dashboard API payload", async ({ page, request }) => {
   await expect(page.getByText("Ingestion Health (Poll: Stub API poll)", { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Stub Station station details" })).toBeVisible();
   await expect(page.getByText(/Backend offline \(Fixture mode\)/)).toHaveCount(0);
+
+  await page.getByRole("button", { name: /Reduced Speed Zones/ }).click();
+  await expect(page.getByRole("heading", { name: "Reduced Speed Zones" })).toBeVisible();
+  await expect(page.getByText("Southbound", { exact: true })).toBeVisible();
+  await expect(page.getByText("Eglinton to Davisville", { exact: true })).toBeVisible();
 });
 
 test("renders fixture fallback when the dashboard API is unavailable", async ({ page, request }) => {

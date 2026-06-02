@@ -1,75 +1,124 @@
 package com.calebhabesh.linewatch.status;
 
+import com.calebhabesh.linewatch.alert.AlertEntity;
+import com.calebhabesh.linewatch.alert.AlertRepository;
+import com.calebhabesh.linewatch.alert.AlertDashboardService;
+import com.calebhabesh.linewatch.ingestion.IngestionFreshness;
+import com.calebhabesh.linewatch.ingestion.IngestionRunSnapshot;
+import com.calebhabesh.linewatch.ingestion.IngestionRunStore;
 import com.calebhabesh.linewatch.station.TransitLineEntity;
 import com.calebhabesh.linewatch.station.TransitLineRepository;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.time.Clock;
+import java.time.Duration;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/status")
 public class StatusController {
+    private static final ZoneId TORONTO_ZONE = ZoneId.of("America/Toronto");
 
     private final TransitLineRepository transitLineRepository;
+    private final AlertRepository alertRepository;
+    private final IngestionRunStore ingestionRunStore;
+    private final IngestionFreshness ingestionFreshness;
+    private final Clock clock;
 
-    public StatusController(TransitLineRepository transitLineRepository) {
+    public StatusController(
+        TransitLineRepository transitLineRepository,
+        AlertRepository alertRepository,
+        IngestionRunStore ingestionRunStore,
+        IngestionFreshness ingestionFreshness,
+        Clock clock
+    ) {
         this.transitLineRepository = transitLineRepository;
+        this.alertRepository = alertRepository;
+        this.ingestionRunStore = ingestionRunStore;
+        this.ingestionFreshness = ingestionFreshness;
+        this.clock = clock;
     }
 
     @GetMapping
     public StatusResponse getStatus() {
+        Optional<IngestionRunSnapshot> latestRun = ingestionRunStore.findLatest();
+        boolean dashboardLive = ingestionFreshness.isFresh(latestRun);
+        List<AlertEntity> activeAlerts = dashboardLive
+            ? alertRepository.findByActiveTrueAndType(AlertDashboardService.ACTIVE_ALERT_TYPE)
+            : List.of();
+
         List<LineStatusDto> lines = transitLineRepository.findAllByOrderBySortOrderAsc().stream()
-                .map(this::toDto)
+                .map(entity -> toDto(entity, activeAlerts))
                 .collect(Collectors.toList());
 
+        OffsetDateTime now = OffsetDateTime.now(clock);
         return new StatusResponse(
-                new GeneratedAtDto("Seeded demo", "Fixture data", false, "Seeded backend demo"),
+                new GeneratedAtDto(
+                    now.atZoneSameInstant(TORONTO_ZONE).format(DateTimeFormatter.ofPattern("h:mm a")),
+                    now.atZoneSameInstant(TORONTO_ZONE).format(DateTimeFormatter.ofPattern("MMM d, yyyy")),
+                    dashboardLive,
+                    latestRun.map(this::lastPollLabel).orElse("TTC ingestion not run")
+                ),
                 lines
         );
     }
 
-    private LineStatusDto toDto(TransitLineEntity entity) {
-        // Mocked logic for route and statuses until ingestion is complete
-        String route;
+    private LineStatusDto toDto(TransitLineEntity entity, List<AlertEntity> allActiveAlerts) {
+        String route = getRouteForLine(entity.getId());
+
+        // Filter alerts for this specific line
+        List<AlertEntity> lineAlerts = allActiveAlerts.stream()
+            .filter(a -> a.getLine() != null && a.getLine().getId().equals(entity.getId()))
+            .toList();
+
         String status = "normal";
         String statusLabel = "Normal";
         String summary = "No active service impacts reported.";
-        String updatedAgo = "Updated 52 sec ago";
+        String updatedAgo = "Updated recently";
 
-        switch (entity.getId()) {
-            case "line-1" -> {
-                route = "Finch - Vaughan Metropolitan Centre";
+        if (!lineAlerts.isEmpty()) {
+            boolean hasSuspension = lineAlerts.stream()
+                .anyMatch(a -> "suspension".equalsIgnoreCase(a.getSeverity()));
+            boolean hasDelay = lineAlerts.stream()
+                .anyMatch(a -> "delay".equalsIgnoreCase(a.getSeverity()));
+
+            if (hasSuspension) {
                 status = "suspension";
                 statusLabel = "Suspended";
-                summary = "No subway service between Finch and Eglinton.";
-                updatedAgo = "Updated 4 min ago";
+            } else if (hasDelay) {
+                status = "delay";
+                statusLabel = "Delayed";
+            } else {
+                status = "delay";
+                statusLabel = "Degraded";
             }
-            case "line-2" -> {
-                route = "Kipling - Kennedy";
-                status = "suspension";
-                statusLabel = "Suspended";
-                summary = "No service between Jane and Ossington. Slower trains near Sherbourne.";
-                updatedAgo = "Updated 1 min ago";
+
+            AlertEntity mostRecent = lineAlerts.stream()
+                .max((a1, a2) -> {
+                    if (a1.getSourceUpdatedAt() == null) return -1;
+                    if (a2.getSourceUpdatedAt() == null) return 1;
+                    return a1.getSourceUpdatedAt().compareTo(a2.getSourceUpdatedAt());
+                })
+                .orElse(lineAlerts.getFirst());
+
+            summary = mostRecent.getTitle();
+            if (summary == null || summary.isBlank()) {
+                summary = "Active service alert affecting this line.";
             }
-            case "line-4" -> route = "Sheppard-Yonge - Don Mills";
-            case "line-5" -> {
-                route = "Mount Dennis - Kennedy";
-                status = "ready";
-                statusLabel = "Ready";
-                summary = "Layout is integrated for launch and planned service notices.";
-                updatedAgo = "Reference layout";
-            }
-            case "line-6" -> {
-                route = "Humber College - Finch West";
-                status = "ready";
-                statusLabel = "Ready";
-                summary = "Finch West LRT geometry is included for future service notices.";
-                updatedAgo = "Reference layout";
-            }
-            default -> route = "Unknown";
+
+            updatedAgo = updatedAgo(mostRecent.getSourceUpdatedAt());
+        } else if (entity.getId().equals("line-5") || entity.getId().equals("line-6")) {
+            status = "ready";
+            statusLabel = "Ready";
+            summary = entity.getId().equals("line-5") ? "Layout is integrated for launch and planned service notices." : "Finch West LRT geometry is included for future service notices.";
+            updatedAgo = "Reference layout";
         }
 
         return new LineStatusDto(
@@ -83,6 +132,49 @@ public class StatusController {
                 summary,
                 updatedAgo
         );
+    }
+
+    private String getRouteForLine(String lineId) {
+        return switch (lineId) {
+            case "line-1" -> "Finch - Vaughan Metropolitan Centre";
+            case "line-2" -> "Kipling - Kennedy";
+            case "line-4" -> "Sheppard-Yonge - Don Mills";
+            case "line-5" -> "Mount Dennis - Kennedy";
+            case "line-6" -> "Humber College - Finch West";
+            default -> "Unknown";
+        };
+    }
+
+    private String lastPollLabel(IngestionRunSnapshot run) {
+        if ("running".equalsIgnoreCase(run.status())) {
+            return "TTC poll running";
+        }
+        if ("failed".equalsIgnoreCase(run.status())) {
+            return "TTC poll failed";
+        }
+        OffsetDateTime completedAt = run.completedAt();
+        if (completedAt == null) {
+            return "TTC poll status unknown";
+        }
+        return "TTC poll succeeded " + durationLabel(completedAt) + " ago";
+    }
+
+    private String updatedAgo(OffsetDateTime updatedAt) {
+        if (updatedAt == null) {
+            return "Updated recently";
+        }
+        return "Updated " + durationLabel(updatedAt) + " ago";
+    }
+
+    private String durationLabel(OffsetDateTime timestamp) {
+        long minutes = Duration.between(timestamp, OffsetDateTime.now(clock)).toMinutes();
+        if (minutes <= 0) {
+            return "just now";
+        }
+        if (minutes == 1) {
+            return "1 min";
+        }
+        return minutes + " min";
     }
 
     public record StatusResponse(GeneratedAtDto generatedAt, List<LineStatusDto> lines) {}

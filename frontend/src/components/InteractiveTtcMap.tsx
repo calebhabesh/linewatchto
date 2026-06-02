@@ -1,10 +1,16 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useLayoutEffect, useRef } from "react";
+import {
+  readSvgGeometry,
+  resolveNetworkSegmentPath,
+  visualTravelDirection,
+  type MapPoint,
+} from "../app/map-geometry";
 import { usePanZoom } from "../hooks/usePanZoom";
 import { ZoomIn, ZoomOut, Locate, Sun, Moon } from "lucide-react";
 import { useDashboardData } from "../app/DataContext";
-import type { NetworkSegment, ActiveAlert, PlannedClosure } from "../app/linewatch-data";
+import type { NetworkSegment, ActiveAlert, PlannedClosure, ReducedSpeedZone } from "../app/linewatch-data";
 import type { StationSummary } from "../app/station-data";
 
 export function InteractiveTtcMap({
@@ -18,6 +24,7 @@ export function InteractiveTtcMap({
   isDark,
   onToggleTheme,
   layoutResetSignal,
+  reducedMotion,
 }: {
   selectedAlertId: string | null;
   selectedClosureId: string | null;
@@ -29,10 +36,22 @@ export function InteractiveTtcMap({
   isDark: boolean;
   onToggleTheme: () => void;
   layoutResetSignal?: number;
+  reducedMotion: boolean;
 }) {
-  const { networkSegments, activeAlerts, plannedClosures } = useDashboardData();
+  const { networkSegments, activeAlerts, reducedSpeedZones, plannedClosures, stations: mapStations } = useDashboardData();
   const [svgParts, setSvgParts] = useState<{ part1: string; part2: string } | null>(null);
   const [loadState, setLoadState] = useState<"loading" | "ready" | "error">("loading");
+
+  const mapSvgRef = useRef<SVGSVGElement>(null);
+  const [anchorPoints, setAnchorPoints] = useState(new Map<string, MapPoint>());
+  const [guidePaths, setGuidePaths] = useState(new Map<string, string>());
+
+  useLayoutEffect(() => {
+    if (loadState !== "ready" || !mapSvgRef.current) return;
+    const geometry = readSvgGeometry(mapSvgRef.current, networkSegments);
+    setAnchorPoints(geometry.anchorPoints);
+    setGuidePaths(geometry.guidePaths);
+  }, [loadState, networkSegments]);
 
   const {
     transform,
@@ -93,7 +112,7 @@ export function InteractiveTtcMap({
   // Center map automatically when SVG loads and container dimensions are resolved
   useEffect(() => {
     if (loadState !== "ready") return;
-    
+
     let attempts = 0;
     const checkAndCenter = () => {
       if (!containerRef.current) return;
@@ -105,7 +124,7 @@ export function InteractiveTtcMap({
         setTimeout(checkAndCenter, 100);
       }
     };
-    
+
     checkAndCenter();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loadState, recenter]);
@@ -118,15 +137,25 @@ export function InteractiveTtcMap({
   }, [layoutResetSignal, loadState, recenter]);
 
   const selectedAlert = useMemo(() => {
-    return activeAlerts.find((a) => a.id === selectedAlertId);
-  }, [activeAlerts, selectedAlertId]);
+    return [...activeAlerts, ...reducedSpeedZones].find((a) => a.id === selectedAlertId);
+  }, [activeAlerts, reducedSpeedZones, selectedAlertId]);
 
   const selectedClosure = useMemo(() => {
     return plannedClosures.find((c) => c.id === selectedClosureId);
   }, [plannedClosures, selectedClosureId]);
 
-  // Helpers
-  const findAlertBySegmentId = (segmentId: string) => activeAlerts.find(a => a.affectedSegmentIds.includes(segmentId));
+  type SelectableMapImpact =
+    | Pick<ActiveAlert, "id" | "title" | "affectedSegmentIds">
+    | Pick<ReducedSpeedZone, "id" | "title" | "affectedSegmentIds">;
+
+  const findSelectableImpactBySegment = (segment: NetworkSegment): SelectableMapImpact | undefined => {
+    if (segment.alertId) {
+      return activeAlerts.find((alert) => alert.id === segment.alertId);
+    }
+    return reducedSpeedZones.find((zone) =>
+      segment.reducedSpeedZoneIds?.includes(zone.id),
+    );
+  };
 
   // Determine what overlays to render based on selection and hover
   const overlaySegments = useMemo(() => {
@@ -135,6 +164,41 @@ export function InteractiveTtcMap({
       return segment.overlay !== "clear" || isClosurePreview;
     });
   }, [networkSegments, selectedClosure]);
+
+  const renderedOverlaySegments = useMemo(() => {
+    const stationById = new Map(mapStations.map((station) => [station.id, station]));
+
+    return overlaySegments
+      .map((segment) => {
+        const stationA = segment.stationAId ? stationById.get(segment.stationAId) : undefined;
+        const stationB = segment.stationBId ? stationById.get(segment.stationBId) : undefined;
+        const pointA = (segment.stationAAnchorId && anchorPoints.get(segment.stationAAnchorId)) ?? (stationA ? { x: stationA.x, y: stationA.y } : undefined);
+        const pointB = (segment.stationBAnchorId && anchorPoints.get(segment.stationBAnchorId)) ?? (stationB ? { x: stationB.x, y: stationB.y } : undefined);
+
+        let angle = 0;
+        let originX = 0;
+        let originY = 0;
+        if (pointA && pointB) {
+          angle = Math.atan2(pointB.y - pointA.y, pointB.x - pointA.x) * (180 / Math.PI);
+          originX = pointA.x;
+          originY = pointA.y;
+        } else {
+          // Fallback parsing if no points available
+          const nums = segment.pathD.match(/-?\d+(\.\d+)?/g)?.map(Number) || [];
+          originX = nums[0] || 0;
+          originY = nums[1] || 0;
+        }
+
+        return {
+          ...segment,
+          pathD: resolveNetworkSegmentPath(segment, mapStations, anchorPoints, guidePaths),
+          patternOriginX: originX,
+          patternOriginY: originY,
+          patternAngle: angle,
+        };
+      })
+      .filter((segment) => segment.pathD);
+  }, [overlaySegments, mapStations, anchorPoints, guidePaths]);
 
   return (
     <div className="relative w-full h-full flex flex-col overflow-hidden bg-transparent">
@@ -159,7 +223,7 @@ export function InteractiveTtcMap({
           <Locate size={24} className="group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors" />
           <span className="text-[10px] font-black uppercase tracking-widest group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">Center</span>
         </button>
-        
+
         <button
           onClick={zoomOut}
           className="group w-16 sm:w-[68px] h-[60px] flex flex-col items-center justify-center gap-1.5 text-slate-900 dark:text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.9)] dark:drop-shadow-[0_0_12px_rgba(0,0,0,0.9)] hover:bg-black/10 dark:hover:bg-white/10 focus-visible:bg-black/10 dark:focus-visible:bg-white/10 rounded-2xl active:scale-95 outline-none transition-all cursor-pointer"
@@ -169,7 +233,7 @@ export function InteractiveTtcMap({
           <ZoomOut size={24} className="group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors" />
           <span className="text-[10px] font-black uppercase tracking-widest group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">Out</span>
         </button>
-        
+
         <div className="flex flex-col items-center justify-center gap-1.5 mx-0.5 sm:mx-1 drop-shadow-[0_0_8px_rgba(255,255,255,0.9)] dark:drop-shadow-[0_0_12px_rgba(0,0,0,0.9)]">
           <input
             type="range"
@@ -186,7 +250,7 @@ export function InteractiveTtcMap({
             {Math.round(relativeScale * 100)}%
           </span>
         </div>
-        
+
         <button
           onClick={zoomIn}
           className="group w-16 sm:w-[68px] h-[60px] flex flex-col items-center justify-center gap-1.5 text-slate-900 dark:text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.9)] dark:drop-shadow-[0_0_12px_rgba(0,0,0,0.9)] hover:bg-black/10 dark:hover:bg-white/10 focus-visible:bg-black/10 dark:focus-visible:bg-white/10 rounded-2xl active:scale-95 outline-none transition-all cursor-pointer"
@@ -233,7 +297,7 @@ export function InteractiveTtcMap({
             <style>
               {`
                 #segment-guides-layer { display: none; }
-                
+
                 /* Dark theme overrides for black elements in the SVG */
                 .dark .ttc-svg-container svg .fil6,
                 .dark .ttc-svg-container svg .fil1,
@@ -272,6 +336,7 @@ export function InteractiveTtcMap({
             {/* The single synchronized SVG viewport with perfect z-indexing */}
             <div className="w-[4500px] h-[2181.8px] max-w-none ttc-svg-container pointer-events-none absolute top-0 left-0">
               <svg
+                ref={mapSvgRef}
                 className="w-full h-full pointer-events-none"
                 viewBox="0 0 8250 4000"
                 preserveAspectRatio="xMidYMid meet"
@@ -287,7 +352,7 @@ export function InteractiveTtcMap({
                   </pattern>
                 </defs>
                 <g aria-label="Disruption overlays">
-                  {overlaySegments.map((segment) => (
+                  {renderedOverlaySegments.map((segment) => (
                     <OverlaySegment
                       key={segment.id}
                       segment={segment}
@@ -295,7 +360,8 @@ export function InteractiveTtcMap({
                       selectedClosure={selectedClosure}
                       onSelectAlert={onSelectAlertId}
                       onSelectClosure={onSelectClosureId}
-                      findAlertBySegmentId={findAlertBySegmentId}
+                      findSelectableImpactBySegment={findSelectableImpactBySegment}
+                      reducedMotion={reducedMotion}
                     />
                   ))}
                 </g>
@@ -362,16 +428,18 @@ function OverlaySegment({
   selectedClosure,
   onSelectAlert,
   onSelectClosure,
-  findAlertBySegmentId,
+  findSelectableImpactBySegment,
+  reducedMotion,
 }: {
   segment: NetworkSegment;
-  selectedAlert?: ActiveAlert;
+  selectedAlert?: ActiveAlert | ReducedSpeedZone;
   selectedClosure?: PlannedClosure;
   onSelectAlert: (alertId: string | null) => void;
   onSelectClosure: (closureId: string | null) => void;
-  findAlertBySegmentId: (id: string) => ActiveAlert | undefined;
+  findSelectableImpactBySegment: (segment: NetworkSegment) => Pick<ActiveAlert, "id" | "title" | "affectedSegmentIds"> | Pick<ReducedSpeedZone, "id" | "title" | "affectedSegmentIds"> | undefined;
+  reducedMotion: boolean;
 }) {
-  const alert = segment.alertId ? findAlertBySegmentId(segment.id) : undefined;
+  const alert = findSelectableImpactBySegment(segment);
   const isClosurePreview = selectedClosure?.previewSegmentIds.includes(segment.id) ?? false;
   const isSelectedAlert = Boolean(selectedAlert?.affectedSegmentIds.includes(segment.id));
   const visualState = segment.overlay !== "clear" ? segment.overlay : isClosurePreview ? "planned-preview" : "clear";
@@ -380,31 +448,21 @@ function OverlaySegment({
     return null;
   }
 
-  const nums = segment.pathD.match(/-?\d+(\.\d+)?/g)?.map(Number) || [];
-  const firstX = nums[0] || 0;
-  const firstY = nums[1] || 0;
-
-  let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-  for (let i = 0; i < nums.length - 1; i += 2) {
-    minX = Math.min(minX, nums[i]);
-    maxX = Math.max(maxX, nums[i]);
-    minY = Math.min(minY, nums[i + 1]);
-    maxY = Math.max(maxY, nums[i + 1]);
+  if (!segment.pathD) {
+    return null;
   }
-  const isHoriz = (maxX - minX) >= (maxY - minY);
 
-  const strokeWidth = 96;
-  const halfStroke = strokeWidth / 2;
-
-  // Transform to align pattern to the stroke's top-left
-  const translateX = isHoriz ? 0 : firstX - halfStroke;
-  const translateY = isHoriz ? firstY - halfStroke : 0;
-  const patternTransform = `translate(${translateX}, ${translateY}) ${isHoriz ? "" : "rotate(90 48 48)"}`;
+  const patternTransform = `translate(${segment.patternOriginX || 0}, ${(segment.patternOriginY || 0) - 48}) rotate(${segment.patternAngle || 0} 0 48)`;
   const patternId = `${segment.id}-${visualState}-chevron`;
 
   const isChevron = visualState === "delay";
   const chevronBg = "#f59e0b";
   const chevronStroke = "#1e293b";
+
+  const travelDirection = visualTravelDirection(segment);
+  const renderForwardLane = travelDirection !== "reverse";
+  const renderReverseLane = travelDirection !== "forward";
+  const singleLaneOffset = travelDirection === "bidirectional" ? 0 : 20;
 
   const handleSelect = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -439,12 +497,28 @@ function OverlaySegment({
         <defs>
           <pattern id={patternId} width="60" height="96" patternUnits="userSpaceOnUse" patternTransform={patternTransform}>
             <rect width="60" height="96" fill={chevronBg} />
-            <path d="M 0,12 L 24,12 L 48,28 L 24,44 L 0,44 L 24,28 Z M -60,12 L -36,12 L -12,28 L -36,44 L -60,44 L -36,28 Z" fill={chevronStroke}>
-              <animateTransform attributeName="transform" type="translate" from="0 0" to="60 0" dur="4s" repeatCount="indefinite" />
-            </path>
-            <path d="M 60,52 L 36,52 L 12,68 L 36,84 L 60,84 L 36,68 Z M 120,52 L 96,52 L 72,68 L 96,84 L 120,84 L 96,68 Z" fill={chevronStroke}>
-              <animateTransform attributeName="transform" type="translate" from="0 0" to="-60 0" dur="4s" repeatCount="indefinite" />
-            </path>
+            {renderForwardLane && (
+              <path
+                d="M 0,12 L 24,12 L 48,28 L 24,44 L 0,44 L 24,28 Z M -60,12 L -36,12 L -12,28 L -36,44 L -60,44 L -36,28 Z"
+                fill={chevronStroke}
+                transform={`translate(0 ${singleLaneOffset})`}
+              >
+                {reducedMotion ? null : (
+                  <animateTransform attributeName="transform" additive="sum" type="translate" from="0 0" to="60 0" dur="4s" repeatCount="indefinite" />
+                )}
+              </path>
+            )}
+            {renderReverseLane && (
+              <path
+                d="M 60,52 L 36,52 L 12,68 L 36,84 L 60,84 L 36,68 Z M 120,52 L 96,52 L 72,68 L 96,84 L 120,84 L 96,68 Z"
+                fill={chevronStroke}
+                transform={`translate(0 ${travelDirection === "bidirectional" ? 0 : -20})`}
+              >
+                {reducedMotion ? null : (
+                  <animateTransform attributeName="transform" additive="sum" type="translate" from="0 0" to="-60 0" dur="4s" repeatCount="indefinite" />
+                )}
+              </path>
+            )}
           </pattern>
         </defs>
       )}

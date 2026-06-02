@@ -3,6 +3,30 @@ export type AlertSeverity = "delay" | "suspension" | "planned";
 export type SegmentOverlay = "clear" | "delay" | "suspension";
 export type CommuteImpact = "clear" | "minor" | "major" | "suspended" | "planned";
 
+export type TravelDirection = "forward" | "reverse" | "bidirectional";
+
+export type DirectionalDetail = {
+  sourceAlertId: string;
+  displayDirection: string;
+  location: string;
+  description: string;
+};
+
+export type ReducedSpeedZone = {
+  id: string;
+  lineId: string;
+  lineNumber: string;
+  title: string;
+  location: string;
+  displayDirection: string;
+  description: string;
+  updatedAgo: string;
+  affectedSegmentIds: string[];
+  sourceAlertIds: string[];
+  directionalDetails: DirectionalDetail[];
+  source: string;
+};
+
 export type LineStatus = {
   id: string;
   number: string;
@@ -19,9 +43,21 @@ export type NetworkSegment = {
   id: string;
   lineId: string;
   label: string;
+  stationAId?: string;
+  stationBId?: string;
+  stationAAnchorId?: string;
+  stationBAnchorId?: string;
+  guidePathId?: string;
+  guidePathReversed?: boolean;
   pathD: string;
   overlay: SegmentOverlay;
+  travelDirection?: TravelDirection;
+  sourceAlertIds?: string[];
+  reducedSpeedZoneIds?: string[];
   alertId?: string;
+  patternOriginX?: number;
+  patternOriginY?: number;
+  patternAngle?: number;
 };
 
 export type Station = {
@@ -85,10 +121,10 @@ export type IngestionHealthItem = {
 };
 
 export const generatedAt = {
-  time: "9:24 PM",
-  date: "Mon, Feb 16",
+  time: "Fixture mode",
+  date: "Local demo",
   live: false,
-  lastPoll: "52 sec ago",
+  lastPoll: "Backend offline (Fixture mode)",
 };
 
 export const mapAsset: {
@@ -114,10 +150,10 @@ export const lineStatuses: LineStatus[] = [
     name: "Yonge-University",
     route: "Finch - Vaughan Metropolitan Centre",
     color: "#f4c430",
-    status: "suspension",
-    statusLabel: "Suspended",
-    summary: "No subway service between Finch and Eglinton.",
-    updatedAgo: "Updated 4 min ago",
+    status: "normal",
+    statusLabel: "Normal",
+    summary: "No active service impacts reported in fixture mode.",
+    updatedAgo: "Fixture mode",
   },
   {
     id: "line-2",
@@ -125,10 +161,10 @@ export const lineStatuses: LineStatus[] = [
     name: "Bloor-Danforth",
     route: "Kipling - Kennedy",
     color: "#14a44d",
-    status: "suspension",
-    statusLabel: "Suspended",
-    summary: "No service between Jane and Ossington. Slower trains near Sherbourne.",
-    updatedAgo: "Updated 1 min ago",
+    status: "normal",
+    statusLabel: "Normal",
+    summary: "No active service impacts reported in fixture mode.",
+    updatedAgo: "Fixture mode",
   },
   {
     id: "line-4",
@@ -138,8 +174,8 @@ export const lineStatuses: LineStatus[] = [
     color: "#b84ed8",
     status: "normal",
     statusLabel: "Normal",
-    summary: "No active service impacts reported.",
-    updatedAgo: "Updated 52 sec ago",
+    summary: "No active service impacts reported in fixture mode.",
+    updatedAgo: "Fixture mode",
   },
   {
     id: "line-5",
@@ -171,8 +207,7 @@ export const networkSegments: NetworkSegment[] = [
     lineId: "line-1",
     label: "Finch to Eglinton",
     pathD: "M 4547 1808 L 4548 1516 L 4547 1246 L 4546 1086 L 4547 926 L 4546 760",
-    overlay: "suspension",
-    alertId: "alert-line-1-north",
+    overlay: "clear",
   },
   {
     id: "line-2-kipling-jane",
@@ -186,16 +221,14 @@ export const networkSegments: NetworkSegment[] = [
     lineId: "line-2",
     label: "Jane to Ossington",
     pathD: "M 1792 2603 L 3062 2603",
-    overlay: "suspension",
-    alertId: "alert-line-2-jane-ossington",
+    overlay: "clear",
   },
   {
     id: "line-2-sherbourne-castle-frank",
     lineId: "line-2",
     label: "Sherbourne to Castle Frank",
     pathD: "M 4862 2603 L 5115 2603",
-    overlay: "delay",
-    alertId: "alert-line-2-east",
+    overlay: "clear",
   },
   {
     id: "line-4-sheppard-yonge-don-mills",
@@ -226,7 +259,7 @@ export const stations: Station[] = [
   { id: "st-george", name: "St George", x: 41, y: 54, interchange: true },
   { id: "union", name: "Union", x: 48, y: 75, interchange: true },
   { id: "bloor-yonge", name: "Bloor-Yonge", x: 58, y: 54, interchange: true },
-  { id: "eglington", name: "Eglinton", x: 58, y: 35, interchange: true },
+  { id: "eglinton", name: "Eglinton", x: 58, y: 35, interchange: true },
   { id: "york-mills", name: "York Mills", x: 58, y: 24 },
   { id: "finch", name: "Finch", x: 58, y: 12 },
   { id: "kipling", name: "Kipling", x: 16, y: 54 },
@@ -239,98 +272,28 @@ export const stations: Station[] = [
   { id: "science-centre", name: "Science Centre", x: 76, y: 35 },
 ];
 
-export const activeAlerts: ActiveAlert[] = [
-  {
-    id: "alert-line-2-jane-ossington",
-    lineId: "line-2",
-    lineNumber: "2",
-    title: "Planned track work",
-    severity: "suspension",
-    location: "Jane to Ossington",
-    description:
-      "No subway service between Jane and Ossington due to planned track work. Shuttle buses are operating.",
-    updatedAgo: "Updated 10 min ago",
-    affectedSegmentIds: ["line-2-jane-ossington"],
-    shuttle: true,
-    source: "TTC service alert",
-  },
-  {
-    id: "alert-line-1-north",
-    lineId: "line-1",
-    lineNumber: "1",
-    title: "Signal problem",
-    severity: "suspension",
-    location: "Finch to Eglinton",
-    description:
-      "No subway service between Finch and Eglinton while crews respond to a signal problem. Shuttle buses are operating.",
-    updatedAgo: "Updated 4 min ago",
-    affectedSegmentIds: ["line-1-finch-eglinton"],
-    shuttle: true,
-    source: "TTC service alert",
-  },
-  {
-    id: "alert-line-2-east",
-    lineId: "line-2",
-    lineNumber: "2",
-    title: "Track issues",
-    severity: "delay",
-    location: "Sherbourne to Castle Frank",
-    description:
-      "Eastbound trains are moving slower than usual between Sherbourne and Castle Frank due to track issues.",
-    updatedAgo: "Updated 8 min ago",
-    affectedSegmentIds: ["line-2-sherbourne-castle-frank"],
-    shuttle: false,
-    source: "TTC service alert",
-  },
-];
+export const activeAlerts: ActiveAlert[] = [];
 
-export const plannedClosures: PlannedClosure[] = [
-  {
-    id: "planned-line-1-weekend",
-    lineId: "line-1",
-    lineNumber: "1",
-    title: "Signal upgrades",
-    window: "Sat 11:00 PM - Sun 8:00 AM",
-    location: "Finch to Eglinton",
-    description:
-      "Weekend signal upgrade work will close the north Yonge segment. Shuttle buses will operate through the affected corridor.",
-    previewSegmentIds: ["line-1-finch-eglinton"],
-    shuttle: true,
-    source: "Planned TTC closure",
-  },
-  {
-    id: "planned-line-2-track",
-    lineId: "line-2",
-    lineNumber: "2",
-    title: "Planned track work",
-    window: "Fri 9:00 PM - Mon 5:00 AM",
-    location: "Kipling to Jane",
-    description:
-      "Late-week track work will replace eastbound service with shuttle buses on the west end of Line 2.",
-    previewSegmentIds: ["line-2-kipling-jane"],
-    shuttle: true,
-    source: "Planned TTC closure",
-  },
-];
+export const reducedSpeedZones: ReducedSpeedZone[] = [];
+
+export const plannedClosures: PlannedClosure[] = [];
 
 export const commuteImpacts: CommuteSummary[] = [
   {
     id: "commute-finch-union",
     name: "Morning commute",
     route: "Finch -> Union",
-    impact: "suspended",
-    statusLabel: "Suspended segment",
-    detail: "Line 1 service is unavailable between Finch and Eglinton.",
-    affectedBy: "Signal problem",
+    impact: "clear",
+    statusLabel: "Clear",
+    detail: "No active route disruptions are loaded in fixture mode.",
   },
   {
     id: "commute-kipling-kennedy",
     name: "Crosstown backup",
     route: "Kipling -> Kennedy",
-    impact: "major",
-    statusLabel: "Major delay",
-    detail: "Line 2 remains open, but eastbound travel is slower east of Bloor-Yonge.",
-    affectedBy: "Track issues",
+    impact: "clear",
+    statusLabel: "Clear",
+    detail: "No active route disruptions are loaded in fixture mode.",
   },
   {
     id: "commute-sheppard",
@@ -352,8 +315,8 @@ export const reliabilitySummaries: ReliabilitySummary[] = [
 
 export const ingestionHealth: IngestionHealthItem[] = [
   { label: "GTFS snapshot", value: "4 lines / 16 display stops", state: "ok" },
-  { label: "Service alerts", value: "2 active / 52 sec old", state: "ok" },
-  { label: "Planned closures", value: "2 upcoming windows", state: "ok" },
+  { label: "Service alerts", value: "0 active in fixture mode", state: "ok" },
+  { label: "Planned closures", value: "0 upcoming in fixture mode", state: "ok" },
   { label: "Snapshot history", value: "1,284 alert samples", state: "ok" },
 ];
 

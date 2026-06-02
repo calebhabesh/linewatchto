@@ -4,35 +4,53 @@ import {
   stations as fallbackStations,
   lineStatuses as fallbackStatuses,
   activeAlerts as fallbackAlerts,
+  reducedSpeedZones as fallbackReducedSpeedZones,
   plannedClosures as fallbackClosures,
   generatedAt as fallbackGeneratedAt,
   ingestionHealth,
   commuteImpacts,
   reliabilitySummaries,
-  mapAsset
+  mapAsset,
+  type ReducedSpeedZone,
+  type ActiveAlert,
+  type LineStatus,
+  type NetworkSegment,
+  type PlannedClosure,
+  type Station
 } from "./linewatch-data";
 
 const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:8080";
 
-async function fetchSafe(path: string) {
+type MapApiResponse = {
+  stations: Station[];
+  segments: NetworkSegment[];
+};
+
+type StatusApiResponse = {
+  generatedAt: typeof fallbackGeneratedAt;
+  lines: LineStatus[];
+};
+
+async function fetchSafe<T>(path: string): Promise<T | null> {
   try {
     const res = await fetch(`${BACKEND_URL}${path}`, { cache: "no-store", signal: AbortSignal.timeout(2000) });
     if (!res.ok) return null;
-    return await res.json();
+    return await res.json() as T;
   } catch {
     return null;
   }
 }
 
 export default async function Home() {
-  const [mapData, statusData, activeAlerts, plannedClosures] = await Promise.all([
-    fetchSafe("/api/map"),
-    fetchSafe("/api/status"),
-    fetchSafe("/api/alerts"),
-    fetchSafe("/api/alerts?type=planned")
+  const [mapData, statusData, activeAlerts, reducedSpeedZones, plannedClosures] = await Promise.all([
+    fetchSafe<MapApiResponse>("/api/map"),
+    fetchSafe<StatusApiResponse>("/api/status"),
+    fetchSafe<ActiveAlert[]>("/api/alerts"),
+    fetchSafe<ReducedSpeedZone[]>("/api/alerts?type=slowdown"),
+    fetchSafe<PlannedClosure[]>("/api/alerts?type=planned")
   ]);
 
-  const useFallback = !mapData || !statusData || !activeAlerts || !plannedClosures;
+  const useFallback = !mapData || !statusData || !activeAlerts || !reducedSpeedZones || !plannedClosures;
 
   const initialData = {
     networkSegments: useFallback ? fallbackSegments : mapData.segments,
@@ -40,6 +58,7 @@ export default async function Home() {
     lineStatuses: useFallback ? fallbackStatuses : statusData.lines,
     generatedAt: useFallback ? fallbackGeneratedAt : statusData.generatedAt,
     activeAlerts: useFallback ? fallbackAlerts : activeAlerts,
+    reducedSpeedZones: useFallback ? fallbackReducedSpeedZones : reducedSpeedZones,
     plannedClosures: useFallback ? fallbackClosures : plannedClosures,
     commuteImpacts,
     reliabilitySummaries,

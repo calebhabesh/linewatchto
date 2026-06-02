@@ -30,9 +30,41 @@ public class LineSegmentEntity {
     @Column(name = "sort_order")
     private int sortOrder;
 
+    @Column(name = "forward_direction")
+    private String forwardDirection;
+
+    @Column(name = "guide_path_id")
+    private String guidePathId;
+
+    @Column(name = "guide_path_reversed")
+    private boolean guidePathReversed;
+
+    @Column(name = "station_a_anchor_id")
+    private String stationAAnchorId;
+
+    @Column(name = "station_b_anchor_id")
+    private String stationBAnchorId;
+
     protected LineSegmentEntity() {}
 
     public LineSegmentEntity(String id, String lineId, String stationAId, String stationBId, LineString geom, String svgPath, int sortOrder) {
+        this(id, lineId, stationAId, stationBId, geom, svgPath, sortOrder, null, null, false, null, null);
+    }
+
+    public LineSegmentEntity(
+        String id,
+        String lineId,
+        String stationAId,
+        String stationBId,
+        LineString geom,
+        String svgPath,
+        int sortOrder,
+        String forwardDirection,
+        String guidePathId,
+        boolean guidePathReversed,
+        String stationAAnchorId,
+        String stationBAnchorId
+    ) {
         this.id = id;
         this.lineId = lineId;
         this.stationAId = stationAId;
@@ -40,6 +72,11 @@ public class LineSegmentEntity {
         this.geom = geom;
         this.svgPath = svgPath;
         this.sortOrder = sortOrder;
+        this.forwardDirection = forwardDirection;
+        this.guidePathId = guidePathId;
+        this.guidePathReversed = guidePathReversed;
+        this.stationAAnchorId = stationAAnchorId;
+        this.stationBAnchorId = stationBAnchorId;
     }
 
     public String getId() { return id; }
@@ -49,4 +86,13 @@ public class LineSegmentEntity {
     public LineString getGeom() { return geom; }
     public String getSvgPath() { return svgPath; }
     public int getSortOrder() { return sortOrder; }
+    public String getForwardDirection() { return forwardDirection; }
+    public String getGuidePathId() { return guidePathId; }
+    public boolean isGuidePathReversed() { return guidePathReversed; }
+    public String getStationAAnchorId() {
+        return stationAAnchorId == null ? "station-" + stationAId : stationAAnchorId;
+    }
+    public String getStationBAnchorId() {
+        return stationBAnchorId == null ? "station-" + stationBId : stationBAnchorId;
+    }
 }

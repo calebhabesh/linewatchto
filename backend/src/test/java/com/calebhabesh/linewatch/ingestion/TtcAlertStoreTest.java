@@ -2,7 +2,10 @@ package com.calebhabesh.linewatch.ingestion;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.time.OffsetDateTime;
 import org.junit.jupiter.api.Test;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.test.util.ReflectionTestUtils;
 
 class TtcAlertStoreTest {
 
@@ -42,5 +45,17 @@ class TtcAlertStoreTest {
 
         assertThat(TtcAlertStore.sourceKey("routes", fetched))
             .isEqualTo("routes:missing-" + AlertFingerprint.sha256(rawPayload));
+    }
+
+    @Test
+    void storesNormalizedDirectionWireValue() {
+        MapSqlParameterSource params = ReflectionTestUtils.invokeMethod(
+            new TtcAlertStore(null),
+            "routeAlertParams",
+            TestAlertRecords.normalizedRoute("route-source", AlertDirection.SOUTHBOUND),
+            OffsetDateTime.parse("2026-06-01T12:00:00Z")
+        );
+
+        assertThat(params.getValue("direction")).isEqualTo("southbound");
     }
 }

@@ -533,6 +533,20 @@ button {
   stroke-width: 180;
 }
 
+.motion-paused .asset-alert-path-glow,
+.motion-paused .asset-alert-path.delay-candy,
+.motion-paused .asset-alert-path.suspension-candy {
+  animation: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .asset-alert-path-glow,
+  .asset-alert-path.delay-candy,
+  .asset-alert-path.suspension-candy {
+    animation: none !important;
+  }
+}
+
 g:has(.asset-alert-path:hover) .asset-alert-path-glow,
 g:has(.asset-alert-path:focus-visible) .asset-alert-path-glow,
 .asset-alert-path-glow.selected {

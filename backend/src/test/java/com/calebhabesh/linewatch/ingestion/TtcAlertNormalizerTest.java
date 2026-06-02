@@ -23,7 +23,7 @@ class TtcAlertNormalizerTest {
     void setUp() throws Exception {
         when(stationRepository.existsById(anyString())).thenReturn(true);
         StationAliasResolver resolver = new StationAliasResolver(stationRepository);
-        normalizer = new TtcAlertNormalizer(resolver);
+        normalizer = new TtcAlertNormalizer(resolver, new AlertDirectionParser());
         String body = new String(
             getClass().getResourceAsStream("/fixtures/ttc-synthetic-alerts.json").readAllBytes(),
             StandardCharsets.UTF_8
@@ -65,6 +65,7 @@ class TtcAlertNormalizerTest {
 
         assertThat(alert.type()).isEqualTo("active-alert");
         assertThat(alert.severity()).isEqualTo("delay");
+        assertThat(alert.direction()).isEqualTo(AlertDirection.SOUTHBOUND);
         assertThat(alert.activePeriodEnd()).isNull();
         assertThat(alert.periods())
             .containsExactly(new NormalizedAlertPeriod(

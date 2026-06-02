@@ -28,5 +28,18 @@ describe("asset-backed map layering", () => {
     assert.match(interactiveMapSource, /className="asset-alert-path suspension-candy pointer-events-none"/);
     assert.match(interactiveMapSource, /style=\{\{\s*stroke:\s*"url\(#suspension-hash\)"\s*\}\}/);
     assert.match(globalCss, /@keyframes station-selected-pulse/);
+
+    const mapGeometrySource = readFileSync(new URL("../src/app/map-geometry.ts", import.meta.url), "utf8");
+
+    assert.match(interactiveMapSource, /readSvgGeometry/);
+    assert.match(interactiveMapSource, /resolveNetworkSegmentPath/);
+    assert.match(mapGeometrySource, /segment\.travelDirection \?\? "bidirectional"/);
+    assert.match(mapGeometrySource, /segment\.guidePathReversed/);
+    assert.match(mapGeometrySource, /getAttribute\("inkscape:label"\) === "segment-guides-layer"/);
+    assert.match(interactiveMapSource, /travelDirection !== "reverse"/);
+    assert.match(interactiveMapSource, /travelDirection !== "forward"/);
+    assert.match(interactiveMapSource, /reducedMotion \? null : \(/);
+    assert.match(globalCss, /\.motion-paused \.asset-alert-path-glow/);
+    assert.match(globalCss, /prefers-reduced-motion:\s*reduce/);
   });
 });

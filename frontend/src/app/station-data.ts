@@ -125,7 +125,7 @@ export const fallbackStationSummaries: StationListResponse = {
         lineIds: [
             "line-1"
         ],
-        hasActiveImpact: true,
+        hasActiveImpact: false,
         accessStatus: "normal"
     },
     {
@@ -163,7 +163,7 @@ export const fallbackStationSummaries: StationListResponse = {
             "line-1",
             "line-5"
         ],
-        hasActiveImpact: true,
+        hasActiveImpact: false,
         accessStatus: "normal"
     },
     {
@@ -236,7 +236,7 @@ export const fallbackStationSummaries: StationListResponse = {
         lineIds: [
             "line-2"
         ],
-        hasActiveImpact: true,
+        hasActiveImpact: false,
         accessStatus: "normal"
     },
     {
@@ -1417,17 +1417,7 @@ export const fallbackStationDetails: Record<string, StationDetail> = {
       summary: "No station access advisories in fallback demo data.",
       updatedAgo: "Fallback fixture",
     },
-    impacts: [
-      {
-        id: "impact-union-weekend",
-        type: "planned-closure",
-        severity: "planned",
-        title: "Weekend signal upgrades",
-        summary: "Planned work affects Line 1 north of Eglinton. Union remains open.",
-        updatedAgo: "Fallback fixture",
-        source: "Planned TTC closure fixture",
-      },
-    ],
+    impacts: [],
     arrivals: [
       { lineId: "line-1", direction: "Northbound", minutes: 2, label: "Demo arrival" },
       { lineId: "line-1", direction: "Southbound", minutes: 5, label: "Demo arrival" },
@@ -1473,17 +1463,7 @@ export const fallbackStationDetails: Record<string, StationDetail> = {
       summary: "No station access advisories in fallback demo data.",
       updatedAgo: "Fallback fixture",
     },
-    impacts: [
-      {
-        id: "impact-eglinton-suspension",
-        type: "active-alert",
-        severity: "suspension",
-        title: "Signal problem",
-        summary: "Line 1 service is suspended north of Eglinton in fallback demo data.",
-        updatedAgo: "Updated 4 min ago",
-        source: "TTC service alert fixture",
-      },
-    ],
+    impacts: [],
     arrivals: [
       { lineId: "line-1", direction: "Southbound", minutes: 6, label: "Demo arrival" },
       { lineId: "line-5", direction: "Eastbound", minutes: 8, label: "Demo arrival" },
@@ -1505,17 +1485,7 @@ export const fallbackStationDetails: Record<string, StationDetail> = {
       summary: "No station access advisories in fallback demo data.",
       updatedAgo: "Fallback fixture",
     },
-    impacts: [
-      {
-        id: "impact-sherbourne-delay",
-        type: "active-alert",
-        severity: "delay",
-        title: "Track issues",
-        summary: "Eastbound trains are moving slower than usual in fallback demo data.",
-        updatedAgo: "Updated 8 min ago",
-        source: "TTC service alert fixture",
-      },
-    ],
+    impacts: [],
     arrivals: [
       { lineId: "line-2", direction: "Eastbound", minutes: 4, label: "Demo arrival" },
       { lineId: "line-2", direction: "Westbound", minutes: 7, label: "Demo arrival" },

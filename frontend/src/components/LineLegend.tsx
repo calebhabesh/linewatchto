@@ -14,20 +14,23 @@ const LINES = [
 
 export function LineLegend({ 
   onAlertClick, 
-  onClosureClick 
+  onClosureClick,
+  onReducedSpeedZoneClick,
 }: { 
   onAlertClick?: (id: string) => void;
   onClosureClick?: (id: string) => void;
+  onReducedSpeedZoneClick?: (id: string) => void;
 }) {
-  const { activeAlerts, plannedClosures } = useDashboardData();
+  const { activeAlerts, reducedSpeedZones, plannedClosures } = useDashboardData();
   return (
     <div className="flex flex-col gap-4 select-none pointer-events-none">
       {LINES.map(line => {
         const alert = activeAlerts.find(a => a.lineId === line.id);
+        const rsz = reducedSpeedZones.find(a => a.lineId === line.id);
         const closure = plannedClosures.find(c => c.lineId === line.id);
         return (
           <div key={line.id} className="flex items-center gap-3.5">
-            <div className="flex items-center gap-2 w-16 shrink-0 justify-end h-[44px]">
+            <div className="flex items-center gap-2 w-28 shrink-0 justify-end h-[44px]">
               {alert && (
                 <button
                   onClick={(e) => { e.stopPropagation(); onAlertClick?.(alert.id); }}
@@ -35,6 +38,15 @@ export function LineLegend({
                   title={`View Alert for ${line.name}`}
                 >
                   <AlertTriangle size={18} className="fill-red-100 dark:fill-red-950" />
+                </button>
+              )}
+              {rsz && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); onReducedSpeedZoneClick?.(rsz.id); }}
+                  className="pointer-events-auto cursor-pointer text-amber-500 bg-white/95 dark:bg-[#12151c] p-2 rounded-full shadow-lg border border-amber-500/30 hover:bg-amber-50 dark:hover:bg-amber-950/30 hover:scale-110 transition-all"
+                  title={`View reduced speed zone for ${line.name}`}
+                >
+                  <AlertTriangle size={18} className="fill-amber-100 dark:fill-amber-950" />
                 </button>
               )}
               {closure && (

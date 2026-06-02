@@ -6,6 +6,8 @@ const shellSource = readFileSync(new URL("../src/components/LineWatchShell.tsx",
 const interactiveMapSource = readFileSync(new URL("../src/components/InteractiveTtcMap.tsx", import.meta.url), "utf8");
 const lineStatusSource = readFileSync(new URL("../src/components/LineStatusPanel.tsx", import.meta.url), "utf8");
 const activeAlertsSource = readFileSync(new URL("../src/components/ActiveAlertsPanel.tsx", import.meta.url), "utf8");
+const reducedSpeedZonesSource = readFileSync(new URL("../src/components/ReducedSpeedZonesPanel.tsx", import.meta.url), "utf8");
+const lineLegendSource = readFileSync(new URL("../src/components/LineLegend.tsx", import.meta.url), "utf8");
 const plannedClosuresSource = readFileSync(new URL("../src/components/PlannedClosuresPanel.tsx", import.meta.url), "utf8");
 const savedCommutesSource = readFileSync(new URL("../src/components/SavedCommutesPanel.tsx", import.meta.url), "utf8");
 const reliabilitySource = readFileSync(new URL("../src/components/ReliabilityPanel.tsx", import.meta.url), "utf8");
@@ -14,12 +16,20 @@ const globalCss = readFileSync(new URL("../src/app/globals.css", import.meta.url
 
 describe("floating menu layout", () => {
   it("keeps the map first while exposing floating menu and submenu states", () => {
-    assert.match(shellSource, /type ActiveView = "map" \| "menu" \| "alerts" \| "closures" \| "commutes" \| "analytics"/);
+    assert.match(shellSource, /type ActiveView = "map" \| "menu" \| "alerts" \| "reduced-speed-zones" \| "closures" \| "commutes" \| "analytics"/);
     assert.match(shellSource, /handleToggleMenu/);
     assert.match(shellSource, /Toggle menu/);
     assert.match(shellSource, /Floating Dropdown Menu/);
     assert.match(shellSource, /Floating Submenus/);
     assert.match(shellSource, /activeView === "alerts"/);
+    assert.match(shellSource, /"reduced-speed-zones"/);
+    assert.match(shellSource, /Reduced Speed Zones/);
+    assert.match(reducedSpeedZonesSource, /Reduced Speed Zones/);
+    assert.match(reducedSpeedZonesSource, /zone\.displayDirection/);
+    assert.match(reducedSpeedZonesSource, /zone\.directionalDetails/);
+    assert.match(lineLegendSource, /View reduced speed zone/);
+    assert.doesNotMatch(shellSource, /> Slowdowns</);
+
     assert.match(shellSource, /activeView === "closures"/);
     assert.match(shellSource, /activeView === "commutes"/);
     assert.match(shellSource, /activeView === "analytics"/);
@@ -33,6 +43,9 @@ describe("floating menu layout", () => {
     assert.match(activeAlertsSource, /min-w-0/);
     assert.match(activeAlertsSource, /whitespace-normal/);
     assert.match(activeAlertsSource, /break-words/);
+    assert.match(reducedSpeedZonesSource, /min-w-0/);
+    assert.match(reducedSpeedZonesSource, /whitespace-normal/);
+    assert.match(reducedSpeedZonesSource, /break-words/);
     assert.match(plannedClosuresSource, /min-w-0/);
     assert.match(plannedClosuresSource, /whitespace-normal/);
     assert.match(plannedClosuresSource, /break-words/);

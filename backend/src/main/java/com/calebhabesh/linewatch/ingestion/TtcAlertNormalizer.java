@@ -27,9 +27,14 @@ public class TtcAlertNormalizer {
         Pattern.compile("^\\s*([^:]+):\\s+.+$");
 
     private final StationAliasResolver stationAliasResolver;
+    private final AlertDirectionParser directionParser;
 
-    public TtcAlertNormalizer(StationAliasResolver stationAliasResolver) {
+    public TtcAlertNormalizer(
+        StationAliasResolver stationAliasResolver,
+        AlertDirectionParser directionParser
+    ) {
         this.stationAliasResolver = stationAliasResolver;
+        this.directionParser = directionParser;
     }
 
     public NormalizationResult<NormalizedRouteAlert> normalizeRoute(TtcFetchedRecord fetched) {
@@ -66,6 +71,12 @@ public class TtcAlertNormalizer {
         String lineId = LINE_IDS.get(route);
         String title = requiredTitle(record, "TTC service alert");
         String description = nullToEmpty(record.description());
+        AlertDirection direction = directionParser.parse(
+            record.direction(),
+            record.title(),
+            record.headerText(),
+            record.description()
+        );
         String fingerprint = fingerprint(
             classification,
             record,
@@ -73,7 +84,8 @@ public class TtcAlertNormalizer {
             stations.stationIds(),
             periods,
             title,
-            description
+            description,
+            direction
         );
         NormalizedRouteAlert projection = new NormalizedRouteAlert(
             "ttc-route-" + record.id(),
@@ -86,7 +98,7 @@ public class TtcAlertNormalizer {
             record.alertType(),
             record.effect(),
             record.effectDesc(),
-            record.direction(),
+            direction,
             record.cause(),
             record.causeDescription(),
             startStation.stationId().orElse(null),
@@ -259,7 +271,8 @@ public class TtcAlertNormalizer {
         List<String> stationIds,
         List<NormalizedAlertPeriod> periods,
         String title,
-        String description
+        String description,
+        AlertDirection direction
     ) {
         return AlertFingerprint.sha256(String.join("|",
             classification.type(),
@@ -267,7 +280,7 @@ public class TtcAlertNormalizer {
             title,
             description,
             lineId,
-            nullToEmpty(record.direction()),
+            direction.wireValue(),
             String.join(",", stationIds),
             periods.toString(),
             nullToEmpty(record.shuttleType()),

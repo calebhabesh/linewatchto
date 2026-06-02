@@ -9,7 +9,8 @@ import {
   PlannedClosure,
   CommuteSummary,
   ReliabilitySummary,
-  IngestionHealthItem
+  IngestionHealthItem,
+  ReducedSpeedZone
 } from "./linewatch-data";
 
 export interface DashboardData {
@@ -18,6 +19,7 @@ export interface DashboardData {
   lineStatuses: LineStatus[];
   generatedAt: { time: string; date: string; live: boolean; lastPoll: string };
   activeAlerts: ActiveAlert[];
+  reducedSpeedZones: ReducedSpeedZone[];
   plannedClosures: PlannedClosure[];
   commuteImpacts: CommuteSummary[];
   reliabilitySummaries: ReliabilitySummary[];

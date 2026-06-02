@@ -9,6 +9,7 @@ public class AlertIngestionProperties {
     private boolean enabled;
     private URI url = URI.create("https://alerts.ttc.ca/api/alerts/live-alerts");
     private Duration fixedDelay = Duration.ofMinutes(2);
+    private Duration maxDashboardAge = Duration.ofMinutes(10);
     private Duration connectTimeout = Duration.ofSeconds(3);
     private Duration readTimeout = Duration.ofSeconds(8);
 
@@ -34,6 +35,14 @@ public class AlertIngestionProperties {
 
     public void setFixedDelay(Duration fixedDelay) {
         this.fixedDelay = fixedDelay;
+    }
+
+    public Duration getMaxDashboardAge() {
+        return maxDashboardAge;
+    }
+
+    public void setMaxDashboardAge(Duration maxDashboardAge) {
+        this.maxDashboardAge = maxDashboardAge;
     }
 
     public Duration getConnectTimeout() {
