@@ -21,15 +21,29 @@ public class StationLineEntity {
     private String platformLabel;
     @Column(name = "sort_order")
     private int sortOrder;
+    @Column(name = "wheelchair_accessible")
+    private boolean wheelchairAccessible;
+    @Column(name = "has_elevator")
+    private boolean hasElevator;
 
     protected StationLineEntity() {}
 
-    public StationLineEntity(Long id, String stationId, String lineId, String platformLabel, int sortOrder) {
+    public StationLineEntity(
+        Long id,
+        String stationId,
+        String lineId,
+        String platformLabel,
+        int sortOrder,
+        boolean wheelchairAccessible,
+        boolean hasElevator
+    ) {
         this.id = id;
         this.stationId = stationId;
         this.lineId = lineId;
         this.platformLabel = platformLabel;
         this.sortOrder = sortOrder;
+        this.wheelchairAccessible = wheelchairAccessible;
+        this.hasElevator = hasElevator;
     }
 
     public Long getId() { return id; }
@@ -37,4 +51,6 @@ public class StationLineEntity {
     public String getLineId() { return lineId; }
     public String getPlatformLabel() { return platformLabel; }
     public int getSortOrder() { return sortOrder; }
+    public boolean isWheelchairAccessible() { return wheelchairAccessible; }
+    public boolean hasElevator() { return hasElevator; }
 }

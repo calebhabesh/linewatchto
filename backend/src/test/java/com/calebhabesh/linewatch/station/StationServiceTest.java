@@ -32,7 +32,9 @@ class StationServiceTest {
     @Test
     void stationSummariesIncludeLineIdsAccessStatusAndActiveImpactFlag() {
         StationEntity union = new StationEntity("union", "Union", 4311, 3597, true, 10, null);
-        StationLineEntity stationLine = new StationLineEntity(1L, "union", "line-1", "Northbound / Southbound", 1);
+        StationLineEntity stationLine = new StationLineEntity(
+            1L, "union", "line-1", "Northbound / Southbound", 1, true, true
+        );
         StationAccessStatusEntity access = new StationAccessStatusEntity(
             "union",
             "normal",
@@ -71,7 +73,9 @@ class StationServiceTest {
     void stationDetailIncludesLinesAccessImpactsArrivalsAndDisclaimer() {
         StationEntity union = new StationEntity("union", "Union", 4311, 3597, true, 10, null);
         TransitLineEntity line = new TransitLineEntity("line-1", "1", "Yonge-University", "#f4c430", 1);
-        StationLineEntity stationLine = new StationLineEntity(1L, "union", "line-1", "Northbound / Southbound", 1);
+        StationLineEntity stationLine = new StationLineEntity(
+            1L, "union", "line-1", "Northbound / Southbound", 1, true, true
+        );
         StationAccessStatusEntity access = new StationAccessStatusEntity(
             "union",
             "normal",
@@ -100,10 +104,13 @@ class StationServiceTest {
 
         assertThat(response.id()).isEqualTo("union");
         assertThat(response.lines()).extracting(StationResponses.StationLineResponse::id).containsExactly("line-1");
+        assertThat(response.lines().getFirst().wheelchairAccessible()).isTrue();
+        assertThat(response.lines().getFirst().hasElevator()).isTrue();
         assertThat(response.access().status()).isEqualTo("normal");
         assertThat(response.impacts()).extracting(StationResponses.StationImpactResponse::id).containsExactly("impact-union-weekend");
         assertThat(response.arrivals()).isNotEmpty();
         assertThat(response.arrivals().getFirst().label()).isEqualTo("Demo arrival");
+        assertThat(response.arrivalsSource()).isEqualTo("Demo estimates");
         assertThat(response.disclaimer()).contains("not live TTC predictions");
     }
 

@@ -89,7 +89,8 @@ public class StationService {
             .orElse(new StationResponses.StationAccessResponse(
                 "normal",
                 "No station access advisories in demo data.",
-                "Fixture seed"
+                "Fixture seed",
+                List.of()
             ));
 
         List<StationResponses.StationImpactResponse> impacts = impactRepository.findByStationIdOrderBySortOrderAsc(id)
@@ -114,6 +115,7 @@ public class StationService {
             access,
             impacts,
             arrivals,
+            "Demo estimates",
             DATA_MODE,
             DISCLAIMER
         );
@@ -132,7 +134,9 @@ public class StationService {
             line.getNumber(),
             line.getName(),
             line.getColor(),
-            stationLine.getPlatformLabel()
+            stationLine.getPlatformLabel(),
+            stationLine.isWheelchairAccessible(),
+            stationLine.hasElevator()
         );
     }
 
@@ -140,7 +144,8 @@ public class StationService {
         return new StationResponses.StationAccessResponse(
             access.getStatus(),
             access.getSummary(),
-            access.getUpdatedAgo()
+            access.getUpdatedAgo(),
+            List.of()
         );
     }
 
@@ -152,6 +157,7 @@ public class StationService {
             impact.getTitle(),
             impact.getSummary(),
             impact.getUpdatedAgo(),
+            null,
             impact.getSource()
         );
     }

@@ -34,6 +34,7 @@ class StationControllerTest {
         assertThat(response.getBody()).isNotNull();
         assertThat(response.getBody().id()).isEqualTo("union");
         assertThat(response.getBody().dataMode()).isEqualTo("seeded-demo");
+        assertThat(response.getBody().arrivalsSource()).isEqualTo("Demo estimates");
         assertThat(response.getBody().disclaimer()).contains("Arrivals are demo placeholders");
     }
 
@@ -87,12 +88,15 @@ class StationControllerTest {
                     "1",
                     "Yonge-University",
                     "#f4c430",
-                    "Northbound / Southbound"
+                    "Northbound / Southbound",
+                    true,
+                    true
                 )),
                 new StationResponses.StationAccessResponse(
                     "normal",
                     "No station access advisories in demo data.",
-                    "Fixture seed"
+                    "Fixture seed",
+                    List.of()
                 ),
                 List.of(new StationResponses.StationImpactResponse(
                     "impact-union-weekend",
@@ -101,6 +105,7 @@ class StationControllerTest {
                     "Weekend signal upgrades",
                     "Planned work affects Line 1 north of Eglinton. Union remains open.",
                     "Fixture seed",
+                    null,
                     "Planned TTC closure fixture"
                 )),
                 List.of(new StationResponses.StationArrivalResponse(
@@ -109,6 +114,7 @@ class StationControllerTest {
                     2,
                     "Demo arrival"
                 )),
+                "Demo estimates",
                 "seeded-demo",
                 "Station details use seeded backend data. Arrivals are demo placeholders, not live TTC predictions."
             );

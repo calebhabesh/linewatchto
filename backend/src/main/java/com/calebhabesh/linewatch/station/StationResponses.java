@@ -1,5 +1,6 @@
 package com.calebhabesh.linewatch.station;
 
+import java.time.OffsetDateTime;
 import java.util.List;
 
 public final class StationResponses {
@@ -34,6 +35,7 @@ public final class StationResponses {
         StationAccessResponse access,
         List<StationImpactResponse> impacts,
         List<StationArrivalResponse> arrivals,
+        String arrivalsSource,
         String dataMode,
         String disclaimer
     ) {
@@ -44,14 +46,27 @@ public final class StationResponses {
         String number,
         String name,
         String color,
-        String platformLabel
+        String platformLabel,
+        boolean wheelchairAccessible,
+        boolean hasElevator
     ) {
     }
 
     public record StationAccessResponse(
         String status,
         String summary,
-        String updatedAgo
+        String updatedAgo,
+        List<StationFacilityOutageResponse> outages
+    ) {
+    }
+
+    public record StationFacilityOutageResponse(
+        String id,
+        String assetType,
+        String title,
+        String description,
+        OffsetDateTime updatedAt,
+        String source
     ) {
     }
 
@@ -62,6 +77,7 @@ public final class StationResponses {
         String title,
         String summary,
         String updatedAgo,
+        OffsetDateTime updatedAt,
         String source
     ) {
     }
