@@ -5,6 +5,7 @@ import {
   mapResponse,
   plannedClosuresResponse,
   reducedSpeedZonesResponse,
+  stationDetailResponse,
   stationSummariesResponse,
   statusResponse,
 } from "./api-stub-data.mjs";
@@ -92,6 +93,11 @@ const server = createServer(async (request, response) => {
 
   if (request.method === "GET" && url.pathname === "/api/stations") {
     sendJson(response, 200, stationSummariesResponse);
+    return;
+  }
+
+  if (request.method === "GET" && url.pathname === "/api/stations/stub-station") {
+    sendJson(response, 200, stationDetailResponse);
     return;
   }
 

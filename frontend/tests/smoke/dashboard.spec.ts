@@ -27,13 +27,14 @@ async function clickSvgRingStroke(page: Page, name: RegExp) {
     x: box!.x + box!.width / 2,
     y: box!.y + box!.height / 2,
   };
-  const candidates = [0, 45, 90, 135, 180, 225, 270, 315].flatMap((degrees) => {
-    const radians = degrees * Math.PI / 180;
-    return [0.72, 0.84, 0.96].map((scale) => ({
-      x: center.x + Math.cos(radians) * box!.width * scale / 2,
-      y: center.y + Math.sin(radians) * box!.height * scale / 2,
-    }));
-  });
+  const candidates = Array.from({ length: 72 }, (_, index) => index * 5)
+    .flatMap((degrees) => {
+      const radians = degrees * Math.PI / 180;
+      return [0.72, 0.84, 0.96].map((scale) => ({
+        x: center.x + Math.cos(radians) * box!.width * scale / 2,
+        y: center.y + Math.sin(radians) * box!.height * scale / 2,
+      }));
+    });
 
   for (const point of candidates) {
     const hitsRing = await handle!.evaluate((target, candidate) => {
@@ -98,6 +99,20 @@ test("map overlays open the corresponding submenu cards", async ({ page, request
   const activeAlertCard = page.locator('[data-impact-card-id="stub-alert-line-1"]');
   await expect(activeAlertCard).toBeVisible();
   await expect(activeAlertCard).toHaveClass(/highlight-active-card/);
+});
+
+test("station detail shows accessibility facilities and active outage warning", async ({ page, request }) => {
+  await setStubMode(request, "seeded");
+  await page.goto("/");
+  await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
+
+  await page.getByRole("button", { name: "Stub Station station details" }).click();
+
+  await expect(page.getByRole("complementary", { name: "Stub Station station details" })).toBeVisible();
+  await expect(page.getByText("Wheelchair accessible", { exact: true })).toBeVisible();
+  await expect(page.getByText("Elevator available, outage reported", { exact: true })).toBeVisible();
+  await expect(page.locator('[data-facility-warning="elevator"]')).toBeVisible();
+  await expect(page.getByText("Demo estimates", { exact: true })).toBeVisible();
 });
 
 test("LineLegend clicks open view but do not highlight any card", async ({ page, request }) => {

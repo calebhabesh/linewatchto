@@ -201,3 +201,55 @@ export const stationSummariesResponse = {
     },
   ],
 };
+
+export const stationDetailResponse = {
+  id: "stub-station",
+  name: "Stub Station",
+  mapX: 4547,
+  mapY: 1808,
+  interchange: false,
+  lines: [
+    {
+      id: "line-1",
+      number: "1",
+      name: "Yonge-University",
+      color: "#f4c430",
+      platformLabel: "Northbound / Southbound",
+      wheelchairAccessible: true,
+      hasElevator: true,
+    },
+  ],
+  access: {
+    status: "outage",
+    summary: "1 active TTC accessibility outage is linked to this station.",
+    updatedAgo: "TTC Live Alerts",
+    outages: [
+      {
+        id: "stub-station-elevator-outage",
+        assetType: "elevator",
+        title: "Elevator outage",
+        description: "The station elevator is unavailable.",
+        updatedAt: "2026-06-02T14:12:00-04:00",
+        source: "TTC Live Alerts",
+      },
+    ],
+  },
+  impacts: [
+    {
+      id: "stub-station-linked-alert",
+      type: "active-alert",
+      severity: "delay",
+      title: "Station delay",
+      summary: "Trains are delayed at Stub Station.",
+      updatedAt: "2026-06-02T14:12:00-04:00",
+      source: "TTC Live Alerts",
+    },
+  ],
+  arrivals: [
+    { lineId: "line-1", direction: "Northbound", minutes: 3, label: "Demo arrival" },
+    { lineId: "line-1", direction: "Southbound", minutes: 6, label: "Demo arrival" },
+  ],
+  arrivalsSource: "Demo estimates",
+  dataMode: "seeded-demo",
+  disclaimer: "Arrivals are demo placeholders, not live TTC predictions.",
+};
