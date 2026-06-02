@@ -185,7 +185,7 @@ public class TtcAlertNormalizer {
             return new Classification("active-alert", "delay", AlertImpactKind.REDUCED_SPEED_ZONE);
         }
 
-        if (equalsIgnoreCase(record.effect(), "SIGNIFICANT_DELAYS")) {
+        if (isDegradedService(record)) {
             return new Classification("active-alert", "delay", AlertImpactKind.DELAY);
         }
 
@@ -194,7 +194,17 @@ public class TtcAlertNormalizer {
 
     private boolean isReducedSpeedZone(TtcAlertRecord record) {
         return equalsIgnoreCase(record.effectDesc(), "Reduced Speed Zone")
-            || hasText(record.rszLength())
+            || (isDegradedService(record) && hasRszMetadata(record));
+    }
+
+    private boolean isDegradedService(TtcAlertRecord record) {
+        return equalsIgnoreCase(record.effect(), "SIGNIFICANT_DELAYS");
+    }
+
+    private boolean hasRszMetadata(TtcAlertRecord record) {
+        return hasText(record.rszLength())
+            || hasText(record.distance())
+            || hasText(record.trackPercent())
             || hasText(record.reducedSpeed())
             || hasText(record.averageSpeed());
     }

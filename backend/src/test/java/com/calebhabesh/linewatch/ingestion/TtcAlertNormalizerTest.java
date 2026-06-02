@@ -42,7 +42,7 @@ class TtcAlertNormalizerTest {
     @Test
     void normalizesRecurringPlannedClosureWithChildPeriod() {
         TtcAlertRecord record = feed.routes().getFirst().record();
-        record = copyRszMetadata(record, record.effectDesc(), "600 metres", null, null);
+        record = copyRszMetadata(record, record.effectDesc(), "600 metres", null, null, null, null);
         NormalizationResult<NormalizedRouteAlert> result =
             normalizer.normalizeRoute(fetched(record));
 
@@ -130,7 +130,7 @@ class TtcAlertNormalizerTest {
     @Test
     void normalizesCurrentNoServiceAsSuspension() {
         TtcAlertRecord record = fetchedRecord("2", "Subway", "NO_SERVICE").record();
-        record = copyRszMetadata(record, record.effectDesc(), null, "15 km/h", null);
+        record = copyRszMetadata(record, record.effectDesc(), null, null, null, "15 km/h", null);
         NormalizedRouteAlert alert =
             normalizer.normalizeRoute(fetched(record))
                 .projection()
@@ -155,7 +155,7 @@ class TtcAlertNormalizerTest {
     @Test
     void normalizesExplicitReducedSpeedZoneDescription() {
         TtcAlertRecord record = fetchedRecord("1", "Subway", "UNKNOWN").record();
-        record = copyRszMetadata(record, "Reduced Speed Zone", null, null, null);
+        record = copyRszMetadata(record, "Reduced Speed Zone", null, null, null, null, null);
 
         NormalizedRouteAlert alert = normalizer.normalizeRoute(fetched(record))
             .projection()
@@ -169,11 +169,21 @@ class TtcAlertNormalizerTest {
     void normalizesRszSpecificMetadataWithoutReducedSpeedZoneDescription(
         String metadataName,
         String rszLength,
+        String distance,
+        String trackPercent,
         String reducedSpeed,
         String averageSpeed
     ) {
-        TtcAlertRecord record = fetchedRecord("1", "Subway", "UNKNOWN").record();
-        record = copyRszMetadata(record, "Service change", rszLength, reducedSpeed, averageSpeed);
+        TtcAlertRecord record = fetchedRecord("1", "Subway", "SIGNIFICANT_DELAYS").record();
+        record = copyRszMetadata(
+            record,
+            "Service change",
+            rszLength,
+            distance,
+            trackPercent,
+            reducedSpeed,
+            averageSpeed
+        );
 
         NormalizedRouteAlert alert = normalizer.normalizeRoute(fetched(record))
             .projection()
@@ -186,6 +196,17 @@ class TtcAlertNormalizerTest {
     void reportsUnrelatedSupportedRapidTransitRecordAsUnmatched() {
         NormalizationResult<NormalizedRouteAlert> result =
             normalizer.normalizeRoute(fetchedRecord("1", "Subway", "UNKNOWN"));
+
+        assertThat(result.status()).isEqualTo(NormalizationStatus.UNMATCHED);
+    }
+
+    @Test
+    void reportsUnrelatedSupportedRapidTransitRecordWithRszMetadataAsUnmatched() {
+        TtcAlertRecord record = fetchedRecord("1", "Subway", "UNKNOWN").record();
+        record = copyRszMetadata(record, "Service change", "600 metres", null, null, null, null);
+
+        NormalizationResult<NormalizedRouteAlert> result =
+            normalizer.normalizeRoute(fetched(record));
 
         assertThat(result.status()).isEqualTo(NormalizationStatus.UNMATCHED);
     }
@@ -338,12 +359,20 @@ class TtcAlertNormalizerTest {
     @Test
     void hashesReducedSpeedZoneMetadata() {
         TtcAlertRecord record = fetchedRecord("1", "Subway", "SIGNIFICANT_DELAYS").record();
-        record = copyRszMetadata(record, "Reduced Speed Zone", "600 metres", null, null);
+        record = copyRszMetadata(
+            record,
+            "Reduced Speed Zone",
+            "600 metres",
+            null,
+            null,
+            null,
+            null
+        );
         NormalizedRouteAlert original = normalizer.normalizeRoute(fetched(record))
             .projection()
             .orElseThrow();
         NormalizedRouteAlert changedRszLength = normalizer.normalizeRoute(fetched(
-            copyRszMetadata(record, record.effectDesc(), "700 metres", null, null)
+            copyRszMetadata(record, record.effectDesc(), "700 metres", null, null, null, null)
         )).projection().orElseThrow();
 
         assertThat(original.fingerprint()).isNotEqualTo(changedRszLength.fingerprint());
@@ -469,9 +498,11 @@ class TtcAlertNormalizerTest {
 
     private static Stream<Arguments> rszMetadata() {
         return Stream.of(
-            Arguments.of("rsz length", "600 metres", null, null),
-            Arguments.of("reduced speed", null, "15 km/h", null),
-            Arguments.of("average speed", null, null, "35 km/h")
+            Arguments.of("rsz length", "600 metres", null, null, null, null),
+            Arguments.of("distance", null, "900 metres", null, null, null),
+            Arguments.of("track percent", null, null, "67%", null, null),
+            Arguments.of("reduced speed", null, null, null, "15 km/h", null),
+            Arguments.of("average speed", null, null, null, null, "35 km/h")
         );
     }
 
@@ -512,6 +543,8 @@ class TtcAlertNormalizerTest {
         TtcAlertRecord record,
         String effectDesc,
         String rszLength,
+        String distance,
+        String trackPercent,
         String reducedSpeed,
         String averageSpeed
     ) {
@@ -521,7 +554,7 @@ class TtcAlertNormalizerTest {
             record.stopStart(), record.stopEnd(), record.stopIDList(),
             record.title(), record.description(), record.headerText(), record.effect(),
             effectDesc, record.direction(), record.cause(), record.causeDescription(),
-            record.targetRemoval(), rszLength, record.distance(), record.trackPercent(),
+            record.targetRemoval(), rszLength, distance, trackPercent,
             reducedSpeed, averageSpeed, record.shuttleType(), record.shuttleStart(),
             record.shuttleEnd(),
             record.elevatorCode(), record.escalatorCode(), record.childAlerts()
