@@ -121,14 +121,14 @@ export function MetadataGrid({
     resolutionValue ? ["Resolution", resolutionValue] as const : null,
     ...renderedExtraRows,
     source ? ["Source", source] as const : null,
-    ["Started", <ImpactTimestamp timestamp={startedAt} />] as const,
+    ["Started", <ImpactTimestamp key="started" timestamp={startedAt} />] as const,
     [
       "Updated",
       updatedAt
-        ? <ImpactTimestamp timestamp={updatedAt} />
+        ? <ImpactTimestamp key="updated" timestamp={updatedAt} />
         : updatedAgo
           ? formatElapsed(updatedAgo)
-          : <ImpactTimestamp timestamp={updatedAt} />,
+          : <ImpactTimestamp key="updated" timestamp={updatedAt} />,
     ] as const,
   ].filter(Boolean) as Array<[string, ReactNode]>;
 
