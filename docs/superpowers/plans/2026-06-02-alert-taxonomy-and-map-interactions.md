@@ -351,6 +351,10 @@ assertThat(normalize(plannedClosure).impactKind())
 
 Use an ordinary delay with `effect = "SIGNIFICANT_DELAYS"` and a non-RSZ
 `effectDesc`. Use an RSZ record with `effectDesc = "Reduced Speed Zone"`.
+Add parameterized cases proving each structured field (`rszLength`, `distance`,
+`trackPercent`, `reducedSpeed`, and `averageSpeed`) promotes a
+`SIGNIFICANT_DELAYS` record to RSZ. Add a negative case proving metadata alone
+does not promote an otherwise unsupported rapid-transit record.
 
 - [ ] Step 2: Write failing direction tests.
 
@@ -436,7 +440,17 @@ Add:
 ```java
 private boolean isReducedSpeedZone(TtcAlertRecord record) {
     return equalsIgnoreCase(record.effectDesc(), "Reduced Speed Zone")
-        || hasText(record.rszLength())
+        || (isDegradedService(record) && hasRszMetadata(record));
+}
+
+private boolean isDegradedService(TtcAlertRecord record) {
+    return equalsIgnoreCase(record.effect(), "SIGNIFICANT_DELAYS");
+}
+
+private boolean hasRszMetadata(TtcAlertRecord record) {
+    return hasText(record.rszLength())
+        || hasText(record.distance())
+        || hasText(record.trackPercent())
         || hasText(record.reducedSpeed())
         || hasText(record.averageSpeed());
 }
