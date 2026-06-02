@@ -6,6 +6,7 @@ const shellSource = readFileSync(new URL("../src/components/LineWatchShell.tsx",
 const interactiveMapSource = readFileSync(new URL("../src/components/InteractiveTtcMap.tsx", import.meta.url), "utf8");
 const lineStatusSource = readFileSync(new URL("../src/components/LineStatusPanel.tsx", import.meta.url), "utf8");
 const activeAlertsSource = readFileSync(new URL("../src/components/ActiveAlertsPanel.tsx", import.meta.url), "utf8");
+const delaysPanelSource = readFileSync(new URL("../src/components/DelaysPanel.tsx", import.meta.url), "utf8");
 const reducedSpeedZonesSource = readFileSync(new URL("../src/components/ReducedSpeedZonesPanel.tsx", import.meta.url), "utf8");
 const lineLegendSource = readFileSync(new URL("../src/components/LineLegend.tsx", import.meta.url), "utf8");
 const plannedClosuresSource = readFileSync(new URL("../src/components/PlannedClosuresPanel.tsx", import.meta.url), "utf8");
@@ -16,18 +17,26 @@ const globalCss = readFileSync(new URL("../src/app/globals.css", import.meta.url
 
 describe("floating menu layout", () => {
   it("keeps the map first while exposing floating menu and submenu states", () => {
-    assert.match(shellSource, /type ActiveView = "map" \| "menu" \| "alerts" \| "reduced-speed-zones" \| "closures" \| "commutes" \| "analytics"/);
+    assert.match(shellSource, /type ActiveView = "map" \| "menu" \| "alerts" \| "delays" \| "reduced-speed-zones" \| "closures" \| "commutes" \| "analytics"/);
     assert.match(shellSource, /handleToggleMenu/);
     assert.match(shellSource, /Toggle menu/);
     assert.match(shellSource, /Floating Dropdown Menu/);
     assert.match(shellSource, /Floating Submenus/);
     assert.match(shellSource, /activeView === "alerts"/);
+    assert.match(shellSource, /activeView === "delays"/);
+    assert.match(shellSource, /\/assets\/linewatch\/delay-icon\.svg/);
+    assert.match(delaysPanelSource, /data-impact-card-id=/);
+    assert.match(delaysPanelSource, /Started/);
+    assert.match(lineLegendSource, /onDelayClick\?\.\(line\.id\)/);
     assert.match(shellSource, /"reduced-speed-zones"/);
     assert.match(shellSource, /Reduced Speed Zones/);
     assert.match(reducedSpeedZonesSource, /Reduced Speed Zones/);
     assert.match(reducedSpeedZonesSource, /zone\.displayDirection/);
-    assert.match(reducedSpeedZonesSource, /zone\.directionalDetails/);
+    assert.match(reducedSpeedZonesSource, /direction=\{zone\.displayDirection\}/);
+    assert.match(reducedSpeedZonesSource, /Construction/);
+    assert.match(lineLegendSource, /Construction/);
     assert.match(lineLegendSource, /View reduced speed zone/);
+    assert.doesNotMatch(reducedSpeedZonesSource, />\s*Degraded\s*</);
     assert.doesNotMatch(shellSource, /> Slowdowns</);
 
     assert.match(shellSource, /activeView === "closures"/);
@@ -81,9 +90,26 @@ describe("floating menu layout", () => {
   });
 
   it("labels fallback mode without claiming live TTC status", () => {
-    assert.match(pageSource, /Backend offline \(Fixture mode\)/);
+    assert.match(pageSource, /fixture mode/);
     assert.match(shellSource, /generatedAt\.live \? "Live status" : "Demo status"/);
     assert.match(shellSource, /data-testid="menu-dashboard-data-mode"/);
-    assert.match(shellSource, /data-testid="dashboard-data-mode"/);
+    assert.match(interactiveMapSource, /data-testid="dashboard-data-mode"/);
+  });
+
+  it("LineLegend calls onReducedSpeedZoneClick with line.id", () => {
+    assert.match(lineLegendSource, /onReducedSpeedZoneClick\?\.\(line\.id\)/);
+    assert.doesNotMatch(lineLegendSource, /onReducedSpeedZoneClick\?\.\(rsz\.id\)/);
+  });
+
+  it("Card actions are renamed properly", () => {
+    assert.doesNotMatch(activeAlertsSource, /Preview on Map|Hide Map Preview/);
+    assert.doesNotMatch(reducedSpeedZonesSource, /Preview Reduced Speed Zone|Hide Map Preview/);
+    assert.doesNotMatch(plannedClosuresSource, /Preview on Map|Hide Map Preview/);
+    assert.match(activeAlertsSource, /Highlight on Map/);
+    assert.match(activeAlertsSource, /Clear Highlight/);
+    assert.match(reducedSpeedZonesSource, /Highlight on Map/);
+    assert.match(reducedSpeedZonesSource, /Clear Highlight/);
+    assert.match(plannedClosuresSource, /Highlight on Map/);
+    assert.match(plannedClosuresSource, /Clear Highlight/);
   });
 });

@@ -5,6 +5,33 @@ export type CommuteImpact = "clear" | "minor" | "major" | "suspended" | "planned
 
 export type TravelDirection = "forward" | "reverse" | "bidirectional";
 
+export type ImpactKind =
+  | "suspension"
+  | "delay"
+  | "reduced-speed-zone"
+  | "planned-closure";
+
+export type MapImpactKind = Exclude<ImpactKind, "planned-closure">;
+
+export type ImpactSelection = {
+  kind: ImpactKind;
+  id: string;
+} | null;
+
+export type MapImpact = {
+  kind: MapImpactKind;
+  cardId: string;
+  travelDirection: TravelDirection;
+  sourceAlertIds: string[];
+};
+
+export type StationNodeImpact = {
+  stationId: string;
+  kind: MapImpactKind;
+  cardId: string;
+  title: string;
+};
+
 export type DirectionalDetail = {
   sourceAlertId: string;
   displayDirection: string;
@@ -20,7 +47,19 @@ export type ReducedSpeedZone = {
   location: string;
   displayDirection: string;
   description: string;
-  updatedAgo: string;
+  startedAt?: string | null;
+  updatedAt?: string | null;
+  cause?: string | null;
+  resolution?: string | null;
+  rszLength?: string | null;
+  stationDistance?: string | null;
+  trackPercent?: string | null;
+  reducedSpeed?: string | null;
+  averageSpeed?: string | null;
+  // Transitional compatibility with older seeded/stub payloads.
+  reason?: string | null;
+  targetRemoval?: string | null;
+  updatedAgo?: string | null;
   affectedSegmentIds: string[];
   sourceAlertIds: string[];
   directionalDetails: DirectionalDetail[];
@@ -50,6 +89,7 @@ export type NetworkSegment = {
   guidePathId?: string;
   guidePathReversed?: boolean;
   pathD: string;
+  impacts?: MapImpact[];
   overlay: SegmentOverlay;
   travelDirection?: TravelDirection;
   sourceAlertIds?: string[];
@@ -76,10 +116,31 @@ export type ActiveAlert = {
   severity: AlertSeverity;
   location: string;
   description: string;
-  updatedAgo: string;
+  startedAt?: string | null;
+  updatedAt?: string | null;
+  cause?: string | null;
+  resolution?: string | null;
+  // Transitional compatibility with older seeded/stub payloads.
+  reason?: string | null;
+  targetRemoval?: string | null;
+  updatedAgo?: string | null;
   affectedSegmentIds: string[];
   shuttle: boolean;
   source: string;
+};
+
+export type DelayAlert = {
+  id: string;
+  lineId: string;
+  lineNumber: string;
+  title: string;
+  location: string;
+  description: string;
+  affectedSegmentIds: string[];
+  startedAt?: string | null;
+  updatedAt?: string | null;
+  source: string;
+  cause?: string | null;
 };
 
 export type PlannedClosure = {
@@ -90,6 +151,14 @@ export type PlannedClosure = {
   window: string;
   location: string;
   description: string;
+  startedAt?: string | null;
+  updatedAt?: string | null;
+  cause?: string | null;
+  resolution?: string | null;
+  // Transitional compatibility with older seeded/stub payloads.
+  reason?: string | null;
+  targetRemoval?: string | null;
+  updatedAgo?: string | null;
   previewSegmentIds: string[];
   shuttle: boolean;
   source: string;
@@ -124,7 +193,7 @@ export const generatedAt = {
   time: "Fixture mode",
   date: "Local demo",
   live: false,
-  lastPoll: "Backend offline (Fixture mode)",
+  lastPoll: "fixture mode",
 };
 
 export const mapAsset: {
@@ -274,9 +343,13 @@ export const stations: Station[] = [
 
 export const activeAlerts: ActiveAlert[] = [];
 
+export const delays: DelayAlert[] = [];
+
 export const reducedSpeedZones: ReducedSpeedZone[] = [];
 
 export const plannedClosures: PlannedClosure[] = [];
+
+export const stationNodeImpacts: StationNodeImpact[] = [];
 
 export const commuteImpacts: CommuteSummary[] = [
   {

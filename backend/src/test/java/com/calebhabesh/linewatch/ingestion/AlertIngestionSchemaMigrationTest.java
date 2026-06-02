@@ -25,4 +25,21 @@ class AlertIngestionSchemaMigrationTest {
             assertThat(sql).contains("source_feed_updated_at");
         }
     }
+
+    @Test
+    void v9AddsImpactKindAndReducedSpeedZoneMetadata() throws IOException {
+        try (var input = getClass().getResourceAsStream(
+                "/db/migration/V9__alert_impact_kind_and_rsz_metadata.sql")) {
+            assertThat(input).isNotNull();
+            String sql = new String(input.readAllBytes(), StandardCharsets.UTF_8);
+
+            assertThat(sql).contains("add column impact_kind");
+            assertThat(sql).contains("add column rsz_length");
+            assertThat(sql).contains("add column station_distance");
+            assertThat(sql).contains("add column track_percent");
+            assertThat(sql).contains("add column reduced_speed");
+            assertThat(sql).contains("add column average_speed");
+            assertThat(sql).contains("chk_alerts_impact_kind");
+        }
+    }
 }

@@ -48,7 +48,7 @@ class TtcAlertStoreTest {
     }
 
     @Test
-    void storesNormalizedDirectionWireValue() {
+    void storesNormalizedRouteAlertWireValuesAndReducedSpeedZoneMetadata() {
         MapSqlParameterSource params = ReflectionTestUtils.invokeMethod(
             new TtcAlertStore(null),
             "routeAlertParams",
@@ -57,5 +57,11 @@ class TtcAlertStoreTest {
         );
 
         assertThat(params.getValue("direction")).isEqualTo("southbound");
+        assertThat(params.getValue("impactKind")).isEqualTo("reduced-speed-zone");
+        assertThat(params.getValue("rszLength")).isEqualTo("600 metres");
+        assertThat(params.getValue("stationDistance")).isEqualTo("900 metres");
+        assertThat(params.getValue("trackPercent")).isEqualTo("67%");
+        assertThat(params.getValue("reducedSpeed")).isEqualTo("15 km/h");
+        assertThat(params.getValue("averageSpeed")).isEqualTo("35 km/h");
     }
 }

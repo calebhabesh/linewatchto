@@ -43,13 +43,19 @@ class MapControllerTest {
         ));
         when(dashboardService.activeSegmentImpacts()).thenReturn(Map.of(
             "line-2-jane-ossington",
-            new AlertDashboardService.SegmentImpact(
-                "line-2-jane-ossington",
+            List.of(new AlertDashboardService.SegmentImpact(
                 "delay",
+                "delay-line-2-jane-ossington",
                 "forward",
-                List.of("ttc-route-300"),
-                List.of("reduced-speed-zone-ttc-route-300"),
-                null
+                List.of("delay-line-2-jane-ossington")
+            ))
+        ));
+        when(dashboardService.activeStationNodeImpacts()).thenReturn(List.of(
+            new AlertDashboardService.StationNodeImpact(
+                "sheppard-yonge",
+                "delay",
+                "delay-line-4-sheppard-yonge",
+                "Delay at Sheppard-Yonge"
             )
         ));
 
@@ -62,10 +68,21 @@ class MapControllerTest {
             assertThat(segment.stationBAnchorId()).isEqualTo("station-ossington");
             assertThat(segment.overlay()).isEqualTo("delay");
             assertThat(segment.travelDirection()).isEqualTo("forward");
-            assertThat(segment.sourceAlertIds()).containsExactly("ttc-route-300");
-            assertThat(segment.reducedSpeedZoneIds())
-                .containsExactly("reduced-speed-zone-ttc-route-300");
-            assertThat(segment.alertId()).isNull();
+            assertThat(segment.sourceAlertIds()).containsExactly("delay-line-2-jane-ossington");
+            assertThat(segment.reducedSpeedZoneIds()).isEmpty();
+            assertThat(segment.alertId()).isEqualTo("delay-line-2-jane-ossington");
+            assertThat(segment.impacts()).singleElement().satisfies(impact -> {
+                assertThat(impact.kind()).isEqualTo("delay");
+                assertThat(impact.cardId()).isEqualTo("delay-line-2-jane-ossington");
+                assertThat(impact.travelDirection()).isEqualTo("forward");
+                assertThat(impact.sourceAlertIds()).containsExactly("delay-line-2-jane-ossington");
+            });
+        });
+        assertThat(response.stationNodeImpacts()).singleElement().satisfies(impact -> {
+            assertThat(impact.stationId()).isEqualTo("sheppard-yonge");
+            assertThat(impact.kind()).isEqualTo("delay");
+            assertThat(impact.cardId()).isEqualTo("delay-line-4-sheppard-yonge");
+            assertThat(impact.title()).isEqualTo("Delay at Sheppard-Yonge");
         });
     }
 }

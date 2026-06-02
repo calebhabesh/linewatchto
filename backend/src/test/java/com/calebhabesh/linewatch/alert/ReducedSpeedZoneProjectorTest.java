@@ -48,12 +48,27 @@ class ReducedSpeedZoneProjectorTest {
         );
 
         assertThat(projection.zones()).hasSize(1);
+        assertThat(projection.zones().getFirst().displayDirection())
+            .isEqualTo("Northbound & Southbound");
         assertThat(projection.segmentImpacts().get("line-1-wilson-yorkdale"))
             .satisfies(impact -> {
                 assertThat(impact.travelDirection()).isEqualTo(TravelDirection.BIDIRECTIONAL);
                 assertThat(impact.sourceAlertIds())
                     .containsExactlyInAnyOrder("ttc-route-north", "ttc-route-south");
             });
+    }
+
+    @Test
+    void displaysBidirectionalLineTwoZonesAsEastboundAndWestbound() {
+        Projection projection = projector.project(
+            List.of(alert("ttc-route-both", "line-2", "jane", "runnymede", "bidirectional")),
+            List.of(segment(
+                "line-2-jane-runnymede", "line-2", "jane", "runnymede", "eastbound"
+            ))
+        );
+
+        assertThat(projection.zones().getFirst().displayDirection())
+            .isEqualTo("Eastbound & Westbound");
     }
 
     @Test

@@ -17,6 +17,11 @@ describe("asset-backed map layering", () => {
     assert.match(interactiveMapSource, /aria-label="Station hit targets"/);
     assert.match(interactiveMapSource, /station-hit-target/);
     assert.match(interactiveMapSource, /onSelectStationId/);
+    assert.ok(
+      interactiveMapSource.indexOf('aria-label="Station hit targets"') <
+        interactiveMapSource.indexOf('aria-label="Station impact rings"'),
+      "station rings must render after station hit targets so ring strokes remain clickable",
+    );
   });
 
   it("renders animated visual effects for delays, closures, and station impacts", () => {
@@ -24,9 +29,9 @@ describe("asset-backed map layering", () => {
     assert.match(interactiveMapSource, /<pattern id=\{patternId\}/);
     assert.match(interactiveMapSource, /<animateTransform attributeName="transform"/);
     assert.match(interactiveMapSource, /className="asset-alert-path delay-candy pointer-events-none"/);
-    assert.match(interactiveMapSource, /style=\{\{\s*stroke:\s*`url\(#\$\{patternId\}\)`\s*\}\}/);
+    assert.match(interactiveMapSource, /style=\{\{\s*pointerEvents:\s*"none",\s*stroke:\s*`url\(#\$\{patternId\}\)`\s*\}\}/);
     assert.match(interactiveMapSource, /className="asset-alert-path suspension-candy pointer-events-none"/);
-    assert.match(interactiveMapSource, /style=\{\{\s*stroke:\s*"url\(#suspension-hash\)"\s*\}\}/);
+    assert.match(interactiveMapSource, /style=\{\{\s*pointerEvents:\s*"none",\s*stroke:\s*"url\(#suspension-hash\)"\s*\}\}/);
     assert.match(globalCss, /@keyframes station-selected-pulse/);
 
     const mapGeometrySource = readFileSync(new URL("../src/app/map-geometry.ts", import.meta.url), "utf8");
@@ -41,5 +46,15 @@ describe("asset-backed map layering", () => {
     assert.match(interactiveMapSource, /reducedMotion \? null : \(/);
     assert.match(globalCss, /\.motion-paused \.asset-alert-path-glow/);
     assert.match(globalCss, /prefers-reduced-motion:\s*reduce/);
+    assert.match(interactiveMapSource, /segment\.impacts/);
+    assert.match(interactiveMapSource, /stationNodeImpacts/);
+    assert.match(interactiveMapSource, /pointerEvents="stroke"/);
+    assert.match(interactiveMapSource, /onSelectImpact\(\{ kind: impact\.kind, id: impact\.cardId \}\)/);
+    assert.match(interactiveMapSource, /feTurbulence/);
+    assert.match(globalCss, /\.delay-static-path/);
+
+    assert.match(interactiveMapSource, /data-map-highlight-id/);
+    assert.match(interactiveMapSource, /map-selection-flash/);
+    assert.match(interactiveMapSource, /setTimeout\([^,]+,\s*2500\s*\)/);
   });
 });

@@ -72,15 +72,19 @@ public class TtcAlertStore {
             insert into alerts (
                 id, source_id, line_id, type, severity, title, description, active,
                 source_alert_type, effect, effect_description, direction, cause,
-                cause_description, start_station_id, end_station_id,
-                active_period_start, active_period_end, source_updated_at,
+                cause_description, target_removal, impact_kind, rsz_length,
+                station_distance, track_percent, reduced_speed, average_speed,
+                start_station_id, end_station_id, active_period_start, active_period_end,
+                source_updated_at,
                 shuttle_type, shuttle_start, shuttle_end, raw_payload,
                 normalized_fingerprint, updated_at
             ) values (
                 :id, :sourceId, :lineId, :type, :severity, :title, :description, true,
                 :sourceAlertType, :effect, :effectDescription, :direction, :cause,
-                :causeDescription, :startStationId, :endStationId,
-                :activePeriodStart, :activePeriodEnd, :sourceUpdatedAt,
+                :causeDescription, :targetRemoval, :impactKind, :rszLength,
+                :stationDistance, :trackPercent, :reducedSpeed, :averageSpeed,
+                :startStationId, :endStationId, :activePeriodStart, :activePeriodEnd,
+                :sourceUpdatedAt,
                 :shuttleType, :shuttleStart, :shuttleEnd, :rawPayload,
                 :fingerprint, :now
             )
@@ -97,6 +101,13 @@ public class TtcAlertStore {
                 direction = excluded.direction,
                 cause = excluded.cause,
                 cause_description = excluded.cause_description,
+                target_removal = excluded.target_removal,
+                impact_kind = excluded.impact_kind,
+                rsz_length = excluded.rsz_length,
+                station_distance = excluded.station_distance,
+                track_percent = excluded.track_percent,
+                reduced_speed = excluded.reduced_speed,
+                average_speed = excluded.average_speed,
                 start_station_id = excluded.start_station_id,
                 end_station_id = excluded.end_station_id,
                 active_period_start = excluded.active_period_start,
@@ -284,6 +295,13 @@ public class TtcAlertStore {
             .addValue("direction", alert.direction().wireValue())
             .addValue("cause", alert.cause())
             .addValue("causeDescription", alert.causeDescription())
+            .addValue("targetRemoval", alert.targetRemoval())
+            .addValue("impactKind", alert.impactKind().wireValue())
+            .addValue("rszLength", alert.rszLength())
+            .addValue("stationDistance", alert.stationDistance())
+            .addValue("trackPercent", alert.trackPercent())
+            .addValue("reducedSpeed", alert.reducedSpeed())
+            .addValue("averageSpeed", alert.averageSpeed())
             .addValue("startStationId", alert.startStationId())
             .addValue("endStationId", alert.endStationId())
             .addValue("activePeriodStart", alert.activePeriodStart())

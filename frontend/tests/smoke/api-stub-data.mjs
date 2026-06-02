@@ -10,6 +10,14 @@ export const mapResponse = {
       lineId: "line-1",
       label: "Stub Station to Stub Terminal",
       pathD: "M 4547 1808 L 4546 1086",
+      impacts: [
+        {
+          kind: "suspension",
+          cardId: "stub-alert-line-1",
+          travelDirection: "bidirectional",
+          sourceAlertIds: ["stub-alert-line-1"],
+        },
+      ],
       overlay: "suspension",
       alertId: "stub-alert-line-1",
     },
@@ -24,11 +32,45 @@ export const mapResponse = {
       guidePathId: null,
       guidePathReversed: false,
       pathD: "M 4547 1808 L 4547 2005",
+      impacts: [
+        {
+          kind: "reduced-speed-zone",
+          cardId: "reduced-speed-zone-stub-zone-south-source",
+          travelDirection: "forward",
+          sourceAlertIds: ["stub-zone-south-source"],
+        },
+      ],
       overlay: "delay",
       travelDirection: "forward",
       sourceAlertIds: ["stub-zone-south-source"],
       reducedSpeedZoneIds: ["reduced-speed-zone-stub-zone-south-source"],
       alertId: null,
+    },
+    {
+      id: "line-4-sheppard-yonge-don-mills",
+      lineId: "line-4",
+      label: "Sheppard-Yonge to Don Mills",
+      pathD: "M 5085 2605 L 5870 2620",
+      impacts: [
+        {
+          kind: "delay",
+          cardId: "stub-delay-line-4",
+          travelDirection: "bidirectional",
+          sourceAlertIds: ["stub-delay-line-4-source"],
+        },
+      ],
+      overlay: "delay",
+      travelDirection: "bidirectional",
+      sourceAlertIds: ["stub-delay-line-4-source"],
+      alertId: "stub-delay-line-4",
+    },
+  ],
+  stationNodeImpacts: [
+    {
+      stationId: "stub-station",
+      kind: "suspension",
+      cardId: "stub-alert-line-1",
+      title: "Stub API signal problem",
     },
   ],
 };
@@ -38,7 +80,7 @@ export const statusResponse = {
     time: "Seeded demo",
     date: "Smoke fixture",
     live: false,
-    lastPoll: "Stub API poll",
+    lastPoll: "succeeded just now",
   },
   lines: [
     {
@@ -50,6 +92,17 @@ export const statusResponse = {
       status: "suspension",
       statusLabel: "Suspended",
       summary: "Stub API suspension for browser verification.",
+      updatedAgo: "Seeded demo",
+    },
+    {
+      id: "line-4",
+      number: "4",
+      name: "Stub API Sheppard",
+      route: "Sheppard-Yonge - Don Mills",
+      color: "#b84ed8",
+      status: "delay",
+      statusLabel: "Delay",
+      summary: "Stub API delay for browser verification.",
       updatedAgo: "Seeded demo",
     },
   ],
@@ -64,6 +117,8 @@ export const activeAlertsResponse = [
     severity: "suspension",
     location: "Stub Station to Stub Terminal",
     description: "Seeded smoke alert for browser verification.",
+    reason: "Signal issue",
+    targetRemoval: "TBD",
     updatedAgo: "Seeded demo",
     affectedSegmentIds: ["stub-line-1-segment"],
     shuttle: true,
@@ -80,7 +135,9 @@ export const reducedSpeedZonesResponse = [
     location: "Eglinton to Davisville",
     displayDirection: "Southbound",
     description: "Southbound trains are moving slower than usual.",
-    updatedAgo: "Seeded demo",
+    reason: "Track issue",
+    targetRemoval: "Mid-June",
+    updatedAgo: "Updated 2 hr ago",
     affectedSegmentIds: ["stub-line-1-eglinton-davisville"],
     sourceAlertIds: ["stub-zone-south-source"],
     directionalDetails: [
@@ -95,6 +152,23 @@ export const reducedSpeedZonesResponse = [
   },
 ];
 
+export const delaysResponse = [
+  {
+    id: "stub-delay-line-4",
+    lineId: "line-4",
+    lineNumber: "4",
+    title: "Delay between Sheppard-Yonge and Don Mills",
+    location: "Sheppard-Yonge to Don Mills",
+    description: "Trains are moving slowly.",
+    affectedSegmentIds: ["line-4-sheppard-yonge-don-mills"],
+    startedAt: "2026-06-01T22:15:00-04:00",
+    updatedAt: "2026-06-01T22:39:00-04:00",
+    source: "TTC Live Alert",
+    cause: "Operational issue",
+  },
+];
+
+
 export const plannedClosuresResponse = [
   {
     id: "stub-closure-line-1",
@@ -104,6 +178,8 @@ export const plannedClosuresResponse = [
     window: "Seeded smoke window",
     location: "Stub Station to Stub Terminal",
     description: "Seeded smoke closure for browser verification.",
+    reason: "Track work",
+    targetRemoval: "End of weekend",
     previewSegmentIds: ["stub-line-1-segment"],
     shuttle: false,
     source: "Playwright API stub",

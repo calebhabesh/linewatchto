@@ -10,8 +10,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.nio.charset.StandardCharsets;
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.web.client.RestClient;
 
 class TtcAlertNormalizerTest {
@@ -37,8 +41,10 @@ class TtcAlertNormalizerTest {
 
     @Test
     void normalizesRecurringPlannedClosureWithChildPeriod() {
+        TtcAlertRecord record = feed.routes().getFirst().record();
+        record = copyRszMetadata(record, record.effectDesc(), "600 metres", null, null, null, null);
         NormalizationResult<NormalizedRouteAlert> result =
-            normalizer.normalizeRoute(feed.routes().getFirst());
+            normalizer.normalizeRoute(fetched(record));
 
         assertThat(result.status()).isEqualTo(NormalizationStatus.MATCHED);
         assertThat(result.projection()).get()
@@ -46,9 +52,16 @@ class TtcAlertNormalizerTest {
                 NormalizedRouteAlert::id,
                 NormalizedRouteAlert::lineId,
                 NormalizedRouteAlert::type,
-                NormalizedRouteAlert::severity
+                NormalizedRouteAlert::severity,
+                NormalizedRouteAlert::impactKind
             )
-            .containsExactly("ttc-route-synthetic-planned-line-1", "line-1", "planned-closure", "planned");
+            .containsExactly(
+                "ttc-route-synthetic-planned-line-1",
+                "line-1",
+                "planned-closure",
+                "planned",
+                AlertImpactKind.PLANNED_CLOSURE
+            );
         assertThat(result.projection().orElseThrow().periods())
             .containsExactly(new NormalizedAlertPeriod(
                 "synthetic-planned-line-1-period",
@@ -65,6 +78,7 @@ class TtcAlertNormalizerTest {
 
         assertThat(alert.type()).isEqualTo("active-alert");
         assertThat(alert.severity()).isEqualTo("delay");
+        assertThat(alert.impactKind()).isEqualTo(AlertImpactKind.REDUCED_SPEED_ZONE);
         assertThat(alert.direction()).isEqualTo(AlertDirection.SOUTHBOUND);
         assertThat(alert.activePeriodEnd()).isNull();
         assertThat(alert.periods())
@@ -115,14 +129,86 @@ class TtcAlertNormalizerTest {
 
     @Test
     void normalizesCurrentNoServiceAsSuspension() {
+        TtcAlertRecord record = fetchedRecord("2", "Subway", "NO_SERVICE").record();
+        record = copyRszMetadata(record, record.effectDesc(), null, null, null, "15 km/h", null);
         NormalizedRouteAlert alert =
-            normalizer.normalizeRoute(fetchedRecord("2", "Subway", "NO_SERVICE"))
+            normalizer.normalizeRoute(fetched(record))
                 .projection()
                 .orElseThrow();
 
         assertThat(alert.lineId()).isEqualTo("line-2");
         assertThat(alert.type()).isEqualTo("active-alert");
         assertThat(alert.severity()).isEqualTo("suspension");
+        assertThat(alert.impactKind()).isEqualTo(AlertImpactKind.SUSPENSION);
+    }
+
+    @Test
+    void normalizesSignificantDelayWithoutRszMetadataAsOrdinaryDelay() {
+        NormalizedRouteAlert alert =
+            normalizer.normalizeRoute(fetchedRecord("1", "Subway", "SIGNIFICANT_DELAYS"))
+                .projection()
+                .orElseThrow();
+
+        assertThat(alert.impactKind()).isEqualTo(AlertImpactKind.DELAY);
+    }
+
+    @Test
+    void normalizesExplicitReducedSpeedZoneDescription() {
+        TtcAlertRecord record = fetchedRecord("1", "Subway", "UNKNOWN").record();
+        record = copyRszMetadata(record, "Reduced Speed Zone", null, null, null, null, null);
+
+        NormalizedRouteAlert alert = normalizer.normalizeRoute(fetched(record))
+            .projection()
+            .orElseThrow();
+
+        assertThat(alert.impactKind()).isEqualTo(AlertImpactKind.REDUCED_SPEED_ZONE);
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("rszMetadata")
+    void normalizesRszSpecificMetadataWithoutReducedSpeedZoneDescription(
+        String metadataName,
+        String rszLength,
+        String distance,
+        String trackPercent,
+        String reducedSpeed,
+        String averageSpeed
+    ) {
+        TtcAlertRecord record = fetchedRecord("1", "Subway", "SIGNIFICANT_DELAYS").record();
+        record = copyRszMetadata(
+            record,
+            "Service change",
+            rszLength,
+            distance,
+            trackPercent,
+            reducedSpeed,
+            averageSpeed
+        );
+
+        NormalizedRouteAlert alert = normalizer.normalizeRoute(fetched(record))
+            .projection()
+            .orElseThrow();
+
+        assertThat(alert.impactKind()).isEqualTo(AlertImpactKind.REDUCED_SPEED_ZONE);
+    }
+
+    @Test
+    void reportsUnrelatedSupportedRapidTransitRecordAsUnmatched() {
+        NormalizationResult<NormalizedRouteAlert> result =
+            normalizer.normalizeRoute(fetchedRecord("1", "Subway", "UNKNOWN"));
+
+        assertThat(result.status()).isEqualTo(NormalizationStatus.UNMATCHED);
+    }
+
+    @Test
+    void reportsUnrelatedSupportedRapidTransitRecordWithRszMetadataAsUnmatched() {
+        TtcAlertRecord record = fetchedRecord("1", "Subway", "UNKNOWN").record();
+        record = copyRszMetadata(record, "Service change", "600 metres", null, null, null, null);
+
+        NormalizationResult<NormalizedRouteAlert> result =
+            normalizer.normalizeRoute(fetched(record));
+
+        assertThat(result.status()).isEqualTo(NormalizationStatus.UNMATCHED);
     }
 
     @Test
@@ -237,7 +323,9 @@ class TtcAlertNormalizerTest {
             "Eglinton", "Imaginary Station", List.of("Eglinton", "Imaginary Station"),
             record.title(), record.description(), record.headerText(), record.effect(),
             record.effectDesc(), record.direction(), record.cause(), record.causeDescription(),
-            record.shuttleType(), record.shuttleStart(), record.shuttleEnd(),
+            record.targetRemoval(), record.rszLength(), record.distance(), record.trackPercent(),
+            record.reducedSpeed(), record.averageSpeed(), record.shuttleType(), record.shuttleStart(),
+            record.shuttleEnd(),
             record.elevatorCode(), record.escalatorCode(), record.childAlerts()
         ));
 
@@ -266,6 +354,28 @@ class TtcAlertNormalizerTest {
         assertThat(original.fingerprint()).isNotEqualTo(changedStationOrder.fingerprint());
         assertThat(AlertFingerprint.sha256("abc"))
             .isEqualTo("ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad");
+    }
+
+    @Test
+    void hashesReducedSpeedZoneMetadata() {
+        TtcAlertRecord record = fetchedRecord("1", "Subway", "SIGNIFICANT_DELAYS").record();
+        record = copyRszMetadata(
+            record,
+            "Reduced Speed Zone",
+            "600 metres",
+            null,
+            null,
+            null,
+            null
+        );
+        NormalizedRouteAlert original = normalizer.normalizeRoute(fetched(record))
+            .projection()
+            .orElseThrow();
+        NormalizedRouteAlert changedRszLength = normalizer.normalizeRoute(fetched(
+            copyRszMetadata(record, record.effectDesc(), "700 metres", null, null, null, null)
+        )).projection().orElseThrow();
+
+        assertThat(original.fingerprint()).isNotEqualTo(changedRszLength.fingerprint());
     }
 
     @Test
@@ -334,6 +444,12 @@ class TtcAlertNormalizerTest {
             null,
             null,
             null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
             List.of()
         ));
     }
@@ -364,6 +480,12 @@ class TtcAlertNormalizerTest {
             null,
             null,
             null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
             "TEST",
             null,
             List.of()
@@ -372,6 +494,16 @@ class TtcAlertNormalizerTest {
 
     private TtcFetchedRecord fetched(TtcAlertRecord record) {
         return new TtcFetchedRecord(record, "{\"id\":\"" + record.id() + "\"}");
+    }
+
+    private static Stream<Arguments> rszMetadata() {
+        return Stream.of(
+            Arguments.of("rsz length", "600 metres", null, null, null, null),
+            Arguments.of("distance", null, "900 metres", null, null, null),
+            Arguments.of("track percent", null, null, "67%", null, null),
+            Arguments.of("reduced speed", null, null, null, "15 km/h", null),
+            Arguments.of("average speed", null, null, null, null, "35 km/h")
+        );
     }
 
     private TtcAlertRecord copy(
@@ -386,7 +518,9 @@ class TtcAlertNormalizerTest {
             record.stopStart(), record.stopEnd(), stopIDList,
             title, record.description(), record.headerText(), record.effect(),
             record.effectDesc(), record.direction(), record.cause(), record.causeDescription(),
-            record.shuttleType(), record.shuttleStart(), record.shuttleEnd(),
+            record.targetRemoval(), record.rszLength(), record.distance(), record.trackPercent(),
+            record.reducedSpeed(), record.averageSpeed(), record.shuttleType(), record.shuttleStart(),
+            record.shuttleEnd(),
             record.elevatorCode(), record.escalatorCode(), record.childAlerts()
         );
     }
@@ -398,7 +532,31 @@ class TtcAlertNormalizerTest {
             record.stopStart(), record.stopEnd(), record.stopIDList(),
             record.title(), record.description(), record.headerText(), record.effect(),
             record.effectDesc(), record.direction(), record.cause(), record.causeDescription(),
-            record.shuttleType(), record.shuttleStart(), record.shuttleEnd(),
+            record.targetRemoval(), record.rszLength(), record.distance(), record.trackPercent(),
+            record.reducedSpeed(), record.averageSpeed(), record.shuttleType(), record.shuttleStart(),
+            record.shuttleEnd(),
+            record.elevatorCode(), record.escalatorCode(), record.childAlerts()
+        );
+    }
+
+    private TtcAlertRecord copyRszMetadata(
+        TtcAlertRecord record,
+        String effectDesc,
+        String rszLength,
+        String distance,
+        String trackPercent,
+        String reducedSpeed,
+        String averageSpeed
+    ) {
+        return new TtcAlertRecord(
+            record.id(), record.alertType(), record.lastUpdated(), record.activePeriod(),
+            record.activePeriodGroup(), record.route(), record.routeType(),
+            record.stopStart(), record.stopEnd(), record.stopIDList(),
+            record.title(), record.description(), record.headerText(), record.effect(),
+            effectDesc, record.direction(), record.cause(), record.causeDescription(),
+            record.targetRemoval(), rszLength, distance, trackPercent,
+            reducedSpeed, averageSpeed, record.shuttleType(), record.shuttleStart(),
+            record.shuttleEnd(),
             record.elevatorCode(), record.escalatorCode(), record.childAlerts()
         );
     }
@@ -413,7 +571,9 @@ class TtcAlertNormalizerTest {
             record.stopStart(), record.stopEnd(), record.stopIDList(),
             record.title(), record.description(), record.headerText(), record.effect(),
             record.effectDesc(), record.direction(), record.cause(), record.causeDescription(),
-            record.shuttleType(), record.shuttleStart(), record.shuttleEnd(),
+            record.targetRemoval(), record.rszLength(), record.distance(), record.trackPercent(),
+            record.reducedSpeed(), record.averageSpeed(), record.shuttleType(), record.shuttleStart(),
+            record.shuttleEnd(),
             record.elevatorCode(), record.escalatorCode(), childAlerts
         );
     }
@@ -425,7 +585,9 @@ class TtcAlertNormalizerTest {
             record.stopStart(), record.stopEnd(), record.stopIDList(),
             title, description, record.headerText(), record.effect(),
             record.effectDesc(), record.direction(), record.cause(), record.causeDescription(),
-            record.shuttleType(), record.shuttleStart(), record.shuttleEnd(),
+            record.targetRemoval(), record.rszLength(), record.distance(), record.trackPercent(),
+            record.reducedSpeed(), record.averageSpeed(), record.shuttleType(), record.shuttleStart(),
+            record.shuttleEnd(),
             record.elevatorCode(), record.escalatorCode(), record.childAlerts()
         );
     }

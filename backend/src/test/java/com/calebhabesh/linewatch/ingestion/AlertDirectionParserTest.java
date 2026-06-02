@@ -52,6 +52,14 @@ class AlertDirectionParserTest {
     }
 
     @Test
+    void treatsStructuredBothWaysCaseInsensitivelyAsBidirectional() {
+        assertThat(parser.parse("Both ways", "", "", ""))
+            .isEqualTo(AlertDirection.BIDIRECTIONAL);
+        assertThat(parser.parse("both ways", "", "", ""))
+            .isEqualTo(AlertDirection.BIDIRECTIONAL);
+    }
+
+    @Test
     void returnsUnknownInsteadOfGuessingFromStationOrder() {
         assertThat(parser.parse(null, "Reduced speed zone from Wilson to Yorkdale.", "", ""))
             .isEqualTo(AlertDirection.UNKNOWN);

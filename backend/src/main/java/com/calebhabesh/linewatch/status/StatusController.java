@@ -64,7 +64,7 @@ public class StatusController {
                     now.atZoneSameInstant(TORONTO_ZONE).format(DateTimeFormatter.ofPattern("h:mm a")),
                     now.atZoneSameInstant(TORONTO_ZONE).format(DateTimeFormatter.ofPattern("MMM d, yyyy")),
                     dashboardLive,
-                    latestRun.map(this::lastPollLabel).orElse("TTC ingestion not run")
+                    latestRun.map(this::lastPollLabel).orElse("not run")
                 ),
                 lines
         );
@@ -147,34 +147,45 @@ public class StatusController {
 
     private String lastPollLabel(IngestionRunSnapshot run) {
         if ("running".equalsIgnoreCase(run.status())) {
-            return "TTC poll running";
+            return "running";
         }
         if ("failed".equalsIgnoreCase(run.status())) {
-            return "TTC poll failed";
+            return "failed";
         }
         OffsetDateTime completedAt = run.completedAt();
         if (completedAt == null) {
-            return "TTC poll status unknown";
+            return "status unknown";
         }
-        return "TTC poll succeeded " + durationLabel(completedAt) + " ago";
+        return "succeeded " + relativeAge(completedAt);
     }
 
     private String updatedAgo(OffsetDateTime updatedAt) {
         if (updatedAt == null) {
             return "Updated recently";
         }
-        return "Updated " + durationLabel(updatedAt) + " ago";
+        return "Updated " + relativeAge(updatedAt);
     }
 
-    private String durationLabel(OffsetDateTime timestamp) {
-        long minutes = Duration.between(timestamp, OffsetDateTime.now(clock)).toMinutes();
-        if (minutes <= 0) {
+    private String relativeAge(OffsetDateTime timestamp) {
+        long minutes = Math.max(0, Duration.between(timestamp, OffsetDateTime.now(clock)).toMinutes());
+        if (minutes == 0) {
             return "just now";
         }
         if (minutes == 1) {
-            return "1 min";
+            return "1 min ago";
         }
-        return minutes + " min";
+        if (minutes < 60) {
+            return minutes + " min ago";
+        }
+        long hours = minutes / 60;
+        if (hours == 1) {
+            return "1 hr ago";
+        }
+        if (hours < 24) {
+            return hours + " hr ago";
+        }
+        long days = hours / 24;
+        return days == 1 ? "1 day ago" : days + " days ago";
     }
 
     public record StatusResponse(GeneratedAtDto generatedAt, List<LineStatusDto> lines) {}

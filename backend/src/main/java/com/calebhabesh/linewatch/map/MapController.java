@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Comparator;
 import java.util.stream.Collectors;
 
 @RestController
@@ -35,12 +36,15 @@ public class MapController {
                 .map(s -> new StationDto(s.getId(), s.getName(), s.getMapX(), s.getMapY(), s.isInterchange()))
                 .collect(Collectors.toList());
 
-        Map<String, AlertDashboardService.SegmentImpact> impacts =
+        Map<String, List<AlertDashboardService.SegmentImpact>> impacts =
                 dashboardService.activeSegmentImpacts();
 
         List<NetworkSegmentDto> segments = lineSegmentRepository.findAllByOrderBySortOrderAsc().stream()
                 .map(s -> {
-                    AlertDashboardService.SegmentImpact impact = impacts.get(s.getId());
+                    List<AlertDashboardService.SegmentImpact> segmentImpacts =
+                            impacts.getOrDefault(s.getId(), List.of());
+                    AlertDashboardService.SegmentImpact primaryImpact =
+                            primaryImpact(segmentImpacts);
 
                     return new NetworkSegmentDto(
                         s.getId(),
@@ -53,21 +57,100 @@ public class MapController {
                         s.getGuidePathId(),
                         s.isGuidePathReversed(),
                         java.util.Objects.requireNonNullElse(s.getSvgPath(), ""),
-                        impact == null ? "clear" : impact.overlay(),
-                        impact == null ? "bidirectional" : impact.travelDirection(),
-                        impact == null ? List.of() : impact.sourceAlertIds(),
-                        impact == null ? List.of() : impact.reducedSpeedZoneIds(),
-                        impact == null ? null : impact.alertId()
+                        segmentImpacts.stream()
+                            .map(this::toSegmentImpactDto)
+                            .toList(),
+                        scalarOverlay(primaryImpact),
+                        primaryImpact == null ? "bidirectional" : primaryImpact.travelDirection(),
+                        primaryImpact == null ? List.of() : primaryImpact.sourceAlertIds(),
+                        reducedSpeedZoneIds(primaryImpact),
+                        scalarAlertId(primaryImpact)
                     );
                 })
                 .collect(Collectors.toList());
 
-        return new MapResponse(stations, segments);
+        List<StationNodeImpactDto> stationNodeImpacts = dashboardService
+                .activeStationNodeImpacts()
+                .stream()
+                .map(impact -> new StationNodeImpactDto(
+                        impact.stationId(),
+                        impact.kind(),
+                        impact.cardId(),
+                        impact.title()
+                ))
+                .toList();
+
+        return new MapResponse(stations, segments, stationNodeImpacts);
     }
 
-    public record MapResponse(List<StationDto> stations, List<NetworkSegmentDto> segments) {}
+    private AlertDashboardService.SegmentImpact primaryImpact(
+        List<AlertDashboardService.SegmentImpact> impacts
+    ) {
+        return impacts.stream()
+            .max(Comparator.comparingInt(this::impactPriority))
+            .orElse(null);
+    }
+
+    private int impactPriority(AlertDashboardService.SegmentImpact impact) {
+        return switch (impact.kind()) {
+            case "reduced-speed-zone" -> 1;
+            case "delay" -> 2;
+            case "suspension" -> 3;
+            default -> 0;
+        };
+    }
+
+    private SegmentImpactDto toSegmentImpactDto(AlertDashboardService.SegmentImpact impact) {
+        return new SegmentImpactDto(
+            impact.kind(),
+            impact.cardId(),
+            impact.travelDirection(),
+            impact.sourceAlertIds()
+        );
+    }
+
+    private String scalarOverlay(AlertDashboardService.SegmentImpact impact) {
+        if (impact == null) {
+            return "clear";
+        }
+        return "reduced-speed-zone".equals(impact.kind()) ? "delay" : impact.kind();
+    }
+
+    private List<String> reducedSpeedZoneIds(AlertDashboardService.SegmentImpact impact) {
+        if (impact == null || !"reduced-speed-zone".equals(impact.kind()) || impact.cardId() == null) {
+            return List.of();
+        }
+        return List.of(impact.cardId());
+    }
+
+    private String scalarAlertId(AlertDashboardService.SegmentImpact impact) {
+        if (impact == null || "reduced-speed-zone".equals(impact.kind())) {
+            return null;
+        }
+        return impact.cardId();
+    }
+
+    public record MapResponse(
+        List<StationDto> stations,
+        List<NetworkSegmentDto> segments,
+        List<StationNodeImpactDto> stationNodeImpacts
+    ) {}
 
     public record StationDto(String id, String name, int x, int y, boolean interchange) {}
+
+    public record SegmentImpactDto(
+        String kind,
+        String cardId,
+        String travelDirection,
+        List<String> sourceAlertIds
+    ) {}
+
+    public record StationNodeImpactDto(
+        String stationId,
+        String kind,
+        String cardId,
+        String title
+    ) {}
 
     public record NetworkSegmentDto(
         String id,
@@ -80,6 +163,7 @@ public class MapController {
         String guidePathId,
         boolean guidePathReversed,
         String pathD,
+        List<SegmentImpactDto> impacts,
         String overlay,
         String travelDirection,
         List<String> sourceAlertIds,

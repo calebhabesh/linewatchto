@@ -1,6 +1,6 @@
 # Agent Guide for LineWatch TO
 
-Last updated: 2026-06-01
+Last updated: 2026-06-02
 
 This repository contains LineWatch TO, an unofficial TTC reliability dashboard. The app is a portfolio-grade full-stack project intended to show Java/Spring backend engineering, PostgreSQL/PostGIS data modeling, Redis caching, public transit ingestion, and a polished Next.js interface for Toronto subway and LRT reliability.
 
@@ -10,7 +10,7 @@ The user-facing product name is **LineWatch TO**. The portfolio case-study name 
 
 The project is early but no longer an empty scaffold.
 
-- `frontend/` contains a Next.js App Router dashboard with an edited SVG-backed subway/LRT map, React-controlled alert overlays, active alerts, upcoming closures, saved commute impact cards, reliability summaries, display toggles, and a mobile bottom nav.
+- `frontend/` contains a Next.js App Router dashboard with an edited SVG-backed subway/LRT map, React-controlled alert overlays, active alerts, separate delay and Reduced Speed Zone submenus, upcoming closures, saved commute impact cards, reliability summaries, display toggles, and a mobile bottom nav.
 - `frontend/src/app/linewatch-data.ts` is the current typed fixture/API-shape seam.
 - `frontend/src/app/transit-map.tsx` loads the edited map asset and renders interactive overlay paths in the same SVG coordinate system.
 - `frontend/public/assets/linewatch/` contains the edited TTC map SVG and line legend SVG icons.
@@ -20,11 +20,13 @@ The project is early but no longer an empty scaffold.
 - The project includes seeded PostGIS migrations for stations and transit lines.
 - Seeded demo dashboard APIs (`/api/map`, `/api/status`, `/api/alerts`, `/api/stations`) are implemented.
 - Next.js Server Component loads data with complete local-fixture fallback.
-- Playwright Chromium smoke tests cover seeded API and fixture-fallback rendering.
+- Playwright Chromium smoke tests cover seeded API rendering, fixture-fallback rendering, delay overlay clicks, and single-station impact ring interactions.
 - Opt-in TTC Live Alerts polling, raw source staging, supported subway/LRT normalization, accessibility-outage normalization, alert snapshotting, and `/api/health/ingestion` are implemented.
 - TTC alert polling is disabled by default. For local live overlays, run `scripts/dev-backend-live.sh`, which starts the backend with the `dev-live` Spring profile.
 - Visible `/api/alerts`, `/api/status`, and `/api/map` can read normalized TTC alert records while the latest successful ingestion run is fresh; stale successful runs are suppressed from alert cards, line status, and map overlays after the configured dashboard freshness window.
-- Live station arrivals remain demo-only estimates, and station-detail live source reads are not implemented.
+- Delay cards are distinct from explicit Reduced Speed Zone cards. Started timing comes from `activePeriod.start` where available, and Updated timing comes from TTC `lastUpdated` where available.
+- Map segment overlays and single-station alert rings are clickable/tappable and open the corresponding submenu card.
+- Live station arrivals remain demo-only estimates, and station-detail live source reads are not implemented. Full station accessibility CSV import, every-stop line tagging in station detail, and nightly closure active-window gating remain follow-up work.
 - GTFS import, populated geographic geometry, production segment matching, Redis caching, commute-impact API, and reliability aggregation are planned but not yet implemented.
 
 Do not claim that the visible dashboard is live unless there is a fresh successful ingestion run. Do not claim imported GTFS geometry, production geospatial matching, Redis-backed status, real analytics, or real station arrivals until those features exist in code and have passing verification.
@@ -37,9 +39,10 @@ The intended user experience should resemble a dense transit operations dashboar
 - Dark transit-control-room visual language, with a high-contrast mode.
 - TTC subway/LRT line colors as the strongest visual anchors.
 - Red overlays for suspended service.
-- Orange overlays for delays.
+- Orange static overlays for ordinary delays.
+- Chevron overlays for explicit Reduced Speed Zones.
 - Planned closure previews that can be highlighted on the map.
-- Clickable or tappable affected line segments.
+- Clickable or tappable affected line segments and single-station impact rings.
 - Clear alert cards with line number, affected segment, age, source, and shuttle status.
 - Upcoming closure timeline for today, this weekend, and later dates.
 - Saved commute cards answering whether a route is affected.
@@ -190,10 +193,15 @@ The backend now owns:
 - Opt-in scheduled polling for the official TTC Live Alerts feed.
 - Raw staging for route and accessibility alert records.
 - Supported subway/LRT delay, suspension, and planned-closure normalization.
+- Persisted route-alert impact kind so ordinary delays are not grouped as Reduced Speed Zones.
+- `/api/alerts?type=delay` returns ordinary delay cards separately from `/api/alerts?type=slowdown` Reduced Speed Zone groups.
+- Active alert, delay, planned-closure, and Reduced Speed Zone DTOs expose Started and Updated timestamps from normalized source timing.
 - Elevator and escalator outage normalization with seeded station links where names resolve.
 - Source-ID upserts, alert snapshots, ingestion-run tracking, and `/api/health/ingestion`.
 - Live Alerts reduced-speed records now derive explicit cardinal direction from TTC wording.
-- Map overlays project onto adjacent rapid-transit topology links.
+- `Both ways` and `both ways` source directions resolve to bidirectional travel with line-aware cardinal labels.
+- Map overlays expose layered impact metadata and project onto adjacent rapid-transit topology links.
+- Station-node impacts are exposed for single-station alert rings.
 - Ordinary overlay links resolve from SVG station-dot anchors.
 - Nonlinear overlays resolve from the authored hidden segment-guides-layer.
 - Opposite-direction Reduced Speed Zone records merge into one bidirectional effect and grouped card.
@@ -215,7 +223,7 @@ Planned API contract:
 ```text
 GET  /api/status
 GET  /api/map
-GET  /api/alerts?type=live|planned
+GET  /api/alerts?type=live|delay|planned|slowdown
 GET  /api/stations?query={q}
 POST /api/commutes/impact
 GET  /api/reliability/lines
@@ -253,11 +261,11 @@ When changing agent instructions, update both `AGENTS.md` and `GEMINI.md` togeth
 
 ## Suggested Next Implementation Order
 
-1. Switch user-facing alert, status, station-outage, and map-overlay reads onto normalized TTC records while keeping fixture mode for demos and tests.
-2. Add a public live-arrival provider and replace station-panel demo estimates with source-labeled predictions.
-3. Import static GTFS shapes and implement production alert-to-segment matching.
-4. Implement commute impact matching.
-5. Add reliability aggregation and Redis-backed status caching.
+1. Populate richer station detail data: every-stop line tags, accessibility CSV/icons, elevator/escalator outages, station emergencies, and source-labeled arrivals.
+2. Add nightly closure active-window gating so nightly overlays only appear during the affected hours.
+3. Add a public live-arrival provider and replace station-panel demo estimates with source-labeled predictions.
+4. Import static GTFS shapes and implement production alert-to-segment matching.
+5. Implement commute impact matching, reliability aggregation, and Redis-backed status caching.
 
 ## Agent Handoff Notes
 

@@ -56,7 +56,7 @@ class StatusControllerTest {
         StatusController.StatusResponse response = controller.getStatus();
 
         assertThat(response.generatedAt().live()).isFalse();
-        assertThat(response.generatedAt().lastPoll()).isEqualTo("TTC ingestion not run");
+        assertThat(response.generatedAt().lastPoll()).isEqualTo("not run");
         assertThat(response.lines()).hasSize(1);
         assertThat(response.lines().getFirst().status()).isEqualTo("normal");
     }
@@ -78,7 +78,7 @@ class StatusControllerTest {
         StatusController.StatusResponse response = controller.getStatus();
 
         assertThat(response.generatedAt().live()).isTrue();
-        assertThat(response.generatedAt().lastPoll()).isEqualTo("TTC poll succeeded 1 min ago");
+        assertThat(response.generatedAt().lastPoll()).isEqualTo("succeeded 1 min ago");
         assertThat(response.lines()).singleElement().satisfies(line -> {
             assertThat(line.status()).isEqualTo("suspension");
             assertThat(line.statusLabel()).isEqualTo("Suspended");
@@ -104,12 +104,51 @@ class StatusControllerTest {
         StatusController.StatusResponse response = controller.getStatus();
 
         assertThat(response.generatedAt().live()).isFalse();
-        assertThat(response.generatedAt().lastPoll()).isEqualTo("TTC poll succeeded 15 min ago");
+        assertThat(response.generatedAt().lastPoll()).isEqualTo("succeeded 15 min ago");
         assertThat(response.lines()).singleElement().satisfies(line -> {
             assertThat(line.status()).isEqualTo("normal");
             assertThat(line.statusLabel()).isEqualTo("Normal");
             assertThat(line.summary()).isEqualTo("No active service impacts reported.");
         });
+    }
+
+    @Test
+    void formatsPollLabelsConcisely() {
+        when(repository.findAllByOrderBySortOrderAsc()).thenReturn(List.of());
+        when(alertRepository.findByActiveTrueAndType("active-alert")).thenReturn(List.of());
+
+        // Failed
+        when(ingestionRunStore.findLatest()).thenReturn(Optional.of(new IngestionRunSnapshot(
+                1L, "failed", null, null, 0, 0, 0, 0, null, null
+        )));
+        assertThat(controller.getStatus().generatedAt().lastPoll()).isEqualTo("failed");
+
+        // Running
+        when(ingestionRunStore.findLatest()).thenReturn(Optional.of(new IngestionRunSnapshot(
+                2L, "running", null, null, 0, 0, 0, 0, null, null
+        )));
+        assertThat(controller.getStatus().generatedAt().lastPoll()).isEqualTo("running");
+
+        // Succeeded just now
+        OffsetDateTime now = OffsetDateTime.now(CLOCK);
+        when(ingestionRunStore.findLatest()).thenReturn(Optional.of(new IngestionRunSnapshot(
+                3L, "success", now, now, 0, 0, 0, 0, null, null
+        )));
+        assertThat(controller.getStatus().generatedAt().lastPoll()).isEqualTo("succeeded just now");
+
+        // Succeeded 2 hr ago
+        OffsetDateTime twoHrAgo = now.minusHours(2);
+        when(ingestionRunStore.findLatest()).thenReturn(Optional.of(new IngestionRunSnapshot(
+                4L, "success", twoHrAgo, twoHrAgo, 0, 0, 0, 0, null, null
+        )));
+        assertThat(controller.getStatus().generatedAt().lastPoll()).isEqualTo("succeeded 2 hr ago");
+
+        // Succeeded 3 days ago
+        OffsetDateTime threeDaysAgo = now.minusDays(3);
+        when(ingestionRunStore.findLatest()).thenReturn(Optional.of(new IngestionRunSnapshot(
+                5L, "success", threeDaysAgo, threeDaysAgo, 0, 0, 0, 0, null, null
+        )));
+        assertThat(controller.getStatus().generatedAt().lastPoll()).isEqualTo("succeeded 3 days ago");
     }
 
     private AlertEntity alert(

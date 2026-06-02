@@ -4,6 +4,7 @@ import { describe, it } from "node:test";
 import {
   activeAlerts,
   commuteImpacts,
+  delays,
   findAlertBySegmentId,
   generatedAt,
   ingestionHealth,
@@ -14,6 +15,7 @@ import {
   reducedSpeedZones,
   reliabilitySummaries,
   stations,
+  stationNodeImpacts,
 } from "../src/app/linewatch-data.ts";
 
 describe("LineWatch dashboard fixture data", () => {
@@ -48,8 +50,12 @@ describe("LineWatch dashboard fixture data", () => {
   it("does not expose stale current or planned service impacts in fixture mode", () => {
     assert.equal(activeAlerts.length, 0);
     assert.ok(activeAlerts.every((alert) => alert.severity === "suspension"));
+    assert.ok(Array.isArray(delays));
+    assert.equal(delays.length, 0);
     assert.equal(reducedSpeedZones.length, 0);
     assert.equal(plannedClosures.length, 0);
+    assert.ok(Array.isArray(stationNodeImpacts));
+    assert.equal(stationNodeImpacts.length, 0);
     assert.ok(lineStatuses.every((line) => ["normal", "ready"].includes(line.status)));
     assert.ok(commuteImpacts.every((commute) => commute.impact === "clear"));
     assert.equal(

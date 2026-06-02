@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useDashboardData } from "../app/DataContext";
-import { AlertTriangle, Calendar } from "lucide-react";
+import { AlertTriangle, Calendar, Construction } from "lucide-react";
 
 const LINES = [
   { id: "line-1", name: "Line 1 Yonge-University", icon: "/assets/linewatch/line-1-legend.svg?v=2" },
@@ -14,18 +14,21 @@ const LINES = [
 
 export function LineLegend({ 
   onAlertClick, 
+  onDelayClick,
   onClosureClick,
   onReducedSpeedZoneClick,
 }: { 
-  onAlertClick?: (id: string) => void;
-  onClosureClick?: (id: string) => void;
-  onReducedSpeedZoneClick?: (id: string) => void;
+  onAlertClick?: (lineId: string) => void;
+  onDelayClick?: (lineId: string) => void;
+  onClosureClick?: (lineId: string) => void;
+  onReducedSpeedZoneClick?: (lineId: string) => void;
 }) {
-  const { activeAlerts, reducedSpeedZones, plannedClosures } = useDashboardData();
+  const { activeAlerts, delays, reducedSpeedZones, plannedClosures } = useDashboardData();
   return (
     <div className="flex flex-col gap-4 select-none pointer-events-none">
       {LINES.map(line => {
         const alert = activeAlerts.find(a => a.lineId === line.id);
+        const delay = delays.find(a => a.lineId === line.id);
         const rsz = reducedSpeedZones.find(a => a.lineId === line.id);
         const closure = plannedClosures.find(c => c.lineId === line.id);
         return (
@@ -33,25 +36,34 @@ export function LineLegend({
             <div className="flex items-center gap-2 w-28 shrink-0 justify-end h-[44px]">
               {alert && (
                 <button
-                  onClick={(e) => { e.stopPropagation(); onAlertClick?.(alert.id); }}
+                  onClick={(e) => { e.stopPropagation(); onAlertClick?.(line.id); }}
                   className="pointer-events-auto cursor-pointer text-red-500 bg-white/95 dark:bg-[#12151c] p-2 rounded-full shadow-lg border border-red-500/30 hover:bg-red-50 dark:hover:bg-red-950/30 hover:scale-110 transition-all"
                   title={`View Alert for ${line.name}`}
                 >
                   <AlertTriangle size={18} className="fill-red-100 dark:fill-red-950" />
                 </button>
               )}
+              {delay && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); onDelayClick?.(line.id); }}
+                  className="pointer-events-auto cursor-pointer text-amber-500 bg-white/95 dark:bg-[#12151c] p-2 rounded-full shadow-lg border border-amber-500/30 hover:bg-amber-50 dark:hover:bg-amber-950/30 hover:scale-110 transition-all"
+                  title={`View delay for ${line.name}`}
+                >
+                  <Image src="/assets/linewatch/delay-icon.svg" alt="" width={18} height={18} />
+                </button>
+              )}
               {rsz && (
                 <button
-                  onClick={(e) => { e.stopPropagation(); onReducedSpeedZoneClick?.(rsz.id); }}
+                  onClick={(e) => { e.stopPropagation(); onReducedSpeedZoneClick?.(line.id); }}
                   className="pointer-events-auto cursor-pointer text-amber-500 bg-white/95 dark:bg-[#12151c] p-2 rounded-full shadow-lg border border-amber-500/30 hover:bg-amber-50 dark:hover:bg-amber-950/30 hover:scale-110 transition-all"
                   title={`View reduced speed zone for ${line.name}`}
                 >
-                  <AlertTriangle size={18} className="fill-amber-100 dark:fill-amber-950" />
+                  <Construction size={18} className="fill-amber-100 dark:fill-amber-950" />
                 </button>
               )}
               {closure && (
                 <button
-                  onClick={(e) => { e.stopPropagation(); onClosureClick?.(closure.id); }}
+                  onClick={(e) => { e.stopPropagation(); onClosureClick?.(line.id); }}
                   className="pointer-events-auto cursor-pointer text-blue-500 bg-white/95 dark:bg-[#12151c] p-2 rounded-full shadow-lg border border-blue-500/30 hover:bg-blue-50 dark:hover:bg-blue-950/30 hover:scale-110 transition-all"
                   title={`View Closure for ${line.name}`}
                 >
