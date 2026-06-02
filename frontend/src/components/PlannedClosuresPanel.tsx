@@ -3,25 +3,26 @@
 
 import { useDashboardData } from "../app/DataContext";
 import { Calendar, Eye, EyeOff, Bus, ChevronLeft } from "lucide-react";
+import type { ImpactSelection } from "../app/linewatch-data";
+import { useScrollSelectedImpactCard } from "../hooks/useScrollSelectedImpactCard";
 import { LineBadge, ImpactRouteHeader, MetadataGrid } from "./ImpactCardFields";
 
 interface Props {
-  selectedClosureId?: string | null;
-  onSelectClosureId?: (id: string | null) => void;
+  selection: ImpactSelection;
+  onSelectImpact: (selection: ImpactSelection) => void;
   onBack?: () => void;
 }
 
-export function PlannedClosuresPanel({ selectedClosureId, onSelectClosureId, onBack }: Props) {
+export function PlannedClosuresPanel({ selection, onSelectImpact, onBack }: Props) {
   const { plannedClosures } = useDashboardData();
+  useScrollSelectedImpactCard(selection, "planned-closure");
 
   const handleClosureClick = (closureId: string) => {
-    if (onSelectClosureId) {
-      if (selectedClosureId === closureId) {
-        onSelectClosureId(null);
-      } else {
-        onSelectClosureId(closureId);
-      }
-    }
+    onSelectImpact(
+      selection?.kind === "planned-closure" && selection.id === closureId
+        ? null
+        : { kind: "planned-closure", id: closureId },
+    );
   };
 
   return (
@@ -44,10 +45,11 @@ export function PlannedClosuresPanel({ selectedClosureId, onSelectClosureId, onB
       </div>
       <div className="closure-stack min-w-0 p-3 flex flex-col gap-2">
         {plannedClosures.map((closure) => {
-          const isActive = selectedClosureId === closure.id;
+          const isActive = selection?.kind === "planned-closure" && selection.id === closure.id;
           return (
             <div
               key={closure.id}
+              data-impact-card-id={closure.id}
               className={`closure-card min-w-0 p-3 rounded-lg !bg-slate-50 dark:!bg-[#12151c] border border-black/10 dark:border-white/10 transition-all ${
                 isActive ? "!bg-blue-50 dark:!bg-blue-950" : ""
               }`}

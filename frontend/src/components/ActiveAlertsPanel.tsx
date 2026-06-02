@@ -3,29 +3,30 @@
 
 import { useDashboardData } from "../app/DataContext";
 import { AlertTriangle, Bus, ChevronLeft, Eye, EyeOff } from "lucide-react";
+import type { ImpactSelection } from "../app/linewatch-data";
+import { useScrollSelectedImpactCard } from "../hooks/useScrollSelectedImpactCard";
 import { LineBadge, ImpactRouteHeader, MetadataGrid } from "./ImpactCardFields";
 
 interface Props {
-  selectedAlertId?: string | null;
-  onSelectAlertId?: (id: string | null) => void;
+  selection: ImpactSelection;
+  onSelectImpact: (selection: ImpactSelection) => void;
   onBack?: () => void;
 }
 
 export function ActiveAlertsPanel({
-  selectedAlertId,
-  onSelectAlertId,
+  selection,
+  onSelectImpact,
   onBack,
 }: Props) {
   const { activeAlerts } = useDashboardData();
+  useScrollSelectedImpactCard(selection, "suspension");
 
   const handleAlertClick = (alertId: string) => {
-    if (onSelectAlertId) {
-      if (selectedAlertId === alertId) {
-        onSelectAlertId(null);
-      } else {
-        onSelectAlertId(alertId);
-      }
-    }
+    onSelectImpact(
+      selection?.kind === "suspension" && selection.id === alertId
+        ? null
+        : { kind: "suspension", id: alertId },
+    );
   };
 
   const getSeverityColor = (severity: string) => {
@@ -59,10 +60,11 @@ export function ActiveAlertsPanel({
       </div>
       <div className="alert-stack min-w-0 p-3 flex flex-col gap-2">
         {activeAlerts.map((alert) => {
-          const isActive = selectedAlertId === alert.id;
+          const isActive = selection?.kind === "suspension" && selection.id === alert.id;
           return (
             <div
               key={alert.id}
+              data-impact-card-id={alert.id}
               className={`alert-card min-w-0 w-full text-left p-3 rounded-lg border border-black/10 dark:border-white/10 border-l-4 ${getSeverityColor(
                 alert.severity
               )} !bg-slate-50 dark:!bg-[#12151c] transition-all ${

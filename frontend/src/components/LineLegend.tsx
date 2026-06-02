@@ -14,18 +14,21 @@ const LINES = [
 
 export function LineLegend({ 
   onAlertClick, 
+  onDelayClick,
   onClosureClick,
   onReducedSpeedZoneClick,
 }: { 
   onAlertClick?: (lineId: string) => void;
+  onDelayClick?: (lineId: string) => void;
   onClosureClick?: (lineId: string) => void;
   onReducedSpeedZoneClick?: (lineId: string) => void;
 }) {
-  const { activeAlerts, reducedSpeedZones, plannedClosures } = useDashboardData();
+  const { activeAlerts, delays, reducedSpeedZones, plannedClosures } = useDashboardData();
   return (
     <div className="flex flex-col gap-4 select-none pointer-events-none">
       {LINES.map(line => {
         const alert = activeAlerts.find(a => a.lineId === line.id);
+        const delay = delays.find(a => a.lineId === line.id);
         const rsz = reducedSpeedZones.find(a => a.lineId === line.id);
         const closure = plannedClosures.find(c => c.lineId === line.id);
         return (
@@ -38,6 +41,15 @@ export function LineLegend({
                   title={`View Alert for ${line.name}`}
                 >
                   <AlertTriangle size={18} className="fill-red-100 dark:fill-red-950" />
+                </button>
+              )}
+              {delay && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); onDelayClick?.(line.id); }}
+                  className="pointer-events-auto cursor-pointer text-amber-500 bg-white/95 dark:bg-[#12151c] p-2 rounded-full shadow-lg border border-amber-500/30 hover:bg-amber-50 dark:hover:bg-amber-950/30 hover:scale-110 transition-all"
+                  title={`View delay for ${line.name}`}
+                >
+                  <Image src="/assets/linewatch/delay-icon.svg" alt="" width={18} height={18} />
                 </button>
               )}
               {rsz && (
