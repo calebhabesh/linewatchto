@@ -8,7 +8,7 @@ The project is intentionally scoped as a full-stack portfolio build: practical e
 
 ## Current Status
 
-The current app is a seeded full-stack dashboard demo with a graceful local-fixture fallback. Next.js fetches seeded Spring Boot dashboard boundaries on initial render when the backend is available and falls back to typed local fixtures when any required dashboard request fails. The backend can now poll and normalize the official TTC Live Alerts feed when explicitly enabled, but the visible dashboard APIs still return demo data until the next live-mode slice.
+The current app is a full-stack dashboard demo with graceful local-fixture fallback. Next.js fetches Spring Boot dashboard boundaries on initial render when the backend is available and falls back to typed local fixtures when any required dashboard request fails. The backend can poll and normalize the official TTC Live Alerts feed when explicitly enabled. User-facing alert, status, and map-overlay reads use those normalized records only while the latest successful ingestion run is fresh; stale live rows are suppressed instead of remaining on the map.
 
 Implemented now:
 
@@ -35,7 +35,7 @@ Implemented now:
 - Seeded station access and station impact records.
 - Demo station arrivals clearly labeled as placeholders, not live TTC predictions.
 - PostGIS-enabled Flyway schema for stations, transit lines, line segments, alerts, alert-segment links, snapshots, and ingestion runs.
-- Seeded `/api/map`, `/api/status`, and `/api/alerts?type=live|planned` demo boundaries.
+- Dashboard API boundaries for `/api/map`, `/api/status`, and `/api/alerts`, with fixture fallback when backend data is unavailable.
 - Next.js Server Component dashboard loading with complete local-fixture fallback.
 - Playwright Chromium smoke tests for seeded API and fallback rendering on desktop and mobile viewports.
 - Opt-in scheduled polling for the official TTC Live Alerts feed at `https://alerts.ttc.ca/api/alerts/live-alerts`.
@@ -44,20 +44,29 @@ Implemented now:
 - Elevator and escalator outage normalization with station links where TTC station names resolve.
 - Alert snapshots for new, changed, deactivated, and reactivated normalized route alerts.
 - Durable ingestion-run tracking and `/api/health/ingestion`.
+- Live Alerts reduced-speed records now derive explicit cardinal direction from TTC wording.
+- Stale successful ingestion runs no longer drive visible alert cards, line status, or map overlays after the dashboard freshness window expires.
+- Map overlays project onto adjacent rapid-transit topology links.
+- Ordinary overlay links resolve from SVG station-dot anchors.
+- Nonlinear overlays resolve from the authored hidden segment-guides-layer.
+- Opposite-direction Reduced Speed Zone records merge into one bidirectional effect and grouped card.
+- Directionless Reduced Speed Zone records render bidirectionally without inventing a direction label.
 
 Not implemented yet:
 
-- Static GTFS import.
-- Populated geographic segment geometry for PostGIS intersect logic.
-- User-facing live-mode reads for `/api/alerts`, `/api/status`, station detail, and map overlays.
-- Live TTC station-arrival predictions. Station times remain clearly labeled demo estimates.
-- Production alert-to-segment matching.
+- TTC alert polling remains opt-in by default; use the live backend dev script for fresh alert cards and map overlays.
+- GTFS import remains unimplemented.
+- Populated geographic PostGIS geometry remains unimplemented.
+- Production geospatial matching remains unimplemented.
+- TTC Reduced Speed Zones webpage ingestion remains unimplemented.
+- Live station arrivals remain demo-only estimates.
+- Live station-arrival and station-detail source reads remain unimplemented.
 - Redis-backed live status cache.
 - Backend commute-impact endpoint.
 - Real historical reliability aggregation.
 - Deployment.
 
-The UI currently demonstrates the intended product behavior with realistic local data. Backend-backed live data will be added incrementally.
+The UI demonstrates the intended product behavior with realistic local data and an opt-in fresh-ingestion live alert path. Additional backend-backed live data will be added incrementally.
 
 ## Stack
 
@@ -185,19 +194,27 @@ Start the backend:
 mvn -f backend/pom.xml spring-boot:run
 ```
 
+Start the backend with TTC Live Alerts polling enabled for live alert cards and map overlays:
+
+```bash
+scripts/dev-backend-live.sh
+```
+
 Health endpoint:
 
 ```bash
 curl http://localhost:8080/api/health
 ```
 
-Alert ingestion is disabled by default. Enable one scheduled poller process with:
+Alert ingestion is disabled by default for offline-safe local runs, CI, and demos that should not depend on the TTC public API. The `scripts/dev-backend-live.sh` command runs the backend with the `dev-live` Spring profile, which enables one scheduled poller process.
+
+Equivalent manual command:
 
 ```bash
-LINEWATCH_INGESTION_ALERTS_ENABLED=true \
-LINEWATCH_INGESTION_ALERTS_FIXED_DELAY=PT2M \
-mvn -f backend/pom.xml spring-boot:run
+mvn -f backend/pom.xml spring-boot:run -Dspring-boot.run.profiles=dev-live
 ```
+
+`LINEWATCH_INGESTION_ALERTS_MAX_DASHBOARD_AGE` controls how long a successful poll can drive visible dashboard data. The default is `PT10M`; when that window expires, `/api/status`, `/api/alerts`, and `/api/map` stop using old active alert rows.
 
 Inspect its latest poll result:
 
@@ -211,9 +228,9 @@ Current backend scope:
 | --- | --- | --- |
 | `GET` | `/api/health` | Backend service health. |
 | `GET` | `/api/health/ingestion` | Latest TTC Live Alerts poll status and record counts. |
-| `GET` | `/api/map` | Seeded stations and SVG-backed line segments. |
-| `GET` | `/api/status` | Seeded line status demo payload. |
-| `GET` | `/api/alerts?type=live\|planned` | Hard-coded live-style or planned demo alerts. |
+| `GET` | `/api/map` | Seeded station/topology data plus fresh normalized alert overlay metadata when ingestion is current. |
+| `GET` | `/api/status` | Line status derived from fresh normalized alerts, otherwise no stale live impacts. |
+| `GET` | `/api/alerts?type=live\|planned\|slowdown` | Fresh normalized alert cards, planned closures, and Reduced Speed Zone groups. |
 | `GET` | `/api/stations?query={q}` | Seeded station summaries and search. |
 | `GET` | `/api/stations/{id}` | Seeded station detail payload. |
 
@@ -297,6 +314,7 @@ Next.js dashboard
 LineWatch TO should use public and source-linked data. It should also be honest about uncertainty:
 
 - The implemented poller reads the public TTC Live Alerts endpoint at `https://alerts.ttc.ca/api/alerts/live-alerts`.
+- The visible dashboard treats successful poll results as usable only inside the configured freshness window.
 - TTC alerts can be vague.
 - Some alerts name broad corridors rather than exact station-to-station segments.
 - Planned closure pages or feeds may change format.

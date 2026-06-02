@@ -1,0 +1,4 @@
+linewatch:
+  ingestion:
+    alerts:
+      enabled: true

@@ -22,11 +22,12 @@ The project is early but no longer an empty scaffold.
 - Next.js Server Component loads data with complete local-fixture fallback.
 - Playwright Chromium smoke tests cover seeded API and fixture-fallback rendering.
 - Opt-in TTC Live Alerts polling, raw source staging, supported subway/LRT normalization, accessibility-outage normalization, alert snapshotting, and `/api/health/ingestion` are implemented.
-- TTC alert polling is disabled by default. Enable it with `LINEWATCH_INGESTION_ALERTS_ENABLED=true`.
-- Visible `/api/alerts`, `/api/status`, station-detail, and map-overlay payloads remain seeded demo data. Live station arrivals remain demo-only estimates.
+- TTC alert polling is disabled by default. For local live overlays, run `scripts/dev-backend-live.sh`, which starts the backend with the `dev-live` Spring profile.
+- Visible `/api/alerts`, `/api/status`, and `/api/map` can read normalized TTC alert records while the latest successful ingestion run is fresh; stale successful runs are suppressed from alert cards, line status, and map overlays after the configured dashboard freshness window.
+- Live station arrivals remain demo-only estimates, and station-detail live source reads are not implemented.
 - GTFS import, populated geographic geometry, production segment matching, Redis caching, commute-impact API, and reliability aggregation are planned but not yet implemented.
 
-Do not claim that the visible dashboard is live, or claim imported GTFS geometry, production geospatial matching, Redis-backed status, real analytics, or real station arrivals until those features exist in code and have passing verification.
+Do not claim that the visible dashboard is live unless there is a fresh successful ingestion run. Do not claim imported GTFS geometry, production geospatial matching, Redis-backed status, real analytics, or real station arrivals until those features exist in code and have passing verification.
 
 ## Product Target
 
@@ -105,6 +106,7 @@ Backend:
 ```bash
 mvn -f backend/pom.xml test
 mvn -f backend/pom.xml spring-boot:run
+scripts/dev-backend-live.sh
 ```
 
 Infrastructure:
@@ -190,12 +192,19 @@ The backend now owns:
 - Supported subway/LRT delay, suspension, and planned-closure normalization.
 - Elevator and escalator outage normalization with seeded station links where names resolve.
 - Source-ID upserts, alert snapshots, ingestion-run tracking, and `/api/health/ingestion`.
+- Live Alerts reduced-speed records now derive explicit cardinal direction from TTC wording.
+- Map overlays project onto adjacent rapid-transit topology links.
+- Ordinary overlay links resolve from SVG station-dot anchors.
+- Nonlinear overlays resolve from the authored hidden segment-guides-layer.
+- Opposite-direction Reduced Speed Zone records merge into one bidirectional effect and grouped card.
+- Directionless Reduced Speed Zone records render bidirectionally without inventing a direction label.
 
 The backend should eventually own:
 
 - Static TTC GTFS import for subway/LRT routes, stops, trips, and shapes.
 - PostGIS modeling for stations, line segments, and shapes.
 - Additional planned-closure source ingestion if needed beyond the live-alert feed.
+- TTC Reduced Speed Zones webpage ingestion if needed beyond the live-alert feed.
 - Alert-to-line/station/segment impact matching.
 - Reliability aggregation.
 - Commute impact matching.
