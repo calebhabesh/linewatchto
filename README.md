@@ -16,9 +16,13 @@ Implemented now:
 - Edited SVG-backed subway/LRT network map from `frontend/public/assets/linewatch/ttc-subway-map-edited.svg`.
 - TTC-style line colors for Lines 1, 2, 4, and 5.
 - Red suspended-service overlays.
-- Orange delay overlays.
-- Clickable/tappable affected map segments.
-- Active alert cards with affected segments and shuttle indicators.
+- Orange ordinary-delay overlays with a static effect.
+- Explicit Reduced Speed Zone overlays with directional chevrons.
+- Separate Delays and Reduced Speed Zones submenu cards.
+- Clickable/tappable affected map segments and single-station impact rings that open the corresponding submenu cards.
+- Active alert cards with affected segments, shuttle indicators, Started timing, and Updated timing.
+- Delay cards with Started based on `activePeriod.start` and Updated based on TTC `lastUpdated`.
+- Reduced Speed Zone cards with Cause, Resolution, and available speed/track metadata.
 - Planned closure cards with map preview highlighting.
 - Legend SVG icons for Lines 1, 2, 4, 5, and 6.
 - Saved commute impact cards.
@@ -37,16 +41,18 @@ Implemented now:
 - PostGIS-enabled Flyway schema for stations, transit lines, line segments, alerts, alert-segment links, snapshots, and ingestion runs.
 - Dashboard API boundaries for `/api/map`, `/api/status`, and `/api/alerts`, with fixture fallback when backend data is unavailable.
 - Next.js Server Component dashboard loading with complete local-fixture fallback.
-- Playwright Chromium smoke tests for seeded API and fallback rendering on desktop and mobile viewports.
+- Playwright Chromium smoke tests for seeded API, fallback rendering, delay overlay clicks, and station-ring interactions on desktop and mobile viewports.
 - Opt-in scheduled polling for the official TTC Live Alerts feed at `https://alerts.ttc.ca/api/alerts/live-alerts`.
 - Raw staging for route and accessibility source records so unsupported records are retained for later analysis.
-- Normalization and source-ID upserts for supported subway/LRT delays, suspensions, and planned closures.
+- Normalization and source-ID upserts for supported subway/LRT ordinary delays, suspensions, Reduced Speed Zones, and planned closures.
 - Elevator and escalator outage normalization with station links where TTC station names resolve.
 - Alert snapshots for new, changed, deactivated, and reactivated normalized route alerts.
 - Durable ingestion-run tracking and `/api/health/ingestion`.
+- Persisted route-alert impact kind so ordinary delays are not categorized as Reduced Speed Zones.
 - Live Alerts reduced-speed records now derive explicit cardinal direction from TTC wording.
+- `Both ways` alert directions are interpreted bidirectionally with line-aware cardinal labels.
 - Stale successful ingestion runs no longer drive visible alert cards, line status, or map overlays after the dashboard freshness window expires.
-- Map overlays project onto adjacent rapid-transit topology links.
+- Map overlays expose layered impact metadata and project onto adjacent rapid-transit topology links.
 - Ordinary overlay links resolve from SVG station-dot anchors.
 - Nonlinear overlays resolve from the authored hidden segment-guides-layer.
 - Opposite-direction Reduced Speed Zone records merge into one bidirectional effect and grouped card.
@@ -61,6 +67,8 @@ Not implemented yet:
 - TTC Reduced Speed Zones webpage ingestion remains unimplemented.
 - Live station arrivals remain demo-only estimates.
 - Live station-arrival and station-detail source reads remain unimplemented.
+- Full station accessibility CSV import, wheelchair/elevator station icons, and every-stop line tags remain follow-up work.
+- Nightly closure start/end window gating remains follow-up work.
 - Redis-backed live status cache.
 - Backend commute-impact endpoint.
 - Real historical reliability aggregation.
@@ -228,9 +236,9 @@ Current backend scope:
 | --- | --- | --- |
 | `GET` | `/api/health` | Backend service health. |
 | `GET` | `/api/health/ingestion` | Latest TTC Live Alerts poll status and record counts. |
-| `GET` | `/api/map` | Seeded station/topology data plus fresh normalized alert overlay metadata when ingestion is current. |
+| `GET` | `/api/map` | Seeded station/topology data plus fresh layered segment and station-node impact metadata when ingestion is current. |
 | `GET` | `/api/status` | Line status derived from fresh normalized alerts, otherwise no stale live impacts. |
-| `GET` | `/api/alerts?type=live\|planned\|slowdown` | Fresh normalized alert cards, planned closures, and Reduced Speed Zone groups. |
+| `GET` | `/api/alerts?type=live\|delay\|planned\|slowdown` | Fresh normalized suspension/active alert cards, ordinary delay cards, planned closures, and Reduced Speed Zone groups. |
 | `GET` | `/api/stations?query={q}` | Seeded station summaries and search. |
 | `GET` | `/api/stations/{id}` | Seeded station detail payload. |
 
@@ -248,7 +256,8 @@ Core v1 target:
 
 - Live subway/LRT status map.
 - Red/orange disruption overlays on affected line segments.
-- Clickable/tappable alert segments.
+- Separate ordinary delay and Reduced Speed Zone cards.
+- Clickable/tappable alert segments and single-station impact rings.
 - Planned closure timeline for today, this weekend, and upcoming dates.
 - Station and line search.
 - Saved commute watchlists such as `Finch -> Union`.
