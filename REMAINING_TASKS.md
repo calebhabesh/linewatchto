@@ -24,69 +24,18 @@ Do not overclaim live data, production geometry, analytics, or caching.
 
 ## Snapshot Baseline
 
-At the time this handoff was written:
+At the time this handoff was refreshed:
 
-- Working branch: `fix/ui-iteration`
-- Committed baseline: `ad20e98 fix: model nullable station impact ages`
-- Temporary feature worktree from station-detail enrichment: removed
-- Merged feature branch `feat/station-detail-enrichment`: deleted
-- Backend verification: `116/116` tests passed
-- Frontend fixture verification: `41/41` tests passed
-- Frontend typecheck, lint, and production build: passed
-- Playwright Chromium smoke verification: `10/10` tests passed
+- Working branch: `main`
+- Committed baseline: `7e91c5b style(frontend): layout cause field inline to prevent wrapping`
+- The previous Gemini UI-polish batch has been reviewed and committed.
+- The next incomplete product slice is nightly closure active-window gating.
 
-Always rerun `git status --short --branch` and the relevant verification commands
-at the start of a new session. This snapshot is a handoff marker, not a guarantee
-that the checkout is still unchanged.
+## Current Local-Change Policy
 
-## Preserve The Current UI Batch
-
-The root checkout intentionally contains an uncommitted Gemini-authored frontend
-UI-polish batch. Do not discard, reset, or silently fold these edits into an
-unrelated backend slice.
-
-Run:
-
-```bash
-git status --short --branch
-git diff --stat
-git diff --check
-```
-
-Known state when this file was created:
-
-- Modified frontend UI files include alert panels, closure panels, map
-  interactions, shared impact-card fields, CSS, smoke coverage, and fixture
-  coverage.
-- `frontend/src/components/DelayIcon.tsx` is new and untracked.
-- `docs/superpowers/plans/2026-06-02-frontend-ui-polish-viewability.md` is an
-  untracked plan for that batch.
-- `TODO.md` is an older untracked checklist. It is stale: several entries are
-  already implemented.
-- `view_ttc_alerts.py` is an untracked local utility. Confirm ownership before
-  staging it.
-- `git diff --check` currently reports trailing whitespace at
-  `frontend/src/app/impact-time.ts:36`.
-
-### Slice 0: Review And Checkpoint UI Polish
-
-This is the first action in the next session. It is not a new product slice.
-
-Goal: review the existing frontend batch, make any approved narrow cleanup,
-verify it, and checkpoint it separately before creating another worktree.
-
-Checklist:
-
-- [ ] Inspect every path from `git status --short`.
-- [ ] Read `docs/superpowers/plans/2026-06-02-frontend-ui-polish-viewability.md`.
-- [ ] Fix the known trailing whitespace if the surrounding edit remains valid.
-- [ ] Verify desktop and mobile behavior for alert cards, closure cards, delay
-      iconography, map highlighting, and drawer layout.
-- [ ] Run the full frontend verification gate below.
-- [ ] Run `mvn -f backend/pom.xml test` if any backend file is included.
-- [ ] Ask before staging ambiguous local-only files such as `TODO.md` or
-      `view_ttc_alerts.py`.
-- [ ] Commit the reviewed UI batch separately.
+The previous uncommitted UI batch has been committed on `main`. Still run
+`git status --short --branch` before edits and preserve any new local user work.
+Do not use reset or checkout to clean the tree unless the user explicitly asks.
 
 ## Already Completed
 
