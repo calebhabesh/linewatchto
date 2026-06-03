@@ -132,6 +132,77 @@ class ReducedSpeedZoneProjectorTest {
     }
 
     @Test
+    void projectsLongLineOneReducedSpeedZonesAcrossLinearAndGuideBackedLinks() {
+        Projection projection = projector.project(
+            List.of(alert("ttc-route-dupont-museum", "line-1", "dupont", "museum", "southbound")),
+            List.of(
+                segment("line-1-dupont-spadina", "line-1", "dupont", "spadina", 113, "southbound"),
+                segment("line-1-spadina-st-george", "line-1", "spadina", "st-george", 114, "southbound"),
+                segment("line-1-st-george-museum", "line-1", "st-george", "museum", 115, "southbound"),
+                segment("line-1-museum-queens-park", "line-1", "museum", "queens-park", 116, "southbound")
+            )
+        );
+
+        assertThat(projection.zones()).singleElement().satisfies(zone ->
+            assertThat(zone.affectedSegmentIds()).containsExactlyInAnyOrder(
+                "line-1-dupont-spadina",
+                "line-1-spadina-st-george",
+                "line-1-st-george-museum"
+            )
+        );
+        assertThat(projection.segmentImpacts().keySet()).containsExactlyInAnyOrder(
+            "line-1-dupont-spadina",
+            "line-1-spadina-st-george",
+            "line-1-st-george-museum"
+        );
+        assertThat(projection.segmentImpacts().values())
+            .extracting(SegmentImpact::travelDirection)
+            .containsOnly(TravelDirection.FORWARD);
+    }
+
+    @Test
+    void projectsLongLineOneReducedSpeedZonesThroughUnionLoopToTmu() {
+        Projection projection = projector.project(
+            List.of(alert("ttc-route-queens-park-tmu", "line-1", "queens-park", "tmu", "bidirectional")),
+            List.of(
+                segment("line-1-museum-queens-park", "line-1", "museum", "queens-park", 117, "southbound"),
+                segment("line-1-queens-park-st-patrick", "line-1", "queens-park", "st-patrick", 118, "southbound"),
+                segment("line-1-st-patrick-osgoode", "line-1", "st-patrick", "osgoode", 119, "southbound"),
+                segment("line-1-osgoode-st-andrew", "line-1", "osgoode", "st-andrew", 120, "southbound"),
+                segment("line-1-st-andrew-union", "line-1", "st-andrew", "union", 121, "southbound"),
+                segment("line-1-tmu-queen", "line-1", "tmu", "queen", 214, "southbound"),
+                segment("line-1-queen-king", "line-1", "queen", "king", 215, "southbound"),
+                segment("line-1-king-union", "line-1", "king", "union", 216, "southbound")
+            )
+        );
+
+        assertThat(projection.zones()).singleElement().satisfies(zone -> {
+            assertThat(zone.displayDirection()).isEqualTo("Northbound & Southbound");
+            assertThat(zone.affectedSegmentIds()).containsExactlyInAnyOrder(
+                "line-1-queens-park-st-patrick",
+                "line-1-st-patrick-osgoode",
+                "line-1-osgoode-st-andrew",
+                "line-1-st-andrew-union",
+                "line-1-king-union",
+                "line-1-queen-king",
+                "line-1-tmu-queen"
+            );
+        });
+        assertThat(projection.segmentImpacts().keySet()).containsExactlyInAnyOrder(
+            "line-1-queens-park-st-patrick",
+            "line-1-st-patrick-osgoode",
+            "line-1-osgoode-st-andrew",
+            "line-1-st-andrew-union",
+            "line-1-king-union",
+            "line-1-queen-king",
+            "line-1-tmu-queen"
+        );
+        assertThat(projection.segmentImpacts().values())
+            .extracting(SegmentImpact::travelDirection)
+            .containsOnly(TravelDirection.BIDIRECTIONAL);
+    }
+
+    @Test
     void keepsUnmatchedZoneCardWithoutClearingMatchedOverlays() {
         Projection projection = projector.project(
             List.of(
@@ -179,6 +250,17 @@ class ReducedSpeedZoneProjectorTest {
     }
 
     private LineSegmentEntity segment(String id, String lineId, String stationA, String stationB, String forwardDirection) {
-        return new LineSegmentEntity(id, lineId, stationA, stationB, null, null, 10, forwardDirection, null, false, null, null);
+        return segment(id, lineId, stationA, stationB, 10, forwardDirection);
+    }
+
+    private LineSegmentEntity segment(
+        String id,
+        String lineId,
+        String stationA,
+        String stationB,
+        int sortOrder,
+        String forwardDirection
+    ) {
+        return new LineSegmentEntity(id, lineId, stationA, stationB, null, null, sortOrder, forwardDirection, null, false, null, null);
     }
 }

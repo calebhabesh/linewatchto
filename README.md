@@ -231,6 +231,41 @@ Inspect its latest poll result:
 curl http://localhost:8080/api/health/ingestion
 ```
 
+### Alert Scenario Harness
+
+The repository includes dev/test TTC Live Alerts scenario feeds under
+`backend/src/test/resources/fixtures/ttc-alert-scenarios/`. These fixtures are
+TTC-shaped examples for LineWatch testing only; synthetic records are used where
+captured public examples are not available.
+
+Generate the fixture catalog after editing scenario definitions:
+
+```bash
+node scripts/generate-alert-scenarios.mjs
+```
+
+Serve a scenario as a local TTC Live Alerts feed:
+
+```bash
+node scripts/mock-alerts-server.mjs all-alert-types
+node scripts/mock-alerts-server.mjs nonlinear-union-curve
+node scripts/mock-alerts-server.mjs nonlinear-st-george-spadina
+node scripts/mock-alerts-server.mjs line-5-suspension
+node scripts/mock-alerts-server.mjs nightly-closure-active-window
+node scripts/mock-alerts-server.mjs station-node-impact
+```
+
+Run the backend against a scenario:
+
+```bash
+scripts/dev-alert-scenario.sh all-alert-types
+```
+
+Then open the normal frontend and inspect `/api/alerts`, `/api/map`, alert cards,
+station rings, and nonlinear overlays. The scenario harness does not make the app
+an official TTC product and does not represent a live feed.
+
+
 Current backend scope:
 
 | Method | Endpoint | Purpose |

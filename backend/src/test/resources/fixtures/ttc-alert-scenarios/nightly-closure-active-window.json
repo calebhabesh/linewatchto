@@ -1,0 +1,83 @@
+{
+  "lastUpdated": "2026-06-03T14:59:00.000Z",
+  "total": 1,
+  "routes": [
+    {
+      "id": "scenario-nightly-active-line-1",
+      "priority": 0,
+      "alertType": "Planned",
+      "lastUpdated": "2026-06-03T14:55:00.000Z",
+      "activePeriod": {
+        "start": "2026-06-03T12:00:00.000Z",
+        "end": "2026-06-04T01:00:00.000Z"
+      },
+      "activePeriodGroup": [
+        "Current",
+        "Weekend"
+      ],
+      "routeOrder": 1,
+      "route": "1",
+      "routeBranch": "",
+      "routeTypeSrc": "400",
+      "routeType": "Subway",
+      "stopStart": "St George",
+      "stopEnd": "Sheppard West",
+      "stopStartId": null,
+      "stopEndId": null,
+      "stops": [],
+      "title": "There will be no subway service between St George and Sheppard West stations during nightly closure windows for planned track work.",
+      "description": "",
+      "url": "",
+      "urlPlaceholder": "",
+      "accessibility": "Routes",
+      "effect": "REDUCED_SERVICE",
+      "effectDesc": "Subway Closure - Early Access",
+      "severityOrder": 1,
+      "severity": "Critical",
+      "customHeaderText": null,
+      "headerText": "Line 1 Yonge-University: There will be no subway service between St George and Sheppard West stations during nightly closure windows for planned track work.",
+      "direction": "Both ways",
+      "cause": "MAINTENANCE",
+      "causeDescription": "CLOSURE - Planned Track Work",
+      "stopIDList": [
+        "St George",
+        "Spadina",
+        "Dupont",
+        "St Clair West",
+        "Cedarvale",
+        "Glencairn",
+        "Lawrence West",
+        "Yorkdale",
+        "Wilson",
+        "Sheppard West"
+      ],
+      "stopNameList": [],
+      "stopRouteList": [],
+      "rszLength": null,
+      "distance": null,
+      "trackPercent": null,
+      "reducedSpeed": null,
+      "averageSpeed": null,
+      "targetRemoval": null,
+      "shuttleType": "Will Operate",
+      "shuttleStart": "St George",
+      "shuttleEnd": "Sheppard West",
+      "elevatorCode": null,
+      "escalatorCode": null,
+      "criticality": 0,
+      "childAlerts": [
+        {
+          "id": "scenario-nightly-window-active",
+          "startTime": "2026-06-03T14:40:00.000Z",
+          "endTime": "2026-06-03T16:10:00.000Z"
+        },
+        {
+          "id": "scenario-nightly-window-next",
+          "startTime": "2026-06-03T19:00:00.000Z",
+          "endTime": "2026-06-03T20:30:00.000Z"
+        }
+      ]
+    }
+  ],
+  "accessibility": []
+}

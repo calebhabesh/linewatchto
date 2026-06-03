@@ -9,7 +9,7 @@ const svg = readFileSync(
 
 describe("map SVG guide asset", () => {
   it("preserves the hidden nonlinear segment guide paths used by runtime overlays", () => {
-    assert.match(svg, /inkscape:label="segment-guides-layer"/);
+    assert.match(svg, /inkscape:label="non-linear-guides-layer"/);
     assert.match(svg, /inkscape:label="seg-line-1-union-king"/);
     assert.match(svg, /inkscape:label="seg-line-1-st-andrew-union"/);
     assert.match(svg, /inkscape:label="seg-line-1-spadina-st-george"/);

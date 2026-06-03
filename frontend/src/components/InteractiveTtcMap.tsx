@@ -5,6 +5,7 @@ import {
   readSvgGeometry,
   resolveNetworkSegmentPath,
   visualTravelDirection,
+  samplePath,
   type MapPoint,
 } from "../app/map-geometry";
 import { usePanZoom } from "../hooks/usePanZoom";
@@ -56,6 +57,7 @@ export function InteractiveTtcMap({
     isDragging,
     isAnimating,
     containerRef,
+    mapRef,
     handlePointerDown,
     handlePointerMove,
     handlePointerUp,
@@ -225,6 +227,7 @@ export function InteractiveTtcMap({
       .map((segment) => ({ segment, closure: selectedClosure }));
   }, [renderedOverlaySegments, selectedClosure]);
 
+
   return (
     <div className="relative w-full h-full flex flex-col overflow-hidden bg-transparent">
       {/* Top right Theme toggle (styled like hamburger) and poll chip */}
@@ -315,16 +318,18 @@ export function InteractiveTtcMap({
 
         {loadState === "ready" && (
           <div
-            className={`absolute top-0 left-0 w-full h-full origin-top-left ${isDragging || isAnimating ? 'will-change-transform' : ''}`}
+            ref={mapRef}
+            className="absolute top-0 left-0 w-full h-full origin-top-left"
             style={{
               transform: `translate(${transform.x}px, ${transform.y}px) scale(${transform.scale})`,
               transformOrigin: "0 0",
               transition: isAnimating ? "transform 0.4s cubic-bezier(0.25, 1, 0.5, 1)" : isDragging ? "none" : "transform 0.1s ease-out",
+              willChange: isDragging || isAnimating ? "transform" : "auto",
             }}
           >
             <style>
               {`
-                #segment-guides-layer { display: none; }
+                #non-linear-guides-layer { display: none; }
 
                 /* Dark theme overrides for black elements in the SVG */
                 .dark .ttc-svg-container svg .fil6,
@@ -564,6 +569,163 @@ function visualStateForImpactKind(kind: MapImpactKind): OverlayVisualState {
   }
 }
 
+function AnimatedChevronLane({
+  pathD,
+  step,
+  direction,
+  travelDirection,
+  reducedMotion,
+}: {
+  pathD: string;
+  step: number;
+  direction: "forward" | "reverse";
+  travelDirection: string;
+  reducedMotion: boolean;
+}) {
+  const [mounted, setMounted] = useState(false);
+  const containerRef = useRef<SVGGElement>(null);
+  const pathRef = useRef<SVGPathElement | null>(null);
+
+  useEffect(() => {
+    const handle = setTimeout(() => setMounted(true), 0);
+    return () => clearTimeout(handle);
+  }, []);
+
+  const { length, count, stepVal } = useMemo(() => {
+    if (typeof document === "undefined") return { length: 0, count: 0, stepVal: step };
+    try {
+      const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      path.setAttribute("d", pathD);
+      const len = path.getTotalLength();
+      if (len <= 0) return { length: 0, count: 0, stepVal: step };
+      const cnt = Math.max(1, Math.floor(len / step));
+      const s = len / cnt;
+      return { length: len, count: cnt, stepVal: s };
+    } catch (e) {
+      console.error("Error creating SVG path for measurement:", e);
+      return { length: 0, count: 0, stepVal: step };
+    }
+  }, [pathD, step]);
+
+  useEffect(() => {
+    if (!mounted || typeof document === "undefined") return;
+    try {
+      const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      path.setAttribute("d", pathD);
+      pathRef.current = path;
+    } catch (e) {
+      console.error("Error setting path reference:", e);
+    }
+  }, [pathD, mounted]);
+
+  const indices = useMemo(() => {
+    const arr: number[] = [];
+    if (count <= 0) return arr;
+    for (let i = -1; i <= count + 1; i++) {
+      arr.push(i);
+    }
+    return arr;
+  }, [count]);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    const path = pathRef.current;
+    if (!mounted || !container || !path || length <= 0 || indices.length === 0) return;
+
+    const childGroups = Array.from(container.children) as SVGGElement[];
+    if (childGroups.length === 0) return;
+
+    let animationFrameId: number;
+    const duration = (stepVal / 80) * 6000; // restore travel speed base to 6000ms
+
+    const applyPhase = (phase: number) => {
+      const dy = travelDirection === "bidirectional" ? (direction === "reverse" ? 18 : -18) : 0;
+
+      childGroups.forEach((group) => {
+        const idxAttr = group.getAttribute("data-index");
+        if (!idxAttr) return;
+        const i = parseInt(idxAttr, 10);
+
+        let dist = 0;
+        if (direction === "forward") {
+          dist = i * stepVal + phase;
+        } else {
+          dist = (count - i) * stepVal - phase;
+        }
+
+        // Hide if outside range with a buffer
+        if (dist < -10 || dist > length + 10) {
+          group.setAttribute("display", "none");
+          return;
+        } else {
+          group.removeAttribute("display");
+        }
+
+        try {
+          const p = path.getPointAtLength(Math.max(0, Math.min(length, dist)));
+          const delta = 1;
+          const pAhead = path.getPointAtLength(Math.min(length, dist + delta));
+          const pBehind = path.getPointAtLength(Math.max(0, dist - delta));
+          const dx = pAhead.x - pBehind.x;
+          const dyTangent = pAhead.y - pBehind.y;
+          let angle = Math.atan2(dyTangent, dx) * (180 / Math.PI);
+
+          if (direction === "reverse") {
+            angle += 180;
+          }
+
+          const angleForward = direction === "reverse" ? angle - 180 : angle;
+          const angleForwardRad = (angleForward * Math.PI) / 180;
+          const offsetX = -dy * Math.sin(angleForwardRad);
+          const offsetY = dy * Math.cos(angleForwardRad);
+
+          group.setAttribute(
+            "transform",
+            `translate(${p.x + offsetX} ${p.y + offsetY}) rotate(${angle})`
+          );
+        } catch {
+          // Safe fallback
+        }
+      });
+    };
+
+    const update = () => {
+      if (reducedMotion) {
+        applyPhase(0);
+        return;
+      }
+
+      const elapsed = performance.now();
+      const phase = ((elapsed / duration) % 1) * stepVal;
+      applyPhase(phase);
+
+      animationFrameId = requestAnimationFrame(update);
+    };
+
+    animationFrameId = requestAnimationFrame(update);
+
+    return () => {
+      cancelAnimationFrame(animationFrameId);
+    };
+  }, [mounted, length, count, stepVal, direction, travelDirection, reducedMotion, indices]);
+
+  if (!mounted || count <= 0) return null;
+
+  return (
+    <g ref={containerRef}>
+      {indices.map((i) => (
+        <g key={i} data-index={i}>
+          <path
+            d="M -12 -10 L 8 0 L -12 10"
+            className="rsz-chevron"
+            aria-hidden="true"
+          />
+        </g>
+      ))}
+    </g>
+  );
+}
+
 function OverlaySegment({
   segment,
   impact,
@@ -585,11 +747,19 @@ function OverlaySegment({
 }) {
   const { activeAlerts, delays, reducedSpeedZones, plannedClosures } = useDashboardData();
 
+  const visualState = impact ? visualStateForImpactKind(impact.kind) : "planned-preview";
+
+  const { step } = useMemo(() => {
+    if (visualState === "reduced-speed-zone" && segment.pathD) {
+      return samplePath(segment.pathD, 56);
+    }
+    return { step: 56 };
+  }, [segment.pathD, visualState]);
+
   if (!segment.pathD) {
     return null;
   }
 
-  const visualState = impact ? visualStateForImpactKind(impact.kind) : "planned-preview";
   const isSelectedImpact = impact
     ? selection?.kind === impact.kind && selection.id === impact.cardId
     : selection?.kind === "planned-closure" && selection.id === plannedClosure?.id;
@@ -620,17 +790,11 @@ function OverlaySegment({
 
   const isMultiSegment = impactSegmentIds.length > 1;
 
-  const patternTransform = `translate(${segment.patternOriginX || 0}, ${(segment.patternOriginY || 0) - 48}) rotate(${segment.patternAngle || 0} 0 48)`;
-  const patternId = `${segment.id}-${visualState}-chevron`;
-
-  const isChevron = visualState === "reduced-speed-zone";
   const chevronBg = "#f59e0b";
-  const chevronStroke = "#1e293b";
 
   const travelDirection = visualTravelDirection(segment);
   const renderForwardLane = travelDirection !== "reverse";
   const renderReverseLane = travelDirection !== "forward";
-  const singleLaneOffset = travelDirection === "bidirectional" ? 0 : 20;
 
   const selectCurrentImpact = () => {
     if (impact) {
@@ -665,35 +829,7 @@ function OverlaySegment({
 
   return (
     <g className={connectedClass || undefined}>
-      {isChevron && (
-        <defs>
-          <pattern id={patternId} width="60" height="96" patternUnits="userSpaceOnUse" patternTransform={patternTransform}>
-            <rect width="60" height="96" fill={chevronBg} />
-            {renderForwardLane && (
-              <path
-                d="M 0,12 L 24,12 L 48,28 L 24,44 L 0,44 L 24,28 Z M -60,12 L -36,12 L -12,28 L -36,44 L -60,44 L -36,28 Z"
-                fill={chevronStroke}
-                transform={`translate(0 ${singleLaneOffset})`}
-              >
-                {reducedMotion ? null : (
-                  <animateTransform attributeName="transform" additive="sum" type="translate" from="0 0" to="60 0" dur="4s" repeatCount="indefinite" />
-                )}
-              </path>
-            )}
-            {renderReverseLane && (
-              <path
-                d="M 60,52 L 36,52 L 12,68 L 36,84 L 60,84 L 36,68 Z M 120,52 L 96,52 L 72,68 L 96,84 L 120,84 L 96,68 Z"
-                fill={chevronStroke}
-                transform={`translate(0 ${travelDirection === "bidirectional" ? 0 : -20})`}
-              >
-                {reducedMotion ? null : (
-                  <animateTransform attributeName="transform" additive="sum" type="translate" from="0 0" to="-60 0" dur="4s" repeatCount="indefinite" />
-                )}
-              </path>
-            )}
-          </pattern>
-        </defs>
-      )}
+
 
       <path
         className={`asset-alert-path-glow ${visualState}`}
@@ -734,11 +870,45 @@ function OverlaySegment({
       />
 
       {visualState === "reduced-speed-zone" && (
-        <path
-          className="asset-alert-path delay-candy pointer-events-none"
-          d={segment.pathD}
-          style={{ pointerEvents: "none", stroke: `url(#${patternId})` }}
-        />
+        <>
+          <defs>
+            <mask id={`${segment.id}-mask`}>
+              <path
+                className="rsz-chevron-mask-path pointer-events-none"
+                d={segment.pathD}
+                style={{ pointerEvents: "none", stroke: "white", fill: "none" }}
+              />
+            </mask>
+          </defs>
+          <path
+            className="asset-alert-path delay-candy pointer-events-none"
+            d={segment.pathD}
+            style={{ pointerEvents: "none", stroke: chevronBg }}
+          />
+          <g
+            mask={`url(#${segment.id}-mask)`}
+            style={{ "--chevron-step": `${step}px` } as React.CSSProperties}
+          >
+            {renderForwardLane && (
+              <AnimatedChevronLane
+                pathD={segment.pathD}
+                step={step}
+                direction="forward"
+                travelDirection={travelDirection}
+                reducedMotion={reducedMotion}
+              />
+            )}
+            {renderReverseLane && (
+              <AnimatedChevronLane
+                pathD={segment.pathD}
+                step={step}
+                direction="reverse"
+                travelDirection={travelDirection}
+                reducedMotion={reducedMotion}
+              />
+            )}
+          </g>
+        </>
       )}
       {visualState === "suspension" && (
         <path

@@ -73,7 +73,7 @@ test("renders the seeded dashboard API payload", async ({ page, request }) => {
   await expect(page.getByText("Southbound", { exact: true })).toBeVisible();
   await expect(page.getByText("Eglinton", { exact: true }).first()).toBeVisible();
   await expect(page.getByText("Davisville", { exact: true }).first()).toBeVisible();
-  await expect(page.getByText("Track issue")).toBeVisible();
+  await expect(page.getByText("Track issue").first()).toBeVisible();
   await expect(page.getByText("Mid-June")).toBeVisible();
 
   await page.locator('.alert-card').filter({ hasText: 'Eglinton' }).getByRole("button", { name: "Highlight on Map" }).click();
@@ -167,3 +167,26 @@ test("opens logs dropdown and expands raw JSON payload", async ({ page, request 
   await page.getByRole("button", { name: "Copy JSON" }).click();
   await expect(page.getByText("Copied!")).toBeVisible();
 });
+
+test("nonlinear guide-backed overlays open their corresponding cards", async ({ page, request }) => {
+  await setStubMode(request, "seeded");
+  await page.goto("/");
+  await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
+
+  await page.getByRole("button", { name: "reduced-speed-zone: King to Union" }).dispatchEvent("click");
+  await expect(page.getByRole("heading", { name: "Reduced Speed Zones" })).toBeVisible();
+  const unionCurveCard = page.locator('[data-impact-card-id="reduced-speed-zone-stub-union-curve"]');
+  await expect(unionCurveCard).toBeVisible();
+  await expect(unionCurveCard).toHaveClass(/highlight-active-card/);
+  await expect(unionCurveCard.getByText("King", { exact: true })).toBeVisible();
+  await expect(unionCurveCard.getByText("Union", { exact: true })).toBeVisible();
+
+  await page.getByRole("button", { name: "Toggle menu" }).click();
+  await page.getByRole("button", { name: "Map", exact: true }).click();
+  await page.getByRole("button", { name: "delay: Spadina to St George" }).dispatchEvent("click");
+  await expect(page.getByRole("heading", { name: "Delays" })).toBeVisible();
+  const stGeorgeCurveCard = page.locator('[data-impact-card-id="stub-delay-st-george-curve"]');
+  await expect(stGeorgeCurveCard).toBeVisible();
+  await expect(stGeorgeCurveCard).toHaveClass(/highlight-active-card/);
+});
+

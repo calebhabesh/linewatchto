@@ -26,10 +26,12 @@ describe("asset-backed map layering", () => {
 
   it("renders animated visual effects for delays, closures, and station impacts", () => {
     assert.match(interactiveMapSource, /<pattern id="suspension-hash"/);
-    assert.match(interactiveMapSource, /<pattern id=\{patternId\}/);
-    assert.match(interactiveMapSource, /<animateTransform attributeName="transform"/);
+    assert.match(interactiveMapSource, /className="rsz-chevron"/);
+    assert.match(interactiveMapSource, /d="M -12 -10 L 8 0 L -12 10"/);
+    assert.match(globalCss, /@keyframes chevron-slide/);
+    assert.match(interactiveMapSource, /mask=\{\`url\(#\$\{segment\.id\}-mask\)\`\}/);
     assert.match(interactiveMapSource, /className="asset-alert-path delay-candy pointer-events-none"/);
-    assert.match(interactiveMapSource, /style=\{\{\s*pointerEvents:\s*"none",\s*stroke:\s*`url\(#\$\{patternId\}\)`\s*\}\}/);
+    assert.match(interactiveMapSource, /style=\{\{\s*pointerEvents:\s*"none",\s*stroke:\s*chevronBg\s*\}\}/);
     assert.match(interactiveMapSource, /className="asset-alert-path suspension-candy pointer-events-none"/);
     assert.match(interactiveMapSource, /style=\{\{\s*pointerEvents:\s*"none",\s*stroke:\s*"url\(#suspension-hash\)"\s*\}\}/);
     assert.match(globalCss, /@keyframes station-selected-pulse/);
@@ -40,7 +42,7 @@ describe("asset-backed map layering", () => {
     assert.match(interactiveMapSource, /resolveNetworkSegmentPath/);
     assert.match(mapGeometrySource, /segment\.travelDirection \?\? "bidirectional"/);
     assert.match(mapGeometrySource, /segment\.guidePathReversed/);
-    assert.match(mapGeometrySource, /getAttribute\("inkscape:label"\) === "segment-guides-layer"/);
+    assert.match(mapGeometrySource, /getAttribute\("inkscape:label"\) === "non-linear-guides-layer"/);
     assert.match(interactiveMapSource, /travelDirection !== "reverse"/);
     assert.match(interactiveMapSource, /travelDirection !== "forward"/);
     assert.match(interactiveMapSource, /reducedMotion \? null : \(/);

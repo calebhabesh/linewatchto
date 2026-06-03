@@ -20,4 +20,6 @@
 - [ ] Why does high contrast mode switch when we dark mode shift
 - [ ] Auth for resume project fullness
 - [ ] Accounts can save stops that they frequent and routes they frequent
+- [ ] zoom when highlighting part of map
+- [ ] click and drag to move around info
 - [ ] Search Stations functionality

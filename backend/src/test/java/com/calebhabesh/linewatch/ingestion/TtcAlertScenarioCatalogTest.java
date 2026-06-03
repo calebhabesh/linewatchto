@@ -1,0 +1,108 @@
+package com.calebhabesh.linewatch.ingestion;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+import com.calebhabesh.linewatch.station.StationRepository;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.nio.charset.StandardCharsets;
+import java.util.EnumSet;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Stream;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.springframework.web.client.RestClient;
+
+class TtcAlertScenarioCatalogTest {
+    private final StationRepository stationRepository = mock(StationRepository.class);
+    private final TtcAlertNormalizer normalizer;
+    private final TtcAlertClient client;
+
+    TtcAlertScenarioCatalogTest() {
+        when(stationRepository.existsById(anyString())).thenReturn(true);
+        normalizer = new TtcAlertNormalizer(
+            new StationAliasResolver(stationRepository),
+            new AlertDirectionParser()
+        );
+        client = new TtcAlertClient(
+            RestClient.create(),
+            new ObjectMapper().findAndRegisterModules(),
+            new AlertIngestionProperties()
+        );
+    }
+
+    static Stream<Arguments> scenarios() {
+        return Stream.of(
+            Arguments.of("all-alert-types.json", 4, 1, EnumSet.of(
+                AlertImpactKind.SUSPENSION,
+                AlertImpactKind.DELAY,
+                AlertImpactKind.REDUCED_SPEED_ZONE,
+                AlertImpactKind.PLANNED_CLOSURE
+            )),
+            Arguments.of("nonlinear-union-curve.json", 3, 0, EnumSet.of(
+                AlertImpactKind.SUSPENSION,
+                AlertImpactKind.REDUCED_SPEED_ZONE
+            )),
+            Arguments.of("nonlinear-st-george-spadina.json", 2, 0, EnumSet.of(
+                AlertImpactKind.DELAY,
+                AlertImpactKind.REDUCED_SPEED_ZONE
+            )),
+            Arguments.of("long-mixed-line-1-rsz.json", 2, 0, EnumSet.of(
+                AlertImpactKind.REDUCED_SPEED_ZONE
+            )),
+            Arguments.of("line-5-suspension.json", 1, 0, EnumSet.of(
+                AlertImpactKind.SUSPENSION
+            )),
+            Arguments.of("nightly-closure-active-window.json", 1, 0, EnumSet.of(
+                AlertImpactKind.PLANNED_CLOSURE
+            )),
+            Arguments.of("station-node-impact.json", 1, 0, EnumSet.of(
+                AlertImpactKind.DELAY
+            ))
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("scenarios")
+    void scenarioFeedsParseAndNormalizeWithoutUnmatchedRapidTransitRecords(
+        String fileName,
+        int routeCount,
+        int accessibilityCount,
+        Set<AlertImpactKind> expectedImpactKinds
+    ) throws Exception {
+        TtcAlertFeed feed = parseScenario(fileName);
+
+        assertThat(feed.routes()).hasSize(routeCount);
+        assertThat(feed.accessibility()).hasSize(accessibilityCount);
+
+        List<NormalizedRouteAlert> routeAlerts = feed.routes().stream()
+            .map(normalizer::normalizeRoute)
+            .peek(result -> assertThat(result.status())
+                .describedAs("%s route normalization status", fileName)
+                .isEqualTo(NormalizationStatus.MATCHED))
+            .map(result -> result.projection().orElseThrow())
+            .toList();
+
+        assertThat(routeAlerts)
+            .extracting(NormalizedRouteAlert::impactKind)
+            .containsAll(expectedImpactKinds);
+
+        for (TtcFetchedRecord accessibility : feed.accessibility()) {
+            assertThat(normalizer.normalizeAccessibility(accessibility).status())
+                .describedAs("%s accessibility normalization status", fileName)
+                .isEqualTo(NormalizationStatus.MATCHED);
+        }
+    }
+
+    private TtcAlertFeed parseScenario(String fileName) throws Exception {
+        String body = new String(
+            getClass().getResourceAsStream("/fixtures/ttc-alert-scenarios/" + fileName).readAllBytes(),
+            StandardCharsets.UTF_8
+        );
+        return client.parse(body);
+    }
+}

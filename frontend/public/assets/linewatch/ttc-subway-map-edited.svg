@@ -23,15 +23,15 @@
    inkscape:pageopacity="0.0"
    inkscape:pagecheckerboard="0"
    inkscape:deskcolor="#d1d1d1"
-   inkscape:zoom="1.4142137"
-   inkscape:cx="3466.2372"
-   inkscape:cy="2578.4647"
+   inkscape:zoom="0.35355343"
+   inkscape:cx="3985.2534"
+   inkscape:cy="3570.8889"
    inkscape:window-width="2560"
    inkscape:window-height="1363"
    inkscape:window-x="0"
    inkscape:window-y="0"
    inkscape:window-maximized="1"
-   inkscape:current-layer="Layer_x0020_1" />
+   inkscape:current-layer="layer1" />
  <defs
    id="defs1">
   <style
@@ -156,8 +156,8 @@
    class="fil6"
    points="3635,2524 3642,2516 3725,2598 3717,2606 "
    id="polygon6" /><g
-   id="layer8"
-   inkscape:label="segment-guides-layer"
+   id="non-linear-guides-layer"
+   inkscape:label="non-linear-guides-layer"
    style="clip-rule:evenodd;display:none;fill-rule:evenodd;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
    sodipodi:insensitive="true"><path
      style="clip-rule:evenodd;fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:20;stroke-linecap:round;stroke-linejoin:miter;stroke-dasharray:none;stroke-opacity:1;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
@@ -176,7 +176,7 @@
      d="m 3735.9999,2519.9999 -1,-249"
      id="path1"
      inkscape:label="seg-line-1-dupont-spadina" /></g>
-<g
+  <g
    id="_1615690582816"
    transform="translate(279.39107,-381.31033)">
    <path

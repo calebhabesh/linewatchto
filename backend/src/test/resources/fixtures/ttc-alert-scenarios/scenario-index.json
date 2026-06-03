@@ -1,0 +1,91 @@
+{
+  "generatedAt": "2026-06-03T15:00:00.000Z",
+  "scenarios": [
+    {
+      "name": "all-alert-types",
+      "file": "all-alert-types.json",
+      "routeCount": 4,
+      "accessibilityCount": 1,
+      "impactKinds": [
+        "suspension",
+        "delay",
+        "reduced-speed-zone",
+        "planned-closure"
+      ],
+      "guidePathIds": []
+    },
+    {
+      "name": "nonlinear-union-curve",
+      "file": "nonlinear-union-curve.json",
+      "routeCount": 3,
+      "accessibilityCount": 0,
+      "impactKinds": [
+        "suspension",
+        "reduced-speed-zone"
+      ],
+      "guidePathIds": [
+        "seg-line-1-union-king",
+        "seg-line-1-st-andrew-union"
+      ]
+    },
+    {
+      "name": "nonlinear-st-george-spadina",
+      "file": "nonlinear-st-george-spadina.json",
+      "routeCount": 2,
+      "accessibilityCount": 0,
+      "impactKinds": [
+        "delay",
+        "reduced-speed-zone"
+      ],
+      "guidePathIds": [
+        "seg-line-1-spadina-st-george",
+        "seg-line-1-dupont-spadina"
+      ]
+    },
+    {
+      "name": "long-mixed-line-1-rsz",
+      "file": "long-mixed-line-1-rsz.json",
+      "routeCount": 2,
+      "accessibilityCount": 0,
+      "impactKinds": [
+        "reduced-speed-zone"
+      ],
+      "guidePathIds": [
+        "seg-line-1-dupont-spadina",
+        "seg-line-1-spadina-st-george",
+        "seg-line-1-st-andrew-union",
+        "seg-line-1-union-king"
+      ]
+    },
+    {
+      "name": "line-5-suspension",
+      "file": "line-5-suspension.json",
+      "routeCount": 1,
+      "accessibilityCount": 0,
+      "impactKinds": [
+        "suspension"
+      ],
+      "guidePathIds": []
+    },
+    {
+      "name": "nightly-closure-active-window",
+      "file": "nightly-closure-active-window.json",
+      "routeCount": 1,
+      "accessibilityCount": 0,
+      "impactKinds": [
+        "planned-closure"
+      ],
+      "guidePathIds": []
+    },
+    {
+      "name": "station-node-impact",
+      "file": "station-node-impact.json",
+      "routeCount": 1,
+      "accessibilityCount": 0,
+      "impactKinds": [
+        "delay"
+      ],
+      "guidePathIds": []
+    }
+  ]
+}

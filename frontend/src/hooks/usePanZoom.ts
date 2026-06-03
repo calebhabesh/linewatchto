@@ -8,12 +8,34 @@ export function usePanZoom() {
   const animTimeoutRef = useRef<number | null>(null);
   const startPos = useRef({ x: 0, y: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<HTMLDivElement>(null);
+  const transformRef = useRef({ x: 0, y: 0, scale: 1 });
+  const dragRafRef = useRef<number | null>(null);
+  const lastMoveEvent = useRef<{ clientX: number, clientY: number } | null>(null);
 
   const startAnimation = useCallback(() => {
     setIsAnimating(true);
     if (animTimeoutRef.current) window.clearTimeout(animTimeoutRef.current);
     animTimeoutRef.current = window.setTimeout(() => setIsAnimating(false), 400);
   }, []);
+
+  // Keep transformRef in sync with transform state when not dragging
+  useEffect(() => {
+    if (!isDragging) {
+      transformRef.current = transform;
+    }
+  }, [transform, isDragging]);
+
+  // Clean up animation frame on unmount
+  useEffect(() => {
+    return () => {
+      if (dragRafRef.current !== null) {
+        cancelAnimationFrame(dragRafRef.current);
+      }
+    };
+  }, []);
+
+  const lastDimensions = useRef({ width: 0, height: 0 });
 
   // ResizeObserver to track container size changes, update fitScale, and scale map proportionally
   useEffect(() => {
@@ -24,6 +46,16 @@ export function usePanZoom() {
       for (const entry of entries) {
         const { width, height } = entry.contentRect;
         if (width > 0 && height > 0) {
+          const diffW = Math.abs(lastDimensions.current.width - width);
+          const diffH = Math.abs(lastDimensions.current.height - height);
+          
+          // Ignore subpixel variations to prevent layout feedback loops from layer promotion
+          if (diffW < 1 && diffH < 1) {
+            continue;
+          }
+          
+          lastDimensions.current = { width, height };
+          
           const mapWidth = 4500;
           const mapHeight = 2181.82;
           const newFit = Math.min(width / mapWidth, height / mapHeight);
@@ -65,23 +97,60 @@ export function usePanZoom() {
     // Only allow left click panning
     if (e.button !== 0) return;
     setIsDragging(true);
-    startPos.current = { x: e.clientX - transform.x, y: e.clientY - transform.y };
+    startPos.current = { x: e.clientX - transformRef.current.x, y: e.clientY - transformRef.current.y };
     e.currentTarget.setPointerCapture(e.pointerId);
-  }, [transform.x, transform.y]);
+  }, []);
 
   const handlePointerMove = useCallback((e: PointerEvent<HTMLDivElement>) => {
     if (!isDragging) return;
-    setTransform(prev => ({
-      ...prev,
-      x: e.clientX - startPos.current.x,
-      y: e.clientY - startPos.current.y
-    }));
+
+    lastMoveEvent.current = { clientX: e.clientX, clientY: e.clientY };
+
+    if (dragRafRef.current === null) {
+      dragRafRef.current = requestAnimationFrame(() => {
+        if (!isDragging || !lastMoveEvent.current) {
+          dragRafRef.current = null;
+          return;
+        }
+
+        const { clientX, clientY } = lastMoveEvent.current;
+        const newX = clientX - startPos.current.x;
+        const newY = clientY - startPos.current.y;
+
+        transformRef.current.x = newX;
+        transformRef.current.y = newY;
+
+        if (mapRef.current) {
+          mapRef.current.style.transform = `translate(${newX}px, ${newY}px) scale(${transformRef.current.scale})`;
+        }
+
+        dragRafRef.current = null;
+      });
+    }
   }, [isDragging]);
 
   const handlePointerUp = useCallback((e: PointerEvent<HTMLDivElement>) => {
-    setIsDragging(false);
-    e.currentTarget.releasePointerCapture(e.pointerId);
-  }, []);
+    if (dragRafRef.current !== null) {
+      cancelAnimationFrame(dragRafRef.current);
+      dragRafRef.current = null;
+    }
+    if (isDragging) {
+      if (lastMoveEvent.current) {
+        const { clientX, clientY } = lastMoveEvent.current;
+        const newX = clientX - startPos.current.x;
+        const newY = clientY - startPos.current.y;
+        transformRef.current.x = newX;
+        transformRef.current.y = newY;
+        if (mapRef.current) {
+          mapRef.current.style.transform = `translate(${newX}px, ${newY}px) scale(${transformRef.current.scale})`;
+        }
+        lastMoveEvent.current = null;
+      }
+      setIsDragging(false);
+      setTransform({ ...transformRef.current });
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    }
+  }, [isDragging]);
 
   const handleWheel = useCallback((e: WheelEvent<HTMLDivElement>) => {
     if (!containerRef.current) return;
@@ -183,6 +252,7 @@ export function usePanZoom() {
     isDragging,
     isAnimating,
     containerRef,
+    mapRef,
     handlePointerDown,
     handlePointerMove,
     handlePointerUp,

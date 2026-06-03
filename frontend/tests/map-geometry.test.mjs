@@ -4,6 +4,7 @@ import { describe, it } from "node:test";
 import {
   resolveNetworkSegmentPath,
   visualTravelDirection,
+  samplePath,
 } from "../src/app/map-geometry.ts";
 
 const stations = [
@@ -106,5 +107,11 @@ describe("map overlay geometry", () => {
       }),
       "reverse",
     );
+  });
+
+  it("safely returns an empty array for samplePath when document is undefined", () => {
+    const result = samplePath("M 0 0 L 100 0");
+    assert.deepEqual(result.points, []);
+    assert.equal(result.step, 56);
   });
 });

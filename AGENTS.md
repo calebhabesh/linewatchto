@@ -276,4 +276,8 @@ If you are antigravity-cli, Gemini, Codex, or another coding agent:
 - Run the smallest meaningful failing test before behavior changes when practical.
 - Run verification before claiming success.
 - Summarize changed files and commands run.
+- `backend/src/test/resources/fixtures/ttc-alert-scenarios/` contains generated TTC-shaped alert scenario feeds for dev/test coverage.
+- `scripts/alert-scenario-catalog.mjs` is the source of truth for those generated fixtures; run `node scripts/generate-alert-scenarios.mjs` after editing it.
+- `scripts/dev-alert-scenario.sh <scenario-name>` runs the backend against a local scenario feed for manual browser testing.
+- Scenario records may be synthetic when captured public TTC samples are unavailable; do not describe scenario data as live TTC service.
 - Do not overclaim features that are only represented by fixtures.

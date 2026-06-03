@@ -2,12 +2,87 @@ import type { NetworkSegment, Station } from "./linewatch-data";
 
 export type MapPoint = { x: number; y: number };
 
+export type ChevronInstance = {
+  x: number;
+  y: number;
+  angle: number;
+};
+
 export function visualTravelDirection(segment: NetworkSegment) {
   const direction = segment.travelDirection ?? "bidirectional";
   if (!segment.guidePathReversed || direction === "bidirectional") {
     return direction;
   }
   return direction === "forward" ? "reverse" : "forward";
+}
+
+export type SampledPath = {
+  points: ChevronInstance[];
+  step: number;
+};
+
+export function samplePath(pathD: string, spacing: number = 56): SampledPath {
+  if (typeof document === "undefined") return { points: [], step: spacing };
+  try {
+    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    path.setAttribute("d", pathD);
+    const length = path.getTotalLength();
+    const points: ChevronInstance[] = [];
+
+    if (length <= 0) return { points: [], step: spacing };
+
+    const count = Math.max(1, Math.floor(length / spacing));
+    const step = length / count;
+
+    // 1. Add extra point before start (at -step)
+    {
+      const pStart = path.getPointAtLength(0);
+      const pAhead = path.getPointAtLength(Math.min(length, 1));
+      const dx = pAhead.x - pStart.x;
+      const dy = pAhead.y - pStart.y;
+      const rad = Math.atan2(dy, dx);
+      points.push({
+        x: pStart.x - step * Math.cos(rad),
+        y: pStart.y - step * Math.sin(rad),
+        angle: rad * (180 / Math.PI),
+      });
+    }
+
+    // 2. Add standard points from 0 to length
+    for (let i = 0; i <= count; i++) {
+      const dist = i * step;
+      const p = path.getPointAtLength(dist);
+
+      const delta = 1;
+      const pAhead = path.getPointAtLength(Math.min(length, dist + delta));
+      const pBehind = path.getPointAtLength(Math.max(0, dist - delta));
+
+      const dx = pAhead.x - pBehind.x;
+      const dy = pAhead.y - pBehind.y;
+      const angle = Math.atan2(dy, dx) * (180 / Math.PI);
+
+      points.push({ x: p.x, y: p.y, angle });
+    }
+
+    // 3. Add extra point after end (at length + step)
+    {
+      const pEnd = path.getPointAtLength(length);
+      const pBehind = path.getPointAtLength(Math.max(0, length - 1));
+      const dx = pEnd.x - pBehind.x;
+      const dy = pEnd.y - pBehind.y;
+      const rad = Math.atan2(dy, dx);
+      points.push({
+        x: pEnd.x + step * Math.cos(rad),
+        y: pEnd.y + step * Math.sin(rad),
+        angle: rad * (180 / Math.PI),
+      });
+    }
+
+    return { points, step };
+  } catch (e) {
+    console.error("Error sampling SVG path:", e);
+    return { points: [], step: spacing };
+  }
 }
 
 export function resolveNetworkSegmentPath(
@@ -73,7 +148,7 @@ export function readSvgGeometry(
 
   const guidePaths = new Map<string, string>();
   const guideLayer = Array.from(root.querySelectorAll<SVGGElement>("g")).find(
-    (element) => element.getAttribute("inkscape:label") === "segment-guides-layer",
+    (element) => element.getAttribute("inkscape:label") === "non-linear-guides-layer",
   );
   for (const path of guideLayer?.querySelectorAll<SVGPathElement>("path") ?? []) {
     const label = path.getAttribute("inkscape:label");
