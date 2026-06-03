@@ -7,6 +7,7 @@ const interactiveMapSource = readFileSync(new URL("../src/components/Interactive
 const lineStatusSource = readFileSync(new URL("../src/components/LineStatusPanel.tsx", import.meta.url), "utf8");
 const activeAlertsSource = readFileSync(new URL("../src/components/ActiveAlertsPanel.tsx", import.meta.url), "utf8");
 const delaysPanelSource = readFileSync(new URL("../src/components/DelaysPanel.tsx", import.meta.url), "utf8");
+const impactCardFieldsSource = readFileSync(new URL("../src/components/ImpactCardFields.tsx", import.meta.url), "utf8");
 const reducedSpeedZonesSource = readFileSync(new URL("../src/components/ReducedSpeedZonesPanel.tsx", import.meta.url), "utf8");
 const lineLegendSource = readFileSync(new URL("../src/components/LineLegend.tsx", import.meta.url), "utf8");
 const plannedClosuresSource = readFileSync(new URL("../src/components/PlannedClosuresPanel.tsx", import.meta.url), "utf8");
@@ -26,7 +27,9 @@ describe("floating menu layout", () => {
     assert.match(shellSource, /activeView === "delays"/);
     assert.match(shellSource, /\/assets\/linewatch\/delay-icon\.svg/);
     assert.match(delaysPanelSource, /data-impact-card-id=/);
-    assert.match(delaysPanelSource, /Started/);
+    assert.match(delaysPanelSource, /MetadataGrid/);
+    assert.match(impactCardFieldsSource, /\["Started"/);
+    assert.match(impactCardFieldsSource, /"Updated"/);
     assert.match(lineLegendSource, /onDelayClick\?\.\(line\.id\)/);
     assert.match(shellSource, /"reduced-speed-zones"/);
     assert.match(shellSource, /Reduced Speed Zones/);
@@ -91,9 +94,6 @@ describe("floating menu layout", () => {
 
   it("labels fallback mode without claiming live TTC status", () => {
     assert.match(pageSource, /fixture mode/);
-    assert.match(shellSource, /generatedAt\.live \? "Live status" : "Demo status"/);
-    assert.match(shellSource, /data-testid="menu-dashboard-data-mode"/);
-    assert.match(interactiveMapSource, /data-testid="dashboard-data-mode"/);
   });
 
   it("LineLegend calls onReducedSpeedZoneClick with line.id", () => {

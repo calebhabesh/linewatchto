@@ -80,7 +80,7 @@ class StationServiceTest {
     @Test
     void stationDetailIncludesLinesAccessImpactsArrivalsAndDisclaimer() {
         StationEntity union = new StationEntity("union", "Union", 4311, 3597, true, 10, null);
-        TransitLineEntity line = new TransitLineEntity("line-1", "1", "Yonge-University", "#f4c430", 1);
+        TransitLineEntity line = new TransitLineEntity("line-1", "1", "Yonge-University", "#F8C300", 1);
         StationLineEntity stationLine = new StationLineEntity(
             1L, "union", "line-1", "Northbound / Southbound", 1, true, true
         );
@@ -135,7 +135,7 @@ class StationServiceTest {
     void freshStationDetailUsesLinkedAccessibilityOutagesAndRouteAlerts() {
         OffsetDateTime updatedAt = OffsetDateTime.parse("2026-06-02T14:12:00-04:00");
         StationEntity union = new StationEntity("union", "Union", 4311, 3597, true, 10, null);
-        TransitLineEntity line = new TransitLineEntity("line-1", "1", "Yonge-University", "#f4c430", 1);
+        TransitLineEntity line = new TransitLineEntity("line-1", "1", "Yonge-University", "#F8C300", 1);
         StationLineEntity stationLine = new StationLineEntity(
             1L, "union", "line-1", "Northbound / Southbound", 1, true, true
         );
@@ -198,7 +198,7 @@ class StationServiceTest {
     @Test
     void staleStationDetailUsesFixtureFallbackWithoutReadingLiveRows() {
         StationEntity union = new StationEntity("union", "Union", 4311, 3597, true, 10, null);
-        TransitLineEntity line = new TransitLineEntity("line-1", "1", "Yonge-University", "#f4c430", 1);
+        TransitLineEntity line = new TransitLineEntity("line-1", "1", "Yonge-University", "#F8C300", 1);
         StationLineEntity stationLine = new StationLineEntity(
             1L, "union", "line-1", "Northbound / Southbound", 1, true, true
         );

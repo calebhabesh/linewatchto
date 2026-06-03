@@ -23,8 +23,6 @@ export function InteractiveTtcMap({
   onToggleTheme,
   layoutResetSignal,
   reducedMotion,
-  lastPoll,
-  dataModeLabel,
 }: {
   selection: ImpactSelection;
   onSelectImpact: (selection: ImpactSelection) => void;
@@ -35,8 +33,6 @@ export function InteractiveTtcMap({
   onToggleTheme: () => void;
   layoutResetSignal?: number;
   reducedMotion: boolean;
-  lastPoll: string;
-  dataModeLabel: string;
 }) {
   const { networkSegments, activeAlerts, delays, reducedSpeedZones, plannedClosures, stationNodeImpacts, stations: mapStations } = useDashboardData();
   const [svgParts, setSvgParts] = useState<{ part1: string; part2: string } | null>(null);
@@ -232,19 +228,6 @@ export function InteractiveTtcMap({
     <div className="relative w-full h-full flex flex-col overflow-hidden bg-transparent">
       {/* Top right Theme toggle (styled like hamburger) and poll chip */}
       <div className="absolute top-4 sm:top-6 right-4 sm:right-6 z-20 flex items-center gap-2 pointer-events-auto">
-        <div className="panel hidden min-h-10 max-w-[min(52vw,240px)] items-center gap-2 rounded-lg border border-black/10 px-3 py-2 text-xs font-bold shadow-lg dark:border-white/10 sm:flex bg-white dark:bg-[#0a0c10]">
-          <span className="text-slate-500 dark:text-slate-400">Last Polled:</span>
-          <span className="truncate text-slate-800 dark:text-white capitalize">{
-            lastPoll.replace(/succeeded\s*/i, "").toLowerCase().includes("just now") ? "Just Now" : lastPoll.replace(/succeeded\s*/i, "")
-          }</span>
-          <span className="h-4 w-px bg-slate-300 dark:bg-white/10" />
-          <div className="flex items-center gap-1.5 bg-green-500/10 text-green-600 dark:text-green-400 px-1.5 py-0.5 rounded border border-green-500/20 shrink-0">
-             <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-             <b data-testid="dashboard-data-mode" className="text-[10px] uppercase tracking-wider truncate">
-               {dataModeLabel.includes("demo") || dataModeLabel.includes("mode") ? dataModeLabel : "Live Status"}
-             </b>
-          </div>
-        </div>
         <button
           onClick={onToggleTheme}
           className="panel flex items-center justify-center w-10 sm:w-14 h-10 sm:h-14 rounded-xl border border-black/10 dark:border-white/10 shadow-lg hover:!bg-slate-100 dark:hover:!bg-[#1a1e28] hover:scale-105 active:scale-95 outline-none focus-visible:ring-4 focus-visible:ring-black/10 dark:focus-visible:ring-white/10 transition-all cursor-pointer bg-white dark:bg-[#0a0c10]"
@@ -256,7 +239,7 @@ export function InteractiveTtcMap({
 
       {/* Top center map controls */}
       {/* Note: ml-2 sm:ml-3 is added to visually center the mass of the controls, since the left side has 2 buttons and is visually heavier than the right side */}
-      <div className="absolute top-6 sm:top-[72px] left-1/2 -translate-x-1/2 ml-2 sm:ml-0.75 z-20 flex flex-row items-center justify-center gap-1 sm:gap-2 pointer-events-auto">
+      <div className="absolute top-14 sm:top-[92px] left-1/2 -translate-x-1/2 ml-2 sm:ml-0.75 z-20 flex flex-row items-center justify-center gap-1 sm:gap-2 pointer-events-auto">
         <button
           onClick={recenter}
           className="group w-16 sm:w-[68px] h-[60px] flex flex-col items-center justify-center gap-1.5 text-slate-900 dark:text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.9)] dark:drop-shadow-[0_0_12px_rgba(0,0,0,0.9)] hover:bg-black/10 dark:hover:bg-white/10 focus-visible:bg-black/10 dark:focus-visible:bg-white/10 rounded-2xl active:scale-95 outline-none transition-all cursor-pointer"

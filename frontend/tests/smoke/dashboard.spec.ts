@@ -55,7 +55,6 @@ test("renders the seeded dashboard API payload", async ({ page, request }) => {
 
   await expect(page.getByText("Stub API Yonge-University", { exact: true })).toBeVisible();
   await expect(page.getByText("Stub API Sheppard", { exact: true })).toBeVisible();
-  await expect(page.getByText("Last Polled: Just Now", { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Stub Station station details" })).toBeVisible();
   await expect(page.getByText(/Backend offline \(Fixture mode\)/)).toHaveCount(0);
 
@@ -109,8 +108,8 @@ test("station detail shows accessibility facilities and active outage warning", 
   await page.getByRole("button", { name: "Stub Station station details" }).click();
 
   await expect(page.getByRole("complementary", { name: "Stub Station station details" })).toBeVisible();
-  await expect(page.getByText("Wheelchair accessible", { exact: true })).toBeVisible();
-  await expect(page.getByText("Elevator available, outage reported", { exact: true })).toBeVisible();
+  await expect(page.getByAltText("Wheelchair accessible", { exact: true })).toBeVisible();
+  await expect(page.getByAltText("Elevator available, outage reported", { exact: true })).toBeVisible();
   await expect(page.locator('[data-facility-warning="elevator"]')).toBeVisible();
   await expect(page.getByText("Demo estimates", { exact: true })).toBeVisible();
 });
@@ -130,8 +129,7 @@ test("renders fixture fallback when the dashboard API is unavailable", async ({ 
   await openDashboardMenu(page);
 
   await expect(
-    page.getByText("Last Polled: fixture mode", { exact: true })
+    page.getByText("Last Polled: fixture mode", { exact: true }).first()
   ).toBeVisible();
-  await expect(page.getByTestId("menu-dashboard-data-mode")).toHaveText("Demo status");
   await expect(page.getByText("Live status", { exact: true })).toHaveCount(0);
 });

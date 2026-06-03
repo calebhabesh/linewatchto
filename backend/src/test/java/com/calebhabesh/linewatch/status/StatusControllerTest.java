@@ -48,7 +48,7 @@ class StatusControllerTest {
     @Test
     void doesNotClaimLiveModeBeforeFirstSuccessfulIngestionRun() {
         when(repository.findAllByOrderBySortOrderAsc()).thenReturn(List.of(
-                new TransitLineEntity("line-1", "1", "Yonge-University", "#f4c430", 1)
+                new TransitLineEntity("line-1", "1", "Yonge-University", "#F8C300", 1)
         ));
         when(alertRepository.findByActiveTrueAndType("active-alert")).thenReturn(List.of());
         when(ingestionRunStore.findLatest()).thenReturn(Optional.empty());
@@ -64,7 +64,7 @@ class StatusControllerTest {
     @Test
     void marksLineSuspendedFromNormalizedActiveAlertsAfterSuccessfulIngestion() {
         when(repository.findAllByOrderBySortOrderAsc()).thenReturn(List.of(
-                new TransitLineEntity("line-2", "2", "Bloor-Danforth", "#14a44d", 2)
+                new TransitLineEntity("line-2", "2", "Bloor-Danforth", "#00923F", 2)
         ));
         when(alertRepository.findByActiveTrueAndType("active-alert")).thenReturn(List.of(
                 alert("line-2", "suspension", "No service", "2026-06-01T11:50:00Z")
@@ -90,7 +90,7 @@ class StatusControllerTest {
     @Test
     void doesNotUseOldActiveAlertsWhenLatestSuccessfulPollIsStale() {
         when(repository.findAllByOrderBySortOrderAsc()).thenReturn(List.of(
-                new TransitLineEntity("line-2", "2", "Bloor-Danforth", "#14a44d", 2)
+                new TransitLineEntity("line-2", "2", "Bloor-Danforth", "#00923F", 2)
         ));
         when(alertRepository.findByActiveTrueAndType("active-alert")).thenReturn(List.of(
                 alert("line-2", "delay", "Old delay", "2026-06-01T11:00:00Z")

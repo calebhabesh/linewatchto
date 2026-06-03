@@ -5,7 +5,7 @@ import { ChevronLeft, Eye, EyeOff } from "lucide-react";
 import type { ImpactSelection } from "../app/linewatch-data";
 import { useDashboardData } from "../app/DataContext";
 import { useScrollSelectedImpactCard } from "../hooks/useScrollSelectedImpactCard";
-import { ImpactRouteHeader, LineBadge, MetadataGrid } from "./ImpactCardFields";
+import { ImpactRouteHeader, LineBadge, MetadataGrid, CardSource } from "./ImpactCardFields";
 
 interface Props {
   selection: ImpactSelection;
@@ -27,21 +27,24 @@ export function DelaysPanel({ selection, onSelectImpact, onBack }: Props) {
 
   return (
     <section className="panel min-w-0 border border-black/10 dark:border-white/10 rounded-lg shadow-xl">
-      <div className="panel-heading border-b border-black/10 dark:border-white/10 px-4 py-3 flex items-center justify-between gap-3">
+      <div className="panel-heading @container border-b border-black/10 dark:border-white/10 px-3 py-2 sm:px-4 sm:py-3 flex items-center justify-between gap-1 sm:gap-3 min-w-0">
         <div className="flex items-center gap-1">
           {onBack && (
-            <button onClick={onBack} className="p-2 -ml-3 mr-1 hover:bg-black/10 dark:hover:bg-white/10 rounded-lg transition-colors cursor-pointer shrink-0">
-              <ChevronLeft size={28} className="text-slate-700 dark:text-slate-300" />
+            <button onClick={onBack} className="p-1 sm:p-2 -ml-1 sm:-ml-3 mr-0 sm:mr-1 hover:bg-black/10 dark:hover:bg-white/10 rounded-lg transition-colors cursor-pointer shrink-0">
+              <ChevronLeft className="w-6 h-6 sm:w-7 sm:h-7 text-slate-700 dark:text-slate-300" />
             </button>
           )}
-          <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-3 whitespace-nowrap">
-            <Image src="/assets/linewatch/delay-icon.svg" alt="" width={22} height={22} className="shrink-0" />
-            Delays
+          <h2 className="text-[clamp(10px,3.5cqw,18px)] font-bold text-slate-900 dark:text-white flex items-center gap-1 sm:gap-3 whitespace-nowrap">
+            <Image src="/assets/linewatch/delay-icon.svg" alt="" width={16} height={16} className="w-[16px] h-[16px] sm:w-[22px] sm:h-[22px] shrink-0" />
+            <span>Delays</span>
           </h2>
         </div>
-        <span className="shrink-0 text-xs bg-amber-500/10 text-amber-600 dark:text-amber-400 px-2 py-0.5 rounded-full font-bold">
-          {delays.length} {delays.length === 1 ? "Delay" : "Delays"}
-        </span>
+        <div className="flex flex-col items-end gap-1 mt-0.5 shrink-0">
+          <span className="shrink-0 text-[9px] sm:text-xs bg-amber-500/10 text-amber-600 dark:text-amber-400 px-1.5 sm:px-2 py-0.5 rounded-full font-bold">
+            {delays.length} {delays.length === 1 ? "Delay" : "Delays"}
+          </span>
+          <CardSource source={delays[0]?.source || "TTC Live Alerts"} />
+        </div>
       </div>
       <div className="alert-stack min-w-0 p-3 flex flex-col gap-2">
         {delays.map((delay) => {
@@ -54,7 +57,6 @@ export function DelaysPanel({ selection, onSelectImpact, onBack }: Props) {
                 isActive ? "!bg-amber-50 dark:!bg-amber-950" : ""
               }`}
             >
-              <span className="sr-only">Started and Updated timing</span>
               <div className="flex items-start justify-between gap-3 w-full min-w-0">
                 <div className="flex min-w-0 flex-1 items-start gap-2">
                   <LineBadge lineId={delay.lineId} lineNumber={delay.lineNumber} />
@@ -73,7 +75,6 @@ export function DelaysPanel({ selection, onSelectImpact, onBack }: Props) {
 
               <MetadataGrid
                 cause={delay.cause}
-                source={delay.source}
                 startedAt={delay.startedAt}
                 updatedAt={delay.updatedAt}
               />

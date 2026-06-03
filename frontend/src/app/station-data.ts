@@ -94,28 +94,28 @@ const FALLBACK_LINE_DEFINITIONS: Record<string, Omit<StationLine, "wheelchairAcc
     id: "line-1",
     number: "1",
     name: "Yonge-University",
-    color: "#f4c430",
+    color: "#F8C300",
     platformLabel: "Northbound / Southbound",
   },
   "line-2": {
     id: "line-2",
     number: "2",
     name: "Bloor-Danforth",
-    color: "#14a44d",
+    color: "#00923F",
     platformLabel: "Eastbound / Westbound",
   },
   "line-4": {
     id: "line-4",
     number: "4",
     name: "Sheppard",
-    color: "#b84ed8",
+    color: "#A21A68",
     platformLabel: "Eastbound / Westbound",
   },
   "line-5": {
     id: "line-5",
     number: "5",
     name: "Eglinton Crosstown",
-    color: "#f57c00",
+    color: "#EB8738",
     platformLabel: "Eastbound / Westbound",
   },
   "line-6": {
@@ -1550,7 +1550,7 @@ const fallbackStationDetailSeed = {
         id: "line-1",
         number: "1",
         name: "Yonge-University",
-        color: "#f4c430",
+        color: "#F8C300",
         platformLabel: "Northbound / Southbound",
       },
     ],
@@ -1574,8 +1574,8 @@ const fallbackStationDetailSeed = {
     mapY: 2602,
     interchange: true,
     lines: [
-      { id: "line-1", number: "1", name: "Yonge-University", color: "#f4c430", platformLabel: "Northbound / Southbound" },
-      { id: "line-2", number: "2", name: "Bloor-Danforth", color: "#14a44d", platformLabel: "Eastbound / Westbound" },
+      { id: "line-1", number: "1", name: "Yonge-University", color: "#F8C300", platformLabel: "Northbound / Southbound" },
+      { id: "line-2", number: "2", name: "Bloor-Danforth", color: "#00923F", platformLabel: "Eastbound / Westbound" },
     ],
     access: {
       status: "advisory",
@@ -1597,8 +1597,8 @@ const fallbackStationDetailSeed = {
     mapY: 1808,
     interchange: true,
     lines: [
-      { id: "line-1", number: "1", name: "Yonge-University", color: "#f4c430", platformLabel: "Northbound / Southbound" },
-      { id: "line-5", number: "5", name: "Eglinton Crosstown", color: "#f57c00", platformLabel: "Eastbound / Westbound" },
+      { id: "line-1", number: "1", name: "Yonge-University", color: "#F8C300", platformLabel: "Northbound / Southbound" },
+      { id: "line-5", number: "5", name: "Eglinton Crosstown", color: "#EB8738", platformLabel: "Eastbound / Westbound" },
     ],
     access: {
       status: "normal",
@@ -1620,7 +1620,7 @@ const fallbackStationDetailSeed = {
     mapY: 2603,
     interchange: false,
     lines: [
-      { id: "line-2", number: "2", name: "Bloor-Danforth", color: "#14a44d", platformLabel: "Eastbound / Westbound" },
+      { id: "line-2", number: "2", name: "Bloor-Danforth", color: "#00923F", platformLabel: "Eastbound / Westbound" },
     ],
     access: {
       status: "normal",

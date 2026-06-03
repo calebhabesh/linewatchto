@@ -54,16 +54,16 @@ export function SavedCommutesPanel({ onBack }: Props = {}) {
 
   return (
     <section className="commute-panel min-w-0 border border-black/10 dark:border-white/10 rounded-lg shadow-xl">
-      <div className="panel-heading border-b border-black/10 dark:border-white/10 px-4 py-3">
+      <div className="panel-heading @container border-b border-black/10 dark:border-white/10 px-4 py-3">
         <div className="flex items-center gap-1">
           {onBack && (
             <button onClick={onBack} className="p-2 -ml-3 mr-1 hover:bg-black/10 dark:hover:bg-white/10 rounded-lg transition-colors cursor-pointer shrink-0">
               <ChevronLeft size={28} className="text-slate-700 dark:text-slate-300" />
             </button>
           )}
-          <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2 whitespace-nowrap">
-            <Navigation size={22} className="text-emerald-500 shrink-0" />
-            Saved Commutes
+          <h2 className="text-[clamp(10px,3.5cqw,18px)] font-bold text-slate-900 dark:text-white flex items-center gap-1 sm:gap-2 whitespace-nowrap">
+            <Navigation className="w-[16px] h-[16px] sm:w-[22px] sm:h-[22px] text-emerald-500 shrink-0" />
+            <span>Saved Commutes</span>
           </h2>
         </div>
       </div>

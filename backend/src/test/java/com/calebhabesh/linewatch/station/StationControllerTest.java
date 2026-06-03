@@ -87,7 +87,7 @@ class StationControllerTest {
                     "line-1",
                     "1",
                     "Yonge-University",
-                    "#f4c430",
+                    "#F8C300",
                     "Northbound / Southbound",
                     true,
                     true

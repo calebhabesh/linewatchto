@@ -1,17 +1,16 @@
-import { ArrowRight, ArrowLeftRight } from "lucide-react";
 import type { ReactNode } from "react";
 import { ImpactTimestamp } from "./ImpactTimestamp";
 
 export function lineColor(lineId: string) {
   switch (lineId) {
     case "line-1":
-      return { backgroundColor: "#f4c430", color: "#000000" };
+      return { backgroundColor: "#F8C300", color: "#000000" };
     case "line-2":
-      return { backgroundColor: "#14a44d", color: "#ffffff" };
+      return { backgroundColor: "#00923F", color: "#ffffff" };
     case "line-4":
-      return { backgroundColor: "#b84ed8", color: "#ffffff" };
+      return { backgroundColor: "#A21A68", color: "#ffffff" };
     case "line-5":
-      return { backgroundColor: "#f57c00", color: "#ffffff" };
+      return { backgroundColor: "#EB8738", color: "#ffffff" };
     case "line-6":
       return { backgroundColor: "#969594", color: "#ffffff" };
     default:
@@ -40,14 +39,33 @@ function formatElapsed(timeStr: string) {
     return `${hrs} hr${hrs > 1 ? "s" : ""} ${m > 0 ? `${m} min ` : ""}ago`;
   } else if (mins < 7 * 24 * 60) {
     const days = Math.floor(mins / (24 * 60));
-    return `${days} day${days > 1 ? "s" : ""} ago`;
+    const remainingHrs = Math.floor((mins % (24 * 60)) / 60);
+    return `${days} day${days > 1 ? "s" : ""}${remainingHrs > 0 ? ` ${remainingHrs} hr${remainingHrs > 1 ? "s" : ""}` : ""} ago`;
   } else if (mins < 30 * 24 * 60) {
     const weeks = Math.floor(mins / (7 * 24 * 60));
-    return `${weeks} week${weeks > 1 ? "s" : ""} ago`;
+    const remainingDays = Math.floor((mins % (7 * 24 * 60)) / (24 * 60));
+    return `${weeks} week${weeks > 1 ? "s" : ""}${remainingDays > 0 ? ` ${remainingDays} day${remainingDays > 1 ? "s" : ""}` : ""} ago`;
   } else {
     const months = Math.floor(mins / (30 * 24 * 60));
-    return `${months} month${months > 1 ? "s" : ""} ago`;
+    const remainingWeeks = Math.floor((mins % (30 * 24 * 60)) / (7 * 24 * 60));
+    return `${months} month${months > 1 ? "s" : ""}${remainingWeeks > 0 ? ` ${remainingWeeks} week${remainingWeeks > 1 ? "s" : ""}` : ""} ago`;
   }
+}
+
+function LongArrowRight() {
+  return (
+    <svg width="32" height="16" viewBox="0 0 32 16" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="mx-1 text-slate-800 dark:text-white">
+      <path d="M0 8h30M23 1l7 7-7 7"/>
+    </svg>
+  );
+}
+
+function LongArrowLeftRight() {
+  return (
+    <svg width="32" height="16" viewBox="0 0 32 16" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="mx-1 text-slate-800 dark:text-white">
+      <path d="M2 8h28M9 1L2 8l7 7M23 1l7 7-7 7"/>
+    </svg>
+  );
 }
 
 function splitLocation(location: string): { from: string; to: string; twoWay: boolean } | null {
@@ -76,7 +94,7 @@ export function ImpactRouteHeader({
       {bounds ? (
         <div className="impact-route__bounds">
           <span>{bounds.from}</span>
-          {bounds.twoWay ? <ArrowLeftRight size={17} strokeWidth={3} /> : <ArrowRight size={17} strokeWidth={3} />}
+          {bounds.twoWay ? <LongArrowLeftRight /> : <LongArrowRight />}
           <span>{bounds.to}</span>
         </div>
       ) : (
@@ -94,7 +112,6 @@ export function MetadataGrid({
   resolution,
   reason,
   targetRemoval,
-  source,
   startedAt,
   updatedAt,
   updatedAgo,
@@ -104,7 +121,6 @@ export function MetadataGrid({
   resolution?: string | null;
   reason?: string | null;
   targetRemoval?: string | null;
-  source?: string | null;
   startedAt?: string | null;
   updatedAt?: string | null;
   updatedAgo?: string | null;
@@ -118,9 +134,8 @@ export function MetadataGrid({
 
   const rows = [
     causeValue ? ["Cause", causeValue] as const : null,
-    resolutionValue ? ["Resolution", resolutionValue] as const : null,
+    resolutionValue ? ["Est.\u00A0\u00A0\u00A0Resolution", resolutionValue] as const : null,
     ...renderedExtraRows,
-    source ? ["Source", source] as const : null,
     ["Started", <ImpactTimestamp key="started" timestamp={startedAt} />] as const,
     [
       "Updated",
@@ -143,5 +158,14 @@ export function MetadataGrid({
         </div>
       ))}
     </dl>
+  );
+}
+
+export function CardSource({ source }: { source: string }) {
+  if (!source) return null;
+  return (
+    <span className="inline-flex items-center shrink-0 text-[7px] sm:text-[8px] text-slate-500/80 dark:text-slate-400/80 font-bold px-1 sm:px-1.5 py-0.5 rounded-[3px] border border-black/10 dark:border-white/10 uppercase tracking-wide sm:tracking-widest bg-black/5 dark:bg-white/5 whitespace-nowrap">
+      Source: {source}
+    </span>
   );
 }

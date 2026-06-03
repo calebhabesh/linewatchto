@@ -11,16 +11,16 @@ export function ReliabilityPanel({ onBack }: ReliabilityProps = {}) {
   const { reliabilitySummaries } = useDashboardData();
   return (
     <section className="analytics-panel min-w-0 border border-black/10 dark:border-white/10 rounded-lg shadow-xl" style={{ WebkitBackfaceVisibility: "hidden", backfaceVisibility: "hidden" }}>
-      <div className="panel-heading border-b border-black/10 dark:border-white/10 px-4 py-3">
+      <div className="panel-heading @container border-b border-black/10 dark:border-white/10 px-4 py-3">
         <div className="flex items-center gap-1">
           {onBack && (
             <button onClick={onBack} className="p-2 -ml-3 mr-1 hover:bg-black/10 dark:hover:bg-white/10 rounded-lg transition-colors cursor-pointer shrink-0">
               <ChevronLeft size={28} className="text-slate-700 dark:text-slate-300" />
             </button>
           )}
-          <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2 whitespace-nowrap">
-            <BarChart3 size={22} className="text-purple-500 shrink-0" />
-            Reliability Analytics (7-Day)
+          <h2 className="text-[clamp(10px,3.5cqw,18px)] font-bold text-slate-900 dark:text-white flex items-center gap-1 sm:gap-2 whitespace-nowrap">
+            <BarChart3 className="w-[16px] h-[16px] sm:w-[22px] sm:h-[22px] text-purple-500 shrink-0" />
+            <span>Reliability Analytics (7-Day)</span>
           </h2>
         </div>
       </div>
@@ -34,7 +34,7 @@ export function ReliabilityPanel({ onBack }: ReliabilityProps = {}) {
               <span
                 className="line-badge shrink-0"
                 style={{
-                  backgroundColor: item.lineId === "line-1" ? "#f4c430" : item.lineId === "line-2" ? "#14a44d" : item.lineId === "line-4" ? "#b84ed8" : item.lineId === "line-5" ? "#f57c00" : "#969594",
+                  backgroundColor: item.lineId === "line-1" ? "#F8C300" : item.lineId === "line-2" ? "#00923F" : item.lineId === "line-4" ? "#A21A68" : item.lineId === "line-5" ? "#EB8738" : "#969594",
                   color: item.lineId === "line-1" ? "#000000" : "#ffffff",
                 }}
               >

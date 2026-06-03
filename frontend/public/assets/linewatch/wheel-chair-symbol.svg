@@ -4,11 +4,11 @@
 <svg
    version="1.1"
    id="Layer_1"
-   width="483.2226563"
-   height="551.4306641"
-   viewBox="0 0 483.2226563 551.4306641"
+   width="640"
+   height="640"
+   viewBox="-78.39 -44.28 640 640"
    overflow="visible"
-   enable-background="new 0 0 483.2226563 551.4306641"
+   enable-background="new -78.39 -44.28 640 640"
    xml:space="preserve"
    sodipodi:docname="wheel-chair-symbol.svg"
    inkscape:version="1.4.4 (dcaf3e7d9e, 2026-05-05)"
@@ -37,10 +37,10 @@
 <rect
    style="fill:#0067a7;stroke-width:63.4;stroke-linecap:round;fill-opacity:1"
    id="rect2"
-   width="483.22266"
-   height="551.43066"
-   x="0"
-   y="0" /><path
+   width="640"
+   height="640"
+   x="-78.39"
+   y="-44.28" /><path
    fill-rule="evenodd"
    clip-rule="evenodd"
    fill="#000000"

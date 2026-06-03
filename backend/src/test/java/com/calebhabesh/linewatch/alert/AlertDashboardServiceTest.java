@@ -469,7 +469,7 @@ class AlertDashboardServiceTest {
             "line-2",
             "2",
             "Bloor-Danforth",
-            "#14a44d",
+            "#00923F",
             2
         ));
         ReflectionTestUtils.setField(alert, "type", type);

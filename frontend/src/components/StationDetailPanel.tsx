@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertTriangle, Accessibility, Clock3, X } from "lucide-react";
+import { AlertTriangle, Clock3, X } from "lucide-react";
 import Image from "next/image";
 import { formatRelativeImpactTime } from "../app/impact-time";
 import type { StationDataResult, StationDetail } from "../app/station-data";
@@ -18,6 +18,18 @@ export function StationDetailPanel({ stationResult, loading, selectedStationName
   const hasElevatorOutage = station?.access.outages.some(
     (outage) => outage.assetType === "elevator"
   ) ?? false;
+  const elevatorOutagesCount = station?.access.outages.filter(
+    (outage) => outage.assetType === "elevator"
+  ).length ?? 0;
+  const escalatorOutagesCount = station?.access.outages.filter(
+    (outage) => outage.assetType === "escalator"
+  ).length ?? 0;
+  const sortedOutages = station?.access.outages
+    ? [...station.access.outages].sort((a, b) => {
+        if (a.assetType === b.assetType) return 0;
+        return a.assetType === "elevator" ? -1 : 1;
+      })
+    : [];
 
   return (
     <aside
@@ -30,7 +42,7 @@ export function StationDetailPanel({ stationResult, loading, selectedStationName
           <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
             Station
           </span>
-          <h2 className="mt-1 break-words text-xl font-black text-slate-950 dark:text-white">
+          <h2 className="mt-1 break-words text-3xl font-black text-slate-950 dark:text-white">
             {station?.name ?? selectedStationName ?? "Station details"}
           </h2>
         </div>
@@ -68,57 +80,52 @@ export function StationDetailPanel({ stationResult, loading, selectedStationName
             {station.lines.map((line) => (
               <div
                 key={line.id}
-                className="rounded-lg border border-black/10 bg-slate-50 p-3 dark:border-white/10 dark:bg-white/5"
+                className="relative flex flex-col justify-center rounded-lg border border-black/10 bg-slate-50 p-3 pr-24 dark:border-white/10 dark:bg-white/5"
               >
-                <span
-                  className="inline-flex min-h-8 items-center gap-2 rounded-full border border-black/10 px-3 py-1 text-xs font-black dark:border-white/10"
-                  style={{ backgroundColor: line.color, color: line.id === "line-1" ? "#000000" : "#ffffff" }}
-                  title={line.platformLabel}
-                >
-                  {line.number}
-                  <span>{line.name}</span>
-                </span>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span
+                    className="inline-flex min-h-8 items-center gap-2 rounded-full border border-black/10 px-3 py-1 text-xs font-black dark:border-white/10"
+                    style={{ backgroundColor: line.color, color: line.id === "line-1" ? "#000000" : "#ffffff" }}
+                    title={line.platformLabel}
+                  >
+                    {line.number}
+                    <span>{line.name}</span>
+                  </span>
+                </div>
                 <p className="mt-2 text-xs font-semibold text-slate-500 dark:text-slate-400">
                   {line.platformLabel}
                 </p>
-                <div className="mt-2 flex flex-wrap gap-2 text-xs font-semibold text-slate-700 dark:text-slate-200">
-                  {line.wheelchairAccessible ? (
-                    <span className="inline-flex items-center gap-1.5 rounded-md border border-black/10 bg-white px-2 py-1 dark:border-white/10 dark:bg-[#12151c]">
+
+                <div className="absolute right-3 top-1/2 flex -translate-y-1/2 items-center gap-3">
+                  {line.wheelchairAccessible && (
+                    <span
+                      className="flex items-center justify-center"
+                      title="Wheelchair accessible"
+                    >
                       <Image
                         src="/assets/linewatch/wheel-chair-symbol.svg"
-                        alt=""
-                        aria-hidden="true"
-                        width={16}
-                        height={16}
+                        alt="Wheelchair accessible"
+                        width={39}
+                        height={40}
+                        className="rounded-md drop-shadow-[0_0_3px_rgba(0,103,167,0.5)] dark:drop-shadow-[0_0_4px_rgba(0,103,167,0.7)]"
                       />
-                      Wheelchair accessible
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center rounded-md border border-black/10 bg-white px-2 py-1 text-slate-500 dark:border-white/10 dark:bg-[#12151c] dark:text-slate-400">
-                      Not wheelchair accessible
                     </span>
                   )}
-                  {line.hasElevator ? (
+                  {line.hasElevator && (
                     <span
-                      className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-1 ${
-                        hasElevatorOutage
-                          ? "border-amber-500/50 bg-amber-500/10 text-amber-700 dark:text-amber-300"
-                          : "border-black/10 bg-white dark:border-white/10 dark:bg-[#12151c]"
+                      className={`flex items-center justify-center ${
+                        hasElevatorOutage ? "opacity-60 grayscale" : ""
                       }`}
                       data-facility-warning={hasElevatorOutage ? "elevator" : undefined}
+                      title={hasElevatorOutage ? "Elevator available, outage reported" : "Elevator available"}
                     >
                       <Image
                         src="/assets/linewatch/elevator-icon.svg"
-                        alt=""
-                        aria-hidden="true"
-                        width={16}
-                        height={16}
+                        alt={hasElevatorOutage ? "Elevator available, outage reported" : "Elevator available"}
+                        width={40}
+                        height={40}
+                        className="drop-shadow-[0_0_3px_rgba(0,130,201,0.5)] dark:drop-shadow-[0_0_4px_rgba(0,130,201,0.7)]"
                       />
-                      Elevator available{hasElevatorOutage ? ", outage reported" : ""}
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center rounded-md border border-black/10 bg-white px-2 py-1 text-slate-500 dark:border-white/10 dark:bg-[#12151c] dark:text-slate-400">
-                      No elevator
                     </span>
                   )}
                 </div>
@@ -127,23 +134,101 @@ export function StationDetailPanel({ stationResult, loading, selectedStationName
           </div>
 
           <section className="rounded-lg border border-black/10 bg-slate-50 p-3 dark:border-white/10 dark:bg-white/5">
-            <h3 className="flex items-center gap-2 text-sm font-black">
-              <Accessibility size={16} />
-              Access
+            <h3 className="flex items-center gap-2.5 text-lg font-black">
+              <Image
+                src="/assets/linewatch/accessibility-alert.svg"
+                alt=""
+                width={24}
+                height={24}
+                aria-hidden="true"
+                className="shrink-0"
+              />
+              <span>Accessibility Outages</span>
+              <span className="ml-1.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-slate-200 px-1.5 py-0.5 text-xs font-bold text-slate-800 dark:bg-white/10 dark:text-slate-200">
+                {station.access.outages.length}
+              </span>
             </h3>
-            <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">{station.access.summary}</p>
+            {sortedOutages.length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-4 items-center">
+                {elevatorOutagesCount > 0 && (
+                  <div className="relative inline-flex" title={`${elevatorOutagesCount} Elevator Outages`}>
+                    <Image
+                      src="/assets/linewatch/outages/elevator.svg"
+                      alt="Elevator Outages"
+                      width={36}
+                      height={36}
+                      className="rounded"
+                    />
+                    <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-600 text-[8px] font-black text-white ring-1 ring-slate-50 dark:ring-[#0a0c10]">
+                      {elevatorOutagesCount}
+                    </span>
+                  </div>
+                )}
+                {escalatorOutagesCount > 0 && (
+                  <div className="relative inline-flex" title={`${escalatorOutagesCount} Escalator Outages`}>
+                    <Image
+                      src="/assets/linewatch/outages/escalator.svg"
+                      alt="Escalator Outages"
+                      width={36}
+                      height={36}
+                      className="rounded"
+                    />
+                    <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-600 text-[8px] font-black text-white ring-1 ring-slate-50 dark:ring-[#0a0c10]">
+                      {escalatorOutagesCount}
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
             <p className="mt-1 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
               {station.access.updatedAgo}
             </p>
-            {station.access.outages.length > 0 && (
+            {sortedOutages.length > 0 && (
               <div className="mt-3 flex flex-col gap-2">
-                {station.access.outages.map((outage) => (
-                  <div key={outage.id} className="rounded-md border border-amber-500/30 bg-amber-500/10 p-2 text-sm">
-                    <strong className="block text-amber-800 dark:text-amber-200">{outage.title}</strong>
-                    <p className="mt-1 text-slate-600 dark:text-slate-300">{outage.description}</p>
-                    <p className="mt-1 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-                      {outage.source} / {formatRelativeImpactTime(outage.updatedAt)}
-                    </p>
+                {sortedOutages.map((outage) => (
+                  <div key={outage.id} className="flex items-start gap-3 rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-sm">
+                    {outage.assetType === "elevator" && (
+                      <div className="relative shrink-0">
+                        <Image
+                          src="/assets/linewatch/outages/elevator.svg"
+                          alt="Elevator"
+                          width={32}
+                          height={32}
+                          className="rounded"
+                        />
+                        <span className="absolute -top-1 -right-1 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-red-600 text-[7px] font-black text-white ring-1 ring-amber-50 dark:ring-[#0a0c10]">
+                          ✕
+                        </span>
+                      </div>
+                    )}
+                    {outage.assetType === "escalator" && (
+                      <div className="relative shrink-0">
+                        <Image
+                          src="/assets/linewatch/outages/escalator.svg"
+                          alt="Escalator"
+                          width={32}
+                          height={32}
+                          className="rounded"
+                        />
+                        <span className="absolute -top-1 -right-1 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-red-600 text-[7px] font-black text-white ring-1 ring-amber-50 dark:ring-[#0a0c10]">
+                          ✕
+                        </span>
+                      </div>
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <strong className="block text-amber-800 dark:text-amber-200">{outage.title}</strong>
+                      <p className="mt-1 text-slate-600 dark:text-slate-300 text-xs leading-relaxed">{outage.description}</p>
+                      <dl className="impact-metadata-grid">
+                        <div>
+                          <dt>EST. RESOLUTION</dt>
+                          <dd>TBD</dd>
+                        </div>
+                        <div>
+                          <dt>UPDATED</dt>
+                          <dd>{formatRelativeImpactTime(outage.updatedAt)}</dd>
+                        </div>
+                      </dl>
+                    </div>
                   </div>
                 ))}
               </div>

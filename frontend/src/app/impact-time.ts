@@ -10,11 +10,30 @@ export function formatRelativeImpactTime(
   }
 
   const elapsedHours = Math.floor(elapsedMinutes / 60);
-  const remainingMinutes = elapsedMinutes % 60;
-  const minuteSuffix = remainingMinutes === 1 ? "" : "s";
-  const minutePart = remainingMinutes > 0
-    ? ` ${remainingMinutes} min${minuteSuffix}`
-    : "";
+  if (elapsedHours < 24) {
+    const remainingMinutes = elapsedMinutes % 60;
+    const minuteSuffix = remainingMinutes === 1 ? "" : "s";
+    const minutePart = remainingMinutes > 0
+      ? ` ${remainingMinutes} min${minuteSuffix}`
+      : "";
+    return `${elapsedHours} hr${elapsedHours === 1 ? "" : "s"}${minutePart} ago`;
+  }
 
-  return `${elapsedHours} hr${elapsedHours === 1 ? "" : "s"}${minutePart} ago`;
+  const elapsedDays = Math.floor(elapsedHours / 24);
+  if (elapsedDays < 7) {
+    const remainingHours = elapsedHours % 24;
+    const hourSuffix = remainingHours === 1 ? "" : "s";
+    const hourPart = remainingHours > 0
+      ? ` ${remainingHours} hr${hourSuffix}`
+      : "";
+    return `${elapsedDays} day${elapsedDays === 1 ? "" : "s"}${hourPart} ago`;
+  }
+
+  const elapsedWeeks = Math.floor(elapsedDays / 7);
+  if (elapsedWeeks < 4) {
+    return `${elapsedWeeks} week${elapsedWeeks === 1 ? "" : "s"} ago`;
+  }
+  
+  const elapsedMonths = Math.floor(elapsedDays / 30);
+  return `${elapsedMonths} month${elapsedMonths === 1 ? "" : "s"} ago`;
 }

@@ -717,7 +717,7 @@ g:has(.asset-alert-path:focus-visible) .asset-alert-path-glow,
 
 .line-badge {
   align-items: center;
-  background: #f4c430;
+  background: #F8C300;
   border: 1px solid #000000;
   border-radius: 999px;
   color: #08090d;
@@ -1230,7 +1230,7 @@ g:has(.asset-alert-path:focus-visible) .asset-alert-path-glow,
   display: grid;
   gap: 4px;
   justify-items: center;
-  margin-top: 10px;
+  margin-top: 32px;
   text-align: center;
 }
 

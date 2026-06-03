@@ -5,7 +5,7 @@ import { useDashboardData } from "../app/DataContext";
 import { AlertTriangle, Bus, ChevronLeft, Eye, EyeOff } from "lucide-react";
 import type { ImpactSelection } from "../app/linewatch-data";
 import { useScrollSelectedImpactCard } from "../hooks/useScrollSelectedImpactCard";
-import { LineBadge, ImpactRouteHeader, MetadataGrid } from "./ImpactCardFields";
+import { LineBadge, ImpactRouteHeader, MetadataGrid, CardSource } from "./ImpactCardFields";
 
 interface Props {
   selection: ImpactSelection;
@@ -42,21 +42,24 @@ export function ActiveAlertsPanel({
 
   return (
     <section className="panel min-w-0 border border-black/10 dark:border-white/10 rounded-lg shadow-xl">
-      <div className="panel-heading border-b border-black/10 dark:border-white/10 px-4 py-3 flex items-center justify-between gap-3">
+      <div className="panel-heading @container border-b border-black/10 dark:border-white/10 px-3 py-2 sm:px-4 sm:py-3 flex items-center justify-between gap-1 sm:gap-3 min-w-0">
         <div className="flex items-center gap-1">
           {onBack && (
-            <button onClick={onBack} className="p-2 -ml-3 mr-1 hover:bg-black/10 dark:hover:bg-white/10 rounded-lg transition-colors cursor-pointer shrink-0">
-              <ChevronLeft size={28} className="text-slate-700 dark:text-slate-300" />
+            <button onClick={onBack} className="p-1 sm:p-2 -ml-1 sm:-ml-3 mr-0 sm:mr-1 hover:bg-black/10 dark:hover:bg-white/10 rounded-lg transition-colors cursor-pointer shrink-0">
+              <ChevronLeft className="w-6 h-6 sm:w-7 sm:h-7 text-slate-700 dark:text-slate-300" />
             </button>
           )}
-          <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-3 whitespace-nowrap">
-            <AlertTriangle size={22} className="text-red-500 shrink-0" />
-            Active Alerts
+          <h2 className="text-[clamp(10px,3.5cqw,18px)] font-bold text-slate-900 dark:text-white flex items-center gap-1 sm:gap-3 whitespace-nowrap">
+            <AlertTriangle className="w-[16px] h-[16px] sm:w-[22px] sm:h-[22px] text-red-500 shrink-0" />
+            <span>Active Alerts</span>
           </h2>
         </div>
-        <span className="shrink-0 text-xs bg-red-500/10 text-red-500 px-2 py-0.5 rounded-full font-bold">
-          {activeAlerts.length} Active
-        </span>
+        <div className="flex flex-col items-end gap-1 mt-0.5 shrink-0">
+          <span className="shrink-0 text-[9px] sm:text-xs bg-red-500/10 text-red-600 dark:text-red-400 px-1.5 sm:px-2 py-0.5 rounded-full font-bold">
+            {activeAlerts.length} {activeAlerts.length === 1 ? "Alert" : "Alerts"}
+          </span>
+          <CardSource source={activeAlerts[0]?.source || "TTC Live Alerts"} />
+        </div>
       </div>
       <div className="alert-stack min-w-0 p-3 flex flex-col gap-2">
         {activeAlerts.map((alert) => {
@@ -79,10 +82,12 @@ export function ActiveAlertsPanel({
                   </strong>
                 </div>
                 {alert.shuttle && (
-                  <span className="shrink-0 flex items-center gap-1 text-[10px] bg-blue-500/10 text-blue-500 dark:text-blue-400 px-1.5 py-0.5 rounded font-semibold uppercase">
-                    <Bus size={10} />
-                    Shuttle
-                  </span>
+                  <div className="flex flex-col items-end shrink-0">
+                    <span className="flex items-center gap-1 text-[10px] bg-blue-500/10 text-blue-500 dark:text-blue-400 px-1.5 py-0.5 rounded font-semibold uppercase">
+                      <Bus size={10} />
+                      Shuttle
+                    </span>
+                  </div>
                 )}
               </div>
               
@@ -97,7 +102,6 @@ export function ActiveAlertsPanel({
                 resolution={alert.resolution}
                 reason={alert.reason} 
                 targetRemoval={alert.targetRemoval} 
-                source={alert.source} 
                 startedAt={alert.startedAt}
                 updatedAt={alert.updatedAt}
                 updatedAgo={alert.updatedAgo} 
