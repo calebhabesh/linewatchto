@@ -140,11 +140,11 @@ public class TtcAlertStore {
         jdbc.update("""
             insert into accessibility_outages (
                 id, source_id, asset_type, title, description, effect,
-                effect_description, active_period_start, active_period_end,
+                effect_description, cause, active_period_start, active_period_end,
                 source_updated_at, active, raw_payload, created_at, updated_at
             ) values (
                 :id, :sourceId, :assetType, :title, :description, :effect,
-                :effectDescription, :activePeriodStart, :activePeriodEnd,
+                :effectDescription, :cause, :activePeriodStart, :activePeriodEnd,
                 :sourceUpdatedAt, true, :rawPayload, :now, :now
             )
             on conflict (source_id) do update set
@@ -153,6 +153,7 @@ public class TtcAlertStore {
                 description = excluded.description,
                 effect = excluded.effect,
                 effect_description = excluded.effect_description,
+                cause = excluded.cause,
                 active_period_start = excluded.active_period_start,
                 active_period_end = excluded.active_period_end,
                 source_updated_at = excluded.source_updated_at,
@@ -167,6 +168,7 @@ public class TtcAlertStore {
                 .addValue("description", outage.description())
                 .addValue("effect", outage.effect())
                 .addValue("effectDescription", outage.effectDescription())
+                .addValue("cause", outage.cause())
                 .addValue("activePeriodStart", outage.activePeriodStart())
                 .addValue("activePeriodEnd", outage.activePeriodEnd())
                 .addValue("sourceUpdatedAt", outage.sourceUpdatedAt())

@@ -229,6 +229,7 @@ export const stationDetailResponse = {
         assetType: "elevator",
         title: "Elevator outage",
         description: "The station elevator is unavailable.",
+        cause: "Technical issue",
         updatedAt: "2026-06-02T14:12:00-04:00",
         source: "TTC Live Alerts",
       },

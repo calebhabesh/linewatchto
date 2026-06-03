@@ -150,6 +150,7 @@ class StationServiceTest {
                 "elevator",
                 "Elevator outage",
                 "Elevator is unavailable.",
+                "Technical issue",
                 updatedAt
             )
         ));

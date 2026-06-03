@@ -33,6 +33,7 @@ export type StationFacilityOutage = {
   assetType: "elevator" | "escalator";
   title: string;
   description: string;
+  cause?: string | null;
   updatedAt: string;
   source: string;
 };

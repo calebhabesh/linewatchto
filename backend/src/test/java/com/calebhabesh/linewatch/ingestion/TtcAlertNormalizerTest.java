@@ -278,6 +278,7 @@ class TtcAlertNormalizerTest {
         assertThat(outage.id()).isEqualTo("ttc-accessibility-synthetic-elevator-warden");
         assertThat(outage.assetType()).isEqualTo("elevator");
         assertThat(outage.stationIds()).containsExactly("warden");
+        assertThat(outage.cause()).isEqualTo("Technical issue");
         assertThat(outage.activePeriodEnd()).isNull();
     }
 

@@ -50,6 +50,7 @@ final class TestAlertRecords {
         return new NormalizedAccessibilityOutage(
             "ttc-accessibility-" + sourceId, sourceId, "elevator", "Elevator outage",
             "Out of service", "ACCESSIBILITY_ISSUE", "Out of service",
+            "Technical issue",
             SOURCE_UPDATED_AT, null, SOURCE_UPDATED_AT,
             "{\"id\":\"" + sourceId + "\"}", List.of("warden")
         );

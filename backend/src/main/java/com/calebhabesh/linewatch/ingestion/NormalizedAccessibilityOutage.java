@@ -11,6 +11,7 @@ public record NormalizedAccessibilityOutage(
     String description,
     String effect,
     String effectDescription,
+    String cause,
     OffsetDateTime activePeriodStart,
     OffsetDateTime activePeriodEnd,
     OffsetDateTime sourceUpdatedAt,

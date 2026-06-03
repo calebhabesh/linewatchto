@@ -227,6 +227,12 @@ export function StationDetailPanel({ stationResult, loading, selectedStationName
                           <dt>UPDATED</dt>
                           <dd>{formatRelativeImpactTime(outage.updatedAt)}</dd>
                         </div>
+                        {outage.cause && (
+                          <div>
+                            <dt>CAUSE</dt>
+                            <dd>{outage.cause}</dd>
+                          </div>
+                        )}
                       </dl>
                     </div>
                   </div>

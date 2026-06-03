@@ -23,6 +23,7 @@ public class StationLiveReadRepository {
                 outage.asset_type,
                 outage.title,
                 outage.description,
+                outage.cause,
                 coalesce(outage.source_updated_at, outage.updated_at) as updated_at
             from accessibility_outages outage
             join accessibility_outage_stations station_outage
@@ -36,6 +37,7 @@ public class StationLiveReadRepository {
                 resultSet.getString("asset_type"),
                 resultSet.getString("title"),
                 resultSet.getString("description"),
+                resultSet.getString("cause"),
                 resultSet.getObject("updated_at", OffsetDateTime.class)
             ));
     }
@@ -98,6 +100,7 @@ public class StationLiveReadRepository {
         String assetType,
         String title,
         String description,
+        String cause,
         OffsetDateTime updatedAt
     ) {
     }

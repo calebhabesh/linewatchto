@@ -65,6 +65,7 @@ public final class StationResponses {
         String assetType,
         String title,
         String description,
+        String cause,
         OffsetDateTime updatedAt,
         String source
     ) {

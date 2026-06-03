@@ -152,6 +152,10 @@ public class TtcAlertNormalizer {
             return NormalizationResult.unmatched();
         }
 
+        String cause = record.causeDescription() != null && !record.causeDescription().isBlank()
+            ? record.causeDescription()
+            : "Technical issue";
+
         return NormalizationResult.matched(new NormalizedAccessibilityOutage(
             "ttc-accessibility-" + record.id(),
             record.id(),
@@ -160,6 +164,7 @@ public class TtcAlertNormalizer {
             nullToEmpty(record.description()),
             record.effect(),
             record.effectDesc(),
+            cause,
             activePeriodStart(record),
             activePeriodEnd(record),
             record.lastUpdated(),

@@ -182,6 +182,7 @@ public class StationService {
                 outage.assetType(),
                 outage.title(),
                 outage.description(),
+                outage.cause(),
                 outage.updatedAt(),
                 "TTC Live Alerts"
             ))
