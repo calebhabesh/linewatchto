@@ -228,9 +228,9 @@ export function StationDetailPanel({ stationResult, loading, selectedStationName
                           <dd>{formatRelativeImpactTime(outage.updatedAt)}</dd>
                         </div>
                         {outage.cause && (
-                          <div>
-                            <dt>CAUSE</dt>
-                            <dd>{outage.cause}</dd>
+                          <div className="col-span-2 flex items-baseline gap-1.5" style={{ gridColumn: "span 2" }}>
+                            <dt className="shrink-0" style={{ margin: 0 }}>CAUSE</dt>
+                            <dd style={{ margin: 0 }}>{outage.cause}</dd>
                           </div>
                         )}
                       </dl>
