@@ -23,7 +23,11 @@ public class TtcAlertIngestionService {
         try {
             TtcAlertFeed feed = client.fetch();
             FeedApplicationCounts counts = applicationService.apply(feed);
-            runService.succeed(runId, counts, feed.lastUpdated());
+            runService.succeed(
+                runId,
+                counts,
+                TtcAlertTimes.sourceWallTimeToInstant(feed.lastUpdated())
+            );
         } catch (RuntimeException exception) {
             runService.fail(runId, exception);
             throw exception;

@@ -4,6 +4,7 @@ import com.calebhabesh.linewatch.station.LineSegmentEntity;
 import com.calebhabesh.linewatch.station.LineSegmentRepository;
 import com.calebhabesh.linewatch.station.TransitLineEntity;
 import com.calebhabesh.linewatch.ingestion.IngestionFreshness;
+import com.calebhabesh.linewatch.ingestion.TtcAlertStore;
 import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
@@ -37,6 +38,7 @@ public class AlertDashboardService {
     private final ReducedSpeedZoneProjector reducedSpeedZoneProjector;
     private final IngestionFreshness ingestionFreshness;
     private final AlertActivePeriodRepository periodRepository;
+    private final TtcAlertStore ttcAlertStore;
     private final Clock clock;
 
     public AlertDashboardService(
@@ -46,6 +48,7 @@ public class AlertDashboardService {
         ReducedSpeedZoneProjector reducedSpeedZoneProjector,
         IngestionFreshness ingestionFreshness,
         AlertActivePeriodRepository periodRepository,
+        TtcAlertStore ttcAlertStore,
         Clock clock
     ) {
         this.alertRepository = alertRepository;
@@ -54,7 +57,12 @@ public class AlertDashboardService {
         this.reducedSpeedZoneProjector = reducedSpeedZoneProjector;
         this.ingestionFreshness = ingestionFreshness;
         this.periodRepository = periodRepository;
+        this.ttcAlertStore = ttcAlertStore;
         this.clock = clock;
+    }
+
+    public List<RawAlertDto> rawAlerts() {
+        return ttcAlertStore.getRawAlerts();
     }
 
     public List<ActiveAlertDto> activeAlerts() {
@@ -353,7 +361,7 @@ public class AlertDashboardService {
             line == null ? null : line.getId(),
             line == null ? null : line.getNumber(),
             alert.getTitle(),
-            window(alert.getActivePeriodStart(), alert.getActivePeriodEnd()),
+            displayWindow(alert, ws),
             location(alert),
             alert.getDescription(),
             alert.getActivePeriodStart(),
@@ -373,6 +381,13 @@ public class AlertDashboardService {
             ws.nextWindowEnd(),
             ws.nextWindowLabel()
         );
+    }
+
+    private String displayWindow(AlertEntity alert, WindowState ws) {
+        if (ws.nightly()) {
+            return "Nightly closure windows";
+        }
+        return window(alert.getActivePeriodStart(), alert.getActivePeriodEnd());
     }
 
     private List<String> affectedSegmentIds(AlertEntity alert, List<LineSegmentEntity> segments) {

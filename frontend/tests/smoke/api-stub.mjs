@@ -8,6 +8,7 @@ import {
   stationDetailResponse,
   stationSummariesResponse,
   statusResponse,
+  rawAlertsResponse,
 } from "./api-stub-data.mjs";
 
 const port = Number(process.env.LINEWATCH_STUB_PORT ?? "4174");
@@ -85,6 +86,10 @@ const server = createServer(async (request, response) => {
     }
     if (type === "delay") {
       sendJson(response, 200, delaysResponse);
+      return;
+    }
+    if (type === "raw") {
+      sendJson(response, 200, rawAlertsResponse);
       return;
     }
     sendJson(response, 200, activeAlertsResponse);

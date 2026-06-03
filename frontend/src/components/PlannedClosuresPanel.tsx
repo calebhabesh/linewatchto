@@ -69,12 +69,12 @@ export function PlannedClosuresPanel({ selection, onSelectImpact, onBack }: Prop
                     </div>
                     {closure.activeNow && closure.activeWindowLabel && (
                       <p className="text-[11px] text-red-600 dark:text-red-400 font-semibold mt-1">
-                        Current window: {closure.activeWindowLabel}
+                        Current closure window: {closure.activeWindowLabel}
                       </p>
                     )}
                     {!closure.activeNow && closure.nextWindowLabel && (
                       <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium mt-1">
-                        Next window: {closure.nextWindowLabel}
+                        Next closure window: {closure.nextWindowLabel}
                       </p>
                     )}
                   </div>

@@ -59,8 +59,11 @@ export type StationImpact = {
 export type StationArrival = {
   lineId: string;
   direction: string;
-  minutes: number;
+  minutes: number | null;
+  predictedAt: string | null;
   label: string;
+  source: string;
+  status: "live" | "unavailable" | "demo";
 };
 
 export type StationDetail = {
@@ -73,7 +76,7 @@ export type StationDetail = {
   access: StationAccess;
   impacts: StationImpact[];
   arrivals: StationArrival[];
-  arrivalsSource: "Demo estimates";
+  arrivalsSource: string;
   dataMode: "seeded-demo";
   disclaimer: string;
 };
@@ -1562,8 +1565,8 @@ const fallbackStationDetailSeed = {
     },
     impacts: [],
     arrivals: [
-      { lineId: "line-1", direction: "Northbound", minutes: 2, label: "Demo arrival" },
-      { lineId: "line-1", direction: "Southbound", minutes: 5, label: "Demo arrival" },
+      { lineId: "line-1", direction: "Northbound", minutes: 2, predictedAt: null, label: "2 min", source: "Demo estimates", status: "demo" as const },
+      { lineId: "line-1", direction: "Southbound", minutes: 5, predictedAt: null, label: "5 min", source: "Demo estimates", status: "demo" as const },
     ],
     dataMode: "seeded-demo",
     disclaimer: "Station details use fallback demo data. Arrivals are demo placeholders, not live TTC predictions.",
@@ -1585,8 +1588,8 @@ const fallbackStationDetailSeed = {
     },
     impacts: [],
     arrivals: [
-      { lineId: "line-1", direction: "Northbound", minutes: 3, label: "Demo arrival" },
-      { lineId: "line-2", direction: "Eastbound", minutes: 4, label: "Demo arrival" },
+      { lineId: "line-1", direction: "Northbound", minutes: 3, predictedAt: null, label: "3 min", source: "Demo estimates", status: "demo" as const },
+      { lineId: "line-2", direction: "Eastbound", minutes: 4, predictedAt: null, label: "4 min", source: "Demo estimates", status: "demo" as const },
     ],
     dataMode: "seeded-demo",
     disclaimer: "Station details use fallback demo data. Arrivals are demo placeholders, not live TTC predictions.",
@@ -1608,8 +1611,8 @@ const fallbackStationDetailSeed = {
     },
     impacts: [],
     arrivals: [
-      { lineId: "line-1", direction: "Southbound", minutes: 6, label: "Demo arrival" },
-      { lineId: "line-5", direction: "Eastbound", minutes: 8, label: "Demo arrival" },
+      { lineId: "line-1", direction: "Southbound", minutes: 6, predictedAt: null, label: "6 min", source: "Demo estimates", status: "demo" as const },
+      { lineId: "line-5", direction: "Eastbound", minutes: 8, predictedAt: null, label: "8 min", source: "Demo estimates", status: "demo" as const },
     ],
     dataMode: "seeded-demo",
     disclaimer: "Station details use fallback demo data. Arrivals are demo placeholders, not live TTC predictions.",
@@ -1630,8 +1633,8 @@ const fallbackStationDetailSeed = {
     },
     impacts: [],
     arrivals: [
-      { lineId: "line-2", direction: "Eastbound", minutes: 4, label: "Demo arrival" },
-      { lineId: "line-2", direction: "Westbound", minutes: 7, label: "Demo arrival" },
+      { lineId: "line-2", direction: "Eastbound", minutes: 4, predictedAt: null, label: "4 min", source: "Demo estimates", status: "demo" as const },
+      { lineId: "line-2", direction: "Westbound", minutes: 7, predictedAt: null, label: "7 min", source: "Demo estimates", status: "demo" as const },
     ],
     dataMode: "seeded-demo",
     disclaimer: "Station details use fallback demo data. Arrivals are demo placeholders, not live TTC predictions.",
@@ -1656,7 +1659,10 @@ function toFallbackArrivals(line: StationLine): StationArrival[] {
     lineId: line.id,
     direction,
     minutes: index === 0 ? 3 : 6,
-    label: "Demo arrival",
+    predictedAt: new Date().toISOString(),
+    label: `${index === 0 ? 3 : 6} min`,
+    source: "Demo estimates",
+    status: "demo" as const,
   }));
 }
 

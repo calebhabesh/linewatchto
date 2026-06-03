@@ -2,6 +2,7 @@ package com.calebhabesh.linewatch.ingestion;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.time.Duration;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.test.context.ConfigDataApplicationContextInitializer;
@@ -24,9 +25,12 @@ class AlertIngestionProfileTest {
     void devLiveProfileEnablesAlertPolling() {
         contextRunner
             .withPropertyValues("spring.profiles.active=dev-live")
-            .run(context ->
-                assertThat(context.getBean(AlertIngestionProperties.class).isEnabled()).isTrue()
-            );
+            .run(context -> {
+                AlertIngestionProperties properties = context.getBean(AlertIngestionProperties.class);
+                assertThat(properties.isEnabled()).isTrue();
+                assertThat(properties.getFixedDelay()).isEqualTo(Duration.ofSeconds(15));
+                assertThat(properties.getMaxDashboardAge()).isEqualTo(Duration.ofMinutes(2));
+            });
     }
 
     @Configuration(proxyBeanMethods = false)

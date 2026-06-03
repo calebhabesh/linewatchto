@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { DynamicBackground } from "./DynamicBackground";
 import { InteractiveTtcMap } from "./InteractiveTtcMap";
 import { DelayIcon } from "./DelayIcon";
@@ -28,7 +29,21 @@ import { Menu, X, Map as MapIcon, AlertTriangle, Calendar, Navigation, ShieldChe
 
 type ActiveView = "map" | "menu" | "alerts" | "delays" | "reduced-speed-zones" | "closures" | "commutes" | "analytics";
 
+const DEFAULT_DASHBOARD_REFRESH_MS = 5_000;
+const MIN_DASHBOARD_REFRESH_MS = 2_000;
+
+function dashboardRefreshIntervalMs() {
+  const configured = Number(process.env.NEXT_PUBLIC_LINEWATCH_DASHBOARD_REFRESH_MS);
+
+  if (!Number.isFinite(configured) || configured <= 0) {
+    return DEFAULT_DASHBOARD_REFRESH_MS;
+  }
+
+  return Math.max(configured, MIN_DASHBOARD_REFRESH_MS);
+}
+
 export function LineWatchShell({ initialData }: { initialData: DashboardData }) {
+  const router = useRouter();
   const { generatedAt, activeAlerts, delays, reducedSpeedZones, lineStatuses, ingestionHealth, plannedClosures } = initialData;
   const pollText = generatedAt.lastPoll.replace(/succeeded\s*/i, "");
   const [isDark, setIsDark] = useState(true);
@@ -50,6 +65,30 @@ export function LineWatchShell({ initialData }: { initialData: DashboardData }) 
     mediaQuery.addEventListener("change", handler);
     return () => mediaQuery.removeEventListener("change", handler);
   }, []);
+
+  useEffect(() => {
+    const refreshDashboardData = () => {
+      if (document.visibilityState !== "visible") {
+        return;
+      }
+
+      router.refresh();
+    };
+
+    const interval = window.setInterval(refreshDashboardData, dashboardRefreshIntervalMs());
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        router.refresh();
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      window.clearInterval(interval);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [router]);
 
   useEffect(() => {
     let cancelled = false;

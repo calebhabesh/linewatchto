@@ -1,5 +1,7 @@
 package com.calebhabesh.linewatch.station;
 
+import com.calebhabesh.linewatch.arrival.ArrivalPrediction;
+import com.calebhabesh.linewatch.arrival.ArrivalService;
 import com.calebhabesh.linewatch.ingestion.IngestionFreshness;
 import java.util.Comparator;
 import java.util.List;
@@ -23,6 +25,7 @@ public class StationService {
     private final StationImpactRepository impactRepository;
     private final StationLiveReadRepository liveReadRepository;
     private final IngestionFreshness ingestionFreshness;
+    private final ArrivalService arrivalService;
 
     public StationService(
         StationRepository stationRepository,
@@ -31,7 +34,8 @@ public class StationService {
         StationAccessStatusRepository accessStatusRepository,
         StationImpactRepository impactRepository,
         StationLiveReadRepository liveReadRepository,
-        IngestionFreshness ingestionFreshness
+        IngestionFreshness ingestionFreshness,
+        ArrivalService arrivalService
     ) {
         this.stationRepository = stationRepository;
         this.transitLineRepository = transitLineRepository;
@@ -40,6 +44,7 @@ public class StationService {
         this.impactRepository = impactRepository;
         this.liveReadRepository = liveReadRepository;
         this.ingestionFreshness = ingestionFreshness;
+        this.arrivalService = arrivalService;
     }
 
     public StationResponses.StationListResponse stationSummaries() {
@@ -122,12 +127,20 @@ public class StationService {
                 .map(this::toImpactResponse)
                 .toList();
 
-        List<StationResponses.StationArrivalResponse> arrivals = lines.stream()
-            .flatMap(line -> List.of(
-                new StationResponses.StationArrivalResponse(line.id(), "Northbound / Eastbound", 2, "Demo arrival"),
-                new StationResponses.StationArrivalResponse(line.id(), "Southbound / Westbound", 5, "Demo arrival")
-            ).stream())
+        List<ArrivalPrediction> predictions = arrivalService.arrivalsFor(station.getId(), lines);
+        List<StationResponses.StationArrivalResponse> arrivals = predictions.stream()
+            .map(pred -> new StationResponses.StationArrivalResponse(
+                pred.lineId(),
+                pred.direction(),
+                pred.minutes(),
+                pred.predictedAt(),
+                pred.minutes() != null ? pred.minutes() + " min" : "Unavailable",
+                pred.source(),
+                pred.status()
+            ))
             .toList();
+
+        String arrivalsSource = predictions.isEmpty() ? "Arrival source unavailable" : predictions.get(0).source();
 
         return new StationResponses.StationDetailResponse(
             station.getId(),
@@ -139,7 +152,7 @@ public class StationService {
             access,
             impacts,
             arrivals,
-            "Demo estimates",
+            arrivalsSource,
             DATA_MODE,
             DISCLAIMER
         );

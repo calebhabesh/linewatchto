@@ -2,3 +2,5 @@ linewatch:
   ingestion:
     alerts:
       enabled: true
+      fixed-delay: ${LINEWATCH_INGESTION_ALERTS_FIXED_DELAY:PT15S}
+      max-dashboard-age: ${LINEWATCH_INGESTION_ALERTS_MAX_DASHBOARD_AGE:PT2M}

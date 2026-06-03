@@ -51,7 +51,7 @@ class StationControllerTest {
 
     private static final class StubStationService extends StationService {
         StubStationService() {
-            super(null, null, null, null, null, null, null);
+            super(null, null, null, null, null, null, null, null);
         }
 
         @Override
@@ -112,7 +112,10 @@ class StationControllerTest {
                     "line-1",
                     "Northbound",
                     2,
-                    "Demo arrival"
+                    null,
+                    "2 min",
+                    "Demo estimates",
+                    "demo"
                 )),
                 "Demo estimates",
                 "seeded-demo",

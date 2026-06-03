@@ -39,7 +39,7 @@ Implemented now:
 - Reviewed line-specific wheelchair and elevator metadata for every mapped Line 1, 2, 4, 5, and 6 stop, including distinct Spadina Line 1 and Line 2 values.
 - Authored wheelchair and elevator icons in station detail panels.
 - Fresh directly linked TTC station alerts and elevator/escalator outage rows when ingestion is current.
-- Demo station arrivals clearly labeled as placeholders, not live TTC predictions.
+- Source-labeled station arrival provider architecture with demo, unavailable, and live states; arrivals default to clearly labeled demo estimates since no public subway arrival API is available.
 - PostGIS-enabled Flyway schema for stations, transit lines, line segments, alerts, alert-segment links, snapshots, and ingestion runs.
 - Dashboard API boundaries for `/api/map`, `/api/status`, and `/api/alerts`, with fixture fallback when backend data is unavailable.
 - Next.js Server Component dashboard loading with complete local-fixture fallback.
@@ -68,8 +68,8 @@ Not implemented yet:
 - Populated geographic PostGIS geometry remains unimplemented.
 - Production geospatial matching remains unimplemented.
 - TTC Reduced Speed Zones webpage ingestion remains unimplemented.
-- Live station arrivals remain demo-only estimates.
-- Live station-arrival source reads remain unimplemented.
+- Station arrivals default to demo estimates; no public subway arrival API is connected yet.
+- The arrival provider architecture supports live, unavailable, and demo status states.
 - Redis-backed live status cache.
 - Backend commute-impact endpoint.
 - Real historical reliability aggregation.
@@ -241,7 +241,7 @@ Current backend scope:
 | `GET` | `/api/status` | Line status derived from fresh normalized alerts, otherwise no stale live impacts. |
 | `GET` | `/api/alerts?type=live\|delay\|planned\|slowdown` | Fresh normalized suspension/active alert cards, ordinary delay cards, planned closures, and Reduced Speed Zone groups. |
 | `GET` | `/api/stations?query={q}` | Seeded station summaries and search. |
-| `GET` | `/api/stations/{id}` | Station detail with reviewed facilities, demo arrivals, and fresh directly linked TTC outage/alert rows when ingestion is current. |
+| `GET` | `/api/stations/{id}` | Station detail with reviewed facilities, source-labeled arrivals (demo/unavailable/live), and fresh directly linked TTC outage/alert rows when ingestion is current. |
 
 Planned backend API:
 
@@ -378,7 +378,7 @@ Suggested resume bullet once backend and live data are implemented:
 
 ## Roadmap
 
-1. Add a public live-arrival provider and replace station-panel demo estimates with source-labeled predictions.
+1. Connect a public live-arrival source to the existing arrival provider when one becomes available for TTC subway lines.
 2. Import static GTFS shapes and implement production alert-to-segment matching.
 3. Implement saved commute impact matching and reliability aggregation.
 4. Deploy and publish measured API/build/test metrics.

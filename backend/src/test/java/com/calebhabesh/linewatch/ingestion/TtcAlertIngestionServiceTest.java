@@ -41,7 +41,11 @@ class TtcAlertIngestionServiceTest {
 
         service.ingestNow();
 
-        verify(runService).succeed(42L, counts, feed.lastUpdated());
+        verify(runService).succeed(
+            42L,
+            counts,
+            OffsetDateTime.parse("2026-06-01T15:55:00Z")
+        );
         verify(runService, never()).fail(anyLong(), any());
     }
 

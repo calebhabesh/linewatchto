@@ -27,6 +27,7 @@ class AlertDashboardServiceTest {
     private final LineSegmentRepository lineSegmentRepository = mock(LineSegmentRepository.class);
     private final IngestionFreshness ingestionFreshness = mock(IngestionFreshness.class);
     private final AlertActivePeriodRepository alertActivePeriodRepository = mock(AlertActivePeriodRepository.class);
+    private final com.calebhabesh.linewatch.ingestion.TtcAlertStore ttcAlertStore = mock(com.calebhabesh.linewatch.ingestion.TtcAlertStore.class);
     private final AlertDashboardService service = new AlertDashboardService(
         alertRepository,
         lineSegmentRepository,
@@ -34,6 +35,7 @@ class AlertDashboardServiceTest {
         new ReducedSpeedZoneProjector(new AlertSegmentMatcher(), new com.calebhabesh.linewatch.ingestion.AlertDirectionParser()),
         ingestionFreshness,
         alertActivePeriodRepository,
+        ttcAlertStore,
         CLOCK
     );
 
@@ -394,6 +396,7 @@ class AlertDashboardServiceTest {
 
         assertThat(closures).singleElement().satisfies(dto -> {
             assertThat(dto.id()).isEqualTo("planned-closure-nightly");
+            assertThat(dto.window()).isEqualTo("Nightly closure windows");
             assertThat(dto.nightly()).isTrue();
             assertThat(dto.activeNow()).isFalse();
             assertThat(dto.timingStatus()).isEqualTo("upcoming");
@@ -448,6 +451,7 @@ class AlertDashboardServiceTest {
 
         assertThat(closures).singleElement().satisfies(dto -> {
             assertThat(dto.id()).isEqualTo("planned-closure-nightly-active");
+            assertThat(dto.window()).isEqualTo("Nightly closure windows");
             assertThat(dto.nightly()).isTrue();
             assertThat(dto.activeNow()).isTrue();
             assertThat(dto.timingStatus()).isEqualTo("active-now");

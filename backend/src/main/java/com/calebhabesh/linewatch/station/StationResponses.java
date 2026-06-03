@@ -86,8 +86,11 @@ public final class StationResponses {
     public record StationArrivalResponse(
         String lineId,
         String direction,
-        int minutes,
-        String label
+        Integer minutes,
+        OffsetDateTime predictedAt,
+        String label,
+        String source,
+        String status
     ) {
     }
 }

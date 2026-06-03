@@ -57,4 +57,13 @@ describe("asset-backed map layering", () => {
     assert.match(interactiveMapSource, /map-selection-flash/);
     assert.match(interactiveMapSource, /setTimeout\([^,]+,\s*2500\s*\)/);
   });
+
+  it("does not render a selected planned closure twice when it is already an active impact", () => {
+    assert.match(interactiveMapSource, /shouldRenderPlannedPreviewLayer/);
+    assert.match(
+      interactiveMapSource,
+      /impact\.kind === "planned-closure" && impact\.cardId === selectedClosure\.id/,
+    );
+    assert.match(globalCss, /\.connected-corridor \.asset-alert-path/);
+  });
 });

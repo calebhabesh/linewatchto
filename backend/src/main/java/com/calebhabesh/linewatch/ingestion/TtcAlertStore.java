@@ -1,5 +1,6 @@
 package com.calebhabesh.linewatch.ingestion;
 
+import com.calebhabesh.linewatch.alert.RawAlertDto;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Objects;
@@ -403,6 +404,21 @@ public class TtcAlertStore {
         String description,
         OffsetDateTime sourceUpdatedAt
     ) {}
+
+    public List<RawAlertDto> getRawAlerts() {
+        return jdbc.query("""
+            select source_section, source_id, route_type, source_updated_at, payload, active
+            from ttc_alert_source_records
+            order by active desc, source_updated_at desc, last_seen_at desc
+            """, (resultSet, rowNumber) -> new RawAlertDto(
+                resultSet.getString("source_section"),
+                resultSet.getString("source_id"),
+                resultSet.getString("route_type"),
+                resultSet.getObject("source_updated_at", OffsetDateTime.class),
+                resultSet.getString("payload"),
+                resultSet.getBoolean("active")
+            ));
+    }
 
     private record ActiveOutage(String id, String sourceId) {}
 

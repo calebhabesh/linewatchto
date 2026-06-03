@@ -563,9 +563,21 @@ g:has(.asset-alert-path:focus-visible) .asset-alert-path-glow,
   stroke: rgba(59, 130, 246, 0.9);
 }
 
+.interactive-glow {
+  opacity: 0;
+  animation: none !important;
+}
+
+g:has(.asset-alert-path:hover) .interactive-glow,
+g:has(.asset-alert-path:focus-visible) .interactive-glow,
+.interactive-glow.selected {
+  opacity: 1;
+}
+
 .asset-alert-path {
   cursor: pointer;
   fill: none;
+  outline: none;
   pointer-events: stroke;
   stroke-linecap: round;
   stroke-linejoin: round;
@@ -611,6 +623,11 @@ g:has(.asset-alert-path:focus-visible) .asset-alert-path-glow,
 
 .asset-alert-path.selected {
   stroke-width: 108;
+}
+
+.connected-corridor .asset-alert-path,
+.connected-corridor .asset-alert-path-glow {
+  stroke-linecap: butt;
 }
 
 .map-detail-strip {
@@ -1154,6 +1171,7 @@ g:has(.asset-alert-path:focus-visible) .asset-alert-path-glow,
 .station-impact-ring {
   cursor: pointer;
   fill: none;
+  outline: none;
   opacity: 0.92;
   stroke: #f59e0b;
   stroke-dasharray: 18 16;

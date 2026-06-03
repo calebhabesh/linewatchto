@@ -29,11 +29,11 @@ export function formatRelativeImpactTime(
     return `${elapsedDays} day${elapsedDays === 1 ? "" : "s"}${hourPart} ago`;
   }
 
-  const elapsedWeeks = Math.floor(elapsedDays / 7);
-  if (elapsedWeeks < 4) {
+  const elapsedMonths = Math.floor(elapsedDays / 30);
+  if (elapsedMonths < 1) {
+    const elapsedWeeks = Math.floor(elapsedDays / 7);
     return `${elapsedWeeks} week${elapsedWeeks === 1 ? "" : "s"} ago`;
   }
-  
-  const elapsedMonths = Math.floor(elapsedDays / 30);
+
   return `${elapsedMonths} month${elapsedMonths === 1 ? "" : "s"} ago`;
 }

@@ -26,10 +26,10 @@ The project is early but no longer an empty scaffold.
 - Visible `/api/alerts`, `/api/status`, `/api/map`, and dynamic `/api/stations/{id}` rows can read normalized TTC alert records while the latest successful ingestion run is fresh; stale successful runs are suppressed from alert cards, line status, map overlays, and station details after the configured dashboard freshness window.
 - Delay cards are distinct from explicit Reduced Speed Zone cards. Started timing comes from `activePeriod.start` where available, and Updated timing comes from TTC `lastUpdated` where available.
 - Map segment overlays and single-station alert rings are clickable/tappable and open the corresponding submenu card.
-- Every mapped Line 1, 2, 4, 5, and 6 stop has station-line tags and reviewed line-specific wheelchair/elevator metadata. Station detail shows authored accessibility icons plus fresh directly linked TTC station alerts and elevator/escalator outages. Live station arrivals remain demo-only estimates. Nightly closure active-window gating is fully implemented.
+- Every mapped Line 1, 2, 4, 5, and 6 stop has station-line tags and reviewed line-specific wheelchair/elevator metadata. Station detail shows authored accessibility icons plus fresh directly linked TTC station alerts and elevator/escalator outages. Station arrivals use a source-labeled provider architecture: a configurably disabled `PublicArrivalClient` with demo, unavailable, and live status states. No public subway arrival API exists, so arrivals default to clearly labeled demo estimates. Nightly closure active-window gating is fully implemented.
 - GTFS import, populated geographic geometry, production segment matching, Redis caching, commute-impact API, and reliability aggregation are planned but not yet implemented.
 
-Do not claim that the visible dashboard is live unless there is a fresh successful ingestion run. Do not claim imported GTFS geometry, production geospatial matching, Redis-backed status, real analytics, or real station arrivals until those features exist in code and have passing verification.
+Do not claim that the visible dashboard is live unless there is a fresh successful ingestion run. Do not claim imported GTFS geometry, production geospatial matching, Redis-backed status, real analytics, or live station arrivals until those features exist in code and have passing verification.
 
 ## Product Target
 
@@ -263,7 +263,7 @@ When changing agent instructions, update both `AGENTS.md` and `GEMINI.md` togeth
 
 ## Suggested Next Implementation Order
 
-1. Add a public live-arrival provider and replace station-panel demo estimates with source-labeled predictions.
+1. Connect a public live-arrival source to the existing `PublicArrivalClient` when one becomes available for TTC subway lines.
 2. Import static GTFS shapes and implement production alert-to-segment matching.
 3. Implement commute impact matching, reliability aggregation, and Redis-backed status caching.
 

@@ -65,10 +65,58 @@ class TtcAlertNormalizerTest {
         assertThat(result.projection().orElseThrow().periods())
             .containsExactly(new NormalizedAlertPeriod(
                 "synthetic-planned-line-1-period",
-                OffsetDateTime.parse("2026-06-01T23:59:00Z"),
-                OffsetDateTime.parse("2026-06-02T03:30:00Z"),
+                OffsetDateTime.parse("2026-06-02T03:59:00Z"),
+                OffsetDateTime.parse("2026-06-02T07:30:00Z"),
                 0
             ));
+    }
+
+    @Test
+    void normalizesPlannedTypedMedicalEmergencyNoServiceAsActiveSuspension() {
+        TtcAlertRecord record = fetchedRecord("2", "Subway", "NO_SERVICE").record();
+        record = new TtcAlertRecord(
+            "69218",
+            "Planned",
+            OffsetDateTime.parse("2026-06-02T21:13:08.967Z"),
+            new TtcAlertActivePeriod(
+                OffsetDateTime.parse("2026-06-02T09:11:00Z"),
+                null
+            ),
+            List.of("Current"),
+            record.route(),
+            record.routeType(),
+            "Broadview",
+            "Woodbine",
+            List.of("Broadview", "Chester", "Pape", "Donlands", "Greenwood", "Coxwell", "Woodbine"),
+            "No service between Broadview and Woodbine stations while we respond to a medical emergency.",
+            "",
+            "Line 2 Bloor-Danforth: No service between Broadview and Woodbine stations while we respond to a medical emergency.",
+            "NO_SERVICE",
+            "No Service",
+            "Both ways",
+            "MEDICAL_EMERGENCY",
+            "Medical emergency",
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            "Ordered",
+            "Broadview",
+            "Kipling",
+            null,
+            null,
+            List.of()
+        );
+
+        NormalizedRouteAlert alert = normalizer.normalizeRoute(fetched(record))
+            .projection()
+            .orElseThrow();
+
+        assertThat(alert.type()).isEqualTo("active-alert");
+        assertThat(alert.severity()).isEqualTo("suspension");
+        assertThat(alert.impactKind()).isEqualTo(AlertImpactKind.SUSPENSION);
     }
 
     @Test
@@ -84,7 +132,7 @@ class TtcAlertNormalizerTest {
         assertThat(alert.periods())
             .containsExactly(new NormalizedAlertPeriod(
                 "parent",
-                OffsetDateTime.parse("2026-05-26T06:00:00Z"),
+                OffsetDateTime.parse("2026-05-26T10:00:00Z"),
                 null,
                 0
             ));
@@ -150,6 +198,58 @@ class TtcAlertNormalizerTest {
                 .orElseThrow();
 
         assertThat(alert.impactKind()).isEqualTo(AlertImpactKind.DELAY);
+    }
+
+    @Test
+    void normalizesRouteSourceTimestampsAsTorontoWallClockInstants() {
+        OffsetDateTime sourceTime = OffsetDateTime.parse("2026-06-02T23:41:26.170Z");
+        TtcAlertRecord base = fetchedRecord("2", "Subway", "SIGNIFICANT_DELAYS").record();
+        TtcAlertRecord record = new TtcAlertRecord(
+            "69235",
+            "Planned",
+            sourceTime,
+            new TtcAlertActivePeriod(sourceTime, OffsetDateTime.parse("0001-01-01T00:00:00Z")),
+            List.of("Current"),
+            base.route(),
+            base.routeType(),
+            "Keele",
+            "Keele",
+            List.of("Keele"),
+            "Delays westbound at Keele station while we respond to an emergency alarm.",
+            "",
+            "Line 2 Bloor-Danforth: Delays westbound at Keele station while we respond to an emergency alarm.",
+            "SIGNIFICANT_DELAYS",
+            "Delays",
+            "Westbound",
+            "MEDICAL_EMERGENCY",
+            "Emergency alarm",
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            List.of()
+        );
+
+        NormalizedRouteAlert alert = normalizer.normalizeRoute(fetched(record))
+            .projection()
+            .orElseThrow();
+
+        OffsetDateTime expectedInstant = OffsetDateTime.parse("2026-06-03T03:41:26.170Z");
+        assertThat(alert.activePeriodStart()).isEqualTo(expectedInstant);
+        assertThat(alert.sourceUpdatedAt()).isEqualTo(expectedInstant);
+        assertThat(alert.periods()).containsExactly(new NormalizedAlertPeriod(
+            "parent",
+            expectedInstant,
+            null,
+            0
+        ));
     }
 
     @Test
@@ -262,8 +362,8 @@ class TtcAlertNormalizerTest {
 
         assertThat(alert.periods()).containsExactly(new NormalizedAlertPeriod(
             "child-0",
-            OffsetDateTime.parse("2026-06-01T23:59:00Z"),
-            OffsetDateTime.parse("2026-06-02T03:30:00Z"),
+            OffsetDateTime.parse("2026-06-02T03:59:00Z"),
+            OffsetDateTime.parse("2026-06-02T07:30:00Z"),
             0
         ));
     }

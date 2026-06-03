@@ -12,6 +12,7 @@ import { ZoomIn, ZoomOut, Locate, Sun, Moon } from "lucide-react";
 import { useDashboardData } from "../app/DataContext";
 import type { ImpactSelection, MapImpact, MapImpactKind, NetworkSegment, PlannedClosure } from "../app/linewatch-data";
 import type { StationSummary } from "../app/station-data";
+import { LogsDropdown } from "./LogsDropdown";
 
 export function InteractiveTtcMap({
   selection,
@@ -220,7 +221,7 @@ export function InteractiveTtcMap({
   const plannedPreviewLayers = useMemo(() => {
     if (!selectedClosure) return [];
     return renderedOverlaySegments
-      .filter((segment) => selectedClosure.previewSegmentIds.includes(segment.id))
+      .filter((segment) => shouldRenderPlannedPreviewLayer(segment, selectedClosure))
       .map((segment) => ({ segment, closure: selectedClosure }));
   }, [renderedOverlaySegments, selectedClosure]);
 
@@ -228,6 +229,7 @@ export function InteractiveTtcMap({
     <div className="relative w-full h-full flex flex-col overflow-hidden bg-transparent">
       {/* Top right Theme toggle (styled like hamburger) and poll chip */}
       <div className="absolute top-4 sm:top-6 right-4 sm:right-6 z-20 flex items-center gap-2 pointer-events-auto">
+        <LogsDropdown />
         <button
           onClick={onToggleTheme}
           className="panel flex items-center justify-center w-10 sm:w-14 h-10 sm:h-14 rounded-xl border border-black/10 dark:border-white/10 shadow-lg hover:!bg-slate-100 dark:hover:!bg-[#1a1e28] hover:scale-105 active:scale-95 outline-none focus-visible:ring-4 focus-visible:ring-black/10 dark:focus-visible:ring-white/10 transition-all cursor-pointer bg-white dark:bg-[#0a0c10]"
@@ -581,6 +583,8 @@ function OverlaySegment({
   reducedMotion: boolean;
   flashSelection: ImpactSelection;
 }) {
+  const { activeAlerts, delays, reducedSpeedZones, plannedClosures } = useDashboardData();
+
   if (!segment.pathD) {
     return null;
   }
@@ -593,6 +597,28 @@ function OverlaySegment({
   const isMapFlash = impact
     ? flashSelection?.kind === impact.kind && flashSelection.id === impact.cardId
     : flashSelection?.kind === "planned-closure" && flashSelection.id === plannedClosure?.id;
+
+  const impactSegmentIds = (() => {
+    if (plannedClosure) {
+      return plannedClosure.previewSegmentIds ?? [];
+    }
+    if (!impact) return [];
+    if (impact.kind === "planned-closure") {
+      return plannedClosures.find((c) => c.id === impact.cardId)?.previewSegmentIds ?? [];
+    }
+    if (impact.kind === "suspension") {
+      return activeAlerts.find((a) => a.id === impact.cardId)?.affectedSegmentIds ?? [];
+    }
+    if (impact.kind === "delay") {
+      return delays.find((d) => d.id === impact.cardId)?.affectedSegmentIds ?? [];
+    }
+    if (impact.kind === "reduced-speed-zone") {
+      return reducedSpeedZones.find((z) => z.id === impact.cardId)?.affectedSegmentIds ?? [];
+    }
+    return [];
+  })();
+
+  const isMultiSegment = impactSegmentIds.length > 1;
 
   const patternTransform = `translate(${segment.patternOriginX || 0}, ${(segment.patternOriginY || 0) - 48}) rotate(${segment.patternAngle || 0} 0 48)`;
   const patternId = `${segment.id}-${visualState}-chevron`;
@@ -632,9 +658,13 @@ function OverlaySegment({
     ? `${impact.kind}: ${segment.label}`
     : `${plannedClosure?.title ?? "Planned closure"}: ${segment.label}`;
   const selectedClass = isSelectedImpact || isSelectedSegment ? "selected" : "";
+  const connectedClass =
+    isMultiSegment || (isSelectedSegment && selectedSegmentIds.length > 1)
+      ? "connected-corridor"
+      : "";
 
   return (
-    <g>
+    <g className={connectedClass || undefined}>
       {isChevron && (
         <defs>
           <pattern id={patternId} width="60" height="96" patternUnits="userSpaceOnUse" patternTransform={patternTransform}>
@@ -726,5 +756,17 @@ function OverlaySegment({
         />
       )}
     </g>
+  );
+}
+
+function shouldRenderPlannedPreviewLayer(
+  segment: RenderedNetworkSegment,
+  selectedClosure: PlannedClosure,
+) {
+  if (!selectedClosure.previewSegmentIds.includes(segment.id)) {
+    return false;
+  }
+  return !(segment.impacts ?? []).some(
+    (impact) => impact.kind === "planned-closure" && impact.cardId === selectedClosure.id,
   );
 }

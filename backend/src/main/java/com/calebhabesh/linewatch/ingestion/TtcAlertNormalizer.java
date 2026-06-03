@@ -112,7 +112,7 @@ public class TtcAlertNormalizer {
             endStation.stationId().orElse(null),
             activePeriodStart,
             activePeriodEnd,
-            record.lastUpdated(),
+            sourceTime(record.lastUpdated()),
             record.shuttleType(),
             record.shuttleStart(),
             record.shuttleEnd(),
@@ -167,7 +167,7 @@ public class TtcAlertNormalizer {
             cause,
             activePeriodStart(record),
             activePeriodEnd(record),
-            record.lastUpdated(),
+            sourceTime(record.lastUpdated()),
             fetched.rawPayload(),
             List.of(stationId.orElseThrow())
         ));
@@ -216,12 +216,40 @@ public class TtcAlertNormalizer {
 
     private boolean isPlannedClosure(TtcAlertRecord record) {
         boolean hasChildPeriods = record.childAlerts() != null && !record.childAlerts().isEmpty();
+        boolean plannedClosureEvidence = hasChildPeriods
+            || hasPlannedClosureEvidence(record)
+            || (equalsIgnoreCase(record.cause(), "MAINTENANCE") && hasClosureText(record));
         return equalsIgnoreCase(record.alertType(), "Planned")
-            && (hasChildPeriods || hasClosureText(record));
+            && !hasOperationalIncidentCause(record)
+            && plannedClosureEvidence;
     }
 
     private boolean isSuspension(TtcAlertRecord record) {
         return equalsIgnoreCase(record.effect(), "NO_SERVICE") || hasClosureText(record);
+    }
+
+    private boolean hasPlannedClosureEvidence(TtcAlertRecord record) {
+        String text = sourceText(record);
+        return text.contains("planned track work")
+            || text.contains("planned closure")
+            || text.contains("subway closure")
+            || text.contains("lrt closure")
+            || text.contains("early access")
+            || text.contains("nightly")
+            || text.contains("weekend closure");
+    }
+
+    private boolean hasOperationalIncidentCause(TtcAlertRecord record) {
+        String text = sourceText(record);
+        return text.contains("medical emergency")
+            || text.contains("medical_emergency")
+            || text.contains("security incident")
+            || text.contains("security_incident")
+            || text.contains("police")
+            || text.contains("fire")
+            || text.contains("collision")
+            || text.contains("unauthorized")
+            || text.contains("trespasser");
     }
 
     private boolean hasText(String value) {
@@ -229,17 +257,22 @@ public class TtcAlertNormalizer {
     }
 
     private boolean hasClosureText(TtcAlertRecord record) {
-        String text = String.join(" ",
-            nullToEmpty(record.title()),
-            nullToEmpty(record.description()),
-            nullToEmpty(record.headerText()),
-            nullToEmpty(record.effectDesc()),
-            nullToEmpty(record.causeDescription())
-        ).toLowerCase(Locale.ROOT);
+        String text = sourceText(record);
         return text.contains("closure")
             || text.contains("no service")
             || text.contains("no subway service")
             || text.contains("no lrt service");
+    }
+
+    private String sourceText(TtcAlertRecord record) {
+        return String.join(" ",
+            nullToEmpty(record.title()),
+            nullToEmpty(record.description()),
+            nullToEmpty(record.headerText()),
+            nullToEmpty(record.effectDesc()),
+            nullToEmpty(record.cause()),
+            nullToEmpty(record.causeDescription())
+        ).toLowerCase(Locale.ROOT);
     }
 
     private ResolvedStation resolveStation(String stationName) {
@@ -289,8 +322,8 @@ public class TtcAlertNormalizer {
             if (child != null) {
                 periods.add(new NormalizedAlertPeriod(
                     isBlank(child.id()) ? "child-" + index : child.id(),
-                    TtcAlertTimes.nullIfSentinel(child.startTime()),
-                    TtcAlertTimes.nullIfSentinel(child.endTime()),
+                    sourceTime(child.startTime()),
+                    sourceTime(child.endTime()),
                     index
                 ));
             }
@@ -298,16 +331,20 @@ public class TtcAlertNormalizer {
         return List.copyOf(periods);
     }
 
+    private OffsetDateTime sourceTime(OffsetDateTime value) {
+        return TtcAlertTimes.sourceWallTimeToInstant(value);
+    }
+
     private OffsetDateTime activePeriodStart(TtcAlertRecord record) {
         return record.activePeriod() == null
             ? null
-            : TtcAlertTimes.nullIfSentinel(record.activePeriod().start());
+            : sourceTime(record.activePeriod().start());
     }
 
     private OffsetDateTime activePeriodEnd(TtcAlertRecord record) {
         return record.activePeriod() == null
             ? null
-            : TtcAlertTimes.nullIfSentinel(record.activePeriod().end());
+            : sourceTime(record.activePeriod().end());
     }
 
     private String fingerprint(

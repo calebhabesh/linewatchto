@@ -258,10 +258,30 @@ export const stationDetailResponse = {
     },
   ],
   arrivals: [
-    { lineId: "line-1", direction: "Northbound", minutes: 3, label: "Demo arrival" },
-    { lineId: "line-1", direction: "Southbound", minutes: 6, label: "Demo arrival" },
+    { lineId: "line-1", direction: "Northbound", minutes: 3, predictedAt: "2026-06-03T12:00:00Z", label: "3 min", source: "Demo estimates", status: "demo" },
+    { lineId: "line-1", direction: "Southbound", minutes: 6, predictedAt: "2026-06-03T12:00:00Z", label: "6 min", source: "Demo estimates", status: "demo" },
   ],
   arrivalsSource: "Demo estimates",
   dataMode: "seeded-demo",
   disclaimer: "Arrivals are demo placeholders, not live TTC predictions.",
 };
+
+export const rawAlertsResponse = [
+  {
+    sourceSection: "routes",
+    sourceId: "stub-route-raw-id",
+    routeType: "Subway",
+    sourceUpdatedAt: "2026-06-02T14:12:00-04:00",
+    payload: JSON.stringify({
+      id: "stub-route-raw-id",
+      alertType: "Planned",
+      route: "1",
+      routeType: "Subway",
+      title: "Seeded raw alert title for testing.",
+      headerText: "Line 1 Yonge-University: Seeded raw alert title for testing.",
+      effect: "REDUCED_SERVICE",
+      cause: "MAINTENANCE"
+    }),
+    active: true
+  }
+];

@@ -268,7 +268,7 @@ export function StationDetailPanel({ stationResult, loading, selectedStationName
           <section className="rounded-lg border border-black/10 bg-slate-50 p-3 dark:border-white/10 dark:bg-white/5">
             <h3 className="flex items-center gap-2 text-sm font-black">
               <Clock3 size={16} />
-              Demo arrivals
+              {station.arrivals.some(a => a.status === "live") ? "Arrivals" : "Demo arrivals"}
             </h3>
             <p className="mt-1 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
               {station.arrivalsSource}
@@ -277,10 +277,15 @@ export function StationDetailPanel({ stationResult, loading, selectedStationName
               {station.arrivals.map((arrival, index) => (
                 <div key={`${arrival.lineId}-${arrival.direction}-${index}`} className="flex items-center justify-between gap-3 rounded-md bg-white p-2 text-sm dark:bg-[#12151c]">
                   <span className="min-w-0 break-words">{arrival.direction}</span>
-                  <strong className="shrink-0">{arrival.minutes} min</strong>
+                  <strong className="shrink-0">{arrival.label}</strong>
                 </div>
               ))}
             </div>
+            {station.arrivals.some(a => a.status === "unavailable") && (
+              <p className="mt-2 text-[11px] text-red-500 font-semibold dark:text-red-400">
+                Arrival predictions are currently unavailable.
+              </p>
+            )}
             <p className="mt-2 text-[11px] text-slate-500">{station.disclaimer || "Arrivals are demo placeholders, not live TTC predictions."}</p>
           </section>
         </div>

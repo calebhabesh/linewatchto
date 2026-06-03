@@ -26,6 +26,9 @@ public class AlertController {
         if ("slowdown".equals(type)) {
             return dashboardService.reducedSpeedZones();
         }
+        if ("raw".equals(type)) {
+            return dashboardService.rawAlerts();
+        }
 
         return dashboardService.activeAlerts();
     }

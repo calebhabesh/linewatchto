@@ -147,3 +147,23 @@ test("renders active planned closures and active now badges", async ({ page, req
   await page.locator('[data-impact-card-id="stub-closure-line-1"]').getByRole("button", { name: "Highlight on Map" }).click();
   await expect(page.locator('[data-impact-card-id="stub-closure-line-1"]')).toHaveClass(/highlight-active-card/);
 });
+
+test("opens logs dropdown and expands raw JSON payload", async ({ page, request }) => {
+  await setStubMode(request, "seeded");
+  await page.goto("/");
+  await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
+
+  // Click on the Toggle Ingestion Logs button
+  await page.getByRole("button", { name: "Toggle Ingestion Logs" }).click();
+  await expect(page.getByText("Ingested TTC Alerts")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Routes (1)" })).toBeVisible();
+
+  // Click the alert accordion
+  await page.getByRole("button", { name: "Seeded raw alert title for testing. Active Planned Route 1" }).click();
+  await expect(page.getByText("Raw JSON Payload")).toBeVisible();
+  await expect(page.locator("pre").filter({ hasText: "stub-route-raw-id" })).toBeVisible();
+
+  // Click copy button and verify
+  await page.getByRole("button", { name: "Copy JSON" }).click();
+  await expect(page.getByText("Copied!")).toBeVisible();
+});

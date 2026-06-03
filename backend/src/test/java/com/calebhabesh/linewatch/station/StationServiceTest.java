@@ -2,9 +2,12 @@ package com.calebhabesh.linewatch.station;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import com.calebhabesh.linewatch.arrival.ArrivalPrediction;
+import com.calebhabesh.linewatch.arrival.ArrivalService;
 import com.calebhabesh.linewatch.ingestion.IngestionFreshness;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -33,6 +36,8 @@ class StationServiceTest {
     private StationLiveReadRepository liveReadRepository;
     @Mock
     private IngestionFreshness ingestionFreshness;
+    @Mock
+    private ArrivalService arrivalService;
 
     @InjectMocks
     private StationService stationService;
@@ -107,6 +112,9 @@ class StationServiceTest {
         when(transitLineRepository.findAllById(List.of("line-1"))).thenReturn(List.of(line));
         when(accessStatusRepository.findById("union")).thenReturn(Optional.of(access));
         when(impactRepository.findByStationIdOrderBySortOrderAsc("union")).thenReturn(List.of(impact));
+        when(arrivalService.arrivalsFor(any(), any())).thenReturn(List.of(
+            new ArrivalPrediction("line-1", "Northbound", 2, OffsetDateTime.now(), "Demo estimates", "demo")
+        ));
 
         StationResponses.StationDetailResponse response = stationService.stationDetail("union");
 
@@ -117,7 +125,7 @@ class StationServiceTest {
         assertThat(response.access().status()).isEqualTo("normal");
         assertThat(response.impacts()).extracting(StationResponses.StationImpactResponse::id).containsExactly("impact-union-weekend");
         assertThat(response.arrivals()).isNotEmpty();
-        assertThat(response.arrivals().getFirst().label()).isEqualTo("Demo arrival");
+        assertThat(response.arrivals().getFirst().label()).isEqualTo("2 min");
         assertThat(response.arrivalsSource()).isEqualTo("Demo estimates");
         assertThat(response.disclaimer()).contains("not live TTC predictions");
     }
@@ -163,6 +171,9 @@ class StationServiceTest {
                 "Trains are delayed at Union.",
                 updatedAt
             )
+        ));
+        when(arrivalService.arrivalsFor(any(), any())).thenReturn(List.of(
+            new ArrivalPrediction("line-1", "Northbound", 2, OffsetDateTime.now(), "Demo estimates", "demo")
         ));
 
         StationResponses.StationDetailResponse response = stationService.stationDetail("union");
@@ -216,6 +227,9 @@ class StationServiceTest {
         when(ingestionFreshness.isDashboardFresh()).thenReturn(false);
         when(accessStatusRepository.findById("union")).thenReturn(Optional.of(access));
         when(impactRepository.findByStationIdOrderBySortOrderAsc("union")).thenReturn(List.of());
+        when(arrivalService.arrivalsFor(any(), any())).thenReturn(List.of(
+            new ArrivalPrediction("line-1", "Northbound", 2, OffsetDateTime.now(), "Demo estimates", "demo")
+        ));
 
         StationResponses.StationDetailResponse response = stationService.stationDetail("union");
 
