@@ -17,6 +17,12 @@ export const mapResponse = {
           travelDirection: "bidirectional",
           sourceAlertIds: ["stub-alert-line-1"],
         },
+        {
+          kind: "planned-closure",
+          cardId: "stub-closure-line-1",
+          travelDirection: "bidirectional",
+          sourceAlertIds: ["stub-closure-line-1"],
+        },
       ],
       overlay: "suspension",
       alertId: "stub-alert-line-1",
@@ -183,6 +189,11 @@ export const plannedClosuresResponse = [
     previewSegmentIds: ["stub-line-1-segment"],
     shuttle: false,
     source: "Playwright API stub",
+    activeNow: true,
+    timingStatus: "active-now",
+    nightly: true,
+    activeWindowLabel: "Now until 2:00 AM",
+    nextWindowLabel: null,
   },
 ];
 

@@ -5,6 +5,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.calebhabesh.linewatch.alert.AlertDashboardService;
 import com.calebhabesh.linewatch.alert.AlertEntity;
 import com.calebhabesh.linewatch.alert.AlertRepository;
 import com.calebhabesh.linewatch.ingestion.AlertIngestionProperties;
@@ -37,11 +38,13 @@ class StatusControllerTest {
             new AlertIngestionProperties(),
             CLOCK
     );
+    private final AlertDashboardService alertDashboardService = mock(AlertDashboardService.class);
     private final StatusController controller = new StatusController(
             repository,
             alertRepository,
             ingestionRunStore,
             freshness,
+            alertDashboardService,
             CLOCK
     );
 
@@ -84,6 +87,57 @@ class StatusControllerTest {
             assertThat(line.statusLabel()).isEqualTo("Suspended");
             assertThat(line.summary()).isEqualTo("No service");
             assertThat(line.updatedAgo()).isEqualTo("Updated 10 min ago");
+        });
+    }
+
+    @Test
+    void marksLinePlannedFromActivePlannedClosures() {
+        when(repository.findAllByOrderBySortOrderAsc()).thenReturn(List.of(
+                new TransitLineEntity("line-1", "1", "Yonge-University", "#F8C300", 1)
+        ));
+        when(alertRepository.findByActiveTrueAndType("active-alert")).thenReturn(List.of());
+
+        OffsetDateTime completedAt = OffsetDateTime.parse("2026-06-01T11:59:00Z");
+        when(ingestionRunStore.findLatest()).thenReturn(Optional.of(new IngestionRunSnapshot(
+                12L, "success", completedAt.minusSeconds(5), completedAt,
+                8, 8, 2, 0, completedAt.minusMinutes(1), null
+        )));
+
+        OffsetDateTime closureUpdatedAt = OffsetDateTime.parse("2026-06-01T11:57:00Z");
+        AlertDashboardService.PlannedClosureDto activeClosure = new AlertDashboardService.PlannedClosureDto(
+            "ttc-route-planned-1",
+            "line-1",
+            "1",
+            "Active Nightly Closure",
+            "Mon 2:00 AM - Mon 6:00 AM",
+            "Finch to Eglinton",
+            "Nightly maintenance",
+            OffsetDateTime.parse("2026-06-01T02:00:00Z"),
+            closureUpdatedAt,
+            List.of("line-1-finch-eglinton"),
+            false,
+            "TTC Service Advisory",
+            null,
+            null,
+            true, // activeNow
+            "active-now",
+            true, // nightly
+            OffsetDateTime.parse("2026-06-01T02:00:00Z"),
+            OffsetDateTime.parse("2026-06-01T06:00:00Z"),
+            "Mon 2:00 AM - Mon 6:00 AM",
+            null,
+            null,
+            null
+        );
+        when(alertDashboardService.activePlannedClosures()).thenReturn(List.of(activeClosure));
+
+        StatusController.StatusResponse response = controller.getStatus();
+
+        assertThat(response.lines()).singleElement().satisfies(line -> {
+            assertThat(line.status()).isEqualTo("planned");
+            assertThat(line.statusLabel()).isEqualTo("Closure active");
+            assertThat(line.summary()).isEqualTo("Active Nightly Closure");
+            assertThat(line.updatedAgo()).isEqualTo("Updated 3 min ago"); // CLOCK is 12:00:00Z, closureUpdatedAt is 11:57:00Z
         });
     }
 

@@ -67,16 +67,36 @@ export function PlannedClosuresPanel({ selection, onSelectImpact, onBack }: Prop
                     <div className="max-w-full text-[10px] text-blue-600 dark:text-blue-400 font-bold mt-2 bg-blue-500/5 dark:bg-blue-500/10 px-2 py-0.5 rounded-md inline-block whitespace-normal break-words">
                       {closure.window}
                     </div>
+                    {closure.activeNow && closure.activeWindowLabel && (
+                      <p className="text-[11px] text-red-600 dark:text-red-400 font-semibold mt-1">
+                        Current window: {closure.activeWindowLabel}
+                      </p>
+                    )}
+                    {!closure.activeNow && closure.nextWindowLabel && (
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium mt-1">
+                        Next window: {closure.nextWindowLabel}
+                      </p>
+                    )}
                   </div>
                 </div>
-                {closure.shuttle && (
-                  <div className="flex flex-col items-end shrink-0">
+                <div className="flex flex-col items-end gap-1 shrink-0">
+                  {closure.activeNow && (
+                    <span className="flex items-center gap-1 text-[10px] bg-red-500/10 text-red-500 dark:text-red-400 px-1.5 py-0.5 rounded font-bold uppercase tracking-wider">
+                      Active now
+                    </span>
+                  )}
+                  {closure.nightly && (
+                    <span className="flex items-center gap-1 text-[10px] bg-slate-500/10 dark:bg-white/10 text-slate-600 dark:text-slate-300 px-1.5 py-0.5 rounded font-semibold uppercase">
+                      Nightly
+                    </span>
+                  )}
+                  {closure.shuttle && (
                     <span className="flex items-center gap-1 text-[10px] bg-blue-500/10 text-blue-500 dark:text-blue-400 px-1.5 py-0.5 rounded font-semibold uppercase">
                       <Bus size={10} />
                       Shuttle
                     </span>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
 
               <ImpactRouteHeader location={closure.location} />

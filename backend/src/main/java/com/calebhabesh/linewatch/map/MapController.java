@@ -95,7 +95,8 @@ public class MapController {
         return switch (impact.kind()) {
             case "reduced-speed-zone" -> 1;
             case "delay" -> 2;
-            case "suspension" -> 3;
+            case "planned-closure" -> 3;
+            case "suspension" -> 4;
             default -> 0;
         };
     }

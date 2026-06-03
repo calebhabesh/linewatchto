@@ -553,6 +553,8 @@ function visualStateForImpactKind(kind: MapImpactKind): OverlayVisualState {
   switch (kind) {
     case "suspension":
       return "suspension";
+    case "planned-closure":
+      return "suspension";
     case "delay":
       return "delay-static";
     case "reduced-speed-zone":

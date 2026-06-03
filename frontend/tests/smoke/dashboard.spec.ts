@@ -93,6 +93,7 @@ test("map overlays open the corresponding submenu cards", async ({ page, request
 
   await page.getByRole("button", { name: "Toggle menu" }).click();
   await page.getByRole("button", { name: "Map", exact: true }).click();
+  await page.waitForTimeout(500);
   await clickSvgRingStroke(page, /Stub API signal problem: Stub Station/);
   await expect(page.getByRole("heading", { name: "Active Alerts" })).toBeVisible();
   const activeAlertCard = page.locator('[data-impact-card-id="stub-alert-line-1"]');
@@ -132,4 +133,17 @@ test("renders fixture fallback when the dashboard API is unavailable", async ({ 
     page.getByText("Last Polled: fixture mode", { exact: true }).first()
   ).toBeVisible();
   await expect(page.getByText("Live status", { exact: true })).toHaveCount(0);
+});
+
+test("renders active planned closures and active now badges", async ({ page, request }) => {
+  await setStubMode(request, "seeded");
+  await openDashboardMenu(page);
+
+  await page.getByRole("button", { name: /upcoming closures/i }).click();
+  await expect(page.getByRole("heading", { name: "Upcoming Closures" })).toBeVisible();
+  await expect(page.locator('[data-impact-card-id="stub-closure-line-1"]')).toBeVisible();
+  await expect(page.getByText("Active now", { exact: true })).toBeVisible();
+
+  await page.locator('[data-impact-card-id="stub-closure-line-1"]').getByRole("button", { name: "Highlight on Map" }).click();
+  await expect(page.locator('[data-impact-card-id="stub-closure-line-1"]')).toHaveClass(/highlight-active-card/);
 });

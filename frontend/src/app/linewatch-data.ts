@@ -11,7 +11,7 @@ export type ImpactKind =
   | "reduced-speed-zone"
   | "planned-closure";
 
-export type MapImpactKind = Exclude<ImpactKind, "planned-closure">;
+export type MapImpactKind = ImpactKind;
 
 export type ImpactSelection = {
   kind: ImpactKind;
@@ -162,6 +162,15 @@ export type PlannedClosure = {
   previewSegmentIds: string[];
   shuttle: boolean;
   source: string;
+  activeNow?: boolean;
+  timingStatus?: "active-now" | "upcoming" | "unknown";
+  nightly?: boolean;
+  activeWindowStart?: string | null;
+  activeWindowEnd?: string | null;
+  activeWindowLabel?: string | null;
+  nextWindowStart?: string | null;
+  nextWindowEnd?: string | null;
+  nextWindowLabel?: string | null;
 };
 
 export type CommuteSummary = {

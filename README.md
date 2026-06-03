@@ -59,6 +59,7 @@ Implemented now:
 - Nonlinear overlays resolve from the authored hidden segment-guides-layer.
 - Opposite-direction Reduced Speed Zone records merge into one bidirectional effect and grouped card.
 - Directionless Reduced Speed Zone records render bidirectionally without inventing a direction label.
+- Nightly closure active-window gating so nightly overlays only appear during the actual active child-period windows.
 
 Not implemented yet:
 
@@ -69,7 +70,6 @@ Not implemented yet:
 - TTC Reduced Speed Zones webpage ingestion remains unimplemented.
 - Live station arrivals remain demo-only estimates.
 - Live station-arrival source reads remain unimplemented.
-- Nightly closure start/end window gating remains follow-up work.
 - Redis-backed live status cache.
 - Backend commute-impact endpoint.
 - Real historical reliability aggregation.
@@ -378,11 +378,10 @@ Suggested resume bullet once backend and live data are implemented:
 
 ## Roadmap
 
-1. Add nightly closure active-window gating so overlays only appear during affected hours.
-2. Add a public live-arrival provider and replace station-panel demo estimates with source-labeled predictions.
-3. Import static GTFS shapes and implement production alert-to-segment matching.
-4. Implement saved commute impact matching and reliability aggregation.
-5. Deploy and publish measured API/build/test metrics.
+1. Add a public live-arrival provider and replace station-panel demo estimates with source-labeled predictions.
+2. Import static GTFS shapes and implement production alert-to-segment matching.
+3. Implement saved commute impact matching and reliability aggregation.
+4. Deploy and publish measured API/build/test metrics.
 
 ## License and Disclaimer
 

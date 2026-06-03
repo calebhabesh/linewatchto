@@ -30,6 +30,7 @@ public class StatusController {
     private final AlertRepository alertRepository;
     private final IngestionRunStore ingestionRunStore;
     private final IngestionFreshness ingestionFreshness;
+    private final AlertDashboardService alertDashboardService;
     private final Clock clock;
 
     public StatusController(
@@ -37,12 +38,14 @@ public class StatusController {
         AlertRepository alertRepository,
         IngestionRunStore ingestionRunStore,
         IngestionFreshness ingestionFreshness,
+        AlertDashboardService alertDashboardService,
         Clock clock
     ) {
         this.transitLineRepository = transitLineRepository;
         this.alertRepository = alertRepository;
         this.ingestionRunStore = ingestionRunStore;
         this.ingestionFreshness = ingestionFreshness;
+        this.alertDashboardService = alertDashboardService;
         this.clock = clock;
     }
 
@@ -53,9 +56,12 @@ public class StatusController {
         List<AlertEntity> activeAlerts = dashboardLive
             ? alertRepository.findByActiveTrueAndType(AlertDashboardService.ACTIVE_ALERT_TYPE)
             : List.of();
+        List<AlertDashboardService.PlannedClosureDto> activeClosures = dashboardLive
+            ? alertDashboardService.activePlannedClosures()
+            : List.of();
 
         List<LineStatusDto> lines = transitLineRepository.findAllByOrderBySortOrderAsc().stream()
-                .map(entity -> toDto(entity, activeAlerts))
+                .map(entity -> toDto(entity, activeAlerts, activeClosures))
                 .collect(Collectors.toList());
 
         OffsetDateTime now = OffsetDateTime.now(clock);
@@ -70,7 +76,11 @@ public class StatusController {
         );
     }
 
-    private LineStatusDto toDto(TransitLineEntity entity, List<AlertEntity> allActiveAlerts) {
+    private LineStatusDto toDto(
+        TransitLineEntity entity,
+        List<AlertEntity> allActiveAlerts,
+        List<AlertDashboardService.PlannedClosureDto> allActiveClosures
+    ) {
         String route = getRouteForLine(entity.getId());
 
         // Filter alerts for this specific line
@@ -78,27 +88,80 @@ public class StatusController {
             .filter(a -> a.getLine() != null && a.getLine().getId().equals(entity.getId()))
             .toList();
 
+        // Filter active planned closures for this specific line
+        List<AlertDashboardService.PlannedClosureDto> lineClosures = allActiveClosures.stream()
+            .filter(c -> c.lineId() != null && c.lineId().equals(entity.getId()))
+            .toList();
+
         String status = "normal";
         String statusLabel = "Normal";
         String summary = "No active service impacts reported.";
         String updatedAgo = "Updated recently";
 
-        if (!lineAlerts.isEmpty()) {
-            boolean hasSuspension = lineAlerts.stream()
-                .anyMatch(a -> "suspension".equalsIgnoreCase(a.getSeverity()));
-            boolean hasDelay = lineAlerts.stream()
-                .anyMatch(a -> "delay".equalsIgnoreCase(a.getSeverity()));
+        boolean hasSuspension = lineAlerts.stream()
+            .anyMatch(a -> "suspension".equalsIgnoreCase(a.getSeverity()));
 
-            if (hasSuspension) {
-                status = "suspension";
-                statusLabel = "Suspended";
-            } else if (hasDelay) {
-                status = "delay";
-                statusLabel = "Delayed";
-            } else {
-                status = "delay";
-                statusLabel = "Degraded";
+        boolean hasActiveClosure = !lineClosures.isEmpty();
+
+        boolean hasDelay = lineAlerts.stream()
+            .anyMatch(a -> "delay".equalsIgnoreCase(a.getSeverity()));
+
+        if (hasSuspension) {
+            status = "suspension";
+            statusLabel = "Suspended";
+
+            AlertEntity mostRecent = lineAlerts.stream()
+                .filter(a -> "suspension".equalsIgnoreCase(a.getSeverity()))
+                .max((a1, a2) -> {
+                    if (a1.getSourceUpdatedAt() == null) return -1;
+                    if (a2.getSourceUpdatedAt() == null) return 1;
+                    return a1.getSourceUpdatedAt().compareTo(a2.getSourceUpdatedAt());
+                })
+                .orElse(lineAlerts.getFirst());
+
+            summary = mostRecent.getTitle();
+            if (summary == null || summary.isBlank()) {
+                summary = "Active service alert affecting this line.";
             }
+            updatedAgo = updatedAgo(mostRecent.getSourceUpdatedAt());
+        } else if (hasActiveClosure) {
+            status = "planned";
+            statusLabel = "Closure active";
+
+            AlertDashboardService.PlannedClosureDto mostRecentClosure = lineClosures.stream()
+                .max((c1, c2) -> {
+                    if (c1.updatedAt() == null) return -1;
+                    if (c2.updatedAt() == null) return 1;
+                    return c1.updatedAt().compareTo(c2.updatedAt());
+                })
+                .orElse(lineClosures.getFirst());
+
+            summary = mostRecentClosure.title();
+            if (summary == null || summary.isBlank()) {
+                summary = "Active planned closure affecting this line.";
+            }
+            updatedAgo = updatedAgo(mostRecentClosure.updatedAt());
+        } else if (hasDelay) {
+            status = "delay";
+            statusLabel = "Delayed";
+
+            AlertEntity mostRecent = lineAlerts.stream()
+                .filter(a -> "delay".equalsIgnoreCase(a.getSeverity()))
+                .max((a1, a2) -> {
+                    if (a1.getSourceUpdatedAt() == null) return -1;
+                    if (a2.getSourceUpdatedAt() == null) return 1;
+                    return a1.getSourceUpdatedAt().compareTo(a2.getSourceUpdatedAt());
+                })
+                .orElse(lineAlerts.getFirst());
+
+            summary = mostRecent.getTitle();
+            if (summary == null || summary.isBlank()) {
+                summary = "Active service alert affecting this line.";
+            }
+            updatedAgo = updatedAgo(mostRecent.getSourceUpdatedAt());
+        } else if (!lineAlerts.isEmpty()) {
+            status = "delay";
+            statusLabel = "Degraded";
 
             AlertEntity mostRecent = lineAlerts.stream()
                 .max((a1, a2) -> {
@@ -112,7 +175,6 @@ public class StatusController {
             if (summary == null || summary.isBlank()) {
                 summary = "Active service alert affecting this line.";
             }
-
             updatedAgo = updatedAgo(mostRecent.getSourceUpdatedAt());
         } else if (entity.getId().equals("line-5") || entity.getId().equals("line-6")) {
             status = "ready";

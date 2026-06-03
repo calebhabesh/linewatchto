@@ -26,12 +26,14 @@ class AlertDashboardServiceTest {
     private final AlertRepository alertRepository = mock(AlertRepository.class);
     private final LineSegmentRepository lineSegmentRepository = mock(LineSegmentRepository.class);
     private final IngestionFreshness ingestionFreshness = mock(IngestionFreshness.class);
+    private final AlertActivePeriodRepository alertActivePeriodRepository = mock(AlertActivePeriodRepository.class);
     private final AlertDashboardService service = new AlertDashboardService(
         alertRepository,
         lineSegmentRepository,
         new AlertSegmentMatcher(),
         new ReducedSpeedZoneProjector(new AlertSegmentMatcher(), new com.calebhabesh.linewatch.ingestion.AlertDirectionParser()),
         ingestionFreshness,
+        alertActivePeriodRepository,
         CLOCK
     );
 
@@ -336,6 +338,122 @@ class AlertDashboardServiceTest {
 
         assertThat(closures).extracting(AlertDashboardService.PlannedClosureDto::id)
             .containsExactly("ttc-route-upcoming");
+    }
+
+    @Test
+    void plannedClosuresExposeNightlyWindowStateBeforeDuringAndAfterChildPeriods() {
+        when(ingestionFreshness.isDashboardFresh()).thenReturn(true);
+        AlertEntity alert = alert(
+            "planned-closure-nightly",
+            "planned-closure",
+            "planned",
+            "Nightly closure",
+            "No subway service nightly between Finch and Eglinton.",
+            "finch",
+            "eglinton",
+            OffsetDateTime.parse("2026-06-01T11:45:00Z"),
+            null
+        );
+        ReflectionTestUtils.setField(
+            alert,
+            "activePeriodStart",
+            OffsetDateTime.parse("2026-06-01T04:00:00Z")
+        );
+        ReflectionTestUtils.setField(
+            alert,
+            "activePeriodEnd",
+            OffsetDateTime.parse("2026-06-05T09:00:00Z")
+        );
+        when(alertRepository.findByActiveTrueAndType("planned-closure"))
+            .thenReturn(List.of(alert));
+        when(lineSegmentRepository.findAllByOrderBySortOrderAsc()).thenReturn(List.of(
+            segment("line-1-finch-eglinton", "line-1", "finch", "eglinton", 10)
+        ));
+
+        // Mock child periods:
+        // 1st child period: ended
+        // 2nd child period: upcoming
+        AlertActivePeriodRepository.AlertPeriod period1 = new AlertActivePeriodRepository.AlertPeriod(
+            "planned-closure-nightly",
+            "period-1",
+            OffsetDateTime.parse("2026-06-01T02:00:00Z"),
+            OffsetDateTime.parse("2026-06-01T06:00:00Z"),
+            0
+        );
+        AlertActivePeriodRepository.AlertPeriod period2 = new AlertActivePeriodRepository.AlertPeriod(
+            "planned-closure-nightly",
+            "period-2",
+            OffsetDateTime.parse("2026-06-02T02:00:00Z"),
+            OffsetDateTime.parse("2026-06-02T06:00:00Z"),
+            1
+        );
+        when(alertActivePeriodRepository.findByAlertIds(List.of("planned-closure-nightly")))
+            .thenReturn(Map.of("planned-closure-nightly", List.of(period1, period2)));
+
+        List<AlertDashboardService.PlannedClosureDto> closures = service.plannedClosures();
+
+        assertThat(closures).singleElement().satisfies(dto -> {
+            assertThat(dto.id()).isEqualTo("planned-closure-nightly");
+            assertThat(dto.nightly()).isTrue();
+            assertThat(dto.activeNow()).isFalse();
+            assertThat(dto.timingStatus()).isEqualTo("upcoming");
+            assertThat(dto.nextWindowStart()).isEqualTo(OffsetDateTime.parse("2026-06-02T02:00:00Z"));
+            assertThat(dto.nextWindowEnd()).isEqualTo(OffsetDateTime.parse("2026-06-02T06:00:00Z"));
+        });
+    }
+
+    @Test
+    void plannedClosuresExposeNightlyWindowStateWhenActiveNow() {
+        when(ingestionFreshness.isDashboardFresh()).thenReturn(true);
+        AlertEntity alert = alert(
+            "planned-closure-nightly-active",
+            "planned-closure",
+            "planned",
+            "Nightly closure active",
+            "No subway service nightly between Finch and Eglinton.",
+            "finch",
+            "eglinton",
+            OffsetDateTime.parse("2026-06-01T11:45:00Z"),
+            null
+        );
+        ReflectionTestUtils.setField(
+            alert,
+            "activePeriodStart",
+            OffsetDateTime.parse("2026-06-01T04:00:00Z")
+        );
+        ReflectionTestUtils.setField(
+            alert,
+            "activePeriodEnd",
+            OffsetDateTime.parse("2026-06-05T09:00:00Z")
+        );
+        when(alertRepository.findByActiveTrueAndType("planned-closure"))
+            .thenReturn(List.of(alert));
+        when(lineSegmentRepository.findAllByOrderBySortOrderAsc()).thenReturn(List.of(
+            segment("line-1-finch-eglinton", "line-1", "finch", "eglinton", 10)
+        ));
+
+        // Mock child periods:
+        // 1st child period is active during CLOCK which is 2026-06-01T12:00:00Z (we make it 11:00 to 13:00)
+        AlertActivePeriodRepository.AlertPeriod period1 = new AlertActivePeriodRepository.AlertPeriod(
+            "planned-closure-nightly-active",
+            "period-1",
+            OffsetDateTime.parse("2026-06-01T11:00:00Z"),
+            OffsetDateTime.parse("2026-06-01T13:00:00Z"),
+            0
+        );
+        when(alertActivePeriodRepository.findByAlertIds(List.of("planned-closure-nightly-active")))
+            .thenReturn(Map.of("planned-closure-nightly-active", List.of(period1)));
+
+        List<AlertDashboardService.PlannedClosureDto> closures = service.plannedClosures();
+
+        assertThat(closures).singleElement().satisfies(dto -> {
+            assertThat(dto.id()).isEqualTo("planned-closure-nightly-active");
+            assertThat(dto.nightly()).isTrue();
+            assertThat(dto.activeNow()).isTrue();
+            assertThat(dto.timingStatus()).isEqualTo("active-now");
+            assertThat(dto.activeWindowStart()).isEqualTo(OffsetDateTime.parse("2026-06-01T11:00:00Z"));
+            assertThat(dto.activeWindowEnd()).isEqualTo(OffsetDateTime.parse("2026-06-01T13:00:00Z"));
+        });
     }
 
     @Test
