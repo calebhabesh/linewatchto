@@ -10,6 +10,7 @@ backend/target/
 # Node / Next.js
 frontend/node_modules/
 frontend/.next/
+frontend/.next-scenario/
 frontend/out/
 frontend/coverage/
 frontend/.vercel/
