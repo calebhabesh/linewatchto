@@ -21,6 +21,19 @@ export type SampledPath = {
   step: number;
 };
 
+type CorridorTravelDirection = NonNullable<NetworkSegment["travelDirection"]>;
+
+export type ComposableNetworkSegment = Pick<
+  NetworkSegment,
+  "id" | "pathD" | "guidePathReversed" | "travelDirection"
+>;
+
+export type ComposedNetworkSegmentPath = {
+  pathD: string;
+  travelDirection: CorridorTravelDirection;
+  segmentIds: string[];
+};
+
 export function samplePath(pathD: string, spacing: number = 56): SampledPath {
   if (typeof document === "undefined") return { points: [], step: spacing };
   try {
@@ -83,6 +96,274 @@ export function samplePath(pathD: string, spacing: number = 56): SampledPath {
     console.error("Error sampling SVG path:", e);
     return { points: [], step: spacing };
   }
+}
+
+export function composeNetworkSegmentPath(
+  segments: ComposableNetworkSegment[],
+  travelDirection: CorridorTravelDirection = "bidirectional",
+): ComposedNetworkSegmentPath {
+  const sampledSegments = segments
+    .map((segment) => {
+      const points = pathToPolylinePoints(segment.pathD);
+      return {
+        id: segment.id,
+        points: segment.guidePathReversed ? reversePoints(points) : points,
+      };
+    })
+    .filter((segment) => segment.points.length > 0);
+
+  const oriented = orientSequentialPolylines(sampledSegments);
+  const points = dedupePoints(oriented.flatMap((segment) => segment.points));
+
+  return {
+    pathD: pointsToPath(points),
+    travelDirection: oriented[0]?.reversed ? flipTravelDirection(travelDirection) : travelDirection,
+    segmentIds: sampledSegments.map((segment) => segment.id),
+  };
+}
+
+function pathToPolylinePoints(pathD: string): MapPoint[] {
+  if (!pathD) {
+    return [];
+  }
+  return measuredPathPoints(pathD) ?? parsedPathPoints(pathD);
+}
+
+function measuredPathPoints(pathD: string, spacing: number = 32): MapPoint[] | null {
+  if (typeof document === "undefined") return null;
+  try {
+    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    path.setAttribute("d", pathD);
+    const length = path.getTotalLength();
+    if (length <= 0) return [];
+
+    const count = Math.max(1, Math.ceil(length / spacing));
+    const points: MapPoint[] = [];
+    for (let i = 0; i <= count; i++) {
+      const point = path.getPointAtLength((length * i) / count);
+      points.push({ x: point.x, y: point.y });
+    }
+    return points;
+  } catch {
+    return null;
+  }
+}
+
+function parsedPathPoints(pathD: string): MapPoint[] {
+  const tokens = pathD.match(/[AaCcHhLlMmQqSsTtVvZz]|[-+]?(?:\d*\.\d+|\d+\.?)(?:e[-+]?\d+)?/g) ?? [];
+  const points: MapPoint[] = [];
+  let index = 0;
+  let command = "";
+  let current: MapPoint = { x: 0, y: 0 };
+  let start: MapPoint = { x: 0, y: 0 };
+
+  const hasNumber = () => index < tokens.length && !isSvgPathCommand(tokens[index]);
+  const readNumber = () => Number(tokens[index++]);
+  const readPoint = (relative: boolean): MapPoint => {
+    const x = readNumber();
+    const y = readNumber();
+    return relative ? { x: current.x + x, y: current.y + y } : { x, y };
+  };
+  const addPoint = (point: MapPoint) => {
+    current = point;
+    const last = points.at(-1);
+    if (!last || pointDistance(last, point) > 0.001) {
+      points.push(point);
+    }
+  };
+
+  while (index < tokens.length) {
+    if (isSvgPathCommand(tokens[index])) {
+      command = tokens[index++] ?? "";
+    }
+    if (!command) break;
+
+    const relative = command === command.toLowerCase();
+    switch (command.toLowerCase()) {
+      case "m": {
+        let first = true;
+        while (hasNumber()) {
+          const point = readPoint(relative);
+          addPoint(point);
+          if (first) {
+            start = point;
+            first = false;
+          }
+        }
+        command = relative ? "l" : "L";
+        break;
+      }
+      case "l": {
+        while (hasNumber()) {
+          addPoint(readPoint(relative));
+        }
+        break;
+      }
+      case "h": {
+        while (hasNumber()) {
+          const x = readNumber();
+          addPoint({ x: relative ? current.x + x : x, y: current.y });
+        }
+        break;
+      }
+      case "v": {
+        while (hasNumber()) {
+          const y = readNumber();
+          addPoint({ x: current.x, y: relative ? current.y + y : y });
+        }
+        break;
+      }
+      case "c": {
+        while (hasNumber()) {
+          const startPoint = current;
+          const control1 = readPoint(relative);
+          const control2 = readPoint(relative);
+          const end = readPoint(relative);
+          for (let step = 1; step <= 8; step++) {
+            addPoint(cubicPoint(startPoint, control1, control2, end, step / 8));
+          }
+        }
+        break;
+      }
+      case "q": {
+        while (hasNumber()) {
+          const startPoint = current;
+          const control = readPoint(relative);
+          const end = readPoint(relative);
+          for (let step = 1; step <= 8; step++) {
+            addPoint(quadraticPoint(startPoint, control, end, step / 8));
+          }
+        }
+        break;
+      }
+      case "z": {
+        addPoint(start);
+        break;
+      }
+      default:
+        while (hasNumber()) {
+          readNumber();
+        }
+        break;
+    }
+  }
+
+  return dedupePoints(points);
+}
+
+function isSvgPathCommand(token: string | undefined): boolean {
+  return Boolean(token && /^[AaCcHhLlMmQqSsTtVvZz]$/.test(token));
+}
+
+function cubicPoint(start: MapPoint, control1: MapPoint, control2: MapPoint, end: MapPoint, t: number): MapPoint {
+  const oneMinusT = 1 - t;
+  return {
+    x:
+      oneMinusT ** 3 * start.x +
+      3 * oneMinusT ** 2 * t * control1.x +
+      3 * oneMinusT * t ** 2 * control2.x +
+      t ** 3 * end.x,
+    y:
+      oneMinusT ** 3 * start.y +
+      3 * oneMinusT ** 2 * t * control1.y +
+      3 * oneMinusT * t ** 2 * control2.y +
+      t ** 3 * end.y,
+  };
+}
+
+function quadraticPoint(start: MapPoint, control: MapPoint, end: MapPoint, t: number): MapPoint {
+  const oneMinusT = 1 - t;
+  return {
+    x: oneMinusT ** 2 * start.x + 2 * oneMinusT * t * control.x + t ** 2 * end.x,
+    y: oneMinusT ** 2 * start.y + 2 * oneMinusT * t * control.y + t ** 2 * end.y,
+  };
+}
+
+function orientSequentialPolylines(
+  segments: { id: string; points: MapPoint[] }[],
+): { id: string; points: MapPoint[]; reversed: boolean }[] {
+  if (segments.length === 0) return [];
+  if (segments.length === 1) {
+    return [{ ...segments[0], reversed: false }];
+  }
+
+  const first = segments[0];
+  const second = segments[1];
+  const firstNormalDistance = Math.min(
+    endpointDistance(first.points, second.points, false, false),
+    endpointDistance(first.points, second.points, false, true),
+  );
+  const firstReversedDistance = Math.min(
+    endpointDistance(first.points, second.points, true, false),
+    endpointDistance(first.points, second.points, true, true),
+  );
+  const oriented: { id: string; points: MapPoint[]; reversed: boolean }[] = [
+    {
+      id: first.id,
+      points: firstReversedDistance < firstNormalDistance ? reversePoints(first.points) : first.points,
+      reversed: firstReversedDistance < firstNormalDistance,
+    },
+  ];
+
+  for (const segment of segments.slice(1)) {
+    const previousEnd = oriented.at(-1)?.points.at(-1);
+    if (!previousEnd) continue;
+
+    const normalDistance = pointDistance(previousEnd, segment.points[0]);
+    const reversedDistance = pointDistance(previousEnd, segment.points.at(-1) ?? segment.points[0]);
+    const reversed = reversedDistance < normalDistance;
+    oriented.push({
+      id: segment.id,
+      points: reversed ? reversePoints(segment.points) : segment.points,
+      reversed,
+    });
+  }
+
+  return oriented;
+}
+
+function endpointDistance(
+  first: MapPoint[],
+  second: MapPoint[],
+  firstReversed: boolean,
+  secondReversed: boolean,
+): number {
+  const firstEnd = firstReversed ? first[0] : first.at(-1);
+  const secondStart = secondReversed ? second.at(-1) : second[0];
+  if (!firstEnd || !secondStart) return Number.POSITIVE_INFINITY;
+  return pointDistance(firstEnd, secondStart);
+}
+
+function dedupePoints(points: MapPoint[]): MapPoint[] {
+  return points.filter((point, index) => index === 0 || pointDistance(point, points[index - 1]) > 0.001);
+}
+
+function reversePoints(points: MapPoint[]): MapPoint[] {
+  return [...points].reverse();
+}
+
+function pointsToPath(points: MapPoint[]): string {
+  if (points.length === 0) return "";
+  const [first, ...rest] = points;
+  return [`M ${formatPathNumber(first.x)} ${formatPathNumber(first.y)}`]
+    .concat(rest.map((point) => `L ${formatPathNumber(point.x)} ${formatPathNumber(point.y)}`))
+    .join(" ");
+}
+
+function pointDistance(a: MapPoint, b: MapPoint): number {
+  return Math.hypot(a.x - b.x, a.y - b.y);
+}
+
+function formatPathNumber(value: number): string {
+  const rounded = Math.round(value * 1000) / 1000;
+  if (Object.is(rounded, -0)) return "0";
+  return rounded.toFixed(3).replace(/\.?0+$/, "");
+}
+
+function flipTravelDirection(direction: CorridorTravelDirection): CorridorTravelDirection {
+  if (direction === "forward") return "reverse";
+  if (direction === "reverse") return "forward";
+  return "bidirectional";
 }
 
 export function resolveNetworkSegmentPath(

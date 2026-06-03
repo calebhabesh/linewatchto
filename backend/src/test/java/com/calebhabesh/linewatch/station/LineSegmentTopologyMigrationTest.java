@@ -33,6 +33,14 @@ class LineSegmentTopologyMigrationTest {
         assertThat(sql).contains("delete from line_segments");
     }
 
+    @Test
+    void v14AddsLineSixHumberCollegeGuidePathMetadata() throws IOException {
+        String sql = migrationSql("/db/migration/V14__line_6_humber_college_westmore_guide.sql");
+
+        assertThat(sql).contains("'line-6-humber-college-westmore'");
+        assertThat(sql).contains("'seg-line-6-humber-college-westmore'");
+    }
+
     private String migrationSql(String path) throws IOException {
         try (var input = getClass().getResourceAsStream(path)) {
             assertThat(input).isNotNull();

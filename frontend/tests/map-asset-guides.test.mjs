@@ -14,9 +14,11 @@ describe("map SVG guide asset", () => {
     assert.match(svg, /inkscape:label="seg-line-1-st-andrew-union"/);
     assert.match(svg, /inkscape:label="seg-line-1-spadina-st-george"/);
     assert.match(svg, /inkscape:label="seg-line-1-dupont-spadina"/);
+    assert.match(svg, /inkscape:label="seg-line-6-humber-college-westmore"/);
   });
 
   it("preserves station anchors needed for straight fallback and station detail clicks", () => {
+    assert.match(svg, /inkscape:label="stations-layer"[\s\S]*?style="[^"]*display:inline/);
     assert.match(svg, /id="station-king"/);
     assert.match(svg, /id="station-union"/);
     assert.match(svg, /id="station-st-andrew"/);

@@ -684,7 +684,7 @@ g:has(.asset-alert-path:focus-visible) .interactive-glow,
 
 .connected-corridor .asset-alert-path,
 .connected-corridor .asset-alert-path-glow {
-  stroke-linecap: butt;
+  stroke-linecap: round;
 }
 
 .map-detail-strip {

@@ -3,10 +3,8 @@
 ## Upcoming
 - [ ] Decide how to handle overlapping alerts on svg map
 - [ ] Nightly closures still  not working
-- [ ] Full ingested data viewer in the site, with drop down for raw json data
 - [ ] Miscategorization of planned critical event into upcoming closure
 - [ ] account for both ways value in ttc api, if stop on horizontal lines this means eastbound/westbound and vertical lines means northbound/southbound
-- [ ] make the slow down zones clickable for descriptions, meaning they would need labels
 - [ ] Provide rich information per station, for arrivals, escalator/station specific information, each station should also have a label for the line it is on when you open it
 - [ ] Test ui overlays on singular subway stations (delays, reduced speed, and critical alerts)
 - [ ] UI Overlay for Upcoming closures must be fixed (something like the candy cane or chevrons for active alerts and reduced speed zones)
@@ -21,5 +19,10 @@
 - [ ] Auth for resume project fullness
 - [ ] Accounts can save stops that they frequent and routes they frequent
 - [ ] zoom when highlighting part of map
+- [ ] No service between implies bidrectional, otherwise directionality should be maintained.
 - [ ] click and drag to move around info
+- [ ] Site not affiliated with TTC
+- [ ] Revamp, delay ui overlay, and station alert overlay (maybe like a probing effect, heart monitor pulse)
+- [ ] lowercase just now in rsz, km/h km/h, "just now" capitalize
+- [ ] shouldn't glow all alerts when pressed, just the one being hovered.
 - [ ] Search Stations functionality

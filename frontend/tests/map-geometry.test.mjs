@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import {
+  composeNetworkSegmentPath,
   resolveNetworkSegmentPath,
   visualTravelDirection,
   samplePath,
@@ -113,5 +114,46 @@ describe("map overlay geometry", () => {
     const result = samplePath("M 0 0 L 100 0");
     assert.deepEqual(result.points, []);
     assert.equal(result.step, 56);
+  });
+
+  it("composes adjacent links into one continuous corridor path", () => {
+    const result = composeNetworkSegmentPath([
+      {
+        id: "line-1-queens-park-st-patrick",
+        pathD: "M 10 0 L 10 100",
+      },
+      {
+        id: "line-1-st-patrick-osgoode",
+        pathD: "M 10 100 L 10 200",
+      },
+      {
+        id: "line-1-osgoode-st-andrew",
+        pathD: "M 10 200 L 10 300",
+      },
+    ]);
+
+    assert.equal(result.pathD, "M 10 0 L 10 100 L 10 200 L 10 300");
+    assert.equal((result.pathD.match(/\bM\b/g) ?? []).length, 1);
+  });
+
+  it("orients guide-backed links so they join neighbouring linear links", () => {
+    const result = composeNetworkSegmentPath([
+      {
+        id: "line-1-dupont-spadina",
+        pathD: "M 0 0 L 0 100",
+      },
+      {
+        id: "line-1-spadina-st-george",
+        guidePathReversed: true,
+        pathD: "M 300 100 L 0 100",
+      },
+      {
+        id: "line-1-st-george-museum",
+        pathD: "M 300 100 L 300 200",
+      },
+    ]);
+
+    assert.equal(result.pathD, "M 0 0 L 0 100 L 300 100 L 300 200");
+    assert.equal((result.pathD.match(/\bM\b/g) ?? []).length, 1);
   });
 });

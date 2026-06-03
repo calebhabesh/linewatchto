@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useMemo, useLayoutEffect, useRef } from "react";
 import {
+  composeNetworkSegmentPath,
   readSvgGeometry,
   resolveNetworkSegmentPath,
   visualTravelDirection,
@@ -11,7 +12,16 @@ import {
 import { usePanZoom } from "../hooks/usePanZoom";
 import { ZoomIn, ZoomOut, Locate, Sun, Moon } from "lucide-react";
 import { useDashboardData } from "../app/DataContext";
-import type { ImpactSelection, MapImpact, MapImpactKind, NetworkSegment, PlannedClosure } from "../app/linewatch-data";
+import type {
+  ActiveAlert,
+  DelayAlert,
+  ImpactSelection,
+  MapImpact,
+  MapImpactKind,
+  NetworkSegment,
+  PlannedClosure,
+  ReducedSpeedZone,
+} from "../app/linewatch-data";
 import type { StationSummary } from "../app/station-data";
 import { LogsDropdown } from "./LogsDropdown";
 
@@ -213,18 +223,64 @@ export function InteractiveTtcMap({
       .filter((segment) => segment.pathD);
   }, [overlaySegments, mapStations, anchorPoints, guidePaths]);
 
-  const renderedImpactLayers = useMemo(() => {
-    return renderedOverlaySegments.flatMap((segment) => {
-      const impacts = segment.impacts?.length ? segment.impacts : legacyImpactsForSegment(segment);
-      return impacts.map((impact) => ({ segment, impact }));
-    });
-  }, [renderedOverlaySegments]);
+  const renderedImpactLayers = useMemo<RenderedImpactLayer[]>(() => {
+    const groups = new Map<string, { impact: MapImpact; segments: RenderedNetworkSegment[] }>();
 
-  const plannedPreviewLayers = useMemo(() => {
+    for (const segment of renderedOverlaySegments) {
+      const impacts = segment.impacts?.length ? segment.impacts : legacyImpactsForSegment(segment);
+      for (const impact of impacts) {
+        const key = impactLayerKey(impact);
+        const group = groups.get(key);
+        if (group) {
+          group.segments.push(segment);
+        } else {
+          groups.set(key, { impact, segments: [segment] });
+        }
+      }
+    }
+
+    return Array.from(groups.values())
+      .map(({ impact, segments }) => {
+        const orderedSegments = orderSegmentsByIds(
+          segments,
+          segmentIdsForImpact(impact, activeAlerts, delays, reducedSpeedZones, plannedClosures),
+        );
+        const corridor = composeNetworkSegmentPath(orderedSegments, impact.travelDirection);
+        if (!corridor.pathD) return null;
+        return {
+          impact,
+          segment: compositeSegment(
+            `${impact.kind}-${impact.cardId}-${impact.travelDirection}`,
+            orderedSegments,
+            corridor.pathD,
+            corridor.travelDirection,
+            corridor.segmentIds,
+            labelForSegments(orderedSegments),
+          ),
+        };
+      })
+      .filter((layer): layer is RenderedImpactLayer => Boolean(layer));
+  }, [activeAlerts, delays, plannedClosures, reducedSpeedZones, renderedOverlaySegments]);
+
+  const plannedPreviewLayers = useMemo<RenderedPlannedPreviewLayer[]>(() => {
     if (!selectedClosure) return [];
-    return renderedOverlaySegments
-      .filter((segment) => shouldRenderPlannedPreviewLayer(segment, selectedClosure))
-      .map((segment) => ({ segment, closure: selectedClosure }));
+    const orderedSegments = orderSegmentsByIds(
+      renderedOverlaySegments.filter((segment) => shouldRenderPlannedPreviewLayer(segment, selectedClosure)),
+      selectedClosure.previewSegmentIds,
+    );
+    const corridor = composeNetworkSegmentPath(orderedSegments, "bidirectional");
+    if (!corridor.pathD) return [];
+    return [{
+      segment: compositeSegment(
+        `planned-preview-${selectedClosure.id}`,
+        orderedSegments,
+        corridor.pathD,
+        corridor.travelDirection,
+        corridor.segmentIds,
+        selectedClosure.location || selectedClosure.title,
+      ),
+      closure: selectedClosure,
+    }];
   }, [renderedOverlaySegments, selectedClosure]);
 
 
@@ -526,6 +582,17 @@ type RenderedNetworkSegment = NetworkSegment & {
   patternOriginX?: number;
   patternOriginY?: number;
   patternAngle?: number;
+  sourceSegmentIds?: string[];
+};
+
+type RenderedImpactLayer = {
+  segment: RenderedNetworkSegment;
+  impact: MapImpact;
+};
+
+type RenderedPlannedPreviewLayer = {
+  segment: RenderedNetworkSegment;
+  closure: PlannedClosure;
 };
 
 type OverlayVisualState =
@@ -567,6 +634,76 @@ function visualStateForImpactKind(kind: MapImpactKind): OverlayVisualState {
     case "reduced-speed-zone":
       return "reduced-speed-zone";
   }
+}
+
+function impactLayerKey(impact: MapImpact) {
+  return `${impact.kind}:${impact.cardId}:${impact.travelDirection}`;
+}
+
+function segmentIdsForImpact(
+  impact: MapImpact,
+  activeAlerts: ActiveAlert[],
+  delays: DelayAlert[],
+  reducedSpeedZones: ReducedSpeedZone[],
+  plannedClosures: PlannedClosure[],
+): string[] {
+  if (impact.kind === "planned-closure") {
+    return plannedClosures.find((closure) => closure.id === impact.cardId)?.previewSegmentIds ?? [];
+  }
+  if (impact.kind === "suspension") {
+    return activeAlerts.find((alert) => alert.id === impact.cardId)?.affectedSegmentIds ?? [];
+  }
+  if (impact.kind === "delay") {
+    return delays.find((delay) => delay.id === impact.cardId)?.affectedSegmentIds ?? [];
+  }
+  return reducedSpeedZones.find((zone) => zone.id === impact.cardId)?.affectedSegmentIds ?? [];
+}
+
+function orderSegmentsByIds(
+  segments: RenderedNetworkSegment[],
+  orderedIds: string[],
+): RenderedNetworkSegment[] {
+  if (orderedIds.length === 0) {
+    return segments;
+  }
+  const segmentById = new Map(segments.map((segment) => [segment.id, segment]));
+  const ordered = orderedIds
+    .map((segmentId) => segmentById.get(segmentId))
+    .filter((segment): segment is RenderedNetworkSegment => Boolean(segment));
+  const orderedIdSet = new Set(ordered.map((segment) => segment.id));
+  return ordered.concat(segments.filter((segment) => !orderedIdSet.has(segment.id)));
+}
+
+function compositeSegment(
+  id: string,
+  sourceSegments: RenderedNetworkSegment[],
+  pathD: string,
+  travelDirection: NonNullable<NetworkSegment["travelDirection"]>,
+  sourceSegmentIds: string[],
+  label: string,
+): RenderedNetworkSegment {
+  const first = sourceSegments[0];
+  if (!first) {
+    throw new Error("Cannot compose an empty corridor segment.");
+  }
+  return {
+    ...first,
+    id,
+    label,
+    pathD,
+    guidePathId: undefined,
+    guidePathReversed: false,
+    travelDirection,
+    sourceSegmentIds,
+  };
+}
+
+function labelForSegments(segments: RenderedNetworkSegment[]): string {
+  if (segments.length === 0) return "Transit corridor";
+  if (segments.length === 1) return segments[0].label;
+  const first = segments[0];
+  const last = segments.at(-1) ?? first;
+  return `${first.label} through ${last.label}`;
 }
 
 function AnimatedChevronLane({
@@ -763,7 +900,9 @@ function OverlaySegment({
   const isSelectedImpact = impact
     ? selection?.kind === impact.kind && selection.id === impact.cardId
     : selection?.kind === "planned-closure" && selection.id === plannedClosure?.id;
-  const isSelectedSegment = selectedSegmentIds.includes(segment.id);
+  const isSelectedSegment =
+    selectedSegmentIds.includes(segment.id) ||
+    (segment.sourceSegmentIds?.some((segmentId) => selectedSegmentIds.includes(segmentId)) ?? false);
   const isMapFlash = impact
     ? flashSelection?.kind === impact.kind && flashSelection.id === impact.cardId
     : flashSelection?.kind === "planned-closure" && flashSelection.id === plannedClosure?.id;

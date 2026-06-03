@@ -9,7 +9,7 @@
    style="shape-rendering:geometricPrecision; text-rendering:geometricPrecision; image-rendering:optimizeQuality; fill-rule:evenodd; clip-rule:evenodd"
    viewBox="0 0 8250 4000"
    id="svg1475"
-   sodipodi:docname="TTC_Subway Map_Edited.svg"
+   sodipodi:docname="TTC_Subway_Map_Edited.svg"
    inkscape:version="1.4.4 (dcaf3e7d9e, 2026-05-05)"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
@@ -23,9 +23,9 @@
    inkscape:pageopacity="0.0"
    inkscape:pagecheckerboard="0"
    inkscape:deskcolor="#d1d1d1"
-   inkscape:zoom="0.35355343"
-   inkscape:cx="3985.2534"
-   inkscape:cy="3570.8889"
+   inkscape:zoom="0.25000003"
+   inkscape:cx="2463.9997"
+   inkscape:cy="2845.9997"
    inkscape:window-width="2560"
    inkscape:window-height="1363"
    inkscape:window-x="0"
@@ -99,7 +99,7 @@
      class="fil8"
      d="m 2421,918 c -2,4 -6,6 -10,6 H 331 c -21,0 -42,9 -57,24 -15,15 -24,36 -24,57 v 146 c 0,21 18,39 39,39 22,0 40,-17 40,-39 v -136 c 0,-7 5,-12 12,-12 h 2100 c 15,0 29,-9 35,-24 l 72,-124 c 11,-18 4,-42 -14,-53 -19,-11 -43,-4 -54,14 z"
      id="line-6"
-     style="clip-rule:evenodd;fill:#969594;fill-rule:evenodd;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision" /></g>
+     style="clip-rule:evenodd;display:inline;fill:#969594;fill-rule:evenodd;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision" /></g>
   
   
   
@@ -175,7 +175,11 @@
      style="clip-rule:evenodd;fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:20;stroke-linecap:round;stroke-linejoin:miter;stroke-dasharray:none;stroke-opacity:1;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
      d="m 3735.9999,2519.9999 -1,-249"
      id="path1"
-     inkscape:label="seg-line-1-dupont-spadina" /></g>
+     inkscape:label="seg-line-1-dupont-spadina" /><path
+     style="clip-rule:evenodd;fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:20;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
+     d="M 286.78,1156.537 V 1005 C 286.78,982 305,963.393 331,963.393 H 423.783"
+     id="path-line-6-humber-westmore"
+     inkscape:label="seg-line-6-humber-college-westmore" /></g>
   <g
    id="_1615690582816"
    transform="translate(279.39107,-381.31033)">
