@@ -1,6 +1,8 @@
 import type { NetworkSegment, Station } from "./linewatch-data";
 
 export type MapPoint = { x: number; y: number };
+export type MapBounds = { x: number; y: number; width: number; height: number };
+export type PathFrame = { point: MapPoint; tangent: MapPoint; normal: MapPoint };
 
 export type ChevronInstance = {
   x: number;
@@ -116,6 +118,54 @@ export function pathCenter(pathD: string): MapPoint | null {
     x: total.x / points.length,
     y: total.y / points.length,
   };
+}
+
+export function pathCorridorCollisionBoxes(pathD: string, radius: number = 112): MapBounds[] {
+  const points = pathToPolylinePoints(pathD);
+  if (points.length === 0) return [];
+  if (points.length === 1) return [pointCollisionBox(points[0], radius)];
+
+  return densifyPolylinePoints(points, Math.max(1, radius))
+    .map((point) => pointCollisionBox(point, radius));
+}
+
+export function pathMidpointFrame(pathD: string): PathFrame | null {
+  const points = pathToPolylinePoints(pathD);
+  if (points.length < 2) return null;
+
+  const lengths = points.slice(1).map((point, index) => pointDistance(points[index], point));
+  const totalLength = lengths.reduce((sum, length) => sum + length, 0);
+  if (totalLength <= 0) return null;
+
+  const targetLength = totalLength / 2;
+  let walkedLength = 0;
+
+  for (let index = 1; index < points.length; index++) {
+    const start = points[index - 1];
+    const end = points[index];
+    const segmentLength = lengths[index - 1];
+    if (segmentLength <= 0.001) continue;
+
+    if (walkedLength + segmentLength >= targetLength) {
+      const t = (targetLength - walkedLength) / segmentLength;
+      const tangent = {
+        x: (end.x - start.x) / segmentLength,
+        y: (end.y - start.y) / segmentLength,
+      };
+      return {
+        point: {
+          x: start.x + (end.x - start.x) * t,
+          y: start.y + (end.y - start.y) * t,
+        },
+        tangent,
+        normal: { x: -tangent.y, y: tangent.x },
+      };
+    }
+
+    walkedLength += segmentLength;
+  }
+
+  return null;
 }
 
 export function composeNetworkSegmentPath(
@@ -356,6 +406,37 @@ function endpointDistance(
 
 function dedupePoints(points: MapPoint[]): MapPoint[] {
   return points.filter((point, index) => index === 0 || pointDistance(point, points[index - 1]) > 0.001);
+}
+
+function pointCollisionBox(point: MapPoint, radius: number): MapBounds {
+  return {
+    x: point.x - radius,
+    y: point.y - radius,
+    width: radius * 2,
+    height: radius * 2,
+  };
+}
+
+function densifyPolylinePoints(points: MapPoint[], spacing: number): MapPoint[] {
+  const sampled: MapPoint[] = [];
+
+  for (let index = 1; index < points.length; index++) {
+    const start = points[index - 1];
+    const end = points[index];
+    const distance = pointDistance(start, end);
+    if (distance <= 0.001) continue;
+
+    const stepCount = Math.max(1, Math.ceil(distance / spacing));
+    for (let step = 0; step <= stepCount; step++) {
+      const t = step / stepCount;
+      sampled.push({
+        x: start.x + (end.x - start.x) * t,
+        y: start.y + (end.y - start.y) * t,
+      });
+    }
+  }
+
+  return dedupePoints(sampled);
 }
 
 function reversePoints(points: MapPoint[]): MapPoint[] {

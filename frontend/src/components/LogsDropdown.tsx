@@ -32,7 +32,7 @@ export function LogsDropdown() {
   const fetchRawAlerts = () => {
     setLoading(true);
     setError(false);
-    const apiBaseUrl = process.env.NEXT_PUBLIC_LINEWATCH_API_BASE_URL ?? "";
+    const apiBaseUrl = process.env.NEXT_PUBLIC_LINEWATCH_API_BASE_URL ?? "http://localhost:8080";
     fetch(`${apiBaseUrl}/api/alerts?type=raw`)
       .then((res) => {
         if (!res.ok) throw new Error("Failed to fetch");
@@ -145,11 +145,11 @@ export function LogsDropdown() {
       {/* Logs Trigger Button */}
       <button
         onClick={toggleDropdown}
-        className="panel flex items-center justify-center w-10 sm:w-14 h-10 sm:h-14 rounded-xl border border-white/10 shadow-lg hover:!bg-[#1a1e28] hover:scale-105 active:scale-95 outline-none focus-visible:ring-4 focus-visible:ring-white/20 transition-all cursor-pointer bg-[#0a0c10] text-white"
+        className="panel flex items-center justify-center w-10 sm:w-14 h-10 sm:h-14 rounded-xl border border-black/10 dark:border-white/10 shadow-lg hover:!bg-slate-100 dark:hover:!bg-[#1a1e28] hover:scale-105 active:scale-95 outline-none focus-visible:ring-4 focus-visible:ring-black/10 dark:focus-visible:ring-white/20 transition-all cursor-pointer bg-white dark:bg-[#0a0c10] text-slate-800 dark:text-white"
         aria-label="Toggle Ingestion Logs"
         aria-expanded={isOpen}
       >
-        <svg viewBox="0 0 32 32" fill="currentColor" className="w-5 h-5 sm:w-7 sm:h-7 text-white">
+        <svg viewBox="0 0 32 32" fill="currentColor" className="w-5 h-5 sm:w-7 sm:h-7 text-slate-800 dark:text-white">
           <rect x="10" y="18" width="8" height="2"/>
           <rect x="10" y="13" width="12" height="2"/>
           <rect x="10" y="23" width="5" height="2"/>

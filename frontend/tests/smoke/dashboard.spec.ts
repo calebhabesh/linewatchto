@@ -77,7 +77,7 @@ test("renders the seeded dashboard API payload", async ({ page, request }) => {
   await expect(page.getByText("Mid-June")).toBeVisible();
 
   await page.locator('.alert-card').filter({ hasText: 'Eglinton' }).getByRole("button", { name: "Show on Map" }).click();
-  await expect(page.locator('[data-map-highlight-id="reduced-speed-zone-stub-zone-south-source"]')).toBeVisible();
+  await expect(page.locator('[data-map-highlight-id="reduced-speed-zone-stub-zone-south-source"]')).toBeAttached();
 });
 
 test("map overlays open the corresponding submenu cards", async ({ page, request }) => {
@@ -135,17 +135,41 @@ test("renders fixture fallback when the dashboard API is unavailable", async ({ 
   await expect(page.getByText("Live status", { exact: true })).toHaveCount(0);
 });
 
-test("renders active planned closures and active now badges", async ({ page, request }) => {
+test("routes active planned closures to active alerts instead of upcoming closures", async ({ page, request }) => {
   await setStubMode(request, "seeded");
   await openDashboardMenu(page);
 
-  await page.getByRole("button", { name: /upcoming closures/i }).click();
-  await expect(page.getByRole("heading", { name: "Upcoming Closures" })).toBeVisible();
+  await page.getByRole("button", { name: /^Active Alerts/ }).click();
+  await expect(page.getByRole("heading", { name: "Active Alerts" })).toBeVisible();
   await expect(page.locator('[data-impact-card-id="stub-closure-line-1"]')).toBeVisible();
-  await expect(page.getByText("Active now", { exact: true })).toBeVisible();
 
   await page.locator('[data-impact-card-id="stub-closure-line-1"]').getByRole("button", { name: "Show on Map" }).click();
   await expect(page.locator('[data-impact-card-id="stub-closure-line-1"]')).toHaveClass(/highlight-active-card/);
+
+  await page.getByRole("button", { name: "Toggle menu" }).click();
+  await page.getByRole("button", { name: /upcoming closures/i }).click();
+  await expect(page.getByRole("heading", { name: "Upcoming Closures" })).toBeVisible();
+  const upcomingClosuresPanel = page.locator("section").filter({
+    has: page.getByRole("heading", { name: "Upcoming Closures" }),
+  });
+  await expect(upcomingClosuresPanel.locator('[data-impact-card-id="stub-closure-line-1"]')).toHaveCount(0);
+  await expect(upcomingClosuresPanel.locator('[data-impact-card-id="stub-upcoming-closure-line-1"]')).toBeVisible();
+});
+
+test("shows a compact map hint when multiple alert types overlap", async ({ page, request }) => {
+  await setStubMode(request, "seeded");
+  await page.goto("/");
+  await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
+
+  const overlapMarker = page.locator('[data-overlap-segment-id="stub-line-1-segment"]');
+  await expect(overlapMarker).toBeVisible();
+  await expect(overlapMarker).toHaveAttribute("data-overlap-collision-avoided", "true");
+  await expect(overlapMarker.locator('[data-overlap-kind="suspension"]')).toBeVisible();
+  await expect(overlapMarker.locator('[data-overlap-kind="planned-closure"]')).toBeVisible();
+
+  await overlapMarker.dispatchEvent("click");
+  await expect(page.getByRole("heading", { name: "Active Alerts" })).toBeVisible();
+  await expect(page.locator('[data-impact-card-id="stub-alert-line-1"]')).toHaveClass(/highlight-active-card/);
 });
 
 test("opens logs dropdown and expands raw JSON payload", async ({ page, request }) => {
@@ -189,4 +213,3 @@ test("nonlinear guide-backed overlays open their corresponding cards", async ({ 
   await expect(stGeorgeCurveCard).toBeVisible();
   await expect(stGeorgeCurveCard).toHaveClass(/highlight-active-card/);
 });
-

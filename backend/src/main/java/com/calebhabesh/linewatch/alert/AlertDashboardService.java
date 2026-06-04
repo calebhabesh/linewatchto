@@ -70,10 +70,18 @@ public class AlertDashboardService {
             return List.of();
         }
         List<LineSegmentEntity> segments = lineSegmentRepository.findAllByOrderBySortOrderAsc();
-        return alertRepository.findByActiveTrueAndType(ACTIVE_ALERT_TYPE).stream()
+        List<ActiveAlertDto> routeAlerts = alertRepository.findByActiveTrueAndType(ACTIVE_ALERT_TYPE).stream()
             .filter(alert -> hasImpactKind(alert, SUSPENSION_KIND))
             .map(alert -> toActiveAlert(alert, segments))
             .toList();
+        List<ActiveAlertDto> activeClosures = plannedClosureDtos(segments).stream()
+            .filter(closure -> closure.activeNow() && !isScheduledClosureParent(closure))
+            .map(this::toActiveClosureAlert)
+            .toList();
+
+        List<ActiveAlertDto> alerts = new ArrayList<>(routeAlerts);
+        alerts.addAll(activeClosures);
+        return alerts;
     }
 
     public List<DelayAlertDto> delays() {
@@ -111,6 +119,12 @@ public class AlertDashboardService {
             return List.of();
         }
         List<LineSegmentEntity> segments = lineSegmentRepository.findAllByOrderBySortOrderAsc();
+        return plannedClosureDtos(segments).stream()
+            .filter(closure -> !closure.activeNow() || isScheduledClosureParent(closure))
+            .toList();
+    }
+
+    private List<PlannedClosureDto> plannedClosureDtos(List<LineSegmentEntity> segments) {
         List<AlertEntity> alerts = alertRepository.findByActiveTrueAndType(PLANNED_CLOSURE_TYPE).stream()
             .filter(alert -> hasImpactKind(alert, PLANNED_CLOSURE_KIND))
             .filter(this::isCurrentOrFuture)
@@ -136,12 +150,21 @@ public class AlertDashboardService {
     }
 
     public List<PlannedClosureDto> activePlannedClosures() {
-        return plannedClosures().stream()
+        if (!ingestionFreshness.isDashboardFresh()) {
+            return List.of();
+        }
+        List<LineSegmentEntity> segments = lineSegmentRepository.findAllByOrderBySortOrderAsc();
+        return plannedClosureDtos(segments).stream()
             .filter(PlannedClosureDto::activeNow)
+            .filter(closure -> !isScheduledClosureParent(closure))
             .toList();
     }
 
     private record AlertWithWindowState(AlertEntity alert, WindowState ws) {}
+
+    private boolean isScheduledClosureParent(PlannedClosureDto closure) {
+        return closure.nightly();
+    }
 
     public Map<String, List<SegmentImpact>> activeSegmentImpacts() {
         if (!ingestionFreshness.isDashboardFresh()) {
@@ -157,10 +180,15 @@ public class AlertDashboardService {
                 continue;
             }
             for (String segmentId : affectedSegmentIds(alert, segments)) {
+                LineSegmentEntity segment = segments.stream()
+                    .filter(s -> s.getId().equals(segmentId))
+                    .findFirst()
+                    .orElse(null);
+                String travelDir = segment != null ? travelDirection(alert, segment) : "bidirectional";
                 appendImpact(impacts, segmentId, new SegmentImpact(
                     alert.getImpactKind(),
                     alert.getId(),
-                    "bidirectional",
+                    travelDir,
                     List.of(alert.getId())
                 ));
             }
@@ -326,6 +354,7 @@ public class AlertDashboardService {
             alert.getTitle(),
             isBlank(alert.getSeverity()) ? "delay" : alert.getSeverity(),
             location(alert),
+            displayDirection(alert),
             alert.getDescription(),
             alert.getActivePeriodStart(),
             alert.getSourceUpdatedAt(),
@@ -337,6 +366,26 @@ public class AlertDashboardService {
         );
     }
 
+    private ActiveAlertDto toActiveClosureAlert(PlannedClosureDto closure) {
+        return new ActiveAlertDto(
+            closure.id(),
+            closure.lineId(),
+            closure.lineNumber(),
+            closure.title(),
+            "planned",
+            closure.location(),
+            closure.displayDirection(),
+            closure.description(),
+            closure.startedAt(),
+            closure.updatedAt(),
+            closure.previewSegmentIds(),
+            closure.shuttle(),
+            closure.source(),
+            closure.cause(),
+            closure.resolution()
+        );
+    }
+
     private DelayAlertDto toDelayAlert(AlertEntity alert, List<LineSegmentEntity> segments) {
         TransitLineEntity line = alert.getLine();
         return new DelayAlertDto(
@@ -345,6 +394,7 @@ public class AlertDashboardService {
             line == null ? null : line.getNumber(),
             alert.getTitle(),
             location(alert),
+            displayDirection(alert),
             alert.getDescription(),
             affectedSegmentIds(alert, segments),
             alert.getActivePeriodStart(),
@@ -363,6 +413,7 @@ public class AlertDashboardService {
             alert.getTitle(),
             displayWindow(alert, ws),
             location(alert),
+            displayDirection(alert),
             alert.getDescription(),
             alert.getActivePeriodStart(),
             alert.getSourceUpdatedAt(),
@@ -404,7 +455,73 @@ public class AlertDashboardService {
         if (isBlank(alert.getStartStationId()) || isBlank(alert.getEndStationId())) {
             return "";
         }
+        if (alert.getStartStationId().equals(alert.getEndStationId())) {
+            return stationLabel(alert.getStartStationId());
+        }
         return stationLabel(alert.getStartStationId()) + " to " + stationLabel(alert.getEndStationId());
+    }
+
+    private String displayDirection(AlertEntity alert) {
+        String direction = alert.getDirection();
+        if (direction == null) {
+            return null;
+        }
+        String normalized = direction.trim().toLowerCase(Locale.ROOT);
+        switch (normalized) {
+            case "northbound":
+                return "Northbound";
+            case "southbound":
+                return "Southbound";
+            case "eastbound":
+                return "Eastbound";
+            case "westbound":
+                return "Westbound";
+            case "bidirectional":
+                TransitLineEntity line = alert.getLine();
+                String num = (line != null) ? line.getNumber() : "";
+                if ("1".equals(num) || "4".equals(num)) {
+                    return "Northbound & Southbound";
+                } else if ("2".equals(num) || "5".equals(num) || "6".equals(num)) {
+                    return "Eastbound & Westbound";
+                }
+                String id = (line != null) ? line.getId() : "";
+                if (id != null && (id.contains("1") || id.contains("4"))) {
+                    return "Northbound & Southbound";
+                }
+                return "Eastbound & Westbound";
+            default:
+                return null;
+        }
+    }
+
+    private String travelDirection(AlertEntity alert, LineSegmentEntity segment) {
+        String dir = alert.getDirection();
+        if (dir == null) {
+            return "bidirectional";
+        }
+        String normalized = dir.trim().toLowerCase(Locale.ROOT);
+        if ("bidirectional".equals(normalized) || "unknown".equals(normalized)) {
+            return "bidirectional";
+        }
+        String forwardDir = segment.getForwardDirection();
+        if (forwardDir == null) {
+            return "bidirectional";
+        }
+        String forward = forwardDir.trim().toLowerCase(Locale.ROOT);
+        if (normalized.equals(forward)) {
+            return "forward";
+        }
+        String opposite = switch (normalized) {
+            case "northbound" -> "southbound";
+            case "southbound" -> "northbound";
+            case "eastbound" -> "westbound";
+            case "westbound" -> "eastbound";
+            default -> "";
+        };
+        if (opposite.equals(forward)) {
+            return "reverse";
+        }
+        return "bidirectional";
     }
 
     private ReducedSpeedZoneDto toReducedSpeedZoneDto(
@@ -619,6 +736,7 @@ public class AlertDashboardService {
         String title,
         String severity,
         String location,
+        String displayDirection,
         String description,
         OffsetDateTime startedAt,
         OffsetDateTime updatedAt,
@@ -635,6 +753,7 @@ public class AlertDashboardService {
         String lineNumber,
         String title,
         String location,
+        String displayDirection,
         String description,
         List<String> affectedSegmentIds,
         OffsetDateTime startedAt,
@@ -650,6 +769,7 @@ public class AlertDashboardService {
         String title,
         String window,
         String location,
+        String displayDirection,
         String description,
         OffsetDateTime startedAt,
         OffsetDateTime updatedAt,
@@ -675,6 +795,7 @@ public class AlertDashboardService {
             String title,
             String window,
             String location,
+            String displayDirection,
             String description,
             OffsetDateTime startedAt,
             OffsetDateTime updatedAt,
@@ -685,7 +806,7 @@ public class AlertDashboardService {
             String resolution
         ) {
             this(
-                id, lineId, lineNumber, title, window, location, description, startedAt, updatedAt,
+                id, lineId, lineNumber, title, window, location, displayDirection, description, startedAt, updatedAt,
                 previewSegmentIds, shuttle, source, cause, resolution,
                 false, "unknown", false, null, null, null, null, null, null
             );

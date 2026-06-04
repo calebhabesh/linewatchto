@@ -80,7 +80,7 @@ export function ReducedSpeedZonesPanel({
                 direction={zone.displayDirection}
               />
 
-              <div className="border-t border-black/10 dark:border-white/10 mt-3 pt-2.5 flex items-center justify-start gap-3 w-full min-w-0">
+              <div className="border-t border-black/10 dark:border-white/10 mt-3 pt-2.5 flex items-end justify-start gap-3 w-full min-w-0">
                 <div className="flex-1 min-w-0">
                   <MetadataGrid 
                     className="no-border"
@@ -108,7 +108,7 @@ export function ReducedSpeedZonesPanel({
                 >
                   <JumpToLocationIcon className="w-8 h-8" />
                   <span className="text-[9px] font-black uppercase tracking-wider text-center leading-tight mt-1.5 max-w-[72px] whitespace-normal break-words">
-                    {isActive ? "Clear Highlight" : "Show on Map"}
+                    {isActive ? "Unfocus" : "Show on Map"}
                   </span>
                 </button>
               </div>

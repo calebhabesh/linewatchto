@@ -23,9 +23,9 @@
    inkscape:pageopacity="0.0"
    inkscape:pagecheckerboard="0"
    inkscape:deskcolor="#d1d1d1"
-   inkscape:zoom="0.17677672"
-   inkscape:cx="4802.6686"
-   inkscape:cy="2661.5496"
+   inkscape:zoom="0.25000003"
+   inkscape:cx="4285.9994"
+   inkscape:cy="2661.9996"
    inkscape:window-width="2560"
    inkscape:window-height="1363"
    inkscape:window-x="0"
@@ -6370,8 +6370,7 @@
  <g
    id="layer6"
    inkscape:label="stations-layer"
-   style="clip-rule:evenodd;display:inline;fill-rule:evenodd;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
-   sodipodi:insensitive="true"><g
+   style="clip-rule:evenodd;display:inline;fill-rule:evenodd;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"><g
      id="station-museum"
      style="clip-rule:evenodd;fill-rule:evenodd;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision">
    <path
@@ -6407,7 +6406,7 @@
   </g><g
      id="station-royal-york"
      style="clip-rule:evenodd;fill-rule:evenodd;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
-     transform="translate(181.63558,0.44070995)">
+     transform="translate(181.63558)">
    <path
    class="fil6"
    d="m 1215,2603 c 0,-18 15,-33 33,-33 18,0 33,15 33,33 0,18 -15,33 -33,33 -18,0 -33,-15 -33,-33 z"
@@ -6421,7 +6420,7 @@
   </g><g
      id="station-jane"
      style="clip-rule:evenodd;fill-rule:evenodd;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
-     transform="translate(544.2288,-0.07623921)">
+     transform="translate(544.2288)">
    <path
    class="fil6"
    d="m 1215,2603 c 0,-18 15,-33 33,-33 18,0 33,15 33,33 0,18 -15,33 -33,33 -18,0 -33,-15 -33,-33 z"
@@ -6435,7 +6434,7 @@
   </g><g
      id="station-runnymede"
      style="clip-rule:evenodd;fill-rule:evenodd;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
-     transform="translate(725.47457,0.33054068)">
+     transform="translate(725.47457)">
    <path
    class="fil6"
    d="m 1215,2603 c 0,-18 15,-33 33,-33 18,0 33,15 33,33 0,18 -15,33 -33,33 -18,0 -33,-15 -33,-33 z"
@@ -6449,7 +6448,7 @@
   </g><g
      id="station-high-park"
      style="clip-rule:evenodd;fill-rule:evenodd;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
-     transform="translate(907.10168,0.15257457)">
+     transform="translate(907.10168)">
    <path
    class="fil6"
    d="m 1215,2603 c 0,-18 15,-33 33,-33 18,0 33,15 33,33 0,18 -15,33 -33,33 -18,0 -33,-15 -33,-33 z"
@@ -6463,7 +6462,7 @@
   </g><g
      id="station-keele"
      style="clip-rule:evenodd;fill-rule:evenodd;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
-     transform="translate(1087.8475,-0.0338661)">
+     transform="translate(1087.8475)">
    <path
    class="fil6"
    d="m 1215,2603 c 0,-18 15,-33 33,-33 18,0 33,15 33,33 0,18 -15,33 -33,33 -18,0 -33,-15 -33,-33 z"
@@ -6477,7 +6476,7 @@
   </g><g
      id="station-dundas-west"
      style="clip-rule:evenodd;fill-rule:evenodd;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
-     transform="translate(1269.5593,0.38986272)">
+     transform="translate(1269.5593)">
    <path
    class="fil6"
    d="m 1215,2603 c 0,-18 15,-33 33,-33 18,0 33,15 33,33 0,18 -15,33 -33,33 -18,0 -33,-15 -33,-33 z"
@@ -6491,7 +6490,7 @@
   </g><g
      id="station-lansdowne"
      style="clip-rule:evenodd;fill-rule:evenodd;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
-     transform="translate(1451.1695,0.15257457)">
+     transform="translate(1451.1695)">
    <path
    class="fil6"
    d="m 1215,2603 c 0,-18 15,-33 33,-33 18,0 33,15 33,33 0,18 -15,33 -33,33 -18,0 -33,-15 -33,-33 z"
@@ -6505,7 +6504,7 @@
   </g><g
      id="station-dufferin"
      style="clip-rule:evenodd;fill-rule:evenodd;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
-     transform="translate(1631.9831,-0.11013746)">
+     transform="translate(1631.9831)">
    <path
    class="fil6"
    d="m 1215,2603 c 0,-18 15,-33 33,-33 18,0 33,15 33,33 0,18 -15,33 -33,33 -18,0 -33,-15 -33,-33 z"
@@ -6519,7 +6518,7 @@
   </g><g
      id="station-ossington"
      style="clip-rule:evenodd;fill-rule:evenodd;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
-     transform="translate(1813.5593,-0.0338661)">
+     transform="translate(1813.5593)">
    <path
    class="fil6"
    d="m 1215,2603 c 0,-18 15,-33 33,-33 18,0 33,15 33,33 0,18 -15,33 -33,33 -18,0 -33,-15 -33,-33 z"
@@ -6533,7 +6532,7 @@
   </g><g
      id="station-christie"
      style="clip-rule:evenodd;fill-rule:evenodd;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
-     transform="translate(1994.9492,-0.00844236)">
+     transform="translate(1994.9492)">
    <path
    class="fil6"
    d="m 1215,2603 c 0,-18 15,-33 33,-33 18,0 33,15 33,33 0,18 -15,33 -33,33 -18,0 -33,-15 -33,-33 z"
@@ -6547,7 +6546,7 @@
   </g><g
      id="station-bathurst"
      style="clip-rule:evenodd;fill-rule:evenodd;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
-     transform="translate(2176.339,0.08477797)">
+     transform="translate(2176.339)">
    <path
    class="fil6"
    d="m 1215,2603 c 0,-18 15,-33 33,-33 18,0 33,15 33,33 0,18 -15,33 -33,33 -18,0 -33,-15 -33,-33 z"
@@ -6583,7 +6582,7 @@
   </g><g
      id="station-bay"
      style="clip-rule:evenodd;fill-rule:evenodd;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
-     transform="translate(2700.9153,-0.04237286)">
+     transform="translate(2700.9153)">
    <path
    class="fil6"
    d="m 1578,2603 c 0,-18 15,-33 33,-33 18,0 33,15 33,33 0,18 -15,33 -33,33 -18,0 -33,-15 -33,-33 z"
@@ -6597,7 +6596,7 @@
   </g><g
      id="station-sherbourne"
      style="clip-rule:evenodd;fill-rule:evenodd;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
-     transform="translate(3251.0038,-0.18763194)">
+     transform="translate(3251.0038)">
    <path
    class="fil6"
    d="m 1578,2603 c 0,-18 15,-33 33,-33 18,0 33,15 33,33 0,18 -15,33 -33,33 -18,0 -33,-15 -33,-33 z"
@@ -6611,7 +6610,7 @@
   </g><g
      id="station-castle-frank"
      style="clip-rule:evenodd;fill-rule:evenodd;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
-     transform="translate(3503.993,0.04870245)">
+     transform="translate(3503.993)">
    <path
    class="fil6"
    d="m 1578,2603 c 0,-18 15,-33 33,-33 18,0 33,15 33,33 0,18 -15,33 -33,33 -18,0 -33,-15 -33,-33 z"
@@ -6625,7 +6624,7 @@
   </g><g
      id="station-broadview"
      style="clip-rule:evenodd;fill-rule:evenodd;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
-     transform="translate(3685.1498,0.09359291)">
+     transform="translate(3685.1498)">
    <path
    class="fil6"
    d="m 1578,2603 c 0,-18 15,-33 33,-33 18,0 33,15 33,33 0,18 -15,33 -33,33 -18,0 -33,-15 -33,-33 z"
@@ -6639,7 +6638,7 @@
   </g><g
      id="station-chester"
      style="clip-rule:evenodd;fill-rule:evenodd;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
-     transform="translate(3866.9665,-0.10110831)">
+     transform="translate(3866.9665)">
    <path
    class="fil6"
    d="m 1578,2603 c 0,-18 15,-33 33,-33 18,0 33,15 33,33 0,18 -15,33 -33,33 -18,0 -33,-15 -33,-33 z"
@@ -6653,7 +6652,7 @@
   </g><g
      id="station-pape"
      style="clip-rule:evenodd;fill-rule:evenodd;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
-     transform="translate(4047.9102,-0.00375772)">
+     transform="translate(4047.9102)">
    <path
    class="fil6"
    d="m 1578,2603 c 0,-18 15,-33 33,-33 18,0 33,15 33,33 0,18 -15,33 -33,33 -18,0 -33,-15 -33,-33 z"
@@ -6667,7 +6666,7 @@
   </g><g
      id="station-donlands"
      style="clip-rule:evenodd;fill-rule:evenodd;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
-     transform="translate(4229.2547,0.05248723)">
+     transform="translate(4229.2547)">
    <path
    class="fil6"
    d="m 1578,2603 c 0,-18 15,-33 33,-33 18,0 33,15 33,33 0,18 -15,33 -33,33 -18,0 -33,-15 -33,-33 z"
@@ -6681,7 +6680,7 @@
   </g><g
      id="station-greenwoood"
      style="clip-rule:evenodd;fill-rule:evenodd;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
-     transform="translate(4410.967,-0.05243303)">
+     transform="translate(4410.967)">
    <path
    class="fil6"
    d="m 1578,2603 c 0,-18 15,-33 33,-33 18,0 33,15 33,33 0,18 -15,33 -33,33 -18,0 -33,-15 -33,-33 z"
@@ -6695,7 +6694,7 @@
   </g><g
      id="station-coxwell"
      style="clip-rule:evenodd;fill-rule:evenodd;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
-     transform="translate(4591.907,0.00381192)">
+     transform="translate(4591.907)">
    <path
    class="fil6"
    d="m 1578,2603 c 0,-18 15,-33 33,-33 18,0 33,15 33,33 0,18 -15,33 -33,33 -18,0 -33,-15 -33,-33 z"
@@ -6709,7 +6708,7 @@
   </g><g
      id="station-woodbine"
      style="clip-rule:evenodd;fill-rule:evenodd;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
-     transform="translate(4773.5917,-0.05243303)">
+     transform="translate(4773.5917)">
    <path
    class="fil6"
    d="m 1578,2603 c 0,-18 15,-33 33,-33 18,0 33,15 33,33 0,18 -15,33 -33,33 -18,0 -33,-15 -33,-33 z"
@@ -6723,7 +6722,7 @@
   </g><g
      id="station-main-street"
      style="clip-rule:evenodd;fill-rule:evenodd;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
-     transform="translate(4955.1125,-3.3898034)">
+     transform="translate(4955.1125)">
    <path
    class="fil6"
    d="m 1578,2603 c 0,-18 15,-33 33,-33 18,0 33,15 33,33 0,18 -15,33 -33,33 -18,0 -33,-15 -33,-33 z"
@@ -6765,7 +6764,7 @@
   </g><g
      id="station-queens-park"
      style="clip-rule:evenodd;fill-rule:evenodd;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
-     transform="translate(2465.9661,353.93223)">
+     transform="translate(2465.5,353.93223)">
    <path
    class="fil6"
    d="m 1578,2603 c 0,-18 15,-33 33,-33 18,0 33,15 33,33 0,18 -15,33 -33,33 -18,0 -33,-15 -33,-33 z"
@@ -6779,7 +6778,7 @@
   </g><g
      id="station-st-patrick"
      style="clip-rule:evenodd;fill-rule:evenodd;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
-     transform="translate(2465.5424,488.94918)">
+     transform="translate(2465.5,488.94918)">
    <path
    class="fil6"
    d="m 1578,2603 c 0,-18 15,-33 33,-33 18,0 33,15 33,33 0,18 -15,33 -33,33 -18,0 -33,-15 -33,-33 z"
@@ -6793,7 +6792,7 @@
   </g><g
      id="station-osgoode"
      style="clip-rule:evenodd;fill-rule:evenodd;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
-     transform="translate(2465.3559,624.08478)">
+     transform="translate(2465.5,624.08478)">
    <path
    class="fil6"
    d="m 1578,2603 c 0,-18 15,-33 33,-33 18,0 33,15 33,33 0,18 -15,33 -33,33 -18,0 -33,-15 -33,-33 z"
@@ -6807,7 +6806,7 @@
   </g><g
      id="station-st-andrew"
      style="clip-rule:evenodd;fill-rule:evenodd;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
-     transform="translate(2466,758.81359)">
+     transform="translate(2465.5,758.81359)">
    <path
    class="fil6"
    d="m 1578,2603 c 0,-18 15,-33 33,-33 18,0 33,15 33,33 0,18 -15,33 -33,33 -18,0 -33,-15 -33,-33 z"
@@ -6835,7 +6834,7 @@
   </g><g
      id="station-queen"
      style="clip-rule:evenodd;fill-rule:evenodd;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
-     transform="translate(2935.7119,623.74579)">
+     transform="translate(2935.5,623.74579)">
    <path
    class="fil6"
    d="m 1578,2603 c 0,-18 15,-33 33,-33 18,0 33,15 33,33 0,18 -15,33 -33,33 -18,0 -33,-15 -33,-33 z"
@@ -6849,7 +6848,7 @@
   </g><g
      id="station-tmu"
      style="clip-rule:evenodd;fill-rule:evenodd;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
-     transform="translate(2935.5424,488.84749)">
+     transform="translate(2935.5,488.84749)">
    <path
    class="fil6"
    d="m 1578,2603 c 0,-18 15,-33 33,-33 18,0 33,15 33,33 0,18 -15,33 -33,33 -18,0 -33,-15 -33,-33 z"
@@ -6863,7 +6862,7 @@
   </g><g
      id="station-wellesley"
      style="clip-rule:evenodd;fill-rule:evenodd;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
-     transform="translate(2935.5254,218.49156)">
+     transform="translate(2935.5,218.49156)">
    <path
    class="fil6"
    d="m 1578,2603 c 0,-18 15,-33 33,-33 18,0 33,15 33,33 0,18 -15,33 -33,33 -18,0 -33,-15 -33,-33 z"
@@ -6877,7 +6876,7 @@
   </g><g
      id="station-rosedale"
      style="clip-rule:evenodd;fill-rule:evenodd;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
-     transform="translate(2935.225,-194.19089)">
+     transform="translate(2935.5,-194.19089)">
    <path
    class="fil6"
    d="m 1578,2603 c 0,-18 15,-33 33,-33 18,0 33,15 33,33 0,18 -15,33 -33,33 -18,0 -33,-15 -33,-33 z"
@@ -6891,7 +6890,7 @@
   </g><g
      id="station-summerhill"
      style="clip-rule:evenodd;fill-rule:evenodd;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
-     transform="translate(2935.7826,-329.21738)">
+     transform="translate(2935.5,-329.21738)">
    <path
    class="fil6"
    d="m 1578,2603 c 0,-18 15,-33 33,-33 18,0 33,15 33,33 0,18 -15,33 -33,33 -18,0 -33,-15 -33,-33 z"
@@ -6905,7 +6904,7 @@
   </g><g
      id="station-st-clair"
      style="clip-rule:evenodd;fill-rule:evenodd;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
-     transform="translate(2936.1947,-463.59543)">
+     transform="translate(2935.5,-463.59543)">
    <path
    class="fil6"
    d="m 1578,2603 c 0,-18 15,-33 33,-33 18,0 33,15 33,33 0,18 -15,33 -33,33 -18,0 -33,-15 -33,-33 z"
@@ -6919,7 +6918,7 @@
   </g><g
      id="station-davisville"
      style="clip-rule:evenodd;fill-rule:evenodd;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
-     transform="translate(2935.9735,-598.39694)">
+     transform="translate(2935.5,-598.39694)">
    <path
    class="fil6"
    d="m 1578,2603 c 0,-18 15,-33 33,-33 18,0 33,15 33,33 0,18 -15,33 -33,33 -18,0 -33,-15 -33,-33 z"
@@ -6933,7 +6932,7 @@
   </g><g
      id="station-mount-pleasant"
      style="clip-rule:evenodd;fill-rule:evenodd;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
-     transform="translate(3251.0254,-792.55088)">
+     transform="translate(3251.0254,-792.80534)">
    <path
    class="fil6"
    d="m 1578,2603 c 0,-18 15,-33 33,-33 18,0 33,15 33,33 0,18 -15,33 -33,33 -18,0 -33,-15 -33,-33 z"
@@ -6947,7 +6946,7 @@
   </g><g
      id="station-lawrence"
      style="clip-rule:evenodd;fill-rule:evenodd;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
-     transform="translate(2936.5408,-1087.2212)">
+     transform="translate(2935.5,-1087.2212)">
    <path
    class="fil6"
    d="m 1578,2603 c 0,-18 15,-33 33,-33 18,0 33,15 33,33 0,18 -15,33 -33,33 -18,0 -33,-15 -33,-33 z"
@@ -6961,7 +6960,7 @@
   </g><g
      id="station-york-mills"
      style="clip-rule:evenodd;fill-rule:evenodd;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
-     transform="translate(2935.8475,-1357.0339)">
+     transform="translate(2935.5,-1357.0339)">
    <path
    class="fil6"
    d="m 1578,2603 c 0,-18 15,-33 33,-33 18,0 33,15 33,33 0,18 -15,33 -33,33 -18,0 -33,-15 -33,-33 z"
@@ -6989,7 +6988,7 @@
   </g><g
      id="station-bessarion"
      style="clip-rule:evenodd;fill-rule:evenodd;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
-     transform="translate(3627.7627,-1517.1695)">
+     transform="translate(3627.7627,-1517.1356)">
    <path
    class="fil6"
    d="m 1578,2603 c 0,-18 15,-33 33,-33 18,0 33,15 33,33 0,18 -15,33 -33,33 -18,0 -33,-15 -33,-33 z"
@@ -7003,7 +7002,7 @@
   </g><g
      id="station-leslie"
      style="clip-rule:evenodd;fill-rule:evenodd;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
-     transform="translate(3974.0339,-1517.1525)">
+     transform="translate(3974.0339,-1517.1356)">
    <path
    class="fil6"
    d="m 1578,2603 c 0,-18 15,-33 33,-33 18,0 33,15 33,33 0,18 -15,33 -33,33 -18,0 -33,-15 -33,-33 z"
@@ -7017,7 +7016,7 @@
   </g><g
      id="station-leaside"
      style="clip-rule:evenodd;fill-rule:evenodd;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
-     transform="translate(3422.9746,-792.26275)">
+     transform="translate(3422.9746,-792.80534)">
    <path
    class="fil6"
    d="m 1578,2603 c 0,-18 15,-33 33,-33 18,0 33,15 33,33 0,18 -15,33 -33,33 -18,0 -33,-15 -33,-33 z"
@@ -7031,7 +7030,7 @@
   </g><g
      id="station-laird"
      style="clip-rule:evenodd;fill-rule:evenodd;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
-     transform="translate(3594.1949,-792.41529)">
+     transform="translate(3594.1949,-792.80534)">
    <path
    class="fil6"
    d="m 1578,2603 c 0,-18 15,-33 33,-33 18,0 33,15 33,33 0,18 -15,33 -33,33 -18,0 -33,-15 -33,-33 z"
@@ -7045,7 +7044,7 @@
   </g><g
      id="station-sunnybrook-park"
      style="clip-rule:evenodd;fill-rule:evenodd;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
-     transform="translate(3766.1441,-792.60173)">
+     transform="translate(3766.1441,-792.80534)">
    <path
    class="fil6"
    d="m 1578,2603 c 0,-18 15,-33 33,-33 18,0 33,15 33,33 0,18 -15,33 -33,33 -18,0 -33,-15 -33,-33 z"
@@ -7059,7 +7058,7 @@
   </g><g
      id="station-don-valley"
      style="clip-rule:evenodd;fill-rule:evenodd;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
-     transform="translate(3937.9746,-792.69496)">
+     transform="translate(3937.9746,-792.80534)">
    <path
    class="fil6"
    d="m 1578,2603 c 0,-18 15,-33 33,-33 18,0 33,15 33,33 0,18 -15,33 -33,33 -18,0 -33,-15 -33,-33 z"
@@ -7073,7 +7072,7 @@
   </g><g
      id="station-wynford"
      style="clip-rule:evenodd;fill-rule:evenodd;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
-     transform="translate(4281.0085,-792.87292)">
+     transform="translate(4281.0085,-792.80534)">
    <path
    class="fil6"
    d="m 1578,2603 c 0,-18 15,-33 33,-33 18,0 33,15 33,33 0,18 -15,33 -33,33 -18,0 -33,-15 -33,-33 z"
@@ -7087,7 +7086,7 @@
   </g><g
      id="station-sloane"
      style="clip-rule:evenodd;fill-rule:evenodd;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
-     transform="translate(4452.9746,-792.8475)">
+     transform="translate(4452.9746,-792.80534)">
    <path
    class="fil6"
    d="m 1578,2603 c 0,-18 15,-33 33,-33 18,0 33,15 33,33 0,18 -15,33 -33,33 -18,0 -33,-15 -33,-33 z"
@@ -7101,7 +7100,7 @@
   </g><g
      id="station-o_connor"
      style="clip-rule:evenodd;fill-rule:evenodd;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
-     transform="translate(4624.6017,-792.42377)"
+     transform="translate(4624.6017,-792.80534)"
      inkscape:label="station-o'connor">
    <path
    class="fil6"
@@ -7116,7 +7115,7 @@
   </g><g
      id="station-pharmacy"
      style="clip-rule:evenodd;fill-rule:evenodd;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
-     transform="translate(4795.8729,-792.38987)">
+     transform="translate(4795.8729,-792.80534)">
    <path
    class="fil6"
    d="m 1578,2603 c 0,-18 15,-33 33,-33 18,0 33,15 33,33 0,18 -15,33 -33,33 -18,0 -33,-15 -33,-33 z"
@@ -7130,7 +7129,7 @@
   </g><g
      id="station-hakimi-lebovic"
      style="clip-rule:evenodd;fill-rule:evenodd;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
-     transform="translate(4968.0678,-792.75428)">
+     transform="translate(4968.0678,-792.80534)">
    <path
    class="fil6"
    d="m 1578,2603 c 0,-18 15,-33 33,-33 18,0 33,15 33,33 0,18 -15,33 -33,33 -18,0 -33,-15 -33,-33 z"
@@ -7144,7 +7143,7 @@
   </g><g
      id="station-golden-mile"
      style="clip-rule:evenodd;fill-rule:evenodd;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
-     transform="translate(5139.2966,-792.63563)">
+     transform="translate(5139.2966,-792.80534)">
    <path
    class="fil6"
    d="m 1578,2603 c 0,-18 15,-33 33,-33 18,0 33,15 33,33 0,18 -15,33 -33,33 -18,0 -33,-15 -33,-33 z"
@@ -7158,7 +7157,7 @@
   </g><g
      id="station-birchmount"
      style="clip-rule:evenodd;fill-rule:evenodd;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
-     transform="translate(5311.2203,-792.29665)">
+     transform="translate(5311.2203,-792.80534)">
    <path
    class="fil6"
    d="m 1578,2603 c 0,-18 15,-33 33,-33 18,0 33,15 33,33 0,18 -15,33 -33,33 -18,0 -33,-15 -33,-33 z"
@@ -7172,7 +7171,7 @@
   </g><g
      id="station-ionview"
      style="clip-rule:evenodd;fill-rule:evenodd;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
-     transform="translate(5483.0935,-792.48036)">
+     transform="translate(5483.0935,-792.80534)">
    <path
    class="fil6"
    d="m 1578,2603 c 0,-18 15,-33 33,-33 18,0 33,15 33,33 0,18 -15,33 -33,33 -18,0 -33,-15 -33,-33 z"
@@ -7200,7 +7199,7 @@
   </g><g
      id="station-avenue"
      style="clip-rule:evenodd;fill-rule:evenodd;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
-     transform="translate(2588.4273,-792.2061)">
+     transform="translate(2588.4273,-792.80534)">
    <path
    class="fil6"
    d="m 1578,2603 c 0,-18 15,-33 33,-33 18,0 33,15 33,33 0,18 -15,33 -33,33 -18,0 -33,-15 -33,-33 z"
@@ -7214,7 +7213,7 @@
   </g><g
      id="station-chaplin"
      style="clip-rule:evenodd;fill-rule:evenodd;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
-     transform="translate(2241.741,-792.01518)">
+     transform="translate(2241.741,-792.80534)">
    <path
    class="fil6"
    d="m 1578,2603 c 0,-18 15,-33 33,-33 18,0 33,15 33,33 0,18 -15,33 -33,33 -18,0 -33,-15 -33,-33 z"
@@ -7228,7 +7227,7 @@
   </g><g
      id="station-forest-hill"
      style="clip-rule:evenodd;fill-rule:evenodd;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
-     transform="translate(1894.8053,-792.61064)">
+     transform="translate(1894.8053,-792.80534)">
    <path
    class="fil6"
    d="m 1578,2603 c 0,-18 15,-33 33,-33 18,0 33,15 33,33 0,18 -15,33 -33,33 -18,0 -33,-15 -33,-33 z"
@@ -7242,7 +7241,7 @@
   </g><g
      id="station-oakwood"
      style="clip-rule:evenodd;fill-rule:evenodd;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
-     transform="translate(1090.1871,-792.71178)">
+     transform="translate(1090.1871,-792.80534)">
    <path
    class="fil6"
    d="m 1578,2603 c 0,-18 15,-33 33,-33 18,0 33,15 33,33 0,18 -15,33 -33,33 -18,0 -33,-15 -33,-33 z"
@@ -7256,7 +7255,7 @@
   </g><g
      id="station-fairbank"
      style="clip-rule:evenodd;fill-rule:evenodd;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
-     transform="translate(908.35155,-792.30345)">
+     transform="translate(908.35155,-792.80534)">
    <path
    class="fil6"
    d="m 1578,2603 c 0,-18 15,-33 33,-33 18,0 33,15 33,33 0,18 -15,33 -33,33 -18,0 -33,-15 -33,-33 z"
@@ -7270,7 +7269,7 @@
   </g><g
      id="station-caledonia"
      style="clip-rule:evenodd;fill-rule:evenodd;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
-     transform="translate(726.2807,-792.7042)">
+     transform="translate(726.2807,-792.80534)">
    <path
    class="fil6"
    d="m 1578,2603 c 0,-18 15,-33 33,-33 18,0 33,15 33,33 0,18 -15,33 -33,33 -18,0 -33,-15 -33,-33 z"
@@ -7312,7 +7311,7 @@
   </g><g
      id="station-lawrence-west"
      style="clip-rule:evenodd;fill-rule:evenodd;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
-     transform="translate(1325.5057,-1087.2136)">
+     transform="translate(1325.5992,-1087.2136)">
    <path
    class="fil6"
    d="m 1578,2603 c 0,-18 15,-33 33,-33 18,0 33,15 33,33 0,18 -15,33 -33,33 -18,0 -33,-15 -33,-33 z"
@@ -7326,7 +7325,7 @@
   </g><g
      id="station-yorkdale"
      style="clip-rule:evenodd;fill-rule:evenodd;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
-     transform="translate(1325.6966,-1222.0151)">
+     transform="translate(1325.5992,-1222.0151)">
    <path
    class="fil6"
    d="m 1578,2603 c 0,-18 15,-33 33,-33 18,0 33,15 33,33 0,18 -15,33 -33,33 -18,0 -33,-15 -33,-33 z"
@@ -7340,7 +7339,7 @@
   </g><g
      id="station-wilson"
      style="clip-rule:evenodd;fill-rule:evenodd;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
-     transform="translate(1325.0038,-1357.2883)">
+     transform="translate(1325.5992,-1357.2883)">
    <path
    class="fil6"
    d="m 1578,2603 c 0,-18 15,-33 33,-33 18,0 33,15 33,33 0,18 -15,33 -33,33 -18,0 -33,-15 -33,-33 z"
@@ -7354,7 +7353,7 @@
   </g><g
      id="station-sheppard-west"
      style="clip-rule:evenodd;fill-rule:evenodd;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
-     transform="translate(1319.6143,-1516.9064)">
+     transform="translate(1325.5992,-1516.9064)">
    <path
    class="fil6"
    d="m 1578,2603 c 0,-18 15,-33 33,-33 18,0 33,15 33,33 0,18 -15,33 -33,33 -18,0 -33,-15 -33,-33 z"
@@ -7368,7 +7367,7 @@
   </g><g
      id="station-sentinel"
      style="clip-rule:evenodd;fill-rule:evenodd;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
-     transform="translate(824.77632,-1640.458)">
+     transform="translate(824.77632,-1639.6068)">
    <path
    class="fil6"
    d="m 1578,2603 c 0,-18 15,-33 33,-33 18,0 33,15 33,33 0,18 -15,33 -33,33 -18,0 -33,-15 -33,-33 z"
@@ -7424,7 +7423,7 @@
   </g><g
      id="station-tobermory"
      style="clip-rule:evenodd;fill-rule:evenodd;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
-     transform="translate(694.99626,-1639.7079)">
+     transform="translate(694.99626,-1639.6068)">
    <path
    class="fil6"
    d="m 1578,2603 c 0,-18 15,-33 33,-33 18,0 33,15 33,33 0,18 -15,33 -33,33 -18,0 -33,-15 -33,-33 z"
@@ -7438,7 +7437,7 @@
   </g><g
      id="station-driftwood"
      style="clip-rule:evenodd;fill-rule:evenodd;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
-     transform="translate(560.71556,-1639.7041)">
+     transform="translate(560.71556,-1639.6068)">
    <path
    class="fil6"
    d="m 1578,2603 c 0,-18 15,-33 33,-33 18,0 33,15 33,33 0,18 -15,33 -33,33 -18,0 -33,-15 -33,-33 z"
@@ -7452,7 +7451,7 @@
   </g><g
      id="station-jane-and-finch"
      style="clip-rule:evenodd;fill-rule:evenodd;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
-     transform="translate(425.84592,-1639.6144)">
+     transform="translate(425.84592,-1639.6068)">
    <path
    class="fil6"
    d="m 1578,2603 c 0,-18 15,-33 33,-33 18,0 33,15 33,33 0,18 -15,33 -33,33 -18,0 -33,-15 -33,-33 z"
@@ -7466,7 +7465,7 @@
   </g><g
      id="station-norfinch-oakdale"
      style="clip-rule:evenodd;fill-rule:evenodd;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
-     transform="translate(291.87998,-1639.7079)">
+     transform="translate(291.87998,-1639.6068)">
    <path
    class="fil6"
    d="m 1578,2603 c 0,-18 15,-33 33,-33 18,0 33,15 33,33 0,18 -15,33 -33,33 -18,0 -33,-15 -33,-33 z"
@@ -7480,7 +7479,7 @@
   </g><g
      id="station-signet-arrow"
      style="clip-rule:evenodd;fill-rule:evenodd;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
-     transform="translate(156.91404,-1639.9026)">
+     transform="translate(156.91404,-1639.6068)">
    <path
    class="fil6"
    d="m 1578,2603 c 0,-18 15,-33 33,-33 18,0 33,15 33,33 0,18 -15,33 -33,33 -18,0 -33,-15 -33,-33 z"
@@ -7494,7 +7493,7 @@
   </g><g
      id="station-emery"
      style="clip-rule:evenodd;fill-rule:evenodd;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
-     transform="translate(23.089821,-1639.3932)">
+     transform="translate(23.089821,-1639.6068)">
    <path
    class="fil6"
    d="m 1578,2603 c 0,-18 15,-33 33,-33 18,0 33,15 33,33 0,18 -15,33 -33,33 -18,0 -33,-15 -33,-33 z"
@@ -7508,7 +7507,7 @@
   </g><g
      id="station-milvan-rumike"
      style="clip-rule:evenodd;fill-rule:evenodd;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
-     transform="translate(-111.51699,-1639.8015)">
+     transform="translate(-111.51699,-1639.6068)">
    <path
    class="fil6"
    d="m 1578,2603 c 0,-18 15,-33 33,-33 18,0 33,15 33,33 0,18 -15,33 -33,33 -18,0 -33,-15 -33,-33 z"
@@ -7522,7 +7521,7 @@
   </g><g
      id="station-duncanwoods"
      style="clip-rule:evenodd;fill-rule:evenodd;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
-     transform="translate(-246.10488,-1639.5019)">
+     transform="translate(-246.10488,-1639.6068)">
    <path
    class="fil6"
    d="m 1578,2603 c 0,-18 15,-33 33,-33 18,0 33,15 33,33 0,18 -15,33 -33,33 -18,0 -33,-15 -33,-33 z"
@@ -7536,7 +7535,7 @@
   </g><g
      id="station-pearldale"
      style="clip-rule:evenodd;fill-rule:evenodd;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
-     transform="translate(-380.40829,-1639.7117)">
+     transform="translate(-380.40829,-1639.6068)">
    <path
    class="fil6"
    d="m 1578,2603 c 0,-18 15,-33 33,-33 18,0 33,15 33,33 0,18 -15,33 -33,33 -18,0 -33,-15 -33,-33 z"
@@ -7550,7 +7549,7 @@
   </g><g
      id="station-rowntree-mills"
      style="clip-rule:evenodd;fill-rule:evenodd;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
-     transform="translate(-514.93667,-1639.8091)">
+     transform="translate(-514.93667,-1639.6068)">
    <path
    class="fil6"
    d="m 1578,2603 c 0,-18 15,-33 33,-33 18,0 33,15 33,33 0,18 -15,33 -33,33 -18,0 -33,-15 -33,-33 z"
@@ -7564,7 +7563,7 @@
   </g><g
      id="station-mount-olive"
      style="clip-rule:evenodd;fill-rule:evenodd;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
-     transform="translate(-649.73062,-1639.3034)">
+     transform="translate(-649.73062,-1639.6068)">
    <path
    class="fil6"
    d="m 1578,2603 c 0,-18 15,-33 33,-33 18,0 33,15 33,33 0,18 -15,33 -33,33 -18,0 -33,-15 -33,-33 z"
@@ -7578,7 +7577,7 @@
   </g><g
      id="station-stevenson"
      style="clip-rule:evenodd;fill-rule:evenodd;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
-     transform="translate(-783.92532,-1639.4045)">
+     transform="translate(-783.92532,-1639.6068)">
    <path
    class="fil6"
    d="m 1578,2603 c 0,-18 15,-33 33,-33 18,0 33,15 33,33 0,18 -15,33 -33,33 -18,0 -33,-15 -33,-33 z"
@@ -7592,7 +7591,7 @@
   </g><g
      id="station-albion"
      style="clip-rule:evenodd;fill-rule:evenodd;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
-     transform="translate(-918.08596,-1639.2061)">
+     transform="translate(-918.08596,-1639.6068)">
    <path
    class="fil6"
    d="m 1578,2603 c 0,-18 15,-33 33,-33 18,0 33,15 33,33 0,18 -15,33 -33,33 -18,0 -33,-15 -33,-33 z"
@@ -7606,7 +7605,7 @@
   </g><g
      id="station-martin-grove"
      style="clip-rule:evenodd;fill-rule:evenodd;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
-     transform="translate(-1052.8204,-1639.5057)">
+     transform="translate(-1052.8204,-1639.6068)">
    <path
    class="fil6"
    d="m 1578,2603 c 0,-18 15,-33 33,-33 18,0 33,15 33,33 0,18 -15,33 -33,33 -18,0 -33,-15 -33,-33 z"
@@ -7648,7 +7647,7 @@
   </g><g
      id="station-north-york-centre"
      style="clip-rule:evenodd;fill-rule:evenodd;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
-     transform="translate(2936.0508,-1677.0169)">
+     transform="translate(2935.5,-1677.0169)">
    <path
    class="fil6"
    d="m 1578,2603 c 0,-18 15,-33 33,-33 18,0 33,15 33,33 0,18 -15,33 -33,33 -18,0 -33,-15 -33,-33 z"
@@ -7661,14 +7660,16 @@
    style="fill:#ffffff" />
   </g><g
      id="g36"
-     inkscape:label="station-kipling"><path
+     inkscape:label="station-kipling"
+     transform="translate(0,2.1355)"><path
        class="fil3 str0"
        d="m 1023.5536,2600.8645 c 0,-28.7203 23.4985,-51.3485 52.2188,-51.3485 27.8501,0 51.3485,22.6282 51.3485,51.3485 0,28.7204 -23.4984,51.3485 -51.3485,51.3485 -28.7203,0 -52.2188,-22.6281 -52.2188,-51.3485 z"
        id="station-kipling"
        style="clip-rule:evenodd;fill:#ffffff;fill-rule:evenodd;stroke:#000000;stroke-width:13.0547;stroke-dasharray:none;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
        inkscape:label="path-a15" /></g><g
      id="g35"
-     inkscape:label="station-mount-dennis"><path
+     inkscape:label="station-mount-dennis"
+     transform="translate(0,6.18326)"><path
        class="fil3 str0"
        d="m 1925.0188,1804.0114 c 0,-28.7203 23.4985,-51.3485 52.2188,-51.3485 27.8501,0 51.3485,22.6282 51.3485,51.3485 0,28.7204 -23.4984,51.3485 -51.3485,51.3485 -28.7203,0 -52.2188,-22.6281 -52.2188,-51.3485 z"
        id="station-mount-dennis"
@@ -7696,56 +7697,64 @@
        style="clip-rule:evenodd;fill:#ffffff;fill-rule:evenodd;stroke:#000000;stroke-width:13.0547;stroke-dasharray:none;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
        inkscape:label="path-a11" /></g><g
      id="g31"
-     inkscape:label="station-st-george"><path
+     inkscape:label="station-st-george"
+     transform="translate(0,0.6742)"><path
        class="fil3 str0"
        d="m 4025.3817,2602.3258 c 0,-28.7203 23.4985,-51.3485 52.2188,-51.3485 27.8501,0 51.3485,22.6282 51.3485,51.3485 0,28.7204 -23.4984,51.3485 -51.3485,51.3485 -28.7203,0 -52.2188,-22.6281 -52.2188,-51.3485 z"
        id="station-st-george"
        style="clip-rule:evenodd;fill:#ffffff;fill-rule:evenodd;stroke:#000000;stroke-width:13.0547;stroke-dasharray:none;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
        inkscape:label="path-a10" /></g><g
      id="g30"
-     inkscape:label="station-bloor-yonge"><path
+     inkscape:label="station-bloor-yonge"
+     transform="translate(0.60375,1.1166)"><path
        class="fil3 str0"
        d="m 4494.1126,2601.8834 c 0,-28.7203 23.4985,-51.3485 52.2188,-51.3485 27.8501,0 51.3485,22.6282 51.3485,51.3485 0,28.7204 -23.4984,51.3485 -51.3485,51.3485 -28.7203,0 -52.2188,-22.6281 -52.2188,-51.3485 z"
        id="station-bloor-yonge"
        style="clip-rule:evenodd;fill:#ffffff;fill-rule:evenodd;stroke:#000000;stroke-width:13.0547;stroke-dasharray:none;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
        inkscape:label="path-a9" /></g><g
      id="g29"
-     inkscape:label="station-kennedy"><path
+     inkscape:label="station-kennedy"
+     transform="translate(0,1.93456)"><path
        class="fil3 str0"
        d="m 7293.8266,1808.2601 c 0,-28.7203 23.4985,-51.3485 52.2188,-51.3485 27.8501,0 51.3485,22.6282 51.3485,51.3485 0,28.7204 -23.4984,51.3485 -51.3485,51.3485 -28.7203,0 -52.2188,-22.6281 -52.2188,-51.3485 z"
        id="station-kennedy"
        style="clip-rule:evenodd;fill:#ffffff;fill-rule:evenodd;stroke:#000000;stroke-width:13.0547;stroke-dasharray:none;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
        inkscape:label="path-a8" /></g><g
      id="g26"
-     inkscape:label="station-cedarvale"><path
+     inkscape:label="station-cedarvale"
+     transform="translate(0,7.70436)"><path
        class="fil3 str0"
        d="m 2883.3553,1802.4903 c 0,-28.7203 23.4985,-51.3485 52.2188,-51.3485 27.8501,0 51.3485,22.6282 51.3485,51.3485 0,28.7204 -23.4984,51.3485 -51.3485,51.3485 -28.7203,0 -52.2188,-22.6281 -52.2188,-51.3485 z"
        id="station-cedarvale"
        style="clip-rule:evenodd;fill:#ffffff;fill-rule:evenodd;stroke:#000000;stroke-width:13.0547;stroke-dasharray:none;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
        inkscape:label="path-a5" /></g><g
      id="g25"
-     inkscape:label="station-eglinton"><path
+     inkscape:label="station-eglinton"
+     transform="translate(-0.48895,2.03066)"><path
        class="fil3 str0"
        d="m 4495.2053,1808.164 c 0,-28.7203 23.4985,-51.3485 52.2188,-51.3485 27.8501,0 51.3485,22.6282 51.3485,51.3485 0,28.7204 -23.4984,51.3485 -51.3485,51.3485 -28.7203,0 -52.2188,-22.6281 -52.2188,-51.3485 z"
        id="station-eglinton"
        style="clip-rule:evenodd;fill:#ffffff;fill-rule:evenodd;stroke:#000000;stroke-width:13.0547;stroke-dasharray:none;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
        inkscape:label="path-a4" /></g><g
      id="g24"
-     inkscape:label="station-don-mills"><path
+     inkscape:label="station-don-mills"
+     transform="translate(0,1.6157)"><path
        class="fil3 str0"
        d="m 5876.0478,1084.2487 c 0,-28.7203 23.4985,-51.3485 52.2188,-51.3485 27.8501,0 51.3485,22.6282 51.3485,51.3485 0,28.7204 -23.4984,51.3485 -51.3485,51.3485 -28.7203,0 -52.2188,-22.6281 -52.2188,-51.3485 z"
        id="station-don-mills"
        style="clip-rule:evenodd;fill:#ffffff;fill-rule:evenodd;stroke:#000000;stroke-width:13.0547;stroke-dasharray:none;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
        inkscape:label="path-a3" /></g><g
      id="g23"
-     inkscape:label="station-sheppard-yonge"><path
+     inkscape:label="station-sheppard-yonge"
+     transform="translate(0.78225)"><path
        class="fil3 str0"
        d="m 4493.9341,1086.3334 c 0,-28.7203 23.4985,-51.3485 52.2188,-51.3485 27.8501,0 51.3485,22.6282 51.3485,51.3485 0,28.7204 -23.4984,51.3485 -51.3485,51.3485 -28.7203,0 -52.2188,-22.6281 -52.2188,-51.3485 z"
        id="station-sheppard-yonge"
        style="clip-rule:evenodd;fill:#ffffff;fill-rule:evenodd;stroke:#000000;stroke-width:13.0547;stroke-dasharray:none;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
        inkscape:label="path-a2" /></g><g
      id="g22"
-     inkscape:label="station-finch"><path
+     inkscape:label="station-finch"
+     transform="translate(0.46025)"><path
        class="fil3 str0"
        d="m 4494.2561,759.75716 c 0,-28.7203 23.4985,-51.3485 52.2188,-51.3485 27.8501,0 51.3485,22.6282 51.3485,51.3485 0,28.7204 -23.4984,51.3485 -51.3485,51.3485 -28.7203,0 -52.2188,-22.6281 -52.2188,-51.3485 z"
        id="station-finch"
@@ -7753,7 +7762,7 @@
        inkscape:label="path-a1" /></g><g
      id="_1615690577792-0-03-0"
      style="clip-rule:evenodd;fill-rule:evenodd;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
-     transform="translate(4109.3729,-792.56784)"
+     transform="translate(4109.3729,-792.80534)"
      inkscape:label="station-aga-khan-park-and-museum">
    <path
    class="fil6"
@@ -7767,7 +7776,7 @@
    style="fill:#ffffff" />
   </g><g
      id="station-dupont"
-     style="shape-rendering:geometricPrecision;text-rendering:geometricPrecision;image-rendering:optimizeQuality;fill-rule:evenodd;clip-rule:evenodd;display:inline"
+     style="clip-rule:evenodd;display:inline;fill-rule:evenodd;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
      transform="translate(2123.2739,-329.06784)">
    <path
    class="fil6"
@@ -7782,7 +7791,7 @@
   </g><g
      id="g28"
      inkscape:label="station-spadina-1"
-     style="shape-rendering:geometricPrecision;text-rendering:geometricPrecision;image-rendering:optimizeQuality;fill-rule:evenodd;clip-rule:evenodd;display:inline"
+     style="clip-rule:evenodd;display:inline;fill-rule:evenodd;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
      transform="translate(-5.2261)"><path
        class="fil3"
        d="m 3707,2524 c 0,-18 14,-33 33,-33 18,0 32,15 32,33 0,18 -14,33 -32,33 -19,0 -33,-15 -33,-33 z"
@@ -7791,8 +7800,8 @@
        inkscape:label="path-a7" /></g><g
      id="g27"
      inkscape:label="station-spadina-2"
-     style="shape-rendering:geometricPrecision;text-rendering:geometricPrecision;image-rendering:optimizeQuality;fill-rule:evenodd;clip-rule:evenodd;display:inline"
-     transform="translate(-4.743)"><path
+     style="clip-rule:evenodd;display:inline;fill-rule:evenodd;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
+     transform="translate(-4.743,-0.5921)"><path
        class="fil3"
        d="m 3706.5169,2603.5921 c 0,-18 14,-33 33,-33 18,0 32,15 32,33 0,18 -14,33 -32,33 -19,0 -33,-15 -33,-33 z"
        id="station-spadina-2"

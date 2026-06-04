@@ -111,6 +111,7 @@ class StatusControllerTest {
             "Active Nightly Closure",
             "Mon 2:00 AM - Mon 6:00 AM",
             "Finch to Eglinton",
+            null,
             "Nightly maintenance",
             OffsetDateTime.parse("2026-06-01T02:00:00Z"),
             closureUpdatedAt,

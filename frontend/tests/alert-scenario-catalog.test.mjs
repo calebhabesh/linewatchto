@@ -24,8 +24,15 @@ describe("alert scenario catalog", () => {
   it("makes all-alert-types cover every backend-to-map alert surface", () => {
     const scenario = index.scenarios.find((candidate) => candidate.name === "all-alert-types");
     assert.ok(scenario);
-    assert.equal(scenario.routeCount, 7);
-    assert.equal(scenario.accessibilityCount, 1);
+    assert.equal(scenario.routeCount, 12);
+    assert.equal(scenario.accessibilityCount, 2);
+    assert.deepEqual(scenario.directionCoverage, {
+      "delay": ["bidirectional", "directional"],
+      "planned-closure": ["bidirectional", "directional"],
+      "reduced-speed-zone": ["bidirectional", "directional", "unknown"],
+      "suspension": ["bidirectional", "directional"],
+    });
+    assert.deepEqual(scenario.stationAlertAssetTypes, ["elevator", "escalator"]);
     assert.deepEqual(
       [...scenario.guidePathIds].sort(),
       ["seg-line-1-dupont-spadina", "seg-line-1-st-andrew-union"],
@@ -36,14 +43,19 @@ describe("alert scenario catalog", () => {
 
     assert.equal(routesById.get("scenario-delay-line-4")?.effectDesc, "Delays");
     assert.equal(routesById.get("scenario-delay-line-1-dupont-spadina")?.effectDesc, "Delays");
+    assert.equal(routesById.get("scenario-delay-line-2-jane-runnymede")?.direction, "Both ways");
     assert.equal(routesById.get("scenario-station-node-keele")?.stopStart, "Keele");
     assert.equal(routesById.get("scenario-station-node-keele")?.stopEnd, "Keele");
     assert.equal(routesById.get("scenario-active-line-2")?.effect, "NO_SERVICE");
     assert.equal(routesById.get("scenario-active-line-1-st-andrew-union")?.effect, "NO_SERVICE");
+    assert.equal(routesById.get("scenario-active-line-1-museum-st-george")?.direction, "Northbound");
     assert.equal(routesById.get("scenario-rsz-line-1-south")?.effectDesc, "Reduced Speed Zone");
+    assert.equal(routesById.get("scenario-rsz-line-2-jane-runnymede")?.direction, "Both ways");
+    assert.equal(routesById.get("scenario-rsz-line-1-wilson-yorkdale-directionless")?.direction, null);
     assert.equal(routesById.get("scenario-planned-line-1-nightly")?.alertType, "Planned");
     assert.ok(routesById.get("scenario-planned-line-1-nightly")?.childAlerts.length > 0);
-    assert.equal(feed.accessibility[0]?.routeType, "Elevator");
+    assert.equal(routesById.get("scenario-planned-line-1-northbound-early-access")?.direction, "Northbound");
+    assert.deepEqual(feed.accessibility.map((record) => record.routeType).sort(), ["Elevator", "Escalator"]);
   });
 
   it("references nonlinear guide paths that exist in the edited TTC SVG", () => {

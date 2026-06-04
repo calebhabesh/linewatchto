@@ -1,6 +1,26 @@
 import type { ReactNode } from "react";
 import { ImpactTimestamp } from "./ImpactTimestamp";
 
+export function formatCause(cause: string | null | undefined): string {
+  if (!cause) return "";
+  const commonWords = new Set(["CLOSURE", "DELAY", "SUSPENSION", "EMERGENCY", "ALARM", "SIGNAL", "PROBLEM", "TRACK", "WORK", "PLANNED", "ROUTE", "SERVICE", "ADVISORY"]);
+  const minorWords = new Set(["AND", "OR", "FOR", "THE", "BUT", "NOR", "YET", "SO", "A", "AN", "OF", "IN", "ON", "AT", "TO", "BY", "WITH", "FROM"]);
+  
+  return cause.replace(/\b[A-Za-z0-9']+\b/g, (word) => {
+    const upper = word.toUpperCase();
+    if (word === upper) {
+      if (commonWords.has(upper)) {
+        return upper.charAt(0) + upper.slice(1).toLowerCase();
+      }
+      if (word.length >= 2 && word.length <= 4 && !minorWords.has(upper)) {
+        return upper;
+      }
+      return upper.charAt(0) + upper.slice(1).toLowerCase();
+    }
+    return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+  });
+}
+
 export function lineColor(lineId: string) {
   switch (lineId) {
     case "line-1":
@@ -70,6 +90,14 @@ function LongArrowLeftRight() {
 
 function splitLocation(location: string): { from: string; to: string; twoWay: boolean } | null {
   if (!location) return null;
+  if (location.includes(" ↔ ")) {
+    const [from, to] = location.split(" ↔ ", 2);
+    return { from, to, twoWay: true };
+  }
+  if (location.includes(" → ")) {
+    const [from, to] = location.split(" → ", 2);
+    return { from, to, twoWay: false };
+  }
   if (location.includes(" <-> ")) {
     const [from, to] = location.split(" <-> ", 2);
     return { from, to, twoWay: true };
@@ -81,12 +109,18 @@ function splitLocation(location: string): { from: string; to: string; twoWay: bo
   return null;
 }
 
+export function formatCompactLocation(location: string): string {
+  const bounds = splitLocation(location);
+  if (!bounds) return location || "Affected segment unavailable";
+  return `${bounds.from} ${bounds.twoWay ? "↔" : "→"} ${bounds.to}`;
+}
+
 export function ImpactRouteHeader({
   location,
   direction,
 }: {
   location: string;
-  direction?: string;
+  direction?: string | null;
 }) {
   const bounds = splitLocation(location);
   return (
@@ -128,7 +162,7 @@ export function MetadataGrid({
   extraRows?: Array<{ label: string; value?: string | null }>;
   className?: string;
 }) {
-  const causeValue = cause ?? reason;
+  const causeValue = formatCause(cause ?? reason);
   const resolutionValue = resolution ?? targetRemoval;
   const renderedExtraRows = (extraRows ?? [])
     .filter((row) => row.value && row.value.trim().length > 0)
@@ -174,14 +208,16 @@ export function CardSource({ source }: { source: string }) {
 
 export function JumpToLocationIcon({ className = "w-3.5 h-3.5" }: { className?: string }) {
   return (
-    <svg className={className} viewBox="0 0 20 20" version="1.1" xmlns="http://www.w3.org/2000/svg">
-      <g stroke="none" strokeWidth="1" fill="none" fillRule="evenodd">
-        <g transform="translate(-300.000000, -4439.000000)" fill="currentColor">
-          <g transform="translate(56.000000, 160.000000)">
-            <path d="M264,4281 L264,4286 C264,4286.552 263.552,4287 263,4287 C262.448,4287 262,4286.552 262,4286 L262,4282 C262,4281.448 261.552,4281 261,4281 L257,4281 C256.448,4281 256,4280.552 256,4280 C256,4279.448 256.448,4279 257,4279 L262,4279 C263.105,4279 264,4279.895 264,4281 L264,4281 Z M262,4299 L257,4299 C256.448,4299 256,4298.552 256,4298 C256,4297.448 256.448,4297 257,4297 L261,4297 C261.552,4297 262,4296.552 262,4296 L262,4292 C262,4291.448 262.448,4291 263,4291 C263.552,4291 264,4291.448 264,4292 L264,4297 C264,4298.105 263.105,4299 262,4299 L262,4299 Z M244,4297 L244,4292 C244,4291.448 244.448,4291 245,4291 C245.552,4291 246,4291.448 246,4292 L246,4296 C246,4296.552 246.448,4297 247,4297 L251,4297 C251.552,4297 252,4297.448 252,4298 C252,4298.552 251.552,4299 251,4299 L246,4299 C244.895,4299 244,4298.105 244,4297 L244,4297 Z M244,4286 L244,4281 C244,4279.895 244.895,4279 246,4279 L251,4279 C251.552,4279 252,4279.448 252,4280 C252,4280.552 251.552,4281 251,4281 L247,4281 C246.448,4281 246,4281.448 246,4282 L246,4286 C246,4286.552 245.552,4287 245,4287 C244.448,4287 244,4286.552 244,4286 L244,4286 Z M244.01,4289 L244,4289.01 L244,4288.99 L244.01,4289 Z M254,4291 C252.897,4291 252,4290.103 252,4289 C252,4287.897 252.897,4287 254,4287 C255.103,4287 256,4287.897 256,4289 C256,4290.103 255.103,4291 254,4291 L254,4291 Z M257.859,4290 L259,4290 C259.552,4290 260,4289.552 260,4289 C260,4288.448 259.552,4288 259,4288 L257.859,4288 C257.496,4286.599 256.401,4285.504 255,4285.141 L255,4284 C255,4283.448 254.552,4283 254,4283 C253.448,4283 253,4283.448 253,4284 L253,4285.141 C251.599,4285.504 250.504,4286.599 250.141,4288 L249,4288 C248.448,4288 248,4288.448 248,4289 C248,4289.552 248.448,4290 249,4290 L250.141,4290 C250.504,4291.401 251.599,4292.496 253,4292.859 L253,4294 C253,4294.552 253.448,4295 254,4295 C254.552,4295 255,4294.552 255,4294 L255,4292.859 C256.401,4292.496 257.496,4291.401 257.859,4290 L257.859,4290 Z" />
-          </g>
-        </g>
-      </g>
+    <svg className={className} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      {/* focus corners */}
+      <path d="M4 8V5.5C4 4.67 4.67 4 5.5 4H8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"></path>
+      <path d="M16 4H18.5C19.33 4 20 4.67 20 5.5V8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"></path>
+      <path d="M20 16V18.5C20 19.33 19.33 20 18.5 20H16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"></path>
+      <path d="M8 20H5.5C4.67 20 4 19.33 4 18.5V16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"></path>
+
+      {/* map pin */}
+      <path d="M12 7.5C10.07 7.5 8.5 9.07 8.5 11C8.5 13.6 12 16.5 12 16.5C12 16.5 15.5 13.6 15.5 11C15.5 9.07 13.93 7.5 12 7.5Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"></path>
+      <circle cx="12" cy="11" r="1.25" fill="currentColor"></circle>
     </svg>
   );
 }

@@ -115,6 +115,7 @@ export type ActiveAlert = {
   title: string;
   severity: AlertSeverity;
   location: string;
+  displayDirection?: string | null;
   description: string;
   startedAt?: string | null;
   updatedAt?: string | null;
@@ -135,6 +136,7 @@ export type DelayAlert = {
   lineNumber: string;
   title: string;
   location: string;
+  displayDirection?: string | null;
   description: string;
   affectedSegmentIds: string[];
   startedAt?: string | null;
@@ -150,6 +152,7 @@ export type PlannedClosure = {
   title: string;
   window: string;
   location: string;
+  displayDirection?: string | null;
   description: string;
   startedAt?: string | null;
   updatedAt?: string | null;

@@ -461,6 +461,121 @@ class AlertDashboardServiceTest {
     }
 
     @Test
+    void activeNightlyParentStaysInPlannedClosuresWhileCurrentClosureMovesIntoActiveAlerts() {
+        when(ingestionFreshness.isDashboardFresh()).thenReturn(true);
+        AlertEntity parentClosure = withLine(alert(
+            "planned-closure-parent",
+            "planned-closure",
+            "planned",
+            "Nightly closure parent",
+            "There will be no subway service nightly between St George and Sheppard West.",
+            "st-george",
+            "sheppard-west",
+            OffsetDateTime.parse("2026-06-01T11:45:00Z"),
+            "shuttle-bus"
+        ), "line-1", "1");
+        ReflectionTestUtils.setField(
+            parentClosure,
+            "activePeriodStart",
+            OffsetDateTime.parse("2026-06-01T04:00:00Z")
+        );
+        ReflectionTestUtils.setField(
+            parentClosure,
+            "activePeriodEnd",
+            OffsetDateTime.parse("2026-06-05T09:00:00Z")
+        );
+        AlertEntity currentClosure = withLine(alert(
+            "planned-closure-current-window",
+            "planned-closure",
+            "planned",
+            "Nightly closure current window",
+            "No subway service nightly between St George and Sheppard West.",
+            "st-george",
+            "sheppard-west",
+            OffsetDateTime.parse("2026-06-01T11:45:00Z"),
+            "shuttle-bus"
+        ), "line-1", "1");
+        ReflectionTestUtils.setField(
+            currentClosure,
+            "activePeriodStart",
+            OffsetDateTime.parse("2026-06-01T11:00:00Z")
+        );
+        ReflectionTestUtils.setField(
+            currentClosure,
+            "activePeriodEnd",
+            OffsetDateTime.parse("2026-06-01T13:00:00Z")
+        );
+        AlertEntity upcomingClosure = alert(
+            "planned-closure-upcoming",
+            "planned-closure",
+            "planned",
+            "Nightly closure upcoming",
+            "No subway service nightly between Jane and Ossington.",
+            "jane",
+            "ossington",
+            OffsetDateTime.parse("2026-06-01T11:45:00Z"),
+            null
+        );
+        ReflectionTestUtils.setField(
+            upcomingClosure,
+            "activePeriodStart",
+            OffsetDateTime.parse("2026-06-01T04:00:00Z")
+        );
+        ReflectionTestUtils.setField(
+            upcomingClosure,
+            "activePeriodEnd",
+            OffsetDateTime.parse("2026-06-05T09:00:00Z")
+        );
+        when(alertRepository.findByActiveTrueAndType("planned-closure"))
+            .thenReturn(List.of(parentClosure, currentClosure, upcomingClosure));
+        when(lineSegmentRepository.findAllByOrderBySortOrderAsc()).thenReturn(List.of(
+            segment("line-1-st-george-sheppard-west", "line-1", "st-george", "sheppard-west", 10),
+            segment("line-2-jane-ossington", "line-2", "jane", "ossington", 20)
+        ));
+        AlertActivePeriodRepository.AlertPeriod parentActivePeriod = new AlertActivePeriodRepository.AlertPeriod(
+            "planned-closure-parent",
+            "period-active",
+            OffsetDateTime.parse("2026-06-01T11:00:00Z"),
+            OffsetDateTime.parse("2026-06-01T13:00:00Z"),
+            0
+        );
+        AlertActivePeriodRepository.AlertPeriod currentPeriod = new AlertActivePeriodRepository.AlertPeriod(
+            "planned-closure-current-window",
+            "parent",
+            OffsetDateTime.parse("2026-06-01T11:00:00Z"),
+            OffsetDateTime.parse("2026-06-01T13:00:00Z"),
+            0
+        );
+        AlertActivePeriodRepository.AlertPeriod upcomingPeriod = new AlertActivePeriodRepository.AlertPeriod(
+            "planned-closure-upcoming",
+            "period-upcoming",
+            OffsetDateTime.parse("2026-06-02T02:00:00Z"),
+            OffsetDateTime.parse("2026-06-02T06:00:00Z"),
+            0
+        );
+        when(alertActivePeriodRepository.findByAlertIds(List.of("planned-closure-parent", "planned-closure-current-window", "planned-closure-upcoming")))
+            .thenReturn(Map.of(
+                "planned-closure-parent", List.of(parentActivePeriod),
+                "planned-closure-current-window", List.of(currentPeriod),
+                "planned-closure-upcoming", List.of(upcomingPeriod)
+            ));
+
+        assertThat(service.plannedClosures())
+            .extracting(AlertDashboardService.PlannedClosureDto::id)
+            .containsExactly("planned-closure-parent", "planned-closure-upcoming");
+        assertThat(service.activeAlerts()).singleElement().satisfies(dto -> {
+            assertThat(dto.id()).isEqualTo("planned-closure-current-window");
+            assertThat(dto.severity()).isEqualTo("planned");
+            assertThat(dto.affectedSegmentIds()).containsExactly("line-1-st-george-sheppard-west");
+            assertThat(dto.shuttle()).isTrue();
+            assertThat(dto.source()).isEqualTo("TTC Service Advisory");
+        });
+        assertThat(service.activePlannedClosures())
+            .extracting(AlertDashboardService.PlannedClosureDto::id)
+            .containsExactly("planned-closure-current-window");
+    }
+
+    @Test
     void activeSegmentImpactsExposeSlowdownMapOverlayBySegmentId() {
         when(ingestionFreshness.isDashboardFresh()).thenReturn(true);
         AlertEntity alert = alert(
@@ -571,6 +686,183 @@ class AlertDashboardServiceTest {
         assertThat(service.plannedClosures()).isEmpty();
         assertThat(service.activeSegmentImpacts()).isEqualTo(Map.of());
         assertThat(service.activeStationNodeImpacts()).isEmpty();
+    }
+
+    @Test
+    void ordinaryDelayWithStationOnlyImpactAndWestboundDirection() {
+        when(ingestionFreshness.isDashboardFresh()).thenReturn(true);
+        AlertEntity delay = withLine(alert(
+            "delay-keele",
+            "active-alert",
+            "delay",
+            "Delay",
+            "Delay at Keele.",
+            "keele",
+            "keele",
+            OffsetDateTime.parse("2026-06-01T11:50:00Z"),
+            null
+        ), "line-2", "2");
+        ReflectionTestUtils.setField(delay, "impactKind", "delay");
+        ReflectionTestUtils.setField(delay, "direction", "westbound");
+
+        when(alertRepository.findByActiveTrueAndType("active-alert"))
+            .thenReturn(List.of(delay));
+        when(lineSegmentRepository.findAllByOrderBySortOrderAsc()).thenReturn(List.of(
+            segment("line-2-keele-keele", "line-2", "keele", "keele", 10)
+        ));
+
+        List<AlertDashboardService.DelayAlertDto> delays = service.delays();
+
+        assertThat(delays).singleElement().satisfies(dto -> {
+            assertThat(dto.id()).isEqualTo("delay-keele");
+            assertThat(dto.location()).isEqualTo("Keele");
+            assertThat(dto.displayDirection()).isEqualTo("Westbound");
+        });
+    }
+
+    @Test
+    void noServiceAlertWithBidirectionalDirectionReturnsLineAwareCardinalCopy() {
+        when(ingestionFreshness.isDashboardFresh()).thenReturn(true);
+        
+        // Test Line 1 (Northbound & Southbound)
+        AlertEntity alert1 = withLine(alert(
+            "suspension-l1",
+            "active-alert",
+            "suspension",
+            "No service",
+            "No service.",
+            "union",
+            "st-andrew",
+            OffsetDateTime.parse("2026-06-01T11:50:00Z"),
+            null
+        ), "line-1", "1");
+        ReflectionTestUtils.setField(alert1, "direction", "bidirectional");
+
+        // Test Line 2 (Eastbound & Westbound)
+        AlertEntity alert2 = withLine(alert(
+            "suspension-l2",
+            "active-alert",
+            "suspension",
+            "No service",
+            "No service.",
+            "kipling",
+            "jane",
+            OffsetDateTime.parse("2026-06-01T11:50:00Z"),
+            null
+        ), "line-2", "2");
+        ReflectionTestUtils.setField(alert2, "direction", "bidirectional");
+
+        when(alertRepository.findByActiveTrueAndType("active-alert"))
+            .thenReturn(List.of(alert1, alert2));
+
+        List<AlertDashboardService.ActiveAlertDto> activeAlerts = service.activeAlerts();
+
+        assertThat(activeAlerts).hasSize(2);
+        
+        AlertDashboardService.ActiveAlertDto dto1 = activeAlerts.stream()
+            .filter(d -> d.id().equals("suspension-l1")).findFirst().orElseThrow();
+        assertThat(dto1.displayDirection()).isEqualTo("Northbound & Southbound");
+
+        AlertDashboardService.ActiveAlertDto dto2 = activeAlerts.stream()
+            .filter(d -> d.id().equals("suspension-l2")).findFirst().orElseThrow();
+        assertThat(dto2.displayDirection()).isEqualTo("Eastbound & Westbound");
+    }
+
+    @Test
+    void plannedClosureExposesDisplayDirectionWhenAvailable() {
+        when(ingestionFreshness.isDashboardFresh()).thenReturn(true);
+        AlertEntity alert = withLine(alert(
+            "planned-l1",
+            "planned-closure",
+            "planned",
+            "Closure",
+            "Weekend closure.",
+            "finch",
+            "eglinton",
+            OffsetDateTime.parse("2026-06-01T11:45:00Z"),
+            null
+        ), "line-1", "1");
+        ReflectionTestUtils.setField(alert, "direction", "northbound");
+        ReflectionTestUtils.setField(
+            alert,
+            "activePeriodStart",
+            OffsetDateTime.parse("2026-06-06T04:00:00Z")
+        );
+        ReflectionTestUtils.setField(
+            alert,
+            "activePeriodEnd",
+            OffsetDateTime.parse("2026-06-08T09:00:00Z")
+        );
+        when(alertRepository.findByActiveTrueAndType("planned-closure"))
+            .thenReturn(List.of(alert));
+
+        List<AlertDashboardService.PlannedClosureDto> closures = service.plannedClosures();
+
+        assertThat(closures).singleElement().satisfies(dto -> {
+            assertThat(dto.id()).isEqualTo("planned-l1");
+            assertThat(dto.displayDirection()).isEqualTo("Northbound");
+        });
+    }
+
+    @Test
+    void suspensionSegmentImpactsCarryComputedTravelDirection() {
+        when(ingestionFreshness.isDashboardFresh()).thenReturn(true);
+        
+        // Eastbound suspension on Line 2
+        AlertEntity alert = withLine(alert(
+            "suspension-l2-east",
+            "active-alert",
+            "suspension",
+            "No service",
+            "No service.",
+            "kipling",
+            "jane",
+            OffsetDateTime.parse("2026-06-01T11:50:00Z"),
+            null
+        ), "line-2", "2");
+        ReflectionTestUtils.setField(alert, "direction", "eastbound");
+
+        when(alertRepository.findByActiveTrueAndType("active-alert"))
+            .thenReturn(List.of(alert));
+        
+        // Forward direction segment
+        LineSegmentEntity forwardSegment = segment("line-2-kipling-jane", "line-2", "kipling", "jane", 10, "eastbound");
+        // Reverse direction segment (for testing reverse direction return)
+        LineSegmentEntity reverseSegment = segment("line-2-jane-kipling", "line-2", "jane", "kipling", 20, "westbound");
+        
+        when(lineSegmentRepository.findAllByOrderBySortOrderAsc()).thenReturn(List.of(forwardSegment, reverseSegment));
+
+        Map<String, List<AlertDashboardService.SegmentImpact>> impacts = service.activeSegmentImpacts();
+
+        // Kipling to Jane segment (forward direction)
+        List<AlertDashboardService.SegmentImpact> forwardImpacts = impacts.get("line-2-kipling-jane");
+        assertThat(forwardImpacts).singleElement().satisfies(imp -> {
+            assertThat(imp.travelDirection()).isEqualTo("forward");
+        });
+
+        // Change alert direction to westbound to test reverse direction mapping
+        ReflectionTestUtils.setField(alert, "direction", "westbound");
+        Map<String, List<AlertDashboardService.SegmentImpact>> reverseImpacts = service.activeSegmentImpacts();
+        List<AlertDashboardService.SegmentImpact> forwardImpactsRev = reverseImpacts.get("line-2-kipling-jane");
+        assertThat(forwardImpactsRev).singleElement().satisfies(imp -> {
+            assertThat(imp.travelDirection()).isEqualTo("reverse");
+        });
+
+        // Change alert direction to bidirectional
+        ReflectionTestUtils.setField(alert, "direction", "bidirectional");
+        Map<String, List<AlertDashboardService.SegmentImpact>> biImpacts = service.activeSegmentImpacts();
+        List<AlertDashboardService.SegmentImpact> biImpact = biImpacts.get("line-2-kipling-jane");
+        assertThat(biImpact).singleElement().satisfies(imp -> {
+            assertThat(imp.travelDirection()).isEqualTo("bidirectional");
+        });
+
+        // Change alert direction to unknown/null
+        ReflectionTestUtils.setField(alert, "direction", null);
+        Map<String, List<AlertDashboardService.SegmentImpact>> unknownImpacts = service.activeSegmentImpacts();
+        List<AlertDashboardService.SegmentImpact> unknownImpact = unknownImpacts.get("line-2-kipling-jane");
+        assertThat(unknownImpact).singleElement().satisfies(imp -> {
+            assertThat(imp.travelDirection()).isEqualTo("bidirectional");
+        });
     }
 
     private AlertEntity alert(

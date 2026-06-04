@@ -4,11 +4,14 @@ import { useEffect, useState, useMemo, useLayoutEffect, useRef } from "react";
 import {
   composeNetworkSegmentPath,
   pathCenter,
+  pathCorridorCollisionBoxes,
+  pathMidpointFrame,
   readSvgGeometry,
   resolveNetworkSegmentPath,
   visualTravelDirection,
   samplePath,
   type MapPoint,
+  type PathFrame,
 } from "../app/map-geometry";
 import { usePanZoom } from "../hooks/usePanZoom";
 import { ZoomIn, ZoomOut, Locate, Sun, Moon } from "lucide-react";
@@ -92,12 +95,14 @@ export function InteractiveTtcMap({
   const mapSvgRef = useRef<SVGSVGElement>(null);
   const [anchorPoints, setAnchorPoints] = useState(new Map<string, MapPoint>());
   const [guidePaths, setGuidePaths] = useState(new Map<string, string>());
+  const [mapCollisionBoxes, setMapCollisionBoxes] = useState<SvgBounds[]>([]);
 
   useLayoutEffect(() => {
     if (loadState !== "ready" || !mapSvgRef.current) return;
     const geometry = readSvgGeometry(mapSvgRef.current, networkSegments);
     setAnchorPoints(geometry.anchorPoints);
     setGuidePaths(geometry.guidePaths);
+    setMapCollisionBoxes(collectMapCollisionBoxes(mapSvgRef.current));
   }, [loadState, networkSegments]);
 
   const {
@@ -193,7 +198,9 @@ export function InteractiveTtcMap({
   const selectedSegmentIds = useMemo(() => {
     if (!selection) return [];
     if (selection.kind === "planned-closure") {
-      return plannedClosures.find((closure) => closure.id === selection.id)?.previewSegmentIds ?? [];
+      return plannedClosures.find((closure) => closure.id === selection.id)?.previewSegmentIds
+        ?? activeAlerts.find((alert) => alert.id === selection.id)?.affectedSegmentIds
+        ?? [];
     }
     if (selection.kind === "suspension") {
       return activeAlerts.find((alert) => alert.id === selection.id)?.affectedSegmentIds ?? [];
@@ -228,12 +235,35 @@ export function InteractiveTtcMap({
       }
       return;
     }
-    if (selectedSegmentIds.length === 0) return;
+    if (selectedSegmentIds.length === 0) {
+      // Fallback: zoom/pan to the station if this is a station-specific impact
+      const matchingImpacts = stationNodeImpacts.filter(
+        (impact) => impact.cardId === selection.id && impact.kind === selection.kind
+      );
+      if (matchingImpacts.length > 0) {
+        let sumX = 0;
+        let sumY = 0;
+        let count = 0;
+        matchingImpacts.forEach((impact) => {
+          const station = stations.find((s) => s.id === impact.stationId);
+          if (station) {
+            sumX += station.mapX;
+            sumY += station.mapY;
+            count++;
+          }
+        });
+        if (count > 0) {
+          const scaleFactor = 4500 / 8250;
+          zoomToPoint((sumX / count) * scaleFactor, (sumY / count) * scaleFactor, 1.5);
+        }
+      }
+      return;
+    }
     const center = getSegmentsCenter(selectedSegmentIds, networkSegments, mapStations, anchorPoints, guidePaths);
     if (center) {
       zoomToPoint(center.x, center.y, 1.5);
     }
-  }, [selection, selectedSegmentIds, networkSegments, mapStations, anchorPoints, guidePaths, zoomToPoint, loadState, recenter]);
+  }, [selection, selectedSegmentIds, networkSegments, mapStations, anchorPoints, guidePaths, zoomToPoint, loadState, recenter, stationNodeImpacts, stations]);
 
   const stationBySummaryId = useMemo(() => {
     return new Map(stations.map((station) => [station.id, station]));
@@ -318,7 +348,8 @@ export function InteractiveTtcMap({
           ),
         };
       })
-      .filter((layer): layer is RenderedImpactLayer => Boolean(layer));
+      .filter((layer): layer is RenderedImpactLayer => Boolean(layer))
+      .sort((a, b) => getImpactPriority(a.impact.kind) - getImpactPriority(b.impact.kind));
   }, [activeAlerts, delays, plannedClosures, reducedSpeedZones, renderedOverlaySegments]);
 
   const plannedPreviewLayers = useMemo<RenderedPlannedPreviewLayer[]>(() => {
@@ -341,6 +372,42 @@ export function InteractiveTtcMap({
       closure: selectedClosure,
     }];
   }, [renderedOverlaySegments, selectedClosure]);
+
+  const overlayCollisionBoxes = useMemo<SvgBounds[]>(() => {
+    return [
+      ...plannedPreviewLayers.map(({ segment }) => segment.pathD),
+      ...renderedImpactLayers.map(({ segment }) => segment.pathD),
+    ].flatMap((pathD) => pathCorridorCollisionBoxes(pathD, OVERLAY_CORRIDOR_COLLISION_RADIUS));
+  }, [plannedPreviewLayers, renderedImpactLayers]);
+
+  const overlapBadgeSegments = useMemo<OverlapBadgeSegment[]>(() => {
+    const occupiedBoxes = [...mapCollisionBoxes, ...overlayCollisionBoxes];
+    return renderedOverlaySegments
+      .map((segment) => {
+        const impacts = segment.impacts?.length ? segment.impacts : legacyImpactsForSegment(segment);
+        const impactKinds = getUniqueImpactKinds(impacts);
+        if (impactKinds.length <= 1) return null;
+
+        const frame = pathMidpointFrame(segment.pathD);
+        const primaryImpact = primaryImpactForOverlap(impacts);
+        if (!frame || !primaryImpact) return null;
+
+        const size = overlapBadgeSize(impactKinds.length);
+        const position = chooseNonIntersectingBadgePosition(frame.point, size, occupiedBoxes, frame);
+        occupiedBoxes.push(expandBox(boundsForBadgePosition(position, size), 12));
+
+        return {
+          segmentId: segment.id,
+          label: segment.label,
+          impactKinds,
+          impacts,
+          primaryImpact,
+          position,
+          size,
+        };
+      })
+      .filter((badge): badge is OverlapBadgeSegment => Boolean(badge));
+  }, [mapCollisionBoxes, overlayCollisionBoxes, renderedOverlaySegments]);
 
 
   return (
@@ -495,7 +562,7 @@ export function InteractiveTtcMap({
                 {/* Middle Layer: Highlighted overlays injected underneath stations */}
                 <defs>
                   <pattern id="suspension-hash" width="60" height="60" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
-                    <rect width="60" height="60" fill="#f87171" />
+                    <rect width="60" height="60" fill="#ef4444" />
                     <line x1="0" y1="0" x2="0" y2="60" stroke="#ffffff" strokeWidth="25" />
                   </pattern>
                   <filter id="delay-static-filter" x="-20%" y="-20%" width="140%" height="140%">
@@ -520,19 +587,6 @@ export function InteractiveTtcMap({
                   </filter>
                 </defs>
                 <g aria-label="Disruption overlays">
-                  {renderedImpactLayers.map(({ segment, impact }, index) => (
-                    <OverlaySegment
-                      key={`${segment.id}-${impact.kind}-${impact.cardId}-${index}`}
-                      segment={segment}
-                      impact={impact}
-                      plannedClosure={undefined}
-                      selection={selection}
-                      selectedSegmentIds={selectedSegmentIds}
-                      onSelectImpact={onSelectImpact}
-                      reducedMotion={reducedMotion}
-                      flashSelection={flashSelection}
-                    />
-                  ))}
                   {plannedPreviewLayers.map(({ segment, closure }) => (
                     <OverlaySegment
                       key={`${segment.id}-planned-preview-${closure.id}`}
@@ -546,10 +600,34 @@ export function InteractiveTtcMap({
                       flashSelection={flashSelection}
                     />
                   ))}
+                  {renderedImpactLayers.map(({ segment, impact }, index) => (
+                    <OverlaySegment
+                      key={`${segment.id}-${impact.kind}-${impact.cardId}-${index}`}
+                      segment={segment}
+                      impact={impact}
+                      plannedClosure={undefined}
+                      selection={selection}
+                      selectedSegmentIds={selectedSegmentIds}
+                      onSelectImpact={onSelectImpact}
+                      reducedMotion={reducedMotion}
+                      flashSelection={flashSelection}
+                    />
+                  ))}
                 </g>
 
                 {/* Top Layer: Stations (layer6) and text */}
                 <g dangerouslySetInnerHTML={{ __html: svgParts?.part2 ?? "" }} />
+
+                <g aria-label="Overlapping alert badges">
+                  {overlapBadgeSegments.map((badge) => (
+                    <OverlapIndicatorMarker
+                      key={badge.segmentId}
+                      badge={badge}
+                      selection={selection}
+                      onSelectImpact={onSelectImpact}
+                    />
+                  ))}
+                </g>
 
                 {/* Cardinal North Compass fixed to map */}
                 <g aria-label="Cardinal North Compass" transform="translate(7600, 2300) scale(4)">
@@ -604,6 +682,16 @@ export function InteractiveTtcMap({
 
                   return (
                     <g key={`${impact.kind}-${impact.cardId}-${impact.stationId}`}>
+                      {flashSelection && flashSelection.kind === impact.kind && flashSelection.id === impact.cardId && (
+                        <circle
+                          data-map-highlight-id={flashSelection.id}
+                          className="station-selection-flash"
+                          cx={station.mapX}
+                          cy={station.mapY}
+                          r={station.interchange ? 60 : 48}
+                          pointerEvents="none"
+                        />
+                      )}
                       <circle
                         aria-label={`${impact.title}: ${station.name}`}
                         className={`station-impact-ring ${impact.kind} ${selected ? "selected" : ""}`}
@@ -662,11 +750,101 @@ type RenderedPlannedPreviewLayer = {
   closure: PlannedClosure;
 };
 
+type SvgBounds = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+};
+
+type OverlapBadgeSize = {
+  width: number;
+  height: number;
+};
+
+type OverlapBadgePosition = MapPoint & {
+  collisionAvoided: boolean;
+};
+
+type OverlapBadgeSegment = {
+  segmentId: string;
+  label: string;
+  impactKinds: MapImpactKind[];
+  impacts: MapImpact[];
+  primaryImpact: MapImpact;
+  position: OverlapBadgePosition;
+  size: OverlapBadgeSize;
+};
+
 type OverlayVisualState =
   | "suspension"
   | "delay-static"
   | "reduced-speed-zone"
   | "planned-preview";
+
+const MAP_VIEWBOX_BOUNDS: SvgBounds = { x: 0, y: 0, width: 8250, height: 4000 };
+const OVERLAY_CORRIDOR_COLLISION_RADIUS = 54;
+const OVERLAP_BADGE_EDGE_GAP = 8;
+
+function overlapBadgePositionCandidates(size: OverlapBadgeSize, frame?: PathFrame | null): Array<{ dx: number; dy: number }> {
+  const sideOffset = OVERLAY_CORRIDOR_COLLISION_RADIUS + size.width / 2 + OVERLAP_BADGE_EDGE_GAP;
+  const verticalOffset = OVERLAY_CORRIDOR_COLLISION_RADIUS + size.height / 2 + OVERLAP_BADGE_EDGE_GAP;
+  const diagonalX = sideOffset + 36;
+  const diagonalY = verticalOffset + 36;
+  const farSideOffset = sideOffset + 110;
+  const farVerticalOffset = verticalOffset + 96;
+  const fallbackCandidates = [
+    { dx: 0, dy: -verticalOffset },
+    { dx: sideOffset, dy: 0 },
+    { dx: -sideOffset, dy: 0 },
+    { dx: 0, dy: verticalOffset },
+    { dx: diagonalX, dy: -diagonalY },
+    { dx: -diagonalX, dy: -diagonalY },
+    { dx: diagonalX, dy: diagonalY },
+    { dx: -diagonalX, dy: diagonalY },
+    { dx: farSideOffset, dy: 0 },
+    { dx: -farSideOffset, dy: 0 },
+    { dx: 0, dy: -farVerticalOffset },
+    { dx: 0, dy: farVerticalOffset },
+  ];
+
+  if (!frame) return fallbackCandidates;
+
+  const normalOffset = normalOffsetForBadge(frame.normal, size);
+  const tangentShift = Math.max(64, normalOffsetForBadge(frame.tangent, size) * 0.5);
+  const nearNormal = offsetFromVector(frame.normal, normalOffset);
+  const farNormal = offsetFromVector(frame.normal, normalOffset + 80);
+  const tangent = offsetFromVector(frame.tangent, tangentShift);
+
+  return [
+    nearNormal,
+    scaleOffset(nearNormal, -1),
+    addVectors(nearNormal, tangent),
+    addVectors(nearNormal, scaleOffset(tangent, -1)),
+    addVectors(scaleOffset(nearNormal, -1), tangent),
+    addVectors(scaleOffset(nearNormal, -1), scaleOffset(tangent, -1)),
+    farNormal,
+    scaleOffset(farNormal, -1),
+    ...fallbackCandidates,
+  ];
+}
+
+function normalOffsetForBadge(vector: MapPoint, size: OverlapBadgeSize): number {
+  const badgeHalfExtent = Math.abs(vector.x) * size.width / 2 + Math.abs(vector.y) * size.height / 2;
+  return OVERLAY_CORRIDOR_COLLISION_RADIUS + badgeHalfExtent + OVERLAP_BADGE_EDGE_GAP;
+}
+
+function offsetFromVector(vector: MapPoint, scale: number): { dx: number; dy: number } {
+  return { dx: vector.x * scale, dy: vector.y * scale };
+}
+
+function scaleOffset(offset: { dx: number; dy: number }, scale: number): { dx: number; dy: number } {
+  return { dx: offset.dx * scale, dy: offset.dy * scale };
+}
+
+function addVectors(a: { dx: number; dy: number }, b: { dx: number; dy: number }): { dx: number; dy: number } {
+  return { dx: a.dx + b.dx, dy: a.dy + b.dy };
+}
 
 function legacyImpactsForSegment(segment: NetworkSegment): MapImpact[] {
   if (segment.overlay === "clear") {
@@ -703,6 +881,152 @@ function visualStateForImpactKind(kind: MapImpactKind): OverlayVisualState {
   }
 }
 
+function getImpactPriority(kind: MapImpactKind): number {
+  switch (kind) {
+    case "suspension":
+      return 4;
+    case "planned-closure":
+      return 3;
+    case "delay":
+      return 2;
+    case "reduced-speed-zone":
+      return 1;
+    default:
+      return 0;
+  }
+}
+
+function getUniqueImpactKinds(impacts: MapImpact[]): MapImpactKind[] {
+  return Array.from(new Set(impacts.map((impact) => impact.kind)))
+    .sort((a, b) => getImpactPriority(b) - getImpactPriority(a));
+}
+
+function primaryImpactForOverlap(impacts: MapImpact[]): MapImpact | undefined {
+  return [...impacts].sort((a, b) => getImpactPriority(b.kind) - getImpactPriority(a.kind))[0];
+}
+
+function overlapBadgeSize(impactKindCount: number): OverlapBadgeSize {
+  const visibleCount = Math.min(3, impactKindCount);
+  const hasMore = impactKindCount > visibleCount;
+  const totalItems = visibleCount + (hasMore ? 1 : 0);
+  return {
+    width: Math.max(88, totalItems * 58 + 22),
+    height: 76,
+  };
+}
+
+function boundsForBadgePosition(position: MapPoint, size: OverlapBadgeSize): SvgBounds {
+  return {
+    x: position.x - size.width / 2,
+    y: position.y - size.height / 2,
+    width: size.width,
+    height: size.height,
+  };
+}
+
+function expandBox(box: SvgBounds, padding: number): SvgBounds {
+  return {
+    x: box.x - padding,
+    y: box.y - padding,
+    width: box.width + padding * 2,
+    height: box.height + padding * 2,
+  };
+}
+
+function boxesIntersect(a: SvgBounds, b: SvgBounds): boolean {
+  return (
+    a.x < b.x + b.width &&
+    a.x + a.width > b.x &&
+    a.y < b.y + b.height &&
+    a.y + a.height > b.y
+  );
+}
+
+function clampBadgePosition(position: MapPoint, size: OverlapBadgeSize): MapPoint {
+  return {
+    x: Math.min(
+      MAP_VIEWBOX_BOUNDS.x + MAP_VIEWBOX_BOUNDS.width - size.width / 2,
+      Math.max(MAP_VIEWBOX_BOUNDS.x + size.width / 2, position.x),
+    ),
+    y: Math.min(
+      MAP_VIEWBOX_BOUNDS.y + MAP_VIEWBOX_BOUNDS.height - size.height / 2,
+      Math.max(MAP_VIEWBOX_BOUNDS.y + size.height / 2, position.y),
+    ),
+  };
+}
+
+function chooseNonIntersectingBadgePosition(
+  center: MapPoint,
+  size: OverlapBadgeSize,
+  blockedBoxes: SvgBounds[],
+  frame?: PathFrame | null,
+): OverlapBadgePosition {
+  const candidates = overlapBadgePositionCandidates(size, frame);
+  for (const candidate of candidates) {
+    const position = clampBadgePosition(
+      { x: center.x + candidate.dx, y: center.y + candidate.dy },
+      size,
+    );
+    const candidateBox = expandBox(boundsForBadgePosition(position, size), 10);
+    if (!blockedBoxes.some((blockedBox) => boxesIntersect(candidateBox, blockedBox))) {
+      return { ...position, collisionAvoided: true };
+    }
+  }
+
+  const fallbackCandidate = candidates[0] ?? { dx: 0, dy: 0 };
+  const fallback = clampBadgePosition(
+    {
+      x: center.x + fallbackCandidate.dx,
+      y: center.y + fallbackCandidate.dy,
+    },
+    size,
+  );
+  return { ...fallback, collisionAvoided: false };
+}
+
+function collectMapCollisionBoxes(svg: SVGSVGElement): SvgBounds[] {
+  const selectors = [
+    "#layer6 text",
+    "#layer6 path",
+    "#layer6 circle",
+    "#layer6 ellipse",
+    "#layer6 rect",
+    "#layer6 polygon",
+    "#layer6 polyline",
+    "#layer6 image",
+  ].join(", ");
+  return Array.from(svg.querySelectorAll(selectors))
+    .map((element) => {
+      if (!(element instanceof SVGGraphicsElement)) return null;
+      const style = window.getComputedStyle(element);
+      if (style.display === "none" || style.visibility === "hidden" || style.opacity === "0") {
+        return null;
+      }
+      try {
+        const box = element.getBBox();
+        if (box.width <= 0 || box.height <= 0) return null;
+        if (box.width > 1200 || box.height > 1200) return null;
+        return expandBox({ x: box.x, y: box.y, width: box.width, height: box.height }, 18);
+      } catch {
+        return null;
+      }
+    })
+    .filter((box): box is SvgBounds => Boolean(box));
+}
+
+function labelForImpactKind(kind: MapImpactKind): string {
+  switch (kind) {
+    case "suspension":
+      return "Suspension";
+    case "planned-closure":
+      return "Active Closure";
+    case "delay":
+      return "Delay";
+    case "reduced-speed-zone":
+      return "Reduced Speed Zone";
+  }
+}
+
 function impactLayerKey(impact: MapImpact) {
   return `${impact.kind}:${impact.cardId}:${impact.travelDirection}`;
 }
@@ -715,7 +1039,9 @@ function segmentIdsForImpact(
   plannedClosures: PlannedClosure[],
 ): string[] {
   if (impact.kind === "planned-closure") {
-    return plannedClosures.find((closure) => closure.id === impact.cardId)?.previewSegmentIds ?? [];
+    return plannedClosures.find((closure) => closure.id === impact.cardId)?.previewSegmentIds
+      ?? activeAlerts.find((alert) => alert.id === impact.cardId)?.affectedSegmentIds
+      ?? [];
   }
   if (impact.kind === "suspension") {
     return activeAlerts.find((alert) => alert.id === impact.cardId)?.affectedSegmentIds ?? [];
@@ -930,7 +1256,7 @@ function AnimatedChevronLane({
   );
 }
 
-function AnimatedHourglassLane({
+function AnimatedSuspensionLane({
   pathD,
   step,
   direction,
@@ -942,6 +1268,195 @@ function AnimatedHourglassLane({
   direction: "forward" | "reverse";
   travelDirection: string;
   reducedMotion: boolean;
+}) {
+  const [mounted, setMounted] = useState(false);
+  const containerRef = useRef<SVGGElement>(null);
+  const pathRef = useRef<SVGPathElement | null>(null);
+
+  useEffect(() => {
+    const handle = setTimeout(() => setMounted(true), 0);
+    return () => clearTimeout(handle);
+  }, []);
+
+  const { length, count, stepVal } = useMemo(() => {
+    if (typeof document === "undefined") return { length: 0, count: 0, stepVal: step };
+    try {
+      const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      path.setAttribute("d", pathD);
+      const len = path.getTotalLength();
+      if (len <= 0) return { length: 0, count: 0, stepVal: step };
+      const cnt = Math.max(1, Math.floor(len / step));
+      const s = len / cnt;
+      return { length: len, count: cnt, stepVal: s };
+    } catch (e) {
+      console.error("Error creating SVG path for measurement:", e);
+      return { length: 0, count: 0, stepVal: step };
+    }
+  }, [pathD, step]);
+
+  useEffect(() => {
+    if (!mounted || typeof document === "undefined") return;
+    try {
+      const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      path.setAttribute("d", pathD);
+      pathRef.current = path;
+    } catch (e) {
+      console.error("Error setting path reference:", e);
+    }
+  }, [pathD, mounted]);
+
+  const indices = useMemo(() => {
+    const arr: number[] = [];
+    if (count <= 0) return arr;
+    for (let i = -2; i <= count + 2; i++) {
+      arr.push(i);
+    }
+    return arr;
+  }, [count]);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    const path = pathRef.current;
+    if (!mounted || !container || !path || length <= 0 || indices.length === 0) return;
+
+    const childGroups = Array.from(container.children) as SVGGElement[];
+    if (childGroups.length === 0) return;
+
+    let animationFrameId: number;
+    const duration = (stepVal / 80) * 12000;
+    const startTime = performance.now();
+
+    const applyPhase = (phase: number) => {
+      const dy = travelDirection === "bidirectional" ? (direction === "reverse" ? 18 : -18) : 0;
+
+      childGroups.forEach((group) => {
+        const idxAttr = group.getAttribute("data-index");
+        if (!idxAttr) return;
+        const i = parseInt(idxAttr, 10);
+
+        let dist = 0;
+        if (direction === "forward") {
+          dist = i * stepVal + phase;
+        } else {
+          dist = (count - i) * stepVal - phase;
+        }
+
+        if (dist < -70 || dist > length + 70) {
+          group.setAttribute("display", "none");
+          return;
+        } else {
+          group.removeAttribute("display");
+        }
+
+        try {
+          const pDist = Math.max(0, Math.min(length, dist));
+          const p = path.getPointAtLength(pDist);
+          const delta = 1;
+          const pAheadDist = Math.min(length, pDist + delta);
+          const pBehindDist = Math.max(0, pDist - delta);
+          const pAhead = path.getPointAtLength(pAheadDist);
+          const pBehind = path.getPointAtLength(pBehindDist);
+          const dx = pAhead.x - pBehind.x;
+          const dyTangent = pAhead.y - pBehind.y;
+          const angle = Math.atan2(dyTangent, dx) * (180 / Math.PI);
+
+          const angleForward = direction === "reverse" ? angle - 180 : angle;
+          const angleForwardRad = (angleForward * Math.PI) / 180;
+          const offsetX = -dy * Math.sin(angleForwardRad);
+          const offsetY = dy * Math.cos(angleForwardRad);
+
+          let resolvedAngle = angle;
+          if (direction === "reverse") {
+            resolvedAngle += 180;
+          }
+
+          group.setAttribute(
+            "transform",
+            `translate(${p.x + offsetX} ${p.y + offsetY}) rotate(${resolvedAngle})`
+          );
+
+          let opacity = 1.0;
+          const fadeZone = 50;
+          if (dist < 0) {
+            opacity = 0;
+          } else if (dist < fadeZone) {
+            opacity = dist / fadeZone;
+          } else if (dist > length) {
+            opacity = 0;
+          } else if (dist > length - fadeZone) {
+            opacity = (length - dist) / fadeZone;
+          }
+          group.style.opacity = opacity.toString();
+        } catch {
+          // Safe fallback
+        }
+      });
+    };
+
+    const update = () => {
+      if (reducedMotion) {
+        applyPhase(0);
+        return;
+      }
+
+      const elapsed = performance.now() - startTime;
+      const phase = ((elapsed / duration) % 1) * (2 * stepVal);
+      applyPhase(phase);
+
+      animationFrameId = requestAnimationFrame(update);
+    };
+
+    animationFrameId = requestAnimationFrame(update);
+
+    return () => {
+      cancelAnimationFrame(animationFrameId);
+    };
+  }, [mounted, length, count, stepVal, direction, travelDirection, reducedMotion, indices]);
+
+  if (!mounted || count <= 0) return null;
+
+  return (
+    <g ref={containerRef}>
+      {indices.map((i) => {
+        const isNoEntry = Math.abs(i) % 2 === 0;
+        return (
+          <g key={i} data-index={i}>
+            {isNoEntry ? (
+              <g transform="translate(-24, -24) scale(2.0)" stroke="#ffffff" fill="none" strokeWidth="3.2">
+                <circle cx="12" cy="12" r="10.5" />
+                <line x1="19.64" y1="4.36" x2="4.36" y2="19.64" />
+              </g>
+            ) : (
+              <path
+                d="M -14 -14 L 10 0 L -14 14"
+                stroke="#ffffff"
+                strokeWidth="6"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                fill="none"
+              />
+            )}
+          </g>
+        );
+      })}
+    </g>
+  );
+}
+
+function AnimatedHourglassLane({
+  pathD,
+  step,
+  direction,
+  travelDirection,
+  reducedMotion,
+  onlyHourglasses = false,
+}: {
+  pathD: string;
+  step: number;
+  direction: "forward" | "reverse";
+  travelDirection: string;
+  reducedMotion: boolean;
+  onlyHourglasses?: boolean;
 }) {
   const [mounted, setMounted] = useState(false);
   const containerRef = useRef<SVGGElement>(null);
@@ -1074,52 +1589,170 @@ function AnimatedHourglassLane({
 
   return (
     <g ref={containerRef}>
-      {indices.map((i) => (
-        <g key={i} data-index={i}>
-          {Math.abs(i) % 2 === 0 ? (
-            <g transform="scale(0.045) translate(-512, -512)" className="delay-hourglass">
+      {indices.map((i) => {
+        const isHourglass = Math.abs(i) % 2 === 0;
+        if (!isHourglass && onlyHourglasses) return null;
+
+        return (
+          <g key={i} data-index={i}>
+            {isHourglass ? (
+              <g transform="scale(0.08) translate(-512, -512)" className="delay-hourglass">
+                <path
+                  d="M576 512c0 190.72 448 345.6-25.6 345.6s-25.6-154.88-25.6-345.6-448-345.6 25.6-345.6 25.6 154.88 25.6 345.6z"
+                  fill="#F7E6A3"
+                />
+                <path
+                  d="M550.4 870.4c-147.2 0-212.48-14.08-226.56-48.64-14.08-33.28 23.04-71.68 71.68-121.6 51.2-52.48 116.48-120.32 116.48-188.16 0-67.84-65.28-135.68-117.76-189.44-47.36-48.64-85.76-87.04-71.68-121.6C337.92 167.68 403.2 153.6 550.4 153.6s212.48 14.08 226.56 48.64c14.08 33.28-23.04 71.68-71.68 121.6-51.2 52.48-116.48 120.32-116.48 188.16 0 67.84 65.28 135.68 117.76 189.44 47.36 48.64 85.76 87.04 71.68 121.6C762.88 856.32 697.6 870.4 550.4 870.4z m0-691.2c-157.44 0-197.12 17.92-203.52 33.28-7.68 17.92 29.44 56.32 65.28 93.44 55.04 57.6 125.44 128 125.44 207.36 0 79.36-69.12 149.76-125.44 207.36-35.84 37.12-72.96 75.52-65.28 93.44 6.4 12.8 46.08 30.72 203.52 30.72s197.12-17.92 203.52-33.28c7.68-17.92-29.44-56.32-65.28-93.44C632.32 661.76 563.2 591.36 563.2 512c0-79.36 69.12-149.76 125.44-207.36 35.84-37.12 72.96-75.52 65.28-93.44-6.4-14.08-46.08-32-203.52-32z"
+                  fill="#0284c7"
+                />
+                <path
+                  d="M819.2 153.6c0 14.08-11.52 25.6-25.6 25.6H294.4c-14.08 0-25.6-11.52-25.6-25.6v-12.8c0-14.08 11.52-25.6 25.6-25.6h499.2c14.08 0 25.6 11.52 25.6 25.6v12.8z"
+                  fill="#7dd3fc"
+                />
+                <path
+                  d="M793.6 192H294.4c-21.76 0-38.4-16.64-38.4-38.4v-12.8c0-21.76 16.64-38.4 38.4-38.4h499.2c21.76 0 38.4 16.64 38.4 38.4v12.8c0 21.76-16.64 38.4-38.4 38.4z m-499.2-64c-7.68 0-12.8 5.12-12.8 12.8v12.8c0 7.68 5.12 12.8 12.8 12.8h499.2c7.68 0 12.8-5.12 12.8-12.8v-12.8c0-7.68-5.12-12.8-12.8-12.8H294.4z"
+                  fill="#0369a1"
+                />
+                <path
+                  d="M819.2 883.2c0 14.08-11.52 25.6-25.6 25.6H294.4c-14.08 0-25.6-11.52-25.6-25.6v-12.8c0-14.08 11.52-25.6 25.6-25.6h499.2c14.08 0 25.6 11.52 25.6 25.6v12.8z"
+                  fill="#7dd3fc"
+                />
+                <path
+                  d="M793.6 921.6H294.4c-21.76 0-38.4-16.64-38.4-38.4v-12.8c0-21.76 16.64-38.4 38.4-38.4h499.2c21.76 0 38.4 16.64 38.4 38.4v12.8c0 21.76-16.64 38.4-38.4 38.4z m-499.2-64c-7.68 0-12.8 5.12-12.8 12.8v12.8c0 7.68 5.12 12.8 12.8 12.8h499.2c7.68 0 12.8-5.12 12.8-12.8v-12.8c0-7.68-5.12-12.8-12.8-12.8H294.4z"
+                  fill="#0369a1"
+                />
+                <path d="M307.2 179.2h25.6v665.6h-25.6z" fill="#0369a1" />
+                <path d="M768 179.2h25.6v665.6h-25.6z" fill="#0369a1" />
+              </g>
+            ) : (
               <path
-                d="M576 512c0 190.72 448 345.6-25.6 345.6s-25.6-154.88-25.6-345.6-448-345.6 25.6-345.6 25.6 154.88 25.6 345.6z"
-                fill="#F7E6A3"
+                d="M -12 -10 L 8 0 L -12 10"
+                fill="none"
+                stroke="#ffffff"
+                strokeWidth={3.5}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
               />
-              <path
-                d="M550.4 870.4c-147.2 0-212.48-14.08-226.56-48.64-14.08-33.28 23.04-71.68 71.68-121.6 51.2-52.48 116.48-120.32 116.48-188.16 0-67.84-65.28-135.68-117.76-189.44-47.36-48.64-85.76-87.04-71.68-121.6C337.92 167.68 403.2 153.6 550.4 153.6s212.48 14.08 226.56 48.64c14.08 33.28-23.04 71.68-71.68 121.6-51.2 52.48-116.48 120.32-116.48 188.16 0 67.84 65.28 135.68 117.76 189.44 47.36 48.64 85.76 87.04 71.68 121.6C762.88 856.32 697.6 870.4 550.4 870.4z m0-691.2c-157.44 0-197.12 17.92-203.52 33.28-7.68 17.92 29.44 56.32 65.28 93.44 55.04 57.6 125.44 128 125.44 207.36 0 79.36-69.12 149.76-125.44 207.36-35.84 37.12-72.96 75.52-65.28 93.44 6.4 12.8 46.08 30.72 203.52 30.72s197.12-17.92 203.52-33.28c7.68-17.92-29.44-56.32-65.28-93.44C632.32 661.76 563.2 591.36 563.2 512c0-79.36 69.12-149.76 125.44-207.36 35.84-37.12 72.96-75.52 65.28-93.44-6.4-14.08-46.08-32-203.52-32z"
-                fill="#0284c7"
-              />
-              <path
-                d="M819.2 153.6c0 14.08-11.52 25.6-25.6 25.6H294.4c-14.08 0-25.6-11.52-25.6-25.6v-12.8c0-14.08 11.52-25.6 25.6-25.6h499.2c14.08 0 25.6 11.52 25.6 25.6v12.8z"
-                fill="#7dd3fc"
-              />
-              <path
-                d="M793.6 192H294.4c-21.76 0-38.4-16.64-38.4-38.4v-12.8c0-21.76 16.64-38.4 38.4-38.4h499.2c21.76 0 38.4 16.64 38.4 38.4v12.8c0 21.76-16.64 38.4-38.4 38.4z m-499.2-64c-7.68 0-12.8 5.12-12.8 12.8v12.8c0 7.68 5.12 12.8 12.8 12.8h499.2c7.68 0 12.8-5.12 12.8-12.8v-12.8c0-7.68-5.12-12.8-12.8-12.8H294.4z"
-                fill="#0369a1"
-              />
-              <path
-                d="M819.2 883.2c0 14.08-11.52 25.6-25.6 25.6H294.4c-14.08 0-25.6-11.52-25.6-25.6v-12.8c0-14.08 11.52-25.6 25.6-25.6h499.2c14.08 0 25.6 11.52 25.6 25.6v12.8z"
-                fill="#7dd3fc"
-              />
-              <path
-                d="M793.6 921.6H294.4c-21.76 0-38.4-16.64-38.4-38.4v-12.8c0-21.76 16.64-38.4 38.4-38.4h499.2c21.76 0 38.4 16.64 38.4 38.4v12.8c0 21.76-16.64 38.4-38.4 38.4z m-499.2-64c-7.68 0-12.8 5.12-12.8 12.8v12.8c0 7.68 5.12 12.8 12.8 12.8h499.2c7.68 0 12.8-5.12 12.8-12.8v-12.8c0-7.68-5.12-12.8-12.8-12.8H294.4z"
-                fill="#0369a1"
-              />
-              <path d="M307.2 179.2h25.6v665.6h-25.6z" fill="#0369a1" />
-              <path d="M768 179.2h25.6v665.6h-25.6z" fill="#0369a1" />
-            </g>
-          ) : (
-            <path
-              d="M -12 -10 L 8 0 L -12 10"
-              fill="none"
-              stroke="#ffffff"
-              strokeWidth={3.5}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-            />
-          )}
-        </g>
-      ))}
+            )}
+          </g>
+        );
+      })}
     </g>
   );
+}
+
+function OverlapIndicatorMarker({
+  badge,
+  selection,
+  onSelectImpact,
+}: {
+  badge: OverlapBadgeSegment;
+  selection: ImpactSelection;
+  onSelectImpact: (selection: ImpactSelection) => void;
+}) {
+  const visibleKinds = badge.impactKinds.slice(0, 3);
+  const hiddenKindCount = Math.max(0, badge.impactKinds.length - visibleKinds.length);
+  const totalItems = visibleKinds.length + (hiddenKindCount > 0 ? 1 : 0);
+  const spacing = 58;
+  const isSelected = selection
+    ? badge.impacts.some((impact) => impact.kind === selection.kind && impact.cardId === selection.id)
+    : false;
+  const label = `Overlapping alerts: ${badge.impactKinds.map(labelForImpactKind).join(" + ")} on ${badge.label}`;
+
+  const selectPrimaryImpact = () => {
+    onSelectImpact({ kind: badge.primaryImpact.kind, id: badge.primaryImpact.cardId });
+  };
+
+  const handleKeyDown = (event: React.KeyboardEvent<SVGGElement>) => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      selectPrimaryImpact();
+    }
+  };
+
+  return (
+    <g
+      aria-label={label}
+      className={`overlap-indicator ${isSelected ? "selected" : ""}`}
+      data-overlap-segment-id={badge.segmentId}
+      data-overlap-collision-avoided={badge.position.collisionAvoided ? "true" : "false"}
+      onClick={(event) => {
+        event.stopPropagation();
+        selectPrimaryImpact();
+      }}
+      onKeyDown={handleKeyDown}
+      onPointerDown={(event) => event.stopPropagation()}
+      pointerEvents="auto"
+      role="button"
+      tabIndex={0}
+      transform={`translate(${badge.position.x} ${badge.position.y})`}
+    >
+      <title>{label}</title>
+      <rect
+        className="overlap-indicator-pill"
+        x={-badge.size.width / 2}
+        y={-badge.size.height / 2}
+        width={badge.size.width}
+        height={badge.size.height}
+        rx={badge.size.height / 2}
+      />
+      {visibleKinds.map((kind, index) => {
+        const x = (index - (totalItems - 1) / 2) * spacing;
+        return (
+          <g key={kind} data-overlap-kind={kind} transform={`translate(${x} 0)`}>
+            <circle className={`overlap-indicator-badge ${kind}`} r={27} />
+            <OverlapKindGlyph kind={kind} />
+          </g>
+        );
+      })}
+      {hiddenKindCount > 0 && (
+        <g transform={`translate(${(visibleKinds.length - (totalItems - 1) / 2) * spacing} 0)`}>
+          <circle className="overlap-indicator-badge more" r={27} />
+          <text className="overlap-indicator-more" textAnchor="middle" dominantBaseline="central">
+            +{hiddenKindCount}
+          </text>
+        </g>
+      )}
+    </g>
+  );
+}
+
+function OverlapKindGlyph({ kind }: { kind: MapImpactKind }) {
+  switch (kind) {
+    case "suspension":
+      return (
+        <path
+          className="overlap-indicator-glyph suspension"
+          d="M 0 -13 L 13 10 H -13 Z"
+          fill="none"
+        />
+      );
+    case "planned-closure":
+      return (
+        <path
+          className="overlap-indicator-glyph planned-closure"
+          d="M -13 -7 H 13 M -13 7 H 13 M -8 -7 L -2 7 M 4 -7 L 10 7"
+          fill="none"
+        />
+      );
+    case "delay":
+      return (
+        <path
+          className="overlap-indicator-glyph delay"
+          d="M -10 -12 H 10 M -10 12 H 10 M -6 -9 C -6 -2 6 -2 6 9 M 6 -9 C 6 -2 -6 -2 -6 9"
+          fill="none"
+        />
+      );
+    case "reduced-speed-zone":
+      return (
+        <path
+          className="overlap-indicator-glyph reduced-speed-zone"
+          d="M -9 -13 L 12 0 L -9 13"
+          fill="none"
+        />
+      );
+  }
 }
 
 function OverlaySegment({
@@ -1175,7 +1808,9 @@ function OverlaySegment({
     }
     if (!impact) return [];
     if (impact.kind === "planned-closure") {
-      return plannedClosures.find((c) => c.id === impact.cardId)?.previewSegmentIds ?? [];
+      return plannedClosures.find((c) => c.id === impact.cardId)?.previewSegmentIds
+        ?? activeAlerts.find((alert) => alert.id === impact.cardId)?.affectedSegmentIds
+        ?? [];
     }
     if (impact.kind === "suspension") {
       return activeAlerts.find((a) => a.id === impact.cardId)?.affectedSegmentIds ?? [];
@@ -1251,6 +1886,7 @@ function OverlaySegment({
                 className="delay-hourglass-mask-path pointer-events-none"
                 d={segment.pathD}
                 style={{ pointerEvents: "none", stroke: "white", fill: "none" }}
+                strokeWidth="102"
               />
             </mask>
           </defs>
@@ -1263,23 +1899,36 @@ function OverlaySegment({
             mask={`url(#${segment.id}-mask)`}
             style={{ "--chevron-step": `${step}px` } as React.CSSProperties}
           >
-            {renderForwardLane && (
+            {travelDirection === "bidirectional" ? (
               <AnimatedHourglassLane
                 pathD={segment.pathD}
-                step={step}
+                step={28}
                 direction="forward"
-                travelDirection={travelDirection}
-                reducedMotion={reducedMotion}
+                travelDirection="forward" // Force single column (dy = 0)
+                reducedMotion={true} // Forces it to be static (no animation)
+                onlyHourglasses={true} // Omit arrows
               />
-            )}
-            {renderReverseLane && (
-              <AnimatedHourglassLane
-                pathD={segment.pathD}
-                step={step}
-                direction="reverse"
-                travelDirection={travelDirection}
-                reducedMotion={reducedMotion}
-              />
+            ) : (
+              <>
+                {renderForwardLane && (
+                  <AnimatedHourglassLane
+                    pathD={segment.pathD}
+                    step={step}
+                    direction="forward"
+                    travelDirection={travelDirection}
+                    reducedMotion={reducedMotion}
+                  />
+                )}
+                {renderReverseLane && (
+                  <AnimatedHourglassLane
+                    pathD={segment.pathD}
+                    step={step}
+                    direction="reverse"
+                    travelDirection={travelDirection}
+                    reducedMotion={reducedMotion}
+                  />
+                )}
+              </>
             )}
           </g>
         </>
@@ -1339,11 +1988,53 @@ function OverlaySegment({
         </>
       )}
       {visualState === "suspension" && (
-        <path
-          className="asset-alert-path suspension-candy pointer-events-none"
-          d={segment.pathD}
-          style={{ pointerEvents: "none", stroke: "url(#suspension-hash)" }}
-        />
+        <>
+          {travelDirection === "bidirectional" ? (
+            <path
+              className="asset-alert-path suspension-candy pointer-events-none"
+              d={segment.pathD}
+              style={{ pointerEvents: "none", stroke: "url(#suspension-hash)" }}
+            />
+          ) : (
+            <>
+              <path
+                className="asset-alert-path suspension-candy pointer-events-none"
+                d={segment.pathD}
+                style={{ pointerEvents: "none", stroke: "#ef4444" }}
+              />
+              <defs>
+                <mask id={`${segment.id}-suspension-mask`}>
+                  <path
+                    className="suspension-mask-path pointer-events-none"
+                    d={segment.pathD}
+                    style={{ pointerEvents: "none", stroke: "white", fill: "none" }}
+                    strokeWidth="102"
+                  />
+                </mask>
+              </defs>
+              <g mask={`url(#${segment.id}-suspension-mask)`}>
+                {travelDirection === "forward" && (
+                  <AnimatedSuspensionLane
+                    pathD={segment.pathD}
+                    step={48}
+                    direction="forward"
+                    travelDirection={travelDirection}
+                    reducedMotion={reducedMotion}
+                  />
+                )}
+                {travelDirection === "reverse" && (
+                  <AnimatedSuspensionLane
+                    pathD={segment.pathD}
+                    step={48}
+                    direction="reverse"
+                    travelDirection={travelDirection}
+                    reducedMotion={reducedMotion}
+                  />
+                )}
+              </g>
+            </>
+          )}
+        </>
       )}
 
       {isMapFlash && flashSelection && (

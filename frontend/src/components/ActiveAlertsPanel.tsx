@@ -2,10 +2,11 @@
 
 
 import { useDashboardData } from "../app/DataContext";
-import { AlertTriangle, Bus, ChevronLeft } from "lucide-react";
-import type { ImpactSelection } from "../app/linewatch-data";
+import { AlertTriangle, Bus, ChevronLeft, Construction } from "lucide-react";
+import type { ActiveAlert, ImpactKind, ImpactSelection } from "../app/linewatch-data";
 import { useScrollSelectedImpactCard } from "../hooks/useScrollSelectedImpactCard";
-import { LineBadge, ImpactRouteHeader, MetadataGrid, CardSource, JumpToLocationIcon } from "./ImpactCardFields";
+import { DelayIcon } from "./DelayIcon";
+import { LineBadge, ImpactRouteHeader, MetadataGrid, CardSource, JumpToLocationIcon, formatCompactLocation } from "./ImpactCardFields";
 
 interface Props {
   selection: ImpactSelection;
@@ -13,25 +14,40 @@ interface Props {
   onBack?: () => void;
 }
 
+function impactKindForAlert(alert: ActiveAlert): Extract<ImpactKind, "planned-closure" | "suspension"> {
+  return alert.severity === "planned" ? "planned-closure" : "suspension";
+}
+
+type OverlappingImpact = {
+  key: string;
+  label: string;
+  location: string;
+  icon: "delay" | "reduced-speed-zone";
+  selection: NonNullable<ImpactSelection>;
+};
+
 export function ActiveAlertsPanel({
   selection,
   onSelectImpact,
   onBack,
 }: Props) {
-  const { activeAlerts } = useDashboardData();
+  const { activeAlerts, reducedSpeedZones, delays } = useDashboardData();
   useScrollSelectedImpactCard(selection, "suspension");
+  useScrollSelectedImpactCard(selection, "planned-closure");
 
-  const handleAlertClick = (alertId: string) => {
+  const handleAlertClick = (alert: ActiveAlert) => {
+    const kind = impactKindForAlert(alert);
     onSelectImpact(
-      selection?.kind === "suspension" && selection.id === alertId
+      selection?.kind === kind && selection.id === alert.id
         ? null
-        : { kind: "suspension", id: alertId },
+        : { kind, id: alert.id },
     );
   };
 
   const getSeverityColor = (severity: string) => {
     switch (severity) {
       case "suspension":
+      case "planned":
         return "border-l-red-600";
       case "delay":
         return "border-l-amber-500";
@@ -63,7 +79,33 @@ export function ActiveAlertsPanel({
       </div>
       <div className="alert-stack min-w-0 p-3 flex flex-col gap-2">
         {activeAlerts.map((alert) => {
-          const isActive = selection?.kind === "suspension" && selection.id === alert.id;
+          const alertImpactKind = impactKindForAlert(alert);
+          const isActive = selection?.kind === alertImpactKind && selection.id === alert.id;
+          const overlappingImpacts: OverlappingImpact[] = [
+            ...reducedSpeedZones
+              .filter((rsz) =>
+                rsz.affectedSegmentIds?.some((segId) => alert.affectedSegmentIds?.includes(segId))
+              )
+              .map((rsz) => ({
+                key: `reduced-speed-zone-${rsz.id}`,
+                label: "Reduced Speed Zone",
+                location: rsz.location,
+                icon: "reduced-speed-zone" as const,
+                selection: { kind: "reduced-speed-zone" as const, id: rsz.id },
+              })),
+            ...delays
+              .filter((delay) =>
+                delay.affectedSegmentIds?.some((segId) => alert.affectedSegmentIds?.includes(segId))
+              )
+              .map((delay) => ({
+                key: `delay-${delay.id}`,
+                label: "Delay",
+                location: delay.location,
+                icon: "delay" as const,
+                selection: { kind: "delay" as const, id: delay.id },
+              })),
+          ];
+
           return (
             <div
               key={alert.id}
@@ -91,13 +133,42 @@ export function ActiveAlertsPanel({
                 )}
               </div>
               
-              <ImpactRouteHeader location={alert.location} />
+              <ImpactRouteHeader location={alert.location} direction={alert.displayDirection} />
               
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 leading-relaxed whitespace-normal break-words">
                 {alert.description}
               </p>
+
+              {overlappingImpacts.length > 0 && (
+                <div className="text-[11px] mt-2 font-medium text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800/40 border border-black/5 dark:border-white/5 px-2 py-1 rounded-md w-fit flex flex-wrap items-center gap-1">
+                  <span className="font-bold text-amber-600 dark:text-amber-400 mr-1">Overlapping:</span>
+                  {overlappingImpacts.map((overlap) => (
+                    <button
+                      key={overlap.key}
+                      type="button"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        onSelectImpact(overlap.selection);
+                      }}
+                      className="inline-flex max-w-[220px] items-start gap-1.5 rounded border border-black/10 dark:border-white/10 bg-white/80 dark:bg-slate-900/70 px-1.5 py-1 text-left font-semibold text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
+                    >
+                      {overlap.icon === "reduced-speed-zone" ? (
+                        <Construction size={12} className="mt-0.5 shrink-0 text-amber-500" />
+                      ) : (
+                        <DelayIcon size={12} className="mt-0.5 shrink-0 text-amber-500" />
+                      )}
+                      <span className="flex min-w-0 flex-col leading-tight">
+                        <span>{overlap.label}</span>
+                        <span className="overlap-impact-location truncate text-[10px] font-medium text-slate-500 dark:text-slate-400">
+                          {formatCompactLocation(overlap.location)}
+                        </span>
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
               
-              <div className="border-t border-black/10 dark:border-white/10 mt-3 pt-2.5 flex items-center justify-start gap-3 w-full min-w-0">
+              <div className="border-t border-black/10 dark:border-white/10 mt-3 pt-2.5 flex items-end justify-start gap-3 w-full min-w-0">
                 <div className="flex-1 min-w-0">
                   <MetadataGrid 
                     className="no-border"
@@ -112,7 +183,7 @@ export function ActiveAlertsPanel({
                 </div>
                 <button
                   type="button"
-                  onClick={() => handleAlertClick(alert.id)}
+                  onClick={() => handleAlertClick(alert)}
                   className={`w-20 h-20 rounded-xl flex flex-col items-center justify-center border transition-all cursor-pointer shrink-0 ${
                     isActive
                       ? "bg-slate-600 text-white border-slate-700 hover:bg-slate-700 dark:bg-slate-500 dark:border-slate-600 dark:hover:bg-slate-400 shadow-[0_0_12px_rgba(100,116,139,0.3)]"
@@ -121,7 +192,7 @@ export function ActiveAlertsPanel({
                 >
                   <JumpToLocationIcon className="w-8 h-8" />
                   <span className="text-[9px] font-black uppercase tracking-wider text-center leading-tight mt-1.5 max-w-[72px] whitespace-normal break-words">
-                    {isActive ? "Clear Highlight" : "Show on Map"}
+                    {isActive ? "Unfocus" : "Show on Map"}
                   </span>
                 </button>
               </div>

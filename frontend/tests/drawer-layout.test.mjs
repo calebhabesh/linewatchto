@@ -106,10 +106,59 @@ describe("floating menu layout", () => {
     assert.doesNotMatch(reducedSpeedZonesSource, /Preview Reduced Speed Zone|Hide Map Preview/);
     assert.doesNotMatch(plannedClosuresSource, /Preview on Map|Hide Map Preview/);
     assert.match(activeAlertsSource, /Show on Map/);
-    assert.match(activeAlertsSource, /Clear Highlight/);
+    assert.match(activeAlertsSource, /Unfocus/);
     assert.match(reducedSpeedZonesSource, /Show on Map/);
-    assert.match(reducedSpeedZonesSource, /Clear Highlight/);
+    assert.match(reducedSpeedZonesSource, /Unfocus/);
     assert.match(plannedClosuresSource, /Show on Map/);
-    assert.match(plannedClosuresSource, /Clear Highlight/);
+    assert.match(plannedClosuresSource, /Unfocus/);
+  });
+
+  it("asserts those panels pass displayDirection", () => {
+    assert.match(activeAlertsSource, /direction=\{alert\.displayDirection\}/);
+    assert.match(delaysPanelSource, /direction=\{delay\.displayDirection\}/);
+    assert.match(plannedClosuresSource, /direction=\{closure\.displayDirection\}/);
+  });
+
+  it("formats cause values into title case", () => {
+    assert.match(impactCardFieldsSource, /export function formatCause/);
+    assert.match(impactCardFieldsSource, /causeValue = formatCause/);
+  });
+
+  it("renders clickable overlapping impact refs on active alert and delay cards", () => {
+    assert.match(activeAlertsSource, /overlappingImpacts\.length > 0/);
+    assert.match(activeAlertsSource, /Overlapping:/);
+    assert.doesNotMatch(activeAlertsSource, /Also overlapping:/);
+    assert.match(activeAlertsSource, /onSelectImpact\(overlap\.selection\)/);
+    assert.match(activeAlertsSource, /location: rsz\.location/);
+    assert.match(activeAlertsSource, /location: delay\.location/);
+    assert.match(activeAlertsSource, /formatCompactLocation\(overlap\.location\)/);
+    assert.match(activeAlertsSource, /overlap-impact-location/);
+    assert.match(activeAlertsSource, /<Construction/);
+    assert.match(activeAlertsSource, /<DelayIcon/);
+    assert.match(delaysPanelSource, /hasOverlappingRSZ/);
+    assert.match(delaysPanelSource, /Overlapping:/);
+    assert.doesNotMatch(delaysPanelSource, /Also overlapping:/);
+    assert.match(delaysPanelSource, /onSelectImpact\(overlap\.selection\)/);
+    assert.match(delaysPanelSource, /location: alert\.location/);
+    assert.match(delaysPanelSource, /location: rsz\.location/);
+    assert.match(delaysPanelSource, /formatCompactLocation\(overlap\.location\)/);
+    assert.match(delaysPanelSource, /overlap-impact-location/);
+    assert.match(delaysPanelSource, /<Construction/);
+    assert.match(delaysPanelSource, /<AlertTriangle/);
+    assert.match(delaysPanelSource, /Reduced Speed Zone/);
+    assert.match(impactCardFieldsSource, /export function formatCompactLocation/);
+    assert.match(impactCardFieldsSource, /bounds\.twoWay \? "↔" : "→"/);
+  });
+
+  it("routes active planned closures through active alerts instead of upcoming closures", () => {
+    assert.match(activeAlertsSource, /function impactKindForAlert/);
+    assert.match(activeAlertsSource, /alert\.severity === "planned" \? "planned-closure" : "suspension"/);
+    assert.match(activeAlertsSource, /useScrollSelectedImpactCard\(selection, "planned-closure"\)/);
+    assert.match(shellSource, /function viewForImpactSelection/);
+    assert.match(shellSource, /nextSelection\.kind === "planned-closure"/);
+    assert.match(shellSource, /activeAlerts\.some\(\(alert\) => alert\.id === nextSelection\.id\)/);
+    assert.match(shellSource, /setActiveView\(viewForImpactSelection\(nextSelection\)\)/);
+    assert.match(interactiveMapSource, /activeAlerts\.find\(\(alert\) => alert\.id === selection\.id\)\?\.affectedSegmentIds/);
+    assert.match(interactiveMapSource, /activeAlerts\.find\(\(alert\) => alert\.id === impact\.cardId\)\?\.affectedSegmentIds/);
   });
 });

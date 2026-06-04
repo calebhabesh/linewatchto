@@ -5,6 +5,8 @@ import * as geometry from "../src/app/map-geometry.ts";
 
 const {
   composeNetworkSegmentPath,
+  pathCorridorCollisionBoxes,
+  pathMidpointFrame,
   resolveNetworkSegmentPath,
   visualTravelDirection,
   samplePath,
@@ -126,6 +128,37 @@ describe("map overlay geometry", () => {
     const result = samplePath("M 0 0 L 100 0");
     assert.deepEqual(result.points, []);
     assert.equal(result.step, 56);
+  });
+
+  it("samples collision boxes along each overlay path corridor", () => {
+    const boxes = pathCorridorCollisionBoxes("M 10 10 L 10 210 L 210 210", 20);
+
+    assert.ok(boxes.length > 6, `expected multiple sampled boxes, got ${boxes.length}`);
+    assert.deepEqual(boxes[0], { x: -10, y: -10, width: 40, height: 40 });
+    assert.deepEqual(boxes.at(-1), { x: 190, y: 190, width: 40, height: 40 });
+    assert.ok(boxes.every((box) => box.width <= 40 && box.height <= 40));
+  });
+
+  it("does not turn a diagonal overlay path into one broad axis-aligned blocker", () => {
+    const boxes = pathCorridorCollisionBoxes("M 0 0 L 300 200", 20);
+
+    assert.ok(boxes.length > 4, `expected sampled boxes along the diagonal, got ${boxes.length}`);
+    assert.ok(boxes.every((box) => box.width <= 40 && box.height <= 40));
+    assert.ok(
+      boxes.some((box) => box.x > 100 && box.x < 180 && box.y > 50 && box.y < 130),
+      "expected a sampled blocker near the middle of the diagonal",
+    );
+  });
+
+  it("resolves a midpoint frame with tangent and normal for diagonal badge placement", () => {
+    const frame = pathMidpointFrame("M 0 0 L 300 200");
+
+    assert.notEqual(frame, null);
+    assert.ok(frame.point.x > 145 && frame.point.x < 155, `expected midpoint x near 150, got ${frame.point.x}`);
+    assert.ok(frame.point.y > 95 && frame.point.y < 105, `expected midpoint y near 100, got ${frame.point.y}`);
+    assert.ok(frame.tangent.x > 0.8 && frame.tangent.y > 0.5, `unexpected tangent ${JSON.stringify(frame.tangent)}`);
+    assert.ok(frame.normal.x < -0.5 && frame.normal.y > 0.5, `unexpected normal ${JSON.stringify(frame.normal)}`);
+    assert.ok(Math.abs(frame.tangent.x * frame.normal.x + frame.tangent.y * frame.normal.y) < 0.001);
   });
 
   it("composes adjacent links into one continuous corridor path", () => {

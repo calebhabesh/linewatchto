@@ -4,13 +4,36 @@
     {
       "name": "all-alert-types",
       "file": "all-alert-types.json",
-      "routeCount": 7,
-      "accessibilityCount": 1,
+      "routeCount": 12,
+      "accessibilityCount": 2,
       "impactKinds": [
         "suspension",
         "delay",
         "reduced-speed-zone",
         "planned-closure"
+      ],
+      "directionCoverage": {
+        "delay": [
+          "bidirectional",
+          "directional"
+        ],
+        "planned-closure": [
+          "bidirectional",
+          "directional"
+        ],
+        "reduced-speed-zone": [
+          "bidirectional",
+          "directional",
+          "unknown"
+        ],
+        "suspension": [
+          "bidirectional",
+          "directional"
+        ]
+      },
+      "stationAlertAssetTypes": [
+        "elevator",
+        "escalator"
       ],
       "guidePathIds": [
         "seg-line-1-st-andrew-union",

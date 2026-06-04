@@ -12,6 +12,7 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Stream;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -37,7 +38,7 @@ class TtcAlertScenarioCatalogTest {
 
     static Stream<Arguments> scenarios() {
         return Stream.of(
-            Arguments.of("all-alert-types.json", 7, 1, EnumSet.of(
+            Arguments.of("all-alert-types.json", 12, 2, EnumSet.of(
                 AlertImpactKind.SUSPENSION,
                 AlertImpactKind.DELAY,
                 AlertImpactKind.REDUCED_SPEED_ZONE,
@@ -98,11 +99,50 @@ class TtcAlertScenarioCatalogTest {
         }
     }
 
+    @Test
+    void allAlertTypesCoversSupportedDirectionMatrixAndStationAlertAssets() throws Exception {
+        TtcAlertFeed feed = parseScenario("all-alert-types.json");
+        List<NormalizedRouteAlert> routeAlerts = normalizeRouteAlerts(feed);
+        List<NormalizedAccessibilityOutage> accessibilityOutages = feed.accessibility().stream()
+            .map(normalizer::normalizeAccessibility)
+            .peek(result -> assertThat(result.status()).isEqualTo(NormalizationStatus.MATCHED))
+            .map(result -> result.projection().orElseThrow())
+            .toList();
+
+        assertThat(routeAlerts)
+            .filteredOn(alert -> alert.impactKind() == AlertImpactKind.SUSPENSION)
+            .extracting(NormalizedRouteAlert::direction)
+            .contains(AlertDirection.BIDIRECTIONAL, AlertDirection.NORTHBOUND);
+        assertThat(routeAlerts)
+            .filteredOn(alert -> alert.impactKind() == AlertImpactKind.DELAY)
+            .extracting(NormalizedRouteAlert::direction)
+            .contains(AlertDirection.BIDIRECTIONAL, AlertDirection.SOUTHBOUND);
+        assertThat(routeAlerts)
+            .filteredOn(alert -> alert.impactKind() == AlertImpactKind.REDUCED_SPEED_ZONE)
+            .extracting(NormalizedRouteAlert::direction)
+            .contains(AlertDirection.BIDIRECTIONAL, AlertDirection.SOUTHBOUND, AlertDirection.UNKNOWN);
+        assertThat(routeAlerts)
+            .filteredOn(alert -> alert.impactKind() == AlertImpactKind.PLANNED_CLOSURE)
+            .extracting(NormalizedRouteAlert::direction)
+            .contains(AlertDirection.BIDIRECTIONAL, AlertDirection.NORTHBOUND);
+        assertThat(accessibilityOutages)
+            .extracting(NormalizedAccessibilityOutage::assetType)
+            .containsExactlyInAnyOrder("elevator", "escalator");
+    }
+
     private TtcAlertFeed parseScenario(String fileName) throws Exception {
         String body = new String(
             getClass().getResourceAsStream("/fixtures/ttc-alert-scenarios/" + fileName).readAllBytes(),
             StandardCharsets.UTF_8
         );
         return client.parse(body);
+    }
+
+    private List<NormalizedRouteAlert> normalizeRouteAlerts(TtcAlertFeed feed) {
+        return feed.routes().stream()
+            .map(normalizer::normalizeRoute)
+            .peek(result -> assertThat(result.status()).isEqualTo(NormalizationStatus.MATCHED))
+            .map(result -> result.projection().orElseThrow())
+            .toList();
     }
 }
