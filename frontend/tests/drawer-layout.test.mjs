@@ -19,11 +19,12 @@ const pageSource = readFileSync(new URL("../src/app/page.tsx", import.meta.url),
 const globalCss = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
 const subwayClosedSource = readFileSync(new URL("../src/components/SubwayClosedScreen.tsx", import.meta.url), "utf8");
 const subwayHoursSource = readFileSync(new URL("../src/app/subway-hours.ts", import.meta.url), "utf8");
+const stationSearchSource = readFileSync(new URL("../src/components/StationSearchPanel.tsx", import.meta.url), "utf8");
 
 
 describe("floating menu layout", () => {
   it("keeps the map first while exposing floating menu and submenu states", () => {
-    assert.match(shellSource, /type ActiveView = "map" \| "menu" \| "alerts" \| "delays" \| "reduced-speed-zones" \| "closures" \| "commutes" \| "analytics"/);
+    assert.match(shellSource, /type ActiveView = "map" \| "menu" \| "search" \| "alerts" \| "delays" \| "reduced-speed-zones" \| "closures" \| "commutes" \| "analytics"/);
     assert.match(shellSource, /handleToggleMenu/);
     assert.match(shellSource, /Toggle menu/);
     assert.match(shellSource, /Floating Dropdown Menu/);
@@ -55,6 +56,14 @@ describe("floating menu layout", () => {
     assert.doesNotMatch(shellSource, /sidebarCollapsed/);
     assert.doesNotMatch(shellSource, /lg:left-\[520px\]/);
     assert.doesNotMatch(shellSource, /Collapse status sidebar/);
+
+    assert.match(shellSource, /handleToggleSearch/);
+    assert.match(shellSource, /Search stations/);
+    assert.match(shellSource, /StationSearchPanel/);
+    assert.match(shellSource, /activeView === "search"/);
+    assert.match(stationSearchSource, /searchStations/);
+    assert.match(stationSearchSource, /buildStationLineGroups/);
+    assert.match(stationSearchSource, /onSelectStation/);
   });
 
   it("allows alert and planned closure copy to wrap instead of collapsing into narrow columns", () => {

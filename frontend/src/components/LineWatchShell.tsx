@@ -25,12 +25,13 @@ import {
 } from "../app/station-data";
 import { StationDetailPanel } from "./StationDetailPanel";
 import { useTorontoClock } from "../hooks/useTorontoClock";
-import { Menu, X, Map as MapIcon, AlertTriangle, Calendar, Navigation, ShieldCheck, BarChart3, Construction } from "lucide-react";
+import { Menu, X, Map as MapIcon, AlertTriangle, Calendar, Navigation, ShieldCheck, BarChart3, Construction, Search } from "lucide-react";
 import { SubwayClosedScreen } from "./SubwayClosedScreen";
 import { useSubwayOperatingState } from "../hooks/useSubwayOperatingState";
+import { StationSearchPanel } from "./StationSearchPanel";
 
 
-type ActiveView = "map" | "menu" | "alerts" | "delays" | "reduced-speed-zones" | "closures" | "commutes" | "analytics";
+type ActiveView = "map" | "menu" | "search" | "alerts" | "delays" | "reduced-speed-zones" | "closures" | "commutes" | "analytics";
 
 const DEFAULT_DASHBOARD_REFRESH_MS = 5_000;
 const MIN_DASHBOARD_REFRESH_MS = 2_000;
@@ -158,6 +159,25 @@ export function LineWatchShell({ initialData }: { initialData: DashboardData }) 
     });
   };
 
+  const handleToggleSearch = () => {
+    setActiveView((prev) => {
+      if (prev !== "search" && prev !== "map") {
+        setSelection(null);
+        setSelectedStationId(null);
+      }
+
+      return prev === "search" ? "map" : "search";
+    });
+  };
+
+  const handleSelectStationId = (id: string | null) => {
+    setSelectedStationId(id);
+    setSelection(null);
+    if (id) {
+      setActiveView("map");
+    }
+  };
+
   function viewForImpactKind(kind: ImpactKind): ActiveView {
     switch (kind) {
       case "suspension":
@@ -230,6 +250,18 @@ export function LineWatchShell({ initialData }: { initialData: DashboardData }) 
                 {activeAlerts.length}
               </span>
             )}
+          </button>
+
+          <button
+            onClick={handleToggleSearch}
+            className={`panel relative flex items-center justify-center w-14 h-14 rounded-xl border border-black/10 dark:border-white/10 shadow-lg hover:!bg-slate-100 dark:hover:!bg-[#1a1e28] hover:scale-105 active:scale-95 outline-none focus-visible:ring-4 focus-visible:ring-black/10 dark:focus-visible:ring-white/10 transition-all cursor-pointer ${activeView === "search" ? "ring-2 ring-blue-500/40" : ""}`}
+            aria-label="Search stations"
+            aria-expanded={activeView === "search"}
+          >
+            <Search
+              className={`text-slate-800 dark:text-white transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] ${activeView === "search" ? "scale-110 text-blue-600 dark:text-blue-300" : ""}`}
+              size={25}
+            />
           </button>
 
           {/* Floating Dropdown Menu */}
@@ -367,8 +399,15 @@ export function LineWatchShell({ initialData }: { initialData: DashboardData }) 
                       ))}
                     </div>
                  </div>
-               </div>
-            </div>
+                </div>
+             </div>
+          <StationSearchPanel
+            open={activeView === "search"}
+            stations={stationSummaries}
+            selectedStationId={selectedStationId}
+            onSelectStation={(id) => handleSelectStationId(id)}
+            onClose={() => setActiveView("map")}
+          />
         </div>
 
         {/* Floating Time Capsule (Top Center) */}
@@ -468,10 +507,7 @@ export function LineWatchShell({ initialData }: { initialData: DashboardData }) 
           selectedStationId={selectedStationId}
           stations={stationSummaries}
           onSelectImpact={handleMapSelectImpact}
-          onSelectStationId={(id) => {
-            setSelectedStationId(id);
-            setSelection(null);
-          }}
+          onSelectStationId={handleSelectStationId}
           isDark={isDark}
           onToggleTheme={() => setIsDark(!isDark)}
           layoutResetSignal={0}
