@@ -104,9 +104,19 @@ export function StationSearchPanel({ open, stations, selectedStationId, onSelect
   const results = useMemo(() => searchStations(stations, query), [query, stations]);
   const lineGroups = useMemo(() => buildStationLineGroups(stations), [stations]);
   const isExpanded = Boolean(expandedLineId) && !query.trim();
+  const stationsColumnRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (stationsColumnRef.current) {
+      stationsColumnRef.current.scrollTop = 0;
+    }
+  }, [expandedLineId]);
 
   useEffect(() => {
     if (!open) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setQuery("");
+      setExpandedLineId(null);
       return;
     }
 
@@ -227,6 +237,7 @@ export function StationSearchPanel({ open, stations, selectedStationId, onSelect
             </div>
 
             <div
+              ref={stationsColumnRef}
               id="station-search-stations-column"
               className="station-search-stations-column"
               role="region"
