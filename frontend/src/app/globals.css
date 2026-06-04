@@ -518,9 +518,13 @@ button {
 }
 
 .asset-alert-path-glow.delay,
-.asset-alert-path-glow.delay-static,
 .asset-alert-path-glow.reduced-speed-zone {
   stroke: rgba(245, 158, 11, 0.7); /* Orange aura for delays */
+  animation: aura-pulse 1.2s infinite alternate ease-in-out;
+}
+
+.asset-alert-path-glow.delay-static {
+  stroke: rgba(14, 165, 233, 0.7); /* Frozen blue aura for delays */
   animation: aura-pulse 1.2s infinite alternate ease-in-out;
 }
 
@@ -594,7 +598,7 @@ g:has(.asset-alert-path:focus-visible) .interactive-glow,
 }
 
 .asset-alert-path.delay-static-base {
-  stroke: rgba(245, 158, 11, 0.88);
+  stroke: rgba(14, 165, 233, 0.88); /* Frozen blue base */
   stroke-width: 88;
 }
 
@@ -611,6 +615,25 @@ g:has(.asset-alert-path:focus-visible) .interactive-glow,
   }
   100% {
     stroke-dashoffset: -72;
+  }
+}
+
+.delay-hourglass-mask-path {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  animation: mask-size-pulse 1.2s infinite alternate ease-in-out;
+}
+
+.motion-paused .delay-hourglass-mask-path {
+  animation: none !important;
+  stroke-width: 88 !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .delay-hourglass-mask-path {
+    animation: none !important;
+    stroke-width: 88 !important;
   }
 }
 
@@ -1230,27 +1253,27 @@ g:has(.asset-alert-path:focus-visible) .interactive-glow,
   fill: none;
   outline: none;
   opacity: 0.92;
-  stroke: #f59e0b;
-  stroke-dasharray: 18 16;
+  stroke: #facc15; /* Glowing gold ring */
   stroke-linecap: round;
-  stroke-width: 18;
-  transition: opacity 0.2s ease, stroke-width 0.2s ease;
-}
-
-.station-impact-ring.suspension {
-  stroke: #ef4444;
-}
-
-.station-impact-ring.reduced-speed-zone,
-.station-impact-ring.delay {
-  stroke: #f59e0b;
+  stroke-width: 4;
+  filter: drop-shadow(0 0 6px rgba(250, 204, 21, 0.8));
+  transition: opacity 0.2s ease, stroke-width 0.2s ease, stroke 0.2s ease;
+  animation: gold-ring-pulse 2s infinite alternate ease-in-out;
 }
 
 .station-impact-ring.selected,
 .station-impact-ring:hover,
 .station-impact-ring:focus-visible {
   opacity: 1;
-  stroke-width: 26;
+  stroke-width: 8;
+  stroke: #ffd700;
+  filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.95)) drop-shadow(0 0 20px rgba(255, 215, 0, 0.6));
+}
+
+.station-impact-dot-red-glow {
+  fill: #ef4444;
+  filter: drop-shadow(0 0 8px #ef4444) drop-shadow(0 0 16px #ef4444);
+  animation: station-red-glow-pulse 0.8s infinite alternate ease-in-out;
 }
 
 @keyframes station-selected-pulse {
@@ -1266,10 +1289,35 @@ g:has(.asset-alert-path:focus-visible) .interactive-glow,
   }
 }
 
+@keyframes gold-ring-pulse {
+  0% {
+    stroke-opacity: 0.75;
+    filter: drop-shadow(0 0 4px rgba(250, 204, 21, 0.6));
+  }
+  100% {
+    stroke-opacity: 1;
+    filter: drop-shadow(0 0 12px rgba(250, 204, 21, 0.95)) drop-shadow(0 0 24px rgba(250, 204, 21, 0.5));
+  }
+}
+
+@keyframes station-red-glow-pulse {
+  0% {
+    opacity: 0.75;
+    fill: #b91c1c;
+    filter: drop-shadow(0 0 4px #b91c1c);
+  }
+  100% {
+    opacity: 1;
+    fill: #f87171;
+    filter: drop-shadow(0 0 10px #ef4444) drop-shadow(0 0 20px #f87171);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .station-hit-target.selected,
-  .station-impact-ring {
-    animation: none;
+  .station-impact-ring,
+  .station-impact-dot-red-glow {
+    animation: none !important;
   }
 }
 @keyframes map-selection-flash {

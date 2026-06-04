@@ -23,15 +23,15 @@
    inkscape:pageopacity="0.0"
    inkscape:pagecheckerboard="0"
    inkscape:deskcolor="#d1d1d1"
-   inkscape:zoom="0.25000003"
-   inkscape:cx="2463.9997"
-   inkscape:cy="2845.9997"
+   inkscape:zoom="0.17677672"
+   inkscape:cx="4802.6686"
+   inkscape:cy="2661.5496"
    inkscape:window-width="2560"
    inkscape:window-height="1363"
    inkscape:window-x="0"
    inkscape:window-y="0"
    inkscape:window-maximized="1"
-   inkscape:current-layer="layer1" />
+   inkscape:current-layer="layer6" />
  <defs
    id="defs1">
   <style
@@ -3636,12 +3636,15 @@
   
   <path
    class="fil3 str0"
-   d="m 3680,2524 c 0,-32 27,-59 60,-59 32,0 59,27 59,59 v 79 c 0,33 -27,59 -59,59 -33,0 -60,-26 -60,-59 z"
-   id="path769" /><path
+   d="m 3674.7739,2524 c 0,-32 27,-59 60,-59 32,0 59,27 59,59 v 79 c 0,33 -27,59 -59,59 -33,0 -60,-26 -60,-59 z"
+   id="path769"
+   style="display:inline"
+   inkscape:label="spadina-outline" /><path
    class="fil6"
-   d="m 3692,2524 v 79 c 0,26 21,47 48,47 26,0 47,-21 47,-47 v -79 c 0,-26 -21,-47 -47,-47 -27,0 -48,21 -48,47 z"
+   d="m 3686.7739,2524 v 79 c 0,26 21,47 48,47 26,0 47,-21 47,-47 v -79 c 0,-26 -21,-47 -47,-47 -27,0 -48,21 -48,47 z"
    id="path770"
-   style="display:inline" />
+   style="display:inline"
+   inkscape:label="spadina-outline-2" />
   <g
    id="_1615804360752">
    <g
@@ -7181,20 +7184,6 @@
    id="path25-1-39-94"
    style="fill:#ffffff" />
   </g><g
-     id="station-dupont"
-     style="clip-rule:evenodd;fill-rule:evenodd;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
-     transform="translate(2123.2739,-329.06784)">
-   <path
-   class="fil6"
-   d="m 1578,2603 c 0,-18 15,-33 33,-33 18,0 33,15 33,33 0,18 -15,33 -33,33 -18,0 -33,-15 -33,-33 z"
-   id="path24-6-40-12"
-   style="fill:#000000" />
-   <path
-   class="fil3"
-   d="m 1585,2603 c 0,-15 11,-26 26,-26 14,0 26,11 26,26 0,14 -12,26 -26,26 -15,0 -26,-12 -26,-26 z"
-   id="path25-1-39-88"
-   style="fill:#ffffff" />
-  </g><g
      id="station-st-clair-west"
      style="clip-rule:evenodd;fill-rule:evenodd;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
      transform="translate(1894.9492,-463.98309)">
@@ -7727,20 +7716,6 @@
        id="station-kennedy"
        style="clip-rule:evenodd;fill:#ffffff;fill-rule:evenodd;stroke:#000000;stroke-width:13.0547;stroke-dasharray:none;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
        inkscape:label="path-a8" /></g><g
-     id="g28"
-     inkscape:label="station-spadina-1"><path
-       class="fil3"
-       d="m 3707,2524 c 0,-18 14,-33 33,-33 18,0 32,15 32,33 0,18 -14,33 -32,33 -19,0 -33,-15 -33,-33 z"
-       id="station-spadina-1"
-       style="clip-rule:evenodd;fill-rule:evenodd;stroke:#000000;stroke-width:8;stroke-dasharray:none;stroke-opacity:1;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
-       inkscape:label="path-a7" /></g><g
-     id="g27"
-     inkscape:label="station-spadina-2"><path
-       class="fil3"
-       d="m 3706.5169,2603.5921 c 0,-18 14,-33 33,-33 18,0 32,15 32,33 0,18 -14,33 -32,33 -19,0 -33,-15 -33,-33 z"
-       id="station-spadina-2"
-       style="clip-rule:evenodd;fill:#ffffff;fill-rule:evenodd;stroke:#000000;stroke-width:8;stroke-dasharray:none;stroke-opacity:1;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
-       inkscape:label="path-a6" /></g><g
      id="g26"
      inkscape:label="station-cedarvale"><path
        class="fil3 str0"
@@ -7790,9 +7765,42 @@
    d="m 1585,2603 c 0,-15 11,-26 26,-26 14,0 26,11 26,26 0,14 -12,26 -26,26 -15,0 -26,-12 -26,-26 z"
    id="path25-1-39-87"
    style="fill:#ffffff" />
-  </g></g><polygon
+  </g><g
+     id="station-dupont"
+     style="shape-rendering:geometricPrecision;text-rendering:geometricPrecision;image-rendering:optimizeQuality;fill-rule:evenodd;clip-rule:evenodd;display:inline"
+     transform="translate(2123.2739,-329.06784)">
+   <path
+   class="fil6"
+   d="m 1578,2603 c 0,-18 15,-33 33,-33 18,0 33,15 33,33 0,18 -15,33 -33,33 -18,0 -33,-15 -33,-33 z"
+   id="path24-6-40-12"
+   style="fill:#000000" />
+   <path
+   class="fil3"
+   d="m 1585,2603 c 0,-15 11,-26 26,-26 14,0 26,11 26,26 0,14 -12,26 -26,26 -15,0 -26,-12 -26,-26 z"
+   id="path25-1-39-88"
+   style="fill:#ffffff" />
+  </g><g
+     id="g28"
+     inkscape:label="station-spadina-1"
+     style="shape-rendering:geometricPrecision;text-rendering:geometricPrecision;image-rendering:optimizeQuality;fill-rule:evenodd;clip-rule:evenodd;display:inline"
+     transform="translate(-5.2261)"><path
+       class="fil3"
+       d="m 3707,2524 c 0,-18 14,-33 33,-33 18,0 32,15 32,33 0,18 -14,33 -32,33 -19,0 -33,-15 -33,-33 z"
+       id="station-spadina-1"
+       style="clip-rule:evenodd;fill-rule:evenodd;stroke:#000000;stroke-width:8;stroke-dasharray:none;stroke-opacity:1;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
+       inkscape:label="path-a7" /></g><g
+     id="g27"
+     inkscape:label="station-spadina-2"
+     style="shape-rendering:geometricPrecision;text-rendering:geometricPrecision;image-rendering:optimizeQuality;fill-rule:evenodd;clip-rule:evenodd;display:inline"
+     transform="translate(-4.743)"><path
+       class="fil3"
+       d="m 3706.5169,2603.5921 c 0,-18 14,-33 33,-33 18,0 32,15 32,33 0,18 -14,33 -32,33 -19,0 -33,-15 -33,-33 z"
+       id="station-spadina-2"
+       style="clip-rule:evenodd;fill:#ffffff;fill-rule:evenodd;stroke:#000000;stroke-width:8;stroke-dasharray:none;stroke-opacity:1;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
+       inkscape:label="path-a6" /></g></g><polygon
    class="fil10"
-   points="3745,2602 3734,2602 3734,2524 3745,2524 "
+   points="3734,2602 3734,2524 3745,2524 3745,2602 "
    id="polygon771"
-   style="clip-rule:evenodd;fill:#ffffff;fill-rule:evenodd;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision" /></g>
+   style="clip-rule:evenodd;fill:#ffffff;fill-rule:evenodd;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
+   transform="translate(-5.2261)" /></g>
 </svg>

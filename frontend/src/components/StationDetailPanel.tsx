@@ -228,9 +228,9 @@ export function StationDetailPanel({ stationResult, loading, selectedStationName
                           <dd>{formatRelativeImpactTime(outage.updatedAt)}</dd>
                         </div>
                         {outage.cause && (
-                          <div className="col-span-2 flex items-baseline gap-1.5" style={{ gridColumn: "span 2" }}>
-                            <dt className="shrink-0" style={{ margin: 0 }}>CAUSE</dt>
-                            <dd style={{ margin: 0 }}>{outage.cause}</dd>
+                          <div className="col-span-2">
+                            <dt>CAUSE</dt>
+                            <dd>{outage.cause}</dd>
                           </div>
                         )}
                       </dl>
@@ -244,15 +244,15 @@ export function StationDetailPanel({ stationResult, loading, selectedStationName
           <section className="rounded-lg border border-black/10 bg-slate-50 p-3 dark:border-white/10 dark:bg-white/5">
             <h3 className="flex items-center gap-2 text-sm font-black">
               <AlertTriangle size={16} />
-              Station impacts
+              Station Impacts
             </h3>
             {station.impacts.length === 0 ? (
               <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">No active impacts for this station.</p>
             ) : (
               <div className="mt-2 flex flex-col gap-2">
                 {station.impacts.map((impact) => (
-                  <div key={impact.id} className="rounded-md border border-black/10 bg-white p-2 text-sm dark:border-white/10 dark:bg-[#12151c]">
-                    <strong className="block text-slate-900 dark:text-white">{impact.title}</strong>
+                  <div key={impact.id} className="rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-sm">
+                    <strong className="block text-amber-800 dark:text-amber-200">{impact.title}</strong>
                     <p className="mt-1 text-slate-600 dark:text-slate-300">{impact.summary}</p>
                     <p className="mt-1 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
                       {impact.source} / {impact.updatedAt
@@ -268,7 +268,7 @@ export function StationDetailPanel({ stationResult, loading, selectedStationName
           <section className="rounded-lg border border-black/10 bg-slate-50 p-3 dark:border-white/10 dark:bg-white/5">
             <h3 className="flex items-center gap-2 text-sm font-black">
               <Clock3 size={16} />
-              {station.arrivals.some(a => a.status === "live") ? "Arrivals" : "Demo arrivals"}
+              {station.arrivals.some(a => a.status === "live") ? "Arrivals" : "Demo Arrivals" /* Demo arrival */}
             </h3>
             <p className="mt-1 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
               {station.arrivalsSource}

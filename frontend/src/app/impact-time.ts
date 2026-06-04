@@ -4,7 +4,7 @@ export function formatRelativeImpactTime(
 ): string {
   const elapsedMs = Math.max(0, now.getTime() - new Date(timestamp).getTime());
   const elapsedMinutes = Math.floor(elapsedMs / 60_000);
-  if (elapsedMinutes < 1) return "just now";
+  if (elapsedMinutes < 1) return "Just Now";
   if (elapsedMinutes < 60) {
     return `${elapsedMinutes} min${elapsedMinutes === 1 ? "" : "s"} ago`;
   }

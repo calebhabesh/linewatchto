@@ -4,7 +4,7 @@
     {
       "name": "all-alert-types",
       "file": "all-alert-types.json",
-      "routeCount": 4,
+      "routeCount": 7,
       "accessibilityCount": 1,
       "impactKinds": [
         "suspension",
@@ -12,7 +12,10 @@
         "reduced-speed-zone",
         "planned-closure"
       ],
-      "guidePathIds": []
+      "guidePathIds": [
+        "seg-line-1-st-andrew-union",
+        "seg-line-1-dupont-spadina"
+      ]
     },
     {
       "name": "nonlinear-union-curve",

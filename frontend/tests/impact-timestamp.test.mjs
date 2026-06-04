@@ -17,7 +17,7 @@ describe("impact timestamp formatting", () => {
         "2026-06-01T22:39:00-04:00",
         new Date("2026-06-01T22:39:30-04:00"),
       ),
-      "just now",
+      "Just Now",
     );
     assert.equal(
       formatRelativeImpactTime(

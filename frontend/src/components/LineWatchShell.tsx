@@ -221,7 +221,7 @@ export function LineWatchShell({ initialData }: { initialData: DashboardData }) 
                  </button>
                  <button onClick={() => setActiveView("delays")} className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors">
                   <div className="flex items-center gap-3">
-                    <DelayIcon size={18} className="text-slate-500 dark:text-slate-400" /> Delays
+                     <DelayIcon size={18} className="text-slate-500 dark:text-slate-400" filled={false} /> Delays
                   </div>
                    {delays.length > 0 && (
                      <span className="flex h-5 items-center justify-center rounded-full bg-amber-500/20 px-2 text-[10px] font-bold text-amber-700 dark:text-amber-400">
@@ -301,7 +301,7 @@ export function LineWatchShell({ initialData }: { initialData: DashboardData }) 
                                   <span className="text-sm font-bold text-slate-800 dark:text-slate-200">{l.name}</span>
                                   <div className="flex items-center gap-1.5 ml-1">
                                     {hasAlert && <AlertTriangle size={14} className="text-red-500 dark:text-red-400" />}
-                                    {hasDelay && <Image src="/assets/linewatch/delay-icon.svg" alt="" width={14} height={14} />}
+                                    {hasDelay && <DelayIcon size={14} className="text-amber-500 dark:text-amber-400" /> /* /assets/linewatch/delay-icon.svg */}
                                     {hasRSZ && <Construction size={14} className="text-amber-500 dark:text-amber-400" />}
                                     {hasClosure && <Calendar size={14} className="text-blue-500 dark:text-blue-400" />}
                                   </div>

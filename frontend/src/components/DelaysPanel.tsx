@@ -1,9 +1,9 @@
 "use client";
 
-import Image from "next/image";
 import { ChevronLeft, Eye, EyeOff } from "lucide-react";
 import type { ImpactSelection } from "../app/linewatch-data";
 import { useDashboardData } from "../app/DataContext";
+import { DelayIcon } from "./DelayIcon";
 import { useScrollSelectedImpactCard } from "../hooks/useScrollSelectedImpactCard";
 import { ImpactRouteHeader, LineBadge, MetadataGrid, CardSource } from "./ImpactCardFields";
 
@@ -35,7 +35,7 @@ export function DelaysPanel({ selection, onSelectImpact, onBack }: Props) {
             </button>
           )}
           <h2 className="text-[clamp(10px,3.5cqw,18px)] font-bold text-slate-900 dark:text-white flex items-center gap-1 sm:gap-3 whitespace-nowrap">
-            <Image src="/assets/linewatch/delay-icon.svg" alt="" width={16} height={16} className="w-[16px] h-[16px] sm:w-[22px] sm:h-[22px] shrink-0" />
+            <DelayIcon size={16} className="w-[16px] h-[16px] sm:w-[22px] sm:h-[22px] text-amber-500 shrink-0" />
             <span>Delays</span>
           </h2>
         </div>
@@ -60,7 +60,6 @@ export function DelaysPanel({ selection, onSelectImpact, onBack }: Props) {
               <div className="flex items-start justify-between gap-3 w-full min-w-0">
                 <div className="flex min-w-0 flex-1 items-start gap-2">
                   <LineBadge lineId={delay.lineId} lineNumber={delay.lineNumber} />
-                  <Image src="/assets/linewatch/delay-icon.svg" alt="" width={20} height={20} className="mt-0.5 shrink-0" />
                   <strong className="block min-w-0 text-sm font-semibold text-slate-800 dark:text-slate-100 whitespace-normal break-words mt-0.5">
                     {delay.title}
                   </strong>

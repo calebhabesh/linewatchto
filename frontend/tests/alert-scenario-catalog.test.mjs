@@ -21,6 +21,31 @@ describe("alert scenario catalog", () => {
     }
   });
 
+  it("makes all-alert-types cover every backend-to-map alert surface", () => {
+    const scenario = index.scenarios.find((candidate) => candidate.name === "all-alert-types");
+    assert.ok(scenario);
+    assert.equal(scenario.routeCount, 7);
+    assert.equal(scenario.accessibilityCount, 1);
+    assert.deepEqual(
+      [...scenario.guidePathIds].sort(),
+      ["seg-line-1-dupont-spadina", "seg-line-1-st-andrew-union"],
+    );
+
+    const feed = JSON.parse(readFileSync(new URL(scenario.file, scenarioRoot), "utf8"));
+    const routesById = new Map(feed.routes.map((route) => [route.id, route]));
+
+    assert.equal(routesById.get("scenario-delay-line-4")?.effectDesc, "Delays");
+    assert.equal(routesById.get("scenario-delay-line-1-dupont-spadina")?.effectDesc, "Delays");
+    assert.equal(routesById.get("scenario-station-node-keele")?.stopStart, "Keele");
+    assert.equal(routesById.get("scenario-station-node-keele")?.stopEnd, "Keele");
+    assert.equal(routesById.get("scenario-active-line-2")?.effect, "NO_SERVICE");
+    assert.equal(routesById.get("scenario-active-line-1-st-andrew-union")?.effect, "NO_SERVICE");
+    assert.equal(routesById.get("scenario-rsz-line-1-south")?.effectDesc, "Reduced Speed Zone");
+    assert.equal(routesById.get("scenario-planned-line-1-nightly")?.alertType, "Planned");
+    assert.ok(routesById.get("scenario-planned-line-1-nightly")?.childAlerts.length > 0);
+    assert.equal(feed.accessibility[0]?.routeType, "Elevator");
+  });
+
   it("references nonlinear guide paths that exist in the edited TTC SVG", () => {
     const guideIds = index.scenarios.flatMap((scenario) => scenario.guidePathIds);
     assert.deepEqual(

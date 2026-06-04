@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useDashboardData } from "../app/DataContext";
 import { AlertTriangle, Calendar, Construction } from "lucide-react";
+import { DelayIcon } from "./DelayIcon";
 
 const LINES = [
   { id: "line-1", name: "Line 1 Yonge-University", icon: "/assets/linewatch/line-1-legend.svg?v=2" },
@@ -49,7 +50,7 @@ export function LineLegend({
                   className="pointer-events-auto cursor-pointer text-amber-500 bg-white/95 dark:bg-[#12151c] p-2 rounded-full shadow-lg border border-amber-500/30 hover:bg-amber-50 dark:hover:bg-amber-950/30 hover:scale-110 transition-all"
                   title={`View delay for ${line.name}`}
                 >
-                  <Image src="/assets/linewatch/delay-icon.svg" alt="" width={18} height={18} />
+                  <DelayIcon size={18} />
                 </button>
               )}
               {rsz && (

@@ -544,29 +544,37 @@ export function InteractiveTtcMap({
                   const selected = selection?.kind === impact.kind && selection.id === impact.cardId;
 
                   return (
-                    <circle
-                      key={`${impact.kind}-${impact.cardId}-${impact.stationId}`}
-                      aria-label={`${impact.title}: ${station.name}`}
-                      className={`station-impact-ring ${impact.kind} ${selected ? "selected" : ""}`}
-                      cx={station.mapX}
-                      cy={station.mapY}
-                      r={station.interchange ? 128 : 108}
-                      fill="none"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        onSelectImpact({ kind: impact.kind, id: impact.cardId });
-                      }}
-                      onKeyDown={(event) => {
-                        if (event.key === "Enter" || event.key === " ") {
-                          event.preventDefault();
+                    <g key={`${impact.kind}-${impact.cardId}-${impact.stationId}`}>
+                      <circle
+                        aria-label={`${impact.title}: ${station.name}`}
+                        className={`station-impact-ring ${impact.kind} ${selected ? "selected" : ""}`}
+                        cx={station.mapX}
+                        cy={station.mapY}
+                        r={station.interchange ? 48 : 38}
+                        fill="none"
+                        onClick={(event) => {
+                          event.stopPropagation();
                           onSelectImpact({ kind: impact.kind, id: impact.cardId });
-                        }
-                      }}
-                      onPointerDown={(event) => event.stopPropagation()}
-                      pointerEvents="stroke"
-                      role="button"
-                      tabIndex={0}
-                    />
+                        }}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter" || event.key === " ") {
+                            event.preventDefault();
+                            onSelectImpact({ kind: impact.kind, id: impact.cardId });
+                          }
+                        }}
+                        onPointerDown={(event) => event.stopPropagation()}
+                        pointerEvents="stroke"
+                        role="button"
+                        tabIndex={0}
+                      />
+                      <circle
+                        className="station-impact-dot-red-glow"
+                        cx={station.mapX}
+                        cy={station.mapY}
+                        r={station.interchange ? 34 : 26}
+                        pointerEvents="none"
+                      />
+                    </g>
                   );
                 })}
               </g>
@@ -863,6 +871,198 @@ function AnimatedChevronLane({
   );
 }
 
+function AnimatedHourglassLane({
+  pathD,
+  step,
+  direction,
+  travelDirection,
+  reducedMotion,
+}: {
+  pathD: string;
+  step: number;
+  direction: "forward" | "reverse";
+  travelDirection: string;
+  reducedMotion: boolean;
+}) {
+  const [mounted, setMounted] = useState(false);
+  const containerRef = useRef<SVGGElement>(null);
+  const pathRef = useRef<SVGPathElement | null>(null);
+
+  useEffect(() => {
+    const handle = setTimeout(() => setMounted(true), 0);
+    return () => clearTimeout(handle);
+  }, []);
+
+  const { length, count, stepVal } = useMemo(() => {
+    if (typeof document === "undefined") return { length: 0, count: 0, stepVal: step };
+    try {
+      const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      path.setAttribute("d", pathD);
+      const len = path.getTotalLength();
+      if (len <= 0) return { length: 0, count: 0, stepVal: step };
+      const cnt = Math.max(1, Math.floor(len / step));
+      const s = len / cnt;
+      return { length: len, count: cnt, stepVal: s };
+    } catch (e) {
+      console.error("Error creating SVG path for measurement:", e);
+      return { length: 0, count: 0, stepVal: step };
+    }
+  }, [pathD, step]);
+
+  useEffect(() => {
+    if (!mounted || typeof document === "undefined") return;
+    try {
+      const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      path.setAttribute("d", pathD);
+      pathRef.current = path;
+    } catch (e) {
+      console.error("Error setting path reference:", e);
+    }
+  }, [pathD, mounted]);
+
+  const indices = useMemo(() => {
+    const arr: number[] = [];
+    if (count <= 0) return arr;
+    for (let i = -2; i <= count + 2; i++) {
+      arr.push(i);
+    }
+    return arr;
+  }, [count]);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    const path = pathRef.current;
+    if (!mounted || !container || !path || length <= 0 || indices.length === 0) return;
+
+    const childGroups = Array.from(container.children) as SVGGElement[];
+    if (childGroups.length === 0) return;
+
+    let animationFrameId: number;
+    const duration = (stepVal / 80) * 12000; // Double duration since the repeating unit (hourglass + arrow) spans 2 steps
+
+    const applyPhase = (phase: number) => {
+      const dy = travelDirection === "bidirectional" ? (direction === "reverse" ? 18 : -18) : 0;
+
+      childGroups.forEach((group) => {
+        const idxAttr = group.getAttribute("data-index");
+        if (!idxAttr) return;
+        const i = parseInt(idxAttr, 10);
+
+        let dist = 0;
+        if (direction === "forward") {
+          dist = i * stepVal + phase;
+        } else {
+          dist = (count - i) * stepVal - phase;
+        }
+
+        if (dist < -10 || dist > length + 10) {
+          group.setAttribute("display", "none");
+          return;
+        } else {
+          group.removeAttribute("display");
+        }
+
+        try {
+          const p = path.getPointAtLength(Math.max(0, Math.min(length, dist)));
+          const delta = 1;
+          const pAhead = path.getPointAtLength(Math.min(length, dist + delta));
+          const pBehind = path.getPointAtLength(Math.max(0, dist - delta));
+          const dx = pAhead.x - pBehind.x;
+          const dyTangent = pAhead.y - pBehind.y;
+          let angle = Math.atan2(dyTangent, dx) * (180 / Math.PI);
+
+          if (direction === "reverse") {
+            angle += 180;
+          }
+
+          const angleForward = direction === "reverse" ? angle - 180 : angle;
+          const angleForwardRad = (angleForward * Math.PI) / 180;
+          const offsetX = -dy * Math.sin(angleForwardRad);
+          const offsetY = dy * Math.cos(angleForwardRad);
+
+          const rotateStr = Math.abs(i) % 2 === 0 ? "" : ` rotate(${angle})`;
+          group.setAttribute(
+            "transform",
+            `translate(${p.x + offsetX} ${p.y + offsetY})${rotateStr}`
+          );
+        } catch {
+          // Safe fallback
+        }
+      });
+    };
+
+    const update = () => {
+      if (reducedMotion) {
+        applyPhase(0);
+        return;
+      }
+
+      const elapsed = performance.now();
+      const phase = ((elapsed / duration) % 1) * (2 * stepVal);
+      applyPhase(phase);
+
+      animationFrameId = requestAnimationFrame(update);
+    };
+
+    animationFrameId = requestAnimationFrame(update);
+
+    return () => {
+      cancelAnimationFrame(animationFrameId);
+    };
+  }, [mounted, length, count, stepVal, direction, travelDirection, reducedMotion, indices]);
+
+  if (!mounted || count <= 0) return null;
+
+  return (
+    <g ref={containerRef}>
+      {indices.map((i) => (
+        <g key={i} data-index={i}>
+          {Math.abs(i) % 2 === 0 ? (
+            <g transform="scale(0.045) translate(-512, -512)" className="delay-hourglass">
+              <path
+                d="M576 512c0 190.72 448 345.6-25.6 345.6s-25.6-154.88-25.6-345.6-448-345.6 25.6-345.6 25.6 154.88 25.6 345.6z"
+                fill="#F7E6A3"
+              />
+              <path
+                d="M550.4 870.4c-147.2 0-212.48-14.08-226.56-48.64-14.08-33.28 23.04-71.68 71.68-121.6 51.2-52.48 116.48-120.32 116.48-188.16 0-67.84-65.28-135.68-117.76-189.44-47.36-48.64-85.76-87.04-71.68-121.6C337.92 167.68 403.2 153.6 550.4 153.6s212.48 14.08 226.56 48.64c14.08 33.28-23.04 71.68-71.68 121.6-51.2 52.48-116.48 120.32-116.48 188.16 0 67.84 65.28 135.68 117.76 189.44 47.36 48.64 85.76 87.04 71.68 121.6C762.88 856.32 697.6 870.4 550.4 870.4z m0-691.2c-157.44 0-197.12 17.92-203.52 33.28-7.68 17.92 29.44 56.32 65.28 93.44 55.04 57.6 125.44 128 125.44 207.36 0 79.36-69.12 149.76-125.44 207.36-35.84 37.12-72.96 75.52-65.28 93.44 6.4 12.8 46.08 30.72 203.52 30.72s197.12-17.92 203.52-33.28c7.68-17.92-29.44-56.32-65.28-93.44C632.32 661.76 563.2 591.36 563.2 512c0-79.36 69.12-149.76 125.44-207.36 35.84-37.12 72.96-75.52 65.28-93.44-6.4-14.08-46.08-32-203.52-32z"
+                fill="#0284c7"
+              />
+              <path
+                d="M819.2 153.6c0 14.08-11.52 25.6-25.6 25.6H294.4c-14.08 0-25.6-11.52-25.6-25.6v-12.8c0-14.08 11.52-25.6 25.6-25.6h499.2c14.08 0 25.6 11.52 25.6 25.6v12.8z"
+                fill="#7dd3fc"
+              />
+              <path
+                d="M793.6 192H294.4c-21.76 0-38.4-16.64-38.4-38.4v-12.8c0-21.76 16.64-38.4 38.4-38.4h499.2c21.76 0 38.4 16.64 38.4 38.4v12.8c0 21.76-16.64 38.4-38.4 38.4z m-499.2-64c-7.68 0-12.8 5.12-12.8 12.8v12.8c0 7.68 5.12 12.8 12.8 12.8h499.2c7.68 0 12.8-5.12 12.8-12.8v-12.8c0-7.68-5.12-12.8-12.8-12.8H294.4z"
+                fill="#0369a1"
+              />
+              <path
+                d="M819.2 883.2c0 14.08-11.52 25.6-25.6 25.6H294.4c-14.08 0-25.6-11.52-25.6-25.6v-12.8c0-14.08 11.52-25.6 25.6-25.6h499.2c14.08 0 25.6 11.52 25.6 25.6v12.8z"
+                fill="#7dd3fc"
+              />
+              <path
+                d="M793.6 921.6H294.4c-21.76 0-38.4-16.64-38.4-38.4v-12.8c0-21.76 16.64-38.4 38.4-38.4h499.2c21.76 0 38.4 16.64 38.4 38.4v12.8c0 21.76-16.64 38.4-38.4 38.4z m-499.2-64c-7.68 0-12.8 5.12-12.8 12.8v12.8c0 7.68 5.12 12.8 12.8 12.8h499.2c7.68 0 12.8-5.12 12.8-12.8v-12.8c0-7.68-5.12-12.8-12.8-12.8H294.4z"
+                fill="#0369a1"
+              />
+              <path d="M307.2 179.2h25.6v665.6h-25.6z" fill="#0369a1" />
+              <path d="M768 179.2h25.6v665.6h-25.6z" fill="#0369a1" />
+            </g>
+          ) : (
+            <path
+              d="M -12 -10 L 8 0 L -12 10"
+              fill="none"
+              stroke="#ffffff"
+              strokeWidth={3.5}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            />
+          )}
+        </g>
+      ))}
+    </g>
+  );
+}
+
 function OverlaySegment({
   segment,
   impact,
@@ -887,7 +1087,10 @@ function OverlaySegment({
   const visualState = impact ? visualStateForImpactKind(impact.kind) : "planned-preview";
 
   const { step } = useMemo(() => {
-    if (visualState === "reduced-speed-zone" && segment.pathD) {
+    if (
+      (visualState === "reduced-speed-zone" || visualState === "delay-static") &&
+      segment.pathD
+    ) {
       return samplePath(segment.pathD, 56);
     }
     return { step: 56 };
@@ -983,16 +1186,43 @@ function OverlaySegment({
 
       {visualState === "delay-static" && (
         <>
+          <defs>
+            <mask id={`${segment.id}-mask`}>
+              <path
+                className="delay-hourglass-mask-path pointer-events-none"
+                d={segment.pathD}
+                style={{ pointerEvents: "none", stroke: "white", fill: "none" }}
+              />
+            </mask>
+          </defs>
           <path
             className="asset-alert-path delay-static-base pointer-events-none"
             d={segment.pathD}
-            style={{ pointerEvents: "none" }}
+            style={{ pointerEvents: "none", stroke: "#0ea5e9" }}
           />
-          <path
-            className="asset-alert-path delay-static-path pointer-events-none"
-            d={segment.pathD}
-            style={{ pointerEvents: "none" }}
-          />
+          <g
+            mask={`url(#${segment.id}-mask)`}
+            style={{ "--chevron-step": `${step}px` } as React.CSSProperties}
+          >
+            {renderForwardLane && (
+              <AnimatedHourglassLane
+                pathD={segment.pathD}
+                step={step}
+                direction="forward"
+                travelDirection={travelDirection}
+                reducedMotion={reducedMotion}
+              />
+            )}
+            {renderReverseLane && (
+              <AnimatedHourglassLane
+                pathD={segment.pathD}
+                step={step}
+                direction="reverse"
+                travelDirection={travelDirection}
+                reducedMotion={reducedMotion}
+              />
+            )}
+          </g>
         </>
       )}
 
