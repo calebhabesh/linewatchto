@@ -565,6 +565,10 @@ export function InteractiveTtcMap({
                     <rect width="60" height="60" fill="#ef4444" />
                     <line x1="0" y1="0" x2="0" y2="60" stroke="#ffffff" strokeWidth="25" />
                   </pattern>
+                  <pattern id="badge-suspension-hash" width="12" height="12" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+                    <rect width="12" height="12" fill="#ef4444" />
+                    <line x1="0" y1="0" x2="0" y2="12" stroke="#ffffff" strokeWidth="5" />
+                  </pattern>
                   <filter id="delay-static-filter" x="-20%" y="-20%" width="140%" height="140%">
                     <feTurbulence
                       type="fractalNoise"

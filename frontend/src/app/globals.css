@@ -805,7 +805,7 @@ button {
 
 .overlap-indicator-badge.suspension,
 .overlap-indicator-badge.planned-closure {
-  fill: #ef4444;
+  fill: url(#badge-suspension-hash);
 }
 
 .overlap-indicator-badge.reduced-speed-zone {
