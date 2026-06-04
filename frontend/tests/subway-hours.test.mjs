@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
+import { readFileSync } from "node:fs";
 
 import {
   formatResumeDuration,
@@ -54,5 +55,16 @@ describe("subway operating hours", () => {
     assert.equal(state.operatingHours.sunday, "Sun: about 8:00 a.m. to 2:00 a.m.");
     assert.match(state.operatingHours.caveat, /Exact first and last train times vary by station/);
     assert.match(state.operatingHours.overnight, /Blue Night Network/);
+  });
+});
+
+describe("subway operating state hook source", () => {
+  it("refreshes the closed-hours state on a timer", () => {
+    const hookSource = readFileSync(new URL("../src/hooks/useSubwayOperatingState.ts", import.meta.url), "utf8");
+
+    assert.match(hookSource, /"use client"/);
+    assert.match(hookSource, /getSubwayOperatingState/);
+    assert.match(hookSource, /window\.setInterval/);
+    assert.match(hookSource, /30_000/);
   });
 });
