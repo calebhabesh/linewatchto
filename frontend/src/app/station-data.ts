@@ -2,6 +2,11 @@ export type StationAccessStatus = "normal" | "advisory" | "outage";
 export type StationImpactType = "active-alert" | "planned-closure";
 export type StationImpactSeverity = "delay" | "suspension" | "planned";
 
+export type StationAccessOutageCounts = {
+  elevator: number;
+  escalator: number;
+};
+
 export type StationSummary = {
   id: string;
   name: string;
@@ -11,6 +16,7 @@ export type StationSummary = {
   lineIds: string[];
   hasActiveImpact: boolean;
   accessStatus: StationAccessStatus;
+  accessOutageCounts?: StationAccessOutageCounts;
 };
 
 export type StationListResponse = {
@@ -92,6 +98,7 @@ export type StationFetchOptions = {
 };
 
 const DEFAULT_API_BASE_URL = process.env.NEXT_PUBLIC_LINEWATCH_API_BASE_URL ?? "http://localhost:8080";
+const EMPTY_ACCESS_OUTAGE_COUNTS: StationAccessOutageCounts = { elevator: 0, escalator: 0 };
 
 export const STATION_LINE_DEFINITIONS: Record<string, Omit<StationLine, "wheelchairAccessible" | "hasElevator">> = {
   "line-1": {
@@ -137,10 +144,10 @@ export const STATION_LINE_STATION_IDS: Record<string, string[]> = {
     "york-university", "finch-west", "downsview-park", "sheppard-west",
     "wilson", "yorkdale", "lawrence-west", "glencairn", "cedarvale",
     "st-clair-west", "dupont", "spadina", "st-george", "museum",
-    "queens-park", "st-patrick", "osgoode", "st-andrew", "union", "finch",
-    "north-york-centre", "sheppard-yonge", "york-mills", "lawrence",
-    "eglinton", "davisville", "st-clair", "summerhill", "rosedale",
-    "bloor-yonge", "wellesley", "college", "tmu", "queen", "king",
+    "queens-park", "st-patrick", "osgoode", "st-andrew", "union", "king",
+    "queen", "tmu", "college", "wellesley", "bloor-yonge", "rosedale",
+    "summerhill", "st-clair", "davisville", "eglinton", "lawrence",
+    "york-mills", "sheppard-yonge", "north-york-centre", "finch",
   ],
   "line-2": [
     "kipling", "islington", "royal-york", "old-mill", "jane", "runnymede",
@@ -1539,6 +1546,7 @@ export const fallbackStationSummaries: StationListResponse = {
   stations: fallbackStationSummarySeed.stations.map((station) => ({
     ...station,
     lineIds: fallbackLineIdsByStationId[station.id] ?? [],
+    accessOutageCounts: station.accessOutageCounts ?? EMPTY_ACCESS_OUTAGE_COUNTS,
   })),
 };
 

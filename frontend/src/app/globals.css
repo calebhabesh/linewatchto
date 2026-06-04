@@ -2355,17 +2355,46 @@ button {
   color: rgb(185, 28, 28);
 }
 
-.station-search-flag-access {
-  background: rgba(245, 158, 11, 0.14);
-  color: rgb(146, 64, 14);
-}
-
 .dark .station-search-flag-impact {
   color: rgb(252, 165, 165);
 }
 
-.dark .station-search-flag-access {
-  color: rgb(252, 211, 77);
+.station-search-outage-badge {
+  position: relative;
+  display: inline-flex;
+  width: 22px;
+  height: 22px;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 22px;
+}
+
+.station-search-outage-badge img {
+  border-radius: 4px;
+  filter: drop-shadow(0 1px 2px rgba(15, 23, 42, 0.24));
+}
+
+.station-search-outage-count {
+  position: absolute;
+  top: -4px;
+  right: -5px;
+  display: flex;
+  min-width: 14px;
+  height: 14px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: rgb(220, 38, 38);
+  padding: 0 4px;
+  color: white;
+  font-size: 8px;
+  font-weight: 950;
+  line-height: 1;
+  box-shadow: 0 0 0 1px rgb(248, 250, 252);
+}
+
+.dark .station-search-outage-count {
+  box-shadow: 0 0 0 1px rgb(10, 12, 16);
 }
 
 .motion-paused .station-search-panel,
@@ -2388,4 +2417,3 @@ button {
     max-height: 68vh;
   }
 }
-

@@ -21,6 +21,8 @@ class StationControllerTest {
         assertThat(response.stations()).hasSize(1);
         assertThat(response.stations().getFirst().id()).isEqualTo("union");
         assertThat(response.stations().getFirst().hasActiveImpact()).isTrue();
+        assertThat(response.stations().getFirst().accessOutageCounts().elevator()).isZero();
+        assertThat(response.stations().getFirst().accessOutageCounts().escalator()).isZero();
     }
 
     @Test
@@ -66,7 +68,8 @@ class StationControllerTest {
                     true,
                     List.of("line-1"),
                     true,
-                    "normal"
+                    "normal",
+                    new StationResponses.StationAccessOutageCountsResponse(0, 0)
                 ))
             );
         }

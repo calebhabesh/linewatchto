@@ -4,6 +4,7 @@ import com.calebhabesh.linewatch.arrival.ArrivalPrediction;
 import com.calebhabesh.linewatch.arrival.ArrivalService;
 import com.calebhabesh.linewatch.ingestion.IngestionFreshness;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -17,6 +18,8 @@ public class StationService {
     private static final String DATA_MODE = "seeded-demo";
     private static final String DISCLAIMER =
         "Station details use seeded backend data. Arrivals are demo placeholders, not live TTC predictions.";
+    private static final StationResponses.StationAccessOutageCountsResponse ZERO_ACCESS_OUTAGE_COUNTS =
+        new StationResponses.StationAccessOutageCountsResponse(0, 0);
 
     private final StationRepository stationRepository;
     private final TransitLineRepository transitLineRepository;
@@ -56,8 +59,11 @@ public class StationService {
                 Collectors.mapping(StationLineEntity::getLineId, Collectors.toList())
             ));
         boolean dashboardFresh = ingestionFreshness.isDashboardFresh();
+        Map<String, StationResponses.StationAccessOutageCountsResponse> accessOutageCountsByStation = dashboardFresh
+            ? accessOutageCounts(liveReadRepository.findActiveOutageCountsByStationId())
+            : Map.of();
         Map<String, String> accessByStation = dashboardFresh
-            ? statuses(liveReadRepository.findStationIdsWithActiveOutages(), "outage")
+            ? statuses(accessOutageCountsByStation.keySet(), "outage")
             : accessStatusRepository.findAll()
                 .stream()
                 .collect(Collectors.toMap(
@@ -83,7 +89,8 @@ public class StationService {
                 station.isInterchange(),
                 lineIdsByStation.getOrDefault(station.getId(), List.of()),
                 activeImpactByStation.getOrDefault(station.getId(), false),
-                accessByStation.getOrDefault(station.getId(), "normal")
+                accessByStation.getOrDefault(station.getId(), "normal"),
+                accessOutageCountsByStation.getOrDefault(station.getId(), ZERO_ACCESS_OUTAGE_COUNTS)
             ))
             .toList();
 
@@ -247,5 +254,25 @@ public class StationService {
 
     private Map<String, Boolean> flags(Set<String> stationIds) {
         return stationIds.stream().collect(Collectors.toMap(Function.identity(), ignored -> true));
+    }
+
+    private Map<String, StationResponses.StationAccessOutageCountsResponse> accessOutageCounts(
+        List<StationLiveReadRepository.FacilityOutageCount> outageCounts
+    ) {
+        Map<String, int[]> countsByStation = new HashMap<>();
+        for (StationLiveReadRepository.FacilityOutageCount outageCount : outageCounts) {
+            int[] counts = countsByStation.computeIfAbsent(outageCount.stationId(), ignored -> new int[2]);
+            if (outageCount.assetType().equals("elevator")) {
+                counts[0] = outageCount.count();
+            } else if (outageCount.assetType().equals("escalator")) {
+                counts[1] = outageCount.count();
+            }
+        }
+
+        return countsByStation.entrySet().stream()
+            .collect(Collectors.toMap(
+                Map.Entry::getKey,
+                entry -> new StationResponses.StationAccessOutageCountsResponse(entry.getValue()[0], entry.getValue()[1])
+            ));
     }
 }

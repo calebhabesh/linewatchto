@@ -16,7 +16,7 @@ export function usePanZoom() {
   const startAnimation = useCallback(() => {
     setIsAnimating(true);
     if (animTimeoutRef.current) window.clearTimeout(animTimeoutRef.current);
-    animTimeoutRef.current = window.setTimeout(() => setIsAnimating(false), 1800);
+    animTimeoutRef.current = window.setTimeout(() => setIsAnimating(false), 1000);
   }, []);
 
   // Keep transformRef in sync with transform state when not dragging

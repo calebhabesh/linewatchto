@@ -225,46 +225,71 @@ export function InteractiveTtcMap({
   }, [selection]);
 
   const prevSelectionRef = useRef<ImpactSelection>(null);
+  const prevSelectedStationIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     const prevSelection = prevSelectionRef.current;
+    const prevSelectedStationId = prevSelectedStationIdRef.current;
     prevSelectionRef.current = selection;
+    prevSelectedStationIdRef.current = selectedStationId;
 
-    if (!selection) {
-      if (prevSelection && loadState === "ready") {
-        recenter();
-      }
-      return;
-    }
-    if (selectedSegmentIds.length === 0) {
-      // Fallback: zoom/pan to the station if this is a station-specific impact
-      const matchingImpacts = stationNodeImpacts.filter(
-        (impact) => impact.cardId === selection.id && impact.kind === selection.kind
-      );
-      if (matchingImpacts.length > 0) {
-        let sumX = 0;
-        let sumY = 0;
-        let count = 0;
-        matchingImpacts.forEach((impact) => {
-          const station = stations.find((s) => s.id === impact.stationId);
-          if (station) {
-            sumX += station.mapX;
-            sumY += station.mapY;
-            count++;
+    if (loadState !== "ready") return;
+
+    if (selection) {
+      if (selectedSegmentIds.length === 0) {
+        // Fallback: zoom/pan to the station if this is a station-specific impact
+        const matchingImpacts = stationNodeImpacts.filter(
+          (impact) => impact.cardId === selection.id && impact.kind === selection.kind
+        );
+        if (matchingImpacts.length > 0) {
+          let sumX = 0;
+          let sumY = 0;
+          let count = 0;
+          matchingImpacts.forEach((impact) => {
+            const station = stations.find((s) => s.id === impact.stationId);
+            if (station) {
+              sumX += station.mapX;
+              sumY += station.mapY;
+              count++;
+            }
+          });
+          if (count > 0) {
+            const scaleFactor = 4500 / 8250;
+            zoomToPoint((sumX / count) * scaleFactor, (sumY / count) * scaleFactor, 1.2);
           }
-        });
-        if (count > 0) {
-          const scaleFactor = 4500 / 8250;
-          zoomToPoint((sumX / count) * scaleFactor, (sumY / count) * scaleFactor, 1.5);
+        }
+      } else {
+        const center = getSegmentsCenter(selectedSegmentIds, networkSegments, mapStations, anchorPoints, guidePaths);
+        if (center) {
+          zoomToPoint(center.x, center.y, 1.2);
         }
       }
-      return;
+    } else if (selectedStationId) {
+      // Zoom/pan to the selected station with the same animation
+      const station = stations.find((s) => s.id === selectedStationId);
+      if (station) {
+        const scaleFactor = 4500 / 8250;
+        zoomToPoint(station.mapX * scaleFactor, station.mapY * scaleFactor, 1.2);
+      }
+    } else {
+      if (prevSelection || prevSelectedStationId) {
+        recenter();
+      }
     }
-    const center = getSegmentsCenter(selectedSegmentIds, networkSegments, mapStations, anchorPoints, guidePaths);
-    if (center) {
-      zoomToPoint(center.x, center.y, 1.5);
-    }
-  }, [selection, selectedSegmentIds, networkSegments, mapStations, anchorPoints, guidePaths, zoomToPoint, loadState, recenter, stationNodeImpacts, stations]);
+  }, [
+    selection,
+    selectedStationId,
+    selectedSegmentIds,
+    networkSegments,
+    mapStations,
+    anchorPoints,
+    guidePaths,
+    zoomToPoint,
+    loadState,
+    recenter,
+    stationNodeImpacts,
+    stations,
+  ]);
 
   const stationBySummaryId = useMemo(() => {
     return new Map(stations.map((station) => [station.id, station]));
@@ -519,8 +544,14 @@ export function InteractiveTtcMap({
             style={{
               transform: `translate(${transform.x}px, ${transform.y}px) scale(${transform.scale})`,
               transformOrigin: "0 0",
-              transition: isAnimating ? "transform 1.8s cubic-bezier(0.25, 1, 0.5, 1)" : isDragging ? "none" : "transform 0.1s ease-out",
-              willChange: isDragging || isAnimating ? "transform" : "auto",
+              transition: reducedMotion
+                ? "none"
+                : isAnimating
+                  ? "transform 0.8s cubic-bezier(0.25, 1, 0.5, 1)"
+                  : isDragging
+                    ? "none"
+                    : "transform 0.1s ease-out",
+              willChange: "transform",
             }}
           >
             <style>

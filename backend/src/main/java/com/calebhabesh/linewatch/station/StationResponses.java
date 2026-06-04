@@ -21,7 +21,14 @@ public final class StationResponses {
         boolean interchange,
         List<String> lineIds,
         boolean hasActiveImpact,
-        String accessStatus
+        String accessStatus,
+        StationAccessOutageCountsResponse accessOutageCounts
+    ) {
+    }
+
+    public record StationAccessOutageCountsResponse(
+        int elevator,
+        int escalator
     ) {
     }
 

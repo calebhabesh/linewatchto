@@ -78,6 +78,25 @@ public class StationLiveReadRepository {
             """);
     }
 
+    public List<FacilityOutageCount> findActiveOutageCountsByStationId() {
+        return jdbc.query("""
+            select
+                station_outage.station_id,
+                outage.asset_type,
+                count(*) as outage_count
+            from accessibility_outage_stations station_outage
+            join accessibility_outages outage on outage.id = station_outage.outage_id
+            where outage.active = true
+            group by station_outage.station_id, outage.asset_type
+            order by station_outage.station_id, outage.asset_type
+            """,
+            (resultSet, rowNumber) -> new FacilityOutageCount(
+                resultSet.getString("station_id"),
+                resultSet.getString("asset_type"),
+                resultSet.getInt("outage_count")
+            ));
+    }
+
     public Set<String> findStationIdsWithActiveAlerts() {
         return stationIds("""
             select distinct station_alert.station_id
@@ -102,6 +121,13 @@ public class StationLiveReadRepository {
         String description,
         String cause,
         OffsetDateTime updatedAt
+    ) {
+    }
+
+    public record FacilityOutageCount(
+        String stationId,
+        String assetType,
+        int count
     ) {
     }
 

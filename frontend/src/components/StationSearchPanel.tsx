@@ -20,6 +20,11 @@ type Props = {
   onClose: () => void;
 };
 
+const OUTAGE_ICON_SRC = {
+  elevator: "/assets/linewatch/outages/elevator.svg",
+  escalator: "/assets/linewatch/outages/escalator.svg",
+} as const;
+
 function lineTextColor(lineId: string) {
   return lineId === "line-1" ? "#111827" : "#ffffff";
 }
@@ -41,8 +46,39 @@ function StationLineBadge({ line }: { line: StationSearchLine }) {
   );
 }
 
+function formatOutageLabel(assetType: "elevator" | "escalator", count: number) {
+  const label = assetType === "elevator" ? "Elevator" : "Escalator";
+  return `${count} ${label} ${count === 1 ? "Outage" : "Outages"}`;
+}
+
+function StationOutageBadge({
+  assetType,
+  count,
+}: {
+  assetType: "elevator" | "escalator";
+  count: number;
+}) {
+  const label = formatOutageLabel(assetType, count);
+
+  return (
+    <span className="station-search-outage-badge" aria-label={label} title={label}>
+      <Image
+        src={OUTAGE_ICON_SRC[assetType]}
+        alt=""
+        width={22}
+        height={22}
+        aria-hidden="true"
+      />
+      <span className="station-search-outage-count">{count}</span>
+    </span>
+  );
+}
+
 function StationMetaFlags({ station }: { station: StationSummary }) {
-  if (!station.hasActiveImpact && station.accessStatus === "normal") {
+  const outageCounts = station.accessOutageCounts ?? { elevator: 0, escalator: 0 };
+  const hasAccessOutages = outageCounts.elevator > 0 || outageCounts.escalator > 0;
+
+  if (!station.hasActiveImpact && !hasAccessOutages) {
     return null;
   }
 
@@ -54,10 +90,11 @@ function StationMetaFlags({ station }: { station: StationSummary }) {
           Impact
         </span>
       ) : null}
-      {station.accessStatus !== "normal" ? (
-        <span className={`station-search-flag station-search-flag-access access-${station.accessStatus}`}>
-          Access
-        </span>
+      {outageCounts.elevator > 0 ? (
+        <StationOutageBadge assetType="elevator" count={outageCounts.elevator} />
+      ) : null}
+      {outageCounts.escalator > 0 ? (
+        <StationOutageBadge assetType="escalator" count={outageCounts.escalator} />
       ) : null}
     </span>
   );

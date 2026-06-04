@@ -322,7 +322,11 @@ export const stationSummariesResponse = {
       interchange: false,
       lineIds: ["line-1"],
       hasActiveImpact: true,
-      accessStatus: "normal",
+      accessStatus: "outage",
+      accessOutageCounts: {
+        elevator: 1,
+        escalator: 0,
+      },
     },
   ],
 };

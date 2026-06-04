@@ -30,6 +30,50 @@ describe("station search helpers", () => {
     assert.ok(line2.stations.some((station) => station.id === "spadina"));
   });
 
+  it("keeps each line browse group in logical end-to-end visual order", () => {
+    const stationsByLineId = Object.fromEntries(
+      buildStationLineGroups(stations).map((group) => [
+        group.line.id,
+        group.stations.map((station) => station.id),
+      ])
+    );
+
+    assert.deepEqual(stationsByLineId["line-1"], [
+      "vaughan-metropolitan-centre", "highway-407", "pioneer-village",
+      "york-university", "finch-west", "downsview-park", "sheppard-west",
+      "wilson", "yorkdale", "lawrence-west", "glencairn", "cedarvale",
+      "st-clair-west", "dupont", "spadina", "st-george", "museum",
+      "queens-park", "st-patrick", "osgoode", "st-andrew", "union", "king",
+      "queen", "tmu", "college", "wellesley", "bloor-yonge", "rosedale",
+      "summerhill", "st-clair", "davisville", "eglinton", "lawrence",
+      "york-mills", "sheppard-yonge", "north-york-centre", "finch",
+    ]);
+    assert.deepEqual(stationsByLineId["line-2"], [
+      "kipling", "islington", "royal-york", "old-mill", "jane", "runnymede",
+      "high-park", "keele", "dundas-west", "lansdowne", "dufferin",
+      "ossington", "christie", "bathurst", "spadina", "st-george", "bay",
+      "bloor-yonge", "sherbourne", "castle-frank", "broadview", "chester",
+      "pape", "donlands", "greenwoood", "coxwell", "woodbine", "main-street",
+      "victoria-park", "warden", "kennedy",
+    ]);
+    assert.deepEqual(stationsByLineId["line-4"], [
+      "sheppard-yonge", "bayview", "bessarion", "leslie", "don-mills",
+    ]);
+    assert.deepEqual(stationsByLineId["line-5"], [
+      "mount-dennis", "keelesdale", "caledonia", "fairbank", "oakwood",
+      "cedarvale", "forest-hill", "chaplin", "avenue", "eglinton",
+      "mount-pleasant", "leaside", "laird", "sunnybrook-park", "don-valley",
+      "aga-khan-park-and-museum", "wynford", "sloane", "o_connor", "pharmacy",
+      "hakimi-lebovic", "golden-mile", "birchmount", "ionview", "kennedy",
+    ]);
+    assert.deepEqual(stationsByLineId["line-6"], [
+      "humber-college", "westmore", "martin-grove", "albion", "stevenson",
+      "mount-olive", "rowntree-mills", "pearldale", "duncanwoods",
+      "milvan-rumike", "emery", "signet-arrow", "norfinch-oakdale",
+      "jane-and-finch", "driftwood", "tobermory", "sentinel", "finch-west",
+    ]);
+  });
+
   it("appends backend-only stations to the matching line group alphabetically", () => {
     const groups = buildStationLineGroups([
       ...stations,

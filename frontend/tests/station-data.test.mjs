@@ -65,6 +65,12 @@ describe("station data adapter", () => {
     assert.ok(Object.values(fallbackStationDetails).every((station) => station.impacts.length === 0));
   });
 
+  it("provides zero accessibility outage counts in fallback summary mode", () => {
+    assert.ok(fallbackStationSummaries.stations.every((station) => {
+      return station.accessOutageCounts.elevator === 0 && station.accessOutageCounts.escalator === 0;
+    }));
+  });
+
   it("provides fallback details and correct line ids for every mapped station", () => {
     assert.equal(
       Object.keys(fallbackStationDetails).length,

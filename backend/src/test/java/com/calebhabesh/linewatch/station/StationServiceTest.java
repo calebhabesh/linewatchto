@@ -79,6 +79,8 @@ class StationServiceTest {
         assertThat(summary.id()).isEqualTo("union");
         assertThat(summary.lineIds()).containsExactly("line-1");
         assertThat(summary.accessStatus()).isEqualTo("normal");
+        assertThat(summary.accessOutageCounts().elevator()).isZero();
+        assertThat(summary.accessOutageCounts().escalator()).isZero();
         assertThat(summary.hasActiveImpact()).isTrue();
     }
 
@@ -197,13 +199,18 @@ class StationServiceTest {
         when(stationRepository.findAllByOrderBySortOrderAscNameAsc()).thenReturn(List.of(union));
         when(stationLineRepository.findAllByOrderByStationIdAscSortOrderAsc()).thenReturn(List.of(stationLine));
         when(ingestionFreshness.isDashboardFresh()).thenReturn(true);
-        when(liveReadRepository.findStationIdsWithActiveOutages()).thenReturn(Set.of("union"));
+        when(liveReadRepository.findActiveOutageCountsByStationId()).thenReturn(List.of(
+            new StationLiveReadRepository.FacilityOutageCount("union", "elevator", 2),
+            new StationLiveReadRepository.FacilityOutageCount("union", "escalator", 1)
+        ));
         when(liveReadRepository.findStationIdsWithActiveAlerts()).thenReturn(Set.of("union"));
 
         StationResponses.StationSummaryResponse summary =
             stationService.stationSummaries().stations().getFirst();
 
         assertThat(summary.accessStatus()).isEqualTo("outage");
+        assertThat(summary.accessOutageCounts().elevator()).isEqualTo(2);
+        assertThat(summary.accessOutageCounts().escalator()).isEqualTo(1);
         assertThat(summary.hasActiveImpact()).isTrue();
     }
 

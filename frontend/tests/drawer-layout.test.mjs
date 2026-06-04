@@ -64,6 +64,15 @@ describe("floating menu layout", () => {
     assert.match(stationSearchSource, /searchStations/);
     assert.match(stationSearchSource, /buildStationLineGroups/);
     assert.match(stationSearchSource, /onSelectStation/);
+    assert.match(stationSearchSource, /station-search-outage-badge/);
+    assert.match(stationSearchSource, /width=\{22\}/);
+    assert.match(stationSearchSource, /height=\{22\}/);
+    assert.match(stationSearchSource, /\/assets\/linewatch\/outages\/elevator\.svg/);
+    assert.match(stationSearchSource, /\/assets\/linewatch\/outages\/escalator\.svg/);
+    assert.match(globalCss, /\.station-search-outage-badge\s*\{[^}]*width:\s*22px;[^}]*height:\s*22px;[^}]*flex:\s*0 0 22px;/s);
+    assert.match(globalCss, /\.station-search-outage-count\s*\{[^}]*min-width:\s*14px;[^}]*height:\s*14px;[^}]*font-size:\s*8px;/s);
+    assert.doesNotMatch(stationSearchSource, /station-search-flag-access/);
+    assert.doesNotMatch(stationSearchSource, />\s*Access\s*</);
   });
 
   it("allows alert and planned closure copy to wrap instead of collapsing into narrow columns", () => {
