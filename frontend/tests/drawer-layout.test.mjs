@@ -15,6 +15,9 @@ const savedCommutesSource = readFileSync(new URL("../src/components/SavedCommute
 const reliabilitySource = readFileSync(new URL("../src/components/ReliabilityPanel.tsx", import.meta.url), "utf8");
 const pageSource = readFileSync(new URL("../src/app/page.tsx", import.meta.url), "utf8");
 const globalCss = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
+const subwayClosedSource = readFileSync(new URL("../src/components/SubwayClosedScreen.tsx", import.meta.url), "utf8");
+const subwayHoursSource = readFileSync(new URL("../src/app/subway-hours.ts", import.meta.url), "utf8");
+
 
 describe("floating menu layout", () => {
   it("keeps the map first while exposing floating menu and submenu states", () => {
@@ -161,4 +164,18 @@ describe("floating menu layout", () => {
     assert.match(interactiveMapSource, /activeAlerts\.find\(\(alert\) => alert\.id === selection\.id\)\?\.affectedSegmentIds/);
     assert.match(interactiveMapSource, /activeAlerts\.find\(\(alert\) => alert\.id === impact\.cardId\)\?\.affectedSegmentIds/);
   });
+
+  it("defines a closed-hours screen with schedule, resume copy, and map peek action", () => {
+    assert.match(subwayClosedSource, /SubwayClosedScreen/);
+    assert.match(subwayClosedSource, /\/assets\/linewatch\/closed-alert\.svg/);
+    assert.match(subwayClosedSource, /Subway closed overnight/);
+    assert.match(subwayClosedSource, /operatingHours\.weekdaySaturday/);
+    assert.match(subwayClosedSource, /operatingHours\.sunday/);
+    assert.match(subwayClosedSource, /nextResumeLabel/);
+    assert.match(subwayClosedSource, /Peek at map/);
+    assert.match(subwayClosedSource, /operatingHours\.overnight/);
+    assert.match(subwayHoursSource, /Blue Night Network/);
+    assert.match(subwayHoursSource, /Exact first and last train times vary by station/);
+  });
 });
+
