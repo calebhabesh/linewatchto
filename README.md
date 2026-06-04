@@ -13,6 +13,7 @@ The current app is a full-stack dashboard demo with graceful local-fixture fallb
 Implemented now:
 
 - Dark, map-first Next.js dashboard.
+- Overnight subway-closed screen that hides the feed during general non-operating hours while allowing a map peek for current overlays and station accessibility details.
 - Edited SVG-backed subway/LRT network map from `frontend/public/assets/linewatch/ttc-subway-map-edited.svg`.
 - TTC-style line colors for Lines 1, 2, 4, 5, and 6.
 - Red suspended-service overlays.
@@ -364,6 +365,7 @@ LineWatch TO should use public and source-linked data. It should also be honest 
 - Some alerts name broad corridors rather than exact station-to-station segments.
 - Planned closure pages or feeds may change format.
 - Segment inference may be imperfect.
+- Overnight closed-mode uses general TTC subway operating hours; exact first and last trains vary by station, holidays, and service changes.
 - This app is unofficial and should not be treated as the sole source of truth for TTC service.
 
 ## Verification Baseline
