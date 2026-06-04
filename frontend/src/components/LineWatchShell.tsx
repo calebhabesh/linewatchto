@@ -57,6 +57,11 @@ export function LineWatchShell({ initialData }: { initialData: DashboardData }) 
 
   const subwayOperatingState = useSubwayOperatingState();
   const [closedMapPeek, setClosedMapPeek] = useState(false);
+
+  if (subwayOperatingState.status === "open" && closedMapPeek) {
+    setClosedMapPeek(false);
+  }
+
   const showClosedScreen = subwayOperatingState.status === "closed" && !closedMapPeek;
 
 
@@ -74,12 +79,6 @@ export function LineWatchShell({ initialData }: { initialData: DashboardData }) 
     mediaQuery.addEventListener("change", handler);
     return () => mediaQuery.removeEventListener("change", handler);
   }, []);
-
-  useEffect(() => {
-    if (subwayOperatingState.status === "open") {
-      setClosedMapPeek(false);
-    }
-  }, [subwayOperatingState.status]);
 
   useEffect(() => {
     if (subwayOperatingState.status === "closed" && !closedMapPeek) {
@@ -505,8 +504,8 @@ export function LineWatchShell({ initialData }: { initialData: DashboardData }) 
         </div>
       ) : null}
 
-      {!showClosedScreen && (
       {/* Fixed borderless legend at the bottom right */}
+      {!showClosedScreen && (
       <aside className="fixed bottom-6 right-6 z-20 pointer-events-auto">
         <LineLegend
           onAlertClick={() => {
