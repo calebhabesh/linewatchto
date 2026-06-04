@@ -213,6 +213,7 @@ export function InteractiveTtcMap({
   }, [activeAlerts, delays, plannedClosures, reducedSpeedZones, selection]);
 
   const [flashSelection, setFlashSelection] = useState<ImpactSelection>(null);
+  const [flashStationId, setFlashStationId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!selection) {
@@ -223,6 +224,16 @@ export function InteractiveTtcMap({
     const timer = window.setTimeout(() => setFlashSelection(null), 2500);
     return () => { window.clearTimeout(timer0); window.clearTimeout(timer); };
   }, [selection]);
+
+  useEffect(() => {
+    if (!selectedStationId) {
+      const fallbackTimer = window.setTimeout(() => setFlashStationId(null), 0);
+      return () => window.clearTimeout(fallbackTimer);
+    }
+    const timer0 = window.setTimeout(() => setFlashStationId(selectedStationId), 0);
+    const timer = window.setTimeout(() => setFlashStationId(null), 2500);
+    return () => { window.clearTimeout(timer0); window.clearTimeout(timer); };
+  }, [selectedStationId]);
 
   const prevSelectionRef = useRef<ImpactSelection>(null);
   const prevSelectedStationIdRef = useRef<string | null>(null);
@@ -697,29 +708,40 @@ export function InteractiveTtcMap({
                   const radius = station.interchange ? 96 : 76;
 
                   return (
-                    <circle
-                      key={station.id}
-                      aria-label={`${station.name} station details`}
-                      className={`station-hit-target ${selected ? "selected" : ""} ${
-                        station.hasActiveImpact ? "has-impact" : ""
-                      } access-${station.accessStatus}`}
-                      cx={station.mapX}
-                      cy={station.mapY}
-                      r={radius}
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        onSelectStationId(selected ? null : station.id);
-                      }}
-                      onKeyDown={(event) => {
-                        if (event.key === "Enter" || event.key === " ") {
-                          event.preventDefault();
+                    <g key={station.id}>
+                      {flashStationId === station.id && (
+                        <circle
+                          data-map-highlight-id={station.id}
+                          className="station-selection-flash"
+                          cx={station.mapX}
+                          cy={station.mapY}
+                          r={station.interchange ? 60 : 48}
+                          pointerEvents="none"
+                        />
+                      )}
+                      <circle
+                        aria-label={`${station.name} station details`}
+                        className={`station-hit-target ${selected ? "selected" : ""} ${
+                          station.hasActiveImpact ? "has-impact" : ""
+                        } access-${station.accessStatus}`}
+                        cx={station.mapX}
+                        cy={station.mapY}
+                        r={radius}
+                        onClick={(event) => {
+                          event.stopPropagation();
                           onSelectStationId(selected ? null : station.id);
-                        }
-                      }}
-                      onPointerDown={(event) => event.stopPropagation()}
-                      role="button"
-                      tabIndex={0}
-                    />
+                        }}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter" || event.key === " ") {
+                            event.preventDefault();
+                            onSelectStationId(selected ? null : station.id);
+                          }
+                        }}
+                        onPointerDown={(event) => event.stopPropagation()}
+                        role="button"
+                        tabIndex={0}
+                      />
+                    </g>
                   );
                 })}
               </g>

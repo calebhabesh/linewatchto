@@ -8,6 +8,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "preview:closing-soon": "node scripts/preview-closing-soon.mjs",
     "test:fixtures": "node --test tests/*.test.mjs",
     "test:smoke": "playwright test",
     "test:smoke:install": "playwright install chromium",

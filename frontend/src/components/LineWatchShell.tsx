@@ -29,6 +29,8 @@ import { Menu, X, Map as MapIcon, AlertTriangle, Calendar, Navigation, ShieldChe
 import { SubwayClosedScreen } from "./SubwayClosedScreen";
 import { useSubwayOperatingState } from "../hooks/useSubwayOperatingState";
 import { StationSearchPanel } from "./StationSearchPanel";
+import { OpeningDisclaimer } from "./OpeningDisclaimer";
+import { SubwayClosingSoonChip } from "./SubwayClosingSoonChip";
 
 
 type ActiveView = "map" | "menu" | "search" | "alerts" | "delays" | "reduced-speed-zones" | "closures" | "commutes" | "analytics";
@@ -263,6 +265,13 @@ export function LineWatchShell({ initialData }: { initialData: DashboardData }) 
               size={25}
             />
           </button>
+
+          {subwayOperatingState.closingSoon && subwayOperatingState.minutesUntilClose !== null && subwayOperatingState.nextCloseLabel ? (
+            <SubwayClosingSoonChip
+              minutesUntilClose={subwayOperatingState.minutesUntilClose}
+              nextCloseLabel={subwayOperatingState.nextCloseLabel}
+            />
+          ) : null}
 
           {/* Floating Dropdown Menu */}
           <div className={`panel-strong absolute top-[72px] left-0 w-[min(calc(100vw-32px),360px)] border border-black/10 dark:border-white/10 rounded-2xl shadow-2xl overflow-hidden flex flex-col origin-top-left transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] ${activeView === "menu" ? "opacity-100 scale-100 translate-y-0 pointer-events-auto" : "opacity-0 scale-90 -translate-y-4 pointer-events-none"}`}>
@@ -564,6 +573,7 @@ export function LineWatchShell({ initialData }: { initialData: DashboardData }) 
         />
       </aside>
       )}
+      <OpeningDisclaimer />
     </div>
     </DataProvider>
   );

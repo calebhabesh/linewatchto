@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import { AlertTriangle, Calendar, Check, Clock3, Construction, X } from "lucide-react";
 import Image from "next/image";
 import { formatRelativeImpactTime } from "../app/impact-time";
@@ -125,8 +126,29 @@ export function StationDetailPanel({ stationResult, loading, selectedStationName
   const isWheelchairAccessible = station?.lines.some((line) => line.wheelchairAccessible) ?? false;
   const hasElevator = station?.lines.some((line) => line.hasElevator) ?? false;
 
+  const panelRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    const panelEl = panelRef.current;
+    if (!panelEl) return;
+
+    panelEl.classList.remove("highlight-active-card");
+    void panelEl.offsetWidth; // Force reflow
+    panelEl.classList.add("highlight-active-card");
+
+    const timeout = window.setTimeout(() => {
+      panelEl.classList.remove("highlight-active-card");
+    }, 2500);
+
+    return () => {
+      window.clearTimeout(timeout);
+      panelEl.classList.remove("highlight-active-card");
+    };
+  }, [station?.id, selectedStationName]);
+
   return (
     <aside
+      ref={panelRef}
       className="station-detail-panel fixed left-0 right-0 bottom-0 z-30 max-h-[64vh] overflow-y-auto rounded-t-lg border border-black/10 bg-white p-4 text-slate-900 shadow-2xl dark:border-white/10 dark:bg-[#0a0c10] dark:text-white md:left-auto md:right-6 md:top-[104px] md:bottom-6 md:w-[min(calc(100vw-48px),390px)] md:max-h-none md:rounded-lg"
       aria-live="polite"
       aria-label={station ? `${station.name} station details` : "Station details"}

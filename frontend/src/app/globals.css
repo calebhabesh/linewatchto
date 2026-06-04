@@ -382,6 +382,126 @@ button {
   box-shadow: var(--shadow);
 }
 
+.opening-disclaimer-backdrop {
+  align-items: flex-end;
+  background: rgba(0, 0, 0, 0.42);
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  padding: 16px;
+  pointer-events: auto;
+  position: fixed;
+  z-index: 80;
+}
+
+.opening-disclaimer-panel {
+  background: var(--panel-strong);
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  box-shadow: 0 18px 70px rgba(0, 0, 0, 0.44);
+  color: var(--text);
+  display: grid;
+  gap: 12px;
+  max-width: 560px;
+  padding: 18px;
+  width: min(100%, 560px);
+}
+
+.opening-disclaimer-kicker {
+  align-items: center;
+  color: var(--warning);
+  display: flex;
+  font-size: 0.72rem;
+  font-weight: 800;
+  gap: 8px;
+  letter-spacing: 0;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.opening-disclaimer-panel p {
+  color: var(--muted);
+  font-size: 0.92rem;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.opening-disclaimer-highlight {
+  color: #facc15;
+  font-weight: 800;
+}
+
+.opening-disclaimer-panel button {
+  align-items: center;
+  background: #facc15;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+  color: #111827;
+  display: inline-flex;
+  font-size: 0.9rem;
+  font-weight: 800;
+  justify-content: center;
+  min-height: 44px;
+  padding: 10px 16px;
+  width: 100%;
+}
+
+.opening-disclaimer-panel button:hover {
+  background: #eab308;
+}
+
+.subway-closing-soon-chip {
+  align-items: center;
+  background: rgba(25, 29, 38, 0.96);
+  border: 1px solid rgba(250, 204, 21, 0.52);
+  border-radius: 8px;
+  box-shadow: 0 14px 46px rgba(0, 0, 0, 0.34);
+  color: #facc15;
+  display: flex;
+  flex: 0 1 min(340px, calc(100vw - 168px));
+  gap: 10px;
+  height: 56px;
+  min-height: 56px;
+  min-width: 0;
+  padding: 8px 13px;
+  pointer-events: none;
+  width: min(calc(100vw - 32px), 340px);
+}
+
+.subway-closing-soon-copy {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.subway-closing-soon-copy strong {
+  color: #facc15;
+  font-size: 0.78rem;
+  font-weight: 900;
+  letter-spacing: 0;
+  line-height: 1.1;
+  text-transform: uppercase;
+}
+
+.subway-closing-soon-copy small {
+  color: #f8fafc;
+  font-size: 0.76rem;
+  font-weight: 700;
+  line-height: 1.15;
+}
+
+@media (max-width: 520px) {
+  .subway-closing-soon-chip {
+    flex-basis: max(142px, calc(100vw - 168px));
+    gap: 8px;
+    padding: 8px 10px;
+  }
+
+  .subway-closing-soon-copy small {
+    display: none;
+  }
+}
+
 .map-panel {
   min-width: 0;
   overflow: hidden;
@@ -1447,15 +1567,21 @@ button {
 }
 
 @keyframes highlight-glow {
-  0% { box-shadow: 0 0 0px rgba(59, 130, 246, 0), inset 0 0 0px rgba(59, 130, 246, 0); }
-  25% { box-shadow: 0 0 25px rgba(59, 130, 246, 1), inset 0 0 8px rgba(59, 130, 246, 0.6); }
-  50% { box-shadow: 0 0 10px rgba(59, 130, 246, 0.4), inset 0 0 4px rgba(59, 130, 246, 0.2); }
-  75% { box-shadow: 0 0 25px rgba(59, 130, 246, 1), inset 0 0 8px rgba(59, 130, 246, 0.6); }
-  100% { box-shadow: 0 0 0px rgba(59, 130, 246, 0), inset 0 0 0px rgba(59, 130, 246, 0); }
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(56, 189, 248, 0);
+  }
+  50% {
+    box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.85), 0 0 16px rgba(56, 189, 248, 0.6);
+  }
 }
 
 .highlight-active-card {
-  animation: highlight-glow 2.5s ease-in-out forwards;
+  animation: highlight-glow 0.6s ease-in-out 4 forwards;
+}
+
+.motion-paused .highlight-active-card {
+  animation: none;
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.85);
 }
 
 .station-hit-target {
@@ -1574,7 +1700,7 @@ button {
   stroke-width: 118;
   stroke-dasharray: none !important;
   filter: drop-shadow(0 0 16px rgba(56, 189, 248, 0.9));
-  animation: map-selection-flash 0.4s ease-in-out 4 forwards;
+  animation: map-selection-flash 0.6s ease-in-out 4 forwards;
 }
 
 .motion-paused .asset-alert-path.map-selection-flash {
@@ -1597,7 +1723,7 @@ button {
   fill: none;
   stroke: #38bdf8;
   filter: drop-shadow(0 0 12px rgba(56, 189, 248, 0.9));
-  animation: station-selection-flash 0.4s ease-in-out 4 forwards;
+  animation: station-selection-flash 0.6s ease-in-out 4 forwards;
 }
 
 .motion-paused .station-selection-flash {

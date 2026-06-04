@@ -1,6 +1,8 @@
 import { expect, test, type APIRequestContext, type Page } from "@playwright/test";
 
+const appUrl = "http://127.0.0.1:4173";
 const stubUrl = "http://127.0.0.1:4174";
+const disclaimerStorageKey = "linewatch-disclaimer-ack-v1";
 
 async function setStubMode(request: APIRequestContext, mode: "seeded" | "unavailable") {
   const response = await request.post(`${stubUrl}/__test/mode`, {
@@ -75,6 +77,44 @@ async function freezeBrowserTime(page: Page, isoTime: string) {
 
 test.beforeEach(async ({ page }) => {
   await freezeBrowserTime(page, "2026-06-04T12:00:00-04:00");
+  await page.addInitScript((storageKey) => {
+    window.localStorage.setItem(storageKey, "true");
+  }, disclaimerStorageKey);
+});
+
+test("requires a first-visit personal project disclaimer acknowledgement", async ({ browser, request }) => {
+  await setStubMode(request, "seeded");
+  const context = await browser.newContext();
+  const disclaimerPage = await context.newPage();
+  await freezeBrowserTime(disclaimerPage, "2026-06-04T12:00:00-04:00");
+
+  await disclaimerPage.goto(appUrl);
+
+  const disclaimer = disclaimerPage.getByRole("dialog", { name: "Unofficial dashboard" });
+  await expect(disclaimer).toBeVisible();
+  await expect(disclaimer).toContainText("LineWatch TO is a personal project that is not affiliated with, endorsed by, or operated by the TTC.");
+  await expect(disclaimer).toContainText("I am not affiliated with the TTC in any capacity.");
+  await expect(disclaimer).toContainText("Service alerts are fetched from TTC's public Live Alerts endpoint when live polling is enabled, with local fixture data used for offline demos and fallback mode.");
+
+  await disclaimerPage.getByRole("button", { name: "I Understand" }).click();
+  await expect(disclaimer).toHaveCount(0);
+
+  await disclaimerPage.reload();
+  await expect(disclaimerPage.getByRole("dialog", { name: "Unofficial dashboard" })).toHaveCount(0);
+  await expect(disclaimerPage.getByRole("button", { name: "Center map view" })).toBeVisible();
+
+  await context.close();
+});
+
+test("shows a subway closing soon countdown before overnight closure", async ({ page, request }) => {
+  await setStubMode(request, "seeded");
+  await page.goto("/?previewTime=2026-06-04T00:45:00-04:00");
+
+  const closingSoon = page.getByRole("status").filter({ hasText: "Subway Closing Soon" });
+  await expect(closingSoon).toBeVisible();
+  await expect(closingSoon).toContainText("Closes in 1 hr 15 min");
+  await expect(closingSoon).toContainText("Today at 2:00 AM");
+  await expect(page.getByRole("heading", { name: "Subway Closed" })).toHaveCount(0);
 });
 
 test("shows subway closed screen overnight and lets riders peek at the map", async ({ page, request }) => {

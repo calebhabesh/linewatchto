@@ -8,6 +8,10 @@ export type SubwayOperatingState = {
   nextResumeLabel: string | null;
   nextResumeTime: string | null;
   minutesUntilResume: number | null;
+  nextCloseLabel: string | null;
+  nextCloseTime: string | null;
+  minutesUntilClose: number | null;
+  closingSoon: boolean;
   isSundaySchedule: boolean;
   operatingHours: {
     weekdaySaturday: string;
@@ -19,6 +23,7 @@ export type SubwayOperatingState = {
 
 const TORONTO_TIME_ZONE = "America/Toronto";
 const CLOSE_MINUTES = 2 * 60;
+const CLOSING_SOON_WINDOW_MINUTES = 90;
 const WEEKDAY_SATURDAY_OPEN_MINUTES = 6 * 60;
 const SUNDAY_OPEN_MINUTES = 8 * 60;
 
@@ -74,6 +79,9 @@ export function getSubwayOperatingState(now = new Date()): SubwayOperatingState 
   const closed = minutesAfterMidnight >= CLOSE_MINUTES && minutesAfterMidnight < openingMinutes;
   const nextResumeTime = closed ? formatSubwayClock(openingMinutes) : null;
   const minutesUntilResume = closed ? openingMinutes - minutesAfterMidnight : null;
+  const nextCloseTime = closed ? null : formatSubwayClock(CLOSE_MINUTES);
+  const minutesUntilClose = closed ? null : calculateMinutesUntilClose(minutesAfterMidnight);
+  const closingSoon = minutesUntilClose !== null && minutesUntilClose <= CLOSING_SOON_WINDOW_MINUTES;
 
   return {
     status: closed ? "closed" : "open",
@@ -85,6 +93,10 @@ export function getSubwayOperatingState(now = new Date()): SubwayOperatingState 
     nextResumeLabel: nextResumeTime ? `Today at ${nextResumeTime}` : null,
     nextResumeTime,
     minutesUntilResume,
+    nextCloseLabel: nextCloseTime ? `Today at ${nextCloseTime}` : null,
+    nextCloseTime,
+    minutesUntilClose,
+    closingSoon,
     isSundaySchedule: weekdayIndex === 0,
     operatingHours: {
       weekdaySaturday: "Mon-Sat: about 6:00 a.m. to 2:00 a.m.",
@@ -97,6 +109,28 @@ export function getSubwayOperatingState(now = new Date()): SubwayOperatingState 
 
 export function isSubwayClosed(now = new Date()) {
   return getSubwayOperatingState(now).status === "closed";
+}
+
+export function getLocalSubwayPreviewDate(urlValue: string) {
+  let url: URL;
+
+  try {
+    url = new URL(urlValue);
+  } catch {
+    return null;
+  }
+
+  if (!isLocalPreviewHost(url.hostname)) {
+    return null;
+  }
+
+  const previewTime = url.searchParams.get("previewTime");
+  if (!previewTime) {
+    return null;
+  }
+
+  const previewDate = new Date(previewTime);
+  return Number.isNaN(previewDate.getTime()) ? null : previewDate;
 }
 
 function getTorontoLocalTimeParts(date: Date) {
@@ -114,4 +148,16 @@ function getTorontoLocalTimeParts(date: Date) {
 
 function openingMinutesForDay(weekdayIndex: number) {
   return weekdayIndex === 0 ? SUNDAY_OPEN_MINUTES : WEEKDAY_SATURDAY_OPEN_MINUTES;
+}
+
+function calculateMinutesUntilClose(minutesAfterMidnight: number) {
+  if (minutesAfterMidnight < CLOSE_MINUTES) {
+    return CLOSE_MINUTES - minutesAfterMidnight;
+  }
+
+  return 24 * 60 - minutesAfterMidnight + CLOSE_MINUTES;
+}
+
+function isLocalPreviewHost(hostname: string) {
+  return hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1";
 }
