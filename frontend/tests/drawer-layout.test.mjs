@@ -184,6 +184,12 @@ describe("floating menu layout", () => {
     assert.match(shellSource, /subway-closed-map-backdrop/);
     assert.match(shellSource, /subway-closed-peek-chip/);
     assert.match(shellSource, /Closed screen/);
+    assert.match(globalCss, /\.subway-closed-screen/);
+    assert.match(globalCss, /\.subway-closed-map-backdrop/);
+    assert.match(globalCss, /filter:\s*blur\(9px\) saturate\(0\.72\) brightness\(0\.42\)/);
+    assert.match(globalCss, /\.subway-closed-peek-chip/);
+    assert.match(globalCss, /#8B5CF6/);
+    assert.match(globalCss, /#FACC15/);
   });
 });
 
