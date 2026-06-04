@@ -1571,6 +1571,7 @@ button {
 }
 
 .subway-closed-screen {
+  --moon-color: #8B5CF6;
   align-items: center;
   background: rgba(5, 7, 12, 0.72);
   color: #f8fafc;
@@ -1589,25 +1590,21 @@ button {
   box-shadow: 0 24px 80px rgba(0, 0, 0, 0.48);
   display: grid;
   gap: 18px;
-  max-height: min(760px, calc(100vh - 48px));
-  overflow-y: auto;
+  max-height: none;
+  overflow: hidden;
   padding: 32px;
   width: min(100%, 640px);
 }
 
 .subway-closed-icon-shell {
+  display: flex;
+  justify-content: center;
   align-items: center;
-  background: rgba(139, 92, 246, 0.12);
-  border: 1px solid rgba(250, 204, 21, 0.24);
-  border-radius: 8px;
-  display: grid;
-  height: 132px;
-  justify-items: center;
-  width: 132px;
+  width: 100%;
 }
 
 .subway-closed-icon-shell img {
-  filter: drop-shadow(0 0 22px rgba(139, 92, 246, 0.35));
+  filter: drop-shadow(0 0 20px rgba(139, 92, 246, 0.6)) drop-shadow(0 0 40px rgba(139, 92, 246, 0.3));
   height: 112px;
   width: 112px;
 }
@@ -1615,15 +1612,7 @@ button {
 .subway-closed-copy {
   display: grid;
   gap: 10px;
-}
-
-.subway-closed-kicker {
-  color: #FACC15;
-  font-size: 0.78rem;
-  font-weight: 850;
-  letter-spacing: 0;
-  margin: 0;
-  text-transform: uppercase;
+  text-align: center;
 }
 
 .subway-closed-copy h1 {
@@ -1631,13 +1620,12 @@ button {
   font-size: 2.65rem;
   font-weight: 900;
   letter-spacing: 0;
-  line-height: 1;
+  line-height: 1.1;
   margin: 0;
 }
 
 .subway-closed-copy p,
-.subway-closed-caveat,
-.subway-closed-status-note {
+.subway-closed-caveat {
   color: rgba(226, 232, 240, 0.82);
   font-size: 0.98rem;
   line-height: 1.5;
@@ -1673,47 +1661,68 @@ button {
   line-height: 1.2;
 }
 
-.subway-closed-hours {
+.subway-closed-schedule-container {
   border-top: 1px solid rgba(255, 255, 255, 0.12);
-  display: grid;
-  gap: 0;
-  margin: 0;
-}
-
-.subway-closed-hours div {
-  align-items: start;
   border-bottom: 1px solid rgba(255, 255, 255, 0.12);
   display: grid;
-  gap: 8px;
-  grid-template-columns: minmax(118px, 0.38fr) minmax(0, 1fr);
-  padding: 12px 0;
+  gap: 16px;
+  grid-template-columns: minmax(130px, 0.35fr) minmax(0, 1fr);
+  padding: 16px 0;
 }
 
-.subway-closed-hours dt {
-  align-items: center;
+.subway-closed-schedule-label {
   color: #FACC15;
-  display: flex;
   font-size: 0.82rem;
   font-weight: 850;
-  gap: 6px;
-  letter-spacing: 0;
-  margin: 0;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
 }
 
-.subway-closed-hours dd {
+.subway-closed-schedule-table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.subway-closed-schedule-table td {
   color: #f8fafc;
   font-size: 0.95rem;
   line-height: 1.4;
-  margin: 0;
+  padding: 4px 0;
+}
+
+.subway-closed-schedule-table tr:first-child td {
+  padding-top: 0;
+}
+
+.subway-closed-schedule-table tr:last-child td {
+  padding-bottom: 0;
+}
+
+.subway-closed-schedule-table td:last-child {
+  text-align: right;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.subway-closed-overnight-note {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+  color: rgba(226, 232, 240, 0.82);
+  font-size: 0.92rem;
+  line-height: 1.4;
+}
+
+.subway-closed-overnight-note svg {
+  color: #FACC15;
+  flex-shrink: 0;
 }
 
 .subway-closed-actions {
   align-items: center;
   display: flex;
-  flex-wrap: wrap;
-  gap: 14px;
-  justify-content: space-between;
+  justify-content: center;
+  width: 100%;
 }
 
 .subway-closed-primary-action {
@@ -1725,9 +1734,9 @@ button {
   display: inline-flex;
   font-size: 0.95rem;
   font-weight: 900;
-  gap: 8px;
+  gap: 10px;
   min-height: 44px;
-  padding: 0 18px;
+  padding: 0 28px;
 }
 
 .subway-closed-primary-action:hover,
@@ -1735,17 +1744,6 @@ button {
   background: #fde047;
   outline: 3px solid rgba(250, 204, 21, 0.28);
   outline-offset: 3px;
-}
-
-.subway-closed-status-note {
-  align-items: center;
-  display: inline-flex;
-  gap: 8px;
-}
-
-.subway-closed-status-note svg {
-  color: #8B5CF6;
-  flex: 0 0 auto;
 }
 
 .subway-closed-peek-chip {
@@ -1816,27 +1814,19 @@ button {
     line-height: 1.05;
   }
 
-  .subway-closed-icon-shell {
-    height: 104px;
-    width: 104px;
-  }
-
   .subway-closed-icon-shell img {
     height: 88px;
     width: 88px;
   }
 
-  .subway-closed-hours div {
+  .subway-closed-schedule-container {
     grid-template-columns: 1fr;
+    gap: 8px;
   }
 
   .subway-closed-primary-action {
     justify-content: center;
-    width: 100%;
-  }
-
-  .subway-closed-status-note {
-    align-items: flex-start;
+    width: auto;
   }
 }
 
