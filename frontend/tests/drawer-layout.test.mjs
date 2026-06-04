@@ -168,11 +168,11 @@ describe("floating menu layout", () => {
   it("defines a closed-hours screen with schedule, resume copy, and map peek action", () => {
     assert.match(subwayClosedSource, /SubwayClosedScreen/);
     assert.match(subwayClosedSource, /\/assets\/linewatch\/closed-alert\.svg/);
-    assert.match(subwayClosedSource, /Subway closed overnight/);
-    assert.match(subwayClosedSource, /operatingHours\.weekdaySaturday/);
-    assert.match(subwayClosedSource, /operatingHours\.sunday/);
+    assert.match(subwayClosedSource, /Subway Closed/);
+    assert.match(subwayClosedSource, /Monday – Saturday/);
+    assert.match(subwayClosedSource, /Sunday/);
     assert.match(subwayClosedSource, /nextResumeLabel/);
-    assert.match(subwayClosedSource, /Peek at map/);
+    assert.match(subwayClosedSource, /Peek at Map/);
     assert.match(subwayClosedSource, /operatingHours\.overnight/);
     assert.match(subwayHoursSource, /Blue Night Network/);
     assert.match(subwayHoursSource, /Exact first and last train times vary by station/);
