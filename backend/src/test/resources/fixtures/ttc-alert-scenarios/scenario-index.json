@@ -36,8 +36,7 @@
         "escalator"
       ],
       "guidePathIds": [
-        "seg-line-1-st-andrew-union",
-        "seg-line-1-dupont-spadina"
+        "seg-line-1-st-andrew-union"
       ]
     },
     {
@@ -64,8 +63,7 @@
         "reduced-speed-zone"
       ],
       "guidePathIds": [
-        "seg-line-1-spadina-st-george",
-        "seg-line-1-dupont-spadina"
+        "seg-line-1-st-george-spadina"
       ]
     },
     {
@@ -77,8 +75,7 @@
         "reduced-speed-zone"
       ],
       "guidePathIds": [
-        "seg-line-1-dupont-spadina",
-        "seg-line-1-spadina-st-george",
+        "seg-line-1-st-george-spadina",
         "seg-line-1-st-andrew-union",
         "seg-line-1-union-king"
       ]

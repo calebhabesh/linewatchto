@@ -23,7 +23,7 @@ export const scenarioExpectations = {
       "suspension": ["bidirectional", "directional"],
     },
     stationAlertAssetTypes: ["elevator", "escalator"],
-    guidePathIds: ["seg-line-1-st-andrew-union", "seg-line-1-dupont-spadina"],
+    guidePathIds: ["seg-line-1-st-andrew-union"],
   },
   "nonlinear-union-curve": {
     routeCount: 3,
@@ -35,15 +35,14 @@ export const scenarioExpectations = {
     routeCount: 2,
     accessibilityCount: 0,
     impactKinds: ["delay", "reduced-speed-zone"],
-    guidePathIds: ["seg-line-1-spadina-st-george", "seg-line-1-dupont-spadina"],
+    guidePathIds: ["seg-line-1-st-george-spadina"],
   },
   "long-mixed-line-1-rsz": {
     routeCount: 2,
     accessibilityCount: 0,
     impactKinds: ["reduced-speed-zone"],
     guidePathIds: [
-      "seg-line-1-dupont-spadina",
-      "seg-line-1-spadina-st-george",
+      "seg-line-1-st-george-spadina",
       "seg-line-1-st-andrew-union",
       "seg-line-1-union-king",
     ],

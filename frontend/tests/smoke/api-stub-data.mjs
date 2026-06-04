@@ -103,7 +103,7 @@ export const mapResponse = {
       label: "Spadina to St George",
       stationAId: "stub-spadina-line-1",
       stationBId: "stub-st-george",
-      guidePathId: "seg-line-1-spadina-st-george",
+      guidePathId: "seg-line-1-st-george-spadina",
       guidePathReversed: true,
       pathD: "",
       impacts: [

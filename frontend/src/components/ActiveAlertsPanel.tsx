@@ -2,11 +2,11 @@
 
 
 import { useDashboardData } from "../app/DataContext";
-import { AlertTriangle, Bus, ChevronLeft, Construction } from "lucide-react";
+import { AlertTriangle, Bus, ChevronLeft } from "lucide-react";
 import type { ActiveAlert, ImpactKind, ImpactSelection } from "../app/linewatch-data";
 import { useScrollSelectedImpactCard } from "../hooks/useScrollSelectedImpactCard";
-import { DelayIcon } from "./DelayIcon";
-import { LineBadge, ImpactRouteHeader, MetadataGrid, CardSource, JumpToLocationIcon, formatCompactLocation } from "./ImpactCardFields";
+import { LineBadge, ImpactRouteHeader, MetadataGrid, CardSource, JumpToLocationIcon } from "./ImpactCardFields";
+import { getOverlappingImpactRefs, OverlappingImpactRefs } from "./ImpactOverlapRefs";
 
 interface Props {
   selection: ImpactSelection;
@@ -18,20 +18,12 @@ function impactKindForAlert(alert: ActiveAlert): Extract<ImpactKind, "planned-cl
   return alert.severity === "planned" ? "planned-closure" : "suspension";
 }
 
-type OverlappingImpact = {
-  key: string;
-  label: string;
-  location: string;
-  icon: "delay" | "reduced-speed-zone";
-  selection: NonNullable<ImpactSelection>;
-};
-
 export function ActiveAlertsPanel({
   selection,
   onSelectImpact,
   onBack,
 }: Props) {
-  const { activeAlerts, reducedSpeedZones, delays } = useDashboardData();
+  const { activeAlerts, reducedSpeedZones, delays, plannedClosures } = useDashboardData();
   useScrollSelectedImpactCard(selection, "suspension");
   useScrollSelectedImpactCard(selection, "planned-closure");
 
@@ -81,30 +73,10 @@ export function ActiveAlertsPanel({
         {activeAlerts.map((alert) => {
           const alertImpactKind = impactKindForAlert(alert);
           const isActive = selection?.kind === alertImpactKind && selection.id === alert.id;
-          const overlappingImpacts: OverlappingImpact[] = [
-            ...reducedSpeedZones
-              .filter((rsz) =>
-                rsz.affectedSegmentIds?.some((segId) => alert.affectedSegmentIds?.includes(segId))
-              )
-              .map((rsz) => ({
-                key: `reduced-speed-zone-${rsz.id}`,
-                label: "Reduced Speed Zone",
-                location: rsz.location,
-                icon: "reduced-speed-zone" as const,
-                selection: { kind: "reduced-speed-zone" as const, id: rsz.id },
-              })),
-            ...delays
-              .filter((delay) =>
-                delay.affectedSegmentIds?.some((segId) => alert.affectedSegmentIds?.includes(segId))
-              )
-              .map((delay) => ({
-                key: `delay-${delay.id}`,
-                label: "Delay",
-                location: delay.location,
-                icon: "delay" as const,
-                selection: { kind: "delay" as const, id: delay.id },
-              })),
-          ];
+          const overlappingImpacts = getOverlappingImpactRefs(
+            { kind: alertImpactKind, id: alert.id, segmentIds: alert.affectedSegmentIds ?? [] },
+            { activeAlerts, delays, reducedSpeedZones, plannedClosures },
+          );
 
           return (
             <div
@@ -139,34 +111,11 @@ export function ActiveAlertsPanel({
                 {alert.description}
               </p>
 
-              {overlappingImpacts.length > 0 && (
-                <div className="text-[11px] mt-2 font-medium text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800/40 border border-black/5 dark:border-white/5 px-2 py-1 rounded-md w-fit flex flex-wrap items-center gap-1">
-                  <span className="font-bold text-amber-600 dark:text-amber-400 mr-1">Overlapping:</span>
-                  {overlappingImpacts.map((overlap) => (
-                    <button
-                      key={overlap.key}
-                      type="button"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        onSelectImpact(overlap.selection);
-                      }}
-                      className="inline-flex max-w-[220px] items-start gap-1.5 rounded border border-black/10 dark:border-white/10 bg-white/80 dark:bg-slate-900/70 px-1.5 py-1 text-left font-semibold text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
-                    >
-                      {overlap.icon === "reduced-speed-zone" ? (
-                        <Construction size={12} className="mt-0.5 shrink-0 text-amber-500" />
-                      ) : (
-                        <DelayIcon size={12} className="mt-0.5 shrink-0 text-amber-500" />
-                      )}
-                      <span className="flex min-w-0 flex-col leading-tight">
-                        <span>{overlap.label}</span>
-                        <span className="overlap-impact-location truncate text-[10px] font-medium text-slate-500 dark:text-slate-400">
-                          {formatCompactLocation(overlap.location)}
-                        </span>
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              )}
+              <OverlappingImpactRefs
+                overlaps={overlappingImpacts}
+                onSelectImpact={onSelectImpact}
+                label="Overlapping:"
+              />
               
               <div className="border-t border-black/10 dark:border-white/10 mt-3 pt-2.5 flex items-end justify-start gap-3 w-full min-w-0">
                 <div className="flex-1 min-w-0">

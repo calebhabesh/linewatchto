@@ -113,7 +113,7 @@ class MapControllerTest {
                 null,
                 115,
                 "southbound",
-                "seg-line-1-spadina-st-george",
+                "seg-line-1-st-george-spadina",
                 true,
                 "station-spadina-1",
                 null
@@ -153,7 +153,7 @@ class MapControllerTest {
         });
         assertThat(response.segments().get(1)).satisfies(segment -> {
             assertThat(segment.id()).isEqualTo("line-1-spadina-st-george");
-            assertThat(segment.guidePathId()).isEqualTo("seg-line-1-spadina-st-george");
+            assertThat(segment.guidePathId()).isEqualTo("seg-line-1-st-george-spadina");
             assertThat(segment.guidePathReversed()).isTrue();
             assertThat(segment.impacts()).singleElement().satisfies(impact -> {
                 assertThat(impact.kind()).isEqualTo("delay");
@@ -162,4 +162,3 @@ class MapControllerTest {
         });
     }
 }
-

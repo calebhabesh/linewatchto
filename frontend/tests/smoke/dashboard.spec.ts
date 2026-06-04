@@ -207,7 +207,11 @@ test("routes active planned closures to active alerts instead of upcoming closur
     has: page.getByRole("heading", { name: "Upcoming Closures" }),
   });
   await expect(upcomingClosuresPanel.locator('[data-impact-card-id="stub-closure-line-1"]')).toHaveCount(0);
-  await expect(upcomingClosuresPanel.locator('[data-impact-card-id="stub-upcoming-closure-line-1"]')).toBeVisible();
+  const upcomingClosureCard = upcomingClosuresPanel.locator('[data-impact-card-id="stub-upcoming-closure-line-1"]');
+  await expect(upcomingClosureCard).toBeVisible();
+  await expect(upcomingClosureCard.getByText("Overlapping:")).toBeVisible();
+  await expect(upcomingClosureCard.getByText("Active Alert", { exact: true })).toBeVisible();
+  await expect(upcomingClosureCard.getByText("Active Closure", { exact: true })).toBeVisible();
 });
 
 test("shows a compact map hint when multiple alert types overlap", async ({ page, request }) => {

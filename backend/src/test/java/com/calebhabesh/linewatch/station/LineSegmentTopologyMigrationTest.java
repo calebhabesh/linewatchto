@@ -34,6 +34,18 @@ class LineSegmentTopologyMigrationTest {
     }
 
     @Test
+    void v15UpdatesLineOneSpadinaGuideMetadataForEditedMapAsset() throws IOException {
+        String sql = migrationSql("/db/migration/V15__update_line_1_spadina_guide_metadata.sql");
+
+        assertThat(sql).contains("'line-1-dupont-spadina'");
+        assertThat(sql).contains("set guide_path_id = null");
+        assertThat(sql).contains("guide_path_reversed = false");
+        assertThat(sql).contains("'line-1-spadina-st-george'");
+        assertThat(sql).contains("'seg-line-1-st-george-spadina'");
+        assertThat(sql).contains("'station-spadina-1'");
+    }
+
+    @Test
     void v14AddsLineSixHumberCollegeGuidePathMetadata() throws IOException {
         String sql = migrationSql("/db/migration/V14__line_6_humber_college_westmore_guide.sql");
 

@@ -485,6 +485,7 @@ export function LineWatchShell({ initialData }: { initialData: DashboardData }) 
           loading={stationLoading}
           selectedStationName={stationSummaries.find((station) => station.id === selectedStationId)?.name}
           onClose={() => setSelectedStationId(null)}
+          onSelectImpact={handleMapSelectImpact}
         />
       )}
 

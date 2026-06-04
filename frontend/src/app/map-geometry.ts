@@ -3,6 +3,14 @@ import type { NetworkSegment, Station } from "./linewatch-data";
 export type MapPoint = { x: number; y: number };
 export type MapBounds = { x: number; y: number; width: number; height: number };
 export type PathFrame = { point: MapPoint; tangent: MapPoint; normal: MapPoint };
+export type MapMatrix = {
+  a: number;
+  b: number;
+  c: number;
+  d: number;
+  e: number;
+  f: number;
+};
 
 export type ChevronInstance = {
   x: number;
@@ -24,6 +32,10 @@ export type SampledPath = {
 };
 
 type CorridorTravelDirection = NonNullable<NetworkSegment["travelDirection"]>;
+
+const GUIDE_PATH_ID_ALIASES = new Map<string, string>([
+  ["seg-line-1-spadina-st-george", "seg-line-1-st-george-spadina"],
+]);
 
 export type ComposableNetworkSegment = Pick<
   NetworkSegment,
@@ -166,6 +178,37 @@ export function pathMidpointFrame(pathD: string): PathFrame | null {
   }
 
   return null;
+}
+
+export function transformBoundsToRootCoordinates(
+  bounds: MapBounds,
+  elementMatrix: MapMatrix | null | undefined,
+  rootMatrix?: MapMatrix | null,
+): MapBounds | null {
+  const relativeMatrix = rootMatrix && elementMatrix
+    ? multiplyMatrix(invertMatrix(rootMatrix), elementMatrix)
+    : elementMatrix ?? identityMatrix();
+  if (!relativeMatrix) return null;
+
+  const points = [
+    transformPoint({ x: bounds.x, y: bounds.y }, relativeMatrix),
+    transformPoint({ x: bounds.x + bounds.width, y: bounds.y }, relativeMatrix),
+    transformPoint({ x: bounds.x + bounds.width, y: bounds.y + bounds.height }, relativeMatrix),
+    transformPoint({ x: bounds.x, y: bounds.y + bounds.height }, relativeMatrix),
+  ];
+  const xs = points.map((point) => point.x);
+  const ys = points.map((point) => point.y);
+  const minX = Math.min(...xs);
+  const maxX = Math.max(...xs);
+  const minY = Math.min(...ys);
+  const maxY = Math.max(...ys);
+
+  return {
+    x: normalizeBoundsNumber(minX),
+    y: normalizeBoundsNumber(minY),
+    width: normalizeBoundsNumber(maxX - minX),
+    height: normalizeBoundsNumber(maxY - minY),
+  };
 }
 
 export function composeNetworkSegmentPath(
@@ -455,6 +498,49 @@ function pointDistance(a: MapPoint, b: MapPoint): number {
   return Math.hypot(a.x - b.x, a.y - b.y);
 }
 
+function identityMatrix(): MapMatrix {
+  return { a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 };
+}
+
+function invertMatrix(matrix: MapMatrix): MapMatrix | null {
+  const determinant = matrix.a * matrix.d - matrix.b * matrix.c;
+  if (Math.abs(determinant) <= Number.EPSILON) return null;
+
+  return {
+    a: matrix.d / determinant,
+    b: -matrix.b / determinant,
+    c: -matrix.c / determinant,
+    d: matrix.a / determinant,
+    e: (matrix.c * matrix.f - matrix.d * matrix.e) / determinant,
+    f: (matrix.b * matrix.e - matrix.a * matrix.f) / determinant,
+  };
+}
+
+function multiplyMatrix(a: MapMatrix | null, b: MapMatrix): MapMatrix | null {
+  if (!a) return null;
+
+  return {
+    a: a.a * b.a + a.c * b.b,
+    b: a.b * b.a + a.d * b.b,
+    c: a.a * b.c + a.c * b.d,
+    d: a.b * b.c + a.d * b.d,
+    e: a.a * b.e + a.c * b.f + a.e,
+    f: a.b * b.e + a.d * b.f + a.f,
+  };
+}
+
+function transformPoint(point: MapPoint, matrix: MapMatrix): MapPoint {
+  return {
+    x: matrix.a * point.x + matrix.c * point.y + matrix.e,
+    y: matrix.b * point.x + matrix.d * point.y + matrix.f,
+  };
+}
+
+function normalizeBoundsNumber(value: number): number {
+  const rounded = Math.round(value * 1_000_000) / 1_000_000;
+  return Object.is(rounded, -0) ? 0 : rounded;
+}
+
 function formatPathNumber(value: number): string {
   const rounded = Math.round(value * 1000) / 1000;
   if (Object.is(rounded, -0)) return "0";
@@ -474,7 +560,9 @@ export function resolveNetworkSegmentPath(
   guidePaths: Map<string, string>,
 ): string {
   if (segment.guidePathId) {
-    const guide = guidePaths.get(segment.guidePathId);
+    const guide =
+      guidePaths.get(segment.guidePathId) ??
+      guidePaths.get(GUIDE_PATH_ID_ALIASES.get(segment.guidePathId) ?? "");
     if (guide) return guide;
   }
 

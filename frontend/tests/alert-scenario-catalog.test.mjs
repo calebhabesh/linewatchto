@@ -35,7 +35,7 @@ describe("alert scenario catalog", () => {
     assert.deepEqual(scenario.stationAlertAssetTypes, ["elevator", "escalator"]);
     assert.deepEqual(
       [...scenario.guidePathIds].sort(),
-      ["seg-line-1-dupont-spadina", "seg-line-1-st-andrew-union"],
+      ["seg-line-1-st-andrew-union"],
     );
 
     const feed = JSON.parse(readFileSync(new URL(scenario.file, scenarioRoot), "utf8"));
@@ -63,9 +63,8 @@ describe("alert scenario catalog", () => {
     assert.deepEqual(
       [...new Set(guideIds)].sort(),
       [
-        "seg-line-1-dupont-spadina",
-        "seg-line-1-spadina-st-george",
         "seg-line-1-st-andrew-union",
+        "seg-line-1-st-george-spadina",
         "seg-line-1-union-king",
       ],
     );

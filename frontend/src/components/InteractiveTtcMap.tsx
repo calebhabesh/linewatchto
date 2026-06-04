@@ -8,8 +8,10 @@ import {
   pathMidpointFrame,
   readSvgGeometry,
   resolveNetworkSegmentPath,
+  transformBoundsToRootCoordinates,
   visualTravelDirection,
   samplePath,
+  type MapBounds,
   type MapPoint,
   type PathFrame,
 } from "../app/map-geometry";
@@ -29,6 +31,7 @@ import type {
 } from "../app/linewatch-data";
 import type { StationSummary } from "../app/station-data";
 import { LogsDropdown } from "./LogsDropdown";
+import { ImpactTypeIcon } from "./ImpactTypeIcon";
 
 function getSegmentsCenter(
   segmentIds: string[],
@@ -102,8 +105,11 @@ export function InteractiveTtcMap({
     const geometry = readSvgGeometry(mapSvgRef.current, networkSegments);
     setAnchorPoints(geometry.anchorPoints);
     setGuidePaths(geometry.guidePaths);
-    setMapCollisionBoxes(collectMapCollisionBoxes(mapSvgRef.current));
-  }, [loadState, networkSegments]);
+    setMapCollisionBoxes([
+      ...collectMapCollisionBoxes(mapSvgRef.current),
+      ...collectBaseRouteCollisionBoxes(networkSegments, mapStations, geometry.anchorPoints, geometry.guidePaths),
+    ]);
+  }, [loadState, mapStations, networkSegments]);
 
   const {
     transform,
@@ -190,11 +196,6 @@ export function InteractiveTtcMap({
     return () => window.clearTimeout(resetTimer);
   }, [layoutResetSignal, loadState, recenter]);
 
-  const selectedClosure = useMemo(() => {
-    if (selection?.kind !== "planned-closure") return undefined;
-    return plannedClosures.find((c) => c.id === selection.id);
-  }, [plannedClosures, selection]);
-
   const selectedSegmentIds = useMemo(() => {
     if (!selection) return [];
     if (selection.kind === "planned-closure") {
@@ -269,13 +270,17 @@ export function InteractiveTtcMap({
     return new Map(stations.map((station) => [station.id, station]));
   }, [stations]);
 
-  // Determine what overlays to render based on selection and hover
+  const plannedPreviewSegmentIds = useMemo(() => {
+    return new Set(plannedClosures.map((closure) => closure.previewSegmentIds).flat());
+  }, [plannedClosures]);
+
+  // Determine what overlays to render based on active and planned disruption surfaces.
   const overlaySegments = useMemo(() => {
     return networkSegments.filter((segment) => {
-      const isClosurePreview = selectedClosure?.previewSegmentIds.includes(segment.id) ?? false;
+      const isClosurePreview = plannedPreviewSegmentIds.has(segment.id);
       return Boolean(segment.impacts?.length) || segment.overlay !== "clear" || isClosurePreview;
     });
-  }, [networkSegments, selectedClosure]);
+  }, [networkSegments, plannedPreviewSegmentIds]);
 
   const renderedOverlaySegments = useMemo(() => {
     const stationById = new Map(mapStations.map((station) => [station.id, station]));
@@ -353,25 +358,28 @@ export function InteractiveTtcMap({
   }, [activeAlerts, delays, plannedClosures, reducedSpeedZones, renderedOverlaySegments]);
 
   const plannedPreviewLayers = useMemo<RenderedPlannedPreviewLayer[]>(() => {
-    if (!selectedClosure) return [];
-    const orderedSegments = orderSegmentsByIds(
-      renderedOverlaySegments.filter((segment) => shouldRenderPlannedPreviewLayer(segment, selectedClosure)),
-      selectedClosure.previewSegmentIds,
-    );
-    const corridor = composeNetworkSegmentPath(orderedSegments, "bidirectional");
-    if (!corridor.pathD) return [];
-    return [{
-      segment: compositeSegment(
-        `planned-preview-${selectedClosure.id}`,
-        orderedSegments,
-        corridor.pathD,
-        corridor.travelDirection,
-        corridor.segmentIds,
-        selectedClosure.location || selectedClosure.title,
-      ),
-      closure: selectedClosure,
-    }];
-  }, [renderedOverlaySegments, selectedClosure]);
+    return plannedClosures
+      .map((closure) => {
+        const orderedSegments = orderSegmentsByIds(
+          renderedOverlaySegments.filter((segment) => shouldRenderPlannedPreviewLayer(segment, closure)),
+          closure.previewSegmentIds,
+        );
+        const corridor = composeNetworkSegmentPath(orderedSegments, "bidirectional");
+        if (!corridor.pathD) return null;
+        return {
+          segment: compositeSegment(
+            `planned-preview-${closure.id}`,
+            orderedSegments,
+            corridor.pathD,
+            corridor.travelDirection,
+            corridor.segmentIds,
+            closure.location || closure.title,
+          ),
+          closure,
+        };
+      })
+      .filter((layer): layer is RenderedPlannedPreviewLayer => Boolean(layer));
+  }, [plannedClosures, renderedOverlaySegments]);
 
   const overlayCollisionBoxes = useMemo<SvgBounds[]>(() => {
     return [
@@ -382,32 +390,38 @@ export function InteractiveTtcMap({
 
   const overlapBadgeSegments = useMemo<OverlapBadgeSegment[]>(() => {
     const occupiedBoxes = [...mapCollisionBoxes, ...overlayCollisionBoxes];
-    return renderedOverlaySegments
-      .map((segment) => {
-        const impacts = segment.impacts?.length ? segment.impacts : legacyImpactsForSegment(segment);
-        const impactKinds = getUniqueImpactKinds(impacts);
-        if (impactKinds.length <= 1) return null;
+    return groupOverlapBadgeSegments(renderedOverlaySegments, plannedClosures)
+      .map((group) => {
+        const corridor = composeNetworkSegmentPath(group.segments, "bidirectional");
+        if (!corridor.pathD) return null;
 
+        const segment = compositeSegment(
+          `overlap-${group.signature}`,
+          group.segments,
+          corridor.pathD,
+          corridor.travelDirection,
+          corridor.segmentIds,
+          labelForSegments(group.segments),
+        );
         const frame = pathMidpointFrame(segment.pathD);
-        const primaryImpact = primaryImpactForOverlap(impacts);
-        if (!frame || !primaryImpact) return null;
+        if (!frame) return null;
 
-        const size = overlapBadgeSize(impactKinds.length);
+        const size = overlapBadgeSize(group.impactKinds.length);
         const position = chooseNonIntersectingBadgePosition(frame.point, size, occupiedBoxes, frame);
         occupiedBoxes.push(expandBox(boundsForBadgePosition(position, size), 12));
 
         return {
-          segmentId: segment.id,
+          segmentId: group.segments[0]?.id ?? segment.id,
           label: segment.label,
-          impactKinds,
-          impacts,
-          primaryImpact,
+          impactKinds: group.impactKinds,
+          impacts: group.impacts,
+          primaryImpact: group.primaryImpact,
           position,
           size,
         };
       })
       .filter((badge): badge is OverlapBadgeSegment => Boolean(badge));
-  }, [mapCollisionBoxes, overlayCollisionBoxes, renderedOverlaySegments]);
+  }, [mapCollisionBoxes, overlayCollisionBoxes, plannedClosures, renderedOverlaySegments]);
 
 
   return (
@@ -754,12 +768,7 @@ type RenderedPlannedPreviewLayer = {
   closure: PlannedClosure;
 };
 
-type SvgBounds = {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-};
+type SvgBounds = MapBounds;
 
 type OverlapBadgeSize = {
   width: number;
@@ -780,6 +789,14 @@ type OverlapBadgeSegment = {
   size: OverlapBadgeSize;
 };
 
+type OverlapBadgeGroup = {
+  signature: string;
+  segments: RenderedNetworkSegment[];
+  impacts: MapImpact[];
+  impactKinds: MapImpactKind[];
+  primaryImpact: MapImpact;
+};
+
 type OverlayVisualState =
   | "suspension"
   | "delay-static"
@@ -788,7 +805,11 @@ type OverlayVisualState =
 
 const MAP_VIEWBOX_BOUNDS: SvgBounds = { x: 0, y: 0, width: 8250, height: 4000 };
 const OVERLAY_CORRIDOR_COLLISION_RADIUS = 54;
+const BASE_ROUTE_COLLISION_RADIUS = 78;
 const OVERLAP_BADGE_EDGE_GAP = 8;
+const STANDARD_MAP_COMPONENT_MAX_BOUNDS = 1200;
+const LARGE_MAP_COMPONENT_MAX_THICKNESS = 220;
+const LARGE_MAP_COMPONENT_TILE_LENGTH = 760;
 
 function overlapBadgePositionCandidates(size: OverlapBadgeSize, frame?: PathFrame | null): Array<{ dx: number; dy: number }> {
   const sideOffset = OVERLAY_CORRIDOR_COLLISION_RADIUS + size.width / 2 + OVERLAP_BADGE_EDGE_GAP;
@@ -812,7 +833,10 @@ function overlapBadgePositionCandidates(size: OverlapBadgeSize, frame?: PathFram
     { dx: 0, dy: farVerticalOffset },
   ];
 
-  if (!frame) return fallbackCandidates;
+  if (!frame) return dedupeBadgePositionCandidates([
+    ...fallbackCandidates,
+    ...radialBadgePositionCandidates(size),
+  ]);
 
   const normalOffset = normalOffsetForBadge(frame.normal, size);
   const tangentShift = Math.max(64, normalOffsetForBadge(frame.tangent, size) * 0.5);
@@ -820,7 +844,7 @@ function overlapBadgePositionCandidates(size: OverlapBadgeSize, frame?: PathFram
   const farNormal = offsetFromVector(frame.normal, normalOffset + 80);
   const tangent = offsetFromVector(frame.tangent, tangentShift);
 
-  return [
+  return dedupeBadgePositionCandidates([
     nearNormal,
     scaleOffset(nearNormal, -1),
     addVectors(nearNormal, tangent),
@@ -829,8 +853,34 @@ function overlapBadgePositionCandidates(size: OverlapBadgeSize, frame?: PathFram
     addVectors(scaleOffset(nearNormal, -1), scaleOffset(tangent, -1)),
     farNormal,
     scaleOffset(farNormal, -1),
+    ...radialBadgePositionCandidates(size),
     ...fallbackCandidates,
-  ];
+  ]);
+}
+
+function radialBadgePositionCandidates(size: OverlapBadgeSize): Array<{ dx: number; dy: number }> {
+  const baseRadius = OVERLAY_CORRIDOR_COLLISION_RADIUS + Math.max(size.width, size.height) / 2 + OVERLAP_BADGE_EDGE_GAP;
+  return [baseRadius, baseRadius + 80, baseRadius + 160, baseRadius + 240, baseRadius + 320, baseRadius + 400].flatMap((radius) =>
+    [0, 15, 30, 45, 60, 75, 90, 105, 120, 135, 150, 165, 180, 195, 210, 225, 240, 255, 270, 285, 300, 315, 330, 345].map((degrees) => {
+      const radians = degrees * (Math.PI / 180);
+      return {
+        dx: Math.cos(radians) * radius,
+        dy: Math.sin(radians) * radius,
+      };
+    })
+  );
+}
+
+function dedupeBadgePositionCandidates(candidates: Array<{ dx: number; dy: number }>): Array<{ dx: number; dy: number }> {
+  const seen = new Set<string>();
+  const deduped: Array<{ dx: number; dy: number }> = [];
+  for (const candidate of candidates) {
+    const key = `${Math.round(candidate.dx)}:${Math.round(candidate.dy)}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    deduped.push(candidate);
+  }
+  return deduped;
 }
 
 function normalOffsetForBadge(vector: MapPoint, size: OverlapBadgeSize): number {
@@ -909,6 +959,78 @@ function primaryImpactForOverlap(impacts: MapImpact[]): MapImpact | undefined {
   return [...impacts].sort((a, b) => getImpactPriority(b.kind) - getImpactPriority(a.kind))[0];
 }
 
+function activeImpactsForSegment(segment: NetworkSegment): MapImpact[] {
+  return segment.impacts?.length ? segment.impacts : legacyImpactsForSegment(segment);
+}
+
+function plannedPreviewImpactsForSegment(
+  segment: RenderedNetworkSegment,
+  plannedClosures: PlannedClosure[],
+): MapImpact[] {
+  return plannedClosures
+    .filter((closure) => shouldRenderPlannedPreviewLayer(segment, closure))
+    .map((closure) => ({
+      kind: "planned-closure",
+      cardId: closure.id,
+      travelDirection: "bidirectional",
+      sourceAlertIds: [closure.id],
+    }));
+}
+
+function overlapBadgeImpactsForSegment(
+  segment: RenderedNetworkSegment,
+  plannedClosures: PlannedClosure[],
+): MapImpact[] {
+  const impactsByKey = new Map<string, MapImpact>();
+  for (const impact of [
+    ...activeImpactsForSegment(segment),
+    ...plannedPreviewImpactsForSegment(segment, plannedClosures),
+  ]) {
+    impactsByKey.set(`${impact.kind}:${impact.cardId}`, impact);
+  }
+  return Array.from(impactsByKey.values());
+}
+
+function overlapBadgeSignature(impacts: MapImpact[]): string {
+  return impacts
+    .map((impact) => `${impact.kind}:${impact.cardId}`)
+    .sort()
+    .join("|");
+}
+
+function groupOverlapBadgeSegments(
+  segments: RenderedNetworkSegment[],
+  plannedClosures: PlannedClosure[],
+): OverlapBadgeGroup[] {
+  const groups = new Map<string, OverlapBadgeGroup>();
+
+  for (const segment of segments) {
+    const impacts = overlapBadgeImpactsForSegment(segment, plannedClosures);
+    const impactKinds = getUniqueImpactKinds(impacts);
+    if (impactKinds.length <= 1) continue;
+
+    const primaryImpact = primaryImpactForOverlap(impacts);
+    if (!primaryImpact) continue;
+
+    const signature = overlapBadgeSignature(impacts);
+    const group = groups.get(signature);
+    if (group) {
+      group.segments.push(segment);
+      continue;
+    }
+
+    groups.set(signature, {
+      signature,
+      segments: [segment],
+      impacts,
+      impactKinds,
+      primaryImpact,
+    });
+  }
+
+  return Array.from(groups.values());
+}
+
 function overlapBadgeSize(impactKindCount: number): OverlapBadgeSize {
   const visibleCount = Math.min(3, impactKindCount);
   const hasMore = impactKindCount > visibleCount;
@@ -946,6 +1068,27 @@ function boxesIntersect(a: SvgBounds, b: SvgBounds): boolean {
   );
 }
 
+function boxIntersectionArea(a: SvgBounds, b: SvgBounds): number {
+  const width = Math.max(0, Math.min(a.x + a.width, b.x + b.width) - Math.max(a.x, b.x));
+  const height = Math.max(0, Math.min(a.y + a.height, b.y + b.height) - Math.max(a.y, b.y));
+  return width * height;
+}
+
+function scoreBadgeCandidate(
+  position: MapPoint,
+  center: MapPoint,
+  size: OverlapBadgeSize,
+  blockedBoxes: SvgBounds[],
+): number {
+  const candidateBox = expandBox(boundsForBadgePosition(position, size), 10);
+  const overlapArea = blockedBoxes.reduce(
+    (sum, blockedBox) => sum + boxIntersectionArea(candidateBox, blockedBox),
+    0,
+  );
+  const distance = Math.hypot(position.x - center.x, position.y - center.y);
+  return overlapArea * 1_000 + distance;
+}
+
 function clampBadgePosition(position: MapPoint, size: OverlapBadgeSize): MapPoint {
   return {
     x: Math.min(
@@ -966,56 +1109,141 @@ function chooseNonIntersectingBadgePosition(
   frame?: PathFrame | null,
 ): OverlapBadgePosition {
   const candidates = overlapBadgePositionCandidates(size, frame);
+  const scoredPositions: Array<{ position: MapPoint; score: number; collisionAvoided: boolean }> = [];
   for (const candidate of candidates) {
     const position = clampBadgePosition(
       { x: center.x + candidate.dx, y: center.y + candidate.dy },
       size,
     );
     const candidateBox = expandBox(boundsForBadgePosition(position, size), 10);
-    if (!blockedBoxes.some((blockedBox) => boxesIntersect(candidateBox, blockedBox))) {
-      return { ...position, collisionAvoided: true };
-    }
+    const collisionAvoided = !blockedBoxes.some((blockedBox) => boxesIntersect(candidateBox, blockedBox));
+    scoredPositions.push({
+      position,
+      collisionAvoided,
+      score: scoreBadgeCandidate(position, center, size, blockedBoxes),
+    });
   }
 
-  const fallbackCandidate = candidates[0] ?? { dx: 0, dy: 0 };
-  const fallback = clampBadgePosition(
-    {
-      x: center.x + fallbackCandidate.dx,
-      y: center.y + fallbackCandidate.dy,
-    },
-    size,
-  );
-  return { ...fallback, collisionAvoided: false };
+  const best = scoredPositions
+    .sort((a, b) => a.score - b.score)[0];
+  if (best) {
+    return { ...best.position, collisionAvoided: best.collisionAvoided };
+  }
+
+  return { ...clampBadgePosition(center, size), collisionAvoided: false };
+}
+
+const MAP_COLLISION_SELECTORS = [
+  "text",
+  "tspan",
+  "path",
+  "rect",
+  "circle",
+  "ellipse",
+  "polygon",
+  "polyline",
+  "image",
+  "use",
+];
+
+const INJECTED_MAP_OVERLAY_SELECTOR = [
+  '[aria-label="Disruption overlays"]',
+  '[aria-label="Overlapping alert badges"]',
+  '[aria-label="Cardinal North Compass"]',
+  "defs",
+].join(", ");
+
+function isInjectedMapOverlayElement(element: Element): boolean {
+  return Boolean(element.closest(INJECTED_MAP_OVERLAY_SELECTOR));
 }
 
 function collectMapCollisionBoxes(svg: SVGSVGElement): SvgBounds[] {
-  const selectors = [
-    "#layer6 text",
-    "#layer6 path",
-    "#layer6 circle",
-    "#layer6 ellipse",
-    "#layer6 rect",
-    "#layer6 polygon",
-    "#layer6 polyline",
-    "#layer6 image",
-  ].join(", ");
+  const selectors = MAP_COLLISION_SELECTORS.join(", ");
   return Array.from(svg.querySelectorAll(selectors))
-    .map((element) => {
-      if (!(element instanceof SVGGraphicsElement)) return null;
+    .flatMap((element) => {
+      if (!(element instanceof SVGGraphicsElement)) return [];
+      if (isInjectedMapOverlayElement(element)) return [];
       const style = window.getComputedStyle(element);
       if (style.display === "none" || style.visibility === "hidden" || style.opacity === "0") {
-        return null;
+        return [];
       }
       try {
-        const box = element.getBBox();
-        if (box.width <= 0 || box.height <= 0) return null;
-        if (box.width > 1200 || box.height > 1200) return null;
-        return expandBox({ x: box.x, y: box.y, width: box.width, height: box.height }, 18);
+        const box = transformedSvgBounds(element);
+        if (!box) return [];
+        return mapCollisionBoxesForElementBounds(box);
       } catch {
-        return null;
+        return [];
       }
-    })
-    .filter((box): box is SvgBounds => Boolean(box));
+    });
+}
+
+function collectBaseRouteCollisionBoxes(
+  segments: NetworkSegment[],
+  stations: Station[],
+  anchorPoints: Map<string, MapPoint>,
+  guidePaths: Map<string, string>,
+): SvgBounds[] {
+  const seenPaths = new Set<string>();
+  return segments.flatMap((segment) => {
+    const pathD = resolveNetworkSegmentPath(segment, stations, anchorPoints, guidePaths);
+    if (!pathD) return [];
+
+    const key = `${segment.id}:${pathD}`;
+    if (seenPaths.has(key)) return [];
+    seenPaths.add(key);
+
+    return pathCorridorCollisionBoxes(pathD, BASE_ROUTE_COLLISION_RADIUS);
+  });
+}
+
+function mapCollisionBoxesForElementBounds(box: SvgBounds): SvgBounds[] {
+  if (box.width <= 0 || box.height <= 0) return [];
+  if (box.width <= STANDARD_MAP_COMPONENT_MAX_BOUNDS && box.height <= STANDARD_MAP_COMPONENT_MAX_BOUNDS) {
+    return [expandBox(box, 18)];
+  }
+  if (!isLargeMapComponentBounds(box)) return [];
+
+  return splitLargeMapComponentBounds(box).map((tile) => expandBox(tile, 18));
+}
+
+function isLargeMapComponentBounds(box: SvgBounds): boolean {
+  return Math.min(box.width, box.height) <= LARGE_MAP_COMPONENT_MAX_THICKNESS;
+}
+
+function splitLargeMapComponentBounds(box: SvgBounds): SvgBounds[] {
+  const splitHorizontally = box.width >= box.height;
+  const length = splitHorizontally ? box.width : box.height;
+  const tileCount = Math.max(1, Math.ceil(length / LARGE_MAP_COMPONENT_TILE_LENGTH));
+  const tileLength = length / tileCount;
+
+  return Array.from({ length: tileCount }, (_, index) => {
+    if (splitHorizontally) {
+      return {
+        x: box.x + tileLength * index,
+        y: box.y,
+        width: tileLength,
+        height: box.height,
+      };
+    }
+
+    return {
+      x: box.x,
+      y: box.y + tileLength * index,
+      width: box.width,
+      height: tileLength,
+    };
+  });
+}
+
+function transformedSvgBounds(element: SVGGraphicsElement): SvgBounds | null {
+  const box = element.getBBox();
+  if (box.width <= 0 || box.height <= 0) return null;
+
+  return transformBoundsToRootCoordinates(
+    { x: box.x, y: box.y, width: box.width, height: box.height },
+    element.getCTM(),
+    element.ownerSVGElement?.getCTM(),
+  );
 }
 
 function labelForImpactKind(kind: MapImpactKind): string {
@@ -1706,7 +1934,7 @@ function OverlapIndicatorMarker({
         return (
           <g key={kind} data-overlap-kind={kind} transform={`translate(${x} 0)`}>
             <circle className={`overlap-indicator-badge ${kind}`} r={27} />
-            <OverlapKindGlyph kind={kind} />
+            <OverlapKindIcon kind={kind} />
           </g>
         );
       })}
@@ -1722,41 +1950,12 @@ function OverlapIndicatorMarker({
   );
 }
 
-function OverlapKindGlyph({ kind }: { kind: MapImpactKind }) {
-  switch (kind) {
-    case "suspension":
-      return (
-        <path
-          className="overlap-indicator-glyph suspension"
-          d="M 0 -13 L 13 10 H -13 Z"
-          fill="none"
-        />
-      );
-    case "planned-closure":
-      return (
-        <path
-          className="overlap-indicator-glyph planned-closure"
-          d="M -13 -7 H 13 M -13 7 H 13 M -8 -7 L -2 7 M 4 -7 L 10 7"
-          fill="none"
-        />
-      );
-    case "delay":
-      return (
-        <path
-          className="overlap-indicator-glyph delay"
-          d="M -10 -12 H 10 M -10 12 H 10 M -6 -9 C -6 -2 6 -2 6 9 M 6 -9 C 6 -2 -6 -2 -6 9"
-          fill="none"
-        />
-      );
-    case "reduced-speed-zone":
-      return (
-        <path
-          className="overlap-indicator-glyph reduced-speed-zone"
-          d="M -9 -13 L 12 0 L -9 13"
-          fill="none"
-        />
-      );
-  }
+function OverlapKindIcon({ kind }: { kind: MapImpactKind }) {
+  return (
+    <g transform="translate(-17 -17)">
+      <ImpactTypeIcon kind={kind} size={34} className={`overlap-indicator-type-icon ${kind}`} />
+    </g>
+  );
 }
 
 function OverlaySegment({
@@ -1799,9 +1998,6 @@ function OverlaySegment({
   const isSelectedImpact = impact
     ? selection?.kind === impact.kind && selection.id === impact.cardId
     : selection?.kind === "planned-closure" && selection.id === plannedClosure?.id;
-  const isSelectedSegment =
-    selectedSegmentIds.includes(segment.id) ||
-    (segment.sourceSegmentIds?.some((segmentId) => selectedSegmentIds.includes(segmentId)) ?? false);
   const isMapFlash = impact
     ? flashSelection?.kind === impact.kind && flashSelection.id === impact.cardId
     : flashSelection?.kind === "planned-closure" && flashSelection.id === plannedClosure?.id;
@@ -1861,9 +2057,9 @@ function OverlaySegment({
   const ariaLabel = impact
     ? `${impact.kind}: ${segment.label}`
     : `${plannedClosure?.title ?? "Planned closure"}: ${segment.label}`;
-  const selectedClass = isSelectedImpact || isSelectedSegment ? "selected" : "";
+  const selectedClass = isSelectedImpact ? "selected" : "";
   const connectedClass =
-    isMultiSegment || (isSelectedSegment && selectedSegmentIds.length > 1)
+    isMultiSegment || (isSelectedImpact && selectedSegmentIds.length > 1)
       ? "connected-corridor"
       : "";
 

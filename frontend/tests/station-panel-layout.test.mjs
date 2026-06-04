@@ -41,4 +41,14 @@ describe("station detail panel layout", () => {
     assert.match(panelSource, /data-facility-warning/);
     assert.match(panelSource, /formatRelativeImpactTime/);
   });
+
+  it("renders source-linked detail buttons for typed station impacts only", () => {
+    assert.match(panelSource, /getStationImpactDetailsTarget/);
+    assert.match(panelSource, /sourceAlertIds\?\.includes\(impact\.id\)/);
+    assert.match(panelSource, /detailsTarget && onSelectImpact/);
+    assert.match(panelSource, /onSelectImpact\(detailsTarget\.selection\)/);
+    assert.match(panelSource, /Open \$\{detailsTarget\.label\} details/);
+    assert.match(panelSource, /<StationImpactDetailsIcon kind=\{detailsTarget\.selection\.kind\}/);
+    assert.match(panelSource, /View Details/);
+  });
 });

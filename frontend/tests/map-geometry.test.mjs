@@ -60,6 +60,28 @@ describe("map overlay geometry", () => {
     assert.equal(path, "m 4547,3363 c 0,0 -7,227 -235,236");
   });
 
+  it("resolves legacy St George to Spadina guide ids to the current SVG guide path", () => {
+    const path = resolveNetworkSegmentPath(
+      {
+        id: "line-1-spadina-st-george",
+        lineId: "line-1",
+        label: "Spadina to St George",
+        stationAId: "spadina",
+        stationBId: "st-george",
+        guidePathId: "seg-line-1-spadina-st-george",
+        overlay: "delay",
+      },
+      [
+        { id: "spadina", name: "Spadina", x: 3739.5, y: 2524.5 },
+        { id: "st-george", name: "St George", x: 4077.6, y: 2603 },
+      ],
+      new Map(),
+      new Map([["seg-line-1-st-george-spadina", "M 4077.6,2603 V 2524.5 H 3739.5"]]),
+    );
+
+    assert.equal(path, "M 4077.6,2603 V 2524.5 H 3739.5");
+  });
+
   it("centers relative nonlinear guide paths in absolute map coordinates", () => {
     assert.equal(typeof geometry.pathCenter, "function");
 
@@ -159,6 +181,18 @@ describe("map overlay geometry", () => {
     assert.ok(frame.tangent.x > 0.8 && frame.tangent.y > 0.5, `unexpected tangent ${JSON.stringify(frame.tangent)}`);
     assert.ok(frame.normal.x < -0.5 && frame.normal.y > 0.5, `unexpected normal ${JSON.stringify(frame.normal)}`);
     assert.ok(Math.abs(frame.tangent.x * frame.normal.x + frame.tangent.y * frame.normal.y) < 0.001);
+  });
+
+  it("normalizes transformed SVG bounds back into root viewBox coordinates", () => {
+    assert.equal(typeof geometry.transformBoundsToRootCoordinates, "function");
+
+    const bounds = geometry.transformBoundsToRootCoordinates(
+      { x: 100, y: 100, width: 200, height: 80 },
+      { a: 0.54544921875, b: 0, c: 0, d: 0.54544921875, e: 545.4711914062501, f: 272.724609375 },
+      { a: 0.54544921875, b: 0, c: 0, d: 0.54544921875, e: 0.021972656250087288, f: 0 },
+    );
+
+    assert.deepEqual(bounds, { x: 1100, y: 600, width: 200, height: 80 });
   });
 
   it("composes adjacent links into one continuous corridor path", () => {

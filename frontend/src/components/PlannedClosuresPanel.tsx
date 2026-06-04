@@ -6,6 +6,7 @@ import { Calendar, Bus, ChevronLeft } from "lucide-react";
 import type { ImpactSelection } from "../app/linewatch-data";
 import { useScrollSelectedImpactCard } from "../hooks/useScrollSelectedImpactCard";
 import { LineBadge, ImpactRouteHeader, MetadataGrid, CardSource, JumpToLocationIcon } from "./ImpactCardFields";
+import { getOverlappingImpactRefs, OverlappingImpactRefs } from "./ImpactOverlapRefs";
 
 interface Props {
   selection: ImpactSelection;
@@ -14,7 +15,7 @@ interface Props {
 }
 
 export function PlannedClosuresPanel({ selection, onSelectImpact, onBack }: Props) {
-  const { plannedClosures } = useDashboardData();
+  const { activeAlerts, delays, reducedSpeedZones, plannedClosures } = useDashboardData();
   useScrollSelectedImpactCard(selection, "planned-closure");
 
   const handleClosureClick = (closureId: string) => {
@@ -49,6 +50,10 @@ export function PlannedClosuresPanel({ selection, onSelectImpact, onBack }: Prop
       <div className="closure-stack min-w-0 p-3 flex flex-col gap-2">
         {plannedClosures.map((closure) => {
           const isActive = selection?.kind === "planned-closure" && selection.id === closure.id;
+          const overlappingImpacts = getOverlappingImpactRefs(
+            { kind: "planned-closure", id: closure.id, segmentIds: closure.previewSegmentIds ?? [] },
+            { activeAlerts, delays, reducedSpeedZones, plannedClosures },
+          );
           return (
             <div
               key={closure.id}
@@ -104,6 +109,12 @@ export function PlannedClosuresPanel({ selection, onSelectImpact, onBack }: Prop
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 leading-relaxed whitespace-normal break-words">
                 {closure.description}
               </p>
+
+              <OverlappingImpactRefs
+                overlaps={overlappingImpacts}
+                onSelectImpact={onSelectImpact}
+                label="Overlapping:"
+              />
 
               <div className="border-t border-black/10 dark:border-white/10 mt-3 pt-2.5 flex items-end justify-start gap-3 w-full min-w-0">
                 <div className="flex-1 min-w-0">

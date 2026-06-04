@@ -101,12 +101,29 @@ describe("asset-backed map layering", () => {
     );
   });
 
+  it("keeps upcoming closure previews persistent, static, and equal-width to active corridors", () => {
+    assert.match(interactiveMapSource, /plannedClosures\.map\(\(closure\) =>/);
+    assert.doesNotMatch(interactiveMapSource, /if \(!selectedClosure\) return \[\];/);
+    assert.match(interactiveMapSource, /plannedPreviewSegmentIds/);
+    assert.match(interactiveMapSource, /shouldRenderPlannedPreviewLayer\(segment, closure\)/);
+    assert.match(globalCss, /\.asset-alert-path\.planned-preview\s*\{[^}]*opacity:\s*(?:0\.\d+|1(?:\.0)?);/s);
+    assert.match(globalCss, /\.asset-alert-path\.planned-preview\s*\{[^}]*stroke:\s*var\(--planned\);[^}]*stroke-dasharray:\s*none;[^}]*stroke-width:\s*102;/s);
+    assert.doesNotMatch(globalCss, /\.asset-alert-path\.planned-preview\s*\{[^}]*animation:/s);
+    assert.doesNotMatch(globalCss, /\.asset-alert-path\.planned-preview\.selected\s*\{[^}]*stroke-width:\s*118;/s);
+  });
+
   it("renders collision-aware floating badges for segments with overlapping alert types", () => {
     assert.match(interactiveMapSource, /overlapBadgeSegments/);
+    assert.match(interactiveMapSource, /plannedPreviewImpactsForSegment\(segment, plannedClosures\)/);
+    assert.match(interactiveMapSource, /groupOverlapBadgeSegments/);
+    assert.match(interactiveMapSource, /overlapBadgeSignature/);
+    assert.match(interactiveMapSource, /kind: "planned-closure"/);
     assert.match(interactiveMapSource, /aria-label="Overlapping alert badges"/);
     assert.match(interactiveMapSource, /data-overlap-segment-id=\{badge\.segmentId\}/);
     assert.match(interactiveMapSource, /data-overlap-kind=\{kind\}/);
     assert.match(interactiveMapSource, /data-overlap-collision-avoided/);
+    assert.match(interactiveMapSource, /ImpactTypeIcon/);
+    assert.match(interactiveMapSource, /OverlapKindIcon/);
     assert.match(interactiveMapSource, /getUniqueImpactKinds/);
     assert.match(interactiveMapSource, /chooseNonIntersectingBadgePosition/);
     assert.match(interactiveMapSource, /collectMapCollisionBoxes/);
@@ -119,14 +136,35 @@ describe("asset-backed map layering", () => {
     assert.match(interactiveMapSource, /const OVERLAP_BADGE_EDGE_GAP = 8;/);
     assert.match(interactiveMapSource, /overlayCollisionBoxes/);
     assert.match(interactiveMapSource, /function overlapBadgePositionCandidates\(size: OverlapBadgeSize, frame\?: PathFrame \| null\)/);
+    assert.match(interactiveMapSource, /radialBadgePositionCandidates/);
     assert.match(interactiveMapSource, /normalOffsetForBadge\(frame\.normal, size\)/);
-    assert.match(interactiveMapSource, /getBBox\(\)/);
+    assert.match(interactiveMapSource, /transformedSvgBounds/);
+    assert.match(interactiveMapSource, /getCTM\(\)/);
+    assert.match(interactiveMapSource, /transformBoundsToRootCoordinates/);
+    assert.match(interactiveMapSource, /"path"/);
+    assert.match(interactiveMapSource, /isInjectedMapOverlayElement/);
+    assert.match(interactiveMapSource, /mapCollisionBoxesForElementBounds/);
+    assert.match(interactiveMapSource, /collectBaseRouteCollisionBoxes/);
+    assert.match(interactiveMapSource, /BASE_ROUTE_COLLISION_RADIUS/);
+    assert.match(interactiveMapSource, /isLargeMapComponentBounds/);
+    assert.match(interactiveMapSource, /splitLargeMapComponentBounds/);
+    assert.match(interactiveMapSource, /LARGE_MAP_COMPONENT_MAX_THICKNESS/);
+    assert.doesNotMatch(interactiveMapSource, /if \(box\.width > 1200 \|\| box\.height > 1200\) return null;/);
+    assert.match(interactiveMapSource, /scoreBadgeCandidate/);
+    assert.match(interactiveMapSource, /"text"/);
+    assert.match(interactiveMapSource, /"tspan"/);
     assert.doesNotMatch(interactiveMapSource, /const OVERLAP_BADGE_POSITION_CANDIDATES/);
     assert.match(interactiveMapSource, /boxesIntersect/);
     assert.match(globalCss, /\.overlap-indicator-pill/);
+    assert.match(globalCss, /\.overlap-indicator-badge\.suspension/);
     assert.match(globalCss, /\.overlap-indicator-badge\.planned-closure/);
+    assert.match(globalCss, /\.overlap-indicator-badge\.planned-closure\s*\{[^}]*stroke:\s*#3b82f6;/s);
+    assert.match(globalCss, /\.overlap-indicator-badge\.delay\s*\{[^}]*stroke:\s*#f59e0b;/s);
+    assert.match(globalCss, /\.overlap-indicator-type-icon\.delay\s*\{[^}]*color:\s*#f59e0b;/s);
+    assert.doesNotMatch(globalCss, /\.overlap-indicator-badge\.delay\s*\{[^}]*#0ea5e9/s);
+    assert.doesNotMatch(globalCss, /\.overlap-indicator-badge\.suspension,\s*\.overlap-indicator-badge\.planned-closure/);
     assert.match(globalCss, /\.overlap-indicator-badge\.reduced-speed-zone/);
-    assert.match(globalCss, /\.overlap-indicator-glyph/);
+    assert.match(globalCss, /\.overlap-indicator-type-icon/);
     assert.doesNotMatch(globalCss, /\.overlap-side-rail/);
   });
 });

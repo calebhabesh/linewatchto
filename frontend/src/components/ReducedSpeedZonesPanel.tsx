@@ -6,6 +6,7 @@ import { Construction, ChevronLeft } from "lucide-react";
 import type { ImpactSelection } from "../app/linewatch-data";
 import { useScrollSelectedImpactCard } from "../hooks/useScrollSelectedImpactCard";
 import { LineBadge, ImpactRouteHeader, MetadataGrid, CardSource, JumpToLocationIcon } from "./ImpactCardFields";
+import { getOverlappingImpactRefs, OverlappingImpactRefs } from "./ImpactOverlapRefs";
 
 const formatSpeed = (val: string | null | undefined): string | null => {
   if (!val) return null;
@@ -23,7 +24,7 @@ export function ReducedSpeedZonesPanel({
   onSelectImpact,
   onBack,
 }: Props) {
-  const { reducedSpeedZones } = useDashboardData();
+  const { activeAlerts, delays, reducedSpeedZones, plannedClosures } = useDashboardData();
   useScrollSelectedImpactCard(selection, "reduced-speed-zone");
 
   const handleReducedSpeedZoneClick = (alertId: string) => {
@@ -58,6 +59,10 @@ export function ReducedSpeedZonesPanel({
       <div className="alert-stack min-w-0 p-3 flex flex-col gap-2">
         {reducedSpeedZones.map((zone) => {
           const isActive = selection?.kind === "reduced-speed-zone" && selection.id === zone.id;
+          const overlappingImpacts = getOverlappingImpactRefs(
+            { kind: "reduced-speed-zone", id: zone.id, segmentIds: zone.affectedSegmentIds ?? [] },
+            { activeAlerts, delays, reducedSpeedZones, plannedClosures },
+          );
           return (
             <div
               key={zone.id}
@@ -78,6 +83,12 @@ export function ReducedSpeedZonesPanel({
               <ImpactRouteHeader 
                 location={zone.location} 
                 direction={zone.displayDirection}
+              />
+
+              <OverlappingImpactRefs
+                overlaps={overlappingImpacts}
+                onSelectImpact={onSelectImpact}
+                label="Overlapping:"
               />
 
               <div className="border-t border-black/10 dark:border-white/10 mt-3 pt-2.5 flex items-end justify-start gap-3 w-full min-w-0">

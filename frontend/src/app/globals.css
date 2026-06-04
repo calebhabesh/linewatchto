@@ -578,8 +578,7 @@ button {
 }
 
 .asset-alert-path-glow.planned-preview {
-  stroke: rgba(147, 197, 253, 0.3);
-  stroke-width: 180;
+  display: none;
 }
 
 .motion-paused .asset-alert-path-glow,
@@ -603,13 +602,13 @@ button {
 .overlay-segment-group:has(.asset-alert-path:hover) .asset-alert-path-glow,
 .overlay-segment-group:has(.asset-alert-path:focus-visible) .asset-alert-path-glow,
 .asset-alert-path-glow.selected {
-  stroke-width: 260;
-  filter: blur(20px);
-  opacity: 0.7;
+  stroke-width: 190;
+  filter: blur(18px);
+  opacity: 0.55;
 }
 
 .asset-alert-path-glow.selected.suspension {
-  stroke: rgba(59, 130, 246, 0.9);
+  stroke: rgba(59, 130, 246, 0.75);
 }
 
 .interactive-glow {
@@ -620,7 +619,7 @@ button {
 .overlay-segment-group:has(.asset-alert-path:hover) .interactive-glow,
 .overlay-segment-group:has(.asset-alert-path:focus-visible) .interactive-glow,
 .interactive-glow.selected {
-  opacity: 1;
+  opacity: 0.55;
 }
 
 .asset-alert-path {
@@ -689,10 +688,20 @@ button {
 }
 
 .asset-alert-path.planned-preview {
-  opacity: 0.82;
+  opacity: 0.6;
   stroke: var(--planned);
-  stroke-dasharray: 90 64;
-  stroke-width: 86;
+  stroke-dasharray: none;
+  stroke-width: 102;
+  transition: none;
+}
+
+.asset-alert-path.planned-preview:hover,
+.asset-alert-path.planned-preview:focus-visible {
+  opacity: 0.8;
+}
+
+.asset-alert-path.planned-preview.selected {
+  opacity: 0.65;
 }
 
 @keyframes chevron-slide {
@@ -799,44 +808,140 @@ button {
 }
 
 .overlap-indicator-badge {
-  stroke: rgba(255, 255, 255, 0.94);
-  stroke-width: 4;
+  fill: rgba(15, 23, 42, 0.92);
+  stroke-width: 3.5;
 }
 
-.overlap-indicator-badge.suspension,
+.overlap-indicator-badge.suspension {
+  fill: rgba(239, 68, 68, 0.12);
+  stroke: #ef4444;
+}
+
 .overlap-indicator-badge.planned-closure {
-  fill: url(#badge-suspension-hash);
+  fill: rgba(59, 130, 246, 0.12);
+  stroke: #3b82f6;
 }
 
 .overlap-indicator-badge.reduced-speed-zone {
-  fill: #f59e0b;
+  fill: rgba(245, 158, 11, 0.14);
+  stroke: #f59e0b;
 }
 
 .overlap-indicator-badge.delay {
-  fill: #f97316;
+  fill: rgba(245, 158, 11, 0.14);
+  stroke: #f59e0b;
 }
 
 .overlap-indicator-badge.more {
   fill: #334155;
+  stroke: rgba(255, 255, 255, 0.42);
 }
 
-.overlap-indicator-glyph {
-  fill: none;
-  stroke: #ffffff;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  stroke-width: 4.5;
+.impact-type-icon.suspension {
+  color: #ef4444;
 }
 
-.overlap-indicator-glyph.reduced-speed-zone,
-.overlap-indicator-glyph.delay {
-  stroke: #111827;
+.impact-type-icon.delay,
+.impact-type-icon.reduced-speed-zone {
+  color: #f59e0b;
+}
+
+.impact-type-icon.planned-closure {
+  color: #3b82f6;
+}
+
+.overlap-indicator-type-icon {
+  display: block;
+  overflow: visible;
+}
+
+.overlap-indicator-type-icon.suspension {
+  color: #ef4444;
+}
+
+.overlap-indicator-type-icon.delay {
+  color: #f59e0b;
+}
+
+.overlap-indicator-type-icon.reduced-speed-zone {
+  color: #f59e0b;
+}
+
+.overlap-indicator-type-icon.planned-closure {
+  color: #3b82f6;
 }
 
 .overlap-indicator-more {
   fill: #ffffff;
   font-size: 22px;
   font-weight: 900;
+}
+
+.overlap-impact-ref {
+  align-items: flex-start;
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  border-radius: 4px;
+  color: rgb(51, 65, 85);
+  display: inline-flex;
+  font-weight: 700;
+  gap: 6px;
+  max-width: 220px;
+  padding: 4px 6px;
+  text-align: left;
+}
+
+.overlap-impact-ref:hover,
+.overlap-impact-ref:focus-visible {
+  background: rgba(248, 250, 252, 0.96);
+  outline: none;
+}
+
+.dark .overlap-impact-ref,
+.high-contrast .overlap-impact-ref {
+  background: rgba(15, 23, 42, 0.72);
+  border-color: rgba(255, 255, 255, 0.1);
+  color: rgb(226, 232, 240);
+}
+
+.dark .overlap-impact-ref:hover,
+.dark .overlap-impact-ref:focus-visible,
+.high-contrast .overlap-impact-ref:hover,
+.high-contrast .overlap-impact-ref:focus-visible {
+  background: rgba(30, 41, 59, 0.88);
+}
+
+.overlap-impact-ref.suspension {
+  border-color: rgba(239, 68, 68, 0.35);
+  background: rgba(239, 68, 68, 0.08);
+}
+
+.overlap-impact-ref.delay,
+.overlap-impact-ref.reduced-speed-zone {
+  border-color: rgba(245, 158, 11, 0.38);
+  background: rgba(245, 158, 11, 0.08);
+}
+
+.overlap-impact-ref.planned-closure {
+  border-color: rgba(59, 130, 246, 0.38);
+  background: rgba(59, 130, 246, 0.08);
+}
+
+.dark .overlap-impact-ref.suspension,
+.high-contrast .overlap-impact-ref.suspension {
+  background: rgba(127, 29, 29, 0.26);
+}
+
+.dark .overlap-impact-ref.delay,
+.dark .overlap-impact-ref.reduced-speed-zone,
+.high-contrast .overlap-impact-ref.delay,
+.high-contrast .overlap-impact-ref.reduced-speed-zone {
+  background: rgba(120, 53, 15, 0.26);
+}
+
+.dark .overlap-impact-ref.planned-closure,
+.high-contrast .overlap-impact-ref.planned-closure {
+  background: rgba(30, 58, 138, 0.26);
 }
 
 .map-detail-strip {
@@ -1885,4 +1990,3 @@ button {
     width: auto;
   }
 }
-

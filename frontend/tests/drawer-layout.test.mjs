@@ -11,6 +11,8 @@ const impactCardFieldsSource = readFileSync(new URL("../src/components/ImpactCar
 const reducedSpeedZonesSource = readFileSync(new URL("../src/components/ReducedSpeedZonesPanel.tsx", import.meta.url), "utf8");
 const lineLegendSource = readFileSync(new URL("../src/components/LineLegend.tsx", import.meta.url), "utf8");
 const plannedClosuresSource = readFileSync(new URL("../src/components/PlannedClosuresPanel.tsx", import.meta.url), "utf8");
+const impactOverlapRefsSource = readFileSync(new URL("../src/components/ImpactOverlapRefs.tsx", import.meta.url), "utf8");
+const impactTypeIconSource = readFileSync(new URL("../src/components/ImpactTypeIcon.tsx", import.meta.url), "utf8");
 const savedCommutesSource = readFileSync(new URL("../src/components/SavedCommutesPanel.tsx", import.meta.url), "utf8");
 const reliabilitySource = readFileSync(new URL("../src/components/ReliabilityPanel.tsx", import.meta.url), "utf8");
 const pageSource = readFileSync(new URL("../src/app/page.tsx", import.meta.url), "utf8");
@@ -40,7 +42,8 @@ describe("floating menu layout", () => {
     assert.match(reducedSpeedZonesSource, /zone\.displayDirection/);
     assert.match(reducedSpeedZonesSource, /direction=\{zone\.displayDirection\}/);
     assert.match(reducedSpeedZonesSource, /Construction/);
-    assert.match(lineLegendSource, /Construction/);
+    assert.match(lineLegendSource, /ImpactTypeIcon/);
+    assert.match(lineLegendSource, /kind="reduced-speed-zone"/);
     assert.match(lineLegendSource, /View reduced speed zone/);
     assert.doesNotMatch(reducedSpeedZonesSource, />\s*Degraded\s*</);
     assert.doesNotMatch(shellSource, /> Slowdowns</);
@@ -127,30 +130,26 @@ describe("floating menu layout", () => {
     assert.match(impactCardFieldsSource, /causeValue = formatCause/);
   });
 
-  it("renders clickable overlapping impact refs on active alert and delay cards", () => {
-    assert.match(activeAlertsSource, /overlappingImpacts\.length > 0/);
+  it("renders shared clickable overlapping impact refs on every alert card type", () => {
+    assert.match(activeAlertsSource, /getOverlappingImpactRefs/);
+    assert.match(activeAlertsSource, /OverlappingImpactRefs/);
     assert.match(activeAlertsSource, /Overlapping:/);
     assert.doesNotMatch(activeAlertsSource, /Also overlapping:/);
-    assert.match(activeAlertsSource, /onSelectImpact\(overlap\.selection\)/);
-    assert.match(activeAlertsSource, /location: rsz\.location/);
-    assert.match(activeAlertsSource, /location: delay\.location/);
-    assert.match(activeAlertsSource, /formatCompactLocation\(overlap\.location\)/);
-    assert.match(activeAlertsSource, /overlap-impact-location/);
-    assert.match(activeAlertsSource, /<Construction/);
-    assert.match(activeAlertsSource, /<DelayIcon/);
-    assert.match(delaysPanelSource, /hasOverlappingRSZ/);
+    assert.match(delaysPanelSource, /getOverlappingImpactRefs/);
+    assert.match(delaysPanelSource, /OverlappingImpactRefs/);
     assert.match(delaysPanelSource, /Overlapping:/);
     assert.doesNotMatch(delaysPanelSource, /Also overlapping:/);
-    assert.match(delaysPanelSource, /onSelectImpact\(overlap\.selection\)/);
-    assert.match(delaysPanelSource, /location: alert\.location/);
-    assert.match(delaysPanelSource, /location: rsz\.location/);
-    assert.match(delaysPanelSource, /formatCompactLocation\(overlap\.location\)/);
-    assert.match(delaysPanelSource, /overlap-impact-location/);
-    assert.match(delaysPanelSource, /<Construction/);
-    assert.match(delaysPanelSource, /<AlertTriangle/);
-    assert.match(delaysPanelSource, /Reduced Speed Zone/);
+    assert.match(reducedSpeedZonesSource, /getOverlappingImpactRefs/);
+    assert.match(reducedSpeedZonesSource, /OverlappingImpactRefs/);
+    assert.match(plannedClosuresSource, /getOverlappingImpactRefs/);
+    assert.match(plannedClosuresSource, /OverlappingImpactRefs/);
+    assert.match(plannedClosuresSource, /previewSegmentIds/);
     assert.match(impactCardFieldsSource, /export function formatCompactLocation/);
     assert.match(impactCardFieldsSource, /bounds\.twoWay \? "↔" : "→"/);
+    assert.match(impactOverlapRefsSource, /ImpactTypeIcon/);
+    assert.match(impactTypeIconSource, /impact-type-icon/);
+    assert.match(impactOverlapRefsSource, /overlap-impact-ref/);
+    assert.doesNotMatch(impactOverlapRefsSource, /text-sky-500/);
   });
 
   it("routes active planned closures through active alerts instead of upcoming closures", () => {
@@ -192,4 +191,3 @@ describe("floating menu layout", () => {
     assert.match(globalCss, /#FACC15/);
   });
 });
-

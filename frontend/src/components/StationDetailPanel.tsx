@@ -1,18 +1,109 @@
 "use client";
 
-import { AlertTriangle, Clock3, X } from "lucide-react";
+import { AlertTriangle, Calendar, Check, Clock3, Construction, X } from "lucide-react";
 import Image from "next/image";
 import { formatRelativeImpactTime } from "../app/impact-time";
-import type { StationDataResult, StationDetail } from "../app/station-data";
+import type { StationDataResult, StationDetail, StationImpact } from "../app/station-data";
+import { useDashboardData } from "../app/DataContext";
+import type {
+  ActiveAlert,
+  DelayAlert,
+  ImpactKind,
+  ImpactSelection,
+  PlannedClosure,
+  ReducedSpeedZone,
+} from "../app/linewatch-data";
+import { DelayIcon } from "./DelayIcon";
 
 type Props = {
   stationResult: StationDataResult<StationDetail | null> | null;
   loading: boolean;
   selectedStationName?: string;
   onClose: () => void;
+  onSelectImpact?: (selection: ImpactSelection) => void;
 };
 
-export function StationDetailPanel({ stationResult, loading, selectedStationName, onClose }: Props) {
+type StationImpactDetailsTarget = {
+  label: string;
+  selection: NonNullable<ImpactSelection>;
+};
+
+function getStationImpactDetailsTarget(
+  impact: StationImpact,
+  activeAlerts: ActiveAlert[],
+  delays: DelayAlert[],
+  reducedSpeedZones: ReducedSpeedZone[],
+  plannedClosures: PlannedClosure[]
+): StationImpactDetailsTarget | null {
+  const reducedSpeedZone = reducedSpeedZones.find(
+    (zone) => zone.id === impact.id || zone.sourceAlertIds?.includes(impact.id)
+  );
+  if (reducedSpeedZone) {
+    return {
+      label: "Reduced Speed Zone",
+      selection: { kind: "reduced-speed-zone", id: reducedSpeedZone.id },
+    };
+  }
+
+  const plannedClosure = plannedClosures.find((closure) => closure.id === impact.id);
+  if (plannedClosure) {
+    return {
+      label: "Planned Closure",
+      selection: { kind: "planned-closure", id: plannedClosure.id },
+    };
+  }
+
+  const matchingAlert = activeAlerts.find((a) => a.id === impact.id);
+  if (matchingAlert) {
+    if (matchingAlert.severity === "planned") {
+      return {
+        label: "Planned Closure",
+        selection: { kind: "planned-closure", id: matchingAlert.id },
+      };
+    }
+
+    if (matchingAlert.severity === "suspension") {
+      return {
+        label: "Active Alert",
+        selection: { kind: "suspension", id: matchingAlert.id },
+      };
+    }
+
+    return {
+      label: "Delay",
+      selection: { kind: "delay", id: matchingAlert.id },
+    };
+  }
+
+  const delay = delays.find((d) => d.id === impact.id);
+  if (delay) {
+    return {
+      label: "Delay",
+      selection: { kind: "delay", id: delay.id },
+    };
+  }
+
+  return null;
+}
+
+function StationImpactDetailsIcon({ kind }: { kind: ImpactKind }) {
+  if (kind === "delay") {
+    return <DelayIcon size={14} className="shrink-0 text-amber-500" />;
+  }
+
+  if (kind === "reduced-speed-zone") {
+    return <Construction size={14} className="shrink-0 text-amber-500" />;
+  }
+
+  if (kind === "planned-closure") {
+    return <Calendar size={14} className="shrink-0 text-blue-500" />;
+  }
+
+  return <AlertTriangle size={14} className="shrink-0 text-red-500" />;
+}
+
+export function StationDetailPanel({ stationResult, loading, selectedStationName, onClose, onSelectImpact }: Props) {
+  const { activeAlerts, delays, reducedSpeedZones, plannedClosures } = useDashboardData();
   const station = stationResult?.data ?? null;
   const source = stationResult?.source;
   const hasElevatorOutage = station?.access.outages.some(
@@ -30,6 +121,9 @@ export function StationDetailPanel({ stationResult, loading, selectedStationName
         return a.assetType === "elevator" ? -1 : 1;
       })
     : [];
+
+  const isWheelchairAccessible = station?.lines.some((line) => line.wheelchairAccessible) ?? false;
+  const hasElevator = station?.lines.some((line) => line.hasElevator) ?? false;
 
   return (
     <aside
@@ -55,6 +149,23 @@ export function StationDetailPanel({ stationResult, loading, selectedStationName
           <X size={20} />
         </button>
       </div>
+
+      {!loading && station && (isWheelchairAccessible || hasElevator) && (
+        <div className="mt-3 flex flex-wrap gap-1.5">
+          {isWheelchairAccessible && (
+            <span className="inline-flex items-center gap-1 shrink-0 text-[9px] sm:text-[10px] font-bold text-slate-800 dark:text-slate-200 px-2 py-0.5 rounded-[4px] border border-black/15 dark:border-white/15 uppercase tracking-wider bg-slate-100 dark:bg-white/5 whitespace-nowrap">
+              <Check size={11} className="text-emerald-600 dark:text-emerald-400 stroke-[3.5] shrink-0" />
+              Wheelchair Accessible
+            </span>
+          )}
+          {hasElevator && (
+            <span className="inline-flex items-center gap-1 shrink-0 text-[9px] sm:text-[10px] font-bold text-slate-800 dark:text-slate-200 px-2 py-0.5 rounded-[4px] border border-black/15 dark:border-white/15 uppercase tracking-wider bg-slate-100 dark:bg-white/5 whitespace-nowrap">
+              <Check size={11} className="text-emerald-600 dark:text-emerald-400 stroke-[3.5] shrink-0" />
+              Elevator Access
+            </span>
+          )}
+        </div>
+      )}
 
       {loading && (
         <div className="mt-4 rounded-lg border border-black/10 bg-slate-100 p-3 text-sm font-semibold text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
@@ -250,17 +361,39 @@ export function StationDetailPanel({ stationResult, loading, selectedStationName
               <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">No active impacts for this station.</p>
             ) : (
               <div className="mt-2 flex flex-col gap-2">
-                {station.impacts.map((impact) => (
-                  <div key={impact.id} className="rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-sm">
-                    <strong className="block text-amber-800 dark:text-amber-200">{impact.title}</strong>
-                    <p className="mt-1 text-slate-600 dark:text-slate-300">{impact.summary}</p>
-                    <p className="mt-1 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-                      {impact.source} / {impact.updatedAt
-                        ? formatRelativeImpactTime(impact.updatedAt)
-                        : impact.updatedAgo}
-                    </p>
-                  </div>
-                ))}
+                {station.impacts.map((impact) => {
+                  const detailsTarget = getStationImpactDetailsTarget(
+                    impact,
+                    activeAlerts,
+                    delays,
+                    reducedSpeedZones,
+                    plannedClosures
+                  );
+                  return (
+                    <div key={impact.id} className="flex flex-col gap-2 rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-sm">
+                      <div>
+                        <strong className="block text-amber-800 dark:text-amber-200">{impact.title}</strong>
+                        <p className="mt-1 text-slate-600 dark:text-slate-300">{impact.summary}</p>
+                        <p className="mt-1 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                          {impact.source} / {impact.updatedAt
+                            ? formatRelativeImpactTime(impact.updatedAt)
+                            : impact.updatedAgo}
+                        </p>
+                      </div>
+                      {detailsTarget && onSelectImpact && (
+                        <button
+                          type="button"
+                          onClick={() => onSelectImpact(detailsTarget.selection)}
+                          aria-label={`Open ${detailsTarget.label} details`}
+                          className="mt-1 self-end inline-flex min-h-9 w-fit max-w-full items-center justify-center gap-2 rounded-md border border-slate-200 bg-white/80 px-3 py-1.5 text-xs font-bold text-slate-700 shadow-sm transition-all hover:bg-white hover:text-slate-900 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-500/30 active:scale-95 dark:border-white/10 dark:bg-[#12151c]/80 dark:text-slate-300 dark:hover:bg-[#12151c] dark:hover:text-white"
+                        >
+                          <StationImpactDetailsIcon kind={detailsTarget.selection.kind} />
+                          <span className="truncate">View Details</span>
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             )}
           </section>
