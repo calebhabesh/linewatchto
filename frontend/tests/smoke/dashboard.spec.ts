@@ -73,6 +73,10 @@ async function freezeBrowserTime(page: Page, isoTime: string) {
   `);
 }
 
+test.beforeEach(async ({ page }) => {
+  await freezeBrowserTime(page, "2026-06-04T12:00:00-04:00");
+});
+
 test("shows subway closed screen overnight and lets riders peek at the map", async ({ page, request }) => {
   await setStubMode(request, "seeded");
   await freezeBrowserTime(page, "2026-06-04T03:20:00-04:00");
