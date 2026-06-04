@@ -76,7 +76,7 @@ test("renders the seeded dashboard API payload", async ({ page, request }) => {
   await expect(page.getByText("Track issue").first()).toBeVisible();
   await expect(page.getByText("Mid-June")).toBeVisible();
 
-  await page.locator('.alert-card').filter({ hasText: 'Eglinton' }).getByRole("button", { name: "Highlight on Map" }).click();
+  await page.locator('.alert-card').filter({ hasText: 'Eglinton' }).getByRole("button", { name: "Show on Map" }).click();
   await expect(page.locator('[data-map-highlight-id="reduced-speed-zone-stub-zone-south-source"]')).toBeVisible();
 });
 
@@ -144,7 +144,7 @@ test("renders active planned closures and active now badges", async ({ page, req
   await expect(page.locator('[data-impact-card-id="stub-closure-line-1"]')).toBeVisible();
   await expect(page.getByText("Active now", { exact: true })).toBeVisible();
 
-  await page.locator('[data-impact-card-id="stub-closure-line-1"]').getByRole("button", { name: "Highlight on Map" }).click();
+  await page.locator('[data-impact-card-id="stub-closure-line-1"]').getByRole("button", { name: "Show on Map" }).click();
   await expect(page.locator('[data-impact-card-id="stub-closure-line-1"]')).toHaveClass(/highlight-active-card/);
 });
 

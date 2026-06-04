@@ -3,6 +3,7 @@
 import { useEffect, useState, useMemo, useLayoutEffect, useRef } from "react";
 import {
   composeNetworkSegmentPath,
+  pathCenter,
   readSvgGeometry,
   resolveNetworkSegmentPath,
   visualTravelDirection,
@@ -21,9 +22,47 @@ import type {
   NetworkSegment,
   PlannedClosure,
   ReducedSpeedZone,
+  Station,
 } from "../app/linewatch-data";
 import type { StationSummary } from "../app/station-data";
 import { LogsDropdown } from "./LogsDropdown";
+
+function getSegmentsCenter(
+  segmentIds: string[],
+  segmentsList: NetworkSegment[],
+  stations: Station[],
+  anchorPoints: Map<string, MapPoint>,
+  guidePaths: Map<string, string>
+): MapPoint | null {
+  if (segmentIds.length === 0) return null;
+
+  let totalSumX = 0;
+  let totalSumY = 0;
+  let totalPointsCount = 0;
+
+  segmentIds.forEach((id) => {
+    const segment = segmentsList.find((s) => s.id === id);
+    if (!segment) return;
+
+    const pathD = resolveNetworkSegmentPath(segment, stations, anchorPoints, guidePaths);
+    if (!pathD) return;
+
+    const center = pathCenter(pathD);
+    if (!center) return;
+
+    totalSumX += center.x;
+    totalSumY += center.y;
+    totalPointsCount++;
+  });
+
+  if (totalPointsCount === 0) return null;
+
+  const scaleFactor = 4500 / 8250;
+  return {
+    x: (totalSumX / totalPointsCount) * scaleFactor,
+    y: (totalSumY / totalPointsCount) * scaleFactor,
+  };
+}
 
 export function InteractiveTtcMap({
   selection,
@@ -76,6 +115,7 @@ export function InteractiveTtcMap({
     zoomIn,
     zoomOut,
     zoomToScale,
+    zoomToPoint,
   } = usePanZoom();
 
   // Load SVG
@@ -175,6 +215,25 @@ export function InteractiveTtcMap({
     const timer = window.setTimeout(() => setFlashSelection(null), 2500);
     return () => { window.clearTimeout(timer0); window.clearTimeout(timer); };
   }, [selection]);
+
+  const prevSelectionRef = useRef<ImpactSelection>(null);
+
+  useEffect(() => {
+    const prevSelection = prevSelectionRef.current;
+    prevSelectionRef.current = selection;
+
+    if (!selection) {
+      if (prevSelection && loadState === "ready") {
+        recenter();
+      }
+      return;
+    }
+    if (selectedSegmentIds.length === 0) return;
+    const center = getSegmentsCenter(selectedSegmentIds, networkSegments, mapStations, anchorPoints, guidePaths);
+    if (center) {
+      zoomToPoint(center.x, center.y, 1.5);
+    }
+  }, [selection, selectedSegmentIds, networkSegments, mapStations, anchorPoints, guidePaths, zoomToPoint, loadState, recenter]);
 
   const stationBySummaryId = useMemo(() => {
     return new Map(stations.map((station) => [station.id, station]));
@@ -379,7 +438,7 @@ export function InteractiveTtcMap({
             style={{
               transform: `translate(${transform.x}px, ${transform.y}px) scale(${transform.scale})`,
               transformOrigin: "0 0",
-              transition: isAnimating ? "transform 0.4s cubic-bezier(0.25, 1, 0.5, 1)" : isDragging ? "none" : "transform 0.1s ease-out",
+              transition: isAnimating ? "transform 1.8s cubic-bezier(0.25, 1, 0.5, 1)" : isDragging ? "none" : "transform 0.1s ease-out",
               willChange: isDragging || isAnimating ? "transform" : "auto",
             }}
           >
@@ -1170,7 +1229,7 @@ function OverlaySegment({
       : "";
 
   return (
-    <g className={connectedClass || undefined}>
+    <g className={`overlay-segment-group ${connectedClass}`.trim()}>
 
 
       <path

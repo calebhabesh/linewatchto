@@ -105,11 +105,11 @@ describe("floating menu layout", () => {
     assert.doesNotMatch(activeAlertsSource, /Preview on Map|Hide Map Preview/);
     assert.doesNotMatch(reducedSpeedZonesSource, /Preview Reduced Speed Zone|Hide Map Preview/);
     assert.doesNotMatch(plannedClosuresSource, /Preview on Map|Hide Map Preview/);
-    assert.match(activeAlertsSource, /Highlight on Map/);
+    assert.match(activeAlertsSource, /Show on Map/);
     assert.match(activeAlertsSource, /Clear Highlight/);
-    assert.match(reducedSpeedZonesSource, /Highlight on Map/);
+    assert.match(reducedSpeedZonesSource, /Show on Map/);
     assert.match(reducedSpeedZonesSource, /Clear Highlight/);
-    assert.match(plannedClosuresSource, /Highlight on Map/);
+    assert.match(plannedClosuresSource, /Show on Map/);
     assert.match(plannedClosuresSource, /Clear Highlight/);
   });
 });

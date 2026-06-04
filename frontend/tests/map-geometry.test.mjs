@@ -1,12 +1,14 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import {
+import * as geometry from "../src/app/map-geometry.ts";
+
+const {
   composeNetworkSegmentPath,
   resolveNetworkSegmentPath,
   visualTravelDirection,
   samplePath,
-} from "../src/app/map-geometry.ts";
+} = geometry;
 
 const stations = [
   { id: "eglinton", name: "Eglinton", x: 4547, y: 1808 },
@@ -54,6 +56,16 @@ describe("map overlay geometry", () => {
     );
 
     assert.equal(path, "m 4547,3363 c 0,0 -7,227 -235,236");
+  });
+
+  it("centers relative nonlinear guide paths in absolute map coordinates", () => {
+    assert.equal(typeof geometry.pathCenter, "function");
+
+    const center = geometry.pathCenter("m 4074.3935,3363.3976 c 0,0 7.734,227.6 235.334,236.4388");
+
+    assert.notEqual(center, null);
+    assert.ok(center.x > 4070 && center.x < 4315, `expected x near the Union loop, got ${center.x}`);
+    assert.ok(center.y > 3360 && center.y < 3605, `expected y near the Union loop, got ${center.y}`);
   });
 
   it("falls back to database station coordinates when an svg anchor is missing", () => {

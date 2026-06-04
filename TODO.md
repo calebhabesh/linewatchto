@@ -18,11 +18,9 @@
 - [ ] Why does high contrast mode switch when we dark mode shift
 - [ ] Auth for resume project fullness
 - [ ] Accounts can save stops that they frequent and routes they frequent
-- [ ] zoom when highlighting part of map
 - [ ] No service between implies bidrectional, otherwise directionality should be maintained.
-- [ ] click and drag to move around info
+- [ ] glow animation on card
+- [ ] list view icon with search and all the stations list below (sorted nicely)
 - [ ] Site not affiliated with TTC
 - [ ] Revamp, delay ui overlay, and station alert overlay (maybe like a probing effect, heart monitor pulse)
-- [ ] lowercase just now in rsz, km/h km/h, "just now" capitalize
-- [ ] shouldn't glow all alerts when pressed, just the one being hovered.
 - [ ] Search Stations functionality

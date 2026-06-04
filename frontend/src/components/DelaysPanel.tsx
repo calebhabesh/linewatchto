@@ -1,11 +1,11 @@
 "use client";
 
-import { ChevronLeft, Eye, EyeOff } from "lucide-react";
+import { ChevronLeft } from "lucide-react";
 import type { ImpactSelection } from "../app/linewatch-data";
 import { useDashboardData } from "../app/DataContext";
 import { DelayIcon } from "./DelayIcon";
 import { useScrollSelectedImpactCard } from "../hooks/useScrollSelectedImpactCard";
-import { ImpactRouteHeader, LineBadge, MetadataGrid, CardSource } from "./ImpactCardFields";
+import { ImpactRouteHeader, LineBadge, MetadataGrid, CardSource, JumpToLocationIcon } from "./ImpactCardFields";
 
 interface Props {
   selection: ImpactSelection;
@@ -72,33 +72,32 @@ export function DelaysPanel({ selection, onSelectImpact, onBack }: Props) {
                 {delay.description}
               </p>
 
-              <MetadataGrid
-                cause={delay.cause}
-                startedAt={delay.startedAt}
-                updatedAt={delay.updatedAt}
-              />
+              <div className="border-t border-black/10 dark:border-white/10 mt-3 pt-2.5 flex items-center justify-start gap-3 w-full min-w-0">
+                <div className="flex-1 min-w-0">
+                  <MetadataGrid
+                    className="no-border"
+                    cause={delay.cause}
+                    startedAt={delay.startedAt}
+                    updatedAt={delay.updatedAt}
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleDelayClick(delay.id)}
+                  className={`w-20 h-20 rounded-xl flex flex-col items-center justify-center border transition-all cursor-pointer shrink-0 ${
+                    isActive
+                      ? "bg-slate-600 text-white border-slate-700 hover:bg-slate-700 dark:bg-slate-500 dark:border-slate-600 dark:hover:bg-slate-400 shadow-[0_0_12px_rgba(100,116,139,0.3)]"
+                      : "bg-slate-100 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700/60 hover:bg-slate-200 dark:bg-slate-800/80 dark:hover:bg-slate-700"
+                  }`}
+                >
+                  <JumpToLocationIcon className="w-8 h-8" />
+                  <span className="text-[9px] font-black uppercase tracking-wider text-center leading-tight mt-1.5 max-w-[72px] whitespace-normal break-words">
+                    {isActive ? "Clear Highlight" : "Show on Map"}
+                  </span>
+                </button>
+              </div>
 
-              <button
-                type="button"
-                onClick={() => handleDelayClick(delay.id)}
-                className={`preview-button mt-3 w-full flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-md text-xs font-bold transition-all border whitespace-normal ${
-                  isActive
-                    ? "bg-amber-500 text-white border-amber-600 hover:bg-amber-600"
-                    : "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20 hover:bg-amber-500/20"
-                }`}
-              >
-                {isActive ? (
-                  <>
-                    <EyeOff size={14} />
-                    Clear Highlight
-                  </>
-                ) : (
-                  <>
-                    <Eye size={14} />
-                    Highlight on Map
-                  </>
-                )}
-              </button>
+
             </article>
           );
         })}

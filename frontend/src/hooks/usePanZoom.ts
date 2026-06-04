@@ -16,7 +16,7 @@ export function usePanZoom() {
   const startAnimation = useCallback(() => {
     setIsAnimating(true);
     if (animTimeoutRef.current) window.clearTimeout(animTimeoutRef.current);
-    animTimeoutRef.current = window.setTimeout(() => setIsAnimating(false), 400);
+    animTimeoutRef.current = window.setTimeout(() => setIsAnimating(false), 1800);
   }, []);
 
   // Keep transformRef in sync with transform state when not dragging
@@ -243,6 +243,21 @@ export function usePanZoom() {
     });
   }, [fitScale]);
 
+  const zoomToPoint = useCallback((mapX: number, mapY: number, targetRelativeScale = 1.5) => {
+    if (!containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    const centerX = rect.width / 2;
+    const centerY = rect.height / 2;
+
+    const targetAbsoluteScale = targetRelativeScale * fitScale;
+
+    const newX = centerX - mapX * targetAbsoluteScale;
+    const newY = centerY - mapY * targetAbsoluteScale;
+
+    setTransform({ x: newX, y: newY, scale: targetAbsoluteScale });
+    startAnimation();
+  }, [fitScale, startAnimation]);
+
   // Compute the current user-facing relative zoom level (e.g. 1.0 = 100%)
   const relativeScale = transform.scale / (fitScale || 1);
 
@@ -261,5 +276,6 @@ export function usePanZoom() {
     zoomIn,
     zoomOut,
     zoomToScale,
+    zoomToPoint,
   };
 }

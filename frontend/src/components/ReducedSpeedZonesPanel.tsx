@@ -2,10 +2,15 @@
 
 
 import { useDashboardData } from "../app/DataContext";
-import { Construction, ChevronLeft, Eye, EyeOff } from "lucide-react";
+import { Construction, ChevronLeft } from "lucide-react";
 import type { ImpactSelection } from "../app/linewatch-data";
 import { useScrollSelectedImpactCard } from "../hooks/useScrollSelectedImpactCard";
-import { LineBadge, ImpactRouteHeader, MetadataGrid, CardSource } from "./ImpactCardFields";
+import { LineBadge, ImpactRouteHeader, MetadataGrid, CardSource, JumpToLocationIcon } from "./ImpactCardFields";
+
+const formatSpeed = (val: string | null | undefined): string | null => {
+  if (!val) return null;
+  return val.toLowerCase().includes("km/h") ? val : `${val} km/h`;
+};
 
 interface Props {
   selection: ImpactSelection;
@@ -75,40 +80,40 @@ export function ReducedSpeedZonesPanel({
                 direction={zone.displayDirection}
               />
 
-              <MetadataGrid 
-                cause={zone.cause}
-                resolution={zone.resolution}
-                reason={zone.reason} 
-                targetRemoval={zone.targetRemoval} 
-                startedAt={zone.startedAt}
-                updatedAt={zone.updatedAt}
-                updatedAgo={zone.updatedAgo} 
-                extraRows={[
-                  { label: "Reduced speed", value: zone.reducedSpeed ? `${zone.reducedSpeed} km/h` : null },
-                  { label: "Average speed", value: zone.averageSpeed ? `${zone.averageSpeed} km/h` : null },
-                ]}
-              />
+              <div className="border-t border-black/10 dark:border-white/10 mt-3 pt-2.5 flex items-center justify-start gap-3 w-full min-w-0">
+                <div className="flex-1 min-w-0">
+                  <MetadataGrid 
+                    className="no-border"
+                    cause={zone.cause}
+                    resolution={zone.resolution}
+                    reason={zone.reason} 
+                    targetRemoval={zone.targetRemoval} 
+                    startedAt={zone.startedAt}
+                    updatedAt={zone.updatedAt}
+                    updatedAgo={zone.updatedAgo} 
+                    extraRows={[
+                      { label: "Reduced speed", value: formatSpeed(zone.reducedSpeed) },
+                      { label: "Average speed", value: formatSpeed(zone.averageSpeed) },
+                    ]}
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleReducedSpeedZoneClick(zone.id)}
+                  className={`w-20 h-20 rounded-xl flex flex-col items-center justify-center border transition-all cursor-pointer shrink-0 ${
+                    isActive
+                      ? "bg-slate-600 text-white border-slate-700 hover:bg-slate-700 dark:bg-slate-500 dark:border-slate-600 dark:hover:bg-slate-400 shadow-[0_0_12px_rgba(100,116,139,0.3)]"
+                      : "bg-slate-100 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700/60 hover:bg-slate-200 dark:bg-slate-800/80 dark:hover:bg-slate-700"
+                  }`}
+                >
+                  <JumpToLocationIcon className="w-8 h-8" />
+                  <span className="text-[9px] font-black uppercase tracking-wider text-center leading-tight mt-1.5 max-w-[72px] whitespace-normal break-words">
+                    {isActive ? "Clear Highlight" : "Show on Map"}
+                  </span>
+                </button>
+              </div>
 
-              <button
-                onClick={() => handleReducedSpeedZoneClick(zone.id)}
-                className={`preview-button mt-3 w-full flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-md text-xs font-bold transition-all border whitespace-normal ${
-                  isActive
-                    ? "bg-amber-500 text-white border-amber-600 hover:bg-amber-600"
-                    : "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20 hover:bg-amber-500/20"
-                }`}
-              >
-                {isActive ? (
-                  <>
-                    <EyeOff size={14} />
-                    Clear Highlight
-                  </>
-                ) : (
-                  <>
-                    <Eye size={14} />
-                    Highlight on Map
-                  </>
-                )}
-              </button>
+
             </div>
           );
         })}

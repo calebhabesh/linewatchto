@@ -2,10 +2,10 @@
 
 
 import { useDashboardData } from "../app/DataContext";
-import { Calendar, Eye, EyeOff, Bus, ChevronLeft } from "lucide-react";
+import { Calendar, Bus, ChevronLeft } from "lucide-react";
 import type { ImpactSelection } from "../app/linewatch-data";
 import { useScrollSelectedImpactCard } from "../hooks/useScrollSelectedImpactCard";
-import { LineBadge, ImpactRouteHeader, MetadataGrid, CardSource } from "./ImpactCardFields";
+import { LineBadge, ImpactRouteHeader, MetadataGrid, CardSource, JumpToLocationIcon } from "./ImpactCardFields";
 
 interface Props {
   selection: ImpactSelection;
@@ -79,7 +79,7 @@ export function PlannedClosuresPanel({ selection, onSelectImpact, onBack }: Prop
                     )}
                   </div>
                 </div>
-                <div className="flex flex-col items-end gap-1 shrink-0">
+                <div className="flex flex-col items-end gap-1 shrink-0 mt-0.5">
                   {closure.activeNow && (
                     <span className="flex items-center gap-1 text-[10px] bg-red-500/10 text-red-500 dark:text-red-400 px-1.5 py-0.5 rounded font-bold uppercase tracking-wider">
                       Active now
@@ -105,36 +105,36 @@ export function PlannedClosuresPanel({ selection, onSelectImpact, onBack }: Prop
                 {closure.description}
               </p>
 
-              <MetadataGrid 
-                cause={closure.cause}
-                resolution={closure.resolution}
-                reason={closure.reason} 
-                targetRemoval={closure.targetRemoval} 
-                startedAt={closure.startedAt}
-                updatedAt={closure.updatedAt}
-                updatedAgo={closure.updatedAgo} 
-              />
+              <div className="border-t border-black/10 dark:border-white/10 mt-3 pt-2.5 flex items-center justify-start gap-3 w-full min-w-0">
+                <div className="flex-1 min-w-0">
+                  <MetadataGrid 
+                    className="no-border"
+                    cause={closure.cause}
+                    resolution={closure.resolution}
+                    reason={closure.reason} 
+                    targetRemoval={closure.targetRemoval} 
+                    startedAt={closure.startedAt}
+                    updatedAt={closure.updatedAt}
+                    updatedAgo={closure.updatedAgo} 
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleClosureClick(closure.id)}
+                  className={`w-20 h-20 rounded-xl flex flex-col items-center justify-center border transition-all cursor-pointer shrink-0 ${
+                    isActive
+                      ? "bg-slate-600 text-white border-slate-700 hover:bg-slate-700 dark:bg-slate-500 dark:border-slate-600 dark:hover:bg-slate-400 shadow-[0_0_12px_rgba(100,116,139,0.3)]"
+                      : "bg-slate-100 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700/60 hover:bg-slate-200 dark:bg-slate-800/80 dark:hover:bg-slate-700"
+                  }`}
+                >
+                  <JumpToLocationIcon className="w-8 h-8" />
+                  <span className="text-[9px] font-black uppercase tracking-wider text-center leading-tight mt-1.5 max-w-[72px] whitespace-normal break-words">
+                    {isActive ? "Clear Highlight" : "Show on Map"}
+                  </span>
+                </button>
+              </div>
 
-              <button
-                onClick={() => handleClosureClick(closure.id)}
-                className={`preview-button mt-3 flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-md text-xs font-bold transition-all border whitespace-normal ${
-                  isActive
-                    ? "bg-blue-500 text-white border-blue-600 hover:bg-blue-600"
-                    : "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20 hover:bg-blue-500/20"
-                }`}
-              >
-                {isActive ? (
-                  <>
-                    <EyeOff size={14} />
-                    Clear Highlight
-                  </>
-                ) : (
-                  <>
-                    <Eye size={14} />
-                    Highlight on Map
-                  </>
-                )}
-              </button>
+
             </div>
           );
         })}

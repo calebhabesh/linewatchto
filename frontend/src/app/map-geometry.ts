@@ -98,6 +98,26 @@ export function samplePath(pathD: string, spacing: number = 56): SampledPath {
   }
 }
 
+export function pathCenter(pathD: string): MapPoint | null {
+  const points = pathToPolylinePoints(pathD);
+  if (points.length === 0) {
+    return null;
+  }
+
+  const total = points.reduce(
+    (sum, point) => ({
+      x: sum.x + point.x,
+      y: sum.y + point.y,
+    }),
+    { x: 0, y: 0 },
+  );
+
+  return {
+    x: total.x / points.length,
+    y: total.y / points.length,
+  };
+}
+
 export function composeNetworkSegmentPath(
   segments: ComposableNetworkSegment[],
   travelDirection: CorridorTravelDirection = "bidirectional",
