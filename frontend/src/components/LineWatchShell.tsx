@@ -26,6 +26,9 @@ import {
 import { StationDetailPanel } from "./StationDetailPanel";
 import { useTorontoClock } from "../hooks/useTorontoClock";
 import { Menu, X, Map as MapIcon, AlertTriangle, Calendar, Navigation, ShieldCheck, BarChart3, Construction } from "lucide-react";
+import { SubwayClosedScreen } from "./SubwayClosedScreen";
+import { useSubwayOperatingState } from "../hooks/useSubwayOperatingState";
+
 
 type ActiveView = "map" | "menu" | "alerts" | "delays" | "reduced-speed-zones" | "closures" | "commutes" | "analytics";
 
@@ -52,6 +55,11 @@ export function LineWatchShell({ initialData }: { initialData: DashboardData }) 
   const [activeView, setActiveView] = useState<ActiveView>("map");
   const clock = useTorontoClock(generatedAt.time);
 
+  const subwayOperatingState = useSubwayOperatingState();
+  const [closedMapPeek, setClosedMapPeek] = useState(false);
+  const showClosedScreen = subwayOperatingState.status === "closed" && !closedMapPeek;
+
+
   // Interactive linking state
   const [selection, setSelection] = useState<ImpactSelection>(null);
   const [stationSummaries, setStationSummaries] = useState<StationSummary[]>(fallbackStationSummaries.stations);
@@ -68,6 +76,16 @@ export function LineWatchShell({ initialData }: { initialData: DashboardData }) 
   }, []);
 
   useEffect(() => {
+    if (subwayOperatingState.status === "open") {
+      setClosedMapPeek(false);
+    }
+  }, [subwayOperatingState.status]);
+
+  useEffect(() => {
+    if (subwayOperatingState.status === "closed" && !closedMapPeek) {
+      return;
+    }
+
     const refreshDashboardData = () => {
       if (document.visibilityState !== "visible") {
         return;
@@ -89,7 +107,8 @@ export function LineWatchShell({ initialData }: { initialData: DashboardData }) 
       window.clearInterval(interval);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, [router]);
+  }, [closedMapPeek, router, subwayOperatingState.status]);
+
 
   useEffect(() => {
     let cancelled = false;
@@ -173,13 +192,22 @@ export function LineWatchShell({ initialData }: { initialData: DashboardData }) 
     setSelection(nextSelection);
   };
 
+  const handlePeekClosedMap = () => {
+    setClosedMapPeek(true);
+    setActiveView("map");
+    setSelection(null);
+    setSelectedStationId(null);
+    router.refresh();
+  };
+
+
   return (
     <DataProvider data={initialData}>
       <div className={`linewatch-shell relative w-full h-screen overflow-hidden transition-colors duration-500 ${(isDark || highContrast) ? "dark bg-[#0d0808] text-slate-100" : "bg-slate-50 text-slate-900"} ${highContrast ? "high-contrast" : ""} ${reducedMotion ? "motion-paused" : ""}`}>
       {/* Background */}
       <DynamicBackground reducedMotion={reducedMotion} isDark={isDark || highContrast} />
 
-      {/* Top Floating Header Controls */}
+      {!showClosedScreen && (
       <header className={`absolute top-0 left-0 w-full p-4 sm:p-6 z-40 flex justify-between items-start pointer-events-none`}>
         <div className="flex items-start gap-3 pointer-events-auto relative">
           {/* Menu Toggle Button */}
@@ -375,7 +403,10 @@ export function LineWatchShell({ initialData }: { initialData: DashboardData }) 
 
         <div className="w-12 h-12" />
       </header>
+      )}
 
+      {!showClosedScreen && (
+      <>
       {/* Floating Submenus (Alerts, Closures, Commutes, Analytics) */}
       <div className={`absolute top-[88px] sm:top-[104px] left-4 sm:left-6 z-30 w-[min(calc(100vw-32px),640px)] flex flex-col transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] ${activeView === "alerts" ? "opacity-100 translate-x-0 pointer-events-auto" : "opacity-0 -translate-x-8 pointer-events-none"}`}>
          <div className="max-h-[85vh] overflow-y-auto pr-1 pb-4 flex flex-col gap-4">
@@ -428,9 +459,11 @@ export function LineWatchShell({ initialData }: { initialData: DashboardData }) 
            <ReliabilityPanel onBack={() => setActiveView("menu")} />
          </div>
       </div>
+      </>
+      )}
 
       {/* Main Viewport (TTC Map Front & Center, Borderless) */}
-      <main className={`absolute inset-0 z-10`}>
+      <main className={`absolute inset-0 z-10 ${showClosedScreen ? "subway-closed-map-backdrop" : ""}`}>
         <InteractiveTtcMap
           selection={selection}
           selectedStationId={selectedStationId}
@@ -447,7 +480,7 @@ export function LineWatchShell({ initialData }: { initialData: DashboardData }) 
         />
       </main>
 
-      {selectedStationId && (
+      {!showClosedScreen && selectedStationId && (
         <StationDetailPanel
           stationResult={stationResult}
           loading={stationLoading}
@@ -456,8 +489,23 @@ export function LineWatchShell({ initialData }: { initialData: DashboardData }) 
         />
       )}
 
+      {showClosedScreen ? (
+        <SubwayClosedScreen
+          operatingState={subwayOperatingState}
+          onPeekMap={handlePeekClosedMap}
+        />
+      ) : null}
 
+      {subwayOperatingState.status === "closed" && closedMapPeek ? (
+        <div className="subway-closed-peek-chip" role="status" aria-live="polite">
+          <span>Subway closed. Resumes {subwayOperatingState.nextResumeLabel}.</span>
+          <button type="button" onClick={() => setClosedMapPeek(false)}>
+            Closed screen
+          </button>
+        </div>
+      ) : null}
 
+      {!showClosedScreen && (
       {/* Fixed borderless legend at the bottom right */}
       <aside className="fixed bottom-6 right-6 z-20 pointer-events-auto">
         <LineLegend
@@ -479,6 +527,7 @@ export function LineWatchShell({ initialData }: { initialData: DashboardData }) 
           }}
         />
       </aside>
+      )}
     </div>
     </DataProvider>
   );

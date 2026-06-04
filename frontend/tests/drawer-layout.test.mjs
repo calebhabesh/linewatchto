@@ -176,6 +176,14 @@ describe("floating menu layout", () => {
     assert.match(subwayClosedSource, /operatingHours\.overnight/);
     assert.match(subwayHoursSource, /Blue Night Network/);
     assert.match(subwayHoursSource, /Exact first and last train times vary by station/);
+    assert.match(shellSource, /useSubwayOperatingState/);
+    assert.match(shellSource, /showClosedScreen/);
+    assert.match(shellSource, /closedMapPeek/);
+    assert.match(shellSource, /handlePeekClosedMap/);
+    assert.match(shellSource, /SubwayClosedScreen/);
+    assert.match(shellSource, /subway-closed-map-backdrop/);
+    assert.match(shellSource, /subway-closed-peek-chip/);
+    assert.match(shellSource, /Closed screen/);
   });
 });
 

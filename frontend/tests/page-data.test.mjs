@@ -19,4 +19,11 @@ describe("dashboard server data binding", () => {
     assert.match(shellSource, /document\.visibilityState !== "visible"/);
     assert.match(shellSource, /visibilitychange/);
   });
+
+  it("pauses dashboard refresh while the closed screen covers the feed", () => {
+    assert.match(shellSource, /subwayOperatingState\.status === "closed" && !closedMapPeek/);
+    assert.match(shellSource, /return;/);
+    assert.match(shellSource, /router\.refresh\(\)/);
+  });
 });
+
