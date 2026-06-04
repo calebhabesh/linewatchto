@@ -271,3 +271,36 @@ test("nonlinear guide-backed overlays open their corresponding cards", async ({ 
   await expect(stGeorgeCurveCard).toBeVisible();
   await expect(stGeorgeCurveCard).toHaveClass(/highlight-active-card/);
 });
+
+test("station search dynamically filters mapped stations and opens station details", async ({ page, request }) => {
+  await setStubMode(request, "seeded");
+  await page.goto("/");
+  await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
+
+  await page.getByRole("button", { name: "Search stations" }).click();
+  await expect(page.getByRole("searchbox", { name: "Search mapped stations" })).toBeFocused();
+
+  await page.getByRole("searchbox", { name: "Search mapped stations" }).fill("stub");
+  await expect(page.getByRole("button", { name: "Stub Station station search result" })).toBeVisible();
+
+  await page.getByRole("searchbox", { name: "Search mapped stations" }).fill("stb stn");
+  await expect(page.getByRole("button", { name: "Stub Station station search result" })).toBeVisible();
+
+  await page.keyboard.press("Enter");
+  await expect(page.getByRole("complementary", { name: "Stub Station station details" })).toBeVisible();
+  await expect(page.locator('[data-station-search-panel][data-open="false"]')).toBeVisible();
+});
+
+test("station search browses fallback station lists by line", async ({ page, request }) => {
+  await setStubMode(request, "unavailable");
+  await page.goto("/");
+  await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
+
+  await page.getByRole("button", { name: "Search stations" }).click();
+  await page.getByRole("button", { name: /Line 5\s+Eglinton Crosstown/ }).click();
+  await expect(page.getByRole("button", { name: "Mount Dennis station search result" })).toBeVisible();
+
+  await page.getByRole("button", { name: "Mount Dennis station search result" }).click();
+  await expect(page.getByRole("complementary", { name: "Mount Dennis station details" })).toBeVisible();
+  await expect(page.getByText("Backend unavailable. Showing local fallback station data.")).toBeVisible();
+});
