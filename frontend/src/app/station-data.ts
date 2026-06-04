@@ -93,7 +93,7 @@ export type StationFetchOptions = {
 
 const DEFAULT_API_BASE_URL = process.env.NEXT_PUBLIC_LINEWATCH_API_BASE_URL ?? "http://localhost:8080";
 
-const FALLBACK_LINE_DEFINITIONS: Record<string, Omit<StationLine, "wheelchairAccessible" | "hasElevator">> = {
+export const STATION_LINE_DEFINITIONS: Record<string, Omit<StationLine, "wheelchairAccessible" | "hasElevator">> = {
   "line-1": {
     id: "line-1",
     number: "1",
@@ -131,7 +131,7 @@ const FALLBACK_LINE_DEFINITIONS: Record<string, Omit<StationLine, "wheelchairAcc
   },
 };
 
-const FALLBACK_LINE_STATION_IDS: Record<string, string[]> = {
+export const STATION_LINE_STATION_IDS: Record<string, string[]> = {
   "line-1": [
     "vaughan-metropolitan-centre", "highway-407", "pioneer-village",
     "york-university", "finch-west", "downsview-park", "sheppard-west",
@@ -1526,7 +1526,7 @@ const fallbackStationSummarySeed: StationListResponse = {
 ]
 };
 
-const fallbackLineIdsByStationId = Object.entries(FALLBACK_LINE_STATION_IDS)
+const fallbackLineIdsByStationId = Object.entries(STATION_LINE_STATION_IDS)
   .reduce<Record<string, string[]>>((lineIdsByStation, [lineId, stationIds]) => {
     for (const stationId of stationIds) {
       lineIdsByStation[stationId] = [...(lineIdsByStation[stationId] ?? []), lineId];
@@ -1642,7 +1642,7 @@ const fallbackStationDetailSeed = {
 };
 
 function toFallbackStationLine(stationId: string, lineId: string): StationLine {
-  const line = FALLBACK_LINE_DEFINITIONS[lineId];
+  const line = STATION_LINE_DEFINITIONS[lineId];
   const stationLineId = `${stationId}:${lineId}`;
   return {
     ...line,
