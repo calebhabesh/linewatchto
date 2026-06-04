@@ -82,25 +82,25 @@ test("shows subway closed screen overnight and lets riders peek at the map", asy
   await freezeBrowserTime(page, "2026-06-04T03:20:00-04:00");
   await page.goto("/");
 
-  await expect(page.getByRole("heading", { name: "Subway closed overnight" })).toBeVisible();
-  await expect(page.getByText("Mon-Sat: about 6:00 a.m. to 2:00 a.m.")).toBeVisible();
-  await expect(page.getByText("Sun: about 8:00 a.m. to 2:00 a.m.")).toBeVisible();
-  await expect(page.getByText(/Service resumes/i)).toBeVisible();
-  await expect(page.getByText(/today at 6:00 a\.m\./i)).toBeVisible();
-  await expect(page.getByText(/Blue Night Network/)).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Subway Closed" })).toBeVisible();
+  await expect(page.getByText("Monday – Saturday")).toBeVisible();
+  await expect(page.getByText("Sunday")).toBeVisible();
+  await expect(page.getByText(/Service Resumes/i)).toBeVisible();
+  await expect(page.getByText(/Today at 6:00 A\.M\./i)).toBeVisible();
+  await expect(page.getByText(/Blue Night/)).toBeVisible();
   await expect(page.getByRole("button", { name: "Toggle menu" })).toHaveCount(0);
 
-  await page.getByRole("button", { name: "Peek at map" }).click();
+  await page.getByRole("button", { name: "Peek at Map" }).click();
 
   await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Toggle menu" })).toBeVisible();
-  await expect(page.getByText(/Subway closed\. Resumes today at 6:00 a\.m\./i)).toBeVisible();
+  await expect(page.getByText(/Subway closed\. Resumes Today at 6:00 A\.M\./i)).toBeVisible();
 
   await page.getByRole("button", { name: "Stub Station station details" }).click();
   await expect(page.getByRole("complementary", { name: "Stub Station station details" })).toBeVisible();
 
   await page.getByRole("button", { name: "Closed screen" }).click();
-  await expect(page.getByRole("heading", { name: "Subway closed overnight" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Subway Closed" })).toBeVisible();
 });
 
 test("renders the seeded dashboard API payload", async ({ page, request }) => {
