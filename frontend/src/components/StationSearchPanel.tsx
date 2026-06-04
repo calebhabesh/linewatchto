@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { KeyboardEvent } from "react";
-import { AlertTriangle, ChevronDown, Search, X } from "lucide-react";
+import { AlertTriangle, ChevronRight, Search, X } from "lucide-react";
 import {
   buildStationLineGroups,
   searchStations,
@@ -101,10 +101,9 @@ export function StationSearchPanel({ open, stations, selectedStationId, onSelect
   const inputRef = useRef<HTMLInputElement>(null);
   const [query, setQuery] = useState("");
   const [expandedLineId, setExpandedLineId] = useState<string | null>(null);
-  const [hoveredLineId, setHoveredLineId] = useState<string | null>(null);
   const results = useMemo(() => searchStations(stations, query), [query, stations]);
   const lineGroups = useMemo(() => buildStationLineGroups(stations), [stations]);
-  const activeLineId = hoveredLineId ?? expandedLineId;
+  const isExpanded = Boolean(expandedLineId) && !query.trim();
 
   useEffect(() => {
     if (!open) {
@@ -137,6 +136,10 @@ export function StationSearchPanel({ open, stations, selectedStationId, onSelect
     }
   }
 
+  const activeLineGroup = useMemo(() => {
+    return lineGroups.find((group) => group.line.id === expandedLineId) || lineGroups[0];
+  }, [lineGroups, expandedLineId]);
+
   return (
     <section
       className={`station-search-panel panel-strong ${open ? "open" : ""}`}
@@ -145,6 +148,7 @@ export function StationSearchPanel({ open, stations, selectedStationId, onSelect
       inert={!open ? true : undefined}
       data-station-search-panel
       data-open={open ? "true" : "false"}
+      data-expanded={isExpanded ? "true" : "false"}
     >
       <div className="station-search-input-row">
         <Search size={18} className="station-search-input-icon" aria-hidden="true" />
@@ -188,49 +192,75 @@ export function StationSearchPanel({ open, stations, selectedStationId, onSelect
             )}
           </div>
         ) : (
-          <div className="station-search-lines" aria-label="Browse stations by line">
-            {lineGroups.map((group) => {
-              const expanded = activeLineId === group.line.id;
+          <div className="station-search-browse-container" aria-label="Browse stations by line">
+            <div className="station-search-lines-column">
+              {lineGroups.map((group) => {
+                const expanded = expandedLineId === group.line.id;
 
-              return (
-                <div
-                  key={group.line.id}
-                  className={`station-search-line-group ${expanded ? "expanded" : ""}`}
-                  onMouseEnter={() => setHoveredLineId(group.line.id)}
-                  onMouseLeave={() => setHoveredLineId(null)}
-                >
-                  <button
-                    type="button"
-                    className="station-search-line-trigger"
-                    onClick={() => setExpandedLineId((current) => current === group.line.id ? null : group.line.id)}
-                    aria-expanded={expanded}
-                    aria-controls={`station-search-${group.line.id}`}
-                  >
-                    <Image src={group.line.icon} alt="" width={34} height={34} aria-hidden="true" />
-                    <span className="station-search-line-copy">
-                      <span className="station-search-line-title">Line {group.line.number}</span>
-                      <span className="station-search-line-name">{group.line.name}</span>
-                    </span>
-                    <ChevronDown size={17} className="station-search-line-chevron" aria-hidden="true" />
-                  </button>
-
+                return (
                   <div
-                    id={`station-search-${group.line.id}`}
-                    className="station-search-line-branch"
-                    hidden={!expanded}
+                    key={group.line.id}
+                    className={`station-search-line-group ${expanded ? "expanded" : ""}`}
                   >
-                    {group.stations.map((station) => (
+                    <button
+                      type="button"
+                      className={`station-search-line-trigger ${expanded ? "active" : ""}`}
+                      onClick={() => setExpandedLineId((current) => current === group.line.id ? null : group.line.id)}
+                      aria-expanded={expanded}
+                      aria-controls="station-search-stations-column"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Image src={group.line.icon} alt="" width={34} height={34} aria-hidden="true" />
+                        <span className="station-search-line-copy">
+                          <span className="station-search-line-title">Line {group.line.number}</span>
+                          <span className="station-search-line-name">{group.line.name}</span>
+                        </span>
+                      </div>
+                      <span className="station-search-line-action">
+                        <span className="station-search-line-action-text">List View</span>
+                        <ChevronRight size={17} className="station-search-line-chevron" aria-hidden="true" />
+                      </span>
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div
+              id="station-search-stations-column"
+              className="station-search-stations-column"
+              role="region"
+              aria-label={activeLineGroup ? `${activeLineGroup.line.name} stations` : "Transit stations"}
+              aria-hidden={!isExpanded}
+            >
+              {activeLineGroup && (
+                <>
+                  <div className="station-search-stations-column-header">
+                    <div className="flex items-center gap-2 mb-3 px-1">
+                      <span
+                        className="station-search-line-badge"
+                        style={{ backgroundColor: activeLineGroup.line.color, color: lineTextColor(activeLineGroup.line.id) }}
+                      >
+                        {activeLineGroup.line.number}
+                      </span>
+                      <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                        {activeLineGroup.line.name} Stations
+                      </span>
+                    </div>
+                  </div>
+                  <div className="station-search-stations-list">
+                    {activeLineGroup.stations.map((station) => (
                       <StationButton
-                        key={`${group.line.id}-${station.id}`}
+                        key={`${activeLineGroup.line.id}-${station.id}`}
                         station={station}
                         selected={selectedStationId === station.id}
                         onSelect={chooseStation}
                       />
                     ))}
                   </div>
-                </div>
-              );
-            })}
+                </>
+              )}
+            </div>
           </div>
         )}
       </div>
