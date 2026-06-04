@@ -44,7 +44,7 @@ export function formatSubwayClock(minutesAfterMidnight: number) {
   const hour24 = Math.floor(minutesAfterMidnight / 60) % 24;
   const minute = minutesAfterMidnight % 60;
   const hour12 = hour24 % 12 || 12;
-  const period = hour24 < 12 ? "a.m." : "p.m.";
+  const period = hour24 < 12 ? "A.M." : "P.M.";
 
   return `${hour12}:${String(minute).padStart(2, "0")} ${period}`;
 }
@@ -82,7 +82,7 @@ export function getSubwayOperatingState(now = new Date()): SubwayOperatingState 
       ? "Regular subway service is outside operating hours. The live feed is hidden until service resumes."
       : "Regular subway service is inside the general operating window.",
     nowLabel: formatSubwayClock(minutesAfterMidnight),
-    nextResumeLabel: nextResumeTime ? `today at ${nextResumeTime}` : null,
+    nextResumeLabel: nextResumeTime ? `Today at ${nextResumeTime}` : null,
     nextResumeTime,
     minutesUntilResume,
     isSundaySchedule: weekdayIndex === 0,
