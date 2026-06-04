@@ -497,7 +497,7 @@ export function LineWatchShell({ initialData }: { initialData: DashboardData }) 
 
       {subwayOperatingState.status === "closed" && closedMapPeek ? (
         <div className="subway-closed-peek-chip" role="status" aria-live="polite">
-          <span>Subway closed. Resumes {subwayOperatingState.nextResumeLabel}.</span>
+          <span>Subway closed. Resumes {subwayOperatingState.nextResumeLabel?.endsWith(".") ? subwayOperatingState.nextResumeLabel : `${subwayOperatingState.nextResumeLabel}.`}</span>
           <button type="button" onClick={() => setClosedMapPeek(false)}>
             Closed screen
           </button>

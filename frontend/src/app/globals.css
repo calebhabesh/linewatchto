@@ -1571,7 +1571,7 @@ button {
 }
 
 .subway-closed-screen {
-  --moon-color: #8B5CF6;
+  --moon-color: #d8e3f0; /* Theme fallback: #8B5CF6 */
   align-items: center;
   background: rgba(5, 7, 12, 0.72);
   color: #f8fafc;
@@ -1603,8 +1603,20 @@ button {
   width: 100%;
 }
 
+@keyframes subtle-glow-pulse {
+  0% {
+    filter: drop-shadow(0 0 15px rgba(216, 227, 240, 0.35)) drop-shadow(0 0 30px rgba(216, 227, 240, 0.18));
+  }
+  50% {
+    filter: drop-shadow(0 0 25px rgba(216, 227, 240, 0.6)) drop-shadow(0 0 50px rgba(216, 227, 240, 0.3));
+  }
+  100% {
+    filter: drop-shadow(0 0 15px rgba(216, 227, 240, 0.35)) drop-shadow(0 0 30px rgba(216, 227, 240, 0.18));
+  }
+}
+
 .subway-closed-icon-shell img {
-  filter: drop-shadow(0 0 20px rgba(139, 92, 246, 0.6)) drop-shadow(0 0 40px rgba(139, 92, 246, 0.3));
+  animation: subtle-glow-pulse 4s ease-in-out infinite;
   height: 112px;
   width: 112px;
 }
@@ -1624,41 +1636,81 @@ button {
   margin: 0;
 }
 
-.subway-closed-copy p,
-.subway-closed-caveat {
+.subway-closed-copy p {
   color: rgba(226, 232, 240, 0.82);
   font-size: 0.98rem;
   line-height: 1.5;
   margin: 0;
 }
 
+.subway-closed-caveat {
+  align-items: flex-start;
+  color: rgba(226, 232, 240, 0.82);
+  display: flex;
+  font-size: 0.9rem;
+  gap: 10px;
+  line-height: 1.4;
+  margin: 0;
+  text-align: left;
+}
+
+.subway-closed-caveat svg {
+  color: #FACC15;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.subway-closed-link {
+  color: #3b82f6;
+  text-decoration: none;
+  transition: color 150ms ease;
+}
+
+.subway-closed-link:hover,
+.subway-closed-link:focus-visible {
+  color: #60a5fa;
+  text-decoration: underline;
+}
+
 .subway-closed-resume {
   align-items: center;
-  background: rgba(250, 204, 21, 0.1);
-  border: 1px solid rgba(250, 204, 21, 0.22);
-  border-radius: 8px;
   color: #FACC15;
-  display: grid;
-  gap: 4px 12px;
-  grid-template-columns: auto minmax(0, 1fr);
-  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 0 18px 0;
+  width: fit-content;
+  min-width: 280px;
+  margin-inline: auto;
+  border-bottom: 1.5px solid;
+  border-image: linear-gradient(to right, transparent 0%, rgba(255, 255, 255, 0.4) 30%, #ffffff 50%, rgba(255, 255, 255, 0.4) 70%, transparent 100%) 1;
+  text-align: center;
 }
 
 .subway-closed-resume svg {
-  grid-row: 1 / 4;
+  color: #FACC15;
+  margin-bottom: 2px;
 }
 
-.subway-closed-resume span,
-.subway-closed-resume small {
-  color: rgba(254, 240, 138, 0.84);
-  font-size: 0.82rem;
-  font-weight: 800;
+.subway-closed-resume-prefix {
+  color: #FACC15;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
-.subway-closed-resume strong {
+.subway-closed-resume-countdown {
   color: #ffffff;
-  font-size: 1.2rem;
-  line-height: 1.2;
+  font-size: 1.75rem;
+  font-weight: 900;
+  line-height: 1.15;
+}
+
+.subway-closed-resume-details {
+  color: rgba(226, 232, 240, 0.72);
+  font-size: 0.92rem;
+  font-weight: 600;
 }
 
 .subway-closed-schedule-container {
@@ -1672,10 +1724,11 @@ button {
 
 .subway-closed-schedule-label {
   color: #FACC15;
-  font-size: 0.82rem;
-  font-weight: 850;
+  font-size: 1.15rem;
+  font-weight: 800;
   letter-spacing: 0.05em;
   text-transform: uppercase;
+  line-height: 1.25;
 }
 
 .subway-closed-schedule-table {
@@ -1692,9 +1745,12 @@ button {
 
 .subway-closed-schedule-table tr:first-child td {
   padding-top: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  padding-bottom: 8px;
 }
 
 .subway-closed-schedule-table tr:last-child td {
+  padding-top: 8px;
   padding-bottom: 0;
 }
 
@@ -1732,10 +1788,10 @@ button {
   border-radius: 8px;
   color: #111827;
   display: inline-flex;
-  font-size: 0.95rem;
+  font-size: 1.1rem;
   font-weight: 900;
   gap: 10px;
-  min-height: 44px;
+  min-height: 46px;
   padding: 0 28px;
 }
 

@@ -44,7 +44,7 @@ export function formatSubwayClock(minutesAfterMidnight: number) {
   const hour24 = Math.floor(minutesAfterMidnight / 60) % 24;
   const minute = minutesAfterMidnight % 60;
   const hour12 = hour24 % 12 || 12;
-  const period = hour24 < 12 ? "A.M." : "P.M.";
+  const period = hour24 < 12 ? "AM" : "PM";
 
   return `${hour12}:${String(minute).padStart(2, "0")} ${period}`;
 }
@@ -89,7 +89,7 @@ export function getSubwayOperatingState(now = new Date()): SubwayOperatingState 
     operatingHours: {
       weekdaySaturday: "Mon-Sat: about 6:00 a.m. to 2:00 a.m.",
       sunday: "Sun: about 8:00 a.m. to 2:00 a.m.",
-      caveat: "Exact first and last train times vary by station. Check the TTC station page for a specific stop.",
+      caveat: "Exact first and last train times vary by station. Check the TTC Station Page for a specific stop.",
       overnight: "The Blue Night Network covers many major routes overnight until regular subway service begins.",
     },
   };

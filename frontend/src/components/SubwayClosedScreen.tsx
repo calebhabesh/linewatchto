@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { BusFront, Clock3, Map, Moon } from "lucide-react";
+import { BusFront, Clock3, Info, Map } from "lucide-react";
 
 import { formatResumeDuration, type SubwayOperatingState } from "../app/subway-hours";
 
@@ -31,49 +31,73 @@ export function SubwayClosedScreen({
         </div>
 
         <div className="subway-closed-copy">
-          <p className="subway-closed-kicker">LineWatch TO overnight mode</p>
-          <h1 id="subway-closed-title">Subway closed overnight</h1>
+          <h1 id="subway-closed-title">Subway Closed</h1>
           <p>
-            Regular subway service is outside operating hours. The feed is hidden for now, but the map
-            remains available if you want to check current overlays or station accessibility details.
+            The subway is currently closed. Live updates are paused,
+            but you can still view the map to check transit lines and station accessibility.
           </p>
         </div>
 
         <div className="subway-closed-resume" role="status" aria-live="polite">
-          <Clock3 size={22} aria-hidden="true" />
-          <span>Service resumes</span>
-          <strong>{resumeLabel}</strong>
-          {resumeDuration ? <small>in {resumeDuration}</small> : null}
+          <Clock3 size={24} aria-hidden="true" />
+          {resumeDuration ? (
+            <>
+              <span className="subway-closed-resume-prefix">Service resumes in</span>
+              <strong className="subway-closed-resume-countdown">{resumeDuration}</strong>
+              <small className="subway-closed-resume-details">{resumeLabel}</small>
+            </>
+          ) : (
+            <>
+              <span className="subway-closed-resume-prefix">Service Resumes</span>
+              <strong className="subway-closed-resume-countdown">{resumeLabel}</strong>
+            </>
+          )}
         </div>
 
-        <dl className="subway-closed-hours" aria-label="General TTC subway operating hours">
-          <div>
-            <dt>Operating hours</dt>
-            <dd>{operatingState.operatingHours.weekdaySaturday}</dd>
+        <div className="subway-closed-schedule-container" aria-label="General TTC subway operating hours">
+          <div className="subway-closed-schedule-label">
+            Operating Hours
           </div>
-          <div>
-            <dt>Sunday start</dt>
-            <dd>{operatingState.operatingHours.sunday}</dd>
-          </div>
-          <div>
-            <dt><BusFront size={16} aria-hidden="true" /> Overnight</dt>
-            <dd>{operatingState.operatingHours.overnight}</dd>
-          </div>
-        </dl>
+          <table className="subway-closed-schedule-table">
+            <tbody>
+              <tr>
+                <td>Monday – Saturday</td>
+                <td>About 6:00 A.M. – 2:00 A.M.</td>
+              </tr>
+              <tr>
+                <td>Sunday</td>
+                <td>About 8:00 A.M. – 2:00 A.M.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div className="subway-closed-overnight-note">
+          <BusFront size={16} aria-hidden="true" />
+          <span>{operatingState.operatingHours.overnight}</span>
+        </div>
 
         <p className="subway-closed-caveat">
-          {operatingState.operatingHours.caveat}
+          <Info size={16} aria-hidden="true" />
+          <span>
+            Exact first and last train times vary by station. Check the{" "}
+            <a
+              href="https://www.ttc.ca/subway-stations"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="subway-closed-link"
+            >
+              TTC Station Page
+            </a>{" "}
+            for a specific stop.
+          </span>
         </p>
 
         <div className="subway-closed-actions">
           <button type="button" className="subway-closed-primary-action" onClick={onPeekMap}>
-            <Map size={19} aria-hidden="true" />
-            Peek at map
+            <Map size={20} aria-hidden="true" />
+            Peek at Map
           </button>
-          <span className="subway-closed-status-note">
-            <Moon size={16} aria-hidden="true" />
-            Subway lines reopen with regular morning service.
-          </span>
         </div>
       </div>
     </section>

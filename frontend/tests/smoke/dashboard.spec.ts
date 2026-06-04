@@ -85,8 +85,8 @@ test("shows subway closed screen overnight and lets riders peek at the map", asy
   await expect(page.getByRole("heading", { name: "Subway Closed" })).toBeVisible();
   await expect(page.getByText("Monday – Saturday")).toBeVisible();
   await expect(page.getByText("Sunday")).toBeVisible();
-  await expect(page.getByText(/Service Resumes/i)).toBeVisible();
-  await expect(page.getByText(/Today at 6:00 A\.M\./i)).toBeVisible();
+  await expect(page.getByText(/Service resumes/i)).toBeVisible();
+  await expect(page.getByText(/Today at 6:00 AM/i)).toBeVisible();
   await expect(page.getByText(/Blue Night/)).toBeVisible();
   await expect(page.getByRole("button", { name: "Toggle menu" })).toHaveCount(0);
 
@@ -94,7 +94,7 @@ test("shows subway closed screen overnight and lets riders peek at the map", asy
 
   await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Toggle menu" })).toBeVisible();
-  await expect(page.getByText(/Subway closed\. Resumes Today at 6:00 A\.M\./i)).toBeVisible();
+  await expect(page.getByText(/Subway closed\. Resumes Today at 6:00 AM/i)).toBeVisible();
 
   await page.getByRole("button", { name: "Stub Station station details" }).click();
   await expect(page.getByRole("complementary", { name: "Stub Station station details" })).toBeVisible();
