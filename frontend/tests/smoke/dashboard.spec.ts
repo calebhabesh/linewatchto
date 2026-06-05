@@ -138,6 +138,13 @@ test("shows subway closed screen overnight and lets riders peek at the map", asy
 
   await page.getByRole("button", { name: "Stub Station station details" }).click();
   await expect(page.getByRole("complementary", { name: "Stub Station station details" })).toBeVisible();
+  const closedArrivalsSection = page.locator('[data-arrivals-subway-closed="true"]');
+  await expect(closedArrivalsSection).toBeVisible();
+  await expect(closedArrivalsSection.getByRole("heading", { name: "Arrivals" })).toBeVisible();
+  await expect(closedArrivalsSection.getByText(/TTC scheduled service/i)).toBeVisible();
+  await expect(closedArrivalsSection.getByText("Subway Closed")).toBeVisible();
+  await expect(closedArrivalsSection.getByText("Arrivals Not Available")).toBeVisible();
+  await expect(closedArrivalsSection.getByText("Schedule May Be Disrupted")).toHaveCount(0);
 
   await page.getByRole("button", { name: "Closed screen" }).click();
   await expect(page.getByRole("heading", { name: "Subway Closed" })).toBeVisible();
@@ -202,18 +209,40 @@ test("station detail shows accessibility facilities and active outage warning", 
 
   await page.getByRole("button", { name: "Stub Station station details" }).click();
 
-  await expect(page.getByRole("complementary", { name: "Stub Station station details" })).toBeVisible();
+  const stationPanel = page.getByRole("complementary", { name: "Stub Station station details" });
+  await expect(stationPanel).toBeVisible();
+  const lineDetailCard = stationPanel.locator('[data-station-header-line-details] > div').first();
+  await expect(lineDetailCard).toBeVisible();
+  const lineDetailWidths = await lineDetailCard.evaluate((card) => {
+    const panel = card.closest("aside");
+    if (!panel) {
+      return { cardWidth: 0, innerWidth: Number.POSITIVE_INFINITY };
+    }
+
+    const cardRect = card.getBoundingClientRect();
+    const panelStyles = getComputedStyle(panel);
+    const innerWidth = panel.clientWidth - parseFloat(panelStyles.paddingLeft) - parseFloat(panelStyles.paddingRight);
+    return { cardWidth: cardRect.width, innerWidth };
+  });
+  expect(lineDetailWidths.cardWidth).toBeGreaterThanOrEqual(lineDetailWidths.innerWidth - 2);
   await expect(page.getByAltText("Wheelchair accessible", { exact: true })).toBeVisible();
   await expect(page.getByAltText("Elevator available, outage reported", { exact: true })).toBeVisible();
   await expect(page.locator('[data-facility-warning="elevator"]')).toBeVisible();
   await expect(page.getByRole("heading", { name: "Arrivals" })).toBeVisible();
   await expect(page.getByText("TTC scheduled service")).toBeVisible();
-  await expect(page.getByText("Schedule may be disrupted")).toBeVisible();
+  await expect(page.getByText("Schedule May Be Disrupted")).toBeVisible();
   const arrivalsSection = page.locator('[data-arrivals-disrupted="true"]');
   await expect(arrivalsSection).toBeVisible();
-  await expect(arrivalsSection.getByText("Line 1", { exact: true })).toBeVisible();
+  await expect(arrivalsSection.getByRole("link", { name: /Jump to station impact:/ })).toBeVisible();
+  await expect(arrivalsSection.locator('[data-arrival-group="line-1:Northbound to Finch"]')).toBeVisible();
+  await expect(arrivalsSection.locator('[data-arrival-group="line-1:Southbound to Union"]')).toBeVisible();
+  await expect(arrivalsSection.locator('[data-arrival-due="true"]')).toBeVisible();
   await expect(arrivalsSection.getByText("Northbound to Finch")).toBeVisible();
-  await expect(arrivalsSection.getByText("3 min")).toBeVisible();
+  await expect(arrivalsSection.getByText("Southbound to Union")).toBeVisible();
+  await expect(arrivalsSection.getByText("Due")).toBeVisible();
+  await expect(arrivalsSection.getByText("3m")).toBeVisible();
+  await expect(arrivalsSection.getByText("Scheduled arrivals use TTC timetable data and are not live train predictions.")).toBeVisible();
+  await expect(arrivalsSection.getByText(/demo placeholders/)).toHaveCount(0);
 });
 
 test("LineLegend clicks open view but do not highlight any card", async ({ page, request }) => {

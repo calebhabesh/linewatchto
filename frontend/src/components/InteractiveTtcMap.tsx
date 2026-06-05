@@ -199,8 +199,8 @@ export function InteractiveTtcMap({
   const selectedSegmentIds = useMemo(() => {
     if (!selection) return [];
     if (selection.kind === "planned-closure") {
-      return plannedClosures.find((closure) => closure.id === selection.id)?.previewSegmentIds
-        ?? activeAlerts.find((alert) => alert.id === selection.id)?.affectedSegmentIds
+      return activeAlerts.find((alert) => alert.id === selection.id)?.affectedSegmentIds
+        ?? plannedClosures.find((closure) => closure.id === selection.id)?.previewSegmentIds
         ?? [];
     }
     if (selection.kind === "suspension") {
@@ -597,8 +597,7 @@ export function InteractiveTtcMap({
                 .ttc-svg-container svg .fil3:has(+ .fil2),
                 .ttc-svg-container svg .fil3:has(+ .fil4),
                 .ttc-svg-container svg .fil3:has(+ .fil5),
-                .ttc-svg-container svg .fil3:has(+ .fil8),
-                .ttc-svg-container svg .fil3:has(+ .fil9) {
+                .ttc-svg-container svg .fil3:has(+ .fil8) {
                   display: none !important;
                 }
               `}
@@ -715,7 +714,16 @@ export function InteractiveTtcMap({
                           className="station-selection-flash"
                           cx={station.mapX}
                           cy={station.mapY}
-                          r={station.interchange ? 60 : 48}
+                          r={station.interchange ? 48 : 38}
+                          pointerEvents="none"
+                        />
+                      )}
+                      {selected && (
+                        <circle
+                          className="station-selected-indicator"
+                          cx={station.mapX}
+                          cy={station.mapY}
+                          r={station.interchange ? 48 : 38}
                           pointerEvents="none"
                         />
                       )}
@@ -759,7 +767,7 @@ export function InteractiveTtcMap({
                           className="station-selection-flash"
                           cx={station.mapX}
                           cy={station.mapY}
-                          r={station.interchange ? 60 : 48}
+                          r={station.interchange ? 48 : 38}
                           pointerEvents="none"
                         />
                       )}
@@ -1324,8 +1332,8 @@ function segmentIdsForImpact(
   plannedClosures: PlannedClosure[],
 ): string[] {
   if (impact.kind === "planned-closure") {
-    return plannedClosures.find((closure) => closure.id === impact.cardId)?.previewSegmentIds
-      ?? activeAlerts.find((alert) => alert.id === impact.cardId)?.affectedSegmentIds
+    return activeAlerts.find((alert) => alert.id === impact.cardId)?.affectedSegmentIds
+      ?? plannedClosures.find((closure) => closure.id === impact.cardId)?.previewSegmentIds
       ?? [];
   }
   if (impact.kind === "suspension") {

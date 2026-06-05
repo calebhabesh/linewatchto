@@ -320,5 +320,8 @@ class StationServiceTest {
 
         assertThat(response.arrivalContext().scheduleMayBeDisrupted()).isFalse();
         assertThat(response.arrivalContext().message()).isEqualTo("Schedule active");
+        assertThat(response.disclaimer()).isEqualTo("Scheduled arrivals use TTC timetable data and are not live train predictions.");
+        assertThat(response.disclaimer()).doesNotContain("seeded backend data");
+        assertThat(response.disclaimer()).doesNotContain("demo placeholders");
     }
 }

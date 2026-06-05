@@ -15,10 +15,54 @@ describe("station detail panel layout", () => {
   });
 
   it("renders schedule-aware arrivals and disruption warning", () => {
-    assert.match(panelSource, /Schedule may be disrupted/);
+    assert.match(panelSource, /useSubwayOperatingState/);
+    assert.match(panelSource, /subwayOperatingState\.status === "closed"/);
+    assert.match(panelSource, /data-arrivals-subway-closed/);
+    assert.match(panelSource, /Subway Closed/);
+    assert.match(panelSource, /Arrivals Not Available/);
+    assert.match(panelSource, /data-arrivals-subway-closed="true"[\s\S]*<h3/);
+    assert.match(panelSource, /data-arrivals-subway-closed="true"[\s\S]*station\.arrivalsSource/);
+    assert.match(panelSource, /data-arrivals-subway-closed="true"[\s\S]*text-sm font-semibold/);
+    assert.match(panelSource, /Schedule May Be Disrupted/);
+    assert.doesNotMatch(panelSource, /station\.arrivalContext\.reason/);
     assert.match(panelSource, /data-arrivals-disrupted/);
     assert.match(panelSource, /arrivalContext\.scheduleMayBeDisrupted/);
-    assert.match(panelSource, /Line \{arrivalLine\?\.number/);
+    assert.match(panelSource, /href=\{`#station-impact-\$\{impact\.id\}`\}/);
+    assert.match(panelSource, /Jump to station impact:/);
+    assert.match(panelSource, /groupStationArrivals/);
+    assert.match(panelSource, /stationId:\s*station\.id/);
+    assert.match(panelSource, /data-arrival-group/);
+    assert.match(panelSource, /data-arrival-due/);
+    assert.match(panelSource, /formatArrivalDisclaimer/);
+    assert.match(panelSource, /formatArrivalTileLabel/);
+    assert.match(panelSource, /formatArrivalClockTime/);
+  });
+
+  it("keeps line and platform details in the header and orders sections by rider priority", () => {
+    const headerDetailsIndex = panelSource.indexOf('data-station-header-line-details');
+    const arrivalsIndex = panelSource.indexOf('data-station-section="arrivals"');
+    const accessibilityIndex = panelSource.indexOf('data-station-section="accessibility"');
+    const impactsIndex = panelSource.indexOf('data-station-section="station-impacts"');
+    const titleRowIndex = panelSource.indexOf('className="flex items-start justify-between gap-3"');
+    const closeButtonEndIndex = panelSource.indexOf("</button>", titleRowIndex);
+    const accessibilityChipsIndex = panelSource.indexOf("isWheelchairAccessible || hasElevator");
+
+    assert.notEqual(headerDetailsIndex, -1);
+    assert.notEqual(arrivalsIndex, -1);
+    assert.notEqual(accessibilityIndex, -1);
+    assert.notEqual(impactsIndex, -1);
+    assert.notEqual(titleRowIndex, -1);
+    assert.notEqual(closeButtonEndIndex, -1);
+    assert.notEqual(accessibilityChipsIndex, -1);
+    assert.equal(panelSource.indexOf('data-station-section="line-details"'), -1);
+    assert.ok(titleRowIndex < closeButtonEndIndex);
+    assert.ok(closeButtonEndIndex < accessibilityChipsIndex);
+    assert.ok(accessibilityChipsIndex < headerDetailsIndex);
+    assert.ok(headerDetailsIndex < arrivalsIndex);
+    assert.ok(arrivalsIndex < accessibilityIndex);
+    assert.ok(accessibilityIndex < impactsIndex);
+    assert.match(panelSource, /data-station-header-line-details[\s\S]*grid-cols-\[minmax\(0,1fr\)_auto\]/);
+    assert.match(panelSource, /className="min-w-0 flex-1"/);
   });
 
   it("defines station marker and reduced motion styles", () => {
@@ -40,16 +84,37 @@ describe("station detail panel layout", () => {
     assert.match(panelSource, /Wheelchair accessible/);
     assert.match(panelSource, /Elevator available/);
     assert.match(panelSource, /data-facility-warning/);
+    assert.doesNotMatch(panelSource, /opacity-60 grayscale/);
+    assert.match(panelSource, /<details[^>]+data-station-section="accessibility"/);
+    assert.match(panelSource, /<summary/);
+    assert.match(panelSource, /ChevronDown/);
+    assert.match(panelSource, /station-accessibility-chevron/);
+    assert.match(panelSource, /ml-auto/);
     assert.match(panelSource, /formatRelativeImpactTime/);
   });
 
   it("renders source-linked detail buttons for typed station impacts only", () => {
+    const activeAlertLookupIndex = panelSource.indexOf("const matchingAlert = activeAlerts.find");
+    const plannedClosureLookupIndex = panelSource.indexOf("const plannedClosure = plannedClosures.find");
+
+    assert.notEqual(activeAlertLookupIndex, -1);
+    assert.notEqual(plannedClosureLookupIndex, -1);
+    assert.ok(activeAlertLookupIndex < plannedClosureLookupIndex);
     assert.match(panelSource, /getStationImpactDetailsTarget/);
     assert.match(panelSource, /sourceAlertIds\?\.includes\(impact\.id\)/);
+    assert.match(panelSource, /label:\s*"Active Closure"/);
+    assert.match(panelSource, /"Upcoming Closure"/);
+    assert.match(panelSource, /kind === "planned-closure" && tone === "active"[\s\S]*AlertTriangle/);
+    assert.match(panelSource, /kind === "planned-closure"[\s\S]*Calendar/);
+    assert.match(panelSource, /data-station-impact-classification/);
+    assert.match(panelSource, /id=\{`station-impact-\$\{impact\.id\}`\}/);
     assert.match(panelSource, /detailsTarget && onSelectImpact/);
     assert.match(panelSource, /onSelectImpact\(detailsTarget\.selection\)/);
     assert.match(panelSource, /Open \$\{detailsTarget\.label\} details/);
-    assert.match(panelSource, /<StationImpactDetailsIcon kind=\{detailsTarget\.selection\.kind\}/);
+    assert.match(panelSource, /<StationImpactDetailsIcon[\s\S]*kind=\{target\?\.selection\.kind \?\? stationImpactKind\(impact\)\}[\s\S]*tone=\{target\?\.tone\}/);
+    assert.match(panelSource, /<StationImpactDetailsIcon[\s\S]*kind=\{detailsTarget\.selection\.kind\}[\s\S]*tone=\{detailsTarget\.tone\}/);
+    assert.match(panelSource, /self-start/);
+    assert.doesNotMatch(panelSource, /self-end/);
     assert.match(panelSource, /View Details/);
   });
 });

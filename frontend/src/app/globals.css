@@ -110,6 +110,18 @@ button {
   cursor: pointer;
 }
 
+.station-accessibility-summary::-webkit-details-marker {
+  display: none;
+}
+
+.station-accessibility-chevron {
+  transition: transform 160ms ease;
+}
+
+.station-accessibility-details[open] .station-accessibility-chevron {
+  transform: rotate(180deg);
+}
+
 .dashboard-shell {
   --bg: #0d0808;
   --panel: rgba(18, 21, 28, 0.88);
@@ -1603,9 +1615,15 @@ button {
 
 
 .station-hit-target.selected {
+  fill: transparent;
+  stroke: transparent;
+}
+
+.station-selected-indicator {
+  fill: #38bdf8;
+  stroke: none;
+  filter: drop-shadow(0 0 6px rgba(56, 189, 248, 0.85));
   animation: station-selected-pulse 1.8s ease-in-out infinite;
-  fill: rgba(59, 130, 246, 0.28);
-  stroke: rgba(96, 165, 250, 1);
 }
 
 .station-impact-ring {
@@ -1639,13 +1657,11 @@ button {
 @keyframes station-selected-pulse {
   0%,
   100% {
-    stroke-opacity: 0.65;
-    stroke-width: 10;
+    opacity: 0.35;
   }
 
   50% {
-    stroke-opacity: 1;
-    stroke-width: 22;
+    opacity: 0.85;
   }
 }
 
@@ -1675,6 +1691,8 @@ button {
 
 @media (prefers-reduced-motion: reduce) {
   .station-hit-target.selected,
+  .station-selected-indicator,
+  .station-selection-flash,
   .station-impact-ring,
   .station-impact-dot-red-glow {
     animation: none !important;
@@ -1711,18 +1729,16 @@ button {
 @keyframes station-selection-flash {
   0%, 100% {
     opacity: 0;
-    stroke-width: 8;
   }
   50% {
-    opacity: 1;
-    stroke-width: 20;
+    opacity: 0.9;
   }
 }
 
 .station-selection-flash {
-  fill: none;
-  stroke: #38bdf8;
-  filter: drop-shadow(0 0 12px rgba(56, 189, 248, 0.9));
+  fill: #38bdf8;
+  stroke: none;
+  filter: drop-shadow(0 0 6px rgba(56, 189, 248, 0.85));
   animation: station-selection-flash 0.6s ease-in-out 4 forwards;
 }
 

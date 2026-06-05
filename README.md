@@ -274,9 +274,14 @@ Run the backend against a scenario:
 scripts/dev-alert-scenario.sh all-alert-types
 ```
 
-Then open the normal frontend and inspect `/api/alerts`, `/api/map`, alert cards,
-station rings, and nonlinear overlays. The scenario harness does not make the app
-an official TTC product and does not represent a live feed.
+If `tmp/ttc-merged-gtfs.zip` or `/tmp/ttc-merged-gtfs.zip` exists, the scenario
+backend also imports scheduled rapid-transit arrivals into the `linewatch_scenario`
+database. Override the zip location with `LINEWATCH_SCENARIO_GTFS_ZIP=/path/to/gtfs.zip`.
+
+Then open the scenario frontend with `scripts/dev-frontend-scenario.sh` and inspect
+`/api/alerts`, `/api/map`, alert cards, station rings, nonlinear overlays, and
+schedule-aware station arrivals. The scenario harness does not make the app an
+official TTC product and does not represent a live feed.
 
 
 Current backend scope:

@@ -16,8 +16,14 @@ import org.springframework.stereotype.Service;
 @Service
 public class StationService {
     private static final String DATA_MODE = "seeded-demo";
-    private static final String DISCLAIMER =
+    private static final String DEMO_ARRIVALS_DISCLAIMER =
         "Station details use seeded backend data. Arrivals are demo placeholders, not live TTC predictions.";
+    private static final String SCHEDULED_ARRIVALS_DISCLAIMER =
+        "Scheduled arrivals use TTC timetable data and are not live train predictions.";
+    private static final String UNAVAILABLE_ARRIVALS_DISCLAIMER =
+        "Scheduled arrival data is currently unavailable. Arrival predictions are not live TTC predictions.";
+    private static final String LIVE_ARRIVALS_DISCLAIMER =
+        "Arrival predictions are source-labeled and may be affected by active TTC service alerts.";
     private static final StationResponses.StationAccessOutageCountsResponse ZERO_ACCESS_OUTAGE_COUNTS =
         new StationResponses.StationAccessOutageCountsResponse(0, 0);
 
@@ -162,8 +168,21 @@ public class StationService {
             arrivalsSource,
             toArrivalContext(impacts),
             DATA_MODE,
-            DISCLAIMER
+            disclaimerFor(predictions)
         );
+    }
+
+    private String disclaimerFor(List<ArrivalPrediction> predictions) {
+        if (predictions.stream().anyMatch(prediction -> prediction.status().equals("scheduled"))) {
+            return SCHEDULED_ARRIVALS_DISCLAIMER;
+        }
+        if (predictions.stream().anyMatch(prediction -> prediction.status().equals("live"))) {
+            return LIVE_ARRIVALS_DISCLAIMER;
+        }
+        if (predictions.stream().anyMatch(prediction -> prediction.status().equals("unavailable"))) {
+            return UNAVAILABLE_ARRIVALS_DISCLAIMER;
+        }
+        return DEMO_ARRIVALS_DISCLAIMER;
     }
 
     private StationResponses.StationArrivalContextResponse toArrivalContext(

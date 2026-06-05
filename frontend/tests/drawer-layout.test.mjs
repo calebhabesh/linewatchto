@@ -171,6 +171,25 @@ describe("floating menu layout", () => {
   });
 
   it("routes active planned closures through active alerts instead of upcoming closures", () => {
+    const selectedActiveAlertIndex = interactiveMapSource.indexOf(
+      "activeAlerts.find((alert) => alert.id === selection.id)?.affectedSegmentIds"
+    );
+    const selectedPlannedClosureIndex = interactiveMapSource.indexOf(
+      "plannedClosures.find((closure) => closure.id === selection.id)?.previewSegmentIds"
+    );
+    const impactActiveAlertIndex = interactiveMapSource.indexOf(
+      "activeAlerts.find((alert) => alert.id === impact.cardId)?.affectedSegmentIds"
+    );
+    const impactPlannedClosureIndex = interactiveMapSource.indexOf(
+      "plannedClosures.find((closure) => closure.id === impact.cardId)?.previewSegmentIds"
+    );
+
+    assert.notEqual(selectedActiveAlertIndex, -1);
+    assert.notEqual(selectedPlannedClosureIndex, -1);
+    assert.notEqual(impactActiveAlertIndex, -1);
+    assert.notEqual(impactPlannedClosureIndex, -1);
+    assert.ok(selectedActiveAlertIndex < selectedPlannedClosureIndex);
+    assert.ok(impactActiveAlertIndex < impactPlannedClosureIndex);
     assert.match(activeAlertsSource, /function impactKindForAlert/);
     assert.match(activeAlertsSource, /alert\.severity === "planned" \? "planned-closure" : "suspension"/);
     assert.match(activeAlertsSource, /useScrollSelectedImpactCard\(selection, "planned-closure"\)/);
