@@ -1,0 +1,126 @@
+import assert from "node:assert/strict";
+import { describe, it } from "node:test";
+
+import {
+  createSavedCommute,
+  getCurrentAccount,
+  getSavedCommutes,
+  loginDemoAccount,
+  logoutAccount,
+} from "../src/app/account-data.ts";
+
+describe("account data adapter", () => {
+  it("maps signed-out current account responses", async () => {
+    const result = await getCurrentAccount({
+      fetcher: async () =>
+        new Response(JSON.stringify({ authenticated: false, user: null }), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        }),
+    });
+
+    assert.equal(result.source, "backend");
+    assert.equal(result.authenticated, false);
+    assert.equal(result.user, null);
+  });
+
+  it("falls back to unavailable account state when backend cannot be reached", async () => {
+    const result = await getCurrentAccount({
+      fetcher: async () => {
+        throw new Error("offline");
+      },
+    });
+
+    assert.equal(result.source, "unavailable");
+    assert.equal(result.authenticated, false);
+    assert.equal(result.user, null);
+  });
+
+  it("posts demo login with credentials included", async () => {
+    const requests = [];
+    const result = await loginDemoAccount({
+      fetcher: async (input, init) => {
+        requests.push({ input, init });
+        return new Response(
+          JSON.stringify({
+            authenticated: true,
+            user: { id: "user_demo", email: "demo@linewatch.local", displayName: "Demo Rider", demo: true },
+          }),
+          { status: 200, headers: { "content-type": "application/json" } }
+        );
+      },
+    });
+
+    assert.equal(result.authenticated, true);
+    assert.equal(result.user.email, "demo@linewatch.local");
+    assert.equal(requests[0].init.method, "POST");
+    assert.equal(requests[0].init.credentials, "include");
+  });
+
+  it("loads account saved commutes", async () => {
+    const result = await getSavedCommutes({
+      fetcher: async () =>
+        new Response(
+          JSON.stringify({
+            commutes: [
+              {
+                id: "commute_1",
+                label: "Morning commute",
+                originStationId: "finch",
+                originStationName: "Finch",
+                destinationStationId: "union",
+                destinationStationName: "Union",
+                routeLabel: "Finch -> Union",
+                createdAt: "2026-06-05T14:30:00Z",
+                updatedAt: "2026-06-05T14:30:00Z",
+              },
+            ],
+          }),
+          { status: 200, headers: { "content-type": "application/json" } }
+        ),
+    });
+
+    assert.equal(result.source, "backend");
+    assert.equal(result.commutes[0].routeLabel, "Finch -> Union");
+  });
+
+  it("creates and logs out through account endpoints", async () => {
+    const requests = [];
+    await createSavedCommute(
+      { label: "Home", originStationId: "finch", destinationStationId: "union" },
+      {
+        fetcher: async (input, init) => {
+          requests.push({ input, init });
+          return new Response(
+            JSON.stringify({
+              id: "commute_1",
+              label: "Home",
+              originStationId: "finch",
+              originStationName: "Finch",
+              destinationStationId: "union",
+              destinationStationName: "Union",
+              routeLabel: "Finch -> Union",
+              createdAt: "2026-06-05T14:30:00Z",
+              updatedAt: "2026-06-05T14:30:00Z",
+            }),
+            { status: 201, headers: { "content-type": "application/json" } }
+          );
+        },
+      }
+    );
+    await logoutAccount({
+      fetcher: async (input, init) => {
+        requests.push({ input, init });
+        return new Response(JSON.stringify({ authenticated: false, user: null }), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        });
+      },
+    });
+
+    assert.equal(requests[0].init.method, "POST");
+    assert.equal(requests[0].init.credentials, "include");
+    assert.equal(requests[1].init.method, "POST");
+    assert.equal(requests[1].init.credentials, "include");
+  });
+});
