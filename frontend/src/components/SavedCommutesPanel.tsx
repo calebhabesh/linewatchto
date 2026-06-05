@@ -1,14 +1,100 @@
 "use client";
 
+import { useEffect, useMemo, useState } from "react";
 import { useDashboardData } from "../app/DataContext";
 import { Navigation, CheckCircle2, AlertCircle, AlertOctagon, ChevronLeft } from "lucide-react";
+import {
+  createSavedCommute,
+  deleteSavedCommute,
+  getSavedCommutes,
+  type AccountSavedCommute,
+  type AccountState,
+} from "../app/account-data";
+import type { StationSummary } from "../app/station-data";
 
 interface Props {
   onBack?: () => void;
+  accountState: AccountState;
+  accountCommutes: AccountSavedCommute[];
+  setAccountCommutes: (commutes: AccountSavedCommute[]) => void;
+  stationSummaries: StationSummary[];
+  onRequestSignIn: () => void;
+  onRequestCreateAccount: () => void;
+  onRequestDemo: () => void;
 }
 
-export function SavedCommutesPanel({ onBack }: Props = {}) {
+export function SavedCommutesPanel({
+  onBack,
+  accountState,
+  accountCommutes,
+  setAccountCommutes,
+  stationSummaries,
+  onRequestSignIn,
+  onRequestCreateAccount,
+  onRequestDemo,
+}: Props) {
   const { commuteImpacts } = useDashboardData();
+  const [newLabel, setNewLabel] = useState("");
+  const [originStationId, setOriginStationId] = useState("");
+  const [destinationStationId, setDestinationStationId] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [commuteError, setCommuteError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!accountState.authenticated) {
+      setAccountCommutes([]);
+      return () => {
+        cancelled = true;
+      };
+    }
+    getSavedCommutes().then((result) => {
+      if (!cancelled && result.source === "backend") {
+        setAccountCommutes(result.commutes);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [accountState.authenticated, setAccountCommutes]);
+
+  const stationOptions = useMemo(() => {
+    return [...stationSummaries].sort((a, b) => a.name.localeCompare(b.name));
+  }, [stationSummaries]);
+
+  const handleCreateCommute = async () => {
+    if (!originStationId || !destinationStationId) {
+      setCommuteError("Choose an origin and destination station.");
+      return;
+    }
+    setSaving(true);
+    setCommuteError(null);
+    try {
+      const created = await createSavedCommute({
+        label: newLabel,
+        originStationId,
+        destinationStationId,
+      });
+      setAccountCommutes([...accountCommutes, created]);
+      setNewLabel("");
+      setOriginStationId("");
+      setDestinationStationId("");
+    } catch {
+      setCommuteError("Could not save that commute.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDeleteCommute = async (id: string) => {
+    try {
+      await deleteSavedCommute(id);
+      setAccountCommutes(accountCommutes.filter((commute) => commute.id !== id));
+    } catch {
+      setCommuteError("Could not delete that commute.");
+    }
+  };
+
   const getImpactClass = (impact: string) => {
     switch (impact) {
       case "suspended":
@@ -67,8 +153,58 @@ export function SavedCommutesPanel({ onBack }: Props = {}) {
           </h2>
         </div>
       </div>
-      <div className="commute-grid min-w-0 p-3 grid grid-cols-1 gap-3">
-        {commuteImpacts.map((commute) => {
+      <div className="commute-grid min-w-0 p-3 flex flex-col gap-3">
+        {!accountState.authenticated ? (
+          <div className="saved-commute-account-prompt">
+            <strong>Demo examples</strong>
+            <span>Sign in to save your own rapid-transit commute preferences.</span>
+            <div className="account-action-row">
+              <button type="button" onClick={onRequestSignIn}>Sign in</button>
+              <button type="button" onClick={onRequestCreateAccount}>Create account</button>
+              <button type="button" onClick={onRequestDemo}>Demo account</button>
+            </div>
+          </div>
+        ) : null}
+
+        {accountState.authenticated ? (
+          <div className="saved-commute-form">
+            <div className="flex items-center justify-between gap-2">
+              <strong>{accountState.user?.demo ? "Demo account" : "Saved to account"}</strong>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Impact matching pending</span>
+            </div>
+            <input value={newLabel} onChange={(event) => setNewLabel(event.target.value)} placeholder="Commute label" aria-label="Saved commute label" />
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+              <select value={originStationId} onChange={(event) => setOriginStationId(event.target.value)} aria-label="Origin station">
+                <option value="">Origin station</option>
+                {stationOptions.map((station) => <option key={`origin-${station.id}`} value={station.id}>{station.name}</option>)}
+              </select>
+              <select value={destinationStationId} onChange={(event) => setDestinationStationId(event.target.value)} aria-label="Destination station">
+                <option value="">Destination station</option>
+                {stationOptions.map((station) => <option key={`destination-${station.id}`} value={station.id}>{station.name}</option>)}
+              </select>
+            </div>
+            <button type="button" onClick={handleCreateCommute} disabled={saving}>Save commute</button>
+            {commuteError ? <p className="text-xs font-semibold text-red-600 dark:text-red-300">{commuteError}</p> : null}
+            {accountCommutes.length === 0 ? (
+              <p className="text-xs text-slate-500 dark:text-slate-400 italic">No saved account commutes yet.</p>
+            ) : (
+              accountCommutes.map((commute) => (
+                <div key={commute.id} className="commute-card ok min-w-0 rounded-lg border border-black/10 border-l-4 border-l-green-500 !bg-slate-50 p-3 dark:border-white/10 dark:!bg-[#12151c]">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <h3 className="min-w-0 text-sm font-bold text-slate-800 dark:text-white whitespace-normal break-words">{commute.label}</h3>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold mt-1 whitespace-normal break-words">{commute.routeLabel}</p>
+                      <p className="text-xs text-slate-600 dark:text-slate-300 mt-2">Impact matching pending.</p>
+                    </div>
+                    <button type="button" onClick={() => handleDeleteCommute(commute.id)} aria-label={`Delete saved commute ${commute.label}`}>Delete</button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        ) : null}
+
+        {(!accountState.authenticated || accountCommutes.length === 0) && commuteImpacts.map((commute) => {
           const impactClass = getImpactClass(commute.impact);
           const hasImpact = commute.impact !== "clear";
           return (

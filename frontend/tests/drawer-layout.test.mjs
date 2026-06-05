@@ -73,6 +73,11 @@ describe("floating menu layout", () => {
     assert.match(globalCss, /\.station-search-outage-count\s*\{[^}]*min-width:\s*14px;[^}]*height:\s*14px;[^}]*font-size:\s*8px;/s);
     assert.doesNotMatch(stationSearchSource, /station-search-flag-access/);
     assert.doesNotMatch(stationSearchSource, />\s*Access\s*</);
+
+    assert.match(shellSource, /Demo account/);
+    assert.match(shellSource, /Create account/);
+    assert.match(shellSource, /Sign in/);
+    assert.match(savedCommutesSource, /Impact matching pending/);
   });
 
   it("allows alert and planned closure copy to wrap instead of collapsing into narrow columns", () => {

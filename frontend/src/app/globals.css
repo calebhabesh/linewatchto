@@ -2900,3 +2900,154 @@ button {
     animation: none !important;
   }
 }
+
+.menu-action-row {
+  align-items: center;
+  border-radius: 8px;
+  color: rgb(51, 65, 85);
+  display: flex;
+  font-size: 0.875rem;
+  font-weight: 700;
+  gap: 0.75rem;
+  padding: 0.625rem 0.75rem;
+  text-align: left;
+  transition: background 0.16s ease, color 0.16s ease;
+  width: 100%;
+}
+
+.menu-action-row:hover,
+.menu-action-row:focus-visible {
+  background: rgba(15, 23, 42, 0.06);
+  outline: none;
+}
+
+.dark .menu-action-row,
+.high-contrast .menu-action-row {
+  color: rgb(226, 232, 240);
+}
+
+.dark .menu-action-row:hover,
+.dark .menu-action-row:focus-visible,
+.high-contrast .menu-action-row:hover,
+.high-contrast .menu-action-row:focus-visible {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.account-action-row {
+  display: grid;
+  gap: 0.375rem;
+}
+
+.account-dialog-backdrop {
+  align-items: center;
+  background: rgba(2, 6, 23, 0.44);
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  padding: 1rem;
+  position: fixed;
+  z-index: 70;
+}
+
+.account-dialog {
+  background: rgba(248, 250, 252, 0.98);
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  border-radius: 8px;
+  box-shadow: 0 24px 80px rgba(2, 6, 23, 0.28);
+  max-width: 380px;
+  overflow: hidden;
+  width: 100%;
+}
+
+.dark .account-dialog,
+.high-contrast .account-dialog {
+  background: rgba(15, 23, 42, 0.98);
+  border-color: rgba(255, 255, 255, 0.14);
+}
+
+.account-field {
+  display: grid;
+  gap: 0.375rem;
+}
+
+.account-field span {
+  color: rgb(71, 85, 105);
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.dark .account-field span,
+.high-contrast .account-field span {
+  color: rgb(203, 213, 225);
+}
+
+.account-field input,
+.saved-commute-form input,
+.saved-commute-form select {
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(15, 23, 42, 0.14);
+  border-radius: 8px;
+  color: rgb(15, 23, 42);
+  min-height: 40px;
+  padding: 0.5rem 0.625rem;
+}
+
+.dark .account-field input,
+.high-contrast .account-field input,
+.dark .saved-commute-form input,
+.dark .saved-commute-form select,
+.high-contrast .saved-commute-form input,
+.high-contrast .saved-commute-form select {
+  background: rgba(15, 23, 42, 0.82);
+  border-color: rgba(255, 255, 255, 0.14);
+  color: rgb(248, 250, 252);
+}
+
+.account-primary-button,
+.saved-commute-form button,
+.saved-commute-account-prompt button {
+  border-radius: 8px;
+  background: rgb(15, 23, 42);
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 900;
+  min-height: 38px;
+  padding: 0.5rem 0.75rem;
+  text-transform: uppercase;
+}
+
+.dark .account-primary-button,
+.dark .saved-commute-form button,
+.dark .saved-commute-account-prompt button,
+.high-contrast .account-primary-button,
+.high-contrast .saved-commute-form button,
+.high-contrast .saved-commute-account-prompt button {
+  background: rgb(226, 232, 240);
+  color: rgb(15, 23, 42);
+}
+
+.saved-commute-account-prompt,
+.saved-commute-form {
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  border-radius: 8px;
+  display: grid;
+  gap: 0.625rem;
+  padding: 0.75rem;
+}
+
+.saved-commute-account-prompt {
+  background: rgba(16, 185, 129, 0.08);
+}
+
+.saved-commute-form {
+  background: rgba(248, 250, 252, 0.88);
+}
+
+.dark .saved-commute-account-prompt,
+.high-contrast .saved-commute-account-prompt,
+.dark .saved-commute-form,
+.high-contrast .saved-commute-form {
+  border-color: rgba(255, 255, 255, 0.12);
+  background: rgba(15, 23, 42, 0.62);
+}

@@ -25,12 +25,21 @@ import {
 } from "../app/station-data";
 import { StationDetailPanel } from "./StationDetailPanel";
 import { useTorontoClock } from "../hooks/useTorontoClock";
-import { Menu, X, Map as MapIcon, AlertTriangle, Calendar, Navigation, ShieldCheck, BarChart3, Construction, Search } from "lucide-react";
+import { Menu, X, Map as MapIcon, AlertTriangle, Calendar, Navigation, ShieldCheck, BarChart3, Construction, Search, LogIn, LogOut, UserPlus, UserRound } from "lucide-react";
 import { SubwayClosedScreen } from "./SubwayClosedScreen";
 import { useSubwayOperatingState } from "../hooks/useSubwayOperatingState";
 import { StationSearchPanel } from "./StationSearchPanel";
 import { OpeningDisclaimer } from "./OpeningDisclaimer";
 import { SubwayClosingSoonChip } from "./SubwayClosingSoonChip";
+import {
+  getCurrentAccount,
+  loginAccount,
+  loginDemoAccount,
+  logoutAccount,
+  registerAccount,
+  type AccountState,
+  type AccountSavedCommute,
+} from "../app/account-data";
 
 
 type ActiveView = "map" | "menu" | "search" | "alerts" | "delays" | "reduced-speed-zones" | "closures" | "commutes" | "analytics";
@@ -99,6 +108,87 @@ export function LineWatchShell({ initialData }: { initialData: DashboardData }) 
   const [selectedStationId, setSelectedStationId] = useState<string | null>(null);
   const [visibleStationResult, setVisibleStationResult] = useState<StationDataResult<StationDetail | null> | null>(null);
   const [stationLoading, setStationLoading] = useState(false);
+
+  const [accountState, setAccountState] = useState<AccountState>({
+    source: "unavailable",
+    authenticated: false,
+    user: null,
+  });
+  const [accountDialogMode, setAccountDialogMode] = useState<"login" | "register" | null>(null);
+  const [accountEmail, setAccountEmail] = useState("");
+  const [accountPassword, setAccountPassword] = useState("");
+  const [accountDisplayName, setAccountDisplayName] = useState("");
+  const [accountError, setAccountError] = useState<string | null>(null);
+  const [accountBusy, setAccountBusy] = useState(false);
+  const [accountCommutes, setAccountCommutes] = useState<AccountSavedCommute[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    getCurrentAccount().then((state) => {
+      if (!cancelled) {
+        setAccountState(state);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const resetAccountForm = () => {
+    setAccountEmail("");
+    setAccountPassword("");
+    setAccountDisplayName("");
+    setAccountError(null);
+  };
+
+  const refreshAccountState = async () => {
+    const next = await getCurrentAccount();
+    setAccountState(next);
+    return next;
+  };
+
+  const handleSubmitAccount = async () => {
+    if (!accountDialogMode) return;
+    setAccountBusy(true);
+    setAccountError(null);
+    try {
+      const response = accountDialogMode === "login"
+        ? await loginAccount({ email: accountEmail, password: accountPassword })
+        : await registerAccount({ email: accountEmail, password: accountPassword, displayName: accountDisplayName });
+      setAccountState({ source: "backend", authenticated: response.authenticated, user: response.user });
+      setAccountDialogMode(null);
+      resetAccountForm();
+    } catch {
+      setAccountError(accountDialogMode === "login" ? "Could not sign in with those credentials." : "Could not create that account.");
+    } finally {
+      setAccountBusy(false);
+    }
+  };
+
+  const handleDemoAccount = async () => {
+    setAccountBusy(true);
+    setAccountError(null);
+    try {
+      const response = await loginDemoAccount();
+      setAccountState({ source: "backend", authenticated: response.authenticated, user: response.user });
+      setActiveView("commutes");
+    } catch {
+      setAccountError("Demo account is unavailable.");
+    } finally {
+      setAccountBusy(false);
+    }
+  };
+
+  const handleSignOut = async () => {
+    setAccountBusy(true);
+    try {
+      await logoutAccount();
+      setAccountState({ source: "backend", authenticated: false, user: null });
+      setAccountCommutes([]);
+    } finally {
+      setAccountBusy(false);
+    }
+  };
 
   useEffect(() => {
     const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -301,12 +391,53 @@ export function LineWatchShell({ initialData }: { initialData: DashboardData }) 
           {/* Floating Dropdown Menu */}
           <div className={`panel-strong absolute top-[72px] left-0 w-[min(calc(100vw-32px),360px)] border border-black/10 dark:border-white/10 rounded-2xl shadow-2xl overflow-hidden flex flex-col origin-top-left transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] ${activeView === "menu" ? "opacity-100 scale-100 translate-y-0 pointer-events-auto" : "opacity-0 scale-90 -translate-y-4 pointer-events-none"}`}>
                {/* Branding */}
-               <div className="flex items-center gap-3 p-4 border-b border-black/10 dark:border-white/10 bg-white/40 dark:bg-black/20">
-                 <div className="flex items-center justify-center shrink-0 w-8 h-8 rounded-lg shadow-sm border border-black/10 dark:border-white/10 bg-white dark:bg-white/10 p-1">
-                    <Image src="/assets/linewatch/logo.svg" alt="LineWatch TO Logo" width={24} height={24} className="drop-shadow-sm dark:brightness-200" />
-                 </div>
-                 <strong className="text-slate-900 dark:text-white font-bold tracking-wide">LineWatch TO</strong>
-               </div>
+                <div className="flex items-center gap-3 p-4 border-b border-black/10 dark:border-white/10 bg-white/40 dark:bg-black/20">
+                  <div className="flex items-center justify-center shrink-0 w-8 h-8 rounded-lg shadow-sm border border-black/10 dark:border-white/10 bg-white dark:bg-white/10 p-1">
+                     <Image src="/assets/linewatch/logo.svg" alt="LineWatch TO Logo" width={24} height={24} className="drop-shadow-sm dark:brightness-200" />
+                  </div>
+                  <strong className="text-slate-900 dark:text-white font-bold tracking-wide">LineWatch TO</strong>
+                </div>
+
+                <div className="account-menu-block border-b border-black/10 dark:border-white/10 p-2">
+                  {accountState.authenticated && accountState.user ? (
+                    <div className="flex flex-col gap-2 px-2 py-2">
+                      <div className="flex items-center gap-2 min-w-0 text-sm text-slate-700 dark:text-slate-200">
+                        <UserRound size={17} className="shrink-0 text-emerald-600 dark:text-emerald-400" />
+                        <span className="min-w-0 truncate font-bold">{accountState.user.displayName || accountState.user.email}</span>
+                        {accountState.user.demo ? (
+                          <span className="rounded border border-emerald-500/30 bg-emerald-500/10 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider text-emerald-700 dark:text-emerald-300">
+                            Demo
+                          </span>
+                        ) : null}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleSignOut}
+                        className="menu-action-row"
+                        disabled={accountBusy}
+                      >
+                        <LogOut size={17} className="text-slate-500 dark:text-slate-400" />
+                        Sign out
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="account-action-row">
+                      <button type="button" onClick={() => { resetAccountForm(); setAccountDialogMode("login"); }} className="menu-action-row">
+                        <LogIn size={17} className="text-slate-500 dark:text-slate-400" />
+                        Sign in
+                      </button>
+                      <button type="button" onClick={() => { resetAccountForm(); setAccountDialogMode("register"); }} className="menu-action-row">
+                        <UserPlus size={17} className="text-slate-500 dark:text-slate-400" />
+                        Create account
+                      </button>
+                      <button type="button" onClick={handleDemoAccount} className="menu-action-row" disabled={accountBusy}>
+                        <UserRound size={17} className="text-emerald-600 dark:text-emerald-400" />
+                        Demo account
+                      </button>
+                    </div>
+                  )}
+                  {accountError ? <p className="px-2 pb-2 text-xs font-semibold text-red-600 dark:text-red-300">{accountError}</p> : null}
+                </div>
 
                {/* Nav Links */}
                <div className="flex flex-col p-2 border-b border-black/10 dark:border-white/10">
@@ -522,7 +653,16 @@ export function LineWatchShell({ initialData }: { initialData: DashboardData }) 
 
       <div className={`absolute top-[88px] sm:top-[104px] left-4 sm:left-6 z-30 w-[min(calc(100vw-32px),640px)] flex flex-col transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] ${activeView === "commutes" ? "opacity-100 translate-x-0 pointer-events-auto" : "opacity-0 -translate-x-8 pointer-events-none"}`}>
          <div className="max-h-[85vh] overflow-y-auto pr-1 pb-4 flex flex-col gap-4">
-           <SavedCommutesPanel onBack={() => setActiveView("menu")} />
+            <SavedCommutesPanel
+              accountState={accountState}
+              accountCommutes={accountCommutes}
+              setAccountCommutes={setAccountCommutes}
+              stationSummaries={stationSummaries}
+              onBack={() => setActiveView("menu")}
+              onRequestSignIn={() => setAccountDialogMode("login")}
+              onRequestCreateAccount={() => setAccountDialogMode("register")}
+              onRequestDemo={handleDemoAccount}
+            />
          </div>
       </div>
 
@@ -599,6 +739,49 @@ export function LineWatchShell({ initialData }: { initialData: DashboardData }) 
         />
       </aside>
       )}
+      {accountDialogMode ? (
+        <div className="account-dialog-backdrop" role="presentation" onMouseDown={() => setAccountDialogMode(null)}>
+          <section
+            className="account-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-label={accountDialogMode === "login" ? "Sign in to LineWatch TO" : "Create LineWatch TO account"}
+            onMouseDown={(event) => event.stopPropagation()}
+          >
+            <div className="flex items-start justify-between gap-3 border-b border-black/10 p-3 dark:border-white/10">
+              <div>
+                <h2 className="text-base font-black text-slate-900 dark:text-white">
+                  {accountDialogMode === "login" ? "Sign in" : "Create account"}
+                </h2>
+                <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">Save commute preferences across demos.</p>
+              </div>
+              <button type="button" className="station-search-clear" onClick={() => setAccountDialogMode(null)} aria-label="Close account dialog">
+                <X size={18} />
+              </button>
+            </div>
+            <div className="flex flex-col gap-3 p-3">
+              {accountDialogMode === "register" ? (
+                <label className="account-field">
+                  <span>Display name</span>
+                  <input value={accountDisplayName} onChange={(event) => setAccountDisplayName(event.target.value)} />
+                </label>
+              ) : null}
+              <label className="account-field">
+                <span>Email</span>
+                <input type="email" value={accountEmail} onChange={(event) => setAccountEmail(event.target.value)} />
+              </label>
+              <label className="account-field">
+                <span>Password</span>
+                <input type="password" value={accountPassword} onChange={(event) => setAccountPassword(event.target.value)} />
+              </label>
+              {accountError ? <p className="text-xs font-semibold text-red-600 dark:text-red-300">{accountError}</p> : null}
+              <button type="button" className="account-primary-button" onClick={handleSubmitAccount} disabled={accountBusy}>
+                {accountDialogMode === "login" ? "Sign in" : "Create account"}
+              </button>
+            </div>
+          </section>
+        </div>
+      ) : null}
       <OpeningDisclaimer />
     </div>
     </DataProvider>
