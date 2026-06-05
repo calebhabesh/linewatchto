@@ -14,10 +14,11 @@ describe("station detail panel layout", () => {
     assert.match(panelSource, /rounded-t-lg/);
   });
 
-  it("labels demo arrivals and backend fallback state", () => {
-    assert.match(panelSource, /Demo arrival/);
-    assert.match(panelSource, /source === "fallback"/);
-    assert.match(panelSource, /not live TTC predictions/);
+  it("renders schedule-aware arrivals and disruption warning", () => {
+    assert.match(panelSource, /Schedule may be disrupted/);
+    assert.match(panelSource, /data-arrivals-disrupted/);
+    assert.match(panelSource, /arrivalContext\.scheduleMayBeDisrupted/);
+    assert.match(panelSource, /Line \{arrivalLine\?\.number/);
   });
 
   it("defines station marker and reduced motion styles", () => {
