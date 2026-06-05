@@ -585,11 +585,11 @@ export function LineWatchShell({ initialData }: { initialData: DashboardData }) 
                     <div className="flex items-center gap-3">
                       <Construction size={18} className="text-slate-500 dark:text-slate-400" /> Reduced Speed Zones
                     </div>
-                   {reducedSpeedZones.length > 0 && (
-                     <span className="flex h-5 items-center justify-center rounded-full bg-amber-500/20 px-2 text-[10px] font-bold text-amber-700 dark:text-amber-400">
-                       {reducedSpeedZones.length}
-                     </span>
-                   )}
+                    {reducedSpeedZones.length > 0 && (
+                      <span className="flex h-5 items-center justify-center rounded-full rsz-count-badge px-2 text-[10px] font-bold">
+                        {reducedSpeedZones.length}
+                      </span>
+                    )}
                  </button>
                  <button
                    ref={registerMenuAction(actionIndex++)}
@@ -680,7 +680,7 @@ export function LineWatchShell({ initialData }: { initialData: DashboardData }) 
                                   <div className="flex items-center gap-1.5 ml-1">
                                     {hasAlert && <AlertTriangle size={14} className="text-red-500 dark:text-red-400" />}
                                     {hasDelay && <DelayIcon size={14} className="text-amber-500 dark:text-amber-400" /> /* /assets/linewatch/delay-icon.svg */}
-                                    {hasRSZ && <Construction size={14} className="text-amber-500 dark:text-amber-400" />}
+                                    {hasRSZ && <Construction size={14} className="rsz-tone" />}
                                     {hasClosure && <Calendar size={14} className="text-blue-500 dark:text-blue-400" />}
                                   </div>
                                   {isClear && <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider ml-1">Good Service</span>}

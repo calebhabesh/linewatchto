@@ -163,8 +163,9 @@ describe("asset-backed map layering", () => {
     assert.match(globalCss, /\.overlap-indicator-type-icon\.delay\s*\{[^}]*color:\s*#f59e0b;/s);
     assert.doesNotMatch(globalCss, /\.overlap-indicator-badge\.delay\s*\{[^}]*#0ea5e9/s);
     assert.doesNotMatch(globalCss, /\.overlap-indicator-badge\.suspension,\s*\.overlap-indicator-badge\.planned-closure/);
-    assert.match(globalCss, /\.overlap-indicator-badge\.reduced-speed-zone/);
-    assert.match(globalCss, /\.overlap-indicator-type-icon/);
+    assert.match(globalCss, /\.overlap-indicator-badge\.reduced-speed-zone\s*\{[^}]*var\(--impact-rsz\)/s);
+    assert.match(globalCss, /\.overlap-indicator-type-icon\.reduced-speed-zone\s*\{[^}]*var\(--impact-rsz\)/s);
+    assert.match(interactiveMapSource, /const RSZ_IMPACT_COLOR = "#A6FBB2";/);
     assert.doesNotMatch(globalCss, /\.overlap-side-rail/);
   });
 

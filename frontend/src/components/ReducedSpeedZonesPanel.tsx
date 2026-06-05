@@ -45,12 +45,12 @@ export function ReducedSpeedZonesPanel({
             </button>
           )}
           <h2 className="text-[clamp(10px,3.5cqw,18px)] font-bold text-slate-900 dark:text-white flex items-center gap-1 sm:gap-3 whitespace-nowrap">
-            <Construction className="w-[16px] h-[16px] sm:w-[22px] sm:h-[22px] text-amber-500 shrink-0" />
+            <Construction className="rsz-tone w-[16px] h-[16px] sm:w-[22px] sm:h-[22px] shrink-0" />
             <span>Reduced Speed Zones</span>
           </h2>
         </div>
         <div className="flex flex-col items-end gap-1 mt-0.5 shrink-0">
-          <span className="shrink-0 text-[9px] sm:text-xs bg-amber-500/10 text-amber-600 dark:text-amber-400 px-1.5 sm:px-2 py-0.5 rounded-full font-bold">
+          <span className="rsz-count-badge shrink-0 text-[9px] sm:text-xs px-1.5 sm:px-2 py-0.5 rounded-full font-bold">
             {reducedSpeedZones.length} {reducedSpeedZones.length === 1 ? "Zone" : "Zones"}
           </span>
           <CardSource source={reducedSpeedZones[0]?.source || "TTC Live Alerts"} />
@@ -67,8 +67,8 @@ export function ReducedSpeedZonesPanel({
             <div
               key={zone.id}
               data-impact-card-id={zone.id}
-              className={`alert-card min-w-0 w-full text-left p-3 rounded-lg border border-black/10 dark:border-white/10 border-l-4 border-l-amber-500 !bg-slate-50 dark:!bg-[#12151c] transition-all ${
-                isActive ? "!bg-amber-50 dark:!bg-amber-950" : ""
+              className={`alert-card rsz-card-border min-w-0 w-full text-left p-3 rounded-lg border border-black/10 dark:border-white/10 border-l-4 !bg-slate-50 dark:!bg-[#12151c] transition-all ${
+                isActive ? "rsz-card-active" : ""
               }`}
             >
               <div className="flex items-start justify-between gap-3 w-full min-w-0">

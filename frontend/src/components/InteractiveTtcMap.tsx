@@ -34,6 +34,8 @@ import type { StationSummary } from "../app/station-data";
 import { LogsDropdown } from "./LogsDropdown";
 import { ImpactTypeIcon } from "./ImpactTypeIcon";
 
+const RSZ_IMPACT_COLOR = "#A6FBB2";
+
 function getSegmentsCenter(
   segmentIds: string[],
   segmentsList: NetworkSegment[],
@@ -2184,7 +2186,7 @@ function OverlaySegment({
 
   const isMultiSegment = impactSegmentIds.length > 1;
 
-  const chevronBg = "#f59e0b";
+  const chevronBg = RSZ_IMPACT_COLOR;
 
   const travelDirection = visualTravelDirection(segment);
   const renderForwardLane = travelDirection !== "reverse";

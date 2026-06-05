@@ -37,7 +37,7 @@ type Props = {
 type StationImpactDetailsTarget = {
   label: string;
   selection: NonNullable<ImpactSelection>;
-  tone: "active" | "delay" | "planned";
+  tone: "active" | "delay" | "planned" | "reduced-speed-zone";
 };
 
 function getStationImpactDetailsTarget(
@@ -54,7 +54,7 @@ function getStationImpactDetailsTarget(
     return {
       label: "Reduced Speed Zone",
       selection: { kind: "reduced-speed-zone", id: reducedSpeedZone.id },
-      tone: "delay",
+      tone: "reduced-speed-zone",
     };
   }
 
@@ -116,7 +116,7 @@ function StationImpactDetailsIcon({
   }
 
   if (kind === "reduced-speed-zone") {
-    return <Construction size={14} className="shrink-0 text-amber-500" />;
+    return <Construction size={14} className="rsz-tone shrink-0" />;
   }
 
   if (kind === "planned-closure" && tone === "active") {
@@ -162,6 +162,9 @@ function stationImpactCardClassName(tone: StationImpactDetailsTarget["tone"]) {
   if (tone === "planned") {
     return `${base} border-blue-500/30 bg-blue-500/10`;
   }
+  if (tone === "reduced-speed-zone") {
+    return `${base} border-[var(--impact-rsz-border)] bg-[var(--impact-rsz-soft)]`;
+  }
   return `${base} border-amber-500/30 bg-amber-500/10`;
 }
 
@@ -171,6 +174,9 @@ function stationImpactTitleClassName(tone: StationImpactDetailsTarget["tone"]) {
   }
   if (tone === "planned") {
     return "block text-blue-800 dark:text-blue-200";
+  }
+  if (tone === "reduced-speed-zone") {
+    return "rsz-tone block";
   }
   return "block text-amber-800 dark:text-amber-200";
 }

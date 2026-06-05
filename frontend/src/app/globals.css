@@ -9,6 +9,11 @@
 
 :root {
   color-scheme: dark;
+  --impact-rsz: #A6FBB2;
+  --impact-rsz-ink: #14532d;
+  --impact-rsz-soft: rgba(166, 251, 178, 0.14);
+  --impact-rsz-border: rgba(166, 251, 178, 0.55);
+  --impact-rsz-active: rgba(166, 251, 178, 0.22);
 }
 
 * {
@@ -692,9 +697,13 @@ button {
   transition: none !important;
 }
 
-.asset-alert-path-glow.delay,
-.asset-alert-path-glow.reduced-speed-zone {
+.asset-alert-path-glow.delay {
   stroke: rgba(245, 158, 11, 0.7); /* Orange aura for delays */
+  animation: aura-pulse 1.2s infinite alternate ease-in-out;
+}
+
+.asset-alert-path-glow.reduced-speed-zone {
+  stroke: var(--impact-rsz);
   animation: aura-pulse 1.2s infinite alternate ease-in-out;
 }
 
@@ -856,7 +865,7 @@ button {
 
 .rsz-chevron {
   fill: none;
-  stroke: #1e293b;
+  stroke: var(--impact-rsz-ink);
   stroke-width: 6;
   stroke-linecap: round;
   stroke-linejoin: round;
@@ -976,8 +985,8 @@ button {
 }
 
 .overlap-indicator-badge.reduced-speed-zone {
-  fill: rgba(245, 158, 11, 0.14);
-  stroke: #f59e0b;
+  fill: var(--impact-rsz-soft);
+  stroke: var(--impact-rsz);
 }
 
 .overlap-indicator-badge.delay {
@@ -994,9 +1003,12 @@ button {
   color: #ef4444;
 }
 
-.impact-type-icon.delay,
-.impact-type-icon.reduced-speed-zone {
+.impact-type-icon.delay {
   color: #f59e0b;
+}
+
+.impact-type-icon.reduced-speed-zone {
+  color: var(--impact-rsz);
 }
 
 .impact-type-icon.planned-closure {
@@ -1017,7 +1029,7 @@ button {
 }
 
 .overlap-indicator-type-icon.reduced-speed-zone {
-  color: #f59e0b;
+  color: var(--impact-rsz);
 }
 
 .overlap-indicator-type-icon.planned-closure {
@@ -1069,10 +1081,14 @@ button {
   background: rgba(239, 68, 68, 0.08);
 }
 
-.overlap-impact-ref.delay,
-.overlap-impact-ref.reduced-speed-zone {
+.overlap-impact-ref.delay {
   border-color: rgba(245, 158, 11, 0.38);
   background: rgba(245, 158, 11, 0.08);
+}
+
+.overlap-impact-ref.reduced-speed-zone {
+  border-color: var(--impact-rsz-border);
+  background: var(--impact-rsz-soft);
 }
 
 .overlap-impact-ref.planned-closure {
@@ -1086,10 +1102,13 @@ button {
 }
 
 .dark .overlap-impact-ref.delay,
-.dark .overlap-impact-ref.reduced-speed-zone,
-.high-contrast .overlap-impact-ref.delay,
-.high-contrast .overlap-impact-ref.reduced-speed-zone {
+.high-contrast .overlap-impact-ref.delay {
   background: rgba(120, 53, 15, 0.26);
+}
+
+.dark .overlap-impact-ref.reduced-speed-zone,
+.high-contrast .overlap-impact-ref.reduced-speed-zone {
+  background: rgba(20, 83, 45, 0.32);
 }
 
 .dark .overlap-impact-ref.planned-closure,
@@ -3050,4 +3069,46 @@ button {
 .high-contrast .saved-commute-form {
   border-color: rgba(255, 255, 255, 0.12);
   background: rgba(15, 23, 42, 0.62);
+}
+
+.rsz-tone {
+  color: var(--impact-rsz-ink);
+}
+
+.dark .rsz-tone,
+.high-contrast .rsz-tone {
+  color: var(--impact-rsz);
+}
+
+.rsz-count-badge {
+  background: var(--impact-rsz-soft);
+  color: var(--impact-rsz-ink);
+}
+
+.dark .rsz-count-badge,
+.high-contrast .rsz-count-badge {
+  color: var(--impact-rsz);
+}
+
+.rsz-card-border {
+  border-left-color: var(--impact-rsz);
+}
+
+.rsz-card-active {
+  background: var(--impact-rsz-active) !important;
+}
+
+.legend-rsz-button {
+  color: var(--impact-rsz-ink);
+  border-color: var(--impact-rsz-border);
+}
+
+.legend-rsz-button:hover,
+.legend-rsz-button:focus-visible {
+  background: var(--impact-rsz-soft);
+}
+
+.dark .legend-rsz-button,
+.high-contrast .legend-rsz-button {
+  color: var(--impact-rsz);
 }
