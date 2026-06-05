@@ -1,0 +1,46 @@
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { describe, it } from "node:test";
+
+const shellSource = readFileSync(new URL("../src/components/LineWatchShell.tsx", import.meta.url), "utf8");
+const stationSearchSource = readFileSync(new URL("../src/components/StationSearchPanel.tsx", import.meta.url), "utf8");
+const lineLegendSource = readFileSync(new URL("../src/components/LineLegend.tsx", import.meta.url), "utf8");
+
+describe("keyboard accessibility source", () => {
+  it("manages hamburger menu focus and arrow-key movement", () => {
+    assert.match(shellSource, /menuButtonRef/);
+    assert.match(shellSource, /menuPanelRef/);
+    assert.match(shellSource, /menuActionRefs/);
+    assert.match(shellSource, /aria-controls="linewatch-main-menu"/);
+    assert.match(shellSource, /aria-expanded=\{activeView === "menu"\}/);
+    assert.match(shellSource, /handleMenuKeyDown/);
+    assert.match(shellSource, /event\.key === "Escape"/);
+    assert.match(shellSource, /event\.key === "ArrowDown"/);
+    assert.match(shellSource, /event\.key === "ArrowUp"/);
+    assert.match(shellSource, /event\.key === "Home"/);
+    assert.match(shellSource, /event\.key === "End"/);
+    assert.match(shellSource, /aria-current=\{activeView === "alerts" \? "page" : undefined\}/);
+    assert.match(shellSource, /aria-pressed=\{highContrast\}/);
+    assert.match(shellSource, /aria-pressed=\{reducedMotion\}/);
+  });
+
+  it("keeps station search and legend controls explicitly keyboard accessible", () => {
+    assert.match(stationSearchSource, /handleInputKeyDown/);
+    assert.match(stationSearchSource, /focusItem/);
+    assert.match(stationSearchSource, /ArrowDown/);
+    assert.match(stationSearchSource, /ArrowUp/);
+    assert.match(lineLegendSource, /aria-label=\{`View reduced speed zone for \$\{line\.name\}`\}/);
+  });
+
+  it("returns focus from station search and supports result cycling", () => {
+    assert.match(shellSource, /searchButtonRef/);
+    assert.match(shellSource, /aria-controls="station-search-panel"/);
+    assert.match(shellSource, /onClosedFocusTarget/);
+    assert.match(stationSearchSource, /resultButtonRefs/);
+    assert.match(stationSearchSource, /lineTriggerRefs/);
+    assert.match(stationSearchSource, /stationButtonRefs/);
+    assert.match(stationSearchSource, /handleResultKeyDown/);
+    assert.match(stationSearchSource, /handleLineTriggerKeyDown/);
+    assert.match(stationSearchSource, /handleStationButtonKeyDown/);
+  });
+});

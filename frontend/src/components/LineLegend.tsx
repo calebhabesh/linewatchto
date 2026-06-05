@@ -39,6 +39,7 @@ export function LineLegend({
                   onClick={(e) => { e.stopPropagation(); onAlertClick?.(line.id); }}
                   className="pointer-events-auto cursor-pointer text-red-500 bg-white/95 dark:bg-[#12151c] p-2 rounded-full shadow-lg border border-red-500/30 hover:bg-red-50 dark:hover:bg-red-950/30 hover:scale-110 transition-all"
                   title={`View Alert for ${line.name}`}
+                  aria-label={`View Alert for ${line.name}`}
                 >
                   <ImpactTypeIcon kind="suspension" size={18} />
                 </button>
@@ -48,6 +49,7 @@ export function LineLegend({
                   onClick={(e) => { e.stopPropagation(); onDelayClick?.(line.id); }}
                   className="pointer-events-auto cursor-pointer text-amber-500 bg-white/95 dark:bg-[#12151c] p-2 rounded-full shadow-lg border border-amber-500/30 hover:bg-amber-50 dark:hover:bg-amber-950/30 hover:scale-110 transition-all"
                   title={`View delay for ${line.name}`}
+                  aria-label={`View delay for ${line.name}`}
                 >
                   <ImpactTypeIcon kind="delay" size={18} />
                 </button>
@@ -57,6 +59,7 @@ export function LineLegend({
                   onClick={(e) => { e.stopPropagation(); onReducedSpeedZoneClick?.(line.id); }}
                   className="pointer-events-auto cursor-pointer text-amber-500 bg-white/95 dark:bg-[#12151c] p-2 rounded-full shadow-lg border border-amber-500/30 hover:bg-amber-50 dark:hover:bg-amber-950/30 hover:scale-110 transition-all"
                   title={`View reduced speed zone for ${line.name}`}
+                  aria-label={`View reduced speed zone for ${line.name}`}
                 >
                   <ImpactTypeIcon kind="reduced-speed-zone" size={18} />
                 </button>
@@ -66,6 +69,7 @@ export function LineLegend({
                   onClick={(e) => { e.stopPropagation(); onClosureClick?.(line.id); }}
                   className="pointer-events-auto cursor-pointer text-blue-500 bg-white/95 dark:bg-[#12151c] p-2 rounded-full shadow-lg border border-blue-500/30 hover:bg-blue-50 dark:hover:bg-blue-950/30 hover:scale-110 transition-all"
                   title={`View Closure for ${line.name}`}
+                  aria-label={`View Closure for ${line.name}`}
                 >
                   <ImpactTypeIcon kind="planned-closure" size={18} />
                 </button>

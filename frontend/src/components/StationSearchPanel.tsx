@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { KeyboardEvent } from "react";
+import type { KeyboardEvent, MutableRefObject } from "react";
 import { AlertTriangle, ChevronRight, Search, X } from "lucide-react";
 import {
   buildStationLineGroups,
@@ -18,6 +18,7 @@ type Props = {
   selectedStationId: string | null;
   onSelectStation: (stationId: string) => void;
   onClose: () => void;
+  onClosedFocusTarget?: () => void;
 };
 
 const OUTAGE_ICON_SRC = {
@@ -104,10 +105,14 @@ function StationButton({
   station,
   selected,
   onSelect,
+  buttonRef,
+  onKeyDown,
 }: {
   station: StationSummary;
   selected: boolean;
   onSelect: (stationId: string) => void;
+  buttonRef?: (element: HTMLButtonElement | null) => void;
+  onKeyDown?: (event: KeyboardEvent<HTMLButtonElement>) => void;
 }) {
   const lines = station.lineIds
     .map((lineId) => lineById(lineId))
@@ -115,6 +120,8 @@ function StationButton({
 
   return (
     <button
+      ref={buttonRef}
+      onKeyDown={onKeyDown}
       type="button"
       className={`station-search-station ${selected ? "selected" : ""}`}
       onClick={() => onSelect(station.id)}
@@ -134,7 +141,14 @@ function StationButton({
   );
 }
 
-export function StationSearchPanel({ open, stations, selectedStationId, onSelectStation, onClose }: Props) {
+export function StationSearchPanel({
+  open,
+  stations,
+  selectedStationId,
+  onSelectStation,
+  onClose,
+  onClosedFocusTarget,
+}: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [query, setQuery] = useState("");
   const [expandedLineId, setExpandedLineId] = useState<string | null>(null);
@@ -142,6 +156,10 @@ export function StationSearchPanel({ open, stations, selectedStationId, onSelect
   const lineGroups = useMemo(() => buildStationLineGroups(stations), [stations]);
   const isExpanded = Boolean(expandedLineId) && !query.trim();
   const stationsColumnRef = useRef<HTMLDivElement>(null);
+
+  const resultButtonRefs = useRef<Array<HTMLButtonElement | null>>([]);
+  const lineTriggerRefs = useRef<Array<HTMLButtonElement | null>>([]);
+  const stationButtonRefs = useRef<Array<HTMLButtonElement | null>>([]);
 
   useEffect(() => {
     if (stationsColumnRef.current) {
@@ -164,15 +182,33 @@ export function StationSearchPanel({ open, stations, selectedStationId, onSelect
   function chooseStation(stationId: string) {
     onSelectStation(stationId);
     onClose();
+    onClosedFocusTarget?.();
   }
 
-  function handleKeyDown(event: KeyboardEvent<HTMLInputElement>) {
+  function focusItem(refs: MutableRefObject<Array<HTMLButtonElement | null>>, index: number) {
+    const buttons = refs.current.filter((button): button is HTMLButtonElement => Boolean(button));
+    if (buttons.length === 0) return;
+    buttons[((index % buttons.length) + buttons.length) % buttons.length]?.focus();
+  }
+
+  function handleInputKeyDown(event: KeyboardEvent<HTMLInputElement>) {
     if (event.key === "Escape") {
       event.preventDefault();
       if (query.trim()) {
         setQuery("");
       } else {
         onClose();
+        onClosedFocusTarget?.();
+      }
+      return;
+    }
+
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      if (query.trim()) {
+        focusItem(resultButtonRefs, 0);
+      } else {
+        focusItem(lineTriggerRefs, 0);
       }
       return;
     }
@@ -187,8 +223,81 @@ export function StationSearchPanel({ open, stations, selectedStationId, onSelect
     return lineGroups.find((group) => group.line.id === expandedLineId) || lineGroups[0];
   }, [lineGroups, expandedLineId]);
 
+  function handleResultKeyDown(index: number, event: KeyboardEvent<HTMLButtonElement>) {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      onClose();
+      onClosedFocusTarget?.();
+      return;
+    }
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      focusItem(resultButtonRefs, index + 1);
+      return;
+    }
+    if (event.key === "ArrowUp") {
+      event.preventDefault();
+      if (index === 0) {
+        inputRef.current?.focus();
+      } else {
+        focusItem(resultButtonRefs, index - 1);
+      }
+    }
+  }
+
+  function handleLineTriggerKeyDown(index: number, event: KeyboardEvent<HTMLButtonElement>) {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      onClose();
+      onClosedFocusTarget?.();
+      return;
+    }
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      focusItem(lineTriggerRefs, index + 1);
+      return;
+    }
+    if (event.key === "ArrowUp") {
+      event.preventDefault();
+      if (index === 0) {
+        inputRef.current?.focus();
+      } else {
+        focusItem(lineTriggerRefs, index - 1);
+      }
+      return;
+    }
+    if (event.key === "ArrowRight" && !expandedLineId) {
+      event.preventDefault();
+      setExpandedLineId(lineGroups[index]?.line.id ?? null);
+      window.setTimeout(() => focusItem(stationButtonRefs, 0), 0);
+    }
+  }
+
+  function handleStationButtonKeyDown(index: number, event: KeyboardEvent<HTMLButtonElement>) {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      onClose();
+      onClosedFocusTarget?.();
+      return;
+    }
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      focusItem(stationButtonRefs, index + 1);
+      return;
+    }
+    if (event.key === "ArrowUp") {
+      event.preventDefault();
+      if (index === 0) {
+        focusItem(lineTriggerRefs, Math.max(0, lineGroups.findIndex((group) => group.line.id === activeLineGroup?.line.id)));
+      } else {
+        focusItem(stationButtonRefs, index - 1);
+      }
+    }
+  }
+
   return (
     <section
+      id="station-search-panel"
       className={`station-search-panel panel-strong ${open ? "open" : ""}`}
       aria-label="Station search"
       aria-hidden={!open}
@@ -206,14 +315,21 @@ export function StationSearchPanel({ open, stations, selectedStationId, onSelect
           aria-label="Search mapped stations"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          onKeyDown={handleKeyDown}
+          onKeyDown={handleInputKeyDown}
           placeholder="Search stations"
           className="station-search-input"
         />
         <button
           type="button"
           className="station-search-clear"
-          onClick={() => (query ? setQuery("") : onClose())}
+          onClick={() => {
+            if (query) {
+              setQuery("");
+            } else {
+              onClose();
+              onClosedFocusTarget?.();
+            }
+          }}
           aria-label={query ? "Clear station search" : "Close station search"}
         >
           <X size={18} />
@@ -224,12 +340,14 @@ export function StationSearchPanel({ open, stations, selectedStationId, onSelect
         {query.trim() ? (
           <div className="station-search-results" aria-label="Station search results">
             {results.length > 0 ? (
-              results.map((result) => (
+              results.map((result, index) => (
                 <StationButton
                    key={result.station.id}
                    station={result.station}
                    selected={selectedStationId === result.station.id}
                    onSelect={chooseStation}
+                   buttonRef={(element) => { resultButtonRefs.current[index] = element; }}
+                   onKeyDown={(event) => handleResultKeyDown(index, event)}
                 />
               ))
             ) : (
@@ -241,7 +359,7 @@ export function StationSearchPanel({ open, stations, selectedStationId, onSelect
         ) : (
           <div className="station-search-browse-container" aria-label="Browse stations by line">
             <div className="station-search-lines-column">
-              {lineGroups.map((group) => {
+              {lineGroups.map((group, index) => {
                 const expanded = expandedLineId === group.line.id;
 
                 return (
@@ -250,6 +368,8 @@ export function StationSearchPanel({ open, stations, selectedStationId, onSelect
                     className={`station-search-line-group ${expanded ? "expanded" : ""}`}
                   >
                     <button
+                      ref={(element) => { lineTriggerRefs.current[index] = element; }}
+                      onKeyDown={(event) => handleLineTriggerKeyDown(index, event)}
                       type="button"
                       className={`station-search-line-trigger ${expanded ? "active" : ""}`}
                       onClick={() => setExpandedLineId((current) => current === group.line.id ? null : group.line.id)}
@@ -297,12 +417,14 @@ export function StationSearchPanel({ open, stations, selectedStationId, onSelect
                     </div>
                   </div>
                   <div className="station-search-stations-list">
-                    {activeLineGroup.stations.map((station) => (
+                    {activeLineGroup.stations.map((station, index) => (
                       <StationButton
                         key={`${activeLineGroup.line.id}-${station.id}`}
                         station={station}
                         selected={selectedStationId === station.id}
                         onSelect={chooseStation}
+                        buttonRef={(element) => { stationButtonRefs.current[index] = element; }}
+                        onKeyDown={(event) => handleStationButtonKeyDown(index, event)}
                       />
                     ))}
                   </div>

@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import type { KeyboardEvent } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { DynamicBackground } from "./DynamicBackground";
@@ -190,6 +191,64 @@ export function LineWatchShell({ initialData }: { initialData: DashboardData }) 
     }
   };
 
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
+  const searchButtonRef = useRef<HTMLButtonElement>(null);
+  const menuPanelRef = useRef<HTMLDivElement>(null);
+  const menuActionRefs = useRef<Array<HTMLButtonElement | null>>([]);
+
+  const registerMenuAction = (index: number) => (element: HTMLButtonElement | null) => {
+    menuActionRefs.current[index] = element;
+  };
+
+  const focusMenuAction = (index: number) => {
+    const actions = menuActionRefs.current.filter((element): element is HTMLButtonElement => Boolean(element) && !element.disabled);
+    if (actions.length === 0) return;
+    const nextIndex = Math.max(0, Math.min(index, actions.length - 1));
+    actions[nextIndex]?.focus();
+  };
+
+  const handleMenuKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    const actions = menuActionRefs.current.filter((element): element is HTMLButtonElement => Boolean(element) && !element.disabled);
+    const currentIndex = actions.findIndex((element) => element === document.activeElement);
+
+    if (event.key === "Escape") {
+      event.preventDefault();
+      setActiveView("map");
+      menuButtonRef.current?.focus();
+      return;
+    }
+
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      focusMenuAction(currentIndex < 0 ? 0 : (currentIndex + 1) % actions.length);
+      return;
+    }
+
+    if (event.key === "ArrowUp") {
+      event.preventDefault();
+      focusMenuAction(currentIndex < 0 ? actions.length - 1 : (currentIndex - 1 + actions.length) % actions.length);
+      return;
+    }
+
+    if (event.key === "Home") {
+      event.preventDefault();
+      focusMenuAction(0);
+      return;
+    }
+
+    if (event.key === "End") {
+      event.preventDefault();
+      focusMenuAction(actions.length - 1);
+    }
+  };
+
+  useEffect(() => {
+    if (activeView === "menu") {
+      const timer = window.setTimeout(() => focusMenuAction(0), 40);
+      return () => window.clearTimeout(timer);
+    }
+  }, [activeView]);
+
   useEffect(() => {
     const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
     Promise.resolve().then(() => setReducedMotion(mediaQuery.matches));
@@ -337,6 +396,7 @@ export function LineWatchShell({ initialData }: { initialData: DashboardData }) 
   };
 
 
+  let actionIndex = 0;
   return (
     <DataProvider data={displayData}>
       <div className={`linewatch-shell relative w-full h-screen overflow-hidden transition-colors duration-500 ${(isDark || highContrast) ? "dark bg-[#0d0808] text-slate-100" : "bg-slate-50 text-slate-900"} ${highContrast ? "high-contrast" : ""} ${reducedMotion ? "motion-paused" : ""}`}>
@@ -348,9 +408,12 @@ export function LineWatchShell({ initialData }: { initialData: DashboardData }) 
         <div className="flex items-start gap-3 pointer-events-auto relative">
           {/* Menu Toggle Button */}
           <button
+            ref={menuButtonRef}
             onClick={handleToggleMenu}
             className={`panel relative flex items-center justify-center w-14 h-14 rounded-xl border border-black/10 dark:border-white/10 shadow-lg hover:!bg-slate-100 dark:hover:!bg-[#1a1e28] hover:scale-105 active:scale-95 outline-none focus-visible:ring-4 focus-visible:ring-black/10 dark:focus-visible:ring-white/10 transition-all cursor-pointer`}
             aria-label={"Toggle menu"}
+            aria-controls="linewatch-main-menu"
+            aria-expanded={activeView === "menu"}
           >
             <div className="relative w-7 h-7 flex items-center justify-center">
                <Menu
@@ -370,9 +433,11 @@ export function LineWatchShell({ initialData }: { initialData: DashboardData }) 
           </button>
 
           <button
+            ref={searchButtonRef}
             onClick={handleToggleSearch}
             className={`panel relative flex items-center justify-center w-14 h-14 rounded-xl border border-black/10 dark:border-white/10 shadow-lg hover:!bg-slate-100 dark:hover:!bg-[#1a1e28] hover:scale-105 active:scale-95 outline-none focus-visible:ring-4 focus-visible:ring-black/10 dark:focus-visible:ring-white/10 transition-all cursor-pointer ${activeView === "search" ? "ring-2 ring-blue-500/40" : ""}`}
             aria-label="Search stations"
+            aria-controls="station-search-panel"
             aria-expanded={activeView === "search"}
           >
             <Search
@@ -389,7 +454,14 @@ export function LineWatchShell({ initialData }: { initialData: DashboardData }) 
           ) : null}
 
           {/* Floating Dropdown Menu */}
-          <div className={`panel-strong absolute top-[72px] left-0 w-[min(calc(100vw-32px),360px)] border border-black/10 dark:border-white/10 rounded-2xl shadow-2xl overflow-hidden flex flex-col origin-top-left transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] ${activeView === "menu" ? "opacity-100 scale-100 translate-y-0 pointer-events-auto" : "opacity-0 scale-90 -translate-y-4 pointer-events-none"}`}>
+          <div
+            ref={menuPanelRef}
+            id="linewatch-main-menu"
+            role="menu"
+            onKeyDown={handleMenuKeyDown}
+            className={`panel-strong absolute top-[72px] left-0 w-[min(calc(100vw-32px),360px)] border border-black/10 dark:border-white/10 rounded-2xl shadow-2xl overflow-hidden flex flex-col origin-top-left transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] ${activeView === "menu" ? "opacity-100 scale-100 translate-y-0 pointer-events-auto" : "opacity-0 scale-90 -translate-y-4 pointer-events-none"}`}
+            aria-hidden={activeView !== "menu"}
+          >
                {/* Branding */}
                 <div className="flex items-center gap-3 p-4 border-b border-black/10 dark:border-white/10 bg-white/40 dark:bg-black/20">
                   <div className="flex items-center justify-center shrink-0 w-8 h-8 rounded-lg shadow-sm border border-black/10 dark:border-white/10 bg-white dark:bg-white/10 p-1">
@@ -411,6 +483,8 @@ export function LineWatchShell({ initialData }: { initialData: DashboardData }) 
                         ) : null}
                       </div>
                       <button
+                        ref={registerMenuAction(actionIndex++)}
+                        role="menuitem"
                         type="button"
                         onClick={handleSignOut}
                         className="menu-action-row"
@@ -422,15 +496,34 @@ export function LineWatchShell({ initialData }: { initialData: DashboardData }) 
                     </div>
                   ) : (
                     <div className="account-action-row">
-                      <button type="button" onClick={() => { resetAccountForm(); setAccountDialogMode("login"); }} className="menu-action-row">
+                      <button
+                        ref={registerMenuAction(actionIndex++)}
+                        role="menuitem"
+                        type="button"
+                        onClick={() => { resetAccountForm(); setAccountDialogMode("login"); }}
+                        className="menu-action-row"
+                      >
                         <LogIn size={17} className="text-slate-500 dark:text-slate-400" />
                         Sign in
                       </button>
-                      <button type="button" onClick={() => { resetAccountForm(); setAccountDialogMode("register"); }} className="menu-action-row">
+                      <button
+                        ref={registerMenuAction(actionIndex++)}
+                        role="menuitem"
+                        type="button"
+                        onClick={() => { resetAccountForm(); setAccountDialogMode("register"); }}
+                        className="menu-action-row"
+                      >
                         <UserPlus size={17} className="text-slate-500 dark:text-slate-400" />
                         Create account
                       </button>
-                      <button type="button" onClick={handleDemoAccount} className="menu-action-row" disabled={accountBusy}>
+                      <button
+                        ref={registerMenuAction(actionIndex++)}
+                        role="menuitem"
+                        type="button"
+                        onClick={handleDemoAccount}
+                        className="menu-action-row"
+                        disabled={accountBusy}
+                      >
                         <UserRound size={17} className="text-emerald-600 dark:text-emerald-400" />
                         Demo account
                       </button>
@@ -441,10 +534,22 @@ export function LineWatchShell({ initialData }: { initialData: DashboardData }) 
 
                {/* Nav Links */}
                <div className="flex flex-col p-2 border-b border-black/10 dark:border-white/10">
-                 <button onClick={() => { setActiveView("map"); setSelection(null); }} className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors">
+                 <button
+                   ref={registerMenuAction(actionIndex++)}
+                   role="menuitem"
+                   onClick={() => { setActiveView("map"); setSelection(null); }}
+                   aria-current={activeView === "map" ? "page" : undefined}
+                   className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
+                 >
                    <MapIcon size={18} className="text-slate-500 dark:text-slate-400" /> Map
                  </button>
-                 <button onClick={() => setActiveView("alerts")} className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors">
+                 <button
+                   ref={registerMenuAction(actionIndex++)}
+                   role="menuitem"
+                   onClick={() => setActiveView("alerts")}
+                   aria-current={activeView === "alerts" ? "page" : undefined}
+                   className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
+                 >
                    <div className="flex items-center gap-3">
                      <AlertTriangle size={18} className="text-slate-500 dark:text-slate-400" /> Active Alerts
                    </div>
@@ -454,7 +559,13 @@ export function LineWatchShell({ initialData }: { initialData: DashboardData }) 
                      </span>
                    )}
                  </button>
-                 <button onClick={() => setActiveView("delays")} className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors">
+                 <button
+                   ref={registerMenuAction(actionIndex++)}
+                   role="menuitem"
+                   onClick={() => setActiveView("delays")}
+                   aria-current={activeView === "delays" ? "page" : undefined}
+                   className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
+                 >
                   <div className="flex items-center gap-3">
                      <DelayIcon size={18} className="text-slate-500 dark:text-slate-400" filled={false} /> Delays
                   </div>
@@ -464,7 +575,13 @@ export function LineWatchShell({ initialData }: { initialData: DashboardData }) 
                      </span>
                    )}
                  </button>
-                 <button onClick={() => setActiveView("reduced-speed-zones")} className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors">
+                 <button
+                   ref={registerMenuAction(actionIndex++)}
+                   role="menuitem"
+                   onClick={() => setActiveView("reduced-speed-zones")}
+                   aria-current={activeView === "reduced-speed-zones" ? "page" : undefined}
+                   className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
+                 >
                     <div className="flex items-center gap-3">
                       <Construction size={18} className="text-slate-500 dark:text-slate-400" /> Reduced Speed Zones
                     </div>
@@ -474,7 +591,13 @@ export function LineWatchShell({ initialData }: { initialData: DashboardData }) 
                      </span>
                    )}
                  </button>
-                 <button onClick={() => setActiveView("closures")} className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors">
+                 <button
+                   ref={registerMenuAction(actionIndex++)}
+                   role="menuitem"
+                   onClick={() => setActiveView("closures")}
+                   aria-current={activeView === "closures" ? "page" : undefined}
+                   className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
+                 >
                    <div className="flex items-center gap-3">
                      <Calendar size={18} className="text-slate-500 dark:text-slate-400" /> Upcoming Closures
                    </div>
@@ -484,10 +607,22 @@ export function LineWatchShell({ initialData }: { initialData: DashboardData }) 
                      </span>
                    )}
                  </button>
-                 <button onClick={() => setActiveView("commutes")} className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors">
+                 <button
+                   ref={registerMenuAction(actionIndex++)}
+                   role="menuitem"
+                   onClick={() => setActiveView("commutes")}
+                   aria-current={activeView === "commutes" ? "page" : undefined}
+                   className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
+                 >
                    <Navigation size={18} className="text-slate-500 dark:text-slate-400" /> Saved Commutes
                  </button>
-                 <button onClick={() => setActiveView("analytics")} className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors">
+                 <button
+                   ref={registerMenuAction(actionIndex++)}
+                   role="menuitem"
+                   onClick={() => setActiveView("analytics")}
+                   aria-current={activeView === "analytics" ? "page" : undefined}
+                   className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
+                 >
                    <BarChart3 size={18} className="text-slate-500 dark:text-slate-400" /> Reliability Analytics
                  </button>
                </div>
@@ -497,6 +632,10 @@ export function LineWatchShell({ initialData }: { initialData: DashboardData }) 
                  <div className="flex items-center justify-between px-3 py-2.5">
                    <span className="text-sm font-medium text-slate-700 dark:text-slate-200">High Contrast Mode</span>
                    <button
+                      ref={registerMenuAction(actionIndex++)}
+                      role="menuitem"
+                      aria-pressed={highContrast}
+                      aria-label="Toggle high contrast mode"
                       onClick={() => setHighContrast(!highContrast)}
                       className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${highContrast ? 'bg-blue-500' : 'bg-slate-300 dark:bg-slate-600'}`}
                    >
@@ -506,6 +645,10 @@ export function LineWatchShell({ initialData }: { initialData: DashboardData }) 
                  <div className="flex items-center justify-between px-3 py-2.5">
                    <span className="text-sm font-medium text-slate-700 dark:text-slate-200">Reduced Motion</span>
                    <button
+                      ref={registerMenuAction(actionIndex++)}
+                      role="menuitem"
+                      aria-pressed={reducedMotion}
+                      aria-label="Toggle reduced motion"
                       onClick={() => setReducedMotion(!reducedMotion)}
                       className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${reducedMotion ? 'bg-blue-500' : 'bg-slate-300 dark:bg-slate-600'}`}
                    >
@@ -572,6 +715,7 @@ export function LineWatchShell({ initialData }: { initialData: DashboardData }) 
             selectedStationId={selectedStationId}
             onSelectStation={(id) => handleSelectStationId(id)}
             onClose={() => setActiveView("map")}
+            onClosedFocusTarget={() => searchButtonRef.current?.focus()}
           />
         </div>
 
