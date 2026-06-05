@@ -376,12 +376,26 @@ export const stationDetailResponse = {
     },
   ],
   arrivals: [
-    { lineId: "line-1", direction: "Northbound", minutes: 3, predictedAt: "2026-06-03T12:00:00Z", label: "3 min", source: "Demo estimates", status: "demo" },
-    { lineId: "line-1", direction: "Southbound", minutes: 6, predictedAt: "2026-06-03T12:00:00Z", label: "6 min", source: "Demo estimates", status: "demo" },
+    {
+      lineId: "line-1",
+      direction: "Northbound to Finch",
+      minutes: 3,
+      predictedAt: "2026-06-04T09:03:00-04:00",
+      label: "3 min",
+      source: "TTC scheduled service",
+      status: "scheduled",
+    },
   ],
-  arrivalsSource: "Demo estimates",
+  arrivalsSource: "TTC scheduled service",
+  arrivalContext: {
+    scheduleMayBeDisrupted: true,
+    message: "Schedule may be disrupted",
+    reason: "Line 1 delay near Stub Station",
+    severity: "delay",
+    source: "TTC Live Alerts",
+  },
   dataMode: "seeded-demo",
-  disclaimer: "Arrivals are demo placeholders, not live TTC predictions.",
+  disclaimer: "Scheduled arrivals use TTC timetable data and are not live train predictions.",
 };
 
 export const rawAlertsResponse = [

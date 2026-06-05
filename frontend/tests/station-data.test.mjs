@@ -98,4 +98,13 @@ describe("station data adapter", () => {
       ]
     );
   });
+
+  it("labels fallback arrivals as demo and backend contract as schedule-aware", () => {
+    const union = fallbackStationDetails.union;
+
+    assert.equal(union.arrivalsSource, "Demo estimates");
+    assert.ok(union.arrivals.every((arrival) => arrival.status === "demo"));
+    assert.equal(union.arrivalContext.scheduleMayBeDisrupted, false);
+    assert.equal(union.arrivalContext.message, "Schedule active");
+  });
 });

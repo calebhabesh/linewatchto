@@ -69,7 +69,15 @@ export type StationArrival = {
   predictedAt: string | null;
   label: string;
   source: string;
-  status: "live" | "unavailable" | "demo";
+  status: "scheduled" | "live" | "unavailable" | "demo";
+};
+
+export type StationArrivalContext = {
+  scheduleMayBeDisrupted: boolean;
+  message: string;
+  reason: string;
+  severity: "normal" | StationImpactSeverity;
+  source: string;
 };
 
 export type StationDetail = {
@@ -83,6 +91,7 @@ export type StationDetail = {
   impacts: StationImpact[];
   arrivals: StationArrival[];
   arrivalsSource: string;
+  arrivalContext: StationArrivalContext;
   dataMode: "seeded-demo";
   disclaimer: string;
 };
@@ -1698,6 +1707,13 @@ function toFallbackStationDetail(station: StationSummary): StationDetail {
     impacts: [],
     arrivals: seed?.arrivals ?? lines.flatMap(toFallbackArrivals),
     arrivalsSource: "Demo estimates",
+    arrivalContext: {
+      scheduleMayBeDisrupted: false,
+      message: "Schedule active",
+      reason: "No active service impacts linked to this station.",
+      severity: "normal",
+      source: "LineWatch TO",
+    },
     dataMode: "seeded-demo",
     disclaimer: "Station details use fallback demo data. Arrivals are demo placeholders, not live TTC predictions.",
   };
