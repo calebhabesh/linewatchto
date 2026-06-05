@@ -56,7 +56,8 @@ public class PublicArrivalClient {
                         json.minutes(),
                         json.predictedAt(),
                         "TTC Live Predictions",
-                        "live"
+                        "live",
+                        json.minutes() != null ? json.minutes() + " min" : ""
                     ));
                 }
             }
