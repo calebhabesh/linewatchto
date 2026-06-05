@@ -141,7 +141,7 @@ public class StationService {
                 pred.direction(),
                 pred.minutes(),
                 pred.predictedAt(),
-                pred.minutes() != null ? pred.minutes() + " min" : "Unavailable",
+                pred.label(),
                 pred.source(),
                 pred.status()
             ))
@@ -160,9 +160,32 @@ public class StationService {
             impacts,
             arrivals,
             arrivalsSource,
+            toArrivalContext(impacts),
             DATA_MODE,
             DISCLAIMER
         );
+    }
+
+    private StationResponses.StationArrivalContextResponse toArrivalContext(
+        List<StationResponses.StationImpactResponse> impacts
+    ) {
+        return impacts.stream()
+            .filter(impact -> impact.type().equals("active-alert") || impact.type().equals("planned-closure"))
+            .findFirst()
+            .map(impact -> new StationResponses.StationArrivalContextResponse(
+                true,
+                "Schedule may be disrupted",
+                impact.title(),
+                impact.severity(),
+                impact.source()
+            ))
+            .orElse(new StationResponses.StationArrivalContextResponse(
+                false,
+                "Schedule active",
+                "No active service impacts linked to this station.",
+                "normal",
+                "LineWatch TO"
+            ));
     }
 
     private StationResponses.StationLineResponse toLineResponse(

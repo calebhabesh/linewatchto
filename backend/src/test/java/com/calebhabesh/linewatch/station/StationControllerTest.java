@@ -121,6 +121,13 @@ class StationControllerTest {
                     "demo"
                 )),
                 "Demo estimates",
+                new StationResponses.StationArrivalContextResponse(
+                    false,
+                    "Schedule active",
+                    "No active service impacts linked to this station.",
+                    "normal",
+                    "LineWatch TO"
+                ),
                 "seeded-demo",
                 "Station details use seeded backend data. Arrivals are demo placeholders, not live TTC predictions."
             );

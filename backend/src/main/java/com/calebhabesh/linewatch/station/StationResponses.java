@@ -43,8 +43,18 @@ public final class StationResponses {
         List<StationImpactResponse> impacts,
         List<StationArrivalResponse> arrivals,
         String arrivalsSource,
+        StationArrivalContextResponse arrivalContext,
         String dataMode,
         String disclaimer
+    ) {
+    }
+
+    public record StationArrivalContextResponse(
+        boolean scheduleMayBeDisrupted,
+        String message,
+        String reason,
+        String severity,
+        String source
     ) {
     }
 

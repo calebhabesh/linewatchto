@@ -245,4 +245,80 @@ class StationServiceTest {
         assertThat(response.impacts()).isEmpty();
         verifyNoInteractions(liveReadRepository);
     }
+
+    @Test
+    void stationDetailMarksArrivalsDisruptedWhenServiceImpactExists() {
+        StationEntity union = new StationEntity("union", "Union", 4311, 3597, true, 10, null);
+        TransitLineEntity line = new TransitLineEntity("line-1", "1", "Yonge-University", "#F8C300", 1);
+        StationLineEntity stationLine = new StationLineEntity(
+            1L, "union", "line-1", "Northbound / Southbound", 1, true, true
+        );
+        StationAccessStatusEntity access = new StationAccessStatusEntity(
+            "union",
+            "normal",
+            "No station access advisories in demo data.",
+            "Fixture seed"
+        );
+        StationImpactEntity impact = new StationImpactEntity(
+            "union-delay",
+            "union",
+            "active-alert",
+            "delay",
+            "Line 1 delay",
+            "Longer travel times near Union.",
+            "TTC Live Alerts",
+            "TTC Live Alerts",
+            1
+        );
+
+        when(stationRepository.findById("union")).thenReturn(Optional.of(union));
+        when(stationLineRepository.findByStationIdOrderBySortOrderAsc("union")).thenReturn(List.of(stationLine));
+        when(transitLineRepository.findAllById(List.of("line-1"))).thenReturn(List.of(line));
+        when(accessStatusRepository.findById("union")).thenReturn(Optional.of(access));
+        when(arrivalService.arrivalsFor(any(), any())).thenReturn(List.of(
+            ArrivalPrediction.scheduled("line-1", "Northbound to Finch", 3, OffsetDateTime.now(), "TTC scheduled service")
+        ));
+        when(ingestionFreshness.isDashboardFresh()).thenReturn(false);
+        when(impactRepository.findByStationIdOrderBySortOrderAsc("union")).thenReturn(List.of(impact));
+
+        StationResponses.StationDetailResponse response = stationService.stationDetail("union");
+
+        assertThat(response.arrivalContext().scheduleMayBeDisrupted()).isTrue();
+        assertThat(response.arrivalContext().message()).isEqualTo("Schedule may be disrupted");
+        assertThat(response.arrivalContext().reason()).contains("Line 1 delay");
+        assertThat(response.arrivalContext().severity()).isEqualTo("delay");
+    }
+
+    @Test
+    void stationDetailDoesNotMarkArrivalsDisruptedForAccessibilityOutageOnly() {
+        StationEntity union = new StationEntity("union", "Union", 4311, 3597, true, 10, null);
+        TransitLineEntity line = new TransitLineEntity("line-1", "1", "Yonge-University", "#F8C300", 1);
+        StationLineEntity stationLine = new StationLineEntity(
+            1L, "union", "line-1", "Northbound / Southbound", 1, true, true
+        );
+
+        when(stationRepository.findById("union")).thenReturn(Optional.of(union));
+        when(stationLineRepository.findByStationIdOrderBySortOrderAsc("union")).thenReturn(List.of(stationLine));
+        when(transitLineRepository.findAllById(List.of("line-1"))).thenReturn(List.of(line));
+        when(arrivalService.arrivalsFor(any(), any())).thenReturn(List.of(
+            ArrivalPrediction.scheduled("line-1", "Northbound to Finch", 3, OffsetDateTime.now(), "TTC scheduled service")
+        ));
+        when(ingestionFreshness.isDashboardFresh()).thenReturn(true);
+        when(liveReadRepository.findActiveAlertsByStationId("union")).thenReturn(List.of());
+        when(liveReadRepository.findActiveOutagesByStationId("union")).thenReturn(List.of(
+            new StationLiveReadRepository.FacilityOutage(
+                "outage-1",
+                "elevator",
+                "Elevator outage",
+                "Elevator unavailable.",
+                "Mechanical",
+                OffsetDateTime.now()
+            )
+        ));
+
+        StationResponses.StationDetailResponse response = stationService.stationDetail("union");
+
+        assertThat(response.arrivalContext().scheduleMayBeDisrupted()).isFalse();
+        assertThat(response.arrivalContext().message()).isEqualTo("Schedule active");
+    }
 }
