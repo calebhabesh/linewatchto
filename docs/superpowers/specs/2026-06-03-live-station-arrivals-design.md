@@ -1,32 +1,57 @@
-# Live Station Arrivals Design
+# Scheduled Rapid-Transit Arrivals Design
 
 ## Source
-Official TTC live arrivals are only public for surface transit (buses and streetcars) via GTFS-Realtime at `https://bustime.ttc.ca/gtfsrt`. There is currently no official, public-facing real-time API for TTC subway train arrival predictions (Lines 1, 2, and 4). 
 
-Due to the lack of an official public subway arrivals feed, our application will implement:
-1. A configuration-driven `PublicArrivalClient` targeting a placeholder endpoint.
-2. A robust fallback layer: by default, the provider is disabled (or considered unavailable), yielding clearly labeled demo estimates or an "unavailable" status.
-3. Full integration tests covering success parses, HTTP errors, stale filtering, and disabled state fallbacks.
+LineWatch TO uses the public TTC merged GTFS schedule dataset for station arrival estimates on mapped rapid-transit Lines 1, 2, 4, 5, and 6:
+
+https://ckan0.cf.opendata.inter.prod-toronto.ca/en/dataset/merged-gtfs-ttc-routes-and-schedules
+
+TTC BusTime GTFS-realtime is a surface-vehicle feed and is not used for subway/LRT station arrivals. Subway/LRT arrivals are timetable-based until TTC publishes an official rapid-transit realtime feed.
 
 ## Contract
-The station detail endpoint returns a list of arrival predictions. Each prediction contains:
-- `lineId`: identifier of the line (e.g., `line-1`).
-- `direction`: travel direction (e.g., `Northbound`).
-- `minutes`: estimated minutes to arrival.
-- `predictedAt`: the timestamp when the prediction was generated.
-- `label`: UI display label (e.g., `2 min`).
-- `source`: attribution of data (e.g., `TTC Live Predictions`, `Demo estimates`).
-- `status`: one of `live`, `unavailable`, or `demo`.
+
+`GET /api/stations/{id}` returns scheduled arrival rows with:
+
+- `lineId`
+- `direction`
+- `minutes`
+- `predictedAt`
+- `label`
+- `source`
+- `status`
+
+Allowed arrival `status` values are:
+
+- `scheduled`
+- `live`
+- `unavailable`
+- `demo`
+
+The default backend provider is `scheduled`. The `live` status is reserved for a future official rapid-transit realtime source.
+
+## Disruption Context
+
+Station detail also returns `arrivalContext`:
+
+- `scheduleMayBeDisrupted`
+- `message`
+- `reason`
+- `severity`
+- `source`
+
+The frontend greys the arrivals section when `scheduleMayBeDisrupted` is true and shows "Schedule may be disrupted" with the impact reason. Accessibility outages alone do not set this flag.
 
 ## Failure Behavior
-- **Disabled Provider (Default):** Returns demo predictions with status `demo` and source `Demo estimates`.
-- **Upstream Outage/Failure:** If the provider is enabled but calls fail (HTTP errors, timeouts, malformed JSON), returns status `unavailable` with source `Arrival source unavailable`.
-- **Stale Filtering:** Predictions older than a configured freshness threshold (e.g., 5 minutes) are discarded.
+
+- If no GTFS schedule import is active, station detail returns unavailable arrival rows with source `TTC scheduled service unavailable`.
+- If no trips are scheduled in the configured horizon, station detail returns source-labeled scheduled rows with label `No scheduled service`.
+- If fixture fallback is used, arrivals remain explicitly labeled as demo estimates.
+- Scheduled rows are never described as live train predictions.
 
 ## Station Mapping
-A mapping file `ttc-arrival-stop-map.csv` will be created under `backend/src/main/resources/arrival/` to map our database station IDs and lines to external provider stop IDs for future integration.
+
+`backend/src/main/resources/arrival/rapid-transit-station-aliases.csv` maps every LineWatch station-line pair on the SVG map to TTC GTFS station-name aliases. The importer resolves aliases to GTFS stop IDs from the current merged schedule zip and stores only rapid-transit stop mappings.
 
 ## Testing
-- **Client Tests:** Mock the RestTemplate using `MockRestServiceServer` to verify parsing of success payloads, handling of HTTP errors, and JSON structures.
-- **Service Tests:** Verify that `ArrivalService` merges results correctly, enforces freshness, and switches to fallback demo/unavailable states when the client fails or is disabled.
-- **Integration Tests:** Verify station details output includes the appropriate source/status fields.
+
+Coverage includes GTFS CSV parsing, schedule import filtering, station-alias coverage, scheduled-arrival time calculation, service-calendar exceptions, station API disruption context, frontend fixture typing, greyed arrivals UI, smoke coverage, and documentation claim alignment.

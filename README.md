@@ -40,7 +40,7 @@ Implemented now:
 - Reviewed line-specific wheelchair and elevator metadata for every mapped Line 1, 2, 4, 5, and 6 stop, including distinct Spadina Line 1 and Line 2 values.
 - Authored wheelchair and elevator icons in station detail panels.
 - Fresh directly linked TTC station alerts and elevator/escalator outage rows when ingestion is current.
-- Source-labeled station arrival provider architecture with demo, unavailable, and live states; arrivals default to clearly labeled demo estimates since no public subway arrival API is available.
+- Source-labeled station arrivals using TTC scheduled service when a merged GTFS schedule import is active. They are timetable-based estimates, not live subway/LRT predictions. If no schedule import is active, the station detail API returns an unavailable scheduled-source state and the frontend fallback remains clearly labeled as demo data.
 - PostGIS-enabled Flyway schema for stations, transit lines, line segments, alerts, alert-segment links, snapshots, and ingestion runs.
 - Dashboard API boundaries for `/api/map`, `/api/status`, and `/api/alerts`, with fixture fallback when backend data is unavailable.
 - Next.js Server Component dashboard loading with complete local-fixture fallback.
@@ -69,8 +69,8 @@ Not implemented yet:
 - Populated geographic PostGIS geometry remains unimplemented.
 - Production geospatial matching remains unimplemented.
 - TTC Reduced Speed Zones webpage ingestion remains unimplemented.
-- Station arrivals default to demo estimates; no public subway arrival API is connected yet.
-- The arrival provider architecture supports live, unavailable, and demo status states.
+- Station arrivals use source-labeled TTC scheduled service when a merged GTFS schedule import is active. If no schedule import is active, the station detail API returns an unavailable scheduled-source state and the frontend fallback remains clearly labeled as demo data.
+- The arrival provider architecture supports live, scheduled, unavailable, and demo status states.
 - Redis-backed live status cache.
 - Backend commute-impact endpoint.
 - Real historical reliability aggregation.
