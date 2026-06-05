@@ -1,0 +1,118 @@
+station_id,line_id,aliases
+vaughan-metropolitan-centre,line-1,Vaughan Metropolitan Centre|Vaughan Metropolitan Centre Station
+highway-407,line-1,Highway 407|Highway 407 Station
+pioneer-village,line-1,Pioneer Village|Pioneer Village Station
+york-university,line-1,York University|York University Station
+finch-west,line-1,Finch West|Finch West Station
+downsview-park,line-1,Downsview Park|Downsview Park Station
+sheppard-west,line-1,Sheppard West|Sheppard West Station
+wilson,line-1,Wilson|Wilson Station
+yorkdale,line-1,Yorkdale|Yorkdale Station
+lawrence-west,line-1,Lawrence West|Lawrence West Station
+glencairn,line-1,Glencairn|Glencairn Station
+cedarvale,line-1,Cedarvale|Cedarvale Station|Eglinton West|Eglinton West Station
+st-clair-west,line-1,St Clair West|St Clair West Station|St. Clair West|St. Clair West Station
+dupont,line-1,Dupont|Dupont Station
+spadina,line-1,Spadina|Spadina Station
+st-george,line-1,St George|St George Station|St. George|St. George Station
+museum,line-1,Museum|Museum Station
+queens-park,line-1,Queens Park|Queens Park Station|Queen's Park|Queen's Park Station
+st-patrick,line-1,St Patrick|St Patrick Station|St. Patrick|St. Patrick Station
+osgoode,line-1,Osgoode|Osgoode Station
+st-andrew,line-1,St Andrew|St Andrew Station|St. Andrew|St. Andrew Station
+union,line-1,Union|Union Station
+finch,line-1,Finch|Finch Station
+north-york-centre,line-1,North York Centre|North York Centre Station
+sheppard-yonge,line-1,Sheppard-Yonge|Sheppard-Yonge Station|Sheppard Yonge|Sheppard Yonge Station
+york-mills,line-1,York Mills|York Mills Station
+lawrence,line-1,Lawrence|Lawrence Station
+eglinton,line-1,Eglinton|Eglinton Station
+davisville,line-1,Davisville|Davisville Station
+st-clair,line-1,St Clair|St Clair Station|St. Clair|St. Clair Station
+summerhill,line-1,Summerhill|Summerhill Station
+rosedale,line-1,Rosedale|Rosedale Station
+bloor-yonge,line-1,Bloor-Yonge|Bloor-Yonge Station|Bloor Yonge|Bloor Yonge Station|Yonge|Yonge Station
+wellesley,line-1,Wellesley|Wellesley Station
+college,line-1,College|College Station
+tmu,line-1,TMU|TMU Station|Dundas|Dundas Station
+queen,line-1,Queen|Queen Station
+king,line-1,King|King Station
+kipling,line-2,Kipling|Kipling Station
+islington,line-2,Islington|Islington Station
+royal-york,line-2,Royal York|Royal York Station
+old-mill,line-2,Old Mill|Old Mill Station
+jane,line-2,Jane|Jane Station
+runnymede,line-2,Runnymede|Runnymede Station
+high-park,line-2,High Park|High Park Station
+keele,line-2,Keele|Keele Station
+dundas-west,line-2,Dundas West|Dundas West Station
+lansdowne,line-2,Lansdowne|Lansdowne Station
+dufferin,line-2,Dufferin|Dufferin Station
+ossington,line-2,Ossington|Ossington Station
+christie,line-2,Christie|Christie Station
+bathurst,line-2,Bathurst|Bathurst Station
+spadina,line-2,Spadina|Spadina Station
+st-george,line-2,St George|St George Station|St. George|St. George Station
+bay,line-2,Bay|Bay Station
+bloor-yonge,line-2,Bloor-Yonge|Bloor-Yonge Station|Bloor Yonge|Bloor Yonge Station|Bloor|Bloor Station
+sherbourne,line-2,Sherbourne|Sherbourne Station
+castle-frank,line-2,Castle Frank|Castle Frank Station
+broadview,line-2,Broadview|Broadview Station
+chester,line-2,Chester|Chester Station
+pape,line-2,Pape|Pape Station
+donlands,line-2,Donlands|Donlands Station
+greenwoood,line-2,Greenwood|Greenwood Station|Greenwoood|Greenwoood Station
+coxwell,line-2,Coxwell|Coxwell Station
+woodbine,line-2,Woodbine|Woodbine Station
+main-street,line-2,Main Street|Main Street Station
+victoria-park,line-2,Victoria Park|Victoria Park Station
+warden,line-2,Warden|Warden Station
+kennedy,line-2,Kennedy|Kennedy Station
+sheppard-yonge,line-4,Sheppard-Yonge|Sheppard-Yonge Station|Sheppard Yonge|Sheppard Yonge Station
+bayview,line-4,Bayview|Bayview Station
+bessarion,line-4,Bessarion|Bessarion Station
+leslie,line-4,Leslie|Leslie Station
+don-mills,line-4,Don Mills|Don Mills Station
+mount-dennis,line-5,Mount Dennis|Mount Dennis Station
+keelesdale,line-5,Keelesdale|Keelesdale Station
+caledonia,line-5,Caledonia|Caledonia Station
+fairbank,line-5,Fairbank|Fairbank Station
+oakwood,line-5,Oakwood|Oakwood Station
+cedarvale,line-5,Cedarvale|Cedarvale Station
+forest-hill,line-5,Forest Hill|Forest Hill Station
+chaplin,line-5,Chaplin|Chaplin Station
+avenue,line-5,Avenue|Avenue Station
+eglinton,line-5,Eglinton|Eglinton Station
+mount-pleasant,line-5,Mount Pleasant|Mount Pleasant Station
+leaside,line-5,Leaside|Leaside Station
+laird,line-5,Laird|Laird Station
+sunnybrook-park,line-5,Sunnybrook Park|Sunnybrook Park Station
+don-valley,line-5,Don Valley|Don Valley Station
+aga-khan-park-and-museum,line-5,Aga Khan Park and Museum|Aga Khan Park and Museum Station
+wynford,line-5,Wynford|Wynford Station
+sloane,line-5,Sloane|Sloane Station
+o_connor,line-5,O'Connor|O'Connor Station|O_Connor|O_Connor Station
+pharmacy,line-5,Pharmacy|Pharmacy Station
+hakimi-lebovic,line-5,Hakimi Lebovic|Hakimi Lebovic Station
+golden-mile,line-5,Golden Mile|Golden Mile Station
+birchmount,line-5,Birchmount|Birchmount Station
+ionview,line-5,Ionview|Ionview Station
+kennedy,line-5,Kennedy|Kennedy Station
+humber-college,line-6,Humber College|Humber College Station
+westmore,line-6,Westmore|Westmore Station
+martin-grove,line-6,Martin Grove|Martin Grove Station
+albion,line-6,Albion|Albion Station
+stevenson,line-6,Stevenson|Stevenson Station
+mount-olive,line-6,Mount Olive|Mount Olive Station
+rowntree-mills,line-6,Rowntree Mills|Rowntree Mills Station
+pearldale,line-6,Pearldale|Pearldale Station
+duncanwoods,line-6,Duncanwoods|Duncanwoods Station
+milvan-rumike,line-6,Milvan-Rumike|Milvan-Rumike Station|Milvan Rumike|Milvan Rumike Station
+emery,line-6,Emery|Emery Station
+signet-arrow,line-6,Signet-Arrow|Signet-Arrow Station|Signet Arrow|Signet Arrow Station
+norfinch-oakdale,line-6,Norfinch-Oakdale|Norfinch-Oakdale Station|Norfinch Oakdale|Norfinch Oakdale Station
+jane-and-finch,line-6,Jane and Finch|Jane and Finch Station
+driftwood,line-6,Driftwood|Driftwood Station
+tobermory,line-6,Tobermory|Tobermory Station
+sentinel,line-6,Sentinel|Sentinel Station
+finch-west,line-6,Finch West|Finch West Station
