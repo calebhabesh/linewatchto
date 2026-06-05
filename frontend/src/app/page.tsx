@@ -59,6 +59,7 @@ export default async function Home() {
   const useFallback = !mapData || !statusData || !activeAlerts || !delays || !reducedSpeedZones || !plannedClosures;
 
   const initialData = {
+    dataSource: useFallback ? "fallback" as const : "backend" as const,
     networkSegments: useFallback ? fallbackSegments : mapData.segments,
     stations: useFallback ? fallbackStations : mapData.stations,
     lineStatuses: useFallback ? fallbackStatuses : statusData.lines,

@@ -90,14 +90,14 @@ describe("asset-backed map layering", () => {
     );
 
     const disruptionOverlaysStart = interactiveMapSource.indexOf('aria-label="Disruption overlays"');
-    const plannedPreviewLayersIndex = interactiveMapSource.indexOf('plannedPreviewLayers.map', disruptionOverlaysStart);
-    const renderedImpactLayersIndex = interactiveMapSource.indexOf('renderedImpactLayers.map', disruptionOverlaysStart);
+    const plannedPreviewLayersIndex = interactiveMapSource.indexOf('retainedPlannedPreviewLayers.map', disruptionOverlaysStart);
+    const renderedImpactLayersIndex = interactiveMapSource.indexOf('retainedImpactLayers.map', disruptionOverlaysStart);
     
-    assert.ok(plannedPreviewLayersIndex > -1, "plannedPreviewLayers must be inside disruption overlays group");
-    assert.ok(renderedImpactLayersIndex > -1, "renderedImpactLayers must be inside disruption overlays group");
+    assert.ok(plannedPreviewLayersIndex > -1, "retainedPlannedPreviewLayers must be inside disruption overlays group");
+    assert.ok(renderedImpactLayersIndex > -1, "retainedImpactLayers must be inside disruption overlays group");
     assert.ok(
       plannedPreviewLayersIndex < renderedImpactLayersIndex,
-      "plannedPreviewLayers must render before renderedImpactLayers so that active overlays render on top"
+      "retainedPlannedPreviewLayers must render before retainedImpactLayers so that active overlays render on top"
     );
   });
 
@@ -166,5 +166,17 @@ describe("asset-backed map layering", () => {
     assert.match(globalCss, /\.overlap-indicator-badge\.reduced-speed-zone/);
     assert.match(globalCss, /\.overlap-indicator-type-icon/);
     assert.doesNotMatch(globalCss, /\.overlap-side-rail/);
+  });
+
+  it("retains disappearing map overlays long enough to fade out", () => {
+    assert.match(interactiveMapSource, /useRetainedMapLayers/);
+    assert.match(interactiveMapSource, /map-layer-exiting/);
+    assert.match(globalCss, /\.map-layer-exiting/);
+  });
+
+  it("uses resolved SVG station centers for station flashes and hit targets", () => {
+    assert.match(interactiveMapSource, /stationCenterPoints/);
+    assert.match(interactiveMapSource, /stationPointFor/);
+    assert.match(interactiveMapSource, /readSvgStationCenters/);
   });
 });

@@ -78,6 +78,13 @@ describe("station detail panel layout", () => {
     assert.doesNotMatch(panelSource, /backdrop-blur/);
   });
 
+  it("lets the desktop station panel size to content with a viewport max height", () => {
+    assert.match(panelSource, /md:bottom-auto/);
+    assert.match(panelSource, /md:max-h-\[calc\(100vh-128px\)\]/);
+    assert.doesNotMatch(panelSource, /md:bottom-6/);
+    assert.doesNotMatch(panelSource, /md:max-h-none/);
+  });
+
   it("renders authored accessibility icons with accessible warning state labels", () => {
     assert.match(panelSource, /wheel-chair-symbol\.svg/);
     assert.match(panelSource, /elevator-icon\.svg/);
@@ -116,5 +123,20 @@ describe("station detail panel layout", () => {
     assert.match(panelSource, /self-start/);
     assert.doesNotMatch(panelSource, /self-end/);
     assert.match(panelSource, /View Details/);
+  });
+
+  it("supports updating state, animation, and prefers-reduced-motion overrides", () => {
+    assert.match(panelSource, /updating\?: boolean/);
+    assert.match(panelSource, /station-detail-updating/);
+    assert.match(globalCss, /@keyframes station-detail-enter/);
+    assert.match(globalCss, /\.motion-paused \.station-detail-panel/);
+    assert.match(panelSource, /station-detail-body-wrapper/);
+    assert.match(globalCss, /\.station-detail-body-wrapper/);
+    assert.match(globalCss, /\.station-detail-body-updating/);
+    assert.match(panelSource, /key=\{station\?\.id \?\? "empty"\}/);
+    assert.match(panelSource, /station-detail-content-swap/);
+    assert.doesNotMatch(globalCss, /filter:\s*blur\(1px\)/);
+    assert.doesNotMatch(globalCss, /opacity:\s*0\.35/);
+    assert.match(globalCss, /@keyframes station-detail-content-in/);
   });
 });

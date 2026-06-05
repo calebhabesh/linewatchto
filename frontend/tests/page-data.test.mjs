@@ -25,5 +25,12 @@ describe("dashboard server data binding", () => {
     assert.match(shellSource, /return;/);
     assert.match(shellSource, /router\.refresh\(\)/);
   });
+
+  it("marks dashboard payloads as backend or fallback and lets the shell retain backend data", () => {
+    assert.match(pageSource, /dataSource:\s*useFallback\s*\?\s*"fallback"(?:\s+as\s+const)?\s*:\s*"backend"(?:\s+as\s+const)?/);
+    assert.match(shellSource, /displayData/);
+    assert.match(shellSource, /setDisplayData\(initialData\)/);
+    assert.match(shellSource, /initialData\.dataSource === "backend"/);
+  });
 });
 

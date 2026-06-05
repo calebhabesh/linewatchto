@@ -1507,7 +1507,7 @@ const fallbackStationSummarySeed: StationListResponse = {
         id: "cedarvale",
         name: "Cedarvale",
         mapX: 2936,
-        mapY: 1802,
+        mapY: 1810,
         interchange: true,
         lineIds: [
             "line-1"

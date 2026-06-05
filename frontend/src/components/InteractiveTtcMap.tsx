@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useState, useMemo, useLayoutEffect, useRef } from "react";
+import { useEffect, useState, useMemo, useLayoutEffect, useRef, useCallback } from "react";
 import {
   composeNetworkSegmentPath,
   pathCenter,
   pathCorridorCollisionBoxes,
   pathMidpointFrame,
   readSvgGeometry,
+  readSvgStationCenters,
   resolveNetworkSegmentPath,
   transformBoundsToRootCoordinates,
   visualTravelDirection,
@@ -70,6 +71,52 @@ function getSegmentsCenter(
   };
 }
 
+type RetainedLayer<T> = {
+  key: string;
+  item: T;
+  exiting: boolean;
+};
+
+function useRetainedMapLayers<T>(
+  items: T[],
+  keyForItem: (item: T) => string,
+  exitMs = 240,
+) {
+  const [retained, setRetained] = useState<RetainedLayer<T>[]>(() =>
+    items.map((item) => ({ key: keyForItem(item), item, exiting: false })),
+  );
+
+  useEffect(() => {
+    const nextByKey = new Map(items.map((item) => [keyForItem(item), item]));
+
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setRetained((previous) => {
+      const previousByKey = new Map(previous.map((layer) => [layer.key, layer]));
+      const nextLayers: RetainedLayer<T>[] = [];
+
+      for (const item of items) {
+        const key = keyForItem(item);
+        nextLayers.push({ key, item, exiting: false });
+        previousByKey.delete(key);
+      }
+
+      for (const oldLayer of previousByKey.values()) {
+        nextLayers.push({ ...oldLayer, exiting: true });
+      }
+
+      return nextLayers;
+    });
+
+    const timer = window.setTimeout(() => {
+      setRetained((current) => current.filter((layer) => !layer.exiting || nextByKey.has(layer.key)));
+    }, exitMs);
+
+    return () => window.clearTimeout(timer);
+  }, [items, keyForItem, exitMs]);
+
+  return retained;
+}
+
 export function InteractiveTtcMap({
   selection,
   onSelectImpact,
@@ -98,6 +145,7 @@ export function InteractiveTtcMap({
   const mapSvgRef = useRef<SVGSVGElement>(null);
   const [anchorPoints, setAnchorPoints] = useState(new Map<string, MapPoint>());
   const [guidePaths, setGuidePaths] = useState(new Map<string, string>());
+  const [stationCenterPoints, setStationCenterPoints] = useState(new Map<string, MapPoint>());
   const [mapCollisionBoxes, setMapCollisionBoxes] = useState<SvgBounds[]>([]);
 
   useLayoutEffect(() => {
@@ -105,11 +153,16 @@ export function InteractiveTtcMap({
     const geometry = readSvgGeometry(mapSvgRef.current, networkSegments);
     setAnchorPoints(geometry.anchorPoints);
     setGuidePaths(geometry.guidePaths);
+    setStationCenterPoints(readSvgStationCenters(mapSvgRef.current, stations.map((s) => s.id)));
     setMapCollisionBoxes([
       ...collectMapCollisionBoxes(mapSvgRef.current),
       ...collectBaseRouteCollisionBoxes(networkSegments, mapStations, geometry.anchorPoints, geometry.guidePaths),
     ]);
-  }, [loadState, mapStations, networkSegments]);
+  }, [loadState, mapStations, networkSegments, stations]);
+
+  const stationPointFor = useCallback((station: { id: string; mapX: number; mapY: number }): MapPoint => {
+    return stationCenterPoints.get(station.id) ?? { x: station.mapX, y: station.mapY };
+  }, [stationCenterPoints]);
 
   const {
     transform,
@@ -235,16 +288,28 @@ export function InteractiveTtcMap({
     return () => { window.clearTimeout(timer0); window.clearTimeout(timer); };
   }, [selectedStationId]);
 
-  const prevSelectionRef = useRef<ImpactSelection>(null);
-  const prevSelectedStationIdRef = useRef<string | null>(null);
+  const focusTargetKey = useMemo(() => {
+    if (selection) return `${selection.kind}:${selection.id}`;
+    if (selectedStationId) return `station:${selectedStationId}`;
+    return null;
+  }, [selection, selectedStationId]);
+
+  const lastFocusedTargetKeyRef = useRef<string | null>(null);
 
   useEffect(() => {
-    const prevSelection = prevSelectionRef.current;
-    const prevSelectedStationId = prevSelectedStationIdRef.current;
-    prevSelectionRef.current = selection;
-    prevSelectedStationIdRef.current = selectedStationId;
-
     if (loadState !== "ready") return;
+
+    if (!focusTargetKey) {
+      if (lastFocusedTargetKeyRef.current !== null) {
+        lastFocusedTargetKeyRef.current = null;
+        recenter();
+      }
+      return;
+    }
+
+    if (lastFocusedTargetKeyRef.current === focusTargetKey) {
+      return;
+    }
 
     if (selection) {
       if (selectedSegmentIds.length === 0) {
@@ -259,20 +324,23 @@ export function InteractiveTtcMap({
           matchingImpacts.forEach((impact) => {
             const station = stations.find((s) => s.id === impact.stationId);
             if (station) {
-              sumX += station.mapX;
-              sumY += station.mapY;
+              const pt = stationPointFor(station);
+              sumX += pt.x;
+              sumY += pt.y;
               count++;
             }
           });
           if (count > 0) {
             const scaleFactor = 4500 / 8250;
             zoomToPoint((sumX / count) * scaleFactor, (sumY / count) * scaleFactor, 1.2);
+            lastFocusedTargetKeyRef.current = focusTargetKey;
           }
         }
       } else {
         const center = getSegmentsCenter(selectedSegmentIds, networkSegments, mapStations, anchorPoints, guidePaths);
         if (center) {
           zoomToPoint(center.x, center.y, 1.2);
+          lastFocusedTargetKeyRef.current = focusTargetKey;
         }
       }
     } else if (selectedStationId) {
@@ -280,14 +348,13 @@ export function InteractiveTtcMap({
       const station = stations.find((s) => s.id === selectedStationId);
       if (station) {
         const scaleFactor = 4500 / 8250;
-        zoomToPoint(station.mapX * scaleFactor, station.mapY * scaleFactor, 1.2);
-      }
-    } else {
-      if (prevSelection || prevSelectedStationId) {
-        recenter();
+        const pt = stationPointFor(station);
+        zoomToPoint(pt.x * scaleFactor, pt.y * scaleFactor, 1.2);
+        lastFocusedTargetKeyRef.current = focusTargetKey;
       }
     }
   }, [
+    focusTargetKey,
     selection,
     selectedStationId,
     selectedSegmentIds,
@@ -300,6 +367,7 @@ export function InteractiveTtcMap({
     recenter,
     stationNodeImpacts,
     stations,
+    stationPointFor,
   ]);
 
   const stationBySummaryId = useMemo(() => {
@@ -417,6 +485,21 @@ export function InteractiveTtcMap({
       .filter((layer): layer is RenderedPlannedPreviewLayer => Boolean(layer));
   }, [plannedClosures, renderedOverlaySegments]);
 
+  const retainedPlannedPreviewLayers = useRetainedMapLayers(
+    plannedPreviewLayers,
+    useCallback(({ segment, closure }) => `${segment.id}:${closure.id}`, []),
+  );
+
+  const retainedImpactLayers = useRetainedMapLayers(
+    renderedImpactLayers,
+    useCallback(({ segment, impact }) => `${segment.id}:${impact.kind}:${impact.cardId}:${impact.travelDirection}`, []),
+  );
+
+  const retainedStationNodeImpacts = useRetainedMapLayers(
+    stationNodeImpacts,
+    useCallback((impact) => `${impact.kind}:${impact.cardId}:${impact.stationId}`, []),
+  );
+
   const overlayCollisionBoxes = useMemo<SvgBounds[]>(() => {
     return [
       ...plannedPreviewLayers.map(({ segment }) => segment.pathD),
@@ -476,28 +559,28 @@ export function InteractiveTtcMap({
 
       {/* Top center map controls */}
       {/* Note: ml-2 sm:ml-3 is added to visually center the mass of the controls, since the left side has 2 buttons and is visually heavier than the right side */}
-      <div className="absolute top-14 sm:top-[92px] left-1/2 -translate-x-1/2 ml-2 sm:ml-0.75 z-20 flex flex-row items-center justify-center gap-1 sm:gap-2 pointer-events-auto">
+      <div className="map-control-rail absolute top-14 sm:top-[92px] left-1/2 -translate-x-1/2 z-30 flex flex-row items-center justify-center gap-1 sm:gap-2 pointer-events-auto">
         <button
           onClick={recenter}
-          className="group w-16 sm:w-[68px] h-[60px] flex flex-col items-center justify-center gap-1.5 text-slate-900 dark:text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.9)] dark:drop-shadow-[0_0_12px_rgba(0,0,0,0.9)] hover:bg-black/10 dark:hover:bg-white/10 focus-visible:bg-black/10 dark:focus-visible:bg-white/10 rounded-2xl active:scale-95 outline-none transition-all cursor-pointer"
+          className="map-control-button group"
           title="Center view"
           aria-label="Center map view"
         >
-          <Locate size={24} className="group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors" />
+          <Locate size={20} className="group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors" />
           <span className="text-[10px] font-black uppercase tracking-widest group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">Center</span>
         </button>
 
         <button
           onClick={zoomOut}
-          className="group w-16 sm:w-[68px] h-[60px] flex flex-col items-center justify-center gap-1.5 text-slate-900 dark:text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.9)] dark:drop-shadow-[0_0_12px_rgba(0,0,0,0.9)] hover:bg-black/10 dark:hover:bg-white/10 focus-visible:bg-black/10 dark:focus-visible:bg-white/10 rounded-2xl active:scale-95 outline-none transition-all cursor-pointer"
+          className="map-control-button group"
           title="Zoom out"
           aria-label="Zoom out"
         >
-          <ZoomOut size={24} className="group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors" />
+          <ZoomOut size={20} className="group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors" />
           <span className="text-[10px] font-black uppercase tracking-widest group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">Out</span>
         </button>
 
-        <div className="flex flex-col items-center justify-center gap-1.5 mx-0.5 sm:mx-1 drop-shadow-[0_0_8px_rgba(255,255,255,0.9)] dark:drop-shadow-[0_0_12px_rgba(0,0,0,0.9)]">
+        <div className="map-control-slider flex flex-col items-center justify-center gap-1.5 mx-0.5 sm:mx-1">
           <input
             type="range"
             min="0.2"
@@ -505,22 +588,22 @@ export function InteractiveTtcMap({
             step="0.05"
             value={relativeScale}
             onChange={(e) => zoomToScale(parseFloat(e.target.value))}
-            className="w-16 md:w-24 accent-slate-900 dark:accent-white hover:accent-blue-600 dark:hover:accent-blue-400 cursor-pointer h-1.5 rounded-lg appearance-none bg-slate-900/20 dark:bg-white/30 transition-all outline-none"
+            className="w-16 md:w-20 accent-slate-900 dark:accent-white hover:accent-blue-600 dark:hover:accent-blue-400 cursor-pointer h-1.5 rounded-lg appearance-none bg-slate-900/20 dark:bg-white/30 transition-all outline-none"
             title="Zoom level"
             aria-label="Zoom level slider"
           />
-          <span className="text-[10px] font-mono font-black text-slate-900 dark:text-white select-none tracking-wider">
+          <span className="text-[10px] font-mono font-black select-none tracking-wider">
             {Math.round(relativeScale * 100)}%
           </span>
         </div>
 
         <button
           onClick={zoomIn}
-          className="group w-16 sm:w-[68px] h-[60px] flex flex-col items-center justify-center gap-1.5 text-slate-900 dark:text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.9)] dark:drop-shadow-[0_0_12px_rgba(0,0,0,0.9)] hover:bg-black/10 dark:hover:bg-white/10 focus-visible:bg-black/10 dark:focus-visible:bg-white/10 rounded-2xl active:scale-95 outline-none transition-all cursor-pointer"
+          className="map-control-button group"
           title="Zoom in"
           aria-label="Zoom in"
         >
-          <ZoomIn size={24} className="group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors" />
+          <ZoomIn size={20} className="group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors" />
           <span className="text-[10px] font-black uppercase tracking-widest group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">In</span>
         </button>
       </div>
@@ -557,10 +640,10 @@ export function InteractiveTtcMap({
               transformOrigin: "0 0",
               transition: reducedMotion
                 ? "none"
-                : isAnimating
-                  ? "transform 0.8s cubic-bezier(0.25, 1, 0.5, 1)"
-                  : isDragging
-                    ? "none"
+                : isDragging
+                  ? "none"
+                  : isAnimating
+                    ? "transform 0.8s cubic-bezier(0.25, 1, 0.5, 1)"
                     : "transform 0.1s ease-out",
               willChange: "transform",
             }}
@@ -645,10 +728,10 @@ export function InteractiveTtcMap({
                     <feComposite in="monoNoise" in2="SourceGraphic" operator="in" />
                   </filter>
                 </defs>
-                <g aria-label="Disruption overlays">
-                  {plannedPreviewLayers.map(({ segment, closure }) => (
+                 <g aria-label="Disruption overlays">
+                  {retainedPlannedPreviewLayers.map(({ key, item: { segment, closure }, exiting }) => (
                     <OverlaySegment
-                      key={`${segment.id}-planned-preview-${closure.id}`}
+                      key={key}
                       segment={segment}
                       impact={null}
                       plannedClosure={closure}
@@ -657,11 +740,12 @@ export function InteractiveTtcMap({
                       onSelectImpact={onSelectImpact}
                       reducedMotion={reducedMotion}
                       flashSelection={flashSelection}
+                      exiting={exiting}
                     />
                   ))}
-                  {renderedImpactLayers.map(({ segment, impact }, index) => (
+                  {retainedImpactLayers.map(({ key, item: { segment, impact }, exiting }) => (
                     <OverlaySegment
-                      key={`${segment.id}-${impact.kind}-${impact.cardId}-${index}`}
+                      key={key}
                       segment={segment}
                       impact={impact}
                       plannedClosure={undefined}
@@ -670,6 +754,7 @@ export function InteractiveTtcMap({
                       onSelectImpact={onSelectImpact}
                       reducedMotion={reducedMotion}
                       flashSelection={flashSelection}
+                      exiting={exiting}
                     />
                   ))}
                 </g>
@@ -705,6 +790,7 @@ export function InteractiveTtcMap({
                 {stations.map((station) => {
                   const selected = selectedStationId === station.id;
                   const radius = station.interchange ? 96 : 76;
+                  const point = stationPointFor(station);
 
                   return (
                     <g key={station.id}>
@@ -712,8 +798,8 @@ export function InteractiveTtcMap({
                         <circle
                           data-map-highlight-id={station.id}
                           className="station-selection-flash"
-                          cx={station.mapX}
-                          cy={station.mapY}
+                          cx={point.x}
+                          cy={point.y}
                           r={station.interchange ? 48 : 38}
                           pointerEvents="none"
                         />
@@ -721,8 +807,8 @@ export function InteractiveTtcMap({
                       {selected && (
                         <circle
                           className="station-selected-indicator"
-                          cx={station.mapX}
-                          cy={station.mapY}
+                          cx={point.x}
+                          cy={point.y}
                           r={station.interchange ? 48 : 38}
                           pointerEvents="none"
                         />
@@ -732,8 +818,8 @@ export function InteractiveTtcMap({
                         className={`station-hit-target ${selected ? "selected" : ""} ${
                           station.hasActiveImpact ? "has-impact" : ""
                         } access-${station.accessStatus}`}
-                        cx={station.mapX}
-                        cy={station.mapY}
+                        cx={point.x}
+                        cy={point.y}
                         r={radius}
                         onClick={(event) => {
                           event.stopPropagation();
@@ -754,19 +840,24 @@ export function InteractiveTtcMap({
                 })}
               </g>
               <g aria-label="Station impact rings">
-                {stationNodeImpacts.map((impact) => {
+                {retainedStationNodeImpacts.map(({ key, item: impact, exiting }) => {
                   const station = stationBySummaryId.get(impact.stationId);
                   if (!station) return null;
                   const selected = selection?.kind === impact.kind && selection.id === impact.cardId;
+                  const point = stationPointFor(station);
 
                   return (
-                    <g key={`${impact.kind}-${impact.cardId}-${impact.stationId}`}>
+                    <g
+                      key={key}
+                      className={exiting ? "map-layer-exiting" : "map-layer-current"}
+                      style={exiting ? { pointerEvents: "none" } : undefined}
+                    >
                       {flashSelection && flashSelection.kind === impact.kind && flashSelection.id === impact.cardId && (
                         <circle
                           data-map-highlight-id={flashSelection.id}
                           className="station-selection-flash"
-                          cx={station.mapX}
-                          cy={station.mapY}
+                          cx={point.x}
+                          cy={point.y}
                           r={station.interchange ? 48 : 38}
                           pointerEvents="none"
                         />
@@ -774,29 +865,31 @@ export function InteractiveTtcMap({
                       <circle
                         aria-label={`${impact.title}: ${station.name}`}
                         className={`station-impact-ring ${impact.kind} ${selected ? "selected" : ""}`}
-                        cx={station.mapX}
-                        cy={station.mapY}
+                        cx={point.x}
+                        cy={point.y}
                         r={station.interchange ? 48 : 38}
                         fill="none"
                         onClick={(event) => {
+                          if (exiting) return;
                           event.stopPropagation();
                           onSelectImpact({ kind: impact.kind, id: impact.cardId });
                         }}
                         onKeyDown={(event) => {
+                          if (exiting) return;
                           if (event.key === "Enter" || event.key === " ") {
                             event.preventDefault();
                             onSelectImpact({ kind: impact.kind, id: impact.cardId });
                           }
                         }}
                         onPointerDown={(event) => event.stopPropagation()}
-                        pointerEvents="stroke"
+                        pointerEvents={exiting ? "none" : "stroke"}
                         role="button"
-                        tabIndex={0}
+                        tabIndex={exiting ? -1 : 0}
                       />
                       <circle
                         className="station-impact-dot-red-glow"
-                        cx={station.mapX}
-                        cy={station.mapY}
+                        cx={point.x}
+                        cy={point.y}
                         r={station.interchange ? 34 : 26}
                         pointerEvents="none"
                       />
@@ -2028,6 +2121,7 @@ function OverlaySegment({
   onSelectImpact,
   reducedMotion,
   flashSelection,
+  exiting,
 }: {
   segment: RenderedNetworkSegment;
   impact: MapImpact | null;
@@ -2037,6 +2131,7 @@ function OverlaySegment({
   onSelectImpact: (selection: ImpactSelection) => void;
   reducedMotion: boolean;
   flashSelection: ImpactSelection;
+  exiting?: boolean;
 }) {
   const { activeAlerts, delays, reducedSpeedZones, plannedClosures } = useDashboardData();
 
@@ -2125,7 +2220,10 @@ function OverlaySegment({
       : "";
 
   return (
-    <g className={`overlay-segment-group ${connectedClass}`.trim()}>
+    <g
+      className={`overlay-segment-group ${connectedClass} ${exiting ? "map-layer-exiting" : "map-layer-current"}`.trim()}
+      style={exiting ? { pointerEvents: "none" } : undefined}
+    >
 
 
       <path

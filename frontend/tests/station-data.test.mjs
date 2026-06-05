@@ -107,4 +107,10 @@ describe("station data adapter", () => {
     assert.equal(union.arrivalContext.scheduleMayBeDisrupted, false);
     assert.equal(union.arrivalContext.message, "Schedule active");
   });
+
+  it("keeps Cedarvale fallback coordinates aligned with the current SVG asset", () => {
+    const cedarvale = fallbackStationSummaries.stations.find((station) => station.id === "cedarvale");
+    assert.equal(cedarvale?.mapX, 2936);
+    assert.equal(cedarvale?.mapY, 1810);
+  });
 });

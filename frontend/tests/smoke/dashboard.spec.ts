@@ -380,3 +380,42 @@ test("station search browses fallback station lists by line", async ({ page, req
   await expect(page.getByRole("complementary", { name: "Mount Dennis station details" })).toBeVisible();
   await expect(page.getByText("Backend unavailable. Showing local fallback station data.")).toBeVisible();
 });
+
+test("drag after focus zoom cancels animation and retains transform", async ({ page, request }) => {
+  await setStubMode(request, "seeded");
+  await page.goto("/");
+  await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
+
+  // Verify the control rail styling and visibility
+  const rail = page.locator(".map-control-rail");
+  await expect(rail).toBeVisible();
+  await expect(rail).toHaveCSS("border-radius", "8px");
+
+  // Click a station to trigger focus zoom animation
+  await page.getByRole("button", { name: "Stub Station station details" }).click();
+  await page.waitForTimeout(100); // let it start animating
+
+  // Locate the map wrapper
+  const mapElement = page.locator(".absolute.top-0.left-0.w-full.h-full.origin-top-left").first();
+
+  // Get initial transform style
+  const initialTransform = await mapElement.evaluate((el) => el.style.transform);
+
+  // Drag the map slightly
+  const viewport = page.locator(".cursor-grab").first();
+  const dragBox = await viewport.boundingBox();
+  expect(dragBox).not.toBeNull();
+  
+  const startX = dragBox!.x + dragBox!.width / 4;
+  const startY = dragBox!.y + dragBox!.height / 3;
+
+  await page.mouse.move(startX, startY);
+  await page.mouse.down();
+  await page.mouse.move(startX + 100, startY + 100, { steps: 5 });
+  await page.mouse.up();
+
+  // Verify the transform has updated and does not snap back after a delay
+  await page.waitForTimeout(600);
+  const finalTransform = await mapElement.evaluate((el) => el.style.transform);
+  expect(finalTransform).not.toEqual(initialTransform);
+});

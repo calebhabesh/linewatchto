@@ -50,7 +50,32 @@ function dashboardRefreshIntervalMs() {
 
 export function LineWatchShell({ initialData }: { initialData: DashboardData }) {
   const router = useRouter();
-  const { generatedAt, activeAlerts, delays, reducedSpeedZones, lineStatuses, ingestionHealth, plannedClosures } = initialData;
+  const [displayData, setDisplayData] = useState(initialData);
+
+  useEffect(() => {
+    if (initialData.dataSource === "backend") {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setDisplayData(initialData);
+      return;
+    }
+
+    setDisplayData((previous) => {
+      if (previous.dataSource === "backend") {
+        return previous;
+      }
+      return initialData;
+    });
+  }, [initialData]);
+
+  const {
+    generatedAt,
+    activeAlerts,
+    delays,
+    reducedSpeedZones,
+    lineStatuses,
+    ingestionHealth,
+    plannedClosures,
+  } = displayData;
   const pollText = generatedAt.lastPoll.replace(/succeeded\s*/i, "");
   const [isDark, setIsDark] = useState(true);
   const [highContrast, setHighContrast] = useState(false);
@@ -72,7 +97,7 @@ export function LineWatchShell({ initialData }: { initialData: DashboardData }) 
   const [selection, setSelection] = useState<ImpactSelection>(null);
   const [stationSummaries, setStationSummaries] = useState<StationSummary[]>(fallbackStationSummaries.stations);
   const [selectedStationId, setSelectedStationId] = useState<string | null>(null);
-  const [stationResult, setStationResult] = useState<StationDataResult<StationDetail | null> | null>(null);
+  const [visibleStationResult, setVisibleStationResult] = useState<StationDataResult<StationDetail | null> | null>(null);
   const [stationLoading, setStationLoading] = useState(false);
 
   useEffect(() => {
@@ -131,7 +156,7 @@ export function LineWatchShell({ initialData }: { initialData: DashboardData }) 
 
     if (!selectedStationId) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
-      setStationResult(null);
+      setVisibleStationResult(null);
       setStationLoading(false);
       return () => {
         cancelled = true;
@@ -141,7 +166,7 @@ export function LineWatchShell({ initialData }: { initialData: DashboardData }) 
     setStationLoading(true);
     getStationDetail(selectedStationId).then((result) => {
       if (!cancelled) {
-        setStationResult(result);
+        setVisibleStationResult(result);
         setStationLoading(false);
       }
     });
@@ -223,7 +248,7 @@ export function LineWatchShell({ initialData }: { initialData: DashboardData }) 
 
 
   return (
-    <DataProvider data={initialData}>
+    <DataProvider data={displayData}>
       <div className={`linewatch-shell relative w-full h-screen overflow-hidden transition-colors duration-500 ${(isDark || highContrast) ? "dark bg-[#0d0808] text-slate-100" : "bg-slate-50 text-slate-900"} ${highContrast ? "high-contrast" : ""} ${reducedMotion ? "motion-paused" : ""}`}>
       {/* Background */}
       <DynamicBackground reducedMotion={reducedMotion} isDark={isDark || highContrast} />
@@ -526,8 +551,9 @@ export function LineWatchShell({ initialData }: { initialData: DashboardData }) 
 
       {!showClosedScreen && selectedStationId && (
         <StationDetailPanel
-          stationResult={stationResult}
+          stationResult={visibleStationResult}
           loading={stationLoading}
+          updating={stationLoading && Boolean(visibleStationResult?.data)}
           selectedStationName={stationSummaries.find((station) => station.id === selectedStationId)?.name}
           onClose={() => setSelectedStationId(null)}
           onSelectImpact={handleMapSelectImpact}

@@ -627,3 +627,35 @@ export function readSvgGeometry(
   }
   return { anchorPoints, guidePaths };
 }
+
+export function readSvgStationCenters(
+  root: SVGSVGElement,
+  stationIds: string[],
+): Map<string, MapPoint> {
+  const centers = new Map<string, MapPoint>();
+
+  for (const stationId of stationIds) {
+    const element = root.querySelector<SVGGraphicsElement>(`#${CSS.escape(`station-${stationId}`)}`);
+    if (!element) continue;
+
+    const box = element.getBBox();
+    const point = root.createSVGPoint();
+    point.x = box.x + box.width / 2;
+    point.y = box.y + box.height / 2;
+
+    const elementMatrix = element.getScreenCTM();
+    const rootMatrix = root.getScreenCTM();
+    let resolved = point;
+
+    if (elementMatrix && rootMatrix) {
+      const relativeMatrix = rootMatrix.inverse().multiply(elementMatrix);
+      resolved = point.matrixTransform(relativeMatrix);
+    } else if (elementMatrix) {
+      resolved = point.matrixTransform(elementMatrix);
+    }
+
+    centers.set(stationId, { x: resolved.x, y: resolved.y });
+  }
+
+  return centers;
+}

@@ -16,6 +16,7 @@ import {
 } from "./linewatch-data";
 
 export interface DashboardData {
+  dataSource: "backend" | "fallback";
   networkSegments: NetworkSegment[];
   stations: Station[];
   lineStatuses: LineStatus[];

@@ -235,4 +235,13 @@ describe("map overlay geometry", () => {
     assert.equal(result.pathD, "M 0 0 L 0 100 L 300 100 L 300 200");
     assert.equal((result.pathD.match(/\bM\b/g) ?? []).length, 1);
   });
+
+  it("exposes SVG station center extraction for visual hit targets", async () => {
+    const { readFileSync } = await import("node:fs");
+    const mapGeometrySource = readFileSync(new URL("../src/app/map-geometry.ts", import.meta.url), "utf8");
+    assert.match(mapGeometrySource, /readSvgStationCenters/);
+    assert.match(mapGeometrySource, /station-\$\{stationId\}/);
+    assert.match(mapGeometrySource, /getBBox\(\)/);
+    assert.match(mapGeometrySource, /getScreenCTM\(\)/);
+  });
 });

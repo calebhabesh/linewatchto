@@ -27,6 +27,7 @@ import { DelayIcon } from "./DelayIcon";
 type Props = {
   stationResult: StationDataResult<StationDetail | null> | null;
   loading: boolean;
+  updating?: boolean;
   selectedStationName?: string;
   onClose: () => void;
   onSelectImpact?: (selection: ImpactSelection) => void;
@@ -173,7 +174,7 @@ function stationImpactTitleClassName(tone: StationImpactDetailsTarget["tone"]) {
   return "block text-amber-800 dark:text-amber-200";
 }
 
-export function StationDetailPanel({ stationResult, loading, selectedStationName, onClose, onSelectImpact }: Props) {
+export function StationDetailPanel({ stationResult, loading, updating, selectedStationName, onClose, onSelectImpact }: Props) {
   const { activeAlerts, delays, reducedSpeedZones, plannedClosures } = useDashboardData();
   const subwayOperatingState = useSubwayOperatingState();
   const station = stationResult?.data ?? null;
@@ -199,7 +200,7 @@ export function StationDetailPanel({ stationResult, loading, selectedStationName
 
   return (
     <aside
-      className="station-detail-panel fixed left-0 right-0 bottom-0 z-30 max-h-[64vh] overflow-y-auto rounded-t-lg border border-black/10 bg-white p-4 text-slate-900 shadow-2xl dark:border-white/10 dark:bg-[#0a0c10] dark:text-white md:left-auto md:right-6 md:top-[104px] md:bottom-6 md:w-[min(calc(100vw-48px),390px)] md:max-h-none md:rounded-lg"
+      className="station-detail-panel fixed left-0 right-0 bottom-0 z-30 max-h-[64vh] overflow-y-auto rounded-t-lg border border-black/10 bg-white p-4 text-slate-900 shadow-2xl dark:border-white/10 dark:bg-[#0a0c10] dark:text-white md:left-auto md:right-6 md:top-[104px] md:bottom-auto md:w-[min(calc(100vw-48px),390px)] md:max-h-[calc(100vh-128px)] md:rounded-lg"
       aria-live="polite"
       aria-label={station ? `${station.name} station details` : "Station details"}
     >
@@ -211,6 +212,11 @@ export function StationDetailPanel({ stationResult, loading, selectedStationName
           <h2 className="mt-1 break-words text-3xl font-black text-slate-950 dark:text-white">
             {station?.name ?? selectedStationName ?? "Station details"}
           </h2>
+          {updating && (
+            <span className="station-detail-updating" role="status">
+              Updating
+            </span>
+          )}
         </div>
         <button
           type="button"
@@ -222,8 +228,13 @@ export function StationDetailPanel({ stationResult, loading, selectedStationName
         </button>
       </div>
 
-      {!loading && station && (isWheelchairAccessible || hasElevator) && (
-        <div className="mt-2.5 flex flex-wrap gap-1.5">
+      <div className={`station-detail-body-wrapper transition-all duration-200 ${updating ? "station-detail-body-updating" : ""}`}>
+        <div
+          key={station?.id ?? "empty"}
+          className="station-detail-content-swap"
+        >
+          {station && (isWheelchairAccessible || hasElevator) && (
+          <div className="mt-2.5 flex flex-wrap gap-1.5">
           {isWheelchairAccessible && (
             <span className="inline-flex items-center gap-1 shrink-0 text-[9px] sm:text-[10px] font-bold text-slate-800 dark:text-slate-200 px-2 py-0.5 rounded-[4px] border border-black/15 dark:border-white/15 uppercase tracking-wider bg-slate-100 dark:bg-white/5 whitespace-nowrap">
               <Check size={11} className="text-emerald-600 dark:text-emerald-400 stroke-[3.5] shrink-0" />
@@ -239,7 +250,7 @@ export function StationDetailPanel({ stationResult, loading, selectedStationName
         </div>
       )}
 
-      {!loading && station && (
+      {station && (
         <div className="mt-3 flex flex-col gap-2" data-station-header-line-details>
           {station.lines.map((line) => (
             <div
@@ -296,8 +307,8 @@ export function StationDetailPanel({ stationResult, loading, selectedStationName
         </div>
       )}
 
-      {loading && (
-        <div className="mt-4 rounded-lg border border-black/10 bg-slate-100 p-3 text-sm font-semibold text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
+      {loading && !station && (
+        <div className="station-detail-loading mt-4 rounded-lg border border-black/10 bg-slate-100 p-3 text-sm font-semibold text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
           Loading station details...
         </div>
       )}
@@ -308,7 +319,7 @@ export function StationDetailPanel({ stationResult, loading, selectedStationName
         </div>
       )}
 
-      {!loading && station && (
+      {station && (
         <div className="mt-4 flex flex-col gap-4">
           {source === "fallback" && (
             <div className="rounded-lg border border-blue-500/25 bg-blue-500/10 p-3 text-xs font-semibold text-blue-700 dark:text-blue-300">
@@ -649,6 +660,8 @@ export function StationDetailPanel({ stationResult, loading, selectedStationName
           </section>
         </div>
       )}
+        </div>
+      </div>
     </aside>
   );
 }
