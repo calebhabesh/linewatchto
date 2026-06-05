@@ -206,13 +206,14 @@ test("station detail shows accessibility facilities and active outage warning", 
   await expect(page.getByAltText("Wheelchair accessible", { exact: true })).toBeVisible();
   await expect(page.getByAltText("Elevator available, outage reported", { exact: true })).toBeVisible();
   await expect(page.locator('[data-facility-warning="elevator"]')).toBeVisible();
-  await expect(page.getByText("Arrivals")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Arrivals" })).toBeVisible();
   await expect(page.getByText("TTC scheduled service")).toBeVisible();
   await expect(page.getByText("Schedule may be disrupted")).toBeVisible();
-  await expect(page.getByText("Line 1")).toBeVisible();
-  await expect(page.getByText("Northbound to Finch")).toBeVisible();
-  await expect(page.getByText("3 min")).toBeVisible();
-  await expect(page.locator('[data-arrivals-disrupted="true"]')).toBeVisible();
+  const arrivalsSection = page.locator('[data-arrivals-disrupted="true"]');
+  await expect(arrivalsSection).toBeVisible();
+  await expect(arrivalsSection.getByText("Line 1", { exact: true })).toBeVisible();
+  await expect(arrivalsSection.getByText("Northbound to Finch")).toBeVisible();
+  await expect(arrivalsSection.getByText("3 min")).toBeVisible();
 });
 
 test("LineLegend clicks open view but do not highlight any card", async ({ page, request }) => {

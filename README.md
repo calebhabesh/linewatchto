@@ -232,6 +232,18 @@ Inspect its latest poll result:
 curl http://localhost:8080/api/health/ingestion
 ```
 
+### Optional Scheduled Arrival Import
+
+Station arrivals use TTC scheduled service when a merged GTFS schedule import is active. Download the public TTC merged GTFS zip and import the rapid-transit subset:
+
+```bash
+node scripts/download-ttc-gtfs.mjs /tmp/ttc-merged-gtfs.zip
+docker compose up -d postgres redis
+scripts/import-ttc-gtfs-schedule.sh /tmp/ttc-merged-gtfs.zip
+```
+
+These arrivals are timetable-based estimates, not live train predictions. If no import is active, the station detail API returns a schedule-unavailable state and the frontend fallback remains demo-labeled.
+
 ### Alert Scenario Harness
 
 The repository includes dev/test TTC Live Alerts scenario feeds under

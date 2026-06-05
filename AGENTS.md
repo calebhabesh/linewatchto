@@ -281,3 +281,4 @@ If you are antigravity-cli, Gemini, Codex, or another coding agent:
 - `scripts/dev-alert-scenario.sh <scenario-name>` runs the backend against a local scenario feed for manual browser testing.
 - Scenario records may be synthetic when captured public TTC samples are unavailable; do not describe scenario data as live TTC service.
 - Do not overclaim features that are only represented by fixtures.
+- Station arrivals are scheduled rapid-transit estimates when a merged TTC GTFS schedule import is active. They are not live TTC subway/LRT predictions. Surface connections are outside this slice. Do not claim live station arrivals until an official rapid-transit realtime source exists and is integrated with passing verification.
