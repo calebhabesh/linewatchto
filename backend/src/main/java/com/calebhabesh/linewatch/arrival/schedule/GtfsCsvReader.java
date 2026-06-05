@@ -73,7 +73,11 @@ public final class GtfsCsvReader {
     }
 
     public static String normalizeStationName(String value) {
-        return value == null ? "" : value
+        if (value == null) {
+            return "";
+        }
+        String clean = value.split(" - ")[0];
+        return clean
             .toLowerCase(Locale.ROOT)
             .replace(".", "")
             .replace("-", " ")

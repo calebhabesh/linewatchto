@@ -35,5 +35,7 @@ class GtfsCsvReaderTest {
         assertThat(GtfsCsvReader.normalizeStationName("St. George Station")).isEqualTo("st george");
         assertThat(GtfsCsvReader.normalizeStationName("Bloor-Yonge")).isEqualTo("bloor yonge");
         assertThat(GtfsCsvReader.normalizeStationName("  Vaughan Metropolitan Centre Station  ")).isEqualTo("vaughan metropolitan centre");
+        assertThat(GtfsCsvReader.normalizeStationName("Keele Station - Eastbound Platform")).isEqualTo("keele");
+        assertThat(GtfsCsvReader.normalizeStationName("Vaughan Metropolitan Centre Station - Subway Platform")).isEqualTo("vaughan metropolitan centre");
     }
 }
