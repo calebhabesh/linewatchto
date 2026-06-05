@@ -421,7 +421,7 @@ export function StationDetailPanel({ stationResult, loading, selectedStationName
           </section>
 
           {(() => {
-            const arrivalsDisrupted = station.arrivalContext.scheduleMayBeDisrupted;
+            const arrivalsDisrupted = station.arrivalContext ? station.arrivalContext.scheduleMayBeDisrupted : false;
             const arrivalSectionClassName = [
               "rounded-lg border p-3 transition-colors",
               arrivalsDisrupted
@@ -439,7 +439,7 @@ export function StationDetailPanel({ stationResult, loading, selectedStationName
                 <p className="mt-1 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
                   {station.arrivalsSource}
                 </p>
-                {arrivalsDisrupted && (
+                {arrivalsDisrupted && station.arrivalContext && (
                   <div className="mt-2 rounded-md border border-slate-300 bg-slate-200/70 p-2 text-xs font-semibold text-slate-700 dark:border-white/10 dark:bg-white/10 dark:text-slate-200">
                     <p>{station.arrivalContext.message}</p>
                     <p className="mt-1 font-medium">{station.arrivalContext.reason}</p>
