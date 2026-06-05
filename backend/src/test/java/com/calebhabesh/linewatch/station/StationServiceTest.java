@@ -115,7 +115,7 @@ class StationServiceTest {
         when(accessStatusRepository.findById("union")).thenReturn(Optional.of(access));
         when(impactRepository.findByStationIdOrderBySortOrderAsc("union")).thenReturn(List.of(impact));
         when(arrivalService.arrivalsFor(any(), any())).thenReturn(List.of(
-            new ArrivalPrediction("line-1", "Northbound", 2, OffsetDateTime.now(), "Demo estimates", "demo")
+            new ArrivalPrediction("line-1", "Northbound", 2, OffsetDateTime.now(), "Demo estimates", "demo", "2 min")
         ));
 
         StationResponses.StationDetailResponse response = stationService.stationDetail("union");
@@ -175,7 +175,7 @@ class StationServiceTest {
             )
         ));
         when(arrivalService.arrivalsFor(any(), any())).thenReturn(List.of(
-            new ArrivalPrediction("line-1", "Northbound", 2, OffsetDateTime.now(), "Demo estimates", "demo")
+            new ArrivalPrediction("line-1", "Northbound", 2, OffsetDateTime.now(), "Demo estimates", "demo", "2 min")
         ));
 
         StationResponses.StationDetailResponse response = stationService.stationDetail("union");
@@ -235,7 +235,7 @@ class StationServiceTest {
         when(accessStatusRepository.findById("union")).thenReturn(Optional.of(access));
         when(impactRepository.findByStationIdOrderBySortOrderAsc("union")).thenReturn(List.of());
         when(arrivalService.arrivalsFor(any(), any())).thenReturn(List.of(
-            new ArrivalPrediction("line-1", "Northbound", 2, OffsetDateTime.now(), "Demo estimates", "demo")
+            new ArrivalPrediction("line-1", "Northbound", 2, OffsetDateTime.now(), "Demo estimates", "demo", "2 min")
         ));
 
         StationResponses.StationDetailResponse response = stationService.stationDetail("union");
