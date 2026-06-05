@@ -6,6 +6,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import com.calebhabesh.linewatch.alert.AlertDashboardService;
 import com.calebhabesh.linewatch.arrival.ArrivalPrediction;
 import com.calebhabesh.linewatch.arrival.ArrivalService;
 import com.calebhabesh.linewatch.ingestion.IngestionFreshness;
@@ -38,6 +39,8 @@ class StationServiceTest {
     private IngestionFreshness ingestionFreshness;
     @Mock
     private ArrivalService arrivalService;
+    @Mock
+    private AlertDashboardService alertDashboardService;
 
     @InjectMocks
     private StationService stationService;
@@ -187,6 +190,99 @@ class StationServiceTest {
             .containsExactly("ttc-route-union");
         assertThat(response.impacts().getFirst().updatedAt()).isEqualTo(updatedAt);
         assertThat(response.impacts().getFirst().source()).isEqualTo("TTC Live Alerts");
+    }
+
+    @Test
+    void freshStationDetailDeduplicatesEquivalentLivePlannedClosures() {
+        OffsetDateTime newerUpdatedAt = OffsetDateTime.parse("2026-06-02T14:12:00-04:00");
+        OffsetDateTime olderUpdatedAt = OffsetDateTime.parse("2026-06-02T14:10:00-04:00");
+        StationEntity union = new StationEntity("union", "Union", 4311, 3597, true, 10, null);
+        TransitLineEntity line = new TransitLineEntity("line-1", "1", "Yonge-University", "#F8C300", 1);
+        StationLineEntity stationLine = new StationLineEntity(
+            1L, "union", "line-1", "Northbound / Southbound", 1, true, true
+        );
+
+        when(stationRepository.findById("union")).thenReturn(Optional.of(union));
+        when(stationLineRepository.findByStationIdOrderBySortOrderAsc("union")).thenReturn(List.of(stationLine));
+        when(transitLineRepository.findAllById(List.of("line-1"))).thenReturn(List.of(line));
+        when(ingestionFreshness.isDashboardFresh()).thenReturn(true);
+        when(liveReadRepository.findActiveOutagesByStationId("union")).thenReturn(List.of());
+        when(liveReadRepository.findActiveAlertsByStationId("union")).thenReturn(List.of(
+            new StationLiveReadRepository.LinkedAlert(
+                "ttc-route-closure-newer",
+                "planned-closure",
+                "planned",
+                "No subway service between St George and Sheppard West",
+                "There will be no subway service between St George and Sheppard West due to planned track work.",
+                newerUpdatedAt
+            ),
+            new StationLiveReadRepository.LinkedAlert(
+                "ttc-route-closure-older",
+                "planned-closure",
+                "planned",
+                "No subway service between St George and Sheppard West",
+                "There will be no subway service between St George and Sheppard West due to planned track work.",
+                olderUpdatedAt
+            )
+        ));
+        when(alertDashboardService.dashboardVisiblePlannedClosureIds()).thenReturn(Set.of("ttc-route-closure-newer"));
+        when(arrivalService.arrivalsFor(any(), any())).thenReturn(List.of(
+            ArrivalPrediction.scheduled("line-1", "Northbound to Finch", 3, OffsetDateTime.now(), "TTC scheduled service")
+        ));
+
+        StationResponses.StationDetailResponse response = stationService.stationDetail("union");
+
+        assertThat(response.impacts()).extracting(StationResponses.StationImpactResponse::id)
+            .containsExactly("ttc-route-closure-newer");
+        assertThat(response.arrivalContext().scheduleMayBeDisrupted()).isTrue();
+        assertThat(response.arrivalContext().reason()).isEqualTo("No subway service between St George and Sheppard West");
+    }
+
+    @Test
+    void freshStationDetailSuppressesOlderPlannedClosureVariantForSameStation() {
+        OffsetDateTime newerUpdatedAt = OffsetDateTime.parse("2026-06-05T18:49:00-04:00");
+        OffsetDateTime olderUpdatedAt = OffsetDateTime.parse("2026-06-01T13:51:00-04:00");
+        StationEntity cedarvale = new StationEntity("cedarvale", "Cedarvale", 2936, 1810, true, 40, null);
+        TransitLineEntity line = new TransitLineEntity("line-1", "1", "Yonge-University", "#F8C300", 1);
+        StationLineEntity stationLine = new StationLineEntity(
+            1L, "cedarvale", "line-1", "Northbound / Southbound", 1, true, true
+        );
+
+        when(stationRepository.findById("cedarvale")).thenReturn(Optional.of(cedarvale));
+        when(stationLineRepository.findByStationIdOrderBySortOrderAsc("cedarvale")).thenReturn(List.of(stationLine));
+        when(transitLineRepository.findAllById(List.of("line-1"))).thenReturn(List.of(line));
+        when(ingestionFreshness.isDashboardFresh()).thenReturn(true);
+        when(liveReadRepository.findActiveOutagesByStationId("cedarvale")).thenReturn(List.of());
+        when(liveReadRepository.findActiveAlertsByStationId("cedarvale")).thenReturn(List.of(
+            new StationLiveReadRepository.LinkedAlert(
+                "ttc-route-closure-visible",
+                "planned-closure",
+                "planned",
+                "There will be no subway service between St George and Sheppard West stations, starting at 12",
+                "Synthetic scenario: no subway service between St George and Sheppard West for a test closure.",
+                newerUpdatedAt
+            ),
+            new StationLiveReadRepository.LinkedAlert(
+                "ttc-route-closure-older",
+                "planned-closure",
+                "planned",
+                "There will be no subway service between St George and Sheppard West stations, starting 11",
+                "Synthetic scenario: no subway service between St George and Sheppard West for a test closure.",
+                olderUpdatedAt
+            )
+        ));
+        when(alertDashboardService.dashboardVisiblePlannedClosureIds()).thenReturn(Set.of("ttc-route-closure-visible"));
+        when(arrivalService.arrivalsFor(any(), any())).thenReturn(List.of(
+            ArrivalPrediction.scheduled("line-1", "Northbound to Vaughan Metropolitan Centre", 4, OffsetDateTime.now(), "TTC scheduled service")
+        ));
+
+        StationResponses.StationDetailResponse response = stationService.stationDetail("cedarvale");
+
+        assertThat(response.impacts()).extracting(StationResponses.StationImpactResponse::id)
+            .containsExactly("ttc-route-closure-visible");
+        assertThat(response.arrivalContext().scheduleMayBeDisrupted()).isTrue();
+        assertThat(response.arrivalContext().reason())
+            .isEqualTo("There will be no subway service between St George and Sheppard West stations, starting at 12");
     }
 
     @Test

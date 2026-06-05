@@ -97,6 +97,7 @@ export function groupStationArrivals(
       ...group,
       arrivals: group.arrivals
         .toSorted(compareArrivals)
+        .filter(uniqueArrival)
         .slice(0, maxArrivalsPerDirection),
     }))
     .toSorted((a, b) => {
@@ -198,6 +199,22 @@ function compareArrivals(a: StationArrival, b: StationArrival): number {
   const timeB = arrivalSortTime(b);
   if (timeA !== timeB) return timeA - timeB;
   return a.direction.localeCompare(b.direction);
+}
+
+function uniqueArrival(arrival: StationArrival, index: number, arrivals: StationArrival[]): boolean {
+  return arrivals.findIndex((candidate) => arrivalIdentity(candidate) === arrivalIdentity(arrival)) === index;
+}
+
+function arrivalIdentity(arrival: StationArrival): string {
+  return [
+    arrival.lineId,
+    arrival.direction,
+    arrival.predictedAt ?? "",
+    arrival.minutes ?? "",
+    arrival.label,
+    arrival.source,
+    arrival.status,
+  ].join("|");
 }
 
 function arrivalSortTime(arrival: StationArrival): number {

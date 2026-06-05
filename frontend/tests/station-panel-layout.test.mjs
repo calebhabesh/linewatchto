@@ -29,6 +29,13 @@ describe("station detail panel layout", () => {
     assert.match(panelSource, /arrivalContext\.scheduleMayBeDisrupted/);
     assert.match(panelSource, /href=\{`#station-impact-\$\{impact\.id\}`\}/);
     assert.match(panelSource, /Jump to station impact:/);
+    assert.match(panelSource, /station-impact-jump-actions/);
+    assert.doesNotMatch(panelSource, /View impacts/);
+    assert.match(panelSource, /station-impact-jump-button/);
+    assert.match(panelSource, /station-impact-jump-button-label/);
+    assert.match(panelSource, />Press</);
+    assert.match(globalCss, /\.station-impact-jump-button/);
+    assert.match(globalCss, /\.station-impact-jump-button-label/);
     assert.match(panelSource, /groupStationArrivals/);
     assert.match(panelSource, /stationId:\s*station\.id/);
     assert.match(panelSource, /data-arrival-group/);
@@ -36,6 +43,15 @@ describe("station detail panel layout", () => {
     assert.match(panelSource, /formatArrivalDisclaimer/);
     assert.match(panelSource, /formatArrivalTileLabel/);
     assert.match(panelSource, /formatArrivalClockTime/);
+  });
+
+  it("separates transfer-station arrival groups only when the transit line changes", () => {
+    assert.match(panelSource, /station-arrival-line-divider/);
+    assert.match(panelSource, /data-arrival-line-divider/);
+    assert.match(panelSource, /arrivalGroups\[groupIndex - 1\]\?\.lineId !== group\.lineId/);
+    assert.match(globalCss, /\.station-arrival-line-divider\s*\{[^}]*height:\s*3px;/s);
+    assert.match(globalCss, /\.station-arrival-line-divider\s*\{[^}]*linear-gradient/s);
+    assert.doesNotMatch(panelSource, /border-t.*data-arrival-group/);
   });
 
   it("keeps line and platform details in the header and orders sections by rider priority", () => {
@@ -59,8 +75,8 @@ describe("station detail panel layout", () => {
     assert.ok(closeButtonEndIndex < accessibilityChipsIndex);
     assert.ok(accessibilityChipsIndex < headerDetailsIndex);
     assert.ok(headerDetailsIndex < arrivalsIndex);
-    assert.ok(arrivalsIndex < accessibilityIndex);
-    assert.ok(accessibilityIndex < impactsIndex);
+    assert.ok(arrivalsIndex < impactsIndex);
+    assert.ok(impactsIndex < accessibilityIndex);
     assert.match(panelSource, /data-station-header-line-details[\s\S]*grid-cols-\[minmax\(0,1fr\)_auto\]/);
     assert.match(panelSource, /className="min-w-0 flex-1"/);
   });

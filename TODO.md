@@ -7,16 +7,16 @@
 - [ ] Info Widget for guide on how to use/visualize web app, maybe fully integrated and static on the site like the cardinal direction
 - [ ] Auth for resume project fullness
 - [ ] Accounts can save stops that they frequent and routes they frequent
-- [ ] When the magnifying and centering buttons go over the map overlay give a high contrast background so they can be seen and clicked if needed
 - [x] Revamp, delay ui overlay, and station alert overlay (maybe like a probing effect, heart monitor pulse)
 - [x] Search Stations functionality
 - [ ] consider different color for delays so that we have different color for each alert type
 - [x] sync card and actual section flashing/pulse when pressed
-- [ ] If i move around after click ui overlay/station stop dragging my attention back
+- [ ] Ui overlays still randomly dissappear very very rarely on the site (reason: unknown)
 - [ ] hard to click actual segments, may fat finger into a station
-- [ ] station submenu flicker when switching from station to station
+- [ ] make the site keyboard friendly
 
 ## Future Additions
+- [ ] Station impacts tie to the arrivals subsection in the station submenu 
 - [ ] Surface connections for busses available at stations
 - [ ] TTC will potentially add gtfs rt for subway in Q4 2026, we will add functionality for subway times when this arrives
 - [ ] Look for different 3d/dynamic backgrounds (path drawing tubes, like a train)

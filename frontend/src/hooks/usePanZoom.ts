@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef, useEffect, type PointerEvent, type WheelEvent } from "react";
+import { currentDevicePixelRatio, snapTransformToDevicePixels, type PanZoomTransform } from "./panZoomMath";
 
 export function usePanZoom() {
   const [transform, setTransform] = useState({ x: 0, y: 0, scale: 1 });
@@ -13,10 +14,30 @@ export function usePanZoom() {
   const dragRafRef = useRef<number | null>(null);
   const lastMoveEvent = useRef<{ clientX: number, clientY: number } | null>(null);
 
-  const commitTransform = useCallback((next: { x: number; y: number; scale: number }) => {
-    transformRef.current = next;
-    setTransform(next);
+  const snapTransform = useCallback((next: PanZoomTransform) => {
+    return snapTransformToDevicePixels(next, currentDevicePixelRatio());
   }, []);
+
+  const commitTransform = useCallback((next: PanZoomTransform) => {
+    const snapped = snapTransform(next);
+    transformRef.current = snapped;
+    setTransform(snapped);
+  }, [snapTransform]);
+
+  const commitTransformRef = useCallback((next: PanZoomTransform) => {
+    const snapped = snapTransform(next);
+    transformRef.current = snapped;
+    if (mapRef.current) {
+      mapRef.current.style.transform = `translate(${snapped.x}px, ${snapped.y}px) scale(${snapped.scale})`;
+    }
+    return snapped;
+  }, [snapTransform]);
+
+  const snappedTransformFrom = useCallback((next: PanZoomTransform) => {
+    const snapped = snapTransform(next);
+    transformRef.current = snapped;
+    return snapped;
+  }, [snapTransform]);
 
   const cancelAnimation = useCallback(() => {
     if (animTimeoutRef.current) {
@@ -87,21 +108,21 @@ export function usePanZoom() {
                 
                 // If it was default scale (1.0) and uninitialized fit (1.0), center it cleanly
                 if (prevTransform.scale === 1 && prevFit === 1) {
-                  const next = {
+                  const next = snapTransformToDevicePixels({
                     x: width / 2 - (mapWidth / 2) * targetAbsolute,
                     y: height / 2 - (mapHeight * 0.435) * targetAbsolute,
                     scale: targetAbsolute
-                  };
+                  }, currentDevicePixelRatio());
                   transformRef.current = next;
                   return next;
                 }
 
                 const ratio = targetAbsolute / prevTransform.scale;
-                const next = {
+                const next = snapTransformToDevicePixels({
                   x: prevTransform.x * ratio,
                   y: prevTransform.y * ratio,
                   scale: targetAbsolute
-                };
+                }, currentDevicePixelRatio());
                 transformRef.current = next;
                 return next;
               });
@@ -163,18 +184,14 @@ export function usePanZoom() {
         const { clientX, clientY } = lastMoveEvent.current;
         const newX = clientX - startPos.current.x;
         const newY = clientY - startPos.current.y;
-        transformRef.current.x = newX;
-        transformRef.current.y = newY;
-        if (mapRef.current) {
-          mapRef.current.style.transform = `translate(${newX}px, ${newY}px) scale(${transformRef.current.scale})`;
-        }
+        commitTransformRef({ ...transformRef.current, x: newX, y: newY });
         lastMoveEvent.current = null;
       }
       setIsDragging(false);
       setTransform({ ...transformRef.current });
       e.currentTarget.releasePointerCapture(e.pointerId);
     }
-  }, [isDragging]);
+  }, [commitTransformRef, isDragging]);
 
   const handleWheel = useCallback((e: WheelEvent<HTMLDivElement>) => {
     if (!containerRef.current) return;
@@ -197,11 +214,9 @@ export function usePanZoom() {
       const newX = mouseX - (mouseX - prev.x) * scaleRatio;
       const newY = mouseY - (mouseY - prev.y) * scaleRatio;
 
-      const next = { x: newX, y: newY, scale: newScale };
-      transformRef.current = next;
-      return next;
+      return snappedTransformFrom({ x: newX, y: newY, scale: newScale });
     });
-  }, [fitScale]);
+  }, [fitScale, snappedTransformFrom]);
 
   const recenter = useCallback(() => {
     if (!containerRef.current) return;
@@ -233,11 +248,9 @@ export function usePanZoom() {
       const scaleRatio = newScale / prev.scale;
       const newX = centerX - (centerX - prev.x) * scaleRatio;
       const newY = centerY - (centerY - prev.y) * scaleRatio;
-      const next = { x: newX, y: newY, scale: newScale };
-      transformRef.current = next;
-      return next;
+      return snappedTransformFrom({ x: newX, y: newY, scale: newScale });
     });
-  }, [fitScale]);
+  }, [fitScale, snappedTransformFrom]);
 
   const zoomOut = useCallback(() => {
     if (!containerRef.current) return;
@@ -251,11 +264,9 @@ export function usePanZoom() {
       const scaleRatio = newScale / prev.scale;
       const newX = centerX - (centerX - prev.x) * scaleRatio;
       const newY = centerY - (centerY - prev.y) * scaleRatio;
-      const next = { x: newX, y: newY, scale: newScale };
-      transformRef.current = next;
-      return next;
+      return snappedTransformFrom({ x: newX, y: newY, scale: newScale });
     });
-  }, [fitScale]);
+  }, [fitScale, snappedTransformFrom]);
 
   const zoomToScale = useCallback((relativeScale: number) => {
     if (!containerRef.current) return;
@@ -269,11 +280,9 @@ export function usePanZoom() {
       const scaleRatio = clampedScale / prev.scale;
       const newX = centerX - (centerX - prev.x) * scaleRatio;
       const newY = centerY - (centerY - prev.y) * scaleRatio;
-      const next = { x: newX, y: newY, scale: clampedScale };
-      transformRef.current = next;
-      return next;
+      return snappedTransformFrom({ x: newX, y: newY, scale: clampedScale });
     });
-  }, [fitScale]);
+  }, [fitScale, snappedTransformFrom]);
 
   const zoomToPoint = useCallback((mapX: number, mapY: number, targetRelativeScale = 1.5) => {
     if (!containerRef.current) return;

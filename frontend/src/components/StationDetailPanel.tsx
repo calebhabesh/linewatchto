@@ -1,6 +1,7 @@
 "use client";
 
 
+import { Fragment } from "react";
 import { AlertTriangle, Calendar, Check, ChevronDown, Clock3, Construction, X } from "lucide-react";
 import Image from "next/image";
 import { formatRelativeImpactTime } from "../app/impact-time";
@@ -382,10 +383,10 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
                   {station.arrivalsSource}
                 </p>
                 {arrivalsDisrupted && station.arrivalContext && (
-                  <div className="mt-2 flex items-center justify-between gap-3 rounded-md border border-slate-300 bg-slate-200/70 p-2 text-xs font-semibold text-slate-700 dark:border-white/10 dark:bg-white/10 dark:text-slate-200">
+                  <div className="mt-2 flex flex-wrap items-center justify-between gap-2 rounded-md border border-slate-300 bg-slate-200/70 p-2 text-xs font-semibold text-slate-700 dark:border-white/10 dark:bg-white/10 dark:text-slate-200">
                     <span>Schedule May Be Disrupted</span>
                     {station.impacts.length > 0 && (
-                      <div className="flex shrink-0 items-center gap-1.5">
+                      <div className="station-impact-jump-actions">
                         {station.impacts.map((impact) => {
                           const target = getStationImpactDetailsTarget(
                             impact,
@@ -402,12 +403,13 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
                               href={`#station-impact-${impact.id}`}
                               aria-label={`Jump to station impact: ${targetLabel} - ${impact.title}`}
                               title={`Jump to ${targetLabel}: ${impact.title}`}
-                              className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-slate-300 bg-white text-slate-700 transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-500/30 dark:border-white/10 dark:bg-[#12151c] dark:text-slate-200 dark:hover:bg-white/10"
+                              className="station-impact-jump-button"
                             >
                               <StationImpactDetailsIcon
                                 kind={target?.selection.kind ?? stationImpactKind(impact)}
                                 tone={target?.tone}
                               />
+                              <span className="station-impact-jump-button-label">Press</span>
                             </a>
                           );
                         })}
@@ -416,61 +418,70 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
                   </div>
                 )}
                 <div className="mt-3 flex flex-col gap-3">
-                  {arrivalGroups.map((group) => {
+                  {arrivalGroups.map((group, groupIndex) => {
                     const lineBadgeColor = group.line?.color ?? "#cbd5e1";
+                    const showLineDivider = groupIndex > 0 && arrivalGroups[groupIndex - 1]?.lineId !== group.lineId;
 
                     return (
-                      <div
-                        key={group.key}
-                        data-arrival-group={group.key}
-                        className="rounded-md border border-black/10 bg-white/80 p-3 text-sm shadow-sm dark:border-white/10 dark:bg-[#12151c]/80"
-                      >
-                        <div className="flex min-w-0 items-center gap-3">
-                          <span
-                            className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-black"
-                            style={{ backgroundColor: lineBadgeColor, color: lineBadgeTextColor(group.lineId) }}
-                            title={group.line ? `Line ${group.lineNumber} ${group.line.name}` : `Line ${group.lineNumber}`}
-                            aria-label={group.line ? `Line ${group.lineNumber} ${group.line.name}` : `Line ${group.lineNumber}`}
-                          >
-                            {group.lineNumber}
-                          </span>
-                          <strong className="min-w-0 break-words font-black text-slate-900 dark:text-white">
-                            {group.directionLabel}
-                          </strong>
-                        </div>
-                        <div className="mt-3 grid grid-cols-3 gap-2">
-                          {group.arrivals.map((arrival, index) => {
-                            const due = isArrivalDue(arrival);
-                            const clockTime = formatArrivalClockTime(arrival.predictedAt);
-                            const arrivalTileClassName = [
-                              "flex min-h-[66px] flex-col items-center justify-center rounded-md border px-2 py-2 text-center transition-colors",
-                              due
-                                ? "border-red-400/80 bg-red-900/85 text-red-50 shadow-[0_0_0_1px_rgba(248,113,113,0.25)]"
-                                : "border-black/10 bg-slate-950/[0.03] text-slate-900 dark:border-white/10 dark:bg-[#0f1117] dark:text-white",
-                            ].join(" ");
+                      <Fragment key={group.key}>
+                        {showLineDivider && (
+                          <div
+                            aria-hidden="true"
+                            className="station-arrival-line-divider"
+                            data-arrival-line-divider
+                          />
+                        )}
+                        <div
+                          data-arrival-group={group.key}
+                          className="rounded-md border border-black/10 bg-white/80 p-3 text-sm shadow-sm dark:border-white/10 dark:bg-[#12151c]/80"
+                        >
+                          <div className="flex min-w-0 items-center gap-3">
+                            <span
+                              className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-black"
+                              style={{ backgroundColor: lineBadgeColor, color: lineBadgeTextColor(group.lineId) }}
+                              title={group.line ? `Line ${group.lineNumber} ${group.line.name}` : `Line ${group.lineNumber}`}
+                              aria-label={group.line ? `Line ${group.lineNumber} ${group.line.name}` : `Line ${group.lineNumber}`}
+                            >
+                              {group.lineNumber}
+                            </span>
+                            <strong className="min-w-0 break-words font-black text-slate-900 dark:text-white">
+                              {group.directionLabel}
+                            </strong>
+                          </div>
+                          <div className="mt-3 grid grid-cols-3 gap-2">
+                            {group.arrivals.map((arrival, index) => {
+                              const due = isArrivalDue(arrival);
+                              const clockTime = formatArrivalClockTime(arrival.predictedAt);
+                              const arrivalTileClassName = [
+                                "flex min-h-[66px] flex-col items-center justify-center rounded-md border px-2 py-2 text-center transition-colors",
+                                due
+                                  ? "border-red-400/80 bg-red-900/85 text-red-50 shadow-[0_0_0_1px_rgba(248,113,113,0.25)]"
+                                  : "border-black/10 bg-slate-950/[0.03] text-slate-900 dark:border-white/10 dark:bg-[#0f1117] dark:text-white",
+                              ].join(" ");
 
-                            return (
-                              <div
-                                key={`${arrival.lineId}-${arrival.direction}-${arrival.predictedAt ?? index}`}
-                                data-arrival-due={due ? "true" : "false"}
-                                className={arrivalTileClassName}
-                              >
-                                <strong className="text-lg font-black leading-none">
-                                  {formatArrivalTileLabel(arrival)}
-                                </strong>
-                                {clockTime && (
-                                  <span className={due
-                                    ? "mt-1 text-xs font-semibold text-red-100/80"
-                                    : "mt-1 text-xs font-semibold text-slate-500 dark:text-slate-400"}
-                                  >
-                                    {clockTime}
-                                  </span>
-                                )}
-                              </div>
-                            );
-                          })}
+                              return (
+                                <div
+                                  key={`${arrival.lineId}-${arrival.direction}-${arrival.predictedAt ?? arrival.label}-${index}`}
+                                  data-arrival-due={due ? "true" : "false"}
+                                  className={arrivalTileClassName}
+                                >
+                                  <strong className="text-lg font-black leading-none">
+                                    {formatArrivalTileLabel(arrival)}
+                                  </strong>
+                                  {clockTime && (
+                                    <span className={due
+                                      ? "mt-1 text-xs font-semibold text-red-100/80"
+                                      : "mt-1 text-xs font-semibold text-slate-500 dark:text-slate-400"}
+                                    >
+                                      {clockTime}
+                                    </span>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
                         </div>
-                      </div>
+                      </Fragment>
                     );
                   })}
                 </div>
@@ -480,11 +491,71 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
                   </p>
                 )}
                 <p className="mt-2 text-[11px] text-slate-500">{arrivalDisclaimer}</p>
-              </section>
-            );
-          })()}
+	              </section>
+	            );
+	          })()}
 
-          <details data-station-section="accessibility" className="station-accessibility-details rounded-lg border border-black/10 bg-slate-50 p-3 dark:border-white/10 dark:bg-white/5">
+	          <section data-station-section="station-impacts" className="rounded-lg border border-black/10 bg-slate-50 p-3 dark:border-white/10 dark:bg-white/5">
+	            <h3 className="flex items-center gap-2 text-sm font-black">
+	              <AlertTriangle size={16} />
+	              Station Impacts
+	            </h3>
+	            {station.impacts.length === 0 ? (
+	              <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">No active impacts for this station.</p>
+	            ) : (
+	              <div className="mt-2 flex flex-col gap-2">
+	                {station.impacts.map((impact) => {
+	                  const detailsTarget = getStationImpactDetailsTarget(
+	                    impact,
+	                    activeAlerts,
+	                    delays,
+	                    reducedSpeedZones,
+	                    plannedClosures
+	                  );
+	                  const impactTone = detailsTarget?.tone ?? fallbackStationImpactTone(impact);
+
+	                  return (
+	                    <div
+	                      key={impact.id}
+	                      id={`station-impact-${impact.id}`}
+	                      className={stationImpactCardClassName(impactTone)}
+	                    >
+	                      <div className="flex flex-col gap-2">
+	                        {detailsTarget && (
+	                          <span
+	                            data-station-impact-classification={detailsTarget.label}
+	                            className="w-fit rounded-full border border-current/20 bg-white/60 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-slate-600 dark:bg-black/20 dark:text-slate-300"
+	                          >
+	                            {detailsTarget.label}
+	                          </span>
+	                        )}
+	                        <strong className={stationImpactTitleClassName(impactTone)}>{impact.title}</strong>
+	                        <p className="mt-1 text-slate-600 dark:text-slate-300">{impact.summary}</p>
+	                        <p className="mt-1 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+	                          {impact.source} / {impact.updatedAt
+	                            ? formatRelativeImpactTime(impact.updatedAt)
+	                            : impact.updatedAgo}
+	                        </p>
+	                      </div>
+	                      {detailsTarget && onSelectImpact && (
+	                        <button
+	                          type="button"
+	                          onClick={() => onSelectImpact(detailsTarget.selection)}
+	                          aria-label={`Open ${detailsTarget.label} details`}
+	                          className="mt-1 self-start inline-flex min-h-9 w-fit max-w-full items-center justify-center gap-2 rounded-md border border-slate-200 bg-white/80 px-3 py-1.5 text-xs font-bold text-slate-700 shadow-sm transition-all hover:bg-white hover:text-slate-900 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-500/30 active:scale-95 dark:border-white/10 dark:bg-[#12151c]/80 dark:text-slate-300 dark:hover:bg-[#12151c] dark:hover:text-white"
+	                        >
+	                          <StationImpactDetailsIcon kind={detailsTarget.selection.kind} tone={detailsTarget.tone} />
+	                          <span className="truncate">View Details</span>
+	                        </button>
+	                      )}
+	                    </div>
+	                  );
+	                })}
+	              </div>
+	            )}
+	          </section>
+
+	          <details data-station-section="accessibility" className="station-accessibility-details rounded-lg border border-black/10 bg-slate-50 p-3 dark:border-white/10 dark:bg-white/5">
             <summary className="station-accessibility-summary flex cursor-pointer list-none items-center gap-2.5 text-lg font-black">
               <span className="flex min-w-0 items-center gap-2.5">
                 <Image
@@ -599,66 +670,7 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
             )}
           </details>
 
-          <section data-station-section="station-impacts" className="rounded-lg border border-black/10 bg-slate-50 p-3 dark:border-white/10 dark:bg-white/5">
-            <h3 className="flex items-center gap-2 text-sm font-black">
-              <AlertTriangle size={16} />
-              Station Impacts
-            </h3>
-            {station.impacts.length === 0 ? (
-              <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">No active impacts for this station.</p>
-            ) : (
-              <div className="mt-2 flex flex-col gap-2">
-                {station.impacts.map((impact) => {
-                  const detailsTarget = getStationImpactDetailsTarget(
-                    impact,
-                    activeAlerts,
-                    delays,
-                    reducedSpeedZones,
-                    plannedClosures
-                  );
-                  const impactTone = detailsTarget?.tone ?? fallbackStationImpactTone(impact);
-
-                  return (
-                    <div
-                      key={impact.id}
-                      id={`station-impact-${impact.id}`}
-                      className={stationImpactCardClassName(impactTone)}
-                    >
-                      <div className="flex flex-col gap-2">
-                        {detailsTarget && (
-                          <span
-                            data-station-impact-classification={detailsTarget.label}
-                            className="w-fit rounded-full border border-current/20 bg-white/60 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-slate-600 dark:bg-black/20 dark:text-slate-300"
-                          >
-                            {detailsTarget.label}
-                          </span>
-                        )}
-                        <strong className={stationImpactTitleClassName(impactTone)}>{impact.title}</strong>
-                        <p className="mt-1 text-slate-600 dark:text-slate-300">{impact.summary}</p>
-                        <p className="mt-1 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-                          {impact.source} / {impact.updatedAt
-                            ? formatRelativeImpactTime(impact.updatedAt)
-                            : impact.updatedAgo}
-                        </p>
-                      </div>
-                      {detailsTarget && onSelectImpact && (
-                        <button
-                          type="button"
-                          onClick={() => onSelectImpact(detailsTarget.selection)}
-                          aria-label={`Open ${detailsTarget.label} details`}
-                          className="mt-1 self-start inline-flex min-h-9 w-fit max-w-full items-center justify-center gap-2 rounded-md border border-slate-200 bg-white/80 px-3 py-1.5 text-xs font-bold text-slate-700 shadow-sm transition-all hover:bg-white hover:text-slate-900 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-500/30 active:scale-95 dark:border-white/10 dark:bg-[#12151c]/80 dark:text-slate-300 dark:hover:bg-[#12151c] dark:hover:text-white"
-                        >
-                          <StationImpactDetailsIcon kind={detailsTarget.selection.kind} tone={detailsTarget.tone} />
-                          <span className="truncate">View Details</span>
-                        </button>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </section>
-        </div>
+	        </div>
       )}
         </div>
       </div>

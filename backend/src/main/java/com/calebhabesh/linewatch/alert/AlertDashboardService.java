@@ -6,16 +6,19 @@ import com.calebhabesh.linewatch.station.TransitLineEntity;
 import com.calebhabesh.linewatch.ingestion.IngestionFreshness;
 import com.calebhabesh.linewatch.ingestion.TtcAlertStore;
 import java.time.Clock;
+import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
 import org.springframework.stereotype.Service;
 
@@ -31,6 +34,7 @@ public class AlertDashboardService {
     private static final ZoneId TORONTO_ZONE = ZoneId.of("America/Toronto");
     private static final DateTimeFormatter WINDOW_FORMATTER =
         DateTimeFormatter.ofPattern("EEE h:mm a", Locale.ENGLISH);
+    private static final Duration MAX_SINGLE_CLOSURE_WINDOW = Duration.ofHours(18);
 
     private final AlertRepository alertRepository;
     private final LineSegmentRepository lineSegmentRepository;
@@ -122,6 +126,18 @@ public class AlertDashboardService {
         return plannedClosureDtos(segments).stream()
             .filter(closure -> !closure.activeNow() || isScheduledClosureParent(closure))
             .toList();
+    }
+
+    public Set<String> dashboardVisiblePlannedClosureIds() {
+        if (!ingestionFreshness.isDashboardFresh()) {
+            return Set.of();
+        }
+        List<LineSegmentEntity> segments = lineSegmentRepository.findAllByOrderBySortOrderAsc();
+        Set<String> ids = new LinkedHashSet<>();
+        for (PlannedClosureDto closure : plannedClosureDtos(segments)) {
+            ids.add(closure.id());
+        }
+        return ids;
     }
 
     private List<PlannedClosureDto> plannedClosureDtos(List<LineSegmentEntity> segments) {
@@ -285,15 +301,26 @@ public class AlertDashboardService {
 
     private WindowState windowState(AlertEntity alert, List<AlertActivePeriodRepository.AlertPeriod> periods) {
         OffsetDateTime now = OffsetDateTime.now(clock);
-        List<AlertActivePeriodRepository.AlertPeriod> usablePeriods = periods == null || periods.isEmpty()
-            ? List.of(new AlertActivePeriodRepository.AlertPeriod(
+        boolean hasStoredPeriods = periods != null && !periods.isEmpty();
+        boolean parentOnlyRecurringWindow = hasStoredPeriods
+            && periods.size() == 1
+            && isParentPeriod(periods.getFirst())
+            && isRecurringClosureParentWindow(alert);
+        boolean recurringParentWindow = (!hasStoredPeriods || parentOnlyRecurringWindow)
+            && isRecurringClosureParentWindow(alert);
+        boolean hasUsablePeriods = hasStoredPeriods && !parentOnlyRecurringWindow;
+        List<AlertActivePeriodRepository.AlertPeriod> usablePeriods = hasUsablePeriods
+            ? periods
+            : recurringParentWindow
+                ? List.of()
+                : List.of(new AlertActivePeriodRepository.AlertPeriod(
                 alert.getId(),
                 "parent",
                 alert.getActivePeriodStart(),
                 alert.getActivePeriodEnd(),
                 0
-            ))
-            : periods;
+            ));
+        boolean nightly = isNightly(usablePeriods) || recurringParentWindow;
 
         Optional<AlertActivePeriodRepository.AlertPeriod> active = usablePeriods.stream()
             .filter(period -> startsAtOrBefore(period.startsAt(), now))
@@ -302,7 +329,7 @@ public class AlertDashboardService {
 
         if (active.isPresent()) {
             AlertActivePeriodRepository.AlertPeriod period = active.orElseThrow();
-            return new WindowState(true, "active-now", isNightly(usablePeriods),
+            return new WindowState(true, "active-now", nightly,
                 period.startsAt(), period.endsAt(), window(period.startsAt(), period.endsAt()),
                 null, null, null);
         }
@@ -316,13 +343,39 @@ public class AlertDashboardService {
 
         if (next.isPresent()) {
             AlertActivePeriodRepository.AlertPeriod period = next.orElseThrow();
-            return new WindowState(false, "upcoming", isNightly(usablePeriods),
+            return new WindowState(false, "upcoming", nightly,
                 null, null, null,
                 period.startsAt(), period.endsAt(), window(period.startsAt(), period.endsAt()));
         }
 
-        return new WindowState(false, "unknown", isNightly(usablePeriods),
+        return new WindowState(false, "unknown", nightly,
             null, null, null, null, null, null);
+    }
+
+    private boolean isParentPeriod(AlertActivePeriodRepository.AlertPeriod period) {
+        return "parent".equalsIgnoreCase(period.sourcePeriodId());
+    }
+
+    private boolean isRecurringClosureParentWindow(AlertEntity alert) {
+        OffsetDateTime startsAt = alert.getActivePeriodStart();
+        OffsetDateTime endsAt = alert.getActivePeriodEnd();
+        if (startsAt == null || endsAt == null) {
+            return false;
+        }
+        if (Duration.between(startsAt, endsAt).compareTo(MAX_SINGLE_CLOSURE_WINDOW) <= 0) {
+            return false;
+        }
+        String text = String.join(" ",
+            nullToEmpty(alert.getTitle()),
+            nullToEmpty(alert.getDescription()),
+            nullToEmpty(alert.getEffectDescription()),
+            nullToEmpty(alert.getCause()),
+            nullToEmpty(alert.getCauseDescription()),
+            nullToEmpty(alert.getRawPayload())
+        ).toLowerCase(Locale.ROOT);
+        return text.contains("nightly")
+            || text.contains("closure windows")
+            || text.contains("early access");
     }
 
     private record WindowState(
@@ -727,6 +780,10 @@ public class AlertDashboardService {
 
     private boolean isBlank(String value) {
         return value == null || value.isBlank();
+    }
+
+    private String nullToEmpty(String value) {
+        return value == null ? "" : value;
     }
 
     public record ActiveAlertDto(

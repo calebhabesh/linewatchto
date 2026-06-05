@@ -1,11 +1,14 @@
 package com.calebhabesh.linewatch.station;
 
+import com.calebhabesh.linewatch.alert.AlertDashboardService;
 import com.calebhabesh.linewatch.arrival.ArrivalPrediction;
 import com.calebhabesh.linewatch.arrival.ArrivalService;
 import com.calebhabesh.linewatch.ingestion.IngestionFreshness;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
@@ -35,6 +38,7 @@ public class StationService {
     private final StationLiveReadRepository liveReadRepository;
     private final IngestionFreshness ingestionFreshness;
     private final ArrivalService arrivalService;
+    private final AlertDashboardService alertDashboardService;
 
     public StationService(
         StationRepository stationRepository,
@@ -44,7 +48,8 @@ public class StationService {
         StationImpactRepository impactRepository,
         StationLiveReadRepository liveReadRepository,
         IngestionFreshness ingestionFreshness,
-        ArrivalService arrivalService
+        ArrivalService arrivalService,
+        AlertDashboardService alertDashboardService
     ) {
         this.stationRepository = stationRepository;
         this.transitLineRepository = transitLineRepository;
@@ -54,6 +59,7 @@ public class StationService {
         this.liveReadRepository = liveReadRepository;
         this.ingestionFreshness = ingestionFreshness;
         this.arrivalService = arrivalService;
+        this.alertDashboardService = alertDashboardService;
     }
 
     public StationResponses.StationListResponse stationSummaries() {
@@ -131,10 +137,7 @@ public class StationService {
                 ));
 
         List<StationResponses.StationImpactResponse> impacts = dashboardFresh
-            ? liveReadRepository.findActiveAlertsByStationId(id)
-                .stream()
-                .map(this::toImpactResponse)
-                .toList()
+            ? toLiveImpactResponses(id)
             : impactRepository.findByStationIdOrderBySortOrderAsc(id)
                 .stream()
                 .map(this::toImpactResponse)
@@ -288,6 +291,52 @@ public class StationService {
             alert.updatedAt(),
             "TTC Live Alerts"
         );
+    }
+
+    private List<StationResponses.StationImpactResponse> toLiveImpactResponses(String stationId) {
+        List<StationLiveReadRepository.LinkedAlert> alerts = liveReadRepository.findActiveAlertsByStationId(stationId);
+        Set<String> dashboardVisiblePlannedClosureIds = alerts.stream().anyMatch(this::isPlannedClosure)
+            ? alertDashboardService.dashboardVisiblePlannedClosureIds()
+            : Set.of();
+        return toDistinctLiveImpactResponses(alerts, dashboardVisiblePlannedClosureIds);
+    }
+
+    private List<StationResponses.StationImpactResponse> toDistinctLiveImpactResponses(
+        List<StationLiveReadRepository.LinkedAlert> alerts,
+        Set<String> dashboardVisiblePlannedClosureIds
+    ) {
+        Map<String, StationResponses.StationImpactResponse> impactsByIdentity = new LinkedHashMap<>();
+        for (StationLiveReadRepository.LinkedAlert alert : alerts) {
+            if (isPlannedClosure(alert) && !dashboardVisiblePlannedClosureIds.contains(alert.id())) {
+                continue;
+            }
+            StationResponses.StationImpactResponse response = toImpactResponse(alert);
+            impactsByIdentity.putIfAbsent(stationImpactIdentity(response), response);
+        }
+        return List.copyOf(impactsByIdentity.values());
+    }
+
+    private boolean isPlannedClosure(StationLiveReadRepository.LinkedAlert alert) {
+        return "planned-closure".equals(alert.type());
+    }
+
+    private String stationImpactIdentity(StationResponses.StationImpactResponse impact) {
+        if (impact.type().equals("planned-closure")) {
+            String title = normalizedImpactText(impact.title());
+            String fallbackSummary = normalizedImpactText(impact.summary());
+            return "planned-closure|"
+                + normalizedImpactText(impact.severity())
+                + "|"
+                + (title.isBlank() ? fallbackSummary : title);
+        }
+        return "source-alert|" + impact.id();
+    }
+
+    private String normalizedImpactText(String value) {
+        if (value == null) {
+            return "";
+        }
+        return value.trim().replaceAll("\\s+", " ").toLowerCase(Locale.ROOT);
     }
 
     private Map<String, String> statuses(Set<String> stationIds, String status) {

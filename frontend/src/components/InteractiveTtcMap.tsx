@@ -570,6 +570,8 @@ export function InteractiveTtcMap({
           <span className="text-[10px] font-black uppercase tracking-widest group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">Center</span>
         </button>
 
+        <div className="map-control-divider" aria-hidden="true" />
+
         <button
           onClick={zoomOut}
           className="map-control-button group"
@@ -645,7 +647,7 @@ export function InteractiveTtcMap({
                   : isAnimating
                     ? "transform 0.8s cubic-bezier(0.25, 1, 0.5, 1)"
                     : "transform 0.1s ease-out",
-              willChange: "transform",
+              willChange: isDragging || isAnimating ? "transform" : "auto",
             }}
           >
             <style>

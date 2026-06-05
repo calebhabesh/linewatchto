@@ -90,6 +90,16 @@ describe("station arrival grouping", () => {
     assert.deepEqual(groups[0].arrivals.map((arrival) => arrival.label), ["1 min", "2 min", "6 min"]);
   });
 
+  it("deduplicates identical schedule arrivals before rendering transfer station tiles", () => {
+    const groups = groupStationArrivals([
+      { lineId: "line-2", direction: "Bloor-Danforth Line towards Kennedy Station", minutes: 3, predictedAt: "2026-06-05T14:14:10-04:00", label: "3 min", source: "TTC scheduled service", status: "scheduled" },
+      { lineId: "line-2", direction: "Bloor-Danforth Line towards Kennedy Station", minutes: 3, predictedAt: "2026-06-05T14:14:10-04:00", label: "3 min", source: "TTC scheduled service", status: "scheduled" },
+      { lineId: "line-2", direction: "Bloor-Danforth Line towards Kennedy Station", minutes: 7, predictedAt: "2026-06-05T14:18:10-04:00", label: "7 min", source: "TTC scheduled service", status: "scheduled" },
+    ], [line2]);
+
+    assert.deepEqual(groups[0].arrivals.map((arrival) => arrival.label), ["3 min", "7 min"]);
+  });
+
   it("does not infer a cardinal direction from a paired platform label", () => {
     const groups = groupStationArrivals([
       {

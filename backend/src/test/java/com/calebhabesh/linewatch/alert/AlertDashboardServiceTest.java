@@ -573,6 +573,72 @@ class AlertDashboardServiceTest {
         assertThat(service.activePlannedClosures())
             .extracting(AlertDashboardService.PlannedClosureDto::id)
             .containsExactly("planned-closure-current-window");
+        assertThat(service.dashboardVisiblePlannedClosureIds())
+            .containsExactly("planned-closure-parent", "planned-closure-current-window", "planned-closure-upcoming");
+    }
+
+    @Test
+    void recurringClosureDoesNotUseMultiDayParentWindowAsActiveMapImpact() {
+        Clock fridayAfternoon = Clock.fixed(
+            Instant.parse("2026-06-05T17:37:00Z"),
+            ZoneOffset.UTC
+        );
+        AlertDashboardService serviceAtFridayAfternoon = new AlertDashboardService(
+            alertRepository,
+            lineSegmentRepository,
+            new AlertSegmentMatcher(),
+            new ReducedSpeedZoneProjector(new AlertSegmentMatcher(), new com.calebhabesh.linewatch.ingestion.AlertDirectionParser()),
+            ingestionFreshness,
+            alertActivePeriodRepository,
+            ttcAlertStore,
+            fridayAfternoon
+        );
+        when(ingestionFreshness.isDashboardFresh()).thenReturn(true);
+        AlertEntity closure = withLine(alert(
+            "ttc-route-synthetic-planned-line-1",
+            "planned-closure",
+            "planned",
+            "There will be no subway service between St George and Sheppard West stations, starting 11:59 p.m., nightly Monday, June 1 to Thursday, June 4, and 12:30 a.m. Friday, June 5, due to planned track work.",
+            "Shuttle buses will operate.",
+            "st-george",
+            "sheppard-west",
+            OffsetDateTime.parse("2026-06-01T09:35:11Z"),
+            "Will Operate"
+        ), "line-1", "1");
+        ReflectionTestUtils.setField(
+            closure,
+            "activePeriodStart",
+            OffsetDateTime.parse("2026-06-01T09:35:11Z")
+        );
+        ReflectionTestUtils.setField(
+            closure,
+            "activePeriodEnd",
+            OffsetDateTime.parse("2026-06-06T04:30:00Z")
+        );
+        ReflectionTestUtils.setField(closure, "effectDescription", "Subway Closure - Early Access");
+        ReflectionTestUtils.setField(closure, "causeDescription", "CLOSURE - Planned Track Work");
+
+        when(alertRepository.findByActiveTrueAndType("active-alert"))
+            .thenReturn(List.of());
+        when(alertRepository.findByActiveTrueAndType("planned-closure"))
+            .thenReturn(List.of(closure));
+        AlertActivePeriodRepository.AlertPeriod parentPeriod = new AlertActivePeriodRepository.AlertPeriod(
+            "ttc-route-synthetic-planned-line-1",
+            "parent",
+            OffsetDateTime.parse("2026-06-01T09:35:11Z"),
+            OffsetDateTime.parse("2026-06-06T04:30:00Z"),
+            0
+        );
+        when(alertActivePeriodRepository.findByAlertIds(List.of("ttc-route-synthetic-planned-line-1")))
+            .thenReturn(Map.of("ttc-route-synthetic-planned-line-1", List.of(parentPeriod)));
+        when(lineSegmentRepository.findAllByOrderBySortOrderAsc()).thenReturn(List.of(
+            segment("line-1-st-george-sheppard-west", "line-1", "st-george", "sheppard-west", 10)
+        ));
+
+        assertThat(serviceAtFridayAfternoon.activeAlerts()).isEmpty();
+        assertThat(serviceAtFridayAfternoon.activePlannedClosures()).isEmpty();
+        assertThat(serviceAtFridayAfternoon.activeSegmentImpacts())
+            .doesNotContainKey("line-1-st-george-sheppard-west");
     }
 
     @Test
