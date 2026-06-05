@@ -6,11 +6,26 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 
 @ConfigurationProperties("linewatch.arrivals")
 public class ArrivalProperties {
+    public enum ProviderMode {
+        SCHEDULED,
+        DEMO,
+        UNAVAILABLE,
+        LIVE
+    }
+
     private boolean enabled = false;
-    private URI url = URI.create("https://bustime.ttc.ca/gtfsrt");
+    private URI url = URI.create("https://bustime.ttc.ca/gtfsrt"); // keeping for backwards compatibility or live mode usage
     private Duration connectTimeout = Duration.ofSeconds(3);
     private Duration readTimeout = Duration.ofSeconds(5);
     private Duration maxAge = Duration.ofMinutes(5);
+
+    private ProviderMode provider = ProviderMode.SCHEDULED;
+    private String scheduledSourceName = "TTC scheduled service";
+    private URI scheduledSourceUrl = URI.create("https://ckan0.cf.opendata.inter.prod-toronto.ca/en/dataset/merged-gtfs-ttc-routes-and-schedules");
+    private Duration scheduleHorizon = Duration.ofMinutes(90);
+    private int maxArrivalsPerLine = 4;
+    private boolean gtfsImportEnabled = false;
+    private String gtfsZipPath = "";
 
     public boolean isEnabled() {
         return enabled;
@@ -50,5 +65,61 @@ public class ArrivalProperties {
 
     public void setMaxAge(Duration maxAge) {
         this.maxAge = maxAge;
+    }
+
+    public ProviderMode getProvider() {
+        return provider;
+    }
+
+    public void setProvider(ProviderMode provider) {
+        this.provider = provider;
+    }
+
+    public String getScheduledSourceName() {
+        return scheduledSourceName;
+    }
+
+    public void setScheduledSourceName(String scheduledSourceName) {
+        this.scheduledSourceName = scheduledSourceName;
+    }
+
+    public URI getScheduledSourceUrl() {
+        return scheduledSourceUrl;
+    }
+
+    public void setScheduledSourceUrl(URI scheduledSourceUrl) {
+        this.scheduledSourceUrl = scheduledSourceUrl;
+    }
+
+    public Duration getScheduleHorizon() {
+        return scheduleHorizon;
+    }
+
+    public void setScheduleHorizon(Duration scheduleHorizon) {
+        this.scheduleHorizon = scheduleHorizon;
+    }
+
+    public int getMaxArrivalsPerLine() {
+        return maxArrivalsPerLine;
+    }
+
+    public void setMaxArrivalsPerLine(int maxArrivalsPerLine) {
+        this.maxArrivalsPerLine = maxArrivalsPerLine;
+    }
+
+    public boolean isGtfsImportEnabled() {
+        return gtfsImportEnabled;
+    }
+
+    public void setGtfsImportEnabled(boolean gtfsImportEnabled) {
+        this.gtfsImportEnabled = gtfsImportEnabled;
+    }
+
+    public String getGtfsZipPath() {
+        return gtfsZipPath;
+    }
+
+    public void setGtfsZipPath(String gtfsZipPath) {
+        this.gtfsZipPath = gtfsZipPath;
     }
 }
