@@ -2,6 +2,8 @@ package com.calebhabesh.linewatch.commute;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.calebhabesh.linewatch.station.LineSegmentEntity;
@@ -101,6 +103,30 @@ class CommutePathServiceTest {
         assertThat(path.estimatedTravelSeconds()).isZero();
         assertThat(path.weightSource()).isEqualTo("unavailable");
         assertThat(path.summary()).isEqualTo("Route path unavailable");
+    }
+
+    @Test
+    void reusesWeightedGraphSnapshotAcrossMultiplePathRequestsForSameScheduleSignature() {
+        when(lineSegmentRepository.findAllByOrderBySortOrderAsc()).thenReturn(List.of(
+            segment("line-1-a-b", "line-1", "a", "b", 101),
+            segment("line-1-b-c", "line-1", "b", "c", 102)
+        ));
+        when(travelTimeRepository.activeScheduleSignature()).thenReturn("active-import-42");
+        when(travelTimeRepository.findActiveScheduledSegmentWeights()).thenReturn(Map.of(
+            "line-1-a-b", weight("line-1-a-b", 90),
+            "line-1-b-c", weight("line-1-b-c", 110)
+        ));
+
+        CommuteResponses.PathResponse outbound = service.path("a", "c");
+        CommuteResponses.PathResponse inbound = service.path("c", "a");
+
+        assertThat(outbound.status()).isEqualTo("available");
+        assertThat(outbound.estimatedTravelSeconds()).isEqualTo(200);
+        assertThat(inbound.status()).isEqualTo("available");
+        assertThat(inbound.estimatedTravelSeconds()).isEqualTo(200);
+        verify(travelTimeRepository, times(2)).activeScheduleSignature();
+        verify(lineSegmentRepository, times(1)).findAllByOrderBySortOrderAsc();
+        verify(travelTimeRepository, times(1)).findActiveScheduledSegmentWeights();
     }
 
     private CommuteTravelTimeRepository.SegmentTravelTime weight(String segmentId, int seconds) {

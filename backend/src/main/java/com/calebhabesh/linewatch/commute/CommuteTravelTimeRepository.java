@@ -16,6 +16,23 @@ public class CommuteTravelTimeRepository {
         this.jdbc = jdbc;
     }
 
+    public String activeScheduleSignature() {
+        List<String> signatures = jdbc.query("""
+            select coalesce(
+                (
+                    select id::text || ':' || extract(epoch from imported_at)::bigint::text
+                    from gtfs_schedule_imports
+                    where active = true
+                    order by imported_at desc
+                    limit 1
+                ),
+                'no-active-gtfs-import'
+            ) as signature
+            """, Map.of(), (rs, rowNum) -> rs.getString("signature"));
+
+        return signatures.isEmpty() ? "no-active-gtfs-import" : signatures.getFirst();
+    }
+
     public Map<String, SegmentTravelTime> findActiveScheduledSegmentWeights() {
         List<SegmentTravelTime> rows = jdbc.query("""
             with active_import as (

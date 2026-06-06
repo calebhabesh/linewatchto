@@ -21,6 +21,7 @@ public class CommutePathService {
 
     private final LineSegmentRepository lineSegmentRepository;
     private final CommuteTravelTimeRepository travelTimeRepository;
+    private volatile GraphSnapshot graphSnapshot;
 
     public CommutePathService(
         LineSegmentRepository lineSegmentRepository,
@@ -37,12 +38,7 @@ public class CommutePathService {
             return unavailable(origin, destination);
         }
 
-        List<LineSegmentEntity> segments = lineSegmentRepository.findAllByOrderBySortOrderAsc().stream()
-            .sorted(Comparator.comparingInt(LineSegmentEntity::getSortOrder).thenComparing(LineSegmentEntity::getId))
-            .toList();
-        Map<String, CommuteTravelTimeRepository.SegmentTravelTime> weights =
-            travelTimeRepository.findActiveScheduledSegmentWeights();
-        Map<String, List<Edge>> graph = graph(segments, weights);
+        Map<String, List<Edge>> graph = graphSnapshot().graph();
 
         PriorityQueue<PathState> queue = new PriorityQueue<>(Comparator
             .comparingInt(PathState::totalSeconds)
@@ -116,6 +112,37 @@ public class CommutePathService {
 
         return unavailable(origin, destination);
     }
+
+    private GraphSnapshot graphSnapshot() {
+        String signature = normalizedScheduleSignature();
+        GraphSnapshot current = graphSnapshot;
+        if (current != null && current.signature().equals(signature)) {
+            return current;
+        }
+
+        synchronized (this) {
+            current = graphSnapshot;
+            if (current != null && current.signature().equals(signature)) {
+                return current;
+            }
+
+            List<LineSegmentEntity> segments = lineSegmentRepository.findAllByOrderBySortOrderAsc().stream()
+                .sorted(Comparator.comparingInt(LineSegmentEntity::getSortOrder).thenComparing(LineSegmentEntity::getId))
+                .toList();
+            Map<String, CommuteTravelTimeRepository.SegmentTravelTime> weights =
+                travelTimeRepository.findActiveScheduledSegmentWeights();
+            GraphSnapshot next = new GraphSnapshot(signature, graph(segments, weights));
+            graphSnapshot = next;
+            return next;
+        }
+    }
+
+    private String normalizedScheduleSignature() {
+        String signature = travelTimeRepository.activeScheduleSignature();
+        return signature == null || signature.isBlank() ? "no-active-gtfs-import" : signature;
+    }
+
+    private record GraphSnapshot(String signature, Map<String, List<Edge>> graph) {}
 
     private Map<String, List<Edge>> graph(
         List<LineSegmentEntity> segments,
