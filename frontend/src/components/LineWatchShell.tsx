@@ -33,16 +33,20 @@ import { StationSearchPanel } from "./StationSearchPanel";
 import { OpeningDisclaimer } from "./OpeningDisclaimer";
 import { SubwayClosingSoonChip } from "./SubwayClosingSoonChip";
 import {
+  AccountRequestError,
+  confirmPasswordReset,
   commutePathPreviewFromCommute,
   getCurrentAccount,
   loginAccount,
   loginDemoAccount,
   logoutAccount,
   registerAccount,
+  requestPasswordReset,
   type AccountState,
   type AccountSavedCommute,
   type AccountCommutePathPreview,
 } from "../app/account-data";
+import { normalizeAccountEmail, validateAccountCredentials } from "../app/account-validation";
 
 
 type ActiveView = "map" | "menu" | "search" | "alerts" | "delays" | "reduced-speed-zones" | "closures" | "commutes" | "analytics";
@@ -117,9 +121,13 @@ export function LineWatchShell({ initialData }: { initialData: DashboardData }) 
     authenticated: false,
     user: null,
   });
-  const [accountDialogMode, setAccountDialogMode] = useState<"login" | "register" | null>(null);
+  const [accountDialogMode, setAccountDialogMode] = useState<"login" | "register" | "forgot-password" | "reset-password" | null>(null);
   const [accountEmail, setAccountEmail] = useState("");
   const [accountPassword, setAccountPassword] = useState("");
+  const [accountPasswordConfirmation, setAccountPasswordConfirmation] = useState("");
+  const [accountResetToken, setAccountResetToken] = useState("");
+  const [accountResetMessage, setAccountResetMessage] = useState<string | null>(null);
+  const [accountDevResetToken, setAccountDevResetToken] = useState<string | null>(null);
   const [accountDisplayName, setAccountDisplayName] = useState("");
   const [accountError, setAccountError] = useState<string | null>(null);
   const [accountBusy, setAccountBusy] = useState(false);
@@ -141,8 +149,40 @@ export function LineWatchShell({ initialData }: { initialData: DashboardData }) 
   const resetAccountForm = () => {
     setAccountEmail("");
     setAccountPassword("");
+    setAccountPasswordConfirmation("");
     setAccountDisplayName("");
+    setAccountResetToken("");
+    setAccountResetMessage(null);
+    setAccountDevResetToken(null);
     setAccountError(null);
+  };
+
+  const accountDialogTitle = () => {
+    switch (accountDialogMode) {
+      case "register":
+        return "Create account";
+      case "forgot-password":
+        return "Reset password";
+      case "reset-password":
+        return "Choose new password";
+      case "login":
+      default:
+        return "Sign in";
+    }
+  };
+
+  const accountDialogAriaLabel = () => {
+    switch (accountDialogMode) {
+      case "register":
+        return "Create LineWatch TO account";
+      case "forgot-password":
+        return "Reset LineWatch TO password";
+      case "reset-password":
+        return "Choose a new LineWatch TO password";
+      case "login":
+      default:
+        return "Sign in to LineWatch TO";
+    }
   };
 
   const refreshAccountState = async () => {
@@ -153,17 +193,114 @@ export function LineWatchShell({ initialData }: { initialData: DashboardData }) 
 
   const handleSubmitAccount = async () => {
     if (!accountDialogMode) return;
+
+    if (accountDialogMode === "forgot-password") {
+      handleRequestPasswordReset();
+      return;
+    }
+    if (accountDialogMode === "reset-password") {
+      handleConfirmPasswordReset();
+      return;
+    }
+
+    const validation = validateAccountCredentials({
+      mode: accountDialogMode,
+      email: accountEmail,
+      password: accountPassword,
+    });
+
+    if (!validation.valid) {
+      setAccountError(validation.message);
+      return;
+    }
+
     setAccountBusy(true);
     setAccountError(null);
     try {
+      const normalizedEmail = validation.normalizedEmail;
       const response = accountDialogMode === "login"
-        ? await loginAccount({ email: accountEmail, password: accountPassword })
-        : await registerAccount({ email: accountEmail, password: accountPassword, displayName: accountDisplayName });
+        ? await loginAccount({ email: normalizedEmail, password: accountPassword })
+        : await registerAccount({
+            email: normalizedEmail,
+            password: accountPassword,
+            displayName: accountDisplayName.trim(),
+          });
       setAccountState({ source: "backend", authenticated: response.authenticated, user: response.user });
       setAccountDialogMode(null);
       resetAccountForm();
-    } catch {
-      setAccountError(accountDialogMode === "login" ? "Incorrect Email or Password." : "Could not create that account.");
+    } catch (error) {
+      if (error instanceof AccountRequestError) {
+        setAccountError(error.message);
+      } else {
+        setAccountError(accountDialogMode === "login" ? "Incorrect Email or Password." : "Could not create that account.");
+      }
+    } finally {
+      setAccountBusy(false);
+    }
+  };
+
+  const handleRequestPasswordReset = async () => {
+    const normalizedEmail = normalizeAccountEmail(accountEmail);
+    if (!normalizedEmail || !normalizedEmail.includes("@")) {
+      setAccountError("Enter a valid email address.");
+      return;
+    }
+
+    setAccountBusy(true);
+    setAccountError(null);
+    setAccountResetMessage(null);
+    setAccountDevResetToken(null);
+    try {
+      const response = await requestPasswordReset({ email: normalizedEmail });
+      setAccountEmail(normalizedEmail);
+      setAccountResetMessage(response.message);
+      setAccountDevResetToken(response.devResetToken ?? null);
+    } catch (error) {
+      if (error instanceof AccountRequestError) {
+        setAccountError(error.message);
+      } else {
+        setAccountError("Password reset is unavailable.");
+      }
+    } finally {
+      setAccountBusy(false);
+    }
+  };
+
+  const handleConfirmPasswordReset = async () => {
+    if (!accountResetToken.trim()) {
+      setAccountError("Enter the reset token.");
+      return;
+    }
+    const validation = validateAccountCredentials({
+      mode: "register",
+      email: accountEmail || "reset@example.com",
+      password: accountPassword,
+    });
+    if (!validation.valid && validation.message !== "Enter a valid email address.") {
+      setAccountError(validation.message);
+      return;
+    }
+    if (accountPassword !== accountPasswordConfirmation) {
+      setAccountError("Passwords do not match.");
+      return;
+    }
+
+    setAccountBusy(true);
+    setAccountError(null);
+    try {
+      const response = await confirmPasswordReset({
+        token: accountResetToken.trim(),
+        password: accountPassword,
+      });
+      setAccountState({ source: "backend", authenticated: response.authenticated, user: response.user });
+      setAccountDialogMode(null);
+      resetAccountForm();
+    } catch (error) {
+      if (error instanceof AccountRequestError) {
+        setAccountError(error.message);
+      } else {
+        setAccountError("Could not reset that password.");
+      }
     } finally {
       setAccountBusy(false);
     }
@@ -888,7 +1025,7 @@ export function LineWatchShell({ initialData }: { initialData: DashboardData }) 
         <div className="subway-closed-peek-chip" role="status" aria-live="polite">
           <span>Subway closed. Resumes {subwayOperatingState.nextResumeLabel?.endsWith(".") ? subwayOperatingState.nextResumeLabel : `${subwayOperatingState.nextResumeLabel}.`}</span>
           <button type="button" onClick={() => setClosedMapPeek(false)}>
-            Closed screen
+            Closed Screen
           </button>
         </div>
       ) : null}
@@ -922,13 +1059,13 @@ export function LineWatchShell({ initialData }: { initialData: DashboardData }) 
             className="account-dialog"
             role="dialog"
             aria-modal="true"
-            aria-label={accountDialogMode === "login" ? "Sign in to LineWatch TO" : "Create LineWatch TO account"}
+            aria-label={accountDialogAriaLabel()}
             onMouseDown={(event) => event.stopPropagation()}
           >
             <div className="flex items-start justify-between gap-3 border-b border-black/10 p-3 dark:border-white/10">
               <div>
                 <h2 className="text-base font-black text-slate-900 dark:text-white">
-                  {accountDialogMode === "login" ? "Sign in" : "Create account"}
+                  {accountDialogTitle()}
                 </h2>
                 <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">Save commute preferences across demos.</p>
               </div>
@@ -936,26 +1073,177 @@ export function LineWatchShell({ initialData }: { initialData: DashboardData }) 
                 <X size={18} />
               </button>
             </div>
-            <div className="flex flex-col gap-3 p-3">
-              {accountDialogMode === "register" ? (
-                <label className="account-field">
-                  <span>Display name</span>
-                  <input value={accountDisplayName} onChange={(event) => setAccountDisplayName(event.target.value)} />
-                </label>
-              ) : null}
-              <label className="account-field">
-                <span>Email</span>
-                <input type="email" value={accountEmail} onChange={(event) => setAccountEmail(event.target.value)} />
-              </label>
-              <label className="account-field">
-                <span>Password</span>
-                <input type="password" value={accountPassword} onChange={(event) => setAccountPassword(event.target.value)} />
-              </label>
-              {accountError ? <p className="text-xs font-semibold text-red-600 dark:text-red-300">{accountError}</p> : null}
-              <button type="button" className="account-primary-button" onClick={handleSubmitAccount} disabled={accountBusy}>
-                {accountDialogMode === "login" ? "Sign in" : "Create account"}
-              </button>
-            </div>
+            <form
+              className="flex flex-col gap-3 p-3"
+              onSubmit={(event) => {
+                event.preventDefault();
+                handleSubmitAccount();
+              }}
+            >
+              {accountDialogMode === "forgot-password" ? (
+                <>
+                  <label className="account-field">
+                    <span>Email</span>
+                    <input
+                      type="email"
+                      value={accountEmail}
+                      autoComplete="email"
+                      onBlur={() => setAccountEmail((current) => normalizeAccountEmail(current))}
+                      onChange={(event) => setAccountEmail(event.target.value)}
+                    />
+                  </label>
+                  {accountResetMessage ? (
+                    <div className="account-reset-status" role="status">
+                      <p>{accountResetMessage}</p>
+                      {accountDevResetToken ? (
+                        <button
+                          type="button"
+                          className="account-link-button"
+                          onClick={() => {
+                            setAccountResetToken(accountDevResetToken);
+                            setAccountPassword("");
+                            setAccountPasswordConfirmation("");
+                            setAccountError(null);
+                            setAccountDialogMode("reset-password");
+                          }}
+                        >
+                          Open reset form
+                        </button>
+                      ) : null}
+                    </div>
+                  ) : null}
+                  {accountError ? (
+                    <p id="account-error-live" role="alert" className="text-xs font-semibold text-red-600 dark:text-red-300">
+                      {accountError}
+                    </p>
+                  ) : null}
+                  <button type="button" className="account-primary-button" onClick={handleRequestPasswordReset} disabled={accountBusy}>
+                    Send reset link
+                  </button>
+                  <button
+                    type="button"
+                    className="account-link-button"
+                    onClick={() => {
+                      setAccountError(null);
+                      setAccountResetMessage(null);
+                      setAccountDevResetToken(null);
+                      setAccountDialogMode("login");
+                    }}
+                  >
+                    Back to sign in
+                  </button>
+                </>
+              ) : accountDialogMode === "reset-password" ? (
+                <>
+                  <label className="account-field">
+                    <span>Reset token</span>
+                    <input
+                      value={accountResetToken}
+                      autoComplete="one-time-code"
+                      onChange={(event) => setAccountResetToken(event.target.value)}
+                    />
+                  </label>
+                  <label className="account-field">
+                    <span>New password</span>
+                    <input
+                      type="password"
+                      value={accountPassword}
+                      autoComplete="new-password"
+                      aria-describedby="account-password-help"
+                      onChange={(event) => setAccountPassword(event.target.value)}
+                    />
+                  </label>
+                  <label className="account-field">
+                    <span>Confirm password</span>
+                    <input
+                      type="password"
+                      value={accountPasswordConfirmation}
+                      autoComplete="new-password"
+                      onChange={(event) => setAccountPasswordConfirmation(event.target.value)}
+                    />
+                  </label>
+                  <p id="account-password-help" className="text-[11px] leading-snug text-slate-500 dark:text-slate-400">
+                    Use at least 8 characters with a letter and a number, symbol, or space.
+                  </p>
+                  {accountError ? (
+                    <p id="account-error-live" role="alert" className="text-xs font-semibold text-red-600 dark:text-red-300">
+                      {accountError}
+                    </p>
+                  ) : null}
+                  <button type="button" className="account-primary-button" onClick={handleConfirmPasswordReset} disabled={accountBusy}>
+                    Reset password
+                  </button>
+                  <button
+                    type="button"
+                    className="account-link-button"
+                    onClick={() => {
+                      setAccountError(null);
+                      setAccountDialogMode("login");
+                    }}
+                  >
+                    Back to sign in
+                  </button>
+                </>
+              ) : (
+                <>
+                  {accountDialogMode === "register" ? (
+                    <label className="account-field">
+                      <span>Display name</span>
+                      <input value={accountDisplayName} onChange={(event) => setAccountDisplayName(event.target.value)} />
+                    </label>
+                  ) : null}
+                  <label className="account-field">
+                    <span>Email</span>
+                    <input
+                      type="email"
+                      value={accountEmail}
+                      autoComplete="email"
+                      aria-invalid={Boolean(accountError && accountDialogMode === "register")}
+                      onBlur={() => setAccountEmail((current) => normalizeAccountEmail(current))}
+                      onChange={(event) => setAccountEmail(event.target.value)}
+                    />
+                  </label>
+                  <label className="account-field">
+                    <span>Password</span>
+                    <input
+                      type="password"
+                      value={accountPassword}
+                      autoComplete={accountDialogMode === "login" ? "current-password" : "new-password"}
+                      aria-describedby={accountDialogMode === "register" ? "account-password-help" : undefined}
+                      aria-invalid={Boolean(accountError && accountDialogMode === "register")}
+                      onChange={(event) => setAccountPassword(event.target.value)}
+                    />
+                  </label>
+                  {accountDialogMode === "login" ? (
+                    <button
+                      type="button"
+                      className="account-link-button justify-self-start"
+                      onClick={() => {
+                        setAccountError(null);
+                        setAccountResetMessage(null);
+                        setAccountDevResetToken(null);
+                        setAccountDialogMode("forgot-password");
+                      }}
+                    >
+                      Forgot password?
+                    </button>
+                  ) : null}
+                  {accountDialogMode === "register" ? (
+                    <p id="account-password-help" className="text-[11px] leading-snug text-slate-500 dark:text-slate-400">
+                      Use at least 8 characters with a letter and a number, symbol, or space.
+                    </p>
+                  ) : null}
+                  {accountError ? (
+                    <p id="account-error-live" role="alert" className="text-xs font-semibold text-red-600 dark:text-red-300">
+                      {accountError}
+                    </p>
+                  ) : null}
+                  <button type="submit" className="account-primary-button" disabled={accountBusy}>
+                    {accountDialogMode === "login" ? "Sign in" : "Create account"}
+                  </button>
+                </>
+              )}
+            </form>
           </section>
         </div>
       ) : null}

@@ -61,4 +61,38 @@ describe("account UI source", () => {
     assert.match(globalCss, /\.commute-station-picker/);
     assert.match(globalCss, /\.commute-station-popover/);
   });
+
+  it("validates create-account input before sending registration requests", () => {
+    assert.match(shellSource, /validateAccountCredentials/);
+    assert.match(shellSource, /normalizeAccountEmail/);
+    assert.match(shellSource, /account-error-live/);
+    assert.match(shellSource, /autoComplete=\{accountDialogMode === "login" \? "current-password" : "new-password"\}/);
+    assert.match(shellSource, /aria-invalid=\{Boolean\(accountError && accountDialogMode === "register"\)\}/);
+    assert.match(shellSource, /Use at least 8 characters with a letter and a number, symbol, or space\./);
+    assert.match(shellSource, /error instanceof AccountRequestError/);
+  });
+
+  it("uses standard HTML form element with submit button for enter-key submission support", () => {
+    assert.match(shellSource, /<form/);
+    assert.match(shellSource, /onSubmit=\{/);
+    assert.match(shellSource, /event\.preventDefault\(\)/);
+    assert.match(shellSource, /handleSubmitAccount\(\)/);
+    assert.match(shellSource, /<button type="submit" className="account-primary-button"/);
+  });
+
+  it("renders forgot-password and reset-password states inside the sign-in dialog", () => {
+    assert.match(shellSource, /"forgot-password"/);
+    assert.match(shellSource, /"reset-password"/);
+    assert.match(shellSource, /Forgot password\?/);
+    assert.match(shellSource, /Send reset link/);
+    assert.match(shellSource, /Open reset form/);
+    assert.match(shellSource, /Reset password/);
+    assert.match(shellSource, /Back to sign in/);
+    assert.match(shellSource, /requestPasswordReset/);
+    assert.match(shellSource, /confirmPasswordReset/);
+    assert.match(shellSource, /accountResetToken/);
+    assert.match(shellSource, /accountPasswordConfirmation/);
+    assert.match(globalCss, /\.account-link-button/);
+    assert.match(globalCss, /\.account-reset-status/);
+  });
 });
