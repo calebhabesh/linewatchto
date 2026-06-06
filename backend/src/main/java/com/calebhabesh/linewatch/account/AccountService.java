@@ -22,13 +22,15 @@ public class AccountService {
     );
 
     private static final Duration PASSWORD_RESET_TTL = Duration.ofMinutes(30);
-    private static final String PASSWORD_RESET_MESSAGE = "If an account exists for that email, a password reset link is available.";
+    private static final String PASSWORD_RESET_MESSAGE = "If an account exists for that email, a password reset link has been sent.";
 
     private final AccountRepository accountRepository;
     private final UserSessionRepository sessionRepository;
     private final PasswordResetTokenRepository passwordResetTokenRepository;
     private final PasswordHasher passwordHasher;
     private final SessionTokenService tokenService;
+    private final PasswordResetEmailSender passwordResetEmailSender;
+    private final PasswordResetLinkFactory passwordResetLinkFactory;
     private final Clock clock;
     private final boolean passwordResetDevLinks;
 
@@ -39,9 +41,21 @@ public class AccountService {
         PasswordResetTokenRepository passwordResetTokenRepository,
         PasswordHasher passwordHasher,
         SessionTokenService tokenService,
+        PasswordResetEmailSender passwordResetEmailSender,
+        PasswordResetLinkFactory passwordResetLinkFactory,
         @org.springframework.beans.factory.annotation.Value("${linewatch.auth.password-reset.dev-links:false}") boolean passwordResetDevLinks
     ) {
-        this(accountRepository, sessionRepository, passwordResetTokenRepository, passwordHasher, tokenService, Clock.systemUTC(), passwordResetDevLinks);
+        this(
+            accountRepository,
+            sessionRepository,
+            passwordResetTokenRepository,
+            passwordHasher,
+            tokenService,
+            passwordResetEmailSender,
+            passwordResetLinkFactory,
+            Clock.systemUTC(),
+            passwordResetDevLinks
+        );
     }
 
     AccountService(
@@ -50,6 +64,8 @@ public class AccountService {
         PasswordResetTokenRepository passwordResetTokenRepository,
         PasswordHasher passwordHasher,
         SessionTokenService tokenService,
+        PasswordResetEmailSender passwordResetEmailSender,
+        PasswordResetLinkFactory passwordResetLinkFactory,
         Clock clock,
         boolean passwordResetDevLinks
     ) {
@@ -58,6 +74,8 @@ public class AccountService {
         this.passwordResetTokenRepository = passwordResetTokenRepository;
         this.passwordHasher = passwordHasher;
         this.tokenService = tokenService;
+        this.passwordResetEmailSender = passwordResetEmailSender;
+        this.passwordResetLinkFactory = passwordResetLinkFactory;
         this.clock = clock;
         this.passwordResetDevLinks = passwordResetDevLinks;
     }
@@ -224,6 +242,7 @@ public class AccountService {
                 passwordResetTokenRepository.deleteUnusedByAccountId(account.getId());
                 SessionTokenService.GeneratedSessionToken token = tokenService.generateToken();
                 Instant expiresAt = now.plus(PASSWORD_RESET_TTL);
+                String resetUrl = passwordResetLinkFactory.resetUrl(token.rawToken());
                 passwordResetTokenRepository.save(PasswordResetTokenEntity.create(
                     nextId("reset"),
                     account,
@@ -231,6 +250,7 @@ public class AccountService {
                     now,
                     expiresAt
                 ));
+                passwordResetEmailSender.sendPasswordResetEmail(account.getEmail(), resetUrl, expiresAt);
                 return new PasswordResetRequestResponse(
                     true,
                     PASSWORD_RESET_MESSAGE,

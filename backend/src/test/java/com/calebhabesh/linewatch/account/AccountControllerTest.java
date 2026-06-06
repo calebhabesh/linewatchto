@@ -60,7 +60,7 @@ class AccountControllerTest {
         AccountService.PasswordResetRequest request = new AccountService.PasswordResetRequest("rider@example.com");
         AccountService.PasswordResetRequestResponse serviceResponse = new AccountService.PasswordResetRequestResponse(
             true,
-            "If an account exists for that email, a password reset link is available.",
+            "If an account exists for that email, a password reset link has been sent.",
             "dev-token",
             Instant.parse("2026-06-05T15:00:00Z")
         );

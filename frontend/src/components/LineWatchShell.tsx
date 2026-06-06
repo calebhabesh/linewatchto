@@ -50,6 +50,7 @@ import { normalizeAccountEmail, validateAccountCredentials } from "../app/accoun
 
 
 type ActiveView = "map" | "menu" | "search" | "alerts" | "delays" | "reduced-speed-zones" | "closures" | "commutes" | "analytics";
+type AccountDialogMode = "login" | "register" | "forgot-password" | "reset-password";
 
 const DEFAULT_DASHBOARD_REFRESH_MS = 5_000;
 const MIN_DASHBOARD_REFRESH_MS = 2_000;
@@ -64,7 +65,13 @@ function dashboardRefreshIntervalMs() {
   return Math.max(configured, MIN_DASHBOARD_REFRESH_MS);
 }
 
-export function LineWatchShell({ initialData }: { initialData: DashboardData }) {
+export function LineWatchShell({
+  initialData,
+  initialPasswordResetToken = "",
+}: {
+  initialData: DashboardData;
+  initialPasswordResetToken?: string;
+}) {
   const router = useRouter();
   const [displayData, setDisplayData] = useState(initialData);
 
@@ -121,11 +128,11 @@ export function LineWatchShell({ initialData }: { initialData: DashboardData }) 
     authenticated: false,
     user: null,
   });
-  const [accountDialogMode, setAccountDialogMode] = useState<"login" | "register" | "forgot-password" | "reset-password" | null>(null);
+  const [accountDialogMode, setAccountDialogMode] = useState<AccountDialogMode | null>(initialPasswordResetToken.trim() ? "reset-password" : null);
   const [accountEmail, setAccountEmail] = useState("");
   const [accountPassword, setAccountPassword] = useState("");
   const [accountPasswordConfirmation, setAccountPasswordConfirmation] = useState("");
-  const [accountResetToken, setAccountResetToken] = useState("");
+  const [accountResetToken, setAccountResetToken] = useState(initialPasswordResetToken.trim());
   const [accountResetMessage, setAccountResetMessage] = useState<string | null>(null);
   const [accountDevResetToken, setAccountDevResetToken] = useState<string | null>(null);
   const [accountDisplayName, setAccountDisplayName] = useState("");
@@ -295,6 +302,7 @@ export function LineWatchShell({ initialData }: { initialData: DashboardData }) 
       setAccountState({ source: "backend", authenticated: response.authenticated, user: response.user });
       setAccountDialogMode(null);
       resetAccountForm();
+      router.replace("/");
     } catch (error) {
       if (error instanceof AccountRequestError) {
         setAccountError(error.message);
@@ -921,47 +929,51 @@ export function LineWatchShell({ initialData }: { initialData: DashboardData }) 
       {!showClosedScreen && (
       <>
       {/* Floating Submenus (Alerts, Closures, Commutes, Analytics) */}
-      <div className={`absolute top-[88px] sm:top-[104px] left-4 sm:left-6 z-30 w-[min(calc(100vw-32px),640px)] flex flex-col transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] ${activeView === "alerts" ? "opacity-100 translate-x-0 pointer-events-auto" : "opacity-0 -translate-x-8 pointer-events-none"}`}>
+      <div className={`absolute top-[88px] sm:top-[104px] left-4 sm:left-6 z-30 w-[min(calc(100vw-32px),680px)] flex flex-col transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] ${activeView === "alerts" ? "opacity-100 translate-x-0 pointer-events-auto" : "opacity-0 -translate-x-8 pointer-events-none"}`}>
          <div className="max-h-[85vh] overflow-y-auto pr-1 pb-4 flex flex-col gap-4">
            <ActiveAlertsPanel
              selection={selection}
              onSelectImpact={handleMapSelectImpact}
              onBack={() => { setActiveView("menu"); setSelection(null); }}
+             onClose={() => { setActiveView("map"); setSelection(null); }}
            />
          </div>
       </div>
 
-      <div className={`absolute top-[88px] sm:top-[104px] left-4 sm:left-6 z-30 w-[min(calc(100vw-32px),640px)] flex flex-col transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] ${activeView === "delays" ? "opacity-100 translate-x-0 pointer-events-auto" : "opacity-0 -translate-x-8 pointer-events-none"}`}>
+      <div className={`absolute top-[88px] sm:top-[104px] left-4 sm:left-6 z-30 w-[min(calc(100vw-32px),680px)] flex flex-col transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] ${activeView === "delays" ? "opacity-100 translate-x-0 pointer-events-auto" : "opacity-0 -translate-x-8 pointer-events-none"}`}>
          <div className="max-h-[85vh] overflow-y-auto pr-1 pb-4 flex flex-col gap-4">
            <DelaysPanel
              selection={selection}
              onSelectImpact={handleMapSelectImpact}
              onBack={() => { setActiveView("menu"); setSelection(null); }}
+             onClose={() => { setActiveView("map"); setSelection(null); }}
            />
          </div>
       </div>
 
-      <div className={`absolute top-[88px] sm:top-[104px] left-4 sm:left-6 z-30 w-[min(calc(100vw-32px),640px)] flex flex-col transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] ${activeView === "reduced-speed-zones" ? "opacity-100 translate-x-0 pointer-events-auto" : "opacity-0 -translate-x-8 pointer-events-none"}`}>
+      <div className={`absolute top-[88px] sm:top-[104px] left-4 sm:left-6 z-30 w-[min(calc(100vw-32px),680px)] flex flex-col transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] ${activeView === "reduced-speed-zones" ? "opacity-100 translate-x-0 pointer-events-auto" : "opacity-0 -translate-x-8 pointer-events-none"}`}>
          <div className="max-h-[85vh] overflow-y-auto pr-1 pb-4 flex flex-col gap-4">
            <ReducedSpeedZonesPanel
              selection={selection}
              onSelectImpact={handleMapSelectImpact}
              onBack={() => { setActiveView("menu"); setSelection(null); }}
+             onClose={() => { setActiveView("map"); setSelection(null); }}
            />
          </div>
       </div>
 
-      <div className={`absolute top-[88px] sm:top-[104px] left-4 sm:left-6 z-30 w-[min(calc(100vw-32px),640px)] flex flex-col transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] ${activeView === "closures" ? "opacity-100 translate-x-0 pointer-events-auto" : "opacity-0 -translate-x-8 pointer-events-none"}`}>
+      <div className={`absolute top-[88px] sm:top-[104px] left-4 sm:left-6 z-30 w-[min(calc(100vw-32px),680px)] flex flex-col transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] ${activeView === "closures" ? "opacity-100 translate-x-0 pointer-events-auto" : "opacity-0 -translate-x-8 pointer-events-none"}`}>
          <div className="max-h-[85vh] overflow-y-auto pr-1 pb-4 flex flex-col gap-4">
            <PlannedClosuresPanel
              selection={selection}
              onSelectImpact={handleMapSelectImpact}
              onBack={() => { setActiveView("menu"); setSelection(null); }}
+             onClose={() => { setActiveView("map"); setSelection(null); }}
            />
          </div>
       </div>
 
-      <div className={`absolute top-[88px] sm:top-[104px] left-4 sm:left-6 z-30 w-[min(calc(100vw-32px),640px)] flex flex-col transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] ${activeView === "commutes" ? "opacity-100 translate-x-0 pointer-events-auto" : "opacity-0 -translate-x-8 pointer-events-none"}`}>
+      <div className={`absolute top-[88px] sm:top-[104px] left-4 sm:left-6 z-30 w-[min(calc(100vw-32px),680px)] flex flex-col transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] ${activeView === "commutes" ? "opacity-100 translate-x-0 pointer-events-auto" : "opacity-0 -translate-x-8 pointer-events-none"}`}>
          <div className="max-h-[85vh] overflow-y-auto pr-1 pb-4 flex flex-col gap-4">
             <SavedCommutesPanel
               accountState={accountState}
@@ -972,15 +984,19 @@ export function LineWatchShell({ initialData }: { initialData: DashboardData }) 
               onViewPath={handleViewCommutePath}
               onClearViewedPath={handleClearCommutePathPreview}
               onBack={() => setActiveView("menu")}
+              onClose={() => { setActiveView("map"); setSelection(null); }}
               onRequestSignIn={() => setAccountDialogMode("login")}
               onRequestCreateAccount={() => setAccountDialogMode("register")}
             />
          </div>
       </div>
 
-      <div className={`absolute top-[88px] sm:top-[104px] left-4 sm:left-6 z-30 w-[min(calc(100vw-32px),640px)] flex flex-col transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] ${activeView === "analytics" ? "opacity-100 translate-x-0 pointer-events-auto" : "opacity-0 -translate-x-8 pointer-events-none"}`}>
+      <div className={`absolute top-[88px] sm:top-[104px] left-4 sm:left-6 z-30 w-[min(calc(100vw-32px),680px)] flex flex-col transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] ${activeView === "analytics" ? "opacity-100 translate-x-0 pointer-events-auto" : "opacity-0 -translate-x-8 pointer-events-none"}`}>
          <div className="max-h-[85vh] overflow-y-auto pr-1 pb-4 flex flex-col gap-4">
-           <ReliabilityPanel onBack={() => setActiveView("menu")} />
+            <ReliabilityPanel
+              onBack={() => setActiveView("menu")}
+              onClose={() => { setActiveView("map"); setSelection(null); }}
+            />
          </div>
       </div>
       </>
@@ -1096,19 +1112,22 @@ export function LineWatchShell({ initialData }: { initialData: DashboardData }) 
                     <div className="account-reset-status" role="status">
                       <p>{accountResetMessage}</p>
                       {accountDevResetToken ? (
-                        <button
-                          type="button"
-                          className="account-link-button"
-                          onClick={() => {
-                            setAccountResetToken(accountDevResetToken);
-                            setAccountPassword("");
-                            setAccountPasswordConfirmation("");
-                            setAccountError(null);
-                            setAccountDialogMode("reset-password");
-                          }}
-                        >
-                          Open reset form
-                        </button>
+                        <>
+                          <p className="account-reset-dev-note">Local dev mode: no email was sent. Use this generated token to test recovery.</p>
+                          <button
+                            type="button"
+                            className="account-link-button"
+                            onClick={() => {
+                              setAccountResetToken(accountDevResetToken);
+                              setAccountPassword("");
+                              setAccountPasswordConfirmation("");
+                              setAccountError(null);
+                              setAccountDialogMode("reset-password");
+                            }}
+                          >
+                            Open local reset form
+                          </button>
+                        </>
                       ) : null}
                     </div>
                   ) : null}
@@ -1135,14 +1154,18 @@ export function LineWatchShell({ initialData }: { initialData: DashboardData }) 
                 </>
               ) : accountDialogMode === "reset-password" ? (
                 <>
-                  <label className="account-field">
-                    <span>Reset token</span>
-                    <input
-                      value={accountResetToken}
-                      autoComplete="one-time-code"
-                      onChange={(event) => setAccountResetToken(event.target.value)}
-                    />
-                  </label>
+                  {accountResetToken.trim() ? (
+                    <p className="account-reset-hint">Enter a new password to finish recovery.</p>
+                  ) : (
+                    <label className="account-field">
+                      <span>Reset token</span>
+                      <input
+                        value={accountResetToken}
+                        autoComplete="one-time-code"
+                        onChange={(event) => setAccountResetToken(event.target.value)}
+                      />
+                    </label>
+                  )}
                   <label className="account-field">
                     <span>New password</span>
                     <input

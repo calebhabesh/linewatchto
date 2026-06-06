@@ -33,7 +33,6 @@ export type OverlappingImpactRef = {
 };
 
 function impactKindForActiveAlert(alert: ActiveAlert): ImpactKind {
-  if (alert.severity === "planned") return "planned-closure";
   if (alert.severity === "delay") return "delay";
   return "suspension";
 }

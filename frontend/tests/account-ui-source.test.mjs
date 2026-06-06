@@ -3,6 +3,9 @@ import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 
 const shellSource = readFileSync(new URL("../src/components/LineWatchShell.tsx", import.meta.url), "utf8");
+const homePageSource = readFileSync(new URL("../src/app/page.tsx", import.meta.url), "utf8");
+const resetPasswordPageSource = readFileSync(new URL("../src/app/reset-password/page.tsx", import.meta.url), "utf8");
+const dashboardDataSource = readFileSync(new URL("../src/app/dashboard-data.ts", import.meta.url), "utf8");
 const savedCommutesSource = readFileSync(new URL("../src/components/SavedCommutesPanel.tsx", import.meta.url), "utf8");
 const globalCss = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
 const savedCommutePickerSource = readFileSync(new URL("../src/components/SavedCommuteStationPicker.tsx", import.meta.url), "utf8");
@@ -85,7 +88,8 @@ describe("account UI source", () => {
     assert.match(shellSource, /"reset-password"/);
     assert.match(shellSource, /Forgot password\?/);
     assert.match(shellSource, /Send reset link/);
-    assert.match(shellSource, /Open reset form/);
+    assert.match(shellSource, /Open local reset form/);
+    assert.match(shellSource, /Local dev mode: no email was sent/);
     assert.match(shellSource, /Reset password/);
     assert.match(shellSource, /Back to sign in/);
     assert.match(shellSource, /requestPasswordReset/);
@@ -94,5 +98,18 @@ describe("account UI source", () => {
     assert.match(shellSource, /accountPasswordConfirmation/);
     assert.match(globalCss, /\.account-link-button/);
     assert.match(globalCss, /\.account-reset-status/);
+    assert.match(globalCss, /\.account-reset-dev-note/);
+    assert.match(globalCss, /\.account-reset-hint/);
+  });
+
+  it("supports emailed reset links through a reset-password route", () => {
+    assert.match(dashboardDataSource, /loadDashboardInitialData/);
+    assert.match(homePageSource, /loadDashboardInitialData/);
+    assert.match(resetPasswordPageSource, /searchParams/);
+    assert.match(resetPasswordPageSource, /initialPasswordResetToken/);
+    assert.match(resetPasswordPageSource, /decodeResetTokenParam/);
+    assert.match(shellSource, /initialPasswordResetToken/);
+    assert.match(shellSource, /accountDialogMode.*initialPasswordResetToken.*"reset-password"/s);
+    assert.match(shellSource, /accountResetToken.*initialPasswordResetToken/s);
   });
 });

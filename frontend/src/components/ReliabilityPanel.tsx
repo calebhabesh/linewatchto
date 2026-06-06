@@ -1,17 +1,18 @@
 "use client";
 
 import { useDashboardData } from "../app/DataContext";
-import { BarChart3, ShieldCheck, ChevronLeft } from "lucide-react";
+import { BarChart3, ShieldCheck, ChevronLeft, X } from "lucide-react";
 
 interface ReliabilityProps {
   onBack?: () => void;
+  onClose?: () => void;
 }
 
-export function ReliabilityPanel({ onBack }: ReliabilityProps = {}) {
+export function ReliabilityPanel({ onBack, onClose }: ReliabilityProps = {}) {
   const { reliabilitySummaries } = useDashboardData();
   return (
     <section className="analytics-panel min-w-0 border border-black/10 dark:border-white/10 rounded-lg shadow-xl" style={{ WebkitBackfaceVisibility: "hidden", backfaceVisibility: "hidden" }}>
-      <div className="panel-heading @container border-b border-black/10 dark:border-white/10 px-4 py-3">
+      <div className="panel-heading @container border-b border-black/10 dark:border-white/10 px-4 py-3 flex items-center justify-between gap-3 min-w-0">
         <div className="flex items-center gap-1">
           {onBack && (
             <button onClick={onBack} className="p-2 -ml-3 mr-1 hover:bg-black/10 dark:hover:bg-white/10 rounded-lg transition-colors cursor-pointer shrink-0">
@@ -23,6 +24,15 @@ export function ReliabilityPanel({ onBack }: ReliabilityProps = {}) {
             <span>Reliability Analytics (7-Day)</span>
           </h2>
         </div>
+        {onClose && (
+          <button
+            onClick={onClose}
+            className="p-3 sm:p-3.5 mr-1 hover:bg-black/10 dark:hover:bg-white/10 rounded-lg transition-colors cursor-pointer shrink-0 flex items-center justify-center"
+            aria-label="Close"
+          >
+            <X className="w-5 h-5 sm:w-6 sm:h-6 text-slate-700 dark:text-slate-300" />
+          </button>
+        )}
       </div>
       <div className="reliability-list min-w-0 p-3 flex flex-col gap-2">
         {reliabilitySummaries.map((item) => (

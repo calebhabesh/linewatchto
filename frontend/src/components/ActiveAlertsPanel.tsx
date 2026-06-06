@@ -2,7 +2,7 @@
 
 
 import { useDashboardData } from "../app/DataContext";
-import { AlertTriangle, Bus, ChevronLeft } from "lucide-react";
+import { AlertTriangle, Bus, ChevronLeft, X } from "lucide-react";
 import type { ActiveAlert, ImpactKind, ImpactSelection } from "../app/linewatch-data";
 import { useScrollSelectedImpactCard } from "../hooks/useScrollSelectedImpactCard";
 import { LineBadge, ImpactRouteHeader, MetadataGrid, CardSource, JumpToLocationIcon } from "./ImpactCardFields";
@@ -12,20 +12,21 @@ interface Props {
   selection: ImpactSelection;
   onSelectImpact: (selection: ImpactSelection) => void;
   onBack?: () => void;
+  onClose?: () => void;
 }
 
-function impactKindForAlert(alert: ActiveAlert): Extract<ImpactKind, "planned-closure" | "suspension"> {
-  return alert.severity === "planned" ? "planned-closure" : "suspension";
+function impactKindForAlert(alert: ActiveAlert): Extract<ImpactKind, "suspension" | "delay"> {
+  return alert.severity === "delay" ? "delay" : "suspension";
 }
 
 export function ActiveAlertsPanel({
   selection,
   onSelectImpact,
   onBack,
+  onClose,
 }: Props) {
   const { activeAlerts, reducedSpeedZones, delays, plannedClosures } = useDashboardData();
   useScrollSelectedImpactCard(selection, "suspension");
-  useScrollSelectedImpactCard(selection, "planned-closure");
 
   const handleAlertClick = (alert: ActiveAlert) => {
     const kind = impactKindForAlert(alert);
@@ -41,7 +42,7 @@ export function ActiveAlertsPanel({
       case "suspension":
         return "suspension-card-border";
       case "planned":
-        return "planned-closure-card-border";
+        return "suspension-card-border";
       case "delay":
         return "delay-card-border";
       default:
@@ -63,11 +64,22 @@ export function ActiveAlertsPanel({
             <span>Active Alerts</span>
           </h2>
         </div>
-        <div className="flex flex-col items-end gap-1 mt-0.5 shrink-0">
-          <span className="shrink-0 text-[9px] sm:text-xs bg-red-500/10 text-red-600 dark:text-red-400 px-1.5 sm:px-2 py-0.5 rounded-full font-bold">
-            {activeAlerts.length} {activeAlerts.length === 1 ? "Alert" : "Alerts"}
-          </span>
-          <CardSource source={activeAlerts[0]?.source || "TTC Live Alerts"} />
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+          <div className="flex flex-col items-end gap-1 mt-0.5 min-w-0">
+            <span className="shrink-0 text-[9px] sm:text-xs bg-red-500/10 text-red-600 dark:text-red-400 px-1.5 sm:px-2 py-0.5 rounded-full font-bold">
+              {activeAlerts.length} {activeAlerts.length === 1 ? "Alert" : "Alerts"}
+            </span>
+            <CardSource source={activeAlerts[0]?.source || "TTC Live Alerts"} />
+          </div>
+          {onClose && (
+            <button
+              onClick={onClose}
+              className="p-3 sm:p-3.5 mr-1 hover:bg-black/10 dark:hover:bg-white/10 rounded-lg transition-colors cursor-pointer shrink-0 flex items-center justify-center"
+              aria-label="Close"
+            >
+              <X className="w-5 h-5 sm:w-6 sm:h-6 text-slate-700 dark:text-slate-300" />
+            </button>
+          )}
         </div>
       </div>
       <div className="alert-stack min-w-0 p-3 flex flex-col gap-2">

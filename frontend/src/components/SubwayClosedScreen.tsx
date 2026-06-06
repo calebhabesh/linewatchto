@@ -33,7 +33,7 @@ export function SubwayClosedScreen({
         <div className="subway-closed-copy">
           <h1 id="subway-closed-title">Subway Closed</h1>
           <p>
-            The subway is currently closed. Live updates are paused,
+            Live updates are paused,
             but you can still view the map to check transit lines and station accessibility.
           </p>
         </div>

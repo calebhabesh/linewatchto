@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, X } from "lucide-react";
 import type { ImpactSelection } from "../app/linewatch-data";
 import { useDashboardData } from "../app/DataContext";
 import { DelayIcon } from "./DelayIcon";
@@ -12,9 +12,10 @@ interface Props {
   selection: ImpactSelection;
   onSelectImpact: (selection: ImpactSelection) => void;
   onBack?: () => void;
+  onClose?: () => void;
 }
 
-export function DelaysPanel({ selection, onSelectImpact, onBack }: Props) {
+export function DelaysPanel({ selection, onSelectImpact, onBack, onClose }: Props) {
   const { activeAlerts, delays, reducedSpeedZones, plannedClosures } = useDashboardData();
   useScrollSelectedImpactCard(selection, "delay");
 
@@ -40,11 +41,22 @@ export function DelaysPanel({ selection, onSelectImpact, onBack }: Props) {
             <span>Delays</span>
           </h2>
         </div>
-        <div className="flex flex-col items-end gap-1 mt-0.5 shrink-0">
-          <span className="delay-count-badge shrink-0 text-[9px] sm:text-xs px-1.5 sm:px-2 py-0.5 rounded-full font-bold">
-            {delays.length} {delays.length === 1 ? "Delay" : "Delays"}
-          </span>
-          <CardSource source={delays[0]?.source || "TTC Live Alerts"} />
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+          <div className="flex flex-col items-end gap-1 mt-0.5 min-w-0">
+            <span className="delay-count-badge shrink-0 text-[9px] sm:text-xs px-1.5 sm:px-2 py-0.5 rounded-full font-bold">
+              {delays.length} {delays.length === 1 ? "Delay" : "Delays"}
+            </span>
+            <CardSource source={delays[0]?.source || "TTC Live Alerts"} />
+          </div>
+          {onClose && (
+            <button
+              onClick={onClose}
+              className="p-3 sm:p-3.5 mr-1 hover:bg-black/10 dark:hover:bg-white/10 rounded-lg transition-colors cursor-pointer shrink-0 flex items-center justify-center"
+              aria-label="Close"
+            >
+              <X className="w-5 h-5 sm:w-6 sm:h-6 text-slate-700 dark:text-slate-300" />
+            </button>
+          )}
         </div>
       </div>
       <div className="alert-stack min-w-0 p-3 flex flex-col gap-2">

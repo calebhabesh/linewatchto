@@ -2,14 +2,14 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 
-const pageSource = readFileSync(new URL("../src/app/page.tsx", import.meta.url), "utf8");
+const dashboardDataSource = readFileSync(new URL("../src/app/dashboard-data.ts", import.meta.url), "utf8");
 const shellSource = readFileSync(new URL("../src/components/LineWatchShell.tsx", import.meta.url), "utf8");
 
 describe("dashboard server data binding", () => {
   it("trusts map API overlay metadata instead of rebuilding reduced speed zone impacts", () => {
-    assert.doesNotMatch(pageSource, /networkSegments = networkSegments\.map/);
-    assert.doesNotMatch(pageSource, /alertId:\s*alert\.id/);
-    assert.match(pageSource, /networkSegments:\s*useFallback \? fallbackSegments : mapData\.segments/);
+    assert.doesNotMatch(dashboardDataSource, /networkSegments = networkSegments\.map/);
+    assert.doesNotMatch(dashboardDataSource, /alertId:\s*alert\.id/);
+    assert.match(dashboardDataSource, /networkSegments:\s*useFallback \? fallbackSegments : mapData\.segments/);
   });
 
   it("refreshes open dashboards through the existing server data path", () => {
@@ -27,10 +27,9 @@ describe("dashboard server data binding", () => {
   });
 
   it("marks dashboard payloads as backend or fallback and lets the shell retain backend data", () => {
-    assert.match(pageSource, /dataSource:\s*useFallback\s*\?\s*"fallback"(?:\s+as\s+const)?\s*:\s*"backend"(?:\s+as\s+const)?/);
+    assert.match(dashboardDataSource, /dataSource:\s*useFallback\s*\?\s*"fallback"(?:\s+as\s+const)?\s*:\s*"backend"(?:\s+as\s+const)?/);
     assert.match(shellSource, /displayData/);
     assert.match(shellSource, /setDisplayData\(initialData\)/);
     assert.match(shellSource, /initialData\.dataSource === "backend"/);
   });
 });
-

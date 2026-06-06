@@ -3,7 +3,9 @@ package com.calebhabesh.linewatch.account;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -13,13 +15,17 @@ import java.time.ZoneOffset;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
+import org.springframework.web.util.UriComponentsBuilder;
+import org.mockito.ArgumentCaptor;
 
 class AccountServiceTest {
     private final AccountRepository accountRepository = mock(AccountRepository.class);
     private final UserSessionRepository sessionRepository = mock(UserSessionRepository.class);
     private final PasswordResetTokenRepository passwordResetTokenRepository = mock(PasswordResetTokenRepository.class);
+    private final PasswordResetEmailSender passwordResetEmailSender = mock(PasswordResetEmailSender.class);
     private final PasswordHasher passwordHasher = new PasswordHasher();
     private final SessionTokenService tokenService = new SessionTokenService();
+    private final PasswordResetLinkFactory passwordResetLinkFactory = new PasswordResetLinkFactory("https://linewatch.example");
     private final Clock clock = Clock.fixed(Instant.parse("2026-06-05T14:30:00Z"), ZoneOffset.UTC);
     private final AccountService service = new AccountService(
         accountRepository,
@@ -27,6 +33,8 @@ class AccountServiceTest {
         passwordResetTokenRepository,
         passwordHasher,
         tokenService,
+        passwordResetEmailSender,
+        passwordResetLinkFactory,
         clock,
         true
     );
@@ -156,7 +164,7 @@ class AccountServiceTest {
     }
 
     @Test
-    void requestPasswordResetCreatesShortLivedTokenForKnownEmail() {
+    void requestPasswordResetCreatesShortLivedTokenAndEmailsLinkForKnownEmail() {
         AccountEntity account = AccountEntity.create(
             "user_test",
             "rider@example.com",
@@ -172,12 +180,60 @@ class AccountServiceTest {
             new AccountService.PasswordResetRequest(" Rider@Example.COM ")
         );
 
+        ArgumentCaptor<PasswordResetTokenEntity> resetTokenCaptor = ArgumentCaptor.forClass(PasswordResetTokenEntity.class);
+        ArgumentCaptor<String> resetUrlCaptor = ArgumentCaptor.forClass(String.class);
+        verify(passwordResetTokenRepository).save(resetTokenCaptor.capture());
+        verify(passwordResetEmailSender).sendPasswordResetEmail(
+            eq("rider@example.com"),
+            resetUrlCaptor.capture(),
+            eq(Instant.parse("2026-06-05T15:00:00Z"))
+        );
+        String resetUrl = resetUrlCaptor.getValue();
+        assertThat(resetUrl).startsWith("https://linewatch.example/reset-password?token=");
+        String rawResetToken = UriComponentsBuilder.fromUriString(resetUrl).build().getQueryParams().getFirst("token");
+
         assertThat(response.accepted()).isTrue();
-        assertThat(response.message()).isEqualTo("If an account exists for that email, a password reset link is available.");
-        assertThat(response.devResetToken()).isNotBlank();
+        assertThat(response.message()).isEqualTo("If an account exists for that email, a password reset link has been sent.");
+        assertThat(response.devResetToken()).isEqualTo(rawResetToken);
         assertThat(response.expiresAt()).isEqualTo(Instant.parse("2026-06-05T15:00:00Z"));
+        assertThat(resetTokenCaptor.getValue().getTokenHash()).isEqualTo(tokenService.hashToken(rawResetToken));
         verify(passwordResetTokenRepository).deleteUnusedByAccountId("user_test");
-        verify(passwordResetTokenRepository).save(any(PasswordResetTokenEntity.class));
+    }
+
+    @Test
+    void requestPasswordResetHidesDevTokenWhenDevLinksAreDisabledButStillEmailsLink() {
+        AccountEntity account = AccountEntity.create(
+            "user_test",
+            "rider@example.com",
+            "Rider",
+            passwordHasher.hash("correct horse battery staple"),
+            false,
+            Instant.parse("2026-06-05T14:00:00Z")
+        );
+        when(accountRepository.findByEmail("rider@example.com")).thenReturn(Optional.of(account));
+        when(passwordResetTokenRepository.save(any(PasswordResetTokenEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        AccountService productionLikeService = new AccountService(
+            accountRepository,
+            sessionRepository,
+            passwordResetTokenRepository,
+            passwordHasher,
+            tokenService,
+            passwordResetEmailSender,
+            passwordResetLinkFactory,
+            clock,
+            false
+        );
+
+        AccountService.PasswordResetRequestResponse response = productionLikeService.requestPasswordReset(
+            new AccountService.PasswordResetRequest("rider@example.com")
+        );
+
+        assertThat(response.devResetToken()).isNull();
+        verify(passwordResetEmailSender).sendPasswordResetEmail(
+            eq("rider@example.com"),
+            any(),
+            eq(Instant.parse("2026-06-05T15:00:00Z"))
+        );
     }
 
     @Test
@@ -189,9 +245,10 @@ class AccountServiceTest {
         );
 
         assertThat(response.accepted()).isTrue();
-        assertThat(response.message()).isEqualTo("If an account exists for that email, a password reset link is available.");
+        assertThat(response.message()).isEqualTo("If an account exists for that email, a password reset link has been sent.");
         assertThat(response.devResetToken()).isNull();
         assertThat(response.expiresAt()).isNull();
+        verify(passwordResetEmailSender, never()).sendPasswordResetEmail(any(), any(), any());
     }
 
     @Test

@@ -573,6 +573,9 @@ class AlertDashboardServiceTest {
         assertThat(service.activePlannedClosures())
             .extracting(AlertDashboardService.PlannedClosureDto::id)
             .containsExactly("planned-closure-current-window");
+        assertThat(service.activeSegmentImpacts().get("line-1-st-george-sheppard-west"))
+            .extracting(AlertDashboardService.SegmentImpact::kind)
+            .containsExactly("suspension");
         assertThat(service.dashboardVisiblePlannedClosureIds())
             .containsExactly("planned-closure-parent", "planned-closure-current-window", "planned-closure-upcoming");
     }

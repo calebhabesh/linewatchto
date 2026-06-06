@@ -34,6 +34,7 @@ import type { StationSummary } from "../app/station-data";
 import type { AccountCommutePathPreview } from "../app/account-data";
 import { LogsDropdown } from "./LogsDropdown";
 import { ImpactTypeIcon } from "./ImpactTypeIcon";
+import { SiteGuideDropdown } from "./SiteGuideDropdown";
 
 const RSZ_IMPACT_COLOR = "#F59E0B";
 
@@ -661,6 +662,7 @@ export function InteractiveTtcMap({
         >
           {isDark ? <Sun size={24} className="text-slate-800 dark:text-white" /> : <Moon size={24} className="text-slate-800 dark:text-white" />}
         </button>
+        <SiteGuideDropdown />
       </div>
 
       {/* Top center map controls */}
@@ -1945,19 +1947,21 @@ function AnimatedSuspensionLane({
         return (
           <g key={i} data-index={i}>
             {isNoEntry ? (
-              <g transform="translate(-24, -24) scale(2.0)" stroke="#ffffff" fill="none" strokeWidth="3.2">
+              <g transform="translate(-26.4, -26.4) scale(2.2)" stroke="#ffffff" fill="none" strokeWidth="3.2">
                 <circle cx="12" cy="12" r="10.5" />
                 <line x1="19.64" y1="4.36" x2="4.36" y2="19.64" />
               </g>
             ) : (
-              <path
-                d="M -14 -14 L 10 0 L -14 14"
-                stroke="#ffffff"
-                strokeWidth="6"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                fill="none"
-              />
+              <g transform="scale(1.1)">
+                <path
+                  d="M -14 -14 L 10 0 L -14 14"
+                  stroke="#ffffff"
+                  strokeWidth="6"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  fill="none"
+                />
+              </g>
             )}
           </g>
         );
@@ -2119,13 +2123,13 @@ function AnimatedHourglassLane({
         return (
           <g key={i} data-index={i}>
             {isHourglass ? (
-              <g transform="scale(0.08) translate(-512, -512)" className="delay-hourglass">
+              <g transform="scale(0.09) translate(-550, -512)" className="delay-hourglass">
                 <path
                   d="M576 512c0 190.72 448 345.6-25.6 345.6s-25.6-154.88-25.6-345.6-448-345.6 25.6-345.6 25.6 154.88 25.6 345.6z"
                   fill="#F7E6A3"
                 />
                 <path
-                  d="M550.4 870.4c-147.2 0-212.48-14.08-226.56-48.64-14.08-33.28 23.04-71.68 71.68-121.6 51.2-52.48 116.48-120.32 116.48-188.16 0-67.84-65.28-135.68-117.76-189.44-47.36-48.64-85.76-87.04-71.68-121.6C337.92 167.68 403.2 153.6 550.4 153.6s212.48 14.08 226.56 48.64c14.08 33.28-23.04 71.68-71.68 121.6-51.2 52.48-116.48 120.32-116.48 188.16 0 67.84 65.28 135.68 117.76 189.44 47.36 48.64 85.76 87.04 71.68 121.6C762.88 856.32 697.6 870.4 550.4 870.4z m0-691.2c-157.44 0-197.12 17.92-203.52 33.28-7.68 17.92 29.44 56.32 65.28 93.44 55.04 57.6 125.44 128 125.44 207.36 0 79.36-69.12 149.76-125.44 207.36-35.84 37.12-72.96 75.52-65.28 93.44 6.4 12.8 46.08 30.72 203.52 30.72s197.12-17.92 203.52-33.28c7.68-17.92-29.44-56.32-65.28-93.44C632.32 661.76 563.2 591.36 563.2 512c0-79.36 69.12-149.76 125.44-207.36 35.84-37.12 72.96-75.52 65.28-93.44-6.4-14.08-46.08-32-203.52-32z"
+                  d="M550.4 870.4c-147.2 0-212.48-14.08-226.56-48.64-14.08-33.28 23.04-71.68 71.68-121.6 51.2-52.48 116.48-120.32 116.48-188.16 0-67.84-65.28-135.68-117.76-189.44-47.36-48.64-85.76-87.04-71.68-121.6C337.92 167.68 403.2 153.6 550.4 153.6s212.48 14.08 226.56 48.64c14.08 33.28-23.04 71.68-71.68 121.6-51.2 52.48-116.48 120.32-116.48 188.16 0 67.84 65.28 135.68 117.76 189.44 47.36 48.64 85.76 87.04 71.68 121.6C762.88 856.32 697.6 870.4 550.4 870.4z m0-691.2c-157.44 0-197.12 17.92-203.52 33.28-7.68 17.92 29.44 56.32 65.28 93.44 55.04 57.6 125.44 128 125.44 207.36 0 79.36-69.12-149.76-125.44 207.36-35.84 37.12-72.96 75.52-65.28 93.44 6.4 12.8 46.08 30.72 203.52 30.72s197.12-17.92 203.52-33.28c7.68-17.92-29.44-56.32-65.28-93.44C632.32 661.76 563.2 591.36 563.2 512c0-79.36 69.12-149.76 125.44-207.36 35.84-37.12 72.96-75.52 65.28-93.44-6.4-14.08-46.08-32-203.52-32z"
                   fill="#0284c7"
                 />
                 <path
@@ -2148,15 +2152,17 @@ function AnimatedHourglassLane({
                 <path d="M768 179.2h25.6v665.6h-25.6z" fill="#0369a1" />
               </g>
             ) : (
-              <path
-                d="M -12 -10 L 8 0 L -12 10"
-                fill="none"
-                stroke="#ffffff"
-                strokeWidth={3.5}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden="true"
-              />
+              <g transform="scale(1.1)">
+                <path
+                  d="M -12 -10 L 8 0 L -12 10"
+                  fill="none"
+                  stroke="#ffffff"
+                  strokeWidth={3.5}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                />
+              </g>
             )}
           </g>
         );

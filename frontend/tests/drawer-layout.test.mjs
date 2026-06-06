@@ -15,7 +15,7 @@ const impactOverlapRefsSource = readFileSync(new URL("../src/components/ImpactOv
 const impactTypeIconSource = readFileSync(new URL("../src/components/ImpactTypeIcon.tsx", import.meta.url), "utf8");
 const savedCommutesSource = readFileSync(new URL("../src/components/SavedCommutesPanel.tsx", import.meta.url), "utf8");
 const reliabilitySource = readFileSync(new URL("../src/components/ReliabilityPanel.tsx", import.meta.url), "utf8");
-const pageSource = readFileSync(new URL("../src/app/page.tsx", import.meta.url), "utf8");
+const dashboardDataSource = readFileSync(new URL("../src/app/dashboard-data.ts", import.meta.url), "utf8");
 const globalCss = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
 const subwayClosedSource = readFileSync(new URL("../src/components/SubwayClosedScreen.tsx", import.meta.url), "utf8");
 const subwayHoursSource = readFileSync(new URL("../src/app/subway-hours.ts", import.meta.url), "utf8");
@@ -123,7 +123,7 @@ describe("floating menu layout", () => {
   });
 
   it("labels fallback mode without claiming live TTC status", () => {
-    assert.match(pageSource, /fixture mode/);
+    assert.match(dashboardDataSource, /fixture mode/);
   });
 
   it("LineLegend calls onReducedSpeedZoneClick with line.id", () => {
@@ -206,8 +206,10 @@ describe("floating menu layout", () => {
     assert.ok(selectedActiveAlertIndex < selectedPlannedClosureIndex);
     assert.ok(impactActiveAlertIndex < impactPlannedClosureIndex);
     assert.match(activeAlertsSource, /function impactKindForAlert/);
-    assert.match(activeAlertsSource, /alert\.severity === "planned" \? "planned-closure" : "suspension"/);
-    assert.match(activeAlertsSource, /useScrollSelectedImpactCard\(selection, "planned-closure"\)/);
+    assert.match(activeAlertsSource, /function impactKindForAlert\(alert: ActiveAlert\): Extract<ImpactKind, "suspension" \| "delay">/);
+    assert.match(activeAlertsSource, /return alert\.severity === "delay" \? "delay" : "suspension"/);
+    assert.doesNotMatch(activeAlertsSource, /alert\.severity === "planned" \? "planned-closure" : "suspension"/);
+    assert.doesNotMatch(activeAlertsSource, /useScrollSelectedImpactCard\(selection, "planned-closure"\)/);
     assert.match(shellSource, /function viewForImpactSelection/);
     assert.match(shellSource, /nextSelection\.kind === "planned-closure"/);
     assert.match(shellSource, /activeAlerts\.some\(\(alert\) => alert\.id === nextSelection\.id\)/);
@@ -234,7 +236,7 @@ describe("floating menu layout", () => {
     assert.match(shellSource, /SubwayClosedScreen/);
     assert.match(shellSource, /subway-closed-map-backdrop/);
     assert.match(shellSource, /subway-closed-peek-chip/);
-    assert.match(shellSource, /Closed screen/);
+    assert.match(shellSource, /Closed Screen/);
     assert.match(globalCss, /\.subway-closed-screen/);
     assert.match(globalCss, /\.subway-closed-map-backdrop/);
     assert.match(globalCss, /filter:\s*blur\(9px\) saturate\(0\.72\) brightness\(0\.42\)/);

@@ -158,7 +158,7 @@ const server = createServer(async (request, response) => {
   if (request.method === "POST" && url.pathname === "/api/auth/password-reset/request") {
     sendJson(request, response, 200, {
       accepted: true,
-      message: "If an account exists for that email, a password reset link is available.",
+      message: "If an account exists for that email, a password reset link has been sent.",
       devResetToken: "smoke-reset-token",
       expiresAt: "2026-06-05T15:00:00Z",
     });

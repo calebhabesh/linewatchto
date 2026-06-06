@@ -220,7 +220,7 @@ public class AlertDashboardService {
         for (PlannedClosureDto closure : activePlannedClosures()) {
             for (String segmentId : closure.previewSegmentIds()) {
                 appendImpact(impacts, segmentId, new SegmentImpact(
-                    PLANNED_CLOSURE_KIND,
+                    SUSPENSION_KIND,
                     closure.id(),
                     "bidirectional",
                     List.of(closure.id())

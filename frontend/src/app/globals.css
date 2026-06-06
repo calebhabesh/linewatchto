@@ -3210,6 +3210,21 @@ button {
   color: rgb(167, 243, 208);
 }
 
+.account-reset-dev-note,
+.account-reset-hint {
+  color: rgb(71, 85, 105);
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.dark .account-reset-dev-note,
+.dark .account-reset-hint,
+.high-contrast .account-reset-dev-note,
+.high-contrast .account-reset-hint {
+  color: rgb(203, 213, 225);
+}
+
 .saved-commute-account-prompt,
 .saved-commute-form {
   border: 1px solid rgba(15, 23, 42, 0.1);

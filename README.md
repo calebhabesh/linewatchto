@@ -27,7 +27,7 @@ Implemented now:
 - Planned closure cards with map preview highlighting.
 - Legend SVG icons for Lines 1, 2, 4, 5, and 6.
 - Account-backed saved commutes with weighted default rapid-transit route matching and dashboard-visible impact summaries.
-- Account sign-in supports local/dev password reset through a reset-token flow; production email delivery is a future integration point.
+- Account sign-in supports password reset through emailed reset links when SMTP is configured, with a local/dev reset-token fallback.
 - Reliability snapshot panel.
 - Ingestion/system health panel in fixture mode.
 - High-contrast display toggle.
@@ -211,6 +211,27 @@ Start the backend with TTC Live Alerts polling enabled for live alert cards and 
 scripts/dev-backend-live.sh
 ```
 
+This dev helper also enables local password-reset links by default. It returns a short-lived reset token to the frontend for existing local accounts so the `Forgot password?` flow can be tested without email delivery.
+
+To send real password reset emails from a local run, configure SMTP credentials before starting the backend:
+
+```bash
+LINEWATCH_AUTH_PASSWORD_RESET_EMAIL_ENABLED=true \
+LINEWATCH_PASSWORD_RESET_FRONTEND_BASE_URL=http://localhost:3000 \
+LINEWATCH_AUTH_PASSWORD_RESET_EMAIL_FROM=no-reply@example.com \
+SPRING_MAIL_HOST=smtp.example.com \
+SPRING_MAIL_PORT=587 \
+SPRING_MAIL_USERNAME=your-smtp-user \
+SPRING_MAIL_PASSWORD=your-smtp-password \
+SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH=true \
+SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE=true \
+scripts/dev-backend-live.sh
+```
+
+Password reset emails are sent as multipart HTML with a plain-text fallback and an inline LineWatch TO logo from `backend/src/main/resources/email/linewatch-logo.png`.
+
+Do not commit SMTP usernames, passwords, API keys, or app passwords.
+
 Health endpoint:
 
 ```bash
@@ -222,7 +243,7 @@ Alert ingestion is disabled by default for offline-safe local runs, CI, and demo
 Equivalent manual command:
 
 ```bash
-mvn -f backend/pom.xml spring-boot:run -Dspring-boot.run.profiles=dev-live
+LINEWATCH_AUTH_PASSWORD_RESET_DEV_LINKS=true mvn -f backend/pom.xml spring-boot:run -Dspring-boot.run.profiles=dev-live
 ```
 
 `LINEWATCH_INGESTION_ALERTS_MAX_DASHBOARD_AGE` controls how long a successful poll can drive visible dashboard data. The default is `PT10M`; when that window expires, `/api/status`, `/api/alerts`, and `/api/map` stop using old active alert rows.
@@ -331,7 +352,7 @@ Out of scope for v1:
 - Crowding prediction.
 - Native mobile app.
 - iOS/Android widgets.
-- Push or email notifications.
+- Push or commute email notifications.
 
 ## Target Architecture
 

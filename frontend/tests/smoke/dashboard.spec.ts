@@ -535,7 +535,7 @@ test("requests and confirms a password reset from the sign-in dialog", async ({ 
   await resetDialog.getByLabel("Email").fill("rider@example.com");
   await resetDialog.getByRole("button", { name: "Send reset link" }).click();
   await expect(resetDialog.getByRole("status")).toContainText("If an account exists");
-  await resetDialog.getByRole("button", { name: "Open reset form" }).click();
+  await resetDialog.getByRole("button", { name: "Open local reset form" }).click();
 
   const confirmDialog = page.getByRole("dialog", { name: "Choose a new LineWatch TO password" });
   await expect(confirmDialog).toBeVisible();
@@ -546,3 +546,18 @@ test("requests and confirms a password reset from the sign-in dialog", async ({ 
   await expect(page.getByText("Rider")).toBeVisible();
 });
 
+test("opens emailed password reset links directly", async ({ page, request }) => {
+  await setStubMode(request, "seeded");
+  await page.goto("/reset-password?token=smoke-reset-token");
+
+  const confirmDialog = page.getByRole("dialog", { name: "Choose a new LineWatch TO password" });
+  await expect(confirmDialog).toBeVisible();
+  await expect(confirmDialog.getByText("Enter a new password to finish recovery.")).toBeVisible();
+  await expect(confirmDialog.getByLabel("Reset token")).toHaveCount(0);
+  await confirmDialog.getByLabel("New password").fill("new correct horse 2");
+  await confirmDialog.getByLabel("Confirm password").fill("new correct horse 2");
+  await confirmDialog.getByRole("button", { name: "Reset password" }).click();
+  await expect(confirmDialog).toHaveCount(0);
+  await expect(page).toHaveURL("/");
+  await expect(page.getByText("Rider")).toBeVisible();
+});

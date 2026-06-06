@@ -22,7 +22,7 @@ export const mapResponse = {
           sourceAlertIds: ["stub-alert-line-1"],
         },
         {
-          kind: "planned-closure",
+          kind: "suspension",
           cardId: "stub-closure-line-1",
           travelDirection: "bidirectional",
           sourceAlertIds: ["stub-closure-line-1"],

@@ -23,6 +23,12 @@ linewatch:
   auth:
     secure-cookie: ${LINEWATCH_AUTH_SECURE_COOKIE:false}
     allowed-origins: ${LINEWATCH_AUTH_ALLOWED_ORIGINS:http://localhost:3000,http://127.0.0.1:3000,http://127.0.0.1:4173}
+    password-reset:
+      dev-links: ${LINEWATCH_AUTH_PASSWORD_RESET_DEV_LINKS:false}
+      frontend-base-url: ${LINEWATCH_PASSWORD_RESET_FRONTEND_BASE_URL:http://localhost:3000}
+      email:
+        enabled: ${LINEWATCH_AUTH_PASSWORD_RESET_EMAIL_ENABLED:false}
+        from: ${LINEWATCH_AUTH_PASSWORD_RESET_EMAIL_FROM:no-reply@linewatch.local}
   ingestion:
     alerts:
       enabled: ${LINEWATCH_INGESTION_ALERTS_ENABLED:false}

@@ -238,7 +238,7 @@ describe("account data adapter", () => {
           return new Response(
             JSON.stringify({
               accepted: true,
-              message: "If an account exists for that email, a password reset link is available.",
+              message: "If an account exists for that email, a password reset link has been sent.",
               devResetToken: "dev-token",
               expiresAt: "2026-06-05T15:00:00Z",
             }),

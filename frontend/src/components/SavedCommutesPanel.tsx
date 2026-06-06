@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Navigation, ChevronDown, ChevronLeft, Loader2, MapPinned } from "lucide-react";
+import { Navigation, ChevronDown, ChevronLeft, Loader2, MapPinned, X } from "lucide-react";
 import {
   createSavedCommute,
   deleteSavedCommute,
@@ -17,6 +17,7 @@ import { SavedCommuteStationPicker } from "./SavedCommuteStationPicker";
 
 interface Props {
   onBack?: () => void;
+  onClose?: () => void;
   accountState: AccountState;
   accountCommutes: AccountSavedCommute[];
   setAccountCommutes: (commutes: AccountSavedCommute[]) => void;
@@ -68,6 +69,7 @@ function routeSummary(commute: AccountSavedCommute) {
 
 export function SavedCommutesPanel({
   onBack,
+  onClose,
   accountState,
   accountCommutes,
   setAccountCommutes,
@@ -153,7 +155,7 @@ export function SavedCommutesPanel({
 
   return (
     <section className="commute-panel min-w-0 border border-black/10 dark:border-white/10 rounded-lg shadow-xl">
-      <div className="panel-heading @container border-b border-black/10 dark:border-white/10 px-4 py-3">
+      <div className="panel-heading @container border-b border-black/10 dark:border-white/10 px-4 py-3 flex items-center justify-between gap-3 min-w-0">
         <div className="flex items-center gap-1">
           {onBack && (
             <button onClick={onBack} className="p-2 -ml-3 mr-1 hover:bg-black/10 dark:hover:bg-white/10 rounded-lg transition-colors cursor-pointer shrink-0">
@@ -165,6 +167,15 @@ export function SavedCommutesPanel({
             <span>Saved Commutes</span>
           </h2>
         </div>
+        {onClose && (
+          <button
+            onClick={onClose}
+            className="p-3 sm:p-3.5 mr-1 hover:bg-black/10 dark:hover:bg-white/10 rounded-lg transition-colors cursor-pointer shrink-0 flex items-center justify-center"
+            aria-label="Close"
+          >
+            <X className="w-5 h-5 sm:w-6 sm:h-6 text-slate-700 dark:text-slate-300" />
+          </button>
+        )}
       </div>
       <div className="commute-grid min-w-0 p-3 flex flex-col gap-3">
         {!accountState.authenticated ? (

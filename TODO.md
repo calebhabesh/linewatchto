@@ -9,10 +9,15 @@
 - [x] Search Stations functionality
 - [x] sync card and actual section flashing/pulse when pressed
 - [x] Saved Commutes station search needs to be more elegant
+- [ ] Overlapping marker/legend does not show entry for active alerts and incorrect highlight for cards based on what submenu its in
 - [ ] Login or sign up needs strict error handling/regex for valid emails passwords, etc.
-- [ ] Info Widget for guide on how to use/visualize web app, maybe fully integrated and static on the site like the cardinal direction
+- [x] Info Widget for guide on how to use/visualize web app, maybe fully integrated and static on the site like the cardinal direction
+- [ ] Password recovery system
+- [ ] Notifications on for the site, so that they can see when there are alerts on their saved commute routes. Active alerts are the worst, but reduced speed zones shouldn't be that crazy
+- [ ] Huge UI edit/review for the mobile web app version (which is what most people will be using)
 
 ## Future Additions
+- [ ] Cool trains on the tracks ui overlay (strictly aesthetic)
 - [ ] Station impacts tie to the arrivals subsection in the station submenu 
 - [ ] Surface connections for busses available at stations
 - [ ] TTC will potentially add gtfs rt for subway in Q4 2026, we will add functionality for subway times when this arrives
