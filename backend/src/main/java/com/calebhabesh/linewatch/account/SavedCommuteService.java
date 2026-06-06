@@ -1,5 +1,8 @@
 package com.calebhabesh.linewatch.account;
 
+import com.calebhabesh.linewatch.commute.CommuteImpactService;
+import com.calebhabesh.linewatch.commute.CommutePathService;
+import com.calebhabesh.linewatch.commute.CommuteResponses;
 import com.calebhabesh.linewatch.station.StationEntity;
 import com.calebhabesh.linewatch.station.StationRepository;
 import java.time.Clock;
@@ -18,16 +21,31 @@ import org.springframework.transaction.annotation.Transactional;
 public class SavedCommuteService {
     private final SavedCommuteRepository commuteRepository;
     private final StationRepository stationRepository;
+    private final CommutePathService commutePathService;
+    private final CommuteImpactService commuteImpactService;
     private final Clock clock;
 
     @Autowired
-    public SavedCommuteService(SavedCommuteRepository commuteRepository, StationRepository stationRepository) {
-        this(commuteRepository, stationRepository, Clock.systemUTC());
+    public SavedCommuteService(
+        SavedCommuteRepository commuteRepository,
+        StationRepository stationRepository,
+        CommutePathService commutePathService,
+        CommuteImpactService commuteImpactService
+    ) {
+        this(commuteRepository, stationRepository, commutePathService, commuteImpactService, Clock.systemUTC());
     }
 
-    SavedCommuteService(SavedCommuteRepository commuteRepository, StationRepository stationRepository, Clock clock) {
+    SavedCommuteService(
+        SavedCommuteRepository commuteRepository,
+        StationRepository stationRepository,
+        CommutePathService commutePathService,
+        CommuteImpactService commuteImpactService,
+        Clock clock
+    ) {
         this.commuteRepository = commuteRepository;
         this.stationRepository = stationRepository;
+        this.commutePathService = commutePathService;
+        this.commuteImpactService = commuteImpactService;
         this.clock = clock;
     }
 
@@ -88,6 +106,11 @@ public class SavedCommuteService {
         StationEntity destination = stationsById.get(commute.getDestinationStationId());
         String originName = origin == null ? commute.getOriginStationId() : origin.getName();
         String destinationName = destination == null ? commute.getDestinationStationId() : destination.getName();
+        CommuteResponses.PathResponse path = commutePathService.path(
+            commute.getOriginStationId(),
+            commute.getDestinationStationId()
+        );
+        CommuteResponses.ImpactResponse impact = commuteImpactService.impactFor(path);
         return new AccountResponses.SavedCommuteResponse(
             commute.getId(),
             commute.getLabel(),
@@ -96,6 +119,8 @@ public class SavedCommuteService {
             commute.getDestinationStationId(),
             destinationName,
             originName + " -> " + destinationName,
+            path,
+            impact,
             commute.getCreatedAt(),
             commute.getUpdatedAt()
         );

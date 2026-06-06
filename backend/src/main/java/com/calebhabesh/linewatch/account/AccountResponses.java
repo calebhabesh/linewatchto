@@ -1,5 +1,6 @@
 package com.calebhabesh.linewatch.account;
 
+import com.calebhabesh.linewatch.commute.CommuteResponses;
 import java.time.Instant;
 import java.util.List;
 
@@ -20,6 +21,8 @@ public final class AccountResponses {
         String destinationStationId,
         String destinationStationName,
         String routeLabel,
+        CommuteResponses.PathResponse path,
+        CommuteResponses.ImpactResponse impact,
         Instant createdAt,
         Instant updatedAt
     ) {}
