@@ -192,4 +192,22 @@ describe("asset-backed map layering", () => {
     assert.match(interactiveMapSource, /stationPointFor/);
     assert.match(interactiveMapSource, /readSvgStationCenters/);
   });
+
+  it("renders saved commute path previews underneath active disruption overlays", () => {
+    assert.match(interactiveMapSource, /commutePathPreview/);
+    assert.match(interactiveMapSource, /aria-label="Saved commute route preview"/);
+    assert.match(interactiveMapSource, /CommutePathOverlay/);
+    assert.match(interactiveMapSource, /data-commute-path-preview/);
+    assert.match(globalCss, /\.commute-path-preview-path/);
+    assert.match(globalCss, /\.commute-path-preview-chip/);
+
+    const previewGroupIndex = interactiveMapSource.indexOf('aria-label="Saved commute route preview"');
+    const impactLayerIndex = interactiveMapSource.indexOf("retainedImpactLayers.map", previewGroupIndex);
+
+    assert.ok(previewGroupIndex > -1, "saved commute preview group must exist");
+    assert.ok(
+      impactLayerIndex > previewGroupIndex,
+      "active disruption overlays must render after commute previews so disruptions remain visually dominant",
+    );
+  });
 });

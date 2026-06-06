@@ -78,6 +78,28 @@ export type AccountSavedCommute = {
   updatedAt: string;
 };
 
+export type AccountCommutePathPreview = {
+  id: string;
+  label: string;
+  routeLabel: string;
+  stationIds: string[];
+  segmentIds: string[];
+};
+
+export function commutePathPreviewFromCommute(commute: AccountSavedCommute): AccountCommutePathPreview | null {
+  if (commute.path.status !== "available" || commute.path.segmentIds.length === 0) {
+    return null;
+  }
+
+  return {
+    id: commute.id,
+    label: commute.label,
+    routeLabel: commute.routeLabel,
+    stationIds: commute.path.stationIds,
+    segmentIds: commute.path.segmentIds,
+  };
+}
+
 export type AccountSavedCommuteResult = {
   source: "backend" | "unavailable";
   commutes: AccountSavedCommute[];

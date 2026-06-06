@@ -19,6 +19,9 @@ describe("account data adapter", () => {
     assert.match(source, /export type AccountCommuteImpact/);
     assert.match(source, /path: AccountCommutePath/);
     assert.match(source, /impact: AccountCommuteImpact/);
+    assert.match(source, /export type AccountCommutePathPreview/);
+    assert.match(source, /commutePathPreviewFromCommute/);
+    assert.match(source, /segmentIds: commute\.path\.segmentIds/);
   });
 
   it("maps signed-out current account responses", async () => {

@@ -3554,3 +3554,90 @@ button {
 .high-contrast .commute-route-stop-list li {
   color: rgb(203, 213, 225);
 }
+
+.commute-path-preview-layer {
+  pointer-events: none;
+}
+
+.commute-path-preview-glow,
+.commute-path-preview-path {
+  fill: none;
+  pointer-events: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.commute-path-preview-glow {
+  opacity: 0.7;
+  stroke: rgba(255, 255, 255, 0.82);
+  stroke-width: 122;
+}
+
+.commute-path-preview-path {
+  opacity: 0.92;
+  stroke: #22d3ee;
+  stroke-width: 74;
+}
+
+.commute-path-preview-endpoint {
+  fill: #f8fafc;
+  pointer-events: none;
+  stroke: #0891b2;
+  stroke-width: 12;
+}
+
+.commute-path-preview-chip {
+  align-items: center;
+  background: rgba(248, 250, 252, 0.94);
+  border: 1px solid rgba(8, 145, 178, 0.28);
+  border-radius: 8px;
+  bottom: 1rem;
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.22);
+  color: rgb(15, 23, 42);
+  display: flex;
+  gap: 0.65rem;
+  left: 50%;
+  max-width: min(420px, calc(100vw - 2rem));
+  min-height: 42px;
+  padding: 0.55rem 0.65rem;
+  position: absolute;
+  transform: translateX(-50%);
+  z-index: 35;
+}
+
+.commute-path-preview-chip span {
+  font-size: 0.75rem;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.commute-path-preview-chip strong {
+  color: rgb(14, 116, 144);
+}
+
+.commute-path-preview-chip button {
+  background: rgb(15, 23, 42);
+  border-radius: 7px;
+  color: white;
+  flex: 0 0 auto;
+  font-size: 0.68rem;
+  font-weight: 900;
+  min-height: 30px;
+  padding: 0.35rem 0.55rem;
+  text-transform: uppercase;
+}
+
+.dark .commute-path-preview-chip,
+.high-contrast .commute-path-preview-chip {
+  background: rgba(15, 23, 42, 0.94);
+  border-color: rgba(34, 211, 238, 0.34);
+  color: rgb(248, 250, 252);
+}
+
+.dark .commute-path-preview-chip button,
+.high-contrast .commute-path-preview-chip button {
+  background: rgb(226, 232, 240);
+  color: rgb(15, 23, 42);
+}

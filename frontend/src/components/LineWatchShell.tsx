@@ -33,6 +33,7 @@ import { StationSearchPanel } from "./StationSearchPanel";
 import { OpeningDisclaimer } from "./OpeningDisclaimer";
 import { SubwayClosingSoonChip } from "./SubwayClosingSoonChip";
 import {
+  commutePathPreviewFromCommute,
   getCurrentAccount,
   loginAccount,
   loginDemoAccount,
@@ -40,6 +41,7 @@ import {
   registerAccount,
   type AccountState,
   type AccountSavedCommute,
+  type AccountCommutePathPreview,
 } from "../app/account-data";
 
 
@@ -122,6 +124,7 @@ export function LineWatchShell({ initialData }: { initialData: DashboardData }) 
   const [accountError, setAccountError] = useState<string | null>(null);
   const [accountBusy, setAccountBusy] = useState(false);
   const [accountCommutes, setAccountCommutes] = useState<AccountSavedCommute[]>([]);
+  const [commutePathPreview, setCommutePathPreview] = useState<AccountCommutePathPreview | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -160,7 +163,7 @@ export function LineWatchShell({ initialData }: { initialData: DashboardData }) 
       setAccountDialogMode(null);
       resetAccountForm();
     } catch {
-      setAccountError(accountDialogMode === "login" ? "Could not sign in with those credentials." : "Could not create that account.");
+      setAccountError(accountDialogMode === "login" ? "Incorrect Email or Password." : "Could not create that account.");
     } finally {
       setAccountBusy(false);
     }
@@ -186,9 +189,27 @@ export function LineWatchShell({ initialData }: { initialData: DashboardData }) 
       await logoutAccount();
       setAccountState({ source: "backend", authenticated: false, user: null });
       setAccountCommutes([]);
+      setCommutePathPreview(null);
     } finally {
       setAccountBusy(false);
     }
+  };
+
+  const handleViewCommutePath = (commute: AccountSavedCommute) => {
+    const preview = commutePathPreviewFromCommute(commute);
+    if (!preview) return;
+
+    setCommutePathPreview(preview);
+    setSelection(null);
+    setSelectedStationId(null);
+    setActiveView("map");
+  };
+
+  const handleClearCommutePathPreview = (commuteId?: string) => {
+    setCommutePathPreview((current) => {
+      if (!current) return null;
+      return commuteId && current.id !== commuteId ? current : null;
+    });
   };
 
   const menuButtonRef = useRef<HTMLButtonElement>(null);
@@ -350,6 +371,7 @@ export function LineWatchShell({ initialData }: { initialData: DashboardData }) 
   const handleSelectStationId = (id: string | null) => {
     setSelectedStationId(id);
     setSelection(null);
+    setCommutePathPreview(null);
     if (id) {
       setActiveView("map");
     }
@@ -380,6 +402,7 @@ export function LineWatchShell({ initialData }: { initialData: DashboardData }) 
 
   const handleMapSelectImpact = (nextSelection: ImpactSelection) => {
     setSelectedStationId(null);
+    setCommutePathPreview(null);
     if (!nextSelection) {
       setSelection(null);
       return;
@@ -802,10 +825,12 @@ export function LineWatchShell({ initialData }: { initialData: DashboardData }) 
               accountCommutes={accountCommutes}
               setAccountCommutes={setAccountCommutes}
               stationSummaries={stationSummaries}
+              viewedCommuteId={commutePathPreview?.id ?? null}
+              onViewPath={handleViewCommutePath}
+              onClearViewedPath={handleClearCommutePathPreview}
               onBack={() => setActiveView("menu")}
               onRequestSignIn={() => setAccountDialogMode("login")}
               onRequestCreateAccount={() => setAccountDialogMode("register")}
-              onRequestDemo={handleDemoAccount}
             />
          </div>
       </div>
@@ -830,6 +855,8 @@ export function LineWatchShell({ initialData }: { initialData: DashboardData }) 
           onToggleTheme={() => setIsDark(!isDark)}
           layoutResetSignal={0}
           reducedMotion={reducedMotion}
+          commutePathPreview={commutePathPreview}
+          onClearCommutePathPreview={() => handleClearCommutePathPreview()}
         />
       </main>
 

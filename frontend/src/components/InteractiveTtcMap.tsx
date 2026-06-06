@@ -31,6 +31,7 @@ import type {
   Station,
 } from "../app/linewatch-data";
 import type { StationSummary } from "../app/station-data";
+import type { AccountCommutePathPreview } from "../app/account-data";
 import { LogsDropdown } from "./LogsDropdown";
 import { ImpactTypeIcon } from "./ImpactTypeIcon";
 
@@ -154,6 +155,8 @@ export function InteractiveTtcMap({
   onToggleTheme,
   layoutResetSignal,
   reducedMotion,
+  commutePathPreview,
+  onClearCommutePathPreview,
 }: {
   selection: ImpactSelection;
   onSelectImpact: (selection: ImpactSelection) => void;
@@ -164,6 +167,8 @@ export function InteractiveTtcMap({
   onToggleTheme: () => void;
   layoutResetSignal?: number;
   reducedMotion: boolean;
+  commutePathPreview?: AccountCommutePathPreview | null;
+  onClearCommutePathPreview?: () => void;
 }) {
   const { networkSegments, activeAlerts, delays, reducedSpeedZones, plannedClosures, stationNodeImpacts, stations: mapStations } = useDashboardData();
   const [svgParts, setSvgParts] = useState<{ part1: string; part2: string } | null>(null);
@@ -406,18 +411,10 @@ export function InteractiveTtcMap({
     return new Set(plannedClosures.map((closure) => closure.previewSegmentIds).flat());
   }, [plannedClosures]);
 
-  // Determine what overlays to render based on active and planned disruption surfaces.
-  const overlaySegments = useMemo(() => {
-    return networkSegments.filter((segment) => {
-      const isClosurePreview = plannedPreviewSegmentIds.has(segment.id);
-      return Boolean(segment.impacts?.length) || segment.overlay !== "clear" || isClosurePreview;
-    });
-  }, [networkSegments, plannedPreviewSegmentIds]);
-
-  const renderedOverlaySegments = useMemo(() => {
+  const renderedNetworkSegments = useMemo(() => {
     const stationById = new Map(mapStations.map((station) => [station.id, station]));
 
-    return overlaySegments
+    return networkSegments
       .map((segment) => {
         const stationA = segment.stationAId ? stationById.get(segment.stationAId) : undefined;
         const stationB = segment.stationBId ? stationById.get(segment.stationBId) : undefined;
@@ -432,7 +429,6 @@ export function InteractiveTtcMap({
           originX = pointA.x;
           originY = pointA.y;
         } else {
-          // Fallback parsing if no points available
           const nums = segment.pathD.match(/-?\d+(\.\d+)?/g)?.map(Number) || [];
           originX = nums[0] || 0;
           originY = nums[1] || 0;
@@ -446,8 +442,15 @@ export function InteractiveTtcMap({
           patternAngle: angle,
         };
       })
-      .filter((segment) => segment.pathD);
-  }, [overlaySegments, mapStations, anchorPoints, guidePaths]);
+      .filter((segment): segment is RenderedNetworkSegment => Boolean(segment.pathD));
+  }, [networkSegments, mapStations, anchorPoints, guidePaths]);
+
+  const renderedOverlaySegments = useMemo(() => {
+    return renderedNetworkSegments.filter((segment) => {
+      const isClosurePreview = plannedPreviewSegmentIds.has(segment.id);
+      return Boolean(segment.impacts?.length) || segment.overlay !== "clear" || isClosurePreview;
+    });
+  }, [renderedNetworkSegments, plannedPreviewSegmentIds]);
 
   const renderedImpactLayers = useMemo<RenderedImpactLayer[]>(() => {
     const groups = new Map<string, { impact: MapImpact; segments: RenderedNetworkSegment[] }>();
@@ -527,6 +530,53 @@ export function InteractiveTtcMap({
     stationNodeImpacts,
     useCallback((impact) => `${impact.kind}:${impact.cardId}:${impact.stationId}`, []),
   );
+
+  const commutePreviewLayer = useMemo(() => {
+    if (!commutePathPreview || commutePathPreview.segmentIds.length === 0) {
+      return null;
+    }
+
+    const previewSegmentIds = new Set(commutePathPreview.segmentIds);
+    const orderedSegments = orderSegmentsByIds(
+      renderedNetworkSegments.filter((segment) => previewSegmentIds.has(segment.id)),
+      commutePathPreview.segmentIds,
+    );
+    const corridor = composeNetworkSegmentPath(orderedSegments, "bidirectional");
+    if (!corridor.pathD) {
+      return null;
+    }
+
+    return {
+      preview: commutePathPreview,
+      segment: compositeSegment(
+        `commute-preview-${commutePathPreview.id}`,
+        orderedSegments,
+        corridor.pathD,
+        corridor.travelDirection,
+        corridor.segmentIds,
+        commutePathPreview.routeLabel,
+      ),
+    };
+  }, [commutePathPreview, renderedNetworkSegments]);
+
+  const commutePreviewEndpointPoints = useMemo(() => {
+    if (!commutePathPreview || commutePathPreview.stationIds.length === 0) {
+      return [];
+    }
+
+    const stationById = new Map(mapStations.map((station) => [station.id, station]));
+    const endpointIds = [
+      commutePathPreview.stationIds[0],
+      commutePathPreview.stationIds.at(-1),
+    ].filter((stationId): stationId is string => Boolean(stationId));
+
+    return endpointIds
+      .map((stationId) => {
+        const station = stationById.get(stationId);
+        return station ? stationPointFor(station) : null;
+      })
+      .filter((point): point is MapPoint => Boolean(point));
+  }, [commutePathPreview, mapStations, stationPointFor]);
 
   const pulseSyncSignature = useMemo(() => {
     const plannedKeys = plannedPreviewLayers
@@ -778,7 +828,16 @@ export function InteractiveTtcMap({
                     <feComposite in="monoNoise" in2="SourceGraphic" operator="in" />
                   </filter>
                 </defs>
-                 <g aria-label="Disruption overlays">
+                  <g aria-label="Disruption overlays">
+                  <g aria-label="Saved commute route preview">
+                    {commutePreviewLayer ? (
+                      <CommutePathOverlay
+                        segment={commutePreviewLayer.segment}
+                        endpointPoints={commutePreviewEndpointPoints}
+                        preview={commutePreviewLayer.preview}
+                      />
+                    ) : null}
+                  </g>
                   {retainedPlannedPreviewLayers.map(({ key, item: { segment, closure }, exiting }) => (
                     <OverlaySegment
                       key={key}
@@ -951,6 +1010,16 @@ export function InteractiveTtcMap({
           </div>
         )}
       </div>
+      {commutePathPreview ? (
+        <div className="commute-path-preview-chip" role="status" aria-live="polite">
+          <span>
+            Viewing <strong>{commutePathPreview.routeLabel}</strong>
+          </span>
+          <button type="button" onClick={onClearCommutePathPreview}>
+            Clear
+          </button>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -2158,6 +2227,34 @@ function OverlapKindIcon({ kind }: { kind: MapImpactKind }) {
   return (
     <g transform="translate(-17 -17)">
       <ImpactTypeIcon kind={kind} size={34} className={`overlap-indicator-type-icon ${kind}`} />
+    </g>
+  );
+}
+
+function CommutePathOverlay({
+  segment,
+  endpointPoints,
+  preview,
+}: {
+  segment: RenderedNetworkSegment;
+  endpointPoints: MapPoint[];
+  preview: AccountCommutePathPreview;
+}) {
+  if (!segment.pathD) return null;
+
+  return (
+    <g className="commute-path-preview-layer" data-commute-path-preview={preview.id}>
+      <path className="commute-path-preview-glow" d={segment.pathD} />
+      <path className="commute-path-preview-path" d={segment.pathD} />
+      {endpointPoints.map((point, index) => (
+        <circle
+          key={`${preview.id}-${index}`}
+          className="commute-path-preview-endpoint"
+          cx={point.x}
+          cy={point.y}
+          r={34}
+        />
+      ))}
     </g>
   );
 }
