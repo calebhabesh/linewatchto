@@ -26,7 +26,7 @@ Implemented now:
 - Reduced Speed Zone cards with Cause, Resolution, and available speed/track metadata.
 - Planned closure cards with map preview highlighting.
 - Legend SVG icons for Lines 1, 2, 4, 5, and 6.
-- Saved commute impact cards.
+- Account-backed saved commutes with weighted default rapid-transit route matching and dashboard-visible impact summaries.
 - Reliability snapshot panel.
 - Ingestion/system health panel in fixture mode.
 - High-contrast display toggle.
@@ -72,7 +72,7 @@ Not implemented yet:
 - Station arrivals use source-labeled TTC scheduled service when a merged GTFS schedule import is active. If no schedule import is active, the station detail API returns an unavailable scheduled-source state and the frontend fallback remains clearly labeled as demo data.
 - The arrival provider architecture supports live, scheduled, unavailable, and demo status states.
 - Redis-backed live status cache.
-- Backend commute-impact endpoint.
+- Standalone commute-impact endpoint, route review/edit, push/email commute notifications, alternate-route suggestions, and accessibility-personalized commute matching.
 - Real historical reliability aggregation.
 - Deployment.
 
@@ -383,6 +383,7 @@ LineWatch TO should use public and source-linked data. It should also be honest 
 - Planned closure pages or feeds may change format.
 - Segment inference may be imperfect.
 - Overnight closed-mode uses general TTC subway operating hours; exact first and last trains vary by station, holidays, and service changes.
+- Saved commute route matching uses scheduled adjacent-station weights from the active TTC GTFS import when available and deterministic topology fallback weights otherwise. It is useful for in-app route awareness, but it is not a full TTC trip planner and does not reflect live train travel times.
 - This app is unofficial and should not be treated as the sole source of truth for TTC service.
 
 ## Verification Baseline
