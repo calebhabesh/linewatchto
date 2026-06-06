@@ -17,7 +17,7 @@ class CommuteTravelTimeRepositoryTest {
         assertThat(source).contains("gtfs_stop_times");
         assertThat(source).contains("gtfs_station_stops");
         assertThat(source).contains("percentile_cont(0.5)");
-        assertThat(source).contains("next_time.arrival_seconds - current_time.departure_seconds");
+        assertThat(source).contains("next_time.arrival_seconds - curr_time.departure_seconds");
         assertThat(source).contains("between 30 and 900");
         assertThat(source).contains("segment.station_a_id = adjacent.station_a_id");
         assertThat(source).contains("segment.station_b_id = adjacent.station_b_id");

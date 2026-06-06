@@ -47,17 +47,17 @@ public class CommuteTravelTimeRepository {
                  and route.line_id = station_stop.line_id
             ),
             adjacent as (
-                select current_time.line_id,
-                       current_time.station_id as station_a_id,
+                select curr_time.line_id,
+                       curr_time.station_id as station_a_id,
                        next_time.station_id as station_b_id,
-                       next_time.arrival_seconds - current_time.departure_seconds as travel_seconds
-                from station_times current_time
+                       next_time.arrival_seconds - curr_time.departure_seconds as travel_seconds
+                from station_times curr_time
                 join station_times next_time
-                  on next_time.line_id = current_time.line_id
-                 and next_time.trip_id = current_time.trip_id
-                 and next_time.stop_sequence = current_time.stop_sequence + 1
-                where current_time.station_id <> next_time.station_id
-                  and next_time.arrival_seconds - current_time.departure_seconds between 30 and 900
+                  on next_time.line_id = curr_time.line_id
+                 and next_time.trip_id = curr_time.trip_id
+                 and next_time.stop_sequence = curr_time.stop_sequence + 1
+                where curr_time.station_id <> next_time.station_id
+                  and next_time.arrival_seconds - curr_time.departure_seconds between 30 and 900
             ),
             matched as (
                 select segment.id as segment_id,
