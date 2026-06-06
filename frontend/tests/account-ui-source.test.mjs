@@ -5,6 +5,7 @@ import { describe, it } from "node:test";
 const shellSource = readFileSync(new URL("../src/components/LineWatchShell.tsx", import.meta.url), "utf8");
 const savedCommutesSource = readFileSync(new URL("../src/components/SavedCommutesPanel.tsx", import.meta.url), "utf8");
 const globalCss = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
+const savedCommutePickerSource = readFileSync(new URL("../src/components/SavedCommuteStationPicker.tsx", import.meta.url), "utf8");
 
 describe("account UI source", () => {
   it("loads account state and exposes sign-in, create-account, demo, and sign-out actions", () => {
@@ -41,5 +42,15 @@ describe("account UI source", () => {
     assert.match(globalCss, /\.account-action-row/);
     assert.match(globalCss, /\.saved-commute-form/);
     assert.doesNotMatch(shellSource, /hero|landing/i);
+  });
+
+  it("defines a compact saved-commute station picker using station search helpers", () => {
+    assert.match(savedCommutePickerSource, /searchStations/);
+    assert.match(savedCommutePickerSource, /buildStationLineGroups/);
+    assert.match(savedCommutePickerSource, /commute-station-picker/);
+    assert.match(savedCommutePickerSource, /role="searchbox"/);
+    assert.match(savedCommutePickerSource, /aria-haspopup="listbox"/);
+    assert.match(globalCss, /\.commute-station-picker/);
+    assert.match(globalCss, /\.commute-station-popover/);
   });
 });

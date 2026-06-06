@@ -3261,3 +3261,187 @@ button {
 .high-contrast .legend-delay-button:focus-visible {
   background: rgba(254, 236, 65, 0.1);
 }
+
+.commute-station-picker {
+  display: grid;
+  gap: 0.35rem;
+  min-width: 0;
+  position: relative;
+}
+
+.commute-station-label {
+  color: rgb(71, 85, 105);
+  font-size: 0.62rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.dark .commute-station-label,
+.high-contrast .commute-station-label {
+  color: rgb(203, 213, 225);
+}
+
+.commute-station-trigger,
+.commute-station-search-row,
+.commute-station-popover {
+  border: 1px solid rgba(15, 23, 42, 0.14);
+  border-radius: 8px;
+}
+
+.commute-station-trigger {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.92);
+  color: rgb(15, 23, 42);
+  display: flex;
+  font-size: 0.78rem;
+  font-weight: 800;
+  justify-content: space-between;
+  min-height: 40px;
+  min-width: 0;
+  padding: 0.5rem 0.625rem;
+  text-align: left;
+  width: 100%;
+}
+
+.commute-station-trigger span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.commute-station-popover {
+  background: rgba(248, 250, 252, 0.98);
+  box-shadow: 0 18px 44px rgba(15, 23, 42, 0.2);
+  display: grid;
+  gap: 0.45rem;
+  left: 0;
+  max-height: 320px;
+  overflow: auto;
+  padding: 0.5rem;
+  position: absolute;
+  right: 0;
+  top: calc(100% + 0.35rem);
+  z-index: 50;
+}
+
+.commute-station-search-row {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.95);
+  display: grid;
+  gap: 0.35rem;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  min-height: 36px;
+  padding: 0 0.45rem;
+}
+
+.commute-station-search-row input {
+  background: transparent;
+  border: 0;
+  color: inherit;
+  font-size: 0.78rem;
+  min-height: 34px;
+  outline: 0;
+  padding: 0;
+}
+
+.commute-station-search-row button {
+  align-items: center;
+  background: transparent;
+  color: inherit;
+  display: inline-flex;
+  justify-content: center;
+  min-height: 28px;
+  padding: 0;
+  width: 28px;
+}
+
+.commute-station-lines,
+.commute-station-options {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.commute-station-line-trigger,
+.commute-station-option {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.66);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 7px;
+  color: rgb(15, 23, 42);
+  display: flex;
+  font-size: 0.74rem;
+  font-weight: 800;
+  justify-content: space-between;
+  min-height: 34px;
+  min-width: 0;
+  padding: 0.4rem 0.5rem;
+  text-align: left;
+  width: 100%;
+}
+
+.commute-station-line-trigger span,
+.commute-station-option-name {
+  align-items: center;
+  display: flex;
+  gap: 0.35rem;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.commute-station-line-trigger[aria-expanded="true"],
+.commute-station-option:hover,
+.commute-station-option:focus-visible,
+.commute-station-option.selected {
+  border-color: rgba(14, 165, 233, 0.42);
+  background: rgba(14, 165, 233, 0.1);
+}
+
+.commute-station-option:disabled {
+  cursor: not-allowed;
+  opacity: 0.42;
+}
+
+.commute-station-line-badges {
+  display: inline-flex;
+  flex: 0 0 auto;
+  gap: 0.2rem;
+}
+
+.commute-station-line-badge {
+  align-items: center;
+  border-radius: 999px;
+  display: inline-flex;
+  font-size: 0.62rem;
+  font-weight: 950;
+  height: 18px;
+  justify-content: center;
+  min-width: 18px;
+  padding: 0 0.28rem;
+}
+
+.commute-station-empty {
+  color: rgb(100, 116, 139);
+  font-size: 0.74rem;
+  font-weight: 700;
+  margin: 0;
+  padding: 0.45rem;
+}
+
+.dark .commute-station-trigger,
+.high-contrast .commute-station-trigger,
+.dark .commute-station-popover,
+.high-contrast .commute-station-popover,
+.dark .commute-station-search-row,
+.high-contrast .commute-station-search-row,
+.dark .commute-station-line-trigger,
+.high-contrast .commute-station-line-trigger,
+.dark .commute-station-option,
+.high-contrast .commute-station-option {
+  background: rgba(15, 23, 42, 0.94);
+  border-color: rgba(255, 255, 255, 0.14);
+  color: rgb(248, 250, 252);
+}
