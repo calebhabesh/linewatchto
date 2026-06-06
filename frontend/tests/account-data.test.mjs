@@ -3,11 +3,15 @@ import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 
 import {
+  AccountRequestError,
+  confirmPasswordReset,
   createSavedCommute,
   getCurrentAccount,
   getSavedCommutes,
   loginDemoAccount,
   logoutAccount,
+  registerAccount,
+  requestPasswordReset,
 } from "../src/app/account-data.ts";
 
 describe("account data adapter", () => {
@@ -69,6 +73,56 @@ describe("account data adapter", () => {
     assert.equal(result.user.email, "demo@linewatch.local");
     assert.equal(requests[0].init.method, "POST");
     assert.equal(requests[0].init.credentials, "include");
+  });
+
+  it("posts registration with normalized payload and credentials included", async () => {
+    const requests = [];
+    const result = await registerAccount(
+      { email: "rider@example.com", password: "correct horse battery staple", displayName: "Rider" },
+      {
+        fetcher: async (input, init) => {
+          requests.push({ input, init });
+          return new Response(
+            JSON.stringify({
+              authenticated: true,
+              user: { id: "user_1", email: "rider@example.com", displayName: "Rider", demo: false },
+            }),
+            { status: 200, headers: { "content-type": "application/json" } }
+          );
+        },
+      }
+    );
+
+    assert.equal(result.authenticated, true);
+    assert.equal(requests[0].init.method, "POST");
+    assert.equal(requests[0].init.credentials, "include");
+    assert.equal(requests[0].init.body, JSON.stringify({
+      email: "rider@example.com",
+      password: "correct horse battery staple",
+      displayName: "Rider",
+    }));
+  });
+
+  it("surfaces backend account error messages", async () => {
+    await assert.rejects(
+      () => registerAccount(
+        { email: "rider@example.com", password: "correct horse battery staple", displayName: "Rider" },
+        {
+          fetcher: async () =>
+            new Response(
+              JSON.stringify({ error: "email_exists", message: "An account with that email already exists." }),
+              { status: 409, headers: { "content-type": "application/json" } }
+            ),
+        }
+      ),
+      (error) => {
+        assert.equal(error instanceof AccountRequestError, true);
+        assert.equal(error.status, 409);
+        assert.equal(error.errorCode, "email_exists");
+        assert.equal(error.message, "An account with that email already exists.");
+        return true;
+      }
+    );
   });
 
   it("loads account saved commutes", async () => {
@@ -172,5 +226,57 @@ describe("account data adapter", () => {
     assert.equal(requests[0].init.credentials, "include");
     assert.equal(requests[1].init.method, "POST");
     assert.equal(requests[1].init.credentials, "include");
+  });
+
+  it("requests password reset with credentials included", async () => {
+    const requests = [];
+    const result = await requestPasswordReset(
+      { email: "rider@example.com" },
+      {
+        fetcher: async (input, init) => {
+          requests.push({ input, init });
+          return new Response(
+            JSON.stringify({
+              accepted: true,
+              message: "If an account exists for that email, a password reset link is available.",
+              devResetToken: "dev-token",
+              expiresAt: "2026-06-05T15:00:00Z",
+            }),
+            { status: 200, headers: { "content-type": "application/json" } }
+          );
+        },
+      }
+    );
+
+    assert.equal(result.accepted, true);
+    assert.equal(result.devResetToken, "dev-token");
+    assert.equal(requests[0].init.method, "POST");
+    assert.equal(requests[0].init.credentials, "include");
+    assert.equal(requests[0].init.body, JSON.stringify({ email: "rider@example.com" }));
+  });
+
+  it("confirms password reset and returns authenticated user", async () => {
+    const requests = [];
+    const result = await confirmPasswordReset(
+      { token: "dev-token", password: "new correct horse 2" },
+      {
+        fetcher: async (input, init) => {
+          requests.push({ input, init });
+          return new Response(
+            JSON.stringify({
+              authenticated: true,
+              user: { id: "user_1", email: "rider@example.com", displayName: "Rider", demo: false },
+            }),
+            { status: 200, headers: { "content-type": "application/json" } }
+          );
+        },
+      }
+    );
+
+    assert.equal(result.authenticated, true);
+    assert.equal(result.user.email, "rider@example.com");
+    assert.equal(requests[0].init.method, "POST");
+    assert.equal(requests[0].init.credentials, "include");
+    assert.equal(requests[0].init.body, JSON.stringify({ token: "dev-token", password: "new correct horse 2" }));
   });
 });

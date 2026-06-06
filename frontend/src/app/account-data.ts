@@ -26,6 +26,13 @@ export type AuthResponse = {
   user: AccountUser | null;
 };
 
+export type PasswordResetRequestResponse = {
+  accepted: boolean;
+  message: string;
+  devResetToken?: string | null;
+  expiresAt?: string | null;
+};
+
 export type AccountCommutePath = {
   status: "available" | "unavailable";
   stationIds: string[];
@@ -120,7 +127,34 @@ async function readJson<T>(response: Response): Promise<T> {
   return await response.json() as T;
 }
 
-async function authRequest(path: string, init: RequestInit = {}, options: AdapterOptions = {}): Promise<AuthResponse> {
+export class AccountRequestError extends Error {
+  status: number;
+  errorCode: string | null;
+
+  constructor(status: number, message: string, errorCode: string | null = null) {
+    super(message);
+    this.name = "AccountRequestError";
+    this.status = status;
+    this.errorCode = errorCode;
+  }
+}
+
+async function readAccountError(response: Response) {
+  try {
+    const body = await response.json() as { error?: string; message?: string };
+    return {
+      errorCode: body.error ?? null,
+      message: body.message || `Account request failed with ${response.status}`,
+    };
+  } catch {
+    return {
+      errorCode: null,
+      message: `Account request failed with ${response.status}`,
+    };
+  }
+}
+
+async function authJsonRequest<T>(path: string, init: RequestInit = {}, options: AdapterOptions = {}): Promise<T> {
   const fetcher = options.fetcher ?? fetch;
   const response = await fetcher(apiUrl(path, options), {
     ...init,
@@ -131,9 +165,14 @@ async function authRequest(path: string, init: RequestInit = {}, options: Adapte
     },
   });
   if (!response.ok) {
-    throw new Error(`Account request failed with ${response.status}`);
+    const error = await readAccountError(response);
+    throw new AccountRequestError(response.status, error.message, error.errorCode);
   }
-  return readJson<AuthResponse>(response);
+  return readJson<T>(response);
+}
+
+async function authRequest(path: string, init: RequestInit = {}, options: AdapterOptions = {}): Promise<AuthResponse> {
+  return authJsonRequest<AuthResponse>(path, init, options);
 }
 
 export async function getCurrentAccount(options: AdapterOptions = {}): Promise<AccountState> {
@@ -156,6 +195,22 @@ export async function registerAccount(input: { email: string; password: string; 
 
 export async function loginAccount(input: { email: string; password: string }, options: AdapterOptions = {}) {
   return authRequest("/api/auth/login", { method: "POST", body: JSON.stringify(input) }, options);
+}
+
+export async function requestPasswordReset(input: { email: string }, options: AdapterOptions = {}) {
+  return authJsonRequest<PasswordResetRequestResponse>(
+    "/api/auth/password-reset/request",
+    { method: "POST", body: JSON.stringify(input) },
+    options
+  );
+}
+
+export async function confirmPasswordReset(input: { token: string; password: string }, options: AdapterOptions = {}) {
+  return authRequest(
+    "/api/auth/password-reset/confirm",
+    { method: "POST", body: JSON.stringify(input) },
+    options
+  );
 }
 
 export async function loginDemoAccount(options: AdapterOptions = {}) {
