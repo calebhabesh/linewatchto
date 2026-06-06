@@ -27,6 +27,7 @@ Implemented now:
 - Planned closure cards with map preview highlighting.
 - Legend SVG icons for Lines 1, 2, 4, 5, and 6.
 - Account-backed saved commutes with weighted default rapid-transit route matching and dashboard-visible impact summaries.
+- Account sign-in supports local/dev password reset through a reset-token flow; production email delivery is a future integration point.
 - Reliability snapshot panel.
 - Ingestion/system health panel in fixture mode.
 - High-contrast display toggle.
@@ -330,7 +331,6 @@ Out of scope for v1:
 - Crowding prediction.
 - Native mobile app.
 - iOS/Android widgets.
-- User accounts and passwords.
 - Push or email notifications.
 
 ## Target Architecture
