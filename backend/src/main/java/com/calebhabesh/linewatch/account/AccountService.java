@@ -5,6 +5,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Locale;
 import java.util.UUID;
+import java.util.regex.Pattern;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -14,36 +15,51 @@ import org.springframework.transaction.annotation.Transactional;
 public class AccountService {
     public static final String DEMO_EMAIL = "demo@linewatch.local";
     private static final Duration SESSION_TTL = Duration.ofDays(14);
-    private static final int MIN_PASSWORD_LENGTH = 10;
+    private static final int MIN_PASSWORD_LENGTH = 8;
+    private static final Pattern EMAIL_PATTERN = Pattern.compile(
+        "^[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}$",
+        Pattern.CASE_INSENSITIVE
+    );
+
+    private static final Duration PASSWORD_RESET_TTL = Duration.ofMinutes(30);
+    private static final String PASSWORD_RESET_MESSAGE = "If an account exists for that email, a password reset link is available.";
 
     private final AccountRepository accountRepository;
     private final UserSessionRepository sessionRepository;
+    private final PasswordResetTokenRepository passwordResetTokenRepository;
     private final PasswordHasher passwordHasher;
     private final SessionTokenService tokenService;
     private final Clock clock;
+    private final boolean passwordResetDevLinks;
 
     @Autowired
     public AccountService(
         AccountRepository accountRepository,
         UserSessionRepository sessionRepository,
+        PasswordResetTokenRepository passwordResetTokenRepository,
         PasswordHasher passwordHasher,
-        SessionTokenService tokenService
+        SessionTokenService tokenService,
+        @org.springframework.beans.factory.annotation.Value("${linewatch.auth.password-reset.dev-links:false}") boolean passwordResetDevLinks
     ) {
-        this(accountRepository, sessionRepository, passwordHasher, tokenService, Clock.systemUTC());
+        this(accountRepository, sessionRepository, passwordResetTokenRepository, passwordHasher, tokenService, Clock.systemUTC(), passwordResetDevLinks);
     }
 
     AccountService(
         AccountRepository accountRepository,
         UserSessionRepository sessionRepository,
+        PasswordResetTokenRepository passwordResetTokenRepository,
         PasswordHasher passwordHasher,
         SessionTokenService tokenService,
-        Clock clock
+        Clock clock,
+        boolean passwordResetDevLinks
     ) {
         this.accountRepository = accountRepository;
         this.sessionRepository = sessionRepository;
+        this.passwordResetTokenRepository = passwordResetTokenRepository;
         this.passwordHasher = passwordHasher;
         this.tokenService = tokenService;
         this.clock = clock;
+        this.passwordResetDevLinks = passwordResetDevLinks;
     }
 
     @Transactional
@@ -158,7 +174,7 @@ public class AccountService {
 
     private String normalizeEmail(String email) {
         String normalized = email == null ? "" : email.trim().toLowerCase(Locale.ROOT);
-        if (normalized.isBlank() || !normalized.contains("@")) {
+        if (normalized.isBlank() || !EMAIL_PATTERN.matcher(normalized).matches()) {
             throw new AccountException(HttpStatus.BAD_REQUEST, "invalid_email", "Enter a valid email address.");
         }
         return normalized;
@@ -173,8 +189,19 @@ public class AccountService {
     }
 
     private void validatePassword(String password) {
-        if (password == null || password.length() < MIN_PASSWORD_LENGTH) {
-            throw new AccountException(HttpStatus.BAD_REQUEST, "weak_password", "Password must be at least 10 characters.");
+        String candidate = password == null ? "" : password.trim();
+        if (candidate.length() < MIN_PASSWORD_LENGTH) {
+            throw new AccountException(HttpStatus.BAD_REQUEST, "weak_password", "Password must be at least 8 characters.");
+        }
+        boolean hasLetter = candidate.chars().anyMatch(Character::isLetter);
+        if (!hasLetter) {
+            throw new AccountException(HttpStatus.BAD_REQUEST, "weak_password", "Password must include at least one letter.");
+        }
+        boolean hasNumberSymbolOrSpace = candidate.chars().anyMatch(value ->
+            Character.isDigit(value) || !Character.isLetterOrDigit(value)
+        );
+        if (!hasNumberSymbolOrSpace) {
+            throw new AccountException(HttpStatus.BAD_REQUEST, "weak_password", "Password must include a number, symbol, or space.");
         }
     }
 
@@ -186,6 +213,64 @@ public class AccountService {
         return prefix + "_" + UUID.randomUUID().toString().replace("-", "");
     }
 
+    @Transactional
+    public PasswordResetRequestResponse requestPasswordReset(PasswordResetRequest request) {
+        String email = normalizeEmail(request.email());
+        Instant now = clock.instant();
+        passwordResetTokenRepository.deleteExpiredTokens(now);
+
+        return accountRepository.findByEmail(email)
+            .map(account -> {
+                passwordResetTokenRepository.deleteUnusedByAccountId(account.getId());
+                SessionTokenService.GeneratedSessionToken token = tokenService.generateToken();
+                Instant expiresAt = now.plus(PASSWORD_RESET_TTL);
+                passwordResetTokenRepository.save(PasswordResetTokenEntity.create(
+                    nextId("reset"),
+                    account,
+                    token.tokenHash(),
+                    now,
+                    expiresAt
+                ));
+                return new PasswordResetRequestResponse(
+                    true,
+                    PASSWORD_RESET_MESSAGE,
+                    passwordResetDevLinks ? token.rawToken() : null,
+                    expiresAt
+                );
+            })
+            .orElseGet(() -> new PasswordResetRequestResponse(true, PASSWORD_RESET_MESSAGE, null, null));
+    }
+
+    @Transactional
+    public AccountResponses.AuthSession confirmPasswordReset(PasswordResetConfirmRequest request) {
+        String rawToken = request.token() == null ? "" : request.token().trim();
+        if (rawToken.isBlank()) {
+            throw new AccountException(HttpStatus.BAD_REQUEST, "invalid_reset_token", "Reset link expired or invalid.");
+        }
+        validatePassword(request.password());
+
+        Instant now = clock.instant();
+        String tokenHash = tokenService.hashToken(rawToken);
+        PasswordResetTokenEntity resetToken = passwordResetTokenRepository.findByTokenHash(tokenHash)
+            .filter(token -> token.isUsableAt(now))
+            .orElseThrow(() -> new AccountException(HttpStatus.BAD_REQUEST, "invalid_reset_token", "Reset link expired or invalid."));
+
+        AccountEntity account = resetToken.getAccount();
+        account.replacePasswordHash(passwordHasher.hash(request.password()));
+        resetToken.markUsed(now);
+        sessionRepository.deleteByAccountId(account.getId());
+        account.markLogin(now);
+        return createSession(account, now);
+    }
+
     public record RegisterRequest(String email, String password, String displayName) {}
     public record LoginRequest(String email, String password) {}
+    public record PasswordResetRequest(String email) {}
+    public record PasswordResetConfirmRequest(String token, String password) {}
+    public record PasswordResetRequestResponse(
+        boolean accepted,
+        String message,
+        String devResetToken,
+        Instant expiresAt
+    ) {}
 }
