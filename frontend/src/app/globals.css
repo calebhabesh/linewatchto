@@ -3119,7 +3119,7 @@ button {
 }
 
 .account-primary-button,
-.saved-commute-form button,
+.saved-commute-primary-button,
 .saved-commute-account-prompt button {
   border-radius: 8px;
   background: rgb(15, 23, 42);
@@ -3129,16 +3129,32 @@ button {
   min-height: 38px;
   padding: 0.5rem 0.75rem;
   text-transform: uppercase;
+  transition: all 0.2s ease;
+}
+
+.account-primary-button:hover:not(:disabled),
+.saved-commute-primary-button:hover:not(:disabled) {
+  background: rgb(30, 41, 59);
 }
 
 .dark .account-primary-button,
-.dark .saved-commute-form button,
 .dark .saved-commute-account-prompt button,
 .high-contrast .account-primary-button,
-.high-contrast .saved-commute-form button,
+.high-contrast .saved-commute-primary-button,
 .high-contrast .saved-commute-account-prompt button {
   background: rgb(226, 232, 240);
   color: rgb(15, 23, 42);
+}
+
+.dark .saved-commute-primary-button {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: rgb(241, 245, 249);
+}
+
+.dark .saved-commute-primary-button:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.16);
+  border-color: rgba(255, 255, 255, 0.22);
 }
 
 .saved-commute-account-prompt,
@@ -3302,6 +3318,17 @@ button {
   padding: 0.5rem 0.625rem;
   text-align: left;
   width: 100%;
+  transition: all 0.2s ease;
+}
+
+.commute-station-trigger:hover {
+  background: rgba(255, 255, 255, 1);
+  border-color: rgba(15, 23, 42, 0.25);
+}
+
+.dark .commute-station-trigger:hover {
+  background: rgba(30, 41, 59, 0.92);
+  border-color: rgba(255, 255, 255, 0.25);
 }
 
 .commute-station-trigger span {
