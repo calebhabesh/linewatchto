@@ -5,16 +5,12 @@
 - [x] Nightly closures still  not working
 - [x] Auth
 - [x] Provide rich information per station, for arrivals, escalator/station specific information, each station should also have a label for the line it is on when you open it
-- [ ] Info Widget for guide on how to use/visualize web app, maybe fully integrated and static on the site like the cardinal direction
 - [x] Revamp, delay ui overlay, and station alert overlay (maybe like a probing effect, heart monitor pulse)
 - [x] Search Stations functionality
 - [x] sync card and actual section flashing/pulse when pressed
-- [ ] Demo cards from "Saved Commutes" still remains.
-- [ ] Login or sign up needs strict error handling/regex for valid emails passwords, etc.
-- [ ] Does the all alert types backend not use the same user db as the live? It's not recognizing my login on the test server
 - [x] Saved Commutes station search needs to be more elegant
-- [ ] Ask question, does different backend (all alert types) psql different from the live one?
-- [ ] All fields should be capitalized for submenu cards (that is first letter of each word where possible)
+- [ ] Login or sign up needs strict error handling/regex for valid emails passwords, etc.
+- [ ] Info Widget for guide on how to use/visualize web app, maybe fully integrated and static on the site like the cardinal direction
 
 ## Future Additions
 - [ ] Station impacts tie to the arrivals subsection in the station submenu 

@@ -14,7 +14,7 @@ export function useScrollSelectedImpactCard(
     );
     if (!card) return;
 
-    card.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    card.scrollIntoView({ block: "center", behavior: "smooth" });
     card.classList.remove("highlight-active-card");
     void card.offsetWidth;
     card.classList.add("highlight-active-card");
