@@ -3171,13 +3171,17 @@ button {
 }
 
 .saved-commute-form {
-  background: rgba(248, 250, 252, 0.88);
+  background: rgb(248, 250, 252);
+}
+
+.dark .saved-commute-form,
+.high-contrast .saved-commute-form {
+  border-color: rgba(255, 255, 255, 0.12);
+  background: rgb(15, 23, 42);
 }
 
 .dark .saved-commute-account-prompt,
-.high-contrast .saved-commute-account-prompt,
-.dark .saved-commute-form,
-.high-contrast .saved-commute-form {
+.high-contrast .saved-commute-account-prompt {
   border-color: rgba(255, 255, 255, 0.12);
   background: rgba(15, 23, 42, 0.62);
 }
@@ -3594,29 +3598,43 @@ button {
   stroke-linejoin: round;
 }
 
+@keyframes commute-path-glow-pulse {
+  0%, 100% {
+    opacity: 0.36;
+    stroke-width: 100;
+  }
+  50% {
+    opacity: 0.75;
+    stroke-width: 135;
+  }
+}
+
 .commute-path-preview-glow {
-  opacity: 0.7;
-  stroke: rgba(255, 255, 255, 0.82);
-  stroke-width: 122;
+  fill: none;
+  pointer-events: none;
+  stroke: rgba(37, 99, 235, 0.7) !important; /* deep blue glow */
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  animation: commute-path-glow-pulse 2.2s ease-in-out infinite;
 }
 
 .commute-path-preview-path {
-  opacity: 0.92;
-  stroke: #22d3ee;
+  opacity: 1; /* fully opaque */
+  stroke: #1d4ed8; /* deeper blue path */
   stroke-width: 74;
 }
 
 .commute-path-preview-endpoint {
   fill: #f8fafc;
   pointer-events: none;
-  stroke: #0891b2;
+  stroke: #1d4ed8;
   stroke-width: 12;
 }
 
 .commute-path-preview-chip {
   align-items: center;
   background: rgba(248, 250, 252, 0.94);
-  border: 1px solid rgba(8, 145, 178, 0.28);
+  border: 1px solid rgba(29, 78, 216, 0.28);
   border-radius: 8px;
   bottom: 1rem;
   box-shadow: 0 14px 34px rgba(15, 23, 42, 0.22);
@@ -3641,7 +3659,8 @@ button {
 }
 
 .commute-path-preview-chip strong {
-  color: rgb(14, 116, 144);
+  color: #1e3a8a; /* deep navy blue in light mode */
+  font-weight: 800;
 }
 
 .commute-path-preview-chip button {
@@ -3659,12 +3678,191 @@ button {
 .dark .commute-path-preview-chip,
 .high-contrast .commute-path-preview-chip {
   background: rgba(15, 23, 42, 0.94);
-  border-color: rgba(34, 211, 238, 0.34);
+  border-color: rgba(29, 78, 216, 0.34);
   color: rgb(248, 250, 252);
+}
+
+.dark .commute-path-preview-chip strong,
+.high-contrast .commute-path-preview-chip strong {
+  color: #93c5fd !important; /* light sky blue in dark mode */
 }
 
 .dark .commute-path-preview-chip button,
 .high-contrast .commute-path-preview-chip button {
   background: rgb(226, 232, 240);
   color: rgb(15, 23, 42);
+}
+
+.commute-station-browse-container {
+  display: flex;
+  gap: 0.5rem;
+  overflow: hidden;
+}
+
+.commute-station-lines-column {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.commute-station-stations-column {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  border-left: 1px solid rgba(15, 23, 42, 0.12);
+  padding-left: 0.5rem;
+  width: 260px; /* Expanded from 200px to avoid squishing */
+  flex-shrink: 0;
+  overflow-y: auto;
+  max-height: 240px;
+}
+
+.dark .commute-station-stations-column {
+  border-left-color: rgba(255, 255, 255, 0.12);
+}
+
+.commute-station-stations-column-header {
+  padding: 0.2rem 0.3rem;
+  font-size: 0.65rem;
+}
+
+.commute-station-line-trigger {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.66);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 7px;
+  color: rgb(15, 23, 42);
+  display: flex;
+  font-size: 0.74rem;
+  font-weight: 800;
+  justify-content: space-between;
+  min-height: 34px;
+  min-width: 0;
+  padding: 0.4rem 0.5rem;
+  text-align: left;
+  width: 100%;
+  transition: all 0.2s ease;
+}
+
+.commute-station-line-trigger:hover,
+.commute-station-line-trigger.active {
+  border-color: rgba(14, 165, 233, 0.42);
+  background: rgba(14, 165, 233, 0.1);
+}
+
+.commute-station-line-chevron {
+  transition: transform 0.2s ease;
+}
+
+.commute-station-line-trigger.active .commute-station-line-chevron {
+  transform: rotate(90deg);
+}
+
+.dark .commute-station-line-trigger {
+  background: rgba(15, 23, 42, 0.94);
+  border-color: rgba(255, 255, 255, 0.14);
+  color: rgb(248, 250, 252);
+}
+
+@keyframes station-commute-green-flash-anim {
+  0%, 100% {
+    transform: scale(0.2);
+    opacity: 0;
+    filter: drop-shadow(0 0 0px transparent);
+  }
+  50% {
+    transform: scale(3.5);
+    opacity: 0.95;
+    filter: drop-shadow(0 0 16px #00ff66) drop-shadow(0 0 32px #00ff66);
+  }
+}
+
+.station-commute-green-flash {
+  fill: rgba(0, 255, 102, 0.55) !important; /* very strong neon green fill pulse */
+  stroke: #00ff66 !important; /* neon LED green stroke */
+  stroke-width: 2.0 !important; /* clean, crisp outline weight */
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: station-commute-green-flash-anim 2.2s ease-in-out infinite;
+}
+
+.motion-paused .station-commute-green-flash {
+  animation: none;
+  opacity: 0.95;
+}
+
+/* Saved route delete action styling - right aligned, white container box, red text */
+.commute-route-delete-button,
+.commute-route-delete-confirm-button {
+  margin-left: auto !important; /* right aligned */
+  background-color: #ffffff !important; /* white container box */
+  color: #dc2626 !important; /* red text */
+  border: 1px solid rgba(15, 23, 42, 0.15) !important;
+  border-radius: 8px !important;
+  font-size: 0.68rem;
+  font-weight: 900;
+  min-height: 30px;
+  padding: 0.35rem 0.65rem;
+  text-transform: uppercase;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.commute-route-delete-button:hover,
+.commute-route-delete-confirm-button:hover {
+  background-color: #f8fafc !important;
+  color: #b91c1c !important;
+  border-color: rgba(15, 23, 42, 0.25) !important;
+}
+
+.commute-route-delete-cancel-button {
+  background-color: transparent !important;
+  color: rgb(100, 116, 139) !important; /* slate-500 */
+  border: 1px solid rgba(15, 23, 42, 0.12) !important;
+  border-radius: 8px !important;
+  font-size: 0.68rem;
+  font-weight: 900;
+  min-height: 30px;
+  padding: 0.35rem 0.65rem;
+  text-transform: uppercase;
+  transition: all 0.2s ease;
+}
+
+.commute-route-delete-cancel-button:hover {
+  background-color: rgba(15, 23, 42, 0.05) !important;
+  color: rgb(15, 23, 42) !important;
+}
+
+/* Dark mode overrides for buttons to keep the white container/red text aesthetic readable and premium */
+.dark .commute-route-delete-button,
+.dark .commute-route-delete-confirm-button {
+  background-color: #ffffff !important;
+  color: #dc2626 !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+.dark .commute-route-delete-button:hover,
+.dark .commute-route-delete-confirm-button:hover {
+  background-color: #f1f5f9 !important;
+  color: #b91c1c !important;
+}
+
+.dark .commute-route-delete-cancel-button {
+  color: rgb(148, 163, 184) !important; /* slate-400 */
+  border-color: rgba(255, 255, 255, 0.12) !important;
+}
+
+.dark .commute-route-delete-cancel-button:hover {
+  background-color: rgba(255, 255, 255, 0.05) !important;
+  color: rgb(255, 255, 255) !important;
+}
+
+/* High Contrast Mode overrides */
+.high-contrast .commute-route-delete-button,
+.high-contrast .commute-route-delete-confirm-button {
+  background-color: #ffffff !important;
+  color: #ff0000 !important;
+  border: 2px solid #ff0000 !important;
 }

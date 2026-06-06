@@ -131,11 +131,20 @@ export function SavedCommuteStationPicker({
       const trigger = rootRef.current?.querySelector(".commute-station-trigger");
       if (trigger) {
         const rect = trigger.getBoundingClientRect();
-        setCoords({
-          top: rect.bottom + window.scrollY,
-          left: rect.left + window.scrollX,
-          width: rect.width,
-        });
+        let left = rect.left + window.scrollX;
+        const extraWidth = expandedLineId ? 280 : 0;
+        const popWidth = rect.width + extraWidth;
+        if (left + popWidth > window.innerWidth + window.scrollX - 16) {
+          left = window.innerWidth + window.scrollX - popWidth - 16;
+        }
+        if (left < 16) left = 16;
+        window.setTimeout(() => {
+          setCoords({
+            top: rect.bottom + window.scrollY,
+            left,
+            width: popWidth,
+          });
+        }, 0);
       }
     };
 
@@ -147,7 +156,7 @@ export function SavedCommuteStationPicker({
       window.removeEventListener("scroll", updateCoords, true);
       window.removeEventListener("resize", updateCoords);
     };
-  }, [open]);
+  }, [open, expandedLineId]);
 
   function chooseStation(stationId: string) {
     if (stationId === blockedStationId) return;
@@ -241,40 +250,51 @@ export function SavedCommuteStationPicker({
                   )}
                 </div>
               ) : (
-                <div className="commute-station-lines">
-                  {lineGroups.map((group) => {
-                    const expanded = expandedLineId === group.line.id;
-                    return (
-                      <div key={group.line.id} className="commute-station-line-group">
+                <div className="commute-station-browse-container">
+                  <div className="commute-station-lines-column">
+                    {lineGroups.map((group) => {
+                      const expanded = expandedLineId === group.line.id;
+                      return (
                         <button
+                          key={group.line.id}
                           type="button"
-                          className="commute-station-line-trigger"
-                          aria-expanded={expanded}
+                          className={`commute-station-line-trigger ${expanded ? "active" : ""}`}
                           onClick={() => setExpandedLineId((current) => current === group.line.id ? null : group.line.id)}
+                          aria-expanded={expanded}
                         >
                           <span>
                             <StationLineBadge line={group.line} />
                             Line {group.line.number} {group.line.name}
                           </span>
-                          <ChevronRight size={15} aria-hidden="true" />
+                          <ChevronRight size={15} aria-hidden="true" className="commute-station-line-chevron" />
                         </button>
-                        {expanded ? (
-                          <div className="commute-station-options">
-                            {group.stations.map((station) => (
-                              <StationOption
-                                key={`${group.line.id}-${station.id}`}
-                                station={station}
-                                selected={station.id === value}
-                                disabled={station.id === blockedStationId}
-                                disabledReason={blockedLabel}
-                                onChoose={chooseStation}
-                              />
-                            ))}
-                          </div>
-                        ) : null}
+                      );
+                    })}
+                  </div>
+
+                  {expandedLineId ? (
+                    <div className="commute-station-stations-column">
+                      <div className="commute-station-stations-column-header">
+                        <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                          {lineGroups.find((g) => g.line.id === expandedLineId)?.line.name} Stations
+                        </span>
                       </div>
-                    );
-                  })}
+                      <div className="commute-station-options">
+                        {lineGroups
+                          .find((group) => group.line.id === expandedLineId)
+                          ?.stations.map((station) => (
+                            <StationOption
+                              key={`${expandedLineId}-${station.id}`}
+                              station={station}
+                              selected={station.id === value}
+                              disabled={station.id === blockedStationId}
+                              disabledReason={blockedLabel}
+                              onChoose={chooseStation}
+                            />
+                          ))}
+                      </div>
+                    </div>
+                  ) : null}
                 </div>
               )}
             </div>,

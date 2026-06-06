@@ -208,7 +208,13 @@ export function LineWatchShell({ initialData }: { initialData: DashboardData }) 
   const handleClearCommutePathPreview = (commuteId?: string) => {
     setCommutePathPreview((current) => {
       if (!current) return null;
-      return commuteId && current.id !== commuteId ? current : null;
+      if (commuteId && current.id !== commuteId) {
+        return current;
+      }
+      window.setTimeout(() => {
+        setActiveView((view) => (view === "map" ? "commutes" : view));
+      }, 0);
+      return null;
     });
   };
 

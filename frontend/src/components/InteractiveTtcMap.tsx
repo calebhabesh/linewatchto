@@ -300,6 +300,14 @@ export function InteractiveTtcMap({
 
   const [flashSelection, setFlashSelection] = useState<ImpactSelection>(null);
   const [flashStationId, setFlashStationId] = useState<string | null>(null);
+  const commuteFlashStationIds = useMemo(() => {
+    if (!commutePathPreview || commutePathPreview.stationIds.length === 0) {
+      return [];
+    }
+    const origin = commutePathPreview.stationIds[0];
+    const destination = commutePathPreview.stationIds.at(-1);
+    return origin && destination ? [origin, destination] : [];
+  }, [commutePathPreview]);
 
   useEffect(() => {
     if (!selection) {
@@ -913,6 +921,16 @@ export function InteractiveTtcMap({
                           pointerEvents="none"
                         />
                       )}
+                      {commuteFlashStationIds.includes(station.id) && (
+                        <circle
+                          data-map-highlight-id={station.id}
+                          className="station-commute-green-flash"
+                          cx={point.x}
+                          cy={point.y}
+                          r={station.interchange ? 48 : 38}
+                          pointerEvents="none"
+                        />
+                      )}
                       {selected && (
                         <circle
                           className="station-selected-indicator"
@@ -1016,7 +1034,7 @@ export function InteractiveTtcMap({
             Viewing <strong>{commutePathPreview.routeLabel}</strong>
           </span>
           <button type="button" onClick={onClearCommutePathPreview}>
-            Clear
+            Back
           </button>
         </div>
       ) : null}

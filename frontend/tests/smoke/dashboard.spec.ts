@@ -483,6 +483,6 @@ test("demo account shows account-backed saved commutes", async ({ page, request 
   await page.getByRole("button", { name: "View path on map" }).click();
   await expect(page.locator("[data-commute-path-preview]")).toBeVisible();
   await expect(page.getByRole("status").filter({ hasText: "Viewing" })).toBeVisible();
-  await page.getByRole("button", { name: "Clear" }).click({ force: true });
+  await page.getByRole("button", { name: "Back" }).click({ force: true });
   await expect(page.locator("[data-commute-path-preview]")).toHaveCount(0);
 });

@@ -11,9 +11,10 @@
 - [x] sync card and actual section flashing/pulse when pressed
 - [ ] Demo cards from "Saved Commutes" still remains.
 - [ ] Login or sign up needs strict error handling/regex for valid emails passwords, etc.
-- [ ] Does the all alert types backend not use the same user db as the live?
+- [ ] Does the all alert types backend not use the same user db as the live? It's not recognizing my login on the test server
 - [x] Saved Commutes station search needs to be more elegant
 - [ ] Ask question, does different backend (all alert types) psql different from the live one?
+- [ ] All fields should be capitalized for submenu cards (that is first letter of each word where possible)
 
 ## Future Additions
 - [ ] Station impacts tie to the arrivals subsection in the station submenu 
