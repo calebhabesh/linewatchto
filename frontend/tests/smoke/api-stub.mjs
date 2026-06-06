@@ -155,6 +155,32 @@ const server = createServer(async (request, response) => {
     return;
   }
 
+  if (request.method === "POST" && url.pathname === "/api/auth/password-reset/request") {
+    sendJson(request, response, 200, {
+      accepted: true,
+      message: "If an account exists for that email, a password reset link is available.",
+      devResetToken: "smoke-reset-token",
+      expiresAt: "2026-06-05T15:00:00Z",
+    });
+    return;
+  }
+
+  if (request.method === "POST" && url.pathname === "/api/auth/password-reset/confirm") {
+    demoSessionActive = true;
+    sendJson(request, response, 200, {
+      authenticated: true,
+      user: {
+        id: "user_1",
+        email: "rider@example.com",
+        displayName: "Rider",
+        demo: false,
+      },
+    }, {
+      "set-cookie": "linewatch_session=smoke-reset-session; Path=/; HttpOnly; SameSite=Lax",
+    });
+    return;
+  }
+
   if (request.method === "GET" && url.pathname === "/api/account/commutes") {
     if (!demoSessionActive) {
       sendJson(request, response, 401, { error: "not_authenticated", message: "Sign in to use saved commute preferences." });

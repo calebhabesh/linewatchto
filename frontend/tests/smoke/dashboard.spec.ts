@@ -148,7 +148,7 @@ test("shows subway closed screen overnight and lets riders peek at the map", asy
   await expect(closedArrivalsSection.getByText("Arrivals Not Available")).toBeVisible();
   await expect(closedArrivalsSection.getByText("Schedule May Be Disrupted")).toHaveCount(0);
 
-  await page.getByRole("button", { name: "Closed screen" }).click();
+  await page.getByRole("button", { name: "Closed Screen" }).click();
   await expect(page.getByRole("heading", { name: "Subway Closed" })).toBeVisible();
 });
 
@@ -181,6 +181,37 @@ test("renders the seeded dashboard API payload", async ({ page, request }) => {
 
   await page.locator('.alert-card').filter({ hasText: 'Eglinton' }).getByRole("button", { name: "Show on Map" }).click();
   await expect(page.locator('[data-map-highlight-id="reduced-speed-zone-stub-zone-south-source"]')).toBeAttached();
+});
+
+test("opens the site guide and blocks invalid account signup input", async ({ page, request }) => {
+  await setStubMode(request, "seeded");
+  await page.goto("/");
+  await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
+
+  await page.getByRole("button", { name: "Open site guide" }).click();
+  const guide = page.getByRole("dialog", { name: "LineWatch TO site guide" });
+  await expect(guide).toBeVisible();
+  await expect(guide).toContainText("What LineWatch TO Does");
+  await expect(guide).toContainText("Both Ways");
+  await expect(guide).toContainText("Reduced Speed Zone");
+  await expect(guide).toContainText("Shuttle Badge");
+  await guide.getByRole("button", { name: "Close site guide" }).click();
+  await expect(guide).toHaveCount(0);
+
+  await page.getByRole("button", { name: "Toggle menu" }).click();
+  await page.getByRole("menuitem", { name: "Create account" }).click();
+  const dialog = page.getByRole("dialog", { name: "Create LineWatch TO account" });
+  await expect(dialog).toBeVisible();
+
+  await dialog.getByLabel("Email").fill("rider@localhost");
+  await dialog.getByLabel("Password").fill("correct horse battery staple");
+  await dialog.getByRole("button", { name: "Create account" }).click();
+  await expect(dialog.getByRole("alert")).toContainText("Enter a valid email address.");
+
+  await dialog.getByLabel("Email").fill("rider@example.com");
+  await dialog.getByLabel("Password").fill("aaaaaaaaaa");
+  await dialog.getByRole("button", { name: "Create account" }).click();
+  await expect(dialog.getByRole("alert")).toContainText("Password must include a number, symbol, or space.");
 });
 
 test("map overlays open the corresponding submenu cards", async ({ page, request }) => {
@@ -486,3 +517,32 @@ test("demo account shows account-backed saved commutes", async ({ page, request 
   await page.getByRole("button", { name: "Back" }).click({ force: true });
   await expect(page.locator("[data-commute-path-preview]")).toHaveCount(0);
 });
+
+test("requests and confirms a password reset from the sign-in dialog", async ({ page, request }) => {
+  await setStubMode(request, "seeded");
+  await page.goto("/");
+  await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
+
+  await page.getByRole("button", { name: "Toggle menu" }).click();
+  await page.getByRole("menuitem", { name: "Sign in" }).click();
+
+  const signInDialog = page.getByRole("dialog", { name: "Sign in to LineWatch TO" });
+  await expect(signInDialog).toBeVisible();
+  await signInDialog.getByRole("button", { name: "Forgot password?" }).click();
+
+  const resetDialog = page.getByRole("dialog", { name: "Reset LineWatch TO password" });
+  await expect(resetDialog).toBeVisible();
+  await resetDialog.getByLabel("Email").fill("rider@example.com");
+  await resetDialog.getByRole("button", { name: "Send reset link" }).click();
+  await expect(resetDialog.getByRole("status")).toContainText("If an account exists");
+  await resetDialog.getByRole("button", { name: "Open reset form" }).click();
+
+  const confirmDialog = page.getByRole("dialog", { name: "Choose a new LineWatch TO password" });
+  await expect(confirmDialog).toBeVisible();
+  await confirmDialog.getByLabel("New password").fill("new correct horse 2");
+  await confirmDialog.getByLabel("Confirm password").fill("new correct horse 2");
+  await confirmDialog.getByRole("button", { name: "Reset password" }).click();
+  await expect(confirmDialog).toHaveCount(0);
+  await expect(page.getByText("Rider")).toBeVisible();
+});
+
