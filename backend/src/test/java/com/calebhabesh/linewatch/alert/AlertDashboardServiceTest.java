@@ -787,6 +787,121 @@ class AlertDashboardServiceTest {
     }
 
     @Test
+    void bothWayDirectionReturnsBidirectionalCardsAndMapImpacts() {
+        when(ingestionFreshness.isDashboardFresh()).thenReturn(true);
+        AlertEntity delay = withLine(alert(
+            "delay-both-way",
+            "active-alert",
+            "delay",
+            "Delay",
+            "Delays both ways between Jane and Runnymede.",
+            "jane",
+            "runnymede",
+            OffsetDateTime.parse("2026-06-01T11:50:00Z"),
+            null
+        ), "line-2", "2");
+        ReflectionTestUtils.setField(delay, "impactKind", "delay");
+        ReflectionTestUtils.setField(delay, "direction", "Both way");
+
+        AlertEntity closure = withLine(alert(
+            "closure-both-way",
+            "planned-closure",
+            "planned",
+            "Closure",
+            "No service both ways between St George and Spadina.",
+            "st-george",
+            "spadina",
+            OffsetDateTime.parse("2026-06-01T11:45:00Z"),
+            null
+        ), "line-1", "1");
+        ReflectionTestUtils.setField(closure, "direction", "Both ways");
+        ReflectionTestUtils.setField(
+            closure,
+            "activePeriodStart",
+            OffsetDateTime.parse("2026-06-06T04:00:00Z")
+        );
+        ReflectionTestUtils.setField(
+            closure,
+            "activePeriodEnd",
+            OffsetDateTime.parse("2026-06-08T09:00:00Z")
+        );
+
+        when(alertRepository.findByActiveTrueAndType("active-alert"))
+            .thenReturn(List.of(delay));
+        when(alertRepository.findByActiveTrueAndType("planned-closure"))
+            .thenReturn(List.of(closure));
+        when(lineSegmentRepository.findAllByOrderBySortOrderAsc()).thenReturn(List.of(
+            segment("line-2-jane-runnymede", "line-2", "jane", "runnymede", 10, "eastbound"),
+            segment("line-1-st-george-spadina", "line-1", "st-george", "spadina", 20, "northbound")
+        ));
+
+        assertThat(service.delays()).singleElement().satisfies(dto -> {
+            assertThat(dto.displayDirection()).isEqualTo("Eastbound & Westbound");
+            assertThat(dto.location()).isEqualTo("Jane to Runnymede");
+        });
+        assertThat(service.plannedClosures()).singleElement().satisfies(dto -> {
+            assertThat(dto.displayDirection()).isEqualTo("Northbound & Southbound");
+            assertThat(dto.location()).isEqualTo("St George to Spadina");
+        });
+        assertThat(service.activeSegmentImpacts().get("line-2-jane-runnymede"))
+            .singleElement()
+            .satisfies(impact -> assertThat(impact.travelDirection()).isEqualTo("bidirectional"));
+    }
+
+    @Test
+    void delayCardsUseStableLineAndSegmentOrderInsteadOfRepositoryOrder() {
+        when(ingestionFreshness.isDashboardFresh()).thenReturn(true);
+        AlertEntity line2Later = withLine(alert(
+            "delay-line-2-later",
+            "active-alert",
+            "delay",
+            "Delay",
+            "Delay between Runnymede and Dufferin.",
+            "runnymede",
+            "dufferin",
+            OffsetDateTime.parse("2026-06-01T11:58:00Z"),
+            null
+        ), "line-2", "2");
+        AlertEntity line1First = withLine(alert(
+            "delay-line-1-first",
+            "active-alert",
+            "delay",
+            "Delay",
+            "Delay between St George and Spadina.",
+            "st-george",
+            "spadina",
+            OffsetDateTime.parse("2026-06-01T11:59:00Z"),
+            null
+        ), "line-1", "1");
+        AlertEntity line2Earlier = withLine(alert(
+            "delay-line-2-earlier",
+            "active-alert",
+            "delay",
+            "Delay",
+            "Delay between Jane and Runnymede.",
+            "jane",
+            "runnymede",
+            OffsetDateTime.parse("2026-06-01T11:57:00Z"),
+            null
+        ), "line-2", "2");
+        ReflectionTestUtils.setField(line2Later, "impactKind", "delay");
+        ReflectionTestUtils.setField(line1First, "impactKind", "delay");
+        ReflectionTestUtils.setField(line2Earlier, "impactKind", "delay");
+
+        when(alertRepository.findByActiveTrueAndType("active-alert"))
+            .thenReturn(List.of(line2Later, line1First, line2Earlier));
+        when(lineSegmentRepository.findAllByOrderBySortOrderAsc()).thenReturn(List.of(
+            segment("line-2-jane-runnymede", "line-2", "jane", "runnymede", 10),
+            segment("line-2-runnymede-dufferin", "line-2", "runnymede", "dufferin", 20),
+            segment("line-1-st-george-spadina", "line-1", "st-george", "spadina", 30)
+        ));
+
+        assertThat(service.delays())
+            .extracting(AlertDashboardService.DelayAlertDto::id)
+            .containsExactly("delay-line-1-first", "delay-line-2-earlier", "delay-line-2-later");
+    }
+
+    @Test
     void noServiceAlertWithBidirectionalDirectionReturnsLineAwareCardinalCopy() {
         when(ingestionFreshness.isDashboardFresh()).thenReturn(true);
         

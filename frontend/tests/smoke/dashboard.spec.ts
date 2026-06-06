@@ -76,6 +76,8 @@ async function freezeBrowserTime(page: Page, isoTime: string) {
 }
 
 test.beforeEach(async ({ page }) => {
+  page.on('console', msg => console.log('BROWSER CONSOLE:', msg.type(), msg.text()));
+  page.on('pageerror', err => console.log('BROWSER ERROR:', err.message));
   await freezeBrowserTime(page, "2026-06-04T12:00:00-04:00");
   await page.addInitScript((storageKey) => {
     window.localStorage.setItem(storageKey, "true");
@@ -159,7 +161,7 @@ test("renders the seeded dashboard API payload", async ({ page, request }) => {
   await expect(page.getByRole("button", { name: "Stub Station station details" })).toBeVisible();
   await expect(page.getByText(/Backend offline \(Fixture mode\)/)).toHaveCount(0);
 
-  await page.getByRole("button", { name: /^Delays/ }).click();
+  await page.getByRole("menuitem", { name: /^Delays/ }).click();
   await expect(page.getByRole("heading", { name: "Delays" })).toBeVisible();
   const menuDelayCard = page.getByRole("article").filter({
     hasText: "Delay between Sheppard-Yonge and Don Mills",
@@ -169,7 +171,7 @@ test("renders the seeded dashboard API payload", async ({ page, request }) => {
   await expect(menuDelayCard.getByText("Updated", { exact: true })).toBeVisible();
 
   await page.getByRole("button", { name: "Toggle menu" }).click();
-  await page.getByRole("button", { name: /Reduced Speed Zones/ }).click();
+  await page.getByRole("menuitem", { name: /Reduced Speed Zones/ }).click();
   await expect(page.getByRole("heading", { name: "Reduced Speed Zones" })).toBeVisible();
   await expect(page.getByText("Southbound", { exact: true })).toBeVisible();
   await expect(page.getByText("Eglinton", { exact: true }).first()).toBeVisible();
@@ -193,7 +195,7 @@ test("map overlays open the corresponding submenu cards", async ({ page, request
   await expect(delayCard).toHaveClass(/highlight-active-card/);
 
   await page.getByRole("button", { name: "Toggle menu" }).click();
-  await page.getByRole("button", { name: "Map", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Map", exact: true }).click();
   await page.waitForTimeout(500);
   await clickSvgRingStroke(page, /Stub API signal problem: Stub Station/);
   await expect(page.getByRole("heading", { name: "Active Alerts" })).toBeVisible();
@@ -255,13 +257,15 @@ test("LineLegend clicks open view but do not highlight any card", async ({ page,
   await expect(page.locator(".alert-card").first()).not.toHaveClass(/!bg-amber-950|highlight-active-card/);
 });
 
-test("renders fixture fallback when the dashboard API is unavailable", async ({ page, request }) => {
+test("renders fixture fallback when the dashboard API is unavailable", async ({ page, request, isMobile }) => {
   await setStubMode(request, "unavailable");
   await openDashboardMenu(page);
 
-  await expect(
-    page.getByText("Last Polled: fixture mode", { exact: true }).first()
-  ).toBeVisible();
+  if (!isMobile) {
+    await expect(
+      page.getByText("Last Polled: fixture mode", { exact: true }).first()
+    ).toBeVisible();
+  }
   await expect(page.getByText("Live status", { exact: true })).toHaveCount(0);
 });
 
@@ -269,7 +273,7 @@ test("routes active planned closures to active alerts instead of upcoming closur
   await setStubMode(request, "seeded");
   await openDashboardMenu(page);
 
-  await page.getByRole("button", { name: /^Active Alerts/ }).click();
+  await page.getByRole("menuitem", { name: /^Active Alerts/ }).click();
   await expect(page.getByRole("heading", { name: "Active Alerts" })).toBeVisible();
   await expect(page.locator('[data-impact-card-id="stub-closure-line-1"]')).toBeVisible();
 
@@ -277,7 +281,7 @@ test("routes active planned closures to active alerts instead of upcoming closur
   await expect(page.locator('[data-impact-card-id="stub-closure-line-1"]')).toHaveClass(/highlight-active-card/);
 
   await page.getByRole("button", { name: "Toggle menu" }).click();
-  await page.getByRole("button", { name: /upcoming closures/i }).click();
+  await page.getByRole("menuitem", { name: /upcoming closures/i }).click();
   await expect(page.getByRole("heading", { name: "Upcoming Closures" })).toBeVisible();
   const upcomingClosuresPanel = page.locator("section").filter({
     has: page.getByRole("heading", { name: "Upcoming Closures" }),
@@ -340,7 +344,7 @@ test("nonlinear guide-backed overlays open their corresponding cards", async ({ 
   await expect(unionCurveCard.getByText("Union", { exact: true })).toBeVisible();
 
   await page.getByRole("button", { name: "Toggle menu" }).click();
-  await page.getByRole("button", { name: "Map", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Map", exact: true }).click();
   await page.getByRole("button", { name: "delay: Spadina to St George" }).dispatchEvent("click");
   await expect(page.getByRole("heading", { name: "Delays" })).toBeVisible();
   const stGeorgeCurveCard = page.locator('[data-impact-card-id="stub-delay-st-george-curve"]');
@@ -418,4 +422,52 @@ test("drag after focus zoom cancels animation and retains transform", async ({ p
   await page.waitForTimeout(600);
   const finalTransform = await mapElement.evaluate((el) => el.style.transform);
   expect(finalTransform).not.toEqual(initialTransform);
+});
+
+test("keyboard opens and closes the main menu", async ({ page, request }) => {
+  await setStubMode(request, "seeded");
+  await page.goto("/");
+  await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
+
+  await page.getByRole("button", { name: "Toggle menu" }).focus();
+  await page.keyboard.press("Enter");
+  await expect(page.getByRole("menu")).toBeVisible();
+
+  await page.keyboard.press("ArrowDown");
+  await page.keyboard.press("ArrowDown");
+  await page.keyboard.press("End");
+  await page.keyboard.press("Escape");
+
+  await expect(page.getByRole("menu")).toBeHidden();
+  await expect(page.getByRole("button", { name: "Toggle menu" })).toBeFocused();
+});
+
+test("keyboard searches and selects a station", async ({ page, request }) => {
+  await setStubMode(request, "seeded");
+  await page.goto("/");
+  await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
+
+  await page.getByRole("button", { name: "Search stations" }).focus();
+  await page.keyboard.press("Enter");
+  await expect(page.getByRole("searchbox", { name: "Search mapped stations" })).toBeFocused();
+
+  await page.keyboard.type("Stub");
+  await page.keyboard.press("ArrowDown");
+  await page.keyboard.press("Enter");
+
+  await expect(page.getByRole("complementary", { name: "Stub Station station details" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Search stations" })).toBeFocused();
+});
+
+test("demo account shows account-backed saved commutes", async ({ page, request }) => {
+  await setStubMode(request, "seeded");
+  await openDashboardMenu(page);
+
+  await page.getByRole("menuitem", { name: "Demo account" }).click({ force: true });
+  await page.getByRole("button", { name: "Toggle menu" }).click({ force: true });
+  await page.getByRole("menuitem", { name: "Saved Commutes" }).click({ force: true });
+
+  await expect(page.getByText("Demo account")).toBeVisible();
+  await expect(page.getByText("Finch -> Union")).toBeVisible();
+  await expect(page.getByText("Impact matching pending", { exact: true })).toBeVisible();
 });

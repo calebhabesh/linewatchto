@@ -9,11 +9,12 @@
 
 :root {
   color-scheme: dark;
-  --impact-rsz: #A6FBB2;
-  --impact-rsz-ink: #14532d;
-  --impact-rsz-soft: rgba(166, 251, 178, 0.14);
-  --impact-rsz-border: rgba(166, 251, 178, 0.55);
-  --impact-rsz-active: rgba(166, 251, 178, 0.22);
+  --map-pulse-offset: 0ms;
+  --impact-rsz: #F59E0B; 
+  --impact-rsz-ink: #78350f;
+  --impact-rsz-soft: rgba(245, 158, 11, 0.14);
+  --impact-rsz-border: rgba(245, 158, 11, 0.55);
+  --impact-rsz-active: rgba(245, 158, 11, 0.22);
 }
 
 * {
@@ -666,6 +667,7 @@ button {
   filter: blur(16px);
   transition: all 0.3s ease;
   opacity: 0.4;
+  animation-delay: var(--map-pulse-offset);
 }
 
 @keyframes aura-pulse {
@@ -694,11 +696,12 @@ button {
 .asset-alert-path.suspension-candy {
   stroke-width: 102;
   animation: candy-pulse 1.2s infinite alternate ease-in-out;
+  animation-delay: var(--map-pulse-offset);
   transition: none !important;
 }
 
 .asset-alert-path-glow.delay {
-  stroke: rgba(245, 158, 11, 0.7); /* Orange aura for delays */
+  stroke: rgba(254, 236, 65, 0.7); /* Orange aura for delays */
   animation: aura-pulse 1.2s infinite alternate ease-in-out;
 }
 
@@ -715,6 +718,7 @@ button {
 .asset-alert-path.delay-candy {
   stroke-width: 102;
   animation: candy-pulse 1.2s infinite alternate ease-in-out;
+  animation-delay: var(--map-pulse-offset);
   transition: none !important;
 }
 
@@ -786,12 +790,13 @@ button {
   stroke: rgba(14, 165, 233, 0.88); /* Frozen blue base */
   stroke-width: 102;
   animation: candy-pulse 1.2s infinite alternate ease-in-out;
+  animation-delay: var(--map-pulse-offset);
   transition: none !important;
 }
 
 .delay-static-path {
   filter: url("#delay-static-filter");
-  stroke: #f59e0b;
+  stroke: #FEEC41;
   stroke-dasharray: 2 5 11 3;
   animation: delay-static-shift 700ms steps(4, end) infinite;
 }
@@ -812,6 +817,7 @@ button {
   stroke-linejoin: round;
   stroke-width: 102;
   animation: mask-size-pulse 1.2s infinite alternate ease-in-out;
+  animation-delay: var(--map-pulse-offset);
 }
 
 .motion-paused .delay-hourglass-mask-path,
@@ -876,6 +882,7 @@ button {
   stroke-linecap: round;
   stroke-linejoin: round;
   animation: mask-size-pulse 1.2s infinite alternate ease-in-out;
+  animation-delay: var(--map-pulse-offset);
 }
 
 .motion-paused .rsz-chevron {
@@ -990,8 +997,8 @@ button {
 }
 
 .overlap-indicator-badge.delay {
-  fill: rgba(245, 158, 11, 0.14);
-  stroke: #f59e0b;
+  fill: rgba(254, 236, 65, 0.14);
+  stroke: #FEEC41;
 }
 
 .overlap-indicator-badge.more {
@@ -1004,7 +1011,59 @@ button {
 }
 
 .impact-type-icon.delay {
-  color: #f59e0b;
+  color: #a16207;
+}
+
+.dark .impact-type-icon.delay,
+.high-contrast .impact-type-icon.delay {
+  color: #FEEC41;
+}
+
+.delay-badge-exclamation {
+  stroke: #ffffff;
+}
+.delay-badge-exclamation-dot {
+  fill: #ffffff;
+}
+.dark .delay-badge-exclamation,
+.high-contrast .delay-badge-exclamation {
+  stroke: #12151c;
+}
+.dark .delay-badge-exclamation-dot,
+.high-contrast .delay-badge-exclamation-dot {
+  fill: #12151c;
+}
+
+/* Specific overrides for buttons or cards where background is different */
+.overlap-impact-ref.delay .delay-badge-exclamation {
+  stroke: #f1f5f9;
+}
+.overlap-impact-ref.delay .delay-badge-exclamation-dot {
+  fill: #f1f5f9;
+}
+.dark .overlap-impact-ref.delay .delay-badge-exclamation,
+.high-contrast .overlap-impact-ref.delay .delay-badge-exclamation {
+  stroke: #1e293b;
+}
+.dark .overlap-impact-ref.delay .delay-badge-exclamation-dot,
+.high-contrast .overlap-impact-ref.delay .delay-badge-exclamation-dot {
+  fill: #1e293b;
+}
+
+/* Overrides for map overlap indicator badges */
+.overlap-indicator .delay-badge-exclamation {
+  stroke: rgba(255, 255, 255, 0.94);
+}
+.overlap-indicator .delay-badge-exclamation-dot {
+  fill: rgba(255, 255, 255, 0.94);
+}
+.dark .overlap-indicator .delay-badge-exclamation,
+.high-contrast .overlap-indicator .delay-badge-exclamation {
+  stroke: rgb(15, 23, 42);
+}
+.dark .overlap-indicator .delay-badge-exclamation-dot,
+.high-contrast .overlap-indicator .delay-badge-exclamation-dot {
+  fill: rgb(15, 23, 42);
 }
 
 .impact-type-icon.reduced-speed-zone {
@@ -1025,7 +1084,7 @@ button {
 }
 
 .overlap-indicator-type-icon.delay {
-  color: #f59e0b;
+  color: #FEEC41;
 }
 
 .overlap-indicator-type-icon.reduced-speed-zone {
@@ -1082,8 +1141,8 @@ button {
 }
 
 .overlap-impact-ref.delay {
-  border-color: rgba(245, 158, 11, 0.38);
-  background: rgba(245, 158, 11, 0.08);
+  border-color: rgba(254, 236, 65, 0.38);
+  background: rgba(254, 236, 65, 0.08);
 }
 
 .overlap-impact-ref.reduced-speed-zone {
@@ -1103,12 +1162,12 @@ button {
 
 .dark .overlap-impact-ref.delay,
 .high-contrast .overlap-impact-ref.delay {
-  background: rgba(120, 53, 15, 0.26);
+  background: rgba(113, 63, 18, 0.26);
 }
 
 .dark .overlap-impact-ref.reduced-speed-zone,
 .high-contrast .overlap-impact-ref.reduced-speed-zone {
-  background: rgba(20, 83, 45, 0.32);
+  background: rgba(120, 53, 15, 0.32);
 }
 
 .dark .overlap-impact-ref.planned-closure,
@@ -1676,7 +1735,8 @@ button {
   stroke-width: 4;
   filter: drop-shadow(0 0 6px rgba(250, 204, 21, 0.8));
   transition: opacity 0.2s ease, stroke-width 0.2s ease, stroke 0.2s ease;
-  animation: gold-ring-pulse 2s infinite alternate ease-in-out;
+  animation: gold-ring-pulse 1.2s infinite alternate ease-in-out;
+  animation-delay: var(--map-pulse-offset);
 }
 
 .station-impact-ring.selected,
@@ -1691,7 +1751,8 @@ button {
 .station-impact-dot-red-glow {
   fill: #ef4444;
   filter: drop-shadow(0 0 8px #ef4444) drop-shadow(0 0 16px #ef4444);
-  animation: station-red-glow-pulse 0.8s infinite alternate ease-in-out;
+  animation: station-red-glow-pulse 1.2s infinite alternate ease-in-out;
+  animation-delay: var(--map-pulse-offset);
 }
 
 @keyframes station-selected-pulse {
@@ -2295,11 +2356,11 @@ button {
 }
 
 .station-search-empty {
-  border: 1px solid rgba(245, 158, 11, 0.3);
+  border: 1px solid rgba(254, 236, 65, 0.3);
   border-radius: 8px;
-  background: rgba(245, 158, 11, 0.1);
+  background: rgba(254, 236, 65, 0.1);
   padding: 12px;
-  color: rgb(146, 64, 14);
+  color: rgb(161, 98, 7);
   font-size: 13px;
   font-weight: 700;
 }
@@ -3094,6 +3155,37 @@ button {
   border-left-color: var(--impact-rsz);
 }
 
+.delay-tone {
+  color: #a16207;
+}
+
+.dark .delay-tone,
+.high-contrast .delay-tone {
+  color: #FEEC41;
+}
+
+.delay-count-badge {
+  background: rgba(254, 236, 65, 0.14);
+  color: #a16207;
+}
+
+.dark .delay-count-badge,
+.high-contrast .delay-count-badge {
+  color: #FEEC41;
+}
+
+.suspension-card-border {
+  border-left-color: #ef4444;
+}
+
+.delay-card-border {
+  border-left-color: #FEEC41;
+}
+
+.planned-closure-card-border {
+  border-left-color: #3b82f6;
+}
+
 .rsz-card-active {
   background: var(--impact-rsz-active) !important;
 }
@@ -3111,4 +3203,27 @@ button {
 .dark .legend-rsz-button,
 .high-contrast .legend-rsz-button {
   color: var(--impact-rsz);
+}
+
+.legend-delay-button {
+  color: #a16207;
+  border-color: rgba(161, 98, 7, 0.3);
+}
+
+.legend-delay-button:hover,
+.legend-delay-button:focus-visible {
+  background: rgba(161, 98, 7, 0.05);
+}
+
+.dark .legend-delay-button,
+.high-contrast .legend-delay-button {
+  color: #FEEC41;
+  border-color: rgba(254, 236, 65, 0.3);
+}
+
+.dark .legend-delay-button:hover,
+.dark .legend-delay-button:focus-visible,
+.high-contrast .legend-delay-button:hover,
+.high-contrast .legend-delay-button:focus-visible {
+  background: rgba(254, 236, 65, 0.1);
 }

@@ -3,6 +3,7 @@ package com.calebhabesh.linewatch.alert;
 import com.calebhabesh.linewatch.station.LineSegmentEntity;
 import com.calebhabesh.linewatch.station.LineSegmentRepository;
 import com.calebhabesh.linewatch.station.TransitLineEntity;
+import com.calebhabesh.linewatch.ingestion.AlertDirection;
 import com.calebhabesh.linewatch.ingestion.IngestionFreshness;
 import com.calebhabesh.linewatch.ingestion.TtcAlertStore;
 import java.time.Clock;
@@ -85,7 +86,9 @@ public class AlertDashboardService {
 
         List<ActiveAlertDto> alerts = new ArrayList<>(routeAlerts);
         alerts.addAll(activeClosures);
-        return alerts;
+        return alerts.stream()
+            .sorted(activeAlertComparator(segments))
+            .toList();
     }
 
     public List<DelayAlertDto> delays() {
@@ -96,6 +99,7 @@ public class AlertDashboardService {
         return alertRepository.findByActiveTrueAndType(ACTIVE_ALERT_TYPE).stream()
             .filter(alert -> hasImpactKind(alert, DELAY_KIND))
             .map(alert -> toDelayAlert(alert, segments))
+            .sorted(delayAlertComparator(segments))
             .toList();
     }
 
@@ -106,6 +110,7 @@ public class AlertDashboardService {
         List<LineSegmentEntity> segments = lineSegmentRepository.findAllByOrderBySortOrderAsc();
         return reducedSpeedProjection(segments).zones().stream()
             .map(this::toReducedSpeedZoneDto)
+            .sorted(reducedSpeedZoneComparator(segments))
             .toList();
     }
 
@@ -125,6 +130,7 @@ public class AlertDashboardService {
         List<LineSegmentEntity> segments = lineSegmentRepository.findAllByOrderBySortOrderAsc();
         return plannedClosureDtos(segments).stream()
             .filter(closure -> !closure.activeNow() || isScheduledClosureParent(closure))
+            .sorted(plannedClosureComparator(segments))
             .toList();
     }
 
@@ -173,6 +179,7 @@ public class AlertDashboardService {
         return plannedClosureDtos(segments).stream()
             .filter(PlannedClosureDto::activeNow)
             .filter(closure -> !isScheduledClosureParent(closure))
+            .sorted(plannedClosureComparator(segments))
             .toList();
     }
 
@@ -515,45 +522,19 @@ public class AlertDashboardService {
     }
 
     private String displayDirection(AlertEntity alert) {
-        String direction = alert.getDirection();
-        if (direction == null) {
-            return null;
-        }
-        String normalized = direction.trim().toLowerCase(Locale.ROOT);
-        switch (normalized) {
-            case "northbound":
-                return "Northbound";
-            case "southbound":
-                return "Southbound";
-            case "eastbound":
-                return "Eastbound";
-            case "westbound":
-                return "Westbound";
-            case "bidirectional":
-                TransitLineEntity line = alert.getLine();
-                String num = (line != null) ? line.getNumber() : "";
-                if ("1".equals(num) || "4".equals(num)) {
-                    return "Northbound & Southbound";
-                } else if ("2".equals(num) || "5".equals(num) || "6".equals(num)) {
-                    return "Eastbound & Westbound";
-                }
-                String id = (line != null) ? line.getId() : "";
-                if (id != null && (id.contains("1") || id.contains("4"))) {
-                    return "Northbound & Southbound";
-                }
-                return "Eastbound & Westbound";
-            default:
-                return null;
-        }
+        return switch (AlertDirection.fromWireValue(alert.getDirection())) {
+            case NORTHBOUND -> "Northbound";
+            case SOUTHBOUND -> "Southbound";
+            case EASTBOUND -> "Eastbound";
+            case WESTBOUND -> "Westbound";
+            case BIDIRECTIONAL -> bidirectionalLabel(alert.getLine());
+            case UNKNOWN -> null;
+        };
     }
 
     private String travelDirection(AlertEntity alert, LineSegmentEntity segment) {
-        String dir = alert.getDirection();
-        if (dir == null) {
-            return "bidirectional";
-        }
-        String normalized = dir.trim().toLowerCase(Locale.ROOT);
-        if ("bidirectional".equals(normalized) || "unknown".equals(normalized)) {
+        AlertDirection direction = AlertDirection.fromWireValue(alert.getDirection());
+        if (direction == AlertDirection.BIDIRECTIONAL || direction == AlertDirection.UNKNOWN) {
             return "bidirectional";
         }
         String forwardDir = segment.getForwardDirection();
@@ -561,20 +542,38 @@ public class AlertDashboardService {
             return "bidirectional";
         }
         String forward = forwardDir.trim().toLowerCase(Locale.ROOT);
-        if (normalized.equals(forward)) {
+        if (direction.wireValue().equals(forward)) {
             return "forward";
         }
-        String opposite = switch (normalized) {
-            case "northbound" -> "southbound";
-            case "southbound" -> "northbound";
-            case "eastbound" -> "westbound";
-            case "westbound" -> "eastbound";
-            default -> "";
-        };
-        if (opposite.equals(forward)) {
+        if (opposite(direction).wireValue().equals(forward)) {
             return "reverse";
         }
         return "bidirectional";
+    }
+
+    private AlertDirection opposite(AlertDirection direction) {
+        return switch (direction) {
+            case NORTHBOUND -> AlertDirection.SOUTHBOUND;
+            case SOUTHBOUND -> AlertDirection.NORTHBOUND;
+            case EASTBOUND -> AlertDirection.WESTBOUND;
+            case WESTBOUND -> AlertDirection.EASTBOUND;
+            case BIDIRECTIONAL, UNKNOWN -> AlertDirection.UNKNOWN;
+        };
+    }
+
+    private String bidirectionalLabel(TransitLineEntity line) {
+        String num = line != null ? line.getNumber() : "";
+        if ("1".equals(num) || "4".equals(num)) {
+            return "Northbound & Southbound";
+        }
+        if ("2".equals(num) || "5".equals(num) || "6".equals(num)) {
+            return "Eastbound & Westbound";
+        }
+        String id = line != null ? line.getId() : "";
+        if (id != null && (id.contains("1") || id.contains("4"))) {
+            return "Northbound & Southbound";
+        }
+        return "Eastbound & Westbound";
     }
 
     private ReducedSpeedZoneDto toReducedSpeedZoneDto(
@@ -762,6 +761,77 @@ public class AlertDashboardService {
         return WINDOW_FORMATTER.format(startsAt.atZoneSameInstant(TORONTO_ZONE))
             + " - "
             + WINDOW_FORMATTER.format(endsAt.atZoneSameInstant(TORONTO_ZONE));
+    }
+
+    private Comparator<ActiveAlertDto> activeAlertComparator(List<LineSegmentEntity> segments) {
+        Map<String, Integer> segmentOrders = segmentOrders(segments);
+        return Comparator
+            .comparingInt((ActiveAlertDto dto) -> lineSortOrder(dto.lineId(), dto.lineNumber()))
+            .thenComparingInt(dto -> firstSegmentOrder(dto.affectedSegmentIds(), segmentOrders))
+            .thenComparing(ActiveAlertDto::startedAt, Comparator.nullsLast(Comparator.naturalOrder()))
+            .thenComparing(ActiveAlertDto::id, Comparator.nullsLast(Comparator.naturalOrder()));
+    }
+
+    private Comparator<DelayAlertDto> delayAlertComparator(List<LineSegmentEntity> segments) {
+        Map<String, Integer> segmentOrders = segmentOrders(segments);
+        return Comparator
+            .comparingInt((DelayAlertDto dto) -> lineSortOrder(dto.lineId(), dto.lineNumber()))
+            .thenComparingInt(dto -> firstSegmentOrder(dto.affectedSegmentIds(), segmentOrders))
+            .thenComparing(DelayAlertDto::startedAt, Comparator.nullsLast(Comparator.naturalOrder()))
+            .thenComparing(DelayAlertDto::id, Comparator.nullsLast(Comparator.naturalOrder()));
+    }
+
+    private Comparator<ReducedSpeedZoneDto> reducedSpeedZoneComparator(List<LineSegmentEntity> segments) {
+        Map<String, Integer> segmentOrders = segmentOrders(segments);
+        return Comparator
+            .comparingInt((ReducedSpeedZoneDto dto) -> lineSortOrder(dto.lineId(), dto.lineNumber()))
+            .thenComparingInt(dto -> firstSegmentOrder(dto.affectedSegmentIds(), segmentOrders))
+            .thenComparing(ReducedSpeedZoneDto::startedAt, Comparator.nullsLast(Comparator.naturalOrder()))
+            .thenComparing(ReducedSpeedZoneDto::id, Comparator.nullsLast(Comparator.naturalOrder()));
+    }
+
+    private Comparator<PlannedClosureDto> plannedClosureComparator(List<LineSegmentEntity> segments) {
+        Map<String, Integer> segmentOrders = segmentOrders(segments);
+        return Comparator
+            .comparingInt((PlannedClosureDto dto) -> lineSortOrder(dto.lineId(), dto.lineNumber()))
+            .thenComparingInt(dto -> firstSegmentOrder(dto.previewSegmentIds(), segmentOrders))
+            .thenComparing(PlannedClosureDto::startedAt, Comparator.nullsLast(Comparator.naturalOrder()))
+            .thenComparing(PlannedClosureDto::id, Comparator.nullsLast(Comparator.naturalOrder()));
+    }
+
+    private Map<String, Integer> segmentOrders(List<LineSegmentEntity> segments) {
+        Map<String, Integer> orders = new LinkedHashMap<>();
+        for (LineSegmentEntity segment : segments) {
+            orders.put(segment.getId(), segment.getSortOrder());
+        }
+        return orders;
+    }
+
+    private int firstSegmentOrder(List<String> segmentIds, Map<String, Integer> segmentOrders) {
+        if (segmentIds == null || segmentIds.isEmpty()) {
+            return Integer.MAX_VALUE;
+        }
+        return segmentIds.stream()
+            .map(segmentOrders::get)
+            .filter(order -> order != null)
+            .min(Integer::compareTo)
+            .orElse(Integer.MAX_VALUE);
+    }
+
+    private int lineSortOrder(String lineId, String lineNumber) {
+        if (!isBlank(lineNumber)) {
+            try {
+                return Integer.parseInt(lineNumber);
+            } catch (NumberFormatException ignored) {
+                // Fall through to the stable id mapping.
+            }
+        }
+        if ("line-1".equals(lineId)) return 1;
+        if ("line-2".equals(lineId)) return 2;
+        if ("line-4".equals(lineId)) return 4;
+        if ("line-5".equals(lineId)) return 5;
+        if ("line-6".equals(lineId)) return 6;
+        return Integer.MAX_VALUE;
     }
 
     private int impactPriority(SegmentImpact impact) {

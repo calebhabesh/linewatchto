@@ -13,10 +13,43 @@ import {
 
 const port = Number(process.env.LINEWATCH_STUB_PORT ?? "4174");
 let mode = "seeded";
+let demoSessionActive = false;
 
-function sendJson(response, status, body) {
+const demoUser = {
+  id: "user_demo",
+  email: "demo@linewatch.local",
+  displayName: "Demo Rider",
+  demo: true,
+};
+
+const demoCommutes = [
+  {
+    id: "commute_demo_finch_union",
+    label: "Morning commute",
+    originStationId: "finch",
+    originStationName: "Finch",
+    destinationStationId: "union",
+    destinationStationName: "Union",
+    routeLabel: "Finch -> Union",
+    createdAt: "2026-06-05T14:30:00Z",
+    updatedAt: "2026-06-05T14:30:00Z",
+  },
+];
+
+function corsHeaders(request, extra = {}) {
+  const origin = request.headers.origin;
+  return {
+    "access-control-allow-origin": origin ?? "*",
+    "access-control-allow-credentials": "true",
+    "access-control-allow-headers": "content-type",
+    "access-control-allow-methods": "GET,POST,DELETE,OPTIONS",
+    ...extra,
+  };
+}
+
+function sendJson(request, response, status, body, extraHeaders = {}) {
   response.writeHead(status, {
-    "access-control-allow-origin": "*",
+    ...corsHeaders(request, extraHeaders),
     "content-type": "application/json",
   });
   response.end(JSON.stringify(body));
@@ -34,79 +67,111 @@ const server = createServer(async (request, response) => {
   const url = new URL(request.url ?? "/", `http://127.0.0.1:${port}`);
 
   if (request.method === "OPTIONS") {
-    response.writeHead(204, {
-      "access-control-allow-headers": "content-type",
-      "access-control-allow-methods": "GET,POST,OPTIONS",
-      "access-control-allow-origin": "*",
-    });
+    response.writeHead(204, corsHeaders(request));
     response.end();
     return;
   }
 
   if (request.method === "GET" && url.pathname === "/__test/health") {
-    sendJson(response, 200, { mode });
+    sendJson(request, response, 200, { mode });
     return;
   }
 
   if (request.method === "POST" && url.pathname === "/__test/mode") {
     const body = await readJson(request);
     if (!["seeded", "unavailable"].includes(body.mode)) {
-      sendJson(response, 400, { error: "Unsupported smoke stub mode" });
+      sendJson(request, response, 400, { error: "Unsupported smoke stub mode" });
       return;
     }
     mode = body.mode;
-    sendJson(response, 200, { mode });
+    demoSessionActive = false;
+    sendJson(request, response, 200, { mode });
     return;
   }
 
   if (mode === "unavailable" && url.pathname.startsWith("/api/")) {
-    sendJson(response, 503, { error: "Smoke stub unavailable mode" });
+    sendJson(request, response, 503, { error: "Smoke stub unavailable mode" });
     return;
   }
 
+  // Account & Auth Stubs
+  if (request.method === "GET" && url.pathname === "/api/auth/me") {
+    sendJson(request, response, 200, demoSessionActive
+      ? { authenticated: true, user: demoUser }
+      : { authenticated: false, user: null }
+    );
+    return;
+  }
+
+  if (request.method === "POST" && url.pathname === "/api/auth/demo") {
+    demoSessionActive = true;
+    sendJson(request, response, 200, { authenticated: true, user: demoUser }, {
+      "set-cookie": "linewatch_session=smoke-demo-session; Path=/; HttpOnly; SameSite=Lax",
+    });
+    return;
+  }
+
+  if (request.method === "POST" && url.pathname === "/api/auth/logout") {
+    demoSessionActive = false;
+    sendJson(request, response, 200, { authenticated: false, user: null }, {
+      "set-cookie": "linewatch_session=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax",
+    });
+    return;
+  }
+
+  if (request.method === "GET" && url.pathname === "/api/account/commutes") {
+    if (!demoSessionActive) {
+      sendJson(request, response, 401, { error: "not_authenticated", message: "Sign in to use saved commute preferences." });
+      return;
+    }
+    sendJson(request, response, 200, { commutes: demoCommutes });
+    return;
+  }
+
+  // Public Dashboard APIs
   if (request.method === "GET" && url.pathname === "/api/map") {
-    sendJson(response, 200, mapResponse);
+    sendJson(request, response, 200, mapResponse);
     return;
   }
 
   if (request.method === "GET" && url.pathname === "/api/status") {
-    sendJson(response, 200, statusResponse);
+    sendJson(request, response, 200, statusResponse);
     return;
   }
 
   if (request.method === "GET" && url.pathname === "/api/alerts") {
     const type = url.searchParams.get("type");
     if (type === "planned") {
-      sendJson(response, 200, plannedClosuresResponse);
+      sendJson(request, response, 200, plannedClosuresResponse);
       return;
     }
     if (type === "slowdown") {
-      sendJson(response, 200, reducedSpeedZonesResponse);
+      sendJson(request, response, 200, reducedSpeedZonesResponse);
       return;
     }
     if (type === "delay") {
-      sendJson(response, 200, delaysResponse);
+      sendJson(request, response, 200, delaysResponse);
       return;
     }
     if (type === "raw") {
-      sendJson(response, 200, rawAlertsResponse);
+      sendJson(request, response, 200, rawAlertsResponse);
       return;
     }
-    sendJson(response, 200, activeAlertsResponse);
+    sendJson(request, response, 200, activeAlertsResponse);
     return;
   }
 
   if (request.method === "GET" && url.pathname === "/api/stations") {
-    sendJson(response, 200, stationSummariesResponse);
+    sendJson(request, response, 200, stationSummariesResponse);
     return;
   }
 
   if (request.method === "GET" && url.pathname === "/api/stations/stub-station") {
-    sendJson(response, 200, stationDetailResponse);
+    sendJson(request, response, 200, stationDetailResponse);
     return;
   }
 
-  sendJson(response, 404, { error: "Unknown smoke API route" });
+  sendJson(request, response, 404, { error: "Unknown smoke API route" });
 });
 
 server.listen(port, "127.0.0.1", () => {

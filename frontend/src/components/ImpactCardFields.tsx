@@ -109,6 +109,20 @@ function splitLocation(location: string): { from: string; to: string; twoWay: bo
   return null;
 }
 
+function isBidirectionalRouteDirection(direction?: string | null): boolean {
+  if (!direction) return false;
+  const normalized = direction.trim().toLowerCase().replace(/\s+/g, " ");
+  return normalized === "bidirectional"
+    || normalized === "both way"
+    || normalized === "both ways"
+    || normalized === "both directions"
+    || normalized === "in both directions"
+    || normalized === "northbound & southbound"
+    || normalized === "southbound & northbound"
+    || normalized === "eastbound & westbound"
+    || normalized === "westbound & eastbound";
+}
+
 export function formatCompactLocation(location: string): string {
   const bounds = splitLocation(location);
   if (!bounds) return location || "Affected segment unavailable";
@@ -123,12 +137,13 @@ export function ImpactRouteHeader({
   direction?: string | null;
 }) {
   const bounds = splitLocation(location);
+  const showTwoWay = bounds ? bounds.twoWay || isBidirectionalRouteDirection(direction) : false;
   return (
     <div className="impact-route">
       {bounds ? (
         <div className="impact-route__bounds">
           <span>{bounds.from}</span>
-          {bounds.twoWay ? <LongArrowLeftRight /> : <LongArrowRight />}
+          {showTwoWay ? <LongArrowLeftRight /> : <LongArrowRight />}
           <span>{bounds.to}</span>
         </div>
       ) : (

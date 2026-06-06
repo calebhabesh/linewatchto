@@ -9,10 +9,10 @@ const shellSource = readFileSync(new URL("../src/components/LineWatchShell.tsx",
 const legendSource = readFileSync(new URL("../src/components/LineLegend.tsx", import.meta.url), "utf8");
 const stationDetailSource = readFileSync(new URL("../src/components/StationDetailPanel.tsx", import.meta.url), "utf8");
 
-describe("Reduced Speed Zone mint color", () => {
-  it("defines shared mint tokens and applies them to reduced-speed-zone selectors", () => {
-    assert.match(globalCss, /--impact-rsz:\s*#A6FBB2;/);
-    assert.match(globalCss, /--impact-rsz-ink:\s*#14532d;/);
+describe("Reduced Speed Zone amber color", () => {
+  it("defines shared amber tokens and applies them to reduced-speed-zone selectors", () => {
+    assert.match(globalCss, /--impact-rsz:\s*#F59E0B;/);
+    assert.match(globalCss, /--impact-rsz-ink:\s*#78350f;/);
     assert.match(globalCss, /\.asset-alert-path-glow\.reduced-speed-zone\s*\{[^}]*var\(--impact-rsz\)/s);
     assert.match(globalCss, /\.rsz-chevron\s*\{[^}]*stroke:\s*var\(--impact-rsz-ink\)/s);
     assert.match(globalCss, /\.overlap-indicator-badge\.reduced-speed-zone\s*\{[^}]*var\(--impact-rsz\)/s);
@@ -20,8 +20,8 @@ describe("Reduced Speed Zone mint color", () => {
     assert.match(globalCss, /\.overlap-impact-ref\.reduced-speed-zone\s*\{[^}]*var\(--impact-rsz-border\)/s);
   });
 
-  it("keeps delays amber while RSZ references use mint classes or tokens", () => {
-    assert.match(globalCss, /\.overlap-indicator-badge\.delay\s*\{[^}]*#f59e0b/s);
+  it("keeps delays golden yellow while RSZ references use amber classes or tokens", () => {
+    assert.match(globalCss, /\.overlap-indicator-badge\.delay\s*\{[^}]*#FEEC41/s);
     assert.match(mapSource, /RSZ_IMPACT_COLOR/);
     assert.match(rszPanelSource, /rsz-tone/);
     assert.match(shellSource, /rsz-tone/);

@@ -34,7 +34,7 @@ import type { StationSummary } from "../app/station-data";
 import { LogsDropdown } from "./LogsDropdown";
 import { ImpactTypeIcon } from "./ImpactTypeIcon";
 
-const RSZ_IMPACT_COLOR = "#A6FBB2";
+const RSZ_IMPACT_COLOR = "#F59E0B";
 
 function getSegmentsCenter(
   segmentIds: string[],
@@ -79,20 +79,34 @@ type RetainedLayer<T> = {
   exiting: boolean;
 };
 
+const MAP_PULSE_CYCLE_MS = 1200;
+
 function useRetainedMapLayers<T>(
   items: T[],
   keyForItem: (item: T) => string,
   exitMs = 240,
+  emptyHoldMs = 90,
 ) {
   const [retained, setRetained] = useState<RetainedLayer<T>[]>(() =>
     items.map((item) => ({ key: keyForItem(item), item, exiting: false })),
   );
+  const retainedRef = useRef(retained);
+
+  useEffect(() => {
+    retainedRef.current = retained;
+  }, [retained]);
 
   useEffect(() => {
     const nextByKey = new Map(items.map((item) => [keyForItem(item), item]));
+    const shouldHoldTransientEmptyFrame =
+      items.length === 0 && retainedRef.current.some((layer) => !layer.exiting);
 
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setRetained((previous) => {
+      if (items.length === 0 && previous.some((layer) => !layer.exiting)) {
+        return previous;
+      }
+
       const previousByKey = new Map(previous.map((layer) => [layer.key, layer]));
       const nextLayers: RetainedLayer<T>[] = [];
 
@@ -109,12 +123,23 @@ function useRetainedMapLayers<T>(
       return nextLayers;
     });
 
+    const emptyHoldTimer = shouldHoldTransientEmptyFrame
+      ? window.setTimeout(() => {
+          setRetained((current) => current.map((layer) => ({ ...layer, exiting: true })));
+        }, emptyHoldMs)
+      : null;
+
     const timer = window.setTimeout(() => {
       setRetained((current) => current.filter((layer) => !layer.exiting || nextByKey.has(layer.key)));
-    }, exitMs);
+    }, exitMs + (shouldHoldTransientEmptyFrame ? emptyHoldMs : 0));
 
-    return () => window.clearTimeout(timer);
-  }, [items, keyForItem, exitMs]);
+    return () => {
+      if (emptyHoldTimer !== null) {
+        window.clearTimeout(emptyHoldTimer);
+      }
+      window.clearTimeout(timer);
+    };
+  }, [items, keyForItem, exitMs, emptyHoldMs]);
 
   return retained;
 }
@@ -145,6 +170,7 @@ export function InteractiveTtcMap({
   const [loadState, setLoadState] = useState<"loading" | "ready" | "error">("loading");
 
   const mapSvgRef = useRef<SVGSVGElement>(null);
+  const mapRootRef = useRef<HTMLDivElement>(null);
   const [anchorPoints, setAnchorPoints] = useState(new Map<string, MapPoint>());
   const [guidePaths, setGuidePaths] = useState(new Map<string, string>());
   const [stationCenterPoints, setStationCenterPoints] = useState(new Map<string, MapPoint>());
@@ -502,6 +528,26 @@ export function InteractiveTtcMap({
     useCallback((impact) => `${impact.kind}:${impact.cardId}:${impact.stationId}`, []),
   );
 
+  const pulseSyncSignature = useMemo(() => {
+    const plannedKeys = plannedPreviewLayers
+      .map(({ closure, segment }) => `${segment.id}:${closure.id}`)
+      .join("|");
+    const impactKeys = renderedImpactLayers
+      .map(({ segment, impact }) => `${segment.id}:${impact.kind}:${impact.cardId}:${impact.travelDirection}`)
+      .join("|");
+    const stationKeys = stationNodeImpacts
+      .map((impact) => `${impact.kind}:${impact.cardId}:${impact.stationId}`)
+      .join("|");
+    return `${plannedKeys}::${impactKeys}::${stationKeys}`;
+  }, [plannedPreviewLayers, renderedImpactLayers, stationNodeImpacts]);
+
+  useEffect(() => {
+    mapRootRef.current?.style.setProperty(
+      "--map-pulse-offset",
+      `-${Math.round(performance.now() % MAP_PULSE_CYCLE_MS)}ms`,
+    );
+  }, [pulseSyncSignature]);
+
   const overlayCollisionBoxes = useMemo<SvgBounds[]>(() => {
     return [
       ...plannedPreviewLayers.map(({ segment }) => segment.pathD),
@@ -546,7 +592,7 @@ export function InteractiveTtcMap({
 
 
   return (
-    <div className="relative w-full h-full flex flex-col overflow-hidden bg-transparent">
+    <div ref={mapRootRef} className="relative w-full h-full flex flex-col overflow-hidden bg-transparent">
       {/* Top right Theme toggle (styled like hamburger) and poll chip */}
       <div className="absolute top-4 sm:top-6 right-4 sm:right-6 z-20 flex items-center gap-2 pointer-events-auto">
         <LogsDropdown />

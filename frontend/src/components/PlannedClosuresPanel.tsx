@@ -58,7 +58,7 @@ export function PlannedClosuresPanel({ selection, onSelectImpact, onBack }: Prop
             <div
               key={closure.id}
               data-impact-card-id={closure.id}
-              className={`closure-card min-w-0 p-3 rounded-lg !bg-slate-50 dark:!bg-[#12151c] border border-black/10 dark:border-white/10 transition-all ${
+              className={`closure-card planned-closure-card-border min-w-0 p-3 rounded-lg !bg-slate-50 dark:!bg-[#12151c] border border-black/10 dark:border-white/10 border-l-4 transition-all ${
                 isActive ? "!bg-blue-50 dark:!bg-blue-950" : ""
               }`}
             >

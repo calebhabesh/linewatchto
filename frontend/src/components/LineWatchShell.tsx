@@ -197,18 +197,19 @@ export function LineWatchShell({ initialData }: { initialData: DashboardData }) 
   const menuActionRefs = useRef<Array<HTMLButtonElement | null>>([]);
 
   const registerMenuAction = (index: number) => (element: HTMLButtonElement | null) => {
+    // eslint-disable-next-line react-hooks/refs
     menuActionRefs.current[index] = element;
   };
 
   const focusMenuAction = (index: number) => {
-    const actions = menuActionRefs.current.filter((element): element is HTMLButtonElement => Boolean(element) && !element.disabled);
+    const actions = menuActionRefs.current.filter((element): element is HTMLButtonElement => element !== null && !element.disabled);
     if (actions.length === 0) return;
     const nextIndex = Math.max(0, Math.min(index, actions.length - 1));
     actions[nextIndex]?.focus();
   };
 
   const handleMenuKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
-    const actions = menuActionRefs.current.filter((element): element is HTMLButtonElement => Boolean(element) && !element.disabled);
+    const actions = menuActionRefs.current.filter((element): element is HTMLButtonElement => element !== null && !element.disabled);
     const currentIndex = actions.findIndex((element) => element === document.activeElement);
 
     if (event.key === "Escape") {
@@ -696,7 +697,6 @@ export function LineWatchShell({ initialData }: { initialData: DashboardData }) 
                      <div className="flex flex-wrap items-center gap-1.5 text-emerald-600 dark:text-emerald-400 mb-2">
                        <ShieldCheck size={16} />
                        <span className="text-[11px] font-bold uppercase tracking-wider">Ingestion Status</span>
-                       <span className="text-[11px] font-bold uppercase tracking-wider bg-green-500/10 text-green-600 dark:text-green-400 px-1.5 py-0.5 rounded ml-1">Last Polled: {pollText}</span>
                      </div>
                     <div className="grid grid-cols-2 gap-2">
                       {ingestionHealth.map((health, idx) => (

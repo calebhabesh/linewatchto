@@ -148,6 +148,15 @@ describe("floating menu layout", () => {
     assert.match(plannedClosuresSource, /direction=\{closure\.displayDirection\}/);
   });
 
+  it("uses displayDirection to force bidirectional route arrows on cards", () => {
+    assert.match(impactCardFieldsSource, /function isBidirectionalRouteDirection/);
+    assert.match(impactCardFieldsSource, /both way/);
+    assert.match(impactCardFieldsSource, /northbound & southbound/);
+    assert.match(impactCardFieldsSource, /eastbound & westbound/);
+    assert.match(impactCardFieldsSource, /bounds\.twoWay \|\| isBidirectionalRouteDirection\(direction\)/);
+    assert.match(impactCardFieldsSource, /showTwoWay \? <LongArrowLeftRight \/> : <LongArrowRight \/>/);
+  });
+
   it("formats cause values into title case", () => {
     assert.match(impactCardFieldsSource, /export function formatCause/);
     assert.match(impactCardFieldsSource, /causeValue = formatCause/);

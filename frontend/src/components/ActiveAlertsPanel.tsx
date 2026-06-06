@@ -39,10 +39,11 @@ export function ActiveAlertsPanel({
   const getSeverityColor = (severity: string) => {
     switch (severity) {
       case "suspension":
+        return "suspension-card-border";
       case "planned":
-        return "border-l-red-600";
+        return "planned-closure-card-border";
       case "delay":
-        return "border-l-amber-500";
+        return "delay-card-border";
       default:
         return "border-l-slate-500";
     }

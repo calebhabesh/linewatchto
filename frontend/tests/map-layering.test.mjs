@@ -62,6 +62,17 @@ describe("asset-backed map layering", () => {
     assert.match(interactiveMapSource, /setTimeout\([^,]+,\s*2500\s*\)/);
   });
 
+  it("keeps all pulse and glow animations on one shared phase", () => {
+    assert.match(globalCss, /--map-pulse-offset/);
+    assert.match(globalCss, /\.asset-alert-path-glow\s*\{[^}]*animation-delay:\s*var\(--map-pulse-offset\);/s);
+    assert.match(globalCss, /\.asset-alert-path\.delay-candy\s*\{[^}]*animation-delay:\s*var\(--map-pulse-offset\);/s);
+    assert.match(globalCss, /\.asset-alert-path\.suspension-candy\s*\{[^}]*animation-delay:\s*var\(--map-pulse-offset\);/s);
+    assert.match(globalCss, /\.delay-hourglass-mask-path,\s*\.suspension-mask-path\s*\{[^}]*animation-delay:\s*var\(--map-pulse-offset\);/s);
+    assert.match(globalCss, /\.rsz-chevron-mask-path\s*\{[^}]*animation-delay:\s*var\(--map-pulse-offset\);/s);
+    assert.match(globalCss, /\.station-impact-ring\s*\{[^}]*animation-delay:\s*var\(--map-pulse-offset\);/s);
+    assert.match(globalCss, /\.station-impact-dot-red-glow\s*\{[^}]*animation-delay:\s*var\(--map-pulse-offset\);/s);
+  });
+
   it("does not render a selected planned closure twice when it is already an active impact", () => {
     assert.match(interactiveMapSource, /shouldRenderPlannedPreviewLayer/);
     assert.match(
@@ -159,13 +170,13 @@ describe("asset-backed map layering", () => {
     assert.match(globalCss, /\.overlap-indicator-badge\.suspension/);
     assert.match(globalCss, /\.overlap-indicator-badge\.planned-closure/);
     assert.match(globalCss, /\.overlap-indicator-badge\.planned-closure\s*\{[^}]*stroke:\s*#3b82f6;/s);
-    assert.match(globalCss, /\.overlap-indicator-badge\.delay\s*\{[^}]*stroke:\s*#f59e0b;/s);
-    assert.match(globalCss, /\.overlap-indicator-type-icon\.delay\s*\{[^}]*color:\s*#f59e0b;/s);
+    assert.match(globalCss, /\.overlap-indicator-badge\.delay\s*\{[^}]*stroke:\s*#FEEC41;/s);
+    assert.match(globalCss, /\.overlap-indicator-type-icon\.delay\s*\{[^}]*color:\s*#FEEC41;/s);
     assert.doesNotMatch(globalCss, /\.overlap-indicator-badge\.delay\s*\{[^}]*#0ea5e9/s);
     assert.doesNotMatch(globalCss, /\.overlap-indicator-badge\.suspension,\s*\.overlap-indicator-badge\.planned-closure/);
     assert.match(globalCss, /\.overlap-indicator-badge\.reduced-speed-zone\s*\{[^}]*var\(--impact-rsz\)/s);
     assert.match(globalCss, /\.overlap-indicator-type-icon\.reduced-speed-zone\s*\{[^}]*var\(--impact-rsz\)/s);
-    assert.match(interactiveMapSource, /const RSZ_IMPACT_COLOR = "#A6FBB2";/);
+    assert.match(interactiveMapSource, /const RSZ_IMPACT_COLOR = "#F59E0B";/);
     assert.doesNotMatch(globalCss, /\.overlap-side-rail/);
   });
 
@@ -173,6 +184,7 @@ describe("asset-backed map layering", () => {
     assert.match(interactiveMapSource, /useRetainedMapLayers/);
     assert.match(interactiveMapSource, /map-layer-exiting/);
     assert.match(globalCss, /\.map-layer-exiting/);
+    assert.match(interactiveMapSource, /items\.length === 0 && previous\.some\(\(layer\) => !layer\.exiting\)/);
   });
 
   it("uses resolved SVG station centers for station flashes and hit targets", () => {

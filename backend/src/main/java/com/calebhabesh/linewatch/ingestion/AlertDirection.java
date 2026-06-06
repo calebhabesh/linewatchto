@@ -25,6 +25,12 @@ public enum AlertDirection {
             return UNKNOWN;
         }
         String normalized = value.trim().toLowerCase(Locale.ROOT);
+        if ("both way".equals(normalized)
+            || "both ways".equals(normalized)
+            || "both directions".equals(normalized)
+            || "in both directions".equals(normalized)) {
+            return BIDIRECTIONAL;
+        }
         for (AlertDirection direction : values()) {
             if (direction.wireValue.equals(normalized)) {
                 return direction;

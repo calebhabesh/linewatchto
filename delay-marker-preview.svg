@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="200" height="200" style="background: #12151c;">
+  <!-- Styling mirroring globals.css -->
+  <style>
+    .overlap-indicator-badge.delay {
+      fill: rgba(254, 236, 65, 0.14);
+      stroke: #FEEC41;
+      stroke-width: 3.5;
+    }
+    .overlap-indicator-type-icon.delay {
+      color: #FEEC41;
+    }
+    .delay-badge-exclamation {
+      stroke: rgb(15, 23, 42);
+    }
+    .delay-badge-exclamation-dot {
+      fill: rgb(15, 23, 42);
+    }
+  </style>
+
+  <!-- Centered overlap marker group -->
+  <g transform="translate(50, 50)">
+    <!-- Outer circle badge -->
+    <circle class="overlap-indicator-badge delay" r="27" />
+    
+    <!-- Delay icon SVG shifted by half size (34px/2 = 17px) -->
+    <g transform="translate(-17, -17)">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="34" height="34" class="overlap-indicator-type-icon delay">
+        <defs>
+          <mask id="delay-mask-preview">
+            <rect x="0" y="0" width="24" height="24" fill="#ffffff" />
+            <circle cx="18" cy="18" r="6.8" fill="#000000" />
+          </mask>
+        </defs>
+        
+        <!-- Hourglass masked to leave space for badge -->
+        <g mask="url(#delay-mask-preview)">
+          <path
+            fill="currentColor"
+            transform="translate(-0.8 -0.8) scale(0.8)"
+            d="M7 4v2h2v4a7.001 7.001 0 0 0 3.406 6A7.001 7.001 0 0 0 9 22v4H7v2h18v-2h-2v-4a7.001 7.001 0 0 0-3.406-6A7.001 7.001 0 0 0 23 10V6h2V4zm4 2h10v4c0 2.773-2.227 5-5 5s-5-2.227-5-5zm1.156 5c.446 1.723 1.98 3 3.844 3c1.863 0 3.398-1.277 3.844-3zM16 17c2.773 0 5 2.227 5 5v4h-1c0-2.21-1.79-4-4-4s-4 1.79-4 4h-1v-4c0-2.773 2.227-5 5-5z"
+          />
+        </g>
+        
+        <!-- Warning Badge circle -->
+        <circle cx="18" cy="18" r="5.2" fill="currentColor" />
+        
+        <!-- Solid Exclamation Point inside Badge -->
+        <path d="M18 14.5v3.2" fill="none" class="delay-badge-exclamation" stroke-width="1.6" stroke-linecap="round" />
+        <circle cx="18" cy="20.8" r="0.9" class="delay-badge-exclamation-dot" />
+      </svg>
+    </g>
+  </g>
+</svg>

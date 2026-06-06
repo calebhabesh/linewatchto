@@ -24,10 +24,15 @@ describe("account UI source", () => {
     assert.match(savedCommutesSource, /accountState/);
     assert.match(savedCommutesSource, /accountCommutes/);
     assert.match(savedCommutesSource, /Saved to account/);
-    assert.match(savedCommutesSource, /Demo examples/);
+    assert.match(savedCommutesSource, /Sign in or create an account to view saved commutes/);
     assert.match(savedCommutesSource, /Impact matching pending/);
     assert.match(savedCommutesSource, /createSavedCommute/);
     assert.match(savedCommutesSource, /deleteSavedCommute/);
+  });
+
+  it("does not show fixture demo commute cards for signed-out or empty account states", () => {
+    assert.doesNotMatch(savedCommutesSource, /!\s*accountState\.authenticated\s*\|\|\s*accountCommutes\.length\s*===\s*0/);
+    assert.doesNotMatch(savedCommutesSource, /commuteImpacts\.map/);
   });
 
   it("adds compact account styling without creating a landing page", () => {

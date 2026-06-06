@@ -55,6 +55,8 @@ class AlertDirectionParserTest {
     void treatsStructuredBothWaysCaseInsensitivelyAsBidirectional() {
         assertThat(parser.parse("Both ways", "", "", ""))
             .isEqualTo(AlertDirection.BIDIRECTIONAL);
+        assertThat(parser.parse("Both way", "", "", ""))
+            .isEqualTo(AlertDirection.BIDIRECTIONAL);
         assertThat(parser.parse("both ways", "", "", ""))
             .isEqualTo(AlertDirection.BIDIRECTIONAL);
     }
@@ -75,6 +77,10 @@ class AlertDirectionParserTest {
     void mapsWireValuesConservatively() {
         assertThat(AlertDirection.fromWireValue(" southbound "))
             .isEqualTo(AlertDirection.SOUTHBOUND);
+        assertThat(AlertDirection.fromWireValue("Both way"))
+            .isEqualTo(AlertDirection.BIDIRECTIONAL);
+        assertThat(AlertDirection.fromWireValue("Both ways"))
+            .isEqualTo(AlertDirection.BIDIRECTIONAL);
         assertThat(AlertDirection.fromWireValue(null)).isEqualTo(AlertDirection.UNKNOWN);
         assertThat(AlertDirection.fromWireValue(" ")).isEqualTo(AlertDirection.UNKNOWN);
         assertThat(AlertDirection.fromWireValue("toward downtown")).isEqualTo(AlertDirection.UNKNOWN);

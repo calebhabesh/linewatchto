@@ -5,6 +5,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Locale;
 import java.util.UUID;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,6 +22,7 @@ public class AccountService {
     private final SessionTokenService tokenService;
     private final Clock clock;
 
+    @Autowired
     public AccountService(
         AccountRepository accountRepository,
         UserSessionRepository sessionRepository,

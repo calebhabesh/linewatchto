@@ -47,7 +47,7 @@ export function LineLegend({
               {delay && (
                 <button
                   onClick={(e) => { e.stopPropagation(); onDelayClick?.(line.id); }}
-                  className="pointer-events-auto cursor-pointer text-amber-500 bg-white/95 dark:bg-[#12151c] p-2 rounded-full shadow-lg border border-amber-500/30 hover:bg-amber-50 dark:hover:bg-amber-950/30 hover:scale-110 transition-all"
+                  className="legend-delay-button pointer-events-auto cursor-pointer bg-white/95 dark:bg-[#12151c] p-2 rounded-full shadow-lg border hover:scale-110 transition-all"
                   title={`View delay for ${line.name}`}
                   aria-label={`View delay for ${line.name}`}
                 >
