@@ -26,6 +26,44 @@ export type AuthResponse = {
   user: AccountUser | null;
 };
 
+export type AccountCommutePath = {
+  status: "available" | "unavailable";
+  stationIds: string[];
+  segmentIds: string[];
+  lineIds: string[];
+  transferStationIds: string[];
+  estimatedTravelSeconds: number;
+  weightSource: "gtfs-scheduled-median" | "mixed-scheduled-fallback" | "topology-fallback" | "unavailable";
+  summary: string;
+};
+
+export type AccountMatchedImpact = {
+  id: string;
+  kind: "suspension" | "delay" | "reduced-speed-zone" | "planned-closure";
+  status: "current" | "planned";
+  severity: "minor" | "major" | "suspended" | "planned";
+  title: string;
+  lineId: string | null;
+  lineNumber: string | null;
+  location: string | null;
+  displayDirection: string | null;
+  source: string;
+  matchedSegmentIds: string[];
+  matchedStationIds: string[];
+  startedAt?: string | null;
+  updatedAt?: string | null;
+  window?: string | null;
+  timingStatus?: "active-now" | "upcoming" | "unknown" | null;
+};
+
+export type AccountCommuteImpact = {
+  status: "clear" | "affected" | "planned" | "unavailable";
+  severity: "clear" | "minor" | "major" | "suspended" | "planned" | "unavailable";
+  statusLabel: string;
+  detail: string;
+  matchedImpacts: AccountMatchedImpact[];
+};
+
 export type AccountSavedCommute = {
   id: string;
   label: string;
@@ -34,6 +72,8 @@ export type AccountSavedCommute = {
   destinationStationId: string;
   destinationStationName: string;
   routeLabel: string;
+  path: AccountCommutePath;
+  impact: AccountCommuteImpact;
   createdAt: string;
   updatedAt: string;
 };

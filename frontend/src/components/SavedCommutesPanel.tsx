@@ -1,14 +1,14 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useDashboardData } from "../app/DataContext";
-import { Navigation, CheckCircle2, AlertCircle, AlertOctagon, ChevronLeft } from "lucide-react";
+import { Navigation, ChevronLeft } from "lucide-react";
 import {
   createSavedCommute,
   deleteSavedCommute,
   getSavedCommutes,
   type AccountSavedCommute,
   type AccountState,
+  type AccountMatchedImpact,
 } from "../app/account-data";
 import type { StationSummary } from "../app/station-data";
 
@@ -20,7 +20,44 @@ interface Props {
   stationSummaries: StationSummary[];
   onRequestSignIn: () => void;
   onRequestCreateAccount: () => void;
-  onRequestDemo: () => void;
+}
+
+function commuteTone(commute: AccountSavedCommute) {
+  switch (commute.impact.severity) {
+    case "suspended":
+    case "major":
+      return "danger";
+    case "minor":
+    case "planned":
+      return "warning";
+    case "unavailable":
+      return "neutral";
+    case "clear":
+    default:
+      return "ok";
+  }
+}
+
+function impactKindLabel(kind: AccountMatchedImpact["kind"]) {
+  switch (kind) {
+    case "reduced-speed-zone":
+      return "RSZ";
+    case "planned-closure":
+      return "Planned";
+    case "suspension":
+      return "Suspension";
+    case "delay":
+    default:
+      return "Delay";
+  }
+}
+
+function impactLineLabel(impact: AccountMatchedImpact) {
+  return impact.lineNumber ? `Line ${impact.lineNumber}` : "Station";
+}
+
+function routeSummary(commute: AccountSavedCommute) {
+  return commute.path.status === "available" ? commute.path.summary : "Route path unavailable";
 }
 
 export function SavedCommutesPanel({
@@ -31,9 +68,7 @@ export function SavedCommutesPanel({
   stationSummaries,
   onRequestSignIn,
   onRequestCreateAccount,
-  onRequestDemo,
 }: Props) {
-  const { commuteImpacts } = useDashboardData();
   const [newLabel, setNewLabel] = useState("");
   const [originStationId, setOriginStationId] = useState("");
   const [destinationStationId, setDestinationStationId] = useState("");
@@ -95,49 +130,6 @@ export function SavedCommutesPanel({
     }
   };
 
-  const getImpactClass = (impact: string) => {
-    switch (impact) {
-      case "suspended":
-      case "major":
-        return "danger border-l-red-500";
-      case "minor":
-      case "planned":
-        return "warning border-l-amber-500";
-      default:
-        return "ok border-l-green-500";
-    }
-  };
-
-  const getImpactIcon = (impact: string) => {
-    switch (impact) {
-      case "suspended":
-      case "major":
-        return <AlertOctagon size={16} className="text-red-500" />;
-      case "minor":
-      case "planned":
-        return <AlertCircle size={16} className="text-amber-500" />;
-      default:
-        return <CheckCircle2 size={16} className="text-green-500" />;
-    }
-  };
-
-  const getImpactPill = (impact: string, label: string) => {
-    let classes = "bg-slate-500/10 text-slate-500";
-    if (impact === "suspended" || impact === "major") {
-      classes = "bg-red-500/10 text-red-600 dark:text-red-400";
-    } else if (impact === "minor" || impact === "planned") {
-      classes = "bg-amber-500/10 text-amber-600 dark:text-amber-400";
-    } else if (impact === "clear") {
-      classes = "bg-green-500/10 text-green-600 dark:text-green-400";
-    }
-
-    return (
-      <span className={`status-pill inline-flex shrink-0 px-2 py-0.5 text-xs font-bold rounded-full ${classes}`}>
-        {label}
-      </span>
-    );
-  };
-
   return (
     <section className="commute-panel min-w-0 border border-black/10 dark:border-white/10 rounded-lg shadow-xl">
       <div className="panel-heading @container border-b border-black/10 dark:border-white/10 px-4 py-3">
@@ -156,21 +148,20 @@ export function SavedCommutesPanel({
       <div className="commute-grid min-w-0 p-3 flex flex-col gap-3">
         {!accountState.authenticated ? (
           <div className="saved-commute-account-prompt">
-            <strong>Demo examples</strong>
-            <span>Sign in to save your own rapid-transit commute preferences.</span>
+            <strong>Account required</strong>
+            <span>Sign in or create an account to view saved commutes.</span>
             <div className="account-action-row">
               <button type="button" onClick={onRequestSignIn}>Sign in</button>
               <button type="button" onClick={onRequestCreateAccount}>Create account</button>
-              <button type="button" onClick={onRequestDemo}>Demo account</button>
             </div>
           </div>
         ) : null}
 
         {accountState.authenticated ? (
           <div className="saved-commute-form">
-            <div className="flex items-center justify-between gap-2">
+            <div className="flex flex-wrap items-center justify-between gap-2">
               <strong>{accountState.user?.demo ? "Demo account" : "Saved to account"}</strong>
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Impact matching pending</span>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Route impacts enabled</span>
             </div>
             <input value={newLabel} onChange={(event) => setNewLabel(event.target.value)} placeholder="Commute label" aria-label="Saved commute label" />
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
@@ -189,12 +180,26 @@ export function SavedCommutesPanel({
               <p className="text-xs text-slate-500 dark:text-slate-400 italic">No saved account commutes yet.</p>
             ) : (
               accountCommutes.map((commute) => (
-                <div key={commute.id} className="commute-card ok min-w-0 rounded-lg border border-black/10 border-l-4 border-l-green-500 !bg-slate-50 p-3 dark:border-white/10 dark:!bg-[#12151c]">
+                <div key={commute.id} className={`commute-card ${commuteTone(commute)} min-w-0 rounded-lg border border-black/10 !bg-slate-50 p-3 dark:border-white/10 dark:!bg-[#12151c]`}>
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <h3 className="min-w-0 text-sm font-bold text-slate-800 dark:text-white whitespace-normal break-words">{commute.label}</h3>
+                      <div className="flex flex-wrap items-start gap-2">
+                        <h3 className="min-w-0 text-sm font-bold text-slate-800 dark:text-white whitespace-normal break-words">{commute.label}</h3>
+                        <span className={`status-pill ${commuteTone(commute)}`}>{commute.impact.statusLabel}</span>
+                      </div>
                       <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold mt-1 whitespace-normal break-words">{commute.routeLabel}</p>
-                      <p className="text-xs text-slate-600 dark:text-slate-300 mt-2">Impact matching pending.</p>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 whitespace-normal break-words">{routeSummary(commute)}</p>
+                      <p className="text-xs text-slate-600 dark:text-slate-300 mt-2 whitespace-normal break-words">{commute.impact.detail}</p>
+                      {commute.impact.matchedImpacts.length > 0 ? (
+                        <ul className="saved-commute-impact-list">
+                          {commute.impact.matchedImpacts.slice(0, 3).map((impact) => (
+                            <li key={`${impact.kind}-${impact.id}`}>
+                              <strong>{impactKindLabel(impact.kind)}</strong>
+                              <span>{impactLineLabel(impact)}{impact.location ? `: ${impact.location}` : ""}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : null}
                     </div>
                     <button type="button" onClick={() => handleDeleteCommute(commute.id)} aria-label={`Delete saved commute ${commute.label}`}>Delete</button>
                   </div>
@@ -203,42 +208,6 @@ export function SavedCommutesPanel({
             )}
           </div>
         ) : null}
-
-        {(!accountState.authenticated || accountCommutes.length === 0) && commuteImpacts.map((commute) => {
-          const impactClass = getImpactClass(commute.impact);
-          const hasImpact = commute.impact !== "clear";
-          return (
-            <div
-              key={commute.id}
-              className={`commute-card min-w-0 border-l-4 ${impactClass} p-3 rounded-lg border border-black/10 dark:border-white/10 flex flex-col justify-between ${
-                hasImpact ? "!bg-orange-50 dark:!bg-orange-950" : "!bg-slate-50 dark:!bg-[#12151c]"
-              }`}
-            >
-              <div>
-                <div className="flex min-w-0 items-start justify-between gap-3">
-                  <h3 className="min-w-0 text-sm font-bold text-slate-800 dark:text-white whitespace-normal break-words">
-                    {commute.name}
-                  </h3>
-                  <span className="shrink-0 mt-0.5">{getImpactIcon(commute.impact)}</span>
-                </div>
-                <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold mt-1 whitespace-normal break-words">
-                  {commute.route}
-                </p>
-                <p className="text-xs text-slate-600 dark:text-slate-300 mt-2 leading-relaxed whitespace-normal break-words">
-                  {commute.detail}
-                </p>
-              </div>
-              <div className="mt-3 pt-2 border-t border-black/5 dark:border-white/5 flex flex-wrap items-center justify-between gap-2">
-                {getImpactPill(commute.impact, commute.statusLabel)}
-                {commute.affectedBy && (
-                  <span className="min-w-0 text-[10px] text-slate-400 dark:text-slate-500 italic whitespace-normal break-words">
-                    via {commute.affectedBy}
-                  </span>
-                )}
-              </div>
-            </div>
-          );
-        })}
       </div>
     </section>
   );

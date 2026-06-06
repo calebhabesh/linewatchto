@@ -77,7 +77,8 @@ describe("floating menu layout", () => {
     assert.match(shellSource, /Demo account/);
     assert.match(shellSource, /Create account/);
     assert.match(shellSource, /Sign in/);
-    assert.match(savedCommutesSource, /Impact matching pending/);
+    assert.match(savedCommutesSource, /impact\.statusLabel/);
+    assert.doesNotMatch(savedCommutesSource, /Impact matching pending/);
   });
 
   it("allows alert and planned closure copy to wrap instead of collapsing into narrow columns", () => {

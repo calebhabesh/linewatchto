@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 
 import {
@@ -10,6 +11,16 @@ import {
 } from "../src/app/account-data.ts";
 
 describe("account data adapter", () => {
+  it("defines saved commute weighted path and impact contracts", () => {
+    const source = readFileSync(new URL("../src/app/account-data.ts", import.meta.url), "utf8");
+    assert.match(source, /export type AccountCommutePath/);
+    assert.match(source, /estimatedTravelSeconds: number/);
+    assert.match(source, /weightSource: "gtfs-scheduled-median" \| "mixed-scheduled-fallback" \| "topology-fallback" \| "unavailable"/);
+    assert.match(source, /export type AccountCommuteImpact/);
+    assert.match(source, /path: AccountCommutePath/);
+    assert.match(source, /impact: AccountCommuteImpact/);
+  });
+
   it("maps signed-out current account responses", async () => {
     const result = await getCurrentAccount({
       fetcher: async () =>
@@ -71,6 +82,23 @@ describe("account data adapter", () => {
                 destinationStationId: "union",
                 destinationStationName: "Union",
                 routeLabel: "Finch -> Union",
+                path: {
+                  status: "available",
+                  stationIds: ["finch", "union"],
+                  segmentIds: ["line-1-finch-union"],
+                  lineIds: ["line-1"],
+                  transferStationIds: [],
+                  estimatedTravelSeconds: 300,
+                  weightSource: "gtfs-scheduled-median",
+                  summary: "Default scheduled route: 2 stations on Line 1, about 5 min",
+                },
+                impact: {
+                  status: "clear",
+                  severity: "clear",
+                  statusLabel: "Clear",
+                  detail: "No active or planned LineWatch impacts match this route.",
+                  matchedImpacts: [],
+                },
                 createdAt: "2026-06-05T14:30:00Z",
                 updatedAt: "2026-06-05T14:30:00Z",
               },
@@ -82,6 +110,8 @@ describe("account data adapter", () => {
 
     assert.equal(result.source, "backend");
     assert.equal(result.commutes[0].routeLabel, "Finch -> Union");
+    assert.equal(result.commutes[0].path.estimatedTravelSeconds, 300);
+    assert.equal(result.commutes[0].impact.statusLabel, "Clear");
   });
 
   it("creates and logs out through account endpoints", async () => {
@@ -100,6 +130,23 @@ describe("account data adapter", () => {
               destinationStationId: "union",
               destinationStationName: "Union",
               routeLabel: "Finch -> Union",
+              path: {
+                status: "available",
+                stationIds: ["finch", "union"],
+                segmentIds: ["line-1-finch-union"],
+                lineIds: ["line-1"],
+                transferStationIds: [],
+                estimatedTravelSeconds: 300,
+                weightSource: "gtfs-scheduled-median",
+                summary: "Default scheduled route: 2 stations on Line 1, about 5 min",
+              },
+              impact: {
+                status: "clear",
+                severity: "clear",
+                statusLabel: "Clear",
+                detail: "No active or planned LineWatch impacts match this route.",
+                matchedImpacts: [],
+              },
               createdAt: "2026-06-05T14:30:00Z",
               updatedAt: "2026-06-05T14:30:00Z",
             }),

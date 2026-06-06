@@ -23,9 +23,10 @@ describe("account UI source", () => {
   it("renders signed-out, demo, and account-backed saved commute states", () => {
     assert.match(savedCommutesSource, /accountState/);
     assert.match(savedCommutesSource, /accountCommutes/);
-    assert.match(savedCommutesSource, /Saved to account/);
-    assert.match(savedCommutesSource, /Sign in or create an account to view saved commutes/);
-    assert.match(savedCommutesSource, /Impact matching pending/);
+    assert.match(savedCommutesSource, /status-pill/);
+    assert.match(savedCommutesSource, /matchedImpacts/);
+    assert.match(savedCommutesSource, /Route path unavailable/);
+    assert.doesNotMatch(savedCommutesSource, /Impact matching pending/);
     assert.match(savedCommutesSource, /createSavedCommute/);
     assert.match(savedCommutesSource, /deleteSavedCommute/);
   });

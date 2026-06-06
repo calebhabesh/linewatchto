@@ -1407,8 +1407,6 @@ button {
 
 .commute-card {
   background: var(--panel-soft);
-  border-left: 4px solid var(--border-strong);
-  min-height: 172px;
   min-width: 0;
   padding: 13px;
 }
@@ -1453,6 +1451,42 @@ button {
   display: block;
   font-size: 0.82rem;
   margin-top: 10px;
+}
+
+.saved-commute-impact-list {
+  display: grid;
+  gap: 0.35rem;
+  margin-top: 0.65rem;
+  min-width: 0;
+}
+
+.saved-commute-impact-list li {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.4rem;
+  align-items: baseline;
+  border-top: 1px solid rgba(15, 23, 42, 0.08);
+  padding-top: 0.35rem;
+  font-size: 0.72rem;
+  color: rgb(71, 85, 105);
+}
+
+.dark .saved-commute-impact-list li,
+.high-contrast .saved-commute-impact-list li {
+  border-top-color: rgba(255, 255, 255, 0.12);
+  color: rgb(203, 213, 225);
+}
+
+.saved-commute-impact-list strong {
+  font-size: 0.66rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin-top: 0;
+}
+
+.saved-commute-impact-list span {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .analytics-panel {
