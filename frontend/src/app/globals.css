@@ -3445,3 +3445,112 @@ button {
   border-color: rgba(255, 255, 255, 0.14);
   color: rgb(248, 250, 252);
 }
+
+.saved-commute-station-grid {
+  display: grid;
+  gap: 0.55rem;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media (min-width: 640px) {
+  .saved-commute-station-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.saved-commute-primary-button,
+.commute-route-actions button {
+  align-items: center;
+  display: inline-flex;
+  gap: 0.35rem;
+  justify-content: center;
+}
+
+.saved-commute-primary-button[aria-busy="true"] {
+  cursor: wait;
+  opacity: 0.82;
+}
+
+.saved-commute-loading-icon {
+  animation: saved-commute-spin 0.85s linear infinite;
+}
+
+@keyframes saved-commute-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.commute-route-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-top: 0.75rem;
+}
+
+.commute-route-actions button {
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  border-radius: 8px;
+  font-size: 0.68rem;
+  font-weight: 900;
+  min-height: 30px;
+  padding: 0.35rem 0.55rem;
+  text-transform: uppercase;
+}
+
+.commute-route-map-button[aria-pressed="true"] {
+  background: rgba(34, 211, 238, 0.14);
+  border-color: rgba(8, 145, 178, 0.38);
+  color: rgb(14, 116, 144);
+}
+
+.commute-route-stop-list {
+  border-top: 1px solid rgba(15, 23, 42, 0.1);
+  display: grid;
+  gap: 0.28rem;
+  margin: 0.7rem 0 0;
+  max-height: 220px;
+  overflow: auto;
+  padding: 0.6rem 0 0;
+}
+
+.commute-route-stop-list li {
+  align-items: center;
+  color: rgb(51, 65, 85);
+  display: grid;
+  font-size: 0.75rem;
+  gap: 0.45rem;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  min-width: 0;
+}
+
+.commute-route-stop-index {
+  align-items: center;
+  background: rgba(14, 165, 233, 0.12);
+  border-radius: 999px;
+  color: rgb(14, 116, 144);
+  display: inline-flex;
+  font-size: 0.62rem;
+  font-weight: 950;
+  height: 20px;
+  justify-content: center;
+  width: 20px;
+}
+
+.commute-route-stop-list strong {
+  color: rgb(14, 116, 144);
+  font-size: 0.62rem;
+  letter-spacing: 0.06em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.dark .commute-route-stop-list,
+.high-contrast .commute-route-stop-list {
+  border-top-color: rgba(255, 255, 255, 0.12);
+}
+
+.dark .commute-route-stop-list li,
+.high-contrast .commute-route-stop-list li {
+  color: rgb(203, 213, 225);
+}

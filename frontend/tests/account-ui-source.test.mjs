@@ -30,6 +30,14 @@ describe("account UI source", () => {
     assert.doesNotMatch(savedCommutesSource, /Impact matching pending/);
     assert.match(savedCommutesSource, /createSavedCommute/);
     assert.match(savedCommutesSource, /deleteSavedCommute/);
+    assert.match(savedCommutesSource, /SavedCommuteStationPicker/);
+    assert.doesNotMatch(savedCommutesSource, /<select/);
+    assert.match(savedCommutesSource, /Plotting route/);
+    assert.match(savedCommutesSource, /Loader2/);
+    assert.match(savedCommutesSource, /commute-route-stop-list/);
+    assert.match(savedCommutesSource, /commute\.path\.stationIds/);
+    assert.match(savedCommutesSource, /onViewPath/);
+    assert.match(savedCommutesSource, /View path on map/);
   });
 
   it("does not show fixture demo commute cards for signed-out or empty account states", () => {
