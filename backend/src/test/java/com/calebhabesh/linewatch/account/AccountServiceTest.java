@@ -74,7 +74,7 @@ class AccountServiceTest {
             new AccountService.LoginRequest("rider@example.com", "wrong password")
         ))
             .isInstanceOf(AccountException.class)
-            .hasMessageContaining("Email or password is incorrect");
+            .hasMessageContaining("Incorrect Email or Password");
     }
 
     @Test

@@ -440,7 +440,7 @@ export function InteractiveTtcMap({
           patternOriginX: originX,
           patternOriginY: originY,
           patternAngle: angle,
-        };
+        } as RenderedNetworkSegment;
       })
       .filter((segment): segment is RenderedNetworkSegment => Boolean(segment.pathD));
   }, [networkSegments, mapStations, anchorPoints, guidePaths]);
@@ -564,7 +564,7 @@ export function InteractiveTtcMap({
       return [];
     }
 
-    const stationById = new Map(mapStations.map((station) => [station.id, station]));
+    const stationById = new Map(stations.map((station) => [station.id, station]));
     const endpointIds = [
       commutePathPreview.stationIds[0],
       commutePathPreview.stationIds.at(-1),
@@ -576,7 +576,7 @@ export function InteractiveTtcMap({
         return station ? stationPointFor(station) : null;
       })
       .filter((point): point is MapPoint => Boolean(point));
-  }, [commutePathPreview, mapStations, stationPointFor]);
+  }, [commutePathPreview, stations, stationPointFor]);
 
   const pulseSyncSignature = useMemo(() => {
     const plannedKeys = plannedPreviewLayers

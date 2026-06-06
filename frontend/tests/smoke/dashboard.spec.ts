@@ -473,4 +473,16 @@ test("demo account shows account-backed saved commutes", async ({ page, request 
   await expect(page.getByText("Affected now", { exact: true })).toBeVisible();
   await expect(page.getByText("Suspension", { exact: true })).toBeVisible();
   await expect(page.getByText(/Line 1: Stub Station to Stub Terminal/)).toBeVisible();
+
+  await page.getByRole("button", { name: /View 5 stops/ }).click();
+  await expect(page.getByRole("list", { name: "Stops for Morning commute" })).toBeVisible();
+  const stopsList = page.getByRole("list", { name: "Stops for Morning commute" });
+  await expect(stopsList.getByText("Stub Station", { exact: true })).toBeVisible();
+  await expect(stopsList.getByText("stub-union", { exact: true })).toBeVisible();
+
+  await page.getByRole("button", { name: "View path on map" }).click();
+  await expect(page.locator("[data-commute-path-preview]")).toBeVisible();
+  await expect(page.getByRole("status").filter({ hasText: "Viewing" })).toBeVisible();
+  await page.getByRole("button", { name: "Clear" }).click({ force: true });
+  await expect(page.locator("[data-commute-path-preview]")).toHaveCount(0);
 });

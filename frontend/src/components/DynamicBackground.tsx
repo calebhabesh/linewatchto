@@ -65,6 +65,7 @@ export function DynamicBackground({
             maxDistance: 15.0,
             spacing: 18.0,
             points: 8.0,
+            speed: 0.35,
           }) as VantaEffect;
         }
       } catch (err) {

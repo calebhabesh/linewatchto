@@ -179,7 +179,7 @@ public class AccountService {
     }
 
     private AccountException invalidCredentials() {
-        return new AccountException(HttpStatus.UNAUTHORIZED, "invalid_credentials", "Email or password is incorrect.");
+        return new AccountException(HttpStatus.UNAUTHORIZED, "invalid_credentials", "Incorrect Email or Password.");
     }
 
     private String nextId(String prefix) {

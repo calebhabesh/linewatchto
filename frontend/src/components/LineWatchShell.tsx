@@ -889,7 +889,7 @@ export function LineWatchShell({ initialData }: { initialData: DashboardData }) 
 
       {/* Fixed borderless legend at the bottom right */}
       {!showClosedScreen && (
-      <aside className="fixed bottom-6 right-6 z-20 pointer-events-auto">
+      <aside className="fixed bottom-6 right-6 z-20 pointer-events-none">
         <LineLegend
           onAlertClick={() => {
             setActiveView("alerts");

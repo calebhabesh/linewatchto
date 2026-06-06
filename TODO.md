@@ -10,6 +10,10 @@
 - [x] Search Stations functionality
 - [x] sync card and actual section flashing/pulse when pressed
 - [ ] Demo cards from "Saved Commutes" still remains.
+- [ ] Login or sign up needs strict error handling/regex for valid emails passwords, etc.
+- [ ] Does the all alert types backend not use the same user db as the live?
+- [x] Saved Commutes station search needs to be more elegant
+- [ ] Ask question, does different backend (all alert types) psql different from the live one?
 
 ## Future Additions
 - [ ] Station impacts tie to the arrivals subsection in the station submenu 
