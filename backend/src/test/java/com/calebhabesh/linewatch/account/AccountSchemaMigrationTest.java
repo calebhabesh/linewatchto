@@ -6,7 +6,24 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import org.junit.jupiter.api.Test;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
+
 class AccountSchemaMigrationTest {
+
+    @Test
+    void passwordResetMigrationStoresOnlyHashedTokens() throws Exception {
+        String sql = Files.readString(Path.of("src/main/resources/db/migration/V19__password_reset_tokens.sql"));
+
+        assertThat(sql).contains("create table password_reset_tokens");
+        assertThat(sql).contains("token_hash varchar(64) not null unique");
+        assertThat(sql).contains("account_id varchar(80) not null references accounts(id) on delete cascade");
+        assertThat(sql).contains("expires_at timestamp with time zone not null");
+        assertThat(sql).contains("used_at timestamp with time zone");
+        assertThat(sql).contains("idx_password_reset_tokens_account_id");
+        assertThat(sql).contains("idx_password_reset_tokens_expires_at");
+        assertThat(sql).doesNotContain("raw_token");
+    }
 
     @Test
     void v18CreatesAccountsSessionsAndSavedCommutes() throws IOException {

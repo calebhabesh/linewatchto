@@ -42,6 +42,10 @@ public class AccountEntity {
         this.lastLoginAt = lastLoginAt;
     }
 
+    public void replacePasswordHash(String passwordHash) {
+        this.passwordHash = passwordHash;
+    }
+
     public String getId() { return id; }
     public String getEmail() { return email; }
     public String getDisplayName() { return displayName; }
