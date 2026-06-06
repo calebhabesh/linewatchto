@@ -468,6 +468,9 @@ test("demo account shows account-backed saved commutes", async ({ page, request 
   await page.getByRole("menuitem", { name: "Saved Commutes" }).click({ force: true });
 
   await expect(page.getByText("Demo account")).toBeVisible();
-  await expect(page.getByText("Finch -> Union")).toBeVisible();
-  await expect(page.getByText("Impact matching pending", { exact: true })).toBeVisible();
+  await expect(page.getByText("Stub Station -> Union")).toBeVisible();
+  await expect(page.getByText("Default scheduled route: 5 stations on Line 1, about 13 min")).toBeVisible();
+  await expect(page.getByText("Affected now", { exact: true })).toBeVisible();
+  await expect(page.getByText("Suspension", { exact: true })).toBeVisible();
+  await expect(page.getByText(/Line 1: Stub Station to Stub Terminal/)).toBeVisible();
 });
