@@ -37,6 +37,20 @@ public class AccountController {
         return authenticated(accountService.demoLogin());
     }
 
+    @PostMapping("/password-reset/request")
+    public ResponseEntity<AccountService.PasswordResetRequestResponse> requestPasswordReset(
+        @RequestBody AccountService.PasswordResetRequest request
+    ) {
+        return ResponseEntity.ok(accountService.requestPasswordReset(request));
+    }
+
+    @PostMapping("/password-reset/confirm")
+    public ResponseEntity<AccountResponses.AuthResponse> confirmPasswordReset(
+        @RequestBody AccountService.PasswordResetConfirmRequest request
+    ) {
+        return authenticated(accountService.confirmPasswordReset(request));
+    }
+
     @PostMapping("/logout")
     public ResponseEntity<AccountResponses.AuthResponse> logout(
         @CookieValue(name = AuthCookieFactory.COOKIE_NAME, required = false) String rawSessionToken
