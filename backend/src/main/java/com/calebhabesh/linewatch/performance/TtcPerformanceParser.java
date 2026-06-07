@@ -11,20 +11,48 @@ import java.util.regex.Pattern;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
+import org.jsoup.select.Elements;
 import org.springframework.stereotype.Component;
 
 @Component
 public class TtcPerformanceParser {
     private static final String TITLE = "On-time performance and elevator/escalator status";
-    private static final Pattern UPDATED_PATTERN = Pattern.compile("(?i)last\\s+updated\\s*:?\\s*([^\\n]+)");
     private static final Pattern METRIC_PATTERN = Pattern.compile("(?i)\\b(Line\\s+[124]|Bus|Streetcar|Wheel-Trans|Elevators|Escalators)\\b\\s*:?\\s*(\\d{1,3})\\s*%");
 
     public TtcPerformanceResponses.SnapshotResponse parse(String html, String sourceUrl, OffsetDateTime fetchedAt) {
         Document document = Jsoup.parse(html == null ? "" : html);
         Element section = findPerformanceSection(document);
-        String text = section.text().replace('\u00a0', ' ').replaceAll("\\s+", " ").trim();
         String updatedLabel = updatedLabel(section);
-        List<TtcPerformanceResponses.MetricResponse> metrics = metrics(text);
+
+        List<TtcPerformanceResponses.MetricResponse> metrics = new ArrayList<>();
+        Elements cards = section.select(".otp-card");
+        if (!cards.isEmpty()) {
+            for (Element card : cards) {
+                Element nameEl = card.selectFirst(".otp-service-name");
+                Element pctEl = card.selectFirst(".otp-percentage");
+                if (nameEl != null && pctEl != null) {
+                    String rawLabel = nameEl.text().trim();
+                    String pctText = pctEl.text().replaceAll("[^0-9]", "");
+                    if (!pctText.isEmpty()) {
+                        int percentage = Integer.parseInt(pctText);
+                        String label = canonicalLabel(rawLabel);
+                        String id = idFor(label);
+                        metrics.add(new TtcPerformanceResponses.MetricResponse(
+                            id,
+                            label,
+                            categoryFor(id),
+                            percentage,
+                            percentage + "%",
+                            null
+                        ));
+                    }
+                }
+            }
+        } else {
+            String text = section.text().replace('\u00a0', ' ').replaceAll("\\s+", " ").trim();
+            metrics = parseMetricsFromText(text);
+        }
+
         if (metrics.isEmpty()) {
             throw new TtcPerformanceParseException("TTC performance block did not contain percentage metrics");
         }
@@ -42,11 +70,11 @@ public class TtcPerformanceParser {
     }
 
     private Element findPerformanceSection(Document document) {
-        Element heading = document.select("h1, h2, h3, h4, h5, h6").stream()
+        Element heading = document.select("h1, h2, h3, h4, h5, h6, .otp-title").stream()
             .filter(element -> normalize(element.text()).contains(normalize(TITLE)))
             .findFirst()
             .orElseThrow(() -> new TtcPerformanceParseException("TTC performance heading was not found"));
-        Element section = heading.closest("section");
+        Element section = heading.closest("section, .otp-dashboard-wrapper, .otp-dashboard-container");
         if (section != null) {
             return section;
         }
@@ -72,7 +100,7 @@ public class TtcPerformanceParser {
             .orElse("Not provided");
     }
 
-    private List<TtcPerformanceResponses.MetricResponse> metrics(String text) {
+    private List<TtcPerformanceResponses.MetricResponse> parseMetricsFromText(String text) {
         Map<String, TtcPerformanceResponses.MetricResponse> byId = new LinkedHashMap<>();
         Matcher matcher = METRIC_PATTERN.matcher(text);
         while (matcher.find()) {
@@ -96,6 +124,21 @@ public class TtcPerformanceParser {
 
     private String canonicalLabel(String raw) {
         String normalized = raw.trim().replaceAll("\\s+", " ");
+        if (normalized.equalsIgnoreCase("yonge-university line") || normalized.equalsIgnoreCase("yonge-university")) {
+            return "Line 1";
+        }
+        if (normalized.equalsIgnoreCase("bloor-danforth line") || normalized.equalsIgnoreCase("bloor-danforth")) {
+            return "Line 2";
+        }
+        if (normalized.equalsIgnoreCase("sheppard line") || normalized.equalsIgnoreCase("sheppard")) {
+            return "Line 4";
+        }
+        if (normalized.equalsIgnoreCase("elevator")) {
+            return "Elevators";
+        }
+        if (normalized.equalsIgnoreCase("escalator")) {
+            return "Escalators";
+        }
         if (normalized.matches("(?i)line\\s+[124]")) {
             return "Line " + normalized.replaceAll("(?i)line\\s+", "");
         }
