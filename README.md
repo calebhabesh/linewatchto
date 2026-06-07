@@ -28,7 +28,8 @@ Implemented now:
 - Legend SVG icons for Lines 1, 2, 4, 5, and 6.
 - Account-backed saved commutes with weighted default rapid-transit route matching and dashboard-visible impact summaries.
 - Account sign-in supports password reset through emailed reset links when SMTP is configured, with a local/dev reset-token fallback.
-- Reliability snapshot panel.
+- Official TTC.ca performance metrics panel for current on-time and elevator/escalator status, source-labeled with the TTC.ca updated timestamp and unavailable fallback.
+- Redis-backed dashboard cache for status, map, alerts, ingestion health, and TTC performance reads, with database/live fallback when Redis is unavailable.
 - Ingestion/system health panel in fixture mode.
 - High-contrast display toggle.
 - Motion/static-background toggle.
@@ -66,16 +67,14 @@ Implemented now:
 Not implemented yet:
 
 - TTC alert polling remains opt-in by default; use the live backend dev script for fresh alert cards and map overlays.
-- GTFS import remains unimplemented.
-- Populated geographic PostGIS geometry remains unimplemented.
-- Production geospatial matching remains unimplemented.
+- GTFS import and static shapes remain unimplemented.
+- Populated geographic PostGIS geometry and production geospatial matching remain unimplemented.
 - TTC Reduced Speed Zones webpage ingestion remains unimplemented.
 - Station arrivals use source-labeled TTC scheduled service when a merged GTFS schedule import is active. If no schedule import is active, the station detail API returns an unavailable scheduled-source state and the frontend fallback remains clearly labeled as demo data.
 - The arrival provider architecture supports live, scheduled, unavailable, and demo status states.
-- Redis-backed live status cache.
 - Standalone commute-impact endpoint, route review/edit, push/email commute notifications, alternate-route suggestions, and accessibility-personalized commute matching.
-- Real historical reliability aggregation.
-- Deployment.
+- Real historical LineWatch reliability aggregation remains unimplemented.
+- Redis cache improves current read performance; it does not make stale TTC alert data live.
 
 The UI demonstrates the intended product behavior with realistic local data and an opt-in fresh-ingestion live alert path. Additional backend-backed live data will be added incrementally.
 
@@ -145,6 +144,20 @@ Stop local services:
 
 ```bash
 docker compose down
+```
+
+## Deployment
+
+Backend deployment requires Java 21, PostgreSQL/PostGIS, Redis, and the environment variables listed in `.env.example`.
+Frontend deployment requires `BACKEND_URL` for server-side dashboard loading and `NEXT_PUBLIC_LINEWATCH_API_BASE_URL` for browser account requests.
+For production auth, set `LINEWATCH_AUTH_SECURE_COOKIE=true`, set `LINEWATCH_AUTH_ALLOWED_ORIGINS` to the deployed frontend origin, and keep `LINEWATCH_AUTH_PASSWORD_RESET_DEV_LINKS=false`.
+
+After both deployments are live, run the deployment smoke checker:
+
+```bash
+LINEWATCH_DEPLOY_FRONTEND_URL=https://your-frontend.example \
+LINEWATCH_DEPLOY_BACKEND_URL=https://your-backend.example \
+node scripts/smoke-deploy.mjs
 ```
 
 ## Frontend
@@ -456,8 +469,8 @@ Suggested resume bullet once backend and live data are implemented:
 
 1. Connect a public live-arrival source to the existing arrival provider when one becomes available for TTC subway lines.
 2. Import static GTFS shapes and implement production alert-to-segment matching.
-3. Implement saved commute impact matching and reliability aggregation.
-4. Deploy and publish measured API/build/test metrics.
+3. Implement real historical reliability aggregation.
+4. Publish measured API/build/test metrics.
 
 ## License and Disclaimer
 

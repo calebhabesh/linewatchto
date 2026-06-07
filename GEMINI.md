@@ -1,6 +1,6 @@
 # Agent Guide for LineWatch TO
 
-Last updated: 2026-06-02
+Last updated: 2026-06-06
 
 This repository contains LineWatch TO, an unofficial TTC reliability dashboard. The app is a portfolio-grade full-stack project intended to show Java/Spring backend engineering, PostgreSQL/PostGIS data modeling, Redis caching, public transit ingestion, and a polished Next.js interface for Toronto subway and LRT reliability.
 
@@ -28,7 +28,7 @@ The project is early but no longer an empty scaffold.
 - Map segment overlays and single-station alert rings are clickable/tappable and open the corresponding submenu card.
 - Every mapped Line 1, 2, 4, 5, and 6 stop has station-line tags and reviewed line-specific wheelchair/elevator metadata. Station detail shows authored accessibility icons plus fresh directly linked TTC station alerts and elevator/escalator outages. Station arrivals use a source-labeled provider architecture. Station arrivals use source-labeled TTC scheduled service when a merged GTFS schedule import is active. They are timetable-based estimates, not live subway/LRT predictions. If no schedule import is active, the station detail API returns an unavailable scheduled-source state and the frontend fallback remains clearly labeled as demo data. Nightly closure active-window gating is fully implemented.
 - Account-backed saved commutes compute a weighted default rapid-transit path over the seeded Line 1, 2, 4, 5, and 6 topology, using active GTFS scheduled median segment weights when available and fallback topology weights otherwise, then match dashboard-visible service impacts against every path segment and station-node impact.
-- Populated geographic geometry, production segment matching, Redis caching, standalone commute-impact API, route review/edit, push/email commute notifications, and reliability aggregation are planned but not yet implemented.
+- Populated geographic geometry, production segment matching, standalone commute-impact API, route review/edit, push/email commute notifications, and reliability aggregation are planned but not yet implemented.
 
 Do not claim that the visible dashboard is live unless there is a fresh successful ingestion run. Do not claim imported GTFS geometry, production geospatial matching, Redis-backed status, real analytics, or live station arrivals until those features exist in code and have passing verification.
 Do not claim saved commutes send push/email notifications, recommend alternate routes, account for walking transfers, provide route review/edit, provide accessibility-personalized matching, or use live train movement for route timing.
@@ -210,6 +210,8 @@ The backend now owns:
 - Nonlinear overlays resolve from the authored hidden segment-guides-layer.
 - Opposite-direction Reduced Speed Zone records merge into one bidirectional effect and grouped card.
 - Directionless Reduced Speed Zone records render bidirectionally without inventing a direction label.
+- `/api/performance` exposes source-labeled official TTC.ca on-time and elevator/escalator status metrics with unavailable fallback when TTC.ca cannot be parsed or fetched.
+- Redis-backed dashboard caching is implemented for current status, map, alerts, ingestion health, and performance reads. Cache misses and Redis outages fall back to live/database computation, and alert ingestion success evicts dashboard cache keys.
 
 The backend should eventually own:
 
@@ -232,10 +234,11 @@ GET  /api/stations?query={q}
 POST /api/commutes/impact
 GET  /api/reliability/lines
 GET  /api/reliability/stations/{id}
+GET  /api/performance
 GET  /api/health/ingestion
 ```
 
-The current backend implements seeded-demo dashboard boundaries (`/api/map`, `/api/status`, `/api/alerts`, `/api/stations`), service health (`/api/health`), and an opt-in TTC alert ingestion pipeline with `/api/health/ingestion`. Build the live read switch incrementally and keep fixture mode available for demos and tests.
+The current backend implements seeded-demo dashboard boundaries (`/api/map`, `/api/status`, `/api/alerts`, `/api/stations`), service health (`/api/health`), an opt-in TTC alert ingestion pipeline with `/api/health/ingestion`, and official performance metrics (`/api/performance`). Build the live read switch incrementally and keep fixture mode available for demos and tests.
 
 ## Data Source Guardrails
 
@@ -267,7 +270,7 @@ When changing agent instructions, update both `AGENTS.md` and `GEMINI.md` togeth
 
 1. Connect a public live-arrival source to the existing `PublicArrivalClient` when one becomes available for TTC subway lines.
 2. Import static GTFS shapes and implement production alert-to-segment matching.
-3. Implement commute impact matching, reliability aggregation, and Redis-backed status caching.
+3. Implement commute impact matching and reliability aggregation.
 
 ## Agent Handoff Notes
 

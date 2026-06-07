@@ -1,0 +1,14 @@
+.git
+.github
+.env
+.env.*
+!.env.example
+frontend/node_modules
+frontend/.next
+frontend/.vercel
+frontend/out
+backend/target
+tmp
+test-results
+playwright-report
+blob-report
