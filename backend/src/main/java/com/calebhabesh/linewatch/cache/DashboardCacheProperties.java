@@ -10,7 +10,7 @@ public class DashboardCacheProperties {
     private Duration mapTtl = Duration.ofSeconds(30);
     private Duration alertsTtl = Duration.ofSeconds(30);
     private Duration ingestionHealthTtl = Duration.ofSeconds(15);
-    private Duration performanceTtl = Duration.ofMinutes(30);
+    private Duration performanceTtl = Duration.ofHours(6);
 
     public boolean isEnabled() { return enabled; }
     public void setEnabled(boolean enabled) { this.enabled = enabled; }

@@ -72,4 +72,50 @@ class TtcAlertClientTest {
             .isInstanceOf(TtcAlertClientException.class)
             .hasMessageContaining("TTC Live Alerts");
     }
+
+    @Test
+    void fetchParsesTimestampsWithoutTimezoneOffset() {
+        String body = """
+            {
+              "total": 1,
+              "lastUpdated": "2026-06-06T21:45:09.4957689",
+              "routes": [
+                {
+                  "id": "70001",
+                  "alertType": "Planned",
+                  "lastUpdated": "2026-06-06T21:45:09.4957689",
+                  "activePeriod": {
+                    "start": "2026-06-06T21:40:00.123",
+                    "end": "2026-06-06T22:30:00"
+                  },
+                  "route": "1",
+                  "routeType": "Subway",
+                  "title": "Short delay",
+                  "effect": "SIGNIFICANT_DELAYS",
+                  "childAlerts": [
+                    {
+                      "id": "70002",
+                      "startTime": "2026-06-06T21:45:00",
+                      "endTime": "2026-06-06T21:50:00"
+                    }
+                  ]
+                }
+              ],
+              "accessibility": []
+            }
+            """;
+        server.expect(requestTo("https://alerts.ttc.ca/api/alerts/live-alerts"))
+            .andRespond(withSuccess(body, MediaType.APPLICATION_JSON));
+
+        TtcAlertFeed feed = client.fetch();
+
+        assertThat(feed.lastUpdated()).isEqualTo(java.time.LocalDateTime.parse("2026-06-06T21:45:09.4957689").atZone(java.time.ZoneId.of("America/Toronto")).toOffsetDateTime());
+        TtcAlertRecord route = feed.routes().getFirst().record();
+        assertThat(route.lastUpdated()).isEqualTo(java.time.LocalDateTime.parse("2026-06-06T21:45:09.4957689").atZone(java.time.ZoneId.of("America/Toronto")).toOffsetDateTime());
+        assertThat(route.activePeriod().start()).isEqualTo(java.time.LocalDateTime.parse("2026-06-06T21:40:00.123").atZone(java.time.ZoneId.of("America/Toronto")).toOffsetDateTime());
+        assertThat(route.activePeriod().end()).isEqualTo(java.time.LocalDateTime.parse("2026-06-06T22:30:00").atZone(java.time.ZoneId.of("America/Toronto")).toOffsetDateTime());
+        assertThat(route.childAlerts().getFirst().startTime()).isEqualTo(java.time.LocalDateTime.parse("2026-06-06T21:45:00").atZone(java.time.ZoneId.of("America/Toronto")).toOffsetDateTime());
+        assertThat(route.childAlerts().getFirst().endTime()).isEqualTo(java.time.LocalDateTime.parse("2026-06-06T21:50:00").atZone(java.time.ZoneId.of("America/Toronto")).toOffsetDateTime());
+        server.verify();
+    }
 }

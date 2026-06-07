@@ -28,7 +28,7 @@ Implemented now:
 - Legend SVG icons for Lines 1, 2, 4, 5, and 6.
 - Account-backed saved commutes with weighted default rapid-transit route matching and dashboard-visible impact summaries.
 - Account sign-in supports password reset through emailed reset links when SMTP is configured, with a local/dev reset-token fallback.
-- Official TTC.ca performance metrics panel for current on-time and elevator/escalator status, source-labeled with the TTC.ca updated timestamp and unavailable fallback.
+- Official TTC.ca performance metrics panel for current on-time and elevator/escalator status, source-labeled with the TTC.ca updated timestamp, daily refresh guard, and stale last-good fallback.
 - Redis-backed dashboard cache for status, map, alerts, ingestion health, and TTC performance reads, with database/live fallback when Redis is unavailable.
 - Ingestion/system health panel in fixture mode.
 - High-contrast display toggle.
@@ -266,6 +266,8 @@ Inspect its latest poll result:
 ```bash
 curl http://localhost:8080/api/health/ingestion
 ```
+
+Official TTC.ca performance metrics are intentionally fetched slowly because the TTC homepage is not an API and appears to update on a daily cadence. `LINEWATCH_PERFORMANCE_TTC_REFRESH_INTERVAL` defaults to `PT24H`, `LINEWATCH_PERFORMANCE_TTC_MAX_AGE` defaults to `PT48H`, and `LINEWATCH_CACHE_DASHBOARD_PERFORMANCE_TTL` defaults to `PT6H`.
 
 ### Optional Scheduled Arrival Import
 

@@ -10,7 +10,8 @@ public class TtcPerformanceProperties {
     private URI url = URI.create("https://www.ttc.ca/");
     private Duration connectTimeout = Duration.ofSeconds(3);
     private Duration readTimeout = Duration.ofSeconds(8);
-    private Duration maxAge = Duration.ofHours(24);
+    private Duration refreshInterval = Duration.ofHours(24);
+    private Duration maxAge = Duration.ofDays(2);
 
     public boolean isEnabled() { return enabled; }
     public void setEnabled(boolean enabled) { this.enabled = enabled; }
@@ -20,6 +21,8 @@ public class TtcPerformanceProperties {
     public void setConnectTimeout(Duration connectTimeout) { this.connectTimeout = connectTimeout; }
     public Duration getReadTimeout() { return readTimeout; }
     public void setReadTimeout(Duration readTimeout) { this.readTimeout = readTimeout; }
+    public Duration getRefreshInterval() { return refreshInterval; }
+    public void setRefreshInterval(Duration refreshInterval) { this.refreshInterval = refreshInterval; }
     public Duration getMaxAge() { return maxAge; }
     public void setMaxAge(Duration maxAge) { this.maxAge = maxAge; }
 }

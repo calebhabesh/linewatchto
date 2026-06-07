@@ -1,6 +1,7 @@
 package com.calebhabesh.linewatch.ingestion;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import java.time.OffsetDateTime;
 import java.util.List;
 
@@ -8,6 +9,7 @@ import java.util.List;
 public record TtcAlertRecord(
     String id,
     String alertType,
+    @JsonDeserialize(using = TtcOffsetDateTimeDeserializer.class)
     OffsetDateTime lastUpdated,
     TtcAlertActivePeriod activePeriod,
     List<String> activePeriodGroup,

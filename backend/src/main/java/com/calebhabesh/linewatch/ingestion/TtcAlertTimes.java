@@ -9,6 +9,23 @@ final class TtcAlertTimes {
 
     private TtcAlertTimes() {}
 
+    static OffsetDateTime parse(String text) {
+        if (text == null || text.isBlank()) {
+            return null;
+        }
+        try {
+            return OffsetDateTime.parse(text);
+        } catch (java.time.format.DateTimeParseException e) {
+            try {
+                return java.time.LocalDateTime.parse(text)
+                    .atZone(TORONTO_ZONE)
+                    .toOffsetDateTime();
+            } catch (java.time.format.DateTimeParseException ex) {
+                throw e;
+            }
+        }
+    }
+
     static OffsetDateTime nullIfSentinel(OffsetDateTime value) {
         return value != null && value.getYear() <= 1 ? null : value;
     }

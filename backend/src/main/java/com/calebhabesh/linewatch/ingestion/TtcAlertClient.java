@@ -72,6 +72,6 @@ public class TtcAlertClient {
     }
 
     private OffsetDateTime parseOptionalTimestamp(JsonNode node) {
-        return node == null || node.isNull() ? null : OffsetDateTime.parse(node.asText());
+        return node == null || node.isNull() ? null : TtcAlertTimes.parse(node.asText());
     }
 }

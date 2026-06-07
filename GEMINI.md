@@ -210,7 +210,7 @@ The backend now owns:
 - Nonlinear overlays resolve from the authored hidden segment-guides-layer.
 - Opposite-direction Reduced Speed Zone records merge into one bidirectional effect and grouped card.
 - Directionless Reduced Speed Zone records render bidirectionally without inventing a direction label.
-- `/api/performance` exposes source-labeled official TTC.ca on-time and elevator/escalator status metrics with unavailable fallback when TTC.ca cannot be parsed or fetched.
+- `/api/performance` exposes source-labeled official TTC.ca on-time and elevator/escalator status metrics with a low-frequency refresh guard and stale last-good fallback when TTC.ca cannot be parsed or fetched.
 - Redis-backed dashboard caching is implemented for current status, map, alerts, ingestion health, and performance reads. Cache misses and Redis outages fall back to live/database computation, and alert ingestion success evicts dashboard cache keys.
 
 The backend should eventually own:

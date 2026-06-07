@@ -17,6 +17,9 @@
 - [ ] Do i have to keep passing in the resend api key
 - [ ] Consider adding directionality indicator for single station alerts
 - [ ] ask about what the ci/cd pipeline does
+- [ ] station alert beacon animation, instead of simple flash
+- [ ] Small indicators for "Saved" commutes with numbers in colored circles corresponding to routes effecting and green routes.
+- [ ] Add the target lines on the status bars for Reliability Analytics
 
 ## Future Additions
 - [ ] Cool trains on the tracks ui overlay (strictly aesthetic)

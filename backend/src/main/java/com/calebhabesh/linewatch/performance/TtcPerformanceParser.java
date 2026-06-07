@@ -42,6 +42,7 @@ public class TtcPerformanceParser {
                             label,
                             categoryFor(id),
                             percentage,
+                            targetFor(id),
                             percentage + "%",
                             null
                         ));
@@ -115,6 +116,7 @@ public class TtcPerformanceParser {
                 label,
                 categoryFor(id),
                 percentage,
+                targetFor(id),
                 percentage + "%",
                 null
             ));
@@ -169,6 +171,16 @@ public class TtcPerformanceParser {
         if (id.equals("bus") || id.equals("streetcar") || id.equals("wheel-trans")) return "surface";
         if (id.equals("elevators") || id.equals("escalators")) return "accessibility";
         return "other";
+    }
+
+    private Integer targetFor(String id) {
+        return switch (id) {
+            case "line-1", "line-2", "line-4" -> 96;
+            case "bus", "streetcar", "wheel-trans" -> 90;
+            case "elevators" -> 98;
+            case "escalators" -> 97;
+            default -> null;
+        };
     }
 
     private String normalize(String value) {

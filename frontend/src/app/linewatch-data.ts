@@ -191,6 +191,7 @@ export type TtcPerformanceMetric = {
   label: string;
   category: "subway" | "surface" | "accessibility" | "other";
   percentage: number | null;
+  target?: number | null;
   valueLabel: string;
   note?: string | null;
 };

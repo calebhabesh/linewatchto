@@ -153,6 +153,39 @@ export function ReliabilityPanel({ onBack, onClose }: ReliabilityProps = {}) {
   const { ttcPerformance } = useDashboardData();
   const metrics = ttcPerformance.metrics;
 
+  const onTimeMetrics = metrics.filter(m => m.category !== "accessibility");
+  const availabilityMetrics = metrics.filter(m => m.category === "accessibility");
+
+  const renderMetric = (item: typeof metrics[0]) => {
+    const details = getMetricDetails(item.id, item.label);
+    return (
+      <div key={item.id} className="reliability-row min-w-0 p-3 rounded-lg !bg-slate-50 dark:!bg-[#12151c] border border-black/5 dark:border-white/5 flex flex-col justify-between gap-3">
+        <div className="flex min-w-0 items-start justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-2.5">
+            {details.icon}
+            <div className="reliability-copy min-w-0">
+              <strong className="text-sm font-bold text-slate-800 dark:text-white whitespace-normal break-words">{details.label}</strong>
+              <span className="block text-xs text-slate-500 dark:text-slate-400 whitespace-normal break-words">{categoryLabel(item.category)}</span>
+            </div>
+          </div>
+          <strong className="text-sm text-slate-700 dark:text-slate-300 font-bold whitespace-nowrap">{item.valueLabel}</strong>
+        </div>
+        {item.percentage !== null ? (
+          <div className="score-track relative bg-black/10 dark:bg-white/10 rounded-full h-2">
+            <div className="bg-gradient-to-r from-amber-500 to-green-500 h-full rounded-full" style={{ width: `${Math.max(0, Math.min(100, item.percentage))}%` }} />
+            {item.target != null && (
+              <div 
+                className="absolute top-[-3px] bottom-[-3px] w-[3px] bg-slate-800 dark:bg-white z-10 rounded-full shadow-sm"
+                style={{ left: `${item.target}%`, transform: 'translateX(-50%)' }}
+                title={`Target: ${item.target}%`}
+              />
+            )}
+          </div>
+        ) : null}
+      </div>
+    );
+  };
+
   return (
     <section className="analytics-panel min-w-0 border border-black/10 dark:border-white/10 rounded-lg shadow-xl" style={{ WebkitBackfaceVisibility: "hidden", backfaceVisibility: "hidden" }}>
       <div className="panel-heading @container border-b border-black/10 dark:border-white/10 px-4 py-3 flex items-center justify-between gap-3 min-w-0">
@@ -184,28 +217,27 @@ export function ReliabilityPanel({ onBack, onClose }: ReliabilityProps = {}) {
             <strong className="text-sm font-bold text-slate-800 dark:text-white">Official metrics unavailable</strong>
             <p className="text-xs text-slate-500 dark:text-slate-400">{ttcPerformance.message}</p>
           </div>
-        ) : metrics.map((item) => {
-          const details = getMetricDetails(item.id, item.label);
-          return (
-            <div key={item.id} className="reliability-row min-w-0 p-3 rounded-lg !bg-slate-50 dark:!bg-[#12151c] border border-black/5 dark:border-white/5 flex flex-col justify-between gap-3">
-              <div className="flex min-w-0 items-start justify-between gap-3">
-                <div className="flex min-w-0 items-center gap-2.5">
-                  {details.icon}
-                  <div className="reliability-copy min-w-0">
-                    <strong className="text-sm font-bold text-slate-800 dark:text-white whitespace-normal break-words">{details.label}</strong>
-                    <span className="block text-xs text-slate-500 dark:text-slate-400 whitespace-normal break-words">{categoryLabel(item.category)}</span>
-                  </div>
-                </div>
-                <strong className="text-sm text-slate-700 dark:text-slate-300 font-bold whitespace-nowrap">{item.valueLabel}</strong>
+        ) : (
+          <>
+            {onTimeMetrics.length > 0 && (
+              <div className="flex flex-col gap-2">
+                <h3 className="text-[15px] font-black text-slate-900 dark:text-white mb-1">On-Time Performance</h3>
+                {onTimeMetrics.map(renderMetric)}
               </div>
-              {item.percentage !== null ? (
-                <div className="score-track bg-black/10 dark:bg-white/10 rounded-full h-2 overflow-hidden">
-                  <div className="bg-gradient-to-r from-amber-500 to-green-500 h-full rounded-full" style={{ width: `${Math.max(0, Math.min(100, item.percentage))}%` }} />
-                </div>
-              ) : null}
-            </div>
-          );
-        })}
+            )}
+            
+            {onTimeMetrics.length > 0 && availabilityMetrics.length > 0 && (
+              <hr className="border-black/10 dark:border-white/10 my-2" />
+            )}
+
+            {availabilityMetrics.length > 0 && (
+              <div className="flex flex-col gap-2">
+                <h3 className="text-[15px] font-black text-slate-900 dark:text-white mb-1">Availability</h3>
+                {availabilityMetrics.map(renderMetric)}
+              </div>
+            )}
+          </>
+        )}
       </div>
     </section>
   );

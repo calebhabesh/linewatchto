@@ -23,6 +23,7 @@ public final class TtcPerformanceResponses {
         String label,
         String category,
         Integer percentage,
+        Integer target,
         String valueLabel,
         String note
     ) {}
