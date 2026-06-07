@@ -8,6 +8,9 @@ import com.calebhabesh.linewatch.ingestion.IngestionRunSnapshot;
 import com.calebhabesh.linewatch.ingestion.IngestionRunStore;
 import com.calebhabesh.linewatch.station.TransitLineEntity;
 import com.calebhabesh.linewatch.station.TransitLineRepository;
+import com.calebhabesh.linewatch.cache.DashboardCacheProperties;
+import com.calebhabesh.linewatch.cache.DashboardCacheService;
+import com.fasterxml.jackson.core.type.TypeReference;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -32,6 +35,8 @@ public class StatusController {
     private final IngestionFreshness ingestionFreshness;
     private final AlertDashboardService alertDashboardService;
     private final Clock clock;
+    private final DashboardCacheService cache;
+    private final DashboardCacheProperties cacheProperties;
 
     public StatusController(
         TransitLineRepository transitLineRepository,
@@ -39,7 +44,9 @@ public class StatusController {
         IngestionRunStore ingestionRunStore,
         IngestionFreshness ingestionFreshness,
         AlertDashboardService alertDashboardService,
-        Clock clock
+        Clock clock,
+        DashboardCacheService cache,
+        DashboardCacheProperties cacheProperties
     ) {
         this.transitLineRepository = transitLineRepository;
         this.alertRepository = alertRepository;
@@ -47,10 +54,25 @@ public class StatusController {
         this.ingestionFreshness = ingestionFreshness;
         this.alertDashboardService = alertDashboardService;
         this.clock = clock;
+        this.cache = cache;
+        this.cacheProperties = cacheProperties;
     }
 
     @GetMapping
     public StatusResponse getStatus() {
+        Optional<IngestionRunSnapshot> latestRun = ingestionRunStore.findLatest();
+        Duration ttl = ingestionFreshness.remainingFreshness(latestRun)
+            .map(remaining -> remaining.compareTo(cacheProperties.getStatusTtl()) < 0 ? remaining : cacheProperties.getStatusTtl())
+            .orElse(cacheProperties.getStatusTtl());
+        return cache.getOrCompute(
+            "status",
+            new TypeReference<StatusResponse>() {},
+            ttl,
+            this::buildStatus
+        );
+    }
+
+    private StatusResponse buildStatus() {
         Optional<IngestionRunSnapshot> latestRun = ingestionRunStore.findLatest();
         boolean dashboardLive = ingestionFreshness.isFresh(latestRun);
         List<AlertEntity> activeAlerts = dashboardLive

@@ -61,6 +61,25 @@ class IngestionFreshnessTest {
         assertThat(freshness.isDashboardFresh()).isTrue();
     }
 
+    @Test
+    void reportsRemainingDashboardFreshness() {
+        AlertIngestionProperties properties = new AlertIngestionProperties();
+        properties.setMaxDashboardAge(Duration.ofMinutes(10));
+        IngestionRunStore store = mock(IngestionRunStore.class);
+        Clock clock = Clock.fixed(Instant.parse("2026-06-07T12:05:00Z"), ZoneOffset.UTC);
+        IngestionFreshness freshness = new IngestionFreshness(store, properties, clock);
+        IngestionRunSnapshot run = new IngestionRunSnapshot(
+            1L, "success",
+            OffsetDateTime.parse("2026-06-07T11:59:00Z"),
+            OffsetDateTime.parse("2026-06-07T12:00:00Z"),
+            1, 1, 1, 0,
+            OffsetDateTime.parse("2026-06-07T11:59:00Z"),
+            null
+        );
+
+        assertThat(freshness.remainingFreshness(Optional.of(run))).hasValue(Duration.ofMinutes(5));
+    }
+
     private IngestionRunSnapshot run(String status, OffsetDateTime completedAt) {
         return new IngestionRunSnapshot(
             1L,

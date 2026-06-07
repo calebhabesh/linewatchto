@@ -5,6 +5,9 @@ import com.calebhabesh.linewatch.ingestion.IngestionRunSnapshot;
 import com.calebhabesh.linewatch.ingestion.IngestionRunStore;
 import java.util.Optional;
 import java.time.OffsetDateTime;
+import com.calebhabesh.linewatch.cache.DashboardCacheProperties;
+import com.calebhabesh.linewatch.cache.DashboardCacheService;
+import com.fasterxml.jackson.core.type.TypeReference;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -14,17 +17,32 @@ import org.springframework.web.bind.annotation.RestController;
 public class IngestionHealthController {
     private final IngestionRunStore store;
     private final IngestionFreshness ingestionFreshness;
+    private final DashboardCacheService cache;
+    private final DashboardCacheProperties cacheProperties;
 
     public IngestionHealthController(
         IngestionRunStore store,
-        IngestionFreshness ingestionFreshness
+        IngestionFreshness ingestionFreshness,
+        DashboardCacheService cache,
+        DashboardCacheProperties cacheProperties
     ) {
         this.store = store;
         this.ingestionFreshness = ingestionFreshness;
+        this.cache = cache;
+        this.cacheProperties = cacheProperties;
     }
 
     @GetMapping
     public IngestionHealthResponse ingestion() {
+        return cache.getOrCompute(
+            "health:ingestion",
+            new TypeReference<IngestionHealthResponse>() {},
+            cacheProperties.getIngestionHealthTtl(),
+            this::buildIngestion
+        );
+    }
+
+    private IngestionHealthResponse buildIngestion() {
         return store.findLatest()
             .map(this::toResponse)
             .orElseGet(() -> new IngestionHealthResponse(

@@ -44,4 +44,24 @@ public class IngestionFreshness {
         OffsetDateTime oldestFreshCompletion = OffsetDateTime.now(clock).minus(maxAge);
         return !run.completedAt().isBefore(oldestFreshCompletion);
     }
+
+    public Optional<Duration> remainingFreshness(Optional<IngestionRunSnapshot> latestRun) {
+        if (latestRun.isEmpty()) {
+            return Optional.empty();
+        }
+        IngestionRunSnapshot run = latestRun.orElseThrow();
+        if (!"success".equalsIgnoreCase(run.status()) || run.completedAt() == null) {
+            return Optional.empty();
+        }
+        Duration maxAge = properties.getMaxDashboardAge();
+        if (maxAge == null || maxAge.isNegative() || maxAge.isZero()) {
+            return Optional.of(Duration.ofMinutes(5));
+        }
+        OffsetDateTime expiresAt = run.completedAt().plus(maxAge);
+        Duration remaining = Duration.between(OffsetDateTime.now(clock), expiresAt);
+        if (remaining.isNegative() || remaining.isZero()) {
+            return Optional.empty();
+        }
+        return Optional.of(remaining);
+    }
 }

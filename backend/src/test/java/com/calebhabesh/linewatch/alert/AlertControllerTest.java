@@ -6,11 +6,25 @@ import static org.mockito.Mockito.when;
 
 import java.time.OffsetDateTime;
 import java.util.List;
+import static org.mockito.ArgumentMatchers.any;
+import com.calebhabesh.linewatch.cache.DashboardCacheProperties;
+import com.calebhabesh.linewatch.cache.DashboardCacheService;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 class AlertControllerTest {
     private final AlertDashboardService dashboardService = mock(AlertDashboardService.class);
-    private final AlertController controller = new AlertController(dashboardService);
+    private final DashboardCacheService cache = mock(DashboardCacheService.class);
+    private final DashboardCacheProperties cacheProperties = new DashboardCacheProperties();
+    private final AlertController controller = new AlertController(dashboardService, cache, cacheProperties);
+
+    @BeforeEach
+    void setUp() {
+        when(cache.getOrCompute(any(), any(), any(), any())).thenAnswer(invocation -> {
+            java.util.function.Supplier<?> supplier = invocation.getArgument(3);
+            return supplier.get();
+        });
+    }
 
     @Test
     void returnsActiveAlertsFromDashboardServiceByDefault() {

@@ -19,6 +19,7 @@ class TtcAlertIngestionServiceTest {
     private final TtcAlertFeedApplicationService applicationService =
         mock(TtcAlertFeedApplicationService.class);
     private final IngestionRunService runService = mock(IngestionRunService.class);
+    private final com.calebhabesh.linewatch.cache.DashboardCacheService cache = mock(com.calebhabesh.linewatch.cache.DashboardCacheService.class);
     private final TtcAlertFeed feed = new TtcAlertFeed(
         OffsetDateTime.parse("2026-06-01T11:55:00Z"),
         List.of(),
@@ -30,7 +31,7 @@ class TtcAlertIngestionServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new TtcAlertIngestionService(client, applicationService, runService);
+        service = new TtcAlertIngestionService(client, applicationService, runService, cache);
     }
 
     @Test
@@ -47,6 +48,7 @@ class TtcAlertIngestionServiceTest {
             OffsetDateTime.parse("2026-06-01T15:55:00Z")
         );
         verify(runService, never()).fail(anyLong(), any());
+        verify(cache).evictDashboard();
     }
 
     @Test
@@ -60,5 +62,6 @@ class TtcAlertIngestionServiceTest {
 
         verify(applicationService, never()).apply(any());
         verify(runService).fail(eq(42L), any(TtcAlertClientException.class));
+        verify(cache, never()).evictDashboard();
     }
 }

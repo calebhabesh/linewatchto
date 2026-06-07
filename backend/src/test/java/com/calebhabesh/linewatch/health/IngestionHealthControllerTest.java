@@ -13,6 +13,10 @@ import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.Optional;
+import static org.mockito.ArgumentMatchers.any;
+import com.calebhabesh.linewatch.cache.DashboardCacheProperties;
+import com.calebhabesh.linewatch.cache.DashboardCacheService;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 class IngestionHealthControllerTest {
@@ -27,7 +31,19 @@ class IngestionHealthControllerTest {
         new AlertIngestionProperties(),
         CLOCK
     );
-    private final IngestionHealthController controller = new IngestionHealthController(store, freshness);
+    private final DashboardCacheService cache = mock(DashboardCacheService.class);
+    private final DashboardCacheProperties cacheProperties = new DashboardCacheProperties();
+    private final IngestionHealthController controller = new IngestionHealthController(
+        store, freshness, cache, cacheProperties
+    );
+
+    @BeforeEach
+    void setUp() {
+        when(cache.getOrCompute(any(), any(), any(), any())).thenAnswer(invocation -> {
+            java.util.function.Supplier<?> supplier = invocation.getArgument(3);
+            return supplier.get();
+        });
+    }
 
     @Test
     void returnsNotRunStateBeforeFirstPoll() {

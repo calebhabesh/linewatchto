@@ -1,16 +1,30 @@
 package com.calebhabesh.linewatch.performance;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import com.calebhabesh.linewatch.cache.DashboardCacheProperties;
+import com.calebhabesh.linewatch.cache.DashboardCacheService;
 import java.time.OffsetDateTime;
 import java.util.List;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 class PerformanceControllerTest {
     private final TtcPerformanceService service = mock(TtcPerformanceService.class);
-    private final PerformanceController controller = new PerformanceController(service);
+    private final DashboardCacheService cache = mock(DashboardCacheService.class);
+    private final DashboardCacheProperties cacheProperties = new DashboardCacheProperties();
+    private final PerformanceController controller = new PerformanceController(service, cache, cacheProperties);
+
+    @BeforeEach
+    void setUp() {
+        when(cache.getOrCompute(any(), any(), any(), any())).thenAnswer(invocation -> {
+            java.util.function.Supplier<?> supplier = invocation.getArgument(3);
+            return supplier.get();
+        });
+    }
 
     @Test
     void returnsCurrentOfficialPerformanceSnapshot() {

@@ -12,6 +12,23 @@ import java.util.Map;
 import java.util.Comparator;
 import java.util.stream.Collectors;
 
+import com.calebhabesh.linewatch.cache.DashboardCacheProperties;
+import com.calebhabesh.linewatch.cache.DashboardCacheService;
+import com.calebhabesh.linewatch.ingestion.IngestionFreshness;
+import com.calebhabesh.linewatch.ingestion.IngestionRunSnapshot;
+import com.calebhabesh.linewatch.ingestion.IngestionRunStore;
+import com.fasterxml.jackson.core.type.TypeReference;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.time.Duration;
+import java.util.List;
+import java.util.Map;
+import java.util.Comparator;
+import java.util.Optional;
+import java.util.stream.Collectors;
+
 @RestController
 @RequestMapping("/api/map")
 public class MapController {
@@ -19,19 +36,43 @@ public class MapController {
     private final StationRepository stationRepository;
     private final LineSegmentRepository lineSegmentRepository;
     private final AlertDashboardService dashboardService;
+    private final DashboardCacheService cache;
+    private final DashboardCacheProperties cacheProperties;
+    private final IngestionFreshness ingestionFreshness;
+    private final IngestionRunStore ingestionRunStore;
 
     public MapController(
         StationRepository stationRepository,
         LineSegmentRepository lineSegmentRepository,
-        AlertDashboardService dashboardService
+        AlertDashboardService dashboardService,
+        DashboardCacheService cache,
+        DashboardCacheProperties cacheProperties,
+        IngestionFreshness ingestionFreshness,
+        IngestionRunStore ingestionRunStore
     ) {
         this.stationRepository = stationRepository;
         this.lineSegmentRepository = lineSegmentRepository;
         this.dashboardService = dashboardService;
+        this.cache = cache;
+        this.cacheProperties = cacheProperties;
+        this.ingestionFreshness = ingestionFreshness;
+        this.ingestionRunStore = ingestionRunStore;
     }
 
     @GetMapping
     public MapResponse getMap() {
+        Duration ttl = ingestionFreshness.remainingFreshness(ingestionRunStore.findLatest())
+            .map(remaining -> remaining.compareTo(cacheProperties.getMapTtl()) < 0 ? remaining : cacheProperties.getMapTtl())
+            .orElse(cacheProperties.getMapTtl());
+        return cache.getOrCompute(
+            "map",
+            new TypeReference<MapResponse>() {},
+            ttl,
+            this::buildMap
+        );
+    }
+
+    private MapResponse buildMap() {
         List<StationDto> stations = stationRepository.findAllByOrderBySortOrderAscNameAsc().stream()
                 .map(s -> new StationDto(s.getId(), s.getName(), s.getMapX(), s.getMapY(), s.isInterchange()))
                 .collect(Collectors.toList());

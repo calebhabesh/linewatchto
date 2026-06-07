@@ -1,5 +1,6 @@
 package com.calebhabesh.linewatch.ingestion;
 
+import com.calebhabesh.linewatch.cache.DashboardCacheService;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -7,15 +8,18 @@ public class TtcAlertIngestionService {
     private final TtcAlertClient client;
     private final TtcAlertFeedApplicationService applicationService;
     private final IngestionRunService runService;
+    private final DashboardCacheService cache;
 
     public TtcAlertIngestionService(
         TtcAlertClient client,
         TtcAlertFeedApplicationService applicationService,
-        IngestionRunService runService
+        IngestionRunService runService,
+        DashboardCacheService cache
     ) {
         this.client = client;
         this.applicationService = applicationService;
         this.runService = runService;
+        this.cache = cache;
     }
 
     public void ingestNow() {
@@ -28,6 +32,7 @@ public class TtcAlertIngestionService {
                 counts,
                 TtcAlertTimes.sourceWallTimeToInstant(feed.lastUpdated())
             );
+            cache.evictDashboard();
         } catch (RuntimeException exception) {
             runService.fail(runId, exception);
             throw exception;

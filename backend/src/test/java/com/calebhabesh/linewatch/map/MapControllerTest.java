@@ -10,17 +10,53 @@ import com.calebhabesh.linewatch.station.LineSegmentRepository;
 import com.calebhabesh.linewatch.station.StationRepository;
 import java.util.List;
 import java.util.Map;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneOffset;
+import static org.mockito.ArgumentMatchers.any;
+import com.calebhabesh.linewatch.cache.DashboardCacheProperties;
+import com.calebhabesh.linewatch.cache.DashboardCacheService;
+import com.calebhabesh.linewatch.ingestion.AlertIngestionProperties;
+import com.calebhabesh.linewatch.ingestion.IngestionFreshness;
+import com.calebhabesh.linewatch.ingestion.IngestionRunStore;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 class MapControllerTest {
+    private static final Clock CLOCK = Clock.fixed(
+        Instant.parse("2026-06-01T12:00:00Z"),
+        ZoneOffset.UTC
+    );
+
     private final StationRepository stationRepository = mock(StationRepository.class);
     private final LineSegmentRepository lineSegmentRepository = mock(LineSegmentRepository.class);
     private final AlertDashboardService dashboardService = mock(AlertDashboardService.class);
+    private final IngestionRunStore ingestionRunStore = mock(IngestionRunStore.class);
+    private final IngestionFreshness freshness = new IngestionFreshness(
+        ingestionRunStore,
+        new AlertIngestionProperties(),
+        CLOCK
+    );
+    private final DashboardCacheService cache = mock(DashboardCacheService.class);
+    private final DashboardCacheProperties cacheProperties = new DashboardCacheProperties();
+
     private final MapController controller = new MapController(
         stationRepository,
         lineSegmentRepository,
-        dashboardService
+        dashboardService,
+        cache,
+        cacheProperties,
+        freshness,
+        ingestionRunStore
     );
+
+    @BeforeEach
+    void setUp() {
+        when(cache.getOrCompute(any(), any(), any(), any())).thenAnswer(invocation -> {
+            java.util.function.Supplier<?> supplier = invocation.getArgument(3);
+            return supplier.get();
+        });
+    }
 
     @Test
     void appliesActiveAlertImpactToMatchingNetworkSegment() {
