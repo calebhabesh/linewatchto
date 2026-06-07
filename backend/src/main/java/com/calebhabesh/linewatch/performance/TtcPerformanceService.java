@@ -45,16 +45,37 @@ public class TtcPerformanceService {
         OffsetDateTime now = OffsetDateTime.now(clock);
         CachedPerformanceSnapshot cached = lastAttempt;
         if (cached != null && !isRefreshDue(cached.attemptedAt(), now)) {
-            return cached.snapshot();
+            return cachedSnapshotOrRecoveredLastSuccessful(cached, now);
         }
 
         synchronized (this) {
             cached = lastAttempt;
             if (cached != null && !isRefreshDue(cached.attemptedAt(), now)) {
-                return cached.snapshot();
+                return cachedSnapshotOrRecoveredLastSuccessful(cached, now);
             }
             return refresh(now);
         }
+    }
+
+    private TtcPerformanceResponses.SnapshotResponse cachedSnapshotOrRecoveredLastSuccessful(
+        CachedPerformanceSnapshot cached,
+        OffsetDateTime now
+    ) {
+        if (!isUnavailableWithoutMetrics(cached.snapshot())) {
+            return cached.snapshot();
+        }
+        TtcPerformanceResponses.SnapshotResponse recovered = staleLastSuccessfulSnapshot(now);
+        if (recovered == null) {
+            return cached.snapshot();
+        }
+        lastAttempt = new CachedPerformanceSnapshot(recovered, now);
+        return recovered;
+    }
+
+    private boolean isUnavailableWithoutMetrics(TtcPerformanceResponses.SnapshotResponse snapshot) {
+        return snapshot != null
+            && "unavailable".equals(snapshot.status())
+            && (snapshot.metrics() == null || snapshot.metrics().isEmpty());
     }
 
     private TtcPerformanceResponses.SnapshotResponse refresh(OffsetDateTime now) {

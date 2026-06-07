@@ -75,10 +75,10 @@ describe("LineWatch dashboard fixture data", () => {
     assert.ok(reliabilitySummaries.every((summary) => summary.score >= 0 && summary.score <= 100));
   });
 
-  it("labels TTC performance fallback as unavailable official metrics", () => {
-    assert.equal(ttcPerformanceSnapshot.status, "unavailable");
+  it("labels TTC performance fallback as available official metrics in fixture mode", () => {
+    assert.equal(ttcPerformanceSnapshot.status, "available");
     assert.equal(ttcPerformanceSnapshot.source, "TTC.ca");
-    assert.equal(ttcPerformanceSnapshot.metrics.length, 0);
-    assert.match(ttcPerformanceSnapshot.message, /unavailable/i);
+    assert.equal(ttcPerformanceSnapshot.metrics.length, 8);
+    assert.match(ttcPerformanceSnapshot.message, /loaded in fixture mode/i);
   });
 });

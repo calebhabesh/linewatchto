@@ -7,6 +7,19 @@ PORT="${LINEWATCH_ALERT_SCENARIO_PORT:-8081}"
 SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 REPO_ROOT=$(CDPATH= cd -- "$SCRIPT_DIR/.." && pwd)
 
+# Load environment variables if .env.local or .env exists
+if [ -f "$REPO_ROOT/.env.local" ]; then
+  echo "Sourcing environment variables from .env.local"
+  set -a
+  . "$REPO_ROOT/.env.local"
+  set +a
+elif [ -f "$REPO_ROOT/.env" ]; then
+  echo "Sourcing environment variables from .env"
+  set -a
+  . "$REPO_ROOT/.env"
+  set +a
+fi
+
 SCENARIO_GTFS_ZIP="${LINEWATCH_SCENARIO_GTFS_ZIP:-}"
 if [ -z "$SCENARIO_GTFS_ZIP" ]; then
   if [ -f "$REPO_ROOT/tmp/ttc-merged-gtfs.zip" ]; then
@@ -45,6 +58,7 @@ trap cleanup EXIT INT TERM
 LINEWATCH_INGESTION_ALERTS_URL="http://127.0.0.1:$PORT/live-alerts" \
 LINEWATCH_INGESTION_ALERTS_FIXED_DELAY="${LINEWATCH_INGESTION_ALERTS_FIXED_DELAY:-PT10S}" \
 LINEWATCH_INGESTION_ALERTS_MAX_DASHBOARD_AGE="${LINEWATCH_INGESTION_ALERTS_MAX_DASHBOARD_AGE:-PT10M}" \
+LINEWATCH_PERFORMANCE_TTC_URL="http://127.0.0.1:$PORT/performance-mock" \
 SERVER_PORT="${SERVER_PORT:-8082}" \
 SPRING_DATASOURCE_URL="${SPRING_DATASOURCE_URL:-jdbc:postgresql://127.0.0.1:5434/linewatch_scenario}" \
 SPRING_DATA_REDIS_DATABASE="${SPRING_DATA_REDIS_DATABASE:-1}" \

@@ -20,8 +20,8 @@ class PerformanceControllerTest {
 
     @BeforeEach
     void setUp() {
-        when(cache.getOrCompute(any(), any(), any(), any())).thenAnswer(invocation -> {
-            java.util.function.Supplier<?> supplier = invocation.getArgument(3);
+        when(cache.getOrComputeIf(any(), any(), any(), any(), any())).thenAnswer(invocation -> {
+            java.util.function.Supplier<?> supplier = invocation.getArgument(4);
             return supplier.get();
         });
     }
@@ -32,7 +32,7 @@ class PerformanceControllerTest {
             "available", "TTC.ca", "https://www.ttc.ca/", "On-time performance and elevator/escalator status",
             "June 7, 2026 7:00 AM", OffsetDateTime.parse("2026-06-07T12:00:00Z"), false,
             "Official TTC performance metrics loaded from TTC.ca.",
-            List.of(new TtcPerformanceResponses.MetricResponse("line-2", "Line 2", "subway", 91, 96, "91%", null))
+            List.of(new TtcPerformanceResponses.MetricResponse("line-2", "Line 2", "subway", 91, 90, "91%", null))
         ));
 
         TtcPerformanceResponses.SnapshotResponse response = controller.performance();

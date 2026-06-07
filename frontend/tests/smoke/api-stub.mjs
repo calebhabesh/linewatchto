@@ -207,8 +207,8 @@ const server = createServer(async (request, response) => {
       stale: false,
       message: "Official TTC performance metrics loaded from TTC.ca.",
       metrics: [
-        { id: "line-1", label: "Line 1", category: "subway", percentage: 94, target: 96, valueLabel: "94%", note: null },
-        { id: "line-2", label: "Line 2", category: "subway", percentage: 91, target: 96, valueLabel: "91%", note: null },
+        { id: "line-1", label: "Line 1", category: "subway", percentage: 94, target: 90, valueLabel: "94%", note: null },
+        { id: "line-2", label: "Line 2", category: "subway", percentage: 91, target: 90, valueLabel: "91%", note: null },
         { id: "elevators", label: "Elevators", category: "accessibility", percentage: 99, target: 98, valueLabel: "99%", note: null }
       ]
     });

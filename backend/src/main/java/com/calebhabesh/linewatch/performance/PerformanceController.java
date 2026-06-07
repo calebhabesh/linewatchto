@@ -26,11 +26,16 @@ public class PerformanceController {
 
     @GetMapping
     public TtcPerformanceResponses.SnapshotResponse performance() {
-        return cache.getOrCompute(
+        return cache.getOrComputeIf(
             "performance",
             new TypeReference<TtcPerformanceResponses.SnapshotResponse>() {},
             cacheProperties.getPerformanceTtl(),
+            PerformanceController::isCacheableSnapshot,
             service::current
         );
+    }
+
+    private static boolean isCacheableSnapshot(TtcPerformanceResponses.SnapshotResponse snapshot) {
+        return snapshot != null && snapshot.metrics() != null && !snapshot.metrics().isEmpty();
     }
 }

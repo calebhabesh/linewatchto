@@ -165,20 +165,31 @@ export function ReliabilityPanel({ onBack, onClose }: ReliabilityProps = {}) {
             {details.icon}
             <div className="reliability-copy min-w-0">
               <strong className="text-sm font-bold text-slate-800 dark:text-white whitespace-normal break-words">{details.label}</strong>
-              <span className="block text-xs text-slate-500 dark:text-slate-400 whitespace-normal break-words">{categoryLabel(item.category)}</span>
             </div>
           </div>
           <strong className="text-sm text-slate-700 dark:text-slate-300 font-bold whitespace-nowrap">{item.valueLabel}</strong>
         </div>
         {item.percentage !== null ? (
-          <div className="score-track relative bg-black/10 dark:bg-white/10 rounded-full h-2">
-            <div className="bg-gradient-to-r from-amber-500 to-green-500 h-full rounded-full" style={{ width: `${Math.max(0, Math.min(100, item.percentage))}%` }} />
+          <div className="flex flex-col gap-1.5">
+            <div className="score-track relative bg-black/10 dark:bg-white/10 rounded-full h-2 mx-4">
+              <div className="bg-gradient-to-r from-amber-500 to-green-500 h-full rounded-full" style={{ width: `${Math.max(0, Math.min(100, item.percentage))}%` }} />
+              {item.target != null && (
+                <div 
+                  className="absolute top-[-3px] bottom-[-3px] w-[3px] bg-slate-800 dark:bg-white z-10 rounded-full shadow-sm"
+                  style={{ left: `${item.target}%`, transform: 'translateX(-50%)' }}
+                  title={`Target: ${item.target}%`}
+                />
+              )}
+            </div>
             {item.target != null && (
-              <div 
-                className="absolute top-[-3px] bottom-[-3px] w-[3px] bg-slate-800 dark:bg-white z-10 rounded-full shadow-sm"
-                style={{ left: `${item.target}%`, transform: 'translateX(-50%)' }}
-                title={`Target: ${item.target}%`}
-              />
+              <div className="relative h-3 mx-4">
+                <span 
+                  className="absolute text-[9px] font-semibold text-slate-500 dark:text-slate-400 whitespace-nowrap"
+                  style={{ left: `${item.target}%`, transform: 'translateX(-50%)' }}
+                >
+                  Target: {item.target}%
+                </span>
+              </div>
             )}
           </div>
         ) : null}

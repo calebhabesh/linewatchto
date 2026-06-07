@@ -1,6 +1,11 @@
 #!/usr/bin/env node
 import { createServer } from "node:http";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { buildScenarioFeed, scenarioNames } from "./alert-scenario-catalog.mjs";
+
+const __dirname = fileURLToPath(new URL(".", import.meta.url));
 
 const port = Number(process.env.LINEWATCH_ALERT_SCENARIO_PORT ?? "8081");
 const scenario = process.env.LINEWATCH_ALERT_SCENARIO ?? process.argv[2] ?? "all-alert-types";
@@ -29,6 +34,22 @@ const server = createServer((request, response) => {
 
   if (request.method === "GET" && url.pathname === "/live-alerts") {
     sendJson(response, 200, buildScenarioFeed(scenario, { now: new Date() }));
+    return;
+  }
+
+  if (request.method === "GET" && url.pathname === "/performance-mock") {
+    try {
+      const htmlPath = join(__dirname, "../backend/src/test/resources/fixtures/ttc-performance-homepage.html");
+      const html = readFileSync(htmlPath, "utf8");
+      response.writeHead(200, {
+        "access-control-allow-origin": "*",
+        "content-type": "text/html; charset=utf-8",
+      });
+      response.end(html);
+    } catch (err) {
+      response.writeHead(500, { "content-type": "text/plain" });
+      response.end("Failed to read performance mock HTML");
+    }
     return;
   }
 

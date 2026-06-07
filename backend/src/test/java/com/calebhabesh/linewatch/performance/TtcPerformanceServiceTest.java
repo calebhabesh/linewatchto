@@ -40,7 +40,7 @@ class TtcPerformanceServiceTest {
             "available", "TTC.ca", "https://www.ttc.ca/", "On-time performance and elevator/escalator status",
             "June 7, 2026 7:00 AM", OffsetDateTime.parse("2026-06-07T12:00:00Z"), false,
             "Official TTC performance metrics loaded from TTC.ca.",
-            List.of(new TtcPerformanceResponses.MetricResponse("line-1", "Line 1", "subway", 94, 96, "94%", null))
+            List.of(new TtcPerformanceResponses.MetricResponse("line-1", "Line 1", "subway", 94, 90, "94%", null))
         ));
 
         TtcPerformanceResponses.SnapshotResponse response = service.current();
@@ -56,7 +56,7 @@ class TtcPerformanceServiceTest {
             "available", "TTC.ca", "https://www.ttc.ca/", "On-time performance and elevator/escalator status",
             "Jun 6, 9:30 PM", OffsetDateTime.parse("2026-06-07T12:00:00Z"), false,
             "Official TTC performance metrics loaded from TTC.ca.",
-            List.of(new TtcPerformanceResponses.MetricResponse("line-1", "Line 1", "subway", 86, 96, "86%", null))
+            List.of(new TtcPerformanceResponses.MetricResponse("line-1", "Line 1", "subway", 86, 90, "86%", null))
         ));
 
         TtcPerformanceResponses.SnapshotResponse first = service.current();
@@ -75,13 +75,13 @@ class TtcPerformanceServiceTest {
                 "available", "TTC.ca", "https://www.ttc.ca/", "On-time performance and elevator/escalator status",
                 "Jun 6, 9:30 PM", OffsetDateTime.parse("2026-06-07T12:00:00Z"), false,
                 "Official TTC performance metrics loaded from TTC.ca.",
-                List.of(new TtcPerformanceResponses.MetricResponse("line-1", "Line 1", "subway", 86, 96, "86%", null))
+                List.of(new TtcPerformanceResponses.MetricResponse("line-1", "Line 1", "subway", 86, 90, "86%", null))
             ))
             .thenReturn(new TtcPerformanceResponses.SnapshotResponse(
                 "available", "TTC.ca", "https://www.ttc.ca/", "On-time performance and elevator/escalator status",
                 "Jun 7, 9:30 PM", OffsetDateTime.parse("2026-06-08T12:05:00Z"), false,
                 "Official TTC performance metrics loaded from TTC.ca.",
-                List.of(new TtcPerformanceResponses.MetricResponse("line-1", "Line 1", "subway", 88, 96, "88%", null))
+                List.of(new TtcPerformanceResponses.MetricResponse("line-1", "Line 1", "subway", 88, 90, "88%", null))
             ));
 
         TtcPerformanceResponses.SnapshotResponse first = service.current();
@@ -102,7 +102,7 @@ class TtcPerformanceServiceTest {
                 "available", "TTC.ca", "https://www.ttc.ca/", "On-time performance and elevator/escalator status",
                 "Jun 6, 9:30 PM", OffsetDateTime.parse("2026-06-07T12:00:00Z"), false,
                 "Official TTC performance metrics loaded from TTC.ca.",
-                List.of(new TtcPerformanceResponses.MetricResponse("line-1", "Line 1", "subway", 86, 96, "86%", null))
+                List.of(new TtcPerformanceResponses.MetricResponse("line-1", "Line 1", "subway", 86, 90, "86%", null))
             ))
             .thenThrow(new TtcPerformanceClient.TtcPerformanceClientException("Unable to fetch TTC.ca performance metrics", new RuntimeException("boom")));
 
@@ -129,6 +129,35 @@ class TtcPerformanceServiceTest {
 
         assertThat(first.status()).isEqualTo("unavailable");
         assertThat(second).isSameAs(first);
+        verify(client, times(1)).fetch();
+    }
+
+    @Test
+    void cachedUnavailableAttemptDoesNotMaskRedisLastSuccessfulSnapshot() throws Exception {
+        properties.setRefreshInterval(Duration.ofHours(24));
+        properties.setMaxAge(Duration.ofDays(2));
+        TtcPerformanceResponses.SnapshotResponse lastSuccessful = new TtcPerformanceResponses.SnapshotResponse(
+            "available", "TTC.ca", "https://www.ttc.ca/", "On-time performance and elevator/escalator status",
+            "Jun 6, 11:30 PM", OffsetDateTime.parse("2026-06-07T03:30:00Z"), false,
+            "Official TTC performance metrics loaded from TTC.ca.",
+            List.of(new TtcPerformanceResponses.MetricResponse("line-1", "Line 1", "subway", 85, 90, "85%", null))
+        );
+        when(valueOps.get("linewatch:performance:last_successful"))
+            .thenReturn(null)
+            .thenReturn(objectMapper.writeValueAsString(lastSuccessful));
+        when(client.fetch()).thenThrow(new TtcPerformanceClient.TtcPerformanceClientException("Unable to fetch TTC.ca performance metrics", new RuntimeException("boom")));
+
+        TtcPerformanceResponses.SnapshotResponse first = service.current();
+        clock.advance(Duration.ofHours(2));
+        TtcPerformanceResponses.SnapshotResponse second = service.current();
+
+        assertThat(first.status()).isEqualTo("unavailable");
+        assertThat(second.status()).isEqualTo("available");
+        assertThat(second.stale()).isTrue();
+        assertThat(second.metrics()).singleElement().satisfies(metric -> {
+            assertThat(metric.valueLabel()).isEqualTo("85%");
+            assertThat(metric.target()).isEqualTo(90);
+        });
         verify(client, times(1)).fetch();
     }
 

@@ -57,6 +57,40 @@ class DashboardCacheServiceTest {
     }
 
     @Test
+    void ignoresCachedValuesRejectedByPredicate() {
+        when(redis.opsForValue()).thenReturn(values);
+        when(values.get("linewatch:dashboard:v1:test")).thenReturn("[]");
+
+        List<String> result = cache.getOrComputeIf(
+            "test",
+            new TypeReference<List<String>>() {},
+            Duration.ofSeconds(30),
+            value -> !value.isEmpty(),
+            () -> List.of("computed")
+        );
+
+        assertThat(result).containsExactly("computed");
+        verify(values).set(eq("linewatch:dashboard:v1:test"), eq("[\"computed\"]"), eq(Duration.ofSeconds(30)));
+    }
+
+    @Test
+    void doesNotStoreComputedValuesRejectedByPredicate() {
+        when(redis.opsForValue()).thenReturn(values);
+        when(values.get("linewatch:dashboard:v1:test")).thenReturn(null);
+
+        List<String> result = cache.getOrComputeIf(
+            "test",
+            new TypeReference<List<String>>() {},
+            Duration.ofSeconds(30),
+            value -> !value.isEmpty(),
+            List::of
+        );
+
+        assertThat(result).isEmpty();
+        verify(values, never()).set(eq("linewatch:dashboard:v1:test"), any(String.class), any(Duration.class));
+    }
+
+    @Test
     void failsOpenWhenRedisIsUnavailable() {
         when(redis.opsForValue()).thenThrow(new RedisConnectionFailureException("down"));
         AtomicInteger calls = new AtomicInteger();

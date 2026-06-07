@@ -65,6 +65,9 @@ class TtcPerformanceParserTest {
                                     </div>
                                     <span class="otp-percentage ">86%</span>
                                 </div>
+                                <div class="otp-progress-track">
+                                    <span class="otp-target-marker" style="left: 90%;" data-label="Target: 90%"></span>
+                                </div>
                             </div>
                             <div class="otp-card">
                                 <div class="otp-card-top">
@@ -72,6 +75,9 @@ class TtcPerformanceParserTest {
                                         <span class="otp-service-name">Elevator</span>
                                     </div>
                                     <span class="otp-percentage ">97%</span>
+                                </div>
+                                <div class="otp-progress-track">
+                                    <span class="otp-target-marker" style="left: 98%;" data-label="Target: 98%"></span>
                                 </div>
                             </div>
                         </div>
@@ -97,6 +103,7 @@ class TtcPerformanceParserTest {
                 assertThat(metric.label()).isEqualTo("Line 1");
                 assertThat(metric.category()).isEqualTo("subway");
                 assertThat(metric.percentage()).isEqualTo(86);
+                assertThat(metric.target()).isEqualTo(90);
             });
         assertThat(snapshot.metrics()).filteredOn(metric -> metric.id().equals("elevators"))
             .singleElement()
@@ -104,6 +111,7 @@ class TtcPerformanceParserTest {
                 assertThat(metric.label()).isEqualTo("Elevators");
                 assertThat(metric.category()).isEqualTo("accessibility");
                 assertThat(metric.percentage()).isEqualTo(97);
+                assertThat(metric.target()).isEqualTo(98);
             });
     }
 }

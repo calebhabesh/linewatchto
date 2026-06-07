@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Duration;
 import java.util.Set;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,6 +31,16 @@ public class DashboardCacheService {
     }
 
     public <T> T getOrCompute(String key, TypeReference<T> type, Duration ttl, Supplier<T> supplier) {
+        return getOrComputeIf(key, type, ttl, value -> true, supplier);
+    }
+
+    public <T> T getOrComputeIf(
+        String key,
+        TypeReference<T> type,
+        Duration ttl,
+        Predicate<T> shouldCache,
+        Supplier<T> supplier
+    ) {
         if (!properties.isEnabled() || ttl == null || ttl.isNegative() || ttl.isZero()) {
             return supplier.get();
         }
@@ -37,7 +48,10 @@ public class DashboardCacheService {
         try {
             String cached = redis.opsForValue().get(redisKey);
             if (cached != null && !cached.isBlank()) {
-                return objectMapper.readValue(cached, type);
+                T value = objectMapper.readValue(cached, type);
+                if (shouldCache.test(value)) {
+                    return value;
+                }
             }
         } catch (Exception exception) {
             log.warn("Dashboard cache read failed for key {}", redisKey, exception);
@@ -45,6 +59,9 @@ public class DashboardCacheService {
         }
 
         T computed = supplier.get();
+        if (!shouldCache.test(computed)) {
+            return computed;
+        }
         try {
             redis.opsForValue().set(redisKey, objectMapper.writeValueAsString(computed), ttl);
         } catch (Exception exception) {

@@ -42,7 +42,7 @@ public class TtcPerformanceParser {
                             label,
                             categoryFor(id),
                             percentage,
-                            targetFor(id),
+                            targetFromCard(card, id),
                             percentage + "%",
                             null
                         ));
@@ -175,12 +175,37 @@ public class TtcPerformanceParser {
 
     private Integer targetFor(String id) {
         return switch (id) {
-            case "line-1", "line-2", "line-4" -> 96;
+            case "line-1", "line-2" -> 90;
+            case "line-4" -> 98;
             case "bus", "streetcar", "wheel-trans" -> 90;
             case "elevators" -> 98;
             case "escalators" -> 97;
             default -> null;
         };
+    }
+
+    private Integer targetFromCard(Element card, String id) {
+        Element marker = card.selectFirst(".otp-target-marker");
+        Integer target = marker == null ? null : parseTarget(marker.attr("data-label"));
+        if (target == null && marker != null) {
+            target = parseTarget(marker.attr("style"));
+        }
+        return target == null ? targetFor(id) : target;
+    }
+
+    private Integer parseTarget(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        Matcher matcher = Pattern.compile("(\\d{1,3})\\s*%").matcher(value);
+        if (!matcher.find()) {
+            return null;
+        }
+        int target = Integer.parseInt(matcher.group(1));
+        if (target < 0 || target > 100) {
+            return null;
+        }
+        return target;
     }
 
     private String normalize(String value) {

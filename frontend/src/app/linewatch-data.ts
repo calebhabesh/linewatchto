@@ -209,15 +209,24 @@ export type TtcPerformanceSnapshot = {
 };
 
 export const ttcPerformanceSnapshot: TtcPerformanceSnapshot = {
-  status: "unavailable",
+  status: "available",
   source: "TTC.ca",
   sourceUrl: "https://www.ttc.ca/",
   title: "On-time performance and elevator/escalator status",
-  updatedLabel: "Fixture mode",
-  fetchedAt: null,
-  stale: true,
-  message: "Official TTC performance metrics are unavailable in fixture mode.",
-  metrics: [],
+  updatedLabel: "Local demo",
+  fetchedAt: "2026-06-07T12:00:00Z",
+  stale: false,
+  message: "Official TTC performance metrics loaded in fixture mode.",
+  metrics: [
+    { id: "line-1", label: "Line 1", category: "subway", percentage: 94, target: 90, valueLabel: "94%", note: null },
+    { id: "line-2", label: "Line 2", category: "subway", percentage: 91, target: 90, valueLabel: "91%", note: null },
+    { id: "line-4", label: "Line 4", category: "subway", percentage: 99, target: 98, valueLabel: "99%", note: null },
+    { id: "bus", label: "Bus", category: "surface", percentage: 92, target: 90, valueLabel: "92%", note: null },
+    { id: "streetcar", label: "Streetcar", category: "surface", percentage: 89, target: 90, valueLabel: "89%", note: null },
+    { id: "wheel-trans", label: "Wheel-Trans", category: "surface", percentage: 91, target: 90, valueLabel: "91%", note: null },
+    { id: "elevators", label: "Elevators", category: "accessibility", percentage: 99, target: 98, valueLabel: "99%", note: null },
+    { id: "escalators", label: "Escalators", category: "accessibility", percentage: 98, target: 97, valueLabel: "98%", note: null }
+  ],
 };
 
 export type ReliabilitySummary = {
