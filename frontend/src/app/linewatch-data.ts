@@ -186,6 +186,39 @@ export type CommuteSummary = {
   affectedBy?: string;
 };
 
+export type TtcPerformanceMetric = {
+  id: string;
+  label: string;
+  category: "subway" | "surface" | "accessibility" | "other";
+  percentage: number | null;
+  valueLabel: string;
+  note?: string | null;
+};
+
+export type TtcPerformanceSnapshot = {
+  status: "available" | "unavailable" | "disabled";
+  source: string;
+  sourceUrl: string;
+  title: string;
+  updatedLabel: string;
+  fetchedAt?: string | null;
+  stale: boolean;
+  message: string;
+  metrics: TtcPerformanceMetric[];
+};
+
+export const ttcPerformanceSnapshot: TtcPerformanceSnapshot = {
+  status: "unavailable",
+  source: "TTC.ca",
+  sourceUrl: "https://www.ttc.ca/",
+  title: "On-time performance and elevator/escalator status",
+  updatedLabel: "Fixture mode",
+  fetchedAt: null,
+  stale: true,
+  message: "Official TTC performance metrics are unavailable in fixture mode.",
+  metrics: [],
+};
+
 export type ReliabilitySummary = {
   lineId: string;
   lineNumber: string;

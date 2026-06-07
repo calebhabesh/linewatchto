@@ -196,6 +196,25 @@ const server = createServer(async (request, response) => {
     return;
   }
 
+  if (request.method === "GET" && url.pathname === "/api/performance") {
+    sendJson(request, response, 200, {
+      status: "available",
+      source: "TTC.ca",
+      sourceUrl: "https://www.ttc.ca/",
+      title: "On-time performance and elevator/escalator status",
+      updatedLabel: "June 7, 2026 7:00 AM",
+      fetchedAt: "2026-06-07T12:00:00Z",
+      stale: false,
+      message: "Official TTC performance metrics loaded from TTC.ca.",
+      metrics: [
+        { id: "line-1", label: "Line 1", category: "subway", percentage: 94, valueLabel: "94%", note: null },
+        { id: "line-2", label: "Line 2", category: "subway", percentage: 91, valueLabel: "91%", note: null },
+        { id: "elevators", label: "Elevators", category: "accessibility", percentage: 99, valueLabel: "99%", note: null }
+      ]
+    });
+    return;
+  }
+
   if (request.method === "GET" && url.pathname === "/api/status") {
     sendJson(request, response, 200, statusResponse);
     return;

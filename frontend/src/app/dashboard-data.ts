@@ -12,6 +12,8 @@ import {
   commuteImpacts,
   reliabilitySummaries,
   mapAsset,
+  ttcPerformanceSnapshot as fallbackPerformance,
+  type TtcPerformanceSnapshot,
   type ReducedSpeedZone,
   type ActiveAlert,
   type DelayAlert,
@@ -47,13 +49,14 @@ async function fetchSafe<T>(path: string): Promise<T | null> {
 }
 
 export async function loadDashboardInitialData(): Promise<DashboardData> {
-  const [mapData, statusData, activeAlerts, delays, reducedSpeedZones, plannedClosures] = await Promise.all([
+  const [mapData, statusData, activeAlerts, delays, reducedSpeedZones, plannedClosures, performanceData] = await Promise.all([
     fetchSafe<MapApiResponse>("/api/map"),
     fetchSafe<StatusApiResponse>("/api/status"),
     fetchSafe<ActiveAlert[]>("/api/alerts"),
     fetchSafe<DelayAlert[]>("/api/alerts?type=delay"),
     fetchSafe<ReducedSpeedZone[]>("/api/alerts?type=slowdown"),
-    fetchSafe<PlannedClosure[]>("/api/alerts?type=planned")
+    fetchSafe<PlannedClosure[]>("/api/alerts?type=planned"),
+    fetchSafe<TtcPerformanceSnapshot>("/api/performance")
   ]);
 
   const useFallback = !mapData || !statusData || !activeAlerts || !delays || !reducedSpeedZones || !plannedClosures;
@@ -71,6 +74,7 @@ export async function loadDashboardInitialData(): Promise<DashboardData> {
     stationNodeImpacts: useFallback ? fallbackStationNodeImpacts : mapData.stationNodeImpacts,
     commuteImpacts,
     reliabilitySummaries,
+    ttcPerformance: performanceData ?? fallbackPerformance,
     ingestionHealth,
     mapAsset
   };

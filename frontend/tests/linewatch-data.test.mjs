@@ -16,6 +16,7 @@ import {
   reliabilitySummaries,
   stations,
   stationNodeImpacts,
+  ttcPerformanceSnapshot,
 } from "../src/app/linewatch-data.ts";
 
 describe("LineWatch dashboard fixture data", () => {
@@ -72,5 +73,12 @@ describe("LineWatch dashboard fixture data", () => {
     assert.ok(commuteImpacts.every((commute) => commute.route.includes("->")));
     assert.ok(lineStatuses.every((line) => line.statusLabel.length > 0));
     assert.ok(reliabilitySummaries.every((summary) => summary.score >= 0 && summary.score <= 100));
+  });
+
+  it("labels TTC performance fallback as unavailable official metrics", () => {
+    assert.equal(ttcPerformanceSnapshot.status, "unavailable");
+    assert.equal(ttcPerformanceSnapshot.source, "TTC.ca");
+    assert.equal(ttcPerformanceSnapshot.metrics.length, 0);
+    assert.match(ttcPerformanceSnapshot.message, /unavailable/i);
   });
 });

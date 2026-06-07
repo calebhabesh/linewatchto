@@ -12,7 +12,8 @@ import {
   IngestionHealthItem,
   ReducedSpeedZone,
   DelayAlert,
-  StationNodeImpact
+  StationNodeImpact,
+  TtcPerformanceSnapshot
 } from "./linewatch-data";
 
 export interface DashboardData {
@@ -28,6 +29,7 @@ export interface DashboardData {
   stationNodeImpacts: StationNodeImpact[];
   commuteImpacts: CommuteSummary[];
   reliabilitySummaries: ReliabilitySummary[];
+  ttcPerformance: TtcPerformanceSnapshot;
   ingestionHealth: IngestionHealthItem[];
   mapAsset: { src: string; viewBox: readonly [number, number, number, number]; legendIcons: Record<string, string> };
 }

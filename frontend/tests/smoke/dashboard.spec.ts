@@ -561,3 +561,23 @@ test("opens emailed password reset links directly", async ({ page, request }) =>
   await expect(page).toHaveURL("/");
   await expect(page.getByText("Rider")).toBeVisible();
 });
+
+test("shows official TTC performance metrics from backend", async ({ page, request }) => {
+  await setStubMode(request, "seeded");
+  await page.goto("/");
+  await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
+
+  await page.getByRole("button", { name: "Toggle menu" }).click();
+  await page.getByRole("menuitem", { name: "Reliability Analytics" }).click();
+  await expect(page.getByText("Official TTC Performance")).toBeVisible();
+  await expect(page.getByText("Source: TTC.ca")).toBeVisible();
+
+  const line1Row = page.locator(".reliability-row").filter({ has: page.locator("strong", { hasText: /^Line 1$/ }) });
+  await expect(line1Row).toBeVisible();
+  await expect(line1Row.getByText("94%")).toBeVisible();
+
+  const elevatorsRow = page.locator(".reliability-row").filter({ has: page.locator("strong", { hasText: /^Elevators$/ }) });
+  await expect(elevatorsRow).toBeVisible();
+  await expect(elevatorsRow.getByText("99%")).toBeVisible();
+});
+
