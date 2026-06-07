@@ -572,7 +572,7 @@ test("shows official TTC performance metrics from backend", async ({ page, reque
   await expect(page.getByText("Official TTC Performance")).toBeVisible();
   await expect(page.getByText("Source: TTC.ca")).toBeVisible();
 
-  const line1Row = page.locator(".reliability-row").filter({ has: page.locator("strong", { hasText: /^Line 1$/ }) });
+  const line1Row = page.locator(".reliability-row").filter({ has: page.locator("strong", { hasText: /^Line 1 Yonge-University$/ }) });
   await expect(line1Row).toBeVisible();
   await expect(line1Row.getByText("94%")).toBeVisible();
 

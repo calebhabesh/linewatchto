@@ -1,11 +1,136 @@
 "use client";
 
+import Image from "next/image";
 import { useDashboardData } from "../app/DataContext";
-import { BarChart3, ShieldCheck, ChevronLeft, X } from "lucide-react";
+import { 
+  BarChart3, 
+  ShieldCheck, 
+  ChevronLeft, 
+  X, 
+  Bus, 
+  Train, 
+  Accessibility 
+} from "lucide-react";
 
 interface ReliabilityProps {
   onBack?: () => void;
   onClose?: () => void;
+}
+
+function getMetricDetails(id: string, originalLabel: string) {
+  switch (id) {
+    case "line-1":
+      return {
+        label: "Line 1 Yonge-University",
+        icon: (
+          <Image
+            src="/assets/linewatch/line-1-legend.svg?v=2"
+            alt="Line 1 icon"
+            width={24}
+            height={24}
+            className="shrink-0 object-contain"
+          />
+        ),
+      };
+    case "line-2":
+      return {
+        label: "Line 2 Bloor-Danforth",
+        icon: (
+          <Image
+            src="/assets/linewatch/line-2-legend.svg?v=2"
+            alt="Line 2 icon"
+            width={24}
+            height={24}
+            className="shrink-0 object-contain"
+          />
+        ),
+      };
+    case "line-4":
+      return {
+        label: "Line 4 Sheppard",
+        icon: (
+          <Image
+            src="/assets/linewatch/line-4-legend.svg?v=2"
+            alt="Line 4 icon"
+            width={24}
+            height={24}
+            className="shrink-0 object-contain"
+          />
+        ),
+      };
+    case "line-5":
+      return {
+        label: "Line 5 Eglinton",
+        icon: (
+          <Image
+            src="/assets/linewatch/line-5-legend.svg?v=2"
+            alt="Line 5 icon"
+            width={24}
+            height={24}
+            className="shrink-0 object-contain"
+          />
+        ),
+      };
+    case "line-6":
+      return {
+        label: "Line 6 Finch West",
+        icon: (
+          <Image
+            src="/assets/linewatch/line-6-legend.svg?v=2"
+            alt="Line 6 icon"
+            width={24}
+            height={24}
+            className="shrink-0 object-contain"
+          />
+        ),
+      };
+    case "bus":
+      return {
+        label: "Bus",
+        icon: <Bus className="w-5 h-5 text-slate-500 dark:text-slate-400 shrink-0" />,
+      };
+    case "streetcar":
+      return {
+        label: "Streetcar",
+        icon: <Train className="w-5 h-5 text-slate-500 dark:text-slate-400 shrink-0" />,
+      };
+    case "wheel-trans":
+      return {
+        label: "Wheel-Trans",
+        icon: <Accessibility className="w-5 h-5 text-slate-500 dark:text-slate-400 shrink-0" />,
+      };
+    case "elevators":
+      return {
+        label: "Elevators",
+        icon: (
+          <Image
+            src="/assets/linewatch/outages/elevator.svg"
+            alt="Elevators icon"
+            width={20}
+            height={20}
+            className="shrink-0 object-contain dark:invert"
+          />
+        ),
+      };
+    case "escalators":
+      return {
+        label: "Escalators",
+        icon: (
+          <Image
+            src="/assets/linewatch/outages/escalator.svg"
+            alt="Escalators icon"
+            width={20}
+            height={20}
+            className="shrink-0 object-contain dark:invert"
+          />
+        ),
+      };
+    default:
+      return {
+        label: originalLabel,
+        icon: <Accessibility className="w-5 h-5 text-slate-500 dark:text-slate-400 shrink-0" />,
+      };
+  }
 }
 
 export function ReliabilityPanel({ onBack, onClose }: ReliabilityProps = {}) {
@@ -43,22 +168,28 @@ export function ReliabilityPanel({ onBack, onClose }: ReliabilityProps = {}) {
             <strong className="text-sm font-bold text-slate-800 dark:text-white">Official metrics unavailable</strong>
             <p className="text-xs text-slate-500 dark:text-slate-400">{ttcPerformance.message}</p>
           </div>
-        ) : metrics.map((item) => (
-          <div key={item.id} className="reliability-row min-w-0 p-3 rounded-lg !bg-slate-50 dark:!bg-[#12151c] border border-black/5 dark:border-white/5 flex flex-col justify-between gap-3">
-            <div className="flex min-w-0 items-start justify-between gap-3">
-              <div className="reliability-copy min-w-0">
-                <strong className="text-sm font-bold text-slate-800 dark:text-white whitespace-normal break-words">{item.label}</strong>
-                <span className="text-xs text-slate-500 dark:text-slate-400 whitespace-normal break-words">{categoryLabel(item.category)}</span>
+        ) : metrics.map((item) => {
+          const details = getMetricDetails(item.id, item.label);
+          return (
+            <div key={item.id} className="reliability-row min-w-0 p-3 rounded-lg !bg-slate-50 dark:!bg-[#12151c] border border-black/5 dark:border-white/5 flex flex-col justify-between gap-3">
+              <div className="flex min-w-0 items-start justify-between gap-3">
+                <div className="flex min-w-0 items-center gap-2.5">
+                  {details.icon}
+                  <div className="reliability-copy min-w-0">
+                    <strong className="text-sm font-bold text-slate-800 dark:text-white whitespace-normal break-words">{details.label}</strong>
+                    <span className="block text-xs text-slate-500 dark:text-slate-400 whitespace-normal break-words">{categoryLabel(item.category)}</span>
+                  </div>
+                </div>
+                <strong className="text-sm text-slate-700 dark:text-slate-300 font-bold whitespace-nowrap">{item.valueLabel}</strong>
               </div>
-              <strong className="text-sm text-slate-700 dark:text-slate-300 font-bold whitespace-nowrap">{item.valueLabel}</strong>
+              {item.percentage !== null ? (
+                <div className="score-track bg-black/10 dark:bg-white/10 rounded-full h-2 overflow-hidden">
+                  <div className="bg-gradient-to-r from-amber-500 to-green-500 h-full rounded-full" style={{ width: `${Math.max(0, Math.min(100, item.percentage))}%` }} />
+                </div>
+              ) : null}
             </div>
-            {item.percentage !== null ? (
-              <div className="score-track bg-black/10 dark:bg-white/10 rounded-full h-2 overflow-hidden">
-                <div className="bg-gradient-to-r from-amber-500 to-green-500 h-full rounded-full" style={{ width: `${Math.max(0, Math.min(100, item.percentage))}%` }} />
-              </div>
-            ) : null}
-          </div>
-        ))}
+          );
+        })}
       </div>
     </section>
   );
