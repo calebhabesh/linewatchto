@@ -37,3 +37,10 @@ linewatch:
       max-dashboard-age: ${LINEWATCH_INGESTION_ALERTS_MAX_DASHBOARD_AGE:PT10M}
       connect-timeout: ${LINEWATCH_INGESTION_ALERTS_CONNECT_TIMEOUT:PT3S}
       read-timeout: ${LINEWATCH_INGESTION_ALERTS_READ_TIMEOUT:PT8S}
+  performance:
+    ttc:
+      enabled: ${LINEWATCH_PERFORMANCE_TTC_ENABLED:true}
+      url: ${LINEWATCH_PERFORMANCE_TTC_URL:https://www.ttc.ca/}
+      connect-timeout: ${LINEWATCH_PERFORMANCE_TTC_CONNECT_TIMEOUT:PT3S}
+      read-timeout: ${LINEWATCH_PERFORMANCE_TTC_READ_TIMEOUT:PT8S}
+      max-age: ${LINEWATCH_PERFORMANCE_TTC_MAX_AGE:PT24H}
