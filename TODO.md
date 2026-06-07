@@ -9,12 +9,14 @@
 - [x] Search Stations functionality
 - [x] sync card and actual section flashing/pulse when pressed
 - [x] Saved Commutes station search needs to be more elegant
-- [ ] Overlapping marker/legend does not show entry for active alerts and incorrect highlight for cards based on what submenu its in
-- [ ] Login or sign up needs strict error handling/regex for valid emails passwords, etc.
+- [x] Overlapping marker/legend does not show entry for active alerts and incorrect highlight for cards based on what submenu its in
 - [x] Info Widget for guide on how to use/visualize web app, maybe fully integrated and static on the site like the cardinal direction
 - [ ] Password recovery system
 - [ ] Notifications on for the site, so that they can see when there are alerts on their saved commute routes. Active alerts are the worst, but reduced speed zones shouldn't be that crazy
-- [ ] Huge UI edit/review for the mobile web app version (which is what most people will be using)
+- [ ] Huge UI edit/review for the mobile web app version (which is what most people will be using) we will be using PWA, so people can pin the web app as an app to their home screen
+- [ ] Do i have to keep passing in the resend api key
+- [ ] Consider adding directionality indicator for single station alerts
+- [ ] ask about what the ci/cd pipeline does
 
 ## Future Additions
 - [ ] Cool trains on the tracks ui overlay (strictly aesthetic)
@@ -24,4 +26,4 @@
 - [ ] Look for different 3d/dynamic backgrounds (path drawing tubes, like a train)
 - [ ] OAuth
 - [ ] GO and Metrolinx GTFS RT integration
-- [ ] Mobile friendly (React Native Apps Maybe?) prevent fatfingers
+- [ ] Mobile friendly (React Native Apps Maybe?) / Going PWA here would be good
