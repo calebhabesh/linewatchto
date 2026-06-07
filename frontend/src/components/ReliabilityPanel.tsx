@@ -108,7 +108,7 @@ function getMetricDetails(id: string, originalLabel: string) {
             alt="Elevators icon"
             width={20}
             height={20}
-            className="shrink-0 object-contain dark:invert"
+            className="shrink-0 object-contain"
           />
         ),
       };
@@ -121,7 +121,7 @@ function getMetricDetails(id: string, originalLabel: string) {
             alt="Escalators icon"
             width={20}
             height={20}
-            className="shrink-0 object-contain dark:invert"
+            className="shrink-0 object-contain"
           />
         ),
       };
