@@ -192,12 +192,6 @@ export function LineWatchShell({
     }
   };
 
-  const refreshAccountState = async () => {
-    const next = await getCurrentAccount();
-    setAccountState(next);
-    return next;
-  };
-
   const handleSubmitAccount = async () => {
     if (!accountDialogMode) return;
 
@@ -666,7 +660,7 @@ export function LineWatchShell({
                         disabled={accountBusy}
                       >
                         <LogOut size={17} className="text-slate-500 dark:text-slate-400" />
-                        Sign out
+                        Sign Out
                       </button>
                     </div>
                   ) : (
@@ -679,7 +673,7 @@ export function LineWatchShell({
                         className="menu-action-row"
                       >
                         <LogIn size={17} className="text-slate-500 dark:text-slate-400" />
-                        Sign in
+                        Sign In
                       </button>
                       <button
                         ref={registerMenuAction(actionIndex++)}
@@ -689,7 +683,7 @@ export function LineWatchShell({
                         className="menu-action-row"
                       >
                         <UserPlus size={17} className="text-slate-500 dark:text-slate-400" />
-                        Create account
+                        Create Account
                       </button>
                       <button
                         ref={registerMenuAction(actionIndex++)}
@@ -700,7 +694,7 @@ export function LineWatchShell({
                         disabled={accountBusy}
                       >
                         <UserRound size={17} className="text-emerald-600 dark:text-emerald-400" />
-                        Demo account
+                        Demo Account
                       </button>
                     </div>
                   )}
@@ -808,8 +802,8 @@ export function LineWatchShell({
                    <span className="text-sm font-medium text-slate-700 dark:text-slate-200">High Contrast Mode</span>
                    <button
                       ref={registerMenuAction(actionIndex++)}
-                      role="menuitem"
-                      aria-pressed={highContrast}
+                      role="menuitemcheckbox"
+                      aria-checked={highContrast}
                       aria-label="Toggle high contrast mode"
                       onClick={() => setHighContrast(!highContrast)}
                       className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${highContrast ? 'bg-blue-500' : 'bg-slate-300 dark:bg-slate-600'}`}
@@ -821,8 +815,8 @@ export function LineWatchShell({
                    <span className="text-sm font-medium text-slate-700 dark:text-slate-200">Reduced Motion</span>
                    <button
                       ref={registerMenuAction(actionIndex++)}
-                      role="menuitem"
-                      aria-pressed={reducedMotion}
+                      role="menuitemcheckbox"
+                      aria-checked={reducedMotion}
                       aria-label="Toggle reduced motion"
                       onClick={() => setReducedMotion(!reducedMotion)}
                       className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${reducedMotion ? 'bg-blue-500' : 'bg-slate-300 dark:bg-slate-600'}`}
@@ -1125,7 +1119,7 @@ export function LineWatchShell({
                               setAccountDialogMode("reset-password");
                             }}
                           >
-                            Open local reset form
+                            Open Local Reset Form
                           </button>
                         </>
                       ) : null}
@@ -1137,7 +1131,7 @@ export function LineWatchShell({
                     </p>
                   ) : null}
                   <button type="button" className="account-primary-button" onClick={handleRequestPasswordReset} disabled={accountBusy}>
-                    Send reset link
+                    Send Reset Link
                   </button>
                   <button
                     type="button"
@@ -1149,7 +1143,7 @@ export function LineWatchShell({
                       setAccountDialogMode("login");
                     }}
                   >
-                    Back to sign in
+                    Back To Sign In
                   </button>
                 </>
               ) : accountDialogMode === "reset-password" ? (
@@ -1194,7 +1188,7 @@ export function LineWatchShell({
                     </p>
                   ) : null}
                   <button type="button" className="account-primary-button" onClick={handleConfirmPasswordReset} disabled={accountBusy}>
-                    Reset password
+                    Reset Password
                   </button>
                   <button
                     type="button"
@@ -1204,7 +1198,7 @@ export function LineWatchShell({
                       setAccountDialogMode("login");
                     }}
                   >
-                    Back to sign in
+                    Back To Sign In
                   </button>
                 </>
               ) : (
@@ -1248,7 +1242,7 @@ export function LineWatchShell({
                         setAccountDialogMode("forgot-password");
                       }}
                     >
-                      Forgot password?
+                      Forgot Password?
                     </button>
                   ) : null}
                   {accountDialogMode === "register" ? (
@@ -1262,7 +1256,7 @@ export function LineWatchShell({
                     </p>
                   ) : null}
                   <button type="submit" className="account-primary-button" disabled={accountBusy}>
-                    {accountDialogMode === "login" ? "Sign in" : "Create account"}
+                    {accountDialogMode === "login" ? "Sign In" : "Create Account"}
                   </button>
                 </>
               )}

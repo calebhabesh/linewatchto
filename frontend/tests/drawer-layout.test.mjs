@@ -74,9 +74,9 @@ describe("floating menu layout", () => {
     assert.doesNotMatch(stationSearchSource, /station-search-flag-access/);
     assert.doesNotMatch(stationSearchSource, />\s*Access\s*</);
 
-    assert.match(shellSource, /Demo account/);
-    assert.match(shellSource, /Create account/);
-    assert.match(shellSource, /Sign in/);
+    assert.match(shellSource, /Demo Account/);
+    assert.match(shellSource, /Create Account/);
+    assert.match(shellSource, /Sign In/);
     assert.match(savedCommutesSource, /impact\.statusLabel/);
     assert.doesNotMatch(savedCommutesSource, /Impact matching pending/);
   });

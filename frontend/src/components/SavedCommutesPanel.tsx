@@ -183,8 +183,8 @@ export function SavedCommutesPanel({
             <strong>Account required</strong>
             <span>Sign in or create an account to view saved commutes.</span>
             <div className="account-action-row">
-              <button type="button" onClick={onRequestSignIn}>Sign in</button>
-              <button type="button" onClick={onRequestCreateAccount}>Create account</button>
+              <button type="button" onClick={onRequestSignIn}>Sign In</button>
+              <button type="button" onClick={onRequestCreateAccount}>Create Account</button>
             </div>
           </div>
         ) : null}

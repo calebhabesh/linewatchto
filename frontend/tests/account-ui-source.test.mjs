@@ -17,10 +17,10 @@ describe("account UI source", () => {
     assert.match(shellSource, /registerAccount/);
     assert.match(shellSource, /loginDemoAccount/);
     assert.match(shellSource, /logoutAccount/);
-    assert.match(shellSource, /Sign in/);
-    assert.match(shellSource, /Create account/);
-    assert.match(shellSource, /Demo account/);
-    assert.match(shellSource, /Sign out/);
+    assert.match(shellSource, /Sign In/);
+    assert.match(shellSource, /Create Account/);
+    assert.match(shellSource, /Demo Account/);
+    assert.match(shellSource, /Sign Out/);
     assert.match(shellSource, /account-dialog/);
   });
 
@@ -86,12 +86,12 @@ describe("account UI source", () => {
   it("renders forgot-password and reset-password states inside the sign-in dialog", () => {
     assert.match(shellSource, /"forgot-password"/);
     assert.match(shellSource, /"reset-password"/);
-    assert.match(shellSource, /Forgot password\?/);
-    assert.match(shellSource, /Send reset link/);
-    assert.match(shellSource, /Open local reset form/);
+    assert.match(shellSource, /Forgot Password\?/);
+    assert.match(shellSource, /Send Reset Link/);
+    assert.match(shellSource, /Open Local Reset Form/);
     assert.match(shellSource, /Local dev mode: no email was sent/);
-    assert.match(shellSource, /Reset password/);
-    assert.match(shellSource, /Back to sign in/);
+    assert.match(shellSource, /Reset Password/);
+    assert.match(shellSource, /Back To Sign In/);
     assert.match(shellSource, /requestPasswordReset/);
     assert.match(shellSource, /confirmPasswordReset/);
     assert.match(shellSource, /accountResetToken/);

@@ -20,8 +20,8 @@ describe("keyboard accessibility source", () => {
     assert.match(shellSource, /event\.key === "Home"/);
     assert.match(shellSource, /event\.key === "End"/);
     assert.match(shellSource, /aria-current=\{activeView === "alerts" \? "page" : undefined\}/);
-    assert.match(shellSource, /aria-pressed=\{highContrast\}/);
-    assert.match(shellSource, /aria-pressed=\{reducedMotion\}/);
+    assert.match(shellSource, /aria-checked=\{highContrast\}/);
+    assert.match(shellSource, /aria-checked=\{reducedMotion\}/);
   });
 
   it("keeps station search and legend controls explicitly keyboard accessible", () => {

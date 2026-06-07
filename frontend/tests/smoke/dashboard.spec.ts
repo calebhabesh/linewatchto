@@ -199,18 +199,18 @@ test("opens the site guide and blocks invalid account signup input", async ({ pa
   await expect(guide).toHaveCount(0);
 
   await page.getByRole("button", { name: "Toggle menu" }).click();
-  await page.getByRole("menuitem", { name: "Create account" }).click();
+  await page.getByRole("menuitem", { name: "Create Account" }).click();
   const dialog = page.getByRole("dialog", { name: "Create LineWatch TO account" });
   await expect(dialog).toBeVisible();
 
   await dialog.getByLabel("Email").fill("rider@localhost");
   await dialog.getByLabel("Password").fill("correct horse battery staple");
-  await dialog.getByRole("button", { name: "Create account" }).click();
+  await dialog.getByRole("button", { name: "Create Account" }).click();
   await expect(dialog.getByRole("alert")).toContainText("Enter a valid email address.");
 
   await dialog.getByLabel("Email").fill("rider@example.com");
   await dialog.getByLabel("Password").fill("aaaaaaaaaa");
-  await dialog.getByRole("button", { name: "Create account" }).click();
+  await dialog.getByRole("button", { name: "Create Account" }).click();
   await expect(dialog.getByRole("alert")).toContainText("Password must include a number, symbol, or space.");
 });
 
@@ -524,24 +524,24 @@ test("requests and confirms a password reset from the sign-in dialog", async ({ 
   await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
 
   await page.getByRole("button", { name: "Toggle menu" }).click();
-  await page.getByRole("menuitem", { name: "Sign in" }).click();
+  await page.getByRole("menuitem", { name: "Sign In" }).click();
 
   const signInDialog = page.getByRole("dialog", { name: "Sign in to LineWatch TO" });
   await expect(signInDialog).toBeVisible();
-  await signInDialog.getByRole("button", { name: "Forgot password?" }).click();
+  await signInDialog.getByRole("button", { name: "Forgot Password?" }).click();
 
   const resetDialog = page.getByRole("dialog", { name: "Reset LineWatch TO password" });
   await expect(resetDialog).toBeVisible();
   await resetDialog.getByLabel("Email").fill("rider@example.com");
-  await resetDialog.getByRole("button", { name: "Send reset link" }).click();
+  await resetDialog.getByRole("button", { name: "Send Reset Link" }).click();
   await expect(resetDialog.getByRole("status")).toContainText("If an account exists");
-  await resetDialog.getByRole("button", { name: "Open local reset form" }).click();
+  await resetDialog.getByRole("button", { name: "Open Local Reset Form" }).click();
 
   const confirmDialog = page.getByRole("dialog", { name: "Choose a new LineWatch TO password" });
   await expect(confirmDialog).toBeVisible();
   await confirmDialog.getByLabel("New password").fill("new correct horse 2");
   await confirmDialog.getByLabel("Confirm password").fill("new correct horse 2");
-  await confirmDialog.getByRole("button", { name: "Reset password" }).click();
+  await confirmDialog.getByRole("button", { name: "Reset Password" }).click();
   await expect(confirmDialog).toHaveCount(0);
   await expect(page.getByText("Rider")).toBeVisible();
 });
@@ -556,7 +556,7 @@ test("opens emailed password reset links directly", async ({ page, request }) =>
   await expect(confirmDialog.getByLabel("Reset token")).toHaveCount(0);
   await confirmDialog.getByLabel("New password").fill("new correct horse 2");
   await confirmDialog.getByLabel("Confirm password").fill("new correct horse 2");
-  await confirmDialog.getByRole("button", { name: "Reset password" }).click();
+  await confirmDialog.getByRole("button", { name: "Reset Password" }).click();
   await expect(confirmDialog).toHaveCount(0);
   await expect(page).toHaveURL("/");
   await expect(page.getByText("Rider")).toBeVisible();
