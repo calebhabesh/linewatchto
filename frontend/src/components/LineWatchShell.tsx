@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import type { KeyboardEvent } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -140,6 +140,19 @@ export function LineWatchShell({
   const [accountBusy, setAccountBusy] = useState(false);
   const [accountCommutes, setAccountCommutes] = useState<AccountSavedCommute[]>([]);
   const [commutePathPreview, setCommutePathPreview] = useState<AccountCommutePathPreview | null>(null);
+
+  const { commuteClearCount, commuteAffectedCount } = useMemo(() => {
+    let clear = 0;
+    let affected = 0;
+    for (const commute of accountCommutes) {
+      if (commute.impact.status === "clear") {
+        clear++;
+      } else if (commute.impact.status === "affected" || commute.impact.status === "planned") {
+        affected++;
+      }
+    }
+    return { commuteClearCount: clear, commuteAffectedCount: affected };
+  }, [accountCommutes]);
 
   useEffect(() => {
     let cancelled = false;
@@ -781,9 +794,21 @@ export function LineWatchShell({
                    role="menuitem"
                    onClick={() => setActiveView("commutes")}
                    aria-current={activeView === "commutes" ? "page" : undefined}
-                   className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
+                   className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
                  >
-                   <Navigation size={18} className="text-slate-500 dark:text-slate-400" /> Saved Commutes
+                   <div className="flex items-center gap-3">
+                     <Navigation size={18} className="text-slate-500 dark:text-slate-400" /> Saved Commutes
+                   </div>
+                   {accountCommutes.length > 0 && (
+                     <div className="flex items-center gap-1.5 shrink-0" data-testid="commute-status-badges">
+                       <span className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500/20 text-[10px] font-bold text-emerald-600 dark:text-emerald-400" aria-label={`${commuteClearCount} clear commutes`}>
+                         {commuteClearCount}
+                       </span>
+                       <span className="flex h-5 w-5 items-center justify-center rounded-full bg-amber-500/20 text-[10px] font-bold text-amber-700 dark:text-amber-400" aria-label={`${commuteAffectedCount} affected commutes`}>
+                         {commuteAffectedCount}
+                       </span>
+                     </div>
+                   )}
                  </button>
                  <button
                    ref={registerMenuAction(actionIndex++)}

@@ -18,16 +18,10 @@ public class AuthCorsConfiguration implements WebMvcConfigurer {
 
     @Override
     public void addCorsMappings(CorsRegistry registry) {
-        registry.addMapping("/api/auth/**")
+        registry.addMapping("/api/**")
             .allowedOrigins(allowedOrigins.toArray(String[]::new))
-            .allowedMethods("GET", "POST", "OPTIONS")
-            .allowedHeaders("content-type")
-            .allowCredentials(true);
-
-        registry.addMapping("/api/account/**")
-            .allowedOrigins(allowedOrigins.toArray(String[]::new))
-            .allowedMethods("GET", "POST", "DELETE", "OPTIONS")
-            .allowedHeaders("content-type")
+            .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
+            .allowedHeaders("*")
             .allowCredentials(true);
     }
 }

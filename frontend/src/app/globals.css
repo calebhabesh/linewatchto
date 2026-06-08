@@ -1754,9 +1754,12 @@ button {
 
 .station-selected-indicator {
   fill: #38bdf8;
+  transform-origin: center;
+  transform-box: fill-box;
   stroke: none;
   filter: drop-shadow(0 0 6px rgba(56, 189, 248, 0.85));
-  animation: station-selected-pulse 1.8s ease-in-out infinite;
+  animation: station-selected-pulse 2.4s ease-in-out infinite;
+  animation-delay: var(--map-pulse-offset);
 }
 
 .station-impact-ring {
@@ -1769,7 +1772,7 @@ button {
   stroke-width: 4;
   filter: drop-shadow(0 0 6px rgba(250, 204, 21, 0.8));
   transition: opacity 0.2s ease, stroke-width 0.2s ease, stroke 0.2s ease;
-  animation: gold-ring-pulse 1.2s infinite alternate ease-in-out;
+  animation: gold-ring-pulse 2.4s infinite alternate ease-in-out;
   animation-delay: var(--map-pulse-offset);
 }
 
@@ -1783,44 +1786,78 @@ button {
 }
 
 .station-impact-dot-red-glow {
-  fill: #ef4444;
-  filter: drop-shadow(0 0 8px #ef4444) drop-shadow(0 0 16px #ef4444);
-  animation: station-red-glow-pulse 1.2s infinite alternate ease-in-out;
+  fill: #ff3b30; /* Vivid bright iOS/radar style red core */
+  transform-origin: center;
+  transform-box: fill-box;
+  filter: drop-shadow(0 0 6px rgba(255, 59, 48, 0.9));
+  animation: station-radar-core 2.4s infinite alternate ease-in-out;
+  animation-delay: var(--map-pulse-offset);
+}
+
+.station-impact-dot-red-ping {
+  fill: rgba(255, 59, 48, 0.25); /* Shaded semi-transparent radar disk */
+  stroke: #ff4b5c; /* Bright radar sweep edge */
+  stroke-width: 1.5;
+  transform-origin: center;
+  transform-box: fill-box;
+  animation: station-radar-ping 1.6s infinite cubic-bezier(0.1, 0.8, 0.25, 1);
   animation-delay: var(--map-pulse-offset);
 }
 
 @keyframes station-selected-pulse {
   0%,
   100% {
-    opacity: 0.34;
+    transform: scale(0.9);
+    opacity: 0.4;
   }
 
   50% {
+    transform: scale(1.05);
     opacity: 0.85;
   }
 }
 
 @keyframes gold-ring-pulse {
   0% {
-    stroke-opacity: 0.75;
-    filter: drop-shadow(0 0 4px rgba(250, 204, 21, 0.6));
+    stroke-opacity: 0.6;
+    stroke-width: 3.5;
+    filter: drop-shadow(0 0 3px rgba(250, 204, 21, 0.5));
   }
   100% {
-    stroke-opacity: 1;
-    filter: drop-shadow(0 0 12px rgba(250, 204, 21, 0.95)) drop-shadow(0 0 24px rgba(250, 204, 21, 0.5));
+    stroke-opacity: 0.95;
+    stroke-width: 5;
+    filter: drop-shadow(0 0 10px rgba(250, 204, 21, 0.9)) drop-shadow(0 0 20px rgba(250, 204, 21, 0.4));
   }
 }
 
-@keyframes station-red-glow-pulse {
+@keyframes station-radar-core {
   0% {
-    opacity: 0.75;
-    fill: #b91c1c;
-    filter: drop-shadow(0 0 4px #b91c1c);
+    transform: scale(0.9);
+    filter: drop-shadow(0 0 4px rgba(255, 59, 48, 0.75));
   }
   100% {
-    opacity: 1;
-    fill: #f87171;
-    filter: drop-shadow(0 0 10px #ef4444) drop-shadow(0 0 20px #f87171);
+    transform: scale(1.05);
+    filter: drop-shadow(0 0 12px rgba(255, 59, 48, 1)) drop-shadow(0 0 18px rgba(255, 59, 48, 0.45));
+  }
+}
+
+@keyframes station-radar-ping {
+  0% {
+    transform: scale(0.9);
+    fill-opacity: 0.36;
+    stroke-opacity: 0.95;
+    filter: drop-shadow(0 0 3px rgba(255, 59, 48, 0.85));
+  }
+  50% {
+    fill-opacity: 0.18;
+    stroke-opacity: 0.7;
+    filter: drop-shadow(0 0 12px rgba(255, 59, 48, 0.65)) drop-shadow(0 0 20px rgba(255, 59, 48, 0.36));
+  }
+  100% {
+    transform: scale(2.8);
+    fill-opacity: 0;
+    stroke-opacity: 0;
+    filter: drop-shadow(0 0 40px rgba(255, 59, 48, 0));
   }
 }
 
@@ -1829,7 +1866,8 @@ button {
   .station-selected-indicator,
   .station-selection-flash,
   .station-impact-ring,
-  .station-impact-dot-red-glow {
+  .station-impact-dot-red-glow,
+  .station-impact-dot-red-ping {
     animation: none !important;
   }
 }

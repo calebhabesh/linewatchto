@@ -1022,6 +1022,13 @@ export function InteractiveTtcMap({
                         r={station.interchange ? 34 : 26}
                         pointerEvents="none"
                       />
+                      <circle
+                        className="station-impact-dot-red-ping"
+                        cx={point.x}
+                        cy={point.y}
+                        r={station.interchange ? 34 : 26}
+                        pointerEvents="none"
+                      />
                     </g>
                   );
                 })}

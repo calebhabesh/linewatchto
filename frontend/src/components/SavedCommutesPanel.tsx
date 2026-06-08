@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Navigation, ChevronDown, ChevronLeft, Loader2, MapPinned, X } from "lucide-react";
+import { Navigation, ChevronDown, ChevronLeft, Loader2, MapPinned, X, AlertTriangle, Construction, Calendar } from "lucide-react";
 import {
   createSavedCommute,
   deleteSavedCommute,
@@ -12,6 +12,7 @@ import {
 } from "../app/account-data";
 import type { StationSummary } from "../app/station-data";
 import { SavedCommuteStationPicker } from "./SavedCommuteStationPicker";
+import { DelayIcon } from "./DelayIcon";
 
 // drawer-layout.test.mjs compatibility: grid-cols-1
 
@@ -45,12 +46,26 @@ function commuteTone(commute: AccountSavedCommute) {
   }
 }
 
+function ImpactIcon({ kind, className }: { kind: AccountMatchedImpact["kind"]; className?: string }) {
+  switch (kind) {
+    case "reduced-speed-zone":
+      return <Construction className={`rsz-tone ${className || ""}`} size={14} />;
+    case "planned-closure":
+      return <Calendar className={`text-blue-500 dark:text-blue-400 ${className || ""}`} size={14} />;
+    case "suspension":
+      return <AlertTriangle className={`text-red-500 dark:text-red-400 ${className || ""}`} size={14} />;
+    case "delay":
+    default:
+      return <DelayIcon className={`text-amber-500 dark:text-amber-400 ${className || ""}`} size={14} filled={false} />;
+  }
+}
+
 function impactKindLabel(kind: AccountMatchedImpact["kind"]) {
   switch (kind) {
     case "reduced-speed-zone":
-      return "RSZ";
+      return "Reduced Speed Zone";
     case "planned-closure":
-      return "Planned";
+      return "Planned Closure";
     case "suspension":
       return "Suspension";
     case "delay":
@@ -263,9 +278,15 @@ export function SavedCommutesPanel({
                       {commute.impact.matchedImpacts.length > 0 ? (
                         <ul className="saved-commute-impact-list">
                           {commute.impact.matchedImpacts.slice(0, 3).map((impact) => (
-                            <li key={`${impact.kind}-${impact.id}`}>
-                              <strong>{impactKindLabel(impact.kind)}</strong>
-                              <span>{impactLineLabel(impact)}{impact.location ? `: ${impact.location}` : ""}</span>
+                            <li key={`${impact.kind}-${impact.id}`} className="!flex !flex-row !items-center !gap-1.5 !flex-wrap">
+                              <ImpactIcon kind={impact.kind} className="shrink-0" />
+                              <strong className="font-bold uppercase tracking-wider text-[10px] text-slate-700 dark:text-slate-300">
+                                {impactKindLabel(impact.kind)}
+                              </strong>
+                              <span className="text-slate-700 dark:text-slate-300 -ml-1 mr-0.5">:</span>
+                              <span className="text-slate-600 dark:text-slate-400">
+                                {impactLineLabel(impact)}{impact.location ? `: ${impact.location}` : ""}
+                              </span>
                             </li>
                           ))}
                         </ul>

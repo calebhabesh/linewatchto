@@ -11,15 +11,12 @@
 - [x] Saved Commutes station search needs to be more elegant
 - [x] Overlapping marker/legend does not show entry for active alerts and incorrect highlight for cards based on what submenu its in
 - [x] Info Widget for guide on how to use/visualize web app, maybe fully integrated and static on the site like the cardinal direction
-- [ ] Password recovery system
-- [ ] Notifications on for the site, so that they can see when there are alerts on their saved commute routes. Active alerts are the worst, but reduced speed zones shouldn't be that crazy
-- [ ] Huge UI edit/review for the mobile web app version (which is what most people will be using) we will be using PWA, so people can pin the web app as an app to their home screen
-- [ ] Do i have to keep passing in the resend api key
 - [ ] Consider adding directionality indicator for single station alerts
-- [ ] ask about what the ci/cd pipeline does
-- [ ] station alert beacon animation, instead of simple flash
-- [ ] Small indicators for "Saved" commutes with numbers in colored circles corresponding to routes effecting and green routes.
-- [ ] Add the target lines on the status bars for Reliability Analytics
+- [ ] Ask Yonas for login credentials
+
+## Mobile Web Overhaul
+- [ ] Huge UI edit/review for the mobile web app version (which is what most people will be using) we will be using PWA, so people can pin the web app as an app to their home screen
+- [ ] Notifications on for the site, so that they can see when there are alerts on their saved commute routes. Active alerts are the worst, but reduced speed zones shouldn't be that crazy
 
 ## Future Additions
 - [ ] Cool trains on the tracks ui overlay (strictly aesthetic)

@@ -14,7 +14,7 @@ export function ImpactTimestamp({ timestamp }: { timestamp?: string | null }) {
   if (!timestamp) return <>Not reported</>;
 
   return (
-    <time dateTime={timestamp} title={new Date(timestamp).toLocaleString()}>
+    <time dateTime={timestamp} title={new Date(timestamp).toLocaleString()} suppressHydrationWarning>
       {formatRelativeImpactTime(timestamp)}
     </time>
   );

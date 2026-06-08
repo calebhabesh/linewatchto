@@ -6,6 +6,7 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: process.cwd(),
   },
+  allowedDevOrigins: ['192.0.2.25', '192.0.2.25:3000'],
   async rewrites() {
     const backendUrl = process.env.LINEWATCH_BACKEND_URL || "http://localhost:8080";
     return [
