@@ -360,7 +360,8 @@ export function LineWatchShell({
     setActiveView("map");
   };
 
-  const handleClearCommutePathPreview = useCallback((commuteId?: string) => {
+  const handleClearCommutePathPreview = useCallback((commuteIdOrEvent?: string | unknown) => {
+    const commuteId = typeof commuteIdOrEvent === "string" ? commuteIdOrEvent : undefined;
     setCommutePathPreview((current) => {
       if (!current) return null;
       if (commuteId && current.id !== commuteId) {

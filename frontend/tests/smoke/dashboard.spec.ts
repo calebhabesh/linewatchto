@@ -463,6 +463,7 @@ test("keyboard opens and closes the main menu", async ({ page, request }) => {
   await page.getByRole("button", { name: "Toggle menu" }).focus();
   await page.keyboard.press("Enter");
   await expect(page.getByRole("menu")).toBeVisible();
+  await page.waitForTimeout(100);
 
   await page.keyboard.press("ArrowDown");
   await page.keyboard.press("ArrowDown");
