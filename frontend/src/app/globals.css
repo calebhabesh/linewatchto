@@ -708,6 +708,55 @@ button {
   display: none;
 }
 
+.linewatch-shell.mobile-performance-mode .asset-alert-path-glow {
+  animation: none !important;
+  filter: none !important;
+  opacity: 0.24;
+  stroke-width: 122;
+  transition: none !important;
+}
+
+.linewatch-shell.mobile-performance-mode .interactive-glow {
+  display: none;
+}
+
+.linewatch-shell.mobile-performance-mode .asset-alert-path.delay-candy,
+.linewatch-shell.mobile-performance-mode .asset-alert-path.suspension-candy,
+.linewatch-shell.mobile-performance-mode .asset-alert-path.delay-static-base,
+.linewatch-shell.mobile-performance-mode .delay-hourglass-mask-path,
+.linewatch-shell.mobile-performance-mode .suspension-mask-path,
+.linewatch-shell.mobile-performance-mode .rsz-chevron-mask-path {
+  animation: none !important;
+  transition: none !important;
+}
+
+.linewatch-shell.mobile-performance-mode .station-hit-target {
+  transition: none !important;
+}
+
+.linewatch-shell.mobile-performance-mode .station-selected-indicator,
+.linewatch-shell.mobile-performance-mode .station-impact-ring,
+.linewatch-shell.mobile-performance-mode .station-impact-dot-red-glow,
+.linewatch-shell.mobile-performance-mode .station-impact-dot-red-ping,
+.linewatch-shell.mobile-performance-mode .station-selection-flash,
+.linewatch-shell.mobile-performance-mode .asset-alert-path.map-selection-flash,
+.linewatch-shell.mobile-performance-mode .station-commute-green-flash,
+.linewatch-shell.mobile-performance-mode .commute-path-preview-glow {
+  animation: none !important;
+  filter: none !important;
+}
+
+.linewatch-shell.mobile-performance-mode .overlap-indicator {
+  filter: none !important;
+}
+
+.linewatch-shell.mobile-performance-mode .ttc-svg-container svg,
+.linewatch-shell.mobile-performance-mode .asset-alert-path,
+.linewatch-shell.mobile-performance-mode .asset-alert-path-glow {
+  shape-rendering: auto;
+  text-rendering: optimizeLegibility;
+}
+
 .asset-alert-path-glow {
   fill: none;
   pointer-events: none;

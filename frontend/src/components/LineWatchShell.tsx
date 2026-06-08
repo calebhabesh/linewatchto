@@ -27,6 +27,7 @@ import {
 } from "../app/station-data";
 import { StationDetailPanel } from "./StationDetailPanel";
 import { useTorontoClock } from "../hooks/useTorontoClock";
+import { useMobilePerformanceMode } from "../hooks/useMobilePerformanceMode";
 import { Menu, X, Map as MapIcon, AlertTriangle, Calendar, Navigation, ShieldCheck, BarChart3, Construction, Search, LogIn, LogOut, UserPlus, UserRound } from "lucide-react";
 import { SubwayClosedScreen } from "./SubwayClosedScreen";
 import { useSubwayOperatingState } from "../hooks/useSubwayOperatingState";
@@ -104,6 +105,7 @@ export function LineWatchShell({
   const [isDark, setIsDark] = useState(true);
   const [highContrast, setHighContrast] = useState(false);
   const [reducedMotion, setReducedMotion] = useState(false);
+  const mobilePerformanceMode = useMobilePerformanceMode();
   const [activeView, setActiveView] = useState<ActiveView>("map");
   const clock = useTorontoClock(generatedAt.time);
 
@@ -649,9 +651,9 @@ export function LineWatchShell({
   let actionIndex = 0;
   return (
     <DataProvider data={displayData}>
-      <div className={`linewatch-shell relative w-full h-screen overflow-hidden transition-colors duration-500 ${(isDark || highContrast) ? "dark bg-[#0d0808] text-slate-100" : "bg-slate-50 text-slate-900"} ${highContrast ? "high-contrast" : ""} ${reducedMotion ? "motion-paused" : ""}`}>
+      <div className={`linewatch-shell relative w-full h-screen overflow-hidden transition-colors duration-500 ${(isDark || highContrast) ? "dark bg-[#0d0808] text-slate-100" : "bg-slate-50 text-slate-900"} ${highContrast ? "high-contrast" : ""} ${reducedMotion ? "motion-paused" : ""} ${mobilePerformanceMode ? "mobile-performance-mode" : ""}`}>
       {/* Background */}
-      <DynamicBackground reducedMotion={reducedMotion} isDark={isDark || highContrast} />
+      <DynamicBackground reducedMotion={reducedMotion} isDark={isDark || highContrast} disabled={mobilePerformanceMode} />
 
       {!showClosedScreen && (
       <header className={`absolute top-0 left-0 w-full p-4 sm:p-6 z-40 flex justify-between items-start pointer-events-none`}>

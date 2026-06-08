@@ -9,10 +9,12 @@ interface VantaEffect {
 
 export function DynamicBackground({ 
   reducedMotion,
-  isDark 
+  isDark,
+  disabled = false,
 }: { 
   reducedMotion: boolean;
   isDark: boolean;
+  disabled?: boolean;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const vantaEffectRef = useRef<VantaEffect | null>(null);
@@ -22,7 +24,7 @@ export function DynamicBackground({
 
   // Initialize Vanta effect
   useEffect(() => {
-    if (reducedMotion) {
+    if (reducedMotion || disabled) {
       if (vantaEffectRef.current) {
         vantaEffectRef.current.destroy();
         vantaEffectRef.current = null;
@@ -83,7 +85,7 @@ export function DynamicBackground({
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [reducedMotion]);
+  }, [reducedMotion, disabled]);
 
   // Smoothly update colors on theme change
   useEffect(() => {
