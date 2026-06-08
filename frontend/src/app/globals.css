@@ -757,6 +757,13 @@ button {
   text-rendering: optimizeLegibility;
 }
 
+.linewatch-shell.mobile-performance-mode .station-search-panel,
+.linewatch-shell.mobile-performance-mode .station-search-stations-column,
+.linewatch-shell.mobile-performance-mode .station-search-line-trigger,
+.linewatch-shell.mobile-performance-mode .station-search-station {
+  transition: none !important;
+}
+
 .asset-alert-path-glow {
   fill: none;
   pointer-events: none;
@@ -2422,9 +2429,8 @@ button {
   opacity: 0;
   pointer-events: none;
   transition: 
-    opacity 300ms cubic-bezier(0.23, 1, 0.32, 1), 
-    transform 300ms cubic-bezier(0.23, 1, 0.32, 1), 
-    width 300ms cubic-bezier(0.23, 1, 0.32, 1);
+    opacity 220ms cubic-bezier(0.23, 1, 0.32, 1), 
+    transform 220ms cubic-bezier(0.23, 1, 0.32, 1);
 }
 
 .station-search-panel.open {
@@ -2569,12 +2575,11 @@ button {
   overflow-x: hidden;
   scrollbar-width: thin;
   scrollbar-color: rgba(148, 163, 184, 0.28) transparent;
+  transform: translateX(-8px);
   transition: 
-    width 300ms cubic-bezier(0.23, 1, 0.32, 1),
-    opacity 250ms cubic-bezier(0.23, 1, 0.32, 1),
-    padding-left 300ms cubic-bezier(0.23, 1, 0.32, 1),
-    padding-right 300ms cubic-bezier(0.23, 1, 0.32, 1),
-    border-color 300ms cubic-bezier(0.23, 1, 0.32, 1);
+    opacity 180ms cubic-bezier(0.23, 1, 0.32, 1),
+    transform 180ms cubic-bezier(0.23, 1, 0.32, 1),
+    border-color 180ms cubic-bezier(0.23, 1, 0.32, 1);
   min-width: 0;
 }
 
@@ -2584,6 +2589,7 @@ button {
   border-left-color: rgba(15, 23, 42, 0.12);
   padding-left: 16px;
   padding-right: 12px;
+  transform: translateX(0);
 }
 
 .dark .station-search-panel[data-expanded="true"] .station-search-stations-column {
