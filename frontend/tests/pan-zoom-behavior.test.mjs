@@ -2,7 +2,14 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 
-import { snapToDevicePixel, snapTransformToDevicePixels } from "../src/hooks/panZoomMath.ts";
+import {
+  distanceBetweenPoints,
+  mapPointFromViewportPoint,
+  midpointBetweenPoints,
+  snapToDevicePixel,
+  snapTransformToDevicePixels,
+  transformForMapPointAtViewportPoint,
+} from "../src/hooks/panZoomMath.ts";
 
 const hookSource = readFileSync(new URL("../src/hooks/usePanZoom.ts", import.meta.url), "utf8");
 const mapSource = readFileSync(new URL("../src/components/InteractiveTtcMap.tsx", import.meta.url), "utf8");
@@ -48,5 +55,35 @@ describe("pan zoom behavior guardrails", () => {
     assert.match(mapSource, /lastFocusedTargetKeyRef/);
     assert.match(mapSource, /focusTargetKey/);
     assert.match(mapSource, /lastFocusedTargetKeyRef\.current === focusTargetKey/);
+  });
+
+  it("computes two-pointer pinch geometry without DOM access", () => {
+    assert.deepEqual(
+      midpointBetweenPoints({ x: 10, y: 20 }, { x: 30, y: 60 }),
+      { x: 20, y: 40 },
+    );
+    assert.equal(distanceBetweenPoints({ x: 0, y: 0 }, { x: 3, y: 4 }), 5);
+  });
+
+  it("keeps the same map point under the pinch midpoint when scale changes", () => {
+    const start = { x: -100, y: -50, scale: 2 };
+    const viewportPoint = { x: 300, y: 250 };
+    const mapPoint = mapPointFromViewportPoint(start, viewportPoint);
+
+    assert.deepEqual(mapPoint, { x: 200, y: 150 });
+
+    const next = transformForMapPointAtViewportPoint(mapPoint, viewportPoint, 3);
+
+    assert.deepEqual(next, { x: -300, y: -200, scale: 3 });
+    assert.deepEqual(mapPointFromViewportPoint(next, viewportPoint), mapPoint);
+  });
+
+  it("uses active pointer bookkeeping for pinch zoom", () => {
+    assert.match(hookSource, /activePointersRef/);
+    assert.match(hookSource, /pinchGestureRef/);
+    assert.match(hookSource, /pointerPointFromEvent/);
+    assert.match(hookSource, /handlePointerCancel/);
+    assert.match(hookSource, /distanceBetweenPoints/);
+    assert.match(hookSource, /transformForMapPointAtViewportPoint/);
   });
 });
