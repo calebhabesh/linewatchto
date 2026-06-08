@@ -1,5 +1,15 @@
 import { useState, useCallback, useRef, useEffect, type PointerEvent, type WheelEvent } from "react";
-import { currentDevicePixelRatio, snapTransformToDevicePixels, type PanZoomTransform } from "./panZoomMath";
+import {
+  clampPanZoomScale,
+  currentDevicePixelRatio,
+  distanceBetweenPoints,
+  mapPointFromViewportPoint,
+  midpointBetweenPoints,
+  snapTransformToDevicePixels,
+  transformForMapPointAtViewportPoint,
+  type PanZoomPoint,
+  type PanZoomTransform,
+} from "./panZoomMath";
 
 export function usePanZoom() {
   const [transform, setTransform] = useState({ x: 0, y: 0, scale: 1 });
@@ -13,6 +23,18 @@ export function usePanZoom() {
   const transformRef = useRef({ x: 0, y: 0, scale: 1 });
   const dragRafRef = useRef<number | null>(null);
   const lastMoveEvent = useRef<{ clientX: number, clientY: number } | null>(null);
+  const activePointersRef = useRef(new Map<number, PanZoomPoint>());
+  const pinchGestureRef = useRef<{
+    startDistance: number;
+    startScale: number;
+    mapPointAtMidpoint: PanZoomPoint;
+  } | null>(null);
+  const fitScaleRef = useRef(1);
+  const activeDragPointerIdRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    fitScaleRef.current = fitScale;
+  }, [fitScale]);
 
   const snapTransform = useCallback((next: PanZoomTransform) => {
     return snapTransformToDevicePixels(next, currentDevicePixelRatio());
@@ -137,19 +159,106 @@ export function usePanZoom() {
     return () => observer.disconnect();
   }, []);
 
+  const pointerPointFromEvent = useCallback((event: PointerEvent<HTMLDivElement>): PanZoomPoint => {
+    const rect = containerRef.current?.getBoundingClientRect();
+    if (!rect) {
+      return { x: event.clientX, y: event.clientY };
+    }
+    return {
+      x: event.clientX - rect.left,
+      y: event.clientY - rect.top,
+    };
+  }, []);
+
+  const pointersArray = useCallback(() => {
+    return Array.from(activePointersRef.current.values());
+  }, []);
+
+  const beginPinchGesture = useCallback(() => {
+    const pointers = pointersArray();
+    if (pointers.length < 2) return;
+
+    const [first, second] = pointers;
+    const midpoint = midpointBetweenPoints(first, second);
+    const distance = distanceBetweenPoints(first, second);
+    if (distance <= 0) return;
+
+    pinchGestureRef.current = {
+      startDistance: distance,
+      startScale: transformRef.current.scale,
+      mapPointAtMidpoint: mapPointFromViewportPoint(transformRef.current, midpoint),
+    };
+  }, [pointersArray]);
+
+  const applyPinchGesture = useCallback(() => {
+    const gesture = pinchGestureRef.current;
+    const pointers = pointersArray();
+    if (!gesture || pointers.length < 2) return;
+
+    const [first, second] = pointers;
+    const midpoint = midpointBetweenPoints(first, second);
+    const distance = distanceBetweenPoints(first, second);
+    if (distance <= 0) return;
+
+    const nextScale = clampPanZoomScale(
+      gesture.startScale * (distance / gesture.startDistance),
+      fitScaleRef.current,
+    );
+    const next = snapTransform(
+      transformForMapPointAtViewportPoint(gesture.mapPointAtMidpoint, midpoint, nextScale),
+    );
+
+    transformRef.current = next;
+    if (mapRef.current) {
+      mapRef.current.style.transform = `translate(${next.x}px, ${next.y}px) scale(${next.scale})`;
+    }
+  }, [pointersArray, snapTransform]);
+
   const handlePointerDown = useCallback((e: PointerEvent<HTMLDivElement>) => {
-    // Only allow left click panning
-    if (e.button !== 0) return;
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+
     cancelAnimation();
-    setIsDragging(true);
-    startPos.current = { x: e.clientX - transformRef.current.x, y: e.clientY - transformRef.current.y };
+    const point = pointerPointFromEvent(e);
+    activePointersRef.current.set(e.pointerId, point);
     e.currentTarget.setPointerCapture(e.pointerId);
-  }, [cancelAnimation]);
+
+    if (activePointersRef.current.size >= 2) {
+      activeDragPointerIdRef.current = null;
+      lastMoveEvent.current = null;
+      beginPinchGesture();
+      setIsDragging(true);
+      return;
+    }
+
+    activeDragPointerIdRef.current = e.pointerId;
+    pinchGestureRef.current = null;
+    setIsDragging(true);
+    startPos.current = {
+      x: point.x - transformRef.current.x,
+      y: point.y - transformRef.current.y,
+    };
+  }, [beginPinchGesture, cancelAnimation, pointerPointFromEvent]);
 
   const handlePointerMove = useCallback((e: PointerEvent<HTMLDivElement>) => {
     if (!isDragging) return;
+    if (!activePointersRef.current.has(e.pointerId)) return;
 
-    lastMoveEvent.current = { clientX: e.clientX, clientY: e.clientY };
+    const point = pointerPointFromEvent(e);
+    activePointersRef.current.set(e.pointerId, point);
+
+    if (activePointersRef.current.size >= 2) {
+      if (dragRafRef.current === null) {
+        dragRafRef.current = requestAnimationFrame(() => {
+          applyPinchGesture();
+          dragRafRef.current = null;
+        });
+      }
+      return;
+    }
+
+    if (activeDragPointerIdRef.current !== e.pointerId) return;
+
+    lastMoveEvent.current = { clientX: point.x, clientY: point.y };
 
     if (dragRafRef.current === null) {
       dragRafRef.current = requestAnimationFrame(() => {
@@ -172,26 +281,61 @@ export function usePanZoom() {
         dragRafRef.current = null;
       });
     }
-  }, [isDragging]);
+  }, [applyPinchGesture, isDragging, pointerPointFromEvent]);
 
-  const handlePointerUp = useCallback((e: PointerEvent<HTMLDivElement>) => {
+  const finishPointerInteraction = useCallback((e: PointerEvent<HTMLDivElement>) => {
     if (dragRafRef.current !== null) {
       cancelAnimationFrame(dragRafRef.current);
       dragRafRef.current = null;
     }
-    if (isDragging) {
-      if (lastMoveEvent.current) {
-        const { clientX, clientY } = lastMoveEvent.current;
-        const newX = clientX - startPos.current.x;
-        const newY = clientY - startPos.current.y;
-        commitTransformRef({ ...transformRef.current, x: newX, y: newY });
-        lastMoveEvent.current = null;
+
+    activePointersRef.current.delete(e.pointerId);
+
+    try {
+      if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+        e.currentTarget.releasePointerCapture(e.pointerId);
       }
-      setIsDragging(false);
-      setTransform({ ...transformRef.current });
-      e.currentTarget.releasePointerCapture(e.pointerId);
+    } catch {
+      // Browser may release capture during touch cancellation.
     }
+
+    if (pinchGestureRef.current) {
+      commitTransformRef(transformRef.current);
+      pinchGestureRef.current = null;
+    } else if (isDragging && lastMoveEvent.current) {
+      const { clientX, clientY } = lastMoveEvent.current;
+      const newX = clientX - startPos.current.x;
+      const newY = clientY - startPos.current.y;
+      commitTransformRef({ ...transformRef.current, x: newX, y: newY });
+      lastMoveEvent.current = null;
+    }
+
+    const remainingPointers = Array.from(activePointersRef.current.entries());
+    if (remainingPointers.length === 1) {
+      const [pointerId, point] = remainingPointers[0];
+      activeDragPointerIdRef.current = pointerId;
+      startPos.current = {
+        x: point.x - transformRef.current.x,
+        y: point.y - transformRef.current.y,
+      };
+      setTransform({ ...transformRef.current });
+      setIsDragging(true);
+      return;
+    }
+
+    activeDragPointerIdRef.current = null;
+    activePointersRef.current.clear();
+    setIsDragging(false);
+    setTransform({ ...transformRef.current });
   }, [commitTransformRef, isDragging]);
+
+  const handlePointerUp = useCallback((e: PointerEvent<HTMLDivElement>) => {
+    finishPointerInteraction(e);
+  }, [finishPointerInteraction]);
+
+  const handlePointerCancel = useCallback((e: PointerEvent<HTMLDivElement>) => {
+    finishPointerInteraction(e);
+  }, [finishPointerInteraction]);
 
   const handleWheel = useCallback((e: WheelEvent<HTMLDivElement>) => {
     if (!containerRef.current) return;
@@ -205,10 +349,7 @@ export function usePanZoom() {
     
     setTransform(prev => {
       let newScale = prev.scale * (1 + delta);
-      // Limit zoom between 0.2x and 5x of the fit scale
-      const minScale = 0.2 * fitScale;
-      const maxScale = 5 * fitScale;
-      newScale = Math.min(Math.max(minScale, newScale), maxScale);
+      newScale = clampPanZoomScale(newScale, fitScale);
 
       const scaleRatio = newScale / prev.scale;
       const newX = mouseX - (mouseX - prev.x) * scaleRatio;
@@ -312,6 +453,7 @@ export function usePanZoom() {
     handlePointerDown,
     handlePointerMove,
     handlePointerUp,
+    handlePointerCancel,
     handleWheel,
     recenter,
     zoomIn,

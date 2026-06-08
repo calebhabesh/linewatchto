@@ -31,3 +31,45 @@ export function snapTransformToDevicePixels(
 function normalizeDevicePixelRatio(devicePixelRatio: number) {
   return Number.isFinite(devicePixelRatio) && devicePixelRatio > 0 ? devicePixelRatio : 1;
 }
+
+export type PanZoomPoint = {
+  x: number;
+  y: number;
+};
+
+export function midpointBetweenPoints(a: PanZoomPoint, b: PanZoomPoint): PanZoomPoint {
+  return {
+    x: (a.x + b.x) / 2,
+    y: (a.y + b.y) / 2,
+  };
+}
+
+export function distanceBetweenPoints(a: PanZoomPoint, b: PanZoomPoint): number {
+  return Math.hypot(b.x - a.x, b.y - a.y);
+}
+
+export function mapPointFromViewportPoint(
+  transform: PanZoomTransform,
+  viewportPoint: PanZoomPoint,
+): PanZoomPoint {
+  return {
+    x: (viewportPoint.x - transform.x) / transform.scale,
+    y: (viewportPoint.y - transform.y) / transform.scale,
+  };
+}
+
+export function transformForMapPointAtViewportPoint(
+  mapPoint: PanZoomPoint,
+  viewportPoint: PanZoomPoint,
+  scale: number,
+): PanZoomTransform {
+  return {
+    x: viewportPoint.x - mapPoint.x * scale,
+    y: viewportPoint.y - mapPoint.y * scale,
+    scale,
+  };
+}
+
+export function clampPanZoomScale(scale: number, fitScale: number): number {
+  return Math.min(Math.max(0.2 * fitScale, scale), 5 * fitScale);
+}

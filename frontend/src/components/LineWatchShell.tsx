@@ -371,7 +371,7 @@ export function LineWatchShell({
       }, 0);
       return null;
     });
-  }, []);
+  }, [setCommutePathPreview, setActiveView]);
 
   const menuButtonRef = useRef<HTMLButtonElement>(null);
   const searchButtonRef = useRef<HTMLButtonElement>(null);
@@ -536,7 +536,7 @@ export function LineWatchShell({
     if (id) {
       setActiveView("map");
     }
-  }, []);
+  }, [setSelectedStationId, setSelection, setCommutePathPreview, setActiveView]);
 
   const viewForImpactKind = useCallback((kind: ImpactKind): ActiveView => {
     switch (kind) {
@@ -570,7 +570,7 @@ export function LineWatchShell({
     }
     setActiveView(viewForImpactSelection(nextSelection));
     setSelection(nextSelection);
-  }, [viewForImpactSelection]);
+  }, [setSelectedStationId, setCommutePathPreview, setSelection, setActiveView, viewForImpactSelection]);
 
   const handlePeekClosedMap = () => {
     setClosedMapPeek(true);
@@ -583,7 +583,7 @@ export function LineWatchShell({
 
   const handleToggleTheme = useCallback(() => {
     setIsDark((current) => !current);
-  }, []);
+  }, [setIsDark]);
 
   const activeFloatingPanel = !showClosedScreen ? (
     activeView === "alerts" ? (

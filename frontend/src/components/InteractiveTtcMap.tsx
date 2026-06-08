@@ -208,6 +208,7 @@ function InteractiveTtcMapComponent({
     handlePointerDown,
     handlePointerMove,
     handlePointerUp,
+    handlePointerCancel,
     handleWheel,
     recenter,
     zoomIn,
@@ -728,6 +729,7 @@ function InteractiveTtcMapComponent({
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
         onPointerLeave={handlePointerUp}
+        onPointerCancel={handlePointerCancel}
         onWheel={handleWheel}
       >
         {loadState === "loading" && (

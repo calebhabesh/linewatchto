@@ -28,7 +28,7 @@ describe("pan zoom behavior guardrails", () => {
 
   it("cancels focus animation as soon as a drag starts", () => {
     assert.match(hookSource, /const cancelAnimation = useCallback/);
-    assert.match(hookSource, /cancelAnimation\(\);\s*setIsDragging\(true\)/s);
+    assert.match(hookSource, /cancelAnimation\(\);.*setIsDragging\(true\)/s);
   });
 
   it("commits programmatic transforms to the ref synchronously", () => {
