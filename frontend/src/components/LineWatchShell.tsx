@@ -13,6 +13,7 @@ import { ReducedSpeedZonesPanel } from "./ReducedSpeedZonesPanel";
 import { PlannedClosuresPanel } from "./PlannedClosuresPanel";
 import { SavedCommutesPanel } from "./SavedCommutesPanel";
 import { ReliabilityPanel } from "./ReliabilityPanel";
+import { FloatingPanelShell } from "./FloatingPanelShell";
 import { LineLegend } from "./LineLegend";
 import { DataProvider, DashboardData } from "../app/DataContext";
 import type { ImpactKind, ImpactSelection } from "../app/linewatch-data";
@@ -582,6 +583,69 @@ export function LineWatchShell({
     setIsDark((current) => !current);
   }, []);
 
+  const activeFloatingPanel = !showClosedScreen ? (
+    activeView === "alerts" ? (
+      <FloatingPanelShell panel="alerts">
+        <ActiveAlertsPanel
+          selection={selection}
+          onSelectImpact={handleMapSelectImpact}
+          onBack={() => { setActiveView("menu"); setSelection(null); }}
+          onClose={() => { setActiveView("map"); setSelection(null); }}
+        />
+      </FloatingPanelShell>
+    ) : activeView === "delays" ? (
+      <FloatingPanelShell panel="delays">
+        <DelaysPanel
+          selection={selection}
+          onSelectImpact={handleMapSelectImpact}
+          onBack={() => { setActiveView("menu"); setSelection(null); }}
+          onClose={() => { setActiveView("map"); setSelection(null); }}
+        />
+      </FloatingPanelShell>
+    ) : activeView === "reduced-speed-zones" ? (
+      <FloatingPanelShell panel="reduced-speed-zones">
+        <ReducedSpeedZonesPanel
+          selection={selection}
+          onSelectImpact={handleMapSelectImpact}
+          onBack={() => { setActiveView("menu"); setSelection(null); }}
+          onClose={() => { setActiveView("map"); setSelection(null); }}
+        />
+      </FloatingPanelShell>
+    ) : activeView === "closures" ? (
+      <FloatingPanelShell panel="closures">
+        <PlannedClosuresPanel
+          selection={selection}
+          onSelectImpact={handleMapSelectImpact}
+          onBack={() => { setActiveView("menu"); setSelection(null); }}
+          onClose={() => { setActiveView("map"); setSelection(null); }}
+        />
+      </FloatingPanelShell>
+    ) : activeView === "commutes" ? (
+      <FloatingPanelShell panel="commutes">
+        <SavedCommutesPanel
+          accountState={accountState}
+          accountCommutes={accountCommutes}
+          setAccountCommutes={setAccountCommutes}
+          stationSummaries={stationSummaries}
+          viewedCommuteId={commutePathPreview?.id ?? null}
+          onViewPath={handleViewCommutePath}
+          onClearViewedPath={handleClearCommutePathPreview}
+          onBack={() => setActiveView("menu")}
+          onClose={() => { setActiveView("map"); setSelection(null); }}
+          onRequestSignIn={() => setAccountDialogMode("login")}
+          onRequestCreateAccount={() => setAccountDialogMode("register")}
+        />
+      </FloatingPanelShell>
+    ) : activeView === "analytics" ? (
+      <FloatingPanelShell panel="analytics">
+        <ReliabilityPanel
+          onBack={() => setActiveView("menu")}
+          onClose={() => { setActiveView("map"); setSelection(null); }}
+        />
+      </FloatingPanelShell>
+    ) : null
+  ) : null;
+
   let actionIndex = 0;
   return (
     <DataProvider data={displayData}>
@@ -949,81 +1013,8 @@ export function LineWatchShell({
       </header>
       )}
 
-      {!showClosedScreen && (
-      <>
-      {/* Floating Submenus (Alerts, Closures, Commutes, Analytics) */}
-      <div className={`absolute top-[88px] sm:top-[104px] left-4 sm:left-6 z-30 w-[min(calc(100vw-32px),680px)] flex flex-col transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] ${activeView === "alerts" ? "opacity-100 translate-x-0 pointer-events-auto" : "opacity-0 -translate-x-8 pointer-events-none"}`}>
-         <div className="max-h-[85vh] overflow-y-auto pr-1 pb-4 flex flex-col gap-4">
-           <ActiveAlertsPanel
-             selection={selection}
-             onSelectImpact={handleMapSelectImpact}
-             onBack={() => { setActiveView("menu"); setSelection(null); }}
-             onClose={() => { setActiveView("map"); setSelection(null); }}
-           />
-         </div>
-      </div>
-
-      <div className={`absolute top-[88px] sm:top-[104px] left-4 sm:left-6 z-30 w-[min(calc(100vw-32px),680px)] flex flex-col transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] ${activeView === "delays" ? "opacity-100 translate-x-0 pointer-events-auto" : "opacity-0 -translate-x-8 pointer-events-none"}`}>
-         <div className="max-h-[85vh] overflow-y-auto pr-1 pb-4 flex flex-col gap-4">
-           <DelaysPanel
-             selection={selection}
-             onSelectImpact={handleMapSelectImpact}
-             onBack={() => { setActiveView("menu"); setSelection(null); }}
-             onClose={() => { setActiveView("map"); setSelection(null); }}
-           />
-         </div>
-      </div>
-
-      <div className={`absolute top-[88px] sm:top-[104px] left-4 sm:left-6 z-30 w-[min(calc(100vw-32px),680px)] flex flex-col transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] ${activeView === "reduced-speed-zones" ? "opacity-100 translate-x-0 pointer-events-auto" : "opacity-0 -translate-x-8 pointer-events-none"}`}>
-         <div className="max-h-[85vh] overflow-y-auto pr-1 pb-4 flex flex-col gap-4">
-           <ReducedSpeedZonesPanel
-             selection={selection}
-             onSelectImpact={handleMapSelectImpact}
-             onBack={() => { setActiveView("menu"); setSelection(null); }}
-             onClose={() => { setActiveView("map"); setSelection(null); }}
-           />
-         </div>
-      </div>
-
-      <div className={`absolute top-[88px] sm:top-[104px] left-4 sm:left-6 z-30 w-[min(calc(100vw-32px),680px)] flex flex-col transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] ${activeView === "closures" ? "opacity-100 translate-x-0 pointer-events-auto" : "opacity-0 -translate-x-8 pointer-events-none"}`}>
-         <div className="max-h-[85vh] overflow-y-auto pr-1 pb-4 flex flex-col gap-4">
-           <PlannedClosuresPanel
-             selection={selection}
-             onSelectImpact={handleMapSelectImpact}
-             onBack={() => { setActiveView("menu"); setSelection(null); }}
-             onClose={() => { setActiveView("map"); setSelection(null); }}
-           />
-         </div>
-      </div>
-
-      <div className={`absolute top-[88px] sm:top-[104px] left-4 sm:left-6 z-30 w-[min(calc(100vw-32px),680px)] flex flex-col transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] ${activeView === "commutes" ? "opacity-100 translate-x-0 pointer-events-auto" : "opacity-0 -translate-x-8 pointer-events-none"}`}>
-         <div className="max-h-[85vh] overflow-y-auto pr-1 pb-4 flex flex-col gap-4">
-            <SavedCommutesPanel
-              accountState={accountState}
-              accountCommutes={accountCommutes}
-              setAccountCommutes={setAccountCommutes}
-              stationSummaries={stationSummaries}
-              viewedCommuteId={commutePathPreview?.id ?? null}
-              onViewPath={handleViewCommutePath}
-              onClearViewedPath={handleClearCommutePathPreview}
-              onBack={() => setActiveView("menu")}
-              onClose={() => { setActiveView("map"); setSelection(null); }}
-              onRequestSignIn={() => setAccountDialogMode("login")}
-              onRequestCreateAccount={() => setAccountDialogMode("register")}
-            />
-         </div>
-      </div>
-
-      <div className={`absolute top-[88px] sm:top-[104px] left-4 sm:left-6 z-30 w-[min(calc(100vw-32px),680px)] flex flex-col transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] ${activeView === "analytics" ? "opacity-100 translate-x-0 pointer-events-auto" : "opacity-0 -translate-x-8 pointer-events-none"}`}>
-         <div className="max-h-[85vh] overflow-y-auto pr-1 pb-4 flex flex-col gap-4">
-            <ReliabilityPanel
-              onBack={() => setActiveView("menu")}
-              onClose={() => { setActiveView("map"); setSelection(null); }}
-            />
-         </div>
-      </div>
-      </>
-      )}
+      {/* Floating Submenus (Alerts, Delays, Closures, Commutes, Analytics) */}
+      {activeFloatingPanel}
 
       {/* Main Viewport (TTC Map Front & Center, Borderless) */}
       <main className={`absolute inset-0 z-10 ${showClosedScreen ? "subway-closed-map-backdrop" : ""}`}>

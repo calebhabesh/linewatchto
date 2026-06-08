@@ -52,6 +52,10 @@ describe("floating menu layout", () => {
     assert.match(shellSource, /activeView === "closures"/);
     assert.match(shellSource, /activeView === "commutes"/);
     assert.match(shellSource, /activeView === "analytics"/);
+    assert.match(shellSource, /FloatingPanelShell/);
+    assert.match(shellSource, /const activeFloatingPanel = /);
+    assert.doesNotMatch(shellSource, /opacity-0 -translate-x-8 pointer-events-none/);
+    assert.match(globalCss, /\.floating-panel-shell/);
     assert.match(interactiveMapSource, /layoutResetSignal/);
     assert.doesNotMatch(shellSource, /sidebarCollapsed/);
     assert.doesNotMatch(shellSource, /lg:left-\[520px\]/);
@@ -210,7 +214,7 @@ describe("floating menu layout", () => {
     assert.match(activeAlertsSource, /return alert\.severity === "delay" \? "delay" : "suspension"/);
     assert.doesNotMatch(activeAlertsSource, /alert\.severity === "planned" \? "planned-closure" : "suspension"/);
     assert.doesNotMatch(activeAlertsSource, /useScrollSelectedImpactCard\(selection, "planned-closure"\)/);
-    assert.match(shellSource, /function viewForImpactSelection/);
+    assert.match(shellSource, /function viewForImpactSelection|const viewForImpactSelection = useCallback/);
     assert.match(shellSource, /nextSelection\.kind === "planned-closure"/);
     assert.match(shellSource, /activeAlerts\.some\(\(alert\) => alert\.id === nextSelection\.id\)/);
     assert.match(shellSource, /setActiveView\(viewForImpactSelection\(nextSelection\)\)/);
