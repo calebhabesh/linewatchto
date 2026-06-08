@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import type { KeyboardEvent } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -357,7 +357,7 @@ export function LineWatchShell({
     setActiveView("map");
   };
 
-  const handleClearCommutePathPreview = (commuteId?: string) => {
+  const handleClearCommutePathPreview = useCallback((commuteId?: string) => {
     setCommutePathPreview((current) => {
       if (!current) return null;
       if (commuteId && current.id !== commuteId) {
@@ -368,7 +368,7 @@ export function LineWatchShell({
       }, 0);
       return null;
     });
-  };
+  }, []);
 
   const menuButtonRef = useRef<HTMLButtonElement>(null);
   const searchButtonRef = useRef<HTMLButtonElement>(null);
@@ -526,16 +526,16 @@ export function LineWatchShell({
     });
   };
 
-  const handleSelectStationId = (id: string | null) => {
+  const handleSelectStationId = useCallback((id: string | null) => {
     setSelectedStationId(id);
     setSelection(null);
     setCommutePathPreview(null);
     if (id) {
       setActiveView("map");
     }
-  };
+  }, []);
 
-  function viewForImpactKind(kind: ImpactKind): ActiveView {
+  const viewForImpactKind = useCallback((kind: ImpactKind): ActiveView => {
     switch (kind) {
       case "suspension":
         return "alerts";
@@ -546,9 +546,9 @@ export function LineWatchShell({
       case "planned-closure":
         return "closures";
     }
-  }
+  }, []);
 
-  function viewForImpactSelection(nextSelection: NonNullable<ImpactSelection>): ActiveView {
+  const viewForImpactSelection = useCallback((nextSelection: NonNullable<ImpactSelection>): ActiveView => {
     if (
       nextSelection.kind === "planned-closure" &&
       activeAlerts.some((alert) => alert.id === nextSelection.id)
@@ -556,9 +556,9 @@ export function LineWatchShell({
       return "alerts";
     }
     return viewForImpactKind(nextSelection.kind);
-  }
+  }, [activeAlerts, viewForImpactKind]);
 
-  const handleMapSelectImpact = (nextSelection: ImpactSelection) => {
+  const handleMapSelectImpact = useCallback((nextSelection: ImpactSelection) => {
     setSelectedStationId(null);
     setCommutePathPreview(null);
     if (!nextSelection) {
@@ -567,7 +567,7 @@ export function LineWatchShell({
     }
     setActiveView(viewForImpactSelection(nextSelection));
     setSelection(nextSelection);
-  };
+  }, [viewForImpactSelection]);
 
   const handlePeekClosedMap = () => {
     setClosedMapPeek(true);
@@ -577,6 +577,10 @@ export function LineWatchShell({
     router.refresh();
   };
 
+
+  const handleToggleTheme = useCallback(() => {
+    setIsDark((current) => !current);
+  }, []);
 
   let actionIndex = 0;
   return (
@@ -1030,11 +1034,11 @@ export function LineWatchShell({
           onSelectImpact={handleMapSelectImpact}
           onSelectStationId={handleSelectStationId}
           isDark={isDark}
-          onToggleTheme={() => setIsDark(!isDark)}
+          onToggleTheme={handleToggleTheme}
           layoutResetSignal={0}
           reducedMotion={reducedMotion}
           commutePathPreview={commutePathPreview}
-          onClearCommutePathPreview={() => handleClearCommutePathPreview()}
+          onClearCommutePathPreview={handleClearCommutePathPreview}
         />
       </main>
 

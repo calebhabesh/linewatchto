@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo, useLayoutEffect, useRef, useCallback } from "react";
+import { memo, useEffect, useState, useMemo, useLayoutEffect, useRef, useCallback } from "react";
 import {
   composeNetworkSegmentPath,
   pathCenter,
@@ -146,7 +146,7 @@ function useRetainedMapLayers<T>(
   return retained;
 }
 
-export function InteractiveTtcMap({
+function InteractiveTtcMapComponent({
   selection,
   onSelectImpact,
   stations,
@@ -2596,3 +2596,6 @@ function shouldRenderPlannedPreviewLayer(
     (impact) => impact.kind === "planned-closure" && impact.cardId === selectedClosure.id,
   );
 }
+
+export const InteractiveTtcMap = memo(InteractiveTtcMapComponent);
+InteractiveTtcMap.displayName = "InteractiveTtcMap";
