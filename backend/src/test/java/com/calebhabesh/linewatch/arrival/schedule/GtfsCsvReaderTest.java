@@ -24,6 +24,17 @@ class GtfsCsvReaderTest {
     }
 
     @Test
+    void stripsByteOrderMarkFromFirstHeader() throws Exception {
+        String csv = "\uFEFFtrip_id,route_id,service_id\n50494471,1,1\n";
+
+        List<GtfsCsvReader.Row> rows = GtfsCsvReader.read(new StringReader(csv));
+
+        assertThat(rows).hasSize(1);
+        assertThat(rows.getFirst().value("trip_id")).isEqualTo("50494471");
+        assertThat(rows.getFirst().value("route_id")).isEqualTo("1");
+    }
+
+    @Test
     void parsesGtfsTimesBeyondMidnight() {
         assertThat(GtfsCsvReader.seconds("00:05:00")).isEqualTo(300);
         assertThat(GtfsCsvReader.seconds("24:10:00")).isEqualTo(87000);

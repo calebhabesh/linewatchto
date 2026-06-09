@@ -12,9 +12,11 @@ describe("station data adapter", () => {
   const stationById = (id) => fallbackStationSummaries.stations.find((station) => station.id === id);
 
   it("uses backend station summaries when fetch succeeds", async () => {
+    const requests = [];
     const response = await getStationSummaries({
-      fetcher: async () =>
-        new Response(
+      fetcher: async (input) => {
+        requests.push(input);
+        return new Response(
           JSON.stringify({
             generatedAt: "seeded-demo",
             stations: [
@@ -31,11 +33,60 @@ describe("station data adapter", () => {
             ],
           }),
           { status: 200, headers: { "content-type": "application/json" } }
-        ),
+        );
+      },
     });
 
     assert.equal(response.source, "backend");
     assert.equal(response.data.stations[0].id, "union");
+    assert.equal(requests[0], "/api/stations");
+  });
+
+  it("uses same-origin API paths by default for station details", async () => {
+    const requests = [];
+    const response = await getStationDetail("union", {
+      fetcher: async (input) => {
+        requests.push(input);
+        return new Response(
+          JSON.stringify({
+            id: "union",
+            name: "Union",
+            mapX: 4311,
+            mapY: 3597,
+            interchange: true,
+            lines: [],
+            access: { status: "normal", summary: "No active outages", outages: [] },
+            impacts: [],
+            arrivals: [],
+            arrivalsSource: "TTC scheduled service",
+            arrivalContext: { status: "scheduled", message: "Schedule active", scheduleMayBeDisrupted: false },
+            dataMode: "seeded-demo",
+            disclaimer: "Scheduled arrivals use TTC timetable data and are not live train predictions.",
+          }),
+          { status: 200, headers: { "content-type": "application/json" } }
+        );
+      },
+    });
+
+    assert.equal(response.source, "backend");
+    assert.equal(response.data.id, "union");
+    assert.equal(requests[0], "/api/stations/union");
+  });
+
+  it("still honors explicit non-local station API bases", async () => {
+    const requests = [];
+    await getStationSummaries({
+      apiBaseUrl: "https://api.linewatch.example",
+      fetcher: async (input) => {
+        requests.push(input);
+        return new Response(
+          JSON.stringify({ generatedAt: "seeded-demo", stations: [] }),
+          { status: 200, headers: { "content-type": "application/json" } }
+        );
+      },
+    });
+
+    assert.equal(requests[0], "https://api.linewatch.example/api/stations");
   });
 
   it("falls back to local station detail when backend fetch fails", async () => {

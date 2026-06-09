@@ -8,7 +8,11 @@ const nextConfig: NextConfig = {
   },
   allowedDevOrigins: ['192.0.2.25', '192.0.2.25:3000'],
   async rewrites() {
-    const backendUrl = process.env.LINEWATCH_BACKEND_URL || "http://localhost:8080";
+    const backendUrl =
+      process.env.LINEWATCH_BACKEND_URL ||
+      process.env.BACKEND_URL ||
+      process.env.NEXT_PUBLIC_LINEWATCH_API_BASE_URL ||
+      "http://localhost:8080";
     return [
       {
         source: '/api/:path*',

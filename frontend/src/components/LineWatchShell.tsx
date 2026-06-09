@@ -14,7 +14,12 @@ import { PlannedClosuresPanel } from "./PlannedClosuresPanel";
 import { SavedCommutesPanel } from "./SavedCommutesPanel";
 import { ReliabilityPanel } from "./ReliabilityPanel";
 import { FloatingPanelShell } from "./FloatingPanelShell";
+import { MobileBottomNav, type MobileNavKey } from "./MobileBottomNav";
+import { MobileStatusPeek } from "./MobileStatusPeek";
+import { MobileStatusSheet } from "./MobileStatusSheet";
+import { MobileMoreSheet } from "./MobileMoreSheet";
 import { LineLegend } from "./LineLegend";
+import { MobileLegend } from "./MobileLegend";
 import { DataProvider, DashboardData } from "../app/DataContext";
 import type { ImpactKind, ImpactSelection } from "../app/linewatch-data";
 import {
@@ -51,7 +56,7 @@ import {
 import { normalizeAccountEmail, validateAccountCredentials } from "../app/account-validation";
 
 
-type ActiveView = "map" | "menu" | "search" | "alerts" | "delays" | "reduced-speed-zones" | "closures" | "commutes" | "analytics";
+type ActiveView = "map" | "menu" | "search" | "status" | "alerts" | "delays" | "reduced-speed-zones" | "closures" | "commutes" | "analytics" | "more";
 type AccountDialogMode = "login" | "register" | "forgot-password" | "reset-password";
 
 const DEFAULT_DASHBOARD_REFRESH_MS = 5_000;
@@ -107,7 +112,33 @@ export function LineWatchShell({
   const [reducedMotion, setReducedMotion] = useState(false);
   const mobilePerformanceMode = useMobilePerformanceMode();
   const [activeView, setActiveView] = useState<ActiveView>("map");
+  const [previousView, setPreviousView] = useState<ActiveView>("status");
+  const [isMobile, setIsMobile] = useState(false);
+  const lastActiveViewRef = useRef<ActiveView>("map");
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(max-width: 767px)");
+    const sync = () => setIsMobile(mediaQuery.matches);
+    sync();
+    mediaQuery.addEventListener("change", sync);
+    return () => mediaQuery.removeEventListener("change", sync);
+  }, []);
+
+  useEffect(() => {
+    const prev = lastActiveViewRef.current;
+    if (prev !== activeView) {
+      const isSubmenu = (view: ActiveView) =>
+        view === "alerts" || view === "delays" || view === "reduced-speed-zones" || view === "closures";
+      
+      if (isSubmenu(activeView) && !isSubmenu(prev)) {
+        setPreviousView(prev);
+      }
+      lastActiveViewRef.current = activeView;
+    }
+  }, [activeView]);
+
   const clock = useTorontoClock(generatedAt.time);
+  const [recenterSignal, setRecenterSignal] = useState(0);
 
   const subwayOperatingState = useSubwayOperatingState();
   const [closedMapPeek, setClosedMapPeek] = useState(false);
@@ -125,6 +156,16 @@ export function LineWatchShell({
   const [selectedStationId, setSelectedStationId] = useState<string | null>(null);
   const [visibleStationResult, setVisibleStationResult] = useState<StationDataResult<StationDetail | null> | null>(null);
   const [stationLoading, setStationLoading] = useState(false);
+
+  const handleSubmenuBack = useCallback(() => {
+    setActiveView(() => {
+      if (isMobile) {
+        return previousView || "status";
+      }
+      return "menu";
+    });
+    setSelection(null);
+  }, [isMobile, previousView, setActiveView, setSelection]);
 
   const [accountState, setAccountState] = useState<AccountState>({
     source: "unavailable",
@@ -539,6 +580,44 @@ export function LineWatchShell({
     }
   }, [setSelectedStationId, setSelection, setCommutePathPreview, setActiveView]);
 
+  const mobileNavKey = useMemo<MobileNavKey>(() => {
+    if (activeView === "status" || activeView === "alerts" || activeView === "delays" || activeView === "reduced-speed-zones" || activeView === "closures") {
+      return "status";
+    }
+    if (activeView === "search") return "search";
+    if (activeView === "commutes") return "commutes";
+    if (activeView === "more" || activeView === "analytics") return "more";
+    return "map";
+  }, [activeView]);
+
+  const onMobileNavSelect = useCallback((key: MobileNavKey) => {
+    setSelection(null);
+    setSelectedStationId(null);
+    setCommutePathPreview(null);
+    switch (key) {
+      case "status":
+        setActiveView("status");
+        return;
+      case "search":
+        setActiveView("search");
+        return;
+      case "commutes":
+        setActiveView("commutes");
+        return;
+      case "more":
+        setActiveView("more");
+        return;
+      case "map":
+      default:
+        setActiveView("map");
+    }
+  }, [setActiveView, setCommutePathPreview, setSelectedStationId, setSelection]);
+
+  const handleMobileSheetClose = useCallback(() => {
+    setActiveView("map");
+    setSelection(null);
+  }, [setActiveView, setSelection]);
+
   const viewForImpactKind = useCallback((kind: ImpactKind): ActiveView => {
     switch (kind) {
       case "suspension":
@@ -587,44 +666,56 @@ export function LineWatchShell({
   }, [setIsDark]);
 
   const activeFloatingPanel = !showClosedScreen ? (
-    activeView === "alerts" ? (
-      <FloatingPanelShell panel="alerts">
+    activeView === "status" ? (
+      <FloatingPanelShell panel="status" mobileSheetLabel="Current service status">
+        <MobileStatusSheet
+          pollText={pollText}
+          dataSource={displayData.dataSource}
+          onOpenCategory={(view) => {
+            setSelection(null);
+            setActiveView(view);
+          }}
+          onClose={handleMobileSheetClose}
+        />
+      </FloatingPanelShell>
+    ) : activeView === "alerts" ? (
+      <FloatingPanelShell panel="alerts" mobileSheetLabel="Active alerts">
         <ActiveAlertsPanel
           selection={selection}
           onSelectImpact={handleMapSelectImpact}
-          onBack={() => { setActiveView("menu"); setSelection(null); }}
+          onBack={handleSubmenuBack}
           onClose={() => { setActiveView("map"); setSelection(null); }}
         />
       </FloatingPanelShell>
     ) : activeView === "delays" ? (
-      <FloatingPanelShell panel="delays">
+      <FloatingPanelShell panel="delays" mobileSheetLabel="Delays">
         <DelaysPanel
           selection={selection}
           onSelectImpact={handleMapSelectImpact}
-          onBack={() => { setActiveView("menu"); setSelection(null); }}
+          onBack={handleSubmenuBack}
           onClose={() => { setActiveView("map"); setSelection(null); }}
         />
       </FloatingPanelShell>
     ) : activeView === "reduced-speed-zones" ? (
-      <FloatingPanelShell panel="reduced-speed-zones">
+      <FloatingPanelShell panel="reduced-speed-zones" mobileSheetLabel="Reduced Speed Zones">
         <ReducedSpeedZonesPanel
           selection={selection}
           onSelectImpact={handleMapSelectImpact}
-          onBack={() => { setActiveView("menu"); setSelection(null); }}
+          onBack={handleSubmenuBack}
           onClose={() => { setActiveView("map"); setSelection(null); }}
         />
       </FloatingPanelShell>
     ) : activeView === "closures" ? (
-      <FloatingPanelShell panel="closures">
+      <FloatingPanelShell panel="closures" mobileSheetLabel="Upcoming closures">
         <PlannedClosuresPanel
           selection={selection}
           onSelectImpact={handleMapSelectImpact}
-          onBack={() => { setActiveView("menu"); setSelection(null); }}
+          onBack={handleSubmenuBack}
           onClose={() => { setActiveView("map"); setSelection(null); }}
         />
       </FloatingPanelShell>
     ) : activeView === "commutes" ? (
-      <FloatingPanelShell panel="commutes">
+      <FloatingPanelShell panel="commutes" mobileSheetLabel="Saved commutes">
         <SavedCommutesPanel
           accountState={accountState}
           accountCommutes={accountCommutes}
@@ -639,8 +730,26 @@ export function LineWatchShell({
           onRequestCreateAccount={() => setAccountDialogMode("register")}
         />
       </FloatingPanelShell>
+    ) : activeView === "more" ? (
+      <FloatingPanelShell panel="more" mobileSheetLabel="More options">
+        <MobileMoreSheet
+          accountState={accountState}
+          accountBusy={accountBusy}
+          highContrast={highContrast}
+          reducedMotion={reducedMotion}
+          ingestionHealth={ingestionHealth}
+          onClose={handleMobileSheetClose}
+          onRequestSignIn={() => { resetAccountForm(); setAccountDialogMode("login"); }}
+          onRequestCreateAccount={() => { resetAccountForm(); setAccountDialogMode("register"); }}
+          onDemoAccount={handleDemoAccount}
+          onSignOut={handleSignOut}
+          onToggleHighContrast={() => setHighContrast((current) => !current)}
+          onToggleReducedMotion={() => setReducedMotion((current) => !current)}
+          onOpenAnalytics={() => setActiveView("analytics")}
+        />
+      </FloatingPanelShell>
     ) : activeView === "analytics" ? (
-      <FloatingPanelShell panel="analytics">
+      <FloatingPanelShell panel="analytics" mobileSheetLabel="Reliability analytics">
         <ReliabilityPanel
           onBack={() => setActiveView("menu")}
           onClose={() => { setActiveView("map"); setSelection(null); }}
@@ -654,7 +763,7 @@ export function LineWatchShell({
     <DataProvider data={displayData}>
       <div className={`linewatch-shell relative w-full h-screen overflow-hidden transition-colors duration-500 ${(isDark || highContrast) ? "dark bg-[#0d0808] text-slate-100" : "bg-slate-50 text-slate-900"} ${highContrast ? "high-contrast" : ""} ${reducedMotion ? "motion-paused" : ""} ${mobilePerformanceMode ? "mobile-performance-mode" : ""}`}>
       {/* Background */}
-      <DynamicBackground reducedMotion={reducedMotion} isDark={isDark || highContrast} disabled={mobilePerformanceMode} />
+      <DynamicBackground reducedMotion={reducedMotion} isDark={isDark || highContrast} />
 
       {!showClosedScreen && (
       <header className={`absolute top-0 left-0 w-full p-4 sm:p-6 z-40 flex justify-between items-start pointer-events-none`}>
@@ -663,7 +772,7 @@ export function LineWatchShell({
           <button
             ref={menuButtonRef}
             onClick={handleToggleMenu}
-            className={`panel relative flex items-center justify-center w-14 h-14 rounded-xl border border-black/10 dark:border-white/10 shadow-lg hover:!bg-slate-100 dark:hover:!bg-[#1a1e28] hover:scale-105 active:scale-95 outline-none focus-visible:ring-4 focus-visible:ring-black/10 dark:focus-visible:ring-white/10 transition-all cursor-pointer`}
+            className={`desktop-top-chrome panel relative flex items-center justify-center w-14 h-14 rounded-xl border border-black/10 dark:border-white/10 shadow-lg hover:!bg-slate-100 dark:hover:!bg-[#1a1e28] hover:scale-105 active:scale-95 outline-none focus-visible:ring-4 focus-visible:ring-black/10 dark:focus-visible:ring-white/10 transition-all cursor-pointer`}
             aria-label={"Toggle menu"}
             aria-controls="linewatch-main-menu"
             aria-expanded={activeView === "menu"}
@@ -688,7 +797,7 @@ export function LineWatchShell({
           <button
             ref={searchButtonRef}
             onClick={handleToggleSearch}
-            className={`panel relative flex items-center justify-center w-14 h-14 rounded-xl border border-black/10 dark:border-white/10 shadow-lg hover:!bg-slate-100 dark:hover:!bg-[#1a1e28] hover:scale-105 active:scale-95 outline-none focus-visible:ring-4 focus-visible:ring-black/10 dark:focus-visible:ring-white/10 transition-all cursor-pointer ${activeView === "search" ? "ring-2 ring-blue-500/40" : ""}`}
+            className={`desktop-top-chrome panel relative flex items-center justify-center w-14 h-14 rounded-xl border border-black/10 dark:border-white/10 shadow-lg hover:!bg-slate-100 dark:hover:!bg-[#1a1e28] hover:scale-105 active:scale-95 outline-none focus-visible:ring-4 focus-visible:ring-black/10 dark:focus-visible:ring-white/10 transition-all cursor-pointer ${activeView === "search" ? "ring-2 ring-blue-500/40" : ""}`}
             aria-label="Search stations"
             aria-controls="station-search-panel"
             aria-expanded={activeView === "search"}
@@ -712,7 +821,7 @@ export function LineWatchShell({
             id="linewatch-main-menu"
             role="menu"
             onKeyDown={handleMenuKeyDown}
-            className={`panel-strong absolute top-[72px] left-0 w-[min(calc(100vw-32px),360px)] border border-black/10 dark:border-white/10 rounded-2xl shadow-2xl overflow-hidden flex flex-col origin-top-left transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] ${activeView === "menu" ? "opacity-100 scale-100 translate-y-0 pointer-events-auto" : "opacity-0 scale-90 -translate-y-4 pointer-events-none"}`}
+            className={`desktop-top-chrome panel-strong absolute top-[72px] left-0 w-[min(calc(100vw-32px),360px)] border border-black/10 dark:border-white/10 rounded-2xl shadow-2xl overflow-hidden flex flex-col origin-top-left transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] ${activeView === "menu" ? "opacity-100 scale-100 translate-y-0 pointer-events-auto" : "opacity-0 scale-90 -translate-y-4 pointer-events-none"}`}
             aria-hidden={activeView !== "menu"}
           >
                {/* Branding */}
@@ -1030,10 +1139,12 @@ export function LineWatchShell({
           isDark={isDark}
           onToggleTheme={handleToggleTheme}
           layoutResetSignal={0}
+          recenterSignal={recenterSignal}
           reducedMotion={reducedMotion}
           commutePathPreview={commutePathPreview}
           onClearCommutePathPreview={handleClearCommutePathPreview}
         />
+        {!showClosedScreen && <MobileLegend />}
       </main>
 
       {!showClosedScreen && selectedStationId && (
@@ -1065,27 +1176,59 @@ export function LineWatchShell({
 
       {/* Fixed borderless legend at the bottom right */}
       {!showClosedScreen && (
-      <aside className="fixed bottom-6 right-6 z-20 pointer-events-none">
-        <LineLegend
-          onAlertClick={() => {
-            setActiveView("alerts");
-            setSelection(null);
-          }}
-          onDelayClick={() => {
-            setActiveView("delays");
-            setSelection(null);
-          }}
-          onReducedSpeedZoneClick={() => {
-            setActiveView("reduced-speed-zones");
-            setSelection(null);
-          }}
-          onClosureClick={() => {
-            setActiveView("closures");
-            setSelection(null);
-          }}
-        />
-      </aside>
+      <>
+        <aside className="desktop-map-legend fixed bottom-6 right-6 z-20 pointer-events-none">
+          <LineLegend
+            onAlertClick={() => {
+              setActiveView("alerts");
+              setSelection(null);
+            }}
+            onDelayClick={() => {
+              setActiveView("delays");
+              setSelection(null);
+            }}
+            onReducedSpeedZoneClick={() => {
+              setActiveView("reduced-speed-zones");
+              setSelection(null);
+            }}
+            onClosureClick={() => {
+              setActiveView("closures");
+              setSelection(null);
+            }}
+          />
+        </aside>
+      </>
       )}
+
+      {!showClosedScreen && activeView === "map" && !selectedStationId && !accountDialogMode && !commutePathPreview ? (
+        <MobileStatusPeek
+          lineStatuses={lineStatuses}
+          activeAlertCount={activeAlerts.length}
+          delayCount={delays.length}
+          reducedSpeedZoneCount={reducedSpeedZones.length}
+          plannedClosureCount={plannedClosures.length}
+          pollText={pollText}
+          dataSource={displayData.dataSource}
+          onOpenStatus={() => setActiveView("status")}
+          onOpenCategory={(view) => {
+            setSelection(null);
+            setActiveView(view);
+          }}
+          onRecenter={() => setRecenterSignal((prev) => prev + 1)}
+        />
+      ) : null}
+
+      {!showClosedScreen && !selectedStationId && !accountDialogMode ? (
+        /* aria-label="Primary mobile navigation" */
+        <MobileBottomNav
+          activeKey={mobileNavKey}
+          alertCount={activeAlerts.length}
+          delayCount={delays.length}
+          reducedSpeedZoneCount={reducedSpeedZones.length}
+          commuteAffectedCount={commuteAffectedCount}
+          onSelect={onMobileNavSelect}
+        />
+      ) : null}
       {accountDialogMode ? (
         <div className="account-dialog-backdrop" role="presentation" onMouseDown={() => setAccountDialogMode(null)}>
           <section

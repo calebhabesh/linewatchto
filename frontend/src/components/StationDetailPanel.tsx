@@ -365,7 +365,8 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
             }
 
             const arrivalsDisrupted = station.arrivalContext ? station.arrivalContext.scheduleMayBeDisrupted : false;
-            const arrivalGroups = groupStationArrivals(station.arrivals, station.lines, { stationId: station.id });
+            const hasUnavailableArrivals = station.arrivals.some((arrival) => arrival.status === "unavailable");
+            const arrivalGroups = hasUnavailableArrivals ? [] : groupStationArrivals(station.arrivals, station.lines, { stationId: station.id });
             const arrivalDisclaimer = formatArrivalDisclaimer(station.arrivals, station.disclaimer);
             const arrivalSectionClassName = [
               "rounded-lg border p-3 transition-colors",
@@ -424,7 +425,11 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
                   </div>
                 )}
                 <div className="mt-3 flex flex-col gap-3">
-                  {arrivalGroups.map((group, groupIndex) => {
+                  {hasUnavailableArrivals ? (
+                    <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">
+                      Arrival Data Unavailable
+                    </p>
+                  ) : arrivalGroups.map((group, groupIndex) => {
                     const lineBadgeColor = group.line?.color ?? "#cbd5e1";
                     const showLineDivider = groupIndex > 0 && arrivalGroups[groupIndex - 1]?.lineId !== group.lineId;
 
@@ -454,48 +459,49 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
                               {group.directionLabel}
                             </strong>
                           </div>
-                          <div className="mt-3 grid grid-cols-3 gap-2">
-                            {group.arrivals.map((arrival, index) => {
-                              const due = isArrivalDue(arrival);
-                              const clockTime = formatArrivalClockTime(arrival.predictedAt);
-                              const arrivalTileClassName = [
-                                "flex min-h-[66px] flex-col items-center justify-center rounded-md border px-2 py-2 text-center transition-colors",
-                                due
-                                  ? "border-red-400/80 bg-red-900/85 text-red-50 shadow-[0_0_0_1px_rgba(248,113,113,0.25)]"
-                                  : "border-black/10 bg-slate-950/[0.03] text-slate-900 dark:border-white/10 dark:bg-[#0f1117] dark:text-white",
-                              ].join(" ");
+                          {group.arrivals.length === 1 && group.arrivals[0].label.toLowerCase() === "no scheduled service" ? (
+                            <p className="mt-2 text-center text-xs font-semibold text-slate-500 dark:text-slate-400">
+                              No Scheduled Service
+                            </p>
+                          ) : (
+                            <div className="mt-3 grid grid-cols-3 gap-2">
+                              {group.arrivals.map((arrival, index) => {
+                                const due = isArrivalDue(arrival);
+                                const clockTime = formatArrivalClockTime(arrival.predictedAt);
+                                const arrivalTileClassName = [
+                                  "flex min-h-[66px] flex-col items-center justify-center rounded-md border px-2 py-2 text-center transition-colors",
+                                  due
+                                    ? "border-red-400/80 bg-red-900/85 text-red-50 shadow-[0_0_0_1px_rgba(248,113,113,0.25)]"
+                                    : "border-black/10 bg-slate-950/[0.03] text-slate-900 dark:border-white/10 dark:bg-[#0f1117] dark:text-white",
+                                ].join(" ");
 
-                              return (
-                                <div
-                                  key={`${arrival.lineId}-${arrival.direction}-${arrival.predictedAt ?? arrival.label}-${index}`}
-                                  data-arrival-due={due ? "true" : "false"}
-                                  className={arrivalTileClassName}
-                                >
-                                  <strong className="text-lg font-black leading-none">
-                                    {formatArrivalTileLabel(arrival)}
-                                  </strong>
-                                  {clockTime && (
-                                    <span className={due
-                                      ? "mt-1 text-xs font-semibold text-red-100/80"
-                                      : "mt-1 text-xs font-semibold text-slate-500 dark:text-slate-400"}
-                                    >
-                                      {clockTime}
-                                    </span>
-                                  )}
-                                </div>
-                              );
-                            })}
-                          </div>
+                                return (
+                                  <div
+                                    key={`${arrival.lineId}-${arrival.direction}-${arrival.predictedAt ?? arrival.label}-${index}`}
+                                    data-arrival-due={due ? "true" : "false"}
+                                    className={arrivalTileClassName}
+                                  >
+                                    <strong className="text-lg font-black leading-none">
+                                      {formatArrivalTileLabel(arrival)}
+                                    </strong>
+                                    {clockTime && (
+                                      <span className={due
+                                        ? "mt-1 text-xs font-semibold text-red-100/80"
+                                        : "mt-1 text-xs font-semibold text-slate-500 dark:text-slate-400"}
+                                      >
+                                        {clockTime}
+                                      </span>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
                         </div>
                       </Fragment>
                     );
                   })}
                 </div>
-                {station.arrivals.some((arrival) => arrival.status === "unavailable") && (
-                  <p className="mt-2 text-[11px] text-red-500 font-semibold dark:text-red-400">
-                    Arrival predictions are currently unavailable.
-                  </p>
-                )}
                 <p className="mt-2 text-[11px] text-slate-500">{arrivalDisclaimer}</p>
 	              </section>
 	            );

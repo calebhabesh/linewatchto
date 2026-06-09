@@ -77,6 +77,20 @@ class ScheduledArrivalProviderTest {
     }
 
     @Test
+    void returnsUnavailableRowsWhenActiveImportDoesNotCoverCurrentServiceDates() {
+        when(repository.findActiveImportId()).thenReturn(Optional.of(7L));
+        when(repository.findActiveServiceIds(7L, LocalDate.parse("2026-06-04"))).thenReturn(List.of());
+        when(repository.findActiveServiceIds(7L, LocalDate.parse("2026-06-03"))).thenReturn(List.of());
+
+        List<ArrivalPrediction> arrivals = provider.arrivalsFor("union", List.of(line1));
+
+        assertThat(arrivals).hasSize(1);
+        assertThat(arrivals.getFirst().status()).isEqualTo("unavailable");
+        assertThat(arrivals.getFirst().source()).isEqualTo("TTC scheduled service unavailable");
+        assertThat(arrivals.getFirst().label()).isEqualTo("Unavailable");
+    }
+
+    @Test
     void returnsNoScheduledServiceRowWhenNoTripsExistInHorizon() {
         when(repository.findActiveImportId()).thenReturn(Optional.of(7L));
         when(repository.findActiveServiceIds(7L, LocalDate.parse("2026-06-04"))).thenReturn(List.of("WKD"));

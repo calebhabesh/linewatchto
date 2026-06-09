@@ -45,6 +45,13 @@ describe("station detail panel layout", () => {
     assert.match(panelSource, /formatArrivalClockTime/);
   });
 
+  it("renders unavailable arrival data as muted section text instead of arrival cards", () => {
+    assert.match(panelSource, /hasUnavailableArrivals/);
+    assert.match(panelSource, /Arrival Data Unavailable/);
+    assert.match(panelSource, /hasUnavailableArrivals\s*\?\s*\[\]\s*:\s*groupStationArrivals/);
+    assert.doesNotMatch(panelSource, /Arrival predictions are currently unavailable\./);
+  });
+
   it("separates transfer-station arrival groups only when the transit line changes", () => {
     assert.match(panelSource, /station-arrival-line-divider/);
     assert.match(panelSource, /data-arrival-line-divider/);

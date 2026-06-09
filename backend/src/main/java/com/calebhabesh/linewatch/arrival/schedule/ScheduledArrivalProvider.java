@@ -53,6 +53,13 @@ public class ScheduledArrivalProvider implements ArrivalProvider {
         List<String> lineIds = lines.stream().map(StationResponses.StationLineResponse::id).collect(Collectors.toList());
 
         List<String> activeServiceIdsToday = repository.findActiveServiceIds(importId, today);
+        List<String> activeServiceIdsYesterday = repository.findActiveServiceIds(importId, yesterday);
+        if (activeServiceIdsToday.isEmpty() && activeServiceIdsYesterday.isEmpty()) {
+            return lines.stream()
+                .map(line -> ArrivalPrediction.unavailable(line.id(), "Scheduled service"))
+                .collect(Collectors.toList());
+        }
+
         List<GtfsScheduleReadRepository.ScheduledDeparture> depsToday = repository.findUpcomingDepartures(
             importId,
             stationId,
@@ -66,7 +73,6 @@ public class ScheduledArrivalProvider implements ArrivalProvider {
             .map(d -> d.withServiceDate(today))
             .collect(Collectors.toList());
 
-        List<String> activeServiceIdsYesterday = repository.findActiveServiceIds(importId, yesterday);
         List<GtfsScheduleReadRepository.ScheduledDeparture> depsYesterday = repository.findUpcomingDepartures(
             importId,
             stationId,

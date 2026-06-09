@@ -5,11 +5,11 @@ import Image from "next/image";
 import {
   AlertTriangle,
   Bus,
-  ChevronRight,
   Info,
   Map as MapIcon,
   Menu,
   MousePointer2,
+  MoreHorizontal,
   Search,
   Sun,
   X,
@@ -111,8 +111,17 @@ function OverlayAssetPreview({
 
 export function SiteGuideDropdown() {
   const [isOpen, setIsOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const panelId = useId();
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(max-width: 767px)");
+    const sync = () => setIsMobile(mediaQuery.matches);
+    sync();
+    mediaQuery.addEventListener("change", sync);
+    return () => mediaQuery.removeEventListener("change", sync);
+  }, []);
 
   useEffect(() => {
     function handlePointerDown(event: MouseEvent) {
@@ -199,7 +208,15 @@ export function SiteGuideDropdown() {
             <GuideSection icon={<MousePointer2 size={15} />} title="How to Use The Map">
               <ul className="site-guide-action-list">
                 <GuideActionRow icon={<MousePointer2 size={14} />} label="Drag The Map" text="Pan to navigate the network. Scroll or pinch to zoom." />
-                <GuideActionRow icon={<ChevronRight size={14} />} label="Click a Colored Overlay" text="Tap any line overlay to view its active alert or closure card." />
+                <GuideActionRow
+                  icon={
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5">
+                      <path d="M7 7L5.5 5.5M15 7L16.5 5.5M5.5 16.5L7 15M11 5L11 3M5 11L3 11M17.1603 16.9887L21.0519 15.4659C21.4758 15.3001 21.4756 14.7003 21.0517 14.5346L11.6992 10.8799C11.2933 10.7213 10.8929 11.1217 11.0515 11.5276L14.7062 20.8801C14.8719 21.304 15.4717 21.3042 15.6375 20.8803L17.1603 16.9887Z" />
+                    </svg>
+                  }
+                  label="Click a Colored Overlay"
+                  text="Tap any line overlay to view its active alert or closure card."
+                />
                 <GuideActionRow icon={<MapIcon size={14} />} label="Click a Station" text="Tap a station dot to view accessibility status, alerts, and arrivals." />
                 <GuideActionRow icon={<Search size={14} />} label="Search Stations" text="Use the search icon on the left to quickly jump to any station." />
               </ul>
@@ -273,19 +290,29 @@ export function SiteGuideDropdown() {
 
             <GuideSection icon={<Menu size={15} />} title="Other Controls">
               <ul className="site-guide-action-list">
-                <GuideActionRow icon={<Menu size={14} />} label="Main Menu" text="Access lists, commutes, analytics, contrast, and motion controls." />
-                <GuideActionRow
-                  icon={
-                    <svg viewBox="0 0 32 32" fill="currentColor" className="w-3.5 h-3.5">
-                      <rect x="10" y="18" width="8" height="2" />
-                      <rect x="10" y="13" width="12" height="2" />
-                      <rect x="10" y="23" width="5" height="2" />
-                      <path d="M25,5H22V4a2,2,0,0,0-2-2H12a2,2,0,0,0-2,2V5H7A2,2,0,0,0,5,7V28a2,2,0,0,0,2,2H25a2,2,0,0,0,2-2V7A2,2,0,0,0,25,5ZM12,4h8V8H12ZM25,28H7V7h3v3H22V7h3Z" />
-                    </svg>
-                  }
-                  label="Ingested TTC Alerts"
-                  text="View the raw alert feed used to inspect backend ingestion."
-                />
+                {isMobile ? (
+                  <GuideActionRow
+                    icon={<MoreHorizontal size={14} />}
+                    label="More Options"
+                    text="Access high contrast, reduced motion, account settings, and reliability analytics."
+                  />
+                ) : (
+                  <>
+                    <GuideActionRow icon={<Menu size={14} />} label="Main Menu" text="Access lists, commutes, analytics, contrast, and motion controls." />
+                    <GuideActionRow
+                      icon={
+                        <svg viewBox="0 0 32 32" fill="currentColor" className="w-3.5 h-3.5">
+                          <rect x="10" y="18" width="8" height="2" />
+                          <rect x="10" y="13" width="12" height="2" />
+                          <rect x="10" y="23" width="5" height="2" />
+                          <path d="M25,5H22V4a2,2,0,0,0-2-2H12a2,2,0,0,0-2,2V5H7A2,2,0,0,0,5,7V28a2,2,0,0,0,2,2H25a2,2,0,0,0,2-2V7A2,2,0,0,0,25,5ZM12,4h8V8H12ZM25,28H7V7h3v3H22V7h3Z" />
+                        </svg>
+                      }
+                      label="Ingested TTC Alerts"
+                      text="View the raw alert feed used to inspect backend ingestion."
+                    />
+                  </>
+                )}
                 <GuideActionRow icon={<Sun size={14} />} label="Sun / Moon" text="Toggle light and dark map themes." />
                 <GuideActionRow icon={<Bus size={14} />} label="Shuttle Badge" text="Blue badge indicates replacement bus service is active." />
               </ul>

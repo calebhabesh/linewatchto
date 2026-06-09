@@ -10,6 +10,7 @@ const plannedClosuresSource = readFileSync(new URL("../src/components/PlannedClo
 const savedCommutesSource = readFileSync(new URL("../src/components/SavedCommutesPanel.tsx", import.meta.url), "utf8");
 const reliabilitySource = readFileSync(new URL("../src/components/ReliabilityPanel.tsx", import.meta.url), "utf8");
 const globalCss = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
+const packageJson = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
 
 function alphaForVariable(selector, variableName) {
   const blockMatch = globalCss.match(new RegExp(`${selector}\\s*\\{(?<body>[^}]+)\\}`));
@@ -31,11 +32,25 @@ describe("frosted glass rendering", () => {
     assert.match(globalCss, /\.linewatch-shell\.dark\s*\{/);
   });
 
-  it("keeps the dynamic background with a CSS fallback layer", () => {
+  it("keeps the React Bits DotGrid background with a CSS fallback layer", () => {
     assert.match(dynamicBackgroundSource, /linewatch-backdrop/);
     assert.match(globalCss, /\.linewatch-backdrop\s*\{/);
-    assert.match(dynamicBackgroundSource, /import\("three"\)/);
-    assert.match(dynamicBackgroundSource, /vanta/);
+    assert.match(dynamicBackgroundSource, /DotGrid/);
+    assert.match(dynamicBackgroundSource, /dotSize=\{2\}/);
+    assert.match(dynamicBackgroundSource, /gap=\{38\}/);
+    assert.match(dynamicBackgroundSource, /baseColor="#1b2a36"/);
+    assert.match(dynamicBackgroundSource, /activeColor="#9E2F2F"/);
+    assert.match(dynamicBackgroundSource, /proximity=\{100\}/);
+    assert.match(dynamicBackgroundSource, /shockRadius=\{90\}/);
+    assert.match(dynamicBackgroundSource, /shockStrength=\{1\}/);
+    assert.match(dynamicBackgroundSource, /resistance=\{1900\}/);
+    assert.match(dynamicBackgroundSource, /returnDuration=\{1\.2\}/);
+    assert.doesNotMatch(dynamicBackgroundSource, /import\("three"\)/);
+    assert.doesNotMatch(dynamicBackgroundSource, /vanta/i);
+    assert.equal(packageJson.dependencies.gsap, "^3.13.0");
+    assert.equal(packageJson.devDependencies.vanta, undefined);
+    assert.equal(packageJson.devDependencies.three, undefined);
+    assert.equal(packageJson.devDependencies["@types/three"], undefined);
   });
 
   it("does not use live backdrop blur on interactive panels", () => {

@@ -28,7 +28,7 @@ describe("pan zoom behavior guardrails", () => {
 
   it("cancels focus animation as soon as a drag starts", () => {
     assert.match(hookSource, /const cancelAnimation = useCallback/);
-    assert.match(hookSource, /cancelAnimation\(\);.*setIsDragging\(true\)/s);
+    assert.match(hookSource, /cancelAnimation\(\);.*startGestureInteraction\(e\.pointerType\)/s);
   });
 
   it("commits programmatic transforms to the ref synchronously", () => {
@@ -38,12 +38,23 @@ describe("pan zoom behavior guardrails", () => {
     assert.match(hookSource, /setTransform\(snapped\)/);
   });
 
-  it("dragging disables transform transitions before animation state is considered", () => {
-    assert.match(mapSource, /isDragging\s*\?\s*"none"\s*:\s*isAnimating/s);
+  it("animates recenter without an immediate React transform render", () => {
+    assert.match(hookSource, /const animateTransformTo = useCallback/);
+    assert.match(hookSource, /setMapTransition\(reducedMotion \? "none" : "transform 0\.8s cubic-bezier\(0\.25, 1, 0\.5, 1\)"\)/);
+    assert.match(hookSource, /programmaticAnimationFrameRef\.current = requestAnimationFrame/);
+    assert.match(hookSource, /writeMapTransform\(snapped\)/);
+    assert.match(hookSource, /window\.setTimeout\(\(\) => \{[\s\S]*setTransform\(\{ \.\.\.transformRef\.current \}\)/);
+    assert.doesNotMatch(hookSource, /commitTransform\(\{ x, y, scale \}\);\s*setFitScale\(scale\);\s*startAnimation\(\);/);
   });
 
-  it("only promotes the map transform layer while it is actively moving", () => {
-    assert.match(mapSource, /willChange:\s*isDragging\s*\|\|\s*isAnimating\s*\?\s*"transform"\s*:\s*"auto"/);
+  it("dragging disables transform transitions without React animation state", () => {
+    assert.match(mapSource, /isDragging\s*\?\s*"none"\s*:\s*"transform 0\.1s ease-out"/s);
+    assert.doesNotMatch(mapSource, /isAnimating/);
+  });
+
+  it("does not toggle compositor promotion on the huge SVG map layer during gestures", () => {
+    assert.doesNotMatch(mapSource, /willChange:\s*isDragging\s*\|\|\s*isAnimating\s*\?\s*"transform"\s*:\s*"auto"/);
+    assert.doesNotMatch(mapSource, /willChange:\s*"transform"/);
   });
 
   it("keeps inline SVG map and overlay edges on geometric precision rendering", () => {
@@ -85,5 +96,11 @@ describe("pan zoom behavior guardrails", () => {
     assert.match(hookSource, /handlePointerCancel/);
     assert.match(hookSource, /distanceBetweenPoints/);
     assert.match(hookSource, /transformForMapPointAtViewportPoint/);
+  });
+
+  it("keeps touch gestures on refs instead of React drag state during pointer moves", () => {
+    assert.match(hookSource, /const isGestureActiveRef = useRef\(false\)/);
+    assert.match(hookSource, /if \(!isGestureActiveRef\.current\) return/);
+    assert.doesNotMatch(hookSource, /if \(!isDragging\) return/);
   });
 });

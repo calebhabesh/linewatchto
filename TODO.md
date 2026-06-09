@@ -12,10 +12,15 @@
 - [x] Overlapping marker/legend does not show entry for active alerts and incorrect highlight for cards based on what submenu its in
 - [x] Info Widget for guide on how to use/visualize web app, maybe fully integrated and static on the site like the cardinal direction
 - [ ] Consider adding directionality indicator for single station alerts
-- [ ] Ask Yonas for login credentials
+- [ ] Updated date is still sometimes weird.
+- [ ] Grey bars on top of submenus is misleading as movable menus
 
 ## Mobile Web Overhaul
-- [ ] Huge UI edit/review for the mobile web app version (which is what most people will be using) we will be using PWA, so people can pin the web app as an app to their home screen
+- [ ] Use circular ui elements (bottom menu shape etc.)
+- [ ] Make sure everything fits in the web page view
+- [ ] Can't login, backend not available for station data.
+- [ ] PWA
+- [ ] GTFS Arrivals must be updated
 - [ ] Notifications on for the site, so that they can see when there are alerts on their saved commute routes. Active alerts are the worst, but reduced speed zones shouldn't be that crazy
 
 ## Future Additions
@@ -27,3 +32,4 @@
 - [ ] OAuth
 - [ ] GO and Metrolinx GTFS RT integration
 - [ ] Mobile friendly (React Native Apps Maybe?) / Going PWA here would be good
+- [ ] Alert History for all stops

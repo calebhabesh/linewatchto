@@ -155,6 +155,7 @@ function InteractiveTtcMapComponent({
   isDark,
   onToggleTheme,
   layoutResetSignal,
+  recenterSignal,
   reducedMotion,
   commutePathPreview,
   onClearCommutePathPreview,
@@ -167,6 +168,7 @@ function InteractiveTtcMapComponent({
   isDark: boolean;
   onToggleTheme: () => void;
   layoutResetSignal?: number;
+  recenterSignal?: number;
   reducedMotion: boolean;
   commutePathPreview?: AccountCommutePathPreview | null;
   onClearCommutePathPreview?: () => void;
@@ -202,12 +204,12 @@ function InteractiveTtcMapComponent({
     transform,
     relativeScale,
     isDragging,
-    isAnimating,
     containerRef,
     mapRef,
     handlePointerDown,
     handlePointerMove,
     handlePointerUp,
+    handlePointerLeave,
     handlePointerCancel,
     handleWheel,
     recenter,
@@ -215,7 +217,7 @@ function InteractiveTtcMapComponent({
     zoomOut,
     zoomToScale,
     zoomToPoint,
-  } = usePanZoom();
+  } = usePanZoom({ reducedMotion });
 
   // Load SVG
   useEffect(() => {
@@ -283,6 +285,11 @@ function InteractiveTtcMapComponent({
     const resetTimer = window.setTimeout(() => recenter(), 320);
     return () => window.clearTimeout(resetTimer);
   }, [layoutResetSignal, loadState, recenter]);
+
+  useEffect(() => {
+    if (!recenterSignal || loadState !== "ready") return;
+    recenter();
+  }, [recenterSignal, loadState, recenter]);
 
   const selectedSegmentIds = useMemo(() => {
     if (!selection) return [];
@@ -654,11 +661,11 @@ function InteractiveTtcMapComponent({
   return (
     <div ref={mapRootRef} className="relative w-full h-full flex flex-col overflow-hidden bg-transparent">
       {/* Top right Theme toggle (styled like hamburger) and poll chip */}
-      <div className="absolute top-4 sm:top-6 right-4 sm:right-6 z-20 flex items-center gap-2 pointer-events-auto">
+      <div className="map-utility-cluster absolute top-4 sm:top-6 right-4 sm:right-6 z-20 flex items-center gap-2 pointer-events-auto">
         <LogsDropdown />
         <button
           onClick={onToggleTheme}
-          className="panel flex items-center justify-center w-10 sm:w-14 h-10 sm:h-14 rounded-xl border border-black/10 dark:border-white/10 shadow-lg hover:!bg-slate-100 dark:hover:!bg-[#1a1e28] hover:scale-105 active:scale-95 outline-none focus-visible:ring-4 focus-visible:ring-black/10 dark:focus-visible:ring-white/10 transition-all cursor-pointer bg-white dark:bg-[#0a0c10]"
+          className="theme-toggle-btn panel flex items-center justify-center w-10 sm:w-14 h-10 sm:h-14 rounded-xl border border-black/10 dark:border-white/10 shadow-lg hover:!bg-slate-100 dark:hover:!bg-[#1a1e28] hover:scale-105 active:scale-95 outline-none focus-visible:ring-4 focus-visible:ring-black/10 dark:focus-visible:ring-white/10 transition-all cursor-pointer bg-white dark:bg-[#0a0c10]"
           aria-label="Toggle theme"
         >
           {isDark ? <Sun size={24} className="text-slate-800 dark:text-white" /> : <Moon size={24} className="text-slate-800 dark:text-white" />}
@@ -669,54 +676,59 @@ function InteractiveTtcMapComponent({
       {/* Top center map controls */}
       {/* Note: ml-2 sm:ml-3 is added to visually center the mass of the controls, since the left side has 2 buttons and is visually heavier than the right side */}
       <div className="map-control-rail absolute top-14 sm:top-[92px] left-1/2 -translate-x-1/2 z-30 flex flex-row items-center justify-center gap-1 sm:gap-2 pointer-events-auto">
-        <button
-          onClick={recenter}
-          className="map-control-button group"
-          title="Center view"
-          aria-label="Center map view"
-        >
-          <Locate size={20} className="group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors" />
-          <span className="text-[10px] font-black uppercase tracking-widest group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">Center</span>
-        </button>
-
-        <div className="map-control-divider" aria-hidden="true" />
-
-        <button
-          onClick={zoomOut}
-          className="map-control-button group"
-          title="Zoom out"
-          aria-label="Zoom out"
-        >
-          <ZoomOut size={20} className="group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors" />
-          <span className="text-[10px] font-black uppercase tracking-widest group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">Out</span>
-        </button>
-
-        <div className="map-control-slider flex flex-col items-center justify-center gap-1.5 mx-0.5 sm:mx-1">
-          <input
-            type="range"
-            min="0.2"
-            max="5"
-            step="0.05"
-            value={relativeScale}
-            onChange={(e) => zoomToScale(parseFloat(e.target.value))}
-            className="w-16 md:w-20 accent-slate-900 dark:accent-white hover:accent-blue-600 dark:hover:accent-blue-400 cursor-pointer h-1.5 rounded-lg appearance-none bg-slate-900/20 dark:bg-white/30 transition-all outline-none"
-            title="Zoom level"
-            aria-label="Zoom level slider"
-          />
-          <span className="text-[10px] font-mono font-black select-none tracking-wider">
-            {Math.round(relativeScale * 100)}%
-          </span>
+        <div className="map-control-recenter-container">
+          <button
+            onClick={recenter}
+            className="map-control-button group"
+            title="Center view"
+            aria-label="Center map view"
+          >
+            <Locate size={20} className="group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors" />
+            <span className="map-control-recenter-desktop-label text-[10px] font-black uppercase tracking-widest group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">Center</span>
+          </button>
+          <span className="map-control-recenter-mobile-label">Center Map</span>
         </div>
 
-        <button
-          onClick={zoomIn}
-          className="map-control-button group"
-          title="Zoom in"
-          aria-label="Zoom in"
-        >
-          <ZoomIn size={20} className="group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors" />
-          <span className="text-[10px] font-black uppercase tracking-widest group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">In</span>
-        </button>
+        <div className="map-control-zoom-group">
+          <div className="map-control-divider" aria-hidden="true" />
+
+          <button
+            onClick={zoomOut}
+            className="map-control-button group"
+            title="Zoom out"
+            aria-label="Zoom out"
+          >
+            <ZoomOut size={20} className="group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors" />
+            <span className="text-[10px] font-black uppercase tracking-widest group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">Out</span>
+          </button>
+
+          <div className="map-control-slider flex flex-col items-center justify-center gap-1.5 mx-0.5 sm:mx-1">
+            <input
+              type="range"
+              min="0.2"
+              max="5"
+              step="0.05"
+              value={relativeScale}
+              onChange={(e) => zoomToScale(parseFloat(e.target.value))}
+              className="w-16 md:w-20 accent-slate-900 dark:accent-white hover:accent-blue-600 dark:hover:accent-blue-400 cursor-pointer h-1.5 rounded-lg appearance-none bg-slate-900/20 dark:bg-white/30 transition-all outline-none"
+              title="Zoom level"
+              aria-label="Zoom level slider"
+            />
+            <span className="text-[10px] font-mono font-black select-none tracking-wider">
+              {Math.round(relativeScale * 100)}%
+            </span>
+          </div>
+
+          <button
+            onClick={zoomIn}
+            className="map-control-button group"
+            title="Zoom in"
+            aria-label="Zoom in"
+          >
+            <ZoomIn size={20} className="group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors" />
+            <span className="text-[10px] font-black uppercase tracking-widest group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">In</span>
+          </button>
+        </div>
       </div>
 
       {/* Map Viewport */}
@@ -728,7 +740,7 @@ function InteractiveTtcMapComponent({
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
-        onPointerLeave={handlePointerUp}
+        onPointerLeave={handlePointerLeave}
         onPointerCancel={handlePointerCancel}
         onWheel={handleWheel}
       >
@@ -754,10 +766,7 @@ function InteractiveTtcMapComponent({
                 ? "none"
                 : isDragging
                   ? "none"
-                  : isAnimating
-                    ? "transform 0.8s cubic-bezier(0.25, 1, 0.5, 1)"
-                    : "transform 0.1s ease-out",
-              willChange: isDragging || isAnimating ? "transform" : "auto",
+                  : "transform 0.1s ease-out",
             }}
           >
             <style>

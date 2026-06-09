@@ -4,6 +4,7 @@ import { describe, it } from "node:test";
 
 const shellSource = readFileSync(new URL("../src/components/LineWatchShell.tsx", import.meta.url), "utf8");
 const mapSource = readFileSync(new URL("../src/components/InteractiveTtcMap.tsx", import.meta.url), "utf8");
+const panZoomSource = readFileSync(new URL("../src/hooks/usePanZoom.ts", import.meta.url), "utf8");
 const backgroundSource = readFileSync(new URL("../src/components/DynamicBackground.tsx", import.meta.url), "utf8");
 const globalCss = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
 
@@ -39,13 +40,13 @@ describe("mobile performance guardrails", () => {
     assert.doesNotMatch(shellSource, /opacity-0 -translate-x-8 pointer-events-none/);
   });
 
-  it("disables the animated background in mobile performance mode", () => {
+  it("keeps the background enabled on mobile performance mode (due to lightweight canvas implementation)", () => {
     assert.match(shellSource, /useMobilePerformanceMode/);
     assert.match(shellSource, /mobilePerformanceMode/);
     assert.match(shellSource, /mobile-performance-mode/);
     assert.match(backgroundSource, /disabled/);
     assert.match(backgroundSource, /if \(reducedMotion \|\| disabled\)/);
-    assert.match(shellSource, /<DynamicBackground[^>]*disabled=\{mobilePerformanceMode\}/s);
+    assert.doesNotMatch(shellSource, /<DynamicBackground[^>]*disabled=\{mobilePerformanceMode\}/s);
   });
 
   it("has mobile-only paint simplification rules for the SVG map", () => {
@@ -66,5 +67,11 @@ describe("mobile performance guardrails", () => {
   it("tracks two active pointers for custom pinch zoom", () => {
     assert.match(mapSource, /onPointerCancel=\{handlePointerCancel\}/);
     assert.match(mapSource, /touch-none/);
+  });
+
+  it("does not end captured touch gestures on pointer leave", () => {
+    assert.match(mapSource, /onPointerLeave=\{handlePointerLeave\}/);
+    assert.match(panZoomSource, /const handlePointerLeave = useCallback/);
+    assert.match(panZoomSource, /e\.pointerType !== "mouse"/);
   });
 });

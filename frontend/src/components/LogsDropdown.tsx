@@ -3,8 +3,9 @@
 import { useState, useEffect, useRef } from "react";
 import { Terminal, Copy, Check, ChevronDown, ChevronUp, AlertCircle, RefreshCw } from "lucide-react";
 import { mockRawAlerts, RawAlert } from "../app/mock-raw-alerts";
+import { apiUrl } from "../app/api-client.ts";
 
-export function LogsDropdown() {
+export function LogsDropdown({ isMobileMore = false }: { isMobileMore?: boolean }) {
   const [isOpen, setIsOpen] = useState(false);
   const [rawAlerts, setRawAlerts] = useState<RawAlert[]>([]);
   const [loading, setLoading] = useState(false);
@@ -32,8 +33,7 @@ export function LogsDropdown() {
   const fetchRawAlerts = () => {
     setLoading(true);
     setError(false);
-    const apiBaseUrl = process.env.NEXT_PUBLIC_LINEWATCH_API_BASE_URL ?? "http://localhost:8080";
-    fetch(`${apiBaseUrl}/api/alerts?type=raw`)
+    fetch(apiUrl("/api/alerts?type=raw"))
       .then((res) => {
         if (!res.ok) throw new Error("Failed to fetch");
         return res.json();
@@ -141,25 +141,39 @@ export function LogsDropdown() {
   };
 
   return (
-    <div className="relative pointer-events-auto" ref={dropdownRef}>
+    <div className={`relative ${isMobileMore ? "w-full" : "pointer-events-auto"}`} ref={dropdownRef}>
       {/* Logs Trigger Button */}
       <button
         onClick={toggleDropdown}
-        className="panel flex items-center justify-center w-10 sm:w-14 h-10 sm:h-14 rounded-xl border border-black/10 dark:border-white/10 shadow-lg hover:!bg-slate-100 dark:hover:!bg-[#1a1e28] hover:scale-105 active:scale-95 outline-none focus-visible:ring-4 focus-visible:ring-black/10 dark:focus-visible:ring-white/20 transition-all cursor-pointer bg-white dark:bg-[#0a0c10] text-slate-800 dark:text-white"
+        className={
+          isMobileMore
+            ? "mobile-more-row w-full flex items-center justify-between hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer"
+            : "panel flex items-center justify-center w-10 sm:w-14 h-10 sm:h-14 rounded-xl border border-black/10 dark:border-white/10 shadow-lg hover:!bg-slate-100 dark:hover:!bg-[#1a1e28] hover:scale-105 active:scale-95 outline-none focus-visible:ring-4 focus-visible:ring-black/10 dark:focus-visible:ring-white/20 transition-all cursor-pointer bg-white dark:bg-[#0a0c10] text-slate-800 dark:text-white"
+        }
         aria-label="Toggle Ingestion Logs"
         aria-expanded={isOpen}
       >
-        <svg viewBox="0 0 32 32" fill="currentColor" className="w-5 h-5 sm:w-7 sm:h-7 text-slate-800 dark:text-white">
-          <rect x="10" y="18" width="8" height="2"/>
-          <rect x="10" y="13" width="12" height="2"/>
-          <rect x="10" y="23" width="5" height="2"/>
-          <path d="M25,5H22V4a2,2,0,0,0-2-2H12a2,2,0,0,0-2,2V5H7A2,2,0,0,0,5,7V28a2,2,0,0,0,2,2H25a2,2,0,0,0,2-2V7A2,2,0,0,0,25,5ZM12,4h8V8H12ZM25,28H7V7h3v3H22V7h3Z"/>
-        </svg>
+        <span className="flex items-center gap-2">
+          <svg viewBox="0 0 32 32" fill="currentColor" className="w-5 h-5 sm:w-7 sm:h-7 text-slate-800 dark:text-white shrink-0">
+            <rect x="10" y="18" width="8" height="2"/>
+            <rect x="10" y="13" width="12" height="2"/>
+            <rect x="10" y="23" width="5" height="2"/>
+            <path d="M25,5H22V4a2,2,0,0,0-2-2H12a2,2,0,0,0-2,2V5H7A2,2,0,0,0,5,7V28a2,2,0,0,0,2,2H25a2,2,0,0,0,2-2V7A2,2,0,0,0,25,5ZM12,4h8V8H12ZM25,28H7V7h3v3H22V7h3Z"/>
+          </svg>
+          {isMobileMore ? (
+            <span className="font-bold text-sm text-slate-800 dark:text-slate-200">TTC GTFS Feed</span>
+          ) : null}
+        </span>
+        {isMobileMore ? (
+          <span className="text-slate-400">
+            {isOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+          </span>
+        ) : null}
       </button>
 
       {/* Floating Logs Dropdown Card */}
       {isOpen && (
-        <div className="absolute top-[48px] sm:top-[64px] right-0 w-[min(calc(100vw-32px),550px)] rounded-2xl shadow-2xl flex flex-col z-50 animate-in fade-in slide-in-from-top-2 duration-200 border border-black/10 dark:border-white/10 bg-white/95 dark:bg-[#0a0c10]/95 backdrop-blur-md text-slate-800 dark:text-slate-200">
+        <div className={`absolute top-[48px] sm:top-[64px] ${isMobileMore ? "left-0 right-0 w-full" : "right-0 w-[min(calc(100vw-32px),550px)]"} rounded-2xl shadow-2xl flex flex-col z-50 animate-in fade-in slide-in-from-top-2 duration-200 border border-black/10 dark:border-white/10 bg-white/95 dark:bg-[#0a0c10]/95 backdrop-blur-md text-slate-800 dark:text-slate-200`}>
           
           {/* Header */}
           <div className="flex items-center justify-between p-4 border-b border-black/10 dark:border-white/10">
@@ -254,7 +268,7 @@ export function LogsDropdown() {
     return (
       <div 
         key={uniqueId}
-        className="flex flex-col rounded-lg border border-black/5 dark:border-white/5 bg-white dark:bg-[#12151c] overflow-hidden"
+        className="flex flex-col rounded-lg border border-black/5 dark:border-white/5 bg-white dark:bg-[#12151c] overflow-hidden min-w-0 w-full"
       >
         {/* Accordion Summary */}
         <button
@@ -303,7 +317,7 @@ export function LogsDropdown() {
 
         {/* Expanded JSON details */}
         {isExpanded && (
-          <div className="border-t border-black/5 dark:border-white/5 bg-slate-50 dark:bg-black/40 p-3 flex flex-col gap-2 relative">
+          <div className="border-t border-black/5 dark:border-white/5 bg-slate-50 dark:bg-black/40 p-3 flex flex-col gap-2 relative min-w-0 w-full overflow-hidden">
             <div className="flex items-center justify-between">
               <span className="text-[10px] uppercase font-bold tracking-wider text-slate-500">Raw JSON Payload</span>
               <button
@@ -323,7 +337,7 @@ export function LogsDropdown() {
                 )}
               </button>
             </div>
-            <pre className="p-3 bg-black/90 dark:bg-[#050608] text-emerald-400 rounded-lg overflow-x-auto text-[10px] font-mono border border-black/20 dark:border-white/5 select-all max-h-[300px]">
+            <pre className="p-3 bg-black/90 dark:bg-[#050608] text-emerald-400 rounded-lg overflow-x-auto text-[10px] font-mono border border-black/20 dark:border-white/5 select-all max-h-[300px] w-full block whitespace-pre">
               {prettifiedPayload}
             </pre>
           </div>

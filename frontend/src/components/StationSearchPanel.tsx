@@ -161,6 +161,33 @@ export function StationSearchPanel({
   const lineTriggerRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const stationButtonRefs = useRef<Array<HTMLButtonElement | null>>([]);
 
+  const [viewportHeight, setViewportHeight] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const visualViewport = window.visualViewport;
+    if (!visualViewport) return;
+
+    const handleResize = () => {
+      setViewportHeight(visualViewport.height);
+    };
+
+    if (open) {
+      visualViewport.addEventListener("resize", handleResize);
+      visualViewport.addEventListener("scroll", handleResize);
+      handleResize();
+    } else {
+      window.setTimeout(() => {
+        setViewportHeight(null);
+      }, 0);
+    }
+
+    return () => {
+      visualViewport.removeEventListener("resize", handleResize);
+      visualViewport.removeEventListener("scroll", handleResize);
+    };
+  }, [open]);
+
   useEffect(() => {
     if (stationsColumnRef.current) {
       stationsColumnRef.current.scrollTop = 0;
@@ -305,6 +332,11 @@ export function StationSearchPanel({
       data-station-search-panel
       data-open={open ? "true" : "false"}
       data-expanded={isExpanded ? "true" : "false"}
+      style={
+        viewportHeight
+          ? ({ "--visual-viewport-height": `${viewportHeight}px` } as React.CSSProperties)
+          : undefined
+      }
     >
       <div className="station-search-input-row">
         <Search size={18} className="station-search-input-icon" aria-hidden="true" />
@@ -403,6 +435,15 @@ export function StationSearchPanel({
             >
               {activeLineGroup && (
                 <>
+                  {expandedLineId ? (
+                    <button
+                      type="button"
+                      className="station-search-mobile-back"
+                      onClick={() => setExpandedLineId(null)}
+                    >
+                      Back to Lines
+                    </button>
+                  ) : null}
                   <div className="station-search-stations-column-header">
                     <div className="flex items-center gap-2 mb-3 px-1">
                       <span

@@ -1,4 +1,4 @@
-const DEFAULT_API_BASE_URL = process.env.NEXT_PUBLIC_LINEWATCH_API_BASE_URL ?? "http://localhost:8080";
+import { apiUrl as buildApiUrl } from "./api-client.ts";
 
 type Fetcher = typeof fetch;
 
@@ -120,7 +120,7 @@ export type CreateSavedCommuteInput = {
 };
 
 function apiUrl(path: string, options: AdapterOptions = {}) {
-  return `${options.apiBaseUrl ?? DEFAULT_API_BASE_URL}${path}`;
+  return buildApiUrl(path, options.apiBaseUrl);
 }
 
 async function readJson<T>(response: Response): Promise<T> {

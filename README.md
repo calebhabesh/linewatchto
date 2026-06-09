@@ -149,8 +149,8 @@ docker compose down
 ## Deployment
 
 Backend deployment requires Java 21, PostgreSQL/PostGIS, Redis, and the environment variables listed in `.env.example`.
-Frontend deployment requires `BACKEND_URL` for server-side dashboard loading and `NEXT_PUBLIC_LINEWATCH_API_BASE_URL` for browser account requests.
-For production auth, set `LINEWATCH_AUTH_SECURE_COOKIE=true`, set `LINEWATCH_AUTH_ALLOWED_ORIGINS` to the deployed frontend origin, and keep `LINEWATCH_AUTH_PASSWORD_RESET_DEV_LINKS=false`.
+Frontend deployment requires `BACKEND_URL` for server-side dashboard loading and the frontend `/api/*` proxy. Browser-side account, station detail, saved-commute, and log requests use same-origin `/api/*` paths by default so LAN mobile testing works from URLs such as `http://192.168.x.x:3000`. Set `NEXT_PUBLIC_LINEWATCH_API_BASE_URL` only when browsers should call a separate backend origin directly.
+For production auth with a separate browser-to-backend origin, set `LINEWATCH_AUTH_SECURE_COOKIE=true`, set `LINEWATCH_AUTH_ALLOWED_ORIGINS` to the deployed frontend origin, and keep `LINEWATCH_AUTH_PASSWORD_RESET_DEV_LINKS=false`.
 
 After both deployments are live, run the deployment smoke checker:
 

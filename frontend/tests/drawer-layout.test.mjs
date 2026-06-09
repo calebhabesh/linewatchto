@@ -24,7 +24,7 @@ const stationSearchSource = readFileSync(new URL("../src/components/StationSearc
 
 describe("floating menu layout", () => {
   it("keeps the map first while exposing floating menu and submenu states", () => {
-    assert.match(shellSource, /type ActiveView = "map" \| "menu" \| "search" \| "alerts" \| "delays" \| "reduced-speed-zones" \| "closures" \| "commutes" \| "analytics"/);
+    assert.match(shellSource, /type ActiveView = "map" \| "menu" \| "search" \| "status" \| "alerts" \| "delays" \| "reduced-speed-zones" \| "closures" \| "commutes" \| "analytics" \| "more"/);
     assert.match(shellSource, /handleToggleMenu/);
     assert.match(shellSource, /Toggle menu/);
     assert.match(shellSource, /Floating Dropdown Menu/);
@@ -83,6 +83,14 @@ describe("floating menu layout", () => {
     assert.match(shellSource, /Sign In/);
     assert.match(savedCommutesSource, /impact\.statusLabel/);
     assert.doesNotMatch(savedCommutesSource, /Impact matching pending/);
+
+    assert.match(shellSource, /"status"/);
+    assert.match(shellSource, /"more"/);
+    assert.match(shellSource, /MobileBottomNav/);
+    assert.match(shellSource, /MobileStatusSheet/);
+    assert.match(shellSource, /MobileMoreSheet/);
+    assert.match(globalCss, /\.mobile-bottom-nav/);
+    assert.match(globalCss, /\.mobile-status-peek/);
   });
 
   it("allows alert and planned closure copy to wrap instead of collapsing into narrow columns", () => {

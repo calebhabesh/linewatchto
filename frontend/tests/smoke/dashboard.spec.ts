@@ -11,10 +11,27 @@ async function setStubMode(request: APIRequestContext, mode: "seeded" | "unavail
   expect(response.ok()).toBeTruthy();
 }
 
-async function openDashboardMenu(page: Page) {
+async function openDashboardMenu(page: Page, isMobile = false) {
   await page.goto("/");
   await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
-  await page.getByRole("button", { name: "Toggle menu" }).click();
+  if (isMobile) {
+    await page.getByRole("button", { name: "More", exact: true }).click();
+  } else {
+    await page.getByRole("button", { name: "Toggle menu" }).click();
+  }
+}
+
+async function openServiceCategory(page: Page, isMobile: boolean, name: RegExp | string) {
+  if (isMobile) {
+    await page.getByRole("button", { name: "Status", exact: true }).click();
+    await page.locator(".mobile-status-actions").getByRole("button", { name }).click();
+  } else {
+    const isExpanded = await page.getByRole("button", { name: "Toggle menu" }).getAttribute("aria-expanded");
+    if (isExpanded !== "true") {
+      await page.getByRole("button", { name: "Toggle menu" }).click();
+    }
+    await page.getByRole("menuitem", { name }).click();
+  }
 }
 
 async function clickSvgRingStroke(page: Page, name: RegExp) {
@@ -119,7 +136,7 @@ test("shows a subway closing soon countdown before overnight closure", async ({ 
   await expect(page.getByRole("heading", { name: "Subway Closed" })).toHaveCount(0);
 });
 
-test("shows subway closed screen overnight and lets riders peek at the map", async ({ page, request }) => {
+test("shows subway closed screen overnight and lets riders peek at the map", async ({ page, request, isMobile }) => {
   await setStubMode(request, "seeded");
   await freezeBrowserTime(page, "2026-06-04T03:20:00-04:00");
   await page.goto("/");
@@ -135,7 +152,12 @@ test("shows subway closed screen overnight and lets riders peek at the map", asy
   await page.getByRole("button", { name: "Peek at Map" }).click();
 
   await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Toggle menu" })).toBeVisible();
+  if (isMobile) {
+    await expect(page.getByRole("button", { name: "Toggle menu" })).toHaveCount(0);
+    await expect(page.getByRole("navigation", { name: "Primary mobile navigation" })).toBeVisible();
+  } else {
+    await expect(page.getByRole("button", { name: "Toggle menu" })).toBeVisible();
+  }
   await expect(page.getByText(/Subway closed\. Resumes Today at 6:00 AM/i)).toBeVisible();
 
   await page.getByRole("button", { name: "Stub Station station details" }).click();
@@ -152,16 +174,18 @@ test("shows subway closed screen overnight and lets riders peek at the map", asy
   await expect(page.getByRole("heading", { name: "Subway Closed" })).toBeVisible();
 });
 
-test("renders the seeded dashboard API payload", async ({ page, request }) => {
+test("renders the seeded dashboard API payload", async ({ page, request, isMobile }) => {
   await setStubMode(request, "seeded");
-  await openDashboardMenu(page);
+  await openDashboardMenu(page, isMobile);
 
-  await expect(page.getByText("Stub API Yonge-University", { exact: true })).toBeVisible();
-  await expect(page.getByText("Stub API Sheppard", { exact: true })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Stub Station station details" })).toBeVisible();
-  await expect(page.getByText(/Backend offline \(Fixture mode\)/)).toHaveCount(0);
+  if (!isMobile) {
+    await expect(page.getByText("Stub API Yonge-University", { exact: true })).toBeVisible();
+    await expect(page.getByText("Stub API Sheppard", { exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Stub Station station details" })).toBeVisible();
+    await expect(page.getByText(/Backend offline \(Fixture mode\)/)).toHaveCount(0);
+  }
 
-  await page.getByRole("menuitem", { name: /^Delays/ }).click();
+  await openServiceCategory(page, isMobile, /Delay/);
   await expect(page.getByRole("heading", { name: "Delays" })).toBeVisible();
   const menuDelayCard = page.getByRole("article").filter({
     hasText: "Delay between Sheppard-Yonge and Don Mills",
@@ -170,8 +194,7 @@ test("renders the seeded dashboard API payload", async ({ page, request }) => {
   await expect(menuDelayCard.getByText("Started", { exact: true })).toBeVisible();
   await expect(menuDelayCard.getByText("Updated", { exact: true })).toBeVisible();
 
-  await page.getByRole("button", { name: "Toggle menu" }).click();
-  await page.getByRole("menuitem", { name: /Reduced Speed Zones/ }).click();
+  await openServiceCategory(page, isMobile, /Reduced Speed Zone/);
   await expect(page.getByRole("heading", { name: "Reduced Speed Zones" })).toBeVisible();
   await expect(page.getByText("Southbound", { exact: true })).toBeVisible();
   await expect(page.getByText("Eglinton", { exact: true }).first()).toBeVisible();
@@ -183,7 +206,7 @@ test("renders the seeded dashboard API payload", async ({ page, request }) => {
   await expect(page.locator('[data-map-highlight-id="reduced-speed-zone-stub-zone-south-source"]')).toBeAttached();
 });
 
-test("opens the site guide and blocks invalid account signup input", async ({ page, request }) => {
+test("opens the site guide and blocks invalid account signup input", async ({ page, request, isMobile }) => {
   await setStubMode(request, "seeded");
   await page.goto("/");
   await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
@@ -198,8 +221,13 @@ test("opens the site guide and blocks invalid account signup input", async ({ pa
   await guide.getByRole("button", { name: "Close site guide" }).click();
   await expect(guide).toHaveCount(0);
 
-  await page.getByRole("button", { name: "Toggle menu" }).click();
-  await page.getByRole("menuitem", { name: "Create Account" }).click();
+  if (isMobile) {
+    await page.getByRole("button", { name: "More", exact: true }).click();
+    await page.getByRole("button", { name: "Create Account" }).click();
+  } else {
+    await page.getByRole("button", { name: "Toggle menu" }).click();
+    await page.getByRole("menuitem", { name: "Create Account" }).click();
+  }
   const dialog = page.getByRole("dialog", { name: "Create LineWatch TO account" });
   await expect(dialog).toBeVisible();
 
@@ -214,7 +242,7 @@ test("opens the site guide and blocks invalid account signup input", async ({ pa
   await expect(dialog.getByRole("alert")).toContainText("Password must include a number, symbol, or space.");
 });
 
-test("map overlays open the corresponding submenu cards", async ({ page, request }) => {
+test("map overlays open the corresponding submenu cards", async ({ page, request, isMobile }) => {
   await setStubMode(request, "seeded");
   await page.goto("/");
   await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
@@ -225,8 +253,12 @@ test("map overlays open the corresponding submenu cards", async ({ page, request
   await expect(delayCard).toBeVisible();
   await expect(delayCard).toHaveClass(/highlight-active-card/);
 
-  await page.getByRole("button", { name: "Toggle menu" }).click();
-  await page.getByRole("menuitem", { name: "Map", exact: true }).click();
+  if (isMobile) {
+    await page.getByRole("button", { name: "Map", exact: true }).click();
+  } else {
+    await page.getByRole("button", { name: "Toggle menu" }).click();
+    await page.getByRole("menuitem", { name: "Map", exact: true }).click();
+  }
   await page.waitForTimeout(500);
   await clickSvgRingStroke(page, /Stub API signal problem: Stub Station/);
   await expect(page.getByRole("heading", { name: "Active Alerts" })).toBeVisible();
@@ -278,7 +310,8 @@ test("station detail shows accessibility facilities and active outage warning", 
   await expect(arrivalsSection.getByText(/demo placeholders/)).toHaveCount(0);
 });
 
-test("LineLegend clicks open view but do not highlight any card", async ({ page, request }) => {
+test("LineLegend clicks open view but do not highlight any card", async ({ page, request, isMobile }) => {
+  test.skip(isMobile, "desktop-only legend interaction");
   await setStubMode(request, "seeded");
   await page.goto("/");
   await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
@@ -290,7 +323,7 @@ test("LineLegend clicks open view but do not highlight any card", async ({ page,
 
 test("renders fixture fallback when the dashboard API is unavailable", async ({ page, request, isMobile }) => {
   await setStubMode(request, "unavailable");
-  await openDashboardMenu(page);
+  await openDashboardMenu(page, isMobile);
 
   if (!isMobile) {
     await expect(
@@ -300,19 +333,29 @@ test("renders fixture fallback when the dashboard API is unavailable", async ({ 
   await expect(page.getByText("Live status", { exact: true })).toHaveCount(0);
 });
 
-test("routes active planned closures to active alerts instead of upcoming closures", async ({ page, request }) => {
+test("routes active planned closures to active alerts instead of upcoming closures", async ({ page, request, isMobile }) => {
   await setStubMode(request, "seeded");
-  await openDashboardMenu(page);
+  await openDashboardMenu(page, isMobile);
 
-  await page.getByRole("menuitem", { name: /^Active Alerts/ }).click();
+  if (isMobile) {
+    await page.getByRole("button", { name: "Status", exact: true }).click();
+    await page.locator(".mobile-status-actions").getByRole("button", { name: /Active Alert/ }).click();
+  } else {
+    await page.getByRole("menuitem", { name: /^Active Alerts/ }).click();
+  }
   await expect(page.getByRole("heading", { name: "Active Alerts" })).toBeVisible();
   await expect(page.locator('[data-impact-card-id="stub-closure-line-1"]')).toBeVisible();
 
   await page.locator('[data-impact-card-id="stub-closure-line-1"]').getByRole("button", { name: "Show on Map" }).click();
   await expect(page.locator('[data-impact-card-id="stub-closure-line-1"]')).toHaveClass(/highlight-active-card/);
 
-  await page.getByRole("button", { name: "Toggle menu" }).click();
-  await page.getByRole("menuitem", { name: /upcoming closures/i }).click();
+  if (isMobile) {
+    await page.getByRole("button", { name: "Status", exact: true }).click();
+    await page.locator(".mobile-status-actions").getByRole("button", { name: /Closure/ }).click();
+  } else {
+    await page.getByRole("button", { name: "Toggle menu" }).click();
+    await page.getByRole("menuitem", { name: /upcoming closures/i }).click();
+  }
   await expect(page.getByRole("heading", { name: "Upcoming Closures" })).toBeVisible();
   const upcomingClosuresPanel = page.locator("section").filter({
     has: page.getByRole("heading", { name: "Upcoming Closures" }),
@@ -341,10 +384,14 @@ test("shows a compact map hint when multiple alert types overlap", async ({ page
   await expect(page.locator('[data-impact-card-id="stub-alert-line-1"]')).toHaveClass(/highlight-active-card/);
 });
 
-test("opens logs dropdown and expands raw JSON payload", async ({ page, request }) => {
+test("opens logs dropdown and expands raw JSON payload", async ({ page, request, isMobile }) => {
   await setStubMode(request, "seeded");
   await page.goto("/");
   await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
+
+  if (isMobile) {
+    await page.getByRole("button", { name: "More", exact: true }).click();
+  }
 
   // Click on the Toggle Ingestion Logs button
   await page.getByRole("button", { name: "Toggle Ingestion Logs" }).click();
@@ -361,7 +408,7 @@ test("opens logs dropdown and expands raw JSON payload", async ({ page, request 
   await expect(page.getByText("Copied!")).toBeVisible();
 });
 
-test("nonlinear guide-backed overlays open their corresponding cards", async ({ page, request }) => {
+test("nonlinear guide-backed overlays open their corresponding cards", async ({ page, request, isMobile }) => {
   await setStubMode(request, "seeded");
   await page.goto("/");
   await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
@@ -374,8 +421,12 @@ test("nonlinear guide-backed overlays open their corresponding cards", async ({ 
   await expect(unionCurveCard.getByText("King", { exact: true })).toBeVisible();
   await expect(unionCurveCard.getByText("Union", { exact: true })).toBeVisible();
 
-  await page.getByRole("button", { name: "Toggle menu" }).click();
-  await page.getByRole("menuitem", { name: "Map", exact: true }).click();
+  if (isMobile) {
+    await page.getByRole("button", { name: "Map", exact: true }).click();
+  } else {
+    await page.getByRole("button", { name: "Toggle menu" }).click();
+    await page.getByRole("menuitem", { name: "Map", exact: true }).click();
+  }
   await page.getByRole("button", { name: "delay: Spadina to St George" }).dispatchEvent("click");
   await expect(page.getByRole("heading", { name: "Delays" })).toBeVisible();
   const stGeorgeCurveCard = page.locator('[data-impact-card-id="stub-delay-st-george-curve"]');
@@ -383,12 +434,16 @@ test("nonlinear guide-backed overlays open their corresponding cards", async ({ 
   await expect(stGeorgeCurveCard).toHaveClass(/highlight-active-card/);
 });
 
-test("station search dynamically filters mapped stations and opens station details", async ({ page, request }) => {
+test("station search dynamically filters mapped stations and opens station details", async ({ page, request, isMobile }) => {
   await setStubMode(request, "seeded");
   await page.goto("/");
   await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
 
-  await page.getByRole("button", { name: "Search stations" }).click();
+  if (isMobile) {
+    await page.getByRole("button", { name: "Search", exact: true }).click();
+  } else {
+    await page.getByRole("button", { name: "Search stations" }).click();
+  }
   await expect(page.getByRole("searchbox", { name: "Search mapped stations" })).toBeFocused();
 
   await page.getByRole("searchbox", { name: "Search mapped stations" }).fill("stub");
@@ -402,12 +457,16 @@ test("station search dynamically filters mapped stations and opens station detai
   await expect(page.locator('[data-station-search-panel][data-open="false"]')).toBeVisible();
 });
 
-test("station search browses fallback station lists by line", async ({ page, request }) => {
+test("station search browses fallback station lists by line", async ({ page, request, isMobile }) => {
   await setStubMode(request, "unavailable");
   await page.goto("/");
   await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
 
-  await page.getByRole("button", { name: "Search stations" }).click();
+  if (isMobile) {
+    await page.getByRole("button", { name: "Search", exact: true }).click();
+  } else {
+    await page.getByRole("button", { name: "Search stations" }).click();
+  }
   await page.getByRole("button", { name: /Line 5\s+Eglinton Crosstown/ }).click();
   await expect(page.getByRole("button", { name: "Mount Dennis station search result" })).toBeVisible();
 
@@ -416,7 +475,8 @@ test("station search browses fallback station lists by line", async ({ page, req
   await expect(page.getByText("Backend unavailable. Showing local fallback station data.")).toBeVisible();
 });
 
-test("drag after focus zoom cancels animation and retains transform", async ({ page, request }) => {
+test("drag after focus zoom cancels animation and retains transform", async ({ page, request, isMobile }) => {
+  test.skip(isMobile, "desktop-only map controls drag behavior");
   await setStubMode(request, "seeded");
   await page.goto("/");
   await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
@@ -455,7 +515,8 @@ test("drag after focus zoom cancels animation and retains transform", async ({ p
   expect(finalTransform).not.toEqual(initialTransform);
 });
 
-test("keyboard opens and closes the main menu", async ({ page, request }) => {
+test("keyboard opens and closes the main menu", async ({ page, request, isMobile }) => {
+  test.skip(isMobile, "desktop-only menu keyboard accessibility");
   await setStubMode(request, "seeded");
   await page.goto("/");
   await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
@@ -474,7 +535,8 @@ test("keyboard opens and closes the main menu", async ({ page, request }) => {
   await expect(page.getByRole("button", { name: "Toggle menu" })).toBeFocused();
 });
 
-test("keyboard searches and selects a station", async ({ page, request }) => {
+test("keyboard searches and selects a station", async ({ page, request, isMobile }) => {
+  test.skip(isMobile, "desktop-only search keyboard accessibility");
   await setStubMode(request, "seeded");
   await page.goto("/");
   await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
@@ -491,15 +553,22 @@ test("keyboard searches and selects a station", async ({ page, request }) => {
   await expect(page.getByRole("button", { name: "Search stations" })).toBeFocused();
 });
 
-test("demo account shows account-backed saved commutes", async ({ page, request }) => {
+test("demo account shows account-backed saved commutes", async ({ page, request, isMobile }) => {
   await setStubMode(request, "seeded");
-  await openDashboardMenu(page);
+  if (isMobile) {
+    await page.goto("/");
+    await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
+    await page.getByRole("button", { name: "More", exact: true }).click();
+    await page.getByRole("button", { name: "Demo Account" }).click();
+    await expect(page.getByRole("heading", { name: "Saved Commutes" })).toBeVisible();
+  } else {
+    await openDashboardMenu(page, isMobile);
+    await page.getByRole("menuitem", { name: "Demo account" }).click({ force: true });
+    await page.getByRole("button", { name: "Toggle menu" }).click({ force: true });
+    await page.getByRole("menuitem", { name: "Saved Commutes" }).click({ force: true });
+  }
 
-  await page.getByRole("menuitem", { name: "Demo account" }).click({ force: true });
-  await page.getByRole("button", { name: "Toggle menu" }).click({ force: true });
-  await page.getByRole("menuitem", { name: "Saved Commutes" }).click({ force: true });
-
-  await expect(page.getByText("Demo account")).toBeVisible();
+  await expect(page.getByText("Demo account").filter({ visible: true })).toBeVisible();
   await expect(page.getByText("Stub Station -> Union")).toBeVisible();
   await expect(page.getByText("Default scheduled route: 5 stations on Line 1, about 13 min")).toBeVisible();
   await expect(page.getByText("Affected now", { exact: true })).toBeVisible();
@@ -519,15 +588,20 @@ test("demo account shows account-backed saved commutes", async ({ page, request 
   await expect(page.locator("[data-commute-path-preview]")).toHaveCount(0);
 });
 
-test("requests and confirms a password reset from the sign-in dialog", async ({ page, request }) => {
+test("requests and confirms a password reset from the sign-in dialog", async ({ page, request, isMobile }) => {
   await setStubMode(request, "seeded");
   await page.goto("/");
   await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
 
-  await page.getByRole("button", { name: "Toggle menu" }).click();
-  await page.getByRole("menuitem", { name: "Sign In" }).click();
+  if (isMobile) {
+    await page.getByRole("button", { name: "More", exact: true }).click();
+    await page.getByRole("button", { name: "Sign In" }).click();
+  } else {
+    await page.getByRole("button", { name: "Toggle menu" }).click();
+    await page.getByRole("menuitem", { name: "Sign In" }).click();
+  }
 
-  const signInDialog = page.getByRole("dialog", { name: "Sign in to LineWatch TO" });
+  const signInDialog = page.getByRole("dialog", { name: /Sign in/i });
   await expect(signInDialog).toBeVisible();
   await signInDialog.getByRole("button", { name: "Forgot Password?" }).click();
 
@@ -544,10 +618,14 @@ test("requests and confirms a password reset from the sign-in dialog", async ({ 
   await confirmDialog.getByLabel("Confirm password").fill("new correct horse 2");
   await confirmDialog.getByRole("button", { name: "Reset Password" }).click();
   await expect(confirmDialog).toHaveCount(0);
-  await expect(page.getByText("Rider")).toBeVisible();
+
+  if (isMobile) {
+    await page.getByRole("button", { name: "More", exact: true }).click();
+  }
+  await expect(page.getByText("Rider").filter({ visible: true })).toBeVisible();
 });
 
-test("opens emailed password reset links directly", async ({ page, request }) => {
+test("opens emailed password reset links directly", async ({ page, request, isMobile }) => {
   await setStubMode(request, "seeded");
   await page.goto("/reset-password?token=smoke-reset-token");
 
@@ -560,16 +638,25 @@ test("opens emailed password reset links directly", async ({ page, request }) =>
   await confirmDialog.getByRole("button", { name: "Reset Password" }).click();
   await expect(confirmDialog).toHaveCount(0);
   await expect(page).toHaveURL("/");
-  await expect(page.getByText("Rider")).toBeVisible();
+
+  if (isMobile) {
+    await page.getByRole("button", { name: "More", exact: true }).click();
+  }
+  await expect(page.getByText("Rider").filter({ visible: true })).toBeVisible();
 });
 
-test("shows official TTC performance metrics from backend", async ({ page, request }) => {
+test("shows official TTC performance metrics from backend", async ({ page, request, isMobile }) => {
   await setStubMode(request, "seeded");
   await page.goto("/");
   await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
 
-  await page.getByRole("button", { name: "Toggle menu" }).click();
-  await page.getByRole("menuitem", { name: "Reliability Analytics" }).click();
+  if (isMobile) {
+    await page.getByRole("button", { name: "More", exact: true }).click();
+    await page.getByRole("button", { name: "Reliability Analytics" }).click();
+  } else {
+    await page.getByRole("button", { name: "Toggle menu" }).click();
+    await page.getByRole("menuitem", { name: "Reliability Analytics" }).click();
+  }
   await expect(page.getByText("Official TTC Performance")).toBeVisible();
   await expect(page.getByText("Source: TTC.ca")).toBeVisible();
 
@@ -582,3 +669,25 @@ test("shows official TTC performance metrics from backend", async ({ page, reque
   await expect(elevatorsRow.getByText("99%")).toBeVisible();
 });
 
+test("mobile uses bottom navigation and status sheets", async ({ page, request, isMobile }) => {
+  test.skip(!isMobile, "mobile-only bottom navigation smoke");
+  await setStubMode(request, "seeded");
+  await page.goto("/");
+  await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
+
+  await expect(page.getByRole("navigation", { name: "Primary mobile navigation" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Toggle menu" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Open current service status" })).toBeVisible();
+
+  await page.getByRole("button", { name: "Status", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "System Status" })).toBeVisible();
+  await page.locator(".mobile-status-actions").getByRole("button", { name: /Delay/ }).click();
+  await expect(page.getByRole("heading", { name: "Delays" })).toBeVisible();
+
+  await page.getByRole("button", { name: "Search", exact: true }).click();
+  await expect(page.getByRole("searchbox", { name: "Search mapped stations" })).toBeFocused();
+
+  await page.getByRole("button", { name: "More", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "More" })).toBeVisible();
+  await expect(page.getByRole("button", { name: /High Contrast Mode/ })).toBeVisible();
+});

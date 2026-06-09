@@ -20,6 +20,9 @@ public final class GtfsCsvReader {
                 return List.of();
             }
             List<String> headers = parseLine(headerLine);
+            if (!headers.isEmpty()) {
+                headers.set(0, stripByteOrderMark(headers.getFirst()));
+            }
             List<Row> rows = new ArrayList<>();
             String line;
             while ((line = buffered.readLine()) != null) {
@@ -60,6 +63,13 @@ public final class GtfsCsvReader {
         }
         values.add(current.toString().trim());
         return values;
+    }
+
+    private static String stripByteOrderMark(String value) {
+        if (value != null && value.startsWith("\uFEFF")) {
+            return value.substring(1);
+        }
+        return value;
     }
 
     public static int seconds(String gtfsTime) {

@@ -1,3 +1,5 @@
+import { apiUrl } from "./api-client.ts";
+
 export type StationAccessStatus = "normal" | "advisory" | "outage";
 export type StationImpactType = "active-alert" | "planned-closure";
 export type StationImpactSeverity = "delay" | "suspension" | "planned";
@@ -106,7 +108,6 @@ export type StationFetchOptions = {
   apiBaseUrl?: string;
 };
 
-const DEFAULT_API_BASE_URL = process.env.NEXT_PUBLIC_LINEWATCH_API_BASE_URL ?? "http://localhost:8080";
 const EMPTY_ACCESS_OUTAGE_COUNTS: StationAccessOutageCounts = { elevator: 0, escalator: 0 };
 
 export const STATION_LINE_DEFINITIONS: Record<string, Omit<StationLine, "wheelchairAccessible" | "hasElevator">> = {
@@ -1730,10 +1731,9 @@ export async function getStationSummaries(
   options: StationFetchOptions = {}
 ): Promise<StationDataResult<StationListResponse>> {
   const fetcher = options.fetcher ?? fetch;
-  const apiBaseUrl = options.apiBaseUrl ?? DEFAULT_API_BASE_URL;
 
   try {
-    const response = await fetcher(`${apiBaseUrl}/api/stations`);
+    const response = await fetcher(apiUrl("/api/stations", options.apiBaseUrl));
     if (!response.ok) {
       throw new Error(`Station summaries request failed with ${response.status}`);
     }
@@ -1749,10 +1749,9 @@ export async function getStationDetail(
   options: StationFetchOptions = {}
 ): Promise<StationDataResult<StationDetail | null>> {
   const fetcher = options.fetcher ?? fetch;
-  const apiBaseUrl = options.apiBaseUrl ?? DEFAULT_API_BASE_URL;
 
   try {
-    const response = await fetcher(`${apiBaseUrl}/api/stations/${encodeURIComponent(id)}`);
+    const response = await fetcher(apiUrl(`/api/stations/${encodeURIComponent(id)}`, options.apiBaseUrl));
     if (response.status === 404) {
       return { source: "backend", data: null };
     }

@@ -11,18 +11,23 @@ import {
   type PanZoomTransform,
 } from "./panZoomMath";
 
-export function usePanZoom() {
+type UsePanZoomOptions = {
+  reducedMotion?: boolean;
+};
+
+export function usePanZoom({ reducedMotion = false }: UsePanZoomOptions = {}) {
   const [transform, setTransform] = useState({ x: 0, y: 0, scale: 1 });
   const [fitScale, setFitScale] = useState(1);
   const [isDragging, setIsDragging] = useState(false);
-  const [isAnimating, setIsAnimating] = useState(false);
   const animTimeoutRef = useRef<number | null>(null);
+  const programmaticAnimationFrameRef = useRef<number | null>(null);
   const startPos = useRef({ x: 0, y: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<HTMLDivElement>(null);
   const transformRef = useRef({ x: 0, y: 0, scale: 1 });
   const dragRafRef = useRef<number | null>(null);
   const lastMoveEvent = useRef<{ clientX: number, clientY: number } | null>(null);
+  const isGestureActiveRef = useRef(false);
   const activePointersRef = useRef(new Map<number, PanZoomPoint>());
   const pinchGestureRef = useRef<{
     startDistance: number;
@@ -40,6 +45,22 @@ export function usePanZoom() {
     return snapTransformToDevicePixels(next, currentDevicePixelRatio());
   }, []);
 
+  const writeMapTransform = useCallback((next: PanZoomTransform) => {
+    if (mapRef.current) {
+      mapRef.current.style.transform = `translate(${next.x}px, ${next.y}px) scale(${next.scale})`;
+    }
+  }, []);
+
+  const setMapTransition = useCallback((transition: string) => {
+    if (mapRef.current) {
+      mapRef.current.style.transition = transition;
+    }
+  }, []);
+
+  const restoreIdleMapTransition = useCallback(() => {
+    setMapTransition(reducedMotion ? "none" : "transform 0.1s ease-out");
+  }, [reducedMotion, setMapTransition]);
+
   const commitTransform = useCallback((next: PanZoomTransform) => {
     const snapped = snapTransform(next);
     transformRef.current = snapped;
@@ -49,10 +70,24 @@ export function usePanZoom() {
   const commitTransformRef = useCallback((next: PanZoomTransform) => {
     const snapped = snapTransform(next);
     transformRef.current = snapped;
-    if (mapRef.current) {
-      mapRef.current.style.transform = `translate(${snapped.x}px, ${snapped.y}px) scale(${snapped.scale})`;
-    }
+    writeMapTransform(snapped);
     return snapped;
+  }, [snapTransform, writeMapTransform]);
+
+  const currentRenderedTransform = useCallback((): PanZoomTransform | null => {
+    if (!mapRef.current) return null;
+
+    const computedTransform = window.getComputedStyle(mapRef.current).transform;
+    if (!computedTransform || computedTransform === "none") {
+      return null;
+    }
+
+    const matrix = new DOMMatrixReadOnly(computedTransform);
+    return snapTransform({
+      x: matrix.m41,
+      y: matrix.m42,
+      scale: matrix.a,
+    });
   }, [snapTransform]);
 
   const snappedTransformFrom = useCallback((next: PanZoomTransform) => {
@@ -61,29 +96,78 @@ export function usePanZoom() {
     return snapped;
   }, [snapTransform]);
 
-  const cancelAnimation = useCallback(() => {
+  const clearProgrammaticAnimation = useCallback(() => {
+    if (programmaticAnimationFrameRef.current !== null) {
+      cancelAnimationFrame(programmaticAnimationFrameRef.current);
+      programmaticAnimationFrameRef.current = null;
+    }
     if (animTimeoutRef.current) {
       window.clearTimeout(animTimeoutRef.current);
       animTimeoutRef.current = null;
     }
-    setIsAnimating(false);
   }, []);
 
-  const startAnimation = useCallback(() => {
-    setIsAnimating(true);
-    if (animTimeoutRef.current) window.clearTimeout(animTimeoutRef.current);
+  const cancelAnimation = useCallback(() => {
+    const renderedTransform = currentRenderedTransform();
+    clearProgrammaticAnimation();
+    restoreIdleMapTransition();
+
+    if (renderedTransform) {
+      transformRef.current = renderedTransform;
+      writeMapTransform(renderedTransform);
+    }
+  }, [clearProgrammaticAnimation, currentRenderedTransform, restoreIdleMapTransition, writeMapTransform]);
+
+  const animateTransformTo = useCallback((next: PanZoomTransform, nextFitScale?: number) => {
+    const snapped = snapTransform(next);
+    transformRef.current = snapped;
+
+    clearProgrammaticAnimation();
+
+    if (nextFitScale !== undefined) {
+      fitScaleRef.current = nextFitScale;
+    }
+
+    if (!mapRef.current || reducedMotion) {
+      setMapTransition("none");
+      writeMapTransform(snapped);
+      if (nextFitScale !== undefined) {
+        setFitScale(nextFitScale);
+      }
+      commitTransform(snapped);
+      return;
+    }
+
+    setMapTransition(reducedMotion ? "none" : "transform 0.8s cubic-bezier(0.25, 1, 0.5, 1)");
+    programmaticAnimationFrameRef.current = requestAnimationFrame(() => {
+      programmaticAnimationFrameRef.current = null;
+      writeMapTransform(snapped);
+    });
+
     animTimeoutRef.current = window.setTimeout(() => {
       animTimeoutRef.current = null;
-      setIsAnimating(false);
+      restoreIdleMapTransition();
+      if (nextFitScale !== undefined) {
+        setFitScale(nextFitScale);
+      }
+      setTransform({ ...transformRef.current });
     }, 850);
-  }, []);
+  }, [
+    clearProgrammaticAnimation,
+    commitTransform,
+    reducedMotion,
+    restoreIdleMapTransition,
+    setMapTransition,
+    snapTransform,
+    writeMapTransform,
+  ]);
 
-  // Keep transformRef in sync with transform state when not dragging
+  // Keep transformRef in sync with React-owned transform state outside active gestures.
   useEffect(() => {
-    if (!isDragging) {
+    if (!isGestureActiveRef.current) {
       transformRef.current = transform;
     }
-  }, [transform, isDragging]);
+  }, [transform]);
 
   // Clean up animation frame on unmount
   useEffect(() => {
@@ -94,6 +178,10 @@ export function usePanZoom() {
       if (animTimeoutRef.current) {
         window.clearTimeout(animTimeoutRef.current);
       }
+      if (programmaticAnimationFrameRef.current !== null) {
+        cancelAnimationFrame(programmaticAnimationFrameRef.current);
+      }
+      isGestureActiveRef.current = false;
     };
   }, []);
 
@@ -210,14 +298,23 @@ export function usePanZoom() {
 
     transformRef.current = next;
     if (mapRef.current) {
-      mapRef.current.style.transform = `translate(${next.x}px, ${next.y}px) scale(${next.scale})`;
+      writeMapTransform(next);
     }
-  }, [pointersArray, snapTransform]);
+  }, [pointersArray, snapTransform, writeMapTransform]);
+
+  const startGestureInteraction = useCallback((pointerType: string) => {
+    isGestureActiveRef.current = true;
+    setMapTransition("none");
+    if (pointerType === "mouse") {
+      setIsDragging(true);
+    }
+  }, [setMapTransition]);
 
   const handlePointerDown = useCallback((e: PointerEvent<HTMLDivElement>) => {
     if (e.pointerType === "mouse" && e.button !== 0) return;
 
     cancelAnimation();
+    startGestureInteraction(e.pointerType);
     const point = pointerPointFromEvent(e);
     activePointersRef.current.set(e.pointerId, point);
     e.currentTarget.setPointerCapture(e.pointerId);
@@ -226,21 +323,19 @@ export function usePanZoom() {
       activeDragPointerIdRef.current = null;
       lastMoveEvent.current = null;
       beginPinchGesture();
-      setIsDragging(true);
       return;
     }
 
     activeDragPointerIdRef.current = e.pointerId;
     pinchGestureRef.current = null;
-    setIsDragging(true);
     startPos.current = {
       x: point.x - transformRef.current.x,
       y: point.y - transformRef.current.y,
     };
-  }, [beginPinchGesture, cancelAnimation, pointerPointFromEvent]);
+  }, [beginPinchGesture, cancelAnimation, pointerPointFromEvent, startGestureInteraction]);
 
   const handlePointerMove = useCallback((e: PointerEvent<HTMLDivElement>) => {
-    if (!isDragging) return;
+    if (!isGestureActiveRef.current) return;
     if (!activePointersRef.current.has(e.pointerId)) return;
 
     const point = pointerPointFromEvent(e);
@@ -262,7 +357,7 @@ export function usePanZoom() {
 
     if (dragRafRef.current === null) {
       dragRafRef.current = requestAnimationFrame(() => {
-        if (!isDragging || !lastMoveEvent.current) {
+        if (!isGestureActiveRef.current || !lastMoveEvent.current) {
           dragRafRef.current = null;
           return;
         }
@@ -274,14 +369,12 @@ export function usePanZoom() {
         transformRef.current.x = newX;
         transformRef.current.y = newY;
 
-        if (mapRef.current) {
-          mapRef.current.style.transform = `translate(${newX}px, ${newY}px) scale(${transformRef.current.scale})`;
-        }
+        writeMapTransform(transformRef.current);
 
         dragRafRef.current = null;
       });
     }
-  }, [applyPinchGesture, isDragging, pointerPointFromEvent]);
+  }, [applyPinchGesture, pointerPointFromEvent, writeMapTransform]);
 
   const finishPointerInteraction = useCallback((e: PointerEvent<HTMLDivElement>) => {
     if (dragRafRef.current !== null) {
@@ -289,6 +382,7 @@ export function usePanZoom() {
       dragRafRef.current = null;
     }
 
+    const wasGestureActive = isGestureActiveRef.current;
     activePointersRef.current.delete(e.pointerId);
 
     try {
@@ -302,7 +396,7 @@ export function usePanZoom() {
     if (pinchGestureRef.current) {
       commitTransformRef(transformRef.current);
       pinchGestureRef.current = null;
-    } else if (isDragging && lastMoveEvent.current) {
+    } else if (wasGestureActive && lastMoveEvent.current) {
       const { clientX, clientY } = lastMoveEvent.current;
       const newX = clientX - startPos.current.x;
       const newY = clientY - startPos.current.y;
@@ -318,18 +412,24 @@ export function usePanZoom() {
         x: point.x - transformRef.current.x,
         y: point.y - transformRef.current.y,
       };
-      setTransform({ ...transformRef.current });
-      setIsDragging(true);
+      isGestureActiveRef.current = true;
       return;
     }
 
+    isGestureActiveRef.current = false;
     activeDragPointerIdRef.current = null;
     activePointersRef.current.clear();
     setIsDragging(false);
+    restoreIdleMapTransition();
     setTransform({ ...transformRef.current });
-  }, [commitTransformRef, isDragging]);
+  }, [commitTransformRef, restoreIdleMapTransition]);
 
   const handlePointerUp = useCallback((e: PointerEvent<HTMLDivElement>) => {
+    finishPointerInteraction(e);
+  }, [finishPointerInteraction]);
+
+  const handlePointerLeave = useCallback((e: PointerEvent<HTMLDivElement>) => {
+    if (e.pointerType !== "mouse") return;
     finishPointerInteraction(e);
   }, [finishPointerInteraction]);
 
@@ -372,10 +472,8 @@ export function usePanZoom() {
     const x = rect.width / 2 - (mapWidth / 2) * scale;
     const y = rect.height / 2 - (mapHeight * 0.435) * scale;
     
-    commitTransform({ x, y, scale });
-    setFitScale(scale);
-    startAnimation();
-  }, [startAnimation, commitTransform]);
+    animateTransformTo({ x, y, scale }, scale);
+  }, [animateTransformTo]);
 
   const zoomIn = useCallback(() => {
     if (!containerRef.current) return;
@@ -436,9 +534,8 @@ export function usePanZoom() {
     const newX = centerX - mapX * targetAbsoluteScale;
     const newY = centerY - mapY * targetAbsoluteScale;
 
-    commitTransform({ x: newX, y: newY, scale: targetAbsoluteScale });
-    startAnimation();
-  }, [fitScale, startAnimation, commitTransform]);
+    animateTransformTo({ x: newX, y: newY, scale: targetAbsoluteScale });
+  }, [animateTransformTo, fitScale]);
 
   // Compute the current user-facing relative zoom level (e.g. 1.0 = 100%)
   const relativeScale = transform.scale / (fitScale || 1);
@@ -447,12 +544,12 @@ export function usePanZoom() {
     transform,
     relativeScale,
     isDragging,
-    isAnimating,
     containerRef,
     mapRef,
     handlePointerDown,
     handlePointerMove,
     handlePointerUp,
+    handlePointerLeave,
     handlePointerCancel,
     handleWheel,
     recenter,

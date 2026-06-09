@@ -42,6 +42,43 @@ describe("account data adapter", () => {
     assert.equal(result.user, null);
   });
 
+  it("uses same-origin API paths by default for browser account requests", async () => {
+    const requests = [];
+    const result = await getCurrentAccount({
+      fetcher: async (input, init) => {
+        requests.push({ input, init });
+        return new Response(JSON.stringify({ authenticated: false, user: null }), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        });
+      },
+    });
+
+    assert.equal(result.source, "backend");
+    assert.equal(requests[0].input, "/api/auth/me");
+    assert.equal(requests[0].init.credentials, "include");
+  });
+
+  it("still honors explicit non-local account API bases", async () => {
+    const requests = [];
+    await loginDemoAccount({
+      apiBaseUrl: "https://api.linewatch.example",
+      fetcher: async (input, init) => {
+        requests.push({ input, init });
+        return new Response(
+          JSON.stringify({
+            authenticated: true,
+            user: { id: "user_demo", email: "demo@linewatch.local", displayName: "Demo Rider", demo: true },
+          }),
+          { status: 200, headers: { "content-type": "application/json" } }
+        );
+      },
+    });
+
+    assert.equal(requests[0].input, "https://api.linewatch.example/api/auth/demo");
+    assert.equal(requests[0].init.credentials, "include");
+  });
+
   it("falls back to unavailable account state when backend cannot be reached", async () => {
     const result = await getCurrentAccount({
       fetcher: async () => {

@@ -43,4 +43,11 @@ describe("keyboard accessibility source", () => {
     assert.match(stationSearchSource, /handleLineTriggerKeyDown/);
     assert.match(stationSearchSource, /handleStationButtonKeyDown/);
   });
+
+  it("keeps mobile navigation and sheets keyboard accessible", () => {
+    assert.match(shellSource, /MobileBottomNav/);
+    assert.match(shellSource, /aria-label="Primary mobile navigation"/);
+    assert.match(shellSource, /onMobileNavSelect/);
+    assert.match(shellSource, /handleMobileSheetClose/);
+  });
 });
