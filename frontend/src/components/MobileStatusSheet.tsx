@@ -42,9 +42,9 @@ export function MobileStatusSheet({ pollText, dataSource, onOpenCategory, onClos
             </span>
           </button>
           <button type="button" className="mobile-status-btn-delays" onClick={() => onOpenCategory("delays")}>
-            <DelayIcon size={16} className="text-yellow-500 dark:text-yellow-400 shrink-0" />
+            <DelayIcon size={16} className="delay-tone shrink-0" />
             <span className="mobile-status-btn-text">Delays</span>
-            <span className="mobile-status-btn-circle bg-amber-500/20 text-amber-700 dark:text-amber-400">
+            <span className="mobile-status-btn-circle delay-count-badge">
               {delays.length}
             </span>
           </button>
@@ -93,7 +93,7 @@ export function MobileStatusSheet({ pollText, dataSource, onOpenCategory, onClos
                       ) : null}
                       {lineDelays.length > 0 ? (
                         <button type="button" className="mobile-line-status-btn-delays" onClick={() => onOpenCategory("delays")}>
-                          <DelayIcon size={12} className="text-yellow-500 dark:text-yellow-400 shrink-0" />
+                          <DelayIcon size={12} className="delay-tone shrink-0" />
                           {lineDelays.length} {lineDelays.length === 1 ? "Delay" : "Delays"}
                         </button>
                       ) : null}

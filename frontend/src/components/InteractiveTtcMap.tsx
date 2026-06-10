@@ -279,12 +279,7 @@ function InteractiveTtcMapComponent({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loadState, recenter]);
 
-  useEffect(() => {
-    if (!layoutResetSignal || loadState !== "ready") return;
 
-    const resetTimer = window.setTimeout(() => recenter(), 320);
-    return () => window.clearTimeout(resetTimer);
-  }, [layoutResetSignal, loadState, recenter]);
 
   useEffect(() => {
     if (!recenterSignal || loadState !== "ready") return;
@@ -324,8 +319,7 @@ function InteractiveTtcMapComponent({
       return () => window.clearTimeout(fallbackTimer);
     }
     const timer0 = window.setTimeout(() => setFlashSelection(selection), 0);
-    const timer = window.setTimeout(() => setFlashSelection(null), 2500);
-    return () => { window.clearTimeout(timer0); window.clearTimeout(timer); };
+    return () => { window.clearTimeout(timer0); };
   }, [selection]);
 
   useEffect(() => {
@@ -345,19 +339,33 @@ function InteractiveTtcMapComponent({
   }, [selection, selectedStationId]);
 
   const lastFocusedTargetKeyRef = useRef<string | null>(null);
+  const lastFocusLayoutSignalRef = useRef(0);
+
+  useEffect(() => {
+    if (!layoutResetSignal || loadState !== "ready" || focusTargetKey) return;
+
+    const resetTimer = window.setTimeout(() => recenter(), 320);
+    return () => window.clearTimeout(resetTimer);
+  }, [layoutResetSignal, loadState, recenter, focusTargetKey]);
 
   useEffect(() => {
     if (loadState !== "ready") return;
 
+    const currentLayoutSignal = layoutResetSignal ?? 0;
+
     if (!focusTargetKey) {
       if (lastFocusedTargetKeyRef.current !== null) {
         lastFocusedTargetKeyRef.current = null;
+        lastFocusLayoutSignalRef.current = currentLayoutSignal;
         recenter();
       }
       return;
     }
 
-    if (lastFocusedTargetKeyRef.current === focusTargetKey) {
+    if (
+      lastFocusedTargetKeyRef.current === focusTargetKey &&
+      lastFocusLayoutSignalRef.current === currentLayoutSignal
+    ) {
       return;
     }
 
@@ -382,15 +390,17 @@ function InteractiveTtcMapComponent({
           });
           if (count > 0) {
             const scaleFactor = 4500 / 8250;
-            zoomToPoint((sumX / count) * scaleFactor, (sumY / count) * scaleFactor, 1.2);
+            zoomToPoint((sumX / count) * scaleFactor, (sumY / count) * scaleFactor, 1.8);
             lastFocusedTargetKeyRef.current = focusTargetKey;
+            lastFocusLayoutSignalRef.current = currentLayoutSignal;
           }
         }
       } else {
         const center = getSegmentsCenter(selectedSegmentIds, networkSegments, mapStations, anchorPoints, guidePaths);
         if (center) {
-          zoomToPoint(center.x, center.y, 1.2);
+          zoomToPoint(center.x, center.y, 1.8);
           lastFocusedTargetKeyRef.current = focusTargetKey;
+          lastFocusLayoutSignalRef.current = currentLayoutSignal;
         }
       }
     } else if (selectedStationId) {
@@ -399,8 +409,9 @@ function InteractiveTtcMapComponent({
       if (station) {
         const scaleFactor = 4500 / 8250;
         const pt = stationPointFor(station);
-        zoomToPoint(pt.x * scaleFactor, pt.y * scaleFactor, 1.2);
+        zoomToPoint(pt.x * scaleFactor, pt.y * scaleFactor, 1.8);
         lastFocusedTargetKeyRef.current = focusTargetKey;
+        lastFocusLayoutSignalRef.current = currentLayoutSignal;
       }
     }
   }, [
@@ -418,6 +429,7 @@ function InteractiveTtcMapComponent({
     stationNodeImpacts,
     stations,
     stationPointFor,
+    layoutResetSignal,
   ]);
 
   const stationBySummaryId = useMemo(() => {
@@ -661,7 +673,7 @@ function InteractiveTtcMapComponent({
   return (
     <div ref={mapRootRef} className="relative w-full h-full flex flex-col overflow-hidden bg-transparent">
       {/* Top right Theme toggle (styled like hamburger) and poll chip */}
-      <div className="map-utility-cluster absolute top-4 sm:top-6 right-4 sm:right-6 z-20 flex items-center gap-2 pointer-events-auto">
+      <div className="map-utility-cluster absolute top-4 sm:top-6 right-4 sm:right-6 z-20 flex items-center gap-2 pointer-events-auto hidden">
         <LogsDropdown />
         <button
           onClick={onToggleTheme}
@@ -2496,22 +2508,13 @@ function OverlaySegment({
 
       {visualState === "reduced-speed-zone" && (
         <>
-          <defs>
-            <mask id={`${segment.id}-mask`}>
-              <path
-                className="rsz-chevron-mask-path pointer-events-none"
-                d={segment.pathD}
-                style={{ pointerEvents: "none", stroke: "white", fill: "none" }}
-              />
-            </mask>
-          </defs>
           <path
             className="asset-alert-path delay-candy pointer-events-none"
             d={segment.pathD}
             style={{ pointerEvents: "none", stroke: chevronBg }}
           />
           <g
-            mask={`url(#${segment.id}-mask)`}
+            className="rsz-chevron-lanes"
             style={{ "--chevron-step": `${step}px` } as React.CSSProperties}
           >
             {renderForwardLane && (

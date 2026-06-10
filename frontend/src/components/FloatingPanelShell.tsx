@@ -17,7 +17,6 @@ export function FloatingPanelShell({
       data-floating-panel={panel}
       data-mobile-sheet-label={mobileSheetLabel ?? panel}
     >
-      <div className="mobile-sheet-grabber" aria-hidden="true" />
       <div className="floating-panel-scroll">
         {children}
       </div>

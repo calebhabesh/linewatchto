@@ -153,6 +153,9 @@ describe("floating menu layout", () => {
     assert.match(reducedSpeedZonesSource, /Unfocus/);
     assert.match(plannedClosuresSource, /Show on Map/);
     assert.match(plannedClosuresSource, /Unfocus/);
+    assert.match(shellSource, /MobileImpactInspector/);
+    assert.match(shellSource, /mobileImpactInspectorOpen/);
+    assert.match(shellSource, /mobileStationInspectorOpen/);
   });
 
   it("asserts those panels pass displayDirection", () => {
@@ -225,7 +228,7 @@ describe("floating menu layout", () => {
     assert.match(shellSource, /function viewForImpactSelection|const viewForImpactSelection = useCallback/);
     assert.match(shellSource, /nextSelection\.kind === "planned-closure"/);
     assert.match(shellSource, /activeAlerts\.some\(\(alert\) => alert\.id === nextSelection\.id\)/);
-    assert.match(shellSource, /setActiveView\(viewForImpactSelection\(nextSelection\)\)/);
+    assert.match(shellSource, /setActiveView\(.*viewForImpactSelection\(nextSelection\)\)/);
     assert.match(interactiveMapSource, /activeAlerts\.find\(\(alert\) => alert\.id === selection\.id\)\?\.affectedSegmentIds/);
     assert.match(interactiveMapSource, /activeAlerts\.find\(\(alert\) => alert\.id === impact\.cardId\)\?\.affectedSegmentIds/);
   });

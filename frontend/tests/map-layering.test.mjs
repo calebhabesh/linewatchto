@@ -62,13 +62,26 @@ describe("asset-backed map layering", () => {
     assert.match(interactiveMapSource, /setTimeout\([^,]+,\s*2500\s*\)/);
   });
 
+  it("renders reduced speed zone chevron glyphs without a clipping mask", () => {
+    const rszStart = interactiveMapSource.indexOf('{visualState === "reduced-speed-zone"');
+    const suspensionStart = interactiveMapSource.indexOf('{visualState === "suspension"', rszStart);
+    const rszBlock = interactiveMapSource.slice(rszStart, suspensionStart);
+
+    assert.ok(rszStart > -1, "reduced speed zone overlay branch must exist");
+    assert.ok(suspensionStart > rszStart, "suspension branch should follow reduced speed zone branch");
+    assert.match(rszBlock, /<AnimatedChevronLane/);
+    assert.match(rszBlock, /className="rsz-chevron-lanes"/);
+    assert.doesNotMatch(rszBlock, /className="rsz-chevron-mask-path/);
+    assert.doesNotMatch(rszBlock, /<g\s+mask=\{`url\(#\$\{segment\.id\}-mask\)`\}/);
+    assert.match(globalCss, /\.rsz-chevron-lanes\s*\{[^}]*overflow:\s*visible;/s);
+  });
+
   it("keeps all pulse and glow animations on one shared phase", () => {
     assert.match(globalCss, /--map-pulse-offset/);
     assert.match(globalCss, /\.asset-alert-path-glow\s*\{[^}]*animation-delay:\s*var\(--map-pulse-offset\);/s);
     assert.match(globalCss, /\.asset-alert-path\.delay-candy\s*\{[^}]*animation-delay:\s*var\(--map-pulse-offset\);/s);
     assert.match(globalCss, /\.asset-alert-path\.suspension-candy\s*\{[^}]*animation-delay:\s*var\(--map-pulse-offset\);/s);
     assert.match(globalCss, /\.delay-hourglass-mask-path,\s*\.suspension-mask-path\s*\{[^}]*animation-delay:\s*var\(--map-pulse-offset\);/s);
-    assert.match(globalCss, /\.rsz-chevron-mask-path\s*\{[^}]*animation-delay:\s*var\(--map-pulse-offset\);/s);
     assert.match(globalCss, /\.station-impact-ring\s*\{[^}]*animation-delay:\s*var\(--map-pulse-offset\);/s);
     assert.match(globalCss, /\.station-impact-dot-red-glow\s*\{[^}]*animation-delay:\s*var\(--map-pulse-offset\);/s);
   });
@@ -191,6 +204,17 @@ describe("asset-backed map layering", () => {
     assert.match(interactiveMapSource, /stationCenterPoints/);
     assert.match(interactiveMapSource, /stationPointFor/);
     assert.match(interactiveMapSource, /readSvgStationCenters/);
+  });
+
+  it("keeps alert and station focus flash elements wired for mobile-safe animation", () => {
+    assert.match(interactiveMapSource, /flashSelection/);
+    assert.match(interactiveMapSource, /flashStationId/);
+    assert.match(interactiveMapSource, /data-map-highlight-id=\{flashSelection\.id\}/);
+    assert.match(interactiveMapSource, /data-map-highlight-id=\{station\.id\}/);
+    assert.match(interactiveMapSource, /className="asset-alert-path map-selection-flash pointer-events-none"/);
+    assert.match(interactiveMapSource, /className="station-selection-flash"/);
+    assert.match(globalCss, /@keyframes map-selection-flash/);
+    assert.match(globalCss, /@keyframes station-selection-flash/);
   });
 
   it("renders saved commute path previews underneath active disruption overlays", () => {

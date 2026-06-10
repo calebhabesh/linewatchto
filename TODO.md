@@ -13,12 +13,14 @@
 - [x] Info Widget for guide on how to use/visualize web app, maybe fully integrated and static on the site like the cardinal direction
 - [ ] Consider adding directionality indicator for single station alerts
 - [ ] Updated date is still sometimes weird.
-- [ ] Grey bars on top of submenus is misleading as movable menus
 
 ## Mobile Web Overhaul
 - [ ] Use circular ui elements (bottom menu shape etc.)
-- [ ] Make sure everything fits in the web page view
-- [ ] Can't login, backend not available for station data.
+- [ ] Make cards opaque on mobile, or less transparent
+- [ ] Station Search needs to expand vertically down instead of to the side (replicate mobile search behaviour)
+- [ ] Use same desktop chevron as mobile
+- [ ] Landscape Mode to view better
+- [ ] Add back animations see implications on perf
 - [ ] PWA
 - [ ] GTFS Arrivals must be updated
 - [ ] Notifications on for the site, so that they can see when there are alerts on their saved commute routes. Active alerts are the worst, but reduced speed zones shouldn't be that crazy

@@ -18,8 +18,10 @@ export function SubwayClosedScreen({
     : formatResumeDuration(operatingState.minutesUntilResume);
 
   return (
-    <section className="subway-closed-screen" aria-labelledby="subway-closed-title">
-      <div className="subway-closed-content">
+    <>
+      <div className="subway-closed-backdrop" onClick={onPeekMap} />
+      <section className="subway-closed-screen" aria-labelledby="subway-closed-title">
+        <div className="subway-closed-content">
         <div className="subway-closed-icon-shell" aria-hidden="true">
           <Image
             src="/assets/linewatch/closed-alert.svg"
@@ -101,5 +103,6 @@ export function SubwayClosedScreen({
         </div>
       </div>
     </section>
+    </>
   );
 }

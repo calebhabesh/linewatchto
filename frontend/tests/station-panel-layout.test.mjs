@@ -95,7 +95,7 @@ describe("station detail panel layout", () => {
   });
 
   it("keeps the station panel constrained and touch friendly", () => {
-    assert.match(panelSource, /max-h-\[64vh\]/);
+    assert.match(panelSource, /max-h-\[calc\(var\(--visual-viewport-height,100dvh\)\*0\.64\)\]/);
     assert.match(panelSource, /h-11 w-11/);
     assert.match(panelSource, /overflow-y-auto/);
     assert.doesNotMatch(panelSource, /backdrop-blur/);
@@ -103,7 +103,7 @@ describe("station detail panel layout", () => {
 
   it("lets the desktop station panel size to content with a viewport max height", () => {
     assert.match(panelSource, /md:bottom-auto/);
-    assert.match(panelSource, /md:max-h-\[calc\(100vh-128px\)\]/);
+    assert.match(panelSource, /md:max-h-\[calc\(var\(--visual-viewport-height,100dvh\)-128px\)\]/);
     assert.doesNotMatch(panelSource, /md:bottom-6/);
     assert.doesNotMatch(panelSource, /md:max-h-none/);
   });

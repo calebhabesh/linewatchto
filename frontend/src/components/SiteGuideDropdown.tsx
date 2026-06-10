@@ -109,11 +109,15 @@ function OverlayAssetPreview({
   );
 }
 
-export function SiteGuideDropdown() {
+export function SiteGuideDropdown({ onOpenChange }: { onOpenChange?: (open: boolean) => void }) {
   const [isOpen, setIsOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const panelId = useId();
+
+  useEffect(() => {
+    onOpenChange?.(isOpen);
+  }, [isOpen, onOpenChange]);
 
   useEffect(() => {
     const mediaQuery = window.matchMedia("(max-width: 767px)");

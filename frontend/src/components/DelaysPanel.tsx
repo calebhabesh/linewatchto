@@ -13,18 +13,21 @@ interface Props {
   onSelectImpact: (selection: ImpactSelection) => void;
   onBack?: () => void;
   onClose?: () => void;
+  onFocusMap?: () => void;
 }
 
-export function DelaysPanel({ selection, onSelectImpact, onBack, onClose }: Props) {
+export function DelaysPanel({ selection, onSelectImpact, onBack, onClose, onFocusMap }: Props) {
   const { activeAlerts, delays, reducedSpeedZones, plannedClosures } = useDashboardData();
   useScrollSelectedImpactCard(selection, "delay");
 
   const handleDelayClick = (delayId: string) => {
+    const isActivating = !(selection?.kind === "delay" && selection.id === delayId);
     onSelectImpact(
-      selection?.kind === "delay" && selection.id === delayId
-        ? null
-        : { kind: "delay", id: delayId },
+      isActivating ? { kind: "delay", id: delayId } : null,
     );
+    if (isActivating && onFocusMap) {
+      onFocusMap();
+    }
   };
 
   return (

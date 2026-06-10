@@ -13,6 +13,7 @@ interface Props {
   onSelectImpact: (selection: ImpactSelection) => void;
   onBack?: () => void;
   onClose?: () => void;
+  onFocusMap?: () => void;
 }
 
 function impactKindForAlert(alert: ActiveAlert): Extract<ImpactKind, "suspension" | "delay"> {
@@ -24,17 +25,22 @@ export function ActiveAlertsPanel({
   onSelectImpact,
   onBack,
   onClose,
+  onFocusMap,
 }: Props) {
   const { activeAlerts, reducedSpeedZones, delays, plannedClosures } = useDashboardData();
   useScrollSelectedImpactCard(selection, "suspension");
 
   const handleAlertClick = (alert: ActiveAlert) => {
     const kind = impactKindForAlert(alert);
+    const isActivating = !(selection?.kind === kind && selection.id === alert.id);
+    
     onSelectImpact(
-      selection?.kind === kind && selection.id === alert.id
-        ? null
-        : { kind, id: alert.id },
+      isActivating ? { kind, id: alert.id } : null
     );
+    
+    if (isActivating && onFocusMap) {
+      onFocusMap();
+    }
   };
 
   const getSeverityColor = (severity: string) => {

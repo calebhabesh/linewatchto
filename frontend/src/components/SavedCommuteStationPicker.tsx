@@ -102,6 +102,7 @@ export function SavedCommuteStationPicker({
   );
   const results = useMemo(() => searchStations(stations, query, 8), [stations, query]);
   const lineGroups = useMemo(() => buildStationLineGroups(stations), [stations]);
+  const isExpanded = Boolean(expandedLineId) && !query.trim();
 
   useEffect(() => {
     if (!open) return;
@@ -197,6 +198,7 @@ export function SavedCommuteStationPicker({
               className="commute-station-popover"
               role="listbox"
               aria-label={`${label} station choices`}
+              data-expanded={isExpanded ? "true" : "false"}
               style={
                 coords
                   ? {
@@ -274,10 +276,33 @@ export function SavedCommuteStationPicker({
 
                   {expandedLineId ? (
                     <div className="commute-station-stations-column">
+                      <button
+                        type="button"
+                        className="commute-station-mobile-back"
+                        onClick={() => setExpandedLineId(null)}
+                      >
+                        Back to Lines
+                      </button>
                       <div className="commute-station-stations-column-header">
-                        <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                          {lineGroups.find((g) => g.line.id === expandedLineId)?.line.name} Stations
-                        </span>
+                        <div className="flex items-center gap-2 mb-3 px-1">
+                          {(() => {
+                            const line = lineGroups.find((g) => g.line.id === expandedLineId)?.line;
+                            if (!line) return null;
+                            return (
+                              <>
+                                <span
+                                  className="commute-station-line-badge"
+                                  style={{ backgroundColor: line.color, color: lineTextColor(line.id) }}
+                                >
+                                  {line.number}
+                                </span>
+                                <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                                  {line.name} Stations
+                                </span>
+                              </>
+                            );
+                          })()}
+                        </div>
                       </div>
                       <div className="commute-station-options">
                         {lineGroups

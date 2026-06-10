@@ -16,7 +16,7 @@ describe("subway operating hours", () => {
 
     assert.equal(state.status, "closed");
     assert.equal(state.title, "Subway closed overnight");
-    assert.equal(state.nextResumeLabel, "Today at 6:00 AM");
+    assert.equal(state.nextResumeLabel, "today at 6:00 AM");
     assert.equal(state.nextResumeTime, "6:00 AM");
     assert.equal(state.minutesUntilResume, 165);
     assert.equal(isSubwayClosed(new Date("2026-06-04T03:15:00-04:00")), true);
@@ -28,7 +28,7 @@ describe("subway operating hours", () => {
     assert.equal(state.status, "open");
     assert.equal(state.nextResumeLabel, null);
     assert.equal(state.minutesUntilResume, null);
-    assert.equal(state.nextCloseLabel, "Today at 2:00 AM");
+    assert.equal(state.nextCloseLabel, "today at 2:00 AM");
     assert.equal(state.minutesUntilClose, 15);
     assert.equal(state.closingSoon, true);
   });
@@ -39,7 +39,7 @@ describe("subway operating hours", () => {
     const closedState = getSubwayOperatingState(new Date("2026-06-04T03:15:00-04:00"));
 
     assert.equal(warningState.status, "open");
-    assert.equal(warningState.nextCloseLabel, "Today at 2:00 AM");
+    assert.equal(warningState.nextCloseLabel, "today at 2:00 AM");
     assert.equal(warningState.minutesUntilClose, 75);
     assert.equal(warningState.closingSoon, true);
 
@@ -71,7 +71,7 @@ describe("subway operating hours", () => {
     const openState = getSubwayOperatingState(new Date("2026-06-07T08:05:00-04:00"));
 
     assert.equal(closedState.status, "closed");
-    assert.equal(closedState.nextResumeLabel, "Today at 8:00 AM");
+    assert.equal(closedState.nextResumeLabel, "today at 8:00 AM");
     assert.equal(closedState.minutesUntilResume, 30);
     assert.equal(openState.status, "open");
   });
@@ -79,7 +79,7 @@ describe("subway operating hours", () => {
   it("shows Monday early morning as open before 2 a.m. and closed after 2 a.m.", () => {
     assert.equal(getSubwayOperatingState(new Date("2026-06-08T01:10:00-04:00")).status, "open");
     assert.equal(getSubwayOperatingState(new Date("2026-06-08T05:55:00-04:00")).status, "closed");
-    assert.equal(getSubwayOperatingState(new Date("2026-06-08T05:55:00-04:00")).nextResumeLabel, "Today at 6:00 AM");
+    assert.equal(getSubwayOperatingState(new Date("2026-06-08T05:55:00-04:00")).nextResumeLabel, "today at 6:00 AM");
   });
 
   it("exposes exact copy used by the closed screen", () => {

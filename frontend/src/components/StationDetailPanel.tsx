@@ -207,7 +207,7 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
 
   return (
     <aside
-      className="station-detail-panel fixed left-0 right-0 bottom-0 z-30 max-h-[64vh] overflow-y-auto rounded-t-lg border border-black/10 bg-white p-4 text-slate-900 shadow-2xl dark:border-white/10 dark:bg-[#0a0c10] dark:text-white md:left-auto md:right-6 md:top-[104px] md:bottom-auto md:w-[min(calc(100vw-48px),390px)] md:max-h-[calc(100vh-128px)] md:rounded-lg"
+      className="station-detail-panel fixed left-0 right-0 bottom-0 z-45 max-h-[calc(var(--visual-viewport-height,100dvh)*0.64)] overflow-y-auto rounded-t-lg border border-black/10 bg-white p-4 text-slate-900 shadow-2xl dark:border-white/10 dark:bg-[#0a0c10] dark:text-white md:left-auto md:right-6 md:top-[104px] md:bottom-auto md:w-[min(calc(100vw-48px),390px)] md:max-h-[calc(var(--visual-viewport-height,100dvh)-128px)] md:rounded-lg"
       aria-live="polite"
       aria-label={station ? `${station.name} station details` : "Station details"}
     >

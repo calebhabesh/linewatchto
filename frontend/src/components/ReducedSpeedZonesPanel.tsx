@@ -18,6 +18,7 @@ interface Props {
   onSelectImpact: (selection: ImpactSelection) => void;
   onBack?: () => void;
   onClose?: () => void;
+  onFocusMap?: () => void;
 }
 
 export function ReducedSpeedZonesPanel({
@@ -25,16 +26,19 @@ export function ReducedSpeedZonesPanel({
   onSelectImpact,
   onBack,
   onClose,
+  onFocusMap,
 }: Props) {
   const { activeAlerts, delays, reducedSpeedZones, plannedClosures } = useDashboardData();
   useScrollSelectedImpactCard(selection, "reduced-speed-zone");
 
   const handleReducedSpeedZoneClick = (alertId: string) => {
+    const isActivating = !(selection?.kind === "reduced-speed-zone" && selection.id === alertId);
     onSelectImpact(
-      selection?.kind === "reduced-speed-zone" && selection.id === alertId
-        ? null
-        : { kind: "reduced-speed-zone", id: alertId },
+      isActivating ? { kind: "reduced-speed-zone", id: alertId } : null,
     );
+    if (isActivating && onFocusMap) {
+      onFocusMap();
+    }
   };
 
   return (

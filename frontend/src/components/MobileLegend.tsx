@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import Image from "next/image";
 
 const LINES = [
@@ -11,15 +10,24 @@ const LINES = [
   { id: "line-6", name: "Line 6 Finch West", icon: "/assets/linewatch/line-6-legend.svg?v=2" },
 ];
 
-export function MobileLegend() {
-  const [expanded, setExpanded] = useState(false);
-
+export function MobileLegend({ 
+  closingSoon, 
+  expanded = false, 
+  onToggleExpanded,
+}: { 
+  closingSoon?: boolean;
+  expanded?: boolean;
+  onToggleExpanded?: () => void;
+}) {
   return (
     <div
-      onClick={() => setExpanded(!expanded)}
-      className={`mobile-legend-pill fixed top-4 left-4 z-40 flex flex-col gap-1.5 p-2 bg-white/95 dark:bg-[#0a0c10]/95 border border-black/10 dark:border-white/10 rounded-xl shadow-xl transition-all duration-300 ease-in-out cursor-pointer select-none md:hidden ${
+      onClick={onToggleExpanded}
+      className={`mobile-legend-pill fixed left-4 flex flex-col gap-1.5 p-2 bg-white/95 dark:bg-[#0a0c10]/95 border border-black/10 dark:border-white/10 rounded-xl shadow-xl transition-all duration-300 ease-in-out cursor-pointer select-none md:hidden ${
+        closingSoon ? "top-[80px]" : "top-4"
+      } ${
         expanded ? "w-[220px]" : "w-[36px]"
       }`}
+      style={{ zIndex: expanded ? 41 : 35 }}
       role="button"
       aria-expanded={expanded}
       aria-label="Transit line legend"

@@ -13,18 +13,21 @@ interface Props {
   onSelectImpact: (selection: ImpactSelection) => void;
   onBack?: () => void;
   onClose?: () => void;
+  onFocusMap?: () => void;
 }
 
-export function PlannedClosuresPanel({ selection, onSelectImpact, onBack, onClose }: Props) {
+export function PlannedClosuresPanel({ selection, onSelectImpact, onBack, onClose, onFocusMap }: Props) {
   const { activeAlerts, delays, reducedSpeedZones, plannedClosures } = useDashboardData();
   useScrollSelectedImpactCard(selection, "planned-closure");
 
   const handleClosureClick = (closureId: string) => {
+    const isActivating = !(selection?.kind === "planned-closure" && selection.id === closureId);
     onSelectImpact(
-      selection?.kind === "planned-closure" && selection.id === closureId
-        ? null
-        : { kind: "planned-closure", id: closureId },
+      isActivating ? { kind: "planned-closure", id: closureId } : null,
     );
+    if (isActivating && onFocusMap) {
+      onFocusMap();
+    }
   };
 
   return (
