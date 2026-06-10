@@ -27,10 +27,10 @@ export function DynamicBackground({
         baseColor="#1b2a36"
         activeColor="#9E2F2F"
         proximity={100}
-        shockRadius={90}
-        shockStrength={1}
-        resistance={1900}
-        returnDuration={1.2}
+        shockRadius={100}
+        shockStrength={3}
+        resistance={1250} 
+        returnDuration={3.9}
       />
     </div>
   );

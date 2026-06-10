@@ -15,14 +15,11 @@
 - [ ] Updated date is still sometimes weird.
 
 ## Mobile Web Overhaul
-- [ ] Use circular ui elements (bottom menu shape etc.)
-- [ ] Make cards opaque on mobile, or less transparent
-- [ ] Station Search needs to expand vertically down instead of to the side (replicate mobile search behaviour)
-- [ ] Use same desktop chevron as mobile
-- [ ] Landscape Mode to view better
-- [ ] Add back animations see implications on perf
+- [ ] Allow app to be fully usable in landscape mode maybe
+- [ ] Bolster security of web app
 - [ ] PWA
-- [ ] GTFS Arrivals must be updated
+- [ ] PWA Guide "Add website as app" in info section
+- [ ] GTFS Arrivals must be updated often when deployed find solution
 - [ ] Notifications on for the site, so that they can see when there are alerts on their saved commute routes. Active alerts are the worst, but reduced speed zones shouldn't be that crazy
 
 ## Future Additions

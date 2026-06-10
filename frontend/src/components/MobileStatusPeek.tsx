@@ -4,6 +4,25 @@ import { AlertTriangle, Calendar, Construction, Locate } from "lucide-react";
 import { DelayIcon } from "./DelayIcon";
 import type { LineStatus } from "../app/linewatch-data";
 
+function BellFilledIcon({ size = 12 }: { size?: number }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 28 28"
+      fill="currentColor"
+      aria-hidden="true"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <g stroke="none" strokeWidth="1" fill="none" fillRule="evenodd">
+        <g transform="translate(-364, -882)" fill="currentColor">
+          <path d="M388,900 L388,892 C388,886.478 383.522,882 378,882 C372.478,882 368,886.478 368,892 L368,900 L364,908 L375.184,908 C375.597,909.163 376.695,910 378,910 C379.305,910 380.403,909.163 380.816,908 L392,908 L388,900" />
+        </g>
+      </g>
+    </svg>
+  );
+}
+
 type Props = {
   lineStatuses: LineStatus[];
   activeAlertCount: number;
@@ -54,10 +73,22 @@ export function MobileStatusPeek({
         aria-label="Open current service status"
       >
         <span className="mobile-status-peek-main">
-          <span className="mobile-status-peek-title" style={impactCount > 0 ? { color: "#F8C300" } : undefined}>
+          <span className="mobile-status-peek-title">
+            {impactCount > 0 && (
+              <span className="mobile-status-peek-alert-icon" aria-hidden="true">
+                <BellFilledIcon size={12} />
+              </span>
+            )}
             {titleText}
           </span>
-          <span className="mobile-status-peek-source">{sourceLabel}</span>
+          {sourceLabel.startsWith("Updated") ? (
+            <span className="mobile-status-peek-source mobile-status-peek-source--updated">
+              <span className="mobile-status-peek-live-dot" aria-hidden="true" />
+              {sourceLabel}
+            </span>
+          ) : (
+            <span className="mobile-status-peek-source">{sourceLabel}</span>
+          )}
           <span className="sr-only">
             Lines covered: {lineStatuses.map((line) => `Line ${line.number}`).join(", ")}
           </span>

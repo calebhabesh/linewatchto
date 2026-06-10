@@ -37,6 +37,36 @@ export type PanZoomPoint = {
   y: number;
 };
 
+export type MapViewportOrientation = "standard" | "rotated-landscape";
+
+export type ViewportClientRect = {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+};
+
+export function clientPointToLogicalViewportPoint(
+  clientPoint: PanZoomPoint,
+  rect: ViewportClientRect,
+  orientation: MapViewportOrientation = "standard",
+): PanZoomPoint {
+  const visualX = clientPoint.x - rect.left;
+  const visualY = clientPoint.y - rect.top;
+
+  if (orientation === "rotated-landscape") {
+    return {
+      x: visualY,
+      y: rect.width - visualX,
+    };
+  }
+
+  return {
+    x: visualX,
+    y: visualY,
+  };
+}
+
 export function midpointBetweenPoints(a: PanZoomPoint, b: PanZoomPoint): PanZoomPoint {
   return {
     x: (a.x + b.x) / 2,

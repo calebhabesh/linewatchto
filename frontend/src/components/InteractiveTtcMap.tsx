@@ -17,6 +17,7 @@ import {
   type PathFrame,
 } from "../app/map-geometry";
 import { usePanZoom } from "../hooks/usePanZoom";
+import type { MapViewportOrientation } from "../hooks/panZoomMath";
 import { ZoomIn, ZoomOut, Locate, Sun, Moon } from "lucide-react";
 import { useDashboardData } from "../app/DataContext";
 import type {
@@ -159,6 +160,7 @@ function InteractiveTtcMapComponent({
   reducedMotion,
   commutePathPreview,
   onClearCommutePathPreview,
+  viewportOrientation = "standard",
 }: {
   selection: ImpactSelection;
   onSelectImpact: (selection: ImpactSelection) => void;
@@ -172,6 +174,7 @@ function InteractiveTtcMapComponent({
   reducedMotion: boolean;
   commutePathPreview?: AccountCommutePathPreview | null;
   onClearCommutePathPreview?: () => void;
+  viewportOrientation?: MapViewportOrientation;
 }) {
   const { networkSegments, activeAlerts, delays, reducedSpeedZones, plannedClosures, stationNodeImpacts, stations: mapStations } = useDashboardData();
   const [svgParts, setSvgParts] = useState<{ part1: string; part2: string } | null>(null);
@@ -204,6 +207,7 @@ function InteractiveTtcMapComponent({
     transform,
     relativeScale,
     isDragging,
+    isGestureActive,
     containerRef,
     mapRef,
     handlePointerDown,
@@ -217,7 +221,7 @@ function InteractiveTtcMapComponent({
     zoomOut,
     zoomToScale,
     zoomToPoint,
-  } = usePanZoom({ reducedMotion });
+  } = usePanZoom({ reducedMotion, viewportOrientation });
 
   // Load SVG
   useEffect(() => {
@@ -353,6 +357,8 @@ function InteractiveTtcMapComponent({
 
     const currentLayoutSignal = layoutResetSignal ?? 0;
 
+    if (isGestureActive) return;
+
     if (!focusTargetKey) {
       if (lastFocusedTargetKeyRef.current !== null) {
         lastFocusedTargetKeyRef.current = null;
@@ -416,6 +422,7 @@ function InteractiveTtcMapComponent({
     }
   }, [
     focusTargetKey,
+    isGestureActive,
     selection,
     selectedStationId,
     selectedSegmentIds,
@@ -671,7 +678,12 @@ function InteractiveTtcMapComponent({
 
 
   return (
-    <div ref={mapRootRef} className="relative w-full h-full flex flex-col overflow-hidden bg-transparent">
+    <div
+      ref={mapRootRef}
+      className={`relative w-full h-full flex flex-col overflow-hidden bg-transparent ${isGestureActive ? "map-gesture-active" : ""}`}
+      data-map-viewport-orientation={viewportOrientation}
+      data-map-gesture-active={isGestureActive ? "true" : "false"}
+    >
       {/* Top right Theme toggle (styled like hamburger) and poll chip */}
       <div className="map-utility-cluster absolute top-4 sm:top-6 right-4 sm:right-6 z-20 flex items-center gap-2 pointer-events-auto hidden">
         <LogsDropdown />

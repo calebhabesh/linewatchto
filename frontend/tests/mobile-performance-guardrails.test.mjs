@@ -153,4 +153,15 @@ describe("mobile performance guardrails", () => {
     assert.match(panZoomSource, /const handlePointerLeave = useCallback/);
     assert.match(panZoomSource, /e\.pointerType !== "mouse"/);
   });
+
+  it("pauses expensive overlay paint effects only while map gestures are active", () => {
+    assert.match(globalCss, /\.map-gesture-active \.asset-alert-path-glow/);
+    assert.match(globalCss, /\.map-gesture-active \.interactive-glow/);
+    assert.match(globalCss, /\.map-gesture-active \.station-impact-ring/);
+    assert.match(globalCss, /\.map-gesture-active \.station-impact-dot-red-glow/);
+    assert.match(globalCss, /\.map-gesture-active \.station-impact-dot-red-ping/);
+    assert.match(globalCss, /animation:\s*none\s*!important/);
+    assert.match(globalCss, /transition:\s*none\s*!important/);
+    assert.match(globalCss, /filter:\s*none\s*!important/);
+  });
 });

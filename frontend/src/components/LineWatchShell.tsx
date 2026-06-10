@@ -16,6 +16,8 @@ import { ReliabilityPanel } from "./ReliabilityPanel";
 import { FloatingPanelShell } from "./FloatingPanelShell";
 import { MobileBottomNav, type MobileNavKey } from "./MobileBottomNav";
 import { MobileStatusPeek } from "./MobileStatusPeek";
+import { MobileMapControls, PhoneRotateLandscapeIcon, type MapPresentationMode } from "./MobileMapControls";
+import { RotatedMapSelectionCard } from "./RotatedMapSelectionCard";
 import { MobileImpactInspector, type MobileInspectorDetent } from "./MobileImpactInspector";
 import { MobileStatusSheet } from "./MobileStatusSheet";
 import { MobileMoreSheet } from "./MobileMoreSheet";
@@ -120,6 +122,7 @@ export function LineWatchShell({
   const lastActiveViewRef = useRef<ActiveView>("map");
   const [mobileInspectorDetent, setMobileInspectorDetent] = useState<MobileInspectorDetent>("map-focus");
   const [mapLayoutSignal, setMapLayoutSignal] = useState(0);
+  const [mapPresentationMode, setMapPresentationMode] = useState<MapPresentationMode>("standard");
 
   useEffect(() => {
     const mediaQuery = window.matchMedia("(max-width: 767px)");
@@ -167,6 +170,22 @@ export function LineWatchShell({
       lastActiveViewRef.current = activeView;
     }
   }, [activeView]);
+
+  useEffect(() => {
+    if (!isMobile && mapPresentationMode !== "standard") {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setMapPresentationMode("standard");
+    }
+  }, [isMobile, mapPresentationMode]);
+
+  useEffect(() => {
+    if (!isMobile) return;
+    const timer = window.setTimeout(() => {
+      setMapLayoutSignal((current) => current + 1);
+    }, mapPresentationMode === "rotated-landscape" ? 90 : 50);
+
+    return () => window.clearTimeout(timer);
+  }, [isMobile, mapPresentationMode]);
 
   const clock = useTorontoClock(generatedAt.time);
   const [recenterSignal, setRecenterSignal] = useState(0);
@@ -631,6 +650,7 @@ export function LineWatchShell({
     setSelectedStationId(null);
     setCommutePathPreview(null);
     setMobileInspectorDetent("map-focus");
+    setMapPresentationMode("standard");
     switch (key) {
       case "status":
         setActiveView("status");
@@ -653,6 +673,7 @@ export function LineWatchShell({
   const handleMobileSheetClose = useCallback(() => {
     setActiveView("map");
     setSelection(null);
+    setMapPresentationMode("standard");
     setMobileInspectorDetent("map-focus");
   }, [setActiveView, setSelection]);
 
@@ -700,6 +721,7 @@ export function LineWatchShell({
     setActiveView("map");
     setSelection(null);
     setSelectedStationId(null);
+    setMapPresentationMode("standard");
     router.refresh();
   };
 
@@ -707,6 +729,21 @@ export function LineWatchShell({
   const handleToggleTheme = useCallback(() => {
     setIsDark((current) => !current);
   }, [setIsDark]);
+
+  const handleOpenRotatedSelectionDetails = useCallback(() => {
+    setMapPresentationMode("standard");
+    setMobileInspectorDetent("details-focus");
+    setActiveView("map");
+    window.setTimeout(() => {
+      setMapLayoutSignal((current) => current + 1);
+    }, 60);
+  }, [setActiveView, setMapLayoutSignal, setMobileInspectorDetent, setMapPresentationMode]);
+
+  const handleClearRotatedSelection = useCallback(() => {
+    setSelection(null);
+    setSelectedStationId(null);
+    setMobileInspectorDetent("map-focus");
+  }, [setMobileInspectorDetent, setSelectedStationId, setSelection]);
 
   const isMobilePanel = isMobile && (
     activeView === "status" ||
@@ -936,8 +973,14 @@ export function LineWatchShell({
     ) : null
   ) : null;
 
+  const rotatedMapMode =
+    isMobile &&
+    mapPresentationMode === "rotated-landscape" &&
+    !showClosedScreen;
+
   const mobileImpactInspectorOpen =
     isMobile &&
+    mapPresentationMode === "standard" &&
     activeView === "map" &&
     Boolean(selection) &&
     !selectedStationId &&
@@ -947,6 +990,7 @@ export function LineWatchShell({
 
   const mobileStationInspectorOpen =
     isMobile &&
+    mapPresentationMode === "standard" &&
     activeView === "map" &&
     Boolean(selectedStationId) &&
     !accountDialogMode &&
@@ -954,13 +998,16 @@ export function LineWatchShell({
 
   const mobileInspectorOpen = mobileImpactInspectorOpen || mobileStationInspectorOpen;
 
-  const shellInspectorClasses = mobileInspectorOpen
-    ? [
-        "mobile-map-inspector",
-        mobileImpactInspectorOpen ? "mobile-map-inspector-impact" : "mobile-map-inspector-station",
-        `mobile-map-inspector-${mobileInspectorDetent}`,
-      ].join(" ")
-    : "";
+  const shellInspectorClasses = [
+    mobileInspectorOpen
+      ? [
+          "mobile-map-inspector",
+          mobileImpactInspectorOpen ? "mobile-map-inspector-impact" : "mobile-map-inspector-station",
+          `mobile-map-inspector-${mobileInspectorDetent}`,
+        ].join(" ")
+      : "",
+    rotatedMapMode ? "mobile-map-rotated" : "",
+  ].filter(Boolean).join(" ");
 
   useEffect(() => {
     if (!mobileInspectorOpen) return;
@@ -1356,6 +1403,21 @@ export function LineWatchShell({
           >
             {isDark ? <Sun size={24} className="text-slate-800 dark:text-white" /> : <Moon size={24} className="text-slate-800 dark:text-white" />}
           </button>
+          {activeView === "map" && !accountDialogMode && !mobileInspectorOpen && !selectedStationId && !commutePathPreview && (
+            <button
+              onClick={() => {
+                setMapPresentationMode("rotated-landscape");
+                setActiveView("map");
+              }}
+              className="rotate-map-btn panel flex items-center justify-center gap-1.5 px-2.5 rounded-xl border border-black/10 dark:border-white/10 shadow-lg hover:!bg-slate-100 dark:hover:!bg-[#1a1e28] hover:scale-105 active:scale-95 outline-none focus-visible:ring-4 focus-visible:ring-black/10 dark:focus-visible:ring-white/10 transition-all cursor-pointer bg-white dark:bg-[#0a0c10] h-10 md:hidden"
+              aria-label="Rotate map"
+            >
+              <PhoneRotateLandscapeIcon size={20} />
+              <span className="text-[9px] font-black leading-[1.1] text-left uppercase tracking-wider text-slate-800 dark:text-white">
+                Rotate<br />Map
+              </span>
+            </button>
+          )}
           <SiteGuideDropdown onOpenChange={setGuideOpen} />
         </div>
       </header>
@@ -1379,6 +1441,7 @@ export function LineWatchShell({
           reducedMotion={reducedMotion}
           commutePathPreview={commutePathPreview}
           onClearCommutePathPreview={handleClearCommutePathPreview}
+          viewportOrientation={rotatedMapMode ? "rotated-landscape" : "standard"}
         />
 
         {subwayOperatingState.status === "closed" && closedMapPeek ? (
@@ -1392,6 +1455,23 @@ export function LineWatchShell({
             </button>
           </div>
         ) : null}
+
+        {rotatedMapMode ? (
+          <div className="rotated-map-hud" aria-label="Rotated map controls">
+            <MobileMapControls
+              presentationMode="rotated-landscape"
+              onExitRotated={() => setMapPresentationMode("standard")}
+              onRecenter={() => setRecenterSignal((prev) => prev + 1)}
+            />
+            <RotatedMapSelectionCard
+              selection={selection}
+              selectedStationId={selectedStationId}
+              stations={stationSummaries}
+              onOpenDetails={handleOpenRotatedSelectionDetails}
+              onClearSelection={handleClearRotatedSelection}
+            />
+          </div>
+        ) : null}
       </main>
 
       {!showClosedScreen && (
@@ -1402,7 +1482,7 @@ export function LineWatchShell({
         />
       )}
 
-      {!showClosedScreen && selectedStationId && (
+      {!showClosedScreen && !rotatedMapMode && selectedStationId && (
         <StationDetailPanel
           stationResult={visibleStationResult}
           loading={stationLoading}
@@ -1462,7 +1542,8 @@ export function LineWatchShell({
         />
       ) : null}
 
-      {!showClosedScreen && activeView === "map" && !selection && !selectedStationId && !accountDialogMode && !commutePathPreview ? (
+
+      {!showClosedScreen && !rotatedMapMode && activeView === "map" && !selection && !selectedStationId && !accountDialogMode && !commutePathPreview ? (
         <MobileStatusPeek
           lineStatuses={lineStatuses}
           activeAlertCount={activeAlerts.length}
@@ -1480,7 +1561,7 @@ export function LineWatchShell({
         />
       ) : null}
 
-      {!showClosedScreen && !mobileInspectorOpen && !selectedStationId && !accountDialogMode ? (
+      {!showClosedScreen && !rotatedMapMode && !mobileInspectorOpen && !selectedStationId && !accountDialogMode ? (
         /* aria-label="Primary mobile navigation" */
         <MobileBottomNav
           activeKey={mobileNavKey}

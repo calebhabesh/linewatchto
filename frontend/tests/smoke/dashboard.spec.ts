@@ -349,6 +349,53 @@ test("mobile keeps lightweight map focus flashes and menu transitions", async ({
   expect(navTransitionProperty).not.toContain("width");
 });
 
+test("mobile rotated map mode keeps station and impact selections in the rotated HUD", async ({ page, request, isMobile }) => {
+  test.skip(!isMobile, "mobile-only rotated map smoke");
+  await setStubMode(request, "seeded");
+  await page.goto("/");
+  await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
+
+  await page.getByRole("button", { name: "Rotate map" }).click();
+  const shell = page.locator(".linewatch-shell");
+  await expect(shell).toHaveClass(/mobile-map-rotated/);
+  await expect(page.getByRole("navigation", { name: "Primary mobile navigation" })).toHaveCount(0);
+  await expect(page.locator(".mobile-status-peek")).toHaveCount(0);
+
+  const mainDimensions = await page.locator(".linewatch-shell > main").evaluate((element) => ({
+    clientWidth: element.clientWidth,
+    clientHeight: element.clientHeight,
+    visualWidth: element.getBoundingClientRect().width,
+    visualHeight: element.getBoundingClientRect().height,
+  }));
+  expect(mainDimensions.clientWidth).toBeGreaterThan(mainDimensions.clientHeight);
+  expect(mainDimensions.visualHeight).toBeGreaterThan(mainDimensions.visualWidth);
+
+  await page.getByRole("button", { name: "delay: Sheppard-Yonge to Don Mills" }).dispatchEvent("click");
+  await expect(page.locator('[data-map-highlight-id="stub-delay-line-4"]')).toBeAttached();
+  await expect(page.locator("[data-mobile-impact-inspector]")).toHaveCount(0);
+  await expect(page.locator("[data-rotated-map-selection-card]")).toBeVisible();
+  await expect(page.locator("[data-rotated-map-selection-card]")).toContainText("Selected Service Impact");
+  await expect(page.locator("[data-rotated-map-selection-card]")).toContainText("Sheppard-Yonge");
+
+  await page.locator("[data-rotated-map-selection-card]").getByRole("button", { name: "Details" }).click();
+  await expect(shell).not.toHaveClass(/mobile-map-rotated/);
+  const inspector = page.locator("[data-mobile-impact-inspector]");
+  await expect(inspector).toBeVisible();
+  await expect(inspector).toContainText("Delay");
+
+  await inspector.getByRole("button", { name: "Unfocus impact" }).click();
+  await page.getByRole("button", { name: "Rotate map" }).click();
+  await page.getByRole("button", { name: "Stub Station station details" }).click();
+  await expect(page.locator("[data-rotated-map-selection-card]")).toBeVisible();
+  await expect(page.locator("[data-rotated-map-selection-card]")).toContainText("Selected Station");
+  await expect(page.locator("[data-rotated-map-selection-card]")).toContainText("Stub Station");
+  await expect(page.getByRole("complementary", { name: "Stub Station station details" })).toHaveCount(0);
+
+  await page.locator("[data-rotated-map-selection-card]").getByRole("button", { name: "Details" }).click();
+  await expect(shell).not.toHaveClass(/mobile-map-rotated/);
+  await expect(page.getByRole("complementary", { name: "Stub Station station details" })).toBeVisible();
+});
+
 test("station detail shows accessibility facilities and active outage warning", async ({ page, request, isMobile }) => {
   await setStubMode(request, "seeded");
   await page.goto("/");

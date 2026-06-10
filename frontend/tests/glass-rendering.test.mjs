@@ -41,10 +41,10 @@ describe("frosted glass rendering", () => {
     assert.match(dynamicBackgroundSource, /baseColor="#1b2a36"/);
     assert.match(dynamicBackgroundSource, /activeColor="#9E2F2F"/);
     assert.match(dynamicBackgroundSource, /proximity=\{100\}/);
-    assert.match(dynamicBackgroundSource, /shockRadius=\{90\}/);
-    assert.match(dynamicBackgroundSource, /shockStrength=\{1\}/);
-    assert.match(dynamicBackgroundSource, /resistance=\{1900\}/);
-    assert.match(dynamicBackgroundSource, /returnDuration=\{1\.2\}/);
+    assert.match(dynamicBackgroundSource, /shockRadius=\{100\}/);
+    assert.match(dynamicBackgroundSource, /shockStrength=\{3\}/);
+    assert.match(dynamicBackgroundSource, /resistance=\{1250\}\s*/);
+    assert.match(dynamicBackgroundSource, /returnDuration=\{3\.9\}/);
     assert.doesNotMatch(dynamicBackgroundSource, /import\("three"\)/);
     assert.doesNotMatch(dynamicBackgroundSource, /vanta/i);
     assert.equal(packageJson.dependencies.gsap, "^3.13.0");

@@ -1,24 +1,31 @@
 import { useState, useCallback, useRef, useEffect, type PointerEvent, type WheelEvent } from "react";
 import {
   clampPanZoomScale,
+  clientPointToLogicalViewportPoint,
   currentDevicePixelRatio,
   distanceBetweenPoints,
   mapPointFromViewportPoint,
   midpointBetweenPoints,
   snapTransformToDevicePixels,
   transformForMapPointAtViewportPoint,
+  type MapViewportOrientation,
   type PanZoomPoint,
   type PanZoomTransform,
 } from "./panZoomMath";
 
 type UsePanZoomOptions = {
   reducedMotion?: boolean;
+  viewportOrientation?: MapViewportOrientation;
 };
 
-export function usePanZoom({ reducedMotion = false }: UsePanZoomOptions = {}) {
+export function usePanZoom({
+  reducedMotion = false,
+  viewportOrientation = "standard",
+}: UsePanZoomOptions = {}) {
   const [transform, setTransform] = useState({ x: 0, y: 0, scale: 1 });
   const [fitScale, setFitScale] = useState(1);
   const [isDragging, setIsDragging] = useState(false);
+  const [isGestureActive, setIsGestureActive] = useState(false);
   const animTimeoutRef = useRef<number | null>(null);
   const programmaticAnimationFrameRef = useRef<number | null>(null);
   const startPos = useRef({ x: 0, y: 0 });
@@ -119,6 +126,10 @@ export function usePanZoom({ reducedMotion = false }: UsePanZoomOptions = {}) {
   }, [clearProgrammaticAnimation, currentRenderedTransform, restoreIdleMapTransition, writeMapTransform]);
 
   const animateTransformTo = useCallback((next: PanZoomTransform, nextFitScale?: number) => {
+    if (isGestureActiveRef.current) {
+      return;
+    }
+
     const snapped = snapTransform(next);
     transformRef.current = snapped;
 
@@ -247,16 +258,31 @@ export function usePanZoom({ reducedMotion = false }: UsePanZoomOptions = {}) {
     return () => observer.disconnect();
   }, []);
 
-  const pointerPointFromEvent = useCallback((event: PointerEvent<HTMLDivElement>): PanZoomPoint => {
-    const rect = containerRef.current?.getBoundingClientRect();
-    if (!rect) {
-      return { x: event.clientX, y: event.clientY };
-    }
+  const logicalViewportSize = useCallback(() => {
+    const element = containerRef.current;
+    if (!element) return { width: 0, height: 0 };
     return {
-      x: event.clientX - rect.left,
-      y: event.clientY - rect.top,
+      width: element.clientWidth,
+      height: element.clientHeight,
     };
   }, []);
+
+  const pointFromClientPoint = useCallback((clientX: number, clientY: number): PanZoomPoint => {
+    const rect = containerRef.current?.getBoundingClientRect();
+    if (!rect) {
+      return { x: clientX, y: clientY };
+    }
+
+    return clientPointToLogicalViewportPoint(
+      { x: clientX, y: clientY },
+      rect,
+      viewportOrientation,
+    );
+  }, [viewportOrientation]);
+
+  const pointerPointFromEvent = useCallback((event: PointerEvent<HTMLDivElement>): PanZoomPoint => {
+    return pointFromClientPoint(event.clientX, event.clientY);
+  }, [pointFromClientPoint]);
 
   const pointersArray = useCallback(() => {
     return Array.from(activePointersRef.current.values());
@@ -304,6 +330,7 @@ export function usePanZoom({ reducedMotion = false }: UsePanZoomOptions = {}) {
 
   const startGestureInteraction = useCallback((pointerType: string) => {
     isGestureActiveRef.current = true;
+    setIsGestureActive(true);
     setMapTransition("none");
     if (pointerType === "mouse") {
       setIsDragging(true);
@@ -416,6 +443,7 @@ export function usePanZoom({ reducedMotion = false }: UsePanZoomOptions = {}) {
       return;
     }
 
+    setIsGestureActive(false);
     isGestureActiveRef.current = false;
     activeDragPointerIdRef.current = null;
     activePointersRef.current.clear();
@@ -440,9 +468,7 @@ export function usePanZoom({ reducedMotion = false }: UsePanZoomOptions = {}) {
   const handleWheel = useCallback((e: WheelEvent<HTMLDivElement>) => {
     if (!containerRef.current) return;
     
-    const rect = containerRef.current.getBoundingClientRect();
-    const mouseX = e.clientX - rect.left;
-    const mouseY = e.clientY - rect.top;
+    const { x: mouseX, y: mouseY } = pointFromClientPoint(e.clientX, e.clientY);
 
     const zoomSensitivity = 0.001;
     const delta = -e.deltaY * zoomSensitivity;
@@ -457,29 +483,31 @@ export function usePanZoom({ reducedMotion = false }: UsePanZoomOptions = {}) {
 
       return snappedTransformFrom({ x: newX, y: newY, scale: newScale });
     });
-  }, [fitScale, snappedTransformFrom]);
+  }, [fitScale, pointFromClientPoint, snappedTransformFrom]);
 
   const recenter = useCallback(() => {
     if (!containerRef.current) return;
-    const rect = containerRef.current.getBoundingClientRect();
+    const { width, height } = logicalViewportSize();
+    if (width <= 0 || height <= 0) return;
     const mapWidth = 4500;
     const mapHeight = 2181.82; // Aspect ratio height for 4500px width with 82.5:40 viewBox
     
     // Scale to fit exactly within the viewport
-    const scale = Math.min(rect.width / mapWidth, rect.height / mapHeight);
+    const scale = Math.min(width / mapWidth, height / mapHeight);
     
     // Center offsets based on visual content midpoint (x = 50%, y = 43.5% of map height)
-    const x = rect.width / 2 - (mapWidth / 2) * scale;
-    const y = rect.height / 2 - (mapHeight * 0.435) * scale;
+    const x = width / 2 - (mapWidth / 2) * scale;
+    const y = height / 2 - (mapHeight * 0.435) * scale;
     
     animateTransformTo({ x, y, scale }, scale);
-  }, [animateTransformTo]);
+  }, [animateTransformTo, logicalViewportSize]);
 
   const zoomIn = useCallback(() => {
     if (!containerRef.current) return;
-    const rect = containerRef.current.getBoundingClientRect();
-    const centerX = rect.width / 2;
-    const centerY = rect.height / 2;
+    const { width, height } = logicalViewportSize();
+    if (width <= 0 || height <= 0) return;
+    const centerX = width / 2;
+    const centerY = height / 2;
 
     setTransform(prev => {
       let newScale = prev.scale * 1.25;
@@ -489,13 +517,14 @@ export function usePanZoom({ reducedMotion = false }: UsePanZoomOptions = {}) {
       const newY = centerY - (centerY - prev.y) * scaleRatio;
       return snappedTransformFrom({ x: newX, y: newY, scale: newScale });
     });
-  }, [fitScale, snappedTransformFrom]);
+  }, [fitScale, logicalViewportSize, snappedTransformFrom]);
 
   const zoomOut = useCallback(() => {
     if (!containerRef.current) return;
-    const rect = containerRef.current.getBoundingClientRect();
-    const centerX = rect.width / 2;
-    const centerY = rect.height / 2;
+    const { width, height } = logicalViewportSize();
+    if (width <= 0 || height <= 0) return;
+    const centerX = width / 2;
+    const centerY = height / 2;
 
     setTransform(prev => {
       let newScale = prev.scale / 1.25;
@@ -505,13 +534,14 @@ export function usePanZoom({ reducedMotion = false }: UsePanZoomOptions = {}) {
       const newY = centerY - (centerY - prev.y) * scaleRatio;
       return snappedTransformFrom({ x: newX, y: newY, scale: newScale });
     });
-  }, [fitScale, snappedTransformFrom]);
+  }, [fitScale, logicalViewportSize, snappedTransformFrom]);
 
   const zoomToScale = useCallback((relativeScale: number) => {
     if (!containerRef.current) return;
-    const rect = containerRef.current.getBoundingClientRect();
-    const centerX = rect.width / 2;
-    const centerY = rect.height / 2;
+    const { width, height } = logicalViewportSize();
+    if (width <= 0 || height <= 0) return;
+    const centerX = width / 2;
+    const centerY = height / 2;
     const targetAbsoluteScale = relativeScale * fitScale;
 
     setTransform(prev => {
@@ -521,13 +551,14 @@ export function usePanZoom({ reducedMotion = false }: UsePanZoomOptions = {}) {
       const newY = centerY - (centerY - prev.y) * scaleRatio;
       return snappedTransformFrom({ x: newX, y: newY, scale: clampedScale });
     });
-  }, [fitScale, snappedTransformFrom]);
+  }, [fitScale, logicalViewportSize, snappedTransformFrom]);
 
   const zoomToPoint = useCallback((mapX: number, mapY: number, targetRelativeScale = 1.5) => {
     if (!containerRef.current) return;
-    const rect = containerRef.current.getBoundingClientRect();
-    const centerX = rect.width / 2;
-    const centerY = rect.height / 2;
+    const { width, height } = logicalViewportSize();
+    if (width <= 0 || height <= 0) return;
+    const centerX = width / 2;
+    const centerY = height / 2;
 
     const targetAbsoluteScale = targetRelativeScale * fitScale;
 
@@ -535,7 +566,7 @@ export function usePanZoom({ reducedMotion = false }: UsePanZoomOptions = {}) {
     const newY = centerY - mapY * targetAbsoluteScale;
 
     animateTransformTo({ x: newX, y: newY, scale: targetAbsoluteScale });
-  }, [animateTransformTo, fitScale]);
+  }, [animateTransformTo, fitScale, logicalViewportSize]);
 
   // Compute the current user-facing relative zoom level (e.g. 1.0 = 100%)
   const relativeScale = transform.scale / (fitScale || 1);
@@ -544,6 +575,7 @@ export function usePanZoom({ reducedMotion = false }: UsePanZoomOptions = {}) {
     transform,
     relativeScale,
     isDragging,
+    isGestureActive,
     containerRef,
     mapRef,
     handlePointerDown,

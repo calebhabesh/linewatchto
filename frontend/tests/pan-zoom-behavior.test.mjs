@@ -103,4 +103,25 @@ describe("pan zoom behavior guardrails", () => {
     assert.match(hookSource, /if \(!isGestureActiveRef\.current\) return/);
     assert.doesNotMatch(hookSource, /if \(!isDragging\) return/);
   });
+
+  it("exposes gesture-active state without depending on every pointer move", () => {
+    assert.match(hookSource, /const \[isGestureActive, setIsGestureActive\] = useState\(false\)/);
+    assert.match(hookSource, /setIsGestureActive\(true\)/);
+    assert.match(hookSource, /setIsGestureActive\(false\)/);
+    assert.match(hookSource, /isGestureActive,/);
+    assert.match(mapSource, /map-gesture-active/);
+  });
+
+  it("defers programmatic selected-target focus while the user is gesturing", () => {
+    assert.match(mapSource, /if \(isGestureActive\) return/);
+    assert.match(mapSource, /isGestureActive,/);
+    assert.match(hookSource, /if \(isGestureActiveRef\.current\) \{\s*return;\s*\}/s);
+  });
+
+  it("uses logical viewport dimensions for rotated map recenter and zoom", () => {
+    assert.match(hookSource, /const logicalViewportSize = useCallback/);
+    assert.match(hookSource, /clientWidth/);
+    assert.match(hookSource, /clientHeight/);
+    assert.match(hookSource, /viewportOrientation/);
+  });
 });

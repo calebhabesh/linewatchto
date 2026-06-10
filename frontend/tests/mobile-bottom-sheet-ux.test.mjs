@@ -110,4 +110,20 @@ describe("mobile bottom sheet UX", () => {
     assert.match(globalCss, /\.linewatch-shell\.mobile-map-inspector > main/);
     assert.match(globalCss, /\.mobile-impact-inspector/);
   });
+
+  it("hides competing mobile chrome while the rotated map mode is active", () => {
+    assert.match(shellSource, /mobile-map-rotated/);
+    assert.match(shellSource, /MobileMapControls/);
+    assert.match(globalCss, /\.linewatch-shell\.mobile-map-rotated \.mobile-bottom-nav/);
+    assert.match(globalCss, /\.linewatch-shell\.mobile-map-rotated \.mobile-status-peek/);
+    assert.match(globalCss, /\.linewatch-shell\.mobile-map-rotated \.floating-panel-shell/);
+    assert.match(globalCss, /\.linewatch-shell\.mobile-map-rotated \.mobile-legend-pill/);
+  });
+
+  it("keeps rotated-map selections in a rotated preview instead of portrait sheets", () => {
+    assert.match(shellSource, /RotatedMapSelectionCard/);
+    assert.match(shellSource, /rotated-map-hud/);
+    assert.match(shellSource, /!rotatedMapMode && selectedStationId/);
+    assert.match(globalCss, /\.rotated-map-selection-card/);
+  });
 });
