@@ -38,3 +38,7 @@ blob-report/
 
 # Temporary files
 tmp/
+
+# Local TODO
+TODO.md
+
