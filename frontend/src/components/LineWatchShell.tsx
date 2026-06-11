@@ -1465,6 +1465,7 @@ export function LineWatchShell({
           layoutResetSignal={mapLayoutSignal}
           recenterSignal={recenterSignal}
           reducedMotion={reducedMotion}
+          mobilePerformanceMode={mobilePerformanceMode}
           commutePathPreview={commutePathPreview}
           onClearCommutePathPreview={handleClearCommutePathPreview}
           viewportOrientation={rotatedMapMode ? "rotated-landscape" : "standard"}

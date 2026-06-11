@@ -58,59 +58,101 @@ describe("mobile performance guardrails", () => {
     assert.match(globalCss, /filter:\s*none\s*!important/);
   });
 
-  it("keeps short map and station focus flashes enabled in mobile performance mode", () => {
-    const disabledAnimationBlock =
-      globalCss.match(
-        /\.linewatch-shell\.mobile-performance-mode \.station-impact-ring,[\s\S]*?\.commute-path-preview-glow\s*\{[^}]*\}/,
-      )?.[0] ?? "";
-
-    assert.doesNotMatch(disabledAnimationBlock, /station-selection-flash/);
-    assert.doesNotMatch(disabledAnimationBlock, /asset-alert-path\.map-selection-flash/);
-    assert.doesNotMatch(disabledAnimationBlock, /station-selected-indicator/);
+  it("disables continuous SVG map overlay animations in mobile performance mode", () => {
+    assert.match(
+      globalCss,
+      /\.linewatch-shell\.mobile-performance-mode \.asset-alert-path-glow,[\s\S]*?\.linewatch-shell\.mobile-performance-mode \.asset-alert-path\.map-selection-flash,[\s\S]*?\.linewatch-shell\.mobile-performance-mode \.station-selection-flash\s*\{[^}]*animation:\s*none\s*!important;[^}]*filter:\s*none\s*!important;[^}]*transition:\s*none\s*!important;[^}]*\}/s,
+    );
 
     assert.match(
       globalCss,
-      /\.linewatch-shell\.mobile-performance-mode \.asset-alert-path\.map-selection-flash\s*\{[^}]*filter:\s*none\s*!important;[^}]*\}/s,
+      /\.linewatch-shell\.mobile-performance-mode \.asset-alert-path-glow\s*\{[^}]*opacity:\s*0\.34;[^}]*stroke-width:\s*132;[^}]*\}/s,
     );
+
     assert.match(
       globalCss,
-      /\.linewatch-shell\.mobile-performance-mode \.station-selection-flash\s*\{[^}]*filter:\s*none\s*!important;[^}]*\}/s,
+      /\.linewatch-shell\.mobile-performance-mode \.asset-alert-path-glow\.selected\s*\{[^}]*opacity:\s*0\.54;[^}]*stroke-width:\s*162;[^}]*\}/s,
     );
+
     assert.match(
       globalCss,
-      /\.linewatch-shell\.mobile-performance-mode \.station-selected-indicator\s*\{[^}]*filter:\s*none\s*!important;[^}]*\}/s,
+      /\.linewatch-shell\.mobile-performance-mode \.asset-alert-path\.map-selection-flash\s*\{[^}]*opacity:\s*0\.95;[^}]*stroke-width:\s*140;[^}]*\}/s,
+    );
+
+    assert.match(
+      globalCss,
+      /\.linewatch-shell\.mobile-performance-mode \.station-selection-flash\s*\{[^}]*opacity:\s*0\.9;[^}]*\}/s,
+    );
+
+    assert.doesNotMatch(
+      globalCss,
+      /\.linewatch-shell\.mobile-performance-mode \.asset-alert-path-glow\s*\{[^}]*animation:\s*aura-pulse/s,
     );
   });
 
-  it("restores lightweight mobile overlay emphasis while keeping heavy paint effects disabled", () => {
+  it("keeps map and station focus indicators visible but static on mobile", () => {
     assert.match(
       globalCss,
-      /\.linewatch-shell\.mobile-performance-mode \.asset-alert-path-glow\s*\{[^}]*filter:\s*none\s*!important;[^}]*opacity:\s*0\.28;[^}]*stroke-width:\s*132;[^}]*\}/s,
-    );
-    assert.doesNotMatch(
-      globalCss,
-      /\.linewatch-shell\.mobile-performance-mode \.asset-alert-path-glow\s*\{[^}]*animation:\s*none\s*!important;/s,
-    );
-    assert.match(
-      globalCss,
-      /\.linewatch-shell\.mobile-performance-mode \.interactive-glow\s*\{[^}]*display:\s*block;[^}]*filter:\s*none\s*!important;[^}]*\}/s,
-    );
-    assert.match(
-      globalCss,
-      /\.linewatch-shell\.mobile-performance-mode \.interactive-glow\.selected\s*\{[^}]*opacity:\s*0\.48;[^}]*stroke-width:\s*162;[^}]*\}/s,
-    );
-    assert.match(
-      globalCss,
-      /\.linewatch-shell\.mobile-performance-mode \.rsz-chevron\s*\{[^}]*stroke-width:\s*7;[^}]*transform:\s*scale\(1\.0\);[^}]*\}/s,
+      /\.linewatch-shell\.mobile-performance-mode \.asset-alert-path\.map-selection-flash\s*\{[^}]*animation:\s*none\s*!important;[^}]*filter:\s*none\s*!important;[^}]*opacity:\s*0\.95;[^}]*\}/s,
     );
 
     assert.match(
       globalCss,
-      /\.linewatch-shell\.mobile-performance-mode \.delay-hourglass-mask-path,[\s\S]*?\.suspension-mask-path\s*\{[^}]*animation:\s*none\s*!important;[^}]*\}/s,
+      /\.linewatch-shell\.mobile-performance-mode \.station-selection-flash\s*\{[^}]*animation:\s*none\s*!important;[^}]*filter:\s*none\s*!important;[^}]*opacity:\s*0\.9;[^}]*\}/s,
     );
+
     assert.match(
       globalCss,
-      /\.linewatch-shell\.mobile-performance-mode \.station-impact-dot-red-glow,[\s\S]*?\.station-impact-dot-red-ping[\s\S]*?\{[^}]*animation:\s*none\s*!important;[^}]*\}/s,
+      /\.linewatch-shell\.mobile-performance-mode \.station-selected-indicator\s*\{[^}]*animation:\s*none\s*!important;[^}]*filter:\s*none\s*!important;[^}]*opacity:\s*0\.85;[^}]*\}/s,
+    );
+  });
+
+  it("disables continuous station and commute map animations on mobile", () => {
+    assert.match(
+      globalCss,
+      /\.linewatch-shell\.mobile-performance-mode \.station-impact-ring,[\s\S]*?\.linewatch-shell\.mobile-performance-mode \.commute-path-preview-glow\s*\{[^}]*animation:\s*none\s*!important;[^}]*filter:\s*none\s*!important;[^}]*transition:\s*none\s*!important;[^}]*\}/s,
+    );
+
+    assert.match(
+      globalCss,
+      /\.linewatch-shell\.mobile-performance-mode \.station-impact-ring\s*\{[^}]*stroke-width:\s*5;[^}]*opacity:\s*0\.95;[^}]*\}/s,
+    );
+
+    assert.match(
+      globalCss,
+      /\.linewatch-shell\.mobile-performance-mode \.station-impact-dot-red-glow\s*\{[^}]*transform:\s*scale\(1\);[^}]*opacity:\s*0\.95;[^}]*\}/s,
+    );
+
+    assert.match(
+      globalCss,
+      /\.linewatch-shell\.mobile-performance-mode \.station-impact-dot-red-ping\s*\{[^}]*display:\s*none;[^}]*\}/s,
+    );
+  });
+
+  it("uses static programmatic map transforms in mobile performance mode", () => {
+    assert.match(
+      panZoomSource,
+      /disableProgrammaticMotion\?:\s*boolean/,
+    );
+    assert.match(
+      panZoomSource,
+      /disableProgrammaticMotion\s*=\s*false/,
+    );
+    assert.match(
+      panZoomSource,
+      /const shouldAnimateProgrammaticTransform = !reducedMotion && !disableProgrammaticMotion/,
+    );
+    assert.match(
+      mapSource,
+      /mobilePerformanceMode\?:\s*boolean/,
+    );
+    assert.match(
+      mapSource,
+      /usePanZoom\(\{\s*reducedMotion,\s*viewportOrientation,\s*disableProgrammaticMotion:\s*mobilePerformanceMode,\s*\}\)/s,
+    );
+    assert.match(
+      shellSource,
+      /mobilePerformanceMode=\{mobilePerformanceMode\}/,
     );
   });
 

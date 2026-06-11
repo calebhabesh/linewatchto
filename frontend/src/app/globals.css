@@ -522,11 +522,41 @@ button {
   display: none;
 }
 
+.linewatch-shell.mobile-performance-mode .asset-alert-path-glow,
+.linewatch-shell.mobile-performance-mode .asset-alert-path.delay-candy,
+.linewatch-shell.mobile-performance-mode .asset-alert-path.suspension-candy,
+.linewatch-shell.mobile-performance-mode .asset-alert-path.delay-static-base,
+.linewatch-shell.mobile-performance-mode .delay-hourglass-mask-path,
+.linewatch-shell.mobile-performance-mode .suspension-mask-path,
+.linewatch-shell.mobile-performance-mode .delay-static-path,
+.linewatch-shell.mobile-performance-mode .asset-alert-path.map-selection-flash,
+.linewatch-shell.mobile-performance-mode .station-selection-flash {
+  animation: none !important;
+  filter: none !important;
+  transition: none !important;
+}
+
+.linewatch-shell.mobile-performance-mode .station-selected-indicator,
+.linewatch-shell.mobile-performance-mode .station-impact-ring,
+.linewatch-shell.mobile-performance-mode .station-impact-dot-red-glow,
+.linewatch-shell.mobile-performance-mode .station-impact-dot-red-ping,
+.linewatch-shell.mobile-performance-mode .station-commute-green-flash,
+.linewatch-shell.mobile-performance-mode .commute-path-preview-glow {
+  animation: none !important;
+  filter: none !important;
+  transition: none !important;
+}
+
 .linewatch-shell.mobile-performance-mode .asset-alert-path-glow {
   filter: none !important;
-  opacity: 0.28;
+  opacity: 0.34;
   stroke-width: 132;
-  transition: none !important;
+}
+
+.linewatch-shell.mobile-performance-mode .asset-alert-path-glow.selected {
+  filter: none !important;
+  opacity: 0.54;
+  stroke-width: 162;
 }
 
 .linewatch-shell.mobile-performance-mode .interactive-glow {
@@ -536,17 +566,8 @@ button {
 }
 
 .linewatch-shell.mobile-performance-mode .interactive-glow.selected {
-  opacity: 0.48;
+  opacity: 0.52;
   stroke-width: 162;
-}
-
-.linewatch-shell.mobile-performance-mode .asset-alert-path.delay-candy,
-.linewatch-shell.mobile-performance-mode .asset-alert-path.suspension-candy,
-.linewatch-shell.mobile-performance-mode .asset-alert-path.delay-static-base,
-.linewatch-shell.mobile-performance-mode .delay-hourglass-mask-path,
-.linewatch-shell.mobile-performance-mode .suspension-mask-path {
-  animation: none !important;
-  transition: none !important;
 }
 
 .linewatch-shell.mobile-performance-mode .asset-alert-path.delay-candy,
@@ -560,29 +581,60 @@ button {
   stroke-width: 108 !important;
 }
 
-.linewatch-shell.mobile-performance-mode .station-hit-target {
-  transition: none !important;
+.linewatch-shell.mobile-performance-mode .delay-static-path {
+  opacity: 0.92;
+  stroke-dasharray: 7 7;
+  stroke-dashoffset: 0;
 }
 
-.linewatch-shell.mobile-performance-mode .station-impact-ring,
-.linewatch-shell.mobile-performance-mode .station-impact-dot-red-glow,
-.linewatch-shell.mobile-performance-mode .station-impact-dot-red-ping,
+.linewatch-shell.mobile-performance-mode .asset-alert-path.map-selection-flash {
+  animation: none !important;
+  filter: none !important;
+  opacity: 0.95;
+  stroke-width: 140;
+}
+
+.linewatch-shell.mobile-performance-mode .station-selection-flash {
+  animation: none !important;
+  filter: none !important;
+  opacity: 0.9;
+}
+
+.linewatch-shell.mobile-performance-mode .station-selected-indicator {
+  animation: none !important;
+  filter: none !important;
+  opacity: 0.85;
+  transform: scale(1);
+}
+
+.linewatch-shell.mobile-performance-mode .station-impact-ring {
+  animation: none !important;
+  filter: none !important;
+  stroke-width: 5;
+  opacity: 0.95;
+}
+
+.linewatch-shell.mobile-performance-mode .station-impact-dot-red-glow {
+  animation: none !important;
+  filter: none !important;
+  transform: scale(1);
+  opacity: 0.95;
+}
+
+.linewatch-shell.mobile-performance-mode .station-impact-dot-red-ping {
+  animation: none !important;
+  display: none;
+  filter: none !important;
+}
+
 .linewatch-shell.mobile-performance-mode .station-commute-green-flash,
 .linewatch-shell.mobile-performance-mode .commute-path-preview-glow {
   animation: none !important;
   filter: none !important;
 }
 
-.linewatch-shell.mobile-performance-mode .station-selected-indicator {
-  filter: none !important;
-}
-
-.linewatch-shell.mobile-performance-mode .station-selection-flash {
-  filter: none !important;
-}
-
-.linewatch-shell.mobile-performance-mode .asset-alert-path.map-selection-flash {
-  filter: none !important;
+.linewatch-shell.mobile-performance-mode .station-hit-target {
+  transition: none !important;
 }
 
 .linewatch-shell.mobile-performance-mode .overlap-indicator {
@@ -1760,7 +1812,7 @@ button {
 
 @media (max-width: 767px) {
   .asset-alert-path.map-selection-flash {
-    animation: map-selection-flash 1.2s ease-in-out infinite;
+    animation: map-selection-flash 0.6s ease-in-out 2 forwards;
   }
 }
 
@@ -5839,6 +5891,12 @@ button {
    ============================================================ */
 .map-gesture-active .asset-alert-path-glow,
 .map-gesture-active .interactive-glow,
+.map-gesture-active .asset-alert-path.delay-candy,
+.map-gesture-active .asset-alert-path.suspension-candy,
+.map-gesture-active .asset-alert-path.delay-static-base,
+.map-gesture-active .delay-hourglass-mask-path,
+.map-gesture-active .suspension-mask-path,
+.map-gesture-active .delay-static-path,
 .map-gesture-active .station-impact-ring,
 .map-gesture-active .station-impact-dot-red-glow,
 .map-gesture-active .station-impact-dot-red-ping,

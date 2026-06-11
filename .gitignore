@@ -35,6 +35,7 @@ yarn-error.log*
 test-results/
 playwright-report/
 blob-report/
+traces/
 
 # Temporary files
 tmp/

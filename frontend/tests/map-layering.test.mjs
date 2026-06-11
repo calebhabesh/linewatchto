@@ -35,6 +35,9 @@ describe("asset-backed map layering", () => {
     assert.match(interactiveMapSource, /className="asset-alert-path suspension-candy pointer-events-none"/);
     assert.match(interactiveMapSource, /style=\{\{\s*pointerEvents:\s*"none",\s*stroke:\s*"url\(#suspension-hash\)"\s*\}\}/);
     assert.match(globalCss, /@keyframes station-selected-pulse/);
+    assert.match(globalCss, /@keyframes aura-pulse/);
+    assert.match(globalCss, /\.asset-alert-path-glow\.delay\s*\{[^}]*animation:\s*aura-pulse 1\.2s infinite alternate ease-in-out;/s);
+    assert.match(globalCss, /\.linewatch-shell\.mobile-performance-mode \.asset-alert-path-glow,[\s\S]*animation:\s*none\s*!important;/s);
 
     const mapGeometrySource = readFileSync(new URL("../src/app/map-geometry.ts", import.meta.url), "utf8");
 

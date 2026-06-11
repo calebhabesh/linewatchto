@@ -116,7 +116,7 @@ describe("mobile rotated map mode", () => {
 
   it("passes viewport orientation into the pan zoom hook without rotating map data", () => {
     assert.match(mapSource, /viewportOrientation/);
-    assert.match(mapSource, /usePanZoom\(\{ reducedMotion, viewportOrientation \}\)/);
+    assert.match(mapSource, /usePanZoom\(\{\s*reducedMotion,\s*viewportOrientation,\s*disableProgrammaticMotion:\s*mobilePerformanceMode,\s*\}\)/s);
     assert.match(hookSource, /viewportOrientation = "standard"/);
     assert.match(hookSource, /clientPointToLogicalViewportPoint/);
     assert.match(globalCss, /\.linewatch-shell\.mobile-map-rotated > main/);

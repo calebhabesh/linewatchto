@@ -16,11 +16,13 @@ import {
 type UsePanZoomOptions = {
   reducedMotion?: boolean;
   viewportOrientation?: MapViewportOrientation;
+  disableProgrammaticMotion?: boolean;
 };
 
 export function usePanZoom({
   reducedMotion = false,
   viewportOrientation = "standard",
+  disableProgrammaticMotion = false,
 }: UsePanZoomOptions = {}) {
   const [transform, setTransform] = useState({ x: 0, y: 0, scale: 1 });
   const [fitScale, setFitScale] = useState(1);
@@ -44,6 +46,8 @@ export function usePanZoom({
   const fitScaleRef = useRef(1);
   const activeDragPointerIdRef = useRef<number | null>(null);
 
+  const shouldAnimateProgrammaticTransform = !reducedMotion && !disableProgrammaticMotion;
+
   useEffect(() => {
     fitScaleRef.current = fitScale;
   }, [fitScale]);
@@ -65,8 +69,8 @@ export function usePanZoom({
   }, []);
 
   const restoreIdleMapTransition = useCallback(() => {
-    setMapTransition(reducedMotion ? "none" : "transform 0.1s ease-out");
-  }, [reducedMotion, setMapTransition]);
+    setMapTransition(shouldAnimateProgrammaticTransform ? "transform 0.1s ease-out" : "none");
+  }, [setMapTransition, shouldAnimateProgrammaticTransform]);
 
   const commitTransform = useCallback((next: PanZoomTransform) => {
     const snapped = snapTransform(next);
@@ -139,7 +143,7 @@ export function usePanZoom({
       fitScaleRef.current = nextFitScale;
     }
 
-    if (!mapRef.current || reducedMotion) {
+    if (!mapRef.current || !shouldAnimateProgrammaticTransform) {
       setMapTransition("none");
       writeMapTransform(snapped);
       if (nextFitScale !== undefined) {
@@ -149,7 +153,7 @@ export function usePanZoom({
       return;
     }
 
-    setMapTransition(reducedMotion ? "none" : "transform 0.8s cubic-bezier(0.25, 1, 0.5, 1)");
+    setMapTransition("transform 0.8s cubic-bezier(0.25, 1, 0.5, 1)");
     programmaticAnimationFrameRef.current = requestAnimationFrame(() => {
       programmaticAnimationFrameRef.current = null;
       writeMapTransform(snapped);
@@ -166,7 +170,7 @@ export function usePanZoom({
   }, [
     clearProgrammaticAnimation,
     commitTransform,
-    reducedMotion,
+    shouldAnimateProgrammaticTransform,
     restoreIdleMapTransition,
     setMapTransition,
     snapTransform,

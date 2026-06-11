@@ -21,6 +21,24 @@ async function openDashboardMenu(page: Page, isMobile = false) {
   }
 }
 
+async function expectStaticMobileMapEffects(page: Page) {
+  const shell = page.locator(".linewatch-shell");
+  await expect(shell).toHaveClass(/mobile-performance-mode/);
+
+  const glow = page.locator(".asset-alert-path-glow").first();
+  await expect(glow).toBeAttached();
+  await expect(glow).toHaveCSS("animation-name", "none");
+  await expect(glow).toHaveCSS("filter", "none");
+
+  const mapFlash = page.locator(".asset-alert-path.map-selection-flash").first();
+  await expect(mapFlash).toBeAttached();
+  await expect(mapFlash).toHaveCSS("animation-name", "none");
+  await expect(mapFlash).toHaveCSS("filter", "none");
+
+  const mapLayer = page.locator(".ttc-svg-container").locator("xpath=..").first();
+  await expect(mapLayer).toHaveCSS("transition-property", "none");
+}
+
 async function openServiceCategory(page: Page, isMobile: boolean, name: RegExp | string) {
   if (isMobile) {
     await page.getByRole("button", { name: "Status", exact: true }).click();
@@ -207,6 +225,7 @@ test("renders the seeded dashboard API payload", async ({ page, request, isMobil
   await expect(page.locator('[data-map-highlight-id="reduced-speed-zone-stub-zone-south-source"]')).toBeAttached();
 
   if (isMobile) {
+    await expectStaticMobileMapEffects(page);
     const inspector = page.locator('[data-mobile-impact-inspector]');
     await expect(inspector).toBeVisible();
     await expect(inspector).toContainText("Reduced Speed Zone");
@@ -317,7 +336,7 @@ test("mobile keeps lightweight map focus flashes and menu transitions", async ({
   await expect(mapFlash).toBeAttached();
   await expect
     .poll(async () => mapFlash.evaluate((element) => getComputedStyle(element).animationName))
-    .toContain("map-selection-flash");
+    .toBe("none");
   await expect
     .poll(async () => mapFlash.evaluate((element) => getComputedStyle(element).filter))
     .toBe("none");
@@ -329,7 +348,7 @@ test("mobile keeps lightweight map focus flashes and menu transitions", async ({
   await expect(stationFlash).toBeAttached();
   await expect
     .poll(async () => stationFlash.evaluate((element) => getComputedStyle(element).animationName))
-    .toContain("station-selection-flash");
+    .toBe("none");
   await expect
     .poll(async () => stationFlash.evaluate((element) => getComputedStyle(element).filter))
     .toBe("none");

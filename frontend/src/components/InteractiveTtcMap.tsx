@@ -165,6 +165,7 @@ function InteractiveTtcMapComponent({
   layoutResetSignal,
   recenterSignal,
   reducedMotion,
+  mobilePerformanceMode = false,
   commutePathPreview,
   onClearCommutePathPreview,
   viewportOrientation = "standard",
@@ -180,6 +181,7 @@ function InteractiveTtcMapComponent({
   layoutResetSignal?: number;
   recenterSignal?: number;
   reducedMotion: boolean;
+  mobilePerformanceMode?: boolean;
   commutePathPreview?: AccountCommutePathPreview | null;
   onClearCommutePathPreview?: () => void;
   viewportOrientation?: MapViewportOrientation;
@@ -229,7 +231,11 @@ function InteractiveTtcMapComponent({
     zoomOut,
     zoomToScale,
     zoomToPoint,
-  } = usePanZoom({ reducedMotion, viewportOrientation });
+  } = usePanZoom({
+    reducedMotion,
+    viewportOrientation,
+    disableProgrammaticMotion: mobilePerformanceMode,
+  });
 
   // Load SVG
   useEffect(() => {
@@ -870,7 +876,7 @@ function InteractiveTtcMapComponent({
             style={{
               transform: `translate(${transform.x}px, ${transform.y}px) scale(${transform.scale})`,
               transformOrigin: "0 0",
-              transition: reducedMotion
+              transition: reducedMotion || mobilePerformanceMode
                 ? "none"
                 : isDragging
                   ? "none"
