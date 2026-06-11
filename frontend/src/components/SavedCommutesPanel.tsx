@@ -428,14 +428,14 @@ export function SavedCommutesPanel({
                               aria-selected={selectedLeg.id === leg.id}
                               onClick={() => setSelectedLegIds((current) => ({ ...current, [commute.id]: leg.id }))}
                             >
-                              {leg.id === "outbound" ? "To destination" : "Return"}
+                              {toTitleCase(`To ${leg.toStationName}`)}
                             </button>
                           ))}
                         </div>
                       ) : null}
 
                       <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mt-2">
-                        Default Scheduled Route - {selectedLeg.id === "return" ? "Return" : "Outbound"}
+                        Default Scheduled Route - {toTitleCase(`To ${selectedLeg.toStationName}`)}
                       </div>
 
                       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1 text-xs text-white font-medium">
@@ -456,14 +456,14 @@ export function SavedCommutesPanel({
                       </div>
 
                       <ul className="saved-commute-leg-list">
-                        {legs.map((leg) => {
+                        {(() => {
+                          const leg = selectedLeg;
                           const firstImpact = leg.impact.matchedImpacts[0];
                           return (
                             <li key={leg.id} className={`saved-commute-leg-row ${leg.impact.severity === "clear" ? "clear-tint" : "affected-tint"}`}>
-                              <strong>To {leg.toStationName}</strong>
-                              <span className={`status-pill ${leg.impact.severity === "clear" ? "ok" : leg.impact.severity === "suspended" || leg.impact.severity === "major" ? "danger" : "warning"}`}>
+                              <strong className={leg.impact.severity === "clear" ? "text-emerald-600 dark:text-emerald-400" : "text-amber-600 dark:text-amber-400"}>
                                 {toTitleCase(leg.impact.statusLabel)}
-                              </span>
+                              </strong>
                               {firstImpact ? (
                                 <em>{toTitleCase(impactKindLabel(firstImpact.kind))}{firstImpact.displayDirection ? ` ${toTitleCase(firstImpact.displayDirection)}` : ""}</em>
                               ) : (
@@ -471,7 +471,7 @@ export function SavedCommutesPanel({
                               )}
                             </li>
                           );
-                        })}
+                        })()}
                       </ul>
 
                       {selectedLeg.impact.matchedImpacts.length > 0 ? (

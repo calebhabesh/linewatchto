@@ -794,18 +794,26 @@ test("demo account shows account-backed saved commutes", async ({ page, request,
 
   await expect(page.getByText("Demo account").filter({ visible: true })).toBeVisible();
   await expect(page.getByText("Stub Station <-> Union")).toBeVisible();
-  await expect(page.getByText("Default Scheduled Route - Outbound")).toBeVisible();
+  await expect(page.getByText("Default Scheduled Route - To Union")).toBeVisible();
   await expect(page.getByText("5 Stations", { exact: true })).toBeVisible();
   await expect(page.getByText("About 13 Minutes", { exact: true })).toBeVisible();
   await expect(page.getByText("Outbound Affected", { exact: true })).toBeVisible();
-  await expect(page.getByRole("tab", { name: "To destination" })).toHaveAttribute("aria-selected", "true");
-  await expect(page.getByRole("tab", { name: "Return" })).toBeVisible();
-  await expect(page.getByText("To Union", { exact: true })).toBeVisible();
-  await expect(page.getByText("To Stub Station", { exact: true })).toBeVisible();
+  await expect(page.getByRole("tab", { name: "To Union" })).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByRole("tab", { name: "To Stub Station" })).toBeVisible();
+  await expect(page.getByText("Default Scheduled Route - To Union")).toBeVisible();
   await expect(page.getByText("Affected Now", { exact: true })).toBeVisible();
-  await expect(page.getByText("Clear", { exact: true })).toBeVisible();
+  await expect(page.getByText("Clear", { exact: true })).not.toBeVisible();
   await expect(page.getByText("Suspension", { exact: true })).toBeVisible();
   await expect(page.getByText(/Line 1: Stub Station To Stub Terminal/)).toBeVisible();
+
+  await page.getByRole("tab", { name: "To Stub Station" }).click();
+  await expect(page.getByText("Default Scheduled Route - To Stub Station")).toBeVisible();
+  await expect(page.getByText("Clear", { exact: true })).toBeVisible();
+  await expect(page.getByText("Affected Now", { exact: true })).not.toBeVisible();
+  await expect(page.getByText("Suspension", { exact: true })).not.toBeVisible();
+
+  // Switch back to outbound for the rest of the test
+  await page.getByRole("tab", { name: "To Union" }).click();
 
   await page.getByRole("button", { name: /View 5 stops/ }).click();
   await expect(page.getByRole("list", { name: "Stops for Morning commute" })).toBeVisible();

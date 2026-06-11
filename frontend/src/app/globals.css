@@ -3904,9 +3904,17 @@ button {
 }
 
 .saved-commute-leg-row strong {
-  color: rgb(30, 41, 59);
-  font-size: 0.76rem;
+  font-size: 0.92rem;
+  font-weight: 850;
   min-width: 0;
+}
+
+.saved-commute-leg-row.clear-tint strong {
+  color: var(--ok) !important;
+}
+
+.saved-commute-leg-row.affected-tint strong {
+  color: var(--warning) !important;
 }
 
 .saved-commute-leg-row em {
@@ -3936,10 +3944,7 @@ button {
   color: rgb(15, 23, 42);
 }
 
-.dark .saved-commute-leg-row strong,
-.high-contrast .saved-commute-leg-row strong {
-  color: rgb(248, 250, 252);
-}
+
 
 .dark .saved-commute-leg-row em,
 .high-contrast .saved-commute-leg-row em {
