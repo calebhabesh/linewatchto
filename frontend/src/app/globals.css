@@ -3866,6 +3866,43 @@ button {
   padding: 0.45rem 0.55rem;
 }
 
+.saved-commute-leg-row.clear-tint {
+  background: rgba(48, 209, 117, 0.08);
+  border-color: rgba(48, 209, 117, 0.2);
+}
+
+.saved-commute-leg-row.affected-tint {
+  background: rgba(255, 159, 28, 0.08);
+  border-color: rgba(255, 159, 28, 0.2);
+}
+
+.dark .saved-commute-leg-row.clear-tint,
+.high-contrast .saved-commute-leg-row.clear-tint {
+  background: rgba(48, 209, 117, 0.12);
+  border-color: rgba(48, 209, 117, 0.25);
+}
+
+.dark .saved-commute-leg-row.affected-tint,
+.high-contrast .saved-commute-leg-row.affected-tint {
+  background: rgba(255, 159, 28, 0.12);
+  border-color: rgba(255, 159, 28, 0.25);
+}
+
+.saved-commute-leg-row .status-pill.ok {
+  background: rgba(48, 209, 117, 0.12) !important;
+  color: var(--ok) !important;
+}
+
+.saved-commute-leg-row .status-pill.warning {
+  background: rgba(255, 159, 28, 0.12) !important;
+  color: var(--warning) !important;
+}
+
+.saved-commute-leg-row .status-pill.danger {
+  background: rgba(255, 69, 69, 0.12) !important;
+  color: var(--danger) !important;
+}
+
 .saved-commute-leg-row strong {
   color: rgb(30, 41, 59);
   font-size: 0.76rem;

@@ -382,13 +382,41 @@ export function SavedCommutesPanel({
                 return (
                   <div key={commute.id} className={`commute-card ${commuteTone(commute)} min-w-0 rounded-lg border border-black/10 !bg-slate-50 p-3 dark:border-white/10 dark:!bg-[#12151c]`}>
                     <div className="min-w-0">
-                      <div className="flex flex-wrap items-start gap-2">
-                        <h3 className="min-w-0 text-sm font-bold text-slate-800 dark:text-white whitespace-normal break-words">
-                          {toTitleCase(commute.label.replace(/\bto\b/g, "->"))}
-                        </h3>
-                        <span className={`status-pill ${commuteTone(commute)}`}>{toTitleCase(commuteStatusLabel(commute))}</span>
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex flex-wrap items-center gap-2 min-w-0">
+                          <h3 className="min-w-0 text-sm font-bold text-slate-800 dark:text-white whitespace-normal break-words">
+                            {toTitleCase(commute.label.replace(/\bto\b/g, "->"))}
+                          </h3>
+                          <span className={`status-pill ${commuteTone(commute)}`}>{toTitleCase(commuteStatusLabel(commute))}</span>
+                        </div>
+                        {(() => {
+                          const currentImpactsCount = currentImpactCount(legs);
+                          const hasCurrentImpacts = currentImpactsCount > 0;
+                          const impactBgColor = hasCurrentImpacts
+                            ? "bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300 border border-amber-200 dark:border-amber-900/60"
+                            : "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-900/60";
+                          const impactText = currentImpactsCount === 0
+                            ? "No Impacts"
+                            : `${currentImpactsCount} Impact${currentImpactsCount === 1 ? "" : "s"}`;
+                          return (
+                            <div className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider shrink-0 ${impactBgColor}`}>
+                              <ExclaimAlertIcon className="w-3.5 h-3.5 shrink-0" />
+                              <span>{impactText}</span>
+                            </div>
+                          );
+                        })()}
                       </div>
                       <p className="mt-1 text-xs font-semibold text-slate-500 dark:text-slate-400">{routeLabel}</p>
+                      <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] font-semibold">
+                        <div>
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mr-1">Origin:</span>
+                          <span className="text-slate-800 dark:text-white">{commute.originStationName}</span>
+                        </div>
+                        <div>
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mr-1">Destination:</span>
+                          <span className="text-slate-800 dark:text-white">{commute.destinationStationName}</span>
+                        </div>
+                      </div>
 
                       {legs.length > 1 ? (
                         <div className="commute-leg-toggle" role="tablist" aria-label={`Route direction for ${commute.label}`}>
@@ -431,7 +459,7 @@ export function SavedCommutesPanel({
                         {legs.map((leg) => {
                           const firstImpact = leg.impact.matchedImpacts[0];
                           return (
-                            <li key={leg.id} className="saved-commute-leg-row">
+                            <li key={leg.id} className={`saved-commute-leg-row ${leg.impact.severity === "clear" ? "clear-tint" : "affected-tint"}`}>
                               <strong>To {leg.toStationName}</strong>
                               <span className={`status-pill ${leg.impact.severity === "clear" ? "ok" : leg.impact.severity === "suspended" || leg.impact.severity === "major" ? "danger" : "warning"}`}>
                                 {toTitleCase(leg.impact.statusLabel)}
@@ -446,22 +474,6 @@ export function SavedCommutesPanel({
                         })}
                       </ul>
 
-                      {(() => {
-                        const currentImpactsCount = currentImpactCount(legs);
-                        const hasCurrentImpacts = currentImpactsCount > 0;
-                        const impactTextColor = hasCurrentImpacts
-                          ? "text-amber-600 dark:text-amber-400"
-                          : "text-emerald-600 dark:text-emerald-400";
-                        const impactText = currentImpactsCount === 0
-                          ? "No Current Impacts"
-                          : `${currentImpactsCount} Current Impact${currentImpactsCount === 1 ? "" : "s"}`;
-                        return (
-                          <div className={`flex items-center gap-1.5 text-sm font-semibold mt-1.5 ${impactTextColor}`}>
-                            <ExclaimAlertIcon className="w-4 h-4 shrink-0" />
-                            <span>{toTitleCase(impactText)}</span>
-                          </div>
-                        );
-                      })()}
                       {selectedLeg.impact.matchedImpacts.length > 0 ? (
                         <ul className="saved-commute-impact-list">
                           {selectedLeg.impact.matchedImpacts.slice(0, 3).map((impact) => (
