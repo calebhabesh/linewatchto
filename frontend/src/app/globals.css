@@ -377,15 +377,24 @@ button {
   line-height: 1.15;
 }
 
+.subway-closing-soon-details {
+  display: inline;
+}
+
+.subway-closing-separator {
+  display: inline;
+}
+
+.subway-closing-duration,
+.subway-closing-time {
+  display: inline;
+}
+
 @media (max-width: 520px) {
   .subway-closing-soon-chip {
     flex-basis: max(142px, calc(100vw - 168px));
     gap: 8px;
     padding: 8px 10px;
-  }
-
-  .subway-closing-soon-copy small {
-    display: none;
   }
 }
 
@@ -397,8 +406,8 @@ button {
     right: auto !important;
     max-width: calc(100vw - 16px - 196px) !important;
     width: auto !important;
-    height: 40px !important;
-    min-height: 40px !important;
+    height: 56px !important;
+    min-height: 56px !important;
     padding: 6px 10px !important;
     flex: none !important;
     z-index: 20 !important;
@@ -408,6 +417,10 @@ button {
   .subway-closing-soon-copy {
     gap: 0px !important;
     min-width: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    text-align: center !important;
   }
 
   .subway-closing-soon-copy strong {
@@ -415,13 +428,36 @@ button {
     overflow: hidden !important;
     text-overflow: ellipsis !important;
     white-space: nowrap !important;
+    text-align: center !important;
   }
 
   .subway-closing-soon-copy small {
     font-size: 0.65rem !important;
+    white-space: normal !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+  }
+
+  .subway-closing-soon-details {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 0px !important;
+    width: 100% !important;
+  }
+
+  .subway-closing-separator {
+    display: none !important;
+  }
+
+  .subway-closing-duration,
+  .subway-closing-time {
+    white-space: nowrap !important;
     overflow: hidden !important;
     text-overflow: ellipsis !important;
-    white-space: nowrap !important;
+    display: block !important;
+    width: 100% !important;
+    text-align: center !important;
   }
 }
 
@@ -589,15 +625,15 @@ button {
 
 .linewatch-shell.mobile-performance-mode .asset-alert-path.map-selection-flash {
   animation: none !important;
-  filter: none !important;
-  opacity: 0.95;
+  filter: drop-shadow(0 0 8px rgba(56, 189, 248, 0.65)) !important;
+  opacity: 0.7;
   stroke-width: 140;
 }
 
 .linewatch-shell.mobile-performance-mode .station-selection-flash {
   animation: none !important;
-  filter: none !important;
-  opacity: 0.9;
+  filter: drop-shadow(0 0 4px rgba(56, 189, 248, 0.65)) !important;
+  opacity: 0.7;
 }
 
 .linewatch-shell.mobile-performance-mode .station-selected-indicator {
@@ -3921,15 +3957,15 @@ button {
     filter: drop-shadow(0 0 0px transparent);
   }
   50% {
-    transform: scale(3.5);
-    opacity: 0.95;
-    filter: drop-shadow(0 0 16px #00ff66) drop-shadow(0 0 32px #00ff66);
+    transform: scale(1.8);
+    opacity: 0.9;
+    filter: drop-shadow(0 0 8px #86efac);
   }
 }
 
 .station-commute-green-flash {
-  fill: rgba(0, 255, 102, 0.55) !important; /* very strong neon green fill pulse */
-  stroke: #00ff66 !important; /* neon LED green stroke */
+  fill: rgba(134, 239, 172, 0.85) !important; /* brighter green-300 fill pulse */
+  stroke: #86efac !important; /* bright green-300 stroke */
   stroke-width: 2.0 !important; /* clean, crisp outline weight */
   transform-box: fill-box;
   transform-origin: center;
@@ -4937,7 +4973,7 @@ button {
     animation: floating-mobile-sheet-enter 180ms cubic-bezier(0.22, 1, 0.36, 1);
     bottom: calc(var(--mobile-bottom-nav-height) + var(--mobile-bottom-nav-margin-bottom) + var(--mobile-safe-bottom));
     left: 0;
-    max-height: min(82dvh, calc(var(--visual-viewport-height, 100dvh) - var(--mobile-bottom-nav-height) - var(--mobile-bottom-nav-margin-bottom) - var(--mobile-safe-bottom) - 72px));
+    max-height: min(78dvh, calc(var(--visual-viewport-height, 100dvh) - var(--mobile-bottom-nav-height) - var(--mobile-bottom-nav-margin-bottom) - var(--mobile-safe-bottom) - 88px));
     padding: 0 8px 8px;
     position: fixed;
     right: 0;
@@ -6290,9 +6326,8 @@ button {
   }
 
   .rotated-map-selection-card-actions {
-    display: grid;
-    gap: 8px;
-    grid-template-columns: 1fr 1.25fr;
+    display: flex;
+    justify-content: center;
     margin-top: 2px;
   }
 
@@ -6304,8 +6339,9 @@ button {
     font-weight: 950;
     gap: 6px;
     justify-content: center;
-    min-height: 38px;
-    padding: 8px 10px;
+    min-height: 40px;
+    padding: 10px 24px;
+    transition: all 0.2s ease;
   }
 
   .rotated-map-selection-action.secondary {
@@ -6316,6 +6352,7 @@ button {
   .rotated-map-selection-action.primary {
     background: #2563eb;
     color: #ffffff;
+    min-width: 140px;
   }
 
   .dark .rotated-map-selection-action.secondary,

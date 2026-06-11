@@ -90,10 +90,10 @@ export function getSubwayOperatingState(now = new Date()): SubwayOperatingState 
       ? "Regular subway service is outside operating hours. The live feed is hidden until service resumes."
       : "Regular subway service is inside the general operating window.",
     nowLabel: formatSubwayClock(minutesAfterMidnight),
-    nextResumeLabel: nextResumeTime ? `today at ${nextResumeTime}` : null,
+    nextResumeLabel: nextResumeTime ? `Today at ${nextResumeTime}` : null,
     nextResumeTime,
     minutesUntilResume,
-    nextCloseLabel: nextCloseTime ? `today at ${nextCloseTime}` : null,
+    nextCloseLabel: nextCloseTime ? `Today at ${nextCloseTime}` : null,
     nextCloseTime,
     minutesUntilClose,
     closingSoon,

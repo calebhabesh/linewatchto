@@ -76,12 +76,12 @@ describe("mobile performance guardrails", () => {
 
     assert.match(
       globalCss,
-      /\.linewatch-shell\.mobile-performance-mode \.asset-alert-path\.map-selection-flash\s*\{[^}]*opacity:\s*0\.95;[^}]*stroke-width:\s*140;[^}]*\}/s,
+      /\.linewatch-shell\.mobile-performance-mode \.asset-alert-path\.map-selection-flash\s*\{[^}]*opacity:\s*0\.7;[^}]*stroke-width:\s*140;[^}]*\}/s,
     );
 
     assert.match(
       globalCss,
-      /\.linewatch-shell\.mobile-performance-mode \.station-selection-flash\s*\{[^}]*opacity:\s*0\.9;[^}]*\}/s,
+      /\.linewatch-shell\.mobile-performance-mode \.station-selection-flash\s*\{[^}]*opacity:\s*0\.7;[^}]*\}/s,
     );
 
     assert.doesNotMatch(
@@ -93,12 +93,12 @@ describe("mobile performance guardrails", () => {
   it("keeps map and station focus indicators visible but static on mobile", () => {
     assert.match(
       globalCss,
-      /\.linewatch-shell\.mobile-performance-mode \.asset-alert-path\.map-selection-flash\s*\{[^}]*animation:\s*none\s*!important;[^}]*filter:\s*none\s*!important;[^}]*opacity:\s*0\.95;[^}]*\}/s,
+      /\.linewatch-shell\.mobile-performance-mode \.asset-alert-path\.map-selection-flash\s*\{[^}]*animation:\s*none\s*!important;[^}]*filter:\s*drop-shadow\(0\s*0\s*8px\s*rgba\(56,\s*189,\s*248,\s*0\.65\)\)\s*!important;[^}]*opacity:\s*0\.7;[^}]*\}/s,
     );
 
     assert.match(
       globalCss,
-      /\.linewatch-shell\.mobile-performance-mode \.station-selection-flash\s*\{[^}]*animation:\s*none\s*!important;[^}]*filter:\s*none\s*!important;[^}]*opacity:\s*0\.9;[^}]*\}/s,
+      /\.linewatch-shell\.mobile-performance-mode \.station-selection-flash\s*\{[^}]*animation:\s*none\s*!important;[^}]*filter:\s*drop-shadow\(0\s*0\s*4px\s*rgba\(56,\s*189,\s*248,\s*0\.65\)\)\s*!important;[^}]*opacity:\s*0\.7;[^}]*\}/s,
     );
 
     assert.match(

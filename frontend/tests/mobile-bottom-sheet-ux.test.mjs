@@ -99,8 +99,8 @@ describe("mobile bottom sheet UX", () => {
     // Check css rules for single-line headers and top offset max-height constraint
     assert.match(globalCss, /\.floating-panel-shell \.panel-heading/);
     assert.match(globalCss, /flex-wrap:\s*nowrap/);
-    assert.match(globalCss, /max-height:\s*min\(82dvh/);
-    assert.match(globalCss, /-\s*72px/);
+    assert.match(globalCss, /max-height:\s*min\(78dvh/);
+    assert.match(globalCss, /-\s*88px/);
   });
 
   it("keeps Show on Map as a split inspector instead of a competing mobile sheet", () => {

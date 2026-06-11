@@ -1428,21 +1428,19 @@ export function LineWatchShell({
           >
             {isDark ? <Sun size={24} className="text-slate-800 dark:text-white" /> : <Moon size={24} className="text-slate-800 dark:text-white" />}
           </button>
-          {activeView === "map" && !accountDialogMode && !mobileInspectorOpen && !selectedStationId && !commutePathPreview && (
-            <button
-              onClick={() => {
-                setMapPresentationMode("rotated-landscape");
-                setActiveView("map");
-              }}
-              className="rotate-map-btn panel flex items-center justify-center gap-1.5 px-2.5 rounded-xl border border-black/10 dark:border-white/10 shadow-lg hover:!bg-slate-100 dark:hover:!bg-[#1a1e28] hover:scale-105 active:scale-95 outline-none focus-visible:ring-4 focus-visible:ring-black/10 dark:focus-visible:ring-white/10 transition-all cursor-pointer bg-white dark:bg-[#0a0c10] h-10 md:hidden"
-              aria-label="Rotate map"
-            >
-              <PhoneRotateLandscapeIcon size={20} />
-              <span className="text-[9px] font-black leading-[1.1] text-left uppercase tracking-wider text-slate-800 dark:text-white">
-                Rotate<br />Map
-              </span>
-            </button>
-          )}
+          <button
+            onClick={() => {
+              setMapPresentationMode("rotated-landscape");
+              setActiveView("map");
+            }}
+            className="rotate-map-btn panel flex items-center justify-center gap-1.5 px-2.5 rounded-xl border border-black/10 dark:border-white/10 shadow-lg hover:!bg-slate-100 dark:hover:!bg-[#1a1e28] hover:scale-105 active:scale-95 outline-none focus-visible:ring-4 focus-visible:ring-black/10 dark:focus-visible:ring-white/10 transition-all cursor-pointer bg-white dark:bg-[#0a0c10] h-10 md:hidden"
+            aria-label="Rotate map"
+          >
+            <PhoneRotateLandscapeIcon size={20} />
+            <span className="text-[9px] font-black leading-[1.1] text-left uppercase tracking-wider text-slate-800 dark:text-white">
+              Rotate<br />Map
+            </span>
+          </button>
           <SiteGuideDropdown onOpenChange={setGuideOpen} />
         </div>
       </header>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Navigation, ChevronDown, ChevronLeft, Loader2, MapPinned, X, AlertTriangle, Construction, Calendar } from "lucide-react";
+import { Navigation, ChevronDown, ChevronLeft, Loader2, MapPinned, X, AlertTriangle, Construction, Calendar, Clock } from "lucide-react";
 import {
   createSavedCommute,
   deleteSavedCommute,
@@ -13,6 +13,48 @@ import {
 import type { StationSummary } from "../app/station-data";
 import { SavedCommuteStationPicker } from "./SavedCommuteStationPicker";
 import { DelayIcon } from "./DelayIcon";
+
+function toTitleCase(str: string): string {
+  if (!str) return "";
+  return str
+    .split(/\s+/)
+    .map((word) => {
+      if (!word) return "";
+      const cleanWord = word.replace(/[^a-zA-Z]/g, "").toLowerCase();
+      let formatted: string;
+      if (cleanWord === "linewatch") {
+        formatted = word.replace(/linewatch/i, "LineWatch");
+      } else if (cleanWord === "ttc") {
+        formatted = word.replace(/ttc/i, "TTC");
+      } else if (cleanWord === "lrt") {
+        formatted = word.replace(/lrt/i, "LRT");
+      } else {
+        formatted = word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+      }
+      return formatted;
+    })
+    .join(" ");
+}
+
+function NumStationsIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 512 512" className={className} fill="currentColor">
+      <g>
+        <path d="M349.917,432.716v-0.635H162.472v0.635h-10.544L89.982,512h45.644l13.705-20.233h213.334L376.367,512h45.659l-61.95-79.284H349.917z M162.558,472.248l13.988-20.648h158.912l13.988,20.648H162.558z" />
+        <path d="M256.002,0C112.749,0,71.397,51.982,71.397,91.663v258.601c0,34.895,28.29,63.216,63.224,63.216h242.765c34.942,0,63.217-28.321,63.217-63.216V91.663C440.603,51.982,399.259,0,256.002,0z M189.091,56.987h133.815c8.888,0,16.106,7.21,16.106,16.098c0,8.912-7.218,16.114-16.106,16.114H189.091c-8.889,0-16.098-7.202-16.098-16.114C172.992,64.197,180.201,56.987,189.091,56.987z M160.275,358.439c-11.093,0-20.084-8.991-20.084-20.084c0-11.094,8.991-20.084,20.084-20.084c11.093,0,20.084,8.99,20.084,20.084C180.358,349.448,171.368,358.439,160.275,358.439z M241.943,239.278H134.731v-98.064h107.212V239.278z M351.737,358.439c-11.094,0-20.084-8.991-20.084-20.084c0-11.094,8.99-20.084,20.084-20.084c11.092,0,20.084,8.99,20.084,20.084C371.821,349.448,362.829,358.439,351.737,358.439z M382.047,239.278H270.061v-98.064h111.986V239.278z" />
+      </g>
+    </svg>
+  );
+}
+
+function ExclaimAlertIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="-0.5 0 25 25" fill="none" className={className} xmlns="http://www.w3.org/2000/svg">
+      <path d="M10.8809 16.15C10.8809 16.0021 10.9101 15.8556 10.967 15.7191C11.024 15.5825 11.1073 15.4586 11.2124 15.3545C11.3175 15.2504 11.4422 15.1681 11.5792 15.1124C11.7163 15.0567 11.8629 15.0287 12.0109 15.03C12.2291 15.034 12.4413 15.1021 12.621 15.226C12.8006 15.3499 12.9399 15.5241 13.0211 15.7266C13.1024 15.9292 13.122 16.1512 13.0778 16.3649C13.0335 16.5786 12.9272 16.7745 12.7722 16.9282C12.6172 17.0818 12.4204 17.1863 12.2063 17.2287C11.9922 17.2711 11.7703 17.2494 11.5685 17.1663C11.3666 17.0833 11.1938 16.9426 11.0715 16.7618C10.9492 16.5811 10.8829 16.3683 10.8809 16.15ZM11.2408 13.42L11.1008 8.20001C11.0875 8.07453 11.1008 7.94766 11.1398 7.82764C11.1787 7.70761 11.2424 7.5971 11.3268 7.5033C11.4112 7.40949 11.5144 7.33449 11.6296 7.28314C11.7449 7.2318 11.8697 7.20526 11.9958 7.20526C12.122 7.20526 12.2468 7.2318 12.3621 7.28314C12.4773 7.33449 12.5805 7.40949 12.6649 7.5033C12.7493 7.5971 12.813 7.70761 12.8519 7.82764C12.8909 7.94766 12.9042 8.07453 12.8909 8.20001L12.7609 13.42C12.7609 13.6215 12.6809 13.8149 12.5383 13.9574C12.3958 14.0999 12.2024 14.18 12.0009 14.18C11.7993 14.18 11.606 14.0999 11.4635 13.9574C11.321 13.8149 11.2408 13.6215 11.2408 13.42Z" fill="currentColor" />
+      <path d="M12 21.5C17.1086 21.5 21.25 17.3586 21.25 12.25C21.25 7.14137 17.1086 3 12 3C6.89137 3 2.75 7.14137 2.75 12.25C2.75 17.3586 6.89137 21.5 12 21.5Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
 
 // drawer-layout.test.mjs compatibility: grid-cols-1
 
@@ -76,10 +118,6 @@ function impactKindLabel(kind: AccountMatchedImpact["kind"]) {
 
 function impactLineLabel(impact: AccountMatchedImpact) {
   return impact.lineNumber ? `Line ${impact.lineNumber}` : "Station";
-}
-
-function routeSummary(commute: AccountSavedCommute) {
-  return commute.path.status === "available" ? commute.path.summary : "Route path unavailable";
 }
 
 export function SavedCommutesPanel({
@@ -269,23 +307,60 @@ export function SavedCommutesPanel({
                   <div key={commute.id} className={`commute-card ${commuteTone(commute)} min-w-0 rounded-lg border border-black/10 !bg-slate-50 p-3 dark:border-white/10 dark:!bg-[#12151c]`}>
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-start gap-2">
-                        <h3 className="min-w-0 text-sm font-bold text-slate-800 dark:text-white whitespace-normal break-words">{commute.label}</h3>
-                        <span className={`status-pill ${commuteTone(commute)}`}>{commute.impact.statusLabel}</span>
+                        <h3 className="min-w-0 text-sm font-bold text-slate-800 dark:text-white whitespace-normal break-words">
+                          {toTitleCase(commute.label.replace(/\bto\b/g, "->"))}
+                        </h3>
+                        <span className={`status-pill ${commuteTone(commute)}`}>{toTitleCase(commute.impact.statusLabel)}</span>
                       </div>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold mt-1 whitespace-normal break-words">{commute.routeLabel}</p>
-                      <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 whitespace-normal break-words">{routeSummary(commute)}</p>
-                      <p className="text-xs text-slate-600 dark:text-slate-300 mt-2 whitespace-normal break-words">{commute.impact.detail}</p>
+
+                      <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mt-2">
+                        Default Scheduled Route
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1 text-xs text-white font-medium">
+                        <div className="flex items-center gap-1.5">
+                          <NumStationsIcon className="w-3.5 h-3.5 text-white shrink-0" />
+                          <span>
+                            {toTitleCase(`${commute.path.stationIds.length} Station${commute.path.stationIds.length === 1 ? "" : "s"}`)}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <Clock size={14} className="text-white shrink-0" />
+                          <span>
+                            {commute.path.status === "available"
+                              ? toTitleCase(`About ${Math.max(1, Math.round(commute.path.estimatedTravelSeconds / 60.0))} Minutes`)
+                              : toTitleCase("Route path unavailable")}
+                          </span>
+                        </div>
+                      </div>
+
+                      {(() => {
+                        const currentImpactsCount = commute.impact.matchedImpacts.filter((i) => i.status === "current").length;
+                        const hasCurrentImpacts = currentImpactsCount > 0;
+                        const impactTextColor = hasCurrentImpacts
+                          ? "text-amber-600 dark:text-amber-400"
+                          : "text-emerald-600 dark:text-emerald-400";
+                        const impactText = currentImpactsCount === 0
+                          ? "No Current Impacts"
+                          : `${currentImpactsCount} Current Impact${currentImpactsCount === 1 ? "" : "s"}`;
+                        return (
+                          <div className={`flex items-center gap-1.5 text-sm font-semibold mt-1.5 ${impactTextColor}`}>
+                            <ExclaimAlertIcon className="w-4 h-4 shrink-0" />
+                            <span>{toTitleCase(impactText)}</span>
+                          </div>
+                        );
+                      })()}
                       {commute.impact.matchedImpacts.length > 0 ? (
                         <ul className="saved-commute-impact-list">
                           {commute.impact.matchedImpacts.slice(0, 3).map((impact) => (
                             <li key={`${impact.kind}-${impact.id}`} className="!flex !flex-row !items-center !gap-1.5 !flex-wrap">
                               <ImpactIcon kind={impact.kind} className="shrink-0" />
                               <strong className="font-bold uppercase tracking-wider text-[10px] text-slate-700 dark:text-slate-300">
-                                {impactKindLabel(impact.kind)}
+                                {toTitleCase(impactKindLabel(impact.kind))}
                               </strong>
                               <span className="text-slate-700 dark:text-slate-300 -ml-1 mr-0.5">:</span>
                               <span className="text-slate-600 dark:text-slate-400">
-                                {impactLineLabel(impact)}{impact.location ? `: ${impact.location}` : ""}
+                                {toTitleCase(impactLineLabel(impact))}{impact.location ? `: ${toTitleCase(impact.location)}` : ""}
                               </span>
                             </li>
                           ))}

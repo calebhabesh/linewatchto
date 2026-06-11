@@ -14,7 +14,11 @@ export function SubwayClosingSoonChip({
       <Clock3 aria-hidden="true" size={18} strokeWidth={2.4} />
       <span className="subway-closing-soon-copy">
         <strong>Subway Closing Soon</strong>
-        <small>Closes in {formatResumeDuration(minutesUntilClose)} · {nextCloseLabel}</small>
+        <small className="subway-closing-soon-details">
+          <span className="subway-closing-duration">Closes in {formatResumeDuration(minutesUntilClose)}</span>
+          <span className="subway-closing-separator"> · </span>
+          <span className="subway-closing-time">{nextCloseLabel}</span>
+        </small>
       </span>
     </div>
   );

@@ -254,9 +254,6 @@ export function RotatedMapSelectionCard({
         {details.displayDirection ? <p className="rotated-map-selection-card-direction">{toTitleCase(details.displayDirection)}</p> : null}
 
         <div className="rotated-map-selection-card-actions">
-          <button type="button" className="rotated-map-selection-action secondary" onClick={onClearSelection}>
-            Clear
-          </button>
           <button type="button" className="rotated-map-selection-action primary" onClick={onOpenDetails}>
             <MoreDetailsIcon size={15} />
             Details
@@ -345,9 +342,6 @@ export function RotatedMapSelectionCard({
         </p>
 
         <div className="rotated-map-selection-card-actions">
-          <button type="button" className="rotated-map-selection-action secondary" onClick={onClearSelection}>
-            Clear
-          </button>
           <button type="button" className="rotated-map-selection-action primary" onClick={onOpenDetails}>
             <MoreDetailsIcon size={15} />
             Details
