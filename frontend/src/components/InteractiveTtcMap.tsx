@@ -414,7 +414,9 @@ function InteractiveTtcMapComponent({
           });
           if (count > 0) {
             const scaleFactor = 4500 / 8250;
-            zoomToPoint((sumX / count) * scaleFactor, (sumY / count) * scaleFactor, 3.8);
+            const isMobile = typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches;
+            const targetScale = isMobile ? 3.8 : 1.8;
+            zoomToPoint((sumX / count) * scaleFactor, (sumY / count) * scaleFactor, targetScale);
             lastFocusedTargetKeyRef.current = focusTargetKey;
             lastFocusLayoutSignalRef.current = currentLayoutSignal;
           }
@@ -422,7 +424,9 @@ function InteractiveTtcMapComponent({
       } else {
         const center = getSegmentsCenter(selectedSegmentIds, networkSegments, mapStations, anchorPoints, guidePaths);
         if (center) {
-          zoomToPoint(center.x, center.y, 3.8);
+          const isMobile = typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches;
+          const targetScale = isMobile ? 3.8 : 1.8;
+          zoomToPoint(center.x, center.y, targetScale);
           lastFocusedTargetKeyRef.current = focusTargetKey;
           lastFocusLayoutSignalRef.current = currentLayoutSignal;
         }
@@ -433,7 +437,9 @@ function InteractiveTtcMapComponent({
       if (station) {
         const scaleFactor = 4500 / 8250;
         const pt = stationPointFor(station);
-        zoomToPoint(pt.x * scaleFactor, pt.y * scaleFactor, 3.8);
+        const isMobile = typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches;
+        const targetScale = isMobile ? 3.8 : 1.8;
+        zoomToPoint(pt.x * scaleFactor, pt.y * scaleFactor, targetScale);
         lastFocusedTargetKeyRef.current = focusTargetKey;
         lastFocusLayoutSignalRef.current = currentLayoutSignal;
       }
