@@ -26,7 +26,7 @@ Implemented now:
 - Reduced Speed Zone cards with Cause, Resolution, and available speed/track metadata.
 - Planned closure cards with map preview highlighting.
 - Legend SVG icons for Lines 1, 2, 4, 5, and 6.
-- Account-backed saved commutes with weighted default rapid-transit route matching and dashboard-visible impact summaries.
+- Account-backed saved commutes with weighted default rapid-transit route matching, optional return-trip monitoring, direction-aware Reduced Speed Zone matching, and dashboard-visible impact summaries.
 - Account sign-in supports password reset through emailed reset links when SMTP is configured, with a local/dev reset-token fallback.
 - Official TTC.ca performance metrics panel for current on-time and elevator/escalator status, source-labeled with the TTC.ca updated timestamp, daily refresh guard, and stale last-good fallback.
 - Redis-backed dashboard cache for status, map, alerts, ingestion health, and TTC performance reads, with database/live fallback when Redis is unavailable.
@@ -419,7 +419,7 @@ LineWatch TO should use public and source-linked data. It should also be honest 
 - Planned closure pages or feeds may change format.
 - Segment inference may be imperfect.
 - Overnight closed-mode uses general TTC subway operating hours; exact first and last trains vary by station, holidays, and service changes.
-- Saved commute route matching uses scheduled adjacent-station weights from the active TTC GTFS import when available and deterministic topology fallback weights otherwise. It is useful for in-app route awareness, but it is not a full TTC trip planner and does not reflect live train travel times.
+- Saved commute route matching uses scheduled adjacent-station weights from the active TTC GTFS import when available and deterministic topology fallback weights otherwise. Return trips are computed as a separate monitored leg when enabled, and directional service impacts only count when they match the commute leg direction or are bidirectional. This is useful for in-app route awareness, but it is not a full TTC trip planner and does not reflect live train travel times.
 - This app is unofficial and should not be treated as the sole source of truth for TTC service.
 
 ## Verification Baseline

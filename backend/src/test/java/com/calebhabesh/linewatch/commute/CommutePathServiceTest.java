@@ -66,6 +66,40 @@ class CommutePathServiceTest {
     }
 
     @Test
+    void prefersStGeorgeOverSpadinaForLine2ToNorthwestLine1Transfers() {
+        when(lineSegmentRepository.findAllByOrderBySortOrderAsc()).thenReturn(List.of(
+            segment("line-2-keele-dundas-west", "line-2", "keele", "dundas-west", 301),
+            segment("line-2-dundas-west-lansdowne", "line-2", "dundas-west", "lansdowne", 302),
+            segment("line-2-lansdowne-dufferin", "line-2", "lansdowne", "dufferin", 303),
+            segment("line-2-dufferin-ossington", "line-2", "dufferin", "ossington", 304),
+            segment("line-2-ossington-christie", "line-2", "ossington", "christie", 305),
+            segment("line-2-christie-bathurst", "line-2", "christie", "bathurst", 306),
+            segment("line-2-bathurst-spadina", "line-2", "bathurst", "spadina", 307),
+            segment("line-2-spadina-st-george", "line-2", "spadina", "st-george", 308),
+            segment("line-1-spadina-st-george", "line-1", "spadina", "st-george", 114),
+            segment("line-1-dupont-spadina", "line-1", "dupont", "spadina", 113),
+            segment("line-1-st-clair-west-dupont", "line-1", "st-clair-west", "dupont", 112),
+            segment("line-1-cedarvale-st-clair-west", "line-1", "cedarvale", "st-clair-west", 111),
+            segment("line-1-glencairn-cedarvale", "line-1", "glencairn", "cedarvale", 110),
+            segment("line-1-lawrence-west-glencairn", "line-1", "lawrence-west", "glencairn", 109)
+        ));
+        when(travelTimeRepository.findActiveScheduledSegmentWeights()).thenReturn(Map.of());
+
+        CommuteResponses.PathResponse path = service.path("keele", "lawrence-west");
+
+        assertThat(path.status()).isEqualTo("available");
+        assertThat(path.transferStationIds()).containsExactly("st-george");
+        assertThat(path.segmentIds()).containsSubsequence(
+            "line-2-bathurst-spadina",
+            "line-2-spadina-st-george",
+            "line-1-spadina-st-george",
+            "line-1-dupont-spadina"
+        );
+        assertThat(path.lineIds()).containsExactly("line-2", "line-1");
+        assertThat(path.estimatedTravelSeconds()).isEqualTo(1860);
+    }
+
+    @Test
     void usesFallbackWeightsWhenGtfsWeightsAreMissing() {
         when(lineSegmentRepository.findAllByOrderBySortOrderAsc()).thenReturn(List.of(
             segment("line-1-finch-north-york-centre", "line-1", "finch", "north-york-centre", 101),
@@ -127,6 +161,30 @@ class CommutePathServiceTest {
         verify(travelTimeRepository, times(2)).activeScheduleSignature();
         verify(lineSegmentRepository, times(1)).findAllByOrderBySortOrderAsc();
         verify(travelTimeRepository, times(1)).findActiveScheduledSegmentWeights();
+    }
+
+    @Test
+    void recordsLinkRelativeDirectionForEachPathSegmentHop() {
+        when(lineSegmentRepository.findAllByOrderBySortOrderAsc()).thenReturn(List.of(
+            segment("line-1-lawrence-west-glencairn", "line-1", "lawrence-west", "glencairn", 109)
+        ));
+        when(travelTimeRepository.findActiveScheduledSegmentWeights()).thenReturn(Map.of());
+
+        CommuteResponses.PathResponse southbound = service.path("lawrence-west", "glencairn");
+        CommuteResponses.PathResponse northbound = service.path("glencairn", "lawrence-west");
+
+        assertThat(southbound.segmentHops()).singleElement().satisfies(hop -> {
+            assertThat(hop.segmentId()).isEqualTo("line-1-lawrence-west-glencairn");
+            assertThat(hop.fromStationId()).isEqualTo("lawrence-west");
+            assertThat(hop.toStationId()).isEqualTo("glencairn");
+            assertThat(hop.travelDirection()).isEqualTo("forward");
+        });
+        assertThat(northbound.segmentHops()).singleElement().satisfies(hop -> {
+            assertThat(hop.segmentId()).isEqualTo("line-1-lawrence-west-glencairn");
+            assertThat(hop.fromStationId()).isEqualTo("glencairn");
+            assertThat(hop.toStationId()).isEqualTo("lawrence-west");
+            assertThat(hop.travelDirection()).isEqualTo("reverse");
+        });
     }
 
     private CommuteTravelTimeRepository.SegmentTravelTime weight(String segmentId, int seconds) {

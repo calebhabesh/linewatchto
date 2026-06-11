@@ -17,7 +17,7 @@ import org.springframework.stereotype.Service;
 public class CommutePathService {
     static final int FALLBACK_SEGMENT_SECONDS = 120;
     static final int DEFAULT_TRANSFER_SECONDS = 180;
-    static final int SPADINA_TRANSFER_SECONDS = 300;
+    static final int SPADINA_TRANSFER_SECONDS = 480;
 
     private final LineSegmentRepository lineSegmentRepository;
     private final CommuteTravelTimeRepository travelTimeRepository;
@@ -55,6 +55,7 @@ public class CommutePathService {
             List.of(),
             List.of(),
             List.of(),
+            List.of(),
             0,
             0
         );
@@ -85,6 +86,14 @@ public class CommutePathService {
                 stationIds.add(edge.toStationId());
                 List<String> segmentIds = new ArrayList<>(current.segmentIds());
                 segmentIds.add(edge.segmentId());
+                List<CommuteResponses.PathSegmentHopResponse> segmentHops = new ArrayList<>(current.segmentHops());
+                segmentHops.add(new CommuteResponses.PathSegmentHopResponse(
+                    edge.segmentId(),
+                    edge.lineId(),
+                    current.stationId(),
+                    edge.toStationId(),
+                    edge.travelDirection()
+                ));
                 List<String> lineIds = new ArrayList<>(current.lineIds());
                 if (lineIds.stream().noneMatch(edge.lineId()::equals)) {
                     lineIds.add(edge.lineId());
@@ -101,6 +110,7 @@ public class CommutePathService {
                     edge.lineId(),
                     List.copyOf(stationIds),
                     List.copyOf(segmentIds),
+                    List.copyOf(segmentHops),
                     List.copyOf(lineIds),
                     List.copyOf(transfers),
                     List.copyOf(sources),
@@ -157,6 +167,7 @@ public class CommutePathService {
                 segment.getStationBId(),
                 segment.getId(),
                 segment.getLineId(),
+                "forward",
                 seconds,
                 source,
                 segment.getSortOrder()
@@ -165,6 +176,7 @@ public class CommutePathService {
                 segment.getStationAId(),
                 segment.getId(),
                 segment.getLineId(),
+                "reverse",
                 seconds,
                 source,
                 segment.getSortOrder()
@@ -188,6 +200,7 @@ public class CommutePathService {
             "available",
             path.stationIds(),
             path.segmentIds(),
+            path.segmentHops(),
             path.lineIds(),
             path.transferStationIds(),
             path.totalSeconds(),
@@ -237,6 +250,8 @@ public class CommutePathService {
     }
 
     private int transferPenalty(String stationId) {
+        // Spadina's Line 1/Line 2 interchange is a long pedestrian passage.
+        // Bias default routes toward St George unless Spadina itself is the endpoint.
         return "spadina".equals(stationId) ? SPADINA_TRANSFER_SECONDS : DEFAULT_TRANSFER_SECONDS;
     }
 
@@ -247,6 +262,7 @@ public class CommutePathService {
         return new CommuteResponses.PathResponse(
             "unavailable",
             stationIds,
+            List.of(),
             List.of(),
             List.of(),
             List.of(),
@@ -264,7 +280,15 @@ public class CommutePathService {
         return value == null || value.isBlank();
     }
 
-    private record Edge(String toStationId, String segmentId, String lineId, int travelSeconds, String weightSource, int sortOrder) {}
+    private record Edge(
+        String toStationId,
+        String segmentId,
+        String lineId,
+        String travelDirection,
+        int travelSeconds,
+        String weightSource,
+        int sortOrder
+    ) {}
 
     private record StateKey(String stationId, String lineId) {}
 
@@ -273,6 +297,7 @@ public class CommutePathService {
         String currentLineId,
         List<String> stationIds,
         List<String> segmentIds,
+        List<CommuteResponses.PathSegmentHopResponse> segmentHops,
         List<String> lineIds,
         List<String> transferStationIds,
         List<String> weightSources,

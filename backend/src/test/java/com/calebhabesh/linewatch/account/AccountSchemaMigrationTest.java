@@ -45,6 +45,14 @@ class AccountSchemaMigrationTest {
         assertThat(sql).contains("idx_saved_commutes_account_id");
     }
 
+    @Test
+    void v20AddsSavedCommuteReturnTripPreference() throws IOException {
+        String sql = migrationSql("/db/migration/V20__saved_commute_return_trip.sql");
+
+        assertThat(sql).contains("alter table saved_commutes");
+        assertThat(sql).contains("add column watch_return_trip boolean not null default true");
+    }
+
     private String migrationSql(String path) throws IOException {
         try (var input = getClass().getResourceAsStream(path)) {
             assertThat(input).isNotNull();

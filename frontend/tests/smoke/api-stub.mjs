@@ -27,6 +27,109 @@ const demoUser = {
   demo: true,
 };
 
+const demoOutboundPath = {
+  status: "available",
+  stationIds: ["stub-station", "stub-eglinton", "stub-davisville", "stub-king", "stub-union"],
+  segmentIds: ["stub-line-1-segment", "stub-line-1-eglinton-davisville", "stub-line-1-king-union"],
+  segmentHops: [
+    {
+      segmentId: "stub-line-1-segment",
+      lineId: "line-1",
+      fromStationId: "stub-station",
+      toStationId: "stub-eglinton",
+      travelDirection: "forward",
+    },
+    {
+      segmentId: "stub-line-1-eglinton-davisville",
+      lineId: "line-1",
+      fromStationId: "stub-eglinton",
+      toStationId: "stub-davisville",
+      travelDirection: "forward",
+    },
+    {
+      segmentId: "stub-line-1-king-union",
+      lineId: "line-1",
+      fromStationId: "stub-king",
+      toStationId: "stub-union",
+      travelDirection: "forward",
+    },
+  ],
+  lineIds: ["line-1"],
+  transferStationIds: [],
+  estimatedTravelSeconds: 780,
+  weightSource: "gtfs-scheduled-median",
+  summary: "Default scheduled route: 5 stations on Line 1, about 13 min",
+};
+
+const demoReturnPath = {
+  status: "available",
+  stationIds: ["stub-union", "stub-king", "stub-davisville", "stub-eglinton", "stub-station"],
+  segmentIds: ["stub-line-1-king-union", "stub-line-1-eglinton-davisville", "stub-line-1-segment"],
+  segmentHops: [
+    {
+      segmentId: "stub-line-1-king-union",
+      lineId: "line-1",
+      fromStationId: "stub-union",
+      toStationId: "stub-king",
+      travelDirection: "reverse",
+    },
+    {
+      segmentId: "stub-line-1-eglinton-davisville",
+      lineId: "line-1",
+      fromStationId: "stub-davisville",
+      toStationId: "stub-eglinton",
+      travelDirection: "reverse",
+    },
+    {
+      segmentId: "stub-line-1-segment",
+      lineId: "line-1",
+      fromStationId: "stub-eglinton",
+      toStationId: "stub-station",
+      travelDirection: "reverse",
+    },
+  ],
+  lineIds: ["line-1"],
+  transferStationIds: [],
+  estimatedTravelSeconds: 780,
+  weightSource: "gtfs-scheduled-median",
+  summary: "Default scheduled route: 5 stations on Line 1, about 13 min",
+};
+
+const demoOutboundImpact = {
+  status: "affected",
+  severity: "suspended",
+  statusLabel: "Affected now",
+  detail: "1 current impact matches this route.",
+  matchedImpacts: [
+    {
+      id: "stub-alert-line-1",
+      kind: "suspension",
+      status: "current",
+      severity: "suspended",
+      title: "Stub API signal problem",
+      lineId: "line-1",
+      lineNumber: "1",
+      location: "Stub Station to Stub Terminal",
+      displayDirection: "Northbound & Southbound",
+      source: "Playwright API stub",
+      matchedSegmentIds: ["stub-line-1-segment"],
+      matchedStationIds: [],
+      startedAt: "2026-06-05T14:30:00Z",
+      updatedAt: "2026-06-05T14:35:00Z",
+      window: null,
+      timingStatus: "active-now",
+    },
+  ],
+};
+
+const demoReturnImpact = {
+  status: "clear",
+  severity: "clear",
+  statusLabel: "Clear",
+  detail: "No active or planned LineWatch impacts match this route.",
+  matchedImpacts: [],
+};
+
 const demoCommutes = [
   {
     id: "commute_demo_finch_union",
@@ -36,42 +139,29 @@ const demoCommutes = [
     destinationStationId: "stub-union",
     destinationStationName: "Union",
     routeLabel: "Stub Station -> Union",
-    path: {
-      status: "available",
-      stationIds: ["stub-station", "stub-eglinton", "stub-davisville", "stub-king", "stub-union"],
-      segmentIds: ["stub-line-1-segment", "stub-line-1-eglinton-davisville", "stub-line-1-king-union"],
-      lineIds: ["line-1"],
-      transferStationIds: [],
-      estimatedTravelSeconds: 780,
-      weightSource: "gtfs-scheduled-median",
-      summary: "Default scheduled route: 5 stations on Line 1, about 13 min",
+    watchReturnTrip: true,
+    outboundLeg: {
+      id: "outbound",
+      routeLabel: "Stub Station -> Union",
+      fromStationId: "stub-station",
+      fromStationName: "Stub Station",
+      toStationId: "stub-union",
+      toStationName: "Union",
+      path: demoOutboundPath,
+      impact: demoOutboundImpact,
     },
-    impact: {
-      status: "affected",
-      severity: "suspended",
-      statusLabel: "Affected now",
-      detail: "1 current impact matches this route.",
-      matchedImpacts: [
-        {
-          id: "stub-alert-line-1",
-          kind: "suspension",
-          status: "current",
-          severity: "suspended",
-          title: "Stub API signal problem",
-          lineId: "line-1",
-          lineNumber: "1",
-          location: "Stub Station to Stub Terminal",
-          displayDirection: "Northbound & Southbound",
-          source: "Playwright API stub",
-          matchedSegmentIds: ["stub-line-1-segment"],
-          matchedStationIds: [],
-          startedAt: "2026-06-05T14:30:00Z",
-          updatedAt: "2026-06-05T14:35:00Z",
-          window: null,
-          timingStatus: "active-now",
-        },
-      ],
+    returnLeg: {
+      id: "return",
+      routeLabel: "Union -> Stub Station",
+      fromStationId: "stub-union",
+      fromStationName: "Union",
+      toStationId: "stub-station",
+      toStationName: "Stub Station",
+      path: demoReturnPath,
+      impact: demoReturnImpact,
     },
+    path: demoOutboundPath,
+    impact: demoOutboundImpact,
     createdAt: "2026-06-05T14:30:00Z",
     updatedAt: "2026-06-05T14:30:00Z",
   },

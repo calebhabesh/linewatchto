@@ -625,14 +625,14 @@ button {
 
 .linewatch-shell.mobile-performance-mode .asset-alert-path.map-selection-flash {
   animation: none !important;
-  filter: drop-shadow(0 0 8px rgba(56, 189, 248, 0.65)) !important;
+  filter: none !important;
   opacity: 0.7;
   stroke-width: 140;
 }
 
 .linewatch-shell.mobile-performance-mode .station-selection-flash {
   animation: none !important;
-  filter: drop-shadow(0 0 4px rgba(56, 189, 248, 0.65)) !important;
+  filter: none !important;
   opacity: 0.7;
 }
 
@@ -3714,6 +3714,83 @@ button {
   justify-content: center;
 }
 
+.saved-commute-return-toggle {
+  align-items: center;
+  color: rgb(51, 65, 85);
+  cursor: pointer;
+  display: flex;
+  font-size: 0.76rem;
+  font-weight: 800;
+  gap: 0.6rem;
+  justify-content: flex-start;
+  margin: 0.25rem 0 !important;
+  padding: 0 !important;
+  width: fit-content;
+}
+
+/* Hide default HTML checkbox */
+.saved-commute-switch input {
+  height: 0;
+  opacity: 0;
+  width: 0;
+  position: absolute;
+}
+
+/* The switch container */
+.saved-commute-switch {
+  display: inline-block;
+  height: 20px;
+  position: relative;
+  width: 36px;
+}
+
+/* The slider */
+.saved-commute-slider {
+  background-color: rgb(203, 213, 225); /* slate-300 */
+  bottom: 0;
+  cursor: pointer;
+  left: 0;
+  position: absolute;
+  right: 0;
+  top: 0;
+  transition: .3s;
+  border-radius: 20px;
+}
+
+.saved-commute-slider:before {
+  background-color: white;
+  bottom: 3px;
+  content: "";
+  height: 14px;
+  left: 3px;
+  position: absolute;
+  transition: .3s;
+  width: 14px;
+  border-radius: 50%;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+
+.saved-commute-switch input:checked + .saved-commute-slider {
+  background-color: rgb(16, 185, 129); /* active green */
+}
+
+.saved-commute-switch input:checked + .saved-commute-slider:before {
+  transform: translateX(16px);
+}
+
+.dark .saved-commute-return-toggle,
+.high-contrast .saved-commute-return-toggle {
+  color: rgb(226, 232, 240);
+}
+
+.dark .saved-commute-slider {
+  background-color: rgb(71, 85, 105); /* slate-600 */
+}
+
+.dark .saved-commute-switch input:checked + .saved-commute-slider {
+  background-color: rgb(16, 185, 129);
+}
+
 .saved-commute-primary-button[aria-busy="true"] {
   cursor: wait;
   opacity: 0.82;
@@ -3744,6 +3821,92 @@ button {
   min-height: 30px;
   padding: 0.35rem 0.55rem;
   text-transform: uppercase;
+}
+
+.commute-leg-toggle {
+  align-items: center;
+  background: rgba(15, 23, 42, 0.06);
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  border-radius: 8px;
+  display: inline-flex;
+  gap: 0.18rem;
+  margin-top: 0.55rem;
+  padding: 0.18rem;
+}
+
+.commute-leg-toggle button {
+  border-radius: 6px;
+  color: rgb(71, 85, 105);
+  font-size: 0.66rem;
+  font-weight: 950;
+  min-height: 28px;
+  padding: 0.32rem 0.5rem;
+  text-transform: uppercase;
+}
+
+.commute-leg-toggle button[aria-selected="true"] {
+  background: rgb(15, 23, 42);
+  color: rgb(248, 250, 252);
+}
+
+.saved-commute-leg-list {
+  display: grid;
+  gap: 0.34rem;
+  margin-top: 0.65rem;
+}
+
+.saved-commute-leg-row {
+  align-items: center;
+  background: rgba(15, 23, 42, 0.04);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 8px;
+  display: grid;
+  gap: 0.4rem;
+  grid-template-columns: minmax(0, 1fr) auto;
+  padding: 0.45rem 0.55rem;
+}
+
+.saved-commute-leg-row strong {
+  color: rgb(30, 41, 59);
+  font-size: 0.76rem;
+  min-width: 0;
+}
+
+.saved-commute-leg-row em {
+  color: rgb(100, 116, 139);
+  font-size: 0.68rem;
+  font-style: normal;
+  grid-column: 1 / -1;
+  min-width: 0;
+}
+
+.dark .commute-leg-toggle,
+.high-contrast .commute-leg-toggle,
+.dark .saved-commute-leg-row,
+.high-contrast .saved-commute-leg-row {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.dark .commute-leg-toggle button,
+.high-contrast .commute-leg-toggle button {
+  color: rgb(203, 213, 225);
+}
+
+.dark .commute-leg-toggle button[aria-selected="true"],
+.high-contrast .commute-leg-toggle button[aria-selected="true"] {
+  background: rgb(226, 232, 240);
+  color: rgb(15, 23, 42);
+}
+
+.dark .saved-commute-leg-row strong,
+.high-contrast .saved-commute-leg-row strong {
+  color: rgb(248, 250, 252);
+}
+
+.dark .saved-commute-leg-row em,
+.high-contrast .saved-commute-leg-row em {
+  color: rgb(148, 163, 184);
 }
 
 .commute-route-map-button[aria-pressed="true"] {

@@ -4,6 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.calebhabesh.linewatch.commute.CommuteImpactService;
@@ -47,6 +49,7 @@ class SavedCommuteServiceTest {
             "available",
             List.of(originStationId, destinationStationId),
             List.of("segment_" + originStationId + "_" + destinationStationId),
+            List.of(),
             List.of("line-1"),
             List.of(),
             300,
@@ -63,6 +66,29 @@ class SavedCommuteServiceTest {
         ));
     }
 
+    private CommuteResponses.PathResponse stubPath(String originStationId, String destinationStationId) {
+        CommuteResponses.PathResponse path = new CommuteResponses.PathResponse(
+            "available",
+            List.of(originStationId, destinationStationId),
+            List.of("segment_" + originStationId + "_" + destinationStationId),
+            List.of(),
+            List.of("line-1"),
+            List.of(),
+            300,
+            "gtfs-scheduled-median",
+            "Default scheduled route: 2 stations on Line 1, about 5 min"
+        );
+        when(commutePathService.path(originStationId, destinationStationId)).thenReturn(path);
+        when(commuteImpactService.impactFor(path)).thenReturn(new CommuteResponses.ImpactResponse(
+            "clear",
+            "clear",
+            "Clear",
+            "No active or planned LineWatch impacts match this route.",
+            List.of()
+        ));
+        return path;
+    }
+
     @Test
     void createsSavedCommuteWithResolvedStationNames() {
         StationEntity finch = new StationEntity("finch", "Finch", 0, 0, false, 10, null);
@@ -75,7 +101,7 @@ class SavedCommuteServiceTest {
 
         AccountResponses.SavedCommuteResponse response = service.create(
             account,
-            new SavedCommuteService.CreateSavedCommuteRequest("Morning commute", "finch", "union")
+            new SavedCommuteService.CreateSavedCommuteRequest("Morning commute", "finch", "union", null)
         );
 
         assertThat(response.label()).isEqualTo("Morning commute");
@@ -88,10 +114,58 @@ class SavedCommuteServiceTest {
     }
 
     @Test
+    void createsSavedCommuteWithReturnTripWatchedByDefault() {
+        StationEntity lawrenceWest = new StationEntity("lawrence-west", "Lawrence West", 0, 0, false, 10, null);
+        StationEntity keele = new StationEntity("keele", "Keele", 0, 0, false, 20, null);
+        when(stationRepository.findById("lawrence-west")).thenReturn(Optional.of(lawrenceWest));
+        when(stationRepository.findById("keele")).thenReturn(Optional.of(keele));
+        when(commuteRepository.existsByAccountIdAndOriginStationIdAndDestinationStationId("user_1", "lawrence-west", "keele")).thenReturn(false);
+        when(commuteRepository.save(any(SavedCommuteEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        stubPath("lawrence-west", "keele");
+        stubPath("keele", "lawrence-west");
+
+        AccountResponses.SavedCommuteResponse response = service.create(
+            account,
+            new SavedCommuteService.CreateSavedCommuteRequest("West-end commute", "lawrence-west", "keele", null)
+        );
+
+        assertThat(response.watchReturnTrip()).isTrue();
+        assertThat(response.outboundLeg().id()).isEqualTo("outbound");
+        assertThat(response.outboundLeg().routeLabel()).isEqualTo("Lawrence West -> Keele");
+        assertThat(response.returnLeg()).isNotNull();
+        assertThat(response.returnLeg().id()).isEqualTo("return");
+        assertThat(response.returnLeg().routeLabel()).isEqualTo("Keele -> Lawrence West");
+        verify(commutePathService).path("lawrence-west", "keele");
+        verify(commutePathService).path("keele", "lawrence-west");
+    }
+
+    @Test
+    void createsOneWaySavedCommuteWhenReturnTripIsDisabled() {
+        StationEntity lawrenceWest = new StationEntity("lawrence-west", "Lawrence West", 0, 0, false, 10, null);
+        StationEntity keele = new StationEntity("keele", "Keele", 0, 0, false, 20, null);
+        when(stationRepository.findById("lawrence-west")).thenReturn(Optional.of(lawrenceWest));
+        when(stationRepository.findById("keele")).thenReturn(Optional.of(keele));
+        when(commuteRepository.existsByAccountIdAndOriginStationIdAndDestinationStationId("user_1", "lawrence-west", "keele")).thenReturn(false);
+        when(commuteRepository.save(any(SavedCommuteEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        stubPath("lawrence-west", "keele");
+
+        AccountResponses.SavedCommuteResponse response = service.create(
+            account,
+            new SavedCommuteService.CreateSavedCommuteRequest("One way", "lawrence-west", "keele", false)
+        );
+
+        assertThat(response.watchReturnTrip()).isFalse();
+        assertThat(response.outboundLeg().routeLabel()).isEqualTo("Lawrence West -> Keele");
+        assertThat(response.returnLeg()).isNull();
+        verify(commutePathService).path("lawrence-west", "keele");
+        verify(commutePathService, never()).path("keele", "lawrence-west");
+    }
+
+    @Test
     void rejectsSameOriginAndDestination() {
         assertThatThrownBy(() -> service.create(
             account,
-            new SavedCommuteService.CreateSavedCommuteRequest("Loop", "union", "union")
+            new SavedCommuteService.CreateSavedCommuteRequest("Loop", "union", "union", null)
         ))
             .isInstanceOf(AccountException.class)
             .extracting("status")
@@ -108,11 +182,13 @@ class SavedCommuteServiceTest {
             "Morning commute",
             "finch",
             "union",
+            true,
             Instant.parse("2026-06-05T14:30:00Z")
         );
         when(commuteRepository.findByAccountIdOrderByCreatedAtAsc("user_1")).thenReturn(List.of(commute));
         when(stationRepository.findAllById(List.of("finch", "union"))).thenReturn(List.of(finch, union));
-        stubCommutePathAndImpact("finch", "union");
+        stubPath("finch", "union");
+        stubPath("union", "finch");
 
         AccountResponses.SavedCommuteListResponse response = service.list(account);
 

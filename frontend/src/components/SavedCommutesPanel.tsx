@@ -5,10 +5,15 @@ import { Navigation, ChevronDown, ChevronLeft, Loader2, MapPinned, X, AlertTrian
 import {
   createSavedCommute,
   deleteSavedCommute,
+  commuteLegsForCommute,
+  commutePathPreviewFromCommute,
   getSavedCommutes,
   type AccountSavedCommute,
   type AccountState,
   type AccountMatchedImpact,
+  type AccountCommuteLeg,
+  type AccountCommuteLegId,
+  type AccountCommuteImpact,
 } from "../app/account-data";
 import type { StationSummary } from "../app/station-data";
 import { SavedCommuteStationPicker } from "./SavedCommuteStationPicker";
@@ -66,14 +71,42 @@ interface Props {
   setAccountCommutes: (commutes: AccountSavedCommute[]) => void;
   stationSummaries: StationSummary[];
   viewedCommuteId?: string | null;
-  onViewPath: (commute: AccountSavedCommute) => void;
+  onViewPath: (commute: AccountSavedCommute, legId?: AccountCommuteLegId) => void;
   onClearViewedPath: (commuteId: string) => void;
   onRequestSignIn: () => void;
   onRequestCreateAccount: () => void;
 }
 
+function severityPriority(severity: AccountCommuteImpact["severity"]) {
+  switch (severity) {
+    case "suspended":
+      return 5;
+    case "major":
+      return 4;
+    case "minor":
+      return 3;
+    case "planned":
+      return 2;
+    case "unavailable":
+      return 1;
+    case "clear":
+    default:
+      return 0;
+  }
+}
+
+function commuteLegs(commute: AccountSavedCommute) {
+  return commuteLegsForCommute(commute);
+}
+
+function commuteWorstSeverity(commute: AccountSavedCommute) {
+  return commuteLegs(commute)
+    .map((leg) => leg.impact.severity)
+    .sort((a, b) => severityPriority(b) - severityPriority(a))[0] ?? "clear";
+}
+
 function commuteTone(commute: AccountSavedCommute) {
-  switch (commute.impact.severity) {
+  switch (commuteWorstSeverity(commute)) {
     case "suspended":
     case "major":
       return "danger";
@@ -86,6 +119,27 @@ function commuteTone(commute: AccountSavedCommute) {
     default:
       return "ok";
   }
+}
+
+function commuteStatusLabel(commute: AccountSavedCommute) {
+  const legs = commuteLegs(commute);
+  if (legs.length === 1) {
+    return legs[0].impact.statusLabel;
+  }
+  const outboundStatus = legs.find((leg) => leg.id === "outbound")?.impact.status ?? "clear";
+  const returnStatus = legs.find((leg) => leg.id === "return")?.impact.status ?? "clear";
+  if (outboundStatus === "affected" && returnStatus === "affected") return "Both affected";
+  if (outboundStatus === "affected") return "Outbound affected";
+  if (returnStatus === "affected") return "Return affected";
+  if (outboundStatus === "planned" && returnStatus === "planned") return "Both planned";
+  if (outboundStatus === "planned") return "Outbound planned";
+  if (returnStatus === "planned") return "Return planned";
+  if (outboundStatus === "unavailable" && returnStatus === "unavailable") return "Route unavailable";
+  return "Clear both ways";
+}
+
+function currentImpactCount(legs: AccountCommuteLeg[]) {
+  return legs.flatMap((leg) => leg.impact.matchedImpacts).filter((impact) => impact.status === "current").length;
 }
 
 function ImpactIcon({ kind, className }: { kind: AccountMatchedImpact["kind"]; className?: string }) {
@@ -138,8 +192,10 @@ export function SavedCommutesPanel({
   const [destinationStationId, setDestinationStationId] = useState("");
   const [saving, setSaving] = useState(false);
   const [commuteError, setCommuteError] = useState<string | null>(null);
+  const [watchReturnTrip, setWatchReturnTrip] = useState(true);
   const [expandedCommuteId, setExpandedCommuteId] = useState<string | null>(null);
   const [deletingCommuteId, setDeletingCommuteId] = useState<string | null>(null);
+  const [selectedLegIds, setSelectedLegIds] = useState<Record<string, AccountCommuteLegId>>({});
 
   useEffect(() => {
     let cancelled = false;
@@ -183,11 +239,13 @@ export function SavedCommutesPanel({
         label: newLabel,
         originStationId,
         destinationStationId,
+        watchReturnTrip,
       });
       setAccountCommutes([...accountCommutes, created]);
       setNewLabel("");
       setOriginStationId("");
       setDestinationStationId("");
+      setWatchReturnTrip(true);
     } catch {
       setCommuteError("Could not save that commute.");
     } finally {
@@ -273,6 +331,17 @@ export function SavedCommutesPanel({
                 onChange={setDestinationStationId}
               />
             </div>
+            <label className="saved-commute-return-toggle">
+              <div className="saved-commute-switch">
+                <input
+                  type="checkbox"
+                  checked={watchReturnTrip}
+                  onChange={(event) => setWatchReturnTrip(event.target.checked)}
+                />
+                <span className="saved-commute-slider"></span>
+              </div>
+              <span>Track Return Route</span>
+            </label>
             <button
               type="button"
               className="saved-commute-primary-button"
@@ -298,10 +367,17 @@ export function SavedCommutesPanel({
               <p className="text-xs text-slate-500 dark:text-slate-400 italic">No saved account commutes yet.</p>
             ) : (
               accountCommutes.map((commute) => {
+                const legs = commuteLegs(commute);
+                const selectedLegId = selectedLegIds[commute.id] ?? "outbound";
+                const selectedLeg = legs.find((leg) => leg.id === selectedLegId) ?? legs[0];
                 const stopsExpanded = expandedCommuteId === commute.id;
-                const routeStops = commute.path.stationIds;
-                const canViewPath = commute.path.status === "available" && commute.path.segmentIds.length > 0;
-                const viewingPath = viewedCommuteId === commute.id;
+                const routeStops = selectedLeg.path.stationIds;
+                const canViewPath = selectedLeg.path.status === "available" && selectedLeg.path.segmentIds.length > 0;
+                const selectedPreview = commutePathPreviewFromCommute(commute, selectedLeg.id);
+                const viewingPath = Boolean(selectedPreview && viewedCommuteId === selectedPreview.id);
+                const routeLabel = commute.watchReturnTrip
+                  ? `${commute.originStationName} <-> ${commute.destinationStationName}`
+                  : commute.routeLabel;
 
                 return (
                   <div key={commute.id} className={`commute-card ${commuteTone(commute)} min-w-0 rounded-lg border border-black/10 !bg-slate-50 p-3 dark:border-white/10 dark:!bg-[#12151c]`}>
@@ -310,32 +386,68 @@ export function SavedCommutesPanel({
                         <h3 className="min-w-0 text-sm font-bold text-slate-800 dark:text-white whitespace-normal break-words">
                           {toTitleCase(commute.label.replace(/\bto\b/g, "->"))}
                         </h3>
-                        <span className={`status-pill ${commuteTone(commute)}`}>{toTitleCase(commute.impact.statusLabel)}</span>
+                        <span className={`status-pill ${commuteTone(commute)}`}>{toTitleCase(commuteStatusLabel(commute))}</span>
                       </div>
+                      <p className="mt-1 text-xs font-semibold text-slate-500 dark:text-slate-400">{routeLabel}</p>
+
+                      {legs.length > 1 ? (
+                        <div className="commute-leg-toggle" role="tablist" aria-label={`Route direction for ${commute.label}`}>
+                          {legs.map((leg) => (
+                            <button
+                              key={leg.id}
+                              type="button"
+                              role="tab"
+                              aria-selected={selectedLeg.id === leg.id}
+                              onClick={() => setSelectedLegIds((current) => ({ ...current, [commute.id]: leg.id }))}
+                            >
+                              {leg.id === "outbound" ? "To destination" : "Return"}
+                            </button>
+                          ))}
+                        </div>
+                      ) : null}
 
                       <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mt-2">
-                        Default Scheduled Route
+                        Default Scheduled Route - {selectedLeg.id === "return" ? "Return" : "Outbound"}
                       </div>
 
                       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1 text-xs text-white font-medium">
                         <div className="flex items-center gap-1.5">
                           <NumStationsIcon className="w-3.5 h-3.5 text-white shrink-0" />
                           <span>
-                            {toTitleCase(`${commute.path.stationIds.length} Station${commute.path.stationIds.length === 1 ? "" : "s"}`)}
+                            {toTitleCase(`${selectedLeg.path.stationIds.length} Station${selectedLeg.path.stationIds.length === 1 ? "" : "s"}`)}
                           </span>
                         </div>
                         <div className="flex items-center gap-1.5">
                           <Clock size={14} className="text-white shrink-0" />
                           <span>
-                            {commute.path.status === "available"
-                              ? toTitleCase(`About ${Math.max(1, Math.round(commute.path.estimatedTravelSeconds / 60.0))} Minutes`)
+                            {selectedLeg.path.status === "available"
+                              ? toTitleCase(`About ${Math.max(1, Math.round(selectedLeg.path.estimatedTravelSeconds / 60.0))} Minutes`)
                               : toTitleCase("Route path unavailable")}
                           </span>
                         </div>
                       </div>
 
+                      <ul className="saved-commute-leg-list">
+                        {legs.map((leg) => {
+                          const firstImpact = leg.impact.matchedImpacts[0];
+                          return (
+                            <li key={leg.id} className="saved-commute-leg-row">
+                              <strong>To {leg.toStationName}</strong>
+                              <span className={`status-pill ${leg.impact.severity === "clear" ? "ok" : leg.impact.severity === "suspended" || leg.impact.severity === "major" ? "danger" : "warning"}`}>
+                                {toTitleCase(leg.impact.statusLabel)}
+                              </span>
+                              {firstImpact ? (
+                                <em>{toTitleCase(impactKindLabel(firstImpact.kind))}{firstImpact.displayDirection ? ` ${toTitleCase(firstImpact.displayDirection)}` : ""}</em>
+                              ) : (
+                                <em>No Matching Impacts</em>
+                              )}
+                            </li>
+                          );
+                        })}
+                      </ul>
+
                       {(() => {
-                        const currentImpactsCount = commute.impact.matchedImpacts.filter((i) => i.status === "current").length;
+                        const currentImpactsCount = currentImpactCount(legs);
                         const hasCurrentImpacts = currentImpactsCount > 0;
                         const impactTextColor = hasCurrentImpacts
                           ? "text-amber-600 dark:text-amber-400"
@@ -350,9 +462,9 @@ export function SavedCommutesPanel({
                           </div>
                         );
                       })()}
-                      {commute.impact.matchedImpacts.length > 0 ? (
+                      {selectedLeg.impact.matchedImpacts.length > 0 ? (
                         <ul className="saved-commute-impact-list">
-                          {commute.impact.matchedImpacts.slice(0, 3).map((impact) => (
+                          {selectedLeg.impact.matchedImpacts.slice(0, 3).map((impact) => (
                             <li key={`${impact.kind}-${impact.id}`} className="!flex !flex-row !items-center !gap-1.5 !flex-wrap">
                               <ImpactIcon kind={impact.kind} className="shrink-0" />
                               <strong className="font-bold uppercase tracking-wider text-[10px] text-slate-700 dark:text-slate-300">
@@ -382,7 +494,7 @@ export function SavedCommutesPanel({
                         <button
                           type="button"
                           className="commute-route-map-button"
-                          onClick={() => onViewPath(commute)}
+                          onClick={() => onViewPath(commute, selectedLeg.id)}
                           disabled={!canViewPath}
                           aria-pressed={viewingPath}
                         >
@@ -429,7 +541,7 @@ export function SavedCommutesPanel({
                             <li key={`${commute.id}-${stationId}-${index}`}>
                               <span className="commute-route-stop-index">{index + 1}</span>
                               <span>{stationNameFor(stationId)}</span>
-                              {commute.path.transferStationIds.includes(stationId) ? (
+                              {selectedLeg.path.transferStationIds.includes(stationId) ? (
                                 <strong>Transfer</strong>
                               ) : null}
                             </li>

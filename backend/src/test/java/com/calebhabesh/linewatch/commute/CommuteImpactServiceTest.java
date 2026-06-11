@@ -8,6 +8,7 @@ import static org.mockito.Mockito.when;
 import com.calebhabesh.linewatch.alert.AlertDashboardService;
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 class CommuteImpactServiceTest {
@@ -150,10 +151,114 @@ class CommuteImpactServiceTest {
     }
 
     @Test
+    void reducedSpeedZoneDoesNotMatchWhenRouteTravelsOppositeDirectionOnSegment() {
+        String segmentId = "line-1-lawrence-west-glencairn";
+        when(dashboardService.activeAlerts()).thenReturn(List.of());
+        when(dashboardService.delays()).thenReturn(List.of());
+        when(dashboardService.reducedSpeedZones()).thenReturn(List.of(new AlertDashboardService.ReducedSpeedZoneDto(
+            "rsz_1",
+            "line-1",
+            "1",
+            "Reduced Speed Zone",
+            "Glencairn to Lawrence West",
+            "Northbound",
+            "Trains are operating through a reduced speed zone.",
+            OffsetDateTime.parse("2026-06-06T12:15:00-04:00"),
+            OffsetDateTime.parse("2026-06-06T12:20:00-04:00"),
+            List.of(segmentId),
+            List.of("ttc-route-1"),
+            List.of(),
+            "TTC Live Alert",
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+        )));
+        when(dashboardService.activeSegmentImpacts()).thenReturn(Map.of(
+            segmentId,
+            List.of(new AlertDashboardService.SegmentImpact(
+                "reduced-speed-zone",
+                "rsz_1",
+                "reverse",
+                List.of("ttc-route-1")
+            ))
+        ));
+        when(dashboardService.plannedClosures()).thenReturn(List.of());
+        when(dashboardService.activeStationNodeImpacts()).thenReturn(List.of());
+
+        CommuteResponses.ImpactResponse impact = service.impactFor(pathWithHop(
+            List.of("lawrence-west", "glencairn"),
+            segmentId,
+            "forward"
+        ));
+
+        assertThat(impact.status()).isEqualTo("clear");
+        assertThat(impact.severity()).isEqualTo("clear");
+        assertThat(impact.matchedImpacts()).isEmpty();
+    }
+
+    @Test
+    void reducedSpeedZoneMatchesWhenRouteTravelsSameDirectionOnSegment() {
+        String segmentId = "line-1-lawrence-west-glencairn";
+        when(dashboardService.activeAlerts()).thenReturn(List.of());
+        when(dashboardService.delays()).thenReturn(List.of());
+        when(dashboardService.reducedSpeedZones()).thenReturn(List.of(new AlertDashboardService.ReducedSpeedZoneDto(
+            "rsz_1",
+            "line-1",
+            "1",
+            "Reduced Speed Zone",
+            "Glencairn to Lawrence West",
+            "Northbound",
+            "Trains are operating through a reduced speed zone.",
+            OffsetDateTime.parse("2026-06-06T12:15:00-04:00"),
+            OffsetDateTime.parse("2026-06-06T12:20:00-04:00"),
+            List.of(segmentId),
+            List.of("ttc-route-1"),
+            List.of(),
+            "TTC Live Alert",
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+        )));
+        when(dashboardService.activeSegmentImpacts()).thenReturn(Map.of(
+            segmentId,
+            List.of(new AlertDashboardService.SegmentImpact(
+                "reduced-speed-zone",
+                "rsz_1",
+                "reverse",
+                List.of("ttc-route-1")
+            ))
+        ));
+        when(dashboardService.plannedClosures()).thenReturn(List.of());
+        when(dashboardService.activeStationNodeImpacts()).thenReturn(List.of());
+
+        CommuteResponses.ImpactResponse impact = service.impactFor(pathWithHop(
+            List.of("glencairn", "lawrence-west"),
+            segmentId,
+            "reverse"
+        ));
+
+        assertThat(impact.status()).isEqualTo("affected");
+        assertThat(impact.severity()).isEqualTo("minor");
+        assertThat(impact.matchedImpacts()).singleElement().satisfies(match -> {
+            assertThat(match.id()).isEqualTo("rsz_1");
+            assertThat(match.matchedSegmentIds()).containsExactly(segmentId);
+        });
+    }
+
+    @Test
     void unavailablePathReturnsUnavailableImpactWithoutReadingDashboardImpacts() {
         CommuteResponses.ImpactResponse impact = service.impactFor(new CommuteResponses.PathResponse(
             "unavailable",
             List.of("finch", "islington"),
+            List.of(),
             List.of(),
             List.of(),
             List.of(),
@@ -175,10 +280,31 @@ class CommuteImpactServiceTest {
             "available",
             stationIds,
             segmentIds,
+            List.of(),
             List.of("line-1"),
             List.of(),
             300,
             "gtfs-scheduled-median",
+            stationIds.size() + " stations on Line 1"
+        );
+    }
+
+    private CommuteResponses.PathResponse pathWithHop(List<String> stationIds, String segmentId, String travelDirection) {
+        return new CommuteResponses.PathResponse(
+            "available",
+            stationIds,
+            List.of(segmentId),
+            List.of(new CommuteResponses.PathSegmentHopResponse(
+                segmentId,
+                "line-1",
+                stationIds.get(0),
+                stationIds.get(1),
+                travelDirection
+            )),
+            List.of("line-1"),
+            List.of(),
+            120,
+            "topology-fallback",
             stationIds.size() + " stations on Line 1"
         );
     }

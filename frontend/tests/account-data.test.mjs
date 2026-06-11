@@ -19,13 +19,22 @@ describe("account data adapter", () => {
     const source = readFileSync(new URL("../src/app/account-data.ts", import.meta.url), "utf8");
     assert.match(source, /export type AccountCommutePath/);
     assert.match(source, /estimatedTravelSeconds: number/);
+    assert.match(source, /export type AccountCommutePathSegmentHop/);
+    assert.match(source, /segmentHops: AccountCommutePathSegmentHop\[\]/);
     assert.match(source, /weightSource: "gtfs-scheduled-median" \| "mixed-scheduled-fallback" \| "topology-fallback" \| "unavailable"/);
     assert.match(source, /export type AccountCommuteImpact/);
+    assert.match(source, /export type AccountCommuteLeg/);
+    assert.match(source, /watchReturnTrip: boolean/);
+    assert.match(source, /outboundLeg: AccountCommuteLeg/);
+    assert.match(source, /returnLeg: AccountCommuteLeg \| null/);
     assert.match(source, /path: AccountCommutePath/);
     assert.match(source, /impact: AccountCommuteImpact/);
     assert.match(source, /export type AccountCommutePathPreview/);
     assert.match(source, /commutePathPreviewFromCommute/);
-    assert.match(source, /segmentIds: commute\.path\.segmentIds/);
+    assert.match(source, /export type AccountCommuteLegId = "outbound" \| "return"/);
+    assert.match(source, /legId: AccountCommuteLegId/);
+    assert.match(source, /commutePathPreviewFromCommute\(commute: AccountSavedCommute, legId/);
+    assert.match(source, /segmentIds: leg\.path\.segmentIds/);
   });
 
   it("maps signed-out current account responses", async () => {
@@ -180,6 +189,13 @@ describe("account data adapter", () => {
                   status: "available",
                   stationIds: ["finch", "union"],
                   segmentIds: ["line-1-finch-union"],
+                  segmentHops: [{
+                    segmentId: "line-1-finch-union",
+                    lineId: "line-1",
+                    fromStationId: "finch",
+                    toStationId: "union",
+                    travelDirection: "forward",
+                  }],
                   lineIds: ["line-1"],
                   transferStationIds: [],
                   estimatedTravelSeconds: 300,
@@ -228,6 +244,13 @@ describe("account data adapter", () => {
                 status: "available",
                 stationIds: ["finch", "union"],
                 segmentIds: ["line-1-finch-union"],
+                segmentHops: [{
+                  segmentId: "line-1-finch-union",
+                  lineId: "line-1",
+                  fromStationId: "finch",
+                  toStationId: "union",
+                  travelDirection: "forward",
+                }],
                 lineIds: ["line-1"],
                 transferStationIds: [],
                 estimatedTravelSeconds: 300,

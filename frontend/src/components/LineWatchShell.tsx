@@ -58,6 +58,7 @@ import {
   type AccountState,
   type AccountSavedCommute,
   type AccountCommutePathPreview,
+  type AccountCommuteLegId,
 } from "../app/account-data";
 import { normalizeAccountEmail, validateAccountCredentials } from "../app/account-validation";
 
@@ -446,8 +447,8 @@ export function LineWatchShell({
     }
   };
 
-  const handleViewCommutePath = (commute: AccountSavedCommute) => {
-    const preview = commutePathPreviewFromCommute(commute);
+  const handleViewCommutePath = (commute: AccountSavedCommute, legId: AccountCommuteLegId = "outbound") => {
+    const preview = commutePathPreviewFromCommute(commute, legId);
     if (!preview) return;
 
     setCommutePathPreview(preview);
@@ -460,7 +461,7 @@ export function LineWatchShell({
     const commuteId = typeof commuteIdOrEvent === "string" ? commuteIdOrEvent : undefined;
     setCommutePathPreview((current) => {
       if (!current) return null;
-      if (commuteId && current.id !== commuteId) {
+      if (commuteId && current.id !== commuteId && current.commuteId !== commuteId) {
         return current;
       }
       window.setTimeout(() => {

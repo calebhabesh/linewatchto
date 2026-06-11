@@ -35,10 +35,16 @@ describe("account UI source", () => {
     assert.match(savedCommutesSource, /deleteSavedCommute/);
     assert.match(savedCommutesSource, /SavedCommuteStationPicker/);
     assert.doesNotMatch(savedCommutesSource, /<select/);
+    assert.match(savedCommutesSource, /Track Return Route/);
+    assert.match(savedCommutesSource, /watchReturnTrip/);
+    assert.match(savedCommutesSource, /commute-leg-toggle/);
+    assert.match(savedCommutesSource, /To \{leg\.toStationName\}/);
+    assert.match(savedCommutesSource, /Clear both ways/);
+    assert.match(savedCommutesSource, /Return affected/);
     assert.match(savedCommutesSource, /Plotting route/);
     assert.match(savedCommutesSource, /Loader2/);
     assert.match(savedCommutesSource, /commute-route-stop-list/);
-    assert.match(savedCommutesSource, /commute\.path\.stationIds/);
+    assert.match(savedCommutesSource, /selectedLeg\.path\.stationIds/);
     assert.match(savedCommutesSource, /onViewPath/);
     assert.match(savedCommutesSource, /View path on map/);
   });

@@ -22,6 +22,8 @@ public class SavedCommuteEntity {
     private String originStationId;
     @Column(name = "destination_station_id")
     private String destinationStationId;
+    @Column(name = "watch_return_trip")
+    private boolean watchReturnTrip = true;
     @Column(name = "created_at")
     private Instant createdAt;
     @Column(name = "updated_at")
@@ -29,18 +31,39 @@ public class SavedCommuteEntity {
 
     protected SavedCommuteEntity() {}
 
-    private SavedCommuteEntity(String id, AccountEntity account, String label, String originStationId, String destinationStationId, Instant now) {
+    private SavedCommuteEntity(
+        String id,
+        AccountEntity account,
+        String label,
+        String originStationId,
+        String destinationStationId,
+        boolean watchReturnTrip,
+        Instant now
+    ) {
         this.id = id;
         this.account = account;
         this.label = label;
         this.originStationId = originStationId;
         this.destinationStationId = destinationStationId;
+        this.watchReturnTrip = watchReturnTrip;
         this.createdAt = now;
         this.updatedAt = now;
     }
 
     public static SavedCommuteEntity create(String id, AccountEntity account, String label, String originStationId, String destinationStationId, Instant now) {
-        return new SavedCommuteEntity(id, account, label, originStationId, destinationStationId, now);
+        return create(id, account, label, originStationId, destinationStationId, true, now);
+    }
+
+    public static SavedCommuteEntity create(
+        String id,
+        AccountEntity account,
+        String label,
+        String originStationId,
+        String destinationStationId,
+        boolean watchReturnTrip,
+        Instant now
+    ) {
+        return new SavedCommuteEntity(id, account, label, originStationId, destinationStationId, watchReturnTrip, now);
     }
 
     public String getId() { return id; }
@@ -48,6 +71,7 @@ public class SavedCommuteEntity {
     public String getLabel() { return label; }
     public String getOriginStationId() { return originStationId; }
     public String getDestinationStationId() { return destinationStationId; }
+    public boolean isWatchReturnTrip() { return watchReturnTrip; }
     public Instant getCreatedAt() { return createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }
 }

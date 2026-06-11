@@ -83,12 +83,14 @@ public class SavedCommuteService {
 
         Instant now = clock.instant();
         String label = normalizeLabel(request.label(), origin.getName(), destination.getName());
+        boolean watchReturnTrip = request.watchReturnTrip() == null || request.watchReturnTrip();
         SavedCommuteEntity commute = commuteRepository.save(SavedCommuteEntity.create(
             nextId(),
             account,
             label,
             originId,
             destinationId,
+            watchReturnTrip,
             now
         ));
         return toResponse(commute, Map.of(originId, origin, destinationId, destination));
@@ -106,11 +108,22 @@ public class SavedCommuteService {
         StationEntity destination = stationsById.get(commute.getDestinationStationId());
         String originName = origin == null ? commute.getOriginStationId() : origin.getName();
         String destinationName = destination == null ? commute.getDestinationStationId() : destination.getName();
-        CommuteResponses.PathResponse path = commutePathService.path(
+        CommuteResponses.CommuteLegResponse outboundLeg = legResponse(
+            "outbound",
             commute.getOriginStationId(),
-            commute.getDestinationStationId()
+            originName,
+            commute.getDestinationStationId(),
+            destinationName
         );
-        CommuteResponses.ImpactResponse impact = commuteImpactService.impactFor(path);
+        CommuteResponses.CommuteLegResponse returnLeg = commute.isWatchReturnTrip()
+            ? legResponse(
+                "return",
+                commute.getDestinationStationId(),
+                destinationName,
+                commute.getOriginStationId(),
+                originName
+            )
+            : null;
         return new AccountResponses.SavedCommuteResponse(
             commute.getId(),
             commute.getLabel(),
@@ -119,10 +132,34 @@ public class SavedCommuteService {
             commute.getDestinationStationId(),
             destinationName,
             originName + " -> " + destinationName,
-            path,
-            impact,
+            commute.isWatchReturnTrip(),
+            outboundLeg,
+            returnLeg,
+            outboundLeg.path(),
+            outboundLeg.impact(),
             commute.getCreatedAt(),
             commute.getUpdatedAt()
+        );
+    }
+
+    private CommuteResponses.CommuteLegResponse legResponse(
+        String id,
+        String fromStationId,
+        String fromStationName,
+        String toStationId,
+        String toStationName
+    ) {
+        CommuteResponses.PathResponse path = commutePathService.path(fromStationId, toStationId);
+        CommuteResponses.ImpactResponse impact = commuteImpactService.impactFor(path);
+        return new CommuteResponses.CommuteLegResponse(
+            id,
+            fromStationName + " -> " + toStationName,
+            fromStationId,
+            fromStationName,
+            toStationId,
+            toStationName,
+            path,
+            impact
         );
     }
 
@@ -142,5 +179,10 @@ public class SavedCommuteService {
         return "commute_" + UUID.randomUUID().toString().replace("-", "");
     }
 
-    public record CreateSavedCommuteRequest(String label, String originStationId, String destinationStationId) {}
+    public record CreateSavedCommuteRequest(
+        String label,
+        String originStationId,
+        String destinationStationId,
+        Boolean watchReturnTrip
+    ) {}
 }

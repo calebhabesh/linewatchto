@@ -10,6 +10,7 @@ public final class CommuteResponses {
         String status,
         List<String> stationIds,
         List<String> segmentIds,
+        List<PathSegmentHopResponse> segmentHops,
         List<String> lineIds,
         List<String> transferStationIds,
         int estimatedTravelSeconds,
@@ -21,12 +22,31 @@ public final class CommuteResponses {
         }
     }
 
+    public record PathSegmentHopResponse(
+        String segmentId,
+        String lineId,
+        String fromStationId,
+        String toStationId,
+        String travelDirection
+    ) {}
+
     public record ImpactResponse(
         String status,
         String severity,
         String statusLabel,
         String detail,
         List<MatchedImpactResponse> matchedImpacts
+    ) {}
+
+    public record CommuteLegResponse(
+        String id,
+        String routeLabel,
+        String fromStationId,
+        String fromStationName,
+        String toStationId,
+        String toStationName,
+        PathResponse path,
+        ImpactResponse impact
     ) {}
 
     public record MatchedImpactResponse(

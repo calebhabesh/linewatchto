@@ -31,10 +31,18 @@ public class CommuteImpactService {
 
         Set<String> pathSegmentIds = new LinkedHashSet<>(path.segmentIds());
         Set<String> pathStationIds = new LinkedHashSet<>(path.stationIds());
+        Map<String, Set<String>> pathDirectionsBySegmentId = pathDirectionsBySegmentId(path);
+        Map<String, List<AlertDashboardService.SegmentImpact>> activeSegmentImpacts = activeSegmentImpacts();
         Map<String, CommuteResponses.MatchedImpactResponse> matchesByIdentity = new LinkedHashMap<>();
 
         for (AlertDashboardService.ActiveAlertDto alert : dashboardService.activeAlerts()) {
-            List<String> matchedSegmentIds = intersection(alert.affectedSegmentIds(), pathSegmentIds);
+            List<String> matchedSegmentIds = currentSegmentIntersection(
+                alert.affectedSegmentIds(),
+                pathDirectionsBySegmentId,
+                activeSegmentImpacts,
+                alert.id(),
+                null
+            );
             if (matchedSegmentIds.isEmpty()) {
                 continue;
             }
@@ -48,7 +56,13 @@ public class CommuteImpactService {
         }
 
         for (AlertDashboardService.DelayAlertDto alert : dashboardService.delays()) {
-            List<String> matchedSegmentIds = intersection(alert.affectedSegmentIds(), pathSegmentIds);
+            List<String> matchedSegmentIds = currentSegmentIntersection(
+                alert.affectedSegmentIds(),
+                pathDirectionsBySegmentId,
+                activeSegmentImpacts,
+                alert.id(),
+                "delay"
+            );
             if (matchedSegmentIds.isEmpty()) {
                 continue;
             }
@@ -60,7 +74,13 @@ public class CommuteImpactService {
         }
 
         for (AlertDashboardService.ReducedSpeedZoneDto zone : dashboardService.reducedSpeedZones()) {
-            List<String> matchedSegmentIds = intersection(zone.affectedSegmentIds(), pathSegmentIds);
+            List<String> matchedSegmentIds = currentSegmentIntersection(
+                zone.affectedSegmentIds(),
+                pathDirectionsBySegmentId,
+                activeSegmentImpacts,
+                zone.id(),
+                "reduced-speed-zone"
+            );
             if (matchedSegmentIds.isEmpty()) {
                 continue;
             }
@@ -102,6 +122,105 @@ public class CommuteImpactService {
             .toList();
 
         return responseFor(matches);
+    }
+
+    private Map<String, List<AlertDashboardService.SegmentImpact>> activeSegmentImpacts() {
+        Map<String, List<AlertDashboardService.SegmentImpact>> impacts = dashboardService.activeSegmentImpacts();
+        return impacts == null ? Map.of() : impacts;
+    }
+
+    private Map<String, Set<String>> pathDirectionsBySegmentId(CommuteResponses.PathResponse path) {
+        Map<String, Set<String>> directions = new LinkedHashMap<>();
+        if (path.segmentHops() == null || path.segmentHops().isEmpty()) {
+            for (String segmentId : path.segmentIds()) {
+                directions.computeIfAbsent(segmentId, ignored -> new LinkedHashSet<>()).add("bidirectional");
+            }
+            return directions;
+        }
+        for (CommuteResponses.PathSegmentHopResponse hop : path.segmentHops()) {
+            if (hop == null || hop.segmentId() == null || hop.segmentId().isBlank()) {
+                continue;
+            }
+            directions.computeIfAbsent(hop.segmentId(), ignored -> new LinkedHashSet<>())
+                .add(normalizedTravelDirection(hop.travelDirection()));
+        }
+        return directions;
+    }
+
+    private List<String> currentSegmentIntersection(
+        List<String> values,
+        Map<String, Set<String>> pathDirectionsBySegmentId,
+        Map<String, List<AlertDashboardService.SegmentImpact>> activeSegmentImpacts,
+        String cardId,
+        String expectedKind
+    ) {
+        if (values == null || values.isEmpty() || pathDirectionsBySegmentId.isEmpty()) {
+            return List.of();
+        }
+        List<String> matches = new ArrayList<>();
+        for (String value : values) {
+            Set<String> routeDirections = pathDirectionsBySegmentId.get(value);
+            if (routeDirections == null || routeDirections.isEmpty()) {
+                continue;
+            }
+            if (matchesCurrentSegmentImpact(
+                activeSegmentImpacts.getOrDefault(value, List.of()),
+                routeDirections,
+                cardId,
+                expectedKind
+            )) {
+                matches.add(value);
+            }
+        }
+        return matches.stream().distinct().toList();
+    }
+
+    private boolean matchesCurrentSegmentImpact(
+        List<AlertDashboardService.SegmentImpact> impacts,
+        Set<String> routeDirections,
+        String cardId,
+        String expectedKind
+    ) {
+        if (impacts == null || impacts.isEmpty()) {
+            return true;
+        }
+        return impacts.stream().anyMatch(impact ->
+            impactIdentityMatches(impact, cardId, expectedKind)
+                && travelDirectionMatches(routeDirections, impact.travelDirection())
+        );
+    }
+
+    private boolean impactIdentityMatches(
+        AlertDashboardService.SegmentImpact impact,
+        String cardId,
+        String expectedKind
+    ) {
+        if (expectedKind != null && !expectedKind.equals(impact.kind())) {
+            return false;
+        }
+        if (cardId == null || cardId.isBlank()) {
+            return true;
+        }
+        return cardId.equals(impact.cardId())
+            || (impact.sourceAlertIds() != null && impact.sourceAlertIds().contains(cardId));
+    }
+
+    private boolean travelDirectionMatches(Set<String> routeDirections, String impactTravelDirection) {
+        String direction = normalizedTravelDirection(impactTravelDirection);
+        return "bidirectional".equals(direction)
+            || routeDirections.contains("bidirectional")
+            || routeDirections.contains(direction);
+    }
+
+    private String normalizedTravelDirection(String value) {
+        if (value == null || value.isBlank()) {
+            return "bidirectional";
+        }
+        String normalized = value.trim().toLowerCase(java.util.Locale.ROOT);
+        return switch (normalized) {
+            case "forward", "reverse" -> normalized;
+            default -> "bidirectional";
+        };
     }
 
     private List<String> intersection(List<String> values, Set<String> pathValues) {

@@ -37,11 +37,20 @@ export type AccountCommutePath = {
   status: "available" | "unavailable";
   stationIds: string[];
   segmentIds: string[];
+  segmentHops: AccountCommutePathSegmentHop[];
   lineIds: string[];
   transferStationIds: string[];
   estimatedTravelSeconds: number;
   weightSource: "gtfs-scheduled-median" | "mixed-scheduled-fallback" | "topology-fallback" | "unavailable";
   summary: string;
+};
+
+export type AccountCommutePathSegmentHop = {
+  segmentId: string;
+  lineId: string;
+  fromStationId: string;
+  toStationId: string;
+  travelDirection: "forward" | "reverse" | "bidirectional";
 };
 
 export type AccountMatchedImpact = {
@@ -71,6 +80,19 @@ export type AccountCommuteImpact = {
   matchedImpacts: AccountMatchedImpact[];
 };
 
+export type AccountCommuteLegId = "outbound" | "return";
+
+export type AccountCommuteLeg = {
+  id: AccountCommuteLegId;
+  routeLabel: string;
+  fromStationId: string;
+  fromStationName: string;
+  toStationId: string;
+  toStationName: string;
+  path: AccountCommutePath;
+  impact: AccountCommuteImpact;
+};
+
 export type AccountSavedCommute = {
   id: string;
   label: string;
@@ -79,6 +101,9 @@ export type AccountSavedCommute = {
   destinationStationId: string;
   destinationStationName: string;
   routeLabel: string;
+  watchReturnTrip: boolean;
+  outboundLeg: AccountCommuteLeg;
+  returnLeg: AccountCommuteLeg | null;
   path: AccountCommutePath;
   impact: AccountCommuteImpact;
   createdAt: string;
@@ -87,23 +112,46 @@ export type AccountSavedCommute = {
 
 export type AccountCommutePathPreview = {
   id: string;
+  commuteId: string;
+  legId: AccountCommuteLegId;
   label: string;
   routeLabel: string;
   stationIds: string[];
   segmentIds: string[];
 };
 
-export function commutePathPreviewFromCommute(commute: AccountSavedCommute): AccountCommutePathPreview | null {
-  if (commute.path.status !== "available" || commute.path.segmentIds.length === 0) {
+export function commuteLegsForCommute(commute: AccountSavedCommute): AccountCommuteLeg[] {
+  const outbound = commute.outboundLeg ?? {
+    id: "outbound" as const,
+    routeLabel: commute.routeLabel,
+    fromStationId: commute.originStationId,
+    fromStationName: commute.originStationName,
+    toStationId: commute.destinationStationId,
+    toStationName: commute.destinationStationName,
+    path: commute.path,
+    impact: commute.impact,
+  };
+  return commute.watchReturnTrip && commute.returnLeg ? [outbound, commute.returnLeg] : [outbound];
+}
+
+export function commuteLegForCommute(commute: AccountSavedCommute, legId: AccountCommuteLegId = "outbound"): AccountCommuteLeg {
+  return commuteLegsForCommute(commute).find((leg) => leg.id === legId) ?? commuteLegsForCommute(commute)[0];
+}
+
+export function commutePathPreviewFromCommute(commute: AccountSavedCommute, legId: AccountCommuteLegId = "outbound"): AccountCommutePathPreview | null {
+  const leg = commuteLegForCommute(commute, legId);
+  if (leg.path.status !== "available" || leg.path.segmentIds.length === 0) {
     return null;
   }
 
   return {
-    id: commute.id,
+    id: `${commute.id}-${leg.id}`,
+    commuteId: commute.id,
+    legId: leg.id,
     label: commute.label,
-    routeLabel: commute.routeLabel,
-    stationIds: commute.path.stationIds,
-    segmentIds: commute.path.segmentIds,
+    routeLabel: leg.routeLabel,
+    stationIds: leg.path.stationIds,
+    segmentIds: leg.path.segmentIds,
   };
 }
 
@@ -117,6 +165,7 @@ export type CreateSavedCommuteInput = {
   label: string;
   originStationId: string;
   destinationStationId: string;
+  watchReturnTrip: boolean;
 };
 
 function apiUrl(path: string, options: AdapterOptions = {}) {
