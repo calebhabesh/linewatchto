@@ -112,7 +112,7 @@ function StationImpactDetailsIcon({
   tone?: StationImpactDetailsTarget["tone"];
 }) {
   if (kind === "delay") {
-    return <DelayIcon size={14} className="shrink-0 text-amber-500" />;
+    return <DelayIcon size={14} className="shrink-0 delay-tone" />;
   }
 
   if (kind === "reduced-speed-zone") {
@@ -165,7 +165,7 @@ function stationImpactCardClassName(tone: StationImpactDetailsTarget["tone"]) {
   if (tone === "reduced-speed-zone") {
     return `${base} border-[var(--impact-rsz-border)] bg-[var(--impact-rsz-soft)]`;
   }
-  return `${base} border-amber-500/30 bg-amber-500/10`;
+  return `${base} border-[#FEEC41]/30 bg-[#FEEC41]/10`;
 }
 
 function stationImpactTitleClassName(tone: StationImpactDetailsTarget["tone"]) {
@@ -178,7 +178,7 @@ function stationImpactTitleClassName(tone: StationImpactDetailsTarget["tone"]) {
   if (tone === "reduced-speed-zone") {
     return "rsz-tone block";
   }
-  return "block text-amber-800 dark:text-amber-200";
+  return "block text-[#FEEC41]";
 }
 
 export function StationDetailPanel({ stationResult, loading, updating, selectedStationName, onClose, onSelectImpact }: Props) {

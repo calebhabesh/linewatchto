@@ -1,6 +1,7 @@
 "use client";
 
 import { Accessibility, MapPin, X } from "lucide-react";
+import Image from "next/image";
 import type { DashboardData } from "../app/DataContext";
 import { useDashboardData } from "../app/DataContext";
 import type { ImpactKind, ImpactSelection } from "../app/linewatch-data";
@@ -8,11 +9,14 @@ import type { StationSummary } from "../app/station-data";
 import { getSelectedImpactDetails } from "./MobileImpactInspector";
 import { STATION_LINE_DEFINITIONS } from "../app/station-data";
 import { ImpactTypeIcon } from "./ImpactTypeIcon";
+import type { MapOverlapSelection } from "./map-overlap-badges";
 
 type Props = {
   selection: ImpactSelection;
+  overlapSelection: MapOverlapSelection | null;
   selectedStationId: string | null;
   stations: StationSummary[];
+  onSelectImpact: (selection: ImpactSelection) => void;
   onOpenDetails: () => void;
   onClearSelection: () => void;
 };
@@ -96,7 +100,7 @@ function impactToneClass(kind: NonNullable<ImpactSelection>["kind"]) {
     case "suspension":
       return "critical";
     case "delay":
-      return "warning";
+      return "delay";
     case "reduced-speed-zone":
       return "rsz";
     case "planned-closure":
@@ -105,7 +109,7 @@ function impactToneClass(kind: NonNullable<ImpactSelection>["kind"]) {
 }
 
 function getImpactLabel(kind: string) {
-  if (kind === "suspension") return "suspension";
+  if (kind === "suspension") return "active alert";
   if (kind === "delay") return "delay";
   if (kind === "reduced-speed-zone") return "reduced speed zone";
   if (kind === "planned-closure") return "planned closure";
@@ -149,12 +153,69 @@ function stationPreviewImpactsFor(selectedStationId: string, data: DashboardData
 
 export function RotatedMapSelectionCard({
   selection,
+  overlapSelection,
   selectedStationId,
   stations,
+  onSelectImpact,
   onOpenDetails,
   onClearSelection,
 }: Props) {
   const data = useDashboardData();
+
+  if (overlapSelection) {
+    const impacts = overlapSelection.impacts
+      .map((impact) => ({
+        ...impact,
+        details: getSelectedImpactDetails(impact.selection, data),
+      }))
+      .filter((impact) => impact.details);
+
+    if (impacts.length === 0) return null;
+
+    return (
+      <section
+        className="rotated-map-selection-card rotated-map-selection-card-overlap"
+        data-rotated-map-selection-card
+        data-selection-kind="overlap"
+        aria-label="Overlapping map impacts"
+      >
+        <div className="rotated-map-selection-card-header">
+          <div className="rotated-map-selection-card-title-group">
+            <span className="rotated-map-selection-card-kicker">{toTitleCase("Overlapping Alerts")}</span>
+            <h2>{toTitleCase(overlapSelection.label)}</h2>
+          </div>
+          <button type="button" className="rotated-map-selection-icon-button" aria-label="Clear selected map item" onClick={onClearSelection}>
+            <X size={17} aria-hidden="true" />
+          </button>
+        </div>
+
+        <div className="rotated-map-overlap-choice-list" aria-label="Choose Impact">
+          {impacts.map((impact) => {
+            const details = impact.details;
+            if (!details) return null;
+
+            return (
+              <button
+                key={`${impact.selection.kind}-${impact.selection.id}`}
+                type="button"
+                className={`rotated-map-overlap-choice rotated-map-overlap-choice-${impact.selection.kind}`}
+                onClick={() => onSelectImpact(impact.selection)}
+              >
+                <ImpactTypeIcon kind={impact.selection.kind} size={16} className="shrink-0" />
+                <span className="rotated-map-overlap-choice-copy">
+                  <span className="rotated-map-overlap-choice-title">{toTitleCase(details.title)}</span>
+                  <span className="rotated-map-overlap-choice-meta">
+                    {toTitleCase(details.categoryLabel)} / {toTitleCase(details.location)}
+                  </span>
+                </span>
+                <span className="rotated-map-overlap-choice-action">Choose Impact</span>
+              </button>
+            );
+          })}
+        </div>
+      </section>
+    );
+  }
 
   if (selection) {
     const details = getSelectedImpactDetails(selection, data);
@@ -179,10 +240,14 @@ export function RotatedMapSelectionCard({
           </button>
         </div>
 
-        <div className="rotated-map-selection-card-meta flex-wrap gap-2">
-          <LineBadge lineId={details.lineId} number={details.lineNumber} name={STATION_LINE_DEFINITIONS[details.lineId]?.name} />
-          <span>{toTitleCase(details.categoryLabel)}</span>
-          <span aria-hidden="true"><ImpactTypeIcon kind={selection.kind} size={14} /></span>
+        <div className="flex flex-col gap-1.5">
+          <div className="rotated-map-selection-card-meta">
+            <LineBadge lineId={details.lineId} number={details.lineNumber} name={STATION_LINE_DEFINITIONS[details.lineId]?.name} />
+          </div>
+          <div className="rotated-map-selection-card-direction flex items-center gap-1.5 mt-0.5">
+            <span aria-hidden="true"><ImpactTypeIcon kind={selection.kind} size={14} /></span>
+            <span>{toTitleCase(details.categoryLabel)}</span>
+          </div>
         </div>
 
         <p className="rotated-map-selection-card-location">{toTitleCase(details.location)}</p>
@@ -216,7 +281,10 @@ export function RotatedMapSelectionCard({
       >
         <div className="rotated-map-selection-card-header">
           <div className="rotated-map-selection-card-title-group">
-            <span className="rotated-map-selection-card-kicker">{toTitleCase("Selected Station")}</span>
+            <span className="rotated-map-selection-card-kicker flex items-center gap-1">
+              <MapPin size={10} aria-hidden="true" />
+              <span>{toTitleCase(station.interchange ? "Interchange" : "Station")}</span>
+            </span>
             <h2>{toTitleCase(station.name)}</h2>
           </div>
           <button type="button" className="rotated-map-selection-icon-button" aria-label="Clear selected map item" onClick={onClearSelection}>
@@ -239,18 +307,30 @@ export function RotatedMapSelectionCard({
           })}
         </div>
 
-        <div className="rotated-map-selection-card-station-type flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 font-bold mt-1">
-          <MapPin size={14} aria-hidden="true" />
-          <span>{toTitleCase(station.interchange ? "Interchange" : "Station")}</span>
-        </div>
-
         {stationImpacts.length > 0 && (
-          <div className="rotated-map-selection-disruption flex items-center gap-2 mt-2">
-            <span className="shrink-0">
-              <ImpactTypeIcon kind={stationImpacts[0]?.kind ?? "delay"} size={14} />
-            </span>
-            <span>Schedule May Be Disrupted</span>
-          </div>
+          <>
+            <div className="rotated-map-selection-disruption mt-2">
+              <Image
+                src="/assets/linewatch/exclaim-alert-white.svg"
+                alt=""
+                width={14}
+                height={14}
+                className="rotated-map-selection-disruption-alert-icon"
+                aria-hidden="true"
+              />
+              <span>Schedule May Be Disrupted</span>
+            </div>
+            <div className="rotated-map-selection-impact-icons" aria-label="Related service impact types">
+              {stationImpacts.map((impact) => (
+                <span key={impact.cardId || impact.title} className="rotated-map-selection-impact-icon">
+                  <ImpactTypeIcon kind={impact.kind} size={14} />
+                  <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
+                    {toTitleCase(getImpactLabel(impact.kind))}
+                  </span>
+                </span>
+              ))}
+            </div>
+          </>
         )}
 
         {stationImpacts.length === 0 && (

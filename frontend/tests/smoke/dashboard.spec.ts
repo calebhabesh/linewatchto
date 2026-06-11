@@ -214,7 +214,7 @@ test("renders the seeded dashboard API payload", async ({ page, request, isMobil
     await expect(page.getByRole("button", { name: "Map", exact: true })).toHaveCount(0);
     await inspector.getByRole("button", { name: "Show more details" }).click();
     await expect(inspector).toContainText("Started");
-    await inspector.getByRole("button", { name: "View Full Details" }).click();
+    await inspector.getByRole("button", { name: "View Full List" }).click();
     await expect(page.getByRole("heading", { name: "Reduced Speed Zones" })).toBeVisible();
     await expect(page.locator('[data-impact-card-id="reduced-speed-zone-stub-zone-south-source"]')).toHaveClass(/highlight-active-card/);
   }
@@ -269,7 +269,7 @@ test("map overlays open the corresponding submenu cards", async ({ page, request
     await expect(inspector).toContainText("Delay");
     await expect(inspector).toContainText("Sheppard-Yonge");
     await expect(page.locator('[data-map-highlight-id="stub-delay-line-4"]')).toBeAttached();
-    await inspector.getByRole("button", { name: "View Full Details" }).click();
+    await inspector.getByRole("button", { name: "View Full List" }).click();
   }
 
   await expect(page.getByRole("heading", { name: "Delays" })).toBeVisible();
@@ -291,7 +291,7 @@ test("map overlays open the corresponding submenu cards", async ({ page, request
     await expect(inspector).toBeVisible();
     await expect(inspector).toContainText("Active Alert");
     await expect(inspector).toContainText("Stub API signal problem");
-    await inspector.getByRole("button", { name: "View Full Details" }).click();
+    await inspector.getByRole("button", { name: "View Full List" }).click();
   }
 
   await expect(page.getByRole("heading", { name: "Active Alerts" })).toBeVisible();
@@ -387,7 +387,7 @@ test("mobile rotated map mode keeps station and impact selections in the rotated
   await page.getByRole("button", { name: "Rotate map" }).click();
   await page.getByRole("button", { name: "Stub Station station details" }).click();
   await expect(page.locator("[data-rotated-map-selection-card]")).toBeVisible();
-  await expect(page.locator("[data-rotated-map-selection-card]")).toContainText("Selected Station");
+  await expect(page.locator("[data-rotated-map-selection-card]")).toContainText("Station");
   await expect(page.locator("[data-rotated-map-selection-card]")).toContainText("Stub Station");
   await expect(page.getByRole("complementary", { name: "Stub Station station details" })).toHaveCount(0);
 
@@ -484,7 +484,7 @@ test("routes active planned closures to active alerts instead of upcoming closur
   if (isMobile) {
     const inspector = page.locator('[data-mobile-impact-inspector]');
     await expect(inspector).toBeVisible();
-    await inspector.getByRole("button", { name: "View Full Details" }).click();
+    await inspector.getByRole("button", { name: "View Full List" }).click();
   }
   await expect(page.locator('[data-impact-card-id="stub-closure-line-1"]')).toHaveClass(/highlight-active-card/);
 
@@ -522,7 +522,7 @@ test("shows a compact map hint when multiple alert types overlap", async ({ page
   if (isMobile) {
     const inspector = page.locator('[data-mobile-impact-inspector]');
     await expect(inspector).toBeVisible();
-    await inspector.getByRole("button", { name: "View Full Details" }).click();
+    await inspector.getByRole("button", { name: "View Full List" }).click();
   }
   await expect(page.getByRole("heading", { name: "Active Alerts" })).toBeVisible();
   await expect(page.locator('[data-impact-card-id="stub-alert-line-1"]')).toHaveClass(/highlight-active-card/);
@@ -563,7 +563,7 @@ test("nonlinear guide-backed overlays open their corresponding cards", async ({ 
     await expect(inspector).toBeVisible();
     await expect(inspector).toContainText("Reduced Speed Zone");
     await expect(inspector).toContainText("King");
-    await inspector.getByRole("button", { name: "View Full Details" }).click();
+    await inspector.getByRole("button", { name: "View Full List" }).click();
   }
   await expect(page.getByRole("heading", { name: "Reduced Speed Zones" })).toBeVisible();
   const unionCurveCard = page.locator('[data-impact-card-id="reduced-speed-zone-stub-union-curve"]');
@@ -584,7 +584,7 @@ test("nonlinear guide-backed overlays open their corresponding cards", async ({ 
     await expect(inspector).toBeVisible();
     await expect(inspector).toContainText("Delay");
     await expect(inspector).toContainText("Spadina");
-    await inspector.getByRole("button", { name: "View Full Details" }).click();
+    await inspector.getByRole("button", { name: "View Full List" }).click();
   }
   await expect(page.getByRole("heading", { name: "Delays" })).toBeVisible();
   const stGeorgeCurveCard = page.locator('[data-impact-card-id="stub-delay-st-george-curve"]');

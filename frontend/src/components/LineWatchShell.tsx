@@ -6,6 +6,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { DynamicBackground } from "./DynamicBackground";
 import { InteractiveTtcMap } from "./InteractiveTtcMap";
+import type { MapOverlapSelection } from "./map-overlap-badges";
 import { DelayIcon } from "./DelayIcon";
 import { ActiveAlertsPanel } from "./ActiveAlertsPanel";
 import { DelaysPanel } from "./DelaysPanel";
@@ -204,6 +205,7 @@ export function LineWatchShell({
 
   // Interactive linking state
   const [selection, setSelection] = useState<ImpactSelection>(null);
+  const [overlapSelection, setOverlapSelection] = useState<MapOverlapSelection | null>(null);
   const [stationSummaries, setStationSummaries] = useState<StationSummary[]>(fallbackStationSummaries.stations);
   const [selectedStationId, setSelectedStationId] = useState<string | null>(null);
   const [visibleStationResult, setVisibleStationResult] = useState<StationDataResult<StationDetail | null> | null>(null);
@@ -217,6 +219,7 @@ export function LineWatchShell({
       return "menu";
     });
     setSelection(null);
+    setOverlapSelection(null);
   }, [isMobile, previousView, setActiveView, setSelection]);
 
   const [accountState, setAccountState] = useState<AccountState>({
@@ -606,6 +609,7 @@ export function LineWatchShell({
     setActiveView(prev => {
       if (prev !== "menu" && prev !== "map") {
         setSelection(null);
+        setOverlapSelection(null);
         setSelectedStationId(null);
       }
       return prev === "menu" ? "map" : "menu";
@@ -616,6 +620,7 @@ export function LineWatchShell({
     setActiveView((prev) => {
       if (prev !== "search" && prev !== "map") {
         setSelection(null);
+        setOverlapSelection(null);
         setSelectedStationId(null);
       }
 
@@ -626,6 +631,7 @@ export function LineWatchShell({
   const handleSelectStationId = useCallback((id: string | null) => {
     setSelectedStationId(id);
     setSelection(null);
+    setOverlapSelection(null);
     setCommutePathPreview(null);
     if (id) {
       if (isMobile) {
@@ -647,6 +653,7 @@ export function LineWatchShell({
 
   const onMobileNavSelect = useCallback((key: MobileNavKey) => {
     setSelection(null);
+    setOverlapSelection(null);
     setSelectedStationId(null);
     setCommutePathPreview(null);
     setMobileInspectorDetent("map-focus");
@@ -673,6 +680,7 @@ export function LineWatchShell({
   const handleMobileSheetClose = useCallback(() => {
     setActiveView("map");
     setSelection(null);
+    setOverlapSelection(null);
     setMapPresentationMode("standard");
     setMobileInspectorDetent("map-focus");
   }, [setActiveView, setSelection]);
@@ -703,6 +711,7 @@ export function LineWatchShell({
   const handleMapSelectImpact = useCallback((nextSelection: ImpactSelection) => {
     setSelectedStationId(null);
     setCommutePathPreview(null);
+    setOverlapSelection(null);
     if (!nextSelection) {
       setSelection(null);
       return;
@@ -716,10 +725,25 @@ export function LineWatchShell({
     setActiveView(viewForImpactSelection(nextSelection));
   }, [setSelectedStationId, setCommutePathPreview, setSelection, setActiveView, viewForImpactSelection, isMobile]);
 
+  const handleMapSelectOverlap = useCallback((nextOverlap: MapOverlapSelection) => {
+    setSelectedStationId(null);
+    setSelection(null);
+    setCommutePathPreview(null);
+    setOverlapSelection(nextOverlap);
+    setMobileInspectorDetent("map-focus");
+    setActiveView("map");
+  }, [setActiveView, setCommutePathPreview, setMobileInspectorDetent, setSelectedStationId, setSelection]);
+
+  const handleRotatedOverlapImpactSelect = useCallback((nextSelection: ImpactSelection) => {
+    setOverlapSelection(null);
+    handleMapSelectImpact(nextSelection);
+  }, [handleMapSelectImpact]);
+
   const handlePeekClosedMap = () => {
     setClosedMapPeek(true);
     setActiveView("map");
     setSelection(null);
+    setOverlapSelection(null);
     setSelectedStationId(null);
     setMapPresentationMode("standard");
     router.refresh();
@@ -741,6 +765,7 @@ export function LineWatchShell({
 
   const handleClearRotatedSelection = useCallback(() => {
     setSelection(null);
+    setOverlapSelection(null);
     setSelectedStationId(null);
     setMobileInspectorDetent("map-focus");
   }, [setMobileInspectorDetent, setSelectedStationId, setSelection]);
@@ -1205,7 +1230,7 @@ export function LineWatchShell({
                      <DelayIcon size={18} className="text-slate-500 dark:text-slate-400" filled={false} /> Delays
                   </div>
                    {delays.length > 0 && (
-                     <span className="flex h-5 items-center justify-center rounded-full bg-amber-500/20 px-2 text-[10px] font-bold text-amber-700 dark:text-amber-400">
+                     <span className="flex h-5 items-center justify-center rounded-full delay-count-badge px-2 text-[10px] font-bold">
                        {delays.length}
                      </span>
                    )}
@@ -1326,7 +1351,7 @@ export function LineWatchShell({
                                   <span className="text-sm font-bold text-slate-800 dark:text-slate-200">{l.name}</span>
                                   <div className="flex items-center gap-1.5 ml-1">
                                     {hasAlert && <AlertTriangle size={14} className="text-red-500 dark:text-red-400" />}
-                                    {hasDelay && <DelayIcon size={14} className="text-amber-500 dark:text-amber-400" /> /* /assets/linewatch/delay-icon.svg */}
+                                    {hasDelay && <DelayIcon size={14} className="delay-tone" /> /* /assets/linewatch/delay-icon.svg */}
                                     {hasRSZ && <Construction size={14} className="rsz-tone" />}
                                     {hasClosure && <Calendar size={14} className="text-blue-500 dark:text-blue-400" />}
                                   </div>
@@ -1433,6 +1458,7 @@ export function LineWatchShell({
           selectedStationId={selectedStationId}
           stations={stationSummaries}
           onSelectImpact={handleMapSelectImpact}
+          onSelectOverlap={rotatedMapMode ? handleMapSelectOverlap : undefined}
           onSelectStationId={handleSelectStationId}
           isDark={isDark}
           onToggleTheme={handleToggleTheme}
@@ -1460,13 +1486,18 @@ export function LineWatchShell({
           <div className="rotated-map-hud" aria-label="Rotated map controls">
             <MobileMapControls
               presentationMode="rotated-landscape"
-              onExitRotated={() => setMapPresentationMode("standard")}
+              onExitRotated={() => {
+                setOverlapSelection(null);
+                setMapPresentationMode("standard");
+              }}
               onRecenter={() => setRecenterSignal((prev) => prev + 1)}
             />
             <RotatedMapSelectionCard
               selection={selection}
+              overlapSelection={overlapSelection}
               selectedStationId={selectedStationId}
               stations={stationSummaries}
+              onSelectImpact={handleRotatedOverlapImpactSelect}
               onOpenDetails={handleOpenRotatedSelectionDetails}
               onClearSelection={handleClearRotatedSelection}
             />

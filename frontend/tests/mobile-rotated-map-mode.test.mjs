@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 
 import { clientPointToLogicalViewportPoint } from "../src/hooks/panZoomMath.ts";
@@ -10,6 +10,7 @@ const mapSource = readFileSync(new URL("../src/components/InteractiveTtcMap.tsx"
 const hookSource = readFileSync(new URL("../src/hooks/usePanZoom.ts", import.meta.url), "utf8");
 const globalCss = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
 const rotatedSelectionSource = readFileSync(new URL("../src/components/RotatedMapSelectionCard.tsx", import.meta.url), "utf8");
+const exclaimAlertAsset = new URL("../public/assets/linewatch/exclaim-alert-white.svg", import.meta.url);
 
 describe("mobile rotated map mode", () => {
   it("maps visual pointer coordinates into the logical landscape viewport", () => {
@@ -69,13 +70,31 @@ describe("mobile rotated map mode", () => {
     assert.match(globalCss, /\.rotated-map-selection-card/);
   });
 
+  it("shows a rotated overlap selection menu before choosing a specific overlapping impact", () => {
+    assert.match(mapSource, /onSelectOverlap/);
+    assert.match(mapSource, /selectOverlapBadge/);
+    assert.match(shellSource, /overlapSelection/);
+    assert.match(shellSource, /handleMapSelectOverlap/);
+    assert.match(shellSource, /overlapSelection=\{overlapSelection\}/);
+    assert.match(rotatedSelectionSource, /overlapSelection/);
+    assert.match(rotatedSelectionSource, /data-selection-kind="overlap"/);
+    assert.match(rotatedSelectionSource, /Choose Impact/);
+    assert.match(rotatedSelectionSource, /onSelectImpact\(impact\.selection\)/);
+  });
+
   it("flags station schedule disruption in the rotated station preview", () => {
     assert.match(rotatedSelectionSource, /Schedule May Be Disrupted/);
     assert.match(rotatedSelectionSource, /rotated-map-selection-disruption/);
+    assert.match(rotatedSelectionSource, /src="\/assets\/linewatch\/exclaim-alert-white\.svg"/);
+    assert.match(rotatedSelectionSource, /className="rotated-map-selection-disruption-alert-icon"/);
+    assert.match(rotatedSelectionSource, /className="rotated-map-selection-impact-icons"/);
+    assert.match(rotatedSelectionSource, /rotated-map-selection-impact-icons[\s\S]*ImpactTypeIcon kind=\{impact\.kind\}/);
     assert.match(rotatedSelectionSource, /stationImpacts\.length > 0/);
-    assert.match(rotatedSelectionSource, /ImpactTypeIcon[\s\S]*kind=\{stationImpacts\[0\]\?\.kind/);
-    assert.doesNotMatch(rotatedSelectionSource, /stationImpacts\.map/);
+    assert.match(rotatedSelectionSource, /toTitleCase\(getImpactLabel\(impact\.kind\)\)/);
+    assert.match(globalCss, /\.rotated-map-selection-disruption \{[\s\S]*color: #ffffff;/);
+    assert.match(globalCss, /\.rotated-map-selection-impact-icons/);
     assert.match(globalCss, /\.rotated-map-selection-disruption/);
+    assert.equal(existsSync(exclaimAlertAsset), true);
   });
 
   it("derives rotated station disruption from adjacent impacted map segments", () => {

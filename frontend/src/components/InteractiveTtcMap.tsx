@@ -36,6 +36,10 @@ import type { AccountCommutePathPreview } from "../app/account-data";
 import { LogsDropdown } from "./LogsDropdown";
 import { ImpactTypeIcon } from "./ImpactTypeIcon";
 import { SiteGuideDropdown } from "./SiteGuideDropdown";
+import {
+  buildStationOverlapBadgeGroups,
+  type MapOverlapSelection,
+} from "./map-overlap-badges";
 
 const RSZ_IMPACT_COLOR = "#F59E0B";
 
@@ -150,6 +154,7 @@ function useRetainedMapLayers<T>(
 function InteractiveTtcMapComponent({
   selection,
   onSelectImpact,
+  onSelectOverlap,
   stations,
   selectedStationId,
   onSelectStationId,
@@ -164,6 +169,7 @@ function InteractiveTtcMapComponent({
 }: {
   selection: ImpactSelection;
   onSelectImpact: (selection: ImpactSelection) => void;
+  onSelectOverlap?: (selection: MapOverlapSelection) => void;
   stations: StationSummary[];
   selectedStationId: string | null;
   onSelectStationId: (id: string | null) => void;
@@ -323,7 +329,19 @@ function InteractiveTtcMapComponent({
       return () => window.clearTimeout(fallbackTimer);
     }
     const timer0 = window.setTimeout(() => setFlashSelection(selection), 0);
-    return () => { window.clearTimeout(timer0); };
+    
+    let timer: number | undefined;
+    const isDesktop = !window.matchMedia("(max-width: 767px)").matches;
+    if (isDesktop) {
+      timer = window.setTimeout(() => {
+        setFlashSelection(null);
+      }, 2500);
+    }
+
+    return () => {
+      window.clearTimeout(timer0);
+      if (timer) window.clearTimeout(timer);
+    };
   }, [selection]);
 
   useEffect(() => {
@@ -396,7 +414,7 @@ function InteractiveTtcMapComponent({
           });
           if (count > 0) {
             const scaleFactor = 4500 / 8250;
-            zoomToPoint((sumX / count) * scaleFactor, (sumY / count) * scaleFactor, 1.8);
+            zoomToPoint((sumX / count) * scaleFactor, (sumY / count) * scaleFactor, 3.8);
             lastFocusedTargetKeyRef.current = focusTargetKey;
             lastFocusLayoutSignalRef.current = currentLayoutSignal;
           }
@@ -404,7 +422,7 @@ function InteractiveTtcMapComponent({
       } else {
         const center = getSegmentsCenter(selectedSegmentIds, networkSegments, mapStations, anchorPoints, guidePaths);
         if (center) {
-          zoomToPoint(center.x, center.y, 1.8);
+          zoomToPoint(center.x, center.y, 3.8);
           lastFocusedTargetKeyRef.current = focusTargetKey;
           lastFocusLayoutSignalRef.current = currentLayoutSignal;
         }
@@ -415,7 +433,7 @@ function InteractiveTtcMapComponent({
       if (station) {
         const scaleFactor = 4500 / 8250;
         const pt = stationPointFor(station);
-        zoomToPoint(pt.x * scaleFactor, pt.y * scaleFactor, 1.8);
+        zoomToPoint(pt.x * scaleFactor, pt.y * scaleFactor, 3.8);
         lastFocusedTargetKeyRef.current = focusTargetKey;
         lastFocusLayoutSignalRef.current = currentLayoutSignal;
       }
@@ -641,9 +659,13 @@ function InteractiveTtcMapComponent({
     ].flatMap((pathD) => pathCorridorCollisionBoxes(pathD, OVERLAY_CORRIDOR_COLLISION_RADIUS));
   }, [plannedPreviewLayers, renderedImpactLayers]);
 
+  const segmentOverlapBadgeGroups = useMemo(() => {
+    return groupOverlapBadgeSegments(renderedOverlaySegments, plannedClosures);
+  }, [plannedClosures, renderedOverlaySegments]);
+
   const overlapBadgeSegments = useMemo<OverlapBadgeSegment[]>(() => {
     const occupiedBoxes = [...mapCollisionBoxes, ...overlayCollisionBoxes];
-    return groupOverlapBadgeSegments(renderedOverlaySegments, plannedClosures)
+    return segmentOverlapBadgeGroups
       .map((group) => {
         const corridor = composeNetworkSegmentPath(group.segments, "bidirectional");
         if (!corridor.pathD) return null;
@@ -674,7 +696,53 @@ function InteractiveTtcMapComponent({
         };
       })
       .filter((badge): badge is OverlapBadgeSegment => Boolean(badge));
-  }, [mapCollisionBoxes, overlayCollisionBoxes, plannedClosures, renderedOverlaySegments]);
+  }, [mapCollisionBoxes, overlayCollisionBoxes, segmentOverlapBadgeGroups]);
+
+  const stationOverlapBadgeGroups = useMemo(() => {
+    return buildStationOverlapBadgeGroups({
+      segments: renderedOverlaySegments,
+      plannedClosures,
+      stationNodeImpacts,
+      suppressedSignatures: new Set(segmentOverlapBadgeGroups.map((group) => group.signature)),
+    });
+  }, [plannedClosures, renderedOverlaySegments, segmentOverlapBadgeGroups, stationNodeImpacts]);
+
+  const stationOverlapBadges = useMemo<OverlapBadgeSegment[]>(() => {
+    const occupiedBoxes = [
+      ...mapCollisionBoxes,
+      ...overlayCollisionBoxes,
+      ...overlapBadgeSegments.map((badge) => expandBox(boundsForBadgePosition(badge.position, badge.size), 12)),
+    ];
+
+    return stationOverlapBadgeGroups
+      .map((group) => {
+        const station = stationBySummaryId.get(group.stationId);
+        if (!station) return null;
+
+        const point = stationPointFor(station);
+        const size = overlapBadgeSize(group.impactKinds.length);
+        const position = chooseNonIntersectingBadgePosition(point, size, occupiedBoxes);
+        occupiedBoxes.push(expandBox(boundsForBadgePosition(position, size), 12));
+
+        return {
+          segmentId: `station-${group.stationId}-${group.signature}`,
+          label: station.name,
+          impactKinds: group.impactKinds,
+          impacts: group.impacts,
+          primaryImpact: group.primaryImpact,
+          position,
+          size,
+        };
+      })
+      .filter((badge): badge is OverlapBadgeSegment => Boolean(badge));
+  }, [
+    mapCollisionBoxes,
+    overlayCollisionBoxes,
+    overlapBadgeSegments,
+    stationBySummaryId,
+    stationOverlapBadgeGroups,
+    stationPointFor,
+  ]);
 
 
   return (
@@ -917,12 +985,13 @@ function InteractiveTtcMapComponent({
                 <g dangerouslySetInnerHTML={{ __html: svgParts?.part2 ?? "" }} />
 
                 <g aria-label="Overlapping alert badges">
-                  {overlapBadgeSegments.map((badge) => (
+                  {[...overlapBadgeSegments, ...stationOverlapBadges].map((badge) => (
                     <OverlapIndicatorMarker
                       key={badge.segmentId}
                       badge={badge}
                       selection={selection}
                       onSelectImpact={onSelectImpact}
+                      onSelectOverlap={onSelectOverlap}
                     />
                   ))}
                 </g>
@@ -2217,10 +2286,12 @@ function OverlapIndicatorMarker({
   badge,
   selection,
   onSelectImpact,
+  onSelectOverlap,
 }: {
   badge: OverlapBadgeSegment;
   selection: ImpactSelection;
   onSelectImpact: (selection: ImpactSelection) => void;
+  onSelectOverlap?: (selection: MapOverlapSelection) => void;
 }) {
   const visibleKinds = badge.impactKinds.slice(0, 3);
   const hiddenKindCount = Math.max(0, badge.impactKinds.length - visibleKinds.length);
@@ -2235,10 +2306,23 @@ function OverlapIndicatorMarker({
     onSelectImpact({ kind: badge.primaryImpact.kind, id: badge.primaryImpact.cardId });
   };
 
+  const selectOverlapBadge = () => {
+    if (onSelectOverlap) {
+      onSelectOverlap({
+        label: badge.label,
+        impacts: badge.impacts.map((impact) => ({
+          selection: { kind: impact.kind, id: impact.cardId },
+        })),
+      });
+      return;
+    }
+    selectPrimaryImpact();
+  };
+
   const handleKeyDown = (event: React.KeyboardEvent<SVGGElement>) => {
     if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
-      selectPrimaryImpact();
+      selectOverlapBadge();
     }
   };
 
@@ -2250,7 +2334,7 @@ function OverlapIndicatorMarker({
       data-overlap-collision-avoided={badge.position.collisionAvoided ? "true" : "false"}
       onClick={(event) => {
         event.stopPropagation();
-        selectPrimaryImpact();
+        selectOverlapBadge();
       }}
       onKeyDown={handleKeyDown}
       onPointerDown={(event) => event.stopPropagation()}

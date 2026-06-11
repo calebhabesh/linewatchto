@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import { AlertTriangle, Calendar, ChevronDown, ChevronUp, Construction, ExternalLink, X } from "lucide-react";
 import type { DashboardData } from "../app/DataContext";
 import { useDashboardData } from "../app/DataContext";
@@ -96,7 +96,7 @@ export function getSelectedImpactDetails(
         kind: "delay",
         categoryLabel: "Delay",
         tone: "delay",
-        icon: <DelayIcon size={16} className="text-amber-500" />,
+        icon: <DelayIcon size={16} className="delay-tone" />,
         lineId: delay.lineId,
         lineNumber: delay.lineNumber,
         title: delay.title,
@@ -118,7 +118,7 @@ export function getSelectedImpactDetails(
       kind: "delay",
       categoryLabel: "Delay",
       tone: "delay",
-      icon: <DelayIcon size={16} className="text-amber-500" />,
+      icon: <DelayIcon size={16} className="delay-tone" />,
       lineId: alertDelay.lineId,
       lineNumber: alertDelay.lineNumber,
       title: alertDelay.title,
@@ -247,7 +247,46 @@ export function MobileImpactInspector({
   onSelectImpact,
 }: Props) {
   const data = useDashboardData();
+  const inspectorRef = useRef<HTMLElement | null>(null);
   const details = getSelectedImpactDetails(selection, data);
+  const expanded = detent === "details-focus";
+  const showDetailedMetadata = expanded;
+  const selectedDetailKey = details ? `${details.kind}:${details.id}` : "";
+
+  useEffect(() => {
+    if (!selectedDetailKey) return;
+
+    const inspector = inspectorRef.current;
+    const shell = inspector?.closest(".linewatch-shell") as HTMLElement | null;
+    const heightProperty = "--mobile-impact-inspector-total-height";
+
+    if (!inspector || !shell) return;
+
+    const updateInspectorHeight = () => {
+      const measuredHeight = Math.ceil(inspector.getBoundingClientRect().height);
+      if (measuredHeight > 0) {
+        shell.style.setProperty(heightProperty, `${measuredHeight}px`);
+      }
+    };
+
+    updateInspectorHeight();
+
+    if (typeof ResizeObserver === "undefined") {
+      window.addEventListener("resize", updateInspectorHeight);
+      return () => {
+        window.removeEventListener("resize", updateInspectorHeight);
+        shell.style.removeProperty(heightProperty);
+      };
+    }
+
+    const resizeObserver = new ResizeObserver(updateInspectorHeight);
+    resizeObserver.observe(inspector);
+
+    return () => {
+      resizeObserver.disconnect();
+      shell.style.removeProperty(heightProperty);
+    };
+  }, [detent, selectedDetailKey]);
 
   if (!details) return null;
 
@@ -255,10 +294,10 @@ export function MobileImpactInspector({
     { kind: details.kind, id: details.id, segmentIds: details.segmentIds },
     data,
   );
-  const expanded = detent === "details-focus";
 
   return (
     <aside
+      ref={inspectorRef}
       className={`mobile-impact-inspector ${toneClassName(details.tone)} mobile-impact-inspector-${detent}`}
       data-mobile-impact-inspector
       role="complementary"
@@ -303,17 +342,19 @@ export function MobileImpactInspector({
           label="Overlapping:"
         />
 
-        <MetadataGrid
-          className="mobile-impact-inspector-metadata"
-          cause={details.cause}
-          resolution={details.resolution}
-          reason={details.reason}
-          targetRemoval={details.targetRemoval}
-          startedAt={details.startedAt}
-          updatedAt={details.updatedAt}
-          updatedAgo={details.updatedAgo}
-          extraRows={details.extraRows}
-        />
+        {showDetailedMetadata ? (
+          <MetadataGrid
+            className="mobile-impact-inspector-metadata"
+            cause={details.cause}
+            resolution={details.resolution}
+            reason={details.reason}
+            targetRemoval={details.targetRemoval}
+            startedAt={details.startedAt}
+            updatedAt={details.updatedAt}
+            updatedAgo={details.updatedAgo}
+            extraRows={details.extraRows}
+          />
+        ) : null}
       </div>
 
       <div className="mobile-impact-inspector-actions">
@@ -332,7 +373,7 @@ export function MobileImpactInspector({
           className="mobile-impact-inspector-action primary"
         >
           <ExternalLink size={16} />
-          View Full Details
+          View Full List
         </button>
       </div>
     </aside>

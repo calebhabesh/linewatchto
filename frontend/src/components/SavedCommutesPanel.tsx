@@ -56,7 +56,7 @@ function ImpactIcon({ kind, className }: { kind: AccountMatchedImpact["kind"]; c
       return <AlertTriangle className={`text-red-500 dark:text-red-400 ${className || ""}`} size={14} />;
     case "delay":
     default:
-      return <DelayIcon className={`text-amber-500 dark:text-amber-400 ${className || ""}`} size={14} filled={false} />;
+      return <DelayIcon className={`delay-tone ${className || ""}`} size={14} filled={false} />;
   }
 }
 

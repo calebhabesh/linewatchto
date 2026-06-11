@@ -13,6 +13,7 @@
 - [x] Info Widget for guide on how to use/visualize web app, maybe fully integrated and static on the site like the cardinal direction
 - [ ] Consider adding directionality indicator for single station alerts
 - [ ] Updated date is still sometimes weird.
+- [ ] Still some bugs in overlapping logic
 
 ## Mobile Web Overhaul
 - [ ] Allow app to be fully usable in landscape mode maybe

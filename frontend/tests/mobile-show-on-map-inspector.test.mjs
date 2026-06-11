@@ -28,12 +28,40 @@ describe("mobile Show on Map inspector", () => {
     assert.match(inspectorSource, /data-mobile-impact-inspector/);
     assert.match(inspectorSource, /aria-label="Selected map impact details"/);
     assert.match(inspectorSource, /getSelectedImpactDetails/);
-    assert.match(inspectorSource, /View Full Details/);
+    assert.match(inspectorSource, /View Full List/);
+    assert.doesNotMatch(inspectorSource, /View Full Details/);
     assert.match(inspectorSource, /Show more details/);
     assert.match(inspectorSource, /Show more map/);
     assert.match(inspectorSource, /Overlapping:/);
     assert.match(inspectorSource, /MetadataGrid/);
     assert.match(inspectorSource, /ImpactRouteHeader/);
+  });
+
+  it("keeps the lower metadata block out of the map-focused detent", () => {
+    assert.match(inspectorSource, /const showDetailedMetadata = expanded/);
+    assert.match(inspectorSource, /\{showDetailedMetadata \? \(\s*<MetadataGrid/);
+    assert.match(inspectorSource, /cause=\{details\.cause\}/);
+    assert.match(inspectorSource, /resolution=\{details\.resolution\}/);
+    assert.match(inspectorSource, /targetRemoval=\{details\.targetRemoval\}/);
+  });
+
+  it("sizes the map-focused inspector to its rendered content", () => {
+    assert.match(inspectorSource, /ResizeObserver/);
+    assert.match(inspectorSource, /closest\("[^"]*linewatch-shell[^"]*"\)/);
+    assert.match(inspectorSource, /--mobile-impact-inspector-total-height/);
+    assert.match(inspectorSource, /getBoundingClientRect\(\)\.height/);
+    assert.match(inspectorSource, /removeProperty\(heightProperty\)/);
+    assert.match(globalCss, /\.linewatch-shell\.mobile-map-inspector-impact\.mobile-map-inspector-map-focus \{/);
+    assert.match(globalCss, /--mobile-inspector-total-height: var\(--mobile-impact-inspector-total-height/);
+    assert.match(globalCss, /\.linewatch-shell\.mobile-map-inspector-impact\.mobile-map-inspector-map-focus \.mobile-impact-inspector \{/);
+    assert.match(globalCss, /height: auto;/);
+  });
+
+  it("also sizes the expanded details detent to its rendered content", () => {
+    assert.doesNotMatch(inspectorSource, /detent !== "map-focus"/);
+    assert.match(globalCss, /\.linewatch-shell\.mobile-map-inspector-impact\.mobile-map-inspector-details-focus \{/);
+    assert.match(globalCss, /\.linewatch-shell\.mobile-map-inspector-impact\.mobile-map-inspector-details-focus \{[\s\S]*--mobile-inspector-total-height: var\(--mobile-impact-inspector-total-height/);
+    assert.match(globalCss, /\.linewatch-shell\.mobile-map-inspector-impact:is\(\.mobile-map-inspector-map-focus, \.mobile-map-inspector-details-focus\) \.mobile-impact-inspector \{/);
   });
 
   it("resizes the actual mobile map viewport while preserving focused selection", () => {
