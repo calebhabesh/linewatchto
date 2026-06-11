@@ -27,12 +27,18 @@ export function ActiveAlertsPanel({
   onClose,
   onFocusMap,
 }: Props) {
-  const { activeAlerts, reducedSpeedZones, delays, plannedClosures } = useDashboardData();
+  const { activeAlerts, reducedSpeedZones, delays, plannedClosures, networkSegments, stationNodeImpacts } = useDashboardData();
   useScrollSelectedImpactCard(selection, "suspension");
 
   const handleAlertClick = (alert: ActiveAlert) => {
-    const kind = impactKindForAlert(alert);
-    const isActivating = !(selection?.kind === kind && selection.id === alert.id);
+    const alertImpactKind = impactKindForAlert(alert);
+    const isPlanned = alert.severity === "planned";
+    const isActive = selection?.id === alert.id && (
+      selection?.kind === alertImpactKind ||
+      (selection?.kind === "planned-closure" && isPlanned)
+    );
+    const isActivating = !isActive;
+    const kind = isPlanned ? "planned-closure" : alertImpactKind;
     
     onSelectImpact(
       isActivating ? { kind, id: alert.id } : null
@@ -91,10 +97,14 @@ export function ActiveAlertsPanel({
       <div className="alert-stack min-w-0 p-3 flex flex-col gap-2">
         {activeAlerts.map((alert) => {
           const alertImpactKind = impactKindForAlert(alert);
-          const isActive = selection?.kind === alertImpactKind && selection.id === alert.id;
+          const isPlanned = alert.severity === "planned";
+          const isActive = selection?.id === alert.id && (
+            selection?.kind === alertImpactKind ||
+            (selection?.kind === "planned-closure" && isPlanned)
+          );
           const overlappingImpacts = getOverlappingImpactRefs(
             { kind: alertImpactKind, id: alert.id, segmentIds: alert.affectedSegmentIds ?? [] },
-            { activeAlerts, delays, reducedSpeedZones, plannedClosures },
+            { networkSegments, activeAlerts, delays, reducedSpeedZones, plannedClosures, stationNodeImpacts },
           );
 
           return (

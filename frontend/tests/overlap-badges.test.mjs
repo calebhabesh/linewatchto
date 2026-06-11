@@ -3,6 +3,8 @@ import { describe, it } from "node:test";
 
 import {
   buildStationOverlapBadgeGroups,
+  coveredSegmentOverlapBadgeSignatures,
+  overlapBadgeKindCounts,
   overlapBadgeSignature,
 } from "../src/components/map-overlap-badges.ts";
 
@@ -99,5 +101,88 @@ describe("map overlap badge grouping", () => {
     });
 
     assert.equal(groups.length, 0);
+  });
+
+  it("counts duplicate impact kinds for compact overlap marker badges", () => {
+    const counts = overlapBadgeKindCounts([
+      {
+        kind: "delay",
+        cardId: "station-delay-jane",
+        travelDirection: "bidirectional",
+        sourceAlertIds: ["station-delay-jane"],
+      },
+      {
+        kind: "delay",
+        cardId: "segment-delay-jane-runnymede",
+        travelDirection: "bidirectional",
+        sourceAlertIds: ["segment-delay-jane-runnymede"],
+      },
+      {
+        kind: "reduced-speed-zone",
+        cardId: "rsz-jane-runnymede",
+        travelDirection: "bidirectional",
+        sourceAlertIds: ["rsz-jane-runnymede"],
+      },
+    ]);
+
+    assert.deepEqual(counts, [
+      { kind: "delay", count: 2 },
+      { kind: "reduced-speed-zone", count: 1 },
+    ]);
+  });
+
+  it("treats a station-node overlap group as covering the matching segment badge when it is a strict superset", () => {
+    const segmentImpacts = [
+      {
+        kind: "delay",
+        cardId: "segment-delay-jane-runnymede",
+        travelDirection: "bidirectional",
+        sourceAlertIds: ["segment-delay-jane-runnymede"],
+      },
+      {
+        kind: "reduced-speed-zone",
+        cardId: "rsz-jane-runnymede",
+        travelDirection: "bidirectional",
+        sourceAlertIds: ["rsz-jane-runnymede"],
+      },
+    ];
+    const segment = {
+      id: "jane-runnymede",
+      label: "Jane to Runnymede",
+      stationAId: "jane",
+      stationBId: "runnymede",
+      impacts: segmentImpacts,
+    };
+
+    const stationGroups = buildStationOverlapBadgeGroups({
+      segments: [segment],
+      plannedClosures: [],
+      stationNodeImpacts: [
+        {
+          stationId: "jane",
+          kind: "delay",
+          cardId: "station-delay-jane",
+          title: "Delay at Jane Station",
+        },
+      ],
+      suppressedSignatures: new Set(),
+    });
+    const coveredSignatures = coveredSegmentOverlapBadgeSignatures(
+      [
+        {
+          signature: overlapBadgeSignature(segmentImpacts),
+          impacts: segmentImpacts,
+          segments: [segment],
+        },
+      ],
+      stationGroups,
+    );
+
+    assert.deepEqual(stationGroups[0].impactKinds, ["delay", "reduced-speed-zone"]);
+    assert.deepEqual(overlapBadgeKindCounts(stationGroups[0].impacts), [
+      { kind: "delay", count: 2 },
+      { kind: "reduced-speed-zone", count: 1 },
+    ]);
+    assert.deepEqual([...coveredSignatures], [overlapBadgeSignature(segmentImpacts)]);
   });
 });

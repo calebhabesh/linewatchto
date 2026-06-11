@@ -17,7 +17,7 @@ interface Props {
 }
 
 export function PlannedClosuresPanel({ selection, onSelectImpact, onBack, onClose, onFocusMap }: Props) {
-  const { activeAlerts, delays, reducedSpeedZones, plannedClosures } = useDashboardData();
+  const { activeAlerts, delays, reducedSpeedZones, plannedClosures, networkSegments, stationNodeImpacts } = useDashboardData();
   useScrollSelectedImpactCard(selection, "planned-closure");
 
   const handleClosureClick = (closureId: string) => {
@@ -67,7 +67,7 @@ export function PlannedClosuresPanel({ selection, onSelectImpact, onBack, onClos
           const isActive = selection?.kind === "planned-closure" && selection.id === closure.id;
           const overlappingImpacts = getOverlappingImpactRefs(
             { kind: "planned-closure", id: closure.id, segmentIds: closure.previewSegmentIds ?? [] },
-            { activeAlerts, delays, reducedSpeedZones, plannedClosures },
+            { networkSegments, activeAlerts, delays, reducedSpeedZones, plannedClosures, stationNodeImpacts },
           );
           return (
             <div

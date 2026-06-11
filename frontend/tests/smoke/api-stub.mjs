@@ -2,6 +2,11 @@ import { createServer } from "node:http";
 import {
   activeAlertsResponse,
   delaysResponse,
+  mapAuthoritativeActiveAlertsResponse,
+  mapAuthoritativeDelaysResponse,
+  mapAuthoritativeOverlapResponse,
+  mapAuthoritativePlannedClosuresResponse,
+  mapAuthoritativeReducedSpeedZonesResponse,
   mapResponse,
   plannedClosuresResponse,
   reducedSpeedZonesResponse,
@@ -115,7 +120,7 @@ const server = createServer(async (request, response) => {
 
   if (request.method === "POST" && url.pathname === "/__test/mode") {
     const body = await readJson(request);
-    if (!["seeded", "unavailable"].includes(body.mode)) {
+    if (!["seeded", "unavailable", "map-authoritative-overlap"].includes(body.mode)) {
       sendJson(request, response, 400, { error: "Unsupported smoke stub mode" });
       return;
     }
@@ -192,7 +197,7 @@ const server = createServer(async (request, response) => {
 
   // Public Dashboard APIs
   if (request.method === "GET" && url.pathname === "/api/map") {
-    sendJson(request, response, 200, mapResponse);
+    sendJson(request, response, 200, mode === "map-authoritative-overlap" ? mapAuthoritativeOverlapResponse : mapResponse);
     return;
   }
 
@@ -223,22 +228,22 @@ const server = createServer(async (request, response) => {
   if (request.method === "GET" && url.pathname === "/api/alerts") {
     const type = url.searchParams.get("type");
     if (type === "planned") {
-      sendJson(request, response, 200, plannedClosuresResponse);
+      sendJson(request, response, 200, mode === "map-authoritative-overlap" ? mapAuthoritativePlannedClosuresResponse : plannedClosuresResponse);
       return;
     }
     if (type === "slowdown") {
-      sendJson(request, response, 200, reducedSpeedZonesResponse);
+      sendJson(request, response, 200, mode === "map-authoritative-overlap" ? mapAuthoritativeReducedSpeedZonesResponse : reducedSpeedZonesResponse);
       return;
     }
     if (type === "delay") {
-      sendJson(request, response, 200, delaysResponse);
+      sendJson(request, response, 200, mode === "map-authoritative-overlap" ? mapAuthoritativeDelaysResponse : delaysResponse);
       return;
     }
     if (type === "raw") {
       sendJson(request, response, 200, rawAlertsResponse);
       return;
     }
-    sendJson(request, response, 200, activeAlertsResponse);
+    sendJson(request, response, 200, mode === "map-authoritative-overlap" ? mapAuthoritativeActiveAlertsResponse : activeAlertsResponse);
     return;
   }
 

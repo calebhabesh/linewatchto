@@ -36,6 +36,17 @@ export type StationOverlapBadgeGroup = {
   primaryImpact: MapImpact;
 };
 
+export type OverlapBadgeKindCount = {
+  kind: MapImpactKind;
+  count: number;
+};
+
+export type SegmentOverlapBadgeCoverageGroup = {
+  signature: string;
+  impacts: Pick<MapImpact, "kind" | "cardId">[];
+  segments: Pick<OverlapBadgeSourceSegment, "stationAId" | "stationBId">[];
+};
+
 type PlannedClosureSegmentSource = Pick<PlannedClosure, "id" | "previewSegmentIds">;
 
 function getImpactPriority(kind: MapImpactKind): number {
@@ -56,6 +67,17 @@ function getImpactPriority(kind: MapImpactKind): number {
 export function getUniqueImpactKinds(impacts: MapImpact[]): MapImpactKind[] {
   return Array.from(new Set(impacts.map((impact) => impact.kind))).sort(
     (a, b) => getImpactPriority(b) - getImpactPriority(a),
+  );
+}
+
+export function overlapBadgeKindCounts(impacts: Pick<MapImpact, "kind">[]): OverlapBadgeKindCount[] {
+  const counts = new Map<MapImpactKind, number>();
+  for (const impact of impacts) {
+    counts.set(impact.kind, (counts.get(impact.kind) ?? 0) + 1);
+  }
+
+  return Array.from(counts, ([kind, count]) => ({ kind, count })).sort(
+    (a, b) => getImpactPriority(b.kind) - getImpactPriority(a.kind),
   );
 }
 
@@ -101,6 +123,46 @@ export function overlapBadgeSignature(impacts: Pick<MapImpact, "kind" | "cardId"
     .map(impactKey)
     .sort()
     .join("|");
+}
+
+function impactKeySet(impacts: Pick<MapImpact, "kind" | "cardId">[]): Set<string> {
+  return new Set(impacts.map(impactKey));
+}
+
+function isStrictImpactSuperset(
+  possibleSuperset: Pick<MapImpact, "kind" | "cardId">[],
+  possibleSubset: Pick<MapImpact, "kind" | "cardId">[],
+): boolean {
+  const superset = impactKeySet(possibleSuperset);
+  const subset = impactKeySet(possibleSubset);
+  if (superset.size <= subset.size) return false;
+  return Array.from(subset).every((key) => superset.has(key));
+}
+
+function segmentGroupTouchesStation(group: SegmentOverlapBadgeCoverageGroup, stationId: string): boolean {
+  return group.segments.length > 0 && group.segments.every(
+    (segment) => segment.stationAId === stationId || segment.stationBId === stationId,
+  );
+}
+
+export function coveredSegmentOverlapBadgeSignatures(
+  segmentGroups: SegmentOverlapBadgeCoverageGroup[],
+  stationGroups: Pick<StationOverlapBadgeGroup, "stationId" | "impacts">[],
+): Set<string> {
+  const coveredSignatures = new Set<string>();
+
+  for (const segmentGroup of segmentGroups) {
+    const coveredByStationGroup = stationGroups.some((stationGroup) => (
+      segmentGroupTouchesStation(segmentGroup, stationGroup.stationId) &&
+      isStrictImpactSuperset(stationGroup.impacts, segmentGroup.impacts)
+    ));
+
+    if (coveredByStationGroup) {
+      coveredSignatures.add(segmentGroup.signature);
+    }
+  }
+
+  return coveredSignatures;
 }
 
 function addStationImpact(

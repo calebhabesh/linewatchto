@@ -17,7 +17,7 @@ interface Props {
 }
 
 export function DelaysPanel({ selection, onSelectImpact, onBack, onClose, onFocusMap }: Props) {
-  const { activeAlerts, delays, reducedSpeedZones, plannedClosures } = useDashboardData();
+  const { activeAlerts, delays, reducedSpeedZones, plannedClosures, networkSegments, stationNodeImpacts } = useDashboardData();
   useScrollSelectedImpactCard(selection, "delay");
 
   const handleDelayClick = (delayId: string) => {
@@ -67,7 +67,7 @@ export function DelaysPanel({ selection, onSelectImpact, onBack, onClose, onFocu
           const isActive = selection?.kind === "delay" && selection.id === delay.id;
           const overlappingImpacts = getOverlappingImpactRefs(
             { kind: "delay", id: delay.id, segmentIds: delay.affectedSegmentIds ?? [] },
-            { activeAlerts, delays, reducedSpeedZones, plannedClosures },
+            { networkSegments, activeAlerts, delays, reducedSpeedZones, plannedClosures, stationNodeImpacts },
           );
           return (
             <article

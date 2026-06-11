@@ -38,7 +38,9 @@ import { ImpactTypeIcon } from "./ImpactTypeIcon";
 import { SiteGuideDropdown } from "./SiteGuideDropdown";
 import {
   buildStationOverlapBadgeGroups,
+  coveredSegmentOverlapBadgeSignatures,
   type MapOverlapSelection,
+  overlapBadgeKindCounts,
 } from "./map-overlap-badges";
 
 const RSZ_IMPACT_COLOR = "#F59E0B";
@@ -665,9 +667,26 @@ function InteractiveTtcMapComponent({
     ].flatMap((pathD) => pathCorridorCollisionBoxes(pathD, OVERLAY_CORRIDOR_COLLISION_RADIUS));
   }, [plannedPreviewLayers, renderedImpactLayers]);
 
-  const segmentOverlapBadgeGroups = useMemo(() => {
+  const rawSegmentOverlapBadgeGroups = useMemo(() => {
     return groupOverlapBadgeSegments(renderedOverlaySegments, plannedClosures);
   }, [plannedClosures, renderedOverlaySegments]);
+
+  const stationOverlapBadgeGroups = useMemo(() => {
+    return buildStationOverlapBadgeGroups({
+      segments: renderedOverlaySegments,
+      plannedClosures,
+      stationNodeImpacts,
+      suppressedSignatures: new Set(rawSegmentOverlapBadgeGroups.map((group) => group.signature)),
+    });
+  }, [plannedClosures, renderedOverlaySegments, rawSegmentOverlapBadgeGroups, stationNodeImpacts]);
+
+  const coveredSegmentOverlapSignatures = useMemo(() => {
+    return coveredSegmentOverlapBadgeSignatures(rawSegmentOverlapBadgeGroups, stationOverlapBadgeGroups);
+  }, [rawSegmentOverlapBadgeGroups, stationOverlapBadgeGroups]);
+
+  const segmentOverlapBadgeGroups = useMemo(() => {
+    return rawSegmentOverlapBadgeGroups.filter((group) => !coveredSegmentOverlapSignatures.has(group.signature));
+  }, [coveredSegmentOverlapSignatures, rawSegmentOverlapBadgeGroups]);
 
   const overlapBadgeSegments = useMemo<OverlapBadgeSegment[]>(() => {
     const occupiedBoxes = [...mapCollisionBoxes, ...overlayCollisionBoxes];
@@ -703,15 +722,6 @@ function InteractiveTtcMapComponent({
       })
       .filter((badge): badge is OverlapBadgeSegment => Boolean(badge));
   }, [mapCollisionBoxes, overlayCollisionBoxes, segmentOverlapBadgeGroups]);
-
-  const stationOverlapBadgeGroups = useMemo(() => {
-    return buildStationOverlapBadgeGroups({
-      segments: renderedOverlaySegments,
-      plannedClosures,
-      stationNodeImpacts,
-      suppressedSignatures: new Set(segmentOverlapBadgeGroups.map((group) => group.signature)),
-    });
-  }, [plannedClosures, renderedOverlaySegments, segmentOverlapBadgeGroups, stationNodeImpacts]);
 
   const stationOverlapBadges = useMemo<OverlapBadgeSegment[]>(() => {
     const occupiedBoxes = [
@@ -2299,14 +2309,17 @@ function OverlapIndicatorMarker({
   onSelectImpact: (selection: ImpactSelection) => void;
   onSelectOverlap?: (selection: MapOverlapSelection) => void;
 }) {
-  const visibleKinds = badge.impactKinds.slice(0, 3);
-  const hiddenKindCount = Math.max(0, badge.impactKinds.length - visibleKinds.length);
-  const totalItems = visibleKinds.length + (hiddenKindCount > 0 ? 1 : 0);
+  const kindCounts = overlapBadgeKindCounts(badge.impacts);
+  const visibleKindCounts = kindCounts.slice(0, 3);
+  const hiddenKindCount = Math.max(0, kindCounts.length - visibleKindCounts.length);
+  const totalItems = visibleKindCounts.length + (hiddenKindCount > 0 ? 1 : 0);
   const spacing = 58;
   const isSelected = selection
     ? badge.impacts.some((impact) => impact.kind === selection.kind && impact.cardId === selection.id)
     : false;
-  const label = `Overlapping alerts: ${badge.impactKinds.map(labelForImpactKind).join(" + ")} on ${badge.label}`;
+  const label = `Overlapping alerts: ${kindCounts
+    .map(({ kind, count }) => `${labelForImpactKind(kind)}${count > 1 ? ` x${count}` : ""}`)
+    .join(" + ")} on ${badge.label}`;
 
   const selectPrimaryImpact = () => {
     onSelectImpact({ kind: badge.primaryImpact.kind, id: badge.primaryImpact.cardId });
@@ -2358,23 +2371,40 @@ function OverlapIndicatorMarker({
         height={badge.size.height}
         rx={badge.size.height / 2}
       />
-      {visibleKinds.map((kind, index) => {
+      {visibleKindCounts.map(({ kind, count }, index) => {
         const x = (index - (totalItems - 1) / 2) * spacing;
         return (
-          <g key={kind} data-overlap-kind={kind} transform={`translate(${x} 0)`}>
+          <g
+            key={kind}
+            data-overlap-kind={kind}
+            data-overlap-kind-count={count}
+            transform={`translate(${x} 0)`}
+          >
             <circle className={`overlap-indicator-badge ${kind}`} r={27} />
             <OverlapKindIcon kind={kind} />
+            {count > 1 && <OverlapKindCountBadge count={count} />}
           </g>
         );
       })}
       {hiddenKindCount > 0 && (
-        <g transform={`translate(${(visibleKinds.length - (totalItems - 1) / 2) * spacing} 0)`}>
+        <g transform={`translate(${(visibleKindCounts.length - (totalItems - 1) / 2) * spacing} 0)`}>
           <circle className="overlap-indicator-badge more" r={27} />
           <text className="overlap-indicator-more" textAnchor="middle" dominantBaseline="central">
             +{hiddenKindCount}
           </text>
         </g>
       )}
+    </g>
+  );
+}
+
+function OverlapKindCountBadge({ count }: { count: number }) {
+  return (
+    <g transform="translate(20 -20)">
+      <circle className="overlap-indicator-count-badge" r={12} />
+      <text className="overlap-indicator-count-text" textAnchor="middle" dominantBaseline="central">
+        {count}
+      </text>
     </g>
   );
 }

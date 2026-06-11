@@ -1,6 +1,6 @@
 {
   "lastUpdated": "2026-06-03T14:59:00.000Z",
-  "total": 14,
+  "total": 15,
   "routes": [
     {
       "id": "scenario-active-line-2",
@@ -326,6 +326,61 @@
       "stopIDList": [
         "Jane",
         "Runnymede"
+      ],
+      "stopNameList": [],
+      "stopRouteList": [],
+      "rszLength": null,
+      "distance": null,
+      "trackPercent": null,
+      "reducedSpeed": null,
+      "averageSpeed": null,
+      "targetRemoval": null,
+      "shuttleType": null,
+      "shuttleStart": null,
+      "shuttleEnd": null,
+      "elevatorCode": null,
+      "escalatorCode": null,
+      "criticality": 0,
+      "childAlerts": []
+    },
+    {
+      "id": "scenario-station-node-jane-overlap",
+      "priority": 0,
+      "alertType": "Live",
+      "lastUpdated": "2026-06-03T14:55:00.000Z",
+      "activePeriod": {
+        "start": "2026-06-03T14:30:00.000Z",
+        "end": "0001-01-01T00:00:00Z"
+      },
+      "activePeriodGroup": [
+        "Current"
+      ],
+      "routeOrder": 2,
+      "route": "2",
+      "routeBranch": "",
+      "routeTypeSrc": "400",
+      "routeType": "Subway",
+      "stopStart": "Jane",
+      "stopEnd": "Jane",
+      "stopStartId": null,
+      "stopEndId": null,
+      "stops": [],
+      "title": "Delays at Jane station while we respond to an emergency alarm.",
+      "description": "",
+      "url": "",
+      "urlPlaceholder": "",
+      "accessibility": "Routes",
+      "effect": "SIGNIFICANT_DELAYS",
+      "effectDesc": "Delays",
+      "severityOrder": 1,
+      "severity": "Critical",
+      "customHeaderText": null,
+      "headerText": "Line 2 Bloor-Danforth: Delays at Jane station while we respond to an emergency alarm.",
+      "direction": "Eastbound",
+      "cause": "MEDICAL_EMERGENCY",
+      "causeDescription": "Emergency alarm",
+      "stopIDList": [
+        "Jane"
       ],
       "stopNameList": [],
       "stopRouteList": [],

@@ -130,6 +130,65 @@ export const mapResponse = {
   ],
 };
 
+export const mapAuthoritativeOverlapResponse = {
+  ...mapResponse,
+  segments: [
+    ...mapResponse.segments.map((segment) => {
+      if (segment.id !== "stub-line-1-segment") {
+        return segment;
+      }
+
+      return {
+        ...segment,
+        impacts: [
+          ...segment.impacts,
+          {
+            kind: "delay",
+            cardId: "stub-delay-line-1-overlap",
+            travelDirection: "bidirectional",
+            sourceAlertIds: ["stub-delay-line-1-overlap"],
+          },
+          {
+            kind: "reduced-speed-zone",
+            cardId: "reduced-speed-zone-stub-line-1-overlap",
+            travelDirection: "bidirectional",
+            sourceAlertIds: ["stub-rsz-line-1-overlap"],
+          },
+        ],
+      };
+    }),
+    {
+      id: "stub-line-1-museum-st-george",
+      lineId: "line-1",
+      label: "Museum to St George",
+      stationAId: "stub-museum",
+      stationBId: "stub-st-george",
+      pathD: "M 4547 2460 L 4010 2604",
+      impacts: [
+        {
+          kind: "suspension",
+          cardId: "stub-alert-st-george-boundary",
+          travelDirection: "forward",
+          sourceAlertIds: ["stub-alert-st-george-boundary"],
+        },
+      ],
+      overlay: "suspension",
+      travelDirection: "forward",
+      sourceAlertIds: ["stub-alert-st-george-boundary"],
+      alertId: "stub-alert-st-george-boundary",
+    },
+    {
+      id: "stub-line-1-st-george-sheppard-west",
+      lineId: "line-1",
+      label: "St George to Sheppard West",
+      stationAId: "stub-st-george",
+      stationBId: "stub-sheppard-west",
+      pathD: "M 4010 2604 L 3430 1970",
+      overlay: "clear",
+    },
+  ],
+};
+
 export const statusResponse = {
   generatedAt: {
     time: "Seeded demo",
@@ -198,6 +257,34 @@ export const activeAlertsResponse = [
   },
 ];
 
+export const mapAuthoritativeActiveAlertsResponse = activeAlertsResponse.map((alert) => {
+  if (alert.id !== "stub-alert-line-1") {
+    return alert;
+  }
+
+  return {
+    ...alert,
+    affectedSegmentIds: [],
+  };
+});
+
+mapAuthoritativeActiveAlertsResponse.push({
+  id: "stub-alert-st-george-boundary",
+  lineId: "line-1",
+  lineNumber: "1",
+  title: "No service northbound from Museum to St George",
+  severity: "suspension",
+  location: "Museum to St George",
+  displayDirection: "Northbound",
+  description: "Scenario active alert ending at the same station where an upcoming closure begins.",
+  reason: "Security incident",
+  targetRemoval: "TBD",
+  updatedAgo: "Seeded demo",
+  affectedSegmentIds: ["stub-line-1-museum-st-george"],
+  shuttle: true,
+  source: "Playwright API stub",
+});
+
 export const reducedSpeedZonesResponse = [
   {
     id: "reduced-speed-zone-stub-zone-south-source",
@@ -256,6 +343,36 @@ export const reducedSpeedZonesResponse = [
   },
 ];
 
+export const mapAuthoritativeReducedSpeedZonesResponse = [
+  ...reducedSpeedZonesResponse,
+  {
+    id: "reduced-speed-zone-stub-line-1-overlap",
+    lineId: "line-1",
+    lineNumber: "1",
+    title: "Reduced Speed Zone",
+    location: "Stub Station to Stub Terminal",
+    displayDirection: "Northbound & Southbound",
+    description: "Scenario RSZ on the same segment as an active alert.",
+    startedAt: "2026-06-03T09:00:00-04:00",
+    updatedAt: "2026-06-03T10:00:00-04:00",
+    cause: "Track issue",
+    resolution: "This week",
+    rszLength: "120 metres",
+    reducedSpeed: "15 km/h",
+    affectedSegmentIds: ["stub-line-1-segment"],
+    sourceAlertIds: ["stub-rsz-line-1-overlap"],
+    directionalDetails: [
+      {
+        sourceAlertId: "stub-rsz-line-1-overlap",
+        displayDirection: "Northbound & Southbound",
+        location: "Stub Station to Stub Terminal",
+        description: "Scenario RSZ on the same segment as an active alert.",
+      },
+    ],
+    source: "Playwright API stub",
+  },
+];
+
 export const delaysResponse = [
   {
     id: "stub-delay-line-4",
@@ -287,6 +404,24 @@ export const delaysResponse = [
   },
 ];
 
+export const mapAuthoritativeDelaysResponse = [
+  ...delaysResponse,
+  {
+    id: "stub-delay-line-1-overlap",
+    lineId: "line-1",
+    lineNumber: "1",
+    title: "Delay from Stub Station to Stub Terminal",
+    location: "Stub Station to Stub Terminal",
+    displayDirection: "Northbound & Southbound",
+    description: "Scenario delay on the same segment as an active alert.",
+    affectedSegmentIds: ["stub-line-1-segment"],
+    startedAt: "2026-06-03T09:15:00-04:00",
+    updatedAt: "2026-06-03T09:30:00-04:00",
+    source: "Playwright API stub",
+    cause: "Operational issue",
+  },
+];
+
 
 export const plannedClosuresResponse = [
   {
@@ -302,6 +437,30 @@ export const plannedClosuresResponse = [
     targetRemoval: "End of weekend",
     previewSegmentIds: ["stub-line-1-segment"],
     shuttle: false,
+    source: "Playwright API stub",
+    activeNow: false,
+    timingStatus: "upcoming",
+    nightly: true,
+    activeWindowLabel: null,
+    nextWindowLabel: "Tomorrow 11:00 PM - Fri 2:00 AM",
+  },
+];
+
+export const mapAuthoritativePlannedClosuresResponse = [
+  ...plannedClosuresResponse,
+  {
+    id: "stub-upcoming-closure-st-george-boundary",
+    lineId: "line-1",
+    lineNumber: "1",
+    title: "Upcoming closure from St George to Sheppard West",
+    window: "Seeded smoke window",
+    location: "St George to Sheppard West",
+    displayDirection: "Northbound & Southbound",
+    description: "Scenario upcoming closure beginning at the same station where an active alert ends.",
+    reason: "Track work",
+    targetRemoval: "End of weekend",
+    previewSegmentIds: ["stub-line-1-st-george-sheppard-west"],
+    shuttle: true,
     source: "Playwright API stub",
     activeNow: false,
     timingStatus: "upcoming",

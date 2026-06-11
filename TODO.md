@@ -12,18 +12,19 @@
 - [x] Overlapping marker/legend does not show entry for active alerts and incorrect highlight for cards based on what submenu its in
 - [x] Info Widget for guide on how to use/visualize web app, maybe fully integrated and static on the site like the cardinal direction
 - [ ] Consider adding directionality indicator for single station alerts
-- [ ] Updated date is still sometimes weird.
-- [ ] Still some bugs in overlapping logic
+- [ ] Updated/Started date is still sometimes weird.
+- [ ] Add individual station alert overlapping with different alert types for good testing breadth.
 
 ## Mobile Web Overhaul
-- [ ] Allow app to be fully usable in landscape mode maybe
-- [ ] Bolster security of web app
 - [ ] PWA
 - [ ] PWA Guide "Add website as app" in info section
+- [ ] Bolster security of web app
 - [ ] GTFS Arrivals must be updated often when deployed find solution
 - [ ] Notifications on for the site, so that they can see when there are alerts on their saved commute routes. Active alerts are the worst, but reduced speed zones shouldn't be that crazy
 
 ## Future Additions
+- [ ] Leave feedback in "More" section for people to use on mobile, and on desktop.
+- [ ] Allow app to be fully usable in landscape mode maybe
 - [ ] Cool trains on the tracks ui overlay (strictly aesthetic)
 - [ ] Station impacts tie to the arrivals subsection in the station submenu 
 - [ ] Surface connections for busses available at stations

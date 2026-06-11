@@ -13,7 +13,7 @@ export const scenarioNames = [
 
 export const scenarioExpectations = {
   "all-alert-types": {
-    routeCount: 12,
+    routeCount: 13,
     accessibilityCount: 2,
     impactKinds: ["suspension", "delay", "reduced-speed-zone", "planned-closure"],
     directionCoverage: {
@@ -291,6 +291,20 @@ function allAlertTypes(now) {
       direction: "Both ways",
       cause: "MAINTENANCE",
       causeDescription: "Track problem",
+    }),
+    routeAlert(now, {
+      id: "scenario-station-node-jane-overlap",
+      route: "2",
+      stopStart: "Jane",
+      stopEnd: "Jane",
+      stopIDList: ["Jane"],
+      title: "Delays at Jane station while we respond to an emergency alarm.",
+      headerText: "Line 2 Bloor-Danforth: Delays at Jane station while we respond to an emergency alarm.",
+      effect: "SIGNIFICANT_DELAYS",
+      effectDesc: "Delays",
+      direction: "Eastbound",
+      cause: "MEDICAL_EMERGENCY",
+      causeDescription: "Emergency alarm",
     }),
     routeAlert(now, {
       id: "scenario-station-node-keele",

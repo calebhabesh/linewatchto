@@ -4,7 +4,7 @@
     {
       "name": "all-alert-types",
       "file": "all-alert-types.json",
-      "routeCount": 12,
+      "routeCount": 13,
       "accessibilityCount": 2,
       "impactKinds": [
         "suspension",

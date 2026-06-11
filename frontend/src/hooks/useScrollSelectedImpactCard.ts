@@ -8,7 +8,10 @@ export function useScrollSelectedImpactCard(
   kind: ImpactKind,
 ) {
   useEffect(() => {
-    if (selection?.kind !== kind) return;
+    if (!selection) return;
+    const isMatch = selection.kind === kind ||
+      (kind === "suspension" && selection.kind === "planned-closure");
+    if (!isMatch) return;
     const card = document.querySelector<HTMLElement>(
       `[data-impact-card-id="${CSS.escape(selection.id)}"]`,
     );

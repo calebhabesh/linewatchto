@@ -28,7 +28,7 @@ export function ReducedSpeedZonesPanel({
   onClose,
   onFocusMap,
 }: Props) {
-  const { activeAlerts, delays, reducedSpeedZones, plannedClosures } = useDashboardData();
+  const { activeAlerts, delays, reducedSpeedZones, plannedClosures, networkSegments, stationNodeImpacts } = useDashboardData();
   useScrollSelectedImpactCard(selection, "reduced-speed-zone");
 
   const handleReducedSpeedZoneClick = (alertId: string) => {
@@ -78,7 +78,7 @@ export function ReducedSpeedZonesPanel({
           const isActive = selection?.kind === "reduced-speed-zone" && selection.id === zone.id;
           const overlappingImpacts = getOverlappingImpactRefs(
             { kind: "reduced-speed-zone", id: zone.id, segmentIds: zone.affectedSegmentIds ?? [] },
-            { activeAlerts, delays, reducedSpeedZones, plannedClosures },
+            { networkSegments, activeAlerts, delays, reducedSpeedZones, plannedClosures, stationNodeImpacts },
           );
           return (
             <div

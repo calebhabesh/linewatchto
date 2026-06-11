@@ -38,7 +38,7 @@ class TtcAlertScenarioCatalogTest {
 
     static Stream<Arguments> scenarios() {
         return Stream.of(
-            Arguments.of("all-alert-types.json", 12, 2, EnumSet.of(
+            Arguments.of("all-alert-types.json", 13, 2, EnumSet.of(
                 AlertImpactKind.SUSPENSION,
                 AlertImpactKind.DELAY,
                 AlertImpactKind.REDUCED_SPEED_ZONE,
@@ -117,6 +117,15 @@ class TtcAlertScenarioCatalogTest {
             .filteredOn(alert -> alert.impactKind() == AlertImpactKind.DELAY)
             .extracting(NormalizedRouteAlert::direction)
             .contains(AlertDirection.BIDIRECTIONAL, AlertDirection.SOUTHBOUND);
+        assertThat(routeAlerts)
+            .filteredOn(alert -> alert.sourceId().equals("scenario-station-node-jane-overlap"))
+            .singleElement()
+            .satisfies(alert -> {
+                assertThat(alert.startStationId()).isEqualTo("jane");
+                assertThat(alert.endStationId()).isEqualTo("jane");
+                assertThat(alert.stationIds()).containsExactly("jane");
+                assertThat(alert.impactKind()).isEqualTo(AlertImpactKind.DELAY);
+            });
         assertThat(routeAlerts)
             .filteredOn(alert -> alert.impactKind() == AlertImpactKind.REDUCED_SPEED_ZONE)
             .extracting(NormalizedRouteAlert::direction)

@@ -145,9 +145,12 @@ describe("asset-backed map layering", () => {
     assert.match(interactiveMapSource, /aria-label="Overlapping alert badges"/);
     assert.match(interactiveMapSource, /data-overlap-segment-id=\{badge\.segmentId\}/);
     assert.match(interactiveMapSource, /data-overlap-kind=\{kind\}/);
+    assert.match(interactiveMapSource, /data-overlap-kind-count=\{count\}/);
     assert.match(interactiveMapSource, /data-overlap-collision-avoided/);
     assert.match(interactiveMapSource, /ImpactTypeIcon/);
     assert.match(interactiveMapSource, /OverlapKindIcon/);
+    assert.match(interactiveMapSource, /OverlapKindCountBadge/);
+    assert.match(interactiveMapSource, /overlapBadgeKindCounts\(badge\.impacts\)/);
     assert.match(interactiveMapSource, /getUniqueImpactKinds/);
     assert.match(interactiveMapSource, /chooseNonIntersectingBadgePosition/);
     assert.match(interactiveMapSource, /collectMapCollisionBoxes/);
@@ -185,6 +188,8 @@ describe("asset-backed map layering", () => {
     assert.match(globalCss, /\.overlap-indicator-badge\.planned-closure\s*\{[^}]*stroke:\s*#3b82f6;/s);
     assert.match(globalCss, /\.overlap-indicator-badge\.delay\s*\{[^}]*stroke:\s*#FEEC41;/s);
     assert.match(globalCss, /\.overlap-indicator-type-icon\.delay\s*\{[^}]*color:\s*#FEEC41;/s);
+    assert.match(globalCss, /\.overlap-indicator-count-badge\s*\{[^}]*fill:\s*#ef4444;/s);
+    assert.match(globalCss, /\.overlap-indicator-count-text\s*\{[^}]*fill:\s*#ffffff;/s);
     assert.doesNotMatch(globalCss, /\.overlap-indicator-badge\.delay\s*\{[^}]*#0ea5e9/s);
     assert.doesNotMatch(globalCss, /\.overlap-indicator-badge\.suspension,\s*\.overlap-indicator-badge\.planned-closure/);
     assert.match(globalCss, /\.overlap-indicator-badge\.reduced-speed-zone\s*\{[^}]*var\(--impact-rsz\)/s);

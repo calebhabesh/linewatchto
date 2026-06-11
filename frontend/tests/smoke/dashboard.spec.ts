@@ -4,7 +4,7 @@ const appUrl = "http://127.0.0.1:4173";
 const stubUrl = "http://127.0.0.1:4174";
 const disclaimerStorageKey = "linewatch-disclaimer-ack-v1";
 
-async function setStubMode(request: APIRequestContext, mode: "seeded" | "unavailable") {
+async function setStubMode(request: APIRequestContext, mode: "seeded" | "unavailable" | "map-authoritative-overlap") {
   const response = await request.post(`${stubUrl}/__test/mode`, {
     data: { mode },
   });
@@ -526,6 +526,53 @@ test("shows a compact map hint when multiple alert types overlap", async ({ page
   }
   await expect(page.getByRole("heading", { name: "Active Alerts" })).toBeVisible();
   await expect(page.locator('[data-impact-card-id="stub-alert-line-1"]')).toHaveClass(/highlight-active-card/);
+});
+
+test("uses map overlap metadata for active-alert and sibling submenu overlap refs", async ({ page, request, isMobile }) => {
+  await setStubMode(request, "map-authoritative-overlap");
+  await page.goto("/");
+  await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
+
+  const overlapMarker = page.locator('[data-overlap-segment-id="stub-line-1-segment"]');
+  await expect(overlapMarker).toBeVisible();
+  await overlapMarker.dispatchEvent("click");
+
+  if (isMobile) {
+    const inspector = page.locator('[data-mobile-impact-inspector]');
+    await expect(inspector).toBeVisible();
+    await inspector.getByRole("button", { name: "View Full List" }).click();
+  }
+
+  await expect(page.getByRole("heading", { name: "Active Alerts" })).toBeVisible();
+  const activeAlertCard = page.locator('[data-impact-card-id="stub-alert-line-1"]');
+  await expect(activeAlertCard).toBeVisible();
+  await expect(activeAlertCard.getByText("Overlapping:")).toBeVisible();
+  await expect(activeAlertCard.getByText("Delay", { exact: true })).toBeVisible();
+  await expect(activeAlertCard.getByText("Reduced Speed Zone", { exact: true })).toBeVisible();
+
+  await openServiceCategory(page, isMobile, /Delay/);
+  const delaysPanel = page.locator("section").filter({
+    has: page.getByRole("heading", { name: "Delays" }),
+  });
+  const delayCard = delaysPanel.locator('[data-impact-card-id="stub-delay-line-1-overlap"]');
+  await expect(delayCard).toBeVisible();
+  await expect(delayCard.getByText("Overlapping:")).toBeVisible();
+  await expect(delayCard.getByText("Active Alert", { exact: true })).toBeVisible();
+
+  await openServiceCategory(page, isMobile, /Active Alert/);
+  const boundaryActiveCard = page.locator('[data-impact-card-id="stub-alert-st-george-boundary"]');
+  await expect(boundaryActiveCard).toBeVisible();
+  await expect(boundaryActiveCard.getByText("Overlapping:")).toBeVisible();
+  await expect(boundaryActiveCard.getByText("Upcoming Closure", { exact: true })).toBeVisible();
+
+  await openServiceCategory(page, isMobile, /Closure/);
+  const closuresPanel = page.locator("section").filter({
+    has: page.getByRole("heading", { name: "Upcoming Closures" }),
+  });
+  const boundaryClosureCard = closuresPanel.locator('[data-impact-card-id="stub-upcoming-closure-st-george-boundary"]');
+  await expect(boundaryClosureCard).toBeVisible();
+  await expect(boundaryClosureCard.getByText("Overlapping:")).toBeVisible();
+  await expect(boundaryClosureCard.getByText("Active Alert", { exact: true })).toBeVisible();
 });
 
 test("opens logs dropdown and expands raw JSON payload", async ({ page, request, isMobile }) => {

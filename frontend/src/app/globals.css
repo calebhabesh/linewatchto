@@ -1032,6 +1032,18 @@ button {
   font-weight: 900;
 }
 
+.overlap-indicator-count-badge {
+  fill: #ef4444;
+  stroke: rgba(15, 23, 42, 0.95);
+  stroke-width: 2.5;
+}
+
+.overlap-indicator-count-text {
+  fill: #ffffff;
+  font-size: 14px;
+  font-weight: 900;
+}
+
 .overlap-impact-ref {
   align-items: flex-start;
   background: rgba(255, 255, 255, 0.8);
