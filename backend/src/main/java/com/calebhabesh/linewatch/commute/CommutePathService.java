@@ -139,9 +139,11 @@ public class CommutePathService {
             List<LineSegmentEntity> segments = lineSegmentRepository.findAllByOrderBySortOrderAsc().stream()
                 .sorted(Comparator.comparingInt(LineSegmentEntity::getSortOrder).thenComparing(LineSegmentEntity::getId))
                 .toList();
-            Map<String, CommuteTravelTimeRepository.SegmentTravelTime> weights =
-                travelTimeRepository.findActiveScheduledSegmentWeights();
-            GraphSnapshot next = new GraphSnapshot(signature, graph(segments, weights));
+            Map<String, CommuteTravelTimeRepository.SegmentTravelTime> scheduledWeights =
+                emptyWhenNull(travelTimeRepository.findActiveScheduledSegmentWeights());
+            Map<String, CommuteTravelTimeRepository.SegmentTravelTime> seededFallbackWeights =
+                emptyWhenNull(travelTimeRepository.findSeededFallbackSegmentWeights());
+            GraphSnapshot next = new GraphSnapshot(signature, graph(segments, scheduledWeights, seededFallbackWeights));
             graphSnapshot = next;
             return next;
         }
@@ -156,11 +158,15 @@ public class CommutePathService {
 
     private Map<String, List<Edge>> graph(
         List<LineSegmentEntity> segments,
-        Map<String, CommuteTravelTimeRepository.SegmentTravelTime> weights
+        Map<String, CommuteTravelTimeRepository.SegmentTravelTime> scheduledWeights,
+        Map<String, CommuteTravelTimeRepository.SegmentTravelTime> seededFallbackWeights
     ) {
         Map<String, List<Edge>> graph = new LinkedHashMap<>();
         for (LineSegmentEntity segment : segments) {
-            CommuteTravelTimeRepository.SegmentTravelTime weight = weights.get(segment.getId());
+            CommuteTravelTimeRepository.SegmentTravelTime weight = scheduledWeights.get(segment.getId());
+            if (weight == null) {
+                weight = seededFallbackWeights.get(segment.getId());
+            }
             int seconds = weight == null ? FALLBACK_SEGMENT_SECONDS : weight.travelSeconds();
             String source = weight == null ? "fallback" : weight.source();
             addEdge(graph, segment.getStationAId(), new Edge(
@@ -186,6 +192,12 @@ public class CommutePathService {
             .sorted(Comparator.comparingInt(Edge::sortOrder).thenComparing(Edge::segmentId).thenComparing(Edge::toStationId))
             .toList());
         return graph;
+    }
+
+    private Map<String, CommuteTravelTimeRepository.SegmentTravelTime> emptyWhenNull(
+        Map<String, CommuteTravelTimeRepository.SegmentTravelTime> weights
+    ) {
+        return weights == null ? Map.of() : weights;
     }
 
     private void addEdge(Map<String, List<Edge>> graph, String stationId, Edge edge) {
@@ -227,6 +239,9 @@ public class CommutePathService {
         }
         if (sources.stream().anyMatch(CommuteTravelTimeRepository.GTFS_SOURCE::equals)) {
             return "mixed-scheduled-fallback";
+        }
+        if (sources.stream().anyMatch(CommuteTravelTimeRepository.SEEDED_FALLBACK_SOURCE::equals)) {
+            return "seeded-fallback";
         }
         return "topology-fallback";
     }

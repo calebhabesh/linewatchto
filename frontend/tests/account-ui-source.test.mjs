@@ -118,4 +118,22 @@ describe("account UI source", () => {
     assert.match(shellSource, /accountDialogMode.*initialPasswordResetToken.*"reset-password"/s);
     assert.match(shellSource, /accountResetToken.*initialPasswordResetToken/s);
   });
+
+  it("formats Sheppard-Yonge and Bloor-Yonge correctly with hyphen awareness", () => {
+    const match = savedCommutesSource.match(/function toTitleCase\([\s\S]+?\n\}/);
+    assert.ok(match, "toTitleCase function should exist in SavedCommutesPanel.tsx");
+    // Strip TypeScript type annotations to run in plain Node
+    const jsCode = match[0]
+      .replace(/str:\s*string/g, "str")
+      .replace(/:\s*string/g, "")
+      .replace(/let formatted:\s*string;/g, "let formatted;");
+    
+    const toTitleCase = new Function(`return (${jsCode})`)();
+    
+    assert.equal(toTitleCase("sheppard-yonge"), "Sheppard-Yonge");
+    assert.equal(toTitleCase("bloor-yonge"), "Bloor-Yonge");
+    assert.equal(toTitleCase("Sheppard-Yonge to Finch"), "Sheppard-Yonge To Finch");
+    assert.equal(toTitleCase("sheppard-yonge -> finch"), "Sheppard-Yonge -> Finch");
+    assert.equal(toTitleCase("linewatch-lrt-ttc"), "LineWatch-LRT-TTC");
+  });
 });

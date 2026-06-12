@@ -4,13 +4,18 @@ import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import Image from "next/image";
 import {
   AlertTriangle,
+  Apple,
   Bus,
+  Download,
   Info,
   Map as MapIcon,
   Menu,
   MousePointer2,
   MoreHorizontal,
+  MoreVertical,
   Search,
+  Smartphone,
+  SquarePlus,
   Sun,
   X,
 } from "lucide-react";
@@ -55,6 +60,54 @@ function GuideActionRow({
         <span>{text}</span>
       </span>
     </li>
+  );
+}
+
+function GuideAssetIcon({ src }: { src: string }) {
+  return (
+    <Image
+      src={src}
+      alt=""
+      aria-hidden="true"
+      width={14}
+      height={14}
+      className="site-guide-install-asset-icon"
+    />
+  );
+}
+
+function MobileInstallGuide({
+  icon,
+  title,
+  steps,
+}: {
+  icon: ReactNode;
+  title: string;
+  steps: Array<{
+    icon: ReactNode;
+    label: string;
+    text: string;
+  }>;
+}) {
+  return (
+    <div className="site-guide-install-device">
+      <div className="site-guide-install-device-title">
+        {icon}
+        <h4>{title}</h4>
+      </div>
+      <ol className="site-guide-install-steps">
+        {steps.map((step, index) => (
+          <li className="site-guide-install-step" key={step.label}>
+            <span className="site-guide-install-number">{index + 1}</span>
+            <span className="site-guide-action-icon">{step.icon}</span>
+            <span>
+              <strong>{step.label}</strong>
+              <span>{step.text}</span>
+            </span>
+          </li>
+        ))}
+      </ol>
+    </div>
   );
 }
 
@@ -205,6 +258,58 @@ export function SiteGuideDropdown({ onOpenChange }: { onOpenChange?: (open: bool
               <p>
                 LineWatch TO shows subway/LRT alerts, delays, reduced speed zones, planned closures, station details, and saved commute impacts. It displays live backend updates when ingestion is running, and falls back to demo fixtures otherwise.
               </p>
+            </GuideSection>
+
+            <hr className="site-guide-divider" />
+
+            <GuideSection icon={<Download size={15} />} title="Install LineWatch TO as an App">
+              <p>
+                For the best mobile experience, add LineWatch TO to your home screen so it opens like an app.
+              </p>
+              <div className="site-guide-install-options">
+                <MobileInstallGuide
+                  icon={<Apple size={15} />}
+                  title="iPhone Safari"
+                  steps={[
+                    {
+                      icon: <Smartphone size={14} />,
+                      label: "Open LineWatch TO in Safari",
+                      text: "Use Safari on your iPhone.",
+                    },
+                    {
+                      icon: <GuideAssetIcon src="/assets/linewatch/guide-icons/share-iphone.svg" />,
+                      label: "Tap Share",
+                      text: "Use the Share button in the bottom or top Safari toolbar.",
+                    },
+                    {
+                      icon: <SquarePlus size={14} />,
+                      label: "Add to Home Screen",
+                      text: "Choose Add to Home Screen, then tap Add.",
+                    },
+                  ]}
+                />
+                <MobileInstallGuide
+                  icon={<Smartphone size={15} />}
+                  title="Android Chrome"
+                  steps={[
+                    {
+                      icon: <Smartphone size={14} />,
+                      label: "Open LineWatch TO in Chrome",
+                      text: "Use Chrome on your Android phone.",
+                    },
+                    {
+                      icon: <MoreVertical size={14} />,
+                      label: "Tap the three-dot menu",
+                      text: "Open the Chrome menu at the top right.",
+                    },
+                    {
+                      icon: <GuideAssetIcon src="/assets/linewatch/guide-icons/add-to-homescreen-android.svg" />,
+                      label: "Add to Home Screen",
+                      text: "Choose Add to Home screen, then confirm.",
+                    },
+                  ]}
+                />
+              </div>
             </GuideSection>
 
             <hr className="site-guide-divider" />

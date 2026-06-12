@@ -120,6 +120,51 @@ class CommutePathServiceTest {
     }
 
     @Test
+    void usesSeededSegmentFallbackWeightsWhenGtfsWeightsAreMissing() {
+        when(lineSegmentRepository.findAllByOrderBySortOrderAsc()).thenReturn(List.of(
+            segment("line-1-origin-transfer", "line-1", "origin", "transfer", 101),
+            segment("line-1-transfer-destination", "line-1", "transfer", "destination", 102),
+            segment("line-6-origin-lrt-stop", "line-6", "origin", "lrt-stop", 601),
+            segment("line-6-lrt-stop-destination", "line-6", "lrt-stop", "destination", 602)
+        ));
+        when(travelTimeRepository.findActiveScheduledSegmentWeights()).thenReturn(Map.of());
+        when(travelTimeRepository.findSeededFallbackSegmentWeights()).thenReturn(Map.of(
+            "line-1-origin-transfer", seededFallback("line-1-origin-transfer", 115),
+            "line-1-transfer-destination", seededFallback("line-1-transfer-destination", 115),
+            "line-6-origin-lrt-stop", seededFallback("line-6-origin-lrt-stop", 190),
+            "line-6-lrt-stop-destination", seededFallback("line-6-lrt-stop-destination", 190)
+        ));
+
+        CommuteResponses.PathResponse path = service.path("origin", "destination");
+
+        assertThat(path.segmentIds()).containsExactly("line-1-origin-transfer", "line-1-transfer-destination");
+        assertThat(path.estimatedTravelSeconds()).isEqualTo(230);
+        assertThat(path.weightSource()).isEqualTo("seeded-fallback");
+    }
+
+    @Test
+    void prefersGtfsWeightsOverSeededFallbackWeights() {
+        when(lineSegmentRepository.findAllByOrderBySortOrderAsc()).thenReturn(List.of(
+            segment("line-5-a-b", "line-5", "a", "b", 501),
+            segment("line-5-b-c", "line-5", "b", "c", 502)
+        ));
+        when(travelTimeRepository.findActiveScheduledSegmentWeights()).thenReturn(Map.of(
+            "line-5-a-b", weight("line-5-a-b", 100),
+            "line-5-b-c", weight("line-5-b-c", 110)
+        ));
+        when(travelTimeRepository.findSeededFallbackSegmentWeights()).thenReturn(Map.of(
+            "line-5-a-b", seededFallback("line-5-a-b", 180),
+            "line-5-b-c", seededFallback("line-5-b-c", 180)
+        ));
+
+        CommuteResponses.PathResponse path = service.path("a", "c");
+
+        assertThat(path.segmentIds()).containsExactly("line-5-a-b", "line-5-b-c");
+        assertThat(path.estimatedTravelSeconds()).isEqualTo(210);
+        assertThat(path.weightSource()).isEqualTo("gtfs-scheduled-median");
+    }
+
+    @Test
     void returnsUnavailablePathWhenStationsAreDisconnected() {
         when(lineSegmentRepository.findAllByOrderBySortOrderAsc()).thenReturn(List.of(
             segment("line-1-finch-north-york-centre", "line-1", "finch", "north-york-centre", 101),
@@ -193,6 +238,15 @@ class CommutePathServiceTest {
             seconds,
             20,
             CommuteTravelTimeRepository.GTFS_SOURCE
+        );
+    }
+
+    private CommuteTravelTimeRepository.SegmentTravelTime seededFallback(String segmentId, int seconds) {
+        return new CommuteTravelTimeRepository.SegmentTravelTime(
+            segmentId,
+            seconds,
+            0,
+            CommuteTravelTimeRepository.SEEDED_FALLBACK_SOURCE
         );
     }
 

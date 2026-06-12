@@ -7,6 +7,10 @@ const globalCss = readFileSync(new URL("../src/app/globals.css", import.meta.url
 const guideComponentUrl = new URL("../src/components/SiteGuideDropdown.tsx", import.meta.url);
 const guideAssetUrl = new URL("../public/assets/linewatch/site-guide.svg", import.meta.url);
 const logoAssetUrl = new URL("../public/assets/linewatch/transportation-train.svg", import.meta.url);
+const guideIconAssetNames = [
+  "share-iphone.svg",
+  "add-to-homescreen-android.svg",
+];
 const infoOverlayAssetNames = [
   "1-way-active-alert.svg",
   "2-way-active.svg",
@@ -32,6 +36,20 @@ describe("site guide dropdown", () => {
       const assetUrl = new URL(`../public/assets/linewatch/info-map-overlays/${assetName}`, import.meta.url);
       assert.equal(existsSync(assetUrl), true, `${assetName} should be copied into public guide assets`);
       assert.match(readFileSync(assetUrl, "utf8"), /<svg\b/);
+    }
+  });
+
+  it("ships authored install guide icons", () => {
+    for (const assetName of guideIconAssetNames) {
+      const assetUrl = new URL(`../public/assets/linewatch/guide-icons/${assetName}`, import.meta.url);
+      assert.equal(existsSync(assetUrl), true, `${assetName} should be copied into public guide assets`);
+      const assetSource = readFileSync(assetUrl, "utf8");
+
+      assert.match(assetSource, /<svg\b/);
+      assert.match(assetSource, /stroke="#ffffff"/);
+      assert.match(assetSource, /fill="none"/);
+      assert.doesNotMatch(assetSource, /fill:#000000/);
+      assert.doesNotMatch(assetSource, /stroke="#000000"/);
     }
   });
 
@@ -78,6 +96,22 @@ describe("site guide dropdown", () => {
     assert.match(guideSource, /aria-label="Open site guide"/);
     assert.match(guideSource, /role="dialog"/);
     assert.match(guideSource, /What LineWatch TO Does/);
+    assert.match(guideSource, /Install LineWatch TO as an App/);
+    assert.match(guideSource, /\/assets\/linewatch\/guide-icons\/share-iphone\.svg/);
+    assert.match(guideSource, /\/assets\/linewatch\/guide-icons\/add-to-homescreen-android\.svg/);
+    assert.match(guideSource, /site-guide-install-asset-icon/);
+    assert.doesNotMatch(guideSource, /site-guide-install-asset-box/);
+    assert.match(guideSource, /iPhone Safari/);
+    assert.match(guideSource, /Open LineWatch TO in Safari/);
+    assert.match(guideSource, /Tap Share/);
+    assert.match(guideSource, /Add to Home Screen/);
+    assert.match(guideSource, /Android Chrome/);
+    assert.match(guideSource, /Open LineWatch TO in Chrome/);
+    assert.match(guideSource, /Tap the three-dot menu/);
+    assert.match(guideSource, /label: "Add to Home Screen"/);
+    assert.doesNotMatch(guideSource, /label: "Install app"/);
+    assert.doesNotMatch(guideSource, /<Share2 size=\{14\}/);
+    assert.doesNotMatch(guideSource, /<Check size=\{14\}/);
     assert.match(guideSource, /Drag The Map/);
     assert.match(guideSource, /Click a Station/);
     assert.match(guideSource, /Click a Colored Overlay/);
@@ -97,5 +131,7 @@ describe("site guide dropdown", () => {
     assert.match(globalCss, /\.site-guide-panel/);
     assert.match(globalCss, /\.site-guide-trigger/);
     assert.match(globalCss, /\.site-guide-divider/);
+    assert.doesNotMatch(globalCss, /\.site-guide-install-asset-box/);
+    assert.doesNotMatch(globalCss, /filter:\s*brightness\(0\)\s*invert\(1\)/);
   });
 });

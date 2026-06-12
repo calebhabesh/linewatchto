@@ -50,11 +50,13 @@ import {
   confirmPasswordReset,
   commutePathPreviewFromCommute,
   getCurrentAccount,
+  getSavedCommutes,
   loginAccount,
   loginDemoAccount,
   logoutAccount,
   registerAccount,
   requestPasswordReset,
+  summarizeSavedCommuteStatuses,
   type AccountState,
   type AccountSavedCommute,
   type AccountCommutePathPreview,
@@ -241,18 +243,10 @@ export function LineWatchShell({
   const [accountCommutes, setAccountCommutes] = useState<AccountSavedCommute[]>([]);
   const [commutePathPreview, setCommutePathPreview] = useState<AccountCommutePathPreview | null>(null);
 
-  const { commuteClearCount, commuteAffectedCount } = useMemo(() => {
-    let clear = 0;
-    let affected = 0;
-    for (const commute of accountCommutes) {
-      if (commute.impact.status === "clear") {
-        clear++;
-      } else if (commute.impact.status === "affected" || commute.impact.status === "planned") {
-        affected++;
-      }
-    }
-    return { commuteClearCount: clear, commuteAffectedCount: affected };
-  }, [accountCommutes]);
+  const { clear: commuteClearCount, affectedNow: commuteAffectedCount } = useMemo(
+    () => summarizeSavedCommuteStatuses(accountCommutes),
+    [accountCommutes]
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -265,6 +259,28 @@ export function LineWatchShell({
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    if (!accountState.authenticated) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setAccountCommutes([]);
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    getSavedCommutes().then((result) => {
+      if (!cancelled) {
+        setAccountCommutes(result.commutes);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [accountState.authenticated, accountState.user?.id]);
 
   const resetAccountForm = () => {
     setAccountEmail("");
@@ -1472,6 +1488,7 @@ export function LineWatchShell({
 
         {subwayOperatingState.status === "closed" && closedMapPeek ? (
           <div className="subway-closed-peek-chip" role="status" aria-live="polite">
+            <Moon className="subway-closed-peek-icon shrink-0" size={18} strokeWidth={2.4} aria-hidden="true" />
             <div className="subway-closed-peek-text">
               <strong className="subway-closed-peek-title">Subway Closed</strong>
               <span className="subway-closed-peek-subtitle">Resumes {subwayOperatingState.nextResumeLabel?.endsWith(".") ? subwayOperatingState.nextResumeLabel : `${subwayOperatingState.nextResumeLabel}.`}</span>
@@ -1507,7 +1524,7 @@ export function LineWatchShell({
 
       {!showClosedScreen && (
         <MobileLegend
-          closingSoon={subwayOperatingState.closingSoon}
+          closingSoon={subwayOperatingState.closingSoon || (subwayOperatingState.status === "closed" && closedMapPeek)}
           expanded={legendExpanded}
           onToggleExpanded={() => setLegendExpanded(!legendExpanded)}
         />

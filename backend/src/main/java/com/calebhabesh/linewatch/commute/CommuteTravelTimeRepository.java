@@ -9,6 +9,7 @@ import org.springframework.stereotype.Repository;
 @Repository
 public class CommuteTravelTimeRepository {
     public static final String GTFS_SOURCE = "gtfs-scheduled-median";
+    public static final String SEEDED_FALLBACK_SOURCE = "seeded-fallback";
 
     private final NamedParameterJdbcTemplate jdbc;
 
@@ -106,6 +107,31 @@ public class CommuteTravelTimeRepository {
                 rs.getInt("sample_count"),
                 GTFS_SOURCE
             ));
+
+        return rows.stream().collect(Collectors.toMap(
+            SegmentTravelTime::segmentId,
+            row -> row,
+            (left, right) -> left,
+            java.util.LinkedHashMap::new
+        ));
+    }
+
+    public Map<String, SegmentTravelTime> findSeededFallbackSegmentWeights() {
+        List<SegmentTravelTime> rows = jdbc.query("""
+            select segment_id,
+                   travel_seconds,
+                   source
+            from line_segment_fallback_travel_times
+            order by segment_id
+            """, Map.of(), (rs, rowNum) -> {
+                String source = rs.getString("source");
+                return new SegmentTravelTime(
+                    rs.getString("segment_id"),
+                    rs.getInt("travel_seconds"),
+                    0,
+                    source == null || source.isBlank() ? SEEDED_FALLBACK_SOURCE : source
+                );
+            });
 
         return rows.stream().collect(Collectors.toMap(
             SegmentTravelTime::segmentId,

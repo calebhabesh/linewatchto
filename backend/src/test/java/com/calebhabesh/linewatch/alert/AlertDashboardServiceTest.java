@@ -80,6 +80,68 @@ class AlertDashboardServiceTest {
     }
 
     @Test
+    void activeAlertsUseSourceUpdatedTimeWhenSourceStartLooksLikeServiceDayWindow() {
+        when(ingestionFreshness.isDashboardFresh()).thenReturn(true);
+        OffsetDateTime sourceUpdatedAt = OffsetDateTime.parse("2026-06-01T22:15:00Z");
+        AlertEntity alert = alert(
+            "ttc-route-overnight-start",
+            "active-alert",
+            "suspension",
+            "No service",
+            "No subway service between Broadview and Woodbine.",
+            "broadview",
+            "woodbine",
+            sourceUpdatedAt,
+            null
+        );
+        ReflectionTestUtils.setField(alert, "activePeriodStart", OffsetDateTime.parse("2026-06-01T09:11:00Z"));
+        when(alertRepository.findByActiveTrueAndType("active-alert"))
+            .thenReturn(List.of(alert));
+        when(lineSegmentRepository.findAllByOrderBySortOrderAsc()).thenReturn(List.of(
+            segment("line-2-broadview-woodbine", "line-2", "broadview", "woodbine", 10)
+        ));
+
+        List<AlertDashboardService.ActiveAlertDto> alerts = service.activeAlerts();
+
+        assertThat(alerts).singleElement().satisfies(dto -> {
+            assertThat(dto.startedAt()).isEqualTo(sourceUpdatedAt);
+            assertThat(dto.updatedAt()).isEqualTo(sourceUpdatedAt);
+        });
+    }
+
+    @Test
+    void activeAlertsUseDashboardUpdateTimeWhenSourceUpdatedTimeIsStale() {
+        when(ingestionFreshness.isDashboardFresh()).thenReturn(true);
+        OffsetDateTime sourceUpdatedAt = OffsetDateTime.parse("2026-06-01T09:11:00Z");
+        OffsetDateTime dashboardUpdatedAt = OffsetDateTime.parse("2026-06-01T22:15:00Z");
+        AlertEntity alert = alert(
+            "ttc-route-stale-source-update",
+            "active-alert",
+            "suspension",
+            "No service",
+            "No subway service between Broadview and Woodbine.",
+            "broadview",
+            "woodbine",
+            sourceUpdatedAt,
+            null
+        );
+        ReflectionTestUtils.setField(alert, "activePeriodStart", sourceUpdatedAt);
+        ReflectionTestUtils.setField(alert, "updatedAt", dashboardUpdatedAt);
+        when(alertRepository.findByActiveTrueAndType("active-alert"))
+            .thenReturn(List.of(alert));
+        when(lineSegmentRepository.findAllByOrderBySortOrderAsc()).thenReturn(List.of(
+            segment("line-2-broadview-woodbine", "line-2", "broadview", "woodbine", 10)
+        ));
+
+        List<AlertDashboardService.ActiveAlertDto> alerts = service.activeAlerts();
+
+        assertThat(alerts).singleElement().satisfies(dto -> {
+            assertThat(dto.startedAt()).isEqualTo(dashboardUpdatedAt);
+            assertThat(dto.updatedAt()).isEqualTo(dashboardUpdatedAt);
+        });
+    }
+
+    @Test
     void activeAlertsExcludeSlowdowns() {
         when(ingestionFreshness.isDashboardFresh()).thenReturn(true);
         AlertEntity delay = alert(
@@ -192,6 +254,35 @@ class AlertDashboardServiceTest {
             assertThat(dto.trackPercent()).isEqualTo("67%");
             assertThat(dto.reducedSpeed()).isEqualTo("15 km/h");
             assertThat(dto.averageSpeed()).isEqualTo("35 km/h");
+        });
+    }
+
+    @Test
+    void delayCardsUseSourceUpdatedTimeWhenSourceStartLooksLikeServiceDayWindow() {
+        when(ingestionFreshness.isDashboardFresh()).thenReturn(true);
+        OffsetDateTime sourceUpdatedAt = OffsetDateTime.parse("2026-06-01T22:15:00Z");
+        AlertEntity delay = alert(
+            "ttc-route-delay-service-window",
+            "active-alert",
+            "delay",
+            "Delay",
+            "Delays westbound at Keele station while we respond to an emergency alarm.",
+            "keele",
+            "keele",
+            sourceUpdatedAt,
+            null
+        );
+        ReflectionTestUtils.setField(delay, "impactKind", "delay");
+        ReflectionTestUtils.setField(delay, "activePeriodStart", OffsetDateTime.parse("2026-06-01T09:11:00Z"));
+        when(alertRepository.findByActiveTrueAndType("active-alert"))
+            .thenReturn(List.of(delay));
+        when(lineSegmentRepository.findAllByOrderBySortOrderAsc()).thenReturn(List.of());
+
+        List<AlertDashboardService.DelayAlertDto> delays = service.delays();
+
+        assertThat(delays).singleElement().satisfies(dto -> {
+            assertThat(dto.startedAt()).isEqualTo(sourceUpdatedAt);
+            assertThat(dto.updatedAt()).isEqualTo(sourceUpdatedAt);
         });
     }
 

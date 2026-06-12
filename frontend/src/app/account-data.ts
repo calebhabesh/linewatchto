@@ -41,7 +41,7 @@ export type AccountCommutePath = {
   lineIds: string[];
   transferStationIds: string[];
   estimatedTravelSeconds: number;
-  weightSource: "gtfs-scheduled-median" | "mixed-scheduled-fallback" | "topology-fallback" | "unavailable";
+  weightSource: "gtfs-scheduled-median" | "mixed-scheduled-fallback" | "seeded-fallback" | "topology-fallback" | "unavailable";
   summary: string;
 };
 
@@ -132,6 +132,25 @@ export function commuteLegsForCommute(commute: AccountSavedCommute): AccountComm
     impact: commute.impact,
   };
   return commute.watchReturnTrip && commute.returnLeg ? [outbound, commute.returnLeg] : [outbound];
+}
+
+export type SavedCommuteStatusSummary = {
+  clear: number;
+  affectedNow: number;
+};
+
+export function summarizeSavedCommuteStatuses(commutes: AccountSavedCommute[]): SavedCommuteStatusSummary {
+  return commutes.reduce<SavedCommuteStatusSummary>((summary, commute) => {
+    const legs = commuteLegsForCommute(commute);
+    if (legs.some((leg) => leg.impact.status === "affected" || leg.impact.matchedImpacts.some((impact) => impact.status === "current"))) {
+      summary.affectedNow++;
+      return summary;
+    }
+    if (legs.length > 0 && legs.every((leg) => leg.impact.status === "clear")) {
+      summary.clear++;
+    }
+    return summary;
+  }, { clear: 0, affectedNow: 0 });
 }
 
 export function commuteLegForCommute(commute: AccountSavedCommute, legId: AccountCommuteLegId = "outbound"): AccountCommuteLeg {

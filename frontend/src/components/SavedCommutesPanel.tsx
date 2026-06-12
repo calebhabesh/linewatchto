@@ -1,13 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Navigation, ChevronDown, ChevronLeft, Loader2, MapPinned, X, AlertTriangle, Construction, Calendar, Clock } from "lucide-react";
 import {
   createSavedCommute,
   deleteSavedCommute,
   commuteLegsForCommute,
   commutePathPreviewFromCommute,
-  getSavedCommutes,
   type AccountSavedCommute,
   type AccountState,
   type AccountMatchedImpact,
@@ -25,18 +24,28 @@ function toTitleCase(str: string): string {
     .split(/\s+/)
     .map((word) => {
       if (!word) return "";
-      const cleanWord = word.replace(/[^a-zA-Z]/g, "").toLowerCase();
-      let formatted: string;
-      if (cleanWord === "linewatch") {
-        formatted = word.replace(/linewatch/i, "LineWatch");
-      } else if (cleanWord === "ttc") {
-        formatted = word.replace(/ttc/i, "TTC");
-      } else if (cleanWord === "lrt") {
-        formatted = word.replace(/lrt/i, "LRT");
-      } else {
-        formatted = word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+      // If there are no letters at all, preserve the word as-is (e.g. "->")
+      if (!/[a-zA-Z]/.test(word)) {
+        return word;
       }
-      return formatted;
+      return word
+        .split("-")
+        .map((subWord) => {
+          if (!subWord) return "";
+          const cleanWord = subWord.replace(/[^a-zA-Z]/g, "").toLowerCase();
+          let formatted: string;
+          if (cleanWord === "linewatch") {
+            formatted = subWord.replace(/linewatch/i, "LineWatch");
+          } else if (cleanWord === "ttc") {
+            formatted = subWord.replace(/ttc/i, "TTC");
+          } else if (cleanWord === "lrt") {
+            formatted = subWord.replace(/lrt/i, "LRT");
+          } else {
+            formatted = subWord.charAt(0).toUpperCase() + subWord.slice(1).toLowerCase();
+          }
+          return formatted;
+        })
+        .join("-");
     })
     .join(" ");
 }
@@ -196,24 +205,6 @@ export function SavedCommutesPanel({
   const [expandedCommuteId, setExpandedCommuteId] = useState<string | null>(null);
   const [deletingCommuteId, setDeletingCommuteId] = useState<string | null>(null);
   const [selectedLegIds, setSelectedLegIds] = useState<Record<string, AccountCommuteLegId>>({});
-
-  useEffect(() => {
-    let cancelled = false;
-    if (!accountState.authenticated) {
-      setAccountCommutes([]);
-      return () => {
-        cancelled = true;
-      };
-    }
-    getSavedCommutes().then((result) => {
-      if (!cancelled && result.source === "backend") {
-        setAccountCommutes(result.commutes);
-      }
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [accountState.authenticated, setAccountCommutes]);
 
   const stationById = useMemo(() => {
     return new Map(stationSummaries.map((station) => [station.id, station]));
@@ -420,22 +411,26 @@ export function SavedCommutesPanel({
 
                       {legs.length > 1 ? (
                         <div className="commute-leg-toggle" role="tablist" aria-label={`Route direction for ${commute.label}`}>
-                          {legs.map((leg) => (
-                            <button
-                              key={leg.id}
-                              type="button"
-                              role="tab"
-                              aria-selected={selectedLeg.id === leg.id}
-                              onClick={() => setSelectedLegIds((current) => ({ ...current, [commute.id]: leg.id }))}
-                            >
-                              {toTitleCase(`To ${leg.toStationName}`)}
-                            </button>
-                          ))}
+                          {legs.map((leg) => {
+                            const isClear = leg.impact.severity === "clear";
+                            return (
+                              <button
+                                key={leg.id}
+                                type="button"
+                                role="tab"
+                                aria-selected={selectedLeg.id === leg.id}
+                                className={isClear ? "leg-btn-clear" : "leg-btn-affected"}
+                                onClick={() => setSelectedLegIds((current) => ({ ...current, [commute.id]: leg.id }))}
+                              >
+                                To {leg.toStationName}
+                              </button>
+                            );
+                          })}
                         </div>
                       ) : null}
 
                       <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mt-2">
-                        Default Scheduled Route - {toTitleCase(`To ${selectedLeg.toStationName}`)}
+                        Default Scheduled Route - To {selectedLeg.toStationName}
                       </div>
 
                       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1 text-xs text-white font-medium">

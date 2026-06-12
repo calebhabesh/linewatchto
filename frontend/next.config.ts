@@ -7,6 +7,31 @@ const nextConfig: NextConfig = {
     root: process.cwd(),
   },
   allowedDevOrigins: ['192.0.2.25', '192.0.2.25:3000'],
+  async headers() {
+    return [
+      {
+        source: '/sw.js',
+        headers: [
+          {
+            key: 'Content-Type',
+            value: 'application/javascript; charset=utf-8',
+          },
+          {
+            key: 'Cache-Control',
+            value: 'no-cache, no-store, must-revalidate',
+          },
+          {
+            key: 'Service-Worker-Allowed',
+            value: '/',
+          },
+          {
+            key: 'X-Content-Type-Options',
+            value: 'nosniff',
+          },
+        ],
+      },
+    ];
+  },
   async rewrites() {
     const backendUrl =
       process.env.LINEWATCH_BACKEND_URL ||
@@ -19,7 +44,7 @@ const nextConfig: NextConfig = {
         destination: `${backendUrl}/api/:path*`
       }
     ]
-  }
+  },
 };
 
 export default nextConfig;

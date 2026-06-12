@@ -36,6 +36,7 @@ public class AlertDashboardService {
     private static final DateTimeFormatter WINDOW_FORMATTER =
         DateTimeFormatter.ofPattern("EEE h:mm a", Locale.ENGLISH);
     private static final Duration MAX_SINGLE_CLOSURE_WINDOW = Duration.ofHours(18);
+    private static final Duration MAX_OPERATIONAL_ALERT_START_LAG = Duration.ofHours(6);
 
     private final AlertRepository alertRepository;
     private final LineSegmentRepository lineSegmentRepository;
@@ -416,8 +417,8 @@ public class AlertDashboardService {
             location(alert),
             displayDirection(alert),
             alert.getDescription(),
-            alert.getActivePeriodStart(),
-            alert.getSourceUpdatedAt(),
+            operationalStartedAt(alert),
+            operationalUpdatedAt(alert),
             affectedSegmentIds(alert, segments),
             !isBlank(alert.getShuttleType()),
             "TTC Live Alert",
@@ -457,11 +458,42 @@ public class AlertDashboardService {
             displayDirection(alert),
             alert.getDescription(),
             affectedSegmentIds(alert, segments),
-            alert.getActivePeriodStart(),
-            alert.getSourceUpdatedAt(),
+            operationalStartedAt(alert),
+            operationalUpdatedAt(alert),
             "TTC Live Alert",
             cause(alert)
         );
+    }
+
+    private OffsetDateTime operationalStartedAt(AlertEntity alert) {
+        OffsetDateTime startedAt = alert.getActivePeriodStart();
+        OffsetDateTime updatedAt = operationalUpdatedAt(alert);
+        if (startedAt == null || updatedAt == null) {
+            return startedAt;
+        }
+
+        Duration startLag = Duration.between(startedAt, updatedAt);
+        if (!startLag.isNegative() && startLag.compareTo(MAX_OPERATIONAL_ALERT_START_LAG) > 0) {
+            return updatedAt;
+        }
+        return startedAt;
+    }
+
+    private OffsetDateTime operationalUpdatedAt(AlertEntity alert) {
+        OffsetDateTime sourceUpdatedAt = alert.getSourceUpdatedAt();
+        OffsetDateTime dashboardUpdatedAt = alert.getUpdatedAt();
+        if (sourceUpdatedAt == null) {
+            return dashboardUpdatedAt;
+        }
+        if (dashboardUpdatedAt == null) {
+            return sourceUpdatedAt;
+        }
+
+        Duration sourceLag = Duration.between(sourceUpdatedAt, dashboardUpdatedAt);
+        if (!sourceLag.isNegative() && sourceLag.compareTo(MAX_OPERATIONAL_ALERT_START_LAG) > 0) {
+            return dashboardUpdatedAt;
+        }
+        return sourceUpdatedAt;
     }
 
     private PlannedClosureDto toPlannedClosure(AlertEntity alert, List<LineSegmentEntity> segments, WindowState ws) {

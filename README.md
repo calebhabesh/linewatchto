@@ -34,6 +34,7 @@ Implemented now:
 - High-contrast display toggle.
 - Motion/static-background toggle.
 - Mobile bottom navigation.
+- Installable mobile PWA shell with supplied LineWatch icons, standalone display metadata, cached static assets, and a conservative offline page that does not replay stale service data.
 - Backend Spring Boot health endpoint.
 - Frontend fixture tests and backend health-controller test.
 - Clickable/tappable station detail overlays for supported rapid transit stations.
@@ -197,6 +198,8 @@ frontend/public/assets/linewatch/
 ```
 
 The edited map is loaded as the base visual layer. React renders disruption and planned-closure overlays above it using the same SVG coordinate system.
+
+The PWA service worker caches static assets and the offline page only. It intentionally bypasses `/api/*` responses so current TTC service, station, and commute data are never replayed as fresh while offline.
 
 The current fixture test lives in:
 
@@ -419,7 +422,7 @@ LineWatch TO should use public and source-linked data. It should also be honest 
 - Planned closure pages or feeds may change format.
 - Segment inference may be imperfect.
 - Overnight closed-mode uses general TTC subway operating hours; exact first and last trains vary by station, holidays, and service changes.
-- Saved commute route matching uses scheduled adjacent-station weights from the active TTC GTFS import when available and deterministic topology fallback weights otherwise. Return trips are computed as a separate monitored leg when enabled, and directional service impacts only count when they match the commute leg direction or are bidirectional. This is useful for in-app route awareness, but it is not a full TTC trip planner and does not reflect live train travel times.
+- Saved commute route matching uses scheduled adjacent-station weights from the active TTC GTFS import when available, then seeded per-segment fallback travel times, with deterministic topology fallback weights only as a last resort. Return trips are computed as a separate monitored leg when enabled, and directional service impacts only count when they match the commute leg direction or are bidirectional. This is useful for in-app route awareness, but it is not a full TTC trip planner and does not reflect live train travel times.
 - This app is unofficial and should not be treated as the sole source of truth for TTC service.
 
 ## Verification Baseline
