@@ -207,11 +207,11 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
 
   return (
     <aside
-      className="station-detail-panel fixed left-0 right-0 bottom-0 z-45 max-h-[calc(var(--visual-viewport-height,100dvh)*0.64)] overflow-y-auto rounded-t-lg border border-black/10 bg-white p-4 text-slate-900 shadow-2xl dark:border-white/10 dark:bg-[#0a0c10] dark:text-white md:left-auto md:right-6 md:top-[104px] md:bottom-auto md:w-[min(calc(100vw-48px),390px)] md:max-h-[calc(var(--visual-viewport-height,100dvh)-128px)] md:rounded-lg"
+      className="station-detail-panel fixed left-0 right-0 bottom-0 z-45 max-h-[calc(var(--visual-viewport-height,100dvh)*0.64)] flex flex-col overflow-hidden rounded-t-lg border border-black/10 bg-white p-4 text-slate-900 shadow-2xl dark:border-white/10 dark:bg-[#0a0c10] dark:text-white md:left-auto md:right-6 md:top-[104px] md:bottom-auto md:w-[min(calc(100vw-48px),390px)] md:max-h-[calc(var(--visual-viewport-height,100dvh)-128px)] md:rounded-lg"
       aria-live="polite"
       aria-label={station ? `${station.name} station details` : "Station details"}
     >
-      <div className="flex items-start justify-between gap-3">
+      <div className="flex items-start justify-between gap-3" style={{ flexShrink: 0 }}>
         <div className="min-w-0 flex-1">
           <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
             Station
@@ -235,13 +235,13 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
         </button>
       </div>
 
-      <div className={`station-detail-body-wrapper transition-all duration-200 ${updating ? "station-detail-body-updating" : ""}`}>
+      <div className={`station-detail-body-wrapper flex-1 min-h-0 flex flex-col transition-all duration-200 ${updating ? "station-detail-body-updating" : ""}`}>
         <div
           key={station?.id ?? "empty"}
-          className="station-detail-content-swap"
+          className="station-detail-content-swap flex-1 min-h-0 flex flex-col"
         >
           {station && (isWheelchairAccessible || hasElevator) && (
-          <div className="mt-2.5 flex flex-wrap gap-1.5">
+          <div className="mt-2.5 flex flex-wrap gap-1.5 shrink-0">
           {isWheelchairAccessible && (
             <span className="inline-flex items-center gap-1 shrink-0 text-[9px] sm:text-[10px] font-bold text-slate-800 dark:text-slate-200 px-2 py-0.5 rounded-[4px] border border-black/15 dark:border-white/15 uppercase tracking-wider bg-slate-100 dark:bg-white/5 whitespace-nowrap">
               <Check size={11} className="text-emerald-600 dark:text-emerald-400 stroke-[3.5] shrink-0" />
@@ -257,8 +257,9 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
         </div>
       )}
 
+      <div className="flex-1 min-h-0 overflow-y-auto mt-3 pr-4 -mr-4">
       {station && (
-        <div className="mt-3 flex flex-col gap-2" data-station-header-line-details>
+        <div className="flex flex-col gap-2" data-station-header-line-details>
           {station.lines.map((line) => (
             <div
               key={line.id}
@@ -703,6 +704,7 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
 
 	        </div>
       )}
+      </div>
         </div>
       </div>
     </aside>
