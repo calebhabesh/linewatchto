@@ -455,9 +455,28 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
                             >
                               {group.lineNumber}
                             </span>
-                            <strong className="min-w-0 break-words font-black text-slate-900 dark:text-white">
-                              {group.directionLabel}
-                            </strong>
+                            {(() => {
+                              const match = group.directionLabel.match(/^(Northbound|Southbound|Eastbound|Westbound)\s+to\s+(.+)$/i);
+                              if (match) {
+                                const directionPart = match[1];
+                                const destinationPart = `To ${match[2]}`;
+                                return (
+                                  <div className="flex flex-col min-w-0 leading-tight">
+                                    <strong className="min-w-0 break-words font-black text-slate-900 dark:text-white">
+                                      {directionPart}
+                                    </strong>
+                                    <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                                      {destinationPart}
+                                    </span>
+                                  </div>
+                                );
+                              }
+                              return (
+                                <strong className="min-w-0 break-words font-black text-slate-900 dark:text-white">
+                                  {group.directionLabel}
+                                </strong>
+                              );
+                            })()}
                           </div>
                           {group.arrivals.length === 1 && group.arrivals[0].label.toLowerCase() === "no scheduled service" ? (
                             <p className="mt-2 text-center text-xs font-semibold text-slate-500 dark:text-slate-400">

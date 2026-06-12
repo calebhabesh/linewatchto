@@ -455,8 +455,10 @@ test("station detail shows accessibility facilities and active outage warning", 
   await expect(arrivalsSection.locator('[data-arrival-group="line-1:Northbound to Finch"]')).toBeVisible();
   await expect(arrivalsSection.locator('[data-arrival-group="line-1:Southbound to Union"]')).toBeVisible();
   await expect(arrivalsSection.locator('[data-arrival-due="true"]')).toBeVisible();
-  await expect(arrivalsSection.getByText("Northbound to Finch")).toBeVisible();
-  await expect(arrivalsSection.getByText("Southbound to Union")).toBeVisible();
+  await expect(arrivalsSection.getByText("Northbound", { exact: true })).toBeVisible();
+  await expect(arrivalsSection.getByText("To Finch", { exact: true })).toBeVisible();
+  await expect(arrivalsSection.getByText("Southbound", { exact: true })).toBeVisible();
+  await expect(arrivalsSection.getByText("To Union", { exact: true })).toBeVisible();
   await expect(arrivalsSection.getByText("Due")).toBeVisible();
   await expect(arrivalsSection.getByText("3m")).toBeVisible();
   await expect(arrivalsSection.getByText("Scheduled arrivals use TTC timetable data and are not live train predictions.")).toBeVisible();

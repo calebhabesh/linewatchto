@@ -45,6 +45,12 @@ linewatch:
       read-timeout: ${LINEWATCH_PERFORMANCE_TTC_READ_TIMEOUT:PT8S}
       refresh-interval: ${LINEWATCH_PERFORMANCE_TTC_REFRESH_INTERVAL:PT24H}
       max-age: ${LINEWATCH_PERFORMANCE_TTC_MAX_AGE:PT48H}
+  push:
+    enabled: ${LINEWATCH_PUSH_ENABLED:false}
+    vapid-public-key: ${LINEWATCH_PUSH_VAPID_PUBLIC_KEY:}
+    vapid-private-key: ${LINEWATCH_PUSH_VAPID_PRIVATE_KEY:}
+    vapid-subject: ${LINEWATCH_PUSH_VAPID_SUBJECT:mailto:linewatch@example.invalid}
+    evaluation-delay-ms: ${LINEWATCH_PUSH_EVALUATION_DELAY_MS:60000}
   cache:
     dashboard:
       enabled: ${LINEWATCH_CACHE_DASHBOARD_ENABLED:true}

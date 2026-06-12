@@ -70,7 +70,7 @@ public class GtfsScheduleReadRepository {
         List<String> activeServiceIds,
         int minDepartureSeconds,
         int maxDepartureSeconds,
-        int limitPerLine
+        int limitPerDirection
     ) {
         if (lineIds.isEmpty() || activeServiceIds.isEmpty()) {
             return List.of();
@@ -89,6 +89,7 @@ public class GtfsScheduleReadRepository {
             join gtfs_routes route
               on route.import_id = trip.import_id
              and route.route_id = trip.route_id
+             and route.line_id = station_stop.line_id
             where station_stop.import_id = :importId
               and station_stop.station_id = :stationId
               and route.line_id in (:lineIds)
@@ -109,11 +110,18 @@ public class GtfsScheduleReadRepository {
                 rs.getString("departure_seconds") != null ? rs.getInt("departure_seconds") : 0,
                 null
             )).stream()
-            .collect(java.util.stream.Collectors.groupingBy(ScheduledDeparture::lineId, java.util.LinkedHashMap::new, java.util.stream.Collectors.toList()))
+            .collect(java.util.stream.Collectors.groupingBy(
+                departure -> new DepartureDirectionKey(departure.lineId(), departure.direction()),
+                java.util.LinkedHashMap::new,
+                java.util.stream.Collectors.toList()
+            ))
             .values()
             .stream()
-            .flatMap(rows -> rows.stream().limit(limitPerLine))
+            .flatMap(rows -> rows.stream().limit(limitPerDirection))
             .toList();
+    }
+
+    private record DepartureDirectionKey(String lineId, String direction) {
     }
 
     public record ScheduledDeparture(String lineId, String direction, int departureSeconds, LocalDate serviceDate) {

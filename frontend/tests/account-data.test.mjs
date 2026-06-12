@@ -6,12 +6,17 @@ import {
   AccountRequestError,
   confirmPasswordReset,
   createSavedCommute,
+  disablePushSubscription,
+  getLatestPushNotificationForSubscription,
   getCurrentAccount,
+  getPushNotificationConfig,
   getSavedCommutes,
   loginDemoAccount,
   logoutAccount,
   registerAccount,
   requestPasswordReset,
+  savePushSubscription,
+  updatePushPreferences,
 } from "../src/app/account-data.ts";
 
 describe("account data adapter", () => {
@@ -338,5 +343,121 @@ describe("account data adapter", () => {
     assert.equal(requests[0].init.method, "POST");
     assert.equal(requests[0].init.credentials, "include");
     assert.equal(requests[0].init.body, JSON.stringify({ token: "dev-token", password: "new correct horse 2" }));
+  });
+
+  it("loads push notification config for the current account", async () => {
+    const requests = [];
+    const result = await getPushNotificationConfig({
+      fetcher: async (input, init) => {
+        requests.push({ input, init });
+        return new Response(
+          JSON.stringify({
+            webPushAvailable: true,
+            vapidPublicKey: "BPublicVapidKey",
+            preferences: {
+              commuteNotificationsEnabled: true,
+              plannedClosureNotificationsEnabled: true,
+            },
+          }),
+          { status: 200, headers: { "content-type": "application/json" } }
+        );
+      },
+    });
+
+    assert.equal(result.source, "backend");
+    assert.equal(result.config.webPushAvailable, true);
+    assert.equal(result.config.vapidPublicKey, "BPublicVapidKey");
+    assert.equal(requests[0].input, "/api/account/push/config");
+    assert.equal(requests[0].init.credentials, "include");
+  });
+
+  it("saves, updates, reads, and disables browser push subscriptions", async () => {
+    const requests = [];
+    await savePushSubscription(
+      {
+        endpoint: "https://fcm.googleapis.com/fcm/send/subscription",
+        keys: {
+          p256dh: "p256dh-key",
+          auth: "auth-secret",
+        },
+        userAgent: "Mobile Safari",
+      },
+      {
+        fetcher: async (input, init) => {
+          requests.push({ input, init });
+          return new Response(
+            JSON.stringify({
+              id: "push_subscription_1",
+              enabled: true,
+              commuteNotificationsEnabled: true,
+              plannedClosureNotificationsEnabled: true,
+            }),
+            { status: 200, headers: { "content-type": "application/json" } }
+          );
+        },
+      }
+    );
+    await updatePushPreferences(
+      {
+        commuteNotificationsEnabled: true,
+        plannedClosureNotificationsEnabled: false,
+      },
+      {
+        fetcher: async (input, init) => {
+          requests.push({ input, init });
+          return new Response(
+            JSON.stringify({
+              id: "push_subscription_1",
+              enabled: true,
+              commuteNotificationsEnabled: true,
+              plannedClosureNotificationsEnabled: false,
+            }),
+            { status: 200, headers: { "content-type": "application/json" } }
+          );
+        },
+      }
+    );
+    const latest = await getLatestPushNotificationForSubscription(
+      "https://fcm.googleapis.com/fcm/send/subscription",
+      {
+        fetcher: async (input, init) => {
+          requests.push({ input, init });
+          return new Response(
+            JSON.stringify({
+              notification: {
+                title: "Morning commute affected",
+                body: "Delay on Line 1: Finch to Union",
+                url: "/?panel=commutes&commute=commute_1",
+                tag: "saved-commute-impact|commute_1|delay-line-1",
+              },
+            }),
+            { status: 200, headers: { "content-type": "application/json" } }
+          );
+        },
+      }
+    );
+    await disablePushSubscription(
+      "https://fcm.googleapis.com/fcm/send/subscription",
+      {
+        fetcher: async (input, init) => {
+          requests.push({ input, init });
+          return new Response(null, { status: 204 });
+        },
+      }
+    );
+
+    assert.equal(latest.notification.title, "Morning commute affected");
+    assert.equal(requests[0].input, "/api/account/push/subscription");
+    assert.equal(requests[0].init.method, "PUT");
+    assert.equal(requests[0].init.credentials, "include");
+    assert.equal(requests[1].input, "/api/account/push/preferences");
+    assert.equal(requests[1].init.method, "PUT");
+    assert.equal(requests[2].input, "/api/account/push/latest");
+    assert.equal(requests[2].init.method, "POST");
+    assert.equal(requests[2].init.body, JSON.stringify({
+      endpoint: "https://fcm.googleapis.com/fcm/send/subscription",
+    }));
+    assert.equal(requests[3].input, "/api/account/push/subscription/disable");
+    assert.equal(requests[3].init.method, "POST");
   });
 });

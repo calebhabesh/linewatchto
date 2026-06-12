@@ -142,6 +142,16 @@ describe("LineWatch PWA configuration", () => {
     assert.match(serviceWorkerSource, /url\.pathname\.startsWith\("\/assets\/"\)/);
   });
 
+  it("handles Web Push notifications without caching service data", () => {
+    assert.match(serviceWorkerSource, /self\.addEventListener\("push"/);
+    assert.match(serviceWorkerSource, /registration\.pushManager\.getSubscription\(\)/);
+    assert.match(serviceWorkerSource, /\/api\/account\/push\/latest/);
+    assert.match(serviceWorkerSource, /credentials:\s*"include"/);
+    assert.match(serviceWorkerSource, /self\.registration\.showNotification/);
+    assert.match(serviceWorkerSource, /self\.addEventListener\("notificationclick"/);
+    assert.match(serviceWorkerSource, /clients\.openWindow/);
+  });
+
   it("serves an offline page that does not claim stale TTC service data is current", () => {
     assert.match(offlinePageSource, /LineWatch TO is offline/);
     assert.match(offlinePageSource, /<img src="\/assets\/linewatch\/pwa\/offline-icon-512\.png"/);

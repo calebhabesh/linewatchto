@@ -1560,105 +1560,6 @@ export const fallbackStationSummaries: StationListResponse = {
   })),
 };
 
-const fallbackStationDetailSeed = {
-  union: {
-    id: "union",
-    name: "Union",
-    mapX: 4311,
-    mapY: 3597,
-    interchange: true,
-    lines: [
-      {
-        id: "line-1",
-        number: "1",
-        name: "Yonge-University",
-        color: "#F8C300",
-        platformLabel: "Northbound / Southbound",
-      },
-    ],
-    access: {
-      status: "normal",
-      summary: "No station access advisories in fallback demo data.",
-      updatedAgo: "Fallback fixture",
-    },
-    impacts: [],
-    arrivals: [
-      { lineId: "line-1", direction: "Northbound", minutes: 2, predictedAt: null, label: "2 min", source: "Demo estimates", status: "demo" as const },
-      { lineId: "line-1", direction: "Southbound", minutes: 5, predictedAt: null, label: "5 min", source: "Demo estimates", status: "demo" as const },
-    ],
-    dataMode: "seeded-demo",
-    disclaimer: "Station details use fallback demo data. Arrivals are demo placeholders, not live TTC predictions.",
-  },
-  "st-george": {
-    id: "st-george",
-    name: "St George",
-    mapX: 4078,
-    mapY: 2602,
-    interchange: true,
-    lines: [
-      { id: "line-1", number: "1", name: "Yonge-University", color: "#F8C300", platformLabel: "Northbound / Southbound" },
-      { id: "line-2", number: "2", name: "Bloor-Danforth", color: "#00923F", platformLabel: "Eastbound / Westbound" },
-    ],
-    access: {
-      status: "advisory",
-      summary: "One elevator advisory is included as fallback demo data.",
-      updatedAgo: "Fallback fixture",
-    },
-    impacts: [],
-    arrivals: [
-      { lineId: "line-1", direction: "Northbound", minutes: 3, predictedAt: null, label: "3 min", source: "Demo estimates", status: "demo" as const },
-      { lineId: "line-2", direction: "Eastbound", minutes: 4, predictedAt: null, label: "4 min", source: "Demo estimates", status: "demo" as const },
-    ],
-    dataMode: "seeded-demo",
-    disclaimer: "Station details use fallback demo data. Arrivals are demo placeholders, not live TTC predictions.",
-  },
-  eglinton: {
-    id: "eglinton",
-    name: "Eglinton",
-    mapX: 4547,
-    mapY: 1808,
-    interchange: true,
-    lines: [
-      { id: "line-1", number: "1", name: "Yonge-University", color: "#F8C300", platformLabel: "Northbound / Southbound" },
-      { id: "line-5", number: "5", name: "Eglinton Crosstown", color: "#EB8738", platformLabel: "Eastbound / Westbound" },
-    ],
-    access: {
-      status: "normal",
-      summary: "No station access advisories in fallback demo data.",
-      updatedAgo: "Fallback fixture",
-    },
-    impacts: [],
-    arrivals: [
-      { lineId: "line-1", direction: "Southbound", minutes: 6, predictedAt: null, label: "6 min", source: "Demo estimates", status: "demo" as const },
-      { lineId: "line-5", direction: "Eastbound", minutes: 8, predictedAt: null, label: "8 min", source: "Demo estimates", status: "demo" as const },
-    ],
-    dataMode: "seeded-demo",
-    disclaimer: "Station details use fallback demo data. Arrivals are demo placeholders, not live TTC predictions.",
-  },
-  sherbourne: {
-    id: "sherbourne",
-    name: "Sherbourne",
-    mapX: 4862,
-    mapY: 2603,
-    interchange: false,
-    lines: [
-      { id: "line-2", number: "2", name: "Bloor-Danforth", color: "#00923F", platformLabel: "Eastbound / Westbound" },
-    ],
-    access: {
-      status: "normal",
-      summary: "No station access advisories in fallback demo data.",
-      updatedAgo: "Fallback fixture",
-    },
-    impacts: [],
-    arrivals: [
-      { lineId: "line-2", direction: "Eastbound", minutes: 4, predictedAt: null, label: "4 min", source: "Demo estimates", status: "demo" as const },
-      { lineId: "line-2", direction: "Westbound", minutes: 7, predictedAt: null, label: "7 min", source: "Demo estimates", status: "demo" as const },
-    ],
-    dataMode: "seeded-demo",
-    disclaimer: "Station details use fallback demo data. Arrivals are demo placeholders, not live TTC predictions.",
-  },
-};
-
 function toFallbackStationLine(stationId: string, lineId: string): StationLine {
   const line = STATION_LINE_DEFINITIONS[lineId];
   const stationLineId = `${stationId}:${lineId}`;
@@ -1673,21 +1574,24 @@ function toFallbackArrivals(line: StationLine): StationArrival[] {
   const directions = line.id === "line-1"
     ? ["Northbound", "Southbound"]
     : ["Eastbound", "Westbound"];
-  return directions.map((direction, index) => ({
-    lineId: line.id,
-    direction,
-    minutes: index === 0 ? 3 : 6,
-    predictedAt: new Date().toISOString(),
-    label: `${index === 0 ? 3 : 6} min`,
-    source: "Demo estimates",
-    status: "demo" as const,
-  }));
+  return directions.flatMap((direction, directionIndex) => {
+    const baseMinutes = directionIndex === 0 ? 3 : 6;
+    return Array.from({ length: 3 }, (_, arrivalIndex) => {
+      const minutes = baseMinutes + arrivalIndex * 3;
+      return {
+        lineId: line.id,
+        direction,
+        minutes,
+        predictedAt: null,
+        label: `${minutes} min`,
+        source: "Demo estimates",
+        status: "demo" as const,
+      };
+    });
+  });
 }
 
 function toFallbackStationDetail(station: StationSummary): StationDetail {
-  const seed = fallbackStationDetailSeed[
-    station.id as keyof typeof fallbackStationDetailSeed
-  ];
   const lines = station.lineIds.map((lineId) => toFallbackStationLine(station.id, lineId));
   const advisory = station.id === "st-george";
   return {
@@ -1706,7 +1610,7 @@ function toFallbackStationDetail(station: StationSummary): StationDetail {
       outages: [],
     },
     impacts: [],
-    arrivals: seed?.arrivals ?? lines.flatMap(toFallbackArrivals),
+    arrivals: lines.flatMap(toFallbackArrivals),
     arrivalsSource: "Demo estimates",
     arrivalContext: {
       scheduleMayBeDisrupted: false,

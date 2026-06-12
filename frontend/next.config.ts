@@ -1,12 +1,18 @@
 import type { NextConfig } from "next";
 
+const allowedDevOrigins = [
+  '192.0.2.25',
+  '192.0.2.25:3000',
+  process.env.LINEWATCH_DEV_ALLOWED_ORIGIN,
+].filter((origin): origin is string => Boolean(origin));
+
 const nextConfig: NextConfig = {
   distDir: process.env.NEXT_DIST_DIR || ".next",
   output: "standalone",
   turbopack: {
     root: process.cwd(),
   },
-  allowedDevOrigins: ['192.0.2.25', '192.0.2.25:3000'],
+  allowedDevOrigins,
   async headers() {
     return [
       {

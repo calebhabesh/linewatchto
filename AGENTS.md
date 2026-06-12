@@ -1,6 +1,6 @@
 # Agent Guide for LineWatch TO
 
-Last updated: 2026-06-06
+Last updated: 2026-06-12
 
 This repository contains LineWatch TO, an unofficial TTC reliability dashboard. The app is a portfolio-grade full-stack project intended to show Java/Spring backend engineering, PostgreSQL/PostGIS data modeling, Redis caching, public transit ingestion, and a polished Next.js interface for Toronto subway and LRT reliability.
 
@@ -28,10 +28,11 @@ The project is early but no longer an empty scaffold.
 - Map segment overlays and single-station alert rings are clickable/tappable and open the corresponding submenu card.
 - Every mapped Line 1, 2, 4, 5, and 6 stop has station-line tags and reviewed line-specific wheelchair/elevator metadata. Station detail shows authored accessibility icons plus fresh directly linked TTC station alerts and elevator/escalator outages. Station arrivals use a source-labeled provider architecture. Station arrivals use source-labeled TTC scheduled service when a merged GTFS schedule import is active. They are timetable-based estimates, not live subway/LRT predictions. If no schedule import is active, the station detail API returns an unavailable scheduled-source state and the frontend fallback remains clearly labeled as demo data. Nightly closure active-window gating is fully implemented.
 - Account-backed saved commutes compute a weighted default rapid-transit path over the seeded Line 1, 2, 4, 5, and 6 topology, using active GTFS scheduled median segment weights when available, seeded per-segment fallback travel times otherwise, and constant topology weights only as a last resort, then match dashboard-visible service impacts against every path segment and station-node impact with direction-aware segment matching. Saved commutes can monitor an optional return trip as a separate leg inside the same card.
-- Populated geographic geometry, production segment matching, standalone commute-impact API, route review/edit, push/email commute notifications, and reliability aggregation are planned but not yet implemented.
+- Account-backed Web Push subscription, preference, dedupe, delivery, and service-worker display plumbing is implemented for saved-commute impacts. It is inactive unless browser permission is granted, VAPID keys are configured, `linewatch.push.enabled` is true, and fresh dashboard-visible impacts exist. Email commute notifications are not implemented.
+- Populated geographic geometry, production segment matching, standalone commute-impact API, route review/edit, commute email notifications, line-wide/all-map push subscriptions, and reliability aggregation are planned but not yet implemented.
 
 Do not claim that the visible dashboard is live unless there is a fresh successful ingestion run. Do not claim imported GTFS geometry, production geospatial matching, Redis-backed status, real analytics, or live station arrivals until those features exist in code and have passing verification.
-Do not claim saved commutes send push/email notifications, recommend alternate routes, account for walking transfers, provide route review/edit, provide accessibility-personalized matching, or use live train movement for route timing.
+Do not claim saved commutes send push notifications unless Web Push is configured/enabled and the notification is based on fresh dashboard-visible saved-commute impacts. Do not claim saved commutes send email notifications, recommend alternate routes, account for walking transfers, provide route review/edit, provide accessibility-personalized matching, or use live train movement for route timing.
 
 ## Product Target
 

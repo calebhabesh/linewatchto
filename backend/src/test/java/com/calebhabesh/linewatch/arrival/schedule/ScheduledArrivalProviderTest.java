@@ -48,7 +48,7 @@ class ScheduledArrivalProviderTest {
             List.of("WKD"),
             32400,
             37800,
-            properties.getMaxArrivalsPerLine() * 2
+            properties.getMaxArrivalsPerLine()
         )).thenReturn(List.of(
             new GtfsScheduleReadRepository.ScheduledDeparture("line-1", "Northbound to Finch", 32700, LocalDate.parse("2026-06-04"))
         ));
@@ -62,6 +62,42 @@ class ScheduledArrivalProviderTest {
         assertThat(arrivals.getFirst().source()).isEqualTo("TTC scheduled service");
         assertThat(arrivals.getFirst().status()).isEqualTo("scheduled");
         assertThat(arrivals.getFirst().predictedAt()).isEqualTo(OffsetDateTime.parse("2026-06-04T09:05:00-04:00"));
+    }
+
+    @Test
+    void fillsArrivalQueueForEachDirectionWhenScheduleHasEnoughTrips() {
+        properties.setMaxArrivalsPerLine(3);
+        when(repository.findActiveImportId()).thenReturn(Optional.of(7L));
+        when(repository.findActiveServiceIds(7L, LocalDate.parse("2026-06-04"))).thenReturn(List.of("WKD"));
+        when(repository.findActiveServiceIds(7L, LocalDate.parse("2026-06-03"))).thenReturn(List.of());
+        when(repository.findUpcomingDepartures(
+            7L,
+            "union",
+            List.of("line-1"),
+            List.of("WKD"),
+            32400,
+            37800,
+            properties.getMaxArrivalsPerLine()
+        )).thenReturn(List.of(
+            new GtfsScheduleReadRepository.ScheduledDeparture("line-1", "Northbound to Finch", 32700, LocalDate.parse("2026-06-04")),
+            new GtfsScheduleReadRepository.ScheduledDeparture("line-1", "Southbound to Vaughan Metropolitan Centre", 32820, LocalDate.parse("2026-06-04")),
+            new GtfsScheduleReadRepository.ScheduledDeparture("line-1", "Northbound to Finch", 33000, LocalDate.parse("2026-06-04")),
+            new GtfsScheduleReadRepository.ScheduledDeparture("line-1", "Southbound to Vaughan Metropolitan Centre", 33120, LocalDate.parse("2026-06-04")),
+            new GtfsScheduleReadRepository.ScheduledDeparture("line-1", "Northbound to Finch", 33300, LocalDate.parse("2026-06-04")),
+            new GtfsScheduleReadRepository.ScheduledDeparture("line-1", "Southbound to Vaughan Metropolitan Centre", 33420, LocalDate.parse("2026-06-04"))
+        ));
+
+        List<ArrivalPrediction> arrivals = provider.arrivalsFor("union", List.of(line1));
+
+        assertThat(arrivals).hasSize(6);
+        assertThat(arrivals)
+            .filteredOn(arrival -> arrival.direction().equals("Northbound to Finch"))
+            .extracting(ArrivalPrediction::label)
+            .containsExactly("5 min", "10 min", "15 min");
+        assertThat(arrivals)
+            .filteredOn(arrival -> arrival.direction().equals("Southbound to Vaughan Metropolitan Centre"))
+            .extracting(ArrivalPrediction::label)
+            .containsExactly("7 min", "12 min", "17 min");
     }
 
     @Test

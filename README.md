@@ -27,6 +27,7 @@ Implemented now:
 - Planned closure cards with map preview highlighting.
 - Legend SVG icons for Lines 1, 2, 4, 5, and 6.
 - Account-backed saved commutes with weighted default rapid-transit route matching, optional return-trip monitoring, direction-aware Reduced Speed Zone matching, and dashboard-visible impact summaries.
+- Account-backed Web Push notification subscriptions and preferences for saved-commute impacts. Delivery is opt-in and requires browser permission, a browser that supports PWA Web Push, configured VAPID keys, `LINEWATCH_PUSH_ENABLED=true`, and fresh dashboard-visible impacts.
 - Account sign-in supports password reset through emailed reset links when SMTP is configured, with a local/dev reset-token fallback.
 - Official TTC.ca performance metrics panel for current on-time and elevator/escalator status, source-labeled with the TTC.ca updated timestamp, daily refresh guard, and stale last-good fallback.
 - Redis-backed dashboard cache for status, map, alerts, ingestion health, and TTC performance reads, with database/live fallback when Redis is unavailable.
@@ -73,7 +74,8 @@ Not implemented yet:
 - TTC Reduced Speed Zones webpage ingestion remains unimplemented.
 - Station arrivals use source-labeled TTC scheduled service when a merged GTFS schedule import is active. If no schedule import is active, the station detail API returns an unavailable scheduled-source state and the frontend fallback remains clearly labeled as demo data.
 - The arrival provider architecture supports live, scheduled, unavailable, and demo status states.
-- Standalone commute-impact endpoint, route review/edit, push/email commute notifications, alternate-route suggestions, and accessibility-personalized commute matching.
+- Standalone commute-impact endpoint, route review/edit, commute email notifications, alternate-route suggestions, and accessibility-personalized commute matching.
+- Line-wide or all-map push alert subscriptions are not implemented; push notifications are scoped to account saved commutes.
 - Real historical LineWatch reliability aggregation remains unimplemented.
 - Redis cache improves current read performance; it does not make stale TTC alert data live.
 
@@ -248,6 +250,38 @@ Password reset emails are sent as multipart HTML with a plain-text fallback and 
 
 Do not commit SMTP usernames, passwords, API keys, or app passwords.
 
+To send saved-commute Web Push notifications, configure VAPID keys and enable the push scheduler before starting the backend:
+
+```bash
+LINEWATCH_PUSH_ENABLED=true \
+LINEWATCH_PUSH_VAPID_PUBLIC_KEY=your-url-safe-public-key \
+LINEWATCH_PUSH_VAPID_PRIVATE_KEY=your-url-safe-private-key \
+LINEWATCH_PUSH_VAPID_SUBJECT=mailto:you@example.com \
+scripts/dev-backend-live.sh
+```
+
+For local push testing, use the helper that generates/reuses local VAPID keys under ignored `tmp/linewatch-vapid.env` and starts the live backend with push enabled:
+
+```bash
+scripts/dev-backend-live-push.sh
+```
+
+For end-to-end mobile PWA push testing through a configured Cloudflare Tunnel, use:
+
+```bash
+scripts/dev-cloudflare-push.sh
+```
+
+The script reads `~/.cloudflared/config.yml`, uses the first `hostname:` as the public HTTPS origin, starts the backend with secure auth cookies and Web Push enabled, starts the frontend with service worker registration enabled in dev mode, and starts `cloudflared tunnel run`. With the checked-in tunnel shape, open and install `https://linewatch-dev.calebhabesh.com` on the phone.
+
+If the tunnel is already running separately, start only the app processes with:
+
+```bash
+LINEWATCH_SKIP_CLOUDFLARED=true scripts/dev-cloudflare-push.sh
+```
+
+The browser still controls permission prompts and delivery. Local HTTP development works only where the browser treats the origin as trustworthy, such as `localhost`; production should use HTTPS. Notification bodies are fetched by the service worker from the signed-in account endpoint, so stale service data is not cached into offline notifications.
+
 Health endpoint:
 
 ```bash
@@ -335,6 +369,11 @@ Current backend scope:
 | `GET` | `/api/alerts?type=live\|delay\|planned\|slowdown` | Fresh normalized suspension/active alert cards, ordinary delay cards, planned closures, and Reduced Speed Zone groups. |
 | `GET` | `/api/stations?query={q}` | Seeded station summaries and search. |
 | `GET` | `/api/stations/{id}` | Station detail with reviewed facilities, source-labeled arrivals (demo/unavailable/live), and fresh directly linked TTC outage/alert rows when ingestion is current. |
+| `GET` | `/api/account/push/config` | Account push availability, VAPID public key, and current saved-commute notification preferences. |
+| `PUT` | `/api/account/push/subscription` | Store or refresh the current browser Web Push subscription for the signed-in account. |
+| `PUT` | `/api/account/push/preferences` | Update saved-commute and planned-closure notification preferences for the signed-in account. |
+| `POST` | `/api/account/push/latest` | Let the service worker fetch the latest pending notification payload for the current subscription. |
+| `POST` | `/api/account/push/subscription/disable` | Disable the current browser push subscription for the signed-in account. |
 
 Planned backend API:
 
@@ -356,6 +395,7 @@ Core v1 target:
 - Station and line search.
 - Saved commute watchlists such as `Finch -> Union`.
 - "Is my commute affected?" impact summary.
+- Opt-in saved-commute Web Push alerts for dashboard-visible impacts when push is configured.
 - Historical alert snapshots stored over time.
 - Reliability summaries by line, station, and corridor.
 - Ingestion health dashboard.
@@ -370,7 +410,7 @@ Out of scope for v1:
 - Crowding prediction.
 - Native mobile app.
 - iOS/Android widgets.
-- Push or commute email notifications.
+- Commute email notifications.
 
 ## Target Architecture
 
@@ -423,6 +463,7 @@ LineWatch TO should use public and source-linked data. It should also be honest 
 - Segment inference may be imperfect.
 - Overnight closed-mode uses general TTC subway operating hours; exact first and last trains vary by station, holidays, and service changes.
 - Saved commute route matching uses scheduled adjacent-station weights from the active TTC GTFS import when available, then seeded per-segment fallback travel times, with deterministic topology fallback weights only as a last resort. Return trips are computed as a separate monitored leg when enabled, and directional service impacts only count when they match the commute leg direction or are bidirectional. This is useful for in-app route awareness, but it is not a full TTC trip planner and does not reflect live train travel times.
+- Saved-commute push notifications are derived from the same dashboard-visible impact matching. They should not be described as comprehensive TTC alerts, all-map alerts, or guaranteed delivery.
 - This app is unofficial and should not be treated as the sole source of truth for TTC service.
 
 ## Verification Baseline

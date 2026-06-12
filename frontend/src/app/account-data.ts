@@ -187,6 +187,50 @@ export type CreateSavedCommuteInput = {
   watchReturnTrip: boolean;
 };
 
+export type PushNotificationPreferences = {
+  commuteNotificationsEnabled: boolean;
+  plannedClosureNotificationsEnabled: boolean;
+};
+
+export type PushNotificationConfig = {
+  webPushAvailable: boolean;
+  vapidPublicKey: string;
+  preferences: PushNotificationPreferences;
+};
+
+export type PushNotificationConfigResult = {
+  source: "backend" | "unavailable";
+  config: PushNotificationConfig;
+  message?: string;
+};
+
+export type SavePushSubscriptionInput = {
+  endpoint: string;
+  keys: {
+    p256dh: string;
+    auth: string;
+  };
+  userAgent: string;
+};
+
+export type PushSubscriptionResponse = {
+  id: string;
+  enabled: boolean;
+  commuteNotificationsEnabled: boolean;
+  plannedClosureNotificationsEnabled: boolean;
+};
+
+export type PendingPushNotification = {
+  title: string;
+  body: string;
+  url: string;
+  tag: string;
+};
+
+export type PendingPushNotificationResponse = {
+  notification: PendingPushNotification | null;
+};
+
 function apiUrl(path: string, options: AdapterOptions = {}) {
   return buildApiUrl(path, options.apiBaseUrl);
 }
@@ -332,5 +376,70 @@ export async function deleteSavedCommute(id: string, options: AdapterOptions = {
   });
   if (!response.ok) {
     throw new Error(`Delete saved commute failed with ${response.status}`);
+  }
+}
+
+export async function getPushNotificationConfig(options: AdapterOptions = {}): Promise<PushNotificationConfigResult> {
+  try {
+    const fetcher = options.fetcher ?? fetch;
+    const response = await fetcher(apiUrl("/api/account/push/config", options), {
+      method: "GET",
+      credentials: "include",
+    });
+    if (!response.ok) {
+      throw new Error(`Push config request failed with ${response.status}`);
+    }
+    const config = await readJson<PushNotificationConfig>(response);
+    return { source: "backend", config };
+  } catch {
+    return {
+      source: "unavailable",
+      config: {
+        webPushAvailable: false,
+        vapidPublicKey: "",
+        preferences: {
+          commuteNotificationsEnabled: true,
+          plannedClosureNotificationsEnabled: true,
+        },
+      },
+      message: "Push notifications are unavailable.",
+    };
+  }
+}
+
+export async function savePushSubscription(input: SavePushSubscriptionInput, options: AdapterOptions = {}) {
+  return authJsonRequest<PushSubscriptionResponse>(
+    "/api/account/push/subscription",
+    { method: "PUT", body: JSON.stringify(input) },
+    options
+  );
+}
+
+export async function updatePushPreferences(input: PushNotificationPreferences, options: AdapterOptions = {}) {
+  return authJsonRequest<PushSubscriptionResponse>(
+    "/api/account/push/preferences",
+    { method: "PUT", body: JSON.stringify(input) },
+    options
+  );
+}
+
+export async function getLatestPushNotificationForSubscription(endpoint: string, options: AdapterOptions = {}) {
+  return authJsonRequest<PendingPushNotificationResponse>(
+    "/api/account/push/latest",
+    { method: "POST", body: JSON.stringify({ endpoint }) },
+    options
+  );
+}
+
+export async function disablePushSubscription(endpoint: string, options: AdapterOptions = {}) {
+  const fetcher = options.fetcher ?? fetch;
+  const response = await fetcher(apiUrl("/api/account/push/subscription/disable", options), {
+    method: "POST",
+    credentials: "include",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ endpoint }),
+  });
+  if (!response.ok) {
+    throw new Error(`Disable push subscription failed with ${response.status}`);
   }
 }

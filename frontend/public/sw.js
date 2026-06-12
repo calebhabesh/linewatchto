@@ -63,6 +63,15 @@ self.addEventListener("fetch", (event) => {
   }
 });
 
+self.addEventListener("push", (event) => {
+  event.waitUntil(showPendingPushNotification());
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  event.waitUntil(openNotificationUrl(event.notification.data?.url || "/"));
+});
+
 function isStaticAsset(url) {
   return (
     url.pathname.startsWith("/_next/static/") ||
@@ -104,4 +113,68 @@ async function refreshStaticAsset(request) {
   } catch {
     // Static refresh is best-effort. The cached response remains available.
   }
+}
+
+async function showPendingPushNotification() {
+  try {
+    const subscription = await self.registration.pushManager.getSubscription();
+    if (!subscription) return;
+
+    const response = await fetch("/api/account/push/latest", {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({ endpoint: subscription.endpoint }),
+    });
+    if (!response.ok) {
+      await showFallbackPushNotification();
+      return;
+    }
+
+    const body = await response.json();
+    const notification = body.notification;
+    if (!notification) return;
+
+    await self.registration.showNotification(notification.title, {
+      body: notification.body,
+      tag: notification.tag,
+      icon: "/assets/linewatch/pwa/app-icon-192.png",
+      badge: "/assets/linewatch/pwa/offline-icon-512.png",
+      data: {
+        url: notification.url || "/",
+      },
+    });
+  } catch {
+    await showFallbackPushNotification();
+  }
+}
+
+async function showFallbackPushNotification() {
+  await self.registration.showNotification("LineWatch TO commute update", {
+    body: "Open LineWatch TO to check your saved commute.",
+    tag: "linewatch-commute-update",
+    icon: "/assets/linewatch/pwa/app-icon-192.png",
+    badge: "/assets/linewatch/pwa/offline-icon-512.png",
+    data: {
+      url: "/",
+    },
+  });
+}
+
+async function openNotificationUrl(url) {
+  const targetUrl = new URL(url, self.location.origin).href;
+  const windowClients = await clients.matchAll({
+    type: "window",
+    includeUncontrolled: true,
+  });
+
+  for (const client of windowClients) {
+    if (client.url === targetUrl && "focus" in client) {
+      return client.focus();
+    }
+  }
+
+  return clients.openWindow(targetUrl);
 }

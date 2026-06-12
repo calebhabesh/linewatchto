@@ -37,8 +37,19 @@ public class ArrivalService implements ArrivalProvider {
         List<ArrivalPrediction> predictions = new ArrayList<>();
         OffsetDateTime now = OffsetDateTime.now(clock);
         for (StationResponses.StationLineResponse line : lines) {
-            predictions.add(ArrivalPrediction.demo(line.id(), "Northbound / Eastbound", 2, now));
-            predictions.add(ArrivalPrediction.demo(line.id(), "Southbound / Westbound", 5, now));
+            List<String> directions = directionsFor(line.id());
+            for (int directionIndex = 0; directionIndex < directions.size(); directionIndex++) {
+                int baseMinutes = directionIndex == 0 ? 2 : 5;
+                for (int arrivalIndex = 0; arrivalIndex < 3; arrivalIndex++) {
+                    int minutes = baseMinutes + arrivalIndex * 3;
+                    predictions.add(ArrivalPrediction.demo(
+                        line.id(),
+                        directions.get(directionIndex),
+                        minutes,
+                        now.plusMinutes(minutes)
+                    ));
+                }
+            }
         }
         return predictions;
     }
@@ -46,9 +57,17 @@ public class ArrivalService implements ArrivalProvider {
     private List<ArrivalPrediction> getUnavailablePredictions(List<StationResponses.StationLineResponse> lines) {
         List<ArrivalPrediction> predictions = new ArrayList<>();
         for (StationResponses.StationLineResponse line : lines) {
-            predictions.add(ArrivalPrediction.unavailable(line.id(), "Northbound / Eastbound"));
-            predictions.add(ArrivalPrediction.unavailable(line.id(), "Southbound / Westbound"));
+            for (String direction : directionsFor(line.id())) {
+                predictions.add(ArrivalPrediction.unavailable(line.id(), direction));
+            }
         }
         return predictions;
+    }
+
+    private List<String> directionsFor(String lineId) {
+        if ("line-1".equals(lineId)) {
+            return List.of("Northbound", "Southbound");
+        }
+        return List.of("Eastbound", "Westbound");
     }
 }

@@ -49,7 +49,15 @@ class ArrivalServiceTest {
 
         List<ArrivalPrediction> predictions = service.arrivalsFor("spadina", List.of(line1Response));
 
-        assertThat(predictions).hasSize(2);
+        assertThat(predictions).hasSize(6);
+        assertThat(predictions)
+            .filteredOn(prediction -> prediction.direction().equals("Northbound"))
+            .extracting(ArrivalPrediction::label)
+            .containsExactly("2 min", "5 min", "8 min");
+        assertThat(predictions)
+            .filteredOn(prediction -> prediction.direction().equals("Southbound"))
+            .extracting(ArrivalPrediction::label)
+            .containsExactly("5 min", "8 min", "11 min");
         assertThat(predictions.get(0).status()).isEqualTo("demo");
         assertThat(predictions.get(0).source()).isEqualTo("Demo estimates");
         verifyNoInteractions(scheduledArrivalProvider);

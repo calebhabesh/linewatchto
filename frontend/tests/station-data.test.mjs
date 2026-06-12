@@ -7,6 +7,7 @@ import {
   getStationDetail,
   getStationSummaries,
 } from "../src/app/station-data.ts";
+import { groupStationArrivals } from "../src/app/station-arrivals.ts";
 
 describe("station data adapter", () => {
   const stationById = (id) => fallbackStationSummaries.stations.find((station) => station.id === id);
@@ -157,6 +158,19 @@ describe("station data adapter", () => {
     assert.ok(union.arrivals.every((arrival) => arrival.status === "demo"));
     assert.equal(union.arrivalContext.scheduleMayBeDisrupted, false);
     assert.equal(union.arrivalContext.message, "Schedule active");
+  });
+
+  it("fills each fallback arrival direction queue", () => {
+    const union = fallbackStationDetails.union;
+    const groups = groupStationArrivals(union.arrivals, union.lines, { stationId: union.id });
+
+    assert.deepEqual(
+      groups.map((group) => [group.directionLabel, group.arrivals.map((arrival) => arrival.label)]),
+      [
+        ["Northbound", ["3 min", "6 min", "9 min"]],
+        ["Southbound", ["6 min", "9 min", "12 min"]],
+      ]
+    );
   });
 
   it("keeps Cedarvale fallback coordinates aligned with the current SVG asset", () => {

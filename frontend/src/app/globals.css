@@ -3788,6 +3788,62 @@ button {
   width: fit-content;
 }
 
+.push-settings-card {
+  background: rgba(16, 185, 129, 0.08);
+  border: 1px solid rgba(16, 185, 129, 0.18);
+  border-radius: 8px;
+  display: grid;
+  gap: 0.45rem;
+  padding: 0.625rem;
+}
+
+.push-settings-heading {
+  align-items: center;
+  display: flex;
+  gap: 0.45rem;
+}
+
+.push-settings-heading h3 {
+  color: rgb(15, 23, 42);
+  font-size: 0.8rem;
+  font-weight: 900;
+  margin: 0;
+}
+
+.push-settings-toggle {
+  font-size: 0.72rem;
+  margin: 0 !important;
+}
+
+.push-settings-toggle input:disabled + .saved-commute-slider {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.push-settings-message {
+  color: rgb(71, 85, 105);
+  font-size: 0.7rem;
+  font-weight: 700;
+  line-height: 1.25;
+  margin: 0;
+}
+
+.dark .push-settings-card,
+.high-contrast .push-settings-card {
+  background: rgba(16, 185, 129, 0.08);
+  border-color: rgba(16, 185, 129, 0.22);
+}
+
+.dark .push-settings-heading h3,
+.high-contrast .push-settings-heading h3 {
+  color: rgb(241, 245, 249);
+}
+
+.dark .push-settings-message,
+.high-contrast .push-settings-message {
+  color: rgb(203, 213, 225);
+}
+
 /* Hide default HTML checkbox */
 .saved-commute-switch input {
   height: 0;

@@ -67,7 +67,7 @@ public class ScheduledArrivalProvider implements ArrivalProvider {
             activeServiceIdsToday,
             nowSeconds,
             nowSeconds + (int) horizonSeconds,
-            properties.getMaxArrivalsPerLine() * 2
+            properties.getMaxArrivalsPerLine()
         );
         List<GtfsScheduleReadRepository.ScheduledDeparture> resolvedToday = depsToday.stream()
             .map(d -> d.withServiceDate(today))
@@ -80,7 +80,7 @@ public class ScheduledArrivalProvider implements ArrivalProvider {
             activeServiceIdsYesterday,
             nowSeconds + 86400,
             nowSeconds + 86400 + (int) horizonSeconds,
-            properties.getMaxArrivalsPerLine() * 2
+            properties.getMaxArrivalsPerLine()
         );
         List<GtfsScheduleReadRepository.ScheduledDeparture> resolvedYesterday = depsYesterday.stream()
             .map(d -> d.withServiceDate(yesterday))
@@ -111,15 +111,19 @@ public class ScheduledArrivalProvider implements ArrivalProvider {
             ));
         }
 
-        Map<String, List<ArrivalPrediction>> grouped = predictions.stream()
-            .collect(Collectors.groupingBy(ArrivalPrediction::lineId));
+        Map<ArrivalDirectionKey, List<ArrivalPrediction>> grouped = predictions.stream()
+            .collect(Collectors.groupingBy(prediction -> new ArrivalDirectionKey(
+                prediction.lineId(),
+                prediction.direction()
+            )));
 
         List<ArrivalPrediction> result = new ArrayList<>();
         for (StationResponses.StationLineResponse line : lines) {
-            List<ArrivalPrediction> linePreds = grouped.getOrDefault(line.id(), List.of());
-            linePreds = linePreds.stream()
-                .sorted(Comparator.comparing(ArrivalPrediction::predictedAt))
-                .limit(properties.getMaxArrivalsPerLine())
+            List<ArrivalPrediction> linePreds = grouped.entrySet().stream()
+                .filter(entry -> entry.getKey().lineId().equals(line.id()))
+                .flatMap(entry -> entry.getValue().stream()
+                    .sorted(Comparator.comparing(ArrivalPrediction::predictedAt))
+                    .limit(properties.getMaxArrivalsPerLine()))
                 .collect(Collectors.toList());
 
             if (linePreds.isEmpty()) {
@@ -139,5 +143,8 @@ public class ScheduledArrivalProvider implements ArrivalProvider {
             .thenComparing(ArrivalPrediction::predictedAt, Comparator.nullsLast(Comparator.naturalOrder())));
 
         return result;
+    }
+
+    private record ArrivalDirectionKey(String lineId, String direction) {
     }
 }
