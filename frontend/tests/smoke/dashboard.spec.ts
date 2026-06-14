@@ -933,3 +933,40 @@ test("mobile uses bottom navigation and status sheets", async ({ page, request, 
   await expect(page.getByRole("heading", { name: "More" })).toBeVisible();
   await expect(page.getByRole("button", { name: /High Contrast Mode/ })).toBeVisible();
 });
+
+test("manages push notification preferences on mobile", async ({ page, request, isMobile }) => {
+  test.skip(!isMobile, "mobile-only push notification preferences smoke");
+  await setStubMode(request, "seeded");
+  await page.goto("/");
+  await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
+
+  await page.getByRole("button", { name: "More", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "More" })).toBeVisible();
+
+  await page.getByRole("button", { name: "Demo Account" }).click();
+
+  await page.getByRole("button", { name: "More", exact: true }).click();
+  await expect(page.getByLabel("More LineWatch TO options").getByText("Demo Rider")).toBeVisible();
+  await page.getByRole("button", { name: "Notifications" }).click();
+
+  await expect(page.getByRole("heading", { name: "Notifications", exact: true })).toBeVisible();
+  await expect(page.getByText("Push for this browser")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Line subscriptions" })).toBeVisible();
+
+  const line1Switch = page.getByLabel("Subscribe to Line 1");
+  await expect(line1Switch).toBeAttached();
+  await page.locator('label:has(input[aria-label="Subscribe to Line 1"])').click();
+  await expect(line1Switch).toBeChecked();
+
+  const rszSwitch = page.getByLabel("Line subscription Reduced Speed Zones");
+  await expect(rszSwitch).toBeAttached();
+  await expect(rszSwitch).not.toBeChecked();
+  await page.locator('label:has(input[aria-label="Line subscription Reduced Speed Zones"])').click();
+  await expect(rszSwitch).toBeChecked();
+
+  await page.getByRole("button", { name: "Back" }).click();
+  await expect(page.getByRole("heading", { name: "More" })).toBeVisible();
+
+  await expect(page.getByRole("navigation", { name: "Primary mobile navigation" })).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "Primary mobile navigation" }).getByRole("button", { name: "Notifications" })).toHaveCount(0);
+});

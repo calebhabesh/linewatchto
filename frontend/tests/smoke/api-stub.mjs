@@ -20,6 +20,45 @@ const port = Number(process.env.LINEWATCH_STUB_PORT ?? "4174");
 let mode = "seeded";
 let demoSessionActive = false;
 
+const defaultPushNotificationPreferences = {
+  commuteNotificationsEnabled: true,
+  plannedClosureNotificationsEnabled: true,
+  savedCommutes: {
+    currentDisruptions: true,
+    plannedClosureReminders: true,
+    eventTypes: {
+      suspensions: true,
+      delays: true,
+      reducedSpeedZones: true,
+      plannedClosures: true,
+      serviceRestored: true,
+    },
+  },
+  lineSubscriptions: {
+    lines: [
+      { lineId: "line-1", lineNumber: "1", label: "Yonge-University", subscribed: false },
+      { lineId: "line-2", lineNumber: "2", label: "Bloor-Danforth", subscribed: false },
+      { lineId: "line-4", lineNumber: "4", label: "Sheppard", subscribed: false },
+      { lineId: "line-5", lineNumber: "5", label: "Eglinton", subscribed: false },
+      { lineId: "line-6", lineNumber: "6", label: "Finch West", subscribed: false },
+    ],
+    eventTypes: {
+      suspensions: true,
+      delays: true,
+      reducedSpeedZones: false,
+      plannedClosures: true,
+      serviceRestored: true,
+    },
+  },
+  reminderTiming: {
+    onChange: true,
+    closure24h: true,
+    closureMorning: true,
+  },
+};
+
+let pushPreferences = JSON.parse(JSON.stringify(defaultPushNotificationPreferences));
+
 const demoUser = {
   id: "user_demo",
   email: "demo@linewatch.local",
@@ -216,6 +255,7 @@ const server = createServer(async (request, response) => {
     }
     mode = body.mode;
     demoSessionActive = false;
+    pushPreferences = JSON.parse(JSON.stringify(defaultPushNotificationPreferences));
     sendJson(request, response, 200, { mode });
     return;
   }
@@ -282,6 +322,95 @@ const server = createServer(async (request, response) => {
       return;
     }
     sendJson(request, response, 200, { commutes: demoCommutes });
+    return;
+  }
+
+  // Push Notification Stubs
+  if (url.pathname.startsWith("/api/account/push/")) {
+    if (!demoSessionActive) {
+      sendJson(request, response, 401, { error: "not_authenticated", message: "Sign in to manage notifications." });
+      return;
+    }
+  }
+
+  if (request.method === "GET" && url.pathname === "/api/account/push/config") {
+    sendJson(request, response, 200, {
+      webPushAvailable: true,
+      vapidPublicKey: "BStubVapidKey",
+      preferences: pushPreferences,
+    });
+    return;
+  }
+
+  if (request.method === "PUT" && url.pathname === "/api/account/push/preferences") {
+    const body = await readJson(request);
+    if (body.commuteNotificationsEnabled !== undefined) pushPreferences.commuteNotificationsEnabled = body.commuteNotificationsEnabled;
+    if (body.plannedClosureNotificationsEnabled !== undefined) pushPreferences.plannedClosureNotificationsEnabled = body.plannedClosureNotificationsEnabled;
+    if (body.savedCommutes) {
+      if (body.savedCommutes.currentDisruptions !== undefined) pushPreferences.savedCommutes.currentDisruptions = body.savedCommutes.currentDisruptions;
+      if (body.savedCommutes.plannedClosureReminders !== undefined) pushPreferences.savedCommutes.plannedClosureReminders = body.savedCommutes.plannedClosureReminders;
+      if (body.savedCommutes.eventTypes) {
+        pushPreferences.savedCommutes.eventTypes = {
+          ...pushPreferences.savedCommutes.eventTypes,
+          ...body.savedCommutes.eventTypes,
+        };
+      }
+    }
+    if (body.lineSubscriptions) {
+      if (body.lineSubscriptions.lines) {
+        for (const lineSelect of body.lineSubscriptions.lines) {
+          const l = pushPreferences.lineSubscriptions.lines.find(x => x.lineId === lineSelect.lineId);
+          if (l && lineSelect.subscribed !== undefined) {
+            l.subscribed = lineSelect.subscribed;
+          }
+        }
+      }
+      if (body.lineSubscriptions.eventTypes) {
+        pushPreferences.lineSubscriptions.eventTypes = {
+          ...pushPreferences.lineSubscriptions.eventTypes,
+          ...body.lineSubscriptions.eventTypes,
+        };
+      }
+    }
+    if (body.reminderTiming) {
+      pushPreferences.reminderTiming = {
+        ...pushPreferences.reminderTiming,
+        ...body.reminderTiming,
+      };
+    }
+
+    sendJson(request, response, 200, {
+      id: "smoke_stub_sub_1",
+      enabled: true,
+      commuteNotificationsEnabled: pushPreferences.commuteNotificationsEnabled,
+      plannedClosureNotificationsEnabled: pushPreferences.plannedClosureNotificationsEnabled,
+    });
+    return;
+  }
+
+  if (request.method === "PUT" && url.pathname === "/api/account/push/subscription") {
+    sendJson(request, response, 200, {
+      id: "smoke_stub_sub_1",
+      enabled: true,
+      commuteNotificationsEnabled: pushPreferences.commuteNotificationsEnabled,
+      plannedClosureNotificationsEnabled: pushPreferences.plannedClosureNotificationsEnabled,
+    });
+    return;
+  }
+
+  if (request.method === "POST" && url.pathname === "/api/account/push/subscription/disable") {
+    response.writeHead(204, corsHeaders(request));
+    response.end();
+    return;
+  }
+
+  if (request.method === "POST" && url.pathname === "/api/account/push/latest") {
+    sendJson(request, response, 200, { notification: null });
+    return;
+  }
+
+  if (request.method === "POST" && url.pathname === "/api/account/push/active") {
+    sendJson(request, response, 200, { activeTags: [] });
     return;
   }
 
