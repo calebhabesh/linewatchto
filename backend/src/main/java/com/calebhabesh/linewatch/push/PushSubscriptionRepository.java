@@ -13,10 +13,6 @@ public interface PushSubscriptionRepository extends JpaRepository<PushSubscripti
         select distinct subscription.account.id
         from PushSubscriptionEntity subscription
         where subscription.enabled = true
-          and (
-            subscription.commuteNotificationsEnabled = true
-            or subscription.plannedClosureNotificationsEnabled = true
-          )
         """)
     List<String> findEnabledAccountIds();
 }

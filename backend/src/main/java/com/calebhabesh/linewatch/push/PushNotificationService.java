@@ -2,11 +2,15 @@ package com.calebhabesh.linewatch.push;
 
 import com.calebhabesh.linewatch.account.AccountEntity;
 import com.calebhabesh.linewatch.account.AccountException;
+import com.calebhabesh.linewatch.account.SavedCommuteEntity;
+import com.calebhabesh.linewatch.account.SavedCommuteRepository;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.HexFormat;
+import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
@@ -19,41 +23,47 @@ public class PushNotificationService {
     private final PushProperties properties;
     private final PushSubscriptionRepository subscriptionRepository;
     private final PushNotificationDeliveryRepository deliveryRepository;
+    private final SavedCommuteRepository savedCommuteRepository;
+    private final SavedCommutePushPlanner planner;
+    private final PushNotificationPreferenceService preferenceService;
     private final Clock clock;
 
     @Autowired
     public PushNotificationService(
         PushProperties properties,
         PushSubscriptionRepository subscriptionRepository,
-        PushNotificationDeliveryRepository deliveryRepository
+        PushNotificationDeliveryRepository deliveryRepository,
+        SavedCommuteRepository savedCommuteRepository,
+        SavedCommutePushPlanner planner,
+        PushNotificationPreferenceService preferenceService
     ) {
-        this(properties, subscriptionRepository, deliveryRepository, Clock.systemUTC());
+        this(properties, subscriptionRepository, deliveryRepository, savedCommuteRepository, planner, preferenceService, Clock.systemUTC());
     }
 
     PushNotificationService(
         PushProperties properties,
         PushSubscriptionRepository subscriptionRepository,
         PushNotificationDeliveryRepository deliveryRepository,
+        SavedCommuteRepository savedCommuteRepository,
+        SavedCommutePushPlanner planner,
+        PushNotificationPreferenceService preferenceService,
         Clock clock
     ) {
         this.properties = properties;
         this.subscriptionRepository = subscriptionRepository;
         this.deliveryRepository = deliveryRepository;
+        this.savedCommuteRepository = savedCommuteRepository;
+        this.planner = planner;
+        this.preferenceService = preferenceService;
         this.clock = clock;
     }
 
     @Transactional(readOnly = true)
     public PushResponses.PushConfigResponse config(AccountEntity account) {
-        PushResponses.PushPreferencesResponse preferences = subscriptionRepository
-            .findByAccountIdAndEnabledTrue(account.getId())
-            .stream()
-            .findFirst()
-            .map(this::preferences)
-            .orElse(new PushResponses.PushPreferencesResponse(true, true));
         return new PushResponses.PushConfigResponse(
             properties.webPushConfigured(),
             properties.getVapidPublicKey() == null ? "" : properties.getVapidPublicKey().trim(),
-            preferences
+            preferenceService.preferencesFor(account)
         );
     }
 
@@ -97,16 +107,34 @@ public class PushNotificationService {
         AccountEntity account,
         PushRequests.UpdatePushPreferencesRequest request
     ) {
-        PushSubscriptionEntity subscription = subscriptionRepository.findByAccountIdAndEnabledTrue(account.getId())
+        PushResponses.PushPreferencesResponse updatedPrefs = preferenceService.updatePreferences(account, request);
+        
+        Optional<PushSubscriptionEntity> activeSubOpt = subscriptionRepository.findByAccountIdAndEnabledTrue(account.getId())
             .stream()
-            .findFirst()
-            .orElseThrow(() -> new AccountException(HttpStatus.NOT_FOUND, "push_subscription_not_found", "Enable notifications before changing notification preferences."));
-        subscription.updatePreferences(
-            request.commuteNotificationsEnabled(),
-            request.plannedClosureNotificationsEnabled(),
-            clock.instant()
-        );
-        return toResponse(subscriptionRepository.save(subscription));
+            .findFirst();
+            
+        if (activeSubOpt.isPresent()) {
+            PushSubscriptionEntity subscription = activeSubOpt.get();
+            subscription.updatePreferences(
+                updatedPrefs.commuteNotificationsEnabled(),
+                updatedPrefs.plannedClosureNotificationsEnabled(),
+                clock.instant()
+            );
+            PushSubscriptionEntity saved = subscriptionRepository.save(subscription);
+            return new PushResponses.PushSubscriptionResponse(
+                saved.getId(),
+                saved.isEnabled(),
+                updatedPrefs.commuteNotificationsEnabled(),
+                updatedPrefs.plannedClosureNotificationsEnabled()
+            );
+        } else {
+            return new PushResponses.PushSubscriptionResponse(
+                "",
+                false,
+                updatedPrefs.commuteNotificationsEnabled(),
+                updatedPrefs.plannedClosureNotificationsEnabled()
+            );
+        }
     }
 
     @Transactional
@@ -132,10 +160,32 @@ public class PushNotificationService {
                     event.getTitle(),
                     event.getBody(),
                     event.getUrl(),
-                    event.getCategory() + "|" + event.getCommuteId() + "|" + event.getDedupeKey()
+                    tagFor(event),
+                    event.getNotificationState(),
+                    event.getCreatedAt().toString()
                 ));
             })
             .orElse(new PushResponses.PendingPushNotificationResponse(null));
+    }
+
+    @Transactional(readOnly = true)
+    public PushResponses.ActivePushNotificationsResponse activeNotifications(
+        AccountEntity account,
+        PushRequests.SubscriptionEndpointRequest request
+    ) {
+        String endpointHash = hashEndpoint(required(request.endpoint(), "missing_endpoint", "Push subscription endpoint is required."));
+        return subscriptionRepository.findByAccountIdAndEndpointHash(account.getId(), endpointHash)
+            .filter(PushSubscriptionEntity::isEnabled)
+            .map(subscription -> {
+                List<String> activeTags = savedCommuteRepository.findByAccountIdOrderByCreatedAtAsc(account.getId())
+                    .stream()
+                    .flatMap(commute -> activeCandidatesFor(commute, subscription).stream())
+                    .map(this::tagFor)
+                    .distinct()
+                    .toList();
+                return new PushResponses.ActivePushNotificationsResponse(activeTags);
+            })
+            .orElse(new PushResponses.ActivePushNotificationsResponse(List.of()));
     }
 
     private PushResponses.PushSubscriptionResponse toResponse(PushSubscriptionEntity subscription) {
@@ -147,11 +197,29 @@ public class PushNotificationService {
         );
     }
 
-    private PushResponses.PushPreferencesResponse preferences(PushSubscriptionEntity subscription) {
-        return new PushResponses.PushPreferencesResponse(
-            subscription.isCommuteNotificationsEnabled(),
-            subscription.isPlannedClosureNotificationsEnabled()
-        );
+    private List<PushNotificationCandidate> activeCandidatesFor(
+        SavedCommuteEntity commute,
+        PushSubscriptionEntity subscription
+    ) {
+        return planner.candidatesFor(commute)
+            .stream()
+            .filter(candidate -> subscriptionAllowsCandidate(subscription, candidate))
+            .toList();
+    }
+
+    private boolean subscriptionAllowsCandidate(PushSubscriptionEntity subscription, PushNotificationCandidate candidate) {
+        if ("saved-commute-planned".equals(candidate.category())) {
+            return subscription.isPlannedClosureNotificationsEnabled();
+        }
+        return subscription.isCommuteNotificationsEnabled();
+    }
+
+    private String tagFor(PushNotificationCandidate candidate) {
+        return candidate.notificationKey();
+    }
+
+    private String tagFor(PushNotificationEventEntity event) {
+        return event.getNotificationKey();
     }
 
     private String required(String value, String code, String message) {
