@@ -1,6 +1,7 @@
 package com.calebhabesh.linewatch.commute;
 
 import com.calebhabesh.linewatch.alert.AlertDashboardService;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
@@ -51,7 +52,7 @@ public class CommuteImpactService {
             putMatch(matchesByIdentity, new CommuteResponses.MatchedImpactResponse(
                 alert.id(), kind, "current", severity, alert.title(), alert.lineId(), alert.lineNumber(),
                 alert.location(), alert.displayDirection(), alert.source(), matchedSegmentIds, List.of(),
-                alert.startedAt(), alert.updatedAt(), null, "active-now"
+                alert.startedAt(), alert.updatedAt(), null, "active-now", alert.startedAt()
             ));
         }
 
@@ -69,7 +70,7 @@ public class CommuteImpactService {
             putMatch(matchesByIdentity, new CommuteResponses.MatchedImpactResponse(
                 alert.id(), "delay", "current", "minor", alert.title(), alert.lineId(), alert.lineNumber(),
                 alert.location(), alert.displayDirection(), alert.source(), matchedSegmentIds, List.of(),
-                alert.startedAt(), alert.updatedAt(), null, "active-now"
+                alert.startedAt(), alert.updatedAt(), null, "active-now", alert.startedAt()
             ));
         }
 
@@ -87,7 +88,7 @@ public class CommuteImpactService {
             putMatch(matchesByIdentity, new CommuteResponses.MatchedImpactResponse(
                 zone.id(), "reduced-speed-zone", "current", "minor", zone.title(), zone.lineId(), zone.lineNumber(),
                 zone.location(), zone.displayDirection(), zone.source(), matchedSegmentIds, List.of(),
-                zone.startedAt(), zone.updatedAt(), null, "active-now"
+                zone.startedAt(), zone.updatedAt(), null, "active-now", zone.startedAt()
             ));
         }
 
@@ -98,7 +99,7 @@ public class CommuteImpactService {
             putMatch(matchesByIdentity, new CommuteResponses.MatchedImpactResponse(
                 impact.cardId(), impact.kind(), "current", severityForKind(impact.kind()), impact.title(),
                 null, null, impact.stationId(), null, "TTC Live Alerts", List.of(), List.of(impact.stationId()),
-                null, null, null, "active-now"
+                null, null, null, "active-now", null
             ));
         }
 
@@ -107,10 +108,15 @@ public class CommuteImpactService {
             if (matchedSegmentIds.isEmpty()) {
                 continue;
             }
+            OffsetDateTime eventStartAt = closure.nextWindowStart() != null
+                ? closure.nextWindowStart()
+                : closure.activeWindowStart() != null
+                    ? closure.activeWindowStart()
+                    : closure.startedAt();
             putMatch(matchesByIdentity, new CommuteResponses.MatchedImpactResponse(
                 closure.id(), "planned-closure", "planned", "planned", closure.title(), closure.lineId(), closure.lineNumber(),
                 closure.location(), closure.displayDirection(), closure.source(), matchedSegmentIds, List.of(),
-                closure.startedAt(), closure.updatedAt(), closure.window(), closure.timingStatus()
+                closure.startedAt(), closure.updatedAt(), closure.window(), closure.timingStatus(), eventStartAt
             ));
         }
 

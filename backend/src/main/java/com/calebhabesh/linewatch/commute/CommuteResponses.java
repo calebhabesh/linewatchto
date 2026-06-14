@@ -65,6 +65,7 @@ public final class CommuteResponses {
         OffsetDateTime startedAt,
         OffsetDateTime updatedAt,
         String window,
-        String timingStatus
+        String timingStatus,
+        OffsetDateTime eventStartAt
     ) {}
 }

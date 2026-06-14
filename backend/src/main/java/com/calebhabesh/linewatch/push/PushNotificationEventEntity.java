@@ -17,7 +17,17 @@ public class PushNotificationEventEntity {
     private String commuteId;
     @Column(name = "leg_id")
     private String legId;
+    @Column(name = "line_id")
+    private String lineId;
+    @Column(name = "event_type")
+    private String eventType;
+    @Column(name = "reminder_bucket")
+    private String reminderBucket;
     private String category;
+    @Column(name = "notification_key")
+    private String notificationKey;
+    @Column(name = "notification_state")
+    private String notificationState;
     @Column(name = "dedupe_key")
     private String dedupeKey;
     private String title;
@@ -33,7 +43,12 @@ public class PushNotificationEventEntity {
         this.accountId = candidate.accountId();
         this.commuteId = candidate.commuteId();
         this.legId = candidate.legId();
+        this.lineId = candidate.lineId();
+        this.eventType = candidate.eventType();
+        this.reminderBucket = candidate.reminderBucket();
         this.category = candidate.category();
+        this.notificationKey = candidate.notificationKey();
+        this.notificationState = "ACTIVE";
         this.dedupeKey = candidate.dedupeKey();
         this.title = candidate.title();
         this.body = candidate.body();
@@ -45,11 +60,54 @@ public class PushNotificationEventEntity {
         return new PushNotificationEventEntity(id, candidate, now);
     }
 
+    public static PushNotificationEventEntity cleared(String id, PushNotificationEventEntity activeEvent, Instant now) {
+        PushNotificationEventEntity event = new PushNotificationEventEntity();
+        event.id = id;
+        event.accountId = activeEvent.accountId;
+        event.commuteId = activeEvent.commuteId;
+        event.legId = activeEvent.legId;
+        event.lineId = activeEvent.lineId;
+        event.category = activeEvent.category;
+        event.notificationKey = activeEvent.notificationKey;
+        event.notificationState = "CLEARED";
+        event.dedupeKey = activeEvent.dedupeKey + "|cleared";
+        event.eventType = "service-restored";
+        event.reminderBucket = "on-change";
+        event.title = activeEvent.commuteId != null ? "Commute alert cleared" : "Line alert cleared";
+        event.body = activeEvent.commuteId != null
+            ? clearedBody(activeEvent.body)
+            : clearedLineBody(activeEvent.body);
+        event.url = activeEvent.url;
+        event.createdAt = now;
+        return event;
+    }
+
+    private static String clearedBody(String body) {
+        String base = body == null || body.isBlank() ? "The earlier alert" : body.trim();
+        while (base.endsWith(".") || base.endsWith("!") || base.endsWith("?")) {
+            base = base.substring(0, base.length() - 1).trim();
+        }
+        return base + " no longer affects this commute.";
+    }
+
+    private static String clearedLineBody(String body) {
+        String base = body == null || body.isBlank() ? "The earlier alert" : body.trim();
+        while (base.endsWith(".") || base.endsWith("!") || base.endsWith("?")) {
+            base = base.substring(0, base.length() - 1).trim();
+        }
+        return base + " has been cleared.";
+    }
+
     public String getId() { return id; }
     public String getAccountId() { return accountId; }
     public String getCommuteId() { return commuteId; }
     public String getLegId() { return legId; }
+    public String getLineId() { return lineId; }
+    public String getEventType() { return eventType; }
+    public String getReminderBucket() { return reminderBucket; }
     public String getCategory() { return category; }
+    public String getNotificationKey() { return notificationKey; }
+    public String getNotificationState() { return notificationState; }
     public String getDedupeKey() { return dedupeKey; }
     public String getTitle() { return title; }
     public String getBody() { return body; }

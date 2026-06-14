@@ -19,7 +19,8 @@ import org.junit.jupiter.api.Test;
 class SavedCommutePushPlannerTest {
     private final CommutePathService commutePathService = mock(CommutePathService.class);
     private final CommuteImpactService commuteImpactService = mock(CommuteImpactService.class);
-    private final SavedCommutePushPlanner planner = new SavedCommutePushPlanner(commutePathService, commuteImpactService);
+    private final java.time.Clock clock = java.time.Clock.fixed(Instant.parse("2026-06-05T15:00:00Z"), java.time.ZoneOffset.UTC);
+    private final SavedCommutePushPlanner planner = new SavedCommutePushPlanner(commutePathService, commuteImpactService, clock);
 
     private final AccountEntity account = AccountEntity.create(
         "user_1",
@@ -62,7 +63,8 @@ class SavedCommutePushPlannerTest {
                 OffsetDateTime.parse("2026-06-05T10:20:00-04:00"),
                 OffsetDateTime.parse("2026-06-05T10:25:00-04:00"),
                 null,
-                "active-now"
+                "active-now",
+                OffsetDateTime.parse("2026-06-05T10:20:00-04:00")
             )
         ));
         when(commuteImpactService.impactFor(returnPath)).thenReturn(clearImpact());
@@ -73,12 +75,13 @@ class SavedCommutePushPlannerTest {
             assertThat(candidate.accountId()).isEqualTo("user_1");
             assertThat(candidate.commuteId()).isEqualTo("commute_1");
             assertThat(candidate.legId()).isEqualTo("outbound");
-            assertThat(candidate.category()).isEqualTo("saved-commute-impact");
-            assertThat(candidate.title()).isEqualTo("Morning commute affected");
+            assertThat(candidate.category()).isEqualTo("saved-commute-current");
+            assertThat(candidate.notificationKey()).isEqualTo("saved-commute-current|commute_1|outbound|delay|delay-line-1");
+            assertThat(candidate.title()).isEqualTo("Morning Commute Affected");
             assertThat(candidate.body()).isEqualTo("Delay on Line 1: Finch to Union");
             assertThat(candidate.url()).isEqualTo("/?panel=commutes&commute=commute_1");
             assertThat(candidate.dedupeKey()).isEqualTo(
-                "user_1|commute_1|outbound|delay|delay-line-1|segments:line-1-finch-union|stations:"
+                "user_1|commute_1|outbound|delay|on-change|delay-line-1|segments:line-1-finch-union|stations:"
             );
         });
     }
@@ -113,10 +116,11 @@ class SavedCommutePushPlannerTest {
                 "TTC Service Advisory",
                 List.of("line-2-union-keele"),
                 List.of(),
-                OffsetDateTime.parse("2026-06-06T00:00:00-04:00"),
+                OffsetDateTime.parse("2026-06-07T00:00:00-04:00"),
                 OffsetDateTime.parse("2026-06-05T09:00:00-04:00"),
                 "Sat 12:00 AM - Mon 5:00 AM",
-                "upcoming"
+                "upcoming",
+                OffsetDateTime.parse("2026-06-07T00:00:00-04:00")
             )
         ));
 
@@ -124,7 +128,7 @@ class SavedCommutePushPlannerTest {
 
         assertThat(candidates).singleElement().satisfies(candidate -> {
             assertThat(candidate.legId()).isEqualTo("return");
-            assertThat(candidate.title()).isEqualTo("Evening route planned closure");
+            assertThat(candidate.title()).isEqualTo("Evening Route Planned Closure");
             assertThat(candidate.body()).isEqualTo("Planned Closure on Line 2: Keele to Union");
             assertThat(candidate.category()).isEqualTo("saved-commute-planned");
         });
@@ -149,6 +153,136 @@ class SavedCommutePushPlannerTest {
 
         assertThat(candidates).isEmpty();
         verify(commutePathService, never()).path("union", "finch");
+    }
+
+    @Test
+    void reducedSpeedZoneCreatesCurrentCandidateWithCorrectEventType() {
+        SavedCommuteEntity commute = SavedCommuteEntity.create(
+            "commute_1",
+            account,
+            "Morning commute",
+            "finch",
+            "union",
+            false,
+            Instant.parse("2026-06-05T14:30:00Z")
+        );
+        CommuteResponses.PathResponse outboundPath = path("finch", "union", "line-1-finch-union");
+        when(commutePathService.path("finch", "union")).thenReturn(outboundPath);
+        when(commuteImpactService.impactFor(outboundPath)).thenReturn(impactWith(
+            new CommuteResponses.MatchedImpactResponse(
+                "rsz-line-1",
+                "reduced-speed-zone",
+                "current",
+                "minor",
+                "Slowdown",
+                "line-1",
+                "1",
+                "Finch to Union",
+                "Southbound",
+                "TTC Live Alerts",
+                List.of("line-1-finch-union"),
+                List.of(),
+                OffsetDateTime.parse("2026-06-05T10:20:00-04:00"),
+                OffsetDateTime.parse("2026-06-05T10:25:00-04:00"),
+                null,
+                "active-now",
+                OffsetDateTime.parse("2026-06-05T10:20:00-04:00")
+            )
+        ));
+
+        List<PushNotificationCandidate> candidates = planner.candidatesFor(commute);
+
+        assertThat(candidates).singleElement().satisfies(candidate -> {
+            assertThat(candidate.category()).isEqualTo("saved-commute-current");
+            assertThat(candidate.eventType()).isEqualTo("reduced-speed-zone");
+            assertThat(candidate.reminderBucket()).isEqualTo("on-change");
+        });
+    }
+
+    @Test
+    void plannedClosureInside24hCreatesOnChangeAnd24hCandidates() {
+        SavedCommuteEntity commute = SavedCommuteEntity.create(
+            "commute_1",
+            account,
+            "Morning commute",
+            "finch",
+            "union",
+            false,
+            Instant.parse("2026-06-05T14:30:00Z")
+        );
+        CommuteResponses.PathResponse outboundPath = path("finch", "union", "line-1-finch-union");
+        when(commutePathService.path("finch", "union")).thenReturn(outboundPath);
+        OffsetDateTime eventStart = OffsetDateTime.parse("2026-06-06T04:00:00Z");
+        when(commuteImpactService.impactFor(outboundPath)).thenReturn(impactWith(
+            new CommuteResponses.MatchedImpactResponse(
+                "closure-line-1",
+                "planned-closure",
+                "planned",
+                "planned",
+                "Planned Closure",
+                "line-1",
+                "1",
+                "Finch to Union",
+                null,
+                "TTC Service Advisory",
+                List.of("line-1-finch-union"),
+                List.of(),
+                eventStart,
+                eventStart,
+                "Fri 4:00 PM",
+                "upcoming",
+                eventStart
+            )
+        ));
+
+        List<PushNotificationCandidate> candidates = planner.candidatesFor(commute);
+
+        assertThat(candidates).hasSize(2);
+        assertThat(candidates).extracting(PushNotificationCandidate::reminderBucket)
+            .containsExactlyInAnyOrder("on-change", "closure-24h");
+    }
+
+    @Test
+    void plannedClosureOnSameTorontoDateAtMorningCreatesClosureMorningCandidate() {
+        SavedCommuteEntity commute = SavedCommuteEntity.create(
+            "commute_1",
+            account,
+            "Morning commute",
+            "finch",
+            "union",
+            false,
+            Instant.parse("2026-06-05T14:30:00Z")
+        );
+        CommuteResponses.PathResponse outboundPath = path("finch", "union", "line-1-finch-union");
+        when(commutePathService.path("finch", "union")).thenReturn(outboundPath);
+        OffsetDateTime eventStart = OffsetDateTime.parse("2026-06-05T23:00:00-04:00");
+        when(commuteImpactService.impactFor(outboundPath)).thenReturn(impactWith(
+            new CommuteResponses.MatchedImpactResponse(
+                "closure-line-1",
+                "planned-closure",
+                "planned",
+                "planned",
+                "Planned Closure",
+                "line-1",
+                "1",
+                "Finch to Union",
+                null,
+                "TTC Service Advisory",
+                List.of("line-1-finch-union"),
+                List.of(),
+                eventStart,
+                eventStart,
+                "Fri 11:00 PM",
+                "upcoming",
+                eventStart
+            )
+        ));
+
+        List<PushNotificationCandidate> candidates = planner.candidatesFor(commute);
+
+        assertThat(candidates).hasSize(3);
+        assertThat(candidates).extracting(PushNotificationCandidate::reminderBucket)
+            .containsExactlyInAnyOrder("on-change", "closure-24h", "closure-morning");
     }
 
     private CommuteResponses.PathResponse path(String fromStationId, String toStationId, String segmentId) {
