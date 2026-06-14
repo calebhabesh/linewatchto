@@ -75,7 +75,7 @@ Not implemented yet:
 - Station arrivals use source-labeled TTC scheduled service when a merged GTFS schedule import is active. If no schedule import is active, the station detail API returns an unavailable scheduled-source state and the frontend fallback remains clearly labeled as demo data.
 - The arrival provider architecture supports live, scheduled, unavailable, and demo status states.
 - Standalone commute-impact endpoint, route review/edit, commute email notifications, alternate-route suggestions, and accessibility-personalized commute matching.
-- Line-wide or all-map push alert subscriptions are not implemented; push notifications are scoped to account saved commutes.
+- Line-wide Web Push subscriptions are implemented for Lines 1, 2, 4, 5, and 6, but they are opt-in and filtered by selected line, event type, and reminder timing. Reduced Speed Zone line-wide alerts default off to avoid noisy long-running notifications.
 - Real historical LineWatch reliability aggregation remains unimplemented.
 - Redis cache improves current read performance; it does not make stale TTC alert data live.
 
@@ -280,7 +280,9 @@ If the tunnel is already running separately, start only the app processes with:
 LINEWATCH_SKIP_CLOUDFLARED=true scripts/dev-cloudflare-push.sh
 ```
 
-The browser still controls permission prompts and delivery. Local HTTP development works only where the browser treats the origin as trustworthy, such as `localhost`; production should use HTTPS. Notification bodies are fetched by the service worker from the signed-in account endpoint, so stale service data is not cached into offline notifications.
+The browser still controls permission prompts and delivery. Local HTTP development works only where the browser treats the origin as trustworthy, such as `localhost`; production should use HTTPS. Notification bodies are fetched by the service worker from the signed-in account endpoint, so stale service data is not cached into offline notifications. Saved-commute disruption notifications use stable tags and Web Push topics. When a current disruption clears, LineWatch sends a quiet same-tag `Commute alert cleared` replacement where delivery is allowed; when the app opens or receives another push event, the service worker asks the backend which saved-commute notification tags are still active and closes stale LineWatch notifications where the browser allows it.
+
+Device push enablement is per browser/device. Saved-commute, line-wide, event-type, and reminder preferences are account-level and can be changed before a browser subscription exists, but delivery requires at least one enabled browser subscription plus configured VAPID keys.
 
 Health endpoint:
 
@@ -369,10 +371,11 @@ Current backend scope:
 | `GET` | `/api/alerts?type=live\|delay\|planned\|slowdown` | Fresh normalized suspension/active alert cards, ordinary delay cards, planned closures, and Reduced Speed Zone groups. |
 | `GET` | `/api/stations?query={q}` | Seeded station summaries and search. |
 | `GET` | `/api/stations/{id}` | Station detail with reviewed facilities, source-labeled arrivals (demo/unavailable/live), and fresh directly linked TTC outage/alert rows when ingestion is current. |
-| `GET` | `/api/account/push/config` | Account push availability, VAPID public key, and current saved-commute notification preferences. |
+| `GET` | `/api/account/push/config` | Account push availability, VAPID public key, account-level notification preferences, line subscriptions, event-type filters, and reminder timing. |
 | `PUT` | `/api/account/push/subscription` | Store or refresh the current browser Web Push subscription for the signed-in account. |
-| `PUT` | `/api/account/push/preferences` | Update saved-commute and planned-closure notification preferences for the signed-in account. |
+| `PUT` | `/api/account/push/preferences` | Update account-level saved-commute, line subscription, event-type, and reminder timing notification preferences. |
 | `POST` | `/api/account/push/latest` | Let the service worker fetch the latest pending notification payload for the current subscription. |
+| `POST` | `/api/account/push/active` | Return currently active saved-commute notification tags so the service worker can close stale notifications. |
 | `POST` | `/api/account/push/subscription/disable` | Disable the current browser push subscription for the signed-in account. |
 
 Planned backend API:
