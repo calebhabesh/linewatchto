@@ -357,6 +357,38 @@ describe("account data adapter", () => {
             preferences: {
               commuteNotificationsEnabled: true,
               plannedClosureNotificationsEnabled: true,
+              savedCommutes: {
+                currentDisruptions: true,
+                plannedClosureReminders: true,
+                eventTypes: {
+                  suspensions: true,
+                  delays: true,
+                  reducedSpeedZones: true,
+                  plannedClosures: true,
+                  serviceRestored: true,
+                },
+              },
+              lineSubscriptions: {
+                lines: [
+                  { lineId: "line-1", lineNumber: "1", label: "Yonge-University", subscribed: false },
+                  { lineId: "line-2", lineNumber: "2", label: "Bloor-Danforth", subscribed: false },
+                  { lineId: "line-4", lineNumber: "4", label: "Sheppard", subscribed: false },
+                  { lineId: "line-5", lineNumber: "5", label: "Eglinton", subscribed: false },
+                  { lineId: "line-6", lineNumber: "6", label: "Finch West", subscribed: false },
+                ],
+                eventTypes: {
+                  suspensions: true,
+                  delays: true,
+                  reducedSpeedZones: false,
+                  plannedClosures: true,
+                  serviceRestored: true,
+                },
+              },
+              reminderTiming: {
+                onChange: true,
+                closure24h: true,
+                closureMorning: true,
+              },
             },
           }),
           { status: 200, headers: { "content-type": "application/json" } }
@@ -367,6 +399,15 @@ describe("account data adapter", () => {
     assert.equal(result.source, "backend");
     assert.equal(result.config.webPushAvailable, true);
     assert.equal(result.config.vapidPublicKey, "BPublicVapidKey");
+    assert.equal(result.config.preferences.savedCommutes.currentDisruptions, true);
+    assert.equal(result.config.preferences.savedCommutes.plannedClosureReminders, true);
+    assert.equal(result.config.preferences.savedCommutes.eventTypes.reducedSpeedZones, true);
+    assert.equal(result.config.preferences.lineSubscriptions.lines.length, 5);
+    assert.equal(result.config.preferences.lineSubscriptions.lines[0].lineId, "line-1");
+    assert.equal(result.config.preferences.lineSubscriptions.lines[0].subscribed, false);
+    assert.equal(result.config.preferences.lineSubscriptions.eventTypes.reducedSpeedZones, false);
+    assert.equal(result.config.preferences.reminderTiming.closure24h, true);
+    assert.equal(result.config.preferences.reminderTiming.closureMorning, true);
     assert.equal(requests[0].input, "/api/account/push/config");
     assert.equal(requests[0].init.credentials, "include");
   });
@@ -397,11 +438,44 @@ describe("account data adapter", () => {
         },
       }
     );
-    await updatePushPreferences(
-      {
-        commuteNotificationsEnabled: true,
-        plannedClosureNotificationsEnabled: false,
+    const fullPrefs = {
+      commuteNotificationsEnabled: true,
+      plannedClosureNotificationsEnabled: false,
+      savedCommutes: {
+        currentDisruptions: true,
+        plannedClosureReminders: false,
+        eventTypes: {
+          suspensions: true,
+          delays: true,
+          reducedSpeedZones: true,
+          plannedClosures: true,
+          serviceRestored: true,
+        },
       },
+      lineSubscriptions: {
+        lines: [
+          { lineId: "line-1", lineNumber: "1", label: "Yonge-University", subscribed: false },
+          { lineId: "line-2", lineNumber: "2", label: "Bloor-Danforth", subscribed: false },
+          { lineId: "line-4", lineNumber: "4", label: "Sheppard", subscribed: false },
+          { lineId: "line-5", lineNumber: "5", label: "Eglinton", subscribed: false },
+          { lineId: "line-6", lineNumber: "6", label: "Finch West", subscribed: false },
+        ],
+        eventTypes: {
+          suspensions: true,
+          delays: true,
+          reducedSpeedZones: false,
+          plannedClosures: true,
+          serviceRestored: true,
+                },
+      },
+      reminderTiming: {
+        onChange: true,
+        closure24h: true,
+        closureMorning: true,
+      },
+    };
+    await updatePushPreferences(
+      fullPrefs,
       {
         fetcher: async (input, init) => {
           requests.push({ input, init });
@@ -452,6 +526,7 @@ describe("account data adapter", () => {
     assert.equal(requests[0].init.credentials, "include");
     assert.equal(requests[1].input, "/api/account/push/preferences");
     assert.equal(requests[1].init.method, "PUT");
+    assert.deepEqual(JSON.parse(requests[1].init.body), fullPrefs);
     assert.equal(requests[2].input, "/api/account/push/latest");
     assert.equal(requests[2].init.method, "POST");
     assert.equal(requests[2].init.body, JSON.stringify({

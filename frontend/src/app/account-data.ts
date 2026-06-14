@@ -70,6 +70,7 @@ export type AccountMatchedImpact = {
   updatedAt?: string | null;
   window?: string | null;
   timingStatus?: "active-now" | "upcoming" | "unknown" | null;
+  eventStartAt?: string | null;
 };
 
 export type AccountCommuteImpact = {
@@ -187,9 +188,81 @@ export type CreateSavedCommuteInput = {
   watchReturnTrip: boolean;
 };
 
+export type PushNotificationEventTypePreferences = {
+  suspensions: boolean;
+  delays: boolean;
+  reducedSpeedZones: boolean;
+  plannedClosures: boolean;
+  serviceRestored: boolean;
+};
+
+export type PushNotificationSavedCommutePreferences = {
+  currentDisruptions: boolean;
+  plannedClosureReminders: boolean;
+  eventTypes: PushNotificationEventTypePreferences;
+};
+
+export type PushNotificationLinePreference = {
+  lineId: "line-1" | "line-2" | "line-4" | "line-5" | "line-6";
+  lineNumber: string;
+  label: string;
+  subscribed: boolean;
+};
+
+export type PushNotificationLineSubscriptionPreferences = {
+  lines: PushNotificationLinePreference[];
+  eventTypes: PushNotificationEventTypePreferences;
+};
+
+export type PushNotificationReminderTimingPreferences = {
+  onChange: boolean;
+  closure24h: boolean;
+  closureMorning: boolean;
+};
+
 export type PushNotificationPreferences = {
   commuteNotificationsEnabled: boolean;
   plannedClosureNotificationsEnabled: boolean;
+  savedCommutes: PushNotificationSavedCommutePreferences;
+  lineSubscriptions: PushNotificationLineSubscriptionPreferences;
+  reminderTiming: PushNotificationReminderTimingPreferences;
+};
+
+export const defaultPushNotificationPreferences: PushNotificationPreferences = {
+  commuteNotificationsEnabled: true,
+  plannedClosureNotificationsEnabled: true,
+  savedCommutes: {
+    currentDisruptions: true,
+    plannedClosureReminders: true,
+    eventTypes: {
+      suspensions: true,
+      delays: true,
+      reducedSpeedZones: true,
+      plannedClosures: true,
+      serviceRestored: true,
+    },
+  },
+  lineSubscriptions: {
+    lines: [
+      { lineId: "line-1", lineNumber: "1", label: "Yonge-University", subscribed: false },
+      { lineId: "line-2", lineNumber: "2", label: "Bloor-Danforth", subscribed: false },
+      { lineId: "line-4", lineNumber: "4", label: "Sheppard", subscribed: false },
+      { lineId: "line-5", lineNumber: "5", label: "Eglinton", subscribed: false },
+      { lineId: "line-6", lineNumber: "6", label: "Finch West", subscribed: false },
+    ],
+    eventTypes: {
+      suspensions: true,
+      delays: true,
+      reducedSpeedZones: false,
+      plannedClosures: true,
+      serviceRestored: true,
+    },
+  },
+  reminderTiming: {
+    onChange: true,
+    closure24h: true,
+    closureMorning: true,
+  },
 };
 
 export type PushNotificationConfig = {
@@ -225,6 +298,8 @@ export type PendingPushNotification = {
   body: string;
   url: string;
   tag: string;
+  state?: "ACTIVE" | "CLEARED";
+  timestamp?: string;
 };
 
 export type PendingPushNotificationResponse = {
@@ -397,10 +472,7 @@ export async function getPushNotificationConfig(options: AdapterOptions = {}): P
       config: {
         webPushAvailable: false,
         vapidPublicKey: "",
-        preferences: {
-          commuteNotificationsEnabled: true,
-          plannedClosureNotificationsEnabled: true,
-        },
+        preferences: defaultPushNotificationPreferences,
       },
       message: "Push notifications are unavailable.",
     };
