@@ -292,6 +292,25 @@ export function LineWatchShell({
   }, []);
 
   useEffect(() => {
+    // supports panel=notifications, panel=commutes, panel=alerts, panel=delays, panel=reduced-speed-zones, panel=closures
+    const params = new URLSearchParams(window.location.search);
+    const panel = params.get("panel");
+    const panelToView: Record<string, ActiveView> = {
+      status: "status",
+      alerts: "alerts",
+      delays: "delays",
+      "reduced-speed-zones": "reduced-speed-zones",
+      closures: "closures",
+      commutes: "commutes",
+      notifications: "notifications",
+    };
+    if (panel && panelToView[panel]) {
+      setActiveView(panelToView[panel]);
+      window.history.replaceState(null, "", window.location.pathname);
+    }
+  }, []);
+
+  useEffect(() => {
     let cancelled = false;
 
     if (!accountState.authenticated) {

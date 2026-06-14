@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 import { describe, it } from "node:test";
+import { runInNewContext } from "node:vm";
 
 import manifest from "../src/app/manifest.ts";
 
@@ -39,6 +40,11 @@ const iconSpecs = [
     expectedWidth: 512,
     expectedHeight: 512,
   },
+  {
+    path: "../public/assets/linewatch/pwa/notification-badge-96.png",
+    expectedWidth: 96,
+    expectedHeight: 96,
+  },
 ];
 
 function readPngDimensions(url) {
@@ -51,6 +57,231 @@ function readPngDimensions(url) {
     width: buffer.readUInt32BE(16),
     height: buffer.readUInt32BE(20),
   };
+}
+
+async function serviceWorkerFetch(requestUrl, { cachedResponse, networkResponse }, locationUrl = "https://linewatch.test/sw.js") {
+  const listeners = new Map();
+  const waitUntilPromises = [];
+  const cacheWrites = [];
+  const context = {
+    URL,
+    Promise,
+    Response: {
+      error: () => ({ source: "response-error" }),
+    },
+    caches: {
+      keys: async () => [],
+      delete: async () => true,
+      match: async () => cachedResponse,
+      open: async () => ({
+        addAll: async () => undefined,
+        put: async (_request, response) => {
+          cacheWrites.push(response);
+        },
+      }),
+    },
+    fetch: async () => networkResponse,
+    self: {
+      location: new URL(locationUrl),
+      addEventListener: (type, listener) => {
+        listeners.set(type, listener);
+      },
+      skipWaiting: async () => undefined,
+      clients: {
+        claim: async () => undefined,
+        matchAll: async () => [],
+        openWindow: async () => undefined,
+      },
+      registration: {
+        pushManager: {
+          getSubscription: async () => null,
+        },
+        showNotification: async () => undefined,
+      },
+    },
+  };
+
+  runInNewContext(serviceWorkerSource, context, { filename: "sw.js" });
+
+  const fetchListener = listeners.get("fetch");
+  assert.equal(typeof fetchListener, "function");
+
+  const event = {
+    request: {
+      method: "GET",
+      mode: "no-cors",
+      url: requestUrl,
+    },
+    respondWith: (responsePromise) => {
+      event.responsePromise = Promise.resolve(responsePromise);
+    },
+    waitUntil: (promise) => {
+      waitUntilPromises.push(Promise.resolve(promise));
+    },
+  };
+
+  fetchListener(event);
+
+  const response = await event.responsePromise;
+  await Promise.all(waitUntilPromises);
+
+  return { response, cacheWrites };
+}
+
+async function serviceWorkerPush({
+  fetchOk = true,
+  fetchBody = {
+    notification: {
+      title: "Work Affected",
+      body: "Reduced Speed Zone on Line 1: Glencairn to Lawrence West",
+      url: "/?panel=commutes&commute=commute_1",
+      tag: "saved-commute-impact|commute_1|dedupe-1",
+    },
+    activeTags: ["saved-commute-impact|commute_1|dedupe-1"],
+  },
+  existingNotifications = [],
+} = {}) {
+  const listeners = new Map();
+  const waitUntilPromises = [];
+  const fetchRequests = [];
+  const shownNotifications = [];
+  const context = {
+    URL,
+    Promise,
+    Response: {
+      error: () => ({ source: "response-error" }),
+    },
+    caches: {
+      keys: async () => [],
+      delete: async () => true,
+      match: async () => undefined,
+      open: async () => ({
+        addAll: async () => undefined,
+        put: async () => undefined,
+      }),
+    },
+    fetch: async (url, options) => {
+      fetchRequests.push({ url, options });
+      return {
+        ok: fetchOk,
+        json: async () => fetchBody,
+      };
+    },
+    self: {
+      location: new URL("https://linewatch.test/sw.js"),
+      addEventListener: (type, listener) => {
+        listeners.set(type, listener);
+      },
+      skipWaiting: async () => undefined,
+      clients: {
+        claim: async () => undefined,
+        matchAll: async () => [],
+        openWindow: async () => undefined,
+      },
+      registration: {
+        getNotifications: async () => existingNotifications,
+        pushManager: {
+          getSubscription: async () => ({
+            endpoint: "https://fcm.googleapis.com/fcm/send/subscription",
+          }),
+        },
+        showNotification: async (title, options) => {
+          shownNotifications.push({ title, options });
+        },
+      },
+    },
+  };
+
+  runInNewContext(serviceWorkerSource, context, { filename: "sw.js" });
+
+  const pushListener = listeners.get("push");
+  assert.equal(typeof pushListener, "function");
+
+  const event = {
+    waitUntil: (promise) => {
+      waitUntilPromises.push(Promise.resolve(promise));
+    },
+  };
+
+  pushListener(event);
+  await Promise.all(waitUntilPromises);
+
+  return { fetchRequests, shownNotifications, listeners };
+}
+
+async function serviceWorkerMessage({
+  fetchBody = {
+    activeTags: ["saved-commute-impact|commute_1|dedupe-1"],
+  },
+  existingNotifications = [],
+} = {}) {
+  const listeners = new Map();
+  const fetchRequests = [];
+  const shownNotifications = [];
+  const context = {
+    URL,
+    Promise,
+    Response: {
+      error: () => ({ source: "response-error" }),
+    },
+    caches: {
+      keys: async () => [],
+      delete: async () => true,
+      match: async () => undefined,
+      open: async () => ({
+        addAll: async () => undefined,
+        put: async () => undefined,
+      }),
+    },
+    fetch: async (url, options) => {
+      fetchRequests.push({ url, options });
+      return {
+        ok: true,
+        json: async () => fetchBody,
+      };
+    },
+    self: {
+      location: new URL("https://linewatch.test/sw.js"),
+      addEventListener: (type, listener) => {
+        listeners.set(type, listener);
+      },
+      skipWaiting: async () => undefined,
+      clients: {
+        claim: async () => undefined,
+        matchAll: async () => [],
+        openWindow: async () => undefined,
+      },
+      registration: {
+        getNotifications: async () => existingNotifications,
+        pushManager: {
+          getSubscription: async () => ({
+            endpoint: "https://fcm.googleapis.com/fcm/send/subscription",
+          }),
+        },
+        showNotification: async (title, options) => {
+          shownNotifications.push({ title, options });
+        },
+      },
+    },
+  };
+
+  runInNewContext(serviceWorkerSource, context, { filename: "sw.js" });
+
+  const messageListener = listeners.get("message");
+  assert.equal(typeof messageListener, "function");
+
+  const waitUntilPromises = [];
+  messageListener({
+    data: {
+      type: "linewatch-cleanup-notifications",
+    },
+    waitUntil: (promise) => {
+      waitUntilPromises.push(Promise.resolve(promise));
+    },
+  });
+  await Promise.all(waitUntilPromises);
+
+  return { fetchRequests, shownNotifications };
 }
 
 describe("LineWatch PWA configuration", () => {
@@ -122,11 +353,12 @@ describe("LineWatch PWA configuration", () => {
 
   it("registers the service worker with root scope and fresh update checks", () => {
     assert.match(registrationSource, /"use client"/);
-    assert.match(registrationSource, /navigator\.serviceWorker\.register\("\/sw\.js"/);
+    assert.match(registrationSource, /navigator\.serviceWorker\.register\(`\/sw\.js\$\{devFlag\}`/);
     assert.match(registrationSource, /scope:\s*"\/"/);
     assert.match(registrationSource, /updateViaCache:\s*"none"/);
     assert.match(registrationSource, /process\.env\.NODE_ENV !== "production"/);
     assert.match(registrationSource, /NEXT_PUBLIC_LINEWATCH_ENABLE_SW/);
+    assert.match(registrationSource, /linewatch-cleanup-notifications/);
   });
 
   it("uses a conservative service worker cache policy", () => {
@@ -142,6 +374,47 @@ describe("LineWatch PWA configuration", () => {
     assert.match(serviceWorkerSource, /url\.pathname\.startsWith\("\/assets\/"\)/);
   });
 
+  it("fetches Next static chunks from the network before cached copies", async () => {
+    const cachedResponse = {
+      ok: true,
+      source: "cache",
+      clone: () => cachedResponse,
+    };
+    const networkResponse = {
+      ok: true,
+      source: "network",
+      clone: () => networkResponse,
+    };
+
+    const { response } = await serviceWorkerFetch(
+      "https://linewatch.test/_next/static/chunks/app/page.js",
+      { cachedResponse, networkResponse },
+    );
+
+    assert.equal(response.source, "network");
+  });
+
+  it("bypasses caching entirely in development mode", async () => {
+    const cachedResponse = {
+      ok: true,
+      source: "cache",
+      clone: () => cachedResponse,
+    };
+    const networkResponse = {
+      ok: true,
+      source: "network",
+      clone: () => networkResponse,
+    };
+
+    const { response } = await serviceWorkerFetch(
+      "https://linewatch.test/_next/static/chunks/app/page.js",
+      { cachedResponse, networkResponse },
+      "https://linewatch.test/sw.js?env=dev"
+    );
+
+    assert.equal(response, undefined);
+  });
+
   it("handles Web Push notifications without caching service data", () => {
     assert.match(serviceWorkerSource, /self\.addEventListener\("push"/);
     assert.match(serviceWorkerSource, /registration\.pushManager\.getSubscription\(\)/);
@@ -150,6 +423,111 @@ describe("LineWatch PWA configuration", () => {
     assert.match(serviceWorkerSource, /self\.registration\.showNotification/);
     assert.match(serviceWorkerSource, /self\.addEventListener\("notificationclick"/);
     assert.match(serviceWorkerSource, /clients\.openWindow/);
+    assert.match(serviceWorkerSource, /line-current/);
+    assert.match(serviceWorkerSource, /line-planned/);
+    assert.match(serviceWorkerSource, /saved-commute-current/);
+    assert.match(serviceWorkerSource, /\/api\/account\/push\/active/);
+  });
+
+  it("shows commute push notifications with the Android badge and no large notification icon", async () => {
+    const { fetchRequests, shownNotifications } = await serviceWorkerPush();
+
+    assert.equal(fetchRequests[0].url, "/api/account/push/latest");
+    assert.equal(fetchRequests[1].url, "/api/account/push/active");
+    assert.equal(shownNotifications.length, 1);
+    assert.equal(shownNotifications[0].title, "Work Affected");
+    assert.equal(shownNotifications[0].options.body, "Reduced Speed Zone on Line 1: Glencairn to Lawrence West");
+    assert.equal(shownNotifications[0].options.tag, "saved-commute-impact|commute_1|dedupe-1");
+    assert.equal(shownNotifications[0].options.badge, "/assets/linewatch/pwa/notification-badge-96.png");
+    assert.equal(Object.hasOwn(shownNotifications[0].options, "icon"), false);
+  });
+
+  it("closes stale saved-commute notifications when the backend has no active matching tag", async () => {
+    const staleNotification = {
+      tag: "saved-commute-impact|commute_1|old-dedupe",
+      closed: false,
+      close() {
+        this.closed = true;
+      },
+    };
+    const activeNotification = {
+      tag: "saved-commute-impact|commute_1|dedupe-1",
+      closed: false,
+      close() {
+        this.closed = true;
+      },
+    };
+
+    const { fetchRequests } = await serviceWorkerPush({
+      existingNotifications: [staleNotification, activeNotification],
+    });
+
+    assert.equal(fetchRequests[1].url, "/api/account/push/active");
+    assert.equal(staleNotification.closed, true);
+    assert.equal(activeNotification.closed, false);
+  });
+
+  it("does not show a pending saved-commute push when its tag is no longer active", async () => {
+    const { shownNotifications } = await serviceWorkerPush({
+      fetchBody: {
+        notification: {
+          title: "Work Affected",
+          body: "Reduced Speed Zone on Line 1: Glencairn to Lawrence West",
+          url: "/?panel=commutes&commute=commute_1",
+          tag: "saved-commute-impact|commute_1|resolved-dedupe",
+        },
+        activeTags: [],
+      },
+    });
+
+    assert.equal(shownNotifications.length, 0);
+  });
+
+  it("shows a cleared saved-commute push as a quiet replacement even when the tag is no longer active", async () => {
+    const { shownNotifications } = await serviceWorkerPush({
+      fetchBody: {
+        notification: {
+          title: "Commute alert cleared",
+          body: "Delay on Line 1: Finch to Union no longer affects this commute.",
+          url: "/?panel=commutes&commute=commute_1",
+          tag: "saved-commute-impact|commute_1|outbound|delay-line-1",
+          state: "CLEARED",
+          timestamp: "2026-06-05T15:00:00Z",
+        },
+        activeTags: [],
+      },
+    });
+
+    assert.equal(shownNotifications.length, 1);
+    assert.equal(shownNotifications[0].title, "Commute alert cleared");
+    assert.equal(
+      shownNotifications[0].options.body,
+      "Delay on Line 1: Finch to Union no longer affects this commute.",
+    );
+    assert.equal(shownNotifications[0].options.tag, "saved-commute-impact|commute_1|outbound|delay-line-1");
+    assert.equal(shownNotifications[0].options.renotify, false);
+    assert.equal(shownNotifications[0].options.requireInteraction, false);
+    assert.equal(shownNotifications[0].options.silent, true);
+    assert.equal(shownNotifications[0].options.timestamp, Date.parse("2026-06-05T15:00:00Z"));
+    assert.equal(shownNotifications[0].options.data.state, "CLEARED");
+  });
+
+  it("cleans stale saved-commute notifications when the app asks the service worker to reconcile", async () => {
+    const staleNotification = {
+      tag: "saved-commute-planned|commute_1|resolved-dedupe",
+      closed: false,
+      close() {
+        this.closed = true;
+      },
+    };
+
+    const { fetchRequests, shownNotifications } = await serviceWorkerMessage({
+      existingNotifications: [staleNotification],
+    });
+
+    assert.equal(fetchRequests.at(-1).url, "/api/account/push/active");
+    assert.equal(shownNotifications.length, 0);
+    assert.equal(staleNotification.closed, true);
   });
 
   it("serves an offline page that does not claim stale TTC service data is current", () => {
@@ -169,5 +547,17 @@ describe("LineWatch PWA configuration", () => {
     assert.match(nextConfigSource, /no-cache, no-store, must-revalidate/);
     assert.match(nextConfigSource, /Service-Worker-Allowed/);
     assert.match(nextConfigSource, /X-Content-Type-Options/);
+  });
+
+  it("LineWatchShell reads URLSearchParams and maps panel query params on mount", () => {
+    const shellSource = readFileSync(new URL("../src/components/LineWatchShell.tsx", import.meta.url), "utf8");
+    assert.match(shellSource, /URLSearchParams/);
+    assert.match(shellSource, /window\.location\.search/);
+    assert.match(shellSource, /panel=notifications/);
+    assert.match(shellSource, /panel=commutes/);
+    assert.match(shellSource, /panel=alerts/);
+    assert.match(shellSource, /panel=delays/);
+    assert.match(shellSource, /panel=reduced-speed-zones/);
+    assert.match(shellSource, /panel=closures/);
   });
 });
