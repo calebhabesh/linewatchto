@@ -35,7 +35,7 @@ const LINE_COLORS: Record<string, string> = {
   "line-2": "#00843D",
   "line-4": "#B241A1",
   "line-5": "#F58220",
-  "line-6": "#D72D2A",
+  "line-6": "#969594",
 };
 
 function NotificationSwitch({
@@ -134,7 +134,7 @@ export function NotificationSettingsPanel({
       <div className="notification-settings-scroll">
         {!accountState.authenticated ? (
           <div className="notification-settings-prompt">
-            <strong>Account required</strong>
+            <strong>Account Required</strong>
             <span>Sign in or create an account to manage saved-commute notification settings.</span>
             <div className="account-action-row">
               <button type="button" onClick={onRequestSignIn}>Sign In</button>
@@ -147,7 +147,7 @@ export function NotificationSettingsPanel({
           <>
             <div className="notification-settings-section">
               <div className="notification-settings-section-header">
-                <h3>Device notifications</h3>
+                <h3>Device Notifications</h3>
                 <span>{subscribed ? "Enabled" : "Off"}</span>
               </div>
               <div className="notification-settings-card border border-black/10 dark:border-white/10 p-3 rounded-lg flex flex-col gap-2 relative">
@@ -155,7 +155,7 @@ export function NotificationSettingsPanel({
                   <div className="notification-settings-row-main flex-1">
                     <Bell size={17} className="text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
                     <span>
-                      <strong>Push for this browser</strong>
+                      <strong>Push for This Browser</strong>
                       <em>Controls whether this phone or browser can display LineWatch TO notifications.</em>
                     </span>
                   </div>
@@ -186,7 +186,7 @@ export function NotificationSettingsPanel({
 
             <div className="notification-settings-section">
               <div className="notification-settings-section-header">
-                <h3>Saved commute alerts</h3>
+                <h3>Saved Commute Alerts</h3>
                 <span>Active</span>
               </div>
               <div className="notification-settings-card border border-black/10 dark:border-white/10 p-3 rounded-lg flex flex-col gap-2">
@@ -194,7 +194,7 @@ export function NotificationSettingsPanel({
                   <div className="notification-settings-row-main flex-1">
                     <Navigation size={17} className="text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
                     <span>
-                      <strong>Current disruptions affecting saved commutes</strong>
+                      <strong>Current Disruptions Affecting Saved Commutes</strong>
                       <em>Delays, suspensions, Reduced Speed Zones, and cleared updates only when they affect a saved route.</em>
                     </span>
                   </div>
@@ -226,7 +226,7 @@ export function NotificationSettingsPanel({
                   <div className="notification-settings-row-main flex-1">
                     <Calendar size={17} className="text-blue-600 dark:text-blue-400" aria-hidden="true" />
                     <span>
-                      <strong>Planned closure reminders</strong>
+                      <strong>Planned Closure Reminders</strong>
                       <em>Upcoming closure notices for monitored saved-commute routes.</em>
                     </span>
                   </div>
@@ -257,7 +257,7 @@ export function NotificationSettingsPanel({
 
             <div className="notification-settings-section">
               <div className="notification-settings-section-header">
-                <h3>Line subscriptions</h3>
+                <h3>Line Subscriptions</h3>
                 <span>Active</span>
               </div>
               <div className="notification-settings-list" aria-label="Line-wide notification subscriptions">
@@ -307,12 +307,12 @@ export function NotificationSettingsPanel({
 
             <div className="notification-settings-section">
               <div className="notification-settings-section-header">
-                <h3>Event types</h3>
+                <h3>Event Types</h3>
                 <span>Filters</span>
               </div>
               <div className="notification-event-type-grid border border-black/10 dark:border-white/10 rounded-lg overflow-hidden bg-slate-50 dark:bg-black/25">
-                <div className="notification-event-type-header grid grid-cols-[1fr_80px_80px] gap-2 px-3 py-2 border-b border-black/10 dark:border-white/10 font-bold text-xs text-slate-700 dark:text-slate-300">
-                  <span>Event type</span>
+                <div className="notification-event-type-header grid grid-cols-[1fr_80px_80px] gap-2 px-3 py-2 items-end border-b border-black/10 dark:border-white/10 font-bold text-xs text-slate-700 dark:text-slate-300">
+                  <span>Event Type</span>
                   <span className="text-center">Saved Commutes</span>
                   <span className="text-center">Line Subs</span>
                 </div>
@@ -320,7 +320,7 @@ export function NotificationSettingsPanel({
                 {[
                   {
                     key: "suspensions" as const,
-                    label: "Suspensions / closures",
+                    label: "Suspensions / Closures",
                     icon: <AlertTriangle size={15} className="text-red-500" />,
                   },
                   {
@@ -335,12 +335,12 @@ export function NotificationSettingsPanel({
                   },
                   {
                     key: "plannedClosures" as const,
-                    label: "Planned closures",
+                    label: "Planned Closures",
                     icon: <Calendar size={15} className="text-blue-500" />,
                   },
                   {
                     key: "serviceRestored" as const,
-                    label: "Service restored updates",
+                    label: "Service Restored Updates",
                     icon: <CheckCircle2 size={15} className="text-emerald-500" />,
                   },
                 ].map(({ key, label, icon }) => (
@@ -394,26 +394,26 @@ export function NotificationSettingsPanel({
 
             <div className="notification-settings-section">
               <div className="notification-settings-section-header">
-                <h3>Reminder timing</h3>
+                <h3>Reminder Timing</h3>
                 <span>Options</span>
               </div>
               <div className="notification-settings-list">
                 {[
                   {
                     key: "onChange" as const,
-                    label: "Event starts/changes",
+                    label: "Event Starts/Changes",
                     icon: <Clock3 size={15} />,
                     desc: "Notify when disruptions start, significantly change, or clear.",
                   },
                   {
                     key: "closure24h" as const,
-                    label: "24h before closure",
+                    label: "24h Before Closure",
                     icon: <Calendar size={15} />,
                     desc: "Remind 24 hours before planned weekend or weekday closures.",
                   },
                   {
                     key: "closureMorning" as const,
-                    label: "Morning of closure",
+                    label: "Morning of Closure",
                     icon: <TrainFront size={15} />,
                     desc: "Remind on the morning of a planned closure.",
                   },

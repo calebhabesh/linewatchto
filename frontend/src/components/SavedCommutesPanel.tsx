@@ -323,7 +323,7 @@ export function SavedCommutesPanel({
       <div className="commute-grid min-w-0 p-3 flex flex-col gap-3">
         {!accountState.authenticated ? (
           <div className="saved-commute-account-prompt">
-            <strong>Account required</strong>
+            <strong>Account Required</strong>
             <span>Sign in or create an account to view saved commutes.</span>
             <div className="account-action-row">
               <button type="button" onClick={onRequestSignIn}>Sign In</button>

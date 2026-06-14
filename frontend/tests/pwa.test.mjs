@@ -13,6 +13,10 @@ const registrationSource = readFileSync(
 );
 const serviceWorkerSource = readFileSync(new URL("../public/sw.js", import.meta.url), "utf8");
 const offlinePageSource = readFileSync(new URL("../public/offline.html", import.meta.url), "utf8");
+const appUpdateBannerUrl = new URL("../src/components/AppUpdateBanner.tsx", import.meta.url);
+const localAppResetUrl = new URL("../src/app/local-app-reset.ts", import.meta.url);
+const versionRouteUrl = new URL("../src/app/version.json/route.ts", import.meta.url);
+const devResetPageUrl = new URL("../public/dev-reset.html", import.meta.url);
 
 const iconSpecs = [
   {
@@ -547,6 +551,66 @@ describe("LineWatch PWA configuration", () => {
     assert.match(nextConfigSource, /no-cache, no-store, must-revalidate/);
     assert.match(nextConfigSource, /Service-Worker-Allowed/);
     assert.match(nextConfigSource, /X-Content-Type-Options/);
+  });
+
+  it("exposes a no-cache frontend version endpoint for app update checks", () => {
+    assert.equal(existsSync(versionRouteUrl), true, "version.json route should exist");
+    const versionRouteSource = readFileSync(versionRouteUrl, "utf8");
+
+    assert.match(versionRouteSource, /lineWatchAppVersion/);
+    assert.match(versionRouteSource, /lineWatchBuildLabel/);
+    assert.match(versionRouteSource, /NextResponse\.json/);
+    assert.match(versionRouteSource, /Cache-Control/);
+    assert.match(versionRouteSource, /no-store, no-cache, must-revalidate/);
+    assert.match(versionRouteSource, /dynamic\s*=\s*"force-dynamic"/);
+  });
+
+  it("mounts an app update banner that compares the baked build label to the version endpoint", () => {
+    assert.equal(existsSync(appUpdateBannerUrl), true, "AppUpdateBanner should exist");
+    const appUpdateBannerSource = readFileSync(appUpdateBannerUrl, "utf8");
+
+    assert.match(layoutSource, /<AppUpdateBanner \/>/);
+    assert.match(appUpdateBannerSource, /lineWatchBuildLabel/);
+    assert.match(appUpdateBannerSource, /\/version\.json/);
+    assert.match(appUpdateBannerSource, /cache:\s*"no-store"/);
+    assert.match(appUpdateBannerSource, /New Version Available/);
+    assert.match(appUpdateBannerSource, /reloadLineWatchAppForUpdate/);
+    assert.match(appUpdateBannerSource, /visibilitychange/);
+    assert.match(appUpdateBannerSource, /setInterval/);
+  });
+
+  it("provides update and reset escape hatches without clearing auth cookies", () => {
+    assert.equal(existsSync(localAppResetUrl), true, "local app reset helper should exist");
+    assert.equal(existsSync(devResetPageUrl), true, "dev reset page should exist");
+
+    const localAppResetSource = readFileSync(localAppResetUrl, "utf8");
+    const devResetPageSource = readFileSync(devResetPageUrl, "utf8");
+
+    assert.match(localAppResetSource, /reloadLineWatchAppForUpdate/);
+    assert.match(localAppResetSource, /window\.caches\.keys/);
+    assert.match(localAppResetSource, /registration\.update/);
+    assert.match(localAppResetSource, /app-update/);
+    assert.match(localAppResetSource, /\/dev-reset\.html/);
+    assert.match(localAppResetSource, /auto/);
+    assert.match(localAppResetSource, /source/);
+    assert.doesNotMatch(localAppResetSource, /document\.cookie/);
+
+    assert.match(nextConfigSource, /source:\s*['"]\/dev-reset\.html['"]/);
+    assert.match(nextConfigSource, /Clear-Site-Data/);
+    assert.match(nextConfigSource, /"cache", "storage"/);
+
+    assert.match(devResetPageSource, /LineWatch TO Cache Reset/);
+    assert.match(devResetPageSource, /navigator\.serviceWorker\.getRegistrations/);
+    assert.match(devResetPageSource, /window\.caches\.keys/);
+    assert.match(devResetPageSource, /indexedDB\.deleteDatabase/);
+    assert.match(devResetPageSource, /localStorage\.clear/);
+    assert.match(devResetPageSource, /sessionStorage\.clear/);
+    assert.match(devResetPageSource, /linewatch-reset/);
+    assert.match(devResetPageSource, /URLSearchParams/);
+    assert.match(devResetPageSource, /autoRunReset/);
+    assert.match(devResetPageSource, /window\.location\.replace\(resetUrl\.href\)/);
+    assert.doesNotMatch(devResetPageSource, /document\.cookie/);
+    assert.doesNotMatch(nextConfigSource, /Clear-Site-Data[\s\S]*"cookies"/);
   });
 
   it("LineWatchShell reads URLSearchParams and maps panel query params on mount", () => {

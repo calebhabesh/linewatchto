@@ -1,9 +1,11 @@
 "use client";
 
-import { BarChart3, Bell, LogIn, LogOut, ShieldCheck, UserPlus, UserRound, X } from "lucide-react";
+import { BarChart3, Bell, LogIn, LogOut, RefreshCcw, ShieldCheck, UserPlus, UserRound, X } from "lucide-react";
 import Image from "next/image";
 import type { AccountState } from "../app/account-data";
+import { lineWatchAppVersionLabel } from "../app/app-build";
 import type { DashboardData } from "../app/DataContext";
+import { resetLineWatchLocalAppState } from "../app/local-app-reset";
 import { LogsDropdown } from "./LogsDropdown";
 
 type Props = {
@@ -41,6 +43,8 @@ export function MobileMoreSheet({
   onOpenAnalytics,
   notificationStatusLabel,
 }: Props) {
+  const canResetLocalAppCache = process.env.NODE_ENV !== "production";
+
   return (
     <section className="mobile-more-sheet panel" aria-label="More LineWatch TO options">
       <div className="mobile-sheet-heading">
@@ -49,6 +53,9 @@ export function MobileMoreSheet({
           <span>
             <p className="mobile-sheet-kicker">LineWatch TO</p>
             <h2>More</h2>
+            <p className="mobile-more-build-label" aria-label={`App version ${lineWatchAppVersionLabel}`}>
+              {lineWatchAppVersionLabel}
+            </p>
           </span>
         </div>
         <button type="button" className="mobile-sheet-icon-button" onClick={onClose} aria-label="Close more options">
@@ -119,6 +126,12 @@ export function MobileMoreSheet({
             Reliability Analytics
           </button>
           <LogsDropdown isMobileMore={true} />
+          {canResetLocalAppCache ? (
+            <button type="button" className="mobile-more-row" onClick={() => { void resetLineWatchLocalAppState(); }}>
+              <RefreshCcw size={18} />
+              Reset Local App Cache
+            </button>
+          ) : null}
         </div>
 
         <div className="mobile-more-section">

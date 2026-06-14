@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
+import { AppUpdateBanner } from "../components/AppUpdateBanner";
 import { PwaServiceWorkerRegistration } from "../components/PwaServiceWorkerRegistration";
 import "./globals.css";
 
@@ -72,6 +73,7 @@ export default function RootLayout({
     <html lang="en" className={`${inter.variable} ${jetbrainsMono.variable}`}>
       <body suppressHydrationWarning>
         <PwaServiceWorkerRegistration />
+        <AppUpdateBanner />
         {children}
       </body>
     </html>

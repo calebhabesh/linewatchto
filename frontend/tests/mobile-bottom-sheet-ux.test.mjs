@@ -54,10 +54,16 @@ describe("mobile bottom sheet UX", () => {
     assert.match(moreSheetSource, /Sign In/);
     assert.match(moreSheetSource, /Create Account/);
     assert.match(moreSheetSource, /Demo Account/);
+    assert.match(moreSheetSource, /lineWatchAppVersionLabel/);
+    assert.match(moreSheetSource, /mobile-more-build-label/);
     assert.match(moreSheetSource, /High Contrast Mode/);
     assert.match(moreSheetSource, /Reduced Motion/);
     assert.match(moreSheetSource, /Reliability Analytics/);
     assert.match(moreSheetSource, /LogsDropdown/);
+    assert.match(moreSheetSource, /Reset Local App Cache/);
+    assert.match(moreSheetSource, /resetLineWatchLocalAppState/);
+    assert.match(moreSheetSource, /process\.env\.NODE_ENV !== "production"/);
+    assert.match(globalCss, /\.mobile-more-build-label/);
   });
 
   it("turns floating panels into mobile bottom sheets only below tablet width", () => {

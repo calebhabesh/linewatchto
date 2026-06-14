@@ -105,6 +105,7 @@ fi
 
 : "${LINEWATCH_AUTH_PASSWORD_RESET_DEV_LINKS:=true}"
 : "${LINEWATCH_PUSH_VAPID_SUBJECT:=mailto:linewatch-dev@example.invalid}"
+LINEWATCH_BUILD_LABEL="${LINEWATCH_BUILD_LABEL:-dev-$(date -u +%Y%m%d%H%M%S)}"
 
 BACKEND_PID=""
 FRONTEND_PID=""
@@ -128,6 +129,7 @@ echo "Starting LineWatch TO tunnel push test environment."
 echo "Public origin: $PUBLIC_ORIGIN"
 echo "Cloudflare config: $CLOUDFLARED_CONFIG"
 echo "Backend URL: $BACKEND_URL"
+echo "Frontend build label: $LINEWATCH_BUILD_LABEL"
 echo "VAPID public key loaded from $VAPID_ENV_FILE"
 
 LINEWATCH_PUSH_ENABLED=true \
@@ -145,6 +147,7 @@ LINEWATCH_BACKEND_URL="$BACKEND_URL" \
 BACKEND_URL="$BACKEND_URL" \
 NEXT_PUBLIC_LINEWATCH_API_BASE_URL="" \
 NEXT_PUBLIC_LINEWATCH_ENABLE_SW=true \
+NEXT_PUBLIC_LINEWATCH_BUILD_LABEL="$LINEWATCH_BUILD_LABEL" \
 LINEWATCH_DEV_ALLOWED_ORIGIN="$TUNNEL_HOSTNAME" \
 npm --prefix "$REPO_ROOT/frontend" run dev &
 FRONTEND_PID=$!

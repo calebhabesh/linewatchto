@@ -42,6 +42,8 @@ describe("alert scenario scripts", () => {
     assert.match(cloudflarePushScript, /LINEWATCH_PASSWORD_RESET_FRONTEND_BASE_URL="\$PUBLIC_ORIGIN"/);
     assert.match(cloudflarePushScript, /NEXT_PUBLIC_LINEWATCH_API_BASE_URL=""/);
     assert.match(cloudflarePushScript, /NEXT_PUBLIC_LINEWATCH_ENABLE_SW=true/);
+    assert.match(cloudflarePushScript, /LINEWATCH_BUILD_LABEL/);
+    assert.match(cloudflarePushScript, /NEXT_PUBLIC_LINEWATCH_BUILD_LABEL="\$LINEWATCH_BUILD_LABEL"/);
     assert.match(cloudflarePushScript, /LINEWATCH_DEV_ALLOWED_ORIGIN="\$TUNNEL_HOSTNAME"/);
     assert.match(cloudflarePushScript, /cloudflared tunnel --config "\$CLOUDFLARED_CONFIG" run/);
     assert.match(cloudflarePushScript, /npm --prefix "\$REPO_ROOT\/frontend" run dev/);
@@ -51,5 +53,8 @@ describe("alert scenario scripts", () => {
   it("lets the Cloudflare tunnel hostname through Next dev origin checks", () => {
     assert.match(nextConfigSource, /LINEWATCH_DEV_ALLOWED_ORIGIN/);
     assert.match(nextConfigSource, /allowedDevOrigins/);
+    assert.match(nextConfigSource, /packageJson\.version/);
+    assert.match(nextConfigSource, /NEXT_PUBLIC_LINEWATCH_APP_VERSION/);
+    assert.match(nextConfigSource, /NEXT_PUBLIC_LINEWATCH_BUILD_LABEL/);
   });
 });

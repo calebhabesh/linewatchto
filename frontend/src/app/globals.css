@@ -125,6 +125,80 @@ button {
   cursor: pointer;
 }
 
+.app-update-banner {
+  align-items: center;
+  background: rgb(15, 23, 42);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 8px;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 14px);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.34);
+  color: white;
+  display: flex;
+  gap: 12px;
+  left: 50%;
+  max-width: min(560px, calc(100vw - 24px));
+  padding: 10px;
+  position: fixed;
+  transform: translateX(-50%);
+  width: max-content;
+  z-index: 90;
+}
+
+.app-update-banner-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.app-update-banner-copy > strong {
+  font-size: 13px;
+  line-height: 1.2;
+}
+
+.app-update-banner-copy span {
+  color: rgb(203, 213, 225);
+  font-size: 11px;
+  line-height: 1.25;
+}
+
+.app-update-banner-actions {
+  align-items: center;
+  display: flex;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.app-update-banner-actions button {
+  align-items: center;
+  background: white;
+  border: 0;
+  border-radius: 8px;
+  color: rgb(15, 23, 42);
+  display: inline-flex;
+  font-size: 12px;
+  font-weight: 900;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 10px;
+}
+
+.app-update-banner-actions .app-update-banner-dismiss {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  padding: 0;
+  width: 36px;
+  justify-content: center;
+}
+
+@media (max-width: 520px) {
+  .app-update-banner {
+    align-items: stretch;
+    flex-direction: column;
+    width: calc(100vw - 24px);
+  }
+}
+
 .station-accessibility-summary::-webkit-details-marker {
   display: none;
 }
@@ -3341,7 +3415,8 @@ button {
 
 .account-primary-button,
 .saved-commute-primary-button,
-.saved-commute-account-prompt button {
+.saved-commute-account-prompt button,
+.notification-settings-prompt button {
   border-radius: 8px;
   background: rgb(15, 23, 42);
   color: white;
@@ -3354,17 +3429,31 @@ button {
 }
 
 .account-primary-button:hover:not(:disabled),
-.saved-commute-primary-button:hover:not(:disabled) {
+.saved-commute-primary-button:hover:not(:disabled),
+.saved-commute-account-prompt button:hover:not(:disabled),
+.notification-settings-prompt button:hover:not(:disabled) {
   background: rgb(30, 41, 59);
 }
 
 .dark .account-primary-button,
 .dark .saved-commute-account-prompt button,
+.dark .notification-settings-prompt button,
 .high-contrast .account-primary-button,
 .high-contrast .saved-commute-primary-button,
-.high-contrast .saved-commute-account-prompt button {
+.high-contrast .saved-commute-account-prompt button,
+.high-contrast .notification-settings-prompt button {
   background: rgb(226, 232, 240);
   color: rgb(15, 23, 42);
+}
+
+.dark .account-primary-button:hover:not(:disabled),
+.dark .saved-commute-account-prompt button:hover:not(:disabled),
+.dark .notification-settings-prompt button:hover:not(:disabled),
+.high-contrast .account-primary-button:hover:not(:disabled),
+.high-contrast .saved-commute-primary-button:hover:not(:disabled),
+.high-contrast .saved-commute-account-prompt button:hover:not(:disabled),
+.high-contrast .notification-settings-prompt button:hover:not(:disabled) {
+  background: rgb(241, 245, 249);
 }
 
 .dark .saved-commute-primary-button {
@@ -4179,6 +4268,7 @@ button {
 
 .notification-event-type-header {
   border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+  align-items: end;
 }
 
 .dark .notification-event-type-header {
@@ -4211,19 +4301,7 @@ button {
   flex-shrink: 0;
 }
 
-@media (max-width: 420px) {
-  .notification-event-type-header,
-  .notification-settings-control-grid {
-    grid-template-columns: 1fr !important;
-    gap: 0.5rem;
-    padding: 0.75rem 0.5rem;
-  }
-  .notification-event-type-header span,
-  .notification-settings-control-grid .flex {
-    justify-content: flex-start !important;
-    text-align: left !important;
-  }
-}
+
 
 .saved-commute-primary-button[aria-busy="true"] {
   cursor: wait;
@@ -5502,6 +5580,14 @@ button {
     font-weight: 950 !important;
     letter-spacing: 0 !important;
     text-transform: uppercase;
+  }
+
+  .mobile-more-build-label {
+    color: var(--muted) !important;
+    font-size: 10px !important;
+    font-weight: 850 !important;
+    line-height: 1.2;
+    margin-top: 2px !important;
   }
 
   .mobile-sheet-icon-button {
