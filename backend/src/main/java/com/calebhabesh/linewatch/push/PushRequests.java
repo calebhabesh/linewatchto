@@ -13,8 +13,38 @@ public final class PushRequests {
 
     public record SubscriptionEndpointRequest(String endpoint) {}
 
+    public record EventTypePreferencesRequest(
+        Boolean suspensions,
+        Boolean delays,
+        Boolean reducedSpeedZones,
+        Boolean plannedClosures,
+        Boolean serviceRestored
+    ) {}
+
+    public record SavedCommutePreferencesRequest(
+        Boolean currentDisruptions,
+        Boolean plannedClosureReminders,
+        EventTypePreferencesRequest eventTypes
+    ) {}
+
+    public record LineSubscriptionSelectionRequest(String lineId, Boolean subscribed) {}
+
+    public record LineSubscriptionPreferencesRequest(
+        java.util.List<LineSubscriptionSelectionRequest> lines,
+        EventTypePreferencesRequest eventTypes
+    ) {}
+
+    public record ReminderTimingPreferencesRequest(
+        Boolean onChange,
+        Boolean closure24h,
+        Boolean closureMorning
+    ) {}
+
     public record UpdatePushPreferencesRequest(
-        boolean commuteNotificationsEnabled,
-        boolean plannedClosureNotificationsEnabled
+        Boolean commuteNotificationsEnabled,
+        Boolean plannedClosureNotificationsEnabled,
+        SavedCommutePreferencesRequest savedCommutes,
+        LineSubscriptionPreferencesRequest lineSubscriptions,
+        ReminderTimingPreferencesRequest reminderTiming
     ) {}
 }
