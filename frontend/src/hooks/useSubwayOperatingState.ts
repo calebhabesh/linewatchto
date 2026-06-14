@@ -11,7 +11,7 @@ import {
 const SUBWAY_OPERATING_STATE_REFRESH_MS = 30_000;
 
 export function useSubwayOperatingState(): SubwayOperatingState {
-  const [state, setState] = useState(() => getSubwayOperatingState(getOperatingStateDate()));
+  const [state, setState] = useState(() => getSubwayOperatingState(new Date()));
 
   useEffect(() => {
     const refresh = () => setState(getSubwayOperatingState(getOperatingStateDate()));

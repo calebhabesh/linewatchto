@@ -66,10 +66,12 @@ class PushNotificationControllerTest {
             "https://fcm.googleapis.com/fcm/send/subscription"
         );
         PushResponses.PendingPushNotification notification = new PushResponses.PendingPushNotification(
-            "Morning commute affected",
+            "Morning Commute Affected",
             "Delay on Line 1: Finch to Union",
             "/?panel=commutes&commute=commute_1",
-            "saved-commute-impact|commute_1|delay-line-1"
+            "saved-commute-impact|commute_1|outbound|delay|delay-line-1",
+            "ACTIVE",
+            "2026-06-05T15:00:00Z"
         );
         when(accountService.requireAccount("raw-token")).thenReturn(account);
         when(pushNotificationService.latestPendingNotification(account, request)).thenReturn(
@@ -80,6 +82,23 @@ class PushNotificationControllerTest {
 
         assertThat(response.notification()).isEqualTo(notification);
         verify(pushNotificationService).latestPendingNotification(account, request);
+    }
+
+    @Test
+    void returnsActiveNotificationTagsForCurrentSubscription() {
+        PushRequests.SubscriptionEndpointRequest request = new PushRequests.SubscriptionEndpointRequest(
+            "https://fcm.googleapis.com/fcm/send/subscription"
+        );
+        PushResponses.ActivePushNotificationsResponse expected = new PushResponses.ActivePushNotificationsResponse(
+            java.util.List.of("saved-commute-impact|commute_1|delay-line-1")
+        );
+        when(accountService.requireAccount("raw-token")).thenReturn(account);
+        when(pushNotificationService.activeNotifications(account, request)).thenReturn(expected);
+
+        PushResponses.ActivePushNotificationsResponse response = controller.active("raw-token", request);
+
+        assertThat(response).isEqualTo(expected);
+        verify(pushNotificationService).activeNotifications(account, request);
     }
 
     @Test

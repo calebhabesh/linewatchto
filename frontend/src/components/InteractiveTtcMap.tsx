@@ -782,7 +782,11 @@ function InteractiveTtcMapComponent({
           className="theme-toggle-btn panel flex items-center justify-center w-10 sm:w-14 h-10 sm:h-14 rounded-xl border border-black/10 dark:border-white/10 shadow-lg hover:!bg-slate-100 dark:hover:!bg-[#1a1e28] hover:scale-105 active:scale-95 outline-none focus-visible:ring-4 focus-visible:ring-black/10 dark:focus-visible:ring-white/10 transition-all cursor-pointer bg-white dark:bg-[#0a0c10]"
           aria-label="Toggle theme"
         >
-          {isDark ? <Sun size={24} className="text-slate-800 dark:text-white" /> : <Moon size={24} className="text-slate-800 dark:text-white" />}
+          {isDark ? (
+            <Sun size={24} className="text-yellow-500 fill-yellow-500" />
+          ) : (
+            <Moon size={24} className="text-purple-500 fill-purple-500" />
+          )}
         </button>
         <SiteGuideDropdown />
       </div>

@@ -152,7 +152,7 @@ FRONTEND_PID=$!
 if [ "${LINEWATCH_SKIP_CLOUDFLARED:-false}" = "true" ]; then
   echo "Skipping cloudflared because LINEWATCH_SKIP_CLOUDFLARED=true"
 else
-  cloudflared tunnel --config "$CLOUDFLARED_CONFIG" run &
+  cloudflared tunnel --config "$CLOUDFLARED_CONFIG" run ${LINEWATCH_CLOUDFLARED_PROTOCOL:+--protocol "$LINEWATCH_CLOUDFLARED_PROTOCOL"} &
   TUNNEL_PID=$!
 fi
 

@@ -63,6 +63,15 @@ public class PushNotificationController {
         return pushNotificationService.latestPendingNotification(account, request);
     }
 
+    @PostMapping("/active")
+    public PushResponses.ActivePushNotificationsResponse active(
+        @CookieValue(name = AuthCookieFactory.COOKIE_NAME, required = false) String rawSessionToken,
+        @RequestBody PushRequests.SubscriptionEndpointRequest request
+    ) {
+        AccountEntity account = accountService.requireAccount(rawSessionToken);
+        return pushNotificationService.activeNotifications(account, request);
+    }
+
     @PostMapping("/subscription/disable")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void disableSubscription(

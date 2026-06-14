@@ -26,6 +26,7 @@ public class PushNotificationService {
     private final SavedCommuteRepository savedCommuteRepository;
     private final SavedCommutePushPlanner planner;
     private final PushNotificationPreferenceService preferenceService;
+    private final LineSubscriptionPushPlanner lineSubscriptionPushPlanner;
     private final Clock clock;
 
     @Autowired
@@ -35,9 +36,10 @@ public class PushNotificationService {
         PushNotificationDeliveryRepository deliveryRepository,
         SavedCommuteRepository savedCommuteRepository,
         SavedCommutePushPlanner planner,
-        PushNotificationPreferenceService preferenceService
+        PushNotificationPreferenceService preferenceService,
+        LineSubscriptionPushPlanner lineSubscriptionPushPlanner
     ) {
-        this(properties, subscriptionRepository, deliveryRepository, savedCommuteRepository, planner, preferenceService, Clock.systemUTC());
+        this(properties, subscriptionRepository, deliveryRepository, savedCommuteRepository, planner, preferenceService, lineSubscriptionPushPlanner, Clock.systemUTC());
     }
 
     PushNotificationService(
@@ -47,6 +49,7 @@ public class PushNotificationService {
         SavedCommuteRepository savedCommuteRepository,
         SavedCommutePushPlanner planner,
         PushNotificationPreferenceService preferenceService,
+        LineSubscriptionPushPlanner lineSubscriptionPushPlanner,
         Clock clock
     ) {
         this.properties = properties;
@@ -55,6 +58,7 @@ public class PushNotificationService {
         this.savedCommuteRepository = savedCommuteRepository;
         this.planner = planner;
         this.preferenceService = preferenceService;
+        this.lineSubscriptionPushPlanner = lineSubscriptionPushPlanner;
         this.clock = clock;
     }
 
@@ -177,10 +181,23 @@ public class PushNotificationService {
         return subscriptionRepository.findByAccountIdAndEndpointHash(account.getId(), endpointHash)
             .filter(PushSubscriptionEntity::isEnabled)
             .map(subscription -> {
-                List<String> activeTags = savedCommuteRepository.findByAccountIdOrderByCreatedAtAsc(account.getId())
+                PushNotificationPreferenceEntity preferences = preferenceService.preferenceEntityForAccountId(account.getId());
+                
+                List<PushNotificationCandidate> commuteCandidates = savedCommuteRepository.findByAccountIdOrderByCreatedAtAsc(account.getId())
                     .stream()
-                    .flatMap(commute -> activeCandidatesFor(commute, subscription).stream())
-                    .map(this::tagFor)
+                    .flatMap(commute -> planner.candidatesFor(commute).stream())
+                    .toList();
+                
+                List<String> subscribedLineIds = preferenceService.subscribedLineIds(account.getId());
+                List<PushNotificationCandidate> lineCandidates = lineSubscriptionPushPlanner.candidatesFor(account.getId(), subscribedLineIds);
+                
+                List<PushNotificationCandidate> allCandidates = new java.util.ArrayList<>();
+                allCandidates.addAll(commuteCandidates);
+                allCandidates.addAll(lineCandidates);
+                
+                List<String> activeTags = allCandidates.stream()
+                    .filter(candidate -> preferenceService.allows(preferences, candidate))
+                    .map(PushNotificationCandidate::notificationKey)
                     .distinct()
                     .toList();
                 return new PushResponses.ActivePushNotificationsResponse(activeTags);

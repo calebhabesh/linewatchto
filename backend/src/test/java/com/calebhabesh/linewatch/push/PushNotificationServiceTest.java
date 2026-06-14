@@ -1,6 +1,8 @@
 package com.calebhabesh.linewatch.push;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -22,6 +24,7 @@ class PushNotificationServiceTest {
     private final SavedCommuteRepository savedCommuteRepository = mock(SavedCommuteRepository.class);
     private final SavedCommutePushPlanner planner = mock(SavedCommutePushPlanner.class);
     private final PushNotificationPreferenceService preferenceService = mock(PushNotificationPreferenceService.class);
+    private final LineSubscriptionPushPlanner lineSubscriptionPushPlanner = mock(LineSubscriptionPushPlanner.class);
     private final Clock clock = Clock.fixed(Instant.parse("2026-06-05T15:00:00Z"), ZoneOffset.UTC);
     private final PushNotificationService service = new PushNotificationService(
         properties,
@@ -30,6 +33,7 @@ class PushNotificationServiceTest {
         savedCommuteRepository,
         planner,
         preferenceService,
+        lineSubscriptionPushPlanner,
         clock
     );
 
@@ -98,6 +102,12 @@ class PushNotificationServiceTest {
         )).thenReturn(Optional.of(subscription));
         when(savedCommuteRepository.findByAccountIdOrderByCreatedAtAsc("user_1")).thenReturn(List.of(commute));
         when(planner.candidatesFor(commute)).thenReturn(List.of(commuteImpact, plannedClosure));
+        PushNotificationPreferenceEntity preferences = mock(PushNotificationPreferenceEntity.class);
+        when(preferenceService.preferenceEntityForAccountId("user_1")).thenReturn(preferences);
+        when(preferenceService.subscribedLineIds("user_1")).thenReturn(List.of());
+        when(lineSubscriptionPushPlanner.candidatesFor(eq("user_1"), any())).thenReturn(List.of());
+        when(preferenceService.allows(eq(preferences), eq(commuteImpact))).thenReturn(true);
+        when(preferenceService.allows(eq(preferences), eq(plannedClosure))).thenReturn(false);
 
         PushResponses.ActivePushNotificationsResponse response = service.activeNotifications(
             account,

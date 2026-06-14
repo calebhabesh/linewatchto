@@ -98,6 +98,7 @@ export function usePushNotificationSettings(accountState: AccountState): UsePush
     let mounted = true;
     const checkMounted = () => mounted;
     if (accountState.authenticated && supported) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       fetchConfigAndSubscription(checkMounted);
     } else {
       setConfig(null);
@@ -110,7 +111,7 @@ export function usePushNotificationSettings(accountState: AccountState): UsePush
   }, [accountState.authenticated, accountState.user?.id, supported, fetchConfigAndSubscription]);
 
   const reload = useCallback(async () => {
-    let mounted = true;
+    const mounted = true;
     const checkMounted = () => mounted;
     await fetchConfigAndSubscription(checkMounted);
   }, [fetchConfigAndSubscription]);

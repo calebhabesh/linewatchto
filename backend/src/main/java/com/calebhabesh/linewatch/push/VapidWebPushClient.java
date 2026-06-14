@@ -39,18 +39,21 @@ public class VapidWebPushClient implements WebPushClient {
     }
 
     @Override
-    public PushDeliveryResult send(PushSubscriptionEntity subscription) {
+    public PushDeliveryResult send(PushSubscriptionEntity subscription, String topic) {
         if (!properties.webPushConfigured()) {
             return PushDeliveryResult.skipped("Web Push VAPID keys are not configured.");
         }
         try {
             URI endpoint = URI.create(subscription.getEndpoint());
-            HttpRequest request = HttpRequest.newBuilder(endpoint)
+            HttpRequest.Builder requestBuilder = HttpRequest.newBuilder(endpoint)
                 .header("TTL", "300")
                 .header("Urgency", "normal")
                 .header("Authorization", authorizationHeader(endpoint))
-                .POST(HttpRequest.BodyPublishers.noBody())
-                .build();
+                .POST(HttpRequest.BodyPublishers.noBody());
+            if (topic != null && !topic.isBlank()) {
+                requestBuilder.header("Topic", topic.trim());
+            }
+            HttpRequest request = requestBuilder.build();
             HttpResponse<Void> response = httpClient.send(request, HttpResponse.BodyHandlers.discarding());
             if (response.statusCode() == 404 || response.statusCode() == 410) {
                 return PushDeliveryResult.gone(response.statusCode());

@@ -24,7 +24,7 @@ const stationSearchSource = readFileSync(new URL("../src/components/StationSearc
 
 describe("floating menu layout", () => {
   it("keeps the map first while exposing floating menu and submenu states", () => {
-    assert.match(shellSource, /type ActiveView = "map" \| "menu" \| "search" \| "status" \| "alerts" \| "delays" \| "reduced-speed-zones" \| "closures" \| "commutes" \| "analytics" \| "more"/);
+    assert.match(shellSource, /type ActiveView = "map" \| "menu" \| "search" \| "status" \| "alerts" \| "delays" \| "reduced-speed-zones" \| "closures" \| "commutes" \| "notifications" \| "analytics" \| "more"/);
     assert.match(shellSource, /handleToggleMenu/);
     assert.match(shellSource, /Toggle menu/);
     assert.match(shellSource, /Floating Dropdown Menu/);
@@ -51,6 +51,7 @@ describe("floating menu layout", () => {
 
     assert.match(shellSource, /activeView === "closures"/);
     assert.match(shellSource, /activeView === "commutes"/);
+    assert.match(shellSource, /activeView === "notifications"/);
     assert.match(shellSource, /activeView === "analytics"/);
     assert.match(shellSource, /FloatingPanelShell/);
     assert.match(shellSource, /const activeFloatingPanel = /);

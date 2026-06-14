@@ -305,6 +305,7 @@ export function LineWatchShell({
       notifications: "notifications",
     };
     if (panel && panelToView[panel]) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setActiveView(panelToView[panel]);
       window.history.replaceState(null, "", window.location.pathname);
     }
