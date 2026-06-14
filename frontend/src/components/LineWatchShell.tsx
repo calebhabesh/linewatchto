@@ -13,6 +13,7 @@ import { DelaysPanel } from "./DelaysPanel";
 import { ReducedSpeedZonesPanel } from "./ReducedSpeedZonesPanel";
 import { PlannedClosuresPanel } from "./PlannedClosuresPanel";
 import { SavedCommutesPanel } from "./SavedCommutesPanel";
+import { NotificationSettingsPanel } from "./NotificationSettingsPanel";
 import { ReliabilityPanel } from "./ReliabilityPanel";
 import { FloatingPanelShell } from "./FloatingPanelShell";
 import { MobileBottomNav, type MobileNavKey } from "./MobileBottomNav";
@@ -39,7 +40,8 @@ import {
 import { StationDetailPanel } from "./StationDetailPanel";
 import { useTorontoClock } from "../hooks/useTorontoClock";
 import { useMobilePerformanceMode } from "../hooks/useMobilePerformanceMode";
-import { Menu, X, Map as MapIcon, AlertTriangle, Calendar, Navigation, ShieldCheck, BarChart3, Construction, Search, LogIn, LogOut, UserPlus, UserRound, Sun, Moon } from "lucide-react";
+import { usePushNotificationSettings } from "../hooks/usePushNotificationSettings";
+import { Menu, X, Map as MapIcon, AlertTriangle, Calendar, Navigation, ShieldCheck, BarChart3, Bell, Construction, Search, LogIn, LogOut, UserPlus, UserRound, Sun, Moon } from "lucide-react";
 import { SubwayClosedScreen } from "./SubwayClosedScreen";
 import { useSubwayOperatingState } from "../hooks/useSubwayOperatingState";
 import { StationSearchPanel } from "./StationSearchPanel";
@@ -65,7 +67,7 @@ import {
 import { normalizeAccountEmail, validateAccountCredentials } from "../app/account-validation";
 
 
-type ActiveView = "map" | "menu" | "search" | "status" | "alerts" | "delays" | "reduced-speed-zones" | "closures" | "commutes" | "analytics" | "more";
+type ActiveView = "map" | "menu" | "search" | "status" | "alerts" | "delays" | "reduced-speed-zones" | "closures" | "commutes" | "notifications" | "analytics" | "more";
 type AccountDialogMode = "login" | "register" | "forgot-password" | "reset-password";
 
 const DEFAULT_DASHBOARD_REFRESH_MS = 5_000;
@@ -242,6 +244,35 @@ export function LineWatchShell({
   const [accountBusy, setAccountBusy] = useState(false);
   const [accountCommutes, setAccountCommutes] = useState<AccountSavedCommute[]>([]);
   const [commutePathPreview, setCommutePathPreview] = useState<AccountCommutePathPreview | null>(null);
+
+  const pushSettings = usePushNotificationSettings(accountState);
+
+  const notificationStatusLabel = useMemo(() => {
+    if (!accountState.authenticated || pushSettings.browserStatus === "signed-out" || pushSettings.browserStatus === "unsupported" || pushSettings.browserStatus === "not-configured" || pushSettings.browserStatus === "checking") {
+      return "Unavailable";
+    }
+    const currentEnabled = pushSettings.preferences.savedCommutes.currentDisruptions;
+    const plannedEnabled = pushSettings.preferences.savedCommutes.plannedClosureReminders;
+    if (!currentEnabled && !plannedEnabled) {
+      return "Off";
+    }
+    if (pushSettings.subscribed) {
+      return "On";
+    }
+    return "Device Off";
+  }, [accountState.authenticated, pushSettings.browserStatus, pushSettings.subscribed, pushSettings.preferences]);
+
+  const notificationSummary = useMemo(() => {
+    const tone: "on" | "off" | "unavailable" =
+      notificationStatusLabel === "On" ? "on" :
+      notificationStatusLabel === "Device Off" || notificationStatusLabel === "Off" ? "off" :
+      "unavailable";
+    return {
+      label: notificationStatusLabel,
+      detail: "Saved commute alerts and closure reminders",
+      tone,
+    };
+  }, [notificationStatusLabel]);
 
   const { clear: commuteClearCount, affectedNow: commuteAffectedCount } = useMemo(
     () => summarizeSavedCommuteStatuses(accountCommutes),
@@ -664,7 +695,7 @@ export function LineWatchShell({
     }
     if (activeView === "search") return "search";
     if (activeView === "commutes") return "commutes";
-    if (activeView === "more" || activeView === "analytics") return "more";
+    if (activeView === "notifications" || activeView === "more" || activeView === "analytics") return "more";
     return "map";
   }, [activeView]);
 
@@ -794,6 +825,7 @@ export function LineWatchShell({
     activeView === "reduced-speed-zones" ||
     activeView === "closures" ||
     activeView === "commutes" ||
+    activeView === "notifications" ||
     activeView === "more" ||
     activeView === "analytics"
   );
@@ -806,6 +838,7 @@ export function LineWatchShell({
       case "reduced-speed-zones": return "Reduced Speed Zones";
       case "closures": return "Upcoming closures";
       case "commutes": return "Saved commutes";
+      case "notifications": return "Notifications";
       case "more": return "More options";
       case "analytics": return "Reliability analytics";
       default: return "";
@@ -880,6 +913,19 @@ export function LineWatchShell({
             onClose={() => { setActiveView("map"); setSelection(null); }}
             onRequestSignIn={() => setAccountDialogMode("login")}
             onRequestCreateAccount={() => setAccountDialogMode("register")}
+            onOpenNotificationSettings={() => setActiveView("notifications")}
+            notificationSummary={notificationSummary}
+          />
+        );
+      case "notifications":
+        return (
+          <NotificationSettingsPanel
+            accountState={accountState}
+            pushSettings={pushSettings}
+            onBack={() => setActiveView(isMobile ? "more" : "menu")}
+            onClose={() => { setActiveView("map"); setSelection(null); }}
+            onRequestSignIn={() => { resetAccountForm(); setAccountDialogMode("login"); }}
+            onRequestCreateAccount={() => { resetAccountForm(); setAccountDialogMode("register"); }}
           />
         );
       case "more":
@@ -897,7 +943,9 @@ export function LineWatchShell({
             onSignOut={handleSignOut}
             onToggleHighContrast={() => setHighContrast((current) => !current)}
             onToggleReducedMotion={() => setReducedMotion((current) => !current)}
+            onOpenNotifications={() => setActiveView("notifications")}
             onOpenAnalytics={() => setActiveView("analytics")}
+            notificationStatusLabel={notificationStatusLabel}
           />
         );
       case "analytics":
@@ -985,6 +1033,19 @@ export function LineWatchShell({
           onClose={() => { setActiveView("map"); setSelection(null); }}
           onRequestSignIn={() => setAccountDialogMode("login")}
           onRequestCreateAccount={() => setAccountDialogMode("register")}
+          onOpenNotificationSettings={() => setActiveView("notifications")}
+          notificationSummary={notificationSummary}
+        />
+      </FloatingPanelShell>
+    ) : activeView === "notifications" ? (
+      <FloatingPanelShell panel="notifications" mobileSheetLabel="Notifications">
+        <NotificationSettingsPanel
+          accountState={accountState}
+          pushSettings={pushSettings}
+          onBack={() => setActiveView("menu")}
+          onClose={() => { setActiveView("map"); setSelection(null); }}
+          onRequestSignIn={() => { resetAccountForm(); setAccountDialogMode("login"); }}
+          onRequestCreateAccount={() => { resetAccountForm(); setAccountDialogMode("register"); }}
         />
       </FloatingPanelShell>
     ) : activeView === "more" ? (
@@ -1002,7 +1063,9 @@ export function LineWatchShell({
           onSignOut={handleSignOut}
           onToggleHighContrast={() => setHighContrast((current) => !current)}
           onToggleReducedMotion={() => setReducedMotion((current) => !current)}
+          onOpenNotifications={() => setActiveView("notifications")}
           onOpenAnalytics={() => setActiveView("analytics")}
+          notificationStatusLabel={notificationStatusLabel}
         />
       </FloatingPanelShell>
     ) : activeView === "analytics" ? (
@@ -1308,6 +1371,15 @@ export function LineWatchShell({
                  <button
                    ref={registerMenuAction(actionIndex++)}
                    role="menuitem"
+                   onClick={() => setActiveView("notifications")}
+                   aria-current={activeView === "notifications" ? "page" : undefined}
+                   className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
+                 >
+                   <Bell size={18} className="text-slate-500 dark:text-slate-400" /> Notifications
+                 </button>
+                 <button
+                   ref={registerMenuAction(actionIndex++)}
+                   role="menuitem"
                    onClick={() => setActiveView("analytics")}
                    aria-current={activeView === "analytics" ? "page" : undefined}
                    className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
@@ -1443,7 +1515,11 @@ export function LineWatchShell({
             className="theme-toggle-btn panel flex items-center justify-center w-10 sm:w-14 h-10 sm:h-14 rounded-xl border border-black/10 dark:border-white/10 shadow-lg hover:!bg-slate-100 dark:hover:!bg-[#1a1e28] hover:scale-105 active:scale-95 outline-none focus-visible:ring-4 focus-visible:ring-black/10 dark:focus-visible:ring-white/10 transition-all cursor-pointer bg-white dark:bg-[#0a0c10]"
             aria-label="Toggle theme"
           >
-            {isDark ? <Sun size={24} className="text-slate-800 dark:text-white" /> : <Moon size={24} className="text-slate-800 dark:text-white" />}
+            {isDark ? (
+              <Sun size={24} className="text-yellow-500 fill-yellow-500" />
+            ) : (
+              <Moon size={24} className="text-purple-500 fill-purple-500" />
+            )}
           </button>
           <button
             onClick={() => {

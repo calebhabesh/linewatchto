@@ -3847,6 +3847,268 @@ button {
   color: rgb(203, 213, 225);
 }
 
+.saved-commute-notification-summary {
+  align-items: center;
+  background: rgba(16, 185, 129, 0.08);
+  border: 1px solid rgba(16, 185, 129, 0.18);
+  border-radius: 8px;
+  display: flex;
+  gap: 0.6rem;
+  justify-content: space-between;
+  min-width: 0;
+  padding: 0.625rem;
+}
+
+.saved-commute-notification-summary-copy {
+  align-items: center;
+  display: flex;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.saved-commute-notification-summary-copy span,
+.notification-settings-row-main span,
+.notification-settings-row-label {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.saved-commute-notification-summary strong,
+.notification-settings-row-main strong,
+.notification-settings-row-label strong {
+  color: rgb(15, 23, 42);
+  font-size: 0.76rem;
+  font-weight: 900;
+  line-height: 1.2;
+}
+
+.saved-commute-notification-summary em,
+.notification-settings-row-main em,
+.notification-settings-row-label em {
+  color: rgb(71, 85, 105);
+  font-size: 0.68rem;
+  font-style: normal;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.saved-commute-notification-summary button {
+  background: rgba(16, 185, 129, 0.14);
+  border: 1px solid rgba(16, 185, 129, 0.28);
+  border-radius: 8px;
+  color: rgb(4, 120, 87);
+  flex: 0 0 auto;
+  font-size: 0.68rem;
+  font-weight: 900;
+  padding: 0.38rem 0.5rem;
+}
+
+.notification-settings-panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.notification-settings-scroll {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0.75rem;
+  scrollbar-color: rgba(148, 163, 184, 0.28) transparent;
+  scrollbar-width: thin;
+}
+
+.notification-settings-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.notification-settings-section-header {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  min-width: 0;
+}
+
+.notification-settings-section-header h3 {
+  color: rgb(15, 23, 42);
+  font-size: 0.72rem;
+  font-weight: 950;
+  letter-spacing: 0;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.notification-settings-section-header span,
+.notification-settings-status {
+  background: rgba(15, 23, 42, 0.06);
+  border-radius: 999px;
+  color: rgb(71, 85, 105);
+  flex: 0 0 auto;
+  font-size: 0.62rem;
+  font-weight: 900;
+  padding: 0.18rem 0.42rem;
+  text-transform: uppercase;
+}
+
+.notification-settings-card,
+.notification-settings-row,
+.notification-settings-prompt {
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 8px;
+}
+
+.notification-settings-card {
+  display: grid;
+  gap: 0.5rem;
+  padding: 0.65rem;
+}
+
+.notification-settings-row-main,
+.notification-settings-row {
+  align-items: center;
+  display: flex;
+  gap: 0.55rem;
+  min-width: 0;
+}
+
+.notification-settings-row {
+  padding: 0.58rem 0.62rem;
+}
+
+.notification-settings-row[aria-disabled="true"] {
+  opacity: 0.74;
+}
+
+.notification-settings-icon {
+  align-items: center;
+  color: rgb(71, 85, 105);
+  display: inline-flex;
+  flex: 0 0 18px;
+  justify-content: center;
+}
+
+.notification-settings-list {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.notification-settings-note,
+.notification-settings-message,
+.notification-settings-prompt span {
+  color: rgb(71, 85, 105);
+  font-size: 0.7rem;
+  font-weight: 700;
+  line-height: 1.3;
+  margin: 0;
+}
+
+.notification-settings-message {
+  align-items: center;
+  display: flex;
+  gap: 0.35rem;
+}
+
+.notification-settings-prompt {
+  display: grid;
+  gap: 0.5rem;
+  padding: 0.75rem;
+}
+
+.notification-settings-prompt strong {
+  color: rgb(15, 23, 42);
+  font-size: 0.86rem;
+  font-weight: 900;
+}
+
+.notification-settings-toggle {
+  font-size: 0.72rem;
+  margin: 0 !important;
+}
+
+.notification-settings-toggle input:disabled + .saved-commute-slider {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.notification-line-badge {
+  align-items: center;
+  border: 1px solid rgba(15, 23, 42, 0.32);
+  border-radius: 999px;
+  display: inline-flex;
+  flex: 0 0 26px;
+  font-size: 0.72rem;
+  font-weight: 950;
+  height: 26px;
+  justify-content: center;
+  width: 26px;
+}
+
+.dark .saved-commute-notification-summary,
+.high-contrast .saved-commute-notification-summary {
+  background: rgba(16, 185, 129, 0.08);
+  border-color: rgba(16, 185, 129, 0.22);
+}
+
+.dark .saved-commute-notification-summary strong,
+.high-contrast .saved-commute-notification-summary strong,
+.dark .notification-settings-section-header h3,
+.high-contrast .notification-settings-section-header h3,
+.dark .notification-settings-row-main strong,
+.high-contrast .notification-settings-row-main strong,
+.dark .notification-settings-row-label strong,
+.high-contrast .notification-settings-row-label strong,
+.dark .notification-settings-prompt strong,
+.high-contrast .notification-settings-prompt strong {
+  color: rgb(241, 245, 249);
+}
+
+.dark .saved-commute-notification-summary em,
+.high-contrast .saved-commute-notification-summary em,
+.dark .notification-settings-row-main em,
+.high-contrast .notification-settings-row-main em,
+.dark .notification-settings-row-label em,
+.high-contrast .notification-settings-row-label em,
+.dark .notification-settings-note,
+.high-contrast .notification-settings-note,
+.dark .notification-settings-message,
+.high-contrast .notification-settings-message,
+.dark .notification-settings-prompt span,
+.high-contrast .notification-settings-prompt span {
+  color: rgb(203, 213, 225);
+}
+
+.dark .notification-settings-card,
+.dark .notification-settings-row,
+.dark .notification-settings-prompt,
+.high-contrast .notification-settings-card,
+.high-contrast .notification-settings-row,
+.high-contrast .notification-settings-prompt {
+  background: rgba(18, 21, 28, 0.94);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.dark .notification-settings-section-header span,
+.dark .notification-settings-status,
+.high-contrast .notification-settings-section-header span,
+.high-contrast .notification-settings-status {
+  background: rgba(255, 255, 255, 0.1);
+  color: rgb(203, 213, 225);
+}
+
+.dark .saved-commute-notification-summary button,
+.high-contrast .saved-commute-notification-summary button {
+  background: rgba(16, 185, 129, 0.16);
+  border-color: rgba(16, 185, 129, 0.28);
+  color: rgb(110, 231, 183);
+}
+
 /* Hide default HTML checkbox */
 .saved-commute-switch input {
   height: 0;
@@ -3908,6 +4170,59 @@ button {
 
 .dark .saved-commute-switch input:checked + .saved-commute-slider {
   background-color: rgb(16, 185, 129);
+}
+
+.notification-event-type-grid {
+  display: grid;
+  width: 100%;
+}
+
+.notification-event-type-header {
+  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+.dark .notification-event-type-header {
+  border-bottom-color: rgba(255, 255, 255, 0.1);
+}
+
+.notification-settings-control-grid {
+  border-bottom: 1px solid rgba(15, 23, 42, 0.05);
+}
+
+.dark .notification-settings-control-grid {
+  border-bottom-color: rgba(255, 255, 255, 0.05);
+}
+
+.notification-settings-icon-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.notification-settings-muted-warning {
+  margin-top: 0.25rem !important;
+}
+
+.notification-settings-row-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-shrink: 0;
+}
+
+@media (max-width: 420px) {
+  .notification-event-type-header,
+  .notification-settings-control-grid {
+    grid-template-columns: 1fr !important;
+    gap: 0.5rem;
+    padding: 0.75rem 0.5rem;
+  }
+  .notification-event-type-header span,
+  .notification-settings-control-grid .flex {
+    justify-content: flex-start !important;
+    text-align: left !important;
+  }
 }
 
 .saved-commute-primary-button[aria-busy="true"] {
@@ -6188,6 +6503,7 @@ button {
 
 .mobile-view-content-wrapper > .panel,
 .mobile-view-content-wrapper > .commute-panel,
+.mobile-view-content-wrapper > .notification-settings-panel,
 .mobile-view-content-wrapper > .analytics-panel {
   display: flex;
   flex-direction: column;
@@ -6217,7 +6533,11 @@ button {
 .mobile-line-status-impacts button,
 .mobile-more-account,
 .mobile-more-row,
-.mobile-more-health-grid div {
+.mobile-more-health-grid div,
+.notification-settings-card,
+.notification-settings-row,
+.notification-settings-prompt,
+.saved-commute-notification-summary {
   background: #ffffff !important;
   opacity: 1 !important;
 }
@@ -6227,7 +6547,11 @@ button {
 .dark .mobile-line-status-impacts button,
 .dark .mobile-more-account,
 .dark .mobile-more-row,
-.dark .mobile-more-health-grid div {
+.dark .mobile-more-health-grid div,
+.dark .notification-settings-card,
+.dark .notification-settings-row,
+.dark .notification-settings-prompt,
+.dark .saved-commute-notification-summary {
   background: #151821 !important;
   opacity: 1 !important;
 }
@@ -6237,7 +6561,11 @@ button {
 .high-contrast .mobile-line-status-impacts button,
 .high-contrast .mobile-more-account,
 .high-contrast .mobile-more-row,
-.high-contrast .mobile-more-health-grid div {
+.high-contrast .mobile-more-health-grid div,
+.high-contrast .notification-settings-card,
+.high-contrast .notification-settings-row,
+.high-contrast .notification-settings-prompt,
+.high-contrast .saved-commute-notification-summary {
   background: #000000 !important;
   border: 1px solid #ffffff !important;
 }

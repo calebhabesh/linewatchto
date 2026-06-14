@@ -1,24 +1,18 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Navigation, ChevronDown, ChevronLeft, Loader2, MapPinned, X, AlertTriangle, Construction, Calendar, Clock, Bell } from "lucide-react";
 import {
   createSavedCommute,
   deleteSavedCommute,
-  disablePushSubscription,
-  getPushNotificationConfig,
-  savePushSubscription,
   commuteLegsForCommute,
   commutePathPreviewFromCommute,
-  updatePushPreferences,
   type AccountSavedCommute,
   type AccountState,
   type AccountMatchedImpact,
   type AccountCommuteLeg,
   type AccountCommuteLegId,
   type AccountCommuteImpact,
-  type PushNotificationConfig,
-  type PushNotificationPreferences,
 } from "../app/account-data";
 import type { StationSummary } from "../app/station-data";
 import { SavedCommuteStationPicker } from "./SavedCommuteStationPicker";
@@ -90,6 +84,12 @@ interface Props {
   onClearViewedPath: (commuteId: string) => void;
   onRequestSignIn: () => void;
   onRequestCreateAccount: () => void;
+  onOpenNotificationSettings: () => void;
+  notificationSummary?: {
+    label: string;
+    detail: string;
+    tone: "on" | "off" | "unavailable";
+  };
 }
 
 function severityPriority(severity: AccountCommuteImpact["severity"]) {
@@ -189,194 +189,35 @@ function impactLineLabel(impact: AccountMatchedImpact) {
   return impact.lineNumber ? `Line ${impact.lineNumber}` : "Station";
 }
 
-function base64UrlToUint8Array(value: string) {
-  const padding = "=".repeat((4 - value.length % 4) % 4);
-  const base64 = (value + padding).replace(/-/g, "+").replace(/_/g, "/");
-  const raw = window.atob(base64);
-  const output = new Uint8Array(raw.length);
-  for (let index = 0; index < raw.length; index += 1) {
-    output[index] = raw.charCodeAt(index);
-  }
-  return output;
-}
-
-async function serviceWorkerRegistrationForPush() {
-  const existing = await navigator.serviceWorker.getRegistration("/");
-  if (existing) return existing;
-  return navigator.serviceWorker.register("/sw.js", {
-    scope: "/",
-    updateViaCache: "none",
-  });
-}
-
-function pushSubscriptionKeys(subscription: PushSubscription) {
-  const serialized = subscription.toJSON() as { keys?: { p256dh?: string; auth?: string } };
-  return {
-    p256dh: serialized.keys?.p256dh ?? "",
-    auth: serialized.keys?.auth ?? "",
+function SavedCommuteNotificationSummary({
+  onOpenNotificationSettings,
+  notificationSummary,
+}: {
+  onOpenNotificationSettings: () => void;
+  notificationSummary?: {
+    label: string;
+    detail: string;
+    tone: "on" | "off" | "unavailable";
   };
-}
-
-function PushNotificationSettings({ accountState }: { accountState: AccountState }) {
-  const supported = useMemo(() => (
-    typeof window !== "undefined"
-      && "Notification" in window
-      && "serviceWorker" in navigator
-      && "PushManager" in window
-  ), []);
-  const [config, setConfig] = useState<PushNotificationConfig | null>(null);
-  const [preferences, setPreferences] = useState<PushNotificationPreferences>({
-    commuteNotificationsEnabled: true,
-    plannedClosureNotificationsEnabled: true,
-  });
-  const [subscribed, setSubscribed] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!accountState.authenticated) return;
-    if (!supported) return;
-
-    let cancelled = false;
-    getPushNotificationConfig().then(async (result) => {
-      if (cancelled) return;
-      setConfig(result.config);
-      setPreferences(result.config.preferences);
-      const registration = await navigator.serviceWorker.getRegistration("/");
-      const subscription = await registration?.pushManager.getSubscription();
-      if (!cancelled) {
-        setSubscribed(Boolean(subscription));
-      }
-    });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [accountState.authenticated, accountState.user?.id, supported]);
-
-  const enableNotifications = async () => {
-    if (!config?.webPushAvailable || !config.vapidPublicKey) {
-      setMessage("Push not configured for this environment.");
-      return;
-    }
-    if (Notification.permission === "denied") {
-      setMessage("Notifications are blocked in browser settings.");
-      return;
-    }
-
-    setBusy(true);
-    setMessage(null);
-    try {
-      const permission = Notification.permission === "granted"
-        ? "granted"
-        : await Notification.requestPermission();
-      if (permission !== "granted") {
-        setSubscribed(false);
-        setMessage("Notifications not enabled.");
-        return;
-      }
-      const registration = await serviceWorkerRegistrationForPush();
-      const existing = await registration.pushManager.getSubscription();
-      const subscription = existing ?? await registration.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: base64UrlToUint8Array(config.vapidPublicKey),
-      });
-      await savePushSubscription({
-        endpoint: subscription.endpoint,
-        keys: pushSubscriptionKeys(subscription),
-        userAgent: navigator.userAgent,
-      });
-      setSubscribed(true);
-      setMessage("Saved commute alerts enabled.");
-    } catch {
-      setSubscribed(false);
-      setMessage("Could not enable notifications.");
-    } finally {
-      setBusy(false);
-    }
+}) {
+  const summary = notificationSummary || {
+    label: "Unavailable",
+    detail: "Saved commute alerts and closure reminders",
+    tone: "unavailable",
   };
-
-  const disableNotifications = async () => {
-    setBusy(true);
-    setMessage(null);
-    try {
-      const registration = await navigator.serviceWorker.getRegistration("/");
-      const subscription = await registration?.pushManager.getSubscription();
-      if (subscription) {
-        await disablePushSubscription(subscription.endpoint);
-        await subscription.unsubscribe();
-      }
-      setSubscribed(false);
-      setMessage("Saved commute alerts disabled.");
-    } catch {
-      setMessage("Could not disable notifications.");
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const toggleSubscribed = (checked: boolean) => {
-    if (checked) {
-      enableNotifications();
-    } else {
-      disableNotifications();
-    }
-  };
-
-  const togglePlannedClosures = async (checked: boolean) => {
-    const next = { ...preferences, plannedClosureNotificationsEnabled: checked };
-    setPreferences(next);
-    try {
-      const response = await updatePushPreferences(next);
-      setPreferences({
-        commuteNotificationsEnabled: response.commuteNotificationsEnabled,
-        plannedClosureNotificationsEnabled: response.plannedClosureNotificationsEnabled,
-      });
-    } catch {
-      setPreferences(preferences);
-      setMessage("Could not update notification preferences.");
-    }
-  };
-
-  if (!accountState.authenticated) return null;
-  const availabilityMessage = !supported
-    ? "Push unavailable on this browser."
-    : config && !config.webPushAvailable
-      ? "Push not configured for this environment."
-      : null;
-  const statusMessage = message ?? availabilityMessage;
 
   return (
-    <div className="push-settings-card">
-      <div className="push-settings-heading">
-        <Bell size={15} className="text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
-        <h3>Notifications</h3>
+    <div className="saved-commute-notification-summary">
+      <div className="saved-commute-notification-summary-copy">
+        <Bell size={15} className={`shrink-0 ${summary.tone === "on" ? "text-emerald-600 dark:text-emerald-400" : "text-slate-400 dark:text-slate-500"}`} aria-hidden="true" />
+        <span>
+          <strong>Notifications: {summary.label}</strong>
+          <em>{summary.detail}</em>
+        </span>
       </div>
-      <label className="saved-commute-return-toggle push-settings-toggle">
-        <div className="saved-commute-switch">
-          <input
-            type="checkbox"
-            checked={subscribed}
-            disabled={busy || !supported || !config?.webPushAvailable}
-            onChange={(event) => toggleSubscribed(event.target.checked)}
-          />
-          <span className="saved-commute-slider"></span>
-        </div>
-        <span>Saved Commute Alerts</span>
-      </label>
-      <label className="saved-commute-return-toggle push-settings-toggle">
-        <div className="saved-commute-switch">
-          <input
-            type="checkbox"
-            checked={preferences.plannedClosureNotificationsEnabled}
-            disabled={busy || !subscribed}
-            onChange={(event) => togglePlannedClosures(event.target.checked)}
-          />
-          <span className="saved-commute-slider"></span>
-        </div>
-        <span>Planned Closure Reminders</span>
-      </label>
-      {statusMessage ? <p className="push-settings-message" role="status">{statusMessage}</p> : null}
+      <button type="button" onClick={onOpenNotificationSettings}>
+        Manage
+      </button>
     </div>
   );
 }
@@ -393,6 +234,8 @@ export function SavedCommutesPanel({
   onClearViewedPath,
   onRequestSignIn,
   onRequestCreateAccount,
+  onOpenNotificationSettings,
+  notificationSummary,
 }: Props) {
   const [newLabel, setNewLabel] = useState("");
   const [originStationId, setOriginStationId] = useState("");
@@ -549,7 +392,10 @@ export function SavedCommutesPanel({
             </button>
             {commuteError ? <p className="text-xs font-semibold text-red-600 dark:text-red-300">{commuteError}</p> : null}
 
-            <PushNotificationSettings accountState={accountState} />
+            <SavedCommuteNotificationSummary
+              onOpenNotificationSettings={onOpenNotificationSettings}
+              notificationSummary={notificationSummary}
+            />
             
             <div className="border-t border-black/10 dark:border-white/10 my-1" />
             

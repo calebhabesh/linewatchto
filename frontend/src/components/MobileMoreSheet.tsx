@@ -1,6 +1,6 @@
 "use client";
 
-import { BarChart3, LogIn, LogOut, ShieldCheck, UserPlus, UserRound, X } from "lucide-react";
+import { BarChart3, Bell, LogIn, LogOut, ShieldCheck, UserPlus, UserRound, X } from "lucide-react";
 import Image from "next/image";
 import type { AccountState } from "../app/account-data";
 import type { DashboardData } from "../app/DataContext";
@@ -19,7 +19,9 @@ type Props = {
   onSignOut: () => void;
   onToggleHighContrast: () => void;
   onToggleReducedMotion: () => void;
+  onOpenNotifications: () => void;
   onOpenAnalytics: () => void;
+  notificationStatusLabel: string;
 };
 
 export function MobileMoreSheet({
@@ -35,7 +37,9 @@ export function MobileMoreSheet({
   onSignOut,
   onToggleHighContrast,
   onToggleReducedMotion,
+  onOpenNotifications,
   onOpenAnalytics,
+  notificationStatusLabel,
 }: Props) {
   return (
     <section className="mobile-more-sheet panel" aria-label="More LineWatch TO options">
@@ -83,6 +87,15 @@ export function MobileMoreSheet({
               </button>
             </>
           )}
+        </div>
+
+        <div className="mobile-more-section">
+          <h3>Notifications</h3>
+          <button type="button" className="mobile-more-row" onClick={onOpenNotifications}>
+            <Bell size={18} />
+            Notifications
+            <strong>{notificationStatusLabel}</strong>
+          </button>
         </div>
 
         <div className="mobile-more-section">
