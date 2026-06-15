@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex">
+    <title>LineWatch TO App Update</title>
+    <style>
+      :root {
+        background: #0d1117;
+        color: #f8fafc;
+        color-scheme: dark;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      body {
+        align-items: center;
+        display: flex;
+        margin: 0;
+        min-height: 100vh;
+        padding: 20px;
+      }
+
+      main {
+        background: #151b24;
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        border-radius: 8px;
+        margin: 0 auto;
+        max-width: 520px;
+        padding: 20px;
+        width: 100%;
+      }
+
+      h1 {
+        font-size: 22px;
+        margin: 0 0 8px;
+      }
+
+      p {
+        color: #cbd5e1;
+        line-height: 1.5;
+      }
+
+      button {
+        align-items: center;
+        background: #f8fafc;
+        border: 0;
+        border-radius: 8px;
+        color: #0f172a;
+        cursor: pointer;
+        display: inline-flex;
+        font-weight: 800;
+        min-height: 44px;
+        padding: 0 14px;
+      }
+
+      button:disabled {
+        cursor: wait;
+        opacity: 0.75;
+      }
+
+      pre {
+        background: #0b1020;
+        border-radius: 8px;
+        color: #cbd5e1;
+        overflow-x: auto;
+        padding: 12px;
+        white-space: pre-wrap;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>LineWatch TO App Update</h1>
+      <p>
+        This page refreshes the app shell, clears browser and service-worker
+        caches, and returns to the dashboard without clearing sign-in cookies or
+        local app preferences.
+      </p>
+      <button type="button" id="update-button">Update LineWatch TO</button>
+      <pre id="update-log" aria-live="polite">Ready.</pre>
+    </main>
+    <script>
+      const log = document.getElementById("update-log");
+      const button = document.getElementById("update-button");
+      const updateParams = new URLSearchParams(window.location.search);
+      const autoRunUpdate = updateParams.get("auto") === "1";
+      const updateMode = updateParams.get("mode") === "dev" ? "dev" : "app";
+
+      function write(message) {
+        log.textContent += "\n" + message;
+      }
+
+      function dashboardReturnUrl() {
+        try {
+          const returnUrl = new URL(updateParams.get("return") || "/", window.location.origin);
+          if (returnUrl.origin !== window.location.origin) {
+            return new URL("/", window.location.origin);
+          }
+          return returnUrl;
+        } catch {
+          return new URL("/", window.location.origin);
+        }
+      }
+
+      function waitForControllerChange(timeoutMs) {
+        if (!("serviceWorker" in navigator) || !navigator.serviceWorker.controller) {
+          return Promise.resolve();
+        }
+
+        return new Promise((resolve) => {
+          const timeout = window.setTimeout(() => {
+            navigator.serviceWorker.removeEventListener("controllerchange", onControllerChange);
+            resolve();
+          }, timeoutMs);
+
+          function onControllerChange() {
+            window.clearTimeout(timeout);
+            navigator.serviceWorker.removeEventListener("controllerchange", onControllerChange);
+            resolve();
+          }
+
+          navigator.serviceWorker.addEventListener("controllerchange", onControllerChange);
+        });
+      }
+
+      async function refreshServiceWorkers() {
+        if (!("serviceWorker" in navigator)) {
+          write("Service workers: unsupported");
+          return;
+        }
+
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        write("Service workers: " + registrations.length);
+
+        await Promise.all(registrations.map(async (registration) => {
+          try {
+            await registration.update();
+          } catch {
+            // The existing registration may point at a stale or unavailable worker.
+          }
+
+          if (registration.waiting) {
+            registration.waiting.postMessage({ type: "linewatch-skip-waiting" });
+          }
+
+          if (updateMode === "dev") {
+            await registration.unregister();
+          }
+        }));
+
+        if (updateMode !== "dev") {
+          await waitForControllerChange(1500);
+        }
+      }
+
+      async function clearCacheStorage() {
+        if (!("caches" in window)) {
+          write("Cache Storage: unsupported");
+          return;
+        }
+
+        const cacheNames = await window.caches.keys();
+        write("Caches: " + cacheNames.length);
+        await Promise.all(cacheNames.map((cacheName) => window.caches.delete(cacheName)));
+      }
+
+      async function updateApp() {
+        button.disabled = true;
+        log.textContent = "Updating...";
+
+        await refreshServiceWorkers();
+        await clearCacheStorage();
+
+        const returnUrl = dashboardReturnUrl();
+        returnUrl.searchParams.set("linewatch-update", String(Date.now()));
+        write("Reloading dashboard...");
+        window.location.replace(returnUrl.href);
+      }
+
+      function runUpdateFromClick() {
+        updateApp().catch((error) => {
+          button.disabled = false;
+          write("Update failed: " + (error && error.message ? error.message : String(error)));
+        });
+      }
+
+      if (autoRunUpdate) {
+        button.hidden = true;
+        window.setTimeout(runUpdateFromClick, 0);
+      } else {
+        button.addEventListener("click", runUpdateFromClick);
+      }
+    </script>
+  </body>
+</html>

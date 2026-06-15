@@ -1,19 +1,21 @@
 "use client";
 
-import { AlertTriangle, Calendar, Construction, X } from "lucide-react";
+import { AlertTriangle, Calendar, Construction, X, Bus } from "lucide-react";
 import { useDashboardData } from "../app/DataContext";
 import { DelayIcon } from "./DelayIcon";
 
-type StatusCategory = "alerts" | "delays" | "reduced-speed-zones" | "closures";
+type StatusCategory = "alerts" | "delays" | "reduced-speed-zones" | "closures" | "accessibility-outages" | "surface-notices";
 
 type Props = {
   pollText: string;
   dataSource: "backend" | "fallback";
   onOpenCategory: (view: StatusCategory) => void;
   onClose: () => void;
+  accessibilityOutageCount?: number;
+  surfaceNoticeCount?: number;
 };
 
-export function MobileStatusSheet({ pollText, dataSource, onOpenCategory, onClose }: Props) {
+export function MobileStatusSheet({ pollText, dataSource, onOpenCategory, onClose, accessibilityOutageCount = 0, surfaceNoticeCount = 0 }: Props) {
   const { activeAlerts, delays, reducedSpeedZones, plannedClosures, lineStatuses } = useDashboardData();
   const toTitleCase = (str: string) =>
     str.split(" ").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
@@ -60,6 +62,20 @@ export function MobileStatusSheet({ pollText, dataSource, onOpenCategory, onClos
             <span className="mobile-status-btn-text">Upcoming Closures</span>
             <span className="mobile-status-btn-circle bg-blue-500/20 text-blue-600 dark:text-blue-400">
               {plannedClosures.length}
+            </span>
+          </button>
+          <button type="button" className="mobile-status-btn-accessibility flex items-center justify-between" onClick={() => onOpenCategory("accessibility-outages")}>
+            <img src="/assets/linewatch/accessibility-alert.svg" alt="" className="w-4 h-4 shrink-0" />
+            <span className="mobile-status-btn-text">Accessibility Outages</span>
+            <span className="mobile-status-btn-circle bg-slate-500/20 text-slate-700 dark:text-slate-300">
+              {accessibilityOutageCount}
+            </span>
+          </button>
+          <button type="button" className="mobile-status-btn-surface flex items-center justify-between" onClick={() => onOpenCategory("surface-notices")}>
+            <Bus size={16} className="text-slate-500 dark:text-slate-400 shrink-0" />
+            <span className="mobile-status-btn-text">Surface Notices</span>
+            <span className="mobile-status-btn-circle bg-slate-500/20 text-slate-700 dark:text-slate-300">
+              {surfaceNoticeCount}
             </span>
           </button>
         </div>

@@ -5,6 +5,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import com.calebhabesh.linewatch.surface.GtfsRtServiceAlertTextParser;
 import com.calebhabesh.linewatch.station.StationRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.nio.charset.StandardCharsets;
@@ -35,7 +36,8 @@ class TtcAlertNormalizerTest {
         feed = new TtcAlertClient(
             RestClient.create(),
             new ObjectMapper().findAndRegisterModules(),
-            new AlertIngestionProperties()
+            new AlertIngestionProperties(),
+            new GtfsRtServiceAlertTextParser()
         ).parse(body);
     }
 

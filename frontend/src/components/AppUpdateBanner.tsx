@@ -22,6 +22,7 @@ function updateCheckUrl() {
 export function AppUpdateBanner() {
   const [latestVersion, setLatestVersion] = useState<VersionPayload | null>(null);
   const [dismissedBuildLabel, setDismissedBuildLabel] = useState<string | null>(null);
+  const [isUpdating, setIsUpdating] = useState(false);
 
   const checkForUpdate = useCallback(async () => {
     try {
@@ -79,25 +80,35 @@ export function AppUpdateBanner() {
     return latestVersion.versionLabel || `v${latestVersion.appVersion || "unknown"} · ${latestVersion.buildLabel}`;
   }, [latestVersion]);
 
+  const handleUpdate = useCallback(() => {
+    if (isUpdating) return;
+
+    setIsUpdating(true);
+    void reloadLineWatchAppForUpdate().catch(() => {
+      setIsUpdating(false);
+    });
+  }, [isUpdating]);
+
   if (!latestVersion?.buildLabel || latestVersion.buildLabel === dismissedBuildLabel) {
     return null;
   }
 
   return (
-    <aside className="app-update-banner" role="status" aria-live="polite">
+    <aside className="app-update-banner" role="status" aria-live="polite" aria-busy={isUpdating}>
       <div className="app-update-banner-copy">
         <strong>New Version Available</strong>
         <span><strong>Installed:</strong> {lineWatchAppVersionLabel}</span>
         <span><strong>Latest:</strong> {latestLabel}</span>
       </div>
       <div className="app-update-banner-actions">
-        <button type="button" onClick={() => { void reloadLineWatchAppForUpdate(); }}>
-          <RefreshCcw size={15} />
-          Update
+        <button type="button" onClick={handleUpdate} disabled={isUpdating}>
+          <RefreshCcw size={15} className={isUpdating ? "app-update-banner-spin" : undefined} />
+          {isUpdating ? "Updating..." : "Update"}
         </button>
         <button
           type="button"
           className="app-update-banner-dismiss"
+          disabled={isUpdating}
           onClick={() => setDismissedBuildLabel(latestVersion.buildLabel || null)}
           aria-label="Dismiss update notice"
         >

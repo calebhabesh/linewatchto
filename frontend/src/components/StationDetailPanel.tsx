@@ -677,7 +677,7 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
                       </div>
                     )}
                     <div className="min-w-0 flex-1">
-                      <strong className="block text-amber-800 dark:text-amber-200">{outage.title}</strong>
+                      <span className="block font-normal text-amber-800 dark:text-amber-200">{outage.title}</span>
                       <p className="mt-1 text-slate-600 dark:text-slate-300 text-xs leading-relaxed">{outage.description}</p>
                       <dl className="impact-metadata-grid">
                         <div>

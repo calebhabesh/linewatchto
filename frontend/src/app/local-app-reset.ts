@@ -1,34 +1,45 @@
-async function clearLineWatchCacheStorage() {
-  if (typeof window === "undefined" || !("caches" in window)) return;
-  const cacheNames = await window.caches.keys();
-  await Promise.all(cacheNames.map((cacheName) => window.caches.delete(cacheName)));
-}
+let appUpdateNavigationInFlight = false;
+let localResetNavigationInFlight = false;
 
-async function updateLineWatchServiceWorkers() {
-  if (typeof navigator === "undefined" || !("serviceWorker" in navigator)) return;
-  const registrations = await navigator.serviceWorker.getRegistrations();
-  await Promise.all(registrations.map((registration) => registration.update()));
+function currentReturnPath() {
+  const currentUrl = new URL(window.location.href);
+  return `${currentUrl.pathname}${currentUrl.search}${currentUrl.hash}`;
 }
 
 export async function reloadLineWatchAppForUpdate() {
-  if (typeof window === "undefined") return;
+  if (typeof window === "undefined" || appUpdateNavigationInFlight) return;
 
-  await Promise.allSettled([
-    clearLineWatchCacheStorage(),
-    updateLineWatchServiceWorkers(),
-  ]);
+  appUpdateNavigationInFlight = true;
 
-  const nextUrl = new URL(window.location.href);
-  nextUrl.searchParams.set("app-update", String(Date.now()));
-  window.location.assign(nextUrl.href);
+  const updateUrl = new URL("/app-update.html", window.location.origin);
+  updateUrl.searchParams.set("auto", "1");
+  updateUrl.searchParams.set("source", "update");
+  updateUrl.searchParams.set("mode", process.env.NODE_ENV === "production" ? "app" : "dev");
+  updateUrl.searchParams.set("return", currentReturnPath());
+  updateUrl.searchParams.set("update", String(Date.now()));
+
+  try {
+    window.location.replace(updateUrl.href);
+  } catch (error) {
+    appUpdateNavigationInFlight = false;
+    throw error;
+  }
 }
 
 export async function resetLineWatchLocalAppState() {
-  if (typeof window === "undefined") return;
+  if (typeof window === "undefined" || localResetNavigationInFlight) return;
+
+  localResetNavigationInFlight = true;
 
   const resetUrl = new URL("/dev-reset.html", window.location.origin);
   resetUrl.searchParams.set("auto", "1");
   resetUrl.searchParams.set("source", "in-app");
   resetUrl.searchParams.set("reset", String(Date.now()));
-  window.location.assign(resetUrl.href);
+
+  try {
+    window.location.replace(resetUrl.href);
+  } catch (error) {
+    localResetNavigationInFlight = false;
+    throw error;
+  }
 }

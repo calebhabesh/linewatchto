@@ -14,6 +14,7 @@ const registrationSource = readFileSync(
 const serviceWorkerSource = readFileSync(new URL("../public/sw.js", import.meta.url), "utf8");
 const offlinePageSource = readFileSync(new URL("../public/offline.html", import.meta.url), "utf8");
 const appUpdateBannerUrl = new URL("../src/components/AppUpdateBanner.tsx", import.meta.url);
+const appUpdatePageUrl = new URL("../public/app-update.html", import.meta.url);
 const localAppResetUrl = new URL("../src/app/local-app-reset.ts", import.meta.url);
 const versionRouteUrl = new URL("../src/app/version.json/route.ts", import.meta.url);
 const devResetPageUrl = new URL("../public/dev-reset.html", import.meta.url);
@@ -366,7 +367,7 @@ describe("LineWatch PWA configuration", () => {
   });
 
   it("uses a conservative service worker cache policy", () => {
-    assert.match(serviceWorkerSource, /const CACHE_VERSION = "v2"/);
+    assert.match(serviceWorkerSource, /const CACHE_VERSION = "v3"/);
     assert.match(serviceWorkerSource, /const OFFLINE_URL = "\/offline\.html"/);
     assert.match(serviceWorkerSource, /APP_SHELL_URLS/);
     assert.match(serviceWorkerSource, /\/assets\/linewatch\/pwa\/offline-icon-512\.png/);
@@ -392,6 +393,26 @@ describe("LineWatch PWA configuration", () => {
 
     const { response } = await serviceWorkerFetch(
       "https://linewatch.test/_next/static/chunks/app/page.js",
+      { cachedResponse, networkResponse },
+    );
+
+    assert.equal(response.source, "network");
+  });
+
+  it("fetches stable public assets from the network before cached copies", async () => {
+    const cachedResponse = {
+      ok: true,
+      source: "cache",
+      clone: () => cachedResponse,
+    };
+    const networkResponse = {
+      ok: true,
+      source: "network",
+      clone: () => networkResponse,
+    };
+
+    const { response } = await serviceWorkerFetch(
+      "https://linewatch.test/assets/linewatch/logo.svg",
       { cachedResponse, networkResponse },
     );
 
@@ -575,25 +596,99 @@ describe("LineWatch PWA configuration", () => {
     assert.match(appUpdateBannerSource, /cache:\s*"no-store"/);
     assert.match(appUpdateBannerSource, /New Version Available/);
     assert.match(appUpdateBannerSource, /reloadLineWatchAppForUpdate/);
+    assert.match(appUpdateBannerSource, /isUpdating/);
+    assert.match(appUpdateBannerSource, /disabled=\{isUpdating\}/);
     assert.match(appUpdateBannerSource, /visibilitychange/);
     assert.match(appUpdateBannerSource, /setInterval/);
   });
 
+  it("routes app updates through a dedicated no-cache refresh page", async () => {
+    assert.equal(existsSync(appUpdatePageUrl), true, "app update refresh page should exist");
+
+    const { reloadLineWatchAppForUpdate } = await import("../src/app/local-app-reset.ts");
+    const originalWindowDescriptor = Object.getOwnPropertyDescriptor(globalThis, "window");
+    const originalNavigatorDescriptor = Object.getOwnPropertyDescriptor(globalThis, "navigator");
+    const navigations = [];
+
+    Object.defineProperty(globalThis, "window", {
+      configurable: true,
+      value: {
+        location: {
+          href: "https://linewatch.test/?panel=more#tools",
+          origin: "https://linewatch.test",
+          replace: (url) => {
+            navigations.push(url);
+          },
+          assign: (url) => {
+            navigations.push(`assign:${url}`);
+          },
+        },
+      },
+    });
+    Object.defineProperty(globalThis, "navigator", {
+      configurable: true,
+      value: {},
+    });
+
+    try {
+      await reloadLineWatchAppForUpdate();
+    } finally {
+      if (originalWindowDescriptor) {
+        Object.defineProperty(globalThis, "window", originalWindowDescriptor);
+      } else {
+        delete globalThis.window;
+      }
+
+      if (originalNavigatorDescriptor) {
+        Object.defineProperty(globalThis, "navigator", originalNavigatorDescriptor);
+      } else {
+        delete globalThis.navigator;
+      }
+    }
+
+    assert.equal(navigations.length, 1);
+    assert.doesNotMatch(navigations[0], /^assign:/);
+
+    const navigationUrl = new URL(navigations[0]);
+    assert.equal(navigationUrl.origin, "https://linewatch.test");
+    assert.equal(navigationUrl.pathname, "/app-update.html");
+    assert.equal(navigationUrl.searchParams.get("auto"), "1");
+    assert.equal(navigationUrl.searchParams.get("source"), "update");
+    assert.equal(navigationUrl.searchParams.get("return"), "/?panel=more#tools");
+  });
+
   it("provides update and reset escape hatches without clearing auth cookies", () => {
     assert.equal(existsSync(localAppResetUrl), true, "local app reset helper should exist");
+    assert.equal(existsSync(appUpdatePageUrl), true, "app update refresh page should exist");
     assert.equal(existsSync(devResetPageUrl), true, "dev reset page should exist");
 
     const localAppResetSource = readFileSync(localAppResetUrl, "utf8");
+    const appUpdatePageSource = readFileSync(appUpdatePageUrl, "utf8");
     const devResetPageSource = readFileSync(devResetPageUrl, "utf8");
 
     assert.match(localAppResetSource, /reloadLineWatchAppForUpdate/);
-    assert.match(localAppResetSource, /window\.caches\.keys/);
-    assert.match(localAppResetSource, /registration\.update/);
-    assert.match(localAppResetSource, /app-update/);
+    assert.match(localAppResetSource, /\/app-update\.html/);
+    assert.match(localAppResetSource, /window\.location\.replace/);
     assert.match(localAppResetSource, /\/dev-reset\.html/);
     assert.match(localAppResetSource, /auto/);
     assert.match(localAppResetSource, /source/);
     assert.doesNotMatch(localAppResetSource, /document\.cookie/);
+
+    assert.match(nextConfigSource, /source:\s*['"]\/app-update\.html['"]/);
+    assert.match(nextConfigSource, /Clear-Site-Data/);
+    assert.match(nextConfigSource, /"cache"/);
+    assert.match(appUpdatePageSource, /LineWatch TO App Update/);
+    assert.match(appUpdatePageSource, /navigator\.serviceWorker\.getRegistrations/);
+    assert.match(appUpdatePageSource, /registration\.update/);
+    assert.match(appUpdatePageSource, /registration\.unregister/);
+    assert.match(appUpdatePageSource, /window\.caches\.keys/);
+    assert.match(appUpdatePageSource, /linewatch-update/);
+    assert.match(appUpdatePageSource, /URLSearchParams/);
+    assert.match(appUpdatePageSource, /autoRunUpdate/);
+    assert.match(appUpdatePageSource, /window\.location\.replace\(returnUrl\.href\)/);
+    assert.doesNotMatch(appUpdatePageSource, /localStorage\.clear/);
+    assert.doesNotMatch(appUpdatePageSource, /sessionStorage\.clear/);
+    assert.doesNotMatch(appUpdatePageSource, /document\.cookie/);
 
     assert.match(nextConfigSource, /source:\s*['"]\/dev-reset\.html['"]/);
     assert.match(nextConfigSource, /Clear-Site-Data/);

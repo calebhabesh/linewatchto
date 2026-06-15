@@ -183,12 +183,33 @@ button {
   padding: 0 10px;
 }
 
+.app-update-banner-actions button:disabled {
+  cursor: wait;
+  opacity: 0.72;
+}
+
 .app-update-banner-actions .app-update-banner-dismiss {
   background: rgba(255, 255, 255, 0.1);
   color: white;
   padding: 0;
   width: 36px;
   justify-content: center;
+}
+
+.app-update-banner-spin {
+  animation: app-update-spin 900ms linear infinite;
+}
+
+@keyframes app-update-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-update-banner-spin {
+    animation: none;
+  }
 }
 
 @media (max-width: 520px) {
@@ -7533,4 +7554,66 @@ button {
   .mobile-legend-pill--expanded {
     width: min(190px, calc(100vw - 32px)) !important;
   }
+}
+
+/* Accessibility Outages status button styles */
+.mobile-status-btn-accessibility {
+  border-color: rgba(100, 116, 139, 0.4) !important;
+  box-shadow: 0 0 10px rgba(100, 116, 139, 0.15) !important;
+}
+.mobile-status-btn-accessibility:active {
+  box-shadow: 0 0 14px rgba(100, 116, 139, 0.3) !important;
+}
+.mobile-status-actions button.mobile-status-btn-accessibility {
+  background: #f8fafc !important;
+}
+@media (hover: hover) {
+  .mobile-status-actions button.mobile-status-btn-accessibility:hover {
+    background: #f1f5f9 !important;
+  }
+}
+.mobile-status-actions button.mobile-status-btn-accessibility:active {
+  background: #f1f5f9 !important;
+}
+.dark .mobile-status-actions button.mobile-status-btn-accessibility {
+  background: #1e293b !important;
+}
+@media (hover: hover) {
+  .dark .mobile-status-actions button.mobile-status-btn-accessibility:hover {
+    background: #334155 !important;
+  }
+}
+.dark .mobile-status-actions button.mobile-status-btn-accessibility:active {
+  background: #334155 !important;
+}
+
+/* Surface Notices/Service Changes status button styles */
+.mobile-status-btn-surface {
+  border-color: rgba(100, 116, 139, 0.4) !important;
+  box-shadow: 0 0 10px rgba(100, 116, 139, 0.15) !important;
+}
+.mobile-status-btn-surface:active {
+  box-shadow: 0 0 14px rgba(100, 116, 139, 0.3) !important;
+}
+.mobile-status-actions button.mobile-status-btn-surface {
+  background: #f8fafc !important;
+}
+@media (hover: hover) {
+  .mobile-status-actions button.mobile-status-btn-surface:hover {
+    background: #f1f5f9 !important;
+  }
+}
+.mobile-status-actions button.mobile-status-btn-surface:active {
+  background: #f1f5f9 !important;
+}
+.dark .mobile-status-actions button.mobile-status-btn-surface {
+  background: #1e293b !important;
+}
+@media (hover: hover) {
+  .dark .mobile-status-actions button.mobile-status-btn-surface:hover {
+    background: #334155 !important;
+  }
+}
+.dark .mobile-status-actions button.mobile-status-btn-surface:active {
+  background: #334155 !important;
 }

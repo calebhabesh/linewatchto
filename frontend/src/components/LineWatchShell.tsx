@@ -30,6 +30,13 @@ import { SiteGuideDropdown } from "./SiteGuideDropdown";
 import { DataProvider, DashboardData } from "../app/DataContext";
 import type { ImpactKind, ImpactSelection } from "../app/linewatch-data";
 import {
+  type AccessibilityOutageResponse,
+  getAccessibilityOutages,
+} from "../app/accessibility-outage-data";
+import { AccessibilityOutagesPanel } from "./AccessibilityOutagesPanel";
+import { getSurfaceNotices } from "../app/surface-notice-data";
+import { SurfaceNoticesPanel } from "./SurfaceNoticesPanel";
+import {
   fallbackStationSummaries,
   getStationDetail,
   getStationSummaries,
@@ -41,7 +48,7 @@ import { StationDetailPanel } from "./StationDetailPanel";
 import { useTorontoClock } from "../hooks/useTorontoClock";
 import { useMobilePerformanceMode } from "../hooks/useMobilePerformanceMode";
 import { usePushNotificationSettings } from "../hooks/usePushNotificationSettings";
-import { Menu, X, Map as MapIcon, AlertTriangle, Calendar, Navigation, ShieldCheck, BarChart3, Bell, Construction, Search, LogIn, LogOut, UserPlus, UserRound, Sun, Moon } from "lucide-react";
+import { Menu, X, Map as MapIcon, AlertTriangle, Calendar, Navigation, ShieldCheck, BarChart3, Bell, Construction, Search, LogIn, LogOut, UserPlus, UserRound, Sun, Moon, Bus } from "lucide-react";
 import { SubwayClosedScreen } from "./SubwayClosedScreen";
 import { useSubwayOperatingState } from "../hooks/useSubwayOperatingState";
 import { StationSearchPanel } from "./StationSearchPanel";
@@ -67,7 +74,7 @@ import {
 import { normalizeAccountEmail, validateAccountCredentials } from "../app/account-validation";
 
 
-type ActiveView = "map" | "menu" | "search" | "status" | "alerts" | "delays" | "reduced-speed-zones" | "closures" | "commutes" | "notifications" | "analytics" | "more";
+type ActiveView = "map" | "menu" | "search" | "status" | "alerts" | "delays" | "reduced-speed-zones" | "closures" | "commutes" | "notifications" | "analytics" | "more" | "accessibility-outages" | "surface-notices";
 type AccountDialogMode = "login" | "register" | "forgot-password" | "reset-password";
 
 const DEFAULT_DASHBOARD_REFRESH_MS = 5_000;
@@ -215,6 +222,8 @@ export function LineWatchShell({
   const [selectedStationId, setSelectedStationId] = useState<string | null>(null);
   const [visibleStationResult, setVisibleStationResult] = useState<StationDataResult<StationDetail | null> | null>(null);
   const [stationLoading, setStationLoading] = useState(false);
+  const [accessibilityOutageResult, setAccessibilityOutageResult] = useState<AccessibilityOutageResponse | null>(null);
+  const [surfaceNoticeCount, setSurfaceNoticeCount] = useState<number | null>(null);
 
   const handleSubmenuBack = useCallback(() => {
     setActiveView(() => {
@@ -605,6 +614,30 @@ export function LineWatchShell({
     return () => mediaQuery.removeEventListener("change", handler);
   }, []);
 
+  const fetchAccessibilityOutages = useCallback(async () => {
+    try {
+      const res = await getAccessibilityOutages();
+      setAccessibilityOutageResult(res.data);
+    } catch (err) {
+      console.error("Failed to fetch accessibility outages:", err);
+    }
+  }, []);
+
+  const fetchSurfaceNoticesCount = useCallback(async () => {
+    try {
+      const res = await getSurfaceNotices({ limit: 0 });
+      if (res.source === "backend" && res.data.fresh) {
+        const scCount = res.data.categories.find(c => c.category === "service-change")?.count ?? 0;
+        const bpCount = res.data.categories.find(c => c.category === "bypass")?.count ?? 0;
+        setSurfaceNoticeCount(scCount + bpCount);
+      } else {
+        setSurfaceNoticeCount(null);
+      }
+    } catch (err) {
+      console.error("Failed to fetch surface notices count:", err);
+    }
+  }, []);
+
   useEffect(() => {
     if (subwayOperatingState.status === "closed" && !closedMapPeek) {
       return;
@@ -616,12 +649,16 @@ export function LineWatchShell({
       }
 
       router.refresh();
+      fetchAccessibilityOutages();
+      fetchSurfaceNoticesCount();
     };
 
     const interval = window.setInterval(refreshDashboardData, dashboardRefreshIntervalMs());
     const handleVisibilityChange = () => {
       if (document.visibilityState === "visible") {
         router.refresh();
+        fetchAccessibilityOutages();
+        fetchSurfaceNoticesCount();
       }
     };
 
@@ -631,7 +668,7 @@ export function LineWatchShell({
       window.clearInterval(interval);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, [closedMapPeek, router, subwayOperatingState.status]);
+  }, [closedMapPeek, router, subwayOperatingState.status, fetchAccessibilityOutages, fetchSurfaceNoticesCount]);
 
 
   useEffect(() => {
@@ -643,10 +680,14 @@ export function LineWatchShell({
       }
     });
 
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchAccessibilityOutages();
+    fetchSurfaceNoticesCount();
+
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [fetchAccessibilityOutages, fetchSurfaceNoticesCount]);
 
   useEffect(() => {
     let cancelled = false;
@@ -847,7 +888,9 @@ export function LineWatchShell({
     activeView === "commutes" ||
     activeView === "notifications" ||
     activeView === "more" ||
-    activeView === "analytics"
+    activeView === "analytics" ||
+    activeView === "accessibility-outages" ||
+    activeView === "surface-notices"
   );
 
   const getMobileSheetLabel = () => {
@@ -861,6 +904,8 @@ export function LineWatchShell({
       case "notifications": return "Notifications";
       case "more": return "More options";
       case "analytics": return "Reliability analytics";
+      case "accessibility-outages": return "Accessibility outages";
+      case "surface-notices": return "Surface notices";
       default: return "";
     }
   };
@@ -877,6 +922,10 @@ export function LineWatchShell({
               setActiveView(view);
             }}
             onClose={handleMobileSheetClose}
+            accessibilityOutageCount={
+              accessibilityOutageResult?.assetTypes.reduce((acc, curr) => acc + curr.count, 0) ?? 0
+            }
+            surfaceNoticeCount={surfaceNoticeCount ?? 0}
           />
         );
       case "alerts":
@@ -948,6 +997,38 @@ export function LineWatchShell({
             onRequestCreateAccount={() => { resetAccountForm(); setAccountDialogMode("register"); }}
           />
         );
+      case "accessibility-outages":
+        return (
+          <AccessibilityOutagesPanel
+            accessibilityOutageResult={accessibilityOutageResult}
+            onSelectStation={(stationId) => {
+              setSelectedStationId(stationId);
+              setMobileInspectorDetent("details-focus");
+              if (isMobile) {
+                setActiveView("map");
+              }
+            }}
+            onBack={() => {
+              setActiveView(isMobile ? "status" : "menu");
+            }}
+            onClose={() => {
+              setActiveView("map");
+              setSelection(null);
+            }}
+          />
+        );
+      case "surface-notices":
+        return (
+          <SurfaceNoticesPanel
+            onBack={() => {
+              setActiveView(isMobile ? "status" : "menu");
+            }}
+            onClose={() => {
+              setActiveView("map");
+              setSelection(null);
+            }}
+          />
+        );
       case "more":
         return (
           <MobileMoreSheet
@@ -997,6 +1078,10 @@ export function LineWatchShell({
             setActiveView(view);
           }}
           onClose={handleMobileSheetClose}
+          accessibilityOutageCount={
+            accessibilityOutageResult?.assetTypes.reduce((acc, curr) => acc + curr.count, 0) ?? 0
+          }
+          surfaceNoticeCount={surfaceNoticeCount ?? 0}
         />
       </FloatingPanelShell>
     ) : activeView === "alerts" ? (
@@ -1066,6 +1151,31 @@ export function LineWatchShell({
           onClose={() => { setActiveView("map"); setSelection(null); }}
           onRequestSignIn={() => { resetAccountForm(); setAccountDialogMode("login"); }}
           onRequestCreateAccount={() => { resetAccountForm(); setAccountDialogMode("register"); }}
+        />
+      </FloatingPanelShell>
+    ) : activeView === "accessibility-outages" ? (
+      <FloatingPanelShell panel="accessibility-outages" mobileSheetLabel="Accessibility outages">
+        <AccessibilityOutagesPanel
+          accessibilityOutageResult={accessibilityOutageResult}
+          onSelectStation={(stationId) => {
+            setSelectedStationId(stationId);
+            setMobileInspectorDetent("details-focus");
+          }}
+          onBack={() => setActiveView("menu")}
+          onClose={() => {
+            setActiveView("map");
+            setSelection(null);
+          }}
+        />
+      </FloatingPanelShell>
+    ) : activeView === "surface-notices" ? (
+      <FloatingPanelShell panel="surface-notices" mobileSheetLabel="Surface notices">
+        <SurfaceNoticesPanel
+          onBack={() => setActiveView("menu")}
+          onClose={() => {
+            setActiveView("map");
+            setSelection(null);
+          }}
         />
       </FloatingPanelShell>
     ) : activeView === "more" ? (
@@ -1351,22 +1461,68 @@ export function LineWatchShell({
                       </span>
                     )}
                  </button>
-                 <button
-                   ref={registerMenuAction(actionIndex++)}
-                   role="menuitem"
-                   onClick={() => setActiveView("closures")}
-                   aria-current={activeView === "closures" ? "page" : undefined}
-                   className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
-                 >
-                   <div className="flex items-center gap-3">
-                     <Calendar size={18} className="text-slate-500 dark:text-slate-400" /> Upcoming Closures
-                   </div>
-                   {plannedClosures.length > 0 && (
-                     <span className="flex h-5 items-center justify-center rounded-full bg-blue-500/20 px-2 text-[10px] font-bold text-blue-600 dark:text-blue-400">
-                       {plannedClosures.length}
-                     </span>
-                   )}
-                 </button>
+                  <button
+                    ref={registerMenuAction(actionIndex++)}
+                    role="menuitem"
+                    onClick={() => setActiveView("closures")}
+                    aria-current={activeView === "closures" ? "page" : undefined}
+                    className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <Calendar size={18} className="text-slate-500 dark:text-slate-400" /> Upcoming Closures
+                    </div>
+                    {plannedClosures.length > 0 && (
+                      <span className="flex h-5 items-center justify-center rounded-full bg-blue-500/20 px-2 text-[10px] font-bold text-blue-600 dark:text-blue-400">
+                        {plannedClosures.length}
+                      </span>
+                    )}
+                  </button>
+                  <button
+                    ref={registerMenuAction(actionIndex++)}
+                    role="menuitem"
+                    onClick={() => setActiveView("accessibility-outages")}
+                    aria-current={activeView === "accessibility-outages" ? "page" : undefined}
+                    className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <svg
+                        aria-hidden="true"
+                        viewBox="0 0 24 24"
+                        className="w-[18px] h-[18px] shrink-0 text-slate-500 dark:text-slate-400"
+                      >
+                        <path
+                          fill="currentColor"
+                          d="M11.468 6.403a1.5 1.5 0 1 1 1.064 0a2.25 2.25 0 0 1-1.064 0M9 5q.001.202.026.399L6.15 4.178a2.266 2.266 0 0 0-2.96 1.184a2.24 2.24 0 0 0 1.18 2.954l3.634 1.542v3.701l-1.88 5.458a2.25 2.25 0 1 0 4.256 1.465l.145-.422a6.5 6.5 0 0 1-.496-3.169L8.96 19.993a.75.75 0 0 1-1.418-.488l1.893-5.497a1.3 1.3 0 0 0 .068-.407V9.693c0-.502-.3-.955-.762-1.151L4.956 6.935a.74.74 0 0 1-.39-.977a.766 2.266 0 0 1 .998-.4l4.971 2.11q.24.102.487.169a3 3 0 0 0 1.956 0q.248-.066.488-.168l4.97-2.11a.766 2.266 0 0 1 1 .399a.74.74 0 0 1-.391.977l-3.78 1.605a1.25 1.25 0 0 0-.762 1.15v1.623a6.5 6.5 0 0 1 1.5-.294V9.856l3.628-1.54a2.24 2.24 0 0 0 1.18-2.954a2.266 2.266 0 0 0-2.96-1.184l-2.877 1.22Q15 5.204 15 5a3 3 0 1 0-6 0"
+                        />
+                        <path
+                          fill="currentColor"
+                          d="M22 17.5a5.5 5.5 0 1 1-11 0a5.5 5.5 0 0 1 11 0M16.5 14a.5.5 0 0 0-.5.5v4a.5.5 0 0 0 1 0v-4a.5.5 0 0 0-.5-.5m0 7.125a.625.625 0 1 0 0-1.25a.625.625 0 0 0 0 1.25"
+                        />
+                      </svg>
+                      Accessibility Outages
+                    </div>
+                    {accessibilityOutageResult && accessibilityOutageResult.assetTypes.reduce((acc, curr) => acc + curr.count, 0) > 0 && (
+                      <span className="flex h-5 items-center justify-center rounded-full bg-slate-500/20 px-2 text-[10px] font-bold text-slate-700 dark:text-slate-300">
+                        {accessibilityOutageResult.assetTypes.reduce((acc, curr) => acc + curr.count, 0)}
+                      </span>
+                    )}
+                  </button>
+                  <button
+                    ref={registerMenuAction(actionIndex++)}
+                    role="menuitem"
+                    onClick={() => setActiveView("surface-notices")}
+                    aria-current={activeView === "surface-notices" ? "page" : undefined}
+                    className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <Bus size={18} className="text-slate-500 dark:text-slate-400" /> Surface Notices
+                    </div>
+                    {surfaceNoticeCount !== null && surfaceNoticeCount > 0 && (
+                      <span className="flex h-5 items-center justify-center rounded-full bg-slate-500/20 px-2 text-[10px] font-bold text-slate-700 dark:text-slate-300">
+                        {surfaceNoticeCount}
+                      </span>
+                    )}
+                  </button>
                  <button
                    ref={registerMenuAction(actionIndex++)}
                    role="menuitem"

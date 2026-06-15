@@ -1,0 +1,96 @@
+import { apiUrl } from "./api-client.ts";
+
+export type AccessibilityAssetType = "elevator" | "escalator";
+
+export type AccessibilityOutageLineSummary = {
+  lineId: string;
+  lineNumber: string;
+  lineName: string;
+  color: string;
+  count: number;
+};
+
+export type AccessibilityOutageAssetSummary = {
+  assetType: string;
+  label: string;
+  count: number;
+  lines: AccessibilityOutageLineSummary[];
+};
+
+export type AccessibilityOutageDetail = {
+  id: string;
+  assetType: string;
+  title: string;
+  description: string;
+  cause?: string | null;
+  updatedAt: string;
+  source: string;
+};
+
+export type AccessibilityOutageStationGroup = {
+  stationId: string;
+  stationName: string;
+  count: number;
+  outages: AccessibilityOutageDetail[];
+};
+
+export type AccessibilityOutageLineGroup = {
+  lineId: string;
+  lineNumber: string;
+  lineName: string;
+  color: string;
+  stations: AccessibilityOutageStationGroup[];
+};
+
+export type AccessibilityOutageResponse = {
+  generatedAt: string;
+  fresh: boolean;
+  source: string;
+  assetTypes: AccessibilityOutageAssetSummary[];
+  groups: AccessibilityOutageLineGroup[];
+};
+
+export type AccessibilityOutageResult = {
+  source: "backend" | "fallback";
+  data: AccessibilityOutageResponse;
+};
+
+export type AccessibilityOutageFetchOptions = {
+  fetcher?: typeof fetch;
+  apiBaseUrl?: string;
+};
+
+export const fallbackAccessibilityOutages: AccessibilityOutageResponse = {
+  generatedAt: new Date().toISOString(),
+  fresh: false,
+  source: "LineWatch TO fixture",
+  assetTypes: [],
+  groups: [],
+};
+
+export async function getAccessibilityOutages(
+  asset?: AccessibilityAssetType,
+  options: AccessibilityOutageFetchOptions = {}
+): Promise<AccessibilityOutageResult> {
+  const fetcher = options.fetcher ?? fetch;
+  const path = asset 
+    ? `/api/accessibility-outages?asset=${encodeURIComponent(asset)}`
+    : "/api/accessibility-outages";
+
+  try {
+    const response = await fetcher(apiUrl(path, options.apiBaseUrl));
+    if (!response.ok) {
+      throw new Error(`Accessibility outages request failed with ${response.status}`);
+    }
+
+    return {
+      source: "backend",
+      data: (await response.json()) as AccessibilityOutageResponse,
+    };
+  } catch {
+    return {
+      source: "fallback",
+      data: fallbackAccessibilityOutages,
+    };
+  }
+}

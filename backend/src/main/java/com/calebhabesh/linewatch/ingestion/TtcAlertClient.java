@@ -1,27 +1,35 @@
 package com.calebhabesh.linewatch.ingestion;
 
+import com.calebhabesh.linewatch.surface.GtfsRtServiceAlertTextParser;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
 @Component
 public class TtcAlertClient {
+    private static final Logger log = LoggerFactory.getLogger(TtcAlertClient.class);
+
     private final RestClient restClient;
     private final ObjectMapper objectMapper;
     private final AlertIngestionProperties properties;
+    private final GtfsRtServiceAlertTextParser gtfsRtServiceAlertTextParser;
 
     public TtcAlertClient(
         RestClient ttcAlertRestClient,
         ObjectMapper objectMapper,
-        AlertIngestionProperties properties
+        AlertIngestionProperties properties,
+        GtfsRtServiceAlertTextParser gtfsRtServiceAlertTextParser
     ) {
         this.restClient = ttcAlertRestClient;
         this.objectMapper = objectMapper;
         this.properties = properties;
+        this.gtfsRtServiceAlertTextParser = gtfsRtServiceAlertTextParser;
     }
 
     public TtcAlertFeed fetch() {
@@ -30,7 +38,15 @@ public class TtcAlertClient {
                 .uri(properties.getUrl())
                 .retrieve()
                 .body(String.class);
-            return parse(body);
+            TtcAlertFeed feed = parse(body);
+            List<TtcFetchedRecord> surfaceServiceAlerts = fetchSurfaceGtfsRtRecords();
+            if (surfaceServiceAlerts.isEmpty()) {
+                return feed;
+            }
+
+            List<TtcFetchedRecord> routes = new ArrayList<>(feed.routes());
+            routes.addAll(surfaceServiceAlerts);
+            return new TtcAlertFeed(feed.lastUpdated(), List.copyOf(routes), feed.accessibility());
         } catch (TtcAlertClientException exception) {
             throw exception;
         } catch (Exception exception) {
@@ -73,5 +89,22 @@ public class TtcAlertClient {
 
     private OffsetDateTime parseOptionalTimestamp(JsonNode node) {
         return node == null || node.isNull() ? null : TtcAlertTimes.parse(node.asText());
+    }
+
+    private List<TtcFetchedRecord> fetchSurfaceGtfsRtRecords() {
+        if (!properties.isSurfaceGtfsRtEnabled()) {
+            return List.of();
+        }
+
+        try {
+            String body = restClient.get()
+                .uri(properties.getSurfaceGtfsRtUrl())
+                .retrieve()
+                .body(String.class);
+            return gtfsRtServiceAlertTextParser.parse(body);
+        } catch (Exception exception) {
+            log.warn("Unable to fetch TTC GTFS-RT surface service-alert supplement", exception);
+            return List.of();
+        }
     }
 }

@@ -1,5 +1,5 @@
 const CACHE_PREFIX = "linewatch-pwa";
-const CACHE_VERSION = "v2";
+const CACHE_VERSION = "v3";
 const APP_SHELL_CACHE = `${CACHE_PREFIX}-${CACHE_VERSION}-shell`;
 const STATIC_CACHE = `${CACHE_PREFIX}-${CACHE_VERSION}-static`;
 const OFFLINE_URL = "/offline.html";
@@ -44,17 +44,13 @@ self.addEventListener("activate", (event) => {
     if (isDev) {
       // Clear all caches in development to ensure no stale data persists
       const cacheNames = await caches.keys();
-      await Promise.all(
-        cacheNames.map((cacheName) => caches.delete(cacheName))
-      );
+      await deleteCaches(cacheNames);
     } else {
       const expectedCaches = new Set([APP_SHELL_CACHE, STATIC_CACHE]);
       const cacheNames = await caches.keys();
 
-      await Promise.all(
-        cacheNames
-          .filter((cacheName) => cacheName.startsWith(CACHE_PREFIX) && !expectedCaches.has(cacheName))
-          .map((cacheName) => caches.delete(cacheName)),
+      await deleteCaches(
+        cacheNames.filter((cacheName) => cacheName.startsWith(CACHE_PREFIX) && !expectedCaches.has(cacheName)),
       );
     }
 
@@ -92,8 +88,7 @@ self.addEventListener("fetch", (event) => {
   }
 
   if (isStaticAsset(url)) {
-    event.respondWith(cacheFirstStatic(request));
-    event.waitUntil(refreshStaticAsset(request));
+    event.respondWith(networkFirstStatic(request));
   }
 });
 
@@ -102,6 +97,14 @@ self.addEventListener("push", (event) => {
 });
 
 self.addEventListener("message", (event) => {
+  if (event.data?.type === "linewatch-skip-waiting") {
+    const skipWaiting = self.skipWaiting();
+    if (typeof event.waitUntil === "function") {
+      event.waitUntil(skipWaiting);
+    }
+    return;
+  }
+
   if (event.data?.type !== "linewatch-cleanup-notifications") return;
 
   const cleanup = reconcilePushNotifications();
@@ -136,19 +139,6 @@ async function networkFirstNavigation(request) {
   }
 }
 
-async function cacheFirstStatic(request) {
-  const cachedResponse = await caches.match(request);
-  if (cachedResponse) return cachedResponse;
-
-  const networkResponse = await fetch(request);
-  if (networkResponse.ok) {
-    const cache = await caches.open(STATIC_CACHE);
-    await cache.put(request, networkResponse.clone());
-  }
-
-  return networkResponse;
-}
-
 async function networkFirstStatic(request) {
   try {
     const networkResponse = await fetch(request);
@@ -164,16 +154,8 @@ async function networkFirstStatic(request) {
   }
 }
 
-async function refreshStaticAsset(request) {
-  try {
-    const networkResponse = await fetch(request);
-    if (!networkResponse.ok) return;
-
-    const cache = await caches.open(STATIC_CACHE);
-    await cache.put(request, networkResponse);
-  } catch {
-    // Static refresh is best-effort. The cached response remains available.
-  }
+async function deleteCaches(cacheNames) {
+  await Promise.all(cacheNames.map((cacheName) => caches.delete(cacheName)));
 }
 
 async function showPendingPushNotification() {

@@ -6,6 +6,7 @@ import static org.springframework.test.web.client.match.MockRestRequestMatchers.
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withServerError;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
+import com.calebhabesh.linewatch.surface.GtfsRtServiceAlertTextParser;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
@@ -25,10 +26,12 @@ class TtcAlertClientTest {
         server = MockRestServiceServer.bindTo(builder).build();
         AlertIngestionProperties properties = new AlertIngestionProperties();
         properties.setUrl(URI.create("https://alerts.ttc.ca/api/alerts/live-alerts"));
+        properties.setSurfaceGtfsRtEnabled(false);
         client = new TtcAlertClient(
             builder.build(),
             new ObjectMapper().findAndRegisterModules(),
-            properties
+            properties,
+            new GtfsRtServiceAlertTextParser()
         );
     }
 
@@ -51,6 +54,50 @@ class TtcAlertClientTest {
             .doesNotContain("futureUnknownField");
         assertThat(feed.accessibility().getFirst().record().elevatorCode()).isEqualTo("TEST-E1");
         server.verify();
+    }
+
+    @Test
+    void fetchAppendsGtfsRtSurfaceServiceAlertsWhenConfigured() throws Exception {
+        RestClient.Builder builder = RestClient.builder();
+        MockRestServiceServer gtfsServer = MockRestServiceServer.bindTo(builder).build();
+        AlertIngestionProperties properties = new AlertIngestionProperties();
+        properties.setUrl(URI.create("https://alerts.ttc.ca/api/alerts/live-alerts"));
+        properties.setSurfaceGtfsRtEnabled(true);
+        properties.setSurfaceGtfsRtUrl(URI.create("https://gtfsrt.ttc.ca/alerts/all?format=text"));
+        TtcAlertClient gtfsClient = new TtcAlertClient(
+            builder.build(),
+            new ObjectMapper().findAndRegisterModules(),
+            properties,
+            new GtfsRtServiceAlertTextParser()
+        );
+
+        String body = new String(
+            getClass().getResourceAsStream("/fixtures/ttc-synthetic-alerts.json").readAllBytes(),
+            StandardCharsets.UTF_8
+        );
+        String gtfsText = """
+            header { gtfs_realtime_version: "2.0" incrementality: FULL_DATASET timestamp: 1781031643 }
+            entity {
+              id: "100"
+              alert {
+                active_period { start: 1773547200 end: 1804221000 }
+                informed_entity { route_id: "88" }
+                effect: MODIFIED_SERVICE
+                header_text { translation { text: "88 South Leaside - Route change, due to Ontario Line construction" language: "en" } }
+              }
+            }
+            """;
+        gtfsServer.expect(requestTo("https://alerts.ttc.ca/api/alerts/live-alerts"))
+            .andRespond(withSuccess(body, MediaType.APPLICATION_JSON));
+        gtfsServer.expect(requestTo("https://gtfsrt.ttc.ca/alerts/all?format=text"))
+            .andRespond(withSuccess(gtfsText, MediaType.TEXT_PLAIN));
+
+        TtcAlertFeed feed = gtfsClient.fetch();
+
+        assertThat(feed.routes()).hasSize(3);
+        assertThat(feed.routes())
+            .anySatisfy(route -> assertThat(route.record().id()).isEqualTo("gtfsrt-100"));
+        gtfsServer.verify();
     }
 
     @Test

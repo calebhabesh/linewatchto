@@ -24,6 +24,10 @@ class TtcAlertFeedApplicationServiceTest {
 
     private final TtcAlertStore store = mock(TtcAlertStore.class);
     private final TtcAlertNormalizer normalizer = mock(TtcAlertNormalizer.class);
+    private final com.calebhabesh.linewatch.surface.SurfaceServiceNoticeNormalizer surfaceNormalizer =
+        mock(com.calebhabesh.linewatch.surface.SurfaceServiceNoticeNormalizer.class);
+    private final com.calebhabesh.linewatch.surface.SurfaceServiceNoticeStore surfaceStore =
+        mock(com.calebhabesh.linewatch.surface.SurfaceServiceNoticeStore.class);
     private final TtcFetchedRecord route = new TtcFetchedRecord(
         TestAlertRecords.route("route-source"),
         "{\"id\":\"route-source\"}"
@@ -52,7 +56,7 @@ class TtcAlertFeedApplicationServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new TtcAlertFeedApplicationService(store, normalizer, CLOCK);
+        service = new TtcAlertFeedApplicationService(store, normalizer, surfaceNormalizer, surfaceStore, CLOCK);
         when(store.upsertSource("routes", route, NOW)).thenReturn("routes:route-source");
         when(store.upsertSource("accessibility", outage, NOW))
             .thenReturn("accessibility:outage-source");

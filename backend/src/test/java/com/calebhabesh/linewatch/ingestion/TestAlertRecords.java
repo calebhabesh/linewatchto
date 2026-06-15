@@ -13,7 +13,7 @@ final class TestAlertRecords {
         return new TtcAlertRecord(
             sourceId, "Live", SOURCE_UPDATED_AT, null, List.of("Current"), "1", "Subway",
             "Eglinton", "Davisville", List.of("Eglinton", "Davisville"),
-            "Route alert", "Route description", "Line 1: Route alert", "SIGNIFICANT_DELAYS",
+            "Route alert", "Route description", "Line 1: Route alert", null, "SIGNIFICANT_DELAYS",
             "Significant delays", null, null, null, null, null, null, null, null, null, null, null,
             null, null, null, List.of()
         );
@@ -23,7 +23,7 @@ final class TestAlertRecords {
         return new TtcAlertRecord(
             sourceId, "Live", SOURCE_UPDATED_AT, null, List.of("Current"), null, "Elevator",
             null, null, List.of(), "Elevator outage", "Out of service",
-            "Warden: Elevator outage", "ACCESSIBILITY_ISSUE", "Out of service",
+            "Warden: Elevator outage", null, "ACCESSIBILITY_ISSUE", "Out of service",
             null, null, null, null, null, null, null, null, null, null, null, null, "TEST-E1", null,
             List.of()
         );

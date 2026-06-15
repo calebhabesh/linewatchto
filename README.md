@@ -13,6 +13,8 @@ The current app is a full-stack dashboard demo with graceful local-fixture fallb
 Implemented now:
 
 - Dark, map-first Next.js dashboard.
+- Global accessibility outages panel with elevator and escalator drill-downs grouped by TTC transit line and station, showing relative update times, station detail link, and custom icons.
+- Searchable surface service notices panel with category filters (detours, bypasses, service changes, notices) and debounced route/stop search queries.
 - Overnight subway-closed screen that hides the feed during general non-operating hours while allowing a map peek for current overlays and station accessibility details.
 - Edited SVG-backed subway/LRT network map from `frontend/public/assets/linewatch/ttc-subway-map-edited.svg`.
 - TTC-style line colors for Lines 1, 2, 4, 5, and 6.
@@ -366,6 +368,8 @@ Current backend scope:
 | --- | --- | --- |
 | `GET` | `/api/health` | Backend service health. |
 | `GET` | `/api/health/ingestion` | Latest TTC Live Alerts poll status and record counts. |
+| `GET` | `/api/accessibility-outages` | Global active elevator and escalator outages grouped by transit line and station. |
+| `GET` | `/api/surface-notices` | Searchable detours, bypasses, service changes, and notices for surface routes (bus/streetcar). |
 | `GET` | `/api/map` | Seeded station/topology data plus fresh layered segment and station-node impact metadata when ingestion is current. |
 | `GET` | `/api/status` | Line status derived from fresh normalized alerts, otherwise no stale live impacts. |
 | `GET` | `/api/alerts?type=live\|delay\|planned\|slowdown` | Fresh normalized suspension/active alert cards, ordinary delay cards, planned closures, and Reduced Speed Zone groups. |
@@ -467,6 +471,7 @@ LineWatch TO should use public and source-linked data. It should also be honest 
 - Overnight closed-mode uses general TTC subway operating hours; exact first and last trains vary by station, holidays, and service changes.
 - Saved commute route matching uses scheduled adjacent-station weights from the active TTC GTFS import when available, then seeded per-segment fallback travel times, with deterministic topology fallback weights only as a last resort. Return trips are computed as a separate monitored leg when enabled, and directional service impacts only count when they match the commute leg direction or are bidirectional. This is useful for in-app route awareness, but it is not a full TTC trip planner and does not reflect live train travel times.
 - Saved-commute push notifications are derived from the same dashboard-visible impact matching. They should not be described as comprehensive TTC alerts, all-map alerts, or guaranteed delivery.
+- Global accessibility outages and surface notices use fresh TTC Live Alerts rows and disappear when ingestion is stale. They are searchable and source-linked, but do not affect rapid-transit segment highlights, current line status, saved-commute impacts, or push notifications.
 - This app is unofficial and should not be treated as the sole source of truth for TTC service.
 
 ## Verification Baseline
