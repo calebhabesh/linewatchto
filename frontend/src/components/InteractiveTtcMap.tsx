@@ -42,6 +42,10 @@ import {
   type MapOverlapSelection,
   overlapBadgeKindCounts,
 } from "./map-overlap-badges";
+import {
+  stationImpactDirectionForImpact,
+  type StationImpactArrowDirection,
+} from "./station-impact-direction";
 
 const RSZ_IMPACT_COLOR = "#F59E0B";
 
@@ -1104,6 +1108,15 @@ function InteractiveTtcMapComponent({
                   if (!station) return null;
                   const selected = selection?.kind === impact.kind && selection.id === impact.cardId;
                   const point = stationPointFor(station);
+                  const impactDirection = stationImpactDirectionForImpact(impact, {
+                    activeAlerts,
+                    delays,
+                    reducedSpeedZones,
+                    plannedClosures,
+                  });
+                  const directionLabel = impactDirection?.displayDirection
+                    ? ` (${impactDirection.displayDirection})`
+                    : "";
 
                   return (
                     <g
@@ -1122,7 +1135,7 @@ function InteractiveTtcMapComponent({
                         />
                       )}
                       <circle
-                        aria-label={`${impact.title}: ${station.name}`}
+                        aria-label={`${impact.title}: ${station.name}${directionLabel}`}
                         className={`station-impact-ring ${impact.kind} ${selected ? "selected" : ""}`}
                         cx={point.x}
                         cy={point.y}
@@ -1159,6 +1172,14 @@ function InteractiveTtcMapComponent({
                         r={station.interchange ? 34 : 26}
                         pointerEvents="none"
                       />
+                      {impactDirection ? (
+                        <StationImpactDirectionGlyph
+                          x={point.x}
+                          y={point.y}
+                          direction={impactDirection.arrow.direction}
+                          radius={station.interchange ? 18 : 15}
+                        />
+                      ) : null}
                     </g>
                   );
                 })}
@@ -2425,6 +2446,47 @@ function OverlapKindIcon({ kind }: { kind: MapImpactKind }) {
       <ImpactTypeIcon kind={kind} size={34} className={`overlap-indicator-type-icon ${kind}`} />
     </g>
   );
+}
+
+function StationImpactDirectionGlyph({
+  x,
+  y,
+  direction,
+  radius,
+}: {
+  x: number;
+  y: number;
+  direction: StationImpactArrowDirection;
+  radius: number;
+}) {
+  return (
+    <g
+      aria-hidden="true"
+      className="station-impact-direction-glyph"
+      pointerEvents="none"
+      transform={`translate(${x} ${y})`}
+    >
+      <circle className="station-impact-direction-badge" r={radius} />
+      <path className="station-impact-direction-arrow" d={stationImpactDirectionPath(direction)} />
+    </g>
+  );
+}
+
+function stationImpactDirectionPath(direction: StationImpactArrowDirection): string {
+  switch (direction) {
+    case "left":
+      return "M 6 0 H -7 M -2 -5 L -7 0 L -2 5";
+    case "right":
+      return "M -6 0 H 7 M 2 -5 L 7 0 L 2 5";
+    case "up":
+      return "M 0 7 V -7 M -5 -2 L 0 -7 L 5 -2";
+    case "down":
+      return "M 0 -7 V 7 M -5 2 L 0 7 L 5 2";
+    case "horizontal-bidirectional":
+      return "M -7 0 H 7 M -2 -5 L -7 0 L -2 5 M 2 -5 L 7 0 L 2 5";
+    case "vertical-bidirectional":
+      return "M 0 -7 V 7 M -5 -2 L 0 -7 L 5 -2 M -5 2 L 0 7 L 5 2";
+  }
 }
 
 function CommutePathOverlay({

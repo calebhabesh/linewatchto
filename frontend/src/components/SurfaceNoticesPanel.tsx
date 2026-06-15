@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { ArrowUpDown, CalendarClock, ChevronLeft, CircleAlert, ExternalLink, MapPin, Search, X, Bus } from "lucide-react";
+import { ArrowRight, ArrowUpDown, CalendarClock, ChevronLeft, CircleAlert, ExternalLink, MapPin, Search, X, Bus } from "lucide-react";
 import {
   getSurfaceNotices,
   SurfaceNoticeResponse,
@@ -79,15 +79,15 @@ export function SurfaceNoticesPanel({ onBack, onClose }: Props) {
   const getCategoryBadgeColor = (cat: string) => {
     switch (cat.toLowerCase()) {
       case "bypass":
-        return "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20";
+        return "bg-amber-500/20 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300 border border-amber-500/40 dark:border-amber-500/30";
       case "no-service":
-        return "bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20";
+        return "bg-red-500/20 text-red-700 dark:bg-red-500/20 dark:text-red-300 border border-red-500/40 dark:border-red-500/30";
       case "detour":
-        return "bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20";
+        return "bg-purple-500/20 text-purple-700 dark:bg-purple-500/20 dark:text-purple-300 border border-purple-500/40 dark:border-purple-500/30";
       case "service-change":
-        return "bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20";
+        return "bg-blue-500/20 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300 border border-blue-500/40 dark:border-blue-500/30";
       default:
-        return "bg-slate-500/10 text-slate-600 dark:text-slate-400 border border-slate-500/20";
+        return "bg-slate-500/20 text-slate-700 dark:bg-slate-500/20 dark:text-slate-300 border border-slate-500/40 dark:border-slate-500/30";
     }
   };
 
@@ -159,6 +159,52 @@ export function SurfaceNoticesPanel({ onBack, onClose }: Props) {
     return end ? `${start} to ${end}` : start;
   };
 
+  const stopFieldLabel = (notice: SurfaceNoticeGroupItem) => {
+    if (!notice.displayStops.length) {
+      return notice.displayLocation || "Route-wide notice";
+    }
+
+    return notice.displayStops
+      .map((stop) => stop.stopId ? `${stop.stopName} (${stop.stopId})` : stop.stopName)
+      .join(" to ");
+  };
+
+  const stopFieldHeading = (notice: SurfaceNoticeGroupItem) => (
+    notice.displayStops.length > 1 ? "Stops" : "Stop"
+  );
+
+  const renderStopDisplay = (notice: SurfaceNoticeGroupItem) => {
+    if (!notice.displayStops.length) {
+      return (
+        <span className="truncate text-sm font-semibold text-slate-900 dark:text-white">
+          {notice.displayLocation || "Route-wide notice"}
+        </span>
+      );
+    }
+
+    return (
+      <span className="min-w-0 flex flex-wrap items-center gap-1.5">
+        {notice.displayStops.map((stop, index) => (
+          <React.Fragment key={`${stop.stopId ?? stop.stopName}-${index}`}>
+            {index > 0 ? (
+              <ArrowRight className="h-3 w-3 shrink-0 text-slate-500 dark:text-slate-400" />
+            ) : null}
+            <span className="min-w-0 inline-flex items-center gap-1.5">
+              {stop.stopId ? (
+                <span className="shrink-0 rounded border border-slate-400 px-1.5 py-0.5 text-[10px] font-bold text-slate-700 dark:border-slate-500 dark:text-slate-200">
+                  {stop.stopId}
+                </span>
+              ) : null}
+              <span className="truncate text-sm font-semibold text-slate-900 dark:text-white">
+                {stop.stopName}
+              </span>
+            </span>
+          </React.Fragment>
+        ))}
+      </span>
+    );
+  };
+
   return (
     <section className="panel min-w-0 border border-black/10 dark:border-white/10 rounded-lg shadow-xl flex flex-col h-full bg-white dark:bg-[#0a0c10]">
       {/* Panel Header */}
@@ -207,7 +253,7 @@ export function SurfaceNoticesPanel({ onBack, onClose }: Props) {
       </div>
 
       {/* Segmented Category Buttons */}
-      <div className="px-3 pt-3 sm:px-4 sm:pt-3 flex gap-1.5 overflow-x-auto no-scrollbar shrink-0">
+      <div className="px-3 pt-3 pb-3 sm:px-4 sm:pt-3 sm:pb-3 flex gap-1.5 overflow-x-auto no-scrollbar shrink-0">
         <button
           onClick={() => setCategory("all")}
           className={`px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap border cursor-pointer transition-all ${
@@ -258,28 +304,33 @@ export function SurfaceNoticesPanel({ onBack, onClose }: Props) {
                 key={group.key}
                 className="surface-notice-route-group overflow-hidden rounded-lg border border-black/10 bg-slate-50 dark:border-white/10 dark:bg-[#12151c]"
               >
-                <div className="flex items-center justify-between gap-2 border-b border-black/10 px-3.5 py-3 dark:border-white/10">
-                  <div className="min-w-0 flex items-center gap-2">
-                    <div className="flex shrink-0 flex-wrap gap-1">
-                      {group.routeIds.map((routeId) => (
-                        <span
-                          key={routeId}
-                          className="inline-flex items-center justify-center rounded bg-red-600 px-2 py-0.5 text-xs font-black text-white"
-                        >
-                          {routeId}
-                        </span>
-                      ))}
-                    </div>
-                    <div className="min-w-0">
-                      <h3 className="truncate text-sm font-black text-slate-950 dark:text-white">
-                        {group.routeName}
-                      </h3>
-                      <p className="text-[10px] font-bold uppercase text-slate-500 dark:text-slate-400">
+                <div className="flex items-start justify-between gap-2 border-b border-black/10 px-3.5 py-3 dark:border-white/10">
+                  <div className="min-w-0 flex flex-col gap-1">
+                    <p className="text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                      Routes Affected
+                    </p>
+                    <div className="min-w-0 flex flex-wrap items-center gap-1.5">
+                      <div className="flex shrink-0 flex-wrap gap-1">
+                        {group.routeIds.map((routeId) => (
+                          <span
+                            key={routeId}
+                            className="inline-flex items-center justify-center rounded bg-red-600 px-2 py-0.5 text-xs font-black text-white"
+                          >
+                            {routeId}
+                          </span>
+                        ))}
+                      </div>
+                      <span className="text-[9px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500">
                         {group.routeType}
-                      </p>
+                      </span>
                     </div>
+                    {group.routeName ? (
+                      <p className="truncate text-xs font-semibold text-slate-600 dark:text-slate-300">
+                        {group.routeName}
+                      </p>
+                    ) : null}
                   </div>
-                  <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-black uppercase ${getCategoryBadgeColor(group.category)}`}>
+                  <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-[11px] font-black uppercase tracking-wider ${getCategoryBadgeColor(group.category)}`}>
                     {getCategoryLabel(group.category)}
                   </span>
                 </div>
@@ -287,7 +338,6 @@ export function SurfaceNoticesPanel({ onBack, onClose }: Props) {
                 <div className="divide-y divide-black/5 dark:divide-white/5">
                   {group.notices.map((notice) => {
                     const expanded = Boolean(expandedNoticeIds[notice.id]);
-                    const stopLabel = notice.location || "Route-wide notice";
                     return (
                       <article key={notice.id} className="surface-notice-stop-row">
                         <button
@@ -297,14 +347,7 @@ export function SurfaceNoticesPanel({ onBack, onClose }: Props) {
                           aria-expanded={expanded}
                         >
                           <span className="min-w-0 flex items-center gap-2">
-                            {notice.primaryStopId ? (
-                              <span className="shrink-0 rounded border border-slate-400 px-1.5 py-0.5 text-[10px] font-bold text-slate-700 dark:border-slate-500 dark:text-slate-200">
-                                {notice.primaryStopId}
-                              </span>
-                            ) : null}
-                            <span className="truncate text-sm font-semibold text-slate-900 dark:text-white">
-                              {stopLabel}
-                            </span>
+                            {renderStopDisplay(notice)}
                           </span>
                           <ChevronLeft
                             className={`h-4 w-4 shrink-0 text-slate-500 transition-transform ${expanded ? "-rotate-90" : "rotate-180"}`}
@@ -312,7 +355,7 @@ export function SurfaceNoticesPanel({ onBack, onClose }: Props) {
                         </button>
 
                         <dl className="grid grid-cols-1 gap-3 px-3.5 pb-3 sm:grid-cols-2">
-                          {renderCompactField("Stop", stopLabel, <MapPin size={13} />)}
+                          {renderCompactField(stopFieldHeading(notice), stopFieldLabel(notice), <MapPin size={13} />)}
                           {renderCompactField("Active", activeTimeLabel(notice), <CalendarClock size={13} />)}
                           {renderCompactField("Updated", formatRelativeImpactTime(notice.updatedAt), <CalendarClock size={13} />)}
                           {renderCompactField("Direction", notice.compactDirection, <ArrowUpDown size={13} />)}

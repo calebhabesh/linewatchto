@@ -28,6 +28,7 @@ public class SurfaceServiceNoticeResponses {
         String description,
         String location,
         List<String> stopIds,
+        List<StopDetail> stops,
         String direction,
         String cause,
         OffsetDateTime startAt,
@@ -35,5 +36,10 @@ public class SurfaceServiceNoticeResponses {
         OffsetDateTime updatedAt,
         String url,
         String source
+    ) {}
+
+    public record StopDetail(
+        String stopId,
+        String stopName
     ) {}
 }

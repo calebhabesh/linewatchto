@@ -7,38 +7,182 @@
     <title>LineWatch TO App Update</title>
     <style>
       :root {
-        background: #0d1117;
+        background: #0d0808;
         color: #f8fafc;
         color-scheme: dark;
-        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
       }
 
       body {
         align-items: center;
+        background: #0d0808;
         display: flex;
+        justify-content: center;
         margin: 0;
         min-height: 100vh;
-        padding: 20px;
+        padding: max(18px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(18px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px));
       }
 
       main {
-        background: #151b24;
+        background: #111318;
         border: 1px solid rgba(255, 255, 255, 0.14);
         border-radius: 8px;
-        margin: 0 auto;
-        max-width: 520px;
-        padding: 20px;
+        box-shadow: 0 24px 64px rgba(0, 0, 0, 0.38);
+        max-width: 480px;
+        overflow: hidden;
         width: 100%;
       }
 
-      h1 {
-        font-size: 22px;
-        margin: 0 0 8px;
+      .line-strip {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        height: 5px;
       }
 
-      p {
+      .line-strip span:nth-child(1) {
+        background: #fed105;
+      }
+
+      .line-strip span:nth-child(2) {
+        background: #0a7c3f;
+      }
+
+      .line-strip span:nth-child(3) {
+        background: #7c277d;
+      }
+
+      .line-strip span:nth-child(4) {
+        background: #e8721b;
+      }
+
+      .panel {
+        padding: 24px;
+      }
+
+      .eyebrow {
+        color: #94a3b8;
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.12em;
+        margin: 0 0 8px;
+        text-transform: uppercase;
+      }
+
+      h1 {
+        font-size: 23px;
+        letter-spacing: 0;
+        line-height: 1.15;
+        margin: 0;
+      }
+
+      .summary {
         color: #cbd5e1;
-        line-height: 1.5;
+        font-size: 14px;
+        line-height: 1.55;
+        margin: 10px 0 22px;
+      }
+
+      .progress-meta {
+        align-items: baseline;
+        display: flex;
+        gap: 12px;
+        justify-content: space-between;
+        margin-bottom: 8px;
+      }
+
+      #phase-label {
+        color: #f8fafc;
+        font-size: 13px;
+        font-weight: 800;
+      }
+
+      #progress-percent {
+        color: #94a3b8;
+        font-family: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+        font-size: 12px;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .progress-track {
+        background: rgba(255, 255, 255, 0.09);
+        border-radius: 999px;
+        height: 10px;
+        overflow: hidden;
+        width: 100%;
+      }
+
+      .progress-fill {
+        background: linear-gradient(90deg, #fed105 0%, #0a7c3f 42%, #e8721b 100%);
+        height: 100%;
+        transform: scaleX(0.08);
+        transform-origin: left center;
+        transition: transform 260ms ease;
+        width: 100%;
+      }
+
+      .phase-list {
+        display: grid;
+        gap: 8px;
+        list-style: none;
+        margin: 18px 0 20px;
+        padding: 0;
+      }
+
+      .phase-item {
+        align-items: center;
+        color: #94a3b8;
+        display: grid;
+        font-size: 13px;
+        gap: 10px;
+        grid-template-columns: 18px 1fr;
+        min-height: 24px;
+      }
+
+      .phase-dot {
+        align-items: center;
+        border: 2px solid rgba(148, 163, 184, 0.45);
+        border-radius: 50%;
+        display: inline-flex;
+        height: 18px;
+        justify-content: center;
+        width: 18px;
+      }
+
+      .phase-dot::after {
+        background: transparent;
+        border-radius: 50%;
+        content: "";
+        height: 6px;
+        width: 6px;
+      }
+
+      .phase-item[data-state="active"] {
+        color: #f8fafc;
+      }
+
+      .phase-item[data-state="active"] .phase-dot {
+        border-color: #fed105;
+      }
+
+      .phase-item[data-state="active"] .phase-dot::after {
+        background: #fed105;
+      }
+
+      .phase-item[data-state="complete"] {
+        color: #d1fae5;
+      }
+
+      .phase-item[data-state="complete"] .phase-dot {
+        background: rgba(10, 124, 63, 0.22);
+        border-color: #30d175;
+      }
+
+      .phase-item[data-state="complete"] .phase-dot::after {
+        background: #30d175;
       }
 
       button {
@@ -46,49 +190,151 @@
         background: #f8fafc;
         border: 0;
         border-radius: 8px;
-        color: #0f172a;
+        color: #111318;
         cursor: pointer;
         display: inline-flex;
-        font-weight: 800;
+        font: inherit;
+        font-size: 14px;
+        font-weight: 900;
+        justify-content: center;
         min-height: 44px;
-        padding: 0 14px;
+        padding: 0 16px;
+        width: 100%;
       }
 
       button:disabled {
         cursor: wait;
-        opacity: 0.75;
+        opacity: 0.72;
+      }
+
+      .log-label {
+        color: #94a3b8;
+        display: block;
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.1em;
+        margin: 18px 0 6px;
+        text-transform: uppercase;
       }
 
       pre {
-        background: #0b1020;
+        background: #080b10;
+        border: 1px solid rgba(255, 255, 255, 0.1);
         border-radius: 8px;
         color: #cbd5e1;
-        overflow-x: auto;
-        padding: 12px;
+        font-family: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+        font-size: 11px;
+        line-height: 1.55;
+        margin: 0;
+        max-height: 116px;
+        overflow: auto;
+        padding: 10px;
         white-space: pre-wrap;
+      }
+
+      @media (max-width: 520px) {
+        .panel {
+          padding: 20px;
+        }
+
+        h1 {
+          font-size: 21px;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .progress-fill {
+          transition: none;
+        }
       }
     </style>
   </head>
   <body>
     <main>
-      <h1>LineWatch TO App Update</h1>
-      <p>
-        This page refreshes the app shell, clears browser and service-worker
-        caches, and returns to the dashboard without clearing sign-in cookies or
-        local app preferences.
-      </p>
-      <button type="button" id="update-button">Update LineWatch TO</button>
-      <pre id="update-log" aria-live="polite">Ready.</pre>
+      <div class="line-strip" aria-hidden="true">
+        <span></span>
+        <span></span>
+        <span></span>
+        <span></span>
+      </div>
+      <section class="panel" aria-labelledby="update-title">
+        <p class="eyebrow">App update</p>
+        <h1 id="update-title">LineWatch TO App Update</h1>
+        <p class="summary">
+          Updating the app shell. You will return to the dashboard in a moment.
+        </p>
+
+        <div class="progress-meta">
+          <span id="phase-label">Preparing update</span>
+          <span id="progress-percent">8%</span>
+        </div>
+        <div class="progress-track" role="progressbar" aria-labelledby="phase-label" aria-valuemin="0" aria-valuemax="100" aria-valuenow="8">
+          <div class="progress-fill" id="progress-fill"></div>
+        </div>
+
+        <ul class="phase-list" aria-label="Update progress">
+          <li class="phase-item" data-phase="prepare" data-state="active">
+            <span class="phase-dot" aria-hidden="true"></span>
+            <span>Preparing update</span>
+          </li>
+          <li class="phase-item" data-phase="shell" data-state="pending">
+            <span class="phase-dot" aria-hidden="true"></span>
+            <span>Refreshing app shell</span>
+          </li>
+          <li class="phase-item" data-phase="reload" data-state="pending">
+            <span class="phase-dot" aria-hidden="true"></span>
+            <span>Reloading dashboard</span>
+          </li>
+        </ul>
+
+        <button type="button" id="update-button">Update now</button>
+        <span class="log-label">Update log</span>
+        <pre id="update-log" aria-live="polite">Ready.</pre>
+      </section>
     </main>
     <script>
       const log = document.getElementById("update-log");
       const button = document.getElementById("update-button");
+      const phaseLabel = document.getElementById("phase-label");
+      const progressBar = document.getElementById("progress-fill");
+      const progressTrack = document.querySelector(".progress-track");
+      const progressPercent = document.getElementById("progress-percent");
+      const phaseItems = Array.from(document.querySelectorAll(".phase-item"));
       const updateParams = new URLSearchParams(window.location.search);
       const autoRunUpdate = updateParams.get("auto") === "1";
       const updateMode = updateParams.get("mode") === "dev" ? "dev" : "app";
 
+      const phases = {
+        prepare: "Preparing update",
+        shell: "Refreshing app shell",
+        reload: "Reloading dashboard",
+      };
+
+      const delay = (ms) => new Promise((resolve) => window.setTimeout(resolve, ms));
+
       function write(message) {
         log.textContent += "\n" + message;
+        log.scrollTop = log.scrollHeight;
+      }
+
+      function setProgress(phase, percent) {
+        const boundedPercent = Math.max(0, Math.min(100, percent));
+        phaseLabel.textContent = phases[phase] || "Updating LineWatch TO";
+        progressPercent.textContent = boundedPercent + "%";
+        progressTrack.setAttribute("aria-valuenow", String(boundedPercent));
+        progressBar.style.transform = "scaleX(" + (boundedPercent / 100) + ")";
+
+        let seenActive = false;
+        for (const item of phaseItems) {
+          if (item.dataset.phase === phase) {
+            item.dataset.state = "active";
+            seenActive = true;
+          } else if (!seenActive) {
+            item.dataset.state = "complete";
+          } else {
+            item.dataset.state = "pending";
+          }
+        }
       }
 
       function dashboardReturnUrl() {
@@ -137,7 +383,7 @@
           try {
             await registration.update();
           } catch {
-            // The existing registration may point at a stale or unavailable worker.
+            write("Service worker update check skipped.");
           }
 
           if (registration.waiting) {
@@ -169,27 +415,37 @@
         button.disabled = true;
         log.textContent = "Updating...";
 
+        setProgress("prepare", 12);
+        write("Preparing update.");
+        await delay(160);
+
+        setProgress("shell", 46);
+        write("Refreshing app shell.");
         await refreshServiceWorkers();
+        setProgress("shell", 72);
         await clearCacheStorage();
 
+        setProgress("reload", 92);
+        write("Reloading dashboard.");
         const returnUrl = dashboardReturnUrl();
         returnUrl.searchParams.set("linewatch-update", String(Date.now()));
-        write("Reloading dashboard...");
+        await delay(240);
+        setProgress("reload", 100);
         window.location.replace(returnUrl.href);
       }
 
       function runUpdateFromClick() {
         updateApp().catch((error) => {
           button.disabled = false;
+          setProgress("prepare", 0);
           write("Update failed: " + (error && error.message ? error.message : String(error)));
         });
       }
 
+      button.addEventListener("click", runUpdateFromClick);
+
       if (autoRunUpdate) {
-        button.hidden = true;
-        window.setTimeout(runUpdateFromClick, 0);
-      } else {
-        button.addEventListener("click", runUpdateFromClick);
+        window.setTimeout(runUpdateFromClick, 100);
       }
     </script>
   </body>

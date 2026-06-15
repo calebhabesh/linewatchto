@@ -1,11 +1,12 @@
 "use client";
 
-import { RefreshCcw, X } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { lineWatchAppVersionLabel, lineWatchBuildLabel } from "../app/app-build";
+import { RefreshCcw } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { lineWatchBuildLabel } from "../app/app-build";
 import { reloadLineWatchAppForUpdate } from "../app/local-app-reset";
 
 const UPDATE_CHECK_INTERVAL_MS = 30 * 60 * 1000;
+const DISMISSED_UPDATE_BUILD_STORAGE_KEY = "linewatch-dismissed-update-build";
 
 type VersionPayload = {
   appVersion?: string;
@@ -21,7 +22,14 @@ function updateCheckUrl() {
 
 export function AppUpdateBanner() {
   const [latestVersion, setLatestVersion] = useState<VersionPayload | null>(null);
-  const [dismissedBuildLabel, setDismissedBuildLabel] = useState<string | null>(null);
+  const [dismissedBuildLabel, setDismissedBuildLabel] = useState<string | null>(() => {
+    if (typeof window === "undefined") return null;
+    try {
+      return window.sessionStorage.getItem(DISMISSED_UPDATE_BUILD_STORAGE_KEY);
+    } catch {
+      return null;
+    }
+  });
   const [isUpdating, setIsUpdating] = useState(false);
 
   const checkForUpdate = useCallback(async () => {
@@ -42,6 +50,11 @@ export function AppUpdateBanner() {
 
       setLatestVersion(null);
       setDismissedBuildLabel(null);
+      try {
+        window.sessionStorage.removeItem(DISMISSED_UPDATE_BUILD_STORAGE_KEY);
+      } catch {
+        // Update checks are best-effort and should never interrupt the dashboard.
+      }
     } catch {
       // Update checks are best-effort and should never interrupt the dashboard.
     }
@@ -75,11 +88,6 @@ export function AppUpdateBanner() {
     };
   }, [checkForUpdate]);
 
-  const latestLabel = useMemo(() => {
-    if (!latestVersion?.buildLabel) return "";
-    return latestVersion.versionLabel || `v${latestVersion.appVersion || "unknown"} · ${latestVersion.buildLabel}`;
-  }, [latestVersion]);
-
   const handleUpdate = useCallback(() => {
     if (isUpdating) return;
 
@@ -89,6 +97,18 @@ export function AppUpdateBanner() {
     });
   }, [isUpdating]);
 
+  const handleLater = useCallback(() => {
+    const buildLabel = latestVersion?.buildLabel || null;
+    setDismissedBuildLabel(buildLabel);
+    try {
+      if (buildLabel) {
+        window.sessionStorage.setItem(DISMISSED_UPDATE_BUILD_STORAGE_KEY, buildLabel);
+      }
+    } catch {
+      // Dismissal is a convenience; storage failures should not block the UI.
+    }
+  }, [latestVersion?.buildLabel]);
+
   if (!latestVersion?.buildLabel || latestVersion.buildLabel === dismissedBuildLabel) {
     return null;
   }
@@ -96,25 +116,28 @@ export function AppUpdateBanner() {
   return (
     <aside className="app-update-banner" role="status" aria-live="polite" aria-busy={isUpdating}>
       <div className="app-update-banner-copy">
-        <strong>New Version Available</strong>
-        <span><strong>Installed:</strong> {lineWatchAppVersionLabel}</span>
-        <span><strong>Latest:</strong> {latestLabel}</span>
+        <strong>New version available</strong>
+        <span>Update LineWatch TO to get the latest fixes and improvements.</span>
       </div>
       <div className="app-update-banner-actions">
-        <button type="button" onClick={handleUpdate} disabled={isUpdating}>
-          <RefreshCcw size={15} className={isUpdating ? "app-update-banner-spin" : undefined} />
-          {isUpdating ? "Updating..." : "Update"}
-        </button>
         <button
           type="button"
-          className="app-update-banner-dismiss"
+          className="app-update-banner-later"
           disabled={isUpdating}
-          onClick={() => setDismissedBuildLabel(latestVersion.buildLabel || null)}
-          aria-label="Dismiss update notice"
+          onClick={handleLater}
         >
-          <X size={16} />
+          Later
+        </button>
+        <button type="button" onClick={handleUpdate} disabled={isUpdating}>
+          <RefreshCcw size={15} className={isUpdating ? "app-update-banner-spin" : undefined} />
+          {isUpdating ? "Updating..." : "Update now"}
         </button>
       </div>
+      {isUpdating && (
+        <div className="app-update-banner-progress">
+          <div className="app-update-banner-progress-fill" />
+        </div>
+      )}
     </aside>
   );
 }

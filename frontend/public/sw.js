@@ -35,7 +35,6 @@ self.addEventListener("install", (event) => {
     }
     const cache = await caches.open(APP_SHELL_CACHE);
     await cache.addAll(APP_SHELL_URLS);
-    await self.skipWaiting();
   })());
 });
 

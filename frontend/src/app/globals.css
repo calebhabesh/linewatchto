@@ -199,12 +199,11 @@ button {
   opacity: 0.72;
 }
 
-.app-update-banner-actions .app-update-banner-dismiss {
+.app-update-banner-actions .app-update-banner-later {
   background: rgba(255, 255, 255, 0.1);
   color: white;
-  padding: 0;
-  width: 36px;
-  justify-content: center;
+  min-width: 74px;
+  padding: 0 12px;
 }
 
 .app-update-banner-spin {
@@ -223,11 +222,58 @@ button {
   }
 }
 
+.app-update-banner-progress {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.08);
+  border-bottom-left-radius: 8px;
+  border-bottom-right-radius: 8px;
+  overflow: hidden;
+}
+
+.app-update-banner-progress-fill {
+  height: 100%;
+  width: 100%;
+  background: linear-gradient(90deg, #fed105, #e8721b);
+  animation: app-update-banner-pulse 1s linear infinite;
+  transform-origin: left;
+}
+
+@keyframes app-update-banner-pulse {
+  0% { transform: scaleX(0); }
+  50% { transform: scaleX(0.5); }
+  100% { transform: scaleX(1); }
+}
+
+
 @media (max-width: 520px) {
   .app-update-banner {
     align-items: stretch;
     flex-direction: column;
     width: calc(100vw - 24px);
+  }
+
+  .app-update-banner-actions {
+    width: 100%;
+  }
+
+  .app-update-banner-actions button {
+    flex: 1 1 0;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 767px) {
+  .app-update-banner {
+    bottom: calc(
+      var(--mobile-bottom-nav-height, 74px) +
+      var(--mobile-bottom-nav-margin-bottom, 14px) +
+      var(--mobile-safe-bottom, env(safe-area-inset-bottom, 0px)) +
+      10px
+    );
   }
 }
 
@@ -1881,6 +1927,35 @@ button {
   transform-box: fill-box;
   animation: station-radar-ping 1.6s infinite cubic-bezier(0.1, 0.8, 0.25, 1);
   animation-delay: var(--map-pulse-offset);
+}
+
+.station-impact-direction-glyph {
+  filter: drop-shadow(0 0 5px rgba(0, 0, 0, 0.55));
+}
+
+.station-impact-direction-badge {
+  fill: #ffffff;
+  stroke: rgba(127, 29, 29, 0.9);
+  stroke-width: 2.5;
+}
+
+.station-impact-direction-arrow {
+  fill: none;
+  stroke: #111827;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 4;
+}
+
+.linewatch-shell.high-contrast .station-impact-direction-badge {
+  fill: #ffffff;
+  stroke: #000000;
+  stroke-width: 3;
+}
+
+.linewatch-shell.high-contrast .station-impact-direction-arrow {
+  stroke: #000000;
+  stroke-width: 4.5;
 }
 
 @keyframes station-selected-pulse {
@@ -7730,8 +7805,6 @@ button {
 .linewatch-shell.high-contrast #linewatch-main-menu::-webkit-scrollbar-button:vertical:increment {
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'></polyline></svg>") !important;
 }
-
-
 
 
 

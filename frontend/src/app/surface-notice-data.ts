@@ -24,6 +24,12 @@ export type SurfaceNoticeDetail = {
   updatedAt: string;
   url?: string | null;
   source: string;
+  stops?: SurfaceNoticeStopDetail[];
+};
+
+export type SurfaceNoticeStopDetail = {
+  stopId: string;
+  stopName: string;
 };
 
 export type SurfaceNoticeResponse = {

@@ -2,6 +2,7 @@ package com.calebhabesh.linewatch.surface;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.calebhabesh.linewatch.ingestion.TtcAlertActivePeriod;
 import com.calebhabesh.linewatch.ingestion.TtcAlertRecord;
 import com.calebhabesh.linewatch.ingestion.TtcFetchedRecord;
@@ -12,6 +13,7 @@ import org.junit.jupiter.api.Test;
 
 class SurfaceServiceNoticeNormalizerTest {
     private final SurfaceServiceNoticeNormalizer normalizer = new SurfaceServiceNoticeNormalizer();
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     private TtcFetchedRecord fetched(TtcAlertRecord record) {
         return new TtcFetchedRecord(record, "{}");
@@ -61,6 +63,74 @@ class SurfaceServiceNoticeNormalizerTest {
         assertThat(notice.category()).isEqualTo("service-change");
         assertThat(notice.routeIds()).containsExactly("88");
         assertThat(notice.url()).isEqualTo("http://ttc.ca/details");
+    }
+
+    @Test
+    void liveAlertRouteBranchIsPreservedInSurfaceRouteLabels() throws Exception {
+        TtcAlertRecord record = objectMapper.readValue("""
+            {
+              "id": "70051",
+              "alertType": "Live",
+              "activePeriodGroup": ["Current"],
+              "route": "51",
+              "routeBranch": "A",
+              "routeType": "Bus",
+              "title": "To Leslie Station Via Laird Station - Temporary route change due to bridge work",
+              "description": "",
+              "headerText": "",
+              "effect": "MODIFIED_SERVICE",
+              "effectDesc": "Modified Service",
+              "stopIDList": []
+            }
+            """, TtcAlertRecord.class);
+
+        Optional<SurfaceServiceNotice> noticeOpt = normalizer.normalize(fetched(record));
+
+        assertThat(noticeOpt).isPresent();
+        assertThat(noticeOpt.get().routeIds()).containsExactly("51A");
+    }
+
+    @Test
+    void gtfsRtRouteBranchIsInferredFromServiceAdvisoryDestination() {
+        OffsetDateTime gtfsStart = OffsetDateTime.parse("2026-04-20T09:00:00Z");
+        TtcAlertRecord record = new TtcAlertRecord(
+            "gtfsrt-101",
+            "GTFS-RT",
+            OffsetDateTime.parse("2026-06-15T08:36:37Z"),
+            new TtcAlertActivePeriod(gtfsStart, OffsetDateTime.parse("2026-06-21T21:00:00Z")),
+            List.of("Current"),
+            "51",
+            "Bus",
+            null,
+            null,
+            List.of(),
+            "To Leslie Station Via Laird Station – Temporary route change due to bridge work",
+            "",
+            "To Leslie Station Via Laird Station – Temporary route change due to bridge work",
+            "https://www.ttc.ca/service-advisories/Service-Changes/51-Temporary-route-change-due-to-bridge-work",
+            "MODIFIED_SERVICE",
+            "Modified Service",
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            List.of()
+        );
+
+        Optional<SurfaceServiceNotice> noticeOpt = normalizer.normalize(fetched(record));
+
+        assertThat(noticeOpt).isPresent();
+        assertThat(noticeOpt.get().routeIds()).containsExactly("51A");
     }
 
     @Test

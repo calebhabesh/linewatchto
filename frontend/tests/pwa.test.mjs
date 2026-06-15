@@ -64,6 +64,126 @@ function readPngDimensions(url) {
   };
 }
 
+async function serviceWorkerInstall(locationUrl = "https://linewatch.test/sw.js") {
+  const listeners = new Map();
+  const waitUntilPromises = [];
+  const cachedUrls = [];
+  let skipWaitingCalls = 0;
+  const context = {
+    URL,
+    Promise,
+    Response: {
+      error: () => ({ source: "response-error" }),
+    },
+    caches: {
+      keys: async () => [],
+      delete: async () => true,
+      match: async () => undefined,
+      open: async () => ({
+        addAll: async (urls) => {
+          cachedUrls.push(...urls);
+        },
+        put: async () => undefined,
+      }),
+    },
+    fetch: async () => undefined,
+    self: {
+      location: new URL(locationUrl),
+      addEventListener: (type, listener) => {
+        listeners.set(type, listener);
+      },
+      skipWaiting: async () => {
+        skipWaitingCalls += 1;
+      },
+      clients: {
+        claim: async () => undefined,
+        matchAll: async () => [],
+        openWindow: async () => undefined,
+      },
+      registration: {
+        pushManager: {
+          getSubscription: async () => null,
+        },
+        showNotification: async () => undefined,
+      },
+    },
+  };
+
+  runInNewContext(serviceWorkerSource, context, { filename: "sw.js" });
+
+  const installListener = listeners.get("install");
+  assert.equal(typeof installListener, "function");
+
+  installListener({
+    waitUntil: (promise) => {
+      waitUntilPromises.push(Promise.resolve(promise));
+    },
+  });
+  await Promise.all(waitUntilPromises);
+
+  return { cachedUrls, skipWaitingCalls };
+}
+
+async function serviceWorkerSkipWaitingMessage() {
+  const listeners = new Map();
+  const waitUntilPromises = [];
+  let skipWaitingCalls = 0;
+  const context = {
+    URL,
+    Promise,
+    Response: {
+      error: () => ({ source: "response-error" }),
+    },
+    caches: {
+      keys: async () => [],
+      delete: async () => true,
+      match: async () => undefined,
+      open: async () => ({
+        addAll: async () => undefined,
+        put: async () => undefined,
+      }),
+    },
+    fetch: async () => undefined,
+    self: {
+      location: new URL("https://linewatch.test/sw.js"),
+      addEventListener: (type, listener) => {
+        listeners.set(type, listener);
+      },
+      skipWaiting: async () => {
+        skipWaitingCalls += 1;
+      },
+      clients: {
+        claim: async () => undefined,
+        matchAll: async () => [],
+        openWindow: async () => undefined,
+      },
+      registration: {
+        pushManager: {
+          getSubscription: async () => null,
+        },
+        showNotification: async () => undefined,
+      },
+    },
+  };
+
+  runInNewContext(serviceWorkerSource, context, { filename: "sw.js" });
+
+  const messageListener = listeners.get("message");
+  assert.equal(typeof messageListener, "function");
+
+  messageListener({
+    data: {
+      type: "linewatch-skip-waiting",
+    },
+    waitUntil: (promise) => {
+      waitUntilPromises.push(Promise.resolve(promise));
+    },
+  });
+  await Promise.all(waitUntilPromises);
+
+  return { skipWaitingCalls };
+}
+
 async function serviceWorkerFetch(requestUrl, { cachedResponse, networkResponse }, locationUrl = "https://linewatch.test/sw.js") {
   const listeners = new Map();
   const waitUntilPromises = [];
@@ -379,6 +499,19 @@ describe("LineWatch PWA configuration", () => {
     assert.match(serviceWorkerSource, /url\.pathname\.startsWith\("\/assets\/"\)/);
   });
 
+  it("keeps production service worker activation user-controlled", async () => {
+    const productionInstall = await serviceWorkerInstall();
+    assert.equal(productionInstall.skipWaitingCalls, 0);
+    assert.ok(productionInstall.cachedUrls.includes("/offline.html"));
+
+    const devInstall = await serviceWorkerInstall("https://linewatch.test/sw.js?env=dev");
+    assert.equal(devInstall.skipWaitingCalls, 1);
+    assert.equal(devInstall.cachedUrls.length, 0);
+
+    const explicitUpdate = await serviceWorkerSkipWaitingMessage();
+    assert.equal(explicitUpdate.skipWaitingCalls, 1);
+  });
+
   it("fetches Next static chunks from the network before cached copies", async () => {
     const cachedResponse = {
       ok: true,
@@ -594,7 +727,14 @@ describe("LineWatch PWA configuration", () => {
     assert.match(appUpdateBannerSource, /lineWatchBuildLabel/);
     assert.match(appUpdateBannerSource, /\/version\.json/);
     assert.match(appUpdateBannerSource, /cache:\s*"no-store"/);
-    assert.match(appUpdateBannerSource, /New Version Available/);
+    assert.match(appUpdateBannerSource, /New version available/);
+    assert.match(appUpdateBannerSource, /Update LineWatch TO to get the latest fixes and improvements\./);
+    assert.match(appUpdateBannerSource, /Update now/);
+    assert.match(appUpdateBannerSource, /Later/);
+    assert.match(appUpdateBannerSource, /sessionStorage/);
+    assert.match(appUpdateBannerSource, /linewatch-dismissed-update-build/);
+    assert.doesNotMatch(appUpdateBannerSource, /Installed:/);
+    assert.doesNotMatch(appUpdateBannerSource, /Latest:/);
     assert.match(appUpdateBannerSource, /reloadLineWatchAppForUpdate/);
     assert.match(appUpdateBannerSource, /isUpdating/);
     assert.match(appUpdateBannerSource, /disabled=\{isUpdating\}/);
@@ -678,6 +818,9 @@ describe("LineWatch PWA configuration", () => {
     assert.match(nextConfigSource, /Clear-Site-Data/);
     assert.match(nextConfigSource, /"cache"/);
     assert.match(appUpdatePageSource, /LineWatch TO App Update/);
+    assert.match(appUpdatePageSource, /Preparing update/);
+    assert.match(appUpdatePageSource, /Refreshing app shell/);
+    assert.match(appUpdatePageSource, /Reloading dashboard/);
     assert.match(appUpdatePageSource, /navigator\.serviceWorker\.getRegistrations/);
     assert.match(appUpdatePageSource, /registration\.update/);
     assert.match(appUpdatePageSource, /registration\.unregister/);
@@ -686,6 +829,8 @@ describe("LineWatch PWA configuration", () => {
     assert.match(appUpdatePageSource, /URLSearchParams/);
     assert.match(appUpdatePageSource, /autoRunUpdate/);
     assert.match(appUpdatePageSource, /window\.location\.replace\(returnUrl\.href\)/);
+    assert.doesNotMatch(appUpdatePageSource, /Consolidated Recovery Log/);
+    assert.doesNotMatch(appUpdatePageSource, /Finalizing Control Dashboard/);
     assert.doesNotMatch(appUpdatePageSource, /localStorage\.clear/);
     assert.doesNotMatch(appUpdatePageSource, /sessionStorage\.clear/);
     assert.doesNotMatch(appUpdatePageSource, /document\.cookie/);

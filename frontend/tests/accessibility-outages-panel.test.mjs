@@ -24,7 +24,7 @@ describe("accessibility outages panel and routing source verification", () => {
 
   it("verifies station rows expose aria-expanded", () => {
     assert.match(panelSource, /aria-expanded=\{expanded\}/);
-    assert.match(panelSource, /aria-controls=\{`outages-list-\${station\.stationId}`\}/);
+    assert.match(panelSource, /aria-controls=\{`outages-list-\${expandedKey}`\}/);
   });
 
   it("keeps the View Station action aligned with default button typography", () => {

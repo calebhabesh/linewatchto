@@ -21,6 +21,13 @@ describe("surface notices panel and routing source verification", () => {
     assert.match(panelSource, /groupSurfaceNoticesByRoute/);
     assert.match(panelSource, /surface-notice-route-group/);
     assert.match(panelSource, /surface-notice-stop-row/);
+    assert.match(panelSource, /Routes Affected/);
+  });
+
+  it("verifies SurfaceNoticesPanel uses a dynamic Stop or Stops field heading", () => {
+    assert.match(panelSource, /stopFieldHeading/);
+    assert.match(panelSource, /displayStops\.length > 1 \? "Stops" : "Stop"/);
+    assert.match(panelSource, /renderCompactField\(stopFieldHeading\(notice\), stopFieldLabel\(notice\)/);
   });
 
   it("verifies View TTC details links use target='_blank' and rel='noreferrer'", () => {

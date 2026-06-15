@@ -78,15 +78,7 @@ public class SurfaceServiceNoticeNormalizer {
         }
 
         // Route IDs
-        List<String> routeIds = new ArrayList<>();
-        if (record.route() != null && !record.route().isBlank()) {
-            for (String part : record.route().split(",")) {
-                String trimmed = part.trim();
-                if (!trimmed.isEmpty() && !routeIds.contains(trimmed)) {
-                    routeIds.add(trimmed);
-                }
-            }
-        }
+        List<String> routeIds = routeIdsFor(record);
 
         // Stop details
         List<SurfaceServiceNotice.StopDetail> stops = new ArrayList<>();
@@ -154,6 +146,17 @@ public class SurfaceServiceNoticeNormalizer {
             .atZone(TORONTO_ZONE)
             .toOffsetDateTime()
             .withOffsetSameInstant(ZoneOffset.UTC);
+    }
+
+    private List<String> routeIdsFor(TtcAlertRecord record) {
+        return SurfaceRouteLabeler.routeIdsFor(
+            record.route(),
+            record.routeBranch(),
+            record.title(),
+            record.headerText(),
+            record.description(),
+            record.url()
+        );
     }
 
     private String stopNameForIndex(TtcAlertRecord record, int index, String fallback) {

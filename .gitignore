@@ -43,3 +43,7 @@ tmp/
 # Local TODO
 TODO.md
 
+# Python
+__pycache__/
+
+

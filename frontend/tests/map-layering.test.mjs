@@ -57,6 +57,10 @@ describe("asset-backed map layering", () => {
     assert.match(interactiveMapSource, /stationNodeImpacts/);
     assert.match(interactiveMapSource, /pointerEvents="stroke"/);
     assert.match(interactiveMapSource, /onSelectImpact\(\{ kind: impact\.kind, id: impact\.cardId \}\)/);
+    assert.match(interactiveMapSource, /stationImpactDirectionForImpact/);
+    assert.match(interactiveMapSource, /<StationImpactDirectionGlyph/);
+    assert.match(globalCss, /\.station-impact-direction-badge/);
+    assert.match(globalCss, /\.station-impact-direction-arrow/);
     assert.match(interactiveMapSource, /feTurbulence/);
     assert.match(globalCss, /\.delay-static-path/);
 

@@ -66,10 +66,112 @@ describe("surface notice route grouping", () => {
     assert.equal(groups[0].category, "service-change");
   });
 
+  it("keeps route branch labels in route chips and derives concise route-specific info", () => {
+    const groups = groupSurfaceNoticesByRoute([
+      {
+        ...baseNotice,
+        id: "notice-branch",
+        category: "service-change",
+        routeType: "Bus",
+        routeIds: ["51A"],
+        title: "To Leslie Station Via Laird Station - Temporary route change due to bridge work",
+        description: "",
+        location: "",
+        stopIds: [],
+      },
+    ]);
+
+    assert.deepEqual(groups[0].routeIds, ["51A"]);
+    assert.equal(groups[0].routeIdsLabel, "51A");
+    assert.equal(groups[0].routeName, "To Leslie Station Via Laird Station");
+  });
+
+  it("does not use cause-heavy GTFS route text as the route header", () => {
+    const groups = groupSurfaceNoticesByRoute([
+      {
+        ...baseNotice,
+        id: "notice-long-branch",
+        category: "service-change",
+        routeType: "Streetcar",
+        routeIds: ["501", "301", "507"],
+        title: "301507 508 Long Branch Loop Streetcar Track Renewal Work",
+        description: "",
+        location: "",
+        stopIds: [],
+      },
+    ]);
+
+    assert.equal(groups[0].routeName, "Long Branch Loop");
+  });
+
   it("extracts the high-signal cause instead of repeating the full notice text", () => {
     assert.equal(
       deriveSurfaceNoticeCause(baseNotice),
       "FIFA World Cup route adjustments.",
+    );
+  });
+
+  it("keeps a single stop id beside the rider-facing stop name", () => {
+    const groups = groupSurfaceNoticesByRoute([
+      {
+        ...baseNotice,
+        id: "notice-4",
+        location: "Manitoba Dr at Strachan Ave West Side",
+        stopIds: ["1063"],
+        stops: [
+          {
+            stopId: "1063",
+            stopName: "Manitoba Dr at Strachan Ave West Side",
+          },
+        ],
+      },
+    ]);
+
+    const notice = groups[0].notices[0];
+    assert.equal(notice.displayLocation, "Manitoba Dr at Strachan Ave West Side");
+    assert.deepEqual(notice.displayStops, [
+      {
+        stopId: "1063",
+        stopName: "Manitoba Dr at Strachan Ave West Side",
+      },
+    ]);
+  });
+
+  it("summarizes long stop lists as start and end stops", () => {
+    const groups = groupSurfaceNoticesByRoute([
+      {
+        ...baseNotice,
+        id: "notice-5",
+        category: "no-service",
+        routeType: "Bus",
+        routeIds: ["925"],
+        title: "925 Don Mills: No service due to police activity.",
+        location: "Pape Ave at O'Connor Dr to Don Mills Rd at Gateway Blvd (North)",
+        stopIds: ["5989", "1935"],
+        stops: [
+          {
+            stopId: "5989",
+            stopName: "Pape Ave at O'Connor Dr",
+          },
+          {
+            stopId: "1935",
+            stopName: "Don Mills Rd at Gateway Blvd (North)",
+          },
+        ],
+      },
+    ]);
+
+    const notice = groups[0].notices[0];
+    assert.equal(
+      notice.displayLocation,
+      "Pape Ave at O'Connor Dr to Don Mills Rd at Gateway Blvd (North)",
+    );
+    assert.deepEqual(
+      notice.displayStops.map((stop) => [stop.stopId, stop.stopName]),
+      [
+        ["5989", "Pape Ave at O'Connor Dr"],
+        ["1935", "Don Mills Rd at Gateway Blvd (North)"],
+      ],
     );
   });
 });

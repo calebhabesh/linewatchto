@@ -6,75 +6,403 @@
     <meta name="robots" content="noindex">
     <title>LineWatch TO Cache Reset</title>
     <style>
+      @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+
       :root {
-        background: #0d1117;
+        background: #0d0808;
         color: #f8fafc;
         color-scheme: dark;
-        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        font-family: 'Outfit', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       }
 
       body {
         align-items: center;
         display: flex;
+        justify-content: center;
         margin: 0;
         min-height: 100vh;
         padding: 20px;
+        background-color: #0d0808;
+        background-image: radial-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+        background-size: 24px 24px;
+        position: relative;
+        overflow: hidden;
+      }
+
+      /* Glowing background light */
+      body::before {
+        content: '';
+        position: absolute;
+        width: 350px;
+        height: 350px;
+        background: radial-gradient(circle, rgba(232, 114, 27, 0.08) 0%, rgba(0, 0, 0, 0) 70%);
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        z-index: 0;
+        pointer-events: none;
       }
 
       main {
-        background: #151b24;
-        border: 1px solid rgba(255, 255, 255, 0.14);
+        background: rgba(18, 20, 26, 0.82);
+        border: 1px solid rgba(255, 255, 255, 0.08);
         border-radius: 8px;
         margin: 0 auto;
-        max-width: 520px;
-        padding: 20px;
+        max-width: 500px;
+        padding: 32px 28px;
         width: 100%;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        position: relative;
+        z-index: 1;
+        overflow: hidden;
+      }
+
+      /* Accent line representing all TTC lines */
+      .line-color-bar {
+        height: 4px;
+        width: 100%;
+        background: linear-gradient(to right, #fed105 25%, #0a7c3f 25% 50%, #7c277d 50% 75%, #e8721b 75%);
+        border-top-left-radius: 8px;
+        border-top-right-radius: 8px;
+        position: absolute;
+        top: 0;
+        left: 0;
+      }
+
+      .header-container {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 16px;
       }
 
       h1 {
         font-size: 22px;
-        margin: 0 0 8px;
+        font-weight: 700;
+        margin: 0;
+        letter-spacing: -0.02em;
+        background: linear-gradient(135deg, #f8fafc 60%, #cbd5e1 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }
+
+      .header-badge {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(254, 209, 5, 0.3);
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.05em;
+        color: #fed105;
+        text-transform: uppercase;
       }
 
       p {
         color: #cbd5e1;
-        line-height: 1.5;
+        line-height: 1.6;
+        font-size: 14px;
+        margin-top: 0;
+        margin-bottom: 24px;
+      }
+
+      /* Progress Bar Styling */
+      .progress-wrapper {
+        margin: 24px 0;
+      }
+
+      .progress-meta {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 8px;
+        font-size: 13px;
+        font-weight: 500;
+      }
+
+      #progress-step-text {
+        color: #cbd5e1;
+      }
+
+      #progress-percent {
+        color: #f8fafc;
+        font-weight: 600;
+        font-feature-settings: "tnum";
+      }
+
+      .progress-outer {
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid rgba(255, 255, 255, 0.04);
+        border-radius: 999px;
+        height: 10px;
+        overflow: hidden;
+        position: relative;
+        width: 100%;
+      }
+
+      .progress-fill {
+        background: linear-gradient(90deg, #fed105, #e8721b, #7c277d);
+        border-radius: 999px;
+        height: 100%;
+        transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        width: 0%;
+        box-shadow: 0 0 12px rgba(254, 209, 5, 0.3);
+        position: relative;
+      }
+
+      /* Animated light overlay on progress fill */
+      .progress-fill::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(
+          90deg,
+          rgba(255, 255, 255, 0) 0%,
+          rgba(255, 255, 255, 0.25) 50%,
+          rgba(255, 255, 255, 0) 100%
+        );
+        animation: progress-shimmer 1.5s infinite;
+        background-size: 200% 100%;
+      }
+
+      @keyframes progress-shimmer {
+        0% { background-position: 200% 0; }
+        100% { background-position: -200% 0; }
+      }
+
+      /* Visual Steps Checklist */
+      .steps-list {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        margin-bottom: 24px;
+        background: rgba(255, 255, 255, 0.02);
+        border: 1px solid rgba(255, 255, 255, 0.04);
+        border-radius: 8px;
+        padding: 16px;
+      }
+
+      .step-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        color: #747d8c;
+        font-size: 13px;
+        font-weight: 500;
+        transition: color 0.3s ease;
+      }
+
+      .step-icon {
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        border: 2px solid rgba(255, 255, 255, 0.12);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+        box-sizing: border-box;
+        transition: border-color 0.3s ease, background 0.3s ease;
+      }
+
+      .step-icon::after {
+        content: '';
+        width: 6px;
+        height: 6px;
+        background: transparent;
+        border-radius: 50%;
+        transition: background 0.3s ease;
+      }
+
+      /* Active Step State */
+      .step-item.active {
+        color: #f8fafc;
+      }
+
+      .step-item.active .step-icon {
+        border-color: #fed105;
+      }
+
+      .step-item.active .step-icon::after {
+        background: #fed105;
+        animation: step-pulse 1.2s infinite ease-in-out;
+      }
+
+      @keyframes step-pulse {
+        0% { transform: scale(0.8); opacity: 0.5; }
+        50% { transform: scale(1.3); opacity: 1; }
+        100% { transform: scale(0.8); opacity: 0.5; }
+      }
+
+      /* Completed Step State */
+      .step-item.completed {
+        color: #cbd5e1;
+      }
+
+      .step-item.completed .step-icon {
+        border-color: #30d175;
+        background: rgba(48, 209, 117, 0.15);
+      }
+
+      .step-item.completed .step-icon::after {
+        background: #30d175;
+        width: 8px;
+        height: 8px;
+      }
+
+      /* Log console box */
+      .console-wrapper {
+        margin-top: 20px;
+      }
+
+      .console-header {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin-bottom: 6px;
+        font-size: 11px;
+        font-weight: 600;
+        color: #747d8c;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+
+      .console-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: #fed105;
+        box-shadow: 0 0 6px #fed105;
+      }
+
+      pre {
+        background: #090a0f;
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        border-radius: 6px;
+        color: #aab1bd;
+        font-family: 'JetBrains Mono', var(--font-mono), monospace;
+        font-size: 11.5px;
+        line-height: 1.6;
+        height: 110px;
+        overflow-y: auto;
+        padding: 12px 14px;
+        margin: 0;
+        white-space: pre-wrap;
+        box-sizing: border-box;
+      }
+
+      /* Custom scrollbar for console log */
+      pre::-webkit-scrollbar {
+        width: 6px;
+      }
+
+      pre::-webkit-scrollbar-track {
+        background: transparent;
+      }
+
+      pre::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.12);
+        border-radius: 99px;
+      }
+
+      pre::-webkit-scrollbar-thumb:hover {
+        background: rgba(255, 255, 255, 0.24);
       }
 
       button {
         align-items: center;
-        background: #f8fafc;
+        background: #fed105;
         border: 0;
-        border-radius: 8px;
-        color: #0f172a;
+        border-radius: 6px;
+        color: #0d0808;
         cursor: pointer;
         display: inline-flex;
-        font-weight: 800;
-        min-height: 44px;
-        padding: 0 14px;
+        justify-content: center;
+        font-family: inherit;
+        font-size: 14px;
+        font-weight: 700;
+        min-height: 40px;
+        padding: 0 18px;
+        width: 100%;
+        transition: background 0.2s, transform 0.1s, opacity 0.2s;
+        margin-top: 12px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
       }
 
-      pre {
-        background: #0b1020;
-        border-radius: 8px;
-        color: #cbd5e1;
-        overflow-x: auto;
-        padding: 12px;
-        white-space: pre-wrap;
+      button:hover {
+        background: #e5bd03;
+      }
+
+      button:active {
+        transform: translateY(1px);
+      }
+
+      button:disabled {
+        cursor: wait;
+        opacity: 0.4;
+        background: rgba(255, 255, 255, 0.1);
+        color: #747d8c;
+        box-shadow: none;
       }
     </style>
   </head>
   <body>
     <main>
-      <h1>LineWatch TO Cache Reset</h1>
+      <div class="line-color-bar"></div>
+      <div class="header-container">
+        <h1>LineWatch TO Cache Reset</h1>
+        <div class="header-badge">Dev Ops</div>
+      </div>
       <p>
         Use this development page when mobile Chrome or an installed PWA keeps
         serving an old LineWatch bundle. It unregisters service workers, clears
         Cache Storage, clears local browser storage, asks supported browsers to
         clear the origin HTTP cache, and returns to the dashboard.
       </p>
+
+      <div class="steps-list">
+        <div class="step-item" id="step-sw">
+          <div class="step-icon"></div>
+          <div class="step-label">Refreshing Service Workers</div>
+        </div>
+        <div class="step-item" id="step-cache">
+          <div class="step-icon"></div>
+          <div class="step-label">Purging Application Cache</div>
+        </div>
+        <div class="step-item" id="step-storage">
+          <div class="step-icon"></div>
+          <div class="step-label">Deleting Offline Data Store</div>
+        </div>
+        <div class="step-item" id="step-final">
+          <div class="step-icon"></div>
+          <div class="step-label">Reloading Control Dashboard</div>
+        </div>
+      </div>
+
+      <div class="progress-wrapper">
+        <div class="progress-outer">
+          <div class="progress-fill" id="progress-fill"></div>
+        </div>
+        <div class="progress-meta">
+          <span id="progress-step-text">Ready to reset cache</span>
+          <span id="progress-percent">0%</span>
+        </div>
+      </div>
+
       <button type="button" id="reset-button">Reset local app cache</button>
-      <pre id="reset-log" aria-live="polite">Ready.</pre>
+
+      <div class="console-wrapper">
+        <div class="console-header">
+          <div class="console-dot"></div>
+          <span>Consolidated Recovery Log</span>
+        </div>
+        <pre id="reset-log" aria-live="polite">Ready.</pre>
+      </div>
     </main>
     <script>
       const log = document.getElementById("reset-log");
@@ -82,9 +410,27 @@
       const resetParams = new URLSearchParams(window.location.search);
       const autoRunReset = resetParams.get("auto") === "1";
 
+      // UI hooks
+      const progressBar = document.getElementById("progress-fill");
+      const progressPercent = document.getElementById("progress-percent");
+      const progressStepText = document.getElementById("progress-step-text");
+      const stepSw = document.getElementById("step-sw");
+      const stepCache = document.getElementById("step-cache");
+      const stepStorage = document.getElementById("step-storage");
+      const stepFinal = document.getElementById("step-final");
+
       function write(message) {
         log.textContent += "\n" + message;
+        log.scrollTop = log.scrollHeight;
       }
+
+      function updateProgress(percent, statusText) {
+        progressBar.style.width = percent + "%";
+        progressPercent.textContent = percent + "%";
+        progressStepText.textContent = statusText;
+      }
+
+      const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
       function deleteDatabase(name) {
         return new Promise((resolve) => {
@@ -111,6 +457,13 @@
         button.disabled = true;
         log.textContent = "Resetting...";
 
+        // Step 1: Init (10%)
+        updateProgress(10, "Initializing recovery systems...");
+        await delay(250);
+
+        // Step 2: Service Workers (25% to 45%)
+        stepSw.classList.add("active");
+        updateProgress(25, "Unregistering active service workers...");
         if ("serviceWorker" in navigator) {
           const registrations = await navigator.serviceWorker.getRegistrations();
           write("Service workers: " + registrations.length);
@@ -125,7 +478,14 @@
         } else {
           write("Service workers: unsupported");
         }
+        stepSw.classList.remove("active");
+        stepSw.classList.add("completed");
+        updateProgress(45, "Service workers successfully unregistered.");
+        await delay(250);
 
+        // Step 3: Cache Storage (50% to 70%)
+        stepCache.classList.add("active");
+        updateProgress(55, "Purging application cache storage...");
         if ("caches" in window) {
           const cacheNames = await window.caches.keys();
           write("Caches: " + cacheNames.length);
@@ -133,12 +493,33 @@
         } else {
           write("Cache Storage: unsupported");
         }
+        stepCache.classList.remove("active");
+        stepCache.classList.add("completed");
+        updateProgress(70, "Cache storage successfully cleared.");
+        await delay(250);
 
+        // Step 4: Local/Session Storage & IndexedDB (75% to 90%)
+        stepStorage.classList.add("active");
+        updateProgress(75, "Clearing offline databases & local storage...");
         await clearIndexedDbDatabases();
         localStorage.clear();
         sessionStorage.clear();
         write("Local browser storage cleared.");
+        stepStorage.classList.remove("active");
+        stepStorage.classList.add("completed");
+        updateProgress(90, "Application offline data deleted.");
+        await delay(250);
+
+        // Step 5: Finalizing (95% to 100%)
+        stepFinal.classList.add("active");
+        updateProgress(95, "Syncing new version build...");
+        await delay(200);
+
         write("Reloading dashboard...");
+        updateProgress(100, "Cache reset complete! Redirecting...");
+        stepFinal.classList.remove("active");
+        stepFinal.classList.add("completed");
+        await delay(400);
 
         const resetUrl = new URL("/", window.location.origin);
         resetUrl.searchParams.set("linewatch-reset", String(Date.now()));
@@ -149,6 +530,11 @@
         reset().catch((error) => {
           button.disabled = false;
           write("Reset failed: " + (error && error.message ? error.message : String(error)));
+          updateProgress(0, "Reset failed. Please retry.");
+          stepSw.classList.remove("active", "completed");
+          stepCache.classList.remove("active", "completed");
+          stepStorage.classList.remove("active", "completed");
+          stepFinal.classList.remove("active", "completed");
         });
       }
 
@@ -161,3 +547,4 @@
     </script>
   </body>
 </html>
+

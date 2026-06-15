@@ -23,10 +23,11 @@ export function AccessibilityOutagesPanel({
   const [selectedAssetType, setSelectedAssetType] = useState<"elevator" | "escalator" | null>(null);
   const [expandedStations, setExpandedStations] = useState<Record<string, boolean>>({});
 
-  const toggleStation = (stationId: string) => {
+  const toggleStation = (lineId: string, stationId: string) => {
+    const key = `${lineId}-${stationId}`;
     setExpandedStations((prev) => ({
       ...prev,
-      [stationId]: !prev[stationId],
+      [key]: !prev[key],
     }));
   };
 
@@ -241,18 +242,19 @@ export function AccessibilityOutagesPanel({
                   {/* Stations Accordeon */}
                   <div className="divide-y divide-black/10 dark:divide-white/10 bg-slate-50/50 dark:bg-[#0c0f14]">
                     {group.stations.map((station) => {
-                      const expanded = !!expandedStations[station.stationId];
+                      const expandedKey = `${group.lineId}-${station.stationId}`;
+                      const expanded = !!expandedStations[expandedKey];
                       return (
                         <div key={station.stationId} className="flex flex-col">
                           {/* Station Row Header */}
                           <button
-                            onClick={() => toggleStation(station.stationId)}
+                            onClick={() => toggleStation(group.lineId, station.stationId)}
                             aria-expanded={expanded}
-                            aria-controls={`outages-list-${station.stationId}`}
-                            className="w-full flex items-center justify-between px-3 py-2.5 text-left text-sm font-bold text-slate-900 dark:text-white hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer"
+                            aria-controls={`outages-list-${expandedKey}`}
+                            className="w-full flex items-center justify-between px-3 py-2.5 text-left text-sm text-slate-900 dark:text-white hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer"
                           >
                             <span className="flex items-center gap-2">
-                              {station.stationName}
+                              <span className="font-semibold">{station.stationName}</span>
                               <span className="text-xs font-normal text-slate-500 dark:text-slate-400">
                                 ({station.count} {station.count === 1 ? "outage" : "outages"})
                               </span>
@@ -267,7 +269,7 @@ export function AccessibilityOutagesPanel({
                           {/* Station Expanded Outages */}
                           {expanded && (
                             <div
-                              id={`outages-list-${station.stationId}`}
+                              id={`outages-list-${expandedKey}`}
                               className="px-3 pt-3 pb-3 flex flex-col gap-2 bg-slate-100/50 dark:bg-[#11151d] border-t border-black/5 dark:border-white/5"
                             >
                               {/* Outage Cards */}
