@@ -1329,7 +1329,7 @@ export function LineWatchShell({
             id="linewatch-main-menu"
             role="menu"
             onKeyDown={handleMenuKeyDown}
-            className={`desktop-top-chrome panel-strong absolute top-[72px] left-0 w-[min(calc(100vw-32px),360px)] border border-black/10 dark:border-white/10 rounded-2xl shadow-2xl overflow-hidden flex flex-col origin-top-left transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] ${activeView === "menu" ? "opacity-100 scale-100 translate-y-0 pointer-events-auto" : "opacity-0 scale-90 -translate-y-4 pointer-events-none"}`}
+            className={`desktop-top-chrome panel-strong absolute top-[72px] left-0 w-[min(calc(100vw-32px),360px)] max-h-[calc(var(--visual-viewport-height,100dvh)-96px)] overflow-y-auto stealth-scrollbar border border-black/10 dark:border-white/10 rounded-2xl shadow-2xl flex flex-col origin-top-left transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] ${activeView === "menu" ? "opacity-100 scale-100 translate-y-0 pointer-events-auto" : "opacity-0 scale-90 -translate-y-4 pointer-events-none"}`}
             aria-hidden={activeView !== "menu"}
           >
                {/* Branding */}
@@ -1362,6 +1362,28 @@ export function LineWatchShell({
                       >
                         <LogOut size={17} className="text-slate-500 dark:text-slate-400" />
                         Sign Out
+                      </button>
+                      <button
+                        ref={registerMenuAction(actionIndex++)}
+                        role="menuitem"
+                        onClick={() => setActiveView("commutes")}
+                        aria-current={activeView === "commutes" ? "page" : undefined}
+                        className={`menu-action-row justify-between ${activeView === "commutes" ? "bg-black/5 dark:bg-white/5" : ""}`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <Navigation size={17} className="text-slate-500 dark:text-slate-400" />
+                          <span>Saved Commutes</span>
+                        </div>
+                        {accountCommutes.length > 0 && (
+                          <div className="flex items-center gap-1.5 shrink-0" data-testid="commute-status-badges">
+                            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500/20 text-[10px] font-bold text-emerald-600 dark:text-emerald-400" aria-label={`${commuteClearCount} clear commutes`}>
+                              {commuteClearCount}
+                            </span>
+                            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-amber-500/20 text-[10px] font-bold text-amber-700 dark:text-amber-400" aria-label={`${commuteAffectedCount} affected commutes`}>
+                              {commuteAffectedCount}
+                            </span>
+                          </div>
+                        )}
                       </button>
                     </div>
                   ) : (
@@ -1396,6 +1418,28 @@ export function LineWatchShell({
                       >
                         <UserRound size={17} className="text-emerald-600 dark:text-emerald-400" />
                         Demo Account
+                      </button>
+                      <button
+                        ref={registerMenuAction(actionIndex++)}
+                        role="menuitem"
+                        onClick={() => setActiveView("commutes")}
+                        aria-current={activeView === "commutes" ? "page" : undefined}
+                        className={`menu-action-row justify-between ${activeView === "commutes" ? "bg-black/5 dark:bg-white/5" : ""}`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <Navigation size={17} className="text-slate-500 dark:text-slate-400" />
+                          <span>Saved Commutes</span>
+                        </div>
+                        {accountCommutes.length > 0 && (
+                          <div className="flex items-center gap-1.5 shrink-0" data-testid="commute-status-badges">
+                            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500/20 text-[10px] font-bold text-emerald-600 dark:text-emerald-400" aria-label={`${commuteClearCount} clear commutes`}>
+                              {commuteClearCount}
+                            </span>
+                            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-amber-500/20 text-[10px] font-bold text-amber-700 dark:text-amber-400" aria-label={`${commuteAffectedCount} affected commutes`}>
+                              {commuteAffectedCount}
+                            </span>
+                          </div>
+                        )}
                       </button>
                     </div>
                   )}
@@ -1523,27 +1567,6 @@ export function LineWatchShell({
                       </span>
                     )}
                   </button>
-                 <button
-                   ref={registerMenuAction(actionIndex++)}
-                   role="menuitem"
-                   onClick={() => setActiveView("commutes")}
-                   aria-current={activeView === "commutes" ? "page" : undefined}
-                   className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
-                 >
-                   <div className="flex items-center gap-3">
-                     <Navigation size={18} className="text-slate-500 dark:text-slate-400" /> Saved Commutes
-                   </div>
-                   {accountCommutes.length > 0 && (
-                     <div className="flex items-center gap-1.5 shrink-0" data-testid="commute-status-badges">
-                       <span className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500/20 text-[10px] font-bold text-emerald-600 dark:text-emerald-400" aria-label={`${commuteClearCount} clear commutes`}>
-                         {commuteClearCount}
-                       </span>
-                       <span className="flex h-5 w-5 items-center justify-center rounded-full bg-amber-500/20 text-[10px] font-bold text-amber-700 dark:text-amber-400" aria-label={`${commuteAffectedCount} affected commutes`}>
-                         {commuteAffectedCount}
-                       </span>
-                     </div>
-                   )}
-                 </button>
                  <button
                    ref={registerMenuAction(actionIndex++)}
                    role="menuitem"
