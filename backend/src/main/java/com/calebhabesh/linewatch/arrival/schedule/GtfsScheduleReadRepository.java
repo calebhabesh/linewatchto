@@ -1,6 +1,7 @@
 package com.calebhabesh.linewatch.arrival.schedule;
 
 import java.time.LocalDate;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -25,6 +26,29 @@ public class GtfsScheduleReadRepository {
             limit 1
             """, (rs, rowNum) -> rs.getLong("id"));
         return ids.stream().findFirst();
+    }
+
+    public Optional<ActiveScheduleImport> findActiveImport() {
+        List<ActiveScheduleImport> imports = jdbc.query("""
+            select id,
+                   source_name,
+                   source_url,
+                   imported_at,
+                   service_start,
+                   service_end
+            from gtfs_schedule_imports
+            where active = true
+            order by imported_at desc
+            limit 1
+            """, (rs, rowNum) -> new ActiveScheduleImport(
+                rs.getLong("id"),
+                rs.getString("source_name"),
+                rs.getString("source_url"),
+                rs.getObject("imported_at", OffsetDateTime.class),
+                rs.getObject("service_start", LocalDate.class),
+                rs.getObject("service_end", LocalDate.class)
+            ));
+        return imports.stream().findFirst();
     }
 
     public List<String> findActiveServiceIds(long importId, LocalDate serviceDate) {
@@ -129,4 +153,13 @@ public class GtfsScheduleReadRepository {
             return new ScheduledDeparture(lineId, direction, departureSeconds, date);
         }
     }
+
+    public record ActiveScheduleImport(
+        long id,
+        String sourceName,
+        String sourceUrl,
+        OffsetDateTime importedAt,
+        LocalDate serviceStart,
+        LocalDate serviceEnd
+    ) {}
 }

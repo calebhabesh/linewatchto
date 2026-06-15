@@ -157,6 +157,52 @@ Backend deployment requires Java 21, PostgreSQL/PostGIS, Redis, and the environm
 Frontend deployment requires `BACKEND_URL` for server-side dashboard loading and the frontend `/api/*` proxy. Browser-side account, station detail, saved-commute, and log requests use same-origin `/api/*` paths by default so LAN mobile testing works from URLs such as `http://192.168.x.x:3000`. Set `NEXT_PUBLIC_LINEWATCH_API_BASE_URL` only when browsers should call a separate backend origin directly.
 For production auth with a separate browser-to-backend origin, set `LINEWATCH_AUTH_SECURE_COOKIE=true`, set `LINEWATCH_AUTH_ALLOWED_ORIGINS` to the deployed frontend origin, and keep `LINEWATCH_AUTH_PASSWORD_RESET_DEV_LINKS=false`.
 
+Recommended production domain shape for `linewatchto.ca`:
+
+```text
+linewatchto.ca      Frontend, such as Vercel
+www.linewatchto.ca  Frontend alias
+api.linewatchto.ca  Spring Boot backend
+```
+
+If the domain stays registered at WHC, Cloudflare can still be the authoritative DNS provider by changing the WHC nameservers to Cloudflare's assigned nameservers. Add Vercel, backend, Resend, and any mail records in Cloudflare before switching nameservers if existing mail must keep working.
+
+Production backend settings should include:
+
+```bash
+LINEWATCH_AUTH_SECURE_COOKIE=true
+LINEWATCH_AUTH_ALLOWED_ORIGINS=https://linewatchto.ca,https://www.linewatchto.ca
+LINEWATCH_AUTH_PASSWORD_RESET_DEV_LINKS=false
+LINEWATCH_PASSWORD_RESET_FRONTEND_BASE_URL=https://linewatchto.ca
+LINEWATCH_INGESTION_ALERTS_ENABLED=true
+LINEWATCH_ARRIVALS_GTFS_REFRESH_ENABLED=true
+LINEWATCH_ARRIVALS_GTFS_REFRESH_FIXED_DELAY=PT24H
+LINEWATCH_ARRIVALS_GTFS_REFRESH_MIN_SERVICE_DAYS_REMAINING=14
+```
+
+The backend includes an in-process GTFS refresh job. When `LINEWATCH_ARRIVALS_GTFS_REFRESH_ENABLED=true`, it checks the active TTC schedule import after startup and then on the configured fixed delay. It downloads the current public merged TTC GTFS zip from the configured CKAN package URL only when there is no active import, the active import is expired, or the active import is within `LINEWATCH_ARRIVALS_GTFS_REFRESH_MIN_SERVICE_DAYS_REMAINING` days of expiry. Inspect the schedule import state with:
+
+```bash
+curl https://api.linewatchto.ca/api/health/schedule
+```
+
+Account auth endpoints have a small in-memory rate limiter for login, register, demo login, password-reset request, and password-reset confirmation. Keep it enabled in production, but also use your edge/provider rate-limit rules because the in-app limiter is per backend instance.
+
+For Resend password-reset email, you can use `linewatchto.ca` now that you own the domain. Resend requires a verified domain before SMTP sending. Add `linewatchto.ca` or a sending subdomain such as `mail.linewatchto.ca` in Resend, publish the DKIM/SPF/DMARC DNS records Resend shows, then configure Spring Mail:
+
+```bash
+LINEWATCH_AUTH_PASSWORD_RESET_EMAIL_ENABLED=true
+LINEWATCH_AUTH_PASSWORD_RESET_EMAIL_FROM=no-reply@linewatchto.ca
+SPRING_MAIL_HOST=smtp.resend.com
+SPRING_MAIL_PORT=587
+SPRING_MAIL_USERNAME=resend
+SPRING_MAIL_PASSWORD=your-resend-api-key
+SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH=true
+SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE=true
+```
+
+If you verify `mail.linewatchto.ca` instead of the root domain, use an address under that subdomain, for example `no-reply@mail.linewatchto.ca`. Do not use `calebhabesh.com` for LineWatch TO production reset emails unless you intentionally want reset links and sender reputation tied to your personal domain.
+
 After both deployments are live, run the deployment smoke checker:
 
 ```bash
@@ -290,6 +336,7 @@ Health endpoint:
 
 ```bash
 curl http://localhost:8080/api/health
+curl http://localhost:8080/api/health/schedule
 ```
 
 Alert ingestion is disabled by default for offline-safe local runs, CI, and demos that should not depend on the TTC public API. The `scripts/dev-backend-live.sh` command runs the backend with the `dev-live` Spring profile, which enables one scheduled poller process.
@@ -321,6 +368,16 @@ scripts/import-ttc-gtfs-schedule.sh /tmp/ttc-merged-gtfs.zip
 ```
 
 These arrivals are timetable-based estimates, not live train predictions. If no import is active, the station detail API returns a schedule-unavailable state and the frontend fallback remains demo-labeled.
+
+For deployed environments, prefer the automatic refresh job over manual imports:
+
+```bash
+LINEWATCH_ARRIVALS_GTFS_REFRESH_ENABLED=true
+LINEWATCH_ARRIVALS_GTFS_REFRESH_FIXED_DELAY=PT24H
+LINEWATCH_ARRIVALS_GTFS_REFRESH_MIN_SERVICE_DAYS_REMAINING=14
+```
+
+The refresh job keeps the existing active import until a replacement import succeeds, so a failed download or parse does not replace the last good schedule.
 
 ### Alert Scenario Harness
 
@@ -368,6 +425,7 @@ Current backend scope:
 | --- | --- | --- |
 | `GET` | `/api/health` | Backend service health. |
 | `GET` | `/api/health/ingestion` | Latest TTC Live Alerts poll status and record counts. |
+| `GET` | `/api/health/schedule` | Active TTC GTFS schedule import status, service coverage dates, and days remaining before expiry. |
 | `GET` | `/api/accessibility-outages` | Global active elevator and escalator outages grouped by transit line and station. |
 | `GET` | `/api/surface-notices` | Searchable detours, bypasses, service changes, and notices for surface routes (bus/streetcar). |
 | `GET` | `/api/map` | Seeded station/topology data plus fresh layered segment and station-node impact metadata when ingestion is current. |

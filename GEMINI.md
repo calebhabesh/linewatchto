@@ -26,10 +26,10 @@ The project is early but no longer an empty scaffold.
 - Visible `/api/alerts`, `/api/status`, `/api/map`, and dynamic `/api/stations/{id}` rows can read normalized TTC alert records while the latest successful ingestion run is fresh; stale successful runs are suppressed from alert cards, line status, map overlays, and station details after the configured dashboard freshness window.
 - Delay cards are distinct from explicit Reduced Speed Zone cards. Started timing comes from `activePeriod.start` where available, and Updated timing comes from TTC `lastUpdated` where available.
 - Map segment overlays and single-station alert rings are clickable/tappable and open the corresponding submenu card.
-- Every mapped Line 1, 2, 4, 5, and 6 stop has station-line tags and reviewed line-specific wheelchair/elevator metadata. Station detail shows authored accessibility icons plus fresh directly linked TTC station alerts and elevator/escalator outages. Station arrivals use a source-labeled provider architecture. Station arrivals use source-labeled TTC scheduled service when a merged GTFS schedule import is active. They are timetable-based estimates, not live subway/LRT predictions. If no schedule import is active, the station detail API returns an unavailable scheduled-source state and the frontend fallback remains clearly labeled as demo data. Nightly closure active-window gating is fully implemented.
+- Every mapped Line 1, 2, 4, 5, and 6 stop has station-line tags and reviewed line-specific wheelchair/elevator metadata. Station detail shows authored accessibility icons plus fresh directly linked TTC station alerts and elevator/escalator outages. Station arrivals use a source-labeled provider architecture. Station arrivals use source-labeled TTC scheduled service when a merged GTFS schedule import is active. They are timetable-based estimates, not live subway/LRT predictions. If no schedule import is active, the station detail API returns an unavailable scheduled-source state and the frontend fallback remains clearly labeled as demo data. The backend can automatically refresh the active merged TTC GTFS schedule import from the public CKAN package when `LINEWATCH_ARRIVALS_GTFS_REFRESH_ENABLED=true`, and exposes `/api/health/schedule`. Nightly closure active-window gating is fully implemented.
 - Global accessibility outages dashboard with elevator and escalator drill-downs grouped by transit line and station, plus a searchable surface service notices dashboard (category filtered, route/stop search) are implemented.
 - Account-backed saved commutes compute a weighted default rapid-transit path over the seeded Line 1, 2, 4, 5, and 6 topology, using active GTFS scheduled median segment weights when available, seeded per-segment fallback travel times otherwise, and constant topology weights only as a last resort, then match dashboard-visible service impacts against every path segment and station-node impact with direction-aware segment matching. Saved commutes can monitor an optional return trip as a separate leg inside the same card.
-- Account-backed Web Push subscription, preference, dedupe, delivery, service-worker display plumbing, saved-commute impact notifications, opt-in line-wide subscriptions for Lines 1, 2, 4, 5, and 6, event-type filters, and planned-closure reminder buckets are implemented. Delivery is inactive unless browser permission is granted, VAPID keys are configured, `linewatch.push.enabled` is true, and fresh dashboard-visible impacts exist.
+- Account-backed Web Push subscription, preference, dedupe, delivery, service-worker display plumbing, saved-commute impact notifications, opt-in line-wide subscriptions for Lines 1, 2, 4, 5, and 6, event-type filters, planned-closure reminder buckets, auth input length caps, and auth endpoint rate limiting are implemented. Delivery is inactive unless browser permission is granted, VAPID keys are configured, `linewatch.push.enabled` is true, and fresh dashboard-visible impacts exist.
 - Populated geographic geometry, production segment matching, standalone commute-impact API, route review/edit, commute email notifications, and reliability aggregation are planned but not yet implemented.
 
 Do not claim that the visible dashboard is live unless there is a fresh successful ingestion run. Do not claim imported GTFS geometry, production geospatial matching, Redis-backed status, real analytics, or live station arrivals until those features exist in code and have passing verification.
@@ -129,6 +129,7 @@ Health check:
 ```bash
 curl http://localhost:8080/api/health
 curl http://localhost:8080/api/health/ingestion
+curl http://localhost:8080/api/health/schedule
 ```
 
 ## Verification Policy
@@ -205,6 +206,8 @@ The backend now owns:
 - Complete station-line tagging with reviewed line-specific wheelchair/elevator metadata and authored station-detail icons.
 - Fresh directly linked TTC station alerts and elevator/escalator outages in `/api/stations/{id}`, suppressed when ingestion is stale.
 - Source-ID upserts, alert snapshots, ingestion-run tracking, and `/api/health/ingestion`.
+- Source-labeled TTC scheduled service imports for rapid-transit arrivals, automatic GTFS schedule refresh when enabled, and `/api/health/schedule`.
+- In-memory auth endpoint rate limiting and server-side length caps for account and saved-commute input.
 - Live Alerts reduced-speed records now derive explicit cardinal direction from TTC wording.
 - `Both ways` and `both ways` source directions resolve to bidirectional travel with line-aware cardinal labels.
 - Map overlays expose layered impact metadata and project onto adjacent rapid-transit topology links.
@@ -218,7 +221,7 @@ The backend now owns:
 
 The backend should eventually own:
 
-- Static TTC GTFS import for subway/LRT routes, stops, trips, and shapes.
+- Static TTC GTFS shape import for subway/LRT geometry.
 - PostGIS modeling for stations, line segments, and shapes.
 - Additional planned-closure source ingestion if needed beyond the live-alert feed.
 - TTC Reduced Speed Zones webpage ingestion if needed beyond the live-alert feed.
@@ -239,9 +242,10 @@ GET  /api/reliability/lines
 GET  /api/reliability/stations/{id}
 GET  /api/performance
 GET  /api/health/ingestion
+GET  /api/health/schedule
 ```
 
-The current backend implements seeded-demo dashboard boundaries (`/api/map`, `/api/status`, `/api/alerts`, `/api/stations`), service health (`/api/health`), an opt-in TTC alert ingestion pipeline with `/api/health/ingestion`, and official performance metrics (`/api/performance`). Build the live read switch incrementally and keep fixture mode available for demos and tests.
+The current backend implements seeded-demo dashboard boundaries (`/api/map`, `/api/status`, `/api/alerts`, `/api/stations`), service health (`/api/health`), an opt-in TTC alert ingestion pipeline with `/api/health/ingestion`, schedule import health (`/api/health/schedule`), and official performance metrics (`/api/performance`). Build the live read switch incrementally and keep fixture mode available for demos and tests.
 
 ## Data Source Guardrails
 

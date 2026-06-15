@@ -19,6 +19,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class SavedCommuteService {
+    private static final int MAX_LABEL_LENGTH = 120;
+    private static final int MAX_STATION_ID_LENGTH = 80;
+
     private final SavedCommuteRepository commuteRepository;
     private final StationRepository stationRepository;
     private final CommutePathService commutePathService;
@@ -70,6 +73,7 @@ public class SavedCommuteService {
     public AccountResponses.SavedCommuteResponse create(AccountEntity account, CreateSavedCommuteRequest request) {
         String originId = normalizeStationId(request.originStationId());
         String destinationId = normalizeStationId(request.destinationStationId());
+        validateLabelLength(request.label());
         if (originId.equals(destinationId)) {
             throw new AccountException(HttpStatus.BAD_REQUEST, "same_station", "Choose two different stations for a saved commute.");
         }
@@ -165,14 +169,26 @@ public class SavedCommuteService {
 
     private String normalizeLabel(String label, String originName, String destinationName) {
         String normalized = label == null ? "" : label.trim();
+        validateLabelLength(normalized);
         return normalized.isBlank() ? originName + " to " + destinationName : normalized;
+    }
+
+    private void validateLabelLength(String label) {
+        String normalized = label == null ? "" : label.trim();
+        if (normalized.length() > MAX_LABEL_LENGTH) {
+            throw new AccountException(HttpStatus.BAD_REQUEST, "invalid_commute_label", "Commute label must be 120 characters or less.");
+        }
     }
 
     private String normalizeStationId(String stationId) {
         if (stationId == null || stationId.isBlank()) {
             throw new AccountException(HttpStatus.BAD_REQUEST, "missing_station", "Choose an origin and destination station.");
         }
-        return stationId.trim();
+        String normalized = stationId.trim();
+        if (normalized.length() > MAX_STATION_ID_LENGTH) {
+            throw new AccountException(HttpStatus.BAD_REQUEST, "invalid_station", "Station id must be 80 characters or less.");
+        }
+        return normalized;
     }
 
     private String nextId() {

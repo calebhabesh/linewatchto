@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { AlertTriangle, Calendar, Construction, X, Bus } from "lucide-react";
 import { useDashboardData } from "../app/DataContext";
 import { DelayIcon } from "./DelayIcon";
@@ -65,7 +66,13 @@ export function MobileStatusSheet({ pollText, dataSource, onOpenCategory, onClos
             </span>
           </button>
           <button type="button" className="mobile-status-btn-accessibility flex items-center justify-between" onClick={() => onOpenCategory("accessibility-outages")}>
-            <img src="/assets/linewatch/accessibility-alert.svg" alt="" className="w-4 h-4 shrink-0" />
+            <Image
+              src="/assets/linewatch/accessibility-alert.svg"
+              alt=""
+              width={16}
+              height={16}
+              className="w-4 h-4 shrink-0"
+            />
             <span className="mobile-status-btn-text">Accessibility Outages</span>
             <span className="mobile-status-btn-circle bg-slate-500/20 text-slate-700 dark:text-slate-300">
               {accessibilityOutageCount}

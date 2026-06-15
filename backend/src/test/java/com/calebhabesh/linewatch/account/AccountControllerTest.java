@@ -9,11 +9,13 @@ import java.time.Instant;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.mock.web.MockHttpServletRequest;
 
 class AccountControllerTest {
     private final AccountService accountService = mock(AccountService.class);
     private final AuthCookieFactory cookieFactory = new AuthCookieFactory(false);
-    private final AccountController controller = new AccountController(accountService, cookieFactory);
+    private final AccountRateLimiter rateLimiter = mock(AccountRateLimiter.class);
+    private final AccountController controller = new AccountController(accountService, cookieFactory, rateLimiter);
 
     @Test
     void loginSetsHttpOnlySessionCookie() {
@@ -22,7 +24,8 @@ class AccountControllerTest {
             .thenReturn(new AccountResponses.AuthSession(user, "raw-token", Instant.parse("2026-06-19T14:30:00Z")));
 
         ResponseEntity<AccountResponses.AuthResponse> response = controller.login(
-            new AccountService.LoginRequest("rider@example.com", "correct horse battery staple")
+            new AccountService.LoginRequest("rider@example.com", "correct horse battery staple"),
+            requestFrom("203.0.113.10")
         );
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
@@ -32,6 +35,7 @@ class AccountControllerTest {
             .contains("HttpOnly")
             .contains("SameSite=Lax")
             .contains("Path=/");
+        verify(rateLimiter).requireAuthAttempt("login", "203.0.113.10");
     }
 
     @Test
@@ -66,10 +70,14 @@ class AccountControllerTest {
         );
         when(accountService.requestPasswordReset(request)).thenReturn(serviceResponse);
 
-        ResponseEntity<AccountService.PasswordResetRequestResponse> response = controller.requestPasswordReset(request);
+        ResponseEntity<AccountService.PasswordResetRequestResponse> response = controller.requestPasswordReset(
+            request,
+            requestFrom("203.0.113.20")
+        );
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody()).isEqualTo(serviceResponse);
+        verify(rateLimiter).requirePasswordResetAttempt("203.0.113.20", "rider@example.com");
     }
 
     @Test
@@ -79,7 +87,10 @@ class AccountControllerTest {
         when(accountService.confirmPasswordReset(request))
             .thenReturn(new AccountResponses.AuthSession(user, "raw-token", Instant.parse("2026-06-19T14:30:00Z")));
 
-        ResponseEntity<AccountResponses.AuthResponse> response = controller.confirmPasswordReset(request);
+        ResponseEntity<AccountResponses.AuthResponse> response = controller.confirmPasswordReset(
+            request,
+            requestFrom("203.0.113.30")
+        );
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody()).isEqualTo(new AccountResponses.AuthResponse(true, user));
@@ -88,5 +99,12 @@ class AccountControllerTest {
             .contains("HttpOnly")
             .contains("SameSite=Lax")
             .contains("Path=/");
+        verify(rateLimiter).requireAuthAttempt("password-reset-confirm", "203.0.113.30");
+    }
+
+    private MockHttpServletRequest requestFrom(String remoteAddress) {
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setRemoteAddr(remoteAddress);
+        return request;
     }
 }

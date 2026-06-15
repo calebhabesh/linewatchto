@@ -1,6 +1,6 @@
 services:
   postgres:
-    image: postgis/postgis:16-3.5
+    image: postgis/postgis:18-3.6
     restart: unless-stopped
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-linewatch}
@@ -9,7 +9,7 @@ services:
     ports:
       - "127.0.0.1:${POSTGRES_PORT:-5434}:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
       interval: 10s

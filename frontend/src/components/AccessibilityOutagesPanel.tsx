@@ -1,10 +1,9 @@
 "use client";
 
+import Image from "next/image";
 import React, { useState } from "react";
 import { ChevronLeft, X, ChevronDown, ChevronUp, MapPin } from "lucide-react";
-import {
-  AccessibilityOutageResponse,
-} from "../app/accessibility-outage-data";
+import { AccessibilityOutageResponse } from "../app/accessibility-outage-data";
 import { formatRelativeImpactTime } from "../app/impact-time";
 
 interface Props {
@@ -76,9 +75,11 @@ export function AccessibilityOutagesPanel({
             <ChevronLeft className="w-6 h-6 sm:w-7 sm:h-7 text-slate-700 dark:text-slate-300" />
           </button>
           <h2 className="text-[clamp(14px,4.5cqw,18px)] font-bold text-slate-900 dark:text-white flex items-center gap-2 whitespace-nowrap">
-            <img
+            <Image
               src="/assets/linewatch/accessibility-alert.svg"
               alt=""
+              width={24}
+              height={24}
               className="w-5 h-5 sm:w-6 sm:h-6 shrink-0"
             />
             <span>
@@ -118,9 +119,11 @@ export function AccessibilityOutagesPanel({
             >
               <div className="flex items-center justify-between w-full">
                 <div className="flex items-center gap-3">
-                  <img
+                  <Image
                     src="/assets/linewatch/outages/elevator.svg"
                     alt=""
+                    width={32}
+                    height={32}
                     className="w-8 h-8 shrink-0 select-none"
                   />
                   <div>
@@ -144,9 +147,11 @@ export function AccessibilityOutagesPanel({
                       key={line.lineId}
                       className="inline-flex items-center gap-2 text-[11px] font-semibold text-slate-600 dark:text-slate-300"
                     >
-                      <img
+                      <Image
                         src={`/assets/linewatch/${line.lineId}-legend.svg?v=2`}
                         alt=""
+                        width={20}
+                        height={20}
                         className="w-5 h-5 shrink-0 select-none"
                       />
                       <span>
@@ -169,9 +174,11 @@ export function AccessibilityOutagesPanel({
             >
               <div className="flex items-center justify-between w-full">
                 <div className="flex items-center gap-3">
-                  <img
+                  <Image
                     src="/assets/linewatch/outages/escalator.svg"
                     alt=""
+                    width={32}
+                    height={32}
                     className="w-8 h-8 shrink-0 select-none"
                   />
                   <div>
@@ -195,9 +202,11 @@ export function AccessibilityOutagesPanel({
                       key={line.lineId}
                       className="inline-flex items-center gap-2 text-[11px] font-semibold text-slate-600 dark:text-slate-300"
                     >
-                      <img
+                      <Image
                         src={`/assets/linewatch/${line.lineId}-legend.svg?v=2`}
                         alt=""
+                        width={20}
+                        height={20}
                         className="w-5 h-5 shrink-0 select-none"
                       />
                       <span>
@@ -231,9 +240,11 @@ export function AccessibilityOutagesPanel({
                     className="px-3 py-2 flex items-center gap-2 font-bold text-slate-800 dark:text-slate-200 bg-slate-100 dark:bg-[#161a23] border-b border-black/10 dark:border-white/10 text-sm border-l-4"
                     style={{ borderLeftColor: group.color }}
                   >
-                    <img
+                    <Image
                       src={`/assets/linewatch/${group.lineId}-legend.svg?v=2`}
                       alt=""
+                      width={20}
+                      height={20}
                       className="w-5 h-5 shrink-0 select-none"
                     />
                     <span>{group.lineName} Line</span>

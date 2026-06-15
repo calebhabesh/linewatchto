@@ -16,6 +16,10 @@ public class AccountService {
     public static final String DEMO_EMAIL = "demo@linewatch.local";
     private static final Duration SESSION_TTL = Duration.ofDays(14);
     private static final int MIN_PASSWORD_LENGTH = 8;
+    private static final int MAX_EMAIL_LENGTH = 320;
+    private static final int MAX_PASSWORD_LENGTH = 256;
+    private static final int MAX_DISPLAY_NAME_LENGTH = 120;
+    private static final int MAX_RESET_TOKEN_LENGTH = 256;
     private static final Pattern EMAIL_PATTERN = Pattern.compile(
         "^[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}$",
         Pattern.CASE_INSENSITIVE
@@ -192,6 +196,9 @@ public class AccountService {
 
     private String normalizeEmail(String email) {
         String normalized = email == null ? "" : email.trim().toLowerCase(Locale.ROOT);
+        if (normalized.length() > MAX_EMAIL_LENGTH) {
+            throw new AccountException(HttpStatus.BAD_REQUEST, "invalid_email", "Email must be 320 characters or less.");
+        }
         if (normalized.isBlank() || !EMAIL_PATTERN.matcher(normalized).matches()) {
             throw new AccountException(HttpStatus.BAD_REQUEST, "invalid_email", "Enter a valid email address.");
         }
@@ -200,6 +207,9 @@ public class AccountService {
 
     private String normalizeDisplayName(String displayName, String email) {
         String normalized = displayName == null ? "" : displayName.trim();
+        if (normalized.length() > MAX_DISPLAY_NAME_LENGTH) {
+            throw new AccountException(HttpStatus.BAD_REQUEST, "invalid_display_name", "Display name must be 120 characters or less.");
+        }
         if (!normalized.isBlank()) {
             return normalized;
         }
@@ -208,6 +218,9 @@ public class AccountService {
 
     private void validatePassword(String password) {
         String candidate = password == null ? "" : password.trim();
+        if (candidate.length() > MAX_PASSWORD_LENGTH) {
+            throw new AccountException(HttpStatus.BAD_REQUEST, "weak_password", "Password must be 256 characters or less.");
+        }
         if (candidate.length() < MIN_PASSWORD_LENGTH) {
             throw new AccountException(HttpStatus.BAD_REQUEST, "weak_password", "Password must be at least 8 characters.");
         }
@@ -265,6 +278,9 @@ public class AccountService {
     public AccountResponses.AuthSession confirmPasswordReset(PasswordResetConfirmRequest request) {
         String rawToken = request.token() == null ? "" : request.token().trim();
         if (rawToken.isBlank()) {
+            throw new AccountException(HttpStatus.BAD_REQUEST, "invalid_reset_token", "Reset link expired or invalid.");
+        }
+        if (rawToken.length() > MAX_RESET_TOKEN_LENGTH) {
             throw new AccountException(HttpStatus.BAD_REQUEST, "invalid_reset_token", "Reset link expired or invalid.");
         }
         validatePassword(request.password());

@@ -23,6 +23,12 @@ linewatch:
   auth:
     secure-cookie: ${LINEWATCH_AUTH_SECURE_COOKIE:false}
     allowed-origins: ${LINEWATCH_AUTH_ALLOWED_ORIGINS:http://localhost:3000,http://127.0.0.1:3000,http://127.0.0.1:4173}
+    rate-limit:
+      enabled: ${LINEWATCH_AUTH_RATE_LIMIT_ENABLED:true}
+      window: ${LINEWATCH_AUTH_RATE_LIMIT_WINDOW:PT15M}
+      auth-max-requests: ${LINEWATCH_AUTH_RATE_LIMIT_AUTH_MAX_REQUESTS:12}
+      password-reset-max-requests: ${LINEWATCH_AUTH_RATE_LIMIT_PASSWORD_RESET_MAX_REQUESTS:5}
+      demo-max-requests: ${LINEWATCH_AUTH_RATE_LIMIT_DEMO_MAX_REQUESTS:20}
     password-reset:
       dev-links: ${LINEWATCH_AUTH_PASSWORD_RESET_DEV_LINKS:false}
       frontend-base-url: ${LINEWATCH_PASSWORD_RESET_FRONTEND_BASE_URL:http://localhost:3000}
@@ -37,6 +43,18 @@ linewatch:
       max-dashboard-age: ${LINEWATCH_INGESTION_ALERTS_MAX_DASHBOARD_AGE:PT10M}
       connect-timeout: ${LINEWATCH_INGESTION_ALERTS_CONNECT_TIMEOUT:PT3S}
       read-timeout: ${LINEWATCH_INGESTION_ALERTS_READ_TIMEOUT:PT8S}
+  arrivals:
+    enabled: ${LINEWATCH_ARRIVALS_ENABLED:false}
+    provider: ${LINEWATCH_ARRIVALS_PROVIDER:scheduled}
+    schedule-horizon: ${LINEWATCH_ARRIVALS_SCHEDULE_HORIZON:PT90M}
+    max-arrivals-per-line: ${LINEWATCH_ARRIVALS_MAX_ARRIVALS_PER_LINE:4}
+    gtfs-import-enabled: ${LINEWATCH_ARRIVALS_GTFS_IMPORT_ENABLED:false}
+    gtfs-zip-path: ${LINEWATCH_ARRIVALS_GTFS_ZIP_PATH:}
+    gtfs-refresh-enabled: ${LINEWATCH_ARRIVALS_GTFS_REFRESH_ENABLED:false}
+    gtfs-refresh-package-url: ${LINEWATCH_ARRIVALS_GTFS_REFRESH_PACKAGE_URL:https://ckan0.cf.opendata.inter.prod-toronto.ca/api/3/action/package_show?id=merged-gtfs-ttc-routes-and-schedules}
+    gtfs-refresh-initial-delay: ${LINEWATCH_ARRIVALS_GTFS_REFRESH_INITIAL_DELAY:PT30S}
+    gtfs-refresh-fixed-delay: ${LINEWATCH_ARRIVALS_GTFS_REFRESH_FIXED_DELAY:PT24H}
+    gtfs-refresh-min-service-days-remaining: ${LINEWATCH_ARRIVALS_GTFS_REFRESH_MIN_SERVICE_DAYS_REMAINING:14}
   performance:
     ttc:
       enabled: ${LINEWATCH_PERFORMANCE_TTC_ENABLED:true}

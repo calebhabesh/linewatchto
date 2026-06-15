@@ -8,7 +8,6 @@ import {
   ChevronLeft, 
   X, 
   Bus, 
-  Train, 
   Accessibility 
 } from "lucide-react";
 
@@ -252,19 +251,6 @@ export function ReliabilityPanel({ onBack, onClose }: ReliabilityProps = {}) {
       </div>
     </section>
   );
-}
-
-function categoryLabel(category: string) {
-  switch (category) {
-    case "subway":
-      return "Subway on-time performance";
-    case "surface":
-      return "Surface service on-time performance";
-    case "accessibility":
-      return "Elevator/escalator availability";
-    default:
-      return "TTC performance metric";
-  }
 }
 
 export function IngestionHealthPanel() {

@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test } from '@playwright/test';
 
 test('check alignment', async ({ page }) => {
   await page.goto('http://localhost:3000');
@@ -6,7 +6,7 @@ test('check alignment', async ({ page }) => {
   // Accept disclaimer if present
   try {
     await page.getByRole('button', { name: 'I Understand' }).click({ timeout: 5000 });
-  } catch (e) {
+  } catch {
     // ignore if not present
   }
 
@@ -29,4 +29,3 @@ test('check alignment', async ({ page }) => {
   console.log("Toggle:", toggle);
   console.log("Checkbox:", checkbox);
 });
-

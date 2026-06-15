@@ -80,6 +80,30 @@ class AccountServiceTest {
     }
 
     @Test
+    void registerRejectsOverlongDisplayNameBeforeSaving() {
+        String displayName = "A".repeat(121);
+
+        assertThatThrownBy(() -> service.register(
+            new AccountService.RegisterRequest("rider@example.com", "correct horse battery staple", displayName)
+        ))
+            .isInstanceOf(AccountException.class)
+            .hasMessageContaining("Display name must be 120 characters or less");
+        verify(accountRepository, never()).save(any(AccountEntity.class));
+    }
+
+    @Test
+    void registerRejectsOverlongPasswordBeforeHashing() {
+        String password = "a".repeat(257) + " 1";
+
+        assertThatThrownBy(() -> service.register(
+            new AccountService.RegisterRequest("rider@example.com", password, "Rider")
+        ))
+            .isInstanceOf(AccountException.class)
+            .hasMessageContaining("Password must be 256 characters or less");
+        verify(accountRepository, never()).save(any(AccountEntity.class));
+    }
+
+    @Test
     void registerAcceptsEasyPassphrasePassword() {
         when(accountRepository.existsByEmail("rider@example.com")).thenReturn(false);
         when(accountRepository.save(any(AccountEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));

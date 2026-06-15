@@ -173,6 +173,30 @@ class SavedCommuteServiceTest {
     }
 
     @Test
+    void rejectsOverlongSavedCommuteLabelBeforeSaving() {
+        assertThatThrownBy(() -> service.create(
+            account,
+            new SavedCommuteService.CreateSavedCommuteRequest("A".repeat(121), "finch", "union", null)
+        ))
+            .isInstanceOf(AccountException.class)
+            .hasMessageContaining("Commute label must be 120 characters or less");
+        verify(commuteRepository, never()).save(any(SavedCommuteEntity.class));
+    }
+
+    @Test
+    void rejectsOverlongStationIdsBeforeRepositoryLookup() {
+        String stationId = "a".repeat(81);
+
+        assertThatThrownBy(() -> service.create(
+            account,
+            new SavedCommuteService.CreateSavedCommuteRequest("Bad station", stationId, "union", null)
+        ))
+            .isInstanceOf(AccountException.class)
+            .hasMessageContaining("Station id must be 80 characters or less");
+        verify(stationRepository, never()).findById(stationId);
+    }
+
+    @Test
     void listsCommutesForCurrentAccountOnly() {
         StationEntity finch = new StationEntity("finch", "Finch", 0, 0, false, 10, null);
         StationEntity union = new StationEntity("union", "Union", 0, 0, true, 20, null);

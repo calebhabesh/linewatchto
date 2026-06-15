@@ -8,6 +8,7 @@ const scenarioBackendScript = readFileSync(
 );
 const livePushBackendScriptUrl = new URL("../../scripts/dev-backend-live-push.sh", import.meta.url);
 const cloudflarePushScriptUrl = new URL("../../scripts/dev-cloudflare-push.sh", import.meta.url);
+const smokeDeployScriptUrl = new URL("../../scripts/smoke-deploy.mjs", import.meta.url);
 const nextConfigSource = readFileSync(new URL("../next.config.ts", import.meta.url), "utf8");
 
 describe("alert scenario scripts", () => {
@@ -56,5 +57,12 @@ describe("alert scenario scripts", () => {
     assert.match(nextConfigSource, /packageJson\.version/);
     assert.match(nextConfigSource, /NEXT_PUBLIC_LINEWATCH_APP_VERSION/);
     assert.match(nextConfigSource, /NEXT_PUBLIC_LINEWATCH_BUILD_LABEL/);
+  });
+
+  it("checks GTFS schedule health during deployment smoke verification", () => {
+    const smokeDeployScript = readFileSync(smokeDeployScriptUrl, "utf8");
+
+    assert.match(smokeDeployScript, /api\/health\/schedule/);
+    assert.match(smokeDeployScript, /serviceDaysRemaining/);
   });
 });

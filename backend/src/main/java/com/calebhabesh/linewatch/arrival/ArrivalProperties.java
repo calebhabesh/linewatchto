@@ -26,6 +26,11 @@ public class ArrivalProperties {
     private int maxArrivalsPerLine = 4;
     private boolean gtfsImportEnabled = false;
     private String gtfsZipPath = "";
+    private boolean gtfsRefreshEnabled = false;
+    private URI gtfsRefreshPackageUrl = URI.create("https://ckan0.cf.opendata.inter.prod-toronto.ca/api/3/action/package_show?id=merged-gtfs-ttc-routes-and-schedules");
+    private Duration gtfsRefreshInitialDelay = Duration.ofSeconds(30);
+    private Duration gtfsRefreshFixedDelay = Duration.ofHours(24);
+    private int gtfsRefreshMinServiceDaysRemaining = 14;
 
     public boolean isEnabled() {
         return enabled;
@@ -121,5 +126,45 @@ public class ArrivalProperties {
 
     public void setGtfsZipPath(String gtfsZipPath) {
         this.gtfsZipPath = gtfsZipPath;
+    }
+
+    public boolean isGtfsRefreshEnabled() {
+        return gtfsRefreshEnabled;
+    }
+
+    public void setGtfsRefreshEnabled(boolean gtfsRefreshEnabled) {
+        this.gtfsRefreshEnabled = gtfsRefreshEnabled;
+    }
+
+    public URI getGtfsRefreshPackageUrl() {
+        return gtfsRefreshPackageUrl;
+    }
+
+    public void setGtfsRefreshPackageUrl(URI gtfsRefreshPackageUrl) {
+        this.gtfsRefreshPackageUrl = gtfsRefreshPackageUrl;
+    }
+
+    public Duration getGtfsRefreshInitialDelay() {
+        return gtfsRefreshInitialDelay;
+    }
+
+    public void setGtfsRefreshInitialDelay(Duration gtfsRefreshInitialDelay) {
+        this.gtfsRefreshInitialDelay = gtfsRefreshInitialDelay;
+    }
+
+    public Duration getGtfsRefreshFixedDelay() {
+        return gtfsRefreshFixedDelay;
+    }
+
+    public void setGtfsRefreshFixedDelay(Duration gtfsRefreshFixedDelay) {
+        this.gtfsRefreshFixedDelay = gtfsRefreshFixedDelay;
+    }
+
+    public int getGtfsRefreshMinServiceDaysRemaining() {
+        return gtfsRefreshMinServiceDaysRemaining;
+    }
+
+    public void setGtfsRefreshMinServiceDaysRemaining(int gtfsRefreshMinServiceDaysRemaining) {
+        this.gtfsRefreshMinServiceDaysRemaining = gtfsRefreshMinServiceDaysRemaining;
     }
 }
