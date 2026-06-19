@@ -2,6 +2,7 @@
 .env
 .env.*
 !.env.example
+!.env.production.example
 
 # Java / Maven
 backend/target/
@@ -45,5 +46,4 @@ TODO.md
 
 # Python
 __pycache__/
-
 
