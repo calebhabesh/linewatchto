@@ -18,7 +18,9 @@ fi
 mkdir -p "$BACKUP_DIR"
 
 LINEWATCH_PROD_ENV_FILE="$ENV_FILE" \
-  docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" exec -T postgres \
-  sh -c 'pg_dump -U "$POSTGRES_USER" "$POSTGRES_DB"' | gzip > "$OUTPUT"
+LINEWATCH_RELEASE_ENV_FILE="${LINEWATCH_RELEASE_ENV_FILE:-$ROOT_DIR/.env.release}" \
+LINEWATCH_PROD_COMPOSE_FILE="$COMPOSE_FILE" \
+  "$ROOT_DIR/scripts/prod-compose.sh" exec -T postgres \
+    sh -c 'pg_dump -U "$POSTGRES_USER" "$POSTGRES_DB"' | gzip > "$OUTPUT"
 
 echo "$OUTPUT"

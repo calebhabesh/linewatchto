@@ -292,6 +292,40 @@ EOF
   assert_contains "$output" "scripts/prod-deploy.sh $TEST_SHA"
 }
 
+test_compose_wrapper_loads_runtime_and_release_env() {
+  local temp_dir
+  local fake_docker
+  local log
+  local prod_env
+  local release_env
+
+  temp_dir="$(mktemp -d "$TEST_TMP/compose.XXXXXX")"
+  fake_docker="$temp_dir/docker"
+  log="$temp_dir/docker.log"
+  prod_env="$temp_dir/.env.production"
+  release_env="$temp_dir/.env.release"
+
+  printf 'POSTGRES_PASSWORD=test\n' > "$prod_env"
+  linewatch_write_release_env "$release_env" "ghcr.io/calebhabesh" "$TEST_SHA"
+
+  cat > "$fake_docker" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+printf '%s\n' "$*" > "${FAKE_DOCKER_LOG:?}"
+EOF
+  chmod +x "$fake_docker"
+
+  FAKE_DOCKER_LOG="$log" \
+  DOCKER_BIN="$fake_docker" \
+  LINEWATCH_PROD_ENV_FILE="$prod_env" \
+  LINEWATCH_RELEASE_ENV_FILE="$release_env" \
+    "$ROOT_DIR/scripts/prod-compose.sh" ps
+
+  assert_contains "$(cat "$log")" "--env-file $prod_env"
+  assert_contains "$(cat "$log")" "--env-file $release_env"
+  assert_contains "$(cat "$log")" "docker-compose.prod.yml ps"
+}
+
 verify_test_harness
 run_test "production Compose requires LINEWATCH_IMAGE_TAG" test_requires_release_image_tag
 run_test "production Compose renders immutable release images" test_renders_immutable_release_images
@@ -303,5 +337,6 @@ run_test "release env writes reject directory output paths" test_rejects_directo
 run_test "release env writes reject empty output paths" test_rejects_empty_release_output
 run_test "release builds require a clean Git worktree" test_requires_clean_git_worktree
 run_test "build script targets ARM64 registry images" test_build_script_targets_arm64_registry_images
+run_test "Compose wrapper loads both env files" test_compose_wrapper_loads_runtime_and_release_env
 
 printf '%s tests passed\n' "$TEST_COUNT"
