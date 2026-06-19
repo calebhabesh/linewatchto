@@ -6,9 +6,7 @@ x-logging: &default-logging
 
 services:
   postgres:
-    build:
-      context: .
-      dockerfile: infra/postgres/Dockerfile
+    image: ${LINEWATCH_IMAGE_REGISTRY:-ghcr.io/calebhabesh}/linewatch-postgres:${LINEWATCH_IMAGE_TAG:?Set LINEWATCH_IMAGE_TAG in .env.release}
     restart: unless-stopped
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-linewatch}
@@ -41,9 +39,7 @@ services:
       retries: 5
 
   backend:
-    build:
-      context: .
-      dockerfile: backend/Dockerfile
+    image: ${LINEWATCH_IMAGE_REGISTRY:-ghcr.io/calebhabesh}/linewatch-backend:${LINEWATCH_IMAGE_TAG:?Set LINEWATCH_IMAGE_TAG in .env.release}
     restart: unless-stopped
     env_file:
       - ${LINEWATCH_PROD_ENV_FILE:-.env.production}
@@ -70,12 +66,7 @@ services:
       start_period: 45s
 
   frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-      args:
-        NEXT_PUBLIC_LINEWATCH_APP_VERSION: ${NEXT_PUBLIC_LINEWATCH_APP_VERSION:-0.1.0}
-        NEXT_PUBLIC_LINEWATCH_BUILD_LABEL: ${NEXT_PUBLIC_LINEWATCH_BUILD_LABEL:-prod}
+    image: ${LINEWATCH_IMAGE_REGISTRY:-ghcr.io/calebhabesh}/linewatch-frontend:${LINEWATCH_IMAGE_TAG:?Set LINEWATCH_IMAGE_TAG in .env.release}
     restart: unless-stopped
     environment:
       NODE_ENV: production
