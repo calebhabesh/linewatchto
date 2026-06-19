@@ -256,6 +256,42 @@ test_requires_clean_git_worktree() {
   assert_contains "$output" "Error: release builds require a clean Git worktree"
 }
 
+test_build_script_targets_arm64_registry_images() {
+  local temp_dir="$TEST_TMP/build-script"
+  local fake_docker
+  local log
+  local output
+
+  mkdir "$temp_dir"
+  fake_docker="$temp_dir/docker"
+  log="$temp_dir/docker.log"
+
+  cat > "$fake_docker" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+printf '%s\n' "$*" >> "${FAKE_DOCKER_LOG:?}"
+if [[ "$*" == "buildx inspect linewatch-prod-builder" ]]; then
+  exit 1
+fi
+EOF
+  chmod +x "$fake_docker"
+
+  output="$(
+    FAKE_DOCKER_LOG="$log" \
+    DOCKER_BIN="$fake_docker" \
+    LINEWATCH_SKIP_CLEAN_CHECK=true \
+    LINEWATCH_RELEASE_SHA="$TEST_SHA" \
+      "$ROOT_DIR/scripts/prod-build-push.sh"
+  )"
+
+  assert_contains "$(cat "$log")" "buildx create --name linewatch-prod-builder"
+  assert_contains "$(cat "$log")" "--platform linux/arm64"
+  assert_contains "$(cat "$log")" "linewatch-frontend:$TEST_SHA"
+  assert_contains "$(cat "$log")" "linewatch-backend:$TEST_SHA"
+  assert_contains "$(cat "$log")" "linewatch-postgres:$TEST_SHA"
+  assert_contains "$output" "scripts/prod-deploy.sh $TEST_SHA"
+}
+
 verify_test_harness
 run_test "production Compose requires LINEWATCH_IMAGE_TAG" test_requires_release_image_tag
 run_test "production Compose renders immutable release images" test_renders_immutable_release_images
@@ -266,5 +302,6 @@ run_test "release env writes resist temp-file collisions" test_release_file_writ
 run_test "release env writes reject directory output paths" test_rejects_directory_release_output
 run_test "release env writes reject empty output paths" test_rejects_empty_release_output
 run_test "release builds require a clean Git worktree" test_requires_clean_git_worktree
+run_test "build script targets ARM64 registry images" test_build_script_targets_arm64_registry_images
 
 printf '%s tests passed\n' "$TEST_COUNT"
