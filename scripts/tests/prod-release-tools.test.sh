@@ -35,14 +35,46 @@ assert_not_contains() {
 
 run_test() {
   local name="$1"
+  local status
   shift
 
-  if "$@"; then
+  set +e
+  (
+    set -e
+    "$@"
+  )
+  status=$?
+  set -e
+
+  if [[ "$status" -eq 0 ]]; then
     TEST_COUNT=$((TEST_COUNT + 1))
     printf 'PASS: %s\n' "$name"
   else
     return 1
   fi
+}
+
+test_harness_failure_fixture() {
+  assert_contains "actual" "missing"
+  assert_contains "actual" "actual"
+}
+
+verify_test_harness() {
+  local output
+  local status
+
+  set +e
+  output="$(run_test "harness failure fixture" test_harness_failure_fixture 2>&1)"
+  status=$?
+  set -e
+
+  if [[ "$status" -eq 0 ]]; then
+    fail "test harness masked an early assertion failure"
+    return 1
+  fi
+
+  assert_contains "$output" "FAIL: expected output to contain: missing"
+  assert_not_contains "$output" "PASS: harness failure fixture"
 }
 
 test_requires_release_image_tag() {
@@ -90,6 +122,7 @@ test_renders_immutable_release_images() {
   assert_not_contains "$output" "build:"
 }
 
+verify_test_harness
 run_test "production Compose requires LINEWATCH_IMAGE_TAG" test_requires_release_image_tag
 run_test "production Compose renders immutable release images" test_renders_immutable_release_images
 
