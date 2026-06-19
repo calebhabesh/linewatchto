@@ -16,6 +16,8 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class GtfsRtServiceAlertTextParser {
+    private static final Set<String> SUBWAY_ROUTE_IDS = Set.of("1", "2", "4");
+    private static final Set<String> LRT_ROUTE_IDS = Set.of("5", "6");
     private static final Pattern HEADER_TIMESTAMP = Pattern.compile("\\btimestamp:\\s*(\\d+)");
     private static final Pattern QUOTED_ID = Pattern.compile("\\bid:\\s*\"((?:\\\\.|[^\"])*)\"");
     private static final Pattern ACTIVE_PERIOD = Pattern.compile("active_period\\s*\\{([^{}]*)}");
@@ -197,6 +199,16 @@ public class GtfsRtServiceAlertTextParser {
     }
 
     private String inferredRouteType(Set<String> routeIds) {
+        if (routeIds.stream().allMatch(SUBWAY_ROUTE_IDS::contains)) {
+            return "Subway";
+        }
+        if (routeIds.stream().allMatch(LRT_ROUTE_IDS::contains)) {
+            return "LRT";
+        }
+        if (routeIds.stream().allMatch(this::isRapidTransitRoute)) {
+            return "Rapid Transit";
+        }
+
         boolean hasStreetcar = false;
         boolean hasBus = false;
         for (String routeId : routeIds) {
@@ -213,6 +225,10 @@ public class GtfsRtServiceAlertTextParser {
             return "Bus";
         }
         return "Surface";
+    }
+
+    private boolean isRapidTransitRoute(String routeId) {
+        return SUBWAY_ROUTE_IDS.contains(routeId) || LRT_ROUTE_IDS.contains(routeId);
     }
 
     private boolean isStreetcarRoute(String routeId) {

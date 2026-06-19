@@ -12,6 +12,112 @@ class GtfsRtServiceAlertTextParserTest {
     private final GtfsRtServiceAlertTextParser parser = new GtfsRtServiceAlertTextParser();
 
     @Test
+    void parsesSupportedRapidTransitEntityWithoutTreatingLineTwoAsBus() {
+        String text = """
+            header {
+              gtfs_realtime_version: "2.0"
+              incrementality: FULL_DATASET
+              timestamp: 1781843332
+            }
+            entity {
+              id: "70483"
+              alert {
+                active_period {
+                  start: 1781885880
+                }
+                informed_entity {
+                  route_id: "2"
+                  stop_id: "13784"
+                }
+                informed_entity {
+                  route_id: "2"
+                  stop_id: "13783"
+                }
+                informed_entity {
+                  route_id: "2"
+                  stop_id: "13781"
+                }
+                informed_entity {
+                  route_id: "2"
+                  stop_id: "13782"
+                }
+                informed_entity {
+                  route_id: "2"
+                  stop_id: "13780"
+                }
+                informed_entity {
+                  route_id: "2"
+                  stop_id: "13779"
+                }
+                informed_entity {
+                  route_id: "2"
+                  stop_id: "13777"
+                }
+                informed_entity {
+                  route_id: "2"
+                  stop_id: "13778"
+                }
+                cause: POLICE_ACTIVITY
+                effect: NO_SERVICE
+                header_text {
+                  translation {
+                    text: "Line 2 Bloor-Danforth: No service between Jane and Islington stations due to a security incident."
+                    language: "en"
+                  }
+                }
+                description_text {
+                  translation {
+                    text: "at Old Mill Station."
+                    language: "en"
+                  }
+                }
+              }
+            }
+            """;
+
+        TtcFetchedRecord fetched = parser.parse(text).getFirst();
+
+        assertThat(fetched.record().id()).isEqualTo("gtfsrt-70483");
+        assertThat(fetched.record().route()).isEqualTo("2");
+        assertThat(fetched.record().routeType()).isEqualTo("Subway");
+        assertThat(fetched.record().stopIDList()).containsExactly(
+            "13784",
+            "13783",
+            "13781",
+            "13782",
+            "13780",
+            "13779",
+            "13777",
+            "13778"
+        );
+        assertThat(fetched.record().effect()).isEqualTo("NO_SERVICE");
+        assertThat(fetched.record().cause()).isEqualTo("POLICE_ACTIVITY");
+        assertThat(fetched.record().lastUpdated())
+            .isEqualTo(OffsetDateTime.parse("2026-06-19T04:28:52Z"));
+        assertThat(fetched.record().activePeriod().start())
+            .isEqualTo(OffsetDateTime.parse("2026-06-19T16:18:00Z"));
+    }
+
+    @Test
+    void marksMultiLineRapidTransitEntityWithoutTreatingItAsSurfaceService() {
+        String text = """
+            header { gtfs_realtime_version: "2.0" timestamp: 1781843332 }
+            entity {
+              id: "multi-line"
+              alert {
+                informed_entity { route_id: "2" }
+                informed_entity { route_id: "5" }
+                effect: NO_SERVICE
+                header_text { translation { text: "Rapid transit service change." language: "en" } }
+              }
+            }
+            """;
+
+        assertThat(parser.parse(text).getFirst().record().routeType())
+            .isEqualTo("Rapid Transit");
+    }
+
+    @Test
     void parsesModifiedServiceEntitiesIntoSurfaceRouteRecords() {
         String text = """
             header { gtfs_realtime_version: "2.0" incrementality: FULL_DATASET timestamp: 1781031643 }

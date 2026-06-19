@@ -28,8 +28,12 @@ public class SurfaceServiceNoticeNormalizer {
         }
 
         String lowerType = routeType.toLowerCase();
-        // Exclude Subway, LRT, Elevator, Escalator
-        if (lowerType.contains("subway") || lowerType.contains("lrt") || lowerType.contains("elevator") || lowerType.contains("escalator")) {
+        // Exclude rapid transit and accessibility records.
+        if (lowerType.contains("subway")
+            || lowerType.contains("lrt")
+            || lowerType.contains("rapid transit")
+            || lowerType.contains("elevator")
+            || lowerType.contains("escalator")) {
             return Optional.empty();
         }
 

@@ -164,6 +164,26 @@ class SurfaceServiceNoticeNormalizerTest {
     }
 
     @Test
+    void multiLineRapidTransitRecordsAreIgnored() {
+        TtcAlertRecord record = createRecord(
+            "gtfsrt-multi-line",
+            "2,5",
+            "Rapid Transit",
+            "Rapid transit service change",
+            "",
+            "",
+            null,
+            "NO_SERVICE",
+            "No Service",
+            List.of(),
+            null,
+            null
+        );
+
+        assertThat(normalizer.normalize(fetched(record))).isEmpty();
+    }
+
+    @Test
     void accessibilityRecordsAreIgnored() {
         TtcAlertRecord record = new TtcAlertRecord(
             "69283", "Live", OffsetDateTime.now(), null, List.of("Current"),
