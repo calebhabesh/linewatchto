@@ -266,6 +266,47 @@ class TtcAlertNormalizerTest {
     }
 
     @Test
+    void classifiesGtfsRtMaintenanceClosureFromStructuredCauseAndText() {
+        TtcFetchedRecord fetched = new GtfsRtServiceAlertTextParser().parse("""
+            header { gtfs_realtime_version: "2.0" timestamp: 1781843332 }
+            entity {
+              id: "planned-70483"
+              alert {
+                active_period { start: 1782057600 end: 1782100800 }
+                informed_entity { route_id: "2" stop_id: "13784" }
+                informed_entity { route_id: "2" stop_id: "13778" }
+                cause: MAINTENANCE
+                effect: NO_SERVICE
+                header_text {
+                  translation {
+                    text: "Line 2: Planned closure between Jane and Islington stations due to planned track work."
+                    language: "en"
+                  }
+                }
+              }
+            }
+            """).getFirst();
+        when(gtfsRtStationResolver.resolve(
+            eq("line-2"),
+            eq(fetched.record().stopIDList()),
+            contains("planned closure between jane and islington")
+        )).thenReturn(new GtfsRtRapidTransitStationResolver.Resolution(
+            List.of("islington", "royal-york", "old-mill", "jane"),
+            "islington",
+            "jane",
+            false
+        ));
+
+        NormalizedRouteAlert alert = normalizer.normalizeRoute(fetched)
+            .projection()
+            .orElseThrow();
+
+        assertThat(alert.type()).isEqualTo("planned-closure");
+        assertThat(alert.severity()).isEqualTo("planned");
+        assertThat(alert.impactKind()).isEqualTo(AlertImpactKind.PLANNED_CLOSURE);
+    }
+
+    @Test
     void normalizesSignificantDelayWithoutRszMetadataAsOrdinaryDelay() {
         NormalizedRouteAlert alert =
             normalizer.normalizeRoute(fetchedRecord("1", "Subway", "SIGNIFICANT_DELAYS"))

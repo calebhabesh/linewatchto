@@ -218,7 +218,7 @@ public class TtcAlertNormalizer {
         boolean plannedClosureEvidence = hasChildPeriods
             || hasPlannedClosureEvidence(record)
             || (equalsIgnoreCase(record.cause(), "MAINTENANCE") && hasClosureText(record));
-        return equalsIgnoreCase(record.alertType(), "Planned")
+        return (equalsIgnoreCase(record.alertType(), "Planned") || isGtfsRt(record))
             && !hasOperationalIncidentCause(record)
             && plannedClosureEvidence;
     }
