@@ -64,28 +64,65 @@ linewatch_write_release_env() {
   local output="${1-}"
   local registry
   local tag="${3-}"
+  local parent
+  local basename
   local temp
   local old_umask
 
   registry="$(linewatch_normalize_registry "${2-}")" || return 1
   linewatch_validate_image_tag "$tag" || return 1
 
+  if [[ -z "$output" ]]; then
+    linewatch_die "release env output path cannot be empty"
+    return 1
+  fi
+
+  basename="${output##*/}"
+  if [[ -z "$basename" ]]; then
+    linewatch_die "release env output basename cannot be empty"
+    return 1
+  fi
+
+  if [[ -d "$output" ]]; then
+    linewatch_die "release env output path cannot be a directory: $output"
+    return 1
+  fi
+
+  if [[ "$output" == */* ]]; then
+    parent="${output%/*}"
+    if [[ -z "$parent" ]]; then
+      parent="/"
+    fi
+  else
+    parent="."
+  fi
+
   old_umask="$(umask)"
   umask 077
-  temp="${output}.tmp.$$"
+
+  if ! temp="$(mktemp "$parent/.${basename}.tmp.XXXXXX")"; then
+    umask "$old_umask"
+    return 1
+  fi
+
+  if ! chmod 0600 "$temp"; then
+    umask "$old_umask"
+    rm -f -- "$temp" || true
+    return 1
+  fi
 
   if ! printf \
     'LINEWATCH_IMAGE_REGISTRY=%s\nLINEWATCH_IMAGE_TAG=%s\n' \
     "$registry" \
     "$tag" > "$temp"; then
     umask "$old_umask"
-    rm -f "$temp"
+    rm -f -- "$temp" || true
     return 1
   fi
 
-  if ! mv "$temp" "$output"; then
+  if ! mv -T -- "$temp" "$output"; then
     umask "$old_umask"
-    rm -f "$temp"
+    rm -f -- "$temp" || true
     return 1
   fi
 

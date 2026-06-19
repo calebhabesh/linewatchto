@@ -171,6 +171,66 @@ test_release_file_round_trip() {
     "ghcr.io/calebhabesh"
 }
 
+test_release_file_write_resists_temp_collision() {
+  local release_env="$TEST_TMP/secure-release.env"
+  local collision="${release_env}.tmp.$$"
+  local caller_umask
+
+  printf 'untrusted\n' > "$collision"
+  chmod 0644 "$collision"
+  umask 0027
+  caller_umask="$(umask)"
+
+  linewatch_write_release_env "$release_env" "ghcr.io/calebhabesh" "$TEST_SHA"
+
+  assert_equals "$(stat -c '%a' "$release_env")" "600"
+  assert_equals "$(cat "$collision")" "untrusted"
+  assert_equals "$(stat -c '%a' "$collision")" "644"
+  assert_equals "$(umask)" "$caller_umask"
+}
+
+test_rejects_directory_release_output() {
+  local output_dir="$TEST_TMP/release-output-directory"
+  local output
+  local status
+  local parent
+  local basename
+  local artifacts
+
+  mkdir "$output_dir"
+
+  set +e
+  output="$(linewatch_write_release_env "$output_dir" "ghcr.io/calebhabesh" "$TEST_SHA" 2>&1)"
+  status=$?
+  set -e
+
+  assert_equals "$status" "1"
+
+  parent="${output_dir%/*}"
+  basename="${output_dir##*/}"
+  shopt -s nullglob
+  artifacts=(
+    "$output_dir"/*
+    "${output_dir}.tmp."*
+    "$parent/.${basename}.tmp."*
+  )
+  shopt -u nullglob
+
+  assert_equals "${#artifacts[@]}" "0"
+}
+
+test_rejects_empty_release_output() {
+  local output
+  local status
+
+  set +e
+  output="$(linewatch_write_release_env "" "ghcr.io/calebhabesh" "$TEST_SHA" 2>&1)"
+  status=$?
+  set -e
+
+  assert_equals "$status" "1"
+}
+
 test_requires_clean_git_worktree() {
   local repo="$TEST_TMP/clean-worktree"
   local output
@@ -202,6 +262,9 @@ run_test "production Compose renders immutable release images" test_renders_immu
 run_test "image tags require full lowercase Git SHAs" test_validates_full_lowercase_git_sha
 run_test "component image references are deterministic" test_builds_component_image_reference
 run_test "release env files round trip normalized values" test_release_file_round_trip
+run_test "release env writes resist temp-file collisions" test_release_file_write_resists_temp_collision
+run_test "release env writes reject directory output paths" test_rejects_directory_release_output
+run_test "release env writes reject empty output paths" test_rejects_empty_release_output
 run_test "release builds require a clean Git worktree" test_requires_clean_git_worktree
 
 printf '%s tests passed\n' "$TEST_COUNT"
