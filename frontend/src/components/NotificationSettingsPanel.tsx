@@ -81,6 +81,7 @@ export function NotificationSettingsPanel({
     busy,
     message,
     browserStatus,
+    preferencesLoaded,
     enableDeviceNotifications,
     disableDeviceNotifications,
     updatePreferences,
@@ -201,7 +202,7 @@ export function NotificationSettingsPanel({
                   <div className="notification-settings-row-actions">
                     <NotificationSwitch
                       checked={preferences.savedCommutes.currentDisruptions}
-                      disabled={busy}
+                      disabled={busy || !preferencesLoaded}
                       label="Current disruptions affecting saved commutes"
                       onChange={(checked) => {
                         updatePreferences({
@@ -233,7 +234,7 @@ export function NotificationSettingsPanel({
                   <div className="notification-settings-row-actions">
                     <NotificationSwitch
                       checked={preferences.savedCommutes.plannedClosureReminders}
-                      disabled={busy}
+                      disabled={busy || !preferencesLoaded}
                       label="Planned closure reminders"
                       onChange={(checked) => {
                         updatePreferences({
@@ -283,7 +284,7 @@ export function NotificationSettingsPanel({
                       <div className="notification-settings-row-actions">
                         <NotificationSwitch
                           checked={line.subscribed}
-                          disabled={busy}
+                          disabled={busy || !preferencesLoaded}
                           label={`Subscribe to Line ${line.lineNumber}`}
                           onChange={(checked) => {
                             const updatedLines = preferences.lineSubscriptions.lines.map((l) =>
@@ -352,7 +353,7 @@ export function NotificationSettingsPanel({
                     <div className="flex justify-center">
                       <NotificationSwitch
                         checked={preferences.savedCommutes.eventTypes[key]}
-                        disabled={busy}
+                        disabled={busy || !preferencesLoaded}
                         label={`Saved commute ${label}`}
                         onChange={(checked) => {
                           updatePreferences({
@@ -371,7 +372,7 @@ export function NotificationSettingsPanel({
                     <div className="flex justify-center">
                       <NotificationSwitch
                         checked={preferences.lineSubscriptions.eventTypes[key]}
-                        disabled={busy}
+                        disabled={busy || !preferencesLoaded}
                         label={`Line subscription ${label}`}
                         onChange={(checked) => {
                           updatePreferences({
@@ -429,7 +430,7 @@ export function NotificationSettingsPanel({
                     <div className="notification-settings-row-actions">
                       <NotificationSwitch
                         checked={preferences.reminderTiming[key]}
-                        disabled={busy}
+                        disabled={busy || !preferencesLoaded}
                         label={label}
                         onChange={(checked) => {
                           updatePreferences({

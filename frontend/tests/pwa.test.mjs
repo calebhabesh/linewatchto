@@ -483,6 +483,7 @@ describe("LineWatch PWA configuration", () => {
     assert.match(registrationSource, /updateViaCache:\s*"none"/);
     assert.match(registrationSource, /process\.env\.NODE_ENV !== "production"/);
     assert.match(registrationSource, /NEXT_PUBLIC_LINEWATCH_ENABLE_SW/);
+    assert.match(registrationSource, /unregisterServiceWorkersWithoutPushSubscriptions/);
     assert.match(registrationSource, /linewatch-cleanup-notifications/);
   });
 

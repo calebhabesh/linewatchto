@@ -9,6 +9,10 @@ import {
   type PushNotificationConfig,
   type PushNotificationPreferences,
 } from "../app/account-data";
+import {
+  getCurrentPushSubscription,
+  getPushServiceWorkerRegistration,
+} from "../app/push-browser-state";
 
 export type BrowserPushStatus =
   | "signed-out"
@@ -27,6 +31,7 @@ export type UsePushNotificationSettingsResult = {
   busy: boolean;
   message: string | null;
   browserStatus: BrowserPushStatus;
+  preferencesLoaded: boolean;
   reload: () => Promise<void>;
   enableDeviceNotifications: () => Promise<void>;
   disableDeviceNotifications: () => Promise<void>;
@@ -45,7 +50,7 @@ function base64UrlToUint8Array(value: string) {
 }
 
 async function serviceWorkerRegistrationForPush() {
-  const existing = await navigator.serviceWorker.getRegistration("/");
+  const existing = await getPushServiceWorkerRegistration(navigator.serviceWorker);
   if (existing) return existing;
   const devFlag = process.env.NODE_ENV !== "production" ? "?env=dev" : "";
   return navigator.serviceWorker.register(`/sw.js${devFlag}`, {
@@ -75,22 +80,45 @@ export function usePushNotificationSettings(accountState: AccountState): UsePush
   const [subscribed, setSubscribed] = useState(false);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [preferencesLoaded, setPreferencesLoaded] = useState(false);
+  const [subscriptionChecked, setSubscriptionChecked] = useState(false);
 
   const fetchConfigAndSubscription = useCallback(async (isMounted: () => boolean) => {
     if (!accountState.authenticated || !supported) return;
     try {
+      setSubscriptionChecked(false);
       const result = await getPushNotificationConfig();
       if (!isMounted()) return;
+      if (result.source !== "backend") {
+        setConfig(null);
+        setPreferencesLoaded(false);
+        setSubscriptionChecked(true);
+        setMessage(result.message ?? "Could not load notification preferences.");
+        return;
+      }
       setConfig(result.config);
       setPreferences(result.config.preferences);
-      
-      const registration = await navigator.serviceWorker.getRegistration("/");
-      const subscription = await registration?.pushManager.getSubscription();
+      setPreferencesLoaded(true);
+      setMessage(null);
+
+      if (!result.config.webPushAvailable) {
+        setSubscribed(false);
+        setSubscriptionChecked(true);
+        return;
+      }
+
+      const subscription = await getCurrentPushSubscription(navigator.serviceWorker);
       if (isMounted()) {
         setSubscribed(Boolean(subscription));
+        setSubscriptionChecked(true);
       }
     } catch (err) {
       console.error("Failed to load push notification config", err);
+      if (isMounted()) {
+        setPreferencesLoaded(false);
+        setSubscriptionChecked(true);
+        setMessage("Could not load notification preferences.");
+      }
     }
   }, [accountState.authenticated, supported]);
 
@@ -103,7 +131,9 @@ export function usePushNotificationSettings(accountState: AccountState): UsePush
     } else {
       setConfig(null);
       setPreferences(defaultPushNotificationPreferences);
+      setPreferencesLoaded(false);
       setSubscribed(false);
+      setSubscriptionChecked(true);
     }
     return () => {
       mounted = false;
@@ -134,6 +164,7 @@ export function usePushNotificationSettings(accountState: AccountState): UsePush
         : await Notification.requestPermission();
       if (permission !== "granted") {
         setSubscribed(false);
+        setSubscriptionChecked(true);
         setMessage("Notifications not enabled.");
         return;
       }
@@ -149,10 +180,12 @@ export function usePushNotificationSettings(accountState: AccountState): UsePush
         userAgent: navigator.userAgent,
       });
       setSubscribed(true);
+      setSubscriptionChecked(true);
       setMessage("Push for this browser is enabled.");
     } catch (err) {
       console.error("Failed to enable notifications", err);
       setSubscribed(false);
+      setSubscriptionChecked(true);
       setMessage("Could not enable notifications.");
     } finally {
       setBusy(false);
@@ -163,16 +196,18 @@ export function usePushNotificationSettings(accountState: AccountState): UsePush
     setBusy(true);
     setMessage(null);
     try {
-      const registration = await navigator.serviceWorker.getRegistration("/");
+      const registration = await getPushServiceWorkerRegistration(navigator.serviceWorker);
       const subscription = await registration?.pushManager.getSubscription();
       if (subscription) {
         await disablePushSubscription(subscription.endpoint);
         await subscription.unsubscribe();
       }
       setSubscribed(false);
+      setSubscriptionChecked(true);
       setMessage("Push for this browser is disabled.");
     } catch (err) {
       console.error("Failed to disable notifications", err);
+      setSubscriptionChecked(true);
       setMessage("Could not disable notifications.");
     } finally {
       setBusy(false);
@@ -180,6 +215,10 @@ export function usePushNotificationSettings(accountState: AccountState): UsePush
   };
 
   const updatePreferences = async (next: PushNotificationPreferences) => {
+    if (!preferencesLoaded) {
+      setMessage("Notification preferences are still loading.");
+      return;
+    }
     const previous = preferences;
     setPreferences(next);
     setMessage(null);
@@ -203,9 +242,9 @@ export function usePushNotificationSettings(accountState: AccountState): UsePush
     if (!supported) return "unsupported";
     if (config && !config.webPushAvailable) return "not-configured";
     if (Notification.permission === "denied") return "blocked";
-    if (!config) return "checking";
+    if (!config || !subscriptionChecked) return "checking";
     return subscribed ? "on" : "off";
-  }, [accountState.authenticated, supported, config, subscribed]);
+  }, [accountState.authenticated, supported, config, subscribed, subscriptionChecked]);
 
   return {
     supported,
@@ -215,6 +254,7 @@ export function usePushNotificationSettings(accountState: AccountState): UsePush
     busy,
     message,
     browserStatus,
+    preferencesLoaded,
     reload,
     enableDeviceNotifications,
     disableDeviceNotifications,

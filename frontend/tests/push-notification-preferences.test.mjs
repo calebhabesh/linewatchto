@@ -4,6 +4,9 @@ import { describe, it } from "node:test";
 
 import { defaultPushNotificationPreferences } from "../src/app/account-data.ts";
 
+const hookSource = readFileSync(new URL("../src/hooks/usePushNotificationSettings.ts", import.meta.url), "utf8");
+const notificationPanelSource = readFileSync(new URL("../src/components/NotificationSettingsPanel.tsx", import.meta.url), "utf8");
+
 describe("push notification preferences schema", () => {
   it("defines nested preferences structure in account-data.ts", () => {
     const source = readFileSync(new URL("../src/app/account-data.ts", import.meta.url), "utf8");
@@ -30,5 +33,13 @@ describe("push notification preferences schema", () => {
     
     assert.equal(defaultPushNotificationPreferences.reminderTiming.closure24h, true);
     assert.equal(defaultPushNotificationPreferences.reminderTiming.closureMorning, true);
+  });
+
+  it("does not save fallback notification defaults before backend preferences load", () => {
+    assert.match(hookSource, /preferencesLoaded/);
+    assert.match(hookSource, /result\.source !== "backend"/);
+    assert.match(hookSource, /setPreferencesLoaded\(false\)/);
+    assert.match(hookSource, /if \(!preferencesLoaded\)/);
+    assert.match(notificationPanelSource, /disabled=\{busy \|\| !preferencesLoaded\}/);
   });
 });

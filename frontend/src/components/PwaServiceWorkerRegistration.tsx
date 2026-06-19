@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { unregisterServiceWorkersWithoutPushSubscriptions } from "../app/push-browser-state";
 
 export function PwaServiceWorkerRegistration() {
   useEffect(() => {
@@ -21,12 +22,11 @@ export function PwaServiceWorkerRegistration() {
     };
 
     if (!shouldEnable) {
-      // Unregister any active service workers to prevent stale cache issues in dev
-      navigator.serviceWorker.getRegistrations().then((registrations) => {
-        for (const registration of registrations) {
-          registration.unregister();
-        }
-      }).catch(() => undefined);
+      // Remove inactive dev workers, but keep any registration that owns a push subscription.
+      navigator.serviceWorker
+        .getRegistrations()
+        .then((registrations) => unregisterServiceWorkersWithoutPushSubscriptions(registrations))
+        .catch(() => undefined);
       return;
     }
 

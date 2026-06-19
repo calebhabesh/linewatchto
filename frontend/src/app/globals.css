@@ -6306,6 +6306,7 @@ button {
     display: flex !important;
     flex-direction: column !important;
     gap: 16px !important;
+    padding-right: 10px !important;
   }
 
   /* Make panel heading fit on one line and fit within web view on mobile */
