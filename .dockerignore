@@ -6,10 +6,17 @@
 !.env.production.example
 frontend/node_modules
 frontend/.next
+frontend/.next-scenario
 frontend/.vercel
 frontend/out
+frontend/coverage
 backend/target
 tmp
 test-results
 playwright-report
 blob-report
+traces
+*.log
+__pycache__
+.superpowers
+.worktrees

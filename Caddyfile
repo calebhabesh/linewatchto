@@ -1,0 +1,32 @@
+{
+	email hostmaster@linewatchto.ca
+}
+
+(linewatch_security_headers) {
+	header {
+		X-Content-Type-Options nosniff
+		X-Frame-Options DENY
+		Referrer-Policy strict-origin-when-cross-origin
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+	}
+}
+
+linewatchto.ca, www.linewatchto.ca {
+	encode gzip zstd
+	import linewatch_security_headers
+
+	handle /api/* {
+		reverse_proxy backend:8080
+	}
+
+	handle {
+		reverse_proxy frontend:3000
+	}
+}
+
+api.linewatchto.ca {
+	encode gzip zstd
+	import linewatch_security_headers
+
+	reverse_proxy backend:8080
+}
