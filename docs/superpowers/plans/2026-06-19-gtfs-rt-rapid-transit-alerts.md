@@ -248,17 +248,33 @@ public List<StationMapping> findStationMappings(
         return List.of();
     }
     return jdbc.query("""
+        with station_positions as (
+            select line_id,
+                   station_a_id as station_id,
+                   sort_order * 2 as sort_order
+            from line_segments
+            union all
+            select line_id,
+                   station_b_id as station_id,
+                   sort_order * 2 + 1 as sort_order
+            from line_segments
+        ),
+        station_position as (
+            select line_id, station_id, min(sort_order) as sort_order
+            from station_positions
+            group by line_id, station_id
+        )
         select station_stop.stop_id,
                station_stop.station_id,
-               station_line.sort_order
+               station_position.sort_order
         from gtfs_station_stops station_stop
-        join station_lines station_line
-          on station_line.station_id = station_stop.station_id
-         and station_line.line_id = station_stop.line_id
+        join station_position
+          on station_position.station_id = station_stop.station_id
+         and station_position.line_id = station_stop.line_id
         where station_stop.import_id = :importId
           and station_stop.line_id = :lineId
           and station_stop.stop_id in (:stopIds)
-        order by station_line.sort_order, station_stop.stop_id
+        order by station_position.sort_order, station_stop.stop_id
         """, new MapSqlParameterSource()
             .addValue("importId", importId)
             .addValue("lineId", lineId)
@@ -729,4 +745,3 @@ complete backend suite.
 
 Use `superpowers:finishing-a-development-branch` to present merge, PR, or
 worktree cleanup options after all verification passes.
-

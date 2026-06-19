@@ -89,7 +89,7 @@ For a supported line, the resolver:
 2. Maps each GTFS-RT `stop_id` through `gtfs_station_stops` using both
    `import_id` and `line_id`.
 3. Deduplicates platform stop IDs that resolve to the same LineWatch station.
-4. Orders resolved stations by `station_lines.sort_order`.
+4. Orders resolved stations through the seeded `line_segments` topology.
 5. Uses the first and last ordered stations as map bounds.
 
 The normalizer will use these internal station IDs directly rather than sending
@@ -233,4 +233,3 @@ mvn -f backend/pom.xml test
 
 No frontend verification is required because the API shape and frontend code do
 not change.
-
