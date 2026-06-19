@@ -326,6 +326,92 @@ EOF
   assert_contains "$(cat "$log")" "docker-compose.prod.yml ps"
 }
 
+make_fake_deploy_docker() {
+  local path="$1"
+
+  cat > "$path" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+printf '%s\n' "$*" >> "${FAKE_DOCKER_LOG:?}"
+if [[ " $* " == *" up "* ]] && [[ "${FAKE_DOCKER_UP_FAIL:-false}" == "true" ]]; then
+  exit 23
+fi
+EOF
+  chmod +x "$path"
+}
+
+test_deploy_promotes_release_after_healthy_start() {
+  local temp_dir
+  local prod_env
+  local release_env
+  local fake_docker
+  local log
+  local output
+  local new_sha="abcdef0123456789abcdef0123456789abcdef01"
+
+  temp_dir="$(mktemp -d "$TEST_TMP/deploy-success.XXXXXX")"
+  prod_env="$temp_dir/.env.production"
+  release_env="$temp_dir/.env.release"
+  fake_docker="$temp_dir/docker"
+  log="$temp_dir/docker.log"
+
+  printf 'POSTGRES_PASSWORD=test\n' > "$prod_env"
+  linewatch_write_release_env "$release_env" "ghcr.io/calebhabesh" "$TEST_SHA"
+  make_fake_deploy_docker "$fake_docker"
+
+  output="$(
+    FAKE_DOCKER_LOG="$log" \
+    DOCKER_BIN="$fake_docker" \
+    LINEWATCH_PROD_ENV_FILE="$prod_env" \
+    LINEWATCH_RELEASE_ENV_FILE="$release_env" \
+    LINEWATCH_DEPLOY_SKIP_CONFIG_CHECK=true \
+      "$ROOT_DIR/scripts/prod-deploy.sh" "$new_sha"
+  )"
+
+  assert_equals "$(linewatch_read_release_value "$release_env" LINEWATCH_IMAGE_TAG)" "$new_sha"
+  assert_contains "$(cat "$log")" "pull postgres backend frontend"
+  assert_contains "$(cat "$log")" "up -d --no-build --remove-orphans --wait"
+  assert_contains "$output" "Deployed LineWatch TO release $new_sha."
+}
+
+test_deploy_keeps_previous_release_after_failed_start() {
+  local temp_dir
+  local prod_env
+  local release_env
+  local fake_docker
+  local log
+  local output
+  local status
+  local new_sha="abcdef0123456789abcdef0123456789abcdef01"
+
+  temp_dir="$(mktemp -d "$TEST_TMP/deploy-failure.XXXXXX")"
+  prod_env="$temp_dir/.env.production"
+  release_env="$temp_dir/.env.release"
+  fake_docker="$temp_dir/docker"
+  log="$temp_dir/docker.log"
+
+  printf 'POSTGRES_PASSWORD=test\n' > "$prod_env"
+  linewatch_write_release_env "$release_env" "ghcr.io/calebhabesh" "$TEST_SHA"
+  make_fake_deploy_docker "$fake_docker"
+
+  set +e
+  output="$(
+    FAKE_DOCKER_LOG="$log" \
+    FAKE_DOCKER_UP_FAIL=true \
+    DOCKER_BIN="$fake_docker" \
+    LINEWATCH_PROD_ENV_FILE="$prod_env" \
+    LINEWATCH_RELEASE_ENV_FILE="$release_env" \
+    LINEWATCH_DEPLOY_SKIP_CONFIG_CHECK=true \
+      "$ROOT_DIR/scripts/prod-deploy.sh" "$new_sha" 2>&1
+  )"
+  status=$?
+  set -e
+
+  assert_equals "$status" "1"
+  assert_equals "$(linewatch_read_release_value "$release_env" LINEWATCH_IMAGE_TAG)" "$TEST_SHA"
+  assert_contains "$output" "Deployment failed for release $new_sha."
+}
+
 verify_test_harness
 run_test "production Compose requires LINEWATCH_IMAGE_TAG" test_requires_release_image_tag
 run_test "production Compose renders immutable release images" test_renders_immutable_release_images
@@ -338,5 +424,7 @@ run_test "release env writes reject empty output paths" test_rejects_empty_relea
 run_test "release builds require a clean Git worktree" test_requires_clean_git_worktree
 run_test "build script targets ARM64 registry images" test_build_script_targets_arm64_registry_images
 run_test "Compose wrapper loads both env files" test_compose_wrapper_loads_runtime_and_release_env
+run_test "deploy promotes a healthy candidate" test_deploy_promotes_release_after_healthy_start
+run_test "deploy retains the previous tag on failure" test_deploy_keeps_previous_release_after_failed_start
 
 printf '%s tests passed\n' "$TEST_COUNT"
