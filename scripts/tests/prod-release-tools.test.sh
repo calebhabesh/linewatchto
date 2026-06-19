@@ -4,6 +4,8 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$ROOT_DIR"
 
+source "$ROOT_DIR/scripts/lib/prod-release.sh"
+
 PROD_ENV=.env.production.example
 TEST_SHA=0123456789abcdef0123456789abcdef01234567
 TEST_TMP="$(mktemp -d)"
@@ -31,6 +33,13 @@ assert_not_contains() {
   local needle="$2"
 
   [[ "$haystack" != *"$needle"* ]] || fail "expected output not to contain: $needle"
+}
+
+assert_equals() {
+  local actual="$1"
+  local expected="$2"
+
+  [[ "$actual" == "$expected" ]] || fail "expected '$expected', got '$actual'"
 }
 
 run_test() {
@@ -122,8 +131,77 @@ test_renders_immutable_release_images() {
   assert_not_contains "$output" "build:"
 }
 
+test_validates_full_lowercase_git_sha() {
+  local output
+  local status
+
+  linewatch_validate_image_tag "$TEST_SHA"
+
+  set +e
+  output="$(linewatch_validate_image_tag "0123456" 2>&1)"
+  status=$?
+  set -e
+  assert_equals "$status" "1"
+  assert_equals "$output" "Error: image tag must be a full 40-character lowercase Git SHA"
+
+  set +e
+  output="$(linewatch_validate_image_tag "zzzz456789abcdef0123456789abcdef01234567" 2>&1)"
+  status=$?
+  set -e
+  assert_equals "$status" "1"
+  assert_equals "$output" "Error: image tag must be a full 40-character lowercase Git SHA"
+}
+
+test_builds_component_image_reference() {
+  local output
+
+  output="$(linewatch_image_ref "ghcr.io/calebhabesh/" frontend "$TEST_SHA")"
+
+  assert_equals "$output" "ghcr.io/calebhabesh/linewatch-frontend:$TEST_SHA"
+}
+
+test_release_file_round_trip() {
+  local release_env="$TEST_TMP/release-round-trip.env"
+
+  linewatch_write_release_env "$release_env" "ghcr.io/calebhabesh///" "$TEST_SHA"
+
+  assert_equals "$(linewatch_read_release_value "$release_env" LINEWATCH_IMAGE_TAG)" "$TEST_SHA"
+  assert_equals \
+    "$(linewatch_read_release_value "$release_env" LINEWATCH_IMAGE_REGISTRY)" \
+    "ghcr.io/calebhabesh"
+}
+
+test_requires_clean_git_worktree() {
+  local repo="$TEST_TMP/clean-worktree"
+  local output
+  local status
+
+  git init -q "$repo"
+  git -C "$repo" config user.email "release-test@example.com"
+  git -C "$repo" config user.name "Release Test"
+  printf 'clean\n' > "$repo/tracked.txt"
+  git -C "$repo" add tracked.txt
+  git -C "$repo" commit -qm "test fixture"
+
+  linewatch_require_clean_worktree "$repo"
+
+  printf 'dirty\n' >> "$repo/tracked.txt"
+  set +e
+  output="$(linewatch_require_clean_worktree "$repo" 2>&1)"
+  status=$?
+  set -e
+
+  assert_equals "$status" "1"
+  assert_contains "$output" " M tracked.txt"
+  assert_contains "$output" "Error: release builds require a clean Git worktree"
+}
+
 verify_test_harness
 run_test "production Compose requires LINEWATCH_IMAGE_TAG" test_requires_release_image_tag
 run_test "production Compose renders immutable release images" test_renders_immutable_release_images
+run_test "image tags require full lowercase Git SHAs" test_validates_full_lowercase_git_sha
+run_test "component image references are deterministic" test_builds_component_image_reference
+run_test "release env files round trip normalized values" test_release_file_round_trip
+run_test "release builds require a clean Git worktree" test_requires_clean_git_worktree
 
 printf '%s tests passed\n' "$TEST_COUNT"
