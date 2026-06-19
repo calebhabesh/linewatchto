@@ -178,9 +178,15 @@ async function showPendingPushNotification() {
     const body = await response.json();
     const notification = body.notification;
     const activeTags = await reconcilePushNotifications();
-    if (!notification) return;
+    if (!notification) {
+      await showFallbackPushNotification();
+      return;
+    }
     const notificationState = notification.state === "CLEARED" ? "CLEARED" : "ACTIVE";
-    if (notificationState !== "CLEARED" && Array.isArray(activeTags) && !activeTags.includes(notification.tag)) return;
+    if (notificationState !== "CLEARED" && Array.isArray(activeTags) && !activeTags.includes(notification.tag)) {
+      await showFallbackPushNotification();
+      return;
+    }
 
     const options = {
       body: notification.body,

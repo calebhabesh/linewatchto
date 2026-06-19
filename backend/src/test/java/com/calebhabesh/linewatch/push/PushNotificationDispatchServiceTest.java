@@ -108,6 +108,63 @@ class PushNotificationDispatchServiceTest {
     }
 
     @Test
+    void removesNewEventWhenEveryPushSendFailsSoLaterEvaluationsCanRetry() {
+        SavedCommuteEntity commute = SavedCommuteEntity.create(
+            "commute_1",
+            account,
+            "Morning commute",
+            "finch",
+            "union",
+            true,
+            Instant.parse("2026-06-05T14:30:00Z")
+        );
+        PushNotificationCandidate candidate = new PushNotificationCandidate(
+            "user_1",
+            "commute_1",
+            "outbound",
+            "line-1",
+            "saved-commute-impact",
+            "delay",
+            "on-change",
+            "saved-commute-impact|commute_1|outbound|delay|delay-line-1",
+            "dedupe-1",
+            "Morning commute affected",
+            "Delay on Line 1: Finch to Union",
+            "/?panel=commutes&commute=commute_1"
+        );
+        PushSubscriptionEntity subscription = PushSubscriptionEntity.create(
+            "push_subscription_1",
+            account,
+            "https://fcm.googleapis.com/fcm/send/subscription",
+            "endpoint-hash",
+            "p256dh-key",
+            "auth-secret",
+            "Chrome Android",
+            Instant.parse("2026-06-05T14:45:00Z")
+        );
+        PushNotificationPreferenceEntity preferences = PushNotificationPreferenceEntity.create(account, Instant.parse("2026-06-05T14:00:00Z"));
+        when(preferenceService.preferenceEntityForAccountId("user_1")).thenReturn(preferences);
+        when(preferenceService.allows(any(), any())).thenReturn(true);
+        when(preferenceService.subscribedLineIds("user_1")).thenReturn(List.of());
+        when(lineSubscriptionPushPlanner.candidatesFor(anyString(), anyList())).thenReturn(List.of());
+
+        when(subscriptionRepository.findEnabledAccountIds()).thenReturn(List.of("user_1"));
+        when(savedCommuteRepository.findByAccountIdOrderByCreatedAtAsc("user_1")).thenReturn(List.of(commute));
+        when(planner.candidatesFor(commute)).thenReturn(List.of(candidate));
+        when(eventRepository.existsByDedupeKey("dedupe-1")).thenReturn(false);
+        when(eventRepository.save(any(PushNotificationEventEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(subscriptionRepository.findByAccountIdAndEnabledTrue("user_1")).thenReturn(List.of(subscription));
+        when(webPushClient.send(subscription, "AVEPD-AuDIedMxfArNYRpmed5ppkzhC3")).thenReturn(PushDeliveryResult.failed(null, "Connection refused"));
+
+        service.evaluateSavedCommuteNotifications();
+
+        verify(eventRepository).save(any(PushNotificationEventEntity.class));
+        verify(webPushClient).send(subscription, "AVEPD-AuDIedMxfArNYRpmed5ppkzhC3");
+        verify(deliveryRepository).save(any(PushNotificationDeliveryEntity.class));
+        verify(eventRepository).delete(any(PushNotificationEventEntity.class));
+    }
+
+    @Test
     void doesNotSendCandidateAgainWhenDedupeKeyAlreadyExists() {
         SavedCommuteEntity commute = SavedCommuteEntity.create(
             "commute_1",
@@ -228,8 +285,19 @@ class PushNotificationDispatchServiceTest {
     @Test
     void lineWideDelaySendsOnlyWhenLineIsSubscribed() {
         PushNotificationPreferenceEntity preferences = PushNotificationPreferenceEntity.create(account, clock.instant());
+        PushSubscriptionEntity subscription = PushSubscriptionEntity.create(
+            "push_subscription_1",
+            account,
+            "https://fcm.googleapis.com/fcm/send/subscription",
+            "endpoint-hash",
+            "p256dh-key",
+            "auth-secret",
+            "Chrome Android",
+            clock.instant()
+        );
         when(preferenceService.preferenceEntityForAccountId("user_1")).thenReturn(preferences);
         when(subscriptionRepository.findEnabledAccountIds()).thenReturn(List.of("user_1"));
+        when(subscriptionRepository.findByAccountIdAndEnabledTrue("user_1")).thenReturn(List.of(subscription));
 
         when(preferenceService.subscribedLineIds("user_1")).thenReturn(List.of("line-1"));
         
@@ -243,6 +311,7 @@ class PushNotificationDispatchServiceTest {
 
         when(eventRepository.existsByDedupeKey(anyString())).thenReturn(false);
         when(eventRepository.save(any())).thenAnswer(inv -> PushNotificationEventEntity.create("event-1", line1Candidate, clock.instant()));
+        when(webPushClient.send(eq(subscription), anyString())).thenReturn(PushDeliveryResult.accepted(202));
 
         service.evaluateSavedCommuteNotifications();
 
@@ -274,8 +343,19 @@ class PushNotificationDispatchServiceTest {
     @Test
     void enablingLineWideReducedSpeedZonesAllowsThatCandidate() {
         PushNotificationPreferenceEntity preferences = PushNotificationPreferenceEntity.create(account, clock.instant());
+        PushSubscriptionEntity subscription = PushSubscriptionEntity.create(
+            "push_subscription_1",
+            account,
+            "https://fcm.googleapis.com/fcm/send/subscription",
+            "endpoint-hash",
+            "p256dh-key",
+            "auth-secret",
+            "Chrome Android",
+            clock.instant()
+        );
         when(preferenceService.preferenceEntityForAccountId("user_1")).thenReturn(preferences);
         when(subscriptionRepository.findEnabledAccountIds()).thenReturn(List.of("user_1"));
+        when(subscriptionRepository.findByAccountIdAndEnabledTrue("user_1")).thenReturn(List.of(subscription));
 
         when(preferenceService.subscribedLineIds("user_1")).thenReturn(List.of("line-1"));
         
@@ -288,6 +368,7 @@ class PushNotificationDispatchServiceTest {
         
         when(preferenceService.allows(preferences, rszCandidate)).thenReturn(true);
         when(eventRepository.save(any())).thenAnswer(inv -> PushNotificationEventEntity.create("event-1", rszCandidate, clock.instant()));
+        when(webPushClient.send(eq(subscription), anyString())).thenReturn(PushDeliveryResult.accepted(202));
 
         service.evaluateSavedCommuteNotifications();
 

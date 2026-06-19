@@ -137,7 +137,9 @@ public class PushNotificationDispatchService {
                     activeEvent,
                     now
                 ));
-                sendEventToSubscriptions(clearedEvent, now);
+                if (!sendEventToSubscriptions(clearedEvent, now)) {
+                    eventRepository.delete(clearedEvent);
+                }
             }
         }
     }
@@ -147,18 +149,31 @@ public class PushNotificationDispatchService {
             return;
         }
         Instant now = clock.instant();
+        List<PushSubscriptionEntity> subscriptions = subscriptionRepository.findByAccountIdAndEnabledTrue(candidate.accountId());
+        if (subscriptions.isEmpty()) {
+            return;
+        }
         PushNotificationEventEntity event = eventRepository.save(PushNotificationEventEntity.create(
             nextId("push_event"),
             candidate,
             now
         ));
-        sendEventToSubscriptions(event, now);
+        if (!sendEventToSubscriptions(event, subscriptions, now)) {
+            eventRepository.delete(event);
+        }
     }
 
-    private void sendEventToSubscriptions(PushNotificationEventEntity event, Instant now) {
-        List<PushSubscriptionEntity> subscriptions = subscriptionRepository.findByAccountIdAndEnabledTrue(event.getAccountId());
+    private boolean sendEventToSubscriptions(PushNotificationEventEntity event, Instant now) {
+        return sendEventToSubscriptions(event, subscriptionRepository.findByAccountIdAndEnabledTrue(event.getAccountId()), now);
+    }
+
+    private boolean sendEventToSubscriptions(PushNotificationEventEntity event, List<PushSubscriptionEntity> subscriptions, Instant now) {
+        boolean accepted = false;
         for (PushSubscriptionEntity subscription : subscriptions) {
             PushDeliveryResult result = webPushClient.send(subscription, topicFor(event.getNotificationKey()));
+            if (result.accepted()) {
+                accepted = true;
+            }
             if (result.invalidSubscription()) {
                 subscription.disable(now);
             }
@@ -170,6 +185,7 @@ public class PushNotificationDispatchService {
                 now
             ));
         }
+        return accepted;
     }
 
     static String topicFor(String notificationKey) {

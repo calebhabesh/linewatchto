@@ -626,7 +626,7 @@ describe("LineWatch PWA configuration", () => {
     assert.equal(activeNotification.closed, false);
   });
 
-  it("does not show a pending saved-commute push when its tag is no longer active", async () => {
+  it("shows a fallback notification when a pending push is no longer active", async () => {
     const { shownNotifications } = await serviceWorkerPush({
       fetchBody: {
         notification: {
@@ -639,7 +639,9 @@ describe("LineWatch PWA configuration", () => {
       },
     });
 
-    assert.equal(shownNotifications.length, 0);
+    assert.equal(shownNotifications.length, 1);
+    assert.equal(shownNotifications[0].title, "LineWatch TO commute update");
+    assert.equal(shownNotifications[0].options.tag, "linewatch-commute-update");
   });
 
   it("shows a cleared saved-commute push as a quiet replacement even when the tag is no longer active", async () => {

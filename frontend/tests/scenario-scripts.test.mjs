@@ -45,6 +45,8 @@ describe("alert scenario scripts", () => {
     assert.match(cloudflarePushScript, /NEXT_PUBLIC_LINEWATCH_ENABLE_SW=true/);
     assert.match(cloudflarePushScript, /LINEWATCH_BUILD_LABEL/);
     assert.match(cloudflarePushScript, /NEXT_PUBLIC_LINEWATCH_BUILD_LABEL="\$LINEWATCH_BUILD_LABEL"/);
+    assert.doesNotMatch(cloudflarePushScript, /date -u \+%Y%m%d%H%M%S/);
+    assert.match(cloudflarePushScript, /git -C "\$REPO_ROOT" rev-parse --short HEAD/);
     assert.match(cloudflarePushScript, /LINEWATCH_DEV_ALLOWED_ORIGIN="\$TUNNEL_HOSTNAME"/);
     assert.match(cloudflarePushScript, /cloudflared tunnel --config "\$CLOUDFLARED_CONFIG" run/);
     assert.match(cloudflarePushScript, /npm --prefix "\$REPO_ROOT\/frontend" run dev/);

@@ -105,7 +105,13 @@ fi
 
 : "${LINEWATCH_AUTH_PASSWORD_RESET_DEV_LINKS:=true}"
 : "${LINEWATCH_PUSH_VAPID_SUBJECT:=mailto:linewatch-dev@example.invalid}"
-LINEWATCH_BUILD_LABEL="${LINEWATCH_BUILD_LABEL:-dev-$(date -u +%Y%m%d%H%M%S)}"
+if [ -z "${LINEWATCH_BUILD_LABEL:-}" ]; then
+  if GIT_SHORT_SHA=$(git -C "$REPO_ROOT" rev-parse --short HEAD 2>/dev/null); then
+    LINEWATCH_BUILD_LABEL="dev-$GIT_SHORT_SHA"
+  else
+    LINEWATCH_BUILD_LABEL="dev-local"
+  fi
+fi
 
 BACKEND_PID=""
 FRONTEND_PID=""

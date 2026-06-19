@@ -10,8 +10,10 @@ import {
   type PushNotificationPreferences,
 } from "../app/account-data";
 import {
+  base64UrlToUint8Array,
   getCurrentPushSubscription,
   getPushServiceWorkerRegistration,
+  pushSubscriptionUsesApplicationServerKey,
 } from "../app/push-browser-state";
 
 export type BrowserPushStatus =
@@ -37,17 +39,6 @@ export type UsePushNotificationSettingsResult = {
   disableDeviceNotifications: () => Promise<void>;
   updatePreferences: (next: PushNotificationPreferences) => Promise<void>;
 };
-
-function base64UrlToUint8Array(value: string) {
-  const padding = "=".repeat((4 - value.length % 4) % 4);
-  const base64 = (value + padding).replace(/-/g, "+").replace(/_/g, "/");
-  const raw = window.atob(base64);
-  const output = new Uint8Array(raw.length);
-  for (let index = 0; index < raw.length; index += 1) {
-    output[index] = raw.charCodeAt(index);
-  }
-  return output;
-}
 
 async function serviceWorkerRegistrationForPush() {
   const existing = await getPushServiceWorkerRegistration(navigator.serviceWorker);
@@ -109,8 +100,14 @@ export function usePushNotificationSettings(accountState: AccountState): UsePush
 
       const subscription = await getCurrentPushSubscription(navigator.serviceWorker);
       if (isMounted()) {
-        setSubscribed(Boolean(subscription));
+        const subscriptionUsesCurrentKey = subscription
+          ? pushSubscriptionUsesApplicationServerKey(subscription, result.config.vapidPublicKey)
+          : false;
+        setSubscribed(Boolean(subscription && subscriptionUsesCurrentKey));
         setSubscriptionChecked(true);
+        if (subscription && !subscriptionUsesCurrentKey) {
+          setMessage("Push for this browser needs to be re-enabled.");
+        }
       }
     } catch (err) {
       console.error("Failed to load push notification config", err);
@@ -170,7 +167,20 @@ export function usePushNotificationSettings(accountState: AccountState): UsePush
       }
       const registration = await serviceWorkerRegistrationForPush();
       const existing = await registration.pushManager.getSubscription();
-      const subscription = existing ?? await registration.pushManager.subscribe({
+      let subscription = existing;
+      if (subscription && !pushSubscriptionUsesApplicationServerKey(subscription, config.vapidPublicKey)) {
+        try {
+          await disablePushSubscription(subscription.endpoint);
+        } catch {
+          // The browser subscription is stale for this VAPID key; refreshing it is still safe.
+        }
+        const unsubscribed = await subscription.unsubscribe();
+        if (!unsubscribed) {
+          throw new Error("Could not refresh stale push subscription.");
+        }
+        subscription = null;
+      }
+      subscription = subscription ?? await registration.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: base64UrlToUint8Array(config.vapidPublicKey),
       });

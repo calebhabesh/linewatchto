@@ -22,6 +22,45 @@ export type PushRegistrationLookupOptions = {
 const DEFAULT_READY_TIMEOUT_MS = 4_000;
 const DEFAULT_SCOPE_PATH = "/";
 
+export function base64UrlToUint8Array(value: string) {
+  const padding = "=".repeat((4 - value.length % 4) % 4);
+  const base64 = (value + padding).replace(/-/g, "+").replace(/_/g, "/");
+  const raw = globalThis.atob(base64);
+  const output = new Uint8Array(raw.length);
+  for (let index = 0; index < raw.length; index += 1) {
+    output[index] = raw.charCodeAt(index);
+  }
+  return output;
+}
+
+function bytesForApplicationServerKey(value: unknown): Uint8Array | null {
+  if (!value) return null;
+  if (value instanceof ArrayBuffer) return new Uint8Array(value);
+  if (ArrayBuffer.isView(value)) {
+    return new Uint8Array(value.buffer, value.byteOffset, value.byteLength);
+  }
+  return null;
+}
+
+export function pushSubscriptionUsesApplicationServerKey(
+  subscription: Pick<PushSubscription, "options">,
+  vapidPublicKey: string,
+) {
+  if (!vapidPublicKey) return true;
+
+  const currentKey = bytesForApplicationServerKey(subscription.options?.applicationServerKey);
+  if (!currentKey) return true;
+
+  const expectedKey = base64UrlToUint8Array(vapidPublicKey);
+  if (currentKey.byteLength !== expectedKey.byteLength) return false;
+
+  for (let index = 0; index < currentKey.byteLength; index += 1) {
+    if (currentKey[index] !== expectedKey[index]) return false;
+  }
+
+  return true;
+}
+
 async function serviceWorkerReadyWithin(
   serviceWorker: PushServiceWorkerContainer,
   timeoutMs: number,

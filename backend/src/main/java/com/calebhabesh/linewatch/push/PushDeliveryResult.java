@@ -17,6 +17,10 @@ public record PushDeliveryResult(String status, Integer httpStatus, String messa
         return new PushDeliveryResult("failed", httpStatus, message);
     }
 
+    public boolean accepted() {
+        return "accepted".equals(status);
+    }
+
     public boolean invalidSubscription() {
         return "gone".equals(status);
     }
