@@ -28,7 +28,8 @@ class TtcAlertScenarioCatalogTest {
         when(stationRepository.existsById(anyString())).thenReturn(true);
         normalizer = new TtcAlertNormalizer(
             new StationAliasResolver(stationRepository),
-            new AlertDirectionParser()
+            new AlertDirectionParser(),
+            mock(GtfsRtRapidTransitStationResolver.class)
         );
         client = new TtcAlertClient(
             RestClient.create(),

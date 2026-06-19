@@ -1,6 +1,7 @@
 package com.calebhabesh.linewatch.ingestion;
 
 import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -14,7 +15,8 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class TtcAlertNormalizer {
-    private static final Set<String> RAPID_TRANSIT_TYPES = Set.of("subway", "lrt");
+    private static final Set<String> RAPID_TRANSIT_TYPES =
+        Set.of("subway", "lrt", "rapid transit");
     private static final Set<String> ACCESSIBILITY_TYPES = Set.of("elevator", "escalator");
     private static final Map<String, String> LINE_IDS = Map.of(
         "1", "line-1",
@@ -28,13 +30,16 @@ public class TtcAlertNormalizer {
 
     private final StationAliasResolver stationAliasResolver;
     private final AlertDirectionParser directionParser;
+    private final GtfsRtRapidTransitStationResolver gtfsRtStationResolver;
 
     public TtcAlertNormalizer(
         StationAliasResolver stationAliasResolver,
-        AlertDirectionParser directionParser
+        AlertDirectionParser directionParser,
+        GtfsRtRapidTransitStationResolver gtfsRtStationResolver
     ) {
         this.stationAliasResolver = stationAliasResolver;
         this.directionParser = directionParser;
+        this.gtfsRtStationResolver = gtfsRtStationResolver;
     }
 
     public NormalizationResult<NormalizedRouteAlert> normalizeRoute(TtcFetchedRecord fetched) {
@@ -53,13 +58,8 @@ public class TtcAlertNormalizer {
             return NormalizationResult.unmatched();
         }
 
-        ResolvedStation startStation = resolveStation(record.stopStart());
-        ResolvedStation endStation = resolveStation(record.stopEnd());
-        ResolvedStations stations = resolveStations(
-            record.stopIDList(),
-            startStation,
-            endStation
-        );
+        String lineId = LINE_IDS.get(route);
+        RouteStations stations = resolveRouteStations(record, lineId);
         Classification classification = classifyRoute(record);
         if (classification == null) {
             return NormalizationResult.unmatched();
@@ -68,7 +68,6 @@ public class TtcAlertNormalizer {
         List<NormalizedAlertPeriod> periods = normalizePeriods(record);
         OffsetDateTime activePeriodStart = activePeriodStart(record);
         OffsetDateTime activePeriodEnd = activePeriodEnd(record);
-        String lineId = LINE_IDS.get(route);
         String title = requiredTitle(record, "TTC service alert");
         String description = nullToEmpty(record.description());
         AlertDirection direction = directionParser.parse(
@@ -108,11 +107,11 @@ public class TtcAlertNormalizer {
             record.trackPercent(),
             record.reducedSpeed(),
             record.averageSpeed(),
-            startStation.stationId().orElse(null),
-            endStation.stationId().orElse(null),
+            stations.startStationId(),
+            stations.endStationId(),
             activePeriodStart,
             activePeriodEnd,
-            sourceTime(record.lastUpdated()),
+            sourceTime(record, record.lastUpdated()),
             record.shuttleType(),
             record.shuttleStart(),
             record.shuttleEnd(),
@@ -122,7 +121,7 @@ public class TtcAlertNormalizer {
             fingerprint
         );
 
-        return startStation.unresolved() || endStation.unresolved() || stations.unresolved()
+        return stations.unresolved()
             ? NormalizationResult.matchedWithUnresolved(projection)
             : NormalizationResult.matched(projection);
     }
@@ -167,7 +166,7 @@ public class TtcAlertNormalizer {
             cause,
             activePeriodStart(record),
             activePeriodEnd(record),
-            sourceTime(record.lastUpdated()),
+            sourceTime(record, record.lastUpdated()),
             fetched.rawPayload(),
             List.of(stationId.orElseThrow())
         ));
@@ -284,6 +283,37 @@ public class TtcAlertNormalizer {
         return new ResolvedStation(stationId, stationId.isEmpty());
     }
 
+    private RouteStations resolveRouteStations(TtcAlertRecord record, String lineId) {
+        if (isGtfsRt(record)) {
+            GtfsRtRapidTransitStationResolver.Resolution resolution =
+                gtfsRtStationResolver.resolve(
+                    lineId,
+                    record.stopIDList() == null ? List.of() : record.stopIDList(),
+                    sourceText(record)
+                );
+            return new RouteStations(
+                resolution.startStationId(),
+                resolution.endStationId(),
+                resolution.stationIds(),
+                resolution.unresolved()
+            );
+        }
+
+        ResolvedStation startStation = resolveStation(record.stopStart());
+        ResolvedStation endStation = resolveStation(record.stopEnd());
+        ResolvedStations stations = resolveStations(
+            record.stopIDList(),
+            startStation,
+            endStation
+        );
+        return new RouteStations(
+            startStation.stationId().orElse(null),
+            endStation.stationId().orElse(null),
+            stations.stationIds(),
+            startStation.unresolved() || endStation.unresolved() || stations.unresolved()
+        );
+    }
+
     private ResolvedStations resolveStations(
         List<String> stationNames,
         ResolvedStation startStation,
@@ -322,8 +352,8 @@ public class TtcAlertNormalizer {
             if (child != null) {
                 periods.add(new NormalizedAlertPeriod(
                     isBlank(child.id()) ? "child-" + index : child.id(),
-                    sourceTime(child.startTime()),
-                    sourceTime(child.endTime()),
+                    sourceTime(record, child.startTime()),
+                    sourceTime(record, child.endTime()),
                     index
                 ));
             }
@@ -331,20 +361,30 @@ public class TtcAlertNormalizer {
         return List.copyOf(periods);
     }
 
-    private OffsetDateTime sourceTime(OffsetDateTime value) {
+    private OffsetDateTime sourceTime(TtcAlertRecord record, OffsetDateTime value) {
+        if (isGtfsRt(record)) {
+            OffsetDateTime normalized = TtcAlertTimes.nullIfSentinel(value);
+            return normalized == null
+                ? null
+                : normalized.withOffsetSameInstant(ZoneOffset.UTC);
+        }
         return TtcAlertTimes.sourceWallTimeToInstant(value);
     }
 
     private OffsetDateTime activePeriodStart(TtcAlertRecord record) {
         return record.activePeriod() == null
             ? null
-            : sourceTime(record.activePeriod().start());
+            : sourceTime(record, record.activePeriod().start());
     }
 
     private OffsetDateTime activePeriodEnd(TtcAlertRecord record) {
         return record.activePeriod() == null
             ? null
-            : sourceTime(record.activePeriod().end());
+            : sourceTime(record, record.activePeriod().end());
+    }
+
+    private boolean isGtfsRt(TtcAlertRecord record) {
+        return equalsIgnoreCase(record.alertType(), "GTFS-RT");
     }
 
     private String fingerprint(
@@ -411,4 +451,11 @@ public class TtcAlertNormalizer {
     private record ResolvedStation(Optional<String> stationId, boolean unresolved) {}
 
     private record ResolvedStations(List<String> stationIds, boolean unresolved) {}
+
+    private record RouteStations(
+        String startStationId,
+        String endStationId,
+        List<String> stationIds,
+        boolean unresolved
+    ) {}
 }

@@ -2,6 +2,8 @@ package com.calebhabesh.linewatch.ingestion;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.contains;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -21,6 +23,8 @@ import org.springframework.web.client.RestClient;
 
 class TtcAlertNormalizerTest {
     private final StationRepository stationRepository = mock(StationRepository.class);
+    private final GtfsRtRapidTransitStationResolver gtfsRtStationResolver =
+        mock(GtfsRtRapidTransitStationResolver.class);
     private TtcAlertFeed feed;
     private TtcAlertNormalizer normalizer;
 
@@ -28,7 +32,11 @@ class TtcAlertNormalizerTest {
     void setUp() throws Exception {
         when(stationRepository.existsById(anyString())).thenReturn(true);
         StationAliasResolver resolver = new StationAliasResolver(stationRepository);
-        normalizer = new TtcAlertNormalizer(resolver, new AlertDirectionParser());
+        normalizer = new TtcAlertNormalizer(
+            resolver,
+            new AlertDirectionParser(),
+            gtfsRtStationResolver
+        );
         String body = new String(
             getClass().getResourceAsStream("/fixtures/ttc-synthetic-alerts.json").readAllBytes(),
             StandardCharsets.UTF_8
@@ -190,6 +198,71 @@ class TtcAlertNormalizerTest {
         assertThat(alert.type()).isEqualTo("active-alert");
         assertThat(alert.severity()).isEqualTo("suspension");
         assertThat(alert.impactKind()).isEqualTo(AlertImpactKind.SUSPENSION);
+    }
+
+    @Test
+    void normalizesGtfsRtLineTwoSuspensionWithResolvedStationsAndAbsoluteTimes() {
+        TtcFetchedRecord fetched = gtfsRtLineTwoAlert();
+        List<String> stopIds = fetched.record().stopIDList();
+        when(gtfsRtStationResolver.resolve(
+            eq("line-2"),
+            eq(stopIds),
+            contains("no service between jane and islington")
+        )).thenReturn(new GtfsRtRapidTransitStationResolver.Resolution(
+            List.of("islington", "royal-york", "old-mill", "jane"),
+            "islington",
+            "jane",
+            false
+        ));
+
+        NormalizationResult<NormalizedRouteAlert> result =
+            normalizer.normalizeRoute(fetched);
+        NormalizedRouteAlert alert = result.projection().orElseThrow();
+
+        assertThat(result.status()).isEqualTo(NormalizationStatus.MATCHED);
+        assertThat(alert.lineId()).isEqualTo("line-2");
+        assertThat(alert.impactKind()).isEqualTo(AlertImpactKind.SUSPENSION);
+        assertThat(alert.startStationId()).isEqualTo("islington");
+        assertThat(alert.endStationId()).isEqualTo("jane");
+        assertThat(alert.stationIds())
+            .containsExactly("islington", "royal-york", "old-mill", "jane");
+        assertThat(alert.activePeriodStart())
+            .isEqualTo(OffsetDateTime.parse("2026-06-19T16:18:00Z"));
+        assertThat(alert.sourceUpdatedAt())
+            .isEqualTo(OffsetDateTime.parse("2026-06-19T04:28:52Z"));
+        assertThat(alert.periods()).containsExactly(new NormalizedAlertPeriod(
+            "parent",
+            OffsetDateTime.parse("2026-06-19T16:18:00Z"),
+            null,
+            0
+        ));
+    }
+
+    @Test
+    void retainsUnresolvedGtfsRtSuspensionAsLineWideAlert() {
+        TtcFetchedRecord fetched = gtfsRtLineTwoAlert();
+        when(gtfsRtStationResolver.resolve(
+            eq("line-2"),
+            eq(fetched.record().stopIDList()),
+            anyString()
+        )).thenReturn(new GtfsRtRapidTransitStationResolver.Resolution(
+            List.of(),
+            null,
+            null,
+            true
+        ));
+
+        NormalizationResult<NormalizedRouteAlert> result =
+            normalizer.normalizeRoute(fetched);
+
+        assertThat(result.status()).isEqualTo(NormalizationStatus.MATCHED_WITH_UNRESOLVED);
+        assertThat(result.shouldPersist()).isTrue();
+        assertThat(result.projection()).get().satisfies(alert -> {
+            assertThat(alert.lineId()).isEqualTo("line-2");
+            assertThat(alert.startStationId()).isNull();
+            assertThat(alert.endStationId()).isNull();
+            assertThat(alert.stationIds()).isEmpty();
+        });
     }
 
     @Test
@@ -555,6 +628,44 @@ class TtcAlertNormalizerTest {
             null,
             List.of()
         ));
+    }
+
+    private TtcFetchedRecord gtfsRtLineTwoAlert() {
+        return new GtfsRtServiceAlertTextParser().parse("""
+            header {
+              gtfs_realtime_version: "2.0"
+              incrementality: FULL_DATASET
+              timestamp: 1781843332
+            }
+            entity {
+              id: "70483"
+              alert {
+                active_period { start: 1781885880 }
+                informed_entity { route_id: "2" stop_id: "13784" }
+                informed_entity { route_id: "2" stop_id: "13783" }
+                informed_entity { route_id: "2" stop_id: "13781" }
+                informed_entity { route_id: "2" stop_id: "13782" }
+                informed_entity { route_id: "2" stop_id: "13780" }
+                informed_entity { route_id: "2" stop_id: "13779" }
+                informed_entity { route_id: "2" stop_id: "13777" }
+                informed_entity { route_id: "2" stop_id: "13778" }
+                cause: POLICE_ACTIVITY
+                effect: NO_SERVICE
+                header_text {
+                  translation {
+                    text: "Line 2 Bloor-Danforth: No service between Jane and Islington stations due to a security incident."
+                    language: "en"
+                  }
+                }
+                description_text {
+                  translation {
+                    text: "at Old Mill Station."
+                    language: "en"
+                  }
+                }
+              }
+            }
+            """).getFirst();
     }
 
     private TtcFetchedRecord fetchedAccessibility(String headerText) {
