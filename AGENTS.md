@@ -17,6 +17,7 @@ The project is early but no longer an empty scaffold.
 - `frontend/tests/linewatch-data.test.mjs` verifies the fixture layer with Node's built-in test runner.
 - `backend/` contains a Spring Boot app with seeded dashboard APIs, TTC alert ingestion services, health endpoints, and backend tests.
 - `docker-compose.yml` provides local PostgreSQL/PostGIS and Redis; `docker-compose.prod.yml` self-hosts Caddy, frontend, backend, PostgreSQL/PostGIS, and Redis on the Oracle ARM64 VPS.
+- Production application images are built as ARM64 artifacts on the development server, published to public GHCR packages, and selected on the VPS through `.env.release`; the VPS pulls images and does not build them.
 - `infra/postgres/Dockerfile` builds the production PostGIS image from the official multi-architecture PostgreSQL 17 image because the selected official `postgis/postgis` tag is AMD64-only.
 - The project includes seeded PostGIS migrations for stations and transit lines.
 - Seeded demo dashboard APIs (`/api/map`, `/api/status`, `/api/alerts`, `/api/stations`) are implemented.
@@ -124,8 +125,9 @@ Infrastructure:
 ```bash
 docker compose up -d postgres redis
 docker compose down
-docker compose --env-file .env.production -f docker-compose.prod.yml up -d --build
-docker compose --env-file .env.production -f docker-compose.prod.yml ps
+scripts/prod-build-push.sh
+scripts/prod-deploy.sh <full-git-sha>
+scripts/prod-compose.sh ps
 scripts/prod-backup-postgres.sh
 ```
 

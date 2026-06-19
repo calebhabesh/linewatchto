@@ -20,7 +20,8 @@ The host manages:
 - WireGuard.
 - OCI ingress rules.
 - Host firewall rules.
-- The repository checkout and server-local `.env.production`.
+- The repository checkout, server-local `.env.production`, and generated `.env.release`.
+- Persistent Docker volumes and Caddy data.
 
 WireGuard stays outside Compose because it protects access to Docker and the host itself.
 
@@ -69,7 +70,9 @@ Compose services:
 - `postgres`: PostgreSQL 17 with PostGIS on a persistent volume.
 - `redis`: Redis 7 with append-only persistence on a persistent volume.
 
-PostGIS is built from `infra/postgres/Dockerfile`, which extends the official multi-architecture `postgres:17-bookworm` image. The official `postgis/postgis` image used for local development does not publish an ARM64 manifest for the selected tag.
+Production application images are built on the development server, published as ARM64 GHCR images, and selected on the VPS through `.env.release`. The VPS never runs `docker compose build` or `up --build`.
+
+The production PostGIS image is built from `infra/postgres/Dockerfile`, which extends the official multi-architecture `postgres:17-bookworm` image. The official `postgis/postgis` image used for local development does not publish an ARM64 manifest for the selected tag.
 
 Only Caddy publishes host ports.
 
@@ -95,6 +98,8 @@ Create `A` records for the three hostnames pointing to the VPS public IP. When u
 - Recommended checkout: `/home/ubuntu/ttc-reliability-navigator`.
 - Production env: `.env.production` in the checkout.
 - Production env template: `.env.production.example`.
+- Release env: `.env.release` in the checkout, written by `scripts/prod-deploy.sh` after a healthy deployment.
+- Release env template: `.env.release.example`.
 - Caddy config: `Caddyfile`, mounted read-only into Caddy.
 
 Prepare the env file:
@@ -106,32 +111,86 @@ chmod 600 .env.production
 
 Replace the example `POSTGRES_PASSWORD`. Compose passes that value to both PostgreSQL and the backend. Configure SMTP and VAPID secrets only when those features are intentionally enabled.
 
+## Release Responsibilities
+
+The development server owns:
+
+- Docker Buildx and GHCR write authentication.
+- ARM64 image builds for `frontend`, `backend`, and `postgres`.
+- Publishing immutable tags under one full Git SHA.
+- Anonymous registry verification before the VPS deploys.
+
+The VPS owns:
+
+- Docker Compose runtime only.
+- `.env.production`, `.env.release`, Docker volumes, Caddy data, and WireGuard access.
+- Pulling published images, health-gated startup, backups, logs, and rollback.
+
+One-time GHCR login on the development server:
+
+```bash
+export CR_PAT=your_write_packages_token
+printf '%s' "$CR_PAT" | docker login ghcr.io -u calebhabesh --password-stdin
+unset CR_PAT
+```
+
+Build and publish from a clean development-server checkout:
+
+```bash
+scripts/prod-build-push.sh
+```
+
+The first command-line push creates private GHCR packages. Link `linewatch-frontend`, `linewatch-backend`, and `linewatch-postgres` to this repository, make them public, then verify anonymous reads:
+
+```bash
+docker logout ghcr.io
+docker pull ghcr.io/calebhabesh/linewatch-frontend:<full-git-sha>
+docker pull ghcr.io/calebhabesh/linewatch-backend:<full-git-sha>
+docker pull ghcr.io/calebhabesh/linewatch-postgres:<full-git-sha>
+```
+
 ## Common Commands
 
 Validate configuration:
 
 ```bash
-LINEWATCH_PROD_ENV_FILE=.env.production \
-  docker compose --env-file .env.production -f docker-compose.prod.yml config
+scripts/prod-compose.sh config
 ```
 
-Start or update:
+First deployment:
 
 ```bash
-docker compose --env-file .env.production -f docker-compose.prod.yml up -d --build
+git pull --ff-only
+scripts/prod-deploy.sh <full-git-sha>
+```
+
+Routine deployment after the first database exists:
+
+```bash
+git pull --ff-only
+scripts/prod-backup-postgres.sh
+scripts/prod-deploy.sh <full-git-sha>
 ```
 
 Check state:
 
 ```bash
-docker compose --env-file .env.production -f docker-compose.prod.yml ps
+scripts/prod-compose.sh ps
 ```
 
 Read logs:
 
 ```bash
-docker compose --env-file .env.production -f docker-compose.prod.yml logs -f caddy frontend backend
+scripts/prod-compose.sh logs -f caddy frontend backend
 ```
+
+Rollback to a previous image set:
+
+```bash
+scripts/prod-deploy.sh <previous-full-git-sha>
+```
+
+Flyway migrations are not automatically reversed. Review schema compatibility before rolling back across database changes, or restore a known-good database backup.
 
 Run health checks:
 
@@ -152,7 +211,7 @@ Restore a database backup:
 
 ```bash
 gzip -dc tmp/prod-backups/linewatch-postgres-YYYYMMDDTHHMMSSZ.sql.gz | \
-  docker compose --env-file .env.production -f docker-compose.prod.yml exec -T postgres \
+  scripts/prod-compose.sh exec -T postgres \
   sh -c 'psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB"'
 ```
 

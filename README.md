@@ -155,6 +155,8 @@ docker compose down
 
 Production is designed for one Oracle Cloud Always Free Ampere VPS running Docker Compose. WireGuard, Docker Engine, and host firewall rules remain host-managed. Compose runs Caddy, the Next.js frontend, the Spring Boot backend, PostgreSQL/PostGIS, and Redis.
 
+Production application images are built on the development server, published as immutable ARM64 images to GHCR, and selected on the VPS through `.env.release`. The VPS should not run `docker compose build` or `up --build`.
+
 The production database image is built from the official multi-architecture PostgreSQL 17 image with PostGIS installed from PostgreSQL's Debian packages. This avoids the AMD64-only official `postgis/postgis` image on the ARM64 VPS.
 
 Recommended production domain shape for `linewatchto.ca`:
@@ -187,15 +189,59 @@ chmod 600 .env.production
 
 Replace the example database password and configure SMTP or Web Push secrets only when those features are intentionally enabled. Do not commit `.env.production`.
 
-Validate and start the stack:
+Bootstrap GHCR write access on the development server:
 
 ```bash
-LINEWATCH_PROD_ENV_FILE=.env.production \
-  docker compose --env-file .env.production -f docker-compose.prod.yml config
-
-docker compose --env-file .env.production -f docker-compose.prod.yml up -d --build
-docker compose --env-file .env.production -f docker-compose.prod.yml ps
+export CR_PAT=your_write_packages_token
+printf '%s' "$CR_PAT" | docker login ghcr.io -u calebhabesh --password-stdin
+unset CR_PAT
 ```
+
+Build and publish from a clean development-server checkout:
+
+```bash
+scripts/prod-build-push.sh
+```
+
+The first command-line push creates private GHCR packages. Link all three packages to this repository, change them to public, and verify anonymous reads before deploying the VPS without registry credentials:
+
+```bash
+docker logout ghcr.io
+docker pull ghcr.io/calebhabesh/linewatch-frontend:<full-git-sha>
+docker pull ghcr.io/calebhabesh/linewatch-backend:<full-git-sha>
+docker pull ghcr.io/calebhabesh/linewatch-postgres:<full-git-sha>
+```
+
+Deploy the printed full Git SHA on the VPS. The first deployment does not run a backup because no production database exists yet:
+
+```bash
+git pull --ff-only
+scripts/prod-deploy.sh <full-git-sha>
+```
+
+For later deployments, back up first:
+
+```bash
+git pull --ff-only
+scripts/prod-backup-postgres.sh
+scripts/prod-deploy.sh <full-git-sha>
+```
+
+Routine production Compose commands:
+
+```bash
+scripts/prod-compose.sh config
+scripts/prod-compose.sh ps
+scripts/prod-compose.sh logs -f caddy frontend backend
+```
+
+Rollback reuses the same health-gated deploy path:
+
+```bash
+scripts/prod-deploy.sh <previous-full-git-sha>
+```
+
+Flyway migrations are not automatically reversed. Review schema compatibility before rolling back across database changes, or restore a known-good database backup.
 
 Only Caddy publishes host ports. The frontend, backend, database, and Redis are reachable only through the private Compose network.
 
@@ -260,7 +306,7 @@ Restore a backup by piping it into `psql` inside the Postgres container:
 
 ```bash
 gzip -dc tmp/prod-backups/linewatch-postgres-YYYYMMDDTHHMMSSZ.sql.gz | \
-  docker compose --env-file .env.production -f docker-compose.prod.yml exec -T postgres \
+  scripts/prod-compose.sh exec -T postgres \
   sh -c 'psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB"'
 ```
 
