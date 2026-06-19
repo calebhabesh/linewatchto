@@ -153,19 +153,60 @@ docker compose down
 
 ## Deployment
 
-Backend deployment requires Java 21, PostgreSQL/PostGIS, Redis, and the environment variables listed in `.env.example`.
-Frontend deployment requires `BACKEND_URL` for server-side dashboard loading and the frontend `/api/*` proxy. Browser-side account, station detail, saved-commute, and log requests use same-origin `/api/*` paths by default so LAN mobile testing works from URLs such as `http://192.168.x.x:3000`. Set `NEXT_PUBLIC_LINEWATCH_API_BASE_URL` only when browsers should call a separate backend origin directly.
-For production auth with a separate browser-to-backend origin, set `LINEWATCH_AUTH_SECURE_COOKIE=true`, set `LINEWATCH_AUTH_ALLOWED_ORIGINS` to the deployed frontend origin, and keep `LINEWATCH_AUTH_PASSWORD_RESET_DEV_LINKS=false`.
+Production is designed for one Oracle Cloud Always Free Ampere VPS running Docker Compose. WireGuard, Docker Engine, and host firewall rules remain host-managed. Compose runs Caddy, the Next.js frontend, the Spring Boot backend, PostgreSQL/PostGIS, and Redis.
+
+The production database image is built from the official multi-architecture PostgreSQL 17 image with PostGIS installed from PostgreSQL's Debian packages. This avoids the AMD64-only official `postgis/postgis` image on the ARM64 VPS.
 
 Recommended production domain shape for `linewatchto.ca`:
 
 ```text
-linewatchto.ca      Frontend, such as Vercel
-www.linewatchto.ca  Frontend alias
-api.linewatchto.ca  Spring Boot backend
+linewatchto.ca      Caddy -> Next.js frontend
+www.linewatchto.ca  Caddy -> Next.js frontend
+linewatchto.ca/api  Caddy -> Spring Boot backend
+api.linewatchto.ca  Caddy -> Spring Boot backend
 ```
 
-If the domain stays registered at WHC, Cloudflare can still be the authoritative DNS provider by changing the WHC nameservers to Cloudflare's assigned nameservers. Add Vercel, backend, Resend, and any mail records in Cloudflare before switching nameservers if existing mail must keep working.
+Only these ports should be public in OCI ingress:
+
+```text
+80/tcp       HTTP for Caddy certificate issuance and redirect
+443/tcp      HTTPS for the app and API
+51820/udp    WireGuard listener
+```
+
+Keep `22/tcp` open only until WireGuard SSH has been verified after a VPS reboot. Then remove public SSH ingress and administer the VPS through the VPN.
+
+Point the `linewatchto.ca`, `www.linewatchto.ca`, and `api.linewatchto.ca` DNS records at the VPS. If Cloudflare is authoritative, start with DNS-only records while validating Caddy certificate issuance, then enable proxying only if desired.
+
+Create the production env file on the VPS:
+
+```bash
+cp .env.production.example .env.production
+chmod 600 .env.production
+```
+
+Replace the example database password and configure SMTP or Web Push secrets only when those features are intentionally enabled. Do not commit `.env.production`.
+
+Validate and start the stack:
+
+```bash
+LINEWATCH_PROD_ENV_FILE=.env.production \
+  docker compose --env-file .env.production -f docker-compose.prod.yml config
+
+docker compose --env-file .env.production -f docker-compose.prod.yml up -d --build
+docker compose --env-file .env.production -f docker-compose.prod.yml ps
+```
+
+Only Caddy publishes host ports. The frontend, backend, database, and Redis are reachable only through the private Compose network.
+
+Check health:
+
+```bash
+curl https://linewatchto.ca/api/health
+curl https://api.linewatchto.ca/api/health
+curl https://api.linewatchto.ca/api/health/ingestion
+curl https://api.linewatchto.ca/api/health/schedule
+```
 
 Production backend settings should include:
 
@@ -175,16 +216,14 @@ LINEWATCH_AUTH_ALLOWED_ORIGINS=https://linewatchto.ca,https://www.linewatchto.ca
 LINEWATCH_AUTH_PASSWORD_RESET_DEV_LINKS=false
 LINEWATCH_PASSWORD_RESET_FRONTEND_BASE_URL=https://linewatchto.ca
 LINEWATCH_INGESTION_ALERTS_ENABLED=true
+LINEWATCH_ARRIVALS_ENABLED=true
+LINEWATCH_ARRIVALS_PROVIDER=scheduled
 LINEWATCH_ARRIVALS_GTFS_REFRESH_ENABLED=true
 LINEWATCH_ARRIVALS_GTFS_REFRESH_FIXED_DELAY=PT24H
 LINEWATCH_ARRIVALS_GTFS_REFRESH_MIN_SERVICE_DAYS_REMAINING=14
 ```
 
-The backend includes an in-process GTFS refresh job. When `LINEWATCH_ARRIVALS_GTFS_REFRESH_ENABLED=true`, it checks the active TTC schedule import after startup and then on the configured fixed delay. It downloads the current public merged TTC GTFS zip from the configured CKAN package URL only when there is no active import, the active import is expired, or the active import is within `LINEWATCH_ARRIVALS_GTFS_REFRESH_MIN_SERVICE_DAYS_REMAINING` days of expiry. Inspect the schedule import state with:
-
-```bash
-curl https://api.linewatchto.ca/api/health/schedule
-```
+The backend includes an in-process GTFS refresh job. When enabled, it downloads and imports the public merged TTC schedule only when no active import exists, the import is expired, or it is within the configured expiry threshold. These arrivals remain scheduled estimates, not live train predictions.
 
 Account auth endpoints have a small in-memory rate limiter for login, register, demo login, password-reset request, and password-reset confirmation. Keep it enabled in production, but also use your edge/provider rate-limit rules because the in-app limiter is per backend instance.
 
@@ -203,12 +242,26 @@ SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE=true
 
 If you verify `mail.linewatchto.ca` instead of the root domain, use an address under that subdomain, for example `no-reply@mail.linewatchto.ca`. Do not use `calebhabesh.com` for LineWatch TO production reset emails unless you intentionally want reset links and sender reputation tied to your personal domain.
 
-After both deployments are live, run the deployment smoke checker:
+Run the deployment smoke checker after DNS and TLS are working:
 
 ```bash
-LINEWATCH_DEPLOY_FRONTEND_URL=https://your-frontend.example \
-LINEWATCH_DEPLOY_BACKEND_URL=https://your-backend.example \
+LINEWATCH_DEPLOY_FRONTEND_URL=https://linewatchto.ca \
+LINEWATCH_DEPLOY_BACKEND_URL=https://api.linewatchto.ca \
 node scripts/smoke-deploy.mjs
+```
+
+Create a database backup on the VPS:
+
+```bash
+scripts/prod-backup-postgres.sh
+```
+
+Restore a backup by piping it into `psql` inside the Postgres container:
+
+```bash
+gzip -dc tmp/prod-backups/linewatch-postgres-YYYYMMDDTHHMMSSZ.sql.gz | \
+  docker compose --env-file .env.production -f docker-compose.prod.yml exec -T postgres \
+  sh -c 'psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB"'
 ```
 
 ## Frontend

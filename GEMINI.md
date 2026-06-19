@@ -1,6 +1,6 @@
 # Agent Guide for LineWatch TO
 
-Last updated: 2026-06-15
+Last updated: 2026-06-19
 
 This repository contains LineWatch TO, an unofficial TTC reliability dashboard. The app is a portfolio-grade full-stack project intended to show Java/Spring backend engineering, PostgreSQL/PostGIS data modeling, Redis caching, public transit ingestion, and a polished Next.js interface for Toronto subway and LRT reliability.
 
@@ -16,7 +16,8 @@ The project is early but no longer an empty scaffold.
 - `frontend/public/assets/linewatch/` contains the edited TTC map SVG, line legend SVG icons, and station accessibility SVG icons.
 - `frontend/tests/linewatch-data.test.mjs` verifies the fixture layer with Node's built-in test runner.
 - `backend/` contains a Spring Boot app with seeded dashboard APIs, TTC alert ingestion services, health endpoints, and backend tests.
-- `docker-compose.yml` provides PostgreSQL/PostGIS and Redis.
+- `docker-compose.yml` provides local PostgreSQL/PostGIS and Redis; `docker-compose.prod.yml` self-hosts Caddy, frontend, backend, PostgreSQL/PostGIS, and Redis on the Oracle ARM64 VPS.
+- `infra/postgres/Dockerfile` builds the production PostGIS image from the official multi-architecture PostgreSQL 17 image because the selected official `postgis/postgis` tag is AMD64-only.
 - The project includes seeded PostGIS migrations for stations and transit lines.
 - Seeded demo dashboard APIs (`/api/map`, `/api/status`, `/api/alerts`, `/api/stations`) are implemented.
 - Next.js Server Component loads data with complete local-fixture fallback.
@@ -88,6 +89,7 @@ Infrastructure:
 ```text
 backend/        Spring Boot API, ingestion services, and backend tests
 frontend/       Next.js dashboard, fixtures, UI, and frontend checks
+infra/          Production infrastructure image definitions
 docs/           Design specs and implementation plans
 AGENTS.md       Shared agent guidance
 GEMINI.md       Copy of this guidance for Gemini and antigravity-cli style tools
@@ -122,6 +124,9 @@ Infrastructure:
 ```bash
 docker compose up -d postgres redis
 docker compose down
+docker compose --env-file .env.production -f docker-compose.prod.yml up -d --build
+docker compose --env-file .env.production -f docker-compose.prod.yml ps
+scripts/prod-backup-postgres.sh
 ```
 
 Health check:
