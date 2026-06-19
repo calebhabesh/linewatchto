@@ -87,6 +87,53 @@ public class GtfsScheduleReadRepository {
             )), (rs, rowNum) -> rs.getString("service_id"));
     }
 
+    public List<StationMapping> findStationMappings(
+        long importId,
+        String lineId,
+        List<String> stopIds
+    ) {
+        if (stopIds.isEmpty()) {
+            return List.of();
+        }
+        return jdbc.query("""
+            with station_positions as (
+                select line_id,
+                       station_a_id as station_id,
+                       sort_order * 2 as sort_order
+                from line_segments
+                union all
+                select line_id,
+                       station_b_id as station_id,
+                       sort_order * 2 + 1 as sort_order
+                from line_segments
+            ),
+            station_position as (
+                select line_id, station_id, min(sort_order) as sort_order
+                from station_positions
+                group by line_id, station_id
+            )
+            select station_stop.stop_id,
+                   station_stop.station_id,
+                   station_position.sort_order
+            from gtfs_station_stops station_stop
+            join station_position
+              on station_position.station_id = station_stop.station_id
+             and station_position.line_id = station_stop.line_id
+            where station_stop.import_id = :importId
+              and station_stop.line_id = :lineId
+              and station_stop.stop_id in (:stopIds)
+            order by station_position.sort_order, station_stop.stop_id
+            """, new MapSqlParameterSource()
+                .addValue("importId", importId)
+                .addValue("lineId", lineId)
+                .addValue("stopIds", stopIds),
+            (rs, rowNum) -> new StationMapping(
+                rs.getString("stop_id"),
+                rs.getString("station_id"),
+                rs.getInt("sort_order")
+            ));
+    }
+
     public List<ScheduledDeparture> findUpcomingDepartures(
         long importId,
         String stationId,
@@ -153,6 +200,8 @@ public class GtfsScheduleReadRepository {
             return new ScheduledDeparture(lineId, direction, departureSeconds, date);
         }
     }
+
+    public record StationMapping(String stopId, String stationId, int sortOrder) {}
 
     public record ActiveScheduleImport(
         long id,
