@@ -5,7 +5,9 @@ import com.calebhabesh.linewatch.surface.SurfaceServiceNoticeNormalizer;
 import com.calebhabesh.linewatch.surface.SurfaceServiceNoticeStore;
 import java.time.Clock;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import org.springframework.stereotype.Service;
@@ -15,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class TtcAlertFeedApplicationService {
     private final TtcAlertStore store;
     private final TtcAlertNormalizer normalizer;
+    private final RapidTransitAlertDuplicateMatcher duplicateMatcher;
     private final SurfaceServiceNoticeNormalizer surfaceNormalizer;
     private final SurfaceServiceNoticeStore surfaceStore;
     private final Clock clock;
@@ -22,12 +25,14 @@ public class TtcAlertFeedApplicationService {
     public TtcAlertFeedApplicationService(
         TtcAlertStore store,
         TtcAlertNormalizer normalizer,
+        RapidTransitAlertDuplicateMatcher duplicateMatcher,
         SurfaceServiceNoticeNormalizer surfaceNormalizer,
         SurfaceServiceNoticeStore surfaceStore,
         Clock clock
     ) {
         this.store = store;
         this.normalizer = normalizer;
+        this.duplicateMatcher = duplicateMatcher;
         this.surfaceNormalizer = surfaceNormalizer;
         this.surfaceStore = surfaceStore;
         this.clock = clock;
@@ -40,6 +45,7 @@ public class TtcAlertFeedApplicationService {
         Set<String> seenAlertSourceIds = new HashSet<>();
         Set<String> seenOutageSourceIds = new HashSet<>();
         Set<String> seenNoticeSourceIds = new HashSet<>();
+        List<NormalizedRouteAlert> routeCandidates = new ArrayList<>();
         int normalized = 0;
         int unmatched = 0;
 
@@ -50,10 +56,7 @@ public class TtcAlertFeedApplicationService {
             NormalizationResult<NormalizedRouteAlert> result =
                 normalizer.normalizeRoute(fetched);
             if (result.shouldPersist()) {
-                NormalizedRouteAlert alert = result.projection().orElseThrow();
-                store.upsertRouteAlert(alert, now);
-                seenAlertSourceIds.add(alert.sourceId());
-                normalized++;
+                routeCandidates.add(result.projection().orElseThrow());
             }
             if (result.countsAsUnmatched()) {
                 unmatched++;
@@ -65,6 +68,21 @@ public class TtcAlertFeedApplicationService {
                 SurfaceServiceNotice notice = noticeOpt.get();
                 surfaceStore.upsertNotice(notice, now);
                 seenNoticeSourceIds.add(notice.sourceId());
+            }
+        }
+
+        List<NormalizedRouteAlert> liveAlerts = routeCandidates.stream()
+            .filter(alert -> !isGtfsRt(alert))
+            .toList();
+        for (NormalizedRouteAlert alert : routeCandidates) {
+            boolean duplicateGtfsRt = isGtfsRt(alert)
+                && liveAlerts.stream().anyMatch(
+                    live -> duplicateMatcher.isGtfsRtDuplicateOfLive(alert, live)
+                );
+            if (!duplicateGtfsRt) {
+                store.upsertRouteAlert(alert, now);
+                seenAlertSourceIds.add(alert.sourceId());
+                normalized++;
             }
         }
 
@@ -94,5 +112,9 @@ public class TtcAlertFeedApplicationService {
             normalized,
             unmatched
         );
+    }
+
+    private boolean isGtfsRt(NormalizedRouteAlert alert) {
+        return "GTFS-RT".equalsIgnoreCase(alert.sourceAlertType());
     }
 }
