@@ -265,7 +265,8 @@ public class AlertDashboardService {
                     stationId,
                     alert.getImpactKind(),
                     alert.getId(),
-                    alert.getTitle()
+                    alert.getTitle(),
+                    sourceLabel(alert, "TTC Live Alert")
                 )));
         }
 
@@ -277,7 +278,8 @@ public class AlertDashboardService {
                     zone.id(),
                     zone.displayDirection().equals("Direction not specified")
                         ? "Reduced Speed Zone"
-                        : "Reduced Speed Zone " + zone.displayDirection()
+                        : "Reduced Speed Zone " + zone.displayDirection(),
+                    sourceLabel(zone.sourceAlerts().getFirst(), "TTC Live Alert")
                 )));
         }
 
@@ -421,7 +423,7 @@ public class AlertDashboardService {
             operationalUpdatedAt(alert),
             affectedSegmentIds(alert, segments),
             !isBlank(alert.getShuttleType()),
-            "TTC Live Alert",
+            sourceLabel(alert, "TTC Live Alert"),
             cause(alert),
             resolution(alert)
         );
@@ -460,7 +462,7 @@ public class AlertDashboardService {
             affectedSegmentIds(alert, segments),
             operationalStartedAt(alert),
             operationalUpdatedAt(alert),
-            "TTC Live Alert",
+            sourceLabel(alert, "TTC Live Alert"),
             cause(alert)
         );
     }
@@ -511,7 +513,7 @@ public class AlertDashboardService {
             alert.getSourceUpdatedAt(),
             affectedSegmentIds(alert, segments),
             !isBlank(alert.getShuttleType()),
-            "TTC Service Advisory",
+            sourceLabel(alert, "TTC Service Advisory"),
             cause(alert),
             resolution(alert),
             ws.activeNow(),
@@ -636,7 +638,7 @@ public class AlertDashboardService {
                     detail.description()
                 ))
                 .toList(),
-            "TTC Live Alert",
+            sourceLabel(first, "TTC Live Alert"),
             firstNonBlank(zone.sourceAlerts(), this::cause),
             groupedResolution(zone.sourceAlerts()),
             firstNonBlank(zone.sourceAlerts(), AlertEntity::getRszLength),
@@ -660,6 +662,12 @@ public class AlertDashboardService {
             return bounds[0] + " <-> " + bounds[1];
         }
         return "Multiple affected sections";
+    }
+
+    private String sourceLabel(AlertEntity alert, String liveAlertsDefault) {
+        return "GTFS-RT".equalsIgnoreCase(alert.getSourceAlertType())
+            ? "TTC GTFS-RT"
+            : liveAlertsDefault;
     }
 
     private String reverseLocation(String location) {
@@ -1013,6 +1021,16 @@ public class AlertDashboardService {
         String stationId,
         String kind,
         String cardId,
-        String title
-    ) {}
+        String title,
+        String source
+    ) {
+        public StationNodeImpact(
+            String stationId,
+            String kind,
+            String cardId,
+            String title
+        ) {
+            this(stationId, kind, cardId, title, "TTC Live Alert");
+        }
+    }
 }

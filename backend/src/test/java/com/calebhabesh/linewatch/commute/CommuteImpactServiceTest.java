@@ -83,7 +83,8 @@ class CommuteImpactServiceTest {
             "st-george",
             "suspension",
             "alert_station_1",
-            "Emergency alarm at St George"
+            "Emergency alarm at St George",
+            "TTC GTFS-RT"
         )));
 
         CommuteResponses.ImpactResponse impact = service.impactFor(path(
@@ -97,6 +98,7 @@ class CommuteImpactServiceTest {
             assertThat(match.id()).isEqualTo("alert_station_1");
             assertThat(match.kind()).isEqualTo("suspension");
             assertThat(match.location()).isEqualTo("st-george");
+            assertThat(match.source()).isEqualTo("TTC GTFS-RT");
             assertThat(match.matchedStationIds()).containsExactly("st-george");
         });
     }

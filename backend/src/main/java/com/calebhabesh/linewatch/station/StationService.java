@@ -289,8 +289,14 @@ public class StationService {
             alert.description(),
             null,
             alert.updatedAt(),
-            "TTC Live Alerts"
+            alertSourceLabel(alert.sourceAlertType())
         );
+    }
+
+    private String alertSourceLabel(String sourceAlertType) {
+        return "GTFS-RT".equalsIgnoreCase(sourceAlertType)
+            ? "TTC GTFS-RT"
+            : "TTC Live Alerts";
     }
 
     private List<StationResponses.StationImpactResponse> toLiveImpactResponses(String stationId) {

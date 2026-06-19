@@ -80,6 +80,120 @@ class AlertDashboardServiceTest {
     }
 
     @Test
+    void gtfsRtBackedAlertDtosUseAccurateSourceAndMappedLineTwoSegments() {
+        when(ingestionFreshness.isDashboardFresh()).thenReturn(true);
+        AlertEntity suspension = alert(
+            "ttc-route-gtfsrt-70483",
+            "active-alert",
+            "suspension",
+            "Line 2 Bloor-Danforth: No service between Jane and Islington stations",
+            "at Old Mill Station.",
+            "islington",
+            "jane",
+            OffsetDateTime.parse("2026-06-19T04:28:52Z"),
+            null
+        );
+        AlertEntity delay = alert(
+            "ttc-route-gtfsrt-delay",
+            "active-alert",
+            "delay",
+            "Line 2 delays",
+            "Delays between Old Mill and Jane.",
+            "old-mill",
+            "jane",
+            OffsetDateTime.parse("2026-06-01T11:50:00Z"),
+            null
+        );
+        ReflectionTestUtils.setField(delay, "impactKind", "delay");
+        AlertEntity reducedSpeedZone = alert(
+            "ttc-route-gtfsrt-rsz",
+            "active-alert",
+            "delay",
+            "Reduced Speed Zone",
+            "Reduced speeds between Royal York and Old Mill.",
+            "royal-york",
+            "old-mill",
+            OffsetDateTime.parse("2026-06-01T11:45:00Z"),
+            null
+        );
+        ReflectionTestUtils.setField(
+            reducedSpeedZone,
+            "impactKind",
+            "reduced-speed-zone"
+        );
+        AlertEntity planned = alert(
+            "ttc-route-gtfsrt-planned",
+            "planned-closure",
+            "planned",
+            "Weekend closure",
+            "No service between Islington and Jane.",
+            "islington",
+            "jane",
+            OffsetDateTime.parse("2026-06-01T11:40:00Z"),
+            null
+        );
+        ReflectionTestUtils.setField(
+            planned,
+            "activePeriodStart",
+            OffsetDateTime.parse("2026-06-06T04:00:00Z")
+        );
+        ReflectionTestUtils.setField(
+            planned,
+            "activePeriodEnd",
+            OffsetDateTime.parse("2026-06-08T09:00:00Z")
+        );
+        for (AlertEntity alert : List.of(suspension, delay, reducedSpeedZone, planned)) {
+            ReflectionTestUtils.setField(alert, "sourceAlertType", "GTFS-RT");
+        }
+
+        when(alertRepository.findByActiveTrueAndType("active-alert"))
+            .thenReturn(List.of(suspension, delay, reducedSpeedZone));
+        when(alertRepository.findByActiveTrueAndType("planned-closure"))
+            .thenReturn(List.of(planned));
+        when(lineSegmentRepository.findAllByOrderBySortOrderAsc()).thenReturn(List.of(
+            segment(
+                "line-2-islington-royal-york",
+                "line-2",
+                "islington",
+                "royal-york",
+                301
+            ),
+            segment(
+                "line-2-royal-york-old-mill",
+                "line-2",
+                "royal-york",
+                "old-mill",
+                302
+            ),
+            segment(
+                "line-2-old-mill-jane",
+                "line-2",
+                "old-mill",
+                "jane",
+                303
+            )
+        ));
+
+        assertThat(service.activeAlerts()).singleElement().satisfies(dto -> {
+            assertThat(dto.source()).isEqualTo("TTC GTFS-RT");
+            assertThat(dto.affectedSegmentIds()).containsExactly(
+                "line-2-islington-royal-york",
+                "line-2-royal-york-old-mill",
+                "line-2-old-mill-jane"
+            );
+        });
+        assertThat(service.delays()).singleElement()
+            .extracting(AlertDashboardService.DelayAlertDto::source)
+            .isEqualTo("TTC GTFS-RT");
+        assertThat(service.reducedSpeedZones()).singleElement()
+            .extracting(AlertDashboardService.ReducedSpeedZoneDto::source)
+            .isEqualTo("TTC GTFS-RT");
+        assertThat(service.plannedClosures()).singleElement()
+            .extracting(AlertDashboardService.PlannedClosureDto::source)
+            .isEqualTo("TTC GTFS-RT");
+    }
+
+    @Test
     void activeAlertsUseSourceUpdatedTimeWhenSourceStartLooksLikeServiceDayWindow() {
         when(ingestionFreshness.isDashboardFresh()).thenReturn(true);
         OffsetDateTime sourceUpdatedAt = OffsetDateTime.parse("2026-06-01T22:15:00Z");
@@ -821,6 +935,7 @@ class AlertDashboardServiceTest {
             null
         ), "line-4", "4");
         ReflectionTestUtils.setField(delay, "impactKind", "delay");
+        ReflectionTestUtils.setField(delay, "sourceAlertType", "GTFS-RT");
         delay.getStationIds().add("sheppard-yonge");
         when(alertRepository.findByActiveTrueAndType("active-alert"))
             .thenReturn(List.of(delay));
@@ -833,7 +948,8 @@ class AlertDashboardServiceTest {
                 "sheppard-yonge",
                 "delay",
                 "delay-line-4-sheppard-yonge",
-                "Delay at Sheppard-Yonge"
+                "Delay at Sheppard-Yonge",
+                "TTC GTFS-RT"
             ));
     }
 

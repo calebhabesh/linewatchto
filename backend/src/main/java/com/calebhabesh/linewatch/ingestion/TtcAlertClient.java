@@ -39,13 +39,13 @@ public class TtcAlertClient {
                 .retrieve()
                 .body(String.class);
             TtcAlertFeed feed = parse(body);
-            List<TtcFetchedRecord> surfaceServiceAlerts = fetchSurfaceGtfsRtRecords();
-            if (surfaceServiceAlerts.isEmpty()) {
+            List<TtcFetchedRecord> gtfsRtServiceAlerts = fetchGtfsRtServiceAlertRecords();
+            if (gtfsRtServiceAlerts.isEmpty()) {
                 return feed;
             }
 
             List<TtcFetchedRecord> routes = new ArrayList<>(feed.routes());
-            routes.addAll(surfaceServiceAlerts);
+            routes.addAll(gtfsRtServiceAlerts);
             return new TtcAlertFeed(feed.lastUpdated(), List.copyOf(routes), feed.accessibility());
         } catch (TtcAlertClientException exception) {
             throw exception;
@@ -91,7 +91,7 @@ public class TtcAlertClient {
         return node == null || node.isNull() ? null : TtcAlertTimes.parse(node.asText());
     }
 
-    private List<TtcFetchedRecord> fetchSurfaceGtfsRtRecords() {
+    private List<TtcFetchedRecord> fetchGtfsRtServiceAlertRecords() {
         if (!properties.isSurfaceGtfsRtEnabled()) {
             return List.of();
         }
@@ -103,7 +103,7 @@ public class TtcAlertClient {
                 .body(String.class);
             return gtfsRtServiceAlertTextParser.parse(body);
         } catch (Exception exception) {
-            log.warn("Unable to fetch TTC GTFS-RT surface service-alert supplement", exception);
+            log.warn("Unable to fetch TTC GTFS-RT service-alert supplement", exception);
             return List.of();
         }
     }

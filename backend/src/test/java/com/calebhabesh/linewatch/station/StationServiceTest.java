@@ -174,7 +174,8 @@ class StationServiceTest {
                 "delay",
                 "Station delay",
                 "Trains are delayed at Union.",
-                updatedAt
+                updatedAt,
+                "GTFS-RT"
             )
         ));
         when(arrivalService.arrivalsFor(any(), any())).thenReturn(List.of(
@@ -189,7 +190,7 @@ class StationServiceTest {
         assertThat(response.impacts()).extracting(StationResponses.StationImpactResponse::id)
             .containsExactly("ttc-route-union");
         assertThat(response.impacts().getFirst().updatedAt()).isEqualTo(updatedAt);
-        assertThat(response.impacts().getFirst().source()).isEqualTo("TTC Live Alerts");
+        assertThat(response.impacts().getFirst().source()).isEqualTo("TTC GTFS-RT");
     }
 
     @Test

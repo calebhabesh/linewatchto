@@ -98,7 +98,7 @@ public class CommuteImpactService {
             }
             putMatch(matchesByIdentity, new CommuteResponses.MatchedImpactResponse(
                 impact.cardId(), impact.kind(), "current", severityForKind(impact.kind()), impact.title(),
-                null, null, impact.stationId(), null, "TTC Live Alerts", List.of(), List.of(impact.stationId()),
+                null, null, impact.stationId(), null, impact.source(), List.of(), List.of(impact.stationId()),
                 null, null, null, "active-now", null
             ));
         }

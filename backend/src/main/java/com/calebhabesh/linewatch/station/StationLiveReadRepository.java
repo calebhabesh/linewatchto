@@ -50,7 +50,8 @@ public class StationLiveReadRepository {
                 alert.severity,
                 alert.title,
                 alert.description,
-                coalesce(alert.source_updated_at, alert.updated_at) as updated_at
+                coalesce(alert.source_updated_at, alert.updated_at) as updated_at,
+                alert.source_alert_type
             from alerts alert
             join alert_stations station_alert
                 on station_alert.alert_id = alert.id
@@ -64,7 +65,8 @@ public class StationLiveReadRepository {
                 resultSet.getString("severity"),
                 resultSet.getString("title"),
                 resultSet.getString("description"),
-                resultSet.getObject("updated_at", OffsetDateTime.class)
+                resultSet.getObject("updated_at", OffsetDateTime.class),
+                resultSet.getString("source_alert_type")
             ));
     }
 
@@ -137,7 +139,18 @@ public class StationLiveReadRepository {
         String severity,
         String title,
         String description,
-        OffsetDateTime updatedAt
+        OffsetDateTime updatedAt,
+        String sourceAlertType
     ) {
+        public LinkedAlert(
+            String id,
+            String type,
+            String severity,
+            String title,
+            String description,
+            OffsetDateTime updatedAt
+        ) {
+            this(id, type, severity, title, description, updatedAt, null);
+        }
     }
 }
