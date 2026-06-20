@@ -3,6 +3,7 @@ package com.calebhabesh.linewatch.arrival.schedule;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.StringReader;
+import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
@@ -48,5 +49,35 @@ class GtfsCsvReaderTest {
         assertThat(GtfsCsvReader.normalizeStationName("  Vaughan Metropolitan Centre Station  ")).isEqualTo("vaughan metropolitan centre");
         assertThat(GtfsCsvReader.normalizeStationName("Keele Station - Eastbound Platform")).isEqualTo("keele");
         assertThat(GtfsCsvReader.normalizeStationName("Vaughan Metropolitan Centre Station - Subway Platform")).isEqualTo("vaughan metropolitan centre");
+    }
+
+    @Test
+    void streamsRowsToTheConsumerWithoutReturningACollection() throws Exception {
+        String csv = """
+            trip_id,stop_id,stop_sequence
+            L1_A,UNION_N,1
+            L1_A,KING_N,2
+            """;
+        List<String> observed = new ArrayList<>();
+
+        GtfsCsvReader.forEachRow(
+            new StringReader(csv),
+            row -> observed.add(row.value("trip_id") + ":" + row.value("stop_id"))
+        );
+
+        assertThat(observed).containsExactly("L1_A:UNION_N", "L1_A:KING_N");
+    }
+
+    @Test
+    void streamingReaderStripsTheByteOrderMark() throws Exception {
+        String csv = "\uFEFFtrip_id,stop_id\nL1_A,UNION_N\n";
+        List<String> observed = new ArrayList<>();
+
+        GtfsCsvReader.forEachRow(
+            new StringReader(csv),
+            row -> observed.add(row.value("trip_id"))
+        );
+
+        assertThat(observed).containsExactly("L1_A");
     }
 }

@@ -8,22 +8,22 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.function.Consumer;
 
 public final class GtfsCsvReader {
     private GtfsCsvReader() {
     }
 
-    public static List<Row> read(Reader reader) throws IOException {
+    public static void forEachRow(Reader reader, Consumer<Row> consumer) throws IOException {
         try (BufferedReader buffered = new BufferedReader(reader)) {
             String headerLine = buffered.readLine();
             if (headerLine == null || headerLine.isBlank()) {
-                return List.of();
+                return;
             }
             List<String> headers = parseLine(headerLine);
             if (!headers.isEmpty()) {
                 headers.set(0, stripByteOrderMark(headers.getFirst()));
             }
-            List<Row> rows = new ArrayList<>();
             String line;
             while ((line = buffered.readLine()) != null) {
                 if (line.isBlank()) {
@@ -35,10 +35,15 @@ public final class GtfsCsvReader {
                     String value = index < values.size() ? values.get(index) : "";
                     byHeader.put(headers.get(index), value);
                 }
-                rows.add(new Row(byHeader));
+                consumer.accept(new Row(byHeader));
             }
-            return rows;
         }
+    }
+
+    public static List<Row> read(Reader reader) throws IOException {
+        List<Row> rows = new ArrayList<>();
+        forEachRow(reader, rows::add);
+        return rows;
     }
 
     static List<String> parseLine(String line) {
