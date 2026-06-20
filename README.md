@@ -310,6 +310,27 @@ gzip -dc tmp/prod-backups/linewatch-postgres-YYYYMMDDTHHMMSSZ.sql.gz | \
   sh -c 'psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB"'
 ```
 
+## On-Demand Staging
+
+For week-long feature validation on the development server, use the staging Compose stack. It builds local images from the current checkout and uses isolated staging volumes, env files, and project names.
+
+```bash
+cp .env.staging.example .env.staging
+chmod 600 .env.staging
+scripts/staging-up.sh
+scripts/staging-smoke.sh
+scripts/staging-down.sh
+```
+
+Use `scripts/staging-reset.sh` only when you intentionally want to delete staging volumes:
+
+```bash
+LINEWATCH_STAGING_RESET_CONFIRM=reset-staging scripts/staging-reset.sh
+```
+
+See `docs/staging.md` for Cloudflare Tunnel and Cloudflare Access setup notes.
+
+
 ## Frontend
 
 Run the dashboard:
