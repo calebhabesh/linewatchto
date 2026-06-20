@@ -4,6 +4,8 @@
 !.env.example
 !.env.production.example
 !.env.release.example
+!.env.staging.example
+
 
 # Java / Maven
 backend/target/
