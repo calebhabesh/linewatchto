@@ -11,7 +11,6 @@ import org.springframework.jdbc.core.namedparam.SqlParameterSourceUtils;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
-import org.springframework.transaction.annotation.Transactional;
 
 @Repository
 public class GtfsScheduleImportRepository {
@@ -195,7 +194,6 @@ public class GtfsScheduleImportRepository {
         jdbc.batchUpdate(sql, batch);
     }
 
-    @Transactional
     public void activateImport(long importId) {
         jdbc.update(
             "update gtfs_schedule_imports set active = false where active = true",
