@@ -17,6 +17,7 @@ The project is early but no longer an empty scaffold.
 - `frontend/tests/linewatch-data.test.mjs` verifies the fixture layer with Node's built-in test runner.
 - `backend/` contains a Spring Boot app with seeded dashboard APIs, TTC alert ingestion services, health endpoints, and backend tests.
 - `docker-compose.yml` provides local PostgreSQL/PostGIS and Redis; `docker-compose.prod.yml` self-hosts Caddy, frontend, backend, PostgreSQL/PostGIS, and Redis on the Oracle ARM64 VPS.
+- `docker-compose.staging.yml` provides an on-demand staging stack for the development server. It builds local images from the current checkout, uses isolated staging volumes and `.env.staging`, routes through `Caddyfile.staging`, and can optionally expose the stack through Cloudflare Tunnel with Cloudflare Access configured outside the repo.
 - Production application images are built as ARM64 artifacts on the development server, published to public GHCR packages, and selected on the VPS through `.env.release`; the VPS pulls images and does not build them.
 - `infra/postgres/Dockerfile` builds the production PostGIS image from the official multi-architecture PostgreSQL 17 image because the selected official `postgis/postgis` tag is AMD64-only.
 - The project includes seeded PostGIS migrations for stations and transit lines.
@@ -129,6 +130,11 @@ scripts/prod-build-push.sh
 scripts/prod-deploy.sh <full-git-sha>
 scripts/prod-compose.sh ps
 scripts/prod-backup-postgres.sh
+scripts/staging-up.sh
+scripts/staging-smoke.sh
+scripts/staging-compose.sh ps
+scripts/staging-down.sh
+LINEWATCH_STAGING_RESET_CONFIRM=reset-staging scripts/staging-reset.sh
 ```
 
 Health check:
@@ -177,6 +183,7 @@ For cross-stack changes, run both frontend and backend checks. If a command cann
 - Keep data shapes close to the future API contract so fixture-backed UI can later switch to Spring endpoints.
 - Do not add new dependencies unless the benefit is clear and verification can run.
 - Do not store secrets, API keys, TTC feed tokens, or local credentials in Git.
+- Staging is separate from production. Do not point staging scripts at `.env.production`, `.env.release`, production volumes, or production image tags. Do not copy production secrets into `.env.staging`.
 
 ## Frontend UX Rules
 
