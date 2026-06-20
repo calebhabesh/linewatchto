@@ -11,10 +11,6 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.time.Clock;
-import java.time.Instant;
-import java.time.ZoneId;
-import java.util.List;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 import org.junit.jupiter.api.Test;
@@ -30,38 +26,34 @@ class GtfsScheduleImportServiceTest {
         Path zip = tempDir.resolve("gtfs.zip");
         writeZip(zip);
 
-        GtfsScheduleImportRepository repository = mock(GtfsScheduleImportRepository.class);
-        when(repository.beginReplacementImport(
-            eq("TTC merged GTFS schedule"),
-            eq("test-source"),
-            any(),
-            any(),
-            any()
-        )).thenReturn(42L);
+        GtfsScheduleImportWriter writer = mock(GtfsScheduleImportWriter.class);
+        when(writer.write(eq(zip), eq("test-source"), any()))
+            .thenReturn(new GtfsScheduleImportService.ImportSummary(42L, 1, 3, 1, 1, 1, 2, 2));
 
-        GtfsScheduleImportService service = new GtfsScheduleImportService(
-            repository,
-            Clock.fixed(Instant.parse("2026-06-04T12:00:00Z"), ZoneId.of("UTC"))
-        );
+        GtfsScheduleImportService service = new GtfsScheduleImportService(writer);
 
         GtfsScheduleImportService.ImportSummary summary = service.importZip(zip, "test-source");
 
-        assertThat(summary.importId()).isEqualTo(42L);
-        assertThat(summary.routes()).isEqualTo(1);
-        assertThat(summary.trips()).isEqualTo(1);
+        ArgumentCaptor<GtfsSchedulePreparedImport> prepared =
+            ArgumentCaptor.forClass(GtfsSchedulePreparedImport.class);
+        verify(writer).write(eq(zip), eq("test-source"), prepared.capture());
+
+        assertThat(prepared.getValue().routes())
+            .extracting(GtfsImportModels.RouteRow::lineId)
+            .containsExactly("line-1");
+        assertThat(prepared.getValue().trips())
+            .extracting(GtfsImportModels.TripRow::tripId)
+            .containsExactly("L1_N_1");
+        assertThat(prepared.getValue().rapidTransitTripIds()).containsExactly("L1_N_1");
+        assertThat(prepared.getValue().stops())
+            .extracting(GtfsImportModels.StopRow::stopId)
+            .containsExactlyInAnyOrder("UNION", "UNION_N", "UNION_S");
         assertThat(summary.stopTimes()).isEqualTo(2);
-        assertThat(summary.stationStops()).isGreaterThanOrEqualTo(1);
 
-        ArgumentCaptor<List<GtfsImportModels.RouteRow>> routes = ArgumentCaptor.forClass(List.class);
-        verify(repository).insertRoutes(eq(42L), routes.capture());
-        assertThat(routes.getValue()).extracting(GtfsImportModels.RouteRow::lineId).containsExactly("line-1");
-
-        ArgumentCaptor<List<GtfsImportModels.StopTimeRow>> stopTimes = ArgumentCaptor.forClass(List.class);
-        verify(repository).insertStopTimes(eq(42L), stopTimes.capture());
-        assertThat(stopTimes.getValue()).extracting(GtfsImportModels.StopTimeRow::departureSeconds)
-            .contains(32400, 32700);
-
-        verify(repository).activateImport(42L);
+        // Prove that the first pass ignores surface stop times
+        assertThat(prepared.getValue().stops())
+            .extracting(GtfsImportModels.StopRow::stopId)
+            .doesNotContain("QUEEN_SURFACE");
     }
 
     private void writeZip(Path zip) throws IOException {

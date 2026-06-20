@@ -6,9 +6,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
-import java.time.Clock;
 import java.time.LocalDate;
-import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -16,18 +14,17 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 import org.springframework.stereotype.Service;
 
 @Service
 public class GtfsScheduleImportService {
-    private final GtfsScheduleImportRepository repository;
-    private final Clock clock;
+    private final GtfsScheduleImportWriter writer;
 
-    public GtfsScheduleImportService(GtfsScheduleImportRepository repository, Clock clock) {
-        this.repository = repository;
-        this.clock = clock;
+    public GtfsScheduleImportService(GtfsScheduleImportWriter writer) {
+        this.writer = writer;
     }
 
     public ImportSummary importZip(Path zipPath, String sourceUrl) throws IOException {
@@ -37,7 +34,6 @@ public class GtfsScheduleImportService {
         List<GtfsImportModels.ServiceRow> services = new ArrayList<>();
         List<GtfsImportModels.ServiceExceptionRow> serviceExceptions = new ArrayList<>();
         List<GtfsImportModels.TripRow> trips = new ArrayList<>();
-        List<GtfsImportModels.StopTimeRow> stopTimes = new ArrayList<>();
         List<GtfsImportModels.StationStopRow> stationStops = new ArrayList<>();
 
         Set<String> rapidTransitRouteIds = new HashSet<>();
@@ -46,105 +42,70 @@ public class GtfsScheduleImportService {
         Set<String> rapidTransitServiceIds = new HashSet<>();
         Set<String> rapidTransitStopIds = new HashSet<>();
 
+        final LocalDate[] dateRange = new LocalDate[2]; // 0: start, 1: end
+
         try (ZipFile zipFile = new ZipFile(zipPath.toFile())) {
             // 1. Process routes.txt
-            ZipEntry routesEntry = zipFile.getEntry("routes.txt");
-            if (routesEntry != null) {
-                try (InputStream is = zipFile.getInputStream(routesEntry);
-                     InputStreamReader isr = new InputStreamReader(is, StandardCharsets.UTF_8)) {
-                    List<GtfsCsvReader.Row> rows = GtfsCsvReader.read(isr);
-                    for (GtfsCsvReader.Row row : rows) {
-                        String routeShortName = row.value("route_short_name");
-                        if (routeShortName.equals("1") || routeShortName.equals("2") ||
-                            routeShortName.equals("4") || routeShortName.equals("5") ||
-                            routeShortName.equals("6")) {
-                            String lineId = "line-" + routeShortName;
-                            String routeId = row.value("route_id");
-                            rapidTransitRouteIds.add(routeId);
-                            routeIdToLineId.put(routeId, lineId);
-                            routes.add(new GtfsImportModels.RouteRow(
-                                routeId,
-                                lineId,
-                                routeShortName,
-                                row.value("route_long_name")
-                            ));
-                        }
-                    }
+            forEachRow(zipFile, "routes.txt", row -> {
+                String routeShortName = row.value("route_short_name");
+                if (routeShortName.equals("1") || routeShortName.equals("2") ||
+                    routeShortName.equals("4") || routeShortName.equals("5") ||
+                    routeShortName.equals("6")) {
+                    String lineId = "line-" + routeShortName;
+                    String routeId = row.value("route_id");
+                    rapidTransitRouteIds.add(routeId);
+                    routeIdToLineId.put(routeId, lineId);
+                    routes.add(new GtfsImportModels.RouteRow(
+                        routeId,
+                        lineId,
+                        routeShortName,
+                        row.value("route_long_name")
+                    ));
                 }
-            }
+            });
 
             // 2. Process trips.txt
-            ZipEntry tripsEntry = zipFile.getEntry("trips.txt");
-            if (tripsEntry != null) {
-                try (InputStream is = zipFile.getInputStream(tripsEntry);
-                     InputStreamReader isr = new InputStreamReader(is, StandardCharsets.UTF_8)) {
-                    List<GtfsCsvReader.Row> rows = GtfsCsvReader.read(isr);
-                    for (GtfsCsvReader.Row row : rows) {
-                        String routeId = row.value("route_id");
-                        if (rapidTransitRouteIds.contains(routeId)) {
-                            String tripId = row.value("trip_id");
-                            String serviceId = row.value("service_id");
-                            rapidTransitTripIds.add(tripId);
-                            rapidTransitServiceIds.add(serviceId);
-                            Integer directionId = null;
-                            String dirVal = row.value("direction_id");
-                            if (!dirVal.isEmpty()) {
-                                try {
-                                    directionId = Integer.parseInt(dirVal);
-                                } catch (NumberFormatException ignored) {}
-                            }
-                            trips.add(new GtfsImportModels.TripRow(
-                                tripId,
-                                routeId,
-                                serviceId,
-                                row.value("trip_headsign"),
-                                directionId
-                            ));
-                        }
+            forEachRow(zipFile, "trips.txt", row -> {
+                String routeId = row.value("route_id");
+                if (rapidTransitRouteIds.contains(routeId)) {
+                    String tripId = row.value("trip_id");
+                    String serviceId = row.value("service_id");
+                    rapidTransitTripIds.add(tripId);
+                    rapidTransitServiceIds.add(serviceId);
+                    Integer directionId = null;
+                    String dirVal = row.value("direction_id");
+                    if (!dirVal.isEmpty()) {
+                        try {
+                            directionId = Integer.parseInt(dirVal);
+                        } catch (NumberFormatException ignored) {}
                     }
+                    trips.add(new GtfsImportModels.TripRow(
+                        tripId,
+                        routeId,
+                        serviceId,
+                        row.value("trip_headsign"),
+                        directionId
+                    ));
                 }
-            }
+            });
 
-            // 3. Process stop_times.txt
-            ZipEntry stopTimesEntry = zipFile.getEntry("stop_times.txt");
-            if (stopTimesEntry != null) {
-                try (InputStream is = zipFile.getInputStream(stopTimesEntry);
-                     InputStreamReader isr = new InputStreamReader(is, StandardCharsets.UTF_8)) {
-                    List<GtfsCsvReader.Row> rows = GtfsCsvReader.read(isr);
-                    for (GtfsCsvReader.Row row : rows) {
-                        String tripId = row.value("trip_id");
-                        if (rapidTransitTripIds.contains(tripId)) {
-                            String stopId = row.value("stop_id");
-                            rapidTransitStopIds.add(stopId);
-                            stopTimes.add(new GtfsImportModels.StopTimeRow(
-                                tripId,
-                                stopId,
-                                GtfsCsvReader.seconds(row.value("arrival_time")),
-                                GtfsCsvReader.seconds(row.value("departure_time")),
-                                Integer.parseInt(row.value("stop_sequence"))
-                            ));
-                        }
-                    }
+            // 3. Process stop_times.txt (Pass 1: Collect stop IDs only)
+            forEachRow(zipFile, "stop_times.txt", row -> {
+                if (rapidTransitTripIds.contains(row.value("trip_id"))) {
+                    rapidTransitStopIds.add(row.value("stop_id"));
                 }
-            }
+            });
 
             // 4. Process stops.txt
             Map<String, GtfsImportModels.StopRow> allStopsById = new HashMap<>();
-            ZipEntry stopsEntry = zipFile.getEntry("stops.txt");
-            if (stopsEntry != null) {
-                try (InputStream is = zipFile.getInputStream(stopsEntry);
-                     InputStreamReader isr = new InputStreamReader(is, StandardCharsets.UTF_8)) {
-                    List<GtfsCsvReader.Row> rows = GtfsCsvReader.read(isr);
-                    for (GtfsCsvReader.Row row : rows) {
-                        String stopId = row.value("stop_id");
-                        allStopsById.put(stopId, new GtfsImportModels.StopRow(
-                            stopId,
-                            row.value("stop_name"),
-                            row.value("parent_station")
-                        ));
-                    }
-                }
-            }
+            forEachRow(zipFile, "stops.txt", row -> {
+                String stopId = row.value("stop_id");
+                allStopsById.put(stopId, new GtfsImportModels.StopRow(
+                    stopId,
+                    row.value("stop_name"),
+                    row.value("parent_station")
+                ));
+            });
 
             // Filter stops and parent stations
             Set<String> stopsToKeep = new HashSet<>(rapidTransitStopIds);
@@ -224,88 +185,87 @@ public class GtfsScheduleImportService {
             }
 
             // 5. Process calendar.txt
-            LocalDate serviceStart = null;
-            LocalDate serviceEnd = null;
-            ZipEntry calendarEntry = zipFile.getEntry("calendar.txt");
-            if (calendarEntry != null) {
-                try (InputStream is = zipFile.getInputStream(calendarEntry);
-                     InputStreamReader isr = new InputStreamReader(is, StandardCharsets.UTF_8)) {
-                    List<GtfsCsvReader.Row> rows = GtfsCsvReader.read(isr);
-                    for (GtfsCsvReader.Row row : rows) {
-                        String serviceId = row.value("service_id");
-                        if (rapidTransitServiceIds.contains(serviceId)) {
-                            LocalDate start = LocalDate.parse(row.value("start_date"), dateGen);
-                            LocalDate end = LocalDate.parse(row.value("end_date"), dateGen);
-                            if (serviceStart == null || start.isBefore(serviceStart)) {
-                                serviceStart = start;
-                            }
-                            if (serviceEnd == null || end.isAfter(serviceEnd)) {
-                                serviceEnd = end;
-                            }
-                            services.add(new GtfsImportModels.ServiceRow(
-                                serviceId,
-                                row.value("monday").equals("1"),
-                                row.value("tuesday").equals("1"),
-                                row.value("wednesday").equals("1"),
-                                row.value("thursday").equals("1"),
-                                row.value("friday").equals("1"),
-                                row.value("saturday").equals("1"),
-                                row.value("sunday").equals("1"),
-                                start,
-                                end
-                            ));
-                        }
+            forEachRow(zipFile, "calendar.txt", row -> {
+                String serviceId = row.value("service_id");
+                if (rapidTransitServiceIds.contains(serviceId)) {
+                    LocalDate start = LocalDate.parse(row.value("start_date"), dateGen);
+                    LocalDate end = LocalDate.parse(row.value("end_date"), dateGen);
+                    if (dateRange[0] == null || start.isBefore(dateRange[0])) {
+                        dateRange[0] = start;
                     }
+                    if (dateRange[1] == null || end.isAfter(dateRange[1])) {
+                        dateRange[1] = end;
+                    }
+                    services.add(new GtfsImportModels.ServiceRow(
+                        serviceId,
+                        row.value("monday").equals("1"),
+                        row.value("tuesday").equals("1"),
+                        row.value("wednesday").equals("1"),
+                        row.value("thursday").equals("1"),
+                        row.value("friday").equals("1"),
+                        row.value("saturday").equals("1"),
+                        row.value("sunday").equals("1"),
+                        start,
+                        end
+                    ));
                 }
-            }
+            });
 
             // 6. Process calendar_dates.txt
-            ZipEntry calendarDatesEntry = zipFile.getEntry("calendar_dates.txt");
-            if (calendarDatesEntry != null) {
-                try (InputStream is = zipFile.getInputStream(calendarDatesEntry);
-                     InputStreamReader isr = new InputStreamReader(is, StandardCharsets.UTF_8)) {
-                    List<GtfsCsvReader.Row> rows = GtfsCsvReader.read(isr);
-                    for (GtfsCsvReader.Row row : rows) {
-                        String serviceId = row.value("service_id");
-                        if (rapidTransitServiceIds.contains(serviceId)) {
-                            serviceExceptions.add(new GtfsImportModels.ServiceExceptionRow(
-                                serviceId,
-                                LocalDate.parse(row.value("date"), dateGen),
-                                Integer.parseInt(row.value("exception_type"))
-                            ));
-                        }
-                    }
+            forEachRowOptional(zipFile, "calendar_dates.txt", row -> {
+                String serviceId = row.value("service_id");
+                if (rapidTransitServiceIds.contains(serviceId)) {
+                    serviceExceptions.add(new GtfsImportModels.ServiceExceptionRow(
+                        serviceId,
+                        LocalDate.parse(row.value("date"), dateGen),
+                        Integer.parseInt(row.value("exception_type"))
+                    ));
                 }
-            }
+            });
+        }
 
-            // Database Insertion
-            long importId = repository.beginReplacementImport(
-                "TTC merged GTFS schedule",
-                sourceUrl,
-                OffsetDateTime.now(clock),
-                serviceStart,
-                serviceEnd
-            );
+        GtfsSchedulePreparedImport prepared = new GtfsSchedulePreparedImport(
+            routes,
+            stops,
+            services,
+            serviceExceptions,
+            trips,
+            stationStops,
+            rapidTransitTripIds,
+            dateRange[0],
+            dateRange[1]
+        );
 
-            repository.insertRoutes(importId, routes);
-            repository.insertStops(importId, stops);
-            repository.insertServices(importId, services);
-            repository.insertServiceExceptions(importId, serviceExceptions);
-            repository.insertTrips(importId, trips);
-            repository.insertStopTimes(importId, stopTimes);
-            repository.insertStationStops(importId, stationStops);
-            repository.activateImport(importId);
+        return writer.write(zipPath, sourceUrl, prepared);
+    }
 
-            return new GtfsScheduleImportService.ImportSummary(
-                importId,
-                routes.size(),
-                stops.size(),
-                services.size(),
-                serviceExceptions.size(),
-                trips.size(),
-                stopTimes.size(),
-                stationStops.size()
-            );
+    private void forEachRow(
+        ZipFile zipFile,
+        String entryName,
+        Consumer<GtfsCsvReader.Row> consumer
+    ) throws IOException {
+        ZipEntry entry = zipFile.getEntry(entryName);
+        if (entry == null) {
+            throw new IOException("TTC GTFS zip did not contain " + entryName);
+        }
+        try (InputStream input = zipFile.getInputStream(entry);
+             InputStreamReader reader = new InputStreamReader(input, StandardCharsets.UTF_8)) {
+            GtfsCsvReader.forEachRow(reader, consumer);
+        }
+    }
+
+    private void forEachRowOptional(
+        ZipFile zipFile,
+        String entryName,
+        Consumer<GtfsCsvReader.Row> consumer
+    ) throws IOException {
+        ZipEntry entry = zipFile.getEntry(entryName);
+        if (entry == null) {
+            return;
+        }
+        try (InputStream input = zipFile.getInputStream(entry);
+             InputStreamReader reader = new InputStreamReader(input, StandardCharsets.UTF_8)) {
+            GtfsCsvReader.forEachRow(reader, consumer);
         }
     }
 
