@@ -27,6 +27,7 @@ public class GtfsScheduleRefreshJob {
     private final GtfsScheduleReadRepository readRepository;
     private final GtfsScheduleDownloadClient downloadClient;
     private final GtfsScheduleImportService importService;
+    private final GtfsScheduleRefreshRunService runService;
     private final Clock clock;
 
     public GtfsScheduleRefreshJob(
@@ -34,12 +35,14 @@ public class GtfsScheduleRefreshJob {
         GtfsScheduleReadRepository readRepository,
         GtfsScheduleDownloadClient downloadClient,
         GtfsScheduleImportService importService,
+        GtfsScheduleRefreshRunService runService,
         Clock clock
     ) {
         this.properties = properties;
         this.readRepository = readRepository;
         this.downloadClient = downloadClient;
         this.importService = importService;
+        this.runService = runService;
         this.clock = clock;
     }
 
@@ -56,6 +59,7 @@ public class GtfsScheduleRefreshJob {
             return;
         }
 
+        long runId = runService.start();
         GtfsScheduleDownloadClient.DownloadedGtfs download = null;
         try {
             download = downloadClient.downloadCurrentZip();
@@ -63,6 +67,7 @@ public class GtfsScheduleRefreshJob {
                 download.zipPath(),
                 download.sourceUrl()
             );
+            runService.succeed(runId, summary);
             log.info(
                 "Imported TTC GTFS schedule importId={} routes={} trips={} stopTimes={} stationStops={}",
                 summary.importId(),
@@ -72,7 +77,16 @@ public class GtfsScheduleRefreshJob {
                 summary.stationStops()
             );
         } catch (Exception exception) {
+            runService.fail(runId, exception);
             log.error("TTC GTFS schedule refresh failed", exception);
+        } catch (Error error) {
+            try {
+                runService.fail(runId, error);
+            } catch (RuntimeException recordingFailure) {
+                error.addSuppressed(recordingFailure);
+            }
+            log.error("TTC GTFS schedule refresh failed with an unrecoverable error", error);
+            throw error;
         } finally {
             if (download != null) {
                 try {

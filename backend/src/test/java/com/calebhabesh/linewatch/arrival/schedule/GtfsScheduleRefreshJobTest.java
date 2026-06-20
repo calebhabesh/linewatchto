@@ -1,11 +1,16 @@
 package com.calebhabesh.linewatch.arrival.schedule;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.calebhabesh.linewatch.arrival.ArrivalProperties;
+import java.io.IOException;
 import java.nio.file.Path;
 import java.time.Clock;
 import java.time.Instant;
@@ -22,13 +27,18 @@ class GtfsScheduleRefreshJobTest {
     private final GtfsScheduleReadRepository readRepository = mock(GtfsScheduleReadRepository.class);
     private final GtfsScheduleDownloadClient downloadClient = mock(GtfsScheduleDownloadClient.class);
     private final GtfsScheduleImportService importService = mock(GtfsScheduleImportService.class);
+    private final GtfsScheduleRefreshRunService runService = mock(GtfsScheduleRefreshRunService.class);
     private final GtfsScheduleRefreshJob job = new GtfsScheduleRefreshJob(
         properties,
         readRepository,
         downloadClient,
         importService,
+        runService,
         CLOCK
     );
+
+    private final GtfsScheduleImportService.ImportSummary summary =
+        new GtfsScheduleImportService.ImportSummary(11L, 5, 76, 12, 4, 3000, 90000, 154);
 
     @Test
     void doesNotRefreshWhenJobIsDisabled() throws Exception {
@@ -37,18 +47,23 @@ class GtfsScheduleRefreshJobTest {
         job.refresh();
 
         verify(downloadClient, never()).downloadCurrentZip();
+        verify(runService, never()).start();
     }
 
     @Test
-    void importsCurrentScheduleWhenNoActiveImportExists() throws Exception {
+    void importsCurrentScheduleWhenNoActiveImportExistsAndSucceeds() throws Exception {
         properties.setGtfsRefreshEnabled(true);
         when(readRepository.findActiveImport()).thenReturn(Optional.empty());
         when(downloadClient.downloadCurrentZip()).thenReturn(downloaded("/tmp/ttc-gtfs.zip"));
-        stubImport("/tmp/ttc-gtfs.zip");
+        when(importService.importZip(Path.of("/tmp/ttc-gtfs.zip"), "https://example.test/gtfs.zip"))
+            .thenReturn(summary);
+        when(runService.start()).thenReturn(17L);
 
         job.refresh();
 
         verify(importService).importZip(Path.of("/tmp/ttc-gtfs.zip"), "https://example.test/gtfs.zip");
+        verify(runService).succeed(17L, summary);
+        verify(runService, never()).fail(anyLong(), any());
     }
 
     @Test
@@ -60,19 +75,33 @@ class GtfsScheduleRefreshJobTest {
         job.refresh();
 
         verify(downloadClient, never()).downloadCurrentZip();
+        verify(runService, never()).start();
     }
 
     @Test
-    void refreshesWhenActiveScheduleIsNearingExpiry() throws Exception {
+    void refreshesWhenActiveScheduleIsNearingExpiryAndRecordsFailure() throws Exception {
         properties.setGtfsRefreshEnabled(true);
         properties.setGtfsRefreshMinServiceDaysRemaining(14);
         when(readRepository.findActiveImport()).thenReturn(Optional.of(activeImport(LocalDate.parse("2026-06-28"))));
-        when(downloadClient.downloadCurrentZip()).thenReturn(downloaded("/tmp/ttc-gtfs.zip"));
-        stubImport("/tmp/ttc-gtfs.zip");
+        when(downloadClient.downloadCurrentZip()).thenThrow(new IOException("CKAN unavailable"));
+        when(runService.start()).thenReturn(17L);
 
         job.refresh();
 
-        verify(importService).importZip(Path.of("/tmp/ttc-gtfs.zip"), "https://example.test/gtfs.zip");
+        verify(runService).fail(eq(17L), any(IOException.class));
+        verify(runService, never()).succeed(anyLong(), any());
+    }
+
+    @Test
+    void errorDuringRefreshRecordsFailureAndRethrows() throws Exception {
+        properties.setGtfsRefreshEnabled(true);
+        when(readRepository.findActiveImport()).thenReturn(Optional.empty());
+        OutOfMemoryError failure = new OutOfMemoryError("simulated");
+        when(downloadClient.downloadCurrentZip()).thenThrow(failure);
+        when(runService.start()).thenReturn(17L);
+
+        assertThatThrownBy(job::refresh).isSameAs(failure);
+        verify(runService).fail(17L, failure);
     }
 
     private GtfsScheduleReadRepository.ActiveScheduleImport activeImport(LocalDate serviceEnd) {
@@ -88,10 +117,5 @@ class GtfsScheduleRefreshJobTest {
 
     private GtfsScheduleDownloadClient.DownloadedGtfs downloaded(String path) {
         return new GtfsScheduleDownloadClient.DownloadedGtfs(Path.of(path), "https://example.test/gtfs.zip");
-    }
-
-    private void stubImport(String path) throws Exception {
-        when(importService.importZip(Path.of(path), "https://example.test/gtfs.zip"))
-            .thenReturn(new GtfsScheduleImportService.ImportSummary(11L, 5, 76, 12, 4, 3000, 90000, 154));
     }
 }
