@@ -2,11 +2,14 @@ package com.calebhabesh.linewatch.health;
 
 import com.calebhabesh.linewatch.arrival.ArrivalProperties;
 import com.calebhabesh.linewatch.arrival.schedule.GtfsScheduleReadRepository;
+import com.calebhabesh.linewatch.arrival.schedule.GtfsScheduleRefreshRunService;
+import com.calebhabesh.linewatch.arrival.schedule.GtfsScheduleRefreshRunSnapshot;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
+import java.util.Optional;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -18,35 +21,69 @@ public class ScheduleHealthController {
 
     private final GtfsScheduleReadRepository repository;
     private final ArrivalProperties properties;
+    private final GtfsScheduleRefreshRunService refreshRunService;
     private final Clock clock;
 
     public ScheduleHealthController(
         GtfsScheduleReadRepository repository,
         ArrivalProperties properties,
+        GtfsScheduleRefreshRunService refreshRunService,
         Clock clock
     ) {
         this.repository = repository;
         this.properties = properties;
+        this.refreshRunService = refreshRunService;
         this.clock = clock;
     }
 
     @GetMapping
     public ScheduleHealthResponse schedule() {
+        Optional<GtfsScheduleRefreshRunSnapshot> latestRun = refreshRunService.latest();
+        String refreshStatus = latestRun.map(GtfsScheduleRefreshRunSnapshot::status).orElse("never-run");
+        OffsetDateTime refreshStartedAt = latestRun.map(GtfsScheduleRefreshRunSnapshot::startedAt).orElse(null);
+        OffsetDateTime refreshCompletedAt = latestRun.map(GtfsScheduleRefreshRunSnapshot::completedAt).orElse(null);
+        Integer refreshRecordsProcessed = latestRun.map(GtfsScheduleRefreshRunSnapshot::recordsProcessed).orElse(null);
+        String refreshErrorMessage = latestRun.map(GtfsScheduleRefreshRunSnapshot::errorMessage).orElse(null);
+
         return repository.findActiveImport()
-            .map(this::toResponse)
-            .orElseGet(() -> new ScheduleHealthResponse(
-                "not-imported",
-                false,
-                null,
-                null,
-                null,
-                null,
-                null,
-                "No TTC GTFS schedule import is active."
-            ));
+            .map(activeImport -> toResponse(
+                activeImport,
+                refreshStatus,
+                refreshStartedAt,
+                refreshCompletedAt,
+                refreshRecordsProcessed,
+                refreshErrorMessage
+            ))
+            .orElseGet(() -> {
+                String message = "failed".equals(refreshStatus)
+                    ? "No TTC GTFS schedule import is active; the latest refresh failed."
+                    : "No TTC GTFS schedule import is active.";
+                return new ScheduleHealthResponse(
+                    "not-imported",
+                    false,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    refreshStatus,
+                    refreshStartedAt,
+                    refreshCompletedAt,
+                    refreshRecordsProcessed,
+                    refreshErrorMessage,
+                    message
+                );
+            });
     }
 
-    private ScheduleHealthResponse toResponse(GtfsScheduleReadRepository.ActiveScheduleImport activeImport) {
+    private ScheduleHealthResponse toResponse(
+        GtfsScheduleReadRepository.ActiveScheduleImport activeImport,
+        String refreshStatus,
+        OffsetDateTime refreshStartedAt,
+        OffsetDateTime refreshCompletedAt,
+        Integer refreshRecordsProcessed,
+        String refreshErrorMessage
+    ) {
         LocalDate serviceEnd = activeImport.serviceEnd();
         Long daysRemaining = serviceEnd == null
             ? null
@@ -60,6 +97,11 @@ public class ScheduleHealthController {
             activeImport.serviceStart(),
             serviceEnd,
             daysRemaining,
+            refreshStatus,
+            refreshStartedAt,
+            refreshCompletedAt,
+            refreshRecordsProcessed,
+            refreshErrorMessage,
             message(status, daysRemaining)
         );
     }
@@ -94,6 +136,11 @@ public class ScheduleHealthController {
         LocalDate serviceStart,
         LocalDate serviceEnd,
         Long serviceDaysRemaining,
+        String refreshStatus,
+        OffsetDateTime refreshStartedAt,
+        OffsetDateTime refreshCompletedAt,
+        Integer refreshRecordsProcessed,
+        String refreshErrorMessage,
         String message
     ) {}
 }

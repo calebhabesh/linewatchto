@@ -66,5 +66,7 @@ describe("alert scenario scripts", () => {
 
     assert.match(smokeDeployScript, /api\/health\/schedule/);
     assert.match(smokeDeployScript, /serviceDaysRemaining/);
+    assert.match(smokeDeployScript, /refreshStatus/);
+    assert.match(smokeDeployScript, /refreshErrorMessage/);
   });
 });
