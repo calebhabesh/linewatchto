@@ -476,7 +476,14 @@ LINEWATCH_ARRIVALS_GTFS_REFRESH_FIXED_DELAY=PT24H
 LINEWATCH_ARRIVALS_GTFS_REFRESH_MIN_SERVICE_DAYS_REMAINING=14
 ```
 
-The refresh job keeps the existing active import until a replacement import succeeds, so a failed download or parse does not replace the last good schedule.
+Automatic GTFS refresh uses a two-pass streaming import that reads the 4.2M-row `stop_times.txt` without materializing it in memory. Routes, stops, services, and trips are prepared first, then stop times are streamed and inserted into PostgreSQL in bounded batches of 1,000. 
+
+The entire replacement writes inside one atomic transaction. The old active schedule remains available and active until the candidate transaction commits successfully, ensuring a failed download or database exception does not clear or disrupt the existing schedule.
+
+The `/api/health/schedule` endpoint reports both active schedule availability (active/expired status) and the outcome of the latest refresh attempt (status, timestamps, and error message).
+
+> [!NOTE]
+> `JAVA_TOOL_OPTIONS=-Xmx4g` is configured as production headroom, but the refresh logic is designed to complete correctness guarantees through bounded memory allocations rather than heap expansion. If an OutOfMemoryError is observed prior to running this bounded version, refresh should remain disabled until the bounded-memory release is fully deployed.
 
 ### Alert Scenario Harness
 
