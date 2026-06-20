@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
+import Script from "next/script";
 import { AppUpdateBanner } from "../components/AppUpdateBanner";
 import { PwaServiceWorkerRegistration } from "../components/PwaServiceWorkerRegistration";
 import "./globals.css";
@@ -69,12 +70,22 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const cfAnalyticsToken = process.env.NEXT_PUBLIC_CLOUDFLARE_WEB_ANALYTICS_TOKEN;
+
   return (
     <html lang="en" className={`${inter.variable} ${jetbrainsMono.variable}`}>
       <body suppressHydrationWarning>
         <PwaServiceWorkerRegistration />
         <AppUpdateBanner />
         {children}
+        {cfAnalyticsToken && (
+          <Script
+            defer
+            src="https://static.cloudflareinsights.com/beacon.min.js"
+            data-cf-beacon={JSON.stringify({ token: cfAnalyticsToken })}
+            strategy="afterInteractive"
+          />
+        )}
       </body>
     </html>
   );

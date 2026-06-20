@@ -215,6 +215,28 @@ gzip -dc tmp/prod-backups/linewatch-postgres-YYYYMMDDTHHMMSSZ.sql.gz | \
   sh -c 'psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB"'
 ```
 
+## Monitoring & Observability
+
+Observability is optional and runs in a separate compose profile `observability`. 
+
+Ensure your `.env.production` has the Grafana Cloud tokens and configurations populated as described in [docs/observability.md](file://~/dev/ttc-reliability-navigator/docs/observability.md).
+
+Start the Grafana Alloy collector:
+```bash
+scripts/prod-observability-up.sh
+```
+
+Stop the collector:
+```bash
+scripts/prod-compose.sh stop alloy
+```
+
+Actuator endpoints run on private port `9090` inside the Docker bridge network and are blocked at the public edge by Caddy. Verify public blocking:
+```bash
+curl -i https://api.linewatchto.ca/actuator/prometheus
+# Expected: HTTP 404
+```
+
 ## Deployment Verification
 
 After DNS and TLS are active:

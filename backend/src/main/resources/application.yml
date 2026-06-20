@@ -79,3 +79,26 @@ linewatch:
       alerts-ttl: ${LINEWATCH_CACHE_DASHBOARD_ALERTS_TTL:PT30S}
       ingestion-health-ttl: ${LINEWATCH_CACHE_DASHBOARD_INGESTION_HEALTH_TTL:PT15S}
       performance-ttl: ${LINEWATCH_CACHE_DASHBOARD_PERFORMANCE_TTL:PT6H}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+      discovery:
+        enabled: false
+  endpoint:
+    health:
+      show-details: never
+      probes:
+        enabled: true
+  metrics:
+    tags:
+      application: ${spring.application.name:linewatch-backend}
+      environment: ${LINEWATCH_ENVIRONMENT:local}
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+      slo:
+        http.server.requests: 100ms,250ms,500ms,1s,2s,5s
+

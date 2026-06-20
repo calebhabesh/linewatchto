@@ -28,5 +28,11 @@ api.linewatchto.ca {
 	encode gzip zstd
 	import linewatch_security_headers
 
-	reverse_proxy backend:8080
+	handle /actuator* {
+		respond 404
+	}
+
+	handle {
+		reverse_proxy backend:8080
+	}
 }

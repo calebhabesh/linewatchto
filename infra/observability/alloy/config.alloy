@@ -1,0 +1,112 @@
+prometheus.remote_write "grafana_cloud" {
+  endpoint {
+    url = sys.env("GRAFANA_CLOUD_PROMETHEUS_REMOTE_WRITE_URL")
+    basic_auth {
+      username = sys.env("GRAFANA_CLOUD_PROMETHEUS_USERNAME")
+      password = sys.env("GRAFANA_CLOUD_API_TOKEN")
+    }
+  }
+  external_labels = {
+    project     = "linewatch",
+    environment = sys.env("LINEWATCH_ENVIRONMENT"),
+    host        = sys.env("LINEWATCH_OBSERVABILITY_HOST"),
+  }
+}
+
+loki.write "grafana_cloud" {
+  endpoint {
+    url = sys.env("GRAFANA_CLOUD_LOKI_URL")
+    basic_auth {
+      username = sys.env("GRAFANA_CLOUD_LOKI_USERNAME")
+      password = sys.env("GRAFANA_CLOUD_API_TOKEN")
+    }
+  }
+}
+
+prometheus.scrape "backend" {
+  targets = [{
+    __address__ = "backend:9090",
+  }]
+  metrics_path = "/actuator/prometheus"
+  scrape_interval = "30s"
+  forward_to = [prometheus.remote_write.grafana_cloud.receiver]
+}
+
+prometheus.exporter.unix "node" {
+}
+
+prometheus.scrape "host" {
+  targets         = prometheus.exporter.unix.node.targets
+  scrape_interval = "60s"
+  forward_to      = [prometheus.remote_write.grafana_cloud.receiver]
+}
+
+prometheus.exporter.cadvisor "docker" {
+  docker_host = "unix:///var/run/docker.sock"
+}
+
+prometheus.scrape "containers" {
+  targets         = prometheus.exporter.cadvisor.docker.targets
+  scrape_interval = "60s"
+  forward_to      = [prometheus.remote_write.grafana_cloud.receiver]
+}
+
+prometheus.exporter.postgres "postgres" {
+  data_source_names = ["postgresql://" + sys.env("POSTGRES_USER") + ":" + sys.env("POSTGRES_PASSWORD") + "@postgres:5432/" + sys.env("POSTGRES_DB") + "?sslmode=disable"]
+}
+
+prometheus.scrape "postgres" {
+  targets         = prometheus.exporter.postgres.postgres.targets
+  scrape_interval = "60s"
+  forward_to      = [prometheus.remote_write.grafana_cloud.receiver]
+}
+
+prometheus.exporter.redis "redis" {
+  redis_addr = "redis:6379"
+}
+
+prometheus.scrape "redis" {
+  targets         = prometheus.exporter.redis.redis.targets
+  scrape_interval = "60s"
+  forward_to      = [prometheus.remote_write.grafana_cloud.receiver]
+}
+
+discovery.docker "containers" {
+  host = "unix:///var/run/docker.sock"
+}
+
+discovery.relabel "docker_logs_filter" {
+  targets = discovery.docker.containers.targets
+
+  rule {
+    source_labels = ["__meta_docker_container_label_com_docker_compose_project"]
+    regex         = sys.env("LINEWATCH_OBSERVABILITY_COMPOSE_PROJECT")
+    action        = "keep"
+  }
+
+  rule {
+    source_labels = ["__meta_docker_container_label_com_docker_compose_service"]
+    target_label  = "service_name"
+  }
+
+  rule {
+    target_label = "project"
+    replacement  = "linewatch"
+  }
+
+  rule {
+    target_label = "environment"
+    replacement  = sys.env("LINEWATCH_ENVIRONMENT")
+  }
+
+  rule {
+    source_labels = ["__meta_docker_container_label_com_docker_compose_project"]
+    target_label  = "compose_project"
+  }
+}
+
+loki.source.docker "docker_logs" {
+  host       = "unix:///var/run/docker.sock"
+  targets    = discovery.relabel.docker_logs_filter.output
+  forward_to = [loki.write.grafana_cloud.receiver]
+}

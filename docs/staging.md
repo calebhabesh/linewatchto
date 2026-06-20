@@ -134,6 +134,27 @@ LINEWATCH_STAGING_RESET_CONFIRM=reset-staging scripts/staging-reset.sh
 
 The reset command deletes only volumes under the staging Compose project. It does not target the production Compose project or production volumes.
 
+## Staging Monitoring
+
+Observability is optional in staging and uses a separate compose profile `observability`.
+
+To run observability in staging:
+1. Populate Grafana Cloud variables in `.env.staging`.
+2. Start the staging Alloy collector:
+   ```bash
+   scripts/staging-observability-up.sh
+   ```
+3. Stop the collector:
+   ```bash
+   scripts/staging-compose.sh stop alloy
+   ```
+
+Actuator endpoints run on private port `9090` and are blocked publicly at the edge. Verify public blocking:
+```bash
+curl -i http://127.0.0.1:8090/actuator/prometheus
+# Expected: HTTP 404
+```
+
 ## Validation Checklist Before Production Deployment
 
 Use staging to verify:

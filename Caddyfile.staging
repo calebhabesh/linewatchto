@@ -15,6 +15,10 @@
 	encode gzip zstd
 	import linewatch_staging_security_headers
 
+	handle /actuator* {
+		respond 404
+	}
+
 	handle /api/* {
 		reverse_proxy backend:8080
 	}

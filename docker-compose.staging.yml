@@ -54,6 +54,8 @@ services:
       SPRING_DATA_REDIS_HOST: redis
       SPRING_DATA_REDIS_PORT: 6379
       SERVER_PORT: 8080
+      MANAGEMENT_SERVER_PORT: 9090
+      LINEWATCH_ENVIRONMENT: ${LINEWATCH_ENVIRONMENT:-staging}
     depends_on:
       postgres:
         condition: service_healthy
@@ -124,6 +126,51 @@ services:
       retries: 5
       start_period: 15s
 
+  alloy:
+    image: grafana/alloy:latest
+    restart: unless-stopped
+    profiles:
+      - observability
+    command:
+      [
+        "run",
+        "--server.http.listen-addr=0.0.0.0:12345",
+        "--storage.path=/var/lib/alloy/data",
+        "/etc/alloy/config.alloy"
+      ]
+    environment:
+      LINEWATCH_ENVIRONMENT: ${LINEWATCH_ENVIRONMENT:-staging}
+      LINEWATCH_OBSERVABILITY_HOST: ${LINEWATCH_OBSERVABILITY_HOST:-dev-server-staging}
+      LINEWATCH_OBSERVABILITY_COMPOSE_PROJECT: ${LINEWATCH_OBSERVABILITY_COMPOSE_PROJECT:-linewatch-staging}
+      GRAFANA_CLOUD_PROMETHEUS_REMOTE_WRITE_URL: ${GRAFANA_CLOUD_PROMETHEUS_REMOTE_WRITE_URL:-}
+      GRAFANA_CLOUD_PROMETHEUS_USERNAME: ${GRAFANA_CLOUD_PROMETHEUS_USERNAME:-}
+      GRAFANA_CLOUD_LOKI_URL: ${GRAFANA_CLOUD_LOKI_URL:-}
+      GRAFANA_CLOUD_LOKI_USERNAME: ${GRAFANA_CLOUD_LOKI_USERNAME:-}
+      GRAFANA_CLOUD_API_TOKEN: ${GRAFANA_CLOUD_API_TOKEN:-}
+      POSTGRES_DB: ${POSTGRES_DB:-linewatch_staging}
+      POSTGRES_USER: ${POSTGRES_USER:-linewatch_staging}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env.staging}
+    volumes:
+      - ./infra/observability/alloy/config.alloy:/etc/alloy/config.alloy:ro
+      - alloy_staging_data:/var/lib/alloy/data
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/host/root:ro
+    ports:
+      - "127.0.0.1:${LINEWATCH_STAGING_ALLOY_PORT:-12346}:12345"
+    mem_limit: 512m
+    depends_on:
+      backend:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - linewatch-staging-net
+    logging: *default-logging
+
   cloudflared:
     image: cloudflare/cloudflared:latest
     restart: unless-stopped
@@ -149,6 +196,7 @@ volumes:
   redis_staging_data:
   caddy_staging_data:
   caddy_staging_config:
+  alloy_staging_data:
 
 networks:
   linewatch-staging-net:
