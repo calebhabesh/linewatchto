@@ -6,7 +6,9 @@ import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.time.Clock;
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -18,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class GtfsScheduleImportWriter {
     static final int STOP_TIME_BATCH_SIZE = 1000;
+    private static final ZoneId TORONTO_ZONE = ZoneId.of("America/Toronto");
 
     private final GtfsScheduleImportRepository repository;
     private final Clock clock;
@@ -56,7 +59,9 @@ public class GtfsScheduleImportWriter {
         batcher.finish();
 
         repository.insertStationStops(importId, prepared.stationStops());
-        repository.activateImport(importId);
+        if (coversToday(prepared)) {
+            repository.activateImport(importId);
+        }
 
         return new GtfsScheduleImportService.ImportSummary(
             importId,
@@ -68,6 +73,14 @@ public class GtfsScheduleImportWriter {
             batcher.totalRows(),
             prepared.stationStops().size()
         );
+    }
+
+    private boolean coversToday(GtfsSchedulePreparedImport prepared) {
+        LocalDate today = LocalDate.now(clock.withZone(TORONTO_ZONE));
+        return prepared.serviceStart() != null
+            && prepared.serviceEnd() != null
+            && !prepared.serviceStart().isAfter(today)
+            && !prepared.serviceEnd().isBefore(today);
     }
 
     private void streamStopTimes(Path zipPath, java.util.function.Consumer<GtfsCsvReader.Row> consumer) throws IOException {

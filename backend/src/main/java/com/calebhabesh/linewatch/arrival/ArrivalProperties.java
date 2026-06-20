@@ -31,6 +31,8 @@ public class ArrivalProperties {
     private Duration gtfsRefreshInitialDelay = Duration.ofSeconds(30);
     private Duration gtfsRefreshFixedDelay = Duration.ofHours(24);
     private int gtfsRefreshMinServiceDaysRemaining = 14;
+    private Duration gtfsPromotionInitialDelay = Duration.ofSeconds(30);
+    private Duration gtfsPromotionFixedDelay = Duration.ofMinutes(5);
 
     public boolean isEnabled() {
         return enabled;
@@ -166,5 +168,21 @@ public class ArrivalProperties {
 
     public void setGtfsRefreshMinServiceDaysRemaining(int gtfsRefreshMinServiceDaysRemaining) {
         this.gtfsRefreshMinServiceDaysRemaining = gtfsRefreshMinServiceDaysRemaining;
+    }
+
+    public Duration getGtfsPromotionInitialDelay() {
+        return gtfsPromotionInitialDelay;
+    }
+
+    public void setGtfsPromotionInitialDelay(Duration gtfsPromotionInitialDelay) {
+        this.gtfsPromotionInitialDelay = gtfsPromotionInitialDelay;
+    }
+
+    public Duration getGtfsPromotionFixedDelay() {
+        return gtfsPromotionFixedDelay;
+    }
+
+    public void setGtfsPromotionFixedDelay(Duration gtfsPromotionFixedDelay) {
+        this.gtfsPromotionFixedDelay = gtfsPromotionFixedDelay;
     }
 }

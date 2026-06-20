@@ -4,6 +4,7 @@ import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
@@ -203,5 +204,32 @@ public class GtfsScheduleImportRepository {
             "update gtfs_schedule_imports set active = true where id = :importId",
             Map.of("importId", importId)
         );
+    }
+
+    public Optional<Long> activateLatestImportCoveringDate(LocalDate serviceDate) {
+        List<ActivationCandidate> candidates = jdbc.query("""
+            select id, active
+            from gtfs_schedule_imports
+            where service_start <= :serviceDate
+              and service_end >= :serviceDate
+            order by service_start desc,
+                     imported_at desc,
+                     id desc
+            limit 1
+            """, new MapSqlParameterSource(Map.of(
+                "serviceDate", serviceDate
+            )), (rs, rowNum) -> new ActivationCandidate(
+                rs.getLong("id"),
+                rs.getBoolean("active")
+            ));
+
+        Optional<ActivationCandidate> candidate = candidates.stream().findFirst();
+        candidate
+            .filter(importCandidate -> !importCandidate.active())
+            .ifPresent(importCandidate -> activateImport(importCandidate.id()));
+        return candidate.map(ActivationCandidate::id);
+    }
+
+    private record ActivationCandidate(long id, boolean active) {
     }
 }

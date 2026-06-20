@@ -1,6 +1,7 @@
 package com.calebhabesh.linewatch.arrival.schedule;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -37,10 +38,10 @@ class ScheduledArrivalProviderTest {
     }
 
     @Test
-    void returnsScheduledRowsFromActiveImport() {
-        when(repository.findActiveImportId()).thenReturn(Optional.of(7L));
+    void returnsScheduledRowsFromImportCoveringToday() {
+        when(repository.findImportIdForServiceDate(LocalDate.parse("2026-06-04"))).thenReturn(Optional.of(7L));
+        when(repository.findImportIdForServiceDate(LocalDate.parse("2026-06-03"))).thenReturn(Optional.empty());
         when(repository.findActiveServiceIds(7L, LocalDate.parse("2026-06-04"))).thenReturn(List.of("WKD"));
-        when(repository.findActiveServiceIds(7L, LocalDate.parse("2026-06-03"))).thenReturn(List.of());
         when(repository.findUpcomingDepartures(
             7L,
             "union",
@@ -67,9 +68,9 @@ class ScheduledArrivalProviderTest {
     @Test
     void fillsArrivalQueueForEachDirectionWhenScheduleHasEnoughTrips() {
         properties.setMaxArrivalsPerLine(3);
-        when(repository.findActiveImportId()).thenReturn(Optional.of(7L));
+        when(repository.findImportIdForServiceDate(LocalDate.parse("2026-06-04"))).thenReturn(Optional.of(7L));
+        when(repository.findImportIdForServiceDate(LocalDate.parse("2026-06-03"))).thenReturn(Optional.empty());
         when(repository.findActiveServiceIds(7L, LocalDate.parse("2026-06-04"))).thenReturn(List.of("WKD"));
-        when(repository.findActiveServiceIds(7L, LocalDate.parse("2026-06-03"))).thenReturn(List.of());
         when(repository.findUpcomingDepartures(
             7L,
             "union",
@@ -101,8 +102,9 @@ class ScheduledArrivalProviderTest {
     }
 
     @Test
-    void returnsUnavailableRowsWhenNoImportIsActive() {
-        when(repository.findActiveImportId()).thenReturn(Optional.empty());
+    void returnsUnavailableRowsWhenNoImportCoversCurrentServiceDates() {
+        when(repository.findImportIdForServiceDate(LocalDate.parse("2026-06-04"))).thenReturn(Optional.empty());
+        when(repository.findImportIdForServiceDate(LocalDate.parse("2026-06-03"))).thenReturn(Optional.empty());
 
         List<ArrivalPrediction> arrivals = provider.arrivalsFor("union", List.of(line1));
 
@@ -113,10 +115,11 @@ class ScheduledArrivalProviderTest {
     }
 
     @Test
-    void returnsUnavailableRowsWhenActiveImportDoesNotCoverCurrentServiceDates() {
-        when(repository.findActiveImportId()).thenReturn(Optional.of(7L));
+    void returnsUnavailableRowsWhenCoveringImportsHaveNoActiveServiceIds() {
+        when(repository.findImportIdForServiceDate(LocalDate.parse("2026-06-04"))).thenReturn(Optional.of(7L));
+        when(repository.findImportIdForServiceDate(LocalDate.parse("2026-06-03"))).thenReturn(Optional.of(6L));
         when(repository.findActiveServiceIds(7L, LocalDate.parse("2026-06-04"))).thenReturn(List.of());
-        when(repository.findActiveServiceIds(7L, LocalDate.parse("2026-06-03"))).thenReturn(List.of());
+        when(repository.findActiveServiceIds(6L, LocalDate.parse("2026-06-03"))).thenReturn(List.of());
 
         List<ArrivalPrediction> arrivals = provider.arrivalsFor("union", List.of(line1));
 
@@ -128,9 +131,9 @@ class ScheduledArrivalProviderTest {
 
     @Test
     void returnsNoScheduledServiceRowWhenNoTripsExistInHorizon() {
-        when(repository.findActiveImportId()).thenReturn(Optional.of(7L));
+        when(repository.findImportIdForServiceDate(LocalDate.parse("2026-06-04"))).thenReturn(Optional.of(7L));
+        when(repository.findImportIdForServiceDate(LocalDate.parse("2026-06-03"))).thenReturn(Optional.empty());
         when(repository.findActiveServiceIds(7L, LocalDate.parse("2026-06-04"))).thenReturn(List.of("WKD"));
-        when(repository.findActiveServiceIds(7L, LocalDate.parse("2026-06-03"))).thenReturn(List.of());
 
         List<ArrivalPrediction> arrivals = provider.arrivalsFor("union", List.of(line1));
 
@@ -138,5 +141,54 @@ class ScheduledArrivalProviderTest {
         assertThat(arrivals.getFirst().status()).isEqualTo("scheduled");
         assertThat(arrivals.getFirst().source()).isEqualTo("TTC scheduled service");
         assertThat(arrivals.getFirst().label()).isEqualTo("No scheduled service");
+    }
+
+    @Test
+    void usesSeparateImportsForTodayAndYesterdayAcrossScheduleBoundary() {
+        provider = new ScheduledArrivalProvider(
+            repository,
+            properties,
+            Clock.fixed(Instant.parse("2026-06-21T04:30:00Z"), ZoneId.of("America/Toronto"))
+        );
+
+        when(repository.findImportIdForServiceDate(LocalDate.parse("2026-06-21"))).thenReturn(Optional.of(22L));
+        when(repository.findImportIdForServiceDate(LocalDate.parse("2026-06-20"))).thenReturn(Optional.of(21L));
+        when(repository.findActiveServiceIds(22L, LocalDate.parse("2026-06-21"))).thenReturn(List.of("SUN"));
+        when(repository.findActiveServiceIds(21L, LocalDate.parse("2026-06-20"))).thenReturn(List.of("SAT"));
+        when(repository.findUpcomingDepartures(
+            eq(22L),
+            eq("union"),
+            eq(List.of("line-1")),
+            eq(List.of("SUN")),
+            eq(1800),
+            eq(7200),
+            eq(properties.getMaxArrivalsPerLine())
+        )).thenReturn(List.of(
+            new GtfsScheduleReadRepository.ScheduledDeparture("line-1", "Northbound to Finch", 2100, null)
+        ));
+        when(repository.findUpcomingDepartures(
+            eq(21L),
+            eq("union"),
+            eq(List.of("line-1")),
+            eq(List.of("SAT")),
+            eq(88200),
+            eq(93600),
+            eq(properties.getMaxArrivalsPerLine())
+        )).thenReturn(List.of(
+            new GtfsScheduleReadRepository.ScheduledDeparture("line-1", "Southbound to Vaughan Metropolitan Centre", 88260, null)
+        ));
+
+        List<ArrivalPrediction> arrivals = provider.arrivalsFor("union", List.of(line1));
+
+        assertThat(arrivals).hasSize(2);
+        assertThat(arrivals)
+            .extracting(ArrivalPrediction::direction)
+            .containsExactly(
+                "Southbound to Vaughan Metropolitan Centre",
+                "Northbound to Finch"
+            );
+        assertThat(arrivals)
+            .extracting(ArrivalPrediction::label)
+            .containsExactly("1 min", "5 min");
     }
 }

@@ -37,14 +37,6 @@ public class ScheduledArrivalProvider implements ArrivalProvider {
 
     @Override
     public List<ArrivalPrediction> arrivalsFor(String stationId, List<StationResponses.StationLineResponse> lines) {
-        Optional<Long> activeImportIdOpt = repository.findActiveImportId();
-        if (activeImportIdOpt.isEmpty()) {
-            return lines.stream()
-                .map(line -> ArrivalPrediction.unavailable(line.id(), "Scheduled service"))
-                .collect(Collectors.toList());
-        }
-
-        long importId = activeImportIdOpt.get();
         ZonedDateTime nowToronto = ZonedDateTime.now(clock).withZoneSameInstant(TORONTO_ZONE);
         LocalDate today = nowToronto.toLocalDate();
         LocalDate yesterday = today.minusDays(1);
@@ -52,36 +44,52 @@ public class ScheduledArrivalProvider implements ArrivalProvider {
         long horizonSeconds = properties.getScheduleHorizon().toSeconds();
         List<String> lineIds = lines.stream().map(StationResponses.StationLineResponse::id).collect(Collectors.toList());
 
-        List<String> activeServiceIdsToday = repository.findActiveServiceIds(importId, today);
-        List<String> activeServiceIdsYesterday = repository.findActiveServiceIds(importId, yesterday);
+        Optional<Long> todayImportId = repository.findImportIdForServiceDate(today);
+        Optional<Long> yesterdayImportId = repository.findImportIdForServiceDate(yesterday);
+        if (todayImportId.isEmpty() && yesterdayImportId.isEmpty()) {
+            return lines.stream()
+                .map(line -> ArrivalPrediction.unavailable(line.id(), "Scheduled service"))
+                .collect(Collectors.toList());
+        }
+
+        List<String> activeServiceIdsToday = todayImportId
+            .map(importId -> repository.findActiveServiceIds(importId, today))
+            .orElseGet(List::of);
+        List<String> activeServiceIdsYesterday = yesterdayImportId
+            .map(importId -> repository.findActiveServiceIds(importId, yesterday))
+            .orElseGet(List::of);
         if (activeServiceIdsToday.isEmpty() && activeServiceIdsYesterday.isEmpty()) {
             return lines.stream()
                 .map(line -> ArrivalPrediction.unavailable(line.id(), "Scheduled service"))
                 .collect(Collectors.toList());
         }
 
-        List<GtfsScheduleReadRepository.ScheduledDeparture> depsToday = repository.findUpcomingDepartures(
-            importId,
-            stationId,
-            lineIds,
-            activeServiceIdsToday,
-            nowSeconds,
-            nowSeconds + (int) horizonSeconds,
-            properties.getMaxArrivalsPerLine()
-        );
+        List<GtfsScheduleReadRepository.ScheduledDeparture> depsToday = todayImportId
+            .map(importId -> repository.findUpcomingDepartures(
+                importId,
+                stationId,
+                lineIds,
+                activeServiceIdsToday,
+                nowSeconds,
+                nowSeconds + (int) horizonSeconds,
+                properties.getMaxArrivalsPerLine()
+            ))
+            .orElseGet(List::of);
         List<GtfsScheduleReadRepository.ScheduledDeparture> resolvedToday = depsToday.stream()
             .map(d -> d.withServiceDate(today))
             .collect(Collectors.toList());
 
-        List<GtfsScheduleReadRepository.ScheduledDeparture> depsYesterday = repository.findUpcomingDepartures(
-            importId,
-            stationId,
-            lineIds,
-            activeServiceIdsYesterday,
-            nowSeconds + 86400,
-            nowSeconds + 86400 + (int) horizonSeconds,
-            properties.getMaxArrivalsPerLine()
-        );
+        List<GtfsScheduleReadRepository.ScheduledDeparture> depsYesterday = yesterdayImportId
+            .map(importId -> repository.findUpcomingDepartures(
+                importId,
+                stationId,
+                lineIds,
+                activeServiceIdsYesterday,
+                nowSeconds + 86400,
+                nowSeconds + 86400 + (int) horizonSeconds,
+                properties.getMaxArrivalsPerLine()
+            ))
+            .orElseGet(List::of);
         List<GtfsScheduleReadRepository.ScheduledDeparture> resolvedYesterday = depsYesterday.stream()
             .map(d -> d.withServiceDate(yesterday))
             .collect(Collectors.toList());

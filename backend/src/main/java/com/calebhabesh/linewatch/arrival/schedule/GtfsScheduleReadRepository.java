@@ -28,6 +28,22 @@ public class GtfsScheduleReadRepository {
         return ids.stream().findFirst();
     }
 
+    public Optional<Long> findImportIdForServiceDate(LocalDate serviceDate) {
+        List<Long> ids = jdbc.query("""
+            select id
+            from gtfs_schedule_imports
+            where service_start <= :serviceDate
+              and service_end >= :serviceDate
+            order by service_start desc,
+                     imported_at desc,
+                     id desc
+            limit 1
+            """, new MapSqlParameterSource(Map.of(
+                "serviceDate", serviceDate
+            )), (rs, rowNum) -> rs.getLong("id"));
+        return ids.stream().findFirst();
+    }
+
     public Optional<ActiveScheduleImport> findActiveImport() {
         List<ActiveScheduleImport> imports = jdbc.query("""
             select id,
@@ -41,6 +57,31 @@ public class GtfsScheduleReadRepository {
             order by imported_at desc
             limit 1
             """, (rs, rowNum) -> new ActiveScheduleImport(
+                rs.getLong("id"),
+                rs.getString("source_name"),
+                rs.getString("source_url"),
+                rs.getObject("imported_at", OffsetDateTime.class),
+                rs.getObject("service_start", LocalDate.class),
+                rs.getObject("service_end", LocalDate.class)
+            ));
+        return imports.stream().findFirst();
+    }
+
+    public Optional<ScheduleImport> findLatestImport() {
+        List<ScheduleImport> imports = jdbc.query("""
+            select id,
+                   source_name,
+                   source_url,
+                   imported_at,
+                   service_start,
+                   service_end
+            from gtfs_schedule_imports
+            order by service_end desc nulls last,
+                     service_start desc nulls last,
+                     imported_at desc,
+                     id desc
+            limit 1
+            """, (rs, rowNum) -> new ScheduleImport(
                 rs.getLong("id"),
                 rs.getString("source_name"),
                 rs.getString("source_url"),
@@ -204,6 +245,15 @@ public class GtfsScheduleReadRepository {
     public record StationMapping(String stopId, String stationId, int sortOrder) {}
 
     public record ActiveScheduleImport(
+        long id,
+        String sourceName,
+        String sourceUrl,
+        OffsetDateTime importedAt,
+        LocalDate serviceStart,
+        LocalDate serviceEnd
+    ) {}
+
+    public record ScheduleImport(
         long id,
         String sourceName,
         String sourceUrl,

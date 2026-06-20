@@ -93,6 +93,38 @@ class GtfsScheduleImportWriterTest {
     }
 
     @Test
+    void futureDatedImportIsWrittenButNotActivated() throws Exception {
+        Path zip = tempDir.resolve("gtfs_future.zip");
+        writeLargeZip(zip, 3);
+
+        when(repository.beginReplacementImport(
+            eq("TTC merged GTFS schedule"),
+            eq("test-source"),
+            any(),
+            eq(LocalDate.parse("2026-06-05")),
+            eq(LocalDate.parse("2026-07-19"))
+        )).thenReturn(43L);
+
+        GtfsSchedulePreparedImport prepared = new GtfsSchedulePreparedImport(
+            List.of(new GtfsImportModels.RouteRow("1", "line-1", "1", "Yonge-University")),
+            List.of(new GtfsImportModels.StopRow("UNION", "Union Station", "")),
+            List.of(new GtfsImportModels.ServiceRow("WEEKDAY", true, true, true, true, true, false, false, LocalDate.parse("2026-06-05"), LocalDate.parse("2026-07-19"))),
+            Collections.emptyList(),
+            List.of(new GtfsImportModels.TripRow("L1_N_1", "1", "WEEKDAY", "Northbound", 0)),
+            List.of(new GtfsImportModels.StationStopRow("UNION", "line-1", "UNION")),
+            Set.of("L1_N_1"),
+            LocalDate.parse("2026-06-05"),
+            LocalDate.parse("2026-07-19")
+        );
+
+        GtfsScheduleImportService.ImportSummary summary =
+            writer.write(zip, "test-source", prepared);
+
+        assertThat(summary.importId()).isEqualTo(43L);
+        verify(repository, never()).activateImport(43L);
+    }
+
+    @Test
     void failureDuringWritesAbortsAndDoesNotActivate() throws Exception {
         Path zip = tempDir.resolve("gtfs_fail.zip");
         writeLargeZip(zip, 2501);

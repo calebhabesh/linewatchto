@@ -25,6 +25,7 @@ public class GtfsScheduleRefreshJob {
 
     private final ArrivalProperties properties;
     private final GtfsScheduleReadRepository readRepository;
+    private final GtfsScheduleImportRepository importRepository;
     private final GtfsScheduleDownloadClient downloadClient;
     private final GtfsScheduleImportService importService;
     private final GtfsScheduleRefreshRunService runService;
@@ -33,6 +34,7 @@ public class GtfsScheduleRefreshJob {
     public GtfsScheduleRefreshJob(
         ArrivalProperties properties,
         GtfsScheduleReadRepository readRepository,
+        GtfsScheduleImportRepository importRepository,
         GtfsScheduleDownloadClient downloadClient,
         GtfsScheduleImportService importService,
         GtfsScheduleRefreshRunService runService,
@@ -40,6 +42,7 @@ public class GtfsScheduleRefreshJob {
     ) {
         this.properties = properties;
         this.readRepository = readRepository;
+        this.importRepository = importRepository;
         this.downloadClient = downloadClient;
         this.importService = importService;
         this.runService = runService;
@@ -54,8 +57,10 @@ public class GtfsScheduleRefreshJob {
         if (!properties.isGtfsRefreshEnabled()) {
             return;
         }
+        importRepository.activateLatestImportCoveringDate(LocalDate.now(clock.withZone(TORONTO_ZONE)));
         Optional<GtfsScheduleReadRepository.ActiveScheduleImport> activeImport = readRepository.findActiveImport();
-        if (!shouldRefresh(activeImport)) {
+        Optional<GtfsScheduleReadRepository.ScheduleImport> latestImport = readRepository.findLatestImport();
+        if (!shouldRefresh(activeImport, latestImport)) {
             return;
         }
 
@@ -98,16 +103,37 @@ public class GtfsScheduleRefreshJob {
         }
     }
 
-    private boolean shouldRefresh(Optional<GtfsScheduleReadRepository.ActiveScheduleImport> activeImport) {
+    private boolean shouldRefresh(
+        Optional<GtfsScheduleReadRepository.ActiveScheduleImport> activeImport,
+        Optional<GtfsScheduleReadRepository.ScheduleImport> latestImport
+    ) {
+        LocalDate today = LocalDate.now(clock.withZone(TORONTO_ZONE));
         if (activeImport.isEmpty()) {
-            return true;
+            return latestImport
+                .map(latest -> latest.serviceEnd() == null || latest.serviceEnd().isBefore(today))
+                .orElse(true);
         }
         LocalDate serviceEnd = activeImport.get().serviceEnd();
         if (serviceEnd == null) {
             return true;
         }
-        LocalDate today = LocalDate.now(clock.withZone(TORONTO_ZONE));
+        if (latestImportExtendsCoverageBeyondThreshold(latestImport, serviceEnd, today)) {
+            return false;
+        }
         long daysRemaining = ChronoUnit.DAYS.between(today, serviceEnd);
         return daysRemaining <= properties.getGtfsRefreshMinServiceDaysRemaining();
+    }
+
+    private boolean latestImportExtendsCoverageBeyondThreshold(
+        Optional<GtfsScheduleReadRepository.ScheduleImport> latestImport,
+        LocalDate activeServiceEnd,
+        LocalDate today
+    ) {
+        return latestImport
+            .map(GtfsScheduleReadRepository.ScheduleImport::serviceEnd)
+            .filter(latestServiceEnd -> latestServiceEnd.isAfter(activeServiceEnd))
+            .map(latestServiceEnd -> ChronoUnit.DAYS.between(today, latestServiceEnd))
+            .map(daysRemaining -> daysRemaining > properties.getGtfsRefreshMinServiceDaysRemaining())
+            .orElse(false);
     }
 }

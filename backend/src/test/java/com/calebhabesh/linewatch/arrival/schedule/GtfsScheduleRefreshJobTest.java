@@ -25,12 +25,14 @@ class GtfsScheduleRefreshJobTest {
 
     private final ArrivalProperties properties = new ArrivalProperties();
     private final GtfsScheduleReadRepository readRepository = mock(GtfsScheduleReadRepository.class);
+    private final GtfsScheduleImportRepository importRepository = mock(GtfsScheduleImportRepository.class);
     private final GtfsScheduleDownloadClient downloadClient = mock(GtfsScheduleDownloadClient.class);
     private final GtfsScheduleImportService importService = mock(GtfsScheduleImportService.class);
     private final GtfsScheduleRefreshRunService runService = mock(GtfsScheduleRefreshRunService.class);
     private final GtfsScheduleRefreshJob job = new GtfsScheduleRefreshJob(
         properties,
         readRepository,
+        importRepository,
         downloadClient,
         importService,
         runService,
@@ -51,9 +53,24 @@ class GtfsScheduleRefreshJobTest {
     }
 
     @Test
+    void promotesReadyImportBeforeRefreshDecision() throws Exception {
+        properties.setGtfsRefreshEnabled(true);
+        properties.setGtfsRefreshMinServiceDaysRemaining(14);
+        when(readRepository.findActiveImport()).thenReturn(Optional.of(activeImport(LocalDate.parse("2026-07-20"))));
+        when(readRepository.findLatestImport()).thenReturn(Optional.empty());
+
+        job.refresh();
+
+        verify(importRepository).activateLatestImportCoveringDate(LocalDate.parse("2026-06-15"));
+        verify(downloadClient, never()).downloadCurrentZip();
+        verify(runService, never()).start();
+    }
+
+    @Test
     void importsCurrentScheduleWhenNoActiveImportExistsAndSucceeds() throws Exception {
         properties.setGtfsRefreshEnabled(true);
         when(readRepository.findActiveImport()).thenReturn(Optional.empty());
+        when(readRepository.findLatestImport()).thenReturn(Optional.empty());
         when(downloadClient.downloadCurrentZip()).thenReturn(downloaded("/tmp/ttc-gtfs.zip"));
         when(importService.importZip(Path.of("/tmp/ttc-gtfs.zip"), "https://example.test/gtfs.zip"))
             .thenReturn(summary);
@@ -71,6 +88,38 @@ class GtfsScheduleRefreshJobTest {
         properties.setGtfsRefreshEnabled(true);
         properties.setGtfsRefreshMinServiceDaysRemaining(14);
         when(readRepository.findActiveImport()).thenReturn(Optional.of(activeImport(LocalDate.parse("2026-07-20"))));
+        when(readRepository.findLatestImport()).thenReturn(Optional.empty());
+
+        job.refresh();
+
+        verify(downloadClient, never()).downloadCurrentZip();
+        verify(runService, never()).start();
+    }
+
+    @Test
+    void skipsRefreshWhenFutureImportAlreadyExtendsCoverageBeyondThreshold() throws Exception {
+        properties.setGtfsRefreshEnabled(true);
+        properties.setGtfsRefreshMinServiceDaysRemaining(14);
+        when(readRepository.findActiveImport()).thenReturn(Optional.of(activeImport(LocalDate.parse("2026-06-28"))));
+        when(readRepository.findLatestImport()).thenReturn(Optional.of(scheduleImport(
+            LocalDate.parse("2026-06-29"),
+            LocalDate.parse("2026-07-25")
+        )));
+
+        job.refresh();
+
+        verify(downloadClient, never()).downloadCurrentZip();
+        verify(runService, never()).start();
+    }
+
+    @Test
+    void skipsRefreshWhenOnlyFutureImportExists() throws Exception {
+        properties.setGtfsRefreshEnabled(true);
+        when(readRepository.findActiveImport()).thenReturn(Optional.empty());
+        when(readRepository.findLatestImport()).thenReturn(Optional.of(scheduleImport(
+            LocalDate.parse("2026-06-21"),
+            LocalDate.parse("2026-07-25")
+        )));
 
         job.refresh();
 
@@ -83,6 +132,7 @@ class GtfsScheduleRefreshJobTest {
         properties.setGtfsRefreshEnabled(true);
         properties.setGtfsRefreshMinServiceDaysRemaining(14);
         when(readRepository.findActiveImport()).thenReturn(Optional.of(activeImport(LocalDate.parse("2026-06-28"))));
+        when(readRepository.findLatestImport()).thenReturn(Optional.empty());
         when(downloadClient.downloadCurrentZip()).thenThrow(new IOException("CKAN unavailable"));
         when(runService.start()).thenReturn(17L);
 
@@ -96,6 +146,7 @@ class GtfsScheduleRefreshJobTest {
     void errorDuringRefreshRecordsFailureAndRethrows() throws Exception {
         properties.setGtfsRefreshEnabled(true);
         when(readRepository.findActiveImport()).thenReturn(Optional.empty());
+        when(readRepository.findLatestImport()).thenReturn(Optional.empty());
         OutOfMemoryError failure = new OutOfMemoryError("simulated");
         when(downloadClient.downloadCurrentZip()).thenThrow(failure);
         when(runService.start()).thenReturn(17L);
@@ -111,6 +162,17 @@ class GtfsScheduleRefreshJobTest {
             "https://example.test/source",
             OffsetDateTime.parse("2026-06-01T12:00:00Z"),
             LocalDate.parse("2026-06-01"),
+            serviceEnd
+        );
+    }
+
+    private GtfsScheduleReadRepository.ScheduleImport scheduleImport(LocalDate serviceStart, LocalDate serviceEnd) {
+        return new GtfsScheduleReadRepository.ScheduleImport(
+            11L,
+            "TTC merged GTFS schedule",
+            "https://example.test/source",
+            OffsetDateTime.parse("2026-06-14T12:00:00Z"),
+            serviceStart,
             serviceEnd
         );
     }
