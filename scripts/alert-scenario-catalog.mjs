@@ -13,7 +13,7 @@ export const scenarioNames = [
 
 export const scenarioExpectations = {
   "all-alert-types": {
-    routeCount: 13,
+    routeCount: 14,
     accessibilityCount: 2,
     impactKinds: ["suspension", "delay", "reduced-speed-zone", "planned-closure"],
     directionCoverage: {
@@ -317,6 +317,20 @@ function allAlertTypes(now) {
       effect: "SIGNIFICANT_DELAYS",
       effectDesc: "Delays",
       direction: "Westbound",
+      cause: "MEDICAL_EMERGENCY",
+      causeDescription: "Emergency alarm",
+    }),
+    routeAlert(now, {
+      id: "scenario-station-node-dundas-west-bidirectional",
+      route: "2",
+      stopStart: "Dundas West",
+      stopEnd: "Dundas West",
+      stopIDList: ["Dundas West"],
+      title: "Delays both ways at Dundas West station while we respond to an emergency alarm.",
+      headerText: "Line 2 Bloor-Danforth: Delays both ways at Dundas West station while we respond to an emergency alarm.",
+      effect: "SIGNIFICANT_DELAYS",
+      effectDesc: "Delays",
+      direction: "Both ways",
       cause: "MEDICAL_EMERGENCY",
       causeDescription: "Emergency alarm",
     }),

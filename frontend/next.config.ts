@@ -9,6 +9,14 @@ function shortSha(value: string | undefined) {
   return value ? value.slice(0, 7) : "";
 }
 
+function environmentLabel() {
+  if (process.env.NEXT_PUBLIC_LINEWATCH_ENVIRONMENT_LABEL !== undefined) {
+    return process.env.NEXT_PUBLIC_LINEWATCH_ENVIRONMENT_LABEL;
+  }
+
+  return process.env.NODE_ENV === "development" ? "Dev" : "";
+}
+
 const allowedDevOrigins = [
   '192.0.2.25',
   '192.0.2.25:3000',
@@ -28,6 +36,7 @@ const nextConfig: NextConfig = {
       shortSha(process.env.CF_PAGES_COMMIT_SHA) ||
       shortSha(process.env.GITHUB_SHA) ||
       (process.env.NODE_ENV === "production" ? "local" : "dev"),
+    NEXT_PUBLIC_LINEWATCH_ENVIRONMENT_LABEL: environmentLabel(),
   },
   output: "standalone",
   turbopack: {

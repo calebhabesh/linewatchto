@@ -1,11 +1,19 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 
 const scenarioBackendScript = readFileSync(
   new URL("../../scripts/dev-alert-scenario.sh", import.meta.url),
   "utf8",
 );
+const scenarioFrontendScript = readFileSync(
+  new URL("../../scripts/dev-frontend-scenario.sh", import.meta.url),
+  "utf8",
+);
+const liveBackendAliasUrl = new URL("../../scripts/dev-live-backend.sh", import.meta.url);
+const liveFrontendScriptUrl = new URL("../../scripts/dev-live-frontend.sh", import.meta.url);
+const alertScenarioBackendAliasUrl = new URL("../../scripts/dev-alert-scenario-backend.sh", import.meta.url);
+const alertScenarioFrontendAliasUrl = new URL("../../scripts/dev-alert-scenario-frontend.sh", import.meta.url);
 const livePushBackendScriptUrl = new URL("../../scripts/dev-backend-live-push.sh", import.meta.url);
 const cloudflarePushScriptUrl = new URL("../../scripts/dev-cloudflare-push.sh", import.meta.url);
 const smokeDeployScriptUrl = new URL("../../scripts/smoke-deploy.mjs", import.meta.url);
@@ -17,6 +25,41 @@ describe("alert scenario scripts", () => {
     assert.match(scenarioBackendScript, /LINEWATCH_ARRIVALS_GTFS_IMPORT_ENABLED/);
     assert.match(scenarioBackendScript, /LINEWATCH_ARRIVALS_GTFS_ZIP_PATH/);
     assert.match(scenarioBackendScript, /tmp\/ttc-merged-gtfs\.zip/);
+  });
+
+  it("labels the local alert scenario browser tab with the scenario name", () => {
+    assert.match(scenarioFrontendScript, /SCENARIO="\$\{LINEWATCH_ALERT_SCENARIO:-\$\{1:-all-alert-types\}\}"/);
+    assert.match(scenarioFrontendScript, /Starting LineWatch TO alert scenario frontend/);
+    assert.match(
+      scenarioFrontendScript,
+      /NEXT_PUBLIC_LINEWATCH_ENVIRONMENT_LABEL="\$\{NEXT_PUBLIC_LINEWATCH_ENVIRONMENT_LABEL:-Dev: \$SCENARIO\}"/,
+    );
+  });
+
+  it("provides a named live dev frontend script with a dev tab label", () => {
+    assert.equal(existsSync(liveFrontendScriptUrl), true);
+
+    const liveFrontendScript = readFileSync(liveFrontendScriptUrl, "utf8");
+
+    assert.match(liveFrontendScript, /Starting LineWatch TO live dev frontend/);
+    assert.match(liveFrontendScript, /NEXT_PUBLIC_LINEWATCH_ENVIRONMENT_LABEL="\$\{NEXT_PUBLIC_LINEWATCH_ENVIRONMENT_LABEL:-Dev\}"/);
+    assert.match(liveFrontendScript, /npm --prefix "\$REPO_ROOT\/frontend" run dev/);
+  });
+
+  it("provides precise mode-role script aliases without removing existing script names", () => {
+    assert.equal(existsSync(liveBackendAliasUrl), true);
+    assert.equal(existsSync(alertScenarioBackendAliasUrl), true);
+    assert.equal(existsSync(alertScenarioFrontendAliasUrl), true);
+
+    assert.match(readFileSync(liveBackendAliasUrl, "utf8"), /exec "\$SCRIPT_DIR\/dev-backend-live\.sh" "\$@"/);
+    assert.match(
+      readFileSync(alertScenarioBackendAliasUrl, "utf8"),
+      /exec "\$SCRIPT_DIR\/dev-alert-scenario\.sh" "\$@"/,
+    );
+    assert.match(
+      readFileSync(alertScenarioFrontendAliasUrl, "utf8"),
+      /exec "\$SCRIPT_DIR\/dev-frontend-scenario\.sh" "\$@"/,
+    );
   });
 
   it("provides an opt-in live backend script with local Web Push keys", () => {

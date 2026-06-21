@@ -157,6 +157,24 @@ function useRetainedMapLayers<T>(
   return retained;
 }
 
+function isStationVisuallyLarge(station: { id: string; interchange: boolean }): boolean {
+  const largeTerminals = [
+    "kipling",
+    "finch",
+    "vaughan-metropolitan-centre",
+    "don-mills",
+    "humber-college",
+    "mount-dennis",
+  ];
+  if (largeTerminals.includes(station.id)) {
+    return true;
+  }
+  if (station.id === "union") {
+    return false;
+  }
+  return station.interchange;
+}
+
 function InteractiveTtcMapComponent({
   selection,
   onSelectImpact,
@@ -1042,7 +1060,8 @@ function InteractiveTtcMapComponent({
               <g aria-label="Station hit targets">
                 {stations.map((station) => {
                   const selected = selectedStationId === station.id;
-                  const radius = station.interchange ? 96 : 76;
+                  const isLarge = isStationVisuallyLarge(station);
+                  const radius = isLarge ? 96 : 76;
                   const point = stationPointFor(station);
 
                   return (
@@ -1053,7 +1072,7 @@ function InteractiveTtcMapComponent({
                           className="station-selection-flash"
                           cx={point.x}
                           cy={point.y}
-                          r={station.interchange ? 48 : 38}
+                          r={isLarge ? 48 : 38}
                           pointerEvents="none"
                         />
                       )}
@@ -1063,7 +1082,7 @@ function InteractiveTtcMapComponent({
                           className="station-commute-green-flash"
                           cx={point.x}
                           cy={point.y}
-                          r={station.interchange ? 48 : 38}
+                          r={isLarge ? 48 : 38}
                           pointerEvents="none"
                         />
                       )}
@@ -1072,7 +1091,7 @@ function InteractiveTtcMapComponent({
                           className="station-selected-indicator"
                           cx={point.x}
                           cy={point.y}
-                          r={station.interchange ? 48 : 38}
+                          r={isLarge ? 48 : 38}
                           pointerEvents="none"
                         />
                       )}
@@ -1108,6 +1127,7 @@ function InteractiveTtcMapComponent({
                   if (!station) return null;
                   const selected = selection?.kind === impact.kind && selection.id === impact.cardId;
                   const point = stationPointFor(station);
+                  const isLarge = isStationVisuallyLarge(station);
                   const impactDirection = stationImpactDirectionForImpact(impact, {
                     activeAlerts,
                     delays,
@@ -1130,7 +1150,7 @@ function InteractiveTtcMapComponent({
                           className="station-selection-flash"
                           cx={point.x}
                           cy={point.y}
-                          r={station.interchange ? 48 : 38}
+                          r={isLarge ? 48 : 38}
                           pointerEvents="none"
                         />
                       )}
@@ -1139,7 +1159,7 @@ function InteractiveTtcMapComponent({
                         className={`station-impact-ring ${impact.kind} ${selected ? "selected" : ""}`}
                         cx={point.x}
                         cy={point.y}
-                        r={station.interchange ? 48 : 38}
+                        r={isLarge ? 48 : 38}
                         fill="none"
                         onClick={(event) => {
                           if (exiting) return;
@@ -1162,14 +1182,14 @@ function InteractiveTtcMapComponent({
                         className="station-impact-dot-red-glow"
                         cx={point.x}
                         cy={point.y}
-                        r={station.interchange ? 34 : 26}
+                        r={isLarge ? 34 : 26}
                         pointerEvents="none"
                       />
                       <circle
                         className="station-impact-dot-red-ping"
                         cx={point.x}
                         cy={point.y}
-                        r={station.interchange ? 34 : 26}
+                        r={isLarge ? 34 : 26}
                         pointerEvents="none"
                       />
                       {impactDirection ? (
@@ -1177,7 +1197,7 @@ function InteractiveTtcMapComponent({
                           x={point.x}
                           y={point.y}
                           direction={impactDirection.arrow.direction}
-                          radius={station.interchange ? 18 : 15}
+                          radius={isLarge ? 29 : 24}
                         />
                       ) : null}
                     </g>
@@ -2475,17 +2495,17 @@ function StationImpactDirectionGlyph({
 function stationImpactDirectionPath(direction: StationImpactArrowDirection): string {
   switch (direction) {
     case "left":
-      return "M 6 0 H -7 M -2 -5 L -7 0 L -2 5";
+      return "M 10 0 H -13 M -5 -8 L -13 0 L -5 8";
     case "right":
-      return "M -6 0 H 7 M 2 -5 L 7 0 L 2 5";
+      return "M -10 0 H 13 M 5 -8 L 13 0 L 5 8";
     case "up":
-      return "M 0 7 V -7 M -5 -2 L 0 -7 L 5 -2";
+      return "M 0 10 V -13 M -8 -5 L 0 -13 L 8 -5";
     case "down":
-      return "M 0 -7 V 7 M -5 2 L 0 7 L 5 2";
+      return "M 0 -10 V 13 M -8 5 L 0 13 L 8 5";
     case "horizontal-bidirectional":
-      return "M -7 0 H 7 M -2 -5 L -7 0 L -2 5 M 2 -5 L 7 0 L 2 5";
+      return "M -16 0 H 16 M -8 -8 L -16 0 L -8 8 M 8 -8 L 16 0 L 8 8";
     case "vertical-bidirectional":
-      return "M 0 -7 V 7 M -5 -2 L 0 -7 L 5 -2 M -5 2 L 0 7 L 5 2";
+      return "M 0 -16 V 16 M -8 -8 L 0 -16 L 8 -8 M -8 8 L 0 16 L 8 8";
   }
 }
 

@@ -25,7 +25,7 @@ The project is early but no longer an empty scaffold.
 - Next.js Server Component loads data with complete local-fixture fallback.
 - Playwright Chromium smoke tests cover seeded API rendering, fixture-fallback rendering, delay overlay clicks, single-station impact ring interactions, and station accessibility details.
 - Opt-in TTC Live Alerts polling, raw source staging, supported subway/LRT normalization, accessibility-outage normalization, alert snapshotting, and `/api/health/ingestion` are implemented.
-- TTC alert polling is disabled by default. For local live overlays, run `scripts/dev-backend-live.sh`, which starts the backend with the `dev-live` Spring profile.
+- TTC alert polling is disabled by default. For local live overlays, run `scripts/dev-live-backend.sh`, which starts the backend with the `dev-live` Spring profile.
 - Visible `/api/alerts`, `/api/status`, `/api/map`, and dynamic `/api/stations/{id}` rows can read normalized TTC alert records while the latest successful ingestion run is fresh; stale successful runs are suppressed from alert cards, line status, map overlays, and station details after the configured dashboard freshness window.
 - Delay cards are distinct from explicit Reduced Speed Zone cards. Started timing comes from `activePeriod.start` where available, and Updated timing comes from TTC `lastUpdated` where available.
 - Map segment overlays and single-station alert rings are clickable/tappable and open the corresponding submenu card.
@@ -113,6 +113,8 @@ npm --prefix frontend run typecheck
 npm --prefix frontend run lint
 npm --prefix frontend run build
 npm --prefix frontend run dev
+scripts/dev-live-frontend.sh
+scripts/dev-alert-scenario-frontend.sh all-alert-types
 npm --prefix frontend run test:smoke
 ```
 
@@ -121,7 +123,8 @@ Backend:
 ```bash
 mvn -f backend/pom.xml test
 mvn -f backend/pom.xml spring-boot:run
-scripts/dev-backend-live.sh
+scripts/dev-live-backend.sh
+scripts/dev-alert-scenario-backend.sh all-alert-types
 ```
 
 Infrastructure:
@@ -310,7 +313,8 @@ If you are antigravity-cli, Gemini, Codex, or another coding agent:
 - Summarize changed files and commands run.
 - `backend/src/test/resources/fixtures/ttc-alert-scenarios/` contains generated TTC-shaped alert scenario feeds for dev/test coverage.
 - `scripts/alert-scenario-catalog.mjs` is the source of truth for those generated fixtures; run `node scripts/generate-alert-scenarios.mjs` after editing it.
-- `scripts/dev-alert-scenario.sh <scenario-name>` runs the backend against a local scenario feed for manual browser testing.
+- `scripts/dev-alert-scenario-backend.sh <scenario-name>` runs the backend against a local scenario feed for manual browser testing.
+- `scripts/dev-alert-scenario-frontend.sh <scenario-name>` starts the matching scenario frontend with a scenario-specific browser tab title.
 - Scenario records may be synthetic when captured public TTC samples are unavailable; do not describe scenario data as live TTC service.
 - Do not overclaim features that are only represented by fixtures.
 - Station arrivals are scheduled rapid-transit estimates when a merged TTC GTFS schedule import is active. They are not live TTC subway/LRT predictions. Surface connections are outside this slice. Do not claim live station arrivals until an official rapid-transit realtime source exists and is integrated with passing verification.

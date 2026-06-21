@@ -1838,10 +1838,10 @@ button {
 
 @keyframes highlight-glow {
   0%, 100% {
-    box-shadow: 0 0 0 0 rgba(56, 189, 248, 0);
+    box-shadow: 0 0 0 0 rgba(2, 132, 199, 0);
   }
   50% {
-    box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.85), 0 0 16px rgba(56, 189, 248, 0.6);
+    box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.85), 0 0 16px rgba(2, 132, 199, 0.6);
   }
 }
 
@@ -1851,7 +1851,7 @@ button {
 
 .motion-paused .highlight-active-card {
   animation: none;
-  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.85);
+  box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.85);
 }
 
 .station-hit-target {
@@ -1878,11 +1878,11 @@ button {
 }
 
 .station-selected-indicator {
-  fill: #38bdf8;
+  fill: #0284c7;
   transform-origin: center;
   transform-box: fill-box;
   stroke: none;
-  filter: drop-shadow(0 0 6px rgba(56, 189, 248, 0.85));
+  filter: drop-shadow(0 0 6px rgba(2, 132, 199, 0.85));
   animation: station-selected-pulse 2.4s ease-in-out infinite;
   animation-delay: var(--map-pulse-offset);
 }
@@ -1920,7 +1920,7 @@ button {
 }
 
 .station-impact-dot-red-ping {
-  fill: rgba(255, 59, 48, 0.25); /* Shaded semi-transparent radar disk */
+  fill: #ff3b30; /* Bright solid highlight color, opacity animated below */
   stroke: #ff4b5c; /* Bright radar sweep edge */
   stroke-width: 1.5;
   transform-origin: center;
@@ -1944,7 +1944,7 @@ button {
   stroke: #111827;
   stroke-linecap: round;
   stroke-linejoin: round;
-  stroke-width: 4;
+  stroke-width: 6;
 }
 
 .linewatch-shell.high-contrast .station-impact-direction-badge {
@@ -1955,7 +1955,7 @@ button {
 
 .linewatch-shell.high-contrast .station-impact-direction-arrow {
   stroke: #000000;
-  stroke-width: 4.5;
+  stroke-width: 7;
 }
 
 @keyframes station-selected-pulse {
@@ -1998,12 +1998,12 @@ button {
 @keyframes station-radar-ping {
   0% {
     transform: scale(0.9);
-    fill-opacity: 0.36;
+    fill-opacity: 0.45;
     stroke-opacity: 0.95;
     filter: drop-shadow(0 0 3px rgba(255, 59, 48, 0.85));
   }
   50% {
-    fill-opacity: 0.18;
+    fill-opacity: 0.25;
     stroke-opacity: 0.7;
     filter: drop-shadow(0 0 12px rgba(255, 59, 48, 0.65)) drop-shadow(0 0 20px rgba(255, 59, 48, 0.36));
   }
@@ -2038,13 +2038,13 @@ button {
 
 .asset-alert-path.map-selection-flash {
   fill: none;
-  stroke: #38bdf8;
+  stroke: #0284c7;
   stroke-linecap: round;
   stroke-linejoin: round;
   stroke-opacity: 0.95;
   stroke-width: 118;
   stroke-dasharray: none !important;
-  filter: drop-shadow(0 0 16px rgba(56, 189, 248, 0.9));
+  filter: drop-shadow(0 0 16px rgba(2, 132, 199, 0.9));
   animation: map-selection-flash 0.6s ease-in-out 4 forwards;
 }
 
@@ -2069,9 +2069,9 @@ button {
 }
 
 .station-selection-flash {
-  fill: #38bdf8;
+  fill: #0284c7;
   stroke: none;
-  filter: drop-shadow(0 0 6px rgba(56, 189, 248, 0.85));
+  filter: drop-shadow(0 0 6px rgba(2, 132, 199, 0.85));
   animation: station-selection-flash 0.6s ease-in-out 4 forwards;
 }
 

@@ -338,7 +338,7 @@ See `docs/staging.md` for Cloudflare Tunnel and Cloudflare Access setup notes.
 Run the dashboard:
 
 ```bash
-npm --prefix frontend run dev
+scripts/dev-live-frontend.sh
 ```
 
 Then open:
@@ -346,6 +346,10 @@ Then open:
 ```text
 http://localhost:3000
 ```
+
+Plain `npm --prefix frontend run dev` still works. The helper name is clearer
+when several LineWatch TO tabs are open, and it sets the local browser title to
+`LineWatch TO Dev`.
 
 Run frontend checks:
 
@@ -396,7 +400,7 @@ mvn -f backend/pom.xml spring-boot:run
 Start the backend with TTC Live Alerts polling enabled for live alert cards and map overlays:
 
 ```bash
-scripts/dev-backend-live.sh
+scripts/dev-live-backend.sh
 ```
 
 This dev helper also enables local password-reset links by default. It returns a short-lived reset token to the frontend for existing local accounts so the `Forgot password?` flow can be tested without email delivery.
@@ -413,7 +417,7 @@ SPRING_MAIL_USERNAME=your-smtp-user \
 SPRING_MAIL_PASSWORD=your-smtp-password \
 SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH=true \
 SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE=true \
-scripts/dev-backend-live.sh
+scripts/dev-live-backend.sh
 ```
 
 Password reset emails are sent as multipart HTML with a plain-text fallback and an inline LineWatch TO logo from `backend/src/main/resources/email/linewatch-logo.png`.
@@ -427,7 +431,7 @@ LINEWATCH_PUSH_ENABLED=true \
 LINEWATCH_PUSH_VAPID_PUBLIC_KEY=your-url-safe-public-key \
 LINEWATCH_PUSH_VAPID_PRIVATE_KEY=your-url-safe-private-key \
 LINEWATCH_PUSH_VAPID_SUBJECT=mailto:you@example.com \
-scripts/dev-backend-live.sh
+scripts/dev-live-backend.sh
 ```
 
 For local push testing, use the helper that generates/reuses local VAPID keys under ignored `tmp/linewatch-vapid.env` and starts the live backend with push enabled:
@@ -461,7 +465,7 @@ curl http://localhost:8080/api/health
 curl http://localhost:8080/api/health/schedule
 ```
 
-Alert ingestion is disabled by default for offline-safe local runs, CI, and demos that should not depend on the TTC public API. The `scripts/dev-backend-live.sh` command runs the backend with the `dev-live` Spring profile, which enables one scheduled poller process.
+Alert ingestion is disabled by default for offline-safe local runs, CI, and demos that should not depend on the TTC public API. The `scripts/dev-live-backend.sh` command runs the backend with the `dev-live` Spring profile, which enables one scheduled poller process.
 
 Equivalent manual command:
 
@@ -535,17 +539,22 @@ node scripts/mock-alerts-server.mjs station-node-impact
 Run the backend against a scenario:
 
 ```bash
-scripts/dev-alert-scenario.sh all-alert-types
+scripts/dev-alert-scenario-backend.sh all-alert-types
 ```
 
 If `tmp/ttc-merged-gtfs.zip` or `/tmp/ttc-merged-gtfs.zip` exists, the scenario
 backend also imports scheduled rapid-transit arrivals into the `linewatch_scenario`
 database. Override the zip location with `LINEWATCH_SCENARIO_GTFS_ZIP=/path/to/gtfs.zip`.
 
-Then open the scenario frontend with `scripts/dev-frontend-scenario.sh` and inspect
+Then open the scenario frontend with `scripts/dev-alert-scenario-frontend.sh all-alert-types` and inspect
 `/api/alerts`, `/api/map`, alert cards, station rings, nonlinear overlays, and
 schedule-aware station arrivals. The scenario harness does not make the app an
 official TTC product and does not represent a live feed.
+
+Browser tab titles are intentionally distinct across common environments:
+production remains `LineWatch TO`, staging builds as `LineWatch TO Staging`,
+normal local dev shows `LineWatch TO Dev`, and alert scenarios show
+`LineWatch TO Dev: <scenario-name>`.
 
 
 Current backend scope:

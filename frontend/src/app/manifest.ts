@@ -1,9 +1,12 @@
 import type { MetadataRoute } from "next";
+import { getLineWatchAppTitle } from "./app-title.ts";
 
 export default function manifest(): MetadataRoute.Manifest {
+  const appTitle = getLineWatchAppTitle();
+
   return {
     id: "/",
-    name: "LineWatch TO",
+    name: appTitle,
     short_name: "LineWatch",
     description: "Unofficial TTC reliability dashboard for Toronto subway and LRT riders.",
     start_url: "/",

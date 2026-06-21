@@ -3,6 +3,7 @@ import { Inter, JetBrains_Mono } from "next/font/google";
 import Script from "next/script";
 import { AppUpdateBanner } from "../components/AppUpdateBanner";
 import { PwaServiceWorkerRegistration } from "../components/PwaServiceWorkerRegistration";
+import { lineWatchAppTitle } from "./app-title.ts";
 import "./globals.css";
 
 const inter = Inter({
@@ -16,10 +17,10 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  applicationName: "LineWatch TO",
+  applicationName: lineWatchAppTitle,
   title: {
-    default: "LineWatch TO",
-    template: "%s | LineWatch TO",
+    default: lineWatchAppTitle,
+    template: `%s | ${lineWatchAppTitle}`,
   },
   description: "Unofficial TTC reliability dashboard for Toronto subway and LRT riders.",
   manifest: "/manifest.webmanifest",
@@ -46,7 +47,7 @@ export const metadata: Metadata = {
   },
   appleWebApp: {
     capable: true,
-    title: "LineWatch TO",
+    title: lineWatchAppTitle,
     statusBarStyle: "black-translucent",
   },
   formatDetection: {

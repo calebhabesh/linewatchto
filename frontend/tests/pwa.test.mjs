@@ -52,6 +52,26 @@ const iconSpecs = [
   },
 ];
 
+function withEnvValue(key, value, callback) {
+  const previous = process.env[key];
+
+  if (value === undefined) {
+    delete process.env[key];
+  } else {
+    process.env[key] = value;
+  }
+
+  try {
+    return callback();
+  } finally {
+    if (previous === undefined) {
+      delete process.env[key];
+    } else {
+      process.env[key] = previous;
+    }
+  }
+}
+
 function readPngDimensions(url) {
   const buffer = readFileSync(url);
   const pngSignature = "89504e470d0a1a0a";
@@ -451,6 +471,20 @@ describe("LineWatch PWA configuration", () => {
     ]);
   });
 
+  it("labels non-production browser metadata from the configured instance label", () => {
+    withEnvValue("NEXT_PUBLIC_LINEWATCH_ENVIRONMENT_LABEL", "Staging", () => {
+      const webManifest = manifest();
+
+      assert.equal(webManifest.name, "LineWatch TO Staging");
+    });
+
+    assert.match(layoutSource, /lineWatchAppTitle/);
+    assert.match(layoutSource, /applicationName:\s*lineWatchAppTitle/);
+    assert.match(layoutSource, /default:\s*lineWatchAppTitle/);
+    assert.match(layoutSource, /template:\s*`%s \| \$\{lineWatchAppTitle\}`/);
+    assert.match(layoutSource, /title:\s*lineWatchAppTitle/);
+  });
+
   it("ships PWA icons with the expected PNG dimensions", () => {
     for (const icon of iconSpecs) {
       const iconUrl = new URL(icon.path, import.meta.url);
@@ -464,9 +498,10 @@ describe("LineWatch PWA configuration", () => {
   });
 
   it("adds mobile install metadata and safe viewport settings", () => {
-    assert.match(layoutSource, /applicationName:\s*"LineWatch TO"/);
+    assert.match(layoutSource, /applicationName:\s*lineWatchAppTitle/);
     assert.match(layoutSource, /appleWebApp:\s*\{/);
     assert.match(layoutSource, /capable:\s*true/);
+    assert.match(layoutSource, /title:\s*lineWatchAppTitle/);
     assert.match(layoutSource, /statusBarStyle:\s*"black-translucent"/);
     assert.match(layoutSource, /formatDetection:\s*\{[\s\S]*telephone:\s*false/);
     assert.match(layoutSource, /export const viewport/);
