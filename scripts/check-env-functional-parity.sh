@@ -1,0 +1,107 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+PROD_ENV="${1:-$ROOT_DIR/.env.production.example}"
+STAGING_ENV="${2:-$ROOT_DIR/.env.staging.example}"
+
+FUNCTIONAL_KEYS=(
+  JAVA_TOOL_OPTIONS
+  LINEWATCH_AUTH_SECURE_COOKIE
+  LINEWATCH_AUTH_RATE_LIMIT_ENABLED
+  LINEWATCH_AUTH_RATE_LIMIT_WINDOW
+  LINEWATCH_AUTH_RATE_LIMIT_AUTH_MAX_REQUESTS
+  LINEWATCH_AUTH_RATE_LIMIT_PASSWORD_RESET_MAX_REQUESTS
+  LINEWATCH_AUTH_RATE_LIMIT_DEMO_MAX_REQUESTS
+  LINEWATCH_AUTH_PASSWORD_RESET_DEV_LINKS
+  LINEWATCH_AUTH_PASSWORD_RESET_EMAIL_ENABLED
+  LINEWATCH_AUTH_PASSWORD_RESET_EMAIL_FROM
+  SPRING_MAIL_HOST
+  SPRING_MAIL_PORT
+  SPRING_MAIL_USERNAME
+  SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH
+  SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE
+  LINEWATCH_INGESTION_ALERTS_ENABLED
+  LINEWATCH_INGESTION_ALERTS_URL
+  LINEWATCH_INGESTION_ALERTS_FIXED_DELAY
+  LINEWATCH_INGESTION_ALERTS_MAX_DASHBOARD_AGE
+  LINEWATCH_INGESTION_ALERTS_CONNECT_TIMEOUT
+  LINEWATCH_INGESTION_ALERTS_READ_TIMEOUT
+  LINEWATCH_ARRIVALS_ENABLED
+  LINEWATCH_ARRIVALS_PROVIDER
+  LINEWATCH_ARRIVALS_SCHEDULE_HORIZON
+  LINEWATCH_ARRIVALS_MAX_ARRIVALS_PER_LINE
+  LINEWATCH_ARRIVALS_GTFS_IMPORT_ENABLED
+  LINEWATCH_ARRIVALS_GTFS_REFRESH_ENABLED
+  LINEWATCH_ARRIVALS_GTFS_REFRESH_PACKAGE_URL
+  LINEWATCH_ARRIVALS_GTFS_REFRESH_INITIAL_DELAY
+  LINEWATCH_ARRIVALS_GTFS_REFRESH_FIXED_DELAY
+  LINEWATCH_ARRIVALS_GTFS_REFRESH_MIN_SERVICE_DAYS_REMAINING
+  LINEWATCH_PERFORMANCE_TTC_ENABLED
+  LINEWATCH_PERFORMANCE_TTC_URL
+  LINEWATCH_PERFORMANCE_TTC_CONNECT_TIMEOUT
+  LINEWATCH_PERFORMANCE_TTC_READ_TIMEOUT
+  LINEWATCH_PERFORMANCE_TTC_REFRESH_INTERVAL
+  LINEWATCH_PERFORMANCE_TTC_MAX_AGE
+  LINEWATCH_CACHE_DASHBOARD_ENABLED
+  LINEWATCH_CACHE_DASHBOARD_STATUS_TTL
+  LINEWATCH_CACHE_DASHBOARD_MAP_TTL
+  LINEWATCH_CACHE_DASHBOARD_ALERTS_TTL
+  LINEWATCH_CACHE_DASHBOARD_INGESTION_HEALTH_TTL
+  LINEWATCH_CACHE_DASHBOARD_PERFORMANCE_TTL
+  LINEWATCH_PUSH_ENABLED
+  LINEWATCH_PUSH_VAPID_SUBJECT
+  LINEWATCH_PUSH_EVALUATION_DELAY_MS
+)
+
+read_env_value() {
+  local file="${1-}"
+  local key="${2-}"
+
+  if [[ ! "$key" =~ ^[A-Z_][A-Z0-9_]*$ ]]; then
+    printf 'invalid env key: %s\n' "$key" >&2
+    return 2
+  fi
+
+  sed -n "s/^${key}=//p" "$file" | tail -n 1
+}
+
+require_file() {
+  local file="${1-}"
+
+  if [[ ! -f "$file" ]]; then
+    printf 'missing env file: %s\n' "$file" >&2
+    return 1
+  fi
+}
+
+require_file "$PROD_ENV"
+require_file "$STAGING_ENV"
+
+mismatches=()
+for key in "${FUNCTIONAL_KEYS[@]}"; do
+  prod_value="$(read_env_value "$PROD_ENV" "$key")"
+  staging_value="$(read_env_value "$STAGING_ENV" "$key")"
+
+  if [[ -z "$prod_value" && -z "$staging_value" ]]; then
+    mismatches+=("$key is missing or blank in both env files")
+  elif [[ -z "$prod_value" ]]; then
+    mismatches+=("$key is missing or blank in production env")
+  elif [[ -z "$staging_value" ]]; then
+    mismatches+=("$key is missing or blank in staging env")
+  elif [[ "$prod_value" != "$staging_value" ]]; then
+    mismatches+=("$key differs")
+  fi
+done
+
+if (( ${#mismatches[@]} > 0 )); then
+  printf 'Functional env parity check failed:\n' >&2
+  printf '  production: %s\n' "$PROD_ENV" >&2
+  printf '  staging:    %s\n' "$STAGING_ENV" >&2
+  for mismatch in "${mismatches[@]}"; do
+    printf '  - %s\n' "$mismatch" >&2
+  done
+  exit 1
+fi
+
+printf 'Functional env parity OK: %s and %s\n' "$PROD_ENV" "$STAGING_ENV"
