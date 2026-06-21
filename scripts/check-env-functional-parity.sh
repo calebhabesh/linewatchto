@@ -66,6 +66,18 @@ read_env_value() {
   sed -n "s/^${key}=//p" "$file" | tail -n 1
 }
 
+env_has_key() {
+  local file="${1-}"
+  local key="${2-}"
+
+  if [[ ! "$key" =~ ^[A-Z_][A-Z0-9_]*$ ]]; then
+    printf 'invalid env key: %s\n' "$key" >&2
+    return 2
+  fi
+
+  grep -qE "^${key}=" "$file"
+}
+
 require_file() {
   local file="${1-}"
 
@@ -80,16 +92,29 @@ require_file "$STAGING_ENV"
 
 mismatches=()
 for key in "${FUNCTIONAL_KEYS[@]}"; do
+  prod_has_key=false
+  staging_has_key=false
+  if env_has_key "$PROD_ENV" "$key"; then
+    prod_has_key=true
+  fi
+  if env_has_key "$STAGING_ENV" "$key"; then
+    staging_has_key=true
+  fi
+
+  if [[ "$prod_has_key" == false && "$staging_has_key" == false ]]; then
+    continue
+  elif [[ "$prod_has_key" == false ]]; then
+    mismatches+=("$key is missing in production env")
+    continue
+  elif [[ "$staging_has_key" == false ]]; then
+    mismatches+=("$key is missing in staging env")
+    continue
+  fi
+
   prod_value="$(read_env_value "$PROD_ENV" "$key")"
   staging_value="$(read_env_value "$STAGING_ENV" "$key")"
 
-  if [[ -z "$prod_value" && -z "$staging_value" ]]; then
-    mismatches+=("$key is missing or blank in both env files")
-  elif [[ -z "$prod_value" ]]; then
-    mismatches+=("$key is missing or blank in production env")
-  elif [[ -z "$staging_value" ]]; then
-    mismatches+=("$key is missing or blank in staging env")
-  elif [[ "$prod_value" != "$staging_value" ]]; then
+  if [[ "$prod_value" != "$staging_value" ]]; then
     mismatches+=("$key differs")
   fi
 done
