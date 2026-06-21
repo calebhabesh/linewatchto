@@ -1873,8 +1873,15 @@ button {
 }
 
 .station-hover-indicator {
-  fill: rgba(59, 130, 246, 0.15);
+  fill: transparent;
   pointer-events: none;
+  stroke: transparent;
+  stroke-width: 0;
+  transition: fill 0.2s ease-in-out, stroke 0.2s ease-in-out, stroke-width 0.2s ease-in-out;
+}
+
+.station-hover-indicator.active {
+  fill: rgba(59, 130, 246, 0.15);
   stroke: rgba(59, 130, 246, 0.6);
   stroke-width: 10;
 }
@@ -1897,6 +1904,20 @@ button {
   transform-box: fill-box;
   stroke: none;
   filter: drop-shadow(0 0 6px rgba(2, 132, 199, 0.85));
+  animation: station-selected-pulse 2.4s ease-in-out infinite;
+  animation-delay: var(--map-pulse-offset);
+  transition: opacity 0.2s ease-in-out;
+}
+
+/* For multi-anchor stations where it is always in the DOM */
+.station-selected-indicator.multi-anchor {
+  opacity: 0;
+  pointer-events: none;
+  animation: none;
+}
+
+.station-selected-indicator.multi-anchor.active {
+  opacity: 1;
   animation: station-selected-pulse 2.4s ease-in-out infinite;
   animation-delay: var(--map-pulse-offset);
 }

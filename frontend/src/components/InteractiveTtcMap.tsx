@@ -1077,7 +1077,7 @@ function InteractiveTtcMapComponent({
                   const visualAnchors = visualAnchorsForStation(station);
                   const hasMultipleVisualAnchors = visualAnchors.length > 1;
                   const hitRadius = hasMultipleVisualAnchors ? 76 : isLarge ? 96 : 76;
-                  const highlightRadius = hasMultipleVisualAnchors ? 38 : isLarge ? 48 : 38;
+                  const highlightRadius = hasMultipleVisualAnchors ? 33 : isLarge ? 48 : 38;
                   const showSynchronizedHover =
                     hasMultipleVisualAnchors &&
                     hoveredStationId === station.id &&
@@ -1105,11 +1105,11 @@ function InteractiveTtcMapComponent({
                     >
                       {visualAnchors.map(({ id: anchorId, point }, anchorIndex) => (
                         <g key={`${station.id}:${anchorId}`}>
-                          {showSynchronizedHover && (
+                          {hasMultipleVisualAnchors && (
                             <circle
                               data-station-hover-id={station.id}
                               data-station-anchor-id={anchorId}
-                              className="station-hover-indicator"
+                              className={`station-hover-indicator ${showSynchronizedHover ? "active" : ""}`}
                               cx={point.x}
                               cy={point.y}
                               r={highlightRadius}
@@ -1138,11 +1138,13 @@ function InteractiveTtcMapComponent({
                               pointerEvents="none"
                             />
                           )}
-                          {selected && (
+                          {(selected || hasMultipleVisualAnchors) && (
                             <circle
                               data-station-selected-id={station.id}
                               data-station-anchor-id={anchorId}
-                              className="station-selected-indicator"
+                              className={`station-selected-indicator ${
+                                hasMultipleVisualAnchors ? "multi-anchor" : ""
+                              } ${selected ? "active" : ""}`}
                               cx={point.x}
                               cy={point.y}
                               r={highlightRadius}
