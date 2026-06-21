@@ -549,6 +549,36 @@ test("shows a compact map hint when multiple alert types overlap", async ({ page
   await expect(page.locator('[data-impact-card-id="stub-alert-line-1"]')).toHaveClass(/highlight-active-card/);
 });
 
+test("Spadina uses two visual dots for one station selection", async ({ page, request }) => {
+  await setStubMode(request, "unavailable");
+  await page.goto("/");
+  await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
+
+  const spadinaTargets = page.locator('[data-station-id="spadina"]');
+  const line1Target = page.locator(
+    '[data-station-id="spadina"][data-station-anchor-id="spadina-1"]',
+  );
+  const line2Target = page.locator(
+    '[data-station-id="spadina"][data-station-anchor-id="spadina-2"]',
+  );
+
+  await expect(spadinaTargets).toHaveCount(2);
+  await expect(line1Target).toHaveCount(1);
+  await expect(line2Target).toHaveCount(1);
+  await expect(
+    page.getByRole("button", { name: "Spadina station details" }),
+  ).toHaveCount(1);
+
+  await line1Target.dispatchEvent("pointerover");
+  await expect(page.locator('[data-station-hover-id="spadina"]')).toHaveCount(2);
+
+  await line2Target.dispatchEvent("click");
+  await expect(page.locator('[data-station-selected-id="spadina"]')).toHaveCount(2);
+  await expect(
+    page.getByRole("complementary", { name: "Spadina station details" }),
+  ).toBeVisible();
+});
+
 test("uses map overlap metadata for active-alert and sibling submenu overlap refs", async ({ page, request, isMobile }) => {
   await setStubMode(request, "map-authoritative-overlap");
   await page.goto("/");
