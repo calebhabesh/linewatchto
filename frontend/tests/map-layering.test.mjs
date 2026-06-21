@@ -246,4 +246,17 @@ describe("asset-backed map layering", () => {
       "active disruption overlays must render after commute previews so disruptions remain visually dominant",
     );
   });
+
+  it("renders Spadina as two synchronized visual anchors for one station control", () => {
+    assert.match(interactiveMapSource, /stationVisualCenterIds/);
+    assert.match(interactiveMapSource, /stationVisualAnchorsFor/);
+    assert.match(interactiveMapSource, /data-station-id=\{station\.id\}/);
+    assert.match(interactiveMapSource, /data-station-anchor-id=\{anchorId\}/);
+    assert.match(interactiveMapSource, /data-station-primary-target=\{anchorIndex === 0 \? "true" : "false"\}/);
+    assert.match(interactiveMapSource, /data-station-hover-id=\{station\.id\}/);
+    assert.match(interactiveMapSource, /data-station-selected-id=\{station\.id\}/);
+    assert.match(interactiveMapSource, /tabIndex=\{anchorIndex === 0 \? 0 : -1\}/);
+    assert.match(globalCss, /\.station-hover-indicator/);
+    assert.match(globalCss, /\.station-hit-target\.multi-anchor:hover/);
+  });
 });
