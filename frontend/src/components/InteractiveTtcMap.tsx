@@ -46,6 +46,10 @@ import {
   stationImpactDirectionForImpact,
   type StationImpactArrowDirection,
 } from "./station-impact-direction";
+import {
+  stationVisualAnchorsFor,
+  stationVisualCenterIds,
+} from "./station-map-visuals";
 
 const RSZ_IMPACT_COLOR = "#F59E0B";
 
@@ -211,6 +215,7 @@ function InteractiveTtcMapComponent({
   const { networkSegments, activeAlerts, delays, reducedSpeedZones, plannedClosures, stationNodeImpacts, stations: mapStations } = useDashboardData();
   const [svgParts, setSvgParts] = useState<{ part1: string; part2: string } | null>(null);
   const [loadState, setLoadState] = useState<"loading" | "ready" | "error">("loading");
+  const [hoveredStationId, setHoveredStationId] = useState<string | null>(null);
 
   const mapSvgRef = useRef<SVGSVGElement>(null);
   const mapRootRef = useRef<HTMLDivElement>(null);
@@ -224,7 +229,9 @@ function InteractiveTtcMapComponent({
     const geometry = readSvgGeometry(mapSvgRef.current, networkSegments);
     setAnchorPoints(geometry.anchorPoints);
     setGuidePaths(geometry.guidePaths);
-    setStationCenterPoints(readSvgStationCenters(mapSvgRef.current, stations.map((s) => s.id)));
+    setStationCenterPoints(
+      readSvgStationCenters(mapSvgRef.current, stationVisualCenterIds(stations)),
+    );
     setMapCollisionBoxes([
       ...collectMapCollisionBoxes(mapSvgRef.current),
       ...collectBaseRouteCollisionBoxes(networkSegments, mapStations, geometry.anchorPoints, geometry.guidePaths),
@@ -234,6 +241,12 @@ function InteractiveTtcMapComponent({
   const stationPointFor = useCallback((station: { id: string; mapX: number; mapY: number }): MapPoint => {
     return stationCenterPoints.get(station.id) ?? { x: station.mapX, y: station.mapY };
   }, [stationCenterPoints]);
+
+  const visualAnchorsForStation = useCallback(
+    (station: Pick<StationSummary, "id" | "mapX" | "mapY">) =>
+      stationVisualAnchorsFor(station, stationCenterPoints),
+    [stationCenterPoints],
+  );
 
   const {
     transform,
@@ -660,13 +673,13 @@ function InteractiveTtcMapComponent({
       commutePathPreview.stationIds.at(-1),
     ].filter((stationId): stationId is string => Boolean(stationId));
 
-    return endpointIds
-      .map((stationId) => {
-        const station = stationById.get(stationId);
-        return station ? stationPointFor(station) : null;
-      })
-      .filter((point): point is MapPoint => Boolean(point));
-  }, [commutePathPreview, stations, stationPointFor]);
+    return endpointIds.flatMap((stationId) => {
+      const station = stationById.get(stationId);
+      return station
+        ? visualAnchorsForStation(station).map((anchor) => anchor.point)
+        : [];
+    });
+  }, [commutePathPreview, stations, visualAnchorsForStation]);
 
   const pulseSyncSignature = useMemo(() => {
     const plannedKeys = plannedPreviewLayers
@@ -1061,62 +1074,112 @@ function InteractiveTtcMapComponent({
                 {stations.map((station) => {
                   const selected = selectedStationId === station.id;
                   const isLarge = isStationVisuallyLarge(station);
-                  const radius = isLarge ? 96 : 76;
-                  const point = stationPointFor(station);
+                  const visualAnchors = visualAnchorsForStation(station);
+                  const hasMultipleVisualAnchors = visualAnchors.length > 1;
+                  const hitRadius = hasMultipleVisualAnchors ? 76 : isLarge ? 96 : 76;
+                  const highlightRadius = hasMultipleVisualAnchors ? 38 : isLarge ? 48 : 38;
+                  const showSynchronizedHover =
+                    hasMultipleVisualAnchors &&
+                    hoveredStationId === station.id &&
+                    !selected;
 
                   return (
-                    <g key={station.id}>
-                      {flashStationId === station.id && (
-                        <circle
-                          data-map-highlight-id={station.id}
-                          className="station-selection-flash"
-                          cx={point.x}
-                          cy={point.y}
-                          r={isLarge ? 48 : 38}
-                          pointerEvents="none"
-                        />
-                      )}
-                      {commuteFlashStationIds.includes(station.id) && (
-                        <circle
-                          data-map-highlight-id={station.id}
-                          className="station-commute-green-flash"
-                          cx={point.x}
-                          cy={point.y}
-                          r={isLarge ? 48 : 38}
-                          pointerEvents="none"
-                        />
-                      )}
-                      {selected && (
-                        <circle
-                          className="station-selected-indicator"
-                          cx={point.x}
-                          cy={point.y}
-                          r={isLarge ? 48 : 38}
-                          pointerEvents="none"
-                        />
-                      )}
-                      <circle
-                        aria-label={`${station.name} station details`}
-                        className={`station-hit-target ${selected ? "selected" : ""} ${
-                          station.hasActiveImpact ? "has-impact" : ""
-                        } access-${station.accessStatus}`}
-                        cx={point.x}
-                        cy={point.y}
-                        r={radius}
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          onSelectStationId(selected ? null : station.id);
-                        }}
-                        onKeyDown={(event) => {
-                          if (event.key === "Enter" || event.key === " ") {
-                            event.preventDefault();
-                            onSelectStationId(selected ? null : station.id);
-                          }
-                        }}
-                        onPointerDown={(event) => event.stopPropagation()}
-                        role="button"
-                        tabIndex={0}
-                      />
+                    <g
+                      key={station.id}
+                      onPointerEnter={() => {
+                        if (hasMultipleVisualAnchors) setHoveredStationId(station.id);
+                      }}
+                      onPointerLeave={() => {
+                        if (hasMultipleVisualAnchors) {
+                          setHoveredStationId((current) => current === station.id ? null : current);
+                        }
+                      }}
+                      onFocus={() => {
+                        if (hasMultipleVisualAnchors) setHoveredStationId(station.id);
+                      }}
+                      onBlur={() => {
+                        if (hasMultipleVisualAnchors) {
+                          setHoveredStationId((current) => current === station.id ? null : current);
+                        }
+                      }}
+                    >
+                      {visualAnchors.map(({ id: anchorId, point }, anchorIndex) => (
+                        <g key={`${station.id}:${anchorId}`}>
+                          {showSynchronizedHover && (
+                            <circle
+                              data-station-hover-id={station.id}
+                              data-station-anchor-id={anchorId}
+                              className="station-hover-indicator"
+                              cx={point.x}
+                              cy={point.y}
+                              r={highlightRadius}
+                              pointerEvents="none"
+                            />
+                          )}
+                          {flashStationId === station.id && (
+                            <circle
+                              data-map-highlight-id={station.id}
+                              data-station-anchor-id={anchorId}
+                              className="station-selection-flash"
+                              cx={point.x}
+                              cy={point.y}
+                              r={highlightRadius}
+                              pointerEvents="none"
+                            />
+                          )}
+                          {commuteFlashStationIds.includes(station.id) && (
+                            <circle
+                              data-map-highlight-id={station.id}
+                              data-station-anchor-id={anchorId}
+                              className="station-commute-green-flash"
+                              cx={point.x}
+                              cy={point.y}
+                              r={highlightRadius}
+                              pointerEvents="none"
+                            />
+                          )}
+                          {selected && (
+                            <circle
+                              data-station-selected-id={station.id}
+                              data-station-anchor-id={anchorId}
+                              className="station-selected-indicator"
+                              cx={point.x}
+                              cy={point.y}
+                              r={highlightRadius}
+                              pointerEvents="none"
+                            />
+                          )}
+                          <circle
+                            aria-hidden={anchorIndex === 0 ? undefined : true}
+                            aria-label={anchorIndex === 0 ? `${station.name} station details` : undefined}
+                            data-station-id={station.id}
+                            data-station-anchor-id={anchorId}
+                            data-station-primary-target={anchorIndex === 0 ? "true" : "false"}
+                            className={`station-hit-target ${
+                              hasMultipleVisualAnchors ? "multi-anchor" : ""
+                            } ${selected ? "selected" : ""} ${
+                              station.hasActiveImpact ? "has-impact" : ""
+                            } access-${station.accessStatus}`}
+                            cx={point.x}
+                            cy={point.y}
+                            r={hitRadius}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              onSelectStationId(selected ? null : station.id);
+                            }}
+                            onKeyDown={(event) => {
+                              if (anchorIndex !== 0) return;
+                              if (event.key === "Enter" || event.key === " ") {
+                                event.preventDefault();
+                                onSelectStationId(selected ? null : station.id);
+                              }
+                            }}
+                            onPointerDown={(event) => event.stopPropagation()}
+                            role="button"
+                            tabIndex={anchorIndex === 0 ? 0 : -1}
+                          />
+                        </g>
+                      ))}
                     </g>
                   );
                 })}

@@ -1129,6 +1129,7 @@ button {
 .suspension-mask-path,
 .rsz-chevron,
 .station-hit-target,
+.station-hover-indicator,
 .station-selected-indicator,
 .station-impact-ring {
   shape-rendering: geometricPrecision;
@@ -1869,6 +1870,19 @@ button {
   fill: rgba(59, 130, 246, 0.15);
   stroke: rgba(59, 130, 246, 0.6);
   stroke-width: 10;
+}
+
+.station-hover-indicator {
+  fill: rgba(59, 130, 246, 0.15);
+  pointer-events: none;
+  stroke: rgba(59, 130, 246, 0.6);
+  stroke-width: 10;
+}
+
+.station-hit-target.multi-anchor:hover,
+.station-hit-target.multi-anchor:focus-visible {
+  fill: transparent;
+  stroke: transparent;
 }
 
 
