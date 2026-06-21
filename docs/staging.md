@@ -2,7 +2,7 @@
 
 This document describes the owner-only staging environment for LineWatch TO.
 
-Staging is production-like enough for week-long feature validation, but it is not production:
+Staging is intended to be production-functional for owner testing, while remaining isolated from production:
 
 - It builds images from the current checkout on the development server.
 - It uses a separate Compose project name.
@@ -29,7 +29,27 @@ Edit `.env.staging`:
 - Set `LINEWATCH_STAGING_PUBLIC_ORIGIN` to `https://<staging-hostname>`.
 - Update `LINEWATCH_AUTH_ALLOWED_ORIGINS` to the same public origin.
 - Update `LINEWATCH_PASSWORD_RESET_FRONTEND_BASE_URL` to the same public origin.
-- Leave `LINEWATCH_PUSH_ENABLED=false` unless Web Push is being tested with separate staging VAPID keys.
+- Configure staging-owned SMTP credentials if password-reset email should be exercised.
+- Configure staging-owned VAPID keys if Web Push should be exercised.
+- Leave Grafana and Cloudflare Web Analytics values blank unless observability or analytics are under test.
+
+## Functional Parity Boundary
+
+Staging should match production for app behavior: auth rate limits, password-reset mode, alert ingestion polling and freshness, scheduled-arrival refresh, TTC performance refresh, dashboard cache TTLs, and Web Push enablement/timing.
+
+Staging may differ for environment identity and isolation: database name/user/password, hostname/origin, local port, Compose project, build label, Cloudflare tunnel token, `LINEWATCH_ENVIRONMENT`, observability host/project labels, SMTP secret, VAPID secrets, Grafana credentials, and Cloudflare Web Analytics token.
+
+Check tracked env examples with:
+
+```bash
+scripts/check-env-functional-parity.sh
+```
+
+Check the local staging env against the production example with:
+
+```bash
+scripts/check-env-functional-parity.sh .env.production.example .env.staging
+```
 
 ## Cloudflare Tunnel
 
@@ -165,9 +185,9 @@ Use staging to verify:
 - Map overlays render and can be tapped/clicked.
 - Station detail opens and arrival state is clearly source-labeled.
 - Account register/login/logout works.
-- Password reset dev link flow works when email is disabled.
+- Password reset email flow works when staging SMTP credentials are configured.
 - Saved commute creation and impact matching works.
 - PWA install/update behavior works on a real phone when testing through HTTPS tunnel.
-- Web Push works only if separate staging VAPID keys are configured and browser permission is granted.
+- Web Push works when staging VAPID keys are configured, browser permission is granted, and fresh dashboard-visible impacts exist.
 
 Do not describe staging data as production data or official TTC data. LineWatch TO remains an unofficial dashboard using public source-linked data.
