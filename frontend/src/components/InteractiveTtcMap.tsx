@@ -424,7 +424,6 @@ function InteractiveTtcMapComponent({
       if (lastFocusedTargetKeyRef.current !== null) {
         lastFocusedTargetKeyRef.current = null;
         lastFocusLayoutSignalRef.current = currentLayoutSignal;
-        recenter();
       }
       return;
     }
@@ -499,7 +498,6 @@ function InteractiveTtcMapComponent({
     guidePaths,
     zoomToPoint,
     loadState,
-    recenter,
     stationNodeImpacts,
     stations,
     stationPointFor,

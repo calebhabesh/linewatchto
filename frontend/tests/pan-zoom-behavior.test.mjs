@@ -68,6 +68,15 @@ describe("pan zoom behavior guardrails", () => {
     assert.match(mapSource, /lastFocusedTargetKeyRef\.current === focusTargetKey/);
   });
 
+  it("preserves the camera when the selected focus target is cleared", () => {
+    const noTargetBranch = mapSource.match(
+      /if \(!focusTargetKey\) \{([\s\S]*?)\n    \}/,
+    )?.[1] ?? "";
+
+    assert.match(noTargetBranch, /lastFocusedTargetKeyRef\.current = null/);
+    assert.doesNotMatch(noTargetBranch, /recenter\(\)/);
+  });
+
   it("computes two-pointer pinch geometry without DOM access", () => {
     assert.deepEqual(
       midpointBetweenPoints({ x: 10, y: 20 }, { x: 30, y: 60 }),
