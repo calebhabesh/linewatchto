@@ -844,6 +844,19 @@ button {
   filter: none !important;
 }
 
+.linewatch-shell.mobile-performance-mode .station-impact-dot-red-beacon {
+  display: block;
+  fill: #ff3b30;
+  fill-opacity: 0.15;
+  stroke: #ff4b5c;
+  stroke-width: 1.5;
+  stroke-opacity: 0.65;
+  transform-origin: center;
+  transform-box: fill-box;
+  transform: scale(2.2);
+  pointer-events: none;
+}
+
 .linewatch-shell.mobile-performance-mode .station-commute-green-flash,
 .linewatch-shell.mobile-performance-mode .commute-path-preview-glow {
   animation: none !important;
@@ -1970,6 +1983,10 @@ button {
   transform-box: fill-box;
   animation: station-radar-ping 1.6s infinite cubic-bezier(0.1, 0.8, 0.25, 1);
   animation-delay: var(--map-pulse-offset);
+}
+
+.station-impact-dot-red-beacon {
+  display: none;
 }
 
 .station-impact-direction-glyph {

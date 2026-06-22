@@ -1271,6 +1271,13 @@ function InteractiveTtcMapComponent({
                         r={isLarge ? 34 : 26}
                         pointerEvents="none"
                       />
+                      <circle
+                        className="station-impact-dot-red-beacon"
+                        cx={point.x}
+                        cy={point.y}
+                        r={isLarge ? 34 : 26}
+                        pointerEvents="none"
+                      />
                       {impactDirection ? (
                         <StationImpactDirectionGlyph
                           x={point.x}
