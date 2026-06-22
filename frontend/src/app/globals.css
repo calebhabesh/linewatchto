@@ -3517,6 +3517,22 @@ button {
   border-color: rgba(255, 255, 255, 0.14);
 }
 
+.account-linked-status {
+  display: flex;
+  min-height: 36px;
+  align-items: center;
+  gap: 12px;
+  border-radius: 8px;
+  padding: 8px 10px;
+  color: rgb(21 128 61);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.dark .account-linked-status {
+  color: rgb(134 239 172);
+}
+
 .google-sign-in-slot {
   display: flex;
   min-height: 44px;

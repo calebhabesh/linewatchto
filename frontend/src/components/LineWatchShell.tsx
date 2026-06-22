@@ -64,6 +64,7 @@ import {
   loginAccount,
   loginDemoAccount,
   loginWithGoogle,
+  linkGoogleAccount,
   logoutAccount,
   registerAccount,
   requestPasswordReset,
@@ -80,7 +81,7 @@ import { normalizeAccountEmail, validateAccountCredentials } from "../app/accoun
 
 
 type ActiveView = "map" | "menu" | "search" | "status" | "alerts" | "delays" | "reduced-speed-zones" | "closures" | "commutes" | "notifications" | "analytics" | "more" | "accessibility-outages" | "surface-notices";
-type AccountDialogMode = "login" | "register" | "forgot-password" | "reset-password";
+type AccountDialogMode = "login" | "register" | "forgot-password" | "reset-password" | "link-google";
 
 const DEFAULT_DASHBOARD_REFRESH_MS = 5_000;
 const MIN_DASHBOARD_REFRESH_MS = 2_000;
@@ -373,6 +374,8 @@ export function LineWatchShell({
 
   const accountDialogTitle = () => {
     switch (accountDialogMode) {
+      case "link-google":
+        return "Link Google";
       case "register":
         return "Create account";
       case "forgot-password":
@@ -387,6 +390,8 @@ export function LineWatchShell({
 
   const accountDialogAriaLabel = () => {
     switch (accountDialogMode) {
+      case "link-google":
+        return "Link Google sign-in to LineWatch TO account";
       case "register":
         return "Create LineWatch TO account";
       case "forgot-password":
@@ -402,6 +407,9 @@ export function LineWatchShell({
   const handleSubmitAccount = async () => {
     if (!accountDialogMode) return;
 
+    if (accountDialogMode === "link-google") {
+      return;
+    }
     if (accountDialogMode === "forgot-password") {
       handleRequestPasswordReset();
       return;
@@ -543,6 +551,25 @@ export function LineWatchShell({
         setAccountError(error.message);
       } else {
         setAccountError("Google sign-in is unavailable.");
+      }
+    } finally {
+      setAccountBusy(false);
+    }
+  };
+
+  const handleLinkGoogleCredential = async (credential: string) => {
+    setAccountBusy(true);
+    setAccountError(null);
+    try {
+      const response = await linkGoogleAccount({ credential });
+      setAccountState({ source: "backend", authenticated: response.authenticated, user: response.user });
+      setAccountDialogMode(null);
+      resetAccountForm();
+    } catch (error) {
+      if (error instanceof AccountRequestError) {
+        setAccountError(error.message);
+      } else {
+        setAccountError("Could not link Google sign-in.");
       }
     } finally {
       setAccountBusy(false);
@@ -1401,6 +1428,29 @@ export function LineWatchShell({
                         <LogOut size={17} className="text-slate-500 dark:text-slate-400" />
                         Sign Out
                       </button>
+                      {authConfig.googleSignInAvailable && !accountState.user.demo ? (
+                        accountState.user.googleLinked ? (
+                          <div className="account-linked-status" aria-label="Google sign-in linked">
+                            <ShieldCheck size={17} className="text-emerald-600 dark:text-emerald-400" />
+                            Google Linked
+                          </div>
+                        ) : (
+                          <button
+                            ref={registerMenuAction(actionIndex++)}
+                            role="menuitem"
+                            type="button"
+                            onClick={() => {
+                              resetAccountForm();
+                              setAccountDialogMode("link-google");
+                            }}
+                            className="menu-action-row"
+                            disabled={accountBusy}
+                          >
+                            <ShieldCheck size={17} className="text-slate-500 dark:text-slate-400" />
+                            Link Google
+                          </button>
+                        )
+                      ) : null}
                       <button
                         ref={registerMenuAction(actionIndex++)}
                         role="menuitem"
@@ -1961,7 +2011,40 @@ export function LineWatchShell({
                 handleSubmitAccount();
               }}
             >
-              {accountDialogMode === "forgot-password" ? (
+              {accountDialogMode === "link-google" ? (
+                <>
+                  <p className="account-reset-hint">
+                    Link Google sign-in to {accountState.user?.email}. The Google account email must match this LineWatch account.
+                  </p>
+                  {authConfig.googleSignInAvailable ? (
+                    <div aria-label="Link Google">
+                      <GoogleSignInButton
+                        clientId={authConfig.googleClientId}
+                        disabled={accountBusy}
+                        onCredential={handleLinkGoogleCredential}
+                        onError={setAccountError}
+                      />
+                    </div>
+                  ) : (
+                    <p className="account-reset-hint">Google sign-in is not configured for this environment.</p>
+                  )}
+                  {accountError ? (
+                    <p id="account-error-live" role="alert" className="text-xs font-semibold text-red-600 dark:text-red-300">
+                      {accountError}
+                    </p>
+                  ) : null}
+                  <button
+                    type="button"
+                    className="account-link-button"
+                    onClick={() => {
+                      setAccountError(null);
+                      setAccountDialogMode(null);
+                    }}
+                  >
+                    Back To Account
+                  </button>
+                </>
+              ) : accountDialogMode === "forgot-password" ? (
                 <>
                   <label className="account-field">
                     <span>Email</span>

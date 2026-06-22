@@ -28,6 +28,11 @@ describe("account UI source", () => {
     assert.match(shellSource, /GoogleSignInButton/);
     assert.match(shellSource, /Continue With Google/);
     assert.match(shellSource, /account-auth-divider/);
+    assert.match(shellSource, /linkGoogleAccount/);
+    assert.match(shellSource, /"link-google"/);
+    assert.match(shellSource, /handleLinkGoogleCredential/);
+    assert.match(shellSource, /Link Google/);
+    assert.match(shellSource, /Google Linked/);
   });
 
   it("renders signed-out, demo, and account-backed saved commute states", () => {
@@ -64,6 +69,7 @@ describe("account UI source", () => {
     assert.match(globalCss, /\.account-dialog/);
     assert.match(globalCss, /\.account-action-row/);
     assert.match(globalCss, /\.saved-commute-form/);
+    assert.match(globalCss, /\.account-linked-status/);
     assert.doesNotMatch(shellSource, /hero|landing/i);
   });
 
