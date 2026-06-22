@@ -1,0 +1,184 @@
+package com.calebhabesh.linewatch.push;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+import java.time.Instant;
+import org.junit.jupiter.api.Test;
+
+class PushNotificationFormatterTest {
+    private final PushNotificationFormatter formatter = new PushNotificationFormatter();
+
+    @Test
+    void formatsActiveSuspensionWithCanonicalTitleAndTorontoTime() {
+        FormattedPushNotification result = formatter.formatActive(new PushNotificationFacts(
+            "line-2",
+            "2",
+            "suspension",
+            "on-change",
+            "Broadview to Victoria Park",
+            null,
+            false,
+            null,
+            null,
+            Instant.parse("2026-06-21T23:19:00Z")
+        ));
+
+        assertThat(result.title()).isEqualTo("⚠️ Line 2 Bloor-Danforth Suspension");
+        assertThat(result.body()).isEqualTo("""
+            Broadview to Victoria Park.
+            🕗 Jun 21, 7:19 PM""");
+        assertThat(result.notificationSubject()).isEqualTo("Line 2 Bloor-Danforth Suspension");
+        assertThat(result.eventLocation()).isEqualTo("Broadview to Victoria Park");
+        assertThat(result.scopeLabel()).isNull();
+        assertThat(result.sourceEventAt()).isEqualTo(Instant.parse("2026-06-21T23:19:00Z"));
+    }
+
+    @Test
+    void formatsSavedCommuteContextWithoutChangingUserCapitalization() {
+        FormattedPushNotification result = formatter.formatActive(new PushNotificationFacts(
+            "line-1",
+            "1",
+            "delay",
+            "on-change",
+            "Finch to Union",
+            "Southbound",
+            false,
+            "Morning commute",
+            "outbound",
+            Instant.parse("2026-06-05T14:20:00Z")
+        ));
+
+        assertThat(result.title()).isEqualTo("⚠️ Line 1 Yonge-University Delay");
+        assertThat(result.body()).isEqualTo("""
+            Finch to Union.
+            Southbound.
+            Affects Morning commute (Outbound).
+            🕗 Jun 5, 10:20 AM""");
+        assertThat(result.scopeLabel()).isEqualTo("Morning commute (Outbound)");
+    }
+
+    @Test
+    void formatsReturnLegAndPlannedReminder() {
+        FormattedPushNotification result = formatter.formatActive(new PushNotificationFacts(
+            "line-2",
+            "2",
+            "planned-closure",
+            "closure-morning",
+            "Keele to Union",
+            null,
+            true,
+            "Evening Route",
+            "return",
+            Instant.parse("2026-06-07T04:00:00Z")
+        ));
+
+        assertThat(result.body()).isEqualTo("""
+            Keele to Union.
+            Shuttle buses are running.
+            Starts today.
+            Affects Evening Route (Return).
+            🕗 Jun 7, 12:00 AM""");
+    }
+
+    @Test
+    void omitsClockLineWhenSourceStartIsUnknown() {
+        FormattedPushNotification result = formatter.formatActive(new PushNotificationFacts(
+            "line-4",
+            "4",
+            "delay",
+            "on-change",
+            null,
+            null,
+            false,
+            null,
+            null,
+            null
+        ));
+
+        assertThat(result.title()).isEqualTo("⚠️ Line 4 Sheppard Delay");
+        assertThat(result.body()).isEqualTo("Service is affected on this line.");
+        assertThat(result.body()).doesNotContain("🕗");
+    }
+
+    @Test
+    void formatsClearanceFromPersistedContextAndSuppliedClock() {
+        FormattedPushNotification result = formatter.formatCleared(
+            "Line 2 Bloor-Danforth Suspension",
+            "Broadview to Victoria Park",
+            null,
+            Instant.parse("2026-06-22T00:04:00Z")
+        );
+
+        assertThat(result.title()).isEqualTo("✅ Line 2 Bloor-Danforth Suspension Cleared");
+        assertThat(result.body()).isEqualTo("""
+            Service between Broadview and Victoria Park has been restored.
+            🕗 Jun 21, 8:04 PM""");
+        assertThat(result.sourceEventAt()).isEqualTo(Instant.parse("2026-06-22T00:04:00Z"));
+    }
+
+    @Test
+    void formatsStationOnlyClearanceAndSavedCommuteContext() {
+        FormattedPushNotification result = formatter.formatCleared(
+            "Line 2 Bloor-Danforth Delay",
+            "Main Street Station",
+            "Work Trip (Outbound)",
+            Instant.parse("2026-06-05T15:00:00Z")
+        );
+
+        assertThat(result.body()).isEqualTo("""
+            Service affecting Main Street Station has been restored.
+            No longer affects Work Trip (Outbound).
+            🕗 Jun 5, 11:00 AM""");
+    }
+
+    @Test
+    void formatsWinterTimeUsingTorontoStandardTime() {
+        FormattedPushNotification result = formatter.formatActive(new PushNotificationFacts(
+            "line-5",
+            "5",
+            "reduced-speed-zone",
+            "on-change",
+            "Mount Dennis to Keelesdale",
+            null,
+            false,
+            null,
+            null,
+            Instant.parse("2026-01-21T00:19:00Z")
+        ));
+
+        assertThat(result.body()).endsWith("🕗 Jan 20, 7:19 PM");
+    }
+
+    @Test
+    void usesControlledFallbacksForUnknownLineAndEvent() {
+        FormattedPushNotification numbered = formatter.formatActive(new PushNotificationFacts(
+            "line-3", "3", "unknown", "on-change", "Test location", null, false, null, null, null
+        ));
+        FormattedPushNotification unnumbered = formatter.formatActive(new PushNotificationFacts(
+            "unknown", null, "delay", "on-change", null, null, false, null, null, null
+        ));
+
+        assertThat(numbered.title()).isEqualTo("⚠️ Line 3 Service Alert");
+        assertThat(unnumbered.title()).isEqualTo("⚠️ TTC Service Alert");
+    }
+
+    @Test
+    void normalizesWhitespaceAndAvoidsDuplicateDirectionAndPunctuation() {
+        FormattedPushNotification result = formatter.formatActive(new PushNotificationFacts(
+            "line-1",
+            "1",
+            "delay",
+            "closure-24h",
+            "  Delays   southbound at Eglinton Station... ",
+            "Southbound",
+            false,
+            null,
+            null,
+            null
+        ));
+
+        assertThat(result.body()).isEqualTo("""
+            Delays southbound at Eglinton Station.
+            Starts within 24 hours.""");
+    }
+}
