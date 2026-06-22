@@ -35,6 +35,7 @@ class PushNotificationDispatchServiceTest {
         webPushClient,
         preferenceService,
         lineSubscriptionPushPlanner,
+        formatter,
         clock
     );
 
@@ -98,13 +99,21 @@ class PushNotificationDispatchServiceTest {
         when(savedCommuteRepository.findByAccountIdOrderByCreatedAtAsc("user_1")).thenReturn(List.of(commute));
         when(planner.candidatesFor(commute)).thenReturn(List.of(candidate));
         when(eventRepository.existsByDedupeKey("dedupe-1")).thenReturn(false);
-        when(eventRepository.save(any(PushNotificationEventEntity.class))).thenReturn(event);
+        when(eventRepository.save(any(PushNotificationEventEntity.class)))
+            .thenAnswer(invocation -> invocation.getArgument(0));
         when(subscriptionRepository.findByAccountIdAndEnabledTrue("user_1")).thenReturn(List.of(subscription));
         when(webPushClient.send(subscription, "AVEPD-AuDIedMxfArNYRpmed5ppkzhC3")).thenReturn(PushDeliveryResult.accepted(202));
 
         service.evaluateSavedCommuteNotifications();
 
-        verify(eventRepository).save(any(PushNotificationEventEntity.class));
+        ArgumentCaptor<PushNotificationEventEntity> eventCaptor =
+            ArgumentCaptor.forClass(PushNotificationEventEntity.class);
+        verify(eventRepository).save(eventCaptor.capture());
+        PushNotificationEventEntity saved = eventCaptor.getValue();
+        assertThat(saved.getNotificationSubject()).isEqualTo("Line 1 Yonge-University Delay");
+        assertThat(saved.getEventLocation()).isEqualTo("Finch to Union");
+        assertThat(saved.getScopeLabel()).isEqualTo("Morning commute (Outbound)");
+        assertThat(saved.getSourceEventAt()).isEqualTo(Instant.parse("2026-06-05T14:20:00Z"));
         verify(webPushClient).send(subscription, "AVEPD-AuDIedMxfArNYRpmed5ppkzhC3");
         verify(deliveryRepository).save(any(PushNotificationDeliveryEntity.class));
     }
@@ -281,8 +290,14 @@ class PushNotificationDispatchServiceTest {
         PushNotificationEventEntity clearedEvent = eventCaptor.getValue();
         assertThat(clearedEvent.getNotificationKey()).isEqualTo("saved-commute-impact|commute_1|outbound|delay|delay-line-1");
         assertThat(clearedEvent.getNotificationState()).isEqualTo("CLEARED");
-        assertThat(clearedEvent.getTitle()).isEqualTo("Commute alert cleared");
-        assertThat(clearedEvent.getBody()).isEqualTo("Delay on Line 1: Finch to Union no longer affects this commute.");
+        assertThat(clearedEvent.getTitle())
+            .isEqualTo("✅ Line 1 Yonge-University Delay Cleared");
+        assertThat(clearedEvent.getBody()).isEqualTo("""
+            Service between Finch and Union has been restored.
+            No longer affects Morning commute (Outbound).
+            🕗 Jun 5, 11:00 AM""");
+        assertThat(clearedEvent.getSourceEventAt())
+            .isEqualTo(Instant.parse("2026-06-05T15:00:00Z"));
         verify(webPushClient).send(subscription, "AVEPD-AuDIedMxfArNYRpmed5ppkzhC3");
         verify(deliveryRepository).save(any(PushNotificationDeliveryEntity.class));
     }
@@ -455,8 +470,11 @@ class PushNotificationDispatchServiceTest {
         PushNotificationEventEntity clearedEvent = eventCaptor.getValue();
         assertThat(clearedEvent.getNotificationKey()).isEqualTo("line-current|line-1|delay|alert-1");
         assertThat(clearedEvent.getNotificationState()).isEqualTo("CLEARED");
-        assertThat(clearedEvent.getTitle()).isEqualTo("Line alert cleared");
-        assertThat(clearedEvent.getBody()).isEqualTo("Delay on Line 1 has been cleared.");
+        assertThat(clearedEvent.getTitle())
+            .isEqualTo("✅ Line 1 Yonge-University Delay Cleared");
+        assertThat(clearedEvent.getBody()).isEqualTo("""
+            Service between Finch and Union has been restored.
+            🕗 Jun 5, 11:00 AM""");
     }
 
     private PushNotificationCandidate candidate(

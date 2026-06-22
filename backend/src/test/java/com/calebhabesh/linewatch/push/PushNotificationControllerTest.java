@@ -66,8 +66,8 @@ class PushNotificationControllerTest {
             "https://fcm.googleapis.com/fcm/send/subscription"
         );
         PushResponses.PendingPushNotification notification = new PushResponses.PendingPushNotification(
-            "Morning Commute Affected",
-            "Delay on Line 1: Finch to Union",
+            "⚠️ Line 1 Yonge-University Delay",
+            "Finch to Union.\n🕗 Jun 5, 10:20 AM",
             "/?panel=commutes&commute=commute_1",
             "saved-commute-impact|commute_1|outbound|delay|delay-line-1",
             "ACTIVE",

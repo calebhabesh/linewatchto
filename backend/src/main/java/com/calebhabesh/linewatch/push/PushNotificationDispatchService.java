@@ -27,6 +27,7 @@ public class PushNotificationDispatchService {
     private final WebPushClient webPushClient;
     private final PushNotificationPreferenceService preferenceService;
     private final LineSubscriptionPushPlanner lineSubscriptionPushPlanner;
+    private final PushNotificationFormatter formatter;
     private final Clock clock;
 
     @Autowired
@@ -38,11 +39,13 @@ public class PushNotificationDispatchService {
         PushNotificationDeliveryRepository deliveryRepository,
         WebPushClient webPushClient,
         PushNotificationPreferenceService preferenceService,
-        LineSubscriptionPushPlanner lineSubscriptionPushPlanner
+        LineSubscriptionPushPlanner lineSubscriptionPushPlanner,
+        PushNotificationFormatter formatter
     ) {
         this(
             savedCommuteRepository, planner, eventRepository, subscriptionRepository,
             deliveryRepository, webPushClient, preferenceService, lineSubscriptionPushPlanner,
+            formatter,
             Clock.systemUTC()
         );
     }
@@ -56,6 +59,7 @@ public class PushNotificationDispatchService {
         WebPushClient webPushClient,
         PushNotificationPreferenceService preferenceService,
         LineSubscriptionPushPlanner lineSubscriptionPushPlanner,
+        PushNotificationFormatter formatter,
         Clock clock
     ) {
         this.savedCommuteRepository = savedCommuteRepository;
@@ -66,6 +70,7 @@ public class PushNotificationDispatchService {
         this.webPushClient = webPushClient;
         this.preferenceService = preferenceService;
         this.lineSubscriptionPushPlanner = lineSubscriptionPushPlanner;
+        this.formatter = formatter;
         this.clock = clock;
     }
 
@@ -135,7 +140,8 @@ public class PushNotificationDispatchService {
                 PushNotificationEventEntity clearedEvent = eventRepository.save(PushNotificationEventEntity.cleared(
                     nextId("push_event"),
                     activeEvent,
-                    now
+                    now,
+                    formatter
                 ));
                 if (!sendEventToSubscriptions(clearedEvent, now)) {
                     eventRepository.delete(clearedEvent);

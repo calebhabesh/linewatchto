@@ -173,6 +173,7 @@ class PushNotificationServiceTest {
         assertThat(response.notification()).isNotNull();
         assertThat(response.notification().tag()).isEqualTo("saved-commute-impact|commute_1|outbound|delay|delay-line-1");
         assertThat(response.notification().state()).isEqualTo("ACTIVE");
+        assertThat(response.notification().body()).endsWith("🕗 Jun 5, 10:20 AM");
         assertThat(response.notification().timestamp()).isEqualTo("2026-06-05T15:00:00Z");
     }
 

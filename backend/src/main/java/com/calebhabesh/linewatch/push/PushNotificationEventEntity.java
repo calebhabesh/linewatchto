@@ -32,6 +32,14 @@ public class PushNotificationEventEntity {
     private String dedupeKey;
     private String title;
     private String body;
+    @Column(name = "notification_subject")
+    private String notificationSubject;
+    @Column(name = "event_location")
+    private String eventLocation;
+    @Column(name = "scope_label")
+    private String scopeLabel;
+    @Column(name = "source_event_at")
+    private Instant sourceEventAt;
     private String url;
     @Column(name = "created_at")
     private Instant createdAt;
@@ -52,6 +60,10 @@ public class PushNotificationEventEntity {
         this.dedupeKey = candidate.dedupeKey();
         this.title = candidate.title();
         this.body = candidate.body();
+        this.notificationSubject = candidate.notificationSubject();
+        this.eventLocation = candidate.eventLocation();
+        this.scopeLabel = candidate.scopeLabel();
+        this.sourceEventAt = candidate.sourceEventAt();
         this.url = candidate.url();
         this.createdAt = now;
     }
@@ -60,7 +72,19 @@ public class PushNotificationEventEntity {
         return new PushNotificationEventEntity(id, candidate, now);
     }
 
-    public static PushNotificationEventEntity cleared(String id, PushNotificationEventEntity activeEvent, Instant now) {
+    public static PushNotificationEventEntity cleared(
+        String id,
+        PushNotificationEventEntity activeEvent,
+        Instant now,
+        PushNotificationFormatter formatter
+    ) {
+        FormattedPushNotification notification = formatter.formatCleared(
+            activeEvent.notificationSubject,
+            activeEvent.eventLocation,
+            activeEvent.scopeLabel,
+            now
+        );
+
         PushNotificationEventEntity event = new PushNotificationEventEntity();
         event.id = id;
         event.accountId = activeEvent.accountId;
@@ -73,29 +97,15 @@ public class PushNotificationEventEntity {
         event.dedupeKey = activeEvent.dedupeKey + "|cleared";
         event.eventType = "service-restored";
         event.reminderBucket = "on-change";
-        event.title = activeEvent.commuteId != null ? "Commute alert cleared" : "Line alert cleared";
-        event.body = activeEvent.commuteId != null
-            ? clearedBody(activeEvent.body)
-            : clearedLineBody(activeEvent.body);
+        event.title = notification.title();
+        event.body = notification.body();
+        event.notificationSubject = notification.notificationSubject();
+        event.eventLocation = notification.eventLocation();
+        event.scopeLabel = notification.scopeLabel();
+        event.sourceEventAt = notification.sourceEventAt();
         event.url = activeEvent.url;
         event.createdAt = now;
         return event;
-    }
-
-    private static String clearedBody(String body) {
-        String base = body == null || body.isBlank() ? "The earlier alert" : body.trim();
-        while (base.endsWith(".") || base.endsWith("!") || base.endsWith("?")) {
-            base = base.substring(0, base.length() - 1).trim();
-        }
-        return base + " no longer affects this commute.";
-    }
-
-    private static String clearedLineBody(String body) {
-        String base = body == null || body.isBlank() ? "The earlier alert" : body.trim();
-        while (base.endsWith(".") || base.endsWith("!") || base.endsWith("?")) {
-            base = base.substring(0, base.length() - 1).trim();
-        }
-        return base + " has been cleared.";
     }
 
     public String getId() { return id; }
@@ -111,6 +121,10 @@ public class PushNotificationEventEntity {
     public String getDedupeKey() { return dedupeKey; }
     public String getTitle() { return title; }
     public String getBody() { return body; }
+    public String getNotificationSubject() { return notificationSubject; }
+    public String getEventLocation() { return eventLocation; }
+    public String getScopeLabel() { return scopeLabel; }
+    public Instant getSourceEventAt() { return sourceEventAt; }
     public String getUrl() { return url; }
     public Instant getCreatedAt() { return createdAt; }
 }
