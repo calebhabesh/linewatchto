@@ -35,6 +35,9 @@ public class AccountService {
     private final SessionTokenService tokenService;
     private final PasswordResetEmailSender passwordResetEmailSender;
     private final PasswordResetLinkFactory passwordResetLinkFactory;
+    private final AccountAuthIdentityRepository authIdentityRepository;
+    private final GoogleIdentityVerifier googleIdentityVerifier;
+    private final GoogleAuthProperties googleAuthProperties;
     private final Clock clock;
     private final boolean passwordResetDevLinks;
 
@@ -47,6 +50,9 @@ public class AccountService {
         SessionTokenService tokenService,
         PasswordResetEmailSender passwordResetEmailSender,
         PasswordResetLinkFactory passwordResetLinkFactory,
+        AccountAuthIdentityRepository authIdentityRepository,
+        GoogleIdentityVerifier googleIdentityVerifier,
+        GoogleAuthProperties googleAuthProperties,
         @org.springframework.beans.factory.annotation.Value("${linewatch.auth.password-reset.dev-links:false}") boolean passwordResetDevLinks
     ) {
         this(
@@ -57,6 +63,9 @@ public class AccountService {
             tokenService,
             passwordResetEmailSender,
             passwordResetLinkFactory,
+            authIdentityRepository,
+            googleIdentityVerifier,
+            googleAuthProperties,
             Clock.systemUTC(),
             passwordResetDevLinks
         );
@@ -70,6 +79,9 @@ public class AccountService {
         SessionTokenService tokenService,
         PasswordResetEmailSender passwordResetEmailSender,
         PasswordResetLinkFactory passwordResetLinkFactory,
+        AccountAuthIdentityRepository authIdentityRepository,
+        GoogleIdentityVerifier googleIdentityVerifier,
+        GoogleAuthProperties googleAuthProperties,
         Clock clock,
         boolean passwordResetDevLinks
     ) {
@@ -80,6 +92,9 @@ public class AccountService {
         this.tokenService = tokenService;
         this.passwordResetEmailSender = passwordResetEmailSender;
         this.passwordResetLinkFactory = passwordResetLinkFactory;
+        this.authIdentityRepository = authIdentityRepository;
+        this.googleIdentityVerifier = googleIdentityVerifier;
+        this.googleAuthProperties = googleAuthProperties;
         this.clock = clock;
         this.passwordResetDevLinks = passwordResetDevLinks;
     }
@@ -111,7 +126,7 @@ public class AccountService {
         String email = normalizeEmail(request.email());
         AccountEntity account = accountRepository.findByEmail(email)
             .orElseThrow(this::invalidCredentials);
-        if (!passwordHasher.matches(request.password(), account.getPasswordHash())) {
+        if (account.getPasswordHash() == null || !passwordHasher.matches(request.password(), account.getPasswordHash())) {
             throw invalidCredentials();
         }
 
@@ -134,6 +149,54 @@ public class AccountService {
             )));
         account.markLogin(now);
         return createSession(account, now);
+    }
+
+    @Transactional
+    public AccountResponses.AuthSession googleLogin(GoogleLoginRequest request) {
+        VerifiedGoogleIdentity googleIdentity = googleIdentityVerifier.verify(request.credential());
+        String email = normalizeEmail(googleIdentity.email());
+        Instant now = clock.instant();
+
+        return authIdentityRepository.findByProviderAndProviderSubject(
+                AccountAuthIdentityEntity.PROVIDER_GOOGLE,
+                googleIdentity.subject()
+            )
+            .map(identity -> {
+                identity.updateGoogleProfile(email, googleIdentity.emailVerified(), now);
+                AccountEntity account = identity.getAccount();
+                account.markLogin(now);
+                return createSession(account, now);
+            })
+            .orElseGet(() -> createGoogleAccountSession(googleIdentity, email, now));
+    }
+
+    private AccountResponses.AuthSession createGoogleAccountSession(VerifiedGoogleIdentity googleIdentity, String email, Instant now) {
+        accountRepository.findByEmail(email).ifPresent(account -> {
+            throw new AccountException(
+                HttpStatus.CONFLICT,
+                "google_account_link_required",
+                "An account already exists for that email. Sign in with email and password before linking Google."
+            );
+        });
+
+        AccountEntity account = AccountEntity.createPasswordless(
+            nextId("user"),
+            email,
+            normalizeDisplayName(googleIdentity.displayName(), email),
+            false,
+            now
+        );
+        account.markLogin(now);
+        AccountEntity saved = accountRepository.save(account);
+        authIdentityRepository.save(AccountAuthIdentityEntity.createGoogle(
+            nextId("identity"),
+            saved,
+            googleIdentity.subject(),
+            email,
+            googleIdentity.emailVerified(),
+            now
+        ));
+        return createSession(saved, now);
     }
 
     @Transactional(readOnly = true)
@@ -301,6 +364,7 @@ public class AccountService {
 
     public record RegisterRequest(String email, String password, String displayName) {}
     public record LoginRequest(String email, String password) {}
+    public record GoogleLoginRequest(String credential) {}
     public record PasswordResetRequest(String email) {}
     public record PasswordResetConfirmRequest(String token, String password) {}
     public record PasswordResetRequestResponse(

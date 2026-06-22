@@ -23,6 +23,9 @@ class AccountServiceTest {
     private final UserSessionRepository sessionRepository = mock(UserSessionRepository.class);
     private final PasswordResetTokenRepository passwordResetTokenRepository = mock(PasswordResetTokenRepository.class);
     private final PasswordResetEmailSender passwordResetEmailSender = mock(PasswordResetEmailSender.class);
+    private final AccountAuthIdentityRepository authIdentityRepository = mock(AccountAuthIdentityRepository.class);
+    private final GoogleIdentityVerifier googleIdentityVerifier = mock(GoogleIdentityVerifier.class);
+    private final GoogleAuthProperties googleAuthProperties = googleProperties();
     private final PasswordHasher passwordHasher = new PasswordHasher();
     private final SessionTokenService tokenService = new SessionTokenService();
     private final PasswordResetLinkFactory passwordResetLinkFactory = new PasswordResetLinkFactory("https://linewatch.example");
@@ -35,9 +38,19 @@ class AccountServiceTest {
         tokenService,
         passwordResetEmailSender,
         passwordResetLinkFactory,
+        authIdentityRepository,
+        googleIdentityVerifier,
+        googleAuthProperties,
         clock,
         true
     );
+
+    private static GoogleAuthProperties googleProperties() {
+        GoogleAuthProperties result = new GoogleAuthProperties();
+        result.setEnabled(true);
+        result.setClientId("client-123.apps.googleusercontent.com");
+        return result;
+    }
 
     @Test
     void registerNormalizesEmailHashesPasswordAndCreatesSession() {
@@ -244,6 +257,9 @@ class AccountServiceTest {
             tokenService,
             passwordResetEmailSender,
             passwordResetLinkFactory,
+            authIdentityRepository,
+            googleIdentityVerifier,
+            googleAuthProperties,
             clock,
             false
         );
@@ -332,5 +348,129 @@ class AccountServiceTest {
         ))
             .isInstanceOf(AccountException.class)
             .hasMessageContaining("Reset link expired or invalid");
+    }
+
+    @Test
+    void googleLoginCreatesPasswordlessAccountAndIdentity() {
+        when(googleIdentityVerifier.verify("credential")).thenReturn(new VerifiedGoogleIdentity(
+            "google-subject-1",
+            "Rider@Example.COM",
+            true,
+            "Transit Rider"
+        ));
+        when(authIdentityRepository.findByProviderAndProviderSubject("google", "google-subject-1")).thenReturn(Optional.empty());
+        when(accountRepository.findByEmail("rider@example.com")).thenReturn(Optional.empty());
+        when(accountRepository.save(any(AccountEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(authIdentityRepository.save(any(AccountAuthIdentityEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(sessionRepository.save(any(UserSessionEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        AccountResponses.AuthSession response = service.googleLogin(new AccountService.GoogleLoginRequest("credential"));
+
+        assertThat(response.user().email()).isEqualTo("rider@example.com");
+        assertThat(response.user().displayName()).isEqualTo("Transit Rider");
+        assertThat(response.user().demo()).isFalse();
+        assertThat(response.rawSessionToken()).isNotBlank();
+        verify(accountRepository).save(any(AccountEntity.class));
+        verify(authIdentityRepository).save(any(AccountAuthIdentityEntity.class));
+        verify(sessionRepository).save(any(UserSessionEntity.class));
+    }
+
+    @Test
+    void googleLoginUsesEmailPrefixWhenGoogleNameIsBlank() {
+        when(googleIdentityVerifier.verify("credential")).thenReturn(new VerifiedGoogleIdentity(
+            "google-subject-1",
+            "rider@example.com",
+            true,
+            ""
+        ));
+        when(authIdentityRepository.findByProviderAndProviderSubject("google", "google-subject-1")).thenReturn(Optional.empty());
+        when(accountRepository.findByEmail("rider@example.com")).thenReturn(Optional.empty());
+        when(accountRepository.save(any(AccountEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(authIdentityRepository.save(any(AccountAuthIdentityEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(sessionRepository.save(any(UserSessionEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        AccountResponses.AuthSession response = service.googleLogin(new AccountService.GoogleLoginRequest("credential"));
+
+        assertThat(response.user().displayName()).isEqualTo("rider");
+    }
+
+    @Test
+    void googleLoginSignsInExistingGoogleIdentity() {
+        AccountEntity account = AccountEntity.createPasswordless(
+            "user_google",
+            "rider@example.com",
+            "Transit Rider",
+            false,
+            Instant.parse("2026-06-05T14:00:00Z")
+        );
+        AccountAuthIdentityEntity identity = AccountAuthIdentityEntity.createGoogle(
+            "identity_google",
+            account,
+            "google-subject-1",
+            "old@example.com",
+            true,
+            Instant.parse("2026-06-05T14:00:00Z")
+        );
+        when(googleIdentityVerifier.verify("credential")).thenReturn(new VerifiedGoogleIdentity(
+            "google-subject-1",
+            "rider@example.com",
+            true,
+            "Transit Rider"
+        ));
+        when(authIdentityRepository.findByProviderAndProviderSubject("google", "google-subject-1")).thenReturn(Optional.of(identity));
+        when(sessionRepository.save(any(UserSessionEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        AccountResponses.AuthSession response = service.googleLogin(new AccountService.GoogleLoginRequest("credential"));
+
+        assertThat(response.user().id()).isEqualTo("user_google");
+        assertThat(identity.getEmail()).isEqualTo("rider@example.com");
+        assertThat(identity.getLastLoginAt()).isEqualTo(Instant.parse("2026-06-05T14:30:00Z"));
+        assertThat(account.getLastLoginAt()).isEqualTo(Instant.parse("2026-06-05T14:30:00Z"));
+    }
+
+    @Test
+    void googleLoginBlocksSameEmailPasswordAccountWithoutAutoLinking() {
+        AccountEntity passwordAccount = AccountEntity.create(
+            "user_password",
+            "rider@example.com",
+            "Rider",
+            passwordHasher.hash("correct horse battery staple"),
+            false,
+            Instant.parse("2026-06-05T14:00:00Z")
+        );
+        when(googleIdentityVerifier.verify("credential")).thenReturn(new VerifiedGoogleIdentity(
+            "google-subject-1",
+            "rider@example.com",
+            true,
+            "Transit Rider"
+        ));
+        when(authIdentityRepository.findByProviderAndProviderSubject("google", "google-subject-1")).thenReturn(Optional.empty());
+        when(accountRepository.findByEmail("rider@example.com")).thenReturn(Optional.of(passwordAccount));
+
+        assertThatThrownBy(() -> service.googleLogin(new AccountService.GoogleLoginRequest("credential")))
+            .isInstanceOf(AccountException.class)
+            .hasMessageContaining("linking Google")
+            .extracting("status")
+            .isEqualTo(HttpStatus.CONFLICT);
+
+        verify(authIdentityRepository, never()).save(any(AccountAuthIdentityEntity.class));
+    }
+
+    @Test
+    void passwordLoginRejectsPasswordlessGoogleAccountWithoutNullHasherCall() {
+        AccountEntity account = AccountEntity.createPasswordless(
+            "user_google",
+            "rider@example.com",
+            "Transit Rider",
+            false,
+            Instant.parse("2026-06-05T14:00:00Z")
+        );
+        when(accountRepository.findByEmail("rider@example.com")).thenReturn(Optional.of(account));
+
+        assertThatThrownBy(() -> service.login(
+            new AccountService.LoginRequest("rider@example.com", "legacy")
+        ))
+            .isInstanceOf(AccountException.class)
+            .hasMessageContaining("Incorrect Email or Password");
     }
 }
