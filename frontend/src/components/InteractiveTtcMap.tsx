@@ -1096,10 +1096,12 @@ function InteractiveTtcMapComponent({
                   return (
                     <g
                       key={station.id}
-                      onPointerEnter={() => {
+                      onPointerEnter={(event) => {
+                        if (event.pointerType !== "mouse") return;
                         if (hasMultipleVisualAnchors) setHoveredStationId(station.id);
                       }}
-                      onPointerLeave={() => {
+                      onPointerLeave={(event) => {
+                        if (event.pointerType !== "mouse") return;
                         if (hasMultipleVisualAnchors) {
                           setHoveredStationId((current) => current === station.id ? null : current);
                         }
@@ -1177,12 +1179,14 @@ function InteractiveTtcMapComponent({
                             r={hitRadius}
                             onClick={(event) => {
                               event.stopPropagation();
+                              if (hasMultipleVisualAnchors) setHoveredStationId(null);
                               onSelectStationId(selected ? null : station.id);
                             }}
                             onKeyDown={(event) => {
                               if (anchorIndex !== 0) return;
                               if (event.key === "Enter" || event.key === " ") {
                                 event.preventDefault();
+                                if (hasMultipleVisualAnchors) setHoveredStationId(null);
                                 onSelectStationId(selected ? null : station.id);
                               }
                             }}

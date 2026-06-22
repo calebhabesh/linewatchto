@@ -638,6 +638,16 @@ test("Spadina uses two visual dots for one station selection", async ({ page, re
   await expect(
     page.getByRole("complementary", { name: "Spadina station details" }),
   ).toBeVisible();
+
+  if (isMobile) {
+    await page.getByRole("button", { name: "Close station details" }).click();
+    const hoverIndicators = page.locator('[data-station-hover-id="spadina"]');
+    await expect(hoverIndicators).toHaveCount(2);
+    await expect(hoverIndicators.nth(0)).not.toHaveClass(/active/);
+    await expect(hoverIndicators.nth(1)).not.toHaveClass(/active/);
+    await expect(hoverIndicators.nth(0)).toHaveCSS("fill", "rgba(0, 0, 0, 0)");
+    await expect(hoverIndicators.nth(1)).toHaveCSS("fill", "rgba(0, 0, 0, 0)");
+  }
 });
 
 test("uses map overlap metadata for active-alert and sibling submenu overlap refs", async ({ page, request, isMobile }) => {

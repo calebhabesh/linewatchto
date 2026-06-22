@@ -256,6 +256,7 @@ describe("asset-backed map layering", () => {
     assert.match(interactiveMapSource, /data-station-hover-id=\{station\.id\}/);
     assert.match(interactiveMapSource, /data-station-selected-id=\{station\.id\}/);
     assert.match(interactiveMapSource, /tabIndex=\{anchorIndex === 0 \? 0 : -1\}/);
+    assert.match(interactiveMapSource, /event\.pointerType !== "mouse"/);
     assert.match(globalCss, /\.station-hover-indicator/);
     assert.match(globalCss, /\.station-hit-target\.multi-anchor:hover/);
   });
