@@ -816,6 +816,14 @@ button {
   transform: scale(1);
 }
 
+.linewatch-shell.mobile-performance-mode .station-selected-indicator.multi-anchor {
+  opacity: 0;
+}
+
+.linewatch-shell.mobile-performance-mode .station-selected-indicator.multi-anchor.active {
+  opacity: 0.85;
+}
+
 .linewatch-shell.mobile-performance-mode .station-impact-ring {
   animation: none !important;
   filter: none !important;

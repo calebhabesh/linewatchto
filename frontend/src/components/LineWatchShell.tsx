@@ -1756,6 +1756,7 @@ export function LineWatchShell({
           recenterSignal={recenterSignal}
           reducedMotion={reducedMotion}
           mobilePerformanceMode={mobilePerformanceMode}
+          preserveCameraOnSelectionClear={isMobile}
           commutePathPreview={commutePathPreview}
           onClearCommutePathPreview={handleClearCommutePathPreview}
           viewportOrientation={rotatedMapMode ? "rotated-landscape" : "standard"}

@@ -13,6 +13,7 @@ import {
 
 const hookSource = readFileSync(new URL("../src/hooks/usePanZoom.ts", import.meta.url), "utf8");
 const mapSource = readFileSync(new URL("../src/components/InteractiveTtcMap.tsx", import.meta.url), "utf8");
+const shellSource = readFileSync(new URL("../src/components/LineWatchShell.tsx", import.meta.url), "utf8");
 const globalCss = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
 
 describe("pan zoom behavior guardrails", () => {
@@ -74,7 +75,9 @@ describe("pan zoom behavior guardrails", () => {
     )?.[1] ?? "";
 
     assert.match(noTargetBranch, /lastFocusedTargetKeyRef\.current = null/);
-    assert.doesNotMatch(noTargetBranch, /recenter\(\)/);
+    assert.match(mapSource, /preserveCameraOnSelectionClear/);
+    assert.match(noTargetBranch, /if \(!preserveCameraOnSelectionClear\) \{[\s\S]*recenter\(\)/);
+    assert.match(shellSource, /preserveCameraOnSelectionClear=\{isMobile\}/);
   });
 
   it("computes two-pointer pinch geometry without DOM access", () => {

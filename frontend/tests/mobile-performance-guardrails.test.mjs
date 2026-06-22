@@ -105,6 +105,16 @@ describe("mobile performance guardrails", () => {
       globalCss,
       /\.linewatch-shell\.mobile-performance-mode \.station-selected-indicator\s*\{[^}]*animation:\s*none\s*!important;[^}]*filter:\s*none\s*!important;[^}]*opacity:\s*0\.85;[^}]*\}/s,
     );
+
+    assert.match(
+      globalCss,
+      /\.linewatch-shell\.mobile-performance-mode \.station-selected-indicator\.multi-anchor\s*\{[^}]*opacity:\s*0;[^}]*\}/s,
+    );
+
+    assert.match(
+      globalCss,
+      /\.linewatch-shell\.mobile-performance-mode \.station-selected-indicator\.multi-anchor\.active\s*\{[^}]*opacity:\s*0\.85;[^}]*\}/s,
+    );
   });
 
   it("disables continuous station and commute map animations on mobile", () => {

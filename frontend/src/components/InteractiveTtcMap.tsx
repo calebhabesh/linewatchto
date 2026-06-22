@@ -192,6 +192,7 @@ function InteractiveTtcMapComponent({
   recenterSignal,
   reducedMotion,
   mobilePerformanceMode = false,
+  preserveCameraOnSelectionClear = false,
   commutePathPreview,
   onClearCommutePathPreview,
   viewportOrientation = "standard",
@@ -208,6 +209,7 @@ function InteractiveTtcMapComponent({
   recenterSignal?: number;
   reducedMotion: boolean;
   mobilePerformanceMode?: boolean;
+  preserveCameraOnSelectionClear?: boolean;
   commutePathPreview?: AccountCommutePathPreview | null;
   onClearCommutePathPreview?: () => void;
   viewportOrientation?: MapViewportOrientation;
@@ -429,6 +431,9 @@ function InteractiveTtcMapComponent({
       if (lastFocusedTargetKeyRef.current !== null) {
         lastFocusedTargetKeyRef.current = null;
         lastFocusLayoutSignalRef.current = currentLayoutSignal;
+        if (!preserveCameraOnSelectionClear) {
+          recenter();
+        }
       }
       return;
     }
@@ -503,6 +508,8 @@ function InteractiveTtcMapComponent({
     guidePaths,
     zoomToPoint,
     loadState,
+    preserveCameraOnSelectionClear,
+    recenter,
     stationNodeImpacts,
     stations,
     stationPointFor,

@@ -395,6 +395,29 @@ test("mobile closing station details preserves the focused map camera", async ({
     .toBe(focusedTransform);
 });
 
+test("desktop closing station details returns to the centered map camera", async ({ page, request, isMobile }) => {
+  test.skip(isMobile, "desktop-only station camera behavior");
+  await setStubMode(request, "seeded");
+  await page.goto("/");
+  await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
+
+  const mapLayer = page.locator(".absolute.top-0.left-0.w-full.h-full.origin-top-left").first();
+  const defaultTransform = await mapLayer.evaluate((element) => element.style.transform);
+
+  await page.getByRole("button", { name: "Stub Station station details" }).click();
+  await expect(page.getByRole("complementary", { name: "Stub Station station details" })).toBeVisible();
+  await expect
+    .poll(async () => mapLayer.evaluate((element) => element.style.transform))
+    .not.toBe(defaultTransform);
+
+  await page.getByRole("button", { name: "Close station details" }).click();
+  await expect(page.getByRole("complementary", { name: "Stub Station station details" })).toHaveCount(0);
+
+  await expect
+    .poll(async () => mapLayer.evaluate((element) => element.style.transform))
+    .toBe(defaultTransform);
+});
+
 test("mobile rotated map mode keeps station and impact selections in the rotated HUD", async ({ page, request, isMobile }) => {
   test.skip(!isMobile, "mobile-only rotated map smoke");
   await setStubMode(request, "seeded");
@@ -576,7 +599,7 @@ test("shows a compact map hint when multiple alert types overlap", async ({ page
   await expect(page.locator('[data-impact-card-id="stub-alert-line-1"]')).toHaveClass(/highlight-active-card/);
 });
 
-test("Spadina uses two visual dots for one station selection", async ({ page, request }) => {
+test("Spadina uses two visual dots for one station selection", async ({ page, request, isMobile }) => {
   await setStubMode(request, "unavailable");
   await page.goto("/");
   await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
@@ -596,11 +619,22 @@ test("Spadina uses two visual dots for one station selection", async ({ page, re
     page.getByRole("button", { name: "Spadina station details" }),
   ).toHaveCount(1);
 
+  const selectedIndicators = page.locator('[data-station-selected-id="spadina"]');
+  await expect(selectedIndicators).toHaveCount(2);
+  if (isMobile) {
+    await expect(selectedIndicators.nth(0)).toHaveCSS("opacity", "0");
+    await expect(selectedIndicators.nth(1)).toHaveCSS("opacity", "0");
+  }
+
   await line1Target.dispatchEvent("pointerover");
   await expect(page.locator('[data-station-hover-id="spadina"]')).toHaveCount(2);
 
   await line2Target.dispatchEvent("click");
-  await expect(page.locator('[data-station-selected-id="spadina"]')).toHaveCount(2);
+  await expect(selectedIndicators).toHaveCount(2);
+  if (isMobile) {
+    await expect(selectedIndicators.nth(0)).toHaveCSS("opacity", "0.85");
+    await expect(selectedIndicators.nth(1)).toHaveCSS("opacity", "0.85");
+  }
   await expect(
     page.getByRole("complementary", { name: "Spadina station details" }),
   ).toBeVisible();
