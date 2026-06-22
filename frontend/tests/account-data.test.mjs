@@ -14,6 +14,7 @@ import {
   getSavedCommutes,
   loginDemoAccount,
   loginWithGoogle,
+  linkGoogleAccount,
   logoutAccount,
   registerAccount,
   requestPasswordReset,
@@ -84,7 +85,7 @@ describe("account data adapter", () => {
         return new Response(
           JSON.stringify({
             authenticated: true,
-            user: { id: "user_demo", email: "demo@linewatch.local", displayName: "Demo Rider", demo: true },
+            user: { id: "user_demo", email: "demo@linewatch.local", displayName: "Demo Rider", demo: true, googleLinked: false },
           }),
           { status: 200, headers: { "content-type": "application/json" } }
         );
@@ -115,7 +116,7 @@ describe("account data adapter", () => {
         return new Response(
           JSON.stringify({
             authenticated: true,
-            user: { id: "user_demo", email: "demo@linewatch.local", displayName: "Demo Rider", demo: true },
+            user: { id: "user_demo", email: "demo@linewatch.local", displayName: "Demo Rider", demo: true, googleLinked: false },
           }),
           { status: 200, headers: { "content-type": "application/json" } }
         );
@@ -138,7 +139,7 @@ describe("account data adapter", () => {
           return new Response(
             JSON.stringify({
               authenticated: true,
-              user: { id: "user_1", email: "rider@example.com", displayName: "Rider", demo: false },
+              user: { id: "user_1", email: "rider@example.com", displayName: "Rider", demo: false, googleLinked: false },
             }),
             { status: 200, headers: { "content-type": "application/json" } }
           );
@@ -332,7 +333,7 @@ describe("account data adapter", () => {
           return new Response(
             JSON.stringify({
               authenticated: true,
-              user: { id: "user_1", email: "rider@example.com", displayName: "Rider", demo: false },
+              user: { id: "user_1", email: "rider@example.com", displayName: "Rider", demo: false, googleLinked: false },
             }),
             { status: 200, headers: { "content-type": "application/json" } }
           );
@@ -581,7 +582,7 @@ describe("account data adapter", () => {
           return new Response(
             JSON.stringify({
               authenticated: true,
-              user: { id: "user_google", email: "rider@example.com", displayName: "Transit Rider", demo: false },
+              user: { id: "user_google", email: "rider@example.com", displayName: "Transit Rider", demo: false, googleLinked: true },
             }),
             { status: 200, headers: { "content-type": "application/json" } }
           );
@@ -591,6 +592,32 @@ describe("account data adapter", () => {
 
     assert.equal(result.authenticated, true);
     assert.equal(requests[0].input, "/api/auth/google");
+    assert.equal(requests[0].init.method, "POST");
+    assert.equal(requests[0].init.credentials, "include");
+    assert.equal(requests[0].init.body, JSON.stringify({ credential: "google-id-token" }));
+  });
+
+  it("posts Google credential to link the current account", async () => {
+    const requests = [];
+    const result = await linkGoogleAccount(
+      { credential: "google-id-token" },
+      {
+        fetcher: async (input, init) => {
+          requests.push({ input, init });
+          return new Response(
+            JSON.stringify({
+              authenticated: true,
+              user: { id: "user_1", email: "rider@example.com", displayName: "Rider", demo: false, googleLinked: true },
+            }),
+            { status: 200, headers: { "content-type": "application/json" } }
+          );
+        },
+      }
+    );
+
+    assert.equal(result.authenticated, true);
+    assert.equal(result.user.googleLinked, true);
+    assert.equal(requests[0].input, "/api/auth/google/link");
     assert.equal(requests[0].init.method, "POST");
     assert.equal(requests[0].init.credentials, "include");
     assert.equal(requests[0].init.body, JSON.stringify({ credential: "google-id-token" }));

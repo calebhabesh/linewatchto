@@ -12,6 +12,7 @@ export type AccountUser = {
   email: string;
   displayName: string;
   demo: boolean;
+  googleLinked: boolean;
 };
 
 export type AccountState = {
@@ -393,6 +394,10 @@ export async function getAuthConfig(options: AdapterOptions = {}): Promise<AuthC
 
 export async function loginWithGoogle(input: { credential: string }, options: AdapterOptions = {}) {
   return authRequest("/api/auth/google", { method: "POST", body: JSON.stringify(input) }, options);
+}
+
+export async function linkGoogleAccount(input: { credential: string }, options: AdapterOptions = {}) {
+  return authRequest("/api/auth/google/link", { method: "POST", body: JSON.stringify(input) }, options);
 }
 
 export async function getCurrentAccount(options: AdapterOptions = {}): Promise<AccountState> {
