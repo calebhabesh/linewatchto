@@ -30,7 +30,7 @@ Implemented now:
 - Legend SVG icons for Lines 1, 2, 4, 5, and 6.
 - Account-backed saved commutes with weighted default rapid-transit route matching, optional return-trip monitoring, direction-aware Reduced Speed Zone matching, and dashboard-visible impact summaries.
 - Account-backed Web Push notification subscriptions and preferences for saved-commute impacts. Delivery is opt-in and requires browser permission, a browser that supports PWA Web Push, configured VAPID keys, `LINEWATCH_PUSH_ENABLED=true`, and fresh dashboard-visible impacts.
-- Account sign-in supports password reset through emailed reset links when SMTP is configured, with a local/dev reset-token fallback.
+- Account sign-in supports optional Google sign-in when a Google OAuth web client ID is configured, while retaining email/password registration, password reset through emailed reset links when SMTP is configured, local/dev reset-token fallback, and demo login.
 - Official TTC.ca performance metrics panel for current on-time and elevator/escalator status, source-labeled with the TTC.ca updated timestamp, daily refresh guard, and stale last-good fallback.
 - Redis-backed dashboard cache for status, map, alerts, ingestion health, and TTC performance reads, with database/live fallback when Redis is unavailable.
 - Ingestion/system health panel in fixture mode.
@@ -289,6 +289,16 @@ SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE=true
 ```
 
 If you verify `mail.linewatchto.ca` instead of the root domain, use an address under that subdomain, for example `no-reply@mail.linewatchto.ca`. Do not use `calebhabesh.com` for LineWatch TO production reset emails unless you intentionally want reset links and sender reputation tied to your personal domain.
+
+Optional Google sign-in configuration:
+
+```dotenv
+LINEWATCH_AUTH_GOOGLE_ENABLED=true
+LINEWATCH_AUTH_GOOGLE_CLIENT_ID=google-oauth-web-client-id-from-google-cloud-console
+LINEWATCH_AUTH_GOOGLE_JWK_SET_URI=https://www.googleapis.com/oauth2/v3/certs
+```
+
+Use a Google OAuth Web application client. Configure authorized JavaScript origins for each deployed frontend origin, such as `http://localhost:3000`, `https://staging.linewatchto.ca`, `https://linewatchto.ca`, and `https://www.linewatchto.ca`. The app verifies Google ID tokens on the backend and still creates its own HttpOnly `linewatch_session` cookie. Google sign-in is optional; when it is disabled or unconfigured, the UI falls back to email/password and demo login.
 
 Run the deployment smoke checker after DNS and TLS are working:
 
