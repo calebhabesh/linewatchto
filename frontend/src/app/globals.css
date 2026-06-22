@@ -5836,34 +5836,18 @@ button {
   /* Outlines and glows for status action cards */
   .mobile-status-btn-alerts {
     border-color: rgba(239, 68, 68, 0.45) !important;
-    box-shadow: 0 0 10px rgba(239, 68, 68, 0.22) !important;
-  }
-  .mobile-status-btn-alerts:active {
-    box-shadow: 0 0 14px rgba(239, 68, 68, 0.35) !important;
   }
 
   .mobile-status-btn-delays {
     border-color: rgba(254, 236, 65, 0.45) !important;
-    box-shadow: 0 0 10px rgba(254, 236, 65, 0.22) !important;
-  }
-  .mobile-status-btn-delays:active {
-    box-shadow: 0 0 14px rgba(254, 236, 65, 0.35) !important;
   }
 
   .mobile-status-btn-rsz {
     border-color: var(--impact-rsz-border) !important;
-    box-shadow: 0 0 10px var(--impact-rsz-soft) !important;
-  }
-  .mobile-status-btn-rsz:active {
-    box-shadow: 0 0 14px rgba(245, 158, 11, 0.35) !important;
   }
 
   .mobile-status-btn-closures {
     border-color: rgba(59, 130, 246, 0.45) !important;
-    box-shadow: 0 0 10px rgba(59, 130, 246, 0.22) !important;
-  }
-  .mobile-status-btn-closures:active {
-    box-shadow: 0 0 14px rgba(59, 130, 246, 0.35) !important;
   }
 
   .mobile-line-status-list {
@@ -5929,34 +5913,18 @@ button {
 
   .mobile-line-status-btn-alerts {
     border-color: rgba(239, 68, 68, 0.45) !important;
-    box-shadow: 0 0 6px rgba(239, 68, 68, 0.16) !important;
-  }
-  .mobile-line-status-btn-alerts:active {
-    box-shadow: 0 0 10px rgba(239, 68, 68, 0.28) !important;
   }
 
   .mobile-line-status-btn-delays {
     border-color: rgba(254, 236, 65, 0.45) !important;
-    box-shadow: 0 0 6px rgba(254, 236, 65, 0.16) !important;
-  }
-  .mobile-line-status-btn-delays:active {
-    box-shadow: 0 0 10px rgba(254, 236, 65, 0.35) !important;
   }
 
   .mobile-line-status-btn-rsz {
     border-color: var(--impact-rsz-border) !important;
-    box-shadow: 0 0 6px var(--impact-rsz-soft) !important;
-  }
-  .mobile-line-status-btn-rsz:active {
-    box-shadow: 0 0 10px rgba(245, 158, 11, 0.28) !important;
   }
 
   .mobile-line-status-btn-closures {
     border-color: rgba(59, 130, 246, 0.45) !important;
-    box-shadow: 0 0 6px rgba(59, 130, 246, 0.16) !important;
-  }
-  .mobile-line-status-btn-closures:active {
-    box-shadow: 0 0 10px rgba(59, 130, 246, 0.28) !important;
   }
 }
 
@@ -7722,10 +7690,6 @@ button {
 /* Accessibility Outages status button styles */
 .mobile-status-btn-accessibility {
   border-color: rgba(100, 116, 139, 0.4) !important;
-  box-shadow: 0 0 10px rgba(100, 116, 139, 0.15) !important;
-}
-.mobile-status-btn-accessibility:active {
-  box-shadow: 0 0 14px rgba(100, 116, 139, 0.3) !important;
 }
 .mobile-status-actions button.mobile-status-btn-accessibility {
   background: #f8fafc !important;
@@ -7753,10 +7717,6 @@ button {
 /* Surface Notices/Service Changes status button styles */
 .mobile-status-btn-surface {
   border-color: rgba(100, 116, 139, 0.4) !important;
-  box-shadow: 0 0 10px rgba(100, 116, 139, 0.15) !important;
-}
-.mobile-status-btn-surface:active {
-  box-shadow: 0 0 14px rgba(100, 116, 139, 0.3) !important;
 }
 .mobile-status-actions button.mobile-status-btn-surface {
   background: #f8fafc !important;
