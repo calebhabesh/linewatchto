@@ -35,6 +35,10 @@ linewatch:
       email:
         enabled: ${LINEWATCH_AUTH_PASSWORD_RESET_EMAIL_ENABLED:false}
         from: ${LINEWATCH_AUTH_PASSWORD_RESET_EMAIL_FROM:no-reply@linewatch.local}
+    google:
+      enabled: ${LINEWATCH_AUTH_GOOGLE_ENABLED:false}
+      client-id: ${LINEWATCH_AUTH_GOOGLE_CLIENT_ID:}
+      jwk-set-uri: ${LINEWATCH_AUTH_GOOGLE_JWK_SET_URI:https://www.googleapis.com/oauth2/v3/certs}
   ingestion:
     alerts:
       enabled: ${LINEWATCH_INGESTION_ALERTS_ENABLED:false}
