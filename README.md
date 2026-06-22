@@ -30,7 +30,7 @@ Implemented now:
 - Legend SVG icons for Lines 1, 2, 4, 5, and 6.
 - Account-backed saved commutes with weighted default rapid-transit route matching, optional return-trip monitoring, direction-aware Reduced Speed Zone matching, and dashboard-visible impact summaries.
 - Account-backed Web Push notification subscriptions and preferences for saved-commute impacts. Delivery is opt-in and requires browser permission, a browser that supports PWA Web Push, configured VAPID keys, `LINEWATCH_PUSH_ENABLED=true`, and fresh dashboard-visible impacts.
-- Account sign-in supports optional Google sign-in when a Google OAuth web client ID is configured, while retaining email/password registration, password reset through emailed reset links when SMTP is configured, local/dev reset-token fallback, and demo login.
+- Account sign-in supports optional Google sign-in when a Google OAuth web client ID is configured, while retaining email/password registration, explicit Google linking for existing password accounts, password reset through emailed reset links when SMTP is configured, local/dev reset-token fallback, and demo login.
 - Official TTC.ca performance metrics panel for current on-time and elevator/escalator status, source-labeled with the TTC.ca updated timestamp, daily refresh guard, and stale last-good fallback.
 - Redis-backed dashboard cache for status, map, alerts, ingestion health, and TTC performance reads, with database/live fallback when Redis is unavailable.
 - Ingestion/system health panel in fixture mode.
@@ -299,6 +299,8 @@ LINEWATCH_AUTH_GOOGLE_JWK_SET_URI=https://www.googleapis.com/oauth2/v3/certs
 ```
 
 Use a Google OAuth Web application client. Configure authorized JavaScript origins for each deployed frontend origin, such as `http://localhost:3000`, `https://staging.linewatchto.ca`, `https://linewatchto.ca`, and `https://www.linewatchto.ca`. The app verifies Google ID tokens on the backend and still creates its own HttpOnly `linewatch_session` cookie. Google sign-in is optional; when it is disabled or unconfigured, the UI falls back to email/password and demo login.
+
+Existing email/password accounts are not auto-linked by matching email during Google sign-in. A signed-in user links Google from the account menu, which verifies a fresh Google ID token and requires the Google email to match the current LineWatch account email. This preserves saved commutes and push preferences on the original account and avoids duplicate same-email accounts.
 
 Run the deployment smoke checker after DNS and TLS are working:
 
