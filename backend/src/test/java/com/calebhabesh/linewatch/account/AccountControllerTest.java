@@ -27,7 +27,7 @@ class AccountControllerTest {
 
     @Test
     void loginSetsHttpOnlySessionCookie() {
-        AccountResponses.UserResponse user = new AccountResponses.UserResponse("user_1", "rider@example.com", "Rider", false);
+        AccountResponses.UserResponse user = new AccountResponses.UserResponse("user_1", "rider@example.com", "Rider", false, false);
         when(accountService.login(new AccountService.LoginRequest("rider@example.com", "correct horse battery staple")))
             .thenReturn(new AccountResponses.AuthSession(user, "raw-token", Instant.parse("2026-06-19T14:30:00Z")));
 
@@ -90,7 +90,7 @@ class AccountControllerTest {
 
     @Test
     void passwordResetConfirmSetsSessionCookie() {
-        AccountResponses.UserResponse user = new AccountResponses.UserResponse("user_1", "rider@example.com", "Rider", false);
+        AccountResponses.UserResponse user = new AccountResponses.UserResponse("user_1", "rider@example.com", "Rider", false, false);
         AccountService.PasswordResetConfirmRequest request = new AccountService.PasswordResetConfirmRequest("dev-token", "new correct horse 2");
         when(accountService.confirmPasswordReset(request))
             .thenReturn(new AccountResponses.AuthSession(user, "raw-token", Instant.parse("2026-06-19T14:30:00Z")));
@@ -120,7 +120,7 @@ class AccountControllerTest {
 
     @Test
     void googleLoginSetsHttpOnlySessionCookie() {
-        AccountResponses.UserResponse user = new AccountResponses.UserResponse("user_google", "rider@example.com", "Transit Rider", false);
+        AccountResponses.UserResponse user = new AccountResponses.UserResponse("user_google", "rider@example.com", "Transit Rider", false, true);
         AccountService.GoogleLoginRequest request = new AccountService.GoogleLoginRequest("credential");
         when(accountService.googleLogin(request))
             .thenReturn(new AccountResponses.AuthSession(user, "raw-token", Instant.parse("2026-06-19T14:30:00Z")));

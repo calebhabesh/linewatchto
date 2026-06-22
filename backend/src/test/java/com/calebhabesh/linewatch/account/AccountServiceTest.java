@@ -64,6 +64,7 @@ class AccountServiceTest {
 
         assertThat(response.user().email()).isEqualTo("rider@example.com");
         assertThat(response.user().displayName()).isEqualTo("Rider");
+        assertThat(response.user().googleLinked()).isFalse();
         assertThat(response.rawSessionToken()).isNotBlank();
         assertThat(response.expiresAt()).isAfter(Instant.parse("2026-06-05T14:30:00Z"));
         verify(accountRepository).save(any(AccountEntity.class));
@@ -418,11 +419,13 @@ class AccountServiceTest {
             "Transit Rider"
         ));
         when(authIdentityRepository.findByProviderAndProviderSubject("google", "google-subject-1")).thenReturn(Optional.of(identity));
+        when(authIdentityRepository.existsByAccount_IdAndProvider("user_google", AccountAuthIdentityEntity.PROVIDER_GOOGLE)).thenReturn(true);
         when(sessionRepository.save(any(UserSessionEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         AccountResponses.AuthSession response = service.googleLogin(new AccountService.GoogleLoginRequest("credential"));
 
         assertThat(response.user().id()).isEqualTo("user_google");
+        assertThat(response.user().googleLinked()).isTrue();
         assertThat(identity.getEmail()).isEqualTo("rider@example.com");
         assertThat(identity.getLastLoginAt()).isEqualTo(Instant.parse("2026-06-05T14:30:00Z"));
         assertThat(account.getLastLoginAt()).isEqualTo(Instant.parse("2026-06-05T14:30:00Z"));

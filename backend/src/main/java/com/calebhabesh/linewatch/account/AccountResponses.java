@@ -7,7 +7,7 @@ import java.util.List;
 public final class AccountResponses {
     private AccountResponses() {}
 
-    public record UserResponse(String id, String email, String displayName, boolean demo) {}
+    public record UserResponse(String id, String email, String displayName, boolean demo, boolean googleLinked) {}
 
     public record AuthResponse(boolean authenticated, UserResponse user) {}
 

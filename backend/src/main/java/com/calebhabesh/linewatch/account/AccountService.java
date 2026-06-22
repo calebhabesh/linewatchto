@@ -249,11 +249,22 @@ public class AccountService {
     }
 
     private AccountResponses.UserResponse toUserResponse(AccountEntity account) {
+        return toUserResponse(
+            account,
+            authIdentityRepository.existsByAccount_IdAndProvider(
+                account.getId(),
+                AccountAuthIdentityEntity.PROVIDER_GOOGLE
+            )
+        );
+    }
+
+    private AccountResponses.UserResponse toUserResponse(AccountEntity account, boolean googleLinked) {
         return new AccountResponses.UserResponse(
             account.getId(),
             account.getEmail(),
             account.getDisplayName(),
-            account.isDemo()
+            account.isDemo(),
+            googleLinked
         );
     }
 
