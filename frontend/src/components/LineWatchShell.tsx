@@ -48,7 +48,7 @@ import { StationDetailPanel } from "./StationDetailPanel";
 import { useTorontoClock } from "../hooks/useTorontoClock";
 import { useMobilePerformanceMode } from "../hooks/useMobilePerformanceMode";
 import { usePushNotificationSettings } from "../hooks/usePushNotificationSettings";
-import { Menu, X, Map as MapIcon, AlertTriangle, Calendar, Navigation, ShieldCheck, BarChart3, Bell, Construction, Search, LogIn, LogOut, UserPlus, UserRound, Sun, Moon, Bus } from "lucide-react";
+import { Menu, X, Map as MapIcon, AlertTriangle, Calendar, Navigation, ShieldCheck, BarChart3, Bell, Construction, Search, LogIn, LogOut, UserPlus, UserRound, Sun, Moon, Bus, Mail } from "lucide-react";
 import { SubwayClosedScreen } from "./SubwayClosedScreen";
 import { useSubwayOperatingState } from "../hooks/useSubwayOperatingState";
 import { StationSearchPanel } from "./StationSearchPanel";
@@ -81,7 +81,8 @@ import { normalizeAccountEmail, validateAccountCredentials } from "../app/accoun
 
 
 type ActiveView = "map" | "menu" | "search" | "status" | "alerts" | "delays" | "reduced-speed-zones" | "closures" | "commutes" | "notifications" | "analytics" | "more" | "accessibility-outages" | "surface-notices";
-type AccountDialogMode = "login" | "register" | "forgot-password" | "reset-password" | "link-google";
+type AccountDialogMode = "auth-choice" | "login" | "register" | "forgot-password" | "reset-password" | "link-google";
+type AccountEntryIntent = "login" | "register";
 
 const DEFAULT_DASHBOARD_REFRESH_MS = 5_000;
 const MIN_DASHBOARD_REFRESH_MS = 2_000;
@@ -248,6 +249,7 @@ export function LineWatchShell({
     user: null,
   });
   const [accountDialogMode, setAccountDialogMode] = useState<AccountDialogMode | null>(initialPasswordResetToken.trim() ? "reset-password" : null);
+  const [accountEntryIntent, setAccountEntryIntent] = useState<AccountEntryIntent>("login");
   const [accountEmail, setAccountEmail] = useState("");
   const [accountPassword, setAccountPassword] = useState("");
   const [accountPasswordConfirmation, setAccountPasswordConfirmation] = useState("");
@@ -372,8 +374,21 @@ export function LineWatchShell({
     setAccountError(null);
   };
 
+  const openAuthChoice = (intent: AccountEntryIntent) => {
+    resetAccountForm();
+    setAccountEntryIntent(intent);
+    setAccountDialogMode("auth-choice");
+  };
+
+  const openEmailAuth = () => {
+    setAccountError(null);
+    setAccountDialogMode(accountEntryIntent);
+  };
+
   const accountDialogTitle = () => {
     switch (accountDialogMode) {
+      case "auth-choice":
+        return accountEntryIntent === "register" ? "Create account" : "Sign in";
       case "link-google":
         return "Link Google";
       case "register":
@@ -390,6 +405,8 @@ export function LineWatchShell({
 
   const accountDialogAriaLabel = () => {
     switch (accountDialogMode) {
+      case "auth-choice":
+        return accountEntryIntent === "register" ? "Choose how to create a LineWatch TO account" : "Choose how to sign in to LineWatch TO";
       case "link-google":
         return "Link Google sign-in to LineWatch TO account";
       case "register":
@@ -406,6 +423,10 @@ export function LineWatchShell({
 
   const handleSubmitAccount = async () => {
     if (!accountDialogMode) return;
+
+    if (accountDialogMode === "auth-choice") {
+      return;
+    }
 
     if (accountDialogMode === "link-google") {
       return;
