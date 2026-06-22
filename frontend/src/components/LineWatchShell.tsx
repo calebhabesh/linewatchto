@@ -1066,8 +1066,8 @@ export function LineWatchShell({
             onClearViewedPath={handleClearCommutePathPreview}
             onBack={() => setActiveView("menu")}
             onClose={() => { setActiveView("map"); setSelection(null); }}
-            onRequestSignIn={() => setAccountDialogMode("login")}
-            onRequestCreateAccount={() => setAccountDialogMode("register")}
+            onRequestSignIn={() => openAuthChoice("login")}
+            onRequestCreateAccount={() => openAuthChoice("register")}
             onOpenNotificationSettings={() => setActiveView("notifications")}
             notificationSummary={notificationSummary}
           />
@@ -1079,8 +1079,8 @@ export function LineWatchShell({
             pushSettings={pushSettings}
             onBack={() => setActiveView(isMobile ? "more" : "menu")}
             onClose={() => { setActiveView("map"); setSelection(null); }}
-            onRequestSignIn={() => { resetAccountForm(); setAccountDialogMode("login"); }}
-            onRequestCreateAccount={() => { resetAccountForm(); setAccountDialogMode("register"); }}
+            onRequestSignIn={() => openAuthChoice("login")}
+            onRequestCreateAccount={() => openAuthChoice("register")}
           />
         );
       case "accessibility-outages":
@@ -1124,8 +1124,8 @@ export function LineWatchShell({
             reducedMotion={reducedMotion}
             ingestionHealth={ingestionHealth}
             onClose={handleMobileSheetClose}
-            onRequestSignIn={() => { resetAccountForm(); setAccountDialogMode("login"); }}
-            onRequestCreateAccount={() => { resetAccountForm(); setAccountDialogMode("register"); }}
+            onRequestSignIn={() => openAuthChoice("login")}
+            onRequestCreateAccount={() => openAuthChoice("register")}
             onDemoAccount={handleDemoAccount}
             onSignOut={handleSignOut}
             onToggleHighContrast={() => setHighContrast((current) => !current)}
@@ -1222,8 +1222,8 @@ export function LineWatchShell({
           onClearViewedPath={handleClearCommutePathPreview}
           onBack={() => setActiveView("menu")}
           onClose={() => { setActiveView("map"); setSelection(null); }}
-          onRequestSignIn={() => setAccountDialogMode("login")}
-          onRequestCreateAccount={() => setAccountDialogMode("register")}
+          onRequestSignIn={() => openAuthChoice("login")}
+          onRequestCreateAccount={() => openAuthChoice("register")}
           onOpenNotificationSettings={() => setActiveView("notifications")}
           notificationSummary={notificationSummary}
         />
@@ -1235,8 +1235,8 @@ export function LineWatchShell({
           pushSettings={pushSettings}
           onBack={() => setActiveView("menu")}
           onClose={() => { setActiveView("map"); setSelection(null); }}
-          onRequestSignIn={() => { resetAccountForm(); setAccountDialogMode("login"); }}
-          onRequestCreateAccount={() => { resetAccountForm(); setAccountDialogMode("register"); }}
+          onRequestSignIn={() => openAuthChoice("login")}
+          onRequestCreateAccount={() => openAuthChoice("register")}
         />
       </FloatingPanelShell>
     ) : activeView === "accessibility-outages" ? (
@@ -1273,8 +1273,8 @@ export function LineWatchShell({
           reducedMotion={reducedMotion}
           ingestionHealth={ingestionHealth}
           onClose={handleMobileSheetClose}
-          onRequestSignIn={() => { resetAccountForm(); setAccountDialogMode("login"); }}
-          onRequestCreateAccount={() => { resetAccountForm(); setAccountDialogMode("register"); }}
+          onRequestSignIn={() => openAuthChoice("login")}
+          onRequestCreateAccount={() => openAuthChoice("register")}
           onDemoAccount={handleDemoAccount}
           onSignOut={handleSignOut}
           onToggleHighContrast={() => setHighContrast((current) => !current)}
@@ -1501,7 +1501,7 @@ export function LineWatchShell({
                         ref={registerMenuAction(actionIndex++)}
                         role="menuitem"
                         type="button"
-                        onClick={() => { resetAccountForm(); setAccountDialogMode("login"); }}
+                        onClick={() => openAuthChoice("login")}
                         className="menu-action-row"
                       >
                         <LogIn size={17} className="text-slate-500 dark:text-slate-400" />
@@ -1511,7 +1511,7 @@ export function LineWatchShell({
                         ref={registerMenuAction(actionIndex++)}
                         role="menuitem"
                         type="button"
-                        onClick={() => { resetAccountForm(); setAccountDialogMode("register"); }}
+                        onClick={() => openAuthChoice("register")}
                         className="menu-action-row"
                       >
                         <UserPlus size={17} className="text-slate-500 dark:text-slate-400" />
