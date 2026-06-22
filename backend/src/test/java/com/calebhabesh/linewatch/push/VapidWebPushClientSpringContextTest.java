@@ -71,7 +71,7 @@ class VapidWebPushClientSpringContextTest {
         HttpRequest request = requestCaptor.getValue();
         assertThat(result.status()).isEqualTo("accepted");
         assertThat(request.headers().firstValue("Topic")).contains("AVEPD-AuDIedMxfArNYRpmed5ppkzhC3");
-        assertThat(request.headers().firstValue("TTL")).contains("300");
+        assertThat(request.headers().firstValue("TTL")).contains("3600");
         assertThat(request.headers().firstValue("Urgency")).contains("normal");
     }
 }

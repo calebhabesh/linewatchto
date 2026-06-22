@@ -23,6 +23,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class VapidWebPushClient implements WebPushClient {
     private static final long VAPID_EXPIRY_SECONDS = 12 * 60 * 60;
+    private static final long PUSH_TTL_SECONDS = 60 * 60;
     private final PushProperties properties;
     private final Clock clock;
     private final HttpClient httpClient;
@@ -46,7 +47,7 @@ public class VapidWebPushClient implements WebPushClient {
         try {
             URI endpoint = URI.create(subscription.getEndpoint());
             HttpRequest.Builder requestBuilder = HttpRequest.newBuilder(endpoint)
-                .header("TTL", "300")
+                .header("TTL", Long.toString(PUSH_TTL_SECONDS))
                 .header("Urgency", "normal")
                 .header("Authorization", authorizationHeader(endpoint))
                 .POST(HttpRequest.BodyPublishers.noBody());
