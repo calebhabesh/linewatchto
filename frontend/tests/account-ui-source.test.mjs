@@ -9,6 +9,7 @@ const dashboardDataSource = readFileSync(new URL("../src/app/dashboard-data.ts",
 const savedCommutesSource = readFileSync(new URL("../src/components/SavedCommutesPanel.tsx", import.meta.url), "utf8");
 const globalCss = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
 const savedCommutePickerSource = readFileSync(new URL("../src/components/SavedCommuteStationPicker.tsx", import.meta.url), "utf8");
+const googleSignInSource = readFileSync(new URL("../src/components/GoogleSignInButton.tsx", import.meta.url), "utf8");
 
 describe("account UI source", () => {
   it("loads account state and exposes sign-in, create-account, demo, and sign-out actions", () => {
@@ -135,5 +136,15 @@ describe("account UI source", () => {
     assert.equal(toTitleCase("Sheppard-Yonge to Finch"), "Sheppard-Yonge To Finch");
     assert.equal(toTitleCase("sheppard-yonge -> finch"), "Sheppard-Yonge -> Finch");
     assert.equal(toTitleCase("linewatch-lrt-ttc"), "LineWatch-LRT-TTC");
+  });
+
+  it("wraps Google Identity Services in an isolated optional button component", () => {
+    assert.match(googleSignInSource, /accounts\.google\.com\/gsi\/client/);
+    assert.match(googleSignInSource, /google\.accounts\.id\.initialize/);
+    assert.match(googleSignInSource, /google\.accounts\.id\.renderButton/);
+    assert.match(googleSignInSource, /onCredential/);
+    assert.match(googleSignInSource, /clientId/);
+    assert.match(globalCss, /\.google-sign-in-slot/);
+    assert.match(globalCss, /\.account-auth-divider/);
   });
 });
