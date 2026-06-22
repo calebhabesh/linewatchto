@@ -53,6 +53,23 @@ class AccountSchemaMigrationTest {
         assertThat(sql).contains("add column watch_return_trip boolean not null default true");
     }
 
+    @Test
+    void v29AddsExternalAuthIdentitiesAndAllowsPasswordlessAccounts() throws IOException {
+        String sql = migrationSql("/db/migration/V29__account_auth_identities.sql");
+
+        assertThat(sql).contains("alter table accounts");
+        assertThat(sql).contains("alter column password_hash drop not null");
+        assertThat(sql).contains("create table account_auth_identities");
+        assertThat(sql).contains("account_id varchar(80) not null references accounts(id) on delete cascade");
+        assertThat(sql).contains("provider varchar(40) not null");
+        assertThat(sql).contains("provider_subject varchar(255) not null");
+        assertThat(sql).contains("email varchar(320) not null");
+        assertThat(sql).contains("email_verified boolean not null default false");
+        assertThat(sql).contains("unique (provider, provider_subject)");
+        assertThat(sql).contains("unique (account_id, provider)");
+        assertThat(sql).contains("idx_account_auth_identities_account_id");
+    }
+
     private String migrationSql(String path) throws IOException {
         try (var input = getClass().getResourceAsStream(path)) {
             assertThat(input).isNotNull();
