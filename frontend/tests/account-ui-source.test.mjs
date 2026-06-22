@@ -23,6 +23,11 @@ describe("account UI source", () => {
     assert.match(shellSource, /Demo Account/);
     assert.match(shellSource, /Sign Out/);
     assert.match(shellSource, /account-dialog/);
+    assert.match(shellSource, /getAuthConfig/);
+    assert.match(shellSource, /loginWithGoogle/);
+    assert.match(shellSource, /GoogleSignInButton/);
+    assert.match(shellSource, /Continue With Google/);
+    assert.match(shellSource, /account-auth-divider/);
   });
 
   it("renders signed-out, demo, and account-backed saved commute states", () => {

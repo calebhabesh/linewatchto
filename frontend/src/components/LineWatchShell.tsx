@@ -58,19 +58,24 @@ import {
   AccountRequestError,
   confirmPasswordReset,
   commutePathPreviewFromCommute,
+  getAuthConfig,
   getCurrentAccount,
   getSavedCommutes,
   loginAccount,
   loginDemoAccount,
+  loginWithGoogle,
   logoutAccount,
   registerAccount,
   requestPasswordReset,
   summarizeSavedCommuteStatuses,
+  unavailableAuthConfig,
   type AccountState,
   type AccountSavedCommute,
   type AccountCommutePathPreview,
   type AccountCommuteLegId,
+  type AuthConfig,
 } from "../app/account-data";
+import { GoogleSignInButton } from "./GoogleSignInButton";
 import { normalizeAccountEmail, validateAccountCredentials } from "../app/account-validation";
 
 
@@ -253,6 +258,7 @@ export function LineWatchShell({
   const [accountBusy, setAccountBusy] = useState(false);
   const [accountCommutes, setAccountCommutes] = useState<AccountSavedCommute[]>([]);
   const [commutePathPreview, setCommutePathPreview] = useState<AccountCommutePathPreview | null>(null);
+  const [authConfig, setAuthConfig] = useState<AuthConfig>(unavailableAuthConfig);
 
   const pushSettings = usePushNotificationSettings(accountState);
 
@@ -293,6 +299,18 @@ export function LineWatchShell({
     getCurrentAccount().then((state) => {
       if (!cancelled) {
         setAccountState(state);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    getAuthConfig().then((result) => {
+      if (!cancelled) {
+        setAuthConfig(result.config);
       }
     });
     return () => {
@@ -506,6 +524,26 @@ export function LineWatchShell({
       setActiveView("commutes");
     } catch {
       setAccountError("Demo account is unavailable.");
+    } finally {
+      setAccountBusy(false);
+    }
+  };
+
+  const handleGoogleCredential = async (credential: string) => {
+    setAccountBusy(true);
+    setAccountError(null);
+    try {
+      const response = await loginWithGoogle({ credential });
+      setAccountState({ source: "backend", authenticated: response.authenticated, user: response.user });
+      setAccountDialogMode(null);
+      resetAccountForm();
+      setActiveView("commutes");
+    } catch (error) {
+      if (error instanceof AccountRequestError) {
+        setAccountError(error.message);
+      } else {
+        setAccountError("Google sign-in is unavailable.");
+      }
     } finally {
       setAccountBusy(false);
     }
@@ -2036,6 +2074,21 @@ export function LineWatchShell({
                 </>
               ) : (
                 <>
+                  {authConfig.googleSignInAvailable ? (
+                    <>
+                      <div aria-label="Continue With Google">
+                        <GoogleSignInButton
+                          clientId={authConfig.googleClientId}
+                          disabled={accountBusy}
+                          onCredential={handleGoogleCredential}
+                          onError={setAccountError}
+                        />
+                      </div>
+                      <div className="account-auth-divider" aria-hidden="true">
+                        <span>{accountDialogMode === "login" ? "Or use email" : "Or create with email"}</span>
+                      </div>
+                    </>
+                  ) : null}
                   {accountDialogMode === "register" ? (
                     <label className="account-field">
                       <span>Display name</span>
