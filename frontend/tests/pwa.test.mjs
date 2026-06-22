@@ -277,10 +277,12 @@ async function serviceWorkerPush({
   fetchOk = true,
   fetchBody = {
     notification: {
-      title: "Work Affected",
-      body: "Reduced Speed Zone on Line 1: Glencairn to Lawrence West",
+      title: "⚠️ Line 1 Yonge-University Reduced Speed Zone",
+      body: "Glencairn to Lawrence West.\nAffects Work (Outbound).\n🕗 Jun 5, 10:20 AM",
       url: "/?panel=commutes&commute=commute_1",
       tag: "saved-commute-impact|commute_1|dedupe-1",
+      state: "ACTIVE",
+      timestamp: "2026-06-05T15:00:00Z",
     },
     activeTags: ["saved-commute-impact|commute_1|dedupe-1"],
   },
@@ -623,17 +625,26 @@ describe("LineWatch PWA configuration", () => {
     assert.match(serviceWorkerSource, /\/api\/account\/push\/active/);
   });
 
-  it("shows commute push notifications with the Android badge and no large notification icon", async () => {
+  it("shows commute push notifications with the Android badge and the app icon", async () => {
     const { fetchRequests, shownNotifications } = await serviceWorkerPush();
 
     assert.equal(fetchRequests[0].url, "/api/account/push/latest");
     assert.equal(fetchRequests[1].url, "/api/account/push/active");
     assert.equal(shownNotifications.length, 1);
-    assert.equal(shownNotifications[0].title, "Work Affected");
-    assert.equal(shownNotifications[0].options.body, "Reduced Speed Zone on Line 1: Glencairn to Lawrence West");
+    assert.equal(
+      shownNotifications[0].title,
+      "⚠️ Line 1 Yonge-University Reduced Speed Zone",
+    );
+    assert.equal(
+      shownNotifications[0].options.body,
+      "Glencairn to Lawrence West.\nAffects Work (Outbound).\n🕗 Jun 5, 10:20 AM",
+    );
     assert.equal(shownNotifications[0].options.tag, "saved-commute-impact|commute_1|dedupe-1");
+    assert.equal(
+      shownNotifications[0].options.icon,
+      "/assets/linewatch/pwa/app-icon-192.png",
+    );
     assert.equal(shownNotifications[0].options.badge, "/assets/linewatch/pwa/notification-badge-96.png");
-    assert.equal(Object.hasOwn(shownNotifications[0].options, "icon"), false);
   });
 
   it("closes stale saved-commute notifications when the backend has no active matching tag", async () => {
@@ -661,12 +672,12 @@ describe("LineWatch PWA configuration", () => {
     assert.equal(activeNotification.closed, false);
   });
 
-  it("shows a fallback notification when a pending push is no longer active", async () => {
+  it("does not show a stale active notification or generic fallback", async () => {
     const { shownNotifications } = await serviceWorkerPush({
       fetchBody: {
         notification: {
-          title: "Work Affected",
-          body: "Reduced Speed Zone on Line 1: Glencairn to Lawrence West",
+          title: "⚠️ Line 1 Yonge-University Reduced Speed Zone",
+          body: "Glencairn to Lawrence West.\nAffects Work (Outbound).\n🕗 Jun 5, 10:20 AM",
           url: "/?panel=commutes&commute=commute_1",
           tag: "saved-commute-impact|commute_1|resolved-dedupe",
         },
@@ -674,17 +685,37 @@ describe("LineWatch PWA configuration", () => {
       },
     });
 
+    assert.equal(shownNotifications.length, 0);
+  });
+
+  it("does not show a generic fallback when there is no pending notification", async () => {
+    const { shownNotifications } = await serviceWorkerPush({
+      fetchBody: {
+        notification: null,
+        activeTags: [],
+      },
+    });
+
+    assert.equal(shownNotifications.length, 0);
+  });
+
+  it("shows the controlled fallback only when the pending API request fails", async () => {
+    const { shownNotifications } = await serviceWorkerPush({ fetchOk: false });
+
     assert.equal(shownNotifications.length, 1);
-    assert.equal(shownNotifications[0].title, "LineWatch TO commute update");
-    assert.equal(shownNotifications[0].options.tag, "linewatch-commute-update");
+    assert.equal(shownNotifications[0].title, "⚠️ LineWatch TO Service Alert");
+    assert.equal(
+      shownNotifications[0].options.body,
+      "Open LineWatch TO to view the latest service update.",
+    );
   });
 
   it("shows a cleared saved-commute push as a quiet replacement even when the tag is no longer active", async () => {
     const { shownNotifications } = await serviceWorkerPush({
       fetchBody: {
         notification: {
-          title: "Commute alert cleared",
-          body: "Delay on Line 1: Finch to Union no longer affects this commute.",
+          title: "✅ Line 1 Yonge-University Delay Cleared",
+          body: "Service between Finch and Union has been restored.\nNo longer affects Work (Outbound).\n🕗 Jun 5, 11:00 AM",
           url: "/?panel=commutes&commute=commute_1",
           tag: "saved-commute-impact|commute_1|outbound|delay-line-1",
           state: "CLEARED",
@@ -695,10 +726,10 @@ describe("LineWatch PWA configuration", () => {
     });
 
     assert.equal(shownNotifications.length, 1);
-    assert.equal(shownNotifications[0].title, "Commute alert cleared");
+    assert.equal(shownNotifications[0].title, "✅ Line 1 Yonge-University Delay Cleared");
     assert.equal(
       shownNotifications[0].options.body,
-      "Delay on Line 1: Finch to Union no longer affects this commute.",
+      "Service between Finch and Union has been restored.\nNo longer affects Work (Outbound).\n🕗 Jun 5, 11:00 AM",
     );
     assert.equal(shownNotifications[0].options.tag, "saved-commute-impact|commute_1|outbound|delay-line-1");
     assert.equal(shownNotifications[0].options.renotify, false);

@@ -4,6 +4,7 @@ const APP_SHELL_CACHE = `${CACHE_PREFIX}-${CACHE_VERSION}-shell`;
 const STATIC_CACHE = `${CACHE_PREFIX}-${CACHE_VERSION}-static`;
 const OFFLINE_URL = "/offline.html";
 const NOTIFICATION_BADGE_URL = "/assets/linewatch/pwa/notification-badge-96.png";
+const NOTIFICATION_ICON_URL = "/assets/linewatch/pwa/app-icon-192.png";
 const LINEWATCH_PUSH_CATEGORIES = new Set([
   "saved-commute-impact",
   "saved-commute-current",
@@ -17,7 +18,7 @@ const isDev = new URL(self.location.href).searchParams.get("env") === "dev";
 
 const APP_SHELL_URLS = [
   OFFLINE_URL,
-  "/assets/linewatch/pwa/app-icon-192.png",
+  NOTIFICATION_ICON_URL,
   "/assets/linewatch/pwa/app-icon-512.png",
   "/assets/linewatch/pwa/apple-touch-icon.png",
   "/assets/linewatch/pwa/maskable-app-icon-512.png",
@@ -179,18 +180,21 @@ async function showPendingPushNotification() {
     const notification = body.notification;
     const activeTags = await reconcilePushNotifications();
     if (!notification) {
-      await showFallbackPushNotification();
       return;
     }
     const notificationState = notification.state === "CLEARED" ? "CLEARED" : "ACTIVE";
-    if (notificationState !== "CLEARED" && Array.isArray(activeTags) && !activeTags.includes(notification.tag)) {
-      await showFallbackPushNotification();
+    if (
+      notificationState !== "CLEARED"
+      && Array.isArray(activeTags)
+      && !activeTags.includes(notification.tag)
+    ) {
       return;
     }
 
     const options = {
       body: notification.body,
       tag: notification.tag,
+      icon: NOTIFICATION_ICON_URL,
       badge: NOTIFICATION_BADGE_URL,
       renotify: false,
       requireInteraction: false,
@@ -214,9 +218,10 @@ async function showPendingPushNotification() {
 }
 
 async function showFallbackPushNotification() {
-  await self.registration.showNotification("LineWatch TO commute update", {
-    body: "Open LineWatch TO to check your saved commute.",
+  await self.registration.showNotification("⚠️ LineWatch TO Service Alert", {
+    body: "Open LineWatch TO to view the latest service update.",
     tag: FALLBACK_PUSH_TAG,
+    icon: NOTIFICATION_ICON_URL,
     badge: NOTIFICATION_BADGE_URL,
     data: {
       url: "/",
