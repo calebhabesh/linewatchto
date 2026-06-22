@@ -20,24 +20,32 @@ public class SavedCommutePushPlanner {
     private final CommutePathService commutePathService;
     private final CommuteImpactService commuteImpactService;
     private final Clock clock;
+    private final PushNotificationFormatter formatter;
     private static final ZoneId TORONTO_ZONE = ZoneId.of("America/Toronto");
 
     @Autowired
     public SavedCommutePushPlanner(
         CommutePathService commutePathService,
         CommuteImpactService commuteImpactService,
-        Clock clock
+        Clock clock,
+        PushNotificationFormatter formatter
     ) {
         this.commutePathService = commutePathService;
         this.commuteImpactService = commuteImpactService;
         this.clock = clock;
+        this.formatter = formatter;
     }
 
     public SavedCommutePushPlanner(
         CommutePathService commutePathService,
         CommuteImpactService commuteImpactService
     ) {
-        this(commutePathService, commuteImpactService, Clock.systemUTC());
+        this(
+            commutePathService,
+            commuteImpactService,
+            Clock.systemUTC(),
+            new PushNotificationFormatter()
+        );
     }
 
     public List<PushNotificationCandidate> candidatesFor(SavedCommuteEntity commute) {
@@ -119,9 +127,22 @@ public class SavedCommutePushPlanner {
         String reminderBucket
     ) {
         boolean planned = "saved-commute-planned".equals(category);
-        String title = titleCase(commute.getLabel() + (planned ? " planned closure" : " affected"));
-        String body = impactKindLabel(match.kind()) + linePart(match.lineNumber()) + locationPart(match.location());
-        
+        OffsetDateTime eventTime = planned ? match.eventStartAt() : match.startedAt();
+        Instant sourceEventAt = eventTime == null ? null : eventTime.toInstant();
+
+        FormattedPushNotification notification = formatter.formatActive(new PushNotificationFacts(
+            match.lineId(),
+            match.lineNumber(),
+            eventType,
+            reminderBucket,
+            match.location(),
+            match.displayDirection(),
+            false,
+            commute.getLabel(),
+            legId,
+            sourceEventAt
+        ));
+
         String segmentIds = String.join(",", emptyWhenNull(match.matchedSegmentIds()));
         String stationIds = String.join(",", emptyWhenNull(match.matchedStationIds()));
         
@@ -151,13 +172,13 @@ public class SavedCommutePushPlanner {
             commute.getId(),
             legId,
             match.lineId(),
+            match.lineNumber(),
             category,
             eventType,
             reminderBucket,
             notificationKey,
             dedupeKey,
-            title,
-            body,
+            notification,
             "/?panel=commutes&commute=" + commute.getId()
         );
     }
@@ -179,46 +200,7 @@ public class SavedCommutePushPlanner {
         return values == null ? List.of() : values;
     }
 
-    private String impactKindLabel(String kind) {
-        return switch (safe(kind)) {
-            case "reduced-speed-zone" -> "Reduced Speed Zone";
-            case "planned-closure" -> "Planned Closure";
-            case "suspension" -> "Suspension";
-            case "delay" -> "Delay";
-            default -> "Service Alert";
-        };
-    }
-
-    private String linePart(String lineNumber) {
-        return lineNumber == null || lineNumber.isBlank() ? "" : " on Line " + lineNumber.trim();
-    }
-
-    private String locationPart(String location) {
-        return location == null || location.isBlank() ? "" : ": " + location.trim();
-    }
-
     private String safe(String value) {
         return value == null ? "" : value.trim().toLowerCase(Locale.ROOT);
-    }
-
-    private String titleCase(String value) {
-        String trimmed = value == null ? "" : value.trim();
-        if (trimmed.isEmpty()) {
-            return "";
-        }
-
-        StringBuilder builder = new StringBuilder(trimmed.length());
-        boolean nextLetterStartsWord = true;
-        for (int index = 0; index < trimmed.length(); index++) {
-            char current = trimmed.charAt(index);
-            if (Character.isLetter(current)) {
-                builder.append(nextLetterStartsWord ? Character.toUpperCase(current) : current);
-                nextLetterStartsWord = false;
-            } else {
-                builder.append(current);
-                nextLetterStartsWord = Character.isWhitespace(current) || current == '-' || current == '/';
-            }
-        }
-        return builder.toString();
     }
 }

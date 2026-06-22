@@ -1,17 +1,19 @@
 package com.calebhabesh.linewatch.push;
 
+import java.time.Instant;
+
 public record PushNotificationCandidate(
     String accountId,
     String commuteId,
     String legId,
     String lineId,
+    String lineNumber,
     String category,
     String eventType,
     String reminderBucket,
     String notificationKey,
     String dedupeKey,
-    String title,
-    String body,
+    FormattedPushNotification notification,
     String url
 ) {
     public boolean savedCommuteScoped() {
@@ -24,5 +26,29 @@ public record PushNotificationCandidate(
 
     public boolean clearedUpdate() {
         return "service-restored".equals(eventType);
+    }
+
+    public String title() {
+        return notification.title();
+    }
+
+    public String body() {
+        return notification.body();
+    }
+
+    public String notificationSubject() {
+        return notification.notificationSubject();
+    }
+
+    public String eventLocation() {
+        return notification.eventLocation();
+    }
+
+    public String scopeLabel() {
+        return notification.scopeLabel();
+    }
+
+    public Instant sourceEventAt() {
+        return notification.sourceEventAt();
     }
 }

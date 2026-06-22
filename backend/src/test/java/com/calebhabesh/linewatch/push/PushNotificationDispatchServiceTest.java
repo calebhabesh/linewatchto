@@ -25,6 +25,7 @@ class PushNotificationDispatchServiceTest {
     private final PushNotificationPreferenceService preferenceService = mock(PushNotificationPreferenceService.class);
     private final LineSubscriptionPushPlanner lineSubscriptionPushPlanner = mock(LineSubscriptionPushPlanner.class);
     private final Clock clock = Clock.fixed(Instant.parse("2026-06-05T15:00:00Z"), ZoneOffset.UTC);
+    private final PushNotificationFormatter formatter = new PushNotificationFormatter();
     private final PushNotificationDispatchService service = new PushNotificationDispatchService(
         savedCommuteRepository,
         planner,
@@ -57,18 +58,19 @@ class PushNotificationDispatchServiceTest {
             true,
             Instant.parse("2026-06-05T14:30:00Z")
         );
-        PushNotificationCandidate candidate = new PushNotificationCandidate(
-            "user_1",
+        PushNotificationCandidate candidate = candidate(
             "commute_1",
             "outbound",
             "line-1",
+            "1",
             "saved-commute-impact",
             "delay",
             "on-change",
             "saved-commute-impact|commute_1|outbound|delay|delay-line-1",
             "dedupe-1",
-            "Morning commute affected",
-            "Delay on Line 1: Finch to Union",
+            "Finch to Union",
+            "Morning commute",
+            Instant.parse("2026-06-05T14:20:00Z"),
             "/?panel=commutes&commute=commute_1"
         );
         PushSubscriptionEntity subscription = PushSubscriptionEntity.create(
@@ -118,18 +120,19 @@ class PushNotificationDispatchServiceTest {
             true,
             Instant.parse("2026-06-05T14:30:00Z")
         );
-        PushNotificationCandidate candidate = new PushNotificationCandidate(
-            "user_1",
+        PushNotificationCandidate candidate = candidate(
             "commute_1",
             "outbound",
             "line-1",
+            "1",
             "saved-commute-impact",
             "delay",
             "on-change",
             "saved-commute-impact|commute_1|outbound|delay|delay-line-1",
             "dedupe-1",
-            "Morning commute affected",
-            "Delay on Line 1: Finch to Union",
+            "Finch to Union",
+            "Morning commute",
+            Instant.parse("2026-06-05T14:20:00Z"),
             "/?panel=commutes&commute=commute_1"
         );
         PushSubscriptionEntity subscription = PushSubscriptionEntity.create(
@@ -175,18 +178,19 @@ class PushNotificationDispatchServiceTest {
             true,
             Instant.parse("2026-06-05T14:30:00Z")
         );
-        PushNotificationCandidate candidate = new PushNotificationCandidate(
-            "user_1",
+        PushNotificationCandidate candidate = candidate(
             "commute_1",
             "outbound",
             "line-1",
+            "1",
             "saved-commute-impact",
             "delay",
             "on-change",
             "saved-commute-impact|commute_1|outbound|delay|delay-line-1",
             "dedupe-1",
-            "Morning commute affected",
-            "Delay on Line 1: Finch to Union",
+            "Finch to Union",
+            "Morning commute",
+            Instant.parse("2026-06-05T14:20:00Z"),
             "/?panel=commutes&commute=commute_1"
         );
         PushNotificationPreferenceEntity preferences = PushNotificationPreferenceEntity.create(account, Instant.parse("2026-06-05T14:00:00Z"));
@@ -218,18 +222,19 @@ class PushNotificationDispatchServiceTest {
             true,
             Instant.parse("2026-06-05T14:30:00Z")
         );
-        PushNotificationCandidate previousCandidate = new PushNotificationCandidate(
-            "user_1",
+        PushNotificationCandidate previousCandidate = candidate(
             "commute_1",
             "outbound",
             "line-1",
+            "1",
             "saved-commute-impact",
             "delay",
             "on-change",
             "saved-commute-impact|commute_1|outbound|delay|delay-line-1",
             "dedupe-1",
-            "Morning Commute Affected",
-            "Delay on Line 1: Finch to Union",
+            "Finch to Union",
+            "Morning commute",
+            Instant.parse("2026-06-05T14:20:00Z"),
             "/?panel=commutes&commute=commute_1"
         );
         PushNotificationEventEntity previousEvent = PushNotificationEventEntity.create(
@@ -301,10 +306,10 @@ class PushNotificationDispatchServiceTest {
 
         when(preferenceService.subscribedLineIds("user_1")).thenReturn(List.of("line-1"));
         
-        PushNotificationCandidate line1Candidate = new PushNotificationCandidate(
-            "user_1", null, null, "line-1", "line-current", "delay", "on-change",
+        PushNotificationCandidate line1Candidate = candidate(
+            null, null, "line-1", "1", "line-current", "delay", "on-change",
             "line-current|line-1|delay|alert-1", "user_1|line|line-1|delay|on-change|alert-1",
-            "Line 1 delay", "Delay on Line 1", "/?panel=delays"
+            "Finch to Union", null, clock.instant(), "/?panel=delays"
         );
         when(lineSubscriptionPushPlanner.candidatesFor("user_1", List.of("line-1"))).thenReturn(List.of(line1Candidate));
         when(preferenceService.allows(preferences, line1Candidate)).thenReturn(true);
@@ -326,10 +331,10 @@ class PushNotificationDispatchServiceTest {
 
         when(preferenceService.subscribedLineIds("user_1")).thenReturn(List.of("line-1"));
         
-        PushNotificationCandidate rszCandidate = new PushNotificationCandidate(
-            "user_1", null, null, "line-1", "line-current", "reduced-speed-zone", "on-change",
+        PushNotificationCandidate rszCandidate = candidate(
+            null, null, "line-1", "1", "line-current", "reduced-speed-zone", "on-change",
             "line-current|line-1|reduced-speed-zone|zone-1", "user_1|line|line-1|reduced-speed-zone|on-change|zone-1",
-            "Line 1 service alert", "Reduced Speed Zone", "/?panel=reduced-speed-zones"
+            "Finch to Union", null, clock.instant(), "/?panel=reduced-speed-zones"
         );
         when(lineSubscriptionPushPlanner.candidatesFor("user_1", List.of("line-1"))).thenReturn(List.of(rszCandidate));
         
@@ -359,10 +364,10 @@ class PushNotificationDispatchServiceTest {
 
         when(preferenceService.subscribedLineIds("user_1")).thenReturn(List.of("line-1"));
         
-        PushNotificationCandidate rszCandidate = new PushNotificationCandidate(
-            "user_1", null, null, "line-1", "line-current", "reduced-speed-zone", "on-change",
+        PushNotificationCandidate rszCandidate = candidate(
+            null, null, "line-1", "1", "line-current", "reduced-speed-zone", "on-change",
             "line-current|line-1|reduced-speed-zone|zone-1", "user_1|line|line-1|reduced-speed-zone|on-change|zone-1",
-            "Line 1 service alert", "Reduced Speed Zone", "/?panel=reduced-speed-zones"
+            "Finch to Union", null, clock.instant(), "/?panel=reduced-speed-zones"
         );
         when(lineSubscriptionPushPlanner.candidatesFor("user_1", List.of("line-1"))).thenReturn(List.of(rszCandidate));
         
@@ -384,9 +389,9 @@ class PushNotificationDispatchServiceTest {
         SavedCommuteEntity commute = SavedCommuteEntity.create("commute_1", account, "Work", "glencairn", "lawrence-west", false, clock.instant());
         when(savedCommuteRepository.findByAccountIdOrderByCreatedAtAsc("user_1")).thenReturn(List.of(commute));
 
-        PushNotificationCandidate commuteImpact = new PushNotificationCandidate(
-            "user_1", "commute_1", "outbound", "line-1", "saved-commute-current", "delay", "on-change",
-            "saved-commute-current|commute_1|outbound|delay|delay-line-1", "dedupe-1", "Work Affected", "Delay on Line 1", "/?panel=commutes"
+        PushNotificationCandidate commuteImpact = candidate(
+            "commute_1", "outbound", "line-1", "1", "saved-commute-current", "delay", "on-change",
+            "saved-commute-current|commute_1|outbound|delay|delay-line-1", "dedupe-1", "Finch to Union", "Work", clock.instant(), "/?panel=commutes"
         );
         when(planner.candidatesFor(commute)).thenReturn(List.of(commuteImpact));
         
@@ -406,9 +411,9 @@ class PushNotificationDispatchServiceTest {
         
         when(subscriptionRepository.findEnabledAccountIds()).thenReturn(List.of("user_1"));
 
-        PushNotificationCandidate previousCandidate = new PushNotificationCandidate(
-            "user_1", "commute_1", "outbound", "line-1", "saved-commute-current", "delay", "on-change",
-            "saved-commute-current|commute_1|outbound|delay|delay-line-1", "dedupe-1", "Work Affected", "Delay on Line 1", "/?panel=commutes"
+        PushNotificationCandidate previousCandidate = candidate(
+            "commute_1", "outbound", "line-1", "1", "saved-commute-current", "delay", "on-change",
+            "saved-commute-current|commute_1|outbound|delay|delay-line-1", "dedupe-1", "Finch to Union", "Work", clock.instant(), "/?panel=commutes"
         );
         PushNotificationEventEntity previousEvent = PushNotificationEventEntity.create("event-1", previousCandidate, clock.instant());
 
@@ -430,10 +435,10 @@ class PushNotificationDispatchServiceTest {
 
         when(subscriptionRepository.findEnabledAccountIds()).thenReturn(List.of("user_1"));
 
-        PushNotificationCandidate previousCandidate = new PushNotificationCandidate(
-            "user_1", null, null, "line-1", "line-current", "delay", "on-change",
+        PushNotificationCandidate previousCandidate = candidate(
+            null, null, "line-1", "1", "line-current", "delay", "on-change",
             "line-current|line-1|delay|alert-1", "user_1|line|line-1|delay|on-change|alert-1",
-            "Line 1 delay", "Delay on Line 1", "/?panel=delays"
+            "Finch to Union", null, Instant.parse("2026-06-05T14:20:00Z"), "/?panel=delays"
         );
         PushNotificationEventEntity previousEvent = PushNotificationEventEntity.create("event-1", previousCandidate, clock.instant());
 
@@ -453,4 +458,48 @@ class PushNotificationDispatchServiceTest {
         assertThat(clearedEvent.getTitle()).isEqualTo("Line alert cleared");
         assertThat(clearedEvent.getBody()).isEqualTo("Delay on Line 1 has been cleared.");
     }
+
+    private PushNotificationCandidate candidate(
+        String commuteId,
+        String legId,
+        String lineId,
+        String lineNumber,
+        String category,
+        String eventType,
+        String reminderBucket,
+        String notificationKey,
+        String dedupeKey,
+        String location,
+        String commuteLabel,
+        Instant sourceEventAt,
+        String url
+    ) {
+        FormattedPushNotification notification = formatter.formatActive(new PushNotificationFacts(
+            lineId,
+            lineNumber,
+            eventType,
+            reminderBucket,
+            location,
+            null,
+            false,
+            commuteLabel,
+            legId,
+            sourceEventAt
+        ));
+        return new PushNotificationCandidate(
+            "user_1",
+            commuteId,
+            legId,
+            lineId,
+            lineNumber,
+            category,
+            eventType,
+            reminderBucket,
+            notificationKey,
+            dedupeKey,
+            notification,
+            url
+        );
+    }
 }
+

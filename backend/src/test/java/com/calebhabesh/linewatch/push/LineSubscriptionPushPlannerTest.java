@@ -14,7 +14,8 @@ import org.junit.jupiter.api.Test;
 class LineSubscriptionPushPlannerTest {
     private final AlertDashboardService dashboardService = mock(AlertDashboardService.class);
     private final Clock clock = Clock.fixed(Instant.parse("2026-06-05T15:00:00Z"), ZoneOffset.UTC);
-    private final LineSubscriptionPushPlanner planner = new LineSubscriptionPushPlanner(dashboardService, clock);
+    private final PushNotificationFormatter formatter = new PushNotificationFormatter();
+    private final LineSubscriptionPushPlanner planner = new LineSubscriptionPushPlanner(dashboardService, clock, formatter);
 
     @Test
     void plansLineSuspensionAndDelayAndRSZAndPlannedClosure() {
@@ -114,6 +115,13 @@ class LineSubscriptionPushPlannerTest {
             assertThat(c.lineId()).isEqualTo("line-1");
             assertThat(c.notificationKey()).isEqualTo("line-current|line-1|suspension|alert-1");
             assertThat(c.dedupeKey()).isEqualTo("user_1|line|line-1|suspension|on-change|alert-1");
+            assertThat(c.title()).isEqualTo("⚠️ Line 1 Yonge-University Suspension");
+            assertThat(c.body()).isEqualTo("""
+                St George to Sheppard West.
+                🕗 Jun 5, 6:00 AM""");
+            assertThat(c.notificationSubject()).isEqualTo("Line 1 Yonge-University Suspension");
+            assertThat(c.eventLocation()).isEqualTo("St George to Sheppard West");
+            assertThat(c.sourceEventAt()).isEqualTo(Instant.parse("2026-06-05T10:00:00Z"));
         });
 
         assertThat(candidates).filteredOn(c -> "delay".equals(c.eventType())).isEmpty();
@@ -122,6 +130,8 @@ class LineSubscriptionPushPlannerTest {
             assertThat(c.category()).isEqualTo("line-current");
             assertThat(c.lineId()).isEqualTo("line-1");
             assertThat(c.notificationKey()).isEqualTo("line-current|line-1|reduced-speed-zone|zone-1");
+            assertThat(c.title()).isEqualTo("⚠️ Line 1 Yonge-University Reduced Speed Zone");
+            assertThat(c.body()).contains("Eglinton to Davisville.");
         });
 
         List<PushNotificationCandidate> closureCandidates = candidates.stream()
@@ -130,5 +140,13 @@ class LineSubscriptionPushPlannerTest {
         assertThat(closureCandidates).hasSize(2);
         assertThat(closureCandidates).extracting(PushNotificationCandidate::reminderBucket)
             .containsExactlyInAnyOrder("on-change", "closure-24h");
+
+        for (PushNotificationCandidate candidate : closureCandidates) {
+            assertThat(candidate.title()).isEqualTo("⚠️ Line 1 Yonge-University Planned Closure");
+            assertThat(candidate.sourceEventAt()).isEqualTo(eventStart.toInstant());
+            if ("closure-24h".equals(candidate.reminderBucket())) {
+                assertThat(candidate.body()).contains("Starts within 24 hours.");
+            }
+        }
     }
 }

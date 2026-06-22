@@ -20,7 +20,8 @@ class SavedCommutePushPlannerTest {
     private final CommutePathService commutePathService = mock(CommutePathService.class);
     private final CommuteImpactService commuteImpactService = mock(CommuteImpactService.class);
     private final java.time.Clock clock = java.time.Clock.fixed(Instant.parse("2026-06-05T15:00:00Z"), java.time.ZoneOffset.UTC);
-    private final SavedCommutePushPlanner planner = new SavedCommutePushPlanner(commutePathService, commuteImpactService, clock);
+    private final PushNotificationFormatter formatter = new PushNotificationFormatter();
+    private final SavedCommutePushPlanner planner = new SavedCommutePushPlanner(commutePathService, commuteImpactService, clock, formatter);
 
     private final AccountEntity account = AccountEntity.create(
         "user_1",
@@ -77,8 +78,15 @@ class SavedCommutePushPlannerTest {
             assertThat(candidate.legId()).isEqualTo("outbound");
             assertThat(candidate.category()).isEqualTo("saved-commute-current");
             assertThat(candidate.notificationKey()).isEqualTo("saved-commute-current|commute_1|outbound|delay|delay-line-1");
-            assertThat(candidate.title()).isEqualTo("Morning Commute Affected");
-            assertThat(candidate.body()).isEqualTo("Delay on Line 1: Finch to Union");
+            assertThat(candidate.title()).isEqualTo("⚠️ Line 1 Yonge-University Delay");
+            assertThat(candidate.body()).isEqualTo("""
+                Finch to Union.
+                Southbound.
+                Affects Morning commute (Outbound).
+                🕗 Jun 5, 10:20 AM""");
+            assertThat(candidate.notificationSubject()).isEqualTo("Line 1 Yonge-University Delay");
+            assertThat(candidate.scopeLabel()).isEqualTo("Morning commute (Outbound)");
+            assertThat(candidate.sourceEventAt()).isEqualTo(Instant.parse("2026-06-05T14:20:00Z"));
             assertThat(candidate.url()).isEqualTo("/?panel=commutes&commute=commute_1");
             assertThat(candidate.dedupeKey()).isEqualTo(
                 "user_1|commute_1|outbound|delay|on-change|delay-line-1|segments:line-1-finch-union|stations:"
@@ -91,7 +99,7 @@ class SavedCommutePushPlannerTest {
         SavedCommuteEntity commute = SavedCommuteEntity.create(
             "commute_2",
             account,
-            "Evening route",
+            "Evening Route",
             "union",
             "keele",
             true,
@@ -128,8 +136,9 @@ class SavedCommutePushPlannerTest {
 
         assertThat(candidates).singleElement().satisfies(candidate -> {
             assertThat(candidate.legId()).isEqualTo("return");
-            assertThat(candidate.title()).isEqualTo("Evening Route Planned Closure");
-            assertThat(candidate.body()).isEqualTo("Planned Closure on Line 2: Keele to Union");
+            assertThat(candidate.title()).isEqualTo("⚠️ Line 2 Bloor-Danforth Planned Closure");
+            assertThat(candidate.body()).contains("Affects Evening Route (Return).");
+            assertThat(candidate.body()).endsWith("🕗 Jun 7, 12:00 AM");
             assertThat(candidate.category()).isEqualTo("saved-commute-planned");
         });
     }
@@ -196,6 +205,7 @@ class SavedCommutePushPlannerTest {
             assertThat(candidate.category()).isEqualTo("saved-commute-current");
             assertThat(candidate.eventType()).isEqualTo("reduced-speed-zone");
             assertThat(candidate.reminderBucket()).isEqualTo("on-change");
+            assertThat(candidate.title()).isEqualTo("⚠️ Line 1 Yonge-University Reduced Speed Zone");
         });
     }
 

@@ -26,6 +26,7 @@ class PushNotificationServiceTest {
     private final PushNotificationPreferenceService preferenceService = mock(PushNotificationPreferenceService.class);
     private final LineSubscriptionPushPlanner lineSubscriptionPushPlanner = mock(LineSubscriptionPushPlanner.class);
     private final Clock clock = Clock.fixed(Instant.parse("2026-06-05T15:00:00Z"), ZoneOffset.UTC);
+    private final PushNotificationFormatter formatter = new PushNotificationFormatter();
     private final PushNotificationService service = new PushNotificationService(
         properties,
         subscriptionRepository,
@@ -67,32 +68,34 @@ class PushNotificationServiceTest {
             "Chrome Android",
             Instant.parse("2026-06-05T14:45:00Z")
         );
-        PushNotificationCandidate commuteImpact = new PushNotificationCandidate(
-            "user_1",
+        PushNotificationCandidate commuteImpact = candidate(
             "commute_1",
             "outbound",
             "line-1",
+            "1",
             "saved-commute-impact",
             "reduced-speed-zone",
             "on-change",
             "saved-commute-impact|commute_1|outbound|reduced-speed-zone|rsz-line-1",
             "dedupe-1",
-            "Work Affected",
-            "Reduced Speed Zone on Line 1: Glencairn to Lawrence West",
+            "Glencairn to Lawrence West",
+            "Work",
+            clock.instant(),
             "/?panel=commutes&commute=commute_1"
         );
-        PushNotificationCandidate plannedClosure = new PushNotificationCandidate(
-            "user_1",
+        PushNotificationCandidate plannedClosure = candidate(
             "commute_1",
             "outbound",
             "line-1",
+            "1",
             "saved-commute-planned",
             "planned-closure",
             "on-change",
             "saved-commute-planned|commute_1|outbound|planned-closure|closure-line-1",
             "planned-dedupe-1",
-            "Work Planned Closure",
-            "Planned Closure on Line 1: Glencairn to Lawrence West",
+            "Glencairn to Lawrence West",
+            "Work",
+            clock.instant(),
             "/?panel=commutes&commute=commute_1"
         );
         subscription.updatePreferences(true, false, Instant.parse("2026-06-05T14:50:00Z"));
@@ -129,18 +132,19 @@ class PushNotificationServiceTest {
             "Chrome Android",
             Instant.parse("2026-06-05T14:45:00Z")
         );
-        PushNotificationCandidate candidate = new PushNotificationCandidate(
-            "user_1",
+        PushNotificationCandidate candidate = candidate(
             "commute_1",
             "outbound",
             "line-1",
+            "1",
             "saved-commute-impact",
             "delay",
             "on-change",
             "saved-commute-impact|commute_1|outbound|delay|delay-line-1",
             "dedupe-1",
-            "Morning Commute Affected",
-            "Delay on Line 1: Finch to Union",
+            "Finch to Union",
+            "Morning commute",
+            Instant.parse("2026-06-05T14:20:00Z"),
             "/?panel=commutes&commute=commute_1"
         );
         PushNotificationEventEntity event = PushNotificationEventEntity.create(
@@ -170,5 +174,48 @@ class PushNotificationServiceTest {
         assertThat(response.notification().tag()).isEqualTo("saved-commute-impact|commute_1|outbound|delay|delay-line-1");
         assertThat(response.notification().state()).isEqualTo("ACTIVE");
         assertThat(response.notification().timestamp()).isEqualTo("2026-06-05T15:00:00Z");
+    }
+
+    private PushNotificationCandidate candidate(
+        String commuteId,
+        String legId,
+        String lineId,
+        String lineNumber,
+        String category,
+        String eventType,
+        String reminderBucket,
+        String notificationKey,
+        String dedupeKey,
+        String location,
+        String commuteLabel,
+        Instant sourceEventAt,
+        String url
+    ) {
+        FormattedPushNotification notification = formatter.formatActive(new PushNotificationFacts(
+            lineId,
+            lineNumber,
+            eventType,
+            reminderBucket,
+            location,
+            null,
+            false,
+            commuteLabel,
+            legId,
+            sourceEventAt
+        ));
+        return new PushNotificationCandidate(
+            "user_1",
+            commuteId,
+            legId,
+            lineId,
+            lineNumber,
+            category,
+            eventType,
+            reminderBucket,
+            notificationKey,
+            dedupeKey,
+            notification,
+            url
+        );
     }
 }
