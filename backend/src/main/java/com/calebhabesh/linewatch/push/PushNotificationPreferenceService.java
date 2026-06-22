@@ -19,15 +19,6 @@ public class PushNotificationPreferenceService {
     private final AccountRepository accountRepository;
     private final Clock clock;
 
-    private static record LineMetadata(String id, String number, String label) {}
-
-    private static final List<LineMetadata> SUPPORTED_LINES = List.of(
-        new LineMetadata("line-1", "1", "Yonge-University"),
-        new LineMetadata("line-2", "2", "Bloor-Danforth"),
-        new LineMetadata("line-4", "4", "Sheppard"),
-        new LineMetadata("line-5", "5", "Eglinton"),
-        new LineMetadata("line-6", "6", "Finch West")
-    );
 
     @Autowired
     public PushNotificationPreferenceService(
@@ -61,7 +52,7 @@ public class PushNotificationPreferenceService {
         List<PushLineSubscriptionEntity> lineSubs = lineSubscriptionRepository.findByAccountIdOrderByLineIdAsc(account.getId());
         List<PushResponses.LineSubscriptionResponse> lineResponses = new ArrayList<>();
 
-        for (LineMetadata line : SUPPORTED_LINES) {
+        for (PushLineCatalog.LineMetadata line : PushLineCatalog.supportedLines()) {
             PushLineSubscriptionEntity sub = lineSubs.stream()
                 .filter(s -> s.getLineId().equals(line.id()))
                 .findFirst()
@@ -95,7 +86,7 @@ public class PushNotificationPreferenceService {
         if (request.lineSubscriptions() != null && request.lineSubscriptions().lines() != null) {
             for (PushRequests.LineSubscriptionSelectionRequest selection : request.lineSubscriptions().lines()) {
                 String lineId = selection.lineId();
-                boolean isSupported = SUPPORTED_LINES.stream().anyMatch(line -> line.id().equals(lineId));
+                boolean isSupported = PushLineCatalog.supportedLines().stream().anyMatch(line -> line.id().equals(lineId));
                 if (!isSupported) {
                     throw new AccountException(HttpStatus.BAD_REQUEST, "invalid_line_subscription", "Line subscription not supported for: " + lineId);
                 }
