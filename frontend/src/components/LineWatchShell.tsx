@@ -2032,7 +2032,51 @@ export function LineWatchShell({
                 handleSubmitAccount();
               }}
             >
-              {accountDialogMode === "link-google" ? (
+              {accountDialogMode === "auth-choice" ? (
+                <>
+                  <div className="account-provider-stack">
+                    <button
+                      type="button"
+                      className="account-choice-primary"
+                      onClick={openEmailAuth}
+                      disabled={accountBusy}
+                    >
+                      <Mail size={18} />
+                      Continue With Email
+                    </button>
+                    {authConfig.googleSignInAvailable ? (
+                      <>
+                        <div className="account-auth-divider" aria-hidden="true">
+                          <span>Or</span>
+                        </div>
+                        <div aria-label="Continue With Google">
+                          <GoogleSignInButton
+                            clientId={authConfig.googleClientId}
+                            disabled={accountBusy}
+                            onCredential={handleGoogleCredential}
+                            onError={setAccountError}
+                          />
+                        </div>
+                      </>
+                    ) : null}
+                  </div>
+                  {accountError ? (
+                    <p id="account-error-live" role="alert" className="text-xs font-semibold text-red-600 dark:text-red-300">
+                      {accountError}
+                    </p>
+                  ) : null}
+                  <button
+                    type="button"
+                    className="account-link-button"
+                    onClick={() => {
+                      setAccountError(null);
+                      setAccountEntryIntent(accountEntryIntent === "login" ? "register" : "login");
+                    }}
+                  >
+                    {accountEntryIntent === "login" ? "Create Account" : "Already Have Account?"}
+                  </button>
+                </>
+              ) : accountDialogMode === "link-google" ? (
                 <>
                   <p className="account-reset-hint">
                     Link Google sign-in to {accountState.user?.email}. The Google account email must match this LineWatch account.
@@ -2178,21 +2222,6 @@ export function LineWatchShell({
                 </>
               ) : (
                 <>
-                  {authConfig.googleSignInAvailable ? (
-                    <>
-                      <div aria-label="Continue With Google">
-                        <GoogleSignInButton
-                          clientId={authConfig.googleClientId}
-                          disabled={accountBusy}
-                          onCredential={handleGoogleCredential}
-                          onError={setAccountError}
-                        />
-                      </div>
-                      <div className="account-auth-divider" aria-hidden="true">
-                        <span>{accountDialogMode === "login" ? "Or use email" : "Or create with email"}</span>
-                      </div>
-                    </>
-                  ) : null}
                   {accountDialogMode === "register" ? (
                     <label className="account-field">
                       <span>Display name</span>
@@ -2247,6 +2276,16 @@ export function LineWatchShell({
                   ) : null}
                   <button type="submit" className="account-primary-button" disabled={accountBusy}>
                     {accountDialogMode === "login" ? "Sign In" : "Create Account"}
+                  </button>
+                  <button
+                    type="button"
+                    className="account-link-button"
+                    onClick={() => {
+                      setAccountError(null);
+                      setAccountDialogMode("auth-choice");
+                    }}
+                  >
+                    Back To Options
                   </button>
                 </>
               )}
