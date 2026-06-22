@@ -8,10 +8,12 @@ import {
   createSavedCommute,
   disablePushSubscription,
   getLatestPushNotificationForSubscription,
+  getAuthConfig,
   getCurrentAccount,
   getPushNotificationConfig,
   getSavedCommutes,
   loginDemoAccount,
+  loginWithGoogle,
   logoutAccount,
   registerAccount,
   requestPasswordReset,
@@ -534,5 +536,63 @@ describe("account data adapter", () => {
     }));
     assert.equal(requests[3].input, "/api/account/push/subscription/disable");
     assert.equal(requests[3].init.method, "POST");
+  });
+
+  it("loads auth configuration", async () => {
+    const result = await getAuthConfig({
+      fetcher: async (input, init) => {
+        assert.equal(input, "/api/auth/config");
+        assert.equal(init.method, "GET");
+        assert.equal(init.credentials, "include");
+        return new Response(
+          JSON.stringify({
+            googleSignInAvailable: true,
+            googleClientId: "client-123.apps.googleusercontent.com",
+          }),
+          { status: 200, headers: { "content-type": "application/json" } }
+        );
+      },
+    });
+
+    assert.equal(result.source, "backend");
+    assert.equal(result.config.googleSignInAvailable, true);
+    assert.equal(result.config.googleClientId, "client-123.apps.googleusercontent.com");
+  });
+
+  it("falls back to unavailable auth config when backend cannot be reached", async () => {
+    const result = await getAuthConfig({
+      fetcher: async () => {
+        throw new Error("offline");
+      },
+    });
+
+    assert.equal(result.source, "unavailable");
+    assert.equal(result.config.googleSignInAvailable, false);
+    assert.equal(result.config.googleClientId, "");
+  });
+
+  it("posts Google credential with credentials included", async () => {
+    const requests = [];
+    const result = await loginWithGoogle(
+      { credential: "google-id-token" },
+      {
+        fetcher: async (input, init) => {
+          requests.push({ input, init });
+          return new Response(
+            JSON.stringify({
+              authenticated: true,
+              user: { id: "user_google", email: "rider@example.com", displayName: "Transit Rider", demo: false },
+            }),
+            { status: 200, headers: { "content-type": "application/json" } }
+          );
+        },
+      }
+    );
+
+    assert.equal(result.authenticated, true);
+    assert.equal(requests[0].input, "/api/auth/google");
+    assert.equal(requests[0].init.method, "POST");
+    assert.equal(requests[0].init.credentials, "include");
+    assert.equal(requests[0].init.body, JSON.stringify({ credential: "google-id-token" }));
   });
 });

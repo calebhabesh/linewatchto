@@ -26,6 +26,22 @@ export type AuthResponse = {
   user: AccountUser | null;
 };
 
+export type AuthConfig = {
+  googleSignInAvailable: boolean;
+  googleClientId: string;
+};
+
+export type AuthConfigResult = {
+  source: "backend" | "unavailable";
+  config: AuthConfig;
+  message?: string;
+};
+
+export const unavailableAuthConfig: AuthConfig = {
+  googleSignInAvailable: false,
+  googleClientId: "",
+};
+
 export type PasswordResetRequestResponse = {
   accepted: boolean;
   message: string;
@@ -360,6 +376,23 @@ async function authJsonRequest<T>(path: string, init: RequestInit = {}, options:
 
 async function authRequest(path: string, init: RequestInit = {}, options: AdapterOptions = {}): Promise<AuthResponse> {
   return authJsonRequest<AuthResponse>(path, init, options);
+}
+
+export async function getAuthConfig(options: AdapterOptions = {}): Promise<AuthConfigResult> {
+  try {
+    const config = await authJsonRequest<AuthConfig>("/api/auth/config", { method: "GET", headers: {} }, options);
+    return { source: "backend", config };
+  } catch {
+    return {
+      source: "unavailable",
+      config: unavailableAuthConfig,
+      message: "Auth configuration unavailable.",
+    };
+  }
+}
+
+export async function loginWithGoogle(input: { credential: string }, options: AdapterOptions = {}) {
+  return authRequest("/api/auth/google", { method: "POST", body: JSON.stringify(input) }, options);
 }
 
 export async function getCurrentAccount(options: AdapterOptions = {}): Promise<AccountState> {
