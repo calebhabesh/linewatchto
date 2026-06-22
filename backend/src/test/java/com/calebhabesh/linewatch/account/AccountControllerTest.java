@@ -15,7 +15,15 @@ class AccountControllerTest {
     private final AccountService accountService = mock(AccountService.class);
     private final AuthCookieFactory cookieFactory = new AuthCookieFactory(false);
     private final AccountRateLimiter rateLimiter = mock(AccountRateLimiter.class);
-    private final AccountController controller = new AccountController(accountService, cookieFactory, rateLimiter);
+    private final GoogleAuthProperties googleAuthProperties = googleProperties();
+    private final AccountController controller = new AccountController(accountService, cookieFactory, rateLimiter, googleAuthProperties);
+
+    private GoogleAuthProperties googleProperties() {
+        GoogleAuthProperties result = new GoogleAuthProperties();
+        result.setEnabled(true);
+        result.setClientId("client-123.apps.googleusercontent.com");
+        return result;
+    }
 
     @Test
     void loginSetsHttpOnlySessionCookie() {
@@ -100,6 +108,36 @@ class AccountControllerTest {
             .contains("SameSite=Lax")
             .contains("Path=/");
         verify(rateLimiter).requireAuthAttempt("password-reset-confirm", "203.0.113.30");
+    }
+
+    @Test
+    void authConfigExposesGoogleAvailabilityWhenConfigured() {
+        AccountResponses.AuthConfigResponse response = controller.config();
+
+        assertThat(response.googleSignInAvailable()).isTrue();
+        assertThat(response.googleClientId()).isEqualTo("client-123.apps.googleusercontent.com");
+    }
+
+    @Test
+    void googleLoginSetsHttpOnlySessionCookie() {
+        AccountResponses.UserResponse user = new AccountResponses.UserResponse("user_google", "rider@example.com", "Transit Rider", false);
+        AccountService.GoogleLoginRequest request = new AccountService.GoogleLoginRequest("credential");
+        when(accountService.googleLogin(request))
+            .thenReturn(new AccountResponses.AuthSession(user, "raw-token", Instant.parse("2026-06-19T14:30:00Z")));
+
+        ResponseEntity<AccountResponses.AuthResponse> response = controller.google(
+            request,
+            requestFrom("203.0.113.40")
+        );
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).isEqualTo(new AccountResponses.AuthResponse(true, user));
+        assertThat(response.getHeaders().getFirst("Set-Cookie"))
+            .contains("linewatch_session=raw-token")
+            .contains("HttpOnly")
+            .contains("SameSite=Lax")
+            .contains("Path=/");
+        verify(rateLimiter).requireAuthAttempt("google", "203.0.113.40");
     }
 
     private MockHttpServletRequest requestFrom(String remoteAddress) {

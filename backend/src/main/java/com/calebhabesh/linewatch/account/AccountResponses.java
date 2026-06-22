@@ -13,6 +13,8 @@ public final class AccountResponses {
 
     public record AuthSession(UserResponse user, String rawSessionToken, Instant expiresAt) {}
 
+    public record AuthConfigResponse(boolean googleSignInAvailable, String googleClientId) {}
+
     public record SavedCommuteResponse(
         String id,
         String label,

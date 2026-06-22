@@ -18,15 +18,35 @@ public class AccountController {
     private final AccountService accountService;
     private final AuthCookieFactory cookieFactory;
     private final AccountRateLimiter rateLimiter;
+    private final GoogleAuthProperties googleAuthProperties;
 
     public AccountController(
         AccountService accountService,
         AuthCookieFactory cookieFactory,
-        AccountRateLimiter rateLimiter
+        AccountRateLimiter rateLimiter,
+        GoogleAuthProperties googleAuthProperties
     ) {
         this.accountService = accountService;
         this.cookieFactory = cookieFactory;
         this.rateLimiter = rateLimiter;
+        this.googleAuthProperties = googleAuthProperties;
+    }
+
+    @GetMapping("/config")
+    public AccountResponses.AuthConfigResponse config() {
+        return new AccountResponses.AuthConfigResponse(
+            googleAuthProperties.configured(),
+            googleAuthProperties.configured() ? googleAuthProperties.getClientId() : ""
+        );
+    }
+
+    @PostMapping("/google")
+    public ResponseEntity<AccountResponses.AuthResponse> google(
+        @RequestBody AccountService.GoogleLoginRequest request,
+        HttpServletRequest httpRequest
+    ) {
+        rateLimiter.requireAuthAttempt("google", AccountRateLimiter.clientAddress(httpRequest));
+        return authenticated(accountService.googleLogin(request));
     }
 
     @PostMapping("/register")
