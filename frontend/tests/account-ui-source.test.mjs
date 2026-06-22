@@ -33,6 +33,13 @@ describe("account UI source", () => {
     assert.match(shellSource, /handleLinkGoogleCredential/);
     assert.match(shellSource, /Link Google/);
     assert.match(shellSource, /Google Linked/);
+    assert.match(shellSource, /"auth-choice"/);
+    assert.match(shellSource, /type AccountEntryIntent = "login" \| "register"/);
+    assert.match(shellSource, /openAuthChoice/);
+    assert.match(shellSource, /Continue With Email/);
+    assert.match(shellSource, /Back To Options/);
+    assert.match(shellSource, /account-provider-stack/);
+    assert.match(shellSource, /account-choice-primary/);
   });
 
   it("renders signed-out, demo, and account-backed saved commute states", () => {
@@ -70,6 +77,8 @@ describe("account UI source", () => {
     assert.match(globalCss, /\.account-action-row/);
     assert.match(globalCss, /\.saved-commute-form/);
     assert.match(globalCss, /\.account-linked-status/);
+    assert.match(globalCss, /\.account-provider-stack/);
+    assert.match(globalCss, /\.account-choice-primary/);
     assert.doesNotMatch(shellSource, /hero|landing/i);
   });
 
