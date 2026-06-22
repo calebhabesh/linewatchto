@@ -49,6 +49,16 @@ public class AccountController {
         return authenticated(accountService.googleLogin(request));
     }
 
+    @PostMapping("/google/link")
+    public ResponseEntity<AccountResponses.AuthResponse> linkGoogle(
+        @CookieValue(name = AuthCookieFactory.COOKIE_NAME, required = false) String rawSessionToken,
+        @RequestBody AccountService.GoogleLoginRequest request,
+        HttpServletRequest httpRequest
+    ) {
+        rateLimiter.requireAuthAttempt("google-link", AccountRateLimiter.clientAddress(httpRequest));
+        return ResponseEntity.ok(accountService.linkGoogle(rawSessionToken, request));
+    }
+
     @PostMapping("/register")
     public ResponseEntity<AccountResponses.AuthResponse> register(
         @RequestBody AccountService.RegisterRequest request,

@@ -140,6 +140,25 @@ class AccountControllerTest {
         verify(rateLimiter).requireAuthAttempt("google", "203.0.113.40");
     }
 
+    @Test
+    void googleLinkRequiresSessionCookieAndReturnsUpdatedUser() {
+        AccountResponses.UserResponse user = new AccountResponses.UserResponse("user_1", "rider@example.com", "Rider", false, true);
+        AccountService.GoogleLoginRequest request = new AccountService.GoogleLoginRequest("credential");
+        when(accountService.linkGoogle("raw-session", request))
+            .thenReturn(new AccountResponses.AuthResponse(true, user));
+
+        ResponseEntity<AccountResponses.AuthResponse> response = controller.linkGoogle(
+            "raw-session",
+            request,
+            requestFrom("203.0.113.50")
+        );
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).isEqualTo(new AccountResponses.AuthResponse(true, user));
+        verify(accountService).linkGoogle("raw-session", request);
+        verify(rateLimiter).requireAuthAttempt("google-link", "203.0.113.50");
+    }
+
     private MockHttpServletRequest requestFrom(String remoteAddress) {
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setRemoteAddr(remoteAddress);
