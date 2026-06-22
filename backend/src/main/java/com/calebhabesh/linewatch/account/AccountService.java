@@ -170,6 +170,32 @@ public class AccountService {
             .orElseGet(() -> createGoogleAccountSession(googleIdentity, email, now));
     }
 
+    @Transactional
+    public AccountResponses.AuthResponse linkGoogle(String rawSessionToken, GoogleLoginRequest request) {
+        AccountEntity account = requireAccount(rawSessionToken);
+        if (account.isDemo()) {
+            throw new AccountException(HttpStatus.CONFLICT, "google_link_demo_account", "Demo accounts cannot link Google sign-in.");
+        }
+
+        VerifiedGoogleIdentity googleIdentity = googleIdentityVerifier.verify(request.credential());
+        String email = normalizeEmail(googleIdentity.email());
+        if (!email.equals(account.getEmail())) {
+            throw new AccountException(
+                HttpStatus.CONFLICT,
+                "google_email_mismatch",
+                "Google account email must match the signed-in LineWatch account email."
+            );
+        }
+
+        Instant now = clock.instant();
+        return authIdentityRepository.findByProviderAndProviderSubject(
+                AccountAuthIdentityEntity.PROVIDER_GOOGLE,
+                googleIdentity.subject()
+            )
+            .map(identity -> updateExistingGoogleLink(account, identity, email, googleIdentity.emailVerified(), now))
+            .orElseGet(() -> createGoogleLink(account, googleIdentity, email, now));
+    }
+
     private AccountResponses.AuthSession createGoogleAccountSession(VerifiedGoogleIdentity googleIdentity, String email, Instant now) {
         accountRepository.findByEmail(email).ifPresent(account -> {
             throw new AccountException(
@@ -197,6 +223,52 @@ public class AccountService {
             now
         ));
         return createSession(saved, now);
+    }
+
+    private AccountResponses.AuthResponse updateExistingGoogleLink(
+        AccountEntity account,
+        AccountAuthIdentityEntity identity,
+        String email,
+        boolean emailVerified,
+        Instant now
+    ) {
+        if (!identity.getAccount().getId().equals(account.getId())) {
+            throw new AccountException(
+                HttpStatus.CONFLICT,
+                "google_identity_in_use",
+                "That Google account is already linked to another LineWatch account."
+            );
+        }
+        identity.updateGoogleProfile(email, emailVerified, now);
+        account.markLogin(now);
+        return new AccountResponses.AuthResponse(true, toUserResponse(account, true));
+    }
+
+    private AccountResponses.AuthResponse createGoogleLink(
+        AccountEntity account,
+        VerifiedGoogleIdentity googleIdentity,
+        String email,
+        Instant now
+    ) {
+        authIdentityRepository.findByAccount_IdAndProvider(account.getId(), AccountAuthIdentityEntity.PROVIDER_GOOGLE)
+            .ifPresent(existing -> {
+                throw new AccountException(
+                    HttpStatus.CONFLICT,
+                    "google_already_linked",
+                    "This LineWatch account is already linked to a different Google account."
+                );
+            });
+
+        authIdentityRepository.save(AccountAuthIdentityEntity.createGoogle(
+            nextId("identity"),
+            account,
+            googleIdentity.subject(),
+            email,
+            googleIdentity.emailVerified(),
+            now
+        ));
+        account.markLogin(now);
+        return new AccountResponses.AuthResponse(true, toUserResponse(account, true));
     }
 
     @Transactional(readOnly = true)

@@ -476,4 +476,208 @@ class AccountServiceTest {
             .isInstanceOf(AccountException.class)
             .hasMessageContaining("Incorrect Email or Password");
     }
+
+    @Test
+    void linkGoogleAddsIdentityToCurrentPasswordAccount() {
+        AccountEntity account = AccountEntity.create(
+            "user_password",
+            "rider@example.com",
+            "Rider",
+            passwordHasher.hash("correct horse battery staple"),
+            false,
+            Instant.parse("2026-06-05T14:00:00Z")
+        );
+        UserSessionEntity session = UserSessionEntity.create(
+            "session_test",
+            account,
+            tokenService.hashToken("raw-session"),
+            Instant.parse("2026-06-05T14:00:00Z"),
+            Instant.parse("2026-06-19T14:00:00Z")
+        );
+        when(sessionRepository.findByTokenHash(tokenService.hashToken("raw-session"))).thenReturn(Optional.of(session));
+        when(googleIdentityVerifier.verify("credential")).thenReturn(new VerifiedGoogleIdentity(
+            "google-subject-1",
+            "Rider@Example.COM",
+            true,
+            "Transit Rider"
+        ));
+        when(authIdentityRepository.findByProviderAndProviderSubject("google", "google-subject-1")).thenReturn(Optional.empty());
+        when(authIdentityRepository.findByAccount_IdAndProvider("user_password", "google")).thenReturn(Optional.empty());
+        when(authIdentityRepository.save(any(AccountAuthIdentityEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        AccountResponses.AuthResponse response = service.linkGoogle("raw-session", new AccountService.GoogleLoginRequest("credential"));
+
+        assertThat(response.authenticated()).isTrue();
+        assertThat(response.user().id()).isEqualTo("user_password");
+        assertThat(response.user().email()).isEqualTo("rider@example.com");
+        assertThat(response.user().googleLinked()).isTrue();
+        assertThat(account.getLastLoginAt()).isEqualTo(Instant.parse("2026-06-05T14:30:00Z"));
+        verify(authIdentityRepository).save(any(AccountAuthIdentityEntity.class));
+    }
+
+    @Test
+    void linkGoogleRejectsMismatchedGoogleEmail() {
+        AccountEntity account = AccountEntity.create(
+            "user_password",
+            "rider@example.com",
+            "Rider",
+            passwordHasher.hash("correct horse battery staple"),
+            false,
+            Instant.parse("2026-06-05T14:00:00Z")
+        );
+        UserSessionEntity session = UserSessionEntity.create(
+            "session_test",
+            account,
+            tokenService.hashToken("raw-session"),
+            Instant.parse("2026-06-05T14:00:00Z"),
+            Instant.parse("2026-06-19T14:00:00Z")
+        );
+        when(sessionRepository.findByTokenHash(tokenService.hashToken("raw-session"))).thenReturn(Optional.of(session));
+        when(googleIdentityVerifier.verify("credential")).thenReturn(new VerifiedGoogleIdentity(
+            "google-subject-1",
+            "other@example.com",
+            true,
+            "Other Rider"
+        ));
+
+        assertThatThrownBy(() -> service.linkGoogle("raw-session", new AccountService.GoogleLoginRequest("credential")))
+            .isInstanceOf(AccountException.class)
+            .hasMessageContaining("Google account email must match")
+            .extracting("status")
+            .isEqualTo(HttpStatus.CONFLICT);
+        verify(authIdentityRepository, never()).save(any(AccountAuthIdentityEntity.class));
+    }
+
+    @Test
+    void linkGoogleRejectsGoogleIdentityAlreadyLinkedToAnotherAccount() {
+        AccountEntity currentAccount = AccountEntity.create(
+            "user_current",
+            "rider@example.com",
+            "Rider",
+            passwordHasher.hash("correct horse battery staple"),
+            false,
+            Instant.parse("2026-06-05T14:00:00Z")
+        );
+        AccountEntity otherAccount = AccountEntity.createPasswordless(
+            "user_other",
+            "rider@example.com",
+            "Transit Rider",
+            false,
+            Instant.parse("2026-06-05T13:00:00Z")
+        );
+        AccountAuthIdentityEntity otherIdentity = AccountAuthIdentityEntity.createGoogle(
+            "identity_other",
+            otherAccount,
+            "google-subject-1",
+            "rider@example.com",
+            true,
+            Instant.parse("2026-06-05T13:00:00Z")
+        );
+        UserSessionEntity session = UserSessionEntity.create(
+            "session_test",
+            currentAccount,
+            tokenService.hashToken("raw-session"),
+            Instant.parse("2026-06-05T14:00:00Z"),
+            Instant.parse("2026-06-19T14:00:00Z")
+        );
+        when(sessionRepository.findByTokenHash(tokenService.hashToken("raw-session"))).thenReturn(Optional.of(session));
+        when(googleIdentityVerifier.verify("credential")).thenReturn(new VerifiedGoogleIdentity(
+            "google-subject-1",
+            "rider@example.com",
+            true,
+            "Transit Rider"
+        ));
+        when(authIdentityRepository.findByProviderAndProviderSubject("google", "google-subject-1")).thenReturn(Optional.of(otherIdentity));
+
+        assertThatThrownBy(() -> service.linkGoogle("raw-session", new AccountService.GoogleLoginRequest("credential")))
+            .isInstanceOf(AccountException.class)
+            .hasMessageContaining("already linked to another LineWatch account")
+            .extracting("status")
+            .isEqualTo(HttpStatus.CONFLICT);
+    }
+
+    @Test
+    void linkGoogleRejectsAccountAlreadyLinkedToDifferentGoogleSubject() {
+        AccountEntity account = AccountEntity.create(
+            "user_password",
+            "rider@example.com",
+            "Rider",
+            passwordHasher.hash("correct horse battery staple"),
+            false,
+            Instant.parse("2026-06-05T14:00:00Z")
+        );
+        AccountAuthIdentityEntity existingIdentity = AccountAuthIdentityEntity.createGoogle(
+            "identity_existing",
+            account,
+            "google-subject-existing",
+            "rider@example.com",
+            true,
+            Instant.parse("2026-06-05T13:00:00Z")
+        );
+        UserSessionEntity session = UserSessionEntity.create(
+            "session_test",
+            account,
+            tokenService.hashToken("raw-session"),
+            Instant.parse("2026-06-05T14:00:00Z"),
+            Instant.parse("2026-06-19T14:00:00Z")
+        );
+        when(sessionRepository.findByTokenHash(tokenService.hashToken("raw-session"))).thenReturn(Optional.of(session));
+        when(googleIdentityVerifier.verify("credential")).thenReturn(new VerifiedGoogleIdentity(
+            "google-subject-new",
+            "rider@example.com",
+            true,
+            "Transit Rider"
+        ));
+        when(authIdentityRepository.findByProviderAndProviderSubject("google", "google-subject-new")).thenReturn(Optional.empty());
+        when(authIdentityRepository.findByAccount_IdAndProvider("user_password", "google")).thenReturn(Optional.of(existingIdentity));
+
+        assertThatThrownBy(() -> service.linkGoogle("raw-session", new AccountService.GoogleLoginRequest("credential")))
+            .isInstanceOf(AccountException.class)
+            .hasMessageContaining("already linked to a different Google account")
+            .extracting("status")
+            .isEqualTo(HttpStatus.CONFLICT);
+    }
+
+    @Test
+    void linkGoogleIsIdempotentForSameAccountAndSubject() {
+        AccountEntity account = AccountEntity.create(
+            "user_password",
+            "rider@example.com",
+            "Rider",
+            passwordHasher.hash("correct horse battery staple"),
+            false,
+            Instant.parse("2026-06-05T14:00:00Z")
+        );
+        AccountAuthIdentityEntity existingIdentity = AccountAuthIdentityEntity.createGoogle(
+            "identity_existing",
+            account,
+            "google-subject-1",
+            "old@example.com",
+            true,
+            Instant.parse("2026-06-05T13:00:00Z")
+        );
+        UserSessionEntity session = UserSessionEntity.create(
+            "session_test",
+            account,
+            tokenService.hashToken("raw-session"),
+            Instant.parse("2026-06-05T14:00:00Z"),
+            Instant.parse("2026-06-19T14:00:00Z")
+        );
+        when(sessionRepository.findByTokenHash(tokenService.hashToken("raw-session"))).thenReturn(Optional.of(session));
+        when(googleIdentityVerifier.verify("credential")).thenReturn(new VerifiedGoogleIdentity(
+            "google-subject-1",
+            "rider@example.com",
+            true,
+            "Transit Rider"
+        ));
+        when(authIdentityRepository.findByProviderAndProviderSubject("google", "google-subject-1")).thenReturn(Optional.of(existingIdentity));
+
+        AccountResponses.AuthResponse response = service.linkGoogle("raw-session", new AccountService.GoogleLoginRequest("credential"));
+
+        assertThat(response.authenticated()).isTrue();
+        assertThat(response.user().googleLinked()).isTrue();
+        assertThat(existingIdentity.getEmail()).isEqualTo("rider@example.com");
+        assertThat(existingIdentity.getLastLoginAt()).isEqualTo(Instant.parse("2026-06-05T14:30:00Z"));
+        verify(authIdentityRepository, never()).save(any(AccountAuthIdentityEntity.class));
+    }
 }
