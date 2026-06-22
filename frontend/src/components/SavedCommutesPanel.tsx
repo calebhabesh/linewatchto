@@ -322,12 +322,68 @@ export function SavedCommutesPanel({
       </div>
       <div className="commute-grid min-w-0 p-3 flex flex-col gap-3">
         {!accountState.authenticated ? (
-          <div className="saved-commute-account-prompt">
-            <strong>Account Required</strong>
-            <span>Sign in or create an account to view saved commutes.</span>
-            <div className="account-action-row">
+          <div className="saved-commute-account-prompt p-4 rounded-lg flex flex-col gap-4 border border-black/10 dark:border-white/10">
+            <div>
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2 mb-1.5">
+                <svg className="w-4 h-4 text-emerald-500 shrink-0" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path
+                    fillRule="evenodd"
+                    clipRule="evenodd"
+                    d="M18.9922 8.07411C18.7683 8.30212 18.5423 8.50328 18.3375 8.67188C18.1401 8.50899 17.9227 8.31226 17.7078 8.08774C16.9853 7.333 16.5 6.48786 16.5 5.6875C16.5 4.59138 17.3653 3.75 18.375 3.75C19.3847 3.75 20.25 4.59138 20.25 5.6875C20.25 6.46225 19.7514 7.30076 18.9922 8.07411ZM21.75 5.6875C21.75 8.4375 18.375 10.5 18.375 10.5C18.2063 10.5 15 8.4375 15 5.6875C15 3.78902 16.511 2.25 18.375 2.25C20.239 2.25 21.75 3.78902 21.75 5.6875ZM3.75 9C3.75 10.2426 4.75736 11.25 6 11.25H18C20.0711 11.25 21.75 12.9289 21.75 15C21.75 17.0711 20.0711 18.75 18 18.75H9.75V17.25H18C19.2426 17.25 20.25 16.2426 20.25 15C20.25 13.7574 19.2426 12.75 18 12.75H6C3.92893 12.75 2.25 11.0711 2.25 9C2.25 6.92893 3.92893 5.25 6 5.25L14.25 5.25V6.75L6 6.75C4.75736 6.75 3.75 7.75736 3.75 9ZM6.24215 19.3241C6.01829 19.5521 5.79234 19.7533 5.58752 19.9219C5.39011 19.759 5.1727 19.5623 4.95777 19.3377C4.23528 18.583 3.75 17.7379 3.75 16.9375C3.75 15.8414 4.61529 15 5.625 15C6.63471 15 7.5 15.8414 7.5 16.9375C7.5 17.7123 7.00145 18.5508 6.24215 19.3241ZM9 16.9375C9 19.6875 5.625 21.75 5.625 21.75C5.45625 21.75 2.25 19.6875 2.25 16.9375C2.25 15.039 3.76104 13.5 5.625 13.5C7.48896 13.5 9 15.039 9 16.9375ZM6.75 16.875C6.75 17.4963 6.24632 18 5.625 18C5.00368 18 4.5 17.4963 4.5 16.875C4.5 16.2537 5.00368 15.75 5.625 15.75C6.24632 15.75 6.75 16.2537 6.75 16.875ZM18.375 6.75C18.9963 6.75 19.5 6.24632 19.5 5.625C19.5 5.00368 18.9963 4.5 18.375 4.5C17.7537 4.5 17.25 5.00368 17.25 5.625C17.25 6.24632 17.7537 6.75 18.375 6.75Z"
+                    fill="currentColor"
+                  />
+                </svg>
+                Track Your Daily Commute
+              </h3>
+              <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+                Unlock personalized tracking and push notifications for your daily subway and LRT routes.
+              </p>
+            </div>
+
+            <div className="space-y-3 my-1 border-t border-b border-black/5 dark:border-white/5 py-3">
+              <div className="flex items-start gap-2.5">
+                <span className="text-xs text-emerald-600 dark:text-emerald-400 font-bold mt-0.5">✓</span>
+                <div className="text-xs">
+                  <span className="font-bold text-slate-800 dark:text-slate-200 block">Personalized Route Pathing</span>
+                  <span className="text-slate-500 dark:text-slate-400">Save custom origin-destination pairs on subway Lines 1, 2, 4 and LRT Lines 5, 6.</span>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-2.5">
+                <span className="text-xs text-emerald-600 dark:text-emerald-400 font-bold mt-0.5">✓</span>
+                <div className="text-xs">
+                  <span className="font-bold text-slate-800 dark:text-slate-200 block">Direction-Aware Impact Matching</span>
+                  <span className="text-slate-500 dark:text-slate-400">Only get alerted for service disruptions that actually lie in your path and travel direction.</span>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-2.5">
+                <span className="text-xs text-emerald-600 dark:text-emerald-400 font-bold mt-0.5">✓</span>
+                <div className="text-xs">
+                  <span className="font-bold text-slate-800 dark:text-slate-200 block">Return Leg Monitoring</span>
+                  <span className="text-slate-500 dark:text-slate-400">Easily toggle and monitor your reverse return leg in the same view.</span>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-2.5">
+                <span className="text-xs text-emerald-600 dark:text-emerald-400 font-bold mt-0.5">✓</span>
+                <div className="text-xs">
+                  <span className="font-bold text-slate-800 dark:text-slate-200 block">Instant Browser Push Notifications</span>
+                  <span className="text-slate-500 dark:text-slate-400">Receive live push alerts the moment a delay, suspension, or planned closure impacts your commute.</span>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-2.5">
+                <span className="text-xs text-emerald-600 dark:text-emerald-400 font-bold mt-0.5">✓</span>
+                <div className="text-xs">
+                  <span className="font-bold text-slate-800 dark:text-slate-200 block">Free</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="account-action-row mt-1">
               <button type="button" onClick={onRequestSignIn}>Sign In</button>
-              <button type="button" onClick={onRequestCreateAccount}>Create Account</button>
+              <button type="button" onClick={onRequestCreateAccount} className="saved-commute-signup-btn">Create Account</button>
             </div>
           </div>
         ) : null}

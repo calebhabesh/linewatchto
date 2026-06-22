@@ -905,7 +905,7 @@ export function LineWatchShell({
       case "more": return "More options";
       case "analytics": return "Reliability analytics";
       case "accessibility-outages": return "Accessibility outages";
-      case "surface-notices": return "Surface notices";
+      case "surface-notices": return "Streetcar & Bus Notices";
       default: return "";
     }
   };
@@ -1169,7 +1169,7 @@ export function LineWatchShell({
         />
       </FloatingPanelShell>
     ) : activeView === "surface-notices" ? (
-      <FloatingPanelShell panel="surface-notices" mobileSheetLabel="Surface notices">
+      <FloatingPanelShell panel="surface-notices" mobileSheetLabel="Streetcar & Bus Notices">
         <SurfaceNoticesPanel
           onBack={() => setActiveView("menu")}
           onClose={() => {
@@ -1546,7 +1546,7 @@ export function LineWatchShell({
                       Accessibility Outages
                     </div>
                     {accessibilityOutageResult && accessibilityOutageResult.assetTypes.reduce((acc, curr) => acc + curr.count, 0) > 0 && (
-                      <span className="flex h-5 items-center justify-center rounded-full bg-slate-500/20 px-2 text-[10px] font-bold text-slate-700 dark:text-slate-300">
+                      <span className="flex h-5 items-center justify-center rounded-full bg-red-500/20 px-2 text-[10px] font-bold text-red-600 dark:text-red-400">
                         {accessibilityOutageResult.assetTypes.reduce((acc, curr) => acc + curr.count, 0)}
                       </span>
                     )}
@@ -1559,10 +1559,10 @@ export function LineWatchShell({
                     className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
                   >
                     <div className="flex items-center gap-3">
-                      <Bus size={18} className="text-slate-500 dark:text-slate-400" /> Surface Notices
+                      <Bus size={18} className="text-slate-500 dark:text-slate-400" /> Streetcar & Bus Notices
                     </div>
                     {surfaceNoticeCount !== null && surfaceNoticeCount > 0 && (
-                      <span className="flex h-5 items-center justify-center rounded-full bg-slate-500/20 px-2 text-[10px] font-bold text-slate-700 dark:text-slate-300">
+                      <span className="flex h-5 items-center justify-center rounded-full bg-blue-500/20 px-2 text-[10px] font-bold text-blue-600 dark:text-blue-400">
                         {surfaceNoticeCount}
                       </span>
                     )}

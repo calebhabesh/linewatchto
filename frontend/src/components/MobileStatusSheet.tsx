@@ -74,14 +74,14 @@ export function MobileStatusSheet({ pollText, dataSource, onOpenCategory, onClos
               className="w-4 h-4 shrink-0"
             />
             <span className="mobile-status-btn-text">Accessibility Outages</span>
-            <span className="mobile-status-btn-circle bg-slate-500/20 text-slate-700 dark:text-slate-300">
+            <span className="mobile-status-btn-circle bg-red-500/20 text-red-600 dark:text-red-400">
               {accessibilityOutageCount}
             </span>
           </button>
           <button type="button" className="mobile-status-btn-surface flex items-center justify-between" onClick={() => onOpenCategory("surface-notices")}>
             <Bus size={16} className="text-slate-500 dark:text-slate-400 shrink-0" />
-            <span className="mobile-status-btn-text">Surface Notices</span>
-            <span className="mobile-status-btn-circle bg-slate-500/20 text-slate-700 dark:text-slate-300">
+            <span className="mobile-status-btn-text">Streetcar & Bus Notices</span>
+            <span className="mobile-status-btn-circle bg-blue-500/20 text-blue-600 dark:text-blue-400">
               {surfaceNoticeCount}
             </span>
           </button>

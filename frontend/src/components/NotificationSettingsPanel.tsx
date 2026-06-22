@@ -134,12 +134,61 @@ export function NotificationSettingsPanel({
 
       <div className="notification-settings-scroll">
         {!accountState.authenticated ? (
-          <div className="notification-settings-prompt">
-            <strong>Account Required</strong>
-            <span>Sign in or create an account to manage saved-commute notification settings.</span>
-            <div className="account-action-row">
+          <div className="notification-settings-prompt !p-4 !flex !flex-col !gap-4">
+            <div>
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2 mb-1.5">
+                <Bell className="w-4 h-4 text-emerald-500 shrink-0" aria-hidden="true" />
+                Enable Push Notifications
+              </h3>
+              <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+                Stay updated on subway and LRT service changes without needing to check the app.
+              </p>
+            </div>
+
+            <div className="space-y-3 my-1 border-t border-b border-black/5 dark:border-white/5 py-3">
+              <div className="flex items-start gap-2.5">
+                <span className="text-xs text-emerald-600 dark:text-emerald-400 font-bold mt-0.5">✓</span>
+                <div className="text-xs">
+                  <span className="font-bold text-slate-800 dark:text-slate-200 block">Saved Commute Impacts</span>
+                  <span className="text-slate-500 dark:text-slate-400">Get notified the instant a delay, suspension, or slowdown affects your specific commute path.</span>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-2.5">
+                <span className="text-xs text-emerald-600 dark:text-emerald-400 font-bold mt-0.5">✓</span>
+                <div className="text-xs">
+                  <span className="font-bold text-slate-800 dark:text-slate-200 block">Line-Wide Subscription Alerts</span>
+                  <span className="text-slate-500 dark:text-slate-400">Subscribe to all alerts for specific lines (Lines 1, 2, 4, 5, or 6) with customized event filters.</span>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-2.5">
+                <span className="text-xs text-emerald-600 dark:text-emerald-400 font-bold mt-0.5">✓</span>
+                <div className="text-xs">
+                  <span className="font-bold text-slate-800 dark:text-slate-200 block">Planned Closure Reminders</span>
+                  <span className="text-slate-500 dark:text-slate-400">Receive advance heads-up notifications for scheduled weekend subway closures and service updates.</span>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-2.5">
+                <span className="text-xs text-emerald-600 dark:text-emerald-400 font-bold mt-0.5">✓</span>
+                <div className="text-xs">
+                  <span className="font-bold text-slate-800 dark:text-slate-200 block">Cross-Platform Push Delivery</span>
+                  <span className="text-slate-500 dark:text-slate-400">Secure Web Push standard delivery to your mobile phone or web browser.</span>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-2.5">
+                <span className="text-xs text-emerald-600 dark:text-emerald-400 font-bold mt-0.5">✓</span>
+                <div className="text-xs">
+                  <span className="font-bold text-slate-800 dark:text-slate-200 block">Free</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="account-action-row mt-1">
               <button type="button" onClick={onRequestSignIn}>Sign In</button>
-              <button type="button" onClick={onRequestCreateAccount}>Create Account</button>
+              <button type="button" onClick={onRequestCreateAccount} className="saved-commute-signup-btn">Create Account</button>
             </div>
           </div>
         ) : null}

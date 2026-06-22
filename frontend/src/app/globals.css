@@ -3611,6 +3611,39 @@ button {
   border-color: rgba(255, 255, 255, 0.22);
 }
 
+.saved-commute-account-prompt button.saved-commute-signup-btn,
+.notification-settings-prompt button.saved-commute-signup-btn {
+  background: rgb(16, 185, 129);
+  color: white;
+}
+
+.saved-commute-account-prompt button.saved-commute-signup-btn:hover:not(:disabled),
+.notification-settings-prompt button.saved-commute-signup-btn:hover:not(:disabled) {
+  background: rgb(5, 150, 105);
+}
+
+.dark .saved-commute-account-prompt button.saved-commute-signup-btn,
+.dark .notification-settings-prompt button.saved-commute-signup-btn {
+  background: rgb(16, 185, 129);
+  color: white;
+}
+
+.dark .saved-commute-account-prompt button.saved-commute-signup-btn:hover:not(:disabled),
+.dark .notification-settings-prompt button.saved-commute-signup-btn:hover:not(:disabled) {
+  background: rgb(5, 150, 105);
+}
+
+.high-contrast .saved-commute-account-prompt button.saved-commute-signup-btn,
+.high-contrast .notification-settings-prompt button.saved-commute-signup-btn {
+  background: rgb(226, 232, 240);
+  color: rgb(15, 23, 42);
+}
+
+.high-contrast .saved-commute-account-prompt button.saved-commute-signup-btn:hover:not(:disabled),
+.high-contrast .notification-settings-prompt button.saved-commute-signup-btn:hover:not(:disabled) {
+  background: rgb(241, 245, 249);
+}
+
 .account-link-button {
   align-items: center;
   border-radius: 8px;
@@ -7849,7 +7882,6 @@ button {
 .linewatch-shell.high-contrast #linewatch-main-menu::-webkit-scrollbar-button:vertical:increment {
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'></polyline></svg>") !important;
 }
-
 
 
 

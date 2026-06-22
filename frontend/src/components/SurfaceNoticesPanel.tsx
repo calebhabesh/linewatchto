@@ -219,7 +219,7 @@ export function SurfaceNoticesPanel({ onBack, onClose }: Props) {
           </button>
           <h2 className="text-[clamp(14px,4.5cqw,18px)] font-bold text-slate-900 dark:text-white flex items-center gap-2 whitespace-nowrap">
             <Bus className="w-5 h-5 sm:w-6 sm:h-6 shrink-0 text-slate-700 dark:text-slate-300" />
-            <span>Surface Notices</span>
+            <span>Streetcar & Bus Notices</span>
           </h2>
         </div>
         <div className="flex items-center gap-2 shrink-0">
@@ -291,11 +291,11 @@ export function SurfaceNoticesPanel({ onBack, onClose }: Props) {
           </div>
         ) : isFallback ? (
           <div className="text-center py-8 text-slate-500 dark:text-slate-400 text-sm">
-            Surface notices are unavailable in fixture mode.
+            Streetcar & Bus notices are unavailable in fixture mode.
           </div>
         ) : !data || data.notices.length === 0 ? (
           <div className="text-center py-8 text-slate-500 dark:text-slate-400 text-sm">
-            No active surface notices found matching your filters.
+            No active streetcar & bus notices found matching your filters.
           </div>
         ) : (
           <div className="flex flex-col gap-3">
