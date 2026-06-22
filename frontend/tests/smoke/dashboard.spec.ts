@@ -302,6 +302,7 @@ test("map overlays open the corresponding submenu cards", async ({ page, request
     await page.getByRole("button", { name: "Toggle menu" }).click();
     await page.getByRole("menuitem", { name: "Map", exact: true }).click();
   }
+  await page.getByRole("button", { name: "Center map view" }).click();
   await page.waitForTimeout(500);
   await clickSvgRingStroke(page, /Stub API signal problem: Stub Station/);
 
@@ -366,6 +367,32 @@ test("mobile keeps lightweight map focus flashes and menu transitions", async ({
   const navTransitionProperty = await searchNavItem.evaluate((element) => getComputedStyle(element).transitionProperty);
   expect(navTransitionProperty).toContain("transform");
   expect(navTransitionProperty).not.toContain("width");
+});
+
+test("mobile closing station details preserves the focused map camera", async ({ page, request, isMobile }) => {
+  test.skip(!isMobile, "mobile-only station camera behavior");
+  await setStubMode(request, "seeded");
+  await page.goto("/");
+  await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
+
+  const mapLayer = page.locator(".absolute.top-0.left-0.w-full.h-full.origin-top-left").first();
+  const defaultTransform = await mapLayer.evaluate((element) => element.style.transform);
+
+  await page.getByRole("button", { name: "Stub Station station details" }).click();
+  await expect(page.getByRole("complementary", { name: "Stub Station station details" })).toBeVisible();
+  await expect
+    .poll(async () => mapLayer.evaluate((element) => element.style.transform))
+    .not.toBe(defaultTransform);
+
+  const focusedTransform = await mapLayer.evaluate((element) => element.style.transform);
+
+  await page.getByRole("button", { name: "Close station details" }).click();
+  await expect(page.getByRole("complementary", { name: "Stub Station station details" })).toHaveCount(0);
+  await page.waitForTimeout(500);
+
+  await expect
+    .poll(async () => mapLayer.evaluate((element) => element.style.transform))
+    .toBe(focusedTransform);
 });
 
 test("mobile rotated map mode keeps station and impact selections in the rotated HUD", async ({ page, request, isMobile }) => {

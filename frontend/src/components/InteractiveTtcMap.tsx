@@ -405,9 +405,14 @@ function InteractiveTtcMapComponent({
 
   const lastFocusedTargetKeyRef = useRef<string | null>(null);
   const lastFocusLayoutSignalRef = useRef(0);
+  const lastHandledLayoutResetSignalRef = useRef(0);
 
   useEffect(() => {
-    if (!layoutResetSignal || loadState !== "ready" || focusTargetKey) return;
+    if (!layoutResetSignal || loadState !== "ready") return;
+    if (lastHandledLayoutResetSignalRef.current === layoutResetSignal) return;
+
+    lastHandledLayoutResetSignalRef.current = layoutResetSignal;
+    if (focusTargetKey) return;
 
     const resetTimer = window.setTimeout(() => recenter(), 320);
     return () => window.clearTimeout(resetTimer);
