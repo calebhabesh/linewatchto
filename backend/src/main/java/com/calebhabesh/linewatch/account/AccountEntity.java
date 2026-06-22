@@ -38,6 +38,10 @@ public class AccountEntity {
         return new AccountEntity(id, email, displayName, passwordHash, demo, createdAt);
     }
 
+    public static AccountEntity createPasswordless(String id, String email, String displayName, boolean demo, Instant createdAt) {
+        return new AccountEntity(id, email, displayName, null, demo, createdAt);
+    }
+
     public void markLogin(Instant lastLoginAt) {
         this.lastLoginAt = lastLoginAt;
     }
