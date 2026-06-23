@@ -1,6 +1,6 @@
 {
   "lastUpdated": "2026-06-03T14:59:00.000Z",
-  "total": 16,
+  "total": 17,
   "routes": [
     {
       "id": "scenario-active-line-2",
@@ -491,6 +491,61 @@
       "causeDescription": "Emergency alarm",
       "stopIDList": [
         "Dundas West"
+      ],
+      "stopNameList": [],
+      "stopRouteList": [],
+      "rszLength": null,
+      "distance": null,
+      "trackPercent": null,
+      "reducedSpeed": null,
+      "averageSpeed": null,
+      "targetRemoval": null,
+      "shuttleType": null,
+      "shuttleStart": null,
+      "shuttleEnd": null,
+      "elevatorCode": null,
+      "escalatorCode": null,
+      "criticality": 0,
+      "childAlerts": []
+    },
+    {
+      "id": "scenario-station-node-union-vaughan",
+      "priority": 0,
+      "alertType": "Live",
+      "lastUpdated": "2026-06-03T14:55:00.000Z",
+      "activePeriod": {
+        "start": "2026-06-03T14:30:00.000Z",
+        "end": "0001-01-01T00:00:00Z"
+      },
+      "activePeriodGroup": [
+        "Current"
+      ],
+      "routeOrder": 1,
+      "route": "1",
+      "routeBranch": "",
+      "routeTypeSrc": "400",
+      "routeType": "Subway",
+      "stopStart": "Union",
+      "stopEnd": "Union",
+      "stopStartId": null,
+      "stopEndId": null,
+      "stops": [],
+      "title": "Delays on the northbound platform to Vaughan Metropolitan Centre at Union station while we respond to an emergency alarm.",
+      "description": "",
+      "url": "",
+      "urlPlaceholder": "",
+      "accessibility": "Routes",
+      "effect": "SIGNIFICANT_DELAYS",
+      "effectDesc": "Delays",
+      "severityOrder": 1,
+      "severity": "Critical",
+      "customHeaderText": null,
+      "headerText": "Line 1 Yonge-University: Delays on the northbound platform to Vaughan Metropolitan Centre at Union station while we respond to an emergency alarm.",
+      "direction": "Northbound To Vaughan Metropolitan Centre",
+      "cause": "MEDICAL_EMERGENCY",
+      "causeDescription": "Emergency alarm",
+      "stopIDList": [
+        "Union"
       ],
       "stopNameList": [],
       "stopRouteList": [],

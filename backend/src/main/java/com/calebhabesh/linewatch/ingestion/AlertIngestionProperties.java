@@ -8,7 +8,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 public class AlertIngestionProperties {
     private boolean enabled;
     private URI url = URI.create("https://alerts.ttc.ca/api/alerts/live-alerts");
-    private boolean surfaceGtfsRtEnabled = true;
+    private boolean surfaceGtfsRtEnabled = false;
     private URI surfaceGtfsRtUrl = URI.create("https://gtfsrt.ttc.ca/alerts/all?format=text");
     private Duration fixedDelay = Duration.ofMinutes(2);
     private Duration maxDashboardAge = Duration.ofMinutes(10);

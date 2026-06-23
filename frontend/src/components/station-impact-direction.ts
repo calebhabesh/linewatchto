@@ -42,11 +42,22 @@ const HORIZONTAL_LINE_IDS = new Set(["line-2", "line-4", "line-5", "line-6"]);
 const VERTICAL_LINE_IDS = new Set(["line-1"]);
 
 export function stationImpactDirectionForImpact(
-  impact: Pick<StationNodeImpact, "kind" | "cardId">,
+  impact: Pick<StationNodeImpact, "stationId" | "kind" | "cardId">,
   data: StationImpactDirectionData,
 ): StationImpactDirectionDetails | null {
   const source = stationImpactDirectionSource(impact, data);
   if (!source?.displayDirection) return null;
+
+  if (isUnionLineOneStationImpact(impact, source.lineId)) {
+    const unionArrow = unionStationImpactDirectionArrow(source.displayDirection);
+    if (!unionArrow) return null;
+
+    return {
+      lineId: source.lineId,
+      displayDirection: source.displayDirection,
+      arrow: unionArrow,
+    };
+  }
 
   const arrow = stationImpactDirectionArrow(source.lineId, source.displayDirection);
   if (!arrow) return null;
@@ -123,6 +134,34 @@ function stationImpactDirectionSource(
     data.plannedClosures.find((closure) => closure.id === impact.cardId) ??
     data.activeAlerts.find((alert) => alert.id === impact.cardId)
   );
+}
+
+function isUnionLineOneStationImpact(
+  impact: Pick<StationNodeImpact, "stationId">,
+  lineId: string | null | undefined,
+): boolean {
+  return impact.stationId === "union" && lineId === "line-1";
+}
+
+function unionStationImpactDirectionArrow(
+  displayDirection: string,
+): StationImpactDirectionArrow | null {
+  const direction = displayDirection.trim();
+  const normalized = direction.toLowerCase().replace(/\s+/g, " ");
+  const hasVaughanTerminal = /\bvaughan\b|\bvmc\b/.test(normalized);
+  const hasFinchTerminal = /\bfinch\b/.test(normalized);
+
+  if (hasVaughanTerminal && hasFinchTerminal) {
+    return arrow("horizontal-bidirectional", direction);
+  }
+  if (hasVaughanTerminal) {
+    return arrow("left", direction);
+  }
+  if (hasFinchTerminal) {
+    return arrow("right", direction);
+  }
+
+  return null;
 }
 
 function bidirectionalArrowForLine(

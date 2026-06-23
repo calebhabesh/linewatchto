@@ -24,7 +24,7 @@ describe("alert scenario catalog", () => {
   it("makes all-alert-types cover every backend-to-map alert surface", () => {
     const scenario = index.scenarios.find((candidate) => candidate.name === "all-alert-types");
     assert.ok(scenario);
-    assert.equal(scenario.routeCount, 14);
+    assert.equal(scenario.routeCount, 15);
     assert.equal(scenario.accessibilityCount, 2);
     assert.deepEqual(scenario.directionCoverage, {
       "delay": ["bidirectional", "directional"],
@@ -53,6 +53,10 @@ describe("alert scenario catalog", () => {
     assert.equal(routesById.get("scenario-station-node-dundas-west-bidirectional")?.stopEnd, "Dundas West");
     assert.deepEqual(routesById.get("scenario-station-node-dundas-west-bidirectional")?.stopIDList, ["Dundas West"]);
     assert.equal(routesById.get("scenario-station-node-dundas-west-bidirectional")?.direction, "Both ways");
+    assert.equal(routesById.get("scenario-station-node-union-vaughan")?.stopStart, "Union");
+    assert.equal(routesById.get("scenario-station-node-union-vaughan")?.stopEnd, "Union");
+    assert.deepEqual(routesById.get("scenario-station-node-union-vaughan")?.stopIDList, ["Union"]);
+    assert.equal(routesById.get("scenario-station-node-union-vaughan")?.direction, "Northbound To Vaughan Metropolitan Centre");
     assert.equal(routesById.get("scenario-active-line-2")?.effect, "NO_SERVICE");
     assert.equal(routesById.get("scenario-active-line-1-st-andrew-union")?.effect, "NO_SERVICE");
     assert.equal(routesById.get("scenario-active-line-1-museum-st-george")?.direction, "Northbound");

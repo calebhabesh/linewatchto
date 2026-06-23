@@ -153,15 +153,15 @@ export function LogsDropdown({ isMobileMore = false }: { isMobileMore?: boolean 
         aria-label="Toggle Ingestion Logs"
         aria-expanded={isOpen}
       >
-        <span className="flex items-center gap-2">
-          <svg viewBox="0 0 32 32" fill="currentColor" className="w-5 h-5 sm:w-7 sm:h-7 text-slate-800 dark:text-white shrink-0">
+        <span className="flex items-center gap-3">
+          <svg viewBox="0 0 32 32" fill="currentColor" className="w-[18px] h-[18px] shrink-0 text-slate-500 dark:text-slate-400">
             <rect x="10" y="18" width="8" height="2"/>
             <rect x="10" y="13" width="12" height="2"/>
             <rect x="10" y="23" width="5" height="2"/>
             <path d="M25,5H22V4a2,2,0,0,0-2-2H12a2,2,0,0,0-2,2V5H7A2,2,0,0,0,5,7V28a2,2,0,0,0,2,2H25a2,2,0,0,0,2-2V7A2,2,0,0,0,25,5ZM12,4h8V8H12ZM25,28H7V7h3v3H22V7h3Z"/>
           </svg>
           {isMobileMore ? (
-            <span className="font-bold text-sm text-slate-800 dark:text-slate-200">TTC Live Alerts Feed</span>
+            <span>TTC Live Alerts Feed</span>
           ) : null}
         </span>
         {isMobileMore ? (

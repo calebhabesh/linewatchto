@@ -51,6 +51,55 @@ describe("station impact map direction arrows", () => {
     assert.equal(details?.arrow.direction, "left");
   });
 
+  it("uses Union terminal labels for Line 1 station-dot arrows", () => {
+    const data = {
+      activeAlerts: [],
+      delays: [
+        {
+          id: "delay-at-union-vaughan",
+          lineId: "line-1",
+          displayDirection: "Northbound (to Vaughan Metropolitan Centre)",
+        },
+        {
+          id: "delay-at-union-finch",
+          lineId: "line-1",
+          displayDirection: "Northbound (to Finch)",
+        },
+      ],
+      reducedSpeedZones: [],
+      plannedClosures: [],
+    };
+
+    assert.equal(
+      stationImpactDirectionForImpact(
+        {
+          stationId: "union",
+          kind: "delay",
+          cardId: "delay-at-union-vaughan",
+          title: "Delay at Union",
+        },
+        data,
+      )?.arrow.direction,
+      "left",
+    );
+    assert.equal(
+      stationImpactDirectionForImpact(
+        {
+          stationId: "union",
+          kind: "delay",
+          cardId: "delay-at-union-finch",
+          title: "Delay at Union",
+        },
+        data,
+      )?.arrow.direction,
+      "right",
+    );
+    assert.equal(
+      stationImpactDirectionArrow("line-1", "Northbound (to Finch)")?.direction,
+      "up",
+    );
+  });
+
   it("does not invent an arrow when the source direction is unavailable", () => {
     assert.equal(stationImpactDirectionArrow("line-1", null), null);
     assert.equal(stationImpactDirectionArrow("line-1", "Direction not specified"), null);

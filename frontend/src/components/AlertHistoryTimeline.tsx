@@ -160,7 +160,11 @@ export function AlertHistoryTimeline() {
                       type="button"
                       className={`alert-history-line-filter-option ${selectedLineId === option.value ? "selected" : ""}`}
                       onClick={() => {
-                        setSelectedLineId(option.value);
+                        if (selectedLineId === option.value) {
+                          setSelectedLineId(ALL_LINES_VALUE);
+                        } else {
+                          setSelectedLineId(option.value);
+                        }
                         setIsDropdownOpen(false);
                       }}
                     >

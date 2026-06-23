@@ -13,7 +13,7 @@ export const scenarioNames = [
 
 export const scenarioExpectations = {
   "all-alert-types": {
-    routeCount: 14,
+    routeCount: 15,
     accessibilityCount: 2,
     impactKinds: ["suspension", "delay", "reduced-speed-zone", "planned-closure"],
     directionCoverage: {
@@ -331,6 +331,20 @@ function allAlertTypes(now) {
       effect: "SIGNIFICANT_DELAYS",
       effectDesc: "Delays",
       direction: "Both ways",
+      cause: "MEDICAL_EMERGENCY",
+      causeDescription: "Emergency alarm",
+    }),
+    routeAlert(now, {
+      id: "scenario-station-node-union-vaughan",
+      route: "1",
+      stopStart: "Union",
+      stopEnd: "Union",
+      stopIDList: ["Union"],
+      title: "Delays on the northbound platform to Vaughan Metropolitan Centre at Union station while we respond to an emergency alarm.",
+      headerText: "Line 1 Yonge-University: Delays on the northbound platform to Vaughan Metropolitan Centre at Union station while we respond to an emergency alarm.",
+      effect: "SIGNIFICANT_DELAYS",
+      effectDesc: "Delays",
+      direction: "Northbound To Vaughan Metropolitan Centre",
       cause: "MEDICAL_EMERGENCY",
       causeDescription: "Emergency alarm",
     }),

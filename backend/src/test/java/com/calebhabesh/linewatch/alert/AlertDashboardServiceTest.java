@@ -997,6 +997,53 @@ class AlertDashboardServiceTest {
     }
 
     @Test
+    void unionStationOnlyLineOneDelayUsesTerminalQualifiedDirection() {
+        when(ingestionFreshness.isDashboardFresh()).thenReturn(true);
+        AlertEntity vaughanDelay = withLine(alert(
+            "delay-union-vaughan",
+            "active-alert",
+            "delay",
+            "Delay at Union",
+            "Delays at Union Station.",
+            "union",
+            "union",
+            OffsetDateTime.parse("2026-06-01T11:50:00Z"),
+            null
+        ), "line-1", "1");
+        ReflectionTestUtils.setField(vaughanDelay, "impactKind", "delay");
+        ReflectionTestUtils.setField(vaughanDelay, "direction", "northbound");
+        ReflectionTestUtils.setField(
+            vaughanDelay,
+            "rawPayload",
+            "{\"direction\":\"Northbound To Vaughan Metropolitan Centre\"}"
+        );
+        AlertEntity finchDelay = withLine(alert(
+            "delay-union-finch",
+            "active-alert",
+            "delay",
+            "Delay at Union",
+            "Delays on the Finch platform at Union Station.",
+            "union",
+            "union",
+            OffsetDateTime.parse("2026-06-01T11:49:00Z"),
+            null
+        ), "line-1", "1");
+        ReflectionTestUtils.setField(finchDelay, "impactKind", "delay");
+        ReflectionTestUtils.setField(finchDelay, "direction", "southbound");
+
+        when(alertRepository.findByActiveTrueAndType("active-alert"))
+            .thenReturn(List.of(vaughanDelay, finchDelay));
+        when(lineSegmentRepository.findAllByOrderBySortOrderAsc()).thenReturn(List.of());
+
+        assertThat(service.delays())
+            .extracting(AlertDashboardService.DelayAlertDto::displayDirection)
+            .containsExactlyInAnyOrder(
+                "Northbound (to Vaughan Metropolitan Centre)",
+                "Northbound (to Finch)"
+            );
+    }
+
+    @Test
     void bothWayDirectionReturnsBidirectionalCardsAndMapImpacts() {
         when(ingestionFreshness.isDashboardFresh()).thenReturn(true);
         AlertEntity delay = withLine(alert(

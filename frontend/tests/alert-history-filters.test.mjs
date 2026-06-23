@@ -172,7 +172,7 @@ describe("alert history filtering", () => {
 
     assert.deepEqual(
       options.map((option) => option.label),
-      ["All lines", "Line 2 Bloor-Danforth", "Line 5 Eglinton", "Line unavailable"],
+      ["Line 2 Bloor-Danforth", "Line 5 Eglinton", "Line unavailable"],
     );
   });
 });

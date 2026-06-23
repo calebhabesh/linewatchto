@@ -556,7 +556,21 @@ public class AlertDashboardService {
     }
 
     private String displayDirection(AlertEntity alert) {
-        return switch (AlertDirection.fromWireValue(alert.getDirection())) {
+        AlertDirection direction = AlertDirection.fromWireValue(alert.getDirection());
+        if (isUnionLineOneStationOnlyAlert(alert)) {
+            Optional<String> unionTerminal = unionLineOneTerminal(alert);
+            if (unionTerminal.isPresent()) {
+                return "Northbound (to " + unionTerminal.get() + ")";
+            }
+            if (direction == AlertDirection.BIDIRECTIONAL) {
+                return "Northbound (to Vaughan Metropolitan Centre & Finch)";
+            }
+            if (direction == AlertDirection.NORTHBOUND || direction == AlertDirection.SOUTHBOUND) {
+                return "Northbound (terminal not specified)";
+            }
+        }
+
+        return switch (direction) {
             case NORTHBOUND -> "Northbound";
             case SOUTHBOUND -> "Southbound";
             case EASTBOUND -> "Eastbound";
@@ -564,6 +578,37 @@ public class AlertDashboardService {
             case BIDIRECTIONAL -> bidirectionalLabel(alert.getLine());
             case UNKNOWN -> null;
         };
+    }
+
+    private boolean isUnionLineOneStationOnlyAlert(AlertEntity alert) {
+        TransitLineEntity line = alert.getLine();
+        return line != null
+            && "line-1".equals(line.getId())
+            && "union".equals(alert.getStartStationId())
+            && "union".equals(alert.getEndStationId());
+    }
+
+    private Optional<String> unionLineOneTerminal(AlertEntity alert) {
+        String text = String.join(" ",
+            nullToEmpty(alert.getTitle()),
+            nullToEmpty(alert.getDescription()),
+            nullToEmpty(alert.getRawPayload())
+        ).toLowerCase(Locale.ROOT);
+
+        boolean mentionsVaughan = text.contains("vaughan metropolitan centre")
+            || text.contains("vaughan")
+            || text.contains("vmc");
+        boolean mentionsFinch = text.contains("finch");
+        if (mentionsVaughan && mentionsFinch) {
+            return Optional.of("Vaughan Metropolitan Centre & Finch");
+        }
+        if (mentionsVaughan) {
+            return Optional.of("Vaughan Metropolitan Centre");
+        }
+        if (mentionsFinch) {
+            return Optional.of("Finch");
+        }
+        return Optional.empty();
     }
 
     private String travelDirection(AlertEntity alert, LineSegmentEntity segment) {

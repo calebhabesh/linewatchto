@@ -103,15 +103,12 @@ export function buildAlertHistoryLineOptions(
     });
   }
 
-  return [
-    { value: ALL_LINES_VALUE, label: "All lines", sortKey: -1 },
-    ...Array.from(byValue.values()).sort((a, b) => {
-      if (a.sortKey !== b.sortKey) {
-        return a.sortKey - b.sortKey;
-      }
-      return a.label.localeCompare(b.label);
-    }),
-  ];
+  return Array.from(byValue.values()).sort((a, b) => {
+    if (a.sortKey !== b.sortKey) {
+      return a.sortKey - b.sortKey;
+    }
+    return a.label.localeCompare(b.label);
+  });
 }
 
 function incidentMatchesSearch(
