@@ -32,7 +32,6 @@ export function AlertHistoryTimeline() {
 
   useEffect(() => {
     let cancelled = false;
-    setLoading(true);
     getAlertHistory(period).then((result) => {
       if (cancelled) return;
       setHistory(result.data.incidents);
@@ -68,7 +67,10 @@ export function AlertHistoryTimeline() {
               key={option.value}
               type="button"
               className={`alert-history-period-chip ${period === option.value ? "active" : ""}`}
-              onClick={() => setPeriod(option.value)}
+              onClick={() => {
+                setLoading(true);
+                setPeriod(option.value);
+              }}
               aria-pressed={period === option.value}
             >
               {option.label}
