@@ -108,7 +108,7 @@ class LineSubscriptionPushPlannerTest {
         when(dashboardService.reducedSpeedZones()).thenReturn(List.of(zone));
         when(dashboardService.plannedClosures()).thenReturn(List.of(closure));
 
-        List<PushNotificationCandidate> candidates = planner.candidatesFor("user_1", List.of("line-1"));
+        List<PushNotificationCandidate> candidates = planner.candidatesFor("user_1", List.of("line-1", "line-2"));
 
         assertThat(candidates).filteredOn(c -> "suspension".equals(c.eventType())).singleElement().satisfies(c -> {
             assertThat(c.category()).isEqualTo("line-current");
@@ -122,9 +122,15 @@ class LineSubscriptionPushPlannerTest {
             assertThat(c.notificationSubject()).isEqualTo("Line 1 Yonge-University Suspension");
             assertThat(c.eventLocation()).isEqualTo("St George to Sheppard West");
             assertThat(c.sourceEventAt()).isEqualTo(Instant.parse("2026-06-05T10:00:00Z"));
+            assertThat(c.url()).isEqualTo("/?panel=alerts&impactKind=suspension&impactId=alert-1");
         });
 
-        assertThat(candidates).filteredOn(c -> "delay".equals(c.eventType())).isEmpty();
+        assertThat(candidates).filteredOn(c -> "delay".equals(c.eventType())).singleElement().satisfies(c -> {
+            assertThat(c.category()).isEqualTo("line-current");
+            assertThat(c.lineId()).isEqualTo("line-2");
+            assertThat(c.notificationKey()).isEqualTo("line-current|line-2|delay|alert-2");
+            assertThat(c.url()).isEqualTo("/?panel=delays&impactKind=delay&impactId=alert-2");
+        });
 
         assertThat(candidates).filteredOn(c -> "reduced-speed-zone".equals(c.eventType())).singleElement().satisfies(c -> {
             assertThat(c.category()).isEqualTo("line-current");
@@ -132,6 +138,7 @@ class LineSubscriptionPushPlannerTest {
             assertThat(c.notificationKey()).isEqualTo("line-current|line-1|reduced-speed-zone|zone-1");
             assertThat(c.title()).isEqualTo("⚠️ Line 1 Yonge-University Reduced Speed Zone");
             assertThat(c.body()).contains("Eglinton to Davisville.");
+            assertThat(c.url()).isEqualTo("/?panel=reduced-speed-zones&impactKind=reduced-speed-zone&impactId=zone-1");
         });
 
         List<PushNotificationCandidate> closureCandidates = candidates.stream()
@@ -144,6 +151,7 @@ class LineSubscriptionPushPlannerTest {
         for (PushNotificationCandidate candidate : closureCandidates) {
             assertThat(candidate.title()).isEqualTo("⚠️ Line 1 Yonge-University Planned Closure");
             assertThat(candidate.sourceEventAt()).isEqualTo(eventStart.toInstant());
+            assertThat(candidate.url()).isEqualTo("/?panel=closures&impactKind=planned-closure&impactId=closure-1");
             if ("closure-24h".equals(candidate.reminderBucket())) {
                 assertThat(candidate.body()).contains("Starts within 24 hours.");
             }

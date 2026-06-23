@@ -103,7 +103,7 @@ public class PushNotificationEventEntity {
         event.eventLocation = notification.eventLocation();
         event.scopeLabel = notification.scopeLabel();
         event.sourceEventAt = notification.sourceEventAt();
-        event.url = activeEvent.url;
+        event.url = "/";
         event.createdAt = now;
         return event;
     }

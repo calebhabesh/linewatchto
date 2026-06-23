@@ -275,6 +275,7 @@ async function serviceWorkerFetch(requestUrl, { cachedResponse, networkResponse 
 
 async function serviceWorkerPush({
   fetchOk = true,
+  fetchStatus = fetchOk ? 200 : 503,
   fetchBody = {
     notification: {
       title: "⚠️ Line 1 Yonge-University Reduced Speed Zone",
@@ -311,6 +312,7 @@ async function serviceWorkerPush({
       fetchRequests.push({ url, options });
       return {
         ok: fetchOk,
+        status: fetchStatus,
         json: async () => fetchBody,
       };
     },
@@ -700,7 +702,7 @@ describe("LineWatch PWA configuration", () => {
   });
 
   it("shows the controlled fallback only when the pending API request fails", async () => {
-    const { shownNotifications } = await serviceWorkerPush({ fetchOk: false });
+    const { shownNotifications } = await serviceWorkerPush({ fetchOk: false, fetchStatus: 503 });
 
     assert.equal(shownNotifications.length, 1);
     assert.equal(shownNotifications[0].title, "⚠️ LineWatch TO Service Alert");
@@ -708,6 +710,12 @@ describe("LineWatch PWA configuration", () => {
       shownNotifications[0].options.body,
       "Open LineWatch TO to view the latest service update.",
     );
+  });
+
+  it("does not show a fallback for unauthenticated or unknown push subscriptions", async () => {
+    const { shownNotifications } = await serviceWorkerPush({ fetchOk: false, fetchStatus: 401 });
+
+    assert.equal(shownNotifications.length, 0);
   });
 
   it("shows a cleared saved-commute push as a quiet replacement even when the tag is no longer active", async () => {
@@ -932,5 +940,8 @@ describe("LineWatch PWA configuration", () => {
     assert.match(shellSource, /panel=delays/);
     assert.match(shellSource, /panel=reduced-speed-zones/);
     assert.match(shellSource, /panel=closures/);
+    assert.match(shellSource, /impactKind/);
+    assert.match(shellSource, /impactId/);
+    assert.match(shellSource, /setSelection\(\{\s*kind:\s*impactKind,\s*id:\s*impactId\s*\}\)/);
   });
 });

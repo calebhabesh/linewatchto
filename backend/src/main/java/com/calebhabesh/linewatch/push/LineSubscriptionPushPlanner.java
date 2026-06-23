@@ -1,6 +1,8 @@
 package com.calebhabesh.linewatch.push;
 
 import com.calebhabesh.linewatch.alert.AlertDashboardService;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
@@ -51,7 +53,7 @@ public class LineSubscriptionPushPlanner {
                     alert.displayDirection(),
                     alert.shuttle(),
                     alert.startedAt() == null ? null : alert.startedAt().toInstant(),
-                    "/?panel=alerts"
+                    impactUrl("alerts", "suspension", alert.id())
                 ));
             }
         }
@@ -70,7 +72,7 @@ public class LineSubscriptionPushPlanner {
                     delay.displayDirection(),
                     false,
                     delay.startedAt() == null ? null : delay.startedAt().toInstant(),
-                    "/?panel=delays"
+                    impactUrl("delays", "delay", delay.id())
                 ));
             }
         }
@@ -89,7 +91,7 @@ public class LineSubscriptionPushPlanner {
                     zone.displayDirection(),
                     false,
                     zone.startedAt() == null ? null : zone.startedAt().toInstant(),
-                    "/?panel=reduced-speed-zones"
+                    impactUrl("reduced-speed-zones", "reduced-speed-zone", zone.id())
                 ));
             }
         }
@@ -98,7 +100,7 @@ public class LineSubscriptionPushPlanner {
             if (subscribedLineIds.contains(closure.lineId())) {
                 String eventType = "planned-closure";
                 String category = "line-planned";
-                String url = "/?panel=closures";
+                String url = impactUrl("closures", eventType, closure.id());
 
                 OffsetDateTime eventStartAt = closure.nextWindowStart() != null
                     ? closure.nextWindowStart()
@@ -211,5 +213,18 @@ public class LineSubscriptionPushPlanner {
             notification,
             url
         );
+    }
+
+    private String impactUrl(String panel, String impactKind, String impactId) {
+        if (impactId == null || impactId.isBlank()) {
+            return "/?panel=" + encode(panel);
+        }
+        return "/?panel=" + encode(panel)
+            + "&impactKind=" + encode(impactKind)
+            + "&impactId=" + encode(impactId);
+    }
+
+    private String encode(String value) {
+        return URLEncoder.encode(value, StandardCharsets.UTF_8);
     }
 }

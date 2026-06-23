@@ -3684,6 +3684,10 @@ button {
   scroll-margin-bottom: 2rem;
 }
 
+.saved-commute-form input {
+  font-size: 14px;
+}
+
 .dark .account-field input,
 .high-contrast .account-field input,
 .dark .saved-commute-form input,
@@ -4272,6 +4276,7 @@ button {
 
 .saved-commute-notification-summary-copy span,
 .notification-settings-row-main span,
+.notification-settings-row-main div,
 .notification-settings-row-label {
   display: flex;
   flex-direction: column;
@@ -6102,7 +6107,6 @@ button {
     text-transform: uppercase;
   }
 
-  .mobile-more-row,
   .mobile-more-account {
     align-items: center;
     background: var(--panel-soft);
@@ -6116,6 +6120,45 @@ button {
     min-height: 46px;
     padding: 9px 10px;
     text-align: left;
+  }
+
+  .mobile-more-row {
+    align-items: center;
+    border: none;
+    border-radius: 8px;
+    color: #334155; /* slate-700 */
+    display: flex;
+    font-size: 13px;
+    font-weight: 500;
+    gap: 12px;
+    min-height: 46px;
+    padding: 10px 12px;
+    text-align: left;
+    transition: background-color 0.15s, color 0.15s;
+    cursor: pointer;
+  }
+
+  .mobile-more-row svg {
+    color: #64748b; /* slate-500 */
+    transition: color 0.15s;
+  }
+
+  .mobile-more-row:hover,
+  .mobile-more-row:active {
+    background: #f1f5f9 !important;
+  }
+
+  .dark .mobile-more-row {
+    color: #e2e8f0; /* slate-200 */
+  }
+
+  .dark .mobile-more-row svg {
+    color: #94a3b8; /* slate-400 */
+  }
+
+  .dark .mobile-more-row:hover,
+  .dark .mobile-more-row:active {
+    background: #1e293b !important;
   }
 
   .mobile-more-row strong,
@@ -6587,6 +6630,17 @@ button {
   }
 
   .floating-panel-shell .panel-heading button svg {
+    width: 18px !important;
+    height: 18px !important;
+  }
+
+  .floating-panel-shell .commute-panel .panel-heading h2 {
+    font-size: 18px !important;
+    font-weight: 950 !important;
+    gap: 9px !important;
+  }
+
+  .floating-panel-shell .commute-panel .panel-heading h2 svg {
     width: 18px !important;
     height: 18px !important;
   }

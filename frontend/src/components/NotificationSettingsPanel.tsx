@@ -11,7 +11,7 @@ import {
   Construction,
   Loader2,
   Navigation,
-  TrainFront,
+  Sun,
   X,
 } from "lucide-react";
 import {
@@ -19,7 +19,6 @@ import {
 } from "../app/account-data";
 import { type UsePushNotificationSettingsResult } from "../hooks/usePushNotificationSettings";
 import { DelayIcon } from "./DelayIcon";
-import { AlertHistoryTimeline } from "./AlertHistoryTimeline";
 
 type Props = {
   accountState: AccountState;
@@ -134,7 +133,6 @@ export function NotificationSettingsPanel({
       </div>
 
       <div className="notification-settings-scroll">
-        <AlertHistoryTimeline />
         {!accountState.authenticated ? (
           <div className="notification-settings-prompt !p-4 !flex !flex-col !gap-4">
             <div>
@@ -205,11 +203,20 @@ export function NotificationSettingsPanel({
               <div className="notification-settings-card border border-black/10 dark:border-white/10 p-3 rounded-lg flex flex-col gap-2 relative">
                 <div className="flex items-start gap-2.5">
                   <div className="notification-settings-row-main flex-1">
-                    <Bell size={17} className="text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
-                    <span>
+                    <span className="notification-settings-icon shrink-0">
+                      <Bell size={15} className="text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
+                    </span>
+                    <div>
                       <strong>Push for This Browser</strong>
                       <em>Controls whether this phone or browser can display LineWatch TO notifications.</em>
-                    </span>
+                      {busy ? (
+                        <p className="notification-settings-message text-xs text-slate-400 dark:text-slate-500 flex items-center gap-1.5 mt-1.5" role="status">
+                          <Loader2 size={13} className="animate-spin" aria-hidden="true" /> Updating notification settings...
+                        </p>
+                      ) : statusMessage ? (
+                        <p className="notification-settings-muted-warning text-xs text-slate-400 dark:text-slate-500 italic mt-1.5" role="status">{statusMessage}</p>
+                      ) : null}
+                    </div>
                   </div>
                   <div className="notification-settings-row-actions">
                     <NotificationSwitch
@@ -226,13 +233,6 @@ export function NotificationSettingsPanel({
                     />
                   </div>
                 </div>
-                {busy ? (
-                  <p className="notification-settings-message text-slate-500 dark:text-slate-400 flex items-center gap-1.5" role="status">
-                    <Loader2 size={13} className="animate-spin" aria-hidden="true" /> Updating notification settings...
-                  </p>
-                ) : statusMessage ? (
-                  <p className="notification-settings-message text-slate-700 dark:text-slate-300" role="status">{statusMessage}</p>
-                ) : null}
               </div>
             </div>
 
@@ -244,11 +244,18 @@ export function NotificationSettingsPanel({
               <div className="notification-settings-card border border-black/10 dark:border-white/10 p-3 rounded-lg flex flex-col gap-2">
                 <div className="flex items-start gap-2.5">
                   <div className="notification-settings-row-main flex-1">
-                    <Navigation size={17} className="text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
-                    <span>
+                    <span className="notification-settings-icon shrink-0">
+                      <Navigation size={15} className="text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
+                    </span>
+                    <div>
                       <strong>Current Disruptions Affecting Saved Commutes</strong>
                       <em>Delays, suspensions, Reduced Speed Zones, and cleared updates only when they affect a saved route.</em>
-                    </span>
+                      {!subscribed && (
+                        <p className="notification-settings-muted-warning text-xs text-slate-400 dark:text-slate-500 italic mt-1.5">
+                          Inactive until device notifications are enabled.
+                        </p>
+                      )}
+                    </div>
                   </div>
                   <div className="notification-settings-row-actions">
                     <NotificationSwitch
@@ -267,20 +274,22 @@ export function NotificationSettingsPanel({
                     />
                   </div>
                 </div>
-                {!subscribed && (
-                  <p className="notification-settings-muted-warning text-xs text-slate-400 dark:text-slate-500 italic">
-                    Inactive until device notifications are enabled for at least one browser.
-                  </p>
-                )}
               </div>
               <div className="notification-settings-card border border-black/10 dark:border-white/10 p-3 rounded-lg flex flex-col gap-2 mt-2">
                 <div className="flex items-start gap-2.5">
                   <div className="notification-settings-row-main flex-1">
-                    <Calendar size={17} className="text-blue-600 dark:text-blue-400" aria-hidden="true" />
-                    <span>
+                    <span className="notification-settings-icon shrink-0">
+                      <Calendar size={15} className="text-blue-600 dark:text-blue-400" aria-hidden="true" />
+                    </span>
+                    <div>
                       <strong>Planned Closure Reminders</strong>
                       <em>Upcoming closure notices for monitored saved-commute routes.</em>
-                    </span>
+                      {!subscribed && (
+                        <p className="notification-settings-muted-warning text-xs text-slate-400 dark:text-slate-500 italic mt-1.5">
+                          Inactive until device notifications are enabled.
+                        </p>
+                      )}
+                    </div>
                   </div>
                   <div className="notification-settings-row-actions">
                     <NotificationSwitch
@@ -299,11 +308,6 @@ export function NotificationSettingsPanel({
                     />
                   </div>
                 </div>
-                {!subscribed && (
-                  <p className="notification-settings-muted-warning text-xs text-slate-400 dark:text-slate-500 italic">
-                    Inactive until device notifications are enabled for at least one browser.
-                  </p>
-                )}
               </div>
             </div>
 
@@ -466,13 +470,13 @@ export function NotificationSettingsPanel({
                   {
                     key: "closureMorning" as const,
                     label: "Morning of Closure",
-                    icon: <TrainFront size={15} />,
+                    icon: <Sun size={15} />,
                     desc: "Remind on the morning of a planned closure.",
                   },
                 ].map(({ key, label, icon, desc }) => (
                   <div className="notification-settings-row flex items-center justify-between py-2.5 border-b border-black/5 dark:border-white/5 last:border-b-0" key={key}>
-                    <div className="flex items-start gap-2.5 min-w-0 flex-1">
-                      <span className="notification-settings-icon mt-0.5 shrink-0 text-slate-500 dark:text-slate-400">{icon}</span>
+                    <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                      <span className="notification-settings-icon shrink-0 text-slate-500 dark:text-slate-400">{icon}</span>
                       <span className="notification-settings-row-label min-w-0">
                         <strong>{label}</strong>
                         <em>{desc}</em>

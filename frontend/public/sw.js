@@ -172,7 +172,9 @@ async function showPendingPushNotification() {
       body: JSON.stringify({ endpoint: subscription.endpoint }),
     });
     if (!response.ok) {
-      await showFallbackPushNotification();
+      if (shouldShowFallbackPushNotification(response.status)) {
+        await showFallbackPushNotification();
+      }
       return;
     }
 
@@ -227,6 +229,10 @@ async function showFallbackPushNotification() {
       url: "/",
     },
   });
+}
+
+function shouldShowFallbackPushNotification(status) {
+  return !Number.isFinite(status) || status >= 500;
 }
 
 async function reconcilePushNotifications() {

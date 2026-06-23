@@ -398,7 +398,7 @@ export function SavedCommutesPanel({
                 <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Route impacts enabled</span>
               )}
             </div>
-            <input value={newLabel} onChange={(event) => setNewLabel(event.target.value)} placeholder="Commute Label" aria-label="Saved commute label" />
+            <input value={newLabel} onChange={(event) => setNewLabel(event.target.value)} placeholder="Enter a Commute Label (e.g. Work)" aria-label="Saved commute label" />
             <div className="saved-commute-station-grid">
               <SavedCommuteStationPicker
                 label="Origin"

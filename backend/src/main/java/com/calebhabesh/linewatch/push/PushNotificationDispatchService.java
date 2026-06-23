@@ -5,9 +5,11 @@ import com.calebhabesh.linewatch.account.SavedCommuteRepository;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -105,11 +107,16 @@ public class PushNotificationDispatchService {
                 sendIfNew(candidate);
             }
 
-            sendClearedNotifications(accountId, preferences, currentNotificationKeys);
+            sendClearedNotifications(accountId, preferences, currentNotificationKeys, allowedCandidates);
         }
     }
 
-    private void sendClearedNotifications(String accountId, PushNotificationPreferenceEntity preferences, Set<String> currentNotificationKeys) {
+    private void sendClearedNotifications(
+        String accountId,
+        PushNotificationPreferenceEntity preferences,
+        Set<String> currentNotificationKeys,
+        List<PushNotificationCandidate> currentCandidates
+    ) {
         Instant now = clock.instant();
         List<String> currentCategories = List.of("saved-commute-current", "saved-commute-impact", "line-current");
         
@@ -121,6 +128,9 @@ public class PushNotificationDispatchService {
 
         for (PushNotificationEventEntity activeEvent : activeEvents) {
             if (currentNotificationKeys.contains(activeEvent.getNotificationKey())) {
+                continue;
+            }
+            if (hasEquivalentCurrentCandidate(activeEvent, currentCandidates)) {
                 continue;
             }
             if (eventRepository.existsByNotificationKeyAndNotificationState(activeEvent.getNotificationKey(), CLEARED_STATE)) {
@@ -148,6 +158,80 @@ public class PushNotificationDispatchService {
                 }
             }
         }
+    }
+
+    private boolean hasEquivalentCurrentCandidate(
+        PushNotificationEventEntity activeEvent,
+        List<PushNotificationCandidate> currentCandidates
+    ) {
+        return currentCandidates.stream()
+            .filter(candidate -> !candidate.notificationKey().equals(activeEvent.getNotificationKey()))
+            .anyMatch(candidate -> equivalentLifecycleEvent(activeEvent, candidate));
+    }
+
+    private boolean equivalentLifecycleEvent(
+        PushNotificationEventEntity activeEvent,
+        PushNotificationCandidate candidate
+    ) {
+        if (!sameCurrentCategoryFamily(activeEvent.getCategory(), candidate.category())) {
+            return false;
+        }
+        if (!same(activeEvent.getLineId(), candidate.lineId())) {
+            return false;
+        }
+        if (!same(activeEvent.getEventType(), candidate.eventType())) {
+            return false;
+        }
+        if (!sameScope(activeEvent, candidate)) {
+            return false;
+        }
+        if (!compatibleLocations(activeEvent.getEventLocation(), candidate.eventLocation())) {
+            return false;
+        }
+        return compatibleSourceTimes(activeEvent.getSourceEventAt(), candidate.sourceEventAt());
+    }
+
+    private boolean sameScope(PushNotificationEventEntity activeEvent, PushNotificationCandidate candidate) {
+        if (activeEvent.getCommuteId() != null) {
+            return same(activeEvent.getCommuteId(), candidate.commuteId())
+                && same(activeEvent.getLegId(), candidate.legId());
+        }
+        return candidate.commuteId() == null || candidate.commuteId().isBlank();
+    }
+
+    private boolean sameCurrentCategoryFamily(String first, String second) {
+        return currentCategoryFamily(first).equals(currentCategoryFamily(second));
+    }
+
+    private String currentCategoryFamily(String category) {
+        String normalized = normalize(category);
+        if ("saved-commute-current".equals(normalized) || "saved-commute-impact".equals(normalized)) {
+            return "saved-commute-current";
+        }
+        return normalized;
+    }
+
+    private boolean compatibleLocations(String first, String second) {
+        String normalizedFirst = normalize(first);
+        String normalizedSecond = normalize(second);
+        return normalizedFirst.isBlank()
+            || normalizedSecond.isBlank()
+            || normalizedFirst.equals(normalizedSecond);
+    }
+
+    private boolean compatibleSourceTimes(Instant first, Instant second) {
+        if (first == null || second == null) {
+            return true;
+        }
+        return Duration.between(first, second).abs().compareTo(Duration.ofMinutes(60)) <= 0;
+    }
+
+    private boolean same(String first, String second) {
+        return normalize(first).equals(normalize(second));
+    }
+
+    private String normalize(String value) {
+        return value == null ? "" : value.trim().toLowerCase(Locale.ROOT).replaceAll("\\s+", " ");
     }
 
     private void sendIfNew(PushNotificationCandidate candidate) {

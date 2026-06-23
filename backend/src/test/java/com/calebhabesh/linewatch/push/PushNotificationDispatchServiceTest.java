@@ -296,6 +296,7 @@ class PushNotificationDispatchServiceTest {
             Service between Finch and Union has been restored.
             No longer affects Morning commute (Outbound).
             🕗 Jun 5, 11:00 AM""");
+        assertThat(clearedEvent.getUrl()).isEqualTo("/");
         assertThat(clearedEvent.getSourceEventAt())
             .isEqualTo(Instant.parse("2026-06-05T15:00:00Z"));
         verify(webPushClient).send(subscription, "AVEPD-AuDIedMxfArNYRpmed5ppkzhC3");
@@ -475,6 +476,58 @@ class PushNotificationDispatchServiceTest {
         assertThat(clearedEvent.getBody()).isEqualTo("""
             Service between Finch and Union has been restored.
             🕗 Jun 5, 11:00 AM""");
+        assertThat(clearedEvent.getUrl()).isEqualTo("/");
+    }
+
+    @Test
+    void doesNotSendClearedWhenEquivalentLineAlertStillExistsUnderANewKey() {
+        PushNotificationPreferenceEntity preferences = PushNotificationPreferenceEntity.create(account, clock.instant());
+        PushNotificationPreferenceEntity spyPrefs = spy(preferences);
+        when(spyPrefs.isLineRestoredEnabled()).thenReturn(true);
+        when(preferenceService.preferenceEntityForAccountId("user_1")).thenReturn(spyPrefs);
+
+        when(subscriptionRepository.findEnabledAccountIds()).thenReturn(List.of("user_1"));
+        when(preferenceService.subscribedLineIds("user_1")).thenReturn(List.of("line-2"));
+
+        PushNotificationCandidate previousGtfsRtCandidate = candidate(
+            null, null, "line-2", "2", "line-current", "suspension", "on-change",
+            "line-current|line-2|suspension|ttc-route-gtfsrt-70483",
+            "user_1|line|line-2|suspension|on-change|ttc-route-gtfsrt-70483",
+            "",
+            null,
+            Instant.parse("2026-06-05T14:20:00Z"),
+            "/?panel=alerts"
+        );
+        PushNotificationEventEntity previousEvent = PushNotificationEventEntity.create(
+            "event-gtfs",
+            previousGtfsRtCandidate,
+            clock.instant()
+        );
+
+        PushNotificationCandidate currentLiveCandidate = candidate(
+            null, null, "line-2", "2", "line-current", "suspension", "on-change",
+            "line-current|line-2|suspension|ttc-route-70500",
+            "user_1|line|line-2|suspension|on-change|ttc-route-70500",
+            "Warden",
+            null,
+            Instant.parse("2026-06-05T14:22:00Z"),
+            "/?panel=alerts&impactKind=suspension&impactId=ttc-route-70500"
+        );
+
+        when(lineSubscriptionPushPlanner.candidatesFor("user_1", List.of("line-2")))
+            .thenReturn(List.of(currentLiveCandidate));
+        when(preferenceService.allows(spyPrefs, currentLiveCandidate)).thenReturn(true);
+        when(eventRepository.existsByDedupeKey("user_1|line|line-2|suspension|on-change|ttc-route-70500"))
+            .thenReturn(true);
+        when(eventRepository.findByAccountIdAndCategoryInAndNotificationState(eq("user_1"), anyList(), eq("ACTIVE")))
+            .thenReturn(List.of(previousEvent));
+        when(eventRepository.save(any(PushNotificationEventEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(subscriptionRepository.findByAccountIdAndEnabledTrue("user_1")).thenReturn(List.of());
+
+        service.evaluateSavedCommuteNotifications();
+
+        verify(eventRepository, never()).save(any(PushNotificationEventEntity.class));
+        verify(webPushClient, never()).send(any(), any());
     }
 
     private PushNotificationCandidate candidate(
@@ -520,4 +573,3 @@ class PushNotificationDispatchServiceTest {
         );
     }
 }
-
