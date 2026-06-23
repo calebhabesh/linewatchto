@@ -3550,18 +3550,6 @@ button {
   color: rgb(134 239 172);
 }
 
-.google-sign-in-slot {
-  display: flex;
-  min-height: 44px;
-  width: 100%;
-  align-items: center;
-  justify-content: center;
-}
-
-.google-sign-in-slot > div {
-  width: min(100%, 320px);
-}
-
 .account-provider-stack {
   display: grid;
   gap: 12px;
@@ -3570,13 +3558,13 @@ button {
 
 .account-choice-primary {
   align-items: center;
-  background: rgb(15, 23, 42);
-  border: 1px solid rgba(15, 23, 42, 0.14);
+  background: rgb(255, 255, 255);
+  border: 1px solid rgb(218, 220, 224);
   border-radius: 8px;
-  color: white;
+  color: rgb(31, 31, 31);
   display: inline-flex;
   font-size: 0.875rem;
-  font-weight: 900;
+  font-weight: 700;
   gap: 10px;
   justify-content: center;
   min-height: 44px;
@@ -3585,28 +3573,67 @@ button {
   width: 100%;
 }
 
+.account-choice-google-custom {
+  align-items: center;
+  background: rgb(255, 255, 255);
+  border: 1px solid rgb(218, 220, 224);
+  border-radius: 8px;
+  color: rgb(31, 31, 31);
+  display: inline-flex;
+  font-size: 0.875rem;
+  font-weight: 700;
+  gap: 10px;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0.625rem 0.875rem;
+  transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+  width: 100%;
+}
+
+.account-choice-google-icon {
+  flex: 0 0 auto;
+  height: 18px;
+  width: 18px;
+}
+
 .account-choice-primary:hover:not(:disabled),
-.account-choice-primary:focus-visible {
-  background: rgb(30, 41, 59);
+.account-choice-primary:focus-visible,
+.account-choice-google-custom:hover:not(:disabled),
+.account-choice-google-custom:focus-visible {
+  background: rgb(248, 250, 252);
+  border-color: rgb(203, 213, 225);
   outline: none;
 }
 
-.account-choice-primary:active:not(:disabled) {
+.account-choice-primary:active:not(:disabled),
+.account-choice-google-custom:active:not(:disabled) {
   transform: translateY(1px);
 }
 
+.account-choice-google-custom:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
+
 .dark .account-choice-primary,
-.high-contrast .account-choice-primary {
-  background: rgb(226, 232, 240);
-  border-color: rgba(255, 255, 255, 0.16);
-  color: rgb(15, 23, 42);
+.dark .account-choice-google-custom,
+.high-contrast .account-choice-primary,
+.high-contrast .account-choice-google-custom {
+  background: rgb(255, 255, 255);
+  border-color: rgb(218, 220, 224);
+  color: rgb(31, 31, 31);
 }
 
 .dark .account-choice-primary:hover:not(:disabled),
 .dark .account-choice-primary:focus-visible,
+.dark .account-choice-google-custom:hover:not(:disabled),
+.dark .account-choice-google-custom:focus-visible,
 .high-contrast .account-choice-primary:hover:not(:disabled),
-.high-contrast .account-choice-primary:focus-visible {
-  background: rgb(241, 245, 249);
+.high-contrast .account-choice-primary:focus-visible,
+.high-contrast .account-choice-google-custom:hover:not(:disabled),
+.high-contrast .account-choice-google-custom:focus-visible {
+  background: rgb(248, 250, 252);
+  border-color: rgb(203, 213, 225);
 }
 
 .account-auth-divider {
@@ -7954,5 +7981,153 @@ button {
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'></polyline></svg>") !important;
 }
 
+.alert-history-timeline {
+  gap: 0.75rem;
+}
 
+.alert-history-controls,
+.alert-history-chip-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
 
+.alert-history-period-chip,
+.alert-history-filter-chip {
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  border-radius: 999px;
+  padding: 0.35rem 0.6rem;
+  font-size: 0.72rem;
+  font-weight: 800;
+  background: rgba(15, 23, 42, 0.06);
+  color: rgb(51, 65, 85);
+}
+
+.dark .alert-history-period-chip,
+.dark .alert-history-filter-chip,
+.high-contrast .alert-history-period-chip,
+.high-contrast .alert-history-filter-chip {
+  background: rgba(15, 23, 42, 0.75);
+  color: rgb(226, 232, 240);
+}
+
+.alert-history-period-chip.active,
+.alert-history-filter-chip.active {
+  border-color: rgba(16, 185, 129, 0.75);
+  background: rgba(16, 185, 129, 0.16);
+  color: rgb(4, 120, 87);
+}
+
+.dark .alert-history-period-chip.active,
+.dark .alert-history-filter-chip.active,
+.high-contrast .alert-history-period-chip.active,
+.high-contrast .alert-history-filter-chip.active {
+  color: rgb(167, 243, 208);
+}
+
+.alert-history-list {
+  display: grid;
+  gap: 0.55rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.alert-history-item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.65rem;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  border-radius: 0.5rem;
+  padding: 0.7rem;
+  background: rgba(248, 250, 252, 0.82);
+}
+
+.dark .alert-history-item,
+.high-contrast .alert-history-item {
+  background: rgba(15, 23, 42, 0.75);
+}
+
+.alert-history-event-cleared .alert-history-icon {
+  color: rgb(16, 185, 129);
+}
+
+.alert-history-event-active .alert-history-icon {
+  color: rgb(245, 158, 11);
+}
+
+.alert-history-content {
+  min-width: 0;
+}
+
+.alert-history-title-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.6rem;
+  color: rgb(15, 23, 42);
+  font-size: 0.82rem;
+}
+
+.dark .alert-history-title-row,
+.high-contrast .alert-history-title-row {
+  color: rgb(248, 250, 252);
+}
+
+.alert-history-title-row span,
+.alert-history-meta,
+.alert-history-duration,
+.alert-history-details {
+  color: rgb(100, 116, 139);
+  font-size: 0.72rem;
+}
+
+.dark .alert-history-title-row span,
+.dark .alert-history-meta,
+.dark .alert-history-duration,
+.dark .alert-history-details,
+.high-contrast .alert-history-title-row span,
+.high-contrast .alert-history-meta,
+.high-contrast .alert-history-duration,
+.high-contrast .alert-history-details {
+  color: rgb(203, 213, 225);
+}
+
+.alert-history-meta {
+  margin-top: 0.15rem;
+}
+
+.alert-history-duration {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin-top: 0.25rem;
+}
+
+.alert-history-details {
+  margin-top: 0.35rem;
+}
+
+.alert-history-details summary {
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.alert-history-details ol {
+  display: grid;
+  gap: 0.25rem;
+  margin: 0.35rem 0 0;
+  padding-left: 1rem;
+}
+
+.alert-history-details li {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.alert-history-loading {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}

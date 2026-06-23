@@ -19,6 +19,7 @@ import {
 } from "../app/account-data";
 import { type UsePushNotificationSettingsResult } from "../hooks/usePushNotificationSettings";
 import { DelayIcon } from "./DelayIcon";
+import { AlertHistoryTimeline } from "./AlertHistoryTimeline";
 
 type Props = {
   accountState: AccountState;
@@ -133,6 +134,7 @@ export function NotificationSettingsPanel({
       </div>
 
       <div className="notification-settings-scroll">
+        <AlertHistoryTimeline />
         {!accountState.authenticated ? (
           <div className="notification-settings-prompt !p-4 !flex !flex-col !gap-4">
             <div>
