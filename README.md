@@ -292,6 +292,43 @@ SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE=true
 
 If you verify `mail.linewatchto.ca` instead of the root domain, use an address under that subdomain, for example `no-reply@mail.linewatchto.ca`. Do not use `calebhabesh.com` for LineWatch TO production reset emails unless you intentionally want reset links and sender reputation tied to your personal domain.
 
+### Feedback Channel
+
+LineWatch TO can accept viewing-only product feedback through `POST /api/feedback`.
+The form does not collect a reply email and the backend does not persist feedback in the database.
+When feedback email delivery is unavailable, the frontend offers a prefilled email-app fallback to `feedback@linewatchto.ca`.
+
+Recommended inbox setup:
+
+1. Route `feedback@linewatchto.ca` to the owner Gmail inbox with Cloudflare Email Routing or the current domain email provider.
+2. In Gmail, create a filter for `to:feedback@linewatchto.ca`.
+3. Apply a label such as `LineWatch TO / Feedback`.
+4. Keep early feedback in the inbox until volume justifies archiving it automatically.
+
+Backend feedback email settings:
+
+```bash
+LINEWATCH_FEEDBACK_ENABLED=true
+LINEWATCH_FEEDBACK_FROM=no-reply@linewatchto.ca
+LINEWATCH_FEEDBACK_TO=feedback@linewatchto.ca
+LINEWATCH_FEEDBACK_RATE_LIMIT_MAX_REQUESTS=5
+LINEWATCH_FEEDBACK_RATE_LIMIT_WINDOW=PT15M
+```
+
+These settings use the same Spring Mail SMTP configuration described for password reset email.
+Use a LineWatch-owned sender such as `no-reply@linewatchto.ca` or `no-reply@mail.linewatchto.ca`.
+Do not commit SMTP usernames, passwords, API keys, app passwords, or Gmail credentials.
+
+Frontend support-link setting:
+
+```bash
+NEXT_PUBLIC_LINEWATCH_SUPPORT_URL=https://buymeacoffee.com/linewatchto
+```
+
+Set this to the public Buy Me a Coffee profile URL for the project account.
+If the value is blank, the feedback panel hides the support action.
+The in-app button is labeled `Support LineWatch TO` and avoids donation, money, tip, or coffee wording.
+
 Optional Google sign-in configuration:
 
 ```dotenv
