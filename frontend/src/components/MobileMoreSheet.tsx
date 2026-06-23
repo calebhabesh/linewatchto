@@ -158,7 +158,7 @@ export function MobileMoreSheet({
           <h3>Tools</h3>
           <button type="button" className="mobile-more-row" onClick={onOpenFeedback}>
             <MessageSquareText size={18} className="text-slate-500 dark:text-slate-400" />
-            Suggest Improvement
+            Suggest Improvements
           </button>
           <button type="button" className="mobile-more-row" onClick={onOpenAnalytics}>
             <BarChart3 size={18} className="text-slate-500 dark:text-slate-400" />

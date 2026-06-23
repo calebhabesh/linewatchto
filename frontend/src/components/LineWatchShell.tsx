@@ -1004,7 +1004,7 @@ export function LineWatchShell({
       case "more": return "More options";
       case "analytics": return "Reliability analytics";
       case "alert-history": return "Alert History";
-      case "feedback": return "Suggest Improvement";
+      case "feedback": return "Suggest Improvements";
       case "accessibility-outages": return "Accessibility outages";
       case "surface-notices": return "Streetcar & Bus Notices";
       default: return "";
@@ -1320,7 +1320,7 @@ export function LineWatchShell({
         />
       </FloatingPanelShell>
     ) : activeView === "feedback" ? (
-      <FloatingPanelShell panel="feedback" mobileSheetLabel="Suggest Improvement">
+      <FloatingPanelShell panel="feedback" mobileSheetLabel="Suggest Improvements">
         <FeedbackPanel
           dataSource={displayData.dataSource}
           supportUrl={supportUrl}
@@ -1752,7 +1752,7 @@ export function LineWatchShell({
                    aria-current={activeView === "feedback" ? "page" : undefined}
                    className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
                  >
-                   <MessageSquareText size={18} className="text-slate-500 dark:text-slate-400" /> Suggest Improvement
+                   <MessageSquareText size={18} className="text-slate-500 dark:text-slate-400" /> Suggest Improvements
                  </button>
                  <button
                    ref={registerMenuAction(actionIndex++)}

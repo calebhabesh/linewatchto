@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ArrowLeft, ExternalLink, Send, X } from "lucide-react";
+import { ChevronLeft, ExternalLink, Send, X, MessageSquareText } from "lucide-react";
 import { lineWatchAppVersionLabel } from "../app/app-build";
 import {
   FeedbackRequestError,
@@ -65,18 +65,29 @@ export function FeedbackPanel({ dataSource, supportUrl, onBack, onClose }: Props
   };
 
   return (
-    <section className="feedback-panel panel" aria-label="Suggest an improvement">
-      <div className="panel-heading">
-        <button type="button" onClick={onBack} className="panel-back-button" aria-label="Back to menu">
-          <ArrowLeft size={18} />
-        </button>
-        <div>
-          <p className="panel-kicker">LineWatch TO</p>
-          <h2>Suggest an Improvement</h2>
+    <section className="feedback-panel panel" aria-label="Suggest improvements">
+      <div className="panel-heading @container border-b border-black/10 dark:border-white/10 px-4 py-3 flex items-center justify-between gap-3 min-w-0">
+        <div className="flex items-center gap-1 min-w-0">
+          {onBack ? (
+            <button type="button" onClick={onBack} className="p-2 -ml-3 mr-1 hover:bg-black/10 dark:hover:bg-white/10 rounded-lg transition-colors cursor-pointer shrink-0" aria-label="Back to menu">
+              <ChevronLeft size={28} className="text-slate-700 dark:text-slate-300" />
+            </button>
+          ) : null}
+          <h2 className="text-[clamp(10px,3.5cqw,18px)] font-bold text-slate-900 dark:text-white flex items-center gap-1 sm:gap-2 whitespace-nowrap">
+            <MessageSquareText className="w-[16px] h-[16px] sm:w-[22px] sm:h-[22px] text-blue-500 shrink-0" aria-hidden="true" />
+            <span>Suggest Improvements</span>
+          </h2>
         </div>
-        <button type="button" onClick={onClose} className="panel-close-button" aria-label="Close feedback">
-          <X size={18} />
-        </button>
+        {onClose ? (
+          <button
+            type="button"
+            onClick={onClose}
+            className="p-3 sm:p-3.5 mr-1 hover:bg-black/10 dark:hover:bg-white/10 rounded-lg transition-colors cursor-pointer shrink-0 flex items-center justify-center"
+            aria-label="Close feedback"
+          >
+            <X className="w-5 h-5 sm:w-6 sm:h-6 text-slate-700 dark:text-slate-300" />
+          </button>
+        ) : null}
       </div>
 
       <div className="feedback-content">

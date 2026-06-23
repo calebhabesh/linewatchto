@@ -10,7 +10,7 @@ describe("feedback panel UI", () => {
     assert.equal(existsSync(panelUrl), true);
     const panelSource = readFileSync(panelUrl, "utf8");
     assert.match(panelSource, /export function FeedbackPanel/);
-    assert.match(panelSource, /Suggest an Improvement/);
+    assert.match(panelSource, /Suggest Improvements/);
     assert.match(panelSource, /What could LineWatch TO make clearer or easier to use\?/);
     assert.match(panelSource, /textarea/);
     assert.match(panelSource, /MAX_FEEDBACK_MESSAGE_LENGTH/);
@@ -43,10 +43,10 @@ describe("feedback navigation", () => {
     assert.match(shellSource, /"feedback"/);
     assert.match(shellSource, /FeedbackPanel/);
     assert.match(shellSource, /NEXT_PUBLIC_LINEWATCH_SUPPORT_URL/);
-    assert.match(shellSource, /Suggest Improvement/);
+    assert.match(shellSource, /Suggest Improvements/);
     assert.match(shellSource, /setActiveView\("feedback"\)/);
     assert.match(moreSheetSource, /onOpenFeedback/);
-    assert.match(moreSheetSource, /Suggest Improvement/);
+    assert.match(moreSheetSource, /Suggest Improvements/);
   });
 });
 
