@@ -34,3 +34,19 @@ describe("feedback panel UI", () => {
     assert.match(globalCss, /\.feedback-honeypot/);
   });
 });
+
+describe("feedback navigation", () => {
+  const shellSource = readFileSync(new URL("../src/components/LineWatchShell.tsx", import.meta.url), "utf8");
+  const moreSheetSource = readFileSync(new URL("../src/components/MobileMoreSheet.tsx", import.meta.url), "utf8");
+
+  it("adds feedback to the desktop menu and mobile More sheet", () => {
+    assert.match(shellSource, /"feedback"/);
+    assert.match(shellSource, /FeedbackPanel/);
+    assert.match(shellSource, /NEXT_PUBLIC_LINEWATCH_SUPPORT_URL/);
+    assert.match(shellSource, /Suggest Improvement/);
+    assert.match(shellSource, /setActiveView\("feedback"\)/);
+    assert.match(moreSheetSource, /onOpenFeedback/);
+    assert.match(moreSheetSource, /Suggest Improvement/);
+  });
+});
+

@@ -1,6 +1,6 @@
 "use client";
 
-import { BarChart3, Bell, LogIn, LogOut, RefreshCcw, Contrast, Pause, UserPlus, UserRound, X, History } from "lucide-react";
+import { BarChart3, Bell, LogIn, LogOut, MessageSquareText, RefreshCcw, Contrast, Pause, UserPlus, UserRound, X, History } from "lucide-react";
 import Image from "next/image";
 import type { AccountState } from "../app/account-data";
 import { lineWatchAppVersionLabel } from "../app/app-build";
@@ -24,6 +24,7 @@ type Props = {
   onOpenNotifications: () => void;
   onOpenAlertHistory: () => void;
   onOpenAnalytics: () => void;
+  onOpenFeedback: () => void;
   notificationStatusLabel: string;
 };
 
@@ -43,6 +44,7 @@ export function MobileMoreSheet({
   onOpenNotifications,
   onOpenAlertHistory,
   onOpenAnalytics,
+  onOpenFeedback,
   notificationStatusLabel,
 }: Props) {
   const canResetLocalAppCache = process.env.NODE_ENV !== "production";
@@ -154,6 +156,10 @@ export function MobileMoreSheet({
 
         <div className="mobile-more-section">
           <h3>Tools</h3>
+          <button type="button" className="mobile-more-row" onClick={onOpenFeedback}>
+            <MessageSquareText size={18} className="text-slate-500 dark:text-slate-400" />
+            Suggest Improvement
+          </button>
           <button type="button" className="mobile-more-row" onClick={onOpenAnalytics}>
             <BarChart3 size={18} className="text-slate-500 dark:text-slate-400" />
             Reliability Analytics

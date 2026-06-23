@@ -16,6 +16,7 @@ import { SavedCommutesPanel } from "./SavedCommutesPanel";
 import { NotificationSettingsPanel } from "./NotificationSettingsPanel";
 import { ReliabilityPanel } from "./ReliabilityPanel";
 import { AlertHistoryPanel } from "./AlertHistoryPanel";
+import { FeedbackPanel } from "./FeedbackPanel";
 import { FloatingPanelShell } from "./FloatingPanelShell";
 import { MobileBottomNav, type MobileNavKey } from "./MobileBottomNav";
 import { MobileStatusPeek } from "./MobileStatusPeek";
@@ -49,7 +50,7 @@ import { StationDetailPanel } from "./StationDetailPanel";
 import { useTorontoClock } from "../hooks/useTorontoClock";
 import { useMobilePerformanceMode } from "../hooks/useMobilePerformanceMode";
 import { usePushNotificationSettings } from "../hooks/usePushNotificationSettings";
-import { Menu, X, Map as MapIcon, AlertTriangle, Calendar, Navigation, ShieldCheck, BarChart3, Bell, Construction, Search, LogIn, LogOut, UserPlus, UserRound, Sun, Moon, Bus, Mail, Contrast, Pause, History } from "lucide-react";
+import { Menu, X, Map as MapIcon, AlertTriangle, Calendar, Navigation, ShieldCheck, BarChart3, Bell, Construction, Search, LogIn, LogOut, UserPlus, UserRound, Sun, Moon, Bus, Mail, Contrast, Pause, History, MessageSquareText } from "lucide-react";
 import { SubwayClosedScreen } from "./SubwayClosedScreen";
 import { useSubwayOperatingState } from "../hooks/useSubwayOperatingState";
 import { StationSearchPanel } from "./StationSearchPanel";
@@ -81,7 +82,7 @@ import { GoogleSignInButton } from "./GoogleSignInButton";
 import { normalizeAccountEmail, validateAccountCredentials } from "../app/account-validation";
 
 
-type ActiveView = "map" | "menu" | "search" | "status" | "alerts" | "delays" | "reduced-speed-zones" | "closures" | "commutes" | "notifications" | "analytics" | "more" | "accessibility-outages" | "surface-notices" | "alert-history";
+type ActiveView = "map" | "menu" | "search" | "status" | "alerts" | "delays" | "reduced-speed-zones" | "closures" | "commutes" | "notifications" | "analytics" | "more" | "accessibility-outages" | "surface-notices" | "alert-history" | "feedback";
 type AccountDialogMode = "auth-choice" | "login" | "register" | "forgot-password" | "reset-password" | "link-google";
 type AccountEntryIntent = "login" | "register";
 
@@ -265,6 +266,7 @@ export function LineWatchShell({
   const [authConfig, setAuthConfig] = useState<AuthConfig>(unavailableAuthConfig);
 
   const pushSettings = usePushNotificationSettings(accountState);
+  const supportUrl = process.env.NEXT_PUBLIC_LINEWATCH_SUPPORT_URL?.trim() ?? "";
 
   const notificationStatusLabel = useMemo(() => {
     if (!accountState.authenticated || pushSettings.browserStatus === "signed-out" || pushSettings.browserStatus === "unsupported" || pushSettings.browserStatus === "not-configured" || pushSettings.browserStatus === "checking") {
@@ -851,7 +853,7 @@ export function LineWatchShell({
     }
     if (activeView === "search") return "search";
     if (activeView === "commutes") return "commutes";
-    if (activeView === "notifications" || activeView === "more" || activeView === "analytics") return "more";
+    if (activeView === "notifications" || activeView === "more" || activeView === "analytics" || activeView === "alert-history" || activeView === "feedback") return "more";
     return "map";
   }, [activeView]);
 
@@ -985,7 +987,9 @@ export function LineWatchShell({
     activeView === "more" ||
     activeView === "analytics" ||
     activeView === "accessibility-outages" ||
-    activeView === "surface-notices"
+    activeView === "surface-notices" ||
+    activeView === "alert-history" ||
+    activeView === "feedback"
   );
 
   const getMobileSheetLabel = () => {
@@ -1000,6 +1004,7 @@ export function LineWatchShell({
       case "more": return "More options";
       case "analytics": return "Reliability analytics";
       case "alert-history": return "Alert History";
+      case "feedback": return "Suggest Improvement";
       case "accessibility-outages": return "Accessibility outages";
       case "surface-notices": return "Streetcar & Bus Notices";
       default: return "";
@@ -1143,7 +1148,17 @@ export function LineWatchShell({
             onOpenNotifications={() => setActiveView("notifications")}
             onOpenAnalytics={() => setActiveView("analytics")}
             onOpenAlertHistory={() => setActiveView("alert-history")}
+            onOpenFeedback={() => setActiveView("feedback")}
             notificationStatusLabel={notificationStatusLabel}
+          />
+        );
+      case "feedback":
+        return (
+          <FeedbackPanel
+            dataSource={displayData.dataSource}
+            supportUrl={supportUrl}
+            onBack={() => setActiveView(isMobile ? "more" : "menu")}
+            onClose={() => { setActiveView("map"); setSelection(null); }}
           />
         );
       case "analytics":
@@ -1300,7 +1315,17 @@ export function LineWatchShell({
           onOpenNotifications={() => setActiveView("notifications")}
           onOpenAnalytics={() => setActiveView("analytics")}
           onOpenAlertHistory={() => setActiveView("alert-history")}
+          onOpenFeedback={() => setActiveView("feedback")}
           notificationStatusLabel={notificationStatusLabel}
+        />
+      </FloatingPanelShell>
+    ) : activeView === "feedback" ? (
+      <FloatingPanelShell panel="feedback" mobileSheetLabel="Suggest Improvement">
+        <FeedbackPanel
+          dataSource={displayData.dataSource}
+          supportUrl={supportUrl}
+          onBack={() => setActiveView("menu")}
+          onClose={() => { setActiveView("map"); setSelection(null); }}
         />
       </FloatingPanelShell>
     ) : activeView === "analytics" ? (
@@ -1719,6 +1744,15 @@ export function LineWatchShell({
                    className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
                  >
                    <History size={18} className="text-slate-500 dark:text-slate-400" /> Alert History
+                 </button>
+                 <button
+                   ref={registerMenuAction(actionIndex++)}
+                   role="menuitem"
+                   onClick={() => setActiveView("feedback")}
+                   aria-current={activeView === "feedback" ? "page" : undefined}
+                   className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
+                 >
+                   <MessageSquareText size={18} className="text-slate-500 dark:text-slate-400" /> Suggest Improvement
                  </button>
                  <button
                    ref={registerMenuAction(actionIndex++)}
