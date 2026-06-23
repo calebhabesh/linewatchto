@@ -1,15 +1,21 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { AlertTriangle, CheckCircle2, Clock3, Loader2 } from "lucide-react";
+import { AlertTriangle, Check, Clock3, Loader2, Search } from "lucide-react";
 import {
   getAlertHistory,
   type AlertHistoryIncident,
   type AlertHistoryPeriod,
 } from "../app/alert-history-data";
 import { formatRelativeImpactTime } from "../app/impact-time";
-
-type Filter = "all" | "alerts" | "clearances";
+import { formatCause, formatCompactLocation, lineColor } from "./ImpactCardFields";
+import {
+  ALL_LINES_VALUE,
+  buildAlertHistoryLineOptions,
+  filterAndSortAlertHistory,
+  type AlertHistoryLifecycleFilter,
+  type AlertHistoryViewItem,
+} from "./alert-history-filters";
 
 const PERIODS: Array<{ value: AlertHistoryPeriod; label: string }> = [
   { value: "today", label: "Today" },
@@ -17,7 +23,7 @@ const PERIODS: Array<{ value: AlertHistoryPeriod; label: string }> = [
   { value: "30d", label: "30 days" },
 ];
 
-const FILTERS: Array<{ value: Filter; label: string }> = [
+const FILTERS: Array<{ value: AlertHistoryLifecycleFilter; label: string }> = [
   { value: "all", label: "All" },
   { value: "alerts", label: "Alerts" },
   { value: "clearances", label: "Clearances" },
@@ -25,7 +31,9 @@ const FILTERS: Array<{ value: Filter; label: string }> = [
 
 export function AlertHistoryTimeline() {
   const [period, setPeriod] = useState<AlertHistoryPeriod>("today");
-  const [filter, setFilter] = useState<Filter>("all");
+  const [filter, setFilter] = useState<AlertHistoryLifecycleFilter>("all");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedLineId, setSelectedLineId] = useState(ALL_LINES_VALUE);
   const [history, setHistory] = useState<AlertHistoryIncident[]>([]);
   const [loading, setLoading] = useState(true);
   const [source, setSource] = useState<"backend" | "fallback">("fallback");
@@ -43,15 +51,19 @@ export function AlertHistoryTimeline() {
     };
   }, [period]);
 
-  const visibleIncidents = useMemo(() => {
-    if (filter === "clearances") {
-      return history.filter((incident) => incident.status === "cleared");
+  const lineOptions = useMemo(() => buildAlertHistoryLineOptions(history), [history]);
+
+  useEffect(() => {
+    if (!lineOptions.some((option) => option.value === selectedLineId)) {
+      setSelectedLineId(ALL_LINES_VALUE);
     }
-    if (filter === "alerts") {
-      return history.filter((incident) => incident.events.some((event) => event.state !== "cleared"));
-    }
-    return history;
-  }, [filter, history]);
+  }, [lineOptions, selectedLineId]);
+
+  const visibleItems = useMemo(() => filterAndSortAlertHistory(history, {
+    lifecycleFilter: filter,
+    lineId: selectedLineId,
+    searchQuery,
+  }), [filter, history, searchQuery, selectedLineId]);
 
   return (
     <section className="alert-history-timeline notification-settings-section" aria-label="Alert history timeline">
@@ -77,6 +89,7 @@ export function AlertHistoryTimeline() {
             </button>
           ))}
         </div>
+        <div className="alert-history-divider" aria-hidden="true" />
         <div className="alert-history-chip-group" aria-label="History event type">
           {FILTERS.map((option) => (
             <button
@@ -90,6 +103,32 @@ export function AlertHistoryTimeline() {
             </button>
           ))}
         </div>
+        <div className="alert-history-search-row" aria-label="Alert history search and line selector">
+          <label className="alert-history-search-field">
+            <Search size={14} aria-hidden="true" />
+            <input
+              type="search"
+              value={searchQuery}
+              onChange={(event) => setSearchQuery(event.target.value)}
+              placeholder="Search history"
+              aria-label="Search alert history"
+            />
+          </label>
+          <label className="alert-history-line-filter">
+            <span>Line</span>
+            <select
+              value={selectedLineId}
+              onChange={(event) => setSelectedLineId(event.target.value)}
+              aria-label="Transit line"
+            >
+              {lineOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
       </div>
 
       {loading ? (
@@ -97,14 +136,17 @@ export function AlertHistoryTimeline() {
           <Loader2 size={13} className="animate-spin" aria-hidden="true" />
           Loading alert history...
         </p>
-      ) : visibleIncidents.length === 0 ? (
+      ) : visibleItems.length === 0 ? (
         <p className="notification-settings-note alert-history-empty">
-          No alert lifecycle events found for this period.
+          No alert lifecycle events match the selected filters.
         </p>
       ) : (
         <ol className="alert-history-list">
-          {visibleIncidents.map((incident) => (
-            <HistoryIncident key={`${incident.alertId}-${incident.clearedAt ?? incident.firstSeenAt ?? incident.title}`} incident={incident} />
+          {visibleItems.map((item) => (
+            <HistoryIncident
+              key={`${item.incident.alertId}-${item.displayEvent?.id ?? item.incident.clearedAt ?? item.incident.firstSeenAt ?? item.incident.title}`}
+              item={item}
+            />
           ))}
         </ol>
       )}
@@ -112,35 +154,49 @@ export function AlertHistoryTimeline() {
   );
 }
 
-function HistoryIncident({ incident }: { incident: AlertHistoryIncident }) {
-  const primaryEvent = incident.events[0];
-  const cleared = incident.status === "cleared";
-  const time = primaryEvent?.happenedAt ?? incident.clearedAt ?? incident.firstSeenAt ?? "";
+function HistoryIncident({ item }: { item: AlertHistoryViewItem }) {
+  const { incident, displayEvent, cleared } = item;
+  const time = displayEvent?.happenedAt ?? incident.clearedAt ?? incident.firstSeenAt ?? "";
+  const title = compactHistoryTitle(incident);
+  const statusLabel = cleared ? "Cleared" : formatHistoryStatusLabel(displayEvent?.label);
+  const facts = [
+    incident.location ? { label: "Location", value: formatCompactLocation(incident.location) } : null,
+    incident.displayDirection ? { label: "Direction", value: incident.displayDirection } : null,
+    incident.cause ? { label: "Cause", value: formatCause(incident.cause) } : null,
+    incident.source ? { label: "Source", value: incident.source } : null,
+  ].filter((fact): fact is { label: string; value: string } => Boolean(fact?.value));
+
   return (
     <li className={`alert-history-item ${cleared ? "alert-history-event-cleared" : "alert-history-event-active"}`}>
-      <div className="alert-history-icon" aria-hidden="true">
-        {cleared ? <CheckCircle2 size={16} /> : <AlertTriangle size={16} />}
-      </div>
       <div className="alert-history-content">
-        <div className="alert-history-title-row">
-          <strong>{incident.title}</strong>
-          {time ? <span>{formatRelativeImpactTime(time)}</span> : null}
+        <div className="alert-history-card-heading">
+          <div className="alert-history-line-status">
+            <HistoryLineIdentity incident={incident} />
+            <span className="alert-history-status-label">
+              {cleared ? <Check size={12} aria-hidden="true" /> : <AlertTriangle size={13} aria-hidden="true" />}
+              {statusLabel}
+            </span>
+          </div>
+          {time ? <time dateTime={time}>{formatRelativeImpactTime(time)}</time> : null}
         </div>
-        <p className="alert-history-meta">
-          {[
-            incident.lineNumber ? `Line ${incident.lineNumber}` : null,
-            incident.location || null,
-            incident.displayDirection,
-            incident.cause,
-            incident.source,
-          ].filter(Boolean).join(" · ")}
-        </p>
-        {cleared && incident.durationMinutes !== null ? (
-          <p className="alert-history-duration">
-            <Clock3 size={13} aria-hidden="true" />
-            Cleared after {incident.durationMinutes} min
-          </p>
-        ) : null}
+        <strong className="alert-history-title">{title}</strong>
+        <div className="alert-history-fact-grid" aria-label="Alert summary">
+          {facts.map((fact) => (
+            <span className="alert-history-fact" key={fact.label}>
+              <span>{fact.label}</span>
+              <strong>{fact.value}</strong>
+            </span>
+          ))}
+          {cleared && incident.durationMinutes !== null ? (
+            <span className="alert-history-fact alert-history-duration">
+              <span>Duration</span>
+              <strong>
+                <Clock3 size={13} aria-hidden="true" />
+                {incident.durationMinutes} min
+              </strong>
+            </span>
+          ) : null}
+        </div>
         <details className="alert-history-details">
           <summary>Lifecycle details</summary>
           <ol>
@@ -155,4 +211,44 @@ function HistoryIncident({ incident }: { incident: AlertHistoryIncident }) {
       </div>
     </li>
   );
+}
+
+function HistoryLineIdentity({ incident }: { incident: AlertHistoryIncident }) {
+  if (!incident.lineId || !incident.lineNumber) {
+    return <span className="alert-history-line-identity unknown">Line unavailable</span>;
+  }
+
+  return (
+    <span
+      className="alert-history-line-identity inline-flex min-h-6 max-w-full min-w-0 items-center gap-1.5 rounded-full border border-black/10 px-2.5 py-0.5 text-[11px] font-black dark:border-white/10"
+      style={lineColor(incident.lineId)}
+      aria-label={lineLabel(incident)}
+    >
+      {incident.lineNumber}
+      <span className="alert-history-line-name min-w-0 truncate">{incident.lineName ?? `Line ${incident.lineNumber}`}</span>
+    </span>
+  );
+}
+
+function lineLabel(incident: AlertHistoryIncident) {
+  if (!incident.lineNumber) return "Line unavailable";
+  return incident.lineName
+    ? `Line ${incident.lineNumber} ${incident.lineName}`
+    : `Line ${incident.lineNumber}`;
+}
+
+function compactHistoryTitle(incident: AlertHistoryIncident) {
+  const fullLineLabel = `${lineLabel(incident)}: `;
+  if (incident.title.startsWith(fullLineLabel)) {
+    return incident.title.slice(fullLineLabel.length);
+  }
+  return incident.title;
+}
+
+function formatHistoryStatusLabel(label: string | null | undefined) {
+  if (!label) return "Active";
+  return label
+    .trim()
+    .toLowerCase()
+    .replace(/\b[a-z0-9]/g, (char) => char.toUpperCase());
 }
