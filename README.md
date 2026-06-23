@@ -30,7 +30,7 @@ Implemented now:
 - Legend SVG icons for Lines 1, 2, 4, 5, and 6.
 - Account-backed saved commutes with weighted default rapid-transit route matching, optional return-trip monitoring, direction-aware Reduced Speed Zone matching, and dashboard-visible impact summaries.
 - Account-backed Web Push notification subscriptions and preferences for saved-commute impacts. Delivery is opt-in and requires browser permission, a browser that supports PWA Web Push, configured VAPID keys, `LINEWATCH_PUSH_ENABLED=true`, and fresh dashboard-visible impacts.
-- Account sign-in supports optional Google sign-in when a Google OAuth web client ID is configured, while retaining email/password registration, explicit Google linking for existing password accounts, password reset through emailed reset links when SMTP is configured, local/dev reset-token fallback, and demo login.
+- Account sign-in supports optional Google sign-in when a Google OAuth web client ID, client secret, and redirect URI are configured, while retaining email/password registration, explicit Google linking for existing password accounts, password reset through emailed reset links when SMTP is configured, local/dev reset-token fallback, and demo login.
 - Official TTC.ca performance metrics panel for current on-time and elevator/escalator status, source-labeled with the TTC.ca updated timestamp, daily refresh guard, and stale last-good fallback.
 - Redis-backed dashboard cache for status, map, alerts, ingestion health, and TTC performance reads, with database/live fallback when Redis is unavailable.
 - Ingestion/system health panel in fixture mode.
@@ -52,10 +52,12 @@ Implemented now:
 - Next.js Server Component dashboard loading with complete local-fixture fallback.
 - Playwright Chromium smoke tests for seeded API, fallback rendering, delay overlay clicks, station-ring interactions, and station accessibility details on desktop and mobile viewports.
 - Opt-in scheduled polling for the official TTC Live Alerts feed at `https://alerts.ttc.ca/api/alerts/live-alerts`.
+- TTC GTFS-RT service-alert ingestion is available as an explicit diagnostic supplement with `LINEWATCH_INGESTION_ALERTS_SURFACE_GTFS_RT_ENABLED=true`, but remains disabled by default because TTC Live Alerts usually provides richer subway/LRT structure and better affected-location fields.
 - Raw staging for route and accessibility source records so unsupported records are retained for later analysis.
 - Normalization and source-ID upserts for supported subway/LRT ordinary delays, suspensions, Reduced Speed Zones, and planned closures.
 - Elevator and escalator outage normalization with station links where TTC station names resolve.
 - Alert snapshots for new, changed, deactivated, and reactivated normalized route alerts.
+- In-app service alert lifecycle history for Today, 7 days, and 30 days, showing alert openings, meaningful updates, and clearances based on LineWatch snapshot records.
 - Durable ingestion-run tracking and `/api/health/ingestion`.
 - Persisted route-alert impact kind so ordinary delays are not categorized as Reduced Speed Zones.
 - Live Alerts reduced-speed records now derive explicit cardinal direction from TTC wording.
@@ -295,12 +297,16 @@ Optional Google sign-in configuration:
 ```dotenv
 LINEWATCH_AUTH_GOOGLE_ENABLED=true
 LINEWATCH_AUTH_GOOGLE_CLIENT_ID=google-oauth-web-client-id-from-google-cloud-console
+LINEWATCH_AUTH_GOOGLE_CLIENT_SECRET=google-oauth-web-client-secret-from-google-cloud-console
+LINEWATCH_AUTH_GOOGLE_REDIRECT_URI=https://linewatchto.ca/api/auth/google/callback
 LINEWATCH_AUTH_GOOGLE_JWK_SET_URI=https://www.googleapis.com/oauth2/v3/certs
+LINEWATCH_AUTH_GOOGLE_AUTHORIZATION_URI=https://accounts.google.com/o/oauth2/v2/auth
+LINEWATCH_AUTH_GOOGLE_TOKEN_URI=https://oauth2.googleapis.com/token
 ```
 
-Use a Google OAuth Web application client. Configure authorized JavaScript origins for each deployed frontend origin, such as `http://localhost:3000`, `https://staging.linewatchto.ca`, `https://linewatchto.ca`, and `https://www.linewatchto.ca`. The app verifies Google ID tokens on the backend and still creates its own HttpOnly `linewatch_session` cookie. Google sign-in is optional; when it is disabled or unconfigured, the UI falls back to email/password and demo login.
+Use a Google OAuth Web application client. Configure Authorized redirect URIs for each environment, for example `http://localhost:3000/api/auth/google/callback`, `https://staging.linewatchto.ca/api/auth/google/callback`, `https://linewatchto.ca/api/auth/google/callback`, and `https://www.linewatchto.ca/api/auth/google/callback` if the `www` host serves the app. The custom frontend button starts the backend OAuth redirect flow; the backend exchanges the authorization code, verifies the returned Google ID token, and still creates its own HttpOnly `linewatch_session` cookie. Google sign-in is optional; when it is disabled or unconfigured, the UI falls back to email/password and demo login.
 
-Existing email/password accounts are not auto-linked by matching email during Google sign-in. A signed-in user links Google from the account menu, which verifies a fresh Google ID token and requires the Google email to match the current LineWatch account email. This preserves saved commutes and push preferences on the original account and avoids duplicate same-email accounts.
+Existing email/password accounts are not auto-linked by matching email during Google sign-in. A signed-in user links Google from the account menu, which runs the same OAuth redirect flow and requires the Google email to match the current LineWatch account email. This preserves saved commutes and push preferences on the original account and avoids duplicate same-email accounts.
 
 Run the deployment smoke checker after DNS and TLS are working:
 
@@ -673,6 +679,8 @@ LineWatch TO should use public and source-linked data. It should also be honest 
 - The implemented poller reads the public TTC Live Alerts endpoint at `https://alerts.ttc.ca/api/alerts/live-alerts`.
 - The visible dashboard treats successful poll results as usable only inside the configured freshness window.
 - TTC alerts can be vague.
+- GTFS-RT service alerts can be less structured than TTC Live Alerts and may lack usable subway/LRT affected-segment detail.
+- Alert history is based on LineWatch snapshots and is richer after the alert-history release; older rows may lack full line, cause, direction, or location context.
 - Some alerts name broad corridors rather than exact station-to-station segments.
 - Planned closure pages or feeds may change format.
 - Segment inference may be imperfect.
