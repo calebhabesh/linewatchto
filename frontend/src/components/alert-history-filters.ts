@@ -9,6 +9,9 @@ export type AlertHistoryLineOption = {
   value: string;
   label: string;
   sortKey: number;
+  lineId?: string | null;
+  lineNumber?: string | null;
+  lineName?: string | null;
 };
 
 export type AlertHistoryViewItem = {
@@ -94,6 +97,9 @@ export function buildAlertHistoryLineOptions(
       value,
       label: lineOptionLabel(incident),
       sortKey: lineSortKey(incident),
+      lineId: incident.lineId,
+      lineNumber: incident.lineNumber,
+      lineName: incident.lineName,
     });
   }
 

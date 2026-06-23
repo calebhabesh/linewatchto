@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { AlertTriangle, Check, Clock3, Loader2, Search } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { AlertTriangle, Check, ChevronDown, Clock3, Loader2, Search } from "lucide-react";
 import {
   getAlertHistory,
   type AlertHistoryIncident,
@@ -34,7 +34,22 @@ export function AlertHistoryTimeline() {
   const [filter, setFilter] = useState<AlertHistoryLifecycleFilter>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedLineId, setSelectedLineId] = useState(ALL_LINES_VALUE);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [history, setHistory] = useState<AlertHistoryIncident[]>([]);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdown on click outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsDropdownOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
   const [loading, setLoading] = useState(true);
   const [source, setSource] = useState<"backend" | "fallback">("fallback");
 
@@ -62,6 +77,10 @@ export function AlertHistoryTimeline() {
     lineId: selectedLineId,
     searchQuery,
   }), [filter, history, searchQuery, selectedLineId]);
+
+  const selectedOption = useMemo(() => {
+    return lineOptions.find((o) => o.value === selectedLineId);
+  }, [lineOptions, selectedLineId]);
 
   return (
     <section className="alert-history-timeline notification-settings-section" aria-label="Alert history timeline">
@@ -112,20 +131,55 @@ export function AlertHistoryTimeline() {
               aria-label="Search alert history"
             />
           </label>
-          <label className="alert-history-line-filter">
+          <div className="alert-history-line-filter relative" ref={dropdownRef}>
             <span>Line</span>
-            <select
-              value={selectedLineId}
-              onChange={(event) => setSelectedLineId(event.target.value)}
+            <button
+              type="button"
+              className="alert-history-line-filter-trigger"
+              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
               aria-label="Transit line"
+              aria-expanded={isDropdownOpen}
             >
-              {lineOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </label>
+              {selectedOption?.lineNumber && selectedOption?.lineId ? (
+                <span className="flex items-center gap-2 min-w-0">
+                  <span className="line-badge small shrink-0 font-black" style={lineColor(selectedOption.lineId)}>
+                    {selectedOption.lineNumber}
+                  </span>
+                  {selectedOption.lineName && <span className="truncate">{selectedOption.lineName}</span>}
+                </span>
+              ) : (
+                <span className="truncate">{selectedOption?.label ?? "All lines"}</span>
+              )}
+              <ChevronDown size={14} className="shrink-0 ml-1" aria-hidden="true" />
+            </button>
+            {isDropdownOpen && (
+              <ul className="alert-history-line-filter-options">
+                {lineOptions.map((option) => (
+                  <li key={option.value}>
+                    <button
+                      type="button"
+                      className={`alert-history-line-filter-option ${selectedLineId === option.value ? "selected" : ""}`}
+                      onClick={() => {
+                        setSelectedLineId(option.value);
+                        setIsDropdownOpen(false);
+                      }}
+                    >
+                      {option.lineNumber && option.lineId ? (
+                        <span className="flex items-center gap-2 min-w-0">
+                          <span className="line-badge small shrink-0 font-black" style={lineColor(option.lineId)}>
+                            {option.lineNumber}
+                          </span>
+                          {option.lineName && <span className="truncate">{option.lineName}</span>}
+                        </span>
+                      ) : (
+                        <span className="truncate">{option.label}</span>
+                      )}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         </div>
       </div>
 

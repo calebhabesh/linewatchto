@@ -98,7 +98,9 @@ describe("alert history timeline UI", () => {
     assert.match(cssSource, /\.alert-history-search-row/);
     assert.match(cssSource, /\.alert-history-search-field/);
     assert.match(cssSource, /\.alert-history-line-filter/);
-    assert.match(cssSource, /\.alert-history-line-filter select option/);
+    assert.match(cssSource, /\.alert-history-line-filter-trigger/);
+    assert.match(cssSource, /\.alert-history-line-filter-options/);
+    assert.match(cssSource, /\.alert-history-line-filter-option/);
   });
 
   it("uses event-aware lifecycle filtering instead of incident-only filtering", () => {
