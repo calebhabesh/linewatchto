@@ -53,11 +53,9 @@ export function AlertHistoryTimeline() {
 
   const lineOptions = useMemo(() => buildAlertHistoryLineOptions(history), [history]);
 
-  useEffect(() => {
-    if (!lineOptions.some((option) => option.value === selectedLineId)) {
-      setSelectedLineId(ALL_LINES_VALUE);
-    }
-  }, [lineOptions, selectedLineId]);
+  if (selectedLineId !== ALL_LINES_VALUE && !lineOptions.some((option) => option.value === selectedLineId)) {
+    setSelectedLineId(ALL_LINES_VALUE);
+  }
 
   const visibleItems = useMemo(() => filterAndSortAlertHistory(history, {
     lifecycleFilter: filter,
