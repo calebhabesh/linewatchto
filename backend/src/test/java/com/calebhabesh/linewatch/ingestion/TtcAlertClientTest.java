@@ -57,6 +57,36 @@ class TtcAlertClientTest {
     }
 
     @Test
+    void fetchDoesNotRequestGtfsRtSupplementByDefault() throws Exception {
+        RestClient.Builder builder = RestClient.builder();
+        MockRestServiceServer defaultServer = MockRestServiceServer.bindTo(builder).build();
+        AlertIngestionProperties properties = new AlertIngestionProperties();
+        properties.setUrl(URI.create("https://alerts.ttc.ca/api/alerts/live-alerts"));
+        properties.setSurfaceGtfsRtUrl(URI.create("https://gtfsrt.ttc.ca/alerts/all?format=text"));
+        TtcAlertClient defaultClient = new TtcAlertClient(
+            builder.build(),
+            new ObjectMapper().findAndRegisterModules(),
+            properties,
+            new GtfsRtServiceAlertTextParser()
+        );
+
+        String body = new String(
+            getClass().getResourceAsStream("/fixtures/ttc-synthetic-alerts.json").readAllBytes(),
+            StandardCharsets.UTF_8
+        );
+        defaultServer.expect(requestTo("https://alerts.ttc.ca/api/alerts/live-alerts"))
+            .andRespond(withSuccess(body, MediaType.APPLICATION_JSON));
+
+        TtcAlertFeed feed = defaultClient.fetch();
+
+        assertThat(feed.routes()).hasSize(2);
+        assertThat(feed.routes())
+            .noneSatisfy(route -> assertThat(route.record().id()).startsWith("gtfsrt-"));
+        defaultServer.verify();
+    }
+
+
+    @Test
     void fetchAppendsGtfsRtSurfaceServiceAlertsWhenConfigured() throws Exception {
         RestClient.Builder builder = RestClient.builder();
         MockRestServiceServer gtfsServer = MockRestServiceServer.bindTo(builder).build();
