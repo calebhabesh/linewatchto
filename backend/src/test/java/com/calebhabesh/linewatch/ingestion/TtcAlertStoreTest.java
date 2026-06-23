@@ -64,4 +64,36 @@ class TtcAlertStoreTest {
         assertThat(params.getValue("reducedSpeed")).isEqualTo("15 km/h");
         assertThat(params.getValue("averageSpeed")).isEqualTo("35 km/h");
     }
+
+    @Test
+    void snapshotParamsIncludeRenderableAlertHistoryContext() {
+        NormalizedRouteAlert alert = TestAlertRecords.normalizedRoute(
+            "route-source",
+            AlertDirection.SOUTHBOUND
+        );
+
+        MapSqlParameterSource params = ReflectionTestUtils.invokeMethod(
+            new TtcAlertStore(null),
+            "routeSnapshotParams",
+            alert,
+            true,
+            OffsetDateTime.parse("2026-06-01T12:00:00Z")
+        );
+
+        assertThat(params.getValue("alertId")).isEqualTo(alert.id());
+        assertThat(params.getValue("sourceId")).isEqualTo(alert.sourceId());
+        assertThat(params.getValue("lineId")).isEqualTo(alert.lineId());
+        assertThat(params.getValue("title")).isEqualTo(alert.title());
+        assertThat(params.getValue("eventType")).isEqualTo(alert.impactKind().wireValue());
+        assertThat(params.getValue("sourceAlertType")).isEqualTo(alert.sourceAlertType());
+        assertThat(params.getValue("impactKind")).isEqualTo(alert.impactKind().wireValue());
+        assertThat(params.getValue("startStationId")).isEqualTo(alert.startStationId());
+        assertThat(params.getValue("endStationId")).isEqualTo(alert.endStationId());
+        assertThat(params.getValue("direction")).isEqualTo("southbound");
+        assertThat(params.getValue("cause")).isEqualTo(alert.cause());
+        assertThat(params.getValue("causeDescription")).isEqualTo(alert.causeDescription());
+        assertThat(params.getValue("active")).isEqualTo(true);
+        assertThat(params.getValue("sourceUpdatedAt")).isEqualTo(alert.sourceUpdatedAt());
+    }
 }
+

@@ -129,8 +129,7 @@ public class TtcAlertStore {
             existingAlert == null ? null : existingAlert.active(),
             alert.fingerprint()
         )) {
-            appendSnapshot(alert.id(), alert.severity(), alert.description(), true, now,
-                alert.sourceUpdatedAt());
+            appendSnapshot(alert, true, now);
         }
     }
 
@@ -215,14 +214,25 @@ public class TtcAlertStore {
 
     public void deactivateMissingAlerts(Set<String> sourceIds, OffsetDateTime now) {
         List<ActiveAlert> activeAlerts = jdbc.query("""
-            select id, source_id, severity, description, source_updated_at
+            select id, source_id, line_id, severity, title, description, source_alert_type,
+                   impact_kind, start_station_id, end_station_id, direction, cause,
+                   cause_description, source_updated_at
             from alerts
             where active = true and id like 'ttc-route-%'
             """, (resultSet, rowNumber) -> new ActiveAlert(
                 resultSet.getString("id"),
                 resultSet.getString("source_id"),
+                resultSet.getString("line_id"),
                 resultSet.getString("severity"),
+                resultSet.getString("title"),
                 resultSet.getString("description"),
+                resultSet.getString("source_alert_type"),
+                resultSet.getString("impact_kind"),
+                resultSet.getString("start_station_id"),
+                resultSet.getString("end_station_id"),
+                resultSet.getString("direction"),
+                resultSet.getString("cause"),
+                resultSet.getString("cause_description"),
                 resultSet.getObject("source_updated_at", OffsetDateTime.class)
             ));
 
@@ -235,8 +245,7 @@ public class TtcAlertStore {
                     """, new MapSqlParameterSource()
                         .addValue("id", alert.id())
                         .addValue("now", now));
-                appendSnapshot(alert.id(), alert.severity(), alert.description(), false, now,
-                    alert.sourceUpdatedAt());
+                appendSnapshot(alert, false, now);
             }
         }
     }
@@ -355,27 +364,86 @@ public class TtcAlertStore {
                 .toList());
     }
 
-    private void appendSnapshot(
-        String alertId,
-        String severity,
-        String description,
+    private MapSqlParameterSource routeSnapshotParams(
+        NormalizedRouteAlert alert,
         boolean active,
-        OffsetDateTime now,
-        OffsetDateTime sourceUpdatedAt
+        OffsetDateTime now
+    ) {
+        return new MapSqlParameterSource()
+            .addValue("alertId", alert.id())
+            .addValue("severity", alert.severity())
+            .addValue("description", alert.description())
+            .addValue("now", now)
+            .addValue("active", active)
+            .addValue("sourceUpdatedAt", alert.sourceUpdatedAt())
+            .addValue("sourceId", alert.sourceId())
+            .addValue("lineId", alert.lineId())
+            .addValue("title", alert.title())
+            .addValue("eventType", alert.impactKind().wireValue())
+            .addValue("sourceAlertType", alert.sourceAlertType())
+            .addValue("impactKind", alert.impactKind().wireValue())
+            .addValue("startStationId", alert.startStationId())
+            .addValue("endStationId", alert.endStationId())
+            .addValue("direction", alert.direction().wireValue())
+            .addValue("cause", alert.cause())
+            .addValue("causeDescription", alert.causeDescription());
+    }
+
+    private void appendSnapshot(
+        NormalizedRouteAlert alert,
+        boolean active,
+        OffsetDateTime now
     ) {
         jdbc.update("""
             insert into snapshots (
-                alert_id, severity, description, snapshot_time, active, source_updated_at
+                alert_id, severity, description, snapshot_time, active,
+                source_updated_at, source_id, line_id, title, event_type,
+                source_alert_type, impact_kind, start_station_id, end_station_id,
+                direction, cause, cause_description
             ) values (
-                :alertId, :severity, :description, :now, :active, :sourceUpdatedAt
+                :alertId, :severity, :description, :now, :active,
+                :sourceUpdatedAt, :sourceId, :lineId, :title, :eventType,
+                :sourceAlertType, :impactKind, :startStationId, :endStationId,
+                :direction, :cause, :causeDescription
+            )
+            """, routeSnapshotParams(alert, active, now));
+    }
+
+    private void appendSnapshot(
+        ActiveAlert alert,
+        boolean active,
+        OffsetDateTime now
+    ) {
+        jdbc.update("""
+            insert into snapshots (
+                alert_id, severity, description, snapshot_time, active,
+                source_updated_at, source_id, line_id, title, event_type,
+                source_alert_type, impact_kind, start_station_id, end_station_id,
+                direction, cause, cause_description
+            ) values (
+                :alertId, :severity, :description, :now, :active,
+                :sourceUpdatedAt, :sourceId, :lineId, :title, :eventType,
+                :sourceAlertType, :impactKind, :startStationId, :endStationId,
+                :direction, :cause, :causeDescription
             )
             """, new MapSqlParameterSource()
-                .addValue("alertId", alertId)
-                .addValue("severity", severity)
-                .addValue("description", description)
+                .addValue("alertId", alert.id())
+                .addValue("severity", alert.severity())
+                .addValue("description", alert.description())
                 .addValue("now", now)
                 .addValue("active", active)
-                .addValue("sourceUpdatedAt", sourceUpdatedAt));
+                .addValue("sourceUpdatedAt", alert.sourceUpdatedAt())
+                .addValue("sourceId", alert.sourceId())
+                .addValue("lineId", alert.lineId())
+                .addValue("title", alert.title())
+                .addValue("eventType", alert.impactKind() == null ? "service-alert" : alert.impactKind())
+                .addValue("sourceAlertType", alert.sourceAlertType())
+                .addValue("impactKind", alert.impactKind())
+                .addValue("startStationId", alert.startStationId())
+                .addValue("endStationId", alert.endStationId())
+                .addValue("direction", alert.direction())
+                .addValue("cause", alert.cause())
+                .addValue("causeDescription", alert.causeDescription()));
     }
 
     private void batchUpdate(String sql, List<MapSqlParameterSource> params) {
@@ -400,8 +468,17 @@ public class TtcAlertStore {
     private record ActiveAlert(
         String id,
         String sourceId,
+        String lineId,
         String severity,
+        String title,
         String description,
+        String sourceAlertType,
+        String impactKind,
+        String startStationId,
+        String endStationId,
+        String direction,
+        String cause,
+        String causeDescription,
         OffsetDateTime sourceUpdatedAt
     ) {}
 
