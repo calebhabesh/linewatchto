@@ -6,7 +6,11 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 public class GoogleAuthProperties {
     private boolean enabled = false;
     private String clientId = "";
+    private String clientSecret = "";
+    private String redirectUri = "";
     private String jwkSetUri = "https://www.googleapis.com/oauth2/v3/certs";
+    private String authorizationUri = "https://accounts.google.com/o/oauth2/v2/auth";
+    private String tokenUri = "https://oauth2.googleapis.com/token";
 
     public boolean isEnabled() {
         return enabled;
@@ -24,6 +28,22 @@ public class GoogleAuthProperties {
         this.clientId = clientId;
     }
 
+    public String getClientSecret() {
+        return clientSecret;
+    }
+
+    public void setClientSecret(String clientSecret) {
+        this.clientSecret = clientSecret;
+    }
+
+    public String getRedirectUri() {
+        return redirectUri;
+    }
+
+    public void setRedirectUri(String redirectUri) {
+        this.redirectUri = redirectUri;
+    }
+
     public String getJwkSetUri() {
         return jwkSetUri;
     }
@@ -32,7 +52,35 @@ public class GoogleAuthProperties {
         this.jwkSetUri = jwkSetUri;
     }
 
+    public String getAuthorizationUri() {
+        return authorizationUri;
+    }
+
+    public void setAuthorizationUri(String authorizationUri) {
+        this.authorizationUri = authorizationUri;
+    }
+
+    public String getTokenUri() {
+        return tokenUri;
+    }
+
+    public void setTokenUri(String tokenUri) {
+        this.tokenUri = tokenUri;
+    }
+
     public boolean configured() {
-        return enabled && clientId != null && !clientId.isBlank();
+        return oauthConfigured();
+    }
+
+    public boolean idTokenVerificationConfigured() {
+        return enabled && hasText(clientId);
+    }
+
+    public boolean oauthConfigured() {
+        return enabled && hasText(clientId) && hasText(clientSecret) && hasText(redirectUri);
+    }
+
+    private boolean hasText(String value) {
+        return value != null && !value.isBlank();
     }
 }

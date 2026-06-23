@@ -5,8 +5,10 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.net.URI;
 import java.time.Instant;
 import org.junit.jupiter.api.Test;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.mock.web.MockHttpServletRequest;
@@ -16,12 +18,15 @@ class AccountControllerTest {
     private final AuthCookieFactory cookieFactory = new AuthCookieFactory(false);
     private final AccountRateLimiter rateLimiter = mock(AccountRateLimiter.class);
     private final GoogleAuthProperties googleAuthProperties = googleProperties();
-    private final AccountController controller = new AccountController(accountService, cookieFactory, rateLimiter, googleAuthProperties);
+    private final GoogleOAuthService googleOAuthService = mock(GoogleOAuthService.class);
+    private final AccountController controller = new AccountController(accountService, cookieFactory, rateLimiter, googleAuthProperties, googleOAuthService);
 
     private GoogleAuthProperties googleProperties() {
         GoogleAuthProperties result = new GoogleAuthProperties();
         result.setEnabled(true);
         result.setClientId("client-123.apps.googleusercontent.com");
+        result.setClientSecret("client-secret");
+        result.setRedirectUri("http://localhost:3000/api/auth/google/callback");
         return result;
     }
 
@@ -157,6 +162,111 @@ class AccountControllerTest {
         assertThat(response.getBody()).isEqualTo(new AccountResponses.AuthResponse(true, user));
         verify(accountService).linkGoogle("raw-session", request);
         verify(rateLimiter).requireAuthAttempt("google-link", "203.0.113.50");
+    }
+
+    @Test
+    void googleOAuthStartRedirectsAndSetsStateCookie() {
+        when(googleOAuthService.start("login", "/?panel=commutes"))
+            .thenReturn(new GoogleOAuthService.GoogleOAuthStart(
+                URI.create("https://accounts.google.com/o/oauth2/v2/auth?state=state-123"),
+                "state-cookie"
+            ));
+
+        ResponseEntity<Void> response = controller.startGoogleOAuth(
+            "login",
+            "/?panel=commutes",
+            requestFrom("203.0.113.60")
+        );
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FOUND);
+        assertThat(response.getHeaders().getFirst(HttpHeaders.LOCATION))
+            .isEqualTo("https://accounts.google.com/o/oauth2/v2/auth?state=state-123");
+        assertThat(response.getHeaders().getFirst(HttpHeaders.SET_COOKIE))
+            .contains("linewatch_google_oauth=state-cookie")
+            .contains("HttpOnly")
+            .contains("SameSite=Lax");
+        verify(rateLimiter).requireAuthAttempt("google-oauth-start", "203.0.113.60");
+    }
+
+    @Test
+    void googleOAuthCallbackCreatesSessionCookieForLoginModeAndClearsStateCookie() {
+        VerifiedGoogleIdentity identity = new VerifiedGoogleIdentity("google-subject", "rider@example.com", true, "Transit Rider");
+        AccountResponses.UserResponse user = new AccountResponses.UserResponse("user_google", "rider@example.com", "Transit Rider", false, true);
+        when(googleOAuthService.verifyCallback("state-cookie", "state-123", "code-123", null))
+            .thenReturn(new GoogleOAuthService.VerifiedGoogleOAuthCallback("login", "/?panel=commutes", identity));
+        when(accountService.googleLogin(identity))
+            .thenReturn(new AccountResponses.AuthSession(user, "raw-token", Instant.parse("2026-06-19T14:30:00Z")));
+
+        ResponseEntity<Void> response = controller.googleOAuthCallback(
+            "code-123",
+            "state-123",
+            null,
+            "state-cookie",
+            null,
+            requestFrom("203.0.113.61")
+        );
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FOUND);
+        assertThat(response.getHeaders().getFirst(HttpHeaders.LOCATION)).isEqualTo("/?panel=commutes");
+        assertThat(response.getHeaders().get(HttpHeaders.SET_COOKIE)).anySatisfy(cookie ->
+            assertThat(cookie).contains("linewatch_session=raw-token")
+        );
+        assertThat(response.getHeaders().get(HttpHeaders.SET_COOKIE)).anySatisfy(cookie ->
+            assertThat(cookie).contains("linewatch_google_oauth=").contains("Max-Age=0")
+        );
+        verify(rateLimiter).requireAuthAttempt("google-oauth-callback", "203.0.113.61");
+    }
+
+    @Test
+    void googleOAuthCallbackLinksCurrentAccountWithoutReplacingSessionCookie() {
+        VerifiedGoogleIdentity identity = new VerifiedGoogleIdentity("google-subject", "rider@example.com", true, "Transit Rider");
+        AccountResponses.UserResponse user = new AccountResponses.UserResponse("user_1", "rider@example.com", "Rider", false, true);
+        when(googleOAuthService.verifyCallback("state-cookie", "state-123", "code-123", null))
+            .thenReturn(new GoogleOAuthService.VerifiedGoogleOAuthCallback("link", "/?panel=commutes", identity));
+        when(accountService.linkGoogle("raw-session", identity))
+            .thenReturn(new AccountResponses.AuthResponse(true, user));
+
+        ResponseEntity<Void> response = controller.googleOAuthCallback(
+            "code-123",
+            "state-123",
+            null,
+            "state-cookie",
+            "raw-session",
+            requestFrom("203.0.113.62")
+        );
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FOUND);
+        assertThat(response.getHeaders().getFirst(HttpHeaders.LOCATION)).isEqualTo("/?panel=commutes");
+        assertThat(response.getHeaders().get(HttpHeaders.SET_COOKIE)).noneSatisfy(cookie ->
+            assertThat(cookie).contains("linewatch_session=")
+        );
+        assertThat(response.getHeaders().get(HttpHeaders.SET_COOKIE)).anySatisfy(cookie ->
+            assertThat(cookie).contains("linewatch_google_oauth=").contains("Max-Age=0")
+        );
+        verify(accountService).linkGoogle("raw-session", identity);
+        verify(rateLimiter).requireAuthAttempt("google-oauth-callback", "203.0.113.62");
+    }
+
+    @Test
+    void googleOAuthCallbackRedirectsToAccountErrorWhenStateFails() {
+        when(googleOAuthService.verifyCallback("state-cookie", "wrong-state", "code-123", null))
+            .thenThrow(new AccountException(HttpStatus.BAD_REQUEST, "google_oauth_failed", "Could not complete Google sign-in."));
+
+        ResponseEntity<Void> response = controller.googleOAuthCallback(
+            "code-123",
+            "wrong-state",
+            null,
+            "state-cookie",
+            null,
+            requestFrom("203.0.113.63")
+        );
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FOUND);
+        assertThat(response.getHeaders().getFirst(HttpHeaders.LOCATION)).isEqualTo("/?account_error=google_oauth_failed");
+        assertThat(response.getHeaders().get(HttpHeaders.SET_COOKIE)).anySatisfy(cookie ->
+            assertThat(cookie).contains("linewatch_google_oauth=").contains("Max-Age=0")
+        );
+        verify(rateLimiter).requireAuthAttempt("google-oauth-callback", "203.0.113.63");
     }
 
     private MockHttpServletRequest requestFrom(String remoteAddress) {

@@ -377,6 +377,27 @@ class AccountServiceTest {
     }
 
     @Test
+    void googleLoginCanReuseVerifiedIdentityFromOAuthCallback() {
+        VerifiedGoogleIdentity identity = new VerifiedGoogleIdentity(
+            "google-subject-1",
+            "Rider@Example.COM",
+            true,
+            "Transit Rider"
+        );
+        when(authIdentityRepository.findByProviderAndProviderSubject("google", "google-subject-1")).thenReturn(Optional.empty());
+        when(accountRepository.findByEmail("rider@example.com")).thenReturn(Optional.empty());
+        when(accountRepository.save(any(AccountEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(authIdentityRepository.save(any(AccountAuthIdentityEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(sessionRepository.save(any(UserSessionEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        AccountResponses.AuthSession response = service.googleLogin(identity);
+
+        assertThat(response.user().email()).isEqualTo("rider@example.com");
+        assertThat(response.user().googleLinked()).isTrue();
+        verify(googleIdentityVerifier, never()).verify("credential");
+    }
+
+    @Test
     void googleLoginUsesEmailPrefixWhenGoogleNameIsBlank() {
         when(googleIdentityVerifier.verify("credential")).thenReturn(new VerifiedGoogleIdentity(
             "google-subject-1",
@@ -513,6 +534,41 @@ class AccountServiceTest {
         assertThat(response.user().googleLinked()).isTrue();
         assertThat(account.getLastLoginAt()).isEqualTo(Instant.parse("2026-06-05T14:30:00Z"));
         verify(authIdentityRepository).save(any(AccountAuthIdentityEntity.class));
+    }
+
+    @Test
+    void linkGoogleCanReuseVerifiedIdentityFromOAuthCallback() {
+        AccountEntity account = AccountEntity.create(
+            "user_password",
+            "rider@example.com",
+            "Rider",
+            passwordHasher.hash("correct horse battery staple"),
+            false,
+            Instant.parse("2026-06-05T14:00:00Z")
+        );
+        UserSessionEntity session = UserSessionEntity.create(
+            "session_test",
+            account,
+            tokenService.hashToken("raw-session"),
+            Instant.parse("2026-06-05T14:00:00Z"),
+            Instant.parse("2026-06-19T14:00:00Z")
+        );
+        VerifiedGoogleIdentity identity = new VerifiedGoogleIdentity(
+            "google-subject-1",
+            "Rider@Example.COM",
+            true,
+            "Transit Rider"
+        );
+        when(sessionRepository.findByTokenHash(tokenService.hashToken("raw-session"))).thenReturn(Optional.of(session));
+        when(authIdentityRepository.findByProviderAndProviderSubject("google", "google-subject-1")).thenReturn(Optional.empty());
+        when(authIdentityRepository.findByAccount_IdAndProvider("user_password", "google")).thenReturn(Optional.empty());
+        when(authIdentityRepository.save(any(AccountAuthIdentityEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        AccountResponses.AuthResponse response = service.linkGoogle("raw-session", identity);
+
+        assertThat(response.authenticated()).isTrue();
+        assertThat(response.user().googleLinked()).isTrue();
+        verify(googleIdentityVerifier, never()).verify("credential");
     }
 
     @Test

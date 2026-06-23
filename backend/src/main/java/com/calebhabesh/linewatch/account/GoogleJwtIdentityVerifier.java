@@ -8,6 +8,7 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtException;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -18,8 +19,9 @@ public class GoogleJwtIdentityVerifier implements GoogleIdentityVerifier {
     private final GoogleAuthProperties properties;
     private final JwtDecoder decoder;
 
+    @Autowired
     public GoogleJwtIdentityVerifier(GoogleAuthProperties properties) {
-        this(properties, properties.configured() ? NimbusJwtDecoder.withJwkSetUri(properties.getJwkSetUri()).build() : null);
+        this(properties, properties.idTokenVerificationConfigured() ? NimbusJwtDecoder.withJwkSetUri(properties.getJwkSetUri()).build() : null);
     }
 
     GoogleJwtIdentityVerifier(GoogleAuthProperties properties, JwtDecoder decoder) {
@@ -29,7 +31,7 @@ public class GoogleJwtIdentityVerifier implements GoogleIdentityVerifier {
 
     @Override
     public VerifiedGoogleIdentity verify(String credential) {
-        if (!properties.configured()) {
+        if (!properties.idTokenVerificationConfigured()) {
             throw new AccountException(HttpStatus.SERVICE_UNAVAILABLE, "google_auth_unavailable", "Google sign-in is not configured.");
         }
 

@@ -38,7 +38,11 @@ linewatch:
     google:
       enabled: ${LINEWATCH_AUTH_GOOGLE_ENABLED:false}
       client-id: ${LINEWATCH_AUTH_GOOGLE_CLIENT_ID:}
+      client-secret: ${LINEWATCH_AUTH_GOOGLE_CLIENT_SECRET:}
+      redirect-uri: ${LINEWATCH_AUTH_GOOGLE_REDIRECT_URI:}
       jwk-set-uri: ${LINEWATCH_AUTH_GOOGLE_JWK_SET_URI:https://www.googleapis.com/oauth2/v3/certs}
+      authorization-uri: ${LINEWATCH_AUTH_GOOGLE_AUTHORIZATION_URI:https://accounts.google.com/o/oauth2/v2/auth}
+      token-uri: ${LINEWATCH_AUTH_GOOGLE_TOKEN_URI:https://oauth2.googleapis.com/token}
   ingestion:
     alerts:
       enabled: ${LINEWATCH_INGESTION_ALERTS_ENABLED:false}
@@ -47,6 +51,8 @@ linewatch:
       max-dashboard-age: ${LINEWATCH_INGESTION_ALERTS_MAX_DASHBOARD_AGE:PT10M}
       connect-timeout: ${LINEWATCH_INGESTION_ALERTS_CONNECT_TIMEOUT:PT3S}
       read-timeout: ${LINEWATCH_INGESTION_ALERTS_READ_TIMEOUT:PT8S}
+      surface-gtfs-rt-enabled: ${LINEWATCH_INGESTION_ALERTS_SURFACE_GTFS_RT_ENABLED:false}
+      surface-gtfs-rt-url: ${LINEWATCH_INGESTION_ALERTS_SURFACE_GTFS_RT_URL:https://gtfsrt.ttc.ca/alerts/all?format=text}
   arrivals:
     enabled: ${LINEWATCH_ARRIVALS_ENABLED:false}
     provider: ${LINEWATCH_ARRIVALS_PROVIDER:scheduled}
@@ -105,4 +111,3 @@ management:
         http.server.requests: true
       slo:
         http.server.requests: 100ms,250ms,500ms,1s,2s,5s
-

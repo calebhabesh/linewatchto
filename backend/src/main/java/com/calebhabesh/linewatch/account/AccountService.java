@@ -154,6 +154,11 @@ public class AccountService {
     @Transactional
     public AccountResponses.AuthSession googleLogin(GoogleLoginRequest request) {
         VerifiedGoogleIdentity googleIdentity = googleIdentityVerifier.verify(request.credential());
+        return googleLogin(googleIdentity);
+    }
+
+    @Transactional
+    public AccountResponses.AuthSession googleLogin(VerifiedGoogleIdentity googleIdentity) {
         String email = normalizeEmail(googleIdentity.email());
         Instant now = clock.instant();
 
@@ -165,19 +170,24 @@ public class AccountService {
                 identity.updateGoogleProfile(email, googleIdentity.emailVerified(), now);
                 AccountEntity account = identity.getAccount();
                 account.markLogin(now);
-                return createSession(account, now);
+                return createSession(account, now, true);
             })
             .orElseGet(() -> createGoogleAccountSession(googleIdentity, email, now));
     }
 
     @Transactional
     public AccountResponses.AuthResponse linkGoogle(String rawSessionToken, GoogleLoginRequest request) {
+        VerifiedGoogleIdentity googleIdentity = googleIdentityVerifier.verify(request.credential());
+        return linkGoogle(rawSessionToken, googleIdentity);
+    }
+
+    @Transactional
+    public AccountResponses.AuthResponse linkGoogle(String rawSessionToken, VerifiedGoogleIdentity googleIdentity) {
         AccountEntity account = requireAccount(rawSessionToken);
         if (account.isDemo()) {
             throw new AccountException(HttpStatus.CONFLICT, "google_link_demo_account", "Demo accounts cannot link Google sign-in.");
         }
 
-        VerifiedGoogleIdentity googleIdentity = googleIdentityVerifier.verify(request.credential());
         String email = normalizeEmail(googleIdentity.email());
         if (!email.equals(account.getEmail())) {
             throw new AccountException(
@@ -222,7 +232,7 @@ public class AccountService {
             googleIdentity.emailVerified(),
             now
         ));
-        return createSession(saved, now);
+        return createSession(saved, now, true);
     }
 
     private AccountResponses.AuthResponse updateExistingGoogleLink(
@@ -308,6 +318,14 @@ public class AccountService {
     }
 
     private AccountResponses.AuthSession createSession(AccountEntity account, Instant now) {
+        return createSession(account, now, toUserResponse(account));
+    }
+
+    private AccountResponses.AuthSession createSession(AccountEntity account, Instant now, boolean googleLinked) {
+        return createSession(account, now, toUserResponse(account, googleLinked));
+    }
+
+    private AccountResponses.AuthSession createSession(AccountEntity account, Instant now, AccountResponses.UserResponse user) {
         SessionTokenService.GeneratedSessionToken token = tokenService.generateToken();
         Instant expiresAt = now.plus(SESSION_TTL);
         sessionRepository.save(UserSessionEntity.create(
@@ -317,7 +335,7 @@ public class AccountService {
             now,
             expiresAt
         ));
-        return new AccountResponses.AuthSession(toUserResponse(account), token.rawToken(), expiresAt);
+        return new AccountResponses.AuthSession(user, token.rawToken(), expiresAt);
     }
 
     private AccountResponses.UserResponse toUserResponse(AccountEntity account) {
