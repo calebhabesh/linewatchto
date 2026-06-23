@@ -261,6 +261,10 @@ test("opens the site guide and blocks invalid account signup input", async ({ pa
     await page.getByRole("button", { name: "Toggle menu" }).click();
     await page.getByRole("menuitem", { name: "Create Account" }).click();
   }
+  const choiceDialog = page.getByRole("dialog", { name: "Choose how to create a LineWatch TO account" });
+  await expect(choiceDialog).toBeVisible();
+  await choiceDialog.getByRole("button", { name: "Continue With Email" }).click();
+
   const dialog = page.getByRole("dialog", { name: "Create LineWatch TO account" });
   await expect(dialog).toBeVisible();
 
@@ -944,7 +948,11 @@ test("requests and confirms a password reset from the sign-in dialog", async ({ 
     await page.getByRole("menuitem", { name: "Sign In" }).click();
   }
 
-  const signInDialog = page.getByRole("dialog", { name: /Sign in/i });
+  const choiceDialog = page.getByRole("dialog", { name: "Choose how to sign in to LineWatch TO" });
+  await expect(choiceDialog).toBeVisible();
+  await choiceDialog.getByRole("button", { name: "Continue With Email" }).click();
+
+  const signInDialog = page.getByRole("dialog", { name: "Sign in to LineWatch TO" });
   await expect(signInDialog).toBeVisible();
   await signInDialog.getByRole("button", { name: "Forgot Password?" }).click();
 

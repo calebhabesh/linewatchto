@@ -1,6 +1,6 @@
 "use client";
 
-import { BarChart3, Bell, LogIn, LogOut, RefreshCcw, ShieldCheck, UserPlus, UserRound, X } from "lucide-react";
+import { BarChart3, Bell, LogIn, LogOut, RefreshCcw, Contrast, Pause, UserPlus, UserRound, X, History } from "lucide-react";
 import Image from "next/image";
 import type { AccountState } from "../app/account-data";
 import { lineWatchAppVersionLabel } from "../app/app-build";
@@ -22,6 +22,7 @@ type Props = {
   onToggleHighContrast: () => void;
   onToggleReducedMotion: () => void;
   onOpenNotifications: () => void;
+  onOpenAlertHistory: () => void;
   onOpenAnalytics: () => void;
   notificationStatusLabel: string;
 };
@@ -40,6 +41,7 @@ export function MobileMoreSheet({
   onToggleHighContrast,
   onToggleReducedMotion,
   onOpenNotifications,
+  onOpenAlertHistory,
   onOpenAnalytics,
   notificationStatusLabel,
 }: Props) {
@@ -98,37 +100,68 @@ export function MobileMoreSheet({
 
         <div className="mobile-more-section">
           <h3>Notifications</h3>
-          <button type="button" className="mobile-more-row" onClick={onOpenNotifications}>
-            <Bell size={18} />
-            Notifications
-            <strong>{notificationStatusLabel}</strong>
+          <button type="button" className="mobile-more-row w-full flex items-center justify-between gap-[9px]" onClick={onOpenNotifications}>
+            <div className="flex items-center gap-[9px] min-w-0 flex-1">
+              <div className="shrink-0">
+                <Bell size={18} className="text-slate-500 dark:text-slate-400" />
+              </div>
+              <div className="flex-1 flex flex-col min-w-0">
+                <span>Notifications</span>
+                <span className="text-[11px] font-normal text-slate-500 dark:text-slate-400 mt-0.5">
+                  Press to Configure
+                </span>
+              </div>
+            </div>
+            <div className="shrink-0 flex items-center">
+              {notificationStatusLabel === "On" ? (
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wide uppercase bg-emerald-500 text-white dark:bg-emerald-600/80">
+                  ON
+                </span>
+              ) : notificationStatusLabel === "Off" ? (
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wide uppercase bg-slate-200 text-slate-600 dark:bg-slate-800 dark:text-slate-400">
+                  OFF
+                </span>
+              ) : (
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wide uppercase bg-slate-100 text-slate-400 dark:bg-slate-900 dark:text-slate-600">
+                  {notificationStatusLabel}
+                </span>
+              )}
+            </div>
+          </button>
+          <button type="button" className="mobile-more-row" onClick={onOpenAlertHistory}>
+            <History size={18} className="text-slate-500 dark:text-slate-400" />
+            Alert History
           </button>
         </div>
 
         <div className="mobile-more-section">
           <h3>Display</h3>
           <button type="button" className="mobile-more-row" aria-pressed={highContrast} onClick={onToggleHighContrast}>
-            <ShieldCheck size={18} />
+            <Contrast size={18} className="text-slate-500 dark:text-slate-400" />
             High Contrast Mode
-            <strong>{highContrast ? "On" : "Off"}</strong>
+            <div className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ml-auto shrink-0 ${highContrast ? 'bg-blue-500' : 'bg-slate-300 dark:bg-slate-600'}`}>
+              <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${highContrast ? 'translate-x-4' : 'translate-x-1'}`} />
+            </div>
           </button>
           <button type="button" className="mobile-more-row" aria-pressed={reducedMotion} onClick={onToggleReducedMotion}>
-            <ShieldCheck size={18} />
+            <Pause size={18} className="text-slate-500 dark:text-slate-400" />
             Reduced Motion
-            <strong>{reducedMotion ? "On" : "Off"}</strong>
+            <div className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ml-auto shrink-0 ${reducedMotion ? 'bg-blue-500' : 'bg-slate-300 dark:bg-slate-600'}`}>
+              <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${reducedMotion ? 'translate-x-4' : 'translate-x-1'}`} />
+            </div>
           </button>
         </div>
 
         <div className="mobile-more-section">
           <h3>Tools</h3>
           <button type="button" className="mobile-more-row" onClick={onOpenAnalytics}>
-            <BarChart3 size={18} />
+            <BarChart3 size={18} className="text-slate-500 dark:text-slate-400" />
             Reliability Analytics
           </button>
           <LogsDropdown isMobileMore={true} />
           {canResetLocalAppCache ? (
             <button type="button" className="mobile-more-row" onClick={() => { void resetLineWatchLocalAppState(); }}>
-              <RefreshCcw size={18} />
+              <RefreshCcw size={18} className="text-slate-500 dark:text-slate-400" />
               Reset Local App Cache
             </button>
           ) : null}

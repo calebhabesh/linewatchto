@@ -15,6 +15,7 @@ import { PlannedClosuresPanel } from "./PlannedClosuresPanel";
 import { SavedCommutesPanel } from "./SavedCommutesPanel";
 import { NotificationSettingsPanel } from "./NotificationSettingsPanel";
 import { ReliabilityPanel } from "./ReliabilityPanel";
+import { AlertHistoryPanel } from "./AlertHistoryPanel";
 import { FloatingPanelShell } from "./FloatingPanelShell";
 import { MobileBottomNav, type MobileNavKey } from "./MobileBottomNav";
 import { MobileStatusPeek } from "./MobileStatusPeek";
@@ -48,7 +49,7 @@ import { StationDetailPanel } from "./StationDetailPanel";
 import { useTorontoClock } from "../hooks/useTorontoClock";
 import { useMobilePerformanceMode } from "../hooks/useMobilePerformanceMode";
 import { usePushNotificationSettings } from "../hooks/usePushNotificationSettings";
-import { Menu, X, Map as MapIcon, AlertTriangle, Calendar, Navigation, ShieldCheck, BarChart3, Bell, Construction, Search, LogIn, LogOut, UserPlus, UserRound, Sun, Moon, Bus, Mail } from "lucide-react";
+import { Menu, X, Map as MapIcon, AlertTriangle, Calendar, Navigation, ShieldCheck, BarChart3, Bell, Construction, Search, LogIn, LogOut, UserPlus, UserRound, Sun, Moon, Bus, Mail, Contrast, Pause, History } from "lucide-react";
 import { SubwayClosedScreen } from "./SubwayClosedScreen";
 import { useSubwayOperatingState } from "../hooks/useSubwayOperatingState";
 import { StationSearchPanel } from "./StationSearchPanel";
@@ -80,7 +81,7 @@ import { GoogleSignInButton } from "./GoogleSignInButton";
 import { normalizeAccountEmail, validateAccountCredentials } from "../app/account-validation";
 
 
-type ActiveView = "map" | "menu" | "search" | "status" | "alerts" | "delays" | "reduced-speed-zones" | "closures" | "commutes" | "notifications" | "analytics" | "more" | "accessibility-outages" | "surface-notices";
+type ActiveView = "map" | "menu" | "search" | "status" | "alerts" | "delays" | "reduced-speed-zones" | "closures" | "commutes" | "notifications" | "analytics" | "more" | "accessibility-outages" | "surface-notices" | "alert-history";
 type AccountDialogMode = "auth-choice" | "login" | "register" | "forgot-password" | "reset-password" | "link-google";
 type AccountEntryIntent = "login" | "register";
 
@@ -339,6 +340,12 @@ export function LineWatchShell({
       setActiveView(panelToView[panel]);
       window.history.replaceState(null, "", window.location.pathname);
     }
+
+    const impactKind = params.get("impactKind") as ImpactKind;
+    const impactId = params.get("impactId");
+    if (impactKind && impactId) {
+      setSelection({ kind: impactKind, id: impactId });
+    }
   }, []);
 
   useEffect(() => {
@@ -558,6 +565,7 @@ export function LineWatchShell({
     }
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleGoogleCredential = async (credential: string) => {
     setAccountBusy(true);
     setAccountError(null);
@@ -578,6 +586,7 @@ export function LineWatchShell({
     }
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleLinkGoogleCredential = async (credential: string) => {
     setAccountBusy(true);
     setAccountError(null);
@@ -990,6 +999,7 @@ export function LineWatchShell({
       case "notifications": return "Notifications";
       case "more": return "More options";
       case "analytics": return "Reliability analytics";
+      case "alert-history": return "Alert History";
       case "accessibility-outages": return "Accessibility outages";
       case "surface-notices": return "Streetcar & Bus Notices";
       default: return "";
@@ -1132,6 +1142,7 @@ export function LineWatchShell({
             onToggleReducedMotion={() => setReducedMotion((current) => !current)}
             onOpenNotifications={() => setActiveView("notifications")}
             onOpenAnalytics={() => setActiveView("analytics")}
+            onOpenAlertHistory={() => setActiveView("alert-history")}
             notificationStatusLabel={notificationStatusLabel}
           />
         );
@@ -1139,6 +1150,13 @@ export function LineWatchShell({
         return (
           <ReliabilityPanel
             onBack={() => setActiveView("menu")}
+            onClose={() => { setActiveView("map"); setSelection(null); }}
+          />
+        );
+      case "alert-history":
+        return (
+          <AlertHistoryPanel
+            onBack={() => setActiveView(isMobile ? "more" : "menu")}
             onClose={() => { setActiveView("map"); setSelection(null); }}
           />
         );
@@ -1281,12 +1299,20 @@ export function LineWatchShell({
           onToggleReducedMotion={() => setReducedMotion((current) => !current)}
           onOpenNotifications={() => setActiveView("notifications")}
           onOpenAnalytics={() => setActiveView("analytics")}
+          onOpenAlertHistory={() => setActiveView("alert-history")}
           notificationStatusLabel={notificationStatusLabel}
         />
       </FloatingPanelShell>
     ) : activeView === "analytics" ? (
       <FloatingPanelShell panel="analytics" mobileSheetLabel="Reliability analytics">
         <ReliabilityPanel
+          onBack={() => setActiveView("menu")}
+          onClose={() => { setActiveView("map"); setSelection(null); }}
+        />
+      </FloatingPanelShell>
+    ) : activeView === "alert-history" ? (
+      <FloatingPanelShell panel="alert-history" mobileSheetLabel="Alert History">
+        <AlertHistoryPanel
           onBack={() => setActiveView("menu")}
           onClose={() => { setActiveView("map"); setSelection(null); }}
         />
@@ -1688,6 +1714,15 @@ export function LineWatchShell({
                  <button
                    ref={registerMenuAction(actionIndex++)}
                    role="menuitem"
+                   onClick={() => setActiveView("alert-history")}
+                   aria-current={activeView === "alert-history" ? "page" : undefined}
+                   className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
+                 >
+                   <History size={18} className="text-slate-500 dark:text-slate-400" /> Alert History
+                 </button>
+                 <button
+                   ref={registerMenuAction(actionIndex++)}
+                   role="menuitem"
                    onClick={() => setActiveView("analytics")}
                    aria-current={activeView === "analytics" ? "page" : undefined}
                    className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
@@ -1699,7 +1734,9 @@ export function LineWatchShell({
                {/* Toggles */}
                <div className="flex flex-col p-2 border-b border-black/10 dark:border-white/10">
                  <div className="flex items-center justify-between px-3 py-2.5">
-                   <span className="text-sm font-medium text-slate-700 dark:text-slate-200">High Contrast Mode</span>
+                   <span className="text-sm font-medium text-slate-700 dark:text-slate-200 flex items-center gap-3">
+                     <Contrast size={18} className="text-slate-500 dark:text-slate-400" /> High Contrast Mode
+                   </span>
                    <button
                       ref={registerMenuAction(actionIndex++)}
                       role="menuitemcheckbox"
@@ -1712,7 +1749,9 @@ export function LineWatchShell({
                    </button>
                  </div>
                  <div className="flex items-center justify-between px-3 py-2.5">
-                   <span className="text-sm font-medium text-slate-700 dark:text-slate-200">Reduced Motion</span>
+                   <span className="text-sm font-medium text-slate-700 dark:text-slate-200 flex items-center gap-3">
+                     <Pause size={18} className="text-slate-500 dark:text-slate-400" /> Reduced Motion
+                   </span>
                    <button
                       ref={registerMenuAction(actionIndex++)}
                       role="menuitemcheckbox"
@@ -2051,9 +2090,8 @@ export function LineWatchShell({
                         </div>
                         <div aria-label="Continue With Google">
                           <GoogleSignInButton
-                            clientId={authConfig.googleClientId}
                             disabled={accountBusy}
-                            onCredential={handleGoogleCredential}
+                            mode="login"
                             onError={setAccountError}
                           />
                         </div>
@@ -2084,9 +2122,8 @@ export function LineWatchShell({
                   {authConfig.googleSignInAvailable ? (
                     <div aria-label="Link Google">
                       <GoogleSignInButton
-                        clientId={authConfig.googleClientId}
                         disabled={accountBusy}
-                        onCredential={handleLinkGoogleCredential}
+                        mode="link"
                         onError={setAccountError}
                       />
                     </div>

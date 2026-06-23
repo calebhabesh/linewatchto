@@ -24,13 +24,10 @@ describe("account UI source", () => {
     assert.match(shellSource, /Sign Out/);
     assert.match(shellSource, /account-dialog/);
     assert.match(shellSource, /getAuthConfig/);
-    assert.match(shellSource, /loginWithGoogle/);
     assert.match(shellSource, /GoogleSignInButton/);
     assert.match(shellSource, /Continue With Google/);
     assert.match(shellSource, /account-auth-divider/);
-    assert.match(shellSource, /linkGoogleAccount/);
     assert.match(shellSource, /"link-google"/);
-    assert.match(shellSource, /handleLinkGoogleCredential/);
     assert.match(shellSource, /Link Google/);
     assert.match(shellSource, /Google Linked/);
     assert.match(shellSource, /"auth-choice"/);
@@ -158,13 +155,38 @@ describe("account UI source", () => {
     assert.equal(toTitleCase("linewatch-lrt-ttc"), "LineWatch-LRT-TTC");
   });
 
-  it("wraps Google Identity Services in an isolated optional button component", () => {
-    assert.match(googleSignInSource, /accounts\.google\.com\/gsi\/client/);
-    assert.match(googleSignInSource, /google\.accounts\.id\.initialize/);
-    assert.match(googleSignInSource, /google\.accounts\.id\.renderButton/);
-    assert.match(googleSignInSource, /onCredential/);
-    assert.match(googleSignInSource, /clientId/);
-    assert.match(globalCss, /\.google-sign-in-slot/);
+  it("uses a custom navigational Google provider button instead of the GIS iframe renderer", () => {
+    assert.doesNotMatch(googleSignInSource, /accounts\.google\.com\/gsi\/client/);
+    assert.doesNotMatch(googleSignInSource, /\.initialize\(/);
+    assert.doesNotMatch(googleSignInSource, /\.renderButton\(/);
+    assert.doesNotMatch(googleSignInSource, /onCredential/);
+    assert.doesNotMatch(googleSignInSource, /clientId/);
+    assert.doesNotMatch(googleSignInSource, /iframe/);
+    assert.match(googleSignInSource, /googleAuthStartUrl/);
+    assert.match(googleSignInSource, /window\.location\.assign/);
+    assert.match(googleSignInSource, /account-choice-google-custom/);
     assert.match(globalCss, /\.account-auth-divider/);
+  });
+
+  it("keeps the custom Google button as the clickable surface", () => {
+    assert.match(googleSignInSource, /account-choice-google-custom/);
+    assert.doesNotMatch(googleSignInSource, /google-iframe-overlay-wrapper/);
+    assert.match(globalCss, /\.account-choice-google-custom/);
+    assert.doesNotMatch(globalCss, /\.google-iframe-overlay-wrapper/);
+    assert.doesNotMatch(globalCss, /opacity:\s*0\.001/);
+  });
+
+  it("sizes the custom Google button to align with the email provider choice", () => {
+    assert.match(globalCss, /\.account-choice-google-custom\s*\{[\s\S]*border-radius:\s*8px/);
+    assert.match(globalCss, /\.account-choice-google-custom\s*\{[\s\S]*min-height:\s*44px/);
+    assert.match(globalCss, /\.account-choice-google-custom\s*\{[\s\S]*width:\s*100%/);
+  });
+
+  it("uses a neutral shared provider-button surface for email and Google choices", () => {
+    assert.match(globalCss, /\.account-choice-primary\s*\{[\s\S]*background:\s*rgb\(255,\s*255,\s*255\)/);
+    assert.match(globalCss, /\.account-choice-primary\s*\{[\s\S]*border-radius:\s*8px/);
+    assert.match(globalCss, /\.account-choice-primary\s*\{[\s\S]*color:\s*rgb\(31,\s*31,\s*31\)/);
+    assert.match(globalCss, /\.account-choice-primary\s*\{[\s\S]*font-weight:\s*700/);
+    assert.match(globalCss, /\.account-choice-google-custom\s*\{[\s\S]*background:\s*rgb\(255,\s*255,\s*255\)/);
   });
 });

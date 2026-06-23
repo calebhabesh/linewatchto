@@ -12,6 +12,7 @@ import {
   getCurrentAccount,
   getPushNotificationConfig,
   getSavedCommutes,
+  googleAuthStartUrl,
   loginDemoAccount,
   loginWithGoogle,
   linkGoogleAccount,
@@ -570,6 +571,17 @@ describe("account data adapter", () => {
     assert.equal(result.source, "unavailable");
     assert.equal(result.config.googleSignInAvailable, false);
     assert.equal(result.config.googleClientId, "");
+  });
+
+  it("builds Google OAuth redirect start URLs for custom provider buttons", () => {
+    assert.equal(
+      googleAuthStartUrl({ mode: "login", returnTo: "/?panel=commutes" }),
+      "/api/auth/google/start?mode=login&returnTo=%2F%3Fpanel%3Dcommutes"
+    );
+    assert.equal(
+      googleAuthStartUrl({ mode: "link", returnTo: "/account" }, { apiBaseUrl: "https://api.linewatch.example" }),
+      "https://api.linewatch.example/api/auth/google/start?mode=link&returnTo=%2Faccount"
+    );
   });
 
   it("posts Google credential with credentials included", async () => {

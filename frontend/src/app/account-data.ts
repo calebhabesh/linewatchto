@@ -32,6 +32,8 @@ export type AuthConfig = {
   googleClientId: string;
 };
 
+export type GoogleAuthMode = "login" | "link";
+
 export type AuthConfigResult = {
   source: "backend" | "unavailable";
   config: AuthConfig;
@@ -392,12 +394,41 @@ export async function getAuthConfig(options: AdapterOptions = {}): Promise<AuthC
   }
 }
 
+export function googleAuthStartUrl(input: { mode: GoogleAuthMode; returnTo?: string }, options: AdapterOptions = {}) {
+  const params = new URLSearchParams({
+    mode: input.mode,
+    returnTo: normalizeGoogleReturnTo(input.returnTo),
+  });
+  return apiUrl(`/api/auth/google/start?${params.toString()}`, options);
+}
+
 export async function loginWithGoogle(input: { credential: string }, options: AdapterOptions = {}) {
   return authRequest("/api/auth/google", { method: "POST", body: JSON.stringify(input) }, options);
 }
 
 export async function linkGoogleAccount(input: { credential: string }, options: AdapterOptions = {}) {
   return authRequest("/api/auth/google/link", { method: "POST", body: JSON.stringify(input) }, options);
+}
+
+function normalizeGoogleReturnTo(returnTo?: string) {
+  const candidate = returnTo ?? currentBrowserPath();
+  if (
+    !candidate ||
+    !candidate.startsWith("/") ||
+    candidate.startsWith("//") ||
+    candidate.includes("\n") ||
+    candidate.includes("\r")
+  ) {
+    return "/";
+  }
+  return candidate;
+}
+
+function currentBrowserPath() {
+  if (typeof window === "undefined") {
+    return "/";
+  }
+  return `${window.location.pathname}${window.location.search}${window.location.hash}` || "/";
 }
 
 export async function getCurrentAccount(options: AdapterOptions = {}): Promise<AccountState> {
