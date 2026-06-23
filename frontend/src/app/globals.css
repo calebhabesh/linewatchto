@@ -8054,12 +8054,27 @@ button {
   cursor: pointer;
 }
 
+.alert-history-line-filter select option {
+  background-color: rgb(255, 255, 255);
+  color: rgb(15, 23, 42);
+}
+
 .dark .alert-history-search-field,
 .dark .alert-history-line-filter,
 .high-contrast .alert-history-search-field,
 .high-contrast .alert-history-line-filter {
   background: rgba(15, 23, 42, 0.75);
   color: rgb(226, 232, 240);
+}
+
+.dark .alert-history-line-filter select option {
+  background-color: rgb(15, 23, 42);
+  color: rgb(241, 245, 249);
+}
+
+.high-contrast .alert-history-line-filter select option {
+  background-color: rgb(0, 0, 0);
+  color: rgb(255, 255, 255);
 }
 
 .dark .alert-history-search-field input::placeholder,
