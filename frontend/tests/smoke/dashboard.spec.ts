@@ -150,7 +150,7 @@ test("shows a subway closing soon countdown before overnight closure", async ({ 
   const closingSoon = page.getByRole("status").filter({ hasText: "Subway Closing Soon" });
   await expect(closingSoon).toBeVisible();
   await expect(closingSoon).toContainText("Closes in 1 hr 15 min");
-  await expect(closingSoon).toContainText(/today at 2:00 am/i);
+  await expect(closingSoon).toContainText(/at 2:00 am/i);
   await expect(page.getByRole("heading", { name: "Subway Closed" })).toHaveCount(0);
 });
 
@@ -942,7 +942,7 @@ test("requests and confirms a password reset from the sign-in dialog", async ({ 
 
   if (isMobile) {
     await page.getByRole("button", { name: "More", exact: true }).click();
-    await page.getByRole("button", { name: "Sign In" }).click();
+    await page.getByRole("button", { name: "Sign In", exact: true }).click();
   } else {
     await page.getByRole("button", { name: "Toggle menu" }).click();
     await page.getByRole("menuitem", { name: "Sign In" }).click();

@@ -17,12 +17,12 @@ export function SubwayClosingSoonChip({
       <span className="subway-closing-soon-copy">
         <strong>Subway Closing Soon</strong>
         <small className="subway-closing-soon-details">
-          <span className="subway-closing-prefix">Closes in</span>
+          <span className="subway-closing-prefix">Closes in </span>
           <span className="subway-closing-countdown-badge">
             <Clock3 aria-hidden="true" size={14} strokeWidth={2.8} />
             <span>{durationText}</span>
           </span>
-          <span className="subway-closing-time">{timeText}</span>
+          <span className="subway-closing-time"> {timeText}</span>
         </small>
       </span>
     </div>
