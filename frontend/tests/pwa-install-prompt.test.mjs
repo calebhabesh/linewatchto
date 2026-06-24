@@ -116,3 +116,21 @@ describe("PWA install prompt state", () => {
     );
   });
 });
+
+describe("PWA install prompt hook", () => {
+  it("listens for native install events, app installation, display-mode changes, and timed engagement", () => {
+    const hookSource = readFileSync(hookSourceUrl, "utf8");
+
+    assert.match(hookSource, /"use client"/);
+    assert.match(hookSource, /beforeinstallprompt/);
+    assert.match(hookSource, /event\.preventDefault\(\)/);
+    assert.match(hookSource, /appinstalled/);
+    assert.match(hookSource, /linewatch-pwa-install-dismissed-at-v1/);
+    assert.match(hookSource, /PWA_INSTALL_ENGAGEMENT_DELAY_MS/);
+    assert.match(hookSource, /isStandalonePwaDisplay/);
+    assert.match(hookSource, /shouldShowPwaInstallNudge/);
+    assert.match(hookSource, /deferredPrompt\.prompt\(\)/);
+    assert.match(hookSource, /deferredPrompt\.userChoice/);
+  });
+});
+
