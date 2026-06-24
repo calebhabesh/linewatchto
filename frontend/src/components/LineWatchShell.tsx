@@ -93,8 +93,8 @@ type ActiveView = "map" | "menu" | "search" | "status" | "alerts" | "delays" | "
 type AccountDialogMode = "auth-choice" | "login" | "register" | "forgot-password" | "reset-password" | "link-google";
 type AccountEntryIntent = "login" | "register";
 
-const DEFAULT_DASHBOARD_REFRESH_MS = 5_000;
-const MIN_DASHBOARD_REFRESH_MS = 2_000;
+const DEFAULT_DASHBOARD_REFRESH_MS = 30_000;
+const MIN_DASHBOARD_REFRESH_MS = 10_000;
 const GOOGLE_LINK_SUCCESS_PARAM = "account_linked";
 const GOOGLE_LINK_SUCCESS_VALUE = "google";
 const GOOGLE_LINK_SUCCESS_MESSAGE = "Google sign-in has been linked to your account.";

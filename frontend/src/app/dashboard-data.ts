@@ -38,6 +38,16 @@ type StatusApiResponse = {
   lines: LineStatus[];
 };
 
+type DashboardApiResponse = {
+  map: MapApiResponse;
+  status: StatusApiResponse;
+  activeAlerts: ActiveAlert[];
+  delays: DelayAlert[];
+  reducedSpeedZones: ReducedSpeedZone[];
+  plannedClosures: PlannedClosure[];
+  performance: TtcPerformanceSnapshot;
+};
+
 async function fetchSafe<T>(path: string): Promise<T | null> {
   try {
     const res = await fetch(`${BACKEND_URL}${path}`, { cache: "no-store", signal: AbortSignal.timeout(2000) });
@@ -48,7 +58,59 @@ async function fetchSafe<T>(path: string): Promise<T | null> {
   }
 }
 
-export async function loadDashboardInitialData(): Promise<DashboardData> {
+function fromBackendPayload(payload: DashboardApiResponse): DashboardData {
+  return {
+    dataSource: "backend",
+    networkSegments: payload.map.segments,
+    stations: payload.map.stations,
+    lineStatuses: payload.status.lines,
+    generatedAt: payload.status.generatedAt,
+    activeAlerts: payload.activeAlerts,
+    delays: payload.delays,
+    reducedSpeedZones: payload.reducedSpeedZones,
+    plannedClosures: payload.plannedClosures,
+    stationNodeImpacts: payload.map.stationNodeImpacts,
+    commuteImpacts,
+    reliabilitySummaries,
+    ttcPerformance: payload.performance ?? fallbackPerformance,
+    ingestionHealth,
+    mapAsset
+  };
+}
+
+function fallbackDashboardData(): DashboardData {
+  return {
+    dataSource: "fallback",
+    networkSegments: fallbackSegments,
+    stations: fallbackStations,
+    lineStatuses: fallbackStatuses,
+    generatedAt: {
+      ...fallbackGeneratedAt,
+      lastPoll: "fixture mode",
+      live: false,
+    },
+    activeAlerts: fallbackAlerts,
+    delays: fallbackDelays,
+    reducedSpeedZones: fallbackReducedSpeedZones,
+    plannedClosures: fallbackClosures,
+    stationNodeImpacts: fallbackStationNodeImpacts,
+    commuteImpacts,
+    reliabilitySummaries,
+    ttcPerformance: fallbackPerformance,
+    ingestionHealth,
+    mapAsset
+  };
+}
+
+async function loadDashboardFromAggregate(): Promise<DashboardData | null> {
+  const payload = await fetchSafe<DashboardApiResponse>("/api/dashboard");
+  if (!payload?.map || !payload.status || !payload.activeAlerts || !payload.delays || !payload.reducedSpeedZones || !payload.plannedClosures) {
+    return null;
+  }
+  return fromBackendPayload(payload);
+}
+
+async function loadDashboardFromLegacyEndpoints(): Promise<DashboardData | null> {
   const [mapData, statusData, activeAlerts, delays, reducedSpeedZones, plannedClosures, performanceData] = await Promise.all([
     fetchSafe<MapApiResponse>("/api/map"),
     fetchSafe<StatusApiResponse>("/api/status"),
@@ -60,32 +122,23 @@ export async function loadDashboardInitialData(): Promise<DashboardData> {
   ]);
 
   const useFallback = !mapData || !statusData || !activeAlerts || !delays || !reducedSpeedZones || !plannedClosures;
-
-  const initialData: DashboardData = {
-    dataSource: useFallback ? "fallback" : "backend",
-    networkSegments: useFallback ? fallbackSegments : mapData.segments,
-    stations: useFallback ? fallbackStations : mapData.stations,
-    lineStatuses: useFallback ? fallbackStatuses : statusData.lines,
-    generatedAt: useFallback ? fallbackGeneratedAt : statusData.generatedAt,
-    activeAlerts: useFallback ? fallbackAlerts : activeAlerts,
-    delays: useFallback ? fallbackDelays : delays,
-    reducedSpeedZones: useFallback ? fallbackReducedSpeedZones : reducedSpeedZones,
-    plannedClosures: useFallback ? fallbackClosures : plannedClosures,
-    stationNodeImpacts: useFallback ? fallbackStationNodeImpacts : mapData.stationNodeImpacts,
-    commuteImpacts,
-    reliabilitySummaries,
-    ttcPerformance: performanceData ?? fallbackPerformance,
-    ingestionHealth,
-    mapAsset
-  };
-
   if (useFallback) {
-    initialData.generatedAt = {
-      ...fallbackGeneratedAt,
-      lastPoll: "fixture mode",
-      live: false,
-    };
+    return null;
   }
 
-  return initialData;
+  return fromBackendPayload({
+    map: mapData,
+    status: statusData,
+    activeAlerts,
+    delays,
+    reducedSpeedZones,
+    plannedClosures,
+    performance: performanceData ?? fallbackPerformance,
+  });
+}
+
+export async function loadDashboardInitialData(): Promise<DashboardData> {
+  return await loadDashboardFromAggregate()
+    ?? await loadDashboardFromLegacyEndpoints()
+    ?? fallbackDashboardData();
 }

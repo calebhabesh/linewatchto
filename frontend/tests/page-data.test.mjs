@@ -9,7 +9,8 @@ describe("dashboard server data binding", () => {
   it("trusts map API overlay metadata instead of rebuilding reduced speed zone impacts", () => {
     assert.doesNotMatch(dashboardDataSource, /networkSegments = networkSegments\.map/);
     assert.doesNotMatch(dashboardDataSource, /alertId:\s*alert\.id/);
-    assert.match(dashboardDataSource, /networkSegments:\s*useFallback \? fallbackSegments : mapData\.segments/);
+    assert.match(dashboardDataSource, /networkSegments:\s*payload\.map\.segments/);
+    assert.match(dashboardDataSource, /networkSegments:\s*fallbackSegments/);
   });
 
   it("refreshes open dashboards through the existing server data path", () => {
@@ -27,7 +28,8 @@ describe("dashboard server data binding", () => {
   });
 
   it("marks dashboard payloads as backend or fallback and lets the shell retain backend data", () => {
-    assert.match(dashboardDataSource, /dataSource:\s*useFallback\s*\?\s*"fallback"(?:\s+as\s+const)?\s*:\s*"backend"(?:\s+as\s+const)?/);
+    assert.match(dashboardDataSource, /dataSource: "fallback"/);
+    assert.match(dashboardDataSource, /dataSource: "backend"/);
     assert.match(shellSource, /displayData/);
     assert.match(shellSource, /setDisplayData\(initialData\)/);
     assert.match(shellSource, /initialData\.dataSource === "backend"/);
