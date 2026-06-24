@@ -26,7 +26,7 @@ linewatch_staging_compose "${COMPOSE_ARGS[@]}" up \
 linewatch_staging_compose "${COMPOSE_ARGS[@]}" ps
 
 cat <<EOF
-LineWatch TO staging is running.
+LineWatchTO staging is running.
 
 Local URL:
   $(linewatch_staging_local_origin)

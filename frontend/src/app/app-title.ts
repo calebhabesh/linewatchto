@@ -1,4 +1,4 @@
-const baseAppTitle = "LineWatch TO";
+const baseAppTitle = "LineWatchTO";
 
 function normalizeLabel(value: string | undefined) {
   return value?.trim().replace(/\s+/g, " ") ?? "";

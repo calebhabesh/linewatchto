@@ -1,6 +1,6 @@
 "use client";
 
-import { BarChart3, Bell, LogIn, LogOut, MessageSquareText, RefreshCcw, Contrast, Pause, UserPlus, UserRound, X, History } from "lucide-react";
+import { BarChart3, Bell, FileText, LogIn, LogOut, MessageSquareText, RefreshCcw, Contrast, Pause, UserPlus, UserRound, X, History } from "lucide-react";
 import Image from "next/image";
 import type { AccountState } from "../app/account-data";
 import { lineWatchAppVersionLabel } from "../app/app-build";
@@ -25,6 +25,7 @@ type Props = {
   onOpenAlertHistory: () => void;
   onOpenAnalytics: () => void;
   onOpenFeedback: () => void;
+  onOpenPrivacyAcknowledgements: () => void;
   notificationStatusLabel: string;
 };
 
@@ -45,17 +46,18 @@ export function MobileMoreSheet({
   onOpenAlertHistory,
   onOpenAnalytics,
   onOpenFeedback,
+  onOpenPrivacyAcknowledgements,
   notificationStatusLabel,
 }: Props) {
   const canResetLocalAppCache = process.env.NODE_ENV !== "production";
 
   return (
-    <section className="mobile-more-sheet panel" aria-label="More LineWatch TO options">
+    <section className="mobile-more-sheet panel" aria-label="More LineWatchTO options">
       <div className="mobile-sheet-heading">
         <div className="mobile-more-brand">
           <Image src="/assets/linewatch/logo.svg" alt="" width={28} height={28} aria-hidden="true" />
           <span>
-            <p className="mobile-sheet-kicker">LineWatch TO</p>
+            <p className="mobile-sheet-kicker">LineWatchTO</p>
             <h2>More</h2>
             <p className="mobile-more-build-label" aria-label={`App version ${lineWatchAppVersionLabel}`}>
               {lineWatchAppVersionLabel}
@@ -156,13 +158,17 @@ export function MobileMoreSheet({
 
         <div className="mobile-more-section">
           <h3>Tools</h3>
-          <button type="button" className="mobile-more-row" onClick={onOpenFeedback}>
-            <MessageSquareText size={18} className="text-slate-500 dark:text-slate-400" />
-            Suggest Improvements
-          </button>
           <button type="button" className="mobile-more-row" onClick={onOpenAnalytics}>
             <BarChart3 size={18} className="text-slate-500 dark:text-slate-400" />
             Reliability Analytics
+          </button>
+          <button type="button" className="mobile-more-row" onClick={onOpenFeedback}>
+            <MessageSquareText size={18} className="text-slate-500 dark:text-slate-400" />
+            Leave Feedback / Support
+          </button>
+          <button type="button" className="mobile-more-row" onClick={onOpenPrivacyAcknowledgements}>
+            <FileText size={18} className="text-slate-500 dark:text-slate-400" />
+            Privacy & Acknowledgements
           </button>
           <LogsDropdown isMobileMore={true} />
           {canResetLocalAppCache ? (

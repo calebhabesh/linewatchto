@@ -129,7 +129,7 @@ test("requires a first-visit personal project disclaimer acknowledgement", async
 
   const disclaimer = disclaimerPage.getByRole("dialog", { name: "Unofficial dashboard" });
   await expect(disclaimer).toBeVisible();
-  await expect(disclaimer).toContainText("LineWatch TO is a personal project that is not affiliated with, endorsed by, or operated by the TTC.");
+  await expect(disclaimer).toContainText("LineWatchTO is a personal project that is not affiliated with, endorsed by, or operated by the TTC.");
   await expect(disclaimer).toContainText("I am not affiliated with the TTC in any capacity.");
   await expect(disclaimer).toContainText("Service alerts are fetched from TTC's public Live Alerts endpoint when live polling is enabled, with local fixture data used for offline demos and fallback mode.");
 
@@ -245,9 +245,9 @@ test("opens the site guide and blocks invalid account signup input", async ({ pa
   await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
 
   await page.getByRole("button", { name: "Open site guide" }).click();
-  const guide = page.getByRole("dialog", { name: "LineWatch TO site guide" });
+  const guide = page.getByRole("dialog", { name: "LineWatchTO site guide" });
   await expect(guide).toBeVisible();
-  await expect(guide).toContainText("What LineWatch TO Does");
+  await expect(guide).toContainText("What LineWatchTO Does");
   await expect(guide).toContainText("Both Ways");
   await expect(guide).toContainText("Reduced Speed Zone");
   await expect(guide).toContainText("Shuttle Badge");
@@ -261,11 +261,11 @@ test("opens the site guide and blocks invalid account signup input", async ({ pa
     await page.getByRole("button", { name: "Toggle menu" }).click();
     await page.getByRole("menuitem", { name: "Create Account" }).click();
   }
-  const choiceDialog = page.getByRole("dialog", { name: "Choose how to create a LineWatch TO account" });
+  const choiceDialog = page.getByRole("dialog", { name: "Choose how to create a LineWatchTO account" });
   await expect(choiceDialog).toBeVisible();
   await choiceDialog.getByRole("button", { name: "Continue With Email" }).click();
 
-  const dialog = page.getByRole("dialog", { name: "Create LineWatch TO account" });
+  const dialog = page.getByRole("dialog", { name: "Create LineWatchTO account" });
   await expect(dialog).toBeVisible();
 
   await dialog.getByLabel("Email").fill("rider@localhost");
@@ -497,8 +497,8 @@ test("station detail shows accessibility facilities and active outage warning", 
     return { cardWidth: cardRect.width, innerWidth };
   });
   expect(lineDetailWidths.cardWidth).toBeGreaterThanOrEqual(lineDetailWidths.innerWidth - 2);
-  await expect(page.getByAltText("Wheelchair accessible", { exact: true })).toBeVisible();
-  await expect(page.getByAltText("Elevator available, outage reported", { exact: true })).toBeVisible();
+  await expect(stationPanel.getByAltText("Wheelchair accessible", { exact: true })).toBeVisible();
+  await expect(stationPanel.getByAltText("Elevator available, outage reported", { exact: true })).toBeVisible();
   await expect(page.locator('[data-facility-warning="elevator"]')).toBeVisible();
   await expect(page.getByRole("heading", { name: "Arrivals" })).toBeVisible();
   await expect(page.getByText("TTC scheduled service")).toBeVisible();
@@ -948,22 +948,22 @@ test("requests and confirms a password reset from the sign-in dialog", async ({ 
     await page.getByRole("menuitem", { name: "Sign In" }).click();
   }
 
-  const choiceDialog = page.getByRole("dialog", { name: "Choose how to sign in to LineWatch TO" });
+  const choiceDialog = page.getByRole("dialog", { name: "Choose how to sign in to LineWatchTO" });
   await expect(choiceDialog).toBeVisible();
   await choiceDialog.getByRole("button", { name: "Continue With Email" }).click();
 
-  const signInDialog = page.getByRole("dialog", { name: "Sign in to LineWatch TO" });
+  const signInDialog = page.getByRole("dialog", { name: "Sign in to LineWatchTO" });
   await expect(signInDialog).toBeVisible();
   await signInDialog.getByRole("button", { name: "Forgot Password?" }).click();
 
-  const resetDialog = page.getByRole("dialog", { name: "Reset LineWatch TO password" });
+  const resetDialog = page.getByRole("dialog", { name: "Reset LineWatchTO password" });
   await expect(resetDialog).toBeVisible();
   await resetDialog.getByLabel("Email").fill("rider@example.com");
   await resetDialog.getByRole("button", { name: "Send Reset Link" }).click();
   await expect(resetDialog.getByRole("status")).toContainText("If an account exists");
   await resetDialog.getByRole("button", { name: "Open Local Reset Form" }).click();
 
-  const confirmDialog = page.getByRole("dialog", { name: "Choose a new LineWatch TO password" });
+  const confirmDialog = page.getByRole("dialog", { name: "Choose a new LineWatchTO password" });
   await expect(confirmDialog).toBeVisible();
   await confirmDialog.getByLabel("New password").fill("new correct horse 2");
   await confirmDialog.getByLabel("Confirm password").fill("new correct horse 2");
@@ -980,7 +980,7 @@ test("opens emailed password reset links directly", async ({ page, request, isMo
   await setStubMode(request, "seeded");
   await page.goto("/reset-password?token=smoke-reset-token");
 
-  const confirmDialog = page.getByRole("dialog", { name: "Choose a new LineWatch TO password" });
+  const confirmDialog = page.getByRole("dialog", { name: "Choose a new LineWatchTO password" });
   await expect(confirmDialog).toBeVisible();
   await expect(confirmDialog.getByText("Enter a new password to finish recovery.")).toBeVisible();
   await expect(confirmDialog.getByLabel("Reset token")).toHaveCount(0);
@@ -1055,7 +1055,7 @@ test("manages push notification preferences on mobile", async ({ page, request, 
   await page.getByRole("button", { name: "Demo Account" }).click();
 
   await page.getByRole("button", { name: "More", exact: true }).click();
-  await expect(page.getByLabel("More LineWatch TO options").getByText("Demo Rider")).toBeVisible();
+  await expect(page.getByLabel("More LineWatchTO options").getByText("Demo Rider")).toBeVisible();
   await page.getByRole("button", { name: "Notifications" }).click();
 
   await expect(page.getByRole("heading", { name: "Notifications", exact: true })).toBeVisible();

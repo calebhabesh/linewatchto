@@ -9,7 +9,7 @@ PORT="${PORT:-3001}"
 LINEWATCH_BACKEND_URL="${LINEWATCH_BACKEND_URL:-http://localhost:8082}"
 NEXT_DIST_DIR="${NEXT_DIST_DIR:-.next-scenario}"
 
-echo "Starting LineWatch TO alert scenario frontend ($SCENARIO) on port $PORT pointing to backend at $LINEWATCH_BACKEND_URL using build dir $NEXT_DIST_DIR..."
+echo "Starting LineWatchTO alert scenario frontend ($SCENARIO) on port $PORT pointing to backend at $LINEWATCH_BACKEND_URL using build dir $NEXT_DIST_DIR..."
 PORT="$PORT" \
   LINEWATCH_BACKEND_URL="$LINEWATCH_BACKEND_URL" \
   BACKEND_URL="$LINEWATCH_BACKEND_URL" \

@@ -1617,7 +1617,7 @@ function toFallbackStationDetail(station: StationSummary): StationDetail {
       message: "Schedule active",
       reason: "No active service impacts linked to this station.",
       severity: "normal",
-      source: "LineWatch TO",
+      source: "LineWatchTO",
     },
     dataMode: "seeded-demo",
     disclaimer: "Station details use fallback demo data. Arrivals are demo placeholders, not live TTC predictions.",
@@ -1668,3 +1668,12 @@ export async function getStationDetail(
     return { source: "fallback", data: fallbackStationDetails[id] ?? null };
   }
 }
+
+export function isStationWheelchairAccessible(stationId: string, lineIds: string[]): boolean {
+  return lineIds.some((lineId) => !FALLBACK_NOT_WHEELCHAIR_ACCESSIBLE.has(`${stationId}:${lineId}`));
+}
+
+export function isStationElevatorAccessible(stationId: string, lineIds: string[]): boolean {
+  return lineIds.some((lineId) => !FALLBACK_WITHOUT_ELEVATOR.has(`${stationId}:${lineId}`));
+}
+

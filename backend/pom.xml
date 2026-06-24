@@ -15,7 +15,7 @@
     <artifactId>linewatch-backend</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <name>linewatch-backend</name>
-    <description>Backend API for LineWatch TO, an unofficial TTC reliability dashboard.</description>
+    <description>Backend API for LineWatchTO, an unofficial TTC reliability dashboard.</description>
 
     <properties>
         <java.version>21</java.version>

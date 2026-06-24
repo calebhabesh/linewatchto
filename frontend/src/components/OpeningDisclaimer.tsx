@@ -61,7 +61,7 @@ export function OpeningDisclaimer() {
           <span>Unofficial dashboard</span>
         </div>
         <p id="opening-disclaimer-copy">
-          LineWatch TO is a <strong className="opening-disclaimer-highlight">personal project</strong> that is <strong className="opening-disclaimer-highlight">not affiliated with, endorsed by, or operated by the TTC</strong>. I am not affiliated with the TTC in any capacity. Service alerts are fetched from TTC&apos;s public Live Alerts endpoint when live polling is enabled, with local fixture data used for offline demos and fallback mode.
+          LineWatchTO is a <strong className="opening-disclaimer-highlight">personal project</strong> that is <strong className="opening-disclaimer-highlight">not affiliated with, endorsed by, or operated by the TTC</strong>. I am not affiliated with the TTC in any capacity. Service alerts are fetched from TTC&apos;s public Live Alerts endpoint when live polling is enabled, with local fixture data used for offline demos and fallback mode.
         </p>
         <button type="button" onClick={handleAcknowledge}>
           I Understand

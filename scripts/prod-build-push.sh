@@ -54,10 +54,11 @@ build_and_push backend "$ROOT_DIR/backend/Dockerfile" "$ROOT_DIR"
 build_and_push postgres "$ROOT_DIR/infra/postgres/Dockerfile" "$ROOT_DIR"
 build_and_push frontend "$ROOT_DIR/frontend/Dockerfile" "$ROOT_DIR/frontend" \
   --build-arg "NEXT_PUBLIC_LINEWATCH_APP_VERSION=0.1.0" \
-  --build-arg "NEXT_PUBLIC_LINEWATCH_BUILD_LABEL=prod-$SHORT_SHA"
+  --build-arg "NEXT_PUBLIC_LINEWATCH_BUILD_LABEL=prod-$SHORT_SHA" \
+  --build-arg "NEXT_PUBLIC_LINEWATCH_SUPPORT_URL=${NEXT_PUBLIC_LINEWATCH_SUPPORT_URL:-}"
 
 cat <<EOF
-Published LineWatch TO release:
+Published LineWatchTO release:
   $REGISTRY/linewatch-frontend:$SHA
   $REGISTRY/linewatch-backend:$SHA
   $REGISTRY/linewatch-postgres:$SHA

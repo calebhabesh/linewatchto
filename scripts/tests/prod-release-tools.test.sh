@@ -371,7 +371,7 @@ test_deploy_promotes_release_after_healthy_start() {
   assert_equals "$(linewatch_read_release_value "$release_env" LINEWATCH_IMAGE_TAG)" "$new_sha"
   assert_contains "$(cat "$log")" "pull postgres backend frontend"
   assert_contains "$(cat "$log")" "up -d --no-build --remove-orphans --wait"
-  assert_contains "$output" "Deployed LineWatch TO release $new_sha."
+  assert_contains "$output" "Deployed LineWatchTO release $new_sha."
 }
 
 test_deploy_keeps_previous_release_after_failed_start() {

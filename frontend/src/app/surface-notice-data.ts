@@ -56,7 +56,7 @@ export type SurfaceNoticeFetchOptions = {
 export const fallbackSurfaceNotices: SurfaceNoticeResponse = {
   generatedAt: new Date().toISOString(),
   fresh: false,
-  source: "LineWatch TO fixture",
+  source: "LineWatchTO fixture",
   categories: [],
   notices: [],
 };

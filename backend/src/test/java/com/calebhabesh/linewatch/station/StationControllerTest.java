@@ -126,7 +126,7 @@ class StationControllerTest {
                     "Schedule active",
                     "No active service impacts linked to this station.",
                     "normal",
-                    "LineWatch TO"
+                    "LineWatchTO"
                 ),
                 "seeded-demo",
                 "Station details use seeded backend data. Arrivals are demo placeholders, not live TTC predictions."

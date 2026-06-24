@@ -29,7 +29,7 @@ describe("alert scenario scripts", () => {
 
   it("labels the local alert scenario browser tab with the scenario name", () => {
     assert.match(scenarioFrontendScript, /SCENARIO="\$\{LINEWATCH_ALERT_SCENARIO:-\$\{1:-all-alert-types\}\}"/);
-    assert.match(scenarioFrontendScript, /Starting LineWatch TO alert scenario frontend/);
+    assert.match(scenarioFrontendScript, /Starting LineWatchTO alert scenario frontend/);
     assert.match(
       scenarioFrontendScript,
       /NEXT_PUBLIC_LINEWATCH_ENVIRONMENT_LABEL="\$\{NEXT_PUBLIC_LINEWATCH_ENVIRONMENT_LABEL:-Dev: \$SCENARIO\}"/,
@@ -41,7 +41,7 @@ describe("alert scenario scripts", () => {
 
     const liveFrontendScript = readFileSync(liveFrontendScriptUrl, "utf8");
 
-    assert.match(liveFrontendScript, /Starting LineWatch TO live dev frontend/);
+    assert.match(liveFrontendScript, /Starting LineWatchTO live dev frontend/);
     assert.match(liveFrontendScript, /NEXT_PUBLIC_LINEWATCH_ENVIRONMENT_LABEL="\$\{NEXT_PUBLIC_LINEWATCH_ENVIRONMENT_LABEL:-Dev\}"/);
     assert.match(liveFrontendScript, /npm --prefix "\$REPO_ROOT\/frontend" run dev/);
   });

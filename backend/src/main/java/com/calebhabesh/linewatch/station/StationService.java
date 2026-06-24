@@ -206,7 +206,7 @@ public class StationService {
                 "Schedule active",
                 "No active service impacts linked to this station.",
                 "normal",
-                "LineWatch TO"
+                "LineWatchTO"
             ));
     }
 

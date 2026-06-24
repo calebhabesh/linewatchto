@@ -17,6 +17,7 @@ import { NotificationSettingsPanel } from "./NotificationSettingsPanel";
 import { ReliabilityPanel } from "./ReliabilityPanel";
 import { AlertHistoryPanel } from "./AlertHistoryPanel";
 import { FeedbackPanel } from "./FeedbackPanel";
+import { PrivacyAcknowledgementsPanel } from "./PrivacyAcknowledgementsPanel";
 import { FloatingPanelShell } from "./FloatingPanelShell";
 import { MobileBottomNav, type MobileNavKey } from "./MobileBottomNav";
 import { MobileStatusPeek } from "./MobileStatusPeek";
@@ -50,7 +51,7 @@ import { StationDetailPanel } from "./StationDetailPanel";
 import { useTorontoClock } from "../hooks/useTorontoClock";
 import { useMobilePerformanceMode } from "../hooks/useMobilePerformanceMode";
 import { usePushNotificationSettings } from "../hooks/usePushNotificationSettings";
-import { Menu, X, Map as MapIcon, AlertTriangle, Calendar, Navigation, ShieldCheck, BarChart3, Bell, Construction, Search, LogIn, LogOut, UserPlus, UserRound, Sun, Moon, Bus, Mail, Contrast, Pause, History, MessageSquareText } from "lucide-react";
+import { Menu, X, Map as MapIcon, AlertTriangle, Calendar, Navigation, ShieldCheck, BarChart3, Bell, Construction, Search, LogIn, LogOut, UserPlus, UserRound, Sun, Moon, Bus, Mail, Contrast, Pause, History, MessageSquareText, FileText } from "lucide-react";
 import { SubwayClosedScreen } from "./SubwayClosedScreen";
 import { useSubwayOperatingState } from "../hooks/useSubwayOperatingState";
 import { StationSearchPanel } from "./StationSearchPanel";
@@ -82,7 +83,7 @@ import { GoogleSignInButton } from "./GoogleSignInButton";
 import { normalizeAccountEmail, validateAccountCredentials } from "../app/account-validation";
 
 
-type ActiveView = "map" | "menu" | "search" | "status" | "alerts" | "delays" | "reduced-speed-zones" | "closures" | "commutes" | "notifications" | "analytics" | "more" | "accessibility-outages" | "surface-notices" | "alert-history" | "feedback";
+type ActiveView = "map" | "menu" | "search" | "status" | "alerts" | "delays" | "reduced-speed-zones" | "closures" | "commutes" | "notifications" | "analytics" | "more" | "accessibility-outages" | "surface-notices" | "alert-history" | "feedback" | "privacy-acknowledgements";
 type AccountDialogMode = "auth-choice" | "login" | "register" | "forgot-password" | "reset-password" | "link-google";
 type AccountEntryIntent = "login" | "register";
 
@@ -415,18 +416,18 @@ export function LineWatchShell({
   const accountDialogAriaLabel = () => {
     switch (accountDialogMode) {
       case "auth-choice":
-        return accountEntryIntent === "register" ? "Choose how to create a LineWatch TO account" : "Choose how to sign in to LineWatch TO";
+        return accountEntryIntent === "register" ? "Choose how to create a LineWatchTO account" : "Choose how to sign in to LineWatchTO";
       case "link-google":
-        return "Link Google sign-in to LineWatch TO account";
+        return "Link Google sign-in to LineWatchTO account";
       case "register":
-        return "Create LineWatch TO account";
+        return "Create LineWatchTO account";
       case "forgot-password":
-        return "Reset LineWatch TO password";
+        return "Reset LineWatchTO password";
       case "reset-password":
-        return "Choose a new LineWatch TO password";
+        return "Choose a new LineWatchTO password";
       case "login":
       default:
-        return "Sign in to LineWatch TO";
+        return "Sign in to LineWatchTO";
     }
   };
 
@@ -853,7 +854,7 @@ export function LineWatchShell({
     }
     if (activeView === "search") return "search";
     if (activeView === "commutes") return "commutes";
-    if (activeView === "notifications" || activeView === "more" || activeView === "analytics" || activeView === "alert-history" || activeView === "feedback") return "more";
+    if (activeView === "notifications" || activeView === "more" || activeView === "analytics" || activeView === "alert-history" || activeView === "feedback" || activeView === "privacy-acknowledgements") return "more";
     return "map";
   }, [activeView]);
 
@@ -989,7 +990,8 @@ export function LineWatchShell({
     activeView === "accessibility-outages" ||
     activeView === "surface-notices" ||
     activeView === "alert-history" ||
-    activeView === "feedback"
+    activeView === "feedback" ||
+    activeView === "privacy-acknowledgements"
   );
 
   const getMobileSheetLabel = () => {
@@ -1004,7 +1006,8 @@ export function LineWatchShell({
       case "more": return "More options";
       case "analytics": return "Reliability analytics";
       case "alert-history": return "Alert History";
-      case "feedback": return "Suggest Improvements";
+      case "feedback": return "Leave Feedback / Support";
+      case "privacy-acknowledgements": return "Privacy & Acknowledgements";
       case "accessibility-outages": return "Accessibility outages";
       case "surface-notices": return "Streetcar & Bus Notices";
       default: return "";
@@ -1149,6 +1152,7 @@ export function LineWatchShell({
             onOpenAnalytics={() => setActiveView("analytics")}
             onOpenAlertHistory={() => setActiveView("alert-history")}
             onOpenFeedback={() => setActiveView("feedback")}
+            onOpenPrivacyAcknowledgements={() => setActiveView("privacy-acknowledgements")}
             notificationStatusLabel={notificationStatusLabel}
           />
         );
@@ -1157,6 +1161,13 @@ export function LineWatchShell({
           <FeedbackPanel
             dataSource={displayData.dataSource}
             supportUrl={supportUrl}
+            onBack={() => setActiveView(isMobile ? "more" : "menu")}
+            onClose={() => { setActiveView("map"); setSelection(null); }}
+          />
+        );
+      case "privacy-acknowledgements":
+        return (
+          <PrivacyAcknowledgementsPanel
             onBack={() => setActiveView(isMobile ? "more" : "menu")}
             onClose={() => { setActiveView("map"); setSelection(null); }}
           />
@@ -1316,14 +1327,22 @@ export function LineWatchShell({
           onOpenAnalytics={() => setActiveView("analytics")}
           onOpenAlertHistory={() => setActiveView("alert-history")}
           onOpenFeedback={() => setActiveView("feedback")}
+          onOpenPrivacyAcknowledgements={() => setActiveView("privacy-acknowledgements")}
           notificationStatusLabel={notificationStatusLabel}
         />
       </FloatingPanelShell>
     ) : activeView === "feedback" ? (
-      <FloatingPanelShell panel="feedback" mobileSheetLabel="Suggest Improvements">
+      <FloatingPanelShell panel="feedback" mobileSheetLabel="Leave Feedback / Support">
         <FeedbackPanel
           dataSource={displayData.dataSource}
           supportUrl={supportUrl}
+          onBack={() => setActiveView("menu")}
+          onClose={() => { setActiveView("map"); setSelection(null); }}
+        />
+      </FloatingPanelShell>
+    ) : activeView === "privacy-acknowledgements" ? (
+      <FloatingPanelShell panel="privacy-acknowledgements" mobileSheetLabel="Privacy & Acknowledgements">
+        <PrivacyAcknowledgementsPanel
           onBack={() => setActiveView("menu")}
           onClose={() => { setActiveView("map"); setSelection(null); }}
         />
@@ -1472,9 +1491,9 @@ export function LineWatchShell({
                {/* Branding */}
                 <div className="flex items-center gap-3 p-4 border-b border-black/10 dark:border-white/10 bg-white/40 dark:bg-black/20">
                   <div className="flex items-center justify-center shrink-0 w-8 h-8 rounded-lg shadow-sm border border-black/10 dark:border-white/10 bg-white dark:bg-white/10 p-1">
-                     <Image src="/assets/linewatch/logo.svg" alt="LineWatch TO Logo" width={24} height={24} className="drop-shadow-sm dark:brightness-200" />
+                     <Image src="/assets/linewatch/logo.svg" alt="LineWatchTO Logo" width={24} height={24} className="drop-shadow-sm dark:brightness-200" />
                   </div>
-                  <strong className="text-slate-900 dark:text-white font-bold tracking-wide">LineWatch TO</strong>
+                  <strong className="text-slate-900 dark:text-white font-bold tracking-wide">LineWatchTO</strong>
                 </div>
 
                 <div className="account-menu-block border-b border-black/10 dark:border-white/10 p-2">
@@ -1748,20 +1767,29 @@ export function LineWatchShell({
                  <button
                    ref={registerMenuAction(actionIndex++)}
                    role="menuitem"
-                   onClick={() => setActiveView("feedback")}
-                   aria-current={activeView === "feedback" ? "page" : undefined}
-                   className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
-                 >
-                   <MessageSquareText size={18} className="text-slate-500 dark:text-slate-400" /> Suggest Improvements
-                 </button>
-                 <button
-                   ref={registerMenuAction(actionIndex++)}
-                   role="menuitem"
                    onClick={() => setActiveView("analytics")}
                    aria-current={activeView === "analytics" ? "page" : undefined}
                    className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
                  >
                    <BarChart3 size={18} className="text-slate-500 dark:text-slate-400" /> Reliability Analytics
+                 </button>
+                 <button
+                   ref={registerMenuAction(actionIndex++)}
+                   role="menuitem"
+                   onClick={() => setActiveView("feedback")}
+                   aria-current={activeView === "feedback" ? "page" : undefined}
+                   className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
+                 >
+                   <MessageSquareText size={18} className="text-slate-500 dark:text-slate-400" /> Leave Feedback / Support
+                 </button>
+                 <button
+                   ref={registerMenuAction(actionIndex++)}
+                   role="menuitem"
+                   onClick={() => setActiveView("privacy-acknowledgements")}
+                   aria-current={activeView === "privacy-acknowledgements" ? "page" : undefined}
+                   className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
+                 >
+                   <FileText size={18} className="text-slate-500 dark:text-slate-400" /> Privacy & Acknowledgements
                  </button>
                </div>
 
@@ -1864,7 +1892,7 @@ export function LineWatchShell({
         <div className="hidden sm:flex absolute top-6 left-1/2 -translate-x-1/2 z-20 pointer-events-auto items-center">
           <div className="bg-white dark:bg-[#0a0c10] border border-black/10 dark:border-white/10 shadow-lg rounded-2xl p-1.5 flex items-center pr-4 transition-transform hover:scale-105 h-[54px]">
             <div className="flex items-center justify-center shrink-0 w-10 h-10 rounded-xl shadow-sm border border-black/10 dark:border-white/10 bg-slate-50 dark:bg-white/10 p-1 ml-0.5 mr-3">
-               <Image src="/assets/linewatch/logo.svg" alt="LineWatch TO Logo" width={32} height={32} className="drop-shadow-sm dark:brightness-200" />
+               <Image src="/assets/linewatch/logo.svg" alt="LineWatchTO Logo" width={32} height={32} className="drop-shadow-sm dark:brightness-200" />
             </div>
             <span className="h-6 w-px bg-slate-300 dark:bg-white/10 mr-3" />
             <div className="flex items-center mr-3 min-w-[90px]">

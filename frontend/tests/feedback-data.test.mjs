@@ -84,7 +84,7 @@ describe("feedback data adapter", () => {
 
     assert.match(url, /^mailto:feedback@linewatchto\.ca\?/);
     const parsed = new URL(url);
-    assert.equal(parsed.searchParams.get("subject"), "LineWatch TO feedback");
+    assert.equal(parsed.searchParams.get("subject"), "LineWatchTO feedback");
     assert.match(parsed.searchParams.get("body"), /Could you make Line 2 delays more visible\?/);
     assert.match(parsed.searchParams.get("body"), /Page: \/\?panel=delays/);
     assert.match(parsed.searchParams.get("body"), /App version: 0\.1\.0-dev/);

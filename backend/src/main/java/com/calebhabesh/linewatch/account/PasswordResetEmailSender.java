@@ -81,7 +81,7 @@ public class PasswordResetEmailSender {
             );
             helper.setFrom(fromAddress);
             helper.setTo(recipientEmail);
-            helper.setSubject("Reset your LineWatch TO password");
+            helper.setSubject("Reset your LineWatchTO password");
             helper.setText(textBody(resetUrl, expiresText), htmlBody(resetUrl, expiresText, includeLogo));
             if (includeLogo) {
                 helper.addInline(LOGO_CONTENT_ID, logoResource, "image/png");
@@ -94,7 +94,7 @@ public class PasswordResetEmailSender {
 
     private String textBody(String resetUrl, String expiresText) {
         return """
-            We received a request to reset your LineWatch TO password.
+            We received a request to reset your LineWatchTO password.
 
             Open this link to choose a new password:
             %s
@@ -110,7 +110,7 @@ public class PasswordResetEmailSender {
         String safeExpiresText = HtmlUtils.htmlEscape(expiresText);
         String logoHtml = includeLogo
             ? """
-                <img src="cid:%s" width="96" height="96" alt="LineWatch TO" style="display:block;width:96px;height:96px;margin:0 auto 20px auto;border:0;" />
+                <img src="cid:%s" width="96" height="96" alt="LineWatchTO" style="display:block;width:96px;height:96px;margin:0 auto 20px auto;border:0;" />
                 """.formatted(LOGO_CONTENT_ID)
             : "";
 
@@ -122,9 +122,9 @@ public class PasswordResetEmailSender {
                   <tr>
                     <td style="padding:32px 28px;text-align:left;">
                       %s
-                      <p style="margin:0 0 8px 0;color:#8ea2bb;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;">LineWatch TO</p>
+                      <p style="margin:0 0 8px 0;color:#8ea2bb;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;">LineWatchTO</p>
                       <h1 style="margin:0 0 16px 0;color:#ffffff;font-size:24px;line-height:1.25;">Reset your password</h1>
-                      <p style="margin:0 0 22px 0;color:#cbd5e1;font-size:15px;line-height:1.6;">We received a request to reset your LineWatch TO password.</p>
+                      <p style="margin:0 0 22px 0;color:#cbd5e1;font-size:15px;line-height:1.6;">We received a request to reset your LineWatchTO password.</p>
                       <p style="margin:0 0 26px 0;">
                         <a href="%s" style="display:inline-block;background:#f8c302;color:#0b1020;text-decoration:none;font-size:14px;font-weight:700;padding:13px 18px;border-radius:6px;">Reset password</a>
                       </p>

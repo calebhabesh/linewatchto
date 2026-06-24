@@ -7,7 +7,7 @@ REPO_ROOT=$(CDPATH= cd -- "$SCRIPT_DIR/.." && pwd)
 PORT="${PORT:-3000}"
 LINEWATCH_BACKEND_URL="${LINEWATCH_BACKEND_URL:-http://localhost:8080}"
 
-echo "Starting LineWatch TO live dev frontend on port $PORT pointing to backend at $LINEWATCH_BACKEND_URL..."
+echo "Starting LineWatchTO live dev frontend on port $PORT pointing to backend at $LINEWATCH_BACKEND_URL..."
 PORT="$PORT" \
   LINEWATCH_BACKEND_URL="$LINEWATCH_BACKEND_URL" \
   BACKEND_URL="$LINEWATCH_BACKEND_URL" \

@@ -50,7 +50,7 @@ describe("mobile bottom sheet UX", () => {
   });
 
   it("moves secondary mobile utilities into More", () => {
-    assert.match(moreSheetSource, /LineWatch TO/);
+    assert.match(moreSheetSource, /LineWatchTO/);
     assert.match(moreSheetSource, /Sign In/);
     assert.match(moreSheetSource, /Create Account/);
     assert.match(moreSheetSource, /Demo Account/);

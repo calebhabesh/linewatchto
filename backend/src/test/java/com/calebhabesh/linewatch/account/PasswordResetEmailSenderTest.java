@@ -50,13 +50,13 @@ class PasswordResetEmailSenderTest {
         verify(mailSender).send(messageCaptor.capture());
         MimeMessage message = messageCaptor.getValue();
         assertThat(message.getFrom()[0].toString()).isEqualTo("reset@linewatch.local");
-        assertThat(message.getSubject()).isEqualTo("Reset your LineWatch TO password");
+        assertThat(message.getSubject()).isEqualTo("Reset your LineWatchTO password");
         assertThat(message.getAllRecipients()[0].toString()).isEqualTo("rider@example.com");
 
         List<String> bodies = new ArrayList<>();
         collectTextParts(message.getContent(), bodies);
         assertThat(bodies).anySatisfy(body -> {
-            assertThat(body).contains("We received a request to reset your LineWatch TO password.");
+            assertThat(body).contains("We received a request to reset your LineWatchTO password.");
             assertThat(body).contains("https://linewatch.example/reset-password?token=reset-token");
             assertThat(body).contains("2026-06-05T15:00:00Z");
         });

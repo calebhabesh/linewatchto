@@ -220,8 +220,8 @@ async function showPendingPushNotification() {
 }
 
 async function showFallbackPushNotification() {
-  await self.registration.showNotification("⚠️ LineWatch TO Service Alert", {
-    body: "Open LineWatch TO to view the latest service update.",
+  await self.registration.showNotification("⚠️ LineWatchTO Service Alert", {
+    body: "Open LineWatchTO to view the latest service update.",
     tag: FALLBACK_PUSH_TAG,
     icon: NOTIFICATION_ICON_URL,
     badge: NOTIFICATION_BADGE_URL,

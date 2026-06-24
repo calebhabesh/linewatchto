@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="robots" content="noindex">
-    <title>LineWatch TO App Update</title>
+    <title>LineWatchTO App Update</title>
     <style>
       :root {
         background: #0d0808;
@@ -259,7 +259,7 @@
       </div>
       <section class="panel" aria-labelledby="update-title">
         <p class="eyebrow">App update</p>
-        <h1 id="update-title">LineWatch TO App Update</h1>
+        <h1 id="update-title">LineWatchTO App Update</h1>
         <p class="summary">
           Updating the app shell. You will return to the dashboard in a moment.
         </p>
@@ -319,7 +319,7 @@
 
       function setProgress(phase, percent) {
         const boundedPercent = Math.max(0, Math.min(100, percent));
-        phaseLabel.textContent = phases[phase] || "Updating LineWatch TO";
+        phaseLabel.textContent = phases[phase] || "Updating LineWatchTO";
         progressPercent.textContent = boundedPercent + "%";
         progressTrack.setAttribute("aria-valuenow", String(boundedPercent));
         progressBar.style.transform = "scaleX(" + (boundedPercent / 100) + ")";

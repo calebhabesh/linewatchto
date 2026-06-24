@@ -226,13 +226,13 @@ export function SiteGuideDropdown({ onOpenChange }: { onOpenChange?: (open: bool
           id={panelId}
           className="site-guide-panel"
           role="dialog"
-          aria-label="LineWatch TO site guide"
+          aria-label="LineWatchTO site guide"
         >
           <div className="site-guide-header">
             <div className="site-guide-title">
               <Info size={18} aria-hidden="true" />
               <div>
-                <h2>LineWatch TO Guide</h2>
+                <h2>LineWatchTO Guide</h2>
                 <p>Unofficial TTC subway and LRT reliability dashboard.</p>
               </div>
             </div>
@@ -253,18 +253,18 @@ export function SiteGuideDropdown({ onOpenChange }: { onOpenChange?: (open: bool
                   className="dark:invert high-contrast:invert shrink-0"
                 />
               }
-              title="What LineWatch TO Does"
+              title="What LineWatchTO Does"
             >
               <p>
-                LineWatch TO shows subway/LRT alerts, delays, reduced speed zones, planned closures, station details, and saved commute impacts. It displays live backend updates when ingestion is running, and falls back to demo fixtures otherwise.
+                LineWatchTO shows subway/LRT alerts, delays, reduced speed zones, planned closures, station details, and saved commute impacts. It displays live backend updates when ingestion is running, and falls back to demo fixtures otherwise.
               </p>
             </GuideSection>
 
             <hr className="site-guide-divider" />
 
-            <GuideSection icon={<Download size={15} />} title="Install LineWatch TO as an App">
+            <GuideSection icon={<Download size={15} />} title="Install LineWatchTO as an App">
               <p>
-                For the best mobile experience, add LineWatch TO to your home screen so it opens like an app.
+                For the best mobile experience, add LineWatchTO to your home screen so it opens like an app.
               </p>
               <div className="site-guide-install-options">
                 <MobileInstallGuide
@@ -273,7 +273,7 @@ export function SiteGuideDropdown({ onOpenChange }: { onOpenChange?: (open: bool
                   steps={[
                     {
                       icon: <Smartphone size={14} />,
-                      label: "Open LineWatch TO in Safari",
+                      label: "Open LineWatchTO in Safari",
                       text: "Use Safari on your iPhone.",
                     },
                     {
@@ -294,7 +294,7 @@ export function SiteGuideDropdown({ onOpenChange }: { onOpenChange?: (open: bool
                   steps={[
                     {
                       icon: <Smartphone size={14} />,
-                      label: "Open LineWatch TO in Chrome",
+                      label: "Open LineWatchTO in Chrome",
                       text: "Use Chrome on your Android phone.",
                     },
                     {
@@ -430,7 +430,7 @@ export function SiteGuideDropdown({ onOpenChange }: { onOpenChange?: (open: bool
             <div className="site-guide-note">
               <AlertTriangle size={14} aria-hidden="true" />
               <p>
-                LineWatch TO is a personal project, not an official TTC app. Always verify critical travel decisions with TTC sources.
+                LineWatchTO is a personal project, not an official TTC app. Always verify critical travel decisions with TTC sources.
               </p>
             </div>
           </div>

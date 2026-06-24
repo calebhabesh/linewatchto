@@ -10,7 +10,11 @@ import {
   STATION_SEARCH_LINES,
   type StationSearchLine,
 } from "../app/station-search";
-import type { StationSummary } from "../app/station-data";
+import {
+  type StationSummary,
+  isStationWheelchairAccessible,
+  isStationElevatorAccessible,
+} from "../app/station-data";
 
 type Props = {
   open: boolean;
@@ -118,6 +122,13 @@ function StationButton({
     .map((lineId) => lineById(lineId))
     .filter((line): line is StationSearchLine => Boolean(line));
 
+  const isWheelchair = isStationWheelchairAccessible(station.id, station.lineIds);
+  const hasElevator = isStationElevatorAccessible(station.id, station.lineIds);
+
+  let accessibilityLabel = "";
+  if (isWheelchair) accessibilityLabel += " (Wheelchair Accessible)";
+  if (hasElevator) accessibilityLabel += " (Elevator Access)";
+
   return (
     <button
       ref={buttonRef}
@@ -126,10 +137,34 @@ function StationButton({
       className={`station-search-station ${selected ? "selected" : ""}`}
       onClick={() => onSelect(station.id)}
       aria-current={selected ? "true" : undefined}
-      aria-label={`${station.name} station search result`}
+      aria-label={`${station.name} station search result${accessibilityLabel}`}
     >
       <span className="min-w-0">
-        <span className="station-search-station-name">{station.name}</span>
+        <span className="flex items-center gap-1.5 flex-wrap">
+          <span className="station-search-station-name !inline-block">{station.name}</span>
+          {isWheelchair && (
+            <span className="inline-flex items-center justify-center shrink-0" title="Wheelchair accessible">
+              <Image
+                src="/assets/linewatch/wheel-chair-symbol.svg"
+                alt="Wheelchair accessible"
+                width={14}
+                height={14}
+                className="rounded-[2px] drop-shadow-[0_0_1px_rgba(0,103,167,0.4)] dark:drop-shadow-[0_0_1.5px_rgba(0,103,167,0.6)]"
+              />
+            </span>
+          )}
+          {hasElevator && (
+            <span className="inline-flex items-center justify-center shrink-0" title="Elevator available">
+              <Image
+                src="/assets/linewatch/elevator-icon.svg"
+                alt="Elevator available"
+                width={14}
+                height={14}
+                className="drop-shadow-[0_0_1px_rgba(0,130,201,0.4)] dark:drop-shadow-[0_0_1.5px_rgba(0,130,201,0.6)]"
+              />
+            </span>
+          )}
+        </span>
         <StationMetaFlags station={station} />
       </span>
       <span className="station-search-line-badges" aria-hidden="true">

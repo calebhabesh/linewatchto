@@ -208,7 +208,7 @@ export function NotificationSettingsPanel({
                     </span>
                     <div>
                       <strong>Push for This Browser</strong>
-                      <em>Controls whether this phone or browser can display LineWatch TO notifications.</em>
+                      <em>Controls whether this phone or browser can display LineWatchTO notifications.</em>
                       {busy ? (
                         <p className="notification-settings-message text-xs text-slate-400 dark:text-slate-500 flex items-center gap-1.5 mt-1.5" role="status">
                           <Loader2 size={13} className="animate-spin" aria-hidden="true" /> Updating notification settings...

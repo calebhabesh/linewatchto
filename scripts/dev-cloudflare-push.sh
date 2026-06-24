@@ -131,7 +131,7 @@ cleanup() {
 
 trap cleanup EXIT INT TERM
 
-echo "Starting LineWatch TO tunnel push test environment."
+echo "Starting LineWatchTO tunnel push test environment."
 echo "Public origin: $PUBLIC_ORIGIN"
 echo "Cloudflare config: $CLOUDFLARED_CONFIG"
 echo "Backend URL: $BACKEND_URL"

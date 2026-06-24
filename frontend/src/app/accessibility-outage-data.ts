@@ -63,7 +63,7 @@ export type AccessibilityOutageFetchOptions = {
 export const fallbackAccessibilityOutages: AccessibilityOutageResponse = {
   generatedAt: new Date().toISOString(),
   fresh: false,
-  source: "LineWatch TO fixture",
+  source: "LineWatchTO fixture",
   assetTypes: [],
   groups: [],
 };

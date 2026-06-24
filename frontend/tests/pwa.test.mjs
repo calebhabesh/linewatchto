@@ -438,7 +438,7 @@ describe("LineWatch PWA configuration", () => {
     const webManifest = manifest();
 
     assert.equal(webManifest.id, "/");
-    assert.equal(webManifest.name, "LineWatch TO");
+    assert.equal(webManifest.name, "LineWatchTO");
     assert.equal(webManifest.short_name, "LineWatch");
     assert.equal(
       webManifest.description,
@@ -479,7 +479,7 @@ describe("LineWatch PWA configuration", () => {
     withEnvValue("NEXT_PUBLIC_LINEWATCH_ENVIRONMENT_LABEL", "Staging", () => {
       const webManifest = manifest();
 
-      assert.equal(webManifest.name, "LineWatch TO Staging");
+      assert.equal(webManifest.name, "LineWatchTO Staging");
     });
 
     assert.match(layoutSource, /lineWatchAppTitle/);
@@ -705,10 +705,10 @@ describe("LineWatch PWA configuration", () => {
     const { shownNotifications } = await serviceWorkerPush({ fetchOk: false, fetchStatus: 503 });
 
     assert.equal(shownNotifications.length, 1);
-    assert.equal(shownNotifications[0].title, "⚠️ LineWatch TO Service Alert");
+    assert.equal(shownNotifications[0].title, "⚠️ LineWatchTO Service Alert");
     assert.equal(
       shownNotifications[0].options.body,
-      "Open LineWatch TO to view the latest service update.",
+      "Open LineWatchTO to view the latest service update.",
     );
   });
 
@@ -766,7 +766,7 @@ describe("LineWatch PWA configuration", () => {
   });
 
   it("serves an offline page that does not claim stale TTC service data is current", () => {
-    assert.match(offlinePageSource, /LineWatch TO is offline/);
+    assert.match(offlinePageSource, /LineWatchTO is offline/);
     assert.match(offlinePageSource, /<img src="\/assets\/linewatch\/pwa\/offline-icon-512\.png"/);
     assert.match(offlinePageSource, /Current TTC service cannot be verified while your device is offline\./);
     assert.match(offlinePageSource, /Reconnect and reopen the dashboard for fresh alerts, station details, and saved commute checks\./);
@@ -805,7 +805,7 @@ describe("LineWatch PWA configuration", () => {
     assert.match(appUpdateBannerSource, /\/version\.json/);
     assert.match(appUpdateBannerSource, /cache:\s*"no-store"/);
     assert.match(appUpdateBannerSource, /New version available/);
-    assert.match(appUpdateBannerSource, /Update LineWatch TO to get the latest fixes and improvements\./);
+    assert.match(appUpdateBannerSource, /Update LineWatchTO to get the latest fixes and improvements\./);
     assert.match(appUpdateBannerSource, /Update now/);
     assert.match(appUpdateBannerSource, /Later/);
     assert.match(appUpdateBannerSource, /sessionStorage/);
@@ -894,7 +894,7 @@ describe("LineWatch PWA configuration", () => {
     assert.match(nextConfigSource, /source:\s*['"]\/app-update\.html['"]/);
     assert.match(nextConfigSource, /Clear-Site-Data/);
     assert.match(nextConfigSource, /"cache"/);
-    assert.match(appUpdatePageSource, /LineWatch TO App Update/);
+    assert.match(appUpdatePageSource, /LineWatchTO App Update/);
     assert.match(appUpdatePageSource, /Preparing update/);
     assert.match(appUpdatePageSource, /Refreshing app shell/);
     assert.match(appUpdatePageSource, /Reloading dashboard/);
@@ -916,7 +916,7 @@ describe("LineWatch PWA configuration", () => {
     assert.match(nextConfigSource, /Clear-Site-Data/);
     assert.match(nextConfigSource, /"cache", "storage"/);
 
-    assert.match(devResetPageSource, /LineWatch TO Cache Reset/);
+    assert.match(devResetPageSource, /LineWatchTO Cache Reset/);
     assert.match(devResetPageSource, /navigator\.serviceWorker\.getRegistrations/);
     assert.match(devResetPageSource, /window\.caches\.keys/);
     assert.match(devResetPageSource, /indexedDB\.deleteDatabase/);

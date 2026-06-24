@@ -136,7 +136,7 @@ def generate_html(data):
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>LineWatch TO — Raw Alerts Explorer</title>
+  <title>LineWatchTO — Raw Alerts Explorer</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
@@ -669,7 +669,7 @@ def generate_html(data):
     <header>
       <div class="header-title">
         <span class="header-logo">LW</span>
-        LineWatch TO — Raw Alerts Ingestion Explorer
+        LineWatchTO — Raw Alerts Ingestion Explorer
       </div>
       <div class="refresh-badge">
         <span class="refresh-dot"></span>

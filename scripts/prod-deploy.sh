@@ -63,7 +63,7 @@ export LINEWATCH_RELEASE_ENV_FILE="$RELEASE_ENV"
 linewatch_compose ps
 
 cat <<EOF
-Deployed LineWatch TO release $TAG.
+Deployed LineWatchTO release $TAG.
 
 Public verification:
   LINEWATCH_DEPLOY_FRONTEND_URL=https://linewatchto.ca \\

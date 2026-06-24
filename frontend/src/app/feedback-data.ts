@@ -60,7 +60,7 @@ export function buildFeedbackMailtoUrl(input: SubmitFeedbackInput) {
     `Viewport: ${input.viewport || "unknown"}`,
   ].join("\n");
   const params = new URLSearchParams({
-    subject: "LineWatch TO feedback",
+    subject: "LineWatchTO feedback",
     body,
   });
   return `mailto:${FEEDBACK_DESTINATION_EMAIL}?${params.toString()}`;

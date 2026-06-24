@@ -51,7 +51,7 @@ public class FeedbackEmailSender {
             );
             helper.setFrom(properties.getFrom());
             helper.setTo(properties.getTo());
-            helper.setSubject("LineWatch TO feedback");
+            helper.setSubject("LineWatchTO feedback");
             helper.setText(textBody(request), htmlBody(request));
             mailSender.send(message);
             return true;
@@ -63,7 +63,7 @@ public class FeedbackEmailSender {
 
     private String textBody(FeedbackResponses.SubmitFeedbackRequest request) {
         return """
-            LineWatch TO feedback
+            LineWatchTO feedback
 
             Message:
             %s
@@ -95,8 +95,8 @@ public class FeedbackEmailSender {
                 <table role="presentation" width="100%%" cellspacing="0" cellpadding="0" style="max-width:640px;margin:0 auto;background:#111827;border:1px solid #273449;border-radius:8px;">
                   <tr>
                     <td style="padding:28px;text-align:left;">
-                      <p style="margin:0 0 8px 0;color:#8ea2bb;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;">LineWatch TO</p>
-                      <h1 style="margin:0 0 18px 0;color:#ffffff;font-size:22px;line-height:1.25;">LineWatch TO feedback</h1>
+                      <p style="margin:0 0 8px 0;color:#8ea2bb;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;">LineWatchTO</p>
+                      <h1 style="margin:0 0 18px 0;color:#ffffff;font-size:22px;line-height:1.25;">LineWatchTO feedback</h1>
                       <div style="margin:0 0 22px 0;color:#e5edf7;font-size:15px;line-height:1.6;">%s</div>
                       <table role="presentation" cellspacing="0" cellpadding="0" style="width:100%%;border-collapse:collapse;color:#cbd5e1;font-size:13px;">
                         <tr><td style="padding:6px 0;color:#8ea2bb;width:120px;">Page</td><td style="padding:6px 0;">%s</td></tr>

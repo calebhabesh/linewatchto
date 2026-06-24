@@ -2,6 +2,7 @@
 
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import Image from "next/image";
 import { ChevronDown, ChevronRight, Search, X } from "lucide-react";
 import {
   buildStationLineGroups,
@@ -9,7 +10,11 @@ import {
   STATION_SEARCH_LINES,
   type StationSearchLine,
 } from "../app/station-search";
-import type { StationSummary } from "../app/station-data";
+import {
+  type StationSummary,
+  isStationWheelchairAccessible,
+  isStationElevatorAccessible,
+} from "../app/station-data";
 
 type Props = {
   label: string;
@@ -58,6 +63,13 @@ function StationOption({
     .map((lineId) => lineById(lineId))
     .filter((line): line is StationSearchLine => Boolean(line));
 
+  const isWheelchair = isStationWheelchairAccessible(station.id, station.lineIds);
+  const hasElevator = isStationElevatorAccessible(station.id, station.lineIds);
+
+  let accessibilityLabel = "";
+  if (isWheelchair) accessibilityLabel += " (Wheelchair Accessible)";
+  if (hasElevator) accessibilityLabel += " (Elevator Access)";
+
   return (
     <button
       type="button"
@@ -66,9 +78,33 @@ function StationOption({
       disabled={disabled}
       className={`commute-station-option ${selected ? "selected" : ""}`}
       onClick={() => onChoose(station.id)}
-      title={disabled ? disabledReason : station.name}
+      title={disabled ? `${disabledReason}${accessibilityLabel}` : `${station.name}${accessibilityLabel}`}
     >
-      <span className="commute-station-option-name">{station.name}</span>
+      <span className="commute-station-option-name">
+        <span>{station.name}</span>
+        {isWheelchair && (
+          <span className="inline-flex items-center justify-center shrink-0" title="Wheelchair accessible">
+            <Image
+              src="/assets/linewatch/wheel-chair-symbol.svg"
+              alt="Wheelchair accessible"
+              width={12}
+              height={12}
+              className="rounded-[1.5px] drop-shadow-[0_0_1px_rgba(0,103,167,0.3)]"
+            />
+          </span>
+        )}
+        {hasElevator && (
+          <span className="inline-flex items-center justify-center shrink-0" title="Elevator available">
+            <Image
+              src="/assets/linewatch/elevator-icon.svg"
+              alt="Elevator available"
+              width={12}
+              height={12}
+              className="drop-shadow-[0_0_1px_rgba(0,130,201,0.3)]"
+            />
+          </span>
+        )}
+      </span>
       <span className="commute-station-line-badges">
         {lines.map((line) => (
           <StationLineBadge key={line.id} line={line} />

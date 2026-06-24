@@ -55,7 +55,7 @@ class FeedbackEmailSenderTest {
         verify(mailSender).send(messageCaptor.capture());
         MimeMessage message = messageCaptor.getValue();
         assertThat(message.getFrom()[0].toString()).isEqualTo("no-reply@linewatch.local");
-        assertThat(message.getSubject()).isEqualTo("LineWatch TO feedback");
+        assertThat(message.getSubject()).isEqualTo("LineWatchTO feedback");
         assertThat(message.getAllRecipients()[0].toString()).isEqualTo("feedback@linewatchto.ca");
 
         List<String> bodies = new ArrayList<>();
@@ -70,7 +70,7 @@ class FeedbackEmailSenderTest {
         });
         assertThat(bodies).anySatisfy(body -> {
             assertThat(body).contains("<html");
-            assertThat(body).contains("LineWatch TO feedback");
+            assertThat(body).contains("LineWatchTO feedback");
             assertThat(body).contains("Make the route impact cards easier to compare.");
         });
     }

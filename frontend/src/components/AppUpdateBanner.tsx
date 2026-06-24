@@ -117,7 +117,7 @@ export function AppUpdateBanner() {
     <aside className="app-update-banner" role="status" aria-live="polite" aria-busy={isUpdating}>
       <div className="app-update-banner-copy">
         <strong>New version available</strong>
-        <span>Update LineWatch TO to get the latest fixes and improvements.</span>
+        <span>Update LineWatchTO to get the latest fixes and improvements.</span>
       </div>
       <div className="app-update-banner-actions">
         <button

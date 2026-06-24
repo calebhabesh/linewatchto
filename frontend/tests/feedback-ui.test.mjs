@@ -10,8 +10,8 @@ describe("feedback panel UI", () => {
     assert.equal(existsSync(panelUrl), true);
     const panelSource = readFileSync(panelUrl, "utf8");
     assert.match(panelSource, /export function FeedbackPanel/);
-    assert.match(panelSource, /Suggest Improvements/);
-    assert.match(panelSource, /What could LineWatch TO make clearer or easier to use\?/);
+    assert.match(panelSource, /Leave Feedback/);
+    assert.match(panelSource, /What could LineWatchTO make clearer or easier to use\?/);
     assert.match(panelSource, /textarea/);
     assert.match(panelSource, /MAX_FEEDBACK_MESSAGE_LENGTH/);
     assert.match(panelSource, /submitFeedback/);
@@ -21,7 +21,7 @@ describe("feedback panel UI", () => {
 
   it("includes quiet independent development support copy", () => {
     const panelSource = readFileSync(panelUrl, "utf8");
-    assert.match(panelSource, /Support LineWatch TO/);
+    assert.match(panelSource, /Support LineWatchTO/);
     assert.match(panelSource, /Help keep independent transit tooling maintained\./);
     assert.match(panelSource, /supportUrl/);
     assert.doesNotMatch(panelSource, /Buy Me a Coffee|coffee|donat|tip|money/i);
@@ -43,10 +43,10 @@ describe("feedback navigation", () => {
     assert.match(shellSource, /"feedback"/);
     assert.match(shellSource, /FeedbackPanel/);
     assert.match(shellSource, /NEXT_PUBLIC_LINEWATCH_SUPPORT_URL/);
-    assert.match(shellSource, /Suggest Improvements/);
+    assert.match(shellSource, /Leave Feedback/);
     assert.match(shellSource, /setActiveView\("feedback"\)/);
     assert.match(moreSheetSource, /onOpenFeedback/);
-    assert.match(moreSheetSource, /Suggest Improvements/);
+    assert.match(moreSheetSource, /Leave Feedback/);
   });
 });
 

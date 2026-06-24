@@ -38,4 +38,4 @@ await checkJson("schedule health", `${backendUrl}/api/health/schedule`, body => 
 await checkJson("status", `${backendUrl}/api/status`, body => Array.isArray(body.lines) && body.generatedAt);
 await checkJson("map", `${backendUrl}/api/map`, body => Array.isArray(body.stations) && Array.isArray(body.segments));
 await checkJson("performance", `${backendUrl}/api/performance`, body => typeof body.status === "string" && body.source === "TTC.ca" && Array.isArray(body.metrics));
-await checkHtml("frontend", frontendUrl, "LineWatch TO");
+await checkHtml("frontend", frontendUrl, "LineWatchTO");
