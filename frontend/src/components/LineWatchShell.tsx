@@ -82,6 +82,7 @@ import {
   type AuthConfig,
 } from "../app/account-data";
 import { GoogleSignInButton } from "./GoogleSignInButton";
+import { accountOAuthErrorState } from "../app/account-oauth-error";
 import { normalizeAccountEmail, validateAccountCredentials } from "../app/account-validation";
 
 
@@ -100,6 +101,12 @@ function dashboardRefreshIntervalMs() {
   }
 
   return Math.max(configured, MIN_DASHBOARD_REFRESH_MS);
+}
+
+function replaceBrowserSearchParams(params: URLSearchParams) {
+  const search = params.toString();
+  const nextUrl = `${window.location.pathname}${search ? `?${search}` : ""}${window.location.hash}`;
+  window.history.replaceState(null, "", nextUrl);
 }
 
 export function LineWatchShell({
@@ -337,6 +344,22 @@ export function LineWatchShell({
   useEffect(() => {
     // supports panel=notifications, panel=commutes, panel=alerts, panel=delays, panel=reduced-speed-zones, panel=closures
     const params = new URLSearchParams(window.location.search);
+    const nextParams = new URLSearchParams(params);
+    let shouldReplaceUrl = false;
+
+    const accountErrorCode = params.get("account_error");
+    if (accountErrorCode !== null) {
+      const oauthErrorState = accountOAuthErrorState(accountErrorCode);
+      if (oauthErrorState) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setAccountEntryIntent(oauthErrorState.entryIntent);
+        setAccountDialogMode(oauthErrorState.dialogMode);
+        setAccountError(oauthErrorState.message);
+      }
+      nextParams.delete("account_error");
+      shouldReplaceUrl = true;
+    }
+
     const panel = params.get("panel");
     const panelToView: Record<string, ActiveView> = {
       status: "status",
@@ -348,15 +371,19 @@ export function LineWatchShell({
       notifications: "notifications",
     };
     if (panel && panelToView[panel]) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setActiveView(panelToView[panel]);
-      window.history.replaceState(null, "", window.location.pathname);
+      nextParams.delete("panel");
+      shouldReplaceUrl = true;
     }
 
     const impactKind = params.get("impactKind") as ImpactKind;
     const impactId = params.get("impactId");
     if (impactKind && impactId) {
       setSelection({ kind: impactKind, id: impactId });
+    }
+
+    if (shouldReplaceUrl) {
+      replaceBrowserSearchParams(nextParams);
     }
   }, []);
 

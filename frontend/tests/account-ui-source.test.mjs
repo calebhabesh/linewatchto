@@ -39,6 +39,15 @@ describe("account UI source", () => {
     assert.match(shellSource, /account-choice-primary/);
   });
 
+  it("surfaces Google OAuth callback errors through the account dialog", () => {
+    assert.match(shellSource, /accountOAuthErrorState/);
+    assert.match(shellSource, /params\.get\("account_error"\)/);
+    assert.match(shellSource, /setAccountEntryIntent\(oauthErrorState\.entryIntent\)/);
+    assert.match(shellSource, /setAccountDialogMode\(oauthErrorState\.dialogMode\)/);
+    assert.match(shellSource, /setAccountError\(oauthErrorState\.message\)/);
+    assert.match(shellSource, /nextParams\.delete\("account_error"\)/);
+  });
+
   it("renders signed-out, demo, and account-backed saved commute states", () => {
     assert.match(savedCommutesSource, /accountState/);
     assert.match(savedCommutesSource, /accountCommutes/);
