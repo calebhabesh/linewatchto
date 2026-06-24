@@ -134,3 +134,22 @@ describe("PWA install prompt hook", () => {
   });
 });
 
+describe("PWA install nudge component", () => {
+  it("renders Android native install copy and iOS manual Home Screen instructions", () => {
+    const nudgeSource = readFileSync(nudgeSourceUrl, "utf8");
+
+    assert.match(nudgeSource, /export function PwaInstallNudge/);
+    assert.match(nudgeSource, /aria-label="Install LineWatchTO"/);
+    assert.match(nudgeSource, /Add LineWatchTO to your home screen/);
+    assert.match(nudgeSource, /Opens full-screen for quicker commute checks/);
+    assert.match(nudgeSource, /Install/);
+    assert.match(nudgeSource, /Got it/);
+    assert.match(nudgeSource, /Tap Share/);
+    assert.match(nudgeSource, /Add to Home Screen/);
+    assert.match(nudgeSource, /\/assets\/linewatch\/guide-icons\/share-iphone\.svg/);
+    assert.match(nudgeSource, /\/assets\/linewatch\/guide-icons\/add-to-homescreen-android\.svg/);
+    assert.match(nudgeSource, /aria-label="Dismiss install prompt"/);
+  });
+});
+
+
