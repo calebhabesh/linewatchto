@@ -992,6 +992,49 @@ export function LineWatchShell({
     setMobileInspectorDetent("map-focus");
   }, [setMobileInspectorDetent, setSelectedStationId, setSelection]);
 
+  const rotatedMapMode =
+    isMobile &&
+    mapPresentationMode === "rotated-landscape" &&
+    !showClosedScreen;
+
+  const mobileImpactInspectorOpen =
+    isMobile &&
+    mapPresentationMode === "standard" &&
+    activeView === "map" &&
+    Boolean(selection) &&
+    !selectedStationId &&
+    !accountDialogMode &&
+    !commutePathPreview &&
+    !showClosedScreen;
+
+  const mobileStationInspectorOpen =
+    isMobile &&
+    mapPresentationMode === "standard" &&
+    activeView === "map" &&
+    Boolean(selectedStationId) &&
+    !accountDialogMode &&
+    !showClosedScreen;
+
+  const mobileInspectorOpen = mobileImpactInspectorOpen || mobileStationInspectorOpen;
+
+  const pwaInstallPrompt = usePwaInstallPrompt({
+    activeView,
+    blockedByOverlay:
+      showClosedScreen ||
+      rotatedMapMode ||
+      mobileInspectorOpen ||
+      Boolean(selectedStationId) ||
+      Boolean(accountDialogMode) ||
+      Boolean(commutePathPreview),
+    engagementSignal: pwaEngagementSignal,
+    isMobile,
+  });
+
+  const showPwaInstallNudge =
+    !showClosedScreen &&
+    !rotatedMapMode &&
+    pwaInstallPrompt.shouldShowNudge;
+
   const isMobilePanel = isMobile && (
     activeView === "status" ||
     activeView === "alerts" ||
@@ -1388,49 +1431,6 @@ export function LineWatchShell({
       </FloatingPanelShell>
     ) : null
   ) : null;
-
-  const rotatedMapMode =
-    isMobile &&
-    mapPresentationMode === "rotated-landscape" &&
-    !showClosedScreen;
-
-  const mobileImpactInspectorOpen =
-    isMobile &&
-    mapPresentationMode === "standard" &&
-    activeView === "map" &&
-    Boolean(selection) &&
-    !selectedStationId &&
-    !accountDialogMode &&
-    !commutePathPreview &&
-    !showClosedScreen;
-
-  const mobileStationInspectorOpen =
-    isMobile &&
-    mapPresentationMode === "standard" &&
-    activeView === "map" &&
-    Boolean(selectedStationId) &&
-    !accountDialogMode &&
-    !showClosedScreen;
-
-  const mobileInspectorOpen = mobileImpactInspectorOpen || mobileStationInspectorOpen;
-
-  const pwaInstallPrompt = usePwaInstallPrompt({
-    activeView,
-    blockedByOverlay:
-      showClosedScreen ||
-      rotatedMapMode ||
-      mobileInspectorOpen ||
-      Boolean(selectedStationId) ||
-      Boolean(accountDialogMode) ||
-      Boolean(commutePathPreview),
-    engagementSignal: pwaEngagementSignal,
-    isMobile,
-  });
-
-  const showPwaInstallNudge =
-    !showClosedScreen &&
-    !rotatedMapMode &&
-    pwaInstallPrompt.shouldShowNudge;
 
 
   const shellInspectorClasses = [

@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -80,7 +81,10 @@ export function usePwaInstallPrompt({
       );
     };
     const syncStandalone = () => {
-      setIsStandalone(isStandalonePwaDisplay(window));
+      setIsStandalone(isStandalonePwaDisplay(window as unknown as {
+        matchMedia?: (query: string) => { matches: boolean };
+        navigator?: { standalone?: boolean };
+      }));
     };
 
     syncPlatform();
@@ -92,7 +96,7 @@ export function usePwaInstallPrompt({
       if ("addEventListener" in mediaQuery) {
         mediaQuery.addEventListener("change", syncStandalone);
       } else {
-        mediaQuery.addListener(syncStandalone);
+        (mediaQuery as unknown as { addListener: (listener: () => void) => void }).addListener(syncStandalone);
       }
     });
 
@@ -101,7 +105,7 @@ export function usePwaInstallPrompt({
         if ("removeEventListener" in mediaQuery) {
           mediaQuery.removeEventListener("change", syncStandalone);
         } else {
-          mediaQuery.removeListener(syncStandalone);
+          (mediaQuery as unknown as { removeListener: (listener: () => void) => void }).removeListener(syncStandalone);
         }
       });
     };
