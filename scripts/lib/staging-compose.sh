@@ -126,19 +126,42 @@ linewatch_staging_build_label() {
   fi
 }
 
+linewatch_staging_frontend_app_version() {
+  local root_dir="${LINEWATCH_ROOT_DIR:-$(linewatch_staging_root_dir)}"
+  local package_json="$root_dir/frontend/package.json"
+  local app_version
+
+  app_version="$(node -e '
+const { readFileSync } = require("node:fs");
+const packageJsonPath = process.argv[1];
+const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf8"));
+const version = typeof packageJson.version === "string" ? packageJson.version.trim() : "";
+if (!version) process.exit(1);
+process.stdout.write(version);
+' "$package_json")" || {
+    linewatch_staging_die "could not read frontend package version from $package_json"
+    return 1
+  }
+
+  printf '%s\n' "$app_version"
+}
+
 linewatch_staging_compose() {
   local root_dir="${LINEWATCH_ROOT_DIR:-$(linewatch_staging_root_dir)}"
   local env_file
   local compose_file
   local project_name
   local docker_bin="${DOCKER_BIN:-docker}"
+  local frontend_app_version
 
   env_file="$(linewatch_staging_env_file)" || return 1
   compose_file="$(linewatch_staging_compose_file)" || return 1
   project_name="$(linewatch_staging_project_name)" || return 1
+  frontend_app_version="${NEXT_PUBLIC_LINEWATCH_APP_VERSION:-$(linewatch_staging_frontend_app_version)}" || return 1
 
   LINEWATCH_ROOT_DIR="$root_dir" \
   LINEWATCH_STAGING_ENV_FILE="$env_file" \
+  NEXT_PUBLIC_LINEWATCH_APP_VERSION="$frontend_app_version" \
   LINEWATCH_STAGING_BUILD_LABEL="${LINEWATCH_STAGING_BUILD_LABEL:-$(linewatch_staging_build_label)}" \
     "$docker_bin" compose \
       --project-name "$project_name" \

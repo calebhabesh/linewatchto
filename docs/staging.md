@@ -94,6 +94,8 @@ This command:
 
 - validates Compose configuration;
 - builds local backend, frontend, and PostGIS images;
+- derives the frontend app version from `frontend/package.json` unless `NEXT_PUBLIC_LINEWATCH_APP_VERSION` is explicitly set in the shell;
+- derives the staging build label from the current Git SHA unless `LINEWATCH_STAGING_BUILD_LABEL` is explicitly set;
 - starts Postgres, Redis, backend, frontend, Caddy, and optionally cloudflared;
 - waits for health checks;
 - prints local and public URLs.

@@ -83,6 +83,7 @@ make_fake_docker() {
   cat > "$path" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
+printf 'NEXT_PUBLIC_LINEWATCH_APP_VERSION=%s\n' "${NEXT_PUBLIC_LINEWATCH_APP_VERSION:-}" >> "${FAKE_DOCKER_LOG:?}"
 printf '%s\n' "$*" >> "${FAKE_DOCKER_LOG:?}"
 EOF
   chmod +x "$path"
@@ -108,6 +109,54 @@ test_compose_wrapper_uses_staging_project_env_and_file() {
 
   assert_contains "$(cat "$log")" "compose --project-name linewatch-staging --env-file $env_file"
   assert_contains "$(cat "$log")" "-f $ROOT_DIR/docker-compose.staging.yml ps"
+}
+
+test_compose_wrapper_exports_package_app_version() {
+  local temp_dir="$TEST_TMP/compose-package-version"
+  local fake_docker
+  local log
+  local env_file
+  local package_version
+
+  mkdir "$temp_dir"
+  fake_docker="$temp_dir/docker"
+  log="$temp_dir/docker.log"
+  env_file="$temp_dir/.env.staging"
+  write_env_file "$env_file"
+  printf '%s\n' 'NEXT_PUBLIC_LINEWATCH_APP_VERSION=0.0.0-stale-env' >> "$env_file"
+  make_fake_docker "$fake_docker"
+
+  package_version="$(linewatch_staging_frontend_app_version)"
+
+  FAKE_DOCKER_LOG="$log" \
+  DOCKER_BIN="$fake_docker" \
+  LINEWATCH_STAGING_ENV_FILE="$env_file" \
+    "$ROOT_DIR/scripts/staging-compose.sh" config
+
+  assert_contains "$(cat "$log")" "NEXT_PUBLIC_LINEWATCH_APP_VERSION=$package_version"
+  assert_not_contains "$(cat "$log")" "NEXT_PUBLIC_LINEWATCH_APP_VERSION=0.0.0-stale-env"
+}
+
+test_compose_wrapper_allows_shell_app_version_override() {
+  local temp_dir="$TEST_TMP/compose-version-override"
+  local fake_docker
+  local log
+  local env_file
+
+  mkdir "$temp_dir"
+  fake_docker="$temp_dir/docker"
+  log="$temp_dir/docker.log"
+  env_file="$temp_dir/.env.staging"
+  write_env_file "$env_file"
+  make_fake_docker "$fake_docker"
+
+  FAKE_DOCKER_LOG="$log" \
+  DOCKER_BIN="$fake_docker" \
+  LINEWATCH_STAGING_ENV_FILE="$env_file" \
+  NEXT_PUBLIC_LINEWATCH_APP_VERSION=9.9.9-override \
+    "$ROOT_DIR/scripts/staging-compose.sh" config
+
+  assert_contains "$(cat "$log")" "NEXT_PUBLIC_LINEWATCH_APP_VERSION=9.9.9-override"
 }
 
 test_up_enables_tunnel_profile_when_token_exists() {
@@ -245,6 +294,8 @@ EOF
 }
 
 run_test "staging Compose wrapper uses isolated project and env" test_compose_wrapper_uses_staging_project_env_and_file
+run_test "staging Compose wrapper exports package app version" test_compose_wrapper_exports_package_app_version
+run_test "staging Compose wrapper allows shell app version override" test_compose_wrapper_allows_shell_app_version_override
 run_test "staging up enables tunnel profile when token exists" test_up_enables_tunnel_profile_when_token_exists
 run_test "staging up omits tunnel profile when skipped" test_up_omits_tunnel_profile_when_skipped
 run_test "staging reset refuses without confirmation" test_reset_refuses_without_confirmation
