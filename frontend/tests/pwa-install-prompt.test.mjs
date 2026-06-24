@@ -181,6 +181,22 @@ describe("PWA install shell wiring", () => {
   });
 });
 
+describe("PWA install prompt styles", () => {
+  it("adds scoped mobile styles without changing the core PWA manifest or guide styles", () => {
+    const globalCss = readFileSync(globalCssUrl, "utf8");
+
+    assert.match(globalCss, /\.pwa-install-nudge/);
+    assert.match(globalCss, /bottom:\s*calc\(var\(--mobile-bottom-nav-height\)/);
+    assert.match(globalCss, /\.pwa-install-nudge-primary/);
+    assert.match(globalCss, /\.pwa-install-nudge-dismiss/);
+    assert.match(globalCss, /\.mobile-more-install-row/);
+    assert.match(globalCss, /\.mobile-more-install-help/);
+    assert.match(globalCss, /\.motion-paused \.pwa-install-nudge/);
+    assert.match(globalCss, /\.high-contrast \.pwa-install-nudge/);
+  });
+});
+
+
 
 
 

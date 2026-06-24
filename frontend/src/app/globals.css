@@ -5669,6 +5669,146 @@ button {
   }
 }
 
+.pwa-install-nudge {
+  display: none;
+}
+
+@media (max-width: 767px) {
+  .pwa-install-nudge {
+    align-items: center;
+    animation: floating-mobile-sheet-enter 180ms cubic-bezier(0.22, 1, 0.36, 1);
+    background: rgba(10, 12, 16, 0.96);
+    border: 1px solid rgba(250, 204, 21, 0.34);
+    border-radius: 8px;
+    bottom: calc(var(--mobile-bottom-nav-height) + var(--mobile-bottom-nav-margin-bottom) + var(--mobile-safe-bottom) + 10px);
+    box-shadow: 0 16px 38px rgba(0, 0, 0, 0.38);
+    color: #ffffff;
+    display: grid;
+    gap: 10px;
+    grid-template-columns: 34px minmax(0, 1fr) auto;
+    left: 16px;
+    padding: 10px;
+    position: fixed;
+    right: 16px;
+    z-index: 43;
+  }
+
+  .pwa-install-nudge-icon {
+    align-items: center;
+    background: rgba(250, 204, 21, 0.14);
+    border: 1px solid rgba(250, 204, 21, 0.28);
+    border-radius: 8px;
+    color: #facc15;
+    display: inline-flex;
+    height: 34px;
+    justify-content: center;
+    width: 34px;
+  }
+
+  .pwa-install-nudge-copy {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+  }
+
+  .pwa-install-nudge-copy strong {
+    color: #ffffff;
+    font-size: 13px;
+    font-weight: 950;
+    line-height: 1.15;
+  }
+
+  .pwa-install-nudge-copy > span {
+    color: #cbd5e1;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1.25;
+  }
+
+  .pwa-install-nudge-steps {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    list-style: none;
+    margin: 5px 0 0;
+    padding: 0;
+  }
+
+  .pwa-install-nudge-steps li {
+    align-items: center;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 999px;
+    color: #e2e8f0;
+    display: inline-flex;
+    font-size: 10px;
+    font-weight: 900;
+    gap: 5px;
+    min-height: 24px;
+    padding: 4px 8px;
+  }
+
+  .pwa-install-nudge-step-asset {
+    display: block;
+    height: 14px;
+    object-fit: contain;
+    width: 14px;
+  }
+
+  .pwa-install-nudge-actions {
+    align-items: center;
+    display: flex;
+    gap: 6px;
+  }
+
+  .pwa-install-nudge-primary {
+    align-items: center;
+    background: #facc15;
+    border-radius: 8px;
+    color: #111827;
+    display: inline-flex;
+    font-size: 11px;
+    font-weight: 950;
+    gap: 5px;
+    min-height: 36px;
+    padding: 8px 10px;
+    white-space: nowrap;
+  }
+
+  .pwa-install-nudge-primary:disabled {
+    cursor: wait;
+    opacity: 0.76;
+  }
+
+  .pwa-install-nudge-dismiss {
+    align-items: center;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+    color: #cbd5e1;
+    display: inline-flex;
+    height: 36px;
+    justify-content: center;
+    width: 36px;
+  }
+
+  .pwa-install-nudge-primary:focus-visible,
+  .pwa-install-nudge-dismiss:focus-visible {
+    outline: 3px solid rgba(147, 197, 253, 0.75);
+    outline-offset: 2px;
+  }
+
+  .motion-paused .pwa-install-nudge {
+    animation: none;
+  }
+
+  .high-contrast .pwa-install-nudge {
+    background: #000000;
+    border-color: #facc15;
+    border-width: 2px;
+    color: #ffffff;
+  }
+}
+
 .mobile-status-peek {
   display: none;
 }
@@ -6164,6 +6304,54 @@ button {
   .dark .mobile-more-row:hover,
   .dark .mobile-more-row:active {
     background: #1e293b !important;
+  }
+
+  .mobile-more-install-row {
+    background: rgba(250, 204, 21, 0.09);
+    border: 1px solid rgba(250, 204, 21, 0.22);
+  }
+
+  .mobile-more-install-copy {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  .mobile-more-install-copy span:first-child {
+    color: var(--text);
+    font-weight: 850;
+  }
+
+  .mobile-more-install-copy span:last-child {
+    color: var(--quiet);
+    font-size: 11px;
+    font-weight: 650;
+    line-height: 1.25;
+  }
+
+  .mobile-more-install-help {
+    background: var(--panel-soft);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    padding: 9px 10px;
+  }
+
+  .mobile-more-install-help span {
+    color: var(--quiet);
+    font-size: 10px;
+    font-weight: 950;
+    text-transform: uppercase;
+  }
+
+  .mobile-more-install-help strong {
+    color: var(--text);
+    font-size: 12px;
+    font-weight: 850;
+    line-height: 1.25;
   }
 
   .mobile-more-row strong,
