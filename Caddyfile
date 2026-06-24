@@ -11,9 +11,27 @@
 	}
 }
 
+(linewatch_cache_headers) {
+	@linewatch_static_cache {
+		path /_next/static/* /assets/*
+	}
+	header @linewatch_static_cache Cache-Control "public, max-age=31536000, immutable"
+
+	@linewatch_public_api_cache {
+		path /api/dashboard /api/status /api/map /api/alerts /api/performance /api/accessibility-outages /api/surface-notices
+	}
+	header @linewatch_public_api_cache Cache-Control "public, max-age=15, s-maxage=30, stale-while-revalidate=30"
+
+	@linewatch_private_api_no_store {
+		path /api/auth/* /api/account/* /api/feedback /api/health* /api/actuator*
+	}
+	header @linewatch_private_api_no_store Cache-Control "no-store"
+}
+
 linewatchto.ca, www.linewatchto.ca {
 	encode gzip zstd
 	import linewatch_security_headers
+	import linewatch_cache_headers
 
 	handle /api/* {
 		reverse_proxy backend:8080
@@ -27,6 +45,7 @@ linewatchto.ca, www.linewatchto.ca {
 api.linewatchto.ca {
 	encode gzip zstd
 	import linewatch_security_headers
+	import linewatch_cache_headers
 
 	handle /actuator* {
 		respond 404
