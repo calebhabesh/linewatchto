@@ -983,10 +983,6 @@ function InteractiveTtcMapComponent({
 
                 {/* Middle Layer: Highlighted overlays injected underneath stations */}
                 <defs>
-                  <pattern id="suspension-hash" width="60" height="60" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
-                    <rect width="60" height="60" fill="#ef4444" />
-                    <line x1="0" y1="0" x2="0" y2="60" stroke="#ffffff" strokeWidth="25" />
-                  </pattern>
                   <pattern id="badge-suspension-hash" width="12" height="12" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
                     <rect width="12" height="12" fill="#ef4444" />
                     <line x1="0" y1="0" x2="0" y2="12" stroke="#ffffff" strokeWidth="5" />
@@ -2234,6 +2230,45 @@ function AnimatedSuspensionLane({
   );
 }
 
+function StaticSuspensionStripeLane({
+  pathD,
+  step,
+}: {
+  pathD: string;
+  step: number;
+}) {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    const handle = setTimeout(() => setMounted(true), 0);
+    return () => clearTimeout(handle);
+  }, []);
+
+  const { points } = useMemo(() => {
+    if (!mounted) return { points: [], step };
+    return samplePath(pathD, step);
+  }, [mounted, pathD, step]);
+
+  if (!mounted || points.length === 0) return null;
+
+  return (
+    <g className="suspension-static-stripe-lane">
+      {points.map((point, index) => (
+        <g
+          key={`${point.x}-${point.y}-${index}`}
+          transform={`translate(${point.x} ${point.y}) rotate(${point.angle})`}
+        >
+          <path
+            className="suspension-static-stripe"
+            d="M -46 58 L 46 -58"
+            aria-hidden="true"
+          />
+        </g>
+      ))}
+    </g>
+  );
+}
+
 function AnimatedHourglassLane({
   pathD,
   step,
@@ -2345,10 +2380,9 @@ function AnimatedHourglassLane({
           const offsetX = -dy * Math.sin(angleForwardRad);
           const offsetY = dy * Math.cos(angleForwardRad);
 
-          const rotateStr = Math.abs(i) % 2 === 0 ? "" : ` rotate(${angle})`;
           group.setAttribute(
             "transform",
-            `translate(${p.x + offsetX} ${p.y + offsetY})${rotateStr}`
+            `translate(${p.x + offsetX} ${p.y + offsetY}) rotate(${angle})`
           );
         } catch {
           // Safe fallback
@@ -2851,11 +2885,29 @@ function OverlaySegment({
       {visualState === "suspension" && (
         <>
           {travelDirection === "bidirectional" ? (
-            <path
-              className="asset-alert-path suspension-candy pointer-events-none"
-              d={segment.pathD}
-              style={{ pointerEvents: "none", stroke: "url(#suspension-hash)" }}
-            />
+            <>
+              <path
+                className="asset-alert-path suspension-candy suspension-solid pointer-events-none"
+                d={segment.pathD}
+                style={{ pointerEvents: "none", stroke: "#ef4444" }}
+              />
+              <defs>
+                <mask id={`${segment.id}-suspension-static-mask`}>
+                  <path
+                    className="suspension-mask-path pointer-events-none"
+                    d={segment.pathD}
+                    style={{ pointerEvents: "none", stroke: "white", fill: "none" }}
+                    strokeWidth="102"
+                  />
+                </mask>
+              </defs>
+              <g mask={`url(#${segment.id}-suspension-static-mask)`}>
+                <StaticSuspensionStripeLane
+                  pathD={segment.pathD}
+                  step={65}
+                />
+              </g>
+            </>
           ) : (
             <>
               <path

@@ -41,7 +41,7 @@ class TtcAlertScenarioCatalogTest {
 
     static Stream<Arguments> scenarios() {
         return Stream.of(
-            Arguments.of("all-alert-types.json", 15, 2, EnumSet.of(
+            Arguments.of("all-alert-types.json", 18, 2, EnumSet.of(
                 AlertImpactKind.SUSPENSION,
                 AlertImpactKind.DELAY,
                 AlertImpactKind.REDUCED_SPEED_ZONE,
@@ -117,9 +117,73 @@ class TtcAlertScenarioCatalogTest {
             .extracting(NormalizedRouteAlert::direction)
             .contains(AlertDirection.BIDIRECTIONAL, AlertDirection.NORTHBOUND);
         assertThat(routeAlerts)
+            .filteredOn(alert -> alert.sourceId().equals("scenario-active-line-2"))
+            .singleElement()
+            .satisfies(alert -> {
+                assertThat(alert.startStationId()).isEqualTo("broadview");
+                assertThat(alert.endStationId()).isEqualTo("kennedy");
+                assertThat(alert.stationIds()).containsExactly(
+                    "broadview",
+                    "chester",
+                    "pape",
+                    "donlands",
+                    "greenwoood",
+                    "coxwell",
+                    "woodbine",
+                    "main-street",
+                    "victoria-park",
+                    "warden",
+                    "kennedy"
+                );
+                assertThat(alert.impactKind()).isEqualTo(AlertImpactKind.SUSPENSION);
+                assertThat(alert.direction()).isEqualTo(AlertDirection.BIDIRECTIONAL);
+            });
+        assertThat(routeAlerts)
             .filteredOn(alert -> alert.impactKind() == AlertImpactKind.DELAY)
             .extracting(NormalizedRouteAlert::direction)
             .contains(AlertDirection.BIDIRECTIONAL, AlertDirection.SOUTHBOUND);
+        assertThat(routeAlerts)
+            .filteredOn(alert -> alert.sourceId().equals("scenario-delay-line-2-main-street-kennedy"))
+            .singleElement()
+            .satisfies(alert -> {
+                assertThat(alert.startStationId()).isEqualTo("main-street");
+                assertThat(alert.endStationId()).isEqualTo("kennedy");
+                assertThat(alert.stationIds()).containsExactly("main-street", "victoria-park", "warden", "kennedy");
+                assertThat(alert.impactKind()).isEqualTo(AlertImpactKind.DELAY);
+                assertThat(alert.direction()).isEqualTo(AlertDirection.BIDIRECTIONAL);
+            });
+        assertThat(routeAlerts)
+            .filteredOn(alert -> alert.sourceId().equals("scenario-active-line-1-dupont-cedarvale"))
+            .singleElement()
+            .satisfies(alert -> {
+                assertThat(alert.startStationId()).isEqualTo("dupont");
+                assertThat(alert.endStationId()).isEqualTo("cedarvale");
+                assertThat(alert.stationIds()).containsExactly("dupont", "st-clair-west", "cedarvale");
+                assertThat(alert.impactKind()).isEqualTo(AlertImpactKind.SUSPENSION);
+                assertThat(alert.direction()).isEqualTo(AlertDirection.BIDIRECTIONAL);
+            });
+        assertThat(routeAlerts)
+            .filteredOn(alert -> alert.sourceId().equals("scenario-active-line-1-king-union"))
+            .singleElement()
+            .satisfies(alert -> {
+                assertThat(alert.startStationId()).isEqualTo("king");
+                assertThat(alert.endStationId()).isEqualTo("union");
+                assertThat(alert.stationIds()).containsExactly("king", "union");
+                assertThat(alert.impactKind()).isEqualTo(AlertImpactKind.SUSPENSION);
+                assertThat(alert.direction()).isEqualTo(AlertDirection.SOUTHBOUND);
+            });
+        assertThat(routeAlerts)
+            .noneMatch(alert -> alert.sourceId().equals("scenario-active-line-1-st-andrew-union"));
+        assertThat(routeAlerts)
+            .filteredOn(alert -> alert.sourceId().equals("scenario-delay-line-1-union-st-andrew"))
+            .singleElement()
+            .satisfies(alert -> {
+                assertThat(alert.startStationId()).isEqualTo("union");
+                assertThat(alert.endStationId()).isEqualTo("st-andrew");
+                assertThat(alert.stationIds()).containsExactly("union", "st-andrew");
+                assertThat(alert.impactKind()).isEqualTo(AlertImpactKind.DELAY);
+                assertThat(alert.direction()).isEqualTo(AlertDirection.NORTHBOUND);
+            });
         assertThat(routeAlerts)
             .filteredOn(alert -> alert.sourceId().equals("scenario-station-node-jane-overlap"))
             .singleElement()

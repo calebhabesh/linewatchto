@@ -25,15 +25,15 @@ describe("asset-backed map layering", () => {
   });
 
   it("renders animated visual effects for delays, closures, and station impacts", () => {
-    assert.match(interactiveMapSource, /<pattern id="suspension-hash"/);
+    assert.match(interactiveMapSource, /<pattern id="badge-suspension-hash"/);
     assert.match(interactiveMapSource, /className="rsz-chevron"/);
     assert.match(interactiveMapSource, /d="M -12 -10 L 8 0 L -12 10"/);
     assert.match(globalCss, /@keyframes chevron-slide/);
     assert.match(interactiveMapSource, /mask=\{\`url\(#\$\{segment\.id\}-mask\)\`\}/);
     assert.match(interactiveMapSource, /className="asset-alert-path delay-candy pointer-events-none"/);
     assert.match(interactiveMapSource, /style=\{\{\s*pointerEvents:\s*"none",\s*stroke:\s*chevronBg\s*\}\}/);
-    assert.match(interactiveMapSource, /className="asset-alert-path suspension-candy pointer-events-none"/);
-    assert.match(interactiveMapSource, /style=\{\{\s*pointerEvents:\s*"none",\s*stroke:\s*"url\(#suspension-hash\)"\s*\}\}/);
+    assert.match(interactiveMapSource, /StaticSuspensionStripeLane/);
+    assert.match(interactiveMapSource, /className="asset-alert-path suspension-candy suspension-solid pointer-events-none"/);
     assert.match(globalCss, /@keyframes station-selected-pulse/);
     assert.match(globalCss, /@keyframes aura-pulse/);
     assert.match(globalCss, /\.asset-alert-path-glow\.delay\s*\{[^}]*animation:\s*aura-pulse 1\.2s infinite alternate ease-in-out;/s);
@@ -83,6 +83,23 @@ describe("asset-backed map layering", () => {
     assert.match(globalCss, /\.rsz-chevron-lanes\s*\{[^}]*overflow:\s*visible;/s);
   });
 
+  it("rotates delay hourglass glyphs with the sampled path tangent", () => {
+    const laneStart = interactiveMapSource.indexOf("function AnimatedHourglassLane(");
+    const laneEnd = interactiveMapSource.indexOf("function OverlaySegment(", laneStart);
+    const laneBlock = interactiveMapSource.slice(laneStart, laneEnd);
+
+    assert.ok(laneStart > -1, "AnimatedHourglassLane must exist");
+    assert.ok(laneEnd > laneStart, "AnimatedHourglassLane block must end before OverlaySegment");
+    assert.doesNotMatch(
+      laneBlock,
+      /Math\.abs\(i\)\s*%\s*2\s*===\s*0\s*\?\s*""\s*:\s*` rotate\(\$\{angle\}\)`/,
+    );
+    assert.match(
+      laneBlock,
+      /`translate\(\$\{p\.x \+ offsetX\} \$\{p\.y \+ offsetY\}\) rotate\(\$\{angle\}\)`/,
+    );
+  });
+
   it("keeps all pulse and glow animations on one shared phase", () => {
     assert.match(globalCss, /--map-pulse-offset/);
     assert.match(globalCss, /\.asset-alert-path-glow\s*\{[^}]*animation-delay:\s*var\(--map-pulse-offset\);/s);
@@ -106,6 +123,23 @@ describe("asset-backed map layering", () => {
     assert.match(interactiveMapSource, /AnimatedSuspensionLane/);
     assert.match(interactiveMapSource, /circle cx="12" cy="12" r="10\.5"/);
     assert.match(interactiveMapSource, /stroke="#ffffff"/);
+  });
+
+  it("renders bidirectional suspension stripes as path-local static glyphs", () => {
+    const branchStart = interactiveMapSource.indexOf('{visualState === "suspension"');
+    const suspensionStart = interactiveMapSource.indexOf('travelDirection === "bidirectional" ? (', branchStart);
+    const suspensionEnd = interactiveMapSource.indexOf(') : (', suspensionStart);
+    const suspensionBlock = interactiveMapSource.slice(suspensionStart, suspensionEnd);
+
+    assert.ok(branchStart > -1, "suspension overlay branch must exist");
+    assert.ok(suspensionStart > -1, "bidirectional suspension overlay branch must exist");
+    assert.ok(suspensionEnd > suspensionStart, "bidirectional suspension branch should end before one-way branch");
+    assert.match(suspensionBlock, /<StaticSuspensionStripeLane/);
+    assert.match(suspensionBlock, /mask=\{`url\(#\$\{segment\.id\}-suspension-static-mask\)`\}/);
+    assert.doesNotMatch(suspensionBlock, /stroke:\s*"url\(#suspension-hash\)"/);
+    assert.match(interactiveMapSource, /rotate\(\$\{point\.angle\}\)/);
+    assert.match(globalCss, /\.suspension-static-stripe\s*\{[^}]*stroke:\s*#ffffff;/s);
+    assert.match(globalCss, /\.suspension-static-stripe\s*\{[^}]*stroke-width:\s*17;/s);
   });
 
   it("prioritizes active disruption overlays by type and renders planned previews underneath", () => {

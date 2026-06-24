@@ -4,7 +4,7 @@
     {
       "name": "all-alert-types",
       "file": "all-alert-types.json",
-      "routeCount": 15,
+      "routeCount": 18,
       "accessibilityCount": 2,
       "impactKinds": [
         "suspension",
@@ -36,7 +36,8 @@
         "escalator"
       ],
       "guidePathIds": [
-        "seg-line-1-st-andrew-union"
+        "seg-line-1-st-andrew-union",
+        "seg-line-1-union-king"
       ]
     },
     {

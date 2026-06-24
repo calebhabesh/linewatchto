@@ -379,9 +379,12 @@ export function SiteGuideDropdown({ onOpenChange }: { onOpenChange?: (open: bool
                 <OverlayGuideRow
                   icon={<AlertTriangle size={16} className="text-red-500" />}
                   title="Station Impact Ring"
-                  text="Gold ring with a red glow highlights station-specific alerts."
+                  text="Gold ring with a red inner circle highlights station-specific alerts. One direction displays a single arrow inside, while both ways shows arrows in opposite directions."
                   previews={
-                    <OverlayAssetPreview fileName="station-ring.svg" label="Station Ring" />
+                    <>
+                      <OverlayAssetPreview fileName="station-ring-arrow.svg" label="One Way" className="station-ring-preview" />
+                      <OverlayAssetPreview fileName="station-ring-two-way-arrow.svg" label="Both Ways" className="station-ring-preview" />
+                    </>
                   }
                 />
                 <OverlayGuideRow

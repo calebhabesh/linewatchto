@@ -19,7 +19,8 @@ const infoOverlayAssetNames = [
   "1-way-rsz.svg",
   "2-way-rsz.svg",
   "info-upcoming-closure.svg",
-  "station-ring.svg",
+  "station-ring-arrow.svg",
+  "station-ring-two-way-arrow.svg",
   "info-overlapping-marker.svg",
 ];
 
@@ -54,21 +55,23 @@ describe("site guide dropdown", () => {
   });
 
   it("keeps the station impact ring preview compact with the original circle structure", () => {
-    const stationRingAsset = readFileSync(
-      new URL("../public/assets/linewatch/info-map-overlays/station-ring.svg", import.meta.url),
-      "utf8",
-    );
+    for (const fileName of ["station-ring-arrow.svg", "station-ring-two-way-arrow.svg"]) {
+      const asset = readFileSync(
+        new URL(`../public/assets/linewatch/info-map-overlays/${fileName}`, import.meta.url),
+        "utf8",
+      );
 
-    assert.match(stationRingAsset, /viewBox="0 0 88 30"/);
-    assert.match(stationRingAsset, /id="path1"[\s\S]*inkscape:label="inner-circle"/);
-    assert.match(stationRingAsset, /id="path2"[\s\S]*inkscape:label="golden-outer-ring"/);
-    assert.match(stationRingAsset, /id="path1"[\s\S]*fill:#ef4444/);
-    assert.match(stationRingAsset, /id="path1"[\s\S]*stroke:#000000/);
-    assert.match(stationRingAsset, /id="path2"[\s\S]*stroke:#facc15/);
-    assert.doesNotMatch(stationRingAsset, /station-ring-gold-halo/);
-    assert.doesNotMatch(stationRingAsset, /station-ring-red-glow/);
-    assert.doesNotMatch(stationRingAsset, /station-ring-static-pulse/);
-    assert.doesNotMatch(stationRingAsset, /<animate\b/);
+      assert.match(asset, /viewBox="0 0 31\.637878 31\.637878"/);
+      assert.match(asset, /id="path1"[\s\S]*inkscape:label="inner-circle"/);
+      assert.match(asset, /id="path2"[\s\S]*inkscape:label="golden-outer-ring"/);
+      assert.match(asset, /fill:#ffffff/);
+      assert.match(asset, /stroke:#000000/);
+      assert.match(asset, /stroke:#facc15/);
+      assert.doesNotMatch(asset, /station-ring-gold-halo/);
+      assert.doesNotMatch(asset, /station-ring-red-glow/);
+      assert.doesNotMatch(asset, /station-ring-static-pulse/);
+      assert.doesNotMatch(asset, /<animate\b/);
+    }
   });
 
   it("renders after the ingestion log and theme buttons in the top-right map rail", () => {

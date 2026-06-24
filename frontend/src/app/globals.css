@@ -921,6 +921,19 @@ button {
   transition: none !important;
 }
 
+.suspension-static-stripe-lane {
+  overflow: visible;
+}
+
+.suspension-static-stripe {
+  fill: none;
+  opacity: 0.94;
+  stroke: #ffffff;
+  stroke-linecap: butt;
+  stroke-linejoin: round;
+  stroke-width: 17;
+}
+
 .asset-alert-path-glow.delay {
   stroke: rgba(254, 236, 65, 0.7); /* Orange aura for delays */
   animation: aura-pulse 1.2s infinite alternate ease-in-out;
@@ -1148,6 +1161,7 @@ button {
 
 .delay-hourglass-mask-path,
 .suspension-mask-path,
+.suspension-static-stripe,
 .rsz-chevron,
 .station-hit-target,
 .station-hover-indicator,
@@ -5531,6 +5545,10 @@ button {
 
 .site-guide-overlay-asset.overlap-badge-preview {
   max-width: 78px;
+}
+
+.site-guide-overlay-asset.station-ring-preview {
+  max-width: 32px;
 }
 
 .site-guide-overlay-copy em {
