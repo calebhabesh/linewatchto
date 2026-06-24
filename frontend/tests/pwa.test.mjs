@@ -18,6 +18,7 @@ const appUpdatePageUrl = new URL("../public/app-update.html", import.meta.url);
 const localAppResetUrl = new URL("../src/app/local-app-reset.ts", import.meta.url);
 const versionRouteUrl = new URL("../src/app/version.json/route.ts", import.meta.url);
 const devResetPageUrl = new URL("../public/dev-reset.html", import.meta.url);
+const prodBuildPushSource = readFileSync(new URL("../../scripts/prod-build-push.sh", import.meta.url), "utf8");
 
 const iconSpecs = [
   {
@@ -796,12 +797,15 @@ describe("LineWatch PWA configuration", () => {
     assert.match(versionRouteSource, /dynamic\s*=\s*"force-dynamic"/);
   });
 
-  it("mounts an app update banner that compares the baked build label to the version endpoint", () => {
+  it("mounts an app update banner that compares the baked release identity to the version endpoint", () => {
     assert.equal(existsSync(appUpdateBannerUrl), true, "AppUpdateBanner should exist");
     const appUpdateBannerSource = readFileSync(appUpdateBannerUrl, "utf8");
 
     assert.match(layoutSource, /<AppUpdateBanner \/>/);
+    assert.match(appUpdateBannerSource, /lineWatchAppVersion/);
     assert.match(appUpdateBannerSource, /lineWatchBuildLabel/);
+    assert.match(appUpdateBannerSource, /shouldShowAppUpdate/);
+    assert.match(appUpdateBannerSource, /appUpdateReleaseKey/);
     assert.match(appUpdateBannerSource, /\/version\.json/);
     assert.match(appUpdateBannerSource, /cache:\s*"no-store"/);
     assert.match(appUpdateBannerSource, /New version available/);
@@ -809,7 +813,8 @@ describe("LineWatch PWA configuration", () => {
     assert.match(appUpdateBannerSource, /Update now/);
     assert.match(appUpdateBannerSource, /Later/);
     assert.match(appUpdateBannerSource, /sessionStorage/);
-    assert.match(appUpdateBannerSource, /linewatch-dismissed-update-build/);
+    assert.match(appUpdateBannerSource, /linewatch-dismissed-update-release/);
+    assert.doesNotMatch(appUpdateBannerSource, /linewatch-dismissed-update-build/);
     assert.doesNotMatch(appUpdateBannerSource, /Installed:/);
     assert.doesNotMatch(appUpdateBannerSource, /Latest:/);
     assert.match(appUpdateBannerSource, /reloadLineWatchAppForUpdate/);
@@ -817,6 +822,13 @@ describe("LineWatch PWA configuration", () => {
     assert.match(appUpdateBannerSource, /disabled=\{isUpdating\}/);
     assert.match(appUpdateBannerSource, /visibilitychange/);
     assert.match(appUpdateBannerSource, /setInterval/);
+  });
+
+  it("builds production frontend images from the package app version", () => {
+    assert.match(prodBuildPushSource, /FRONTEND_APP_VERSION/);
+    assert.match(prodBuildPushSource, /frontend\/package\.json/);
+    assert.match(prodBuildPushSource, /NEXT_PUBLIC_LINEWATCH_APP_VERSION=\$FRONTEND_APP_VERSION/);
+    assert.doesNotMatch(prodBuildPushSource, /NEXT_PUBLIC_LINEWATCH_APP_VERSION=0\.1\.0/);
   });
 
   it("routes app updates through a dedicated no-cache refresh page", async () => {

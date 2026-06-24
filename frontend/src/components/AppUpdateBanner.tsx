@@ -2,16 +2,20 @@
 
 import { RefreshCcw } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
-import { lineWatchBuildLabel } from "../app/app-build";
+import { lineWatchAppVersion, lineWatchBuildLabel } from "../app/app-build";
+import {
+  appUpdateReleaseKey,
+  shouldShowAppUpdate,
+  type AppUpdateVersion,
+} from "../app/app-update-version";
 import { reloadLineWatchAppForUpdate } from "../app/local-app-reset";
 
 const UPDATE_CHECK_INTERVAL_MS = 30 * 60 * 1000;
-const DISMISSED_UPDATE_BUILD_STORAGE_KEY = "linewatch-dismissed-update-build";
+const DISMISSED_UPDATE_RELEASE_STORAGE_KEY = "linewatch-dismissed-update-release";
 
-type VersionPayload = {
-  appVersion?: string;
-  buildLabel?: string;
-  versionLabel?: string;
+const installedVersion = {
+  appVersion: lineWatchAppVersion,
+  buildLabel: lineWatchBuildLabel,
 };
 
 function updateCheckUrl() {
@@ -21,11 +25,11 @@ function updateCheckUrl() {
 }
 
 export function AppUpdateBanner() {
-  const [latestVersion, setLatestVersion] = useState<VersionPayload | null>(null);
-  const [dismissedBuildLabel, setDismissedBuildLabel] = useState<string | null>(() => {
+  const [latestVersion, setLatestVersion] = useState<AppUpdateVersion | null>(null);
+  const [dismissedReleaseKey, setDismissedReleaseKey] = useState<string | null>(() => {
     if (typeof window === "undefined") return null;
     try {
-      return window.sessionStorage.getItem(DISMISSED_UPDATE_BUILD_STORAGE_KEY);
+      return window.sessionStorage.getItem(DISMISSED_UPDATE_RELEASE_STORAGE_KEY);
     } catch {
       return null;
     }
@@ -42,16 +46,16 @@ export function AppUpdateBanner() {
       });
       if (!response.ok) return;
 
-      const body = await response.json() as VersionPayload;
-      if (body.buildLabel && body.buildLabel !== lineWatchBuildLabel) {
+      const body = await response.json() as AppUpdateVersion;
+      if (shouldShowAppUpdate(body, installedVersion)) {
         setLatestVersion(body);
         return;
       }
 
       setLatestVersion(null);
-      setDismissedBuildLabel(null);
+      setDismissedReleaseKey(null);
       try {
-        window.sessionStorage.removeItem(DISMISSED_UPDATE_BUILD_STORAGE_KEY);
+        window.sessionStorage.removeItem(DISMISSED_UPDATE_RELEASE_STORAGE_KEY);
       } catch {
         // Update checks are best-effort and should never interrupt the dashboard.
       }
@@ -98,18 +102,20 @@ export function AppUpdateBanner() {
   }, [isUpdating]);
 
   const handleLater = useCallback(() => {
-    const buildLabel = latestVersion?.buildLabel || null;
-    setDismissedBuildLabel(buildLabel);
+    const releaseKey = latestVersion ? appUpdateReleaseKey(latestVersion) : null;
+    setDismissedReleaseKey(releaseKey);
     try {
-      if (buildLabel) {
-        window.sessionStorage.setItem(DISMISSED_UPDATE_BUILD_STORAGE_KEY, buildLabel);
+      if (releaseKey) {
+        window.sessionStorage.setItem(DISMISSED_UPDATE_RELEASE_STORAGE_KEY, releaseKey);
       }
     } catch {
       // Dismissal is a convenience; storage failures should not block the UI.
     }
-  }, [latestVersion?.buildLabel]);
+  }, [latestVersion]);
 
-  if (!latestVersion?.buildLabel || latestVersion.buildLabel === dismissedBuildLabel) {
+  const latestReleaseKey = latestVersion ? appUpdateReleaseKey(latestVersion) : null;
+
+  if (!latestReleaseKey || latestReleaseKey === dismissedReleaseKey) {
     return null;
   }
 

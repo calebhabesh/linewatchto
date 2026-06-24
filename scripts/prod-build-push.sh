@@ -18,6 +18,7 @@ fi
 SHA="${LINEWATCH_RELEASE_SHA:-$(git -C "$ROOT_DIR" rev-parse HEAD)}"
 linewatch_validate_image_tag "$SHA"
 SHORT_SHA="${SHA:0:12}"
+FRONTEND_APP_VERSION="${LINEWATCH_APP_VERSION:-$(node -e 'const { readFileSync } = require("node:fs"); const packageJsonPath = process.argv[1]; process.stdout.write(JSON.parse(readFileSync(packageJsonPath, "utf8")).version || "1.0.0");' "$ROOT_DIR/frontend/package.json")}"
 
 "$DOCKER_BIN" info > /dev/null
 "$DOCKER_BIN" buildx version > /dev/null
@@ -53,7 +54,7 @@ build_and_push() {
 build_and_push backend "$ROOT_DIR/backend/Dockerfile" "$ROOT_DIR"
 build_and_push postgres "$ROOT_DIR/infra/postgres/Dockerfile" "$ROOT_DIR"
 build_and_push frontend "$ROOT_DIR/frontend/Dockerfile" "$ROOT_DIR/frontend" \
-  --build-arg "NEXT_PUBLIC_LINEWATCH_APP_VERSION=0.1.0" \
+  --build-arg "NEXT_PUBLIC_LINEWATCH_APP_VERSION=$FRONTEND_APP_VERSION" \
   --build-arg "NEXT_PUBLIC_LINEWATCH_BUILD_LABEL=prod-$SHORT_SHA" \
   --build-arg "NEXT_PUBLIC_LINEWATCH_SUPPORT_URL=${NEXT_PUBLIC_LINEWATCH_SUPPORT_URL:-}"
 
