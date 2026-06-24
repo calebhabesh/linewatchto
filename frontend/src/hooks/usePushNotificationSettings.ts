@@ -191,7 +191,7 @@ export function usePushNotificationSettings(accountState: AccountState): UsePush
       });
       setSubscribed(true);
       setSubscriptionChecked(true);
-      setMessage("Push for this browser is enabled.");
+      setMessage(null);
     } catch (err) {
       console.error("Failed to enable notifications", err);
       setSubscribed(false);
@@ -214,7 +214,7 @@ export function usePushNotificationSettings(accountState: AccountState): UsePush
       }
       setSubscribed(false);
       setSubscriptionChecked(true);
-      setMessage("Push for this browser is disabled.");
+      setMessage(null);
     } catch (err) {
       console.error("Failed to disable notifications", err);
       setSubscriptionChecked(true);

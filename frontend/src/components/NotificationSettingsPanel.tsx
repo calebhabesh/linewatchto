@@ -88,7 +88,16 @@ export function NotificationSettingsPanel({
   } = pushSettings;
 
   const statusMessage = useMemo(() => {
-    if (message) return message;
+    if (message) {
+      if (
+        message === "Push for this browser is enabled." ||
+        message === "Push for this browser is disabled." ||
+        message === "Push for this browser is off."
+      ) {
+        return null;
+      }
+      return message;
+    }
     switch (browserStatus) {
       case "unsupported":
         return "Push unavailable on this browser.";
@@ -99,9 +108,7 @@ export function NotificationSettingsPanel({
       case "checking":
         return "Checking push support...";
       case "off":
-        return "Push for this browser is off.";
       case "on":
-        return "Push for this browser is enabled.";
       default:
         return null;
     }
