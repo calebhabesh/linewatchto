@@ -54,6 +54,10 @@ describe("mobile bottom sheet UX", () => {
     assert.match(moreSheetSource, /Sign In/);
     assert.match(moreSheetSource, /Create Account/);
     assert.match(moreSheetSource, /Demo Account/);
+    assert.match(moreSheetSource, /onLinkGoogleAccount/);
+    assert.match(moreSheetSource, /googleLinked/);
+    assert.match(moreSheetSource, /Google Linked/);
+    assert.match(moreSheetSource, /Link Google/);
     assert.match(moreSheetSource, /lineWatchAppVersionLabel/);
     assert.match(moreSheetSource, /mobile-more-build-label/);
     assert.match(moreSheetSource, /High Contrast Mode/);

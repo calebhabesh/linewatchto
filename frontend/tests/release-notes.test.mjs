@@ -5,6 +5,7 @@ import { describe, it } from "node:test";
 import {
   RELEASE_NOTES_SEEN_STORAGE_KEY,
   currentReleaseNote,
+  hasReleaseNotes,
   latestReleaseNote,
   releaseNotePreviewForVersion,
   releaseNotes,
@@ -21,29 +22,26 @@ const panelUrl = new URL("../src/components/ReleaseNotesPanel.tsx", import.meta.
 const noticeUrl = new URL("../src/components/ReleaseNotesNotice.tsx", import.meta.url);
 
 describe("release notes data", () => {
-  it("keeps the latest release note aligned with the package app version", () => {
-    assert.equal(latestReleaseNote.version, packageJson.version);
-    assert.equal(currentReleaseNote?.version, packageJson.version);
-    assert.ok(releaseNotes.length >= 1);
-    assert.match(latestReleaseNote.title, /LineWatchTO|Release|What's New/i);
-    assert.ok(latestReleaseNote.summary.length > 0);
-    assert.ok(latestReleaseNote.sections.some((section) => section.items.length > 0));
+  it("does not publish release notes for the inaugural 1.0.0 package version", () => {
+    assert.equal(packageJson.version, "1.0.0");
+    assert.equal(releaseNotes.length, 0);
+    assert.equal(hasReleaseNotes, false);
+    assert.equal(latestReleaseNote, null);
+    assert.equal(currentReleaseNote, null);
+    assert.equal(releaseNotePreviewForVersion(packageJson.version), null);
     assert.doesNotMatch(JSON.stringify(releaseNotes), /Dev Notes/i);
   });
 
   it("provides a compact release-note preview for version.json and update banners", () => {
     const preview = releaseNotePreviewForVersion(packageJson.version);
 
-    assert.equal(preview?.version, packageJson.version);
-    assert.equal(preview?.title, latestReleaseNote.title);
-    assert.equal(preview?.summary, latestReleaseNote.summary);
-    assert.ok(preview?.sections.some((section) => section.items.length > 0));
+    assert.equal(preview, null);
   });
 
   it("shows the one-time notice only until the current app version has been seen", () => {
     assert.match(RELEASE_NOTES_SEEN_STORAGE_KEY, /linewatch-seen-release-notes-version/);
-    assert.equal(shouldShowReleaseNotesNotice(currentReleaseNote, null), true);
-    assert.equal(shouldShowReleaseNotesNotice(currentReleaseNote, ""), true);
+    assert.equal(shouldShowReleaseNotesNotice(currentReleaseNote, null), false);
+    assert.equal(shouldShowReleaseNotesNotice(currentReleaseNote, ""), false);
     assert.equal(shouldShowReleaseNotesNotice(currentReleaseNote, packageJson.version), false);
     assert.equal(shouldShowReleaseNotesNotice(null, packageJson.version), false);
   });
@@ -66,12 +64,14 @@ describe("release notes UI wiring", () => {
     assert.match(shellSource, /ReleaseNotesPanel/);
     assert.match(shellSource, /ReleaseNotesNotice/);
     assert.match(shellSource, /panel=release-notes/);
+    assert.match(shellSource, /hasReleaseNotes/);
   });
 
   it("adds release notes to desktop, mobile More, and update surfaces", () => {
     assert.match(shellSource, /setActiveView\("release-notes"\)/);
     assert.match(shellSource, /What's New/);
     assert.match(moreSheetSource, /onOpenReleaseNotes/);
+    assert.match(moreSheetSource, /hasReleaseNotes/);
     assert.match(moreSheetSource, /What's New/);
     assert.match(appUpdateBannerSource, /releaseNote/);
     assert.match(appUpdateBannerSource, /View changes/);

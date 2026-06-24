@@ -48,6 +48,15 @@ describe("account UI source", () => {
     assert.match(shellSource, /nextParams\.delete\("account_error"\)/);
   });
 
+  it("uses a clean success return path for Google account linking", () => {
+    assert.match(shellSource, /GOOGLE_LINK_SUCCESS_PARAM/);
+    assert.match(shellSource, /GOOGLE_LINK_SUCCESS_VALUE/);
+    assert.match(shellSource, /params\.get\(GOOGLE_LINK_SUCCESS_PARAM\)/);
+    assert.match(shellSource, /setAccountSuccessMessage\("Google sign-in has been linked to your account\."\)/);
+    assert.match(shellSource, /nextParams\.delete\("account_error"\)/);
+    assert.match(shellSource, /returnTo=\{googleLinkSuccessReturnTo\(\)\}/);
+  });
+
   it("renders signed-out, demo, and account-backed saved commute states", () => {
     assert.match(savedCommutesSource, /accountState/);
     assert.match(savedCommutesSource, /accountCommutes/);

@@ -86,6 +86,7 @@ import {
 import { GoogleSignInButton } from "./GoogleSignInButton";
 import { accountOAuthErrorState } from "../app/account-oauth-error";
 import { normalizeAccountEmail, validateAccountCredentials } from "../app/account-validation";
+import { hasReleaseNotes } from "../app/release-notes";
 
 
 type ActiveView = "map" | "menu" | "search" | "status" | "alerts" | "delays" | "reduced-speed-zones" | "closures" | "commutes" | "notifications" | "analytics" | "more" | "accessibility-outages" | "surface-notices" | "alert-history" | "feedback" | "privacy-acknowledgements" | "release-notes";
@@ -94,6 +95,9 @@ type AccountEntryIntent = "login" | "register";
 
 const DEFAULT_DASHBOARD_REFRESH_MS = 5_000;
 const MIN_DASHBOARD_REFRESH_MS = 2_000;
+const GOOGLE_LINK_SUCCESS_PARAM = "account_linked";
+const GOOGLE_LINK_SUCCESS_VALUE = "google";
+const GOOGLE_LINK_SUCCESS_MESSAGE = "Google sign-in has been linked to your account.";
 
 function dashboardRefreshIntervalMs() {
   const configured = Number(process.env.NEXT_PUBLIC_LINEWATCH_DASHBOARD_REFRESH_MS);
@@ -109,6 +113,25 @@ function replaceBrowserSearchParams(params: URLSearchParams) {
   const search = params.toString();
   const nextUrl = `${window.location.pathname}${search ? `?${search}` : ""}${window.location.hash}`;
   window.history.replaceState(null, "", nextUrl);
+}
+
+function currentBrowserLocalPath() {
+  if (typeof window === "undefined") {
+    return "/";
+  }
+  return `${window.location.pathname}${window.location.search}${window.location.hash}`;
+}
+
+function googleLinkSuccessReturnTo() {
+  const currentPath = currentBrowserLocalPath();
+  if (!currentPath.startsWith("/") || currentPath.startsWith("//") || currentPath.includes("\n") || currentPath.includes("\r")) {
+    return `/?${GOOGLE_LINK_SUCCESS_PARAM}=${GOOGLE_LINK_SUCCESS_VALUE}`;
+  }
+
+  const url = new URL(currentPath, "https://linewatch.local");
+  url.searchParams.delete("account_error");
+  url.searchParams.set(GOOGLE_LINK_SUCCESS_PARAM, GOOGLE_LINK_SUCCESS_VALUE);
+  return `${url.pathname}${url.search}${url.hash}`;
 }
 
 export function LineWatchShell({
@@ -279,6 +302,7 @@ export function LineWatchShell({
   const [accountDevResetToken, setAccountDevResetToken] = useState<string | null>(null);
   const [accountDisplayName, setAccountDisplayName] = useState("");
   const [accountError, setAccountError] = useState<string | null>(null);
+  const [accountSuccessMessage, setAccountSuccessMessage] = useState<string | null>(null);
   const [accountBusy, setAccountBusy] = useState(false);
   const [accountCommutes, setAccountCommutes] = useState<AccountSavedCommute[]>([]);
   const [commutePathPreview, setCommutePathPreview] = useState<AccountCommutePathPreview | null>(null);
@@ -349,17 +373,28 @@ export function LineWatchShell({
     const nextParams = new URLSearchParams(params);
     let shouldReplaceUrl = false;
 
-    const accountErrorCode = params.get("account_error");
-    if (accountErrorCode !== null) {
-      const oauthErrorState = accountOAuthErrorState(accountErrorCode);
-      if (oauthErrorState) {
-        // eslint-disable-next-line react-hooks/set-state-in-effect
-        setAccountEntryIntent(oauthErrorState.entryIntent);
-        setAccountDialogMode(oauthErrorState.dialogMode);
-        setAccountError(oauthErrorState.message);
-      }
+    const accountLinkedValue = params.get(GOOGLE_LINK_SUCCESS_PARAM);
+    if (accountLinkedValue === GOOGLE_LINK_SUCCESS_VALUE) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setAccountDialogMode("link-google");
+      setAccountError(null);
+      setAccountSuccessMessage("Google sign-in has been linked to your account.");
       nextParams.delete("account_error");
+      nextParams.delete(GOOGLE_LINK_SUCCESS_PARAM);
       shouldReplaceUrl = true;
+    } else {
+      const accountErrorCode = params.get("account_error");
+      if (accountErrorCode !== null) {
+        const oauthErrorState = accountOAuthErrorState(accountErrorCode);
+        if (oauthErrorState) {
+          setAccountEntryIntent(oauthErrorState.entryIntent);
+          setAccountDialogMode(oauthErrorState.dialogMode);
+          setAccountError(oauthErrorState.message);
+          setAccountSuccessMessage(null);
+        }
+        nextParams.delete("account_error");
+        shouldReplaceUrl = true;
+      }
     }
 
     const panel = params.get("panel");
@@ -371,8 +406,10 @@ export function LineWatchShell({
       closures: "closures",
       commutes: "commutes",
       notifications: "notifications",
-      "release-notes": "release-notes",
     };
+    if (hasReleaseNotes) {
+      panelToView["release-notes"] = "release-notes";
+    }
     if (panel && panelToView[panel]) {
       setActiveView(panelToView[panel]);
       nextParams.delete("panel");
@@ -421,6 +458,7 @@ export function LineWatchShell({
     setAccountResetMessage(null);
     setAccountDevResetToken(null);
     setAccountError(null);
+    setAccountSuccessMessage(null);
   };
 
   const openAuthChoice = (intent: AccountEntryIntent) => {
@@ -431,7 +469,13 @@ export function LineWatchShell({
 
   const openEmailAuth = () => {
     setAccountError(null);
+    setAccountSuccessMessage(null);
     setAccountDialogMode(accountEntryIntent);
+  };
+
+  const openGoogleLinkDialog = () => {
+    resetAccountForm();
+    setAccountDialogMode("link-google");
   };
 
   const accountDialogTitle = () => {
@@ -502,6 +546,7 @@ export function LineWatchShell({
 
     setAccountBusy(true);
     setAccountError(null);
+    setAccountSuccessMessage(null);
     try {
       const normalizedEmail = validation.normalizedEmail;
       const response = accountDialogMode === "login"
@@ -632,11 +677,12 @@ export function LineWatchShell({
   const handleLinkGoogleCredential = async (credential: string) => {
     setAccountBusy(true);
     setAccountError(null);
+    setAccountSuccessMessage(null);
     try {
       const response = await linkGoogleAccount({ credential });
       setAccountState({ source: "backend", authenticated: response.authenticated, user: response.user });
-      setAccountDialogMode(null);
-      resetAccountForm();
+      setAccountDialogMode("link-google");
+      setAccountSuccessMessage(GOOGLE_LINK_SUCCESS_MESSAGE);
     } catch (error) {
       if (error instanceof AccountRequestError) {
         setAccountError(error.message);
@@ -1236,6 +1282,8 @@ export function LineWatchShell({
             onRequestCreateAccount={() => openAuthChoice("register")}
             onDemoAccount={handleDemoAccount}
             onSignOut={handleSignOut}
+            googleSignInAvailable={authConfig.googleSignInAvailable}
+            onLinkGoogleAccount={openGoogleLinkDialog}
             onToggleHighContrast={() => setHighContrast((current) => !current)}
             onToggleReducedMotion={() => setReducedMotion((current) => !current)}
             onOpenNotifications={() => setActiveView("notifications")}
@@ -1424,6 +1472,8 @@ export function LineWatchShell({
           onRequestCreateAccount={() => openAuthChoice("register")}
           onDemoAccount={handleDemoAccount}
           onSignOut={handleSignOut}
+          googleSignInAvailable={authConfig.googleSignInAvailable}
+          onLinkGoogleAccount={openGoogleLinkDialog}
           onToggleHighContrast={() => setHighContrast((current) => !current)}
           onToggleReducedMotion={() => setReducedMotion((current) => !current)}
           onOpenNotifications={() => setActiveView("notifications")}
@@ -1622,10 +1672,7 @@ export function LineWatchShell({
                             ref={registerMenuAction(actionIndex++)}
                             role="menuitem"
                             type="button"
-                            onClick={() => {
-                              resetAccountForm();
-                              setAccountDialogMode("link-google");
-                            }}
+                            onClick={openGoogleLinkDialog}
                             className="menu-action-row"
                             disabled={accountBusy}
                           >
@@ -1883,15 +1930,17 @@ export function LineWatchShell({
                  >
                    <FileText size={18} className="text-slate-500 dark:text-slate-400" /> Privacy & Acknowledgements
                  </button>
-                 <button
-                   ref={registerMenuAction(actionIndex++)}
-                   role="menuitem"
-                   onClick={() => setActiveView("release-notes")}
-                   aria-current={activeView === "release-notes" ? "page" : undefined}
-                   className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
-                 >
-                   <Sparkles size={18} className="text-slate-500 dark:text-slate-400" /> {"What's New"}
-                 </button>
+                 {hasReleaseNotes ? (
+                   <button
+                     ref={registerMenuAction(actionIndex++)}
+                     role="menuitem"
+                     onClick={() => setActiveView("release-notes")}
+                     aria-current={activeView === "release-notes" ? "page" : undefined}
+                     className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
+                   >
+                     <Sparkles size={18} className="text-slate-500 dark:text-slate-400" /> {"What's New"}
+                   </button>
+                 ) : null}
                </div>
 
                {/* Toggles */}
@@ -2306,19 +2355,28 @@ export function LineWatchShell({
                 </>
               ) : accountDialogMode === "link-google" ? (
                 <>
-                  <p className="account-reset-hint">
-                    Link Google sign-in to {accountState.user?.email}. The Google account email must match this LineWatch account.
-                  </p>
-                  {authConfig.googleSignInAvailable ? (
-                    <div aria-label="Link Google">
-                      <GoogleSignInButton
-                        disabled={accountBusy}
-                        mode="link"
-                        onError={setAccountError}
-                      />
+                  {accountSuccessMessage ? (
+                    <div className="account-reset-status" role="status">
+                      <p>{accountSuccessMessage}</p>
                     </div>
                   ) : (
-                    <p className="account-reset-hint">Google sign-in is not configured for this environment.</p>
+                    <>
+                      <p className="account-reset-hint">
+                        Link Google sign-in to {accountState.user?.email}. The Google account email must match this LineWatch account.
+                      </p>
+                      {authConfig.googleSignInAvailable ? (
+                        <div aria-label="Link Google">
+                          <GoogleSignInButton
+                            disabled={accountBusy}
+                            mode="link"
+                            returnTo={googleLinkSuccessReturnTo()}
+                            onError={setAccountError}
+                          />
+                        </div>
+                      ) : (
+                        <p className="account-reset-hint">Google sign-in is not configured for this environment.</p>
+                      )}
+                    </>
                   )}
                   {accountError ? (
                     <p id="account-error-live" role="alert" className="text-xs font-semibold text-red-600 dark:text-red-300">

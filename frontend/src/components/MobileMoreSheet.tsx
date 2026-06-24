@@ -1,11 +1,12 @@
 "use client";
 
-import { BarChart3, Bell, Download, FileText, LogIn, LogOut, MessageSquareText, RefreshCcw, Contrast, Pause, Sparkles, UserPlus, UserRound, X, History } from "lucide-react";
+import { BarChart3, Bell, Download, FileText, LogIn, LogOut, MessageSquareText, RefreshCcw, Contrast, Pause, ShieldCheck, Sparkles, UserPlus, UserRound, X, History } from "lucide-react";
 import Image from "next/image";
 import type { AccountState } from "../app/account-data";
 import { lineWatchAppVersionLabel } from "../app/app-build";
 import type { DashboardData } from "../app/DataContext";
 import { resetLineWatchLocalAppState } from "../app/local-app-reset";
+import { hasReleaseNotes } from "../app/release-notes";
 import { LogsDropdown } from "./LogsDropdown";
 import type { PwaInstallPlatform } from "../app/pwa-install-state";
 
@@ -21,6 +22,8 @@ type Props = {
   onRequestCreateAccount: () => void;
   onDemoAccount: () => void;
   onSignOut: () => void;
+  googleSignInAvailable: boolean;
+  onLinkGoogleAccount: () => void;
   onToggleHighContrast: () => void;
   onToggleReducedMotion: () => void;
   onOpenNotifications: () => void;
@@ -48,6 +51,8 @@ export function MobileMoreSheet({
   onRequestCreateAccount,
   onDemoAccount,
   onSignOut,
+  googleSignInAvailable,
+  onLinkGoogleAccount,
   onToggleHighContrast,
   onToggleReducedMotion,
   onOpenNotifications,
@@ -98,6 +103,19 @@ export function MobileMoreSheet({
                 <LogOut size={18} />
                 Sign Out
               </button>
+              {googleSignInAvailable && !accountState.user.demo ? (
+                accountState.user.googleLinked ? (
+                  <div className="mobile-more-row" aria-label="Google sign-in linked">
+                    <ShieldCheck size={18} className="text-emerald-600 dark:text-emerald-400" />
+                    Google Linked
+                  </div>
+                ) : (
+                  <button type="button" className="mobile-more-row" disabled={accountBusy} onClick={onLinkGoogleAccount}>
+                    <ShieldCheck size={18} className="text-slate-500 dark:text-slate-400" />
+                    Link Google
+                  </button>
+                )
+              ) : null}
             </>
           ) : (
             <>
@@ -213,10 +231,12 @@ export function MobileMoreSheet({
             <FileText size={18} className="text-slate-500 dark:text-slate-400" />
             Privacy & Acknowledgements
           </button>
-          <button type="button" className="mobile-more-row" onClick={onOpenReleaseNotes}>
-            <Sparkles size={18} className="text-slate-500 dark:text-slate-400" />
-            {"What's New"}
-          </button>
+          {hasReleaseNotes ? (
+            <button type="button" className="mobile-more-row" onClick={onOpenReleaseNotes}>
+              <Sparkles size={18} className="text-slate-500 dark:text-slate-400" />
+              {"What's New"}
+            </button>
+          ) : null}
           <LogsDropdown isMobileMore={true} />
           {canResetLocalAppCache ? (
             <button type="button" className="mobile-more-row" onClick={() => { void resetLineWatchLocalAppState(); }}>
