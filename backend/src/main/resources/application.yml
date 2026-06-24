@@ -84,6 +84,7 @@ linewatch:
   cache:
     dashboard:
       enabled: ${LINEWATCH_CACHE_DASHBOARD_ENABLED:true}
+      full-dashboard-ttl: ${LINEWATCH_CACHE_DASHBOARD_FULL_TTL:PT30S}
       status-ttl: ${LINEWATCH_CACHE_DASHBOARD_STATUS_TTL:PT30S}
       map-ttl: ${LINEWATCH_CACHE_DASHBOARD_MAP_TTL:PT30S}
       alerts-ttl: ${LINEWATCH_CACHE_DASHBOARD_ALERTS_TTL:PT30S}

@@ -6,6 +6,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties("linewatch.cache.dashboard")
 public class DashboardCacheProperties {
     private boolean enabled = true;
+    private Duration fullDashboardTtl = Duration.ofSeconds(30);
     private Duration statusTtl = Duration.ofSeconds(30);
     private Duration mapTtl = Duration.ofSeconds(30);
     private Duration alertsTtl = Duration.ofSeconds(30);
@@ -14,6 +15,8 @@ public class DashboardCacheProperties {
 
     public boolean isEnabled() { return enabled; }
     public void setEnabled(boolean enabled) { this.enabled = enabled; }
+    public Duration getFullDashboardTtl() { return fullDashboardTtl; }
+    public void setFullDashboardTtl(Duration fullDashboardTtl) { this.fullDashboardTtl = fullDashboardTtl; }
     public Duration getStatusTtl() { return statusTtl; }
     public void setStatusTtl(Duration statusTtl) { this.statusTtl = statusTtl; }
     public Duration getMapTtl() { return mapTtl; }
