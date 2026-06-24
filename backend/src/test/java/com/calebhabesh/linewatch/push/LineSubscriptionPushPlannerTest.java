@@ -33,7 +33,7 @@ class LineSubscriptionPushPlannerTest {
             List.of(),
             false,
             "TTC Live Alerts",
-            null,
+            "collision blocking the tracks",
             null
         );
 
@@ -118,6 +118,7 @@ class LineSubscriptionPushPlannerTest {
             assertThat(c.title()).isEqualTo("⚠️ Line 1 Yonge-University Suspension");
             assertThat(c.body()).isEqualTo("""
                 St George to Sheppard West.
+                Cause: Collision blocking the tracks.
                 🕗 Jun 5, 6:00 AM""");
             assertThat(c.notificationSubject()).isEqualTo("Line 1 Yonge-University Suspension");
             assertThat(c.eventLocation()).isEqualTo("St George to Sheppard West");

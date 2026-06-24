@@ -163,7 +163,7 @@ public class AlertHistoryService {
             case "southbound" -> "Southbound";
             case "eastbound" -> "Eastbound";
             case "westbound" -> "Westbound";
-            case "bidirectional" -> "Both ways";
+            case "bidirectional" -> "Both Ways";
             default -> null;
         };
     }

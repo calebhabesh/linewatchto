@@ -34,6 +34,7 @@ type Props = {
   onOpenReleaseNotes: () => void;
   notificationStatusLabel: string;
   canOfferPwaInstall: boolean;
+  canShowPwaInstallHelp: boolean;
   onDismissPwaInstall: () => void;
   onRequestPwaInstall: () => void;
   pwaInstallBusy: boolean;
@@ -63,6 +64,7 @@ export function MobileMoreSheet({
   onOpenReleaseNotes,
   notificationStatusLabel,
   canOfferPwaInstall,
+  canShowPwaInstallHelp,
   onDismissPwaInstall,
   onRequestPwaInstall,
   pwaInstallBusy,
@@ -70,6 +72,13 @@ export function MobileMoreSheet({
 }: Props) {
 
   const canResetLocalAppCache = process.env.NODE_ENV !== "production";
+  const isIosPwaInstall = pwaInstallPlatform === "ios";
+  const androidInstallHelpOnly = pwaInstallPlatform === "android-chromium" && !canOfferPwaInstall;
+  const installRowDescription = isIosPwaInstall
+    ? "Share, then Add to Home Screen."
+    : androidInstallHelpOnly
+      ? "Chrome menu, then Add to Home screen."
+      : "Open as a full-screen app.";
 
   return (
     <section className="mobile-more-sheet panel" aria-label="More LineWatchTO options">
@@ -135,29 +144,41 @@ export function MobileMoreSheet({
           )}
         </div>
 
-        {canOfferPwaInstall ? (
+        {canShowPwaInstallHelp ? (
           <div className="mobile-more-section mobile-more-install-section">
             <h3>Home screen app</h3>
-            <button
-              type="button"
-              className="mobile-more-row mobile-more-install-row"
-              disabled={pwaInstallBusy}
-              onClick={pwaInstallPlatform === "ios" ? onDismissPwaInstall : onRequestPwaInstall}
-            >
-              <Download size={18} className="text-slate-500 dark:text-slate-400" />
-              <span className="mobile-more-install-copy">
-                <span>Install LineWatchTO</span>
-                <span>
-                  {pwaInstallPlatform === "ios"
-                    ? "Share, then Add to Home Screen."
-                    : "Open as a full-screen app."}
+            {androidInstallHelpOnly ? (
+              <div className="mobile-more-row mobile-more-install-row" role="note">
+                <Download size={18} className="text-slate-500 dark:text-slate-400" />
+                <span className="mobile-more-install-copy">
+                  <span>Install LineWatchTO</span>
+                  <span>{installRowDescription}</span>
                 </span>
-              </span>
-            </button>
-            {pwaInstallPlatform === "ios" ? (
+              </div>
+            ) : (
+              <button
+                type="button"
+                className="mobile-more-row mobile-more-install-row"
+                disabled={pwaInstallBusy}
+                onClick={isIosPwaInstall ? onDismissPwaInstall : onRequestPwaInstall}
+              >
+                <Download size={18} className="text-slate-500 dark:text-slate-400" />
+                <span className="mobile-more-install-copy">
+                  <span>Install LineWatchTO</span>
+                  <span>{installRowDescription}</span>
+                </span>
+              </button>
+            )}
+            {isIosPwaInstall ? (
               <div className="mobile-more-install-help" role="note">
                 <span>iPhone Safari</span>
                 <strong>Tap Share, then Add to Home Screen.</strong>
+              </div>
+            ) : null}
+            {androidInstallHelpOnly ? (
+              <div className="mobile-more-install-help" role="note">
+                <span>Android Chrome</span>
+                <strong>Open the three-dot menu, then Add to Home screen.</strong>
               </div>
             ) : null}
           </div>
@@ -178,7 +199,11 @@ export function MobileMoreSheet({
               </div>
             </div>
             <div className="shrink-0 flex items-center">
-              {notificationStatusLabel === "On" ? (
+              {!accountState.authenticated ? (
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wide bg-blue-500 text-white dark:bg-blue-600">
+                  Sign In
+                </span>
+              ) : notificationStatusLabel === "On" ? (
                 <span className="px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wide uppercase bg-emerald-500 text-white dark:bg-emerald-600/80">
                   ON
                 </span>

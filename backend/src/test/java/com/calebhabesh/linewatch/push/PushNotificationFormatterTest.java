@@ -150,6 +150,29 @@ class PushNotificationFormatterTest {
     }
 
     @Test
+    void includesCauseWhenSourceSuppliesReason() {
+        FormattedPushNotification result = formatter.formatActive(new PushNotificationFacts(
+            "line-5",
+            "5",
+            "delay",
+            "on-change",
+            "Pharmacy to Sloan",
+            "Westbound",
+            false,
+            null,
+            null,
+            Instant.parse("2026-06-24T12:10:00Z"),
+            "collision blocking the tracks"
+        ));
+
+        assertThat(result.body()).isEqualTo("""
+            Pharmacy to Sloan.
+            Westbound.
+            Cause: Collision blocking the tracks.
+            🕗 Jun 24, 8:10 AM""");
+    }
+
+    @Test
     void usesControlledFallbacksForUnknownLineAndEvent() {
         FormattedPushNotification numbered = formatter.formatActive(new PushNotificationFacts(
             "line-3", "3", "unknown", "on-change", "Test location", null, false, null, null, null

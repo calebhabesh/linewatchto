@@ -8,10 +8,12 @@ import static org.mockito.Mockito.*;
 import com.calebhabesh.linewatch.account.AccountEntity;
 import com.calebhabesh.linewatch.account.SavedCommuteEntity;
 import com.calebhabesh.linewatch.account.SavedCommuteRepository;
+import com.calebhabesh.linewatch.ingestion.IngestionFreshness;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
@@ -24,6 +26,7 @@ class PushNotificationDispatchServiceTest {
     private final WebPushClient webPushClient = mock(WebPushClient.class);
     private final PushNotificationPreferenceService preferenceService = mock(PushNotificationPreferenceService.class);
     private final LineSubscriptionPushPlanner lineSubscriptionPushPlanner = mock(LineSubscriptionPushPlanner.class);
+    private final IngestionFreshness ingestionFreshness = mock(IngestionFreshness.class);
     private final Clock clock = Clock.fixed(Instant.parse("2026-06-05T15:00:00Z"), ZoneOffset.UTC);
     private final PushNotificationFormatter formatter = new PushNotificationFormatter();
     private final PushNotificationDispatchService service = new PushNotificationDispatchService(
@@ -36,6 +39,7 @@ class PushNotificationDispatchServiceTest {
         preferenceService,
         lineSubscriptionPushPlanner,
         formatter,
+        ingestionFreshness,
         clock
     );
 
@@ -47,6 +51,11 @@ class PushNotificationDispatchServiceTest {
         false,
         Instant.parse("2026-06-05T14:00:00Z")
     );
+
+    @BeforeEach
+    void setUp() {
+        when(ingestionFreshness.isDashboardFresh()).thenReturn(true);
+    }
 
     @Test
     void sendsNewSavedCommuteCandidateToEveryEnabledSubscriptionOnce() {
@@ -477,6 +486,37 @@ class PushNotificationDispatchServiceTest {
             Service between Finch and Union has been restored.
             🕗 Jun 5, 11:00 AM""");
         assertThat(clearedEvent.getUrl()).isEqualTo("/");
+    }
+
+    @Test
+    void doesNotSendLineWideClearedNotificationWhenDashboardIngestionIsStale() {
+        when(ingestionFreshness.isDashboardFresh()).thenReturn(false);
+        PushNotificationPreferenceEntity preferences = PushNotificationPreferenceEntity.create(account, clock.instant());
+        PushNotificationPreferenceEntity spyPrefs = spy(preferences);
+        when(spyPrefs.isLineRestoredEnabled()).thenReturn(true);
+        when(preferenceService.preferenceEntityForAccountId("user_1")).thenReturn(spyPrefs);
+
+        when(subscriptionRepository.findEnabledAccountIds()).thenReturn(List.of("user_1"));
+
+        PushNotificationCandidate previousCandidate = candidate(
+            null, null, "line-5", "5", "line-current", "delay", "on-change",
+            "line-current|line-5|delay|ttc-route-71001",
+            "user_1|line|line-5|delay|on-change|ttc-route-71001",
+            "Pharmacy to Aga Khan Park And Museum",
+            null,
+            Instant.parse("2026-06-05T14:20:00Z"),
+            "/?panel=delays"
+        );
+        PushNotificationEventEntity previousEvent = PushNotificationEventEntity.create("event-1", previousCandidate, clock.instant());
+
+        when(lineSubscriptionPushPlanner.candidatesFor(anyString(), anyList())).thenReturn(List.of());
+        when(eventRepository.findByAccountIdAndCategoryInAndNotificationState(eq("user_1"), anyList(), eq("ACTIVE")))
+            .thenReturn(List.of(previousEvent));
+
+        service.evaluateSavedCommuteNotifications();
+
+        verify(eventRepository, never()).save(any(PushNotificationEventEntity.class));
+        verify(webPushClient, never()).send(any(), any());
     }
 
     @Test

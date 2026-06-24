@@ -35,6 +35,10 @@ public class PushNotificationFormatter {
         if (facts.shuttle()) {
             bodyParts.add("Shuttle buses are running.");
         }
+        String cause = normalizeText(facts.cause());
+        if (!cause.isEmpty()) {
+            bodyParts.add("Cause: " + sentence(formatReason(cause)));
+        }
         if ("closure-24h".equals(facts.reminderBucket())) {
             bodyParts.add("Starts within 24 hours.");
         } else if ("closure-morning".equals(facts.reminderBucket())) {
@@ -150,6 +154,16 @@ public class PushNotificationFormatter {
 
     private String normalizeText(String value) {
         return value == null ? "" : value.replaceAll("\\s+", " ").trim();
+    }
+
+    private String formatReason(String value) {
+        if (value.isEmpty()) {
+            return value;
+        }
+        String normalized = value.equals(value.toUpperCase(Locale.ROOT))
+            ? value.toLowerCase(Locale.ROOT)
+            : value;
+        return normalized.substring(0, 1).toUpperCase(Locale.ROOT) + normalized.substring(1);
     }
 
     private String emptyToNull(String value) {

@@ -5,6 +5,7 @@ import { describe, it } from "node:test";
 import {
   PWA_INSTALL_DISMISS_COOLDOWN_MS,
   canOfferPwaInstall,
+  canShowPwaInstallHelp,
   detectPwaInstallPlatform,
   isStandalonePwaDisplay,
   shouldShowPwaInstallNudge,
@@ -61,6 +62,15 @@ describe("PWA install prompt state", () => {
     assert.equal(canOfferPwaInstall({ platform: "android-chromium", nativePromptAvailable: true }), true);
     assert.equal(canOfferPwaInstall({ platform: "android-chromium", nativePromptAvailable: false }), false);
     assert.equal(canOfferPwaInstall({ platform: "unsupported", nativePromptAvailable: true }), false);
+  });
+
+  it("shows install help only in supported mobile browser contexts", () => {
+    assert.equal(canShowPwaInstallHelp({ platform: "ios", isMobile: true, isStandalone: false }), true);
+    assert.equal(canShowPwaInstallHelp({ platform: "android-chromium", isMobile: true, isStandalone: false }), true);
+    assert.equal(canShowPwaInstallHelp({ platform: "ios", isMobile: true, isStandalone: true }), false);
+    assert.equal(canShowPwaInstallHelp({ platform: "android-chromium", isMobile: true, isStandalone: true }), false);
+    assert.equal(canShowPwaInstallHelp({ platform: "ios", isMobile: false, isStandalone: false }), false);
+    assert.equal(canShowPwaInstallHelp({ platform: "unsupported", isMobile: true, isStandalone: false }), false);
   });
 
   it("requires mobile browser mode, engagement, no overlay conflict, and no fresh dismissal", () => {
@@ -127,6 +137,8 @@ describe("PWA install prompt hook", () => {
     assert.match(hookSource, /appinstalled/);
     assert.match(hookSource, /linewatch-pwa-install-dismissed-at-v1/);
     assert.match(hookSource, /PWA_INSTALL_ENGAGEMENT_DELAY_MS/);
+    assert.match(hookSource, /canShowPwaInstallHelp/);
+    assert.match(hookSource, /canShowInstallHelp/);
     assert.match(hookSource, /isStandalonePwaDisplay/);
     assert.match(hookSource, /shouldShowPwaInstallNudge/);
     assert.match(hookSource, /deferredPrompt\.prompt\(\)/);
@@ -158,10 +170,13 @@ describe("PWA install entry in More sheet", () => {
 
     assert.match(moreSheetSource, /PwaInstallPlatform/);
     assert.match(moreSheetSource, /canOfferPwaInstall/);
+    assert.match(moreSheetSource, /canShowPwaInstallHelp/);
     assert.match(moreSheetSource, /onRequestPwaInstall/);
     assert.match(moreSheetSource, /Install LineWatchTO/);
     assert.match(moreSheetSource, /Home screen app/);
     assert.match(moreSheetSource, /Share, then Add to Home Screen/);
+    assert.match(moreSheetSource, /three-dot menu/);
+    assert.match(moreSheetSource, /canShowPwaInstallHelp \? \(/);
     assert.match(moreSheetSource, /mobile-more-install-help/);
   });
 });
@@ -177,6 +192,7 @@ describe("PWA install shell wiring", () => {
     assert.match(shellSource, /showPwaInstallNudge/);
     assert.match(shellSource, /!showPwaInstallNudge[\s\S]*<MobileStatusPeek/);
     assert.match(shellSource, /canOfferPwaInstall=\{pwaInstallPrompt\.canOfferInstall\}/);
+    assert.match(shellSource, /canShowPwaInstallHelp=\{pwaInstallPrompt\.canShowInstallHelp\}/);
     assert.match(shellSource, /onRequestPwaInstall=\{pwaInstallPrompt\.requestInstall\}/);
   });
 });
@@ -195,7 +211,6 @@ describe("PWA install prompt styles", () => {
     assert.match(globalCss, /\.high-contrast \.pwa-install-nudge/);
   });
 });
-
 
 
 

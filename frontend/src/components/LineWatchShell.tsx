@@ -1294,6 +1294,7 @@ export function LineWatchShell({
             onOpenReleaseNotes={() => setActiveView("release-notes")}
             notificationStatusLabel={notificationStatusLabel}
             canOfferPwaInstall={pwaInstallPrompt.canOfferInstall}
+            canShowPwaInstallHelp={pwaInstallPrompt.canShowInstallHelp}
             onDismissPwaInstall={pwaInstallPrompt.dismissInstallPrompt}
             onRequestPwaInstall={pwaInstallPrompt.requestInstall}
             pwaInstallBusy={pwaInstallPrompt.installing}
@@ -1484,6 +1485,7 @@ export function LineWatchShell({
           onOpenReleaseNotes={() => setActiveView("release-notes")}
           notificationStatusLabel={notificationStatusLabel}
           canOfferPwaInstall={pwaInstallPrompt.canOfferInstall}
+          canShowPwaInstallHelp={pwaInstallPrompt.canShowInstallHelp}
           onDismissPwaInstall={pwaInstallPrompt.dismissInstallPrompt}
           onRequestPwaInstall={pwaInstallPrompt.requestInstall}
           pwaInstallBusy={pwaInstallPrompt.installing}

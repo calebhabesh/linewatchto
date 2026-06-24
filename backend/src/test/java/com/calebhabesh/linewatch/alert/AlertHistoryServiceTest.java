@@ -70,6 +70,55 @@ class AlertHistoryServiceTest {
         assertThat(service.history("30d", 300).period()).isEqualTo("30d");
     }
 
+    @Test
+    void mapsBidirectionalToBothWays() {
+        when(repository.findLifecycleRows(
+            OffsetDateTime.parse("2026-06-23T00:00:00-04:00"),
+            OffsetDateTime.parse("2026-06-23T12:30:00-04:00"),
+            300
+        )).thenReturn(List.of(
+            rowWithDirection(1L, "ttc-route-1", true, "opened", "2026-06-23T12:05:00-04:00", "bidirectional")
+        ));
+
+        AlertHistoryResponses.AlertHistoryResponse response = service.history("today", 300);
+
+        assertThat(response.incidents()).singleElement().satisfies(incident -> {
+            assertThat(incident.displayDirection()).isEqualTo("Both Ways");
+        });
+    }
+
+    private AlertHistoryRepository.AlertHistoryRow rowWithDirection(
+        long id,
+        String alertId,
+        boolean active,
+        String lifecycleState,
+        String snapshotTime,
+        String direction
+    ) {
+        return new AlertHistoryRepository.AlertHistoryRow(
+            id,
+            alertId,
+            "source-1",
+            "line-2",
+            "2",
+            "Bloor-Danforth",
+            "Line 2 Bloor-Danforth: Delays westbound at Warden station while we fix a mechanical problem.",
+            "Delays westbound at Warden station while we fix a mechanical problem.",
+            OffsetDateTime.parse(snapshotTime),
+            active,
+            OffsetDateTime.parse(snapshotTime),
+            "suspension",
+            "Live",
+            "suspension",
+            "warden",
+            "warden",
+            direction,
+            "MECHANICAL_PROBLEM",
+            "Mechanical Problem",
+            lifecycleState
+        );
+    }
+
     private AlertHistoryRepository.AlertHistoryRow row(
         long id,
         String alertId,

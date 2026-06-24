@@ -124,6 +124,20 @@ export function canOfferPwaInstall({
   return false;
 }
 
+export function canShowPwaInstallHelp({
+  isMobile,
+  isStandalone,
+  platform,
+}: {
+  isMobile: boolean;
+  isStandalone: boolean;
+  platform: PwaInstallPlatform;
+}): boolean {
+  if (!isMobile) return false;
+  if (isStandalone) return false;
+  return platform === "ios" || platform === "android-chromium";
+}
+
 export function isPwaInstallDismissalFresh({
   dismissedAt,
   now,

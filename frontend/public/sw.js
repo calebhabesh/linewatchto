@@ -262,6 +262,7 @@ async function fetchActivePushNotificationTags() {
   if (!response.ok) return null;
 
   const body = await response.json();
+  if (body?.cleanupAllowed === false) return null;
   return Array.isArray(body.activeTags) ? body.activeTags : [];
 }
 

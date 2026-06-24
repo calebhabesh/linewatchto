@@ -4,6 +4,7 @@ import com.calebhabesh.linewatch.account.AccountEntity;
 import com.calebhabesh.linewatch.account.AccountException;
 import com.calebhabesh.linewatch.account.SavedCommuteEntity;
 import com.calebhabesh.linewatch.account.SavedCommuteRepository;
+import com.calebhabesh.linewatch.ingestion.IngestionFreshness;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.time.Clock;
@@ -27,6 +28,7 @@ public class PushNotificationService {
     private final SavedCommutePushPlanner planner;
     private final PushNotificationPreferenceService preferenceService;
     private final LineSubscriptionPushPlanner lineSubscriptionPushPlanner;
+    private final IngestionFreshness ingestionFreshness;
     private final Clock clock;
 
     @Autowired
@@ -37,9 +39,10 @@ public class PushNotificationService {
         SavedCommuteRepository savedCommuteRepository,
         SavedCommutePushPlanner planner,
         PushNotificationPreferenceService preferenceService,
-        LineSubscriptionPushPlanner lineSubscriptionPushPlanner
+        LineSubscriptionPushPlanner lineSubscriptionPushPlanner,
+        IngestionFreshness ingestionFreshness
     ) {
-        this(properties, subscriptionRepository, deliveryRepository, savedCommuteRepository, planner, preferenceService, lineSubscriptionPushPlanner, Clock.systemUTC());
+        this(properties, subscriptionRepository, deliveryRepository, savedCommuteRepository, planner, preferenceService, lineSubscriptionPushPlanner, ingestionFreshness, Clock.systemUTC());
     }
 
     PushNotificationService(
@@ -50,6 +53,7 @@ public class PushNotificationService {
         SavedCommutePushPlanner planner,
         PushNotificationPreferenceService preferenceService,
         LineSubscriptionPushPlanner lineSubscriptionPushPlanner,
+        IngestionFreshness ingestionFreshness,
         Clock clock
     ) {
         this.properties = properties;
@@ -59,6 +63,7 @@ public class PushNotificationService {
         this.planner = planner;
         this.preferenceService = preferenceService;
         this.lineSubscriptionPushPlanner = lineSubscriptionPushPlanner;
+        this.ingestionFreshness = ingestionFreshness;
         this.clock = clock;
     }
 
@@ -181,6 +186,10 @@ public class PushNotificationService {
         return subscriptionRepository.findByAccountIdAndEndpointHash(account.getId(), endpointHash)
             .filter(PushSubscriptionEntity::isEnabled)
             .map(subscription -> {
+                if (!ingestionFreshness.isDashboardFresh()) {
+                    return new PushResponses.ActivePushNotificationsResponse(List.of(), false);
+                }
+
                 PushNotificationPreferenceEntity preferences = preferenceService.preferenceEntityForAccountId(account.getId());
                 
                 List<PushNotificationCandidate> commuteCandidates = savedCommuteRepository.findByAccountIdOrderByCreatedAtAsc(account.getId())

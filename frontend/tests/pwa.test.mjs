@@ -675,6 +675,28 @@ describe("LineWatch PWA configuration", () => {
     assert.equal(activeNotification.closed, false);
   });
 
+  it("does not close notifications when backend cleanup is not allowed", async () => {
+    const staleNotification = {
+      tag: "saved-commute-impact|commute_1|old-dedupe",
+      closed: false,
+      close() {
+        this.closed = true;
+      },
+    };
+
+    const { fetchRequests } = await serviceWorkerPush({
+      fetchBody: {
+        notification: null,
+        activeTags: [],
+        cleanupAllowed: false,
+      },
+      existingNotifications: [staleNotification],
+    });
+
+    assert.equal(fetchRequests[1].url, "/api/account/push/active");
+    assert.equal(staleNotification.closed, false);
+  });
+
   it("does not show a stale active notification or generic fallback", async () => {
     const { shownNotifications } = await serviceWorkerPush({
       fetchBody: {

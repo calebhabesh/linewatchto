@@ -6,6 +6,7 @@ import {
   PWA_INSTALL_ENGAGEMENT_DELAY_MS,
   PWA_INSTALL_DISMISS_STORAGE_KEY,
   canOfferPwaInstall,
+  canShowPwaInstallHelp,
   clearPwaInstallDismissal,
   detectPwaInstallPlatform,
   isStandalonePwaDisplay,
@@ -34,6 +35,7 @@ type UsePwaInstallPromptInput = {
 
 type UsePwaInstallPromptResult = {
   canOfferInstall: boolean;
+  canShowInstallHelp: boolean;
   dismissInstallPrompt: () => void;
   hasNativePrompt: boolean;
   installing: boolean;
@@ -182,7 +184,12 @@ export function usePwaInstallPrompt({
   }, [deferredPrompt, dismissInstallPrompt, installing, platform]);
 
   const nativePromptAvailable = Boolean(deferredPrompt);
-  const canOfferInstall = canOfferPwaInstall({
+  const canShowInstallHelp = canShowPwaInstallHelp({
+    isMobile,
+    isStandalone,
+    platform,
+  });
+  const canOfferInstall = canShowInstallHelp && canOfferPwaInstall({
     platform,
     nativePromptAvailable,
   });
@@ -217,6 +224,7 @@ export function usePwaInstallPrompt({
 
   return {
     canOfferInstall,
+    canShowInstallHelp,
     dismissInstallPrompt,
     hasNativePrompt: nativePromptAvailable,
     installing,
@@ -229,4 +237,3 @@ export function usePwaInstallPrompt({
 
 // Storage key: linewatch-pwa-install-dismissed-at-v1
 export { PWA_INSTALL_DISMISS_STORAGE_KEY };
-

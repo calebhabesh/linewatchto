@@ -92,5 +92,12 @@ public final class PushResponses {
 
     public record PendingPushNotificationResponse(PendingPushNotification notification) {}
 
-    public record ActivePushNotificationsResponse(List<String> activeTags) {}
+    public record ActivePushNotificationsResponse(
+        List<String> activeTags,
+        boolean cleanupAllowed
+    ) {
+        public ActivePushNotificationsResponse(List<String> activeTags) {
+            this(activeTags, true);
+        }
+    }
 }

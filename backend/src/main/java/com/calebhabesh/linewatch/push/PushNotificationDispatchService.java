@@ -2,6 +2,7 @@ package com.calebhabesh.linewatch.push;
 
 import com.calebhabesh.linewatch.account.SavedCommuteEntity;
 import com.calebhabesh.linewatch.account.SavedCommuteRepository;
+import com.calebhabesh.linewatch.ingestion.IngestionFreshness;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.time.Clock;
@@ -30,6 +31,7 @@ public class PushNotificationDispatchService {
     private final PushNotificationPreferenceService preferenceService;
     private final LineSubscriptionPushPlanner lineSubscriptionPushPlanner;
     private final PushNotificationFormatter formatter;
+    private final IngestionFreshness ingestionFreshness;
     private final Clock clock;
 
     @Autowired
@@ -42,12 +44,14 @@ public class PushNotificationDispatchService {
         WebPushClient webPushClient,
         PushNotificationPreferenceService preferenceService,
         LineSubscriptionPushPlanner lineSubscriptionPushPlanner,
-        PushNotificationFormatter formatter
+        PushNotificationFormatter formatter,
+        IngestionFreshness ingestionFreshness
     ) {
         this(
             savedCommuteRepository, planner, eventRepository, subscriptionRepository,
             deliveryRepository, webPushClient, preferenceService, lineSubscriptionPushPlanner,
             formatter,
+            ingestionFreshness,
             Clock.systemUTC()
         );
     }
@@ -62,6 +66,7 @@ public class PushNotificationDispatchService {
         PushNotificationPreferenceService preferenceService,
         LineSubscriptionPushPlanner lineSubscriptionPushPlanner,
         PushNotificationFormatter formatter,
+        IngestionFreshness ingestionFreshness,
         Clock clock
     ) {
         this.savedCommuteRepository = savedCommuteRepository;
@@ -73,6 +78,7 @@ public class PushNotificationDispatchService {
         this.preferenceService = preferenceService;
         this.lineSubscriptionPushPlanner = lineSubscriptionPushPlanner;
         this.formatter = formatter;
+        this.ingestionFreshness = ingestionFreshness;
         this.clock = clock;
     }
 
@@ -117,6 +123,9 @@ public class PushNotificationDispatchService {
         Set<String> currentNotificationKeys,
         List<PushNotificationCandidate> currentCandidates
     ) {
+        if (!ingestionFreshness.isDashboardFresh()) {
+            return;
+        }
         Instant now = clock.instant();
         List<String> currentCategories = List.of("saved-commute-current", "saved-commute-impact", "line-current");
         

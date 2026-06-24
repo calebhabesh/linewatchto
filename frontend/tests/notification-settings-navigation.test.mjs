@@ -19,6 +19,8 @@ describe("notification settings navigation", () => {
     assert.match(moreSheetSource, /onOpenNotifications/);
     assert.match(moreSheetSource, /<Bell/);
     assert.match(moreSheetSource, />\s*Notifications\s*</);
+    assert.match(moreSheetSource, /!accountState\.authenticated/);
+    assert.match(moreSheetSource, />\s*Sign In\s*</);
 
     assert.match(savedCommutesSource, /onOpenNotificationSettings/);
     assert.match(savedCommutesSource, /Notifications:/);

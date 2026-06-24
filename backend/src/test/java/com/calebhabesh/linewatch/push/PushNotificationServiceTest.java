@@ -9,11 +9,13 @@ import static org.mockito.Mockito.when;
 import com.calebhabesh.linewatch.account.AccountEntity;
 import com.calebhabesh.linewatch.account.SavedCommuteEntity;
 import com.calebhabesh.linewatch.account.SavedCommuteRepository;
+import com.calebhabesh.linewatch.ingestion.IngestionFreshness;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.data.domain.PageRequest;
 
@@ -25,6 +27,7 @@ class PushNotificationServiceTest {
     private final SavedCommutePushPlanner planner = mock(SavedCommutePushPlanner.class);
     private final PushNotificationPreferenceService preferenceService = mock(PushNotificationPreferenceService.class);
     private final LineSubscriptionPushPlanner lineSubscriptionPushPlanner = mock(LineSubscriptionPushPlanner.class);
+    private final IngestionFreshness ingestionFreshness = mock(IngestionFreshness.class);
     private final Clock clock = Clock.fixed(Instant.parse("2026-06-05T15:00:00Z"), ZoneOffset.UTC);
     private final PushNotificationFormatter formatter = new PushNotificationFormatter();
     private final PushNotificationService service = new PushNotificationService(
@@ -35,6 +38,7 @@ class PushNotificationServiceTest {
         planner,
         preferenceService,
         lineSubscriptionPushPlanner,
+        ingestionFreshness,
         clock
     );
 
@@ -46,6 +50,11 @@ class PushNotificationServiceTest {
         false,
         Instant.parse("2026-06-05T14:00:00Z")
     );
+
+    @BeforeEach
+    void setUp() {
+        when(ingestionFreshness.isDashboardFresh()).thenReturn(true);
+    }
 
     @Test
     void activeNotificationsReturnsCurrentSavedCommuteTagsAllowedBySubscriptionPreferences() {
@@ -118,6 +127,34 @@ class PushNotificationServiceTest {
         );
 
         assertThat(response.activeTags()).containsExactly("saved-commute-impact|commute_1|outbound|reduced-speed-zone|rsz-line-1");
+        assertThat(response.cleanupAllowed()).isTrue();
+    }
+
+    @Test
+    void activeNotificationsDisablesCleanupWhenDashboardIngestionIsStale() {
+        when(ingestionFreshness.isDashboardFresh()).thenReturn(false);
+        PushSubscriptionEntity subscription = PushSubscriptionEntity.create(
+            "push_subscription_1",
+            account,
+            "https://fcm.googleapis.com/fcm/send/subscription",
+            PushNotificationService.hashEndpoint("https://fcm.googleapis.com/fcm/send/subscription"),
+            "p256dh-key",
+            "auth-secret",
+            "Chrome Android",
+            Instant.parse("2026-06-05T14:45:00Z")
+        );
+        when(subscriptionRepository.findByAccountIdAndEndpointHash(
+            "user_1",
+            PushNotificationService.hashEndpoint("https://fcm.googleapis.com/fcm/send/subscription")
+        )).thenReturn(Optional.of(subscription));
+
+        PushResponses.ActivePushNotificationsResponse response = service.activeNotifications(
+            account,
+            new PushRequests.SubscriptionEndpointRequest("https://fcm.googleapis.com/fcm/send/subscription")
+        );
+
+        assertThat(response.activeTags()).isEmpty();
+        assertThat(response.cleanupAllowed()).isFalse();
     }
 
     @Test
