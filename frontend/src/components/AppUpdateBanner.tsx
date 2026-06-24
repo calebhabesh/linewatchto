@@ -18,6 +18,14 @@ const installedVersion = {
   buildLabel: lineWatchBuildLabel,
 };
 
+function releaseNotesUpdateUrl() {
+  const url = new URL("/app-update.html", window.location.origin);
+  url.searchParams.set("auto", "1");
+  url.searchParams.set("source", "release-notes");
+  url.searchParams.set("return", "/?panel=release-notes");
+  return url.href;
+}
+
 function updateCheckUrl() {
   const url = new URL("/version.json", window.location.origin);
   url.searchParams.set("t", String(Date.now()));
@@ -113,7 +121,12 @@ export function AppUpdateBanner() {
     }
   }, [latestVersion]);
 
+  const handleViewChanges = useCallback(() => {
+    window.location.replace(releaseNotesUpdateUrl());
+  }, []);
+
   const latestReleaseKey = latestVersion ? appUpdateReleaseKey(latestVersion) : null;
+  const releaseNote = latestVersion?.releaseNote ?? null;
 
   if (!latestReleaseKey || latestReleaseKey === dismissedReleaseKey) {
     return null;
@@ -122,10 +135,15 @@ export function AppUpdateBanner() {
   return (
     <aside className="app-update-banner" role="status" aria-live="polite" aria-busy={isUpdating}>
       <div className="app-update-banner-copy">
-        <strong>New version available</strong>
-        <span>Update LineWatchTO to get the latest fixes and improvements.</span>
+        <strong>{releaseNote ? `${releaseNote.title} available` : "New version available"}</strong>
+        <span>{releaseNote?.summary ?? "Update LineWatchTO to get the latest fixes and improvements."}</span>
       </div>
       <div className="app-update-banner-actions">
+        {releaseNote ? (
+          <button type="button" className="app-update-banner-view" disabled={isUpdating} onClick={handleViewChanges}>
+            View changes
+          </button>
+        ) : null}
         <button
           type="button"
           className="app-update-banner-later"

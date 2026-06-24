@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { lineWatchAppVersion, lineWatchAppVersionLabel, lineWatchBuildLabel } from "../app-build";
+import { releaseNotePreviewForVersion } from "../release-notes";
 
 export const dynamic = "force-dynamic";
 
@@ -14,6 +15,7 @@ export function GET() {
     {
       appVersion: lineWatchAppVersion,
       buildLabel: lineWatchBuildLabel,
+      releaseNote: releaseNotePreviewForVersion(lineWatchAppVersion),
       versionLabel: lineWatchAppVersionLabel,
       generatedAt: new Date().toISOString(),
     },

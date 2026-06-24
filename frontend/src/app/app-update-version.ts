@@ -1,6 +1,9 @@
+import type { ReleaseNotePreview } from "./release-notes";
+
 export type AppUpdateVersion = {
   appVersion?: string | null;
   buildLabel?: string | null;
+  releaseNote?: ReleaseNotePreview | null;
   versionLabel?: string | null;
 };
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { BarChart3, Bell, Download, FileText, LogIn, LogOut, MessageSquareText, RefreshCcw, Contrast, Pause, UserPlus, UserRound, X, History } from "lucide-react";
+import { BarChart3, Bell, Download, FileText, LogIn, LogOut, MessageSquareText, RefreshCcw, Contrast, Pause, Sparkles, UserPlus, UserRound, X, History } from "lucide-react";
 import Image from "next/image";
 import type { AccountState } from "../app/account-data";
 import { lineWatchAppVersionLabel } from "../app/app-build";
@@ -28,6 +28,7 @@ type Props = {
   onOpenAnalytics: () => void;
   onOpenFeedback: () => void;
   onOpenPrivacyAcknowledgements: () => void;
+  onOpenReleaseNotes: () => void;
   notificationStatusLabel: string;
   canOfferPwaInstall: boolean;
   onDismissPwaInstall: () => void;
@@ -54,6 +55,7 @@ export function MobileMoreSheet({
   onOpenAnalytics,
   onOpenFeedback,
   onOpenPrivacyAcknowledgements,
+  onOpenReleaseNotes,
   notificationStatusLabel,
   canOfferPwaInstall,
   onDismissPwaInstall,
@@ -210,6 +212,10 @@ export function MobileMoreSheet({
           <button type="button" className="mobile-more-row" onClick={onOpenPrivacyAcknowledgements}>
             <FileText size={18} className="text-slate-500 dark:text-slate-400" />
             Privacy & Acknowledgements
+          </button>
+          <button type="button" className="mobile-more-row" onClick={onOpenReleaseNotes}>
+            <Sparkles size={18} className="text-slate-500 dark:text-slate-400" />
+            {"What's New"}
           </button>
           <LogsDropdown isMobileMore={true} />
           {canResetLocalAppCache ? (

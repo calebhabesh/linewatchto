@@ -18,6 +18,8 @@ import { ReliabilityPanel } from "./ReliabilityPanel";
 import { AlertHistoryPanel } from "./AlertHistoryPanel";
 import { FeedbackPanel } from "./FeedbackPanel";
 import { PrivacyAcknowledgementsPanel } from "./PrivacyAcknowledgementsPanel";
+import { ReleaseNotesNotice } from "./ReleaseNotesNotice";
+import { ReleaseNotesPanel } from "./ReleaseNotesPanel";
 import { FloatingPanelShell } from "./FloatingPanelShell";
 import { MobileBottomNav, type MobileNavKey } from "./MobileBottomNav";
 import { MobileStatusPeek } from "./MobileStatusPeek";
@@ -53,7 +55,7 @@ import { StationDetailPanel } from "./StationDetailPanel";
 import { useTorontoClock } from "../hooks/useTorontoClock";
 import { useMobilePerformanceMode } from "../hooks/useMobilePerformanceMode";
 import { usePushNotificationSettings } from "../hooks/usePushNotificationSettings";
-import { Menu, X, Map as MapIcon, AlertTriangle, Calendar, Navigation, ShieldCheck, BarChart3, Bell, Construction, Search, LogIn, LogOut, UserPlus, UserRound, Sun, Moon, Bus, Mail, Contrast, Pause, History, MessageSquareText, FileText } from "lucide-react";
+import { Menu, X, Map as MapIcon, AlertTriangle, Calendar, Navigation, ShieldCheck, BarChart3, Bell, Construction, Search, LogIn, LogOut, UserPlus, UserRound, Sun, Moon, Bus, Mail, Contrast, Pause, History, MessageSquareText, FileText, Sparkles } from "lucide-react";
 import { SubwayClosedScreen } from "./SubwayClosedScreen";
 import { useSubwayOperatingState } from "../hooks/useSubwayOperatingState";
 import { StationSearchPanel } from "./StationSearchPanel";
@@ -86,7 +88,7 @@ import { accountOAuthErrorState } from "../app/account-oauth-error";
 import { normalizeAccountEmail, validateAccountCredentials } from "../app/account-validation";
 
 
-type ActiveView = "map" | "menu" | "search" | "status" | "alerts" | "delays" | "reduced-speed-zones" | "closures" | "commutes" | "notifications" | "analytics" | "more" | "accessibility-outages" | "surface-notices" | "alert-history" | "feedback" | "privacy-acknowledgements";
+type ActiveView = "map" | "menu" | "search" | "status" | "alerts" | "delays" | "reduced-speed-zones" | "closures" | "commutes" | "notifications" | "analytics" | "more" | "accessibility-outages" | "surface-notices" | "alert-history" | "feedback" | "privacy-acknowledgements" | "release-notes";
 type AccountDialogMode = "auth-choice" | "login" | "register" | "forgot-password" | "reset-password" | "link-google";
 type AccountEntryIntent = "login" | "register";
 
@@ -342,7 +344,7 @@ export function LineWatchShell({
   }, []);
 
   useEffect(() => {
-    // supports panel=notifications, panel=commutes, panel=alerts, panel=delays, panel=reduced-speed-zones, panel=closures
+    // supports panel=notifications, panel=commutes, panel=alerts, panel=delays, panel=reduced-speed-zones, panel=closures, panel=release-notes
     const params = new URLSearchParams(window.location.search);
     const nextParams = new URLSearchParams(params);
     let shouldReplaceUrl = false;
@@ -369,6 +371,7 @@ export function LineWatchShell({
       closures: "closures",
       commutes: "commutes",
       notifications: "notifications",
+      "release-notes": "release-notes",
     };
     if (panel && panelToView[panel]) {
       setActiveView(panelToView[panel]);
@@ -892,7 +895,7 @@ export function LineWatchShell({
     }
     if (activeView === "search") return "search";
     if (activeView === "commutes") return "commutes";
-    if (activeView === "notifications" || activeView === "more" || activeView === "analytics" || activeView === "alert-history" || activeView === "feedback" || activeView === "privacy-acknowledgements") return "more";
+    if (activeView === "notifications" || activeView === "more" || activeView === "analytics" || activeView === "alert-history" || activeView === "feedback" || activeView === "privacy-acknowledgements" || activeView === "release-notes") return "more";
     return "map";
   }, [activeView]);
 
@@ -1076,7 +1079,8 @@ export function LineWatchShell({
     activeView === "surface-notices" ||
     activeView === "alert-history" ||
     activeView === "feedback" ||
-    activeView === "privacy-acknowledgements"
+    activeView === "privacy-acknowledgements" ||
+    activeView === "release-notes"
   );
 
   const getMobileSheetLabel = () => {
@@ -1093,6 +1097,7 @@ export function LineWatchShell({
       case "alert-history": return "Alert History";
       case "feedback": return "Leave Feedback / Support";
       case "privacy-acknowledgements": return "Privacy & Acknowledgements";
+      case "release-notes": return "What's New";
       case "accessibility-outages": return "Accessibility outages";
       case "surface-notices": return "Streetcar & Bus Notices";
       default: return "";
@@ -1238,6 +1243,7 @@ export function LineWatchShell({
             onOpenAlertHistory={() => setActiveView("alert-history")}
             onOpenFeedback={() => setActiveView("feedback")}
             onOpenPrivacyAcknowledgements={() => setActiveView("privacy-acknowledgements")}
+            onOpenReleaseNotes={() => setActiveView("release-notes")}
             notificationStatusLabel={notificationStatusLabel}
             canOfferPwaInstall={pwaInstallPrompt.canOfferInstall}
             onDismissPwaInstall={pwaInstallPrompt.dismissInstallPrompt}
@@ -1258,6 +1264,13 @@ export function LineWatchShell({
       case "privacy-acknowledgements":
         return (
           <PrivacyAcknowledgementsPanel
+            onBack={() => setActiveView(isMobile ? "more" : "menu")}
+            onClose={() => { setActiveView("map"); setSelection(null); }}
+          />
+        );
+      case "release-notes":
+        return (
+          <ReleaseNotesPanel
             onBack={() => setActiveView(isMobile ? "more" : "menu")}
             onClose={() => { setActiveView("map"); setSelection(null); }}
           />
@@ -1418,6 +1431,7 @@ export function LineWatchShell({
           onOpenAlertHistory={() => setActiveView("alert-history")}
           onOpenFeedback={() => setActiveView("feedback")}
           onOpenPrivacyAcknowledgements={() => setActiveView("privacy-acknowledgements")}
+          onOpenReleaseNotes={() => setActiveView("release-notes")}
           notificationStatusLabel={notificationStatusLabel}
           canOfferPwaInstall={pwaInstallPrompt.canOfferInstall}
           onDismissPwaInstall={pwaInstallPrompt.dismissInstallPrompt}
@@ -1438,6 +1452,13 @@ export function LineWatchShell({
     ) : activeView === "privacy-acknowledgements" ? (
       <FloatingPanelShell panel="privacy-acknowledgements" mobileSheetLabel="Privacy & Acknowledgements">
         <PrivacyAcknowledgementsPanel
+          onBack={() => setActiveView("menu")}
+          onClose={() => { setActiveView("map"); setSelection(null); }}
+        />
+      </FloatingPanelShell>
+    ) : activeView === "release-notes" ? (
+      <FloatingPanelShell panel="release-notes" mobileSheetLabel="What's New">
+        <ReleaseNotesPanel
           onBack={() => setActiveView("menu")}
           onClose={() => { setActiveView("map"); setSelection(null); }}
         />
@@ -1862,6 +1883,15 @@ export function LineWatchShell({
                  >
                    <FileText size={18} className="text-slate-500 dark:text-slate-400" /> Privacy & Acknowledgements
                  </button>
+                 <button
+                   ref={registerMenuAction(actionIndex++)}
+                   role="menuitem"
+                   onClick={() => setActiveView("release-notes")}
+                   aria-current={activeView === "release-notes" ? "page" : undefined}
+                   className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
+                 >
+                   <Sparkles size={18} className="text-slate-500 dark:text-slate-400" /> {"What's New"}
+                 </button>
                </div>
 
                {/* Toggles */}
@@ -2156,6 +2186,24 @@ export function LineWatchShell({
           platform={pwaInstallPrompt.platform}
         />
       ) : null}
+
+      <ReleaseNotesNotice
+        blocked={
+          showClosedScreen ||
+          rotatedMapMode ||
+          showPwaInstallNudge ||
+          activeView !== "map" ||
+          Boolean(selection) ||
+          Boolean(selectedStationId) ||
+          Boolean(accountDialogMode) ||
+          Boolean(commutePathPreview)
+        }
+        onViewReleaseNotes={() => {
+          setSelection(null);
+          setSelectedStationId(null);
+          setActiveView("release-notes");
+        }}
+      />
 
       {!showClosedScreen && !rotatedMapMode && !showPwaInstallNudge && activeView === "map" && !selection && !selectedStationId && !accountDialogMode && !commutePathPreview ? (
         <MobileStatusPeek

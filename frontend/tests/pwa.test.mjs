@@ -791,6 +791,8 @@ describe("LineWatch PWA configuration", () => {
 
     assert.match(versionRouteSource, /lineWatchAppVersion/);
     assert.match(versionRouteSource, /lineWatchBuildLabel/);
+    assert.match(versionRouteSource, /releaseNotePreviewForVersion/);
+    assert.match(versionRouteSource, /releaseNote:/);
     assert.match(versionRouteSource, /NextResponse\.json/);
     assert.match(versionRouteSource, /Cache-Control/);
     assert.match(versionRouteSource, /no-store, no-cache, must-revalidate/);
@@ -810,6 +812,10 @@ describe("LineWatch PWA configuration", () => {
     assert.match(appUpdateBannerSource, /cache:\s*"no-store"/);
     assert.match(appUpdateBannerSource, /New version available/);
     assert.match(appUpdateBannerSource, /Update LineWatchTO to get the latest fixes and improvements\./);
+    assert.match(appUpdateBannerSource, /releaseNote/);
+    assert.match(appUpdateBannerSource, /View changes/);
+    assert.match(appUpdateBannerSource, /\/app-update\.html/);
+    assert.match(appUpdateBannerSource, /panel=release-notes/);
     assert.match(appUpdateBannerSource, /Update now/);
     assert.match(appUpdateBannerSource, /Later/);
     assert.match(appUpdateBannerSource, /sessionStorage/);
