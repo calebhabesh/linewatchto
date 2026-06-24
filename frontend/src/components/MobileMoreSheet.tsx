@@ -105,7 +105,7 @@ export function MobileMoreSheet({
               </button>
               {googleSignInAvailable && !accountState.user.demo ? (
                 accountState.user.googleLinked ? (
-                  <div className="mobile-more-row" aria-label="Google sign-in linked">
+                  <div className="mobile-more-row mobile-more-linked-status" aria-label="Google sign-in linked">
                     <ShieldCheck size={18} className="text-emerald-600 dark:text-emerald-400" />
                     Google Linked
                   </div>

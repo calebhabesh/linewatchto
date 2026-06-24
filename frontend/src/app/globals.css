@@ -6439,6 +6439,23 @@ button {
     background: #1e293b !important;
   }
 
+  .mobile-more-row.mobile-more-linked-status {
+    color: rgb(21 128 61);
+    font-weight: 800;
+  }
+
+  .mobile-more-row.mobile-more-linked-status svg {
+    color: rgb(21 128 61) !important;
+  }
+
+  .dark .mobile-more-row.mobile-more-linked-status {
+    color: rgb(134 239 172);
+  }
+
+  .dark .mobile-more-row.mobile-more-linked-status svg {
+    color: rgb(134 239 172) !important;
+  }
+
   .mobile-more-install-row {
     background: rgba(250, 204, 21, 0.09);
     border: 1px solid rgba(250, 204, 21, 0.22);
