@@ -654,16 +654,43 @@ button {
 }
 
 .subway-closing-soon-details {
-  display: inline;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
 }
 
 .subway-closing-separator {
   display: inline;
 }
 
-.subway-closing-duration,
+.subway-closing-prefix,
 .subway-closing-time {
-  display: inline;
+  display: inline-flex;
+  align-items: center;
+}
+
+.subway-closing-countdown-badge {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: #facc15;
+  color: #0f172a;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 0.72rem;
+  font-weight: 850;
+  white-space: nowrap;
+  flex-shrink: 0;
+  line-height: 1;
+  transform: translateY(-1px);
+}
+
+.subway-closing-countdown-badge svg {
+  color: #0f172a !important;
+  height: 12px !important;
+  width: 12px !important;
+  flex: 0 0 12px !important;
 }
 
 @media (max-width: 520px) {
@@ -700,6 +727,20 @@ button {
     flex: 0 0 16px !important;
   }
 
+  .subway-closing-countdown-badge {
+    padding: 2px 5px !important;
+    font-size: 0.58rem !important;
+    border-radius: 4px !important;
+    gap: 3px !important;
+    transform: translateY(-1px) !important;
+  }
+
+  .subway-closing-countdown-badge svg {
+    height: 9px !important;
+    width: 9px !important;
+    flex: 0 0 9px !important;
+  }
+
   .subway-closing-soon-copy {
     gap: 0px !important;
     min-width: 0 !important;
@@ -732,13 +773,14 @@ button {
     align-items: center !important;
     gap: 0 3px !important;
     width: 100% !important;
+    margin-top: 4px !important;
   }
 
   .subway-closing-separator {
     display: inline !important;
   }
 
-  .subway-closing-duration,
+  .subway-closing-prefix,
   .subway-closing-time {
     white-space: nowrap !important;
     overflow: hidden !important;

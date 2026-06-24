@@ -9,17 +9,23 @@ export function SubwayClosingSoonChip({
   minutesUntilClose: number;
   nextCloseLabel: string;
 }) {
+  const durationText = formatResumeDuration(minutesUntilClose);
+  const timeText = nextCloseLabel.replace(/^(Today|Tomorrow) /, "");
+
   return (
     <div className="subway-closing-soon-chip" role="status" aria-live="polite">
-      <Clock3 aria-hidden="true" size={18} strokeWidth={2.4} />
       <span className="subway-closing-soon-copy">
         <strong>Subway Closing Soon</strong>
         <small className="subway-closing-soon-details">
-          <span className="subway-closing-duration">Closes in {formatResumeDuration(minutesUntilClose)}</span>
-          <span className="subway-closing-separator"> · </span>
-          <span className="subway-closing-time">{nextCloseLabel}</span>
+          <span className="subway-closing-prefix">Closes in</span>
+          <span className="subway-closing-countdown-badge">
+            <Clock3 aria-hidden="true" size={14} strokeWidth={2.8} />
+            <span>{durationText}</span>
+          </span>
+          <span className="subway-closing-time">{timeText}</span>
         </small>
       </span>
     </div>
   );
 }
+
