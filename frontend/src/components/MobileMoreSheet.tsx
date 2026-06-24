@@ -1,12 +1,14 @@
 "use client";
 
-import { BarChart3, Bell, FileText, LogIn, LogOut, MessageSquareText, RefreshCcw, Contrast, Pause, UserPlus, UserRound, X, History } from "lucide-react";
+import { BarChart3, Bell, Download, FileText, LogIn, LogOut, MessageSquareText, RefreshCcw, Contrast, Pause, UserPlus, UserRound, X, History } from "lucide-react";
 import Image from "next/image";
 import type { AccountState } from "../app/account-data";
 import { lineWatchAppVersionLabel } from "../app/app-build";
 import type { DashboardData } from "../app/DataContext";
 import { resetLineWatchLocalAppState } from "../app/local-app-reset";
 import { LogsDropdown } from "./LogsDropdown";
+import type { PwaInstallPlatform } from "../app/pwa-install-state";
+
 
 type Props = {
   accountState: AccountState;
@@ -27,6 +29,11 @@ type Props = {
   onOpenFeedback: () => void;
   onOpenPrivacyAcknowledgements: () => void;
   notificationStatusLabel: string;
+  canOfferPwaInstall: boolean;
+  onDismissPwaInstall: () => void;
+  onRequestPwaInstall: () => void;
+  pwaInstallBusy: boolean;
+  pwaInstallPlatform: PwaInstallPlatform;
 };
 
 export function MobileMoreSheet({
@@ -48,7 +55,13 @@ export function MobileMoreSheet({
   onOpenFeedback,
   onOpenPrivacyAcknowledgements,
   notificationStatusLabel,
+  canOfferPwaInstall,
+  onDismissPwaInstall,
+  onRequestPwaInstall,
+  pwaInstallBusy,
+  pwaInstallPlatform,
 }: Props) {
+
   const canResetLocalAppCache = process.env.NODE_ENV !== "production";
 
   return (
@@ -101,6 +114,34 @@ export function MobileMoreSheet({
             </>
           )}
         </div>
+
+        {canOfferPwaInstall ? (
+          <div className="mobile-more-section mobile-more-install-section">
+            <h3>Home screen app</h3>
+            <button
+              type="button"
+              className="mobile-more-row mobile-more-install-row"
+              disabled={pwaInstallBusy}
+              onClick={pwaInstallPlatform === "ios" ? onDismissPwaInstall : onRequestPwaInstall}
+            >
+              <Download size={18} className="text-slate-500 dark:text-slate-400" />
+              <span className="mobile-more-install-copy">
+                <span>Install LineWatchTO</span>
+                <span>
+                  {pwaInstallPlatform === "ios"
+                    ? "Share, then Add to Home Screen."
+                    : "Open as a full-screen app."}
+                </span>
+              </span>
+            </button>
+            {pwaInstallPlatform === "ios" ? (
+              <div className="mobile-more-install-help" role="note">
+                <span>iPhone Safari</span>
+                <strong>Tap Share, then Add to Home Screen.</strong>
+              </div>
+            ) : null}
+          </div>
+        ) : null}
 
         <div className="mobile-more-section">
           <h3>Notifications</h3>

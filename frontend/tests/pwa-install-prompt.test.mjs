@@ -152,4 +152,19 @@ describe("PWA install nudge component", () => {
   });
 });
 
+describe("PWA install entry in More sheet", () => {
+  it("keeps a persistent install action available in mobile More options", () => {
+    const moreSheetSource = readFileSync(moreSheetSourceUrl, "utf8");
+
+    assert.match(moreSheetSource, /PwaInstallPlatform/);
+    assert.match(moreSheetSource, /canOfferPwaInstall/);
+    assert.match(moreSheetSource, /onRequestPwaInstall/);
+    assert.match(moreSheetSource, /Install LineWatchTO/);
+    assert.match(moreSheetSource, /Home screen app/);
+    assert.match(moreSheetSource, /Share, then Add to Home Screen/);
+    assert.match(moreSheetSource, /mobile-more-install-help/);
+  });
+});
+
+
 
