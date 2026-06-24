@@ -166,5 +166,21 @@ describe("PWA install entry in More sheet", () => {
   });
 });
 
+describe("PWA install shell wiring", () => {
+  it("tracks mobile engagement, renders the nudge, and suppresses status peek while the nudge is visible", () => {
+    const shellSource = readFileSync(shellSourceUrl, "utf8");
+
+    assert.match(shellSource, /usePwaInstallPrompt/);
+    assert.match(shellSource, /PwaInstallNudge/);
+    assert.match(shellSource, /pwaEngagementSignal/);
+    assert.match(shellSource, /recordPwaInstallEngagement/);
+    assert.match(shellSource, /showPwaInstallNudge/);
+    assert.match(shellSource, /!showPwaInstallNudge[\s\S]*<MobileStatusPeek/);
+    assert.match(shellSource, /canOfferPwaInstall=\{pwaInstallPrompt\.canOfferInstall\}/);
+    assert.match(shellSource, /onRequestPwaInstall=\{pwaInstallPrompt\.requestInstall\}/);
+  });
+});
+
+
 
 

@@ -26,6 +26,8 @@ import { RotatedMapSelectionCard } from "./RotatedMapSelectionCard";
 import { MobileImpactInspector, type MobileInspectorDetent } from "./MobileImpactInspector";
 import { MobileStatusSheet } from "./MobileStatusSheet";
 import { MobileMoreSheet } from "./MobileMoreSheet";
+import { PwaInstallNudge } from "./PwaInstallNudge";
+import { usePwaInstallPrompt } from "../hooks/usePwaInstallPrompt";
 import { LineLegend } from "./LineLegend";
 import { MobileLegend } from "./MobileLegend";
 import { LogsDropdown } from "./LogsDropdown";
@@ -146,6 +148,13 @@ export function LineWatchShell({
   const [mobileInspectorDetent, setMobileInspectorDetent] = useState<MobileInspectorDetent>("map-focus");
   const [mapLayoutSignal, setMapLayoutSignal] = useState(0);
   const [mapPresentationMode, setMapPresentationMode] = useState<MapPresentationMode>("standard");
+  const [pwaEngagementSignal, setPwaEngagementSignal] = useState(0);
+
+  const recordPwaInstallEngagement = useCallback(() => {
+    if (!isMobile) return;
+    setPwaEngagementSignal((current) => current + 1);
+  }, [isMobile]);
+
 
   useEffect(() => {
     const mediaQuery = window.matchMedia("(max-width: 767px)");
@@ -841,12 +850,14 @@ export function LineWatchShell({
     setOverlapSelection(null);
     setCommutePathPreview(null);
     if (id) {
+      recordPwaInstallEngagement();
       if (isMobile) {
         setMobileInspectorDetent("details-focus");
       }
       setActiveView("map");
     }
-  }, [setSelectedStationId, setSelection, setCommutePathPreview, setActiveView, isMobile]);
+  }, [setSelectedStationId, setSelection, setCommutePathPreview, setActiveView, isMobile, recordPwaInstallEngagement]);
+
 
   const mobileNavKey = useMemo<MobileNavKey>(() => {
     if (activeView === "status" || activeView === "alerts" || activeView === "delays" || activeView === "reduced-speed-zones" || activeView === "closures") {
@@ -865,6 +876,7 @@ export function LineWatchShell({
     setCommutePathPreview(null);
     setMobileInspectorDetent("map-focus");
     setMapPresentationMode("standard");
+    recordPwaInstallEngagement();
     switch (key) {
       case "status":
         setActiveView("status");
@@ -882,7 +894,8 @@ export function LineWatchShell({
       default:
         setActiveView("map");
     }
-  }, [setActiveView, setCommutePathPreview, setSelectedStationId, setSelection]);
+  }, [setActiveView, setCommutePathPreview, setSelectedStationId, setSelection, recordPwaInstallEngagement]);
+
 
   const handleMobileSheetClose = useCallback(() => {
     setActiveView("map");
@@ -925,12 +938,14 @@ export function LineWatchShell({
     }
     setSelection(nextSelection);
     if (isMobile) {
+      recordPwaInstallEngagement();
       setMobileInspectorDetent("map-focus");
       setActiveView("map");
       return;
     }
     setActiveView(viewForImpactSelection(nextSelection));
-  }, [setSelectedStationId, setCommutePathPreview, setSelection, setActiveView, viewForImpactSelection, isMobile]);
+  }, [setSelectedStationId, setCommutePathPreview, setSelection, setActiveView, viewForImpactSelection, isMobile, recordPwaInstallEngagement]);
+
 
   const handleMapSelectOverlap = useCallback((nextOverlap: MapOverlapSelection) => {
     setSelectedStationId(null);
@@ -1154,6 +1169,11 @@ export function LineWatchShell({
             onOpenFeedback={() => setActiveView("feedback")}
             onOpenPrivacyAcknowledgements={() => setActiveView("privacy-acknowledgements")}
             notificationStatusLabel={notificationStatusLabel}
+            canOfferPwaInstall={pwaInstallPrompt.canOfferInstall}
+            onDismissPwaInstall={pwaInstallPrompt.dismissInstallPrompt}
+            onRequestPwaInstall={pwaInstallPrompt.requestInstall}
+            pwaInstallBusy={pwaInstallPrompt.installing}
+            pwaInstallPlatform={pwaInstallPrompt.platform}
           />
         );
       case "feedback":
@@ -1329,6 +1349,11 @@ export function LineWatchShell({
           onOpenFeedback={() => setActiveView("feedback")}
           onOpenPrivacyAcknowledgements={() => setActiveView("privacy-acknowledgements")}
           notificationStatusLabel={notificationStatusLabel}
+          canOfferPwaInstall={pwaInstallPrompt.canOfferInstall}
+          onDismissPwaInstall={pwaInstallPrompt.dismissInstallPrompt}
+          onRequestPwaInstall={pwaInstallPrompt.requestInstall}
+          pwaInstallBusy={pwaInstallPrompt.installing}
+          pwaInstallPlatform={pwaInstallPrompt.platform}
         />
       </FloatingPanelShell>
     ) : activeView === "feedback" ? (
@@ -1388,6 +1413,25 @@ export function LineWatchShell({
     !showClosedScreen;
 
   const mobileInspectorOpen = mobileImpactInspectorOpen || mobileStationInspectorOpen;
+
+  const pwaInstallPrompt = usePwaInstallPrompt({
+    activeView,
+    blockedByOverlay:
+      showClosedScreen ||
+      rotatedMapMode ||
+      mobileInspectorOpen ||
+      Boolean(selectedStationId) ||
+      Boolean(accountDialogMode) ||
+      Boolean(commutePathPreview),
+    engagementSignal: pwaEngagementSignal,
+    isMobile,
+  });
+
+  const showPwaInstallNudge =
+    !showClosedScreen &&
+    !rotatedMapMode &&
+    pwaInstallPrompt.shouldShowNudge;
+
 
   const shellInspectorClasses = [
     mobileInspectorOpen
@@ -2077,7 +2121,16 @@ export function LineWatchShell({
       ) : null}
 
 
-      {!showClosedScreen && !rotatedMapMode && activeView === "map" && !selection && !selectedStationId && !accountDialogMode && !commutePathPreview ? (
+      {showPwaInstallNudge ? (
+        <PwaInstallNudge
+          installing={pwaInstallPrompt.installing}
+          onDismiss={pwaInstallPrompt.dismissInstallPrompt}
+          onRequestInstall={pwaInstallPrompt.requestInstall}
+          platform={pwaInstallPrompt.platform}
+        />
+      ) : null}
+
+      {!showClosedScreen && !rotatedMapMode && !showPwaInstallNudge && activeView === "map" && !selection && !selectedStationId && !accountDialogMode && !commutePathPreview ? (
         <MobileStatusPeek
           lineStatuses={lineStatuses}
           activeAlertCount={activeAlerts.length}
