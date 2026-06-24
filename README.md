@@ -182,7 +182,7 @@ Keep `22/tcp` open only until WireGuard SSH has been verified after a VPS reboot
 
 Point the `linewatchto.ca`, `www.linewatchto.ca`, and `api.linewatchto.ca` DNS records at the VPS. If Cloudflare is authoritative, start with DNS-only records while validating Caddy certificate issuance, then enable proxying only if desired.
 
-See [docs/production-vps.md](file://~/dev/ttc-reliability-navigator/docs/production-vps.md) for detailed hosting and server setups, and [docs/observability.md](file://~/dev/ttc-reliability-navigator/docs/observability.md) for the monitoring, metrics, Loki logs, and Grafana Cloud alerting configuration.
+See [docs/production-vps.md](file://~/dev/ttc-reliability-navigator/docs/production-vps.md) for detailed hosting and server setups, and [docs/observability.md](file://~/dev/ttc-reliability-navigator/docs/observability.md) for the monitoring, metrics, Loki logs, and Grafana Cloud alerting configuration. For traffic-spike preparation, Cloudflare cache rules, surge-mode dashboard refresh, and production verification, see [docs/traffic-spike-runbook.md](docs/traffic-spike-runbook.md).
 
 Create the production env file on the VPS:
 
