@@ -12,7 +12,7 @@
 
 ## Source And Scope Notes
 
-- Product name stays **LineWatch TO**. Do not present this as an official TTC search.
+- Product name stays **LineWatchTO**. Do not present this as an official TTC search.
 - Search is bounded to stations already returned by `/api/stations` or the local fallback station summaries.
 - Do not add a fuzzy-search dependency. The station list is small enough for local deterministic scoring on each keystroke.
 - Reuse the existing station detail behavior: selecting a search result sets `selectedStationId`, clears any selected disruption, closes search, zooms the map to the station, and opens `StationDetailPanel`.

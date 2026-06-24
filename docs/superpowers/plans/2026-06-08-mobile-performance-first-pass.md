@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Make LineWatch TO's mobile web experience noticeably more responsive by isolating map renders, mounting less hidden UI, reducing mobile-only paint/animation cost, and adding custom pinch zoom without changing the desktop layout or rewriting the map.
+**Goal:** Make LineWatchTO's mobile web experience noticeably more responsive by isolating map renders, mounting less hidden UI, reducing mobile-only paint/animation cost, and adding custom pinch zoom without changing the desktop layout or rewriting the map.
 
 **Architecture:** Keep the existing SVG map and dashboard structure, but put the expensive map behind a memoized boundary with stable props. Replace always-mounted hidden submenu panels with one active floating panel, add a mobile performance mode that disables the live Vanta background and simplifies expensive map effects, and extend the existing pan/zoom hook with two-pointer pinch handling using small pure geometry helpers.
 

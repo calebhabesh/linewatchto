@@ -4,7 +4,7 @@ Date: 2026-06-15
 
 ## Scope
 
-Improve the LineWatch TO frontend PWA update experience. This is frontend-only: the Spring Boot backend update policy remains backward-compatible API evolution, not a user-installed update.
+Improve the LineWatchTO frontend PWA update experience. This is frontend-only: the Spring Boot backend update policy remains backward-compatible API evolution, not a user-installed update.
 
 ## Goals
 
@@ -19,7 +19,7 @@ Improve the LineWatch TO frontend PWA update experience. This is frontend-only: 
 Normal frontend releases use a non-blocking update banner. The banner appears when `/version.json` reports a different build label than the baked frontend build. The banner copy should be short and user-facing:
 
 - Title: `New version available`
-- Body: `Update LineWatch TO to get the latest fixes and improvements.`
+- Body: `Update LineWatchTO to get the latest fixes and improvements.`
 - Actions: `Later` and `Update now`
 
 The banner should not show installed/latest build labels. Build details can remain in diagnostic areas, not in the primary update prompt.

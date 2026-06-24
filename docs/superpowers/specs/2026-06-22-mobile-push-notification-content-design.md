@@ -4,7 +4,7 @@ Date: 2026-06-22
 
 ## Goal
 
-Make LineWatch TO Web Push notifications immediately understandable in the Android notification shade by putting the line, official line name, event type, lifecycle state, location, and relevant event time into a consistent format.
+Make LineWatchTO Web Push notifications immediately understandable in the Android notification shade by putting the line, official line name, event type, lifecycle state, location, and relevant event time into a consistent format.
 
 This work improves the notification content and mobile presentation for the push categories that already exist:
 
@@ -88,8 +88,8 @@ Supported event labels are:
 The generic service-worker fallback, when it is genuinely needed, uses:
 
 ```text
-⚠️ LineWatch TO Service Alert
-Open LineWatch TO to view the latest service update.
+⚠️ LineWatchTO Service Alert
+Open LineWatchTO to view the latest service update.
 ```
 
 It has no clock line because no trustworthy event timestamp is available.
@@ -301,7 +301,7 @@ The full icon improves expanded Android notification identity. The monochrome `n
 
 Change fallback behavior:
 
-- API/network failure may show the generic LineWatch TO fallback;
+- API/network failure may show the generic LineWatchTO fallback;
 - no pending notification must show nothing;
 - an active notification whose tag is no longer active after reconciliation must show nothing;
 - a stale active notification must never be replaced by a generic fallback notification.

@@ -26,7 +26,7 @@ The frontend is only partially aligned:
 
 ## UX Design
 
-Do not copy Chess.com branding or its green visual language. Keep LineWatch TO's compact operations-dashboard styling.
+Do not copy Chess.com branding or its green visual language. Keep LineWatchTO's compact operations-dashboard styling.
 
 Signed-out auth flow:
 
@@ -169,7 +169,7 @@ In `accountDialogAriaLabel()`, add this case before `link-google`:
 
 ```tsx
       case "auth-choice":
-        return accountEntryIntent === "register" ? "Choose how to create a LineWatch TO account" : "Choose how to sign in to LineWatch TO";
+        return accountEntryIntent === "register" ? "Choose how to create a LineWatchTO account" : "Choose how to sign in to LineWatchTO";
 ```
 
 - [ ] **Step 7: Make submit ignore provider-choice mode**

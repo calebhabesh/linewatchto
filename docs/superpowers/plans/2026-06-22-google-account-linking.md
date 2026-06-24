@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Let an already signed-in email/password LineWatch TO user explicitly link a verified Google identity to the same account, so future Google sign-ins reuse saved commutes, push preferences, and sessions instead of being blocked.
+**Goal:** Let an already signed-in email/password LineWatchTO user explicitly link a verified Google identity to the same account, so future Google sign-ins reuse saved commutes, push preferences, and sessions instead of being blocked.
 
 **Architecture:** Keep the current v1 Google sign-in safety rule: an unauthenticated Google login must not auto-link to an existing password account by email. Add a signed-in linking endpoint that requires the existing `linewatch_session` cookie, verifies a fresh Google ID token, requires the Google email to match the current LineWatch account email, then inserts one `account_auth_identities` row for that existing `accounts.id`. Add a `googleLinked` boolean to authenticated user responses so the frontend can show `Link Google` only when it is useful.
 
@@ -773,7 +773,7 @@ In `accountDialogAriaLabel()`, add:
 
 ```tsx
       case "link-google":
-        return "Link Google sign-in to LineWatch TO account";
+        return "Link Google sign-in to LineWatchTO account";
 ```
 
 - [ ] **Step 5: Ensure submit handler ignores link-google mode**
@@ -955,7 +955,7 @@ Run:
 rg -n "Google sign-in|Google linking|auto-linked|official TTC" README.md
 ```
 
-Expected: README describes explicit linking and still does not present LineWatch TO as an official TTC product.
+Expected: README describes explicit linking and still does not present LineWatchTO as an official TTC product.
 
 - [ ] **Step 4: Commit**
 

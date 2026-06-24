@@ -95,7 +95,7 @@ sed -n '1,260p' AGENTS.md
 sed -n '1,260p' GEMINI.md
 ```
 
-Expected: confirm LineWatch TO naming, no official TTC claims, verification policy, and the rule that AGENTS.md and GEMINI.md change together.
+Expected: confirm LineWatchTO naming, no official TTC claims, verification policy, and the rule that AGENTS.md and GEMINI.md change together.
 
 - [ ] **Step 3: Read existing production and helper patterns**
 
@@ -744,7 +744,7 @@ linewatch_staging_compose "${COMPOSE_ARGS[@]}" up \
 linewatch_staging_compose "${COMPOSE_ARGS[@]}" ps
 
 cat <<EOF
-LineWatch TO staging is running.
+LineWatchTO staging is running.
 
 Local URL:
   $(linewatch_staging_local_origin)
@@ -1191,7 +1191,7 @@ Create `docs/staging.md` with exactly:
 ```markdown
 # On-Demand Staging
 
-This document describes the owner-only staging environment for LineWatch TO.
+This document describes the owner-only staging environment for LineWatchTO.
 
 Staging is production-like enough for week-long feature validation, but it is not production:
 
@@ -1340,7 +1340,7 @@ Use staging to verify:
 - PWA install/update behavior works on a real phone when testing through HTTPS tunnel.
 - Web Push works only if separate staging VAPID keys are configured and browser permission is granted.
 
-Do not describe staging data as production data or official TTC data. LineWatch TO remains an unofficial dashboard using public source-linked data.
+Do not describe staging data as production data or official TTC data. LineWatchTO remains an unofficial dashboard using public source-linked data.
 ```
 
 - [ ] **Step 2: Add a concise README staging section**

@@ -1,11 +1,11 @@
-# LineWatch TO Alert Ingestion Foundation Design
+# LineWatchTO Alert Ingestion Foundation Design
 
 **Date:** 2026-06-01
 **Status:** Approved for implementation planning
 
 ## Objective
 
-Add the first live-data backend slice for LineWatch TO by polling the official TTC Live Alerts JSON endpoint, preserving the source records, normalizing rapid-transit alerts and station accessibility outages, tracking ingestion health, and persisting changed route-alert snapshots.
+Add the first live-data backend slice for LineWatchTO by polling the official TTC Live Alerts JSON endpoint, preserving the source records, normalizing rapid-transit alerts and station accessibility outages, tracking ingestion health, and persisting changed route-alert snapshots.
 
 This slice deliberately keeps the existing seeded dashboard read paths in place. It builds and verifies the ingestion foundation before live records drive `/api/alerts`, `/api/status`, station panels, or map overlays.
 
@@ -449,7 +449,7 @@ Until the arrival slice is complete:
 
 At all stages:
 
-- Present LineWatch TO as an unofficial TTC dashboard.
+- Present LineWatchTO as an unofficial TTC dashboard.
 - Preserve links to TTC sources.
 - State that TTC source formats and alert precision can change.
 

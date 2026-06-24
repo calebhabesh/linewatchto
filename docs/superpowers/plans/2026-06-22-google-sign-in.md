@@ -1608,7 +1608,7 @@ Inside the login/register dialog branch before the email/password labels, add:
                   ) : null}
 ```
 
-Keep the existing email/password fields below this block. The dialog title remains `Sign in to LineWatch TO` or `Create account`.
+Keep the existing email/password fields below this block. The dialog title remains `Sign in to LineWatchTO` or `Create account`.
 
 - [ ] **Step 7: Run frontend tests and typecheck**
 
@@ -1671,7 +1671,7 @@ Run:
 rg -n "Google sign-in|LINEWATCH_AUTH_GOOGLE|official TTC" README.md .env.example .env.staging.example .env.production.example
 ```
 
-Expected: Google config appears in README and env examples; no text describes LineWatch TO as an official TTC product.
+Expected: Google config appears in README and env examples; no text describes LineWatchTO as an official TTC product.
 
 - [ ] **Step 4: Commit**
 

@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Prepare LineWatch TO for deployment by replacing fixture reliability rows with official TTC.ca performance metrics, adding Redis-backed dashboard caching, cleaning release/documentation state, adding CI, and documenting/executing deployment.
+**Goal:** Prepare LineWatchTO for deployment by replacing fixture reliability rows with official TTC.ca performance metrics, adding Redis-backed dashboard caching, cleaning release/documentation state, adding CI, and documenting/executing deployment.
 
 **Architecture:** Spring Boot owns all external data ingestion, parsing, caching, and stale/fallback behavior. Next.js remains a typed consumer with fixture fallback. Redis caches current dashboard read models with bounded TTLs and fails open to database/live computation when unavailable.
 
@@ -15,7 +15,7 @@
 - Work from repository root: `~/dev/ttc-reliability-navigator`.
 - Before editing, run `git status --short --branch`.
 - Preserve all existing local changes. At the time this plan was written, the worktree had dirty frontend files including `frontend/next-env.d.ts`, `LineWatchShell.tsx`, `SavedCommutesPanel.tsx`, and related tests. Review those diffs before modifying the same files.
-- Do not claim LineWatch TO is an official TTC product.
+- Do not claim LineWatchTO is an official TTC product.
 - Do not claim live TTC status unless ingestion is enabled and the latest successful run is fresh.
 - Do not claim real historical LineWatch reliability aggregation. This plan replaces the visible reliability panel with official TTC.ca current performance metrics.
 - Do not add route review/edit, push/email commute notifications, accessibility-personalized commute matching, live station arrivals, production geospatial matching, or GTFS shape import.
@@ -2130,7 +2130,7 @@ await checkJson("ingestion health", `${backendUrl}/api/health/ingestion`, body =
 await checkJson("status", `${backendUrl}/api/status`, body => Array.isArray(body.lines) && body.generatedAt);
 await checkJson("map", `${backendUrl}/api/map`, body => Array.isArray(body.stations) && Array.isArray(body.segments));
 await checkJson("performance", `${backendUrl}/api/performance`, body => typeof body.status === "string" && body.source === "TTC.ca" && Array.isArray(body.metrics));
-await checkHtml("frontend", frontendUrl, "LineWatch TO");
+await checkHtml("frontend", frontendUrl, "LineWatchTO");
 ```
 
 Make it executable:

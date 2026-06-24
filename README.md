@@ -1,6 +1,6 @@
-# LineWatch TO
+# LineWatchTO
 
-LineWatch TO is an unofficial TTC reliability dashboard for Toronto subway and LRT riders. The goal is to combine live service alerts, planned closures, GTFS route data, saved commute checks, and historical alert snapshots into a map-first dashboard that quickly answers:
+LineWatchTO is an unofficial TTC reliability dashboard for Toronto subway and LRT riders. The goal is to combine live service alerts, planned closures, GTFS route data, saved commute checks, and historical alert snapshots into a map-first dashboard that quickly answers:
 
 > Is my route affected now, later today, or this weekend?
 
@@ -290,11 +290,11 @@ SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH=true
 SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE=true
 ```
 
-If you verify `mail.linewatchto.ca` instead of the root domain, use an address under that subdomain, for example `no-reply@mail.linewatchto.ca`. Do not use `calebhabesh.com` for LineWatch TO production reset emails unless you intentionally want reset links and sender reputation tied to your personal domain.
+If you verify `mail.linewatchto.ca` instead of the root domain, use an address under that subdomain, for example `no-reply@mail.linewatchto.ca`. Do not use `calebhabesh.com` for LineWatchTO production reset emails unless you intentionally want reset links and sender reputation tied to your personal domain.
 
 ### Feedback Channel
 
-LineWatch TO can accept viewing-only product feedback through `POST /api/feedback`.
+LineWatchTO can accept viewing-only product feedback through `POST /api/feedback`.
 The form does not collect a reply email and the backend does not persist feedback in the database.
 When feedback email delivery is unavailable, the frontend offers a prefilled email-app fallback to `feedback@linewatchto.ca`.
 
@@ -302,7 +302,7 @@ Recommended inbox setup:
 
 1. Route `feedback@linewatchto.ca` to the owner Gmail inbox with Cloudflare Email Routing or the current domain email provider.
 2. In Gmail, create a filter for `to:feedback@linewatchto.ca`.
-3. Apply a label such as `LineWatch TO / Feedback`.
+3. Apply a label such as `LineWatchTO / Feedback`.
 4. Keep early feedback in the inbox until volume justifies archiving it automatically.
 
 Backend feedback email settings:
@@ -327,7 +327,7 @@ NEXT_PUBLIC_LINEWATCH_SUPPORT_URL=https://buymeacoffee.com/linewatchto
 
 Set this to the public Buy Me a Coffee profile URL for the project account.
 If the value is blank, the feedback panel hides the support action.
-The in-app button is labeled `Support LineWatch TO` and avoids donation, money, tip, or coffee wording.
+The in-app button is labeled `Support LineWatchTO` and avoids donation, money, tip, or coffee wording.
 
 Optional Google sign-in configuration:
 
@@ -403,8 +403,8 @@ http://localhost:3000
 ```
 
 Plain `npm --prefix frontend run dev` still works. The helper name is clearer
-when several LineWatch TO tabs are open, and it sets the local browser title to
-`LineWatch TO Dev`.
+when several LineWatchTO tabs are open, and it sets the local browser title to
+`LineWatchTO Dev`.
 
 Run frontend checks:
 
@@ -475,7 +475,7 @@ SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE=true \
 scripts/dev-live-backend.sh
 ```
 
-Password reset emails are sent as multipart HTML with a plain-text fallback and an inline LineWatch TO logo from `backend/src/main/resources/email/linewatch-logo.png`.
+Password reset emails are sent as multipart HTML with a plain-text fallback and an inline LineWatchTO logo from `backend/src/main/resources/email/linewatch-logo.png`.
 
 Do not commit SMTP usernames, passwords, API keys, or app passwords.
 
@@ -607,9 +607,9 @@ schedule-aware station arrivals. The scenario harness does not make the app an
 official TTC product and does not represent a live feed.
 
 Browser tab titles are intentionally distinct across common environments:
-production remains `LineWatch TO`, staging builds as `LineWatch TO Staging`,
-normal local dev shows `LineWatch TO Dev`, and alert scenarios show
-`LineWatch TO Dev: <scenario-name>`.
+production remains `LineWatchTO`, staging builds as `LineWatchTO Staging`,
+normal local dev shows `LineWatchTO Dev`, and alert scenarios show
+`LineWatchTO Dev: <scenario-name>`.
 
 
 Current backend scope:
@@ -711,7 +711,7 @@ Next.js dashboard
 
 ## Data Source Guardrails
 
-LineWatch TO should use public and source-linked data. It should also be honest about uncertainty:
+LineWatchTO should use public and source-linked data. It should also be honest about uncertainty:
 
 - The implemented poller reads the public TTC Live Alerts endpoint at `https://alerts.ttc.ca/api/alerts/live-alerts`.
 - The visible dashboard treats successful poll results as usable only inside the configured freshness window.
@@ -752,7 +752,7 @@ mvn -f backend/pom.xml test
 
 ## Portfolio Story
 
-LineWatch TO is intended to demonstrate:
+LineWatchTO is intended to demonstrate:
 
 - Java 21 and Spring Boot API design.
 - PostgreSQL/PostGIS data modeling.
@@ -770,7 +770,7 @@ LineWatch TO is intended to demonstrate:
 
 Suggested resume bullet once backend and live data are implemented:
 
-> Engineered LineWatch TO, an unofficial TTC reliability dashboard using Java 21, Spring Boot, PostgreSQL/PostGIS, Redis, Next.js, and TypeScript to visualize live subway/LRT disruptions, planned closures, and saved commute impact across Toronto.
+> Engineered LineWatchTO, an unofficial TTC reliability dashboard using Java 21, Spring Boot, PostgreSQL/PostGIS, Redis, Next.js, and TypeScript to visualize live subway/LRT disruptions, planned closures, and saved commute impact across Toronto.
 
 ## Roadmap
 

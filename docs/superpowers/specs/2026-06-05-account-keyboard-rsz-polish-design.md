@@ -2,7 +2,7 @@
 
 ## Goal
 
-Finish the next portfolio-grade polish slice for LineWatch TO:
+Finish the next portfolio-grade polish slice for LineWatchTO:
 
 - add a small, logical account system whose purpose is saved commute preferences;
 - improve keyboard behavior in the hamburger menu and station search;

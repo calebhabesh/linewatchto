@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Add a top-right LineWatch TO site guide/info popover and make account creation friendlier and more resilient with client-side and backend-aligned email/password validation.
+**Goal:** Add a top-right LineWatchTO site guide/info popover and make account creation friendlier and more resilient with client-side and backend-aligned email/password validation.
 
 **Architecture:** Keep the dashboard map-first. Add a self-contained `SiteGuideDropdown` beside the existing ingestion-log and theme buttons inside `InteractiveTtcMap`, backed by a copied public SVG icon asset and scoped CSS. Add a small pure frontend account-validation module, use it from `LineWatchShell`, improve account API error parsing, and align backend validation in `AccountService`.
 
@@ -16,7 +16,7 @@
 - `frontend/src/components/LineWatchShell.tsx` owns account dialog state and `handleSubmitAccount`. The worktree already had local modifications in this file when this plan was written. Start by reading the current file and do not overwrite unrelated changes.
 - The guide icon source is outside the repo at `~/Pictures/Assets/LineWatch/site-guide.svg`. The app must not reference that absolute path at runtime. Copy it to `frontend/public/assets/linewatch/site-guide.svg`.
 - Current backend email validation only checks for an `@`; current backend password validation requires 10 characters. Frontend submits raw form values and turns most registration failures into `Could not create that account.`
-- Do not present LineWatch TO as official TTC software. Do not claim live service data unless the current dashboard state is fresh and backend-backed.
+- Do not present LineWatchTO as official TTC software. Do not claim live service data unless the current dashboard state is fresh and backend-backed.
 
 ## Files
 
@@ -84,7 +84,7 @@ describe("site guide dropdown", () => {
     assert.match(guideSource, /\/assets\/linewatch\/site-guide\.svg/);
     assert.match(guideSource, /aria-label="Open site guide"/);
     assert.match(guideSource, /role="dialog"/);
-    assert.match(guideSource, /What LineWatch TO does/);
+    assert.match(guideSource, /What LineWatchTO does/);
     assert.match(guideSource, /Drag the map/);
     assert.match(guideSource, /Click a station/);
     assert.match(guideSource, /Click a colored overlay/);
@@ -312,13 +312,13 @@ export function SiteGuideDropdown() {
           id={panelId}
           className="site-guide-panel"
           role="dialog"
-          aria-label="LineWatch TO site guide"
+          aria-label="LineWatchTO site guide"
         >
           <div className="site-guide-header">
             <div className="site-guide-title">
               <Info size={18} aria-hidden="true" />
               <div>
-                <h2>LineWatch TO Guide</h2>
+                <h2>LineWatchTO Guide</h2>
                 <p>Unofficial TTC subway and LRT reliability dashboard.</p>
               </div>
             </div>
@@ -328,9 +328,9 @@ export function SiteGuideDropdown() {
           </div>
 
           <div className="site-guide-body">
-            <GuideSection icon={<MapIcon size={15} />} title="What LineWatch TO does">
+            <GuideSection icon={<MapIcon size={15} />} title="What LineWatchTO does">
               <p>
-                LineWatch TO shows subway and LRT service alerts, delays, Reduced Speed Zones, planned closures, station details, and saved-commute impacts on one map. It can use fresh backend alert data when ingestion is running, and fixture mode stays available for offline demos.
+                LineWatchTO shows subway and LRT service alerts, delays, Reduced Speed Zones, planned closures, station details, and saved-commute impacts on one map. It can use fresh backend alert data when ingestion is running, and fixture mode stays available for offline demos.
               </p>
             </GuideSection>
 
@@ -437,7 +437,7 @@ export function SiteGuideDropdown() {
             <div className="site-guide-note">
               <AlertTriangle size={14} aria-hidden="true" />
               <p>
-                LineWatch TO is a personal project, not an official TTC app. Always verify critical travel decisions with TTC sources.
+                LineWatchTO is a personal project, not an official TTC app. Always verify critical travel decisions with TTC sources.
               </p>
             </div>
           </div>
@@ -1570,9 +1570,9 @@ test("opens the site guide and blocks invalid account signup input", async ({ pa
   await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
 
   await page.getByRole("button", { name: "Open site guide" }).click();
-  const guide = page.getByRole("dialog", { name: "LineWatch TO site guide" });
+  const guide = page.getByRole("dialog", { name: "LineWatchTO site guide" });
   await expect(guide).toBeVisible();
-  await expect(guide).toContainText("What LineWatch TO does");
+  await expect(guide).toContainText("What LineWatchTO does");
   await expect(guide).toContainText("Both Ways");
   await expect(guide).toContainText("Reduced Speed Zone");
   await expect(guide).toContainText("Shuttle badge");
@@ -1581,7 +1581,7 @@ test("opens the site guide and blocks invalid account signup input", async ({ pa
 
   await page.getByRole("button", { name: "Toggle menu" }).click();
   await page.getByRole("menuitem", { name: "Create account" }).click();
-  const dialog = page.getByRole("dialog", { name: "Create LineWatch TO account" });
+  const dialog = page.getByRole("dialog", { name: "Create LineWatchTO account" });
   await expect(dialog).toBeVisible();
 
   await dialog.getByLabel("Email").fill("rider@localhost");

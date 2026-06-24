@@ -2,7 +2,7 @@
 
 ## Purpose
 
-LineWatch TO already works well as a desktop, map-first TTC reliability dashboard. The mobile experience should not be the desktop dashboard compressed into a narrow viewport. It should become a rider-first mobile web app: fast to scan, reachable with one hand, responsive while the SVG map is mounted, and still clearly map-first.
+LineWatchTO already works well as a desktop, map-first TTC reliability dashboard. The mobile experience should not be the desktop dashboard compressed into a narrow viewport. It should become a rider-first mobile web app: fast to scan, reachable with one hand, responsive while the SVG map is mounted, and still clearly map-first.
 
 This design keeps desktop behavior intact and adds a mobile-specific navigation and sheet model. The core mobile question is:
 

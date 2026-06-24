@@ -2,9 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Implement the remaining LineWatch TO backend/product slices from the current `main` baseline without reintroducing stale fixture claims or overclaiming live transit data.
+**Goal:** Implement the remaining LineWatchTO backend/product slices from the current `main` baseline without reintroducing stale fixture claims or overclaiming live transit data.
 
-**Architecture:** Keep LineWatch TO map-first and backend-owned: Spring Boot normalizes and serves live read models, PostgreSQL/PostGIS stores source data and geometry, Redis is added only after live contracts are stable, and Next.js remains a thin typed consumer with fixture fallback. Implement one slice at a time, keep every slice shippable, and update documentation only to match verified code.
+**Architecture:** Keep LineWatchTO map-first and backend-owned: Spring Boot normalizes and serves live read models, PostgreSQL/PostGIS stores source data and geometry, Redis is added only after live contracts are stable, and Next.js remains a thin typed consumer with fixture fallback. Implement one slice at a time, keep every slice shippable, and update documentation only to match verified code.
 
 **Tech Stack:** Java 21, Spring Boot 3.5, Spring Data JPA/JDBC, Spring Data Redis, PostgreSQL/PostGIS, Flyway, Maven, Next.js App Router, React, TypeScript, Node test runner, Playwright Chromium.
 
@@ -15,7 +15,7 @@
 Use this prompt in a fresh Gemini session:
 
 ```text
-You are working in ~/dev/ttc-reliability-navigator on LineWatch TO, an unofficial TTC reliability dashboard. Read AGENTS.md, GEMINI.md, README.md, REMAINING_TASKS.md, and docs/superpowers/plans/2026-06-03-gemini-remaining-slices.md before editing.
+You are working in ~/dev/ttc-reliability-navigator on LineWatchTO, an unofficial TTC reliability dashboard. Read AGENTS.md, GEMINI.md, README.md, REMAINING_TASKS.md, and docs/superpowers/plans/2026-06-03-gemini-remaining-slices.md before editing.
 
 Current target baseline from Codex review: main at 7e91c5b style(frontend): layout cause field inline to prevent wrapping. The old REMAINING_TASKS.md section about an uncommitted UI batch is stale if git status is clean; the UI batch has been committed on main. Start with Slice 1: nightly closure active-window gating.
 

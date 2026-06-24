@@ -1,6 +1,6 @@
 # On-Demand Staging
 
-This document describes the owner-only staging environment for LineWatch TO.
+This document describes the owner-only staging environment for LineWatchTO.
 
 Staging is intended to be production-functional for owner testing, while remaining isolated from production:
 
@@ -190,4 +190,4 @@ Use staging to verify:
 - PWA install/update behavior works on a real phone when testing through HTTPS tunnel.
 - Web Push works when staging VAPID keys are configured, browser permission is granted, and fresh dashboard-visible impacts exist.
 
-Do not describe staging data as production data or official TTC data. LineWatch TO remains an unofficial dashboard using public source-linked data.
+Do not describe staging data as production data or official TTC data. LineWatchTO remains an unofficial dashboard using public source-linked data.

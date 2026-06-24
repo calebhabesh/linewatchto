@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Make TTC GTFS-RT rapid-transit alerts visible throughout LineWatch TO when Live Alerts omits them, while preferring the richer Live Alerts projection when both sources describe the same incident.
+**Goal:** Make TTC GTFS-RT rapid-transit alerts visible throughout LineWatchTO when Live Alerts omits them, while preferring the richer Live Alerts projection when both sources describe the same incident.
 
 **Architecture:** Extend the existing combined GTFS-RT text adapter to identify supported rapid-transit line IDs, then resolve numeric stop IDs through the active static GTFS import before normalizing them into the existing `alerts` model. Normalize all source records first and apply a conservative source-priority matcher in the feed application service so raw records remain inspectable but only one rider-visible projection is persisted for a matched incident.
 

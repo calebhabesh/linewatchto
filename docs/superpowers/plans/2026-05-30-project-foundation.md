@@ -1,8 +1,8 @@
-# LineWatch TO Project Foundation Implementation Plan
+# LineWatchTO Project Foundation Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Create the initial LineWatch TO monorepo with backend, frontend, local infrastructure, docs, git history, and GitHub remote setup attempt.
+**Goal:** Create the initial LineWatchTO monorepo with backend, frontend, local infrastructure, docs, git history, and GitHub remote setup attempt.
 
 **Architecture:** Use a repo-root monorepo with `backend/` for Spring Boot, `frontend/` for Next.js, `docker-compose.yml` for PostgreSQL/PostGIS and Redis, and `docs/` for project specs/plans. Keep v1 focused on a working health baseline and project shape.
 
@@ -54,7 +54,7 @@
 
 - [ ] **Step 1: Add a minimal Next.js App Router project with scripts for dev, build, lint, and typecheck.**
 
-- [ ] **Step 2: Add a simple app shell that presents the LineWatch TO product direction without implementing transit logic.**
+- [ ] **Step 2: Add a simple app shell that presents the LineWatchTO product direction without implementing transit logic.**
 
 - [ ] **Step 3: Run frontend install/check commands when dependencies are available.**
 

@@ -15,7 +15,7 @@
 Use this exact prompt when starting a fresh Gemini implementation session:
 
 ```text
-You are working in ~/dev/ttc-reliability-navigator on LineWatch TO, an unofficial TTC reliability dashboard. Read AGENTS.md, GEMINI.md, README.md, and docs/superpowers/plans/2026-06-10-mobile-rotated-map-and-gesture-stability.md before editing. Implement the plan task-by-task. Preserve user changes, do not revert unrelated files, do not claim the dashboard is official or live unless fresh ingestion is active, and run the verification commands listed at the end before saying work is complete.
+You are working in ~/dev/ttc-reliability-navigator on LineWatchTO, an unofficial TTC reliability dashboard. Read AGENTS.md, GEMINI.md, README.md, and docs/superpowers/plans/2026-06-10-mobile-rotated-map-and-gesture-stability.md before editing. Implement the plan task-by-task. Preserve user changes, do not revert unrelated files, do not claim the dashboard is official or live unless fresh ingestion is active, and run the verification commands listed at the end before saying work is complete.
 ```
 
 ## Read This First

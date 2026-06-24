@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Add a simple, testable password-reset flow to the existing LineWatch TO account dialog, starting from a `Forgot password?` action on the Sign In view.
+**Goal:** Add a simple, testable password-reset flow to the existing LineWatchTO account dialog, starting from a `Forgot password?` action on the Sign In view.
 
 **Architecture:** Add short-lived password-reset tokens to the Spring account backend, expose request/confirm auth endpoints, and keep the UI inside the existing account dialog rather than adding a new page. The request endpoint must return neutral copy so the UI does not reveal whether an email exists; a development-only reset token/link can be returned when explicitly enabled so local demos remain testable without email infrastructure.
 
@@ -15,7 +15,7 @@
 Use this exact prompt if starting a fresh Gemini session:
 
 ```text
-You are working in ~/dev/ttc-reliability-navigator on LineWatch TO, an unofficial TTC reliability dashboard. Read AGENTS.md, GEMINI.md, README.md, and docs/superpowers/plans/2026-06-06-forgot-password.md before editing. Implement the plan task-by-task using TDD. Preserve existing user changes, do not revert unrelated dirty files, do not claim live TTC status unless fresh ingestion is active, and run the verification commands at the end before saying work is complete.
+You are working in ~/dev/ttc-reliability-navigator on LineWatchTO, an unofficial TTC reliability dashboard. Read AGENTS.md, GEMINI.md, README.md, and docs/superpowers/plans/2026-06-06-forgot-password.md before editing. Implement the plan task-by-task using TDD. Preserve existing user changes, do not revert unrelated dirty files, do not claim live TTC status unless fresh ingestion is active, and run the verification commands at the end before saying work is complete.
 ```
 
 ## Current State
@@ -976,14 +976,14 @@ const accountDialogTitle = () => {
 const accountDialogAriaLabel = () => {
   switch (accountDialogMode) {
     case "register":
-      return "Create LineWatch TO account";
+      return "Create LineWatchTO account";
     case "forgot-password":
-      return "Reset LineWatch TO password";
+      return "Reset LineWatchTO password";
     case "reset-password":
-      return "Choose a new LineWatch TO password";
+      return "Choose a new LineWatchTO password";
     case "login":
     default:
-      return "Sign in to LineWatch TO";
+      return "Sign in to LineWatchTO";
   }
 };
 ```
@@ -1072,7 +1072,7 @@ const handleConfirmPasswordReset = async () => {
 Replace:
 
 ```tsx
-aria-label={accountDialogMode === "login" ? "Sign in to LineWatch TO" : "Create LineWatch TO account"}
+aria-label={accountDialogMode === "login" ? "Sign in to LineWatchTO" : "Create LineWatchTO account"}
 ```
 
 with:
@@ -1373,18 +1373,18 @@ test("requests and confirms a password reset from the sign-in dialog", async ({ 
   await page.getByRole("button", { name: "Toggle menu" }).click();
   await page.getByRole("menuitem", { name: "Sign in" }).click();
 
-  const signInDialog = page.getByRole("dialog", { name: "Sign in to LineWatch TO" });
+  const signInDialog = page.getByRole("dialog", { name: "Sign in to LineWatchTO" });
   await expect(signInDialog).toBeVisible();
   await signInDialog.getByRole("button", { name: "Forgot password?" }).click();
 
-  const resetDialog = page.getByRole("dialog", { name: "Reset LineWatch TO password" });
+  const resetDialog = page.getByRole("dialog", { name: "Reset LineWatchTO password" });
   await expect(resetDialog).toBeVisible();
   await resetDialog.getByLabel("Email").fill("rider@example.com");
   await resetDialog.getByRole("button", { name: "Send reset link" }).click();
   await expect(resetDialog.getByRole("status")).toContainText("If an account exists");
   await resetDialog.getByRole("button", { name: "Open reset form" }).click();
 
-  const confirmDialog = page.getByRole("dialog", { name: "Choose a new LineWatch TO password" });
+  const confirmDialog = page.getByRole("dialog", { name: "Choose a new LineWatchTO password" });
   await expect(confirmDialog).toBeVisible();
   await confirmDialog.getByLabel("New password").fill("new correct horse 2");
   await confirmDialog.getByLabel("Confirm password").fill("new correct horse 2");

@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Complete LineWatch TO notifications by making `More -> Notifications` the canonical settings surface, adding persisted saved-commute, line-wide, event-type, and reminder-timing preferences, and wiring those preferences into Web Push delivery.
+**Goal:** Complete LineWatchTO notifications by making `More -> Notifications` the canonical settings surface, adding persisted saved-commute, line-wide, event-type, and reminder-timing preferences, and wiring those preferences into Web Push delivery.
 
 **Architecture:** Keep the existing browser Web Push subscription, delivery, service-worker fetch, stale-notification cleanup, and saved-commute impact planner. Add account-level notification preferences separate from device subscriptions, then extend notification candidate planning so saved-commute notifications remain high-signal while line-wide notifications are explicitly opt-in and filtered by line, event type, and reminder bucket.
 

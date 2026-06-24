@@ -2,7 +2,7 @@
 
 ## Feature Overview
 
-The goal of this frontend slice is to bring the LineWatch TO map to life without compromising readability or accessibility. Currently, our SVG map clearly highlights delays (orange) and suspensions (red) using static thick lines, but an operations dashboard should feel dynamic and alive.
+The goal of this frontend slice is to bring the LineWatchTO map to life without compromising readability or accessibility. Currently, our SVG map clearly highlights delays (orange) and suspensions (red) using static thick lines, but an operations dashboard should feel dynamic and alive.
 
 We will introduce three primary visual features:
 1. **Pulsing Alert Nodes**: Stations with active impacts will radiate a subtle, pulsing warning aura to draw the eye immediately.

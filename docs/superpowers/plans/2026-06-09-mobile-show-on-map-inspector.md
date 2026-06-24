@@ -1482,7 +1482,7 @@ Use browser dev tools mobile emulation around `390x844` and verify:
 
 ## Self-Review Notes For Implementer
 
-- Keep the user-facing product name as `LineWatch TO`.
+- Keep the user-facing product name as `LineWatchTO`.
 - Do not call fixture data live.
 - Do not introduce a marketing/landing page.
 - Do not add dependencies.

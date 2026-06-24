@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use `superpowers:subagent-driven-development` (recommended) or `superpowers:executing-plans` to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Make LineWatch TO map focus animations one-shot, keep overlay updates seamless during dashboard refreshes, align station selection flashes to the actual SVG station geometry, and make map controls readable over dense SVG content.
+**Goal:** Make LineWatchTO map focus animations one-shot, keep overlay updates seamless during dashboard refreshes, align station selection flashes to the actual SVG station geometry, and make map controls readable over dense SVG content.
 
 **Architecture:** Keep the current SVG-backed map and React-rendered overlay architecture. Treat focus zoom as a transient command, not a persistent side effect of selected state; retain the last good dashboard payload across transient refresh failures; derive visual station hit geometry from the loaded SVG whenever possible; and give the top-center controls a stable high-contrast rail.
 
@@ -15,7 +15,7 @@
 Use this exact prompt if starting a fresh Gemini session:
 
 ```text
-You are working in ~/dev/ttc-reliability-navigator on LineWatch TO, an unofficial TTC reliability dashboard. Read AGENTS.md, GEMINI.md, README.md, and docs/superpowers/plans/2026-06-05-map-interaction-stability-polish.md before editing. Implement the plan task-by-task. Preserve user changes, do not touch unrelated files, do not claim the dashboard is live unless fresh ingestion is active, and run the verification commands listed at the end before saying work is complete.
+You are working in ~/dev/ttc-reliability-navigator on LineWatchTO, an unofficial TTC reliability dashboard. Read AGENTS.md, GEMINI.md, README.md, and docs/superpowers/plans/2026-06-05-map-interaction-stability-polish.md before editing. Implement the plan task-by-task. Preserve user changes, do not touch unrelated files, do not claim the dashboard is live unless fresh ingestion is active, and run the verification commands listed at the end before saying work is complete.
 ```
 
 ## Current Diagnosis

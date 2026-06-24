@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Convert LineWatch TO mobile from a squeezed desktop menu/dashboard into a mobile-native map plus bottom-sheet experience while preserving desktop behavior.
+**Goal:** Convert LineWatchTO mobile from a squeezed desktop menu/dashboard into a mobile-native map plus bottom-sheet experience while preserving desktop behavior.
 
 **Architecture:** Keep `LineWatchShell` as the orchestration boundary and keep the existing desktop floating panels. Add mobile-only bottom navigation, mobile status peek/sheet components, and a mobile More sheet. Use CSS media queries and a small number of new React components so desktop remains unchanged and the expensive SVG map stays isolated behind the existing mobile performance work.
 
@@ -155,7 +155,7 @@ describe("mobile bottom sheet UX", () => {
   });
 
   it("moves secondary mobile utilities into More", () => {
-    assert.match(moreSheetSource, /LineWatch TO/);
+    assert.match(moreSheetSource, /LineWatchTO/);
     assert.match(moreSheetSource, /Sign In/);
     assert.match(moreSheetSource, /Create Account/);
     assert.match(moreSheetSource, /Demo Account/);
@@ -1026,12 +1026,12 @@ export function MobileMoreSheet({
   onOpenAnalytics,
 }: Props) {
   return (
-    <section className="mobile-more-sheet panel" aria-label="More LineWatch TO options">
+    <section className="mobile-more-sheet panel" aria-label="More LineWatchTO options">
       <div className="mobile-sheet-heading">
         <div className="mobile-more-brand">
           <Image src="/assets/linewatch/logo.svg" alt="" width={28} height={28} aria-hidden="true" />
           <span>
-            <p className="mobile-sheet-kicker">LineWatch TO</p>
+            <p className="mobile-sheet-kicker">LineWatchTO</p>
             <h2>More</h2>
           </span>
         </div>
@@ -1869,7 +1869,7 @@ If any command cannot run because of local environment, sandboxing, missing brow
 - Do not modify backend API contracts.
 - Do not add dependencies.
 - Use the existing TTC line colors.
-- Do not claim LineWatch TO is official TTC software.
+- Do not claim LineWatchTO is official TTC software.
 - Do not claim live station arrivals.
 - Preserve fixture fallback copy.
 - If a source guardrail regex fails because implementation names differ, either align names with this plan or update the regex only if the behavior is genuinely implemented.

@@ -1,6 +1,6 @@
 # Production VPS Server Configuration
 
-This file documents the hosting configuration for the **LineWatch TO** production server.
+This file documents the hosting configuration for the **LineWatchTO** production server.
 
 Do not commit passwords, SMTP credentials, VAPID private keys, or WireGuard private keys. Store application secrets in `.env.production` on the VPS and keep that file out of Git.
 

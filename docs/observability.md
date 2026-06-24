@@ -1,6 +1,6 @@
 # Observability Architecture
 
-This document covers the monitoring, logging, metrics, and visitor analytics architecture for **LineWatch TO**.
+This document covers the monitoring, logging, metrics, and visitor analytics architecture for **LineWatchTO**.
 
 ## Architecture Overview
 
@@ -96,7 +96,7 @@ Logs are filtered to the current Compose project using `LINEWATCH_OBSERVABILITY_
 
 ## Dashboards
 
-Create a folder named **LineWatch TO** in Grafana Cloud with the following dashboards:
+Create a folder named **LineWatchTO** in Grafana Cloud with the following dashboards:
 
 1. **LineWatch Overview**:
    - Site Uptime (from Synthetic Monitoring).

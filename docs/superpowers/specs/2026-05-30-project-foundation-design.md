@@ -1,10 +1,10 @@
-# LineWatch TO Project Foundation Design
+# LineWatchTO Project Foundation Design
 
 Date: 2026-05-30
 
 ## Purpose
 
-LineWatch TO is an unofficial TTC reliability dashboard. The app combines static GTFS route data, live service alerts, planned closures, saved commute checks, and historical alert snapshots so Toronto riders can quickly see whether subway/LRT trips are affected now, later today, or this weekend.
+LineWatchTO is an unofficial TTC reliability dashboard. The app combines static GTFS route data, live service alerts, planned closures, saved commute checks, and historical alert snapshots so Toronto riders can quickly see whether subway/LRT trips are affected now, later today, or this weekend.
 
 This repository foundation establishes the monorepo shape, baseline backend/frontend apps, local infrastructure, and initial documentation for the full implementation.
 
@@ -62,4 +62,4 @@ Start with a backend health-controller test so the scaffold has a real automated
 
 ## GitHub Repository
 
-The local repo should be initialized at `~/dev/ttc-reliability-navigator`. The intended GitHub repository name is `ttc-reliability-navigator`. The user-facing product name remains `LineWatch TO`.
+The local repo should be initialized at `~/dev/ttc-reliability-navigator`. The intended GitHub repository name is `ttc-reliability-navigator`. The user-facing product name remains `LineWatchTO`.

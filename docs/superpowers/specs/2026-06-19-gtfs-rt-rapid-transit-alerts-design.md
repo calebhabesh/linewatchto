@@ -5,7 +5,7 @@
 
 ## Objective
 
-Allow LineWatch TO to use TTC GTFS-RT service alerts as a supplemental
+Allow LineWatchTO to use TTC GTFS-RT service alerts as a supplemental
 rapid-transit source when an incident is absent from TTC Live Alerts, while
 continuing to prefer the richer Live Alerts record when both sources describe
 the same incident.

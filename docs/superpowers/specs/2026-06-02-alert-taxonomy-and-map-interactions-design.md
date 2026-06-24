@@ -1,4 +1,4 @@
-# LineWatch TO Alert Taxonomy And Map Interactions Design
+# LineWatchTO Alert Taxonomy And Map Interactions Design
 
 **Date:** 2026-06-02
 **Status:** Awaiting written-spec review
@@ -7,7 +7,7 @@
 
 Separate ordinary TTC delays from Reduced Speed Zones (RSZs), make alert timing accurate, and make every rendered disruption overlay useful as a map interaction.
 
-This is the first implementation slice in a broader LineWatch TO iteration roadmap. It focuses on alert ingestion semantics, dashboard read models, map rendering, and test fixtures. Nightly closure scheduling, complete station accessibility data, live station outage reads, emergency station impacts, and source-labeled live arrivals remain follow-on slices.
+This is the first implementation slice in a broader LineWatchTO iteration roadmap. It focuses on alert ingestion semantics, dashboard read models, map rendering, and test fixtures. Nightly closure scheduling, complete station accessibility data, live station outage reads, emergency station impacts, and source-labeled live arrivals remain follow-on slices.
 
 The dashboard remains an unofficial TTC reliability dashboard. It must only claim live alert state while the latest successful ingestion run is fresh.
 

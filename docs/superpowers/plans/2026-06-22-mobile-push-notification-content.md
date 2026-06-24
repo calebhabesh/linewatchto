@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Make every supported LineWatch TO mobile Web Push alert identify the TTC line, line name, event type, lifecycle state, location, saved-commute context, and trustworthy Toronto event time in a consistent Android-friendly format.
+**Goal:** Make every supported LineWatchTO mobile Web Push alert identify the TTC line, line name, event type, lifecycle state, location, saved-commute context, and trustworthy Toronto event time in a consistent Android-friendly format.
 
 **Architecture:** Add a shared rapid-transit line catalog and one backend notification formatter. Planners provide structured facts, persisted push events retain the facts needed for precise same-tag clearances, and the service worker displays the backend content with both an Android icon and monochrome badge while suppressing stale generic fallback noise.
 
@@ -141,7 +141,7 @@ Confirm these existing assertions are present:
 ```text
 Commute alert cleared
 Line alert cleared
-LineWatch TO commute update
+LineWatchTO commute update
 TTL = 300
 no notification icon
 ```
@@ -1663,10 +1663,10 @@ it("shows the controlled fallback only when the pending API request fails", asyn
   const { shownNotifications } = await serviceWorkerPush({ fetchOk: false });
 
   assert.equal(shownNotifications.length, 1);
-  assert.equal(shownNotifications[0].title, "⚠️ LineWatch TO Service Alert");
+  assert.equal(shownNotifications[0].title, "⚠️ LineWatchTO Service Alert");
   assert.equal(
     shownNotifications[0].options.body,
-    "Open LineWatch TO to view the latest service update.",
+    "Open LineWatchTO to view the latest service update.",
   );
 });
 ```
@@ -1746,8 +1746,8 @@ Change `showFallbackPushNotification()` to:
 
 ```javascript
 async function showFallbackPushNotification() {
-  await self.registration.showNotification("⚠️ LineWatch TO Service Alert", {
-    body: "Open LineWatch TO to view the latest service update.",
+  await self.registration.showNotification("⚠️ LineWatchTO Service Alert", {
+    body: "Open LineWatchTO to view the latest service update.",
     tag: FALLBACK_PUSH_TAG,
     icon: NOTIFICATION_ICON_URL,
     badge: NOTIFICATION_BADGE_URL,
@@ -1893,7 +1893,7 @@ Expected: no output and exit status 0.
 Run:
 
 ```bash
-rg -n 'Commute alert cleared|Line alert cleared|LineWatch TO commute update' README.md AGENTS.md GEMINI.md
+rg -n 'Commute alert cleared|Line alert cleared|LineWatchTO commute update' README.md AGENTS.md GEMINI.md
 ```
 
 Expected: no matches.

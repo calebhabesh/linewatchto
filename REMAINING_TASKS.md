@@ -1,8 +1,8 @@
-# LineWatch TO Remaining Slices Handoff
+# LineWatchTO Remaining Slices Handoff
 
 Last refreshed: 2026-06-02
 
-This is the clean-context handoff for the remaining LineWatch TO work. Read this
+This is the clean-context handoff for the remaining LineWatchTO work. Read this
 before starting a new feature slice. It intentionally stays at roadmap level:
 create a focused design spec and implementation plan for one slice at a time so
 later work is based on the code that actually exists when that slice begins.
@@ -10,7 +10,7 @@ later work is based on the code that actually exists when that slice begins.
 ## New Session Prompt
 
 ```text
-You are working in ~/dev/ttc-reliability-navigator on LineWatch TO,
+You are working in ~/dev/ttc-reliability-navigator on LineWatchTO,
 an unofficial TTC reliability dashboard. Read AGENTS.md, README.md, and
 REMAINING_TASKS.md. Run git status --short --branch before editing. Preserve all
 existing user changes. Start with the first incomplete slice only. Before

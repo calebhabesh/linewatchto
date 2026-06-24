@@ -2,7 +2,7 @@
 
 ## Source
 
-LineWatch TO uses the public TTC merged GTFS schedule dataset for station arrival estimates on mapped rapid-transit Lines 1, 2, 4, 5, and 6:
+LineWatchTO uses the public TTC merged GTFS schedule dataset for station arrival estimates on mapped rapid-transit Lines 1, 2, 4, 5, and 6:
 
 https://ckan0.cf.opendata.inter.prod-toronto.ca/en/dataset/merged-gtfs-ttc-routes-and-schedules
 

@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Build an overnight "Subway closed" screen for LineWatch TO that hides the service feed during TTC subway non-operating hours while still letting users peek at the current map and station accessibility state.
+**Goal:** Build an overnight "Subway closed" screen for LineWatchTO that hides the service feed during TTC subway non-operating hours while still letting users peek at the current map and station accessibility state.
 
 **Architecture:** Add a pure Toronto-time operating-hours helper, a small client hook, and a dedicated closed-hours overlay component. Keep the existing dashboard and map mounted underneath so the background map can be blurred/tinted and the user can reveal the normal map view on demand.
 
@@ -12,7 +12,7 @@
 
 ## Source And Scope Notes
 
-- Use the current project name: **LineWatch TO**. Do not present this as an official TTC product.
+- Use the current project name: **LineWatchTO**. Do not present this as an official TTC product.
 - TTC's own service details page says subway first/last train times vary by station, and gives approximate subway hours of 6:00 a.m. to 2:00 a.m. Monday through Saturday and 8:00 a.m. to 2:00 a.m. Sundays. It also notes Blue Night overnight service from about 1:30 a.m. to 5:30 a.m. Source: `https://www.ttc.ca/routes-and-schedules/Service-details-and-holidays-OLD`
 - Implement the schedule as a product heuristic for this portfolio app. Do not claim exact station-level first/last trains.
 - Do not implement holiday-specific starts in this slice. Add copy saying exact times vary by station.
@@ -475,7 +475,7 @@ export function SubwayClosedScreen({
         </div>
 
         <div className="subway-closed-copy">
-          <p className="subway-closed-kicker">LineWatch TO overnight mode</p>
+          <p className="subway-closed-kicker">LineWatchTO overnight mode</p>
           <h1 id="subway-closed-title">Subway closed overnight</h1>
           <p>
             Regular subway service is outside operating hours. The feed is hidden for now, but the map

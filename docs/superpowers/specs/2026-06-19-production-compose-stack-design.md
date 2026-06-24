@@ -4,7 +4,7 @@ Date: 2026-06-19
 
 ## Context
 
-LineWatch TO will run on one Oracle Cloud Always Free Ampere VPS with 2 OCPUs, 12 GB RAM, Ubuntu 24.04, and the `linewatchto.ca` domain. The repository currently has a local-only `docker-compose.yml` for PostgreSQL/PostGIS and Redis, a backend Dockerfile, and untracked draft production files for Caddy, Compose, frontend Docker, and VPS notes.
+LineWatchTO will run on one Oracle Cloud Always Free Ampere VPS with 2 OCPUs, 12 GB RAM, Ubuntu 24.04, and the `linewatchto.ca` domain. The repository currently has a local-only `docker-compose.yml` for PostgreSQL/PostGIS and Redis, a backend Dockerfile, and untracked draft production files for Caddy, Compose, frontend Docker, and VPS notes.
 
 The production target is a self-hosted app stack on the VPS. WireGuard remains host-level infrastructure so SSH can be closed to the public internet after the VPN path is verified.
 
@@ -227,4 +227,4 @@ Implementation should update:
 
 ## Approved Scope
 
-This design approves a full self-hosted production Docker Compose stack for LineWatch TO on the Oracle VPS, with WireGuard retained as host-level administrative access.
+This design approves a full self-hosted production Docker Compose stack for LineWatchTO on the Oracle VPS, with WireGuard retained as host-level administrative access.

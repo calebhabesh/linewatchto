@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use `superpowers:subagent-driven-development` (recommended) or `superpowers:executing-plans` to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Polish the LineWatch TO dashboard header, poll copy, Reduced Speed Zone iconography, submenu-card hierarchy, map-highlight behavior, and TTC Live Alerts metadata display without overclaiming live data.
+**Goal:** Polish the LineWatchTO dashboard header, poll copy, Reduced Speed Zone iconography, submenu-card hierarchy, map-highlight behavior, and TTC Live Alerts metadata display without overclaiming live data.
 
 **Architecture:** Keep the existing map-first Next.js shell and backend dashboard API boundaries. Split "open a submenu" from "select/highlight a specific map item", add a small shared frontend card-field layer for repeated alert/closure/zone card presentation, and extend the backend alert DTOs only for TTC fields that already exist in the Live Alerts payload or normalized alert table. Preserve fixture fallback and stale-ingestion suppression.
 
@@ -15,7 +15,7 @@
 Use this exact prompt if starting a fresh Gemini session:
 
 ```text
-You are working in ~/dev/ttc-reliability-navigator on LineWatch TO, an unofficial TTC reliability dashboard. Read AGENTS.md, GEMINI.md, README.md, and docs/superpowers/plans/2026-06-02-frontend-ui-polish-viewability.md before editing. Implement the plan task-by-task. Preserve user changes, do not touch unrelated files, do not claim the dashboard is live unless fresh ingestion is active, and run the verification commands listed at the end before saying work is complete.
+You are working in ~/dev/ttc-reliability-navigator on LineWatchTO, an unofficial TTC reliability dashboard. Read AGENTS.md, GEMINI.md, README.md, and docs/superpowers/plans/2026-06-02-frontend-ui-polish-viewability.md before editing. Implement the plan task-by-task. Preserve user changes, do not touch unrelated files, do not claim the dashboard is live unless fresh ingestion is active, and run the verification commands listed at the end before saying work is complete.
 ```
 
 ## Current Code Surfaces

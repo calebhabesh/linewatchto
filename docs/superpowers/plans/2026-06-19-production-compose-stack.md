@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Build a production Docker Compose stack that self-hosts LineWatch TO on the Oracle VPS with Caddy, Next.js, Spring Boot, PostgreSQL/PostGIS, and Redis.
+**Goal:** Build a production Docker Compose stack that self-hosts LineWatchTO on the Oracle VPS with Caddy, Next.js, Spring Boot, PostgreSQL/PostGIS, and Redis.
 
 **Architecture:** WireGuard, Docker Engine, and host firewall rules remain host-managed. Docker Compose owns the HTTP app stack: Caddy is the only public web entrypoint, while frontend, backend, Postgres, and Redis communicate on a private Compose network. Browser API calls stay same-origin through `/api/*`; backend and frontend server-side calls use Docker service names.
 
@@ -704,7 +704,7 @@ SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH=true
 SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE=true
 ```
 
-If you verify `mail.linewatchto.ca` instead of the root domain, use an address under that subdomain, for example `no-reply@mail.linewatchto.ca`. Do not use `calebhabesh.com` for LineWatch TO production reset emails unless you intentionally want reset links and sender reputation tied to your personal domain.
+If you verify `mail.linewatchto.ca` instead of the root domain, use an address under that subdomain, for example `no-reply@mail.linewatchto.ca`. Do not use `calebhabesh.com` for LineWatchTO production reset emails unless you intentionally want reset links and sender reputation tied to your personal domain.
 ````
 
 - [ ] **Step 2: Replace `docs/production-vps.md`**
@@ -714,7 +714,7 @@ Replace `docs/production-vps.md` with:
 ````markdown
 # Production VPS Server Configuration
 
-This file documents the hosting infrastructure configuration for the **LineWatch TO** production server. It is referenced by AI assistants and coding agents during deployment, maintenance, and debugging tasks.
+This file documents the hosting infrastructure configuration for the **LineWatchTO** production server. It is referenced by AI assistants and coding agents during deployment, maintenance, and debugging tasks.
 
 Do not commit actual passwords, database credentials, SMTP credentials, VAPID private keys, or WireGuard private keys. Store production secrets in `.env.production` on the VPS and keep that file out of Git.
 

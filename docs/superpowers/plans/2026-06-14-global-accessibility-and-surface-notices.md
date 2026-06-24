@@ -15,13 +15,13 @@
 Use this prompt in a fresh Gemini session:
 
 ```text
-You are working in ~/dev/ttc-reliability-navigator on LineWatch TO, an unofficial TTC reliability dashboard. Read AGENTS.md, GEMINI.md, README.md, and docs/superpowers/plans/2026-06-14-global-accessibility-and-surface-notices.md before editing.
+You are working in ~/dev/ttc-reliability-navigator on LineWatchTO, an unofficial TTC reliability dashboard. Read AGENTS.md, GEMINI.md, README.md, and docs/superpowers/plans/2026-06-14-global-accessibility-and-surface-notices.md before editing.
 
 Current request: implement two TTC Live Map parity slices:
 1. A global Accessibility Outages menu with elevator/escalator drill-ins grouped by TTC rapid-transit line and station.
 2. A searchable Surface Notices menu for TTC service changes, bypasses, detours, and related non-rapid route notices.
 
-Preserve user changes. Run git status before edits. Do not reset or delete unrelated files. Keep LineWatch TO unofficial. Do not claim these notices are notifications, route recommendations, live arrivals, or rapid-transit reliability analytics. Keep fixture fallback available and clearly labeled. Implement one task group at a time with failing tests first.
+Preserve user changes. Run git status before edits. Do not reset or delete unrelated files. Keep LineWatchTO unofficial. Do not claim these notices are notifications, route recommendations, live arrivals, or rapid-transit reliability analytics. Keep fixture fallback available and clearly labeled. Implement one task group at a time with failing tests first.
 ```
 
 ## Current Context
@@ -220,7 +220,7 @@ Use names parallel to the backend JSON. Do not import station-detail types direc
 - Return `{ source: "backend" | "fallback", data }`.
 - Fallback data:
   - `fresh: false`
-  - `source: "LineWatch TO fixture"`
+  - `source: "LineWatchTO fixture"`
   - empty `assetTypes`
   - empty `groups`
 

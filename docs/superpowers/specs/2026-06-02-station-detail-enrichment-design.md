@@ -5,7 +5,7 @@ Status: Approved for implementation planning
 
 ## Context
 
-LineWatch TO already opens a station detail panel when a user selects a map
+LineWatchTO already opens a station detail panel when a user selects a map
 station. The existing panel shows served lines, a seeded access summary, seeded
 station impacts, and explicitly labeled demo arrivals. Its backend read model is
 partial:

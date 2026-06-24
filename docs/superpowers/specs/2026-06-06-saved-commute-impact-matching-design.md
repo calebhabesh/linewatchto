@@ -2,7 +2,7 @@
 
 ## Goal
 
-Make account-backed Saved Commutes useful after signup by showing whether a rider's saved rapid-transit route is affected by current or planned LineWatch TO service impacts.
+Make account-backed Saved Commutes useful after signup by showing whether a rider's saved rapid-transit route is affected by current or planned LineWatchTO service impacts.
 
 The route engine should choose a **default scheduled route**, not a fastest live route. It uses scheduled adjacent-station timing from the active TTC GTFS import when available and deterministic fallback weights when scheduled weights are unavailable.
 

@@ -1,10 +1,10 @@
-# LineWatch TO - Handover Document
+# LineWatchTO - Handover Document
 
 **Target Audience:** Codex 5.5xhigh (or any other agent taking over)
 **Last Updated:** 2026-06-01
 
 ## 1. Project State & Current Reality
-We are building **LineWatch TO** (portfolio project name: **TTC Reliability Navigator**), a polished, high-density transit operations dashboard for Toronto's subway and LRT network. 
+We are building **LineWatchTO** (portfolio project name: **TTC Reliability Navigator**), a polished, high-density transit operations dashboard for Toronto's subway and LRT network. 
 
 The repository is a seeded full-stack dashboard demo with graceful frontend fixture fallback. It is not yet a live TTC dashboard, but the backend now has an opt-in TTC Live Alerts ingestion foundation.
 

@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Make LineWatch TO installable as a mobile PWA with a trustworthy offline fallback and fast relaunch behavior.
+**Goal:** Make LineWatchTO installable as a mobile PWA with a trustworthy offline fallback and fast relaunch behavior.
 
 **Architecture:** Use the built-in Next.js App Router PWA conventions instead of adding a package. Add `app/manifest.ts`, PWA metadata and viewport settings, a small client-only service worker registration component, static offline HTML, and a hand-written `/sw.js` that caches only app-shell/static assets while bypassing `/api/*` reads.
 
@@ -12,7 +12,7 @@
 
 ## Product Decision
 
-LineWatch TO should use a conservative offline policy.
+LineWatchTO should use a conservative offline policy.
 
 - The installed app should launch full-screen/standalone on mobile.
 - Icons should use the supplied LineWatch assets from `~/Pictures/Assets/LineWatch/PWA-Icons`.
@@ -53,7 +53,7 @@ This matches the repository guardrail that the dashboard should not claim live s
 The test should:
 
 - Import `manifest()` from `frontend/src/app/manifest.ts`.
-- Assert `name` is `LineWatch TO`, `short_name` is `LineWatch`, `start_url` is `/`, `scope` is `/`, and `display` is `standalone`.
+- Assert `name` is `LineWatchTO`, `short_name` is `LineWatch`, `start_url` is `/`, `scope` is `/`, and `display` is `standalone`.
 - Assert manifest icons include 192, 512, Apple touch metadata, and a maskable 512 icon.
 - Read PNG headers for the copied public icons and assert dimensions are exactly 192x192, 512x512, 180x180, and 512x512.
 - Read `layout.tsx` and assert Apple web app metadata, viewport fit cover, theme colors, and `<PwaServiceWorkerRegistration />` are present.
@@ -84,7 +84,7 @@ The manifest should return:
 ```ts
 {
   id: "/",
-  name: "LineWatch TO",
+  name: "LineWatchTO",
   short_name: "LineWatch",
   description: "Unofficial TTC reliability dashboard for Toronto subway and LRT riders.",
   start_url: "/",
@@ -108,11 +108,11 @@ The manifest should return:
 
 Add:
 
-- `applicationName: "LineWatch TO"`
+- `applicationName: "LineWatchTO"`
 - `manifest: "/manifest.webmanifest"` if required by the generated output
 - `icons.icon` entries for the 192 and 512 PNGs
 - `icons.apple` entry for the Apple touch icon
-- `appleWebApp` metadata with `capable: true`, `title: "LineWatch TO"`, and `statusBarStyle: "black-translucent"`
+- `appleWebApp` metadata with `capable: true`, `title: "LineWatchTO"`, and `statusBarStyle: "black-translucent"`
 - `formatDetection.telephone: false`
 - `viewport` export with `width: "device-width"`, `initialScale: 1`, `viewportFit: "cover"`, dark/light `themeColor`, and `colorScheme: "dark light"`
 

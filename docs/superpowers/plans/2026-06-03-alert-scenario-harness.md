@@ -2,9 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Build a repo-owned TTC alert scenario harness so LineWatch TO can manually and automatically test active alerts, ordinary delays, Reduced Speed Zones, planned closures, accessibility outages, station-node impacts, and nonlinear map overlays.
+**Goal:** Build a repo-owned TTC alert scenario harness so LineWatchTO can manually and automatically test active alerts, ordinary delays, Reduced Speed Zones, planned closures, accessibility outages, station-node impacts, and nonlinear map overlays.
 
-**Architecture:** Keep the real ingestion path intact. Store TTC-shaped scenario feeds as generated JSON fixtures, generate them from one small Node scenario catalog, serve any scenario through a local mock TTC feed for browser testing, and add focused backend/frontend regression tests over the same catalog. The harness is dev/test-only and must never make LineWatch TO look official or claim live data unless the backend ingested a fresh source.
+**Architecture:** Keep the real ingestion path intact. Store TTC-shaped scenario feeds as generated JSON fixtures, generate them from one small Node scenario catalog, serve any scenario through a local mock TTC feed for browser testing, and add focused backend/frontend regression tests over the same catalog. The harness is dev/test-only and must never make LineWatchTO look official or claim live data unless the backend ingested a fresh source.
 
 **Tech Stack:** Java 21, Spring Boot 3.5, Jackson, Maven, Node.js built-ins, Next.js App Router, React, TypeScript, Node test runner, Playwright Chromium.
 
@@ -15,7 +15,7 @@
 Use this prompt in the implementation session:
 
 ```text
-You are working in ~/dev/ttc-reliability-navigator on LineWatch TO, an unofficial TTC reliability dashboard. Read AGENTS.md, GEMINI.md, README.md, and docs/superpowers/plans/2026-06-03-alert-scenario-harness.md before editing.
+You are working in ~/dev/ttc-reliability-navigator on LineWatchTO, an unofficial TTC reliability dashboard. Read AGENTS.md, GEMINI.md, README.md, and docs/superpowers/plans/2026-06-03-alert-scenario-harness.md before editing.
 
 Implement the alert scenario harness task-by-task. Preserve all existing user changes. Start with git status --short and do not reset, checkout, delete, or rewrite unrelated files. This repo currently has many modified frontend/backend files and an untracked scripts/mock-alerts-server.js prototype; treat them as user work and only edit that prototype if you are replacing it with the scenario-aware mock server described in this plan.
 
@@ -124,7 +124,7 @@ sed -n '1,320p' GEMINI.md
 sed -n '1,260p' README.md
 ```
 
-Expected: confirm the project name is LineWatch TO and that this is not an official TTC product.
+Expected: confirm the project name is LineWatchTO and that this is not an official TTC product.
 
 - [ ] **Step 3: Inspect the current prototype server**
 

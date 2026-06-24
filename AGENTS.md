@@ -1,10 +1,10 @@
-# Agent Guide for LineWatch TO
+# Agent Guide for LineWatchTO
 
 Last updated: 2026-06-20
 
-This repository contains LineWatch TO, an unofficial TTC reliability dashboard. The app is a portfolio-grade full-stack project intended to show Java/Spring backend engineering, PostgreSQL/PostGIS data modeling, Redis caching, public transit ingestion, and a polished Next.js interface for Toronto subway and LRT reliability.
+This repository contains LineWatchTO, an unofficial TTC reliability dashboard. The app is a portfolio-grade full-stack project intended to show Java/Spring backend engineering, PostgreSQL/PostGIS data modeling, Redis caching, public transit ingestion, and a polished Next.js interface for Toronto subway and LRT reliability.
 
-The user-facing product name is **LineWatch TO**. The portfolio case-study name may be **TTC Reliability Navigator**. Never present the project as an official TTC product.
+The user-facing product name is **LineWatchTO**. The portfolio case-study name may be **TTC Reliability Navigator**. Never present the project as an official TTC product.
 
 ## Current Reality
 

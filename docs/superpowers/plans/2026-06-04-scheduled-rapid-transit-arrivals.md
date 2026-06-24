@@ -15,7 +15,7 @@
 Use this prompt in a fresh Gemini session:
 
 ```text
-You are working in ~/dev/ttc-reliability-navigator on LineWatch TO, an unofficial TTC reliability dashboard. Read AGENTS.md, GEMINI.md, README.md, docs/superpowers/specs/2026-06-03-live-station-arrivals-design.md, and docs/superpowers/plans/2026-06-04-scheduled-rapid-transit-arrivals.md before editing.
+You are working in ~/dev/ttc-reliability-navigator on LineWatchTO, an unofficial TTC reliability dashboard. Read AGENTS.md, GEMINI.md, README.md, docs/superpowers/specs/2026-06-03-live-station-arrivals-design.md, and docs/superpowers/plans/2026-06-04-scheduled-rapid-transit-arrivals.md before editing.
 
 Implement scheduled rapid-transit arrivals for every mapped Line 1, 2, 4, 5, and 6 station. Use the public TTC merged GTFS schedule as the source of scheduled arrivals. Do not use TTC BusTime GTFS-RT for subway/LRT arrivals. Do not add surface bus/streetcar connections in this slice. Do not claim live subway/LRT predictions. Preserve user changes, run git status before edits, write the smallest meaningful failing test before each behavior change, and commit after each completed task group.
 
@@ -137,7 +137,7 @@ Replace the old "Live Station Arrivals Design" content with:
 
 ## Source
 
-LineWatch TO uses the public TTC merged GTFS schedule dataset for station arrival estimates on mapped rapid-transit Lines 1, 2, 4, 5, and 6:
+LineWatchTO uses the public TTC merged GTFS schedule dataset for station arrival estimates on mapped rapid-transit Lines 1, 2, 4, 5, and 6:
 
 https://ckan0.cf.opendata.inter.prod-toronto.ca/en/dataset/merged-gtfs-ttc-routes-and-schedules
 
@@ -200,7 +200,7 @@ In `README.md`, `AGENTS.md`, and `GEMINI.md`, replace statements that say arriva
 Station arrivals use source-labeled TTC scheduled service when a merged GTFS schedule import is active. They are timetable-based estimates, not live subway/LRT predictions. If no schedule import is active, the station detail API returns an unavailable scheduled-source state and the frontend fallback remains clearly labeled as demo data.
 ```
 
-Keep the project disclaimer that LineWatch TO is unofficial and must not be relied on as the sole source of truth.
+Keep the project disclaimer that LineWatchTO is unofficial and must not be relied on as the sole source of truth.
 
 - [ ] **Step 4: Verify documentation diff**
 
@@ -1688,7 +1688,7 @@ private StationResponses.StationArrivalContextResponse toArrivalContext(
             "Schedule active",
             "No active service impacts linked to this station.",
             "normal",
-            "LineWatch TO"
+            "LineWatchTO"
         ));
 }
 ```
@@ -1705,7 +1705,7 @@ new StationResponses.StationArrivalContextResponse(
     "Schedule active",
     "No active service impacts linked to this station.",
     "normal",
-    "LineWatch TO"
+    "LineWatchTO"
 )
 ```
 
@@ -1796,7 +1796,7 @@ arrivalContext: {
   message: "Schedule active",
   reason: "No active service impacts linked to this station.",
   severity: "normal",
-  source: "LineWatch TO",
+  source: "LineWatchTO",
 },
 ```
 

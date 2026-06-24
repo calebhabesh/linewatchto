@@ -1,10 +1,10 @@
-# LineWatch TO Station Detail Backend Design
+# LineWatchTO Station Detail Backend Design
 
 Date: 2026-05-31
 
 ## Purpose
 
-Add the first meaningful full-stack feature to LineWatch TO: clickable station details backed by Spring endpoints and PostgreSQL seed data. The feature should make the map feel more inspectable while establishing backend ownership of station, line, access, and impact contracts.
+Add the first meaningful full-stack feature to LineWatchTO: clickable station details backed by Spring endpoints and PostgreSQL seed data. The feature should make the map feel more inspectable while establishing backend ownership of station, line, access, and impact contracts.
 
 The user-facing behavior is:
 

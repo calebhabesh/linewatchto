@@ -2247,7 +2247,7 @@ Add the account dialog near `<OpeningDisclaimer />`:
             className="account-dialog"
             role="dialog"
             aria-modal="true"
-            aria-label={accountDialogMode === "login" ? "Sign in to LineWatch TO" : "Create LineWatch TO account"}
+            aria-label={accountDialogMode === "login" ? "Sign in to LineWatchTO" : "Create LineWatchTO account"}
             onMouseDown={(event) => event.stopPropagation()}
           >
             <div className="flex items-start justify-between gap-3 border-b border-black/10 p-3 dark:border-white/10">

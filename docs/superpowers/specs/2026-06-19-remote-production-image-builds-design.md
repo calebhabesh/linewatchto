@@ -4,7 +4,7 @@ Date: 2026-06-19
 
 ## Context
 
-LineWatch TO currently builds its production frontend, backend, and PostGIS
+LineWatchTO currently builds its production frontend, backend, and PostGIS
 images on the Oracle Cloud Ampere VPS through `docker compose up --build`. The
 VPS has enough memory to run the application, but image builds add avoidable CPU,
 memory, disk, and deployment-time load.

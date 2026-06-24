@@ -1,11 +1,11 @@
-# LineWatch TO Stabilization and Playwright Smoke Design
+# LineWatchTO Stabilization and Playwright Smoke Design
 
 **Date:** 2026-05-31  
 **Status:** Approved for implementation planning
 
 ## Objective
 
-Stabilize the current LineWatch TO full-stack demo before adding TTC ingestion. The repository should have a green documented verification baseline, a deterministic browser smoke harness, and documentation that accurately separates implemented seeded-demo behavior from planned live-data behavior.
+Stabilize the current LineWatchTO full-stack demo before adding TTC ingestion. The repository should have a green documented verification baseline, a deterministic browser smoke harness, and documentation that accurately separates implemented seeded-demo behavior from planned live-data behavior.
 
 This slice touches frontend, backend verification, and documentation. It does not add live TTC ingestion, real alert normalization, production PostGIS matching, Redis caching, reliability aggregation, or deployment.
 

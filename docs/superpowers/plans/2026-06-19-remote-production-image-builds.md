@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Build LineWatch TO production images on the development server, publish immutable ARM64 images to public GHCR packages, and deploy those images to the Oracle VPS without building there.
+**Goal:** Build LineWatchTO production images on the development server, publish immutable ARM64 images to public GHCR packages, and deploy those images to the Oracle VPS without building there.
 
 **Architecture:** A shared Bash helper owns release-tag validation, image-reference generation, release-file reads/writes, and Compose invocation. A development-server script uses Docker Buildx to publish the frontend, backend, and PostGIS images under one full Git SHA. The production Compose file consumes those images, while VPS scripts load server-local runtime and release env files, pull the full candidate image set, start it with `--no-build`, and promote the release tag only after health checks pass.
 
@@ -565,7 +565,7 @@ build_and_push frontend "$ROOT_DIR/frontend/Dockerfile" "$ROOT_DIR/frontend" \
   --build-arg "NEXT_PUBLIC_LINEWATCH_BUILD_LABEL=prod-$SHORT_SHA"
 
 cat <<EOF
-Published LineWatch TO release:
+Published LineWatchTO release:
   $REGISTRY/linewatch-frontend:$SHA
   $REGISTRY/linewatch-backend:$SHA
   $REGISTRY/linewatch-postgres:$SHA
@@ -877,7 +877,7 @@ export LINEWATCH_RELEASE_ENV_FILE="$RELEASE_ENV"
 linewatch_compose ps
 
 cat <<EOF
-Deployed LineWatch TO release $TAG.
+Deployed LineWatchTO release $TAG.
 
 Public verification:
   LINEWATCH_DEPLOY_FRONTEND_URL=https://linewatchto.ca \\
