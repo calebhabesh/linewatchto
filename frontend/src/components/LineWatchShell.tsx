@@ -1544,6 +1544,11 @@ export function LineWatchShell({
     rotatedMapMode ? "mobile-map-rotated" : "",
   ].filter(Boolean).join(" ");
 
+  const rotatedMapHudClassName = [
+    "rotated-map-hud",
+    selectedStationId ? "rotated-map-hud-station-selection" : "",
+  ].filter(Boolean).join(" ");
+
   useEffect(() => {
     if (!mobileInspectorOpen) return;
 
@@ -2138,7 +2143,7 @@ export function LineWatchShell({
         ) : null}
 
         {rotatedMapMode ? (
-          <div className="rotated-map-hud" aria-label="Rotated map controls">
+          <div className={rotatedMapHudClassName} aria-label="Rotated map controls">
             <MobileMapControls
               presentationMode="rotated-landscape"
               onExitRotated={() => {

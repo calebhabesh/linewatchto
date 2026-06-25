@@ -45,6 +45,14 @@ export function MoreDetailsIcon({ size = 15 }: { size?: number }) {
   );
 }
 
+function PortraitReorientationNote({ id }: { id: string }) {
+  return (
+    <span id={id} className="rotated-map-selection-details-note" data-portrait-reorientation-notice>
+      Returns to portrait detail view
+    </span>
+  );
+}
+
 function toTitleCase(str: string | null | undefined): string {
   if (!str) return "";
   return str
@@ -254,11 +262,17 @@ export function RotatedMapSelectionCard({
         {details.displayDirection ? <p className="rotated-map-selection-card-direction">{toTitleCase(details.displayDirection)}</p> : null}
 
         <div className="rotated-map-selection-card-actions">
-          <button type="button" className="rotated-map-selection-action primary" onClick={onOpenDetails}>
+          <button
+            type="button"
+            className="rotated-map-selection-action primary"
+            aria-describedby="rotated-impact-details-orientation-note"
+            onClick={onOpenDetails}
+          >
             <MoreDetailsIcon size={15} />
             Details
           </button>
         </div>
+        <PortraitReorientationNote id="rotated-impact-details-orientation-note" />
       </section>
     );
   }
@@ -342,11 +356,17 @@ export function RotatedMapSelectionCard({
         </p>
 
         <div className="rotated-map-selection-card-actions">
-          <button type="button" className="rotated-map-selection-action primary" onClick={onOpenDetails}>
+          <button
+            type="button"
+            className="rotated-map-selection-action primary"
+            aria-describedby="rotated-station-details-orientation-note"
+            onClick={onOpenDetails}
+          >
             <MoreDetailsIcon size={15} />
             Details
           </button>
         </div>
+        <PortraitReorientationNote id="rotated-station-details-orientation-note" />
       </section>
     );
   }
