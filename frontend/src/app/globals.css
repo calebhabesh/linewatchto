@@ -8011,26 +8011,15 @@ button {
     min-height: 42px;
     padding: 8px 16px;
     font-size: 12px;
-    background: rgba(10, 12, 16, 0.94);
+    background: #0a0c10;
     border: 1px solid rgba(255, 255, 255, 0.18);
     color: #ffffff;
   }
 
   .dark .linewatch-shell.mobile-map-rotated .rotated-map-hud .mobile-map-control-button,
   .high-contrast .linewatch-shell.mobile-map-rotated .rotated-map-hud .mobile-map-control-button {
-    background: rgba(10, 12, 16, 0.94);
+    background: #0a0c10;
     border-color: rgba(255, 255, 255, 0.18);
-  }
-
-  /* Center button overrides to make it opaque */
-  .linewatch-shell.mobile-map-rotated .rotated-map-hud .mobile-map-control-button:not(.mobile-map-control-button-strong) {
-    opacity: 1;
-    background: #0a0c10;
-  }
-
-  .dark .linewatch-shell.mobile-map-rotated .rotated-map-hud .mobile-map-control-button:not(.mobile-map-control-button-strong),
-  .high-contrast .linewatch-shell.mobile-map-rotated .rotated-map-hud .mobile-map-control-button:not(.mobile-map-control-button-strong) {
-    background: #0a0c10;
   }
 
   /* Exit button override */
