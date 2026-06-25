@@ -8022,6 +8022,17 @@ button {
     border-color: rgba(255, 255, 255, 0.18);
   }
 
+  /* Center button overrides to make it opaque */
+  .linewatch-shell.mobile-map-rotated .rotated-map-hud .mobile-map-control-button:not(.mobile-map-control-button-strong) {
+    opacity: 1;
+    background: #0a0c10;
+  }
+
+  .dark .linewatch-shell.mobile-map-rotated .rotated-map-hud .mobile-map-control-button:not(.mobile-map-control-button-strong),
+  .high-contrast .linewatch-shell.mobile-map-rotated .rotated-map-hud .mobile-map-control-button:not(.mobile-map-control-button-strong) {
+    background: #0a0c10;
+  }
+
   /* Exit button override */
   .linewatch-shell.mobile-map-rotated .rotated-map-hud .mobile-map-control-button.mobile-map-control-button-strong {
     background: #dc2626;
