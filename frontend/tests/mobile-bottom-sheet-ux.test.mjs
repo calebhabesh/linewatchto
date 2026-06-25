@@ -77,6 +77,11 @@ describe("mobile bottom sheet UX", () => {
     assert.match(globalCss, /\.floating-panel-shell/);
     assert.match(globalCss, /bottom:\s*calc\(var\(--mobile-bottom-nav-height\)/);
     assert.match(globalCss, /border-radius:\s*8px 8px 0 0/);
+    assert.match(globalCss, /--mobile-chrome-background:\s*rgb\(14,\s*16,\s*22\)/);
+    assert.match(globalCss, /\.mobile-bottom-nav\s*\{[^}]*background:\s*var\(--mobile-chrome-background\)/s);
+    assert.match(globalCss, /\.mobile-status-peek\s*\{[^}]*background:\s*var\(--mobile-chrome-background\)/s);
+    assert.match(globalCss, /\.floating-panel-shell\[data-floating-panel="mobile-panel"\]\s*\.floating-panel-scroll\s*\{[^}]*background:\s*var\(--mobile-chrome-background\)/s);
+    assert.match(globalCss, /\.mobile-legend-pill,[\s\S]*\.theme-toggle-btn,[\s\S]*\.rotate-map-btn,[\s\S]*\.site-guide-trigger,[\s\S]*\.mobile-status-peek\s*\{[^}]*background:\s*var\(--mobile-chrome-background\)\s*!important/s);
   });
 
   it("simplifies mobile map controls and hides desktop map utilities on phones", () => {

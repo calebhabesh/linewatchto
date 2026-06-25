@@ -117,8 +117,7 @@ class LineSubscriptionPushPlannerTest {
             assertThat(c.dedupeKey()).isEqualTo("user_1|line|line-1|suspension|on-change|alert-1");
             assertThat(c.title()).isEqualTo("⚠️ Line 1 Yonge-University Suspension");
             assertThat(c.body()).isEqualTo("""
-                St George to Sheppard West.
-                Cause: Collision blocking the tracks.
+                No service between St George and Sheppard West stations due to collision blocking the tracks.
                 🕗 Jun 5, 6:00 AM""");
             assertThat(c.notificationSubject()).isEqualTo("Line 1 Yonge-University Suspension");
             assertThat(c.eventLocation()).isEqualTo("St George to Sheppard West");
@@ -142,7 +141,7 @@ class LineSubscriptionPushPlannerTest {
             assertThat(c.lineId()).isEqualTo("line-1");
             assertThat(c.notificationKey()).isEqualTo("line-current|line-1|reduced-speed-zone|zone-1");
             assertThat(c.title()).isEqualTo("⚠️ Line 1 Yonge-University Reduced Speed Zone");
-            assertThat(c.body()).contains("Eglinton to Davisville.");
+            assertThat(c.body()).contains("Reduced speeds between Eglinton and Davisville stations.");
             assertThat(c.url()).isEqualTo("/?panel=reduced-speed-zones&impactKind=reduced-speed-zone&impactId=zone-1");
         });
 

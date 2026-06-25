@@ -1586,7 +1586,7 @@ export function LineWatchShell({
           <button
             ref={menuButtonRef}
             onClick={handleToggleMenu}
-            className={`desktop-top-chrome panel relative flex items-center justify-center w-14 h-14 rounded-xl border border-black/10 dark:border-white/10 shadow-lg hover:!bg-slate-100 dark:hover:!bg-[#1a1e28] hover:scale-105 active:scale-95 outline-none focus-visible:ring-4 focus-visible:ring-black/10 dark:focus-visible:ring-white/10 transition-all cursor-pointer`}
+            className={`menu-toggle-btn desktop-top-chrome panel relative flex items-center justify-center w-14 h-14 rounded-xl border border-black/10 dark:border-white/10 shadow-lg hover:!bg-slate-100 dark:hover:!bg-[#1a1e28] hover:scale-105 active:scale-95 outline-none focus-visible:ring-4 focus-visible:ring-black/10 dark:focus-visible:ring-white/10 transition-all cursor-pointer`}
             aria-label={"Toggle menu"}
             aria-controls="linewatch-main-menu"
             aria-expanded={activeView === "menu"}
@@ -1611,7 +1611,7 @@ export function LineWatchShell({
           <button
             ref={searchButtonRef}
             onClick={handleToggleSearch}
-            className={`desktop-top-chrome panel relative flex items-center justify-center w-14 h-14 rounded-xl border border-black/10 dark:border-white/10 shadow-lg hover:!bg-slate-100 dark:hover:!bg-[#1a1e28] hover:scale-105 active:scale-95 outline-none focus-visible:ring-4 focus-visible:ring-black/10 dark:focus-visible:ring-white/10 transition-all cursor-pointer ${activeView === "search" ? "ring-2 ring-blue-500/40" : ""}`}
+            className={`search-btn desktop-top-chrome panel relative flex items-center justify-center w-14 h-14 rounded-xl border border-black/10 dark:border-white/10 shadow-lg hover:!bg-slate-100 dark:hover:!bg-[#1a1e28] hover:scale-105 active:scale-95 outline-none focus-visible:ring-4 focus-visible:ring-black/10 dark:focus-visible:ring-white/10 transition-all cursor-pointer ${activeView === "search" ? "ring-2 ring-blue-500/40" : ""}`}
             aria-label="Search stations"
             aria-controls="station-search-panel"
             aria-expanded={activeView === "search"}

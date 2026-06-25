@@ -25,7 +25,7 @@ class PushNotificationFormatterTest {
 
         assertThat(result.title()).isEqualTo("⚠️ Line 2 Bloor-Danforth Suspension");
         assertThat(result.body()).isEqualTo("""
-            Broadview to Victoria Park.
+            No service between Broadview and Victoria Park stations.
             🕗 Jun 21, 7:19 PM""");
         assertThat(result.notificationSubject()).isEqualTo("Line 2 Bloor-Danforth Suspension");
         assertThat(result.eventLocation()).isEqualTo("Broadview to Victoria Park");
@@ -50,8 +50,7 @@ class PushNotificationFormatterTest {
 
         assertThat(result.title()).isEqualTo("⚠️ Line 1 Yonge-University Delay");
         assertThat(result.body()).isEqualTo("""
-            Finch to Union.
-            Southbound.
+            Delays southbound between Finch and Union stations.
             Affects Morning commute (Outbound).
             🕗 Jun 5, 10:20 AM""");
         assertThat(result.scopeLabel()).isEqualTo("Morning commute (Outbound)");
@@ -73,7 +72,7 @@ class PushNotificationFormatterTest {
         ));
 
         assertThat(result.body()).isEqualTo("""
-            Keele to Union.
+            Planned closure between Keele and Union stations.
             Shuttle buses are running.
             Starts today.
             Affects Evening Route (Return).
@@ -180,10 +179,29 @@ class PushNotificationFormatterTest {
         ));
 
         assertThat(result.body()).isEqualTo("""
-            Pharmacy to Sloan.
-            Westbound.
-            Cause: Collision blocking the tracks.
+            Delays westbound between Pharmacy and Sloan stations due to collision blocking the tracks.
             🕗 Jun 24, 8:10 AM""");
+    }
+
+    @Test
+    void formatsStructuredFallbackAsNaturalSentenceWithoutCauseLabel() {
+        FormattedPushNotification result = formatter.formatActive(new PushNotificationFacts(
+            "line-6",
+            "6",
+            "delay",
+            "on-change",
+            "Finch West to Humber College",
+            "Eastbound & Westbound",
+            false,
+            null,
+            null,
+            Instant.parse("2026-06-25T09:03:00Z"),
+            "Due to an earlier switch issue"
+        ));
+
+        assertThat(result.body()).isEqualTo("""
+            Delays in both directions between Finch West and Humber College stations due to an earlier switch issue.
+            🕗 Jun 25, 5:03 AM""");
     }
 
     @Test

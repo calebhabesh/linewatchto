@@ -34,19 +34,10 @@ public class PushNotificationFormatter {
         if (!sourceDescription.isEmpty()) {
             bodyParts.add(sentence(sourceDescription));
         } else {
-            bodyParts.add(location.isEmpty() ? "Service is affected on this line." : sentence(location));
-
-            String direction = normalizeText(facts.displayDirection());
-            if (!direction.isEmpty() && !containsIgnoreCase(location, direction)) {
-                bodyParts.add(sentence(direction));
-            }
-            if (facts.shuttle()) {
-                bodyParts.add("Shuttle buses are running.");
-            }
-            String cause = normalizeText(facts.cause());
-            if (!cause.isEmpty()) {
-                bodyParts.add("Cause: " + sentence(formatReason(cause)));
-            }
+            bodyParts.add(activeFallbackSentence(facts.eventType(), location, facts.displayDirection(), facts.cause()));
+        }
+        if (facts.shuttle()) {
+            bodyParts.add("Shuttle buses are running.");
         }
         if ("closure-24h".equals(facts.reminderBucket())) {
             bodyParts.add("Starts within 24 hours.");
@@ -185,6 +176,118 @@ public class PushNotificationFormatter {
 
     private String clockLine(Instant instant) {
         return "🕗 " + EVENT_TIME_FORMATTER.format(instant);
+    }
+
+    private String activeFallbackSentence(
+        String eventType,
+        String location,
+        String displayDirection,
+        String cause
+    ) {
+        String normalizedLocation = normalizeText(location);
+        if (normalizedLocation.isEmpty()) {
+            return "Service is affected on this line.";
+        }
+        if (looksLikeSourceSentence(normalizedLocation)) {
+            return sentence(normalizedLocation);
+        }
+
+        StringBuilder builder = new StringBuilder(activeEventPhrase(eventType));
+        String direction = directionPhrase(displayDirection, normalizedLocation);
+        if (!direction.isEmpty()) {
+            builder.append(" ").append(direction);
+        }
+        builder.append(" ").append(activeLocationPhrase(normalizedLocation));
+
+        String reason = reasonPhrase(cause);
+        if (!reason.isEmpty()) {
+            builder.append(" ").append(reason);
+        }
+        return sentence(builder.toString());
+    }
+
+    private String activeEventPhrase(String eventType) {
+        return switch (normalizeText(eventType).toLowerCase(Locale.ROOT)) {
+            case "suspension" -> "No service";
+            case "delay" -> "Delays";
+            case "reduced-speed-zone" -> "Reduced speeds";
+            case "planned-closure" -> "Planned closure";
+            default -> "Service alert";
+        };
+    }
+
+    private boolean looksLikeSourceSentence(String location) {
+        String normalized = location.toLowerCase(Locale.ROOT);
+        return normalized.startsWith("delay")
+            || normalized.startsWith("delays")
+            || normalized.startsWith("no service")
+            || normalized.startsWith("service ")
+            || normalized.startsWith("reduced speed")
+            || normalized.startsWith("reduced speeds")
+            || normalized.startsWith("planned closure")
+            || normalized.startsWith("closure");
+    }
+
+    private String directionPhrase(String displayDirection, String location) {
+        String direction = normalizeText(displayDirection);
+        if (direction.isEmpty() || containsIgnoreCase(location, direction)) {
+            return "";
+        }
+        String lowered = direction.toLowerCase(Locale.ROOT);
+        if (lowered.contains("&")
+            || lowered.contains("both")
+            || (lowered.contains("eastbound") && lowered.contains("westbound"))
+            || (lowered.contains("northbound") && lowered.contains("southbound"))) {
+            return "in both directions";
+        }
+        return lowerFirst(direction);
+    }
+
+    private String activeLocationPhrase(String location) {
+        String withoutPunctuation = stripTerminalPunctuation(location);
+        Matcher betweenMatcher = BETWEEN_PATTERN.matcher(withoutPunctuation);
+        if (betweenMatcher.matches()) {
+            return "between "
+                + betweenMatcher.group(1).trim()
+                + " and "
+                + rangeEndWithStationLabel(betweenMatcher.group(1), betweenMatcher.group(2));
+        }
+
+        Matcher toMatcher = TO_PATTERN.matcher(withoutPunctuation);
+        if (toMatcher.matches()) {
+            return "between "
+                + toMatcher.group(1).trim()
+                + " and "
+                + rangeEndWithStationLabel(toMatcher.group(1), toMatcher.group(2));
+        }
+
+        if (withoutPunctuation.toLowerCase(Locale.ROOT).startsWith("at ")) {
+            return withoutPunctuation;
+        }
+        return "at " + withoutPunctuation;
+    }
+
+    private String reasonPhrase(String cause) {
+        String reason = stripRouteModePrefix(stripTerminalPunctuation(normalizeText(cause)));
+        if (reason.isEmpty()) {
+            return "";
+        }
+        String lowered = reason.toLowerCase(Locale.ROOT);
+        if (lowered.startsWith("due to ") || lowered.startsWith("because ") || lowered.startsWith("because of ")) {
+            return lowerFirst(reason);
+        }
+        return "due to " + lowerFirst(reason);
+    }
+
+    private String stripRouteModePrefix(String value) {
+        return value.replaceFirst("(?i)^(subway|lrt|bus|streetcar)\\s*[-:]\\s*", "").trim();
+    }
+
+    private String lowerFirst(String value) {
+        if (value.isEmpty()) {
+            return value;
+        }
+        return value.substring(0, 1).toLowerCase(Locale.ROOT) + value.substring(1);
     }
 
     private String sourceDescription(String value) {
