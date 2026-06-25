@@ -3517,8 +3517,13 @@ button {
   height: 56px;
   justify-content: center;
   outline: none;
+  padding: 0 12px;
   transition: background-color 150ms ease, color 150ms ease, transform 120ms ease;
-  width: 64px;
+  min-width: 56px;
+}
+
+.map-control-button span {
+  line-height: 1;
 }
 
 .map-control-button:hover,
@@ -3541,6 +3546,11 @@ button {
 
 .map-control-slider {
   min-width: 72px;
+  height: 56px;
+}
+
+.map-control-slider span {
+  line-height: 1;
 }
 
 .station-detail-panel {
@@ -3780,7 +3790,8 @@ button {
   color: rgb(51, 65, 85);
   display: flex;
   font-size: 0.875rem;
-  font-weight: 700;
+  line-height: 1.25rem;
+  font-weight: 500;
   gap: 0.75rem;
   padding: 0.625rem 0.75rem;
   text-align: left;
@@ -3790,7 +3801,7 @@ button {
 
 .menu-action-row:hover,
 .menu-action-row:focus-visible {
-  background: rgba(15, 23, 42, 0.06);
+  background: rgba(0, 0, 0, 0.05);
   outline: none;
 }
 
@@ -3803,7 +3814,20 @@ button {
 .dark .menu-action-row:focus-visible,
 .high-contrast .menu-action-row:hover,
 .high-contrast .menu-action-row:focus-visible {
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.desktop-top-chrome [aria-current="page"] {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.dark .desktop-top-chrome [aria-current="page"] {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.high-contrast .desktop-top-chrome [aria-current="page"] {
+  background: #ffffff;
+  color: #000000;
 }
 
 .account-action-row {
@@ -4182,7 +4206,7 @@ button {
 }
 
 .saved-commute-account-prompt {
-  background: rgba(16, 185, 129, 0.08);
+  background: rgb(248, 250, 252);
 }
 
 .saved-commute-form {
@@ -4195,10 +4219,14 @@ button {
   background: rgb(15, 23, 42);
 }
 
-.dark .saved-commute-account-prompt,
-.high-contrast .saved-commute-account-prompt {
+.dark .saved-commute-account-prompt {
   border-color: rgba(255, 255, 255, 0.12);
-  background: rgba(15, 23, 42, 0.62);
+  background: #12151c;
+}
+
+.high-contrast .saved-commute-account-prompt {
+  border-color: #ffffff;
+  background: #000000;
 }
 
 .rsz-tone {

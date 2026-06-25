@@ -1663,16 +1663,16 @@ export function LineWatchShell({
                         role="menuitem"
                         type="button"
                         onClick={handleSignOut}
-                        className="menu-action-row"
+                        className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors w-full"
                         disabled={accountBusy}
                       >
-                        <LogOut size={17} className="text-slate-500 dark:text-slate-400" />
+                        <LogOut size={18} className="text-slate-500 dark:text-slate-400" />
                         Sign Out
                       </button>
                       {authConfig.googleSignInAvailable && !accountState.user.demo ? (
                         accountState.user.googleLinked ? (
                           <div className="account-linked-status" aria-label="Google sign-in linked">
-                            <ShieldCheck size={17} className="text-emerald-600 dark:text-emerald-400" />
+                            <ShieldCheck size={18} className="text-emerald-600 dark:text-emerald-400" />
                             Google Linked
                           </div>
                         ) : (
@@ -1681,10 +1681,10 @@ export function LineWatchShell({
                             role="menuitem"
                             type="button"
                             onClick={openGoogleLinkDialog}
-                            className="menu-action-row"
+                            className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors w-full"
                             disabled={accountBusy}
                           >
-                            <ShieldCheck size={17} className="text-slate-500 dark:text-slate-400" />
+                            <ShieldCheck size={18} className="text-slate-500 dark:text-slate-400" />
                             Link Google
                           </button>
                         )
@@ -1694,11 +1694,11 @@ export function LineWatchShell({
                         role="menuitem"
                         onClick={() => setActiveView("commutes")}
                         aria-current={activeView === "commutes" ? "page" : undefined}
-                        className={`menu-action-row justify-between ${activeView === "commutes" ? "bg-black/5 dark:bg-white/5" : ""}`}
+                        className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors w-full"
                       >
                         <div className="flex items-center gap-3">
-                          <Navigation size={17} className="text-slate-500 dark:text-slate-400" />
-                          <span>Saved Commutes</span>
+                          <Navigation size={18} className="text-slate-500 dark:text-slate-400" />
+                          Saved Commutes
                         </div>
                         {accountCommutes.length > 0 && (
                           <div className="flex items-center gap-1.5 shrink-0" data-testid="commute-status-badges">
@@ -1719,9 +1719,9 @@ export function LineWatchShell({
                         role="menuitem"
                         type="button"
                         onClick={() => openAuthChoice("login")}
-                        className="menu-action-row"
+                        className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors w-full"
                       >
-                        <LogIn size={17} className="text-slate-500 dark:text-slate-400" />
+                        <LogIn size={18} className="text-slate-500 dark:text-slate-400" />
                         Sign In
                       </button>
                       <button
@@ -1729,9 +1729,9 @@ export function LineWatchShell({
                         role="menuitem"
                         type="button"
                         onClick={() => openAuthChoice("register")}
-                        className="menu-action-row"
+                        className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors w-full"
                       >
-                        <UserPlus size={17} className="text-slate-500 dark:text-slate-400" />
+                        <UserPlus size={18} className="text-slate-500 dark:text-slate-400" />
                         Create Account
                       </button>
                       <button
@@ -1739,10 +1739,10 @@ export function LineWatchShell({
                         role="menuitem"
                         type="button"
                         onClick={handleDemoAccount}
-                        className="menu-action-row"
+                        className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors w-full"
                         disabled={accountBusy}
                       >
-                        <UserRound size={17} className="text-emerald-600 dark:text-emerald-400" />
+                        <UserRound size={18} className="text-emerald-600 dark:text-emerald-400" />
                         Demo Account
                       </button>
                       <button
@@ -1750,11 +1750,11 @@ export function LineWatchShell({
                         role="menuitem"
                         onClick={() => setActiveView("commutes")}
                         aria-current={activeView === "commutes" ? "page" : undefined}
-                        className={`menu-action-row justify-between ${activeView === "commutes" ? "bg-black/5 dark:bg-white/5" : ""}`}
+                        className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors w-full"
                       >
                         <div className="flex items-center gap-3">
-                          <Navigation size={17} className="text-slate-500 dark:text-slate-400" />
-                          <span>Saved Commutes</span>
+                          <Navigation size={18} className="text-slate-500 dark:text-slate-400" />
+                          Saved Commutes
                         </div>
                         {accountCommutes.length > 0 && (
                           <div className="flex items-center gap-1.5 shrink-0" data-testid="commute-status-badges">
