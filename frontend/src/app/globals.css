@@ -5940,7 +5940,7 @@ button {
     background: rgba(14, 16, 22, 0.94);
     backdrop-filter: blur(18px) saturate(1.4);
     -webkit-backdrop-filter: blur(18px) saturate(1.4);
-    border: 1px solid rgba(255, 255, 255, 0.13);
+    border: 1px solid rgba(15, 23, 42, 0.06);
     border-radius: 999px;
     bottom: calc(var(--mobile-bottom-nav-margin-bottom) + var(--mobile-safe-bottom));
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.48), 0 2px 8px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.08);
@@ -5953,6 +5953,14 @@ button {
     position: fixed;
     right: var(--mobile-bottom-nav-side-inset);
     z-index: 45;
+  }
+
+  .dark .mobile-bottom-nav {
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .high-contrast .mobile-bottom-nav {
+    border: 1px solid #ffffff;
   }
 
   .mobile-bottom-nav-item {
@@ -5975,8 +5983,16 @@ button {
 
   .mobile-bottom-nav-item[data-active="true"] {
     background: rgba(255, 255, 255, 0.14);
-    border-color: rgba(255, 255, 255, 0.22);
+    border-color: rgba(15, 23, 42, 0.12);
     color: #ffffff;
+  }
+
+  .dark .mobile-bottom-nav-item[data-active="true"] {
+    border-color: rgba(255, 255, 255, 0.12);
+  }
+
+  .high-contrast .mobile-bottom-nav-item[data-active="true"] {
+    border-color: #ffffff;
   }
 
   .mobile-bottom-nav-item:active {
@@ -6162,7 +6178,7 @@ button {
   .mobile-status-peek {
     align-items: center;
     background: rgba(10, 12, 16, 0.96);
-    border: 1px solid rgba(255, 255, 255, 0.14);
+    border: 1px solid rgba(15, 23, 42, 0.06);
     border-radius: 8px;
     bottom: calc(var(--mobile-bottom-nav-height) + var(--mobile-bottom-nav-margin-bottom) + var(--mobile-safe-bottom) + 10px);
     box-shadow: 0 16px 36px rgba(0, 0, 0, 0.34);
@@ -6176,6 +6192,10 @@ button {
     text-align: left;
     z-index: 42;
     justify-content: space-between;
+  }
+
+  .dark .mobile-status-peek {
+    border: 1px solid rgba(255, 255, 255, 0.08);
   }
 
   .mobile-status-peek-info-btn {
@@ -6215,6 +6235,14 @@ button {
     vertical-align: middle;
     position: relative;
     top: -1px;
+  }
+
+  .mobile-status-peek-alert-icon--muted {
+    color: rgba(226, 232, 240, 0.4) !important;
+  }
+
+  .high-contrast .mobile-status-peek-alert-icon--muted {
+    color: #ffffff !important;
   }
 
   .mobile-status-peek-source {
@@ -6269,25 +6297,25 @@ button {
   .mobile-status-peek-count-badge.active-alerts {
     background: rgba(239, 68, 68, 0.16);
     color: #f87171;
-    border: 1px solid rgba(239, 68, 68, 0.4);
+    border: 1px solid rgba(239, 68, 68, 0.25);
   }
 
   .mobile-status-peek-count-badge.delays {
     background: rgba(254, 236, 65, 0.16);
     color: #feec41;
-    border: 1px solid rgba(254, 236, 65, 0.4);
+    border: 1px solid rgba(254, 236, 65, 0.25);
   }
 
   .mobile-status-peek-count-badge.reduced-speed-zones {
     background: var(--impact-rsz-soft);
     color: var(--impact-rsz);
-    border: 1px solid var(--impact-rsz-border);
+    border: 1px solid rgba(245, 158, 11, 0.25);
   }
 
   .mobile-status-peek-count-badge.planned-closures {
     background: rgba(59, 130, 246, 0.16);
     color: #60a5fa;
-    border: 1px solid rgba(59, 130, 246, 0.4);
+    border: 1px solid rgba(59, 130, 246, 0.25);
   }
 
   .high-contrast .mobile-status-peek-count-badge.active-alerts {
@@ -6314,7 +6342,7 @@ button {
   .mobile-status-peek-recenter-btn {
     align-items: center;
     background: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.18);
+    border: 1px solid rgba(15, 23, 42, 0.06);
     border-radius: 8px;
     color: #ffffff;
     cursor: pointer;
@@ -6326,6 +6354,10 @@ button {
     height: 60px;
     padding: 6px;
     transition: all 0.2s ease;
+  }
+
+  .dark .mobile-status-peek-recenter-btn {
+    border: 1px solid rgba(255, 255, 255, 0.08);
   }
 
   .mobile-status-peek-recenter-btn span {
@@ -6668,9 +6700,14 @@ button {
     color: rgb(134 239 172) !important;
   }
 
-  .mobile-more-install-row {
-    background: rgba(250, 204, 21, 0.09);
-    border: 1px solid rgba(250, 204, 21, 0.22);
+  .mobile-more-row.mobile-more-install-row {
+    background: rgba(250, 204, 21, 0.09) !important;
+    border: 1px solid rgba(250, 204, 21, 0.22) !important;
+  }
+
+  .dark .mobile-more-row.mobile-more-install-row {
+    background: rgba(250, 204, 21, 0.15) !important;
+    border: 1px solid rgba(250, 204, 21, 0.35) !important;
   }
 
   .mobile-more-install-copy {
@@ -7519,6 +7556,7 @@ button {
 .mobile-more-account,
 .mobile-more-row,
 .mobile-more-health-grid div,
+.mobile-more-install-help,
 .notification-settings-card,
 .notification-settings-row,
 .notification-settings-prompt,
@@ -7533,6 +7571,7 @@ button {
 .dark .mobile-more-account,
 .dark .mobile-more-row,
 .dark .mobile-more-health-grid div,
+.dark .mobile-more-install-help,
 .dark .notification-settings-card,
 .dark .notification-settings-row,
 .dark .notification-settings-prompt,
@@ -7547,12 +7586,72 @@ button {
 .high-contrast .mobile-more-account,
 .high-contrast .mobile-more-row,
 .high-contrast .mobile-more-health-grid div,
+.high-contrast .mobile-more-install-help,
 .high-contrast .notification-settings-card,
 .high-contrast .notification-settings-row,
 .high-contrast .notification-settings-prompt,
 .high-contrast .saved-commute-notification-summary {
   background: #000000 !important;
   border: 1px solid #ffffff !important;
+}
+
+/* Subtler outlines for Status menu entries/containers */
+.mobile-status-actions button,
+.mobile-line-status-row {
+  border: 1px solid rgba(15, 23, 42, 0.06) !important;
+}
+
+.dark .mobile-status-actions button,
+.dark .mobile-line-status-row {
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+.high-contrast .mobile-status-actions button,
+.high-contrast .mobile-line-status-row {
+  border: 1px solid #ffffff !important;
+}
+
+/* Outlines and glows for status action cards - more subtle */
+.mobile-status-actions button.mobile-status-btn-alerts {
+  border-color: rgba(239, 68, 68, 0.25) !important;
+}
+
+.mobile-status-actions button.mobile-status-btn-delays {
+  border-color: rgba(254, 236, 65, 0.25) !important;
+}
+
+.mobile-status-actions button.mobile-status-btn-rsz {
+  border-color: rgba(245, 158, 11, 0.25) !important;
+}
+
+.mobile-status-actions button.mobile-status-btn-closures {
+  border-color: rgba(59, 130, 246, 0.25) !important;
+}
+
+/* Remove container outline on More menu entries */
+.mobile-more-account,
+.mobile-more-row,
+.mobile-more-health-grid div,
+.mobile-more-install-help {
+  border: none !important;
+}
+
+.high-contrast .mobile-more-account,
+.high-contrast .mobile-more-row,
+.high-contrast .mobile-more-health-grid div,
+.high-contrast .mobile-more-install-help {
+  border: 1px solid #ffffff !important;
+}
+
+/* Hover and active states matching transit line containers */
+.mobile-more-row:hover,
+.mobile-more-row:active {
+  background: #f1f5f9 !important;
+}
+
+.dark .mobile-more-row:hover,
+.dark .mobile-more-row:active {
+  background: #334155 !important;
 }
 
 /* Commute station picker search dropdown/sheet mobile visual parity and transitions */
@@ -8525,13 +8624,7 @@ button {
   }
 }
 
-/* Accessibility Outages status button styles */
-.mobile-status-btn-accessibility {
-  border-color: rgba(100, 116, 139, 0.4) !important;
-}
-.mobile-status-actions button.mobile-status-btn-accessibility {
-  background: #f8fafc !important;
-}
+/* Accessibility Outages status button hover/active states */
 @media (hover: hover) {
   .mobile-status-actions button.mobile-status-btn-accessibility:hover {
     background: #f1f5f9 !important;
@@ -8539,9 +8632,6 @@ button {
 }
 .mobile-status-actions button.mobile-status-btn-accessibility:active {
   background: #f1f5f9 !important;
-}
-.dark .mobile-status-actions button.mobile-status-btn-accessibility {
-  background: #1e293b !important;
 }
 @media (hover: hover) {
   .dark .mobile-status-actions button.mobile-status-btn-accessibility:hover {
@@ -8552,13 +8642,7 @@ button {
   background: #334155 !important;
 }
 
-/* Surface Notices/Service Changes status button styles */
-.mobile-status-btn-surface {
-  border-color: rgba(100, 116, 139, 0.4) !important;
-}
-.mobile-status-actions button.mobile-status-btn-surface {
-  background: #f8fafc !important;
-}
+/* Surface Notices/Service Changes status button hover/active states */
 @media (hover: hover) {
   .mobile-status-actions button.mobile-status-btn-surface:hover {
     background: #f1f5f9 !important;
@@ -8566,9 +8650,6 @@ button {
 }
 .mobile-status-actions button.mobile-status-btn-surface:active {
   background: #f1f5f9 !important;
-}
-.dark .mobile-status-actions button.mobile-status-btn-surface {
-  background: #1e293b !important;
 }
 @media (hover: hover) {
   .dark .mobile-status-actions button.mobile-status-btn-surface:hover {

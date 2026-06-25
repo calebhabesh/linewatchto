@@ -24,6 +24,8 @@ type Props = {
   blockedStationId?: string;
   blockedLabel?: string;
   onChange: (stationId: string) => void;
+  isOpen?: boolean;
+  onOpenChange?: (open: boolean) => void;
 };
 
 function lineTextColor(lineId: string) {
@@ -122,12 +124,16 @@ export function SavedCommuteStationPicker({
   blockedStationId,
   blockedLabel = "Already selected",
   onChange,
+  isOpen,
+  onOpenChange,
 }: Props) {
   const panelId = useId();
   const rootRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
-  const [open, setOpen] = useState(false);
+  const [localOpen, setLocalOpen] = useState(false);
+  const open = isOpen !== undefined ? isOpen : localOpen;
+  const setOpen = onOpenChange !== undefined ? onOpenChange : setLocalOpen;
   const [query, setQuery] = useState("");
   const [expandedLineId, setExpandedLineId] = useState<string | null>(null);
   const [coords, setCoords] = useState<{ top: number; left: number; width: number } | null>(null);
@@ -159,7 +165,7 @@ export function SavedCommuteStationPicker({
       window.clearTimeout(focusTimer);
       document.removeEventListener("pointerdown", handlePointerDown);
     };
-  }, [open]);
+  }, [open, setOpen]);
 
   useEffect(() => {
     if (!open || !rootRef.current) return;
@@ -220,7 +226,7 @@ export function SavedCommuteStationPicker({
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-controls={panelId}
-        onClick={() => setOpen((current) => !current)}
+        onClick={() => setOpen(!open)}
       >
         <span>{selectedStation?.name ?? placeholder}</span>
         <ChevronDown size={16} aria-hidden="true" />

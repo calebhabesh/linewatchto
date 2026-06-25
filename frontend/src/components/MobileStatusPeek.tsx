@@ -9,16 +9,12 @@ function BellFilledIcon({ size = 12 }: { size?: number }) {
     <svg
       width={size}
       height={size}
-      viewBox="0 0 28 28"
+      viewBox="0 0 24 24"
       fill="currentColor"
       aria-hidden="true"
       xmlns="http://www.w3.org/2000/svg"
     >
-      <g stroke="none" strokeWidth="1" fill="none" fillRule="evenodd">
-        <g transform="translate(-364, -882)" fill="currentColor">
-          <path d="M388,900 L388,892 C388,886.478 383.522,882 378,882 C372.478,882 368,886.478 368,892 L368,900 L364,908 L375.184,908 C375.597,909.163 376.695,910 378,910 C379.305,910 380.403,909.163 380.816,908 L392,908 L388,900" />
-        </g>
-      </g>
+      <path d="M20,18H4l2-2V10a6,6,0,0,1,5-5.91V3a1,1,0,0,1,2,0V4.09a5.9,5.9,0,0,1,1.3.4A3.992,3.992,0,0,0,18,10v6Zm-8,4a2,2,0,0,0,2-2H10A2,2,0,0,0,12,22ZM18,4a2,2,0,1,0,2,2A2,2,0,0,0,18,4Z" />
     </svg>
   );
 }
@@ -55,7 +51,7 @@ export function MobileStatusPeek({
 
   const titleText = impactCount > 0
     ? `${impactCount} Current Impact${impactCount === 1 ? "" : "s"}`
-    : "Good Service On Mapped Lines";
+    : "No Current Impacts";
 
   return (
     <div className="mobile-status-peek">
@@ -74,11 +70,14 @@ export function MobileStatusPeek({
       >
         <span className="mobile-status-peek-main">
           <span className="mobile-status-peek-title">
-            {impactCount > 0 && (
-              <span className="mobile-status-peek-alert-icon" aria-hidden="true">
-                <BellFilledIcon size={12} />
-              </span>
-            )}
+            <span
+              className={`mobile-status-peek-alert-icon ${
+                impactCount === 0 ? "mobile-status-peek-alert-icon--muted" : ""
+              }`}
+              aria-hidden="true"
+            >
+              <BellFilledIcon size={18} />
+            </span>
             {titleText}
           </span>
           {sourceLabel.startsWith("Updated") ? (

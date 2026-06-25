@@ -246,6 +246,7 @@ export function SavedCommutesPanel({
   const [expandedCommuteId, setExpandedCommuteId] = useState<string | null>(null);
   const [deletingCommuteId, setDeletingCommuteId] = useState<string | null>(null);
   const [selectedLegIds, setSelectedLegIds] = useState<Record<string, AccountCommuteLegId>>({});
+  const [activePicker, setActivePicker] = useState<"origin" | "destination" | null>(null);
 
   const stationById = useMemo(() => {
     return new Map(stationSummaries.map((station) => [station.id, station]));
@@ -301,7 +302,16 @@ export function SavedCommutesPanel({
       <div className="panel-heading @container border-b border-black/10 dark:border-white/10 px-4 py-3 flex items-center justify-between gap-3 min-w-0">
         <div className="flex items-center gap-1">
           {onBack && (
-            <button onClick={onBack} className="p-2 -ml-3 mr-1 hover:bg-black/10 dark:hover:bg-white/10 rounded-lg transition-colors cursor-pointer shrink-0">
+            <button
+              onClick={() => {
+                if (activePicker) {
+                  setActivePicker(null);
+                } else {
+                  onBack();
+                }
+              }}
+              className="p-2 -ml-3 mr-1 hover:bg-black/10 dark:hover:bg-white/10 rounded-lg transition-colors cursor-pointer shrink-0"
+            >
               <ChevronLeft size={28} className="text-slate-700 dark:text-slate-300" />
             </button>
           )}
@@ -312,7 +322,13 @@ export function SavedCommutesPanel({
         </div>
         {onClose && (
           <button
-            onClick={onClose}
+            onClick={() => {
+              if (activePicker) {
+                setActivePicker(null);
+              } else {
+                onClose();
+              }
+            }}
             className="p-3 sm:p-3.5 mr-1 hover:bg-black/10 dark:hover:bg-white/10 rounded-lg transition-colors cursor-pointer shrink-0 flex items-center justify-center"
             aria-label="Close"
           >
@@ -408,6 +424,8 @@ export function SavedCommutesPanel({
                 blockedStationId={destinationStationId || undefined}
                 blockedLabel="Already selected as destination"
                 onChange={setOriginStationId}
+                isOpen={activePicker === "origin"}
+                onOpenChange={(open) => setActivePicker(open ? "origin" : null)}
               />
               <SavedCommuteStationPicker
                 label="Destination"
@@ -417,6 +435,8 @@ export function SavedCommutesPanel({
                 blockedStationId={originStationId || undefined}
                 blockedLabel="Already selected as origin"
                 onChange={setDestinationStationId}
+                isOpen={activePicker === "destination"}
+                onOpenChange={(open) => setActivePicker(open ? "destination" : null)}
               />
             </div>
             <label className="saved-commute-return-toggle">
