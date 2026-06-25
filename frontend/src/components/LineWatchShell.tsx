@@ -2121,6 +2121,7 @@ export function LineWatchShell({
             onQueryChange={setStationSearchQuery}
             inputRef={stationSearchInputRef}
             keyDownHandlerRef={stationKeyDownHandlerRef}
+            isMobile={isMobile}
           />
         </div>
 

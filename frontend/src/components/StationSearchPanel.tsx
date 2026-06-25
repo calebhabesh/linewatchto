@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { KeyboardEvent, MutableRefObject } from "react";
-import { AlertTriangle, ChevronRight } from "lucide-react";
+import { AlertTriangle, ChevronRight, Search, X } from "lucide-react";
 import {
   buildStationLineGroups,
   searchStations,
@@ -30,6 +30,7 @@ type Props = {
   inputRef: React.RefObject<HTMLInputElement | null>;
   /** The panel fills this ref with its keydown handler so the shell can wire it to the header input */
   keyDownHandlerRef?: React.MutableRefObject<((event: React.KeyboardEvent<HTMLInputElement>) => void) | null>;
+  isMobile: boolean;
 };
 
 const OUTAGE_ICON_SRC = {
@@ -194,6 +195,7 @@ export function StationSearchPanel({
   onQueryChange,
   inputRef,
   keyDownHandlerRef,
+  isMobile,
 }: Props) {
   const [expandedLineId, setExpandedLineId] = useState<string | null>(null);
   const results = useMemo(() => searchStations(stations, query), [query, stations]);
@@ -204,6 +206,7 @@ export function StationSearchPanel({
   const resultButtonRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const lineTriggerRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const stationButtonRefs = useRef<Array<HTMLButtonElement | null>>([]);
+  const mobileInputRef = useRef<HTMLInputElement>(null);
 
   const [viewportHeight, setViewportHeight] = useState<number | null>(null);
 
@@ -245,11 +248,12 @@ export function StationSearchPanel({
       return;
     }
 
-    const focusTimer = window.setTimeout(() => inputRef.current?.focus(), 60);
+    const targetInput = isMobile ? mobileInputRef.current : inputRef.current;
+    const focusTimer = window.setTimeout(() => targetInput?.focus(), 60);
     return () => window.clearTimeout(focusTimer);
-    // inputRef is a stable ref object – excluding from deps is intentional
+    // inputRef and mobileInputRef are stable ref objects – excluding from deps is intentional
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
+  }, [open, isMobile]);
 
   function chooseStation(stationId: string) {
     onSelectStation(stationId);
@@ -391,6 +395,37 @@ export function StationSearchPanel({
           : undefined
       }
     >
+      {isMobile && (
+        <div className="station-search-input-row">
+          <Search size={18} className="station-search-input-icon" aria-hidden="true" />
+          <input
+            ref={mobileInputRef}
+            type="search"
+            role="searchbox"
+            aria-label="Search mapped stations"
+            value={query}
+            onChange={(event) => onQueryChange(event.target.value)}
+            onKeyDown={handleInputKeyDown}
+            placeholder="Search stations"
+            className="station-search-input"
+          />
+          <button
+            type="button"
+            className="station-search-clear"
+            onClick={() => {
+              if (query) {
+                onQueryChange("");
+              } else {
+                onClose();
+                onClosedFocusTarget?.();
+              }
+            }}
+            aria-label={query ? "Clear station search" : "Close station search"}
+          >
+            <X size={18} />
+          </button>
+        </div>
+      )}
 
       <div className="station-search-content">
         {query.trim() ? (
