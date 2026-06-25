@@ -82,6 +82,7 @@ export type AccountMatchedImpact = {
   lineNumber: string | null;
   location: string | null;
   displayDirection: string | null;
+  description?: string | null;
   source: string;
   matchedSegmentIds: string[];
   matchedStationIds: string[];

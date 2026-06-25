@@ -140,7 +140,9 @@ public class SavedCommutePushPlanner {
             false,
             commute.getLabel(),
             legId,
-            sourceEventAt
+            sourceEventAt,
+            null,
+            match.description()
         ));
 
         String segmentIds = String.join(",", emptyWhenNull(match.matchedSegmentIds()));

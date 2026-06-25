@@ -746,7 +746,7 @@ describe("LineWatch PWA configuration", () => {
       fetchBody: {
         notification: {
           title: "✅ Line 1 Yonge-University Delay Cleared",
-          body: "Service between Finch and Union has been restored.\nNo longer affects Work (Outbound).\n🕗 Jun 5, 11:00 AM",
+          body: "Service between Finch and Union stations has resumed.\nNo longer affects Work (Outbound).\n🕗 Jun 5, 11:00 AM",
           url: "/?panel=commutes&commute=commute_1",
           tag: "saved-commute-impact|commute_1|outbound|delay-line-1",
           state: "CLEARED",
@@ -760,7 +760,7 @@ describe("LineWatch PWA configuration", () => {
     assert.equal(shownNotifications[0].title, "✅ Line 1 Yonge-University Delay Cleared");
     assert.equal(
       shownNotifications[0].options.body,
-      "Service between Finch and Union has been restored.\nNo longer affects Work (Outbound).\n🕗 Jun 5, 11:00 AM",
+      "Service between Finch and Union stations has resumed.\nNo longer affects Work (Outbound).\n🕗 Jun 5, 11:00 AM",
     );
     assert.equal(shownNotifications[0].options.tag, "saved-commute-impact|commute_1|outbound|delay-line-1");
     assert.equal(shownNotifications[0].options.renotify, false);

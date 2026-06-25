@@ -52,6 +52,7 @@ public class LineSubscriptionPushPlanner {
                     alert.location(),
                     alert.displayDirection(),
                     alert.cause(),
+                    alert.description(),
                     alert.shuttle(),
                     alert.startedAt() == null ? null : alert.startedAt().toInstant(),
                     impactUrl("alerts", "suspension", alert.id())
@@ -72,6 +73,7 @@ public class LineSubscriptionPushPlanner {
                     delay.location(),
                     delay.displayDirection(),
                     delay.cause(),
+                    delay.description(),
                     false,
                     delay.startedAt() == null ? null : delay.startedAt().toInstant(),
                     impactUrl("delays", "delay", delay.id())
@@ -92,6 +94,7 @@ public class LineSubscriptionPushPlanner {
                     zone.location(),
                     zone.displayDirection(),
                     zone.cause(),
+                    zone.description(),
                     false,
                     zone.startedAt() == null ? null : zone.startedAt().toInstant(),
                     impactUrl("reduced-speed-zones", "reduced-speed-zone", zone.id())
@@ -123,6 +126,7 @@ public class LineSubscriptionPushPlanner {
                     closure.location(),
                     closure.displayDirection(),
                     closure.cause(),
+                    closure.description(),
                     closure.shuttle(),
                     sourceEventAt,
                     url
@@ -144,6 +148,7 @@ public class LineSubscriptionPushPlanner {
                             closure.location(),
                             closure.displayDirection(),
                             closure.cause(),
+                            closure.description(),
                             closure.shuttle(),
                             sourceEventAt,
                             url
@@ -164,6 +169,7 @@ public class LineSubscriptionPushPlanner {
                             closure.location(),
                             closure.displayDirection(),
                             closure.cause(),
+                            closure.description(),
                             closure.shuttle(),
                             sourceEventAt,
                             url
@@ -187,6 +193,7 @@ public class LineSubscriptionPushPlanner {
         String location,
         String displayDirection,
         String cause,
+        String sourceDescription,
         boolean shuttle,
         Instant sourceEventAt,
         String url
@@ -204,7 +211,8 @@ public class LineSubscriptionPushPlanner {
             null,
             null,
             sourceEventAt,
-            cause
+            cause,
+            sourceDescription
         ));
 
         return new PushNotificationCandidate(

@@ -39,17 +39,17 @@ class LineSubscriptionPushPlannerTest {
 
         AlertDashboardService.DelayAlertDto delay = new AlertDashboardService.DelayAlertDto(
             "alert-2",
-            "line-2",
-            "2",
+            "line-5",
+            "5",
             "Delay",
-            "Keele to Jane",
-            null,
-            "Delay",
+            "Don Valley",
+            "Eastbound",
+            "Line 5 Eglinton: Delays eastbound at Don Valley station due to a medical emergency.",
             List.of(),
-            OffsetDateTime.parse("2026-06-05T10:00:00Z"),
-            OffsetDateTime.parse("2026-06-05T10:05:00Z"),
+            OffsetDateTime.parse("2026-06-25T03:16:00Z"),
+            OffsetDateTime.parse("2026-06-25T03:16:00Z"),
             "TTC Live Alerts",
-            null
+            "LRT - Medical emergency"
         );
 
         AlertDashboardService.ReducedSpeedZoneDto zone = new AlertDashboardService.ReducedSpeedZoneDto(
@@ -108,7 +108,7 @@ class LineSubscriptionPushPlannerTest {
         when(dashboardService.reducedSpeedZones()).thenReturn(List.of(zone));
         when(dashboardService.plannedClosures()).thenReturn(List.of(closure));
 
-        List<PushNotificationCandidate> candidates = planner.candidatesFor("user_1", List.of("line-1", "line-2"));
+        List<PushNotificationCandidate> candidates = planner.candidatesFor("user_1", List.of("line-1", "line-5"));
 
         assertThat(candidates).filteredOn(c -> "suspension".equals(c.eventType())).singleElement().satisfies(c -> {
             assertThat(c.category()).isEqualTo("line-current");
@@ -128,8 +128,12 @@ class LineSubscriptionPushPlannerTest {
 
         assertThat(candidates).filteredOn(c -> "delay".equals(c.eventType())).singleElement().satisfies(c -> {
             assertThat(c.category()).isEqualTo("line-current");
-            assertThat(c.lineId()).isEqualTo("line-2");
-            assertThat(c.notificationKey()).isEqualTo("line-current|line-2|delay|alert-2");
+            assertThat(c.lineId()).isEqualTo("line-5");
+            assertThat(c.notificationKey()).isEqualTo("line-current|line-5|delay|alert-2");
+            assertThat(c.title()).isEqualTo("⚠️ Line 5 Eglinton Delay");
+            assertThat(c.body()).isEqualTo("""
+                Delays eastbound at Don Valley station due to a medical emergency.
+                🕗 Jun 24, 11:16 PM""");
             assertThat(c.url()).isEqualTo("/?panel=delays&impactKind=delay&impactId=alert-2");
         });
 

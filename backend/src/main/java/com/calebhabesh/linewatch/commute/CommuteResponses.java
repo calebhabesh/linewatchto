@@ -59,6 +59,7 @@ public final class CommuteResponses {
         String lineNumber,
         String location,
         String displayDirection,
+        String description,
         String source,
         List<String> matchedSegmentIds,
         List<String> matchedStationIds,

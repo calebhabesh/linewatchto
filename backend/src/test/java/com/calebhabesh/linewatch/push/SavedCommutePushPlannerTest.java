@@ -58,6 +58,7 @@ class SavedCommutePushPlannerTest {
                 "1",
                 "Finch to Union",
                 "Southbound",
+                "Line 1 Yonge-University: Delays southbound from Finch to Union due to signal problems.",
                 "TTC Live Alerts",
                 List.of("line-1-finch-union"),
                 List.of(),
@@ -80,8 +81,7 @@ class SavedCommutePushPlannerTest {
             assertThat(candidate.notificationKey()).isEqualTo("saved-commute-current|commute_1|outbound|delay|delay-line-1");
             assertThat(candidate.title()).isEqualTo("⚠️ Line 1 Yonge-University Delay");
             assertThat(candidate.body()).isEqualTo("""
-                Finch to Union.
-                Southbound.
+                Delays southbound from Finch to Union due to signal problems.
                 Affects Morning commute (Outbound).
                 🕗 Jun 5, 10:20 AM""");
             assertThat(candidate.notificationSubject()).isEqualTo("Line 1 Yonge-University Delay");
@@ -120,6 +120,7 @@ class SavedCommutePushPlannerTest {
                 "line-2",
                 "2",
                 "Keele to Union",
+                null,
                 null,
                 "TTC Service Advisory",
                 List.of("line-2-union-keele"),
@@ -188,6 +189,7 @@ class SavedCommutePushPlannerTest {
                 "1",
                 "Finch to Union",
                 "Southbound",
+                null,
                 "TTC Live Alerts",
                 List.of("line-1-finch-union"),
                 List.of(),
@@ -234,6 +236,7 @@ class SavedCommutePushPlannerTest {
                 "1",
                 "Finch to Union",
                 null,
+                null,
                 "TTC Service Advisory",
                 List.of("line-1-finch-union"),
                 List.of(),
@@ -276,6 +279,7 @@ class SavedCommutePushPlannerTest {
                 "line-1",
                 "1",
                 "Finch to Union",
+                null,
                 null,
                 "TTC Service Advisory",
                 List.of("line-1-finch-union"),

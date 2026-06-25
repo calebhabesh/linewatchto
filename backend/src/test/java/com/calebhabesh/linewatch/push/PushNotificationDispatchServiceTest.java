@@ -302,7 +302,7 @@ class PushNotificationDispatchServiceTest {
         assertThat(clearedEvent.getTitle())
             .isEqualTo("✅ Line 1 Yonge-University Delay Cleared");
         assertThat(clearedEvent.getBody()).isEqualTo("""
-            Service between Finch and Union has been restored.
+            Service between Finch and Union stations has resumed.
             No longer affects Morning commute (Outbound).
             🕗 Jun 5, 11:00 AM""");
         assertThat(clearedEvent.getUrl()).isEqualTo("/");
@@ -483,7 +483,7 @@ class PushNotificationDispatchServiceTest {
         assertThat(clearedEvent.getTitle())
             .isEqualTo("✅ Line 1 Yonge-University Delay Cleared");
         assertThat(clearedEvent.getBody()).isEqualTo("""
-            Service between Finch and Union has been restored.
+            Service between Finch and Union stations has resumed.
             🕗 Jun 5, 11:00 AM""");
         assertThat(clearedEvent.getUrl()).isEqualTo("/");
     }

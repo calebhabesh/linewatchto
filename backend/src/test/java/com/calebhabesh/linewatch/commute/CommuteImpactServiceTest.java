@@ -68,6 +68,7 @@ class CommuteImpactServiceTest {
             assertThat(match.id()).isEqualTo("delay_1");
             assertThat(match.kind()).isEqualTo("delay");
             assertThat(match.status()).isEqualTo("current");
+            assertThat(match.description()).isEqualTo("Trains are delayed.");
             assertThat(match.matchedSegmentIds()).containsExactly("line-1-eglinton-davisville");
             assertThat(match.matchedStationIds()).isEmpty();
         });

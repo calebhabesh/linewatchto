@@ -19,25 +19,34 @@ public class PushNotificationFormatter {
         Pattern.compile("(?i)^between\\s+(.+?)\\s+and\\s+(.+)$");
     private static final Pattern TO_PATTERN =
         Pattern.compile("(?i)^(.+?)\\s+to\\s+(.+)$");
+    private static final Pattern LINE_PREFIX_PATTERN =
+        Pattern.compile("(?i)^line\\s+\\d+\\s+[^:]+:\\s+(.+)$");
+    private static final Pattern WORD_PATTERN =
+        Pattern.compile("[A-Za-z0-9]+");
 
     public FormattedPushNotification formatActive(PushNotificationFacts facts) {
         String subject = notificationSubject(facts.lineId(), facts.lineNumber(), facts.eventType());
         String location = normalizeText(facts.location());
         String scopeLabel = scopeLabel(facts.commuteLabel(), facts.legId());
         List<String> bodyParts = new ArrayList<>();
+        String sourceDescription = sourceDescription(facts.sourceDescription());
 
-        bodyParts.add(location.isEmpty() ? "Service is affected on this line." : sentence(location));
+        if (!sourceDescription.isEmpty()) {
+            bodyParts.add(sentence(sourceDescription));
+        } else {
+            bodyParts.add(location.isEmpty() ? "Service is affected on this line." : sentence(location));
 
-        String direction = normalizeText(facts.displayDirection());
-        if (!direction.isEmpty() && !containsIgnoreCase(location, direction)) {
-            bodyParts.add(sentence(direction));
-        }
-        if (facts.shuttle()) {
-            bodyParts.add("Shuttle buses are running.");
-        }
-        String cause = normalizeText(facts.cause());
-        if (!cause.isEmpty()) {
-            bodyParts.add("Cause: " + sentence(formatReason(cause)));
+            String direction = normalizeText(facts.displayDirection());
+            if (!direction.isEmpty() && !containsIgnoreCase(location, direction)) {
+                bodyParts.add(sentence(direction));
+            }
+            if (facts.shuttle()) {
+                bodyParts.add("Shuttle buses are running.");
+            }
+            String cause = normalizeText(facts.cause());
+            if (!cause.isEmpty()) {
+                bodyParts.add("Cause: " + sentence(formatReason(cause)));
+            }
         }
         if ("closure-24h".equals(facts.reminderBucket())) {
             bodyParts.add("Starts within 24 hours.");
@@ -119,7 +128,7 @@ public class PushNotificationFormatter {
 
     private String clearanceSentence(String location) {
         if (location.isEmpty()) {
-            return "Service on this line has been restored.";
+            return "Service on this line has resumed.";
         }
 
         String withoutPunctuation = stripTerminalPunctuation(location);
@@ -128,8 +137,8 @@ public class PushNotificationFormatter {
             return "Service between "
                 + betweenMatcher.group(1).trim()
                 + " and "
-                + betweenMatcher.group(2).trim()
-                + " has been restored.";
+                + rangeEndWithStationLabel(betweenMatcher.group(1), betweenMatcher.group(2))
+                + " has resumed.";
         }
 
         Matcher toMatcher = TO_PATTERN.matcher(withoutPunctuation);
@@ -137,11 +146,11 @@ public class PushNotificationFormatter {
             return "Service between "
                 + toMatcher.group(1).trim()
                 + " and "
-                + toMatcher.group(2).trim()
-                + " has been restored.";
+                + rangeEndWithStationLabel(toMatcher.group(1), toMatcher.group(2))
+                + " has resumed.";
         }
 
-        return "Service affecting " + withoutPunctuation + " has been restored.";
+        return "Service affecting " + withoutPunctuation + " has resumed.";
     }
 
     private String sentence(String value) {
@@ -176,5 +185,36 @@ public class PushNotificationFormatter {
 
     private String clockLine(Instant instant) {
         return "🕗 " + EVENT_TIME_FORMATTER.format(instant);
+    }
+
+    private String sourceDescription(String value) {
+        String description = stripLinePrefix(normalizeText(value));
+        if (description.isEmpty() || wordCount(description) < 4) {
+            return "";
+        }
+        return description;
+    }
+
+    private String stripLinePrefix(String value) {
+        Matcher matcher = LINE_PREFIX_PATTERN.matcher(value);
+        return matcher.matches() ? matcher.group(1).trim() : value;
+    }
+
+    private int wordCount(String value) {
+        Matcher matcher = WORD_PATTERN.matcher(value);
+        int count = 0;
+        while (matcher.find()) {
+            count++;
+        }
+        return count;
+    }
+
+    private String rangeEndWithStationLabel(String start, String end) {
+        String first = normalizeText(start);
+        String second = normalizeText(end);
+        if (containsIgnoreCase(first, "station") || containsIgnoreCase(second, "station")) {
+            return second;
+        }
+        return second + " stations";
     }
 }

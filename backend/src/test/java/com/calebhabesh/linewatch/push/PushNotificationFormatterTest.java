@@ -111,7 +111,7 @@ class PushNotificationFormatterTest {
 
         assertThat(result.title()).isEqualTo("✅ Line 2 Bloor-Danforth Suspension Cleared");
         assertThat(result.body()).isEqualTo("""
-            Service between Broadview and Victoria Park has been restored.
+            Service between Broadview and Victoria Park stations has resumed.
             🕗 Jun 21, 8:04 PM""");
         assertThat(result.sourceEventAt()).isEqualTo(Instant.parse("2026-06-22T00:04:00Z"));
     }
@@ -126,9 +126,23 @@ class PushNotificationFormatterTest {
         );
 
         assertThat(result.body()).isEqualTo("""
-            Service affecting Main Street Station has been restored.
+            Service affecting Main Street Station has resumed.
             No longer affects Work Trip (Outbound).
             🕗 Jun 5, 11:00 AM""");
+    }
+
+    @Test
+    void formatsClearanceWithResumedStationRangeCopy() {
+        FormattedPushNotification result = formatter.formatCleared(
+            "Line 5 Eglinton Suspension",
+            "Don Valley to Pharmacy",
+            null,
+            Instant.parse("2026-06-25T03:20:00Z")
+        );
+
+        assertThat(result.body()).isEqualTo("""
+            Service between Don Valley and Pharmacy stations has resumed.
+            🕗 Jun 24, 11:20 PM""");
     }
 
     @Test
