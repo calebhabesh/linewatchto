@@ -6192,6 +6192,11 @@ button {
     text-align: left;
     z-index: 42;
     justify-content: space-between;
+    animation: floating-mobile-sheet-enter 200ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .motion-paused .mobile-status-peek {
+    animation: none !important;
   }
 
   .dark .mobile-status-peek {
@@ -9667,4 +9672,26 @@ button {
 .dark .release-note-sections li,
 .high-contrast .release-note-sections li {
   color: #cbd5e1;
+}
+
+/* Subtle outlines for main map page elements */
+.mobile-legend-pill,
+.theme-toggle-btn,
+.rotate-map-btn,
+.site-guide-trigger {
+  border: 1px solid rgba(15, 23, 42, 0.06) !important;
+}
+
+.dark .mobile-legend-pill,
+.dark .theme-toggle-btn,
+.dark .rotate-map-btn,
+.dark .site-guide-trigger {
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+.high-contrast .mobile-legend-pill,
+.high-contrast .theme-toggle-btn,
+.high-contrast .rotate-map-btn,
+.high-contrast .site-guide-trigger {
+  border: 1px solid #ffffff !important;
 }

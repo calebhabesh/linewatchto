@@ -152,6 +152,9 @@ export function SavedCommuteStationPicker({
     const focusTimer = window.setTimeout(() => inputRef.current?.focus(), 40);
     const handlePointerDown = (event: PointerEvent) => {
       const target = event.target as Node;
+      if (target instanceof Element && target.closest(".panel-heading")) {
+        return;
+      }
       if (
         rootRef.current && !rootRef.current.contains(target) &&
         popoverRef.current && !popoverRef.current.contains(target)
