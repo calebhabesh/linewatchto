@@ -1544,9 +1544,10 @@ export function LineWatchShell({
     rotatedMapMode ? "mobile-map-rotated" : "",
   ].filter(Boolean).join(" ");
 
-  const rotatedMapHudClassName = [
-    "rotated-map-hud",
-    selectedStationId ? "rotated-map-hud-station-selection" : "",
+  const rotatedSelectionVisible = Boolean(selection || overlapSelection || selectedStationId);
+  const rotatedMapSelectionHudClassName = [
+    "rotated-map-selection-hud",
+    selectedStationId ? "rotated-map-selection-hud-station-selection" : "",
   ].filter(Boolean).join(" ");
 
   useEffect(() => {
@@ -2143,25 +2144,31 @@ export function LineWatchShell({
         ) : null}
 
         {rotatedMapMode ? (
-          <div className={rotatedMapHudClassName} aria-label="Rotated map controls">
-            <MobileMapControls
-              presentationMode="rotated-landscape"
-              onExitRotated={() => {
-                setOverlapSelection(null);
-                setMapPresentationMode("standard");
-              }}
-              onRecenter={() => setRecenterSignal((prev) => prev + 1)}
-            />
-            <RotatedMapSelectionCard
-              selection={selection}
-              overlapSelection={overlapSelection}
-              selectedStationId={selectedStationId}
-              stations={stationSummaries}
-              onSelectImpact={handleRotatedOverlapImpactSelect}
-              onOpenDetails={handleOpenRotatedSelectionDetails}
-              onClearSelection={handleClearRotatedSelection}
-            />
-          </div>
+          <>
+            <div className="rotated-map-hud" aria-label="Rotated map controls">
+              <MobileMapControls
+                presentationMode="rotated-landscape"
+                onExitRotated={() => {
+                  setOverlapSelection(null);
+                  setMapPresentationMode("standard");
+                }}
+                onRecenter={() => setRecenterSignal((prev) => prev + 1)}
+              />
+            </div>
+            {rotatedSelectionVisible ? (
+              <div className={rotatedMapSelectionHudClassName} aria-label="Selected rotated map item">
+                <RotatedMapSelectionCard
+                  selection={selection}
+                  overlapSelection={overlapSelection}
+                  selectedStationId={selectedStationId}
+                  stations={stationSummaries}
+                  onSelectImpact={handleRotatedOverlapImpactSelect}
+                  onOpenDetails={handleOpenRotatedSelectionDetails}
+                  onClearSelection={handleClearRotatedSelection}
+                />
+              </div>
+            ) : null}
+          </>
         ) : null}
       </main>
 

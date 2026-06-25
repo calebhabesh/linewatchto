@@ -445,6 +445,9 @@ function InteractiveTtcMapComponent({
       return;
     }
 
+    const rotatedStationFocusRatio =
+      viewportOrientation === "rotated-landscape" ? { x: 0.5, y: 0.34 } : undefined;
+
     if (selection) {
       if (selectedSegmentIds.length === 0) {
         // Fallback: zoom/pan to the station if this is a station-specific impact
@@ -491,7 +494,9 @@ function InteractiveTtcMapComponent({
         const pt = stationPointFor(station);
         const isMobile = typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches;
         const targetScale = isMobile ? 3.8 : 1.8;
-        zoomToPoint(pt.x * scaleFactor, pt.y * scaleFactor, targetScale);
+        zoomToPoint(pt.x * scaleFactor, pt.y * scaleFactor, targetScale, {
+          viewportFocusRatio: rotatedStationFocusRatio,
+        });
         lastFocusedTargetKeyRef.current = focusTargetKey;
         lastFocusLayoutSignalRef.current = currentLayoutSignal;
       }
@@ -514,6 +519,7 @@ function InteractiveTtcMapComponent({
     stations,
     stationPointFor,
     layoutResetSignal,
+    viewportOrientation,
   ]);
 
   const stationBySummaryId = useMemo(() => {

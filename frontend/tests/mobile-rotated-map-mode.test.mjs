@@ -97,15 +97,41 @@ describe("mobile rotated map mode", () => {
     assert.equal(existsSync(exclaimAlertAsset), true);
   });
 
-  it("docks rotated station previews below the map focus and warns that Details returns to portrait", () => {
-    assert.match(shellSource, /rotatedMapHudClassName/);
-    assert.match(shellSource, /rotated-map-hud-station-selection/);
-    assert.match(globalCss, /\.linewatch-shell\.mobile-map-rotated \.rotated-map-hud\.rotated-map-hud-station-selection \{/);
+  it("keeps rotated controls pinned while docking station previews below the map focus", () => {
+    assert.match(shellSource, /rotatedMapSelectionHudClassName/);
+    assert.match(shellSource, /rotated-map-selection-hud-station-selection/);
+    assert.match(shellSource, /className="rotated-map-hud"/);
+    assert.match(shellSource, /className=\{rotatedMapSelectionHudClassName\}/);
+    assert.match(globalCss, /\.linewatch-shell\.mobile-map-rotated \.rotated-map-hud \{[\s\S]*top: max\(10px, env\(safe-area-inset-top, 0px\)\);/);
+    assert.match(globalCss, /\.linewatch-shell\.mobile-map-rotated \.rotated-map-selection-hud\.rotated-map-selection-hud-station-selection \{/);
     assert.match(globalCss, /bottom: max\(10px, env\(safe-area-inset-bottom, 0px\)\);/);
     assert.match(globalCss, /top: auto;/);
-    assert.match(rotatedSelectionSource, /data-portrait-reorientation-notice/);
-    assert.match(rotatedSelectionSource, /Returns to portrait detail view/);
-    assert.match(rotatedSelectionSource, /aria-describedby="rotated-station-details-orientation-note"/);
+    assert.doesNotMatch(globalCss, /\.rotated-map-hud\.rotated-map-hud-station-selection/);
+  });
+
+  it("anchors rotated Details actions bottom-right with a compact portrait cue", () => {
+    assert.match(rotatedSelectionSource, /rotated-map-selection-card-with-action/);
+    assert.match(rotatedSelectionSource, /rotated-map-selection-card-main/);
+    assert.match(rotatedSelectionSource, /rotated-map-selection-action-column/);
+    assert.match(rotatedSelectionSource, /rotated-map-selection-card-close/);
+    assert.match(rotatedSelectionSource, /MoreDetailsIcon/);
+    assert.match(rotatedSelectionSource, /PhoneRotateLandscapeIcon size=\{18\}/);
+    assert.match(rotatedSelectionSource, /rotated-map-selection-portrait-cue/);
+    assert.match(rotatedSelectionSource, /aria-label="Open details in portrait view"/);
+    assert.doesNotMatch(rotatedSelectionSource, /data-portrait-reorientation-notice/);
+    assert.doesNotMatch(rotatedSelectionSource, /Returns to portrait detail view/);
+    assert.match(globalCss, /\.rotated-map-selection-card-with-action\s*\{[\s\S]*grid-template-columns: minmax\(0, 1fr\) minmax\(112px, auto\);/);
+    assert.match(globalCss, /\.rotated-map-selection-card-with-action\s*\{[\s\S]*position: relative;/);
+    assert.match(globalCss, /\.rotated-map-selection-card-with-action \.rotated-map-selection-card-close\s*\{[\s\S]*position: absolute;/);
+    assert.match(globalCss, /\.rotated-map-selection-card-with-action \.rotated-map-selection-card-close\s*\{[\s\S]*right: 10px;/);
+    assert.match(globalCss, /\.rotated-map-selection-card-with-action \.rotated-map-selection-card-close\s*\{[\s\S]*top: 10px;/);
+    assert.match(globalCss, /\.rotated-map-selection-action-column\s*\{[\s\S]*align-self: end;/);
+    assert.match(globalCss, /\.rotated-map-selection-action-column\s*\{[\s\S]*justify-content: flex-end;/);
+    assert.match(globalCss, /\.rotated-map-selection-action-column\s*\{[\s\S]*padding-top: 0;/);
+    assert.match(globalCss, /\.rotated-map-selection-details-action\s*\{[\s\S]*position: relative;/);
+    assert.match(globalCss, /\.rotated-map-selection-portrait-cue\s*\{[\s\S]*position: absolute;/);
+    assert.match(globalCss, /\.rotated-map-selection-portrait-cue\s*\{[\s\S]*height: 28px;/);
+    assert.match(globalCss, /\.rotated-map-selection-portrait-cue\s*\{[\s\S]*width: 28px;/);
   });
 
   it("derives rotated station disruption from adjacent impacted map segments", () => {

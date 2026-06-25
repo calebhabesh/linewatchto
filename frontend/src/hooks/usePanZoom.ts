@@ -19,6 +19,10 @@ type UsePanZoomOptions = {
   disableProgrammaticMotion?: boolean;
 };
 
+type ZoomToPointOptions = {
+  viewportFocusRatio?: PanZoomPoint;
+};
+
 export function usePanZoom({
   reducedMotion = false,
   viewportOrientation = "standard",
@@ -557,17 +561,22 @@ export function usePanZoom({
     });
   }, [fitScale, logicalViewportSize, snappedTransformFrom]);
 
-  const zoomToPoint = useCallback((mapX: number, mapY: number, targetRelativeScale = 1.5) => {
+  const zoomToPoint = useCallback((
+    mapX: number,
+    mapY: number,
+    targetRelativeScale = 1.5,
+    options?: ZoomToPointOptions,
+  ) => {
     if (!containerRef.current) return;
     const { width, height } = logicalViewportSize();
     if (width <= 0 || height <= 0) return;
-    const centerX = width / 2;
-    const centerY = height / 2;
+    const focusX = width * (options?.viewportFocusRatio?.x ?? 0.5);
+    const focusY = height * (options?.viewportFocusRatio?.y ?? 0.5);
 
     const targetAbsoluteScale = targetRelativeScale * fitScale;
 
-    const newX = centerX - mapX * targetAbsoluteScale;
-    const newY = centerY - mapY * targetAbsoluteScale;
+    const newX = focusX - mapX * targetAbsoluteScale;
+    const newY = focusY - mapY * targetAbsoluteScale;
 
     animateTransformTo({ x: newX, y: newY, scale: targetAbsoluteScale });
   }, [animateTransformTo, fitScale, logicalViewportSize]);
