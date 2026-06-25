@@ -33,7 +33,7 @@ describe("subway closing soon chip", () => {
     assert.match(shellSource, /subwayOperatingState\.closingSoon/);
     assert.match(shellSource, /subwayOperatingState\.minutesUntilClose !== null/);
     assert.match(shellSource, /subwayOperatingState\.nextCloseLabel/);
-    assert.match(shellSource, /aria-label="Search stations"[\s\S]*SubwayClosingSoonChip[\s\S]*Floating Dropdown Menu/);
+    assert.match(shellSource, /aria-label="Station Search"[\s\S]*SubwayClosingSoonChip[\s\S]*Floating Dropdown Menu/);
     assert.match(globalCss, /\.subway-closing-soon-chip/);
     assert.match(globalCss, /flex:\s*0 1/);
     assert.match(baseClosingSoonChipCss, /height:\s*56px;/);

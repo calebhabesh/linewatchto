@@ -773,14 +773,14 @@ test("station search dynamically filters mapped stations and opens station detai
   if (isMobile) {
     await page.getByRole("button", { name: "Search", exact: true }).click();
   } else {
-    await page.getByRole("button", { name: "Search stations" }).click();
+    await page.getByRole("searchbox", { name: "Station Search" }).click();
   }
-  await expect(page.getByRole("searchbox", { name: "Search mapped stations" })).toBeFocused();
+  await expect(page.getByRole("searchbox", { name: "Station Search" })).toBeFocused();
 
-  await page.getByRole("searchbox", { name: "Search mapped stations" }).fill("stub");
+  await page.getByRole("searchbox", { name: "Station Search" }).fill("stub");
   await expect(page.getByRole("button", { name: "Stub Station station search result" })).toBeVisible();
 
-  await page.getByRole("searchbox", { name: "Search mapped stations" }).fill("stb stn");
+  await page.getByRole("searchbox", { name: "Station Search" }).fill("stb stn");
   await expect(page.getByRole("button", { name: "Stub Station station search result" })).toBeVisible();
 
   await page.keyboard.press("Enter");
@@ -796,7 +796,7 @@ test("station search browses fallback station lists by line", async ({ page, req
   if (isMobile) {
     await page.getByRole("button", { name: "Search", exact: true }).click();
   } else {
-    await page.getByRole("button", { name: "Search stations" }).click();
+    await page.getByRole("searchbox", { name: "Station Search" }).click();
   }
   await page.getByRole("button", { name: /Line 5\s+Eglinton Crosstown/ }).click();
   await expect(page.getByRole("button", { name: "Mount Dennis station search result" })).toBeVisible();
@@ -872,16 +872,16 @@ test("keyboard searches and selects a station", async ({ page, request, isMobile
   await page.goto("/");
   await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
 
-  await page.getByRole("button", { name: "Search stations" }).focus();
+  await page.getByRole("searchbox", { name: "Station Search" }).focus();
   await page.keyboard.press("Enter");
-  await expect(page.getByRole("searchbox", { name: "Search mapped stations" })).toBeFocused();
+  await expect(page.getByRole("searchbox", { name: "Station Search" })).toBeFocused();
 
   await page.keyboard.type("Stub");
   await page.keyboard.press("ArrowDown");
   await page.keyboard.press("Enter");
 
   await expect(page.getByRole("complementary", { name: "Stub Station station details" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Search stations" })).toBeFocused();
+  await expect(page.getByRole("searchbox", { name: "Station Search" })).toBeFocused();
 });
 
 test("demo account shows account-backed saved commutes", async ({ page, request, isMobile }) => {
@@ -1036,7 +1036,7 @@ test("mobile uses bottom navigation and status sheets", async ({ page, request, 
   await expect(page.getByRole("heading", { name: "Delays" })).toBeVisible();
 
   await page.getByRole("button", { name: "Search", exact: true }).click();
-  await expect(page.getByRole("searchbox", { name: "Search mapped stations" })).toBeFocused();
+  await expect(page.getByRole("searchbox", { name: "Station Search" })).toBeFocused();
 
   await page.getByRole("button", { name: "More", exact: true }).click();
   await expect(page.getByRole("heading", { name: "More" })).toBeVisible();

@@ -1650,7 +1650,7 @@ export function LineWatchShell({
           {/* Header station search input — replaces the old static button */}
           <div
             ref={headerSearchBarRef}
-            className="header-search-bar desktop-top-chrome panel relative flex items-center gap-2 px-3 h-14 rounded-xl border shadow-lg transition-all duration-200 cursor-text outline-none"
+            className="header-search-bar desktop-top-chrome panel relative flex items-center gap-2 px-3 h-14 rounded-xl border border-black/10 dark:border-white/10 shadow-lg hover:!bg-slate-100 dark:hover:!bg-[#1a1e28] cursor-text outline-none"
             data-active={activeView === "search" ? "true" : undefined}
             onClick={() => {
               stationSearchInputRef.current?.focus();
@@ -1661,9 +1661,9 @@ export function LineWatchShell({
           >
             <Search
               className={`shrink-0 transition-colors duration-200 ${
-                activeView === "search" ? "text-blue-500 dark:text-blue-400" : "text-slate-400 dark:text-slate-500"
+                activeView === "search" ? "text-blue-500 dark:text-blue-400" : "text-slate-400 dark:text-slate-400"
               }`}
-              size={18}
+              size={21}
             />
             <input
               ref={stationSearchInputRef}
@@ -1679,10 +1679,10 @@ export function LineWatchShell({
               onKeyDown={(e) => {
                 stationKeyDownHandlerRef.current?.(e);
               }}
-              placeholder="Search Stations"
-              aria-label="Search Stations"
+              placeholder="Station Search..."
+              aria-label="Station Search"
               aria-controls="station-search-panel"
-              className="header-search-input min-w-0 flex-1 bg-transparent border-none outline-none text-sm font-medium text-slate-700 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 caret-blue-500"
+              className="header-search-input min-w-0 flex-1 bg-transparent border-none outline-none text-sm font-semibold text-slate-700 dark:text-white placeholder:font-semibold placeholder:text-slate-400 dark:placeholder:text-slate-400 focus:placeholder:text-transparent caret-blue-500"
             />
             {stationSearchQuery && (
               <button

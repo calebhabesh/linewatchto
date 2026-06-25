@@ -10113,7 +10113,7 @@ button {
 .rotate-map-btn,
 .site-guide-trigger,
 .menu-toggle-btn,
-.search-btn,
+.header-search-bar,
 .logs-trigger-btn {
   border: 1px solid rgba(15, 23, 42, 0.06) !important;
 }
@@ -10123,7 +10123,7 @@ button {
 .dark .rotate-map-btn,
 .dark .site-guide-trigger,
 .dark .menu-toggle-btn,
-.dark .search-btn,
+.dark .header-search-bar,
 .dark .logs-trigger-btn {
   border: 1px solid rgba(255, 255, 255, 0.08) !important;
 }
@@ -10133,7 +10133,7 @@ button {
 .high-contrast .rotate-map-btn,
 .high-contrast .site-guide-trigger,
 .high-contrast .menu-toggle-btn,
-.high-contrast .search-btn,
+.high-contrast .header-search-bar,
 .high-contrast .logs-trigger-btn {
   border: 1px solid #ffffff !important;
 }
@@ -10182,10 +10182,11 @@ button {
 .header-search-bar {
   min-width: 0;
   max-width: 320px;
-  width: fit-content;
+  width: 210px;
+  padding-right: 16px !important;
   transition:
     width 240ms cubic-bezier(0.23, 1, 0.32, 1),
-    min-width 240ms cubic-bezier(0.23, 1, 0.32, 1),
+    padding-right 240ms cubic-bezier(0.23, 1, 0.32, 1),
     border-color 160ms ease,
     background 160ms ease,
     box-shadow 160ms ease;
@@ -10193,8 +10194,8 @@ button {
 
 .header-search-bar:focus-within,
 .header-search-bar[data-active="true"] {
-  min-width: 260px;
   width: 260px;
+  padding-right: 12px !important;
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.18);
 }
 

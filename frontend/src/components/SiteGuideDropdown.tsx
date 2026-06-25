@@ -327,7 +327,7 @@ export function SiteGuideDropdown({ onOpenChange }: { onOpenChange?: (open: bool
                   text="Tap any line overlay to view its active alert or closure card."
                 />
                 <GuideActionRow icon={<MapIcon size={14} />} label="Click a Station" text="Tap a station dot to view accessibility status, alerts, and arrivals." />
-                <GuideActionRow icon={<Search size={14} />} label="Search Stations" text="Use the search icon on the left to quickly jump to any station." />
+                <GuideActionRow icon={<Search size={14} />} label="Station Search" text="Use the search icon on the left to quickly jump to any station." />
               </ul>
             </GuideSection>
 

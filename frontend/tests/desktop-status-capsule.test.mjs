@@ -25,7 +25,7 @@ describe("desktop status capsule", () => {
 
   it("places impact chips in the bottom-left corner of the viewport", () => {
     const searchBarIndex = shellSource.indexOf("stationSearchInputRef");
-    const containerIndex = shellSource.indexOf('className="desktop-status-chip-row-container');
+    const containerIndex = shellSource.indexOf('desktop-status-chip-row-container');
     const centeredCapsuleIndex = shellSource.indexOf("Floating Desktop Status Capsule");
 
     assert.notEqual(searchBarIndex, -1);
