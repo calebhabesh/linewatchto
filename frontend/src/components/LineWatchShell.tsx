@@ -731,7 +731,9 @@ export function LineWatchShell({
   }, [setCommutePathPreview, setActiveView]);
 
   const menuButtonRef = useRef<HTMLButtonElement>(null);
-  const searchButtonRef = useRef<HTMLButtonElement>(null);
+  const stationSearchInputRef = useRef<HTMLInputElement>(null);
+  const headerSearchBarRef = useRef<HTMLDivElement>(null);
+  const stationKeyDownHandlerRef = useRef<((event: KeyboardEvent<HTMLInputElement>) => void) | null>(null);
   const menuPanelRef = useRef<HTMLDivElement>(null);
   const menuActionRefs = useRef<Array<HTMLButtonElement | null>>([]);
 
@@ -908,6 +910,8 @@ export function LineWatchShell({
     });
   };
 
+  const [stationSearchQuery, setStationSearchQuery] = useState("");
+
   const handleToggleSearch = () => {
     setActiveView((prev) => {
       if (prev !== "search" && prev !== "map") {
@@ -916,9 +920,44 @@ export function LineWatchShell({
         setSelectedStationId(null);
       }
 
-      return prev === "search" ? "map" : "search";
+      const next = prev === "search" ? "map" : "search";
+      if (next !== "search") {
+        setStationSearchQuery("");
+      } else {
+        // Focus the header input when opening
+        window.setTimeout(() => stationSearchInputRef.current?.focus(), 60);
+      }
+      return next;
     });
   };
+
+  // Dismiss search when clicking outside the header bar and the search panel
+  useEffect(() => {
+    if (activeView !== "search") return;
+
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Node;
+      const barEl = headerSearchBarRef.current;
+      const panelEl = document.getElementById("station-search-panel");
+
+      if (barEl?.contains(target)) return;
+      if (panelEl?.contains(target)) return;
+
+      setActiveView("map");
+      setStationSearchQuery("");
+      stationSearchInputRef.current?.blur();
+    };
+
+    // Use a rAF so the opening click itself doesn't immediately dismiss
+    const raf = requestAnimationFrame(() => {
+      document.addEventListener("pointerdown", handleClickOutside);
+    });
+
+    return () => {
+      cancelAnimationFrame(raf);
+      document.removeEventListener("pointerdown", handleClickOutside);
+    };
+  }, [activeView]);
 
   const handleSelectStationId = useCallback((id: string | null) => {
     setSelectedStationId(id);
@@ -1608,19 +1647,54 @@ export function LineWatchShell({
             )}
           </button>
 
-          <button
-            ref={searchButtonRef}
-            onClick={handleToggleSearch}
-            className={`search-btn desktop-top-chrome panel relative flex items-center justify-center w-14 h-14 rounded-xl border border-black/10 dark:border-white/10 shadow-lg hover:!bg-slate-100 dark:hover:!bg-[#1a1e28] hover:scale-105 active:scale-95 outline-none focus-visible:ring-4 focus-visible:ring-black/10 dark:focus-visible:ring-white/10 transition-all cursor-pointer ${activeView === "search" ? "ring-2 ring-blue-500/40" : ""}`}
-            aria-label="Search stations"
-            aria-controls="station-search-panel"
-            aria-expanded={activeView === "search"}
+          {/* Header station search input — replaces the old static button */}
+          <div
+            ref={headerSearchBarRef}
+            className="header-search-bar desktop-top-chrome panel relative flex items-center gap-2 px-3 h-14 rounded-xl border shadow-lg transition-all duration-200 cursor-text outline-none"
+            data-active={activeView === "search" ? "true" : undefined}
+            onClick={() => {
+              stationSearchInputRef.current?.focus();
+              if (activeView !== "search") handleToggleSearch();
+            }}
+            role="search"
+            aria-label="Station search"
           >
             <Search
-              className={`text-slate-800 dark:text-white transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] ${activeView === "search" ? "scale-110 text-blue-600 dark:text-blue-300" : ""}`}
-              size={25}
+              className={`shrink-0 transition-colors duration-200 ${
+                activeView === "search" ? "text-blue-500 dark:text-blue-400" : "text-slate-400 dark:text-slate-500"
+              }`}
+              size={18}
             />
-          </button>
+            <input
+              ref={stationSearchInputRef}
+              type="search"
+              value={stationSearchQuery}
+              onChange={(e) => {
+                setStationSearchQuery(e.target.value);
+                if (activeView !== "search") setActiveView("search");
+              }}
+              onFocus={() => {
+                if (activeView !== "search") handleToggleSearch();
+              }}
+              onKeyDown={(e) => {
+                stationKeyDownHandlerRef.current?.(e);
+              }}
+              placeholder="Search Stations"
+              aria-label="Search Stations"
+              aria-controls="station-search-panel"
+              className="header-search-input min-w-0 flex-1 bg-transparent border-none outline-none text-sm font-medium text-slate-700 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 caret-blue-500"
+            />
+            {stationSearchQuery && (
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); setStationSearchQuery(""); stationSearchInputRef.current?.focus(); }}
+                className="shrink-0 flex items-center justify-center w-7 h-7 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
+                aria-label="Clear search"
+              >
+                <X size={15} />
+              </button>
+            )}
+          </div>
 
           {subwayOperatingState.closingSoon && subwayOperatingState.minutesUntilClose !== null && subwayOperatingState.nextCloseLabel ? (
             <SubwayClosingSoonChip
@@ -2041,36 +2115,44 @@ export function LineWatchShell({
             stations={stationSummaries}
             selectedStationId={selectedStationId}
             onSelectStation={(id) => handleSelectStationId(id)}
-            onClose={() => setActiveView("map")}
-            onClosedFocusTarget={() => searchButtonRef.current?.focus()}
+            onClose={() => { setActiveView("map"); setStationSearchQuery(""); }}
+            onClosedFocusTarget={() => stationSearchInputRef.current?.focus()}
+            query={stationSearchQuery}
+            onQueryChange={setStationSearchQuery}
+            inputRef={stationSearchInputRef}
+            keyDownHandlerRef={stationKeyDownHandlerRef}
           />
         </div>
 
-        {/* Floating Time Capsule (Top Center) */}
-        <div className="hidden sm:flex absolute top-6 left-1/2 -translate-x-1/2 z-20 pointer-events-auto items-center">
-          <div className="bg-white dark:bg-[#0a0c10] border border-black/10 dark:border-white/10 shadow-lg rounded-2xl p-1.5 flex items-center pr-4 transition-transform hover:scale-105 h-[54px]">
-            <div className="flex items-center justify-center shrink-0 w-10 h-10 rounded-xl shadow-sm border border-black/10 dark:border-white/10 bg-slate-50 dark:bg-white/10 p-1 ml-0.5 mr-3">
-               <Image src="/assets/linewatch/logo.svg" alt="LineWatchTO Logo" width={32} height={32} className="drop-shadow-sm dark:brightness-200" />
-            </div>
-            <span className="h-6 w-px bg-slate-300 dark:bg-white/10 mr-3" />
-            <div className="flex items-center mr-3 min-w-[90px]">
-              {clock.date ? (
-                <div className="flex flex-col">
-                  <strong className="text-sm font-bold text-slate-800 dark:text-white leading-none mb-1">
-                    {clock.time} <span className="text-[10px] text-slate-400 font-medium tracking-wider ml-0.5">{clock.zone}</span>
-                  </strong>
-                  <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 leading-none">{clock.date}</span>
+        {/* Floating Desktop Status Capsule (Top Center) */}
+        <div className="desktop-status-capsule-anchor hidden sm:flex absolute top-6 left-1/2 -translate-x-1/2 z-20 pointer-events-auto items-center">
+          <div className="desktop-status-stack">
+            <div className="desktop-status-capsule desktop-top-chrome" aria-label="Current dashboard status summary">
+              <div className="desktop-status-primary-row">
+                <div className="flex items-center justify-center shrink-0 w-10 h-10 rounded-xl shadow-sm border border-black/10 dark:border-white/10 bg-slate-50 dark:bg-white/10 p-1">
+                 <Image src="/assets/linewatch/logo.svg" alt="LineWatchTO Logo" width={32} height={32} className="drop-shadow-sm dark:brightness-200" />
                 </div>
-              ) : (
-                <strong className="text-sm font-bold text-slate-800 dark:text-white">{clock.time}</strong>
-              )}
-            </div>
-            <span className="h-6 w-px bg-slate-300 dark:bg-white/10 mr-3" />
-            <div className="flex items-center justify-center gap-1.5 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 px-2 py-0.5 rounded border border-emerald-500/20">
-               <div className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse shrink-0" />
-               <span className="text-[10px] font-bold whitespace-nowrap tracking-wider">
-                  Last Polled: {pollText.toLowerCase() === "just now" ? "Just Now" : pollText}
-               </span>
+                <span className="desktop-status-divider" />
+                <div className="desktop-status-time">
+                  {clock.date ? (
+                    <div className="flex flex-col">
+                      <strong className="text-sm font-bold text-slate-800 dark:text-white leading-none mb-1">
+                        {clock.time} <span className="text-[10px] text-slate-400 font-medium tracking-wider ml-0.5">{clock.zone}</span>
+                      </strong>
+                      <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 leading-none">{clock.date}</span>
+                    </div>
+                  ) : (
+                    <strong className="text-sm font-bold text-slate-800 dark:text-white">{clock.time}</strong>
+                  )}
+                </div>
+                <span className="desktop-status-divider" />
+                <div className="desktop-status-poll">
+                   <div className="desktop-status-live-dot" />
+                   <span>
+                      Last Polled: {pollText.toLowerCase() === "just now" ? "Just Now" : pollText}
+                   </span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -2203,6 +2285,69 @@ export function LineWatchShell({
       {/* Fixed borderless legend at the bottom right */}
       {!showClosedScreen && (
       <>
+        <aside className={`desktop-status-chip-row-container fixed bottom-6 left-6 z-20 pointer-events-auto transition-opacity duration-200 ${activeView === "menu" ? "opacity-0 pointer-events-none" : "opacity-100"}`}>
+          <div className="desktop-status-chip-row desktop-header-impact-chips" aria-label="Open impact categories">
+            <button
+              type="button"
+              className="desktop-status-chip desktop-status-chip--alerts"
+              onClick={() => {
+                setSelection(null);
+                setActiveView("alerts");
+              }}
+              aria-label={`${activeAlerts.length} ${activeAlerts.length === 1 ? "active alert" : "active alerts"}`}
+              title={`${activeAlerts.length} ${activeAlerts.length === 1 ? "Active Alert" : "Active Alerts"}`}
+            >
+              <AlertTriangle size={18} aria-hidden="true" />
+              <span className="desktop-status-chip-count">{activeAlerts.length}</span>
+              <span className="desktop-status-chip-label">{activeAlerts.length === 1 ? "Active Alert" : "Active Alerts"}</span>
+            </button>
+            <button
+              type="button"
+              className="desktop-status-chip desktop-status-chip--delays"
+              onClick={() => {
+                setSelection(null);
+                setActiveView("delays");
+              }}
+              aria-label={`${delays.length} ${delays.length === 1 ? "delay" : "delays"}`}
+              title={`${delays.length} ${delays.length === 1 ? "Delay" : "Delays"}`}
+            >
+              <DelayIcon size={18} aria-hidden="true" />
+              <span className="desktop-status-chip-count">{delays.length}</span>
+              <span className="desktop-status-chip-label">{delays.length === 1 ? "Delay" : "Delays"}</span>
+            </button>
+            <button
+              type="button"
+              className="desktop-status-chip desktop-status-chip--reduced-speed-zone"
+              onClick={() => {
+                setSelection(null);
+                setActiveView("reduced-speed-zones");
+              }}
+              aria-label={`${reducedSpeedZones.length} ${reducedSpeedZones.length === 1 ? "reduced speed zone" : "reduced speed zones"}`}
+              title={`${reducedSpeedZones.length} ${reducedSpeedZones.length === 1 ? "Reduced Speed Zone" : "Reduced Speed Zones"}`}
+            >
+              <Construction size={18} aria-hidden="true" />
+              <span className="desktop-status-chip-count">{reducedSpeedZones.length}</span>
+              <span className="desktop-status-chip-label">
+                {reducedSpeedZones.length === 1 ? "Reduced Speed Zone" : "Reduced Speed Zones"}
+              </span>
+            </button>
+            <button
+              type="button"
+              className="desktop-status-chip desktop-status-chip--closures"
+              onClick={() => {
+                setSelection(null);
+                setActiveView("closures");
+              }}
+              aria-label={`${plannedClosures.length} ${plannedClosures.length === 1 ? "planned closure" : "planned closures"}`}
+              title={`${plannedClosures.length} ${plannedClosures.length === 1 ? "Planned Closure" : "Planned Closures"}`}
+            >
+              <Calendar size={18} aria-hidden="true" />
+              <span className="desktop-status-chip-count">{plannedClosures.length}</span>
+              <span className="desktop-status-chip-label">{plannedClosures.length === 1 ? "Planned Closure" : "Planned Closures"}</span>
+            </button>
+          </div>
+        </aside>
+
         <aside className="desktop-map-legend fixed bottom-6 right-6 z-20 pointer-events-none">
           <LineLegend
             onAlertClick={() => {

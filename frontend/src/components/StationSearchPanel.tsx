@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { KeyboardEvent, MutableRefObject } from "react";
-import { AlertTriangle, ChevronRight, Search, X } from "lucide-react";
+import { AlertTriangle, ChevronRight } from "lucide-react";
 import {
   buildStationLineGroups,
   searchStations,
@@ -23,6 +23,13 @@ type Props = {
   onSelectStation: (stationId: string) => void;
   onClose: () => void;
   onClosedFocusTarget?: () => void;
+  /** Controlled search query — owned by the header input bar */
+  query: string;
+  onQueryChange: (value: string) => void;
+  /** Ref forwarded from the header input so keyboard nav can focus it */
+  inputRef: React.RefObject<HTMLInputElement | null>;
+  /** The panel fills this ref with its keydown handler so the shell can wire it to the header input */
+  keyDownHandlerRef?: React.MutableRefObject<((event: React.KeyboardEvent<HTMLInputElement>) => void) | null>;
 };
 
 const OUTAGE_ICON_SRC = {
@@ -183,9 +190,11 @@ export function StationSearchPanel({
   onSelectStation,
   onClose,
   onClosedFocusTarget,
+  query,
+  onQueryChange,
+  inputRef,
+  keyDownHandlerRef,
 }: Props) {
-  const inputRef = useRef<HTMLInputElement>(null);
-  const [query, setQuery] = useState("");
   const [expandedLineId, setExpandedLineId] = useState<string | null>(null);
   const results = useMemo(() => searchStations(stations, query), [query, stations]);
   const lineGroups = useMemo(() => buildStationLineGroups(stations), [stations]);
@@ -232,13 +241,14 @@ export function StationSearchPanel({
   useEffect(() => {
     if (!open) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
-      setQuery("");
       setExpandedLineId(null);
       return;
     }
 
     const focusTimer = window.setTimeout(() => inputRef.current?.focus(), 60);
     return () => window.clearTimeout(focusTimer);
+    // inputRef is a stable ref object – excluding from deps is intentional
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   function chooseStation(stationId: string) {
@@ -257,7 +267,7 @@ export function StationSearchPanel({
     if (event.key === "Escape") {
       event.preventDefault();
       if (query.trim()) {
-        setQuery("");
+        onQueryChange("");
       } else {
         onClose();
         onClosedFocusTarget?.();
@@ -280,6 +290,14 @@ export function StationSearchPanel({
       chooseStation(results[0].station.id);
     }
   }
+
+  // Register the keydown handler with the shell so the header input can call it
+  useEffect(() => {
+    if (keyDownHandlerRef) {
+      keyDownHandlerRef.current = handleInputKeyDown;
+    }
+  });
+
 
   const activeLineGroup = useMemo(() => {
     return lineGroups.find((group) => group.line.id === expandedLineId) || lineGroups[0];
@@ -373,35 +391,6 @@ export function StationSearchPanel({
           : undefined
       }
     >
-      <div className="station-search-input-row">
-        <Search size={18} className="station-search-input-icon" aria-hidden="true" />
-        <input
-          ref={inputRef}
-          type="search"
-          role="searchbox"
-          aria-label="Search mapped stations"
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-          onKeyDown={handleInputKeyDown}
-          placeholder="Search stations"
-          className="station-search-input"
-        />
-        <button
-          type="button"
-          className="station-search-clear"
-          onClick={() => {
-            if (query) {
-              setQuery("");
-            } else {
-              onClose();
-              onClosedFocusTarget?.();
-            }
-          }}
-          aria-label={query ? "Clear station search" : "Close station search"}
-        >
-          <X size={18} />
-        </button>
-      </div>
 
       <div className="station-search-content">
         {query.trim() ? (

@@ -844,7 +844,7 @@ function InteractiveTtcMapComponent({
 
       {/* Top center map controls */}
       {/* Note: ml-2 sm:ml-3 is added to visually center the mass of the controls, since the left side has 2 buttons and is visually heavier than the right side */}
-      <div className="map-control-rail absolute top-14 sm:top-[92px] left-1/2 -translate-x-1/2 z-30 flex flex-row items-center justify-center gap-1 sm:gap-2 pointer-events-auto">
+      <div className="map-control-rail desktop-map-control-rail absolute top-14 sm:top-[92px] left-1/2 -translate-x-1/2 z-30 flex flex-row items-center justify-center gap-1 sm:gap-2 pointer-events-auto">
         <div className="map-control-recenter-container">
           <button
             onClick={recenter}

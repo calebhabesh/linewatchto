@@ -33,7 +33,7 @@ describe("keyboard accessibility source", () => {
   });
 
   it("returns focus from station search and supports result cycling", () => {
-    assert.match(shellSource, /searchButtonRef/);
+    assert.match(shellSource, /stationSearchInputRef/);
     assert.match(shellSource, /aria-controls="station-search-panel"/);
     assert.match(shellSource, /onClosedFocusTarget/);
     assert.match(stationSearchSource, /resultButtonRefs/);
