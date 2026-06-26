@@ -113,7 +113,10 @@ class PushNotificationDispatchServiceTest {
         when(eventRepository.save(any(PushNotificationEventEntity.class)))
             .thenAnswer(invocation -> invocation.getArgument(0));
         when(subscriptionRepository.findByAccountIdAndEnabledTrue("user_1")).thenReturn(List.of(subscription));
-        when(webPushClient.send(subscription, "AVEPD-AuDIedMxfArNYRpmed5ppkzhC3")).thenReturn(PushDeliveryResult.accepted(202));
+        when(webPushClient.send(
+            eq(subscription),
+            eq(PushNotificationDispatchService.topicFor(PushNotificationDisplayTags.active("saved-commute-impact|commute_1|outbound|delay|delay-line-1")))
+        )).thenReturn(PushDeliveryResult.accepted(202));
 
         service.evaluateSavedCommuteNotifications();
 
@@ -125,7 +128,10 @@ class PushNotificationDispatchServiceTest {
         assertThat(saved.getEventLocation()).isEqualTo("Finch to Union");
         assertThat(saved.getScopeLabel()).isEqualTo("Morning commute (Outbound)");
         assertThat(saved.getSourceEventAt()).isEqualTo(Instant.parse("2026-06-05T14:20:00Z"));
-        verify(webPushClient).send(subscription, "AVEPD-AuDIedMxfArNYRpmed5ppkzhC3");
+        verify(webPushClient).send(
+            eq(subscription),
+            eq(PushNotificationDispatchService.topicFor(PushNotificationDisplayTags.active("saved-commute-impact|commute_1|outbound|delay|delay-line-1")))
+        );
         verify(deliveryRepository).save(any(PushNotificationDeliveryEntity.class));
     }
 
@@ -177,12 +183,18 @@ class PushNotificationDispatchServiceTest {
         when(eventRepository.existsByDedupeKey("dedupe-1")).thenReturn(false);
         when(eventRepository.save(any(PushNotificationEventEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(subscriptionRepository.findByAccountIdAndEnabledTrue("user_1")).thenReturn(List.of(subscription));
-        when(webPushClient.send(subscription, "AVEPD-AuDIedMxfArNYRpmed5ppkzhC3")).thenReturn(PushDeliveryResult.failed(null, "Connection refused"));
+        when(webPushClient.send(
+            eq(subscription),
+            eq(PushNotificationDispatchService.topicFor(PushNotificationDisplayTags.active("saved-commute-impact|commute_1|outbound|delay|delay-line-1")))
+        )).thenReturn(PushDeliveryResult.failed(null, "Connection refused"));
 
         service.evaluateSavedCommuteNotifications();
 
         verify(eventRepository).save(any(PushNotificationEventEntity.class));
-        verify(webPushClient).send(subscription, "AVEPD-AuDIedMxfArNYRpmed5ppkzhC3");
+        verify(webPushClient).send(
+            eq(subscription),
+            eq(PushNotificationDispatchService.topicFor(PushNotificationDisplayTags.active("saved-commute-impact|commute_1|outbound|delay|delay-line-1")))
+        );
         verify(deliveryRepository).save(any(PushNotificationDeliveryEntity.class));
         verify(eventRepository).delete(any(PushNotificationEventEntity.class));
     }
@@ -292,7 +304,10 @@ class PushNotificationDispatchServiceTest {
         )).thenReturn(false);
         when(eventRepository.save(any(PushNotificationEventEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(subscriptionRepository.findByAccountIdAndEnabledTrue("user_1")).thenReturn(List.of(subscription));
-        when(webPushClient.send(eq(subscription), eq("AVEPD-AuDIedMxfArNYRpmed5ppkzhC3"))).thenReturn(PushDeliveryResult.accepted(202));
+        when(webPushClient.send(
+            eq(subscription),
+            eq(PushNotificationDispatchService.topicFor(PushNotificationDisplayTags.cleared("saved-commute-impact|commute_1|outbound|delay|delay-line-1")))
+        )).thenReturn(PushDeliveryResult.accepted(202));
 
         service.evaluateSavedCommuteNotifications();
 
@@ -310,7 +325,10 @@ class PushNotificationDispatchServiceTest {
         assertThat(clearedEvent.getUrl()).isEqualTo("/");
         assertThat(clearedEvent.getSourceEventAt())
             .isEqualTo(Instant.parse("2026-06-05T15:00:00Z"));
-        verify(webPushClient).send(subscription, "AVEPD-AuDIedMxfArNYRpmed5ppkzhC3");
+        verify(webPushClient).send(
+            eq(subscription),
+            eq(PushNotificationDispatchService.topicFor(PushNotificationDisplayTags.cleared("saved-commute-impact|commute_1|outbound|delay|delay-line-1")))
+        );
         verify(deliveryRepository).save(any(PushNotificationDeliveryEntity.class));
     }
 
@@ -882,6 +900,64 @@ class PushNotificationDispatchServiceTest {
         verify(eventRepository, never()).save(any(PushNotificationEventEntity.class));
         verify(lineEventObservationService).markCleared(previousObservation, clock.instant());
         verify(webPushClient, never()).send(any(), any());
+    }
+
+    @Test
+    void topicsDifferForActiveAndClearedDisplayTagsOfTheSameLifecycleKey() {
+        String lifecycleKey = "line-current|line-1|delay|delay-1";
+
+        String activeTopic = PushNotificationDispatchService.topicFor(
+            PushNotificationDisplayTags.active(lifecycleKey)
+        );
+        String clearedTopic = PushNotificationDispatchService.topicFor(
+            PushNotificationDisplayTags.cleared(lifecycleKey)
+        );
+
+        assertThat(activeTopic).isNotEqualTo(clearedTopic);
+        assertThat(activeTopic).hasSizeLessThanOrEqualTo(32);
+        assertThat(clearedTopic).hasSizeLessThanOrEqualTo(32);
+    }
+
+    @Test
+    void doesNotSendRoutineUpdateWhenLifecycleNotificationAlreadyExists() {
+        SavedCommuteEntity commute = SavedCommuteEntity.create(
+            "commute_1",
+            account,
+            "Morning commute",
+            "finch",
+            "union",
+            true,
+            Instant.parse("2026-06-05T14:30:00Z")
+        );
+        PushNotificationCandidate candidate = candidate(
+            "commute_1",
+            "outbound",
+            "line-1",
+            "1",
+            "saved-commute-impact",
+            "delay",
+            "on-change",
+            "saved-commute-impact|commute_1|outbound|delay|delay-line-1",
+            "dedupe-1",
+            "Finch to Union",
+            "Morning commute",
+            Instant.parse("2026-06-05T14:20:00Z"),
+            "/?panel=commutes&commute=commute_1"
+        );
+        PushNotificationPreferenceEntity preferences = PushNotificationPreferenceEntity.create(account, Instant.parse("2026-06-05T14:00:00Z"));
+        when(preferenceService.preferenceEntityForAccountId("user_1")).thenReturn(preferences);
+        when(preferenceService.allows(any(), any())).thenReturn(true);
+        when(preferenceService.subscribedLineIds("user_1")).thenReturn(List.of());
+        when(lineSubscriptionPushPlanner.candidatesFor(anyString(), anyList())).thenReturn(List.of());
+        when(subscriptionRepository.findEnabledAccountIds()).thenReturn(List.of("user_1"));
+        when(savedCommuteRepository.findByAccountIdOrderByCreatedAtAsc("user_1")).thenReturn(List.of(commute));
+        when(planner.candidatesFor(commute)).thenReturn(List.of(candidate));
+        when(eventRepository.existsByDedupeKey("dedupe-1")).thenReturn(true);
+
+        service.evaluateSavedCommuteNotifications();
+
+        verify(webPushClient, never()).send(any(), anyString());
+        verify(deliveryRepository, never()).save(any(PushNotificationDeliveryEntity.class));
     }
 
     private PushNotificationCandidate candidate(

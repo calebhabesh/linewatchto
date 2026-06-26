@@ -10,7 +10,7 @@ public class PushProperties {
     private String vapidPrivateKey = "";
     private String vapidSubject = "mailto:linewatch@example.invalid";
     private long evaluationDelayMs = 60_000;
-    private Duration clearedNotificationRetention = Duration.ofHours(4);
+    private Duration clearedNotificationRetention = Duration.ofHours(24);
 
     public boolean isEnabled() {
         return enabled;

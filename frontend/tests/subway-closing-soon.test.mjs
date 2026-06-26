@@ -52,12 +52,12 @@ describe("subway closing soon chip", () => {
     assert.match(globalCss, /--mobile-top-action-button-size:\s*clamp\(34px,\s*10\.7vw,\s*40px\)/);
     assert.match(globalCss, /--mobile-rotate-action-width:\s*clamp\(62px,\s*20vw,\s*76px\)/);
     assert.match(globalCss, /--mobile-top-action-cluster-width:\s*calc\(var\(--mobile-top-action-button-size\)/);
-    assert.match(sharedMobileAnnouncementCss, /top:\s*var\(--mobile-edge-inset\)/);
-    assert.match(sharedMobileAnnouncementCss, /left:\s*var\(--mobile-edge-inset\)/);
+    assert.match(sharedMobileAnnouncementCss, /top:\s*calc\(var\(--mobile-safe-top\)\s*\+\s*var\(--mobile-edge-inset\)\)/);
+    assert.match(sharedMobileAnnouncementCss, /left:\s*calc\(var\(--mobile-safe-left\)\s*\+\s*var\(--mobile-edge-inset\)\)/);
     assert.match(sharedMobileAnnouncementCss, /right:\s*auto/);
     assert.match(sharedMobileAnnouncementCss, /max-width:\s*var\(--mobile-announcement-max-width\)/);
     assert.match(sharedMobileAnnouncementCss, /width:\s*min\(/);
-    assert.match(sharedMobileAnnouncementCss, /100vw - var\(--mobile-edge-inset\) - var\(--mobile-top-action-cluster-width\) - var\(--mobile-announcement-gap\) - var\(--mobile-edge-inset\)/);
+    assert.match(sharedMobileAnnouncementCss, /100vw - var\(--mobile-safe-left\) - var\(--mobile-edge-inset\) - var\(--mobile-top-action-cluster-width\) - var\(--mobile-announcement-gap\) - var\(--mobile-safe-right\) - var\(--mobile-edge-inset\)/);
     assert.match(sharedMobileAnnouncementCss, /height:\s*var\(--mobile-announcement-chip-height\)/);
     assert.match(globalCss, /\.linewatch-shell > header\s*\{[\s\S]*padding:[\s\S]*var\(--mobile-safe-top\)[\s\S]*var\(--mobile-edge-inset\)/);
     assert.match(globalCss, /\.linewatch-shell > header\s*\{[\s\S]*var\(--mobile-safe-right\)[\s\S]*var\(--mobile-safe-left\)/);

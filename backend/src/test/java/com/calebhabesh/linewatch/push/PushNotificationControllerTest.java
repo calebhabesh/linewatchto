@@ -69,7 +69,7 @@ class PushNotificationControllerTest {
             "⚠️ Line 1 Yonge-University Delay",
             "Finch to Union.\n🕗 Jun 5, 10:20 AM",
             "/?panel=commutes&commute=commute_1",
-            "saved-commute-impact|commute_1|outbound|delay|delay-line-1",
+            "saved-commute-impact|commute_1|outbound|delay|delay-line-1|active",
             "ACTIVE",
             "2026-06-05T15:00:00Z"
         );
@@ -90,7 +90,7 @@ class PushNotificationControllerTest {
             "https://fcm.googleapis.com/fcm/send/subscription"
         );
         PushResponses.ActivePushNotificationsResponse expected = new PushResponses.ActivePushNotificationsResponse(
-            java.util.List.of("saved-commute-impact|commute_1|delay-line-1")
+            java.util.List.of("saved-commute-impact|commute_1|delay-line-1|active")
         );
         when(accountService.requireAccount("raw-token")).thenReturn(account);
         when(pushNotificationService.activeNotifications(account, request)).thenReturn(expected);
@@ -98,7 +98,7 @@ class PushNotificationControllerTest {
         PushResponses.ActivePushNotificationsResponse response = controller.active("raw-token", request);
 
         assertThat(response).isEqualTo(expected);
-        assertThat(response.retainedTags()).containsExactly("saved-commute-impact|commute_1|delay-line-1");
+        assertThat(response.retainedTags()).containsExactly("saved-commute-impact|commute_1|delay-line-1|active");
         verify(pushNotificationService).activeNotifications(account, request);
     }
 

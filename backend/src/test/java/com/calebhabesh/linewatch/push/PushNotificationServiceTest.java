@@ -132,8 +132,9 @@ class PushNotificationServiceTest {
             new PushRequests.SubscriptionEndpointRequest("https://fcm.googleapis.com/fcm/send/subscription")
         );
 
-        assertThat(response.activeTags()).containsExactly("saved-commute-impact|commute_1|outbound|reduced-speed-zone|rsz-line-1");
+        assertThat(response.activeTags()).containsExactly("saved-commute-impact|commute_1|outbound|reduced-speed-zone|rsz-line-1|active");
         assertThat(response.retainedTags()).containsExactly(
+            "saved-commute-impact|commute_1|outbound|reduced-speed-zone|rsz-line-1|active",
             "saved-commute-impact|commute_1|outbound|reduced-speed-zone|rsz-line-1"
         );
         assertThat(response.cleanupAllowed()).isTrue();
@@ -202,7 +203,11 @@ class PushNotificationServiceTest {
 
         assertThat(response.activeTags()).isEmpty();
         assertThat(response.retainedTags())
-            .containsExactly("saved-commute-impact|commute_1|outbound|delay|delay-line-1");
+            .containsExactly(
+                "saved-commute-impact|commute_1|outbound|delay|delay-line-1|active",
+                "saved-commute-impact|commute_1|outbound|delay|delay-line-1|cleared",
+                "saved-commute-impact|commute_1|outbound|delay|delay-line-1"
+            );
         assertThat(response.cleanupAllowed()).isTrue();
     }
 
@@ -283,10 +288,10 @@ class PushNotificationServiceTest {
             PushDeliveryResult.accepted(202),
             Instant.parse("2026-06-05T15:00:30Z")
         );
-        when(deliveryRepository.findPendingForSubscription(
-            "user_1",
-            PushNotificationService.hashEndpoint("https://fcm.googleapis.com/fcm/send/subscription"),
-            PageRequest.of(0, 1)
+        when(deliveryRepository.findPendingBatchForSubscription(
+            eq("user_1"),
+            eq(PushNotificationService.hashEndpoint("https://fcm.googleapis.com/fcm/send/subscription")),
+            eq(PageRequest.of(0, 5))
         )).thenReturn(List.of(delivery));
 
         PushResponses.PendingPushNotificationResponse response = service.latestPendingNotification(
@@ -295,10 +300,85 @@ class PushNotificationServiceTest {
         );
 
         assertThat(response.notification()).isNotNull();
-        assertThat(response.notification().tag()).isEqualTo("saved-commute-impact|commute_1|outbound|delay|delay-line-1");
+        assertThat(response.notification().tag()).isEqualTo("saved-commute-impact|commute_1|outbound|delay|delay-line-1|active");
+        assertThat(response.notifications()).extracting(PushResponses.PendingPushNotification::tag)
+            .containsExactly("saved-commute-impact|commute_1|outbound|delay|delay-line-1|active");
         assertThat(response.notification().state()).isEqualTo("ACTIVE");
         assertThat(response.notification().body()).endsWith("🕗 Jun 5, 10:20 AM");
         assertThat(response.notification().timestamp()).isEqualTo("2026-06-05T15:00:00Z");
+    }
+
+    @Test
+    void latestPendingNotificationReturnsPendingBatchInChronologicalOrderWithDisplayTags() {
+        String endpoint = "https://fcm.googleapis.com/fcm/send/subscription";
+        String endpointHash = PushNotificationService.hashEndpoint(endpoint);
+        PushSubscriptionEntity subscription = PushSubscriptionEntity.create(
+            "push_subscription_1",
+            account,
+            endpoint,
+            endpointHash,
+            "p256dh-key",
+            "auth-secret",
+            "Chrome Android",
+            Instant.parse("2026-06-05T14:45:00Z")
+        );
+        PushNotificationCandidate candidate = candidate(
+            "commute_1",
+            "outbound",
+            "line-1",
+            "1",
+            "saved-commute-impact",
+            "delay",
+            "on-change",
+            "saved-commute-impact|commute_1|outbound|delay|delay-line-1",
+            "dedupe-1",
+            "Finch to Union",
+            "Morning commute",
+            Instant.parse("2026-06-05T14:20:00Z"),
+            "/?panel=commutes&commute=commute_1"
+        );
+        PushNotificationEventEntity activeEvent = PushNotificationEventEntity.create(
+            "push_event_active",
+            candidate,
+            Instant.parse("2026-06-05T15:00:00Z")
+        );
+        PushNotificationEventEntity clearedEvent = PushNotificationEventEntity.cleared(
+            "push_event_cleared",
+            activeEvent,
+            Instant.parse("2026-06-05T15:20:00Z"),
+            formatter
+        );
+        PushNotificationDeliveryEntity activeDelivery = PushNotificationDeliveryEntity.create(
+            "push_delivery_active",
+            activeEvent,
+            subscription,
+            PushDeliveryResult.accepted(202),
+            Instant.parse("2026-06-05T15:00:30Z")
+        );
+        PushNotificationDeliveryEntity clearedDelivery = PushNotificationDeliveryEntity.create(
+            "push_delivery_cleared",
+            clearedEvent,
+            subscription,
+            PushDeliveryResult.accepted(202),
+            Instant.parse("2026-06-05T15:20:30Z")
+        );
+        when(deliveryRepository.findPendingBatchForSubscription("user_1", endpointHash, PageRequest.of(0, 5)))
+            .thenReturn(List.of(activeDelivery, clearedDelivery));
+
+        PushResponses.PendingPushNotificationResponse response = service.latestPendingNotification(
+            account,
+            new PushRequests.SubscriptionEndpointRequest(endpoint)
+        );
+
+        assertThat(response.notifications()).extracting(PushResponses.PendingPushNotification::tag)
+            .containsExactly(
+                "saved-commute-impact|commute_1|outbound|delay|delay-line-1|active",
+                "saved-commute-impact|commute_1|outbound|delay|delay-line-1|cleared"
+            );
+        assertThat(response.notification().tag())
+            .isEqualTo("saved-commute-impact|commute_1|outbound|delay|delay-line-1|cleared");
+        assertThat(activeDelivery.getDisplayedAt()).isEqualTo(clock.instant());
+        assertThat(clearedDelivery.getDisplayedAt()).isEqualTo(clock.instant());
     }
 
     private PushNotificationCandidate candidate(

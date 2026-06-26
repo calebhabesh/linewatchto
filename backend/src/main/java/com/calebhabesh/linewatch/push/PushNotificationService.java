@@ -167,22 +167,34 @@ public class PushNotificationService {
         PushRequests.SubscriptionEndpointRequest request
     ) {
         String endpointHash = hashEndpoint(required(request.endpoint(), "missing_endpoint", "Push subscription endpoint is required."));
-        return deliveryRepository.findPendingForSubscription(account.getId(), endpointHash, PageRequest.of(0, 1))
-            .stream()
-            .findFirst()
+        List<PushNotificationDeliveryEntity> deliveries = deliveryRepository.findPendingBatchForSubscription(
+            account.getId(),
+            endpointHash,
+            PageRequest.of(0, 5)
+        );
+        if (deliveries.isEmpty()) {
+            return new PushResponses.PendingPushNotificationResponse(null, List.of());
+        }
+
+        List<PushResponses.PendingPushNotification> notifications = deliveries.stream()
             .map(delivery -> {
                 delivery.markDisplayed(clock.instant());
                 PushNotificationEventEntity event = delivery.getEvent();
-                return new PushResponses.PendingPushNotificationResponse(new PushResponses.PendingPushNotification(
+                return new PushResponses.PendingPushNotification(
                     event.getTitle(),
                     event.getBody(),
                     event.getUrl(),
                     tagFor(event),
                     event.getNotificationState(),
                     event.getCreatedAt().toString()
-                ));
+                );
             })
-            .orElse(new PushResponses.PendingPushNotificationResponse(null));
+            .toList();
+
+        return new PushResponses.PendingPushNotificationResponse(
+            notifications.get(notifications.size() - 1),
+            notifications
+        );
     }
 
     @Transactional(readOnly = true)
@@ -212,43 +224,48 @@ public class PushNotificationService {
                 allCandidates.addAll(commuteCandidates);
                 allCandidates.addAll(lineCandidates);
                 
-                List<String> activeTags = allCandidates.stream()
+                List<String> activeNotificationKeys = allCandidates.stream()
                     .filter(candidate -> preferenceService.allows(preferences, candidate))
                     .map(PushNotificationCandidate::notificationKey)
                     .distinct()
                     .toList();
 
-                List<String> retainedTags = retainedNotificationTags(account.getId(), endpointHash, activeTags);
+                List<String> activeTags = activeNotificationKeys.stream()
+                    .map(PushNotificationDisplayTags::active)
+                    .toList();
+
+                List<String> retainedTags = retainedNotificationTags(account.getId(), endpointHash, activeNotificationKeys);
                 return new PushResponses.ActivePushNotificationsResponse(activeTags, retainedTags, true);
             })
             .orElse(new PushResponses.ActivePushNotificationsResponse(List.of(), List.of(), true));
     }
 
-    private List<String> retainedNotificationTags(String accountId, String endpointHash, List<String> activeTags) {
-        List<String> retainedTags = new ArrayList<>(activeTags);
+    private List<String> retainedNotificationTags(String accountId, String endpointHash, List<String> activeNotificationKeys) {
+        List<String> retainedTags = new ArrayList<>();
+        for (String notificationKey : activeNotificationKeys) {
+            retainedTags.add(PushNotificationDisplayTags.active(notificationKey));
+            retainedTags.add(notificationKey);
+        }
+
         Duration retention = properties.getClearedNotificationRetention();
         if (retention == null || retention.isZero() || retention.isNegative()) {
-            return retainedTags.stream()
-                .filter(tag -> tag != null && !tag.isBlank())
-                .distinct()
-                .toList();
+            return PushNotificationDisplayTags.distinctNonBlank(retainedTags);
         }
 
         Instant displayedAtAfter = clock.instant().minus(retention);
-        List<String> recentlyDisplayedClearedTags = deliveryRepository.findRecentlyDisplayedClearedNotificationKeys(
+        List<String> recentlyDisplayedClearedKeys = deliveryRepository.findRecentlyDisplayedClearedNotificationKeys(
             accountId,
             endpointHash,
             RETAINED_CLEARED_CATEGORIES,
             displayedAtAfter
         );
-        if (recentlyDisplayedClearedTags != null) {
-            retainedTags.addAll(recentlyDisplayedClearedTags);
+        if (recentlyDisplayedClearedKeys != null) {
+            for (String notificationKey : recentlyDisplayedClearedKeys) {
+                retainedTags.addAll(PushNotificationDisplayTags.retainedTagsForClearedLifecycleKey(notificationKey));
+            }
         }
 
-        return retainedTags.stream()
-            .filter(tag -> tag != null && !tag.isBlank())
-            .distinct()
-            .toList();
+        return PushNotificationDisplayTags.distinctNonBlank(retainedTags);
     }
 
     private PushResponses.PushSubscriptionResponse toResponse(PushSubscriptionEntity subscription) {
@@ -282,7 +299,7 @@ public class PushNotificationService {
     }
 
     private String tagFor(PushNotificationEventEntity event) {
-        return event.getNotificationKey();
+        return PushNotificationDisplayTags.forEvent(event);
     }
 
     private String required(String value, String code, String message) {

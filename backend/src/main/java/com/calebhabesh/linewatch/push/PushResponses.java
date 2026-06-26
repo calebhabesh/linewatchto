@@ -90,7 +90,14 @@ public final class PushResponses {
         String timestamp
     ) {}
 
-    public record PendingPushNotificationResponse(PendingPushNotification notification) {}
+    public record PendingPushNotificationResponse(
+        PendingPushNotification notification,
+        List<PendingPushNotification> notifications
+    ) {
+        public PendingPushNotificationResponse(PendingPushNotification notification) {
+            this(notification, notification == null ? List.of() : List.of(notification));
+        }
+    }
 
     public record ActivePushNotificationsResponse(
         List<String> activeTags,

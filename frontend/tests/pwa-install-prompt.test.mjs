@@ -202,7 +202,7 @@ describe("PWA install prompt styles", () => {
     const globalCss = readFileSync(globalCssUrl, "utf8");
 
     assert.match(globalCss, /\.pwa-install-nudge/);
-    assert.match(globalCss, /bottom:\s*calc\(var\(--mobile-bottom-nav-height\)/);
+    assert.match(globalCss, /bottom:\s*calc\(var\(--mobile-bottom-nav-occupied-height\)/);
     assert.match(globalCss, /\.pwa-install-nudge-primary/);
     assert.match(globalCss, /\.pwa-install-nudge-dismiss/);
     assert.match(globalCss, /\.mobile-more-install-row/);
@@ -211,7 +211,6 @@ describe("PWA install prompt styles", () => {
     assert.match(globalCss, /\.high-contrast \.pwa-install-nudge/);
   });
 });
-
 
 
 

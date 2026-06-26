@@ -282,12 +282,12 @@ async function serviceWorkerPush({
       title: "⚠️ Line 1 Yonge-University Reduced Speed Zone",
       body: "Glencairn to Lawrence West.\nAffects Work (Outbound).\n🕗 Jun 5, 10:20 AM",
       url: "/?panel=commutes&commute=commute_1",
-      tag: "saved-commute-impact|commute_1|dedupe-1",
+      tag: "saved-commute-impact|commute_1|dedupe-1|active",
       state: "ACTIVE",
       timestamp: "2026-06-05T15:00:00Z",
     },
-    activeTags: ["saved-commute-impact|commute_1|dedupe-1"],
-    retainedTags: ["saved-commute-impact|commute_1|dedupe-1"],
+    activeTags: ["saved-commute-impact|commute_1|dedupe-1|active"],
+    retainedTags: ["saved-commute-impact|commute_1|dedupe-1|active"],
   },
   existingNotifications = [],
 } = {}) {
@@ -362,8 +362,8 @@ async function serviceWorkerPush({
 
 async function serviceWorkerMessage({
   fetchBody = {
-    activeTags: ["saved-commute-impact|commute_1|dedupe-1"],
-    retainedTags: ["saved-commute-impact|commute_1|dedupe-1"],
+    activeTags: ["saved-commute-impact|commute_1|dedupe-1|active"],
+    retainedTags: ["saved-commute-impact|commute_1|dedupe-1|active"],
   },
   existingNotifications = [],
 } = {}) {
@@ -644,13 +644,57 @@ describe("LineWatch PWA configuration", () => {
       shownNotifications[0].options.body,
       "Glencairn to Lawrence West.\nAffects Work (Outbound).\n🕗 Jun 5, 10:20 AM",
     );
-    assert.equal(shownNotifications[0].options.tag, "saved-commute-impact|commute_1|dedupe-1");
+    assert.equal(shownNotifications[0].options.tag, "saved-commute-impact|commute_1|dedupe-1|active");
     assert.equal(shownNotifications[0].options.requireInteraction, true);
     assert.equal(
       shownNotifications[0].options.icon,
       "/assets/linewatch/pwa/app-icon-192.png",
     );
     assert.equal(shownNotifications[0].options.badge, "/assets/linewatch/pwa/notification-badge-96.png");
+  });
+
+  it("shows active and cleared lifecycle notifications as separate browser notifications", async () => {
+    const { shownNotifications } = await serviceWorkerPush({
+      fetchBody: {
+        notification: {
+          title: "✅ Line 1 Yonge-University Delay Cleared",
+          body: "Service between Finch and Union stations has resumed.\n🕗 Jun 5, 11:00 AM",
+          url: "/",
+          tag: "saved-commute-impact|commute_1|outbound|delay|delay-line-1|cleared",
+          state: "CLEARED",
+          timestamp: "2026-06-05T15:20:00Z",
+        },
+        notifications: [
+          {
+            title: "⚠️ Line 1 Yonge-University Delay",
+            body: "Finch to Union.\n🕗 Jun 5, 10:20 AM",
+            url: "/?panel=commutes&commute=commute_1",
+            tag: "saved-commute-impact|commute_1|outbound|delay|delay-line-1|active",
+            state: "ACTIVE",
+            timestamp: "2026-06-05T15:00:00Z",
+          },
+          {
+            title: "✅ Line 1 Yonge-University Delay Cleared",
+            body: "Service between Finch and Union stations has resumed.\n🕗 Jun 5, 11:00 AM",
+            url: "/",
+            tag: "saved-commute-impact|commute_1|outbound|delay|delay-line-1|cleared",
+            state: "CLEARED",
+            timestamp: "2026-06-05T15:20:00Z",
+          },
+        ],
+        activeTags: [],
+        retainedTags: [
+          "saved-commute-impact|commute_1|outbound|delay|delay-line-1|active",
+          "saved-commute-impact|commute_1|outbound|delay|delay-line-1|cleared",
+        ],
+      },
+    });
+
+    assert.equal(shownNotifications.length, 2);
+    assert.equal(shownNotifications[0].options.tag, "saved-commute-impact|commute_1|outbound|delay|delay-line-1|active");
+    assert.equal(shownNotifications[1].options.tag, "saved-commute-impact|commute_1|outbound|delay|delay-line-1|cleared");
+    assert.equal(shownNotifications[0].options.silent, undefined);
+    assert.equal(shownNotifications[1].options.silent, true);
   });
 
   it("closes stale saved-commute notifications when the backend has no active matching tag", async () => {
@@ -662,7 +706,7 @@ describe("LineWatch PWA configuration", () => {
       },
     };
     const activeNotification = {
-      tag: "saved-commute-impact|commute_1|dedupe-1",
+      tag: "saved-commute-impact|commute_1|dedupe-1|active",
       closed: false,
       close() {
         this.closed = true;
@@ -703,7 +747,7 @@ describe("LineWatch PWA configuration", () => {
 
   it("keeps displayed cleared notifications while the backend retains the tag", async () => {
     const clearedNotification = {
-      tag: "saved-commute-impact|commute_1|outbound|delay|delay-line-1",
+      tag: "saved-commute-impact|commute_1|outbound|delay|delay-line-1|cleared",
       closed: false,
       close() {
         this.closed = true;
@@ -713,7 +757,7 @@ describe("LineWatch PWA configuration", () => {
     const { fetchRequests } = await serviceWorkerMessage({
       fetchBody: {
         activeTags: [],
-        retainedTags: ["saved-commute-impact|commute_1|outbound|delay|delay-line-1"],
+        retainedTags: ["saved-commute-impact|commute_1|outbound|delay|delay-line-1|cleared"],
       },
       existingNotifications: [clearedNotification],
     });
@@ -724,7 +768,7 @@ describe("LineWatch PWA configuration", () => {
 
   it("closes cleared notifications after the backend retention window expires", async () => {
     const expiredClearedNotification = {
-      tag: "saved-commute-impact|commute_1|outbound|delay|delay-line-1",
+      tag: "saved-commute-impact|commute_1|outbound|delay|delay-line-1|cleared",
       closed: false,
       close() {
         this.closed = true;
@@ -750,16 +794,49 @@ describe("LineWatch PWA configuration", () => {
           title: "⚠️ Line 1 Yonge-University Delay",
           body: "Finch to Union.\n🕗 Jun 5, 10:20 AM",
           url: "/?panel=commutes&commute=commute_1",
-          tag: "saved-commute-impact|commute_1|outbound|delay|delay-line-1",
+          tag: "saved-commute-impact|commute_1|outbound|delay|delay-line-1|active",
           state: "ACTIVE",
           timestamp: "2026-06-05T15:00:00Z",
         },
         activeTags: [],
-        retainedTags: ["saved-commute-impact|commute_1|outbound|delay|delay-line-1"],
+        retainedTags: ["saved-commute-impact|commute_1|outbound|delay|delay-line-1|cleared"],
       },
     });
 
     assert.equal(shownNotifications.length, 0);
+  });
+
+  it("allows a pending active notification when the same batch also contains its clearance", async () => {
+    const { shownNotifications } = await serviceWorkerPush({
+      fetchBody: {
+        notification: null,
+        notifications: [
+          {
+            title: "⚠️ Line 1 Yonge-University Delay",
+            body: "Finch to Union.\n🕗 Jun 5, 10:20 AM",
+            url: "/?panel=commutes&commute=commute_1",
+            tag: "saved-commute-impact|commute_1|outbound|delay|delay-line-1|active",
+            state: "ACTIVE",
+            timestamp: "2026-06-05T15:00:00Z",
+          },
+          {
+            title: "✅ Line 1 Yonge-University Delay Cleared",
+            body: "Service between Finch and Union stations has resumed.\n🕗 Jun 5, 11:00 AM",
+            url: "/",
+            tag: "saved-commute-impact|commute_1|outbound|delay|delay-line-1|cleared",
+            state: "CLEARED",
+            timestamp: "2026-06-05T15:20:00Z",
+          },
+        ],
+        activeTags: [],
+        retainedTags: [
+          "saved-commute-impact|commute_1|outbound|delay|delay-line-1|active",
+          "saved-commute-impact|commute_1|outbound|delay|delay-line-1|cleared",
+        ],
+      },
+    });
+
+    assert.equal(shownNotifications.length, 2);
   });
 
   it("does not show a stale active notification or generic fallback", async () => {
@@ -813,12 +890,12 @@ describe("LineWatch PWA configuration", () => {
           title: "✅ Line 1 Yonge-University Delay Cleared",
           body: "Service between Finch and Union stations has resumed.\nNo longer affects Work (Outbound).\n🕗 Jun 5, 11:00 AM",
           url: "/?panel=commutes&commute=commute_1",
-          tag: "saved-commute-impact|commute_1|outbound|delay-line-1",
+          tag: "saved-commute-impact|commute_1|outbound|delay-line-1|cleared",
           state: "CLEARED",
           timestamp: "2026-06-05T15:00:00Z",
         },
         activeTags: [],
-        retainedTags: ["saved-commute-impact|commute_1|outbound|delay-line-1"],
+        retainedTags: ["saved-commute-impact|commute_1|outbound|delay-line-1|cleared"],
       },
     });
 
@@ -828,7 +905,7 @@ describe("LineWatch PWA configuration", () => {
       shownNotifications[0].options.body,
       "Service between Finch and Union stations has resumed.\nNo longer affects Work (Outbound).\n🕗 Jun 5, 11:00 AM",
     );
-    assert.equal(shownNotifications[0].options.tag, "saved-commute-impact|commute_1|outbound|delay-line-1");
+    assert.equal(shownNotifications[0].options.tag, "saved-commute-impact|commute_1|outbound|delay-line-1|cleared");
     assert.equal(shownNotifications[0].options.renotify, false);
     assert.equal(shownNotifications[0].options.requireInteraction, true);
     assert.equal(shownNotifications[0].options.silent, true);

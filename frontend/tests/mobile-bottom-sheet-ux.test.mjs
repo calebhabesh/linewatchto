@@ -75,7 +75,7 @@ describe("mobile bottom sheet UX", () => {
     assert.match(floatingPanelSource, /data-mobile-sheet-label/);
     assert.match(globalCss, /@media \(max-width:\s*767px\)/);
     assert.match(globalCss, /\.floating-panel-shell/);
-    assert.match(globalCss, /bottom:\s*calc\(var\(--mobile-bottom-nav-height\)/);
+    assert.match(globalCss, /bottom:\s*var\(--mobile-bottom-nav-occupied-height\)/);
     assert.match(globalCss, /border-radius:\s*8px 8px 0 0/);
     assert.match(globalCss, /--mobile-chrome-background:\s*rgb\(14,\s*16,\s*22\)/);
     assert.match(globalCss, /\.mobile-bottom-nav\s*\{[^}]*background:\s*var\(--mobile-chrome-background\)/s);
@@ -111,13 +111,35 @@ describe("mobile bottom sheet UX", () => {
     assert.match(globalCss, /data-safe-area-debug="iphone-dynamic-island"/);
   });
 
+  it("keeps the mobile legend aligned below iPhone status chrome with top controls", () => {
+    assert.match(globalCss, /\.mobile-legend-pill\s*\{[\s\S]*top:\s*calc\(var\(--mobile-safe-top\)\s*\+\s*var\(--mobile-edge-inset\)\)\s*!important/);
+    assert.match(globalCss, /\.mobile-legend-pill\s*\{[\s\S]*left:\s*calc\(var\(--mobile-safe-left\)\s*\+\s*var\(--mobile-edge-inset\)\)\s*!important/);
+    assert.match(globalCss, /\.mobile-legend-pill--announcement\s*\{[\s\S]*top:\s*calc\(var\(--mobile-safe-top\)\s*\+\s*var\(--mobile-edge-inset\)\s*\+\s*var\(--mobile-announcement-chip-height\)/);
+  });
+
+  it("keeps iPhone bottom navigation close to the bottom without compounding safe-area gaps", () => {
+    assert.match(globalCss, /--mobile-bottom-nav-bottom-offset:\s*max\(10px,\s*calc\(var\(--mobile-safe-bottom\)\s*-\s*18px\)\)/);
+    assert.match(globalCss, /--mobile-bottom-nav-occupied-height:\s*calc\(var\(--mobile-bottom-nav-height\)\s*\+\s*var\(--mobile-bottom-nav-bottom-offset\)\)/);
+    assert.match(globalCss, /\.mobile-bottom-nav\s*\{[\s\S]*bottom:\s*var\(--mobile-bottom-nav-bottom-offset\)/);
+    assert.doesNotMatch(globalCss, /\.mobile-bottom-nav\s*\{[\s\S]*bottom:\s*calc\(var\(--mobile-bottom-nav-margin-bottom\)\s*\+\s*var\(--mobile-safe-bottom\)\)/);
+  });
+
+  it("lets the Commutes mobile nav label fit without ellipsis on narrow iPhones", () => {
+    assert.match(bottomNavSource, /data-nav-key=\{key\}/);
+    assert.match(globalCss, /\.mobile-bottom-nav-label\s*\{[\s\S]*font-size:\s*9px/);
+    assert.match(globalCss, /\.mobile-bottom-nav-label\s*\{[\s\S]*letter-spacing:\s*0/);
+    assert.match(globalCss, /\.mobile-bottom-nav-item\[data-nav-key="commutes"\]\s+\.mobile-bottom-nav-label\s*\{[\s\S]*font-size:\s*8\.75px/);
+  });
+
   it("uses the visual viewport to make mobile sheets keyboard-aware on iOS", () => {
     assert.match(shellSource, /--visual-viewport-offset-top/);
     assert.match(shellSource, /--visual-keyboard-inset/);
     assert.match(shellSource, /document\.documentElement\.dataset\.visualKeyboard/);
     assert.match(globalCss, /html\[data-visual-keyboard="open"\]\s+\.mobile-bottom-nav\s*\{[\s\S]*display:\s*none\s*!important/);
-    assert.match(globalCss, /html\[data-visual-keyboard="open"\]\s+\.floating-panel-shell\s*\{[\s\S]*bottom:\s*max\(8px,\s*var\(--mobile-safe-bottom\)\)/);
-    assert.match(globalCss, /html\[data-visual-keyboard="open"\]\s+\.commute-station-popover\s*\{[\s\S]*bottom:\s*max\(8px,\s*var\(--mobile-safe-bottom\)\)/);
+    assert.match(globalCss, /html\[data-visual-keyboard="open"\]\s+\.floating-panel-shell\s*\{[\s\S]*top:\s*calc\(var\(--visual-viewport-offset-top,\s*0px\)\s*\+\s*var\(--mobile-safe-top\)\s*\+\s*8px\)/);
+    assert.match(globalCss, /html\[data-visual-keyboard="open"\]\s+\.floating-panel-shell\s*\{[\s\S]*bottom:\s*auto/);
+    assert.match(globalCss, /html\[data-visual-keyboard="open"\]\s+\.commute-station-popover\s*\{[\s\S]*top:\s*calc\(var\(--visual-viewport-offset-top,\s*0px\)\s*\+\s*var\(--mobile-safe-top\)\s*\+\s*8px\)/);
+    assert.match(globalCss, /html\[data-visual-keyboard="open"\]\s+\.commute-station-popover\s*\{[\s\S]*bottom:\s*auto\s*!important/);
   });
 
   it("makes mobile search a top-input sheet instead of a keyboard-covered bottom input", () => {
@@ -131,7 +153,16 @@ describe("mobile bottom sheet UX", () => {
 
   it("prevents iOS input-focus zoom without disabling user page zoom", () => {
     assert.match(globalCss, /input,\s*textarea,\s*select\s*\{[\s\S]*font-size:\s*16px\s*!important/);
+    assert.match(globalCss, /\.saved-commute-form input\s*\{[\s\S]*font-size:\s*16px/);
+    assert.match(globalCss, /\.commute-station-search-row input\s*\{[\s\S]*font-size:\s*16px/);
     assert.match(globalCss, /button,\s*a,\s*input,\s*textarea,\s*select\s*\{[\s\S]*touch-action:\s*manipulation/);
+  });
+
+  it("keeps saved commute station search results visible while the iOS keyboard is open", () => {
+    assert.match(globalCss, /\.commute-station-search-row\s*\{[\s\S]*position:\s*sticky/);
+    assert.match(globalCss, /\.commute-station-search-row\s*\{[\s\S]*top:\s*0/);
+    assert.match(globalCss, /\.commute-station-popover > \.commute-station-options\s*\{[\s\S]*overflow-y:\s*auto/);
+    assert.match(globalCss, /html\[data-visual-keyboard="open"\]\s+\.commute-station-popover > \.commute-station-options\s*\{[\s\S]*max-height:\s*none/);
   });
 
   it("hides desktop-only chrome on mobile without deleting it", () => {

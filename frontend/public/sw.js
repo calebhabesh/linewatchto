@@ -179,49 +179,40 @@ async function showPendingPushNotification() {
     }
 
     const body = await response.json();
-    const notification = body.notification;
+    const pendingNotifications = normalizePendingNotifications(body);
     const tagState = await reconcilePushNotifications();
-    if (!notification) {
-      return;
-    }
-    const notificationState = notification.state === "CLEARED" ? "CLEARED" : "ACTIVE";
-    if (
-      notificationState !== "CLEARED"
-      && Array.isArray(tagState?.activeTags)
-      && !tagState.activeTags.includes(notification.tag)
-    ) {
+    if (pendingNotifications.length === 0) {
       return;
     }
 
-    if (
-      notificationState === "CLEARED"
-      && Array.isArray(tagState?.retainedTags)
-      && !tagState.retainedTags.includes(notification.tag)
-    ) {
-      return;
+    for (const notification of pendingNotifications) {
+      if (!shouldShowPendingNotification(notification, pendingNotifications, tagState)) {
+        continue;
+      }
+
+      const notificationState = notificationStateFor(notification);
+      const options = {
+        body: notification.body,
+        tag: notification.tag,
+        icon: NOTIFICATION_ICON_URL,
+        badge: NOTIFICATION_BADGE_URL,
+        renotify: false,
+        requireInteraction: true,
+        data: {
+          state: notificationState,
+          url: notification.url || "/",
+        },
+      };
+      if (notificationState === "CLEARED") {
+        options.silent = true;
+      }
+      const timestamp = Date.parse(notification.timestamp);
+      if (Number.isFinite(timestamp)) {
+        options.timestamp = timestamp;
+      }
+
+      await self.registration.showNotification(notification.title, options);
     }
- 
-    const options = {
-      body: notification.body,
-      tag: notification.tag,
-      icon: NOTIFICATION_ICON_URL,
-      badge: NOTIFICATION_BADGE_URL,
-      renotify: false,
-      requireInteraction: true,
-      data: {
-        state: notificationState,
-        url: notification.url || "/",
-      },
-    };
-    if (notificationState === "CLEARED") {
-      options.silent = true;
-    }
-    const timestamp = Date.parse(notification.timestamp);
-    if (Number.isFinite(timestamp)) {
-      options.timestamp = timestamp;
-    }
- 
-    await self.registration.showNotification(notification.title, options);
   } catch {
     await showFallbackPushNotification();
   }
@@ -241,6 +232,57 @@ async function showFallbackPushNotification() {
 
 function shouldShowFallbackPushNotification(status) {
   return !Number.isFinite(status) || status >= 500;
+}
+
+function normalizePendingNotifications(body) {
+  if (Array.isArray(body?.notifications)) {
+    return body.notifications.filter((notification) => notification && typeof notification.tag === "string");
+  }
+  return body?.notification && typeof body.notification.tag === "string" ? [body.notification] : [];
+}
+
+function notificationStateFor(notification) {
+  return notification.state === "CLEARED" ? "CLEARED" : "ACTIVE";
+}
+
+function baseLifecycleTag(tag) {
+  if (typeof tag !== "string") return "";
+  if (tag.endsWith("|active")) return tag.slice(0, -"|active".length);
+  if (tag.endsWith("|cleared")) return tag.slice(0, -"|cleared".length);
+  return tag;
+}
+
+function batchHasClearedPartner(notification, pendingNotifications) {
+  const baseTag = baseLifecycleTag(notification.tag);
+  if (!baseTag) return false;
+  return pendingNotifications.some((candidate) => (
+    candidate !== notification
+    && notificationStateFor(candidate) === "CLEARED"
+    && baseLifecycleTag(candidate.tag) === baseTag
+  ));
+}
+
+function shouldShowPendingNotification(notification, pendingNotifications, tagState) {
+  const notificationState = notificationStateFor(notification);
+  if (
+    notificationState !== "CLEARED"
+    && Array.isArray(tagState?.activeTags)
+    && !tagState.activeTags.includes(notification.tag)
+  ) {
+    return Array.isArray(tagState?.retainedTags)
+      && tagState.retainedTags.includes(notification.tag)
+      && batchHasClearedPartner(notification, pendingNotifications);
+  }
+
+  if (
+    notificationState === "CLEARED"
+    && Array.isArray(tagState?.retainedTags)
+    && !tagState.retainedTags.includes(notification.tag)
+  ) {
+    return false;
+  }
+
+  return true;
 }
 
 async function reconcilePushNotifications() {

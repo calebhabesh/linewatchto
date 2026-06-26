@@ -19,6 +19,11 @@
   --mobile-announcement-max-width: clamp(128px, 50vw, 260px);
   --mobile-top-chrome-height: 40px;
   --mobile-top-action-cluster-width: calc(var(--mobile-top-action-button-size) + var(--mobile-rotate-action-width) + var(--mobile-top-action-button-size) + var(--mobile-top-action-gap) + var(--mobile-top-action-gap));
+  --mobile-bottom-nav-height: 74px;
+  --mobile-bottom-nav-bottom-offset: max(10px, calc(var(--mobile-safe-bottom) - 18px));
+  --mobile-bottom-nav-occupied-height: calc(var(--mobile-bottom-nav-height) + var(--mobile-bottom-nav-bottom-offset));
+  --mobile-bottom-nav-side-inset: 16px;
+  --mobile-status-peek-height: 98px;
   --mobile-safe-top: env(safe-area-inset-top, 0px);
   --mobile-safe-right: env(safe-area-inset-right, 0px);
   --mobile-safe-bottom: env(safe-area-inset-bottom, 0px);
@@ -533,12 +538,7 @@ button {
 
 @media (max-width: 767px) {
   .release-notes-notice {
-    bottom: calc(
-      var(--mobile-bottom-nav-height, 74px) +
-      var(--mobile-bottom-nav-margin-bottom, 14px) +
-      var(--mobile-safe-bottom, env(safe-area-inset-bottom, 0px)) +
-      10px
-    );
+    bottom: calc(var(--mobile-bottom-nav-occupied-height, 84px) + 10px);
   }
 }
 
@@ -594,12 +594,7 @@ button {
 
 @media (max-width: 767px) {
   .app-update-banner {
-    bottom: calc(
-      var(--mobile-bottom-nav-height, 74px) +
-      var(--mobile-bottom-nav-margin-bottom, 14px) +
-      var(--mobile-safe-bottom, env(safe-area-inset-bottom, 0px)) +
-      10px
-    );
+    bottom: calc(var(--mobile-bottom-nav-occupied-height, 84px) + 10px);
   }
 }
 
@@ -1317,13 +1312,13 @@ button {
 @media (max-width: 767px) {
   .subway-closing-soon-chip {
     position: fixed !important;
-    top: var(--mobile-edge-inset) !important;
-    left: var(--mobile-edge-inset) !important;
+    top: calc(var(--mobile-safe-top) + var(--mobile-edge-inset)) !important;
+    left: calc(var(--mobile-safe-left) + var(--mobile-edge-inset)) !important;
     right: auto !important;
     max-width: var(--mobile-announcement-max-width) !important;
     width: min(
       var(--mobile-announcement-max-width),
-      calc(100vw - var(--mobile-edge-inset) - var(--mobile-top-action-cluster-width) - var(--mobile-announcement-gap) - var(--mobile-edge-inset))
+      calc(100vw - var(--mobile-safe-left) - var(--mobile-edge-inset) - var(--mobile-top-action-cluster-width) - var(--mobile-announcement-gap) - var(--mobile-safe-right) - var(--mobile-edge-inset))
     ) !important;
     height: var(--mobile-announcement-chip-height) !important;
     min-height: var(--mobile-announcement-chip-height) !important;
@@ -3290,15 +3285,15 @@ button {
 @media (max-width: 767px) {
   .subway-closed-peek-chip {
     position: fixed !important;
-    top: var(--mobile-edge-inset) !important;
+    top: calc(var(--mobile-safe-top) + var(--mobile-edge-inset)) !important;
     bottom: auto !important;
-    left: var(--mobile-edge-inset) !important;
+    left: calc(var(--mobile-safe-left) + var(--mobile-edge-inset)) !important;
     right: auto !important;
     transform: none !important;
     max-width: var(--mobile-announcement-max-width) !important;
     width: min(
       var(--mobile-announcement-max-width),
-      calc(100vw - var(--mobile-edge-inset) - var(--mobile-top-action-cluster-width) - var(--mobile-announcement-gap) - var(--mobile-edge-inset))
+      calc(100vw - var(--mobile-safe-left) - var(--mobile-edge-inset) - var(--mobile-top-action-cluster-width) - var(--mobile-announcement-gap) - var(--mobile-safe-right) - var(--mobile-edge-inset))
     ) !important;
     height: var(--mobile-announcement-chip-height) !important;
     min-height: var(--mobile-announcement-chip-height) !important;
@@ -4499,7 +4494,7 @@ button {
 }
 
 .saved-commute-form input {
-  font-size: 14px;
+  font-size: 16px;
 }
 
 .dark .account-field input,
@@ -4892,7 +4887,7 @@ button {
   background: transparent;
   border: 0;
   color: inherit;
-  font-size: 0.78rem;
+  font-size: 16px;
   min-height: 34px;
   outline: 0;
   padding: 0;
@@ -5868,7 +5863,7 @@ button {
 
 @media (max-width: 767px) {
   .commute-path-preview-chip {
-    bottom: calc(var(--mobile-bottom-nav-height) + var(--mobile-bottom-nav-margin-bottom) + var(--mobile-safe-bottom) + 10px);
+    bottom: calc(var(--mobile-bottom-nav-occupied-height) + 10px);
     z-index: 42;
     position: fixed;
   }
@@ -6413,6 +6408,8 @@ button {
 :root {
   --mobile-bottom-nav-height: 74px;
   --mobile-bottom-nav-margin-bottom: 14px;
+  --mobile-bottom-nav-bottom-offset: max(10px, calc(var(--mobile-safe-bottom) - 18px));
+  --mobile-bottom-nav-occupied-height: calc(var(--mobile-bottom-nav-height) + var(--mobile-bottom-nav-bottom-offset));
   --mobile-bottom-nav-side-inset: 16px;
   --mobile-status-peek-height: 98px;
   --mobile-safe-top: env(safe-area-inset-top, 0px);
@@ -6433,7 +6430,7 @@ button {
     -webkit-backdrop-filter: var(--mobile-chrome-backdrop-filter);
     border: 1px solid rgba(15, 23, 42, 0.06);
     border-radius: 999px;
-    bottom: calc(var(--mobile-bottom-nav-margin-bottom) + var(--mobile-safe-bottom));
+    bottom: var(--mobile-bottom-nav-bottom-offset);
     box-shadow: var(--mobile-chrome-shadow);
     display: grid;
     gap: 2px;
@@ -6517,10 +6514,17 @@ button {
   }
 
   .mobile-bottom-nav-label {
+    font-size: 9px;
+    letter-spacing: 0;
+    line-height: 1;
     max-width: 100%;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+
+  .mobile-bottom-nav-item[data-nav-key="commutes"] .mobile-bottom-nav-label {
+    font-size: 8.75px;
   }
 }
 
@@ -6535,7 +6539,7 @@ button {
     background: rgba(10, 12, 16, 0.96);
     border: 1px solid rgba(250, 204, 21, 0.34);
     border-radius: 8px;
-    bottom: calc(var(--mobile-bottom-nav-height) + var(--mobile-bottom-nav-margin-bottom) + var(--mobile-safe-bottom) + 10px);
+    bottom: calc(var(--mobile-bottom-nav-occupied-height) + 10px);
     box-shadow: 0 16px 38px rgba(0, 0, 0, 0.38);
     color: #ffffff;
     display: grid;
@@ -6676,7 +6680,7 @@ button {
     -webkit-backdrop-filter: var(--mobile-chrome-backdrop-filter);
     border: 1px solid var(--mobile-chrome-border);
     border-radius: 8px;
-    bottom: calc(var(--mobile-bottom-nav-height) + var(--mobile-bottom-nav-margin-bottom) + var(--mobile-safe-bottom) + 10px);
+    bottom: calc(var(--mobile-bottom-nav-occupied-height) + 10px);
     box-shadow: var(--mobile-chrome-shadow);
     color: var(--mobile-chrome-text);
     display: flex;
@@ -7317,9 +7321,9 @@ button {
 @media (max-width: 767px) {
   .floating-panel-shell {
     animation: floating-mobile-sheet-enter 180ms cubic-bezier(0.22, 1, 0.36, 1);
-    bottom: calc(var(--mobile-bottom-nav-height) + var(--mobile-bottom-nav-margin-bottom) + var(--mobile-safe-bottom));
+    bottom: var(--mobile-bottom-nav-occupied-height);
     left: 0;
-    max-height: min(78dvh, calc(var(--visual-viewport-height, 100dvh) - var(--mobile-bottom-nav-height) - var(--mobile-bottom-nav-margin-bottom) - var(--mobile-safe-bottom) - 88px));
+    max-height: min(78dvh, calc(var(--visual-viewport-height, 100dvh) - var(--mobile-bottom-nav-occupied-height) - 88px));
     padding: 0 8px 8px;
     position: fixed;
     right: 0;
@@ -7361,8 +7365,9 @@ button {
   }
 
   html[data-visual-keyboard="open"] .floating-panel-shell {
-    bottom: max(8px, var(--mobile-safe-bottom));
-    max-height: calc(var(--visual-viewport-height, 100dvh) - var(--mobile-safe-top) - 24px);
+    bottom: auto;
+    max-height: calc(var(--visual-viewport-height, 100dvh) - var(--mobile-safe-top) - 16px);
+    top: calc(var(--visual-viewport-offset-top, 0px) + var(--mobile-safe-top) + 8px);
   }
 
   html[data-visual-keyboard="open"] .floating-panel-scroll {
@@ -7370,8 +7375,9 @@ button {
   }
 
   html[data-visual-keyboard="open"] .commute-station-popover {
-    bottom: max(8px, var(--mobile-safe-bottom)) !important;
-    max-height: calc(var(--visual-viewport-height, 100dvh) - var(--mobile-safe-top) - 24px) !important;
+    bottom: auto !important;
+    max-height: calc(var(--visual-viewport-height, 100dvh) - var(--mobile-safe-top) - 16px) !important;
+    top: calc(var(--visual-viewport-offset-top, 0px) + var(--mobile-safe-top) + 8px) !important;
   }
 
   html[data-visual-keyboard="open"] .account-dialog-backdrop {
@@ -7462,7 +7468,7 @@ button {
 
   .site-guide-panel {
     max-height: calc(
-      100dvh - 64px - var(--mobile-bottom-nav-height, 56px) - var(--mobile-bottom-nav-margin-bottom, 14px) - var(--mobile-safe-bottom, 0px) - 10px - var(--mobile-status-peek-height, 98px) - 10px
+      100dvh - 64px - var(--mobile-bottom-nav-occupied-height, 84px) - 10px - var(--mobile-status-peek-height, 98px) - 10px
     ) !important;
   }
 
@@ -8280,12 +8286,12 @@ button {
 
   .commute-station-popover {
     position: fixed !important;
-    bottom: calc(var(--mobile-bottom-nav-height) + var(--mobile-bottom-nav-margin-bottom) + var(--mobile-safe-bottom) + 8px) !important;
-    left: 8px !important;
-    right: 8px !important;
+    bottom: calc(var(--mobile-bottom-nav-occupied-height) + 8px) !important;
+    left: calc(var(--mobile-safe-left) + 8px) !important;
+    right: calc(var(--mobile-safe-right) + 8px) !important;
     top: auto !important;
     width: auto !important;
-    max-height: min(75dvh, calc(var(--visual-viewport-height, 100dvh) - var(--mobile-bottom-nav-height) - var(--mobile-bottom-nav-margin-bottom) - var(--mobile-safe-bottom) - 80px)) !important;
+    max-height: min(75dvh, calc(var(--visual-viewport-height, 100dvh) - var(--mobile-bottom-nav-occupied-height) - 80px)) !important;
     border-radius: 8px !important;
     box-shadow: 0 12px 40px rgba(15, 23, 42, 0.24) !important;
     z-index: 9999 !important;
@@ -8294,6 +8300,23 @@ button {
     background: var(--panel) !important;
     border: 1px solid var(--border) !important;
     animation: commute-popover-enter-mobile 220ms cubic-bezier(0.23, 1, 0.32, 1) both !important;
+  }
+
+  .commute-station-search-row {
+    flex: 0 0 auto !important;
+    position: sticky;
+    top: 0;
+    z-index: 2;
+  }
+
+  .commute-station-popover > .commute-station-options {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+  }
+
+  html[data-visual-keyboard="open"] .commute-station-popover > .commute-station-options {
+    max-height: none;
   }
 
   .high-contrast .commute-station-popover {
@@ -9171,26 +9194,27 @@ button {
   .subway-closing-soon-chip,
   .subway-closed-peek-chip {
     position: fixed !important;
-    top: var(--mobile-edge-inset) !important;
+    top: calc(var(--mobile-safe-top) + var(--mobile-edge-inset)) !important;
     bottom: auto !important;
-    left: var(--mobile-edge-inset) !important;
+    left: calc(var(--mobile-safe-left) + var(--mobile-edge-inset)) !important;
     right: auto !important;
     transform: none !important;
     max-width: var(--mobile-announcement-max-width) !important;
     width: min(
       var(--mobile-announcement-max-width),
-      calc(100vw - var(--mobile-edge-inset) - var(--mobile-top-action-cluster-width) - var(--mobile-announcement-gap) - var(--mobile-edge-inset))
+      calc(100vw - var(--mobile-safe-left) - var(--mobile-edge-inset) - var(--mobile-top-action-cluster-width) - var(--mobile-announcement-gap) - var(--mobile-safe-right) - var(--mobile-edge-inset))
     ) !important;
     height: var(--mobile-announcement-chip-height) !important;
     min-height: var(--mobile-announcement-chip-height) !important;
   }
 
   .mobile-legend-pill {
-    left: var(--mobile-edge-inset) !important;
+    left: calc(var(--mobile-safe-left) + var(--mobile-edge-inset)) !important;
+    top: calc(var(--mobile-safe-top) + var(--mobile-edge-inset)) !important;
   }
 
   .mobile-legend-pill--announcement {
-    top: calc(var(--mobile-edge-inset) + var(--mobile-announcement-chip-height) + var(--mobile-announcement-gap)) !important;
+    top: calc(var(--mobile-safe-top) + var(--mobile-edge-inset) + var(--mobile-announcement-chip-height) + var(--mobile-announcement-gap)) !important;
   }
 }
 

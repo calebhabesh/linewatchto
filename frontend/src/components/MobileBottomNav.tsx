@@ -54,6 +54,7 @@ export function MobileBottomNav({
             aria-current={selected ? "page" : undefined}
             aria-label={label}
             data-active={selected ? "true" : "false"}
+            data-nav-key={key}
             onClick={() => onSelect(key)}
           >
             <span className="mobile-bottom-nav-icon">
