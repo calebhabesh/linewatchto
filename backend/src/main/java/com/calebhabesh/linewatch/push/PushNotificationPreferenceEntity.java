@@ -42,7 +42,7 @@ public class PushNotificationPreferenceEntity {
     private boolean lineDelayEnabled = true;
 
     @Column(name = "line_reduced_speed_zone_enabled")
-    private boolean lineReducedSpeedZoneEnabled = false;
+    private boolean lineReducedSpeedZoneEnabled = true;
 
     @Column(name = "line_planned_closure_enabled")
     private boolean linePlannedClosureEnabled = true;

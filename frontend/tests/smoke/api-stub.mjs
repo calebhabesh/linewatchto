@@ -45,7 +45,7 @@ const defaultPushNotificationPreferences = {
     eventTypes: {
       suspensions: true,
       delays: true,
-      reducedSpeedZones: false,
+      reducedSpeedZones: true,
       plannedClosures: true,
       serviceRestored: true,
     },

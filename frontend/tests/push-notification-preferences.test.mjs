@@ -28,8 +28,8 @@ describe("push notification preferences schema", () => {
       assert.equal(line.subscribed, false);
     }
     
-    // Line-wide Reduced Speed Zones must be disabled by default
-    assert.equal(defaultPushNotificationPreferences.lineSubscriptions.eventTypes.reducedSpeedZones, false);
+    // Line-wide Reduced Speed Zones must be enabled by default
+    assert.equal(defaultPushNotificationPreferences.lineSubscriptions.eventTypes.reducedSpeedZones, true);
     
     assert.equal(defaultPushNotificationPreferences.reminderTiming.closure24h, true);
     assert.equal(defaultPushNotificationPreferences.reminderTiming.closureMorning, true);

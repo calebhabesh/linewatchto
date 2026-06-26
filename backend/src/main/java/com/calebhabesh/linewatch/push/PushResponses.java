@@ -61,7 +61,7 @@ public final class PushResponses {
                         new LineSubscriptionResponse("line-5", "5", "Eglinton", false),
                         new LineSubscriptionResponse("line-6", "6", "Finch West", false)
                     ),
-                    new EventTypePreferencesResponse(true, true, false, true, true)
+                    new EventTypePreferencesResponse(true, true, true, true, true)
                 ),
                 new ReminderTimingPreferencesResponse(true, true, true)
             );

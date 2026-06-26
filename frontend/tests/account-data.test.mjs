@@ -383,7 +383,7 @@ describe("account data adapter", () => {
                 eventTypes: {
                   suspensions: true,
                   delays: true,
-                  reducedSpeedZones: false,
+                  reducedSpeedZones: true,
                   plannedClosures: true,
                   serviceRestored: true,
                 },
@@ -409,7 +409,7 @@ describe("account data adapter", () => {
     assert.equal(result.config.preferences.lineSubscriptions.lines.length, 5);
     assert.equal(result.config.preferences.lineSubscriptions.lines[0].lineId, "line-1");
     assert.equal(result.config.preferences.lineSubscriptions.lines[0].subscribed, false);
-    assert.equal(result.config.preferences.lineSubscriptions.eventTypes.reducedSpeedZones, false);
+    assert.equal(result.config.preferences.lineSubscriptions.eventTypes.reducedSpeedZones, true);
     assert.equal(result.config.preferences.reminderTiming.closure24h, true);
     assert.equal(result.config.preferences.reminderTiming.closureMorning, true);
     assert.equal(requests[0].input, "/api/account/push/config");
