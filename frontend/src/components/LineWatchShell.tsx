@@ -202,7 +202,21 @@ export function LineWatchShell({
 
     const updateViewportHeight = () => {
       const height = visualViewport ? visualViewport.height : window.innerHeight;
-      document.documentElement.style.setProperty("--visual-viewport-height", `${height}px`);
+      const width = visualViewport ? visualViewport.width : window.innerWidth;
+      const offsetTop = visualViewport ? visualViewport.offsetTop : 0;
+      const offsetLeft = visualViewport ? visualViewport.offsetLeft : 0;
+      const scale = visualViewport ? visualViewport.scale : 1;
+      const keyboardInset = Math.max(0, window.innerHeight - height - offsetTop);
+      const keyboardOpen = keyboardInset > 120 || height < window.innerHeight * 0.78;
+      const root = document.documentElement;
+
+      root.style.setProperty("--visual-viewport-height", `${Math.round(height)}px`);
+      root.style.setProperty("--visual-viewport-width", `${Math.round(width)}px`);
+      root.style.setProperty("--visual-viewport-offset-top", `${Math.round(offsetTop)}px`);
+      root.style.setProperty("--visual-viewport-offset-left", `${Math.round(offsetLeft)}px`);
+      root.style.setProperty("--visual-viewport-scale", String(scale));
+      root.style.setProperty("--visual-keyboard-inset", `${Math.round(keyboardInset)}px`);
+      root.dataset.visualKeyboard = keyboardOpen ? "open" : "closed";
     };
 
     updateViewportHeight();
@@ -213,11 +227,13 @@ export function LineWatchShell({
       return () => {
         visualViewport.removeEventListener("resize", updateViewportHeight);
         visualViewport.removeEventListener("scroll", updateViewportHeight);
+        delete document.documentElement.dataset.visualKeyboard;
       };
     } else {
       window.addEventListener("resize", updateViewportHeight);
       return () => {
         window.removeEventListener("resize", updateViewportHeight);
+        delete document.documentElement.dataset.visualKeyboard;
       };
     }
   }, []);
@@ -2432,7 +2448,7 @@ export function LineWatchShell({
         />
       ) : null}
 
-      {!showClosedScreen && !rotatedMapMode && !mobileInspectorOpen && !selectedStationId && !accountDialogMode ? (
+      {!showClosedScreen && !rotatedMapMode && !mobileInspectorOpen && !selectedStationId && !accountDialogMode && activeView !== "search" ? (
         /* aria-label="Primary mobile navigation" */
         <MobileBottomNav
           activeKey={mobileNavKey}

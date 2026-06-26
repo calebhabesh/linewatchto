@@ -359,18 +359,19 @@ test("mobile keeps lightweight map focus flashes and menu transitions", async ({
     .toBe("none");
 
   await page.getByRole("button", { name: "Close station details" }).click();
-  await page.getByRole("button", { name: "Search", exact: true }).click();
-  const searchPanel = page.locator("[data-station-search-panel]");
-  await expect(searchPanel).toBeVisible();
-  const searchTransitionProperty = await searchPanel.evaluate((element) => getComputedStyle(element).transitionProperty);
-  expect(searchTransitionProperty).toContain("opacity");
-  expect(searchTransitionProperty).toContain("transform");
-  expect(searchTransitionProperty).not.toContain("width");
-
   const searchNavItem = page.getByRole("button", { name: "Search", exact: true });
   const navTransitionProperty = await searchNavItem.evaluate((element) => getComputedStyle(element).transitionProperty);
   expect(navTransitionProperty).toContain("transform");
   expect(navTransitionProperty).not.toContain("width");
+
+  await searchNavItem.click();
+  const searchPanel = page.locator("[data-station-search-panel]");
+  await expect(searchPanel).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "Primary mobile navigation" })).toHaveCount(0);
+  const searchTransitionProperty = await searchPanel.evaluate((element) => getComputedStyle(element).transitionProperty);
+  expect(searchTransitionProperty).toContain("opacity");
+  expect(searchTransitionProperty).toContain("transform");
+  expect(searchTransitionProperty).not.toContain("width");
 });
 
 test("mobile closing station details preserves the focused map camera", async ({ page, request, isMobile }) => {
@@ -1037,7 +1038,10 @@ test("mobile uses bottom navigation and status sheets", async ({ page, request, 
 
   await page.getByRole("button", { name: "Search", exact: true }).click();
   await expect(page.getByRole("searchbox", { name: "Station Search" })).toBeFocused();
+  await expect(page.getByRole("navigation", { name: "Primary mobile navigation" })).toHaveCount(0);
 
+  await page.getByRole("button", { name: "Close station search" }).click();
+  await expect(page.getByRole("navigation", { name: "Primary mobile navigation" })).toBeVisible();
   await page.getByRole("button", { name: "More", exact: true }).click();
   await expect(page.getByRole("heading", { name: "More" })).toBeVisible();
   await expect(page.getByRole("button", { name: /High Contrast Mode/ })).toBeVisible();
@@ -1069,9 +1073,9 @@ test("manages push notification preferences on mobile", async ({ page, request, 
 
   const rszSwitch = page.getByLabel("Line subscription Reduced Speed Zones");
   await expect(rszSwitch).toBeAttached();
-  await expect(rszSwitch).not.toBeChecked();
-  await page.locator('label:has(input[aria-label="Line subscription Reduced Speed Zones"])').click();
   await expect(rszSwitch).toBeChecked();
+  await page.locator('label:has(input[aria-label="Line subscription Reduced Speed Zones"])').click();
+  await expect(rszSwitch).not.toBeChecked();
 
   await page.getByRole("button", { name: "Back" }).click();
   await expect(page.getByRole("heading", { name: "More" })).toBeVisible();

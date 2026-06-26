@@ -102,9 +102,9 @@ describe("mobile rotated map mode", () => {
     assert.match(shellSource, /rotated-map-selection-hud-station-selection/);
     assert.match(shellSource, /className="rotated-map-hud"/);
     assert.match(shellSource, /className=\{rotatedMapSelectionHudClassName\}/);
-    assert.match(globalCss, /\.linewatch-shell\.mobile-map-rotated \.rotated-map-hud \{[\s\S]*top: max\(10px, env\(safe-area-inset-top, 0px\)\);/);
+    assert.match(globalCss, /\.linewatch-shell\.mobile-map-rotated \.rotated-map-hud \{[\s\S]*top: max\(10px, var\(--mobile-safe-top\)\);/);
     assert.match(globalCss, /\.linewatch-shell\.mobile-map-rotated \.rotated-map-selection-hud\.rotated-map-selection-hud-station-selection \{/);
-    assert.match(globalCss, /bottom: max\(10px, env\(safe-area-inset-bottom, 0px\)\);/);
+    assert.match(globalCss, /bottom: max\(10px, var\(--mobile-safe-bottom\)\);/);
     assert.match(globalCss, /top: auto;/);
     assert.doesNotMatch(globalCss, /\.rotated-map-hud\.rotated-map-hud-station-selection/);
   });

@@ -100,6 +100,40 @@ describe("mobile bottom sheet UX", () => {
     assert.match(globalCss, /\.station-search-stations-column/);
   });
 
+  it("keeps mobile chrome outside iPhone unsafe areas", () => {
+    assert.match(globalCss, /--mobile-safe-top:\s*env\(safe-area-inset-top,\s*0px\)/);
+    assert.match(globalCss, /--mobile-safe-right:\s*env\(safe-area-inset-right,\s*0px\)/);
+    assert.match(globalCss, /--mobile-safe-left:\s*env\(safe-area-inset-left,\s*0px\)/);
+    assert.match(globalCss, /--mobile-safe-bottom:\s*env\(safe-area-inset-bottom,\s*0px\)/);
+    assert.match(globalCss, /\.linewatch-shell > header\s*\{[\s\S]*var\(--mobile-safe-top\)/);
+    assert.match(globalCss, /\.linewatch-shell > header\s*\{[\s\S]*var\(--mobile-safe-right\)/);
+    assert.match(globalCss, /\.linewatch-shell > header\s*\{[\s\S]*var\(--mobile-safe-left\)/);
+    assert.match(globalCss, /data-safe-area-debug="iphone-dynamic-island"/);
+  });
+
+  it("uses the visual viewport to make mobile sheets keyboard-aware on iOS", () => {
+    assert.match(shellSource, /--visual-viewport-offset-top/);
+    assert.match(shellSource, /--visual-keyboard-inset/);
+    assert.match(shellSource, /document\.documentElement\.dataset\.visualKeyboard/);
+    assert.match(globalCss, /html\[data-visual-keyboard="open"\]\s+\.mobile-bottom-nav\s*\{[\s\S]*display:\s*none\s*!important/);
+    assert.match(globalCss, /html\[data-visual-keyboard="open"\]\s+\.floating-panel-shell\s*\{[\s\S]*bottom:\s*max\(8px,\s*var\(--mobile-safe-bottom\)\)/);
+    assert.match(globalCss, /html\[data-visual-keyboard="open"\]\s+\.commute-station-popover\s*\{[\s\S]*bottom:\s*max\(8px,\s*var\(--mobile-safe-bottom\)\)/);
+  });
+
+  it("makes mobile search a top-input sheet instead of a keyboard-covered bottom input", () => {
+    assert.match(shellSource, /activeView !== "search"/);
+    assert.match(globalCss, /\.station-search-panel\s*\{[\s\S]*top:\s*calc\([\s\S]*var\(--visual-viewport-offset-top/);
+    assert.match(globalCss, /\.station-search-panel\s*\{[\s\S]*flex-direction:\s*column\s*!important/);
+    assert.doesNotMatch(globalCss, /\.station-search-panel\s*\{[\s\S]*?flex-direction:\s*column-reverse\s*!important/s);
+    assert.match(globalCss, /\.station-search-input-row\s*\{[\s\S]*position:\s*sticky/);
+    assert.match(globalCss, /\.station-search-input-row\s*\{[\s\S]*top:\s*0/);
+  });
+
+  it("prevents iOS input-focus zoom without disabling user page zoom", () => {
+    assert.match(globalCss, /input,\s*textarea,\s*select\s*\{[\s\S]*font-size:\s*16px\s*!important/);
+    assert.match(globalCss, /button,\s*a,\s*input,\s*textarea,\s*select\s*\{[\s\S]*touch-action:\s*manipulation/);
+  });
+
   it("hides desktop-only chrome on mobile without deleting it", () => {
     assert.match(shellSource, /desktop-top-chrome/);
     assert.match(shellSource, /desktop-map-legend/);

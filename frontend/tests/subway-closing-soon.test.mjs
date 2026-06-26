@@ -59,7 +59,8 @@ describe("subway closing soon chip", () => {
     assert.match(sharedMobileAnnouncementCss, /width:\s*min\(/);
     assert.match(sharedMobileAnnouncementCss, /100vw - var\(--mobile-edge-inset\) - var\(--mobile-top-action-cluster-width\) - var\(--mobile-announcement-gap\) - var\(--mobile-edge-inset\)/);
     assert.match(sharedMobileAnnouncementCss, /height:\s*var\(--mobile-announcement-chip-height\)/);
-    assert.match(globalCss, /\.linewatch-shell > header\s*\{[\s\S]*padding:\s*var\(--mobile-edge-inset\)/);
+    assert.match(globalCss, /\.linewatch-shell > header\s*\{[\s\S]*padding:[\s\S]*var\(--mobile-safe-top\)[\s\S]*var\(--mobile-edge-inset\)/);
+    assert.match(globalCss, /\.linewatch-shell > header\s*\{[\s\S]*var\(--mobile-safe-right\)[\s\S]*var\(--mobile-safe-left\)/);
     assert.match(globalCss, /\.map-utility-cluster\s*\{[\s\S]*gap:\s*var\(--mobile-top-action-gap\)/);
     assert.match(globalCss, /\.theme-toggle-btn,[\s\S]*\.site-guide-trigger\s*\{[\s\S]*height:\s*var\(--mobile-top-action-button-size\)/);
     assert.match(globalCss, /\.mobile-legend-pill--announcement/);
