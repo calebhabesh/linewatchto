@@ -7386,6 +7386,7 @@ button {
 
   .station-search-panel[data-expanded="true"] {
     width: auto;
+    max-height: min(50dvh, calc(var(--visual-viewport-height, 100dvh) - var(--mobile-bottom-nav-height) - var(--mobile-bottom-nav-margin-bottom) - var(--mobile-safe-bottom) - 96px));
   }
 
   .station-search-browse-container {
@@ -7411,6 +7412,13 @@ button {
     padding-left: 0;
     padding-right: 0;
     transform: none;
+    width: auto;
+  }
+
+  .station-search-panel[data-expanded="true"] .station-search-stations-column {
+    border-left: 0;
+    padding-left: 0;
+    padding-right: 0;
     width: auto;
   }
 

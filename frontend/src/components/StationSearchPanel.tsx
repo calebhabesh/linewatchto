@@ -402,7 +402,7 @@ export function StationSearchPanel({
             ref={mobileInputRef}
             type="search"
             role="searchbox"
-            aria-label="Search mapped stations"
+            aria-label="Station Search"
             value={query}
             onChange={(event) => onQueryChange(event.target.value)}
             onKeyDown={handleInputKeyDown}
