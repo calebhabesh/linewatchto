@@ -410,7 +410,7 @@ const server = createServer(async (request, response) => {
   }
 
   if (request.method === "POST" && url.pathname === "/api/account/push/active") {
-    sendJson(request, response, 200, { activeTags: [] });
+    sendJson(request, response, 200, { activeTags: [], retainedTags: [] });
     return;
   }
 

@@ -180,26 +180,34 @@ async function showPendingPushNotification() {
 
     const body = await response.json();
     const notification = body.notification;
-    const activeTags = await reconcilePushNotifications();
+    const tagState = await reconcilePushNotifications();
     if (!notification) {
       return;
     }
     const notificationState = notification.state === "CLEARED" ? "CLEARED" : "ACTIVE";
     if (
       notificationState !== "CLEARED"
-      && Array.isArray(activeTags)
-      && !activeTags.includes(notification.tag)
+      && Array.isArray(tagState?.activeTags)
+      && !tagState.activeTags.includes(notification.tag)
     ) {
       return;
     }
 
+    if (
+      notificationState === "CLEARED"
+      && Array.isArray(tagState?.retainedTags)
+      && !tagState.retainedTags.includes(notification.tag)
+    ) {
+      return;
+    }
+ 
     const options = {
       body: notification.body,
       tag: notification.tag,
       icon: NOTIFICATION_ICON_URL,
       badge: NOTIFICATION_BADGE_URL,
       renotify: false,
-      requireInteraction: false,
+      requireInteraction: true,
       data: {
         state: notificationState,
         url: notification.url || "/",
@@ -212,7 +220,7 @@ async function showPendingPushNotification() {
     if (Number.isFinite(timestamp)) {
       options.timestamp = timestamp;
     }
-
+ 
     await self.registration.showNotification(notification.title, options);
   } catch {
     await showFallbackPushNotification();
@@ -237,19 +245,19 @@ function shouldShowFallbackPushNotification(status) {
 
 async function reconcilePushNotifications() {
   try {
-    const activeTags = await fetchActivePushNotificationTags();
-    if (!activeTags) return null;
-    await closeInactivePushNotifications(activeTags);
-    return activeTags;
+    const tagState = await fetchPushNotificationTagState();
+    if (!tagState) return null;
+    await closeInactivePushNotifications(tagState.retainedTags);
+    return tagState;
   } catch {
     // Notification cleanup is best-effort; failed cleanup must not hide new alerts.
     return null;
   }
 }
 
-async function fetchActivePushNotificationTags() {
+async function fetchPushNotificationTagState() {
   const subscription = await self.registration.pushManager.getSubscription();
-  if (!subscription) return [];
+  if (!subscription) return { activeTags: [], retainedTags: [] };
 
   const response = await fetch("/api/account/push/active", {
     method: "POST",
@@ -263,17 +271,19 @@ async function fetchActivePushNotificationTags() {
 
   const body = await response.json();
   if (body?.cleanupAllowed === false) return null;
-  return Array.isArray(body.activeTags) ? body.activeTags : [];
+  const activeTags = Array.isArray(body.activeTags) ? body.activeTags : [];
+  const retainedTags = Array.isArray(body.retainedTags) ? body.retainedTags : activeTags;
+  return { activeTags, retainedTags };
 }
 
-async function closeInactivePushNotifications(activeTags) {
+async function closeInactivePushNotifications(retainedTags) {
   if (typeof self.registration.getNotifications !== "function") return;
 
-  const activeTagSet = new Set(activeTags.filter((tag) => typeof tag === "string" && tag.length > 0));
+  const retainedTagSet = new Set(retainedTags.filter((tag) => typeof tag === "string" && tag.length > 0));
   const notifications = await self.registration.getNotifications();
   await Promise.all(
     notifications
-      .filter((notification) => isLineWatchPushNotification(notification.tag) && !activeTagSet.has(notification.tag))
+      .filter((notification) => isLineWatchPushNotification(notification.tag) && !retainedTagSet.has(notification.tag))
       .map((notification) => notification.close()),
   );
 }

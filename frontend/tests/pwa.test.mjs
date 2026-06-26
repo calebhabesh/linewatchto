@@ -287,6 +287,7 @@ async function serviceWorkerPush({
       timestamp: "2026-06-05T15:00:00Z",
     },
     activeTags: ["saved-commute-impact|commute_1|dedupe-1"],
+    retainedTags: ["saved-commute-impact|commute_1|dedupe-1"],
   },
   existingNotifications = [],
 } = {}) {
@@ -362,6 +363,7 @@ async function serviceWorkerPush({
 async function serviceWorkerMessage({
   fetchBody = {
     activeTags: ["saved-commute-impact|commute_1|dedupe-1"],
+    retainedTags: ["saved-commute-impact|commute_1|dedupe-1"],
   },
   existingNotifications = [],
 } = {}) {
@@ -643,6 +645,7 @@ describe("LineWatch PWA configuration", () => {
       "Glencairn to Lawrence West.\nAffects Work (Outbound).\n🕗 Jun 5, 10:20 AM",
     );
     assert.equal(shownNotifications[0].options.tag, "saved-commute-impact|commute_1|dedupe-1");
+    assert.equal(shownNotifications[0].options.requireInteraction, true);
     assert.equal(
       shownNotifications[0].options.icon,
       "/assets/linewatch/pwa/app-icon-192.png",
@@ -688,6 +691,7 @@ describe("LineWatch PWA configuration", () => {
       fetchBody: {
         notification: null,
         activeTags: [],
+        retainedTags: [],
         cleanupAllowed: false,
       },
       existingNotifications: [staleNotification],
@@ -695,6 +699,67 @@ describe("LineWatch PWA configuration", () => {
 
     assert.equal(fetchRequests[1].url, "/api/account/push/active");
     assert.equal(staleNotification.closed, false);
+  });
+
+  it("keeps displayed cleared notifications while the backend retains the tag", async () => {
+    const clearedNotification = {
+      tag: "saved-commute-impact|commute_1|outbound|delay|delay-line-1",
+      closed: false,
+      close() {
+        this.closed = true;
+      },
+    };
+
+    const { fetchRequests } = await serviceWorkerMessage({
+      fetchBody: {
+        activeTags: [],
+        retainedTags: ["saved-commute-impact|commute_1|outbound|delay|delay-line-1"],
+      },
+      existingNotifications: [clearedNotification],
+    });
+
+    assert.equal(fetchRequests.at(-1).url, "/api/account/push/active");
+    assert.equal(clearedNotification.closed, false);
+  });
+
+  it("closes cleared notifications after the backend retention window expires", async () => {
+    const expiredClearedNotification = {
+      tag: "saved-commute-impact|commute_1|outbound|delay|delay-line-1",
+      closed: false,
+      close() {
+        this.closed = true;
+      },
+    };
+
+    const { fetchRequests } = await serviceWorkerMessage({
+      fetchBody: {
+        activeTags: [],
+        retainedTags: [],
+      },
+      existingNotifications: [expiredClearedNotification],
+    });
+
+    assert.equal(fetchRequests.at(-1).url, "/api/account/push/active");
+    assert.equal(expiredClearedNotification.closed, true);
+  });
+
+  it("does not show a stale active notification just because a cleared tag is retained", async () => {
+    const { shownNotifications } = await serviceWorkerPush({
+      fetchBody: {
+        notification: {
+          title: "⚠️ Line 1 Yonge-University Delay",
+          body: "Finch to Union.\n🕗 Jun 5, 10:20 AM",
+          url: "/?panel=commutes&commute=commute_1",
+          tag: "saved-commute-impact|commute_1|outbound|delay|delay-line-1",
+          state: "ACTIVE",
+          timestamp: "2026-06-05T15:00:00Z",
+        },
+        activeTags: [],
+        retainedTags: ["saved-commute-impact|commute_1|outbound|delay|delay-line-1"],
+      },
+    });
+
+    assert.equal(shownNotifications.length, 0);
   });
 
   it("does not show a stale active notification or generic fallback", async () => {
@@ -753,6 +818,7 @@ describe("LineWatch PWA configuration", () => {
           timestamp: "2026-06-05T15:00:00Z",
         },
         activeTags: [],
+        retainedTags: ["saved-commute-impact|commute_1|outbound|delay-line-1"],
       },
     });
 
@@ -764,7 +830,7 @@ describe("LineWatch PWA configuration", () => {
     );
     assert.equal(shownNotifications[0].options.tag, "saved-commute-impact|commute_1|outbound|delay-line-1");
     assert.equal(shownNotifications[0].options.renotify, false);
-    assert.equal(shownNotifications[0].options.requireInteraction, false);
+    assert.equal(shownNotifications[0].options.requireInteraction, true);
     assert.equal(shownNotifications[0].options.silent, true);
     assert.equal(shownNotifications[0].options.timestamp, Date.parse("2026-06-05T15:00:00Z"));
     assert.equal(shownNotifications[0].options.data.state, "CLEARED");
