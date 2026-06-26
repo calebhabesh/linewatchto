@@ -173,7 +173,10 @@ describe("PWA install entry in More sheet", () => {
     assert.match(moreSheetSource, /canShowPwaInstallHelp/);
     assert.match(moreSheetSource, /onRequestPwaInstall/);
     assert.match(moreSheetSource, /Install LineWatchTO/);
-    assert.match(moreSheetSource, /Home screen app/);
+    assert.match(moreSheetSource, /shareAppSectionTitle/);
+    assert.match(moreSheetSource, /canShowPwaInstallHelp \? "Share & App" : "Share"/);
+    assert.match(moreSheetSource, /<h3>\{shareAppSectionTitle\}<\/h3>/);
+    assert.match(moreSheetSource, /Share & App/);
     assert.match(moreSheetSource, /Share, then Add to Home Screen/);
     assert.match(moreSheetSource, /three-dot menu/);
     assert.match(moreSheetSource, /canShowPwaInstallHelp \? \(/);
@@ -197,6 +200,36 @@ describe("PWA install shell wiring", () => {
   });
 });
 
+describe("PWA share entry in More sheet", () => {
+  it("keeps a mobile share action available for standalone PWA users", () => {
+    const moreSheetSource = readFileSync(moreSheetSourceUrl, "utf8");
+    const shellSource = readFileSync(shellSourceUrl, "utf8");
+
+    assert.match(moreSheetSource, /Share2/);
+    assert.match(moreSheetSource, /onShareApp/);
+    assert.match(moreSheetSource, /shareStatusLabel/);
+    assert.match(moreSheetSource, /Share LineWatchTO/);
+    assert.match(moreSheetSource, /Send app link to friends/);
+    assert.match(moreSheetSource, /mobile-more-share-status/);
+    assert.ok(
+      moreSheetSource.indexOf("Share LineWatchTO") < moreSheetSource.indexOf("<h3>Account</h3>"),
+      "Share action should appear before account options in the mobile More sheet.",
+    );
+    assert.ok(
+      moreSheetSource.indexOf("Install LineWatchTO") < moreSheetSource.indexOf("Share LineWatchTO"),
+      "Install help should appear before the share action when both are visible.",
+    );
+    assert.ok(
+      moreSheetSource.indexOf("Share LineWatchTO") < moreSheetSource.indexOf("<h3>Tools</h3>"),
+      "Share action should not be buried under Tools.",
+    );
+    assert.match(shellSource, /handleShareLineWatchApp/);
+    assert.match(shellSource, /navigator\.share/);
+    assert.match(shellSource, /navigator\.clipboard\.writeText/);
+    assert.match(shellSource, /onShareApp=\{handleShareLineWatchApp\}/);
+  });
+});
+
 describe("PWA install prompt styles", () => {
   it("adds scoped mobile styles without changing the core PWA manifest or guide styles", () => {
     const globalCss = readFileSync(globalCssUrl, "utf8");
@@ -211,6 +244,3 @@ describe("PWA install prompt styles", () => {
     assert.match(globalCss, /\.high-contrast \.pwa-install-nudge/);
   });
 });
-
-
-

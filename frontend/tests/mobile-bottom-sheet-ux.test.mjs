@@ -165,6 +165,30 @@ describe("mobile bottom sheet UX", () => {
     assert.match(globalCss, /html\[data-visual-keyboard="open"\]\s+\.commute-station-popover > \.commute-station-options\s*\{[\s\S]*max-height:\s*none/);
   });
 
+  it("uses medium smoky moving mobile scrollbars with content spacing and no static affordances", () => {
+    assert.doesNotMatch(globalCss, /:root\s*\{[^}]*\n\s*color-scheme:\s*dark;\n/);
+    assert.match(globalCss, /:root\s*\{[\s\S]*?color-scheme:\s*light dark;/);
+    assert.match(globalCss, /\.linewatch-shell\s*\{[\s\S]*?color-scheme:\s*light;/);
+    assert.match(globalCss, /\.linewatch-shell\.dark\s*\{[\s\S]*?color-scheme:\s*dark;/);
+    assert.match(globalCss, /--mobile-scroll-indicator-thumb:\s*rgba\(15,\s*23,\s*42,\s*0\.54\)/);
+    assert.match(globalCss, /\.linewatch-shell\.dark\s*\{[\s\S]*?--mobile-scroll-indicator-thumb:\s*rgba\(148,\s*163,\s*184,\s*0\.72\)/);
+    assert.doesNotMatch(globalCss, /--mobile-scroll-affordance-/);
+    assert.match(shellSource, /MOBILE_SCROLLBAR_SELECTOR/);
+    assert.match(shellSource, /linewatch-mobile-scrollbar/);
+    assert.match(shellSource, /--mobile-scrollbar-thumb-top/);
+    assert.match(shellSource, /--mobile-scrollbar-thumb-height/);
+    assert.match(shellSource, /Math\.max\(48,\s*Math\.min\(72,\s*Math\.round\(element\.clientHeight\s*\*\s*0\.14\)\)\)/);
+    assert.doesNotMatch(shellSource, /Math\.max\(22,\s*Math\.min\(30,\s*Math\.round\(element\.clientHeight\s*\*\s*0\.09\)\)\)/);
+    assert.match(shellSource, /requestAnimationFrame/);
+    assert.match(globalCss, /@media \(max-width:\s*767px\)\s*\{[\s\S]*?\.floating-panel-scroll,[\s\S]*?\.station-search-results,[\s\S]*?\.commute-station-options[\s\S]*?\{[\s\S]*?scrollbar-color:\s*var\(--mobile-scroll-indicator-thumb\)\s*transparent/);
+    assert.match(globalCss, /\.floating-panel-scroll::-webkit-scrollbar-thumb,[\s\S]*?\.station-search-results::-webkit-scrollbar-thumb,[\s\S]*?\.commute-station-options::-webkit-scrollbar-thumb[\s\S]*?\{[\s\S]*?background:\s*var\(--mobile-scroll-indicator-thumb\)[\s\S]*?border-radius:\s*999px/);
+    assert.match(globalCss, /\.linewatch-mobile-scrollbar\s*\{[\s\S]*?scrollbar-width:\s*none/);
+    assert.match(globalCss, /\.linewatch-mobile-scrollbar::-webkit-scrollbar\s*\{[\s\S]*?display:\s*none/);
+    assert.match(globalCss, /\.linewatch-mobile-scrollbar::after\s*\{[\s\S]*?position:\s*absolute[\s\S]*?top:\s*var\(--mobile-scrollbar-thumb-top,[\s\S]*?right:\s*2px[\s\S]*?height:\s*var\(--mobile-scrollbar-thumb-height,[\s\S]*?width:\s*4px[\s\S]*?border-radius:\s*999px/);
+    assert.doesNotMatch(globalCss, /background-image:[\s\S]*?mobile-scroll-affordance/);
+    assert.doesNotMatch(globalCss, /radial-gradient\(circle,[\s\S]*?mobile-scroll-affordance/);
+  });
+
   it("hides desktop-only chrome on mobile without deleting it", () => {
     assert.match(shellSource, /desktop-top-chrome/);
     assert.match(shellSource, /desktop-map-legend/);

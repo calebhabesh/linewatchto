@@ -167,8 +167,8 @@ body {
   --mobile-chrome-btn-active-bg: rgba(255, 255, 255, 0.16);
   --mobile-chrome-nav-active-bg: rgba(255, 255, 255, 0.14);
   --mobile-chrome-nav-active-border: rgba(255, 255, 255, 0.12);
-  --mobile-scroll-indicator-thumb: rgba(248, 250, 252, 0.64);
-  --mobile-scroll-indicator-thumb-hover: rgba(248, 250, 252, 0.84);
+  --mobile-scroll-indicator-thumb: rgba(148, 163, 184, 0.72);
+  --mobile-scroll-indicator-thumb-hover: rgba(203, 213, 225, 0.84);
 }
 
 .linewatch-backdrop {
@@ -6507,6 +6507,38 @@ button {
     background-clip: padding-box;
   }
 
+  .linewatch-mobile-scrollbar {
+    -ms-overflow-style: none;
+    position: relative;
+    scrollbar-color: transparent transparent;
+    scrollbar-width: none;
+  }
+
+  .linewatch-mobile-scrollbar::-webkit-scrollbar {
+    display: none;
+    height: 0;
+    width: 0;
+  }
+
+  .linewatch-mobile-scrollbar::after {
+    content: "";
+    position: absolute;
+    top: var(--mobile-scrollbar-thumb-top, 12px);
+    right: 2px;
+    height: var(--mobile-scrollbar-thumb-height, 28px);
+    width: 4px;
+    background: var(--mobile-scroll-indicator-thumb);
+    border-radius: 999px;
+    opacity: 0.86;
+    pointer-events: none;
+    transform: translateZ(0);
+    z-index: 5;
+  }
+
+  .linewatch-mobile-scrollbar--hidden::after {
+    opacity: 0;
+  }
+
   .mobile-bottom-nav {
     align-items: stretch;
     background: var(--mobile-chrome-background);
@@ -7358,6 +7390,43 @@ button {
     font-size: 12px;
     font-weight: 850;
     line-height: 1.25;
+  }
+
+  .mobile-more-share-row {
+    align-items: center;
+  }
+
+  .mobile-more-share-copy {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  .mobile-more-share-copy span:first-child {
+    color: var(--text);
+    font-weight: 850;
+  }
+
+  .mobile-more-share-copy span:last-child {
+    color: var(--quiet);
+    font-size: 11px;
+    font-weight: 650;
+    line-height: 1.25;
+  }
+
+  .mobile-more-share-status {
+    color: #0369a1;
+    font-size: 10px;
+    font-weight: 950;
+    margin-left: auto;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .dark .mobile-more-share-status {
+    color: #7dd3fc;
   }
 
   .mobile-more-row strong,
