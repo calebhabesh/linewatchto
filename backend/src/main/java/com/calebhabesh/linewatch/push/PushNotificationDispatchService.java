@@ -99,6 +99,7 @@ public class PushNotificationDispatchService {
 
             List<String> subscribedLineIds = preferenceService.subscribedLineIds(accountId);
             List<PushNotificationCandidate> lineCandidates = lineSubscriptionPushPlanner.candidatesFor(accountId, subscribedLineIds);
+            Set<String> subscribedLineIdSet = new java.util.HashSet<>(subscribedLineIds);
 
             List<PushNotificationCandidate> allCandidates = new java.util.ArrayList<>();
             allCandidates.addAll(savedCommuteCandidates);
@@ -137,7 +138,13 @@ public class PushNotificationDispatchService {
             }
 
             sendClearedNotifications(accountId, preferences, savedCurrentNotificationKeys, sendableCandidates);
-            sendClearedLineObservationNotifications(accountId, preferences, currentLineNotificationKeys, currentLineCandidates);
+            sendClearedLineObservationNotifications(
+                accountId,
+                preferences,
+                subscribedLineIdSet,
+                currentLineNotificationKeys,
+                currentLineCandidates
+            );
         }
     }
 
@@ -196,6 +203,7 @@ public class PushNotificationDispatchService {
     private void sendClearedLineObservationNotifications(
         String accountId,
         PushNotificationPreferenceEntity preferences,
+        Set<String> subscribedLineIds,
         Set<String> currentLineNotificationKeys,
         List<PushNotificationCandidate> currentLineCandidates
     ) {
@@ -206,6 +214,10 @@ public class PushNotificationDispatchService {
 
         for (PushLineEventObservationEntity observation : lineEventObservationService.activeObservations(accountId)) {
             if (currentLineNotificationKeys.contains(observation.getNotificationKey())) {
+                continue;
+            }
+            if (!lineObservationStillEligible(preferences, subscribedLineIds, observation)) {
+                lineEventObservationService.markCleared(observation, now);
                 continue;
             }
             if (hasEquivalentLineCandidate(observation, currentLineCandidates)) {
@@ -230,6 +242,26 @@ public class PushNotificationDispatchService {
                 eventRepository.delete(clearedEvent);
             }
         }
+    }
+
+    private boolean lineObservationStillEligible(
+        PushNotificationPreferenceEntity preferences,
+        Set<String> subscribedLineIds,
+        PushLineEventObservationEntity observation
+    ) {
+        if (!subscribedLineIds.contains(observation.getLineId())) {
+            return false;
+        }
+        if (!preferences.isReminderOnChangeEnabled()) {
+            return false;
+        }
+        return switch (observation.getEventType()) {
+            case "suspension" -> preferences.isLineSuspensionEnabled();
+            case "delay" -> preferences.isLineDelayEnabled();
+            case "reduced-speed-zone" -> preferences.isLineReducedSpeedZoneEnabled();
+            case "planned-closure" -> preferences.isLinePlannedClosureEnabled();
+            default -> true;
+        };
     }
 
     private boolean hasEquivalentLineCandidate(

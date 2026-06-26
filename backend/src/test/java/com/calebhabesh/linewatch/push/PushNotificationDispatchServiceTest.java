@@ -478,6 +478,7 @@ class PushNotificationDispatchServiceTest {
         when(preferenceService.preferenceEntityForAccountId("user_1")).thenReturn(spyPrefs);
         when(subscriptionRepository.findEnabledAccountIds()).thenReturn(List.of("user_1"));
         when(subscriptionRepository.findByAccountIdAndEnabledTrue("user_1")).thenReturn(List.of(subscription));
+        when(preferenceService.subscribedLineIds("user_1")).thenReturn(List.of("line-1"));
 
         PushNotificationCandidate previousCandidate = candidate(
             null, null, "line-1", "1", "line-current", "delay", "on-change",
@@ -760,6 +761,73 @@ class PushNotificationDispatchServiceTest {
         assertThat(cleared.getNotificationKey()).isEqualTo("line-current|line-1|reduced-speed-zone|rsz-old");
         assertThat(cleared.getNotificationState()).isEqualTo("CLEARED");
         assertThat(cleared.getTitle()).isEqualTo("✅ Line 1 Yonge-University Reduced Speed Zone Cleared");
+        verify(lineEventObservationService).markCleared(observation, clock.instant());
+    }
+
+    @Test
+    void doesNotSendLineWideClearedNotificationAfterLineUnsubscribe() {
+        PushNotificationPreferenceEntity preferences = PushNotificationPreferenceEntity.create(account, clock.instant());
+        PushNotificationPreferenceEntity spyPrefs = spy(preferences);
+        when(spyPrefs.isLineRestoredEnabled()).thenReturn(true);
+        PushNotificationCandidate previousCandidate = candidate(
+            null, null, "line-1", "1", "line-current", "reduced-speed-zone", "on-change",
+            "line-current|line-1|reduced-speed-zone|rsz-old",
+            "user_1|line|line-1|reduced-speed-zone|on-change|rsz-old",
+            "Eglinton to Davisville",
+            null,
+            Instant.parse("2026-06-05T13:00:00Z"),
+            "/?panel=reduced-speed-zones"
+        );
+        PushLineEventObservationEntity observation = PushLineEventObservationEntity.create(
+            "line_obs_old",
+            previousCandidate,
+            Instant.parse("2026-06-05T14:00:00Z")
+        );
+
+        when(preferenceService.preferenceEntityForAccountId("user_1")).thenReturn(spyPrefs);
+        when(subscriptionRepository.findEnabledAccountIds()).thenReturn(List.of("user_1"));
+        when(preferenceService.subscribedLineIds("user_1")).thenReturn(List.of());
+        when(lineSubscriptionPushPlanner.candidatesFor("user_1", List.of())).thenReturn(List.of());
+        when(lineEventObservationService.activeObservations("user_1")).thenReturn(List.of(observation));
+
+        service.evaluateSavedCommuteNotifications();
+
+        verify(eventRepository, never()).save(any(PushNotificationEventEntity.class));
+        verify(webPushClient, never()).send(any(), any());
+        verify(lineEventObservationService).markCleared(observation, clock.instant());
+    }
+
+    @Test
+    void doesNotSendLineWideClearedNotificationAfterEventTypeDisabled() {
+        PushNotificationPreferenceEntity preferences = PushNotificationPreferenceEntity.create(account, clock.instant());
+        PushNotificationPreferenceEntity spyPrefs = spy(preferences);
+        when(spyPrefs.isLineRestoredEnabled()).thenReturn(true);
+        when(spyPrefs.isLineReducedSpeedZoneEnabled()).thenReturn(false);
+        PushNotificationCandidate previousCandidate = candidate(
+            null, null, "line-1", "1", "line-current", "reduced-speed-zone", "on-change",
+            "line-current|line-1|reduced-speed-zone|rsz-old",
+            "user_1|line|line-1|reduced-speed-zone|on-change|rsz-old",
+            "Eglinton to Davisville",
+            null,
+            Instant.parse("2026-06-05T13:00:00Z"),
+            "/?panel=reduced-speed-zones"
+        );
+        PushLineEventObservationEntity observation = PushLineEventObservationEntity.create(
+            "line_obs_old",
+            previousCandidate,
+            Instant.parse("2026-06-05T14:00:00Z")
+        );
+
+        when(preferenceService.preferenceEntityForAccountId("user_1")).thenReturn(spyPrefs);
+        when(subscriptionRepository.findEnabledAccountIds()).thenReturn(List.of("user_1"));
+        when(preferenceService.subscribedLineIds("user_1")).thenReturn(List.of("line-1"));
+        when(lineSubscriptionPushPlanner.candidatesFor("user_1", List.of("line-1"))).thenReturn(List.of());
+        when(lineEventObservationService.activeObservations("user_1")).thenReturn(List.of(observation));
+
+        service.evaluateSavedCommuteNotifications();
+
+        verify(eventRepository, never()).save(any(PushNotificationEventEntity.class));
+        verify(webPushClient, never()).send(any(), any());
         verify(lineEventObservationService).markCleared(observation, clock.instant());
     }
 
