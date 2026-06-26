@@ -6368,6 +6368,17 @@ button {
     border: 1px solid #ffffff;
   }
 
+  .high-contrast .mobile-bottom-nav-item[data-active="true"] {
+    background: #ffffff !important;
+    border-color: #ffffff !important;
+    color: #000000 !important;
+  }
+
+  .high-contrast .mobile-bottom-nav-item[data-active="true"] * {
+    color: #000000 !important;
+    stroke: #000000 !important;
+  }
+
   .mobile-bottom-nav-item {
     align-items: center;
     background: transparent;
