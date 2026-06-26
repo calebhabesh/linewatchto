@@ -36,12 +36,12 @@ public interface PushNotificationDeliveryRepository extends JpaRepository<PushNo
           and delivery.displayedAt is not null
           and event.notificationState = 'CLEARED'
           and event.category in :categories
-          and event.createdAt >= :createdAtAfter
+          and delivery.displayedAt >= :displayedAtAfter
         """)
     List<String> findRecentlyDisplayedClearedNotificationKeys(
         @Param("accountId") String accountId,
         @Param("endpointHash") String endpointHash,
         @Param("categories") List<String> categories,
-        @Param("createdAtAfter") Instant createdAtAfter
+        @Param("displayedAtAfter") Instant displayedAtAfter
     );
 }

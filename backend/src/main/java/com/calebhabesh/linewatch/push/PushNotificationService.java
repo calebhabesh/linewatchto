@@ -23,7 +23,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class PushNotificationService {
-    private static final String CLEARED_STATE = "CLEARED";
     private static final List<String> RETAINED_CLEARED_CATEGORIES = List.of(
         "saved-commute-current",
         "saved-commute-impact",
@@ -235,12 +234,12 @@ public class PushNotificationService {
                 .toList();
         }
 
-        Instant createdAtAfter = clock.instant().minus(retention);
+        Instant displayedAtAfter = clock.instant().minus(retention);
         List<String> recentlyDisplayedClearedTags = deliveryRepository.findRecentlyDisplayedClearedNotificationKeys(
             accountId,
             endpointHash,
             RETAINED_CLEARED_CATEGORIES,
-            createdAtAfter
+            displayedAtAfter
         );
         if (recentlyDisplayedClearedTags != null) {
             retainedTags.addAll(recentlyDisplayedClearedTags);
