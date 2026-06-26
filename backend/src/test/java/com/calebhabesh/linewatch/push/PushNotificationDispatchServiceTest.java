@@ -26,6 +26,7 @@ class PushNotificationDispatchServiceTest {
     private final WebPushClient webPushClient = mock(WebPushClient.class);
     private final PushNotificationPreferenceService preferenceService = mock(PushNotificationPreferenceService.class);
     private final LineSubscriptionPushPlanner lineSubscriptionPushPlanner = mock(LineSubscriptionPushPlanner.class);
+    private final PushLineEventObservationService lineEventObservationService = mock(PushLineEventObservationService.class);
     private final IngestionFreshness ingestionFreshness = mock(IngestionFreshness.class);
     private final Clock clock = Clock.fixed(Instant.parse("2026-06-05T15:00:00Z"), ZoneOffset.UTC);
     private final PushNotificationFormatter formatter = new PushNotificationFormatter();
@@ -38,6 +39,7 @@ class PushNotificationDispatchServiceTest {
         webPushClient,
         preferenceService,
         lineSubscriptionPushPlanner,
+        lineEventObservationService,
         formatter,
         ingestionFreshness,
         clock
@@ -338,6 +340,9 @@ class PushNotificationDispatchServiceTest {
         );
         when(lineSubscriptionPushPlanner.candidatesFor("user_1", List.of("line-1"))).thenReturn(List.of(line1Candidate));
         when(preferenceService.allows(preferences, line1Candidate)).thenReturn(true);
+        PushLineEventObservationEntity observation = PushLineEventObservationEntity.create("obs-1", line1Candidate, clock.instant());
+        when(lineEventObservationService.observe(eq(line1Candidate), eq(preferences), any(Instant.class)))
+            .thenReturn(new PushLineEventObservationService.ObservationDecision(observation, true, false));
 
         when(eventRepository.existsByDedupeKey(anyString())).thenReturn(false);
         when(eventRepository.save(any())).thenAnswer(inv -> PushNotificationEventEntity.create("event-1", line1Candidate, clock.instant()));
@@ -397,6 +402,10 @@ class PushNotificationDispatchServiceTest {
         when(lineSubscriptionPushPlanner.candidatesFor("user_1", List.of("line-1"))).thenReturn(List.of(rszCandidate));
         
         when(preferenceService.allows(preferences, rszCandidate)).thenReturn(true);
+        PushLineEventObservationEntity observation = PushLineEventObservationEntity.create("obs-rsz", rszCandidate, clock.instant());
+        when(lineEventObservationService.observe(eq(rszCandidate), eq(preferences), any(Instant.class)))
+            .thenReturn(new PushLineEventObservationService.ObservationDecision(observation, true, false));
+
         when(eventRepository.save(any())).thenAnswer(inv -> PushNotificationEventEntity.create("event-1", rszCandidate, clock.instant()));
         when(webPushClient.send(eq(subscription), anyString())).thenReturn(PushDeliveryResult.accepted(202));
 
@@ -456,22 +465,31 @@ class PushNotificationDispatchServiceTest {
         PushNotificationPreferenceEntity preferences = PushNotificationPreferenceEntity.create(account, clock.instant());
         PushNotificationPreferenceEntity spyPrefs = spy(preferences);
         when(spyPrefs.isLineRestoredEnabled()).thenReturn(true);
+        PushSubscriptionEntity subscription = PushSubscriptionEntity.create(
+            "push_subscription_1",
+            account,
+            "https://fcm.googleapis.com/fcm/send/subscription",
+            "endpoint-hash",
+            "p256dh-key",
+            "auth-secret",
+            "Chrome Android",
+            clock.instant()
+        );
         when(preferenceService.preferenceEntityForAccountId("user_1")).thenReturn(spyPrefs);
-
         when(subscriptionRepository.findEnabledAccountIds()).thenReturn(List.of("user_1"));
+        when(subscriptionRepository.findByAccountIdAndEnabledTrue("user_1")).thenReturn(List.of(subscription));
 
         PushNotificationCandidate previousCandidate = candidate(
             null, null, "line-1", "1", "line-current", "delay", "on-change",
             "line-current|line-1|delay|alert-1", "user_1|line|line-1|delay|on-change|alert-1",
             "Finch to Union", null, Instant.parse("2026-06-05T14:20:00Z"), "/?panel=delays"
         );
-        PushNotificationEventEntity previousEvent = PushNotificationEventEntity.create("event-1", previousCandidate, clock.instant());
+        PushLineEventObservationEntity observation = PushLineEventObservationEntity.create("line_obs_1", previousCandidate, clock.instant());
 
         when(lineSubscriptionPushPlanner.candidatesFor(anyString(), anyList())).thenReturn(List.of());
-        when(eventRepository.findByAccountIdAndCategoryInAndNotificationState(eq("user_1"), anyList(), eq("ACTIVE")))
-            .thenReturn(List.of(previousEvent));
-        when(eventRepository.existsByNotificationKeyAndNotificationState("line-current|line-1|delay|alert-1", "CLEARED")).thenReturn(false);
+        when(lineEventObservationService.activeObservations("user_1")).thenReturn(List.of(observation));
         when(eventRepository.save(any(PushNotificationEventEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(webPushClient.send(eq(subscription), anyString())).thenReturn(PushDeliveryResult.accepted(202));
 
         service.evaluateSavedCommuteNotifications();
 
@@ -486,6 +504,7 @@ class PushNotificationDispatchServiceTest {
             Service between Finch and Union stations has resumed.
             🕗 Jun 5, 11:00 AM""");
         assertThat(clearedEvent.getUrl()).isEqualTo("/");
+        verify(lineEventObservationService).markCleared(observation, clock.instant());
     }
 
     @Test
@@ -507,67 +526,16 @@ class PushNotificationDispatchServiceTest {
             Instant.parse("2026-06-05T14:20:00Z"),
             "/?panel=delays"
         );
-        PushNotificationEventEntity previousEvent = PushNotificationEventEntity.create("event-1", previousCandidate, clock.instant());
+        PushLineEventObservationEntity observation = PushLineEventObservationEntity.create("line_obs_1", previousCandidate, clock.instant());
 
         when(lineSubscriptionPushPlanner.candidatesFor(anyString(), anyList())).thenReturn(List.of());
-        when(eventRepository.findByAccountIdAndCategoryInAndNotificationState(eq("user_1"), anyList(), eq("ACTIVE")))
-            .thenReturn(List.of(previousEvent));
+        when(lineEventObservationService.activeObservations("user_1")).thenReturn(List.of(observation));
 
         service.evaluateSavedCommuteNotifications();
 
         verify(eventRepository, never()).save(any(PushNotificationEventEntity.class));
         verify(webPushClient, never()).send(any(), any());
-    }
-
-    @Test
-    void doesNotSendClearedWhenEquivalentLineAlertStillExistsUnderANewKey() {
-        PushNotificationPreferenceEntity preferences = PushNotificationPreferenceEntity.create(account, clock.instant());
-        PushNotificationPreferenceEntity spyPrefs = spy(preferences);
-        when(spyPrefs.isLineRestoredEnabled()).thenReturn(true);
-        when(preferenceService.preferenceEntityForAccountId("user_1")).thenReturn(spyPrefs);
-
-        when(subscriptionRepository.findEnabledAccountIds()).thenReturn(List.of("user_1"));
-        when(preferenceService.subscribedLineIds("user_1")).thenReturn(List.of("line-2"));
-
-        PushNotificationCandidate previousGtfsRtCandidate = candidate(
-            null, null, "line-2", "2", "line-current", "suspension", "on-change",
-            "line-current|line-2|suspension|ttc-route-gtfsrt-70483",
-            "user_1|line|line-2|suspension|on-change|ttc-route-gtfsrt-70483",
-            "",
-            null,
-            Instant.parse("2026-06-05T14:20:00Z"),
-            "/?panel=alerts"
-        );
-        PushNotificationEventEntity previousEvent = PushNotificationEventEntity.create(
-            "event-gtfs",
-            previousGtfsRtCandidate,
-            clock.instant()
-        );
-
-        PushNotificationCandidate currentLiveCandidate = candidate(
-            null, null, "line-2", "2", "line-current", "suspension", "on-change",
-            "line-current|line-2|suspension|ttc-route-70500",
-            "user_1|line|line-2|suspension|on-change|ttc-route-70500",
-            "Warden",
-            null,
-            Instant.parse("2026-06-05T14:22:00Z"),
-            "/?panel=alerts&impactKind=suspension&impactId=ttc-route-70500"
-        );
-
-        when(lineSubscriptionPushPlanner.candidatesFor("user_1", List.of("line-2")))
-            .thenReturn(List.of(currentLiveCandidate));
-        when(preferenceService.allows(spyPrefs, currentLiveCandidate)).thenReturn(true);
-        when(eventRepository.existsByDedupeKey("user_1|line|line-2|suspension|on-change|ttc-route-70500"))
-            .thenReturn(true);
-        when(eventRepository.findByAccountIdAndCategoryInAndNotificationState(eq("user_1"), anyList(), eq("ACTIVE")))
-            .thenReturn(List.of(previousEvent));
-        when(eventRepository.save(any(PushNotificationEventEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        when(subscriptionRepository.findByAccountIdAndEnabledTrue("user_1")).thenReturn(List.of());
-
-        service.evaluateSavedCommuteNotifications();
-
-        verify(eventRepository, never()).save(any(PushNotificationEventEntity.class));
-        verify(webPushClient, never()).send(any(), any());
+        verify(lineEventObservationService, never()).markCleared(any(), any());
     }
 
     @Test
@@ -602,6 +570,250 @@ class PushNotificationDispatchServiceTest {
         assertThat(cleared.getBody()).isEqualTo("""
             Service between Eglinton and Davisville stations has resumed.
             🕗 Jun 5, 11:00 AM""");
+    }
+
+    @Test
+    void silentlyObservesPreExistingLineWideReducedSpeedZoneWithoutActivePush() {
+        PushNotificationPreferenceEntity preferences = PushNotificationPreferenceEntity.create(account, clock.instant());
+        PushSubscriptionEntity subscription = PushSubscriptionEntity.create(
+            "push_subscription_1",
+            account,
+            "https://fcm.googleapis.com/fcm/send/subscription",
+            "endpoint-hash",
+            "p256dh-key",
+            "auth-secret",
+            "Chrome Android",
+            clock.instant()
+        );
+        PushNotificationCandidate rszCandidate = candidate(
+            null, null, "line-1", "1", "line-current", "reduced-speed-zone", "on-change",
+            "line-current|line-1|reduced-speed-zone|rsz-old",
+            "user_1|line|line-1|reduced-speed-zone|on-change|rsz-old",
+            "Eglinton to Davisville",
+            null,
+            Instant.parse("2026-06-05T13:00:00Z"),
+            "/?panel=reduced-speed-zones"
+        );
+        PushLineEventObservationEntity observation = PushLineEventObservationEntity.create(
+            "line_obs_old",
+            rszCandidate,
+            clock.instant()
+        );
+
+        when(preferenceService.preferenceEntityForAccountId("user_1")).thenReturn(preferences);
+        when(subscriptionRepository.findEnabledAccountIds()).thenReturn(List.of("user_1"));
+        when(subscriptionRepository.findByAccountIdAndEnabledTrue("user_1")).thenReturn(List.of(subscription));
+        when(preferenceService.subscribedLineIds("user_1")).thenReturn(List.of("line-1"));
+        when(lineSubscriptionPushPlanner.candidatesFor("user_1", List.of("line-1"))).thenReturn(List.of(rszCandidate));
+        when(preferenceService.allows(preferences, rszCandidate)).thenReturn(true);
+        when(lineEventObservationService.observe(rszCandidate, preferences, clock.instant()))
+            .thenReturn(new PushLineEventObservationService.ObservationDecision(observation, true, true));
+        when(lineEventObservationService.activeObservations("user_1")).thenReturn(List.of(observation));
+
+        service.evaluateSavedCommuteNotifications();
+
+        verify(lineEventObservationService).observe(rszCandidate, preferences, clock.instant());
+        verify(eventRepository, never()).save(any(PushNotificationEventEntity.class));
+        verify(webPushClient, never()).send(any(), any());
+    }
+
+    @Test
+    void sendsActiveForNewLineWideReducedSpeedZoneAfterObservationStart() {
+        PushNotificationPreferenceEntity preferences = PushNotificationPreferenceEntity.create(account, clock.instant());
+        PushSubscriptionEntity subscription = PushSubscriptionEntity.create(
+            "push_subscription_1",
+            account,
+            "https://fcm.googleapis.com/fcm/send/subscription",
+            "endpoint-hash",
+            "p256dh-key",
+            "auth-secret",
+            "Chrome Android",
+            clock.instant()
+        );
+        PushNotificationCandidate rszCandidate = candidate(
+            null, null, "line-1", "1", "line-current", "reduced-speed-zone", "on-change",
+            "line-current|line-1|reduced-speed-zone|rsz-new",
+            "user_1|line|line-1|reduced-speed-zone|on-change|rsz-new",
+            "Eglinton to Davisville",
+            null,
+            Instant.parse("2026-06-05T15:05:00Z"),
+            "/?panel=reduced-speed-zones"
+        );
+        PushLineEventObservationEntity observation = PushLineEventObservationEntity.create(
+            "line_obs_new",
+            rszCandidate,
+            clock.instant()
+        );
+
+        when(preferenceService.preferenceEntityForAccountId("user_1")).thenReturn(preferences);
+        when(subscriptionRepository.findEnabledAccountIds()).thenReturn(List.of("user_1"));
+        when(subscriptionRepository.findByAccountIdAndEnabledTrue("user_1")).thenReturn(List.of(subscription));
+        when(preferenceService.subscribedLineIds("user_1")).thenReturn(List.of("line-1"));
+        when(lineSubscriptionPushPlanner.candidatesFor("user_1", List.of("line-1"))).thenReturn(List.of(rszCandidate));
+        when(preferenceService.allows(preferences, rszCandidate)).thenReturn(true);
+        when(lineEventObservationService.observe(rszCandidate, preferences, clock.instant()))
+            .thenReturn(new PushLineEventObservationService.ObservationDecision(observation, true, false));
+        when(lineEventObservationService.activeObservations("user_1")).thenReturn(List.of(observation));
+        when(eventRepository.existsByDedupeKey("user_1|line|line-1|reduced-speed-zone|on-change|rsz-new"))
+            .thenReturn(false);
+        when(eventRepository.save(any(PushNotificationEventEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(webPushClient.send(eq(subscription), anyString())).thenReturn(PushDeliveryResult.accepted(202));
+
+        service.evaluateSavedCommuteNotifications();
+
+        verify(eventRepository).save(any(PushNotificationEventEntity.class));
+        verify(webPushClient).send(eq(subscription), anyString());
+    }
+
+    @Test
+    void activeDeliveryFailureStillLeavesObservationAvailableForClearance() {
+        PushNotificationPreferenceEntity preferences = PushNotificationPreferenceEntity.create(account, clock.instant());
+        PushSubscriptionEntity subscription = PushSubscriptionEntity.create(
+            "push_subscription_1",
+            account,
+            "https://fcm.googleapis.com/fcm/send/subscription",
+            "endpoint-hash",
+            "p256dh-key",
+            "auth-secret",
+            "Chrome Android",
+            clock.instant()
+        );
+        PushNotificationCandidate rszCandidate = candidate(
+            null, null, "line-1", "1", "line-current", "reduced-speed-zone", "on-change",
+            "line-current|line-1|reduced-speed-zone|rsz-new",
+            "user_1|line|line-1|reduced-speed-zone|on-change|rsz-new",
+            "Eglinton to Davisville",
+            null,
+            Instant.parse("2026-06-05T15:05:00Z"),
+            "/?panel=reduced-speed-zones"
+        );
+        PushLineEventObservationEntity observation = PushLineEventObservationEntity.create(
+            "line_obs_new",
+            rszCandidate,
+            clock.instant()
+        );
+
+        when(preferenceService.preferenceEntityForAccountId("user_1")).thenReturn(preferences);
+        when(subscriptionRepository.findEnabledAccountIds()).thenReturn(List.of("user_1"));
+        when(subscriptionRepository.findByAccountIdAndEnabledTrue("user_1")).thenReturn(List.of(subscription));
+        when(preferenceService.subscribedLineIds("user_1")).thenReturn(List.of("line-1"));
+        when(lineSubscriptionPushPlanner.candidatesFor("user_1", List.of("line-1"))).thenReturn(List.of(rszCandidate));
+        when(preferenceService.allows(preferences, rszCandidate)).thenReturn(true);
+        when(lineEventObservationService.observe(rszCandidate, preferences, clock.instant()))
+            .thenReturn(new PushLineEventObservationService.ObservationDecision(observation, true, false));
+        when(lineEventObservationService.activeObservations("user_1")).thenReturn(List.of(observation));
+        when(eventRepository.existsByDedupeKey("user_1|line|line-1|reduced-speed-zone|on-change|rsz-new"))
+            .thenReturn(false);
+        when(eventRepository.save(any(PushNotificationEventEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(webPushClient.send(eq(subscription), anyString())).thenReturn(PushDeliveryResult.failed(null, "Connection refused"));
+
+        service.evaluateSavedCommuteNotifications();
+
+        verify(eventRepository).delete(any(PushNotificationEventEntity.class));
+        verify(lineEventObservationService, never()).markCleared(any(), any());
+    }
+
+    @Test
+    void sendsLineWideClearedNotificationFromObservationEvenWithoutPriorActiveEvent() {
+        PushNotificationPreferenceEntity preferences = PushNotificationPreferenceEntity.create(account, clock.instant());
+        PushNotificationPreferenceEntity spyPrefs = spy(preferences);
+        when(spyPrefs.isLineRestoredEnabled()).thenReturn(true);
+        PushSubscriptionEntity subscription = PushSubscriptionEntity.create(
+            "push_subscription_1",
+            account,
+            "https://fcm.googleapis.com/fcm/send/subscription",
+            "endpoint-hash",
+            "p256dh-key",
+            "auth-secret",
+            "Chrome Android",
+            clock.instant()
+        );
+        PushNotificationCandidate previousCandidate = candidate(
+            null, null, "line-1", "1", "line-current", "reduced-speed-zone", "on-change",
+            "line-current|line-1|reduced-speed-zone|rsz-old",
+            "user_1|line|line-1|reduced-speed-zone|on-change|rsz-old",
+            "Eglinton to Davisville",
+            null,
+            Instant.parse("2026-06-05T13:00:00Z"),
+            "/?panel=reduced-speed-zones"
+        );
+        PushLineEventObservationEntity observation = PushLineEventObservationEntity.create(
+            "line_obs_old",
+            previousCandidate,
+            Instant.parse("2026-06-05T14:00:00Z")
+        );
+
+        when(preferenceService.preferenceEntityForAccountId("user_1")).thenReturn(spyPrefs);
+        when(subscriptionRepository.findEnabledAccountIds()).thenReturn(List.of("user_1"));
+        when(subscriptionRepository.findByAccountIdAndEnabledTrue("user_1")).thenReturn(List.of(subscription));
+        when(preferenceService.subscribedLineIds("user_1")).thenReturn(List.of("line-1"));
+        when(lineSubscriptionPushPlanner.candidatesFor("user_1", List.of("line-1"))).thenReturn(List.of());
+        when(lineEventObservationService.activeObservations("user_1")).thenReturn(List.of(observation));
+        when(eventRepository.save(any(PushNotificationEventEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(webPushClient.send(eq(subscription), anyString())).thenReturn(PushDeliveryResult.accepted(202));
+
+        service.evaluateSavedCommuteNotifications();
+
+        ArgumentCaptor<PushNotificationEventEntity> eventCaptor = ArgumentCaptor.forClass(PushNotificationEventEntity.class);
+        verify(eventRepository).save(eventCaptor.capture());
+        PushNotificationEventEntity cleared = eventCaptor.getValue();
+        assertThat(cleared.getNotificationKey()).isEqualTo("line-current|line-1|reduced-speed-zone|rsz-old");
+        assertThat(cleared.getNotificationState()).isEqualTo("CLEARED");
+        assertThat(cleared.getTitle()).isEqualTo("✅ Line 1 Yonge-University Reduced Speed Zone Cleared");
+        verify(lineEventObservationService).markCleared(observation, clock.instant());
+    }
+
+    @Test
+    void doesNotSendLineObservationClearanceWhenEquivalentLineAlertStillExistsUnderNewKey() {
+        PushNotificationPreferenceEntity preferences = PushNotificationPreferenceEntity.create(account, clock.instant());
+        PushNotificationPreferenceEntity spyPrefs = spy(preferences);
+        when(spyPrefs.isLineRestoredEnabled()).thenReturn(true);
+        PushNotificationCandidate previousCandidate = candidate(
+            null, null, "line-2", "2", "line-current", "suspension", "on-change",
+            "line-current|line-2|suspension|ttc-route-gtfsrt-70483",
+            "user_1|line|line-2|suspension|on-change|ttc-route-gtfsrt-70483",
+            "",
+            null,
+            Instant.parse("2026-06-05T14:20:00Z"),
+            "/?panel=alerts"
+        );
+        PushLineEventObservationEntity previousObservation = PushLineEventObservationEntity.create(
+            "line_obs_gtfs",
+            previousCandidate,
+            Instant.parse("2026-06-05T14:30:00Z")
+        );
+        PushNotificationCandidate currentLiveCandidate = candidate(
+            null, null, "line-2", "2", "line-current", "suspension", "on-change",
+            "line-current|line-2|suspension|ttc-route-70500",
+            "user_1|line|line-2|suspension|on-change|ttc-route-70500",
+            "Warden",
+            null,
+            Instant.parse("2026-06-05T14:22:00Z"),
+            "/?panel=alerts&impactKind=suspension&impactId=ttc-route-70500"
+        );
+        PushLineEventObservationEntity currentObservation = PushLineEventObservationEntity.create(
+            "line_obs_live",
+            currentLiveCandidate,
+            clock.instant()
+        );
+
+        when(preferenceService.preferenceEntityForAccountId("user_1")).thenReturn(spyPrefs);
+        when(subscriptionRepository.findEnabledAccountIds()).thenReturn(List.of("user_1"));
+        when(preferenceService.subscribedLineIds("user_1")).thenReturn(List.of("line-2"));
+        when(lineSubscriptionPushPlanner.candidatesFor("user_1", List.of("line-2")))
+            .thenReturn(List.of(currentLiveCandidate));
+        when(preferenceService.allows(spyPrefs, currentLiveCandidate)).thenReturn(true);
+        when(lineEventObservationService.observe(currentLiveCandidate, spyPrefs, clock.instant()))
+            .thenReturn(new PushLineEventObservationService.ObservationDecision(currentObservation, true, false));
+        when(lineEventObservationService.activeObservations("user_1")).thenReturn(List.of(previousObservation, currentObservation));
+        when(eventRepository.existsByDedupeKey("user_1|line|line-2|suspension|on-change|ttc-route-70500"))
+            .thenReturn(true);
+
+        service.evaluateSavedCommuteNotifications();
+
+        verify(eventRepository, never()).save(any(PushNotificationEventEntity.class));
+        verify(lineEventObservationService).markCleared(previousObservation, clock.instant());
+        verify(webPushClient, never()).send(any(), any());
     }
 
     private PushNotificationCandidate candidate(

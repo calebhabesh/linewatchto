@@ -30,6 +30,7 @@ public class PushNotificationDispatchService {
     private final WebPushClient webPushClient;
     private final PushNotificationPreferenceService preferenceService;
     private final LineSubscriptionPushPlanner lineSubscriptionPushPlanner;
+    private final PushLineEventObservationService lineEventObservationService;
     private final PushNotificationFormatter formatter;
     private final IngestionFreshness ingestionFreshness;
     private final Clock clock;
@@ -44,12 +45,14 @@ public class PushNotificationDispatchService {
         WebPushClient webPushClient,
         PushNotificationPreferenceService preferenceService,
         LineSubscriptionPushPlanner lineSubscriptionPushPlanner,
+        PushLineEventObservationService lineEventObservationService,
         PushNotificationFormatter formatter,
         IngestionFreshness ingestionFreshness
     ) {
         this(
             savedCommuteRepository, planner, eventRepository, subscriptionRepository,
             deliveryRepository, webPushClient, preferenceService, lineSubscriptionPushPlanner,
+            lineEventObservationService,
             formatter,
             ingestionFreshness,
             Clock.systemUTC()
@@ -65,6 +68,7 @@ public class PushNotificationDispatchService {
         WebPushClient webPushClient,
         PushNotificationPreferenceService preferenceService,
         LineSubscriptionPushPlanner lineSubscriptionPushPlanner,
+        PushLineEventObservationService lineEventObservationService,
         PushNotificationFormatter formatter,
         IngestionFreshness ingestionFreshness,
         Clock clock
@@ -77,6 +81,7 @@ public class PushNotificationDispatchService {
         this.webPushClient = webPushClient;
         this.preferenceService = preferenceService;
         this.lineSubscriptionPushPlanner = lineSubscriptionPushPlanner;
+        this.lineEventObservationService = lineEventObservationService;
         this.formatter = formatter;
         this.ingestionFreshness = ingestionFreshness;
         this.clock = clock;
@@ -103,17 +108,36 @@ public class PushNotificationDispatchService {
                 .filter(candidate -> preferenceService.allows(preferences, candidate))
                 .toList();
 
-            List<String> currentCategories = List.of("saved-commute-current", "saved-commute-impact", "line-current");
-            Set<String> currentNotificationKeys = new java.util.HashSet<>();
+            List<PushNotificationCandidate> sendableCandidates = new java.util.ArrayList<>();
+            Set<String> currentLineNotificationKeys = new java.util.HashSet<>();
+            List<PushNotificationCandidate> currentLineCandidates = new java.util.ArrayList<>();
 
             for (PushNotificationCandidate candidate : allowedCandidates) {
-                if (currentCategories.contains(candidate.category())) {
-                    currentNotificationKeys.add(candidate.notificationKey());
+                if ("line-current".equals(candidate.category())) {
+                    currentLineNotificationKeys.add(candidate.notificationKey());
+                    currentLineCandidates.add(candidate);
+                    PushLineEventObservationService.ObservationDecision decision =
+                        lineEventObservationService.observe(candidate, preferences, clock.instant());
+                    if (decision.shouldSendActive()) {
+                        sendableCandidates.add(candidate);
+                    }
+                } else {
+                    sendableCandidates.add(candidate);
+                }
+            }
+
+            List<String> savedCurrentCategories = List.of("saved-commute-current", "saved-commute-impact");
+            Set<String> savedCurrentNotificationKeys = new java.util.HashSet<>();
+
+            for (PushNotificationCandidate candidate : sendableCandidates) {
+                if (savedCurrentCategories.contains(candidate.category())) {
+                    savedCurrentNotificationKeys.add(candidate.notificationKey());
                 }
                 sendIfNew(candidate);
             }
 
-            sendClearedNotifications(accountId, preferences, currentNotificationKeys, allowedCandidates);
+            sendClearedNotifications(accountId, preferences, savedCurrentNotificationKeys, sendableCandidates);
+            sendClearedLineObservationNotifications(accountId, preferences, currentLineNotificationKeys, currentLineCandidates);
         }
     }
 
@@ -127,7 +151,7 @@ public class PushNotificationDispatchService {
             return;
         }
         Instant now = clock.instant();
-        List<String> currentCategories = List.of("saved-commute-current", "saved-commute-impact", "line-current");
+        List<String> currentCategories = List.of("saved-commute-current", "saved-commute-impact");
         
         List<PushNotificationEventEntity> activeEvents = eventRepository.findByAccountIdAndCategoryInAndNotificationState(
             accountId,
@@ -167,6 +191,73 @@ public class PushNotificationDispatchService {
                 }
             }
         }
+    }
+
+    private void sendClearedLineObservationNotifications(
+        String accountId,
+        PushNotificationPreferenceEntity preferences,
+        Set<String> currentLineNotificationKeys,
+        List<PushNotificationCandidate> currentLineCandidates
+    ) {
+        if (!ingestionFreshness.isDashboardFresh()) {
+            return;
+        }
+        Instant now = clock.instant();
+
+        for (PushLineEventObservationEntity observation : lineEventObservationService.activeObservations(accountId)) {
+            if (currentLineNotificationKeys.contains(observation.getNotificationKey())) {
+                continue;
+            }
+            if (hasEquivalentLineCandidate(observation, currentLineCandidates)) {
+                lineEventObservationService.markCleared(observation, now);
+                continue;
+            }
+
+            if (!preferences.isLineRestoredEnabled()) {
+                lineEventObservationService.markCleared(observation, now);
+                continue;
+            }
+
+            PushNotificationEventEntity clearedEvent = eventRepository.save(PushNotificationEventEntity.clearedFromObservation(
+                nextId("push_event"),
+                observation,
+                now,
+                formatter
+            ));
+            if (sendEventToSubscriptions(clearedEvent, now)) {
+                lineEventObservationService.markCleared(observation, now);
+            } else {
+                eventRepository.delete(clearedEvent);
+            }
+        }
+    }
+
+    private boolean hasEquivalentLineCandidate(
+        PushLineEventObservationEntity observation,
+        List<PushNotificationCandidate> currentLineCandidates
+    ) {
+        return currentLineCandidates.stream()
+            .filter(candidate -> !candidate.notificationKey().equals(observation.getNotificationKey()))
+            .anyMatch(candidate -> equivalentLineObservationEvent(observation, candidate));
+    }
+
+    private boolean equivalentLineObservationEvent(
+        PushLineEventObservationEntity observation,
+        PushNotificationCandidate candidate
+    ) {
+        if (!"line-current".equals(candidate.category())) {
+            return false;
+        }
+        if (!same(observation.getLineId(), candidate.lineId())) {
+            return false;
+        }
+        if (!same(observation.getEventType(), candidate.eventType())) {
+            return false;
+        }
+        if (!compatibleLocations(observation.getEventLocation(), candidate.eventLocation())) {
+            return false;
+        }
+        return compatibleSourceTimes(observation.getSourceEventAt(), candidate.sourceEventAt());
     }
 
     private boolean hasEquivalentCurrentCandidate(
