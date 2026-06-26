@@ -144,9 +144,21 @@ function updateMobileScrollbarElement(element: HTMLElement) {
   element.style.setProperty("--mobile-scrollbar-thumb-height", `${Math.round(thumbHeight)}px`);
 }
 
+function isIosScrollbarHost() {
+  if (typeof navigator === "undefined") {
+    return false;
+  }
+
+  const platform = navigator.platform ?? "";
+  const userAgent = navigator.userAgent ?? "";
+  const touchMacPlatform = platform === "MacIntel" && navigator.maxTouchPoints > 1;
+
+  return /iPad|iPhone|iPod/.test(platform) || /iPad|iPhone|iPod/.test(userAgent) || touchMacPlatform;
+}
+
 function useMobileScrollbars(enabled: boolean) {
   useEffect(() => {
-    if (!enabled || typeof window === "undefined" || typeof document === "undefined") {
+    if (!enabled || typeof window === "undefined" || typeof document === "undefined" || isIosScrollbarHost()) {
       return;
     }
 

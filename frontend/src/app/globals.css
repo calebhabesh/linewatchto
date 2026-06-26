@@ -6524,7 +6524,7 @@ button {
     content: "";
     position: absolute;
     top: var(--mobile-scrollbar-thumb-top, 12px);
-    right: 2px;
+    right: 4px;
     height: var(--mobile-scrollbar-thumb-height, 28px);
     width: 4px;
     background: var(--mobile-scroll-indicator-thumb);
