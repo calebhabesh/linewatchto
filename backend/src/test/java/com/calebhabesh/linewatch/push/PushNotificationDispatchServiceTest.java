@@ -570,6 +570,40 @@ class PushNotificationDispatchServiceTest {
         verify(webPushClient, never()).send(any(), any());
     }
 
+    @Test
+    void clearedLineObservationBuildsClearOnlyEventWithSameNotificationKey() {
+        PushNotificationCandidate candidate = candidate(
+            null, null, "line-1", "1", "line-current", "reduced-speed-zone", "on-change",
+            "line-current|line-1|reduced-speed-zone|rsz-1",
+            "user_1|line|line-1|reduced-speed-zone|on-change|rsz-1",
+            "Eglinton to Davisville",
+            null,
+            Instant.parse("2026-06-05T14:20:00Z"),
+            "/?panel=reduced-speed-zones"
+        );
+        PushLineEventObservationEntity observation = PushLineEventObservationEntity.create(
+            "line_obs_1",
+            candidate,
+            Instant.parse("2026-06-05T14:30:00Z")
+        );
+
+        PushNotificationEventEntity cleared = PushNotificationEventEntity.clearedFromObservation(
+            "push_event_clear",
+            observation,
+            Instant.parse("2026-06-05T15:00:00Z"),
+            formatter
+        );
+
+        assertThat(cleared.getNotificationKey()).isEqualTo("line-current|line-1|reduced-speed-zone|rsz-1");
+        assertThat(cleared.getNotificationState()).isEqualTo("CLEARED");
+        assertThat(cleared.getEventType()).isEqualTo("service-restored");
+        assertThat(cleared.getReminderBucket()).isEqualTo("on-change");
+        assertThat(cleared.getTitle()).isEqualTo("✅ Line 1 Yonge-University Reduced Speed Zone Cleared");
+        assertThat(cleared.getBody()).isEqualTo("""
+            Service between Eglinton and Davisville stations has resumed.
+            🕗 Jun 5, 11:00 AM""");
+    }
+
     private PushNotificationCandidate candidate(
         String commuteId,
         String legId,

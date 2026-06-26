@@ -108,6 +108,49 @@ public class PushNotificationEventEntity {
         return event;
     }
 
+    public static PushNotificationEventEntity clearedFromObservation(
+        String id,
+        PushLineEventObservationEntity observation,
+        Instant now,
+        PushNotificationFormatter formatter
+    ) {
+        FormattedPushNotification notification = formatter.formatCleared(
+            observation.getNotificationSubject(),
+            observation.getEventLocation(),
+            observation.getScopeLabel(),
+            now
+        );
+
+        PushNotificationEventEntity event = new PushNotificationEventEntity();
+        event.id = id;
+        event.accountId = observation.getAccountId();
+        event.commuteId = null;
+        event.legId = null;
+        event.lineId = observation.getLineId();
+        event.category = "line-current";
+        event.notificationKey = observation.getNotificationKey();
+        event.notificationState = "CLEARED";
+        event.dedupeKey = observation.getAccountId()
+            + "|line|"
+            + observation.getLineId()
+            + "|"
+            + observation.getEventType()
+            + "|on-change|"
+            + observation.getNotificationKey()
+            + "|cleared";
+        event.eventType = "service-restored";
+        event.reminderBucket = "on-change";
+        event.title = notification.title();
+        event.body = notification.body();
+        event.notificationSubject = notification.notificationSubject();
+        event.eventLocation = notification.eventLocation();
+        event.scopeLabel = notification.scopeLabel();
+        event.sourceEventAt = notification.sourceEventAt();
+        event.url = "/";
+        event.createdAt = now;
+        return event;
+    }
+
     public String getId() { return id; }
     public String getAccountId() { return accountId; }
     public String getCommuteId() { return commuteId; }
