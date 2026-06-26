@@ -8,7 +8,7 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {
-  color-scheme: dark;
+  color-scheme: light dark;
   --map-pulse-offset: 0ms;
   --mobile-announcement-chip-height: 40px;
   --mobile-edge-inset: clamp(10px, 4vw, 16px);
@@ -110,6 +110,7 @@ body {
 }
 
 .linewatch-shell {
+  color-scheme: light;
   --panel: rgba(255, 255, 255, 0.94);
   --panel-strong: rgba(255, 255, 255, 0.98);
   --panel-soft: rgba(15, 23, 42, 0.08);
@@ -135,9 +136,12 @@ body {
   --mobile-chrome-btn-active-bg: rgba(15, 23, 42, 0.12);
   --mobile-chrome-nav-active-bg: rgba(15, 23, 42, 0.08);
   --mobile-chrome-nav-active-border: rgba(15, 23, 42, 0.12);
+  --mobile-scroll-indicator-thumb: rgba(15, 23, 42, 0.54);
+  --mobile-scroll-indicator-thumb-hover: rgba(15, 23, 42, 0.72);
 }
 
 .linewatch-shell.dark {
+  color-scheme: dark;
   --panel: rgba(10, 12, 16, 0.94);
   --panel-strong: rgba(10, 12, 16, 0.98);
   --panel-soft: rgba(255, 255, 255, 0.07);
@@ -163,6 +167,8 @@ body {
   --mobile-chrome-btn-active-bg: rgba(255, 255, 255, 0.16);
   --mobile-chrome-nav-active-bg: rgba(255, 255, 255, 0.14);
   --mobile-chrome-nav-active-border: rgba(255, 255, 255, 0.12);
+  --mobile-scroll-indicator-thumb: rgba(248, 250, 252, 0.64);
+  --mobile-scroll-indicator-thumb-hover: rgba(248, 250, 252, 0.84);
 }
 
 .linewatch-backdrop {
@@ -612,6 +618,7 @@ button {
 
 
 .linewatch-shell.high-contrast {
+  color-scheme: dark;
   --bg: #000000;
   --panel: rgba(0, 0, 0, 0.95);
   --panel-strong: #000000;
@@ -637,6 +644,8 @@ button {
   --mobile-chrome-btn-active-bg: #333333;
   --mobile-chrome-nav-active-bg: #ffffff;
   --mobile-chrome-nav-active-border: #ffffff;
+  --mobile-scroll-indicator-thumb: #ffffff;
+  --mobile-scroll-indicator-thumb-hover: #ffffff;
   background-color: #000000 !important;
   color: #ffffff !important;
 }
@@ -6423,6 +6432,81 @@ button {
 }
 
 @media (max-width: 767px) {
+  .floating-panel-scroll,
+  .station-search-results,
+  .station-search-stations-column,
+  .commute-station-popover,
+  .commute-station-options,
+  .commute-station-lines-column,
+  .commute-station-stations-column,
+  .alert-stack,
+  .closure-stack,
+  .commute-grid,
+  .reliability-list,
+  .health-grid,
+  .mobile-more-content-scroll,
+  .mobile-status-content-scroll {
+    -webkit-overflow-scrolling: touch;
+    scrollbar-color: var(--mobile-scroll-indicator-thumb) transparent;
+    scrollbar-width: thin;
+  }
+
+  .floating-panel-scroll::-webkit-scrollbar,
+  .station-search-results::-webkit-scrollbar,
+  .station-search-stations-column::-webkit-scrollbar,
+  .commute-station-popover::-webkit-scrollbar,
+  .commute-station-options::-webkit-scrollbar,
+  .commute-station-lines-column::-webkit-scrollbar,
+  .commute-station-stations-column::-webkit-scrollbar,
+  .alert-stack::-webkit-scrollbar,
+  .closure-stack::-webkit-scrollbar,
+  .commute-grid::-webkit-scrollbar,
+  .reliability-list::-webkit-scrollbar,
+  .health-grid::-webkit-scrollbar,
+  .mobile-more-content-scroll::-webkit-scrollbar,
+  .mobile-status-content-scroll::-webkit-scrollbar {
+    height: 8px;
+    width: 8px;
+  }
+
+  .floating-panel-scroll::-webkit-scrollbar-thumb,
+  .station-search-results::-webkit-scrollbar-thumb,
+  .commute-station-options::-webkit-scrollbar-thumb,
+  .station-search-stations-column::-webkit-scrollbar-thumb,
+  .commute-station-popover::-webkit-scrollbar-thumb,
+  .commute-station-lines-column::-webkit-scrollbar-thumb,
+  .commute-station-stations-column::-webkit-scrollbar-thumb,
+  .alert-stack::-webkit-scrollbar-thumb,
+  .closure-stack::-webkit-scrollbar-thumb,
+  .commute-grid::-webkit-scrollbar-thumb,
+  .reliability-list::-webkit-scrollbar-thumb,
+  .health-grid::-webkit-scrollbar-thumb,
+  .mobile-more-content-scroll::-webkit-scrollbar-thumb,
+  .mobile-status-content-scroll::-webkit-scrollbar-thumb {
+    background: var(--mobile-scroll-indicator-thumb);
+    background-clip: padding-box;
+    border: 2px solid transparent;
+    border-radius: 999px;
+  }
+
+  .floating-panel-scroll::-webkit-scrollbar-thumb:hover,
+  .station-search-results::-webkit-scrollbar-thumb:hover,
+  .station-search-stations-column::-webkit-scrollbar-thumb:hover,
+  .commute-station-popover::-webkit-scrollbar-thumb:hover,
+  .commute-station-options::-webkit-scrollbar-thumb:hover,
+  .commute-station-lines-column::-webkit-scrollbar-thumb:hover,
+  .commute-station-stations-column::-webkit-scrollbar-thumb:hover,
+  .alert-stack::-webkit-scrollbar-thumb:hover,
+  .closure-stack::-webkit-scrollbar-thumb:hover,
+  .commute-grid::-webkit-scrollbar-thumb:hover,
+  .reliability-list::-webkit-scrollbar-thumb:hover,
+  .health-grid::-webkit-scrollbar-thumb:hover,
+  .mobile-more-content-scroll::-webkit-scrollbar-thumb:hover,
+  .mobile-status-content-scroll::-webkit-scrollbar-thumb:hover {
+    background: var(--mobile-scroll-indicator-thumb-hover);
+    background-clip: padding-box;
+  }
+
   .mobile-bottom-nav {
     align-items: stretch;
     background: var(--mobile-chrome-background);
@@ -9987,6 +10071,7 @@ button {
   gap: 8px;
   justify-content: center;
   min-width: 148px;
+  margin-left: auto;
 }
 
 .feedback-status {
@@ -10094,6 +10179,33 @@ button {
 
 .high-contrast .feedback-support-button:hover {
   background-color: rgba(255, 255, 255, 0.1);
+}
+
+@media (max-width: 767px) {
+  .feedback-content {
+    padding-bottom: 12px;
+  }
+
+  .feedback-actions {
+    flex-direction: column-reverse;
+    align-items: stretch;
+    gap: 36px;
+  }
+
+  .feedback-submit-button {
+    align-self: flex-end;
+    margin-left: auto;
+  }
+
+  .feedback-support-card.feedback-support-inline {
+    align-self: stretch;
+    justify-content: space-between;
+    background-color: var(--panel-soft);
+    border: none;
+    border-radius: 8px;
+    padding: 10px 14px;
+    margin-bottom: 4px;
+  }
 }
 
 .privacy-acknowledgements-panel,

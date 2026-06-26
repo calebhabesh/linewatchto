@@ -136,7 +136,7 @@ export function FeedbackPanel({ dataSource, supportUrl, onBack, onClose }: Props
                 Support LineWatchTO
               </a>
             </div>
-          ) : <div />}
+          ) : null}
           <button type="button" className="account-primary-button feedback-submit-button" disabled={!canSubmit} onClick={handleSubmit}>
             <Send size={16} />
             {busy ? "Sending" : "Send Feedback"}
