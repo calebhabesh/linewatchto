@@ -98,6 +98,7 @@ class PushNotificationControllerTest {
         PushResponses.ActivePushNotificationsResponse response = controller.active("raw-token", request);
 
         assertThat(response).isEqualTo(expected);
+        assertThat(response.retainedTags()).containsExactly("saved-commute-impact|commute_1|delay-line-1");
         verify(pushNotificationService).activeNotifications(account, request);
     }
 

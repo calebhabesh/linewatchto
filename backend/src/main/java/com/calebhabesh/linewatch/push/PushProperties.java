@@ -1,5 +1,6 @@
 package com.calebhabesh.linewatch.push;
 
+import java.time.Duration;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 @ConfigurationProperties("linewatch.push")
@@ -9,6 +10,7 @@ public class PushProperties {
     private String vapidPrivateKey = "";
     private String vapidSubject = "mailto:linewatch@example.invalid";
     private long evaluationDelayMs = 60_000;
+    private Duration clearedNotificationRetention = Duration.ofHours(4);
 
     public boolean isEnabled() {
         return enabled;
@@ -48,6 +50,14 @@ public class PushProperties {
 
     public void setEvaluationDelayMs(long evaluationDelayMs) {
         this.evaluationDelayMs = evaluationDelayMs;
+    }
+
+    public Duration getClearedNotificationRetention() {
+        return clearedNotificationRetention;
+    }
+
+    public void setClearedNotificationRetention(Duration clearedNotificationRetention) {
+        this.clearedNotificationRetention = clearedNotificationRetention;
     }
 
     public boolean webPushConfigured() {

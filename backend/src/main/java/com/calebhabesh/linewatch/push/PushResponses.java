@@ -94,10 +94,15 @@ public final class PushResponses {
 
     public record ActivePushNotificationsResponse(
         List<String> activeTags,
+        List<String> retainedTags,
         boolean cleanupAllowed
     ) {
         public ActivePushNotificationsResponse(List<String> activeTags) {
-            this(activeTags, true);
+            this(activeTags, activeTags, true);
+        }
+
+        public ActivePushNotificationsResponse(List<String> activeTags, boolean cleanupAllowed) {
+            this(activeTags, activeTags, cleanupAllowed);
         }
     }
 }

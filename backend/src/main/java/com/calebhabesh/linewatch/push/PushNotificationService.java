@@ -8,7 +8,9 @@ import com.calebhabesh.linewatch.ingestion.IngestionFreshness;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Optional;
@@ -21,6 +23,13 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class PushNotificationService {
+    private static final String CLEARED_STATE = "CLEARED";
+    private static final List<String> RETAINED_CLEARED_CATEGORIES = List.of(
+        "saved-commute-current",
+        "saved-commute-impact",
+        "line-current"
+    );
+
     private final PushProperties properties;
     private final PushSubscriptionRepository subscriptionRepository;
     private final PushNotificationDeliveryRepository deliveryRepository;
@@ -187,7 +196,7 @@ public class PushNotificationService {
             .filter(PushSubscriptionEntity::isEnabled)
             .map(subscription -> {
                 if (!ingestionFreshness.isDashboardFresh()) {
-                    return new PushResponses.ActivePushNotificationsResponse(List.of(), false);
+                    return new PushResponses.ActivePushNotificationsResponse(List.of(), List.of(), false);
                 }
 
                 PushNotificationPreferenceEntity preferences = preferenceService.preferenceEntityForAccountId(account.getId());
@@ -209,9 +218,38 @@ public class PushNotificationService {
                     .map(PushNotificationCandidate::notificationKey)
                     .distinct()
                     .toList();
-                return new PushResponses.ActivePushNotificationsResponse(activeTags);
+
+                List<String> retainedTags = retainedNotificationTags(account.getId(), endpointHash, activeTags);
+                return new PushResponses.ActivePushNotificationsResponse(activeTags, retainedTags, true);
             })
-            .orElse(new PushResponses.ActivePushNotificationsResponse(List.of()));
+            .orElse(new PushResponses.ActivePushNotificationsResponse(List.of(), List.of(), true));
+    }
+
+    private List<String> retainedNotificationTags(String accountId, String endpointHash, List<String> activeTags) {
+        List<String> retainedTags = new ArrayList<>(activeTags);
+        Duration retention = properties.getClearedNotificationRetention();
+        if (retention == null || retention.isZero() || retention.isNegative()) {
+            return retainedTags.stream()
+                .filter(tag -> tag != null && !tag.isBlank())
+                .distinct()
+                .toList();
+        }
+
+        Instant createdAtAfter = clock.instant().minus(retention);
+        List<String> recentlyDisplayedClearedTags = deliveryRepository.findRecentlyDisplayedClearedNotificationKeys(
+            accountId,
+            endpointHash,
+            RETAINED_CLEARED_CATEGORIES,
+            createdAtAfter
+        );
+        if (recentlyDisplayedClearedTags != null) {
+            retainedTags.addAll(recentlyDisplayedClearedTags);
+        }
+
+        return retainedTags.stream()
+            .filter(tag -> tag != null && !tag.isBlank())
+            .distinct()
+            .toList();
     }
 
     private PushResponses.PushSubscriptionResponse toResponse(PushSubscriptionEntity subscription) {

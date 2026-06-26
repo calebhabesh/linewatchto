@@ -81,6 +81,7 @@ linewatch:
     vapid-private-key: ${LINEWATCH_PUSH_VAPID_PRIVATE_KEY:}
     vapid-subject: ${LINEWATCH_PUSH_VAPID_SUBJECT:mailto:linewatch@example.invalid}
     evaluation-delay-ms: ${LINEWATCH_PUSH_EVALUATION_DELAY_MS:60000}
+    cleared-notification-retention: ${LINEWATCH_PUSH_CLEARED_NOTIFICATION_RETENTION:PT4H}
   cache:
     dashboard:
       enabled: ${LINEWATCH_CACHE_DASHBOARD_ENABLED:true}

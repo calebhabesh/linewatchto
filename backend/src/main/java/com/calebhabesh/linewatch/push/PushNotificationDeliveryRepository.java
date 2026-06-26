@@ -1,5 +1,6 @@
 package com.calebhabesh.linewatch.push;
 
+import java.time.Instant;
 import java.util.List;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -22,5 +23,25 @@ public interface PushNotificationDeliveryRepository extends JpaRepository<PushNo
         @Param("accountId") String accountId,
         @Param("endpointHash") String endpointHash,
         Pageable pageable
+    );
+
+    @Query("""
+        select distinct event.notificationKey
+        from PushNotificationDeliveryEntity delivery
+        join delivery.event event
+        join delivery.subscription subscription
+        where subscription.account.id = :accountId
+          and subscription.endpointHash = :endpointHash
+          and subscription.enabled = true
+          and delivery.displayedAt is not null
+          and event.notificationState = 'CLEARED'
+          and event.category in :categories
+          and event.createdAt >= :createdAtAfter
+        """)
+    List<String> findRecentlyDisplayedClearedNotificationKeys(
+        @Param("accountId") String accountId,
+        @Param("endpointHash") String endpointHash,
+        @Param("categories") List<String> categories,
+        @Param("createdAtAfter") Instant createdAtAfter
     );
 }

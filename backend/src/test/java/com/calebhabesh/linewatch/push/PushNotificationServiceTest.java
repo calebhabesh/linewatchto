@@ -1,16 +1,15 @@
 package com.calebhabesh.linewatch.push;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
 
 import com.calebhabesh.linewatch.account.AccountEntity;
 import com.calebhabesh.linewatch.account.SavedCommuteEntity;
 import com.calebhabesh.linewatch.account.SavedCommuteRepository;
 import com.calebhabesh.linewatch.ingestion.IngestionFreshness;
 import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
@@ -53,7 +52,14 @@ class PushNotificationServiceTest {
 
     @BeforeEach
     void setUp() {
+        properties.setClearedNotificationRetention(Duration.ofHours(4));
         when(ingestionFreshness.isDashboardFresh()).thenReturn(true);
+        when(deliveryRepository.findRecentlyDisplayedClearedNotificationKeys(
+            anyString(),
+            anyString(),
+            anyList(),
+            any(Instant.class)
+        )).thenReturn(List.of());
     }
 
     @Test
@@ -127,6 +133,9 @@ class PushNotificationServiceTest {
         );
 
         assertThat(response.activeTags()).containsExactly("saved-commute-impact|commute_1|outbound|reduced-speed-zone|rsz-line-1");
+        assertThat(response.retainedTags()).containsExactly(
+            "saved-commute-impact|commute_1|outbound|reduced-speed-zone|rsz-line-1"
+        );
         assertThat(response.cleanupAllowed()).isTrue();
     }
 
@@ -154,7 +163,85 @@ class PushNotificationServiceTest {
         );
 
         assertThat(response.activeTags()).isEmpty();
+        assertThat(response.retainedTags()).isEmpty();
         assertThat(response.cleanupAllowed()).isFalse();
+    }
+
+    @Test
+    void activeNotificationsRetainsDisplayedClearedNotificationsForConfiguredGracePeriod() {
+        String endpoint = "https://fcm.googleapis.com/fcm/send/subscription";
+        String endpointHash = PushNotificationService.hashEndpoint(endpoint);
+        PushSubscriptionEntity subscription = PushSubscriptionEntity.create(
+            "push_subscription_1",
+            account,
+            endpoint,
+            endpointHash,
+            "p256dh-key",
+            "auth-secret",
+            "Chrome Android",
+            Instant.parse("2026-06-05T14:45:00Z")
+        );
+        when(subscriptionRepository.findByAccountIdAndEndpointHash("user_1", endpointHash))
+            .thenReturn(Optional.of(subscription));
+        when(savedCommuteRepository.findByAccountIdOrderByCreatedAtAsc("user_1")).thenReturn(List.of());
+        PushNotificationPreferenceEntity preferences = mock(PushNotificationPreferenceEntity.class);
+        when(preferenceService.preferenceEntityForAccountId("user_1")).thenReturn(preferences);
+        when(preferenceService.subscribedLineIds("user_1")).thenReturn(List.of());
+        when(lineSubscriptionPushPlanner.candidatesFor(eq("user_1"), anyList())).thenReturn(List.of());
+        when(deliveryRepository.findRecentlyDisplayedClearedNotificationKeys(
+            eq("user_1"),
+            eq(endpointHash),
+            eq(List.of("saved-commute-current", "saved-commute-impact", "line-current")),
+            eq(Instant.parse("2026-06-05T11:00:00Z"))
+        )).thenReturn(List.of("saved-commute-impact|commute_1|outbound|delay|delay-line-1"));
+
+        PushResponses.ActivePushNotificationsResponse response = service.activeNotifications(
+            account,
+            new PushRequests.SubscriptionEndpointRequest(endpoint)
+        );
+
+        assertThat(response.activeTags()).isEmpty();
+        assertThat(response.retainedTags())
+            .containsExactly("saved-commute-impact|commute_1|outbound|delay|delay-line-1");
+        assertThat(response.cleanupAllowed()).isTrue();
+    }
+
+    @Test
+    void activeNotificationsDoesNotRetainClearedNotificationsWhenRetentionIsDisabled() {
+        properties.setClearedNotificationRetention(Duration.ZERO);
+        String endpoint = "https://fcm.googleapis.com/fcm/send/subscription";
+        String endpointHash = PushNotificationService.hashEndpoint(endpoint);
+        PushSubscriptionEntity subscription = PushSubscriptionEntity.create(
+            "push_subscription_1",
+            account,
+            endpoint,
+            endpointHash,
+            "p256dh-key",
+            "auth-secret",
+            "Chrome Android",
+            Instant.parse("2026-06-05T14:45:00Z")
+        );
+        when(subscriptionRepository.findByAccountIdAndEndpointHash("user_1", endpointHash))
+            .thenReturn(Optional.of(subscription));
+        when(savedCommuteRepository.findByAccountIdOrderByCreatedAtAsc("user_1")).thenReturn(List.of());
+        PushNotificationPreferenceEntity preferences = mock(PushNotificationPreferenceEntity.class);
+        when(preferenceService.preferenceEntityForAccountId("user_1")).thenReturn(preferences);
+        when(preferenceService.subscribedLineIds("user_1")).thenReturn(List.of());
+        when(lineSubscriptionPushPlanner.candidatesFor(eq("user_1"), anyList())).thenReturn(List.of());
+
+        PushResponses.ActivePushNotificationsResponse response = service.activeNotifications(
+            account,
+            new PushRequests.SubscriptionEndpointRequest(endpoint)
+        );
+
+        assertThat(response.activeTags()).isEmpty();
+        assertThat(response.retainedTags()).isEmpty();
+        verify(deliveryRepository, never()).findRecentlyDisplayedClearedNotificationKeys(
+            anyString(),
+            anyString(),
+            anyList(),
+            any(Instant.class)
+        );
     }
 
     @Test
