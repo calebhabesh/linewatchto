@@ -338,6 +338,10 @@ const server = createServer(async (request, response) => {
       webPushAvailable: true,
       vapidPublicKey: "BStubVapidKey",
       preferences: pushPreferences,
+      deviceSummary: {
+        enabledDeviceCount: 1,
+        hasEnabledDevices: true,
+      },
     });
     return;
   }
@@ -379,12 +383,7 @@ const server = createServer(async (request, response) => {
       };
     }
 
-    sendJson(request, response, 200, {
-      id: "smoke_stub_sub_1",
-      enabled: true,
-      commuteNotificationsEnabled: pushPreferences.commuteNotificationsEnabled,
-      plannedClosureNotificationsEnabled: pushPreferences.plannedClosureNotificationsEnabled,
-    });
+    sendJson(request, response, 200, pushPreferences);
     return;
   }
 
