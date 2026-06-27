@@ -70,6 +70,52 @@ describe("mobile bottom sheet UX", () => {
     assert.match(globalCss, /\.mobile-more-build-label/);
   });
 
+  it("prioritizes mobile More sections without turning More into Settings", () => {
+    assert.match(bottomNavSource, /MoreHorizontal/);
+    assert.match(bottomNavSource, /\{ key: "more", label: "More", Icon: MoreHorizontal \}/);
+    assert.doesNotMatch(bottomNavSource, /Settings/);
+    assert.doesNotMatch(bottomNavSource, /Cog/);
+
+    assert.ok(
+      moreSheetSource.indexOf("Install LineWatchTO") < moreSheetSource.indexOf("<h3>Account</h3>"),
+      "Install should remain first when install help is visible.",
+    );
+    assert.ok(
+      moreSheetSource.indexOf("<h3>Account</h3>") < moreSheetSource.indexOf("<h3>Notifications</h3>"),
+      "Account should appear before notifications.",
+    );
+    assert.ok(
+      moreSheetSource.indexOf("<h3>Notifications</h3>") < moreSheetSource.indexOf("<h3>Operations</h3>"),
+      "Notifications should appear before operational tools.",
+    );
+    assert.ok(
+      moreSheetSource.indexOf("<h3>Operations</h3>") < moreSheetSource.indexOf("Alert History"),
+      "Alert History should live in Operations.",
+    );
+    assert.ok(
+      moreSheetSource.indexOf("<h3>Operations</h3>") < moreSheetSource.indexOf("Reliability Analytics"),
+      "Reliability Analytics should live in Operations.",
+    );
+    assert.ok(
+      moreSheetSource.indexOf("<h3>Operations</h3>") < moreSheetSource.indexOf("Source Health"),
+      "Source Health should live in Operations.",
+    );
+    assert.ok(
+      moreSheetSource.indexOf("Source Health") < moreSheetSource.indexOf("<h3>Display</h3>"),
+      "Source Health should not remain buried at the bottom of More.",
+    );
+    assert.ok(
+      moreSheetSource.indexOf("<h3>Display</h3>") < moreSheetSource.indexOf("Support & About"),
+      "Display preferences should appear before support and about actions.",
+    );
+    assert.ok(
+      moreSheetSource.indexOf("Support & About") < moreSheetSource.indexOf("Share LineWatchTO"),
+      "Share should live in Support & About.",
+    );
+    assert.doesNotMatch(moreSheetSource, /<h3>Tools<\/h3>/);
+  });
+
+
   it("turns floating panels into mobile bottom sheets only below tablet width", () => {
     assert.match(floatingPanelSource, /mobileSheetLabel/);
     assert.match(floatingPanelSource, /data-mobile-sheet-label/);
@@ -165,7 +211,7 @@ describe("mobile bottom sheet UX", () => {
     assert.match(globalCss, /html\[data-visual-keyboard="open"\]\s+\.commute-station-popover > \.commute-station-options\s*\{[\s\S]*max-height:\s*none/);
   });
 
-  it("uses native iOS scrolling and medium Android scrollbars without static affordances", () => {
+  it("uses native mobile scrolling with extra Status spacing", () => {
     assert.doesNotMatch(globalCss, /:root\s*\{[^}]*\n\s*color-scheme:\s*dark;\n/);
     assert.match(globalCss, /:root\s*\{[\s\S]*?color-scheme:\s*light dark;/);
     assert.match(globalCss, /\.linewatch-shell\s*\{[\s\S]*?color-scheme:\s*light;/);
@@ -173,23 +219,25 @@ describe("mobile bottom sheet UX", () => {
     assert.match(globalCss, /--mobile-scroll-indicator-thumb:\s*rgba\(15,\s*23,\s*42,\s*0\.54\)/);
     assert.match(globalCss, /\.linewatch-shell\.dark\s*\{[\s\S]*?--mobile-scroll-indicator-thumb:\s*rgba\(148,\s*163,\s*184,\s*0\.72\)/);
     assert.doesNotMatch(globalCss, /--mobile-scroll-affordance-/);
-    assert.match(shellSource, /MOBILE_SCROLLBAR_SELECTOR/);
-    assert.match(shellSource, /linewatch-mobile-scrollbar/);
-    assert.match(shellSource, /--mobile-scrollbar-thumb-top/);
-    assert.match(shellSource, /--mobile-scrollbar-thumb-height/);
-    assert.match(shellSource, /function isIosScrollbarHost\(\)/);
-    assert.match(shellSource, /iPad\|iPhone\|iPod/);
-    assert.match(shellSource, /navigator\.maxTouchPoints/);
-    assert.match(shellSource, /isIosScrollbarHost\(\)/);
-    assert.match(shellSource, /return;\s*\n\s*}\s*\n\s*\n\s*const elements = new Set<HTMLElement>\(\)/);
-    assert.match(shellSource, /Math\.max\(48,\s*Math\.min\(72,\s*Math\.round\(element\.clientHeight\s*\*\s*0\.14\)\)\)/);
+    assert.doesNotMatch(shellSource, /MOBILE_SCROLLBAR_SELECTOR/);
+    assert.doesNotMatch(shellSource, /linewatch-mobile-scrollbar/);
+    assert.doesNotMatch(shellSource, /--mobile-scrollbar-thumb-top/);
+    assert.doesNotMatch(shellSource, /--mobile-scrollbar-thumb-height/);
+    assert.doesNotMatch(shellSource, /function isIosScrollbarHost\(\)/);
+    assert.doesNotMatch(shellSource, /useMobileScrollbars/);
+    assert.doesNotMatch(shellSource, /Math\.max\(48,\s*Math\.min\(72,\s*Math\.round\(element\.clientHeight\s*\*\s*0\.14\)\)\)/);
     assert.doesNotMatch(shellSource, /Math\.max\(22,\s*Math\.min\(30,\s*Math\.round\(element\.clientHeight\s*\*\s*0\.09\)\)\)/);
-    assert.match(shellSource, /requestAnimationFrame/);
-    assert.match(globalCss, /@media \(max-width:\s*767px\)\s*\{[\s\S]*?\.floating-panel-scroll,[\s\S]*?\.station-search-results,[\s\S]*?\.commute-station-options[\s\S]*?\{[\s\S]*?scrollbar-color:\s*var\(--mobile-scroll-indicator-thumb\)\s*transparent/);
-    assert.match(globalCss, /\.floating-panel-scroll::-webkit-scrollbar-thumb,[\s\S]*?\.station-search-results::-webkit-scrollbar-thumb,[\s\S]*?\.commute-station-options::-webkit-scrollbar-thumb[\s\S]*?\{[\s\S]*?background:\s*var\(--mobile-scroll-indicator-thumb\)[\s\S]*?border-radius:\s*999px/);
-    assert.match(globalCss, /\.linewatch-mobile-scrollbar\s*\{[\s\S]*?scrollbar-width:\s*none/);
-    assert.match(globalCss, /\.linewatch-mobile-scrollbar::-webkit-scrollbar\s*\{[\s\S]*?display:\s*none/);
-    assert.match(globalCss, /\.linewatch-mobile-scrollbar::after\s*\{[\s\S]*?position:\s*absolute[\s\S]*?top:\s*var\(--mobile-scrollbar-thumb-top,[\s\S]*?right:\s*4px[\s\S]*?height:\s*var\(--mobile-scrollbar-thumb-height,[\s\S]*?width:\s*4px[\s\S]*?border-radius:\s*999px/);
+    const mobileScrollContainerRule = globalCss.match(/@media \(max-width:\s*767px\)\s*\{\s*\.floating-panel-scroll,[\s\S]*?\.mobile-status-content-scroll\s*\{([\s\S]*?)\n\s*\}/)?.[1] ?? "";
+    assert.match(mobileScrollContainerRule, /-webkit-overflow-scrolling:\s*touch/);
+    assert.match(globalCss, /\*\s*\{\s*scrollbar-color:\s*var\(--mobile-scroll-indicator-thumb\)\s*transparent;\s*scrollbar-width:\s*thin;/);
+    assert.match(globalCss, /@media\s*\(min-width:\s*768px\)\s*\{\s*\*::-webkit-scrollbar/);
+    assert.doesNotMatch(globalCss, /\.mobile-status-content-scroll::-webkit-scrollbar/);
+    assert.doesNotMatch(globalCss, /\.floating-panel-scroll::-webkit-scrollbar/);
+    assert.doesNotMatch(globalCss, /--mobile-native-scrollbar-size/);
+    assert.match(globalCss, /\.mobile-status-content-scroll\s*\{[\s\S]*?padding-right:\s*16px\s*!important/);
+    assert.doesNotMatch(globalCss, /\.linewatch-mobile-scrollbar/);
+    assert.doesNotMatch(globalCss, /--mobile-scrollbar-thumb-top/);
+    assert.doesNotMatch(globalCss, /--mobile-scrollbar-thumb-height/);
     assert.doesNotMatch(globalCss, /background-image:[\s\S]*?mobile-scroll-affordance/);
     assert.doesNotMatch(globalCss, /radial-gradient\(circle,[\s\S]*?mobile-scroll-affordance/);
   });

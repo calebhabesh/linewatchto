@@ -173,14 +173,16 @@ describe("PWA install entry in More sheet", () => {
     assert.match(moreSheetSource, /canShowPwaInstallHelp/);
     assert.match(moreSheetSource, /onRequestPwaInstall/);
     assert.match(moreSheetSource, /Install LineWatchTO/);
-    assert.match(moreSheetSource, /shareAppSectionTitle/);
-    assert.match(moreSheetSource, /canShowPwaInstallHelp \? "Share & App" : "Share"/);
-    assert.match(moreSheetSource, /<h3>\{shareAppSectionTitle\}<\/h3>/);
-    assert.match(moreSheetSource, /Share & App/);
+    assert.match(moreSheetSource, /<h3>Install App<\/h3>/);
     assert.match(moreSheetSource, /Share, then Add to Home Screen/);
     assert.match(moreSheetSource, /three-dot menu/);
     assert.match(moreSheetSource, /canShowPwaInstallHelp \? \(/);
+    assert.match(moreSheetSource, /mobile-more-install-section/);
     assert.match(moreSheetSource, /mobile-more-install-help/);
+    assert.ok(
+      moreSheetSource.indexOf("Install LineWatchTO") < moreSheetSource.indexOf("<h3>Account</h3>"),
+      "Install reminder should remain near the top of More when it is visible.",
+    );
   });
 });
 
@@ -211,17 +213,14 @@ describe("PWA share entry in More sheet", () => {
     assert.match(moreSheetSource, /Share LineWatchTO/);
     assert.match(moreSheetSource, /Send app link to friends/);
     assert.match(moreSheetSource, /mobile-more-share-status/);
+    assert.match(moreSheetSource, /Support & About/);
     assert.ok(
-      moreSheetSource.indexOf("Share LineWatchTO") < moreSheetSource.indexOf("<h3>Account</h3>"),
-      "Share action should appear before account options in the mobile More sheet.",
+      moreSheetSource.indexOf("<h3>Display</h3>") < moreSheetSource.indexOf("Support & About"),
+      "Share and support actions should appear after display preferences.",
     );
     assert.ok(
-      moreSheetSource.indexOf("Install LineWatchTO") < moreSheetSource.indexOf("Share LineWatchTO"),
-      "Install help should appear before the share action when both are visible.",
-    );
-    assert.ok(
-      moreSheetSource.indexOf("Share LineWatchTO") < moreSheetSource.indexOf("<h3>Tools</h3>"),
-      "Share action should not be buried under Tools.",
+      moreSheetSource.indexOf("Support & About") < moreSheetSource.indexOf("Share LineWatchTO"),
+      "Share action should sit under Support & About.",
     );
     assert.match(shellSource, /handleShareLineWatchApp/);
     assert.match(shellSource, /navigator\.share/);

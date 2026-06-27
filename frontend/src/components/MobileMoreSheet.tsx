@@ -83,7 +83,6 @@ export function MobileMoreSheet({
     : androidInstallHelpOnly
       ? "Chrome menu, then Add to Home screen."
       : "Open as a full-screen app.";
-  const shareAppSectionTitle = canShowPwaInstallHelp ? "Share & App" : "Share";
 
   return (
     <section className="mobile-more-sheet panel" aria-label="More LineWatchTO options">
@@ -104,59 +103,45 @@ export function MobileMoreSheet({
       </div>
 
       <div className="mobile-more-content-scroll">
-        <div className="mobile-more-section mobile-more-share-app-section">
-          <h3>{shareAppSectionTitle}</h3>
-          {canShowPwaInstallHelp ? (
-            <>
-              {androidInstallHelpOnly ? (
-                <div className="mobile-more-row mobile-more-install-row" role="note">
-                  <Download size={18} className="text-slate-500 dark:text-slate-400" />
-                  <span className="mobile-more-install-copy">
-                    <span>Install LineWatchTO</span>
-                    <span>{installRowDescription}</span>
-                  </span>
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  className="mobile-more-row mobile-more-install-row"
-                  disabled={pwaInstallBusy}
-                  onClick={isIosPwaInstall ? onDismissPwaInstall : onRequestPwaInstall}
-                >
-                  <Download size={18} className="text-slate-500 dark:text-slate-400" />
-                  <span className="mobile-more-install-copy">
-                    <span>Install LineWatchTO</span>
-                    <span>{installRowDescription}</span>
-                  </span>
-                </button>
-              )}
-              {isIosPwaInstall ? (
-                <div className="mobile-more-install-help" role="note">
-                  <span>iPhone Safari</span>
-                  <strong>Tap Share, then Add to Home Screen.</strong>
-                </div>
-              ) : null}
-              {androidInstallHelpOnly ? (
-                <div className="mobile-more-install-help" role="note">
-                  <span>Android Chrome</span>
-                  <strong>Open the three-dot menu, then Add to Home screen.</strong>
-                </div>
-              ) : null}
-            </>
-          ) : null}
-          <button type="button" className="mobile-more-row mobile-more-share-row" onClick={onShareApp}>
-            <Share2 size={18} className="text-slate-500 dark:text-slate-400" />
-            <span className="mobile-more-share-copy">
-              <span>Share LineWatchTO</span>
-              <span>Send app link to friends</span>
-            </span>
-            {shareStatusLabel ? (
-              <strong className="mobile-more-share-status" aria-live="polite">
-                {shareStatusLabel}
-              </strong>
+        {canShowPwaInstallHelp ? (
+          <div className="mobile-more-section mobile-more-install-section">
+            <h3>Install App</h3>
+            {androidInstallHelpOnly ? (
+              <div className="mobile-more-row mobile-more-install-row" role="note">
+                <Download size={18} className="text-slate-500 dark:text-slate-400" />
+                <span className="mobile-more-install-copy">
+                  <span>Install LineWatchTO</span>
+                  <span>{installRowDescription}</span>
+                </span>
+              </div>
+            ) : (
+              <button
+                type="button"
+                className="mobile-more-row mobile-more-install-row"
+                disabled={pwaInstallBusy}
+                onClick={isIosPwaInstall ? onDismissPwaInstall : onRequestPwaInstall}
+              >
+                <Download size={18} className="text-slate-500 dark:text-slate-400" />
+                <span className="mobile-more-install-copy">
+                  <span>Install LineWatchTO</span>
+                  <span>{installRowDescription}</span>
+                </span>
+              </button>
+            )}
+            {isIosPwaInstall ? (
+              <div className="mobile-more-install-help" role="note">
+                <span>iPhone Safari</span>
+                <strong>Tap Share, then Add to Home Screen.</strong>
+              </div>
             ) : null}
-          </button>
-        </div>
+            {androidInstallHelpOnly ? (
+              <div className="mobile-more-install-help" role="note">
+                <span>Android Chrome</span>
+                <strong>Open the three-dot menu, then Add to Home screen.</strong>
+              </div>
+            ) : null}
+          </div>
+        ) : null}
 
         <div className="mobile-more-section">
           <h3>Account</h3>
@@ -237,10 +222,26 @@ export function MobileMoreSheet({
               )}
             </div>
           </button>
+        </div>
+
+        <div className="mobile-more-section">
+          <h3>Operations</h3>
           <button type="button" className="mobile-more-row" onClick={onOpenAlertHistory}>
             <History size={18} className="text-slate-500 dark:text-slate-400" />
             Alert History
           </button>
+          <button type="button" className="mobile-more-row" onClick={onOpenAnalytics}>
+            <BarChart3 size={18} className="text-slate-500 dark:text-slate-400" />
+            Reliability Analytics
+          </button>
+          <div className="mobile-more-health-grid" aria-label="Source Health">
+            {ingestionHealth.map((health, index) => (
+              <div key={`${health.label}-${index}`}>
+                <span>{health.label}</span>
+                <strong>{health.value}</strong>
+              </div>
+            ))}
+          </div>
         </div>
 
         <div className="mobile-more-section">
@@ -262,10 +263,18 @@ export function MobileMoreSheet({
         </div>
 
         <div className="mobile-more-section">
-          <h3>Tools</h3>
-          <button type="button" className="mobile-more-row" onClick={onOpenAnalytics}>
-            <BarChart3 size={18} className="text-slate-500 dark:text-slate-400" />
-            Reliability Analytics
+          <h3>{"Support & About"}</h3>
+          <button type="button" className="mobile-more-row mobile-more-share-row" onClick={onShareApp}>
+            <Share2 size={18} className="text-slate-500 dark:text-slate-400" />
+            <span className="mobile-more-share-copy">
+              <span>Share LineWatchTO</span>
+              <span>Send app link to friends</span>
+            </span>
+            {shareStatusLabel ? (
+              <strong className="mobile-more-share-status" aria-live="polite">
+                {shareStatusLabel}
+              </strong>
+            ) : null}
           </button>
           <button type="button" className="mobile-more-row" onClick={onOpenFeedback}>
             <MessageSquareText size={18} className="text-slate-500 dark:text-slate-400" />
@@ -288,18 +297,6 @@ export function MobileMoreSheet({
               Reset Local App Cache
             </button>
           ) : null}
-        </div>
-
-        <div className="mobile-more-section">
-          <h3>Source Health</h3>
-          <div className="mobile-more-health-grid">
-            {ingestionHealth.map((health, index) => (
-              <div key={`${health.label}-${index}`}>
-                <span>{health.label}</span>
-                <strong>{health.value}</strong>
-              </div>
-            ))}
-          </div>
         </div>
       </div>
     </section>
