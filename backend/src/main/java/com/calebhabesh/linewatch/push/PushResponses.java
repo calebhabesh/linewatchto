@@ -68,11 +68,29 @@ public final class PushResponses {
         }
     }
 
+    public record PushDeviceSummaryResponse(
+        int enabledDeviceCount,
+        boolean hasEnabledDevices
+    ) {
+        public static PushDeviceSummaryResponse none() {
+            return new PushDeviceSummaryResponse(0, false);
+        }
+    }
+
     public record PushConfigResponse(
         boolean webPushAvailable,
         String vapidPublicKey,
-        PushPreferencesResponse preferences
-    ) {}
+        PushPreferencesResponse preferences,
+        PushDeviceSummaryResponse deviceSummary
+    ) {
+        public PushConfigResponse(
+            boolean webPushAvailable,
+            String vapidPublicKey,
+            PushPreferencesResponse preferences
+        ) {
+            this(webPushAvailable, vapidPublicKey, preferences, PushDeviceSummaryResponse.none());
+        }
+    }
 
     public record PushSubscriptionResponse(
         String id,

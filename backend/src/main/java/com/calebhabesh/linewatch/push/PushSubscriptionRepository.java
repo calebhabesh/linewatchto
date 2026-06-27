@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 public interface PushSubscriptionRepository extends JpaRepository<PushSubscriptionEntity, String> {
     Optional<PushSubscriptionEntity> findByAccountIdAndEndpointHash(String accountId, String endpointHash);
     List<PushSubscriptionEntity> findByAccountIdAndEnabledTrue(String accountId);
+    long countByAccountIdAndEnabledTrue(String accountId);
 
     @Query("""
         select distinct subscription.account.id

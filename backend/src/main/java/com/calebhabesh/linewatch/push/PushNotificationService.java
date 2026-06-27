@@ -77,10 +77,15 @@ public class PushNotificationService {
 
     @Transactional(readOnly = true)
     public PushResponses.PushConfigResponse config(AccountEntity account) {
+        long enabledDeviceCount = subscriptionRepository.countByAccountIdAndEnabledTrue(account.getId());
+        int safeDeviceCount = enabledDeviceCount > Integer.MAX_VALUE
+            ? Integer.MAX_VALUE
+            : (int) enabledDeviceCount;
         return new PushResponses.PushConfigResponse(
             properties.webPushConfigured(),
             properties.getVapidPublicKey() == null ? "" : properties.getVapidPublicKey().trim(),
-            preferenceService.preferencesFor(account)
+            preferenceService.preferencesFor(account),
+            new PushResponses.PushDeviceSummaryResponse(safeDeviceCount, safeDeviceCount > 0)
         );
     }
 

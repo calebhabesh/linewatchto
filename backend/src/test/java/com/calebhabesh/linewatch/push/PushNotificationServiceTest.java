@@ -423,4 +423,22 @@ class PushNotificationServiceTest {
             url
         );
     }
+
+    @Test
+    void configIncludesAccountDeviceSummaryWithoutChangingPreferences() {
+        properties.setEnabled(true);
+        properties.setVapidPublicKey("BPublicVapidKey");
+        properties.setVapidPrivateKey("BPrivateVapidKey");
+        PushResponses.PushPreferencesResponse preferences = new PushResponses.PushPreferencesResponse(true, true);
+        when(preferenceService.preferencesFor(account)).thenReturn(preferences);
+        when(subscriptionRepository.countByAccountIdAndEnabledTrue("user_1")).thenReturn(2L);
+
+        PushResponses.PushConfigResponse response = service.config(account);
+
+        assertThat(response.webPushAvailable()).isTrue();
+        assertThat(response.vapidPublicKey()).isEqualTo("BPublicVapidKey");
+        assertThat(response.preferences()).isEqualTo(preferences);
+        assertThat(response.deviceSummary().enabledDeviceCount()).isEqualTo(2);
+        assertThat(response.deviceSummary().hasEnabledDevices()).isTrue();
+    }
 }

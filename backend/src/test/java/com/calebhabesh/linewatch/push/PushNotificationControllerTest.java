@@ -29,7 +29,8 @@ class PushNotificationControllerTest {
         PushResponses.PushConfigResponse expected = new PushResponses.PushConfigResponse(
             true,
             "BPublicVapidKey",
-            new PushResponses.PushPreferencesResponse(true, true)
+            new PushResponses.PushPreferencesResponse(true, true),
+            new PushResponses.PushDeviceSummaryResponse(1, true)
         );
         when(accountService.requireAccount("raw-token")).thenReturn(account);
         when(pushNotificationService.config(account)).thenReturn(expected);
