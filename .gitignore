@@ -19,6 +19,8 @@ frontend/out/
 frontend/coverage/
 frontend/.vercel/
 frontend/tsconfig.tsbuildinfo
+frontend/next-env.d.ts
+
 
 # Logs
 *.log

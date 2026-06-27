@@ -12,7 +12,7 @@
     "test:fixtures": "node --test tests/*.test.mjs",
     "test:smoke": "playwright test",
     "test:smoke:install": "playwright install chromium",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "next typegen && tsc --noEmit"
   },
   "dependencies": {
     "gsap": "^3.13.0",
