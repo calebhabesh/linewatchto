@@ -115,7 +115,7 @@ export function AccessibilityOutagesPanel({
       </div>
 
       {/* Panel Content */}
-      <div className="flex-1 overflow-y-auto min-w-0 p-3 sm:p-4">
+      <div className="flex-1 overflow-y-auto min-w-0 p-3 sm:p-4 accessibility-outages-scroll">
         {!selectedAssetType ? (
           /* First View: Asset List */
           <div className="flex flex-col gap-4">

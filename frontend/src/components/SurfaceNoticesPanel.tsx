@@ -293,7 +293,7 @@ export function SurfaceNoticesPanel({ onBack, onClose }: Props) {
       </div>
 
       {/* Notices Content */}
-      <div className="flex-1 overflow-y-auto min-w-0 p-3 sm:p-4">
+      <div className="flex-1 overflow-y-auto min-w-0 p-3 sm:p-4 surface-notices-scroll">
         {loading ? (
           <div className="flex flex-col items-center justify-center py-12 text-slate-500 dark:text-slate-400">
             <span className="text-sm">Loading notices...</span>

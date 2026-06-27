@@ -257,7 +257,7 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
         </div>
       )}
 
-      <div className="flex-1 min-h-0 overflow-y-auto mt-3 pr-4 -mr-4">
+      <div className="flex-1 min-h-0 overflow-y-auto mt-3 pr-4 -mr-4 station-detail-scroll">
       {station && (
         <div className="flex flex-col gap-2" data-station-header-line-details>
           {station.lines.map((line) => (

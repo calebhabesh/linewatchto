@@ -68,7 +68,7 @@ export function PrivacyAcknowledgementsPanel({ onBack, onClose }: Props) {
         ) : null}
       </div>
 
-      <div className="max-h-[calc(100dvh-11rem)] overflow-y-auto px-4 py-4">
+      <div className="max-h-[calc(100dvh-11rem)] overflow-y-auto px-4 py-4 privacy-acknowledgements-scroll">
         <div className="space-y-4">
           <div className="rounded-lg border border-blue-500/25 bg-blue-50 p-3 text-sm text-slate-800 dark:bg-blue-950 dark:text-slate-100">
             <div className="flex items-start gap-2">

@@ -286,6 +286,7 @@ EOF
 
   assert_contains "$(cat "$log")" "buildx create --name linewatch-prod-builder"
   assert_contains "$(cat "$log")" "--platform linux/arm64"
+  assert_contains "$(cat "$log")" "--build-arg NEXT_PUBLIC_LINEWATCH_SUPPORT_URL=https://ko-fi.com/linewatchto"
   assert_contains "$(cat "$log")" "linewatch-frontend:$TEST_SHA"
   assert_contains "$(cat "$log")" "linewatch-backend:$TEST_SHA"
   assert_contains "$(cat "$log")" "linewatch-postgres:$TEST_SHA"

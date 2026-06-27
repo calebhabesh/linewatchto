@@ -6438,6 +6438,7 @@ button {
 @media (max-width: 767px) {
   .floating-panel-scroll,
   .station-search-results,
+  .station-search-lines-column,
   .station-search-stations-column,
   .commute-station-popover,
   .commute-station-options,
@@ -6449,6 +6450,12 @@ button {
   .reliability-list,
   .health-grid,
   .mobile-more-content-scroll,
+  .notification-settings-scroll,
+  .accessibility-outages-scroll,
+  .surface-notices-scroll,
+  .station-detail-scroll,
+  .release-notes-content,
+  .privacy-acknowledgements-scroll,
   .mobile-status-content-scroll {
     -webkit-overflow-scrolling: touch;
   }
@@ -7750,6 +7757,15 @@ button {
   .reliability-list,
   .health-grid,
   .mobile-more-content-scroll,
+  .station-search-results,
+  .station-search-lines-column,
+  .station-search-stations-column,
+  .notification-settings-scroll,
+  .accessibility-outages-scroll,
+  .surface-notices-scroll,
+  .station-detail-scroll,
+  .release-notes-content,
+  .privacy-acknowledgements-scroll,
   .mobile-status-content-scroll {
     overflow-y: auto !important;
     flex: 1 1 auto !important;
@@ -7761,6 +7777,15 @@ button {
   .commute-grid,
   .reliability-list,
   .mobile-more-content-scroll,
+  .station-search-results,
+  .station-search-lines-column,
+  .station-search-stations-column,
+  .notification-settings-scroll,
+  .accessibility-outages-scroll,
+  .surface-notices-scroll,
+  .station-detail-scroll,
+  .release-notes-content,
+  .privacy-acknowledgements-scroll,
   .mobile-status-content-scroll {
     padding-bottom: 56px !important;
     mask-image: linear-gradient(to bottom, black calc(100% - 60px), transparent 100%);

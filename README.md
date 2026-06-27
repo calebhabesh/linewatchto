@@ -322,10 +322,11 @@ Do not commit SMTP usernames, passwords, API keys, app passwords, or Gmail crede
 Frontend support-link setting:
 
 ```bash
-NEXT_PUBLIC_LINEWATCH_SUPPORT_URL=https://buymeacoffee.com/linewatchto
+NEXT_PUBLIC_LINEWATCH_SUPPORT_URL=https://ko-fi.com/linewatchto
 ```
 
-Set this to the public Buy Me a Coffee profile URL for the project account.
+Production builds default to the public Ko-fi profile URL for the project account.
+Set this value only when you need to override that URL.
 If the value is blank, the feedback panel hides the support action.
 The in-app button is labeled `Support LineWatchTO` and avoids donation, money, tip, or coffee wording.
 

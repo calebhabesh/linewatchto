@@ -10,6 +10,7 @@ REGISTRY="$(linewatch_normalize_registry "${LINEWATCH_IMAGE_REGISTRY:-ghcr.io/ca
 PLATFORM="${LINEWATCH_IMAGE_PLATFORM:-linux/arm64}"
 BUILDER="${LINEWATCH_BUILDX_BUILDER:-linewatch-prod-builder}"
 SOURCE_URL="https://github.com/calebhabesh/ttc-reliability-navigator"
+DEFAULT_SUPPORT_URL="https://ko-fi.com/linewatchto"
 
 if [[ "${LINEWATCH_SKIP_CLEAN_CHECK:-false}" != "true" ]]; then
   linewatch_require_clean_worktree "$ROOT_DIR"
@@ -56,7 +57,7 @@ build_and_push postgres "$ROOT_DIR/infra/postgres/Dockerfile" "$ROOT_DIR"
 build_and_push frontend "$ROOT_DIR/frontend/Dockerfile" "$ROOT_DIR/frontend" \
   --build-arg "NEXT_PUBLIC_LINEWATCH_APP_VERSION=$FRONTEND_APP_VERSION" \
   --build-arg "NEXT_PUBLIC_LINEWATCH_BUILD_LABEL=prod-$SHORT_SHA" \
-  --build-arg "NEXT_PUBLIC_LINEWATCH_SUPPORT_URL=${NEXT_PUBLIC_LINEWATCH_SUPPORT_URL:-}" \
+  --build-arg "NEXT_PUBLIC_LINEWATCH_SUPPORT_URL=${NEXT_PUBLIC_LINEWATCH_SUPPORT_URL:-$DEFAULT_SUPPORT_URL}" \
   --build-arg "NEXT_PUBLIC_LINEWATCH_DASHBOARD_REFRESH_MS=${NEXT_PUBLIC_LINEWATCH_DASHBOARD_REFRESH_MS:-30000}"
 
 cat <<EOF
