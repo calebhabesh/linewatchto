@@ -358,6 +358,10 @@ describe("account data adapter", () => {
           JSON.stringify({
             webPushAvailable: true,
             vapidPublicKey: "BPublicVapidKey",
+            deviceSummary: {
+              enabledDeviceCount: 1,
+              hasEnabledDevices: true,
+            },
             preferences: {
               commuteNotificationsEnabled: true,
               plannedClosureNotificationsEnabled: true,
@@ -401,6 +405,8 @@ describe("account data adapter", () => {
     });
 
     assert.equal(result.source, "backend");
+    assert.equal(result.config.deviceSummary.enabledDeviceCount, 1);
+    assert.equal(result.config.deviceSummary.hasEnabledDevices, true);
     assert.equal(result.config.webPushAvailable, true);
     assert.equal(result.config.vapidPublicKey, "BPublicVapidKey");
     assert.equal(result.config.preferences.savedCommutes.currentDisruptions, true);
@@ -484,12 +490,7 @@ describe("account data adapter", () => {
         fetcher: async (input, init) => {
           requests.push({ input, init });
           return new Response(
-            JSON.stringify({
-              id: "push_subscription_1",
-              enabled: true,
-              commuteNotificationsEnabled: true,
-              plannedClosureNotificationsEnabled: false,
-            }),
+            JSON.stringify(fullPrefs),
             { status: 200, headers: { "content-type": "application/json" } }
           );
         },
@@ -531,6 +532,7 @@ describe("account data adapter", () => {
     assert.equal(requests[1].input, "/api/account/push/preferences");
     assert.equal(requests[1].init.method, "PUT");
     assert.deepEqual(JSON.parse(requests[1].init.body), fullPrefs);
+    assert.equal(JSON.parse(requests[1].init.body).savedCommutes.plannedClosureReminders, false);
     assert.equal(requests[2].input, "/api/account/push/latest");
     assert.equal(requests[2].init.method, "POST");
     assert.equal(requests[2].init.body, JSON.stringify({

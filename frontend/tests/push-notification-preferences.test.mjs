@@ -41,5 +41,8 @@ describe("push notification preferences schema", () => {
     assert.match(hookSource, /setPreferencesLoaded\(false\)/);
     assert.match(hookSource, /if \(!preferencesLoaded\)/);
     assert.match(notificationPanelSource, /disabled=\{busy \|\| !preferencesLoaded\}/);
+    assert.match(hookSource, /accountNotificationsDesired/);
+    assert.match(hookSource, /deviceSetupState/);
+    assert.match(notificationPanelSource, /Account notifications are on/);
   });
 });
