@@ -338,7 +338,7 @@ export function SiteGuideDropdown({ onOpenChange }: { onOpenChange?: (open: bool
                 <OverlayGuideRow
                   icon={<ImpactTypeIcon kind="suspension" size={16} />}
                   title="Suspended or Closed Service"
-                  text="Red lane indicates suspended service. One direction displays no-entry and arrow icons, while both ways shows a red-and-white striped lane."
+                  text="Red lane indicates suspended service. One direction displays no-entry and arrow icons, while both ways shows centered no-entry icons."
                   previews={
                     <>
                       <OverlayAssetPreview fileName="1-way-active-alert.svg" label="One Way" />

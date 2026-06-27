@@ -352,10 +352,10 @@ export function LineWatchShell({
   const notificationStatusLabel = useMemo(() => {
     if (
       !accountState.authenticated ||
-      pushSettings.browserStatus === "signed-out" ||
-      pushSettings.browserStatus === "unsupported" ||
-      pushSettings.browserStatus === "not-configured" ||
-      pushSettings.browserStatus === "checking"
+      pushSettings.deviceSetupState === "signed-out" ||
+      pushSettings.deviceSetupState === "unsupported" ||
+      pushSettings.deviceSetupState === "not-configured" ||
+      pushSettings.deviceSetupState === "checking"
     ) {
       return "Unavailable";
     }
@@ -368,7 +368,7 @@ export function LineWatchShell({
     return "Device Setup Needed";
   }, [
     accountState.authenticated,
-    pushSettings.browserStatus,
+    pushSettings.deviceSetupState,
     pushSettings.accountNotificationsDesired,
     pushSettings.subscribed,
   ]);

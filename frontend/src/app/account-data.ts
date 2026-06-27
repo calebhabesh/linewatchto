@@ -285,21 +285,10 @@ export const defaultPushNotificationPreferences: PushNotificationPreferences = {
   },
 };
 
-export type PushDeviceSummary = {
-  enabledDeviceCount: number;
-  hasEnabledDevices: boolean;
-};
-
-export const defaultPushDeviceSummary: PushDeviceSummary = {
-  enabledDeviceCount: 0,
-  hasEnabledDevices: false,
-};
-
 export type PushNotificationConfig = {
   webPushAvailable: boolean;
   vapidPublicKey: string;
   preferences: PushNotificationPreferences;
-  deviceSummary: PushDeviceSummary;
 };
 
 export type PushNotificationConfigResult = {
@@ -343,13 +332,6 @@ function apiUrl(path: string, options: AdapterOptions = {}) {
 
 async function readJson<T>(response: Response): Promise<T> {
   return await response.json() as T;
-}
-
-function normalizePushNotificationConfig(config: PushNotificationConfig & { deviceSummary?: PushDeviceSummary }): PushNotificationConfig {
-  return {
-    ...config,
-    deviceSummary: config.deviceSummary ?? defaultPushDeviceSummary,
-  };
 }
 
 export class AccountRequestError extends Error {
@@ -552,7 +534,7 @@ export async function getPushNotificationConfig(options: AdapterOptions = {}): P
     if (!response.ok) {
       throw new Error(`Push config request failed with ${response.status}`);
     }
-    const config = normalizePushNotificationConfig(await readJson<PushNotificationConfig & { deviceSummary?: PushDeviceSummary }>(response));
+    const config = await readJson<PushNotificationConfig>(response);
     return { source: "backend", config };
   } catch {
     return {
@@ -561,7 +543,6 @@ export async function getPushNotificationConfig(options: AdapterOptions = {}): P
         webPushAvailable: false,
         vapidPublicKey: "",
         preferences: defaultPushNotificationPreferences,
-        deviceSummary: defaultPushDeviceSummary,
       },
       message: "Push notifications are unavailable.",
     };

@@ -2161,9 +2161,12 @@ function AnimatedSuspensionLane({
             resolvedAngle += 180;
           }
 
+          const shouldRotate = group.dataset.suspensionSymbol !== "no-entry";
           group.setAttribute(
             "transform",
-            `translate(${p.x + offsetX} ${p.y + offsetY}) rotate(${resolvedAngle})`
+            shouldRotate
+              ? `translate(${p.x + offsetX} ${p.y + offsetY}) rotate(${resolvedAngle})`
+              : `translate(${p.x + offsetX} ${p.y + offsetY})`
           );
 
           let opacity = 1.0;
@@ -2211,12 +2214,9 @@ function AnimatedSuspensionLane({
       {indices.map((i) => {
         const isNoEntry = Math.abs(i) % 2 === 0;
         return (
-          <g key={i} data-index={i}>
+          <g key={i} data-index={i} data-suspension-symbol={isNoEntry ? "no-entry" : "direction-arrow"}>
             {isNoEntry ? (
-              <g transform="translate(-26.4, -26.4) scale(2.2)" stroke="#ffffff" fill="none" strokeWidth="3.2">
-                <circle cx="12" cy="12" r="10.5" />
-                <line x1="19.64" y1="4.36" x2="4.36" y2="19.64" />
-              </g>
+              <SuspensionNoEntryGlyph />
             ) : (
               <g transform="scale(1.1)">
                 <path
@@ -2236,7 +2236,28 @@ function AnimatedSuspensionLane({
   );
 }
 
-function StaticSuspensionStripeLane({
+function SuspensionNoEntryGlyph({
+  className = "",
+  scale = 2.2,
+}: {
+  className?: string;
+  scale?: number;
+}) {
+  return (
+    <g
+      className={`suspension-no-entry-glyph${className ? ` ${className}` : ""}`}
+      transform={`translate(${-12 * scale}, ${-12 * scale}) scale(${scale})`}
+      stroke="#ffffff"
+      fill="none"
+      strokeWidth="3.2"
+    >
+      <circle cx="12" cy="12" r="10.5" />
+      <line x1="19.64" y1="4.36" x2="4.36" y2="19.64" />
+    </g>
+  );
+}
+
+function SuspensionNoEntryLane({
   pathD,
   step,
 }: {
@@ -2258,17 +2279,13 @@ function StaticSuspensionStripeLane({
   if (!mounted || points.length === 0) return null;
 
   return (
-    <g className="suspension-static-stripe-lane">
+    <g className="suspension-no-entry-lane" aria-hidden="true">
       {points.map((point, index) => (
         <g
           key={`${point.x}-${point.y}-${index}`}
-          transform={`translate(${point.x} ${point.y}) rotate(${point.angle})`}
+          transform={`translate(${point.x} ${point.y})`}
         >
-          <path
-            className="suspension-static-stripe"
-            d="M -46 58 L 46 -58"
-            aria-hidden="true"
-          />
+          <SuspensionNoEntryGlyph scale={2.65} />
         </g>
       ))}
     </g>
@@ -2908,9 +2925,9 @@ function OverlaySegment({
                 </mask>
               </defs>
               <g mask={`url(#${segment.id}-suspension-static-mask)`}>
-                <StaticSuspensionStripeLane
+                <SuspensionNoEntryLane
                   pathD={segment.pathD}
-                  step={65}
+                  step={88}
                 />
               </g>
             </>

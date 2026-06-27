@@ -124,9 +124,9 @@ describe("floating menu layout", () => {
 
   it("keeps panel scrollbars visually quiet", () => {
     assert.match(globalCss, /scrollbar-width:\s*thin/);
-    assert.match(globalCss, /scrollbar-color:\s*rgba\(148, 163, 184, 0\.28\) transparent/);
+    assert.match(globalCss, /scrollbar-color:\s*var\(--mobile-scroll-indicator-thumb\)\s*transparent/);
     assert.match(globalCss, /::-webkit-scrollbar-thumb/);
-    assert.match(globalCss, /background:\s*rgba\(148, 163, 184, 0\.24\)/);
+    assert.match(globalCss, /background:\s*var\(--mobile-scroll-indicator-thumb\)/);
   });
 
   it("keeps station detail separate from the left-side floating panels", () => {

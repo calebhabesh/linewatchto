@@ -40,6 +40,20 @@ describe("site guide dropdown", () => {
     }
   });
 
+  it("uses the no-entry bidirectional active alert guide asset", () => {
+    const activeAsset = readFileSync(
+      new URL("../public/assets/linewatch/info-map-overlays/2-way-active.svg", import.meta.url),
+      "utf8",
+    );
+
+    assert.match(activeAsset, /id="path3"/);
+    assert.match(activeAsset, /id="path3-7"/);
+    assert.match(activeAsset, /id="path3-7-3"/);
+    assert.match(activeAsset, /fill:#ef4444/);
+    assert.doesNotMatch(activeAsset, /fill:#ffffff;fill-opacity:1;stroke:none/);
+    assert.doesNotMatch(activeAsset, /M 62\.293499 55\.283695 L 106\.574 88\.807747/);
+  });
+
   it("ships authored install guide icons", () => {
     for (const assetName of guideIconAssetNames) {
       const assetUrl = new URL(`../public/assets/linewatch/guide-icons/${assetName}`, import.meta.url);
@@ -120,6 +134,8 @@ describe("site guide dropdown", () => {
     assert.match(guideSource, /Click a Colored Overlay/);
     assert.match(guideSource, /Both Ways/);
     assert.match(guideSource, /Suspended or Closed Service/);
+    assert.match(guideSource, /both ways shows centered no-entry icons/);
+    assert.doesNotMatch(guideSource, /both ways shows a red-and-white striped lane/);
     assert.match(guideSource, /"Delay"/);
     assert.match(guideSource, /Reduced Speed Zone/);
     assert.match(guideSource, /Upcoming Closure Preview/);

@@ -6,13 +6,13 @@ import { defaultPushNotificationPreferences } from "../src/app/account-data.ts";
 
 const hookSource = readFileSync(new URL("../src/hooks/usePushNotificationSettings.ts", import.meta.url), "utf8");
 const notificationPanelSource = readFileSync(new URL("../src/components/NotificationSettingsPanel.tsx", import.meta.url), "utf8");
+const accountDataSource = readFileSync(new URL("../src/app/account-data.ts", import.meta.url), "utf8");
 
 describe("push notification preferences schema", () => {
   it("defines nested preferences structure in account-data.ts", () => {
-    const source = readFileSync(new URL("../src/app/account-data.ts", import.meta.url), "utf8");
-    assert.match(source, /savedCommutes/);
-    assert.match(source, /lineSubscriptions/);
-    assert.match(source, /reminderTiming/);
+    assert.match(accountDataSource, /savedCommutes/);
+    assert.match(accountDataSource, /lineSubscriptions/);
+    assert.match(accountDataSource, /reminderTiming/);
   });
 
   it("exports default push notification preferences with all lines unsubscribed", () => {
@@ -44,5 +44,13 @@ describe("push notification preferences schema", () => {
     assert.match(hookSource, /accountNotificationsDesired/);
     assert.match(hookSource, /deviceSetupState/);
     assert.match(notificationPanelSource, /Account notifications are on/);
+  });
+
+  it("keeps the frontend notification state surface lean", () => {
+    assert.doesNotMatch(hookSource, /BrowserPushStatus/);
+    assert.doesNotMatch(hookSource, /browserStatus/);
+    assert.match(hookSource, /deviceSetupState/);
+    assert.doesNotMatch(accountDataSource, /defaultPushDeviceSummary/);
+    assert.doesNotMatch(accountDataSource, /deviceSummary:\s*PushDeviceSummary/);
   });
 });

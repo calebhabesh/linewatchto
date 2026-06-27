@@ -32,7 +32,7 @@ describe("asset-backed map layering", () => {
     assert.match(interactiveMapSource, /mask=\{\`url\(#\$\{segment\.id\}-mask\)\`\}/);
     assert.match(interactiveMapSource, /className="asset-alert-path delay-candy pointer-events-none"/);
     assert.match(interactiveMapSource, /style=\{\{\s*pointerEvents:\s*"none",\s*stroke:\s*chevronBg\s*\}\}/);
-    assert.match(interactiveMapSource, /StaticSuspensionStripeLane/);
+    assert.match(interactiveMapSource, /SuspensionNoEntryLane/);
     assert.match(interactiveMapSource, /className="asset-alert-path suspension-candy suspension-solid pointer-events-none"/);
     assert.match(globalCss, /@keyframes station-selected-pulse/);
     assert.match(globalCss, /@keyframes aura-pulse/);
@@ -120,12 +120,22 @@ describe("asset-backed map layering", () => {
   });
 
   it("renders directional suspension lanes", () => {
+    const laneStart = interactiveMapSource.indexOf("function AnimatedSuspensionLane(");
+    const laneEnd = interactiveMapSource.indexOf("function SuspensionNoEntryGlyph(", laneStart);
+    const laneBlock = interactiveMapSource.slice(laneStart, laneEnd);
+
+    assert.ok(laneStart > -1, "AnimatedSuspensionLane must exist");
+    assert.ok(laneEnd > laneStart, "AnimatedSuspensionLane block should end before the no-entry glyph helper");
     assert.match(interactiveMapSource, /AnimatedSuspensionLane/);
     assert.match(interactiveMapSource, /circle cx="12" cy="12" r="10\.5"/);
     assert.match(interactiveMapSource, /stroke="#ffffff"/);
+    assert.match(laneBlock, /data-suspension-symbol=\{isNoEntry \? "no-entry" : "direction-arrow"\}/);
+    assert.match(laneBlock, /const shouldRotate = group\.dataset\.suspensionSymbol !== "no-entry";/);
+    assert.match(laneBlock, /shouldRotate\s*\?\s*`translate\(\$\{p\.x \+ offsetX\} \$\{p\.y \+ offsetY\}\) rotate\(\$\{resolvedAngle\}\)`/);
+    assert.match(laneBlock, /:\s*`translate\(\$\{p\.x \+ offsetX\} \$\{p\.y \+ offsetY\}\)`/);
   });
 
-  it("renders bidirectional suspension stripes as path-local static glyphs", () => {
+  it("renders bidirectional suspension marks as evenly spaced no-entry icons", () => {
     const branchStart = interactiveMapSource.indexOf('{visualState === "suspension"');
     const suspensionStart = interactiveMapSource.indexOf('travelDirection === "bidirectional" ? (', branchStart);
     const suspensionEnd = interactiveMapSource.indexOf(') : (', suspensionStart);
@@ -134,12 +144,26 @@ describe("asset-backed map layering", () => {
     assert.ok(branchStart > -1, "suspension overlay branch must exist");
     assert.ok(suspensionStart > -1, "bidirectional suspension overlay branch must exist");
     assert.ok(suspensionEnd > suspensionStart, "bidirectional suspension branch should end before one-way branch");
-    assert.match(suspensionBlock, /<StaticSuspensionStripeLane/);
+    assert.match(suspensionBlock, /<SuspensionNoEntryLane/);
     assert.match(suspensionBlock, /mask=\{`url\(#\$\{segment\.id\}-suspension-static-mask\)`\}/);
     assert.doesNotMatch(suspensionBlock, /stroke:\s*"url\(#suspension-hash\)"/);
-    assert.match(interactiveMapSource, /rotate\(\$\{point\.angle\}\)/);
-    assert.match(globalCss, /\.suspension-static-stripe\s*\{[^}]*stroke:\s*#ffffff;/s);
-    assert.match(globalCss, /\.suspension-static-stripe\s*\{[^}]*stroke-width:\s*17;/s);
+    assert.doesNotMatch(suspensionBlock, /d="M -14 -14 L 10 0 L -14 14"/);
+    assert.doesNotMatch(interactiveMapSource, /fixedStripePathDForPath/);
+    assert.match(interactiveMapSource, /className="suspension-no-entry-lane"/);
+    assert.match(interactiveMapSource, /className=\{\`suspension-no-entry-glyph/);
+    assert.match(interactiveMapSource, /function SuspensionNoEntryGlyph\(\{[\s\S]*scale = 2\.2,/);
+    assert.match(suspensionBlock, /step=\{88\}/);
+    assert.match(interactiveMapSource, /<SuspensionNoEntryGlyph scale=\{2\.65\} \/>/);
+    assert.doesNotMatch(interactiveMapSource, /rotate\(\$\{point\.angle\}\)/);
+    assert.match(interactiveMapSource, /transform=\{`translate\(\$\{point\.x\} \$\{point\.y\}\)`\}/);
+    assert.match(interactiveMapSource, /circle cx="12" cy="12" r="10\.5"/);
+    assert.match(interactiveMapSource, /line x1="19\.64" y1="4\.36" x2="4\.36" y2="19\.64"/);
+    assert.doesNotMatch(interactiveMapSource, /d="M 0 -58 L 0 58"/);
+    assert.match(globalCss, /\.suspension-no-entry-lane\s*\{[^}]*pointer-events:\s*none;/s);
+    assert.match(globalCss, /\.suspension-no-entry-glyph\s*\{[^}]*pointer-events:\s*none;/s);
+    assert.doesNotMatch(globalCss, /\.suspension-crossbar/);
+    assert.doesNotMatch(globalCss, /\.suspension-through-line-rail/);
+    assert.doesNotMatch(globalCss, /\.suspension-through-line-core/);
   });
 
   it("prioritizes active disruption overlays by type and renders planned previews underneath", () => {

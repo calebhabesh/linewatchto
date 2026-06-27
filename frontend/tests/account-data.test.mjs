@@ -358,10 +358,6 @@ describe("account data adapter", () => {
           JSON.stringify({
             webPushAvailable: true,
             vapidPublicKey: "BPublicVapidKey",
-            deviceSummary: {
-              enabledDeviceCount: 1,
-              hasEnabledDevices: true,
-            },
             preferences: {
               commuteNotificationsEnabled: true,
               plannedClosureNotificationsEnabled: true,
@@ -405,8 +401,6 @@ describe("account data adapter", () => {
     });
 
     assert.equal(result.source, "backend");
-    assert.equal(result.config.deviceSummary.enabledDeviceCount, 1);
-    assert.equal(result.config.deviceSummary.hasEnabledDevices, true);
     assert.equal(result.config.webPushAvailable, true);
     assert.equal(result.config.vapidPublicKey, "BPublicVapidKey");
     assert.equal(result.config.preferences.savedCommutes.currentDisruptions, true);

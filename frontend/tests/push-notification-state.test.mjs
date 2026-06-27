@@ -5,6 +5,7 @@ import {
   accountNotificationsDesired,
   canAutoRestoreDevicePush,
   pushDeviceDisabledStorageKey,
+  setupStateAfterPreferenceUpdate,
 } from "../src/app/push-notification-state.ts";
 import { defaultPushNotificationPreferences } from "../src/app/account-data.ts";
 
@@ -93,5 +94,20 @@ describe("push notification account and device state", () => {
 
   it("keys device-disabled state by account id", () => {
     assert.equal(pushDeviceDisabledStorageKey("user_1"), "linewatch.push.device-disabled.user_1");
+  });
+
+  it("moves from account-off to device setup when preferences are re-enabled without a subscription", () => {
+    assert.equal(setupStateAfterPreferenceUpdate({
+      currentlySubscribed: false,
+      authenticated: true,
+      supported: true,
+      webPushAvailable: true,
+      hasVapidPublicKey: true,
+      accountNotificationsDesired: true,
+      notificationPermission: "granted",
+      hasCurrentSubscription: false,
+      currentSubscriptionUsesVapidKey: false,
+      deviceDisabledByUser: false,
+    }), "needs-device-enable");
   });
 });

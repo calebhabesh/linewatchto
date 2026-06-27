@@ -24,6 +24,10 @@ export type AutoRestoreDevicePushInput = {
   deviceDisabledByUser: boolean;
 };
 
+export type PreferenceUpdateDeviceStateInput = AutoRestoreDevicePushInput & {
+  currentlySubscribed: boolean;
+};
+
 export function accountNotificationsDesired(preferences: PushNotificationPreferences): boolean {
   const savedCommuteDesired =
     preferences.savedCommutes.currentDisruptions ||
@@ -57,4 +61,9 @@ export function setupStateForDevicePush(input: AutoRestoreDevicePushInput): Devi
   if (!input.accountNotificationsDesired) return "account-off";
   if (input.notificationPermission === "default") return "needs-permission";
   return "needs-device-enable";
+}
+
+export function setupStateAfterPreferenceUpdate(input: PreferenceUpdateDeviceStateInput): DevicePushSetupState {
+  if (input.currentlySubscribed) return "enabled";
+  return setupStateForDevicePush(input);
 }

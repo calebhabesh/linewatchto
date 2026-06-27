@@ -64,38 +64,38 @@ html[data-safe-area-debug="iphone-dynamic-island"] {
   box-sizing: border-box;
 }
 
-@supports not selector(::-webkit-scrollbar) {
-  * {
-    scrollbar-color: rgba(148, 163, 184, 0.28) transparent;
-    scrollbar-width: thin;
+* {
+  scrollbar-color: var(--mobile-scroll-indicator-thumb) transparent;
+  scrollbar-width: thin;
+}
+
+@media (min-width: 768px) {
+  *::-webkit-scrollbar {
+    height: 9px;
+    width: 9px;
   }
-}
 
-*::-webkit-scrollbar {
-  height: 9px;
-  width: 9px;
-}
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
 
-*::-webkit-scrollbar-track {
-  background: transparent;
-}
+  *::-webkit-scrollbar-thumb {
+    background: var(--mobile-scroll-indicator-thumb);
+    border: 2px solid transparent;
+    border-radius: 999px;
+    background-clip: padding-box;
+  }
 
-*::-webkit-scrollbar-thumb {
-  background: rgba(148, 163, 184, 0.24);
-  border: 2px solid transparent;
-  border-radius: 999px;
-  background-clip: padding-box;
-}
+  *::-webkit-scrollbar-thumb:hover {
+    background: var(--mobile-scroll-indicator-thumb-hover);
+    background-clip: padding-box;
+  }
 
-*::-webkit-scrollbar-thumb:hover {
-  background: rgba(148, 163, 184, 0.42);
-  background-clip: padding-box;
-}
-
-*::-webkit-scrollbar-button {
-  display: none !important;
-  width: 0;
-  height: 0;
+  *::-webkit-scrollbar-button {
+    display: none !important;
+    width: 0;
+    height: 0;
+  }
 }
 
 html {
@@ -1310,6 +1310,14 @@ button {
   flex: 0 0 12px !important;
 }
 
+@media (min-width: 768px) {
+  .subway-closing-soon-chip {
+    width: fit-content;
+    flex: 0 0 auto;
+    padding-right: 12px;
+  }
+}
+
 @media (max-width: 520px) {
   .subway-closing-soon-chip {
     flex-basis: min(320px, calc(100vw - 32px));
@@ -1695,17 +1703,13 @@ button {
   transition: none !important;
 }
 
-.suspension-static-stripe-lane {
+.suspension-no-entry-lane {
   overflow: visible;
+  pointer-events: none;
 }
 
-.suspension-static-stripe {
-  fill: none;
-  opacity: 0.94;
-  stroke: #ffffff;
-  stroke-linecap: butt;
-  stroke-linejoin: round;
-  stroke-width: 17;
+.suspension-no-entry-glyph {
+  pointer-events: none;
 }
 
 .asset-alert-path-glow.delay {
@@ -1935,7 +1939,7 @@ button {
 
 .delay-hourglass-mask-path,
 .suspension-mask-path,
-.suspension-static-stripe,
+.suspension-no-entry-glyph,
 .rsz-chevron,
 .station-hit-target,
 .station-hover-indicator,
@@ -6447,97 +6451,9 @@ button {
   .mobile-more-content-scroll,
   .mobile-status-content-scroll {
     -webkit-overflow-scrolling: touch;
-    scrollbar-color: var(--mobile-scroll-indicator-thumb) transparent;
-    scrollbar-width: thin;
   }
 
-  .floating-panel-scroll::-webkit-scrollbar,
-  .station-search-results::-webkit-scrollbar,
-  .station-search-stations-column::-webkit-scrollbar,
-  .commute-station-popover::-webkit-scrollbar,
-  .commute-station-options::-webkit-scrollbar,
-  .commute-station-lines-column::-webkit-scrollbar,
-  .commute-station-stations-column::-webkit-scrollbar,
-  .alert-stack::-webkit-scrollbar,
-  .closure-stack::-webkit-scrollbar,
-  .commute-grid::-webkit-scrollbar,
-  .reliability-list::-webkit-scrollbar,
-  .health-grid::-webkit-scrollbar,
-  .mobile-more-content-scroll::-webkit-scrollbar,
-  .mobile-status-content-scroll::-webkit-scrollbar {
-    height: 8px;
-    width: 8px;
-  }
 
-  .floating-panel-scroll::-webkit-scrollbar-thumb,
-  .station-search-results::-webkit-scrollbar-thumb,
-  .commute-station-options::-webkit-scrollbar-thumb,
-  .station-search-stations-column::-webkit-scrollbar-thumb,
-  .commute-station-popover::-webkit-scrollbar-thumb,
-  .commute-station-lines-column::-webkit-scrollbar-thumb,
-  .commute-station-stations-column::-webkit-scrollbar-thumb,
-  .alert-stack::-webkit-scrollbar-thumb,
-  .closure-stack::-webkit-scrollbar-thumb,
-  .commute-grid::-webkit-scrollbar-thumb,
-  .reliability-list::-webkit-scrollbar-thumb,
-  .health-grid::-webkit-scrollbar-thumb,
-  .mobile-more-content-scroll::-webkit-scrollbar-thumb,
-  .mobile-status-content-scroll::-webkit-scrollbar-thumb {
-    background: var(--mobile-scroll-indicator-thumb);
-    background-clip: padding-box;
-    border: 2px solid transparent;
-    border-radius: 999px;
-  }
-
-  .floating-panel-scroll::-webkit-scrollbar-thumb:hover,
-  .station-search-results::-webkit-scrollbar-thumb:hover,
-  .station-search-stations-column::-webkit-scrollbar-thumb:hover,
-  .commute-station-popover::-webkit-scrollbar-thumb:hover,
-  .commute-station-options::-webkit-scrollbar-thumb:hover,
-  .commute-station-lines-column::-webkit-scrollbar-thumb:hover,
-  .commute-station-stations-column::-webkit-scrollbar-thumb:hover,
-  .alert-stack::-webkit-scrollbar-thumb:hover,
-  .closure-stack::-webkit-scrollbar-thumb:hover,
-  .commute-grid::-webkit-scrollbar-thumb:hover,
-  .reliability-list::-webkit-scrollbar-thumb:hover,
-  .health-grid::-webkit-scrollbar-thumb:hover,
-  .mobile-more-content-scroll::-webkit-scrollbar-thumb:hover,
-  .mobile-status-content-scroll::-webkit-scrollbar-thumb:hover {
-    background: var(--mobile-scroll-indicator-thumb-hover);
-    background-clip: padding-box;
-  }
-
-  .linewatch-mobile-scrollbar {
-    -ms-overflow-style: none;
-    position: relative;
-    scrollbar-color: transparent transparent;
-    scrollbar-width: none;
-  }
-
-  .linewatch-mobile-scrollbar::-webkit-scrollbar {
-    display: none;
-    height: 0;
-    width: 0;
-  }
-
-  .linewatch-mobile-scrollbar::after {
-    content: "";
-    position: absolute;
-    top: var(--mobile-scrollbar-thumb-top, 12px);
-    right: 4px;
-    height: var(--mobile-scrollbar-thumb-height, 28px);
-    width: 4px;
-    background: var(--mobile-scroll-indicator-thumb);
-    border-radius: 999px;
-    opacity: 0.86;
-    pointer-events: none;
-    transform: translateZ(0);
-    z-index: 5;
-  }
-
-  .linewatch-mobile-scrollbar--hidden::after {
-    opacity: 0;
-  }
 
   .mobile-bottom-nav {
     align-items: stretch;
@@ -7838,17 +7754,7 @@ button {
     overflow-y: auto !important;
     flex: 1 1 auto !important;
   }
-  @supports not selector(::-webkit-scrollbar) {
-    .alert-stack,
-    .closure-stack,
-    .commute-grid,
-    .reliability-list,
-    .health-grid,
-    .mobile-more-content-scroll,
-    .mobile-status-content-scroll {
-      scrollbar-width: thin !important;
-    }
-  }
+
   /* Give a bit of breathing room at the bottom of lists */
   .alert-stack,
   .closure-stack,
@@ -7856,7 +7762,9 @@ button {
   .reliability-list,
   .mobile-more-content-scroll,
   .mobile-status-content-scroll {
-    padding-bottom: 20px !important;
+    padding-bottom: 56px !important;
+    mask-image: linear-gradient(to bottom, black calc(100% - 60px), transparent 100%);
+    -webkit-mask-image: linear-gradient(to bottom, black calc(100% - 60px), transparent 100%);
   }
   
   .mobile-more-content-scroll {
@@ -7870,7 +7778,7 @@ button {
     display: flex !important;
     flex-direction: column !important;
     gap: 16px !important;
-    padding-right: 10px !important;
+    padding-right: 16px !important;
   }
 
   /* Make panel heading fit on one line and fit within web view on mobile */
