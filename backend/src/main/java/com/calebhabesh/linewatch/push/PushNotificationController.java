@@ -46,7 +46,7 @@ public class PushNotificationController {
     }
 
     @PutMapping("/preferences")
-    public PushResponses.PushSubscriptionResponse updatePreferences(
+    public PushResponses.PushPreferencesResponse updatePreferences(
         @CookieValue(name = AuthCookieFactory.COOKIE_NAME, required = false) String rawSessionToken,
         @RequestBody PushRequests.UpdatePushPreferencesRequest request
     ) {

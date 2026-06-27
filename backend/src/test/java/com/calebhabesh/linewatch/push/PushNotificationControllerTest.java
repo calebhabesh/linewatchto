@@ -114,4 +114,23 @@ class PushNotificationControllerTest {
 
         verify(pushNotificationService).disableSubscription(account, request);
     }
+
+    @Test
+    void updatesAccountNotificationPreferencesWithoutDeviceSubscription() {
+        PushRequests.UpdatePushPreferencesRequest request = new PushRequests.UpdatePushPreferencesRequest(
+            true,
+            false,
+            null,
+            null,
+            null
+        );
+        PushResponses.PushPreferencesResponse expected = new PushResponses.PushPreferencesResponse(true, false);
+        when(accountService.requireAccount("raw-token")).thenReturn(account);
+        when(pushNotificationService.updatePreferences(account, request)).thenReturn(expected);
+
+        PushResponses.PushPreferencesResponse response = controller.updatePreferences("raw-token", request);
+
+        assertThat(response).isEqualTo(expected);
+        verify(pushNotificationService).updatePreferences(account, request);
+    }
 }

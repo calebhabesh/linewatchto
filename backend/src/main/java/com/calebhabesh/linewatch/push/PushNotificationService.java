@@ -125,38 +125,11 @@ public class PushNotificationService {
     }
 
     @Transactional
-    public PushResponses.PushSubscriptionResponse updatePreferences(
+    public PushResponses.PushPreferencesResponse updatePreferences(
         AccountEntity account,
         PushRequests.UpdatePushPreferencesRequest request
     ) {
-        PushResponses.PushPreferencesResponse updatedPrefs = preferenceService.updatePreferences(account, request);
-        
-        Optional<PushSubscriptionEntity> activeSubOpt = subscriptionRepository.findByAccountIdAndEnabledTrue(account.getId())
-            .stream()
-            .findFirst();
-            
-        if (activeSubOpt.isPresent()) {
-            PushSubscriptionEntity subscription = activeSubOpt.get();
-            subscription.updatePreferences(
-                updatedPrefs.commuteNotificationsEnabled(),
-                updatedPrefs.plannedClosureNotificationsEnabled(),
-                clock.instant()
-            );
-            PushSubscriptionEntity saved = subscriptionRepository.save(subscription);
-            return new PushResponses.PushSubscriptionResponse(
-                saved.getId(),
-                saved.isEnabled(),
-                updatedPrefs.commuteNotificationsEnabled(),
-                updatedPrefs.plannedClosureNotificationsEnabled()
-            );
-        } else {
-            return new PushResponses.PushSubscriptionResponse(
-                "",
-                false,
-                updatedPrefs.commuteNotificationsEnabled(),
-                updatedPrefs.plannedClosureNotificationsEnabled()
-            );
-        }
+        return preferenceService.updatePreferences(account, request);
     }
 
     @Transactional

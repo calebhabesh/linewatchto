@@ -441,4 +441,23 @@ class PushNotificationServiceTest {
         assertThat(response.deviceSummary().enabledDeviceCount()).isEqualTo(2);
         assertThat(response.deviceSummary().hasEnabledDevices()).isTrue();
     }
+
+    @Test
+    void updatePreferencesReturnsAccountPreferencesAndDoesNotRequireDeviceSubscription() {
+        PushRequests.UpdatePushPreferencesRequest request = new PushRequests.UpdatePushPreferencesRequest(
+            true,
+            false,
+            null,
+            null,
+            null
+        );
+        PushResponses.PushPreferencesResponse updated = new PushResponses.PushPreferencesResponse(true, false);
+        when(preferenceService.updatePreferences(account, request)).thenReturn(updated);
+
+        PushResponses.PushPreferencesResponse response = service.updatePreferences(account, request);
+
+        assertThat(response).isEqualTo(updated);
+        verify(subscriptionRepository, never()).findByAccountIdAndEnabledTrue(anyString());
+        verify(subscriptionRepository, never()).save(any());
+    }
 }
