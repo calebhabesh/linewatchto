@@ -231,7 +231,7 @@ export function usePushNotificationSettings(accountState: AccountState): UsePush
         setMessage("Could not load notification preferences.");
       }
     }
-  }, [accountState.authenticated, supported, createOrRefreshDeviceSubscription, autoRestoreAttemptedFor]);
+  }, [accountState.authenticated, accountState.user, supported, createOrRefreshDeviceSubscription, autoRestoreAttemptedFor]);
 
   useEffect(() => {
     let mounted = true;

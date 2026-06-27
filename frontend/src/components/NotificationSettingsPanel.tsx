@@ -80,7 +80,6 @@ export function NotificationSettingsPanel({
     subscribed,
     busy,
     message,
-    browserStatus,
     preferencesLoaded,
     enableDeviceNotifications,
     disableDeviceNotifications,
