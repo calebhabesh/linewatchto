@@ -85,20 +85,13 @@ export function NotificationSettingsPanel({
     enableDeviceNotifications,
     disableDeviceNotifications,
     updatePreferences,
+    accountNotificationsDesired,
+    deviceSetupState,
   } = pushSettings;
 
   const statusMessage = useMemo(() => {
-    if (message) {
-      if (
-        message === "Push for this browser is enabled." ||
-        message === "Push for this browser is disabled." ||
-        message === "Push for this browser is off."
-      ) {
-        return null;
-      }
-      return message;
-    }
-    switch (browserStatus) {
+    if (message) return message;
+    switch (deviceSetupState) {
       case "unsupported":
         return "Push unavailable on this browser.";
       case "not-configured":
@@ -107,12 +100,19 @@ export function NotificationSettingsPanel({
         return "Notifications are blocked in browser settings.";
       case "checking":
         return "Checking push support...";
-      case "off":
-      case "on":
+      case "restoring":
+        return "Restoring notifications on this device...";
+      case "needs-permission":
+      case "needs-device-enable":
+        return "Account notifications are on. Enable this device to receive them here.";
+      case "account-off":
+        return "Account notification preferences are off.";
+      case "enabled":
+      case "signed-out":
       default:
         return null;
     }
-  }, [message, browserStatus]);
+  }, [message, deviceSetupState]);
 
   return (
     <section className="notification-settings-panel panel min-w-0 border border-black/10 dark:border-white/10 rounded-lg shadow-xl" aria-label="Notification settings">
@@ -205,7 +205,13 @@ export function NotificationSettingsPanel({
             <div className="notification-settings-section">
               <div className="notification-settings-section-header">
                 <h3>Device Notifications</h3>
-                <span>{subscribed ? "Enabled" : "Off"}</span>
+                <span>{
+                  deviceSetupState === "enabled" ? "Enabled" :
+                  deviceSetupState === "restoring" ? "Restoring" :
+                  deviceSetupState === "blocked" ? "Blocked" :
+                  accountNotificationsDesired ? "Setup Needed" :
+                  "Off"
+                }</span>
               </div>
               <div className="notification-settings-card border border-black/10 dark:border-white/10 p-3 rounded-lg flex flex-col gap-2 relative">
                 <div className="flex items-start gap-2.5">
@@ -214,8 +220,12 @@ export function NotificationSettingsPanel({
                       <Bell size={15} className="text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
                     </span>
                     <div>
-                      <strong>Push for This Browser</strong>
-                      <em>Controls whether this phone or browser can display LineWatchTO notifications.</em>
+                      <strong>{deviceSetupState === "enabled" ? "This Device" : "Enable on This Device"}</strong>
+                      <em>
+                        {deviceSetupState === "enabled"
+                          ? "This device is receiving notifications for the account preferences below."
+                          : "Your account preferences are saved separately from this browser's push subscription."}
+                      </em>
                       {busy ? (
                         <p className="notification-settings-message text-xs text-slate-400 dark:text-slate-500 flex items-center gap-1.5 mt-1.5" role="status">
                           <Loader2 size={13} className="animate-spin" aria-hidden="true" /> Updating notification settings...
@@ -257,11 +267,16 @@ export function NotificationSettingsPanel({
                     <div>
                       <strong>Current Disruptions Affecting Saved Commutes</strong>
                       <em>Delays, suspensions, Reduced Speed Zones, and cleared updates only when they affect a saved route.</em>
-                      {!subscribed && (
+                      {!subscribed && accountNotificationsDesired ? (
                         <p className="notification-settings-muted-warning text-xs text-slate-400 dark:text-slate-500 italic mt-1.5">
-                          Inactive until device notifications are enabled.
+                          Account notifications are on. Enable this device to receive pushes here.
                         </p>
-                      )}
+                      ) : null}
+                      {!accountNotificationsDesired ? (
+                        <p className="notification-settings-muted-warning text-xs text-slate-400 dark:text-slate-500 italic mt-1.5">
+                          Turn on at least one account notification stream to receive pushes.
+                        </p>
+                      ) : null}
                     </div>
                   </div>
                   <div className="notification-settings-row-actions">
@@ -291,11 +306,16 @@ export function NotificationSettingsPanel({
                     <div>
                       <strong>Planned Closure Reminders</strong>
                       <em>Upcoming closure notices for monitored saved-commute routes.</em>
-                      {!subscribed && (
+                      {!subscribed && accountNotificationsDesired ? (
                         <p className="notification-settings-muted-warning text-xs text-slate-400 dark:text-slate-500 italic mt-1.5">
-                          Inactive until device notifications are enabled.
+                          Account notifications are on. Enable this device to receive pushes here.
                         </p>
-                      )}
+                      ) : null}
+                      {!accountNotificationsDesired ? (
+                        <p className="notification-settings-muted-warning text-xs text-slate-400 dark:text-slate-500 italic mt-1.5">
+                          Turn on at least one account notification stream to receive pushes.
+                        </p>
+                      ) : null}
                     </div>
                   </div>
                   <div className="notification-settings-row-actions">

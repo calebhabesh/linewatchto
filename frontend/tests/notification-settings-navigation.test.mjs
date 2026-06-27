@@ -30,7 +30,11 @@ describe("notification settings navigation", () => {
 
   it("shows real saved-commute push controls plus conservative future notification sections", () => {
     assert.match(notificationPanelSource, /Device Notifications/);
-    assert.match(notificationPanelSource, /Push for This Browser/);
+    assert.match(notificationPanelSource, /Push for this browser/);
+    assert.match(notificationPanelSource, /Account notifications are on/);
+    assert.match(notificationPanelSource, /This device is receiving notifications/);
+    assert.match(notificationPanelSource, /Enable on This Device/);
+    assert.match(shellSource, /Device Setup Needed/);
     assert.match(notificationPanelSource, /Saved Commute Alerts/);
     assert.match(notificationPanelSource, /Current Disruptions Affecting Saved Commutes/);
     assert.match(notificationPanelSource, /Planned Closure Reminders/);

@@ -98,137 +98,6 @@ const MIN_DASHBOARD_REFRESH_MS = 10_000;
 const GOOGLE_LINK_SUCCESS_PARAM = "account_linked";
 const GOOGLE_LINK_SUCCESS_VALUE = "google";
 const GOOGLE_LINK_SUCCESS_MESSAGE = "Google sign-in has been linked to your account.";
-const MOBILE_SCROLLBAR_SELECTOR = [
-  ".station-search-results",
-  ".station-search-stations-column",
-  ".commute-station-options",
-  ".commute-station-lines-column",
-  ".commute-station-stations-column",
-  ".alert-stack",
-  ".closure-stack",
-  ".commute-grid",
-  ".reliability-list",
-  ".health-grid",
-  ".mobile-more-content-scroll",
-  ".mobile-status-content-scroll",
-  ".mobile-impact-inspector-scroll",
-].join(", ");
-const MOBILE_SCROLLBAR_CLASS = "linewatch-mobile-scrollbar";
-const MOBILE_SCROLLBAR_HIDDEN_CLASS = "linewatch-mobile-scrollbar--hidden";
-
-function clearMobileScrollbarElement(element: HTMLElement) {
-  element.classList.remove(MOBILE_SCROLLBAR_CLASS, MOBILE_SCROLLBAR_HIDDEN_CLASS);
-  element.style.removeProperty("--mobile-scrollbar-thumb-top");
-  element.style.removeProperty("--mobile-scrollbar-thumb-height");
-}
-
-function updateMobileScrollbarElement(element: HTMLElement) {
-  const maxScroll = element.scrollHeight - element.clientHeight;
-  const scrollable = maxScroll > 2 && element.clientHeight > 0;
-
-  if (!scrollable) {
-    clearMobileScrollbarElement(element);
-    return;
-  }
-
-  const trackInset = 14;
-  const thumbHeight = Math.max(48, Math.min(72, Math.round(element.clientHeight * 0.14)));
-  const trackRange = Math.max(0, element.clientHeight - thumbHeight - (trackInset * 2));
-  const scrollProgress = Math.min(1, Math.max(0, element.scrollTop / maxScroll));
-  const viewportThumbTop = trackInset + (trackRange * scrollProgress);
-  const contentThumbTop = element.scrollTop + viewportThumbTop;
-
-  element.classList.add(MOBILE_SCROLLBAR_CLASS);
-  element.classList.remove(MOBILE_SCROLLBAR_HIDDEN_CLASS);
-  element.style.setProperty("--mobile-scrollbar-thumb-top", `${Math.round(contentThumbTop)}px`);
-  element.style.setProperty("--mobile-scrollbar-thumb-height", `${Math.round(thumbHeight)}px`);
-}
-
-function isIosScrollbarHost() {
-  if (typeof navigator === "undefined") {
-    return false;
-  }
-
-  const platform = navigator.platform ?? "";
-  const userAgent = navigator.userAgent ?? "";
-  const touchMacPlatform = platform === "MacIntel" && navigator.maxTouchPoints > 1;
-
-  return /iPad|iPhone|iPod/.test(platform) || /iPad|iPhone|iPod/.test(userAgent) || touchMacPlatform;
-}
-
-function useMobileScrollbars(enabled: boolean) {
-  useEffect(() => {
-    if (!enabled || typeof window === "undefined" || typeof document === "undefined" || isIosScrollbarHost()) {
-      return;
-    }
-
-    const elements = new Set<HTMLElement>();
-    let animationFrame = 0;
-
-    const updateAll = () => {
-      animationFrame = 0;
-      elements.forEach(updateMobileScrollbarElement);
-    };
-
-    const scheduleUpdate = () => {
-      if (animationFrame) return;
-      animationFrame = window.requestAnimationFrame(updateAll);
-    };
-
-    const resizeObserver = typeof ResizeObserver !== "undefined"
-      ? new ResizeObserver(scheduleUpdate)
-      : null;
-
-    const addElement = (element: HTMLElement) => {
-      if (elements.has(element)) return;
-      elements.add(element);
-      element.addEventListener("scroll", scheduleUpdate, { passive: true });
-      resizeObserver?.observe(element);
-      updateMobileScrollbarElement(element);
-    };
-
-    const removeElement = (element: HTMLElement) => {
-      if (!elements.delete(element)) return;
-      element.removeEventListener("scroll", scheduleUpdate);
-      resizeObserver?.unobserve(element);
-      clearMobileScrollbarElement(element);
-    };
-
-    const syncElements = () => {
-      const current = new Set(Array.from(document.querySelectorAll<HTMLElement>(MOBILE_SCROLLBAR_SELECTOR)));
-      elements.forEach((element) => {
-        if (!current.has(element)) {
-          removeElement(element);
-        }
-      });
-      current.forEach(addElement);
-      scheduleUpdate();
-    };
-
-    const mutationObserver = new MutationObserver(syncElements);
-    syncElements();
-
-    if (document.body) {
-      mutationObserver.observe(document.body, { childList: true, subtree: true });
-    }
-
-    window.addEventListener("resize", scheduleUpdate);
-
-    return () => {
-      if (animationFrame) {
-        window.cancelAnimationFrame(animationFrame);
-      }
-      mutationObserver.disconnect();
-      resizeObserver?.disconnect();
-      window.removeEventListener("resize", scheduleUpdate);
-      elements.forEach((element) => {
-        element.removeEventListener("scroll", scheduleUpdate);
-        clearMobileScrollbarElement(element);
-      });
-      elements.clear();
-    };
-  }, [enabled]);
-}
 
 function dashboardRefreshIntervalMs() {
   const configured = Number(process.env.NEXT_PUBLIC_LINEWATCH_DASHBOARD_REFRESH_MS);
@@ -326,8 +195,6 @@ export function LineWatchShell({
     mediaQuery.addEventListener("change", sync);
     return () => mediaQuery.removeEventListener("change", sync);
   }, []);
-
-  useMobileScrollbars(isMobile);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -483,28 +350,39 @@ export function LineWatchShell({
   }, []);
 
   const notificationStatusLabel = useMemo(() => {
-    if (!accountState.authenticated || pushSettings.browserStatus === "signed-out" || pushSettings.browserStatus === "unsupported" || pushSettings.browserStatus === "not-configured" || pushSettings.browserStatus === "checking") {
+    if (
+      !accountState.authenticated ||
+      pushSettings.browserStatus === "signed-out" ||
+      pushSettings.browserStatus === "unsupported" ||
+      pushSettings.browserStatus === "not-configured" ||
+      pushSettings.browserStatus === "checking"
+    ) {
       return "Unavailable";
     }
-    const currentEnabled = pushSettings.preferences.savedCommutes.currentDisruptions;
-    const plannedEnabled = pushSettings.preferences.savedCommutes.plannedClosureReminders;
-    if (!currentEnabled && !plannedEnabled) {
+    if (!pushSettings.accountNotificationsDesired) {
       return "Off";
     }
     if (pushSettings.subscribed) {
       return "On";
     }
-    return "Device Off";
-  }, [accountState.authenticated, pushSettings.browserStatus, pushSettings.subscribed, pushSettings.preferences]);
+    return "Device Setup Needed";
+  }, [
+    accountState.authenticated,
+    pushSettings.browserStatus,
+    pushSettings.accountNotificationsDesired,
+    pushSettings.subscribed,
+  ]);
 
   const notificationSummary = useMemo(() => {
     const tone: "on" | "off" | "unavailable" =
       notificationStatusLabel === "On" ? "on" :
-      notificationStatusLabel === "Device Off" || notificationStatusLabel === "Off" ? "off" :
+      notificationStatusLabel === "Device Setup Needed" || notificationStatusLabel === "Off" ? "off" :
       "unavailable";
     return {
       label: notificationStatusLabel,
-      detail: "Saved commute alerts and closure reminders",
+      detail: notificationStatusLabel === "Device Setup Needed"
+        ? "Preferences saved; enable this device for push delivery"
+        : "Saved commute alerts and closure reminders",
       tone,
     };
   }, [notificationStatusLabel]);

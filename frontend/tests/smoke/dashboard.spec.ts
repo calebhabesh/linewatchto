@@ -1063,7 +1063,9 @@ test("manages push notification preferences on mobile", async ({ page, request, 
   await page.getByRole("button", { name: "Notifications" }).click();
 
   await expect(page.getByRole("heading", { name: "Notifications", exact: true })).toBeVisible();
-  await expect(page.getByText("Push for this browser")).toBeVisible();
+  await expect(page.getByText("Device Notifications")).toBeVisible();
+  await expect(page.getByText(/Push for this browser|This Device|Enable on This Device/)).toBeVisible();
+  await expect(page.getByText(/Account notifications are on|This device is receiving notifications|Push not configured/)).toBeVisible();
   await expect(page.getByRole("heading", { name: "Line subscriptions" })).toBeVisible();
 
   const line1Switch = page.getByLabel("Subscribe to Line 1");
