@@ -136,7 +136,14 @@ export function SavedCommuteStationPicker({
   const setOpen = onOpenChange !== undefined ? onOpenChange : setLocalOpen;
   const [query, setQuery] = useState("");
   const [expandedLineId, setExpandedLineId] = useState<string | null>(null);
-  const [coords, setCoords] = useState<{ top: number; left: number; width: number } | null>(null);
+  const [coords, setCoords] = useState<{
+    top?: number;
+    bottom?: number;
+    left: number;
+    width: number;
+    maxHeight: number;
+    placement: "below" | "above";
+  } | null>(null);
 
   const selectedStation = useMemo(
     () => stations.find((station) => station.id === value) ?? null,
@@ -171,36 +178,71 @@ export function SavedCommuteStationPicker({
   }, [open, setOpen]);
 
   useEffect(() => {
-    if (!open || !rootRef.current) return;
+    if (!open || !rootRef.current) {
+      setCoords(null);
+      return;
+    }
 
     const updateCoords = () => {
       const trigger = rootRef.current?.querySelector(".commute-station-trigger");
       if (trigger) {
         const rect = trigger.getBoundingClientRect();
-        let left = rect.left + window.scrollX;
-        const extraWidth = expandedLineId ? 280 : 0;
+        const visualViewport = window.visualViewport;
+        const viewportLeft = visualViewport?.offsetLeft ?? 0;
+        const viewportTop = visualViewport?.offsetTop ?? 0;
+        const viewportWidth = visualViewport?.width ?? window.innerWidth;
+        const viewportHeight = visualViewport?.height ?? window.innerHeight;
+        const viewportBottom = viewportTop + viewportHeight;
+        const mobileViewport = window.matchMedia("(max-width: 767px)").matches;
+        const edgeInset = mobileViewport ? 8 : 16;
+        const gap = 6;
+        const minUsableHeight = mobileViewport ? 120 : 100;
+        let left = rect.left;
+        const extraWidth = !mobileViewport && expandedLineId ? 280 : 0;
         const popWidth = rect.width + extraWidth;
-        if (left + popWidth > window.innerWidth + window.scrollX - 16) {
-          left = window.innerWidth + window.scrollX - popWidth - 16;
+        if (left + popWidth > viewportLeft + viewportWidth - edgeInset) {
+          left = viewportLeft + viewportWidth - popWidth - edgeInset;
         }
-        if (left < 16) left = 16;
-        window.setTimeout(() => {
-          setCoords({
-            top: rect.bottom + window.scrollY,
-            left,
-            width: popWidth,
-          });
-        }, 0);
+        if (left < viewportLeft + edgeInset) left = viewportLeft + edgeInset;
+
+        const belowTop = rect.bottom + gap;
+        const belowSpace = viewportBottom - belowTop - edgeInset;
+        const aboveSpace = rect.top - viewportTop - gap - edgeInset;
+        const placeBelow = belowSpace >= minUsableHeight || belowSpace >= aboveSpace;
+        const maxHeight = Math.max(
+          120,
+          Math.min(320, placeBelow ? belowSpace : aboveSpace),
+        );
+        const top = placeBelow
+          ? belowTop
+          : (mobileViewport ? Math.max(viewportTop + edgeInset, rect.top - gap - maxHeight) : undefined);
+        const bottom = (!placeBelow && !mobileViewport)
+          ? (viewportBottom - rect.top + gap)
+          : undefined;
+
+        setCoords({
+          top,
+          bottom,
+          left,
+          width: popWidth,
+          maxHeight,
+          placement: placeBelow ? "below" : "above",
+        });
       }
     };
 
     updateCoords();
+    const visualViewport = window.visualViewport;
     window.addEventListener("scroll", updateCoords, true);
     window.addEventListener("resize", updateCoords);
+    visualViewport?.addEventListener("resize", updateCoords);
+    visualViewport?.addEventListener("scroll", updateCoords);
 
     return () => {
       window.removeEventListener("scroll", updateCoords, true);
       window.removeEventListener("resize", updateCoords);
+      visualViewport?.removeEventListener("resize", updateCoords);
+      visualViewport?.removeEventListener("scroll", updateCoords);
     };
   }, [open, expandedLineId]);
 
@@ -244,13 +286,16 @@ export function SavedCommuteStationPicker({
               role="listbox"
               aria-label={`${label} station choices`}
               data-expanded={isExpanded ? "true" : "false"}
+              data-placement={coords?.placement ?? "below"}
               style={
                 coords
                   ? {
-                      position: "absolute",
-                      top: `${coords.top + 6}px`,
+                      position: "fixed",
+                      top: coords.top !== undefined ? `${coords.top}px` : "auto",
+                      bottom: coords.bottom !== undefined ? `${coords.bottom}px` : "auto",
                       left: `${coords.left}px`,
                       width: `${coords.width}px`,
+                      maxHeight: `${coords.maxHeight}px`,
                       right: "auto",
                       zIndex: 9999,
                     }
@@ -271,7 +316,7 @@ export function SavedCommuteStationPicker({
                       clearSearchOrClose();
                     }
                   }}
-                  placeholder="Search stations"
+                  placeholder="Station Search..."
                   aria-label={`Search ${label.toLowerCase()} stations`}
                 />
                 <button type="button" onClick={clearSearchOrClose} aria-label={query ? "Clear station search" : "Close station choices"}>

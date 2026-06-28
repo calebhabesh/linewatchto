@@ -367,6 +367,10 @@ test("mobile keeps lightweight map focus flashes and menu transitions", async ({
   await searchNavItem.click();
   const searchPanel = page.locator("[data-station-search-panel]");
   await expect(searchPanel).toBeVisible();
+  // Initially, the nav bar is visible
+  await expect(page.getByRole("navigation", { name: "Primary mobile navigation" })).toHaveCount(1);
+  // Focus the input to move elements up and hide navigation
+  await page.getByRole("searchbox", { name: "Station Search" }).click();
   await expect(page.getByRole("navigation", { name: "Primary mobile navigation" })).toHaveCount(0);
   const searchTransitionProperty = await searchPanel.evaluate((element) => getComputedStyle(element).transitionProperty);
   expect(searchTransitionProperty).toContain("opacity");
@@ -773,6 +777,7 @@ test("station search dynamically filters mapped stations and opens station detai
 
   if (isMobile) {
     await page.getByRole("button", { name: "Search", exact: true }).click();
+    await page.getByRole("searchbox", { name: "Station Search" }).click();
   } else {
     await page.getByRole("searchbox", { name: "Station Search" }).click();
   }
@@ -920,6 +925,33 @@ test("demo account shows account-backed saved commutes", async ({ page, request,
   await expect(page.getByText("Affected Now", { exact: true })).not.toBeVisible();
   await expect(page.getByText("Suspension", { exact: true })).not.toBeVisible();
 
+  if (isMobile) {
+    const originPicker = page.locator(".commute-station-picker").filter({ hasText: "Origin" });
+    const originTrigger = originPicker.getByRole("button").first();
+    await originTrigger.click();
+    const originPopover = page.getByRole("listbox", { name: "Origin station choices" });
+    await expect(originPopover).toBeVisible();
+    await expect
+      .poll(async () => {
+        const triggerBox = await originTrigger.boundingBox();
+        const popoverBox = await originPopover.boundingBox();
+        if (!triggerBox || !popoverBox) return false;
+        return (
+          Math.abs(popoverBox.y - (triggerBox.y + triggerBox.height + 6)) <= 4 &&
+          Math.abs(popoverBox.x - triggerBox.x) <= 4 &&
+          Math.abs(popoverBox.width - triggerBox.width) <= 8
+        );
+      })
+      .toBe(true);
+    const triggerBox = await originTrigger.boundingBox();
+    const popoverBox = await originPopover.boundingBox();
+    expect(triggerBox).not.toBeNull();
+    expect(popoverBox).not.toBeNull();
+    expect(Math.abs(popoverBox!.y - (triggerBox!.y + triggerBox!.height + 6))).toBeLessThanOrEqual(4);
+    expect(Math.abs(popoverBox!.x - triggerBox!.x)).toBeLessThanOrEqual(4);
+    expect(Math.abs(popoverBox!.width - triggerBox!.width)).toBeLessThanOrEqual(8);
+  }
+
   // Switch back to outbound for the rest of the test
   await page.getByRole("tab", { name: "To Union" }).click();
 
@@ -1037,6 +1069,24 @@ test("mobile uses bottom navigation and status sheets", async ({ page, request, 
   await expect(page.getByRole("heading", { name: "Delays" })).toBeVisible();
 
   await page.getByRole("button", { name: "Search", exact: true }).click();
+  await page.waitForTimeout(300); // let open transition finish
+  // Initially, the nav bar is visible and search is not focused
+  const mobileNavigation = page.getByRole("navigation", { name: "Primary mobile navigation" });
+  const searchPanel = page.locator("[data-station-search-panel]");
+  await expect(mobileNavigation).toBeVisible();
+  await expect(searchPanel).toBeVisible();
+  const searchPanelBox = await searchPanel.boundingBox();
+  const mobileNavigationBox = await mobileNavigation.boundingBox();
+  const lastSearchLineBox = await searchPanel.locator(".station-search-line-trigger").last().boundingBox();
+  expect(searchPanelBox).not.toBeNull();
+  expect(mobileNavigationBox).not.toBeNull();
+  expect(lastSearchLineBox).not.toBeNull();
+  const searchNavGap = mobileNavigationBox!.y - (searchPanelBox!.y + searchPanelBox!.height);
+  expect(searchNavGap).toBeGreaterThanOrEqual(8);
+  expect(searchNavGap).toBeLessThanOrEqual(16);
+  expect(searchPanelBox!.y + searchPanelBox!.height - (lastSearchLineBox!.y + lastSearchLineBox!.height)).toBeLessThanOrEqual(32);
+  // Focus the input to move elements up and hide navigation
+  await page.getByRole("searchbox", { name: "Station Search" }).click();
   await expect(page.getByRole("searchbox", { name: "Station Search" })).toBeFocused();
   await expect(page.getByRole("navigation", { name: "Primary mobile navigation" })).toHaveCount(0);
 

@@ -7452,8 +7452,6 @@ button {
 
   html[data-visual-keyboard="open"] .commute-station-popover {
     bottom: auto !important;
-    max-height: calc(var(--visual-viewport-height, 100dvh) - var(--mobile-safe-top) - 16px) !important;
-    top: calc(var(--visual-viewport-offset-top, 0px) + var(--mobile-safe-top) + 8px) !important;
   }
 
   html[data-visual-keyboard="open"] .account-dialog-backdrop {
@@ -7577,9 +7575,9 @@ button {
     bottom: auto;
     display: flex !important;
     flex-direction: column !important;
-    height: min(620px, calc(var(--visual-viewport-height, 100dvh) - var(--mobile-safe-top) - 20px));
+    height: auto;
     left: calc(var(--mobile-safe-left) + 8px);
-    max-height: calc(var(--visual-viewport-height, 100dvh) - var(--mobile-safe-top) - 20px);
+    max-height: min(620px, calc(var(--visual-viewport-height, 100dvh) - var(--mobile-safe-top) - 20px));
     position: fixed;
     right: calc(var(--mobile-safe-right) + 8px);
     top: calc(var(--visual-viewport-offset-top, 0px) + var(--mobile-safe-top) + 10px);
@@ -7594,9 +7592,45 @@ button {
   }
 
   .station-search-panel[data-expanded="true"] {
-    height: min(620px, calc(var(--visual-viewport-height, 100dvh) - var(--mobile-safe-top) - 20px));
-    max-height: calc(var(--visual-viewport-height, 100dvh) - var(--mobile-safe-top) - 20px);
+    height: auto;
+    max-height: min(620px, calc(var(--visual-viewport-height, 100dvh) - var(--mobile-safe-top) - 20px));
     width: auto;
+  }
+
+  /* Override for initial / non-focused state: extend from bottom nav bar */
+  html:not([data-visual-keyboard="open"]) .station-search-panel:not([data-searching="true"]):not([data-input-focused="true"]) {
+    bottom: calc(var(--mobile-bottom-nav-occupied-height) + 8px) !important;
+    top: auto !important;
+    height: auto !important;
+    max-height: calc(var(--visual-viewport-height, 100dvh) - var(--mobile-bottom-nav-occupied-height) - var(--mobile-safe-top) - 24px) !important;
+    transform: translateY(12px);
+    transform-origin: bottom center;
+  }
+
+  html:not([data-visual-keyboard="open"]) .station-search-panel.open:not([data-searching="true"]):not([data-input-focused="true"]) {
+    transform: translateY(0);
+  }
+
+  /* Shrink containers to fit entries when not expanded, not searching, and not focused */
+  html:not([data-visual-keyboard="open"]) .station-search-panel:not([data-expanded="true"]):not([data-searching="true"]):not([data-input-focused="true"]) .station-search-content,
+  html:not([data-visual-keyboard="open"]) .station-search-panel:not([data-expanded="true"]):not([data-searching="true"]):not([data-input-focused="true"]) .station-search-browse-container,
+  html:not([data-visual-keyboard="open"]) .station-search-panel:not([data-expanded="true"]):not([data-searching="true"]):not([data-input-focused="true"]) .station-search-lines-column {
+    flex: 0 0 auto !important;
+    height: auto !important;
+  }
+
+  /* Hide other mobile controls when in search view */
+  .linewatch-shell[data-active-view="search"] .theme-toggle-btn,
+  .linewatch-shell[data-active-view="search"] .rotate-map-btn,
+  .linewatch-shell[data-active-view="search"] .site-guide-trigger,
+  .linewatch-shell[data-active-view="search"] .mobile-legend-pill {
+    display: none !important;
+  }
+
+  /* Hide bottom nav bar when active search (focused or searching) */
+  .linewatch-shell:has(.station-search-panel[data-input-focused="true"]) .mobile-bottom-nav,
+  .linewatch-shell:has(.station-search-panel[data-searching="true"]) .mobile-bottom-nav {
+    display: none !important;
   }
 
   .station-search-input-row {
@@ -7790,6 +7824,29 @@ button {
     padding-bottom: 56px !important;
     mask-image: linear-gradient(to bottom, black calc(100% - 60px), transparent 100%);
     -webkit-mask-image: linear-gradient(to bottom, black calc(100% - 60px), transparent 100%);
+  }
+
+  html:not([data-visual-keyboard="open"]) .station-search-panel:not([data-expanded="true"]):not([data-searching="true"]):not([data-input-focused="true"]) {
+    bottom: calc(var(--mobile-bottom-nav-occupied-height) + 8px) !important;
+    height: auto !important;
+    max-height: calc(var(--visual-viewport-height, 100dvh) - var(--mobile-bottom-nav-occupied-height) - var(--mobile-safe-top) - 24px) !important;
+    top: auto !important;
+  }
+
+  html:not([data-visual-keyboard="open"]) .station-search-panel:not([data-expanded="true"]):not([data-searching="true"]):not([data-input-focused="true"]) .station-search-content,
+  html:not([data-visual-keyboard="open"]) .station-search-panel:not([data-expanded="true"]):not([data-searching="true"]):not([data-input-focused="true"]) .station-search-browse-container,
+  html:not([data-visual-keyboard="open"]) .station-search-panel:not([data-expanded="true"]):not([data-searching="true"]):not([data-input-focused="true"]) .station-search-lines-column {
+    flex: 0 0 auto !important;
+    height: auto !important;
+    max-height: none !important;
+    min-height: 0 !important;
+  }
+
+  html:not([data-visual-keyboard="open"]) .station-search-panel:not([data-expanded="true"]):not([data-searching="true"]):not([data-input-focused="true"]) .station-search-lines-column {
+    -webkit-mask-image: none !important;
+    mask-image: none !important;
+    overflow-y: visible !important;
+    padding-bottom: 0 !important;
   }
   
   .mobile-more-content-scroll {
@@ -8372,12 +8429,8 @@ button {
 
   .commute-station-popover {
     position: fixed !important;
-    bottom: calc(var(--mobile-bottom-nav-occupied-height) + 8px) !important;
-    left: calc(var(--mobile-safe-left) + 8px) !important;
-    right: calc(var(--mobile-safe-right) + 8px) !important;
-    top: auto !important;
-    width: auto !important;
-    max-height: min(75dvh, calc(var(--visual-viewport-height, 100dvh) - var(--mobile-bottom-nav-occupied-height) - 80px)) !important;
+    bottom: auto !important;
+    right: auto !important;
     border-radius: 8px !important;
     box-shadow: 0 12px 40px rgba(15, 23, 42, 0.24) !important;
     z-index: 9999 !important;

@@ -198,6 +198,7 @@ export function StationSearchPanel({
   isMobile,
 }: Props) {
   const [expandedLineId, setExpandedLineId] = useState<string | null>(null);
+  const [isInputFocused, setIsInputFocused] = useState(false);
   const results = useMemo(() => searchStations(stations, query), [query, stations]);
   const lineGroups = useMemo(() => buildStationLineGroups(stations), [stations]);
   const isExpanded = Boolean(expandedLineId) && !query.trim();
@@ -245,13 +246,18 @@ export function StationSearchPanel({
     if (!open) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setExpandedLineId(null);
+      setIsInputFocused(false);
       return;
     }
 
-    const targetInput = isMobile ? mobileInputRef.current : inputRef.current;
+    if (isMobile) {
+      return; // Do not auto-focus on mobile to prevent automatic keyboard popup
+    }
+
+    const targetInput = inputRef.current;
     const focusTimer = window.setTimeout(() => targetInput?.focus(), 60);
     return () => window.clearTimeout(focusTimer);
-    // inputRef and mobileInputRef are stable ref objects – excluding from deps is intentional
+    // inputRef is a stable ref object – excluding from deps is intentional
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, isMobile]);
 
@@ -389,6 +395,8 @@ export function StationSearchPanel({
       data-station-search-panel
       data-open={open ? "true" : "false"}
       data-expanded={isExpanded ? "true" : "false"}
+      data-searching={query.trim() ? "true" : "false"}
+      data-input-focused={isInputFocused ? "true" : "false"}
       style={
         viewportHeight
           ? ({ "--visual-viewport-height": `${viewportHeight}px` } as React.CSSProperties)
@@ -406,7 +414,9 @@ export function StationSearchPanel({
             value={query}
             onChange={(event) => onQueryChange(event.target.value)}
             onKeyDown={handleInputKeyDown}
-            placeholder="Search stations"
+            onFocus={() => setIsInputFocused(true)}
+            onBlur={() => setIsInputFocused(false)}
+            placeholder="Station Search..."
             className="station-search-input"
           />
           <button

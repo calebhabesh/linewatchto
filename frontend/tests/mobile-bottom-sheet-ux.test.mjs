@@ -10,6 +10,7 @@ const moreSheetSource = readFileSync(new URL("../src/components/MobileMoreSheet.
 const floatingPanelSource = readFileSync(new URL("../src/components/FloatingPanelShell.tsx", import.meta.url), "utf8");
 const mapSource = readFileSync(new URL("../src/components/InteractiveTtcMap.tsx", import.meta.url), "utf8");
 const searchSource = readFileSync(new URL("../src/components/StationSearchPanel.tsx", import.meta.url), "utf8");
+const savedCommutePickerSource = readFileSync(new URL("../src/components/SavedCommuteStationPicker.tsx", import.meta.url), "utf8");
 const globalCss = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
 
 describe("mobile bottom sheet UX", () => {
@@ -184,7 +185,6 @@ describe("mobile bottom sheet UX", () => {
     assert.match(globalCss, /html\[data-visual-keyboard="open"\]\s+\.mobile-bottom-nav\s*\{[\s\S]*display:\s*none\s*!important/);
     assert.match(globalCss, /html\[data-visual-keyboard="open"\]\s+\.floating-panel-shell\s*\{[\s\S]*top:\s*calc\(var\(--visual-viewport-offset-top,\s*0px\)\s*\+\s*var\(--mobile-safe-top\)\s*\+\s*8px\)/);
     assert.match(globalCss, /html\[data-visual-keyboard="open"\]\s+\.floating-panel-shell\s*\{[\s\S]*bottom:\s*auto/);
-    assert.match(globalCss, /html\[data-visual-keyboard="open"\]\s+\.commute-station-popover\s*\{[\s\S]*top:\s*calc\(var\(--visual-viewport-offset-top,\s*0px\)\s*\+\s*var\(--mobile-safe-top\)\s*\+\s*8px\)/);
     assert.match(globalCss, /html\[data-visual-keyboard="open"\]\s+\.commute-station-popover\s*\{[\s\S]*bottom:\s*auto\s*!important/);
   });
 
@@ -205,6 +205,10 @@ describe("mobile bottom sheet UX", () => {
   });
 
   it("keeps saved commute station search results visible while the iOS keyboard is open", () => {
+    assert.match(savedCommutePickerSource, /window\.visualViewport/);
+    assert.match(savedCommutePickerSource, /visualViewport\?\.addEventListener\("resize",\s*updateCoords\)/);
+    assert.match(savedCommutePickerSource, /position:\s*"fixed"/);
+    assert.match(savedCommutePickerSource, /maxHeight:\s*`\$\{coords\.maxHeight\}px`/);
     assert.match(globalCss, /\.commute-station-search-row\s*\{[\s\S]*position:\s*sticky/);
     assert.match(globalCss, /\.commute-station-search-row\s*\{[\s\S]*top:\s*0/);
     assert.match(globalCss, /\.commute-station-popover > \.commute-station-options\s*\{[\s\S]*overflow-y:\s*auto/);

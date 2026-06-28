@@ -1699,6 +1699,7 @@ export function LineWatchShell({
     <DataProvider data={displayData}>
       <div
         style={{ height: "var(--visual-viewport-height, 100dvh)" }}
+        data-active-view={activeView}
         className={`linewatch-shell relative w-full overflow-hidden transition-colors duration-500 ${(isDark || highContrast) ? "dark bg-[#0d0808] text-slate-100" : "bg-slate-50 text-slate-900"} ${highContrast ? "high-contrast" : ""} ${reducedMotion ? "motion-paused" : ""} ${mobilePerformanceMode ? "mobile-performance-mode" : ""} ${shellInspectorClasses}`}
       >
       {/* Background */}
@@ -2521,7 +2522,7 @@ export function LineWatchShell({
         />
       ) : null}
 
-      {!showClosedScreen && !rotatedMapMode && !mobileInspectorOpen && !selectedStationId && !accountDialogMode && activeView !== "search" ? (
+      {!showClosedScreen && !rotatedMapMode && !mobileInspectorOpen && !selectedStationId && !accountDialogMode ? (
         /* aria-label="Primary mobile navigation" */
         <MobileBottomNav
           activeKey={mobileNavKey}
