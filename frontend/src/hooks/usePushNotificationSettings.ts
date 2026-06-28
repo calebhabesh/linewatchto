@@ -18,6 +18,7 @@ import {
 import {
   accountNotificationsDesired as deriveAccountNotificationsDesired,
   canAutoRestoreDevicePush,
+  deviceNotificationSwitchChecked,
   pushDeviceDisabledStorageKey,
   setupStateAfterPreferenceUpdate,
   setupStateForDevicePush,
@@ -29,6 +30,7 @@ export type UsePushNotificationSettingsResult = {
   config: PushNotificationConfig | null;
   preferences: PushNotificationPreferences;
   subscribed: boolean;
+  deviceNotificationsEnabled: boolean;
   busy: boolean;
   message: string | null;
   preferencesLoaded: boolean;
@@ -92,6 +94,7 @@ export function usePushNotificationSettings(accountState: AccountState): UsePush
   const [config, setConfig] = useState<PushNotificationConfig | null>(null);
   const [preferences, setPreferences] = useState<PushNotificationPreferences>(defaultPushNotificationPreferences);
   const [subscribed, setSubscribed] = useState(false);
+  const [deviceNotificationsEnabled, setDeviceNotificationsEnabled] = useState(false);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [preferencesLoaded, setPreferencesLoaded] = useState(false);
@@ -102,6 +105,15 @@ export function usePushNotificationSettings(accountState: AccountState): UsePush
     () => deriveAccountNotificationsDesired(preferences),
     [preferences]
   );
+
+  const saveDeviceSubscription = useCallback(async (subscription: PushSubscription) => {
+    await savePushSubscription({
+      endpoint: subscription.endpoint,
+      keys: pushSubscriptionKeys(subscription),
+      userAgent: navigator.userAgent,
+    });
+    return subscription;
+  }, []);
 
   const createOrRefreshDeviceSubscription = useCallback(async (currentConfig: PushNotificationConfig) => {
     const registration = await serviceWorkerRegistrationForPush();
@@ -123,17 +135,13 @@ export function usePushNotificationSettings(accountState: AccountState): UsePush
       userVisibleOnly: true,
       applicationServerKey: base64UrlToUint8Array(currentConfig.vapidPublicKey),
     });
-    await savePushSubscription({
-      endpoint: subscription.endpoint,
-      keys: pushSubscriptionKeys(subscription),
-      userAgent: navigator.userAgent,
-    });
-    return subscription;
-  }, []);
+    return await saveDeviceSubscription(subscription);
+  }, [saveDeviceSubscription]);
 
   const fetchConfigAndSubscription = useCallback(async (isMounted: () => boolean) => {
     if (!accountState.authenticated || !supported) {
       setDeviceSetupState(accountState.authenticated ? "unsupported" : "signed-out");
+      setDeviceNotificationsEnabled(false);
       return;
     }
     try {
@@ -144,6 +152,7 @@ export function usePushNotificationSettings(accountState: AccountState): UsePush
         setConfig(null);
         setPreferencesLoaded(false);
         setDeviceSetupState("not-configured");
+        setDeviceNotificationsEnabled(false);
         setMessage(result.message ?? "Could not load notification preferences.");
         return;
       }
@@ -155,6 +164,7 @@ export function usePushNotificationSettings(accountState: AccountState): UsePush
       if (!result.config.webPushAvailable || !result.config.vapidPublicKey) {
         setSubscribed(false);
         setDeviceSetupState("not-configured");
+        setDeviceNotificationsEnabled(false);
         return;
       }
 
@@ -165,8 +175,9 @@ export function usePushNotificationSettings(accountState: AccountState): UsePush
 
       const desired = deriveAccountNotificationsDesired(result.config.preferences);
       const accountId = accountState.user?.id;
-      const disabledByUser = readDeviceDisabledByUser(accountId);
+      let disabledByUser = readDeviceDisabledByUser(accountId);
       const permission: NotificationPermission | "unsupported" = supported ? Notification.permission : "unsupported";
+      let subscriptionSavedDuringRestore = false;
 
       const restoreKey = `${accountId ?? "unknown"}:${result.config.vapidPublicKey}`;
       if (canAutoRestoreDevicePush({
@@ -180,21 +191,31 @@ export function usePushNotificationSettings(accountState: AccountState): UsePush
         currentSubscriptionUsesVapidKey: subscriptionUsesCurrentKey,
         deviceDisabledByUser: disabledByUser,
       }) && autoRestoreAttemptedFor !== restoreKey) {
-        setAutoRestoreAttemptedFor(restoreKey);
         setDeviceSetupState("restoring");
         try {
           subscription = await createOrRefreshDeviceSubscription(result.config);
           subscriptionUsesCurrentKey = true;
+          subscriptionSavedDuringRestore = true;
           writeDeviceDisabledByUser(accountId, false);
+          disabledByUser = false;
+          setAutoRestoreAttemptedFor(restoreKey);
         } catch (err) {
           console.error("Failed to restore device push subscription", err);
-          setMessage("Account notifications are on. Enable this device to receive them here.");
+          setMessage("Notifications are on, but this device could not refresh its push registration.");
+        }
+      }
+
+      if (subscription && subscriptionUsesCurrentKey && permission === "granted" && !disabledByUser && !subscriptionSavedDuringRestore) {
+        try {
+          await saveDeviceSubscription(subscription);
+        } catch (err) {
+          console.error("Failed to refresh device push subscription", err);
+          setMessage("Notifications are on, but this device could not refresh its push registration.");
         }
       }
 
       if (!isMounted()) return;
-      setSubscribed(Boolean(subscription && subscriptionUsesCurrentKey));
-      setDeviceSetupState(setupStateForDevicePush({
+      const stateInput = {
         authenticated: accountState.authenticated,
         supported,
         webPushAvailable: result.config.webPushAvailable,
@@ -204,7 +225,10 @@ export function usePushNotificationSettings(accountState: AccountState): UsePush
         hasCurrentSubscription: Boolean(subscription),
         currentSubscriptionUsesVapidKey: subscriptionUsesCurrentKey,
         deviceDisabledByUser: disabledByUser,
-      }));
+      };
+      setSubscribed(Boolean(subscription && subscriptionUsesCurrentKey));
+      setDeviceNotificationsEnabled(deviceNotificationSwitchChecked(stateInput));
+      setDeviceSetupState(setupStateForDevicePush(stateInput));
       if (subscription && !subscriptionUsesCurrentKey) {
         setMessage("Push for this browser needs to be re-enabled.");
       }
@@ -213,10 +237,11 @@ export function usePushNotificationSettings(accountState: AccountState): UsePush
       if (isMounted()) {
         setPreferencesLoaded(false);
         setDeviceSetupState("not-configured");
+        setDeviceNotificationsEnabled(false);
         setMessage("Could not load notification preferences.");
       }
     }
-  }, [accountState.authenticated, accountState.user, supported, createOrRefreshDeviceSubscription, autoRestoreAttemptedFor]);
+  }, [accountState.authenticated, accountState.user, supported, createOrRefreshDeviceSubscription, saveDeviceSubscription, autoRestoreAttemptedFor]);
 
   useEffect(() => {
     let mounted = true;
@@ -229,6 +254,7 @@ export function usePushNotificationSettings(accountState: AccountState): UsePush
       setPreferences(defaultPushNotificationPreferences);
       setPreferencesLoaded(false);
       setSubscribed(false);
+      setDeviceNotificationsEnabled(false);
       setDeviceSetupState(accountState.authenticated ? "unsupported" : "signed-out");
     }
     return () => {
@@ -260,17 +286,20 @@ export function usePushNotificationSettings(accountState: AccountState): UsePush
         : await Notification.requestPermission();
       if (permission !== "granted") {
         setSubscribed(false);
+        setDeviceNotificationsEnabled(false);
         setMessage("Notifications not enabled.");
         return;
       }
       const subscription = await createOrRefreshDeviceSubscription(config);
       writeDeviceDisabledByUser(accountState.user?.id, false);
       setSubscribed(Boolean(subscription));
+      setDeviceNotificationsEnabled(Boolean(subscription));
       setDeviceSetupState("enabled");
       setMessage(null);
     } catch (err) {
       console.error("Failed to enable notifications", err);
       setSubscribed(false);
+      setDeviceNotificationsEnabled(false);
       setMessage("Could not enable notifications.");
     } finally {
       setBusy(false);
@@ -289,6 +318,7 @@ export function usePushNotificationSettings(accountState: AccountState): UsePush
       }
       writeDeviceDisabledByUser(accountState.user?.id, true);
       setSubscribed(false);
+      setDeviceNotificationsEnabled(false);
       setDeviceSetupState(accountNotificationsDesired ? "needs-device-enable" : "account-off");
       setMessage(null);
     } catch (err) {
@@ -310,17 +340,22 @@ export function usePushNotificationSettings(accountState: AccountState): UsePush
     try {
       const response = await updatePushPreferences(next);
       setPreferences(response);
-      setDeviceSetupState(setupStateAfterPreferenceUpdate({
-        currentlySubscribed: subscribed,
+      const notificationPermission: NotificationPermission | "unsupported" = supported ? Notification.permission : "unsupported";
+      const stateInput = {
         authenticated: accountState.authenticated,
         supported,
         webPushAvailable: Boolean(config?.webPushAvailable),
         hasVapidPublicKey: Boolean(config?.vapidPublicKey),
         accountNotificationsDesired: deriveAccountNotificationsDesired(response),
-        notificationPermission: supported ? Notification.permission : "unsupported",
+        notificationPermission,
         hasCurrentSubscription: subscribed,
         currentSubscriptionUsesVapidKey: subscribed,
         deviceDisabledByUser: readDeviceDisabledByUser(accountState.user?.id),
+      };
+      setDeviceNotificationsEnabled(deviceNotificationSwitchChecked(stateInput));
+      setDeviceSetupState(setupStateAfterPreferenceUpdate({
+        currentlySubscribed: subscribed,
+        ...stateInput,
       }));
       setMessage("Notification preferences updated.");
     } catch (err) {
@@ -335,6 +370,7 @@ export function usePushNotificationSettings(accountState: AccountState): UsePush
     config,
     preferences,
     subscribed,
+    deviceNotificationsEnabled,
     busy,
     message,
     preferencesLoaded,

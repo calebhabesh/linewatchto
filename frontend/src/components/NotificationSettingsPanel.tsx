@@ -78,6 +78,7 @@ export function NotificationSettingsPanel({
     config,
     preferences,
     subscribed,
+    deviceNotificationsEnabled,
     busy,
     message,
     preferencesLoaded,
@@ -103,7 +104,9 @@ export function NotificationSettingsPanel({
         return "Restoring notifications on this device...";
       case "needs-permission":
       case "needs-device-enable":
-        return "Account notifications are on. Enable this device to receive them here.";
+        return deviceNotificationsEnabled
+          ? "Notifications are on. Reconnecting this device..."
+          : "Account notifications are on. Enable this device to receive them here.";
       case "account-off":
         return "Account notification preferences are off.";
       case "enabled":
@@ -111,7 +114,7 @@ export function NotificationSettingsPanel({
       default:
         return null;
     }
-  }, [message, deviceSetupState]);
+  }, [message, deviceSetupState, deviceNotificationsEnabled]);
 
   return (
     <section className="notification-settings-panel panel min-w-0 border border-black/10 dark:border-white/10 rounded-lg shadow-xl" aria-label="Notification settings">
@@ -236,7 +239,7 @@ export function NotificationSettingsPanel({
                   </div>
                   <div className="notification-settings-row-actions">
                     <NotificationSwitch
-                      checked={subscribed}
+                      checked={deviceNotificationsEnabled}
                       disabled={busy || !supported || !config?.webPushAvailable}
                       label="Push for this browser"
                       onChange={(checked) => {

@@ -4,6 +4,7 @@ import { describe, it } from "node:test";
 import {
   accountNotificationsDesired,
   canAutoRestoreDevicePush,
+  deviceNotificationSwitchChecked,
   pushDeviceDisabledStorageKey,
   setupStateAfterPreferenceUpdate,
 } from "../src/app/push-notification-state.ts";
@@ -80,6 +81,46 @@ describe("push notification account and device state", () => {
     }), false);
 
     assert.equal(canAutoRestoreDevicePush({
+      authenticated: true,
+      supported: true,
+      webPushAvailable: true,
+      hasVapidPublicKey: true,
+      accountNotificationsDesired: true,
+      notificationPermission: "granted",
+      hasCurrentSubscription: false,
+      currentSubscriptionUsesVapidKey: false,
+      deviceDisabledByUser: true,
+    }), false);
+  });
+
+  it("allows silent device push restore when the existing subscription uses an old VAPID key", () => {
+    assert.equal(canAutoRestoreDevicePush({
+      authenticated: true,
+      supported: true,
+      webPushAvailable: true,
+      hasVapidPublicKey: true,
+      accountNotificationsDesired: true,
+      notificationPermission: "granted",
+      hasCurrentSubscription: true,
+      currentSubscriptionUsesVapidKey: false,
+      deviceDisabledByUser: false,
+    }), true);
+  });
+
+  it("keeps the device toggle checked while a granted mobile subscription is recoverable", () => {
+    assert.equal(deviceNotificationSwitchChecked({
+      authenticated: true,
+      supported: true,
+      webPushAvailable: true,
+      hasVapidPublicKey: true,
+      accountNotificationsDesired: true,
+      notificationPermission: "granted",
+      hasCurrentSubscription: false,
+      currentSubscriptionUsesVapidKey: false,
+      deviceDisabledByUser: false,
+    }), true);
+
+    assert.equal(deviceNotificationSwitchChecked({
       authenticated: true,
       supported: true,
       webPushAvailable: true,

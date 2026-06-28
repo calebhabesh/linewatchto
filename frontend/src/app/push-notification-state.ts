@@ -47,9 +47,18 @@ export function canAutoRestoreDevicePush(input: AutoRestoreDevicePushInput): boo
     input.hasVapidPublicKey &&
     input.accountNotificationsDesired &&
     input.notificationPermission === "granted" &&
-    !input.hasCurrentSubscription &&
-    !input.currentSubscriptionUsesVapidKey &&
+    (!input.hasCurrentSubscription || !input.currentSubscriptionUsesVapidKey) &&
     !input.deviceDisabledByUser;
+}
+
+export function deviceNotificationSwitchChecked(input: AutoRestoreDevicePushInput): boolean {
+  if (!input.authenticated) return false;
+  if (!input.supported) return false;
+  if (!input.webPushAvailable || !input.hasVapidPublicKey) return false;
+  if (input.notificationPermission === "denied") return false;
+  if (input.deviceDisabledByUser) return false;
+  if (input.hasCurrentSubscription && input.currentSubscriptionUsesVapidKey) return true;
+  return input.accountNotificationsDesired && input.notificationPermission === "granted";
 }
 
 export function setupStateForDevicePush(input: AutoRestoreDevicePushInput): DevicePushSetupState {
