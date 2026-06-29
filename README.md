@@ -184,6 +184,8 @@ Point the `linewatchto.ca`, `www.linewatchto.ca`, and `api.linewatchto.ca` DNS r
 
 See [docs/production-vps.md](file://~/dev/ttc-reliability-navigator/docs/production-vps.md) for detailed hosting and server setups, and [docs/observability.md](file://~/dev/ttc-reliability-navigator/docs/observability.md) for the monitoring, metrics, Loki logs, and Grafana Cloud alerting configuration. For traffic-spike preparation, Cloudflare cache rules, surge-mode dashboard refresh, and production verification, see [docs/traffic-spike-runbook.md](docs/traffic-spike-runbook.md).
 
+For the separate AWS learning profile, see [infra/aws-lab/README.md](infra/aws-lab/README.md). The AWS lab is an ephemeral Terraform-managed environment for interview and infrastructure practice; production remains on the Oracle Cloud Always Free VPS.
+
 Create the production env file on the VPS:
 
 ```bash
