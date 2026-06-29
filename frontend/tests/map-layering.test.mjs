@@ -216,7 +216,18 @@ describe("asset-backed map layering", () => {
     assert.match(interactiveMapSource, /OverlapKindIcon/);
     assert.match(interactiveMapSource, /OverlapKindCountBadge/);
     assert.match(interactiveMapSource, /overlapBadgeKindCounts\(badge\.impacts\)/);
+    assert.match(interactiveMapSource, /hasOverlappingImpacts\(impacts\)/);
+    assert.match(interactiveMapSource, /overlapBadgeVisualItemCount\(overlapBadgeKindCounts\(group\.impacts\)\)/);
+    assert.match(interactiveMapSource, /const isSingleKindOverlap = kindCounts\.length === 1 && \(kindCounts\[0\]\?\.count \?\? 0\) > 1;/);
+    assert.match(interactiveMapSource, /const isSingleVisualItem = totalItems === 1;/);
+    assert.match(interactiveMapSource, /isSingleVisualItem \? \(/);
+    assert.match(interactiveMapSource, /<circle\s+className="overlap-indicator-pill"/);
+    assert.match(interactiveMapSource, /if \(impactKindCount === 1\)/);
+    assert.match(interactiveMapSource, /height: 88/);
+    assert.match(interactiveMapSource, /const badgeRadius = isSingleKindOverlap \? 38 : 27;/);
+    assert.match(interactiveMapSource, /const iconSize = isSingleKindOverlap \? 44 : 34;/);
     assert.match(interactiveMapSource, /getUniqueImpactKinds/);
+    assert.doesNotMatch(interactiveMapSource, /if \(impactKinds\.length <= 1\) continue;/);
     assert.match(interactiveMapSource, /chooseNonIntersectingBadgePosition/);
     assert.match(interactiveMapSource, /collectMapCollisionBoxes/);
     assert.match(interactiveMapSource, /pathCorridorCollisionBoxes/);

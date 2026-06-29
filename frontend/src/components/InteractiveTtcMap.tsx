@@ -39,8 +39,10 @@ import { SiteGuideDropdown } from "./SiteGuideDropdown";
 import {
   buildStationOverlapBadgeGroups,
   coveredSegmentOverlapBadgeSignatures,
+  hasOverlappingImpacts,
   type MapOverlapSelection,
   overlapBadgeKindCounts,
+  overlapBadgeVisualItemCount,
 } from "./map-overlap-badges";
 import {
   stationImpactDirectionForImpact,
@@ -763,7 +765,7 @@ function InteractiveTtcMapComponent({
         const frame = pathMidpointFrame(segment.pathD);
         if (!frame) return null;
 
-        const size = overlapBadgeSize(group.impactKinds.length);
+        const size = overlapBadgeSize(overlapBadgeVisualItemCount(overlapBadgeKindCounts(group.impacts)));
         const position = chooseNonIntersectingBadgePosition(frame.point, size, occupiedBoxes, frame);
         occupiedBoxes.push(expandBox(boundsForBadgePosition(position, size), 12));
 
@@ -793,7 +795,7 @@ function InteractiveTtcMapComponent({
         if (!station) return null;
 
         const point = stationPointFor(station);
-        const size = overlapBadgeSize(group.impactKinds.length);
+        const size = overlapBadgeSize(overlapBadgeVisualItemCount(overlapBadgeKindCounts(group.impacts)));
         const position = chooseNonIntersectingBadgePosition(point, size, occupiedBoxes);
         occupiedBoxes.push(expandBox(boundsForBadgePosition(position, size), 12));
 
@@ -1566,7 +1568,7 @@ function groupOverlapBadgeSegments(
   for (const segment of segments) {
     const impacts = overlapBadgeImpactsForSegment(segment, plannedClosures);
     const impactKinds = getUniqueImpactKinds(impacts);
-    if (impactKinds.length <= 1) continue;
+    if (!hasOverlappingImpacts(impacts)) continue;
 
     const primaryImpact = primaryImpactForOverlap(impacts);
     if (!primaryImpact) continue;
@@ -1591,6 +1593,13 @@ function groupOverlapBadgeSegments(
 }
 
 function overlapBadgeSize(impactKindCount: number): OverlapBadgeSize {
+  if (impactKindCount === 1) {
+    return {
+      width: 88,
+      height: 88,
+    };
+  }
+
   const visibleCount = Math.min(3, impactKindCount);
   const hasMore = impactKindCount > visibleCount;
   const totalItems = visibleCount + (hasMore ? 1 : 0);
@@ -2508,6 +2517,10 @@ function OverlapIndicatorMarker({
   const hiddenKindCount = Math.max(0, kindCounts.length - visibleKindCounts.length);
   const totalItems = visibleKindCounts.length + (hiddenKindCount > 0 ? 1 : 0);
   const spacing = 58;
+  const isSingleVisualItem = totalItems === 1;
+  const isSingleKindOverlap = kindCounts.length === 1 && (kindCounts[0]?.count ?? 0) > 1;
+  const badgeRadius = isSingleKindOverlap ? 38 : 27;
+  const iconSize = isSingleKindOverlap ? 44 : 34;
   const isSelected = selection
     ? badge.impacts.some((impact) => impact.kind === selection.kind && impact.cardId === selection.id)
     : false;
@@ -2557,14 +2570,21 @@ function OverlapIndicatorMarker({
       transform={`translate(${badge.position.x} ${badge.position.y})`}
     >
       <title>{label}</title>
-      <rect
-        className="overlap-indicator-pill"
-        x={-badge.size.width / 2}
-        y={-badge.size.height / 2}
-        width={badge.size.width}
-        height={badge.size.height}
-        rx={badge.size.height / 2}
-      />
+      {isSingleVisualItem ? (
+        <circle
+          className="overlap-indicator-pill"
+          r={badge.size.height / 2}
+        />
+      ) : (
+        <rect
+          className="overlap-indicator-pill"
+          x={-badge.size.width / 2}
+          y={-badge.size.height / 2}
+          width={badge.size.width}
+          height={badge.size.height}
+          rx={badge.size.height / 2}
+        />
+      )}
       {visibleKindCounts.map(({ kind, count }, index) => {
         const x = (index - (totalItems - 1) / 2) * spacing;
         return (
@@ -2574,9 +2594,9 @@ function OverlapIndicatorMarker({
             data-overlap-kind-count={count}
             transform={`translate(${x} 0)`}
           >
-            <circle className={`overlap-indicator-badge ${kind}`} r={27} />
-            <OverlapKindIcon kind={kind} />
-            {count > 1 && <OverlapKindCountBadge count={count} />}
+            <circle className={`overlap-indicator-badge ${kind}`} r={badgeRadius} />
+            <OverlapKindIcon kind={kind} size={iconSize} />
+            {count > 1 && <OverlapKindCountBadge count={count} large={isSingleKindOverlap} />}
           </g>
         );
       })}
@@ -2592,10 +2612,12 @@ function OverlapIndicatorMarker({
   );
 }
 
-function OverlapKindCountBadge({ count }: { count: number }) {
+function OverlapKindCountBadge({ count, large = false }: { count: number; large?: boolean }) {
+  const offset = large ? 25 : 20;
+  const radius = large ? 13 : 12;
   return (
-    <g transform="translate(20 -20)">
-      <circle className="overlap-indicator-count-badge" r={12} />
+    <g transform={`translate(${offset} -${offset})`}>
+      <circle className="overlap-indicator-count-badge" r={radius} />
       <text className="overlap-indicator-count-text" textAnchor="middle" dominantBaseline="central">
         {count}
       </text>
@@ -2603,10 +2625,11 @@ function OverlapKindCountBadge({ count }: { count: number }) {
   );
 }
 
-function OverlapKindIcon({ kind }: { kind: MapImpactKind }) {
+function OverlapKindIcon({ kind, size }: { kind: MapImpactKind; size: number }) {
+  const offset = -size / 2;
   return (
-    <g transform="translate(-17 -17)">
-      <ImpactTypeIcon kind={kind} size={34} className={`overlap-indicator-type-icon ${kind}`} />
+    <g transform={`translate(${offset} ${offset})`}>
+      <ImpactTypeIcon kind={kind} size={size} className={`overlap-indicator-type-icon ${kind}`} />
     </g>
   );
 }

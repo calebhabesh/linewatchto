@@ -1017,48 +1017,14 @@ button {
   min-width: 24px;
   height: 24px;
   border-radius: 9999px;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 900;
   padding: 0 6px;
-  color: #ffffff !important;
-  text-shadow: none;
-}
-
-/* Specific background highlights for the count numbers */
-.desktop-header-impact-chips .desktop-status-chip--alerts .desktop-status-chip-count {
-  background: #dc2626;
-}
-.dark .desktop-header-impact-chips .desktop-status-chip--alerts .desktop-status-chip-count {
-  background: #ef4444;
-}
-
-.desktop-header-impact-chips .desktop-status-chip--delays .desktop-status-chip-count {
-  background: #b45309;
-}
-.dark .desktop-header-impact-chips .desktop-status-chip--delays .desktop-status-chip-count {
-  background: #FEEC41;
   color: #000000 !important;
-}
-
-.desktop-header-impact-chips .desktop-status-chip--reduced-speed-zone .desktop-status-chip-count {
-  background: var(--impact-rsz-ink);
-  color: #ffffff !important;
-}
-.dark .desktop-header-impact-chips .desktop-status-chip--reduced-speed-zone .desktop-status-chip-count {
-  background: var(--impact-rsz);
-  color: #000000 !important;
-}
-
-.desktop-header-impact-chips .desktop-status-chip--closures .desktop-status-chip-count {
-  background: #2563eb;
-}
-.dark .desktop-header-impact-chips .desktop-status-chip--closures .desktop-status-chip-count {
-  background: #3b82f6;
-}
-
-.high-contrast .desktop-header-impact-chips .desktop-status-chip-count {
   background: #ffffff !important;
-  color: #000000 !important;
+  border: 3px solid #000000 !important;
+  text-shadow: none;
+  line-height: normal;
 }
 
 .desktop-status-chip {

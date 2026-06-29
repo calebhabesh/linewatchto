@@ -81,6 +81,10 @@ export function overlapBadgeKindCounts(impacts: Pick<MapImpact, "kind">[]): Over
   );
 }
 
+export function overlapBadgeVisualItemCount(kindCounts: OverlapBadgeKindCount[]): number {
+  return kindCounts.length;
+}
+
 export function primaryImpactForOverlap(impacts: MapImpact[]): MapImpact | undefined {
   return [...impacts].sort((a, b) => getImpactPriority(b.kind) - getImpactPriority(a.kind))[0];
 }
@@ -127,6 +131,10 @@ export function overlapBadgeSignature(impacts: Pick<MapImpact, "kind" | "cardId"
 
 function impactKeySet(impacts: Pick<MapImpact, "kind" | "cardId">[]): Set<string> {
   return new Set(impacts.map(impactKey));
+}
+
+export function hasOverlappingImpacts(impacts: Pick<MapImpact, "kind" | "cardId">[]): boolean {
+  return impactKeySet(impacts).size > 1;
 }
 
 function isStrictImpactSuperset(
@@ -231,7 +239,7 @@ export function buildStationOverlapBadgeGroups({
     .map(([stationId, impactsByKey]) => {
       const impacts = Array.from(impactsByKey.values());
       const impactKinds = getUniqueImpactKinds(impacts);
-      if (impactKinds.length <= 1) return null;
+      if (!hasOverlappingImpacts(impacts)) return null;
 
       const signature = overlapBadgeSignature(impacts);
       if (suppressedSignatures.has(signature)) return null;

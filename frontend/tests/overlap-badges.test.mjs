@@ -1,12 +1,14 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import {
+import * as overlapBadges from "../src/components/map-overlap-badges.ts";
+
+const {
   buildStationOverlapBadgeGroups,
   coveredSegmentOverlapBadgeSignatures,
   overlapBadgeKindCounts,
   overlapBadgeSignature,
-} from "../src/components/map-overlap-badges.ts";
+} = overlapBadges;
 
 describe("map overlap badge grouping", () => {
   it("creates a station-boundary overlap group when active and planned impacts only share an endpoint", () => {
@@ -128,6 +130,66 @@ describe("map overlap badge grouping", () => {
     assert.deepEqual(counts, [
       { kind: "delay", count: 2 },
       { kind: "reduced-speed-zone", count: 1 },
+    ]);
+  });
+
+  it("keeps one same-kind overlap badge to a single visual item", () => {
+    const visualItemCount = overlapBadges.overlapBadgeVisualItemCount;
+
+    assert.equal(typeof visualItemCount, "function");
+    assert.equal(visualItemCount([{ kind: "reduced-speed-zone", count: 2 }]), 1);
+    assert.equal(visualItemCount([{ kind: "delay", count: 1 }]), 1);
+    assert.equal(
+      visualItemCount([
+        { kind: "delay", count: 1 },
+        { kind: "reduced-speed-zone", count: 1 },
+      ]),
+      2,
+    );
+  });
+
+  it("creates a station-boundary overlap group for distinct impacts of the same kind", () => {
+    const groups = buildStationOverlapBadgeGroups({
+      segments: [
+        {
+          id: "yorkdale-wilson",
+          label: "Yorkdale to Wilson",
+          stationAId: "yorkdale",
+          stationBId: "wilson",
+          impacts: [
+            {
+              kind: "reduced-speed-zone",
+              cardId: "rsz-yorkdale-wilson",
+              travelDirection: "bidirectional",
+              sourceAlertIds: ["rsz-yorkdale-wilson"],
+            },
+          ],
+        },
+        {
+          id: "wilson-sheppard-west",
+          label: "Wilson to Sheppard West",
+          stationAId: "wilson",
+          stationBId: "sheppard-west",
+          impacts: [
+            {
+              kind: "reduced-speed-zone",
+              cardId: "rsz-sheppard-west-wilson",
+              travelDirection: "bidirectional",
+              sourceAlertIds: ["rsz-sheppard-west-wilson"],
+            },
+          ],
+        },
+      ],
+      plannedClosures: [],
+      stationNodeImpacts: [],
+      suppressedSignatures: new Set(),
+    });
+
+    assert.equal(groups.length, 1);
+    assert.equal(groups[0].stationId, "wilson");
+    assert.deepEqual(groups[0].impactKinds, ["reduced-speed-zone"]);
+    assert.deepEqual(overlapBadgeKindCounts(groups[0].impacts), [
+      { kind: "reduced-speed-zone", count: 2 },
     ]);
   });
 
