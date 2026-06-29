@@ -199,20 +199,50 @@ export function SavedCommuteStationPicker({
         const minUsableHeight = mobileViewport ? 120 : 100;
         let left = rect.left;
         const extraWidth = !mobileViewport && expandedLineId ? 280 : 0;
-        const popWidth = rect.width + extraWidth;
-        if (left + popWidth > viewportLeft + viewportWidth - edgeInset) {
-          left = viewportLeft + viewportWidth - popWidth - edgeInset;
+        let popWidth = rect.width + extraWidth;
+
+        const scrollContainer = rootRef.current?.closest(".floating-panel-scroll");
+        const containerRect = scrollContainer ? scrollContainer.getBoundingClientRect() : null;
+
+        if (mobileViewport && containerRect) {
+          const padding = 8;
+          const minLeft = containerRect.left + padding;
+          const maxRight = containerRect.right - padding;
+          const maxUsableWidth = maxRight - minLeft;
+
+          if (popWidth > maxUsableWidth) {
+            popWidth = maxUsableWidth;
+          }
+          if (left < minLeft) {
+            left = minLeft;
+          }
+          if (left + popWidth > maxRight) {
+            left = maxRight - popWidth;
+          }
+        } else {
+          if (left + popWidth > viewportLeft + viewportWidth - edgeInset) {
+            left = viewportLeft + viewportWidth - popWidth - edgeInset;
+          }
+          if (left < viewportLeft + edgeInset) left = viewportLeft + edgeInset;
         }
-        if (left < viewportLeft + edgeInset) left = viewportLeft + edgeInset;
 
         const belowTop = rect.bottom + gap;
-        const belowSpace = viewportBottom - belowTop - edgeInset;
-        const aboveSpace = rect.top - viewportTop - gap - edgeInset;
-        const placeBelow = belowSpace >= minUsableHeight || belowSpace >= aboveSpace;
-        const maxHeight = Math.max(
-          120,
-          Math.min(320, placeBelow ? belowSpace : aboveSpace),
-        );
+
+        // Define vertical space limits
+        let belowSpace = viewportBottom - belowTop - edgeInset;
+        let aboveSpace = rect.top - viewportTop - gap - edgeInset;
+
+        if (mobileViewport && containerRect) {
+          const containerTopLimit = Math.max(viewportTop + edgeInset, containerRect.top + 8);
+          const containerBottomLimit = Math.min(viewportBottom - edgeInset, containerRect.bottom - 8);
+          belowSpace = containerBottomLimit - belowTop;
+          aboveSpace = rect.top - gap - containerTopLimit;
+        }
+
+        const placeBelow = mobileViewport ? true : (belowSpace >= minUsableHeight || belowSpace >= aboveSpace);
+        const maxHeight = mobileViewport
+          ? Math.min(320, belowSpace)
+          : Math.max(120, Math.min(320, placeBelow ? belowSpace : aboveSpace));
         const top = placeBelow
           ? belowTop
           : (mobileViewport ? Math.max(viewportTop + edgeInset, rect.top - gap - maxHeight) : undefined);

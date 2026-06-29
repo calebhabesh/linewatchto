@@ -473,7 +473,10 @@ export function SavedCommutesPanel({
               notificationSummary={notificationSummary}
             />
             
-            <div className="border-t border-black/10 dark:border-white/10 my-1" />
+            <div
+              aria-hidden="true"
+              className="station-arrival-line-divider my-3 mx-0.5"
+            />
             
             <h3 className="text-sm font-bold text-slate-900 dark:text-white mt-1">Saved Routes</h3>
             {accountCommutes.length === 0 ? (

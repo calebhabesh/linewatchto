@@ -1472,7 +1472,7 @@ export function LineWatchShell({
   const activeFloatingPanel = !showClosedScreen ? (
     isMobilePanel ? (
       <FloatingPanelShell panel="mobile-panel" mobileSheetLabel={getMobileSheetLabel()}>
-        <div key={activeView} className="mobile-view-content-wrapper">
+        <div key={activeView} className="mobile-view-content-wrapper" data-active-view={activeView}>
           {renderPanelContent()}
         </div>
       </FloatingPanelShell>

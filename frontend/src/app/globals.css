@@ -4904,6 +4904,8 @@ button {
   min-height: 34px;
   outline: 0;
   padding: 0;
+  width: 100%;
+  min-width: 0;
 }
 
 .commute-station-search-row button {
@@ -8439,6 +8441,7 @@ button {
     background: var(--panel) !important;
     border: 1px solid var(--border) !important;
     animation: commute-popover-enter-mobile 220ms cubic-bezier(0.23, 1, 0.32, 1) both !important;
+    max-width: calc(100vw - 32px) !important;
   }
 
   .commute-station-search-row {
@@ -8520,6 +8523,29 @@ button {
   .high-contrast .commute-station-mobile-back {
     background: #000000;
     border: 1px solid #ffffff;
+  }
+
+  .saved-commute-form,
+  .saved-commute-account-prompt {
+    border: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+  }
+
+  .mobile-view-content-wrapper[data-active-view="commutes"],
+  .mobile-view-content-wrapper[data-active-view="commutes"] .commute-panel {
+    height: auto !important;
+  }
+
+  .floating-panel-shell[data-floating-panel="mobile-panel"]:has([data-active-view="commutes"]) .floating-panel-scroll {
+    height: auto !important;
+  }
+
+  .mobile-view-content-wrapper[data-active-view="commutes"] .commute-grid {
+    padding-bottom: 12px !important;
+    mask-image: none !important;
+    -webkit-mask-image: none !important;
   }
 }
 
