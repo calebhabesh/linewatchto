@@ -116,6 +116,19 @@ class PushNotificationControllerTest {
     }
 
     @Test
+    void marksPayloadNotificationDisplayedForCurrentSubscription() {
+        PushRequests.DisplayedNotificationRequest request = new PushRequests.DisplayedNotificationRequest(
+            "https://fcm.googleapis.com/fcm/send/subscription",
+            "saved-commute-impact|commute_1|outbound|delay|delay-line-1|active"
+        );
+        when(accountService.requireAccount("raw-token")).thenReturn(account);
+
+        controller.markDisplayed("raw-token", request);
+
+        verify(pushNotificationService).markPayloadNotificationDisplayed(account, request);
+    }
+
+    @Test
     void updatesAccountNotificationPreferencesWithoutDeviceSubscription() {
         PushRequests.UpdatePushPreferencesRequest request = new PushRequests.UpdatePushPreferencesRequest(
             true,

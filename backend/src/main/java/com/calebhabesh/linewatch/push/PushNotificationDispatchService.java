@@ -392,7 +392,11 @@ public class PushNotificationDispatchService {
     private boolean sendEventToSubscriptions(PushNotificationEventEntity event, List<PushSubscriptionEntity> subscriptions, Instant now) {
         boolean accepted = false;
         for (PushSubscriptionEntity subscription : subscriptions) {
-            PushDeliveryResult result = webPushClient.send(subscription, topicFor(PushNotificationDisplayTags.forEvent(event)));
+            PushDeliveryResult result = webPushClient.send(
+                subscription,
+                topicFor(PushNotificationDisplayTags.forEvent(event)),
+                WebPushPayload.fromEvent(event)
+            );
             if (result.accepted()) {
                 accepted = true;
             }

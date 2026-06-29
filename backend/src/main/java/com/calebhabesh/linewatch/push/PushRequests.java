@@ -13,6 +13,8 @@ public final class PushRequests {
 
     public record SubscriptionEndpointRequest(String endpoint) {}
 
+    public record DisplayedNotificationRequest(String endpoint, String tag) {}
+
     public record EventTypePreferencesRequest(
         Boolean suspensions,
         Boolean delays,

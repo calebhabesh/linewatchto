@@ -88,6 +88,25 @@ describe("station detail panel layout", () => {
     assert.match(panelSource, /className="min-w-0 flex-1"/);
   });
 
+  it("surfaces accessibility outage counts near the top of the station panel", () => {
+    const outageSummaryIndex = panelSource.indexOf('data-station-access-outage-summary');
+    const accessibilityChipsIndex = panelSource.indexOf("isWheelchairAccessible || hasElevator");
+    const headerDetailsIndex = panelSource.indexOf('data-station-header-line-details');
+
+    assert.notEqual(outageSummaryIndex, -1);
+    assert.notEqual(accessibilityChipsIndex, -1);
+    assert.notEqual(headerDetailsIndex, -1);
+    assert.ok(accessibilityChipsIndex < outageSummaryIndex);
+    assert.ok(outageSummaryIndex < headerDetailsIndex);
+    assert.match(panelSource, /StationAccessOutageBadge/);
+    assert.match(panelSource, /formatStationOutageLabel\("elevator", elevatorOutagesCount\)/);
+    assert.match(panelSource, /formatStationOutageLabel\("escalator", escalatorOutagesCount\)/);
+    assert.match(panelSource, /station-access-outage-badge/);
+    assert.match(panelSource, /station-access-outage-count/);
+    assert.match(globalCss, /\.station-access-outage-badge\s*\{[^}]*width:\s*30px;[^}]*height:\s*30px;[^}]*flex:\s*0 0 30px;/s);
+    assert.match(globalCss, /\.station-access-outage-count\s*\{[^}]*min-width:\s*16px;[^}]*height:\s*16px;[^}]*font-size:\s*8px;/s);
+  });
+
   it("defines station marker and reduced motion styles", () => {
     assert.match(globalCss, /\.station-hit-target/);
     assert.match(globalCss, /\.station-hit-target\.selected/);

@@ -140,6 +140,22 @@ public class PushNotificationService {
     }
 
     @Transactional
+    public void markPayloadNotificationDisplayed(
+        AccountEntity account,
+        PushRequests.DisplayedNotificationRequest request
+    ) {
+        String endpointHash = hashEndpoint(required(request.endpoint(), "missing_endpoint", "Push subscription endpoint is required."));
+        DisplayTag displayTag = parseDisplayTag(required(request.tag(), "missing_notification_tag", "Push notification tag is required."));
+        deliveryRepository.findPendingDeliveryForNotification(
+            account.getId(),
+            endpointHash,
+            displayTag.notificationKey(),
+            displayTag.notificationState(),
+            PageRequest.of(0, 1)
+        ).stream().findFirst().ifPresent(delivery -> delivery.markDisplayed(clock.instant()));
+    }
+
+    @Transactional
     public PushResponses.PendingPushNotificationResponse latestPendingNotification(
         AccountEntity account,
         PushRequests.SubscriptionEndpointRequest request
@@ -280,6 +296,17 @@ public class PushNotificationService {
         return PushNotificationDisplayTags.forEvent(event);
     }
 
+    private DisplayTag parseDisplayTag(String tag) {
+        String normalized = tag.trim();
+        if (normalized.endsWith("|cleared")) {
+            return new DisplayTag(normalized.substring(0, normalized.length() - "|cleared".length()), "CLEARED");
+        }
+        if (normalized.endsWith("|active")) {
+            return new DisplayTag(normalized.substring(0, normalized.length() - "|active".length()), "ACTIVE");
+        }
+        return new DisplayTag(normalized, "ACTIVE");
+    }
+
     private String required(String value, String code, String message) {
         if (value == null || value.isBlank()) {
             throw new AccountException(HttpStatus.BAD_REQUEST, code, message);
@@ -307,4 +334,6 @@ public class PushNotificationService {
     private String nextId(String prefix) {
         return prefix + "_" + UUID.randomUUID().toString().replace("-", "");
     }
+
+    private record DisplayTag(String notificationKey, String notificationState) {}
 }

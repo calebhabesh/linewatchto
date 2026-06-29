@@ -381,6 +381,60 @@ class PushNotificationServiceTest {
         assertThat(clearedDelivery.getDisplayedAt()).isEqualTo(clock.instant());
     }
 
+    @Test
+    void marksPayloadNotificationDisplayedByEndpointAndDisplayTag() {
+        PushNotificationCandidate candidate = candidate(
+            "commute_1",
+            "outbound",
+            "line-1",
+            "1",
+            "saved-commute-impact",
+            "delay",
+            "on-change",
+            "saved-commute-impact|commute_1|outbound|delay|delay-line-1",
+            "dedupe-1",
+            "Finch to Union",
+            "Morning commute",
+            clock.instant(),
+            "/?panel=commutes&commute=commute_1"
+        );
+        PushNotificationEventEntity event = PushNotificationEventEntity.create("push_event_1", candidate, clock.instant());
+        PushSubscriptionEntity subscription = PushSubscriptionEntity.create(
+            "push_subscription_1",
+            account,
+            "https://fcm.googleapis.com/fcm/send/subscription",
+            PushNotificationService.hashEndpoint("https://fcm.googleapis.com/fcm/send/subscription"),
+            "p256dh-key",
+            "auth-secret",
+            "Chrome Android",
+            clock.instant()
+        );
+        PushNotificationDeliveryEntity delivery = PushNotificationDeliveryEntity.create(
+            "push_delivery_1",
+            event,
+            subscription,
+            PushDeliveryResult.accepted(202),
+            clock.instant()
+        );
+        when(deliveryRepository.findPendingDeliveryForNotification(
+            "user_1",
+            PushNotificationService.hashEndpoint("https://fcm.googleapis.com/fcm/send/subscription"),
+            "saved-commute-impact|commute_1|outbound|delay|delay-line-1",
+            "ACTIVE",
+            PageRequest.of(0, 1)
+        )).thenReturn(List.of(delivery));
+
+        service.markPayloadNotificationDisplayed(
+            account,
+            new PushRequests.DisplayedNotificationRequest(
+                "https://fcm.googleapis.com/fcm/send/subscription",
+                "saved-commute-impact|commute_1|outbound|delay|delay-line-1|active"
+            )
+        );
+
+        assertThat(delivery.getDisplayedAt()).isEqualTo(clock.instant());
+    }
+
     private PushNotificationCandidate candidate(
         String commuteId,
         String legId,

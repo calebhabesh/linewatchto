@@ -64,7 +64,7 @@ class VapidWebPushClientSpringContextTest {
             Instant.parse("2026-06-05T14:45:00Z")
         );
 
-        PushDeliveryResult result = client.send(subscription, "AVEPD-AuDIedMxfArNYRpmed5ppkzhC3");
+        PushDeliveryResult result = client.send(subscription, "AVEPD-AuDIedMxfArNYRpmed5ppkzhC3", null);
 
         ArgumentCaptor<HttpRequest> requestCaptor = ArgumentCaptor.forClass(HttpRequest.class);
         verify(httpClient).send(requestCaptor.capture(), any(HttpResponse.BodyHandler.class));

@@ -7,6 +7,7 @@ public record FormattedPushNotification(
     String body,
     String notificationSubject,
     String eventLocation,
+    String displayDirection,
     String scopeLabel,
     Instant sourceEventAt
 ) {}

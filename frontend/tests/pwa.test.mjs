@@ -290,6 +290,7 @@ async function serviceWorkerPush({
     retainedTags: ["saved-commute-impact|commute_1|dedupe-1|active"],
   },
   existingNotifications = [],
+  pushData = null,
 } = {}) {
   const listeners = new Map();
   const waitUntilPromises = [];
@@ -353,6 +354,12 @@ async function serviceWorkerPush({
       waitUntilPromises.push(Promise.resolve(promise));
     },
   };
+  if (pushData !== null) {
+    event.data = {
+      json: () => pushData,
+      text: () => JSON.stringify(pushData),
+    };
+  }
 
   pushListener(event);
   await Promise.all(waitUntilPromises);
@@ -653,6 +660,47 @@ describe("LineWatch PWA configuration", () => {
     assert.equal(shownNotifications[0].options.badge, "/assets/linewatch/pwa/notification-badge-96.png");
   });
 
+  it("shows encrypted payload push notifications before fetching pending notifications", async () => {
+    const { fetchRequests, shownNotifications } = await serviceWorkerPush({
+      pushData: {
+        title: "⚠️ Line 1 Yonge-University Delay",
+        body: "Finch to Union.\nAffects Morning commute (Outbound).\n🕗 Jun 5, 10:20 AM",
+        url: "/?panel=commutes&commute=commute_1",
+        tag: "saved-commute-impact|commute_1|outbound|delay|delay-line-1|active",
+        state: "ACTIVE",
+        timestamp: "2026-06-05T15:00:00Z",
+      },
+    });
+
+    assert.equal(shownNotifications.length, 1);
+    assert.equal(shownNotifications[0].title, "⚠️ Line 1 Yonge-University Delay");
+    assert.equal(
+      shownNotifications[0].options.body,
+      "Finch to Union.\nAffects Morning commute (Outbound).\n🕗 Jun 5, 10:20 AM",
+    );
+    assert.equal(shownNotifications[0].options.tag, "saved-commute-impact|commute_1|outbound|delay|delay-line-1|active");
+    assert.equal(shownNotifications[0].options.data.url, "/?panel=commutes&commute=commute_1");
+    assert.notEqual(fetchRequests[0]?.url, "/api/account/push/latest");
+  });
+
+  it("keeps payload push notifications visible when display acknowledgement fails", async () => {
+    const { shownNotifications } = await serviceWorkerPush({
+      fetchOk: false,
+      fetchStatus: 401,
+      pushData: {
+        title: "⚠️ Line 1 Yonge-University Delay",
+        body: "Finch to Union.\nAffects Morning commute (Outbound).\n🕗 Jun 5, 10:20 AM",
+        url: "/?panel=commutes&commute=commute_1",
+        tag: "saved-commute-impact|commute_1|outbound|delay|delay-line-1|active",
+        state: "ACTIVE",
+        timestamp: "2026-06-05T15:00:00Z",
+      },
+    });
+
+    assert.equal(shownNotifications.length, 1);
+    assert.equal(shownNotifications[0].title, "⚠️ Line 1 Yonge-University Delay");
+  });
+
   it("shows active and cleared lifecycle notifications as separate browser notifications", async () => {
     const { shownNotifications } = await serviceWorkerPush({
       fetchBody: {
@@ -877,10 +925,11 @@ describe("LineWatch PWA configuration", () => {
     );
   });
 
-  it("does not show a fallback for unauthenticated or unknown push subscriptions", async () => {
+  it("shows a fallback for unauthenticated or unknown push subscriptions to prevent Android Chrome revocation", async () => {
     const { shownNotifications } = await serviceWorkerPush({ fetchOk: false, fetchStatus: 401 });
 
-    assert.equal(shownNotifications.length, 0);
+    assert.equal(shownNotifications.length, 1);
+    assert.equal(shownNotifications[0].title, "⚠️ LineWatchTO Service Alert");
   });
 
   it("shows a cleared saved-commute push as a quiet replacement even when the tag is no longer active", async () => {

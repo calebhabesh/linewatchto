@@ -93,7 +93,7 @@ self.addEventListener("fetch", (event) => {
 });
 
 self.addEventListener("push", (event) => {
-  event.waitUntil(showPendingPushNotification());
+  event.waitUntil(showPendingPushNotification(event));
 });
 
 self.addEventListener("message", (event) => {
@@ -158,8 +158,16 @@ async function deleteCaches(cacheNames) {
   await Promise.all(cacheNames.map((cacheName) => caches.delete(cacheName)));
 }
 
-async function showPendingPushNotification() {
+async function showPendingPushNotification(event) {
   try {
+    const payloadNotification = notificationFromPushPayload(event);
+    if (payloadNotification) {
+      await showPushNotification(payloadNotification);
+      await acknowledgePayloadPushNotification(payloadNotification);
+      await reconcilePushNotifications();
+      return;
+    }
+
     const subscription = await self.registration.pushManager.getSubscription();
     if (!subscription) return;
 
@@ -190,31 +198,75 @@ async function showPendingPushNotification() {
         continue;
       }
 
-      const notificationState = notificationStateFor(notification);
-      const options = {
-        body: notification.body,
-        tag: notification.tag,
-        icon: NOTIFICATION_ICON_URL,
-        badge: NOTIFICATION_BADGE_URL,
-        renotify: false,
-        requireInteraction: true,
-        data: {
-          state: notificationState,
-          url: notification.url || "/",
-        },
-      };
-      if (notificationState === "CLEARED") {
-        options.silent = true;
-      }
-      const timestamp = Date.parse(notification.timestamp);
-      if (Number.isFinite(timestamp)) {
-        options.timestamp = timestamp;
-      }
-
-      await self.registration.showNotification(notification.title, options);
+      await showPushNotification(notification);
     }
   } catch {
     await showFallbackPushNotification();
+  }
+}
+
+function notificationFromPushPayload(event) {
+  if (!event?.data || typeof event.data.json !== "function") return null;
+  try {
+    return normalizePayloadNotification(event.data.json());
+  } catch {
+    return null;
+  }
+}
+
+function normalizePayloadNotification(body) {
+  if (!body || typeof body !== "object") return null;
+  if (typeof body.title !== "string" || body.title.trim().length === 0) return null;
+  if (typeof body.tag !== "string" || body.tag.trim().length === 0) return null;
+  return {
+    title: body.title,
+    body: typeof body.body === "string" ? body.body : "",
+    url: typeof body.url === "string" && body.url.length > 0 ? body.url : "/",
+    tag: body.tag,
+    state: typeof body.state === "string" ? body.state : "ACTIVE",
+    timestamp: typeof body.timestamp === "string" ? body.timestamp : "",
+  };
+}
+
+async function showPushNotification(notification) {
+  const notificationState = notificationStateFor(notification);
+  const options = {
+    body: notification.body,
+    tag: notification.tag,
+    icon: NOTIFICATION_ICON_URL,
+    badge: NOTIFICATION_BADGE_URL,
+    renotify: false,
+    requireInteraction: true,
+    data: {
+      state: notificationState,
+      url: notification.url || "/",
+    },
+  };
+  if (notificationState === "CLEARED") {
+    options.silent = true;
+  }
+  const timestamp = Date.parse(notification.timestamp);
+  if (Number.isFinite(timestamp)) {
+    options.timestamp = timestamp;
+  }
+
+  await self.registration.showNotification(notification.title, options);
+}
+
+async function acknowledgePayloadPushNotification(notification) {
+  try {
+    const subscription = await self.registration.pushManager.getSubscription();
+    if (!subscription) return;
+    await fetch("/api/account/push/displayed", {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({ endpoint: subscription.endpoint, tag: notification.tag }),
+    });
+  } catch {
+    // Payload display is authoritative; acknowledgement only prevents stale fallback delivery.
   }
 }
 
@@ -231,7 +283,7 @@ async function showFallbackPushNotification() {
 }
 
 function shouldShowFallbackPushNotification(status) {
-  return !Number.isFinite(status) || status >= 500;
+  return !Number.isFinite(status) || status === 401 || status === 403 || status >= 500;
 }
 
 function normalizePendingNotifications(body) {

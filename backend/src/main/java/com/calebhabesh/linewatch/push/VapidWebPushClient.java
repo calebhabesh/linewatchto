@@ -40,7 +40,7 @@ public class VapidWebPushClient implements WebPushClient {
     }
 
     @Override
-    public PushDeliveryResult send(PushSubscriptionEntity subscription, String topic) {
+    public PushDeliveryResult send(PushSubscriptionEntity subscription, String topic, WebPushPayload payload) {
         if (!properties.webPushConfigured()) {
             return PushDeliveryResult.skipped("Web Push VAPID keys are not configured.");
         }
@@ -48,11 +48,22 @@ public class VapidWebPushClient implements WebPushClient {
             URI endpoint = URI.create(subscription.getEndpoint());
             HttpRequest.Builder requestBuilder = HttpRequest.newBuilder(endpoint)
                 .header("TTL", Long.toString(PUSH_TTL_SECONDS))
-                .header("Urgency", "normal")
-                .header("Authorization", authorizationHeader(endpoint))
-                .POST(HttpRequest.BodyPublishers.noBody());
+                .header("Urgency", payload != null && payload.highUrgency() ? "high" : "normal")
+                .header("Authorization", authorizationHeader(endpoint));
             if (topic != null && !topic.isBlank()) {
                 requestBuilder.header("Topic", topic.trim());
+            }
+            if (payload == null) {
+                requestBuilder.POST(HttpRequest.BodyPublishers.noBody());
+            } else {
+                byte[] encryptedPayload = WebPushPayloadEncryption.encrypt(
+                    subscription,
+                    payload.toJson().getBytes(StandardCharsets.UTF_8)
+                );
+                requestBuilder
+                    .header("Content-Encoding", "aes128gcm")
+                    .header("Content-Type", "application/octet-stream")
+                    .POST(HttpRequest.BodyPublishers.ofByteArray(encryptedPayload));
             }
             HttpRequest request = requestBuilder.build();
             HttpResponse<Void> response = httpClient.send(request, HttpResponse.BodyHandlers.discarding());

@@ -72,6 +72,16 @@ public class PushNotificationController {
         return pushNotificationService.activeNotifications(account, request);
     }
 
+    @PostMapping("/displayed")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void markDisplayed(
+        @CookieValue(name = AuthCookieFactory.COOKIE_NAME, required = false) String rawSessionToken,
+        @RequestBody PushRequests.DisplayedNotificationRequest request
+    ) {
+        AccountEntity account = accountService.requireAccount(rawSessionToken);
+        pushNotificationService.markPayloadNotificationDisplayed(account, request);
+    }
+
     @PostMapping("/subscription/disable")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void disableSubscription(

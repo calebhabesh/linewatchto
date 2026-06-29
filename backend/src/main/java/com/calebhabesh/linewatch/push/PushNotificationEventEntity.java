@@ -36,6 +36,8 @@ public class PushNotificationEventEntity {
     private String notificationSubject;
     @Column(name = "event_location")
     private String eventLocation;
+    @Column(name = "display_direction")
+    private String displayDirection;
     @Column(name = "scope_label")
     private String scopeLabel;
     @Column(name = "source_event_at")
@@ -62,6 +64,7 @@ public class PushNotificationEventEntity {
         this.body = candidate.body();
         this.notificationSubject = candidate.notificationSubject();
         this.eventLocation = candidate.eventLocation();
+        this.displayDirection = candidate.displayDirection();
         this.scopeLabel = candidate.scopeLabel();
         this.sourceEventAt = candidate.sourceEventAt();
         this.url = candidate.url();
@@ -81,6 +84,7 @@ public class PushNotificationEventEntity {
         FormattedPushNotification notification = formatter.formatCleared(
             activeEvent.notificationSubject,
             activeEvent.eventLocation,
+            activeEvent.displayDirection,
             activeEvent.scopeLabel,
             now
         );
@@ -101,6 +105,7 @@ public class PushNotificationEventEntity {
         event.body = notification.body();
         event.notificationSubject = notification.notificationSubject();
         event.eventLocation = notification.eventLocation();
+        event.displayDirection = notification.displayDirection();
         event.scopeLabel = notification.scopeLabel();
         event.sourceEventAt = notification.sourceEventAt();
         event.url = "/";
@@ -117,6 +122,7 @@ public class PushNotificationEventEntity {
         FormattedPushNotification notification = formatter.formatCleared(
             observation.getNotificationSubject(),
             observation.getEventLocation(),
+            observation.getDisplayDirection(),
             observation.getScopeLabel(),
             now
         );
@@ -144,6 +150,7 @@ public class PushNotificationEventEntity {
         event.body = notification.body();
         event.notificationSubject = notification.notificationSubject();
         event.eventLocation = notification.eventLocation();
+        event.displayDirection = notification.displayDirection();
         event.scopeLabel = notification.scopeLabel();
         event.sourceEventAt = notification.sourceEventAt();
         event.url = "/";
@@ -166,6 +173,7 @@ public class PushNotificationEventEntity {
     public String getBody() { return body; }
     public String getNotificationSubject() { return notificationSubject; }
     public String getEventLocation() { return eventLocation; }
+    public String getDisplayDirection() { return displayDirection; }
     public String getScopeLabel() { return scopeLabel; }
     public Instant getSourceEventAt() { return sourceEventAt; }
     public String getUrl() { return url; }

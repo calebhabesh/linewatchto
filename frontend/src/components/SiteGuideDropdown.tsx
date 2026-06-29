@@ -166,11 +166,17 @@ export function SiteGuideDropdown({ onOpenChange }: { onOpenChange?: (open: bool
   const [isOpen, setIsOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
   const panelId = useId();
 
   useEffect(() => {
-    onOpenChange?.(isOpen);
-  }, [isOpen, onOpenChange]);
+    if (isOpen) {
+      const timer = setTimeout(() => {
+        panelRef.current?.focus();
+      }, 0);
+      return () => clearTimeout(timer);
+    }
+  }, [isOpen]);
 
   useEffect(() => {
     const mediaQuery = window.matchMedia("(max-width: 767px)");
@@ -184,12 +190,14 @@ export function SiteGuideDropdown({ onOpenChange }: { onOpenChange?: (open: bool
     function handlePointerDown(event: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsOpen(false);
+        onOpenChange?.(false);
       }
     }
 
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") {
         setIsOpen(false);
+        onOpenChange?.(false);
       }
     }
 
@@ -199,7 +207,7 @@ export function SiteGuideDropdown({ onOpenChange }: { onOpenChange?: (open: bool
       document.removeEventListener("mousedown", handlePointerDown);
       document.removeEventListener("keydown", handleKeyDown);
     };
-  }, []);
+  }, [onOpenChange]);
 
   return (
     <div className="site-guide-dropdown relative pointer-events-auto" ref={dropdownRef}>
@@ -209,7 +217,11 @@ export function SiteGuideDropdown({ onOpenChange }: { onOpenChange?: (open: bool
         aria-controls={panelId}
         aria-expanded={isOpen}
         aria-label="Open site guide"
-        onClick={() => setIsOpen((current) => !current)}
+        onClick={() => {
+          const next = !isOpen;
+          setIsOpen(next);
+          onOpenChange?.(next);
+        }}
       >
         <Image
           src="/assets/linewatch/site-guide.svg"
@@ -223,8 +235,10 @@ export function SiteGuideDropdown({ onOpenChange }: { onOpenChange?: (open: bool
 
       {isOpen ? (
         <section
+          ref={panelRef}
+          tabIndex={-1}
           id={panelId}
-          className="site-guide-panel"
+          className="site-guide-panel outline-none"
           role="dialog"
           aria-label="LineWatchTO site guide"
         >
@@ -236,7 +250,14 @@ export function SiteGuideDropdown({ onOpenChange }: { onOpenChange?: (open: bool
                 <p>Unofficial TTC subway and LRT reliability dashboard.</p>
               </div>
             </div>
-            <button type="button" onClick={() => setIsOpen(false)} aria-label="Close site guide">
+            <button
+              type="button"
+              onClick={() => {
+                setIsOpen(false);
+                onOpenChange?.(false);
+              }}
+              aria-label="Close site guide"
+            >
               <X size={17} />
             </button>
           </div>
@@ -371,7 +392,7 @@ export function SiteGuideDropdown({ onOpenChange }: { onOpenChange?: (open: bool
                 <OverlayGuideRow
                   icon={<ImpactTypeIcon kind="planned-closure" size={16} />}
                   title="Upcoming Closure Preview"
-                  text="Static, unpulsing blue lane previews scheduled upcoming closures (usually bidirectional)."
+                  text="Static, translucent blue lane preview scheduled upcoming closures (usually bidirectional)."
                   previews={
                     <OverlayAssetPreview fileName="info-upcoming-closure.svg" label="Preview" />
                   }

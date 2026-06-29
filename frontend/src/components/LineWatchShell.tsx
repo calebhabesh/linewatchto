@@ -1707,8 +1707,8 @@ export function LineWatchShell({
 
       {!showClosedScreen && (
       <header
-        className="absolute top-0 left-0 w-full p-4 sm:p-6 flex justify-between items-start pointer-events-none transition-all duration-300"
-        style={{ zIndex: guideOpen ? 42 : 40 }}
+        className="absolute top-0 left-0 w-full p-4 sm:p-6 flex justify-between items-start pointer-events-none"
+        style={{ zIndex: guideOpen ? 60 : 40 }}
       >
         <div className="flex items-start gap-3 pointer-events-auto relative">
           {/* Menu Toggle Button */}

@@ -27,6 +27,7 @@ public class PushNotificationFormatter {
     public FormattedPushNotification formatActive(PushNotificationFacts facts) {
         String subject = notificationSubject(facts.lineId(), facts.lineNumber(), facts.eventType());
         String location = normalizeText(facts.location());
+        String displayDirection = normalizeText(facts.displayDirection());
         String scopeLabel = scopeLabel(facts.commuteLabel(), facts.legId());
         List<String> bodyParts = new ArrayList<>();
         String sourceDescription = sourceDescription(facts.sourceDescription());
@@ -56,6 +57,7 @@ public class PushNotificationFormatter {
             String.join("\n", bodyParts),
             subject,
             location.isEmpty() ? null : location,
+            displayDirection.isEmpty() ? null : displayDirection,
             scopeLabel,
             facts.sourceEventAt()
         );
@@ -67,14 +69,25 @@ public class PushNotificationFormatter {
         String scopeLabel,
         Instant clearedAt
     ) {
+        return formatCleared(notificationSubject, eventLocation, null, scopeLabel, clearedAt);
+    }
+
+    public FormattedPushNotification formatCleared(
+        String notificationSubject,
+        String eventLocation,
+        String displayDirection,
+        String scopeLabel,
+        Instant clearedAt
+    ) {
         String subject = normalizeText(notificationSubject);
         if (subject.isEmpty()) {
             subject = "TTC Service Alert";
         }
         String location = normalizeText(eventLocation);
+        String direction = normalizeText(displayDirection);
         String normalizedScope = emptyToNull(normalizeText(scopeLabel));
         List<String> bodyParts = new ArrayList<>();
-        bodyParts.add(clearanceSentence(location));
+        bodyParts.add(clearanceSentence(location, direction));
         if (normalizedScope != null) {
             bodyParts.add("No longer affects " + normalizedScope + ".");
         }
@@ -85,6 +98,7 @@ public class PushNotificationFormatter {
             String.join("\n", bodyParts),
             subject,
             location.isEmpty() ? null : location,
+            direction.isEmpty() ? null : direction,
             normalizedScope,
             clearedAt
         );
@@ -117,6 +131,17 @@ public class PushNotificationFormatter {
         return label + " (" + leg + ")";
     }
 
+    private String clearanceSentence(String location, String displayDirection) {
+        String direction = directionPhrase(displayDirection, location);
+        if (direction.isEmpty()) {
+            return clearanceSentence(location);
+        }
+        if (location.isEmpty()) {
+            return "Service has resumed " + direction + " on this line.";
+        }
+        return "Service has resumed " + direction + " " + clearanceLocationPhrase(location) + ".";
+    }
+
     private String clearanceSentence(String location) {
         if (location.isEmpty()) {
             return "Service on this line has resumed.";
@@ -142,6 +167,30 @@ public class PushNotificationFormatter {
         }
 
         return "Service affecting " + withoutPunctuation + " has resumed.";
+    }
+
+    private String clearanceLocationPhrase(String location) {
+        String withoutPunctuation = stripTerminalPunctuation(location);
+        Matcher betweenMatcher = BETWEEN_PATTERN.matcher(withoutPunctuation);
+        if (betweenMatcher.matches()) {
+            return "between "
+                + betweenMatcher.group(1).trim()
+                + " and "
+                + rangeEndWithStationLabel(betweenMatcher.group(1), betweenMatcher.group(2));
+        }
+
+        Matcher toMatcher = TO_PATTERN.matcher(withoutPunctuation);
+        if (toMatcher.matches()) {
+            return "between "
+                + toMatcher.group(1).trim()
+                + " and "
+                + rangeEndWithStationLabel(toMatcher.group(1), toMatcher.group(2));
+        }
+
+        if (withoutPunctuation.toLowerCase(Locale.ROOT).startsWith("at ")) {
+            return withoutPunctuation;
+        }
+        return "at " + withoutPunctuation;
     }
 
     private String sentence(String value) {

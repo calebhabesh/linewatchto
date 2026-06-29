@@ -44,6 +44,10 @@ public record PushNotificationCandidate(
         return notification.eventLocation();
     }
 
+    public String displayDirection() {
+        return notification.displayDirection();
+    }
+
     public String scopeLabel() {
         return notification.scopeLabel();
     }

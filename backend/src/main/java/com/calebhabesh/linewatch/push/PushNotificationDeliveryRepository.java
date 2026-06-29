@@ -43,6 +43,27 @@ public interface PushNotificationDeliveryRepository extends JpaRepository<PushNo
     );
 
     @Query("""
+        select delivery
+        from PushNotificationDeliveryEntity delivery
+        join fetch delivery.event event
+        join fetch delivery.subscription subscription
+        where subscription.account.id = :accountId
+          and subscription.endpointHash = :endpointHash
+          and subscription.enabled = true
+          and delivery.displayedAt is null
+          and event.notificationKey = :notificationKey
+          and event.notificationState = :notificationState
+        order by delivery.createdAt asc
+        """)
+    List<PushNotificationDeliveryEntity> findPendingDeliveryForNotification(
+        @Param("accountId") String accountId,
+        @Param("endpointHash") String endpointHash,
+        @Param("notificationKey") String notificationKey,
+        @Param("notificationState") String notificationState,
+        Pageable pageable
+    );
+
+    @Query("""
         select distinct event.notificationKey
         from PushNotificationDeliveryEntity delivery
         join delivery.event event
