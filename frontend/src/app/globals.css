@@ -4277,6 +4277,21 @@ button {
   }
 }
 
+.station-detail-scroll {
+  scroll-behavior: smooth;
+}
+
+.motion-paused .station-detail-scroll {
+  scroll-behavior: auto !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .station-detail-scroll {
+    scroll-behavior: auto !important;
+  }
+}
+
+
 .station-detail-body-wrapper {
   transition: opacity 220ms cubic-bezier(0.22, 1, 0.36, 1),
               transform 220ms cubic-bezier(0.22, 1, 0.36, 1),

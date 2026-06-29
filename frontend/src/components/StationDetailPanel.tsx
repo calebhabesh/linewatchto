@@ -32,6 +32,7 @@ type Props = {
   selectedStationName?: string;
   onClose: () => void;
   onSelectImpact?: (selection: ImpactSelection) => void;
+  reducedMotion?: boolean;
 };
 
 type StationImpactDetailsTarget = {
@@ -216,7 +217,7 @@ function stationImpactTitleClassName(tone: StationImpactDetailsTarget["tone"]) {
   return "block text-[#FEEC41]";
 }
 
-export function StationDetailPanel({ stationResult, loading, updating, selectedStationName, onClose, onSelectImpact }: Props) {
+export function StationDetailPanel({ stationResult, loading, updating, selectedStationName, onClose, onSelectImpact, reducedMotion }: Props) {
   const { activeAlerts, delays, reducedSpeedZones, plannedClosures } = useDashboardData();
   const subwayOperatingState = useSubwayOperatingState();
   const station = stationResult?.data ?? null;
@@ -245,10 +246,29 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
 
   const handleJumpToAccessibility = () => {
     if (accessibilityDetailsRef.current) {
-      accessibilityDetailsRef.current.open = true;
-      accessibilityDetailsRef.current.scrollIntoView({ behavior: "smooth", block: "nearest" });
-      const summary = accessibilityDetailsRef.current.querySelector("summary");
+      const detailsElement = accessibilityDetailsRef.current;
+      const isAlreadyOpen = detailsElement.open;
+      detailsElement.open = true;
+
+      const summary = detailsElement.querySelector("summary");
       summary?.focus();
+
+      const performScroll = () => {
+        if (detailsElement) {
+          detailsElement.scrollIntoView({
+            behavior: reducedMotion ? "auto" : "smooth",
+            block: "start",
+          });
+        }
+      };
+
+      if (isAlreadyOpen || reducedMotion) {
+        performScroll();
+      } else {
+        // Wait a short duration to let the details panel transition start
+        // so that scrollIntoView calculates the correct scroll destination.
+        setTimeout(performScroll, 50);
+      }
     }
   };
 

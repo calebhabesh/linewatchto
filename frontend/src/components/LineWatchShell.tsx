@@ -2361,6 +2361,7 @@ export function LineWatchShell({
           selectedStationName={stationSummaries.find((station) => station.id === selectedStationId)?.name}
           onClose={() => setSelectedStationId(null)}
           onSelectImpact={handleMapSelectImpact}
+          reducedMotion={reducedMotion}
         />
       )}
 
