@@ -1,0 +1,18 @@
+aws_region = "us-east-1"
+
+# Replace with your current public IP as a /32 before applying:
+#   curl https://checkip.amazonaws.com
+allowed_http_cidrs = ["203.0.113.10/32"]
+
+# ARM64 instance to match the existing production GHCR image platform.
+instance_type = "t4g.small"
+
+# Replace with a pushed full Git SHA that exists in GHCR.
+linewatch_image_tag = "0123456789abcdef0123456789abcdef01234567"
+
+# Lab-only password. Do not reuse production secrets.
+postgres_password = "linewatch-aws-lab-example-password-2026"
+
+autostop_schedule_expression = "cron(0 3 * * ? *)"
+artifact_retention_days       = 7
+lambda_log_retention_days     = 7
