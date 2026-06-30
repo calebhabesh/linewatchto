@@ -110,7 +110,7 @@ export function deriveDisplayLocation(
     return `${displayStops[0].stopName} to ${displayStops[displayStops.length - 1].stopName}`;
   }
 
-  return notice.location?.trim() || "Route-wide notice";
+  return notice.location?.trim() || "Route-wide Notice";
 }
 
 export function deriveSurfaceNoticeCause(notice: SurfaceNoticeDetail): string | null {

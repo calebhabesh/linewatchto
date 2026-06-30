@@ -134,6 +134,72 @@ class SurfaceServiceNoticeNormalizerTest {
     }
 
     @Test
+    void gtfsRtRouteBranchIsInferredFromExplicitRouteLabelInSourceText() {
+        OffsetDateTime gtfsStart = OffsetDateTime.parse("2026-06-01T00:00:00Z");
+        TtcAlertRecord record = new TtcAlertRecord(
+            "gtfsrt-504b",
+            "GTFS-RT",
+            OffsetDateTime.parse("2026-06-30T11:14:00Z"),
+            new TtcAlertActivePeriod(gtfsStart, OffsetDateTime.parse("2026-07-31T04:00:00Z")),
+            List.of("Current"),
+            "504",
+            "Streetcar",
+            null,
+            null,
+            List.of(),
+            "504B King - Route change due to FIFA World Cup 2026",
+            "",
+            "504B King - Route change due to FIFA World Cup 2026",
+            "https://www.ttc.ca/service-advisories/Service-Changes/504B-Route-change-due-to-FIFA-World-Cup-2026",
+            "MODIFIED_SERVICE",
+            "Modified Service",
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            List.of()
+        );
+
+        Optional<SurfaceServiceNotice> noticeOpt = normalizer.normalize(fetched(record));
+
+        assertThat(noticeOpt).isPresent();
+        assertThat(noticeOpt.get().routeIds()).containsExactly("504B");
+    }
+
+    @Test
+    void routeBranchIsNotInventedFromUnbranchedRouteName() {
+        TtcAlertRecord record = createRecord(
+            "gtfsrt-504",
+            "504",
+            "Streetcar",
+            "504 King - Route change due to FIFA World Cup 2026",
+            "",
+            "504 King - Route change due to FIFA World Cup 2026",
+            "https://www.ttc.ca/service-advisories/Service-Changes/504-Route-change-due-to-FIFA-World-Cup-2026",
+            "MODIFIED_SERVICE",
+            "Modified Service",
+            List.of(),
+            null,
+            null
+        );
+
+        Optional<SurfaceServiceNotice> noticeOpt = normalizer.normalize(fetched(record));
+
+        assertThat(noticeOpt).isPresent();
+        assertThat(noticeOpt.get().routeIds()).containsExactly("504");
+    }
+
+    @Test
     void gtfsRtEpochTimesRemainInstantValues() {
         OffsetDateTime gtfsStart = OffsetDateTime.parse("2026-03-15T04:00:00Z");
         OffsetDateTime gtfsUpdated = OffsetDateTime.parse("2026-06-09T14:40:43Z");

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { ArrowRight, ArrowUpDown, CalendarClock, ChevronLeft, CircleAlert, ExternalLink, MapPin, Search, X, Bus } from "lucide-react";
+import { ArrowRight, ArrowUpDown, CalendarClock, ChevronDown, ChevronLeft, CircleAlert, ExternalLink, Info, MapPin, Search, X, Bus } from "lucide-react";
 import {
   getSurfaceNotices,
   SurfaceNoticeResponse,
@@ -144,7 +144,7 @@ export function SurfaceNoticesPanel({ onBack, onClose }: Props) {
 
   const stopFieldLabel = (notice: SurfaceNoticeGroupItem) => {
     if (!notice.displayStops.length) {
-      return notice.displayLocation || "Route-wide notice";
+      return notice.displayLocation || "Route-wide Notice";
     }
 
     return notice.displayStops
@@ -160,7 +160,7 @@ export function SurfaceNoticesPanel({ onBack, onClose }: Props) {
     if (!notice.displayStops.length) {
       return (
         <span className="truncate text-sm font-semibold text-slate-900 dark:text-white">
-          {notice.displayLocation || "Route-wide notice"}
+          {notice.displayLocation || "Route-wide Notice"}
         </span>
       );
     }
@@ -330,21 +330,17 @@ export function SurfaceNoticesPanel({ onBack, onClose }: Props) {
                 <div className="divide-y divide-black/5 dark:divide-white/5">
                   {group.notices.map((notice) => {
                     const expanded = Boolean(expandedNoticeIds[notice.id]);
+                    const detailControlLabel = expanded
+                      ? `Show fewer details for ${stopFieldLabel(notice)}`
+                      : `Show more details for ${stopFieldLabel(notice)}`;
+                    const detailsPanelId = `surface-notice-details-${notice.id}`;
                     return (
                       <article key={notice.id} className="surface-notice-stop-row">
-                        <button
-                          type="button"
-                          onClick={() => toggleNotice(notice.id)}
-                          className="flex w-full items-center justify-between gap-3 px-3.5 py-3 text-left transition-colors hover:bg-black/5 dark:hover:bg-white/5"
-                          aria-expanded={expanded}
-                        >
+                        <div className="flex w-full items-center justify-between gap-3 px-3.5 py-3 text-left">
                           <span className="min-w-0 flex items-center gap-2">
                             {renderStopDisplay(notice)}
                           </span>
-                          <ChevronLeft
-                            className={`h-4 w-4 shrink-0 text-slate-500 transition-transform ${expanded ? "-rotate-90" : "rotate-180"}`}
-                          />
-                        </button>
+                        </div>
 
                         <dl className="grid grid-cols-1 gap-3 px-3.5 pb-3 sm:grid-cols-2">
                           {renderCompactField(stopFieldHeading(notice), stopFieldLabel(notice), <MapPin size={13} />)}
@@ -354,8 +350,28 @@ export function SurfaceNoticesPanel({ onBack, onClose }: Props) {
                           {renderCompactField("Cause", notice.compactCause, <CircleAlert size={13} />)}
                         </dl>
 
+                        <p className="mx-3.5 mb-3 flex items-start gap-1.5 rounded border border-black/10 bg-white/60 px-2.5 py-2 text-[11px] font-semibold leading-snug text-slate-500 dark:border-white/10 dark:bg-white/[0.03] dark:text-slate-400">
+                          <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                          <span>Make sure to check details for more info on routes affected.</span>
+                        </p>
+
+                        <button
+                          type="button"
+                          onClick={() => toggleNotice(notice.id)}
+                          className="mx-3.5 mb-3 flex min-h-[34px] w-[calc(100%-1.75rem)] items-center justify-center gap-2 rounded-lg border border-slate-300 bg-slate-100 px-3 py-2 text-slate-700 transition-colors hover:bg-slate-200 cursor-pointer dark:border-white/15 dark:bg-white/10 dark:text-slate-100 dark:hover:bg-white/15"
+                          aria-expanded={expanded}
+                          aria-controls={detailsPanelId}
+                          aria-label={detailControlLabel}
+                        >
+                          <span className="text-sm font-bold leading-none">{expanded ? "Less Details" : "More Details"}</span>
+                          <ChevronDown
+                            className={`h-4 w-4 transition-transform ${expanded ? "rotate-180" : ""}`}
+                            aria-hidden="true"
+                          />
+                        </button>
+
                         {expanded ? (
-                          <div className="border-t border-black/5 px-3.5 pb-3 pt-3 dark:border-white/5">
+                          <div id={detailsPanelId} className="border-t border-black/5 px-3.5 pb-3 pt-3 dark:border-white/5">
                             <p className="text-xs font-semibold leading-relaxed text-slate-800 dark:text-slate-100">
                               {notice.title}
                             </p>

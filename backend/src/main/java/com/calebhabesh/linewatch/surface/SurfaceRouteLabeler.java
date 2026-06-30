@@ -1,7 +1,11 @@
 package com.calebhabesh.linewatch.surface;
 
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 final class SurfaceRouteLabeler {
     private SurfaceRouteLabeler() {}
@@ -14,22 +18,33 @@ final class SurfaceRouteLabeler {
 
         List<String> routes = splitCsv(route);
         List<String> branches = splitCsv(routeBranch);
-        if (branches.isEmpty() && routes.size() == 1) {
-            String inferredBranch = inferredRouteBranch(routes.getFirst(), textValues);
-            if (inferredBranch != null) {
-                branches = List.of(inferredBranch);
+        if (routes.size() == 1) {
+            if (branches.isEmpty()) {
+                branches = inferredRouteBranches(routes.getFirst(), textValues);
             }
-        }
-        if (routes.size() == 1 && branches.size() > 1) {
             for (String branch : branches) {
                 addUnique(routeIds, combineRouteAndBranch(routes.getFirst(), branch));
+            }
+            if (routeIds.isEmpty()) {
+                addUnique(routeIds, routes.getFirst());
             }
             return routeIds;
         }
 
         for (int i = 0; i < routes.size(); i++) {
-            String branch = i < branches.size() ? branches.get(i) : inferredRouteBranch(routes.get(i), textValues);
-            addUnique(routeIds, combineRouteAndBranch(routes.get(i), branch));
+            if (i < branches.size()) {
+                addUnique(routeIds, combineRouteAndBranch(routes.get(i), branches.get(i)));
+                continue;
+            }
+
+            List<String> inferredBranches = inferredRouteBranches(routes.get(i), textValues);
+            if (inferredBranches.isEmpty()) {
+                addUnique(routeIds, routes.get(i));
+            } else {
+                for (String branch : inferredBranches) {
+                    addUnique(routeIds, combineRouteAndBranch(routes.get(i), branch));
+                }
+            }
         }
         return routeIds;
     }
@@ -41,21 +56,39 @@ final class SurfaceRouteLabeler {
 
         List<String> precise = new ArrayList<>();
         for (String routeId : routeIds) {
-            addUnique(precise, combineRouteAndBranch(routeId, inferredRouteBranch(routeId, textValues)));
+            List<String> inferredBranches = inferredRouteBranches(routeId, textValues);
+            if (inferredBranches.isEmpty()) {
+                addUnique(precise, routeId);
+            } else {
+                for (String branch : inferredBranches) {
+                    addUnique(precise, combineRouteAndBranch(routeId, branch));
+                }
+            }
         }
         return precise;
     }
 
-    private static String inferredRouteBranch(String route, String... textValues) {
-        if (!"51".equals(route == null ? "" : route.trim())) {
-            return null;
+    private static List<String> inferredRouteBranches(String route, String... textValues) {
+        String trimmedRoute = route == null ? "" : route.trim();
+        if (trimmedRoute.isEmpty()) {
+            return List.of();
         }
 
+        Set<String> branches = new LinkedHashSet<>();
         String text = normalizedText(textValues);
-        if (text.contains("to leslie station via laird station") || text.contains("51a leslie")) {
-            return "A";
+        Matcher matcher = Pattern.compile(
+            "(?<![a-z0-9])" + Pattern.quote(trimmedRoute.toLowerCase()) + "([a-z]{1,3})(?![a-z0-9])"
+        ).matcher(text);
+        while (matcher.find()) {
+            branches.add(matcher.group(1).toUpperCase());
         }
-        return null;
+
+        if (branches.isEmpty()
+            && "51".equals(trimmedRoute)
+            && text.contains("to leslie station via laird station")) {
+            branches.add("A");
+        }
+        return List.copyOf(branches);
     }
 
     private static List<String> splitCsv(String value) {

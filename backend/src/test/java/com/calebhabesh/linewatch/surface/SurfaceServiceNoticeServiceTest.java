@@ -293,6 +293,48 @@ class SurfaceServiceNoticeServiceTest {
     }
 
     @Test
+    void explicitStreetcarBranchIsDisplayedForExistingStoredNotice() {
+        when(ingestionFreshness.isDashboardFresh()).thenReturn(true);
+        OffsetDateTime activeStart = OffsetDateTime.parse("2026-06-01T00:00:00Z");
+
+        SurfaceServiceNotice notice = new SurfaceServiceNotice(
+            "ttc-surface-gtfsrt-504b",
+            "gtfsrt-504b",
+            "service-change",
+            "Streetcar",
+            "Route change due to FIFA World Cup 2026",
+            "",
+            "504B King - Route change due to FIFA World Cup 2026",
+            "https://www.ttc.ca/service-advisories/Service-Changes/504B-Route-change-due-to-FIFA-World-Cup-2026",
+            "MODIFIED_SERVICE",
+            "Modified Service",
+            null,
+            null,
+            "FIFA World Cup 2026.",
+            activeStart,
+            OffsetDateTime.parse("2026-07-31T04:00:00Z"),
+            OffsetDateTime.parse("2026-06-30T11:14:00Z"),
+            true,
+            "{}",
+            List.of("504"),
+            List.of()
+        );
+
+        when(repository.findActiveNotices()).thenReturn(List.of(notice));
+        SurfaceServiceNoticeService service = getService();
+
+        SurfaceServiceNoticesResponse response = service.getSurfaceNotices("service-change", null, null);
+
+        assertThat(response.notices()).hasSize(1);
+        assertThat(response.notices().getFirst().routeIds()).containsExactly("504B");
+
+        SurfaceServiceNoticesResponse queryResponse = service.getSurfaceNotices("service-change", "504B", null);
+
+        assertThat(queryResponse.notices()).hasSize(1);
+        assertThat(queryResponse.notices().getFirst().routeIds()).containsExactly("504B");
+    }
+
+    @Test
     void unknownCategoryThrowsIllegalArgumentException() {
         SurfaceServiceNoticeService service = getService();
         assertThatThrownBy(() -> service.getSurfaceNotices("invalid", null, null))

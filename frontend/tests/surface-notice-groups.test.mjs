@@ -86,6 +86,20 @@ describe("surface notice route grouping", () => {
     assert.equal(groups[0].routeName, "To Leslie Station Via Laird Station");
   });
 
+  it("uses title case for route-wide notice fallbacks", () => {
+    const groups = groupSurfaceNoticesByRoute([
+      {
+        ...baseNotice,
+        id: "notice-route-wide",
+        category: "service-change",
+        location: "",
+        stopIds: [],
+      },
+    ]);
+
+    assert.equal(groups[0].notices[0].displayLocation, "Route-wide Notice");
+  });
+
   it("does not use cause-heavy GTFS route text as the route header", () => {
     const groups = groupSurfaceNoticesByRoute([
       {
