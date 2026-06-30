@@ -4,7 +4,7 @@
 import { Fragment, useRef } from "react";
 import { AlertTriangle, ArrowRight, Calendar, Check, ChevronDown, Clock3, Construction, X } from "lucide-react";
 import Image from "next/image";
-import { formatRelativeImpactTime } from "../app/impact-time";
+import { formatImpactTimestamp } from "../app/impact-time";
 import {
   formatArrivalClockTime,
   formatArrivalDisclaimer,
@@ -683,7 +683,7 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
 	                        <p className="mt-1 text-slate-600 dark:text-slate-300">{impact.summary}</p>
 	                        <p className="mt-1 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
 	                          {impact.source} / {impact.updatedAt
-	                            ? formatRelativeImpactTime(impact.updatedAt)
+	                            ? formatImpactTimestamp(impact.updatedAt)
 	                            : impact.updatedAgo}
 	                        </p>
 	                      </div>
@@ -809,7 +809,7 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
                             </div>
                             <div>
                               <dt>UPDATED</dt>
-                              <dd>{formatRelativeImpactTime(outage.updatedAt)}</dd>
+                              <dd>{formatImpactTimestamp(outage.updatedAt)}</dd>
                             </div>
                             {outage.cause && (
                               <div className="col-span-2">

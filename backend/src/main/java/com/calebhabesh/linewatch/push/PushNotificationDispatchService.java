@@ -11,6 +11,7 @@ import java.time.Instant;
 import java.util.Base64;
 import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class PushNotificationDispatchService {
     private static final String ACTIVE_STATE = "ACTIVE";
     private static final String CLEARED_STATE = "CLEARED";
+    private static final Duration FAILED_DELIVERY_RETRY_DELAY = Duration.ofMinutes(5);
     
     private final SavedCommuteRepository savedCommuteRepository;
     private final SavedCommutePushPlanner planner;
@@ -368,6 +370,8 @@ public class PushNotificationDispatchService {
 
     private void sendIfNew(PushNotificationCandidate candidate) {
         if (eventRepository.existsByDedupeKey(candidate.dedupeKey())) {
+            eventRepository.findByDedupeKey(candidate.dedupeKey())
+                .ifPresent(event -> retryEventToIncompleteSubscriptions(event, clock.instant()));
             return;
         }
         Instant now = clock.instant();
@@ -382,6 +386,39 @@ public class PushNotificationDispatchService {
         ));
         if (!sendEventToSubscriptions(event, subscriptions, now)) {
             eventRepository.delete(event);
+        }
+    }
+
+    private void retryEventToIncompleteSubscriptions(PushNotificationEventEntity event, Instant now) {
+        List<PushSubscriptionEntity> subscriptions = subscriptionRepository.findByAccountIdAndEnabledTrue(event.getAccountId());
+        for (PushSubscriptionEntity subscription : subscriptions) {
+            Optional<PushNotificationDeliveryEntity> existingDelivery =
+                deliveryRepository.findByEventIdAndSubscriptionId(event.getId(), subscription.getId());
+            if (existingDelivery.isPresent() && !existingDelivery.get().shouldRetryDelivery(now, FAILED_DELIVERY_RETRY_DELAY)) {
+                continue;
+            }
+
+            PushDeliveryResult result = webPushClient.send(
+                subscription,
+                topicFor(PushNotificationDisplayTags.forEvent(event)),
+                WebPushPayload.fromEvent(event)
+            );
+            if (result.invalidSubscription()) {
+                subscription.disable(now);
+            }
+            if (existingDelivery.isPresent()) {
+                PushNotificationDeliveryEntity delivery = existingDelivery.get();
+                delivery.recordAttempt(result, now);
+                deliveryRepository.save(delivery);
+            } else {
+                deliveryRepository.save(PushNotificationDeliveryEntity.create(
+                    nextId("push_delivery"),
+                    event,
+                    subscription,
+                    result,
+                    now
+                ));
+            }
         }
     }
 

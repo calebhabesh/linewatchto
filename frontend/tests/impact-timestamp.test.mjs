@@ -1,9 +1,43 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { formatRelativeImpactTime } from "../src/app/impact-time.ts";
+import { formatImpactTimestamp, formatOperationalDateTime, formatRelativeImpactTime } from "../src/app/impact-time.ts";
 
 describe("impact timestamp formatting", () => {
+  it("formats card timestamp fields with an absolute anchor and compact age", () => {
+    const now = new Date("2026-06-30T12:00:00-04:00");
+
+    assert.equal(
+      formatImpactTimestamp("2026-06-30T09:42:00-04:00", now),
+      "9:42 AM (2h ago)",
+    );
+    assert.equal(
+      formatImpactTimestamp("2026-06-25T07:00:00-04:00", now),
+      "Jun 25 (5d ago)",
+    );
+    assert.equal(
+      formatImpactTimestamp("2025-06-25T07:00:00-04:00", now),
+      "Jun 25, 2025 (1y ago)",
+    );
+    assert.equal(
+      formatImpactTimestamp("2026-07-06T23:00:00-04:00", now),
+      "Jul 6 (in 6d)",
+    );
+  });
+
+  it("formats exact operational windows with clock time and year only when needed", () => {
+    const now = new Date("2026-06-30T12:00:00-04:00");
+
+    assert.equal(
+      formatOperationalDateTime("2026-07-06T23:00:00-04:00", { now }),
+      "Jul 6, 11:00 PM",
+    );
+    assert.equal(
+      formatOperationalDateTime("2025-06-25T07:00:00-04:00", { now }),
+      "Jun 25, 2025, 7:00 AM",
+    );
+  });
+
   it("formats minute-scale impact ages", () => {
     assert.equal(
       formatRelativeImpactTime(

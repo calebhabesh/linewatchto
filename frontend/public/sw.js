@@ -163,7 +163,7 @@ async function showPendingPushNotification(event) {
     const payloadNotification = notificationFromPushPayload(event);
     if (payloadNotification) {
       await showPushNotification(payloadNotification);
-      await acknowledgePayloadPushNotification(payloadNotification);
+      await acknowledgeDisplayedPushNotification(payloadNotification);
       await reconcilePushNotifications();
       return;
     }
@@ -199,6 +199,7 @@ async function showPendingPushNotification(event) {
       }
 
       await showPushNotification(notification);
+      await acknowledgeDisplayedPushNotification(notification);
     }
   } catch {
     await showFallbackPushNotification();
@@ -253,7 +254,7 @@ async function showPushNotification(notification) {
   await self.registration.showNotification(notification.title, options);
 }
 
-async function acknowledgePayloadPushNotification(notification) {
+async function acknowledgeDisplayedPushNotification(notification) {
   try {
     const subscription = await self.registration.pushManager.getSubscription();
     if (!subscription) return;

@@ -4,7 +4,7 @@ import Image from "next/image";
 import React, { useState } from "react";
 import { ChevronLeft, X, ChevronDown, ChevronUp, MapPin } from "lucide-react";
 import { AccessibilityOutageResponse } from "../app/accessibility-outage-data";
-import { formatRelativeImpactTime } from "../app/impact-time";
+import { formatImpactTimestamp } from "../app/impact-time";
 
 interface Props {
   accessibilityOutageResult: AccessibilityOutageResponse | null;
@@ -318,7 +318,7 @@ export function AccessibilityOutagesPanel({
                                       <span className="font-bold text-slate-400 dark:text-slate-500 uppercase mr-1">
                                         Updated:
                                       </span>
-                                      {formatRelativeImpactTime(outage.updatedAt)}
+                                      {formatImpactTimestamp(outage.updatedAt)}
                                     </div>
                                   </div>
                                 </div>

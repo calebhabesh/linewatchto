@@ -172,7 +172,6 @@ public class PushNotificationService {
 
         List<PushResponses.PendingPushNotification> notifications = deliveries.stream()
             .map(delivery -> {
-                delivery.markDisplayed(clock.instant());
                 PushNotificationEventEntity event = delivery.getEvent();
                 return new PushResponses.PendingPushNotification(
                     event.getTitle(),

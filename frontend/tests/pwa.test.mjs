@@ -642,6 +642,10 @@ describe("LineWatch PWA configuration", () => {
 
     assert.equal(fetchRequests[0].url, "/api/account/push/latest");
     assert.equal(fetchRequests[1].url, "/api/account/push/active");
+    const displayedRequest = fetchRequests.find((request) => request.url === "/api/account/push/displayed");
+    assert.ok(displayedRequest);
+    assert.equal(JSON.parse(displayedRequest.options.body).endpoint, "https://fcm.googleapis.com/fcm/send/subscription");
+    assert.equal(JSON.parse(displayedRequest.options.body).tag, "saved-commute-impact|commute_1|dedupe-1|active");
     assert.equal(shownNotifications.length, 1);
     assert.equal(
       shownNotifications[0].title,

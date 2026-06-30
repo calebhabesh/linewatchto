@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { formatRelativeImpactTime } from "../app/impact-time";
+import { formatFullImpactTimestamp, formatImpactTimestamp } from "../app/impact-time";
 
 export function ImpactTimestamp({ timestamp }: { timestamp?: string | null }) {
   const [, setTick] = useState(0);
@@ -14,8 +14,8 @@ export function ImpactTimestamp({ timestamp }: { timestamp?: string | null }) {
   if (!timestamp) return <>Not reported</>;
 
   return (
-    <time dateTime={timestamp} title={new Date(timestamp).toLocaleString()} suppressHydrationWarning>
-      {formatRelativeImpactTime(timestamp)}
+    <time dateTime={timestamp} title={formatFullImpactTimestamp(timestamp)} suppressHydrationWarning>
+      {formatImpactTimestamp(timestamp)}
     </time>
   );
 }

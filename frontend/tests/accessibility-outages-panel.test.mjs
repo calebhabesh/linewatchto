@@ -22,6 +22,11 @@ describe("accessibility outages panel and routing source verification", () => {
     assert.match(panelSource, /\/assets\/linewatch\/outages\/escalator\.svg/);
   });
 
+  it("uses the card-facing timestamp formatter for outage update fields", () => {
+    assert.match(panelSource, /formatImpactTimestamp/);
+    assert.doesNotMatch(panelSource, /formatRelativeImpactTime/);
+  });
+
   it("verifies station rows expose aria-expanded", () => {
     assert.match(panelSource, /aria-expanded=\{expanded\}/);
     assert.match(panelSource, /aria-controls=\{`outages-list-\${expandedKey}`\}/);

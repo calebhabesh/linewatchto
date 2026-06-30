@@ -8,7 +8,7 @@ import {
   SurfaceNoticeCategory,
 } from "../app/surface-notice-data";
 import { groupSurfaceNoticesByRoute, SurfaceNoticeGroupItem } from "../app/surface-notice-groups";
-import { formatRelativeImpactTime } from "../app/impact-time";
+import { formatImpactTimestamp, formatOperationalDateTime } from "../app/impact-time";
 
 interface Props {
   onBack: () => void;
@@ -57,23 +57,6 @@ export function SurfaceNoticesPanel({ onBack, onClose }: Props) {
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setDebouncedQuery(searchQuery);
-  };
-
-  const formatAbsoluteTime = (timestamp?: string | null) => {
-    if (!timestamp) return "";
-    try {
-      const d = new Date(timestamp);
-      return d.toLocaleString("en-US", {
-        month: "short",
-        day: "numeric",
-        hour: "numeric",
-        minute: "2-digit",
-        hour12: true,
-        timeZone: "America/Toronto",
-      });
-    } catch {
-      return timestamp || "";
-    }
   };
 
   const getCategoryBadgeColor = (cat: string) => {
@@ -154,8 +137,8 @@ export function SurfaceNoticesPanel({ onBack, onClose }: Props) {
     if (!notice.startAt) {
       return null;
     }
-    const start = formatAbsoluteTime(notice.startAt);
-    const end = notice.endAt ? formatAbsoluteTime(notice.endAt) : null;
+    const start = formatOperationalDateTime(notice.startAt);
+    const end = notice.endAt ? formatOperationalDateTime(notice.endAt) : null;
     return end ? `${start} to ${end}` : start;
   };
 
@@ -366,7 +349,7 @@ export function SurfaceNoticesPanel({ onBack, onClose }: Props) {
                         <dl className="grid grid-cols-1 gap-3 px-3.5 pb-3 sm:grid-cols-2">
                           {renderCompactField(stopFieldHeading(notice), stopFieldLabel(notice), <MapPin size={13} />)}
                           {renderCompactField("Active", activeTimeLabel(notice), <CalendarClock size={13} />)}
-                          {renderCompactField("Updated", formatRelativeImpactTime(notice.updatedAt), <CalendarClock size={13} />)}
+                          {renderCompactField("Updated", formatImpactTimestamp(notice.updatedAt), <CalendarClock size={13} />)}
                           {renderCompactField("Direction", notice.compactDirection, <ArrowUpDown size={13} />)}
                           {renderCompactField("Cause", notice.compactCause, <CircleAlert size={13} />)}
                         </dl>

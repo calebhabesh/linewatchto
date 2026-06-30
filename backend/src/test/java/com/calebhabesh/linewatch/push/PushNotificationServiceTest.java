@@ -309,7 +309,7 @@ class PushNotificationServiceTest {
     }
 
     @Test
-    void latestPendingNotificationReturnsPendingBatchInChronologicalOrderWithDisplayTags() {
+    void latestPendingNotificationReturnsPendingBatchWithoutMarkingDisplayed() {
         String endpoint = "https://fcm.googleapis.com/fcm/send/subscription";
         String endpointHash = PushNotificationService.hashEndpoint(endpoint);
         PushSubscriptionEntity subscription = PushSubscriptionEntity.create(
@@ -377,8 +377,8 @@ class PushNotificationServiceTest {
             );
         assertThat(response.notification().tag())
             .isEqualTo("saved-commute-impact|commute_1|outbound|delay|delay-line-1|cleared");
-        assertThat(activeDelivery.getDisplayedAt()).isEqualTo(clock.instant());
-        assertThat(clearedDelivery.getDisplayedAt()).isEqualTo(clock.instant());
+        assertThat(activeDelivery.getDisplayedAt()).isNull();
+        assertThat(clearedDelivery.getDisplayedAt()).isNull();
     }
 
     @Test

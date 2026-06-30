@@ -13,6 +13,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -1065,6 +1066,177 @@ class PushNotificationDispatchServiceTest {
         when(savedCommuteRepository.findByAccountIdOrderByCreatedAtAsc("user_1")).thenReturn(List.of(commute));
         when(planner.candidatesFor(commute)).thenReturn(List.of(candidate));
         when(eventRepository.existsByDedupeKey("dedupe-1")).thenReturn(true);
+
+        service.evaluateSavedCommuteNotifications();
+
+        verify(webPushClient, never()).send(any(), anyString(), any(WebPushPayload.class));
+        verify(deliveryRepository, never()).save(any(PushNotificationDeliveryEntity.class));
+    }
+
+    @Test
+    void retriesExistingNotificationForSubscriptionWithoutAcceptedDelivery() {
+        SavedCommuteEntity commute = SavedCommuteEntity.create(
+            "commute_1",
+            account,
+            "Morning commute",
+            "finch",
+            "union",
+            true,
+            Instant.parse("2026-06-05T14:30:00Z")
+        );
+        PushNotificationCandidate candidate = candidate(
+            "commute_1",
+            "outbound",
+            "line-1",
+            "1",
+            "saved-commute-impact",
+            "delay",
+            "on-change",
+            "saved-commute-impact|commute_1|outbound|delay|delay-line-1",
+            "dedupe-1",
+            "Finch to Union",
+            "Morning commute",
+            Instant.parse("2026-06-05T14:20:00Z"),
+            "/?panel=commutes&commute=commute_1"
+        );
+        PushNotificationEventEntity existingEvent = PushNotificationEventEntity.create(
+            "push_event_1",
+            candidate,
+            Instant.parse("2026-06-05T14:45:00Z")
+        );
+        PushSubscriptionEntity androidSubscription = PushSubscriptionEntity.create(
+            "push_subscription_android",
+            account,
+            "https://fcm.googleapis.com/fcm/send/android",
+            "android-endpoint-hash",
+            "p256dh-key",
+            "auth-secret",
+            "Chrome Android Pixel 6a",
+            Instant.parse("2026-06-05T14:40:00Z")
+        );
+        PushSubscriptionEntity iosSubscription = PushSubscriptionEntity.create(
+            "push_subscription_ios",
+            account,
+            "https://webpush.push.apple.com/ios",
+            "ios-endpoint-hash",
+            "p256dh-key",
+            "auth-secret",
+            "Mobile Safari iOS",
+            Instant.parse("2026-06-05T14:40:00Z")
+        );
+        PushNotificationDeliveryEntity failedAndroidDelivery = PushNotificationDeliveryEntity.create(
+            "push_delivery_android",
+            existingEvent,
+            androidSubscription,
+            PushDeliveryResult.failed(429, "Push service rejected the request."),
+            Instant.parse("2026-06-05T14:45:10Z")
+        );
+        PushNotificationDeliveryEntity acceptedIosDelivery = PushNotificationDeliveryEntity.create(
+            "push_delivery_ios",
+            existingEvent,
+            iosSubscription,
+            PushDeliveryResult.accepted(202),
+            Instant.parse("2026-06-05T14:45:10Z")
+        );
+        PushNotificationPreferenceEntity preferences = PushNotificationPreferenceEntity.create(account, Instant.parse("2026-06-05T14:00:00Z"));
+        when(preferenceService.preferenceEntityForAccountId("user_1")).thenReturn(preferences);
+        when(preferenceService.allows(any(), any())).thenReturn(true);
+        when(preferenceService.subscribedLineIds("user_1")).thenReturn(List.of());
+        when(lineSubscriptionPushPlanner.candidatesFor(anyString(), anyList())).thenReturn(List.of());
+        when(subscriptionRepository.findEnabledAccountIds()).thenReturn(List.of("user_1"));
+        when(savedCommuteRepository.findByAccountIdOrderByCreatedAtAsc("user_1")).thenReturn(List.of(commute));
+        when(planner.candidatesFor(commute)).thenReturn(List.of(candidate));
+        when(eventRepository.existsByDedupeKey("dedupe-1")).thenReturn(true);
+        when(eventRepository.findByDedupeKey("dedupe-1")).thenReturn(Optional.of(existingEvent));
+        when(subscriptionRepository.findByAccountIdAndEnabledTrue("user_1"))
+            .thenReturn(List.of(androidSubscription, iosSubscription));
+        when(deliveryRepository.findByEventIdAndSubscriptionId("push_event_1", "push_subscription_android"))
+            .thenReturn(Optional.of(failedAndroidDelivery));
+        when(deliveryRepository.findByEventIdAndSubscriptionId("push_event_1", "push_subscription_ios"))
+            .thenReturn(Optional.of(acceptedIosDelivery));
+        when(webPushClient.send(
+            eq(androidSubscription),
+            eq(PushNotificationDispatchService.topicFor(PushNotificationDisplayTags.active("saved-commute-impact|commute_1|outbound|delay|delay-line-1"))),
+            any(WebPushPayload.class)
+        )).thenReturn(PushDeliveryResult.accepted(202));
+
+        service.evaluateSavedCommuteNotifications();
+
+        verify(eventRepository, never()).save(any(PushNotificationEventEntity.class));
+        verify(webPushClient).send(
+            eq(androidSubscription),
+            eq(PushNotificationDispatchService.topicFor(PushNotificationDisplayTags.active("saved-commute-impact|commute_1|outbound|delay|delay-line-1"))),
+            any(WebPushPayload.class)
+        );
+        verify(webPushClient, never()).send(eq(iosSubscription), anyString(), any(WebPushPayload.class));
+        verify(deliveryRepository).save(failedAndroidDelivery);
+        assertThat(failedAndroidDelivery.getStatus()).isEqualTo("accepted");
+        assertThat(failedAndroidDelivery.getHttpStatus()).isEqualTo(202);
+        assertThat(failedAndroidDelivery.getDisplayedAt()).isNull();
+        assertThat(failedAndroidDelivery.getCreatedAt()).isEqualTo(clock.instant());
+    }
+
+    @Test
+    void doesNotRetryRecentFailedDeliveryOnEveryEvaluation() {
+        SavedCommuteEntity commute = SavedCommuteEntity.create(
+            "commute_1",
+            account,
+            "Morning commute",
+            "finch",
+            "union",
+            true,
+            Instant.parse("2026-06-05T14:30:00Z")
+        );
+        PushNotificationCandidate candidate = candidate(
+            "commute_1",
+            "outbound",
+            "line-1",
+            "1",
+            "saved-commute-impact",
+            "delay",
+            "on-change",
+            "saved-commute-impact|commute_1|outbound|delay|delay-line-1",
+            "dedupe-1",
+            "Finch to Union",
+            "Morning commute",
+            Instant.parse("2026-06-05T14:20:00Z"),
+            "/?panel=commutes&commute=commute_1"
+        );
+        PushNotificationEventEntity existingEvent = PushNotificationEventEntity.create(
+            "push_event_1",
+            candidate,
+            Instant.parse("2026-06-05T14:45:00Z")
+        );
+        PushSubscriptionEntity androidSubscription = PushSubscriptionEntity.create(
+            "push_subscription_android",
+            account,
+            "https://fcm.googleapis.com/fcm/send/android",
+            "android-endpoint-hash",
+            "p256dh-key",
+            "auth-secret",
+            "Chrome Android Pixel 6a",
+            Instant.parse("2026-06-05T14:40:00Z")
+        );
+        PushNotificationDeliveryEntity recentFailedDelivery = PushNotificationDeliveryEntity.create(
+            "push_delivery_android",
+            existingEvent,
+            androidSubscription,
+            PushDeliveryResult.failed(429, "Push service rejected the request."),
+            Instant.parse("2026-06-05T14:59:30Z")
+        );
+        PushNotificationPreferenceEntity preferences = PushNotificationPreferenceEntity.create(account, Instant.parse("2026-06-05T14:00:00Z"));
+        when(preferenceService.preferenceEntityForAccountId("user_1")).thenReturn(preferences);
+        when(preferenceService.allows(any(), any())).thenReturn(true);
+        when(preferenceService.subscribedLineIds("user_1")).thenReturn(List.of());
+        when(lineSubscriptionPushPlanner.candidatesFor(anyString(), anyList())).thenReturn(List.of());
+        when(subscriptionRepository.findEnabledAccountIds()).thenReturn(List.of("user_1"));
+        when(savedCommuteRepository.findByAccountIdOrderByCreatedAtAsc("user_1")).thenReturn(List.of(commute));
+        when(planner.candidatesFor(commute)).thenReturn(List.of(candidate));
+        when(eventRepository.existsByDedupeKey("dedupe-1")).thenReturn(true);
+        when(eventRepository.findByDedupeKey("dedupe-1")).thenReturn(Optional.of(existingEvent));
+        when(subscriptionRepository.findByAccountIdAndEnabledTrue("user_1")).thenReturn(List.of(androidSubscription));
+        when(deliveryRepository.findByEventIdAndSubscriptionId("push_event_1", "push_subscription_android"))
+            .thenReturn(Optional.of(recentFailedDelivery));
 
         service.evaluateSavedCommuteNotifications();
 

@@ -7,6 +7,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import java.time.Duration;
 import java.time.Instant;
 
 @Entity
@@ -55,6 +56,24 @@ public class PushNotificationDeliveryEntity {
         Instant now
     ) {
         return new PushNotificationDeliveryEntity(id, event, subscription, result, now);
+    }
+
+    public boolean shouldRetryDelivery(Instant now, Duration retryDelay) {
+        if (displayedAt != null || "accepted".equals(status) || "gone".equals(status)) {
+            return false;
+        }
+        if (createdAt == null || retryDelay == null || retryDelay.isZero() || retryDelay.isNegative()) {
+            return true;
+        }
+        return !createdAt.plus(retryDelay).isAfter(now);
+    }
+
+    public void recordAttempt(PushDeliveryResult result, Instant now) {
+        this.status = result.status();
+        this.httpStatus = result.httpStatus();
+        this.message = result.message();
+        this.createdAt = now;
+        this.displayedAt = null;
     }
 
     public void markDisplayed(Instant now) {

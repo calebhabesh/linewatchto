@@ -139,7 +139,8 @@ describe("station detail panel layout", () => {
     assert.match(panelSource, /ChevronDown/);
     assert.match(panelSource, /station-accessibility-chevron/);
     assert.match(panelSource, /ml-auto/);
-    assert.match(panelSource, /formatRelativeImpactTime/);
+    assert.match(panelSource, /formatImpactTimestamp/);
+    assert.doesNotMatch(panelSource, /formatRelativeImpactTime/);
   });
 
   it("renders source-linked detail buttons for typed station impacts only", () => {

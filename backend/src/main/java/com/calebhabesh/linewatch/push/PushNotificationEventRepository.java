@@ -1,10 +1,13 @@
 package com.calebhabesh.linewatch.push;
 
 import java.util.List;
+import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface PushNotificationEventRepository extends JpaRepository<PushNotificationEventEntity, String> {
     boolean existsByDedupeKey(String dedupeKey);
+
+    Optional<PushNotificationEventEntity> findByDedupeKey(String dedupeKey);
 
     boolean existsByNotificationKeyAndNotificationState(String notificationKey, String notificationState);
 

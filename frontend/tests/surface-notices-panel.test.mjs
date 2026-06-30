@@ -30,6 +30,13 @@ describe("surface notices panel and routing source verification", () => {
     assert.match(panelSource, /renderCompactField\(stopFieldHeading\(notice\), stopFieldLabel\(notice\)/);
   });
 
+  it("uses compact timestamp formatting for notice update fields and exact formatting for active windows", () => {
+    assert.match(panelSource, /formatImpactTimestamp/);
+    assert.match(panelSource, /formatOperationalDateTime/);
+    assert.doesNotMatch(panelSource, /formatRelativeImpactTime/);
+    assert.doesNotMatch(panelSource, /const formatAbsoluteTime/);
+  });
+
   it("verifies View TTC details links use target='_blank' and rel='noreferrer'", () => {
     assert.match(panelSource, /target="_blank"/);
     assert.match(panelSource, /rel="noreferrer"/);
