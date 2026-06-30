@@ -57,11 +57,12 @@ class TtcAlertClientTest {
     }
 
     @Test
-    void fetchDoesNotRequestGtfsRtSupplementByDefault() throws Exception {
+    void fetchDoesNotRequestGtfsRtSupplementWhenDisabled() throws Exception {
         RestClient.Builder builder = RestClient.builder();
         MockRestServiceServer defaultServer = MockRestServiceServer.bindTo(builder).build();
         AlertIngestionProperties properties = new AlertIngestionProperties();
         properties.setUrl(URI.create("https://alerts.ttc.ca/api/alerts/live-alerts"));
+        properties.setSurfaceGtfsRtEnabled(false);
         properties.setSurfaceGtfsRtUrl(URI.create("https://gtfsrt.ttc.ca/alerts/all?format=text"));
         TtcAlertClient defaultClient = new TtcAlertClient(
             builder.build(),
@@ -85,6 +86,64 @@ class TtcAlertClientTest {
         defaultServer.verify();
     }
 
+    @Test
+    void fetchRequestsDefaultBusAndStreetcarGtfsRtFeedsWhenSurfaceSupplementIsEnabled() throws Exception {
+        RestClient.Builder builder = RestClient.builder();
+        MockRestServiceServer gtfsServer = MockRestServiceServer.bindTo(builder).build();
+        AlertIngestionProperties properties = new AlertIngestionProperties();
+        properties.setUrl(URI.create("https://alerts.ttc.ca/api/alerts/live-alerts"));
+        properties.setSurfaceGtfsRtEnabled(true);
+        TtcAlertClient gtfsClient = new TtcAlertClient(
+            builder.build(),
+            new ObjectMapper().findAndRegisterModules(),
+            properties,
+            new GtfsRtServiceAlertTextParser()
+        );
+
+        String body = new String(
+            getClass().getResourceAsStream("/fixtures/ttc-synthetic-alerts.json").readAllBytes(),
+            StandardCharsets.UTF_8
+        );
+        String busText = """
+            header { gtfs_realtime_version: "2.0" incrementality: FULL_DATASET timestamp: 1781031643 }
+            entity {
+              id: "bus-88"
+              alert {
+                active_period { start: 1773547200 end: 1804221000 }
+                informed_entity { route_id: "88" }
+                effect: MODIFIED_SERVICE
+                header_text { translation { text: "88 South Leaside - Route change, due to Ontario Line construction" language: "en" } }
+              }
+            }
+            """;
+        String streetcarText = """
+            header { gtfs_realtime_version: "2.0" incrementality: FULL_DATASET timestamp: 1781031644 }
+            entity {
+              id: "streetcar-509"
+              alert {
+                active_period { start: 1780804800 end: 1785470400 }
+                informed_entity { route_id: "509" }
+                effect: MODIFIED_SERVICE
+                header_text { translation { text: "509 Harbourfront - Service change, due to event traffic" language: "en" } }
+              }
+            }
+            """;
+
+        gtfsServer.expect(requestTo("https://alerts.ttc.ca/api/alerts/live-alerts"))
+            .andRespond(withSuccess(body, MediaType.APPLICATION_JSON));
+        gtfsServer.expect(requestTo("https://gtfsrt.ttc.ca/alerts/bus?format=text"))
+            .andRespond(withSuccess(busText, MediaType.TEXT_PLAIN));
+        gtfsServer.expect(requestTo("https://gtfsrt.ttc.ca/alerts/streetcar?format=text"))
+            .andRespond(withSuccess(streetcarText, MediaType.TEXT_PLAIN));
+
+        TtcAlertFeed feed = gtfsClient.fetch();
+
+        assertThat(feed.routes()).hasSize(4);
+        assertThat(feed.routes())
+            .anySatisfy(route -> assertThat(route.record().id()).isEqualTo("gtfsrt-bus-88"))
+            .anySatisfy(route -> assertThat(route.record().id()).isEqualTo("gtfsrt-streetcar-509"));
+        gtfsServer.verify();
+    }
 
     @Test
     void fetchAppendsGtfsRtSurfaceServiceAlertsWhenConfigured() throws Exception {
@@ -127,6 +186,59 @@ class TtcAlertClientTest {
         assertThat(feed.routes()).hasSize(3);
         assertThat(feed.routes())
             .anySatisfy(route -> assertThat(route.record().id()).isEqualTo("gtfsrt-100"));
+        gtfsServer.verify();
+    }
+
+    @Test
+    void fetchFiltersRapidTransitRecordsFromGtfsRtSurfaceSupplement() throws Exception {
+        RestClient.Builder builder = RestClient.builder();
+        MockRestServiceServer gtfsServer = MockRestServiceServer.bindTo(builder).build();
+        AlertIngestionProperties properties = new AlertIngestionProperties();
+        properties.setUrl(URI.create("https://alerts.ttc.ca/api/alerts/live-alerts"));
+        properties.setSurfaceGtfsRtEnabled(true);
+        properties.setSurfaceGtfsRtUrl(URI.create("https://gtfsrt.ttc.ca/alerts/all?format=text"));
+        TtcAlertClient gtfsClient = new TtcAlertClient(
+            builder.build(),
+            new ObjectMapper().findAndRegisterModules(),
+            properties,
+            new GtfsRtServiceAlertTextParser()
+        );
+
+        String body = new String(
+            getClass().getResourceAsStream("/fixtures/ttc-synthetic-alerts.json").readAllBytes(),
+            StandardCharsets.UTF_8
+        );
+        String gtfsText = """
+            header { gtfs_realtime_version: "2.0" incrementality: FULL_DATASET timestamp: 1781031643 }
+            entity {
+              id: "line-2-alert"
+              alert {
+                active_period { start: 1781885880 }
+                informed_entity { route_id: "2" }
+                effect: NO_SERVICE
+                header_text { translation { text: "Line 2 Bloor-Danforth: No service between Jane and Islington stations." language: "en" } }
+              }
+            }
+            entity {
+              id: "bus-88"
+              alert {
+                active_period { start: 1773547200 end: 1804221000 }
+                informed_entity { route_id: "88" }
+                effect: MODIFIED_SERVICE
+                header_text { translation { text: "88 South Leaside - Route change, due to Ontario Line construction" language: "en" } }
+              }
+            }
+            """;
+        gtfsServer.expect(requestTo("https://alerts.ttc.ca/api/alerts/live-alerts"))
+            .andRespond(withSuccess(body, MediaType.APPLICATION_JSON));
+        gtfsServer.expect(requestTo("https://gtfsrt.ttc.ca/alerts/all?format=text"))
+            .andRespond(withSuccess(gtfsText, MediaType.TEXT_PLAIN));
+
+        TtcAlertFeed feed = gtfsClient.fetch();
+
+        assertThat(feed.routes())
+            .noneSatisfy(route -> assertThat(route.record().id()).isEqualTo("gtfsrt-line-2-alert"))
+            .anySatisfy(route -> assertThat(route.record().id()).isEqualTo("gtfsrt-bus-88"));
         gtfsServer.verify();
     }
 

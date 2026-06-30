@@ -3,9 +3,11 @@ package com.calebhabesh.linewatch.ingestion;
 import com.calebhabesh.linewatch.surface.GtfsRtServiceAlertTextParser;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.net.URI;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -96,15 +98,35 @@ public class TtcAlertClient {
             return List.of();
         }
 
+        List<TtcFetchedRecord> records = new ArrayList<>();
+        for (URI url : properties.getSurfaceGtfsRtUrls()) {
+            records.addAll(fetchGtfsRtServiceAlertRecords(url));
+        }
+        return List.copyOf(records);
+    }
+
+    private List<TtcFetchedRecord> fetchGtfsRtServiceAlertRecords(URI url) {
         try {
             String body = restClient.get()
-                .uri(properties.getSurfaceGtfsRtUrl())
+                .uri(url)
                 .retrieve()
                 .body(String.class);
-            return gtfsRtServiceAlertTextParser.parse(body);
+            return gtfsRtServiceAlertTextParser.parse(body).stream()
+                .filter(this::isSurfaceServiceAlertRecord)
+                .toList();
         } catch (Exception exception) {
-            log.warn("Unable to fetch TTC GTFS-RT service-alert supplement", exception);
+            log.warn("Unable to fetch TTC GTFS-RT service-alert supplement from {}", url, exception);
             return List.of();
         }
+    }
+
+    private boolean isSurfaceServiceAlertRecord(TtcFetchedRecord fetched) {
+        if (fetched == null || fetched.record() == null || fetched.record().routeType() == null) {
+            return false;
+        }
+        String routeType = fetched.record().routeType().toLowerCase(Locale.ROOT);
+        return routeType.contains("bus")
+            || routeType.contains("streetcar")
+            || routeType.equals("surface");
     }
 }

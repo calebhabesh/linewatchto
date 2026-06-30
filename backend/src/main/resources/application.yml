@@ -51,8 +51,8 @@ linewatch:
       max-dashboard-age: ${LINEWATCH_INGESTION_ALERTS_MAX_DASHBOARD_AGE:PT10M}
       connect-timeout: ${LINEWATCH_INGESTION_ALERTS_CONNECT_TIMEOUT:PT3S}
       read-timeout: ${LINEWATCH_INGESTION_ALERTS_READ_TIMEOUT:PT8S}
-      surface-gtfs-rt-enabled: ${LINEWATCH_INGESTION_ALERTS_SURFACE_GTFS_RT_ENABLED:false}
-      surface-gtfs-rt-url: ${LINEWATCH_INGESTION_ALERTS_SURFACE_GTFS_RT_URL:https://gtfsrt.ttc.ca/alerts/all?format=text}
+      surface-gtfs-rt-enabled: ${LINEWATCH_INGESTION_ALERTS_SURFACE_GTFS_RT_ENABLED:true}
+      surface-gtfs-rt-urls: ${LINEWATCH_INGESTION_ALERTS_SURFACE_GTFS_RT_URLS:${LINEWATCH_INGESTION_ALERTS_SURFACE_GTFS_RT_URL:https://gtfsrt.ttc.ca/alerts/bus?format=text,https://gtfsrt.ttc.ca/alerts/streetcar?format=text}}
   arrivals:
     enabled: ${LINEWATCH_ARRIVALS_ENABLED:false}
     provider: ${LINEWATCH_ARRIVALS_PROVIDER:scheduled}

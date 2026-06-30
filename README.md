@@ -52,7 +52,7 @@ Implemented now:
 - Next.js Server Component dashboard loading with complete local-fixture fallback.
 - Playwright Chromium smoke tests for seeded API, fallback rendering, delay overlay clicks, station-ring interactions, and station accessibility details on desktop and mobile viewports.
 - Opt-in scheduled polling for the official TTC Live Alerts feed at `https://alerts.ttc.ca/api/alerts/live-alerts`.
-- TTC GTFS-RT service-alert ingestion is available as an explicit diagnostic supplement with `LINEWATCH_INGESTION_ALERTS_SURFACE_GTFS_RT_ENABLED=true`, but remains disabled by default because TTC Live Alerts usually provides richer subway/LRT structure and better affected-location fields.
+- TTC GTFS-RT bus and streetcar service-alert ingestion supplements surface notices by default when alert ingestion runs. The supplement fetches the bus and streetcar feeds, filters out rapid-transit GTFS-RT records, and does not feed subway/LRT map overlays, status, saved-commute matching, or push notifications.
 - Raw staging for route and accessibility source records so unsupported records are retained for later analysis.
 - Normalization and source-ID upserts for supported subway/LRT ordinary delays, suspensions, Reduced Speed Zones, and planned closures.
 - Elevator and escalator outage normalization with station links where TTC station names resolve.
@@ -525,6 +525,8 @@ curl http://localhost:8080/api/health/schedule
 
 Alert ingestion is disabled by default for offline-safe local runs, CI, and demos that should not depend on the TTC public API. The `scripts/dev-live-backend.sh` command runs the backend with the `dev-live` Spring profile, which enables one scheduled poller process.
 
+When alert ingestion is enabled, `LINEWATCH_INGESTION_ALERTS_SURFACE_GTFS_RT_ENABLED` defaults to `true` and `LINEWATCH_INGESTION_ALERTS_SURFACE_GTFS_RT_URLS` defaults to TTC's bus and streetcar service-alert feeds. These GTFS-RT records are used only for the surface notices panel. Rapid-transit GTFS-RT records are filtered before normalization so TTC Live Alerts remains the source for subway/LRT map overlays, line status, saved-commute impacts, and push notifications.
+
 Equivalent manual command:
 
 ```bash
@@ -719,7 +721,7 @@ LineWatchTO should use public and source-linked data. It should also be honest a
 - The implemented poller reads the public TTC Live Alerts endpoint at `https://alerts.ttc.ca/api/alerts/live-alerts`.
 - The visible dashboard treats successful poll results as usable only inside the configured freshness window.
 - TTC alerts can be vague.
-- GTFS-RT service alerts can be less structured than TTC Live Alerts and may lack usable subway/LRT affected-segment detail.
+- GTFS-RT service alerts can be less structured than TTC Live Alerts and may lack usable subway/LRT affected-segment detail. LineWatchTO uses only the bus and streetcar GTFS-RT service-alert feeds for surface notices by default.
 - Alert history is based on LineWatch snapshots and is richer after the alert-history release; older rows may lack full line, cause, direction, or location context.
 - Some alerts name broad corridors rather than exact station-to-station segments.
 - Planned closure pages or feeds may change format.
@@ -727,7 +729,7 @@ LineWatchTO should use public and source-linked data. It should also be honest a
 - Overnight closed-mode uses general TTC subway operating hours; exact first and last trains vary by station, holidays, and service changes.
 - Saved commute route matching uses scheduled adjacent-station weights from the active TTC GTFS import when available, then seeded per-segment fallback travel times, with deterministic topology fallback weights only as a last resort. Return trips are computed as a separate monitored leg when enabled, and directional service impacts only count when they match the commute leg direction or are bidirectional. This is useful for in-app route awareness, but it is not a full TTC trip planner and does not reflect live train travel times.
 - Saved-commute push notifications are derived from the same dashboard-visible impact matching. They should not be described as comprehensive TTC alerts, all-map alerts, or guaranteed delivery.
-- Global accessibility outages and surface notices use fresh TTC Live Alerts rows and disappear when ingestion is stale. They are searchable and source-linked, but do not affect rapid-transit segment highlights, current line status, saved-commute impacts, or push notifications.
+- Global accessibility outages use fresh TTC Live Alerts rows. Surface notices use fresh TTC Live Alerts rows plus filtered TTC GTFS-RT bus/streetcar service-alert records, and disappear when ingestion is stale. They are searchable and source-linked, but do not affect rapid-transit segment highlights, current line status, saved-commute impacts, or push notifications.
 - This app is unofficial and should not be treated as the sole source of truth for TTC service.
 
 ## Verification Baseline
