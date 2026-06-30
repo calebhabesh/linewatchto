@@ -30,7 +30,7 @@ public class PushNotificationFormatter {
         String displayDirection = normalizeText(facts.displayDirection());
         String scopeLabel = scopeLabel(facts.commuteLabel(), facts.legId());
         List<String> bodyParts = new ArrayList<>();
-        String sourceDescription = sourceDescription(facts.sourceDescription());
+        String sourceDescription = firstSourceDescription(facts.sourceTitle(), facts.sourceDescription());
 
         if (!sourceDescription.isEmpty()) {
             bodyParts.add(sentence(sourceDescription));
@@ -345,6 +345,16 @@ public class PushNotificationFormatter {
             return "";
         }
         return description;
+    }
+
+    private String firstSourceDescription(String... values) {
+        for (String value : values) {
+            String description = sourceDescription(value);
+            if (!description.isEmpty()) {
+                return description;
+            }
+        }
+        return "";
     }
 
     private String stripLinePrefix(String value) {

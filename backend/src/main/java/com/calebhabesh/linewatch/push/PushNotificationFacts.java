@@ -14,8 +14,40 @@ public record PushNotificationFacts(
     String legId,
     Instant sourceEventAt,
     String cause,
+    String sourceTitle,
     String sourceDescription
 ) {
+    public PushNotificationFacts(
+        String lineId,
+        String lineNumber,
+        String eventType,
+        String reminderBucket,
+        String location,
+        String displayDirection,
+        boolean shuttle,
+        String commuteLabel,
+        String legId,
+        Instant sourceEventAt,
+        String cause,
+        String sourceDescription
+    ) {
+        this(
+            lineId,
+            lineNumber,
+            eventType,
+            reminderBucket,
+            location,
+            displayDirection,
+            shuttle,
+            commuteLabel,
+            legId,
+            sourceEventAt,
+            cause,
+            null,
+            sourceDescription
+        );
+    }
+
     public PushNotificationFacts(
         String lineId,
         String lineNumber,
@@ -41,6 +73,7 @@ public record PushNotificationFacts(
             legId,
             sourceEventAt,
             cause,
+            null,
             null
         );
     }
@@ -68,6 +101,7 @@ public record PushNotificationFacts(
             commuteLabel,
             legId,
             sourceEventAt,
+            null,
             null,
             null
         );

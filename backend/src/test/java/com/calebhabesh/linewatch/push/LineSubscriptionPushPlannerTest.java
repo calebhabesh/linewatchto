@@ -161,4 +161,36 @@ class LineSubscriptionPushPlannerTest {
             }
         }
     }
+
+    @Test
+    void usesDetailedDelayTitleBeforeGenericTravelTimeDescription() {
+        AlertDashboardService.DelayAlertDto delay = new AlertDashboardService.DelayAlertDto(
+            "alert-line-5-delay",
+            "line-5",
+            "5",
+            "Delays between Mount Dennis and Kennedy stations while the maintainer fixes a track problem.",
+            "between Mount Dennis and Kennedy stations",
+            "Eastbound & Westbound",
+            "Customers may experience longer than normal travel times of up to 20 minutes.",
+            List.of(),
+            OffsetDateTime.parse("2026-06-30T20:34:00Z"),
+            OffsetDateTime.parse("2026-06-30T20:34:00Z"),
+            "TTC Live Alert",
+            "LRT - Track Problem"
+        );
+
+        when(dashboardService.activeAlerts()).thenReturn(List.of());
+        when(dashboardService.delays()).thenReturn(List.of(delay));
+        when(dashboardService.reducedSpeedZones()).thenReturn(List.of());
+        when(dashboardService.plannedClosures()).thenReturn(List.of());
+
+        List<PushNotificationCandidate> candidates = planner.candidatesFor("user_1", List.of("line-5"));
+
+        assertThat(candidates).singleElement().satisfies(c -> {
+            assertThat(c.title()).isEqualTo("⚠️ Line 5 Eglinton Delay");
+            assertThat(c.body()).isEqualTo("""
+                Delays between Mount Dennis and Kennedy stations while the maintainer fixes a track problem.
+                🕗 Jun 30, 4:34 PM""");
+        });
+    }
 }
