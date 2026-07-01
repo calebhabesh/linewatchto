@@ -59,9 +59,31 @@ public class PushNotificationDeliveryEntity {
     }
 
     public boolean shouldRetryDelivery(Instant now, Duration retryDelay) {
-        if (displayedAt != null || "accepted".equals(status) || "gone".equals(status)) {
+        return shouldRetryDelivery(now, retryDelay, null, null);
+    }
+
+    public boolean shouldRetryDelivery(
+        Instant now,
+        Duration failedRetryDelay,
+        Duration acceptedUndisplayedRetryDelay,
+        Instant acceptedUndisplayedRetryUntil
+    ) {
+        if (displayedAt != null || "gone".equals(status)) {
             return false;
         }
+        if ("accepted".equals(status)) {
+            if (acceptedUndisplayedRetryDelay == null || acceptedUndisplayedRetryUntil == null) {
+                return false;
+            }
+            if (now == null || !now.isBefore(acceptedUndisplayedRetryUntil)) {
+                return false;
+            }
+            return retryDelayElapsed(now, acceptedUndisplayedRetryDelay);
+        }
+        return retryDelayElapsed(now, failedRetryDelay);
+    }
+
+    private boolean retryDelayElapsed(Instant now, Duration retryDelay) {
         if (createdAt == null || retryDelay == null || retryDelay.isZero() || retryDelay.isNegative()) {
             return true;
         }

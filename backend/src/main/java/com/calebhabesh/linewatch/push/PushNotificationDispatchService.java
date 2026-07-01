@@ -23,6 +23,8 @@ public class PushNotificationDispatchService {
     private static final String ACTIVE_STATE = "ACTIVE";
     private static final String CLEARED_STATE = "CLEARED";
     private static final Duration FAILED_DELIVERY_RETRY_DELAY = Duration.ofMinutes(5);
+    private static final Duration ACCEPTED_UNDISPLAYED_DELIVERY_RETRY_DELAY = Duration.ofMinutes(2);
+    private static final Duration ACCEPTED_UNDISPLAYED_DELIVERY_RETRY_WINDOW = Duration.ofMinutes(30);
     
     private final SavedCommuteRepository savedCommuteRepository;
     private final SavedCommutePushPlanner planner;
@@ -391,10 +393,18 @@ public class PushNotificationDispatchService {
 
     private void retryEventToIncompleteSubscriptions(PushNotificationEventEntity event, Instant now) {
         List<PushSubscriptionEntity> subscriptions = subscriptionRepository.findByAccountIdAndEnabledTrue(event.getAccountId());
+        Instant acceptedUndisplayedRetryUntil = ACTIVE_STATE.equals(event.getNotificationState()) && event.getCreatedAt() != null
+            ? event.getCreatedAt().plus(ACCEPTED_UNDISPLAYED_DELIVERY_RETRY_WINDOW)
+            : null;
         for (PushSubscriptionEntity subscription : subscriptions) {
             Optional<PushNotificationDeliveryEntity> existingDelivery =
                 deliveryRepository.findByEventIdAndSubscriptionId(event.getId(), subscription.getId());
-            if (existingDelivery.isPresent() && !existingDelivery.get().shouldRetryDelivery(now, FAILED_DELIVERY_RETRY_DELAY)) {
+            if (existingDelivery.isPresent() && !existingDelivery.get().shouldRetryDelivery(
+                now,
+                FAILED_DELIVERY_RETRY_DELAY,
+                ACCEPTED_UNDISPLAYED_DELIVERY_RETRY_DELAY,
+                acceptedUndisplayedRetryUntil
+            )) {
                 continue;
             }
 
