@@ -1,7 +1,8 @@
 "use client";
 
-import { useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
+  Activity,
   AlertTriangle,
   Bell,
   Calendar,
@@ -11,11 +12,14 @@ import {
   Construction,
   Loader2,
   Navigation,
+  RefreshCw,
   Sun,
   X,
 } from "lucide-react";
 import {
+  getPushDeliveryDiagnostics,
   type AccountState,
+  type PushDeliveryDiagnostic,
 } from "../app/account-data";
 import { type UsePushNotificationSettingsResult } from "../hooks/usePushNotificationSettings";
 import { DelayIcon } from "./DelayIcon";
@@ -37,6 +41,44 @@ const LINE_COLORS: Record<string, string> = {
   "line-5": "#F58220",
   "line-6": "#969594",
 };
+
+const DIAGNOSTIC_STAGE_LABELS: Record<string, string> = {
+  push_received: "Push received",
+  displayed_acknowledged: "Display ack",
+  ack_failed: "Ack failed",
+  show_failed: "Display failed",
+  notification_click: "Clicked",
+  notification_close: "Closed",
+  pending_skipped: "Skipped stale",
+  fallback_shown: "Fallback shown",
+};
+
+type DiagnosticsLoadState = "idle" | "loading" | "backend" | "unavailable";
+
+function formatDiagnosticTimestamp(value?: string | null) {
+  if (!value) return "Not recorded";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Not recorded";
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Toronto",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(date);
+}
+
+function diagnosticStageLabel(stage: string) {
+  return DIAGNOSTIC_STAGE_LABELS[stage] ?? stage.replaceAll("_", " ");
+}
+
+function diagnosticOutcome(delivery: PushDeliveryDiagnostic) {
+  if (delivery.displayedAt) return "Displayed";
+  if (delivery.clientEvents.some((event) => event.stage === "show_failed")) return "Display failed";
+  if (delivery.clientEvents.some((event) => event.stage === "ack_failed")) return "Ack failed";
+  if (delivery.clientEvents.some((event) => event.stage === "push_received")) return "Received";
+  return delivery.deliveryStatus || "Queued";
+}
 
 function NotificationSwitch({
   checked,
@@ -88,6 +130,9 @@ export function NotificationSettingsPanel({
     accountNotificationsDesired,
     deviceSetupState,
   } = pushSettings;
+  const [diagnostics, setDiagnostics] = useState<PushDeliveryDiagnostic[]>([]);
+  const [diagnosticsState, setDiagnosticsState] = useState<DiagnosticsLoadState>("idle");
+  const [diagnosticsMessage, setDiagnosticsMessage] = useState<string | null>(null);
 
   const statusMessage = useMemo(() => {
     if (message) return message;
@@ -115,6 +160,52 @@ export function NotificationSettingsPanel({
         return null;
     }
   }, [message, deviceSetupState, deviceNotificationsEnabled]);
+
+  const loadDiagnostics = useCallback(async () => {
+    if (!accountState.authenticated) {
+      return;
+    }
+
+    setDiagnosticsState("loading");
+    const result = await getPushDeliveryDiagnostics();
+    setDiagnostics(result.deliveries);
+    setDiagnosticsState(result.source);
+    setDiagnosticsMessage(result.message ?? null);
+  }, [accountState.authenticated]);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!accountState.authenticated) {
+      void Promise.resolve().then(() => {
+        if (cancelled) return;
+        setDiagnostics([]);
+        setDiagnosticsState("idle");
+        setDiagnosticsMessage(null);
+      });
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    void (async () => {
+      const result = await getPushDeliveryDiagnostics();
+      if (cancelled) return;
+      setDiagnostics(result.deliveries);
+      setDiagnosticsState(result.source);
+      setDiagnosticsMessage(result.message ?? null);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [accountState.authenticated]);
+
+  const diagnosticsStatusLabel = useMemo(() => {
+    if (diagnosticsState === "loading") return "Loading";
+    if (diagnosticsState === "unavailable") return "Unavailable";
+    if (diagnostics.length > 0) return `${diagnostics.length} Recent`;
+    return "No Records";
+  }, [diagnostics.length, diagnosticsState]);
 
   return (
     <section className="notification-settings-panel panel min-w-0 border border-black/10 dark:border-white/10 rounded-lg shadow-xl" aria-label="Notification settings">
@@ -252,6 +343,95 @@ export function NotificationSettingsPanel({
                     />
                   </div>
                 </div>
+              </div>
+            </div>
+
+            <div className="notification-settings-section">
+              <div className="notification-settings-section-header">
+                <h3>Delivery Diagnostics</h3>
+                <span>{diagnosticsStatusLabel}</span>
+              </div>
+              <div className="notification-settings-card border border-black/10 dark:border-white/10 p-3 rounded-lg flex flex-col gap-3">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="notification-settings-row-main flex-1">
+                    <span className="notification-settings-icon shrink-0">
+                      <Activity size={15} className="text-sky-600 dark:text-sky-400" aria-hidden="true" />
+                    </span>
+                    <div>
+                      <strong>Recent Push Attempts</strong>
+                      <em>Accepted deliveries, service-worker receipt, display ack, and client lifecycle events by device.</em>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => void loadDiagnostics()}
+                    className="p-2 hover:bg-black/10 dark:hover:bg-white/10 rounded-lg transition-colors cursor-pointer shrink-0 disabled:opacity-60"
+                    disabled={diagnosticsState === "loading"}
+                    aria-label="Refresh delivery diagnostics"
+                  >
+                    <RefreshCw size={15} className={diagnosticsState === "loading" ? "animate-spin" : ""} aria-hidden="true" />
+                  </button>
+                </div>
+
+                {diagnosticsState === "loading" ? (
+                  <p className="notification-settings-message text-xs text-slate-400 dark:text-slate-500 flex items-center gap-1.5" role="status">
+                    <Loader2 size={13} className="animate-spin" aria-hidden="true" /> Loading delivery diagnostics...
+                  </p>
+                ) : diagnosticsState === "unavailable" ? (
+                  <p className="notification-settings-muted-warning text-xs text-slate-400 dark:text-slate-500 italic" role="status">
+                    {diagnosticsMessage ?? "Push delivery diagnostics are unavailable."}
+                  </p>
+                ) : diagnostics.length === 0 ? (
+                  <p className="notification-settings-note text-xs text-slate-500 dark:text-slate-400">
+                    No recent push attempts recorded.
+                  </p>
+                ) : (
+                  <div className="notification-diagnostics-list flex flex-col gap-2">
+                    {diagnostics.slice(0, 6).map((delivery) => {
+                      const lineColor = delivery.lineId ? LINE_COLORS[delivery.lineId] : null;
+                      const recentEvents = delivery.clientEvents.slice(-3);
+                      return (
+                        <div className="notification-diagnostics-item border border-black/5 dark:border-white/10 rounded-md p-2.5 bg-white/50 dark:bg-black/20" key={delivery.id}>
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0 flex items-center gap-2">
+                              {delivery.lineNumber && lineColor ? (
+                                <span
+                                  className="notification-line-badge shrink-0 w-5 h-5 flex items-center justify-center rounded-full font-bold text-[11px]"
+                                  style={{
+                                    backgroundColor: lineColor,
+                                    color: delivery.lineId === "line-1" ? "#111827" : "#ffffff",
+                                  }}
+                                >
+                                  {delivery.lineNumber}
+                                </span>
+                              ) : null}
+                              <strong className="text-xs text-slate-900 dark:text-slate-100 truncate">{delivery.title}</strong>
+                            </div>
+                            <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 shrink-0">{diagnosticOutcome(delivery)}</span>
+                          </div>
+                          <div className="mt-1.5 flex flex-wrap gap-x-2 gap-y-1 text-[11px] text-slate-500 dark:text-slate-400">
+                            <span>{delivery.deviceLabel}</span>
+                            <span>{delivery.deliveryStatus}{delivery.httpStatus ? ` ${delivery.httpStatus}` : ""}</span>
+                            <span>{delivery.attemptCount} {delivery.attemptCount === 1 ? "attempt" : "attempts"}</span>
+                            <span>{delivery.displayedAt ? `Displayed ${formatDiagnosticTimestamp(delivery.displayedAt)}` : "No display ack"}</span>
+                          </div>
+                          {recentEvents.length > 0 ? (
+                            <ol className="mt-2 flex flex-col gap-1 text-[11px] text-slate-500 dark:text-slate-400">
+                              {recentEvents.map((event) => (
+                                <li className="flex items-start justify-between gap-2" key={`${delivery.id}-${event.stage}-${event.occurredAt}`}>
+                                  <span className="font-semibold text-slate-700 dark:text-slate-300">{diagnosticStageLabel(event.stage)}</span>
+                                  <span className="text-right">{formatDiagnosticTimestamp(event.occurredAt)}</span>
+                                </li>
+                              ))}
+                            </ol>
+                          ) : (
+                            <p className="mt-2 text-[11px] text-slate-500 dark:text-slate-400">No client events</p>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             </div>
 

@@ -59,4 +59,13 @@ describe("notification settings navigation", () => {
     assert.match(globalCss, /\.notification-settings-panel/);
     assert.match(globalCss, /\.saved-commute-notification-summary/);
   });
+
+  it("surfaces recent push delivery diagnostics in notification settings", () => {
+    assert.match(notificationPanelSource, /getPushDeliveryDiagnostics/);
+    assert.match(notificationPanelSource, /Delivery Diagnostics/);
+    assert.match(notificationPanelSource, /Recent Push Attempts/);
+    assert.match(notificationPanelSource, /displayedAt/);
+    assert.match(notificationPanelSource, /clientEvents/);
+    assert.match(notificationPanelSource, /Refresh delivery diagnostics/);
+  });
 });

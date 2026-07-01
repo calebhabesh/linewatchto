@@ -11,10 +11,14 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HexFormat;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
@@ -36,6 +40,7 @@ public class PushNotificationService {
     private final SavedCommutePushPlanner planner;
     private final PushNotificationPreferenceService preferenceService;
     private final LineSubscriptionPushPlanner lineSubscriptionPushPlanner;
+    private final PushNotificationClientEventRepository clientEventRepository;
     private final IngestionFreshness ingestionFreshness;
     private final Clock clock;
 
@@ -48,9 +53,10 @@ public class PushNotificationService {
         SavedCommutePushPlanner planner,
         PushNotificationPreferenceService preferenceService,
         LineSubscriptionPushPlanner lineSubscriptionPushPlanner,
+        PushNotificationClientEventRepository clientEventRepository,
         IngestionFreshness ingestionFreshness
     ) {
-        this(properties, subscriptionRepository, deliveryRepository, savedCommuteRepository, planner, preferenceService, lineSubscriptionPushPlanner, ingestionFreshness, Clock.systemUTC());
+        this(properties, subscriptionRepository, deliveryRepository, savedCommuteRepository, planner, preferenceService, lineSubscriptionPushPlanner, clientEventRepository, ingestionFreshness, Clock.systemUTC());
     }
 
     PushNotificationService(
@@ -61,6 +67,7 @@ public class PushNotificationService {
         SavedCommutePushPlanner planner,
         PushNotificationPreferenceService preferenceService,
         LineSubscriptionPushPlanner lineSubscriptionPushPlanner,
+        PushNotificationClientEventRepository clientEventRepository,
         IngestionFreshness ingestionFreshness,
         Clock clock
     ) {
@@ -71,6 +78,7 @@ public class PushNotificationService {
         this.planner = planner;
         this.preferenceService = preferenceService;
         this.lineSubscriptionPushPlanner = lineSubscriptionPushPlanner;
+        this.clientEventRepository = clientEventRepository;
         this.ingestionFreshness = ingestionFreshness;
         this.clock = clock;
     }
@@ -152,7 +160,78 @@ public class PushNotificationService {
             displayTag.notificationKey(),
             displayTag.notificationState(),
             PageRequest.of(0, 1)
-        ).stream().findFirst().ifPresent(delivery -> delivery.markDisplayed(clock.instant()));
+        ).stream().findFirst().ifPresent(delivery -> {
+            Instant now = clock.instant();
+            delivery.markDisplayed(now);
+            saveClientEvent(
+                account.getId(),
+                delivery.getSubscription(),
+                delivery,
+                endpointHash,
+                displayTag,
+                "displayed_acknowledged",
+                null,
+                now
+            );
+        });
+    }
+
+    @Transactional
+    public void recordClientEvent(AccountEntity account, PushRequests.ClientEventRequest request) {
+        String endpointHash = hashEndpoint(required(request.endpoint(), "missing_endpoint", "Push subscription endpoint is required."));
+        DisplayTag displayTag = parseDisplayTag(required(request.tag(), "missing_notification_tag", "Push notification tag is required."));
+        String stage = normalizeClientEventStage(required(request.stage(), "missing_stage", "Push client event stage is required."));
+        Instant now = clock.instant();
+        PushSubscriptionEntity subscription = subscriptionRepository
+            .findByAccountIdAndEndpointHash(account.getId(), endpointHash)
+            .orElse(null);
+        PushNotificationDeliveryEntity delivery = deliveryRepository.findLatestDeliveryForNotification(
+            account.getId(),
+            endpointHash,
+            displayTag.notificationKey(),
+            displayTag.notificationState(),
+            PageRequest.of(0, 1)
+        ).stream().findFirst().orElse(null);
+
+        saveClientEvent(
+            account.getId(),
+            delivery == null ? subscription : delivery.getSubscription(),
+            delivery,
+            endpointHash,
+            displayTag,
+            stage,
+            normalizeClientEventMessage(request.message()),
+            now
+        );
+    }
+
+    @Transactional(readOnly = true)
+    public PushResponses.PushDeliveryDiagnosticsResponse deliveryDiagnostics(AccountEntity account) {
+        List<PushNotificationDeliveryEntity> deliveries = deliveryRepository.findRecentDeliveriesForAccount(
+            account.getId(),
+            PageRequest.of(0, 20)
+        );
+        if (deliveries.isEmpty()) {
+            return new PushResponses.PushDeliveryDiagnosticsResponse(List.of());
+        }
+
+        List<String> deliveryIds = deliveries.stream()
+            .map(PushNotificationDeliveryEntity::getId)
+            .toList();
+        Map<String, List<PushNotificationClientEventEntity>> eventsByDeliveryId = clientEventRepository
+            .findByDeliveryIds(deliveryIds)
+            .stream()
+            .filter(clientEvent -> clientEvent.getDelivery() != null)
+            .collect(Collectors.groupingBy(clientEvent -> clientEvent.getDelivery().getId()));
+
+        List<PushResponses.PushDeliveryDiagnosticResponse> responseDeliveries = deliveries.stream()
+            .map(delivery -> toDiagnosticResponse(
+                delivery,
+                eventsByDeliveryId.getOrDefault(delivery.getId(), List.of())
+            ))
+            .toList();
+
+        return new PushResponses.PushDeliveryDiagnosticsResponse(responseDeliveries);
     }
 
     @Transactional
@@ -261,6 +340,120 @@ public class PushNotificationService {
         return PushNotificationDisplayTags.distinctNonBlank(retainedTags);
     }
 
+    private void saveClientEvent(
+        String accountId,
+        PushSubscriptionEntity subscription,
+        PushNotificationDeliveryEntity delivery,
+        String endpointHash,
+        DisplayTag displayTag,
+        String stage,
+        String message,
+        Instant now
+    ) {
+        clientEventRepository.save(PushNotificationClientEventEntity.create(
+            nextId("push_client_event"),
+            accountId,
+            subscription,
+            delivery,
+            endpointHash,
+            displayTag.notificationKey(),
+            displayTag.notificationState(),
+            stage,
+            message,
+            now,
+            now
+        ));
+    }
+
+    private PushResponses.PushDeliveryDiagnosticResponse toDiagnosticResponse(
+        PushNotificationDeliveryEntity delivery,
+        List<PushNotificationClientEventEntity> clientEvents
+    ) {
+        PushNotificationEventEntity event = delivery.getEvent();
+        PushSubscriptionEntity subscription = delivery.getSubscription();
+        List<PushResponses.PushClientEventResponse> eventResponses = clientEvents.stream()
+            .sorted(Comparator.comparing(PushNotificationClientEventEntity::getOccurredAt))
+            .map(clientEvent -> new PushResponses.PushClientEventResponse(
+                clientEvent.getStage(),
+                clientEvent.getMessage(),
+                instantString(clientEvent.getOccurredAt())
+            ))
+            .toList();
+
+        return new PushResponses.PushDeliveryDiagnosticResponse(
+            delivery.getId(),
+            event.getTitle(),
+            PushNotificationDisplayTags.forEvent(event),
+            event.getNotificationState(),
+            event.getCategory(),
+            event.getEventType(),
+            event.getLineId(),
+            lineNumberFor(event.getLineId()),
+            instantString(event.getCreatedAt()),
+            deviceLabel(subscription),
+            subscription.getUserAgent(),
+            endpointHashPrefix(subscription.getEndpointHash()),
+            subscription.isEnabled(),
+            delivery.getStatus(),
+            delivery.getHttpStatus(),
+            delivery.getMessage(),
+            instantString(delivery.getCreatedAt()),
+            instantString(delivery.getDisplayedAt()),
+            delivery.getAttemptCount(),
+            eventResponses
+        );
+    }
+
+    private String lineNumberFor(String lineId) {
+        return switch (lineId == null ? "" : lineId) {
+            case "line-1" -> "1";
+            case "line-2" -> "2";
+            case "line-4" -> "4";
+            case "line-5" -> "5";
+            case "line-6" -> "6";
+            default -> null;
+        };
+    }
+
+    private String deviceLabel(PushSubscriptionEntity subscription) {
+        String userAgent = subscription.getUserAgent();
+        if (userAgent == null || userAgent.isBlank()) {
+            return "Unknown device";
+        }
+        String normalized = userAgent.trim();
+        String lower = normalized.toLowerCase(Locale.ROOT);
+        if (lower.contains("android")) {
+            if (lower.contains("edg")) return "Android Edge";
+            if (lower.contains("firefox")) return "Android Firefox";
+            if (lower.contains("chrome")) return "Android Chrome";
+            return "Android";
+        }
+        if (lower.contains("iphone") || lower.contains("ipad")) {
+            if (lower.contains("crios")) return "iOS Chrome";
+            if (lower.contains("fxios")) return "iOS Firefox";
+            if (lower.contains("edgios")) return "iOS Edge";
+            if (lower.contains("safari")) return "iOS Safari";
+            return "iOS";
+        }
+        if (lower.contains("chrome")) return "Chrome";
+        if (lower.contains("safari")) return "Safari";
+        if (lower.contains("firefox")) return "Firefox";
+        if (lower.contains("edg")) return "Edge";
+        return normalized;
+    }
+
+    private String endpointHashPrefix(String endpointHash) {
+        if (endpointHash == null || endpointHash.isBlank()) {
+            return "";
+        }
+        String normalized = endpointHash.trim();
+        return normalized.substring(0, Math.min(12, normalized.length()));
+    }
+
+    private String instantString(Instant instant) {
+        return instant == null ? null : instant.toString();
+    }
+
     private PushResponses.PushSubscriptionResponse toResponse(PushSubscriptionEntity subscription) {
         return new PushResponses.PushSubscriptionResponse(
             subscription.getId(),
@@ -304,6 +497,29 @@ public class PushNotificationService {
             return new DisplayTag(normalized.substring(0, normalized.length() - "|active".length()), "ACTIVE");
         }
         return new DisplayTag(normalized, "ACTIVE");
+    }
+
+    private String normalizeClientEventStage(String stage) {
+        String normalized = stage == null ? "" : stage.trim();
+        return switch (normalized) {
+            case "push_received",
+                 "show_failed",
+                 "ack_failed",
+                 "notification_click",
+                 "notification_close",
+                 "pending_skipped",
+                 "fallback_shown",
+                 "displayed_acknowledged" -> normalized;
+            default -> throw new AccountException(HttpStatus.BAD_REQUEST, "invalid_stage", "Push client event stage is not supported.");
+        };
+    }
+
+    private String normalizeClientEventMessage(String message) {
+        if (message == null || message.isBlank()) {
+            return null;
+        }
+        String normalized = message.trim();
+        return normalized.length() > 255 ? normalized.substring(0, 255) : normalized;
     }
 
     private String required(String value, String code, String message) {

@@ -73,6 +73,13 @@ describe("alert history timeline UI", () => {
     assert.doesNotMatch(timelineSource, /displayEvent\?\.label\s+\?\?\s+"Active"/);
   });
 
+  it("uses the shared compact timestamp formatter for visible history times", () => {
+    assert.match(timelineSource, /formatImpactTimestamp/);
+    assert.match(timelineSource, /formatFullImpactTimestamp/);
+    assert.match(timelineSource, /function HistoryTimestamp/);
+    assert.doesNotMatch(timelineSource, /formatRelativeImpactTime/);
+  });
+
   it("uses a plain inline checkmark for cleared history rows", () => {
     assert.match(timelineSource, /Check\s+size=\{12\}/);
     assert.doesNotMatch(timelineSource, /CheckCircle2/);

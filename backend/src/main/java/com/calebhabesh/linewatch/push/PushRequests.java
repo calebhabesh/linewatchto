@@ -15,6 +15,13 @@ public final class PushRequests {
 
     public record DisplayedNotificationRequest(String endpoint, String tag) {}
 
+    public record ClientEventRequest(
+        String endpoint,
+        String tag,
+        String stage,
+        String message
+    ) {}
+
     public record EventTypePreferencesRequest(
         Boolean suspensions,
         Boolean delays,

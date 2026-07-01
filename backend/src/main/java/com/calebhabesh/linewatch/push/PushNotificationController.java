@@ -72,6 +72,24 @@ public class PushNotificationController {
         return pushNotificationService.activeNotifications(account, request);
     }
 
+    @GetMapping("/diagnostics")
+    public PushResponses.PushDeliveryDiagnosticsResponse diagnostics(
+        @CookieValue(name = AuthCookieFactory.COOKIE_NAME, required = false) String rawSessionToken
+    ) {
+        AccountEntity account = accountService.requireAccount(rawSessionToken);
+        return pushNotificationService.deliveryDiagnostics(account);
+    }
+
+    @PostMapping("/client-event")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void recordClientEvent(
+        @CookieValue(name = AuthCookieFactory.COOKIE_NAME, required = false) String rawSessionToken,
+        @RequestBody PushRequests.ClientEventRequest request
+    ) {
+        AccountEntity account = accountService.requireAccount(rawSessionToken);
+        pushNotificationService.recordClientEvent(account, request);
+    }
+
     @PostMapping("/displayed")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void markDisplayed(

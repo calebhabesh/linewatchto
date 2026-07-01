@@ -10,6 +10,7 @@ import {
   getLatestPushNotificationForSubscription,
   getAuthConfig,
   getCurrentAccount,
+  getPushDeliveryDiagnostics,
   getPushNotificationConfig,
   getSavedCommutes,
   googleAuthStartUrl,
@@ -534,6 +535,59 @@ describe("account data adapter", () => {
     }));
     assert.equal(requests[3].input, "/api/account/push/subscription/disable");
     assert.equal(requests[3].init.method, "POST");
+  });
+
+  it("loads per-device push delivery diagnostics", async () => {
+    const requests = [];
+    const result = await getPushDeliveryDiagnostics({
+      fetcher: async (input, init) => {
+        requests.push({ input, init });
+        return new Response(
+          JSON.stringify({
+            deliveries: [
+              {
+                id: "delivery_1",
+                title: "Line 2 Bloor-Danforth Suspension",
+                tag: "line-current|line-2|alert-1|active",
+                notificationState: "ACTIVE",
+                category: "line-current",
+                eventType: "SUSPENSION",
+                lineId: "line-2",
+                lineNumber: "2",
+                eventCreatedAt: "2026-07-01T14:00:00Z",
+                deviceLabel: "Android Chrome",
+                userAgent: "Mozilla/5.0 Android Chrome",
+                endpointHashPrefix: "abc12345",
+                subscriptionEnabled: true,
+                deliveryStatus: "ACCEPTED",
+                httpStatus: 201,
+                deliveryMessage: "Created",
+                lastAttemptAt: "2026-07-01T14:01:00Z",
+                displayedAt: null,
+                attemptCount: 2,
+                clientEvents: [
+                  {
+                    stage: "push_received",
+                    message: null,
+                    occurredAt: "2026-07-01T14:01:05Z",
+                  },
+                ],
+              },
+            ],
+          }),
+          { status: 200, headers: { "content-type": "application/json" } }
+        );
+      },
+    });
+
+    assert.equal(result.source, "backend");
+    assert.equal(result.deliveries.length, 1);
+    assert.equal(result.deliveries[0].deviceLabel, "Android Chrome");
+    assert.equal(result.deliveries[0].attemptCount, 2);
+    assert.equal(result.deliveries[0].clientEvents[0].stage, "push_received");
+    assert.equal(requests[0].input, "/api/account/push/diagnostics");
+    assert.equal(requests[0].init.method, "GET");
+    assert.equal(requests[0].init.credentials, "include");
   });
 
   it("loads auth configuration", async () => {

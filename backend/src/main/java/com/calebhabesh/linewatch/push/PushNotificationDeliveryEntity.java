@@ -25,6 +25,8 @@ public class PushNotificationDeliveryEntity {
     @Column(name = "http_status")
     private Integer httpStatus;
     private String message;
+    @Column(name = "attempt_count")
+    private int attemptCount = 1;
     @Column(name = "created_at")
     private Instant createdAt;
     @Column(name = "displayed_at")
@@ -45,6 +47,7 @@ public class PushNotificationDeliveryEntity {
         this.status = result.status();
         this.httpStatus = result.httpStatus();
         this.message = result.message();
+        this.attemptCount = 1;
         this.createdAt = now;
     }
 
@@ -94,6 +97,7 @@ public class PushNotificationDeliveryEntity {
         this.status = result.status();
         this.httpStatus = result.httpStatus();
         this.message = result.message();
+        this.attemptCount += 1;
         this.createdAt = now;
         this.displayedAt = null;
     }
@@ -108,6 +112,7 @@ public class PushNotificationDeliveryEntity {
     public String getStatus() { return status; }
     public Integer getHttpStatus() { return httpStatus; }
     public String getMessage() { return message; }
+    public int getAttemptCount() { return attemptCount; }
     public Instant getCreatedAt() { return createdAt; }
     public Instant getDisplayedAt() { return displayedAt; }
 }

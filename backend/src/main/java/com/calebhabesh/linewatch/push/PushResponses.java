@@ -130,4 +130,37 @@ public final class PushResponses {
             this(activeTags, activeTags, cleanupAllowed);
         }
     }
+
+    public record PushClientEventResponse(
+        String stage,
+        String message,
+        String occurredAt
+    ) {}
+
+    public record PushDeliveryDiagnosticResponse(
+        String id,
+        String title,
+        String tag,
+        String notificationState,
+        String category,
+        String eventType,
+        String lineId,
+        String lineNumber,
+        String eventCreatedAt,
+        String deviceLabel,
+        String userAgent,
+        String endpointHashPrefix,
+        boolean subscriptionEnabled,
+        String deliveryStatus,
+        Integer httpStatus,
+        String deliveryMessage,
+        String lastAttemptAt,
+        String displayedAt,
+        int attemptCount,
+        List<PushClientEventResponse> clientEvents
+    ) {}
+
+    public record PushDeliveryDiagnosticsResponse(
+        List<PushDeliveryDiagnosticResponse> deliveries
+    ) {}
 }

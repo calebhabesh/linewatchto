@@ -326,6 +326,41 @@ export type PendingPushNotificationResponse = {
   notification: PendingPushNotification | null;
 };
 
+export type PushClientEvent = {
+  stage: string;
+  message: string | null;
+  occurredAt: string;
+};
+
+export type PushDeliveryDiagnostic = {
+  id: string;
+  title: string;
+  tag: string;
+  notificationState: string;
+  category: string;
+  eventType: string | null;
+  lineId: string | null;
+  lineNumber: string | null;
+  eventCreatedAt: string | null;
+  deviceLabel: string;
+  userAgent: string;
+  endpointHashPrefix: string;
+  subscriptionEnabled: boolean;
+  deliveryStatus: string;
+  httpStatus: number | null;
+  deliveryMessage: string | null;
+  lastAttemptAt: string | null;
+  displayedAt: string | null;
+  attemptCount: number;
+  clientEvents: PushClientEvent[];
+};
+
+export type PushDeliveryDiagnosticsResult = {
+  source: "backend" | "unavailable";
+  deliveries: PushDeliveryDiagnostic[];
+  message?: string;
+};
+
 function apiUrl(path: string, options: AdapterOptions = {}) {
   return buildApiUrl(path, options.apiBaseUrl);
 }
@@ -545,6 +580,27 @@ export async function getPushNotificationConfig(options: AdapterOptions = {}): P
         preferences: defaultPushNotificationPreferences,
       },
       message: "Push notifications are unavailable.",
+    };
+  }
+}
+
+export async function getPushDeliveryDiagnostics(options: AdapterOptions = {}): Promise<PushDeliveryDiagnosticsResult> {
+  try {
+    const fetcher = options.fetcher ?? fetch;
+    const response = await fetcher(apiUrl("/api/account/push/diagnostics", options), {
+      method: "GET",
+      credentials: "include",
+    });
+    if (!response.ok) {
+      throw new Error(`Push diagnostics request failed with ${response.status}`);
+    }
+    const body = await readJson<{ deliveries: PushDeliveryDiagnostic[] }>(response);
+    return { source: "backend", deliveries: body.deliveries };
+  } catch {
+    return {
+      source: "unavailable",
+      deliveries: [],
+      message: "Push delivery diagnostics are unavailable.",
     };
   }
 }

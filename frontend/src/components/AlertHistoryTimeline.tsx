@@ -7,7 +7,7 @@ import {
   type AlertHistoryIncident,
   type AlertHistoryPeriod,
 } from "../app/alert-history-data";
-import { formatRelativeImpactTime } from "../app/impact-time";
+import { formatFullImpactTimestamp, formatImpactTimestamp } from "../app/impact-time";
 import { formatCause, formatCompactLocation, lineColor } from "./ImpactCardFields";
 import {
   ALL_LINES_VALUE,
@@ -233,7 +233,7 @@ function HistoryIncident({ item }: { item: AlertHistoryViewItem }) {
               {statusLabel}
             </span>
           </div>
-          {time ? <time dateTime={time}>{formatRelativeImpactTime(time)}</time> : null}
+          {time ? <HistoryTimestamp timestamp={time} /> : null}
         </div>
         <strong className="alert-history-title">{title}</strong>
         <div className="alert-history-fact-grid" aria-label="Alert summary">
@@ -259,13 +259,21 @@ function HistoryIncident({ item }: { item: AlertHistoryViewItem }) {
             {incident.events.map((event) => (
               <li key={event.id}>
                 <span>{event.label}</span>
-                <time dateTime={event.happenedAt}>{formatRelativeImpactTime(event.happenedAt)}</time>
+                <HistoryTimestamp timestamp={event.happenedAt} />
               </li>
             ))}
           </ol>
         </details>
       </div>
     </li>
+  );
+}
+
+function HistoryTimestamp({ timestamp }: { timestamp: string }) {
+  return (
+    <time dateTime={timestamp} title={formatFullImpactTimestamp(timestamp)} suppressHydrationWarning>
+      {formatImpactTimestamp(timestamp)}
+    </time>
   );
 }
 

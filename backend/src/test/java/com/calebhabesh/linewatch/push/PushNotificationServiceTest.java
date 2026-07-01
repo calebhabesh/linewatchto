@@ -26,6 +26,7 @@ class PushNotificationServiceTest {
     private final SavedCommutePushPlanner planner = mock(SavedCommutePushPlanner.class);
     private final PushNotificationPreferenceService preferenceService = mock(PushNotificationPreferenceService.class);
     private final LineSubscriptionPushPlanner lineSubscriptionPushPlanner = mock(LineSubscriptionPushPlanner.class);
+    private final PushNotificationClientEventRepository clientEventRepository = mock(PushNotificationClientEventRepository.class);
     private final IngestionFreshness ingestionFreshness = mock(IngestionFreshness.class);
     private final Clock clock = Clock.fixed(Instant.parse("2026-06-05T15:00:00Z"), ZoneOffset.UTC);
     private final PushNotificationFormatter formatter = new PushNotificationFormatter();
@@ -37,6 +38,7 @@ class PushNotificationServiceTest {
         planner,
         preferenceService,
         lineSubscriptionPushPlanner,
+        clientEventRepository,
         ingestionFreshness,
         clock
     );
@@ -433,6 +435,166 @@ class PushNotificationServiceTest {
         );
 
         assertThat(delivery.getDisplayedAt()).isEqualTo(clock.instant());
+    }
+
+    @Test
+    void deliveryDiagnosticsReturnsRecentPerDeviceDeliveryTimeline() {
+        String endpoint = "https://fcm.googleapis.com/fcm/send/android";
+        String endpointHash = PushNotificationService.hashEndpoint(endpoint);
+        PushNotificationCandidate candidate = candidate(
+            null,
+            null,
+            "line-2",
+            "2",
+            "line-current",
+            "suspension",
+            "on-change",
+            "line-current|line-2|suspension|ttc-route-70610",
+            "user_1|line|line-2|suspension|on-change|ttc-route-70610",
+            "Victoria Park to Kennedy",
+            null,
+            Instant.parse("2026-06-05T14:50:00Z"),
+            "/?panel=alerts&impactKind=suspension&impactId=ttc-route-70610"
+        );
+        PushNotificationEventEntity event = PushNotificationEventEntity.create(
+            "push_event_1",
+            candidate,
+            Instant.parse("2026-06-05T15:00:00Z")
+        );
+        PushSubscriptionEntity subscription = PushSubscriptionEntity.create(
+            "push_subscription_android",
+            account,
+            endpoint,
+            endpointHash,
+            "p256dh-key",
+            "auth-secret",
+            "Chrome Android Pixel 6a",
+            Instant.parse("2026-06-05T14:45:00Z")
+        );
+        PushNotificationDeliveryEntity delivery = PushNotificationDeliveryEntity.create(
+            "push_delivery_1",
+            event,
+            subscription,
+            PushDeliveryResult.accepted(202),
+            Instant.parse("2026-06-05T15:00:05Z")
+        );
+        PushNotificationClientEventEntity received = PushNotificationClientEventEntity.create(
+            "push_client_event_1",
+            account.getId(),
+            subscription,
+            delivery,
+            endpointHash,
+            "line-current|line-2|suspension|ttc-route-70610",
+            "ACTIVE",
+            "push_received",
+            null,
+            Instant.parse("2026-06-05T15:00:07Z"),
+            Instant.parse("2026-06-05T15:00:08Z")
+        );
+        PushNotificationClientEventEntity displayed = PushNotificationClientEventEntity.create(
+            "push_client_event_2",
+            account.getId(),
+            subscription,
+            delivery,
+            endpointHash,
+            "line-current|line-2|suspension|ttc-route-70610",
+            "ACTIVE",
+            "displayed_acknowledged",
+            null,
+            Instant.parse("2026-06-05T15:00:09Z"),
+            Instant.parse("2026-06-05T15:00:10Z")
+        );
+        when(deliveryRepository.findRecentDeliveriesForAccount("user_1", PageRequest.of(0, 20)))
+            .thenReturn(List.of(delivery));
+        when(clientEventRepository.findByDeliveryIds(List.of("push_delivery_1")))
+            .thenReturn(List.of(received, displayed));
+
+        PushResponses.PushDeliveryDiagnosticsResponse response = service.deliveryDiagnostics(account);
+
+        assertThat(response.deliveries()).hasSize(1);
+        PushResponses.PushDeliveryDiagnosticResponse diagnostic = response.deliveries().getFirst();
+        assertThat(diagnostic.deviceLabel()).isEqualTo("Android Chrome");
+        assertThat(diagnostic.endpointHashPrefix()).isEqualTo(endpointHash.substring(0, 12));
+        assertThat(diagnostic.tag()).isEqualTo("line-current|line-2|suspension|ttc-route-70610|active");
+        assertThat(diagnostic.deliveryStatus()).isEqualTo("accepted");
+        assertThat(diagnostic.httpStatus()).isEqualTo(202);
+        assertThat(diagnostic.displayedAt()).isNull();
+        assertThat(diagnostic.attemptCount()).isEqualTo(1);
+        assertThat(diagnostic.clientEvents())
+            .extracting(PushResponses.PushClientEventResponse::stage)
+            .containsExactly("push_received", "displayed_acknowledged");
+    }
+
+    @Test
+    void recordsClientEventForCurrentSubscriptionAndNotificationTag() {
+        String endpoint = "https://fcm.googleapis.com/fcm/send/android";
+        String endpointHash = PushNotificationService.hashEndpoint(endpoint);
+        PushNotificationCandidate candidate = candidate(
+            null,
+            null,
+            "line-2",
+            "2",
+            "line-current",
+            "suspension",
+            "on-change",
+            "line-current|line-2|suspension|ttc-route-70610",
+            "user_1|line|line-2|suspension|on-change|ttc-route-70610",
+            "Victoria Park to Kennedy",
+            null,
+            Instant.parse("2026-06-05T14:50:00Z"),
+            "/?panel=alerts&impactKind=suspension&impactId=ttc-route-70610"
+        );
+        PushNotificationEventEntity event = PushNotificationEventEntity.create("push_event_1", candidate, clock.instant());
+        PushSubscriptionEntity subscription = PushSubscriptionEntity.create(
+            "push_subscription_android",
+            account,
+            endpoint,
+            endpointHash,
+            "p256dh-key",
+            "auth-secret",
+            "Chrome Android Pixel 6a",
+            clock.instant()
+        );
+        PushNotificationDeliveryEntity delivery = PushNotificationDeliveryEntity.create(
+            "push_delivery_1",
+            event,
+            subscription,
+            PushDeliveryResult.accepted(202),
+            clock.instant()
+        );
+        when(subscriptionRepository.findByAccountIdAndEndpointHash("user_1", endpointHash))
+            .thenReturn(Optional.of(subscription));
+        when(deliveryRepository.findLatestDeliveryForNotification(
+            "user_1",
+            endpointHash,
+            "line-current|line-2|suspension|ttc-route-70610",
+            "ACTIVE",
+            PageRequest.of(0, 1)
+        )).thenReturn(List.of(delivery));
+        when(clientEventRepository.save(any(PushNotificationClientEventEntity.class)))
+            .thenAnswer(invocation -> invocation.getArgument(0));
+
+        service.recordClientEvent(
+            account,
+            new PushRequests.ClientEventRequest(
+                endpoint,
+                "line-current|line-2|suspension|ttc-route-70610|active",
+                "push_received",
+                ""
+            )
+        );
+
+        org.mockito.ArgumentCaptor<PushNotificationClientEventEntity> eventCaptor =
+            org.mockito.ArgumentCaptor.forClass(PushNotificationClientEventEntity.class);
+        verify(clientEventRepository).save(eventCaptor.capture());
+        PushNotificationClientEventEntity saved = eventCaptor.getValue();
+        assertThat(saved.getAccountId()).isEqualTo("user_1");
+        assertThat(saved.getDelivery().getId()).isEqualTo("push_delivery_1");
+        assertThat(saved.getSubscription().getId()).isEqualTo("push_subscription_android");
+        assertThat(saved.getNotificationKey()).isEqualTo("line-current|line-2|suspension|ttc-route-70610");
+        assertThat(saved.getNotificationState()).isEqualTo("ACTIVE");
+        assertThat(saved.getStage()).isEqualTo("push_received");
+        assertThat(saved.getOccurredAt()).isEqualTo(clock.instant());
     }
 
     private PushNotificationCandidate candidate(

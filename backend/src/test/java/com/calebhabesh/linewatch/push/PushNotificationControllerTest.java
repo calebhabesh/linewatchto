@@ -104,6 +104,34 @@ class PushNotificationControllerTest {
     }
 
     @Test
+    void returnsDeliveryDiagnosticsForCurrentAccount() {
+        PushResponses.PushDeliveryDiagnosticsResponse expected =
+            new PushResponses.PushDeliveryDiagnosticsResponse(java.util.List.of());
+        when(accountService.requireAccount("raw-token")).thenReturn(account);
+        when(pushNotificationService.deliveryDiagnostics(account)).thenReturn(expected);
+
+        PushResponses.PushDeliveryDiagnosticsResponse response = controller.diagnostics("raw-token");
+
+        assertThat(response).isEqualTo(expected);
+        verify(pushNotificationService).deliveryDiagnostics(account);
+    }
+
+    @Test
+    void recordsClientEventForCurrentAccount() {
+        PushRequests.ClientEventRequest request = new PushRequests.ClientEventRequest(
+            "https://fcm.googleapis.com/fcm/send/subscription",
+            "line-current|line-2|suspension|ttc-route-70610|active",
+            "push_received",
+            ""
+        );
+        when(accountService.requireAccount("raw-token")).thenReturn(account);
+
+        controller.recordClientEvent("raw-token", request);
+
+        verify(pushNotificationService).recordClientEvent(account, request);
+    }
+
+    @Test
     void disablesCurrentSubscription() {
         PushRequests.SubscriptionEndpointRequest request = new PushRequests.SubscriptionEndpointRequest(
             "https://fcm.googleapis.com/fcm/send/subscription"

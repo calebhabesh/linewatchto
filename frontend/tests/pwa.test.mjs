@@ -291,11 +291,18 @@ async function serviceWorkerPush({
   },
   existingNotifications = [],
   pushData = null,
+  showNotificationError = null,
 } = {}) {
   const listeners = new Map();
   const waitUntilPromises = [];
   const fetchRequests = [];
   const shownNotifications = [];
+  let showNotificationCalls = 0;
+  const clients = {
+    claim: async () => undefined,
+    matchAll: async () => [],
+    openWindow: async () => undefined,
+  };
   const context = {
     URL,
     Promise,
@@ -325,11 +332,7 @@ async function serviceWorkerPush({
         listeners.set(type, listener);
       },
       skipWaiting: async () => undefined,
-      clients: {
-        claim: async () => undefined,
-        matchAll: async () => [],
-        openWindow: async () => undefined,
-      },
+      clients,
       registration: {
         getNotifications: async () => existingNotifications,
         pushManager: {
@@ -338,10 +341,15 @@ async function serviceWorkerPush({
           }),
         },
         showNotification: async (title, options) => {
+          showNotificationCalls += 1;
+          if (showNotificationError && showNotificationCalls === 1) {
+            throw showNotificationError;
+          }
           shownNotifications.push({ title, options });
         },
       },
     },
+    clients,
   };
 
   runInNewContext(serviceWorkerSource, context, { filename: "sw.js" });
@@ -365,6 +373,12 @@ async function serviceWorkerPush({
   await Promise.all(waitUntilPromises);
 
   return { fetchRequests, shownNotifications, listeners };
+}
+
+function clientEventRequests(fetchRequests) {
+  return fetchRequests
+    .filter((request) => request.url === "/api/account/push/client-event")
+    .map((request) => JSON.parse(request.options.body));
 }
 
 async function serviceWorkerMessage({
@@ -684,11 +698,16 @@ describe("LineWatch PWA configuration", () => {
     );
     assert.equal(shownNotifications[0].options.tag, "saved-commute-impact|commute_1|outbound|delay|delay-line-1|active");
     assert.equal(shownNotifications[0].options.data.url, "/?panel=commutes&commute=commute_1");
+    assert.deepEqual(clientEventRequests(fetchRequests)[0], {
+      endpoint: "https://fcm.googleapis.com/fcm/send/subscription",
+      tag: "saved-commute-impact|commute_1|outbound|delay|delay-line-1|active",
+      stage: "push_received",
+    });
     assert.notEqual(fetchRequests[0]?.url, "/api/account/push/latest");
   });
 
   it("keeps payload push notifications visible when display acknowledgement fails", async () => {
-    const { shownNotifications } = await serviceWorkerPush({
+    const { fetchRequests, shownNotifications } = await serviceWorkerPush({
       fetchOk: false,
       fetchStatus: 401,
       pushData: {
@@ -703,6 +722,38 @@ describe("LineWatch PWA configuration", () => {
 
     assert.equal(shownNotifications.length, 1);
     assert.equal(shownNotifications[0].title, "⚠️ Line 1 Yonge-University Delay");
+    assert.equal(
+      clientEventRequests(fetchRequests).some((request) => (
+        request.tag === "saved-commute-impact|commute_1|outbound|delay|delay-line-1|active"
+        && request.stage === "ack_failed"
+      )),
+      true,
+    );
+  });
+
+  it("records display API failures before showing the controlled fallback", async () => {
+    const { fetchRequests, shownNotifications } = await serviceWorkerPush({
+      showNotificationError: new Error("display failed"),
+      pushData: {
+        title: "⚠️ Line 1 Yonge-University Delay",
+        body: "Finch to Union.\nAffects Morning commute (Outbound).\n🕗 Jun 5, 10:20 AM",
+        url: "/?panel=commutes&commute=commute_1",
+        tag: "saved-commute-impact|commute_1|outbound|delay|delay-line-1|active",
+        state: "ACTIVE",
+        timestamp: "2026-06-05T15:00:00Z",
+      },
+    });
+
+    assert.equal(shownNotifications.length, 1);
+    assert.equal(shownNotifications[0].title, "⚠️ LineWatchTO Service Alert");
+    assert.equal(
+      clientEventRequests(fetchRequests).some((request) => (
+        request.tag === "saved-commute-impact|commute_1|outbound|delay|delay-line-1|active"
+        && request.stage === "show_failed"
+        && request.message === "display failed"
+      )),
+      true,
+    );
   });
 
   it("shows active and cleared lifecycle notifications as separate browser notifications", async () => {
@@ -840,7 +891,7 @@ describe("LineWatch PWA configuration", () => {
   });
 
   it("does not show a stale active notification just because a cleared tag is retained", async () => {
-    const { shownNotifications } = await serviceWorkerPush({
+    const { fetchRequests, shownNotifications } = await serviceWorkerPush({
       fetchBody: {
         notification: {
           title: "⚠️ Line 1 Yonge-University Delay",
@@ -856,6 +907,13 @@ describe("LineWatch PWA configuration", () => {
     });
 
     assert.equal(shownNotifications.length, 0);
+    assert.equal(
+      clientEventRequests(fetchRequests).some((request) => (
+        request.tag === "saved-commute-impact|commute_1|outbound|delay|delay-line-1|active"
+        && request.stage === "pending_skipped"
+      )),
+      true,
+    );
   });
 
   it("allows a pending active notification when the same batch also contains its clearance", async () => {
@@ -982,6 +1040,50 @@ describe("LineWatch PWA configuration", () => {
     assert.equal(fetchRequests.at(-1).url, "/api/account/push/active");
     assert.equal(shownNotifications.length, 0);
     assert.equal(staleNotification.closed, true);
+  });
+
+  it("records notification click and close client events", async () => {
+    const { fetchRequests, listeners } = await serviceWorkerPush({
+      pushData: {
+        title: "⚠️ Line 1 Yonge-University Delay",
+        body: "Finch to Union.\nAffects Morning commute (Outbound).\n🕗 Jun 5, 10:20 AM",
+        url: "/?panel=commutes&commute=commute_1",
+        tag: "saved-commute-impact|commute_1|outbound|delay|delay-line-1|active",
+        state: "ACTIVE",
+        timestamp: "2026-06-05T15:00:00Z",
+      },
+    });
+
+    const notification = {
+      tag: "saved-commute-impact|commute_1|outbound|delay|delay-line-1|active",
+      data: {
+        state: "ACTIVE",
+        url: "/?panel=commutes&commute=commute_1",
+      },
+      close() {},
+    };
+
+    const clickWaits = [];
+    listeners.get("notificationclick")({
+      notification,
+      waitUntil: (promise) => {
+        clickWaits.push(Promise.resolve(promise));
+      },
+    });
+    await Promise.all(clickWaits);
+
+    const closeWaits = [];
+    listeners.get("notificationclose")({
+      notification,
+      waitUntil: (promise) => {
+        closeWaits.push(Promise.resolve(promise));
+      },
+    });
+    await Promise.all(closeWaits);
+
+    const stages = clientEventRequests(fetchRequests).map((request) => request.stage);
+    assert.equal(stages.includes("notification_click"), true);
+    assert.equal(stages.includes("notification_close"), true);
   });
 
   it("serves an offline page that does not claim stale TTC service data is current", () => {

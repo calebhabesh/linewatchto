@@ -115,7 +115,14 @@ self.addEventListener("message", (event) => {
 
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
-  event.waitUntil(openNotificationUrl(event.notification.data?.url || "/"));
+  event.waitUntil((async () => {
+    await recordDisplayedNotificationClientEvent(event.notification, "notification_click");
+    await openNotificationUrl(event.notification.data?.url || "/");
+  })());
+});
+
+self.addEventListener("notificationclose", (event) => {
+  event.waitUntil(recordDisplayedNotificationClientEvent(event.notification, "notification_close"));
 });
 
 function isStaticAsset(url) {
@@ -162,7 +169,7 @@ async function showPendingPushNotification(event) {
   try {
     const payloadNotification = notificationFromPushPayload(event);
     if (payloadNotification) {
-      await showPushNotification(payloadNotification);
+      await showTrackedPushNotification(payloadNotification);
       await acknowledgeDisplayedPushNotification(payloadNotification);
       await reconcilePushNotifications();
       return;
@@ -195,10 +202,11 @@ async function showPendingPushNotification(event) {
 
     for (const notification of pendingNotifications) {
       if (!shouldShowPendingNotification(notification, pendingNotifications, tagState)) {
+        await recordPushClientEvent(notification, "pending_skipped");
         continue;
       }
 
-      await showPushNotification(notification);
+      await showTrackedPushNotification(notification);
       await acknowledgeDisplayedPushNotification(notification);
     }
   } catch {
@@ -254,11 +262,25 @@ async function showPushNotification(notification) {
   await self.registration.showNotification(notification.title, options);
 }
 
+async function showTrackedPushNotification(notification) {
+  const receiptEvent = recordPushClientEvent(notification, "push_received");
+  try {
+    await showPushNotification(notification);
+  } catch (error) {
+    await Promise.allSettled([
+      receiptEvent,
+      recordPushClientEvent(notification, "show_failed", clientEventErrorMessage(error)),
+    ]);
+    throw error;
+  }
+  await receiptEvent;
+}
+
 async function acknowledgeDisplayedPushNotification(notification) {
   try {
     const subscription = await self.registration.pushManager.getSubscription();
     if (!subscription) return;
-    await fetch("/api/account/push/displayed", {
+    const response = await fetch("/api/account/push/displayed", {
       method: "POST",
       credentials: "include",
       headers: {
@@ -266,9 +288,56 @@ async function acknowledgeDisplayedPushNotification(notification) {
       },
       body: JSON.stringify({ endpoint: subscription.endpoint, tag: notification.tag }),
     });
-  } catch {
+    if (!response.ok) {
+      await recordPushClientEvent(notification, "ack_failed", `displayed ack failed with ${response.status}`);
+    }
+  } catch (error) {
+    await recordPushClientEvent(notification, "ack_failed", clientEventErrorMessage(error));
     // Payload display is authoritative; acknowledgement only prevents stale fallback delivery.
   }
+}
+
+async function recordDisplayedNotificationClientEvent(notification, stage) {
+  if (!notification || !isLineWatchPushNotification(notification.tag)) return;
+  await recordPushClientEvent({
+    tag: notification.tag,
+    state: notification.data?.state || "ACTIVE",
+  }, stage);
+}
+
+async function recordPushClientEvent(notification, stage, message) {
+  try {
+    if (!notification || !isLineWatchPushNotification(notification.tag)) return;
+    const subscription = await self.registration.pushManager.getSubscription();
+    if (!subscription) return;
+
+    const body = {
+      endpoint: subscription.endpoint,
+      tag: notification.tag,
+      stage,
+    };
+    if (typeof message === "string" && message.trim().length > 0) {
+      body.message = message.trim().slice(0, 255);
+    }
+
+    await fetch("/api/account/push/client-event", {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        "content-type": "application/json",
+      },
+      body: JSON.stringify(body),
+    });
+  } catch {
+    // Delivery diagnostics are best-effort and must never suppress the OS notification.
+  }
+}
+
+function clientEventErrorMessage(error) {
+  if (error && typeof error.message === "string" && error.message.length > 0) {
+    return error.message;
+  }
+  return "unknown client error";
 }
 
 async function showFallbackPushNotification() {
