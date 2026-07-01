@@ -27,6 +27,24 @@ describe("alert scenario scripts", () => {
     assert.match(scenarioBackendScript, /tmp\/ttc-merged-gtfs\.zip/);
   });
 
+  it("keeps the scenario backend isolated from generic local live backend settings", () => {
+    assert.match(scenarioBackendScript, /ORIGINAL_SERVER_PORT="\$\{SERVER_PORT:-\}"/);
+    assert.match(scenarioBackendScript, /ORIGINAL_SPRING_DATASOURCE_URL="\$\{SPRING_DATASOURCE_URL:-\}"/);
+    assert.match(scenarioBackendScript, /ORIGINAL_SPRING_DATA_REDIS_DATABASE="\$\{SPRING_DATA_REDIS_DATABASE:-\}"/);
+    assert.match(scenarioBackendScript, /SCENARIO_SERVER_PORT="\$\{LINEWATCH_ALERT_SCENARIO_BACKEND_PORT:-\$\{ORIGINAL_SERVER_PORT:-8082\}\}"/);
+    assert.match(
+      scenarioBackendScript,
+      /SCENARIO_SPRING_DATASOURCE_URL="\$\{LINEWATCH_ALERT_SCENARIO_DATASOURCE_URL:-\$\{ORIGINAL_SPRING_DATASOURCE_URL:-jdbc:postgresql:\/\/127\.0\.0\.1:5434\/linewatch_scenario\}\}"/,
+    );
+    assert.match(
+      scenarioBackendScript,
+      /SCENARIO_SPRING_DATA_REDIS_DATABASE="\$\{LINEWATCH_ALERT_SCENARIO_REDIS_DATABASE:-\$\{ORIGINAL_SPRING_DATA_REDIS_DATABASE:-1\}\}"/,
+    );
+    assert.match(scenarioBackendScript, /SERVER_PORT="\$SCENARIO_SERVER_PORT"/);
+    assert.match(scenarioBackendScript, /SPRING_DATASOURCE_URL="\$SCENARIO_SPRING_DATASOURCE_URL"/);
+    assert.match(scenarioBackendScript, /SPRING_DATA_REDIS_DATABASE="\$SCENARIO_SPRING_DATA_REDIS_DATABASE"/);
+  });
+
   it("labels the local alert scenario browser tab with the scenario name", () => {
     assert.match(scenarioFrontendScript, /SCENARIO="\$\{LINEWATCH_ALERT_SCENARIO:-\$\{1:-all-alert-types\}\}"/);
     assert.match(scenarioFrontendScript, /Starting LineWatchTO alert scenario frontend/);
