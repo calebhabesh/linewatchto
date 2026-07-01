@@ -194,9 +194,10 @@ class AlertDashboardServiceTest {
     }
 
     @Test
-    void activeAlertsUseSourceUpdatedTimeWhenSourceStartLooksLikeServiceDayWindow() {
+    void activeAlertsPreserveSourceActivePeriodStartWhenItIsOlderThanUpdate() {
         when(ingestionFreshness.isDashboardFresh()).thenReturn(true);
         OffsetDateTime sourceUpdatedAt = OffsetDateTime.parse("2026-06-01T22:15:00Z");
+        OffsetDateTime sourceStartedAt = OffsetDateTime.parse("2026-06-01T09:11:00Z");
         AlertEntity alert = alert(
             "ttc-route-overnight-start",
             "active-alert",
@@ -208,7 +209,7 @@ class AlertDashboardServiceTest {
             sourceUpdatedAt,
             null
         );
-        ReflectionTestUtils.setField(alert, "activePeriodStart", OffsetDateTime.parse("2026-06-01T09:11:00Z"));
+        ReflectionTestUtils.setField(alert, "activePeriodStart", sourceStartedAt);
         when(alertRepository.findByActiveTrueAndType("active-alert"))
             .thenReturn(List.of(alert));
         when(lineSegmentRepository.findAllByOrderBySortOrderAsc()).thenReturn(List.of(
@@ -218,13 +219,13 @@ class AlertDashboardServiceTest {
         List<AlertDashboardService.ActiveAlertDto> alerts = service.activeAlerts();
 
         assertThat(alerts).singleElement().satisfies(dto -> {
-            assertThat(dto.startedAt()).isEqualTo(sourceUpdatedAt);
+            assertThat(dto.startedAt()).isEqualTo(sourceStartedAt);
             assertThat(dto.updatedAt()).isEqualTo(sourceUpdatedAt);
         });
     }
 
     @Test
-    void activeAlertsUseDashboardUpdateTimeWhenSourceUpdatedTimeIsStale() {
+    void activeAlertsPreserveSourceUpdatedTimeWhenDashboardPollTimeIsNewer() {
         when(ingestionFreshness.isDashboardFresh()).thenReturn(true);
         OffsetDateTime sourceUpdatedAt = OffsetDateTime.parse("2026-06-01T09:11:00Z");
         OffsetDateTime dashboardUpdatedAt = OffsetDateTime.parse("2026-06-01T22:15:00Z");
@@ -250,8 +251,8 @@ class AlertDashboardServiceTest {
         List<AlertDashboardService.ActiveAlertDto> alerts = service.activeAlerts();
 
         assertThat(alerts).singleElement().satisfies(dto -> {
-            assertThat(dto.startedAt()).isEqualTo(dashboardUpdatedAt);
-            assertThat(dto.updatedAt()).isEqualTo(dashboardUpdatedAt);
+            assertThat(dto.startedAt()).isEqualTo(sourceUpdatedAt);
+            assertThat(dto.updatedAt()).isEqualTo(sourceUpdatedAt);
         });
     }
 
@@ -372,9 +373,10 @@ class AlertDashboardServiceTest {
     }
 
     @Test
-    void delayCardsUseSourceUpdatedTimeWhenSourceStartLooksLikeServiceDayWindow() {
+    void delayCardsPreserveSourceActivePeriodStartWhenItIsOlderThanUpdate() {
         when(ingestionFreshness.isDashboardFresh()).thenReturn(true);
         OffsetDateTime sourceUpdatedAt = OffsetDateTime.parse("2026-06-01T22:15:00Z");
+        OffsetDateTime sourceStartedAt = OffsetDateTime.parse("2026-06-01T09:11:00Z");
         AlertEntity delay = alert(
             "ttc-route-delay-service-window",
             "active-alert",
@@ -387,7 +389,7 @@ class AlertDashboardServiceTest {
             null
         );
         ReflectionTestUtils.setField(delay, "impactKind", "delay");
-        ReflectionTestUtils.setField(delay, "activePeriodStart", OffsetDateTime.parse("2026-06-01T09:11:00Z"));
+        ReflectionTestUtils.setField(delay, "activePeriodStart", sourceStartedAt);
         when(alertRepository.findByActiveTrueAndType("active-alert"))
             .thenReturn(List.of(delay));
         when(lineSegmentRepository.findAllByOrderBySortOrderAsc()).thenReturn(List.of());
@@ -395,7 +397,7 @@ class AlertDashboardServiceTest {
         List<AlertDashboardService.DelayAlertDto> delays = service.delays();
 
         assertThat(delays).singleElement().satisfies(dto -> {
-            assertThat(dto.startedAt()).isEqualTo(sourceUpdatedAt);
+            assertThat(dto.startedAt()).isEqualTo(sourceStartedAt);
             assertThat(dto.updatedAt()).isEqualTo(sourceUpdatedAt);
         });
     }
