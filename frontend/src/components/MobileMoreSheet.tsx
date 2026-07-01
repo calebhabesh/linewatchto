@@ -1,6 +1,6 @@
 "use client";
 
-import { BarChart3, Bell, Download, FileText, LogIn, LogOut, MessageSquareText, RefreshCcw, Contrast, Pause, Share2, ShieldCheck, Sparkles, UserPlus, UserRound, X, History } from "lucide-react";
+import { BarChart3, Bell, Download, FileText, LogIn, LogOut, MessageSquareText, RefreshCcw, Contrast, Pause, Share2, ShieldCheck, Sparkles, UserPlus, UserRound, X, History, Map as MapIcon } from "lucide-react";
 import Image from "next/image";
 import type { AccountState } from "../app/account-data";
 import { lineWatchAppVersionLabel } from "../app/app-build";
@@ -284,6 +284,16 @@ export function MobileMoreSheet({
             <FileText size={18} className="text-slate-500 dark:text-slate-400" />
             Privacy & Acknowledgements
           </button>
+          <div className="mobile-more-row mobile-more-map-attribution" role="note" aria-label="Map Attribution">
+            <MapIcon size={18} className="text-slate-500 dark:text-slate-400" />
+            <span className="mobile-more-map-attribution-copy">
+              <span>Map Attribution</span>
+              <span>
+                Base Map
+                <span>© 2026 Toronto Transit Commission 02/26 - Map not to scale</span>
+              </span>
+            </span>
+          </div>
           {hasReleaseNotes ? (
             <button type="button" className="mobile-more-row" onClick={onOpenReleaseNotes}>
               <Sparkles size={18} className="text-slate-500 dark:text-slate-400" />

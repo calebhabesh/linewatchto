@@ -57,4 +57,10 @@ describe("privacy and acknowledgement navigation", () => {
     assert.match(moreSheetSource, /onOpenPrivacyAcknowledgements/);
     assert.match(moreSheetSource, /Privacy & Acknowledgements/);
   });
+
+  it("shows the TTC map attribution directly in mobile More", () => {
+    assert.match(moreSheetSource, /Map Attribution/);
+    assert.match(moreSheetSource, /© 2026 Toronto Transit Commission 02\/26 - Map not to scale/);
+    assert.match(moreSheetSource, /aria-label="Map Attribution"/);
+  });
 });

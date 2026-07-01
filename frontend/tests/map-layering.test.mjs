@@ -6,6 +6,16 @@ const transitMapSource = readFileSync(new URL("../src/app/transit-map.tsx", impo
 const globalCss = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
 const interactiveMapSource = readFileSync(new URL("../src/components/InteractiveTtcMap.tsx", import.meta.url), "utf8");
 
+function cssBlockFor(selector) {
+  const start = globalCss.indexOf(`${selector} {`);
+  assert.ok(start >= 0, `${selector} block must exist`);
+
+  const end = globalCss.indexOf("\n}", start);
+  assert.ok(end > start, `${selector} block must close`);
+
+  return globalCss.slice(start, end + 2);
+}
+
 describe("asset-backed map layering", () => {
   it("renders a station and label layer above alert overlays", () => {
     assert.match(transitMapSource, /className="asset-label-frame"/);
@@ -314,6 +324,25 @@ describe("asset-backed map layering", () => {
       impactLayerIndex > previewGroupIndex,
       "active disruption overlays must render after commute previews so disruptions remain visually dominant",
     );
+  });
+
+  it("renders the TTC map copyright notice as a quiet manually positioned viewport overlay", () => {
+    const attributionBlock = cssBlockFor(".map-attribution-notice");
+    const desktopFontSize = attributionBlock.match(/font-size:\s*(\d+)px;/);
+
+    assert.match(interactiveMapSource, /aria-label="TTC map copyright notice"/);
+    assert.match(interactiveMapSource, /© 2026 Toronto Transit Commission 02\/26 - Map not to scale/);
+    assert.match(interactiveMapSource, /map-attribution-notice/);
+    assert.match(attributionBlock, /position:\s*absolute;/);
+    assert.match(attributionBlock, /right:\s*(?!;)[^;]+;/);
+    assert.match(attributionBlock, /bottom:\s*(?!;)[^;]+;/);
+    assert.match(attributionBlock, /border:\s*none;/);
+    assert.ok(desktopFontSize, "desktop map attribution should declare a pixel font size");
+    assert.ok(Number(desktopFontSize[1]) >= 13, "desktop map attribution should stay larger than the old small caption");
+    assert.doesNotMatch(globalCss, /\.dark \.map-attribution-notice\s*\{[^}]*border-color:/s);
+    assert.doesNotMatch(globalCss, /\.linewatch-shell\.high-contrast \.map-attribution-notice\s*\{[^}]*border-color:/s);
+    assert.match(globalCss, /@media \(max-width:\s*767px\)\s*\{\s*\.map-attribution-notice\s*\{\s*display:\s*none;/);
+    assert.match(globalCss, /\.linewatch-shell\.high-contrast \.map-attribution-notice/);
   });
 
   it("renders Spadina as two synchronized visual anchors for one station control", () => {

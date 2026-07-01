@@ -2440,7 +2440,7 @@ export function LineWatchShell({
           </div>
         </aside>
 
-        <aside className="desktop-map-legend fixed bottom-6 right-6 z-20 pointer-events-none">
+        <aside className="desktop-map-legend fixed bottom-10 right-6 z-20 pointer-events-none">
           <LineLegend
             onAlertClick={() => {
               setActiveView("alerts");

@@ -905,7 +905,7 @@ function InteractiveTtcMapComponent({
       {/* Map Viewport */}
       <div
         ref={containerRef}
-        className={`w-full h-full overflow-hidden select-none touch-none ${
+        className={`relative w-full h-full overflow-hidden select-none touch-none ${
           isDragging ? "cursor-grabbing" : "cursor-grab"
         }`}
         onPointerDown={handlePointerDown}
@@ -925,6 +925,9 @@ function InteractiveTtcMapComponent({
             Failed to load map asset.
           </div>
         )}
+        <div className="map-attribution-notice" aria-label="TTC map copyright notice">
+          © 2026 Toronto Transit Commission 02/26 - Map not to scale
+        </div>
 
         {loadState === "ready" && (
           <div

@@ -249,6 +249,7 @@ describe("mobile bottom sheet UX", () => {
   it("hides desktop-only chrome on mobile without deleting it", () => {
     assert.match(shellSource, /desktop-top-chrome/);
     assert.match(shellSource, /desktop-map-legend/);
+    assert.match(shellSource, /desktop-map-legend fixed bottom-10 right-6/);
     assert.match(globalCss, /\.desktop-top-chrome/);
     assert.match(globalCss, /\.desktop-map-legend/);
   });
