@@ -1,6 +1,11 @@
 import type { StationArrival, StationLine } from "./station-data";
 
-type ArrivalTimeFields = Pick<StationArrival, "label" | "minutes" | "status">;
+type ArrivalTimeFields = Pick<StationArrival, "label" | "minutes" | "status"> & Partial<Pick<StationArrival, "predictedAt">>;
+type ArrivalTileLabelFields = Pick<StationArrival, "label" | "minutes"> & Partial<Pick<StationArrival, "predictedAt" | "status">>;
+type ArrivalTileLabelOptions = {
+  detailedLive?: boolean;
+  now?: Date | number | string;
+};
 
 type GroupStationArrivalsOptions = {
   stationId?: string;
@@ -62,6 +67,7 @@ const UNAVAILABLE_ARRIVALS_DISCLAIMER =
   "Scheduled arrival data is currently unavailable. Arrival predictions are not live TTC predictions.";
 const LIVE_ARRIVALS_DISCLAIMER =
   "Arrival predictions are source-labeled and may be affected by active TTC service alerts.";
+const DETAILED_LIVE_COUNTDOWN_THRESHOLD_SECONDS = 120;
 
 export function groupStationArrivals(
   arrivals: StationArrival[],
@@ -158,9 +164,15 @@ export function formatArrivalDisclaimer(arrivals: StationArrival[], disclaimer: 
   return disclaimer || SCHEDULED_ARRIVALS_DISCLAIMER;
 }
 
-export function isArrivalDue(arrival: ArrivalTimeFields): boolean {
+export function isArrivalDue(arrival: ArrivalTimeFields, now?: Date | number | string): boolean {
   if (arrival.status === "unavailable") {
     return false;
+  }
+  if (arrival.status === "live" && arrival.predictedAt) {
+    const predictedAt = Date.parse(arrival.predictedAt);
+    if (!Number.isNaN(predictedAt)) {
+      return predictedAt <= toMillis(now);
+    }
   }
   return arrival.label.toLowerCase() === "due" || (arrival.minutes !== null && arrival.minutes <= 0);
 }
@@ -181,7 +193,18 @@ export function formatArrivalClockTime(predictedAt: string | null): string | nul
   }).format(date);
 }
 
-export function formatArrivalTileLabel(arrival: Pick<StationArrival, "label" | "minutes">): string {
+export function formatArrivalTileLabel(arrival: ArrivalTileLabelFields, options: ArrivalTileLabelOptions = {}): string {
+  if (options.detailedLive && shouldUseDetailedLiveCountdown(arrival, options.now)) {
+    const predictedAt = Date.parse(arrival.predictedAt ?? "");
+    const secondsUntilArrival = Math.ceil((predictedAt - toMillis(options.now)) / 1000);
+    return `${formatCountdownDuration(secondsUntilArrival)} - ${formatCountdownDuration(secondsUntilArrival + 60)}`;
+  }
+  if (options.now !== undefined && arrival.status === "live" && arrival.predictedAt) {
+    const predictedAt = Date.parse(arrival.predictedAt);
+    if (!Number.isNaN(predictedAt) && predictedAt <= toMillis(options.now)) {
+      return "Due";
+    }
+  }
   if (arrival.label.toLowerCase() === "due") {
     return "Due";
   }
@@ -192,6 +215,39 @@ export function formatArrivalTileLabel(arrival: Pick<StationArrival, "label" | "
     return "Due";
   }
   return `${arrival.minutes}m`;
+}
+
+export function shouldUseDetailedLiveCountdown(arrival: ArrivalTileLabelFields, now?: Date | number | string): boolean {
+  if (arrival.status !== "live" || !arrival.predictedAt) {
+    return false;
+  }
+  const predictedAt = Date.parse(arrival.predictedAt);
+  if (Number.isNaN(predictedAt)) {
+    return false;
+  }
+  const secondsUntilArrival = Math.ceil((predictedAt - toMillis(now)) / 1000);
+  return secondsUntilArrival > 0 && secondsUntilArrival < DETAILED_LIVE_COUNTDOWN_THRESHOLD_SECONDS;
+}
+
+function toMillis(value: Date | number | string | undefined): number {
+  if (value instanceof Date) {
+    const dateMillis = value.getTime();
+    return Number.isNaN(dateMillis) ? Date.now() : dateMillis;
+  }
+  if (typeof value === "number") {
+    return Number.isNaN(value) ? Date.now() : value;
+  }
+  if (typeof value === "string") {
+    const parsed = Date.parse(value);
+    return Number.isNaN(parsed) ? Date.now() : parsed;
+  }
+  return Date.now();
+}
+
+function formatCountdownDuration(totalSeconds: number): string {
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${minutes}:${String(seconds).padStart(2, "0")}`;
 }
 
 function compareArrivals(a: StationArrival, b: StationArrival): number {

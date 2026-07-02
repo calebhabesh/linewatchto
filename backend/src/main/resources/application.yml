@@ -60,7 +60,7 @@ linewatch:
     max-arrivals-per-line: ${LINEWATCH_ARRIVALS_MAX_ARRIVALS_PER_LINE:4}
     live-gtfs-rt-url: ${LINEWATCH_ARRIVALS_LIVE_GTFS_RT_URL:https://gtfsrt.ttc.ca/trips/subway?format=text}
     live-gtfs-rt-initial-delay: ${LINEWATCH_ARRIVALS_LIVE_GTFS_RT_INITIAL_DELAY:PT10S}
-    live-gtfs-rt-fixed-delay: ${LINEWATCH_ARRIVALS_LIVE_GTFS_RT_FIXED_DELAY:PT30S}
+    live-gtfs-rt-fixed-delay: ${LINEWATCH_ARRIVALS_LIVE_GTFS_RT_FIXED_DELAY:PT10S}
     live-source-name: ${LINEWATCH_ARRIVALS_LIVE_SOURCE_NAME:TTC GTFS-RT subway trip updates}
     gtfs-import-enabled: ${LINEWATCH_ARRIVALS_GTFS_IMPORT_ENABLED:false}
     gtfs-zip-path: ${LINEWATCH_ARRIVALS_GTFS_ZIP_PATH:}

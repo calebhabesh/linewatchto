@@ -26,7 +26,7 @@ public class ArrivalProperties {
     private int maxArrivalsPerLine = 4;
     private URI liveGtfsRtUrl = URI.create("https://gtfsrt.ttc.ca/trips/subway?format=text");
     private Duration liveGtfsRtInitialDelay = Duration.ofSeconds(10);
-    private Duration liveGtfsRtFixedDelay = Duration.ofSeconds(30);
+    private Duration liveGtfsRtFixedDelay = Duration.ofSeconds(10);
     private String liveSourceName = "TTC GTFS-RT subway trip updates";
     private boolean gtfsImportEnabled = false;
     private String gtfsZipPath = "";

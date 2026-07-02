@@ -282,7 +282,7 @@ To enable live station arrivals, keep the scheduled GTFS refresh/import active a
 ```bash
 LINEWATCH_ARRIVALS_PROVIDER=live
 LINEWATCH_ARRIVALS_LIVE_GTFS_RT_URL=https://gtfsrt.ttc.ca/trips/subway?format=text
-LINEWATCH_ARRIVALS_LIVE_GTFS_RT_FIXED_DELAY=PT30S
+LINEWATCH_ARRIVALS_LIVE_GTFS_RT_FIXED_DELAY=PT10S
 ```
 
 Live rows are shown only when the GTFS-RT Subway Trip Updates feed is fresh and the active static GTFS import can resolve the feed `stop_id` values to LineWatch stations. Missing directions or missing lines fall back to source-labeled scheduled service.
@@ -589,11 +589,11 @@ Set `LINEWATCH_ARRIVALS_PROVIDER=live` to enable background polling of TTC's pub
 LINEWATCH_ARRIVALS_PROVIDER=live
 LINEWATCH_ARRIVALS_LIVE_GTFS_RT_URL=https://gtfsrt.ttc.ca/trips/subway?format=text
 LINEWATCH_ARRIVALS_LIVE_GTFS_RT_INITIAL_DELAY=PT10S
-LINEWATCH_ARRIVALS_LIVE_GTFS_RT_FIXED_DELAY=PT30S
+LINEWATCH_ARRIVALS_LIVE_GTFS_RT_FIXED_DELAY=PT10S
 LINEWATCH_ARRIVALS_LIVE_SOURCE_NAME=TTC GTFS-RT subway trip updates
 ```
 
-The live provider still depends on the active static GTFS schedule import for station/platform `stop_id` mapping. It uses fresh GTFS-RT arrival times for mapped station directions and falls back to scheduled arrivals when the feed is stale, a station/direction is absent, or a supported line has no live TripUpdate rows.
+The live provider still depends on the active static GTFS schedule import for station/platform `stop_id` mapping. It uses fresh GTFS-RT arrival times for mapped station directions and falls back to scheduled arrivals when the feed is stale, a station/direction is absent, or a supported line has no live TripUpdate rows. Polling defaults to every 10 seconds and skips re-indexing when TTC returns the same feed timestamp.
 
 > [!NOTE]
 > `JAVA_TOOL_OPTIONS=-Xmx4g` is configured as production headroom, but the refresh logic is designed to complete correctness guarantees through bounded memory allocations rather than heap expansion. If an OutOfMemoryError is observed prior to running this bounded version, refresh should remain disabled until the bounded-memory release is fully deployed.

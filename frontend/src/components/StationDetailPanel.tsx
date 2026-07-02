@@ -1,7 +1,7 @@
 "use client";
 
 
-import { Fragment, useRef } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import { AlertTriangle, ArrowRight, Calendar, Check, ChevronDown, Clock3, Construction, X } from "lucide-react";
 import Image from "next/image";
 import { formatImpactTimestamp } from "../app/impact-time";
@@ -11,6 +11,7 @@ import {
   formatArrivalTileLabel,
   groupStationArrivals,
   isArrivalDue,
+  shouldUseDetailedLiveCountdown,
 } from "../app/station-arrivals";
 import type { StationDataResult, StationDetail, StationImpact } from "../app/station-data";
 import { useDashboardData } from "../app/DataContext";
@@ -217,11 +218,24 @@ function stationImpactTitleClassName(tone: StationImpactDetailsTarget["tone"]) {
   return "block text-[#FEEC41]";
 }
 
+function formatArrivalsSource(source: string): string {
+  if (!source) return "";
+  const lower = source.toLowerCase();
+  if (lower === "ttc scheduled service") {
+    return `${source} - Not Live`;
+  }
+  return source.replace(/ttc gtfs-rt subway trip updates/gi, "TTC GTFS-RT LIVE SUBWAY TRIP UPDATES");
+}
+
 export function StationDetailPanel({ stationResult, loading, updating, selectedStationName, onClose, onSelectImpact, reducedMotion }: Props) {
   const { activeAlerts, delays, reducedSpeedZones, plannedClosures } = useDashboardData();
   const subwayOperatingState = useSubwayOperatingState();
   const station = stationResult?.data ?? null;
   const source = stationResult?.source;
+  const hasLiveArrivalCountdown = station?.arrivals.some(
+    (arrival) => arrival.status === "live" && arrival.predictedAt
+  ) ?? false;
+  const [arrivalTick, setArrivalTick] = useState(() => Date.now());
   const hasElevatorOutage = station?.access.outages.some(
     (outage) => outage.assetType === "elevator"
   ) ?? false;
@@ -243,6 +257,15 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
   const hasElevator = station?.lines.some((line) => line.hasElevator) ?? false;
 
   const accessibilityDetailsRef = useRef<HTMLDetailsElement>(null);
+
+  useEffect(() => {
+    if (!hasLiveArrivalCountdown) {
+      return;
+    }
+
+    const timer = window.setInterval(() => setArrivalTick(Date.now()), 3000);
+    return () => window.clearInterval(timer);
+  }, [hasLiveArrivalCountdown, station?.id]);
 
   const handleJumpToAccessibility = () => {
     if (accessibilityDetailsRef.current) {
@@ -288,7 +311,7 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
 
   return (
     <aside
-      className="station-detail-panel fixed left-0 right-0 bottom-0 z-45 max-h-[calc(var(--visual-viewport-height,100dvh)*0.64)] flex flex-col overflow-hidden rounded-t-lg border border-black/10 bg-white p-4 text-slate-900 shadow-2xl dark:border-white/10 dark:bg-[#0a0c10] dark:text-white md:left-auto md:right-6 md:top-[104px] md:bottom-auto md:w-[min(calc(100vw-48px),390px)] md:max-h-[calc(var(--visual-viewport-height,100dvh)-128px)] md:rounded-lg"
+      className="station-detail-panel fixed left-0 right-0 bottom-0 z-45 max-h-[calc(var(--visual-viewport-height,100dvh)*0.64)] flex flex-col overflow-hidden rounded-t-lg border border-black/10 bg-white p-4 text-slate-900 shadow-2xl dark:border-white/10 dark:bg-[#0a0c10] dark:text-white md:left-auto md:right-6 md:top-[104px] md:bottom-auto md:w-[min(calc(100vw-48px),460px)] md:max-h-[calc(var(--visual-viewport-height,100dvh)-128px)] md:rounded-lg"
       aria-live="polite"
       aria-label={station ? `${station.name} station details` : "Station details"}
     >
@@ -471,9 +494,7 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
                     {arrivalHeading}
                   </h3>
                   <p className="mt-1 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-                    {station.arrivalsSource.toLowerCase() === "ttc scheduled service"
-                      ? `${station.arrivalsSource} - Not Live`
-                      : station.arrivalsSource}
+                    {formatArrivalsSource(station.arrivalsSource)}
                   </p>
                   <div className="mt-3 rounded-md border border-black/10 bg-white/60 px-3 py-4 text-center dark:border-white/10 dark:bg-black/10">
                     <p className="text-sm font-semibold leading-snug text-slate-500 dark:text-slate-400">
@@ -508,9 +529,7 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
                   {arrivalHeading}
                 </h3>
                 <p className="mt-1 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-                  {station.arrivalsSource.toLowerCase() === "ttc scheduled service"
-                    ? `${station.arrivalsSource} - Not Live`
-                    : station.arrivalsSource}
+                  {formatArrivalsSource(station.arrivalsSource)}
                 </p>
                 {arrivalsDisrupted && station.arrivalContext && (
                   <div className="mt-2 flex flex-wrap items-center justify-between gap-2 rounded-md border border-slate-300 bg-slate-200/70 p-2 text-xs font-semibold text-slate-700 dark:border-white/10 dark:bg-white/10 dark:text-slate-200">
@@ -608,13 +627,19 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
                           ) : (
                             <div className="mt-3 grid grid-cols-3 gap-2">
                               {group.arrivals.map((arrival, index) => {
-                                const due = isArrivalDue(arrival);
+                                const detailedLive = index === 0 && shouldUseDetailedLiveCountdown(arrival, arrivalTick);
+                                const due = isArrivalDue(arrival, arrivalTick);
                                 const clockTime = formatArrivalClockTime(arrival.predictedAt);
+                                const arrivalLabelClassName = detailedLive && !due
+                                  ? "whitespace-nowrap text-[13px] font-black leading-none tabular-nums"
+                                  : "text-lg font-black leading-none";
                                 const arrivalTileClassName = [
                                   "flex min-h-[66px] flex-col items-center justify-center rounded-md border px-2 py-2 text-center transition-colors",
                                   due
                                     ? "border-red-400/80 bg-red-900/85 text-red-50 shadow-[0_0_0_1px_rgba(248,113,113,0.25)]"
-                                    : "border-black/10 bg-slate-950/[0.03] text-slate-900 dark:border-white/10 dark:bg-[#0f1117] dark:text-white",
+                                    : detailedLive
+                                      ? "border-emerald-400/35 bg-emerald-500/10 text-slate-900 shadow-[0_0_0_1px_rgba(52,211,153,0.12)] dark:border-emerald-400/25 dark:bg-emerald-400/10 dark:text-white"
+                                      : "border-black/10 bg-slate-950/[0.03] text-slate-900 dark:border-white/10 dark:bg-[#0f1117] dark:text-white",
                                 ].join(" ");
 
                                 return (
@@ -623,8 +648,8 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
                                     data-arrival-due={due ? "true" : "false"}
                                     className={arrivalTileClassName}
                                   >
-                                    <strong className="text-lg font-black leading-none">
-                                      {formatArrivalTileLabel(arrival)}
+                                    <strong className={arrivalLabelClassName}>
+                                      {formatArrivalTileLabel(arrival, { detailedLive, now: arrivalTick })}
                                     </strong>
                                     {clockTime && (
                                       <span className={due

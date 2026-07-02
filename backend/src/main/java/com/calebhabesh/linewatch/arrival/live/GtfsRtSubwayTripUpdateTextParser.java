@@ -5,6 +5,7 @@ import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.springframework.stereotype.Component;
@@ -25,7 +26,7 @@ public class GtfsRtSubwayTripUpdateTextParser {
             return new GtfsRtSubwayTripUpdateFeed(null, List.of());
         }
 
-        OffsetDateTime feedCreatedAt = epoch(findLong(HEADER_TIMESTAMP, body));
+        OffsetDateTime feedCreatedAt = feedCreatedAt(body).orElse(null);
         List<GtfsRtSubwayTripUpdate> trips = new ArrayList<>();
         for (String entity : blocks(body, "entity")) {
             GtfsRtSubwayTripUpdate trip = parseEntity(entity);
@@ -34,6 +35,13 @@ public class GtfsRtSubwayTripUpdateTextParser {
             }
         }
         return new GtfsRtSubwayTripUpdateFeed(feedCreatedAt, trips);
+    }
+
+    public Optional<OffsetDateTime> feedCreatedAt(String body) {
+        if (body == null || body.isBlank()) {
+            return Optional.empty();
+        }
+        return Optional.ofNullable(epoch(findLong(HEADER_TIMESTAMP, body)));
     }
 
     private GtfsRtSubwayTripUpdate parseEntity(String entity) {

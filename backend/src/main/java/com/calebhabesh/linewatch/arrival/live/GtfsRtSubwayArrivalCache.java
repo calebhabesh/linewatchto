@@ -6,6 +6,7 @@ import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import org.springframework.stereotype.Component;
@@ -26,6 +27,14 @@ public class GtfsRtSubwayArrivalCache {
 
     public void replace(GtfsRtSubwayArrivalSnapshot snapshot) {
         current.set(snapshot);
+    }
+
+    public GtfsRtSubwayArrivalSnapshot snapshot() {
+        return current.get();
+    }
+
+    public Optional<OffsetDateTime> feedCreatedAt() {
+        return Optional.ofNullable(current.get().feedCreatedAt());
     }
 
     public List<GtfsRtSubwayStationArrival> arrivalsFor(String stationId, List<String> lineIds) {

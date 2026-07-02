@@ -8,6 +8,7 @@ import {
   formatArrivalTileLabel,
   groupStationArrivals,
   isArrivalDue,
+  shouldUseDetailedLiveCountdown,
 } from "../src/app/station-arrivals.ts";
 
 const line2 = {
@@ -162,6 +163,63 @@ describe("station arrival grouping", () => {
     assert.equal(formatArrivalTileLabel({ label: "3 min", minutes: 3 }), "3m");
     assert.equal(formatArrivalTileLabel({ label: "Due", minutes: 0 }), "Due");
     assert.equal(formatArrivalTileLabel({ label: "Unavailable", minutes: null }), "Unavailable");
+  });
+
+  it("uses a ticking range label for the nearest live arrival tile", () => {
+    const liveArrival = {
+      label: "1 min",
+      minutes: 1,
+      predictedAt: "2026-07-02T10:26:28Z",
+      status: "live",
+    };
+
+    assert.equal(
+      formatArrivalTileLabel(liveArrival, {
+        detailedLive: true,
+        now: new Date("2026-07-02T10:25:46Z"),
+      }),
+      "0:42 - 1:42",
+    );
+    assert.equal(
+      formatArrivalTileLabel(liveArrival, {
+        detailedLive: true,
+        now: new Date("2026-07-02T10:26:40Z"),
+      }),
+      "Due",
+    );
+    assert.equal(formatArrivalTileLabel(liveArrival), "1m");
+  });
+
+  it("only uses the detailed live countdown inside the final two minutes", () => {
+    const liveArrival = {
+      label: "3 min",
+      minutes: 3,
+      predictedAt: "2026-07-02T10:28:46Z",
+      status: "live",
+    };
+
+    assert.equal(
+      shouldUseDetailedLiveCountdown(liveArrival, new Date("2026-07-02T10:25:46Z")),
+      false,
+    );
+    assert.equal(
+      formatArrivalTileLabel(liveArrival, {
+        detailedLive: true,
+        now: new Date("2026-07-02T10:25:46Z"),
+      }),
+      "3m",
+    );
+    assert.equal(
+      shouldUseDetailedLiveCountdown(liveArrival, new Date("2026-07-02T10:26:55Z")),
+      true,
+    );
+    assert.equal(
+      formatArrivalTileLabel(liveArrival, {
+        detailedLive: true,
+        now: new Date("2026-07-02T10:26:55Z"),
+      }),
+      "1:51 - 2:51",
+    );
   });
 
   it("uses source-aware scheduled disclaimer text instead of stale demo copy", () => {

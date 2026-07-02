@@ -43,6 +43,11 @@ describe("station detail panel layout", () => {
     assert.match(panelSource, /formatArrivalDisclaimer/);
     assert.match(panelSource, /formatArrivalTileLabel/);
     assert.match(panelSource, /formatArrivalClockTime/);
+    assert.match(panelSource, /arrivalTick/);
+    assert.match(panelSource, /window\.setInterval\(\(\) => setArrivalTick\(Date\.now\(\)\), 3000\)/);
+    assert.match(panelSource, /detailedLive/);
+    assert.match(panelSource, /whitespace-nowrap/);
+    assert.match(panelSource, /md:w-\[min\(calc\(100vw-48px\),460px\)\]/);
   });
 
   it("renders unavailable arrival data as muted section text instead of arrival cards", () => {

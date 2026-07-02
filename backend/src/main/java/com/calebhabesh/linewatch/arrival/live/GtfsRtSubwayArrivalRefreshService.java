@@ -2,6 +2,7 @@ package com.calebhabesh.linewatch.arrival.live;
 
 import java.time.Clock;
 import java.time.OffsetDateTime;
+import java.util.Optional;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -28,6 +29,10 @@ public class GtfsRtSubwayArrivalRefreshService {
 
     public GtfsRtSubwayArrivalSnapshot refresh() {
         String body = client.fetchTripUpdatesText();
+        Optional<OffsetDateTime> feedCreatedAt = parser.feedCreatedAt(body);
+        if (feedCreatedAt.isPresent() && feedCreatedAt.equals(cache.feedCreatedAt())) {
+            return cache.snapshot();
+        }
         GtfsRtSubwayTripUpdateFeed feed = parser.parse(body);
         GtfsRtSubwayArrivalSnapshot snapshot = indexer.index(feed, OffsetDateTime.now(clock));
         cache.replace(snapshot);
