@@ -8,6 +8,7 @@ import type { DashboardData } from "../app/DataContext";
 import { resetLineWatchLocalAppState } from "../app/local-app-reset";
 import { hasReleaseNotes } from "../app/release-notes";
 import { LogsDropdown } from "./LogsDropdown";
+import { PushDeliveryDiagnosticsPanel } from "./PushDeliveryDiagnosticsPanel";
 import type { PwaInstallPlatform } from "../app/pwa-install-state";
 
 
@@ -222,6 +223,10 @@ export function MobileMoreSheet({
               )}
             </div>
           </button>
+          <PushDeliveryDiagnosticsPanel
+            key={accountState.user?.id ?? "signed-out"}
+            accountState={accountState}
+          />
         </div>
 
         <div className="mobile-more-section">

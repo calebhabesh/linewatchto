@@ -504,7 +504,7 @@ class PushNotificationServiceTest {
             Instant.parse("2026-06-05T15:00:09Z"),
             Instant.parse("2026-06-05T15:00:10Z")
         );
-        when(deliveryRepository.findRecentDeliveriesForAccount("user_1", PageRequest.of(0, 20)))
+        when(deliveryRepository.findRecentDeliveriesForAccount("user_1", PageRequest.of(0, 50)))
             .thenReturn(List.of(delivery));
         when(clientEventRepository.findByDeliveryIds(List.of("push_delivery_1")))
             .thenReturn(List.of(received, displayed));

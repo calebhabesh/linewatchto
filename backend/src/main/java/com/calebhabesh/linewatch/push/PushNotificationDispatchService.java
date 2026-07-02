@@ -287,6 +287,9 @@ public class PushNotificationDispatchService {
         if (!same(observation.getLineId(), candidate.lineId())) {
             return false;
         }
+        if (sameLineCurrentSource(observation.getNotificationKey(), candidate.notificationKey())) {
+            return true;
+        }
         if (!same(observation.getEventType(), candidate.eventType())) {
             return false;
         }
@@ -325,6 +328,26 @@ public class PushNotificationDispatchService {
             return false;
         }
         return compatibleSourceTimes(activeEvent.getSourceEventAt(), candidate.sourceEventAt());
+    }
+
+    private boolean sameLineCurrentSource(String firstNotificationKey, String secondNotificationKey) {
+        String[] firstParts = notificationKeyParts(firstNotificationKey);
+        String[] secondParts = notificationKeyParts(secondNotificationKey);
+        if (firstParts.length < 4 || secondParts.length < 4) {
+            return false;
+        }
+        if (!same(firstParts[0], "line-current") || !same(secondParts[0], "line-current")) {
+            return false;
+        }
+        String firstSourceId = normalize(firstParts[3]);
+        String secondSourceId = normalize(secondParts[3]);
+        return same(firstParts[1], secondParts[1])
+            && !firstSourceId.isBlank()
+            && firstSourceId.equals(secondSourceId);
+    }
+
+    private String[] notificationKeyParts(String notificationKey) {
+        return notificationKey == null ? new String[0] : notificationKey.split("\\|", -1);
     }
 
     private boolean sameScope(PushNotificationEventEntity activeEvent, PushNotificationCandidate candidate) {

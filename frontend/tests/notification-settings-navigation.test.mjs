@@ -6,6 +6,7 @@ const shellSource = readFileSync(new URL("../src/components/LineWatchShell.tsx",
 const moreSheetSource = readFileSync(new URL("../src/components/MobileMoreSheet.tsx", import.meta.url), "utf8");
 const savedCommutesSource = readFileSync(new URL("../src/components/SavedCommutesPanel.tsx", import.meta.url), "utf8");
 const notificationPanelSource = readFileSync(new URL("../src/components/NotificationSettingsPanel.tsx", import.meta.url), "utf8");
+const diagnosticsPanelSource = readFileSync(new URL("../src/components/PushDeliveryDiagnosticsPanel.tsx", import.meta.url), "utf8");
 const globalCss = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
 
 describe("notification settings navigation", () => {
@@ -60,12 +61,15 @@ describe("notification settings navigation", () => {
     assert.match(globalCss, /\.saved-commute-notification-summary/);
   });
 
-  it("surfaces recent push delivery diagnostics in notification settings", () => {
-    assert.match(notificationPanelSource, /getPushDeliveryDiagnostics/);
-    assert.match(notificationPanelSource, /Delivery Diagnostics/);
-    assert.match(notificationPanelSource, /Recent Push Attempts/);
-    assert.match(notificationPanelSource, /displayedAt/);
-    assert.match(notificationPanelSource, /clientEvents/);
-    assert.match(notificationPanelSource, /Refresh delivery diagnostics/);
+  it("surfaces recent push delivery diagnostics from More instead of notification settings", () => {
+    assert.match(moreSheetSource, /PushDeliveryDiagnosticsPanel/);
+    assert.match(diagnosticsPanelSource, /Notification Diagnostics/);
+    assert.match(diagnosticsPanelSource, /getPushDeliveryDiagnostics/);
+    assert.match(diagnosticsPanelSource, /Recent Push Attempts/);
+    assert.match(diagnosticsPanelSource, /diagnostics\.map/);
+    assert.doesNotMatch(notificationPanelSource, /getPushDeliveryDiagnostics/);
+    assert.doesNotMatch(notificationPanelSource, /Delivery Diagnostics/);
+    assert.match(globalCss, /\.push-diagnostics-scroll/);
+    assert.match(globalCss, /\.push-diagnostics-details/);
   });
 });

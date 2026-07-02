@@ -209,7 +209,7 @@ public class PushNotificationService {
     public PushResponses.PushDeliveryDiagnosticsResponse deliveryDiagnostics(AccountEntity account) {
         List<PushNotificationDeliveryEntity> deliveries = deliveryRepository.findRecentDeliveriesForAccount(
             account.getId(),
-            PageRequest.of(0, 20)
+            PageRequest.of(0, 50)
         );
         if (deliveries.isEmpty()) {
             return new PushResponses.PushDeliveryDiagnosticsResponse(List.of());

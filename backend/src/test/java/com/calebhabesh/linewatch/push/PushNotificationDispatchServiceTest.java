@@ -1016,6 +1016,61 @@ class PushNotificationDispatchServiceTest {
     }
 
     @Test
+    void doesNotSendLineObservationClearanceWhenSameSourceAlertChangesEventType() {
+        PushNotificationPreferenceEntity preferences = PushNotificationPreferenceEntity.create(account, clock.instant());
+        PushNotificationPreferenceEntity spyPrefs = spy(preferences);
+        when(spyPrefs.isLineRestoredEnabled()).thenReturn(true);
+        PushNotificationCandidate previousCandidate = candidate(
+            null, null, "line-5", "5", "line-current", "suspension", "on-change",
+            "line-current|line-5|suspension|ttc-route-71001",
+            "user_1|line|line-5|suspension|on-change|ttc-route-71001",
+            "Sloane to Kennedy",
+            "Both Ways",
+            null,
+            Instant.parse("2026-07-02T03:17:00Z"),
+            "/?panel=alerts&impactKind=suspension&impactId=ttc-route-71001"
+        );
+        PushLineEventObservationEntity previousObservation = PushLineEventObservationEntity.create(
+            "line_obs_suspension",
+            previousCandidate,
+            Instant.parse("2026-07-02T03:18:00Z")
+        );
+        PushNotificationCandidate currentDelayCandidate = candidate(
+            null, null, "line-5", "5", "line-current", "delay", "on-change",
+            "line-current|line-5|delay|ttc-route-71001",
+            "user_1|line|line-5|delay|on-change|ttc-route-71001",
+            "Sloane to Kennedy",
+            "Both Ways",
+            null,
+            Instant.parse("2026-07-02T03:17:00Z"),
+            "/?panel=delays&impactKind=delay&impactId=ttc-route-71001"
+        );
+        PushLineEventObservationEntity currentObservation = PushLineEventObservationEntity.create(
+            "line_obs_delay",
+            currentDelayCandidate,
+            clock.instant()
+        );
+
+        when(preferenceService.preferenceEntityForAccountId("user_1")).thenReturn(spyPrefs);
+        when(subscriptionRepository.findEnabledAccountIds()).thenReturn(List.of("user_1"));
+        when(preferenceService.subscribedLineIds("user_1")).thenReturn(List.of("line-5"));
+        when(lineSubscriptionPushPlanner.candidatesFor("user_1", List.of("line-5")))
+            .thenReturn(List.of(currentDelayCandidate));
+        when(preferenceService.allows(spyPrefs, currentDelayCandidate)).thenReturn(true);
+        when(lineEventObservationService.observe(currentDelayCandidate, spyPrefs, clock.instant()))
+            .thenReturn(new PushLineEventObservationService.ObservationDecision(currentObservation, true, false));
+        when(lineEventObservationService.activeObservations("user_1")).thenReturn(List.of(previousObservation, currentObservation));
+        when(eventRepository.existsByDedupeKey("user_1|line|line-5|delay|on-change|ttc-route-71001"))
+            .thenReturn(true);
+        when(eventRepository.save(any(PushNotificationEventEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        service.evaluateSavedCommuteNotifications();
+
+        verify(eventRepository, never()).save(argThat(event -> "CLEARED".equals(event.getNotificationState())));
+        verify(lineEventObservationService).markCleared(previousObservation, clock.instant());
+    }
+
+    @Test
     void topicsDifferForActiveAndClearedDisplayTagsOfTheSameLifecycleKey() {
         String lifecycleKey = "line-current|line-1|delay|delay-1";
 
