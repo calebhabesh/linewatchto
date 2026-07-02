@@ -1,5 +1,7 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 "use client";
 
+import { useEffect, useState } from "react";
 import { BarChart3, Bell, Download, FileText, LogIn, LogOut, MessageSquareText, RefreshCcw, Contrast, Pause, Share2, ShieldCheck, Sparkles, UserPlus, UserRound, X, History, Map as MapIcon } from "lucide-react";
 import Image from "next/image";
 import type { AccountState } from "../app/account-data";
@@ -77,6 +79,12 @@ export function MobileMoreSheet({
 }: Props) {
 
   const canResetLocalAppCache = process.env.NODE_ENV !== "production";
+  const [isAndroid, setIsAndroid] = useState(false);
+  useEffect(() => {
+    if (typeof navigator !== "undefined") {
+      setIsAndroid(/Android/i.test(navigator.userAgent));
+    }
+  }, []);
   const isIosPwaInstall = pwaInstallPlatform === "ios";
   const androidInstallHelpOnly = pwaInstallPlatform === "android-chromium" && !canOfferPwaInstall;
   const installRowDescription = isIosPwaInstall
@@ -223,10 +231,6 @@ export function MobileMoreSheet({
               )}
             </div>
           </button>
-          <PushDeliveryDiagnosticsPanel
-            key={accountState.user?.id ?? "signed-out"}
-            accountState={accountState}
-          />
         </div>
 
         <div className="mobile-more-section">
@@ -312,6 +316,26 @@ export function MobileMoreSheet({
               Reset Local App Cache
             </button>
           ) : null}
+        </div>
+
+        <div className="mobile-more-section">
+          <h3>Notifications Help</h3>
+          <PushDeliveryDiagnosticsPanel
+            key={accountState.user?.id ?? "signed-out"}
+            accountState={accountState}
+          />
+          {isAndroid && (
+            <div className="mobile-more-install-help" role="note">
+              <span>Android Devices</span>
+              <strong>Enable &quot;Pop on screen&quot;</strong>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1.5 leading-relaxed">
+                If you want LineWatch notifications to be more visible:
+              </p>
+              <div className="text-[11px] text-slate-700 dark:text-slate-300 font-medium mt-1 leading-relaxed">
+                Open System Settings &gt; Notifications &gt; App Notifications &gt; LineWatch &gt; Other &gt; General &gt; Toggle &quot;Pop on screen&quot;
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </section>

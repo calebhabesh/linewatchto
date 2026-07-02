@@ -127,7 +127,12 @@ export function PushDeliveryDiagnosticsPanel({ accountState }: Props) {
     setDiagnosticsMessage(diagnosticsResult.message ?? devicesResult.message ?? null);
   }, [accountState.authenticated]);
 
-  const handleDisableDevice = useCallback(async (subscriptionId: string) => {
+  const handleDisableDevice = useCallback(async (subscriptionId: string, isDisplaying: boolean) => {
+    if (isDisplaying) {
+      if (!window.confirm("Are you sure?")) {
+        return;
+      }
+    }
     setDeviceActionId(subscriptionId);
     setDeviceActionMessage(null);
     try {
@@ -151,8 +156,17 @@ export function PushDeliveryDiagnosticsPanel({ accountState }: Props) {
 
   const diagnosticDeviceOptions = useMemo(() => {
     const attempts = diagnosticNotifications.flatMap((notification) => notification.attempts);
+    const enabledDeviceKeys = new Set(
+      pushDevices
+        .filter((device) => device.enabled)
+        .map((device) => `${device.deviceLabel || "Unknown device"}|${device.endpointHashPrefix || ""}`)
+    );
+    const enabledAttempts = attempts.filter((attempt) => {
+      const key = diagnosticDeviceKey(attempt);
+      return enabledDeviceKeys.has(key);
+    });
     const labelCounts = new Map<string, number>();
-    for (const attempt of attempts) {
+    for (const attempt of enabledAttempts) {
       const label = attempt.deviceLabel || "Unknown device";
       labelCounts.set(label, (labelCounts.get(label) ?? 0) + 1);
     }
@@ -162,14 +176,14 @@ export function PushDeliveryDiagnosticsPanel({ accountState }: Props) {
         .map(([label]) => label)
     );
     const options = new Map<string, string>();
-    for (const attempt of attempts) {
+    for (const attempt of enabledAttempts) {
       options.set(diagnosticDeviceKey(attempt), diagnosticDeviceLabel(attempt, duplicatedLabels));
     }
     return [
       { key: "all", label: "All devices" },
       ...[...options.entries()].map(([key, label]) => ({ key, label })),
     ];
-  }, [diagnosticNotifications]);
+  }, [diagnosticNotifications, pushDevices]);
 
   const visibleNotifications = useMemo(() => diagnosticNotifications
     .map((notification) => ({
@@ -258,7 +272,10 @@ export function PushDeliveryDiagnosticsPanel({ accountState }: Props) {
                           type="button"
                           className="push-device-disable"
                           disabled={!device.enabled || deviceActionId === device.id}
-                          onClick={() => void handleDisableDevice(device.id)}
+                          onClick={() => {
+                            const isDisplaying = device.deliveryHealth === "displayed" && !device.staleCandidate;
+                            void handleDisableDevice(device.id, isDisplaying);
+                          }}
                         >
                           {deviceActionId === device.id ? "Disabling" : "Disable"}
                         </button>
