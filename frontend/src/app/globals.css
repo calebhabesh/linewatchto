@@ -1468,6 +1468,32 @@ button {
   }
 }
 
+/* Light mode overrides for subway-closing-soon-chip */
+.linewatch-shell:not(.dark) .subway-closing-soon-chip {
+  background: rgba(254, 243, 199, 0.96);
+  border: 1px solid rgba(217, 119, 6, 0.35);
+  box-shadow: 0 14px 46px rgba(120, 53, 4, 0.12);
+  color: #b45309;
+}
+
+.linewatch-shell:not(.dark) .subway-closing-soon-copy strong {
+  color: #b45309;
+}
+
+.linewatch-shell:not(.dark) .subway-closing-soon-copy small {
+  color: #1e293b;
+}
+
+.linewatch-shell:not(.dark) .subway-closing-countdown-badge {
+  background: #d97706;
+  color: #ffffff;
+}
+
+.linewatch-shell:not(.dark) .subway-closing-countdown-badge svg {
+  color: #ffffff !important;
+}
+
+
 
 .map-panel {
   min-width: 0;
@@ -3447,6 +3473,55 @@ button {
   outline: 3px solid rgba(250, 204, 21, 0.2);
   outline-offset: 2px;
 }
+
+/* Light mode overrides for subway-closed-peek-chip */
+.linewatch-shell:not(.dark) .subway-closed-peek-chip {
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid rgba(15, 23, 42, 0.16);
+  box-shadow: 0 18px 52px rgba(15, 23, 42, 0.15);
+  color: #0f172a;
+}
+
+.linewatch-shell:not(.dark) .subway-closed-peek-icon {
+  color: #475569;
+}
+
+.linewatch-shell:not(.dark) .subway-closed-peek-title {
+  color: #0f172a;
+}
+
+.linewatch-shell:not(.dark) .subway-closed-peek-subtitle {
+  color: #475569;
+}
+
+.linewatch-shell:not(.dark) .subway-closed-peek-chip button {
+  background: rgba(15, 23, 42, 0.06);
+  border: 1px solid rgba(15, 23, 42, 0.15);
+  color: #0f172a;
+}
+
+.linewatch-shell:not(.dark) .subway-closed-peek-chip button:hover,
+.linewatch-shell:not(.dark) .subway-closed-peek-chip button:focus-visible {
+  background: rgba(15, 23, 42, 0.1);
+  outline: 3px solid rgba(15, 23, 42, 0.1);
+}
+
+@media (max-width: 767px) {
+  .linewatch-shell:not(.dark) .subway-closed-peek-chip {
+    background: rgba(255, 255, 255, 0.96) !important;
+    border: 1px solid rgba(15, 23, 42, 0.22) !important;
+    box-shadow: 0 14px 46px rgba(15, 23, 42, 0.15) !important;
+  }
+
+  .linewatch-shell:not(.dark) .subway-closed-peek-title {
+    color: #0f172a !important;
+  }
+
+  .linewatch-shell:not(.dark) .subway-closed-peek-subtitle {
+    color: #475569 !important;
+  }
+}
+
 
 .high-contrast .subway-closed-screen {
   background: rgba(0, 0, 0, 0.88);

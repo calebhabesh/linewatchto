@@ -471,7 +471,9 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
                     {arrivalHeading}
                   </h3>
                   <p className="mt-1 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-                    {station.arrivalsSource}
+                    {station.arrivalsSource.toLowerCase() === "ttc scheduled service"
+                      ? `${station.arrivalsSource} - Not Live`
+                      : station.arrivalsSource}
                   </p>
                   <div className="mt-3 rounded-md border border-black/10 bg-white/60 px-3 py-4 text-center dark:border-white/10 dark:bg-black/10">
                     <p className="text-sm font-semibold leading-snug text-slate-500 dark:text-slate-400">
@@ -506,7 +508,9 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
                   {arrivalHeading}
                 </h3>
                 <p className="mt-1 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-                  {station.arrivalsSource}
+                  {station.arrivalsSource.toLowerCase() === "ttc scheduled service"
+                    ? `${station.arrivalsSource} - Not Live`
+                    : station.arrivalsSource}
                 </p>
                 {arrivalsDisrupted && station.arrivalContext && (
                   <div className="mt-2 flex flex-wrap items-center justify-between gap-2 rounded-md border border-slate-300 bg-slate-200/70 p-2 text-xs font-semibold text-slate-700 dark:border-white/10 dark:bg-white/10 dark:text-slate-200">
