@@ -79,5 +79,10 @@ describe("notification settings navigation", () => {
     assert.doesNotMatch(notificationPanelSource, /Delivery Diagnostics/);
     assert.match(globalCss, /\.push-diagnostics-scroll/);
     assert.match(globalCss, /\.push-diagnostics-details/);
+    assert.match(globalCss, /\.push-devices-section/);
+    assert.match(globalCss, /\.push-device-row/);
+    assert.match(globalCss, /\.push-device-main/);
+    assert.match(globalCss, /\.push-device-meta/);
+    assert.match(globalCss, /\.push-device-disable/);
   });
 });

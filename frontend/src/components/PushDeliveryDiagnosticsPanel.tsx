@@ -242,17 +242,17 @@ export function PushDeliveryDiagnosticsPanel({ accountState }: Props) {
                   <div className="push-devices-list">
                     {pushDevices.map((device) => (
                       <div className={`push-device-row${device.staleCandidate ? " stale" : ""}`} key={device.id}>
-                        <div className="push-device-main">
-                          <div>
+                        <div className="push-device-details">
+                          <div className="push-device-main">
                             <strong>{device.deviceLabel}</strong>
-                            <span>{device.endpointHashPrefix}</span>
+                            <code className="push-device-hash">{device.endpointHashPrefix}</code>
+                            <span className="push-device-health">{deviceHealthLabel(device)}</span>
                           </div>
-                          <span className="push-device-health">{deviceHealthLabel(device)}</span>
-                        </div>
-                        <div className="push-device-meta">
-                          <span>Last seen {formatDiagnosticTimestamp(device.lastSeenAt)}</span>
-                          <span>Last display {formatDiagnosticTimestamp(device.lastDisplayedAt)}</span>
-                          <span>{device.acceptedWithoutDisplayCount} accepted without display</span>
+                          <div className="push-device-meta">
+                            <span>Last seen {formatDiagnosticTimestamp(device.lastSeenAt)}</span>
+                            <span>Last display {formatDiagnosticTimestamp(device.lastDisplayedAt)}</span>
+                            <span>{device.acceptedWithoutDisplayCount} accepted without display</span>
+                          </div>
                         </div>
                         <button
                           type="button"
