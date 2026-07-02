@@ -195,4 +195,30 @@ describe("station arrival grouping", () => {
       staleDisclaimer,
     );
   });
+
+  it("uses the source-labeled live disclaimer when live arrivals have scheduled fallbacks", () => {
+    assert.equal(
+      formatArrivalDisclaimer([
+        {
+          lineId: "line-1",
+          direction: "Northbound",
+          minutes: 3,
+          predictedAt: "2026-07-02T10:28:46Z",
+          label: "3 min",
+          source: "TTC GTFS-RT subway trip updates",
+          status: "live",
+        },
+        {
+          lineId: "line-6",
+          direction: "Eastbound to Finch West",
+          minutes: 8,
+          predictedAt: "2026-07-02T10:33:46Z",
+          label: "8 min",
+          source: "TTC scheduled service",
+          status: "scheduled",
+        },
+      ], "Scheduled arrivals use TTC timetable data and are not live train predictions."),
+      "Arrival predictions are source-labeled and may be affected by active TTC service alerts.",
+    );
+  });
 });

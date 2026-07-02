@@ -3,6 +3,7 @@ package com.calebhabesh.linewatch.arrival;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
 
+import com.calebhabesh.linewatch.arrival.live.GtfsRtSubwayArrivalProvider;
 import com.calebhabesh.linewatch.arrival.schedule.ScheduledArrivalProvider;
 import com.calebhabesh.linewatch.station.StationResponses;
 import java.time.Clock;
@@ -15,6 +16,7 @@ import org.junit.jupiter.api.Test;
 
 class ArrivalServiceTest {
     private ScheduledArrivalProvider scheduledArrivalProvider;
+    private GtfsRtSubwayArrivalProvider liveArrivalProvider;
     private ArrivalProperties properties;
     private Clock clock;
     private ArrivalService service;
@@ -25,9 +27,10 @@ class ArrivalServiceTest {
     @BeforeEach
     void setUp() {
         scheduledArrivalProvider = mock(ScheduledArrivalProvider.class);
+        liveArrivalProvider = mock(GtfsRtSubwayArrivalProvider.class);
         properties = new ArrivalProperties();
         clock = Clock.fixed(Instant.parse("2026-06-03T12:00:00Z"), ZoneId.of("UTC"));
-        service = new ArrivalService(scheduledArrivalProvider, properties, clock);
+        service = new ArrivalService(scheduledArrivalProvider, liveArrivalProvider, properties, clock);
     }
 
     @Test
@@ -75,13 +78,17 @@ class ArrivalServiceTest {
     }
 
     @Test
-    void arrivalsForReturnsUnavailableInLiveMode() {
+    void arrivalsForUsesLiveProviderInLiveMode() {
         properties.setProvider(ArrivalProperties.ProviderMode.LIVE);
+        when(liveArrivalProvider.arrivalsFor("spadina", List.of(line1Response))).thenReturn(List.of(
+            ArrivalPrediction.live("line-1", "Northbound", 2, OffsetDateTime.now(clock).plusMinutes(2), "TTC GTFS-RT subway trip updates")
+        ));
 
         List<ArrivalPrediction> predictions = service.arrivalsFor("spadina", List.of(line1Response));
 
-        assertThat(predictions).hasSize(2);
-        assertThat(predictions.get(0).status()).isEqualTo("unavailable");
-        assertThat(predictions.get(0).source()).isEqualTo("TTC scheduled service unavailable");
+        assertThat(predictions).hasSize(1);
+        assertThat(predictions.get(0).status()).isEqualTo("live");
+        assertThat(predictions.get(0).source()).isEqualTo("TTC GTFS-RT subway trip updates");
+        verifyNoInteractions(scheduledArrivalProvider);
     }
 }

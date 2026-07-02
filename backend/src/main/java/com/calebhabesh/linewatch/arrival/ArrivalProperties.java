@@ -24,6 +24,10 @@ public class ArrivalProperties {
     private URI scheduledSourceUrl = URI.create("https://ckan0.cf.opendata.inter.prod-toronto.ca/en/dataset/merged-gtfs-ttc-routes-and-schedules");
     private Duration scheduleHorizon = Duration.ofMinutes(90);
     private int maxArrivalsPerLine = 4;
+    private URI liveGtfsRtUrl = URI.create("https://gtfsrt.ttc.ca/trips/subway?format=text");
+    private Duration liveGtfsRtInitialDelay = Duration.ofSeconds(10);
+    private Duration liveGtfsRtFixedDelay = Duration.ofSeconds(30);
+    private String liveSourceName = "TTC GTFS-RT subway trip updates";
     private boolean gtfsImportEnabled = false;
     private String gtfsZipPath = "";
     private boolean gtfsRefreshEnabled = false;
@@ -112,6 +116,38 @@ public class ArrivalProperties {
 
     public void setMaxArrivalsPerLine(int maxArrivalsPerLine) {
         this.maxArrivalsPerLine = maxArrivalsPerLine;
+    }
+
+    public URI getLiveGtfsRtUrl() {
+        return liveGtfsRtUrl;
+    }
+
+    public void setLiveGtfsRtUrl(URI liveGtfsRtUrl) {
+        this.liveGtfsRtUrl = liveGtfsRtUrl;
+    }
+
+    public Duration getLiveGtfsRtInitialDelay() {
+        return liveGtfsRtInitialDelay;
+    }
+
+    public void setLiveGtfsRtInitialDelay(Duration liveGtfsRtInitialDelay) {
+        this.liveGtfsRtInitialDelay = liveGtfsRtInitialDelay;
+    }
+
+    public Duration getLiveGtfsRtFixedDelay() {
+        return liveGtfsRtFixedDelay;
+    }
+
+    public void setLiveGtfsRtFixedDelay(Duration liveGtfsRtFixedDelay) {
+        this.liveGtfsRtFixedDelay = liveGtfsRtFixedDelay;
+    }
+
+    public String getLiveSourceName() {
+        return liveSourceName;
+    }
+
+    public void setLiveSourceName(String liveSourceName) {
+        this.liveSourceName = liveSourceName;
     }
 
     public boolean isGtfsImportEnabled() {

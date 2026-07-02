@@ -1,6 +1,6 @@
 # Agent Guide for LineWatchTO
 
-Last updated: 2026-06-20
+Last updated: 2026-07-02
 
 This repository contains LineWatchTO, an unofficial TTC reliability dashboard. The app is a portfolio-grade full-stack project intended to show Java/Spring backend engineering, PostgreSQL/PostGIS data modeling, Redis caching, public transit ingestion, and a polished Next.js interface for Toronto subway and LRT reliability.
 
@@ -29,7 +29,7 @@ The project is early but no longer an empty scaffold.
 - Visible `/api/alerts`, `/api/status`, `/api/map`, and dynamic `/api/stations/{id}` rows can read normalized TTC alert records while the latest successful ingestion run is fresh; stale successful runs are suppressed from alert cards, line status, map overlays, and station details after the configured dashboard freshness window.
 - Delay cards are distinct from explicit Reduced Speed Zone cards. Started timing comes from `activePeriod.start` where available, and Updated timing comes from TTC `lastUpdated` where available.
 - Map segment overlays and single-station alert rings are clickable/tappable and open the corresponding submenu card.
-- Every mapped Line 1, 2, 4, 5, and 6 stop has station-line tags and reviewed line-specific wheelchair/elevator metadata. Station detail shows authored accessibility icons plus fresh directly linked TTC station alerts and elevator/escalator outages. Station arrivals use a source-labeled provider architecture. Station arrivals use source-labeled TTC scheduled service when a merged GTFS schedule import is active. They are timetable-based estimates, not live subway/LRT predictions. If no schedule import is active, the station detail API returns an unavailable scheduled-source state and the frontend fallback remains clearly labeled as demo data. The backend can automatically refresh the active merged TTC GTFS schedule import from the public CKAN package when `LINEWATCH_ARRIVALS_GTFS_REFRESH_ENABLED=true`, and exposes `/api/health/schedule`. Automatic GTFS schedule refresh uses a two-pass streaming import to run inside a bounded 1 GB Java heap, streaming the 4.2M-row stop_times.txt twice, inserting rows in transactional batches of 1,000, and recording outcomes to `ingestion_runs`. Failed refresh attempts are recorded and do not deactivate the previously active schedule. Nightly closure active-window gating is fully implemented.
+- Every mapped Line 1, 2, 4, 5, and 6 stop has station-line tags and reviewed line-specific wheelchair/elevator metadata. Station detail shows authored accessibility icons plus fresh directly linked TTC station alerts and elevator/escalator outages. Station arrivals use a source-labeled provider architecture. The default provider uses source-labeled TTC scheduled service when a merged GTFS schedule import is active. The opt-in `live` provider polls TTC GTFS-RT Subway Trip Updates, resolves `stop_id` values through the active static GTFS import, returns fresh live rows where mapped, and falls back to scheduled rows when live data is stale, missing a direction, or missing a line. If no schedule import is active, the station detail API returns an unavailable scheduled-source state and the frontend fallback remains clearly labeled as demo data. The backend can automatically refresh the active merged TTC GTFS schedule import from the public CKAN package when `LINEWATCH_ARRIVALS_GTFS_REFRESH_ENABLED=true`, and exposes `/api/health/schedule`. Automatic GTFS schedule refresh uses a two-pass streaming import to run inside a bounded 1 GB Java heap, streaming the 4.2M-row stop_times.txt twice, inserting rows in transactional batches of 1,000, and recording outcomes to `ingestion_runs`. Failed refresh attempts are recorded and do not deactivate the previously active schedule. Nightly closure active-window gating is fully implemented.
 - Global accessibility outages dashboard with elevator and escalator drill-downs grouped by transit line and station, plus a searchable surface service notices dashboard (category filtered, route/stop search) backed by Live Alerts and filtered bus/streetcar GTFS-RT service-alert records are implemented.
 - Account-backed saved commutes compute a weighted default rapid-transit path over the seeded Line 1, 2, 4, 5, and 6 topology, using active GTFS scheduled median segment weights when available, seeded per-segment fallback travel times otherwise, and constant topology weights only as a last resort, then match dashboard-visible service impacts against every path segment and station-node impact with direction-aware segment matching. Saved commutes can monitor an optional return trip as a separate leg inside the same card.
 - Account-backed Web Push subscription, preference, dedupe, delivery, service-worker display plumbing, saved-commute impact notifications, opt-in line-wide subscriptions for Lines 1, 2, 4, 5, and 6, event-type filters, planned-closure reminder buckets, auth input length caps, and auth endpoint rate limiting are implemented. Device push enablement is per browser/device. Account notification preferences remain account-level across PWA reinstall or browser changes; the Notifications panel distinguishes account intent from current-device setup and can restore a device subscription when browser permission is already granted. Delivery is inactive unless browser permission is granted, VAPID keys are configured, `linewatch.push.enabled` is true, and fresh dashboard-visible impacts exist. Supported rapid-transit push titles identify the line, official line name, and event type; active bodies show the source start time when available. Service-restored Web Push notifications are sent as separate quiet lifecycle entries rather than replacing the initial alert, and routine still-active feed updates do not create new OS pushes. Displayed lifecycle push entries are retained from LineWatch cleanup for the configured cleared-notification retention window, but Android/iOS browser policy can still age or remove PWA notifications.
@@ -38,9 +38,9 @@ The project is early but no longer an empty scaffold.
 - Conditionally loaded Cloudflare Web Analytics beacon script on the frontend layout when a client token is supplied is implemented.
 - Populated geographic geometry, production segment matching, standalone commute-impact API, route review/edit, commute email notifications, and reliability aggregation are planned but not yet implemented.
 
-Do not claim that the visible dashboard is live unless there is a fresh successful ingestion run. Do not claim imported GTFS geometry, production geospatial matching, Redis-backed status, or live station arrivals until those features exist in code and have passing verification. Do not claim visitor analytics or engineering telemetry shows data unless Grafana Cloud and Cloudflare Web Analytics are configured with active credentials/tokens.
+Do not claim that the visible dashboard is live unless there is a fresh successful ingestion run. Do not claim imported GTFS geometry, production geospatial matching, or Redis-backed status until those features exist in code and have passing verification. Do not claim live station arrivals unless `LINEWATCH_ARRIVALS_PROVIDER=live`, a fresh TTC GTFS-RT Subway Trip Updates snapshot has been mapped through an active static GTFS import, and the returned rows are source-labeled live. Do not claim visitor analytics or engineering telemetry shows data unless Grafana Cloud and Cloudflare Web Analytics are configured with active credentials/tokens.
 Do not claim saved commutes send push notifications unless Web Push is configured/enabled and the notification is based on fresh dashboard-visible saved-commute impacts. Do not claim saved commutes send email notifications, recommend alternate routes, account for walking transfers, provide route review/edit, provide accessibility-personalized matching, or use live train movement for route timing.
-Do not claim global accessibility outages or surface notices send push notifications or are included in saved commute matching, segment overlays, or status ratings. Do not claim surface notices are active in fallback fixture mode. Do not claim rapid-transit GTFS-RT records drive the map, status, saved-commute, or push paths; the enabled GTFS-RT supplement is filtered to bus/streetcar surface notices.
+Do not claim global accessibility outages or surface notices send push notifications or are included in saved commute matching, segment overlays, or status ratings. Do not claim surface notices are active in fallback fixture mode. Do not claim GTFS-RT service-alert records drive the map, status, saved-commute, or push paths; the enabled service-alert supplement is filtered to bus/streetcar surface notices. GTFS-RT Subway Trip Updates are used only by the opt-in live station-arrival provider.
 
 ## Product Target
 
@@ -226,7 +226,7 @@ The backend now owns:
 - Complete station-line tagging with reviewed line-specific wheelchair/elevator metadata and authored station-detail icons.
 - Fresh directly linked TTC station alerts and elevator/escalator outages in `/api/stations/{id}`, suppressed when ingestion is stale.
 - Source-ID upserts, alert snapshots, ingestion-run tracking, and `/api/health/ingestion`.
-- Source-labeled TTC scheduled service imports for rapid-transit arrivals, automatic GTFS schedule refresh when enabled, and `/api/health/schedule`.
+- Source-labeled TTC scheduled service imports for rapid-transit arrivals, automatic GTFS schedule refresh when enabled, `/api/health/schedule`, and an opt-in TTC GTFS-RT Subway Trip Updates live-arrival provider with scheduled fallback.
 - Bounded-memory automatic GTFS schedule refresh utilizing a two-pass streaming parser and transactional 1,000-row database batching to operate within a 1 GB heap.
 - Schedule refresh run lifecycle persistence in `ingestion_runs` with `run_type = 'gtfs-schedule'`.
 - Exposing the latest schedule refresh run status, timestamps, and error messages via `/api/health/schedule` independently of the active schedule's coverage.
@@ -251,7 +251,8 @@ The backend should eventually own:
 - Alert-to-line/station/segment impact matching.
 - Reliability aggregation.
 - Commute impact matching.
-- User-facing live status reads and source-labeled live station arrivals.
+- User-facing live status reads.
+- On-map live train position/blip overlays derived from GTFS-RT trip updates.
 
 Planned API contract:
 
@@ -298,8 +299,8 @@ When changing agent instructions, update both `AGENTS.md` and `GEMINI.md` togeth
 
 ## Suggested Next Implementation Order
 
-1. Connect a public live-arrival source to the existing `PublicArrivalClient` when one becomes available for TTC subway lines.
-2. Import static GTFS shapes and implement production alert-to-segment matching.
+1. Import static GTFS shapes and implement production alert-to-segment matching.
+2. Add optional on-map train position/blip overlays from GTFS-RT trip updates, with static/mobile-safe rendering.
 3. Implement commute impact matching and reliability aggregation.
 
 ## Agent Handoff Notes
@@ -317,4 +318,4 @@ If you are antigravity-cli, Gemini, Codex, or another coding agent:
 - `scripts/dev-alert-scenario-frontend.sh <scenario-name>` starts the matching scenario frontend with a scenario-specific browser tab title.
 - Scenario records may be synthetic when captured public TTC samples are unavailable; do not describe scenario data as live TTC service.
 - Do not overclaim features that are only represented by fixtures.
-- Station arrivals are scheduled rapid-transit estimates when a merged TTC GTFS schedule import is active. They are not live TTC subway/LRT predictions. Surface connections are outside this slice. Do not claim live station arrivals until an official rapid-transit realtime source exists and is integrated with passing verification.
+- Station arrivals are scheduled rapid-transit estimates by default. With `LINEWATCH_ARRIVALS_PROVIDER=live`, fresh mapped TTC GTFS-RT Subway Trip Updates can produce source-labeled live station arrival rows, with scheduled fallback for missing/stale rows. Surface connections are outside this slice. Do not claim on-map live train positions or live train movement-based route timing.

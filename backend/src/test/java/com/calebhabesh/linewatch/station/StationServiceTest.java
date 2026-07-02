@@ -421,4 +421,46 @@ class StationServiceTest {
         assertThat(response.disclaimer()).doesNotContain("seeded backend data");
         assertThat(response.disclaimer()).doesNotContain("demo placeholders");
     }
+
+    @Test
+    void stationDetailReportsMixedLiveAndScheduledArrivalSources() {
+        OffsetDateTime now = OffsetDateTime.parse("2026-07-02T10:25:46Z");
+        StationEntity finchWest = new StationEntity("finch-west", "Finch West", 2587, 1560, true, 20, null);
+        TransitLineEntity line1 = new TransitLineEntity("line-1", "1", "Yonge-University", "#F8C300", 1);
+        TransitLineEntity line6 = new TransitLineEntity("line-6", "6", "Finch West", "#D9261C", 6);
+        StationLineEntity stationLine1 = new StationLineEntity(
+            1L, "finch-west", "line-1", "Northbound / Southbound", 1, true, true
+        );
+        StationLineEntity stationLine6 = new StationLineEntity(
+            2L, "finch-west", "line-6", "Eastbound / Westbound", 2, true, true
+        );
+
+        when(stationRepository.findById("finch-west")).thenReturn(Optional.of(finchWest));
+        when(stationLineRepository.findByStationIdOrderBySortOrderAsc("finch-west"))
+            .thenReturn(List.of(stationLine1, stationLine6));
+        when(transitLineRepository.findAllById(List.of("line-1", "line-6"))).thenReturn(List.of(line1, line6));
+        when(accessStatusRepository.findById("finch-west")).thenReturn(Optional.empty());
+        when(impactRepository.findByStationIdOrderBySortOrderAsc("finch-west")).thenReturn(List.of());
+        when(arrivalService.arrivalsFor(any(), any())).thenReturn(List.of(
+            ArrivalPrediction.live(
+                "line-1",
+                "Northbound",
+                3,
+                now.plusMinutes(3),
+                "TTC GTFS-RT subway trip updates"
+            ),
+            ArrivalPrediction.scheduled(
+                "line-6",
+                "Eastbound to Finch West",
+                8,
+                now.plusMinutes(8),
+                "TTC scheduled service"
+            )
+        ));
+
+        StationResponses.StationDetailResponse response = stationService.stationDetail("finch-west");
+
+        assertThat(response.arrivalsSource()).isEqualTo("TTC GTFS-RT subway trip updates / TTC scheduled service");
+        assertThat(response.disclaimer()).isEqualTo("Arrival predictions are source-labeled and may be affected by active TTC service alerts.");
+    }
 }

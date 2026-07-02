@@ -146,11 +146,11 @@ export function formatArrivalDirection(
 }
 
 export function formatArrivalDisclaimer(arrivals: StationArrival[], disclaimer: string | null | undefined): string {
-  if (arrivals.some((arrival) => arrival.status === "scheduled")) {
-    return SCHEDULED_ARRIVALS_DISCLAIMER;
-  }
   if (arrivals.some((arrival) => arrival.status === "live")) {
     return LIVE_ARRIVALS_DISCLAIMER;
+  }
+  if (arrivals.some((arrival) => arrival.status === "scheduled")) {
+    return SCHEDULED_ARRIVALS_DISCLAIMER;
   }
   if (arrivals.some((arrival) => arrival.status === "unavailable")) {
     return UNAVAILABLE_ARRIVALS_DISCLAIMER;

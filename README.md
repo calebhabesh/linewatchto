@@ -46,7 +46,7 @@ Implemented now:
 - Reviewed line-specific wheelchair and elevator metadata for every mapped Line 1, 2, 4, 5, and 6 stop, including distinct Spadina Line 1 and Line 2 values.
 - Authored wheelchair and elevator icons in station detail panels.
 - Fresh directly linked TTC station alerts and elevator/escalator outage rows when ingestion is current.
-- Source-labeled station arrivals using TTC scheduled service when a merged GTFS schedule import is active. They are timetable-based estimates, not live subway/LRT predictions. If no schedule import is active, the station detail API returns an unavailable scheduled-source state and the frontend fallback remains clearly labeled as demo data.
+- Source-labeled station arrivals. The default provider uses TTC scheduled service when a merged GTFS schedule import is active. The opt-in `live` provider polls TTC GTFS-RT Subway Trip Updates, maps `stop_id` values through the active static GTFS import, and falls back to scheduled rows when the live feed is stale, missing a direction, or missing a line. If no schedule import is active, the station detail API returns an unavailable scheduled-source state and the frontend fallback remains clearly labeled as demo data.
 - PostGIS-enabled Flyway schema for stations, transit lines, line segments, alerts, alert-segment links, snapshots, and ingestion runs.
 - Dashboard API boundaries for `/api/map`, `/api/status`, and `/api/alerts`, with fixture fallback when backend data is unavailable.
 - Next.js Server Component dashboard loading with complete local-fixture fallback.
@@ -73,10 +73,10 @@ Implemented now:
 Not implemented yet:
 
 - TTC alert polling remains opt-in by default; use the live backend dev script for fresh alert cards and map overlays.
-- GTFS import and static shapes remain unimplemented.
+- Static GTFS shape import remains unimplemented.
 - Populated geographic PostGIS geometry and production geospatial matching remain unimplemented.
 - TTC Reduced Speed Zones webpage ingestion remains unimplemented.
-- Station arrivals use source-labeled TTC scheduled service when a merged GTFS schedule import is active. If no schedule import is active, the station detail API returns an unavailable scheduled-source state and the frontend fallback remains clearly labeled as demo data.
+- Live on-map train position blips are not implemented. The GTFS-RT subway integration currently feeds station arrivals only.
 - The arrival provider architecture supports live, scheduled, unavailable, and demo status states.
 - Standalone commute-impact endpoint, route review/edit, commute email notifications, alternate-route suggestions, and accessibility-personalized commute matching.
 - Line-wide Web Push subscriptions are implemented for Lines 1, 2, 4, 5, and 6, but they are opt-in and filtered by selected line, event type, and reminder timing. Reduced Speed Zone line-wide alerts default on for new notification preferences. Existing active Reduced Speed Zones are recorded silently when a line stream becomes eligible, new Reduced Speed Zones send one active notification, and observed Reduced Speed Zones can send a clearance when fresh dashboard data shows they are gone.
@@ -276,6 +276,16 @@ LINEWATCH_ARRIVALS_GTFS_REFRESH_MIN_SERVICE_DAYS_REMAINING=14
 ```
 
 The backend includes an in-process GTFS refresh job. When enabled, it downloads and imports the public merged TTC schedule only when no active import exists, the import is expired, or it is within the configured expiry threshold. These arrivals remain scheduled estimates, not live train predictions.
+
+To enable live station arrivals, keep the scheduled GTFS refresh/import active and set:
+
+```bash
+LINEWATCH_ARRIVALS_PROVIDER=live
+LINEWATCH_ARRIVALS_LIVE_GTFS_RT_URL=https://gtfsrt.ttc.ca/trips/subway?format=text
+LINEWATCH_ARRIVALS_LIVE_GTFS_RT_FIXED_DELAY=PT30S
+```
+
+Live rows are shown only when the GTFS-RT Subway Trip Updates feed is fresh and the active static GTFS import can resolve the feed `stop_id` values to LineWatch stations. Missing directions or missing lines fall back to source-labeled scheduled service.
 
 Account auth endpoints have a small in-memory rate limiter for login, register, demo login, password-reset request, and password-reset confirmation. Keep it enabled in production, but also use your edge/provider rate-limit rules because the in-app limiter is per backend instance.
 
@@ -571,6 +581,20 @@ The entire replacement writes inside one atomic transaction. The old active sche
 
 The `/api/health/schedule` endpoint reports both active schedule availability (active/expired status) and the outcome of the latest refresh attempt (status, timestamps, and error message).
 
+### Optional Live Arrival Provider
+
+Set `LINEWATCH_ARRIVALS_PROVIDER=live` to enable background polling of TTC's public GTFS-RT Subway Trip Updates feed:
+
+```bash
+LINEWATCH_ARRIVALS_PROVIDER=live
+LINEWATCH_ARRIVALS_LIVE_GTFS_RT_URL=https://gtfsrt.ttc.ca/trips/subway?format=text
+LINEWATCH_ARRIVALS_LIVE_GTFS_RT_INITIAL_DELAY=PT10S
+LINEWATCH_ARRIVALS_LIVE_GTFS_RT_FIXED_DELAY=PT30S
+LINEWATCH_ARRIVALS_LIVE_SOURCE_NAME=TTC GTFS-RT subway trip updates
+```
+
+The live provider still depends on the active static GTFS schedule import for station/platform `stop_id` mapping. It uses fresh GTFS-RT arrival times for mapped station directions and falls back to scheduled arrivals when the feed is stale, a station/direction is absent, or a supported line has no live TripUpdate rows.
+
 > [!NOTE]
 > `JAVA_TOOL_OPTIONS=-Xmx4g` is configured as production headroom, but the refresh logic is designed to complete correctness guarantees through bounded memory allocations rather than heap expansion. If an OutOfMemoryError is observed prior to running this bounded version, refresh should remain disabled until the bounded-memory release is fully deployed.
 
@@ -725,6 +749,7 @@ LineWatchTO should use public and source-linked data. It should also be honest a
 
 - The implemented poller reads the public TTC Live Alerts endpoint at `https://alerts.ttc.ca/api/alerts/live-alerts`.
 - The visible dashboard treats successful poll results as usable only inside the configured freshness window.
+- The optional live-arrival provider reads TTC GTFS-RT Subway Trip Updates from `https://gtfsrt.ttc.ca/trips/subway?format=text`; it does not create on-map train positions yet and falls back to scheduled service when fresh mapped live rows are unavailable.
 - TTC alerts can be vague.
 - GTFS-RT service alerts can be less structured than TTC Live Alerts and may lack usable subway/LRT affected-segment detail. LineWatchTO uses only the bus and streetcar GTFS-RT service-alert feeds for surface notices by default.
 - Alert history is based on LineWatch snapshots and is richer after the alert-history release; older rows may lack full line, cause, direction, or location context.
@@ -784,8 +809,8 @@ Suggested resume bullet once backend and live data are implemented:
 
 ## Roadmap
 
-1. Connect a public live-arrival source to the existing arrival provider when one becomes available for TTC subway lines.
-2. Import static GTFS shapes and implement production alert-to-segment matching.
+1. Import static GTFS shapes and implement production alert-to-segment matching.
+2. Add optional on-map train position blips from GTFS-RT trip updates, with mobile-safe static rendering.
 3. Implement real historical reliability aggregation.
 4. Publish measured API/build/test metrics.
 

@@ -22,6 +22,17 @@ public record ArrivalPrediction(
         return new ArrivalPrediction(lineId, direction, minutes, predictedAt, source, "scheduled", label);
     }
 
+    public static ArrivalPrediction live(
+        String lineId,
+        String direction,
+        Integer minutes,
+        OffsetDateTime predictedAt,
+        String source
+    ) {
+        String label = minutes == null ? "Unavailable" : minutes <= 0 ? "Due" : minutes + " min";
+        return new ArrivalPrediction(lineId, direction, minutes, predictedAt, source, "live", label);
+    }
+
     public static ArrivalPrediction unavailable(String lineId, String direction) {
         return new ArrivalPrediction(lineId, direction, null, null, "TTC scheduled service unavailable", "unavailable", "Unavailable");
     }

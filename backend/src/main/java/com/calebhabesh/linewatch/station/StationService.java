@@ -156,7 +156,7 @@ public class StationService {
             ))
             .toList();
 
-        String arrivalsSource = predictions.isEmpty() ? "Arrival source unavailable" : predictions.get(0).source();
+        String arrivalsSource = arrivalSourceFor(predictions);
 
         return new StationResponses.StationDetailResponse(
             station.getId(),
@@ -176,16 +176,28 @@ public class StationService {
     }
 
     private String disclaimerFor(List<ArrivalPrediction> predictions) {
-        if (predictions.stream().anyMatch(prediction -> prediction.status().equals("scheduled"))) {
-            return SCHEDULED_ARRIVALS_DISCLAIMER;
-        }
         if (predictions.stream().anyMatch(prediction -> prediction.status().equals("live"))) {
             return LIVE_ARRIVALS_DISCLAIMER;
+        }
+        if (predictions.stream().anyMatch(prediction -> prediction.status().equals("scheduled"))) {
+            return SCHEDULED_ARRIVALS_DISCLAIMER;
         }
         if (predictions.stream().anyMatch(prediction -> prediction.status().equals("unavailable"))) {
             return UNAVAILABLE_ARRIVALS_DISCLAIMER;
         }
         return DEMO_ARRIVALS_DISCLAIMER;
+    }
+
+    private String arrivalSourceFor(List<ArrivalPrediction> predictions) {
+        if (predictions.isEmpty()) {
+            return "Arrival source unavailable";
+        }
+        String joined = predictions.stream()
+            .map(ArrivalPrediction::source)
+            .filter(source -> source != null && !source.isBlank())
+            .distinct()
+            .collect(java.util.stream.Collectors.joining(" / "));
+        return joined.isBlank() ? "Arrival source unavailable" : joined;
     }
 
     private StationResponses.StationArrivalContextResponse toArrivalContext(

@@ -1,6 +1,7 @@
 package com.calebhabesh.linewatch.arrival;
 
 import com.calebhabesh.linewatch.arrival.schedule.ScheduledArrivalProvider;
+import com.calebhabesh.linewatch.arrival.live.GtfsRtSubwayArrivalProvider;
 import com.calebhabesh.linewatch.station.StationResponses;
 import java.time.Clock;
 import java.time.OffsetDateTime;
@@ -11,15 +12,18 @@ import org.springframework.stereotype.Service;
 @Service
 public class ArrivalService implements ArrivalProvider {
     private final ScheduledArrivalProvider scheduledArrivalProvider;
+    private final GtfsRtSubwayArrivalProvider liveArrivalProvider;
     private final ArrivalProperties properties;
     private final Clock clock;
 
     public ArrivalService(
         ScheduledArrivalProvider scheduledArrivalProvider,
+        GtfsRtSubwayArrivalProvider liveArrivalProvider,
         ArrivalProperties properties,
         Clock clock
     ) {
         this.scheduledArrivalProvider = scheduledArrivalProvider;
+        this.liveArrivalProvider = liveArrivalProvider;
         this.properties = properties;
         this.clock = clock;
     }
@@ -28,8 +32,9 @@ public class ArrivalService implements ArrivalProvider {
     public List<ArrivalPrediction> arrivalsFor(String stationId, List<StationResponses.StationLineResponse> lines) {
         return switch (properties.getProvider()) {
             case SCHEDULED -> scheduledArrivalProvider.arrivalsFor(stationId, lines);
+            case LIVE -> liveArrivalProvider.arrivalsFor(stationId, lines);
             case DEMO -> getDemoPredictions(lines);
-            case UNAVAILABLE, LIVE -> getUnavailablePredictions(lines);
+            case UNAVAILABLE -> getUnavailablePredictions(lines);
         };
     }
 
