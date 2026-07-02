@@ -160,7 +160,27 @@ public final class PushResponses {
         List<PushClientEventResponse> clientEvents
     ) {}
 
-    public record PushDeliveryDiagnosticsResponse(
-        List<PushDeliveryDiagnosticResponse> deliveries
+    public record PushNotificationDiagnosticGroupResponse(
+        String id,
+        String title,
+        String tag,
+        String notificationKey,
+        String sourceIncidentKey,
+        String notificationState,
+        String category,
+        String eventType,
+        String lineId,
+        String lineNumber,
+        String eventCreatedAt,
+        List<PushDeliveryDiagnosticResponse> attempts
     ) {}
+
+    public record PushDeliveryDiagnosticsResponse(
+        List<PushNotificationDiagnosticGroupResponse> notifications,
+        List<PushDeliveryDiagnosticResponse> deliveries
+    ) {
+        public PushDeliveryDiagnosticsResponse(List<PushDeliveryDiagnosticResponse> deliveries) {
+            this(List.of(), deliveries);
+        }
+    }
 }

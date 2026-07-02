@@ -355,8 +355,24 @@ export type PushDeliveryDiagnostic = {
   clientEvents: PushClientEvent[];
 };
 
+export type PushNotificationDiagnosticGroup = {
+  id: string;
+  title: string;
+  tag: string;
+  notificationKey: string;
+  sourceIncidentKey: string | null;
+  notificationState: string;
+  category: string;
+  eventType: string | null;
+  lineId: string | null;
+  lineNumber: string | null;
+  eventCreatedAt: string | null;
+  attempts: PushDeliveryDiagnostic[];
+};
+
 export type PushDeliveryDiagnosticsResult = {
   source: "backend" | "unavailable";
+  notifications: PushNotificationDiagnosticGroup[];
   deliveries: PushDeliveryDiagnostic[];
   message?: string;
 };
@@ -594,11 +610,32 @@ export async function getPushDeliveryDiagnostics(options: AdapterOptions = {}): 
     if (!response.ok) {
       throw new Error(`Push diagnostics request failed with ${response.status}`);
     }
-    const body = await readJson<{ deliveries: PushDeliveryDiagnostic[] }>(response);
-    return { source: "backend", deliveries: body.deliveries };
+    const body = await readJson<{
+      notifications?: PushNotificationDiagnosticGroup[];
+      deliveries?: PushDeliveryDiagnostic[];
+    }>(response);
+    const deliveries = Array.isArray(body.deliveries) ? body.deliveries : [];
+    const notifications = Array.isArray(body.notifications)
+      ? body.notifications
+      : deliveries.map((delivery) => ({
+          id: delivery.id,
+          title: delivery.title,
+          tag: delivery.tag,
+          notificationKey: delivery.tag.replace(/\|(active|cleared)$/i, ""),
+          sourceIncidentKey: null,
+          notificationState: delivery.notificationState,
+          category: delivery.category,
+          eventType: delivery.eventType,
+          lineId: delivery.lineId,
+          lineNumber: delivery.lineNumber,
+          eventCreatedAt: delivery.eventCreatedAt,
+          attempts: [delivery],
+        }));
+    return { source: "backend", notifications, deliveries };
   } catch {
     return {
       source: "unavailable",
+      notifications: [],
       deliveries: [],
       message: "Push delivery diagnostics are unavailable.",
     };

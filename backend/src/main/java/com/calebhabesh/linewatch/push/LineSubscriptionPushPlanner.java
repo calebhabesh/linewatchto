@@ -205,6 +205,7 @@ public class LineSubscriptionPushPlanner {
         Instant sourceEventAt,
         String url
     ) {
+        String sourceIncidentKey = String.join("|", category, lineId, sourceId);
         String notificationKey = String.join("|", category, lineId, eventType, sourceId);
         String dedupeKey = String.join("|", accountId, "line", lineId, eventType, reminderBucket, sourceId);
         FormattedPushNotification notification = formatter.formatActive(new PushNotificationFacts(
@@ -232,6 +233,7 @@ public class LineSubscriptionPushPlanner {
             category,
             eventType,
             reminderBucket,
+            sourceIncidentKey,
             notificationKey,
             dedupeKey,
             notification,

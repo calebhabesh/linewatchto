@@ -544,6 +544,51 @@ describe("account data adapter", () => {
         requests.push({ input, init });
         return new Response(
           JSON.stringify({
+            notifications: [
+              {
+                id: "push_event_1",
+                title: "Line 2 Bloor-Danforth Suspension",
+                tag: "line-current|line-2|alert-1|active",
+                notificationKey: "line-current|line-2|suspension|ttc-route-70610",
+                sourceIncidentKey: "line-current|line-2|ttc-route-70610",
+                notificationState: "ACTIVE",
+                category: "line-current",
+                eventType: "SUSPENSION",
+                lineId: "line-2",
+                lineNumber: "2",
+                eventCreatedAt: "2026-07-01T14:00:00Z",
+                attempts: [
+                  {
+                    id: "delivery_1",
+                    title: "Line 2 Bloor-Danforth Suspension",
+                    tag: "line-current|line-2|alert-1|active",
+                    notificationState: "ACTIVE",
+                    category: "line-current",
+                    eventType: "SUSPENSION",
+                    lineId: "line-2",
+                    lineNumber: "2",
+                    eventCreatedAt: "2026-07-01T14:00:00Z",
+                    deviceLabel: "Android Chrome",
+                    userAgent: "Mozilla/5.0 Android Chrome",
+                    endpointHashPrefix: "abc12345",
+                    subscriptionEnabled: true,
+                    deliveryStatus: "ACCEPTED",
+                    httpStatus: 201,
+                    deliveryMessage: "Created",
+                    lastAttemptAt: "2026-07-01T14:01:00Z",
+                    displayedAt: null,
+                    attemptCount: 2,
+                    clientEvents: [
+                      {
+                        stage: "push_received",
+                        message: null,
+                        occurredAt: "2026-07-01T14:01:05Z",
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
             deliveries: [
               {
                 id: "delivery_1",
@@ -581,6 +626,9 @@ describe("account data adapter", () => {
     });
 
     assert.equal(result.source, "backend");
+    assert.equal(result.notifications.length, 1);
+    assert.equal(result.notifications[0].sourceIncidentKey, "line-current|line-2|ttc-route-70610");
+    assert.equal(result.notifications[0].attempts[0].deviceLabel, "Android Chrome");
     assert.equal(result.deliveries.length, 1);
     assert.equal(result.deliveries[0].deviceLabel, "Android Chrome");
     assert.equal(result.deliveries[0].attemptCount, 2);

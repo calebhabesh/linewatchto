@@ -113,6 +113,7 @@ class LineSubscriptionPushPlannerTest {
         assertThat(candidates).filteredOn(c -> "suspension".equals(c.eventType())).singleElement().satisfies(c -> {
             assertThat(c.category()).isEqualTo("line-current");
             assertThat(c.lineId()).isEqualTo("line-1");
+            assertThat(c.sourceIncidentKey()).isEqualTo("line-current|line-1|alert-1");
             assertThat(c.notificationKey()).isEqualTo("line-current|line-1|suspension|alert-1");
             assertThat(c.dedupeKey()).isEqualTo("user_1|line|line-1|suspension|on-change|alert-1");
             assertThat(c.title()).isEqualTo("⚠️ Line 1 Yonge-University Suspension");
@@ -128,6 +129,7 @@ class LineSubscriptionPushPlannerTest {
         assertThat(candidates).filteredOn(c -> "delay".equals(c.eventType())).singleElement().satisfies(c -> {
             assertThat(c.category()).isEqualTo("line-current");
             assertThat(c.lineId()).isEqualTo("line-5");
+            assertThat(c.sourceIncidentKey()).isEqualTo("line-current|line-5|alert-2");
             assertThat(c.notificationKey()).isEqualTo("line-current|line-5|delay|alert-2");
             assertThat(c.title()).isEqualTo("⚠️ Line 5 Eglinton Delay");
             assertThat(c.body()).isEqualTo("""
@@ -139,6 +141,7 @@ class LineSubscriptionPushPlannerTest {
         assertThat(candidates).filteredOn(c -> "reduced-speed-zone".equals(c.eventType())).singleElement().satisfies(c -> {
             assertThat(c.category()).isEqualTo("line-current");
             assertThat(c.lineId()).isEqualTo("line-1");
+            assertThat(c.sourceIncidentKey()).isEqualTo("line-current|line-1|zone-1");
             assertThat(c.notificationKey()).isEqualTo("line-current|line-1|reduced-speed-zone|zone-1");
             assertThat(c.title()).isEqualTo("⚠️ Line 1 Yonge-University Reduced Speed Zone");
             assertThat(c.body()).contains("Reduced speeds between Eglinton and Davisville stations.");

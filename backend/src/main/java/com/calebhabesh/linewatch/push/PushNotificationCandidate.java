@@ -11,6 +11,7 @@ public record PushNotificationCandidate(
     String category,
     String eventType,
     String reminderBucket,
+    String sourceIncidentKey,
     String notificationKey,
     String dedupeKey,
     FormattedPushNotification notification,

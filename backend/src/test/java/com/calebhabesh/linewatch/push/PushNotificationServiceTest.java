@@ -526,6 +526,88 @@ class PushNotificationServiceTest {
     }
 
     @Test
+    void deliveryDiagnosticsReturnsGroupedNotificationAttempts() {
+        String androidEndpoint = "https://fcm.googleapis.com/fcm/send/android";
+        String androidEndpointHash = PushNotificationService.hashEndpoint(androidEndpoint);
+        String iosEndpoint = "https://webpush.push.apple.com/ios";
+        String iosEndpointHash = PushNotificationService.hashEndpoint(iosEndpoint);
+        PushNotificationCandidate candidate = candidate(
+            null,
+            null,
+            "line-2",
+            "2",
+            "line-current",
+            "suspension",
+            "on-change",
+            "line-current|line-2|suspension|ttc-route-70610",
+            "user_1|line|line-2|suspension|on-change|ttc-route-70610",
+            "Victoria Park to Kennedy",
+            null,
+            Instant.parse("2026-06-05T14:50:00Z"),
+            "/?panel=alerts&impactKind=suspension&impactId=ttc-route-70610"
+        );
+        PushNotificationEventEntity event = PushNotificationEventEntity.create(
+            "push_event_1",
+            candidate,
+            Instant.parse("2026-06-05T15:00:00Z")
+        );
+        PushSubscriptionEntity androidSubscription = PushSubscriptionEntity.create(
+            "push_subscription_android",
+            account,
+            androidEndpoint,
+            androidEndpointHash,
+            "p256dh-key",
+            "auth-secret",
+            "Chrome Android Pixel 6a",
+            Instant.parse("2026-06-05T14:45:00Z")
+        );
+        PushSubscriptionEntity iosSubscription = PushSubscriptionEntity.create(
+            "push_subscription_ios",
+            account,
+            iosEndpoint,
+            iosEndpointHash,
+            "p256dh-key",
+            "auth-secret",
+            "Mobile Safari iPhone",
+            Instant.parse("2026-06-05T14:45:00Z")
+        );
+        PushNotificationDeliveryEntity androidDelivery = PushNotificationDeliveryEntity.create(
+            "push_delivery_android",
+            event,
+            androidSubscription,
+            PushDeliveryResult.accepted(202),
+            Instant.parse("2026-06-05T15:00:05Z")
+        );
+        PushNotificationDeliveryEntity iosDelivery = PushNotificationDeliveryEntity.create(
+            "push_delivery_ios",
+            event,
+            iosSubscription,
+            PushDeliveryResult.accepted(201),
+            Instant.parse("2026-06-05T15:00:06Z")
+        );
+
+        when(deliveryRepository.findRecentDeliveriesForAccount("user_1", PageRequest.of(0, 50)))
+            .thenReturn(List.of(iosDelivery, androidDelivery));
+        when(clientEventRepository.findByDeliveryIds(List.of("push_delivery_ios", "push_delivery_android")))
+            .thenReturn(List.of());
+
+        PushResponses.PushDeliveryDiagnosticsResponse response = service.deliveryDiagnostics(account);
+
+        assertThat(response.deliveries()).hasSize(2);
+        assertThat(response.notifications()).hasSize(1);
+        PushResponses.PushNotificationDiagnosticGroupResponse notification = response.notifications().getFirst();
+        assertThat(notification.id()).isEqualTo("push_event_1");
+        assertThat(notification.notificationKey()).isEqualTo("line-current|line-2|suspension|ttc-route-70610");
+        assertThat(notification.sourceIncidentKey()).isEqualTo("line-current|line-2|ttc-route-70610");
+        assertThat(notification.attempts())
+            .extracting(PushResponses.PushDeliveryDiagnosticResponse::deviceLabel)
+            .containsExactly("iOS Safari", "Android Chrome");
+        assertThat(notification.attempts())
+            .extracting(PushResponses.PushDeliveryDiagnosticResponse::endpointHashPrefix)
+            .containsExactly(iosEndpointHash.substring(0, 12), androidEndpointHash.substring(0, 12));
+    }
+
+    @Test
     void recordsClientEventForCurrentSubscriptionAndNotificationTag() {
         String endpoint = "https://fcm.googleapis.com/fcm/send/android";
         String endpointHash = PushNotificationService.hashEndpoint(endpoint);
@@ -633,11 +715,23 @@ class PushNotificationServiceTest {
             category,
             eventType,
             reminderBucket,
+            sourceIncidentKeyFrom(notificationKey),
             notificationKey,
             dedupeKey,
             notification,
             url
         );
+    }
+
+    private String sourceIncidentKeyFrom(String notificationKey) {
+        String[] parts = notificationKey == null ? new String[0] : notificationKey.split("\\|", -1);
+        if (parts.length >= 4 && "line-current".equals(parts[0])) {
+            return String.join("|", parts[0], parts[1], parts[3]);
+        }
+        if (parts.length >= 5 && parts[0].startsWith("saved-commute-")) {
+            return String.join("|", parts[0], parts[1], parts[2], parts[4]);
+        }
+        return notificationKey;
     }
 
     @Test

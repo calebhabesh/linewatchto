@@ -148,6 +148,8 @@ public class SavedCommutePushPlanner {
         String segmentIds = String.join(",", emptyWhenNull(match.matchedSegmentIds()));
         String stationIds = String.join(",", emptyWhenNull(match.matchedStationIds()));
         
+        String stableImpactPart = stableImpactPart(match);
+
         String dedupeKey = String.join(
             "|",
             commute.getAccount().getId(),
@@ -159,14 +161,22 @@ public class SavedCommutePushPlanner {
             "segments:" + segmentIds,
             "stations:" + stationIds
         );
-        
+
+        String sourceIncidentKey = String.join(
+            "|",
+            category,
+            commute.getId(),
+            legId,
+            stableImpactPart
+        );
+
         String notificationKey = String.join(
             "|",
             category,
             commute.getId(),
             legId,
             eventType,
-            stableImpactPart(match)
+            stableImpactPart
         );
 
         return new PushNotificationCandidate(
@@ -178,6 +188,7 @@ public class SavedCommutePushPlanner {
             category,
             eventType,
             reminderBucket,
+            sourceIncidentKey,
             notificationKey,
             dedupeKey,
             notification,

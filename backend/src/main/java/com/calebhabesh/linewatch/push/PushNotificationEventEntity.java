@@ -26,6 +26,8 @@ public class PushNotificationEventEntity {
     private String category;
     @Column(name = "notification_key")
     private String notificationKey;
+    @Column(name = "source_incident_key")
+    private String sourceIncidentKey;
     @Column(name = "notification_state")
     private String notificationState;
     @Column(name = "dedupe_key")
@@ -58,6 +60,7 @@ public class PushNotificationEventEntity {
         this.reminderBucket = candidate.reminderBucket();
         this.category = candidate.category();
         this.notificationKey = candidate.notificationKey();
+        this.sourceIncidentKey = candidate.sourceIncidentKey();
         this.notificationState = "ACTIVE";
         this.dedupeKey = candidate.dedupeKey();
         this.title = candidate.title();
@@ -97,6 +100,7 @@ public class PushNotificationEventEntity {
         event.lineId = activeEvent.lineId;
         event.category = activeEvent.category;
         event.notificationKey = activeEvent.notificationKey;
+        event.sourceIncidentKey = activeEvent.sourceIncidentKey;
         event.notificationState = "CLEARED";
         event.dedupeKey = activeEvent.dedupeKey + "|cleared";
         event.eventType = "service-restored";
@@ -135,6 +139,7 @@ public class PushNotificationEventEntity {
         event.lineId = observation.getLineId();
         event.category = "line-current";
         event.notificationKey = observation.getNotificationKey();
+        event.sourceIncidentKey = observation.getSourceIncidentKey();
         event.notificationState = "CLEARED";
         event.dedupeKey = observation.getAccountId()
             + "|line|"
@@ -167,6 +172,7 @@ public class PushNotificationEventEntity {
     public String getReminderBucket() { return reminderBucket; }
     public String getCategory() { return category; }
     public String getNotificationKey() { return notificationKey; }
+    public String getSourceIncidentKey() { return sourceIncidentKey; }
     public String getNotificationState() { return notificationState; }
     public String getDedupeKey() { return dedupeKey; }
     public String getTitle() { return title; }

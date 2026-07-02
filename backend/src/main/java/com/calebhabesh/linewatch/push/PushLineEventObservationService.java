@@ -26,10 +26,12 @@ public class PushLineEventObservationService {
         PushNotificationPreferenceEntity preferences,
         Instant now
     ) {
-        return observationRepository.findByAccountIdAndNotificationKeyAndClearedAtIsNull(
+        return observationRepository.findByAccountIdAndSourceIncidentKeyAndClearedAtIsNullOrderByLastSeenAtDesc(
                 candidate.accountId(),
-                candidate.notificationKey()
+                candidate.sourceIncidentKey()
             )
+            .stream()
+            .findFirst()
             .map(existing -> {
                 existing.refresh(candidate, now);
                 PushLineEventObservationEntity saved = observationRepository.save(existing);
@@ -37,7 +39,7 @@ public class PushLineEventObservationService {
             })
             .orElseGet(() -> {
                 PushLineEventObservationEntity created = PushLineEventObservationEntity.create(
-                    PushLineEventObservationEntity.idFor(candidate.accountId(), candidate.notificationKey()),
+                    PushLineEventObservationEntity.idFor(candidate.accountId(), candidate.sourceIncidentKey()),
                     candidate,
                     now
                 );

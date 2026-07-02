@@ -66,7 +66,10 @@ describe("notification settings navigation", () => {
     assert.match(diagnosticsPanelSource, /Notification Diagnostics/);
     assert.match(diagnosticsPanelSource, /getPushDeliveryDiagnostics/);
     assert.match(diagnosticsPanelSource, /Recent Push Attempts/);
-    assert.match(diagnosticsPanelSource, /diagnostics\.map/);
+    assert.match(diagnosticsPanelSource, /selectedDeviceKey/);
+    assert.match(diagnosticsPanelSource, /diagnosticDeviceOptions/);
+    assert.match(diagnosticsPanelSource, /notification\.attempts/);
+    assert.match(diagnosticsPanelSource, /sourceIncidentKey/);
     assert.doesNotMatch(notificationPanelSource, /getPushDeliveryDiagnostics/);
     assert.doesNotMatch(notificationPanelSource, /Delivery Diagnostics/);
     assert.match(globalCss, /\.push-diagnostics-scroll/);

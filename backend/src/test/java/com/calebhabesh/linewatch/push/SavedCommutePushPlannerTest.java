@@ -78,6 +78,7 @@ class SavedCommutePushPlannerTest {
             assertThat(candidate.commuteId()).isEqualTo("commute_1");
             assertThat(candidate.legId()).isEqualTo("outbound");
             assertThat(candidate.category()).isEqualTo("saved-commute-current");
+            assertThat(candidate.sourceIncidentKey()).isEqualTo("saved-commute-current|commute_1|outbound|delay-line-1");
             assertThat(candidate.notificationKey()).isEqualTo("saved-commute-current|commute_1|outbound|delay|delay-line-1");
             assertThat(candidate.title()).isEqualTo("⚠️ Line 1 Yonge-University Delay");
             assertThat(candidate.body()).isEqualTo("""
@@ -207,6 +208,7 @@ class SavedCommutePushPlannerTest {
             assertThat(candidate.category()).isEqualTo("saved-commute-current");
             assertThat(candidate.eventType()).isEqualTo("reduced-speed-zone");
             assertThat(candidate.reminderBucket()).isEqualTo("on-change");
+            assertThat(candidate.sourceIncidentKey()).isEqualTo("saved-commute-current|commute_1|outbound|rsz-line-1");
             assertThat(candidate.title()).isEqualTo("⚠️ Line 1 Yonge-University Reduced Speed Zone");
         });
     }

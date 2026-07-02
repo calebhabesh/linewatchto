@@ -13,6 +13,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HexFormat;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -231,7 +232,20 @@ public class PushNotificationService {
             ))
             .toList();
 
-        return new PushResponses.PushDeliveryDiagnosticsResponse(responseDeliveries);
+        Map<String, PushResponses.PushDeliveryDiagnosticResponse> responsesByDeliveryId = responseDeliveries.stream()
+            .collect(Collectors.toMap(PushResponses.PushDeliveryDiagnosticResponse::id, response -> response));
+        Map<String, List<PushNotificationDeliveryEntity>> deliveriesByEventId = deliveries.stream()
+            .collect(Collectors.groupingBy(
+                delivery -> delivery.getEvent().getId(),
+                LinkedHashMap::new,
+                Collectors.toList()
+            ));
+        List<PushResponses.PushNotificationDiagnosticGroupResponse> notificationGroups = deliveriesByEventId.values()
+            .stream()
+            .map(groupDeliveries -> toDiagnosticGroup(groupDeliveries, responsesByDeliveryId))
+            .toList();
+
+        return new PushResponses.PushDeliveryDiagnosticsResponse(notificationGroups, responseDeliveries);
     }
 
     @Transactional
@@ -401,6 +415,32 @@ public class PushNotificationService {
             instantString(delivery.getDisplayedAt()),
             delivery.getAttemptCount(),
             eventResponses
+        );
+    }
+
+    private PushResponses.PushNotificationDiagnosticGroupResponse toDiagnosticGroup(
+        List<PushNotificationDeliveryEntity> deliveries,
+        Map<String, PushResponses.PushDeliveryDiagnosticResponse> responsesByDeliveryId
+    ) {
+        PushNotificationEventEntity event = deliveries.getFirst().getEvent();
+        List<PushResponses.PushDeliveryDiagnosticResponse> attempts = deliveries.stream()
+            .map(delivery -> responsesByDeliveryId.get(delivery.getId()))
+            .filter(java.util.Objects::nonNull)
+            .toList();
+
+        return new PushResponses.PushNotificationDiagnosticGroupResponse(
+            event.getId(),
+            event.getTitle(),
+            PushNotificationDisplayTags.forEvent(event),
+            event.getNotificationKey(),
+            event.getSourceIncidentKey(),
+            event.getNotificationState(),
+            event.getCategory(),
+            event.getEventType(),
+            event.getLineId(),
+            lineNumberFor(event.getLineId()),
+            instantString(event.getCreatedAt()),
+            attempts
         );
     }
 

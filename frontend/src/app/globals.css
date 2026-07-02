@@ -8669,6 +8669,38 @@ button {
   padding-right: 2px;
 }
 
+.push-diagnostics-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.push-diagnostics-filter button {
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  border-radius: 8px;
+  color: var(--quiet);
+  font-size: 11px;
+  font-weight: 850;
+  min-height: 30px;
+  padding: 0 9px;
+}
+
+.dark .push-diagnostics-filter button {
+  background: rgba(15, 23, 42, 0.54);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.push-diagnostics-filter button.active {
+  background: #f8fafc;
+  border-color: rgba(14, 165, 233, 0.42);
+  color: var(--text);
+}
+
+.dark .push-diagnostics-filter button.active {
+  background: rgba(15, 23, 42, 0.92);
+}
+
 .push-diagnostics-item {
   background: rgba(248, 250, 252, 0.88);
   border: 1px solid rgba(15, 23, 42, 0.08);
@@ -8745,6 +8777,33 @@ button {
   font-weight: 650;
   gap: 4px 9px;
   line-height: 1.25;
+}
+
+.push-diagnostics-source {
+  color: var(--quiet);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.25;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.push-diagnostics-attempts {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.push-diagnostics-attempt {
+  border-top: 1px solid rgba(15, 23, 42, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding-top: 7px;
+}
+
+.dark .push-diagnostics-attempt {
+  border-color: rgba(255, 255, 255, 0.1);
 }
 
 .push-diagnostics-events {

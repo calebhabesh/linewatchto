@@ -1045,11 +1045,7 @@ class PushNotificationDispatchServiceTest {
             Instant.parse("2026-07-02T03:17:00Z"),
             "/?panel=delays&impactKind=delay&impactId=ttc-route-71001"
         );
-        PushLineEventObservationEntity currentObservation = PushLineEventObservationEntity.create(
-            "line_obs_delay",
-            currentDelayCandidate,
-            clock.instant()
-        );
+        assertThat(previousObservation.getSourceIncidentKey()).isEqualTo(currentDelayCandidate.sourceIncidentKey());
 
         when(preferenceService.preferenceEntityForAccountId("user_1")).thenReturn(spyPrefs);
         when(subscriptionRepository.findEnabledAccountIds()).thenReturn(List.of("user_1"));
@@ -1058,8 +1054,8 @@ class PushNotificationDispatchServiceTest {
             .thenReturn(List.of(currentDelayCandidate));
         when(preferenceService.allows(spyPrefs, currentDelayCandidate)).thenReturn(true);
         when(lineEventObservationService.observe(currentDelayCandidate, spyPrefs, clock.instant()))
-            .thenReturn(new PushLineEventObservationService.ObservationDecision(currentObservation, true, false));
-        when(lineEventObservationService.activeObservations("user_1")).thenReturn(List.of(previousObservation, currentObservation));
+            .thenReturn(new PushLineEventObservationService.ObservationDecision(previousObservation, false, false));
+        when(lineEventObservationService.activeObservations("user_1")).thenReturn(List.of(previousObservation));
         when(eventRepository.existsByDedupeKey("user_1|line|line-5|delay|on-change|ttc-route-71001"))
             .thenReturn(true);
         when(eventRepository.save(any(PushNotificationEventEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
@@ -1067,7 +1063,7 @@ class PushNotificationDispatchServiceTest {
         service.evaluateSavedCommuteNotifications();
 
         verify(eventRepository, never()).save(argThat(event -> "CLEARED".equals(event.getNotificationState())));
-        verify(lineEventObservationService).markCleared(previousObservation, clock.instant());
+        verify(lineEventObservationService, never()).markCleared(previousObservation, clock.instant());
     }
 
     @Test
@@ -1473,10 +1469,22 @@ class PushNotificationDispatchServiceTest {
             category,
             eventType,
             reminderBucket,
+            sourceIncidentKeyFrom(notificationKey),
             notificationKey,
             dedupeKey,
             notification,
             url
         );
+    }
+
+    private String sourceIncidentKeyFrom(String notificationKey) {
+        String[] parts = notificationKey == null ? new String[0] : notificationKey.split("\\|", -1);
+        if (parts.length >= 4 && "line-current".equals(parts[0])) {
+            return String.join("|", parts[0], parts[1], parts[3]);
+        }
+        if (parts.length >= 5 && parts[0].startsWith("saved-commute-")) {
+            return String.join("|", parts[0], parts[1], parts[2], parts[4]);
+        }
+        return notificationKey;
     }
 }

@@ -516,6 +516,8 @@ The browser still controls permission prompts, notification ranking, and deliver
 
 Device push enablement is per browser/device. Saved-commute, line-wide, event-type, and reminder preferences are account-level and can be changed before a browser subscription exists. Reinstalling the PWA or switching browsers does not turn account notification preferences off, but the current device must have browser notification permission and a valid Web Push subscription before it can receive pushes. When browser permission is already granted, LineWatchTO attempts to recreate the current device subscription after sign-in; when permission is not granted, the Notifications panel shows an "enable this device" state.
 
+Notification diagnostics in More are grouped by logical notification first, then by per-device delivery attempts. A single LineWatch notification can produce multiple delivery rows because an account may have Android Chrome, iOS Safari, restored PWA, or older enabled endpoint subscriptions. Apple Web Push or FCM `accepted` responses mean the push service accepted LineWatchTO's delivery attempt for that endpoint; they do not guarantee that the browser or OS displayed the notification. The diagnostics device filter distinguishes labels such as Android Chrome and iOS Safari, and appends endpoint hash prefixes when multiple endpoints share the same label.
+
 Health endpoint:
 
 ```bash
@@ -636,6 +638,7 @@ Current backend scope:
 | `PUT` | `/api/account/push/preferences` | Update account-level saved-commute, line subscription, event-type, and reminder timing notification preferences. This does not enable or disable the current browser subscription. |
 | `POST` | `/api/account/push/latest` | Let the service worker fetch and mark displayed the current batch of pending notification payloads for the current subscription. |
 | `POST` | `/api/account/push/active` | Return active display tags and retained lifecycle display tags so the service worker can close stale LineWatch notifications without removing recent active/cleared lifecycle entries too early. |
+| `GET` | `/api/account/push/diagnostics` | Return recent push diagnostics grouped by logical notification with nested per-device attempts and service-worker client events. |
 | `POST` | `/api/account/push/subscription/disable` | Disable the current browser push subscription for the signed-in account. |
 
 Planned backend API:

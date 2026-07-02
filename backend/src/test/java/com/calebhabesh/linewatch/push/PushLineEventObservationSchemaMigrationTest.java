@@ -25,4 +25,20 @@ class PushLineEventObservationSchemaMigrationTest {
             assertThat(sql).contains("notification_state = 'ACTIVE'");
         }
     }
+
+    @Test
+    void v34AddsSourceIncidentKeysForPushEventsAndLineObservations() throws IOException {
+        try (var input = getClass().getResourceAsStream(
+                "/db/migration/V34__push_source_incident_keys.sql")) {
+            assertThat(input).isNotNull();
+            String sql = new String(input.readAllBytes(), StandardCharsets.UTF_8);
+
+            assertThat(sql).contains("alter table push_notification_events");
+            assertThat(sql).contains("alter table push_line_event_observations");
+            assertThat(sql).contains("source_incident_key varchar(512)");
+            assertThat(sql).contains("idx_push_notification_events_source_incident");
+            assertThat(sql).contains("idx_push_line_event_observations_source_incident_active");
+            assertThat(sql).contains("coalesce(source_incident_key, notification_key)");
+        }
+    }
 }

@@ -27,6 +27,9 @@ public class PushLineEventObservationEntity {
     @Column(name = "notification_key")
     private String notificationKey;
 
+    @Column(name = "source_incident_key")
+    private String sourceIncidentKey;
+
     @Column(name = "notification_subject")
     private String notificationSubject;
 
@@ -55,11 +58,11 @@ public class PushLineEventObservationEntity {
 
     protected PushLineEventObservationEntity() {}
 
-    public static String idFor(String accountId, String notificationKey) {
+    public static String idFor(String accountId, String sourceIncidentKey) {
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
             String encoded = HexFormat.of().formatHex(
-                digest.digest((accountId + "|" + notificationKey).getBytes(StandardCharsets.UTF_8))
+                digest.digest((accountId + "|" + sourceIncidentKey).getBytes(StandardCharsets.UTF_8))
             );
             return "line_obs_" + encoded.substring(0, 48);
         } catch (Exception ex) {
@@ -74,6 +77,7 @@ public class PushLineEventObservationEntity {
         entity.lineId = candidate.lineId();
         entity.eventType = candidate.eventType();
         entity.notificationKey = candidate.notificationKey();
+        entity.sourceIncidentKey = candidate.sourceIncidentKey();
         entity.notificationSubject = candidate.notificationSubject();
         entity.eventLocation = candidate.eventLocation();
         entity.displayDirection = candidate.displayDirection();
@@ -86,6 +90,10 @@ public class PushLineEventObservationEntity {
     }
 
     public void refresh(PushNotificationCandidate candidate, Instant now) {
+        this.lineId = candidate.lineId();
+        this.eventType = candidate.eventType();
+        this.notificationKey = candidate.notificationKey();
+        this.sourceIncidentKey = candidate.sourceIncidentKey();
         this.notificationSubject = candidate.notificationSubject();
         this.eventLocation = candidate.eventLocation();
         this.displayDirection = candidate.displayDirection();
@@ -104,6 +112,7 @@ public class PushLineEventObservationEntity {
     public String getLineId() { return lineId; }
     public String getEventType() { return eventType; }
     public String getNotificationKey() { return notificationKey; }
+    public String getSourceIncidentKey() { return sourceIncidentKey; }
     public String getNotificationSubject() { return notificationSubject; }
     public String getEventLocation() { return eventLocation; }
     public String getDisplayDirection() { return displayDirection; }

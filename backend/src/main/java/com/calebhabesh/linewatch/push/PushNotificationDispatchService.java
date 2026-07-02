@@ -115,11 +115,13 @@ public class PushNotificationDispatchService {
 
             List<PushNotificationCandidate> sendableCandidates = new java.util.ArrayList<>();
             Set<String> currentLineNotificationKeys = new java.util.HashSet<>();
+            Set<String> currentLineSourceIncidentKeys = new java.util.HashSet<>();
             List<PushNotificationCandidate> currentLineCandidates = new java.util.ArrayList<>();
 
             for (PushNotificationCandidate candidate : allowedCandidates) {
                 if ("line-current".equals(candidate.category())) {
                     currentLineNotificationKeys.add(candidate.notificationKey());
+                    currentLineSourceIncidentKeys.add(candidate.sourceIncidentKey());
                     currentLineCandidates.add(candidate);
                     PushLineEventObservationService.ObservationDecision decision =
                         lineEventObservationService.observe(candidate, preferences, clock.instant());
@@ -133,20 +135,29 @@ public class PushNotificationDispatchService {
 
             List<String> savedCurrentCategories = List.of("saved-commute-current", "saved-commute-impact");
             Set<String> savedCurrentNotificationKeys = new java.util.HashSet<>();
+            Set<String> savedCurrentSourceIncidentKeys = new java.util.HashSet<>();
 
             for (PushNotificationCandidate candidate : sendableCandidates) {
                 if (savedCurrentCategories.contains(candidate.category())) {
                     savedCurrentNotificationKeys.add(candidate.notificationKey());
+                    savedCurrentSourceIncidentKeys.add(candidate.sourceIncidentKey());
                 }
                 sendIfNew(candidate);
             }
 
-            sendClearedNotifications(accountId, preferences, savedCurrentNotificationKeys, sendableCandidates);
+            sendClearedNotifications(
+                accountId,
+                preferences,
+                savedCurrentNotificationKeys,
+                savedCurrentSourceIncidentKeys,
+                sendableCandidates
+            );
             sendClearedLineObservationNotifications(
                 accountId,
                 preferences,
                 subscribedLineIdSet,
                 currentLineNotificationKeys,
+                currentLineSourceIncidentKeys,
                 currentLineCandidates
             );
         }
@@ -156,6 +167,7 @@ public class PushNotificationDispatchService {
         String accountId,
         PushNotificationPreferenceEntity preferences,
         Set<String> currentNotificationKeys,
+        Set<String> currentSourceIncidentKeys,
         List<PushNotificationCandidate> currentCandidates
     ) {
         if (!ingestionFreshness.isDashboardFresh()) {
@@ -172,6 +184,9 @@ public class PushNotificationDispatchService {
 
         for (PushNotificationEventEntity activeEvent : activeEvents) {
             if (currentNotificationKeys.contains(activeEvent.getNotificationKey())) {
+                continue;
+            }
+            if (containsNonBlank(currentSourceIncidentKeys, activeEvent.getSourceIncidentKey())) {
                 continue;
             }
             if (hasEquivalentCurrentCandidate(activeEvent, currentCandidates)) {
@@ -209,6 +224,7 @@ public class PushNotificationDispatchService {
         PushNotificationPreferenceEntity preferences,
         Set<String> subscribedLineIds,
         Set<String> currentLineNotificationKeys,
+        Set<String> currentLineSourceIncidentKeys,
         List<PushNotificationCandidate> currentLineCandidates
     ) {
         if (!ingestionFreshness.isDashboardFresh()) {
@@ -218,6 +234,9 @@ public class PushNotificationDispatchService {
 
         for (PushLineEventObservationEntity observation : lineEventObservationService.activeObservations(accountId)) {
             if (currentLineNotificationKeys.contains(observation.getNotificationKey())) {
+                continue;
+            }
+            if (containsNonBlank(currentLineSourceIncidentKeys, observation.getSourceIncidentKey())) {
                 continue;
             }
             if (!lineObservationStillEligible(preferences, subscribedLineIds, observation)) {
@@ -287,7 +306,7 @@ public class PushNotificationDispatchService {
         if (!same(observation.getLineId(), candidate.lineId())) {
             return false;
         }
-        if (sameLineCurrentSource(observation.getNotificationKey(), candidate.notificationKey())) {
+        if (sameNonBlank(observation.getSourceIncidentKey(), candidate.sourceIncidentKey())) {
             return true;
         }
         if (!same(observation.getEventType(), candidate.eventType())) {
@@ -318,6 +337,9 @@ public class PushNotificationDispatchService {
         if (!same(activeEvent.getLineId(), candidate.lineId())) {
             return false;
         }
+        if (sameNonBlank(activeEvent.getSourceIncidentKey(), candidate.sourceIncidentKey())) {
+            return true;
+        }
         if (!same(activeEvent.getEventType(), candidate.eventType())) {
             return false;
         }
@@ -328,26 +350,6 @@ public class PushNotificationDispatchService {
             return false;
         }
         return compatibleSourceTimes(activeEvent.getSourceEventAt(), candidate.sourceEventAt());
-    }
-
-    private boolean sameLineCurrentSource(String firstNotificationKey, String secondNotificationKey) {
-        String[] firstParts = notificationKeyParts(firstNotificationKey);
-        String[] secondParts = notificationKeyParts(secondNotificationKey);
-        if (firstParts.length < 4 || secondParts.length < 4) {
-            return false;
-        }
-        if (!same(firstParts[0], "line-current") || !same(secondParts[0], "line-current")) {
-            return false;
-        }
-        String firstSourceId = normalize(firstParts[3]);
-        String secondSourceId = normalize(secondParts[3]);
-        return same(firstParts[1], secondParts[1])
-            && !firstSourceId.isBlank()
-            && firstSourceId.equals(secondSourceId);
-    }
-
-    private String[] notificationKeyParts(String notificationKey) {
-        return notificationKey == null ? new String[0] : notificationKey.split("\\|", -1);
     }
 
     private boolean sameScope(PushNotificationEventEntity activeEvent, PushNotificationCandidate candidate) {
@@ -387,6 +389,19 @@ public class PushNotificationDispatchService {
 
     private boolean same(String first, String second) {
         return normalize(first).equals(normalize(second));
+    }
+
+    private boolean sameNonBlank(String first, String second) {
+        String normalizedFirst = normalize(first);
+        return !normalizedFirst.isBlank() && normalizedFirst.equals(normalize(second));
+    }
+
+    private boolean containsNonBlank(Set<String> values, String value) {
+        String normalized = normalize(value);
+        if (normalized.isBlank()) {
+            return false;
+        }
+        return values.stream().anyMatch(candidate -> normalize(candidate).equals(normalized));
     }
 
     private String normalize(String value) {

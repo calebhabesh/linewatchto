@@ -46,10 +46,10 @@ class PushLineEventObservationServiceTest {
             Instant.parse("2026-06-05T13:00:00Z")
         );
 
-        when(observationRepository.findByAccountIdAndNotificationKeyAndClearedAtIsNull(
+        when(observationRepository.findByAccountIdAndSourceIncidentKeyAndClearedAtIsNullOrderByLastSeenAtDesc(
             "user_1",
-            "line-current|line-1|reduced-speed-zone|rsz-1"
-        )).thenReturn(Optional.empty());
+            "line-current|line-1|rsz-1"
+        )).thenReturn(List.of());
         when(lineSubscriptionRepository.findById("user_1:line-1")).thenReturn(Optional.of(lineSub));
         when(observationRepository.save(any(PushLineEventObservationEntity.class)))
             .thenAnswer(invocation -> invocation.getArgument(0));
@@ -82,10 +82,10 @@ class PushLineEventObservationServiceTest {
             Instant.parse("2026-06-05T15:05:00Z")
         );
 
-        when(observationRepository.findByAccountIdAndNotificationKeyAndClearedAtIsNull(
+        when(observationRepository.findByAccountIdAndSourceIncidentKeyAndClearedAtIsNullOrderByLastSeenAtDesc(
             "user_1",
-            "line-current|line-1|reduced-speed-zone|rsz-2"
-        )).thenReturn(Optional.empty());
+            "line-current|line-1|rsz-2"
+        )).thenReturn(List.of());
         when(lineSubscriptionRepository.findById("user_1:line-1")).thenReturn(Optional.of(lineSub));
         when(observationRepository.save(any(PushLineEventObservationEntity.class)))
             .thenAnswer(invocation -> invocation.getArgument(0));
@@ -117,10 +117,10 @@ class PushLineEventObservationServiceTest {
             Instant.parse("2026-06-05T14:30:00Z")
         );
 
-        when(observationRepository.findByAccountIdAndNotificationKeyAndClearedAtIsNull(
+        when(observationRepository.findByAccountIdAndSourceIncidentKeyAndClearedAtIsNullOrderByLastSeenAtDesc(
             "user_1",
-            "line-current|line-1|reduced-speed-zone|rsz-1"
-        )).thenReturn(Optional.of(existing));
+            "line-current|line-1|rsz-1"
+        )).thenReturn(List.of(existing));
         when(observationRepository.save(existing)).thenReturn(existing);
 
         PushLineEventObservationService.ObservationDecision decision =
@@ -129,6 +129,49 @@ class PushLineEventObservationServiceTest {
         assertThat(decision.firstObserved()).isFalse();
         assertThat(decision.shouldSendActive()).isFalse();
         assertThat(existing.getLastSeenAt()).isEqualTo(Instant.parse("2026-06-05T15:10:00Z"));
+    }
+
+    @Test
+    void refreshesExistingObservationBySourceIncidentWhenEventTypeChanges() {
+        PushNotificationCandidate suspensionCandidate = candidate(
+            "line-5",
+            "5",
+            "suspension",
+            "line-current|line-5|suspension|ttc-route-71001",
+            Instant.parse("2026-07-02T03:17:00Z")
+        );
+        PushLineEventObservationEntity existing = PushLineEventObservationEntity.create(
+            "line_obs_existing",
+            suspensionCandidate,
+            Instant.parse("2026-07-02T03:18:00Z")
+        );
+        PushNotificationCandidate delayCandidate = candidate(
+            "line-5",
+            "5",
+            "delay",
+            "line-current|line-5|delay|ttc-route-71001",
+            Instant.parse("2026-07-02T03:17:00Z")
+        );
+        PushNotificationPreferenceEntity preferences = PushNotificationPreferenceEntity.create(
+            account,
+            Instant.parse("2026-07-02T02:30:00Z")
+        );
+
+        when(observationRepository.findByAccountIdAndSourceIncidentKeyAndClearedAtIsNullOrderByLastSeenAtDesc(
+            "user_1",
+            "line-current|line-5|ttc-route-71001"
+        )).thenReturn(List.of(existing));
+        when(observationRepository.save(existing)).thenReturn(existing);
+
+        PushLineEventObservationService.ObservationDecision decision =
+            service.observe(delayCandidate, preferences, Instant.parse("2026-07-02T03:25:00Z"));
+
+        assertThat(decision.firstObserved()).isFalse();
+        assertThat(decision.shouldSendActive()).isFalse();
+        assertThat(existing.getSourceIncidentKey()).isEqualTo("line-current|line-5|ttc-route-71001");
+        assertThat(existing.getEventType()).isEqualTo("delay");
+        assertThat(existing.getNotificationKey()).isEqualTo("line-current|line-5|delay|ttc-route-71001");
+        assertThat(existing.getLastSeenAt()).isEqualTo(Instant.parse("2026-07-02T03:25:00Z"));
     }
 
     @Test
@@ -169,10 +212,19 @@ class PushLineEventObservationServiceTest {
             "line-current",
             eventType,
             "on-change",
+            sourceIncidentKeyFrom(notificationKey),
             notificationKey,
             "user_1|line|" + lineId + "|" + eventType + "|on-change|source",
             notification,
             "/?panel=reduced-speed-zones"
         );
+    }
+
+    private String sourceIncidentKeyFrom(String notificationKey) {
+        String[] parts = notificationKey.split("\\|", -1);
+        if (parts.length >= 4 && "line-current".equals(parts[0])) {
+            return String.join("|", parts[0], parts[1], parts[3]);
+        }
+        return notificationKey;
     }
 }
