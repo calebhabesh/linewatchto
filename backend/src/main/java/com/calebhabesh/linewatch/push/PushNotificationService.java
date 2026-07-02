@@ -248,6 +248,23 @@ public class PushNotificationService {
         return new PushResponses.PushDeliveryDiagnosticsResponse(notificationGroups, responseDeliveries);
     }
 
+    @Transactional(readOnly = true)
+    public PushResponses.PushDevicesResponse devices(AccountEntity account) {
+        List<PushResponses.PushDeviceResponse> devices = subscriptionRepository
+            .findByAccountIdAndEnabledTrueOrderByUpdatedAtDesc(account.getId())
+            .stream()
+            .map(this::toDeviceResponse)
+            .toList();
+        return new PushResponses.PushDevicesResponse(devices);
+    }
+
+    @Transactional
+    public void disableDevice(AccountEntity account, String subscriptionId) {
+        String id = required(subscriptionId, "missing_subscription_id", "Push device subscription id is required.");
+        subscriptionRepository.findByIdAndAccountId(id, account.getId())
+            .ifPresent(subscription -> subscription.disable(clock.instant()));
+    }
+
     @Transactional
     public PushResponses.PendingPushNotificationResponse latestPendingNotification(
         AccountEntity account,
@@ -488,6 +505,84 @@ public class PushNotificationService {
         }
         String normalized = endpointHash.trim();
         return normalized.substring(0, Math.min(12, normalized.length()));
+    }
+
+    private PushResponses.PushDeviceResponse toDeviceResponse(PushSubscriptionEntity subscription) {
+        Optional<PushNotificationDeliveryEntity> latestDelivery =
+            deliveryRepository.findTopBySubscription_IdOrderByCreatedAtDesc(subscription.getId());
+        Optional<PushNotificationDeliveryEntity> latestAcceptedDelivery =
+            deliveryRepository.findTopBySubscription_IdAndStatusOrderByCreatedAtDesc(subscription.getId(), "accepted");
+        Optional<PushNotificationDeliveryEntity> latestDisplayedDelivery =
+            deliveryRepository.findTopBySubscription_IdAndDisplayedAtIsNotNullOrderByDisplayedAtDesc(subscription.getId());
+        long acceptedWithoutDisplayCount = deliveryRepository.countBySubscription_IdAndStatusAndDisplayedAtIsNull(
+            subscription.getId(),
+            "accepted"
+        );
+        int safeAcceptedWithoutDisplayCount = acceptedWithoutDisplayCount > Integer.MAX_VALUE
+            ? Integer.MAX_VALUE
+            : (int) acceptedWithoutDisplayCount;
+        Instant latestDisplayedAt = latestDisplayedDelivery
+            .map(PushNotificationDeliveryEntity::getDisplayedAt)
+            .orElse(null);
+        Instant latestAcceptedAt = latestAcceptedDelivery
+            .map(PushNotificationDeliveryEntity::getCreatedAt)
+            .orElse(null);
+        String deliveryHealth = deviceDeliveryHealth(
+            subscription,
+            latestDelivery.orElse(null),
+            latestAcceptedAt,
+            latestDisplayedAt,
+            safeAcceptedWithoutDisplayCount
+        );
+        boolean staleCandidate = subscription.isEnabled()
+            && safeAcceptedWithoutDisplayCount > 0
+            && acceptedAfterLastDisplay(latestAcceptedAt, latestDisplayedAt);
+
+        return new PushResponses.PushDeviceResponse(
+            subscription.getId(),
+            deviceLabel(subscription),
+            subscription.getUserAgent(),
+            endpointHashPrefix(subscription.getEndpointHash()),
+            subscription.isEnabled(),
+            instantString(subscription.getCreatedAt()),
+            instantString(subscription.getUpdatedAt()),
+            instantString(subscription.getLastSeenAt()),
+            instantString(subscription.getDisabledAt()),
+            latestDelivery.map(PushNotificationDeliveryEntity::getCreatedAt).map(this::instantString).orElse(null),
+            instantString(latestAcceptedAt),
+            instantString(latestDisplayedAt),
+            safeAcceptedWithoutDisplayCount,
+            deliveryHealth,
+            staleCandidate
+        );
+    }
+
+    private String deviceDeliveryHealth(
+        PushSubscriptionEntity subscription,
+        PushNotificationDeliveryEntity latestDelivery,
+        Instant latestAcceptedAt,
+        Instant latestDisplayedAt,
+        int acceptedWithoutDisplayCount
+    ) {
+        if (!subscription.isEnabled()) {
+            return "disabled";
+        }
+        if (acceptedWithoutDisplayCount > 0 && acceptedAfterLastDisplay(latestAcceptedAt, latestDisplayedAt)) {
+            return "accepted-no-display";
+        }
+        if (latestDisplayedAt != null) {
+            return "displayed";
+        }
+        if (latestDelivery != null) {
+            return "sent-no-display";
+        }
+        return "registered";
+    }
+
+    private boolean acceptedAfterLastDisplay(Instant latestAcceptedAt, Instant latestDisplayedAt) {
+        return latestDisplayedAt == null
+            || latestAcceptedAt == null
+            || latestAcceptedAt.isAfter(latestDisplayedAt);
     }
 
     private String instantString(Instant instant) {

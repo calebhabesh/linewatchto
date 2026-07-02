@@ -377,6 +377,30 @@ export type PushDeliveryDiagnosticsResult = {
   message?: string;
 };
 
+export type PushDevice = {
+  id: string;
+  deviceLabel: string;
+  userAgent: string;
+  endpointHashPrefix: string;
+  enabled: boolean;
+  createdAt: string | null;
+  updatedAt: string | null;
+  lastSeenAt: string | null;
+  disabledAt: string | null;
+  lastAttemptAt: string | null;
+  lastAcceptedAt: string | null;
+  lastDisplayedAt: string | null;
+  acceptedWithoutDisplayCount: number;
+  deliveryHealth: "displayed" | "accepted-no-display" | "sent-no-display" | "registered" | "disabled" | string;
+  staleCandidate: boolean;
+};
+
+export type PushDevicesResult = {
+  source: "backend" | "unavailable";
+  devices: PushDevice[];
+  message?: string;
+};
+
 function apiUrl(path: string, options: AdapterOptions = {}) {
   return buildApiUrl(path, options.apiBaseUrl);
 }
@@ -642,6 +666,27 @@ export async function getPushDeliveryDiagnostics(options: AdapterOptions = {}): 
   }
 }
 
+export async function getPushDevices(options: AdapterOptions = {}): Promise<PushDevicesResult> {
+  try {
+    const fetcher = options.fetcher ?? fetch;
+    const response = await fetcher(apiUrl("/api/account/push/devices", options), {
+      method: "GET",
+      credentials: "include",
+    });
+    if (!response.ok) {
+      throw new Error(`Push devices request failed with ${response.status}`);
+    }
+    const body = await readJson<{ devices?: PushDevice[] }>(response);
+    return { source: "backend", devices: Array.isArray(body.devices) ? body.devices : [] };
+  } catch {
+    return {
+      source: "unavailable",
+      devices: [],
+      message: "Push devices are unavailable.",
+    };
+  }
+}
+
 export async function savePushSubscription(input: SavePushSubscriptionInput, options: AdapterOptions = {}) {
   return authJsonRequest<PushSubscriptionResponse>(
     "/api/account/push/subscription",
@@ -676,5 +721,16 @@ export async function disablePushSubscription(endpoint: string, options: Adapter
   });
   if (!response.ok) {
     throw new Error(`Disable push subscription failed with ${response.status}`);
+  }
+}
+
+export async function disablePushDevice(subscriptionId: string, options: AdapterOptions = {}) {
+  const fetcher = options.fetcher ?? fetch;
+  const response = await fetcher(apiUrl(`/api/account/push/devices/${encodeURIComponent(subscriptionId)}/disable`, options), {
+    method: "POST",
+    credentials: "include",
+  });
+  if (!response.ok) {
+    throw new Error(`Disable push device failed with ${response.status}`);
   }
 }

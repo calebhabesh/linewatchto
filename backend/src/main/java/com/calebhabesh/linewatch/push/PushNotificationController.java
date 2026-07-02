@@ -10,6 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -78,6 +79,24 @@ public class PushNotificationController {
     ) {
         AccountEntity account = accountService.requireAccount(rawSessionToken);
         return pushNotificationService.deliveryDiagnostics(account);
+    }
+
+    @GetMapping("/devices")
+    public PushResponses.PushDevicesResponse devices(
+        @CookieValue(name = AuthCookieFactory.COOKIE_NAME, required = false) String rawSessionToken
+    ) {
+        AccountEntity account = accountService.requireAccount(rawSessionToken);
+        return pushNotificationService.devices(account);
+    }
+
+    @PostMapping("/devices/{subscriptionId}/disable")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void disableDevice(
+        @CookieValue(name = AuthCookieFactory.COOKIE_NAME, required = false) String rawSessionToken,
+        @PathVariable String subscriptionId
+    ) {
+        AccountEntity account = accountService.requireAccount(rawSessionToken);
+        pushNotificationService.disableDevice(account, subscriptionId);
     }
 
     @PostMapping("/client-event")

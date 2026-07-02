@@ -3,9 +3,12 @@
 import { useCallback, useMemo, useState, type SyntheticEvent } from "react";
 import { Activity, ChevronDown, Loader2, RefreshCw } from "lucide-react";
 import {
+  disablePushDevice,
   getPushDeliveryDiagnostics,
+  getPushDevices,
   type AccountState,
   type PushDeliveryDiagnostic,
+  type PushDevice,
   type PushNotificationDiagnosticGroup,
 } from "../app/account-data";
 
@@ -72,28 +75,71 @@ function diagnosticDeviceLabel(delivery: PushDeliveryDiagnostic, duplicatedLabel
   return label;
 }
 
+function deviceHealthLabel(device: PushDevice) {
+  if (device.staleCandidate) {
+    return "No display ack";
+  }
+  switch (device.deliveryHealth) {
+    case "displayed":
+      return "Displaying";
+    case "accepted-no-display":
+      return "Accepted, no display";
+    case "sent-no-display":
+      return "Sent, no display";
+    case "registered":
+      return "Registered";
+    case "disabled":
+      return "Disabled";
+    default:
+      return device.deliveryHealth || "Unknown";
+  }
+}
+
 export function PushDeliveryDiagnosticsPanel({ accountState }: Props) {
   const [open, setOpen] = useState(false);
   const [diagnosticNotifications, setDiagnosticNotifications] = useState<PushNotificationDiagnosticGroup[]>([]);
+  const [pushDevices, setPushDevices] = useState<PushDevice[]>([]);
   const [selectedDeviceKey, setSelectedDeviceKey] = useState("all");
   const [diagnosticsState, setDiagnosticsState] = useState<DiagnosticsLoadState>("idle");
   const [diagnosticsMessage, setDiagnosticsMessage] = useState<string | null>(null);
+  const [deviceActionId, setDeviceActionId] = useState<string | null>(null);
+  const [deviceActionMessage, setDeviceActionMessage] = useState<string | null>(null);
 
   const loadDiagnostics = useCallback(async () => {
     if (!accountState.authenticated) {
       setDiagnosticNotifications([]);
+      setPushDevices([]);
       setSelectedDeviceKey("all");
       setDiagnosticsState("idle");
       setDiagnosticsMessage(null);
+      setDeviceActionMessage(null);
       return;
     }
 
     setDiagnosticsState("loading");
-    const result = await getPushDeliveryDiagnostics();
-    setDiagnosticNotifications(result.notifications);
-    setDiagnosticsState(result.source);
-    setDiagnosticsMessage(result.message ?? null);
+    const [diagnosticsResult, devicesResult] = await Promise.all([
+      getPushDeliveryDiagnostics(),
+      getPushDevices(),
+    ]);
+    setDiagnosticNotifications(diagnosticsResult.notifications);
+    setPushDevices(devicesResult.devices);
+    setDiagnosticsState(diagnosticsResult.source === "backend" || devicesResult.source === "backend" ? "backend" : "unavailable");
+    setDiagnosticsMessage(diagnosticsResult.message ?? devicesResult.message ?? null);
   }, [accountState.authenticated]);
+
+  const handleDisableDevice = useCallback(async (subscriptionId: string) => {
+    setDeviceActionId(subscriptionId);
+    setDeviceActionMessage(null);
+    try {
+      await disablePushDevice(subscriptionId);
+      setDeviceActionMessage("Device endpoint disabled.");
+      await loadDiagnostics();
+    } catch {
+      setDeviceActionMessage("Could not disable this endpoint.");
+    } finally {
+      setDeviceActionId(null);
+    }
+  }, [loadDiagnostics]);
 
   const handleToggle = useCallback((event: SyntheticEvent<HTMLDetailsElement>) => {
     const nextOpen = event.currentTarget.open;
@@ -139,8 +185,9 @@ export function PushDeliveryDiagnosticsPanel({ accountState }: Props) {
     if (diagnosticsState === "loading") return "Loading";
     if (diagnosticsState === "unavailable") return "Unavailable";
     if (diagnosticNotifications.length > 0) return `${diagnosticNotifications.length} Recent`;
+    if (pushDevices.length > 0) return `${pushDevices.length} Devices`;
     return "No Records";
-  }, [accountState.authenticated, diagnosticNotifications.length, diagnosticsState]);
+  }, [accountState.authenticated, diagnosticNotifications.length, diagnosticsState, pushDevices.length]);
 
   return (
     <details
@@ -179,6 +226,48 @@ export function PushDeliveryDiagnosticsPanel({ accountState }: Props) {
                 <RefreshCw size={15} className={diagnosticsState === "loading" ? "animate-spin" : ""} aria-hidden="true" />
               </button>
             </div>
+
+            {diagnosticsState !== "loading" && diagnosticsState !== "unavailable" ? (
+              <section className="push-devices-section" aria-label="Registered Devices">
+                <div className="push-devices-header">
+                  <strong>Registered Devices</strong>
+                  <span>Enabled endpoints tied to this account.</span>
+                </div>
+                {deviceActionMessage ? (
+                  <p className="push-diagnostics-note" role="status">{deviceActionMessage}</p>
+                ) : null}
+                {pushDevices.length === 0 ? (
+                  <p className="push-diagnostics-note">No enabled push devices registered.</p>
+                ) : (
+                  <div className="push-devices-list">
+                    {pushDevices.map((device) => (
+                      <div className={`push-device-row${device.staleCandidate ? " stale" : ""}`} key={device.id}>
+                        <div className="push-device-main">
+                          <div>
+                            <strong>{device.deviceLabel}</strong>
+                            <span>{device.endpointHashPrefix}</span>
+                          </div>
+                          <span className="push-device-health">{deviceHealthLabel(device)}</span>
+                        </div>
+                        <div className="push-device-meta">
+                          <span>Last seen {formatDiagnosticTimestamp(device.lastSeenAt)}</span>
+                          <span>Last display {formatDiagnosticTimestamp(device.lastDisplayedAt)}</span>
+                          <span>{device.acceptedWithoutDisplayCount} accepted without display</span>
+                        </div>
+                        <button
+                          type="button"
+                          className="push-device-disable"
+                          disabled={!device.enabled || deviceActionId === device.id}
+                          onClick={() => void handleDisableDevice(device.id)}
+                        >
+                          {deviceActionId === device.id ? "Disabling" : "Disable"}
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </section>
+            ) : null}
 
             {diagnosticsState === "loading" ? (
               <p className="push-diagnostics-note" role="status">

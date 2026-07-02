@@ -608,6 +608,180 @@ class PushNotificationServiceTest {
     }
 
     @Test
+    void devicesReturnsEnabledSubscriptionsWithDeliveryHealth() {
+        String androidEndpoint = "https://fcm.googleapis.com/fcm/send/android";
+        String androidEndpointHash = PushNotificationService.hashEndpoint(androidEndpoint);
+        String iosEndpoint = "https://webpush.push.apple.com/ios";
+        String iosEndpointHash = PushNotificationService.hashEndpoint(iosEndpoint);
+        PushSubscriptionEntity androidSubscription = PushSubscriptionEntity.create(
+            "push_subscription_android",
+            account,
+            androidEndpoint,
+            androidEndpointHash,
+            "p256dh-key",
+            "auth-secret",
+            "Chrome Android Pixel 6a",
+            Instant.parse("2026-06-05T14:30:00Z")
+        );
+        PushSubscriptionEntity iosSubscription = PushSubscriptionEntity.create(
+            "push_subscription_ios",
+            account,
+            iosEndpoint,
+            iosEndpointHash,
+            "p256dh-key",
+            "auth-secret",
+            "Mobile Safari iPhone",
+            Instant.parse("2026-06-05T13:30:00Z")
+        );
+        String staleAfterDisplayEndpoint = "https://webpush.push.apple.com/ios-restored";
+        String staleAfterDisplayEndpointHash = PushNotificationService.hashEndpoint(staleAfterDisplayEndpoint);
+        PushSubscriptionEntity staleAfterDisplaySubscription = PushSubscriptionEntity.create(
+            "push_subscription_ios_restored",
+            account,
+            staleAfterDisplayEndpoint,
+            staleAfterDisplayEndpointHash,
+            "p256dh-key",
+            "auth-secret",
+            "Mobile Safari iPhone",
+            Instant.parse("2026-06-05T12:30:00Z")
+        );
+        PushNotificationCandidate candidate = candidate(
+            null,
+            null,
+            "line-1",
+            "1",
+            "line-current",
+            "delay",
+            "on-change",
+            "line-current|line-1|delay|ttc-route-71299",
+            "user_1|line|line-1|delay|on-change|ttc-route-71299",
+            "Finch to Union",
+            null,
+            Instant.parse("2026-06-05T14:50:00Z"),
+            "/?panel=delays&impactKind=delay&impactId=ttc-route-71299"
+        );
+        PushNotificationEventEntity event = PushNotificationEventEntity.create(
+            "push_event_1",
+            candidate,
+            Instant.parse("2026-06-05T15:00:00Z")
+        );
+        PushNotificationDeliveryEntity androidDelivery = PushNotificationDeliveryEntity.create(
+            "push_delivery_android",
+            event,
+            androidSubscription,
+            PushDeliveryResult.accepted(202),
+            Instant.parse("2026-06-05T15:00:05Z")
+        );
+        androidDelivery.markDisplayed(Instant.parse("2026-06-05T15:00:07Z"));
+        PushNotificationDeliveryEntity iosDelivery = PushNotificationDeliveryEntity.create(
+            "push_delivery_ios",
+            event,
+            iosSubscription,
+            PushDeliveryResult.accepted(201),
+            Instant.parse("2026-06-05T15:00:06Z")
+        );
+        PushNotificationDeliveryEntity olderDisplayedDelivery = PushNotificationDeliveryEntity.create(
+            "push_delivery_ios_restored_old",
+            event,
+            staleAfterDisplaySubscription,
+            PushDeliveryResult.accepted(201),
+            Instant.parse("2026-06-05T13:00:06Z")
+        );
+        olderDisplayedDelivery.markDisplayed(Instant.parse("2026-06-05T13:00:09Z"));
+        PushNotificationDeliveryEntity newerUndisplayedDelivery = PushNotificationDeliveryEntity.create(
+            "push_delivery_ios_restored_new",
+            event,
+            staleAfterDisplaySubscription,
+            PushDeliveryResult.accepted(201),
+            Instant.parse("2026-06-05T15:05:06Z")
+        );
+
+        when(subscriptionRepository.findByAccountIdAndEnabledTrueOrderByUpdatedAtDesc("user_1"))
+            .thenReturn(List.of(androidSubscription, iosSubscription, staleAfterDisplaySubscription));
+        when(deliveryRepository.findTopBySubscription_IdOrderByCreatedAtDesc("push_subscription_android"))
+            .thenReturn(Optional.of(androidDelivery));
+        when(deliveryRepository.findTopBySubscription_IdAndStatusOrderByCreatedAtDesc("push_subscription_android", "accepted"))
+            .thenReturn(Optional.of(androidDelivery));
+        when(deliveryRepository.findTopBySubscription_IdAndDisplayedAtIsNotNullOrderByDisplayedAtDesc("push_subscription_android"))
+            .thenReturn(Optional.of(androidDelivery));
+        when(deliveryRepository.countBySubscription_IdAndStatusAndDisplayedAtIsNull("push_subscription_android", "accepted"))
+            .thenReturn(0L);
+        when(deliveryRepository.findTopBySubscription_IdOrderByCreatedAtDesc("push_subscription_ios"))
+            .thenReturn(Optional.of(iosDelivery));
+        when(deliveryRepository.findTopBySubscription_IdAndStatusOrderByCreatedAtDesc("push_subscription_ios", "accepted"))
+            .thenReturn(Optional.of(iosDelivery));
+        when(deliveryRepository.findTopBySubscription_IdAndDisplayedAtIsNotNullOrderByDisplayedAtDesc("push_subscription_ios"))
+            .thenReturn(Optional.empty());
+        when(deliveryRepository.countBySubscription_IdAndStatusAndDisplayedAtIsNull("push_subscription_ios", "accepted"))
+            .thenReturn(3L);
+        when(deliveryRepository.findTopBySubscription_IdOrderByCreatedAtDesc("push_subscription_ios_restored"))
+            .thenReturn(Optional.of(newerUndisplayedDelivery));
+        when(deliveryRepository.findTopBySubscription_IdAndStatusOrderByCreatedAtDesc("push_subscription_ios_restored", "accepted"))
+            .thenReturn(Optional.of(newerUndisplayedDelivery));
+        when(deliveryRepository.findTopBySubscription_IdAndDisplayedAtIsNotNullOrderByDisplayedAtDesc("push_subscription_ios_restored"))
+            .thenReturn(Optional.of(olderDisplayedDelivery));
+        when(deliveryRepository.countBySubscription_IdAndStatusAndDisplayedAtIsNull("push_subscription_ios_restored", "accepted"))
+            .thenReturn(2L);
+
+        PushResponses.PushDevicesResponse response = service.devices(account);
+
+        assertThat(response.devices()).hasSize(3);
+        PushResponses.PushDeviceResponse android = response.devices().get(0);
+        assertThat(android.id()).isEqualTo("push_subscription_android");
+        assertThat(android.deviceLabel()).isEqualTo("Android Chrome");
+        assertThat(android.endpointHashPrefix()).isEqualTo(androidEndpointHash.substring(0, 12));
+        assertThat(android.lastAttemptAt()).isEqualTo("2026-06-05T15:00:05Z");
+        assertThat(android.lastAcceptedAt()).isEqualTo("2026-06-05T15:00:05Z");
+        assertThat(android.lastDisplayedAt()).isEqualTo("2026-06-05T15:00:07Z");
+        assertThat(android.acceptedWithoutDisplayCount()).isZero();
+        assertThat(android.deliveryHealth()).isEqualTo("displayed");
+        assertThat(android.staleCandidate()).isFalse();
+
+        PushResponses.PushDeviceResponse ios = response.devices().get(1);
+        assertThat(ios.id()).isEqualTo("push_subscription_ios");
+        assertThat(ios.deviceLabel()).isEqualTo("iOS Safari");
+        assertThat(ios.endpointHashPrefix()).isEqualTo(iosEndpointHash.substring(0, 12));
+        assertThat(ios.lastAttemptAt()).isEqualTo("2026-06-05T15:00:06Z");
+        assertThat(ios.lastAcceptedAt()).isEqualTo("2026-06-05T15:00:06Z");
+        assertThat(ios.lastDisplayedAt()).isNull();
+        assertThat(ios.acceptedWithoutDisplayCount()).isEqualTo(3);
+        assertThat(ios.deliveryHealth()).isEqualTo("accepted-no-display");
+        assertThat(ios.staleCandidate()).isTrue();
+
+        PushResponses.PushDeviceResponse restoredIos = response.devices().get(2);
+        assertThat(restoredIos.id()).isEqualTo("push_subscription_ios_restored");
+        assertThat(restoredIos.lastDisplayedAt()).isEqualTo("2026-06-05T13:00:09Z");
+        assertThat(restoredIos.lastAcceptedAt()).isEqualTo("2026-06-05T15:05:06Z");
+        assertThat(restoredIos.acceptedWithoutDisplayCount()).isEqualTo(2);
+        assertThat(restoredIos.deliveryHealth()).isEqualTo("accepted-no-display");
+        assertThat(restoredIos.staleCandidate()).isTrue();
+    }
+
+    @Test
+    void disablesDeviceOnlyWhenItBelongsToAccount() {
+        PushSubscriptionEntity subscription = PushSubscriptionEntity.create(
+            "push_subscription_ios",
+            account,
+            "https://webpush.push.apple.com/ios",
+            PushNotificationService.hashEndpoint("https://webpush.push.apple.com/ios"),
+            "p256dh-key",
+            "auth-secret",
+            "Mobile Safari iPhone",
+            Instant.parse("2026-06-05T13:30:00Z")
+        );
+        when(subscriptionRepository.findByIdAndAccountId("push_subscription_ios", "user_1"))
+            .thenReturn(Optional.of(subscription));
+        when(subscriptionRepository.findByIdAndAccountId("push_subscription_other", "user_1"))
+            .thenReturn(Optional.empty());
+
+        service.disableDevice(account, "push_subscription_ios");
+        service.disableDevice(account, "push_subscription_other");
+
+        assertThat(subscription.isEnabled()).isFalse();
+        assertThat(subscription.getDisabledAt()).isEqualTo(clock.instant());
+    }
+
+    @Test
     void recordsClientEventForCurrentSubscriptionAndNotificationTag() {
         String endpoint = "https://fcm.googleapis.com/fcm/send/android";
         String endpointHash = PushNotificationService.hashEndpoint(endpoint);

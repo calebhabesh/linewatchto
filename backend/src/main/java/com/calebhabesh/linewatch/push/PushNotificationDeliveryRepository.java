@@ -10,6 +10,10 @@ import org.springframework.data.repository.query.Param;
 
 public interface PushNotificationDeliveryRepository extends JpaRepository<PushNotificationDeliveryEntity, String> {
     Optional<PushNotificationDeliveryEntity> findByEventIdAndSubscriptionId(String eventId, String subscriptionId);
+    Optional<PushNotificationDeliveryEntity> findTopBySubscription_IdOrderByCreatedAtDesc(String subscriptionId);
+    Optional<PushNotificationDeliveryEntity> findTopBySubscription_IdAndStatusOrderByCreatedAtDesc(String subscriptionId, String status);
+    Optional<PushNotificationDeliveryEntity> findTopBySubscription_IdAndDisplayedAtIsNotNullOrderByDisplayedAtDesc(String subscriptionId);
+    long countBySubscription_IdAndStatusAndDisplayedAtIsNull(String subscriptionId, String status);
 
     @Query("""
         select delivery

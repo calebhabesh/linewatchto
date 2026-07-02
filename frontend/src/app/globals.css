@@ -1422,7 +1422,7 @@ button {
   }
 
   .subway-closing-soon-copy strong {
-    font-size: 0.62rem !important;
+    font-size: 0.58rem !important;
     overflow: hidden !important;
     text-overflow: ellipsis !important;
     white-space: nowrap !important;
@@ -1431,7 +1431,7 @@ button {
   }
 
   .subway-closing-soon-copy small {
-    font-size: 0.58rem !important;
+    font-size: 0.54rem !important;
     white-space: normal !important;
     overflow: visible !important;
     text-overflow: clip !important;
@@ -1444,7 +1444,7 @@ button {
     align-items: center !important;
     gap: 0 3px !important;
     width: 100% !important;
-    margin-top: 4px !important;
+    margin-top: 1px !important;
   }
 
   .subway-closing-separator {
@@ -1459,6 +1459,12 @@ button {
     display: inline-block !important;
     max-width: 100% !important;
     text-align: left !important;
+  }
+
+  @media (max-width: 360px) {
+    .subway-closing-prefix {
+      display: none !important;
+    }
   }
 }
 

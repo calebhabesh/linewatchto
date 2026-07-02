@@ -65,7 +65,12 @@ describe("notification settings navigation", () => {
     assert.match(moreSheetSource, /PushDeliveryDiagnosticsPanel/);
     assert.match(diagnosticsPanelSource, /Notification Diagnostics/);
     assert.match(diagnosticsPanelSource, /getPushDeliveryDiagnostics/);
+    assert.match(diagnosticsPanelSource, /getPushDevices/);
+    assert.match(diagnosticsPanelSource, /disablePushDevice/);
     assert.match(diagnosticsPanelSource, /Recent Push Attempts/);
+    assert.match(diagnosticsPanelSource, /Registered Devices/);
+    assert.match(diagnosticsPanelSource, /acceptedWithoutDisplayCount/);
+    assert.match(diagnosticsPanelSource, /staleCandidate/);
     assert.match(diagnosticsPanelSource, /selectedDeviceKey/);
     assert.match(diagnosticsPanelSource, /diagnosticDeviceOptions/);
     assert.match(diagnosticsPanelSource, /notification\.attempts/);

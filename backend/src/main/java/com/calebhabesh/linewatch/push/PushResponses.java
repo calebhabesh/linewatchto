@@ -99,6 +99,28 @@ public final class PushResponses {
         boolean plannedClosureNotificationsEnabled
     ) {}
 
+    public record PushDeviceResponse(
+        String id,
+        String deviceLabel,
+        String userAgent,
+        String endpointHashPrefix,
+        boolean enabled,
+        String createdAt,
+        String updatedAt,
+        String lastSeenAt,
+        String disabledAt,
+        String lastAttemptAt,
+        String lastAcceptedAt,
+        String lastDisplayedAt,
+        int acceptedWithoutDisplayCount,
+        String deliveryHealth,
+        boolean staleCandidate
+    ) {}
+
+    public record PushDevicesResponse(
+        List<PushDeviceResponse> devices
+    ) {}
+
     public record PendingPushNotification(
         String title,
         String body,

@@ -6,11 +6,13 @@ import {
   AccountRequestError,
   confirmPasswordReset,
   createSavedCommute,
+  disablePushDevice,
   disablePushSubscription,
   getLatestPushNotificationForSubscription,
   getAuthConfig,
   getCurrentAccount,
   getPushDeliveryDiagnostics,
+  getPushDevices,
   getPushNotificationConfig,
   getSavedCommutes,
   googleAuthStartUrl,
@@ -636,6 +638,59 @@ describe("account data adapter", () => {
     assert.equal(requests[0].input, "/api/account/push/diagnostics");
     assert.equal(requests[0].init.method, "GET");
     assert.equal(requests[0].init.credentials, "include");
+  });
+
+  it("loads and disables account push devices by subscription id", async () => {
+    const requests = [];
+    const result = await getPushDevices({
+      fetcher: async (input, init) => {
+        requests.push({ input, init });
+        return new Response(
+          JSON.stringify({
+            devices: [
+              {
+                id: "push_subscription_ios",
+                deviceLabel: "iOS Safari",
+                userAgent: "Mobile Safari iPhone",
+                endpointHashPrefix: "606a0b3ed936",
+                enabled: true,
+                createdAt: "2026-07-01T12:00:00Z",
+                updatedAt: "2026-07-01T12:00:00Z",
+                lastSeenAt: "2026-07-01T12:00:00Z",
+                disabledAt: null,
+                lastAttemptAt: "2026-07-02T04:17:00Z",
+                lastAcceptedAt: "2026-07-02T04:17:00Z",
+                lastDisplayedAt: null,
+                acceptedWithoutDisplayCount: 3,
+                deliveryHealth: "accepted-no-display",
+                staleCandidate: true,
+              },
+            ],
+          }),
+          { status: 200, headers: { "content-type": "application/json" } }
+        );
+      },
+    });
+
+    await disablePushDevice("push_subscription_ios", {
+      fetcher: async (input, init) => {
+        requests.push({ input, init });
+        return new Response(null, { status: 204 });
+      },
+    });
+
+    assert.equal(result.source, "backend");
+    assert.equal(result.devices.length, 1);
+    assert.equal(result.devices[0].deviceLabel, "iOS Safari");
+    assert.equal(result.devices[0].endpointHashPrefix, "606a0b3ed936");
+    assert.equal(result.devices[0].deliveryHealth, "accepted-no-display");
+    assert.equal(result.devices[0].staleCandidate, true);
+    assert.equal(requests[0].input, "/api/account/push/devices");
+    assert.equal(requests[0].init.method, "GET");
+    assert.equal(requests[0].init.credentials, "include");
+    assert.equal(requests[1].input, "/api/account/push/devices/push_subscription_ios/disable");
+    assert.equal(requests[1].init.method, "POST");
+    assert.equal(requests[1].init.credentials, "include");
   });
 
   it("loads auth configuration", async () => {
