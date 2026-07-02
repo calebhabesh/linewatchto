@@ -1,6 +1,6 @@
 # Push Notification Identity Diagnostics Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Add first-class push `sourceIncidentKey` identity and grouped per-device diagnostics without changing Web Push display tags, retry policy, or notification eligibility.
 
@@ -72,7 +72,7 @@ Test:
 - Modify: `backend/src/main/java/com/calebhabesh/linewatch/push/LineSubscriptionPushPlanner.java`
 - Modify: `backend/src/main/java/com/calebhabesh/linewatch/push/SavedCommutePushPlanner.java`
 
-- [ ] **Step 1: Write failing planner assertions**
+- [x] **Step 1: Write failing planner assertions**
 
 Add assertions like:
 
@@ -88,7 +88,7 @@ assertThat(candidate.sourceIncidentKey()).isEqualTo("saved-commute-current|commu
 assertThat(candidate.notificationKey()).isEqualTo("saved-commute-current|commute_1|outbound|delay|delay-line-1");
 ```
 
-- [ ] **Step 2: Run focused backend planner tests and verify RED**
+- [x] **Step 2: Run focused backend planner tests and verify RED**
 
 Run:
 
@@ -98,7 +98,7 @@ mvn -f backend/pom.xml -Dtest=LineSubscriptionPushPlannerTest,SavedCommutePushPl
 
 Expected before implementation: compilation fails because `sourceIncidentKey()` does not exist.
 
-- [ ] **Step 3: Implement candidate and planner fields**
+- [x] **Step 3: Implement candidate and planner fields**
 
 Add `String sourceIncidentKey` to `PushNotificationCandidate` immediately before `notificationKey`.
 
@@ -119,7 +119,7 @@ String notificationKey = String.join("|", category, commute.getId(), legId, even
 
 Pass `sourceIncidentKey` to all `PushNotificationCandidate` constructors, including test helpers.
 
-- [ ] **Step 4: Run focused backend planner tests and verify GREEN**
+- [x] **Step 4: Run focused backend planner tests and verify GREEN**
 
 Run:
 
@@ -142,7 +142,7 @@ Expected after implementation: tests pass.
 - Modify: `backend/src/test/java/com/calebhabesh/linewatch/push/PushLineEventObservationServiceTest.java`
 - Modify: `backend/src/test/java/com/calebhabesh/linewatch/push/PushLineEventObservationSchemaMigrationTest.java`
 
-- [ ] **Step 1: Write failing observation test**
+- [x] **Step 1: Write failing observation test**
 
 Add a test proving a changed event type refreshes the same observation when `sourceIncidentKey` matches:
 
@@ -155,7 +155,7 @@ when(observationRepository.findByAccountIdAndSourceIncidentKeyAndClearedAtIsNull
 
 Assert `firstObserved()` is false, `shouldSendActive()` is false, and `existing.getNotificationKey()` updates to the delay variant.
 
-- [ ] **Step 2: Write failing migration assertions**
+- [x] **Step 2: Write failing migration assertions**
 
 Assert `V34__push_source_incident_keys.sql` contains:
 
@@ -167,7 +167,7 @@ idx_push_notification_events_source_incident
 idx_push_line_event_observations_source_incident_active
 ```
 
-- [ ] **Step 3: Run focused observation and migration tests and verify RED**
+- [x] **Step 3: Run focused observation and migration tests and verify RED**
 
 Run:
 
@@ -177,7 +177,7 @@ mvn -f backend/pom.xml -Dtest=PushLineEventObservationServiceTest,PushLineEventO
 
 Expected before implementation: repository method or migration assertions fail.
 
-- [ ] **Step 4: Implement persistence and repository changes**
+- [x] **Step 4: Implement persistence and repository changes**
 
 Migration `V34__push_source_incident_keys.sql` should:
 
@@ -204,7 +204,7 @@ Optional<PushLineEventObservationEntity> findByAccountIdAndSourceIncidentKeyAndC
 );
 ```
 
-- [ ] **Step 5: Run focused observation and migration tests and verify GREEN**
+- [x] **Step 5: Run focused observation and migration tests and verify GREEN**
 
 Run:
 
@@ -222,7 +222,7 @@ Expected after implementation: tests pass.
 - Modify: `backend/src/main/java/com/calebhabesh/linewatch/push/PushNotificationDispatchService.java`
 - Modify: `backend/src/test/java/com/calebhabesh/linewatch/push/PushNotificationDispatchServiceTest.java`
 
-- [ ] **Step 1: Write failing dispatch regression**
+- [x] **Step 1: Write failing dispatch regression**
 
 Change `doesNotSendLineObservationClearanceWhenSameSourceAlertChangesEventType` so the previous and current candidates share:
 
@@ -237,7 +237,7 @@ verify(eventRepository, never()).save(argThat(event -> "CLEARED".equals(event.ge
 verify(lineEventObservationService, never()).markCleared(previousObservation, clock.instant());
 ```
 
-- [ ] **Step 2: Run focused dispatch test and verify RED**
+- [x] **Step 2: Run focused dispatch test and verify RED**
 
 Run:
 
@@ -247,7 +247,7 @@ mvn -f backend/pom.xml -Dtest=PushNotificationDispatchServiceTest#doesNotSendLin
 
 Expected before implementation: the test fails because the dispatch service still clears the previous notification-key variant.
 
-- [ ] **Step 3: Implement source incident matching**
+- [x] **Step 3: Implement source incident matching**
 
 In `evaluateSavedCommuteNotifications()`, collect:
 
@@ -258,7 +258,7 @@ Set<String> savedCurrentSourceIncidentKeys = new HashSet<>();
 
 Use `candidate.sourceIncidentKey()` for active-presence checks. In clearance methods, skip clearing when the active event or observation source incident key is still current. Keep old equivalence checks only as fallback.
 
-- [ ] **Step 4: Run focused dispatch test and verify GREEN**
+- [x] **Step 4: Run focused dispatch test and verify GREEN**
 
 Run:
 
@@ -277,7 +277,7 @@ Expected after implementation: the regression passes.
 - Modify: `backend/src/main/java/com/calebhabesh/linewatch/push/PushNotificationService.java`
 - Modify: `backend/src/test/java/com/calebhabesh/linewatch/push/PushNotificationServiceTest.java`
 
-- [ ] **Step 1: Write failing grouped diagnostics test**
+- [x] **Step 1: Write failing grouped diagnostics test**
 
 Add or update a test so two deliveries for one event return one notification group:
 
@@ -291,7 +291,7 @@ assertThat(response.notifications().getFirst().attempts())
 assertThat(response.deliveries()).hasSize(2);
 ```
 
-- [ ] **Step 2: Run focused service diagnostics test and verify RED**
+- [x] **Step 2: Run focused service diagnostics test and verify RED**
 
 Run:
 
@@ -301,7 +301,7 @@ mvn -f backend/pom.xml -Dtest=PushNotificationServiceTest#deliveryDiagnosticsRet
 
 Expected before implementation: grouped `notifications()` does not exist.
 
-- [ ] **Step 3: Implement grouped response records**
+- [x] **Step 3: Implement grouped response records**
 
 Add:
 
@@ -335,11 +335,11 @@ public record PushDeliveryDiagnosticsResponse(
 }
 ```
 
-- [ ] **Step 4: Group deliveries by event id in the service**
+- [x] **Step 4: Group deliveries by event id in the service**
 
 Build flat rows as today, then group source delivery entities by `delivery.getEvent().getId()`. Sort groups and attempts by newest `lastAttemptAt`.
 
-- [ ] **Step 5: Run focused diagnostics test and verify GREEN**
+- [x] **Step 5: Run focused diagnostics test and verify GREEN**
 
 Run:
 
@@ -360,7 +360,7 @@ Expected after implementation: test passes.
 - Modify: `frontend/tests/account-data.test.mjs`
 - Modify: `frontend/tests/notification-settings-navigation.test.mjs`
 
-- [ ] **Step 1: Write failing account-data test**
+- [x] **Step 1: Write failing account-data test**
 
 Update the diagnostics fixture to return:
 
@@ -384,7 +384,7 @@ assert.equal(result.notifications.length, 1);
 assert.equal(result.notifications[0].sourceIncidentKey, "line-current|line-2|ttc-route-70610");
 ```
 
-- [ ] **Step 2: Write failing panel source assertions**
+- [x] **Step 2: Write failing panel source assertions**
 
 Assert `PushDeliveryDiagnosticsPanel.tsx` contains:
 
@@ -395,7 +395,7 @@ notification.attempts
 sourceIncidentKey
 ```
 
-- [ ] **Step 3: Run focused frontend tests and verify RED**
+- [x] **Step 3: Run focused frontend tests and verify RED**
 
 Run:
 
@@ -411,7 +411,7 @@ npm --prefix frontend run test:fixtures
 
 Expected before implementation: grouped diagnostics assertions fail.
 
-- [ ] **Step 4: Implement frontend grouped diagnostics**
+- [x] **Step 4: Implement frontend grouped diagnostics**
 
 Add `PushNotificationDiagnosticGroup` type with an `attempts: PushDeliveryDiagnostic[]` field.
 
@@ -426,7 +426,7 @@ In `getPushDeliveryDiagnostics()`, read both `notifications` and `deliveries`, a
 
 In `PushDeliveryDiagnosticsPanel`, render `diagnostics.notifications`, derive device options from attempts, and filter nested attempts by selected device key. Use `deviceLabel` plus `endpointHashPrefix` for duplicate labels.
 
-- [ ] **Step 5: Run focused frontend tests and verify GREEN**
+- [x] **Step 5: Run focused frontend tests and verify GREEN**
 
 Run:
 
@@ -443,11 +443,11 @@ Expected after implementation: fixture tests pass.
 **Files:**
 - Modify: `README.md`
 
-- [ ] **Step 1: Update README push diagnostics text**
+- [x] **Step 1: Update README push diagnostics text**
 
 Add text explaining that diagnostics are grouped by logical notification, one notification can fan out to multiple per-device attempts, accepted Apple/FCM responses are not display guarantees, and device filters distinguish Android Chrome from iOS Safari endpoint hashes.
 
-- [ ] **Step 2: Run backend verification**
+- [x] **Step 2: Run backend verification**
 
 Run:
 
@@ -457,7 +457,7 @@ mvn -f backend/pom.xml test
 
 Expected: all backend tests pass.
 
-- [ ] **Step 3: Run frontend verification**
+- [x] **Step 3: Run frontend verification**
 
 Run:
 
@@ -469,7 +469,7 @@ npm --prefix frontend run lint
 
 Expected: all frontend checks pass.
 
-- [ ] **Step 4: Run frontend build if diagnostics UI changes are substantial**
+- [x] **Step 4: Run frontend build if diagnostics UI changes are substantial**
 
 Run:
 
@@ -479,7 +479,7 @@ npm --prefix frontend run build
 
 Expected: build exits 0.
 
-- [ ] **Step 5: Review git diff**
+- [x] **Step 5: Review git diff**
 
 Run:
 
