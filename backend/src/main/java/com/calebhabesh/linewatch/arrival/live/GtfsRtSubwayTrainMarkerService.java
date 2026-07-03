@@ -14,6 +14,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
@@ -24,6 +25,7 @@ public class GtfsRtSubwayTrainMarkerService {
     private static final double MIN_PROGRESS = 0.08;
     private static final double MAX_PROGRESS = 0.92;
     private static final Duration PAST_TOLERANCE = Duration.ofSeconds(30);
+    private static final Duration MARKER_SNAPSHOT_TTL = Duration.ofSeconds(5);
     private static final String DISCLAIMER =
         "Estimated train markers are schematic placements inferred from TTC GTFS-RT trip updates and LineWatchTO topology. They are not physical train positions.";
 
@@ -32,20 +34,24 @@ public class GtfsRtSubwayTrainMarkerService {
     private final CommuteTravelTimeRepository travelTimeRepository;
     private final ArrivalProperties properties;
     private final Clock clock;
+    private final SubwayOperatingWindow operatingWindow;
     private volatile WeightSnapshot weightSnapshot = new WeightSnapshot("", Map.of());
+    private volatile MarkerSnapshotCache markerSnapshotCache = MarkerSnapshotCache.empty();
 
     public GtfsRtSubwayTrainMarkerService(
         GtfsRtSubwayArrivalCache cache,
         LineSegmentRepository lineSegmentRepository,
         CommuteTravelTimeRepository travelTimeRepository,
         ArrivalProperties properties,
-        Clock clock
+        Clock clock,
+        SubwayOperatingWindow operatingWindow
     ) {
         this.cache = cache;
         this.lineSegmentRepository = lineSegmentRepository;
         this.travelTimeRepository = travelTimeRepository;
         this.properties = properties;
         this.clock = clock;
+        this.operatingWindow = operatingWindow;
     }
 
     public EstimatedTrainMarkerSnapshot estimatedMarkers() {
@@ -56,6 +62,15 @@ public class GtfsRtSubwayTrainMarkerService {
             return EstimatedTrainMarkerSnapshot.unavailable(
                 source,
                 "Live GTFS-RT train markers are disabled.",
+                DISCLAIMER,
+                generatedAt
+            );
+        }
+
+        if (!operatingWindow.isOpen()) {
+            return EstimatedTrainMarkerSnapshot.unavailable(
+                source,
+                "Subway service is outside scheduled operating hours; estimated train markers are hidden until service resumes.",
                 DISCLAIMER,
                 generatedAt
             );
@@ -72,6 +87,35 @@ public class GtfsRtSubwayTrainMarkerService {
         }
 
         GtfsRtSubwayArrivalSnapshot snapshot = freshSnapshot.get();
+        MarkerSnapshotCache cached = markerSnapshotCache;
+        if (cached.matches(source, snapshot, generatedAt)) {
+            return cached.snapshot();
+        }
+
+        synchronized (this) {
+            cached = markerSnapshotCache;
+            if (cached.matches(source, snapshot, generatedAt)) {
+                return cached.snapshot();
+            }
+
+            EstimatedTrainMarkerSnapshot computed = computeMarkers(source, snapshot, generatedAt);
+            markerSnapshotCache = MarkerSnapshotCache.from(source, snapshot, generatedAt, computed);
+            return computed;
+        }
+    }
+
+    public void warmSegmentWeights() {
+        if (properties.getProvider() != ArrivalProperties.ProviderMode.LIVE) {
+            return;
+        }
+        segmentWeights();
+    }
+
+    private EstimatedTrainMarkerSnapshot computeMarkers(
+        String source,
+        GtfsRtSubwayArrivalSnapshot snapshot,
+        OffsetDateTime generatedAt
+    ) {
         List<LineSegmentEntity> segments = lineSegmentRepository.findAllByOrderBySortOrderAsc();
         Map<String, SegmentTravelTime> segmentWeights = segmentWeights();
 
@@ -322,4 +366,39 @@ public class GtfsRtSubwayTrainMarkerService {
         String signature,
         Map<String, SegmentTravelTime> weights
     ) {}
+
+    private record MarkerSnapshotCache(
+        String source,
+        OffsetDateTime feedCreatedAt,
+        OffsetDateTime indexedAt,
+        OffsetDateTime cachedAt,
+        EstimatedTrainMarkerSnapshot snapshot
+    ) {
+        static MarkerSnapshotCache empty() {
+            return new MarkerSnapshotCache("", null, null, OffsetDateTime.MIN, null);
+        }
+
+        static MarkerSnapshotCache from(
+            String source,
+            GtfsRtSubwayArrivalSnapshot arrivalSnapshot,
+            OffsetDateTime cachedAt,
+            EstimatedTrainMarkerSnapshot snapshot
+        ) {
+            return new MarkerSnapshotCache(
+                source,
+                arrivalSnapshot.feedCreatedAt(),
+                arrivalSnapshot.indexedAt(),
+                cachedAt,
+                snapshot
+            );
+        }
+
+        boolean matches(String source, GtfsRtSubwayArrivalSnapshot arrivalSnapshot, OffsetDateTime now) {
+            return snapshot != null
+                && Objects.equals(this.source, source)
+                && Objects.equals(feedCreatedAt, arrivalSnapshot.feedCreatedAt())
+                && Objects.equals(indexedAt, arrivalSnapshot.indexedAt())
+                && !cachedAt.plus(MARKER_SNAPSHOT_TTL).isBefore(now);
+        }
+    }
 }

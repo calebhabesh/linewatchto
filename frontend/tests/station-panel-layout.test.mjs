@@ -49,8 +49,9 @@ describe("station detail panel layout", () => {
     assert.match(panelSource, /hasArrivalCountdownTicker/);
     assert.doesNotMatch(panelSource, /hasLiveArrivalCountdown/);
     assert.match(panelSource, /window\.setInterval\(\(\) => setArrivalTick\(Date\.now\(\)\), 3000\)/);
-    assert.match(panelSource, /groupStationArrivals\(station\.arrivals, station\.lines, \{ stationId: station\.id \}\)/);
+    assert.match(panelSource, /includeEmptyDirections:\s*hasLiveArrivals/);
     assert.match(panelSource, /Refreshing Live Arrivals/);
+    assert.match(panelSource, /Waiting for live arrivals/);
     assert.match(panelSource, /detailedCountdown/);
     assert.match(panelSource, /data-arrival-source/);
     assert.match(panelSource, /arrivalSourceBadgeClassName/);

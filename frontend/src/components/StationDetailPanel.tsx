@@ -531,7 +531,10 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
             const hasLiveArrivals = station.arrivals.some((arrival) => arrival.status === "live");
             const arrivalGroups = hasUnavailableArrivals
               ? []
-              : groupStationArrivals(station.arrivals, station.lines, { stationId: station.id });
+              : groupStationArrivals(station.arrivals, station.lines, {
+                stationId: station.id,
+                includeEmptyDirections: hasLiveArrivals,
+              });
             const arrivalDisclaimer = formatArrivalDisclaimer(station.arrivals, station.disclaimer);
             const arrivalSectionClassName = [
               "rounded-lg border p-3 transition-colors",
@@ -603,6 +606,9 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
                     const showLineDivider = groupIndex > 0 && arrivalGroups[groupIndex - 1]?.lineId !== group.lineId;
                     const groupSourceLabel = formatArrivalSourceBadgeLabel(group.arrivals);
                     const groupSourceTitle = arrivalSourceTitle(group.arrivals);
+                    const groupEmptyMessage = hasLiveArrivals
+                      ? "Waiting for live arrivals"
+                      : "No Arrivals Available";
 
                     return (
                       <Fragment key={group.key}>
@@ -657,7 +663,11 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
                               {groupSourceLabel}
                             </span>
                           </div>
-                          {group.arrivals.length === 1 && group.arrivals[0].label.toLowerCase() === "no scheduled service" ? (
+                          {group.arrivals.length === 0 ? (
+                            <p className="mt-2 text-center text-xs font-semibold text-slate-500 dark:text-slate-400">
+                              {groupEmptyMessage}
+                            </p>
+                          ) : group.arrivals.length === 1 && group.arrivals[0].label.toLowerCase() === "no scheduled service" ? (
                             <p className="mt-2 text-center text-xs font-semibold text-slate-500 dark:text-slate-400">
                               No Scheduled Service
                             </p>

@@ -265,24 +265,24 @@ export function MobileMoreSheet({
             <Contrast size={18} className="text-slate-500 dark:text-slate-400" />
             High Contrast Mode
             <div className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ml-auto shrink-0 ${highContrast ? 'bg-blue-500' : 'bg-slate-300 dark:bg-slate-600'}`}>
-              <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${highContrast ? 'translate-x-4' : 'translate-x-1'}`} />
+              <span className={`absolute left-1 top-1 h-3 w-3 transform rounded-full bg-white transition-transform ${highContrast ? 'translate-x-4' : 'translate-x-0'}`} />
             </div>
           </button>
           <button type="button" className="mobile-more-row" aria-pressed={reducedMotion} onClick={onToggleReducedMotion}>
             <Pause size={18} className="text-slate-500 dark:text-slate-400" />
             Reduced Motion
             <div className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ml-auto shrink-0 ${reducedMotion ? 'bg-blue-500' : 'bg-slate-300 dark:bg-slate-600'}`}>
-              <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${reducedMotion ? 'translate-x-4' : 'translate-x-1'}`} />
+              <span className={`absolute left-1 top-1 h-3 w-3 transform rounded-full bg-white transition-transform ${reducedMotion ? 'translate-x-4' : 'translate-x-0'}`} />
             </div>
           </button>
           <button type="button" className="mobile-more-row" aria-pressed={estimatedTrainsEnabled} onClick={onToggleEstimatedTrains}>
             <Train size={18} className="text-slate-500 dark:text-slate-400" />
             <span className="mobile-more-install-copy">
-              <span>Live Train Locations</span>
+              <span>Estimated Train Markers</span>
               <span>{estimatedTrainStatusLabel}</span>
             </span>
             <div className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ml-auto shrink-0 ${estimatedTrainsEnabled ? 'bg-blue-500' : 'bg-slate-300 dark:bg-slate-600'}`}>
-              <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${estimatedTrainsEnabled ? 'translate-x-4' : 'translate-x-1'}`} />
+              <span className={`absolute left-1 top-1 h-3 w-3 transform rounded-full bg-white transition-transform ${estimatedTrainsEnabled ? 'translate-x-4' : 'translate-x-0'}`} />
             </div>
           </button>
         </div>

@@ -241,6 +241,28 @@ describe("station arrival grouping", () => {
     );
   });
 
+  it("builds empty platform groups for missing live arrival directions", () => {
+    const groups = groupStationArrivals([
+      {
+        lineId: "line-1",
+        direction: "Northbound",
+        minutes: 2,
+        predictedAt: "2026-07-03T10:27:00Z",
+        label: "2 min",
+        source: "TTC GTFS-RT subway trip updates",
+        status: "live",
+      },
+    ], [line1], { stationId: "st-andrew", includeEmptyDirections: true });
+
+    assert.deepEqual(
+      groups.map((group) => [group.directionLabel, group.arrivals.map((arrival) => arrival.label)]),
+      [
+        ["Northbound to Vaughan Metropolitan Centre", ["2 min"]],
+        ["Southbound to Finch", []],
+      ],
+    );
+  });
+
   it("marks due arrivals from the label or zero-minute schedule", () => {
     assert.equal(isArrivalDue({ label: "Due", minutes: 1, status: "scheduled" }), true);
     assert.equal(isArrivalDue({ label: "1 min", minutes: 0, status: "scheduled" }), true);

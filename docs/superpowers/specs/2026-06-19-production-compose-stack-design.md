@@ -4,7 +4,7 @@ Date: 2026-06-19
 
 ## Context
 
-LineWatchTO will run on one Oracle Cloud Always Free Ampere VPS with 2 OCPUs, 12 GB RAM, Ubuntu 24.04, and the `linewatchto.ca` domain. The repository currently has a local-only `docker-compose.yml` for PostgreSQL/PostGIS and Redis, a backend Dockerfile, and untracked draft production files for Caddy, Compose, frontend Docker, and VPS notes.
+LineWatchTO will run on one Oracle Cloud Always Free Ampere VPS with 4 OCPUs, 24 GB RAM, Ubuntu 24.04, and the `linewatchto.ca` domain. The repository currently has a local-only `docker-compose.yml` for PostgreSQL/PostGIS and Redis, a backend Dockerfile, and untracked draft production files for Caddy, Compose, frontend Docker, and VPS notes.
 
 The production target is a self-hosted app stack on the VPS. WireGuard remains host-level infrastructure so SSH can be closed to the public internet after the VPN path is verified.
 

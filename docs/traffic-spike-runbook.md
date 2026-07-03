@@ -88,6 +88,7 @@ Expression:
   "/api/dashboard"
   "/api/status"
   "/api/map"
+  "/api/trains"
   "/api/alerts"
   "/api/performance"
   "/api/accessibility-outages"
@@ -105,6 +106,79 @@ Cache key: include query string
 ```
 
 `/api/alerts?type=delay`, `/api/alerts?type=slowdown`, and `/api/alerts?type=planned` share the same path but must remain distinct by query string.
+
+## WAF And Rate Limiting Rules
+
+Create these Cloudflare rules after the cache rules are active. Cloudflare's dashboard currently places zone-level security rules under `Security > WAF`.
+
+Cloudflare Free may allow only one rate limiting rule in the `http_ratelimit` phase. If the dashboard reports a phase rule limit, use the single rate limiting rule for auth and feedback. Public dashboard APIs are lower risk because they are read-only and cacheable.
+
+### Rule 1: Rate Limit Auth And Feedback
+
+Go to `Security > WAF > Rate limiting rules`, select `Create rule`, and use:
+
+```text
+Rule name: LineWatchTO auth and feedback burst limit
+Expression:
+(starts_with(http.request.uri.path, "/api/auth/")) or
+(http.request.uri.path eq "/api/feedback")
+
+With the same characteristics: IP
+When rate exceeds: 5 requests / 10 seconds
+Action: Block
+Duration: 10 seconds, or the shortest available duration shown by the dashboard
+```
+
+Cloudflare Free may only offer `Block` for rate limiting rules and may only offer short mitigation durations such as 10 seconds. That is acceptable here: clients that continue bursting will continue tripping the rule, while legitimate users who accidentally retry too quickly are not blocked for long.
+
+### Optional Paid-Plan Rule: Rate Limit Public Dashboard APIs
+
+Create this as a second rate limiting rule only if the Cloudflare plan allows more than one rate limiting rule:
+
+```text
+Rule name: LineWatchTO public dashboard API burst limit
+Expression:
+(http.request.uri.path in {
+  "/api/dashboard"
+  "/api/status"
+  "/api/map"
+  "/api/trains"
+  "/api/alerts"
+  "/api/performance"
+  "/api/accessibility-outages"
+  "/api/surface-notices"
+})
+
+With the same characteristics: IP
+When rate exceeds: 30 requests / 10 seconds
+Action: Block
+Duration: 10 seconds, or the shortest available duration shown by the dashboard
+```
+
+Keep this rule separate from auth and feedback if the plan supports it. Do not combine the public dashboard APIs into the auth/feedback rule unless you intentionally accept a weaker auth threshold, because one Cloudflare rate limiting rule can only have one threshold. On Free, skip this rule and rely on Cloudflare cache rules, Caddy cache headers, Redis dashboard caching, and surge mode for public dashboard traffic.
+
+### Optional Supported-Plan Rule: Challenge Suspicious Auth And Feedback Traffic
+
+Cloudflare no longer supports `cf.threat_score` in new rules on some zones. On Cloudflare Free, skip this rule if the dashboard says threat score is unsupported. The built-in Cloudflare security layer still evaluates malicious traffic, and the single Free rate limiting rule above remains the required custom protection for auth and feedback.
+
+If the zone has Enterprise Bot Management, go to `Security > WAF > Custom rules`, select `Create rule`, and use:
+
+```text
+Rule name: LineWatchTO suspicious auth and feedback challenge
+Expression:
+(
+  (starts_with(http.request.uri.path, "/api/auth/")) or
+  (http.request.uri.path eq "/api/feedback")
+)
+and
+(
+  (cf.bot_management.score lt 30 and not cf.bot_management.verified_bot)
+)
+
+Action: Managed Challenge
+```
+
+Do not challenge all `/api/*` traffic by bot score. Some legitimate API-style requests come from browsers, service workers, push flows, health checks, or future automation; keep bot-sensitive rules scoped to auth and feedback unless Security Events show a wider attack. If neither `cf.threat_score` nor `cf.bot_management.score` is available, do not create a custom WAF rule just to satisfy this runbook.
 
 ## Surge Mode
 
@@ -145,6 +219,8 @@ Run twice for public API paths. The second request should usually be `HIT` or `R
 ```bash
 curl -I https://linewatchto.ca/api/dashboard
 curl -I https://linewatchto.ca/api/dashboard
+curl -I https://linewatchto.ca/api/trains
+curl -I https://linewatchto.ca/api/trains
 curl -I 'https://linewatchto.ca/api/alerts?type=delay'
 curl -I 'https://linewatchto.ca/api/alerts?type=delay'
 curl -I https://linewatchto.ca/assets/linewatch/ttc-subway-map-edited.svg
@@ -173,6 +249,14 @@ cache-control: no-store
 cf-cache-status: BYPASS, DYNAMIC, or MISS that does not become HIT
 ```
 
+Check the security rules without hammering production:
+
+```bash
+for i in $(seq 1 7); do curl -s -o /dev/null -w "%{http_code}\n" https://linewatchto.ca/api/auth/config; done
+```
+
+Expected: normal responses first, then Cloudflare challenge or block behavior after the configured threshold. Use `Security > Events` in Cloudflare to confirm the matching rule names and tune thresholds if legitimate traffic is challenged.
+
 ## Load Test
 
 Run load tests from a separate machine, not the VPS:
@@ -181,6 +265,7 @@ Run load tests from a separate machine, not the VPS:
 npx autocannon -c 100 -d 60 https://linewatchto.ca/
 npx autocannon -c 300 -d 120 https://linewatchto.ca/
 npx autocannon -c 300 -d 120 https://linewatchto.ca/api/dashboard
+npx autocannon -c 300 -d 120 https://linewatchto.ca/api/trains
 ```
 
 Watch Grafana:

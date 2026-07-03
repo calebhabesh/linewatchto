@@ -20,7 +20,7 @@
 	}
 
 	@linewatch_public_api_cache {
-		path /api/dashboard /api/status /api/map /api/alerts /api/performance /api/accessibility-outages /api/surface-notices
+		path /api/dashboard /api/status /api/map /api/trains /api/alerts /api/performance /api/accessibility-outages /api/surface-notices
 	}
 	header @linewatch_public_api_cache Cache-Control "public, max-age=15, s-maxage=30, stale-while-revalidate=30" {
 		defer

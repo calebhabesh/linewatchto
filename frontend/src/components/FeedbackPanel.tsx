@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ChevronLeft, ExternalLink, Send, X, MessageSquareText } from "lucide-react";
+import { ChevronLeft, Send, X, MessageSquareText } from "lucide-react";
 import { lineWatchAppVersionLabel } from "../app/app-build";
 import {
   FeedbackRequestError,

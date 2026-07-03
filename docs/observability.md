@@ -4,7 +4,7 @@ This document covers the monitoring, logging, metrics, and visitor analytics arc
 
 ## Architecture Overview
 
-Instead of running self-hosted Prometheus, Grafana, and Loki instances on our 2 OCPU / 12 GB Oracle VPS, the production server runs a lightweight **Grafana Alloy** collector. The collector scrapes application telemetry, host telemetry, database metrics, and container logs, forwarding them to a free-tier **Grafana Cloud** stack.
+Instead of running self-hosted Prometheus, Grafana, and Loki instances on our 4 OCPU / 24 GB Oracle VPS, the production server runs a lightweight **Grafana Alloy** collector. The collector scrapes application telemetry, host telemetry, database metrics, and container logs, forwarding them to a free-tier **Grafana Cloud** stack.
 
 ```
 Visitors

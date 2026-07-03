@@ -8,6 +8,7 @@ services:
   postgres:
     image: ${LINEWATCH_IMAGE_REGISTRY:-ghcr.io/calebhabesh}/linewatch-postgres:${LINEWATCH_IMAGE_TAG:?Set LINEWATCH_IMAGE_TAG in .env.release}
     restart: unless-stopped
+    mem_limit: 8g
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-linewatch}
       POSTGRES_USER: ${POSTGRES_USER:-linewatch}
@@ -26,6 +27,7 @@ services:
   redis:
     image: redis:7-alpine
     restart: unless-stopped
+    mem_limit: 1g
     command: ["redis-server", "--appendonly", "yes"]
     volumes:
       - redis_prod_data:/data
@@ -41,6 +43,7 @@ services:
   backend:
     image: ${LINEWATCH_IMAGE_REGISTRY:-ghcr.io/calebhabesh}/linewatch-backend:${LINEWATCH_IMAGE_TAG:?Set LINEWATCH_IMAGE_TAG in .env.release}
     restart: unless-stopped
+    mem_limit: 6g
     env_file:
       - ${LINEWATCH_PROD_ENV_FILE:-.env.production}
     environment:
@@ -70,6 +73,7 @@ services:
   frontend:
     image: ${LINEWATCH_IMAGE_REGISTRY:-ghcr.io/calebhabesh}/linewatch-frontend:${LINEWATCH_IMAGE_TAG:?Set LINEWATCH_IMAGE_TAG in .env.release}
     restart: unless-stopped
+    mem_limit: 1g
     environment:
       NODE_ENV: production
       PORT: 3000
@@ -96,6 +100,7 @@ services:
   caddy:
     image: caddy:2-alpine
     restart: unless-stopped
+    mem_limit: 512m
     ports:
       - "80:80"
       - "443:443"

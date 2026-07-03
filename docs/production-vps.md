@@ -8,7 +8,7 @@ Do not commit passwords, SMTP credentials, VAPID private keys, or WireGuard priv
 
 - Cloud provider: Oracle Cloud Infrastructure Always Free Tier with PAYG account.
 - Instance shape: `VM.Standard.A1.Flex` ARM64 Ampere.
-- Compute: 2 OCPUs and 12 GB RAM.
+- Compute: 4 OCPUs and 24 GB RAM.
 - Boot volume: 100 GB.
 - Operating system: Ubuntu 24.04 LTS aarch64.
 
@@ -69,6 +69,19 @@ Compose services:
 - `backend`: Spring Boot API on the private Compose network.
 - `postgres`: PostgreSQL 17 with PostGIS on a persistent volume.
 - `redis`: Redis 7 with append-only persistence on a persistent volume.
+
+Production Compose sets memory ceilings for the always-on services so a leak or runaway query cannot consume the full 24 GB host. Current caps are:
+
+```text
+postgres: 8 GB
+backend: 6 GB
+frontend: 1 GB
+redis: 1 GB
+caddy: 512 MB
+alloy: 512 MB, only when the observability profile is enabled
+```
+
+The backend JVM heap remains capped separately by `JAVA_TOOL_OPTIONS=-Xmx4g`; the backend container limit includes JVM native memory, metaspace, thread stacks, and process overhead. The caps intentionally leave several GB for Ubuntu, Docker, kernel memory, filesystem cache, WireGuard, deploys, backups, and temporary burst overhead.
 
 Production application images are built on the development server, published as ARM64 GHCR images, and selected on the VPS through `.env.release`. The VPS never runs `docker compose build` or `up --build`.
 

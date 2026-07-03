@@ -722,7 +722,7 @@ Do not commit actual passwords, database credentials, SMTP credentials, VAPID pr
 
 - **Cloud Provider:** Oracle Cloud Infrastructure Always Free Tier with PAYG account.
 - **Instance Shape:** `VM.Standard.A1.Flex`.
-- **Compute Resources:** 2 OCPUs, 12 GB RAM.
+- **Compute Resources:** 4 OCPUs, 24 GB RAM.
 - **Boot Volume:** 100 GB.
 - **Operating System:** Ubuntu 24.04 LTS aarch64.
 

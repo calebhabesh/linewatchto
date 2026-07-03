@@ -359,17 +359,21 @@ describe("asset-backed map layering", () => {
     assert.match(globalCss, /\.station-hit-target\.multi-anchor:hover/);
   });
 
-  it("keeps estimated train markers opt-in and independently polled", () => {
+  it("keeps estimated train markers opt-in and suppresses them while subway is closed", () => {
     const shellSource = readFileSync(new URL("../src/components/LineWatchShell.tsx", import.meta.url), "utf8");
     const moreSheetSource = readFileSync(new URL("../src/components/MobileMoreSheet.tsx", import.meta.url), "utf8");
 
     assert.match(shellSource, /linewatch-estimated-trains-enabled-v1/);
     assert.match(shellSource, /getEstimatedTrainMarkers/);
     assert.match(shellSource, /estimatedTrainMarkerRefreshMs/);
-    assert.match(shellSource, /estimatedTrainsEnabled=\{estimatedTrainsEnabled\}/);
-    assert.match(shellSource, /estimatedTrainMarkers=\{estimatedTrainSnapshot\.markers\}/);
-    assert.match(moreSheetSource, /Live Train Locations/);
-    assert.match(moreSheetSource, /aria-pressed=\{estimatedTrainsEnabled\}/);
+    assert.match(shellSource, /const estimatedTrainMarkersVisible = estimatedTrainsEnabled && subwayOperatingState\.status === "open";/);
+    assert.match(shellSource, /if \(!estimatedTrainMarkersVisible \|\| document\.visibilityState !== "visible"\)/);
+    assert.match(shellSource, /estimatedTrainsEnabled=\{estimatedTrainMarkersVisible\}/);
+    assert.match(shellSource, /estimatedTrainMarkers=\{estimatedTrainMarkersVisible \? estimatedTrainSnapshot\.markers : \[\]\}/);
+    assert.match(shellSource, /Estimated Train Markers/);
+    assert.match(moreSheetSource, /Estimated Train Markers/);
+    assert.doesNotMatch(shellSource, /Live Train Locations/);
+    assert.doesNotMatch(moreSheetSource, /Live Train Locations/);
   });
 
   it("renders estimated train markers above station dots with directional high-contrast styling", () => {

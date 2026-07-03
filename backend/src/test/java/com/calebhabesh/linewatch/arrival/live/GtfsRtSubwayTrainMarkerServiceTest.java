@@ -2,6 +2,9 @@ package com.calebhabesh.linewatch.arrival.live;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.calebhabesh.linewatch.arrival.ArrivalProperties;
@@ -39,7 +42,8 @@ class GtfsRtSubwayTrainMarkerServiceTest {
             lineSegmentRepository,
             travelTimeRepository,
             properties,
-            CLOCK
+            CLOCK,
+            new SubwayOperatingWindow(CLOCK)
         );
     }
 
@@ -103,6 +107,112 @@ class GtfsRtSubwayTrainMarkerServiceTest {
         assertThat(snapshot.fresh()).isFalse();
         assertThat(snapshot.markers()).isEmpty();
         assertThat(snapshot.message()).isEqualTo("Live GTFS-RT train markers are disabled.");
+    }
+
+    @Test
+    void returnsNoMarkersWhileSubwayOperatingWindowIsClosed() {
+        Clock closedClock = Clock.fixed(Instant.parse("2026-07-03T06:20:00Z"), ZoneOffset.UTC);
+        GtfsRtSubwayArrivalCache closedCache = new GtfsRtSubwayArrivalCache(properties, closedClock);
+        OffsetDateTime now = OffsetDateTime.now(closedClock);
+        closedCache.replace(new GtfsRtSubwayArrivalSnapshot(now.minusSeconds(10), now.minusSeconds(8), List.of(
+            new GtfsRtSubwayStationArrival(
+                "bay",
+                "line-2",
+                "Eastbound",
+                now.plusSeconds(80),
+                null,
+                "232",
+                "126789",
+                "13753",
+                19,
+                16
+            )
+        )));
+        GtfsRtSubwayTrainMarkerService closedService = new GtfsRtSubwayTrainMarkerService(
+            closedCache,
+            lineSegmentRepository,
+            travelTimeRepository,
+            properties,
+            closedClock,
+            new SubwayOperatingWindow(closedClock)
+        );
+
+        EstimatedTrainMarkerSnapshot snapshot = closedService.estimatedMarkers();
+
+        assertThat(snapshot.fresh()).isFalse();
+        assertThat(snapshot.markers()).isEmpty();
+        assertThat(snapshot.message()).isEqualTo(
+            "Subway service is outside scheduled operating hours; estimated train markers are hidden until service resumes."
+        );
+        verifyNoInteractions(lineSegmentRepository, travelTimeRepository);
+    }
+
+    @Test
+    void reusesComputedMarkerSnapshotForRepeatedRequestsWithinShortWindow() {
+        OffsetDateTime now = OffsetDateTime.now(CLOCK);
+        cache.replace(new GtfsRtSubwayArrivalSnapshot(now.minusSeconds(10), now.minusSeconds(8), List.of(
+            new GtfsRtSubwayStationArrival(
+                "bay",
+                "line-2",
+                "Eastbound",
+                now.plusSeconds(80),
+                null,
+                "232",
+                "126789",
+                "13753",
+                19,
+                16
+            )
+        )));
+        when(lineSegmentRepository.findAllByOrderBySortOrderAsc()).thenReturn(List.of(
+            segment("line-2-st-george-bay", "line-2", "st-george", "bay", 315, "eastbound")
+        ));
+        when(travelTimeRepository.activeScheduleSignature()).thenReturn("active-import-42");
+        when(travelTimeRepository.findActiveScheduledSegmentWeights()).thenReturn(Map.of(
+            "line-2-st-george-bay",
+            new CommuteTravelTimeRepository.SegmentTravelTime("line-2-st-george-bay", 120, 25, CommuteTravelTimeRepository.GTFS_SOURCE)
+        ));
+        when(travelTimeRepository.findSeededFallbackSegmentWeights()).thenReturn(Map.of());
+
+        EstimatedTrainMarkerSnapshot first = service.estimatedMarkers();
+        EstimatedTrainMarkerSnapshot second = service.estimatedMarkers();
+
+        assertThat(first.markers()).hasSize(1);
+        assertThat(second.markers()).isEqualTo(first.markers());
+        verify(lineSegmentRepository, times(1)).findAllByOrderBySortOrderAsc();
+        verify(travelTimeRepository, times(1)).activeScheduleSignature();
+        verify(travelTimeRepository, times(1)).findSeededFallbackSegmentWeights();
+        verify(travelTimeRepository, times(1)).findActiveScheduledSegmentWeights();
+    }
+
+    @Test
+    void recomputesMarkerSnapshotWhenLiveFeedTimestampChanges() {
+        OffsetDateTime now = OffsetDateTime.now(CLOCK);
+        when(lineSegmentRepository.findAllByOrderBySortOrderAsc()).thenReturn(List.of(
+            segment("line-2-st-george-bay", "line-2", "st-george", "bay", 315, "eastbound")
+        ));
+        when(travelTimeRepository.activeScheduleSignature()).thenReturn("active-import-42");
+        when(travelTimeRepository.findSeededFallbackSegmentWeights()).thenReturn(Map.of());
+        when(travelTimeRepository.findActiveScheduledSegmentWeights()).thenReturn(Map.of(
+            "line-2-st-george-bay",
+            new CommuteTravelTimeRepository.SegmentTravelTime("line-2-st-george-bay", 120, 25, CommuteTravelTimeRepository.GTFS_SOURCE)
+        ));
+        cache.replace(new GtfsRtSubwayArrivalSnapshot(now.minusSeconds(20), now.minusSeconds(18), List.of(
+            new GtfsRtSubwayStationArrival("bay", "line-2", "Eastbound", now.plusSeconds(80), "232", "trip-a", "13753")
+        )));
+
+        EstimatedTrainMarkerSnapshot first = service.estimatedMarkers();
+        cache.replace(new GtfsRtSubwayArrivalSnapshot(now.minusSeconds(10), now.minusSeconds(8), List.of(
+            new GtfsRtSubwayStationArrival("bay", "line-2", "Eastbound", now.plusSeconds(60), "233", "trip-b", "13753")
+        )));
+        EstimatedTrainMarkerSnapshot second = service.estimatedMarkers();
+
+        assertThat(first.markers()).singleElement().extracting(EstimatedTrainMarker::vehicleId).isEqualTo("232");
+        assertThat(second.markers()).singleElement().extracting(EstimatedTrainMarker::vehicleId).isEqualTo("233");
+        verify(lineSegmentRepository, times(2)).findAllByOrderBySortOrderAsc();
+        verify(travelTimeRepository, times(2)).activeScheduleSignature();
+        verify(travelTimeRepository, times(1)).findSeededFallbackSegmentWeights();
+        verify(travelTimeRepository, times(1)).findActiveScheduledSegmentWeights();
     }
 
     @Test
@@ -172,6 +282,21 @@ class GtfsRtSubwayTrainMarkerServiceTest {
             assertThat(marker.nextStationId()).isEqualTo("union");
             assertThat(marker.travelDirection()).isEqualTo("forward");
         });
+    }
+
+    @Test
+    void warmsSegmentWeightsWithoutComputingMarkers() {
+        when(travelTimeRepository.activeScheduleSignature()).thenReturn("active-import-42");
+        when(travelTimeRepository.findActiveScheduledSegmentWeights()).thenReturn(Map.of());
+        when(travelTimeRepository.findSeededFallbackSegmentWeights()).thenReturn(Map.of());
+
+        service.warmSegmentWeights();
+        service.warmSegmentWeights();
+
+        verifyNoInteractions(lineSegmentRepository);
+        verify(travelTimeRepository, times(2)).activeScheduleSignature();
+        verify(travelTimeRepository, times(1)).findSeededFallbackSegmentWeights();
+        verify(travelTimeRepository, times(1)).findActiveScheduledSegmentWeights();
     }
 
     private LineSegmentEntity segment(String id, String lineId, String stationAId, String stationBId, int sortOrder, String forwardDirection) {

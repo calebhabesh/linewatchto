@@ -11,6 +11,7 @@ type ArrivalTileLabelOptions = {
 type GroupStationArrivalsOptions = {
   stationId?: string;
   maxArrivalsPerDirection?: number;
+  includeEmptyDirections?: boolean;
 };
 
 export type StationArrivalGroup = {
@@ -127,6 +128,7 @@ export function groupStationArrivals(
   const maxArrivalsPerDirection = typeof options === "number"
     ? options
     : options.maxArrivalsPerDirection ?? 3;
+  const includeEmptyDirections = typeof options !== "number" && options.includeEmptyDirections === true;
   const linesById = new Map(lines.map((line, index) => [line.id, { line, index }]));
   const groups = new Map<string, StationArrivalGroup>();
 
@@ -147,6 +149,26 @@ export function groupStationArrivals(
     groups.set(key, group);
   }
 
+  if (includeEmptyDirections) {
+    for (const [lineIndex, line] of lines.entries()) {
+      for (const direction of platformDirections(line.platformLabel)) {
+        const directionLabel = formatArrivalDirection({ lineId: line.id, direction }, line, stationId);
+        const key = `${line.id}:${directionLabel}`;
+        if (!groups.has(key)) {
+          groups.set(key, {
+            key,
+            line,
+            lineId: line.id,
+            lineNumber: line.number,
+            directionLabel,
+            arrivals: [],
+          });
+        }
+      }
+      linesById.set(line.id, { line, index: lineIndex });
+    }
+  }
+
   return [...groups.values()]
     .map((group) => ({
       ...group,
@@ -164,7 +186,7 @@ export function groupStationArrivals(
       const directionB = directionRank(b.directionLabel);
       if (directionA !== directionB) return directionA - directionB;
 
-      return compareArrivals(a.arrivals[0], b.arrivals[0]);
+      return compareOptionalArrivals(a.arrivals[0], b.arrivals[0]);
     });
 }
 
@@ -357,6 +379,13 @@ function compareArrivals(a: StationArrival, b: StationArrival): number {
   return a.direction.localeCompare(b.direction);
 }
 
+function compareOptionalArrivals(a: StationArrival | undefined, b: StationArrival | undefined): number {
+  if (!a && !b) return 0;
+  if (!a) return 1;
+  if (!b) return -1;
+  return compareArrivals(a, b);
+}
+
 function uniqueArrival(arrival: StationArrival, index: number, arrivals: StationArrival[]): boolean {
   return arrivals.findIndex((candidate) => arrivalIdentity(candidate) === arrivalIdentity(arrival)) === index;
 }
@@ -417,6 +446,11 @@ function singlePlatformDirection(platformLabel: string): string {
   const matches = platformLabel.match(/\b(Northbound|Southbound|Eastbound|Westbound)\b/gi) ?? [];
   const uniqueDirections = new Set(matches.map(titleCase));
   return uniqueDirections.size === 1 ? [...uniqueDirections][0] : "";
+}
+
+function platformDirections(platformLabel: string): string[] {
+  const matches = platformLabel.match(/\b(Northbound|Southbound|Eastbound|Westbound)\b/gi) ?? [];
+  return [...new Set(matches.map(titleCase))];
 }
 
 function line1CardinalDirection(stationId: string | undefined, normalizedDestination: string): string {

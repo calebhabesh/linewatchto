@@ -4,6 +4,8 @@ import { readFileSync } from "node:fs";
 
 const prodCaddyfile = readFileSync(new URL("../../Caddyfile", import.meta.url), "utf8");
 const stagingCaddyfile = readFileSync(new URL("../../Caddyfile.staging", import.meta.url), "utf8");
+const awsLabCaddyfile = readFileSync(new URL("../../Caddyfile.aws-lab", import.meta.url), "utf8");
+const trafficSpikeRunbook = readFileSync(new URL("../../docs/traffic-spike-runbook.md", import.meta.url), "utf8");
 
 function assertCachePolicy(source, label) {
   assert.match(source, /\(linewatch_cache_headers\)/, `${label} should define reusable cache headers`);
@@ -12,6 +14,7 @@ function assertCachePolicy(source, label) {
   assert.match(source, /\/assets\/\*/, `${label} should cache public assets`);
   assert.match(source, /@linewatch_public_api_cache/, `${label} should define public API cache matcher`);
   assert.match(source, /\/api\/dashboard/, `${label} should cache aggregate dashboard endpoint`);
+  assert.match(source, /\/api\/trains/, `${label} should cache public train marker endpoint`);
   assert.match(source, /\/api\/alerts/, `${label} should cache public alert endpoint`);
   assert.match(source, /s-maxage=30/, `${label} should expose a short shared-cache TTL`);
   assert.match(source, /@linewatch_private_api_no_store/, `${label} should define private API no-store matcher`);
@@ -28,5 +31,15 @@ describe("Caddy cache headers", () => {
 
   it("sets matching public and private cache headers in staging", () => {
     assertCachePolicy(stagingCaddyfile, "Caddyfile.staging");
+  });
+
+  it("sets matching public and private cache headers in aws lab", () => {
+    assertCachePolicy(awsLabCaddyfile, "Caddyfile.aws-lab");
+  });
+
+  it("documents train markers as a cacheable public dashboard API", () => {
+    assert.match(trafficSpikeRunbook, /"\/api\/trains"/, "runbook should include train markers in cache rules");
+    assert.match(trafficSpikeRunbook, /curl -I https:\/\/linewatchto\.ca\/api\/trains/, "runbook should verify train marker cache headers");
+    assert.match(trafficSpikeRunbook, /autocannon .*https:\/\/linewatchto\.ca\/api\/trains/, "runbook should load-test train markers");
   });
 });

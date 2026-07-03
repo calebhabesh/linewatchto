@@ -191,6 +191,8 @@ export function LineWatchShell({
   const [pwaEngagementSignal, setPwaEngagementSignal] = useState(0);
   const [estimatedTrainsEnabled, setEstimatedTrainsEnabled] = useState(false);
   const [estimatedTrainSnapshot, setEstimatedTrainSnapshot] = useState<EstimatedTrainSnapshot>(EMPTY_ESTIMATED_TRAIN_SNAPSHOT);
+  const subwayOperatingState = useSubwayOperatingState();
+  const estimatedTrainMarkersVisible = estimatedTrainsEnabled && subwayOperatingState.status === "open";
 
   const recordPwaInstallEngagement = useCallback(() => {
     if (!isMobile) return;
@@ -216,17 +218,16 @@ export function LineWatchShell({
     let intervalId: number | null = null;
 
     const refresh = async () => {
-      if (!estimatedTrainsEnabled || document.visibilityState !== "visible") {
+      if (!estimatedTrainMarkersVisible || document.visibilityState !== "visible") {
         return;
       }
       const result = await getEstimatedTrainMarkers();
       if (!cancelled) {
-        // eslint-disable-next-line react-hooks/set-state-in-effect
         setEstimatedTrainSnapshot(result.data);
       }
     };
 
-    if (estimatedTrainsEnabled) {
+    if (estimatedTrainMarkersVisible) {
       refresh();
       intervalId = window.setInterval(refresh, estimatedTrainMarkerRefreshMs());
     } else {
@@ -240,7 +241,7 @@ export function LineWatchShell({
         window.clearInterval(intervalId);
       }
     };
-  }, [estimatedTrainsEnabled]);
+  }, [estimatedTrainMarkersVisible]);
 
 
   useEffect(() => {
@@ -325,7 +326,6 @@ export function LineWatchShell({
   const clock = useTorontoClock(generatedAt.time);
   const [recenterSignal, setRecenterSignal] = useState(0);
 
-  const subwayOperatingState = useSubwayOperatingState();
   const [closedMapPeek, setClosedMapPeek] = useState(false);
   const [legendExpanded, setLegendExpanded] = useState(false);
   const [guideOpen, setGuideOpen] = useState(false);
@@ -428,11 +428,13 @@ export function LineWatchShell({
     pushSettings.subscribed,
   ]);
 
-  const estimatedTrainStatusLabel = estimatedTrainsEnabled
-    ? estimatedTrainSnapshot.fresh
-      ? `${estimatedTrainSnapshot.markers.length} shown`
-      : "Waiting"
-    : "Off";
+  const estimatedTrainStatusLabel = subwayOperatingState.status === "closed"
+    ? "Closed"
+    : estimatedTrainsEnabled
+      ? estimatedTrainSnapshot.fresh
+        ? `${estimatedTrainSnapshot.markers.length} shown`
+        : "Waiting"
+      : "Off";
 
   const notificationSummary = useMemo(() => {
     const tone: "on" | "off" | "unavailable" =
@@ -2225,7 +2227,7 @@ export function LineWatchShell({
                       onClick={() => setHighContrast(!highContrast)}
                       className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${highContrast ? 'bg-blue-500' : 'bg-slate-300 dark:bg-slate-600'}`}
                    >
-                     <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${highContrast ? 'translate-x-4' : 'translate-x-1'}`} />
+                     <span className={`absolute left-1 top-1 h-3 w-3 transform rounded-full bg-white transition-transform ${highContrast ? 'translate-x-4' : 'translate-x-0'}`} />
                    </button>
                  </div>
                  <div className="flex items-center justify-between px-3 py-2.5">
@@ -2240,23 +2242,27 @@ export function LineWatchShell({
                       onClick={() => setReducedMotion(!reducedMotion)}
                       className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${reducedMotion ? 'bg-blue-500' : 'bg-slate-300 dark:bg-slate-600'}`}
                    >
-                     <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${reducedMotion ? 'translate-x-4' : 'translate-x-1'}`} />
+                     <span className={`absolute left-1 top-1 h-3 w-3 transform rounded-full bg-white transition-transform ${reducedMotion ? 'translate-x-4' : 'translate-x-0'}`} />
                    </button>
                  </div>
                  <div className="flex items-center justify-between px-3 py-2.5">
-                   <span className="text-sm font-medium text-slate-700 dark:text-slate-200 flex items-center gap-3">
-                     <Train size={18} className="text-slate-500 dark:text-slate-400" /> Live Train Locations
-                   </span>
-                   <button
-                      ref={registerMenuAction(actionIndex++)}
-                      role="menuitemcheckbox"
-                      aria-checked={estimatedTrainsEnabled}
-                      aria-label="Toggle live train locations"
-                      onClick={() => setEstimatedTrainsEnabled(!estimatedTrainsEnabled)}
-                      className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${estimatedTrainsEnabled ? 'bg-blue-500' : 'bg-slate-300 dark:bg-slate-600'}`}
-                   >
-                     <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${estimatedTrainsEnabled ? 'translate-x-4' : 'translate-x-1'}`} />
-                   </button>
+                    <span className="text-sm font-medium text-slate-700 dark:text-slate-200 flex items-center gap-3">
+                      <Train size={18} className="text-slate-500 dark:text-slate-400" />
+                      <span className="flex flex-col leading-tight">
+                        <span>Estimated Train Markers</span>
+                        <span className="text-xs font-normal text-slate-500 dark:text-slate-400">{estimatedTrainStatusLabel}</span>
+                      </span>
+                    </span>
+                    <button
+                       ref={registerMenuAction(actionIndex++)}
+                       role="menuitemcheckbox"
+                       aria-checked={estimatedTrainsEnabled}
+                       aria-label="Toggle estimated train markers"
+                       onClick={() => setEstimatedTrainsEnabled(!estimatedTrainsEnabled)}
+                       className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${estimatedTrainsEnabled ? 'bg-blue-500' : 'bg-slate-300 dark:bg-slate-600'}`}
+                    >
+                      <span className={`absolute left-1 top-1 h-3 w-3 transform rounded-full bg-white transition-transform ${estimatedTrainsEnabled ? 'translate-x-4' : 'translate-x-0'}`} />
+                    </button>
                  </div>
                </div>
 
@@ -2412,8 +2418,8 @@ export function LineWatchShell({
           commutePathPreview={commutePathPreview}
           onClearCommutePathPreview={handleClearCommutePathPreview}
           viewportOrientation={rotatedMapMode ? "rotated-landscape" : "standard"}
-          estimatedTrainsEnabled={estimatedTrainsEnabled}
-          estimatedTrainMarkers={estimatedTrainSnapshot.markers}
+          estimatedTrainsEnabled={estimatedTrainMarkersVisible}
+          estimatedTrainMarkers={estimatedTrainMarkersVisible ? estimatedTrainSnapshot.markers : []}
         />
 
         {subwayOperatingState.status === "closed" && closedMapPeek ? (

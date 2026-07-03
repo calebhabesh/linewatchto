@@ -156,6 +156,51 @@ class GtfsRtSubwayArrivalIndexerTest {
     }
 
     @Test
+    void fillsMissingStAndrewSouthboundWhenTtcGtfsRtSkipsThePlatformStop() {
+        GtfsRtSubwayArrivalIndexer indexer = new GtfsRtSubwayArrivalIndexer(repository, lineSegmentRepository);
+        OffsetDateTime feedCreatedAt = epoch(1782987933);
+        GtfsRtSubwayTripUpdateFeed feed = new GtfsRtSubwayTripUpdateFeed(feedCreatedAt, List.of(
+            new GtfsRtSubwayTripUpdate(
+                "subway-131599737|South",
+                "131599737",
+                "1",
+                "line-1",
+                "Southbound",
+                "188",
+                List.of(
+                    new GtfsRtSubwayStopTimeUpdate("13819", 20, epoch(1782988036)),
+                    new GtfsRtSubwayStopTimeUpdate("13816", 22, epoch(1782988096))
+                )
+            )
+        ));
+
+        when(repository.findActiveImportId()).thenReturn(Optional.of(42L));
+        when(repository.findStationMappings(eq(42L), eq("line-1"), eq(List.of("13819", "13816"))))
+            .thenReturn(List.of(
+                new GtfsScheduleReadRepository.StationMapping("13819", "osgoode", 240),
+                new GtfsScheduleReadRepository.StationMapping("13816", "union", 243)
+            ));
+        when(lineSegmentRepository.findAllByOrderBySortOrderAsc()).thenReturn(List.of(
+            segment("line-1-osgoode-st-andrew", "line-1", "osgoode", "st-andrew", 120, "southbound"),
+            segment("line-1-st-andrew-union", "line-1", "st-andrew", "union", 121, "southbound")
+        ));
+
+        GtfsRtSubwayArrivalSnapshot snapshot = indexer.index(feed, feedCreatedAt.plusSeconds(1));
+
+        assertThat(snapshot.arrivals())
+            .extracting(
+                GtfsRtSubwayStationArrival::stationId,
+                GtfsRtSubwayStationArrival::direction,
+                GtfsRtSubwayStationArrival::predictedAt,
+                GtfsRtSubwayStationArrival::stopId,
+                GtfsRtSubwayStationArrival::stopSequence
+            )
+            .contains(
+                tuple("st-andrew", "Southbound", epoch(1782988066), "18373", 21)
+            );
+    }
+
+    @Test
     void returnsEmptySnapshotWhenStaticGtfsMappingsAreUnavailable() {
         GtfsRtSubwayArrivalIndexer indexer = new GtfsRtSubwayArrivalIndexer(repository, lineSegmentRepository);
         OffsetDateTime feedCreatedAt = epoch(1782987933);

@@ -3,6 +3,7 @@ package com.calebhabesh.linewatch.arrival.live;
 import com.calebhabesh.linewatch.arrival.schedule.GtfsScheduleReadRepository;
 import com.calebhabesh.linewatch.station.LineSegmentEntity;
 import com.calebhabesh.linewatch.station.LineSegmentRepository;
+import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -72,6 +73,7 @@ public class GtfsRtSubwayArrivalIndexer {
                     stopUpdate
                 ));
             }
+            tripArrivals = fillKnownSkippedStops(trip, tripArrivals);
 
             for (int index = 0; index < tripArrivals.size(); index++) {
                 PendingArrival arrival = tripArrivals.get(index);
@@ -103,6 +105,73 @@ public class GtfsRtSubwayArrivalIndexer {
             }
         }
         return List.copyOf(stopIds);
+    }
+
+    private List<PendingArrival> fillKnownSkippedStops(
+        GtfsRtSubwayTripUpdate trip,
+        List<PendingArrival> tripArrivals
+    ) {
+        if (!"line-1".equals(trip.lineId()) || tripArrivals.size() < 2) {
+            return tripArrivals;
+        }
+
+        List<PendingArrival> resolved = new ArrayList<>();
+        for (int index = 0; index < tripArrivals.size(); index++) {
+            PendingArrival current = tripArrivals.get(index);
+            resolved.add(current);
+            if (index == tripArrivals.size() - 1) {
+                continue;
+            }
+
+            PendingArrival next = tripArrivals.get(index + 1);
+            skippedStAndrewSouthbound(current, next).ifPresent(resolved::add);
+        }
+        return resolved;
+    }
+
+    private Optional<PendingArrival> skippedStAndrewSouthbound(PendingArrival current, PendingArrival next) {
+        if (!"osgoode".equals(current.mapping().stationId()) || !"union".equals(next.mapping().stationId())) {
+            return Optional.empty();
+        }
+        int currentSequence = current.stopUpdate().stopSequence();
+        int nextSequence = next.stopUpdate().stopSequence();
+        if (nextSequence - currentSequence != 2) {
+            return Optional.empty();
+        }
+
+        int missingSequence = currentSequence + 1;
+        OffsetDateTime predictedAt = interpolate(
+            current.stopUpdate().predictedAt(),
+            next.stopUpdate().predictedAt(),
+            currentSequence,
+            missingSequence,
+            nextSequence
+        );
+        return Optional.of(new PendingArrival(
+            // TTC GTFS-RT currently jumps from Osgoode SB to Union and omits the static St Andrew SB stop.
+            new GtfsScheduleReadRepository.StationMapping(
+                "18373",
+                "st-andrew",
+                current.mapping().sortOrder() + 1
+            ),
+            new GtfsRtSubwayStopTimeUpdate("18373", missingSequence, predictedAt)
+        ));
+    }
+
+    private OffsetDateTime interpolate(
+        OffsetDateTime from,
+        OffsetDateTime to,
+        int fromSequence,
+        int targetSequence,
+        int toSequence
+    ) {
+        int sequenceSpan = toSequence - fromSequence;
+        if (sequenceSpan <= 0 || !to.isAfter(from)) {
+            return from;
+        }
+        double fraction = (targetSequence - fromSequence) / (double) sequenceSpan;
+        long offsetSeconds = Math.round(Duration.between(from, to).toSeconds() * fraction);
+        return from.plusSeconds(offsetSeconds);
     }
 
     private Map<StationStepKey, String> segmentDirections() {
