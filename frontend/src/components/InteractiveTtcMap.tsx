@@ -3145,7 +3145,7 @@ function pathFrameAtProgress(
     let offsetX = 0;
     let offsetY = 0;
     if (visualDirection !== "bidirectional") {
-      const offsetAmt = 22; // 22 units offset to fit within bounds with a reduced center gap
+      const offsetAmt = 20; // 20 units offset to fit within bounds with a reduced center gap
       const travelAngleRad = visualDirection === "reverse" ? pathAngleRad + Math.PI : pathAngleRad;
       const offsetAngleRad = travelAngleRad + Math.PI / 2; // Perpendicular to the right
       offsetX = Math.cos(offsetAngleRad) * offsetAmt;

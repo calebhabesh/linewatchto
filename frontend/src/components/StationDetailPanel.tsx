@@ -678,8 +678,8 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
                                 const due = isArrivalDue(arrival, arrivalTick);
                                 const clockTime = formatArrivalClockTime(arrival.predictedAt);
                                 const arrivalLabelClassName = detailedCountdown && !due
-                                  ? "whitespace-nowrap text-lg font-black leading-none tabular-nums"
-                                  : "text-lg font-black leading-none";
+                                  ? "whitespace-nowrap text-xs sm:text-lg font-black leading-none tabular-nums"
+                                  : "text-base sm:text-lg font-black leading-none";
                                 const arrivalTileClassName = [
                                   "flex min-h-[66px] flex-col items-center justify-center rounded-md border px-2 py-2 text-center transition-colors",
                                   due

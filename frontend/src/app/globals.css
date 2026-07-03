@@ -11501,7 +11501,7 @@ button {
 }
 
 .linewatch-shell.mobile-performance-mode .estimated-train-marker-window {
-  display: none;
+  fill: #050505;
 }
 
 .linewatch-shell.mobile-performance-mode .estimated-train-marker-halo {
