@@ -370,7 +370,7 @@ describe("asset-backed map layering", () => {
     assert.match(shellSource, /if \(!estimatedTrainMarkersVisible \|\| document\.visibilityState !== "visible"\)/);
     assert.match(shellSource, /estimatedTrainsEnabled=\{estimatedTrainMarkersVisible\}/);
     assert.match(shellSource, /estimatedTrainMarkers=\{estimatedTrainMarkersVisible \? estimatedTrainSnapshot\.markers : \[\]\}/);
-    assert.match(shellSource, /Estimated Train Markers/);
+    assert.match(shellSource, /Live Train Markers/);
     assert.match(moreSheetSource, /Estimated Train Markers/);
     assert.doesNotMatch(shellSource, /Live Train Locations/);
     assert.doesNotMatch(moreSheetSource, /Live Train Locations/);
