@@ -13,6 +13,7 @@ The current app is a full-stack dashboard demo with graceful local-fixture fallb
 Implemented now:
 
 - Dark, map-first Next.js dashboard.
+- Opt-in estimated train markers can display schematic train blips on the TTC-style map when the live subway GTFS-RT arrival provider has a fresh mapped snapshot. These markers are inferred from trip updates, line topology, and segment travel-time estimates; they are not physical train positions.
 - Global accessibility outages panel with elevator and escalator drill-downs grouped by TTC transit line and station, showing relative update times, station detail link, and custom icons.
 - Searchable surface service notices panel with category filters (detours, bypasses, service changes, notices) and debounced route/stop search queries.
 - Overnight subway-closed screen that hides the feed during general non-operating hours while allowing a map peek for current overlays and station accessibility details.
@@ -76,7 +77,7 @@ Not implemented yet:
 - Static GTFS shape import remains unimplemented.
 - Populated geographic PostGIS geometry and production geospatial matching remain unimplemented.
 - TTC Reduced Speed Zones webpage ingestion remains unimplemented.
-- Live on-map train position blips are not implemented. The GTFS-RT subway integration currently feeds station arrivals only.
+- Exact live physical on-map train position tracking remains unimplemented. The on-map train markers are schematic estimates inferred from arrival predictions.
 - The arrival provider architecture supports live, scheduled, unavailable, and demo status states.
 - Standalone commute-impact endpoint, route review/edit, commute email notifications, alternate-route suggestions, and accessibility-personalized commute matching.
 - Line-wide Web Push subscriptions are implemented for Lines 1, 2, 4, 5, and 6, but they are opt-in and filtered by selected line, event type, and reminder timing. Reduced Speed Zone line-wide alerts default on for new notification preferences. Existing active Reduced Speed Zones are recorded silently when a line stream becomes eligible, new Reduced Speed Zones send one active notification, and observed Reduced Speed Zones can send a clearance when fresh dashboard data shows they are gone.
@@ -749,7 +750,8 @@ LineWatchTO should use public and source-linked data. It should also be honest a
 
 - The implemented poller reads the public TTC Live Alerts endpoint at `https://alerts.ttc.ca/api/alerts/live-alerts`.
 - The visible dashboard treats successful poll results as usable only inside the configured freshness window.
-- The optional live-arrival provider reads TTC GTFS-RT Subway Trip Updates from `https://gtfsrt.ttc.ca/trips/subway?format=text`; it does not create on-map train positions yet and falls back to scheduled service when fresh mapped live rows are unavailable.
+- The optional live-arrival provider reads TTC GTFS-RT Subway Trip Updates from `https://gtfsrt.ttc.ca/trips/subway?format=text`; it infers schematic estimated train positions from predicted arrival times and falls back to scheduled service when fresh mapped live rows are unavailable.
+- Estimated train markers are schematic placements inferred from arrival predictions. They should not be treated as exact train locations or live train movement.
 - TTC alerts can be vague.
 - GTFS-RT service alerts can be less structured than TTC Live Alerts and may lack usable subway/LRT affected-segment detail. LineWatchTO uses only the bus and streetcar GTFS-RT service-alert feeds for surface notices by default.
 - Alert history is based on LineWatch snapshots and is richer after the alert-history release; older rows may lack full line, cause, direction, or location context.
