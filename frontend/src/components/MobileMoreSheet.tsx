@@ -278,7 +278,7 @@ export function MobileMoreSheet({
           <button type="button" className="mobile-more-row" aria-pressed={estimatedTrainsEnabled} onClick={onToggleEstimatedTrains}>
             <Train size={18} className="text-slate-500 dark:text-slate-400" />
             <span className="mobile-more-install-copy">
-              <span>Estimated Train Markers</span>
+              <span>Live Train Markers</span>
               <span>{estimatedTrainStatusLabel}</span>
             </span>
             <div className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ml-auto shrink-0 ${estimatedTrainsEnabled ? 'bg-blue-500' : 'bg-slate-300 dark:bg-slate-600'}`}>

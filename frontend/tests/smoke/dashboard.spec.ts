@@ -1144,7 +1144,7 @@ test("renders estimated train markers only after the layer is enabled", async ({
 
   if (isMobile) {
     await page.getByRole("button", { name: "More", exact: true }).click();
-    await page.getByRole("button", { name: /Estimated Train Markers/ }).click();
+    await page.getByRole("button", { name: /Live Train Markers/ }).click();
     await page.getByRole("button", { name: "Close more options" }).click();
   } else {
     await page.getByRole("checkbox", { name: "Toggle estimated train markers" }).click();
