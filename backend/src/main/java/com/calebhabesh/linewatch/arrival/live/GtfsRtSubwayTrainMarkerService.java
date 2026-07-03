@@ -306,7 +306,13 @@ public class GtfsRtSubwayTrainMarkerService {
     }
 
     private String markerId(GtfsRtSubwayStationArrival arrival) {
-        return arrival.lineId() + ":" + trainIdentity(arrival) + ":" + arrival.stationId();
+        return arrival.lineId()
+            + ":"
+            + trainIdentity(arrival)
+            + ":"
+            + markerDirectionIdentity(arrival.direction())
+            + ":"
+            + arrival.stationId();
     }
 
     private String trainIdentity(GtfsRtSubwayStationArrival arrival) {
@@ -326,6 +332,11 @@ public class GtfsRtSubwayTrainMarkerService {
 
     private String normalizeIdentity(String value) {
         return value == null ? "" : value.trim();
+    }
+
+    private String markerDirectionIdentity(String direction) {
+        String normalized = normalize(direction);
+        return normalized.isBlank() ? "unknown-direction" : normalized.replaceAll("\\s+", "-");
     }
 
     private String wireDirection(String direction) {

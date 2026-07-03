@@ -28,7 +28,7 @@ class TrainControllerTest {
             feedCreatedAt,
             generatedAt,
             List.of(new EstimatedTrainMarker(
-                "line-2:126789:232:bay",
+                "line-2:126789:232:eastbound:bay",
                 "line-2",
                 "Eastbound",
                 "forward",
@@ -52,7 +52,7 @@ class TrainControllerTest {
         assertThat(response.source()).isEqualTo("TTC GTFS-RT subway trip updates");
         assertThat(response.disclaimer()).contains("not physical train positions");
         assertThat(response.markers()).singleElement().satisfies(marker -> {
-            assertThat(marker.id()).isEqualTo("line-2:126789:232:bay");
+            assertThat(marker.id()).isEqualTo("line-2:126789:232:eastbound:bay");
             assertThat(marker.lineId()).isEqualTo("line-2");
             assertThat(marker.progress()).isEqualTo(0.333);
             assertThat(marker.segmentTravelSeconds()).isEqualTo(120);

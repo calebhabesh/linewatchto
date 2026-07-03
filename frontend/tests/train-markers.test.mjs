@@ -54,6 +54,6 @@ describe("estimated train marker data adapter", () => {
   it("uses a bounded refresh interval", () => {
     assert.equal(estimatedTrainMarkerRefreshMs("9000"), 9000);
     assert.equal(estimatedTrainMarkerRefreshMs("2000"), 5000);
-    assert.equal(estimatedTrainMarkerRefreshMs("bad"), 10000);
+    assert.equal(estimatedTrainMarkerRefreshMs("bad"), 5000);
   });
 });

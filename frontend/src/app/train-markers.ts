@@ -48,7 +48,7 @@ export const EMPTY_ESTIMATED_TRAIN_SNAPSHOT: EstimatedTrainSnapshot = {
   markers: [],
 };
 
-const DEFAULT_TRAIN_MARKER_REFRESH_MS = 10_000;
+const DEFAULT_TRAIN_MARKER_REFRESH_MS = 5_000;
 const MIN_TRAIN_MARKER_REFRESH_MS = 5_000;
 
 export function estimatedTrainMarkerRefreshMs(configured = process.env.NEXT_PUBLIC_LINEWATCH_TRAIN_MARKER_REFRESH_MS) {

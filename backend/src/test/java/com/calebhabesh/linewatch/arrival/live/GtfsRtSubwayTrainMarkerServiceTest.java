@@ -79,7 +79,7 @@ class GtfsRtSubwayTrainMarkerServiceTest {
         assertThat(snapshot.fresh()).isTrue();
         assertThat(snapshot.source()).isEqualTo("TTC GTFS-RT subway trip updates");
         assertThat(snapshot.markers()).singleElement().satisfies(marker -> {
-            assertThat(marker.id()).isEqualTo("line-2:126789:232:bay");
+            assertThat(marker.id()).isEqualTo("line-2:126789:232:eastbound:bay");
             assertThat(marker.lineId()).isEqualTo("line-2");
             assertThat(marker.direction()).isEqualTo("Eastbound");
             assertThat(marker.travelDirection()).isEqualTo("forward");
@@ -93,6 +93,51 @@ class GtfsRtSubwayTrainMarkerServiceTest {
             assertThat(marker.vehicleId()).isEqualTo("232");
             assertThat(marker.tripId()).isEqualTo("126789");
         });
+    }
+
+    @Test
+    void givesConflictingDirectionMarkersDistinctIds() {
+        OffsetDateTime now = OffsetDateTime.now(CLOCK);
+        cache.replace(new GtfsRtSubwayArrivalSnapshot(now.minusSeconds(10), now.minusSeconds(8), List.of(
+            new GtfsRtSubwayStationArrival(
+                "north-york-centre",
+                "line-1",
+                "Northbound",
+                now.plusSeconds(80),
+                null,
+                "5",
+                "131599829",
+                "stop-north-york-centre-nb",
+                117,
+                400
+            ),
+            new GtfsRtSubwayStationArrival(
+                "north-york-centre",
+                "line-1",
+                "Southbound",
+                now.plusSeconds(85),
+                null,
+                "5",
+                "131599829",
+                "stop-north-york-centre-sb",
+                5,
+                400
+            )
+        )));
+        when(lineSegmentRepository.findAllByOrderBySortOrderAsc()).thenReturn(List.of(
+            segment("line-1-sheppard-yonge-north-york-centre", "line-1", "sheppard-yonge", "north-york-centre", 330, "northbound"),
+            segment("line-1-north-york-centre-finch", "line-1", "north-york-centre", "finch", 331, "northbound")
+        ));
+        when(travelTimeRepository.activeScheduleSignature()).thenReturn("active-import-42");
+        when(travelTimeRepository.findActiveScheduledSegmentWeights()).thenReturn(Map.of());
+        when(travelTimeRepository.findSeededFallbackSegmentWeights()).thenReturn(Map.of());
+
+        EstimatedTrainMarkerSnapshot snapshot = service.estimatedMarkers();
+
+        assertThat(snapshot.markers()).hasSize(2);
+        assertThat(snapshot.markers())
+            .extracting(EstimatedTrainMarker::id)
+            .doesNotHaveDuplicates();
     }
 
     @Test
