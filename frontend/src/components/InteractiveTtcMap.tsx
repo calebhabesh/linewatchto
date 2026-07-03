@@ -3076,10 +3076,8 @@ function EstimatedTrainMarkerLayer({
             transform={`translate(${frame.point.x} ${frame.point.y}) rotate(${frame.angle})`}
           >
             <title>{`${lineLabelForTrainMarker(marker.lineId)} ${marker.direction} estimated train near ${marker.nextStationId}`}</title>
-            <circle className="estimated-train-marker-halo" r="34" />
-            <circle className="estimated-train-marker-core" r="22" />
-            <circle className="estimated-train-marker-line-accent" cx="-9" cy="0" r="5.5" />
-            <path className="estimated-train-marker-arrow" d="M -5 -10 L 12 0 L -5 10 Z" />
+            <path className="estimated-train-marker-core" d="M -24 -11 L 12 -11 L 24 0 L 12 11 L -24 11 Z" />
+            <path className="estimated-train-marker-arrow" d="M -8 -4 L 3 0 L -8 4" />
           </g>,
         ];
       })}
@@ -3110,9 +3108,21 @@ function pathFrameAtProgress(
     const pointBehind = path.getPointAtLength(Math.max(0, distance - delta));
     const dx = pointAhead.x - pointBehind.x;
     const dy = pointAhead.y - pointBehind.y;
-    const angle = Math.atan2(dy, dx) * (180 / Math.PI);
+    const pathAngleRad = Math.atan2(dy, dx);
+    const angle = pathAngleRad * (180 / Math.PI);
+
+    let offsetX = 0;
+    let offsetY = 0;
+    if (visualDirection !== "bidirectional") {
+      const offsetAmt = 17; // 17 units offset to fit within bounds with a reduced center gap
+      const travelAngleRad = visualDirection === "reverse" ? pathAngleRad + Math.PI : pathAngleRad;
+      const offsetAngleRad = travelAngleRad + Math.PI / 2; // Perpendicular to the right
+      offsetX = Math.cos(offsetAngleRad) * offsetAmt;
+      offsetY = Math.sin(offsetAngleRad) * offsetAmt;
+    }
+
     return {
-      point,
+      point: { x: point.x + offsetX, y: point.y + offsetY },
       angle: visualDirection === "reverse" ? angle + 180 : angle,
     };
   } catch {

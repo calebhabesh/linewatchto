@@ -61,7 +61,7 @@ import {
 import { useTorontoClock } from "../hooks/useTorontoClock";
 import { useMobilePerformanceMode } from "../hooks/useMobilePerformanceMode";
 import { usePushNotificationSettings } from "../hooks/usePushNotificationSettings";
-import { Menu, X, Map as MapIcon, AlertTriangle, Calendar, Navigation, ShieldCheck, BarChart3, Bell, Construction, Search, LogIn, LogOut, UserPlus, UserRound, Sun, Moon, Bus, Mail, Contrast, Pause, History, MessageSquareText, FileText, Sparkles } from "lucide-react";
+import { Menu, X, Map as MapIcon, Train, AlertTriangle, Calendar, Navigation, ShieldCheck, BarChart3, Bell, Construction, Search, LogIn, LogOut, UserPlus, UserRound, Sun, Moon, Bus, Mail, Contrast, Pause, History, MessageSquareText, FileText, Sparkles } from "lucide-react";
 import { SubwayClosedScreen } from "./SubwayClosedScreen";
 import { useSubwayOperatingState } from "../hooks/useSubwayOperatingState";
 import { StationSearchPanel } from "./StationSearchPanel";
@@ -2245,7 +2245,7 @@ export function LineWatchShell({
                  </div>
                  <div className="flex items-center justify-between px-3 py-2.5">
                    <span className="text-sm font-medium text-slate-700 dark:text-slate-200 flex items-center gap-3">
-                     <MapIcon size={18} className="text-slate-500 dark:text-slate-400" /> Live Train Locations
+                     <Train size={18} className="text-slate-500 dark:text-slate-400" /> Live Train Locations
                    </span>
                    <button
                       ref={registerMenuAction(actionIndex++)}

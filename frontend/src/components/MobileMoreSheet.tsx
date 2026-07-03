@@ -2,7 +2,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { BarChart3, Bell, Download, FileText, LogIn, LogOut, MessageSquareText, RefreshCcw, Contrast, Pause, Share2, ShieldCheck, Sparkles, UserPlus, UserRound, X, History, Map as MapIcon } from "lucide-react";
+import { BarChart3, Bell, Download, FileText, LogIn, LogOut, MessageSquareText, RefreshCcw, Contrast, Pause, Share2, ShieldCheck, Sparkles, UserPlus, UserRound, X, History, Map as MapIcon, Train } from "lucide-react";
 import Image from "next/image";
 import type { AccountState } from "../app/account-data";
 import { lineWatchAppVersionLabel } from "../app/app-build";
@@ -276,7 +276,7 @@ export function MobileMoreSheet({
             </div>
           </button>
           <button type="button" className="mobile-more-row" aria-pressed={estimatedTrainsEnabled} onClick={onToggleEstimatedTrains}>
-            <MapIcon size={18} className="text-slate-500 dark:text-slate-400" />
+            <Train size={18} className="text-slate-500 dark:text-slate-400" />
             <span className="mobile-more-install-copy">
               <span>Live Train Locations</span>
               <span>{estimatedTrainStatusLabel}</span>
