@@ -65,7 +65,9 @@ public class GtfsRtSubwayArrivalIndexer {
                     stopUpdate.departureAt(),
                     trip.vehicleId(),
                     trip.tripId(),
-                    stopUpdate.stopId()
+                    stopUpdate.stopId(),
+                    stopUpdate.stopSequence(),
+                    mapping.sortOrder()
                 ));
             }
         }

@@ -62,11 +62,13 @@ class GtfsRtSubwayArrivalIndexerTest {
                 GtfsRtSubwayStationArrival::departureAt,
                 GtfsRtSubwayStationArrival::vehicleId,
                 GtfsRtSubwayStationArrival::tripId,
-                GtfsRtSubwayStationArrival::stopId
+                GtfsRtSubwayStationArrival::stopId,
+                GtfsRtSubwayStationArrival::stopSequence,
+                GtfsRtSubwayStationArrival::stationSortOrder
             )
             .containsExactly(
-                tuple("st-george", "line-2", "Eastbound", epoch(1782988036), epoch(1782988051), "232", "126789", "13756"),
-                tuple("bay", "line-2", "Eastbound", epoch(1782988096), null, "232", "126789", "13753")
+                tuple("st-george", "line-2", "Eastbound", epoch(1782988036), epoch(1782988051), "232", "126789", "13756", 18, 15),
+                tuple("bay", "line-2", "Eastbound", epoch(1782988096), null, "232", "126789", "13753", 19, 16)
             );
     }
 

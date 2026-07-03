@@ -49,7 +49,9 @@ record GtfsRtSubwayStationArrival(
     OffsetDateTime departureAt,
     String vehicleId,
     String tripId,
-    String stopId
+    String stopId,
+    int stopSequence,
+    int stationSortOrder
 ) {
     GtfsRtSubwayStationArrival(
         String stationId,
@@ -60,7 +62,20 @@ record GtfsRtSubwayStationArrival(
         String tripId,
         String stopId
     ) {
-        this(stationId, lineId, direction, predictedAt, null, vehicleId, tripId, stopId);
+        this(stationId, lineId, direction, predictedAt, null, vehicleId, tripId, stopId, 0, 0);
+    }
+
+    GtfsRtSubwayStationArrival(
+        String stationId,
+        String lineId,
+        String direction,
+        OffsetDateTime predictedAt,
+        OffsetDateTime departureAt,
+        String vehicleId,
+        String tripId,
+        String stopId
+    ) {
+        this(stationId, lineId, direction, predictedAt, departureAt, vehicleId, tripId, stopId, 0, 0);
     }
 
     OffsetDateTime visibleUntil() {
