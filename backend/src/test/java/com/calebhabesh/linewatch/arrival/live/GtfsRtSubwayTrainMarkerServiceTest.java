@@ -1,0 +1,131 @@
+package com.calebhabesh.linewatch.arrival.live;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+import com.calebhabesh.linewatch.arrival.ArrivalProperties;
+import com.calebhabesh.linewatch.commute.CommuteTravelTimeRepository;
+import com.calebhabesh.linewatch.station.LineSegmentEntity;
+import com.calebhabesh.linewatch.station.LineSegmentRepository;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
+import java.util.List;
+import java.util.Map;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+class GtfsRtSubwayTrainMarkerServiceTest {
+    private static final Clock CLOCK = Clock.fixed(Instant.parse("2026-07-02T10:00:00Z"), ZoneOffset.UTC);
+
+    private ArrivalProperties properties;
+    private GtfsRtSubwayArrivalCache cache;
+    private LineSegmentRepository lineSegmentRepository;
+    private CommuteTravelTimeRepository travelTimeRepository;
+    private GtfsRtSubwayTrainMarkerService service;
+
+    @BeforeEach
+    void setUp() {
+        properties = new ArrivalProperties();
+        properties.setProvider(ArrivalProperties.ProviderMode.LIVE);
+        properties.setScheduleHorizon(java.time.Duration.ofMinutes(90));
+        cache = new GtfsRtSubwayArrivalCache(properties, CLOCK);
+        lineSegmentRepository = mock(LineSegmentRepository.class);
+        travelTimeRepository = mock(CommuteTravelTimeRepository.class);
+        service = new GtfsRtSubwayTrainMarkerService(
+            cache,
+            lineSegmentRepository,
+            travelTimeRepository,
+            properties,
+            CLOCK
+        );
+    }
+
+    @Test
+    void estimatesMarkerBetweenPreviousTopologyStationAndNextPredictedStop() {
+        OffsetDateTime now = OffsetDateTime.now(CLOCK);
+        cache.replace(new GtfsRtSubwayArrivalSnapshot(now.minusSeconds(10), now.minusSeconds(8), List.of(
+            new GtfsRtSubwayStationArrival(
+                "bay",
+                "line-2",
+                "Eastbound",
+                now.plusSeconds(80),
+                null,
+                "232",
+                "126789",
+                "13753",
+                19,
+                16
+            )
+        )));
+        when(lineSegmentRepository.findAllByOrderBySortOrderAsc()).thenReturn(List.of(
+            segment("line-2-st-george-bay", "line-2", "st-george", "bay", 315, "eastbound")
+        ));
+        when(travelTimeRepository.activeScheduleSignature()).thenReturn("active-import-42");
+        when(travelTimeRepository.findActiveScheduledSegmentWeights()).thenReturn(Map.of(
+            "line-2-st-george-bay",
+            new CommuteTravelTimeRepository.SegmentTravelTime("line-2-st-george-bay", 120, 25, CommuteTravelTimeRepository.GTFS_SOURCE)
+        ));
+        when(travelTimeRepository.findSeededFallbackSegmentWeights()).thenReturn(Map.of());
+
+        EstimatedTrainMarkerSnapshot snapshot = service.estimatedMarkers();
+
+        assertThat(snapshot.fresh()).isTrue();
+        assertThat(snapshot.source()).isEqualTo("TTC GTFS-RT subway trip updates");
+        assertThat(snapshot.markers()).singleElement().satisfies(marker -> {
+            assertThat(marker.id()).isEqualTo("line-2:126789:232:bay");
+            assertThat(marker.lineId()).isEqualTo("line-2");
+            assertThat(marker.direction()).isEqualTo("Eastbound");
+            assertThat(marker.travelDirection()).isEqualTo("forward");
+            assertThat(marker.segmentId()).isEqualTo("line-2-st-george-bay");
+            assertThat(marker.fromStationId()).isEqualTo("st-george");
+            assertThat(marker.toStationId()).isEqualTo("bay");
+            assertThat(marker.nextStationId()).isEqualTo("bay");
+            assertThat(marker.progress()).isBetween(0.32, 0.34);
+            assertThat(marker.segmentTravelSeconds()).isEqualTo(120);
+            assertThat(marker.predictedAt()).isEqualTo(now.plusSeconds(80));
+            assertThat(marker.vehicleId()).isEqualTo("232");
+            assertThat(marker.tripId()).isEqualTo("126789");
+        });
+    }
+
+    @Test
+    void returnsNoMarkersWhenLiveProviderIsDisabled() {
+        properties.setProvider(ArrivalProperties.ProviderMode.SCHEDULED);
+        cache.replace(new GtfsRtSubwayArrivalSnapshot(OffsetDateTime.now(CLOCK), OffsetDateTime.now(CLOCK), List.of(
+            new GtfsRtSubwayStationArrival("bay", "line-2", "Eastbound", OffsetDateTime.now(CLOCK).plusSeconds(80), "232", "126789", "13753")
+        )));
+
+        EstimatedTrainMarkerSnapshot snapshot = service.estimatedMarkers();
+
+        assertThat(snapshot.fresh()).isFalse();
+        assertThat(snapshot.markers()).isEmpty();
+        assertThat(snapshot.message()).isEqualTo("Live GTFS-RT train markers are disabled.");
+    }
+
+    @Test
+    void skipsAmbiguousNextStationPlacement() {
+        OffsetDateTime now = OffsetDateTime.now(CLOCK);
+        cache.replace(new GtfsRtSubwayArrivalSnapshot(now.minusSeconds(10), now.minusSeconds(8), List.of(
+            new GtfsRtSubwayStationArrival("union", "line-1", "Southbound", now.plusSeconds(60), "999", "trip-union", "stop-union")
+        )));
+        when(lineSegmentRepository.findAllByOrderBySortOrderAsc()).thenReturn(List.of(
+            segment("line-1-st-andrew-union", "line-1", "st-andrew", "union", 220, "southbound"),
+            segment("line-1-king-union", "line-1", "king", "union", 221, "southbound")
+        ));
+        when(travelTimeRepository.activeScheduleSignature()).thenReturn("no-active-gtfs-import");
+        when(travelTimeRepository.findActiveScheduledSegmentWeights()).thenReturn(Map.of());
+        when(travelTimeRepository.findSeededFallbackSegmentWeights()).thenReturn(Map.of());
+
+        EstimatedTrainMarkerSnapshot snapshot = service.estimatedMarkers();
+
+        assertThat(snapshot.fresh()).isTrue();
+        assertThat(snapshot.markers()).isEmpty();
+    }
+
+    private LineSegmentEntity segment(String id, String lineId, String stationAId, String stationBId, int sortOrder, String forwardDirection) {
+        return new LineSegmentEntity(id, lineId, stationAId, stationBId, null, null, sortOrder, forwardDirection, null, false, null, null);
+    }
+}
