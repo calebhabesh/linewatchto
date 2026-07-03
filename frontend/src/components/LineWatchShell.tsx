@@ -2337,7 +2337,10 @@ export function LineWatchShell({
                 <span className="desktop-status-divider" />
                 <div className="flex items-center gap-2">
                   <Train size={26} className="text-slate-500 dark:text-slate-400" />
-                  <span className="text-xs font-bold text-slate-700 dark:text-slate-200 whitespace-nowrap">Live Train Markers</span>
+                  <span className="flex flex-col leading-tight text-left">
+                    <span className="text-xs font-bold text-slate-700 dark:text-slate-200 whitespace-nowrap">Live Train Markers</span>
+                    <span className="text-[10px] font-normal text-slate-500 dark:text-slate-400">{estimatedTrainStatusLabel}</span>
+                  </span>
                   <button
                      role="checkbox"
                      aria-checked={estimatedTrainsEnabled}
