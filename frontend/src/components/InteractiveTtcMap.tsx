@@ -1075,6 +1075,7 @@ function InteractiveTtcMapComponent({
                     markers={estimatedTrainMarkers}
                     segments={renderedNetworkSegments}
                     muted={Boolean(selection || selectedStationId || commutePathPreview)}
+                    mobilePerformanceMode={mobilePerformanceMode}
                   />
                 </g>
 
@@ -3043,55 +3044,81 @@ function EstimatedTrainMarkerLayer({
   markers,
   segments,
   muted,
+  mobilePerformanceMode,
 }: {
   enabled: boolean;
   markers: EstimatedTrainMarker[];
   segments: RenderedNetworkSegment[];
   muted: boolean;
+  mobilePerformanceMode: boolean;
 }) {
-  if (!enabled || markers.length === 0) return null;
+  const segmentById = useMemo(() => new Map(segments.map((segment) => [segment.id, segment])), [segments]);
+  const markerNodes = useMemo(() => {
+    if (!enabled || markers.length === 0) return [];
 
-  const segmentById = new Map(segments.map((segment) => [segment.id, segment]));
+    const pathMetricCache = new Map<string, TrainMarkerPathMetrics>();
+
+    return markers.flatMap((marker) => {
+      const segment = segmentById.get(marker.segmentId);
+      if (!segment?.pathD) return [];
+
+      const visualDirection = visualTravelDirection({ ...segment, travelDirection: marker.travelDirection });
+      const pathProgress = visualDirection === "reverse" ? 1 - marker.progress : marker.progress;
+      const frame = pathFrameAtProgress(segment.pathD, pathProgress, visualDirection, pathMetricCache);
+      if (!frame) return [];
+
+      return [
+        <g
+          key={marker.id}
+          className={`estimated-train-marker estimated-train-marker-${marker.lineId}`}
+          data-train-marker-id={marker.id}
+          data-train-marker-line-id={marker.lineId}
+          data-train-marker-direction={marker.direction}
+          data-train-marker-segment-id={marker.segmentId}
+          data-train-marker-travel-direction={visualDirection}
+          transform={`translate(${frame.point.x} ${frame.point.y}) rotate(${frame.angle})`}
+        >
+          <title>{`${lineLabelForTrainMarker(marker.lineId)} ${marker.direction} estimated train near ${marker.nextStationId}`}</title>
+          <TrainMarkerGlyph isCompact={mobilePerformanceMode} />
+        </g>,
+      ];
+    });
+  }, [enabled, markers, mobilePerformanceMode, segmentById]);
+
+  if (markerNodes.length === 0) return null;
 
   return (
     <g className="estimated-train-marker-layer" data-muted={muted ? "true" : "false"} pointerEvents="none">
-      {markers.flatMap((marker) => {
-        const segment = segmentById.get(marker.segmentId);
-        if (!segment?.pathD) return [];
-
-        const visualDirection = visualTravelDirection({ ...segment, travelDirection: marker.travelDirection });
-        const pathProgress = visualDirection === "reverse" ? 1 - marker.progress : marker.progress;
-        const frame = pathFrameAtProgress(segment.pathD, pathProgress, visualDirection);
-        if (!frame) return [];
-
-        return [
-          <g
-            key={marker.id}
-            className={`estimated-train-marker estimated-train-marker-${marker.lineId}`}
-            data-train-marker-id={marker.id}
-            data-train-marker-line-id={marker.lineId}
-            data-train-marker-direction={marker.direction}
-            data-train-marker-segment-id={marker.segmentId}
-            data-train-marker-travel-direction={visualDirection}
-            transform={`translate(${frame.point.x} ${frame.point.y}) rotate(${frame.angle})`}
-          >
-            <title>{`${lineLabelForTrainMarker(marker.lineId)} ${marker.direction} estimated train near ${marker.nextStationId}`}</title>
-            <path
-              className="estimated-train-marker-outline"
-              d="M -21 -15 H 14 L 36 0 L 14 15 H -21 A 15 15 0 0 1 -36 0 A 15 15 0 0 1 -21 -15 Z"
-            />
-            <path
-              className="estimated-train-marker-core"
-              d="M -21 -15 H 14 L 36 0 L 14 15 H -21 A 15 15 0 0 1 -36 0 A 15 15 0 0 1 -21 -15 Z"
-            />
-            <rect className="estimated-train-marker-window" x="-27" y="-6" width="8" height="12" rx="1.5" />
-            <rect className="estimated-train-marker-window" x="-15" y="-6" width="8" height="12" rx="1.5" />
-            <rect className="estimated-train-marker-window" x="-3" y="-6" width="8" height="12" rx="1.5" />
-            <path className="estimated-train-marker-arrow" d="M 13 -8 L 27 0 L 13 8 Z" />
-          </g>,
-        ];
-      })}
+      {markerNodes}
     </g>
+  );
+}
+
+function TrainMarkerGlyph({ isCompact }: { isCompact: boolean }) {
+  if (isCompact) {
+    return (
+      <>
+        <circle className="estimated-train-marker-mobile-dot" r="18" />
+        <path className="estimated-train-marker-mobile-arrow" d="M 3 -7 L 15 0 L 3 7 Z" />
+      </>
+    );
+  }
+
+  return (
+    <>
+      <path
+        className="estimated-train-marker-outline"
+        d="M -21 -15 H 14 L 36 0 L 14 15 H -21 A 15 15 0 0 1 -36 0 A 15 15 0 0 1 -21 -15 Z"
+      />
+      <path
+        className="estimated-train-marker-core"
+        d="M -21 -15 H 14 L 36 0 L 14 15 H -21 A 15 15 0 0 1 -36 0 A 15 15 0 0 1 -21 -15 Z"
+      />
+      <rect className="estimated-train-marker-window" x="-27" y="-6" width="8" height="12" rx="1.5" />
+      <rect className="estimated-train-marker-window" x="-15" y="-6" width="8" height="12" rx="1.5" />
+      <rect className="estimated-train-marker-window" x="-3" y="-6" width="8" height="12" rx="1.5" />
+      <path className="estimated-train-marker-arrow" d="M 13 -8 L 27 0 L 13 8 Z" />
+    </>
   );
 }
 
@@ -3100,16 +3127,22 @@ type TrainMarkerPathFrame = {
   angle: number;
 };
 
+type TrainMarkerPathMetrics = {
+  path: SVGPathElement;
+  length: number;
+};
+
 function pathFrameAtProgress(
   pathD: string,
   progress: number,
   visualDirection: "forward" | "reverse" | "bidirectional",
+  pathMetricCache?: Map<string, TrainMarkerPathMetrics>,
 ): TrainMarkerPathFrame | null {
   if (typeof document === "undefined") return null;
   try {
-    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-    path.setAttribute("d", pathD);
-    const length = path.getTotalLength();
+    const metrics = trainMarkerPathMetrics(pathD, pathMetricCache);
+    if (!metrics) return null;
+    const { path, length } = metrics;
     if (!Number.isFinite(length) || length <= 0) return null;
     const distance = Math.max(0, Math.min(1, progress)) * length;
     const point = path.getPointAtLength(distance);
@@ -3138,6 +3171,21 @@ function pathFrameAtProgress(
   } catch {
     return null;
   }
+}
+
+function trainMarkerPathMetrics(
+  pathD: string,
+  pathMetricCache?: Map<string, TrainMarkerPathMetrics>,
+): TrainMarkerPathMetrics | null {
+  const cached = pathMetricCache?.get(pathD);
+  if (cached) return cached;
+
+  const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  path.setAttribute("d", pathD);
+  const length = path.getTotalLength();
+  const metrics = { path, length };
+  pathMetricCache?.set(pathD, metrics);
+  return metrics;
 }
 
 function lineLabelForTrainMarker(lineId: string) {

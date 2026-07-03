@@ -147,7 +147,7 @@ public class GtfsRtSubwayTrainMarkerService {
     private Map<String, List<GtfsRtSubwayStationArrival>> groupedArrivals(List<GtfsRtSubwayStationArrival> arrivals) {
         OffsetDateTime now = OffsetDateTime.now(clock);
         OffsetDateTime cutoff = now.minus(PAST_TOLERANCE);
-        OffsetDateTime horizon = now.plus(properties.getScheduleHorizon());
+        OffsetDateTime horizon = now.plus(properties.getTrainMarkerHorizon());
 
         return arrivals.stream()
             .filter(arrival -> arrival.predictedAt() != null)

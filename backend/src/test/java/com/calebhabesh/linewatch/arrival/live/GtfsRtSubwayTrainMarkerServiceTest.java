@@ -96,6 +96,54 @@ class GtfsRtSubwayTrainMarkerServiceTest {
     }
 
     @Test
+    void usesShorterMarkerHorizonThanStationArrivalHorizon() {
+        OffsetDateTime now = OffsetDateTime.now(CLOCK);
+        cache.replace(new GtfsRtSubwayArrivalSnapshot(now.minusSeconds(10), now.minusSeconds(8), List.of(
+            new GtfsRtSubwayStationArrival(
+                "bay",
+                "line-2",
+                "Eastbound",
+                now.plusSeconds(80),
+                null,
+                "232",
+                "near-trip",
+                "13753",
+                19,
+                16
+            ),
+            new GtfsRtSubwayStationArrival(
+                "bay",
+                "line-2",
+                "Eastbound",
+                now.plusMinutes(30),
+                null,
+                "233",
+                "far-trip",
+                "13753",
+                19,
+                16
+            )
+        )));
+        when(lineSegmentRepository.findAllByOrderBySortOrderAsc()).thenReturn(List.of(
+            segment("line-2-st-george-bay", "line-2", "st-george", "bay", 315, "eastbound")
+        ));
+        when(travelTimeRepository.activeScheduleSignature()).thenReturn("active-import-42");
+        when(travelTimeRepository.findActiveScheduledSegmentWeights()).thenReturn(Map.of(
+            "line-2-st-george-bay",
+            new CommuteTravelTimeRepository.SegmentTravelTime("line-2-st-george-bay", 120, 25, CommuteTravelTimeRepository.GTFS_SOURCE)
+        ));
+        when(travelTimeRepository.findSeededFallbackSegmentWeights()).thenReturn(Map.of());
+
+        EstimatedTrainMarkerSnapshot snapshot = service.estimatedMarkers();
+
+        assertThat(properties.getScheduleHorizon()).isEqualTo(java.time.Duration.ofMinutes(90));
+        assertThat(snapshot.markers()).singleElement().satisfies(marker -> {
+            assertThat(marker.tripId()).isEqualTo("near-trip");
+            assertThat(marker.predictedAt()).isEqualTo(now.plusSeconds(80));
+        });
+    }
+
+    @Test
     void returnsNoMarkersWhenLiveProviderIsDisabled() {
         properties.setProvider(ArrivalProperties.ProviderMode.SCHEDULED);
         cache.replace(new GtfsRtSubwayArrivalSnapshot(OffsetDateTime.now(CLOCK), OffsetDateTime.now(CLOCK), List.of(

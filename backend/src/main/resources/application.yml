@@ -57,6 +57,7 @@ linewatch:
     enabled: ${LINEWATCH_ARRIVALS_ENABLED:false}
     provider: ${LINEWATCH_ARRIVALS_PROVIDER:scheduled}
     schedule-horizon: ${LINEWATCH_ARRIVALS_SCHEDULE_HORIZON:PT90M}
+    train-marker-horizon: ${LINEWATCH_ARRIVALS_TRAIN_MARKER_HORIZON:PT20M}
     max-arrivals-per-line: ${LINEWATCH_ARRIVALS_MAX_ARRIVALS_PER_LINE:4}
     live-gtfs-rt-url: ${LINEWATCH_ARRIVALS_LIVE_GTFS_RT_URL:https://gtfsrt.ttc.ca/trips/subway?format=text}
     live-gtfs-rt-initial-delay: ${LINEWATCH_ARRIVALS_LIVE_GTFS_RT_INITIAL_DELAY:PT10S}

@@ -23,6 +23,7 @@ public class ArrivalProperties {
     private String scheduledSourceName = "TTC scheduled service";
     private URI scheduledSourceUrl = URI.create("https://ckan0.cf.opendata.inter.prod-toronto.ca/en/dataset/merged-gtfs-ttc-routes-and-schedules");
     private Duration scheduleHorizon = Duration.ofMinutes(90);
+    private Duration trainMarkerHorizon = Duration.ofMinutes(20);
     private int maxArrivalsPerLine = 4;
     private URI liveGtfsRtUrl = URI.create("https://gtfsrt.ttc.ca/trips/subway?format=text");
     private Duration liveGtfsRtInitialDelay = Duration.ofSeconds(10);
@@ -108,6 +109,14 @@ public class ArrivalProperties {
 
     public void setScheduleHorizon(Duration scheduleHorizon) {
         this.scheduleHorizon = scheduleHorizon;
+    }
+
+    public Duration getTrainMarkerHorizon() {
+        return trainMarkerHorizon;
+    }
+
+    public void setTrainMarkerHorizon(Duration trainMarkerHorizon) {
+        this.trainMarkerHorizon = trainMarkerHorizon;
     }
 
     public int getMaxArrivalsPerLine() {
