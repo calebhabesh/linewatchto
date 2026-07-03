@@ -44,6 +44,9 @@ type Props = {
   onRequestPwaInstall: () => void;
   pwaInstallBusy: boolean;
   pwaInstallPlatform: PwaInstallPlatform;
+  estimatedTrainsEnabled: boolean;
+  estimatedTrainStatusLabel: string;
+  onToggleEstimatedTrains: () => void;
 };
 
 export function MobileMoreSheet({
@@ -76,6 +79,9 @@ export function MobileMoreSheet({
   onRequestPwaInstall,
   pwaInstallBusy,
   pwaInstallPlatform,
+  estimatedTrainsEnabled,
+  estimatedTrainStatusLabel,
+  onToggleEstimatedTrains,
 }: Props) {
 
   const canResetLocalAppCache = process.env.NODE_ENV !== "production";
@@ -268,6 +274,13 @@ export function MobileMoreSheet({
             <div className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ml-auto shrink-0 ${reducedMotion ? 'bg-blue-500' : 'bg-slate-300 dark:bg-slate-600'}`}>
               <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${reducedMotion ? 'translate-x-4' : 'translate-x-1'}`} />
             </div>
+          </button>
+          <button type="button" className="mobile-more-row" aria-pressed={estimatedTrainsEnabled} onClick={onToggleEstimatedTrains}>
+            <MapIcon size={18} className="text-slate-500 dark:text-slate-400" />
+            <span className="mobile-more-install-copy">
+              <span>Estimated Trains</span>
+              <span>{estimatedTrainStatusLabel}</span>
+            </span>
           </button>
         </div>
 

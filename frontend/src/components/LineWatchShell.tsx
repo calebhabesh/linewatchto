@@ -52,6 +52,12 @@ import {
   type StationSummary,
 } from "../app/station-data";
 import { StationDetailPanel } from "./StationDetailPanel";
+import {
+  EMPTY_ESTIMATED_TRAIN_SNAPSHOT,
+  estimatedTrainMarkerRefreshMs,
+  getEstimatedTrainMarkers,
+  type EstimatedTrainSnapshot,
+} from "../app/train-markers";
 import { useTorontoClock } from "../hooks/useTorontoClock";
 import { useMobilePerformanceMode } from "../hooks/useMobilePerformanceMode";
 import { usePushNotificationSettings } from "../hooks/usePushNotificationSettings";
@@ -99,6 +105,7 @@ const STATION_DETAIL_REFRESH_MS = 15_000;
 const GOOGLE_LINK_SUCCESS_PARAM = "account_linked";
 const GOOGLE_LINK_SUCCESS_VALUE = "google";
 const GOOGLE_LINK_SUCCESS_MESSAGE = "Google sign-in has been linked to your account.";
+const ESTIMATED_TRAINS_STORAGE_KEY = "linewatch-estimated-trains-enabled-v1";
 
 function dashboardRefreshIntervalMs() {
   const configured = Number(process.env.NEXT_PUBLIC_LINEWATCH_DASHBOARD_REFRESH_MS);
@@ -182,11 +189,58 @@ export function LineWatchShell({
   const [mapLayoutSignal, setMapLayoutSignal] = useState(0);
   const [mapPresentationMode, setMapPresentationMode] = useState<MapPresentationMode>("standard");
   const [pwaEngagementSignal, setPwaEngagementSignal] = useState(0);
+  const [estimatedTrainsEnabled, setEstimatedTrainsEnabled] = useState(false);
+  const [estimatedTrainSnapshot, setEstimatedTrainSnapshot] = useState<EstimatedTrainSnapshot>(EMPTY_ESTIMATED_TRAIN_SNAPSHOT);
 
   const recordPwaInstallEngagement = useCallback(() => {
     if (!isMobile) return;
     setPwaEngagementSignal((current) => current + 1);
   }, [isMobile]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const stored = window.localStorage.getItem(ESTIMATED_TRAINS_STORAGE_KEY);
+    if (stored === "true") {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setEstimatedTrainsEnabled(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem(ESTIMATED_TRAINS_STORAGE_KEY, estimatedTrainsEnabled ? "true" : "false");
+  }, [estimatedTrainsEnabled]);
+
+  useEffect(() => {
+    let cancelled = false;
+    let intervalId: number | null = null;
+
+    const refresh = async () => {
+      if (!estimatedTrainsEnabled || document.visibilityState !== "visible") {
+        return;
+      }
+      const result = await getEstimatedTrainMarkers();
+      if (!cancelled) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setEstimatedTrainSnapshot(result.data);
+      }
+    };
+
+    if (estimatedTrainsEnabled) {
+      refresh();
+      intervalId = window.setInterval(refresh, estimatedTrainMarkerRefreshMs());
+    } else {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setEstimatedTrainSnapshot(EMPTY_ESTIMATED_TRAIN_SNAPSHOT);
+    }
+
+    return () => {
+      cancelled = true;
+      if (intervalId !== null) {
+        window.clearInterval(intervalId);
+      }
+    };
+  }, [estimatedTrainsEnabled]);
 
 
   useEffect(() => {
@@ -373,6 +427,12 @@ export function LineWatchShell({
     pushSettings.accountNotificationsDesired,
     pushSettings.subscribed,
   ]);
+
+  const estimatedTrainStatusLabel = estimatedTrainsEnabled
+    ? estimatedTrainSnapshot.fresh
+      ? `${estimatedTrainSnapshot.markers.length} shown`
+      : "Waiting"
+    : "Off";
 
   const notificationSummary = useMemo(() => {
     const tone: "on" | "off" | "unavailable" =
@@ -1455,6 +1515,9 @@ export function LineWatchShell({
             onRequestPwaInstall={pwaInstallPrompt.requestInstall}
             pwaInstallBusy={pwaInstallPrompt.installing}
             pwaInstallPlatform={pwaInstallPrompt.platform}
+            estimatedTrainsEnabled={estimatedTrainsEnabled}
+            estimatedTrainStatusLabel={estimatedTrainStatusLabel}
+            onToggleEstimatedTrains={() => setEstimatedTrainsEnabled((current) => !current)}
           />
         );
       case "feedback":
@@ -1648,6 +1711,9 @@ export function LineWatchShell({
           onRequestPwaInstall={pwaInstallPrompt.requestInstall}
           pwaInstallBusy={pwaInstallPrompt.installing}
           pwaInstallPlatform={pwaInstallPrompt.platform}
+          estimatedTrainsEnabled={estimatedTrainsEnabled}
+          estimatedTrainStatusLabel={estimatedTrainStatusLabel}
+          onToggleEstimatedTrains={() => setEstimatedTrainsEnabled((current) => !current)}
         />
       </FloatingPanelShell>
     ) : activeView === "feedback" ? (
@@ -2331,6 +2397,9 @@ export function LineWatchShell({
           commutePathPreview={commutePathPreview}
           onClearCommutePathPreview={handleClearCommutePathPreview}
           viewportOrientation={rotatedMapMode ? "rotated-landscape" : "standard"}
+          estimatedTrainsEnabled={estimatedTrainsEnabled}
+          estimatedTrainMarkers={estimatedTrainSnapshot.markers}
+          onToggleEstimatedTrains={() => setEstimatedTrainsEnabled((current) => !current)}
         />
 
         {subwayOperatingState.status === "closed" && closedMapPeek ? (

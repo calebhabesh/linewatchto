@@ -358,4 +358,17 @@ describe("asset-backed map layering", () => {
     assert.match(globalCss, /\.station-hover-indicator/);
     assert.match(globalCss, /\.station-hit-target\.multi-anchor:hover/);
   });
+
+  it("keeps estimated train markers opt-in and independently polled", () => {
+    const shellSource = readFileSync(new URL("../src/components/LineWatchShell.tsx", import.meta.url), "utf8");
+    const moreSheetSource = readFileSync(new URL("../src/components/MobileMoreSheet.tsx", import.meta.url), "utf8");
+
+    assert.match(shellSource, /linewatch-estimated-trains-enabled-v1/);
+    assert.match(shellSource, /getEstimatedTrainMarkers/);
+    assert.match(shellSource, /estimatedTrainMarkerRefreshMs/);
+    assert.match(shellSource, /estimatedTrainsEnabled=\{estimatedTrainsEnabled\}/);
+    assert.match(shellSource, /estimatedTrainMarkers=\{estimatedTrainSnapshot\.markers\}/);
+    assert.match(moreSheetSource, /Estimated Trains/);
+    assert.match(moreSheetSource, /aria-pressed=\{estimatedTrainsEnabled\}/);
+  });
 });
