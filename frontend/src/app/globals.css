@@ -11350,3 +11350,95 @@ button {
     width: clamp(18px, 6vw, 24px) !important;
   }
 }
+
+.train-layer-toggle.active {
+  background: rgba(37, 99, 235, 0.14);
+  color: #2563eb;
+}
+
+.dark .train-layer-toggle.active {
+  background: rgba(96, 165, 250, 0.2);
+  color: #93c5fd;
+}
+
+.high-contrast .train-layer-toggle.active {
+  background: #ffffff !important;
+  color: #000000 !important;
+}
+
+.estimated-train-marker-layer {
+  opacity: 1;
+  transition: opacity 160ms ease;
+}
+
+.estimated-train-marker-layer[data-muted="true"] {
+  opacity: 0.24;
+}
+
+.estimated-train-marker {
+  color: #111827;
+}
+
+.estimated-train-marker-halo {
+  fill: currentColor;
+  opacity: 0.16;
+  stroke: #ffffff;
+  stroke-opacity: 0.64;
+  stroke-width: 4;
+}
+
+.estimated-train-marker-core {
+  fill: currentColor;
+  stroke: #ffffff;
+  stroke-width: 5;
+}
+
+.estimated-train-marker-glyph {
+  fill: none;
+  stroke: #ffffff;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2.8;
+}
+
+.estimated-train-marker-line-1 {
+  color: #f8c300;
+}
+
+.estimated-train-marker-line-2 {
+  color: #00923f;
+}
+
+.estimated-train-marker-line-4 {
+  color: #a21a68;
+}
+
+.estimated-train-marker-line-5 {
+  color: #eb8738;
+}
+
+.estimated-train-marker-line-6 {
+  color: #969594;
+}
+
+.high-contrast .estimated-train-marker-halo {
+  opacity: 0.2;
+  stroke: #000000;
+}
+
+.high-contrast .estimated-train-marker-core {
+  stroke: #000000;
+}
+
+.high-contrast .estimated-train-marker-glyph {
+  stroke: #000000;
+}
+
+.motion-paused .estimated-train-marker-layer,
+.linewatch-shell.mobile-performance-mode .estimated-train-marker-layer {
+  transition: none !important;
+}
+
+.linewatch-shell.mobile-performance-mode .estimated-train-marker-halo {
+  display: none;
+}

@@ -18,7 +18,7 @@ import {
 } from "../app/map-geometry";
 import { usePanZoom } from "../hooks/usePanZoom";
 import type { MapViewportOrientation } from "../hooks/panZoomMath";
-import { ZoomIn, ZoomOut, Locate, Sun, Moon } from "lucide-react";
+import { ZoomIn, ZoomOut, Locate, Sun, Moon, TrainFront } from "lucide-react";
 import { useDashboardData } from "../app/DataContext";
 import type {
   ActiveAlert,
@@ -33,6 +33,7 @@ import type {
 } from "../app/linewatch-data";
 import type { StationSummary } from "../app/station-data";
 import type { AccountCommutePathPreview } from "../app/account-data";
+import type { EstimatedTrainMarker } from "../app/train-markers";
 import { LogsDropdown } from "./LogsDropdown";
 import { ImpactTypeIcon } from "./ImpactTypeIcon";
 import { SiteGuideDropdown } from "./SiteGuideDropdown";
@@ -198,6 +199,9 @@ function InteractiveTtcMapComponent({
   commutePathPreview,
   onClearCommutePathPreview,
   viewportOrientation = "standard",
+  estimatedTrainsEnabled = false,
+  estimatedTrainMarkers = [],
+  onToggleEstimatedTrains,
 }: {
   selection: ImpactSelection;
   onSelectImpact: (selection: ImpactSelection) => void;
@@ -215,6 +219,9 @@ function InteractiveTtcMapComponent({
   commutePathPreview?: AccountCommutePathPreview | null;
   onClearCommutePathPreview?: () => void;
   viewportOrientation?: MapViewportOrientation;
+  estimatedTrainsEnabled?: boolean;
+  estimatedTrainMarkers?: EstimatedTrainMarker[];
+  onToggleEstimatedTrains?: () => void;
 }) {
   const { networkSegments, activeAlerts, delays, reducedSpeedZones, plannedClosures, stationNodeImpacts, stations: mapStations } = useDashboardData();
   const [svgParts, setSvgParts] = useState<{ part1: string; part2: string } | null>(null);
@@ -860,6 +867,23 @@ function InteractiveTtcMapComponent({
           <span className="map-control-recenter-mobile-label">Center Map</span>
         </div>
 
+        {onToggleEstimatedTrains ? (
+          <>
+            <div className="map-control-divider" aria-hidden="true" />
+            <button
+              onClick={onToggleEstimatedTrains}
+              className={`map-control-button train-layer-toggle ${estimatedTrainsEnabled ? "active" : ""}`}
+              title={estimatedTrainsEnabled ? "Hide estimated train markers" : "Show estimated train markers"}
+              aria-label={estimatedTrainsEnabled ? "Hide estimated train markers" : "Show estimated train markers"}
+              aria-pressed={estimatedTrainsEnabled}
+              type="button"
+            >
+              <TrainFront size={20} className="transition-colors" />
+              <span className="text-[10px] font-black uppercase tracking-widest transition-colors">Trains</span>
+            </button>
+          </>
+        ) : null}
+
         <div className="map-control-zoom-group">
           <div className="map-control-divider" aria-hidden="true" />
 
@@ -1057,6 +1081,15 @@ function InteractiveTtcMapComponent({
                       exiting={exiting}
                     />
                   ))}
+                </g>
+
+                <g aria-label="Estimated train markers">
+                  <EstimatedTrainMarkerLayer
+                    enabled={estimatedTrainsEnabled}
+                    markers={estimatedTrainMarkers}
+                    segments={renderedNetworkSegments}
+                    muted={Boolean(selection || selectedStationId || commutePathPreview)}
+                  />
                 </g>
 
                 {/* Top Layer: Stations (layer6) and text */}
@@ -3020,6 +3053,82 @@ function shouldRenderPlannedPreviewLayer(
   return !(segment.impacts ?? []).some(
     (impact) => impact.kind === "planned-closure" && impact.cardId === selectedClosure.id,
   );
+}
+
+function EstimatedTrainMarkerLayer({
+  enabled,
+  markers,
+  segments,
+  muted,
+}: {
+  enabled: boolean;
+  markers: EstimatedTrainMarker[];
+  segments: RenderedNetworkSegment[];
+  muted: boolean;
+}) {
+  if (!enabled || markers.length === 0) return null;
+
+  const segmentById = new Map(segments.map((segment) => [segment.id, segment]));
+
+  return (
+    <g className="estimated-train-marker-layer" data-muted={muted ? "true" : "false"} pointerEvents="none">
+      {markers.flatMap((marker) => {
+        const segment = segmentById.get(marker.segmentId);
+        if (!segment?.pathD) return [];
+
+        const visualDirection = visualTravelDirection({ ...segment, travelDirection: marker.travelDirection });
+        const pathProgress = visualDirection === "reverse" ? 1 - marker.progress : marker.progress;
+        const point = pathPointAtProgress(segment.pathD, pathProgress);
+        if (!point) return [];
+
+        return [
+          <g
+            key={marker.id}
+            className={`estimated-train-marker estimated-train-marker-${marker.lineId}`}
+            data-train-marker-id={marker.id}
+            data-train-marker-line-id={marker.lineId}
+            data-train-marker-segment-id={marker.segmentId}
+            transform={`translate(${point.x} ${point.y})`}
+          >
+            <title>{`${lineLabelForTrainMarker(marker.lineId)} ${marker.direction} estimated train near ${marker.nextStationId}`}</title>
+            <circle className="estimated-train-marker-halo" r="34" />
+            <circle className="estimated-train-marker-core" r="18" />
+            <path className="estimated-train-marker-glyph" d="M -7 -8 H 7 Q 10 -8 10 -5 V 5 Q 10 8 7 8 H -7 Q -10 8 -10 5 V -5 Q -10 -8 -7 -8 Z M -5 -4 H 5 M -5 3 H 5" />
+          </g>,
+        ];
+      })}
+    </g>
+  );
+}
+
+function pathPointAtProgress(pathD: string, progress: number): MapPoint | null {
+  if (typeof document === "undefined") return null;
+  try {
+    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    path.setAttribute("d", pathD);
+    const length = path.getTotalLength();
+    if (!Number.isFinite(length) || length <= 0) return null;
+    return path.getPointAtLength(Math.max(0, Math.min(1, progress)) * length);
+  } catch {
+    return null;
+  }
+}
+
+function lineLabelForTrainMarker(lineId: string) {
+  switch (lineId) {
+    case "line-1":
+      return "Line 1";
+    case "line-2":
+      return "Line 2";
+    case "line-4":
+      return "Line 4";
+    case "line-5":
+      return "Line 5";
+    case "line-6":
+      return "Line 6";
+    default:
+      return "Train";
+  }
 }
 
 export const InteractiveTtcMap = memo(InteractiveTtcMapComponent);
