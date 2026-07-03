@@ -1075,7 +1075,6 @@ function InteractiveTtcMapComponent({
                     markers={estimatedTrainMarkers}
                     segments={renderedNetworkSegments}
                     muted={Boolean(selection || selectedStationId || commutePathPreview)}
-                    mobilePerformanceMode={mobilePerformanceMode}
                   />
                 </g>
 
@@ -3044,13 +3043,11 @@ function EstimatedTrainMarkerLayer({
   markers,
   segments,
   muted,
-  mobilePerformanceMode,
 }: {
   enabled: boolean;
   markers: EstimatedTrainMarker[];
   segments: RenderedNetworkSegment[];
   muted: boolean;
-  mobilePerformanceMode: boolean;
 }) {
   const segmentById = useMemo(() => new Map(segments.map((segment) => [segment.id, segment])), [segments]);
   const markerNodes = useMemo(() => {
@@ -3079,11 +3076,11 @@ function EstimatedTrainMarkerLayer({
           transform={`translate(${frame.point.x} ${frame.point.y}) rotate(${frame.angle})`}
         >
           <title>{`${lineLabelForTrainMarker(marker.lineId)} ${marker.direction} estimated train near ${marker.nextStationId}`}</title>
-          <TrainMarkerGlyph isCompact={mobilePerformanceMode} />
+          <TrainMarkerGlyph />
         </g>,
       ];
     });
-  }, [enabled, markers, mobilePerformanceMode, segmentById]);
+  }, [enabled, markers, segmentById]);
 
   if (markerNodes.length === 0) return null;
 
@@ -3094,16 +3091,7 @@ function EstimatedTrainMarkerLayer({
   );
 }
 
-function TrainMarkerGlyph({ isCompact }: { isCompact: boolean }) {
-  if (isCompact) {
-    return (
-      <>
-        <circle className="estimated-train-marker-mobile-dot" r="18" />
-        <path className="estimated-train-marker-mobile-arrow" d="M 3 -7 L 15 0 L 3 7 Z" />
-      </>
-    );
-  }
-
+function TrainMarkerGlyph() {
   return (
     <>
       <path

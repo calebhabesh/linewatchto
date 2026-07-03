@@ -388,11 +388,12 @@ describe("asset-backed map layering", () => {
     assert.match(globalCss, /\.estimated-train-marker-arrow/);
     assert.match(globalCss, /\.estimated-train-marker-layer\[data-muted="true"\]/);
     assert.match(globalCss, /\.linewatch-shell\.mobile-performance-mode \.estimated-train-marker-halo/);
-    assert.match(interactiveMapSource, /mobilePerformanceMode=\{mobilePerformanceMode\}/);
-    assert.match(interactiveMapSource, /isCompact=\{mobilePerformanceMode\}/);
     assert.match(interactiveMapSource, /pathMetricCache/);
-    assert.match(interactiveMapSource, /estimated-train-marker-mobile-dot/);
+    assert.doesNotMatch(interactiveMapSource, /estimated-train-marker-mobile-dot/);
+    assert.match(interactiveMapSource, /<TrainMarkerGlyph \/>/);
     assert.match(globalCss, /\.linewatch-shell\.mobile-performance-mode \.estimated-train-marker\s*\{[^}]*filter:\s*none\s*!important;/s);
+    assert.match(globalCss, /\.linewatch-shell\.mobile-performance-mode \.estimated-train-marker-outline\s*\{[^}]*stroke:\s*#050505;/s);
+    assert.match(globalCss, /\.linewatch-shell\.mobile-performance-mode \.estimated-train-marker-core\s*\{[^}]*stroke:\s*#050505;/s);
     assert.match(globalCss, /\.linewatch-shell\.mobile-performance-mode \.estimated-train-marker-window/);
 
     const overlayIndex = interactiveMapSource.indexOf('aria-label="Disruption overlays"');

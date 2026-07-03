@@ -11411,16 +11411,6 @@ button {
   fill: #090d16; /* Dark windows representing train glass */
 }
 
-.estimated-train-marker-mobile-dot {
-  fill: currentColor;
-  stroke: #ffffff;
-  stroke-width: 5;
-}
-
-.estimated-train-marker-mobile-arrow {
-  fill: #090d16;
-}
-
 .linewatch-shell:not(.dark) .estimated-train-marker-outline {
   stroke: #ffffff; /* White outer outline on dark core in light mode */
   stroke-width: 5.5;
@@ -11485,15 +11475,6 @@ button {
   fill: #000000;
 }
 
-.high-contrast .estimated-train-marker-mobile-dot {
-  stroke: #ffffff;
-  stroke-width: 7;
-}
-
-.high-contrast .estimated-train-marker-mobile-arrow {
-  fill: #000000;
-}
-
 .motion-paused .estimated-train-marker-layer,
 .linewatch-shell.mobile-performance-mode .estimated-train-marker-layer {
   transition: none !important;
@@ -11502,6 +11483,21 @@ button {
 .motion-paused .estimated-train-marker,
 .linewatch-shell.mobile-performance-mode .estimated-train-marker {
   filter: none !important;
+}
+
+.linewatch-shell.mobile-performance-mode .estimated-train-marker-outline {
+  stroke: #050505;
+  stroke-width: 6;
+}
+
+.linewatch-shell.mobile-performance-mode .estimated-train-marker-core {
+  stroke: #050505;
+  stroke-width: 2.4;
+}
+
+.linewatch-shell.mobile-performance-mode .estimated-train-marker-arrow {
+  fill: #050505;
+  stroke: #050505;
 }
 
 .linewatch-shell.mobile-performance-mode .estimated-train-marker-window {
