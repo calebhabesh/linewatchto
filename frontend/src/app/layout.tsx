@@ -4,6 +4,12 @@ import Script from "next/script";
 import { AppUpdateBanner } from "../components/AppUpdateBanner";
 import { PwaServiceWorkerRegistration } from "../components/PwaServiceWorkerRegistration";
 import { lineWatchAppTitle } from "./app-title.ts";
+import {
+  getLineWatchSiteOrigin,
+  lineWatchSeoDescription,
+  lineWatchSeoImagePath,
+  lineWatchSeoTitle,
+} from "./seo";
 import "./globals.css";
 
 const inter = Inter({
@@ -17,12 +23,16 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: getLineWatchSiteOrigin(),
   applicationName: lineWatchAppTitle,
   title: {
     default: lineWatchAppTitle,
     template: `%s | ${lineWatchAppTitle}`,
   },
-  description: "Unofficial TTC reliability dashboard for Toronto subway and LRT riders.",
+  description: lineWatchSeoDescription,
+  alternates: {
+    canonical: "/",
+  },
   manifest: "/manifest.webmanifest",
   icons: {
     icon: [
@@ -49,6 +59,38 @@ export const metadata: Metadata = {
     capable: true,
     title: lineWatchAppTitle,
     statusBarStyle: "black-translucent",
+  },
+  openGraph: {
+    title: lineWatchSeoTitle,
+    description: lineWatchSeoDescription,
+    url: "/",
+    siteName: "LineWatchTO",
+    locale: "en_CA",
+    type: "website",
+    images: [
+      {
+        url: lineWatchSeoImagePath,
+        width: 512,
+        height: 512,
+        alt: "LineWatchTO app icon",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary",
+    title: lineWatchSeoTitle,
+    description: lineWatchSeoDescription,
+    images: [lineWatchSeoImagePath],
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
   },
   formatDetection: {
     telephone: false,
