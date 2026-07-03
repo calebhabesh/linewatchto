@@ -96,28 +96,23 @@ public class GtfsRtSubwayTripUpdateTextParser {
         }
 
         String stopId = firstQuoted(STOP_ID, stopTimeUpdate);
-        Long predictedEpoch = predictedEpoch(stopTimeUpdate);
-        if (stopId == null || predictedEpoch == null) {
+        Long arrivalEpoch = timeInBlock(stopTimeUpdate, "arrival");
+        Long departureEpoch = timeInBlock(stopTimeUpdate, "departure");
+        if (stopId == null || (arrivalEpoch == null && departureEpoch == null)) {
             return null;
         }
         Long sequence = findLong(STOP_SEQUENCE, stopTimeUpdate);
         return new GtfsRtSubwayStopTimeUpdate(
             stopId,
             sequence == null ? 0 : sequence.intValue(),
-            epoch(predictedEpoch)
+            arrivalEpoch == null ? null : epoch(arrivalEpoch),
+            departureEpoch == null ? null : epoch(departureEpoch)
         );
     }
 
-    private Long predictedEpoch(String stopTimeUpdate) {
-        String arrival = firstBlock(stopTimeUpdate, "arrival");
-        if (arrival != null) {
-            Long arrivalTime = findLong(TIME, arrival);
-            if (arrivalTime != null) {
-                return arrivalTime;
-            }
-        }
-        String departure = firstBlock(stopTimeUpdate, "departure");
-        return departure == null ? null : findLong(TIME, departure);
+    private Long timeInBlock(String stopTimeUpdate, String blockName) {
+        String block = firstBlock(stopTimeUpdate, blockName);
+        return block == null ? null : findLong(TIME, block);
     }
 
     private String vehicleId(String tripUpdate) {

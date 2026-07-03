@@ -62,6 +62,7 @@ public class GtfsRtSubwayArrivalIndexer {
                     trip.lineId(),
                     trip.direction(),
                     stopUpdate.predictedAt(),
+                    stopUpdate.departureAt(),
                     trip.vehicleId(),
                     trip.tripId(),
                     stopUpdate.stopId()

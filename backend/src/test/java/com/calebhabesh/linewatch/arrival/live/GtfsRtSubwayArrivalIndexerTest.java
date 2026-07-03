@@ -35,7 +35,7 @@ class GtfsRtSubwayArrivalIndexerTest {
                 "Eastbound",
                 "232",
                 List.of(
-                    new GtfsRtSubwayStopTimeUpdate("13756", 18, epoch(1782988036)),
+                    new GtfsRtSubwayStopTimeUpdate("13756", 18, epoch(1782988036), epoch(1782988051)),
                     new GtfsRtSubwayStopTimeUpdate("13753", 19, epoch(1782988096)),
                     new GtfsRtSubwayStopTimeUpdate("unmapped", 20, epoch(1782988156))
                 )
@@ -59,13 +59,14 @@ class GtfsRtSubwayArrivalIndexerTest {
                 GtfsRtSubwayStationArrival::lineId,
                 GtfsRtSubwayStationArrival::direction,
                 GtfsRtSubwayStationArrival::predictedAt,
+                GtfsRtSubwayStationArrival::departureAt,
                 GtfsRtSubwayStationArrival::vehicleId,
                 GtfsRtSubwayStationArrival::tripId,
                 GtfsRtSubwayStationArrival::stopId
             )
             .containsExactly(
-                tuple("st-george", "line-2", "Eastbound", epoch(1782988036), "232", "126789", "13756"),
-                tuple("bay", "line-2", "Eastbound", epoch(1782988096), "232", "126789", "13753")
+                tuple("st-george", "line-2", "Eastbound", epoch(1782988036), epoch(1782988051), "232", "126789", "13756"),
+                tuple("bay", "line-2", "Eastbound", epoch(1782988096), null, "232", "126789", "13753")
             );
     }
 

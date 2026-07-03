@@ -2,8 +2,9 @@ import type { StationArrival, StationLine } from "./station-data";
 
 type ArrivalTimeFields = Pick<StationArrival, "label" | "minutes" | "status"> & Partial<Pick<StationArrival, "predictedAt">>;
 type ArrivalTileLabelFields = Pick<StationArrival, "label" | "minutes"> & Partial<Pick<StationArrival, "predictedAt" | "status">>;
+type ArrivalSourceFields = Pick<StationArrival, "status"> & Partial<Pick<StationArrival, "source">>;
 type ArrivalTileLabelOptions = {
-  detailedLive?: boolean;
+  detailedCountdown?: boolean;
   now?: Date | number | string;
 };
 
@@ -67,7 +68,9 @@ const UNAVAILABLE_ARRIVALS_DISCLAIMER =
   "Scheduled arrival data is currently unavailable. Arrival predictions are not live TTC predictions.";
 const LIVE_ARRIVALS_DISCLAIMER =
   "Arrival predictions are source-labeled and may be affected by active TTC service alerts.";
-const DETAILED_LIVE_COUNTDOWN_THRESHOLD_SECONDS = 120;
+const MIXED_ARRIVALS_DISCLAIMER =
+  "Live GTFS-RT rows are shown where available; scheduled rows fill missing directions.";
+const DETAILED_COUNTDOWN_THRESHOLD_SECONDS = 120;
 
 export function groupStationArrivals(
   arrivals: StationArrival[],
@@ -152,6 +155,9 @@ export function formatArrivalDirection(
 }
 
 export function formatArrivalDisclaimer(arrivals: StationArrival[], disclaimer: string | null | undefined): string {
+  if (hasArrivalStatus(arrivals, "live") && hasArrivalStatus(arrivals, "scheduled")) {
+    return MIXED_ARRIVALS_DISCLAIMER;
+  }
   if (arrivals.some((arrival) => arrival.status === "live")) {
     return LIVE_ARRIVALS_DISCLAIMER;
   }
@@ -162,6 +168,38 @@ export function formatArrivalDisclaimer(arrivals: StationArrival[], disclaimer: 
     return UNAVAILABLE_ARRIVALS_DISCLAIMER;
   }
   return disclaimer || SCHEDULED_ARRIVALS_DISCLAIMER;
+}
+
+export function formatArrivalSourceSummary(arrivals: ArrivalSourceFields[], source: string): string {
+  if (hasArrivalStatus(arrivals, "live") && hasArrivalStatus(arrivals, "scheduled")) {
+    return "Mixed Live + Scheduled Fallback";
+  }
+  return formatArrivalSourceText(source);
+}
+
+export function formatArrivalSourceBadgeLabel(arrivals: ArrivalSourceFields[]): string {
+  if (hasArrivalStatus(arrivals, "live") && hasArrivalStatus(arrivals, "scheduled")) {
+    return "Mixed";
+  }
+  if (hasArrivalStatus(arrivals, "live")) {
+    return "Live";
+  }
+  if (hasArrivalStatus(arrivals, "scheduled")) {
+    return "Scheduled";
+  }
+  if (hasArrivalStatus(arrivals, "demo")) {
+    return "Demo";
+  }
+  return "Unavailable";
+}
+
+export function formatArrivalSourceText(source: string): string {
+  if (!source) return "";
+  const lower = source.toLowerCase();
+  if (lower === "ttc scheduled service") {
+    return `${source} - Not Live`;
+  }
+  return source.replace(/ttc gtfs-rt subway trip updates/gi, "TTC GTFS-RT LIVE SUBWAY TRIP UPDATES");
 }
 
 export function isArrivalDue(arrival: ArrivalTimeFields, now?: Date | number | string): boolean {
@@ -194,15 +232,19 @@ export function formatArrivalClockTime(predictedAt: string | null): string | nul
 }
 
 export function formatArrivalTileLabel(arrival: ArrivalTileLabelFields, options: ArrivalTileLabelOptions = {}): string {
-  if (options.detailedLive && shouldUseDetailedLiveCountdown(arrival, options.now)) {
+  if (options.detailedCountdown && shouldUseDetailedArrivalCountdown(arrival, options.now)) {
     const predictedAt = Date.parse(arrival.predictedAt ?? "");
     const secondsUntilArrival = Math.ceil((predictedAt - toMillis(options.now)) / 1000);
     return `${formatCountdownDuration(secondsUntilArrival)} - ${formatCountdownDuration(secondsUntilArrival + 60)}`;
   }
   if (options.now !== undefined && arrival.status === "live" && arrival.predictedAt) {
     const predictedAt = Date.parse(arrival.predictedAt);
-    if (!Number.isNaN(predictedAt) && predictedAt <= toMillis(options.now)) {
-      return "Due";
+    if (!Number.isNaN(predictedAt)) {
+      const millisUntilArrival = predictedAt - toMillis(options.now);
+      if (millisUntilArrival <= 0) {
+        return "Due";
+      }
+      return `${Math.ceil(millisUntilArrival / 60_000)}m`;
     }
   }
   if (arrival.label.toLowerCase() === "due") {
@@ -217,8 +259,8 @@ export function formatArrivalTileLabel(arrival: ArrivalTileLabelFields, options:
   return `${arrival.minutes}m`;
 }
 
-export function shouldUseDetailedLiveCountdown(arrival: ArrivalTileLabelFields, now?: Date | number | string): boolean {
-  if (arrival.status !== "live" || !arrival.predictedAt) {
+export function shouldUseDetailedArrivalCountdown(arrival: ArrivalTileLabelFields, now?: Date | number | string): boolean {
+  if (arrival.status === "unavailable" || !arrival.predictedAt) {
     return false;
   }
   const predictedAt = Date.parse(arrival.predictedAt);
@@ -226,7 +268,7 @@ export function shouldUseDetailedLiveCountdown(arrival: ArrivalTileLabelFields, 
     return false;
   }
   const secondsUntilArrival = Math.ceil((predictedAt - toMillis(now)) / 1000);
-  return secondsUntilArrival > 0 && secondsUntilArrival < DETAILED_LIVE_COUNTDOWN_THRESHOLD_SECONDS;
+  return secondsUntilArrival > 0 && secondsUntilArrival < DETAILED_COUNTDOWN_THRESHOLD_SECONDS;
 }
 
 function toMillis(value: Date | number | string | undefined): number {
@@ -271,6 +313,10 @@ function arrivalIdentity(arrival: StationArrival): string {
     arrival.source,
     arrival.status,
   ].join("|");
+}
+
+function hasArrivalStatus(arrivals: ArrivalSourceFields[], status: StationArrival["status"]): boolean {
+  return arrivals.some((arrival) => arrival.status === status);
 }
 
 function arrivalSortTime(arrival: StationArrival): number {

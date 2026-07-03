@@ -95,6 +95,7 @@ type AccountEntryIntent = "login" | "register";
 
 const DEFAULT_DASHBOARD_REFRESH_MS = 30_000;
 const MIN_DASHBOARD_REFRESH_MS = 10_000;
+const STATION_DETAIL_REFRESH_MS = 15_000;
 const GOOGLE_LINK_SUCCESS_PARAM = "account_linked";
 const GOOGLE_LINK_SUCCESS_VALUE = "google";
 const GOOGLE_LINK_SUCCESS_MESSAGE = "Google sign-in has been linked to your account.";
@@ -961,6 +962,7 @@ export function LineWatchShell({
 
   useEffect(() => {
     let cancelled = false;
+    let requestId = 0;
 
     if (!selectedStationId) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -971,16 +973,44 @@ export function LineWatchShell({
       };
     }
 
-    setStationLoading(true);
-    getStationDetail(selectedStationId).then((result) => {
-      if (!cancelled) {
-        setVisibleStationResult(result);
-        setStationLoading(false);
+    const fetchStationDetail = (showLoading: boolean) => {
+      const activeRequestId = ++requestId;
+      if (showLoading) {
+        setStationLoading(true);
       }
-    });
+      getStationDetail(selectedStationId).then((result) => {
+        if (!cancelled && activeRequestId === requestId) {
+          setVisibleStationResult(result);
+        }
+      }).finally(() => {
+        if (!cancelled && activeRequestId === requestId) {
+          setStationLoading(false);
+        }
+      });
+    };
+
+    fetchStationDetail(true);
+
+    const interval = window.setInterval(() => {
+      if (document.visibilityState !== "visible") {
+        return;
+      }
+
+      fetchStationDetail(false);
+    }, STATION_DETAIL_REFRESH_MS);
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        fetchStationDetail(false);
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
 
     return () => {
       cancelled = true;
+      window.clearInterval(interval);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, [selectedStationId]);
 

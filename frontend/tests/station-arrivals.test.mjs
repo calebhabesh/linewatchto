@@ -5,10 +5,12 @@ import {
   formatArrivalDirection,
   formatArrivalClockTime,
   formatArrivalDisclaimer,
+  formatArrivalSourceBadgeLabel,
+  formatArrivalSourceSummary,
   formatArrivalTileLabel,
   groupStationArrivals,
   isArrivalDue,
-  shouldUseDetailedLiveCountdown,
+  shouldUseDetailedArrivalCountdown,
 } from "../src/app/station-arrivals.ts";
 
 const line2 = {
@@ -165,6 +167,102 @@ describe("station arrival grouping", () => {
     assert.equal(formatArrivalTileLabel({ label: "Unavailable", minutes: null }), "Unavailable");
   });
 
+  it("labels mixed live and scheduled arrival sources", () => {
+    const liveArrival = {
+      lineId: "line-2",
+      direction: "Eastbound",
+      minutes: 1,
+      predictedAt: "2026-07-02T10:26:00Z",
+      label: "1 min",
+      source: "TTC GTFS-RT subway trip updates",
+      status: "live",
+    };
+    const scheduledArrival = {
+      lineId: "line-2",
+      direction: "Westbound",
+      minutes: 4,
+      predictedAt: "2026-07-02T10:29:00Z",
+      label: "4 min",
+      source: "TTC scheduled service",
+      status: "scheduled",
+    };
+
+    assert.equal(
+      formatArrivalSourceSummary([liveArrival, scheduledArrival], "TTC GTFS-RT subway trip updates / TTC scheduled service"),
+      "Mixed Live + Scheduled Fallback",
+    );
+    assert.equal(formatArrivalSourceBadgeLabel([liveArrival]), "Live");
+    assert.equal(formatArrivalSourceBadgeLabel([scheduledArrival]), "Scheduled");
+    assert.equal(formatArrivalSourceBadgeLabel([liveArrival, scheduledArrival]), "Mixed");
+    assert.equal(
+      formatArrivalDisclaimer([liveArrival, scheduledArrival], null),
+      "Live GTFS-RT rows are shown where available; scheduled rows fill missing directions.",
+    );
+  });
+
+  it("updates live minute labels from predicted arrival time as time passes", () => {
+    const liveArrival = {
+      label: "6 min",
+      minutes: 6,
+      predictedAt: "2026-07-02T10:31:00Z",
+      status: "live",
+    };
+
+    assert.equal(
+      formatArrivalTileLabel(liveArrival, {
+        now: new Date("2026-07-02T10:26:45Z"),
+      }),
+      "5m",
+    );
+    assert.equal(
+      formatArrivalTileLabel(liveArrival, {
+        now: new Date("2026-07-02T10:29:10Z"),
+      }),
+      "2m",
+    );
+  });
+
+  it("keeps live arrivals due until the backend removes them from the station feed", () => {
+    const liveArrival = {
+      label: "Due",
+      minutes: 0,
+      predictedAt: "2026-07-02T10:26:00Z",
+      status: "live",
+    };
+
+    assert.equal(isArrivalDue(liveArrival, new Date("2026-07-02T10:26:20Z")), true);
+    assert.equal(isArrivalDue(liveArrival, new Date("2026-07-02T10:26:31Z")), true);
+  });
+
+  it("does not filter live arrivals client-side after predicted time passes", () => {
+    const groups = groupStationArrivals([
+      {
+        lineId: "line-2",
+        direction: "Bloor-Danforth Line towards Kennedy Station",
+        minutes: 0,
+        predictedAt: "2026-07-02T10:26:00Z",
+        label: "Due",
+        source: "TTC GTFS-RT subway trip updates",
+        status: "live",
+      },
+      {
+        lineId: "line-2",
+        direction: "Bloor-Danforth Line towards Kennedy Station",
+        minutes: 3,
+        predictedAt: "2026-07-02T10:29:00Z",
+        label: "3 min",
+        source: "TTC GTFS-RT subway trip updates",
+        status: "live",
+      },
+    ], [line2], { stationId: "high-park" });
+
+    assert.equal(groups.length, 1);
+    assert.deepEqual(
+      groups[0].arrivals.map((arrival) => arrival.predictedAt),
+      ["2026-07-02T10:26:00Z", "2026-07-02T10:29:00Z"],
+    );
+  });
+
   it("uses a ticking range label for the nearest live arrival tile", () => {
     const liveArrival = {
       label: "1 min",
@@ -175,14 +273,14 @@ describe("station arrival grouping", () => {
 
     assert.equal(
       formatArrivalTileLabel(liveArrival, {
-        detailedLive: true,
+        detailedCountdown: true,
         now: new Date("2026-07-02T10:25:46Z"),
       }),
       "0:42 - 1:42",
     );
     assert.equal(
       formatArrivalTileLabel(liveArrival, {
-        detailedLive: true,
+        detailedCountdown: true,
         now: new Date("2026-07-02T10:26:40Z"),
       }),
       "Due",
@@ -190,7 +288,28 @@ describe("station arrival grouping", () => {
     assert.equal(formatArrivalTileLabel(liveArrival), "1m");
   });
 
-  it("only uses the detailed live countdown inside the final two minutes", () => {
+  it("uses the ticking range label for scheduled arrivals inside the final two minutes", () => {
+    const scheduledArrival = {
+      label: "1 min",
+      minutes: 1,
+      predictedAt: "2026-07-02T10:26:28Z",
+      status: "scheduled",
+    };
+
+    assert.equal(
+      shouldUseDetailedArrivalCountdown(scheduledArrival, new Date("2026-07-02T10:25:46Z")),
+      true,
+    );
+    assert.equal(
+      formatArrivalTileLabel(scheduledArrival, {
+        detailedCountdown: true,
+        now: new Date("2026-07-02T10:25:46Z"),
+      }),
+      "0:42 - 1:42",
+    );
+  });
+
+  it("only uses the detailed countdown inside the final two minutes", () => {
     const liveArrival = {
       label: "3 min",
       minutes: 3,
@@ -199,23 +318,23 @@ describe("station arrival grouping", () => {
     };
 
     assert.equal(
-      shouldUseDetailedLiveCountdown(liveArrival, new Date("2026-07-02T10:25:46Z")),
+      shouldUseDetailedArrivalCountdown(liveArrival, new Date("2026-07-02T10:25:46Z")),
       false,
     );
     assert.equal(
       formatArrivalTileLabel(liveArrival, {
-        detailedLive: true,
+        detailedCountdown: true,
         now: new Date("2026-07-02T10:25:46Z"),
       }),
       "3m",
     );
     assert.equal(
-      shouldUseDetailedLiveCountdown(liveArrival, new Date("2026-07-02T10:26:55Z")),
+      shouldUseDetailedArrivalCountdown(liveArrival, new Date("2026-07-02T10:26:55Z")),
       true,
     );
     assert.equal(
       formatArrivalTileLabel(liveArrival, {
-        detailedLive: true,
+        detailedCountdown: true,
         now: new Date("2026-07-02T10:26:55Z"),
       }),
       "1:51 - 2:51",
@@ -254,7 +373,7 @@ describe("station arrival grouping", () => {
     );
   });
 
-  it("uses the source-labeled live disclaimer when live arrivals have scheduled fallbacks", () => {
+  it("uses the mixed-source disclaimer when live arrivals have scheduled fallbacks", () => {
     assert.equal(
       formatArrivalDisclaimer([
         {
@@ -276,7 +395,7 @@ describe("station arrival grouping", () => {
           status: "scheduled",
         },
       ], "Scheduled arrivals use TTC timetable data and are not live train predictions."),
-      "Arrival predictions are source-labeled and may be affected by active TTC service alerts.",
+      "Live GTFS-RT rows are shown where available; scheduled rows fill missing directions.",
     );
   });
 });

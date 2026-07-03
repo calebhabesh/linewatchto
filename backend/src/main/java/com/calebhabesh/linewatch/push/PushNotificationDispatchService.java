@@ -15,6 +15,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,6 +26,13 @@ public class PushNotificationDispatchService {
     private static final Duration FAILED_DELIVERY_RETRY_DELAY = Duration.ofMinutes(5);
     private static final Duration ACCEPTED_UNDISPLAYED_DELIVERY_RETRY_DELAY = Duration.ofMinutes(2);
     private static final Duration ACCEPTED_UNDISPLAYED_DELIVERY_RETRY_WINDOW = Duration.ofMinutes(30);
+    private static final Duration CLEARED_DELIVERY_RETRY_WINDOW = Duration.ofHours(24);
+    private static final int CLEARED_DELIVERY_RETRY_LIMIT = 25;
+    private static final List<String> CLEARED_RETRY_CATEGORIES = List.of(
+        "saved-commute-current",
+        "saved-commute-impact",
+        "line-current"
+    );
     
     private final SavedCommuteRepository savedCommuteRepository;
     private final SavedCommutePushPlanner planner;
@@ -160,7 +168,46 @@ public class PushNotificationDispatchService {
                 currentLineSourceIncidentKeys,
                 currentLineCandidates
             );
+            retryRecentClearedLifecycleNotifications(accountId, preferences, subscribedLineIdSet, clock.instant());
         }
+    }
+
+    private void retryRecentClearedLifecycleNotifications(
+        String accountId,
+        PushNotificationPreferenceEntity preferences,
+        Set<String> subscribedLineIds,
+        Instant now
+    ) {
+        if (!ingestionFreshness.isDashboardFresh()) {
+            return;
+        }
+        List<PushNotificationEventEntity> clearedEvents =
+            eventRepository.findByAccountIdAndCategoryInAndNotificationStateAndCreatedAtAfterOrderByCreatedAtDesc(
+                accountId,
+                CLEARED_RETRY_CATEGORIES,
+                CLEARED_STATE,
+                now.minus(CLEARED_DELIVERY_RETRY_WINDOW),
+                PageRequest.of(0, CLEARED_DELIVERY_RETRY_LIMIT)
+            );
+        for (PushNotificationEventEntity clearedEvent : clearedEvents) {
+            if (clearedRetryAllowed(clearedEvent, preferences, subscribedLineIds)) {
+                retryEventToIncompleteSubscriptions(clearedEvent, now);
+            }
+        }
+    }
+
+    private boolean clearedRetryAllowed(
+        PushNotificationEventEntity event,
+        PushNotificationPreferenceEntity preferences,
+        Set<String> subscribedLineIds
+    ) {
+        if (event.getCommuteId() != null) {
+            return preferences.isSavedCommuteRestoredEnabled();
+        }
+        if (event.getLineId() != null) {
+            return preferences.isLineRestoredEnabled() && subscribedLineIds.contains(event.getLineId());
+        }
+        return false;
     }
 
     private void sendClearedNotifications(

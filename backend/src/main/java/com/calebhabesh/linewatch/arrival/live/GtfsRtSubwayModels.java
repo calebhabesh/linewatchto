@@ -29,18 +29,44 @@ record GtfsRtSubwayTripUpdate(
 record GtfsRtSubwayStopTimeUpdate(
     String stopId,
     int stopSequence,
-    OffsetDateTime predictedAt
-) {}
+    OffsetDateTime arrivalAt,
+    OffsetDateTime departureAt
+) {
+    GtfsRtSubwayStopTimeUpdate(String stopId, int stopSequence, OffsetDateTime predictedAt) {
+        this(stopId, stopSequence, predictedAt, null);
+    }
+
+    OffsetDateTime predictedAt() {
+        return arrivalAt != null ? arrivalAt : departureAt;
+    }
+}
 
 record GtfsRtSubwayStationArrival(
     String stationId,
     String lineId,
     String direction,
     OffsetDateTime predictedAt,
+    OffsetDateTime departureAt,
     String vehicleId,
     String tripId,
     String stopId
-) {}
+) {
+    GtfsRtSubwayStationArrival(
+        String stationId,
+        String lineId,
+        String direction,
+        OffsetDateTime predictedAt,
+        String vehicleId,
+        String tripId,
+        String stopId
+    ) {
+        this(stationId, lineId, direction, predictedAt, null, vehicleId, tripId, stopId);
+    }
+
+    OffsetDateTime visibleUntil() {
+        return departureAt != null ? departureAt : predictedAt;
+    }
+}
 
 record GtfsRtSubwayArrivalSnapshot(
     OffsetDateTime feedCreatedAt,

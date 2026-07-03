@@ -21,6 +21,17 @@ describe("dashboard server data binding", () => {
     assert.match(shellSource, /visibilitychange/);
   });
 
+  it("keeps selected station detail fresh while the submenu remains open", () => {
+    assert.match(shellSource, /STATION_DETAIL_REFRESH_MS\s*=\s*15_000/);
+    assert.match(shellSource, /fetchStationDetail/);
+    assert.match(shellSource, /fetchStationDetail\(true\)/);
+    assert.match(shellSource, /fetchStationDetail\(false\)/);
+    assert.match(shellSource, /if \(showLoading\) \{/);
+    assert.match(shellSource, /window\.setInterval\(\(\) => \{[\s\S]*fetchStationDetail\(false\);[\s\S]*\}, STATION_DETAIL_REFRESH_MS\)/);
+    assert.match(shellSource, /document\.addEventListener\("visibilitychange", handleVisibilityChange\)/);
+    assert.match(shellSource, /getStationDetail\(selectedStationId\)/);
+  });
+
   it("pauses dashboard refresh while the closed screen covers the feed", () => {
     assert.match(shellSource, /subwayOperatingState\.status === "closed" && !closedMapPeek/);
     assert.match(shellSource, /return;/);

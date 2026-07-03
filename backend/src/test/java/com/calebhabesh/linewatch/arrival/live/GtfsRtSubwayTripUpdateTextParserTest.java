@@ -33,6 +33,9 @@ class GtfsRtSubwayTripUpdateTextParserTest {
                   arrival {
                     time: 1782988036
                   }
+                  departure {
+                    time: 1782988051
+                  }
                   schedule_relationship: SCHEDULED
                 }
                 stop_time_update {
@@ -89,11 +92,13 @@ class GtfsRtSubwayTripUpdateTextParserTest {
             .extracting(
                 GtfsRtSubwayStopTimeUpdate::stopId,
                 GtfsRtSubwayStopTimeUpdate::stopSequence,
+                GtfsRtSubwayStopTimeUpdate::arrivalAt,
+                GtfsRtSubwayStopTimeUpdate::departureAt,
                 GtfsRtSubwayStopTimeUpdate::predictedAt
             )
             .containsExactly(
-                tuple("13756", 18, epoch(1782988036)),
-                tuple("13753", 19, epoch(1782988096))
+                tuple("13756", 18, epoch(1782988036), epoch(1782988051), epoch(1782988036)),
+                tuple("13753", 19, null, epoch(1782988096), epoch(1782988096))
             );
     }
 

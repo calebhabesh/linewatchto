@@ -8,12 +8,14 @@ import { formatImpactTimestamp } from "../app/impact-time";
 import {
   formatArrivalClockTime,
   formatArrivalDisclaimer,
+  formatArrivalSourceBadgeLabel,
+  formatArrivalSourceSummary,
   formatArrivalTileLabel,
   groupStationArrivals,
   isArrivalDue,
-  shouldUseDetailedLiveCountdown,
+  shouldUseDetailedArrivalCountdown,
 } from "../app/station-arrivals";
-import type { StationDataResult, StationDetail, StationImpact } from "../app/station-data";
+import type { StationArrival, StationDataResult, StationDetail, StationImpact } from "../app/station-data";
 import { useDashboardData } from "../app/DataContext";
 import { useSubwayOperatingState } from "../hooks/useSubwayOperatingState";
 import type {
@@ -218,13 +220,26 @@ function stationImpactTitleClassName(tone: StationImpactDetailsTarget["tone"]) {
   return "block text-[#FEEC41]";
 }
 
-function formatArrivalsSource(source: string): string {
-  if (!source) return "";
-  const lower = source.toLowerCase();
-  if (lower === "ttc scheduled service") {
-    return `${source} - Not Live`;
+function arrivalSourceBadgeClassName(label: string) {
+  const base = "ml-auto inline-flex h-5 shrink-0 items-center rounded border px-1.5 text-[10px] font-black uppercase tracking-wide";
+  if (label === "Live") {
+    return `${base} border-emerald-500/35 bg-emerald-500/10 text-emerald-700 dark:text-emerald-200`;
   }
-  return source.replace(/ttc gtfs-rt subway trip updates/gi, "TTC GTFS-RT LIVE SUBWAY TRIP UPDATES");
+  if (label === "Scheduled") {
+    return `${base} border-slate-400/35 bg-slate-500/10 text-slate-600 dark:text-slate-300`;
+  }
+  if (label === "Mixed") {
+    return `${base} border-cyan-500/35 bg-cyan-500/10 text-cyan-700 dark:text-cyan-200`;
+  }
+  if (label === "Demo") {
+    return `${base} border-violet-500/35 bg-violet-500/10 text-violet-700 dark:text-violet-200`;
+  }
+  return `${base} border-slate-400/30 bg-slate-500/5 text-slate-500 dark:text-slate-400`;
+}
+
+function arrivalSourceTitle(arrivals: StationArrival[]) {
+  const sources = [...new Set(arrivals.map((arrival) => arrival.source).filter(Boolean))];
+  return sources.length > 0 ? `Source: ${sources.join(" / ")}` : "Source unavailable";
 }
 
 export function StationDetailPanel({ stationResult, loading, updating, selectedStationName, onClose, onSelectImpact, reducedMotion }: Props) {
@@ -232,8 +247,8 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
   const subwayOperatingState = useSubwayOperatingState();
   const station = stationResult?.data ?? null;
   const source = stationResult?.source;
-  const hasLiveArrivalCountdown = station?.arrivals.some(
-    (arrival) => arrival.status === "live" && arrival.predictedAt
+  const hasArrivalCountdownTicker = station?.arrivals.some(
+    (arrival) => arrival.status !== "unavailable" && arrival.predictedAt
   ) ?? false;
   const [arrivalTick, setArrivalTick] = useState(() => Date.now());
   const hasElevatorOutage = station?.access.outages.some(
@@ -259,13 +274,18 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
   const accessibilityDetailsRef = useRef<HTMLDetailsElement>(null);
 
   useEffect(() => {
-    if (!hasLiveArrivalCountdown) {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setArrivalTick(Date.now());
+  }, [station?.id]);
+
+  useEffect(() => {
+    if (!hasArrivalCountdownTicker) {
       return;
     }
 
     const timer = window.setInterval(() => setArrivalTick(Date.now()), 3000);
     return () => window.clearInterval(timer);
-  }, [hasLiveArrivalCountdown, station?.id]);
+  }, [hasArrivalCountdownTicker, station?.id]);
 
   const handleJumpToAccessibility = () => {
     if (accessibilityDetailsRef.current) {
@@ -494,7 +514,7 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
                     {arrivalHeading}
                   </h3>
                   <p className="mt-1 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-                    {formatArrivalsSource(station.arrivalsSource)}
+                    {formatArrivalSourceSummary(station.arrivals, station.arrivalsSource)}
                   </p>
                   <div className="mt-3 rounded-md border border-black/10 bg-white/60 px-3 py-4 text-center dark:border-white/10 dark:bg-black/10">
                     <p className="text-sm font-semibold leading-snug text-slate-500 dark:text-slate-400">
@@ -508,7 +528,10 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
 
             const arrivalsDisrupted = station.arrivalContext ? station.arrivalContext.scheduleMayBeDisrupted : false;
             const hasUnavailableArrivals = station.arrivals.some((arrival) => arrival.status === "unavailable");
-            const arrivalGroups = hasUnavailableArrivals ? [] : groupStationArrivals(station.arrivals, station.lines, { stationId: station.id });
+            const hasLiveArrivals = station.arrivals.some((arrival) => arrival.status === "live");
+            const arrivalGroups = hasUnavailableArrivals
+              ? []
+              : groupStationArrivals(station.arrivals, station.lines, { stationId: station.id });
             const arrivalDisclaimer = formatArrivalDisclaimer(station.arrivals, station.disclaimer);
             const arrivalSectionClassName = [
               "rounded-lg border p-3 transition-colors",
@@ -529,7 +552,7 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
                   {arrivalHeading}
                 </h3>
                 <p className="mt-1 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-                  {formatArrivalsSource(station.arrivalsSource)}
+                  {formatArrivalSourceSummary(station.arrivals, station.arrivalsSource)}
                 </p>
                 {arrivalsDisrupted && station.arrivalContext && (
                   <div className="mt-2 flex flex-wrap items-center justify-between gap-2 rounded-md border border-slate-300 bg-slate-200/70 p-2 text-xs font-semibold text-slate-700 dark:border-white/10 dark:bg-white/10 dark:text-slate-200">
@@ -571,9 +594,15 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
                     <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">
                       Arrival Data Unavailable
                     </p>
+                  ) : arrivalGroups.length === 0 ? (
+                    <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">
+                      {hasLiveArrivals ? "Refreshing Live Arrivals" : "No Arrivals Available"}
+                    </p>
                   ) : arrivalGroups.map((group, groupIndex) => {
                     const lineBadgeColor = group.line?.color ?? "#cbd5e1";
                     const showLineDivider = groupIndex > 0 && arrivalGroups[groupIndex - 1]?.lineId !== group.lineId;
+                    const groupSourceLabel = formatArrivalSourceBadgeLabel(group.arrivals);
+                    const groupSourceTitle = arrivalSourceTitle(group.arrivals);
 
                     return (
                       <Fragment key={group.key}>
@@ -588,7 +617,7 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
                           data-arrival-group={group.key}
                           className="rounded-md border border-black/10 bg-white/80 p-3 text-sm shadow-sm dark:border-white/10 dark:bg-[#12151c]/80"
                         >
-                          <div className="flex min-w-0 items-center gap-3">
+                          <div className="flex min-w-0 items-start gap-3">
                             <span
                               className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-black"
                               style={{ backgroundColor: lineBadgeColor, color: lineBadgeTextColor(group.lineId) }}
@@ -619,6 +648,14 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
                                 </strong>
                               );
                             })()}
+                            <span
+                              className={arrivalSourceBadgeClassName(groupSourceLabel)}
+                              data-arrival-source={groupSourceLabel.toLowerCase()}
+                              title={groupSourceTitle}
+                              aria-label={groupSourceTitle}
+                            >
+                              {groupSourceLabel}
+                            </span>
                           </div>
                           {group.arrivals.length === 1 && group.arrivals[0].label.toLowerCase() === "no scheduled service" ? (
                             <p className="mt-2 text-center text-xs font-semibold text-slate-500 dark:text-slate-400">
@@ -627,17 +664,17 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
                           ) : (
                             <div className="mt-3 grid grid-cols-3 gap-2">
                               {group.arrivals.map((arrival, index) => {
-                                const detailedLive = index === 0 && shouldUseDetailedLiveCountdown(arrival, arrivalTick);
+                                const detailedCountdown = index === 0 && shouldUseDetailedArrivalCountdown(arrival, arrivalTick);
                                 const due = isArrivalDue(arrival, arrivalTick);
                                 const clockTime = formatArrivalClockTime(arrival.predictedAt);
-                                const arrivalLabelClassName = detailedLive && !due
-                                  ? "whitespace-nowrap text-[13px] font-black leading-none tabular-nums"
+                                const arrivalLabelClassName = detailedCountdown && !due
+                                  ? "whitespace-nowrap text-lg font-black leading-none tabular-nums"
                                   : "text-lg font-black leading-none";
                                 const arrivalTileClassName = [
                                   "flex min-h-[66px] flex-col items-center justify-center rounded-md border px-2 py-2 text-center transition-colors",
                                   due
                                     ? "border-red-400/80 bg-red-900/85 text-red-50 shadow-[0_0_0_1px_rgba(248,113,113,0.25)]"
-                                    : detailedLive
+                                    : detailedCountdown
                                       ? "border-emerald-400/35 bg-emerald-500/10 text-slate-900 shadow-[0_0_0_1px_rgba(52,211,153,0.12)] dark:border-emerald-400/25 dark:bg-emerald-400/10 dark:text-white"
                                       : "border-black/10 bg-slate-950/[0.03] text-slate-900 dark:border-white/10 dark:bg-[#0f1117] dark:text-white",
                                 ].join(" ");
@@ -649,7 +686,7 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
                                     className={arrivalTileClassName}
                                   >
                                     <strong className={arrivalLabelClassName}>
-                                      {formatArrivalTileLabel(arrival, { detailedLive, now: arrivalTick })}
+                                      {formatArrivalTileLabel(arrival, { detailedCountdown, now: arrivalTick })}
                                     </strong>
                                     {clockTime && (
                                       <span className={due

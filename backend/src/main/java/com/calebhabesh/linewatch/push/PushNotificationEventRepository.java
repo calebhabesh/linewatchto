@@ -1,7 +1,9 @@
 package com.calebhabesh.linewatch.push;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface PushNotificationEventRepository extends JpaRepository<PushNotificationEventEntity, String> {
@@ -21,5 +23,13 @@ public interface PushNotificationEventRepository extends JpaRepository<PushNotif
         String accountId,
         List<String> categories,
         String notificationState
+    );
+
+    List<PushNotificationEventEntity> findByAccountIdAndCategoryInAndNotificationStateAndCreatedAtAfterOrderByCreatedAtDesc(
+        String accountId,
+        List<String> categories,
+        String notificationState,
+        Instant createdAtAfter,
+        Pageable pageable
     );
 }

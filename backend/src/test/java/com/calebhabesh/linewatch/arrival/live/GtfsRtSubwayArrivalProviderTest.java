@@ -97,4 +97,45 @@ class GtfsRtSubwayArrivalProviderTest {
         assertThat(predictions).hasSize(1);
         assertThat(predictions.getFirst().status()).isEqualTo("scheduled");
     }
+
+    @Test
+    void keepsDueLiveArrivalUntilExplicitGtfsRtDepartureThenFallsBack() {
+        OffsetDateTime now = OffsetDateTime.now(clock);
+        cache.replace(new GtfsRtSubwayArrivalSnapshot(now.minusSeconds(20), now.minusSeconds(18), List.of(
+            new GtfsRtSubwayStationArrival(
+                "finch-west",
+                "line-1",
+                "Northbound",
+                now.minusSeconds(40),
+                now.plusSeconds(20),
+                "123",
+                "126607",
+                "13791"
+            )
+        )));
+        when(scheduledArrivalProvider.arrivalsFor(eq("finch-west"), any())).thenReturn(List.of(
+            ArrivalPrediction.scheduled("line-1", "Northbound to Finch", 5, now.plusMinutes(5), "TTC scheduled service")
+        ));
+
+        List<ArrivalPrediction> predictions = provider.arrivalsFor("finch-west", List.of(line1));
+
+        assertThat(predictions).hasSize(1);
+        assertThat(predictions.getFirst().status()).isEqualTo("live");
+        assertThat(predictions.getFirst().label()).isEqualTo("Due");
+
+        Clock afterDeparture = Clock.fixed(now.plusSeconds(51).toInstant(), ZoneId.of("UTC"));
+        GtfsRtSubwayArrivalCache expiredCache = new GtfsRtSubwayArrivalCache(properties, afterDeparture);
+        expiredCache.replace(cache.snapshot());
+        GtfsRtSubwayArrivalProvider expiredProvider = new GtfsRtSubwayArrivalProvider(
+            expiredCache,
+            scheduledArrivalProvider,
+            properties,
+            afterDeparture
+        );
+
+        List<ArrivalPrediction> expiredPredictions = expiredProvider.arrivalsFor("finch-west", List.of(line1));
+
+        assertThat(expiredPredictions).hasSize(1);
+        assertThat(expiredPredictions.getFirst().status()).isEqualTo("scheduled");
+    }
 }

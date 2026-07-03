@@ -52,7 +52,7 @@ public class GtfsRtSubwayArrivalCache {
             .stream()
             .filter(arrival -> arrival.stationId().equals(stationId))
             .filter(arrival -> requestedLines.contains(arrival.lineId()))
-            .filter(arrival -> !arrival.predictedAt().isBefore(cutoff))
+            .filter(arrival -> !arrival.visibleUntil().isBefore(cutoff))
             .filter(arrival -> !arrival.predictedAt().isAfter(horizon))
             .sorted(Comparator.comparing(GtfsRtSubwayStationArrival::lineId)
                 .thenComparing(GtfsRtSubwayStationArrival::direction)
