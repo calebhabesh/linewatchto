@@ -167,8 +167,8 @@ describe("station data adapter", () => {
     assert.deepEqual(
       groups.map((group) => [group.directionLabel, group.arrivals.map((arrival) => arrival.label)]),
       [
-        ["Northbound", ["3 min", "6 min", "9 min"]],
-        ["Southbound", ["6 min", "9 min", "12 min"]],
+        ["Northbound to Finch", ["3 min", "6 min", "9 min"]],
+        ["Northbound to Vaughan Metropolitan Centre", ["6 min", "9 min", "12 min"]],
       ]
     );
   });

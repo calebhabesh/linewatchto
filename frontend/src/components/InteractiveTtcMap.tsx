@@ -3076,8 +3076,18 @@ function EstimatedTrainMarkerLayer({
             transform={`translate(${frame.point.x} ${frame.point.y}) rotate(${frame.angle})`}
           >
             <title>{`${lineLabelForTrainMarker(marker.lineId)} ${marker.direction} estimated train near ${marker.nextStationId}`}</title>
-            <path className="estimated-train-marker-core" d="M -24 -11 L 12 -11 L 24 0 L 12 11 L -24 11 Z" />
-            <path className="estimated-train-marker-arrow" d="M -8 -4 L 3 0 L -8 4" />
+            <path
+              className="estimated-train-marker-outline"
+              d="M -21 -15 H 14 L 36 0 L 14 15 H -21 A 15 15 0 0 1 -36 0 A 15 15 0 0 1 -21 -15 Z"
+            />
+            <path
+              className="estimated-train-marker-core"
+              d="M -21 -15 H 14 L 36 0 L 14 15 H -21 A 15 15 0 0 1 -36 0 A 15 15 0 0 1 -21 -15 Z"
+            />
+            <rect className="estimated-train-marker-window" x="-27" y="-6" width="8" height="12" rx="1.5" />
+            <rect className="estimated-train-marker-window" x="-15" y="-6" width="8" height="12" rx="1.5" />
+            <rect className="estimated-train-marker-window" x="-3" y="-6" width="8" height="12" rx="1.5" />
+            <path className="estimated-train-marker-arrow" d="M 13 -8 L 27 0 L 13 8 Z" />
           </g>,
         ];
       })}
@@ -3114,7 +3124,7 @@ function pathFrameAtProgress(
     let offsetX = 0;
     let offsetY = 0;
     if (visualDirection !== "bidirectional") {
-      const offsetAmt = 17; // 17 units offset to fit within bounds with a reduced center gap
+      const offsetAmt = 22; // 22 units offset to fit within bounds with a reduced center gap
       const travelAngleRad = visualDirection === "reverse" ? pathAngleRad + Math.PI : pathAngleRad;
       const offsetAngleRad = travelAngleRad + Math.PI / 2; // Perpendicular to the right
       offsetX = Math.cos(offsetAngleRad) * offsetAmt;

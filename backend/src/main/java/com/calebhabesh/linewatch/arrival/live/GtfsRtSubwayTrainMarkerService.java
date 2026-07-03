@@ -132,7 +132,13 @@ public class GtfsRtSubwayTrainMarkerService {
         }
 
         GtfsRtSubwayStationArrival next = rows.getFirst();
-        Optional<SegmentCandidate> segment = segmentEndingAt(next.lineId(), next.direction(), next.stationId(), segments);
+        Optional<SegmentCandidate> segment = segmentEndingAt(
+            next.lineId(),
+            next.direction(),
+            next.stationId(),
+            followingStationId(rows),
+            segments
+        );
         if (segment.isEmpty()) {
             return Optional.empty();
         }
@@ -165,12 +171,10 @@ public class GtfsRtSubwayTrainMarkerService {
         String lineId,
         String direction,
         String nextStationId,
+        Optional<String> followingStationId,
         List<LineSegmentEntity> segments
     ) {
         String directionWire = wireDirection(direction);
-        if (directionWire.isBlank()) {
-            return Optional.empty();
-        }
 
         List<SegmentCandidate> candidates = new ArrayList<>();
         for (LineSegmentEntity segment : segments) {
@@ -178,14 +182,46 @@ public class GtfsRtSubwayTrainMarkerService {
                 continue;
             }
             String forward = normalize(segment.getForwardDirection());
-            if (directionWire.equals(forward) && nextStationId.equals(segment.getStationBId())) {
+            if (nextStationId.equals(segment.getStationBId())) {
                 candidates.add(new SegmentCandidate(segment, "forward", segment.getStationAId(), segment.getStationBId()));
-            } else if (opposite(directionWire).equals(forward) && nextStationId.equals(segment.getStationAId())) {
+            } else if (nextStationId.equals(segment.getStationAId())) {
                 candidates.add(new SegmentCandidate(segment, "reverse", segment.getStationBId(), segment.getStationAId()));
             }
         }
 
+        if (followingStationId.isPresent()) {
+            List<SegmentCandidate> withoutBacktracking = candidates.stream()
+                .filter(candidate -> !candidate.fromStationId().equals(followingStationId.get()))
+                .toList();
+            if (withoutBacktracking.size() == 1) {
+                return Optional.of(withoutBacktracking.getFirst());
+            }
+        }
+
+        if (!directionWire.isBlank()) {
+            List<SegmentCandidate> directionMatches = candidates.stream()
+                .filter(candidate -> directionWire.equals(candidateDirection(candidate)))
+                .toList();
+            if (directionMatches.size() == 1) {
+                return Optional.of(directionMatches.getFirst());
+            }
+        }
+
         return candidates.size() == 1 ? Optional.of(candidates.getFirst()) : Optional.empty();
+    }
+
+    private Optional<String> followingStationId(List<GtfsRtSubwayStationArrival> rows) {
+        String nextStationId = rows.getFirst().stationId();
+        return rows.stream()
+            .skip(1)
+            .map(GtfsRtSubwayStationArrival::stationId)
+            .filter(stationId -> !stationId.equals(nextStationId))
+            .findFirst();
+    }
+
+    private String candidateDirection(SegmentCandidate candidate) {
+        String forward = normalize(candidate.segment().getForwardDirection());
+        return "forward".equals(candidate.travelDirection()) ? forward : opposite(forward);
     }
 
     private Map<String, SegmentTravelTime> segmentWeights() {

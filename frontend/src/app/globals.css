@@ -11377,24 +11377,56 @@ button {
 
 .estimated-train-marker {
   color: #111827;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.45));
 }
 
 .estimated-train-marker-halo {
   /* Unused: Halo removed to eliminate shadow glow */
 }
 
+.estimated-train-marker-outline {
+  fill: none;
+  stroke: #090d16; /* Dark background matching outline for absolute contrast */
+  stroke-width: 5.5;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
 .estimated-train-marker-core {
   fill: currentColor;
-  stroke: #020617;
-  stroke-width: 3;
+  stroke: #ffffff; /* High contrast outline for dark mode */
+  stroke-width: 2.2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
 }
 
 .estimated-train-marker-arrow {
-  fill: none;
-  stroke: #020617;
-  stroke-linecap: round;
+  fill: #090d16; /* Solid dark arrow for consistency and contrast */
+  stroke: #090d16;
   stroke-linejoin: round;
-  stroke-width: 2.5;
+  stroke-width: 1;
+}
+
+.estimated-train-marker-window {
+  fill: #090d16; /* Dark windows representing train glass */
+}
+
+.linewatch-shell:not(.dark) .estimated-train-marker-outline {
+  stroke: #ffffff; /* White outer outline on dark core in light mode */
+  stroke-width: 5.5;
+}
+
+.linewatch-shell:not(.dark) .estimated-train-marker-core {
+  stroke: #090d16; /* Dark border in light mode */
+}
+
+.linewatch-shell:not(.dark) .estimated-train-marker-window {
+  fill: #090d16;
+}
+
+.linewatch-shell:not(.dark) .estimated-train-marker-arrow {
+  fill: #090d16;
+  stroke: #090d16;
 }
 
 .estimated-train-marker-line-1 {
@@ -11421,18 +11453,26 @@ button {
   /* Unused: Halo removed to eliminate shadow glow */
 }
 
+.high-contrast .estimated-train-marker-outline {
+  stroke: #000000; /* Extra contrast black outline */
+  stroke-width: 7.5;
+}
+
 .high-contrast .estimated-train-marker-core {
   fill: currentColor;
-  stroke: #000000;
+  stroke: #ffffff; /* High contrast white outline */
   stroke-width: 4;
 }
 
 .high-contrast .estimated-train-marker-arrow {
-  fill: none;
+  fill: #000000;
   stroke: #000000;
-  stroke-linecap: round;
   stroke-linejoin: round;
-  stroke-width: 3.5;
+  stroke-width: 1;
+}
+
+.high-contrast .estimated-train-marker-window {
+  fill: #000000;
 }
 
 .motion-paused .estimated-train-marker-layer,

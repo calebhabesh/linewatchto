@@ -61,6 +61,52 @@ const LINE_1_STATION_ORDER = [
 ];
 
 const LINE_1_UNION_INDEX = LINE_1_STATION_ORDER.indexOf("union");
+const LINE_1_UNION_TERMINAL_BY_CARDINAL: Record<string, string> = {
+  Northbound: "Finch",
+  Southbound: "Vaughan Metropolitan Centre",
+};
+
+const TERMINAL_BY_CARDINAL: Record<string, Record<string, string>> = {
+  "line-2": {
+    Eastbound: "Kennedy",
+    Westbound: "Kipling",
+  },
+  "line-4": {
+    Eastbound: "Don Mills",
+    Westbound: "Sheppard-Yonge",
+  },
+  "line-5": {
+    Eastbound: "Kennedy",
+    Westbound: "Mount Dennis",
+  },
+  "line-6": {
+    Eastbound: "Finch West",
+    Westbound: "Humber College",
+  },
+};
+
+function getTerminalDestination(lineId: string, cardinal: string, stationId?: string): string {
+  if (lineId === "line-1") {
+    if (!stationId) {
+      return "";
+    }
+    const stationIndex = LINE_1_STATION_ORDER.indexOf(stationId);
+    if (stationIndex === -1) {
+      return "";
+    }
+    if (stationId === "union") {
+      return LINE_1_UNION_TERMINAL_BY_CARDINAL[cardinal] ?? "";
+    }
+    if (stationIndex < LINE_1_UNION_INDEX) {
+      return cardinal === "Northbound" ? "Vaughan Metropolitan Centre" : "Finch";
+    }
+    if (stationIndex > LINE_1_UNION_INDEX) {
+      return cardinal === "Northbound" ? "Finch" : "Vaughan Metropolitan Centre";
+    }
+  }
+
+  return TERMINAL_BY_CARDINAL[lineId]?.[cardinal] ?? "";
+}
 
 const SCHEDULED_ARRIVALS_DISCLAIMER =
   "Scheduled arrivals use TTC timetable data and are not live train predictions.";
@@ -130,7 +176,14 @@ export function formatArrivalDirection(
   const cardinalMatch = arrival.direction.match(/^(Northbound|Southbound|Eastbound|Westbound)(?:\s+to\s+(.+))?$/i);
   if (cardinalMatch) {
     const cardinal = titleCase(cardinalMatch[1]);
-    const destination = cleanDestination(cardinalMatch[2] ?? "");
+    let destination = cleanDestination(cardinalMatch[2] ?? "");
+    if (!destination) {
+      destination = getTerminalDestination(arrival.lineId, cardinal, stationId);
+    }
+    const unionDirection = line1UnionDirection(stationId, arrival.lineId, cardinal, destination);
+    if (unionDirection) {
+      return unionDirection;
+    }
     return destination ? `${cardinal} to ${destination}` : cardinal;
   }
 
@@ -140,6 +193,11 @@ export function formatArrivalDirection(
   }
 
   const normalizedDestination = normalizeDestination(destination);
+  const unionDirection = line1UnionDirection(stationId, arrival.lineId, "", destination);
+  if (unionDirection) {
+    return unionDirection;
+  }
+
   const line1Direction = line1CardinalDirection(stationId, normalizedDestination);
   if (arrival.lineId === "line-1" && line1Direction) {
     return `${line1Direction} to ${destination}`;
@@ -378,6 +436,28 @@ function line1CardinalDirection(stationId: string | undefined, normalizedDestina
     return normalizedDestination === "finch" ? "Northbound" : "Southbound";
   }
   return "Northbound";
+}
+
+function line1UnionDirection(
+  stationId: string | undefined,
+  lineId: string,
+  cardinal: string,
+  destination: string,
+): string {
+  if (stationId !== "union" || lineId !== "line-1") {
+    return "";
+  }
+
+  const normalizedDestination = normalizeDestination(destination);
+  if (normalizedDestination === "finch") {
+    return "Northbound to Finch";
+  }
+  if (normalizedDestination === "vaughan metropolitan centre") {
+    return "Northbound to Vaughan Metropolitan Centre";
+  }
+
+  const terminal = LINE_1_UNION_TERMINAL_BY_CARDINAL[cardinal];
+  return terminal ? `Northbound to ${terminal}` : "";
 }
 
 function directionRank(directionLabel: string): number {

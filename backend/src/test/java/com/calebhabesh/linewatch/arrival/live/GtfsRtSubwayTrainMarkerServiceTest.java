@@ -125,6 +125,55 @@ class GtfsRtSubwayTrainMarkerServiceTest {
         assertThat(snapshot.markers()).isEmpty();
     }
 
+    @Test
+    void placesUnionLoopMarkerWhenFollowingStopIdentifiesIncomingBranch() {
+        OffsetDateTime now = OffsetDateTime.now(CLOCK);
+        cache.replace(new GtfsRtSubwayArrivalSnapshot(now.minusSeconds(10), now.minusSeconds(8), List.of(
+            new GtfsRtSubwayStationArrival(
+                "union",
+                "line-1",
+                "Northbound",
+                now.plusSeconds(60),
+                null,
+                "999",
+                "trip-union",
+                "stop-union",
+                21,
+                243
+            ),
+            new GtfsRtSubwayStationArrival(
+                "king",
+                "line-1",
+                "Northbound",
+                now.plusSeconds(150),
+                null,
+                "999",
+                "trip-union",
+                "stop-king",
+                22,
+                431
+            )
+        )));
+        when(lineSegmentRepository.findAllByOrderBySortOrderAsc()).thenReturn(List.of(
+            segment("line-1-st-andrew-union", "line-1", "st-andrew", "union", 220, "southbound"),
+            segment("line-1-king-union", "line-1", "king", "union", 221, "southbound")
+        ));
+        when(travelTimeRepository.activeScheduleSignature()).thenReturn("no-active-gtfs-import");
+        when(travelTimeRepository.findActiveScheduledSegmentWeights()).thenReturn(Map.of());
+        when(travelTimeRepository.findSeededFallbackSegmentWeights()).thenReturn(Map.of());
+
+        EstimatedTrainMarkerSnapshot snapshot = service.estimatedMarkers();
+
+        assertThat(snapshot.fresh()).isTrue();
+        assertThat(snapshot.markers()).singleElement().satisfies(marker -> {
+            assertThat(marker.segmentId()).isEqualTo("line-1-st-andrew-union");
+            assertThat(marker.fromStationId()).isEqualTo("st-andrew");
+            assertThat(marker.toStationId()).isEqualTo("union");
+            assertThat(marker.nextStationId()).isEqualTo("union");
+            assertThat(marker.travelDirection()).isEqualTo("forward");
+        });
+    }
+
     private LineSegmentEntity segment(String id, String lineId, String stationAId, String stationBId, int sortOrder, String forwardDirection) {
         return new LineSegmentEntity(id, lineId, stationAId, stationBId, null, null, sortOrder, forwardDirection, null, false, null, null);
     }

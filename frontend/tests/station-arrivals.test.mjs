@@ -150,6 +150,97 @@ describe("station arrival grouping", () => {
     );
   });
 
+  it("labels Union Line 1 arrivals with terminal-specific northbound platform directions", () => {
+    const groups = groupStationArrivals([
+      {
+        lineId: "line-1",
+        direction: "Northbound",
+        minutes: 1,
+        predictedAt: "2026-07-02T10:26:00Z",
+        label: "1 min",
+        source: "TTC GTFS-RT subway trip updates",
+        status: "live",
+      },
+      {
+        lineId: "line-1",
+        direction: "Southbound",
+        minutes: 2,
+        predictedAt: "2026-07-02T10:27:00Z",
+        label: "2 min",
+        source: "TTC GTFS-RT subway trip updates",
+        status: "live",
+      },
+    ], [line1], { stationId: "union" });
+
+    assert.deepEqual(
+      groups.map((group) => group.directionLabel),
+      ["Northbound to Finch", "Northbound to Vaughan Metropolitan Centre"],
+    );
+    assert.equal(
+      formatArrivalDirection({
+        lineId: "line-1",
+        direction: "Southbound to Vaughan Metropolitan Centre",
+      }, line1, "union"),
+      "Northbound to Vaughan Metropolitan Centre",
+    );
+  });
+
+  it("resolves cardinal directions to terminal destinations when destination is omitted", () => {
+    assert.equal(
+      formatArrivalDirection({ lineId: "line-1", direction: "Northbound" }, line1, "museum"),
+      "Northbound to Vaughan Metropolitan Centre"
+    );
+    assert.equal(
+      formatArrivalDirection({ lineId: "line-1", direction: "Southbound" }, line1, "museum"),
+      "Southbound to Finch"
+    );
+
+    assert.equal(
+      formatArrivalDirection({ lineId: "line-1", direction: "Northbound" }, line1, "rosedale"),
+      "Northbound to Finch"
+    );
+    assert.equal(
+      formatArrivalDirection({ lineId: "line-1", direction: "Southbound" }, line1, "rosedale"),
+      "Southbound to Vaughan Metropolitan Centre"
+    );
+
+    assert.equal(
+      formatArrivalDirection({ lineId: "line-2", direction: "Eastbound" }, line2, "spadina"),
+      "Eastbound to Kennedy"
+    );
+    assert.equal(
+      formatArrivalDirection({ lineId: "line-2", direction: "Westbound" }, line2, "spadina"),
+      "Westbound to Kipling"
+    );
+
+    assert.equal(
+      formatArrivalDirection({ lineId: "line-4", direction: "Eastbound" }, null, "don-mills"),
+      "Eastbound to Don Mills"
+    );
+    assert.equal(
+      formatArrivalDirection({ lineId: "line-4", direction: "Westbound" }, null, "don-mills"),
+      "Westbound to Sheppard-Yonge"
+    );
+
+    assert.equal(
+      formatArrivalDirection({ lineId: "line-5", direction: "Eastbound" }, null, "mount-dennis"),
+      "Eastbound to Kennedy"
+    );
+    assert.equal(
+      formatArrivalDirection({ lineId: "line-5", direction: "Westbound" }, null, "mount-dennis"),
+      "Westbound to Mount Dennis"
+    );
+
+    assert.equal(
+      formatArrivalDirection({ lineId: "line-6", direction: "Eastbound" }, null, "finch-west"),
+      "Eastbound to Finch West"
+    );
+    assert.equal(
+      formatArrivalDirection({ lineId: "line-6", direction: "Westbound" }, null, "finch-west"),
+      "Westbound to Humber College"
+    );
+  });
+
   it("marks due arrivals from the label or zero-minute schedule", () => {
     assert.equal(isArrivalDue({ label: "Due", minutes: 1, status: "scheduled" }), true);
     assert.equal(isArrivalDue({ label: "1 min", minutes: 0, status: "scheduled" }), true);
