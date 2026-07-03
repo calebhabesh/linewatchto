@@ -372,22 +372,27 @@ describe("asset-backed map layering", () => {
     assert.match(moreSheetSource, /aria-pressed=\{estimatedTrainsEnabled\}/);
   });
 
-  it("renders estimated train markers below station labels and dims them during focused map states", () => {
+  it("renders estimated train markers above station dots with directional high-contrast styling", () => {
     assert.match(interactiveMapSource, /aria-label="Estimated train markers"/);
     assert.match(interactiveMapSource, /function EstimatedTrainMarkerLayer/);
     assert.match(interactiveMapSource, /visualTravelDirection\(\{ \.\.\.segment, travelDirection: marker\.travelDirection \}\)/);
-    assert.match(interactiveMapSource, /pathPointAtProgress/);
+    assert.match(interactiveMapSource, /pathFrameAtProgress/);
     assert.match(interactiveMapSource, /data-train-marker-line-id=\{marker\.lineId\}/);
+    assert.match(interactiveMapSource, /data-train-marker-direction=\{marker\.direction\}/);
+    assert.match(interactiveMapSource, /estimated-train-marker-arrow/);
     assert.match(globalCss, /\.estimated-train-marker-core/);
+    assert.match(globalCss, /\.estimated-train-marker-arrow/);
     assert.match(globalCss, /\.estimated-train-marker-layer\[data-muted="true"\]/);
     assert.match(globalCss, /\.linewatch-shell\.mobile-performance-mode \.estimated-train-marker-halo/);
 
     const overlayIndex = interactiveMapSource.indexOf('aria-label="Disruption overlays"');
     const trainIndex = interactiveMapSource.indexOf('aria-label="Estimated train markers"');
     const stationLayerIndex = interactiveMapSource.indexOf("{/* Top Layer: Stations (layer6) and text */}");
+    const badgeIndex = interactiveMapSource.indexOf('aria-label="Overlapping alert badges"');
 
     assert.ok(overlayIndex > -1);
-    assert.ok(trainIndex > overlayIndex);
-    assert.ok(stationLayerIndex > trainIndex);
+    assert.ok(stationLayerIndex > overlayIndex);
+    assert.ok(trainIndex > stationLayerIndex);
+    assert.ok(badgeIndex > trainIndex);
   });
 });

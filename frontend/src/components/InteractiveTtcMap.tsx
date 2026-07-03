@@ -1066,6 +1066,9 @@ function InteractiveTtcMapComponent({
                   ))}
                 </g>
 
+                {/* Top Layer: Stations (layer6) and text */}
+                <g dangerouslySetInnerHTML={{ __html: svgParts?.part2 ?? "" }} />
+
                 <g aria-label="Estimated train markers">
                   <EstimatedTrainMarkerLayer
                     enabled={estimatedTrainsEnabled}
@@ -1074,9 +1077,6 @@ function InteractiveTtcMapComponent({
                     muted={Boolean(selection || selectedStationId || commutePathPreview)}
                   />
                 </g>
-
-                {/* Top Layer: Stations (layer6) and text */}
-                <g dangerouslySetInnerHTML={{ __html: svgParts?.part2 ?? "" }} />
 
                 <g aria-label="Overlapping alert badges">
                   {[...overlapBadgeSegments, ...stationOverlapBadges].map((badge) => (
@@ -3061,8 +3061,8 @@ function EstimatedTrainMarkerLayer({
 
         const visualDirection = visualTravelDirection({ ...segment, travelDirection: marker.travelDirection });
         const pathProgress = visualDirection === "reverse" ? 1 - marker.progress : marker.progress;
-        const point = pathPointAtProgress(segment.pathD, pathProgress);
-        if (!point) return [];
+        const frame = pathFrameAtProgress(segment.pathD, pathProgress, visualDirection);
+        if (!frame) return [];
 
         return [
           <g
@@ -3070,13 +3070,16 @@ function EstimatedTrainMarkerLayer({
             className={`estimated-train-marker estimated-train-marker-${marker.lineId}`}
             data-train-marker-id={marker.id}
             data-train-marker-line-id={marker.lineId}
+            data-train-marker-direction={marker.direction}
             data-train-marker-segment-id={marker.segmentId}
-            transform={`translate(${point.x} ${point.y})`}
+            data-train-marker-travel-direction={visualDirection}
+            transform={`translate(${frame.point.x} ${frame.point.y}) rotate(${frame.angle})`}
           >
             <title>{`${lineLabelForTrainMarker(marker.lineId)} ${marker.direction} estimated train near ${marker.nextStationId}`}</title>
             <circle className="estimated-train-marker-halo" r="34" />
-            <circle className="estimated-train-marker-core" r="18" />
-            <path className="estimated-train-marker-glyph" d="M -7 -8 H 7 Q 10 -8 10 -5 V 5 Q 10 8 7 8 H -7 Q -10 8 -10 5 V -5 Q -10 -8 -7 -8 Z M -5 -4 H 5 M -5 3 H 5" />
+            <circle className="estimated-train-marker-core" r="22" />
+            <circle className="estimated-train-marker-line-accent" cx="-9" cy="0" r="5.5" />
+            <path className="estimated-train-marker-arrow" d="M -5 -10 L 12 0 L -5 10 Z" />
           </g>,
         ];
       })}
@@ -3084,14 +3087,34 @@ function EstimatedTrainMarkerLayer({
   );
 }
 
-function pathPointAtProgress(pathD: string, progress: number): MapPoint | null {
+type TrainMarkerPathFrame = {
+  point: MapPoint;
+  angle: number;
+};
+
+function pathFrameAtProgress(
+  pathD: string,
+  progress: number,
+  visualDirection: "forward" | "reverse" | "bidirectional",
+): TrainMarkerPathFrame | null {
   if (typeof document === "undefined") return null;
   try {
     const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
     path.setAttribute("d", pathD);
     const length = path.getTotalLength();
     if (!Number.isFinite(length) || length <= 0) return null;
-    return path.getPointAtLength(Math.max(0, Math.min(1, progress)) * length);
+    const distance = Math.max(0, Math.min(1, progress)) * length;
+    const point = path.getPointAtLength(distance);
+    const delta = Math.min(12, Math.max(1, length * 0.015));
+    const pointAhead = path.getPointAtLength(Math.min(length, distance + delta));
+    const pointBehind = path.getPointAtLength(Math.max(0, distance - delta));
+    const dx = pointAhead.x - pointBehind.x;
+    const dy = pointAhead.y - pointBehind.y;
+    const angle = Math.atan2(dy, dx) * (180 / Math.PI);
+    return {
+      point,
+      angle: visualDirection === "reverse" ? angle + 180 : angle,
+    };
   } catch {
     return null;
   }

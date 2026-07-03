@@ -11380,25 +11380,30 @@ button {
 }
 
 .estimated-train-marker-halo {
-  fill: currentColor;
-  opacity: 0.16;
+  fill: #020617;
+  opacity: 0.38;
   stroke: #ffffff;
-  stroke-opacity: 0.64;
-  stroke-width: 4;
+  stroke-opacity: 0.76;
+  stroke-width: 6;
 }
 
 .estimated-train-marker-core {
-  fill: currentColor;
-  stroke: #ffffff;
-  stroke-width: 5;
+  fill: #ffffff;
+  stroke: #020617;
+  stroke-width: 7;
 }
 
-.estimated-train-marker-glyph {
-  fill: none;
+.estimated-train-marker-line-accent {
+  fill: currentColor;
+  stroke: #020617;
+  stroke-width: 2.5;
+}
+
+.estimated-train-marker-arrow {
+  fill: #020617;
   stroke: #ffffff;
-  stroke-linecap: round;
   stroke-linejoin: round;
-  stroke-width: 2.8;
+  stroke-width: 1.8;
 }
 
 .estimated-train-marker-line-1 {
@@ -11422,16 +11427,27 @@ button {
 }
 
 .high-contrast .estimated-train-marker-halo {
-  opacity: 0.2;
-  stroke: #000000;
+  fill: #000000;
+  opacity: 0.5;
+  stroke: #ffffff;
+  stroke-width: 8;
 }
 
 .high-contrast .estimated-train-marker-core {
+  fill: #ffffff;
   stroke: #000000;
+  stroke-width: 8;
 }
 
-.high-contrast .estimated-train-marker-glyph {
+.high-contrast .estimated-train-marker-line-accent {
   stroke: #000000;
+  stroke-width: 3;
+}
+
+.high-contrast .estimated-train-marker-arrow {
+  fill: #000000;
+  stroke: #ffffff;
+  stroke-width: 2.4;
 }
 
 .motion-paused .estimated-train-marker-layer,
