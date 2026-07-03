@@ -18,7 +18,7 @@ import {
 } from "../app/map-geometry";
 import { usePanZoom } from "../hooks/usePanZoom";
 import type { MapViewportOrientation } from "../hooks/panZoomMath";
-import { ZoomIn, ZoomOut, Locate, Sun, Moon, TrainFront } from "lucide-react";
+import { ZoomIn, ZoomOut, Locate, Sun, Moon } from "lucide-react";
 import { useDashboardData } from "../app/DataContext";
 import type {
   ActiveAlert,
@@ -201,7 +201,6 @@ function InteractiveTtcMapComponent({
   viewportOrientation = "standard",
   estimatedTrainsEnabled = false,
   estimatedTrainMarkers = [],
-  onToggleEstimatedTrains,
 }: {
   selection: ImpactSelection;
   onSelectImpact: (selection: ImpactSelection) => void;
@@ -221,7 +220,6 @@ function InteractiveTtcMapComponent({
   viewportOrientation?: MapViewportOrientation;
   estimatedTrainsEnabled?: boolean;
   estimatedTrainMarkers?: EstimatedTrainMarker[];
-  onToggleEstimatedTrains?: () => void;
 }) {
   const { networkSegments, activeAlerts, delays, reducedSpeedZones, plannedClosures, stationNodeImpacts, stations: mapStations } = useDashboardData();
   const [svgParts, setSvgParts] = useState<{ part1: string; part2: string } | null>(null);
@@ -867,22 +865,7 @@ function InteractiveTtcMapComponent({
           <span className="map-control-recenter-mobile-label">Center Map</span>
         </div>
 
-        {onToggleEstimatedTrains ? (
-          <>
-            <div className="map-control-divider" aria-hidden="true" />
-            <button
-              onClick={onToggleEstimatedTrains}
-              className={`map-control-button train-layer-toggle ${estimatedTrainsEnabled ? "active" : ""}`}
-              title={estimatedTrainsEnabled ? "Hide estimated train markers" : "Show estimated train markers"}
-              aria-label={estimatedTrainsEnabled ? "Hide estimated train markers" : "Show estimated train markers"}
-              aria-pressed={estimatedTrainsEnabled}
-              type="button"
-            >
-              <TrainFront size={20} className="transition-colors" />
-              <span className="text-[10px] font-black uppercase tracking-widest transition-colors">Trains</span>
-            </button>
-          </>
-        ) : null}
+
 
         <div className="map-control-zoom-group">
           <div className="map-control-divider" aria-hidden="true" />

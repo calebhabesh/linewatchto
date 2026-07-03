@@ -1144,10 +1144,11 @@ test("renders estimated train markers only after the layer is enabled", async ({
 
   if (isMobile) {
     await page.getByRole("button", { name: "More", exact: true }).click();
-    await page.getByRole("button", { name: /Estimated Trains/ }).click();
+    await page.getByRole("button", { name: /Live Train Locations/ }).click();
     await page.getByRole("button", { name: "Close more options" }).click();
   } else {
-    await page.getByRole("button", { name: "Show estimated train markers" }).click();
+    await page.getByRole("button", { name: "Toggle menu" }).click();
+    await page.getByRole("menuitemcheckbox", { name: "Toggle live train locations" }).click();
   }
 
   await expect(page.locator(".estimated-train-marker-core")).toHaveCount(1);

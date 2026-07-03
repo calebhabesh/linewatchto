@@ -2243,6 +2243,21 @@ export function LineWatchShell({
                      <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${reducedMotion ? 'translate-x-4' : 'translate-x-1'}`} />
                    </button>
                  </div>
+                 <div className="flex items-center justify-between px-3 py-2.5">
+                   <span className="text-sm font-medium text-slate-700 dark:text-slate-200 flex items-center gap-3">
+                     <MapIcon size={18} className="text-slate-500 dark:text-slate-400" /> Live Train Locations
+                   </span>
+                   <button
+                      ref={registerMenuAction(actionIndex++)}
+                      role="menuitemcheckbox"
+                      aria-checked={estimatedTrainsEnabled}
+                      aria-label="Toggle live train locations"
+                      onClick={() => setEstimatedTrainsEnabled(!estimatedTrainsEnabled)}
+                      className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${estimatedTrainsEnabled ? 'bg-blue-500' : 'bg-slate-300 dark:bg-slate-600'}`}
+                   >
+                     <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${estimatedTrainsEnabled ? 'translate-x-4' : 'translate-x-1'}`} />
+                   </button>
+                 </div>
                </div>
 
                {/* At-A-Glance Integrated Sub-panels */}
@@ -2399,7 +2414,6 @@ export function LineWatchShell({
           viewportOrientation={rotatedMapMode ? "rotated-landscape" : "standard"}
           estimatedTrainsEnabled={estimatedTrainsEnabled}
           estimatedTrainMarkers={estimatedTrainSnapshot.markers}
-          onToggleEstimatedTrains={() => setEstimatedTrainsEnabled((current) => !current)}
         />
 
         {subwayOperatingState.status === "closed" && closedMapPeek ? (

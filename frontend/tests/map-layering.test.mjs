@@ -368,7 +368,7 @@ describe("asset-backed map layering", () => {
     assert.match(shellSource, /estimatedTrainMarkerRefreshMs/);
     assert.match(shellSource, /estimatedTrainsEnabled=\{estimatedTrainsEnabled\}/);
     assert.match(shellSource, /estimatedTrainMarkers=\{estimatedTrainSnapshot\.markers\}/);
-    assert.match(moreSheetSource, /Estimated Trains/);
+    assert.match(moreSheetSource, /Live Train Locations/);
     assert.match(moreSheetSource, /aria-pressed=\{estimatedTrainsEnabled\}/);
   });
 
