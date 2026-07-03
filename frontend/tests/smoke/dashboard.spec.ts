@@ -1135,3 +1135,21 @@ test("manages push notification preferences on mobile", async ({ page, request, 
   await expect(page.getByRole("navigation", { name: "Primary mobile navigation" })).toBeVisible();
   await expect(page.getByRole("navigation", { name: "Primary mobile navigation" }).getByRole("button", { name: "Notifications" })).toHaveCount(0);
 });
+
+test("renders estimated train markers only after the layer is enabled", async ({ page, request, isMobile }) => {
+  await setStubMode(request, "seeded");
+  await page.goto("/");
+  await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
+  await expect(page.locator(".estimated-train-marker-core")).toHaveCount(0);
+
+  if (isMobile) {
+    await page.getByRole("button", { name: "More", exact: true }).click();
+    await page.getByRole("button", { name: /Estimated Trains/ }).click();
+    await page.getByRole("button", { name: "Close more options" }).click();
+  } else {
+    await page.getByRole("button", { name: "Show estimated train markers" }).click();
+  }
+
+  await expect(page.locator(".estimated-train-marker-core")).toHaveCount(1);
+  await expect(page.locator('[data-train-marker-line-id="line-1"]')).toBeVisible();
+});

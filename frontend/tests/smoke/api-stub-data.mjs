@@ -603,3 +603,31 @@ export const rawAlertsResponse = [
     active: true
   }
 ];
+
+export const estimatedTrainsResponse = {
+  fresh: true,
+  source: "TTC GTFS-RT subway trip updates",
+  message: "Fresh TTC GTFS-RT subway trip updates are available.",
+  disclaimer: "Estimated train markers are schematic placements inferred from TTC GTFS-RT trip updates and LineWatchTO topology. They are not physical train positions.",
+  feedCreatedAt: "2026-06-04T15:59:50Z",
+  generatedAt: "2026-06-04T16:00:00Z",
+  markers: [
+    {
+      id: "line-1:smoke-trip:smoke-vehicle:stub-davisville",
+      lineId: "line-1",
+      direction: "Southbound",
+      travelDirection: "forward",
+      segmentId: "stub-line-1-eglinton-davisville",
+      fromStationId: "stub-eglinton",
+      toStationId: "stub-davisville",
+      nextStationId: "stub-davisville",
+      progress: 0.45,
+      segmentTravelSeconds: 120,
+      predictedAt: "2026-06-04T16:01:06Z",
+      vehicleId: "smoke-vehicle",
+      tripId: "smoke-trip",
+      feedCreatedAt: "2026-06-04T15:59:50Z",
+      updatedAt: "2026-06-04T16:00:00Z",
+    },
+  ],
+};
