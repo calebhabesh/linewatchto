@@ -33,6 +33,11 @@ public class GtfsRtSubwayArrivalCache {
         return current.get();
     }
 
+    public Optional<GtfsRtSubwayArrivalSnapshot> freshSnapshot() {
+        GtfsRtSubwayArrivalSnapshot snapshot = current.get();
+        return isFresh(snapshot) ? Optional.of(snapshot) : Optional.empty();
+    }
+
     public Optional<OffsetDateTime> feedCreatedAt() {
         return Optional.ofNullable(current.get().feedCreatedAt());
     }

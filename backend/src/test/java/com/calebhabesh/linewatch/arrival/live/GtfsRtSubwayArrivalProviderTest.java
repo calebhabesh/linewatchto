@@ -138,4 +138,29 @@ class GtfsRtSubwayArrivalProviderTest {
         assertThat(expiredPredictions).hasSize(1);
         assertThat(expiredPredictions.getFirst().status()).isEqualTo("scheduled");
     }
+
+    @Test
+    void exposesFreshSnapshotOnlyWhileGtfsRtFeedIsFresh() {
+        OffsetDateTime now = OffsetDateTime.now(clock);
+        GtfsRtSubwayArrivalSnapshot freshSnapshot = new GtfsRtSubwayArrivalSnapshot(now.minusSeconds(20), now.minusSeconds(18), List.of(
+            new GtfsRtSubwayStationArrival(
+                "finch-west",
+                "line-1",
+                "Northbound",
+                now.plusMinutes(3),
+                "123",
+                "126607",
+                "13791"
+            )
+        ));
+
+        cache.replace(freshSnapshot);
+
+        assertThat(cache.freshSnapshot()).contains(freshSnapshot);
+
+        GtfsRtSubwayArrivalSnapshot staleSnapshot = new GtfsRtSubwayArrivalSnapshot(now.minusMinutes(6), now.minusMinutes(6), freshSnapshot.arrivals());
+        cache.replace(staleSnapshot);
+
+        assertThat(cache.freshSnapshot()).isEmpty();
+    }
 }
