@@ -1517,9 +1517,6 @@ export function LineWatchShell({
             onRequestPwaInstall={pwaInstallPrompt.requestInstall}
             pwaInstallBusy={pwaInstallPrompt.installing}
             pwaInstallPlatform={pwaInstallPrompt.platform}
-            estimatedTrainsEnabled={estimatedTrainsEnabled}
-            estimatedTrainStatusLabel={estimatedTrainStatusLabel}
-            onToggleEstimatedTrains={() => setEstimatedTrainsEnabled((current) => !current)}
           />
         );
       case "feedback":
@@ -1713,9 +1710,6 @@ export function LineWatchShell({
           onRequestPwaInstall={pwaInstallPrompt.requestInstall}
           pwaInstallBusy={pwaInstallPrompt.installing}
           pwaInstallPlatform={pwaInstallPrompt.platform}
-          estimatedTrainsEnabled={estimatedTrainsEnabled}
-          estimatedTrainStatusLabel={estimatedTrainStatusLabel}
-          onToggleEstimatedTrains={() => setEstimatedTrainsEnabled((current) => !current)}
         />
       </FloatingPanelShell>
     ) : activeView === "feedback" ? (
@@ -2468,6 +2462,26 @@ export function LineWatchShell({
           expanded={legendExpanded}
           onToggleExpanded={() => setLegendExpanded(!legendExpanded)}
         />
+      )}
+
+      {!showClosedScreen && (
+        <button
+          type="button"
+          onClick={() => setEstimatedTrainsEnabled(!estimatedTrainsEnabled)}
+          disabled={subwayOperatingState.status === "closed"}
+          className={`mobile-train-toggle md:hidden ${
+            (subwayOperatingState.closingSoon || (subwayOperatingState.status === "closed" && closedMapPeek))
+              ? "mobile-train-toggle--announcement"
+              : ""
+          } ${estimatedTrainsEnabled ? "active" : ""}`}
+          aria-pressed={estimatedTrainsEnabled}
+          aria-label="Toggle live train markers"
+        >
+          <Train size={16} />
+          <span>
+            View<br />Trains
+          </span>
+        </button>
       )}
 
       {!showClosedScreen && !rotatedMapMode && selectedStationId && (

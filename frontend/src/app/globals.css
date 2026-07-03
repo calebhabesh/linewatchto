@@ -10103,6 +10103,15 @@ button {
   .mobile-legend-pill--announcement {
     top: calc(var(--mobile-safe-top) + var(--mobile-edge-inset) + var(--mobile-announcement-chip-height) + var(--mobile-announcement-gap)) !important;
   }
+
+  .mobile-train-toggle {
+    left: calc(var(--mobile-safe-left) + var(--mobile-edge-inset)) !important;
+    top: calc(var(--mobile-safe-top) + var(--mobile-edge-inset) + 142px + 8px) !important;
+  }
+
+  .mobile-train-toggle--announcement {
+    top: calc(var(--mobile-safe-top) + var(--mobile-edge-inset) + var(--mobile-announcement-chip-height) + var(--mobile-announcement-gap) + 142px + 8px) !important;
+  }
 }
 
 @media (max-width: 480px) {
@@ -11199,6 +11208,7 @@ button {
 
 /* Subtle outlines for main map page elements */
 .mobile-legend-pill,
+.mobile-train-toggle,
 .theme-toggle-btn,
 .rotate-map-btn,
 .site-guide-trigger,
@@ -11209,6 +11219,7 @@ button {
 }
 
 .dark .mobile-legend-pill,
+.dark .mobile-train-toggle,
 .dark .theme-toggle-btn,
 .dark .rotate-map-btn,
 .dark .site-guide-trigger,
@@ -11219,6 +11230,7 @@ button {
 }
 
 .high-contrast .mobile-legend-pill,
+.high-contrast .mobile-train-toggle,
 .high-contrast .theme-toggle-btn,
 .high-contrast .rotate-map-btn,
 .high-contrast .site-guide-trigger,
@@ -11243,6 +11255,7 @@ button {
 
 @media (max-width: 767px) {
   .mobile-legend-pill,
+  .mobile-train-toggle,
   .theme-toggle-btn,
   .rotate-map-btn,
   .site-guide-trigger,
@@ -11255,12 +11268,14 @@ button {
 
   /* Force text color matching the theme inside legend pill and rotate map button */
   .mobile-legend-pill span,
+  .mobile-train-toggle span,
   .rotate-map-btn span {
     color: var(--mobile-chrome-text) !important;
   }
 
   /* Handle active state for the buttons on mobile */
   .theme-toggle-btn:active,
+  .mobile-train-toggle:active,
   .rotate-map-btn:active,
   .site-guide-trigger:active {
     background: var(--mobile-chrome-btn-active-bg) !important;
@@ -11364,6 +11379,93 @@ button {
 .high-contrast .train-layer-toggle.active {
   background: #ffffff !important;
   color: #000000 !important;
+}
+
+.mobile-train-toggle {
+  position: fixed;
+  z-index: 35;
+  width: 36px !important;
+  height: 48px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 2px !important;
+  padding: 4px 1px !important;
+  border-radius: 10px !important;
+  cursor: pointer;
+  border: 1px solid rgba(15, 23, 42, 0.06) !important;
+  transition: all 0.2s ease-in-out;
+  background: var(--mobile-chrome-background) !important;
+  color: var(--mobile-chrome-text) !important;
+}
+
+.mobile-train-toggle svg {
+  color: var(--mobile-chrome-text-muted) !important;
+  flex: 0 0 auto !important;
+  height: 16px !important;
+  width: 16px !important;
+}
+
+.mobile-train-toggle.active {
+  border-color: #2563eb !important;
+  background: rgba(37, 99, 235, 0.22) !important;
+}
+
+.mobile-train-toggle.active svg {
+  color: #1d4ed8 !important;
+}
+
+.dark .mobile-train-toggle.active {
+  border-color: #60a5fa !important;
+  background: rgba(96, 165, 250, 0.35) !important;
+}
+
+.dark .mobile-train-toggle.active svg {
+  color: #93c5fd !important;
+}
+
+.high-contrast .mobile-train-toggle.active {
+  border-color: #ffffff !important;
+  background: #ffffff !important;
+}
+
+.high-contrast .mobile-train-toggle.active svg {
+  color: #000000 !important;
+}
+
+.mobile-train-toggle span {
+  display: inline-block !important;
+  font-size: 6px !important;
+  letter-spacing: 0.01em !important;
+  line-height: 1.05 !important;
+  font-weight: 900 !important;
+  text-transform: uppercase;
+  text-align: center;
+  color: var(--mobile-chrome-text-muted) !important;
+}
+
+.mobile-train-toggle.active span {
+  color: #1d4ed8 !important;
+}
+
+.dark .mobile-train-toggle.active span {
+  color: #93c5fd !important;
+}
+
+.high-contrast .mobile-train-toggle.active span {
+  color: #000000 !important;
+}
+
+.mobile-train-toggle:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+@media (min-width: 768px) {
+  .mobile-train-toggle {
+    display: none !important;
+  }
 }
 
 .estimated-train-marker-layer {
