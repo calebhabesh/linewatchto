@@ -2,6 +2,7 @@ package com.calebhabesh.linewatch.alert;
 
 import com.calebhabesh.linewatch.station.LineSegmentEntity;
 import com.calebhabesh.linewatch.station.LineSegmentRepository;
+import com.calebhabesh.linewatch.station.StationDisplayNameFormatter;
 import com.calebhabesh.linewatch.station.TransitLineEntity;
 import com.calebhabesh.linewatch.ingestion.AlertDirection;
 import com.calebhabesh.linewatch.ingestion.IngestionFreshness;
@@ -719,25 +720,7 @@ public class AlertDashboardService {
     }
 
     private String stationLabel(String stationId) {
-        String[] words = stationId.replace('_', '-').split("-");
-        StringBuilder label = new StringBuilder();
-        for (String word : words) {
-            if (word.isBlank()) {
-                continue;
-            }
-            if (!label.isEmpty()) {
-                label.append(' ');
-            }
-            if ("tmu".equalsIgnoreCase(word)) {
-                label.append("TMU");
-            } else {
-                label.append(word.substring(0, 1).toUpperCase(Locale.ROOT));
-                if (word.length() > 1) {
-                    label.append(word.substring(1).toLowerCase(Locale.ROOT));
-                }
-            }
-        }
-        return label.toString();
+        return StationDisplayNameFormatter.fromStationId(stationId);
     }
 
     private OffsetDateTime earliestStartedAt(List<AlertEntity> alerts) {

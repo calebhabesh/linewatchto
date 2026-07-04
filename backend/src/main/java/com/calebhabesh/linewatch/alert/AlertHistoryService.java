@@ -3,6 +3,7 @@ package com.calebhabesh.linewatch.alert;
 import com.calebhabesh.linewatch.alert.AlertHistoryResponses.AlertHistoryEventDto;
 import com.calebhabesh.linewatch.alert.AlertHistoryResponses.AlertHistoryIncidentDto;
 import com.calebhabesh.linewatch.alert.AlertHistoryResponses.AlertHistoryResponse;
+import com.calebhabesh.linewatch.station.StationDisplayNameFormatter;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.OffsetDateTime;
@@ -183,10 +184,7 @@ public class AlertHistoryService {
     }
 
     private String stationLabel(String stationId) {
-        if (stationId == null || stationId.isBlank()) {
-            return null;
-        }
-        return titleCase(stationId.replace('_', '-').replace("-", " "));
+        return StationDisplayNameFormatter.nullableFromStationId(stationId);
     }
 
     private String titleCase(String value) {
@@ -202,13 +200,9 @@ public class AlertHistoryService {
             if (!result.isEmpty()) {
                 result.append(' ');
             }
-            if ("tmu".equals(word)) {
-                result.append("TMU");
-            } else {
-                result.append(word.substring(0, 1).toUpperCase(Locale.ROOT));
-                if (word.length() > 1) {
-                    result.append(word.substring(1));
-                }
+            result.append(word.substring(0, 1).toUpperCase(Locale.ROOT));
+            if (word.length() > 1) {
+                result.append(word.substring(1));
             }
         }
         return result.toString();

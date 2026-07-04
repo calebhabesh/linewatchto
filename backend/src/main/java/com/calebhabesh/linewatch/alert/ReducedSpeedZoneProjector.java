@@ -3,6 +3,7 @@ package com.calebhabesh.linewatch.alert;
 import com.calebhabesh.linewatch.ingestion.AlertDirection;
 import com.calebhabesh.linewatch.ingestion.AlertDirectionParser;
 import com.calebhabesh.linewatch.station.LineSegmentEntity;
+import com.calebhabesh.linewatch.station.StationDisplayNameFormatter;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -152,14 +153,7 @@ public class ReducedSpeedZoneProjector {
     }
 
     private String stationLabel(String stationId) {
-        if (stationId == null) return "";
-        return java.util.Arrays.stream(stationId.split("-"))
-            .map(word -> {
-                if (word.isEmpty()) return word;
-                if ("tmu".equalsIgnoreCase(word)) return "TMU";
-                return word.substring(0, 1).toUpperCase(Locale.ROOT) + word.substring(1);
-            })
-            .collect(Collectors.joining(" "));
+        return StationDisplayNameFormatter.fromStationId(stationId);
     }
 
     private static final class GroupBuilder {

@@ -1,5 +1,6 @@
 package com.calebhabesh.linewatch.push;
 
+import com.calebhabesh.linewatch.station.StationDisplayNameFormatter;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -26,11 +27,11 @@ public class PushNotificationFormatter {
 
     public FormattedPushNotification formatActive(PushNotificationFacts facts) {
         String subject = notificationSubject(facts.lineId(), facts.lineNumber(), facts.eventType());
-        String location = normalizeText(facts.location());
+        String location = normalizeDisplayText(facts.location());
         String displayDirection = normalizeText(facts.displayDirection());
         String scopeLabel = scopeLabel(facts.commuteLabel(), facts.legId());
         List<String> bodyParts = new ArrayList<>();
-        String sourceDescription = firstSourceDescription(facts.sourceTitle(), facts.sourceDescription());
+        String sourceDescription = normalizeDisplayText(firstSourceDescription(facts.sourceTitle(), facts.sourceDescription()));
 
         if (!sourceDescription.isEmpty()) {
             bodyParts.add(sentence(sourceDescription));
@@ -83,7 +84,7 @@ public class PushNotificationFormatter {
         if (subject.isEmpty()) {
             subject = "TTC Service Alert";
         }
-        String location = normalizeText(eventLocation);
+        String location = normalizeDisplayText(eventLocation);
         String direction = normalizeText(displayDirection);
         String normalizedScope = emptyToNull(normalizeText(scopeLabel));
         List<String> bodyParts = new ArrayList<>();
@@ -203,6 +204,10 @@ public class PushNotificationFormatter {
 
     private String normalizeText(String value) {
         return value == null ? "" : value.replaceAll("\\s+", " ").trim();
+    }
+
+    private String normalizeDisplayText(String value) {
+        return StationDisplayNameFormatter.canonicalizeKnownStationAcronyms(normalizeText(value));
     }
 
     private String formatReason(String value) {

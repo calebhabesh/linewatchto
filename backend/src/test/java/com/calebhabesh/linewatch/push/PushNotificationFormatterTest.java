@@ -145,6 +145,22 @@ class PushNotificationFormatterTest {
     }
 
     @Test
+    void formatsTmuAcronymInPersistedClearanceLocation() {
+        FormattedPushNotification result = formatter.formatCleared(
+            "Line 1 Yonge-University Delay",
+            "Tmu station",
+            "Northbound",
+            null,
+            Instant.parse("2026-07-04T02:07:00Z")
+        );
+
+        assertThat(result.body()).isEqualTo("""
+            Service has resumed northbound at TMU station.
+            🕗 Jul 3, 10:07 PM""");
+        assertThat(result.eventLocation()).isEqualTo("TMU station");
+    }
+
+    @Test
     void formatsWinterTimeUsingTorontoStandardTime() {
         FormattedPushNotification result = formatter.formatActive(new PushNotificationFacts(
             "line-5",
