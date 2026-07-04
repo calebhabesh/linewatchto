@@ -41,6 +41,8 @@ public class PushSubscriptionEntity {
     private Instant lastSeenAt;
     @Column(name = "disabled_at")
     private Instant disabledAt;
+    @Column(name = "enabled_at")
+    private Instant enabledAt;
 
     protected PushSubscriptionEntity() {}
 
@@ -64,6 +66,7 @@ public class PushSubscriptionEntity {
         this.createdAt = now;
         this.updatedAt = now;
         this.lastSeenAt = now;
+        this.enabledAt = now;
     }
 
     public static PushSubscriptionEntity create(
@@ -80,6 +83,7 @@ public class PushSubscriptionEntity {
     }
 
     public void refresh(String p256dhKey, String authSecret, String userAgent, Instant now) {
+        boolean wasDisabled = !this.enabled;
         this.p256dhKey = p256dhKey;
         this.authSecret = authSecret;
         this.userAgent = userAgent;
@@ -87,6 +91,9 @@ public class PushSubscriptionEntity {
         this.disabledAt = null;
         this.updatedAt = now;
         this.lastSeenAt = now;
+        if (wasDisabled || this.enabledAt == null) {
+            this.enabledAt = now;
+        }
     }
 
     public void disable(Instant now) {
@@ -116,4 +123,5 @@ public class PushSubscriptionEntity {
     public Instant getUpdatedAt() { return updatedAt; }
     public Instant getLastSeenAt() { return lastSeenAt; }
     public Instant getDisabledAt() { return disabledAt; }
+    public Instant getEnabledAt() { return enabledAt; }
 }

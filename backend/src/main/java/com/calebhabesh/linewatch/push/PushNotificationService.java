@@ -271,9 +271,18 @@ public class PushNotificationService {
         PushRequests.SubscriptionEndpointRequest request
     ) {
         String endpointHash = hashEndpoint(required(request.endpoint(), "missing_endpoint", "Push subscription endpoint is required."));
+        Optional<PushSubscriptionEntity> subscription = subscriptionRepository.findByAccountIdAndEndpointHash(
+            account.getId(),
+            endpointHash
+        ).filter(PushSubscriptionEntity::isEnabled);
+        if (subscription.isEmpty()) {
+            return new PushResponses.PendingPushNotificationResponse(null, List.of());
+        }
+
         List<PushNotificationDeliveryEntity> deliveries = deliveryRepository.findPendingBatchForSubscription(
             account.getId(),
             endpointHash,
+            subscription.get().getEnabledAt(),
             PageRequest.of(0, 5)
         );
         if (deliveries.isEmpty()) {

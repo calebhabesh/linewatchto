@@ -909,7 +909,7 @@ class PushNotificationDispatchServiceTest {
             "p256dh-key",
             "auth-secret",
             "Chrome Android Pixel 6a",
-            clock.instant()
+            Instant.parse("2026-06-05T14:40:00Z")
         );
         PushSubscriptionEntity iosSubscription = PushSubscriptionEntity.create(
             "push_subscription_ios",
@@ -919,7 +919,7 @@ class PushNotificationDispatchServiceTest {
             "p256dh-key",
             "auth-secret",
             "Mobile Safari iOS",
-            clock.instant()
+            Instant.parse("2026-06-05T14:40:00Z")
         );
         PushNotificationCandidate activeCandidate = candidate(
             null, null, "line-5", "5", "line-current", "suspension", "on-change",
@@ -992,6 +992,78 @@ class PushNotificationDispatchServiceTest {
                 && delivery.getSubscription() == androidSubscription
                 && "accepted".equals(delivery.getStatus())
         ));
+    }
+
+    @Test
+    void doesNotReplayClearedLifecycleNotificationCreatedBeforeSubscriptionWasReenabled() {
+        PushNotificationPreferenceEntity preferences = PushNotificationPreferenceEntity.create(account, clock.instant());
+        PushNotificationPreferenceEntity spyPrefs = spy(preferences);
+        when(spyPrefs.isLineRestoredEnabled()).thenReturn(true);
+        PushSubscriptionEntity androidSubscription = PushSubscriptionEntity.create(
+            "push_subscription_android",
+            account,
+            "https://fcm.googleapis.com/fcm/send/android",
+            "android-endpoint-hash",
+            "p256dh-key",
+            "auth-secret",
+            "Chrome Android Pixel 6a",
+            Instant.parse("2026-06-05T14:00:00Z")
+        );
+        androidSubscription.disable(Instant.parse("2026-06-05T14:58:00Z"));
+        androidSubscription.refresh(
+            "p256dh-key",
+            "auth-secret",
+            "Chrome Android Pixel 6a",
+            Instant.parse("2026-06-05T15:00:00Z")
+        );
+        PushNotificationCandidate activeCandidate = candidate(
+            null, null, "line-5", "5", "line-current", "suspension", "on-change",
+            "line-current|line-5|suspension|ttc-route-71423",
+            "user_1|line|line-5|suspension|on-change|ttc-route-71423",
+            "Sloane to Kennedy",
+            null,
+            Instant.parse("2026-06-05T14:20:00Z"),
+            "/?panel=alerts"
+        );
+        PushNotificationEventEntity activeEvent = PushNotificationEventEntity.create(
+            "push_event_active",
+            activeCandidate,
+            Instant.parse("2026-06-05T14:30:00Z")
+        );
+        PushNotificationEventEntity clearedEvent = PushNotificationEventEntity.cleared(
+            "push_event_cleared",
+            activeEvent,
+            Instant.parse("2026-06-05T14:55:00Z"),
+            formatter
+        );
+
+        when(preferenceService.preferenceEntityForAccountId("user_1")).thenReturn(spyPrefs);
+        when(subscriptionRepository.findEnabledAccountIds()).thenReturn(List.of("user_1"));
+        when(subscriptionRepository.findByAccountIdAndEnabledTrue("user_1")).thenReturn(List.of(androidSubscription));
+        when(preferenceService.subscribedLineIds("user_1")).thenReturn(List.of("line-5"));
+        when(lineSubscriptionPushPlanner.candidatesFor("user_1", List.of("line-5"))).thenReturn(List.of());
+        when(lineEventObservationService.activeObservations("user_1")).thenReturn(List.of());
+        when(eventRepository.findByAccountIdAndCategoryInAndNotificationState(
+            eq("user_1"),
+            eq(List.of("saved-commute-current", "saved-commute-impact")),
+            eq("ACTIVE")
+        )).thenReturn(List.of());
+        when(eventRepository.findByAccountIdAndCategoryInAndNotificationStateAndCreatedAtAfterOrderByCreatedAtDesc(
+            eq("user_1"),
+            eq(List.of("saved-commute-current", "saved-commute-impact", "line-current")),
+            eq("CLEARED"),
+            eq(Instant.parse("2026-06-04T15:00:00Z")),
+            eq(PageRequest.of(0, 25))
+        )).thenReturn(List.of(clearedEvent));
+        when(deliveryRepository.findByEventIdAndSubscriptionId("push_event_cleared", "push_subscription_android"))
+            .thenReturn(Optional.empty());
+        when(webPushClient.send(eq(androidSubscription), anyString(), any(WebPushPayload.class)))
+            .thenReturn(PushDeliveryResult.accepted(202));
+
+        service.evaluateSavedCommuteNotifications();
+
+        verify(webPushClient, never()).send(eq(androidSubscription), anyString(), any(WebPushPayload.class));
+        verify(deliveryRepository, never()).save(argThat(delivery -> delivery.getEvent() == clearedEvent));
     }
 
     @Test

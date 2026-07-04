@@ -290,9 +290,14 @@ class PushNotificationServiceTest {
             PushDeliveryResult.accepted(202),
             Instant.parse("2026-06-05T15:00:30Z")
         );
+        when(subscriptionRepository.findByAccountIdAndEndpointHash(
+            "user_1",
+            PushNotificationService.hashEndpoint("https://fcm.googleapis.com/fcm/send/subscription")
+        )).thenReturn(Optional.of(subscription));
         when(deliveryRepository.findPendingBatchForSubscription(
             eq("user_1"),
             eq(PushNotificationService.hashEndpoint("https://fcm.googleapis.com/fcm/send/subscription")),
+            eq(Instant.parse("2026-06-05T14:45:00Z")),
             eq(PageRequest.of(0, 5))
         )).thenReturn(List.of(delivery));
 
@@ -364,7 +369,14 @@ class PushNotificationServiceTest {
             PushDeliveryResult.accepted(202),
             Instant.parse("2026-06-05T15:20:30Z")
         );
-        when(deliveryRepository.findPendingBatchForSubscription("user_1", endpointHash, PageRequest.of(0, 5)))
+        when(subscriptionRepository.findByAccountIdAndEndpointHash("user_1", endpointHash))
+            .thenReturn(Optional.of(subscription));
+        when(deliveryRepository.findPendingBatchForSubscription(
+            "user_1",
+            endpointHash,
+            Instant.parse("2026-06-05T14:45:00Z"),
+            PageRequest.of(0, 5)
+        ))
             .thenReturn(List.of(activeDelivery, clearedDelivery));
 
         PushResponses.PendingPushNotificationResponse response = service.latestPendingNotification(
@@ -381,6 +393,45 @@ class PushNotificationServiceTest {
             .isEqualTo("saved-commute-impact|commute_1|outbound|delay|delay-line-1|cleared");
         assertThat(activeDelivery.getDisplayedAt()).isNull();
         assertThat(clearedDelivery.getDisplayedAt()).isNull();
+    }
+
+    @Test
+    void latestPendingNotificationUsesCurrentSubscriptionEnablementBoundary() {
+        String endpoint = "https://fcm.googleapis.com/fcm/send/subscription";
+        String endpointHash = PushNotificationService.hashEndpoint(endpoint);
+        PushSubscriptionEntity subscription = PushSubscriptionEntity.create(
+            "push_subscription_1",
+            account,
+            endpoint,
+            endpointHash,
+            "p256dh-key",
+            "auth-secret",
+            "Chrome Android",
+            Instant.parse("2026-06-05T14:00:00Z")
+        );
+        subscription.disable(Instant.parse("2026-06-05T14:58:00Z"));
+        subscription.refresh(
+            "p256dh-key",
+            "auth-secret",
+            "Chrome Android",
+            Instant.parse("2026-06-05T15:00:00Z")
+        );
+        when(subscriptionRepository.findByAccountIdAndEndpointHash("user_1", endpointHash))
+            .thenReturn(Optional.of(subscription));
+        when(deliveryRepository.findPendingBatchForSubscription(
+            "user_1",
+            endpointHash,
+            Instant.parse("2026-06-05T15:00:00Z"),
+            PageRequest.of(0, 5)
+        )).thenReturn(List.of());
+
+        PushResponses.PendingPushNotificationResponse response = service.latestPendingNotification(
+            account,
+            new PushRequests.SubscriptionEndpointRequest(endpoint)
+        );
+
+        assertThat(response.notification()).isNull();
+        assertThat(response.notifications()).isEmpty();
     }
 
     @Test

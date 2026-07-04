@@ -482,6 +482,9 @@ public class PushNotificationDispatchService {
             ? event.getCreatedAt().plus(ACCEPTED_UNDISPLAYED_DELIVERY_RETRY_WINDOW)
             : null;
         for (PushSubscriptionEntity subscription : subscriptions) {
+            if (!subscriptionEnabledForEvent(subscription, event)) {
+                continue;
+            }
             Optional<PushNotificationDeliveryEntity> existingDelivery =
                 deliveryRepository.findByEventIdAndSubscriptionId(event.getId(), subscription.getId());
             if (existingDelivery.isPresent() && !existingDelivery.get().shouldRetryDelivery(
@@ -524,6 +527,9 @@ public class PushNotificationDispatchService {
     private boolean sendEventToSubscriptions(PushNotificationEventEntity event, List<PushSubscriptionEntity> subscriptions, Instant now) {
         boolean accepted = false;
         for (PushSubscriptionEntity subscription : subscriptions) {
+            if (!subscriptionEnabledForEvent(subscription, event)) {
+                continue;
+            }
             PushDeliveryResult result = webPushClient.send(
                 subscription,
                 topicFor(PushNotificationDisplayTags.forEvent(event)),
@@ -544,6 +550,18 @@ public class PushNotificationDispatchService {
             ));
         }
         return accepted;
+    }
+
+    private boolean subscriptionEnabledForEvent(PushSubscriptionEntity subscription, PushNotificationEventEntity event) {
+        Instant eventCreatedAt = event.getCreatedAt();
+        if (eventCreatedAt == null) {
+            return false;
+        }
+        Instant enabledAt = subscription.getEnabledAt();
+        if (enabledAt == null) {
+            return true;
+        }
+        return !eventCreatedAt.isBefore(enabledAt);
     }
 
     static String topicFor(String notificationKey) {
