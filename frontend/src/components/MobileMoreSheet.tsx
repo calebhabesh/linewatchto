@@ -2,7 +2,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { BarChart3, Bell, Download, FileText, LogIn, LogOut, MessageSquareText, RefreshCcw, Contrast, Pause, Share2, ShieldCheck, Sparkles, UserPlus, UserRound, X, History, Map as MapIcon, Train } from "lucide-react";
+import { BarChart3, Bell, Download, FileText, LogIn, LogOut, MessageSquareText, RefreshCcw, Contrast, Pause, Share2, ShieldCheck, Sparkles, UserPlus, UserRound, X, History, Map as MapIcon } from "lucide-react";
 import Image from "next/image";
 import type { AccountState } from "../app/account-data";
 import { lineWatchAppVersionLabel } from "../app/app-build";
@@ -11,7 +11,11 @@ import { resetLineWatchLocalAppState } from "../app/local-app-reset";
 import { hasReleaseNotes } from "../app/release-notes";
 import { LogsDropdown } from "./LogsDropdown";
 import { PushDeliveryDiagnosticsPanel } from "./PushDeliveryDiagnosticsPanel";
-import type { PwaInstallPlatform } from "../app/pwa-install-state";
+import {
+  getPwaInstallHeading,
+  getPwaInstallInstructionText,
+  type PwaInstallPlatform,
+} from "../app/pwa-install-state";
 
 
 type Props = {
@@ -40,7 +44,6 @@ type Props = {
   notificationStatusLabel: string;
   canOfferPwaInstall: boolean;
   canShowPwaInstallHelp: boolean;
-  onDismissPwaInstall: () => void;
   onRequestPwaInstall: () => void;
   pwaInstallBusy: boolean;
   pwaInstallPlatform: PwaInstallPlatform;
@@ -72,7 +75,6 @@ export function MobileMoreSheet({
   notificationStatusLabel,
   canOfferPwaInstall,
   canShowPwaInstallHelp,
-  onDismissPwaInstall,
   onRequestPwaInstall,
   pwaInstallBusy,
   pwaInstallPlatform,
@@ -85,13 +87,14 @@ export function MobileMoreSheet({
       setIsAndroid(/Android/i.test(navigator.userAgent));
     }
   }, []);
-  const isIosPwaInstall = pwaInstallPlatform === "ios";
-  const androidInstallHelpOnly = pwaInstallPlatform === "android-chromium" && !canOfferPwaInstall;
-  const installRowDescription = isIosPwaInstall
-    ? "Share, then Add to Home Screen."
-    : androidInstallHelpOnly
-      ? "Chrome menu, then Add to Home screen."
-      : "Open as a full-screen app.";
+  const canUseNativeInstallPrompt =
+    canOfferPwaInstall &&
+    (pwaInstallPlatform === "android-chrome" || pwaInstallPlatform === "android-chromium");
+  const installHelpHeading = getPwaInstallHeading(pwaInstallPlatform);
+  const installInstructionText = getPwaInstallInstructionText({
+    platform: pwaInstallPlatform,
+    nativePromptAvailable: canUseNativeInstallPrompt,
+  });
 
   return (
     <section className="mobile-more-sheet panel" aria-label="More LineWatchTO options">
@@ -114,41 +117,29 @@ export function MobileMoreSheet({
       <div className="mobile-more-content-scroll">
         {canShowPwaInstallHelp ? (
           <div className="mobile-more-section mobile-more-install-section">
-            <h3>Install App</h3>
-            {androidInstallHelpOnly ? (
-              <div className="mobile-more-row mobile-more-install-row" role="note">
-                <Download size={18} className="text-slate-500 dark:text-slate-400" />
-                <span className="mobile-more-install-copy">
-                  <span>Install LineWatchTO</span>
-                  <span>{installRowDescription}</span>
-                </span>
-              </div>
-            ) : (
+            <h3>{installHelpHeading}</h3>
+            {canUseNativeInstallPrompt ? (
               <button
                 type="button"
                 className="mobile-more-row mobile-more-install-row"
                 disabled={pwaInstallBusy}
-                onClick={isIosPwaInstall ? onDismissPwaInstall : onRequestPwaInstall}
+                onClick={onRequestPwaInstall}
               >
                 <Download size={18} className="text-slate-500 dark:text-slate-400" />
                 <span className="mobile-more-install-copy">
                   <span>Install LineWatchTO</span>
-                  <span>{installRowDescription}</span>
+                  <span>{installInstructionText}</span>
                 </span>
               </button>
+            ) : (
+              <div className="mobile-more-row mobile-more-install-row" role="note">
+                <Download size={18} className="text-slate-500 dark:text-slate-400" />
+                <span className="mobile-more-install-copy">
+                  <span>Install LineWatchTO</span>
+                  <span>{installInstructionText}</span>
+                </span>
+              </div>
             )}
-            {isIosPwaInstall ? (
-              <div className="mobile-more-install-help" role="note">
-                <span>iPhone Safari</span>
-                <strong>Tap Share, then Add to Home Screen.</strong>
-              </div>
-            ) : null}
-            {androidInstallHelpOnly ? (
-              <div className="mobile-more-install-help" role="note">
-                <span>Android Chrome</span>
-                <strong>Open the three-dot menu, then Add to Home screen.</strong>
-              </div>
-            ) : null}
           </div>
         ) : null}
 

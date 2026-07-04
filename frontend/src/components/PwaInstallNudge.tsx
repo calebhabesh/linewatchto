@@ -1,12 +1,16 @@
 "use client";
 
 import Image from "next/image";
-import { Download, Smartphone, SquarePlus, X } from "lucide-react";
-import type { PwaInstallPlatform } from "../app/pwa-install-state";
+import { Download, MoreVertical, Smartphone, SquarePlus, X } from "lucide-react";
+import {
+  getPwaInstallInstructionText,
+  type PwaInstallPlatform,
+} from "../app/pwa-install-state";
 
 // Guide icon for reference: /assets/linewatch/guide-icons/add-to-homescreen-android.svg
 
 type PwaInstallNudgeProps = {
+  hasNativePrompt: boolean;
   installing: boolean;
   onDismiss: () => void;
   onRequestInstall: () => void;
@@ -27,12 +31,20 @@ function InstallGuideIcon({ src }: { src: string }) {
 }
 
 export function PwaInstallNudge({
+  hasNativePrompt,
   installing,
   onDismiss,
   onRequestInstall,
   platform,
 }: PwaInstallNudgeProps) {
-  const isIos = platform === "ios";
+  const usesNativePrompt =
+    hasNativePrompt && (platform === "android-chrome" || platform === "android-chromium");
+  const showIosSteps = platform === "ios-safari" || platform === "ios-other";
+  const showAndroidSteps = platform.startsWith("android") && !usesNativePrompt;
+  const instructionText = getPwaInstallInstructionText({
+    platform,
+    nativePromptAvailable: hasNativePrompt,
+  });
 
   return (
     <aside className="pwa-install-nudge" aria-label="Install LineWatchTO" role="region">
@@ -42,9 +54,15 @@ export function PwaInstallNudge({
 
       <div className="pwa-install-nudge-copy">
         <strong>Add LineWatchTO to your home screen</strong>
-        <span>Opens full-screen for quicker commute checks.</span>
-        {isIos ? (
-          <ol className="pwa-install-nudge-steps" aria-label="iPhone install steps">
+        <span>{instructionText}</span>
+        {showIosSteps ? (
+          <ol className="pwa-install-nudge-steps" aria-label="iOS install steps">
+            {platform === "ios-other" ? (
+              <li>
+                <Smartphone size={14} aria-hidden="true" />
+                <span>Open Safari</span>
+              </li>
+            ) : null}
             <li>
               <InstallGuideIcon src="/assets/linewatch/guide-icons/share-iphone.svg" />
               <span>Tap Share</span>
@@ -55,6 +73,18 @@ export function PwaInstallNudge({
             </li>
           </ol>
         ) : null}
+        {showAndroidSteps ? (
+          <ol className="pwa-install-nudge-steps" aria-label="Android install steps">
+            <li>
+              <MoreVertical size={14} aria-hidden="true" />
+              <span>Open menu</span>
+            </li>
+            <li>
+              <InstallGuideIcon src="/assets/linewatch/guide-icons/add-to-homescreen-android.svg" />
+              <span>Add to Home screen</span>
+            </li>
+          </ol>
+        ) : null}
       </div>
 
       <div className="pwa-install-nudge-actions">
@@ -62,15 +92,15 @@ export function PwaInstallNudge({
           type="button"
           className="pwa-install-nudge-primary"
           disabled={installing}
-          onClick={isIos ? onDismiss : onRequestInstall}
+          onClick={usesNativePrompt ? onRequestInstall : onDismiss}
         >
-          {isIos ? (
-            "Got it"
-          ) : (
+          {usesNativePrompt ? (
             <>
               <Download size={14} aria-hidden="true" />
               {installing ? "Opening" : "Install"}
             </>
+          ) : (
+            "Got it"
           )}
         </button>
         <button

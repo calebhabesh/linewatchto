@@ -477,6 +477,13 @@ describe("LineWatch PWA configuration", () => {
     assert.equal(webManifest.lang, "en-CA");
     assert.deepEqual(webManifest.categories, ["navigation", "travel", "utilities"]);
     assert.equal(webManifest.prefer_related_applications, false);
+    assert.deepEqual(webManifest.related_applications, [
+      {
+        platform: "webapp",
+        url: "/manifest.webmanifest",
+        id: "/",
+      },
+    ]);
     assert.deepEqual(webManifest.icons, [
       {
         src: "/assets/linewatch/pwa/app-icon-192.png",

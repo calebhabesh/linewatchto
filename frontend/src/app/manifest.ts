@@ -18,6 +18,13 @@ export default function manifest(): MetadataRoute.Manifest {
     lang: "en-CA",
     categories: ["navigation", "travel", "utilities"],
     prefer_related_applications: false,
+    related_applications: [
+      {
+        platform: "webapp",
+        url: "/manifest.webmanifest",
+        id: "/",
+      },
+    ],
     icons: [
       {
         src: "/assets/linewatch/pwa/app-icon-192.png",

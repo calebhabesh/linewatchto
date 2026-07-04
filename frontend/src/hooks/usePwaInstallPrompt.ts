@@ -9,6 +9,7 @@ import {
   canShowPwaInstallHelp,
   clearPwaInstallDismissal,
   detectPwaInstallPlatform,
+  hasInstalledRelatedPwa,
   isStandalonePwaDisplay,
   readPwaInstallDismissedAt,
   shouldShowPwaInstallNudge,
@@ -24,6 +25,10 @@ type BeforeInstallPromptChoice = {
 type BeforeInstallPromptEvent = Event & {
   prompt: () => Promise<void>;
   userChoice: Promise<BeforeInstallPromptChoice>;
+};
+
+type NavigatorWithInstalledRelatedApps = Navigator & {
+  getInstalledRelatedApps?: () => Promise<{ platform?: string; id?: string; url?: string }[]>;
 };
 
 type UsePwaInstallPromptInput = {
@@ -60,6 +65,7 @@ export function usePwaInstallPrompt({
 }: UsePwaInstallPromptInput): UsePwaInstallPromptResult {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [dismissedAt, setDismissedAt] = useState<number | null>(null);
+  const [hasInstalledRelatedApp, setHasInstalledRelatedApp] = useState(false);
   const [installing, setInstalling] = useState(false);
   const [isStandalone, setIsStandalone] = useState(false);
   const [now, setNow] = useState(() => Date.now());
@@ -72,6 +78,7 @@ export function usePwaInstallPrompt({
 
   useEffect(() => {
     if (typeof window === "undefined") return;
+    let cancelled = false;
 
     const syncPlatform = () => {
       setPlatform(
@@ -93,6 +100,23 @@ export function usePwaInstallPrompt({
     syncStandalone();
     setDismissedAt(readPwaInstallDismissedAt(window.localStorage));
 
+    const syncInstalledRelatedApp = async () => {
+      const getInstalledRelatedApps = (window.navigator as NavigatorWithInstalledRelatedApps)
+        .getInstalledRelatedApps;
+      if (!getInstalledRelatedApps) return;
+
+      try {
+        const relatedApps = await getInstalledRelatedApps.call(window.navigator);
+        if (!cancelled) {
+          setHasInstalledRelatedApp(hasInstalledRelatedPwa(relatedApps));
+        }
+      } catch {
+        return;
+      }
+    };
+
+    void syncInstalledRelatedApp();
+
     const mediaQueries = displayModeQueries.map((query) => window.matchMedia(query));
     mediaQueries.forEach((mediaQuery) => {
       if ("addEventListener" in mediaQuery) {
@@ -103,6 +127,7 @@ export function usePwaInstallPrompt({
     });
 
     return () => {
+      cancelled = true;
       mediaQueries.forEach((mediaQuery) => {
         if ("removeEventListener" in mediaQuery) {
           mediaQuery.removeEventListener("change", syncStandalone);
@@ -137,6 +162,7 @@ export function usePwaInstallPrompt({
     };
     const handleAppInstalled = () => {
       setDeferredPrompt(null);
+      setHasInstalledRelatedApp(true);
       setIsStandalone(true);
       clearPwaInstallDismissal(window.localStorage);
       setDismissedAt(null);
@@ -162,7 +188,7 @@ export function usePwaInstallPrompt({
   }, []);
 
   const requestInstall = useCallback(async () => {
-    if (platform === "ios") {
+    if (platform === "ios-safari") {
       dismissInstallPrompt();
       return;
     }
@@ -185,6 +211,7 @@ export function usePwaInstallPrompt({
 
   const nativePromptAvailable = Boolean(deferredPrompt);
   const canShowInstallHelp = canShowPwaInstallHelp({
+    hasInstalledRelatedPwa: hasInstalledRelatedApp,
     isMobile,
     isStandalone,
     platform,
@@ -201,6 +228,7 @@ export function usePwaInstallPrompt({
         blockedByOverlay,
         dismissedAt,
         engagementSignal,
+        hasInstalledRelatedPwa: hasInstalledRelatedApp,
         isMobile,
         isStandalone,
         nativePromptAvailable,
@@ -213,6 +241,7 @@ export function usePwaInstallPrompt({
       blockedByOverlay,
       dismissedAt,
       engagementSignal,
+      hasInstalledRelatedApp,
       isMobile,
       isStandalone,
       nativePromptAvailable,

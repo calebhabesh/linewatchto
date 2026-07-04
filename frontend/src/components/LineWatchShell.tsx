@@ -1522,7 +1522,6 @@ export function LineWatchShell({
             notificationStatusLabel={notificationStatusLabel}
             canOfferPwaInstall={pwaInstallPrompt.canOfferInstall}
             canShowPwaInstallHelp={pwaInstallPrompt.canShowInstallHelp}
-            onDismissPwaInstall={pwaInstallPrompt.dismissInstallPrompt}
             onRequestPwaInstall={pwaInstallPrompt.requestInstall}
             pwaInstallBusy={pwaInstallPrompt.installing}
             pwaInstallPlatform={pwaInstallPrompt.platform}
@@ -1715,7 +1714,6 @@ export function LineWatchShell({
           notificationStatusLabel={notificationStatusLabel}
           canOfferPwaInstall={pwaInstallPrompt.canOfferInstall}
           canShowPwaInstallHelp={pwaInstallPrompt.canShowInstallHelp}
-          onDismissPwaInstall={pwaInstallPrompt.dismissInstallPrompt}
           onRequestPwaInstall={pwaInstallPrompt.requestInstall}
           pwaInstallBusy={pwaInstallPrompt.installing}
           pwaInstallPlatform={pwaInstallPrompt.platform}
@@ -2623,6 +2621,7 @@ export function LineWatchShell({
 
       {showPwaInstallNudge ? (
         <PwaInstallNudge
+          hasNativePrompt={pwaInstallPrompt.hasNativePrompt}
           installing={pwaInstallPrompt.installing}
           onDismiss={pwaInstallPrompt.dismissInstallPrompt}
           onRequestInstall={pwaInstallPrompt.requestInstall}

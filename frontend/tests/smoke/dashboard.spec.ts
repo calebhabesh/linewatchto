@@ -116,6 +116,8 @@ test.beforeEach(async ({ page }) => {
   await freezeBrowserTime(page, "2026-06-04T12:00:00-04:00");
   await page.addInitScript((storageKey) => {
     window.localStorage.setItem(storageKey, "true");
+    // Suppress the PWA install nudge during smoke tests to avoid UI layout conflicts
+    window.localStorage.setItem("linewatch-pwa-install-dismissed-at-v1", String(Date.now()));
   }, disclaimerStorageKey);
 });
 

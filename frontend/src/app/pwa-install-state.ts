@@ -2,13 +2,21 @@ export const PWA_INSTALL_DISMISS_STORAGE_KEY = "linewatch-pwa-install-dismissed-
 export const PWA_INSTALL_DISMISS_COOLDOWN_MS = 14 * 24 * 60 * 60 * 1000;
 export const PWA_INSTALL_ENGAGEMENT_DELAY_MS = 25_000;
 
-export type PwaInstallPlatform = "android-chromium" | "ios" | "unsupported";
+export type PwaInstallPlatform =
+  | "android-chrome"
+  | "android-chromium"
+  | "android-firefox"
+  | "android-other"
+  | "ios-safari"
+  | "ios-other"
+  | "unsupported";
 
 export type PwaInstallPromptInput = {
   activeView: string;
   blockedByOverlay: boolean;
   dismissedAt: number | null;
   engagementSignal: number;
+  hasInstalledRelatedPwa: boolean;
   isMobile: boolean;
   isStandalone: boolean;
   nativePromptAvailable: boolean;
@@ -34,6 +42,12 @@ type StandaloneWindowLike = {
   };
 };
 
+export type InstalledRelatedApp = {
+  platform?: string;
+  id?: string;
+  url?: string;
+};
+
 const standaloneDisplayQueries = [
   "(display-mode: standalone)",
   "(display-mode: fullscreen)",
@@ -55,22 +69,44 @@ export function detectPwaInstallPlatform(
     (normalizedPlatform === "macintel" && maxTouchPoints > 1);
 
   if (isiPhoneOrIPad) {
-    return "ios";
+    const isNonSafariIosBrowser =
+      normalizedUa.includes("crios/") ||
+      normalizedUa.includes("fxios/") ||
+      normalizedUa.includes("edgios/") ||
+      normalizedUa.includes("opios/");
+
+    return isNonSafariIosBrowser ? "ios-other" : "ios-safari";
   }
 
   const isAndroid = normalizedUa.includes("android");
+  if (!isAndroid) return "unsupported";
+
+  const isFirefox = normalizedUa.includes("firefox/");
+  if (isFirefox) return "android-firefox";
+
+  const isChrome =
+    normalizedUa.includes("chrome/") &&
+    !normalizedUa.includes("edg/") &&
+    !normalizedUa.includes("edga/") &&
+    !normalizedUa.includes("opr/") &&
+    !normalizedUa.includes("samsungbrowser/");
+
+  if (isChrome) {
+    return "android-chrome";
+  }
+
   const isChromium =
     normalizedUa.includes("chrome/") ||
-    normalizedUa.includes("crios/") ||
     normalizedUa.includes("edg/") ||
+    normalizedUa.includes("edga/") ||
+    normalizedUa.includes("opr/") ||
     normalizedUa.includes("samsungbrowser/");
-  const isFirefox = normalizedUa.includes("firefox/");
 
-  if (isAndroid && isChromium && !isFirefox) {
+  if (isChromium) {
     return "android-chromium";
   }
 
-  return "unsupported";
+  return "android-other";
 }
 
 export function isStandalonePwaDisplay(windowLike: StandaloneWindowLike): boolean {
@@ -119,23 +155,80 @@ export function canOfferPwaInstall({
   platform: PwaInstallPlatform;
   nativePromptAvailable: boolean;
 }): boolean {
-  if (platform === "ios") return true;
-  if (platform === "android-chromium") return nativePromptAvailable;
+  if (platform === "ios-safari") return true;
+  if (platform === "android-chrome" || platform === "android-chromium") return nativePromptAvailable;
   return false;
 }
 
 export function canShowPwaInstallHelp({
+  hasInstalledRelatedPwa = false,
   isMobile,
   isStandalone,
   platform,
 }: {
+  hasInstalledRelatedPwa?: boolean;
   isMobile: boolean;
   isStandalone: boolean;
   platform: PwaInstallPlatform;
 }): boolean {
   if (!isMobile) return false;
   if (isStandalone) return false;
-  return platform === "ios" || platform === "android-chromium";
+  if (hasInstalledRelatedPwa) return false;
+  return platform !== "unsupported";
+}
+
+export function hasInstalledRelatedPwa(relatedApps: InstalledRelatedApp[]): boolean {
+  return relatedApps.some((app) => app.platform === "webapp");
+}
+
+export function getPwaInstallHeading(platform: PwaInstallPlatform): string {
+  switch (platform) {
+    case "android-chrome":
+      return "Install App for Android on Chrome";
+    case "android-chromium":
+      return "Install App for Android on Other Browser";
+    case "android-firefox":
+      return "Install App for Android on Firefox";
+    case "android-other":
+      return "Install App for Android on Other Browser";
+    case "ios-safari":
+      return "Install App for iOS on Safari";
+    case "ios-other":
+      return "Install App for iOS on Other Browser";
+    case "unsupported":
+    default:
+      return "Install App";
+  }
+}
+
+export function getPwaInstallInstructionText({
+  platform,
+  nativePromptAvailable,
+}: {
+  platform: PwaInstallPlatform;
+  nativePromptAvailable: boolean;
+}): string {
+  if (platform === "android-chrome" && nativePromptAvailable) {
+    return "Tap Install, then confirm in Chrome.";
+  }
+  if (platform === "android-chrome") {
+    return "Open the three-dot menu, tap Add to Home screen, then confirm.";
+  }
+  if (platform === "android-chromium") {
+    return nativePromptAvailable
+      ? "Tap Install, then confirm in your browser."
+      : "Open the browser menu, tap Add to Home screen or Install, then confirm.";
+  }
+  if (platform === "android-firefox" || platform === "android-other") {
+    return "Open the browser menu, tap Add to Home screen or Install, then confirm.";
+  }
+  if (platform === "ios-safari") {
+    return "Tap Share, choose Add to Home Screen, then tap Add.";
+  }
+  if (platform === "ios-other") {
+    return "Open this page in Safari, tap Share, then Add to Home Screen.";
+  }
+  return "Use your browser menu to add LineWatchTO to your home screen.";
 }
 
 export function isPwaInstallDismissalFresh({
@@ -155,9 +248,12 @@ export function shouldShowPwaInstallNudge(input: PwaInstallPromptInput): boolean
   if (input.isStandalone) return false;
   if (input.activeView !== "map") return false;
   if (input.blockedByOverlay) return false;
-  if (!canOfferPwaInstall({
+  if (input.hasInstalledRelatedPwa) return false;
+  if (!canShowPwaInstallHelp({
+    hasInstalledRelatedPwa: input.hasInstalledRelatedPwa,
+    isMobile: input.isMobile,
+    isStandalone: input.isStandalone,
     platform: input.platform,
-    nativePromptAvailable: input.nativePromptAvailable,
   })) {
     return false;
   }
