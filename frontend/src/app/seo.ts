@@ -1,7 +1,8 @@
 import type { MetadataRoute } from "next";
+import { lineWatchAppTitle } from "./app-title.ts";
 
 export const DEFAULT_LINEWATCH_SITE_ORIGIN = "https://linewatchto.ca";
-export const lineWatchSeoTitle = "LineWatchTO | TTC Subway & LRT Reliability Dashboard";
+export const lineWatchSeoTitle = `${lineWatchAppTitle} - TTC Subway & LRT Reliability Dashboard`;
 export const lineWatchSeoDescription =
   "Unofficial TTC subway and LRT reliability dashboard. Map-first status, alerts, delays, and accessibility outages.";
 export const lineWatchSeoImagePath = "/assets/linewatch/og-image.png";
