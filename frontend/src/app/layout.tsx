@@ -70,14 +70,14 @@ export const metadata: Metadata = {
     images: [
       {
         url: lineWatchSeoImagePath,
-        width: 512,
-        height: 512,
-        alt: "LineWatchTO app icon",
+        width: 1200,
+        height: 630,
+        alt: "LineWatchTO dashboard preview map and status",
       },
     ],
   },
   twitter: {
-    card: "summary",
+    card: "summary_large_image",
     title: lineWatchSeoTitle,
     description: lineWatchSeoDescription,
     images: [lineWatchSeoImagePath],
