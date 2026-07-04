@@ -613,7 +613,7 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
                       ? "Live source checked; no prediction for this direction"
                       : arrivalSourceTitle(group.arrivals);
                     const groupEmptyMessage = emptyLiveDirection
-                      ? "No live prediction for this direction"
+                      ? "No live ETA for this direction right now. Live updates may appear at any moment."
                       : "No Arrivals Available";
 
                     return (
