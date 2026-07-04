@@ -307,6 +307,8 @@ describe("station arrival grouping", () => {
     assert.equal(formatArrivalSourceBadgeLabel([liveArrival]), "Live");
     assert.equal(formatArrivalSourceBadgeLabel([scheduledArrival]), "Scheduled");
     assert.equal(formatArrivalSourceBadgeLabel([liveArrival, scheduledArrival]), "Mixed");
+    assert.equal(formatArrivalSourceBadgeLabel([], { emptyLiveDirection: true }), "No live ETA");
+    assert.equal(formatArrivalSourceBadgeLabel([]), "Unavailable");
     assert.equal(
       formatArrivalDisclaimer([liveArrival, scheduledArrival], null),
       "Live GTFS-RT rows are shown where available; scheduled rows fill missing directions.",

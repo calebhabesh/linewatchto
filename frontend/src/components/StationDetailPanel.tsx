@@ -231,6 +231,9 @@ function arrivalSourceBadgeClassName(label: string) {
   if (label === "Mixed") {
     return `${base} border-cyan-500/35 bg-cyan-500/10 text-cyan-700 dark:text-cyan-200`;
   }
+  if (label === "No live ETA") {
+    return `${base} border-slate-400/35 bg-slate-500/10 text-slate-600 dark:text-slate-300`;
+  }
   if (label === "Demo") {
     return `${base} border-violet-500/35 bg-violet-500/10 text-violet-700 dark:text-violet-200`;
   }
@@ -604,10 +607,13 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
                   ) : arrivalGroups.map((group, groupIndex) => {
                     const lineBadgeColor = group.line?.color ?? "#cbd5e1";
                     const showLineDivider = groupIndex > 0 && arrivalGroups[groupIndex - 1]?.lineId !== group.lineId;
-                    const groupSourceLabel = formatArrivalSourceBadgeLabel(group.arrivals);
-                    const groupSourceTitle = arrivalSourceTitle(group.arrivals);
-                    const groupEmptyMessage = hasLiveArrivals
-                      ? "Waiting for live arrivals"
+                    const emptyLiveDirection = hasLiveArrivals && group.arrivals.length === 0;
+                    const groupSourceLabel = formatArrivalSourceBadgeLabel(group.arrivals, { emptyLiveDirection });
+                    const groupSourceTitle = emptyLiveDirection
+                      ? "Live source checked; no prediction for this direction"
+                      : arrivalSourceTitle(group.arrivals);
+                    const groupEmptyMessage = emptyLiveDirection
+                      ? "No live prediction for this direction"
                       : "No Arrivals Available";
 
                     return (

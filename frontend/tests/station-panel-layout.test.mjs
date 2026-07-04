@@ -51,7 +51,8 @@ describe("station detail panel layout", () => {
     assert.match(panelSource, /window\.setInterval\(\(\) => setArrivalTick\(Date\.now\(\)\), 3000\)/);
     assert.match(panelSource, /includeEmptyDirections:\s*hasLiveArrivals/);
     assert.match(panelSource, /Refreshing Live Arrivals/);
-    assert.match(panelSource, /Waiting for live arrivals/);
+    assert.match(panelSource, /No live prediction for this direction/);
+    assert.match(panelSource, /emptyLiveDirection/);
     assert.match(panelSource, /detailedCountdown/);
     assert.match(panelSource, /data-arrival-source/);
     assert.match(panelSource, /arrivalSourceBadgeClassName/);

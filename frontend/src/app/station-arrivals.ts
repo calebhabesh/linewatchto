@@ -3,6 +3,9 @@ import type { StationArrival, StationLine } from "./station-data";
 type ArrivalTimeFields = Pick<StationArrival, "label" | "minutes" | "status"> & Partial<Pick<StationArrival, "predictedAt">>;
 type ArrivalTileLabelFields = Pick<StationArrival, "label" | "minutes"> & Partial<Pick<StationArrival, "predictedAt" | "status">>;
 type ArrivalSourceFields = Pick<StationArrival, "status"> & Partial<Pick<StationArrival, "source">>;
+type ArrivalSourceBadgeOptions = {
+  emptyLiveDirection?: boolean;
+};
 type ArrivalTileLabelOptions = {
   detailedCountdown?: boolean;
   now?: Date | number | string;
@@ -257,7 +260,13 @@ export function formatArrivalSourceSummary(arrivals: ArrivalSourceFields[], sour
   return formatArrivalSourceText(source);
 }
 
-export function formatArrivalSourceBadgeLabel(arrivals: ArrivalSourceFields[]): string {
+export function formatArrivalSourceBadgeLabel(
+  arrivals: ArrivalSourceFields[],
+  options: ArrivalSourceBadgeOptions = {},
+): string {
+  if (arrivals.length === 0 && options.emptyLiveDirection) {
+    return "No live ETA";
+  }
   if (hasArrivalStatus(arrivals, "live") && hasArrivalStatus(arrivals, "scheduled")) {
     return "Mixed";
   }
