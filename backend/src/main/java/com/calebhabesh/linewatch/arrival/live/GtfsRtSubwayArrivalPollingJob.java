@@ -23,7 +23,7 @@ public class GtfsRtSubwayArrivalPollingJob {
 
     @Scheduled(
         initialDelayString = "${linewatch.arrivals.live-gtfs-rt-initial-delay:PT10S}",
-        fixedDelayString = "${linewatch.arrivals.live-gtfs-rt-fixed-delay:PT5S}"
+        fixedDelayString = "${linewatch.arrivals.live-gtfs-rt-fixed-delay:PT1S}"
     )
     public void refresh() {
         if (properties.getProvider() != ArrivalProperties.ProviderMode.LIVE) {

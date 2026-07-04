@@ -10,13 +10,13 @@ import org.springframework.scheduling.annotation.Scheduled;
 
 class GtfsRtSubwayArrivalPollingJobTest {
     @Test
-    void defaultsLiveGtfsRtPollingToFiveSeconds() throws NoSuchMethodException {
+    void defaultsLiveGtfsRtPollingToOneSecond() throws NoSuchMethodException {
         ArrivalProperties properties = new ArrivalProperties();
         Method refresh = GtfsRtSubwayArrivalPollingJob.class.getDeclaredMethod("refresh");
         Scheduled scheduled = refresh.getAnnotation(Scheduled.class);
 
-        assertThat(properties.getLiveGtfsRtFixedDelay()).isEqualTo(Duration.ofSeconds(5));
+        assertThat(properties.getLiveGtfsRtFixedDelay()).isEqualTo(Duration.ofSeconds(1));
         assertThat(scheduled.fixedDelayString())
-            .isEqualTo("${linewatch.arrivals.live-gtfs-rt-fixed-delay:PT5S}");
+            .isEqualTo("${linewatch.arrivals.live-gtfs-rt-fixed-delay:PT1S}");
     }
 }

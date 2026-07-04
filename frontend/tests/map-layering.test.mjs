@@ -367,6 +367,10 @@ describe("asset-backed map layering", () => {
     assert.match(shellSource, /getEstimatedTrainMarkers/);
     assert.match(shellSource, /estimatedTrainMarkerRefreshMs/);
     assert.match(shellSource, /const estimatedTrainMarkersVisible = estimatedTrainsEnabled && subwayOperatingState\.status === "open";/);
+    assert.match(shellSource, /let trainMarkerRefreshInFlight = false;/);
+    assert.match(shellSource, /if \(trainMarkerRefreshInFlight\) \{\s*return;\s*\}/);
+    assert.match(shellSource, /trainMarkerRefreshInFlight = true;/);
+    assert.match(shellSource, /trainMarkerRefreshInFlight = false;/);
     assert.match(shellSource, /if \(!estimatedTrainMarkersVisible \|\| document\.visibilityState !== "visible"\)/);
     assert.match(shellSource, /estimatedTrainsEnabled=\{estimatedTrainMarkersVisible\}/);
     assert.match(shellSource, /estimatedTrainMarkers=\{estimatedTrainMarkersVisible \? estimatedTrainSnapshot\.markers : \[\]\}/);
@@ -381,6 +385,7 @@ describe("asset-backed map layering", () => {
     assert.match(interactiveMapSource, /function EstimatedTrainMarkerLayer/);
     assert.match(interactiveMapSource, /visualTravelDirection\(\{ \.\.\.segment, travelDirection: marker\.travelDirection \}\)/);
     assert.match(interactiveMapSource, /pathFrameAtProgress/);
+    assert.match(interactiveMapSource, /estimatedTrainMarkerRenderKey\(marker\)/);
     assert.match(interactiveMapSource, /data-train-marker-line-id=\{marker\.lineId\}/);
     assert.match(interactiveMapSource, /data-train-marker-direction=\{marker\.direction\}/);
     assert.match(interactiveMapSource, /estimated-train-marker-arrow/);

@@ -25,7 +25,8 @@ public class GtfsRtSubwayTrainMarkerService {
     private static final double MIN_PROGRESS = 0.08;
     private static final double MAX_PROGRESS = 0.92;
     private static final Duration PAST_TOLERANCE = Duration.ofSeconds(30);
-    private static final Duration MARKER_SNAPSHOT_TTL = Duration.ofSeconds(5);
+    private static final Duration MARKER_SNAPSHOT_TTL = Duration.ofSeconds(1);
+    private static final Duration MARKER_RETENTION_TTL = Duration.ofSeconds(4);
     private static final String DISCLAIMER =
         "Estimated train markers are schematic placements inferred from TTC GTFS-RT trip updates and LineWatchTO topology. They are not physical train positions.";
 
@@ -37,6 +38,7 @@ public class GtfsRtSubwayTrainMarkerService {
     private final SubwayOperatingWindow operatingWindow;
     private volatile WeightSnapshot weightSnapshot = new WeightSnapshot("", Map.of());
     private volatile MarkerSnapshotCache markerSnapshotCache = MarkerSnapshotCache.empty();
+    private volatile Map<String, RetainedMarker> retainedMarkers = Map.of();
 
     public GtfsRtSubwayTrainMarkerService(
         GtfsRtSubwayArrivalCache cache,
@@ -59,6 +61,7 @@ public class GtfsRtSubwayTrainMarkerService {
         String source = properties.getLiveSourceName();
 
         if (properties.getProvider() != ArrivalProperties.ProviderMode.LIVE) {
+            clearRetainedMarkers();
             return EstimatedTrainMarkerSnapshot.unavailable(
                 source,
                 "Live GTFS-RT train markers are disabled.",
@@ -68,6 +71,7 @@ public class GtfsRtSubwayTrainMarkerService {
         }
 
         if (!operatingWindow.isOpen()) {
+            clearRetainedMarkers();
             return EstimatedTrainMarkerSnapshot.unavailable(
                 source,
                 "Subway service is outside scheduled operating hours; estimated train markers are hidden until service resumes.",
@@ -78,6 +82,7 @@ public class GtfsRtSubwayTrainMarkerService {
 
         Optional<GtfsRtSubwayArrivalSnapshot> freshSnapshot = cache.freshSnapshot();
         if (freshSnapshot.isEmpty()) {
+            clearRetainedMarkers();
             return EstimatedTrainMarkerSnapshot.unavailable(
                 source,
                 "No fresh TTC GTFS-RT subway trip update snapshot is available.",
@@ -119,11 +124,14 @@ public class GtfsRtSubwayTrainMarkerService {
         List<LineSegmentEntity> segments = lineSegmentRepository.findAllByOrderBySortOrderAsc();
         Map<String, SegmentTravelTime> segmentWeights = segmentWeights();
 
-        List<EstimatedTrainMarker> markers = groupedArrivals(snapshot.arrivals())
+        List<EstimatedTrainMarker> currentMarkers = groupedArrivals(snapshot.arrivals())
             .values()
             .stream()
             .map(rows -> markerForTrain(rows, snapshot, segments, segmentWeights, generatedAt))
             .flatMap(Optional::stream)
+            .toList();
+        List<EstimatedTrainMarker> markers = retainRecentMarkers(currentMarkers, generatedAt)
+            .stream()
             .sorted(Comparator
                 .comparing(EstimatedTrainMarker::lineId)
                 .thenComparing(EstimatedTrainMarker::direction)
@@ -142,6 +150,42 @@ public class GtfsRtSubwayTrainMarkerService {
             generatedAt,
             markers
         );
+    }
+
+    private List<EstimatedTrainMarker> retainRecentMarkers(
+        List<EstimatedTrainMarker> currentMarkers,
+        OffsetDateTime generatedAt
+    ) {
+        Map<String, RetainedMarker> previous = retainedMarkers;
+        Map<String, RetainedMarker> nextRetained = new LinkedHashMap<>();
+        List<EstimatedTrainMarker> resolved = new ArrayList<>(currentMarkers);
+
+        for (EstimatedTrainMarker marker : currentMarkers) {
+            nextRetained.put(markerContinuityKey(marker), new RetainedMarker(marker, generatedAt));
+        }
+
+        if (currentMarkers.size() >= previous.size()) {
+            retainedMarkers = Map.copyOf(nextRetained);
+            return resolved;
+        }
+
+        for (Map.Entry<String, RetainedMarker> entry : previous.entrySet()) {
+            if (nextRetained.containsKey(entry.getKey())) {
+                continue;
+            }
+            RetainedMarker retained = entry.getValue();
+            if (!retained.lastSeenAt().plus(MARKER_RETENTION_TTL).isBefore(generatedAt)) {
+                nextRetained.put(entry.getKey(), retained);
+                resolved.add(retained.marker());
+            }
+        }
+
+        retainedMarkers = Map.copyOf(nextRetained);
+        return resolved;
+    }
+
+    private void clearRetainedMarkers() {
+        retainedMarkers = Map.of();
     }
 
     private Map<String, List<GtfsRtSubwayStationArrival>> groupedArrivals(List<GtfsRtSubwayStationArrival> arrivals) {
@@ -315,9 +359,21 @@ public class GtfsRtSubwayTrainMarkerService {
             + arrival.stationId();
     }
 
+    private String markerContinuityKey(EstimatedTrainMarker marker) {
+        return marker.lineId()
+            + "|"
+            + markerDirectionIdentity(marker.direction())
+            + "|"
+            + trainIdentity(marker.tripId(), marker.vehicleId(), marker.id());
+    }
+
     private String trainIdentity(GtfsRtSubwayStationArrival arrival) {
-        String tripId = normalizeIdentity(arrival.tripId());
-        String vehicleId = normalizeIdentity(arrival.vehicleId());
+        return trainIdentity(arrival.tripId(), arrival.vehicleId(), normalizeIdentity(arrival.stopId()) + ":" + arrival.stopSequence());
+    }
+
+    private String trainIdentity(String tripIdValue, String vehicleIdValue, String fallback) {
+        String tripId = normalizeIdentity(tripIdValue);
+        String vehicleId = normalizeIdentity(vehicleIdValue);
         if (!tripId.isBlank() && !vehicleId.isBlank()) {
             return tripId + ":" + vehicleId;
         }
@@ -327,7 +383,7 @@ public class GtfsRtSubwayTrainMarkerService {
         if (!vehicleId.isBlank()) {
             return vehicleId;
         }
-        return normalizeIdentity(arrival.stopId()) + ":" + arrival.stopSequence();
+        return normalizeIdentity(fallback);
     }
 
     private String normalizeIdentity(String value) {
@@ -376,6 +432,11 @@ public class GtfsRtSubwayTrainMarkerService {
     private record WeightSnapshot(
         String signature,
         Map<String, SegmentTravelTime> weights
+    ) {}
+
+    private record RetainedMarker(
+        EstimatedTrainMarker marker,
+        OffsetDateTime lastSeenAt
     ) {}
 
     private record MarkerSnapshotCache(

@@ -33,7 +33,7 @@ import type {
 } from "../app/linewatch-data";
 import type { StationSummary } from "../app/station-data";
 import type { AccountCommutePathPreview } from "../app/account-data";
-import type { EstimatedTrainMarker } from "../app/train-markers";
+import { estimatedTrainMarkerRenderKey, type EstimatedTrainMarker } from "../app/train-markers";
 import { LogsDropdown } from "./LogsDropdown";
 import { ImpactTypeIcon } from "./ImpactTypeIcon";
 import { SiteGuideDropdown } from "./SiteGuideDropdown";
@@ -3066,7 +3066,7 @@ function EstimatedTrainMarkerLayer({
 
       return [
         <g
-          key={marker.id}
+          key={estimatedTrainMarkerRenderKey(marker)}
           className={`estimated-train-marker estimated-train-marker-${marker.lineId}`}
           data-train-marker-id={marker.id}
           data-train-marker-line-id={marker.lineId}

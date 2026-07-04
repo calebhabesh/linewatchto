@@ -216,14 +216,23 @@ export function LineWatchShell({
   useEffect(() => {
     let cancelled = false;
     let intervalId: number | null = null;
+    let trainMarkerRefreshInFlight = false;
 
     const refresh = async () => {
       if (!estimatedTrainMarkersVisible || document.visibilityState !== "visible") {
         return;
       }
-      const result = await getEstimatedTrainMarkers();
-      if (!cancelled) {
-        setEstimatedTrainSnapshot(result.data);
+      if (trainMarkerRefreshInFlight) {
+        return;
+      }
+      trainMarkerRefreshInFlight = true;
+      try {
+        const result = await getEstimatedTrainMarkers();
+        if (!cancelled) {
+          setEstimatedTrainSnapshot(result.data);
+        }
+      } finally {
+        trainMarkerRefreshInFlight = false;
       }
     };
 

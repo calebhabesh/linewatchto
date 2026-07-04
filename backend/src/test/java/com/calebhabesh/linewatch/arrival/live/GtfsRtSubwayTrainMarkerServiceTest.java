@@ -12,8 +12,10 @@ import com.calebhabesh.linewatch.commute.CommuteTravelTimeRepository;
 import com.calebhabesh.linewatch.station.LineSegmentEntity;
 import com.calebhabesh.linewatch.station.LineSegmentRepository;
 import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
@@ -279,6 +281,52 @@ class GtfsRtSubwayTrainMarkerServiceTest {
     }
 
     @Test
+    void recomputesMarkerSnapshotAfterOneSecondCacheWindow() {
+        MutableClock mutableClock = new MutableClock(Instant.parse("2026-07-02T10:00:00Z"), ZoneOffset.UTC);
+        GtfsRtSubwayArrivalCache mutableCache = new GtfsRtSubwayArrivalCache(properties, mutableClock);
+        GtfsRtSubwayTrainMarkerService mutableService = new GtfsRtSubwayTrainMarkerService(
+            mutableCache,
+            lineSegmentRepository,
+            travelTimeRepository,
+            properties,
+            mutableClock,
+            new SubwayOperatingWindow(mutableClock)
+        );
+        OffsetDateTime now = OffsetDateTime.now(mutableClock);
+        mutableCache.replace(new GtfsRtSubwayArrivalSnapshot(now.minusSeconds(10), now.minusSeconds(8), List.of(
+            new GtfsRtSubwayStationArrival(
+                "bay",
+                "line-2",
+                "Eastbound",
+                now.plusSeconds(80),
+                null,
+                "232",
+                "126789",
+                "13753",
+                19,
+                16
+            )
+        )));
+        when(lineSegmentRepository.findAllByOrderBySortOrderAsc()).thenReturn(List.of(
+            segment("line-2-st-george-bay", "line-2", "st-george", "bay", 315, "eastbound")
+        ));
+        when(travelTimeRepository.activeScheduleSignature()).thenReturn("active-import-42");
+        when(travelTimeRepository.findActiveScheduledSegmentWeights()).thenReturn(Map.of(
+            "line-2-st-george-bay",
+            new CommuteTravelTimeRepository.SegmentTravelTime("line-2-st-george-bay", 120, 25, CommuteTravelTimeRepository.GTFS_SOURCE)
+        ));
+        when(travelTimeRepository.findSeededFallbackSegmentWeights()).thenReturn(Map.of());
+
+        EstimatedTrainMarkerSnapshot first = mutableService.estimatedMarkers();
+        mutableClock.advance(Duration.ofSeconds(2));
+        EstimatedTrainMarkerSnapshot second = mutableService.estimatedMarkers();
+
+        assertThat(first.markers()).hasSize(1);
+        assertThat(second.generatedAt()).isEqualTo(now.plusSeconds(2));
+        verify(lineSegmentRepository, times(2)).findAllByOrderBySortOrderAsc();
+    }
+
+    @Test
     void recomputesMarkerSnapshotWhenLiveFeedTimestampChanges() {
         OffsetDateTime now = OffsetDateTime.now(CLOCK);
         when(lineSegmentRepository.findAllByOrderBySortOrderAsc()).thenReturn(List.of(
@@ -306,6 +354,56 @@ class GtfsRtSubwayTrainMarkerServiceTest {
         verify(travelTimeRepository, times(2)).activeScheduleSignature();
         verify(travelTimeRepository, times(1)).findSeededFallbackSegmentWeights();
         verify(travelTimeRepository, times(1)).findActiveScheduledSegmentWeights();
+    }
+
+    @Test
+    void retainsLastSeenMarkerAcrossBriefFeedGap() {
+        MutableClock mutableClock = new MutableClock(Instant.parse("2026-07-02T10:00:00Z"), ZoneOffset.UTC);
+        GtfsRtSubwayArrivalCache mutableCache = new GtfsRtSubwayArrivalCache(properties, mutableClock);
+        GtfsRtSubwayTrainMarkerService mutableService = new GtfsRtSubwayTrainMarkerService(
+            mutableCache,
+            lineSegmentRepository,
+            travelTimeRepository,
+            properties,
+            mutableClock,
+            new SubwayOperatingWindow(mutableClock)
+        );
+        OffsetDateTime now = OffsetDateTime.now(mutableClock);
+        when(lineSegmentRepository.findAllByOrderBySortOrderAsc()).thenReturn(List.of(
+            segment("line-2-st-george-bay", "line-2", "st-george", "bay", 315, "eastbound")
+        ));
+        when(travelTimeRepository.activeScheduleSignature()).thenReturn("active-import-42");
+        when(travelTimeRepository.findActiveScheduledSegmentWeights()).thenReturn(Map.of(
+            "line-2-st-george-bay",
+            new CommuteTravelTimeRepository.SegmentTravelTime("line-2-st-george-bay", 120, 25, CommuteTravelTimeRepository.GTFS_SOURCE)
+        ));
+        when(travelTimeRepository.findSeededFallbackSegmentWeights()).thenReturn(Map.of());
+        mutableCache.replace(new GtfsRtSubwayArrivalSnapshot(now.minusSeconds(10), now.minusSeconds(8), List.of(
+            new GtfsRtSubwayStationArrival(
+                "bay",
+                "line-2",
+                "Eastbound",
+                now.plusSeconds(80),
+                null,
+                "232",
+                "126789",
+                "13753",
+                19,
+                16
+            )
+        )));
+        EstimatedTrainMarkerSnapshot first = mutableService.estimatedMarkers();
+
+        mutableClock.advance(Duration.ofSeconds(2));
+        OffsetDateTime gapNow = OffsetDateTime.now(mutableClock);
+        mutableCache.replace(new GtfsRtSubwayArrivalSnapshot(gapNow.minusSeconds(1), gapNow, List.of()));
+        EstimatedTrainMarkerSnapshot duringGap = mutableService.estimatedMarkers();
+
+        assertThat(first.markers()).singleElement().extracting(EstimatedTrainMarker::vehicleId).isEqualTo("232");
+        assertThat(duringGap.markers()).singleElement().satisfies(marker -> {
+            assertThat(marker.id()).isEqualTo("line-2:126789:232:eastbound:bay");
+            assertThat(marker.updatedAt()).isEqualTo(now);
+        });
     }
 
     @Test
@@ -394,5 +492,34 @@ class GtfsRtSubwayTrainMarkerServiceTest {
 
     private LineSegmentEntity segment(String id, String lineId, String stationAId, String stationBId, int sortOrder, String forwardDirection) {
         return new LineSegmentEntity(id, lineId, stationAId, stationBId, null, null, sortOrder, forwardDirection, null, false, null, null);
+    }
+
+    private static final class MutableClock extends Clock {
+        private Instant instant;
+        private final ZoneId zone;
+
+        private MutableClock(Instant instant, ZoneId zone) {
+            this.instant = instant;
+            this.zone = zone;
+        }
+
+        private void advance(Duration duration) {
+            instant = instant.plus(duration);
+        }
+
+        @Override
+        public ZoneId getZone() {
+            return zone;
+        }
+
+        @Override
+        public Clock withZone(ZoneId zone) {
+            return new MutableClock(instant, zone);
+        }
+
+        @Override
+        public Instant instant() {
+            return instant;
+        }
     }
 }

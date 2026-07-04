@@ -48,8 +48,8 @@ export const EMPTY_ESTIMATED_TRAIN_SNAPSHOT: EstimatedTrainSnapshot = {
   markers: [],
 };
 
-const DEFAULT_TRAIN_MARKER_REFRESH_MS = 5_000;
-const MIN_TRAIN_MARKER_REFRESH_MS = 5_000;
+const DEFAULT_TRAIN_MARKER_REFRESH_MS = 1_000;
+const MIN_TRAIN_MARKER_REFRESH_MS = 1_000;
 
 export function estimatedTrainMarkerRefreshMs(configured = process.env.NEXT_PUBLIC_LINEWATCH_TRAIN_MARKER_REFRESH_MS) {
   const parsed = Number(configured);
@@ -57,6 +57,21 @@ export function estimatedTrainMarkerRefreshMs(configured = process.env.NEXT_PUBL
     return DEFAULT_TRAIN_MARKER_REFRESH_MS;
   }
   return Math.max(MIN_TRAIN_MARKER_REFRESH_MS, parsed);
+}
+
+export function estimatedTrainMarkerRenderKey(marker: EstimatedTrainMarker) {
+  const tripId = normalizedMarkerText(marker.tripId);
+  const vehicleId = normalizedMarkerText(marker.vehicleId);
+  const trainIdentity = tripId && vehicleId
+    ? `${tripId}:${vehicleId}`
+    : tripId || vehicleId || normalizedMarkerText(marker.id) || "unknown-train";
+  const direction = normalizedMarkerText(marker.direction).replace(/\s+/g, "-") || "unknown-direction";
+
+  return `${marker.lineId}:${direction}:${trainIdentity}`;
+}
+
+function normalizedMarkerText(value: string | null | undefined) {
+  return value?.trim().toLowerCase() ?? "";
 }
 
 export async function getEstimatedTrainMarkers(
