@@ -999,6 +999,38 @@ class AlertDashboardServiceTest {
     }
 
     @Test
+    void ordinaryDelayWithTmuStationAndTMUCapitalization() {
+        when(ingestionFreshness.isDashboardFresh()).thenReturn(true);
+        AlertEntity delay = withLine(alert(
+            "delay-tmu",
+            "active-alert",
+            "delay",
+            "Delay",
+            "Delay at TMU.",
+            "tmu",
+            "tmu",
+            OffsetDateTime.parse("2026-06-01T11:50:00Z"),
+            null
+        ), "line-1", "1");
+        ReflectionTestUtils.setField(delay, "impactKind", "delay");
+        ReflectionTestUtils.setField(delay, "direction", "northbound");
+
+        when(alertRepository.findByActiveTrueAndType("active-alert"))
+            .thenReturn(List.of(delay));
+        when(lineSegmentRepository.findAllByOrderBySortOrderAsc()).thenReturn(List.of(
+            segment("line-1-tmu-tmu", "line-1", "tmu", "tmu", 10)
+        ));
+
+        List<AlertDashboardService.DelayAlertDto> delays = service.delays();
+
+        assertThat(delays).singleElement().satisfies(dto -> {
+            assertThat(dto.id()).isEqualTo("delay-tmu");
+            assertThat(dto.location()).isEqualTo("TMU");
+            assertThat(dto.displayDirection()).isEqualTo("Northbound");
+        });
+    }
+
+    @Test
     void unionStationOnlyLineOneDelayUsesTerminalQualifiedDirection() {
         when(ingestionFreshness.isDashboardFresh()).thenReturn(true);
         AlertEntity vaughanDelay = withLine(alert(

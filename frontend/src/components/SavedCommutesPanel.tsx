@@ -40,6 +40,8 @@ function toTitleCase(str: string): string {
             formatted = subWord.replace(/ttc/i, "TTC");
           } else if (cleanWord === "lrt") {
             formatted = subWord.replace(/lrt/i, "LRT");
+          } else if (cleanWord === "tmu") {
+            formatted = subWord.replace(/tmu/i, "TMU");
           } else {
             formatted = subWord.charAt(0).toUpperCase() + subWord.slice(1).toLowerCase();
           }

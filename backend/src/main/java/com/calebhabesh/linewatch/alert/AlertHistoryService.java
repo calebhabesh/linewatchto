@@ -202,9 +202,13 @@ public class AlertHistoryService {
             if (!result.isEmpty()) {
                 result.append(' ');
             }
-            result.append(word.substring(0, 1).toUpperCase(Locale.ROOT));
-            if (word.length() > 1) {
-                result.append(word.substring(1));
+            if ("tmu".equals(word)) {
+                result.append("TMU");
+            } else {
+                result.append(word.substring(0, 1).toUpperCase(Locale.ROOT));
+                if (word.length() > 1) {
+                    result.append(word.substring(1));
+                }
             }
         }
         return result.toString();

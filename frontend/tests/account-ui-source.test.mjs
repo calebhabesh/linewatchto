@@ -171,6 +171,7 @@ describe("account UI source", () => {
     assert.equal(toTitleCase("Sheppard-Yonge to Finch"), "Sheppard-Yonge To Finch");
     assert.equal(toTitleCase("sheppard-yonge -> finch"), "Sheppard-Yonge -> Finch");
     assert.equal(toTitleCase("linewatch-lrt-ttc"), "LineWatch-LRT-TTC");
+    assert.equal(toTitleCase("tmu"), "TMU");
   });
 
   it("uses a custom navigational Google provider button instead of the GIS iframe renderer", () => {

@@ -154,7 +154,11 @@ public class ReducedSpeedZoneProjector {
     private String stationLabel(String stationId) {
         if (stationId == null) return "";
         return java.util.Arrays.stream(stationId.split("-"))
-            .map(word -> word.isEmpty() ? word : word.substring(0, 1).toUpperCase(Locale.ROOT) + word.substring(1))
+            .map(word -> {
+                if (word.isEmpty()) return word;
+                if ("tmu".equalsIgnoreCase(word)) return "TMU";
+                return word.substring(0, 1).toUpperCase(Locale.ROOT) + word.substring(1);
+            })
             .collect(Collectors.joining(" "));
     }
 

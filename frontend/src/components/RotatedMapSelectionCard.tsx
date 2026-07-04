@@ -76,6 +76,7 @@ function toTitleCase(str: string | null | undefined): string {
   if (!str) return "";
   return str
     .replace(/\b[a-z]/gi, (char) => char.toUpperCase())
+    .replace(/\bTmu\b/g, "TMU")
     .replace(/\bTo\b/g, "to")
     .replace(/\bAnd\b/g, "and")
     .replace(/\bOr\b/g, "or")

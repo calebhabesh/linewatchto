@@ -119,6 +119,55 @@ class AlertHistoryServiceTest {
         );
     }
 
+    @Test
+    void historyCasingHandlesTmuCorrectly() {
+        when(repository.findLifecycleRows(
+            OffsetDateTime.parse("2026-06-23T00:00:00-04:00"),
+            OffsetDateTime.parse("2026-06-23T12:30:00-04:00"),
+            300
+        )).thenReturn(List.of(
+            rowWithStation(1L, "ttc-route-1", true, "opened", "2026-06-23T12:05:00-04:00", "tmu")
+        ));
+
+        AlertHistoryResponses.AlertHistoryResponse response = service.history("today", 300);
+
+        assertThat(response.incidents()).singleElement().satisfies(incident -> {
+            assertThat(incident.location()).isEqualTo("TMU");
+        });
+    }
+
+    private AlertHistoryRepository.AlertHistoryRow rowWithStation(
+        long id,
+        String alertId,
+        boolean active,
+        String lifecycleState,
+        String snapshotTime,
+        String stationId
+    ) {
+        return new AlertHistoryRepository.AlertHistoryRow(
+            id,
+            alertId,
+            "source-1",
+            "line-1",
+            "1",
+            "Yonge-University",
+            "Line 1 Yonge-University: Delays at TMU.",
+            "Delays at TMU.",
+            OffsetDateTime.parse(snapshotTime),
+            active,
+            OffsetDateTime.parse(snapshotTime),
+            "suspension",
+            "Live",
+            "suspension",
+            stationId,
+            stationId,
+            "northbound",
+            "MECHANICAL_PROBLEM",
+            "Mechanical Problem",
+            lifecycleState
+        );
+    }
+
     private AlertHistoryRepository.AlertHistoryRow row(
         long id,
         String alertId,

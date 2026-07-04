@@ -728,9 +728,13 @@ public class AlertDashboardService {
             if (!label.isEmpty()) {
                 label.append(' ');
             }
-            label.append(word.substring(0, 1).toUpperCase(Locale.ROOT));
-            if (word.length() > 1) {
-                label.append(word.substring(1).toLowerCase(Locale.ROOT));
+            if ("tmu".equalsIgnoreCase(word)) {
+                label.append("TMU");
+            } else {
+                label.append(word.substring(0, 1).toUpperCase(Locale.ROOT));
+                if (word.length() > 1) {
+                    label.append(word.substring(1).toLowerCase(Locale.ROOT));
+                }
             }
         }
         return label.toString();

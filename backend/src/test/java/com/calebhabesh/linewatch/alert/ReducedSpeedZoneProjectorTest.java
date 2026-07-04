@@ -223,6 +223,20 @@ class ReducedSpeedZoneProjectorTest {
         assertThat(projection.segmentImpacts()).containsKey("line-1-eglinton-davisville");
     }
 
+    @Test
+    void formatsTmuStationCapitalized() {
+        Projection projection = projector.project(
+            List.of(alert("rsz-tmu", "line-1", "tmu", "wellesley", "northbound")),
+            List.of(segment("line-1-tmu-wellesley", "line-1", "tmu", "wellesley", "northbound"))
+        );
+
+        assertThat(projection.zones()).singleElement().satisfies(zone -> {
+            assertThat(zone.directionalDetails()).singleElement().satisfies(detail -> {
+                assertThat(detail.location()).isEqualTo("TMU to Wellesley");
+            });
+        });
+    }
+
     private AlertEntity alert(String id, String lineId, String start, String end, String direction) {
         return alert(id, lineId, start, end, direction, "Reduced speed");
     }
