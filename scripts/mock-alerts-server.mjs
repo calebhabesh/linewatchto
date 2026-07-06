@@ -16,6 +16,8 @@ if (!scenarioNames.includes(scenario)) {
   process.exit(2);
 }
 
+const activeScenarioFeed = buildScenarioFeed(scenario, { now: new Date() });
+
 function sendJson(response, status, body) {
   response.writeHead(status, {
     "access-control-allow-origin": "*",
@@ -33,7 +35,7 @@ const server = createServer((request, response) => {
   }
 
   if (request.method === "GET" && url.pathname === "/live-alerts") {
-    sendJson(response, 200, buildScenarioFeed(scenario, { now: new Date() }));
+    sendJson(response, 200, activeScenarioFeed);
     return;
   }
 

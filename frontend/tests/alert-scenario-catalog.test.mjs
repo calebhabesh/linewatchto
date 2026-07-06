@@ -33,6 +33,32 @@ describe("alert scenario catalog", () => {
       "suspension": ["bidirectional", "directional"],
     });
     assert.deepEqual(scenario.stationAlertAssetTypes, ["elevator", "escalator"]);
+    assert.deepEqual(scenario.sourceKinds, ["modeled-gap-fill", "synthetic-template"]);
+    assert.deepEqual(
+      Object.keys(scenario.coverageMatrix).sort(),
+      [
+        "accessibility-elevator",
+        "accessibility-escalator",
+        "delay-bidirectional-segment",
+        "delay-bidirectional-station",
+        "delay-directional-segment",
+        "delay-directional-station",
+        "planned-closure-bidirectional",
+        "planned-closure-directional",
+        "reduced-speed-zone-bidirectional",
+        "reduced-speed-zone-directional",
+        "reduced-speed-zone-directionless",
+        "suspension-bidirectional-segment",
+        "suspension-directional-segment",
+      ],
+    );
+    assert.equal(scenario.coverageMatrix["planned-closure-bidirectional"].sourceKind, "synthetic-template");
+    assert.equal(scenario.coverageMatrix["reduced-speed-zone-directional"].sourceKind, "synthetic-template");
+    assert.equal(scenario.coverageMatrix["accessibility-elevator"].sourceKind, "synthetic-template");
+    assert.equal(scenario.coverageMatrix["accessibility-escalator"].sourceKind, "synthetic-template");
+    assert.equal(scenario.coverageMatrix["delay-bidirectional-station"].sourceKind, "modeled-gap-fill");
+    assert.equal(scenario.coverageMatrix["delay-directional-station"].sourceKind, "modeled-gap-fill");
+    assert.equal(scenario.coverageMatrix["reduced-speed-zone-directionless"].sourceKind, "modeled-gap-fill");
     assert.deepEqual(
       [...scenario.guidePathIds].sort(),
       ["seg-line-1-st-andrew-union", "seg-line-1-union-king"],
@@ -95,11 +121,12 @@ describe("alert scenario catalog", () => {
     assert.equal(routesById.get("scenario-delay-line-1-union-st-andrew")?.direction, "Northbound");
     assert.deepEqual(routesById.get("scenario-delay-line-1-union-st-andrew")?.stopIDList, ["Union", "St Andrew"]);
     assert.equal(routesById.get("scenario-active-line-1-museum-st-george")?.direction, "Northbound");
-    assert.equal(routesById.get("scenario-rsz-line-1-south")?.effectDesc, "Reduced Speed Zone");
+    assert.equal(routesById.get("synthetic-rsz-line-1")?.effectDesc, "Reduced Speed Zone");
+    assert.equal(routesById.get("synthetic-rsz-line-1")?.title, "Synthetic scenario: reduced speed southbound between Eglinton and Davisville.");
     assert.equal(routesById.get("scenario-rsz-line-2-jane-runnymede")?.direction, "Both ways");
     assert.equal(routesById.get("scenario-rsz-line-1-wilson-yorkdale-directionless")?.direction, null);
-    assert.equal(routesById.get("scenario-planned-line-1-nightly")?.alertType, "Planned");
-    assert.ok(routesById.get("scenario-planned-line-1-nightly")?.childAlerts.length > 0);
+    assert.equal(routesById.get("synthetic-planned-line-1")?.alertType, "Planned");
+    assert.ok(routesById.get("synthetic-planned-line-1")?.childAlerts.length > 0);
     assert.equal(routesById.get("scenario-planned-line-1-northbound-early-access")?.direction, "Northbound");
     assert.deepEqual(feed.accessibility.map((record) => record.routeType).sort(), ["Elevator", "Escalator"]);
   });

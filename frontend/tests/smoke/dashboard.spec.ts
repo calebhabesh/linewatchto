@@ -908,6 +908,7 @@ test("demo account shows account-backed saved commutes", async ({ page, request,
   }
 
   await expect(page.getByText("Demo account").filter({ visible: true })).toBeVisible();
+  await page.getByRole("tab", { name: "Saved Commutes" }).click();
   await expect(page.getByText("Stub Station <-> Union")).toBeVisible();
   await expect(page.getByText("Default Scheduled Route - To Union")).toBeVisible();
   await expect(page.getByText("5 Stations", { exact: true })).toBeVisible();
@@ -915,7 +916,10 @@ test("demo account shows account-backed saved commutes", async ({ page, request,
   await expect(page.getByText("Travel Time", { exact: true })).toBeVisible();
   await expect(page.getByText("Major disruption on this route; travel time is not reliable.")).toBeVisible();
   await expect(page.getByText("Route Notifications: On", { exact: true })).toBeVisible();
-  await expect(page.getByText("Any Day - All Day - Whole Route", { exact: true })).toBeVisible();
+  await expect(page.getByText("Any Day", { exact: true })).toBeVisible();
+  await expect(page.getByText("All Day", { exact: true })).toBeVisible();
+  await expect(page.getByText("Whole Route", { exact: true })).toBeVisible();
+  await expect(page.getByText("All Events", { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Edit Alerts" })).toBeVisible();
   await expect(page.getByText("Outbound Affected", { exact: true })).toBeVisible();
   await expect(page.getByRole("tab", { name: "To Union" })).toHaveAttribute("aria-selected", "true");
@@ -934,6 +938,7 @@ test("demo account shows account-backed saved commutes", async ({ page, request,
   await expect(page.getByText("Suspension", { exact: true })).not.toBeVisible();
 
   if (isMobile) {
+    await page.getByRole("tab", { name: "Create Commute" }).click();
     const originPicker = page.locator(".commute-station-picker").filter({ hasText: "Origin" });
     const originTrigger = originPicker.getByRole("button").first();
     await originTrigger.click();
@@ -958,6 +963,8 @@ test("demo account shows account-backed saved commutes", async ({ page, request,
     expect(Math.abs(popoverBox!.y - (triggerBox!.y + triggerBox!.height + 6))).toBeLessThanOrEqual(4);
     expect(Math.abs(popoverBox!.x - triggerBox!.x)).toBeLessThanOrEqual(4);
     expect(Math.abs(popoverBox!.width - triggerBox!.width)).toBeLessThanOrEqual(8);
+    await page.keyboard.press("Escape");
+    await page.getByRole("tab", { name: "Saved Commutes" }).click();
   }
 
   // Switch back to outbound for the rest of the test

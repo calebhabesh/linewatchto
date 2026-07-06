@@ -1,5 +1,6 @@
 package com.calebhabesh.linewatch.push;
 
+import com.calebhabesh.linewatch.account.SavedCommuteAlertRules;
 import com.calebhabesh.linewatch.account.SavedCommuteEntity;
 import com.calebhabesh.linewatch.commute.CommuteImpactService;
 import com.calebhabesh.linewatch.commute.CommutePathService;
@@ -10,10 +11,8 @@ import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
-import java.util.Set;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -212,31 +211,17 @@ public class SavedCommutePushPlanner {
         if (!commute.isNotificationEnabled()) {
             return false;
         }
-        if ("outbound".equals(legId) && !commute.isNotificationOutboundEnabled()) {
+        if (!SavedCommuteAlertRules.legAllowed(commute, legId)) {
             return false;
         }
-        if ("return".equals(legId) && !commute.isNotificationReturnEnabled()) {
+        if (!SavedCommuteAlertRules.eventTypeAllowed(commute, eventType)) {
             return false;
         }
-        if (!eventTypeAllowed(commute, eventType)) {
-            return false;
-        }
-        if (!matchesMonitoredSection(commute, path, match)) {
+        if (!SavedCommuteAlertRules.matchesMonitoredSection(commute, path, match)) {
             return false;
         }
         Instant scheduleInstant = scheduleInstant(match);
         return matchesNotificationSchedule(commute, scheduleInstant);
-    }
-
-    private boolean eventTypeAllowed(SavedCommuteEntity commute, String eventType) {
-        return switch (eventType) {
-            case "suspension" -> commute.isNotificationSuspensionEnabled();
-            case "delay" -> commute.isNotificationDelayEnabled();
-            case "reduced-speed-zone" -> commute.isNotificationReducedSpeedZoneEnabled();
-            case "planned-closure" -> commute.isNotificationPlannedClosureEnabled();
-            case "service-restored" -> commute.isNotificationRestoredEnabled();
-            default -> true;
-        };
     }
 
     private Instant scheduleInstant(CommuteResponses.MatchedImpactResponse match) {
@@ -274,44 +259,6 @@ public class SavedCommutePushPlanner {
             case FRIDAY -> 32;
             case SATURDAY -> 64;
         };
-    }
-
-    private boolean matchesMonitoredSection(
-        SavedCommuteEntity commute,
-        CommuteResponses.PathResponse path,
-        CommuteResponses.MatchedImpactResponse match
-    ) {
-        String startStationId = safe(commute.getNotificationSectionStartStationId());
-        String endStationId = safe(commute.getNotificationSectionEndStationId());
-        if (startStationId.isBlank() || endStationId.isBlank()) {
-            return true;
-        }
-        if (path == null || path.stationIds() == null || path.segmentIds() == null) {
-            return false;
-        }
-        int startIndex = path.stationIds().indexOf(startStationId);
-        int endIndex = path.stationIds().indexOf(endStationId);
-        if (startIndex < 0 || endIndex < 0) {
-            return false;
-        }
-
-        int from = Math.min(startIndex, endIndex);
-        int to = Math.max(startIndex, endIndex);
-        Set<String> corridorStations = new LinkedHashSet<>(path.stationIds().subList(from, to + 1));
-        Set<String> corridorSegments = new LinkedHashSet<>();
-        for (int i = from; i < to && i < path.segmentIds().size(); i++) {
-            corridorSegments.add(path.segmentIds().get(i));
-        }
-
-        return intersects(match.matchedSegmentIds(), corridorSegments)
-            || intersects(match.matchedStationIds(), corridorStations);
-    }
-
-    private boolean intersects(List<String> values, Set<String> candidates) {
-        if (values == null || values.isEmpty() || candidates.isEmpty()) {
-            return false;
-        }
-        return values.stream().anyMatch(candidates::contains);
     }
 
     private String stableImpactPart(CommuteResponses.MatchedImpactResponse match) {

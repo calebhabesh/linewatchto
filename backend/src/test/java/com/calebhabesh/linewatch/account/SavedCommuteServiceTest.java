@@ -11,12 +11,15 @@ import static org.mockito.Mockito.when;
 import com.calebhabesh.linewatch.commute.CommuteImpactService;
 import com.calebhabesh.linewatch.commute.CommutePathService;
 import com.calebhabesh.linewatch.commute.CommuteResponses;
+import com.calebhabesh.linewatch.alert.AlertDashboardService;
 import com.calebhabesh.linewatch.station.StationEntity;
 import com.calebhabesh.linewatch.station.StationRepository;
 import java.time.Clock;
 import java.time.Instant;
+import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -349,5 +352,106 @@ class SavedCommuteServiceTest {
             assertThat(rule.eventTypes().serviceRestored()).isFalse();
         });
         verify(commuteRepository).save(commute);
+    }
+
+    @Test
+    void disabledEventTypesDoNotMarkSavedCommuteAffectedButRemainVisibleAsIgnoredRouteMatches() {
+        AlertDashboardService dashboardService = mock(AlertDashboardService.class);
+        SavedCommuteService serviceWithRealImpactMatching = new SavedCommuteService(
+            commuteRepository,
+            stationRepository,
+            commutePathService,
+            new CommuteImpactService(dashboardService),
+            clock
+        );
+        StationEntity vaughan = new StationEntity("vaughan-metropolitan-centre", "Vaughan Metropolitan Centre", 0, 0, true, 10, null);
+        StationEntity union = new StationEntity("union", "Union", 0, 0, true, 20, null);
+        SavedCommuteEntity commute = SavedCommuteEntity.create(
+            "commute_1",
+            account,
+            "Work",
+            "vaughan-metropolitan-centre",
+            "union",
+            false,
+            Instant.parse("2026-06-05T14:30:00Z")
+        );
+        commute.updateNotificationRule(
+            true,
+            127,
+            null,
+            null,
+            null,
+            null,
+            true,
+            true,
+            true,
+            true,
+            false,
+            true,
+            true,
+            Instant.parse("2026-06-05T14:31:00Z")
+        );
+        String segmentId = "line-1-vaughan-metropolitan-centre-union";
+        CommuteResponses.PathResponse path = new CommuteResponses.PathResponse(
+            "available",
+            List.of("vaughan-metropolitan-centre", "union"),
+            List.of(segmentId),
+            List.of(new CommuteResponses.PathSegmentHopResponse(
+                segmentId,
+                "line-1",
+                "vaughan-metropolitan-centre",
+                "union",
+                "forward"
+            )),
+            List.of("line-1"),
+            List.of(),
+            2520,
+            "gtfs-scheduled-median",
+            "Default scheduled route: 2 stations on Line 1, about 42 min"
+        );
+        when(commuteRepository.findByAccountIdOrderByCreatedAtAsc("user_1")).thenReturn(List.of(commute));
+        when(stationRepository.findAllById(List.of("vaughan-metropolitan-centre", "union"))).thenReturn(List.of(vaughan, union));
+        when(commutePathService.path("vaughan-metropolitan-centre", "union")).thenReturn(path);
+        when(dashboardService.activeAlerts()).thenReturn(List.of());
+        when(dashboardService.delays()).thenReturn(List.of());
+        when(dashboardService.reducedSpeedZones()).thenReturn(List.of(new AlertDashboardService.ReducedSpeedZoneDto(
+            "rsz-line-1",
+            "line-1",
+            "1",
+            "Reduced Speed Zone",
+            "Sheppard West to Wilson",
+            "Southbound",
+            "Trains are operating through a reduced speed zone.",
+            OffsetDateTime.parse("2026-06-05T10:20:00-04:00"),
+            OffsetDateTime.parse("2026-06-05T10:25:00-04:00"),
+            List.of(segmentId),
+            List.of("ttc-route-1"),
+            List.of(),
+            "TTC Live Alert",
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+        )));
+        when(dashboardService.activeSegmentImpacts()).thenReturn(Map.of());
+        when(dashboardService.plannedClosures()).thenReturn(List.of());
+        when(dashboardService.activeStationNodeImpacts()).thenReturn(List.of());
+
+        AccountResponses.SavedCommuteResponse response = serviceWithRealImpactMatching.list(account).commutes().getFirst();
+
+        assertThat(response.outboundLeg().impact()).satisfies(impact -> {
+            assertThat(impact.status()).isEqualTo("clear");
+            assertThat(impact.severity()).isEqualTo("clear");
+            assertThat(impact.statusLabel()).isEqualTo("Clear");
+            assertThat(impact.matchedImpacts()).singleElement().satisfies(match -> {
+                assertThat(match.kind()).isEqualTo("reduced-speed-zone");
+                assertThat(match.ignoredByRule()).isTrue();
+            });
+            assertThat(impact.travelTimeEstimate().status()).isEqualTo("standard");
+            assertThat(impact.travelTimeEstimate().extraHighSeconds()).isZero();
+        });
     }
 }

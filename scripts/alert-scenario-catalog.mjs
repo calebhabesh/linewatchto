@@ -1,3 +1,9 @@
+import {
+  MODELED_GAP_FILL_SOURCE_KIND,
+  SYNTHETIC_TEMPLATE_SOURCE_KIND,
+  alertScenarioTemplates,
+} from "./alert-scenario-templates.mjs";
+
 const DEFAULT_NOW = "2026-06-03T15:00:00.000Z";
 const SENTINEL_END = "0001-01-01T00:00:00Z";
 
@@ -23,6 +29,70 @@ export const scenarioExpectations = {
       "suspension": ["bidirectional", "directional"],
     },
     stationAlertAssetTypes: ["elevator", "escalator"],
+    sourceKinds: [MODELED_GAP_FILL_SOURCE_KIND, SYNTHETIC_TEMPLATE_SOURCE_KIND],
+    coverageMatrix: {
+      "suspension-bidirectional-segment": {
+        sourceId: "scenario-active-line-2",
+        sourceKind: MODELED_GAP_FILL_SOURCE_KIND,
+        modeledFromSourceId: "synthetic-rsz-line-1",
+      },
+      "suspension-directional-segment": {
+        sourceId: "scenario-active-line-1-king-union",
+        sourceKind: MODELED_GAP_FILL_SOURCE_KIND,
+        modeledFromSourceId: "synthetic-rsz-line-1",
+      },
+      "delay-bidirectional-segment": {
+        sourceId: "scenario-delay-line-2-main-street-kennedy",
+        sourceKind: MODELED_GAP_FILL_SOURCE_KIND,
+        modeledFromSourceId: "synthetic-rsz-line-1",
+      },
+      "delay-directional-segment": {
+        sourceId: "scenario-delay-line-1-union-st-andrew",
+        sourceKind: MODELED_GAP_FILL_SOURCE_KIND,
+        modeledFromSourceId: "synthetic-rsz-line-1",
+      },
+      "delay-directional-station": {
+        sourceId: "scenario-station-node-keele",
+        sourceKind: MODELED_GAP_FILL_SOURCE_KIND,
+        modeledFromSourceId: "synthetic-rsz-line-1",
+      },
+      "delay-bidirectional-station": {
+        sourceId: "scenario-station-node-dundas-west-bidirectional",
+        sourceKind: MODELED_GAP_FILL_SOURCE_KIND,
+        modeledFromSourceId: "synthetic-rsz-line-1",
+      },
+      "reduced-speed-zone-directional": {
+        sourceId: "synthetic-rsz-line-1",
+        sourceKind: SYNTHETIC_TEMPLATE_SOURCE_KIND,
+      },
+      "reduced-speed-zone-bidirectional": {
+        sourceId: "scenario-rsz-line-2-jane-runnymede",
+        sourceKind: MODELED_GAP_FILL_SOURCE_KIND,
+        modeledFromSourceId: "synthetic-rsz-line-1",
+      },
+      "reduced-speed-zone-directionless": {
+        sourceId: "scenario-rsz-line-1-wilson-yorkdale-directionless",
+        sourceKind: MODELED_GAP_FILL_SOURCE_KIND,
+        modeledFromSourceId: "synthetic-rsz-line-1",
+      },
+      "planned-closure-bidirectional": {
+        sourceId: "synthetic-planned-line-1",
+        sourceKind: SYNTHETIC_TEMPLATE_SOURCE_KIND,
+      },
+      "planned-closure-directional": {
+        sourceId: "scenario-planned-line-1-northbound-early-access",
+        sourceKind: MODELED_GAP_FILL_SOURCE_KIND,
+        modeledFromSourceId: "synthetic-planned-line-1",
+      },
+      "accessibility-elevator": {
+        sourceId: "synthetic-elevator-warden",
+        sourceKind: SYNTHETIC_TEMPLATE_SOURCE_KIND,
+      },
+      "accessibility-escalator": {
+        sourceId: "synthetic-escalator-pioneer-village",
+        sourceKind: SYNTHETIC_TEMPLATE_SOURCE_KIND,
+      },
+    },
     guidePathIds: ["seg-line-1-st-andrew-union", "seg-line-1-union-king"],
   },
   "nonlinear-union-curve": {
@@ -81,6 +151,47 @@ function currentPeriod(now, startOffset = -30) {
 
 function finitePeriod(now, startOffset, endOffset) {
   return { start: iso(now, startOffset), end: iso(now, endOffset) };
+}
+
+function clone(value) {
+  return JSON.parse(JSON.stringify(value));
+}
+
+function rebaseRecord(now, record, options = {}) {
+  const next = clone(record);
+  next.lastUpdated = iso(now, options.updatedOffset ?? -5);
+  next.activePeriod = options.activePeriod ?? currentPeriod(now, options.startOffset ?? -30);
+  next.activePeriodGroup = options.activePeriodGroup ?? next.activePeriodGroup ?? ["Current"];
+  if (Object.prototype.hasOwnProperty.call(options, "childAlerts")) {
+    next.childAlerts = options.childAlerts;
+  } else if (Array.isArray(next.childAlerts) && next.childAlerts.length > 0) {
+    next.childAlerts = next.childAlerts.map((child, index) => ({
+      ...child,
+      startTime: iso(now, index === 0 ? -20 : 240),
+      endTime: iso(now, index === 0 ? 70 : 330),
+    }));
+  }
+  return next;
+}
+
+function historicalRoute(now, bookmarkKey, overrides = {}, rebaseOptions = {}) {
+  return rebaseRecord(
+    now,
+    { ...alertScenarioTemplates.routes[bookmarkKey], ...overrides },
+    rebaseOptions,
+  );
+}
+
+function modeledRoute(now, bookmarkKey, overrides = {}, rebaseOptions = {}) {
+  return historicalRoute(now, bookmarkKey, overrides, rebaseOptions);
+}
+
+function historicalAccessibility(now, bookmarkKey, overrides = {}, rebaseOptions = {}) {
+  return rebaseRecord(
+    now,
+    { ...alertScenarioTemplates.accessibility[bookmarkKey], ...overrides },
+    rebaseOptions,
+  );
 }
 
 function routeAlert(now, overrides) {
@@ -189,6 +300,18 @@ function accessibilityAlert(now, overrides) {
   };
 }
 
+function activeGapFillRoute(now, overrides, rebaseOptions = {}) {
+  return modeledRoute(now, "line-1-rsz-eglinton-davisville", {
+    alertType: "Live",
+    childAlerts: [],
+    ...overrides,
+  }, rebaseOptions);
+}
+
+function plannedGapFillRoute(now, overrides, rebaseOptions = {}) {
+  return modeledRoute(now, "line-1-planned-st-george-sheppard-west", overrides, rebaseOptions);
+}
+
 function feed(now, routes, accessibility = []) {
   return {
     lastUpdated: iso(now, -1),
@@ -200,7 +323,7 @@ function feed(now, routes, accessibility = []) {
 
 function allAlertTypes(now) {
   return feed(now, [
-    routeAlert(now, {
+    activeGapFillRoute(now, {
       id: "scenario-active-line-2",
       route: "2",
       stopStart: "Broadview",
@@ -229,7 +352,7 @@ function allAlertTypes(now) {
       shuttleStart: "Broadview",
       shuttleEnd: "Kennedy",
     }),
-    routeAlert(now, {
+    activeGapFillRoute(now, {
       id: "scenario-active-line-1-dupont-cedarvale",
       route: "1",
       stopStart: "Dupont",
@@ -246,7 +369,7 @@ function allAlertTypes(now) {
       shuttleStart: "Dupont",
       shuttleEnd: "Cedarvale",
     }),
-    routeAlert(now, {
+    activeGapFillRoute(now, {
       id: "scenario-active-line-1-king-union",
       route: "1",
       stopStart: "King",
@@ -263,7 +386,7 @@ function allAlertTypes(now) {
       shuttleStart: "King",
       shuttleEnd: "Union",
     }),
-    routeAlert(now, {
+    activeGapFillRoute(now, {
       id: "scenario-active-line-1-museum-st-george",
       route: "1",
       stopStart: "Museum",
@@ -280,7 +403,7 @@ function allAlertTypes(now) {
       shuttleStart: "Museum",
       shuttleEnd: "St George",
     }),
-    routeAlert(now, {
+    activeGapFillRoute(now, {
       id: "scenario-delay-line-4",
       route: "4",
       stopStart: "Sheppard-Yonge",
@@ -293,7 +416,7 @@ function allAlertTypes(now) {
       cause: "SIGNALS",
       causeDescription: "Signal problem",
     }),
-    routeAlert(now, {
+    activeGapFillRoute(now, {
       id: "scenario-delay-line-1-union-st-andrew",
       route: "1",
       stopStart: "Union",
@@ -307,7 +430,7 @@ function allAlertTypes(now) {
       cause: "OPERATIONS",
       causeDescription: "Operational problem",
     }),
-    routeAlert(now, {
+    activeGapFillRoute(now, {
       id: "scenario-delay-line-1-dupont-spadina",
       route: "1",
       stopStart: "Dupont",
@@ -321,7 +444,7 @@ function allAlertTypes(now) {
       cause: "OPERATIONS",
       causeDescription: "Operational problem",
     }),
-    routeAlert(now, {
+    activeGapFillRoute(now, {
       id: "scenario-delay-line-2-main-street-kennedy",
       route: "2",
       stopStart: "Main Street",
@@ -335,7 +458,7 @@ function allAlertTypes(now) {
       cause: "MAINTENANCE",
       causeDescription: "Track problem",
     }),
-    routeAlert(now, {
+    activeGapFillRoute(now, {
       id: "scenario-delay-line-2-jane-runnymede",
       route: "2",
       stopStart: "Jane",
@@ -349,7 +472,7 @@ function allAlertTypes(now) {
       cause: "MAINTENANCE",
       causeDescription: "Track problem",
     }),
-    routeAlert(now, {
+    activeGapFillRoute(now, {
       id: "scenario-station-node-jane-overlap",
       route: "2",
       stopStart: "Jane",
@@ -363,7 +486,7 @@ function allAlertTypes(now) {
       cause: "MEDICAL_EMERGENCY",
       causeDescription: "Emergency alarm",
     }),
-    routeAlert(now, {
+    activeGapFillRoute(now, {
       id: "scenario-station-node-keele",
       route: "2",
       stopStart: "Keele",
@@ -377,7 +500,7 @@ function allAlertTypes(now) {
       cause: "MEDICAL_EMERGENCY",
       causeDescription: "Emergency alarm",
     }),
-    routeAlert(now, {
+    activeGapFillRoute(now, {
       id: "scenario-station-node-dundas-west-bidirectional",
       route: "2",
       stopStart: "Dundas West",
@@ -391,7 +514,7 @@ function allAlertTypes(now) {
       cause: "MEDICAL_EMERGENCY",
       causeDescription: "Emergency alarm",
     }),
-    routeAlert(now, {
+    activeGapFillRoute(now, {
       id: "scenario-station-node-union-vaughan",
       route: "1",
       stopStart: "Union",
@@ -405,27 +528,8 @@ function allAlertTypes(now) {
       cause: "MEDICAL_EMERGENCY",
       causeDescription: "Emergency alarm",
     }),
-    routeAlert(now, {
-      id: "scenario-rsz-line-1-south",
-      route: "1",
-      stopStart: "Eglinton",
-      stopEnd: "Davisville",
-      stopIDList: ["Eglinton", "Davisville"],
-      title: "Synthetic scenario: reduced speed southbound between Eglinton and Davisville.",
-      headerText: "Line 1 Yonge-University: Synthetic scenario: reduced speed southbound between Eglinton and Davisville.",
-      effect: "SIGNIFICANT_DELAYS",
-      effectDesc: "Reduced Speed Zone",
-      direction: "Southbound",
-      cause: "MAINTENANCE",
-      causeDescription: "Track issue",
-      rszLength: "600 metres",
-      distance: "900 metres",
-      trackPercent: "67%",
-      reducedSpeed: "15 km/h",
-      averageSpeed: "35 km/h",
-      targetRemoval: "Mid-June",
-    }),
-    routeAlert(now, {
+    historicalRoute(now, "line-1-rsz-eglinton-davisville"),
+    activeGapFillRoute(now, {
       id: "scenario-rsz-line-2-jane-runnymede",
       route: "2",
       stopStart: "Jane",
@@ -443,7 +547,7 @@ function allAlertTypes(now) {
       reducedSpeed: "20 km/h",
       targetRemoval: "This week",
     }),
-    routeAlert(now, {
+    activeGapFillRoute(now, {
       id: "scenario-rsz-line-1-wilson-yorkdale-directionless",
       route: "1",
       stopStart: "Wilson",
@@ -461,31 +565,13 @@ function allAlertTypes(now) {
       reducedSpeed: "15 km/h",
       targetRemoval: "This month",
     }),
-    routeAlert(now, {
-      id: "scenario-planned-line-1-nightly",
-      alertType: "Planned",
-      route: "1",
-      stopStart: "St George",
-      stopEnd: "Sheppard West",
-      stopIDList: ["St George", "Spadina", "Dupont", "St Clair West", "Cedarvale", "Glencairn", "Lawrence West", "Yorkdale", "Wilson", "Sheppard West"],
-      title: "There will be no subway service between St George and Sheppard West stations nightly due to planned track work. Shuttle buses will operate.",
-      headerText: "Line 1 Yonge-University: There will be no subway service between St George and Sheppard West stations nightly due to planned track work. Shuttle buses will operate.",
-      effect: "REDUCED_SERVICE",
-      effectDesc: "Subway Closure - Early Access",
+    historicalRoute(now, "line-1-planned-st-george-sheppard-west", {
       direction: "Both ways",
-      cause: "MAINTENANCE",
-      causeDescription: "CLOSURE - Planned Track Work",
+    }, {
       activePeriod: finitePeriod(now, -120, 720),
       activePeriodGroup: ["Current", "Weekend"],
-      shuttleType: "Will Operate",
-      shuttleStart: "St George",
-      shuttleEnd: "Sheppard West",
-      childAlerts: [
-        { id: "scenario-planned-line-1-window-active", startTime: iso(now, -30), endTime: iso(now, 90) },
-        { id: "scenario-planned-line-1-window-future", startTime: iso(now, 360), endTime: iso(now, 480) },
-      ],
     }),
-    routeAlert(now, {
+    plannedGapFillRoute(now, {
       id: "scenario-planned-line-1-northbound-early-access",
       alertType: "Planned",
       route: "1",
@@ -507,24 +593,13 @@ function allAlertTypes(now) {
       childAlerts: [
         { id: "scenario-planned-line-1-northbound-window-active", startTime: iso(now, -15), endTime: iso(now, 75) },
       ],
+    }, {
+      activePeriod: finitePeriod(now, -90, 540),
+      activePeriodGroup: ["Current"],
     }),
   ], [
-    accessibilityAlert(now, {
-      id: "scenario-elevator-warden",
-      routeType: "Elevator",
-      title: "Synthetic scenario: elevator TEST-E1 is out of service at Warden.",
-      headerText: "Warden: Synthetic scenario: elevator TEST-E1 is out of service at Warden.",
-      elevatorCode: "TEST-E1",
-      causeDescription: "Maintenance",
-    }),
-    accessibilityAlert(now, {
-      id: "scenario-escalator-bloor-yonge",
-      routeType: "Escalator",
-      title: "Escalator 2E1 out of service between concourse and Line 2 platform while we perform maintenance.",
-      headerText: "Bloor-Yonge: Escalator 2E1 out of service between concourse and Line 2 platform while we perform maintenance.",
-      escalatorCode: "2E1",
-      causeDescription: "Maintenance",
-    }),
+    historicalAccessibility(now, "warden-elevator-test-e1"),
+    historicalAccessibility(now, "pioneer-village-escalator-test-s1"),
   ]);
 }
 

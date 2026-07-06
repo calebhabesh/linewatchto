@@ -137,6 +137,7 @@ public class SavedCommuteService {
         String originName = origin == null ? commute.getOriginStationId() : origin.getName();
         String destinationName = destination == null ? commute.getDestinationStationId() : destination.getName();
         CommuteResponses.CommuteLegResponse outboundLeg = legResponse(
+            commute,
             "outbound",
             commute.getOriginStationId(),
             originName,
@@ -145,6 +146,7 @@ public class SavedCommuteService {
         );
         CommuteResponses.CommuteLegResponse returnLeg = commute.isWatchReturnTrip()
             ? legResponse(
+                commute,
                 "return",
                 commute.getDestinationStationId(),
                 destinationName,
@@ -172,6 +174,7 @@ public class SavedCommuteService {
     }
 
     private CommuteResponses.CommuteLegResponse legResponse(
+        SavedCommuteEntity commute,
         String id,
         String fromStationId,
         String fromStationName,
@@ -179,7 +182,7 @@ public class SavedCommuteService {
         String toStationName
     ) {
         CommuteResponses.PathResponse path = commutePathService.path(fromStationId, toStationId);
-        CommuteResponses.ImpactResponse impact = commuteImpactService.impactFor(path);
+        CommuteResponses.ImpactResponse impact = filteredImpactFor(commute, id, path);
         return new CommuteResponses.CommuteLegResponse(
             id,
             fromStationName + " -> " + toStationName,
@@ -190,6 +193,21 @@ public class SavedCommuteService {
             path,
             impact
         );
+    }
+
+    private CommuteResponses.ImpactResponse filteredImpactFor(
+        SavedCommuteEntity commute,
+        String legId,
+        CommuteResponses.PathResponse path
+    ) {
+        CommuteResponses.ImpactResponse impact = commuteImpactService.impactFor(path);
+        if (impact == null || impact.matchedImpacts() == null || impact.matchedImpacts().isEmpty()) {
+            return impact;
+        }
+        List<CommuteResponses.MatchedImpactResponse> annotatedMatches = impact.matchedImpacts().stream()
+            .map(match -> match.withIgnoredByRule(!SavedCommuteAlertRules.dashboardMatchCounts(commute, legId, path, match)))
+            .toList();
+        return commuteImpactService.responseForMatches(path, annotatedMatches);
     }
 
     private String normalizeLabel(String label, String originName, String destinationName) {

@@ -30,6 +30,30 @@ function impact(status) {
   };
 }
 
+function ignoredCurrentImpact() {
+  return {
+    status: "clear",
+    severity: "clear",
+    statusLabel: "Clear",
+    detail: "Only ignored route impacts match this commute.",
+    matchedImpacts: [{
+      id: "rsz-ignored",
+      kind: "reduced-speed-zone",
+      status: "current",
+      severity: "minor",
+      title: "Reduced Speed Zone",
+      lineId: "line-1",
+      lineNumber: "1",
+      location: "Sheppard West to Wilson",
+      displayDirection: "Southbound",
+      source: "Fixture",
+      matchedSegmentIds: ["line-1-sheppard-west-wilson"],
+      matchedStationIds: [],
+      ignoredByRule: true,
+    }],
+  };
+}
+
 function path() {
   return {
     status: "available",
@@ -93,9 +117,10 @@ describe("saved commute menu counts", () => {
         commute("return-only-affected", impact("clear"), impact("affected")),
         commute("both-legs-affected", impact("affected"), impact("affected")),
         commute("planned-not-now", impact("planned"), null),
+        commute("ignored-rsz", ignoredCurrentImpact(), null),
       ]),
       {
-        clear: 1,
+        clear: 2,
         affectedNow: 2,
       }
     );

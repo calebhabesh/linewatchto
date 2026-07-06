@@ -161,7 +161,7 @@ function commuteStatusLabel(commute: AccountSavedCommute) {
 }
 
 function currentImpactCount(legs: AccountCommuteLeg[]) {
-  return legs.flatMap((leg) => leg.impact.matchedImpacts).filter((impact) => impact.status === "current").length;
+  return legs.flatMap((leg) => leg.impact.matchedImpacts).filter((impact) => impact.status === "current" && !impact.ignoredByRule).length;
 }
 
 function ImpactIcon({ kind, className }: { kind: AccountMatchedImpact["kind"]; className?: string }) {
@@ -1063,9 +1063,6 @@ export function SavedCommutesPanel({
                 const notificationDraft = notificationDrafts[commute.id] ?? notificationRule;
                 const editingNotificationRule = editingNotificationCommuteId === commute.id;
                 const notificationRuleStatus = notificationRule.enabled ? "On" : "Off";
-                const notificationRuleDetail = notificationRule.enabled
-                  ? `${formatDayMask(notificationRule.dayMask)} - ${formatWindow(notificationRule)} - ${formatSection(notificationRule, stationNameFor)}`
-                  : "Saved commute notifications are disabled for this route.";
 
                 return (
                   <div key={commute.id} className={`commute-card ${commuteTone(commute)} min-w-0 rounded-lg border border-black/10 !bg-slate-50 p-3 dark:border-white/10 dark:!bg-[#12151c]`}>
@@ -1182,6 +1179,11 @@ export function SavedCommutesPanel({
                                   <span className="block mt-0.5">
                                     {toTitleCase(impactLineLabel(impact))}{impact.location ? `: ${toTitleCase(impact.location)}` : ""}{impact.displayDirection ? ` (${toTitleCase(impact.displayDirection)})` : ""}
                                   </span>
+                                  {impact.ignoredByRule ? (
+                                    <em className="saved-commute-impact-filter-note">
+                                      Ignored By Route Alert Filters
+                                    </em>
+                                  ) : null}
                                 </span>
                               </li>
                             ))}

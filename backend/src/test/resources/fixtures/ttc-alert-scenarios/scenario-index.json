@@ -35,6 +35,73 @@
         "elevator",
         "escalator"
       ],
+      "sourceKinds": [
+        "modeled-gap-fill",
+        "synthetic-template"
+      ],
+      "coverageMatrix": {
+        "suspension-bidirectional-segment": {
+          "sourceId": "scenario-active-line-2",
+          "sourceKind": "modeled-gap-fill",
+          "modeledFromSourceId": "synthetic-rsz-line-1"
+        },
+        "suspension-directional-segment": {
+          "sourceId": "scenario-active-line-1-king-union",
+          "sourceKind": "modeled-gap-fill",
+          "modeledFromSourceId": "synthetic-rsz-line-1"
+        },
+        "delay-bidirectional-segment": {
+          "sourceId": "scenario-delay-line-2-main-street-kennedy",
+          "sourceKind": "modeled-gap-fill",
+          "modeledFromSourceId": "synthetic-rsz-line-1"
+        },
+        "delay-directional-segment": {
+          "sourceId": "scenario-delay-line-1-union-st-andrew",
+          "sourceKind": "modeled-gap-fill",
+          "modeledFromSourceId": "synthetic-rsz-line-1"
+        },
+        "delay-directional-station": {
+          "sourceId": "scenario-station-node-keele",
+          "sourceKind": "modeled-gap-fill",
+          "modeledFromSourceId": "synthetic-rsz-line-1"
+        },
+        "delay-bidirectional-station": {
+          "sourceId": "scenario-station-node-dundas-west-bidirectional",
+          "sourceKind": "modeled-gap-fill",
+          "modeledFromSourceId": "synthetic-rsz-line-1"
+        },
+        "reduced-speed-zone-directional": {
+          "sourceId": "synthetic-rsz-line-1",
+          "sourceKind": "synthetic-template"
+        },
+        "reduced-speed-zone-bidirectional": {
+          "sourceId": "scenario-rsz-line-2-jane-runnymede",
+          "sourceKind": "modeled-gap-fill",
+          "modeledFromSourceId": "synthetic-rsz-line-1"
+        },
+        "reduced-speed-zone-directionless": {
+          "sourceId": "scenario-rsz-line-1-wilson-yorkdale-directionless",
+          "sourceKind": "modeled-gap-fill",
+          "modeledFromSourceId": "synthetic-rsz-line-1"
+        },
+        "planned-closure-bidirectional": {
+          "sourceId": "synthetic-planned-line-1",
+          "sourceKind": "synthetic-template"
+        },
+        "planned-closure-directional": {
+          "sourceId": "scenario-planned-line-1-northbound-early-access",
+          "sourceKind": "modeled-gap-fill",
+          "modeledFromSourceId": "synthetic-planned-line-1"
+        },
+        "accessibility-elevator": {
+          "sourceId": "synthetic-elevator-warden",
+          "sourceKind": "synthetic-template"
+        },
+        "accessibility-escalator": {
+          "sourceId": "synthetic-escalator-pioneer-village",
+          "sourceKind": "synthetic-template"
+        }
+      },
       "guidePathIds": [
         "seg-line-1-st-andrew-union",
         "seg-line-1-union-king"

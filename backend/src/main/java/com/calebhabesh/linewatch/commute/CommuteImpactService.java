@@ -134,7 +134,7 @@ public class CommuteImpactService {
                 .thenComparing(CommuteResponses.MatchedImpactResponse::id))
             .toList();
 
-        return responseFor(path, matches);
+        return responseForMatches(path, matches);
     }
 
     private Map<String, List<AlertDashboardService.SegmentImpact>> activeSegmentImpacts() {
@@ -256,22 +256,26 @@ public class CommuteImpactService {
         matchesByIdentity.putIfAbsent(match.kind() + "|" + match.id(), match);
     }
 
-    private CommuteResponses.ImpactResponse responseFor(
+    public CommuteResponses.ImpactResponse responseForMatches(
         CommuteResponses.PathResponse path,
         List<CommuteResponses.MatchedImpactResponse> matches
     ) {
-        if (matches.isEmpty()) {
+        List<CommuteResponses.MatchedImpactResponse> routeMatches = matches == null ? List.of() : matches;
+        List<CommuteResponses.MatchedImpactResponse> countedMatches = routeMatches.stream()
+            .filter(match -> !match.ignoredByRule())
+            .toList();
+        if (countedMatches.isEmpty()) {
             return new CommuteResponses.ImpactResponse(
                 "clear",
                 "clear",
                 "Clear",
-                "No active or planned LineWatch impacts match this route.",
-                List.of(),
+                clearDetail(routeMatches),
+                routeMatches,
                 standardTravelTimeEstimate(path)
             );
         }
-        boolean hasCurrent = matches.stream().anyMatch(match -> "current".equals(match.status()));
-        String topSeverity = matches.stream()
+        boolean hasCurrent = countedMatches.stream().anyMatch(match -> "current".equals(match.status()));
+        String topSeverity = countedMatches.stream()
             .map(CommuteResponses.MatchedImpactResponse::severity)
             .max(Comparator.comparingInt(this::severityPriority))
             .orElse("planned");
@@ -279,10 +283,22 @@ public class CommuteImpactService {
             hasCurrent ? "affected" : "planned",
             topSeverity,
             hasCurrent ? "Affected now" : "Planned impact",
-            detail(matches, hasCurrent),
-            matches,
-            travelTimeEstimate(path, matches)
+            detail(countedMatches, hasCurrent),
+            routeMatches,
+            travelTimeEstimate(path, countedMatches)
         );
+    }
+
+    private String clearDetail(List<CommuteResponses.MatchedImpactResponse> routeMatches) {
+        if (routeMatches == null || routeMatches.isEmpty()) {
+            return "No active or planned LineWatch impacts match this route.";
+        }
+        int ignoredCount = routeMatches.size();
+        return "No monitored LineWatch impacts match this route. "
+            + ignoredCount
+            + " route "
+            + (ignoredCount == 1 ? "impact is" : "impacts are")
+            + " ignored by this commute's alert filters.";
     }
 
     private CommuteResponses.TravelTimeEstimateResponse travelTimeEstimate(

@@ -89,6 +89,74 @@ public final class CommuteResponses {
         OffsetDateTime updatedAt,
         String window,
         String timingStatus,
-        OffsetDateTime eventStartAt
-    ) {}
+        OffsetDateTime eventStartAt,
+        boolean ignoredByRule
+    ) {
+        public MatchedImpactResponse(
+            String id,
+            String kind,
+            String status,
+            String severity,
+            String title,
+            String lineId,
+            String lineNumber,
+            String location,
+            String displayDirection,
+            String description,
+            String source,
+            List<String> matchedSegmentIds,
+            List<String> matchedStationIds,
+            OffsetDateTime startedAt,
+            OffsetDateTime updatedAt,
+            String window,
+            String timingStatus,
+            OffsetDateTime eventStartAt
+        ) {
+            this(
+                id,
+                kind,
+                status,
+                severity,
+                title,
+                lineId,
+                lineNumber,
+                location,
+                displayDirection,
+                description,
+                source,
+                matchedSegmentIds,
+                matchedStationIds,
+                startedAt,
+                updatedAt,
+                window,
+                timingStatus,
+                eventStartAt,
+                false
+            );
+        }
+
+        public MatchedImpactResponse withIgnoredByRule(boolean ignoredByRule) {
+            return new MatchedImpactResponse(
+                id,
+                kind,
+                status,
+                severity,
+                title,
+                lineId,
+                lineNumber,
+                location,
+                displayDirection,
+                description,
+                source,
+                matchedSegmentIds,
+                matchedStationIds,
+                startedAt,
+                updatedAt,
+                window,
+                timingStatus,
+                eventStartAt,
+                ignoredByRule
+            );
+        }
+    }
 }

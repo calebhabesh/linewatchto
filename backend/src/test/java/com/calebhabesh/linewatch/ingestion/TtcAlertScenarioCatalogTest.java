@@ -7,8 +7,10 @@ import static org.mockito.Mockito.when;
 
 import com.calebhabesh.linewatch.surface.GtfsRtServiceAlertTextParser;
 import com.calebhabesh.linewatch.station.StationRepository;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
@@ -100,6 +102,47 @@ class TtcAlertScenarioCatalogTest {
                 .describedAs("%s accessibility normalization status", fileName)
                 .isEqualTo(NormalizationStatus.MATCHED);
         }
+    }
+
+    @Test
+    void allAlertTypesDeclaresRealHistoryAndModeledCoverageMatrix() throws Exception {
+        JsonNode allAlertTypes = scenarioIndexEntry(parseScenarioIndex(), "all-alert-types");
+
+        assertThat(allAlertTypes).isNotNull();
+        assertThat(textValues(allAlertTypes.get("sourceKinds")))
+            .containsExactly("modeled-gap-fill", "synthetic-template");
+
+        JsonNode coverageMatrix = allAlertTypes.get("coverageMatrix");
+        assertThat(fieldNames(coverageMatrix))
+            .contains(
+                "suspension-bidirectional-segment",
+                "suspension-directional-segment",
+                "delay-bidirectional-segment",
+                "delay-directional-segment",
+                "delay-directional-station",
+                "delay-bidirectional-station",
+                "reduced-speed-zone-directional",
+                "reduced-speed-zone-bidirectional",
+                "reduced-speed-zone-directionless",
+                "planned-closure-bidirectional",
+                "planned-closure-directional",
+                "accessibility-elevator",
+                "accessibility-escalator"
+            );
+        assertThat(coverageMatrix.get("planned-closure-bidirectional").get("sourceKind").asText())
+            .isEqualTo("synthetic-template");
+        assertThat(coverageMatrix.get("reduced-speed-zone-directional").get("sourceKind").asText())
+            .isEqualTo("synthetic-template");
+        assertThat(coverageMatrix.get("accessibility-elevator").get("sourceKind").asText())
+            .isEqualTo("synthetic-template");
+        assertThat(coverageMatrix.get("accessibility-escalator").get("sourceKind").asText())
+            .isEqualTo("synthetic-template");
+        assertThat(coverageMatrix.get("delay-bidirectional-station").get("sourceKind").asText())
+            .isEqualTo("modeled-gap-fill");
+        assertThat(coverageMatrix.get("delay-directional-station").get("sourceKind").asText())
+            .isEqualTo("modeled-gap-fill");
+        assertThat(coverageMatrix.get("reduced-speed-zone-directionless").get("sourceKind").asText())
+            .isEqualTo("modeled-gap-fill");
     }
 
     @Test
@@ -231,6 +274,35 @@ class TtcAlertScenarioCatalogTest {
             StandardCharsets.UTF_8
         );
         return client.parse(body);
+    }
+
+    private JsonNode parseScenarioIndex() throws Exception {
+        String body = new String(
+            getClass().getResourceAsStream("/fixtures/ttc-alert-scenarios/scenario-index.json").readAllBytes(),
+            StandardCharsets.UTF_8
+        );
+        return new ObjectMapper().readTree(body);
+    }
+
+    private JsonNode scenarioIndexEntry(JsonNode root, String name) {
+        for (JsonNode scenario : root.get("scenarios")) {
+            if (name.equals(scenario.get("name").asText())) {
+                return scenario;
+            }
+        }
+        return null;
+    }
+
+    private List<String> textValues(JsonNode array) {
+        List<String> values = new ArrayList<>();
+        array.forEach(value -> values.add(value.asText()));
+        return values;
+    }
+
+    private List<String> fieldNames(JsonNode object) {
+        List<String> values = new ArrayList<>();
+        object.fieldNames().forEachRemaining(values::add);
+        return values;
     }
 
     private List<NormalizedRouteAlert> normalizeRouteAlerts(TtcAlertFeed feed) {

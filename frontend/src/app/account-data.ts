@@ -91,6 +91,7 @@ export type AccountMatchedImpact = {
   window?: string | null;
   timingStatus?: "active-now" | "upcoming" | "unknown" | null;
   eventStartAt?: string | null;
+  ignoredByRule?: boolean;
 };
 
 export type AccountCommuteTravelTimeEstimate = {
@@ -214,7 +215,7 @@ export type SavedCommuteStatusSummary = {
 export function summarizeSavedCommuteStatuses(commutes: AccountSavedCommute[]): SavedCommuteStatusSummary {
   return commutes.reduce<SavedCommuteStatusSummary>((summary, commute) => {
     const legs = commuteLegsForCommute(commute);
-    if (legs.some((leg) => leg.impact.status === "affected" || leg.impact.matchedImpacts.some((impact) => impact.status === "current"))) {
+    if (legs.some((leg) => leg.impact.status === "affected" || leg.impact.matchedImpacts.some((impact) => impact.status === "current" && !impact.ignoredByRule))) {
       summary.affectedNow++;
       return summary;
     }

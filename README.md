@@ -618,8 +618,12 @@ The live provider still depends on the active static GTFS schedule import for st
 
 The repository includes dev/test TTC Live Alerts scenario feeds under
 `backend/src/test/resources/fixtures/ttc-alert-scenarios/`. These fixtures are
-TTC-shaped examples for LineWatch testing only; synthetic records are used where
-captured public examples are not available.
+TTC-shaped examples for LineWatch testing only. The `all-alert-types` scenario
+uses curated synthetic-template TTC Live Alerts payloads where the repository has
+useful captured examples, and modeled gap-fill records where history does not
+cover a required alert shape such as directional or bidirectional station-node
+impacts. Gap-fill records are modeled from the real bookmarked payloads so the
+field structure stays close to TTC Live Alerts JSON.
 
 Generate the fixture catalog after editing scenario definitions:
 
@@ -637,6 +641,11 @@ node scripts/mock-alerts-server.mjs line-5-suspension
 node scripts/mock-alerts-server.mjs nightly-closure-active-window
 node scripts/mock-alerts-server.mjs station-node-impact
 ```
+
+When a mock scenario server starts, it rebases alert timestamps once so the
+bookmarked records remain fresh and active for that server run. It then serves
+the same payload on every `/live-alerts` request so polling does not create fake
+routine update churn in the alert lifecycle.
 
 Run the backend against a scenario:
 

@@ -6,6 +6,10 @@ const scenarioBackendScript = readFileSync(
   new URL("../../scripts/dev-alert-scenario.sh", import.meta.url),
   "utf8",
 );
+const mockAlertsServerSource = readFileSync(
+  new URL("../../scripts/mock-alerts-server.mjs", import.meta.url),
+  "utf8",
+);
 const scenarioFrontendScript = readFileSync(
   new URL("../../scripts/dev-frontend-scenario.sh", import.meta.url),
   "utf8",
@@ -56,6 +60,12 @@ describe("alert scenario scripts", () => {
       scenarioFrontendScript,
       /NEXT_PUBLIC_LINEWATCH_DEV_ACCOUNT_AUTO_LOGIN="\$\{NEXT_PUBLIC_LINEWATCH_DEV_ACCOUNT_AUTO_LOGIN:-true\}"/,
     );
+  });
+
+  it("serves a stable active scenario payload for one mock server process", () => {
+    assert.match(mockAlertsServerSource, /const activeScenarioFeed = buildScenarioFeed\(scenario, \{ now: new Date\(\) \}\);/);
+    assert.match(mockAlertsServerSource, /sendJson\(response, 200, activeScenarioFeed\);/);
+    assert.doesNotMatch(mockAlertsServerSource, /sendJson\(response, 200, buildScenarioFeed\(scenario, \{ now: new Date\(\) \}\)\);/);
   });
 
   it("provides a named live dev frontend script with a dev tab label", () => {
