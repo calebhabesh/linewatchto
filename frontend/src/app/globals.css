@@ -2523,15 +2523,12 @@ button {
   grid-template-columns: auto minmax(0, 1fr);
   gap: 0.4rem;
   align-items: baseline;
-  border-top: 1px solid rgba(15, 23, 42, 0.08);
-  padding-top: 0.35rem;
   font-size: 0.72rem;
   color: rgb(71, 85, 105);
 }
 
 .dark .saved-commute-impact-list li,
 .high-contrast .saved-commute-impact-list li {
-  border-top-color: rgba(255, 255, 255, 0.12);
   color: rgb(203, 213, 225);
 }
 
@@ -5350,13 +5347,9 @@ button {
 
 .saved-commute-notification-rule,
 .saved-commute-rule-editor {
-  background: rgba(15, 23, 42, 0.035);
-  border: 1px solid rgba(15, 23, 42, 0.08);
-  border-radius: 8px;
   display: grid;
   gap: 0.62rem;
   min-width: 0;
-  padding: 0.65rem;
 }
 
 .saved-commute-notification-master {
@@ -5514,11 +5507,12 @@ button {
   border: 1px solid rgba(16, 185, 129, 0.18);
   border-radius: 8px;
   display: flex;
+  flex-direction: row;
   gap: 0.6rem;
   justify-content: space-between;
   margin-top: 0.65rem;
   min-width: 0;
-  padding: 0.55rem 0.6rem;
+  padding: 0.55rem 1.1rem 0.55rem 0.6rem;
 }
 
 .saved-commute-rule-summary div {
@@ -5531,6 +5525,8 @@ button {
   color: rgb(15, 23, 42);
   font-size: 0.73rem;
   font-weight: 950;
+  margin-top: 0;
+  line-height: 1.1;
 }
 
 .saved-commute-rule-summary span,
@@ -5713,16 +5709,12 @@ button {
 }
 
 .dark .saved-commute-notification-summary,
-.dark .saved-commute-notification-rule,
-.dark .saved-commute-rule-editor,
 .dark .saved-commute-rule-summary,
 .high-contrast .saved-commute-notification-summary {
   background: rgba(16, 185, 129, 0.08);
   border-color: rgba(16, 185, 129, 0.22);
 }
 
-.high-contrast .saved-commute-notification-rule,
-.high-contrast .saved-commute-rule-editor,
 .high-contrast .saved-commute-rule-summary {
   background: rgba(255, 255, 255, 0.08);
   border-color: rgba(255, 255, 255, 0.64);
@@ -6136,12 +6128,12 @@ button {
 .saved-commute-time-estimate p strong {
   color: inherit;
   display: block;
-  font-size: 0.62rem;
+  font-size: 0.78rem;
   font-weight: 850;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.02em;
   line-height: 1.1;
   margin-top: 0;
-  text-transform: uppercase;
+  text-transform: capitalize;
 }
 
 .saved-commute-time-estimate-grid {
@@ -6158,9 +6150,9 @@ button {
 .saved-commute-time-estimate-grid em,
 .saved-commute-time-estimate p em,
 .saved-commute-time-estimate p span {
-  color: rgb(15, 23, 42);
+  color: rgb(71, 85, 105);
   display: block;
-  font-size: 0.78rem;
+  font-size: 0.70rem;
   font-style: normal;
   font-weight: 800;
   line-height: 1.25;
@@ -6209,7 +6201,7 @@ button {
 .dark .saved-commute-time-estimate p em,
 .high-contrast .saved-commute-time-estimate-grid em,
 .high-contrast .saved-commute-time-estimate p em {
-  color: rgb(248, 250, 252);
+  color: rgb(148, 163, 184);
 }
 
 .dark .saved-commute-time-estimate p span,
@@ -8932,9 +8924,7 @@ button {
 .notification-settings-row,
 .notification-settings-prompt,
 .saved-commute-notification-summary,
-.saved-commute-notification-rule,
-.saved-commute-rule-summary,
-.saved-commute-rule-editor {
+.saved-commute-rule-summary {
   background: #ffffff !important;
   opacity: 1 !important;
 }
@@ -8950,9 +8940,7 @@ button {
 .dark .notification-settings-row,
 .dark .notification-settings-prompt,
 .dark .saved-commute-notification-summary,
-.dark .saved-commute-notification-rule,
-.dark .saved-commute-rule-summary,
-.dark .saved-commute-rule-editor {
+.dark .saved-commute-rule-summary {
   background: #151821 !important;
   opacity: 1 !important;
 }
@@ -8968,9 +8956,7 @@ button {
 .high-contrast .notification-settings-row,
 .high-contrast .notification-settings-prompt,
 .high-contrast .saved-commute-notification-summary,
-.high-contrast .saved-commute-notification-rule,
-.high-contrast .saved-commute-rule-summary,
-.high-contrast .saved-commute-rule-editor {
+.high-contrast .saved-commute-rule-summary {
   background: #000000 !important;
   border: 1px solid #ffffff !important;
 }
@@ -12092,4 +12078,43 @@ button {
 
 .linewatch-shell.mobile-performance-mode .estimated-train-marker-halo {
   display: none;
+}
+
+.saved-commute-customize-toggle {
+  align-items: center;
+  border-radius: 8px;
+  display: flex;
+  font-size: 0.75rem;
+  font-weight: 900;
+  justify-content: space-between;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.5rem;
+  margin-top: 0.25rem;
+  padding: 0.6rem 0.625rem;
+  transition: all 0.18s ease;
+  width: 100%;
+}
+.saved-commute-customize-toggle {
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  color: rgb(51, 65, 85);
+}
+.saved-commute-customize-toggle[aria-expanded="true"] {
+  background: rgba(59, 130, 246, 0.08);
+  border: 2px solid rgba(59, 130, 246, 0.4);
+  color: rgb(29, 78, 216);
+  box-shadow: 0 0 10px rgba(59, 130, 246, 0.15);
+}
+.dark .saved-commute-customize-toggle,
+.high-contrast .saved-commute-customize-toggle {
+  background: rgba(15, 23, 42, 0.82);
+  border: 1px solid rgba(59, 130, 246, 0.4);
+  color: rgb(226, 232, 240);
+}
+.dark .saved-commute-customize-toggle[aria-expanded="true"],
+.high-contrast .saved-commute-customize-toggle[aria-expanded="true"] {
+  background: rgba(59, 130, 246, 0.15);
+  border: 2px solid rgba(59, 130, 246, 0.5);
+  color: rgb(96, 165, 250);
+  box-shadow: 0 0 12px rgba(59, 130, 246, 0.25);
 }

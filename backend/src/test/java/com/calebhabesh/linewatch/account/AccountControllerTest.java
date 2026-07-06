@@ -2,6 +2,7 @@ package com.calebhabesh.linewatch.account;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -19,7 +20,7 @@ class AccountControllerTest {
     private final AccountRateLimiter rateLimiter = mock(AccountRateLimiter.class);
     private final GoogleAuthProperties googleAuthProperties = googleProperties();
     private final GoogleOAuthService googleOAuthService = mock(GoogleOAuthService.class);
-    private final AccountController controller = new AccountController(accountService, cookieFactory, rateLimiter, googleAuthProperties, googleOAuthService);
+    private final AccountController controller = new AccountController(accountService, cookieFactory, rateLimiter, googleAuthProperties, googleOAuthService, false);
 
     private GoogleAuthProperties googleProperties() {
         GoogleAuthProperties result = new GoogleAuthProperties();
@@ -121,6 +122,34 @@ class AccountControllerTest {
 
         assertThat(response.googleSignInAvailable()).isTrue();
         assertThat(response.googleClientId()).isEqualTo("client-123.apps.googleusercontent.com");
+    }
+
+    @Test
+    void devLoginIsUnavailableUnlessExplicitlyEnabled() {
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> controller.dev(requestFrom("127.0.0.1")))
+            .isInstanceOf(AccountException.class)
+            .hasMessageContaining("Dev account sign-in is only available");
+
+        verify(accountService, never()).devLogin();
+    }
+
+    @Test
+    void devLoginSetsHttpOnlySessionCookieWhenEnabled() {
+        AccountController enabledController = new AccountController(accountService, cookieFactory, rateLimiter, googleAuthProperties, googleOAuthService, true);
+        AccountResponses.UserResponse user = new AccountResponses.UserResponse("user_dev", "dev@linewatch.local", "Dev Rider", false, false);
+        when(accountService.devLogin())
+            .thenReturn(new AccountResponses.AuthSession(user, "raw-token", Instant.parse("2026-06-19T14:30:00Z")));
+
+        ResponseEntity<AccountResponses.AuthResponse> response = enabledController.dev(requestFrom("127.0.0.1"));
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).isEqualTo(new AccountResponses.AuthResponse(true, user));
+        assertThat(response.getHeaders().getFirst("Set-Cookie"))
+            .contains("linewatch_session=raw-token")
+            .contains("HttpOnly")
+            .contains("SameSite=Lax")
+            .contains("Path=/");
+        verify(rateLimiter).requireDemoAttempt("127.0.0.1");
     }
 
     @Test

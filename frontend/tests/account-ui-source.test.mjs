@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 
+const devBootstrapUrl = new URL("../src/components/LineWatchDevBootstrap.tsx", import.meta.url);
+const devBootstrapSource = existsSync(devBootstrapUrl) ? readFileSync(devBootstrapUrl, "utf8") : "";
 const shellSource = readFileSync(new URL("../src/components/LineWatchShell.tsx", import.meta.url), "utf8");
 const homePageSource = readFileSync(new URL("../src/app/page.tsx", import.meta.url), "utf8");
 const resetPasswordPageSource = readFileSync(new URL("../src/app/reset-password/page.tsx", import.meta.url), "utf8");
@@ -37,6 +39,17 @@ describe("account UI source", () => {
     assert.match(shellSource, /Back To Options/);
     assert.match(shellSource, /account-provider-stack/);
     assert.match(shellSource, /account-choice-primary/);
+  });
+
+  it("supports optional local dev account bootstrap without bypassing backend auth", () => {
+    assert.equal(existsSync(devBootstrapUrl), true);
+    assert.match(homePageSource, /LineWatchDevBootstrap/);
+    assert.match(devBootstrapSource, /NEXT_PUBLIC_LINEWATCH_DEV_ACCOUNT_AUTO_LOGIN/);
+    assert.match(devBootstrapSource, /process\.env\.NODE_ENV === "development"/);
+    assert.match(devBootstrapSource, /localhost/);
+    assert.match(devBootstrapSource, /getCurrentAccount/);
+    assert.match(devBootstrapSource, /loginDevAccount/);
+    assert.match(devBootstrapSource, /<LineWatchShell initialData=\{initialData\} \/>/);
   });
 
   it("surfaces Google OAuth callback errors through the account dialog", () => {

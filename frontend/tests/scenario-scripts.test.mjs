@@ -52,6 +52,10 @@ describe("alert scenario scripts", () => {
       scenarioFrontendScript,
       /NEXT_PUBLIC_LINEWATCH_ENVIRONMENT_LABEL="\$\{NEXT_PUBLIC_LINEWATCH_ENVIRONMENT_LABEL:-Dev: \$SCENARIO\}"/,
     );
+    assert.match(
+      scenarioFrontendScript,
+      /NEXT_PUBLIC_LINEWATCH_DEV_ACCOUNT_AUTO_LOGIN="\$\{NEXT_PUBLIC_LINEWATCH_DEV_ACCOUNT_AUTO_LOGIN:-true\}"/,
+    );
   });
 
   it("provides a named live dev frontend script with a dev tab label", () => {
@@ -61,7 +65,21 @@ describe("alert scenario scripts", () => {
 
     assert.match(liveFrontendScript, /Starting LineWatchTO live dev frontend/);
     assert.match(liveFrontendScript, /NEXT_PUBLIC_LINEWATCH_ENVIRONMENT_LABEL="\$\{NEXT_PUBLIC_LINEWATCH_ENVIRONMENT_LABEL:-Dev\}"/);
+    assert.match(liveFrontendScript, /NEXT_PUBLIC_LINEWATCH_DEV_ACCOUNT_AUTO_LOGIN="\$\{NEXT_PUBLIC_LINEWATCH_DEV_ACCOUNT_AUTO_LOGIN:-true\}"/);
     assert.match(liveFrontendScript, /npm --prefix "\$REPO_ROOT\/frontend" run dev/);
+  });
+
+  it("enables the local dev account in local live and alert scenario helpers", () => {
+    const liveBackendScript = readFileSync(new URL("../../scripts/dev-backend-live.sh", import.meta.url), "utf8");
+    const livePushBackendScript = readFileSync(livePushBackendScriptUrl, "utf8");
+    const cloudflarePushScript = readFileSync(cloudflarePushScriptUrl, "utf8");
+
+    assert.match(liveBackendScript, /LINEWATCH_AUTH_DEV_ACCOUNT_ENABLED:=true/);
+    assert.match(liveBackendScript, /export LINEWATCH_AUTH_DEV_ACCOUNT_ENABLED/);
+    assert.match(scenarioBackendScript, /LINEWATCH_AUTH_DEV_ACCOUNT_ENABLED:=true/);
+    assert.match(scenarioBackendScript, /export LINEWATCH_AUTH_DEV_ACCOUNT_ENABLED/);
+    assert.doesNotMatch(livePushBackendScript, /LINEWATCH_AUTH_DEV_ACCOUNT_ENABLED:=true/);
+    assert.doesNotMatch(cloudflarePushScript, /LINEWATCH_AUTH_DEV_ACCOUNT_ENABLED:=true/);
   });
 
   it("provides precise mode-role script aliases without removing existing script names", () => {

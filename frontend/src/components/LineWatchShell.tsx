@@ -453,7 +453,7 @@ export function LineWatchShell({
     return {
       label: notificationStatusLabel,
       detail: notificationStatusLabel === "Device Setup Needed"
-        ? "Preferences saved; enable this device for push delivery"
+        ? "Preferences saved. Enable notifications for push delivery"
         : "Saved commute alerts and closure reminders",
       tone,
     };

@@ -625,6 +625,10 @@ export async function loginDemoAccount(options: AdapterOptions = {}) {
   return authRequest("/api/auth/demo", { method: "POST" }, options);
 }
 
+export async function loginDevAccount(options: AdapterOptions = {}) {
+  return authRequest("/api/auth/dev", { method: "POST" }, options);
+}
+
 export async function logoutAccount(options: AdapterOptions = {}) {
   return authRequest("/api/auth/logout", { method: "POST" }, options);
 }

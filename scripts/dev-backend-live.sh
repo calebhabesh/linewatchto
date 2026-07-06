@@ -19,5 +19,7 @@ fi
 
 : "${LINEWATCH_AUTH_PASSWORD_RESET_DEV_LINKS:=true}"
 export LINEWATCH_AUTH_PASSWORD_RESET_DEV_LINKS
+: "${LINEWATCH_AUTH_DEV_ACCOUNT_ENABLED:=true}"
+export LINEWATCH_AUTH_DEV_ACCOUNT_ENABLED
 
 exec mvn -f "$REPO_ROOT/backend/pom.xml" spring-boot:run -Dspring-boot.run.profiles=dev-live

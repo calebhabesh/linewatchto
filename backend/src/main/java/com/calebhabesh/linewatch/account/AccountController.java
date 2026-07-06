@@ -3,6 +3,7 @@ package com.calebhabesh.linewatch.account;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.web.bind.annotation.CookieValue;
@@ -23,19 +24,22 @@ public class AccountController {
     private final AccountRateLimiter rateLimiter;
     private final GoogleAuthProperties googleAuthProperties;
     private final GoogleOAuthService googleOAuthService;
+    private final boolean devAccountEnabled;
 
     public AccountController(
         AccountService accountService,
         AuthCookieFactory cookieFactory,
         AccountRateLimiter rateLimiter,
         GoogleAuthProperties googleAuthProperties,
-        GoogleOAuthService googleOAuthService
+        GoogleOAuthService googleOAuthService,
+        @Value("${linewatch.auth.dev-account.enabled:false}") boolean devAccountEnabled
     ) {
         this.accountService = accountService;
         this.cookieFactory = cookieFactory;
         this.rateLimiter = rateLimiter;
         this.googleAuthProperties = googleAuthProperties;
         this.googleOAuthService = googleOAuthService;
+        this.devAccountEnabled = devAccountEnabled;
     }
 
     @GetMapping("/config")
@@ -138,6 +142,15 @@ public class AccountController {
     public ResponseEntity<AccountResponses.AuthResponse> demo(HttpServletRequest httpRequest) {
         rateLimiter.requireDemoAttempt(AccountRateLimiter.clientAddress(httpRequest));
         return authenticated(accountService.demoLogin());
+    }
+
+    @PostMapping("/dev")
+    public ResponseEntity<AccountResponses.AuthResponse> dev(HttpServletRequest httpRequest) {
+        if (!devAccountEnabled) {
+            throw new AccountException(HttpStatus.NOT_FOUND, "dev_account_disabled", "Dev account sign-in is only available when explicitly enabled for local development.");
+        }
+        rateLimiter.requireDemoAttempt(AccountRateLimiter.clientAddress(httpRequest));
+        return authenticated(accountService.devLogin());
     }
 
     @PostMapping("/password-reset/request")

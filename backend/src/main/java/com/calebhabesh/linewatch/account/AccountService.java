@@ -3,6 +3,7 @@ package com.calebhabesh.linewatch.account;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
 import java.util.regex.Pattern;
@@ -14,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class AccountService {
     public static final String DEMO_EMAIL = "demo@linewatch.local";
+    public static final String DEV_EMAIL = "dev@linewatch.local";
     private static final Duration SESSION_TTL = Duration.ofDays(14);
     private static final int MIN_PASSWORD_LENGTH = 8;
     private static final int MAX_EMAIL_LENGTH = 320;
@@ -36,6 +38,7 @@ public class AccountService {
     private final PasswordResetEmailSender passwordResetEmailSender;
     private final PasswordResetLinkFactory passwordResetLinkFactory;
     private final AccountAuthIdentityRepository authIdentityRepository;
+    private final SavedCommuteRepository savedCommuteRepository;
     private final GoogleIdentityVerifier googleIdentityVerifier;
     private final GoogleAuthProperties googleAuthProperties;
     private final Clock clock;
@@ -51,6 +54,7 @@ public class AccountService {
         PasswordResetEmailSender passwordResetEmailSender,
         PasswordResetLinkFactory passwordResetLinkFactory,
         AccountAuthIdentityRepository authIdentityRepository,
+        SavedCommuteRepository savedCommuteRepository,
         GoogleIdentityVerifier googleIdentityVerifier,
         GoogleAuthProperties googleAuthProperties,
         @org.springframework.beans.factory.annotation.Value("${linewatch.auth.password-reset.dev-links:false}") boolean passwordResetDevLinks
@@ -64,6 +68,7 @@ public class AccountService {
             passwordResetEmailSender,
             passwordResetLinkFactory,
             authIdentityRepository,
+            savedCommuteRepository,
             googleIdentityVerifier,
             googleAuthProperties,
             Clock.systemUTC(),
@@ -80,6 +85,7 @@ public class AccountService {
         PasswordResetEmailSender passwordResetEmailSender,
         PasswordResetLinkFactory passwordResetLinkFactory,
         AccountAuthIdentityRepository authIdentityRepository,
+        SavedCommuteRepository savedCommuteRepository,
         GoogleIdentityVerifier googleIdentityVerifier,
         GoogleAuthProperties googleAuthProperties,
         Clock clock,
@@ -93,6 +99,7 @@ public class AccountService {
         this.passwordResetEmailSender = passwordResetEmailSender;
         this.passwordResetLinkFactory = passwordResetLinkFactory;
         this.authIdentityRepository = authIdentityRepository;
+        this.savedCommuteRepository = savedCommuteRepository;
         this.googleIdentityVerifier = googleIdentityVerifier;
         this.googleAuthProperties = googleAuthProperties;
         this.clock = clock;
@@ -149,6 +156,48 @@ public class AccountService {
             )));
         account.markLogin(now);
         return createSession(account, now);
+    }
+
+    @Transactional
+    public AccountResponses.AuthSession devLogin() {
+        Instant now = clock.instant();
+        AccountEntity account = accountRepository.findByEmail(DEV_EMAIL)
+            .orElseGet(() -> accountRepository.save(AccountEntity.create(
+                "user_dev",
+                DEV_EMAIL,
+                "Dev Rider",
+                passwordHasher.hash(nextId("dev-password")),
+                false,
+                now
+            )));
+        seedDevCommutes(account, now);
+        account.markLogin(now);
+        return createSession(account, now);
+    }
+
+    private void seedDevCommutes(AccountEntity account, Instant now) {
+        List<DevCommuteSeed> seeds = List.of(
+            new DevCommuteSeed("dev_commute_finch_union", "Line 1: Finch to Union", "finch", "union", true),
+            new DevCommuteSeed("dev_commute_mount_dennis_kennedy", "Line 5/2: Mount Dennis to Kennedy", "mount-dennis", "kennedy", true)
+        );
+
+        for (DevCommuteSeed seed : seeds) {
+            if (!savedCommuteRepository.existsByAccountIdAndOriginStationIdAndDestinationStationId(
+                account.getId(),
+                seed.originStationId(),
+                seed.destinationStationId()
+            )) {
+                savedCommuteRepository.save(SavedCommuteEntity.create(
+                    seed.id(),
+                    account,
+                    seed.label(),
+                    seed.originStationId(),
+                    seed.destinationStationId(),
+                    seed.watchReturnTrip(),
+                    now
+                ));
+            }
+        }
     }
 
     @Transactional
@@ -468,6 +517,13 @@ public class AccountService {
     public record GoogleLoginRequest(String credential) {}
     public record PasswordResetRequest(String email) {}
     public record PasswordResetConfirmRequest(String token, String password) {}
+    private record DevCommuteSeed(
+        String id,
+        String label,
+        String originStationId,
+        String destinationStationId,
+        boolean watchReturnTrip
+    ) {}
     public record PasswordResetRequestResponse(
         boolean accepted,
         String message,

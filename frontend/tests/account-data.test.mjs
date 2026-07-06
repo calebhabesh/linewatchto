@@ -16,6 +16,7 @@ import {
   getPushNotificationConfig,
   getSavedCommutes,
   googleAuthStartUrl,
+  loginDevAccount,
   loginDemoAccount,
   loginWithGoogle,
   linkGoogleAccount,
@@ -142,6 +143,29 @@ describe("account data adapter", () => {
 
     assert.equal(result.authenticated, true);
     assert.equal(result.user.email, "demo@linewatch.local");
+    assert.equal(requests[0].init.method, "POST");
+    assert.equal(requests[0].init.credentials, "include");
+  });
+
+  it("posts dev login with credentials included", async () => {
+    const requests = [];
+    const result = await loginDevAccount({
+      fetcher: async (input, init) => {
+        requests.push({ input, init });
+        return new Response(
+          JSON.stringify({
+            authenticated: true,
+            user: { id: "user_dev", email: "dev@linewatch.local", displayName: "Dev Rider", demo: false, googleLinked: false },
+          }),
+          { status: 200, headers: { "content-type": "application/json" } }
+        );
+      },
+    });
+
+    assert.equal(result.authenticated, true);
+    assert.equal(result.user.email, "dev@linewatch.local");
+    assert.equal(result.user.demo, false);
+    assert.equal(requests[0].input, "/api/auth/dev");
     assert.equal(requests[0].init.method, "POST");
     assert.equal(requests[0].init.credentials, "include");
   });

@@ -6,6 +6,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -24,6 +25,7 @@ class AccountServiceTest {
     private final PasswordResetTokenRepository passwordResetTokenRepository = mock(PasswordResetTokenRepository.class);
     private final PasswordResetEmailSender passwordResetEmailSender = mock(PasswordResetEmailSender.class);
     private final AccountAuthIdentityRepository authIdentityRepository = mock(AccountAuthIdentityRepository.class);
+    private final SavedCommuteRepository savedCommuteRepository = mock(SavedCommuteRepository.class);
     private final GoogleIdentityVerifier googleIdentityVerifier = mock(GoogleIdentityVerifier.class);
     private final GoogleAuthProperties googleAuthProperties = googleProperties();
     private final PasswordHasher passwordHasher = new PasswordHasher();
@@ -39,6 +41,7 @@ class AccountServiceTest {
         passwordResetEmailSender,
         passwordResetLinkFactory,
         authIdentityRepository,
+        savedCommuteRepository,
         googleIdentityVerifier,
         googleAuthProperties,
         clock,
@@ -202,6 +205,27 @@ class AccountServiceTest {
     }
 
     @Test
+    void devLoginCreatesSeededNonDemoAccountAndCommutes() {
+        when(accountRepository.findByEmail(AccountService.DEV_EMAIL)).thenReturn(Optional.empty());
+        when(accountRepository.save(any(AccountEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(sessionRepository.save(any(UserSessionEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(savedCommuteRepository.existsByAccountIdAndOriginStationIdAndDestinationStationId("user_dev", "finch", "union")).thenReturn(false);
+        when(savedCommuteRepository.existsByAccountIdAndOriginStationIdAndDestinationStationId("user_dev", "mount-dennis", "kennedy")).thenReturn(false);
+
+        AccountResponses.AuthSession response = service.devLogin();
+
+        assertThat(response.user().demo()).isFalse();
+        assertThat(response.user().email()).isEqualTo(AccountService.DEV_EMAIL);
+        assertThat(response.user().displayName()).isEqualTo("Dev Rider");
+
+        ArgumentCaptor<SavedCommuteEntity> commuteCaptor = ArgumentCaptor.forClass(SavedCommuteEntity.class);
+        verify(savedCommuteRepository, times(2)).save(commuteCaptor.capture());
+        assertThat(commuteCaptor.getAllValues())
+            .extracting(SavedCommuteEntity::getLabel)
+            .containsExactly("Line 1: Finch to Union", "Line 5/2: Mount Dennis to Kennedy");
+    }
+
+    @Test
     void requestPasswordResetCreatesShortLivedTokenAndEmailsLinkForKnownEmail() {
         AccountEntity account = AccountEntity.create(
             "user_test",
@@ -259,6 +283,7 @@ class AccountServiceTest {
             passwordResetEmailSender,
             passwordResetLinkFactory,
             authIdentityRepository,
+            savedCommuteRepository,
             googleIdentityVerifier,
             googleAuthProperties,
             clock,

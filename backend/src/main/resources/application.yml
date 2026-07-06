@@ -23,6 +23,8 @@ linewatch:
   auth:
     secure-cookie: ${LINEWATCH_AUTH_SECURE_COOKIE:false}
     allowed-origins: ${LINEWATCH_AUTH_ALLOWED_ORIGINS:http://localhost:3000,http://127.0.0.1:3000,http://127.0.0.1:4173}
+    dev-account:
+      enabled: ${LINEWATCH_AUTH_DEV_ACCOUNT_ENABLED:false}
     rate-limit:
       enabled: ${LINEWATCH_AUTH_RATE_LIMIT_ENABLED:true}
       window: ${LINEWATCH_AUTH_RATE_LIMIT_WINDOW:PT15M}

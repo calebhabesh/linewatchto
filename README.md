@@ -419,7 +419,12 @@ http://localhost:3000
 
 Plain `npm --prefix frontend run dev` still works. The helper name is clearer
 when several LineWatchTO tabs are open, and it sets the local browser title to
-`LineWatchTO Dev`.
+`LineWatchTO Dev`. By default, the helper also opts the browser into local dev
+account auto-login. With `scripts/dev-live-backend.sh` running, localhost signs
+into `dev@linewatch.local` through the real backend auth/session endpoints and
+opens account-backed features such as saved commutes without a staging deploy.
+Set `NEXT_PUBLIC_LINEWATCH_DEV_ACCOUNT_AUTO_LOGIN=false` before running the
+frontend helper to disable the shortcut.
 
 Run frontend checks:
 
@@ -474,6 +479,14 @@ scripts/dev-live-backend.sh
 ```
 
 This dev helper also enables local password-reset links by default. It returns a short-lived reset token to the frontend for existing local accounts so the `Forgot password?` flow can be tested without email delivery.
+
+The same helper enables the local dev account endpoint by default with
+`LINEWATCH_AUTH_DEV_ACCOUNT_ENABLED=true`. That endpoint is disabled by default
+in application configuration and should stay off for staging, production, and
+public tunnel/push workflows. The dev account is not a demo account; it is a
+local developer persona seeded with saved commutes for quick desktop/mobile UI
+testing. Normal Web Push delivery remains off unless you explicitly enable the
+push settings below.
 
 To send real password reset emails from a local run, configure SMTP credentials before starting the backend:
 
@@ -639,6 +652,12 @@ Then open the scenario frontend with `scripts/dev-alert-scenario-frontend.sh all
 `/api/alerts`, `/api/map`, alert cards, station rings, nonlinear overlays, and
 schedule-aware station arrivals. The scenario harness does not make the app an
 official TTC product and does not represent a live feed.
+
+The alert scenario backend and frontend helpers also enable the local dev
+account by default, so the scenario dashboard can open saved-commute UI without
+staging. Set `LINEWATCH_AUTH_DEV_ACCOUNT_ENABLED=false` for the scenario backend
+or `NEXT_PUBLIC_LINEWATCH_DEV_ACCOUNT_AUTO_LOGIN=false` for the scenario
+frontend when you need a signed-out scenario run.
 
 Browser tab titles are intentionally distinct across common environments:
 production remains `LineWatchTO`, staging builds as `LineWatchTO Staging`,

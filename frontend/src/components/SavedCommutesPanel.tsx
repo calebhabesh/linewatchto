@@ -397,24 +397,26 @@ function cloneNotificationRule(rule: AccountSavedCommuteNotificationRule | null 
 }
 
 function minuteToTimeValue(minute: number | null | undefined) {
-  const safeMinute = Math.max(0, Math.min(1439, minute ?? 0));
+  if (minute === null || minute === undefined || minute < 0) return "";
+  const safeMinute = Math.max(0, Math.min(1439, minute));
   const hours = Math.floor(safeMinute / 60).toString().padStart(2, "0");
   const minutes = (safeMinute % 60).toString().padStart(2, "0");
   return `${hours}:${minutes}`;
 }
 
 function timeValueToMinute(value: string) {
+  if (!value) return -1;
   const [hoursText, minutesText] = value.split(":");
   const hours = Number(hoursText);
   const minutes = Number(minutesText);
   if (!Number.isFinite(hours) || !Number.isFinite(minutes)) {
-    return 0;
+    return -1;
   }
   return Math.max(0, Math.min(1439, hours * 60 + minutes));
 }
 
 function formatMinuteLabel(minute: number | null | undefined) {
-  if (minute === null || minute === undefined) return "";
+  if (minute === null || minute === undefined || minute < 0) return "";
   const hours24 = Math.floor(minute / 60);
   const minutes = minute % 60;
   const period = hours24 >= 12 ? "PM" : "AM";
@@ -433,6 +435,9 @@ function formatDayMask(dayMask: number) {
 function formatWindow(rule: AccountSavedCommuteNotificationRule) {
   if (rule.startMinute === null || rule.endMinute === null) {
     return "All Day";
+  }
+  if (rule.startMinute < 0 || rule.endMinute < 0) {
+    return "Custom";
   }
   return `${formatMinuteLabel(rule.startMinute)}-${formatMinuteLabel(rule.endMinute)}`;
 }
@@ -493,8 +498,8 @@ function SavedCommuteNotificationRuleEditor({
   function setCustomWindow(enabled: boolean) {
     updateRule(enabled
       ? {
-          startMinute: rule.startMinute ?? 16 * 60 + 30,
-          endMinute: rule.endMinute ?? 17 * 60 + 30,
+          startMinute: rule.startMinute ?? -1,
+          endMinute: rule.endMinute ?? -1,
         }
       : {
           startMinute: null,
@@ -515,18 +520,7 @@ function SavedCommuteNotificationRuleEditor({
   }
 
   return (
-    <div className="saved-commute-notification-rule">
-      <label className="saved-commute-return-toggle saved-commute-notification-master">
-        <div className="saved-commute-switch">
-          <input
-            type="checkbox"
-            checked={rule.enabled}
-            onChange={(event) => updateRule({ enabled: event.target.checked })}
-          />
-          <span className="saved-commute-slider"></span>
-        </div>
-        <span>Notify Me For This Route</span>
-      </label>
+    <div className="saved-commute-notification-rule flex flex-col gap-3">
 
       <div className="saved-commute-notification-block">
         <strong>Notification Days</strong>
@@ -672,9 +666,21 @@ function SavedCommuteNotificationRuleEditor({
             </div>
           </div>
         ) : (
-          <em className="saved-commute-notification-note">{canSelectSection ? "Whole Route" : "Whole Route until this saved route has computed stops."}</em>
+          <em className="saved-commute-notification-note" style={{ fontSize: '0.62rem', display: 'block', marginTop: '0.25rem' }}>{canSelectSection ? "Whole Route" : "Selected Section can be configured once commute is saved"}</em>
         )}
       </div>
+
+      <label className="saved-commute-return-toggle saved-commute-notification-master mt-1">
+        <div className="saved-commute-switch">
+          <input
+            type="checkbox"
+            checked={rule.enabled}
+            onChange={(event) => updateRule({ enabled: event.target.checked })}
+          />
+          <span className="saved-commute-slider"></span>
+        </div>
+        <span>Notify Me For This Route</span>
+      </label>
     </div>
   );
 }
@@ -704,7 +710,9 @@ export function SavedCommutesPanel({
   const [deletingCommuteId, setDeletingCommuteId] = useState<string | null>(null);
   const [selectedLegIds, setSelectedLegIds] = useState<Record<string, AccountCommuteLegId>>({});
   const [activePicker, setActivePicker] = useState<"origin" | "destination" | null>(null);
+  const [activeView, setActiveView] = useState<"create" | "saved">("create");
   const [newNotificationRule, setNewNotificationRule] = useState<AccountSavedCommuteNotificationRule>(() => cloneNotificationRule(defaultSavedCommuteNotificationRule));
+  const [showNotificationSettings, setShowNotificationSettings] = useState(false);
   const [editingNotificationCommuteId, setEditingNotificationCommuteId] = useState<string | null>(null);
   const [notificationDrafts, setNotificationDrafts] = useState<Record<string, AccountSavedCommuteNotificationRule>>({});
   const [savingNotificationRuleId, setSavingNotificationRuleId] = useState<string | null>(null);
@@ -726,6 +734,12 @@ export function SavedCommutesPanel({
     if (originStationId === destinationStationId) {
       setCommuteError("Choose two different stations.");
       return;
+    }
+    if (newNotificationRule.startMinute !== null && newNotificationRule.endMinute !== null) {
+      if (newNotificationRule.startMinute < 0 || newNotificationRule.endMinute < 0) {
+        setCommuteError("Please configure the custom notification window times.");
+        return;
+      }
     }
     setSaving(true);
     setCommuteError(null);
@@ -779,6 +793,12 @@ export function SavedCommutesPanel({
 
   async function saveNotificationRule(commute: AccountSavedCommute) {
     const draft = notificationDrafts[commute.id] ?? ruleForCommute(commute);
+    if (draft.startMinute !== null && draft.endMinute !== null) {
+      if (draft.startMinute < 0 || draft.endMinute < 0) {
+        setNotificationRuleError("Please configure the custom notification window times.");
+        return;
+      }
+    }
     setSavingNotificationRuleId(commute.id);
     setNotificationRuleError(null);
     try {
@@ -905,9 +925,32 @@ export function SavedCommutesPanel({
         ) : null}
 
         {accountState.authenticated ? (
-          <div className="saved-commute-form">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <h3 className="text-sm font-bold text-slate-900 dark:text-white">Create a Route</h3>
+          <>
+            <div className="commute-leg-toggle !flex w-full mb-4" role="tablist">
+              <button 
+                type="button"
+                role="tab"
+                className="flex-1 text-center !py-2"
+                aria-selected={activeView === "create"}
+                onClick={() => setActiveView("create")}
+              >
+                Create Commute
+              </button>
+              <button 
+                type="button" 
+                role="tab"
+                className="flex-1 text-center !py-2"
+                aria-selected={activeView === "saved"}
+                onClick={() => setActiveView("saved")}
+              >
+                Saved Commutes
+              </button>
+            </div>
+            
+            {activeView === "create" ? (
+              <div className="saved-commute-form">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-white">Create a Route</h3>
               {accountState.user?.demo ? (
                 <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Demo account</span>
               ) : (
@@ -950,14 +993,28 @@ export function SavedCommutesPanel({
               </div>
               <span>Track Return Route</span>
             </label>
-            <SavedCommuteNotificationRuleEditor
-              rule={newNotificationRule}
-              onChange={setNewNotificationRule}
-              routeStationIds={[]}
-              stationNameFor={stationNameFor}
-              allowReturnLeg={watchReturnTrip}
-              showSectionControls={false}
-            />
+            <button
+              type="button"
+              className="saved-commute-customize-toggle"
+              aria-expanded={showNotificationSettings}
+              onClick={() => setShowNotificationSettings(!showNotificationSettings)}
+            >
+              <span>Customize Commute Notifications</span>
+              <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${showNotificationSettings ? "rotate-180" : ""}`} />
+            </button>
+            
+            {showNotificationSettings ? (
+              <div className="mt-2">
+                <SavedCommuteNotificationRuleEditor
+                  rule={newNotificationRule}
+                  onChange={setNewNotificationRule}
+                  routeStationIds={[]}
+                  stationNameFor={stationNameFor}
+                  allowReturnLeg={watchReturnTrip}
+                  showSectionControls={false}
+                />
+              </div>
+            ) : null}
             <button
               type="button"
               className="saved-commute-primary-button"
@@ -980,15 +1037,15 @@ export function SavedCommutesPanel({
               onOpenNotificationSettings={onOpenNotificationSettings}
               notificationSummary={notificationSummary}
             />
-            
-            <div
-              aria-hidden="true"
-              className="station-arrival-line-divider my-3 mx-0.5"
-            />
-            
-            <h3 className="text-sm font-bold text-slate-900 dark:text-white mt-1">Saved Routes</h3>
+          </div>
+        ) : null}
+
+        {accountState.authenticated && activeView === "saved" ? (
+          <div className="flex flex-col gap-3">
             {accountCommutes.length === 0 ? (
-              <p className="text-xs text-slate-500 dark:text-slate-400 italic">No saved account commutes yet.</p>
+              <div className="flex items-center justify-center py-8">
+                <p className="text-sm font-semibold text-slate-400 dark:text-slate-500">No Saved Commutes</p>
+              </div>
             ) : (
               accountCommutes.map((commute) => {
                 const legs = commuteLegs(commute);
@@ -1090,13 +1147,64 @@ export function SavedCommutesPanel({
                         </div>
                       </div>
 
+                      <div className="saved-commute-time-estimate-heading mt-3 mb-3 justify-center">
+                        <strong
+                          className={`!text-[0.88rem] inline-block pb-1.5 border-b-2 ${
+                            selectedLeg.impact.severity === "clear"
+                              ? "text-emerald-600 dark:text-emerald-400 border-emerald-500/30 dark:border-emerald-400/30"
+                              : "text-amber-600 dark:text-amber-400 border-amber-500/30 dark:border-amber-400/30"
+                          }`}
+                          style={{
+                            color: selectedLeg.impact.severity === "clear" ? "var(--ok)" : "var(--warning)",
+                          }}
+                        >
+                          {toTitleCase(selectedLeg.impact.statusLabel)}
+                        </strong>
+                      </div>
+
                       <TravelTimeEstimateBlock leg={selectedLeg} />
 
+                      {selectedLeg.impact.matchedImpacts.length > 0 ? (
+                        <div className="mt-4">
+                          <div className="saved-commute-time-estimate-heading">
+                            <strong className="!text-[0.88rem] text-slate-800 dark:text-white">
+                              Active Commute Disruptions
+                            </strong>
+                          </div>
+                          <ul className="saved-commute-impact-list !mt-1.5">
+                            {selectedLeg.impact.matchedImpacts.slice(0, 3).map((impact) => (
+                              <li key={`${impact.kind}-${impact.id}`}>
+                                <ImpactIcon kind={impact.kind} className="mt-0.5 shrink-0" />
+                                <span className="text-slate-600 dark:text-slate-400 block">
+                                  <strong className="block text-slate-800 dark:text-slate-200">
+                                    {toTitleCase(impactKindLabel(impact.kind))}
+                                  </strong>
+                                  <span className="block mt-0.5">
+                                    {toTitleCase(impactLineLabel(impact))}{impact.location ? `: ${toTitleCase(impact.location)}` : ""}{impact.displayDirection ? ` (${toTitleCase(impact.displayDirection)})` : ""}
+                                  </span>
+                                </span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      ) : null}
+
+                      <hr className="border-slate-800/10 dark:border-slate-200/10 mt-5 mb-1.5 mx-1" />
                       <div className="saved-commute-rule-summary">
                         <div>
                           <strong>Route Notifications: {notificationRuleStatus}</strong>
-                          <span>{notificationRuleDetail}</span>
-                          {notificationRule.enabled ? <em>{formatEventTypes(notificationRule)}</em> : null}
+                          <ul className="list-disc list-inside mt-1 space-y-0.5 text-[0.66rem] font-medium text-slate-600 dark:text-slate-400">
+                            {notificationRule.enabled ? (
+                              <>
+                                <li>{formatDayMask(notificationRule.dayMask)}</li>
+                                <li>{formatWindow(notificationRule)}</li>
+                                <li>{formatSection(notificationRule, stationNameFor)}</li>
+                                <li>{formatEventTypes(notificationRule)}</li>
+                              </>
+                            ) : (
+                              <li>Saved commute notifications are disabled for this route.</li>
+                            )}
+                          </ul>
                         </div>
                         <button
                           type="button"
@@ -1138,42 +1246,6 @@ export function SavedCommutesPanel({
                             </button>
                           </div>
                         </div>
-                      ) : null}
-
-                      <ul className="saved-commute-leg-list">
-                        {(() => {
-                          const leg = selectedLeg;
-                          const firstImpact = leg.impact.matchedImpacts[0];
-                          return (
-                            <li key={leg.id} className={`saved-commute-leg-row ${leg.impact.severity === "clear" ? "clear-tint" : "affected-tint"}`}>
-                              <strong className={leg.impact.severity === "clear" ? "text-emerald-600 dark:text-emerald-400" : "text-amber-600 dark:text-amber-400"}>
-                                {toTitleCase(leg.impact.statusLabel)}
-                              </strong>
-                              {firstImpact ? (
-                                <em>{toTitleCase(impactKindLabel(firstImpact.kind))}{firstImpact.displayDirection ? ` ${toTitleCase(firstImpact.displayDirection)}` : ""}</em>
-                              ) : (
-                                <em>No Matching Impacts</em>
-                              )}
-                            </li>
-                          );
-                        })()}
-                      </ul>
-
-                      {selectedLeg.impact.matchedImpacts.length > 0 ? (
-                        <ul className="saved-commute-impact-list">
-                          {selectedLeg.impact.matchedImpacts.slice(0, 3).map((impact) => (
-                            <li key={`${impact.kind}-${impact.id}`} className="!flex !flex-row !items-center !gap-1.5 !flex-wrap">
-                              <ImpactIcon kind={impact.kind} className="shrink-0" />
-                              <strong className="font-bold uppercase tracking-wider text-[10px] text-slate-700 dark:text-slate-300">
-                                {toTitleCase(impactKindLabel(impact.kind))}
-                              </strong>
-                              <span className="text-slate-700 dark:text-slate-300 -ml-1 mr-0.5">:</span>
-                              <span className="text-slate-600 dark:text-slate-400">
-                                {toTitleCase(impactLineLabel(impact))}{impact.location ? `: ${toTitleCase(impact.location)}` : ""}
-                              </span>
-                            </li>
-                          ))}
-                        </ul>
                       ) : null}
 
                       <div className="commute-route-actions">
@@ -1251,6 +1323,8 @@ export function SavedCommutesPanel({
               })
             )}
           </div>
+        ) : null}
+          </>
         ) : null}
       </div>
     </section>
