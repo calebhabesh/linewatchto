@@ -1,6 +1,6 @@
 alter table saved_commutes
     add column notification_enabled boolean not null default true,
-    add column notification_day_mask smallint not null default 127,
+    add column notification_day_mask integer not null default 127,
     add column notification_start_minute integer,
     add column notification_end_minute integer,
     add column notification_section_start_station_id varchar(80),
