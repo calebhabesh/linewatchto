@@ -1195,7 +1195,7 @@ export function SavedCommutesPanel({
                       <div className="saved-commute-rule-summary">
                         <div>
                           <strong>Route Notifications: {notificationRuleStatus}</strong>
-                          <ul className="list-disc list-inside mt-1 space-y-0.5 text-[0.66rem] font-medium text-slate-600 dark:text-slate-400">
+                          <ul className="list-disc list-outside pl-3 mt-1 space-y-0.5 text-[0.66rem] font-medium text-slate-600 dark:text-slate-400">
                             {notificationRule.enabled ? (
                               <>
                                 <li>{formatDayMask(notificationRule.dayMask)}</li>
