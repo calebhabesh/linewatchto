@@ -4533,11 +4533,11 @@ button {
 @media (max-width: 767px), (max-height: 600px) {
   .account-dialog-backdrop {
     padding-top: 1.5rem;
-    padding-bottom: 10rem;
+    padding-bottom: 1.5rem;
   }
   .account-dialog {
-    margin-top: 1.5rem;
-    margin-bottom: 1.5rem;
+    margin-top: auto;
+    margin-bottom: auto;
   }
 }
 
@@ -7678,8 +7678,13 @@ button {
   }
 
   html[data-visual-keyboard="open"] .account-dialog-backdrop {
-    padding-bottom: max(1rem, var(--mobile-safe-bottom));
-    padding-top: calc(var(--mobile-safe-top) + 1rem);
+    padding-bottom: calc(var(--visual-keyboard-inset, 0px) + 0.5rem);
+    padding-top: var(--mobile-safe-top);
+  }
+
+  html[data-visual-keyboard="open"] .account-dialog {
+    margin-top: 0.5rem;
+    margin-bottom: auto;
   }
 }
 

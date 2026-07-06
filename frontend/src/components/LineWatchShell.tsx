@@ -602,18 +602,18 @@ export function LineWatchShell({
   const accountDialogTitle = () => {
     switch (accountDialogMode) {
       case "auth-choice":
-        return accountEntryIntent === "register" ? "Create account" : "Sign in";
+        return accountEntryIntent === "register" ? "Create Account" : "Sign In";
       case "link-google":
         return "Link Google";
       case "register":
-        return "Create account";
+        return "Create Account";
       case "forgot-password":
         return "Reset password";
       case "reset-password":
         return "Choose new password";
       case "login":
       default:
-        return "Sign in";
+        return "Sign In";
     }
   };
 
@@ -2690,7 +2690,7 @@ export function LineWatchShell({
                 <h2 className="text-base font-black text-slate-900 dark:text-white">
                   {accountDialogTitle()}
                 </h2>
-                <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">Save commute preferences across demos.</p>
+                <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">Create an account to save configured commutes, and see how disruptions affect commute times.</p>
               </div>
               <button type="button" className="station-search-clear" onClick={() => setAccountDialogMode(null)} aria-label="Close account dialog">
                 <X size={18} />
