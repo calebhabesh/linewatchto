@@ -44,6 +44,7 @@ public class PushNotificationDispatchService {
     private final LineSubscriptionPushPlanner lineSubscriptionPushPlanner;
     private final PushLineEventObservationService lineEventObservationService;
     private final PushNotificationFormatter formatter;
+    private final PushReceiptTokenService receiptTokenService;
     private final IngestionFreshness ingestionFreshness;
     private final Clock clock;
 
@@ -59,6 +60,7 @@ public class PushNotificationDispatchService {
         LineSubscriptionPushPlanner lineSubscriptionPushPlanner,
         PushLineEventObservationService lineEventObservationService,
         PushNotificationFormatter formatter,
+        PushReceiptTokenService receiptTokenService,
         IngestionFreshness ingestionFreshness
     ) {
         this(
@@ -66,6 +68,7 @@ public class PushNotificationDispatchService {
             deliveryRepository, webPushClient, preferenceService, lineSubscriptionPushPlanner,
             lineEventObservationService,
             formatter,
+            receiptTokenService,
             ingestionFreshness,
             Clock.systemUTC()
         );
@@ -82,6 +85,7 @@ public class PushNotificationDispatchService {
         LineSubscriptionPushPlanner lineSubscriptionPushPlanner,
         PushLineEventObservationService lineEventObservationService,
         PushNotificationFormatter formatter,
+        PushReceiptTokenService receiptTokenService,
         IngestionFreshness ingestionFreshness,
         Clock clock
     ) {
@@ -95,6 +99,7 @@ public class PushNotificationDispatchService {
         this.lineSubscriptionPushPlanner = lineSubscriptionPushPlanner;
         this.lineEventObservationService = lineEventObservationService;
         this.formatter = formatter;
+        this.receiptTokenService = receiptTokenService;
         this.ingestionFreshness = ingestionFreshness;
         this.clock = clock;
     }
@@ -498,10 +503,13 @@ public class PushNotificationDispatchService {
                 continue;
             }
 
+            String deliveryId = existingDelivery
+                .map(PushNotificationDeliveryEntity::getId)
+                .orElseGet(() -> nextId("push_delivery"));
             PushDeliveryResult result = webPushClient.send(
                 subscription,
                 topicFor(PushNotificationDisplayTags.forEvent(event)),
-                WebPushPayload.fromEvent(event)
+                WebPushPayload.fromDelivery(event, deliveryId, subscription, receiptTokenService)
             );
             if (result.invalidSubscription()) {
                 subscription.disable(now);
@@ -512,7 +520,7 @@ public class PushNotificationDispatchService {
                 deliveryRepository.save(delivery);
             } else {
                 deliveryRepository.save(PushNotificationDeliveryEntity.create(
-                    nextId("push_delivery"),
+                    deliveryId,
                     event,
                     subscription,
                     result,
@@ -532,10 +540,11 @@ public class PushNotificationDispatchService {
             if (!subscriptionEnabledForEvent(subscription, event)) {
                 continue;
             }
+            String deliveryId = nextId("push_delivery");
             PushDeliveryResult result = webPushClient.send(
                 subscription,
                 topicFor(PushNotificationDisplayTags.forEvent(event)),
-                WebPushPayload.fromEvent(event)
+                WebPushPayload.fromDelivery(event, deliveryId, subscription, receiptTokenService)
             );
             if (result.accepted()) {
                 accepted = true;
@@ -544,7 +553,7 @@ public class PushNotificationDispatchService {
                 subscription.disable(now);
             }
             deliveryRepository.save(PushNotificationDeliveryEntity.create(
-                nextId("push_delivery"),
+                deliveryId,
                 event,
                 subscription,
                 result,

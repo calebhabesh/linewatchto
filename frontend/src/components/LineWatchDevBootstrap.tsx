@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { getCurrentAccount, loginDevAccount } from "../app/account-data";
 import type { DashboardData } from "../app/DataContext";
+import type { InitialVisualPreferences } from "../app/visual-preferences";
 import { LineWatchShell } from "./LineWatchShell";
 
 const LOCAL_DEV_HOSTS = new Set(["localhost", "127.0.0.1", "0.0.0.0", "::1"]);
@@ -25,9 +26,10 @@ export function shouldAutoLoginDevAccount(hostname = browserHostname()) {
 
 type LineWatchDevBootstrapProps = {
   initialData: DashboardData;
+  initialVisualPreferences?: InitialVisualPreferences;
 };
 
-export function LineWatchDevBootstrap({ initialData }: LineWatchDevBootstrapProps) {
+export function LineWatchDevBootstrap({ initialData, initialVisualPreferences }: LineWatchDevBootstrapProps) {
   const [ready, setReady] = useState(() => !devAccountAutoLoginConfigured());
 
   useEffect(() => {
@@ -65,5 +67,5 @@ export function LineWatchDevBootstrap({ initialData }: LineWatchDevBootstrapProp
     return null;
   }
 
-  return <LineWatchShell initialData={initialData} />;
+  return <LineWatchShell initialData={initialData} initialVisualPreferences={initialVisualPreferences} />;
 }

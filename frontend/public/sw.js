@@ -234,6 +234,8 @@ function normalizePayloadNotification(body) {
     tag: body.tag,
     state: typeof body.state === "string" ? body.state : "ACTIVE",
     timestamp: typeof body.timestamp === "string" ? body.timestamp : "",
+    deliveryId: typeof body.deliveryId === "string" ? body.deliveryId : "",
+    receiptToken: typeof body.receiptToken === "string" ? body.receiptToken : "",
   };
 }
 
@@ -249,6 +251,8 @@ async function showPushNotification(notification) {
     data: {
       state: notificationState,
       url: notification.url || "/",
+      deliveryId: notification.deliveryId || "",
+      receiptToken: notification.receiptToken || "",
     },
   };
   if (notificationState === "CLEARED") {
@@ -277,6 +281,11 @@ async function showTrackedPushNotification(notification) {
 }
 
 async function acknowledgeDisplayedPushNotification(notification) {
+  if (hasSignedPushReceipt(notification)) {
+    await recordPushClientEvent(notification, "displayed_acknowledged");
+    return;
+  }
+
   try {
     const subscription = await self.registration.pushManager.getSubscription();
     if (!subscription) return;
@@ -302,12 +311,34 @@ async function recordDisplayedNotificationClientEvent(notification, stage) {
   await recordPushClientEvent({
     tag: notification.tag,
     state: notification.data?.state || "ACTIVE",
+    deliveryId: notification.data?.deliveryId || "",
+    receiptToken: notification.data?.receiptToken || "",
   }, stage);
 }
 
 async function recordPushClientEvent(notification, stage, message) {
   try {
     if (!notification || !isLineWatchPushNotification(notification.tag)) return;
+    if (hasSignedPushReceipt(notification)) {
+      const body = {
+        deliveryId: notification.deliveryId,
+        receiptToken: notification.receiptToken,
+        stage,
+      };
+      if (typeof message === "string" && message.trim().length > 0) {
+        body.message = message.trim().slice(0, 255);
+      }
+
+      await fetch("/api/account/push/receipt", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify(body),
+      });
+      return;
+    }
+
     const subscription = await self.registration.pushManager.getSubscription();
     if (!subscription) return;
 
@@ -331,6 +362,13 @@ async function recordPushClientEvent(notification, stage, message) {
   } catch {
     // Delivery diagnostics are best-effort and must never suppress the OS notification.
   }
+}
+
+function hasSignedPushReceipt(notification) {
+  return typeof notification?.deliveryId === "string"
+    && notification.deliveryId.length > 0
+    && typeof notification.receiptToken === "string"
+    && notification.receiptToken.length > 0;
 }
 
 function clientEventErrorMessage(error) {

@@ -9,6 +9,7 @@ public class PushProperties {
     private String vapidPublicKey = "";
     private String vapidPrivateKey = "";
     private String vapidSubject = "mailto:linewatch@example.invalid";
+    private String receiptSigningSecret = "";
     private long evaluationDelayMs = 60_000;
     private Duration clearedNotificationRetention = Duration.ofHours(24);
 
@@ -42,6 +43,14 @@ public class PushProperties {
 
     public void setVapidSubject(String vapidSubject) {
         this.vapidSubject = vapidSubject;
+    }
+
+    public String getReceiptSigningSecret() {
+        return receiptSigningSecret;
+    }
+
+    public void setReceiptSigningSecret(String receiptSigningSecret) {
+        this.receiptSigningSecret = receiptSigningSecret;
     }
 
     public long getEvaluationDelayMs() {

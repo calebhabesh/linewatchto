@@ -109,6 +109,14 @@ public class PushNotificationController {
         pushNotificationService.recordClientEvent(account, request);
     }
 
+    @PostMapping("/receipt")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void recordReceipt(
+        @RequestBody PushRequests.ReceiptEventRequest request
+    ) {
+        pushNotificationService.recordReceiptEvent(request);
+    }
+
     @PostMapping("/displayed")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void markDisplayed(

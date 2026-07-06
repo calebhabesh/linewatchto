@@ -132,6 +132,21 @@ class PushNotificationControllerTest {
     }
 
     @Test
+    void recordsSignedReceiptEventWithoutSessionAccount() {
+        PushRequests.ReceiptEventRequest request = new PushRequests.ReceiptEventRequest(
+            "push_delivery_1",
+            "receipt-token",
+            "displayed_acknowledged",
+            null
+        );
+
+        controller.recordReceipt(request);
+
+        verify(pushNotificationService).recordReceiptEvent(request);
+        verify(accountService, org.mockito.Mockito.never()).requireAccount(org.mockito.ArgumentMatchers.any());
+    }
+
+    @Test
     void disablesCurrentSubscription() {
         PushRequests.SubscriptionEndpointRequest request = new PushRequests.SubscriptionEndpointRequest(
             "https://fcm.googleapis.com/fcm/send/subscription"

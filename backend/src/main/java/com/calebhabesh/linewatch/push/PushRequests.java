@@ -22,6 +22,13 @@ public final class PushRequests {
         String message
     ) {}
 
+    public record ReceiptEventRequest(
+        String deliveryId,
+        String receiptToken,
+        String stage,
+        String message
+    ) {}
+
     public record EventTypePreferencesRequest(
         Boolean suspensions,
         Boolean delays,

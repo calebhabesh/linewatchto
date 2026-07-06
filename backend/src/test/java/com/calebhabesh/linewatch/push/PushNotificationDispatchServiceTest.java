@@ -30,6 +30,8 @@ class PushNotificationDispatchServiceTest {
     private final LineSubscriptionPushPlanner lineSubscriptionPushPlanner = mock(LineSubscriptionPushPlanner.class);
     private final PushLineEventObservationService lineEventObservationService = mock(PushLineEventObservationService.class);
     private final IngestionFreshness ingestionFreshness = mock(IngestionFreshness.class);
+    private final PushProperties pushProperties = new PushProperties();
+    private final PushReceiptTokenService receiptTokenService = new PushReceiptTokenService(pushProperties);
     private final Clock clock = Clock.fixed(Instant.parse("2026-06-05T15:00:00Z"), ZoneOffset.UTC);
     private final PushNotificationFormatter formatter = new PushNotificationFormatter();
     private final PushNotificationDispatchService service = new PushNotificationDispatchService(
@@ -43,6 +45,7 @@ class PushNotificationDispatchServiceTest {
         lineSubscriptionPushPlanner,
         lineEventObservationService,
         formatter,
+        receiptTokenService,
         ingestionFreshness,
         clock
     );
@@ -58,6 +61,7 @@ class PushNotificationDispatchServiceTest {
 
     @BeforeEach
     void setUp() {
+        pushProperties.setReceiptSigningSecret("test-receipt-secret");
         when(ingestionFreshness.isDashboardFresh()).thenReturn(true);
     }
 
@@ -200,6 +204,8 @@ class PushNotificationDispatchServiceTest {
         assertThat(payload.tag()).isEqualTo("saved-commute-impact|commute_1|outbound|delay|delay-line-1|active");
         assertThat(payload.state()).isEqualTo("ACTIVE");
         assertThat(payload.timestamp()).isEqualTo("2026-06-05T15:00:00Z");
+        assertThat(payload.deliveryId()).startsWith("push_delivery_");
+        assertThat(payload.receiptToken()).isNotBlank();
     }
 
     @Test

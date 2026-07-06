@@ -42,6 +42,7 @@ public class PushNotificationService {
     private final PushNotificationPreferenceService preferenceService;
     private final LineSubscriptionPushPlanner lineSubscriptionPushPlanner;
     private final PushNotificationClientEventRepository clientEventRepository;
+    private final PushReceiptTokenService receiptTokenService;
     private final IngestionFreshness ingestionFreshness;
     private final Clock clock;
 
@@ -55,9 +56,10 @@ public class PushNotificationService {
         PushNotificationPreferenceService preferenceService,
         LineSubscriptionPushPlanner lineSubscriptionPushPlanner,
         PushNotificationClientEventRepository clientEventRepository,
+        PushReceiptTokenService receiptTokenService,
         IngestionFreshness ingestionFreshness
     ) {
-        this(properties, subscriptionRepository, deliveryRepository, savedCommuteRepository, planner, preferenceService, lineSubscriptionPushPlanner, clientEventRepository, ingestionFreshness, Clock.systemUTC());
+        this(properties, subscriptionRepository, deliveryRepository, savedCommuteRepository, planner, preferenceService, lineSubscriptionPushPlanner, clientEventRepository, ingestionFreshness, receiptTokenService, Clock.systemUTC());
     }
 
     PushNotificationService(
@@ -70,6 +72,7 @@ public class PushNotificationService {
         LineSubscriptionPushPlanner lineSubscriptionPushPlanner,
         PushNotificationClientEventRepository clientEventRepository,
         IngestionFreshness ingestionFreshness,
+        PushReceiptTokenService receiptTokenService,
         Clock clock
     ) {
         this.properties = properties;
@@ -80,6 +83,7 @@ public class PushNotificationService {
         this.preferenceService = preferenceService;
         this.lineSubscriptionPushPlanner = lineSubscriptionPushPlanner;
         this.clientEventRepository = clientEventRepository;
+        this.receiptTokenService = receiptTokenService;
         this.ingestionFreshness = ingestionFreshness;
         this.clock = clock;
     }
@@ -206,6 +210,35 @@ public class PushNotificationService {
         );
     }
 
+    @Transactional
+    public void recordReceiptEvent(PushRequests.ReceiptEventRequest request) {
+        String deliveryId = required(request.deliveryId(), "missing_delivery_id", "Push delivery id is required.");
+        String receiptToken = required(request.receiptToken(), "missing_receipt_token", "Push receipt token is required.");
+        String stage = normalizeClientEventStage(required(request.stage(), "missing_stage", "Push client event stage is required."));
+        PushNotificationDeliveryEntity delivery = deliveryRepository.findById(deliveryId)
+            .orElseThrow(() -> new AccountException(HttpStatus.NOT_FOUND, "push_delivery_not_found", "Push delivery was not found."));
+        if (!receiptTokenService.matches(delivery, receiptToken)) {
+            throw new AccountException(HttpStatus.FORBIDDEN, "invalid_receipt_token", "Push receipt token is not valid.");
+        }
+
+        Instant now = clock.instant();
+        if ("displayed_acknowledged".equals(stage)) {
+            delivery.markDisplayed(now);
+        }
+        PushNotificationEventEntity event = delivery.getEvent();
+        PushSubscriptionEntity subscription = delivery.getSubscription();
+        saveClientEvent(
+            event.getAccountId(),
+            subscription,
+            delivery,
+            subscription.getEndpointHash(),
+            new DisplayTag(event.getNotificationKey(), event.getNotificationState()),
+            stage,
+            normalizeClientEventMessage(request.message()),
+            now
+        );
+    }
+
     @Transactional(readOnly = true)
     public PushResponses.PushDeliveryDiagnosticsResponse deliveryDiagnostics(AccountEntity account) {
         List<PushNotificationDeliveryEntity> deliveries = deliveryRepository.findRecentDeliveriesForAccount(
@@ -298,7 +331,9 @@ public class PushNotificationService {
                     event.getUrl(),
                     tagFor(event),
                     event.getNotificationState(),
-                    event.getCreatedAt().toString()
+                    event.getCreatedAt().toString(),
+                    delivery.getId(),
+                    receiptTokenService.tokenFor(delivery)
                 );
             })
             .toList();

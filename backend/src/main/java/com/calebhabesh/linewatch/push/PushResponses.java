@@ -127,8 +127,21 @@ public final class PushResponses {
         String url,
         String tag,
         String state,
-        String timestamp
-    ) {}
+        String timestamp,
+        String deliveryId,
+        String receiptToken
+    ) {
+        public PendingPushNotification(
+            String title,
+            String body,
+            String url,
+            String tag,
+            String state,
+            String timestamp
+        ) {
+            this(title, body, url, tag, state, timestamp, null, null);
+        }
+    }
 
     public record PendingPushNotificationResponse(
         PendingPushNotification notification,

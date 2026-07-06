@@ -49,7 +49,7 @@ describe("account UI source", () => {
     assert.match(devBootstrapSource, /localhost/);
     assert.match(devBootstrapSource, /getCurrentAccount/);
     assert.match(devBootstrapSource, /loginDevAccount/);
-    assert.match(devBootstrapSource, /<LineWatchShell initialData=\{initialData\} \/>/);
+    assert.match(devBootstrapSource, /<LineWatchShell initialData=\{initialData\} initialVisualPreferences=\{initialVisualPreferences\} \/>/);
   });
 
   it("surfaces Google OAuth callback errors through the account dialog", () => {

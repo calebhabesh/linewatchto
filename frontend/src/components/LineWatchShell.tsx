@@ -94,6 +94,14 @@ import { accountOAuthErrorState } from "../app/account-oauth-error";
 import { normalizeAccountEmail, validateAccountCredentials } from "../app/account-validation";
 import { hasReleaseNotes } from "../app/release-notes";
 import { lineWatchAppVersionLabel } from "../app/app-build";
+import {
+  buildVisualPreferencesCookie,
+  defaultVisualPreferences,
+  readVisualPreferencesFromStorage,
+  resolveReducedMotionPreference,
+  writeVisualPreferencesToStorage,
+  type InitialVisualPreferences,
+} from "../app/visual-preferences";
 
 
 type ActiveView = "map" | "menu" | "search" | "status" | "alerts" | "delays" | "reduced-speed-zones" | "closures" | "commutes" | "notifications" | "analytics" | "more" | "accessibility-outages" | "surface-notices" | "alert-history" | "feedback" | "privacy-acknowledgements" | "release-notes";
@@ -106,7 +114,6 @@ const STATION_DETAIL_REFRESH_MS = 15_000;
 const GOOGLE_LINK_SUCCESS_PARAM = "account_linked";
 const GOOGLE_LINK_SUCCESS_VALUE = "google";
 const GOOGLE_LINK_SUCCESS_MESSAGE = "Google sign-in has been linked to your account.";
-const ESTIMATED_TRAINS_STORAGE_KEY = "linewatch-estimated-trains-enabled-v1";
 
 function dashboardRefreshIntervalMs() {
   const configured = Number(process.env.NEXT_PUBLIC_LINEWATCH_DASHBOARD_REFRESH_MS);
@@ -146,9 +153,11 @@ function googleLinkSuccessReturnTo() {
 export function LineWatchShell({
   initialData,
   initialPasswordResetToken = "",
+  initialVisualPreferences = defaultVisualPreferences,
 }: {
   initialData: DashboardData;
   initialPasswordResetToken?: string;
+  initialVisualPreferences?: InitialVisualPreferences;
 }) {
   const router = useRouter();
   const [displayData, setDisplayData] = useState(initialData);
@@ -178,9 +187,11 @@ export function LineWatchShell({
     plannedClosures,
   } = displayData;
   const pollText = generatedAt.lastPoll.replace(/succeeded\s*/i, "");
-  const [isDark, setIsDark] = useState(true);
-  const [highContrast, setHighContrast] = useState(false);
-  const [reducedMotion, setReducedMotion] = useState(false);
+  const [isDark, setIsDark] = useState(initialVisualPreferences.theme === "dark");
+  const [highContrast, setHighContrast] = useState(initialVisualPreferences.highContrast);
+  const [reducedMotion, setReducedMotion] = useState(initialVisualPreferences.reducedMotion);
+  const [reducedMotionOverride, setReducedMotionOverride] = useState(initialVisualPreferences.reducedMotionOverride);
+  const [visualPreferencesReady, setVisualPreferencesReady] = useState(false);
   const mobilePerformanceMode = useMobilePerformanceMode();
   const [activeView, setActiveView] = useState<ActiveView>("map");
   const [previousView, setPreviousView] = useState<ActiveView>("status");
@@ -190,7 +201,7 @@ export function LineWatchShell({
   const [mapLayoutSignal, setMapLayoutSignal] = useState(0);
   const [mapPresentationMode, setMapPresentationMode] = useState<MapPresentationMode>("standard");
   const [pwaEngagementSignal, setPwaEngagementSignal] = useState(0);
-  const [estimatedTrainsEnabled, setEstimatedTrainsEnabled] = useState(false);
+  const [estimatedTrainsEnabled, setEstimatedTrainsEnabled] = useState(initialVisualPreferences.estimatedTrainsEnabled);
   const [estimatedTrainSnapshot, setEstimatedTrainSnapshot] = useState<EstimatedTrainSnapshot>(EMPTY_ESTIMATED_TRAIN_SNAPSHOT);
   const subwayOperatingState = useSubwayOperatingState();
   const estimatedTrainMarkersVisible = estimatedTrainsEnabled && subwayOperatingState.status === "open";
@@ -202,17 +213,45 @@ export function LineWatchShell({
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const stored = window.localStorage.getItem(ESTIMATED_TRAINS_STORAGE_KEY);
-    if (stored === "true") {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setEstimatedTrainsEnabled(true);
-    }
-  }, []);
+
+    const stored = readVisualPreferencesFromStorage(window.localStorage);
+    const reducedMotionMediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const storedReducedMotion = stored.reducedMotion;
+    const hasReducedMotionOverride = storedReducedMotion !== null || initialVisualPreferences.reducedMotionOverride;
+
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setIsDark((stored.theme ?? initialVisualPreferences.theme) === "dark");
+    setHighContrast(stored.highContrast ?? initialVisualPreferences.highContrast);
+    setEstimatedTrainsEnabled(stored.estimatedTrainsEnabled ?? initialVisualPreferences.estimatedTrainsEnabled);
+    setReducedMotionOverride(hasReducedMotionOverride);
+    setReducedMotion(
+      resolveReducedMotionPreference(
+        storedReducedMotion ?? (initialVisualPreferences.reducedMotionOverride ? initialVisualPreferences.reducedMotion : null),
+        reducedMotionMediaQuery.matches,
+      ),
+    );
+    setVisualPreferencesReady(true);
+  }, [
+    initialVisualPreferences.estimatedTrainsEnabled,
+    initialVisualPreferences.highContrast,
+    initialVisualPreferences.reducedMotion,
+    initialVisualPreferences.reducedMotionOverride,
+    initialVisualPreferences.theme,
+  ]);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    window.localStorage.setItem(ESTIMATED_TRAINS_STORAGE_KEY, estimatedTrainsEnabled ? "true" : "false");
-  }, [estimatedTrainsEnabled]);
+    if (!visualPreferencesReady || typeof window === "undefined") return;
+
+    const preferences = {
+      theme: isDark ? "dark" as const : "light" as const,
+      highContrast,
+      reducedMotion: reducedMotionOverride ? reducedMotion : null,
+      estimatedTrainsEnabled,
+    };
+
+    writeVisualPreferencesToStorage(window.localStorage, preferences);
+    document.cookie = buildVisualPreferencesCookie(preferences, window.location.protocol);
+  }, [estimatedTrainsEnabled, highContrast, isDark, reducedMotion, reducedMotionOverride, visualPreferencesReady]);
 
   useEffect(() => {
     let cancelled = false;
@@ -950,12 +989,14 @@ export function LineWatchShell({
   }, [activeView]);
 
   useEffect(() => {
+    if (reducedMotionOverride) return;
+
     const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
     Promise.resolve().then(() => setReducedMotion(mediaQuery.matches));
     const handler = (e: MediaQueryListEvent) => setReducedMotion(e.matches);
     mediaQuery.addEventListener("change", handler);
     return () => mediaQuery.removeEventListener("change", handler);
-  }, []);
+  }, [reducedMotionOverride]);
 
   const fetchAccessibilityOutages = useCallback(async () => {
     try {
@@ -1278,6 +1319,19 @@ export function LineWatchShell({
     setIsDark((current) => !current);
   }, [setIsDark]);
 
+  const handleToggleHighContrast = useCallback(() => {
+    setHighContrast((current) => !current);
+  }, [setHighContrast]);
+
+  const handleToggleReducedMotion = useCallback(() => {
+    setReducedMotionOverride(true);
+    setReducedMotion((current) => !current);
+  }, [setReducedMotion, setReducedMotionOverride]);
+
+  const handleToggleEstimatedTrains = useCallback(() => {
+    setEstimatedTrainsEnabled((current) => !current);
+  }, [setEstimatedTrainsEnabled]);
+
   const handleOpenRotatedSelectionDetails = useCallback(() => {
     setMapPresentationMode("standard");
     setMobileInspectorDetent("details-focus");
@@ -1510,8 +1564,8 @@ export function LineWatchShell({
             onSignOut={handleSignOut}
             googleSignInAvailable={authConfig.googleSignInAvailable}
             onLinkGoogleAccount={openGoogleLinkDialog}
-            onToggleHighContrast={() => setHighContrast((current) => !current)}
-            onToggleReducedMotion={() => setReducedMotion((current) => !current)}
+            onToggleHighContrast={handleToggleHighContrast}
+            onToggleReducedMotion={handleToggleReducedMotion}
             onOpenNotifications={() => setActiveView("notifications")}
             onOpenAnalytics={() => setActiveView("analytics")}
             onOpenAlertHistory={() => setActiveView("alert-history")}
@@ -1702,8 +1756,8 @@ export function LineWatchShell({
           onSignOut={handleSignOut}
           googleSignInAvailable={authConfig.googleSignInAvailable}
           onLinkGoogleAccount={openGoogleLinkDialog}
-          onToggleHighContrast={() => setHighContrast((current) => !current)}
-          onToggleReducedMotion={() => setReducedMotion((current) => !current)}
+          onToggleHighContrast={handleToggleHighContrast}
+          onToggleReducedMotion={handleToggleReducedMotion}
           onOpenNotifications={() => setActiveView("notifications")}
           onOpenAnalytics={() => setActiveView("analytics")}
           onOpenAlertHistory={() => setActiveView("alert-history")}
@@ -2229,7 +2283,7 @@ export function LineWatchShell({
                       role="menuitemcheckbox"
                       aria-checked={highContrast}
                       aria-label="Toggle high contrast mode"
-                      onClick={() => setHighContrast(!highContrast)}
+                      onClick={handleToggleHighContrast}
                       className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${highContrast ? 'bg-blue-500' : 'bg-slate-300 dark:bg-slate-600'}`}
                    >
                      <span className={`absolute left-1 top-1 h-3 w-3 transform rounded-full bg-white transition-transform ${highContrast ? 'translate-x-4' : 'translate-x-0'}`} />
@@ -2244,7 +2298,7 @@ export function LineWatchShell({
                       role="menuitemcheckbox"
                       aria-checked={reducedMotion}
                       aria-label="Toggle reduced motion"
-                      onClick={() => setReducedMotion(!reducedMotion)}
+                      onClick={handleToggleReducedMotion}
                       className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${reducedMotion ? 'bg-blue-500' : 'bg-slate-300 dark:bg-slate-600'}`}
                    >
                      <span className={`absolute left-1 top-1 h-3 w-3 transform rounded-full bg-white transition-transform ${reducedMotion ? 'translate-x-4' : 'translate-x-0'}`} />
@@ -2355,7 +2409,7 @@ export function LineWatchShell({
                      role="checkbox"
                      aria-checked={estimatedTrainsEnabled}
                      aria-label="Toggle estimated train markers"
-                     onClick={() => setEstimatedTrainsEnabled(!estimatedTrainsEnabled)}
+                     onClick={handleToggleEstimatedTrains}
                      className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors shrink-0 ${estimatedTrainsEnabled ? 'bg-emerald-600 dark:bg-emerald-500' : 'bg-slate-200 dark:bg-slate-800'}`}
                   >
                     <span className={`absolute left-1 top-1 h-3 w-3 transform rounded-full bg-white transition-transform ${estimatedTrainsEnabled ? 'translate-x-4' : 'translate-x-0'}`} />
@@ -2483,7 +2537,7 @@ export function LineWatchShell({
       {!showClosedScreen && (
         <button
           type="button"
-          onClick={() => setEstimatedTrainsEnabled(!estimatedTrainsEnabled)}
+          onClick={handleToggleEstimatedTrains}
           disabled={subwayOperatingState.status === "closed"}
           className={`mobile-train-toggle md:hidden ${
             (subwayOperatingState.closingSoon || (subwayOperatingState.status === "closed" && closedMapPeek))

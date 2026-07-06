@@ -6,8 +6,21 @@ public record WebPushPayload(
     String url,
     String tag,
     String state,
-    String timestamp
+    String timestamp,
+    String deliveryId,
+    String receiptToken
 ) {
+    public WebPushPayload(
+        String title,
+        String body,
+        String url,
+        String tag,
+        String state,
+        String timestamp
+    ) {
+        this(title, body, url, tag, state, timestamp, null, null);
+    }
+
     public static WebPushPayload fromEvent(PushNotificationEventEntity event) {
         return new WebPushPayload(
             event.getTitle(),
@@ -16,6 +29,24 @@ public record WebPushPayload(
             PushNotificationDisplayTags.forEvent(event),
             event.getNotificationState(),
             event.getCreatedAt().toString()
+        );
+    }
+
+    public static WebPushPayload fromDelivery(
+        PushNotificationEventEntity event,
+        String deliveryId,
+        PushSubscriptionEntity subscription,
+        PushReceiptTokenService receiptTokenService
+    ) {
+        return new WebPushPayload(
+            event.getTitle(),
+            event.getBody(),
+            event.getUrl(),
+            PushNotificationDisplayTags.forEvent(event),
+            event.getNotificationState(),
+            event.getCreatedAt().toString(),
+            deliveryId,
+            receiptTokenService.tokenFor(deliveryId, subscription, event)
         );
     }
 
@@ -31,6 +62,8 @@ public record WebPushPayload(
             + ",\"tag\":" + jsonString(tag)
             + ",\"state\":" + jsonString(state)
             + ",\"timestamp\":" + jsonString(timestamp)
+            + ",\"deliveryId\":" + jsonString(deliveryId)
+            + ",\"receiptToken\":" + jsonString(receiptToken)
             + "}";
     }
 

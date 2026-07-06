@@ -28,6 +28,7 @@ class PushNotificationServiceTest {
     private final LineSubscriptionPushPlanner lineSubscriptionPushPlanner = mock(LineSubscriptionPushPlanner.class);
     private final PushNotificationClientEventRepository clientEventRepository = mock(PushNotificationClientEventRepository.class);
     private final IngestionFreshness ingestionFreshness = mock(IngestionFreshness.class);
+    private final PushReceiptTokenService receiptTokenService = new PushReceiptTokenService(properties);
     private final Clock clock = Clock.fixed(Instant.parse("2026-06-05T15:00:00Z"), ZoneOffset.UTC);
     private final PushNotificationFormatter formatter = new PushNotificationFormatter();
     private final PushNotificationService service = new PushNotificationService(
@@ -40,6 +41,7 @@ class PushNotificationServiceTest {
         lineSubscriptionPushPlanner,
         clientEventRepository,
         ingestionFreshness,
+        receiptTokenService,
         clock
     );
 
@@ -55,6 +57,7 @@ class PushNotificationServiceTest {
     @BeforeEach
     void setUp() {
         properties.setClearedNotificationRetention(Duration.ofHours(4));
+        properties.setReceiptSigningSecret("test-receipt-secret");
         when(ingestionFreshness.isDashboardFresh()).thenReturn(true);
         when(deliveryRepository.findRecentlyDisplayedClearedNotificationKeys(
             anyString(),
@@ -313,6 +316,8 @@ class PushNotificationServiceTest {
         assertThat(response.notification().state()).isEqualTo("ACTIVE");
         assertThat(response.notification().body()).endsWith("🕗 Jun 5, 10:20 AM");
         assertThat(response.notification().timestamp()).isEqualTo("2026-06-05T15:00:00Z");
+        assertThat(response.notification().deliveryId()).isEqualTo("push_delivery_1");
+        assertThat(response.notification().receiptToken()).isNotBlank();
     }
 
     @Test
@@ -486,6 +491,81 @@ class PushNotificationServiceTest {
         );
 
         assertThat(delivery.getDisplayedAt()).isEqualTo(clock.instant());
+    }
+
+    @Test
+    void recordsSignedReceiptEventWithoutAccountSession() {
+        PushProperties tokenProperties = new PushProperties();
+        tokenProperties.setVapidPrivateKey("test-receipt-secret");
+        PushReceiptTokenService tokenService = new PushReceiptTokenService(tokenProperties);
+        PushNotificationService receiptService = new PushNotificationService(
+            properties,
+            subscriptionRepository,
+            deliveryRepository,
+            savedCommuteRepository,
+            planner,
+            preferenceService,
+            lineSubscriptionPushPlanner,
+            clientEventRepository,
+            ingestionFreshness,
+            tokenService,
+            clock
+        );
+        PushNotificationCandidate candidate = candidate(
+            null,
+            null,
+            "line-2",
+            "2",
+            "line-current",
+            "suspension",
+            "on-change",
+            "line-current|line-2|suspension|ttc-route-70610",
+            "user_1|line|line-2|suspension|on-change|ttc-route-70610",
+            "Broadview to St George",
+            null,
+            Instant.parse("2026-06-05T14:50:00Z"),
+            "/?panel=alerts&impactKind=suspension&impactId=ttc-route-70610"
+        );
+        PushNotificationEventEntity event = PushNotificationEventEntity.create("push_event_1", candidate, clock.instant());
+        PushSubscriptionEntity subscription = PushSubscriptionEntity.create(
+            "push_subscription_android",
+            account,
+            "https://fcm.googleapis.com/fcm/send/android",
+            "android-endpoint-hash",
+            "p256dh-key",
+            "auth-secret",
+            "Chrome Android Pixel 6a",
+            clock.instant()
+        );
+        PushNotificationDeliveryEntity delivery = PushNotificationDeliveryEntity.create(
+            "push_delivery_1",
+            event,
+            subscription,
+            PushDeliveryResult.accepted(202),
+            clock.instant()
+        );
+        when(deliveryRepository.findById("push_delivery_1")).thenReturn(Optional.of(delivery));
+        when(clientEventRepository.save(any(PushNotificationClientEventEntity.class)))
+            .thenAnswer(invocation -> invocation.getArgument(0));
+
+        receiptService.recordReceiptEvent(new PushRequests.ReceiptEventRequest(
+            "push_delivery_1",
+            tokenService.tokenFor(delivery),
+            "displayed_acknowledged",
+            null
+        ));
+
+        assertThat(delivery.getDisplayedAt()).isEqualTo(clock.instant());
+        org.mockito.ArgumentCaptor<PushNotificationClientEventEntity> eventCaptor =
+            org.mockito.ArgumentCaptor.forClass(PushNotificationClientEventEntity.class);
+        verify(clientEventRepository).save(eventCaptor.capture());
+        PushNotificationClientEventEntity saved = eventCaptor.getValue();
+        assertThat(saved.getAccountId()).isEqualTo("user_1");
+        assertThat(saved.getDelivery().getId()).isEqualTo("push_delivery_1");
+        assertThat(saved.getSubscription().getId()).isEqualTo("push_subscription_android");
+        assertThat(saved.getNotificationKey()).isEqualTo("line-current|line-2|suspension|ttc-route-70610");
+        assertThat(saved.getNotificationState()).isEqualTo("ACTIVE");
+        assertThat(saved.getStage()).isEqualTo("displayed_acknowledged");
     }
 
     @Test
