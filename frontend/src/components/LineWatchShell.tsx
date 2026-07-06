@@ -93,6 +93,7 @@ import { GoogleSignInButton } from "./GoogleSignInButton";
 import { accountOAuthErrorState } from "../app/account-oauth-error";
 import { normalizeAccountEmail, validateAccountCredentials } from "../app/account-validation";
 import { hasReleaseNotes } from "../app/release-notes";
+import { lineWatchAppVersionLabel } from "../app/app-build";
 
 
 type ActiveView = "map" | "menu" | "search" | "status" | "alerts" | "delays" | "reduced-speed-zones" | "closures" | "commutes" | "notifications" | "analytics" | "more" | "accessibility-outages" | "surface-notices" | "alert-history" | "feedback" | "privacy-acknowledgements" | "release-notes";
@@ -2298,6 +2299,11 @@ export function LineWatchShell({
                           <span className="text-xs font-medium text-slate-800 dark:text-slate-300 leading-tight mt-1">{health.value}</span>
                         </div>
                       ))}
+                    </div>
+                    <div className="mt-3 text-center">
+                       <span className="text-[10px] font-medium text-slate-400 dark:text-slate-500 select-none" aria-label={`App version ${lineWatchAppVersionLabel}`}>
+                         {lineWatchAppVersionLabel}
+                       </span>
                     </div>
                  </div>
                 </div>

@@ -260,4 +260,9 @@ describe("floating menu layout", () => {
     assert.match(globalCss, /#8B5CF6/);
     assert.match(globalCss, /#FACC15/);
   });
+
+  it("shows the app version label under the ingestion status tiles in the desktop menu", () => {
+    assert.match(shellSource, /lineWatchAppVersionLabel/);
+    assert.match(shellSource, /aria-label=\{\`App version \$\{lineWatchAppVersionLabel\}\`\}/);
+  });
 });
