@@ -33,6 +33,16 @@ class CommuteImpactServiceTest {
         assertThat(impact.statusLabel()).isEqualTo("Clear");
         assertThat(impact.detail()).isEqualTo("No active or planned LineWatch impacts match this route.");
         assertThat(impact.matchedImpacts()).isEmpty();
+        assertThat(impact.travelTimeEstimate()).satisfies(estimate -> {
+            assertThat(estimate.status()).isEqualTo("standard");
+            assertThat(estimate.baselineSeconds()).isEqualTo(300);
+            assertThat(estimate.estimatedLowSeconds()).isEqualTo(300);
+            assertThat(estimate.estimatedHighSeconds()).isEqualTo(300);
+            assertThat(estimate.extraLowSeconds()).isZero();
+            assertThat(estimate.extraHighSeconds()).isZero();
+            assertThat(estimate.confidence()).isEqualTo("high");
+            assertThat(estimate.summary()).isEqualTo("Typical commute: about 5 min. No extra time estimated.");
+        });
     }
 
     @Test
@@ -71,6 +81,59 @@ class CommuteImpactServiceTest {
             assertThat(match.description()).isEqualTo("Trains are delayed.");
             assertThat(match.matchedSegmentIds()).containsExactly("line-1-eglinton-davisville");
             assertThat(match.matchedStationIds()).isEmpty();
+        });
+        assertThat(impact.travelTimeEstimate()).satisfies(estimate -> {
+            assertThat(estimate.status()).isEqualTo("estimated");
+            assertThat(estimate.baselineSeconds()).isEqualTo(300);
+            assertThat(estimate.estimatedLowSeconds()).isEqualTo(480);
+            assertThat(estimate.estimatedHighSeconds()).isEqualTo(900);
+            assertThat(estimate.extraLowSeconds()).isEqualTo(180);
+            assertThat(estimate.extraHighSeconds()).isEqualTo(600);
+            assertThat(estimate.confidence()).isEqualTo("medium");
+            assertThat(estimate.summary()).isEqualTo("Typical commute: about 5 min. With current impacts: about 8-15 min. Extra time: +3-10 min.");
+        });
+    }
+
+    @Test
+    void activeSuspensionMarksTravelTimeEstimateAsUnreliable() {
+        when(dashboardService.activeAlerts()).thenReturn(List.of(new AlertDashboardService.ActiveAlertDto(
+            "suspension_1",
+            "line-1",
+            "1",
+            "No service",
+            "suspension",
+            "Eglinton to Davisville",
+            "Southbound",
+            "No subway service due to an emergency investigation.",
+            OffsetDateTime.parse("2026-06-06T12:15:00-04:00"),
+            OffsetDateTime.parse("2026-06-06T12:20:00-04:00"),
+            List.of("line-1-eglinton-davisville"),
+            true,
+            "TTC Live Alert",
+            "Emergency",
+            "Shuttle buses operate"
+        )));
+        when(dashboardService.delays()).thenReturn(List.of());
+        when(dashboardService.reducedSpeedZones()).thenReturn(List.of());
+        when(dashboardService.plannedClosures()).thenReturn(List.of());
+        when(dashboardService.activeStationNodeImpacts()).thenReturn(List.of());
+
+        CommuteResponses.ImpactResponse impact = service.impactFor(path(
+            List.of("eglinton", "davisville", "st-clair"),
+            List.of("line-1-eglinton-davisville", "line-1-davisville-st-clair")
+        ));
+
+        assertThat(impact.status()).isEqualTo("affected");
+        assertThat(impact.severity()).isEqualTo("suspended");
+        assertThat(impact.travelTimeEstimate()).satisfies(estimate -> {
+            assertThat(estimate.status()).isEqualTo("unreliable");
+            assertThat(estimate.baselineSeconds()).isEqualTo(300);
+            assertThat(estimate.estimatedLowSeconds()).isNull();
+            assertThat(estimate.estimatedHighSeconds()).isNull();
+            assertThat(estimate.extraLowSeconds()).isNull();
+            assertThat(estimate.extraHighSeconds()).isNull();
+            assertThat(estimate.confidence()).isEqualTo("low");
+            assertThat(estimate.summary()).isEqualTo("Typical commute: about 5 min. Major disruption on this route; travel time is not reliable.");
         });
     }
 
@@ -275,6 +338,16 @@ class CommuteImpactServiceTest {
         assertThat(impact.statusLabel()).isEqualTo("Route unavailable");
         assertThat(impact.detail()).isEqualTo("LineWatchTO could not compute a rapid-transit path for this saved commute.");
         assertThat(impact.matchedImpacts()).isEmpty();
+        assertThat(impact.travelTimeEstimate()).satisfies(estimate -> {
+            assertThat(estimate.status()).isEqualTo("unavailable");
+            assertThat(estimate.baselineSeconds()).isZero();
+            assertThat(estimate.estimatedLowSeconds()).isNull();
+            assertThat(estimate.estimatedHighSeconds()).isNull();
+            assertThat(estimate.extraLowSeconds()).isNull();
+            assertThat(estimate.extraHighSeconds()).isNull();
+            assertThat(estimate.confidence()).isEqualTo("none");
+            assertThat(estimate.summary()).isEqualTo("Travel time estimate unavailable because no route path could be computed.");
+        });
         verifyNoInteractions(dashboardService);
     }
 

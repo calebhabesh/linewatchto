@@ -301,6 +301,126 @@ class SavedCommutePushPlannerTest {
             .containsExactlyInAnyOrder("on-change", "closure-24h", "closure-morning");
     }
 
+    @Test
+    void keepsCurrentImpactCandidateButSuppressesDeliveryOutsideCommuteWindow() {
+        SavedCommuteEntity commute = SavedCommuteEntity.create(
+            "commute_4",
+            account,
+            "Evening commute",
+            "queen",
+            "bloor-yonge",
+            false,
+            Instant.parse("2026-06-05T14:30:00Z")
+        );
+        commute.updateNotificationRule(
+            true,
+            62,
+            16 * 60 + 30,
+            17 * 60 + 30,
+            null,
+            null,
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            Instant.parse("2026-06-05T14:31:00Z")
+        );
+        CommuteResponses.PathResponse outboundPath = path("queen", "bloor-yonge", "line-1-queen-bloor-yonge");
+        when(commutePathService.path("queen", "bloor-yonge")).thenReturn(outboundPath);
+        when(commuteImpactService.impactFor(outboundPath)).thenReturn(impactWith(currentDelay("delay-line-1", "line-1-queen-bloor-yonge")));
+
+        List<PushNotificationCandidate> candidates = planner.candidatesFor(commute);
+
+        assertThat(candidates).singleElement().satisfies(candidate -> {
+            assertThat(candidate.notificationKey()).isEqualTo("saved-commute-current|commute_4|outbound|delay|delay-line-1");
+            assertThat(candidate.deliveryAllowed()).isFalse();
+        });
+    }
+
+    @Test
+    void monitoredSectionSuppressesDeliveryForRouteImpactOutsideSelectedSection() {
+        SavedCommuteEntity commute = SavedCommuteEntity.create(
+            "commute_5",
+            account,
+            "Short section",
+            "queen",
+            "union",
+            false,
+            Instant.parse("2026-06-05T14:30:00Z")
+        );
+        commute.updateNotificationRule(
+            true,
+            127,
+            null,
+            null,
+            "queen",
+            "king",
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            Instant.parse("2026-06-05T14:31:00Z")
+        );
+        CommuteResponses.PathResponse outboundPath = pathWithStations(
+            List.of("queen", "king", "union"),
+            List.of("line-1-queen-king", "line-1-king-union")
+        );
+        when(commutePathService.path("queen", "union")).thenReturn(outboundPath);
+        when(commuteImpactService.impactFor(outboundPath)).thenReturn(impactWith(currentDelay("delay-line-1", "line-1-king-union")));
+
+        List<PushNotificationCandidate> candidates = planner.candidatesFor(commute);
+
+        assertThat(candidates).singleElement().satisfies(candidate -> {
+            assertThat(candidate.notificationKey()).isEqualTo("saved-commute-current|commute_5|outbound|delay|delay-line-1");
+            assertThat(candidate.deliveryAllowed()).isFalse();
+        });
+    }
+
+    @Test
+    void disabledSavedCommuteEventTypeSuppressesDeliveryButKeepsRouteVisibleCandidate() {
+        SavedCommuteEntity commute = SavedCommuteEntity.create(
+            "commute_6",
+            account,
+            "No delays",
+            "finch",
+            "union",
+            false,
+            Instant.parse("2026-06-05T14:30:00Z")
+        );
+        commute.updateNotificationRule(
+            true,
+            127,
+            null,
+            null,
+            null,
+            null,
+            true,
+            true,
+            true,
+            false,
+            true,
+            true,
+            true,
+            Instant.parse("2026-06-05T14:31:00Z")
+        );
+        CommuteResponses.PathResponse outboundPath = path("finch", "union", "line-1-finch-union");
+        when(commutePathService.path("finch", "union")).thenReturn(outboundPath);
+        when(commuteImpactService.impactFor(outboundPath)).thenReturn(impactWith(currentDelay("delay-line-1", "line-1-finch-union")));
+
+        List<PushNotificationCandidate> candidates = planner.candidatesFor(commute);
+
+        assertThat(candidates).singleElement().satisfies(candidate -> {
+            assertThat(candidate.eventType()).isEqualTo("delay");
+            assertThat(candidate.deliveryAllowed()).isFalse();
+        });
+    }
+
     private CommuteResponses.PathResponse path(String fromStationId, String toStationId, String segmentId) {
         return new CommuteResponses.PathResponse(
             "available",
@@ -312,6 +432,46 @@ class SavedCommutePushPlannerTest {
             300,
             "gtfs-scheduled-median",
             "Default scheduled route: 2 stations on Line 1, about 5 min"
+        );
+    }
+
+    private CommuteResponses.PathResponse pathWithStations(List<String> stationIds, List<String> segmentIds) {
+        return new CommuteResponses.PathResponse(
+            "available",
+            stationIds,
+            segmentIds,
+            List.of(
+                new CommuteResponses.PathSegmentHopResponse(segmentIds.get(0), "line-1", stationIds.get(0), stationIds.get(1), "forward"),
+                new CommuteResponses.PathSegmentHopResponse(segmentIds.get(1), "line-1", stationIds.get(1), stationIds.get(2), "forward")
+            ),
+            List.of("line-1"),
+            List.of(),
+            420,
+            "gtfs-scheduled-median",
+            "Default scheduled route: 3 stations on Line 1, about 7 min"
+        );
+    }
+
+    private CommuteResponses.MatchedImpactResponse currentDelay(String id, String segmentId) {
+        return new CommuteResponses.MatchedImpactResponse(
+            id,
+            "delay",
+            "current",
+            "minor",
+            "Delay",
+            "line-1",
+            "1",
+            "Queen to Union",
+            "Southbound",
+            "Line 1 Yonge-University: Delays southbound.",
+            "TTC Live Alerts",
+            List.of(segmentId),
+            List.of(),
+            OffsetDateTime.parse("2026-06-05T10:20:00-04:00"),
+            OffsetDateTime.parse("2026-06-05T10:25:00-04:00"),
+            null,
+            "active-now",
+            OffsetDateTime.parse("2026-06-05T10:20:00-04:00")
         );
     }
 

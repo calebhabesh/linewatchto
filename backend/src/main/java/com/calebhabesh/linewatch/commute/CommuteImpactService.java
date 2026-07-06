@@ -13,6 +13,12 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class CommuteImpactService {
+    private static final int DELAY_LOW_MIN_SECONDS = 180;
+    private static final int DELAY_HIGH_MIN_SECONDS = 600;
+    private static final int REDUCED_SPEED_LOW_MIN_SECONDS = 60;
+    private static final int REDUCED_SPEED_HIGH_MIN_SECONDS = 180;
+    private static final int MAX_EXTRA_SECONDS = 3600;
+
     private final AlertDashboardService dashboardService;
 
     public CommuteImpactService(AlertDashboardService dashboardService) {
@@ -26,7 +32,8 @@ public class CommuteImpactService {
                 "unavailable",
                 "Route unavailable",
                 "LineWatchTO could not compute a rapid-transit path for this saved commute.",
-                List.of()
+                List.of(),
+                unavailableTravelTimeEstimate()
             );
         }
 
@@ -127,7 +134,7 @@ public class CommuteImpactService {
                 .thenComparing(CommuteResponses.MatchedImpactResponse::id))
             .toList();
 
-        return responseFor(matches);
+        return responseFor(path, matches);
     }
 
     private Map<String, List<AlertDashboardService.SegmentImpact>> activeSegmentImpacts() {
@@ -249,14 +256,18 @@ public class CommuteImpactService {
         matchesByIdentity.putIfAbsent(match.kind() + "|" + match.id(), match);
     }
 
-    private CommuteResponses.ImpactResponse responseFor(List<CommuteResponses.MatchedImpactResponse> matches) {
+    private CommuteResponses.ImpactResponse responseFor(
+        CommuteResponses.PathResponse path,
+        List<CommuteResponses.MatchedImpactResponse> matches
+    ) {
         if (matches.isEmpty()) {
             return new CommuteResponses.ImpactResponse(
                 "clear",
                 "clear",
                 "Clear",
                 "No active or planned LineWatch impacts match this route.",
-                List.of()
+                List.of(),
+                standardTravelTimeEstimate(path)
             );
         }
         boolean hasCurrent = matches.stream().anyMatch(match -> "current".equals(match.status()));
@@ -269,8 +280,183 @@ public class CommuteImpactService {
             topSeverity,
             hasCurrent ? "Affected now" : "Planned impact",
             detail(matches, hasCurrent),
-            matches
+            matches,
+            travelTimeEstimate(path, matches)
         );
+    }
+
+    private CommuteResponses.TravelTimeEstimateResponse travelTimeEstimate(
+        CommuteResponses.PathResponse path,
+        List<CommuteResponses.MatchedImpactResponse> matches
+    ) {
+        int baselineSeconds = Math.max(0, path.estimatedTravelSeconds());
+        if (hasUnreliableTravelTimeImpact(matches)) {
+            return new CommuteResponses.TravelTimeEstimateResponse(
+                "unreliable",
+                baselineSeconds,
+                null,
+                null,
+                null,
+                null,
+                "low",
+                "Typical commute: " + durationLabel(baselineSeconds) + ". Major disruption on this route; travel time is not reliable."
+            );
+        }
+
+        int extraLowSeconds = 0;
+        int extraHighSeconds = 0;
+        for (CommuteResponses.MatchedImpactResponse match : matches) {
+            if (!"current".equals(match.status())) {
+                continue;
+            }
+            int affectedSeconds = affectedPathSeconds(path, match);
+            switch (match.kind()) {
+                case "delay" -> {
+                    extraLowSeconds += Math.max(DELAY_LOW_MIN_SECONDS, roundToMinute(affectedSeconds));
+                    extraHighSeconds += Math.max(DELAY_HIGH_MIN_SECONDS, roundToMinute(affectedSeconds * 2));
+                }
+                case "reduced-speed-zone" -> {
+                    extraLowSeconds += Math.max(REDUCED_SPEED_LOW_MIN_SECONDS, roundToMinute(affectedSeconds / 2));
+                    extraHighSeconds += Math.max(REDUCED_SPEED_HIGH_MIN_SECONDS, roundToMinute(affectedSeconds));
+                }
+                default -> {
+                    extraLowSeconds += Math.max(DELAY_LOW_MIN_SECONDS, roundToMinute(affectedSeconds));
+                    extraHighSeconds += Math.max(DELAY_HIGH_MIN_SECONDS, roundToMinute(affectedSeconds * 2));
+                }
+            }
+        }
+
+        extraLowSeconds = Math.min(extraLowSeconds, MAX_EXTRA_SECONDS);
+        extraHighSeconds = Math.min(Math.max(extraHighSeconds, extraLowSeconds), MAX_EXTRA_SECONDS);
+
+        if (extraHighSeconds <= 0) {
+            return standardTravelTimeEstimate(path);
+        }
+
+        int estimatedLowSeconds = baselineSeconds + extraLowSeconds;
+        int estimatedHighSeconds = baselineSeconds + extraHighSeconds;
+        return new CommuteResponses.TravelTimeEstimateResponse(
+            "estimated",
+            baselineSeconds,
+            estimatedLowSeconds,
+            estimatedHighSeconds,
+            extraLowSeconds,
+            extraHighSeconds,
+            matches.size() == 1 ? "medium" : "low",
+            "Typical commute: " + durationLabel(baselineSeconds)
+                + ". With current impacts: " + durationRangeLabel(estimatedLowSeconds, estimatedHighSeconds)
+                + ". Extra time: " + extraRangeLabel(extraLowSeconds, extraHighSeconds) + "."
+        );
+    }
+
+    private boolean hasUnreliableTravelTimeImpact(List<CommuteResponses.MatchedImpactResponse> matches) {
+        boolean hasCurrentEstimateableImpact = matches.stream().anyMatch(match ->
+            "current".equals(match.status())
+                && ("delay".equals(match.kind()) || "reduced-speed-zone".equals(match.kind()))
+        );
+        return matches.stream().anyMatch(match ->
+            "current".equals(match.status())
+                && ("suspension".equals(match.kind()) || "planned-closure".equals(match.kind()))
+        ) || (!hasCurrentEstimateableImpact && matches.stream().anyMatch(match ->
+            "suspension".equals(match.kind()) || "planned-closure".equals(match.kind())
+        ));
+    }
+
+    private CommuteResponses.TravelTimeEstimateResponse standardTravelTimeEstimate(CommuteResponses.PathResponse path) {
+        int baselineSeconds = Math.max(0, path.estimatedTravelSeconds());
+        return new CommuteResponses.TravelTimeEstimateResponse(
+            "standard",
+            baselineSeconds,
+            baselineSeconds,
+            baselineSeconds,
+            0,
+            0,
+            "high",
+            "Typical commute: " + durationLabel(baselineSeconds) + ". No extra time estimated."
+        );
+    }
+
+    private CommuteResponses.TravelTimeEstimateResponse unavailableTravelTimeEstimate() {
+        return new CommuteResponses.TravelTimeEstimateResponse(
+            "unavailable",
+            0,
+            null,
+            null,
+            null,
+            null,
+            "none",
+            "Travel time estimate unavailable because no route path could be computed."
+        );
+    }
+
+    private int affectedPathSeconds(
+        CommuteResponses.PathResponse path,
+        CommuteResponses.MatchedImpactResponse match
+    ) {
+        int baselineSeconds = Math.max(0, path.estimatedTravelSeconds());
+        if (baselineSeconds <= 0) {
+            return 0;
+        }
+
+        int routeSegmentCount = Math.max(1, path.segmentIds().size());
+        long matchedSegmentCount = match.matchedSegmentIds() == null
+            ? 0
+            : match.matchedSegmentIds().stream()
+                .filter(path.segmentIds()::contains)
+                .distinct()
+                .count();
+        if (matchedSegmentCount > 0) {
+            return Math.max(60, Math.round(baselineSeconds * (float) matchedSegmentCount / routeSegmentCount));
+        }
+
+        int routeStationCount = Math.max(1, path.stationIds().size());
+        long matchedStationCount = match.matchedStationIds() == null
+            ? 0
+            : match.matchedStationIds().stream()
+                .filter(path.stationIds()::contains)
+                .distinct()
+                .count();
+        if (matchedStationCount > 0) {
+            return Math.max(60, Math.round(baselineSeconds * (float) matchedStationCount / routeStationCount));
+        }
+
+        return Math.max(60, Math.round(baselineSeconds / (float) routeSegmentCount));
+    }
+
+    private int roundToMinute(int seconds) {
+        if (seconds <= 0) {
+            return 0;
+        }
+        return Math.max(60, Math.round(seconds / 60.0f) * 60);
+    }
+
+    private String durationLabel(int seconds) {
+        return "about " + minutes(seconds) + " min";
+    }
+
+    private String durationRangeLabel(int lowSeconds, int highSeconds) {
+        int lowMinutes = minutes(lowSeconds);
+        int highMinutes = minutes(highSeconds);
+        if (lowMinutes == highMinutes) {
+            return "about " + lowMinutes + " min";
+        }
+        return "about " + lowMinutes + "-" + highMinutes + " min";
+    }
+
+    private String extraRangeLabel(int lowSeconds, int highSeconds) {
+        int lowMinutes = minutes(lowSeconds);
+        int highMinutes = minutes(highSeconds);
+        if (lowMinutes == highMinutes) {
+            return "+" + lowMinutes + " min";
+        }
+        return "+" + lowMinutes + "-" + highMinutes + " min";
+    }
+
+    private int minutes(int seconds) {
+        if (seconds <= 0) {
+            return 0;
+        }
+        return Math.max(1, Math.round(seconds / 60.0f));
     }
 
     private String detail(List<CommuteResponses.MatchedImpactResponse> matches, boolean hasCurrent) {

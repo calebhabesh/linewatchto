@@ -24,6 +24,32 @@ public class SavedCommuteEntity {
     private String destinationStationId;
     @Column(name = "watch_return_trip")
     private boolean watchReturnTrip = true;
+    @Column(name = "notification_enabled")
+    private boolean notificationEnabled = true;
+    @Column(name = "notification_day_mask")
+    private int notificationDayMask = 127;
+    @Column(name = "notification_start_minute")
+    private Integer notificationStartMinute;
+    @Column(name = "notification_end_minute")
+    private Integer notificationEndMinute;
+    @Column(name = "notification_section_start_station_id")
+    private String notificationSectionStartStationId;
+    @Column(name = "notification_section_end_station_id")
+    private String notificationSectionEndStationId;
+    @Column(name = "notification_outbound_enabled")
+    private boolean notificationOutboundEnabled = true;
+    @Column(name = "notification_return_enabled")
+    private boolean notificationReturnEnabled = true;
+    @Column(name = "notification_suspension_enabled")
+    private boolean notificationSuspensionEnabled = true;
+    @Column(name = "notification_delay_enabled")
+    private boolean notificationDelayEnabled = true;
+    @Column(name = "notification_reduced_speed_zone_enabled")
+    private boolean notificationReducedSpeedZoneEnabled = true;
+    @Column(name = "notification_planned_closure_enabled")
+    private boolean notificationPlannedClosureEnabled = true;
+    @Column(name = "notification_restored_enabled")
+    private boolean notificationRestoredEnabled = true;
     @Column(name = "created_at")
     private Instant createdAt;
     @Column(name = "updated_at")
@@ -72,6 +98,51 @@ public class SavedCommuteEntity {
     public String getOriginStationId() { return originStationId; }
     public String getDestinationStationId() { return destinationStationId; }
     public boolean isWatchReturnTrip() { return watchReturnTrip; }
+    public boolean isNotificationEnabled() { return notificationEnabled; }
+    public int getNotificationDayMask() { return notificationDayMask; }
+    public Integer getNotificationStartMinute() { return notificationStartMinute; }
+    public Integer getNotificationEndMinute() { return notificationEndMinute; }
+    public String getNotificationSectionStartStationId() { return notificationSectionStartStationId; }
+    public String getNotificationSectionEndStationId() { return notificationSectionEndStationId; }
+    public boolean isNotificationOutboundEnabled() { return notificationOutboundEnabled; }
+    public boolean isNotificationReturnEnabled() { return notificationReturnEnabled; }
+    public boolean isNotificationSuspensionEnabled() { return notificationSuspensionEnabled; }
+    public boolean isNotificationDelayEnabled() { return notificationDelayEnabled; }
+    public boolean isNotificationReducedSpeedZoneEnabled() { return notificationReducedSpeedZoneEnabled; }
+    public boolean isNotificationPlannedClosureEnabled() { return notificationPlannedClosureEnabled; }
+    public boolean isNotificationRestoredEnabled() { return notificationRestoredEnabled; }
     public Instant getCreatedAt() { return createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }
+
+    public void updateNotificationRule(
+        boolean enabled,
+        int dayMask,
+        Integer startMinute,
+        Integer endMinute,
+        String sectionStartStationId,
+        String sectionEndStationId,
+        boolean outboundEnabled,
+        boolean returnEnabled,
+        boolean suspensionEnabled,
+        boolean delayEnabled,
+        boolean reducedSpeedZoneEnabled,
+        boolean plannedClosureEnabled,
+        boolean restoredEnabled,
+        Instant now
+    ) {
+        this.notificationEnabled = enabled;
+        this.notificationDayMask = dayMask;
+        this.notificationStartMinute = startMinute;
+        this.notificationEndMinute = endMinute;
+        this.notificationSectionStartStationId = sectionStartStationId;
+        this.notificationSectionEndStationId = sectionEndStationId;
+        this.notificationOutboundEnabled = outboundEnabled;
+        this.notificationReturnEnabled = returnEnabled;
+        this.notificationSuspensionEnabled = suspensionEnabled;
+        this.notificationDelayEnabled = delayEnabled;
+        this.notificationReducedSpeedZoneEnabled = reducedSpeedZoneEnabled;
+        this.notificationPlannedClosureEnabled = plannedClosureEnabled;
+        this.notificationRestoredEnabled = restoredEnabled;
+        this.updatedAt = now;
+    }
 }

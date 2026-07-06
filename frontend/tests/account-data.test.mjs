@@ -23,6 +23,7 @@ import {
   registerAccount,
   requestPasswordReset,
   savePushSubscription,
+  updateSavedCommuteNotificationRule,
   updatePushPreferences,
 } from "../src/app/account-data.ts";
 
@@ -47,6 +48,18 @@ describe("account data adapter", () => {
     assert.match(source, /legId: AccountCommuteLegId/);
     assert.match(source, /commutePathPreviewFromCommute\(commute: AccountSavedCommute, legId/);
     assert.match(source, /segmentIds: leg\.path\.segmentIds/);
+    assert.match(source, /export type AccountCommuteTravelTimeEstimate/);
+    assert.match(source, /status: "standard" \| "estimated" \| "unreliable" \| "unavailable"/);
+    assert.match(source, /baselineSeconds: number/);
+    assert.match(source, /estimatedLowSeconds:\s*number \| null/);
+    assert.match(source, /extraHighSeconds:\s*number \| null/);
+    assert.match(source, /travelTimeEstimate\?: AccountCommuteTravelTimeEstimate \| null/);
+    assert.match(source, /export type AccountSavedCommuteNotificationRule/);
+    assert.match(source, /dayMask: number/);
+    assert.match(source, /startMinute: number \| null/);
+    assert.match(source, /sectionStartStationId: string \| null/);
+    assert.match(source, /notificationRule: AccountSavedCommuteNotificationRule/);
+    assert.match(source, /updateSavedCommuteNotificationRule/);
   });
 
   it("maps signed-out current account responses", async () => {
@@ -298,6 +311,106 @@ describe("account data adapter", () => {
     assert.equal(requests[0].init.credentials, "include");
     assert.equal(requests[1].init.method, "POST");
     assert.equal(requests[1].init.credentials, "include");
+  });
+
+  it("posts saved commute notification rules on create and update", async () => {
+    const requests = [];
+    const notificationRule = {
+      enabled: true,
+      dayMask: 62,
+      startMinute: 990,
+      endMinute: 1050,
+      sectionStartStationId: "queen",
+      sectionEndStationId: "bloor-yonge",
+      outboundEnabled: true,
+      returnEnabled: false,
+      eventTypes: {
+        suspensions: true,
+        delays: true,
+        reducedSpeedZones: false,
+        plannedClosures: true,
+        serviceRestored: true,
+      },
+    };
+    const commuteResponse = {
+      id: "commute_1",
+      label: "Evening commute",
+      originStationId: "queen",
+      originStationName: "Queen",
+      destinationStationId: "bloor-yonge",
+      destinationStationName: "Bloor-Yonge",
+      routeLabel: "Queen -> Bloor-Yonge",
+      watchReturnTrip: false,
+      outboundLeg: null,
+      returnLeg: null,
+      path: {
+        status: "available",
+        stationIds: ["queen", "bloor-yonge"],
+        segmentIds: ["line-1-queen-bloor-yonge"],
+        segmentHops: [],
+        lineIds: ["line-1"],
+        transferStationIds: [],
+        estimatedTravelSeconds: 300,
+        weightSource: "gtfs-scheduled-median",
+        summary: "Default scheduled route: 2 stations on Line 1, about 5 min",
+      },
+      impact: {
+        status: "clear",
+        severity: "clear",
+        statusLabel: "Clear",
+        detail: "No active or planned LineWatch impacts match this route.",
+        matchedImpacts: [],
+      },
+      notificationRule,
+      createdAt: "2026-06-05T14:30:00Z",
+      updatedAt: "2026-06-05T14:30:00Z",
+    };
+
+    await createSavedCommute(
+      {
+        label: "Evening commute",
+        originStationId: "queen",
+        destinationStationId: "bloor-yonge",
+        watchReturnTrip: false,
+        notificationRule,
+      },
+      {
+        fetcher: async (input, init) => {
+          requests.push({ input, init });
+          return new Response(JSON.stringify(commuteResponse), {
+            status: 201,
+            headers: { "content-type": "application/json" },
+          });
+        },
+      }
+    );
+
+    await updateSavedCommuteNotificationRule(
+      "commute_1",
+      notificationRule,
+      {
+        fetcher: async (input, init) => {
+          requests.push({ input, init });
+          return new Response(JSON.stringify(commuteResponse), {
+            status: 200,
+            headers: { "content-type": "application/json" },
+          });
+        },
+      }
+    );
+
+    assert.equal(requests[0].input, "/api/account/commutes");
+    assert.equal(requests[0].init.method, "POST");
+    assert.deepEqual(JSON.parse(requests[0].init.body), {
+      label: "Evening commute",
+      originStationId: "queen",
+      destinationStationId: "bloor-yonge",
+      watchReturnTrip: false,
+      notificationRule,
+    });
+    assert.equal(requests[1].input, "/api/account/commutes/commute_1/notification-rule");
+    assert.equal(requests[1].init.method, "PATCH");
+    assert.deepEqual(JSON.parse(requests[1].init.body), notificationRule);
   });
 
   it("requests password reset with credentials included", async () => {

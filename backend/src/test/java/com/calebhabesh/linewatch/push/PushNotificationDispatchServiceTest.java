@@ -526,6 +526,52 @@ class PushNotificationDispatchServiceTest {
     }
 
     @Test
+    void routeVisibleButRuleSuppressedSavedCommuteCandidateDoesNotSendOrCreateFalseClearance() {
+        PushNotificationPreferenceEntity preferences = PushNotificationPreferenceEntity.create(account, clock.instant());
+        when(preferenceService.preferenceEntityForAccountId("user_1")).thenReturn(preferences);
+        when(preferenceService.allows(any(), any())).thenReturn(true);
+        when(preferenceService.subscribedLineIds("user_1")).thenReturn(List.of());
+        when(lineSubscriptionPushPlanner.candidatesFor(anyString(), anyList())).thenReturn(List.of());
+        when(subscriptionRepository.findEnabledAccountIds()).thenReturn(List.of("user_1"));
+
+        SavedCommuteEntity commute = SavedCommuteEntity.create("commute_1", account, "Work", "queen", "bloor-yonge", false, clock.instant());
+        when(savedCommuteRepository.findByAccountIdOrderByCreatedAtAsc("user_1")).thenReturn(List.of(commute));
+
+        PushNotificationCandidate visibleButSuppressed = candidate(
+            "commute_1",
+            "outbound",
+            "line-1",
+            "1",
+            "saved-commute-current",
+            "delay",
+            "on-change",
+            "saved-commute-current|commute_1|outbound|delay|delay-line-1",
+            "dedupe-1",
+            "Queen to Bloor-Yonge",
+            "Work",
+            clock.instant(),
+            "/?panel=commutes",
+            false
+        );
+        PushNotificationEventEntity existingActive = PushNotificationEventEntity.create(
+            "push_event_active",
+            visibleButSuppressed,
+            clock.instant().minusSeconds(300)
+        );
+        when(planner.candidatesFor(commute)).thenReturn(List.of(visibleButSuppressed));
+        when(eventRepository.findByAccountIdAndCategoryInAndNotificationState(
+            eq("user_1"),
+            eq(List.of("saved-commute-current", "saved-commute-impact")),
+            eq("ACTIVE")
+        )).thenReturn(List.of(existingActive));
+
+        service.evaluateSavedCommuteNotifications();
+
+        verify(eventRepository, never()).save(any(PushNotificationEventEntity.class));
+        verify(webPushClient, never()).send(any(), anyString(), any(WebPushPayload.class));
+    }
+
+    @Test
     void disablingSavedCommuteServiceRestoredSuppressesSavedCommuteClearedNotifications() {
         PushNotificationPreferenceEntity preferences = PushNotificationPreferenceEntity.create(account, clock.instant());
         PushNotificationPreferenceEntity spyPrefs = spy(preferences);
@@ -1710,10 +1756,81 @@ class PushNotificationDispatchServiceTest {
         String notificationKey,
         String dedupeKey,
         String location,
+        String commuteLabel,
+        Instant sourceEventAt,
+        String url,
+        boolean deliveryAllowed
+    ) {
+        return candidate(
+            commuteId,
+            legId,
+            lineId,
+            lineNumber,
+            category,
+            eventType,
+            reminderBucket,
+            notificationKey,
+            dedupeKey,
+            location,
+            null,
+            commuteLabel,
+            sourceEventAt,
+            url,
+            deliveryAllowed
+        );
+    }
+
+    private PushNotificationCandidate candidate(
+        String commuteId,
+        String legId,
+        String lineId,
+        String lineNumber,
+        String category,
+        String eventType,
+        String reminderBucket,
+        String notificationKey,
+        String dedupeKey,
+        String location,
         String displayDirection,
         String commuteLabel,
         Instant sourceEventAt,
         String url
+    ) {
+        return candidate(
+            commuteId,
+            legId,
+            lineId,
+            lineNumber,
+            category,
+            eventType,
+            reminderBucket,
+            notificationKey,
+            dedupeKey,
+            location,
+            displayDirection,
+            commuteLabel,
+            sourceEventAt,
+            url,
+            true
+        );
+    }
+
+    private PushNotificationCandidate candidate(
+        String commuteId,
+        String legId,
+        String lineId,
+        String lineNumber,
+        String category,
+        String eventType,
+        String reminderBucket,
+        String notificationKey,
+        String dedupeKey,
+        String location,
+        String displayDirection,
+        String commuteLabel,
+        Instant sourceEventAt,
+        String url,
+        boolean deliveryAllowed
     ) {
         FormattedPushNotification notification = formatter.formatActive(new PushNotificationFacts(
             lineId,
@@ -1740,7 +1857,8 @@ class PushNotificationDispatchServiceTest {
             notificationKey,
             dedupeKey,
             notification,
-            url
+            url,
+            deliveryAllowed
         );
     }
 

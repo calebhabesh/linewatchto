@@ -912,6 +912,11 @@ test("demo account shows account-backed saved commutes", async ({ page, request,
   await expect(page.getByText("Default Scheduled Route - To Union")).toBeVisible();
   await expect(page.getByText("5 Stations", { exact: true })).toBeVisible();
   await expect(page.getByText("About 13 Minutes", { exact: true })).toBeVisible();
+  await expect(page.getByText("Travel Time", { exact: true })).toBeVisible();
+  await expect(page.getByText("Major disruption on this route; travel time is not reliable.")).toBeVisible();
+  await expect(page.getByText("Route Notifications: On", { exact: true })).toBeVisible();
+  await expect(page.getByText("Any Day - All Day - Whole Route", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Edit Alerts" })).toBeVisible();
   await expect(page.getByText("Outbound Affected", { exact: true })).toBeVisible();
   await expect(page.getByRole("tab", { name: "To Union" })).toHaveAttribute("aria-selected", "true");
   await expect(page.getByRole("tab", { name: "To Stub Station" })).toBeVisible();
@@ -923,6 +928,7 @@ test("demo account shows account-backed saved commutes", async ({ page, request,
 
   await page.getByRole("tab", { name: "To Stub Station" }).click();
   await expect(page.getByText("Default Scheduled Route - To Stub Station")).toBeVisible();
+  await expect(page.getByText("No extra time", { exact: true })).toBeVisible();
   await expect(page.getByText("Clear", { exact: true })).toBeVisible();
   await expect(page.getByText("Affected Now", { exact: true })).not.toBeVisible();
   await expect(page.getByText("Suspension", { exact: true })).not.toBeVisible();

@@ -121,6 +121,16 @@ public class PushNotificationDispatchService {
                 .filter(candidate -> preferenceService.allows(preferences, candidate))
                 .toList();
 
+            List<String> savedCurrentCategories = List.of("saved-commute-current", "saved-commute-impact");
+            Set<String> savedCurrentNotificationKeys = new java.util.HashSet<>();
+            Set<String> savedCurrentSourceIncidentKeys = new java.util.HashSet<>();
+            for (PushNotificationCandidate candidate : savedCommuteCandidates) {
+                if (savedCurrentCategories.contains(candidate.category())) {
+                    savedCurrentNotificationKeys.add(candidate.notificationKey());
+                    savedCurrentSourceIncidentKeys.add(candidate.sourceIncidentKey());
+                }
+            }
+
             List<PushNotificationCandidate> sendableCandidates = new java.util.ArrayList<>();
             Set<String> currentLineNotificationKeys = new java.util.HashSet<>();
             Set<String> currentLineSourceIncidentKeys = new java.util.HashSet<>();
@@ -133,23 +143,15 @@ public class PushNotificationDispatchService {
                     currentLineCandidates.add(candidate);
                     PushLineEventObservationService.ObservationDecision decision =
                         lineEventObservationService.observe(candidate, preferences, clock.instant());
-                    if (decision.shouldSendActive()) {
+                    if (decision.shouldSendActive() && candidate.deliveryAllowed()) {
                         sendableCandidates.add(candidate);
                     }
-                } else {
+                } else if (candidate.deliveryAllowed()) {
                     sendableCandidates.add(candidate);
                 }
             }
 
-            List<String> savedCurrentCategories = List.of("saved-commute-current", "saved-commute-impact");
-            Set<String> savedCurrentNotificationKeys = new java.util.HashSet<>();
-            Set<String> savedCurrentSourceIncidentKeys = new java.util.HashSet<>();
-
             for (PushNotificationCandidate candidate : sendableCandidates) {
-                if (savedCurrentCategories.contains(candidate.category())) {
-                    savedCurrentNotificationKeys.add(candidate.notificationKey());
-                    savedCurrentSourceIncidentKeys.add(candidate.sourceIncidentKey());
-                }
                 sendIfNew(candidate);
             }
 

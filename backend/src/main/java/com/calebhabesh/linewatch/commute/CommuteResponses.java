@@ -35,7 +35,29 @@ public final class CommuteResponses {
         String severity,
         String statusLabel,
         String detail,
-        List<MatchedImpactResponse> matchedImpacts
+        List<MatchedImpactResponse> matchedImpacts,
+        TravelTimeEstimateResponse travelTimeEstimate
+    ) {
+        public ImpactResponse(
+            String status,
+            String severity,
+            String statusLabel,
+            String detail,
+            List<MatchedImpactResponse> matchedImpacts
+        ) {
+            this(status, severity, statusLabel, detail, matchedImpacts, null);
+        }
+    }
+
+    public record TravelTimeEstimateResponse(
+        String status,
+        int baselineSeconds,
+        Integer estimatedLowSeconds,
+        Integer estimatedHighSeconds,
+        Integer extraLowSeconds,
+        Integer extraHighSeconds,
+        String confidence,
+        String summary
     ) {}
 
     public record CommuteLegResponse(

@@ -82,6 +82,37 @@ describe("account UI source", () => {
     assert.match(savedCommutesSource, /View path on map/);
   });
 
+  it("renders saved commute extra-time estimates without claiming precision for major disruptions", () => {
+    assert.match(savedCommutesSource, /travelTimeEstimate/);
+    assert.match(savedCommutesSource, /function formatEstimateMinutes/);
+    assert.match(savedCommutesSource, /function TravelTimeEstimateBlock/);
+    assert.match(savedCommutesSource, /saved-commute-time-estimate/);
+    assert.match(savedCommutesSource, /Travel Time/);
+    assert.match(savedCommutesSource, /With Impacts/);
+    assert.match(savedCommutesSource, /Extra Time/);
+    assert.match(savedCommutesSource, /Confidence/);
+    assert.match(savedCommutesSource, /Major disruption/);
+    assert.match(globalCss, /\.saved-commute-time-estimate/);
+    assert.match(globalCss, /\.saved-commute-time-estimate\.unreliable/);
+  });
+
+  it("renders saved-commute granular notification controls inside the commute feature", () => {
+    assert.match(savedCommutesSource, /updateSavedCommuteNotificationRule/);
+    assert.match(savedCommutesSource, /Notify Me For This Route/);
+    assert.match(savedCommutesSource, /Notification Days/);
+    assert.match(savedCommutesSource, /Notification Window/);
+    assert.match(savedCommutesSource, /Whole Route/);
+    assert.match(savedCommutesSource, /Mon/);
+    assert.match(savedCommutesSource, /Tue/);
+    assert.match(savedCommutesSource, /Reduced Speed Zones/);
+    assert.match(savedCommutesSource, /saved-commute-notification-rule/);
+    assert.match(savedCommutesSource, /saved-commute-section-select/);
+    assert.match(savedCommutesSource, /notificationRule/);
+    assert.match(globalCss, /\.saved-commute-notification-rule/);
+    assert.match(globalCss, /\.saved-commute-day-button/);
+    assert.match(globalCss, /\.saved-commute-section-select/);
+  });
+
   it("does not show fixture demo commute cards for signed-out or empty account states", () => {
     assert.doesNotMatch(savedCommutesSource, /!\s*accountState\.authenticated\s*\|\|\s*accountCommutes\.length\s*===\s*0/);
     assert.doesNotMatch(savedCommutesSource, /commuteImpacts\.map/);

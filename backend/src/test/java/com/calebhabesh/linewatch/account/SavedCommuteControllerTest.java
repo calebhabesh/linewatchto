@@ -34,4 +34,66 @@ class SavedCommuteControllerTest {
 
         verify(savedCommuteService).delete(account, "commute_1");
     }
+
+    @Test
+    void updateNotificationRuleUsesCurrentSessionAccount() {
+        SavedCommuteService.SavedCommuteNotificationRuleRequest request =
+            new SavedCommuteService.SavedCommuteNotificationRuleRequest(
+                true,
+                62,
+                8 * 60,
+                9 * 60,
+                "queen",
+                "bloor-yonge",
+                true,
+                false,
+                new SavedCommuteService.SavedCommuteNotificationEventTypesRequest(
+                    true,
+                    true,
+                    false,
+                    true,
+                    true
+                )
+            );
+        AccountResponses.SavedCommuteResponse expected = new AccountResponses.SavedCommuteResponse(
+            "commute_1",
+            "Morning commute",
+            "queen",
+            "Queen",
+            "bloor-yonge",
+            "Bloor-Yonge",
+            "Queen -> Bloor-Yonge",
+            false,
+            null,
+            null,
+            null,
+            null,
+            new AccountResponses.SavedCommuteNotificationRuleResponse(
+                true,
+                62,
+                480,
+                540,
+                "queen",
+                "bloor-yonge",
+                true,
+                false,
+                new AccountResponses.SavedCommuteNotificationEventTypesResponse(
+                    true,
+                    true,
+                    false,
+                    true,
+                    true
+                )
+            ),
+            Instant.parse("2026-06-05T14:00:00Z"),
+            Instant.parse("2026-06-05T14:30:00Z")
+        );
+        when(accountService.requireAccount("raw-token")).thenReturn(account);
+        when(savedCommuteService.updateNotificationRule(account, "commute_1", request)).thenReturn(expected);
+
+        AccountResponses.SavedCommuteResponse response = controller.updateNotificationRule("raw-token", "commute_1", request);
+
+        assertThat(response).isEqualTo(expected);
+        verify(savedCommuteService).updateNotificationRule(account, "commute_1", request);
+    }
 }

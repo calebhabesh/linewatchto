@@ -60,6 +60,24 @@ const defaultPushNotificationPreferences = {
 
 let pushPreferences = JSON.parse(JSON.stringify(defaultPushNotificationPreferences));
 
+const defaultSavedCommuteNotificationRule = {
+  enabled: true,
+  dayMask: 127,
+  startMinute: null,
+  endMinute: null,
+  sectionStartStationId: null,
+  sectionEndStationId: null,
+  outboundEnabled: true,
+  returnEnabled: true,
+  eventTypes: {
+    suspensions: true,
+    delays: true,
+    reducedSpeedZones: true,
+    plannedClosures: true,
+    serviceRestored: true,
+  },
+};
+
 const demoUser = {
   id: "user_demo",
   email: "demo@linewatch.local",
@@ -160,6 +178,16 @@ const demoOutboundImpact = {
       timingStatus: "active-now",
     },
   ],
+  travelTimeEstimate: {
+    status: "unreliable",
+    baselineSeconds: 780,
+    estimatedLowSeconds: null,
+    estimatedHighSeconds: null,
+    extraLowSeconds: null,
+    extraHighSeconds: null,
+    confidence: "low",
+    summary: "Typical commute: about 13 min. Major disruption on this route; travel time is not reliable.",
+  },
 };
 
 const demoReturnImpact = {
@@ -168,6 +196,16 @@ const demoReturnImpact = {
   statusLabel: "Clear",
   detail: "No active or planned LineWatch impacts match this route.",
   matchedImpacts: [],
+  travelTimeEstimate: {
+    status: "standard",
+    baselineSeconds: 780,
+    estimatedLowSeconds: 780,
+    estimatedHighSeconds: 780,
+    extraLowSeconds: 0,
+    extraHighSeconds: 0,
+    confidence: "high",
+    summary: "Typical commute: about 13 min. No extra time estimated.",
+  },
 };
 
 const demoCommutes = [
@@ -202,6 +240,7 @@ const demoCommutes = [
     },
     path: demoOutboundPath,
     impact: demoOutboundImpact,
+    notificationRule: defaultSavedCommuteNotificationRule,
     createdAt: "2026-06-05T14:30:00Z",
     updatedAt: "2026-06-05T14:30:00Z",
   },
@@ -213,7 +252,7 @@ function corsHeaders(request, extra = {}) {
     "access-control-allow-origin": origin ?? "*",
     "access-control-allow-credentials": "true",
     "access-control-allow-headers": "content-type",
-    "access-control-allow-methods": "GET,POST,DELETE,OPTIONS",
+    "access-control-allow-methods": "GET,POST,PATCH,DELETE,OPTIONS",
     ...extra,
   };
 }
@@ -323,6 +362,31 @@ const server = createServer(async (request, response) => {
       return;
     }
     sendJson(request, response, 200, { commutes: demoCommutes });
+    return;
+  }
+
+  if (request.method === "PATCH" && /^\/api\/account\/commutes\/[^/]+\/notification-rule$/.test(url.pathname)) {
+    if (!demoSessionActive) {
+      sendJson(request, response, 401, { error: "not_authenticated", message: "Sign in to use saved commute preferences." });
+      return;
+    }
+    const body = await readJson(request);
+    const commuteId = url.pathname.split("/")[4];
+    const commute = demoCommutes.find((item) => item.id === commuteId);
+    if (!commute) {
+      sendJson(request, response, 404, { error: "not_found", message: "Saved commute not found." });
+      return;
+    }
+    commute.notificationRule = {
+      ...defaultSavedCommuteNotificationRule,
+      ...body,
+      eventTypes: {
+        ...defaultSavedCommuteNotificationRule.eventTypes,
+        ...(body.eventTypes ?? {}),
+      },
+    };
+    commute.updatedAt = "2026-06-05T14:45:00Z";
+    sendJson(request, response, 200, commute);
     return;
   }
 

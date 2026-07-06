@@ -10,8 +10,10 @@ import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -89,12 +91,12 @@ public class SavedCommutePushPlanner {
         for (CommuteResponses.MatchedImpactResponse match : impact.matchedImpacts()) {
             if ("current".equals(match.status())) {
                 String eventType = match.kind(); // e.g. "delay", "suspension", "reduced-speed-zone"
-                candidates.add(candidateFor(commute, legId, match, "saved-commute-current", eventType, "on-change"));
+                candidates.add(candidateFor(commute, legId, path, match, "saved-commute-current", eventType, "on-change"));
             } else if ("planned".equals(match.status())) {
                 String eventType = "planned-closure";
                 
                 // 1. on-change candidate
-                candidates.add(candidateFor(commute, legId, match, "saved-commute-planned", eventType, "on-change"));
+                candidates.add(candidateFor(commute, legId, path, match, "saved-commute-planned", eventType, "on-change"));
                 
                 OffsetDateTime eventStartAt = match.eventStartAt();
                 if (eventStartAt != null) {
@@ -103,14 +105,14 @@ public class SavedCommutePushPlanner {
                     // 2. closure-24h candidate
                     Instant twentyFourHoursBefore = startInstant.minus(java.time.Duration.ofHours(24));
                     if (!now.isBefore(twentyFourHoursBefore) && now.isBefore(startInstant)) {
-                        candidates.add(candidateFor(commute, legId, match, "saved-commute-planned", eventType, "closure-24h"));
+                        candidates.add(candidateFor(commute, legId, path, match, "saved-commute-planned", eventType, "closure-24h"));
                     }
                     
                     // 3. closure-morning candidate
                     ZonedDateTime nowToronto = now.atZone(TORONTO_ZONE);
                     ZonedDateTime startToronto = eventStartAt.atZoneSameInstant(TORONTO_ZONE);
                     if (nowToronto.toLocalDate().equals(startToronto.toLocalDate()) && nowToronto.getHour() >= 6) {
-                        candidates.add(candidateFor(commute, legId, match, "saved-commute-planned", eventType, "closure-morning"));
+                        candidates.add(candidateFor(commute, legId, path, match, "saved-commute-planned", eventType, "closure-morning"));
                     }
                 }
             }
@@ -121,6 +123,7 @@ public class SavedCommutePushPlanner {
     private PushNotificationCandidate candidateFor(
         SavedCommuteEntity commute,
         String legId,
+        CommuteResponses.PathResponse path,
         CommuteResponses.MatchedImpactResponse match,
         String category,
         String eventType,
@@ -179,6 +182,8 @@ public class SavedCommutePushPlanner {
             stableImpactPart
         );
 
+        boolean deliveryAllowed = deliveryAllowedFor(commute, legId, path, match, eventType);
+
         return new PushNotificationCandidate(
             commute.getAccount().getId(),
             commute.getId(),
@@ -192,8 +197,121 @@ public class SavedCommutePushPlanner {
             notificationKey,
             dedupeKey,
             notification,
-            "/?panel=commutes&commute=" + commute.getId()
+            "/?panel=commutes&commute=" + commute.getId(),
+            deliveryAllowed
         );
+    }
+
+    private boolean deliveryAllowedFor(
+        SavedCommuteEntity commute,
+        String legId,
+        CommuteResponses.PathResponse path,
+        CommuteResponses.MatchedImpactResponse match,
+        String eventType
+    ) {
+        if (!commute.isNotificationEnabled()) {
+            return false;
+        }
+        if ("outbound".equals(legId) && !commute.isNotificationOutboundEnabled()) {
+            return false;
+        }
+        if ("return".equals(legId) && !commute.isNotificationReturnEnabled()) {
+            return false;
+        }
+        if (!eventTypeAllowed(commute, eventType)) {
+            return false;
+        }
+        if (!matchesMonitoredSection(commute, path, match)) {
+            return false;
+        }
+        Instant scheduleInstant = scheduleInstant(match);
+        return matchesNotificationSchedule(commute, scheduleInstant);
+    }
+
+    private boolean eventTypeAllowed(SavedCommuteEntity commute, String eventType) {
+        return switch (eventType) {
+            case "suspension" -> commute.isNotificationSuspensionEnabled();
+            case "delay" -> commute.isNotificationDelayEnabled();
+            case "reduced-speed-zone" -> commute.isNotificationReducedSpeedZoneEnabled();
+            case "planned-closure" -> commute.isNotificationPlannedClosureEnabled();
+            case "service-restored" -> commute.isNotificationRestoredEnabled();
+            default -> true;
+        };
+    }
+
+    private Instant scheduleInstant(CommuteResponses.MatchedImpactResponse match) {
+        if ("planned".equals(match.status()) && match.eventStartAt() != null) {
+            return match.eventStartAt().toInstant();
+        }
+        return clock.instant();
+    }
+
+    private boolean matchesNotificationSchedule(SavedCommuteEntity commute, Instant instant) {
+        ZonedDateTime local = instant.atZone(TORONTO_ZONE);
+        int dayBit = dayBit(local);
+        if ((commute.getNotificationDayMask() & dayBit) == 0) {
+            return false;
+        }
+        Integer start = commute.getNotificationStartMinute();
+        Integer end = commute.getNotificationEndMinute();
+        if (start == null || end == null) {
+            return true;
+        }
+        int minute = local.getHour() * 60 + local.getMinute();
+        if (start < end) {
+            return minute >= start && minute <= end;
+        }
+        return minute >= start || minute <= end;
+    }
+
+    private int dayBit(ZonedDateTime local) {
+        return switch (local.getDayOfWeek()) {
+            case SUNDAY -> 1;
+            case MONDAY -> 2;
+            case TUESDAY -> 4;
+            case WEDNESDAY -> 8;
+            case THURSDAY -> 16;
+            case FRIDAY -> 32;
+            case SATURDAY -> 64;
+        };
+    }
+
+    private boolean matchesMonitoredSection(
+        SavedCommuteEntity commute,
+        CommuteResponses.PathResponse path,
+        CommuteResponses.MatchedImpactResponse match
+    ) {
+        String startStationId = safe(commute.getNotificationSectionStartStationId());
+        String endStationId = safe(commute.getNotificationSectionEndStationId());
+        if (startStationId.isBlank() || endStationId.isBlank()) {
+            return true;
+        }
+        if (path == null || path.stationIds() == null || path.segmentIds() == null) {
+            return false;
+        }
+        int startIndex = path.stationIds().indexOf(startStationId);
+        int endIndex = path.stationIds().indexOf(endStationId);
+        if (startIndex < 0 || endIndex < 0) {
+            return false;
+        }
+
+        int from = Math.min(startIndex, endIndex);
+        int to = Math.max(startIndex, endIndex);
+        Set<String> corridorStations = new LinkedHashSet<>(path.stationIds().subList(from, to + 1));
+        Set<String> corridorSegments = new LinkedHashSet<>();
+        for (int i = from; i < to && i < path.segmentIds().size(); i++) {
+            corridorSegments.add(path.segmentIds().get(i));
+        }
+
+        return intersects(match.matchedSegmentIds(), corridorSegments)
+            || intersects(match.matchedStationIds(), corridorStations);
+    }
+
+    private boolean intersects(List<String> values, Set<String> candidates) {
+        if (values == null || values.isEmpty() || candidates.isEmpty()) {
+            return false;
+        }
+        return values.stream().anyMatch(candidates::contains);
     }
 
     private String stableImpactPart(CommuteResponses.MatchedImpactResponse match) {

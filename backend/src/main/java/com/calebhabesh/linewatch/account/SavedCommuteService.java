@@ -21,6 +21,10 @@ import org.springframework.transaction.annotation.Transactional;
 public class SavedCommuteService {
     private static final int MAX_LABEL_LENGTH = 120;
     private static final int MAX_STATION_ID_LENGTH = 80;
+    private static final int ALL_DAYS_MASK = 127;
+    private static final int MAX_DAY_MASK = 127;
+    private static final int MINUTE_MIN = 0;
+    private static final int MINUTE_MAX = 1439;
 
     private final SavedCommuteRepository commuteRepository;
     private final StationRepository stationRepository;
@@ -88,7 +92,7 @@ public class SavedCommuteService {
         Instant now = clock.instant();
         String label = normalizeLabel(request.label(), origin.getName(), destination.getName());
         boolean watchReturnTrip = request.watchReturnTrip() == null || request.watchReturnTrip();
-        SavedCommuteEntity commute = commuteRepository.save(SavedCommuteEntity.create(
+        SavedCommuteEntity commute = SavedCommuteEntity.create(
             nextId(),
             account,
             label,
@@ -96,8 +100,28 @@ public class SavedCommuteService {
             destinationId,
             watchReturnTrip,
             now
-        ));
+        );
+        applyNotificationRule(commute, request.notificationRule(), now);
+        commute = commuteRepository.save(commute);
         return toResponse(commute, Map.of(originId, origin, destinationId, destination));
+    }
+
+    @Transactional
+    public AccountResponses.SavedCommuteResponse updateNotificationRule(
+        AccountEntity account,
+        String commuteId,
+        SavedCommuteNotificationRuleRequest request
+    ) {
+        SavedCommuteEntity commute = commuteRepository.findByIdAndAccountId(commuteId, account.getId())
+            .orElseThrow(() -> new AccountException(HttpStatus.NOT_FOUND, "commute_not_found", "Saved commute was not found."));
+        applyNotificationRule(commute, request, clock.instant());
+        commute = commuteRepository.save(commute);
+
+        List<String> stationIds = List.of(commute.getOriginStationId(), commute.getDestinationStationId());
+        Map<String, StationEntity> stationsById = stationRepository.findAllById(stationIds)
+            .stream()
+            .collect(Collectors.toMap(StationEntity::getId, Function.identity()));
+        return toResponse(commute, stationsById);
     }
 
     @Transactional
@@ -141,6 +165,7 @@ public class SavedCommuteService {
             returnLeg,
             outboundLeg.path(),
             outboundLeg.impact(),
+            notificationRuleResponse(commute),
             commute.getCreatedAt(),
             commute.getUpdatedAt()
         );
@@ -191,6 +216,100 @@ public class SavedCommuteService {
         return normalized;
     }
 
+    private void applyNotificationRule(
+        SavedCommuteEntity commute,
+        SavedCommuteNotificationRuleRequest request,
+        Instant now
+    ) {
+        if (request == null) {
+            return;
+        }
+
+        Integer startMinute = request.startMinute();
+        Integer endMinute = request.endMinute();
+        validateTimeWindow(startMinute, endMinute);
+
+        SavedCommuteNotificationEventTypesRequest eventTypes = request.eventTypes();
+        commute.updateNotificationRule(
+            valueOrDefault(request.enabled(), commute.isNotificationEnabled()),
+            validateDayMask(valueOrDefault(request.dayMask(), commute.getNotificationDayMask())),
+            startMinute,
+            endMinute,
+            normalizeOptionalStationId(request.sectionStartStationId(), "notification_section_start_station"),
+            normalizeOptionalStationId(request.sectionEndStationId(), "notification_section_end_station"),
+            valueOrDefault(request.outboundEnabled(), commute.isNotificationOutboundEnabled()),
+            valueOrDefault(request.returnEnabled(), commute.isNotificationReturnEnabled()),
+            eventTypes == null ? commute.isNotificationSuspensionEnabled() : valueOrDefault(eventTypes.suspensions(), commute.isNotificationSuspensionEnabled()),
+            eventTypes == null ? commute.isNotificationDelayEnabled() : valueOrDefault(eventTypes.delays(), commute.isNotificationDelayEnabled()),
+            eventTypes == null ? commute.isNotificationReducedSpeedZoneEnabled() : valueOrDefault(eventTypes.reducedSpeedZones(), commute.isNotificationReducedSpeedZoneEnabled()),
+            eventTypes == null ? commute.isNotificationPlannedClosureEnabled() : valueOrDefault(eventTypes.plannedClosures(), commute.isNotificationPlannedClosureEnabled()),
+            eventTypes == null ? commute.isNotificationRestoredEnabled() : valueOrDefault(eventTypes.serviceRestored(), commute.isNotificationRestoredEnabled()),
+            now
+        );
+    }
+
+    private AccountResponses.SavedCommuteNotificationRuleResponse notificationRuleResponse(SavedCommuteEntity commute) {
+        return new AccountResponses.SavedCommuteNotificationRuleResponse(
+            commute.isNotificationEnabled(),
+            commute.getNotificationDayMask(),
+            commute.getNotificationStartMinute(),
+            commute.getNotificationEndMinute(),
+            commute.getNotificationSectionStartStationId(),
+            commute.getNotificationSectionEndStationId(),
+            commute.isNotificationOutboundEnabled(),
+            commute.isNotificationReturnEnabled(),
+            new AccountResponses.SavedCommuteNotificationEventTypesResponse(
+                commute.isNotificationSuspensionEnabled(),
+                commute.isNotificationDelayEnabled(),
+                commute.isNotificationReducedSpeedZoneEnabled(),
+                commute.isNotificationPlannedClosureEnabled(),
+                commute.isNotificationRestoredEnabled()
+            )
+        );
+    }
+
+    private int validateDayMask(Integer dayMask) {
+        int normalized = dayMask == null ? ALL_DAYS_MASK : dayMask;
+        if (normalized < 0 || normalized > MAX_DAY_MASK) {
+            throw new AccountException(HttpStatus.BAD_REQUEST, "invalid_notification_days", "Notification days must be between 0 and 127.");
+        }
+        return normalized;
+    }
+
+    private void validateTimeWindow(Integer startMinute, Integer endMinute) {
+        if (startMinute == null && endMinute == null) {
+            return;
+        }
+        if (startMinute == null || endMinute == null) {
+            throw new AccountException(HttpStatus.BAD_REQUEST, "invalid_notification_window", "Notification start and end time must both be set or both be blank.");
+        }
+        if (startMinute < MINUTE_MIN || startMinute > MINUTE_MAX || endMinute < MINUTE_MIN || endMinute > MINUTE_MAX) {
+            throw new AccountException(HttpStatus.BAD_REQUEST, "invalid_notification_window", "Notification times must be between 0 and 1439 minutes.");
+        }
+        if (startMinute.equals(endMinute)) {
+            throw new AccountException(HttpStatus.BAD_REQUEST, "invalid_notification_window", "Notification start and end time must be different.");
+        }
+    }
+
+    private String normalizeOptionalStationId(String stationId, String errorCode) {
+        if (stationId == null || stationId.isBlank()) {
+            return null;
+        }
+        String normalized = stationId.trim();
+        if (normalized.length() > MAX_STATION_ID_LENGTH) {
+            throw new AccountException(HttpStatus.BAD_REQUEST, errorCode, "Notification station id must be 80 characters or less.");
+        }
+        return normalized;
+    }
+
+    private boolean valueOrDefault(Boolean value, boolean fallback) {
+        return value == null ? fallback : value;
+    }
+
+    private int valueOrDefault(Integer value, int fallback) {
+        return value == null ? fallback : value;
+    }
+
     private String nextId() {
         return "commute_" + UUID.randomUUID().toString().replace("-", "");
     }
@@ -199,6 +318,36 @@ public class SavedCommuteService {
         String label,
         String originStationId,
         String destinationStationId,
-        Boolean watchReturnTrip
+        Boolean watchReturnTrip,
+        SavedCommuteNotificationRuleRequest notificationRule
+    ) {
+        public CreateSavedCommuteRequest(
+            String label,
+            String originStationId,
+            String destinationStationId,
+            Boolean watchReturnTrip
+        ) {
+            this(label, originStationId, destinationStationId, watchReturnTrip, null);
+        }
+    }
+
+    public record SavedCommuteNotificationEventTypesRequest(
+        Boolean suspensions,
+        Boolean delays,
+        Boolean reducedSpeedZones,
+        Boolean plannedClosures,
+        Boolean serviceRestored
+    ) {}
+
+    public record SavedCommuteNotificationRuleRequest(
+        Boolean enabled,
+        Integer dayMask,
+        Integer startMinute,
+        Integer endMinute,
+        String sectionStartStationId,
+        String sectionEndStationId,
+        Boolean outboundEnabled,
+        Boolean returnEnabled,
+        SavedCommuteNotificationEventTypesRequest eventTypes
     ) {}
 }

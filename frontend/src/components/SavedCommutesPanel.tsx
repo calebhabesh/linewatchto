@@ -4,15 +4,20 @@ import { useMemo, useState } from "react";
 import { Navigation, ChevronDown, ChevronLeft, Loader2, MapPinned, X, AlertTriangle, Construction, Calendar, Clock, Bell } from "lucide-react";
 import {
   createSavedCommute,
+  defaultSavedCommuteNotificationRule,
   deleteSavedCommute,
   commuteLegsForCommute,
   commutePathPreviewFromCommute,
+  normalizeSavedCommuteNotificationRule,
+  updateSavedCommuteNotificationRule,
   type AccountSavedCommute,
+  type AccountSavedCommuteNotificationRule,
   type AccountState,
   type AccountMatchedImpact,
   type AccountCommuteLeg,
   type AccountCommuteLegId,
   type AccountCommuteImpact,
+  type AccountCommuteTravelTimeEstimate,
 } from "../app/account-data";
 import type { StationSummary } from "../app/station-data";
 import { SavedCommuteStationPicker } from "./SavedCommuteStationPicker";
@@ -191,6 +196,148 @@ function impactLineLabel(impact: AccountMatchedImpact) {
   return impact.lineNumber ? `Line ${impact.lineNumber}` : "Station";
 }
 
+function minutesFromSeconds(seconds: number | null | undefined) {
+  if (!seconds || seconds <= 0) return 0;
+  return Math.max(1, Math.round(seconds / 60));
+}
+
+function formatEstimateMinutes(seconds: number | null | undefined) {
+  const minutes = minutesFromSeconds(seconds);
+  return minutes === 0 ? "Unavailable" : `${minutes} min`;
+}
+
+function formatEstimateRange(lowSeconds: number | null | undefined, highSeconds: number | null | undefined) {
+  const low = minutesFromSeconds(lowSeconds);
+  const high = minutesFromSeconds(highSeconds);
+  if (low === 0 && high === 0) return "Unavailable";
+  if (low === high || high === 0) return `${low} min`;
+  return `${low}-${high} min`;
+}
+
+function formatExtraTimeRange(lowSeconds: number | null | undefined, highSeconds: number | null | undefined) {
+  const low = minutesFromSeconds(lowSeconds);
+  const high = minutesFromSeconds(highSeconds);
+  if (low === 0 && high === 0) return "+0 min";
+  if (low === high || high === 0) return `+${low} min`;
+  return `+${low}-${high} min`;
+}
+
+function confidenceLabel(confidence: AccountCommuteTravelTimeEstimate["confidence"]) {
+  switch (confidence) {
+    case "high":
+      return "High";
+    case "medium":
+      return "Medium";
+    case "low":
+      return "Low";
+    case "none":
+      return "None";
+    default:
+      return toTitleCase(confidence || "Unknown");
+  }
+}
+
+function fallbackTravelTimeEstimate(leg: AccountCommuteLeg): AccountCommuteTravelTimeEstimate {
+  if (leg.path.status !== "available") {
+    return {
+      status: "unavailable",
+      baselineSeconds: 0,
+      estimatedLowSeconds: null,
+      estimatedHighSeconds: null,
+      extraLowSeconds: null,
+      extraHighSeconds: null,
+      confidence: "none",
+      summary: "Travel time estimate unavailable because no route path could be computed.",
+    };
+  }
+  return {
+    status: "standard",
+    baselineSeconds: leg.path.estimatedTravelSeconds,
+    estimatedLowSeconds: leg.path.estimatedTravelSeconds,
+    estimatedHighSeconds: leg.path.estimatedTravelSeconds,
+    extraLowSeconds: 0,
+    extraHighSeconds: 0,
+    confidence: "high",
+    summary: `Typical commute: about ${formatEstimateMinutes(leg.path.estimatedTravelSeconds)}. No extra time estimated.`,
+  };
+}
+
+function TravelTimeEstimateBlock({ leg }: { leg: AccountCommuteLeg }) {
+  const estimate = leg.impact.travelTimeEstimate ?? fallbackTravelTimeEstimate(leg);
+
+  if (estimate.status === "estimated") {
+    return (
+      <div className="saved-commute-time-estimate estimated" aria-label={`Travel time estimate to ${leg.toStationName}`}>
+        <div className="saved-commute-time-estimate-heading">
+          <Clock size={13} aria-hidden="true" />
+          <strong>Travel Time</strong>
+        </div>
+        <div className="saved-commute-time-estimate-grid">
+          <span>
+            <strong>Typical</strong>
+            <em>{formatEstimateMinutes(estimate.baselineSeconds)}</em>
+          </span>
+          <span>
+            <strong>With Impacts</strong>
+            <em>{formatEstimateRange(estimate.estimatedLowSeconds, estimate.estimatedHighSeconds)}</em>
+          </span>
+          <span>
+            <strong>Extra Time</strong>
+            <em>{formatExtraTimeRange(estimate.extraLowSeconds, estimate.extraHighSeconds)}</em>
+          </span>
+          <span>
+            <strong>Confidence</strong>
+            <em>{confidenceLabel(estimate.confidence)}</em>
+          </span>
+        </div>
+      </div>
+    );
+  }
+
+  if (estimate.status === "standard") {
+    return (
+      <div className="saved-commute-time-estimate standard" aria-label={`Travel time estimate to ${leg.toStationName}`}>
+        <div className="saved-commute-time-estimate-heading">
+          <Clock size={13} aria-hidden="true" />
+          <strong>Travel Time</strong>
+        </div>
+        <div className="saved-commute-time-estimate-grid">
+          <span>
+            <strong>Typical</strong>
+            <em>{formatEstimateMinutes(estimate.baselineSeconds)}</em>
+          </span>
+          <span>
+            <strong>With Impacts</strong>
+            <em>No extra time</em>
+          </span>
+          <span>
+            <strong>Extra Time</strong>
+            <em>{formatExtraTimeRange(estimate.extraLowSeconds, estimate.extraHighSeconds)}</em>
+          </span>
+          <span>
+            <strong>Confidence</strong>
+            <em>{confidenceLabel(estimate.confidence)}</em>
+          </span>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className={`saved-commute-time-estimate ${estimate.status}`} aria-label={`Travel time estimate to ${leg.toStationName}`}>
+      <div className="saved-commute-time-estimate-heading">
+        <Clock size={13} aria-hidden="true" />
+        <strong>Travel Time</strong>
+      </div>
+      <p>
+        <strong>Typical {formatEstimateMinutes(estimate.baselineSeconds)}</strong>
+        <em>{estimate.summary || "Major disruption on this route; travel time is not reliable."}</em>
+        <span>Confidence: {confidenceLabel(estimate.confidence)}</span>
+      </p>
+    </div>
+  );
+}
+
 function SavedCommuteNotificationSummary({
   onOpenNotificationSettings,
   notificationSummary,
@@ -224,6 +371,314 @@ function SavedCommuteNotificationSummary({
   );
 }
 
+const NOTIFICATION_DAY_OPTIONS = [
+  { bit: 2, label: "Mon" },
+  { bit: 4, label: "Tue" },
+  { bit: 8, label: "Wed" },
+  { bit: 16, label: "Thu" },
+  { bit: 32, label: "Fri" },
+  { bit: 64, label: "Sat" },
+  { bit: 1, label: "Sun" },
+];
+
+const NOTIFICATION_EVENT_OPTIONS: Array<{
+  key: keyof AccountSavedCommuteNotificationRule["eventTypes"];
+  label: string;
+}> = [
+  { key: "suspensions", label: "Suspensions" },
+  { key: "delays", label: "Delays" },
+  { key: "reducedSpeedZones", label: "Reduced Speed Zones" },
+  { key: "plannedClosures", label: "Planned Closures" },
+  { key: "serviceRestored", label: "Service Restored" },
+];
+
+function cloneNotificationRule(rule: AccountSavedCommuteNotificationRule | null | undefined) {
+  return normalizeSavedCommuteNotificationRule(rule);
+}
+
+function minuteToTimeValue(minute: number | null | undefined) {
+  const safeMinute = Math.max(0, Math.min(1439, minute ?? 0));
+  const hours = Math.floor(safeMinute / 60).toString().padStart(2, "0");
+  const minutes = (safeMinute % 60).toString().padStart(2, "0");
+  return `${hours}:${minutes}`;
+}
+
+function timeValueToMinute(value: string) {
+  const [hoursText, minutesText] = value.split(":");
+  const hours = Number(hoursText);
+  const minutes = Number(minutesText);
+  if (!Number.isFinite(hours) || !Number.isFinite(minutes)) {
+    return 0;
+  }
+  return Math.max(0, Math.min(1439, hours * 60 + minutes));
+}
+
+function formatMinuteLabel(minute: number | null | undefined) {
+  if (minute === null || minute === undefined) return "";
+  const hours24 = Math.floor(minute / 60);
+  const minutes = minute % 60;
+  const period = hours24 >= 12 ? "PM" : "AM";
+  const hours12 = hours24 % 12 || 12;
+  return `${hours12}:${minutes.toString().padStart(2, "0")} ${period}`;
+}
+
+function formatDayMask(dayMask: number) {
+  if (dayMask === 127) return "Any Day";
+  if (dayMask === 62) return "Weekdays";
+  if (dayMask === 65) return "Weekends";
+  const labels = NOTIFICATION_DAY_OPTIONS.filter((day) => (dayMask & day.bit) !== 0).map((day) => day.label);
+  return labels.length > 0 ? labels.join(", ") : "No Days";
+}
+
+function formatWindow(rule: AccountSavedCommuteNotificationRule) {
+  if (rule.startMinute === null || rule.endMinute === null) {
+    return "All Day";
+  }
+  return `${formatMinuteLabel(rule.startMinute)}-${formatMinuteLabel(rule.endMinute)}`;
+}
+
+function formatSection(rule: AccountSavedCommuteNotificationRule, stationNameFor: (stationId: string) => string) {
+  if (!rule.sectionStartStationId || !rule.sectionEndStationId) {
+    return "Whole Route";
+  }
+  return `${stationNameFor(rule.sectionStartStationId)} to ${stationNameFor(rule.sectionEndStationId)}`;
+}
+
+function formatEventTypes(rule: AccountSavedCommuteNotificationRule) {
+  const labels = NOTIFICATION_EVENT_OPTIONS.filter((eventType) => rule.eventTypes[eventType.key]).map((eventType) => eventType.label);
+  if (labels.length === NOTIFICATION_EVENT_OPTIONS.length) return "All Events";
+  if (labels.length === 0) return "No Events";
+  return labels.join(", ");
+}
+
+function ruleForCommute(commute: AccountSavedCommute) {
+  return cloneNotificationRule(commute.notificationRule ?? defaultSavedCommuteNotificationRule);
+}
+
+function SavedCommuteNotificationRuleEditor({
+  rule,
+  onChange,
+  routeStationIds,
+  stationNameFor,
+  allowReturnLeg,
+  showSectionControls,
+}: {
+  rule: AccountSavedCommuteNotificationRule;
+  onChange: (rule: AccountSavedCommuteNotificationRule) => void;
+  routeStationIds: string[];
+  stationNameFor: (stationId: string) => string;
+  allowReturnLeg: boolean;
+  showSectionControls: boolean;
+}) {
+  const customWindow = rule.startMinute !== null && rule.endMinute !== null;
+  const canSelectSection = showSectionControls && routeStationIds.length >= 2;
+  const selectedSection = Boolean(rule.sectionStartStationId && rule.sectionEndStationId);
+
+  function updateRule(patch: Partial<AccountSavedCommuteNotificationRule>) {
+    onChange(normalizeSavedCommuteNotificationRule({
+      ...rule,
+      ...patch,
+      eventTypes: {
+        ...rule.eventTypes,
+        ...(patch.eventTypes ?? {}),
+      },
+    }));
+  }
+
+  function setDay(bit: number) {
+    const nextMask = (rule.dayMask & bit) !== 0 ? rule.dayMask & ~bit : rule.dayMask | bit;
+    updateRule({ dayMask: nextMask });
+  }
+
+  function setCustomWindow(enabled: boolean) {
+    updateRule(enabled
+      ? {
+          startMinute: rule.startMinute ?? 16 * 60 + 30,
+          endMinute: rule.endMinute ?? 17 * 60 + 30,
+        }
+      : {
+          startMinute: null,
+          endMinute: null,
+        }
+    );
+  }
+
+  function setSelectedSection(enabled: boolean) {
+    if (!enabled || routeStationIds.length < 2) {
+      updateRule({ sectionStartStationId: null, sectionEndStationId: null });
+      return;
+    }
+    updateRule({
+      sectionStartStationId: rule.sectionStartStationId ?? routeStationIds[0],
+      sectionEndStationId: rule.sectionEndStationId ?? routeStationIds[routeStationIds.length - 1],
+    });
+  }
+
+  return (
+    <div className="saved-commute-notification-rule">
+      <label className="saved-commute-return-toggle saved-commute-notification-master">
+        <div className="saved-commute-switch">
+          <input
+            type="checkbox"
+            checked={rule.enabled}
+            onChange={(event) => updateRule({ enabled: event.target.checked })}
+          />
+          <span className="saved-commute-slider"></span>
+        </div>
+        <span>Notify Me For This Route</span>
+      </label>
+
+      <div className="saved-commute-notification-block">
+        <strong>Notification Days</strong>
+        <div className="saved-commute-day-grid" role="group" aria-label="Notification Days">
+          {NOTIFICATION_DAY_OPTIONS.map((day) => (
+            <button
+              key={day.bit}
+              type="button"
+              className="saved-commute-day-button"
+              aria-pressed={(rule.dayMask & day.bit) !== 0}
+              disabled={!rule.enabled}
+              onClick={() => setDay(day.bit)}
+            >
+              {day.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="saved-commute-notification-block">
+        <strong>Notification Window</strong>
+        <div className="saved-commute-notification-segmented" role="group" aria-label="Notification Window">
+          <button type="button" aria-pressed={!customWindow} disabled={!rule.enabled} onClick={() => setCustomWindow(false)}>
+            All Day
+          </button>
+          <button type="button" aria-pressed={customWindow} disabled={!rule.enabled} onClick={() => setCustomWindow(true)}>
+            Custom
+          </button>
+        </div>
+        {customWindow ? (
+          <div className="saved-commute-time-window">
+            <label>
+              <span>Start</span>
+              <input
+                type="time"
+                value={minuteToTimeValue(rule.startMinute)}
+                disabled={!rule.enabled}
+                onChange={(event) => updateRule({ startMinute: timeValueToMinute(event.target.value) })}
+              />
+            </label>
+            <label>
+              <span>End</span>
+              <input
+                type="time"
+                value={minuteToTimeValue(rule.endMinute)}
+                disabled={!rule.enabled}
+                onChange={(event) => updateRule({ endMinute: timeValueToMinute(event.target.value) })}
+              />
+            </label>
+          </div>
+        ) : null}
+      </div>
+
+      <div className="saved-commute-notification-block">
+        <strong>Direction</strong>
+        <div className="saved-commute-notification-checks">
+          <label>
+            <input
+              type="checkbox"
+              checked={rule.outboundEnabled}
+              disabled={!rule.enabled}
+              onChange={(event) => updateRule({ outboundEnabled: event.target.checked })}
+            />
+            <span>Outbound Route</span>
+          </label>
+          <label aria-disabled={!allowReturnLeg}>
+            <input
+              type="checkbox"
+              checked={rule.returnEnabled && allowReturnLeg}
+              disabled={!rule.enabled || !allowReturnLeg}
+              onChange={(event) => updateRule({ returnEnabled: event.target.checked })}
+            />
+            <span>Return Route</span>
+          </label>
+        </div>
+      </div>
+
+      <div className="saved-commute-notification-block">
+        <strong>Event Types</strong>
+        <div className="saved-commute-notification-checks">
+          {NOTIFICATION_EVENT_OPTIONS.map((eventType) => (
+            <label key={eventType.key}>
+              <input
+                type="checkbox"
+                checked={rule.eventTypes[eventType.key]}
+                disabled={!rule.enabled}
+                onChange={(event) => updateRule({
+                  eventTypes: {
+                    ...rule.eventTypes,
+                    [eventType.key]: event.target.checked,
+                  },
+                })}
+              />
+              <span>{eventType.label}</span>
+            </label>
+          ))}
+        </div>
+      </div>
+
+      <div className="saved-commute-notification-block">
+        <strong>Route Section</strong>
+        <div className="saved-commute-notification-segmented" role="group" aria-label="Route Section">
+          <button type="button" aria-pressed={!selectedSection} disabled={!rule.enabled} onClick={() => setSelectedSection(false)}>
+            Whole Route
+          </button>
+          <button type="button" aria-pressed={selectedSection} disabled={!rule.enabled || !canSelectSection} onClick={() => setSelectedSection(true)}>
+            Selected Section
+          </button>
+        </div>
+        {selectedSection && canSelectSection ? (
+          <div className="saved-commute-section-grid">
+            <div>
+              <span>From</span>
+              <div className="saved-commute-section-select" role="group" aria-label="Section start station">
+                {routeStationIds.map((stationId) => (
+                  <button
+                    key={`start-${stationId}`}
+                    type="button"
+                    aria-pressed={rule.sectionStartStationId === stationId}
+                    disabled={!rule.enabled}
+                    onClick={() => updateRule({ sectionStartStationId: stationId })}
+                  >
+                    {stationNameFor(stationId)}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <span>To</span>
+              <div className="saved-commute-section-select" role="group" aria-label="Section end station">
+                {routeStationIds.map((stationId) => (
+                  <button
+                    key={`end-${stationId}`}
+                    type="button"
+                    aria-pressed={rule.sectionEndStationId === stationId}
+                    disabled={!rule.enabled}
+                    onClick={() => updateRule({ sectionEndStationId: stationId })}
+                  >
+                    {stationNameFor(stationId)}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        ) : (
+          <em className="saved-commute-notification-note">{canSelectSection ? "Whole Route" : "Whole Route until this saved route has computed stops."}</em>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export function SavedCommutesPanel({
   onBack,
   onClose,
@@ -249,6 +704,11 @@ export function SavedCommutesPanel({
   const [deletingCommuteId, setDeletingCommuteId] = useState<string | null>(null);
   const [selectedLegIds, setSelectedLegIds] = useState<Record<string, AccountCommuteLegId>>({});
   const [activePicker, setActivePicker] = useState<"origin" | "destination" | null>(null);
+  const [newNotificationRule, setNewNotificationRule] = useState<AccountSavedCommuteNotificationRule>(() => cloneNotificationRule(defaultSavedCommuteNotificationRule));
+  const [editingNotificationCommuteId, setEditingNotificationCommuteId] = useState<string | null>(null);
+  const [notificationDrafts, setNotificationDrafts] = useState<Record<string, AccountSavedCommuteNotificationRule>>({});
+  const [savingNotificationRuleId, setSavingNotificationRuleId] = useState<string | null>(null);
+  const [notificationRuleError, setNotificationRuleError] = useState<string | null>(null);
 
   const stationById = useMemo(() => {
     return new Map(stationSummaries.map((station) => [station.id, station]));
@@ -275,12 +735,14 @@ export function SavedCommutesPanel({
         originStationId,
         destinationStationId,
         watchReturnTrip,
+        notificationRule: newNotificationRule,
       });
       setAccountCommutes([...accountCommutes, created]);
       setNewLabel("");
       setOriginStationId("");
       setDestinationStationId("");
       setWatchReturnTrip(true);
+      setNewNotificationRule(cloneNotificationRule(defaultSavedCommuteNotificationRule));
     } catch {
       setCommuteError("Could not save that commute.");
     } finally {
@@ -298,6 +760,42 @@ export function SavedCommutesPanel({
       setCommuteError("Could not delete that commute.");
     }
   };
+
+  function startEditingNotificationRule(commute: AccountSavedCommute) {
+    setNotificationRuleError(null);
+    setEditingNotificationCommuteId(commute.id);
+    setNotificationDrafts((current) => ({
+      ...current,
+      [commute.id]: ruleForCommute(commute),
+    }));
+  }
+
+  function updateNotificationDraft(commuteId: string, rule: AccountSavedCommuteNotificationRule) {
+    setNotificationDrafts((current) => ({
+      ...current,
+      [commuteId]: rule,
+    }));
+  }
+
+  async function saveNotificationRule(commute: AccountSavedCommute) {
+    const draft = notificationDrafts[commute.id] ?? ruleForCommute(commute);
+    setSavingNotificationRuleId(commute.id);
+    setNotificationRuleError(null);
+    try {
+      const updated = await updateSavedCommuteNotificationRule(commute.id, draft);
+      setAccountCommutes(accountCommutes.map((item) => item.id === updated.id ? updated : item));
+      setEditingNotificationCommuteId(null);
+      setNotificationDrafts((current) => {
+        const next = { ...current };
+        delete next[commute.id];
+        return next;
+      });
+    } catch {
+      setNotificationRuleError("Could not save route notification rules.");
+    } finally {
+      setSavingNotificationRuleId(null);
+    }
+  }
 
   return (
     <section className="commute-panel min-w-0 border border-black/10 dark:border-white/10 rounded-lg shadow-xl">
@@ -452,6 +950,14 @@ export function SavedCommutesPanel({
               </div>
               <span>Track Return Route</span>
             </label>
+            <SavedCommuteNotificationRuleEditor
+              rule={newNotificationRule}
+              onChange={setNewNotificationRule}
+              routeStationIds={[]}
+              stationNameFor={stationNameFor}
+              allowReturnLeg={watchReturnTrip}
+              showSectionControls={false}
+            />
             <button
               type="button"
               className="saved-commute-primary-button"
@@ -496,6 +1002,13 @@ export function SavedCommutesPanel({
                 const routeLabel = commute.watchReturnTrip
                   ? `${commute.originStationName} <-> ${commute.destinationStationName}`
                   : commute.routeLabel;
+                const notificationRule = ruleForCommute(commute);
+                const notificationDraft = notificationDrafts[commute.id] ?? notificationRule;
+                const editingNotificationRule = editingNotificationCommuteId === commute.id;
+                const notificationRuleStatus = notificationRule.enabled ? "On" : "Off";
+                const notificationRuleDetail = notificationRule.enabled
+                  ? `${formatDayMask(notificationRule.dayMask)} - ${formatWindow(notificationRule)} - ${formatSection(notificationRule, stationNameFor)}`
+                  : "Saved commute notifications are disabled for this route.";
 
                 return (
                   <div key={commute.id} className={`commute-card ${commuteTone(commute)} min-w-0 rounded-lg border border-black/10 !bg-slate-50 p-3 dark:border-white/10 dark:!bg-[#12151c]`}>
@@ -576,6 +1089,56 @@ export function SavedCommutesPanel({
                           </span>
                         </div>
                       </div>
+
+                      <TravelTimeEstimateBlock leg={selectedLeg} />
+
+                      <div className="saved-commute-rule-summary">
+                        <div>
+                          <strong>Route Notifications: {notificationRuleStatus}</strong>
+                          <span>{notificationRuleDetail}</span>
+                          {notificationRule.enabled ? <em>{formatEventTypes(notificationRule)}</em> : null}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => editingNotificationRule ? setEditingNotificationCommuteId(null) : startEditingNotificationRule(commute)}
+                          aria-expanded={editingNotificationRule}
+                        >
+                          {editingNotificationRule ? "Close" : "Edit Alerts"}
+                        </button>
+                      </div>
+
+                      {editingNotificationRule ? (
+                        <div className="saved-commute-rule-editor">
+                          <SavedCommuteNotificationRuleEditor
+                            rule={notificationDraft}
+                            onChange={(rule) => updateNotificationDraft(commute.id, rule)}
+                            routeStationIds={routeStops}
+                            stationNameFor={stationNameFor}
+                            allowReturnLeg={commute.watchReturnTrip}
+                            showSectionControls={true}
+                          />
+                          {notificationRuleError ? <p className="text-xs font-semibold text-red-600 dark:text-red-300">{notificationRuleError}</p> : null}
+                          <div className="saved-commute-rule-actions">
+                            <button
+                              type="button"
+                              onClick={() => saveNotificationRule(commute)}
+                              disabled={savingNotificationRuleId === commute.id}
+                              aria-busy={savingNotificationRuleId === commute.id}
+                            >
+                              {savingNotificationRuleId === commute.id ? "Saving" : "Save Alerts"}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setEditingNotificationCommuteId(null);
+                                setNotificationRuleError(null);
+                              }}
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      ) : null}
 
                       <ul className="saved-commute-leg-list">
                         {(() => {

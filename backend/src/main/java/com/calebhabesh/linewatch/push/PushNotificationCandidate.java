@@ -15,8 +15,42 @@ public record PushNotificationCandidate(
     String notificationKey,
     String dedupeKey,
     FormattedPushNotification notification,
-    String url
+    String url,
+    boolean deliveryAllowed
 ) {
+    public PushNotificationCandidate(
+        String accountId,
+        String commuteId,
+        String legId,
+        String lineId,
+        String lineNumber,
+        String category,
+        String eventType,
+        String reminderBucket,
+        String sourceIncidentKey,
+        String notificationKey,
+        String dedupeKey,
+        FormattedPushNotification notification,
+        String url
+    ) {
+        this(
+            accountId,
+            commuteId,
+            legId,
+            lineId,
+            lineNumber,
+            category,
+            eventType,
+            reminderBucket,
+            sourceIncidentKey,
+            notificationKey,
+            dedupeKey,
+            notification,
+            url,
+            true
+        );
+    }
+
     public boolean savedCommuteScoped() {
         return commuteId != null && !commuteId.isBlank();
     }

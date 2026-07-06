@@ -93,12 +93,24 @@ export type AccountMatchedImpact = {
   eventStartAt?: string | null;
 };
 
+export type AccountCommuteTravelTimeEstimate = {
+  status: "standard" | "estimated" | "unreliable" | "unavailable";
+  baselineSeconds: number;
+  estimatedLowSeconds: number | null;
+  estimatedHighSeconds: number | null;
+  extraLowSeconds: number | null;
+  extraHighSeconds: number | null;
+  confidence: "high" | "medium" | "low" | "none" | string;
+  summary: string;
+};
+
 export type AccountCommuteImpact = {
   status: "clear" | "affected" | "planned" | "unavailable";
   severity: "clear" | "minor" | "major" | "suspended" | "planned" | "unavailable";
   statusLabel: string;
   detail: string;
   matchedImpacts: AccountMatchedImpact[];
+  travelTimeEstimate?: AccountCommuteTravelTimeEstimate | null;
 };
 
 export type AccountCommuteLegId = "outbound" | "return";
@@ -114,6 +126,44 @@ export type AccountCommuteLeg = {
   impact: AccountCommuteImpact;
 };
 
+export type AccountSavedCommuteNotificationEventTypes = {
+  suspensions: boolean;
+  delays: boolean;
+  reducedSpeedZones: boolean;
+  plannedClosures: boolean;
+  serviceRestored: boolean;
+};
+
+export type AccountSavedCommuteNotificationRule = {
+  enabled: boolean;
+  dayMask: number;
+  startMinute: number | null;
+  endMinute: number | null;
+  sectionStartStationId: string | null;
+  sectionEndStationId: string | null;
+  outboundEnabled: boolean;
+  returnEnabled: boolean;
+  eventTypes: AccountSavedCommuteNotificationEventTypes;
+};
+
+export const defaultSavedCommuteNotificationRule: AccountSavedCommuteNotificationRule = {
+  enabled: true,
+  dayMask: 127,
+  startMinute: null,
+  endMinute: null,
+  sectionStartStationId: null,
+  sectionEndStationId: null,
+  outboundEnabled: true,
+  returnEnabled: true,
+  eventTypes: {
+    suspensions: true,
+    delays: true,
+    reducedSpeedZones: true,
+    plannedClosures: true,
+    serviceRestored: true,
+  },
+};
+
 export type AccountSavedCommute = {
   id: string;
   label: string;
@@ -127,6 +177,7 @@ export type AccountSavedCommute = {
   returnLeg: AccountCommuteLeg | null;
   path: AccountCommutePath;
   impact: AccountCommuteImpact;
+  notificationRule: AccountSavedCommuteNotificationRule;
   createdAt: string;
   updatedAt: string;
 };
@@ -205,7 +256,8 @@ export type CreateSavedCommuteInput = {
   label: string;
   originStationId: string;
   destinationStationId: string;
-  watchReturnTrip: boolean;
+  watchReturnTrip?: boolean;
+  notificationRule?: AccountSavedCommuteNotificationRule;
 };
 
 export type PushNotificationEventTypePreferences = {
@@ -409,6 +461,30 @@ async function readJson<T>(response: Response): Promise<T> {
   return await response.json() as T;
 }
 
+export function normalizeSavedCommuteNotificationRule(
+  rule?: Partial<AccountSavedCommuteNotificationRule> | null
+): AccountSavedCommuteNotificationRule {
+  return {
+    ...defaultSavedCommuteNotificationRule,
+    ...rule,
+    startMinute: typeof rule?.startMinute === "number" ? rule.startMinute : null,
+    endMinute: typeof rule?.endMinute === "number" ? rule.endMinute : null,
+    sectionStartStationId: rule?.sectionStartStationId ?? null,
+    sectionEndStationId: rule?.sectionEndStationId ?? null,
+    eventTypes: {
+      ...defaultSavedCommuteNotificationRule.eventTypes,
+      ...(rule?.eventTypes ?? {}),
+    },
+  };
+}
+
+function normalizeSavedCommute(commute: AccountSavedCommute): AccountSavedCommute {
+  return {
+    ...commute,
+    notificationRule: normalizeSavedCommuteNotificationRule(commute.notificationRule),
+  };
+}
+
 export class AccountRequestError extends Error {
   status: number;
   errorCode: string | null;
@@ -564,7 +640,7 @@ export async function getSavedCommutes(options: AdapterOptions = {}): Promise<Ac
       throw new Error(`Saved commutes request failed with ${response.status}`);
     }
     const body = await readJson<{ commutes: AccountSavedCommute[] }>(response);
-    return { source: "backend", commutes: body.commutes };
+    return { source: "backend", commutes: body.commutes.map(normalizeSavedCommute) };
   } catch {
     return {
       source: "unavailable",
@@ -585,7 +661,25 @@ export async function createSavedCommute(input: CreateSavedCommuteInput, options
   if (!response.ok) {
     throw new Error(`Create saved commute failed with ${response.status}`);
   }
-  return readJson<AccountSavedCommute>(response);
+  return normalizeSavedCommute(await readJson<AccountSavedCommute>(response));
+}
+
+export async function updateSavedCommuteNotificationRule(
+  id: string,
+  notificationRule: AccountSavedCommuteNotificationRule,
+  options: AdapterOptions = {}
+) {
+  const fetcher = options.fetcher ?? fetch;
+  const response = await fetcher(apiUrl(`/api/account/commutes/${encodeURIComponent(id)}/notification-rule`, options), {
+    method: "PATCH",
+    credentials: "include",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(notificationRule),
+  });
+  if (!response.ok) {
+    throw new Error(`Update saved commute notification rule failed with ${response.status}`);
+  }
+  return normalizeSavedCommute(await readJson<AccountSavedCommute>(response));
 }
 
 export async function deleteSavedCommute(id: string, options: AdapterOptions = {}) {
