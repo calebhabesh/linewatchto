@@ -34,7 +34,11 @@
 	}
 }
 
-linewatchto.ca, www.linewatchto.ca {
+www.linewatchto.ca {
+	redir https://linewatchto.ca{uri} 308
+}
+
+linewatchto.ca {
 	encode gzip zstd
 	import linewatch_security_headers
 	import linewatch_cache_headers
