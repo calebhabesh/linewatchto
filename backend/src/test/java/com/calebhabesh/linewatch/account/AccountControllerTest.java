@@ -6,6 +6,8 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.calebhabesh.linewatch.push.PushNotificationService;
+import com.calebhabesh.linewatch.push.PushRequests;
 import java.net.URI;
 import java.time.Instant;
 import org.junit.jupiter.api.Test;
@@ -20,7 +22,8 @@ class AccountControllerTest {
     private final AccountRateLimiter rateLimiter = mock(AccountRateLimiter.class);
     private final GoogleAuthProperties googleAuthProperties = googleProperties();
     private final GoogleOAuthService googleOAuthService = mock(GoogleOAuthService.class);
-    private final AccountController controller = new AccountController(accountService, cookieFactory, rateLimiter, googleAuthProperties, googleOAuthService, false);
+    private final PushNotificationService pushNotificationService = mock(PushNotificationService.class);
+    private final AccountController controller = new AccountController(accountService, cookieFactory, rateLimiter, googleAuthProperties, googleOAuthService, pushNotificationService, false);
 
     private GoogleAuthProperties googleProperties() {
         GoogleAuthProperties result = new GoogleAuthProperties();
@@ -54,12 +57,37 @@ class AccountControllerTest {
 
     @Test
     void logoutExpiresSessionCookieAndDeletesServerSession() {
-        ResponseEntity<AccountResponses.AuthResponse> response = controller.logout("raw-token");
+        ResponseEntity<AccountResponses.AuthResponse> response = controller.logout("raw-token", null);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getHeaders().getFirst("Set-Cookie"))
             .contains("linewatch_session=")
             .contains("Max-Age=0");
+        verify(accountService).logout("raw-token");
+    }
+
+    @Test
+    void logoutDisablesOnlyCurrentPushEndpointWhenProvided() {
+        AccountEntity account = AccountEntity.create(
+            "user_1",
+            "rider@example.com",
+            "Rider",
+            "$2a$hash",
+            false,
+            Instant.parse("2026-06-05T14:00:00Z")
+        );
+        AccountService.LogoutRequest request = new AccountService.LogoutRequest(
+            "https://fcm.googleapis.com/fcm/send/current-browser"
+        );
+        when(accountService.requireAccount("raw-token")).thenReturn(account);
+
+        ResponseEntity<AccountResponses.AuthResponse> response = controller.logout("raw-token", request);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        verify(pushNotificationService).disableSubscription(
+            account,
+            new PushRequests.SubscriptionEndpointRequest("https://fcm.googleapis.com/fcm/send/current-browser")
+        );
         verify(accountService).logout("raw-token");
     }
 
@@ -135,7 +163,7 @@ class AccountControllerTest {
 
     @Test
     void devLoginSetsHttpOnlySessionCookieWhenEnabled() {
-        AccountController enabledController = new AccountController(accountService, cookieFactory, rateLimiter, googleAuthProperties, googleOAuthService, true);
+        AccountController enabledController = new AccountController(accountService, cookieFactory, rateLimiter, googleAuthProperties, googleOAuthService, pushNotificationService, true);
         AccountResponses.UserResponse user = new AccountResponses.UserResponse("user_dev", "dev@linewatch.local", "Dev Rider", false, false);
         when(accountService.devLogin())
             .thenReturn(new AccountResponses.AuthSession(user, "raw-token", Instant.parse("2026-06-19T14:30:00Z")));

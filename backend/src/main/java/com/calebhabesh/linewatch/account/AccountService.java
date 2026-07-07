@@ -514,6 +514,7 @@ public class AccountService {
 
     public record RegisterRequest(String email, String password, String displayName) {}
     public record LoginRequest(String email, String password) {}
+    public record LogoutRequest(String pushEndpoint) {}
     public record GoogleLoginRequest(String credential) {}
     public record PasswordResetRequest(String email) {}
     public record PasswordResetConfirmRequest(String token, String password) {}

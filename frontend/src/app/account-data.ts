@@ -7,6 +7,10 @@ type AdapterOptions = {
   apiBaseUrl?: string;
 };
 
+type LogoutOptions = AdapterOptions & {
+  pushEndpoint?: string | null;
+};
+
 export type AccountUser = {
   id: string;
   email: string;
@@ -633,8 +637,16 @@ export async function loginDevAccount(options: AdapterOptions = {}) {
   return authRequest("/api/auth/dev", { method: "POST" }, options);
 }
 
-export async function logoutAccount(options: AdapterOptions = {}) {
-  return authRequest("/api/auth/logout", { method: "POST" }, options);
+export async function logoutAccount(options: LogoutOptions = {}) {
+  const pushEndpoint = typeof options.pushEndpoint === "string" ? options.pushEndpoint.trim() : "";
+  return authRequest(
+    "/api/auth/logout",
+    {
+      method: "POST",
+      ...(pushEndpoint ? { body: JSON.stringify({ pushEndpoint }) } : {}),
+    },
+    options
+  );
 }
 
 export async function getSavedCommutes(options: AdapterOptions = {}): Promise<AccountSavedCommuteResult> {

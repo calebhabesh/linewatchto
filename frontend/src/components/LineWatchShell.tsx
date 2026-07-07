@@ -92,6 +92,7 @@ import {
 import { GoogleSignInButton } from "./GoogleSignInButton";
 import { accountOAuthErrorState } from "../app/account-oauth-error";
 import { normalizeAccountEmail, validateAccountCredentials } from "../app/account-validation";
+import { getCurrentPushSubscription } from "../app/push-browser-state";
 import { hasReleaseNotes } from "../app/release-notes";
 import { lineWatchAppVersionLabel } from "../app/app-build";
 import {
@@ -858,7 +859,16 @@ export function LineWatchShell({
   const handleSignOut = async () => {
     setAccountBusy(true);
     try {
-      await logoutAccount();
+      let pushEndpoint: string | null = null;
+      try {
+        const pushSubscription = pushSettings.supported
+          ? await getCurrentPushSubscription(navigator.serviceWorker)
+          : null;
+        pushEndpoint = pushSubscription?.endpoint ?? null;
+      } catch {
+        pushEndpoint = null;
+      }
+      await logoutAccount({ pushEndpoint });
       setAccountState({ source: "backend", authenticated: false, user: null });
       setAccountCommutes([]);
       setCommutePathPreview(null);

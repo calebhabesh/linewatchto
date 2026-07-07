@@ -337,6 +337,30 @@ describe("account data adapter", () => {
     assert.equal(requests[1].init.credentials, "include");
   });
 
+  it("includes the current push endpoint when logging out of a browser device", async () => {
+    const requests = [];
+
+    await logoutAccount({
+      pushEndpoint: "https://fcm.googleapis.com/fcm/send/current-browser",
+      fetcher: async (input, init) => {
+        requests.push({ input, init });
+        return new Response(JSON.stringify({ authenticated: false, user: null }), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        });
+      },
+    });
+
+    assert.equal(requests.length, 1);
+    assert.equal(requests[0].input, "/api/auth/logout");
+    assert.equal(requests[0].init.method, "POST");
+    assert.equal(requests[0].init.credentials, "include");
+    assert.equal(requests[0].init.headers["content-type"], "application/json");
+    assert.deepEqual(JSON.parse(requests[0].init.body), {
+      pushEndpoint: "https://fcm.googleapis.com/fcm/send/current-browser",
+    });
+  });
+
   it("posts saved commute notification rules on create and update", async () => {
     const requests = [];
     const notificationRule = {

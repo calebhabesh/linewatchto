@@ -1,5 +1,7 @@
 package com.calebhabesh.linewatch.account;
 
+import com.calebhabesh.linewatch.push.PushNotificationService;
+import com.calebhabesh.linewatch.push.PushRequests;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
@@ -24,6 +26,7 @@ public class AccountController {
     private final AccountRateLimiter rateLimiter;
     private final GoogleAuthProperties googleAuthProperties;
     private final GoogleOAuthService googleOAuthService;
+    private final PushNotificationService pushNotificationService;
     private final boolean devAccountEnabled;
 
     public AccountController(
@@ -32,6 +35,7 @@ public class AccountController {
         AccountRateLimiter rateLimiter,
         GoogleAuthProperties googleAuthProperties,
         GoogleOAuthService googleOAuthService,
+        PushNotificationService pushNotificationService,
         @Value("${linewatch.auth.dev-account.enabled:false}") boolean devAccountEnabled
     ) {
         this.accountService = accountService;
@@ -39,6 +43,7 @@ public class AccountController {
         this.rateLimiter = rateLimiter;
         this.googleAuthProperties = googleAuthProperties;
         this.googleOAuthService = googleOAuthService;
+        this.pushNotificationService = pushNotificationService;
         this.devAccountEnabled = devAccountEnabled;
     }
 
@@ -173,8 +178,10 @@ public class AccountController {
 
     @PostMapping("/logout")
     public ResponseEntity<AccountResponses.AuthResponse> logout(
-        @CookieValue(name = AuthCookieFactory.COOKIE_NAME, required = false) String rawSessionToken
+        @CookieValue(name = AuthCookieFactory.COOKIE_NAME, required = false) String rawSessionToken,
+        @RequestBody(required = false) AccountService.LogoutRequest request
     ) {
+        disableCurrentPushEndpoint(rawSessionToken, request);
         accountService.logout(rawSessionToken);
         return ResponseEntity.ok()
             .header(HttpHeaders.SET_COOKIE, cookieFactory.expiredCookie().toString())
@@ -216,5 +223,22 @@ public class AccountController {
             .build()
             .encode()
             .toUriString();
+    }
+
+    private void disableCurrentPushEndpoint(String rawSessionToken, AccountService.LogoutRequest request) {
+        if (request == null || request.pushEndpoint() == null || request.pushEndpoint().isBlank()) {
+            return;
+        }
+        try {
+            AccountEntity account = accountService.requireAccount(rawSessionToken);
+            pushNotificationService.disableSubscription(
+                account,
+                new PushRequests.SubscriptionEndpointRequest(request.pushEndpoint())
+            );
+        } catch (AccountException ex) {
+            if (ex.getStatus() != HttpStatus.UNAUTHORIZED) {
+                throw ex;
+            }
+        }
     }
 }
