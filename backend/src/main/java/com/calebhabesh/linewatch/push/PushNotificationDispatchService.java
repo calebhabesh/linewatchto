@@ -24,7 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class PushNotificationDispatchService {
     private static final String ACTIVE_STATE = "ACTIVE";
     private static final String CLEARED_STATE = "CLEARED";
-    private static final Duration FAILED_DELIVERY_RETRY_DELAY = Duration.ofMinutes(5);
+    private static final Duration FAILED_DELIVERY_RETRY_DELAY = Duration.ofSeconds(30);
     private static final Duration ACCEPTED_UNDISPLAYED_DELIVERY_RETRY_DELAY = Duration.ofMinutes(2);
     private static final Duration ACCEPTED_UNDISPLAYED_DELIVERY_RETRY_WINDOW = Duration.ofMinutes(30);
     private static final Duration CLEARED_DELIVERY_RETRY_WINDOW = Duration.ofHours(24);
@@ -278,9 +278,7 @@ public class PushNotificationDispatchService {
                     now,
                     formatter
                 ));
-                if (!sendEventToSubscriptions(clearedEvent, now)) {
-                    eventRepository.delete(clearedEvent);
-                }
+                sendEventToSubscriptions(clearedEvent, now);
             }
         }
     }
@@ -326,11 +324,8 @@ public class PushNotificationDispatchService {
                 now,
                 formatter
             ));
-            if (sendEventToSubscriptions(clearedEvent, now)) {
-                lineEventObservationService.markCleared(observation, now);
-            } else {
-                eventRepository.delete(clearedEvent);
-            }
+            sendEventToSubscriptions(clearedEvent, now);
+            lineEventObservationService.markCleared(observation, now);
         }
     }
 
@@ -537,9 +532,7 @@ public class PushNotificationDispatchService {
             formatter,
             now
         ));
-        if (!sendEventToSubscriptions(event, subscriptions, now)) {
-            eventRepository.delete(event);
-        }
+        sendEventToSubscriptions(event, subscriptions, now);
     }
 
     private void retryEventToIncompleteSubscriptions(PushNotificationEventEntity event, Instant now) {

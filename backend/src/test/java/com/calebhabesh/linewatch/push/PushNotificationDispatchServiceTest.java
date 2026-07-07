@@ -272,7 +272,7 @@ class PushNotificationDispatchServiceTest {
     }
 
     @Test
-    void removesNewEventWhenEveryPushSendFailsSoLaterEvaluationsCanRetry() {
+    void keepsNewEventWhenEveryPushSendFailsSoDiagnosticsCanExplainMisses() {
         SavedCommuteEntity commute = SavedCommuteEntity.create(
             "commute_1",
             account,
@@ -334,7 +334,7 @@ class PushNotificationDispatchServiceTest {
             any(WebPushPayload.class)
         );
         verify(deliveryRepository).save(any(PushNotificationDeliveryEntity.class));
-        verify(eventRepository).delete(any(PushNotificationEventEntity.class));
+        verify(eventRepository, never()).delete(any(PushNotificationEventEntity.class));
     }
 
     @Test
@@ -1032,7 +1032,7 @@ class PushNotificationDispatchServiceTest {
     }
 
     @Test
-    void activeDeliveryFailureStillLeavesObservationAvailableForClearance() {
+    void failedLineWideActiveDeliveryKeepsEventForDiagnosticsAndClearance() {
         PushNotificationPreferenceEntity preferences = PushNotificationPreferenceEntity.create(account, clock.instant());
         PushSubscriptionEntity subscription = PushSubscriptionEntity.create(
             "push_subscription_1",
@@ -1075,7 +1075,8 @@ class PushNotificationDispatchServiceTest {
 
         service.evaluateSavedCommuteNotifications();
 
-        verify(eventRepository).delete(any(PushNotificationEventEntity.class));
+        verify(eventRepository, never()).delete(any(PushNotificationEventEntity.class));
+        verify(deliveryRepository).save(any(PushNotificationDeliveryEntity.class));
         verify(lineEventObservationService, never()).markCleared(any(), any());
     }
 
@@ -1584,7 +1585,7 @@ class PushNotificationDispatchServiceTest {
             existingEvent,
             androidSubscription,
             PushDeliveryResult.failed(429, "Push service rejected the request."),
-            Instant.parse("2026-06-05T14:45:10Z")
+            Instant.parse("2026-06-05T14:59:25Z")
         );
         PushNotificationDeliveryEntity acceptedIosDelivery = PushNotificationDeliveryEntity.create(
             "push_delivery_ios",
@@ -1877,7 +1878,7 @@ class PushNotificationDispatchServiceTest {
             existingEvent,
             androidSubscription,
             PushDeliveryResult.failed(429, "Push service rejected the request."),
-            Instant.parse("2026-06-05T14:59:30Z")
+            Instant.parse("2026-06-05T14:59:45Z")
         );
         PushNotificationPreferenceEntity preferences = PushNotificationPreferenceEntity.create(account, Instant.parse("2026-06-05T14:00:00Z"));
         when(preferenceService.preferenceEntityForAccountId("user_1")).thenReturn(preferences);
