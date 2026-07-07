@@ -78,7 +78,7 @@ class VapidWebPushClientPayloadTest {
         HttpRequest request = requestCaptor.getValue();
         assertThat(result.status()).isEqualTo("accepted");
         assertThat(request.headers().firstValue("Topic")).contains("topic-1");
-        assertThat(request.headers().firstValue("TTL")).contains("3600");
+        assertThat(request.headers().firstValue("TTL")).contains("600");
         assertThat(request.headers().firstValue("Urgency")).contains("high");
         assertThat(request.headers().firstValue("Content-Encoding")).contains("aes128gcm");
         assertThat(request.bodyPublisher()).isPresent();

@@ -13,6 +13,7 @@ import java.time.OffsetDateTime;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.context.ApplicationEventPublisher;
 
 class TtcAlertIngestionServiceTest {
     private final TtcAlertClient client = mock(TtcAlertClient.class);
@@ -20,6 +21,7 @@ class TtcAlertIngestionServiceTest {
         mock(TtcAlertFeedApplicationService.class);
     private final IngestionRunService runService = mock(IngestionRunService.class);
     private final com.calebhabesh.linewatch.cache.DashboardCacheService cache = mock(com.calebhabesh.linewatch.cache.DashboardCacheService.class);
+    private final ApplicationEventPublisher eventPublisher = mock(ApplicationEventPublisher.class);
     private final TtcAlertFeed feed = new TtcAlertFeed(
         OffsetDateTime.parse("2026-06-01T11:55:00Z"),
         List.of(),
@@ -31,7 +33,7 @@ class TtcAlertIngestionServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new TtcAlertIngestionService(client, applicationService, runService, cache);
+        service = new TtcAlertIngestionService(client, applicationService, runService, cache, eventPublisher);
     }
 
     @Test
@@ -49,6 +51,7 @@ class TtcAlertIngestionServiceTest {
         );
         verify(runService, never()).fail(anyLong(), any());
         verify(cache).evictDashboard();
+        verify(eventPublisher).publishEvent(any(TtcAlertIngestionSucceededEvent.class));
     }
 
     @Test
@@ -63,5 +66,6 @@ class TtcAlertIngestionServiceTest {
         verify(applicationService, never()).apply(any());
         verify(runService).fail(eq(42L), any(TtcAlertClientException.class));
         verify(cache, never()).evictDashboard();
+        verify(eventPublisher, never()).publishEvent(any());
     }
 }

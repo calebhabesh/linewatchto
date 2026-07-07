@@ -2,6 +2,7 @@ package com.calebhabesh.linewatch.push;
 
 import com.calebhabesh.linewatch.account.SavedCommuteEntity;
 import com.calebhabesh.linewatch.account.SavedCommuteRepository;
+import com.calebhabesh.linewatch.alert.AlertHistoryRepository;
 import com.calebhabesh.linewatch.ingestion.IngestionFreshness;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -46,6 +47,8 @@ public class PushNotificationDispatchService {
     private final PushNotificationFormatter formatter;
     private final PushReceiptTokenService receiptTokenService;
     private final IngestionFreshness ingestionFreshness;
+    private final AlertHistoryRepository alertHistoryRepository;
+    private final PushProperties pushProperties;
     private final Clock clock;
 
     @Autowired
@@ -61,7 +64,9 @@ public class PushNotificationDispatchService {
         PushLineEventObservationService lineEventObservationService,
         PushNotificationFormatter formatter,
         PushReceiptTokenService receiptTokenService,
-        IngestionFreshness ingestionFreshness
+        IngestionFreshness ingestionFreshness,
+        AlertHistoryRepository alertHistoryRepository,
+        PushProperties pushProperties
     ) {
         this(
             savedCommuteRepository, planner, eventRepository, subscriptionRepository,
@@ -70,6 +75,8 @@ public class PushNotificationDispatchService {
             formatter,
             receiptTokenService,
             ingestionFreshness,
+            alertHistoryRepository,
+            pushProperties,
             Clock.systemUTC()
         );
     }
@@ -87,6 +94,8 @@ public class PushNotificationDispatchService {
         PushNotificationFormatter formatter,
         PushReceiptTokenService receiptTokenService,
         IngestionFreshness ingestionFreshness,
+        AlertHistoryRepository alertHistoryRepository,
+        PushProperties pushProperties,
         Clock clock
     ) {
         this.savedCommuteRepository = savedCommuteRepository;
@@ -101,6 +110,8 @@ public class PushNotificationDispatchService {
         this.formatter = formatter;
         this.receiptTokenService = receiptTokenService;
         this.ingestionFreshness = ingestionFreshness;
+        this.alertHistoryRepository = alertHistoryRepository;
+        this.pushProperties = pushProperties;
         this.clock = clock;
     }
 
@@ -263,6 +274,7 @@ public class PushNotificationDispatchService {
                 PushNotificationEventEntity clearedEvent = eventRepository.save(PushNotificationEventEntity.cleared(
                     nextId("push_event"),
                     activeEvent,
+                    sourceClearedAt(activeEvent.getSourceIncidentKey(), activeEvent.getNotificationKey(), now),
                     now,
                     formatter
                 ));
@@ -310,6 +322,7 @@ public class PushNotificationDispatchService {
             PushNotificationEventEntity clearedEvent = eventRepository.save(PushNotificationEventEntity.clearedFromObservation(
                 nextId("push_event"),
                 observation,
+                sourceClearedAt(observation.getSourceIncidentKey(), observation.getNotificationKey(), now),
                 now,
                 formatter
             ));
@@ -458,6 +471,50 @@ public class PushNotificationDispatchService {
         return values.stream().anyMatch(candidate -> normalize(candidate).equals(normalized));
     }
 
+    private Instant sourceClearedAt(String sourceIncidentKey, String notificationKey, Instant fallback) {
+        for (String possibleAlertId : possibleAlertIds(sourceIncidentKey, notificationKey)) {
+            Optional<Instant> clearedAt = alertHistoryRepository.findLatestClearedSnapshotTime(possibleAlertId)
+                .map(java.time.OffsetDateTime::toInstant);
+            if (clearedAt.isPresent()) {
+                return clearedAt.orElseThrow();
+            }
+        }
+        return fallback;
+    }
+
+    private Instant sourceOpenedAt(String sourceIncidentKey, String notificationKey, Instant fallback) {
+        for (String possibleAlertId : possibleAlertIds(sourceIncidentKey, notificationKey)) {
+            Optional<Instant> openedAt = alertHistoryRepository.findLatestOpenedSnapshotTime(possibleAlertId)
+                .map(java.time.OffsetDateTime::toInstant);
+            if (openedAt.isPresent()) {
+                return openedAt.orElseThrow();
+            }
+        }
+        return fallback;
+    }
+
+    private List<String> possibleAlertIds(String sourceIncidentKey, String notificationKey) {
+        List<String> values = new java.util.ArrayList<>();
+        appendLastKeyPart(values, sourceIncidentKey);
+        appendLastKeyPart(values, notificationKey);
+        return values.stream()
+            .filter(value -> !value.isBlank())
+            .distinct()
+            .toList();
+    }
+
+    private void appendLastKeyPart(List<String> values, String key) {
+        String normalized = key == null ? "" : key.trim();
+        if (normalized.isBlank()) {
+            return;
+        }
+        String[] parts = normalized.split("\\|", -1);
+        if (parts.length == 0) {
+            return;
+        }
+        values.add(parts[parts.length - 1].trim());
+    }
+
     private String normalize(String value) {
         return value == null ? "" : value.trim().toLowerCase(Locale.ROOT).replaceAll("\\s+", " ");
     }
@@ -476,6 +533,8 @@ public class PushNotificationDispatchService {
         PushNotificationEventEntity event = eventRepository.save(PushNotificationEventEntity.create(
             nextId("push_event"),
             candidate,
+            sourceOpenedAt(candidate.sourceIncidentKey(), candidate.notificationKey(), candidate.sourceEventAt()),
+            formatter,
             now
         ));
         if (!sendEventToSubscriptions(event, subscriptions, now)) {
@@ -509,7 +568,7 @@ public class PushNotificationDispatchService {
             PushDeliveryResult result = webPushClient.send(
                 subscription,
                 topicFor(PushNotificationDisplayTags.forEvent(event)),
-                WebPushPayload.fromDelivery(event, deliveryId, subscription, receiptTokenService)
+                WebPushPayload.fromDelivery(event, deliveryId, subscription, receiptTokenService, now, pushProperties)
             );
             if (result.invalidSubscription()) {
                 subscription.disable(now);
@@ -544,7 +603,7 @@ public class PushNotificationDispatchService {
             PushDeliveryResult result = webPushClient.send(
                 subscription,
                 topicFor(PushNotificationDisplayTags.forEvent(event)),
-                WebPushPayload.fromDelivery(event, deliveryId, subscription, receiptTokenService)
+                WebPushPayload.fromDelivery(event, deliveryId, subscription, receiptTokenService, now, pushProperties)
             );
             if (result.accepted()) {
                 accepted = true;
@@ -567,6 +626,9 @@ public class PushNotificationDispatchService {
         Instant eventCreatedAt = event.getCreatedAt();
         if (eventCreatedAt == null) {
             return false;
+        }
+        if (ACTIVE_STATE.equals(event.getNotificationState())) {
+            return true;
         }
         Instant enabledAt = subscription.getEnabledAt();
         if (enabledAt == null) {

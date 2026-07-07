@@ -24,6 +24,8 @@ public class PushNotificationFormatter {
         Pattern.compile("(?i)^line\\s+\\d+\\s+[^:]+:\\s+(.+)$");
     private static final Pattern WORD_PATTERN =
         Pattern.compile("[A-Za-z0-9]+");
+    private static final Pattern CLOCK_LINE_PATTERN =
+        Pattern.compile("(?m)^🕗\\s+[^\\r\\n]+$");
 
     public FormattedPushNotification formatActive(PushNotificationFacts facts) {
         String subject = notificationSubject(facts.lineId(), facts.lineNumber(), facts.eventType());
@@ -102,6 +104,32 @@ public class PushNotificationFormatter {
             direction.isEmpty() ? null : direction,
             normalizedScope,
             clearedAt
+        );
+    }
+
+    public FormattedPushNotification withSourceEventAt(
+        FormattedPushNotification notification,
+        Instant sourceEventAt
+    ) {
+        if (notification == null || sourceEventAt == null) {
+            return notification;
+        }
+
+        String body = notification.body() == null ? "" : notification.body();
+        String clockLine = clockLine(sourceEventAt);
+        Matcher matcher = CLOCK_LINE_PATTERN.matcher(body);
+        String updatedBody = matcher.find()
+            ? matcher.replaceAll(Matcher.quoteReplacement(clockLine))
+            : body.isBlank() ? clockLine : body + "\n" + clockLine;
+
+        return new FormattedPushNotification(
+            notification.title(),
+            updatedBody,
+            notification.notificationSubject(),
+            notification.eventLocation(),
+            notification.displayDirection(),
+            notification.scopeLabel(),
+            sourceEventAt
         );
     }
 

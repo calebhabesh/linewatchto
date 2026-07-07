@@ -51,6 +51,15 @@ public class PushNotificationEventEntity {
     protected PushNotificationEventEntity() {}
 
     private PushNotificationEventEntity(String id, PushNotificationCandidate candidate, Instant now) {
+        this(id, candidate, candidate.notification(), now);
+    }
+
+    private PushNotificationEventEntity(
+        String id,
+        PushNotificationCandidate candidate,
+        FormattedPushNotification notification,
+        Instant now
+    ) {
         this.id = id;
         this.accountId = candidate.accountId();
         this.commuteId = candidate.commuteId();
@@ -63,13 +72,13 @@ public class PushNotificationEventEntity {
         this.sourceIncidentKey = candidate.sourceIncidentKey();
         this.notificationState = "ACTIVE";
         this.dedupeKey = candidate.dedupeKey();
-        this.title = candidate.title();
-        this.body = candidate.body();
-        this.notificationSubject = candidate.notificationSubject();
-        this.eventLocation = candidate.eventLocation();
-        this.displayDirection = candidate.displayDirection();
-        this.scopeLabel = candidate.scopeLabel();
-        this.sourceEventAt = candidate.sourceEventAt();
+        this.title = notification.title();
+        this.body = notification.body();
+        this.notificationSubject = notification.notificationSubject();
+        this.eventLocation = notification.eventLocation();
+        this.displayDirection = notification.displayDirection();
+        this.scopeLabel = notification.scopeLabel();
+        this.sourceEventAt = notification.sourceEventAt();
         this.url = candidate.url();
         this.createdAt = now;
     }
@@ -78,9 +87,33 @@ public class PushNotificationEventEntity {
         return new PushNotificationEventEntity(id, candidate, now);
     }
 
+    public static PushNotificationEventEntity create(
+        String id,
+        PushNotificationCandidate candidate,
+        Instant sourceEventAt,
+        PushNotificationFormatter formatter,
+        Instant now
+    ) {
+        FormattedPushNotification notification = candidate.notification();
+        if (sourceEventAt != null && !sourceEventAt.equals(candidate.sourceEventAt())) {
+            notification = formatter.withSourceEventAt(notification, sourceEventAt);
+        }
+        return new PushNotificationEventEntity(id, candidate, notification, now);
+    }
+
     public static PushNotificationEventEntity cleared(
         String id,
         PushNotificationEventEntity activeEvent,
+        Instant now,
+        PushNotificationFormatter formatter
+    ) {
+        return cleared(id, activeEvent, now, now, formatter);
+    }
+
+    public static PushNotificationEventEntity cleared(
+        String id,
+        PushNotificationEventEntity activeEvent,
+        Instant clearedAt,
         Instant now,
         PushNotificationFormatter formatter
     ) {
@@ -89,7 +122,7 @@ public class PushNotificationEventEntity {
             activeEvent.eventLocation,
             activeEvent.displayDirection,
             activeEvent.scopeLabel,
-            now
+            clearedAt
         );
 
         PushNotificationEventEntity event = new PushNotificationEventEntity();
@@ -123,12 +156,22 @@ public class PushNotificationEventEntity {
         Instant now,
         PushNotificationFormatter formatter
     ) {
+        return clearedFromObservation(id, observation, now, now, formatter);
+    }
+
+    public static PushNotificationEventEntity clearedFromObservation(
+        String id,
+        PushLineEventObservationEntity observation,
+        Instant clearedAt,
+        Instant now,
+        PushNotificationFormatter formatter
+    ) {
         FormattedPushNotification notification = formatter.formatCleared(
             observation.getNotificationSubject(),
             observation.getEventLocation(),
             observation.getDisplayDirection(),
             observation.getScopeLabel(),
-            now
+            clearedAt
         );
 
         PushNotificationEventEntity event = new PushNotificationEventEntity();

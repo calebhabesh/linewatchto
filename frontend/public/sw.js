@@ -96,6 +96,10 @@ self.addEventListener("push", (event) => {
   event.waitUntil(showPendingPushNotification(event));
 });
 
+self.addEventListener("pushsubscriptionchange", (event) => {
+  event.waitUntil(handlePushSubscriptionChange(event));
+});
+
 self.addEventListener("message", (event) => {
   if (event.data?.type === "linewatch-skip-waiting") {
     const skipWaiting = self.skipWaiting();
@@ -169,6 +173,10 @@ async function showPendingPushNotification(event) {
   try {
     const payloadNotification = notificationFromPushPayload(event);
     if (payloadNotification) {
+      if (shouldSkipExpiredNotification(payloadNotification)) {
+        await recordPushClientEvent(payloadNotification, "pending_skipped", "expired active payload");
+        return;
+      }
       await showTrackedPushNotification(payloadNotification);
       await acknowledgeDisplayedPushNotification(payloadNotification);
       await reconcilePushNotifications();
@@ -201,6 +209,10 @@ async function showPendingPushNotification(event) {
     }
 
     for (const notification of pendingNotifications) {
+      if (shouldSkipExpiredNotification(notification)) {
+        await recordPushClientEvent(notification, "pending_skipped", "expired active payload");
+        continue;
+      }
       if (!shouldShowPendingNotification(notification, pendingNotifications, tagState)) {
         await recordPushClientEvent(notification, "pending_skipped");
         continue;
@@ -234,9 +246,18 @@ function normalizePayloadNotification(body) {
     tag: body.tag,
     state: typeof body.state === "string" ? body.state : "ACTIVE",
     timestamp: typeof body.timestamp === "string" ? body.timestamp : "",
+    sourceEventAt: typeof body.sourceEventAt === "string" ? body.sourceEventAt : "",
+    sentAt: typeof body.sentAt === "string" ? body.sentAt : "",
+    expiresAt: typeof body.expiresAt === "string" ? body.expiresAt : "",
     deliveryId: typeof body.deliveryId === "string" ? body.deliveryId : "",
     receiptToken: typeof body.receiptToken === "string" ? body.receiptToken : "",
   };
+}
+
+function shouldSkipExpiredNotification(notification) {
+  if (notificationStateFor(notification) === "CLEARED") return false;
+  const expiresAt = Date.parse(notification.expiresAt);
+  return Number.isFinite(expiresAt) && expiresAt <= Date.now();
 }
 
 async function showPushNotification(notification) {
@@ -253,6 +274,9 @@ async function showPushNotification(notification) {
       url: notification.url || "/",
       deliveryId: notification.deliveryId || "",
       receiptToken: notification.receiptToken || "",
+      sourceEventAt: notification.sourceEventAt || "",
+      sentAt: notification.sentAt || "",
+      expiresAt: notification.expiresAt || "",
     },
   };
   if (notificationState === "CLEARED") {
@@ -388,6 +412,97 @@ async function showFallbackPushNotification() {
       url: "/",
     },
   });
+}
+
+async function handlePushSubscriptionChange(event) {
+  try {
+    if (event.oldSubscription?.endpoint) {
+      await disableChangedPushSubscription(event.oldSubscription.endpoint);
+    }
+
+    let subscription = event.newSubscription || await self.registration.pushManager.getSubscription();
+    if (!subscription) {
+      const config = await fetchPushConfigForSubscriptionRepair();
+      if (!config?.webPushAvailable || typeof config.vapidPublicKey !== "string" || config.vapidPublicKey.length === 0) {
+        return;
+      }
+      subscription = await self.registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: base64UrlToUint8Array(config.vapidPublicKey),
+      });
+    }
+
+    await saveChangedPushSubscription(subscription);
+  } catch {
+    // Browsers fire pushsubscriptionchange inconsistently. App-open subscription refresh remains the fallback.
+  }
+}
+
+async function fetchPushConfigForSubscriptionRepair() {
+  const response = await fetch("/api/account/push/config", {
+    method: "GET",
+    credentials: "include",
+    headers: {
+      "accept": "application/json",
+    },
+    cache: "no-store",
+  });
+  if (!response.ok) return null;
+  return await response.json();
+}
+
+async function saveChangedPushSubscription(subscription) {
+  if (!subscription?.endpoint) return;
+  await fetch("/api/account/push/subscription", {
+    method: "PUT",
+    credentials: "include",
+    headers: {
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({
+      endpoint: subscription.endpoint,
+      keys: pushSubscriptionKeys(subscription),
+      userAgent: serviceWorkerUserAgent(),
+    }),
+  });
+}
+
+async function disableChangedPushSubscription(endpoint) {
+  if (typeof endpoint !== "string" || endpoint.length === 0) return;
+  await fetch("/api/account/push/subscription/disable", {
+    method: "POST",
+    credentials: "include",
+    headers: {
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({ endpoint }),
+  });
+}
+
+function pushSubscriptionKeys(subscription) {
+  const serialized = typeof subscription?.toJSON === "function" ? subscription.toJSON() : {};
+  return {
+    p256dh: serialized.keys?.p256dh || "",
+    auth: serialized.keys?.auth || "",
+  };
+}
+
+function serviceWorkerUserAgent() {
+  if (typeof navigator !== "undefined" && typeof navigator.userAgent === "string") {
+    return navigator.userAgent;
+  }
+  return "Service Worker";
+}
+
+function base64UrlToUint8Array(base64Url) {
+  const padding = "=".repeat((4 - (base64Url.length % 4)) % 4);
+  const base64 = (base64Url + padding).replace(/-/g, "+").replace(/_/g, "/");
+  const rawData = atob(base64);
+  const output = new Uint8Array(rawData.length);
+  for (let index = 0; index < rawData.length; index += 1) {
+    output[index] = rawData.charCodeAt(index);
+  }
+  return output;
 }
 
 function shouldShowFallbackPushNotification(status) {

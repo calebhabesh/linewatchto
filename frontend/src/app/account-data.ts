@@ -373,6 +373,9 @@ export type PendingPushNotification = {
   tag: string;
   state?: "ACTIVE" | "CLEARED";
   timestamp?: string;
+  sourceEventAt?: string;
+  sentAt?: string;
+  expiresAt?: string;
 };
 
 export type PendingPushNotificationResponse = {

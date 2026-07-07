@@ -2,6 +2,7 @@ package com.calebhabesh.linewatch.alert;
 
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Optional;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
@@ -86,6 +87,48 @@ public class AlertHistoryRepository {
                 rs.getString("cause_description"),
                 rs.getString("lifecycle_state")
             ));
+    }
+
+    public Optional<OffsetDateTime> findLatestClearedSnapshotTime(String alertId) {
+        if (alertId == null || alertId.isBlank()) {
+            return Optional.empty();
+        }
+        List<OffsetDateTime> rows = jdbc.query("""
+            select snapshot_time
+            from snapshots
+            where alert_id = :alertId and active = false
+            order by snapshot_time desc, id desc
+            limit 1
+            """, new MapSqlParameterSource("alertId", alertId.trim()),
+            (rs, rowNum) -> rs.getObject("snapshot_time", OffsetDateTime.class));
+        return rows.stream().findFirst();
+    }
+
+    public Optional<OffsetDateTime> findLatestOpenedSnapshotTime(String alertId) {
+        if (alertId == null || alertId.isBlank()) {
+            return Optional.empty();
+        }
+        List<OffsetDateTime> rows = jdbc.query("""
+            with classified as (
+                select id,
+                       snapshot_time,
+                       active,
+                       lag(active) over (
+                           partition by alert_id
+                           order by snapshot_time asc, id asc
+                       ) as previous_active
+                from snapshots
+                where alert_id = :alertId
+            )
+            select snapshot_time
+            from classified
+            where active = true
+              and (previous_active is null or previous_active = false)
+            order by snapshot_time desc, id desc
+            limit 1
+            """, new MapSqlParameterSource("alertId", alertId.trim()),
+            (rs, rowNum) -> rs.getObject("snapshot_time", OffsetDateTime.class));
+        return rows.stream().findFirst();
     }
 
     public record AlertHistoryRow(

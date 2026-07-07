@@ -325,15 +325,26 @@ public class PushNotificationService {
         List<PushResponses.PendingPushNotification> notifications = deliveries.stream()
             .map(delivery -> {
                 PushNotificationEventEntity event = delivery.getEvent();
-                return new PushResponses.PendingPushNotification(
-                    event.getTitle(),
-                    event.getBody(),
-                    event.getUrl(),
-                    tagFor(event),
-                    event.getNotificationState(),
-                    event.getCreatedAt().toString(),
+                WebPushPayload payload = WebPushPayload.fromDelivery(
+                    event,
                     delivery.getId(),
-                    receiptTokenService.tokenFor(delivery)
+                    delivery.getSubscription(),
+                    receiptTokenService,
+                    delivery.getCreatedAt(),
+                    properties
+                );
+                return new PushResponses.PendingPushNotification(
+                    payload.title(),
+                    payload.body(),
+                    payload.url(),
+                    payload.tag(),
+                    payload.state(),
+                    payload.timestamp(),
+                    payload.sourceEventAt(),
+                    payload.sentAt(),
+                    payload.expiresAt(),
+                    payload.deliveryId(),
+                    payload.receiptToken()
                 );
             })
             .toList();

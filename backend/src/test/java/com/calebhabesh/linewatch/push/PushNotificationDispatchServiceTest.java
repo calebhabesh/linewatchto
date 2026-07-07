@@ -8,9 +8,11 @@ import static org.mockito.Mockito.*;
 import com.calebhabesh.linewatch.account.AccountEntity;
 import com.calebhabesh.linewatch.account.SavedCommuteEntity;
 import com.calebhabesh.linewatch.account.SavedCommuteRepository;
+import com.calebhabesh.linewatch.alert.AlertHistoryRepository;
 import com.calebhabesh.linewatch.ingestion.IngestionFreshness;
 import java.time.Clock;
 import java.time.Instant;
+import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
@@ -30,6 +32,7 @@ class PushNotificationDispatchServiceTest {
     private final LineSubscriptionPushPlanner lineSubscriptionPushPlanner = mock(LineSubscriptionPushPlanner.class);
     private final PushLineEventObservationService lineEventObservationService = mock(PushLineEventObservationService.class);
     private final IngestionFreshness ingestionFreshness = mock(IngestionFreshness.class);
+    private final AlertHistoryRepository alertHistoryRepository = mock(AlertHistoryRepository.class);
     private final PushProperties pushProperties = new PushProperties();
     private final PushReceiptTokenService receiptTokenService = new PushReceiptTokenService(pushProperties);
     private final Clock clock = Clock.fixed(Instant.parse("2026-06-05T15:00:00Z"), ZoneOffset.UTC);
@@ -47,6 +50,8 @@ class PushNotificationDispatchServiceTest {
         formatter,
         receiptTokenService,
         ingestionFreshness,
+        alertHistoryRepository,
+        pushProperties,
         clock
     );
 
@@ -203,9 +208,67 @@ class PushNotificationDispatchServiceTest {
         assertThat(payload.url()).isEqualTo("/?panel=commutes&commute=commute_1");
         assertThat(payload.tag()).isEqualTo("saved-commute-impact|commute_1|outbound|delay|delay-line-1|active");
         assertThat(payload.state()).isEqualTo("ACTIVE");
-        assertThat(payload.timestamp()).isEqualTo("2026-06-05T15:00:00Z");
+        assertThat(payload.timestamp()).isEqualTo("2026-06-05T14:20:00Z");
+        assertThat(payload.toJson()).contains("\"sourceEventAt\":\"2026-06-05T14:20:00Z\"");
+        assertThat(payload.toJson()).contains("\"sentAt\":\"2026-06-05T15:00:00Z\"");
+        assertThat(payload.toJson()).contains("\"expiresAt\":\"2026-06-05T15:10:00Z\"");
         assertThat(payload.deliveryId()).startsWith("push_delivery_");
         assertThat(payload.receiptToken()).isNotBlank();
+    }
+
+    @Test
+    void lineWideActiveNotificationUsesLatestOpenedSnapshotTimeWhenAvailable() {
+        PushNotificationPreferenceEntity preferences = PushNotificationPreferenceEntity.create(account, clock.instant());
+        PushSubscriptionEntity subscription = PushSubscriptionEntity.create(
+            "push_subscription_1",
+            account,
+            "https://fcm.googleapis.com/fcm/send/subscription",
+            "endpoint-hash",
+            "p256dh-key",
+            "auth-secret",
+            "Chrome Android",
+            clock.instant()
+        );
+        PushNotificationCandidate candidate = candidate(
+            null, null, "line-2", "2", "line-current", "delay", "on-change",
+            "line-current|line-2|delay|ttc-route-71720",
+            "user_1|line|line-2|delay|on-change|ttc-route-71720",
+            "Bay station",
+            "Westbound",
+            null,
+            Instant.parse("2026-06-05T14:46:00Z"),
+            "/?panel=delays"
+        );
+        when(preferenceService.preferenceEntityForAccountId("user_1")).thenReturn(preferences);
+        when(preferenceService.subscribedLineIds("user_1")).thenReturn(List.of("line-2"));
+        when(preferenceService.allows(preferences, candidate)).thenReturn(true);
+        when(subscriptionRepository.findEnabledAccountIds()).thenReturn(List.of("user_1"));
+        when(savedCommuteRepository.findByAccountIdOrderByCreatedAtAsc("user_1")).thenReturn(List.of());
+        when(planner.candidatesFor(any())).thenReturn(List.of());
+        when(lineSubscriptionPushPlanner.candidatesFor("user_1", List.of("line-2"))).thenReturn(List.of(candidate));
+        PushLineEventObservationEntity observation = PushLineEventObservationEntity.create("line_obs_1", candidate, clock.instant());
+        when(lineEventObservationService.observe(candidate, preferences, clock.instant()))
+            .thenReturn(new PushLineEventObservationService.ObservationDecision(observation, true, false));
+        when(eventRepository.existsByDedupeKey(candidate.dedupeKey())).thenReturn(false);
+        when(eventRepository.save(any(PushNotificationEventEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(subscriptionRepository.findByAccountIdAndEnabledTrue("user_1")).thenReturn(List.of(subscription));
+        when(alertHistoryRepository.findLatestOpenedSnapshotTime("ttc-route-71720"))
+            .thenReturn(Optional.of(OffsetDateTime.parse("2026-06-05T14:47:00Z")));
+        when(webPushClient.send(eq(subscription), anyString(), any(WebPushPayload.class))).thenReturn(PushDeliveryResult.accepted(202));
+
+        service.evaluateSavedCommuteNotifications();
+
+        ArgumentCaptor<PushNotificationEventEntity> eventCaptor = ArgumentCaptor.forClass(PushNotificationEventEntity.class);
+        verify(eventRepository).save(eventCaptor.capture());
+        PushNotificationEventEntity activeEvent = eventCaptor.getValue();
+        assertThat(activeEvent.getSourceEventAt()).isEqualTo(Instant.parse("2026-06-05T14:47:00Z"));
+        assertThat(activeEvent.getBody()).isEqualTo("""
+            Delays westbound at Bay station.
+            🕗 Jun 5, 10:47 AM""");
+
+        ArgumentCaptor<WebPushPayload> payloadCaptor = ArgumentCaptor.forClass(WebPushPayload.class);
+        verify(webPushClient).send(eq(subscription), anyString(), payloadCaptor.capture());
+        assertThat(payloadCaptor.getValue().timestamp()).isEqualTo("2026-06-05T14:47:00Z");
     }
 
     @Test
@@ -316,6 +379,73 @@ class PushNotificationDispatchServiceTest {
         verify(eventRepository, never()).save(any(PushNotificationEventEntity.class));
         verify(webPushClient, never()).send(any(), anyString(), any(WebPushPayload.class));
         verify(deliveryRepository, never()).save(any(PushNotificationDeliveryEntity.class));
+    }
+
+    @Test
+    void retriesStillCurrentActiveEventToSubscriptionEnabledAfterEventWasCreated() {
+        SavedCommuteEntity commute = SavedCommuteEntity.create(
+            "commute_1",
+            account,
+            "Morning commute",
+            "finch",
+            "union",
+            true,
+            Instant.parse("2026-06-05T14:30:00Z")
+        );
+        PushNotificationCandidate candidate = candidate(
+            "commute_1",
+            "outbound",
+            "line-1",
+            "1",
+            "saved-commute-impact",
+            "delay",
+            "on-change",
+            "saved-commute-impact|commute_1|outbound|delay|delay-line-1",
+            "dedupe-1",
+            "Finch to Union",
+            "Morning commute",
+            Instant.parse("2026-06-05T14:20:00Z"),
+            "/?panel=commutes&commute=commute_1"
+        );
+        PushNotificationEventEntity existingEvent = PushNotificationEventEntity.create(
+            "push_event_1",
+            candidate,
+            Instant.parse("2026-06-05T14:40:00Z")
+        );
+        PushSubscriptionEntity newlyEnabledSubscription = PushSubscriptionEntity.create(
+            "push_subscription_1",
+            account,
+            "https://fcm.googleapis.com/fcm/send/subscription",
+            "endpoint-hash",
+            "p256dh-key",
+            "auth-secret",
+            "Chrome Android",
+            Instant.parse("2026-06-05T14:59:00Z")
+        );
+        PushNotificationPreferenceEntity preferences = PushNotificationPreferenceEntity.create(account, Instant.parse("2026-06-05T14:00:00Z"));
+        when(preferenceService.preferenceEntityForAccountId("user_1")).thenReturn(preferences);
+        when(preferenceService.allows(any(), any())).thenReturn(true);
+        when(preferenceService.subscribedLineIds("user_1")).thenReturn(List.of());
+        when(lineSubscriptionPushPlanner.candidatesFor(anyString(), anyList())).thenReturn(List.of());
+        when(subscriptionRepository.findEnabledAccountIds()).thenReturn(List.of("user_1"));
+        when(savedCommuteRepository.findByAccountIdOrderByCreatedAtAsc("user_1")).thenReturn(List.of(commute));
+        when(planner.candidatesFor(commute)).thenReturn(List.of(candidate));
+        when(eventRepository.existsByDedupeKey("dedupe-1")).thenReturn(true);
+        when(eventRepository.findByDedupeKey("dedupe-1")).thenReturn(Optional.of(existingEvent));
+        when(subscriptionRepository.findByAccountIdAndEnabledTrue("user_1")).thenReturn(List.of(newlyEnabledSubscription));
+        when(deliveryRepository.findByEventIdAndSubscriptionId("push_event_1", "push_subscription_1"))
+            .thenReturn(Optional.empty());
+        when(webPushClient.send(eq(newlyEnabledSubscription), anyString(), any(WebPushPayload.class)))
+            .thenReturn(PushDeliveryResult.accepted(202));
+
+        service.evaluateSavedCommuteNotifications();
+
+        verify(webPushClient).send(eq(newlyEnabledSubscription), anyString(), any(WebPushPayload.class));
+        verify(deliveryRepository).save(argThat(delivery ->
+            delivery.getEvent() == existingEvent
+                && delivery.getSubscription() == newlyEnabledSubscription
+                && "accepted".equals(delivery.getStatus())
+        ));
     }
 
     @Test
@@ -689,6 +819,57 @@ class PushNotificationDispatchServiceTest {
         assertThat(clearedEvent.getBody()).isEqualTo("""
             Service has resumed northbound at Bloor-Yonge station.
             🕗 Jun 5, 11:00 AM""");
+        verify(lineEventObservationService).markCleared(observation, clock.instant());
+    }
+
+    @Test
+    void lineWideClearedNotificationUsesLatestClearedSnapshotTimeWhenAvailable() {
+        PushNotificationPreferenceEntity preferences = PushNotificationPreferenceEntity.create(account, clock.instant());
+        PushNotificationPreferenceEntity spyPrefs = spy(preferences);
+        when(spyPrefs.isLineRestoredEnabled()).thenReturn(true);
+        PushSubscriptionEntity subscription = PushSubscriptionEntity.create(
+            "push_subscription_1",
+            account,
+            "https://fcm.googleapis.com/fcm/send/subscription",
+            "endpoint-hash",
+            "p256dh-key",
+            "auth-secret",
+            "Chrome Android",
+            clock.instant()
+        );
+        when(preferenceService.preferenceEntityForAccountId("user_1")).thenReturn(spyPrefs);
+        when(subscriptionRepository.findEnabledAccountIds()).thenReturn(List.of("user_1"));
+        when(subscriptionRepository.findByAccountIdAndEnabledTrue("user_1")).thenReturn(List.of(subscription));
+        when(preferenceService.subscribedLineIds("user_1")).thenReturn(List.of("line-2"));
+        when(alertHistoryRepository.findLatestClearedSnapshotTime("ttc-route-71720"))
+            .thenReturn(Optional.of(OffsetDateTime.parse("2026-06-05T14:49:00Z")));
+
+        PushNotificationCandidate previousCandidate = candidate(
+            null, null, "line-2", "2", "line-current", "delay", "on-change",
+            "line-current|line-2|delay|ttc-route-71720",
+            "user_1|line|line-2|delay|on-change|ttc-route-71720",
+            "Bay station",
+            "Westbound",
+            null,
+            Instant.parse("2026-06-05T14:46:00Z"),
+            "/?panel=delays"
+        );
+        PushLineEventObservationEntity observation = PushLineEventObservationEntity.create("line_obs_1", previousCandidate, clock.instant());
+
+        when(lineSubscriptionPushPlanner.candidatesFor(anyString(), anyList())).thenReturn(List.of());
+        when(lineEventObservationService.activeObservations("user_1")).thenReturn(List.of(observation));
+        when(eventRepository.save(any(PushNotificationEventEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(webPushClient.send(eq(subscription), anyString(), any(WebPushPayload.class))).thenReturn(PushDeliveryResult.accepted(202));
+
+        service.evaluateSavedCommuteNotifications();
+
+        ArgumentCaptor<PushNotificationEventEntity> eventCaptor = ArgumentCaptor.forClass(PushNotificationEventEntity.class);
+        verify(eventRepository).save(eventCaptor.capture());
+        PushNotificationEventEntity clearedEvent = eventCaptor.getValue();
+        assertThat(clearedEvent.getBody()).isEqualTo("""
+            Service has resumed westbound at Bay station.
+            🕗 Jun 5, 10:49 AM""");
+        assertThat(clearedEvent.getSourceEventAt()).isEqualTo(Instant.parse("2026-06-05T14:49:00Z"));
         verify(lineEventObservationService).markCleared(observation, clock.instant());
     }
 

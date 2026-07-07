@@ -2345,8 +2345,11 @@ export function LineWatchShell({
                {/* At-A-Glance Integrated Sub-panels */}
                <div className="flex flex-col p-4 gap-4">
                  <div className="flex flex-col gap-2">
-                   <span className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 tracking-wider">Line Status</span>
-                   <div className="flex flex-col gap-2">
+                    <div className="flex items-center gap-2 px-1 select-none">
+                      <span className="w-[3px] h-3.5 rounded-full bg-blue-600 dark:bg-blue-400 shrink-0" />
+                      <span className="text-[12px] uppercase font-bold text-slate-700 dark:text-slate-300 tracking-wider">Line Status</span>
+                    </div>
+                    <div className="flex flex-col gap-2">
                       {lineStatuses.map(l => {
                         const hasAlert = activeAlerts.some(a => a.lineId === l.id);
                         const hasDelay = delays.some(delay => delay.lineId === l.id);

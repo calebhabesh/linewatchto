@@ -23,7 +23,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class VapidWebPushClient implements WebPushClient {
     private static final long VAPID_EXPIRY_SECONDS = 12 * 60 * 60;
-    private static final long PUSH_TTL_SECONDS = 60 * 60;
+    private static final long DEFAULT_PUSH_TTL_SECONDS = 60 * 60;
     private final PushProperties properties;
     private final Clock clock;
     private final HttpClient httpClient;
@@ -47,7 +47,7 @@ public class VapidWebPushClient implements WebPushClient {
         try {
             URI endpoint = URI.create(subscription.getEndpoint());
             HttpRequest.Builder requestBuilder = HttpRequest.newBuilder(endpoint)
-                .header("TTL", Long.toString(PUSH_TTL_SECONDS))
+                .header("TTL", Long.toString(ttlSeconds(payload)))
                 .header("Urgency", payload != null && payload.highUrgency() ? "high" : "normal")
                 .header("Authorization", authorizationHeader(endpoint));
             if (topic != null && !topic.isBlank()) {
@@ -77,6 +77,13 @@ public class VapidWebPushClient implements WebPushClient {
         } catch (Exception ex) {
             return PushDeliveryResult.failed(null, ex.getMessage());
         }
+    }
+
+    private long ttlSeconds(WebPushPayload payload) {
+        if (payload == null || payload.ttlSeconds() <= 0) {
+            return DEFAULT_PUSH_TTL_SECONDS;
+        }
+        return payload.ttlSeconds();
     }
 
     private String authorizationHeader(URI endpoint) throws Exception {

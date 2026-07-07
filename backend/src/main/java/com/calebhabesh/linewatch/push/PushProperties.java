@@ -11,6 +11,8 @@ public class PushProperties {
     private String vapidSubject = "mailto:linewatch@example.invalid";
     private String receiptSigningSecret = "";
     private long evaluationDelayMs = 60_000;
+    private Duration activeDeliveryTtl = Duration.ofMinutes(10);
+    private Duration clearedDeliveryTtl = Duration.ofHours(24);
     private Duration clearedNotificationRetention = Duration.ofHours(24);
 
     public boolean isEnabled() {
@@ -59,6 +61,31 @@ public class PushProperties {
 
     public void setEvaluationDelayMs(long evaluationDelayMs) {
         this.evaluationDelayMs = evaluationDelayMs;
+    }
+
+    public Duration getActiveDeliveryTtl() {
+        return activeDeliveryTtl;
+    }
+
+    public void setActiveDeliveryTtl(Duration activeDeliveryTtl) {
+        this.activeDeliveryTtl = activeDeliveryTtl;
+    }
+
+    public Duration getClearedDeliveryTtl() {
+        return clearedDeliveryTtl;
+    }
+
+    public void setClearedDeliveryTtl(Duration clearedDeliveryTtl) {
+        this.clearedDeliveryTtl = clearedDeliveryTtl;
+    }
+
+    public Duration deliveryTtlForState(String state) {
+        boolean cleared = "CLEARED".equalsIgnoreCase(state);
+        Duration ttl = cleared ? clearedDeliveryTtl : activeDeliveryTtl;
+        if (ttl == null || ttl.isZero() || ttl.isNegative()) {
+            return cleared ? Duration.ofHours(24) : Duration.ofMinutes(10);
+        }
+        return ttl;
     }
 
     public Duration getClearedNotificationRetention() {

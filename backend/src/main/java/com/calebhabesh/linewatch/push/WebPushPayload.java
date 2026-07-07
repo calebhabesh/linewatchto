@@ -1,5 +1,8 @@
 package com.calebhabesh.linewatch.push;
 
+import java.time.Duration;
+import java.time.Instant;
+
 public record WebPushPayload(
     String title,
     String body,
@@ -7,9 +10,16 @@ public record WebPushPayload(
     String tag,
     String state,
     String timestamp,
+    String sourceEventAt,
+    String sentAt,
+    String expiresAt,
     String deliveryId,
-    String receiptToken
+    String receiptToken,
+    long ttlSeconds
 ) {
+    private static final long DEFAULT_ACTIVE_TTL_SECONDS = 10 * 60;
+    private static final long DEFAULT_CLEARED_TTL_SECONDS = 24 * 60 * 60;
+
     public WebPushPayload(
         String title,
         String body,
@@ -18,7 +28,20 @@ public record WebPushPayload(
         String state,
         String timestamp
     ) {
-        this(title, body, url, tag, state, timestamp, null, null);
+        this(title, body, url, tag, state, timestamp, null, timestamp, null, null, null, defaultTtlSeconds(state));
+    }
+
+    public WebPushPayload(
+        String title,
+        String body,
+        String url,
+        String tag,
+        String state,
+        String timestamp,
+        String deliveryId,
+        String receiptToken
+    ) {
+        this(title, body, url, tag, state, timestamp, null, timestamp, null, deliveryId, receiptToken, defaultTtlSeconds(state));
     }
 
     public static WebPushPayload fromEvent(PushNotificationEventEntity event) {
@@ -28,7 +51,41 @@ public record WebPushPayload(
             event.getUrl(),
             PushNotificationDisplayTags.forEvent(event),
             event.getNotificationState(),
-            event.getCreatedAt().toString()
+            displayTimestamp(event),
+            instantString(event.getSourceEventAt()),
+            instantString(event.getCreatedAt()),
+            null,
+            null,
+            null,
+            defaultTtlSeconds(event.getNotificationState())
+        );
+    }
+
+    public static WebPushPayload fromDelivery(
+        PushNotificationEventEntity event,
+        String deliveryId,
+        PushSubscriptionEntity subscription,
+        PushReceiptTokenService receiptTokenService,
+        Instant sentAt,
+        PushProperties properties
+    ) {
+        Instant safeSentAt = sentAt == null ? event.getCreatedAt() : sentAt;
+        Duration ttl = properties == null
+            ? Duration.ofSeconds(defaultTtlSeconds(event.getNotificationState()))
+            : properties.deliveryTtlForState(event.getNotificationState());
+        return new WebPushPayload(
+            event.getTitle(),
+            event.getBody(),
+            event.getUrl(),
+            PushNotificationDisplayTags.forEvent(event),
+            event.getNotificationState(),
+            displayTimestamp(event),
+            instantString(event.getSourceEventAt()),
+            instantString(safeSentAt),
+            safeSentAt == null ? null : safeSentAt.plus(ttl).toString(),
+            deliveryId,
+            receiptTokenService.tokenFor(deliveryId, subscription, event),
+            ttl.toSeconds()
         );
     }
 
@@ -38,16 +95,7 @@ public record WebPushPayload(
         PushSubscriptionEntity subscription,
         PushReceiptTokenService receiptTokenService
     ) {
-        return new WebPushPayload(
-            event.getTitle(),
-            event.getBody(),
-            event.getUrl(),
-            PushNotificationDisplayTags.forEvent(event),
-            event.getNotificationState(),
-            event.getCreatedAt().toString(),
-            deliveryId,
-            receiptTokenService.tokenFor(deliveryId, subscription, event)
-        );
+        return fromDelivery(event, deliveryId, subscription, receiptTokenService, event.getCreatedAt(), null);
     }
 
     public boolean highUrgency() {
@@ -62,9 +110,25 @@ public record WebPushPayload(
             + ",\"tag\":" + jsonString(tag)
             + ",\"state\":" + jsonString(state)
             + ",\"timestamp\":" + jsonString(timestamp)
+            + ",\"sourceEventAt\":" + jsonString(sourceEventAt)
+            + ",\"sentAt\":" + jsonString(sentAt)
+            + ",\"expiresAt\":" + jsonString(expiresAt)
             + ",\"deliveryId\":" + jsonString(deliveryId)
             + ",\"receiptToken\":" + jsonString(receiptToken)
             + "}";
+    }
+
+    private static String displayTimestamp(PushNotificationEventEntity event) {
+        Instant timestamp = event.getSourceEventAt() == null ? event.getCreatedAt() : event.getSourceEventAt();
+        return instantString(timestamp);
+    }
+
+    private static String instantString(Instant instant) {
+        return instant == null ? "" : instant.toString();
+    }
+
+    private static long defaultTtlSeconds(String state) {
+        return "CLEARED".equalsIgnoreCase(state) ? DEFAULT_CLEARED_TTL_SECONDS : DEFAULT_ACTIVE_TTL_SECONDS;
     }
 
     private static String jsonString(String value) {

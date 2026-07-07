@@ -381,6 +381,97 @@ function clientEventRequests(fetchRequests) {
     .map((request) => JSON.parse(request.options.body));
 }
 
+function fakePushSubscription(endpoint) {
+  return {
+    endpoint,
+    toJSON: () => ({
+      keys: {
+        p256dh: `${endpoint}-p256dh`,
+        auth: `${endpoint}-auth`,
+      },
+    }),
+  };
+}
+
+async function serviceWorkerPushSubscriptionChange({
+  oldSubscription = fakePushSubscription("https://fcm.googleapis.com/fcm/send/old-subscription"),
+  newSubscription = null,
+  subscribeResult = fakePushSubscription("https://fcm.googleapis.com/fcm/send/new-subscription"),
+  configBody = {
+    webPushAvailable: true,
+    vapidPublicKey: "AQIDBA",
+  },
+} = {}) {
+  const listeners = new Map();
+  const fetchRequests = [];
+  const subscribeCalls = [];
+  const context = {
+    URL,
+    Promise,
+    Response: {
+      error: () => ({ source: "response-error" }),
+    },
+    Uint8Array,
+    atob: (value) => Buffer.from(value, "base64").toString("binary"),
+    caches: {
+      keys: async () => [],
+      delete: async () => true,
+      match: async () => undefined,
+      open: async () => ({
+        addAll: async () => undefined,
+        put: async () => undefined,
+      }),
+    },
+    fetch: async (url, options = {}) => {
+      fetchRequests.push({ url, options });
+      return {
+        ok: true,
+        status: 200,
+        json: async () => configBody,
+      };
+    },
+    self: {
+      location: new URL("https://linewatch.test/sw.js"),
+      addEventListener: (type, listener) => {
+        listeners.set(type, listener);
+      },
+      skipWaiting: async () => undefined,
+      clients: {
+        claim: async () => undefined,
+        matchAll: async () => [],
+        openWindow: async () => undefined,
+      },
+      registration: {
+        pushManager: {
+          getSubscription: async () => null,
+          subscribe: async (options) => {
+            subscribeCalls.push(options);
+            return subscribeResult;
+          },
+        },
+        showNotification: async () => undefined,
+      },
+    },
+  };
+
+  runInNewContext(serviceWorkerSource, context, { filename: "sw.js" });
+
+  const subscriptionChangeListener = listeners.get("pushsubscriptionchange");
+  assert.equal(typeof subscriptionChangeListener, "function");
+
+  const waitUntilPromises = [];
+  subscriptionChangeListener({
+    oldSubscription,
+    newSubscription,
+    waitUntil: (promise) => {
+      waitUntilPromises.push(Promise.resolve(promise));
+    },
+  });
+  await Promise.all(waitUntilPromises);
+
+  return { fetchRequests, subscribeCalls };
+}
+
 async function serviceWorkerMessage({
   fetchBody = {
     activeTags: ["saved-commute-impact|commute_1|dedupe-1|active"],
@@ -651,6 +742,7 @@ describe("LineWatch PWA configuration", () => {
     assert.match(serviceWorkerSource, /credentials:\s*"include"/);
     assert.match(serviceWorkerSource, /self\.registration\.showNotification/);
     assert.match(serviceWorkerSource, /self\.addEventListener\("notificationclick"/);
+    assert.match(serviceWorkerSource, /self\.addEventListener\("pushsubscriptionchange"/);
     assert.match(serviceWorkerSource, /clients\.openWindow/);
     assert.match(serviceWorkerSource, /line-current/);
     assert.match(serviceWorkerSource, /line-planned/);
@@ -711,6 +803,52 @@ describe("LineWatch PWA configuration", () => {
       stage: "push_received",
     });
     assert.notEqual(fetchRequests[0]?.url, "/api/account/push/latest");
+  });
+
+  it("drops expired active payload push notifications without showing a fallback", async () => {
+    const { fetchRequests, shownNotifications } = await serviceWorkerPush({
+      pushData: {
+        title: "⚠️ Line 1 Yonge-University Delay",
+        body: "Finch to Union.\nAffects Morning commute (Outbound).\n🕗 Jun 5, 10:20 AM",
+        url: "/?panel=commutes&commute=commute_1",
+        tag: "saved-commute-impact|commute_1|outbound|delay|delay-line-1|active",
+        state: "ACTIVE",
+        timestamp: "2026-06-05T14:20:00Z",
+        sentAt: "2026-06-05T15:00:00Z",
+        expiresAt: "2020-01-01T00:00:00Z",
+      },
+    });
+
+    assert.equal(shownNotifications.length, 0);
+    assert.equal(
+      clientEventRequests(fetchRequests).some((request) => (
+        request.tag === "saved-commute-impact|commute_1|outbound|delay|delay-line-1|active"
+        && request.stage === "pending_skipped"
+        && request.message === "expired active payload"
+      )),
+      true,
+    );
+    assert.notEqual(fetchRequests[0]?.url, "/api/account/push/latest");
+  });
+
+  it("repairs rotated push subscriptions from the service worker", async () => {
+    const { fetchRequests, subscribeCalls } = await serviceWorkerPushSubscriptionChange();
+
+    assert.equal(fetchRequests[0].url, "/api/account/push/subscription/disable");
+    assert.equal(
+      JSON.parse(fetchRequests[0].options.body).endpoint,
+      "https://fcm.googleapis.com/fcm/send/old-subscription",
+    );
+    assert.equal(fetchRequests[1].url, "/api/account/push/config");
+    assert.equal(fetchRequests[2].url, "/api/account/push/subscription");
+    assert.equal(
+      JSON.parse(fetchRequests[2].options.body).endpoint,
+      "https://fcm.googleapis.com/fcm/send/new-subscription",
+    );
+    assert.equal(JSON.parse(fetchRequests[2].options.body).keys.p256dh, "https://fcm.googleapis.com/fcm/send/new-subscription-p256dh");
+    assert.equal(subscribeCalls.length, 1);
+    assert.equal(subscribeCalls[0].userVisibleOnly, true);
+    assert.equal(subscribeCalls[0].applicationServerKey instanceof Uint8Array, true);
   });
 
   it("keeps payload push notifications visible when display acknowledgement fails", async () => {

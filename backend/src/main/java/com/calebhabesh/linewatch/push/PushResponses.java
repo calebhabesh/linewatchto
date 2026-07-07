@@ -128,6 +128,9 @@ public final class PushResponses {
         String tag,
         String state,
         String timestamp,
+        String sourceEventAt,
+        String sentAt,
+        String expiresAt,
         String deliveryId,
         String receiptToken
     ) {
@@ -139,7 +142,20 @@ public final class PushResponses {
             String state,
             String timestamp
         ) {
-            this(title, body, url, tag, state, timestamp, null, null);
+            this(title, body, url, tag, state, timestamp, null, timestamp, null, null, null);
+        }
+
+        public PendingPushNotification(
+            String title,
+            String body,
+            String url,
+            String tag,
+            String state,
+            String timestamp,
+            String deliveryId,
+            String receiptToken
+        ) {
+            this(title, body, url, tag, state, timestamp, null, timestamp, null, deliveryId, receiptToken);
         }
     }
 

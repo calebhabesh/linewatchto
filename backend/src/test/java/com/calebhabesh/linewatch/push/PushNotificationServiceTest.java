@@ -315,7 +315,10 @@ class PushNotificationServiceTest {
             .containsExactly("saved-commute-impact|commute_1|outbound|delay|delay-line-1|active");
         assertThat(response.notification().state()).isEqualTo("ACTIVE");
         assertThat(response.notification().body()).endsWith("🕗 Jun 5, 10:20 AM");
-        assertThat(response.notification().timestamp()).isEqualTo("2026-06-05T15:00:00Z");
+        assertThat(response.notification().timestamp()).isEqualTo("2026-06-05T14:20:00Z");
+        assertThat(response.notification().sourceEventAt()).isEqualTo("2026-06-05T14:20:00Z");
+        assertThat(response.notification().sentAt()).isEqualTo("2026-06-05T15:00:30Z");
+        assertThat(response.notification().expiresAt()).isEqualTo("2026-06-05T15:10:30Z");
         assertThat(response.notification().deliveryId()).isEqualTo("push_delivery_1");
         assertThat(response.notification().receiptToken()).isNotBlank();
     }
