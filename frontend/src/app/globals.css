@@ -2461,6 +2461,33 @@ button {
   gap: 12px;
   grid-template-columns: minmax(0, 1fr);
   padding: 12px;
+  background: rgb(255, 255, 255);
+  border-bottom-left-radius: 8px;
+  border-bottom-right-radius: 8px;
+}
+
+.dark .commute-grid {
+  background: rgb(10, 12, 16);
+}
+
+.high-contrast .commute-grid {
+  background: #000000;
+  border-top: 1px solid #ffffff;
+}
+
+.surface-notices-body {
+  background: rgb(255, 255, 255);
+  border-bottom-left-radius: 8px;
+  border-bottom-right-radius: 8px;
+}
+
+.dark .surface-notices-body {
+  background: rgb(10, 12, 16);
+}
+
+.high-contrast .surface-notices-body {
+  background: #000000;
+  border-top: 1px solid #ffffff;
 }
 
 .commute-card {
@@ -4891,27 +4918,22 @@ button {
   color: rgb(203, 213, 225);
 }
 
-.saved-commute-account-prompt,
-.saved-commute-form {
+.saved-commute-account-prompt {
   border: 1px solid rgba(15, 23, 42, 0.1);
   border-radius: 8px;
   display: grid;
   gap: 0.625rem;
   padding: 0.75rem;
-}
-
-.saved-commute-account-prompt {
   background: rgb(248, 250, 252);
 }
 
 .saved-commute-form {
-  background: rgb(248, 250, 252);
-}
-
-.dark .saved-commute-form,
-.high-contrast .saved-commute-form {
-  border-color: rgba(255, 255, 255, 0.12);
-  background: rgb(15, 23, 42);
+  display: grid;
+  gap: 0.625rem;
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  padding: 0 !important;
 }
 
 .dark .saved-commute-account-prompt {
@@ -7786,10 +7808,12 @@ button {
   }
 
   .mobile-more-section h3 {
-    color: var(--quiet);
-    font-size: 10px;
-    font-weight: 950;
-    margin: 0 0 2px;
+    color: var(--muted);
+    font-weight: 800;
+    font-size: 11px;
+    letter-spacing: 0.05em;
+    line-height: 1;
+    margin: 0;
     text-transform: uppercase;
   }
 
@@ -9670,7 +9694,6 @@ button {
     border: 1px solid #ffffff;
   }
 
-  .saved-commute-form,
   .saved-commute-account-prompt {
     border: none !important;
     background: transparent !important;
@@ -9685,6 +9708,11 @@ button {
 
   .floating-panel-shell[data-floating-panel="mobile-panel"]:has([data-active-view="commutes"]) .floating-panel-scroll {
     height: auto !important;
+    padding: 0 !important;
+  }
+
+  .floating-panel-shell[data-floating-panel="mobile-panel"]:has([data-active-view="surface-notices"]) .floating-panel-scroll {
+    padding: 0 !important;
   }
 
   .mobile-view-content-wrapper[data-active-view="commutes"] .commute-grid {

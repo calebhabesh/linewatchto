@@ -90,8 +90,12 @@ describe("mobile bottom sheet UX", () => {
       "Notifications should appear before operational tools.",
     );
     assert.ok(
-      moreSheetSource.indexOf("<h3>Operations</h3>") < moreSheetSource.indexOf("Alert History"),
-      "Alert History should live in Operations.",
+      moreSheetSource.indexOf("<h3>Notifications</h3>") < moreSheetSource.indexOf("Alert History"),
+      "Alert History should live in Notifications.",
+    );
+    assert.ok(
+      moreSheetSource.indexOf("Alert History") < moreSheetSource.indexOf("<h3>Operations</h3>"),
+      "Alert History should appear before Operations.",
     );
     assert.ok(
       moreSheetSource.indexOf("<h3>Operations</h3>") < moreSheetSource.indexOf("Reliability Analytics"),

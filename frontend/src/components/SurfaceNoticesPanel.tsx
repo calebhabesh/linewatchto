@@ -230,177 +230,180 @@ export function SurfaceNoticesPanel({ onBack, onClose }: Props) {
         </div>
       </div>
 
-      {/* Search Bar */}
-      <div className="px-3 pt-3 sm:px-4 sm:pt-4 shrink-0">
-        <form onSubmit={handleSearchSubmit} className="relative w-full">
-          <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400 dark:text-slate-500" />
-          <input
-            type="text"
-            placeholder="Search route, stop, or notice"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 rounded-lg border border-black/15 dark:border-white/15 bg-slate-50 dark:bg-[#12151c] text-sm text-slate-950 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-          />
-        </form>
-      </div>
+      {/* Panel Body (Opaque Container) */}
+      <div className="surface-notices-body flex-1 flex flex-col min-h-0 min-w-0">
+        {/* Search Bar */}
+        <div className="px-3 pt-3 sm:px-4 sm:pt-4 shrink-0">
+          <form onSubmit={handleSearchSubmit} className="relative w-full">
+            <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400 dark:text-slate-500" />
+            <input
+              type="text"
+              placeholder="Search route, stop, or notice"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-9 pr-4 py-2 rounded-lg border border-black/15 dark:border-white/15 bg-slate-50 dark:bg-[#12151c] text-sm text-slate-950 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+            />
+          </form>
+        </div>
 
-      {/* Segmented Category Buttons */}
-      <div className="px-3 pt-3 pb-3 sm:px-4 sm:pt-3 sm:pb-3 flex gap-1.5 overflow-x-auto no-scrollbar shrink-0">
-        <button
-          onClick={() => setCategory("all")}
-          className={`px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap border cursor-pointer transition-all ${
-            category === "all"
-              ? "bg-slate-900 dark:bg-white text-white dark:text-slate-950 border-transparent"
-              : "bg-slate-100 dark:bg-white/5 text-slate-700 dark:text-slate-300 border-black/10 dark:border-white/10 hover:bg-slate-200 dark:hover:bg-white/10"
-          }`}
-        >
-          All {totalCount > 0 && `(${totalCount})`}
-        </button>
-        {(["service-change", "bypass", "detour"] as SurfaceNoticeCategory[]).map((cat) => {
-          const active = category === cat;
-          const count = getCategoryCount(cat);
-          return (
-            <button
-              key={cat}
-              onClick={() => setCategory(cat)}
-              className={`px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap border cursor-pointer transition-all ${
-                active
-                  ? "bg-slate-900 dark:bg-white text-white dark:text-slate-950 border-transparent"
-                  : "bg-slate-100 dark:bg-white/5 text-slate-700 dark:text-slate-300 border-black/10 dark:border-white/10 hover:bg-slate-200 dark:hover:bg-white/10"
-              }`}
-            >
-              {getCategoryLabel(cat)} {count > 0 && `(${count})`}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Notices Content */}
-      <div className="flex-1 overflow-y-auto min-w-0 p-3 sm:p-4 surface-notices-scroll">
-        {loading ? (
-          <div className="flex flex-col items-center justify-center py-12 text-slate-500 dark:text-slate-400">
-            <span className="text-sm">Loading notices...</span>
-          </div>
-        ) : isFallback ? (
-          <div className="text-center py-8 text-slate-500 dark:text-slate-400 text-sm">
-            Streetcar & Bus notices are unavailable in fixture mode.
-          </div>
-        ) : !data || data.notices.length === 0 ? (
-          <div className="text-center py-8 text-slate-500 dark:text-slate-400 text-sm">
-            No active streetcar & bus notices found matching your filters.
-          </div>
-        ) : (
-          <div className="flex flex-col gap-3">
-            {routeGroups.map((group) => (
-              <section
-                key={group.key}
-                className="surface-notice-route-group overflow-hidden rounded-lg border border-black/10 bg-slate-50 dark:border-white/10 dark:bg-[#12151c]"
+        {/* Segmented Category Buttons */}
+        <div className="px-3 pt-3 pb-3 sm:px-4 sm:pt-3 sm:pb-3 flex gap-1.5 overflow-x-auto no-scrollbar shrink-0">
+          <button
+            onClick={() => setCategory("all")}
+            className={`px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap border cursor-pointer transition-all ${
+              category === "all"
+                ? "bg-slate-900 dark:bg-white text-white dark:text-slate-950 border-transparent"
+                : "bg-slate-100 dark:bg-white/5 text-slate-700 dark:text-slate-300 border-black/10 dark:border-white/10 hover:bg-slate-200 dark:hover:bg-white/10"
+            }`}
+          >
+            All {totalCount > 0 && `(${totalCount})`}
+          </button>
+          {(["service-change", "bypass", "detour"] as SurfaceNoticeCategory[]).map((cat) => {
+            const active = category === cat;
+            const count = getCategoryCount(cat);
+            return (
+              <button
+                key={cat}
+                onClick={() => setCategory(cat)}
+                className={`px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap border cursor-pointer transition-all ${
+                  active
+                    ? "bg-slate-900 dark:bg-white text-white dark:text-slate-950 border-transparent"
+                    : "bg-slate-100 dark:bg-white/5 text-slate-700 dark:text-slate-300 border-black/10 dark:border-white/10 hover:bg-slate-200 dark:hover:bg-white/10"
+                }`}
               >
-                <div className="flex items-start justify-between gap-2 border-b border-black/10 px-3.5 py-3 dark:border-white/10">
-                  <div className="min-w-0 flex flex-col gap-1">
-                    <p className="text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                      Routes Affected
-                    </p>
-                    <div className="min-w-0 flex flex-wrap items-center gap-1.5">
-                      <div className="flex shrink-0 flex-wrap gap-1">
-                        {group.routeIds.map((routeId) => (
-                          <span
-                            key={routeId}
-                            className="inline-flex items-center justify-center rounded bg-red-600 px-2 py-0.5 text-xs font-black text-white"
-                          >
-                            {routeId}
-                          </span>
-                        ))}
-                      </div>
-                      <span className="text-[9px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500">
-                        {group.routeType}
-                      </span>
-                    </div>
-                    {group.routeName ? (
-                      <p className="truncate text-xs font-semibold text-slate-600 dark:text-slate-300">
-                        {group.routeName}
+                {getCategoryLabel(cat)} {count > 0 && `(${count})`}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Notices Content */}
+        <div className="flex-1 overflow-y-auto min-w-0 p-3 sm:p-4 surface-notices-scroll">
+          {loading ? (
+            <div className="flex flex-col items-center justify-center py-12 text-slate-500 dark:text-slate-400">
+              <span className="text-sm">Loading notices...</span>
+            </div>
+          ) : isFallback ? (
+            <div className="text-center py-8 text-slate-500 dark:text-slate-400 text-sm">
+              Streetcar & Bus notices are unavailable in fixture mode.
+            </div>
+          ) : !data || data.notices.length === 0 ? (
+            <div className="text-center py-8 text-slate-500 dark:text-slate-400 text-sm">
+              No active streetcar & bus notices found matching your filters.
+            </div>
+          ) : (
+            <div className="flex flex-col gap-3">
+              {routeGroups.map((group) => (
+                <section
+                  key={group.key}
+                  className="surface-notice-route-group overflow-hidden rounded-lg border border-black/10 bg-slate-50 dark:border-white/10 dark:bg-[#12151c]"
+                >
+                  <div className="flex items-start justify-between gap-2 border-b border-black/10 px-3.5 py-3 dark:border-white/10">
+                    <div className="min-w-0 flex flex-col gap-1">
+                      <p className="text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                        Routes Affected
                       </p>
-                    ) : null}
-                  </div>
-                  <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-[11px] font-black uppercase tracking-wider ${getCategoryBadgeColor(group.category)}`}>
-                    {getCategoryLabel(group.category)}
-                  </span>
-                </div>
-
-                <div className="divide-y divide-black/5 dark:divide-white/5">
-                  {group.notices.map((notice) => {
-                    const expanded = Boolean(expandedNoticeIds[notice.id]);
-                    const detailControlLabel = expanded
-                      ? `Show fewer details for ${stopFieldLabel(notice)}`
-                      : `Show more details for ${stopFieldLabel(notice)}`;
-                    const detailsPanelId = `surface-notice-details-${notice.id}`;
-                    return (
-                      <article key={notice.id} className="surface-notice-stop-row">
-                        <div className="flex w-full items-center justify-between gap-3 px-3.5 py-3 text-left">
-                          <span className="min-w-0 flex items-center gap-2">
-                            {renderStopDisplay(notice)}
-                          </span>
+                      <div className="min-w-0 flex flex-wrap items-center gap-1.5">
+                        <div className="flex shrink-0 flex-wrap gap-1">
+                          {group.routeIds.map((routeId) => (
+                            <span
+                              key={routeId}
+                              className="inline-flex items-center justify-center rounded bg-red-600 px-2 py-0.5 text-xs font-black text-white"
+                            >
+                              {routeId}
+                            </span>
+                          ))}
                         </div>
-
-                        <dl className="grid grid-cols-1 gap-3 px-3.5 pb-3 sm:grid-cols-2">
-                          {renderCompactField(stopFieldHeading(notice), stopFieldLabel(notice), <MapPin size={13} />)}
-                          {renderCompactField("Active", activeTimeLabel(notice), <CalendarClock size={13} />)}
-                          {renderCompactField("Updated", formatImpactTimestamp(notice.updatedAt), <CalendarClock size={13} />)}
-                          {renderCompactField("Direction", notice.compactDirection, <ArrowUpDown size={13} />)}
-                          {renderCompactField("Cause", notice.compactCause, <CircleAlert size={13} />)}
-                        </dl>
-
-                        <p className="mx-3.5 mb-3 flex items-start gap-1.5 rounded border border-black/10 bg-white/60 px-2.5 py-2 text-[11px] font-semibold leading-snug text-slate-500 dark:border-white/10 dark:bg-white/[0.03] dark:text-slate-400">
-                          <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-                          <span>Make sure to check details for more info on routes affected.</span>
+                        <span className="text-[9px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                          {group.routeType}
+                        </span>
+                      </div>
+                      {group.routeName ? (
+                        <p className="truncate text-xs font-semibold text-slate-600 dark:text-slate-300">
+                          {group.routeName}
                         </p>
+                      ) : null}
+                    </div>
+                    <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-[11px] font-black uppercase tracking-wider ${getCategoryBadgeColor(group.category)}`}>
+                      {getCategoryLabel(group.category)}
+                    </span>
+                  </div>
 
-                        <button
-                          type="button"
-                          onClick={() => toggleNotice(notice.id)}
-                          className="mx-3.5 mb-3 flex min-h-[34px] w-[calc(100%-1.75rem)] items-center justify-center gap-2 rounded-lg border border-slate-300 bg-slate-100 px-3 py-2 text-slate-700 transition-colors hover:bg-slate-200 cursor-pointer dark:border-white/15 dark:bg-white/10 dark:text-slate-100 dark:hover:bg-white/15"
-                          aria-expanded={expanded}
-                          aria-controls={detailsPanelId}
-                          aria-label={detailControlLabel}
-                        >
-                          <span className="text-sm font-bold leading-none">{expanded ? "Less Details" : "More Details"}</span>
-                          <ChevronDown
-                            className={`h-4 w-4 transition-transform ${expanded ? "rotate-180" : ""}`}
-                            aria-hidden="true"
-                          />
-                        </button>
-
-                        {expanded ? (
-                          <div id={detailsPanelId} className="border-t border-black/5 px-3.5 pb-3 pt-3 dark:border-white/5">
-                            <p className="text-xs font-semibold leading-relaxed text-slate-800 dark:text-slate-100">
-                              {notice.title}
-                            </p>
-                            {notice.description && notice.description !== notice.title ? (
-                              <p className="mt-2 line-clamp-3 text-xs leading-relaxed text-slate-600 dark:text-slate-300">
-                                {notice.description}
-                              </p>
-                            ) : null}
-                            {notice.url ? (
-                              <a
-                                href={notice.url}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="mt-3 inline-flex items-center gap-1 text-[11px] font-bold text-blue-600 hover:underline dark:text-blue-400"
-                              >
-                                View TTC details
-                                <ExternalLink size={11} />
-                              </a>
-                            ) : null}
+                  <div className="divide-y divide-black/5 dark:divide-white/5">
+                    {group.notices.map((notice) => {
+                      const expanded = Boolean(expandedNoticeIds[notice.id]);
+                      const detailControlLabel = expanded
+                        ? `Show fewer details for ${stopFieldLabel(notice)}`
+                        : `Show more details for ${stopFieldLabel(notice)}`;
+                      const detailsPanelId = `surface-notice-details-${notice.id}`;
+                      return (
+                        <article key={notice.id} className="surface-notice-stop-row">
+                          <div className="flex w-full items-center justify-between gap-3 px-3.5 py-3 text-left">
+                            <span className="min-w-0 flex items-center gap-2">
+                              {renderStopDisplay(notice)}
+                            </span>
                           </div>
-                        ) : null}
-                      </article>
-                    );
-                  })}
-                </div>
-              </section>
-            ))}
-          </div>
-        )}
+
+                          <dl className="grid grid-cols-1 gap-3 px-3.5 pb-3 sm:grid-cols-2">
+                            {renderCompactField(stopFieldHeading(notice), stopFieldLabel(notice), <MapPin size={13} />)}
+                            {renderCompactField("Active", activeTimeLabel(notice), <CalendarClock size={13} />)}
+                            {renderCompactField("Updated", formatImpactTimestamp(notice.updatedAt), <CalendarClock size={13} />)}
+                            {renderCompactField("Direction", notice.compactDirection, <ArrowUpDown size={13} />)}
+                            {renderCompactField("Cause", notice.compactCause, <CircleAlert size={13} />)}
+                          </dl>
+
+                          <p className="mx-3.5 mb-3 flex items-start gap-1.5 rounded border border-black/10 bg-white/60 px-2.5 py-2 text-[11px] font-semibold leading-snug text-slate-500 dark:border-white/10 dark:bg-white/[0.03] dark:text-slate-400">
+                            <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                            <span>Make sure to check details for more info on routes affected.</span>
+                          </p>
+
+                          <button
+                            type="button"
+                            onClick={() => toggleNotice(notice.id)}
+                            className="mx-3.5 mb-3 flex min-h-[34px] w-[calc(100%-1.75rem)] items-center justify-center gap-2 rounded-lg border border-slate-300 bg-slate-100 px-3 py-2 text-slate-700 transition-colors hover:bg-slate-200 cursor-pointer dark:border-white/15 dark:bg-white/10 dark:text-slate-100 dark:hover:bg-white/15"
+                            aria-expanded={expanded}
+                            aria-controls={detailsPanelId}
+                            aria-label={detailControlLabel}
+                          >
+                            <span className="text-sm font-bold leading-none">{expanded ? "Less Details" : "More Details"}</span>
+                            <ChevronDown
+                              className={`h-4 w-4 transition-transform ${expanded ? "rotate-180" : ""}`}
+                              aria-hidden="true"
+                            />
+                          </button>
+
+                          {expanded ? (
+                            <div id={detailsPanelId} className="border-t border-black/5 px-3.5 pb-3 pt-3 dark:border-white/5">
+                              <p className="text-xs font-semibold leading-relaxed text-slate-800 dark:text-slate-100">
+                                {notice.title}
+                              </p>
+                              {notice.description && notice.description !== notice.title ? (
+                                <p className="mt-2 line-clamp-3 text-xs leading-relaxed text-slate-600 dark:text-slate-300">
+                                  {notice.description}
+                                </p>
+                              ) : null}
+                              {notice.url ? (
+                                <a
+                                  href={notice.url}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="mt-3 inline-flex items-center gap-1 text-[11px] font-bold text-blue-600 hover:underline dark:text-blue-400"
+                                >
+                                  View TTC details
+                                  <ExternalLink size={11} />
+                                </a>
+                              ) : null}
+                            </div>
+                          ) : null}
+                        </article>
+                      );
+                    })}
+                  </div>
+                </section>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </section>
   );

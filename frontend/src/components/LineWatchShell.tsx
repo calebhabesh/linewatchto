@@ -1967,10 +1967,14 @@ export function LineWatchShell({
                   <strong className="text-slate-900 dark:text-white font-bold tracking-wide">LineWatchTO</strong>
                 </div>
 
-                <div className="account-menu-block border-b border-black/10 dark:border-white/10 p-2">
+                <div className="account-menu-block flex flex-col px-2 py-2 border-b border-black/10 dark:border-white/10 gap-0.5">
+                  <div className="flex items-center gap-2 px-3 pt-2 pb-1 select-none">
+                    <span className="w-[3px] h-3.5 rounded-full bg-blue-600 dark:bg-blue-400 shrink-0" />
+                    <span className="text-[12px] uppercase font-bold text-slate-700 dark:text-slate-300 tracking-wider">Account</span>
+                  </div>
                   {accountState.authenticated && accountState.user ? (
-                    <div className="flex flex-col gap-2 px-2 py-2">
-                      <div className="flex items-center gap-2 min-w-0 text-sm text-slate-700 dark:text-slate-200">
+                    <div className="flex flex-col gap-0.5">
+                      <div className="flex items-center gap-2 min-w-0 text-sm text-slate-700 dark:text-slate-200 px-3 py-2">
                         <UserRound size={17} className="shrink-0 text-emerald-600 dark:text-emerald-400" />
                         <span className="min-w-0 truncate font-bold">{accountState.user.displayName || accountState.user.email}</span>
                         {accountState.user.demo ? (
@@ -2093,8 +2097,12 @@ export function LineWatchShell({
                   {accountError ? <p className="px-2 pb-2 text-xs font-semibold text-red-600 dark:text-red-300">{accountError}</p> : null}
                 </div>
 
-               {/* Nav Links */}
-               <div className="flex flex-col p-2 border-b border-black/10 dark:border-white/10">
+               {/* Maps & Alerts */}
+               <div className="flex flex-col px-2 py-2 border-b border-black/10 dark:border-white/10 gap-0.5">
+                 <div className="flex items-center gap-2 px-3 pt-2 pb-1 select-none">
+                   <span className="w-[3px] h-3.5 rounded-full bg-blue-600 dark:bg-blue-400 shrink-0" />
+                   <span className="text-[12px] uppercase font-bold text-slate-700 dark:text-slate-300 tracking-wider">Maps & Alerts</span>
+                 </div>
                  <button
                    ref={registerMenuAction(actionIndex++)}
                    role="menuitem"
@@ -2127,9 +2135,9 @@ export function LineWatchShell({
                    aria-current={activeView === "delays" ? "page" : undefined}
                    className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
                  >
-                  <div className="flex items-center gap-3">
+                   <div className="flex items-center gap-3">
                      <DelayIcon size={18} className="text-slate-500 dark:text-slate-400" filled={false} /> Delays
-                  </div>
+                   </div>
                    {delays.length > 0 && (
                      <span className="flex h-5 items-center justify-center rounded-full delay-count-badge px-2 text-[10px] font-bold">
                        {delays.length}
@@ -2143,77 +2151,85 @@ export function LineWatchShell({
                    aria-current={activeView === "reduced-speed-zones" ? "page" : undefined}
                    className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
                  >
-                    <div className="flex items-center gap-3">
-                      <Construction size={18} className="text-slate-500 dark:text-slate-400" /> Reduced Speed Zones
-                    </div>
-                    {reducedSpeedZones.length > 0 && (
-                      <span className="flex h-5 items-center justify-center rounded-full rsz-count-badge px-2 text-[10px] font-bold">
-                        {reducedSpeedZones.length}
-                      </span>
-                    )}
+                   <div className="flex items-center gap-3">
+                     <Construction size={18} className="text-slate-500 dark:text-slate-400" /> Reduced Speed Zones
+                   </div>
+                   {reducedSpeedZones.length > 0 && (
+                     <span className="flex h-5 items-center justify-center rounded-full rsz-count-badge px-2 text-[10px] font-bold">
+                       {reducedSpeedZones.length}
+                     </span>
+                   )}
                  </button>
-                  <button
-                    ref={registerMenuAction(actionIndex++)}
-                    role="menuitem"
-                    onClick={() => setActiveView("closures")}
-                    aria-current={activeView === "closures" ? "page" : undefined}
-                    className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
-                  >
-                    <div className="flex items-center gap-3">
-                      <Calendar size={18} className="text-slate-500 dark:text-slate-400" /> Upcoming Closures
-                    </div>
-                    {plannedClosures.length > 0 && (
-                      <span className="flex h-5 items-center justify-center rounded-full bg-blue-500/20 px-2 text-[10px] font-bold text-blue-600 dark:text-blue-400">
-                        {plannedClosures.length}
-                      </span>
-                    )}
-                  </button>
-                  <button
-                    ref={registerMenuAction(actionIndex++)}
-                    role="menuitem"
-                    onClick={() => setActiveView("accessibility-outages")}
-                    aria-current={activeView === "accessibility-outages" ? "page" : undefined}
-                    className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
-                  >
-                    <div className="flex items-center gap-3">
-                      <svg
-                        aria-hidden="true"
-                        viewBox="0 0 24 24"
-                        className="w-[18px] h-[18px] shrink-0 text-slate-500 dark:text-slate-400"
-                      >
-                        <path
-                          fill="currentColor"
-                          d="M11.468 6.403a1.5 1.5 0 1 1 1.064 0a2.25 2.25 0 0 1-1.064 0M9 5q.001.202.026.399L6.15 4.178a2.266 2.266 0 0 0-2.96 1.184a2.24 2.24 0 0 0 1.18 2.954l3.634 1.542v3.701l-1.88 5.458a2.25 2.25 0 1 0 4.256 1.465l.145-.422a6.5 6.5 0 0 1-.496-3.169L8.96 19.993a.75.75 0 0 1-1.418-.488l1.893-5.497a1.3 1.3 0 0 0 .068-.407V9.693c0-.502-.3-.955-.762-1.151L4.956 6.935a.74.74 0 0 1-.39-.977a.766 2.266 0 0 1 .998-.4l4.971 2.11q.24.102.487.169a3 3 0 0 0 1.956 0q.248-.066.488-.168l4.97-2.11a.766 2.266 0 0 1 1 .399a.74.74 0 0 1-.391.977l-3.78 1.605a1.25 1.25 0 0 0-.762 1.15v1.623a6.5 6.5 0 0 1 1.5-.294V9.856l3.628-1.54a2.24 2.24 0 0 0 1.18-2.954a2.266 2.266 0 0 0-2.96-1.184l-2.877 1.22Q15 5.204 15 5a3 3 0 1 0-6 0"
-                        />
-                        <path
-                          fill="currentColor"
-                          d="M22 17.5a5.5 5.5 0 1 1-11 0a5.5 5.5 0 0 1 11 0M16.5 14a.5.5 0 0 0-.5.5v4a.5.5 0 0 0 1 0v-4a.5.5 0 0 0-.5-.5m0 7.125a.625.625 0 1 0 0-1.25a.625.625 0 0 0 0 1.25"
-                        />
-                      </svg>
-                      Accessibility Outages
-                    </div>
-                    {accessibilityOutageResult && accessibilityOutageResult.assetTypes.reduce((acc, curr) => acc + curr.count, 0) > 0 && (
-                      <span className="flex h-5 items-center justify-center rounded-full bg-red-500/20 px-2 text-[10px] font-bold text-red-600 dark:text-red-400">
-                        {accessibilityOutageResult.assetTypes.reduce((acc, curr) => acc + curr.count, 0)}
-                      </span>
-                    )}
-                  </button>
-                  <button
-                    ref={registerMenuAction(actionIndex++)}
-                    role="menuitem"
-                    onClick={() => setActiveView("surface-notices")}
-                    aria-current={activeView === "surface-notices" ? "page" : undefined}
-                    className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
-                  >
-                    <div className="flex items-center gap-3">
-                      <Bus size={18} className="text-slate-500 dark:text-slate-400" /> Streetcar & Bus Notices
-                    </div>
-                    {surfaceNoticeCount !== null && surfaceNoticeCount > 0 && (
-                      <span className="flex h-5 items-center justify-center rounded-full bg-blue-500/20 px-2 text-[10px] font-bold text-blue-600 dark:text-blue-400">
-                        {surfaceNoticeCount}
-                      </span>
-                    )}
-                  </button>
+                 <button
+                   ref={registerMenuAction(actionIndex++)}
+                   role="menuitem"
+                   onClick={() => setActiveView("closures")}
+                   aria-current={activeView === "closures" ? "page" : undefined}
+                   className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
+                 >
+                   <div className="flex items-center gap-3">
+                     <Calendar size={18} className="text-slate-500 dark:text-slate-400" /> Upcoming Closures
+                   </div>
+                   {plannedClosures.length > 0 && (
+                     <span className="flex h-5 items-center justify-center rounded-full bg-blue-500/20 px-2 text-[10px] font-bold text-blue-600 dark:text-blue-400">
+                       {plannedClosures.length}
+                     </span>
+                   )}
+                 </button>
+                 <button
+                   ref={registerMenuAction(actionIndex++)}
+                   role="menuitem"
+                   onClick={() => setActiveView("accessibility-outages")}
+                   aria-current={activeView === "accessibility-outages" ? "page" : undefined}
+                   className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
+                 >
+                   <div className="flex items-center gap-3">
+                     <svg
+                       aria-hidden="true"
+                       viewBox="0 0 24 24"
+                       className="w-[18px] h-[18px] shrink-0 text-slate-500 dark:text-slate-400"
+                     >
+                       <path
+                         fill="currentColor"
+                         d="M11.468 6.403a1.5 1.5 0 1 1 1.064 0a2.25 2.25 0 0 1-1.064 0M9 5q.001.202.026.399L6.15 4.178a2.266 2.266 0 0 0-2.96 1.184a2.24 2.24 0 0 0 1.18 2.954l3.634 1.542v3.701l-1.88 5.458a2.25 2.25 0 1 0 4.256 1.465l.145-.422a6.5 6.5 0 0 1-.496-3.169L8.96 19.993a.75.75 0 0 1-1.418-.488l1.893-5.497a1.3 1.3 0 0 0 .068-.407V9.693c0-.502-.3-.955-.762-1.151L4.956 6.935a.74.74 0 0 1-.39-.977a.766 2.266 0 0 1 .998-.4l4.971 2.11q.24.102.487.169a3 3 0 0 0 1.956 0q.248-.066.488-.168l4.97-2.11a.766 2.266 0 0 1 1 .399a.74.74 0 0 1-.391.977l-3.78 1.605a1.25 1.25 0 0 0-.762 1.15v1.623a6.5 6.5 0 0 1 1.5-.294V9.856l3.628-1.54a2.24 2.24 0 0 0 1.18-2.954a2.266 2.266 0 0 0-2.96-1.184l-2.877 1.22Q15 5.204 15 5a3 3 0 1 0-6 0"
+                       />
+                       <path
+                         fill="currentColor"
+                         d="M22 17.5a5.5 5.5 0 1 1-11 0a5.5 5.5 0 0 1 11 0M16.5 14a.5.5 0 0 0-.5.5v4a.5.5 0 0 0 1 0v-4a.5.5 0 0 0-.5-.5m0 7.125a.625.625 0 1 0 0-1.25a.625.625 0 0 0 0 1.25"
+                       />
+                     </svg>
+                     Accessibility Outages
+                   </div>
+                   {accessibilityOutageResult && accessibilityOutageResult.assetTypes.reduce((acc, curr) => acc + curr.count, 0) > 0 && (
+                     <span className="flex h-5 items-center justify-center rounded-full bg-red-500/20 px-2 text-[10px] font-bold text-red-600 dark:text-red-400">
+                       {accessibilityOutageResult.assetTypes.reduce((acc, curr) => acc + curr.count, 0)}
+                     </span>
+                   )}
+                 </button>
+                 <button
+                   ref={registerMenuAction(actionIndex++)}
+                   role="menuitem"
+                   onClick={() => setActiveView("surface-notices")}
+                   aria-current={activeView === "surface-notices" ? "page" : undefined}
+                   className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
+                 >
+                   <div className="flex items-center gap-3">
+                     <Bus size={18} className="text-slate-500 dark:text-slate-400" /> Streetcar & Bus Notices
+                   </div>
+                   {surfaceNoticeCount !== null && surfaceNoticeCount > 0 && (
+                     <span className="flex h-5 items-center justify-center rounded-full bg-blue-500/20 px-2 text-[10px] font-bold text-blue-600 dark:text-blue-400">
+                       {surfaceNoticeCount}
+                     </span>
+                   )}
+                 </button>
+               </div>
+
+               {/* Notifications */}
+               <div className="flex flex-col px-2 py-2 border-b border-black/10 dark:border-white/10 gap-0.5">
+                 <div className="flex items-center gap-2 px-3 pt-2 pb-1 select-none">
+                   <span className="w-[3px] h-3.5 rounded-full bg-blue-600 dark:bg-blue-400 shrink-0" />
+                   <span className="text-[12px] uppercase font-bold text-slate-700 dark:text-slate-300 tracking-wider">Notifications</span>
+                 </div>
                  <button
                    ref={registerMenuAction(actionIndex++)}
                    role="menuitem"
@@ -2232,6 +2248,14 @@ export function LineWatchShell({
                  >
                    <History size={18} className="text-slate-500 dark:text-slate-400" /> Alert History
                  </button>
+               </div>
+
+               {/* Operations */}
+               <div className="flex flex-col px-2 py-2 border-b border-black/10 dark:border-white/10 gap-0.5">
+                 <div className="flex items-center gap-2 px-3 pt-2 pb-1 select-none">
+                   <span className="w-[3px] h-3.5 rounded-full bg-blue-600 dark:bg-blue-400 shrink-0" />
+                   <span className="text-[12px] uppercase font-bold text-slate-700 dark:text-slate-300 tracking-wider">Operations</span>
+                 </div>
                  <button
                    ref={registerMenuAction(actionIndex++)}
                    role="menuitem"
@@ -2241,39 +2265,14 @@ export function LineWatchShell({
                  >
                    <BarChart3 size={18} className="text-slate-500 dark:text-slate-400" /> Reliability Analytics
                  </button>
-                 <button
-                   ref={registerMenuAction(actionIndex++)}
-                   role="menuitem"
-                   onClick={() => setActiveView("feedback")}
-                   aria-current={activeView === "feedback" ? "page" : undefined}
-                   className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
-                 >
-                   <MessageSquareText size={18} className="text-slate-500 dark:text-slate-400" /> Leave Feedback / Support
-                 </button>
-                 <button
-                   ref={registerMenuAction(actionIndex++)}
-                   role="menuitem"
-                   onClick={() => setActiveView("privacy-acknowledgements")}
-                   aria-current={activeView === "privacy-acknowledgements" ? "page" : undefined}
-                   className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
-                 >
-                   <FileText size={18} className="text-slate-500 dark:text-slate-400" /> Privacy & Acknowledgements
-                 </button>
-                 {hasReleaseNotes ? (
-                   <button
-                     ref={registerMenuAction(actionIndex++)}
-                     role="menuitem"
-                     onClick={() => setActiveView("release-notes")}
-                     aria-current={activeView === "release-notes" ? "page" : undefined}
-                     className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
-                   >
-                     <Sparkles size={18} className="text-slate-500 dark:text-slate-400" /> {"What's New"}
-                   </button>
-                 ) : null}
                </div>
 
-               {/* Toggles */}
-               <div className="flex flex-col p-2 border-b border-black/10 dark:border-white/10">
+               {/* Display */}
+               <div className="flex flex-col px-2 py-2 border-b border-black/10 dark:border-white/10 gap-0.5">
+                 <div className="flex items-center gap-2 px-3 pt-2 pb-1 select-none">
+                   <span className="w-[3px] h-3.5 rounded-full bg-blue-600 dark:bg-blue-400 shrink-0" />
+                   <span className="text-[12px] uppercase font-bold text-slate-700 dark:text-slate-300 tracking-wider">Display</span>
+                 </div>
                  <div className="flex items-center justify-between px-3 py-2.5">
                    <span className="text-sm font-medium text-slate-700 dark:text-slate-200 flex items-center gap-3">
                      <Contrast size={18} className="text-slate-500 dark:text-slate-400" /> High Contrast Mode
@@ -2304,6 +2303,43 @@ export function LineWatchShell({
                      <span className={`absolute left-1 top-1 h-3 w-3 transform rounded-full bg-white transition-transform ${reducedMotion ? 'translate-x-4' : 'translate-x-0'}`} />
                    </button>
                  </div>
+               </div>
+
+               {/* Support & About */}
+               <div className="flex flex-col px-2 py-2 border-b border-black/10 dark:border-white/10 gap-0.5">
+                 <div className="flex items-center gap-2 px-3 pt-2 pb-1 select-none">
+                   <span className="w-[3px] h-3.5 rounded-full bg-blue-600 dark:bg-blue-400 shrink-0" />
+                   <span className="text-[12px] uppercase font-bold text-slate-700 dark:text-slate-300 tracking-wider">Support & About</span>
+                 </div>
+                 <button
+                   ref={registerMenuAction(actionIndex++)}
+                   role="menuitem"
+                   onClick={() => setActiveView("feedback")}
+                   aria-current={activeView === "feedback" ? "page" : undefined}
+                   className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
+                 >
+                   <MessageSquareText size={18} className="text-slate-500 dark:text-slate-400" /> Leave Feedback / Support
+                 </button>
+                 <button
+                   ref={registerMenuAction(actionIndex++)}
+                   role="menuitem"
+                   onClick={() => setActiveView("privacy-acknowledgements")}
+                   aria-current={activeView === "privacy-acknowledgements" ? "page" : undefined}
+                   className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
+                 >
+                   <FileText size={18} className="text-slate-500 dark:text-slate-400" /> Privacy & Acknowledgements
+                 </button>
+                 {hasReleaseNotes ? (
+                   <button
+                     ref={registerMenuAction(actionIndex++)}
+                     role="menuitem"
+                     onClick={() => setActiveView("release-notes")}
+                     aria-current={activeView === "release-notes" ? "page" : undefined}
+                     className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
+                   >
+                     <Sparkles size={18} className="text-slate-500 dark:text-slate-400" /> {"What's New"}
+                   </button>
+                 ) : null}
                </div>
 
                {/* At-A-Glance Integrated Sub-panels */}

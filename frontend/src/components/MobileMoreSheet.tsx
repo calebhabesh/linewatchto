@@ -117,7 +117,10 @@ export function MobileMoreSheet({
       <div className="mobile-more-content-scroll">
         {canShowPwaInstallHelp ? (
           <div className="mobile-more-section mobile-more-install-section">
-            <h3>{installHelpHeading}</h3>
+            <div className="flex items-center gap-2 px-0 pt-1.5 pb-0.5 select-none">
+              <span className="w-[3px] h-3.5 rounded-full bg-blue-600 dark:bg-blue-400 shrink-0" />
+              <h3>{installHelpHeading}</h3>
+            </div>
             {canUseNativeInstallPrompt ? (
               <button
                 type="button"
@@ -144,7 +147,10 @@ export function MobileMoreSheet({
         ) : null}
 
         <div className="mobile-more-section">
-          <h3>Account</h3>
+          <div className="flex items-center gap-2 px-0 pt-1.5 pb-0.5 select-none">
+            <span className="w-[3px] h-3.5 rounded-full bg-blue-600 dark:bg-blue-400 shrink-0" />
+            <h3>Account</h3>
+          </div>
           {accountState.authenticated && accountState.user ? (
             <>
               <div className="mobile-more-account">
@@ -189,7 +195,10 @@ export function MobileMoreSheet({
         </div>
 
         <div className="mobile-more-section">
-          <h3>Notifications</h3>
+          <div className="flex items-center gap-2 px-0 pt-1.5 pb-0.5 select-none">
+            <span className="w-[3px] h-3.5 rounded-full bg-blue-600 dark:bg-blue-400 shrink-0" />
+            <h3>Notifications</h3>
+          </div>
           <button type="button" className="mobile-more-row w-full flex items-center justify-between gap-[9px]" onClick={onOpenNotifications}>
             <div className="flex items-center gap-[9px] min-w-0 flex-1">
               <div className="shrink-0">
@@ -222,14 +231,17 @@ export function MobileMoreSheet({
               )}
             </div>
           </button>
-        </div>
-
-        <div className="mobile-more-section">
-          <h3>Operations</h3>
           <button type="button" className="mobile-more-row" onClick={onOpenAlertHistory}>
             <History size={18} className="text-slate-500 dark:text-slate-400" />
             Alert History
           </button>
+        </div>
+
+        <div className="mobile-more-section">
+          <div className="flex items-center gap-2 px-0 pt-1.5 pb-0.5 select-none">
+            <span className="w-[3px] h-3.5 rounded-full bg-blue-600 dark:bg-blue-400 shrink-0" />
+            <h3>Operations</h3>
+          </div>
           <button type="button" className="mobile-more-row" onClick={onOpenAnalytics}>
             <BarChart3 size={18} className="text-slate-500 dark:text-slate-400" />
             Reliability Analytics
@@ -245,7 +257,10 @@ export function MobileMoreSheet({
         </div>
 
         <div className="mobile-more-section">
-          <h3>Display</h3>
+          <div className="flex items-center gap-2 px-0 pt-1.5 pb-0.5 select-none">
+            <span className="w-[3px] h-3.5 rounded-full bg-blue-600 dark:bg-blue-400 shrink-0" />
+            <h3>Display</h3>
+          </div>
           <button type="button" className="mobile-more-row" aria-pressed={highContrast} onClick={onToggleHighContrast}>
             <Contrast size={18} className="text-slate-500 dark:text-slate-400" />
             High Contrast Mode
@@ -264,7 +279,10 @@ export function MobileMoreSheet({
         </div>
 
         <div className="mobile-more-section">
-          <h3>{"Support & About"}</h3>
+          <div className="flex items-center gap-2 px-0 pt-1.5 pb-0.5 select-none">
+            <span className="w-[3px] h-3.5 rounded-full bg-blue-600 dark:bg-blue-400 shrink-0" />
+            <h3>{"Support & About"}</h3>
+          </div>
           <button type="button" className="mobile-more-row mobile-more-share-row" onClick={onShareApp}>
             <Share2 size={18} className="text-slate-500 dark:text-slate-400" />
             <span className="mobile-more-share-copy">
@@ -311,7 +329,10 @@ export function MobileMoreSheet({
         </div>
 
         <div className="mobile-more-section">
-          <h3>Notifications Help</h3>
+          <div className="flex items-center gap-2 px-0 pt-1.5 pb-0.5 select-none">
+            <span className="w-[3px] h-3.5 rounded-full bg-blue-600 dark:bg-blue-400 shrink-0" />
+            <h3>Notifications Help</h3>
+          </div>
           <PushDeliveryDiagnosticsPanel
             key={accountState.user?.id ?? "signed-out"}
             accountState={accountState}
