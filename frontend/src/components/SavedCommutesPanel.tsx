@@ -1,7 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { Navigation, ChevronDown, ChevronLeft, Loader2, MapPinned, X, AlertTriangle, Construction, Calendar, Clock, Bell } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Navigation, ChevronDown, ChevronLeft, Loader2, MapPinned, X, AlertTriangle, Construction, Calendar, Clock, Bell, Check } from "lucide-react";
 import {
   createSavedCommute,
   defaultSavedCommuteNotificationRule,
@@ -717,6 +717,16 @@ export function SavedCommutesPanel({
   const [notificationDrafts, setNotificationDrafts] = useState<Record<string, AccountSavedCommuteNotificationRule>>({});
   const [savingNotificationRuleId, setSavingNotificationRuleId] = useState<string | null>(null);
   const [notificationRuleError, setNotificationRuleError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [toastKey, setToastKey] = useState(0);
+
+  useEffect(() => {
+    if (!successMessage) return;
+    const timer = setTimeout(() => {
+      setSuccessMessage(null);
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, [successMessage]);
 
   const stationById = useMemo(() => {
     return new Map(stationSummaries.map((station) => [station.id, station]));
@@ -757,6 +767,9 @@ export function SavedCommutesPanel({
       setDestinationStationId("");
       setWatchReturnTrip(true);
       setNewNotificationRule(cloneNotificationRule(defaultSavedCommuteNotificationRule));
+      setSuccessMessage("Commute Saved Successfully");
+      setToastKey((prev) => prev + 1);
+      setActiveView("saved");
     } catch {
       setCommuteError("Could not save that commute.");
     } finally {
@@ -1329,6 +1342,12 @@ export function SavedCommutesPanel({
           </>
         ) : null}
       </div>
+      {successMessage && (
+        <div key={toastKey} className="commute-toast-success text-white">
+          <Check size={16} className="text-white" />
+          <span className="text-white">{successMessage}</span>
+        </div>
+      )}
     </section>
   );
 }

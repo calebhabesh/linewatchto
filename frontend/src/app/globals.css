@@ -6537,7 +6537,7 @@ button {
 }
 
 .commute-station-stations-column-header {
-  padding: 0.2rem 0.3rem;
+  padding: 0.2rem 0 0 0;
   font-size: 0.65rem;
 }
 
@@ -9729,7 +9729,7 @@ button {
     font-weight: 900;
     min-height: 38px;
     padding: 8px 10px;
-    margin-bottom: 12px;
+    margin-bottom: 4px;
     cursor: pointer;
     width: 100%;
     justify-content: center;
@@ -12208,3 +12208,63 @@ button {
   color: rgb(96, 165, 250);
   box-shadow: 0 0 12px rgba(59, 130, 246, 0.25);
 }
+
+/* Commute Saved Toast Alert */
+@keyframes commute-toast-lifecycle {
+  0% {
+    opacity: 0;
+    transform: translate3d(-50%, 20px, 0) scale(0.95);
+  }
+  10% {
+    opacity: 1;
+    transform: translate3d(-50%, 0, 0) scale(1);
+  }
+  90% {
+    opacity: 1;
+    transform: translate3d(-50%, 0, 0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(-50%, -20px, 0) scale(0.95);
+  }
+}
+
+.commute-toast-success {
+  position: fixed;
+  bottom: 2.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.8rem 1.2rem;
+  border-radius: 8px;
+  background-color: rgba(16, 185, 129, 0.95); /* Emerald 500 */
+  color: #ffffff !important;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  font-weight: 600;
+  font-size: 0.875rem;
+  pointer-events: none;
+  white-space: nowrap;
+  animation: commute-toast-lifecycle 3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.dark .commute-toast-success {
+  background-color: rgba(6, 78, 59, 0.95); /* Emerald 900 */
+  border-color: rgba(16, 185, 129, 0.25);
+  color: #ffffff !important;
+}
+
+.motion-paused .commute-toast-success {
+  animation: none !important;
+}
+
+@media (max-width: 767px) {
+  .commute-toast-success {
+    bottom: 12px;
+  }
+}
+

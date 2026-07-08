@@ -404,7 +404,7 @@ export function SavedCommuteStationPicker({
                         Back to Lines
                       </button>
                       <div className="commute-station-stations-column-header">
-                        <div className="flex items-center gap-2 mb-3 px-1">
+                        <div className="flex items-center gap-2 mb-0 pl-0 pr-1">
                           {(() => {
                             const line = lineGroups.find((g) => g.line.id === expandedLineId)?.line;
                             if (!line) return null;
