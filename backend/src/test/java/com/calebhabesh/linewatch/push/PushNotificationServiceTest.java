@@ -963,6 +963,11 @@ class PushNotificationServiceTest {
             .thenReturn(Optional.of(androidDelivery));
         when(deliveryRepository.countBySubscription_IdAndStatusAndDisplayedAtIsNull("push_subscription_android", "accepted"))
             .thenReturn(0L);
+        when(deliveryRepository.countBySubscription_IdAndStatusAndDisplayedAtIsNullAndCreatedAtAfter(
+            "push_subscription_android",
+            "accepted",
+            Instant.parse("2026-06-05T15:00:07Z")
+        )).thenReturn(0L);
         when(deliveryRepository.findTopBySubscription_IdOrderByCreatedAtDesc("push_subscription_ios"))
             .thenReturn(Optional.of(iosDelivery));
         when(deliveryRepository.findTopBySubscription_IdAndStatusOrderByCreatedAtDesc("push_subscription_ios", "accepted"))
@@ -979,6 +984,11 @@ class PushNotificationServiceTest {
             .thenReturn(Optional.of(olderDisplayedDelivery));
         when(deliveryRepository.countBySubscription_IdAndStatusAndDisplayedAtIsNull("push_subscription_ios_restored", "accepted"))
             .thenReturn(2L);
+        when(deliveryRepository.countBySubscription_IdAndStatusAndDisplayedAtIsNullAndCreatedAtAfter(
+            "push_subscription_ios_restored",
+            "accepted",
+            Instant.parse("2026-06-05T13:00:09Z")
+        )).thenReturn(2L);
 
         PushResponses.PushDevicesResponse response = service.devices(account);
 

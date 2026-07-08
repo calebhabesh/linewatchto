@@ -175,6 +175,7 @@ async function showPendingPushNotification(event) {
     if (payloadNotification) {
       if (shouldSkipExpiredNotification(payloadNotification)) {
         await recordPushClientEvent(payloadNotification, "pending_skipped", "expired active payload");
+        await showExpiredPushNotificationFallback(payloadNotification);
         return;
       }
       await showTrackedPushNotification(payloadNotification);
@@ -211,6 +212,7 @@ async function showPendingPushNotification(event) {
     for (const notification of pendingNotifications) {
       if (shouldSkipExpiredNotification(notification)) {
         await recordPushClientEvent(notification, "pending_skipped", "expired active payload");
+        await showExpiredPushNotificationFallback(notification);
         continue;
       }
       if (!shouldShowPendingNotification(notification, pendingNotifications, tagState)) {
@@ -412,6 +414,14 @@ async function showFallbackPushNotification() {
       url: "/",
     },
   });
+}
+
+async function showExpiredPushNotificationFallback(notification) {
+  await showFallbackPushNotification();
+  await Promise.allSettled([
+    recordPushClientEvent(notification, "fallback_shown", "expired active payload"),
+    acknowledgeDisplayedPushNotification(notification),
+  ]);
 }
 
 async function handlePushSubscriptionChange(event) {

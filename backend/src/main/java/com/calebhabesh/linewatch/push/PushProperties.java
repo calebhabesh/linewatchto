@@ -11,7 +11,8 @@ public class PushProperties {
     private String vapidSubject = "mailto:linewatch@example.invalid";
     private String receiptSigningSecret = "";
     private long evaluationDelayMs = 60_000;
-    private Duration activeDeliveryTtl = Duration.ofMinutes(10);
+    private Duration activeDeliveryTtl = Duration.ofHours(1);
+    private Duration activeDisplayTtl = Duration.ofMinutes(10);
     private Duration clearedDeliveryTtl = Duration.ofHours(24);
     private Duration clearedNotificationRetention = Duration.ofHours(24);
 
@@ -71,6 +72,14 @@ public class PushProperties {
         this.activeDeliveryTtl = activeDeliveryTtl;
     }
 
+    public Duration getActiveDisplayTtl() {
+        return activeDisplayTtl;
+    }
+
+    public void setActiveDisplayTtl(Duration activeDisplayTtl) {
+        this.activeDisplayTtl = activeDisplayTtl;
+    }
+
     public Duration getClearedDeliveryTtl() {
         return clearedDeliveryTtl;
     }
@@ -82,6 +91,15 @@ public class PushProperties {
     public Duration deliveryTtlForState(String state) {
         boolean cleared = "CLEARED".equalsIgnoreCase(state);
         Duration ttl = cleared ? clearedDeliveryTtl : activeDeliveryTtl;
+        if (ttl == null || ttl.isZero() || ttl.isNegative()) {
+            return cleared ? Duration.ofHours(24) : Duration.ofHours(1);
+        }
+        return ttl;
+    }
+
+    public Duration displayTtlForState(String state) {
+        boolean cleared = "CLEARED".equalsIgnoreCase(state);
+        Duration ttl = cleared ? clearedDeliveryTtl : activeDisplayTtl;
         if (ttl == null || ttl.isZero() || ttl.isNegative()) {
             return cleared ? Duration.ofHours(24) : Duration.ofMinutes(10);
         }

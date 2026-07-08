@@ -805,7 +805,7 @@ describe("LineWatch PWA configuration", () => {
     assert.notEqual(fetchRequests[0]?.url, "/api/account/push/latest");
   });
 
-  it("drops expired active payload push notifications without showing a fallback", async () => {
+  it("shows a generic fallback for expired active payload push notifications", async () => {
     const { fetchRequests, shownNotifications } = await serviceWorkerPush({
       pushData: {
         title: "⚠️ Line 1 Yonge-University Delay",
@@ -819,7 +819,12 @@ describe("LineWatch PWA configuration", () => {
       },
     });
 
-    assert.equal(shownNotifications.length, 0);
+    assert.equal(shownNotifications.length, 1);
+    assert.equal(shownNotifications[0].title, "⚠️ LineWatchTO Service Alert");
+    assert.equal(
+      shownNotifications[0].options.body,
+      "Open LineWatchTO to view the latest service update.",
+    );
     assert.equal(
       clientEventRequests(fetchRequests).some((request) => (
         request.tag === "saved-commute-impact|commute_1|outbound|delay|delay-line-1|active"
@@ -828,6 +833,17 @@ describe("LineWatch PWA configuration", () => {
       )),
       true,
     );
+    assert.equal(
+      clientEventRequests(fetchRequests).some((request) => (
+        request.tag === "saved-commute-impact|commute_1|outbound|delay|delay-line-1|active"
+        && request.stage === "fallback_shown"
+        && request.message === "expired active payload"
+      )),
+      true,
+    );
+    const displayedRequest = fetchRequests.find((request) => request.url === "/api/account/push/displayed");
+    assert.ok(displayedRequest);
+    assert.equal(JSON.parse(displayedRequest.options.body).tag, "saved-commute-impact|commute_1|outbound|delay|delay-line-1|active");
     assert.notEqual(fetchRequests[0]?.url, "/api/account/push/latest");
   });
 

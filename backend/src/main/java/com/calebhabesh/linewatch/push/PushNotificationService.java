@@ -730,19 +730,13 @@ public class PushNotificationService {
             deliveryRepository.findTopBySubscription_IdAndStatusOrderByCreatedAtDesc(subscription.getId(), "accepted");
         Optional<PushNotificationDeliveryEntity> latestDisplayedDelivery =
             deliveryRepository.findTopBySubscription_IdAndDisplayedAtIsNotNullOrderByDisplayedAtDesc(subscription.getId());
-        long acceptedWithoutDisplayCount = deliveryRepository.countBySubscription_IdAndStatusAndDisplayedAtIsNull(
-            subscription.getId(),
-            "accepted"
-        );
-        int safeAcceptedWithoutDisplayCount = acceptedWithoutDisplayCount > Integer.MAX_VALUE
-            ? Integer.MAX_VALUE
-            : (int) acceptedWithoutDisplayCount;
         Instant latestDisplayedAt = latestDisplayedDelivery
             .map(PushNotificationDeliveryEntity::getDisplayedAt)
             .orElse(null);
         Instant latestAcceptedAt = latestAcceptedDelivery
             .map(PushNotificationDeliveryEntity::getCreatedAt)
             .orElse(null);
+        int safeAcceptedWithoutDisplayCount = acceptedWithoutDisplayCount(subscription.getId(), latestDisplayedAt);
         String deliveryHealth = deviceDeliveryHealth(
             subscription,
             latestDelivery.orElse(null),
@@ -799,6 +793,17 @@ public class PushNotificationService {
         return latestDisplayedAt == null
             || latestAcceptedAt == null
             || latestAcceptedAt.isAfter(latestDisplayedAt);
+    }
+
+    private int acceptedWithoutDisplayCount(String subscriptionId, Instant latestDisplayedAt) {
+        long count = latestDisplayedAt == null
+            ? deliveryRepository.countBySubscription_IdAndStatusAndDisplayedAtIsNull(subscriptionId, "accepted")
+            : deliveryRepository.countBySubscription_IdAndStatusAndDisplayedAtIsNullAndCreatedAtAfter(
+                subscriptionId,
+                "accepted",
+                latestDisplayedAt
+            );
+        return count > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) count;
     }
 
     private String instantString(Instant instant) {

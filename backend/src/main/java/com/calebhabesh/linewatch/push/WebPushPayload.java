@@ -70,9 +70,12 @@ public record WebPushPayload(
         PushProperties properties
     ) {
         Instant safeSentAt = sentAt == null ? event.getCreatedAt() : sentAt;
-        Duration ttl = properties == null
+        Duration transportTtl = properties == null
             ? Duration.ofSeconds(defaultTtlSeconds(event.getNotificationState()))
             : properties.deliveryTtlForState(event.getNotificationState());
+        Duration displayTtl = properties == null
+            ? Duration.ofSeconds(defaultTtlSeconds(event.getNotificationState()))
+            : properties.displayTtlForState(event.getNotificationState());
         return new WebPushPayload(
             event.getTitle(),
             event.getBody(),
@@ -82,10 +85,10 @@ public record WebPushPayload(
             displayTimestamp(event),
             instantString(event.getSourceEventAt()),
             instantString(safeSentAt),
-            safeSentAt == null ? null : safeSentAt.plus(ttl).toString(),
+            safeSentAt == null ? null : safeSentAt.plus(displayTtl).toString(),
             deliveryId,
             receiptTokenService.tokenFor(deliveryId, subscription, event),
-            ttl.toSeconds()
+            transportTtl.toSeconds()
         );
     }
 

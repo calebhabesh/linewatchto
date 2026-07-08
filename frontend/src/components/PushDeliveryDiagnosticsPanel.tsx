@@ -68,6 +68,7 @@ function diagnosticOutcome(delivery: PushDeliveryDiagnostic) {
   if (delivery.displayedAt) return "Displayed";
   if (delivery.clientEvents.some((event) => event.stage === "show_failed")) return "Display failed";
   if (delivery.clientEvents.some((event) => event.stage === "ack_failed")) return "Ack failed";
+  if (delivery.clientEvents.some((event) => event.stage === "fallback_shown")) return "Fallback displayed";
   if (delivery.clientEvents.some((event) => event.stage === "push_received")) return "Received";
   if (delivery.deliveryStatus?.toLowerCase() === "accepted") return "Accepted, no receipt";
   return delivery.deliveryStatus || "Queued";

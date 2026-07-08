@@ -14,6 +14,11 @@ public interface PushNotificationDeliveryRepository extends JpaRepository<PushNo
     Optional<PushNotificationDeliveryEntity> findTopBySubscription_IdAndStatusOrderByCreatedAtDesc(String subscriptionId, String status);
     Optional<PushNotificationDeliveryEntity> findTopBySubscription_IdAndDisplayedAtIsNotNullOrderByDisplayedAtDesc(String subscriptionId);
     long countBySubscription_IdAndStatusAndDisplayedAtIsNull(String subscriptionId, String status);
+    long countBySubscription_IdAndStatusAndDisplayedAtIsNullAndCreatedAtAfter(
+        String subscriptionId,
+        String status,
+        Instant createdAtAfter
+    );
 
     @Query("""
         select delivery

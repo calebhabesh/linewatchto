@@ -395,6 +395,7 @@ class PushNotificationDispatchServiceTest {
         assertThat(payload.toJson()).contains("\"sourceEventAt\":\"2026-06-05T14:20:00Z\"");
         assertThat(payload.toJson()).contains("\"sentAt\":\"2026-06-05T15:00:00Z\"");
         assertThat(payload.toJson()).contains("\"expiresAt\":\"2026-06-05T15:10:00Z\"");
+        assertThat(payload.ttlSeconds()).isEqualTo(3600);
         assertThat(payload.deliveryId()).startsWith("push_delivery_");
         assertThat(payload.receiptToken()).isNotBlank();
     }
