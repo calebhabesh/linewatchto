@@ -7405,7 +7405,8 @@ button {
     color: #F8C300;
     display: inline-flex;
     align-items: center;
-    margin-right: 4px;
+    margin-left: -3px;
+    margin-right: 2px;
     vertical-align: middle;
     position: relative;
     top: -1px;
