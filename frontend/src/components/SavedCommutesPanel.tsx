@@ -10,6 +10,7 @@ import {
   commutePathPreviewFromCommute,
   normalizeSavedCommuteNotificationRule,
   updateSavedCommuteNotificationRule,
+  summarizeSavedCommuteStatuses,
   type AccountSavedCommute,
   type AccountSavedCommuteNotificationRule,
   type AccountState,
@@ -22,6 +23,7 @@ import {
 import type { StationSummary } from "../app/station-data";
 import { SavedCommuteStationPicker } from "./SavedCommuteStationPicker";
 import { DelayIcon } from "./DelayIcon";
+import { CardSource } from "./ImpactCardFields";
 
 function toTitleCase(str: string): string {
   if (!str) return "";
@@ -741,6 +743,11 @@ export function SavedCommutesPanel({
     return new Map(stationSummaries.map((station) => [station.id, station]));
   }, [stationSummaries]);
 
+  const { clear: commuteClearCount, affectedNow: commuteAffectedCount } = useMemo(
+    () => summarizeSavedCommuteStatuses(accountCommutes),
+    [accountCommutes]
+  );
+
   function stationNameFor(stationId: string) {
     return stationById.get(stationId)?.name ?? stationId;
   }
@@ -841,7 +848,7 @@ export function SavedCommutesPanel({
 
   return (
     <section className="commute-panel min-w-0 border border-black/10 dark:border-white/10 rounded-lg shadow-xl">
-      <div className="panel-heading @container border-b border-black/10 dark:border-white/10 px-4 py-3 flex items-center justify-between gap-3 min-w-0">
+      <div className="panel-heading @container border-b border-black/10 dark:border-white/10 px-3 py-2 sm:px-4 sm:py-3 flex items-center justify-between gap-1 sm:gap-3 min-w-0">
         <div className="flex items-center gap-1">
           {onBack && (
             <button
@@ -852,9 +859,9 @@ export function SavedCommutesPanel({
                   onBack();
                 }
               }}
-              className="p-2 -ml-3 mr-1 hover:bg-black/10 dark:hover:bg-white/10 rounded-lg transition-colors cursor-pointer shrink-0"
+              className="p-1 sm:p-2 -ml-1 sm:-ml-3 mr-0 sm:mr-1 hover:bg-black/10 dark:hover:bg-white/10 rounded-lg transition-colors cursor-pointer shrink-0"
             >
-              <ChevronLeft size={28} className="text-slate-700 dark:text-slate-300" />
+              <ChevronLeft className="w-6 h-6 sm:w-7 sm:h-7 text-slate-700 dark:text-slate-300" />
             </button>
           )}
           <h2 className="text-[clamp(10px,3.5cqw,18px)] font-bold text-slate-900 dark:text-white flex items-center gap-1 sm:gap-2 whitespace-nowrap">
@@ -862,23 +869,38 @@ export function SavedCommutesPanel({
             <span>Saved Commutes</span>
           </h2>
         </div>
-        {onClose && (
-          <button
-            onClick={() => {
-              if (activePicker) {
-                setActivePicker(null);
-              } else {
-                onClose();
-              }
-            }}
-            className="p-3 sm:p-3.5 mr-1 hover:bg-black/10 dark:hover:bg-white/10 rounded-lg transition-colors cursor-pointer shrink-0 flex items-center justify-center"
-            aria-label="Close"
-          >
-            <X className="w-5 h-5 sm:w-6 sm:h-6 text-slate-700 dark:text-slate-300" />
-          </button>
-        )}
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+          <span className={`shrink-0 text-[9px] sm:text-xs px-1.5 sm:px-2 py-0.5 rounded-full font-bold border ${
+            accountState.authenticated
+              ? accountState.user?.demo
+                ? "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20"
+                : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
+              : "bg-slate-500/10 text-slate-500 dark:text-slate-400 border-slate-500/20"
+          }`}>
+            {accountState.authenticated
+              ? accountState.user?.demo
+                ? "Demo Account"
+                : "Route Impacts Enabled"
+              : "Route Impacts Disabled"}
+          </span>
+          {onClose && (
+            <button
+              onClick={() => {
+                if (activePicker) {
+                  setActivePicker(null);
+                } else {
+                  onClose();
+                }
+              }}
+              className="p-3 sm:p-3.5 mr-1 hover:bg-black/10 dark:hover:bg-white/10 rounded-lg transition-colors cursor-pointer shrink-0 flex items-center justify-center"
+              aria-label="Close"
+            >
+              <X className="w-5 h-5 sm:w-6 sm:h-6 text-slate-700 dark:text-slate-300" />
+            </button>
+          )}
+        </div>
       </div>
-      <div className="commute-grid min-w-0 p-3 flex flex-col gap-3">
+      <div className="commute-grid min-w-0 px-3 sm:px-4 py-3 flex flex-col gap-3">
         {!accountState.authenticated ? (
           <div className="saved-commute-account-prompt p-4 rounded-lg flex flex-col gap-4 border border-black/10 dark:border-white/10">
             <div>
@@ -894,7 +916,7 @@ export function SavedCommutesPanel({
                 Track Your Daily Commute
               </h3>
               <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-                Unlock personalized tracking and push notifications for your daily subway and LRT routes.
+                Unlock personalized tracking and route impact alerts for your daily subway and LRT routes.
               </p>
             </div>
 
@@ -926,8 +948,8 @@ export function SavedCommutesPanel({
               <div className="flex items-start gap-2.5">
                 <span className="text-xs text-emerald-600 dark:text-emerald-400 font-bold mt-0.5">✓</span>
                 <div className="text-xs">
-                  <span className="font-bold text-slate-800 dark:text-slate-200 block">Instant Browser Push Notifications</span>
-                  <span className="text-slate-500 dark:text-slate-400">Receive live push alerts the moment a delay, suspension, or planned closure impacts your commute.</span>
+                  <span className="font-bold text-slate-800 dark:text-slate-200 block">Route Impact Alerts</span>
+                  <span className="text-slate-500 dark:text-slate-400">Receive route impact alerts when notifications are enabled.</span>
                 </div>
               </div>
 
@@ -948,127 +970,152 @@ export function SavedCommutesPanel({
 
         {accountState.authenticated ? (
           <>
-            <div className="commute-leg-toggle !flex w-full mb-4" role="tablist">
-              <button 
-                type="button"
-                role="tab"
-                className="flex-1 text-center !py-2"
-                aria-selected={activeView === "create"}
-                onClick={() => setActiveView("create")}
-              >
-                Create Commute
-              </button>
-              <button 
-                type="button" 
-                role="tab"
-                className="flex-1 text-center !py-2"
-                aria-selected={activeView === "saved"}
-                onClick={() => setActiveView("saved")}
-              >
-                Saved Commutes
-              </button>
-            </div>
-            
             {activeView === "create" ? (
               <div className="saved-commute-form">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <h3 className="text-sm font-bold text-slate-900 dark:text-white">Create a Route</h3>
-              {accountState.user?.demo ? (
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Demo account</span>
-              ) : (
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Route impacts enabled</span>
-              )}
-            </div>
-            <input value={newLabel} onChange={(event) => setNewLabel(event.target.value)} placeholder="Enter a Commute Label (e.g. Work)" aria-label="Saved commute label" />
-            <div className="saved-commute-station-grid">
-              <SavedCommuteStationPicker
-                label="Origin"
-                placeholder="Origin Station"
-                value={originStationId}
-                stations={stationSummaries}
-                blockedStationId={destinationStationId || undefined}
-                blockedLabel="Already selected as destination"
-                onChange={setOriginStationId}
-                isOpen={activePicker === "origin"}
-                onOpenChange={(open) => setActivePicker(open ? "origin" : null)}
-              />
-              <SavedCommuteStationPicker
-                label="Destination"
-                placeholder="Destination Station"
-                value={destinationStationId}
-                stations={stationSummaries}
-                blockedStationId={originStationId || undefined}
-                blockedLabel="Already selected as origin"
-                onChange={setDestinationStationId}
-                isOpen={activePicker === "destination"}
-                onOpenChange={(open) => setActivePicker(open ? "destination" : null)}
-              />
-            </div>
-            <label className="saved-commute-return-toggle">
-              <div className="saved-commute-switch">
-                <input
-                  type="checkbox"
-                  checked={watchReturnTrip}
-                  onChange={(event) => setWatchReturnTrip(event.target.checked)}
-                />
-                <span className="saved-commute-slider"></span>
-              </div>
-              <span>Track Return Route</span>
-            </label>
-            <button
-              type="button"
-              className="saved-commute-customize-toggle"
-              aria-expanded={showNotificationSettings}
-              onClick={() => setShowNotificationSettings(!showNotificationSettings)}
-            >
-              <span>Customize Commute Notifications</span>
-              <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${showNotificationSettings ? "rotate-180" : ""}`} />
-            </button>
-            
-            {showNotificationSettings ? (
-              <div className="mt-2">
-                <SavedCommuteNotificationRuleEditor
-                  rule={newNotificationRule}
-                  onChange={setNewNotificationRule}
-                  routeStationIds={[]}
-                  stationNameFor={stationNameFor}
-                  allowReturnLeg={watchReturnTrip}
-                  showSectionControls={false}
-                />
-              </div>
-            ) : null}
-            <button
-              type="button"
-              className="saved-commute-primary-button"
-              onClick={handleCreateCommute}
-              disabled={saving}
-              aria-busy={saving}
-            >
-              {saving ? (
-                <>
-                  <Loader2 size={15} className="saved-commute-loading-icon" aria-hidden="true" />
-                  Plotting route
-                </>
-              ) : (
-                "Save commute"
-              )}
-            </button>
-            {commuteError ? <p className="text-xs font-semibold text-red-600 dark:text-red-300">{commuteError}</p> : null}
+                </div>
+                <input value={newLabel} onChange={(event) => setNewLabel(event.target.value)} placeholder="Enter a Commute Label (e.g. Work)" aria-label="Saved commute label" />
+                <div className="saved-commute-station-grid">
+                  <SavedCommuteStationPicker
+                    label="Origin"
+                    placeholder="Origin Station"
+                    value={originStationId}
+                    stations={stationSummaries}
+                    blockedStationId={destinationStationId || undefined}
+                    blockedLabel="Already selected as destination"
+                    onChange={setOriginStationId}
+                    isOpen={activePicker === "origin"}
+                    onOpenChange={(open) => setActivePicker(open ? "origin" : null)}
+                  />
+                  <SavedCommuteStationPicker
+                    label="Destination"
+                    placeholder="Destination Station"
+                    value={destinationStationId}
+                    stations={stationSummaries}
+                    blockedStationId={originStationId || undefined}
+                    blockedLabel="Already selected as origin"
+                    onChange={setDestinationStationId}
+                    isOpen={activePicker === "destination"}
+                    onOpenChange={(open) => setActivePicker(open ? "destination" : null)}
+                  />
+                </div>
+                <label className="saved-commute-return-toggle">
+                  <div className="saved-commute-switch">
+                    <input
+                      type="checkbox"
+                      checked={watchReturnTrip}
+                      onChange={(event) => setWatchReturnTrip(event.target.checked)}
+                    />
+                    <span className="saved-commute-slider"></span>
+                  </div>
+                  <span>Track Return Route</span>
+                </label>
+                <button
+                  type="button"
+                  className="saved-commute-customize-toggle"
+                  aria-expanded={showNotificationSettings}
+                  onClick={() => setShowNotificationSettings(!showNotificationSettings)}
+                >
+                  <span>Customize Commute Notifications</span>
+                  <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${showNotificationSettings ? "rotate-180" : ""}`} />
+                </button>
+                
+                {showNotificationSettings ? (
+                  <div className="mt-2">
+                    <SavedCommuteNotificationRuleEditor
+                      rule={newNotificationRule}
+                      onChange={setNewNotificationRule}
+                      routeStationIds={[]}
+                      stationNameFor={stationNameFor}
+                      allowReturnLeg={watchReturnTrip}
+                      showSectionControls={false}
+                    />
+                  </div>
+                ) : null}
 
-            <SavedCommuteNotificationSummary
-              onOpenNotificationSettings={onOpenNotificationSettings}
-              notificationSummary={notificationSummary}
-            />
-          </div>
-        ) : null}
+                <div className="flex gap-2.5 mt-2">
+                  <button
+                    type="button"
+                    className="saved-commute-cancel-button flex-1 py-2 px-3 border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg text-xs font-bold transition-colors"
+                    onClick={() => {
+                      setActiveView("saved");
+                      setCommuteError(null);
+                    }}
+                    disabled={saving}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    className="saved-commute-primary-button flex-1"
+                    onClick={handleCreateCommute}
+                    disabled={saving}
+                    aria-busy={saving}
+                  >
+                    {saving ? (
+                      <>
+                        <Loader2 size={15} className="saved-commute-loading-icon" aria-hidden="true" />
+                        Plotting route
+                      </>
+                    ) : (
+                      "Save commute"
+                    )}
+                  </button>
+                </div>
+                {commuteError ? <p className="text-xs font-semibold text-red-600 dark:text-red-300">{commuteError}</p> : null}
 
-        {accountState.authenticated && activeView === "saved" ? (
-          <div className="flex flex-col gap-3">
-            {accountCommutes.length === 0 ? (
-              <div className="flex items-center justify-center py-8">
-                <p className="text-sm font-semibold text-slate-400 dark:text-slate-500">No Saved Commutes</p>
+                <SavedCommuteNotificationSummary
+                  onOpenNotificationSettings={onOpenNotificationSettings}
+                  notificationSummary={notificationSummary}
+                />
               </div>
             ) : (
+              <div className="flex flex-col gap-3">
+                <div className={`flex justify-between items-center mb-1 ${onBack ? "pl-[32px] sm:pl-[36px]" : ""}`}>
+                  <div className="flex flex-col gap-1 min-w-0">
+                    <div className="flex items-baseline gap-1.5">
+                      <span className="text-base font-bold text-slate-800 dark:text-slate-100">Your Routes</span>
+                      <span className="text-sm font-semibold text-slate-500 dark:text-slate-400">({accountCommutes.length})</span>
+                    </div>
+                    {accountCommutes.length > 0 && (
+                      <div className="flex items-center gap-1.5 mt-0.5" data-testid="commute-status-badges">
+                        {commuteClearCount > 0 && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-emerald-500/10 dark:bg-emerald-500/20 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                            {commuteClearCount} Clear
+                          </span>
+                        )}
+                        {commuteAffectedCount > 0 && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-amber-500/10 dark:bg-amber-500/20 text-[10px] font-bold text-amber-700 dark:text-amber-400 border border-amber-500/20">
+                            {commuteAffectedCount} Affected
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  {accountCommutes.length > 0 && (
+                    <button
+                      type="button"
+                      className="saved-commute-add-btn flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition-colors shadow-sm cursor-pointer shrink-0"
+                      onClick={() => setActiveView("create")}
+                    >
+                      + Add Route
+                    </button>
+                  )}
+                </div>
+
+                {accountCommutes.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-10 text-center">
+                    <p className="text-sm font-semibold text-slate-400 dark:text-slate-500 mb-4">No Saved Commutes</p>
+                    <button
+                      type="button"
+                      className="saved-commute-add-btn flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition-colors shadow-sm cursor-pointer"
+                      onClick={() => setActiveView("create")}
+                    >
+                      + Add Route
+                    </button>
+                  </div>
+                ) : (
               accountCommutes.map((commute) => {
                 const legs = commuteLegs(commute);
                 const selectedLegId = selectedLegIds[commute.id] ?? "outbound";
@@ -1347,9 +1394,9 @@ export function SavedCommutesPanel({
               })
             )}
           </div>
-        ) : null}
-          </>
-        ) : null}
+        )}
+      </>
+    ) : null}
       </div>
       {successMessage && (
         <div key={toastKey} className="commute-toast-success text-white">

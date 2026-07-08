@@ -908,7 +908,6 @@ test("demo account shows account-backed saved commutes", async ({ page, request,
   }
 
   await expect(page.getByText("Demo account").filter({ visible: true })).toBeVisible();
-  await page.getByRole("tab", { name: "Saved Commutes" }).click();
   await expect(page.getByText("Stub Station <-> Union")).toBeVisible();
   await expect(page.getByText("Default Scheduled Route - To Union")).toBeVisible();
   await expect(page.getByText("5 Stations", { exact: true })).toBeVisible();
@@ -938,7 +937,7 @@ test("demo account shows account-backed saved commutes", async ({ page, request,
   await expect(page.getByText("Suspension", { exact: true })).not.toBeVisible();
 
   if (isMobile) {
-    await page.getByRole("tab", { name: "Create Commute" }).click();
+    await page.getByRole("button", { name: "+ Add Route" }).first().click();
     const originPicker = page.locator(".commute-station-picker").filter({ hasText: "Origin" });
     const originTrigger = originPicker.getByRole("button").first();
     await originTrigger.click();
@@ -964,7 +963,7 @@ test("demo account shows account-backed saved commutes", async ({ page, request,
     expect(Math.abs(popoverBox!.x - triggerBox!.x)).toBeLessThanOrEqual(4);
     expect(Math.abs(popoverBox!.width - triggerBox!.width)).toBeLessThanOrEqual(8);
     await page.keyboard.press("Escape");
-    await page.getByRole("tab", { name: "Saved Commutes" }).click();
+    await page.getByRole("button", { name: "Cancel" }).first().click();
   }
 
   // Switch back to outbound for the rest of the test

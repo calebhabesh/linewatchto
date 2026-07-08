@@ -230,6 +230,7 @@ export function SiteGuideDropdown({ onOpenChange }: { onOpenChange?: (open: bool
           width={28}
           height={28}
           className="site-guide-trigger-icon"
+          priority
         />
       </button>
 

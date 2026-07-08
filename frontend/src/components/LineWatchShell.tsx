@@ -426,7 +426,7 @@ export function LineWatchShell({
   const [accountSuccessMessage, setAccountSuccessMessage] = useState<string | null>(null);
   const [accountBusy, setAccountBusy] = useState(false);
   const [accountCommutes, setAccountCommutes] = useState<AccountSavedCommute[]>([]);
-  const [commutesActiveTab, setCommutesActiveTab] = useState<"create" | "saved">("create");
+  const [commutesActiveTab, setCommutesActiveTab] = useState<"create" | "saved">("saved");
   const [commutePathPreview, setCommutePathPreview] = useState<AccountCommutePathPreview | null>(null);
   const [authConfig, setAuthConfig] = useState<AuthConfig>(unavailableAuthConfig);
 
@@ -2042,10 +2042,10 @@ export function LineWatchShell({
                         </div>
                         {accountCommutes.length > 0 && (
                           <div className="flex items-center gap-1.5 shrink-0" data-testid="commute-status-badges">
-                            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500/20 text-[10px] font-bold text-emerald-600 dark:text-emerald-400" aria-label={`${commuteClearCount} clear commutes`}>
+                            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500/20 text-[11px] font-bold text-emerald-600 dark:text-emerald-400" aria-label={`${commuteClearCount} clear commutes`}>
                               {commuteClearCount}
                             </span>
-                            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-amber-500/20 text-[10px] font-bold text-amber-700 dark:text-amber-400" aria-label={`${commuteAffectedCount} affected commutes`}>
+                            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-amber-500/20 text-[11px] font-bold text-amber-700 dark:text-amber-400" aria-label={`${commuteAffectedCount} affected commutes`}>
                               {commuteAffectedCount}
                             </span>
                           </div>
@@ -2098,10 +2098,10 @@ export function LineWatchShell({
                         </div>
                         {accountCommutes.length > 0 && (
                           <div className="flex items-center gap-1.5 shrink-0" data-testid="commute-status-badges">
-                            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500/20 text-[10px] font-bold text-emerald-600 dark:text-emerald-400" aria-label={`${commuteClearCount} clear commutes`}>
+                            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500/20 text-[11px] font-bold text-emerald-600 dark:text-emerald-400" aria-label={`${commuteClearCount} clear commutes`}>
                               {commuteClearCount}
                             </span>
-                            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-amber-500/20 text-[10px] font-bold text-amber-700 dark:text-amber-400" aria-label={`${commuteAffectedCount} affected commutes`}>
+                            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-amber-500/20 text-[11px] font-bold text-amber-700 dark:text-amber-400" aria-label={`${commuteAffectedCount} affected commutes`}>
                               {commuteAffectedCount}
                             </span>
                           </div>
@@ -2138,7 +2138,7 @@ export function LineWatchShell({
                      <AlertTriangle size={18} className="text-slate-500 dark:text-slate-400" /> Active Alerts
                    </div>
                    {activeAlerts.length > 0 && (
-                     <span className="flex h-5 items-center justify-center rounded-full bg-red-500/20 px-2 text-[10px] font-bold text-red-600 dark:text-red-400">
+                     <span className="flex h-6 min-w-[24px] items-center justify-center rounded-full bg-red-500/20 px-2 text-[11px] font-bold text-red-600 dark:text-red-400">
                        {activeAlerts.length}
                      </span>
                    )}
@@ -2154,7 +2154,7 @@ export function LineWatchShell({
                      <DelayIcon size={18} className="text-slate-500 dark:text-slate-400" filled={false} /> Delays
                    </div>
                    {delays.length > 0 && (
-                     <span className="flex h-5 items-center justify-center rounded-full delay-count-badge px-2 text-[10px] font-bold">
+                     <span className="flex h-6 min-w-[24px] items-center justify-center rounded-full delay-count-badge px-2 text-[11px] font-bold">
                        {delays.length}
                      </span>
                    )}
@@ -2170,7 +2170,7 @@ export function LineWatchShell({
                      <Construction size={18} className="text-slate-500 dark:text-slate-400" /> Reduced Speed Zones
                    </div>
                    {reducedSpeedZones.length > 0 && (
-                     <span className="flex h-5 items-center justify-center rounded-full rsz-count-badge px-2 text-[10px] font-bold">
+                     <span className="flex h-6 min-w-[24px] items-center justify-center rounded-full rsz-count-badge px-2 text-[11px] font-bold">
                        {reducedSpeedZones.length}
                      </span>
                    )}
@@ -2186,7 +2186,7 @@ export function LineWatchShell({
                      <Calendar size={18} className="text-slate-500 dark:text-slate-400" /> Upcoming Closures
                    </div>
                    {plannedClosures.length > 0 && (
-                     <span className="flex h-5 items-center justify-center rounded-full bg-blue-500/20 px-2 text-[10px] font-bold text-blue-600 dark:text-blue-400">
+                     <span className="flex h-6 min-w-[24px] items-center justify-center rounded-full bg-blue-500/20 px-2 text-[11px] font-bold text-blue-600 dark:text-blue-400">
                        {plannedClosures.length}
                      </span>
                    )}
@@ -2216,7 +2216,7 @@ export function LineWatchShell({
                      Accessibility Outages
                    </div>
                    {accessibilityOutageResult && accessibilityOutageResult.assetTypes.reduce((acc, curr) => acc + curr.count, 0) > 0 && (
-                     <span className="flex h-5 items-center justify-center rounded-full bg-red-500/20 px-2 text-[10px] font-bold text-red-600 dark:text-red-400">
+                     <span className="flex h-6 min-w-[24px] items-center justify-center rounded-full bg-red-500/20 px-2 text-[11px] font-bold text-red-600 dark:text-red-400">
                        {accessibilityOutageResult.assetTypes.reduce((acc, curr) => acc + curr.count, 0)}
                      </span>
                    )}
@@ -2232,7 +2232,7 @@ export function LineWatchShell({
                      <Bus size={18} className="text-slate-500 dark:text-slate-400" /> Streetcar & Bus Notices
                    </div>
                    {surfaceNoticeCount !== null && surfaceNoticeCount > 0 && (
-                     <span className="flex h-5 items-center justify-center rounded-full bg-blue-500/20 px-2 text-[10px] font-bold text-blue-600 dark:text-blue-400">
+                     <span className="flex h-6 min-w-[24px] items-center justify-center rounded-full bg-blue-500/20 px-2 text-[11px] font-bold text-blue-600 dark:text-blue-400">
                        {surfaceNoticeCount}
                      </span>
                    )}

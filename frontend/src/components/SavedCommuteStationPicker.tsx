@@ -83,7 +83,7 @@ function StationOption({
       title={disabled ? `${disabledReason}${accessibilityLabel}` : `${station.name}${accessibilityLabel}`}
     >
       <span className="commute-station-option-name">
-        <span>{station.name}</span>
+        <span className="commute-station-name-text">{station.name}</span>
         {isWheelchair && (
           <span className="inline-flex items-center justify-center shrink-0" title="Wheelchair accessible">
             <Image

@@ -835,6 +835,36 @@ button {
   box-shadow: var(--shadow);
 }
 
+.mobile-sheet-icon-button {
+  align-items: center;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: inline-flex;
+  height: 44px;
+  justify-content: center;
+  width: 44px;
+  cursor: pointer;
+  background: transparent;
+  color: var(--text);
+  transition: background-color 150ms ease, border-color 150ms ease;
+}
+
+.mobile-sheet-icon-button:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.dark .mobile-sheet-icon-button:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.mobile-status-sheet .mobile-sheet-heading {
+  margin-right: 16px;
+}
+
+.mobile-more-sheet .mobile-sheet-heading {
+  margin-right: 10px;
+}
+
 .floating-panel-shell {
   animation: floating-panel-enter 180ms cubic-bezier(0.22, 1, 0.36, 1);
   display: flex;
@@ -5167,9 +5197,10 @@ button {
   font-size: 0.74rem;
   font-weight: 800;
   justify-content: space-between;
-  min-height: 34px;
+  gap: 0.85rem;
+  min-height: 38px;
   min-width: 0;
-  padding: 0.4rem 0.5rem;
+  padding: 0.55rem 0.65rem;
   text-align: left;
   transition: all 0.2s ease;
   width: 100%;
@@ -5181,6 +5212,11 @@ button {
   display: flex;
   gap: 0.35rem;
   min-width: 0;
+  flex: 1 1 auto;
+}
+
+.commute-station-name-text {
+  flex: 0 1 auto;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -5207,14 +5243,19 @@ button {
 
 .commute-station-line-badge {
   align-items: center;
-  border-radius: 999px;
+  border-radius: 9999px !important;
   display: inline-flex;
-  font-size: 0.62rem;
+  font-size: 0.68rem;
   font-weight: 950;
-  height: 18px;
+  height: 20px;
+  width: 20px;
+  min-width: 20px;
   justify-content: center;
-  min-width: 18px;
-  padding: 0 0.28rem;
+  padding: 0 !important;
+  flex-shrink: 0;
+  aspect-ratio: 1 / 1;
+  line-height: 1 !important;
+  box-sizing: border-box !important;
 }
 
 .commute-station-empty {
@@ -7683,16 +7724,6 @@ button {
     margin-top: 2px !important;
   }
 
-  .mobile-sheet-icon-button {
-    align-items: center;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    display: inline-flex;
-    height: 44px;
-    justify-content: center;
-    width: 44px;
-  }
-
   .mobile-status-actions {
     display: grid;
     gap: 8px;
@@ -7860,10 +7891,6 @@ button {
     flex-direction: column;
     gap: 12px;
     padding: 12px 2px 12px 12px;
-  }
-
-  .mobile-more-sheet .mobile-sheet-heading {
-    padding-right: 10px;
   }
 
   .mobile-more-brand {
@@ -9827,12 +9854,18 @@ button {
   }
 
   .mobile-view-content-wrapper[data-active-view="commutes"],
-  .mobile-view-content-wrapper[data-active-view="commutes"] .commute-panel {
+  .mobile-view-content-wrapper[data-active-view="commutes"] .commute-panel,
+  .mobile-view-content-wrapper[data-active-view="status"],
+  .mobile-view-content-wrapper[data-active-view="status"] .panel {
+    height: auto !important;
+  }
+
+  .floating-panel-shell[data-floating-panel="mobile-panel"]:has([data-active-view="commutes"]) .floating-panel-scroll,
+  .floating-panel-shell[data-floating-panel="mobile-panel"]:has([data-active-view="status"]) .floating-panel-scroll {
     height: auto !important;
   }
 
   .floating-panel-shell[data-floating-panel="mobile-panel"]:has([data-active-view="commutes"]) .floating-panel-scroll {
-    height: auto !important;
     padding: 0 !important;
   }
 
@@ -9840,7 +9873,8 @@ button {
     padding: 0 !important;
   }
 
-  .mobile-view-content-wrapper[data-active-view="commutes"] .commute-grid {
+  .mobile-view-content-wrapper[data-active-view="commutes"] .commute-grid,
+  .mobile-view-content-wrapper[data-active-view="status"] .mobile-status-content-scroll {
     padding-bottom: 12px !important;
     mask-image: none !important;
     -webkit-mask-image: none !important;
@@ -12340,5 +12374,82 @@ button {
   .commute-toast-success {
     bottom: 12px;
   }
+}
+
+/* Redesigned Saved Commutes CTA and Cancel Actions */
+.saved-commute-add-btn {
+  background-color: #10b981; /* Tailwind emerald-500 */
+  color: #ffffff !important;
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.5rem 0.85rem;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.saved-commute-add-btn:hover {
+  background-color: #059669; /* Tailwind emerald-600 */
+  transform: translateY(-1px);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.saved-commute-add-btn:active {
+  transform: translateY(0);
+}
+
+.dark .saved-commute-add-btn {
+  background-color: #059669; /* Tailwind emerald-600 */
+}
+
+.dark .saved-commute-add-btn:hover {
+  background-color: #047857; /* Tailwind emerald-700 */
+}
+
+.saved-commute-cancel-button {
+  background-color: transparent;
+  color: rgb(71, 85, 105);
+  border: 1px solid rgba(15, 23, 42, 0.15);
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.5rem 0.85rem;
+  transition: all 0.15s ease-in-out;
+  text-transform: uppercase;
+}
+
+.saved-commute-cancel-button:hover {
+  background-color: rgba(15, 23, 42, 0.05);
+  color: rgb(15, 23, 42);
+}
+
+.dark .saved-commute-cancel-button {
+  color: rgb(148, 163, 184);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.dark .saved-commute-cancel-button:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+  color: rgb(248, 250, 252);
+}
+
+.high-contrast .saved-commute-add-btn {
+  background-color: #00ff00 !important;
+  color: #000000 !important;
+  border: 2px solid #ffffff !important;
+}
+
+.high-contrast .saved-commute-cancel-button {
+  color: #ffffff !important;
+  border: 2px solid #ffffff !important;
+}
+
+.high-contrast .saved-commute-cancel-button:hover {
+  background-color: #ffffff !important;
+  color: #000000 !important;
 }
 
