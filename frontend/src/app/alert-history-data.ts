@@ -57,7 +57,7 @@ export const emptyAlertHistory: AlertHistoryResponse = {
 
 export async function getAlertHistory(
   period: AlertHistoryPeriod = "today",
-  limit = 300,
+  limit = 5000,
 ): Promise<AlertHistoryResult> {
   const params = new URLSearchParams({
     period,

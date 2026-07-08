@@ -17,7 +17,7 @@ public class AlertHistoryController {
     @GetMapping
     public AlertHistoryResponses.AlertHistoryResponse getAlertHistory(
         @RequestParam(required = false, defaultValue = "today") String period,
-        @RequestParam(required = false, defaultValue = "300") Integer limit
+        @RequestParam(required = false, defaultValue = "5000") Integer limit
     ) {
         return historyService.history(period, limit);
     }

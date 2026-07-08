@@ -55,6 +55,14 @@ linewatch:
       read-timeout: ${LINEWATCH_INGESTION_ALERTS_READ_TIMEOUT:PT8S}
       surface-gtfs-rt-enabled: ${LINEWATCH_INGESTION_ALERTS_SURFACE_GTFS_RT_ENABLED:true}
       surface-gtfs-rt-urls: ${LINEWATCH_INGESTION_ALERTS_SURFACE_GTFS_RT_URLS:${LINEWATCH_INGESTION_ALERTS_SURFACE_GTFS_RT_URL:https://gtfsrt.ttc.ca/alerts/bus?format=text,https://gtfsrt.ttc.ca/alerts/streetcar?format=text}}
+  maintenance:
+    cleanup:
+      enabled: ${LINEWATCH_MAINTENANCE_CLEANUP_ENABLED:true}
+      initial-delay: ${LINEWATCH_MAINTENANCE_CLEANUP_INITIAL_DELAY:PT10M}
+      fixed-delay: ${LINEWATCH_MAINTENANCE_CLEANUP_FIXED_DELAY:PT24H}
+      ingestion-run-retention: ${LINEWATCH_MAINTENANCE_INGESTION_RUN_RETENTION:P90D}
+      alert-source-record-retention: ${LINEWATCH_MAINTENANCE_ALERT_SOURCE_RECORD_RETENTION:P90D}
+      retain-inactive-gtfs-imports: ${LINEWATCH_MAINTENANCE_RETAIN_INACTIVE_GTFS_IMPORTS:1}
   arrivals:
     enabled: ${LINEWATCH_ARRIVALS_ENABLED:false}
     provider: ${LINEWATCH_ARRIVALS_PROVIDER:scheduled}

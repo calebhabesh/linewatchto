@@ -57,7 +57,7 @@ describe("alert history data adapter", () => {
 
     const result = await getAlertHistory("today");
 
-    assert.equal(calls[0].url, "/api/alert-history?period=today&limit=300");
+    assert.equal(calls[0].url, "/api/alert-history?period=today&limit=5000");
     assert.equal(calls[0].options.credentials, "include");
     assert.equal(result.source, "backend");
     assert.equal(result.data.incidents[0].durationMinutes, 15);

@@ -1,0 +1,59 @@
+package com.calebhabesh.linewatch.maintenance;
+
+import java.time.OffsetDateTime;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.stereotype.Repository;
+
+@Repository
+public class MaintenanceCleanupStore {
+    private final NamedParameterJdbcTemplate jdbc;
+
+    public MaintenanceCleanupStore(NamedParameterJdbcTemplate jdbc) {
+        this.jdbc = jdbc;
+    }
+
+    public int deleteOldInactiveGtfsImports(int retainInactiveImports) {
+        return jdbc.update("""
+            delete from gtfs_schedule_imports
+            where active = false
+              and id not in (
+                  select id
+                  from (
+                      select id
+                      from gtfs_schedule_imports
+                      where active = false
+                      order by service_end desc nulls last,
+                               service_start desc nulls last,
+                               imported_at desc,
+                               id desc
+                      limit :retainInactiveImports
+                  ) retained_imports
+              )
+            """, new MapSqlParameterSource(
+                "retainInactiveImports",
+                Math.max(0, retainInactiveImports)
+            ));
+    }
+
+    public int deleteOldIngestionRuns(OffsetDateTime cutoff) {
+        return jdbc.update("""
+            with latest_runs as (
+                select distinct on (run_type) id
+                from ingestion_runs
+                order by run_type, started_at desc, id desc
+            )
+            delete from ingestion_runs
+            where started_at < :cutoff
+              and id not in (select id from latest_runs)
+            """, new MapSqlParameterSource("cutoff", cutoff));
+    }
+
+    public int deleteOldInactiveAlertSourceRecords(OffsetDateTime cutoff) {
+        return jdbc.update("""
+            delete from ttc_alert_source_records
+            where active = false
+              and last_seen_at < :cutoff
+            """, new MapSqlParameterSource("cutoff", cutoff));
+    }
+}

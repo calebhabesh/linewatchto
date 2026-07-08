@@ -18,7 +18,7 @@ import org.springframework.stereotype.Service;
 @Service
 public class AlertHistoryService {
     private static final ZoneId TORONTO_ZONE = ZoneId.of("America/Toronto");
-    private static final int MAX_LIMIT = 300;
+    private static final int MAX_LIMIT = 5_000;
 
     private final AlertHistoryRepository repository;
     private final Clock clock;

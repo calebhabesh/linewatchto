@@ -58,8 +58,9 @@ Implemented now:
 - Normalization and source-ID upserts for supported subway/LRT ordinary delays, suspensions, Reduced Speed Zones, and planned closures.
 - Elevator and escalator outage normalization with station links where TTC station names resolve.
 - Alert snapshots for new, changed, deactivated, and reactivated normalized route alerts.
-- In-app service alert lifecycle history for Today, 7 days, and 30 days, showing alert openings, meaningful updates, and clearances based on LineWatch snapshot records.
+- In-app service alert lifecycle history for Today, 7 days, and 30 days, showing alert openings, meaningful updates, and clearances based on LineWatch snapshot records, with a 5,000-event API cap per request.
 - Durable ingestion-run tracking and `/api/health/ingestion`.
+- Scheduled operational cleanup for inactive GTFS schedule imports, old ingestion-run rows, and stale inactive TTC source staging rows. Alert history snapshots are retained.
 - Persisted route-alert impact kind so ordinary delays are not categorized as Reduced Speed Zones.
 - Live Alerts reduced-speed records now derive explicit cardinal direction from TTC wording.
 - `Both ways` alert directions are interpreted bidirectionally with line-aware cardinal labels.
@@ -277,6 +278,16 @@ LINEWATCH_ARRIVALS_GTFS_REFRESH_MIN_SERVICE_DAYS_REMAINING=14
 ```
 
 The backend includes an in-process GTFS refresh job. When enabled, it downloads and imports the public merged TTC schedule only when no active import exists, the import is expired, or it is within the configured expiry threshold. These arrivals remain scheduled estimates, not live train predictions.
+
+The backend also runs a conservative maintenance cleanup job by default. It keeps the active GTFS schedule import plus one inactive backup import, prunes old ingestion-run rows after 90 days while preserving the latest run for each type, and prunes inactive TTC source staging rows after 90 days. Alert history snapshots are not pruned. Override with:
+
+```bash
+LINEWATCH_MAINTENANCE_CLEANUP_ENABLED=true
+LINEWATCH_MAINTENANCE_CLEANUP_FIXED_DELAY=PT24H
+LINEWATCH_MAINTENANCE_INGESTION_RUN_RETENTION=P90D
+LINEWATCH_MAINTENANCE_ALERT_SOURCE_RECORD_RETENTION=P90D
+LINEWATCH_MAINTENANCE_RETAIN_INACTIVE_GTFS_IMPORTS=1
+```
 
 To enable live station arrivals, keep the scheduled GTFS refresh/import active and set:
 

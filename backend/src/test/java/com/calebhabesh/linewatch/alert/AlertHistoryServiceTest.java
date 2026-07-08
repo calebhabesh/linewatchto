@@ -71,6 +71,32 @@ class AlertHistoryServiceTest {
     }
 
     @Test
+    void defaultsToFiveThousandRowsForNoisyThirtyDayHistory() {
+        when(repository.findLifecycleRows(
+            OffsetDateTime.parse("2026-05-24T12:30:00-04:00"),
+            OffsetDateTime.parse("2026-06-23T12:30:00-04:00"),
+            5_000
+        )).thenReturn(List.of());
+
+        AlertHistoryResponses.AlertHistoryResponse response = service.history("30d", null);
+
+        assertThat(response.period()).isEqualTo("30d");
+    }
+
+    @Test
+    void capsRequestedLimitAtFiveThousandRows() {
+        when(repository.findLifecycleRows(
+            OffsetDateTime.parse("2026-05-24T12:30:00-04:00"),
+            OffsetDateTime.parse("2026-06-23T12:30:00-04:00"),
+            5_000
+        )).thenReturn(List.of());
+
+        AlertHistoryResponses.AlertHistoryResponse response = service.history("30d", 10_000);
+
+        assertThat(response.period()).isEqualTo("30d");
+    }
+
+    @Test
     void mapsBidirectionalToBothWays() {
         when(repository.findLifecycleRows(
             OffsetDateTime.parse("2026-06-23T00:00:00-04:00"),
