@@ -415,6 +415,20 @@ export type PushDeliveryDiagnostic = {
   clientEvents: PushClientEvent[];
 };
 
+export type PushRecipientDiagnostic = {
+  subscriptionId: string;
+  deviceLabel: string;
+  userAgent: string;
+  endpointHashPrefix: string;
+  subscriptionEnabled: boolean;
+  enabledAt: string | null;
+  disabledAt: string | null;
+  status: "attempted" | "not-attempted" | string;
+  reasonCode: string;
+  reason: string;
+  delivery: PushDeliveryDiagnostic | null;
+};
+
 export type PushNotificationDiagnosticGroup = {
   id: string;
   title: string;
@@ -428,6 +442,7 @@ export type PushNotificationDiagnosticGroup = {
   lineNumber: string | null;
   eventCreatedAt: string | null;
   attempts: PushDeliveryDiagnostic[];
+  recipients: PushRecipientDiagnostic[];
 };
 
 export type PushDeliveryDiagnosticsResult = {
@@ -459,6 +474,10 @@ export type PushDevicesResult = {
   source: "backend" | "unavailable";
   devices: PushDevice[];
   message?: string;
+};
+
+export type PushDeviceTestResult = {
+  delivery: PushDeliveryDiagnostic;
 };
 
 function apiUrl(path: string, options: AdapterOptions = {}) {
@@ -754,7 +773,10 @@ export async function getPushDeliveryDiagnostics(options: AdapterOptions = {}): 
     }>(response);
     const deliveries = Array.isArray(body.deliveries) ? body.deliveries : [];
     const notifications = Array.isArray(body.notifications)
-      ? body.notifications
+      ? body.notifications.map((notification) => ({
+          ...notification,
+          recipients: Array.isArray(notification.recipients) ? notification.recipients : [],
+        }))
       : deliveries.map((delivery) => ({
           id: delivery.id,
           title: delivery.title,
@@ -768,6 +790,19 @@ export async function getPushDeliveryDiagnostics(options: AdapterOptions = {}): 
           lineNumber: delivery.lineNumber,
           eventCreatedAt: delivery.eventCreatedAt,
           attempts: [delivery],
+          recipients: [{
+            subscriptionId: "",
+            deviceLabel: delivery.deviceLabel,
+            userAgent: delivery.userAgent,
+            endpointHashPrefix: delivery.endpointHashPrefix,
+            subscriptionEnabled: delivery.subscriptionEnabled,
+            enabledAt: null,
+            disabledAt: null,
+            status: "attempted",
+            reasonCode: "attempted",
+            reason: "Delivery was attempted for this device.",
+            delivery,
+          }],
         }));
     return { source: "backend", notifications, deliveries };
   } catch {
@@ -847,4 +882,12 @@ export async function disablePushDevice(subscriptionId: string, options: Adapter
   if (!response.ok) {
     throw new Error(`Disable push device failed with ${response.status}`);
   }
+}
+
+export async function sendPushDeviceTestNotification(subscriptionId: string, options: AdapterOptions = {}) {
+  return authJsonRequest<PushDeviceTestResult>(
+    `/api/account/push/devices/${encodeURIComponent(subscriptionId)}/test`,
+    { method: "POST" },
+    options
+  );
 }

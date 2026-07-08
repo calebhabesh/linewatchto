@@ -24,6 +24,7 @@ import {
   registerAccount,
   requestPasswordReset,
   savePushSubscription,
+  sendPushDeviceTestNotification,
   updateSavedCommuteNotificationRule,
   updatePushPreferences,
 } from "../src/app/account-data.ts";
@@ -750,6 +751,55 @@ describe("account data adapter", () => {
                     ],
                   },
                 ],
+                recipients: [
+                  {
+                    subscriptionId: "push_subscription_android",
+                    deviceLabel: "Android Chrome",
+                    userAgent: "Mozilla/5.0 Android Chrome",
+                    endpointHashPrefix: "abc12345",
+                    subscriptionEnabled: true,
+                    enabledAt: "2026-07-01T13:00:00Z",
+                    disabledAt: null,
+                    status: "attempted",
+                    reasonCode: "attempted",
+                    reason: "Delivery was attempted for this device.",
+                    delivery: {
+                      id: "delivery_1",
+                      title: "Line 2 Bloor-Danforth Suspension",
+                      tag: "line-current|line-2|alert-1|active",
+                      notificationState: "ACTIVE",
+                      category: "line-current",
+                      eventType: "SUSPENSION",
+                      lineId: "line-2",
+                      lineNumber: "2",
+                      eventCreatedAt: "2026-07-01T14:00:00Z",
+                      deviceLabel: "Android Chrome",
+                      userAgent: "Mozilla/5.0 Android Chrome",
+                      endpointHashPrefix: "abc12345",
+                      subscriptionEnabled: true,
+                      deliveryStatus: "ACCEPTED",
+                      httpStatus: 201,
+                      deliveryMessage: "Created",
+                      lastAttemptAt: "2026-07-01T14:01:00Z",
+                      displayedAt: null,
+                      attemptCount: 2,
+                      clientEvents: [],
+                    },
+                  },
+                  {
+                    subscriptionId: "push_subscription_ios",
+                    deviceLabel: "iOS Safari",
+                    userAgent: "Mobile Safari iPhone",
+                    endpointHashPrefix: "def67890",
+                    subscriptionEnabled: true,
+                    enabledAt: "2026-07-01T15:00:00Z",
+                    disabledAt: null,
+                    status: "not-attempted",
+                    reasonCode: "subscription-registered-after-event",
+                    reason: "Device was registered after this notification was created.",
+                    delivery: null,
+                  },
+                ],
               },
             ],
             deliveries: [
@@ -792,12 +842,57 @@ describe("account data adapter", () => {
     assert.equal(result.notifications.length, 1);
     assert.equal(result.notifications[0].sourceIncidentKey, "line-current|line-2|ttc-route-70610");
     assert.equal(result.notifications[0].attempts[0].deviceLabel, "Android Chrome");
+    assert.equal(result.notifications[0].recipients.length, 2);
+    assert.equal(result.notifications[0].recipients[1].status, "not-attempted");
+    assert.equal(result.notifications[0].recipients[1].reasonCode, "subscription-registered-after-event");
     assert.equal(result.deliveries.length, 1);
     assert.equal(result.deliveries[0].deviceLabel, "Android Chrome");
     assert.equal(result.deliveries[0].attemptCount, 2);
     assert.equal(result.deliveries[0].clientEvents[0].stage, "push_received");
     assert.equal(requests[0].input, "/api/account/push/diagnostics");
     assert.equal(requests[0].init.method, "GET");
+    assert.equal(requests[0].init.credentials, "include");
+  });
+
+  it("sends a manual push test notification to a registered device", async () => {
+    const requests = [];
+    const result = await sendPushDeviceTestNotification("push_subscription_android", {
+      fetcher: async (input, init) => {
+        requests.push({ input, init });
+        return new Response(
+          JSON.stringify({
+            delivery: {
+              id: "push_delivery_test",
+              title: "LineWatchTO test notification",
+              tag: "diagnostic-test|push_subscription_android|123|active",
+              notificationState: "ACTIVE",
+              category: "diagnostic-test",
+              eventType: "test",
+              lineId: null,
+              lineNumber: null,
+              eventCreatedAt: "2026-07-01T14:00:00Z",
+              deviceLabel: "Android Chrome",
+              userAgent: "Mozilla/5.0 Android Chrome",
+              endpointHashPrefix: "abc12345",
+              subscriptionEnabled: true,
+              deliveryStatus: "accepted",
+              httpStatus: 201,
+              deliveryMessage: "Created",
+              lastAttemptAt: "2026-07-01T14:00:00Z",
+              displayedAt: null,
+              attemptCount: 1,
+              clientEvents: [],
+            },
+          }),
+          { status: 200, headers: { "content-type": "application/json" } }
+        );
+      },
+    });
+
+    assert.equal(result.delivery.deviceLabel, "Android Chrome");
+    assert.equal(result.delivery.deliveryStatus, "accepted");
+    assert.equal(requests[0].input, "/api/account/push/devices/push_subscription_android/test");
+    assert.equal(requests[0].init.method, "POST");
     assert.equal(requests[0].init.credentials, "include");
   });
 

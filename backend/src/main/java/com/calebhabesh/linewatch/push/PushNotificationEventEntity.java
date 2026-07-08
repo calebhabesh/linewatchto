@@ -206,6 +206,38 @@ public class PushNotificationEventEntity {
         return event;
     }
 
+    public static PushNotificationEventEntity diagnosticTest(
+        String id,
+        String accountId,
+        String subscriptionId,
+        Instant now
+    ) {
+        PushNotificationEventEntity event = new PushNotificationEventEntity();
+        String timestamp = now == null ? "unknown" : Long.toString(now.toEpochMilli());
+        event.id = id;
+        event.accountId = accountId;
+        event.commuteId = null;
+        event.legId = null;
+        event.lineId = null;
+        event.eventType = "test";
+        event.reminderBucket = "manual";
+        event.category = "diagnostic-test";
+        event.notificationKey = "diagnostic-test|" + subscriptionId + "|" + timestamp;
+        event.sourceIncidentKey = null;
+        event.notificationState = "ACTIVE";
+        event.dedupeKey = accountId + "|diagnostic-test|" + subscriptionId + "|" + timestamp;
+        event.title = "LineWatchTO test notification";
+        event.body = "This is a manual test from notification diagnostics.";
+        event.notificationSubject = "LineWatchTO test notification";
+        event.eventLocation = "Notification diagnostics";
+        event.displayDirection = null;
+        event.scopeLabel = "Manual device test";
+        event.sourceEventAt = now;
+        event.url = "/?panel=account";
+        event.createdAt = now;
+        return event;
+    }
+
     public String getId() { return id; }
     public String getAccountId() { return accountId; }
     public String getCommuteId() { return commuteId; }

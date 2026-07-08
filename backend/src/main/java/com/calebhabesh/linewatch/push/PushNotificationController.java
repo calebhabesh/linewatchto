@@ -99,6 +99,15 @@ public class PushNotificationController {
         pushNotificationService.disableDevice(account, subscriptionId);
     }
 
+    @PostMapping("/devices/{subscriptionId}/test")
+    public PushResponses.PushDeviceTestResponse testDevice(
+        @CookieValue(name = AuthCookieFactory.COOKIE_NAME, required = false) String rawSessionToken,
+        @PathVariable String subscriptionId
+    ) {
+        AccountEntity account = accountService.requireAccount(rawSessionToken);
+        return pushNotificationService.testDevice(account, subscriptionId);
+    }
+
     @PostMapping("/client-event")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void recordClientEvent(

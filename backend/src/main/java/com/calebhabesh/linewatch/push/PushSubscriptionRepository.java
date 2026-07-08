@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 public interface PushSubscriptionRepository extends JpaRepository<PushSubscriptionEntity, String> {
     Optional<PushSubscriptionEntity> findByAccountIdAndEndpointHash(String accountId, String endpointHash);
     List<PushSubscriptionEntity> findByAccountIdAndEnabledTrue(String accountId);
+    List<PushSubscriptionEntity> findByAccountIdOrderByUpdatedAtDesc(String accountId);
     List<PushSubscriptionEntity> findByAccountIdAndEnabledTrueOrderByUpdatedAtDesc(String accountId);
     long countByAccountIdAndEnabledTrue(String accountId);
 

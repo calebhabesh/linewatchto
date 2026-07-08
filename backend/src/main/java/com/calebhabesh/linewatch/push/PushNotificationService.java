@@ -37,11 +37,13 @@ public class PushNotificationService {
     private final PushProperties properties;
     private final PushSubscriptionRepository subscriptionRepository;
     private final PushNotificationDeliveryRepository deliveryRepository;
+    private final PushNotificationEventRepository eventRepository;
     private final SavedCommuteRepository savedCommuteRepository;
     private final SavedCommutePushPlanner planner;
     private final PushNotificationPreferenceService preferenceService;
     private final LineSubscriptionPushPlanner lineSubscriptionPushPlanner;
     private final PushNotificationClientEventRepository clientEventRepository;
+    private final WebPushClient webPushClient;
     private final PushReceiptTokenService receiptTokenService;
     private final IngestionFreshness ingestionFreshness;
     private final Clock clock;
@@ -51,26 +53,44 @@ public class PushNotificationService {
         PushProperties properties,
         PushSubscriptionRepository subscriptionRepository,
         PushNotificationDeliveryRepository deliveryRepository,
+        PushNotificationEventRepository eventRepository,
         SavedCommuteRepository savedCommuteRepository,
         SavedCommutePushPlanner planner,
         PushNotificationPreferenceService preferenceService,
         LineSubscriptionPushPlanner lineSubscriptionPushPlanner,
         PushNotificationClientEventRepository clientEventRepository,
+        WebPushClient webPushClient,
         PushReceiptTokenService receiptTokenService,
         IngestionFreshness ingestionFreshness
     ) {
-        this(properties, subscriptionRepository, deliveryRepository, savedCommuteRepository, planner, preferenceService, lineSubscriptionPushPlanner, clientEventRepository, ingestionFreshness, receiptTokenService, Clock.systemUTC());
+        this(
+            properties,
+            subscriptionRepository,
+            deliveryRepository,
+            eventRepository,
+            savedCommuteRepository,
+            planner,
+            preferenceService,
+            lineSubscriptionPushPlanner,
+            clientEventRepository,
+            webPushClient,
+            ingestionFreshness,
+            receiptTokenService,
+            Clock.systemUTC()
+        );
     }
 
     PushNotificationService(
         PushProperties properties,
         PushSubscriptionRepository subscriptionRepository,
         PushNotificationDeliveryRepository deliveryRepository,
+        PushNotificationEventRepository eventRepository,
         SavedCommuteRepository savedCommuteRepository,
         SavedCommutePushPlanner planner,
         PushNotificationPreferenceService preferenceService,
         LineSubscriptionPushPlanner lineSubscriptionPushPlanner,
         PushNotificationClientEventRepository clientEventRepository,
+        WebPushClient webPushClient,
         IngestionFreshness ingestionFreshness,
         PushReceiptTokenService receiptTokenService,
         Clock clock
@@ -78,11 +98,13 @@ public class PushNotificationService {
         this.properties = properties;
         this.subscriptionRepository = subscriptionRepository;
         this.deliveryRepository = deliveryRepository;
+        this.eventRepository = eventRepository;
         this.savedCommuteRepository = savedCommuteRepository;
         this.planner = planner;
         this.preferenceService = preferenceService;
         this.lineSubscriptionPushPlanner = lineSubscriptionPushPlanner;
         this.clientEventRepository = clientEventRepository;
+        this.webPushClient = webPushClient;
         this.receiptTokenService = receiptTokenService;
         this.ingestionFreshness = ingestionFreshness;
         this.clock = clock;
@@ -273,12 +295,48 @@ public class PushNotificationService {
                 LinkedHashMap::new,
                 Collectors.toList()
             ));
+        List<PushSubscriptionEntity> subscriptions = subscriptionRepository.findByAccountIdOrderByUpdatedAtDesc(account.getId());
         List<PushResponses.PushNotificationDiagnosticGroupResponse> notificationGroups = deliveriesByEventId.values()
             .stream()
-            .map(groupDeliveries -> toDiagnosticGroup(groupDeliveries, responsesByDeliveryId))
+            .map(groupDeliveries -> toDiagnosticGroup(groupDeliveries, responsesByDeliveryId, subscriptions))
             .toList();
 
         return new PushResponses.PushDeliveryDiagnosticsResponse(notificationGroups, responseDeliveries);
+    }
+
+    @Transactional
+    public PushResponses.PushDeviceTestResponse testDevice(AccountEntity account, String subscriptionId) {
+        String id = required(subscriptionId, "missing_subscription_id", "Push device subscription id is required.");
+        PushSubscriptionEntity subscription = subscriptionRepository.findByIdAndAccountId(id, account.getId())
+            .orElseThrow(() -> new AccountException(HttpStatus.NOT_FOUND, "push_subscription_not_found", "Push device was not found."));
+        if (!subscription.isEnabled()) {
+            throw new AccountException(HttpStatus.BAD_REQUEST, "push_subscription_disabled", "Push device is disabled.");
+        }
+
+        Instant now = clock.instant();
+        PushNotificationEventEntity event = eventRepository.save(PushNotificationEventEntity.diagnosticTest(
+            nextId("push_event"),
+            account.getId(),
+            subscription.getId(),
+            now
+        ));
+        String deliveryId = nextId("push_delivery");
+        PushDeliveryResult result = webPushClient.send(
+            subscription,
+            PushNotificationDispatchService.topicFor(PushNotificationDisplayTags.forEvent(event)),
+            WebPushPayload.fromDelivery(event, deliveryId, subscription, receiptTokenService, now, properties)
+        );
+        if (result.invalidSubscription()) {
+            subscription.disable(now);
+        }
+        PushNotificationDeliveryEntity delivery = deliveryRepository.save(PushNotificationDeliveryEntity.create(
+            deliveryId,
+            event,
+            subscription,
+            result,
+            now
+        ));
+        return new PushResponses.PushDeviceTestResponse(toDiagnosticResponse(delivery, List.of()));
     }
 
     @Transactional(readOnly = true)
@@ -492,13 +550,20 @@ public class PushNotificationService {
 
     private PushResponses.PushNotificationDiagnosticGroupResponse toDiagnosticGroup(
         List<PushNotificationDeliveryEntity> deliveries,
-        Map<String, PushResponses.PushDeliveryDiagnosticResponse> responsesByDeliveryId
+        Map<String, PushResponses.PushDeliveryDiagnosticResponse> responsesByDeliveryId,
+        List<PushSubscriptionEntity> subscriptions
     ) {
         PushNotificationEventEntity event = deliveries.getFirst().getEvent();
         List<PushResponses.PushDeliveryDiagnosticResponse> attempts = deliveries.stream()
             .map(delivery -> responsesByDeliveryId.get(delivery.getId()))
             .filter(java.util.Objects::nonNull)
             .toList();
+        List<PushResponses.PushRecipientDiagnosticResponse> recipients = recipientDiagnostics(
+            event,
+            deliveries,
+            responsesByDeliveryId,
+            subscriptions
+        );
 
         return new PushResponses.PushNotificationDiagnosticGroupResponse(
             event.getId(),
@@ -512,7 +577,103 @@ public class PushNotificationService {
             event.getLineId(),
             lineNumberFor(event.getLineId()),
             instantString(event.getCreatedAt()),
-            attempts
+            attempts,
+            recipients
+        );
+    }
+
+    private List<PushResponses.PushRecipientDiagnosticResponse> recipientDiagnostics(
+        PushNotificationEventEntity event,
+        List<PushNotificationDeliveryEntity> deliveries,
+        Map<String, PushResponses.PushDeliveryDiagnosticResponse> responsesByDeliveryId,
+        List<PushSubscriptionEntity> subscriptions
+    ) {
+        Map<String, PushNotificationDeliveryEntity> deliveryBySubscriptionId = deliveries.stream()
+            .collect(Collectors.toMap(
+                delivery -> delivery.getSubscription().getId(),
+                delivery -> delivery,
+                (first, second) -> first,
+                LinkedHashMap::new
+            ));
+        List<PushResponses.PushRecipientDiagnosticResponse> recipients = new ArrayList<>();
+        java.util.Set<String> includedSubscriptionIds = new java.util.HashSet<>();
+        for (PushSubscriptionEntity subscription : subscriptions) {
+            recipients.add(toRecipientDiagnostic(
+                event,
+                subscription,
+                deliveryBySubscriptionId.get(subscription.getId()),
+                responsesByDeliveryId
+            ));
+            includedSubscriptionIds.add(subscription.getId());
+        }
+        for (PushNotificationDeliveryEntity delivery : deliveries) {
+            PushSubscriptionEntity subscription = delivery.getSubscription();
+            if (includedSubscriptionIds.add(subscription.getId())) {
+                recipients.add(toRecipientDiagnostic(event, subscription, delivery, responsesByDeliveryId));
+            }
+        }
+        return recipients;
+    }
+
+    private PushResponses.PushRecipientDiagnosticResponse toRecipientDiagnostic(
+        PushNotificationEventEntity event,
+        PushSubscriptionEntity subscription,
+        PushNotificationDeliveryEntity delivery,
+        Map<String, PushResponses.PushDeliveryDiagnosticResponse> responsesByDeliveryId
+    ) {
+        PushResponses.PushDeliveryDiagnosticResponse deliveryResponse =
+            delivery == null ? null : responsesByDeliveryId.get(delivery.getId());
+        RecipientReason reason = delivery == null
+            ? notAttemptedReason(event, subscription)
+            : new RecipientReason("attempted", "Delivery was attempted for this device.");
+        return new PushResponses.PushRecipientDiagnosticResponse(
+            subscription.getId(),
+            deviceLabel(subscription),
+            subscription.getUserAgent(),
+            endpointHashPrefix(subscription.getEndpointHash()),
+            subscription.isEnabled(),
+            instantString(subscription.getEnabledAt()),
+            instantString(subscription.getDisabledAt()),
+            delivery == null ? "not-attempted" : "attempted",
+            reason.code(),
+            reason.description(),
+            deliveryResponse
+        );
+    }
+
+    private RecipientReason notAttemptedReason(PushNotificationEventEntity event, PushSubscriptionEntity subscription) {
+        Instant eventCreatedAt = event.getCreatedAt();
+        if (eventCreatedAt == null) {
+            return new RecipientReason(
+                "event-created-at-missing",
+                "Notification creation time was not recorded."
+            );
+        }
+        Instant enabledAt = subscription.getEnabledAt();
+        Instant createdAt = subscription.getCreatedAt();
+        if ((enabledAt != null && eventCreatedAt.isBefore(enabledAt))
+            || (createdAt != null && eventCreatedAt.isBefore(createdAt))) {
+            return new RecipientReason(
+                "subscription-registered-after-event",
+                "Device was registered after this notification was created."
+            );
+        }
+        if (!subscription.isEnabled()) {
+            Instant disabledAt = subscription.getDisabledAt();
+            if (disabledAt != null && !disabledAt.isAfter(eventCreatedAt)) {
+                return new RecipientReason(
+                    "subscription-disabled-before-event",
+                    "Device was disabled before this notification was created."
+                );
+            }
+            return new RecipientReason(
+                "subscription-disabled",
+                "Device is currently disabled."
+            );
+        }
+        return new RecipientReason(
+            "eligible-no-delivery-recorded",
+            "Device appears eligible, but no delivery attempt was recorded."
         );
     }
 
@@ -741,4 +902,5 @@ public class PushNotificationService {
     }
 
     private record DisplayTag(String notificationKey, String notificationState) {}
+    private record RecipientReason(String code, String description) {}
 }

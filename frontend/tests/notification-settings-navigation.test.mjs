@@ -67,13 +67,15 @@ describe("notification settings navigation", () => {
     assert.match(diagnosticsPanelSource, /getPushDeliveryDiagnostics/);
     assert.match(diagnosticsPanelSource, /getPushDevices/);
     assert.match(diagnosticsPanelSource, /disablePushDevice/);
+    assert.match(diagnosticsPanelSource, /sendPushDeviceTestNotification/);
     assert.match(diagnosticsPanelSource, /Recent Push Attempts/);
     assert.match(diagnosticsPanelSource, /Registered Devices/);
     assert.match(diagnosticsPanelSource, /acceptedWithoutDisplayCount/);
     assert.match(diagnosticsPanelSource, /staleCandidate/);
     assert.match(diagnosticsPanelSource, /selectedDeviceKey/);
     assert.match(diagnosticsPanelSource, /diagnosticDeviceOptions/);
-    assert.match(diagnosticsPanelSource, /notification\.attempts/);
+    assert.match(diagnosticsPanelSource, /notification\.recipients/);
+    assert.match(diagnosticsPanelSource, /recipient\.reason/);
     assert.match(diagnosticsPanelSource, /sourceIncidentKey/);
     assert.doesNotMatch(notificationPanelSource, /getPushDeliveryDiagnostics/);
     assert.doesNotMatch(notificationPanelSource, /Delivery Diagnostics/);
@@ -84,5 +86,7 @@ describe("notification settings navigation", () => {
     assert.match(globalCss, /\.push-device-main/);
     assert.match(globalCss, /\.push-device-meta/);
     assert.match(globalCss, /\.push-device-disable/);
+    assert.match(globalCss, /\.push-device-test/);
+    assert.match(globalCss, /\.push-diagnostics-recipient/);
   });
 });

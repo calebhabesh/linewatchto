@@ -16,17 +16,20 @@ import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.data.domain.PageRequest;
 
 class PushNotificationServiceTest {
     private final PushProperties properties = new PushProperties();
     private final PushSubscriptionRepository subscriptionRepository = mock(PushSubscriptionRepository.class);
     private final PushNotificationDeliveryRepository deliveryRepository = mock(PushNotificationDeliveryRepository.class);
+    private final PushNotificationEventRepository eventRepository = mock(PushNotificationEventRepository.class);
     private final SavedCommuteRepository savedCommuteRepository = mock(SavedCommuteRepository.class);
     private final SavedCommutePushPlanner planner = mock(SavedCommutePushPlanner.class);
     private final PushNotificationPreferenceService preferenceService = mock(PushNotificationPreferenceService.class);
     private final LineSubscriptionPushPlanner lineSubscriptionPushPlanner = mock(LineSubscriptionPushPlanner.class);
     private final PushNotificationClientEventRepository clientEventRepository = mock(PushNotificationClientEventRepository.class);
+    private final WebPushClient webPushClient = mock(WebPushClient.class);
     private final IngestionFreshness ingestionFreshness = mock(IngestionFreshness.class);
     private final PushReceiptTokenService receiptTokenService = new PushReceiptTokenService(properties);
     private final Clock clock = Clock.fixed(Instant.parse("2026-06-05T15:00:00Z"), ZoneOffset.UTC);
@@ -35,11 +38,13 @@ class PushNotificationServiceTest {
         properties,
         subscriptionRepository,
         deliveryRepository,
+        eventRepository,
         savedCommuteRepository,
         planner,
         preferenceService,
         lineSubscriptionPushPlanner,
         clientEventRepository,
+        webPushClient,
         ingestionFreshness,
         receiptTokenService,
         clock
@@ -505,11 +510,13 @@ class PushNotificationServiceTest {
             properties,
             subscriptionRepository,
             deliveryRepository,
+            eventRepository,
             savedCommuteRepository,
             planner,
             preferenceService,
             lineSubscriptionPushPlanner,
             clientEventRepository,
+            webPushClient,
             ingestionFreshness,
             tokenService,
             clock
@@ -739,6 +746,122 @@ class PushNotificationServiceTest {
         assertThat(notification.attempts())
             .extracting(PushResponses.PushDeliveryDiagnosticResponse::endpointHashPrefix)
             .containsExactly(iosEndpointHash.substring(0, 12), androidEndpointHash.substring(0, 12));
+    }
+
+    @Test
+    void deliveryDiagnosticsIncludesRecipientsThatWereNotAttempted() {
+        String iosEndpoint = "https://webpush.push.apple.com/ios";
+        String iosEndpointHash = PushNotificationService.hashEndpoint(iosEndpoint);
+        String androidEndpoint = "https://fcm.googleapis.com/fcm/send/android";
+        String androidEndpointHash = PushNotificationService.hashEndpoint(androidEndpoint);
+        PushNotificationCandidate candidate = candidate(
+            null,
+            null,
+            "line-1",
+            "1",
+            "line-current",
+            "delay",
+            "on-change",
+            "line-current|line-1|delay|ttc-route-71768",
+            "user_1|line|line-1|delay|on-change|ttc-route-71768",
+            "St Andrew station",
+            "Northbound",
+            Instant.parse("2026-06-05T14:50:00Z"),
+            "/?panel=delays"
+        );
+        PushNotificationEventEntity event = PushNotificationEventEntity.create(
+            "push_event_1",
+            candidate,
+            Instant.parse("2026-06-05T15:00:00Z")
+        );
+        PushSubscriptionEntity iosSubscription = PushSubscriptionEntity.create(
+            "push_subscription_ios",
+            account,
+            iosEndpoint,
+            iosEndpointHash,
+            "p256dh-key",
+            "auth-secret",
+            "Mobile Safari iPhone",
+            Instant.parse("2026-06-05T14:00:00Z")
+        );
+        PushSubscriptionEntity androidSubscription = PushSubscriptionEntity.create(
+            "push_subscription_android",
+            account,
+            androidEndpoint,
+            androidEndpointHash,
+            "p256dh-key",
+            "auth-secret",
+            "Chrome Android Pixel 6a",
+            Instant.parse("2026-06-05T20:30:00Z")
+        );
+        PushNotificationDeliveryEntity iosDelivery = PushNotificationDeliveryEntity.create(
+            "push_delivery_ios",
+            event,
+            iosSubscription,
+            PushDeliveryResult.accepted(201),
+            Instant.parse("2026-06-05T15:00:05Z")
+        );
+
+        when(deliveryRepository.findRecentDeliveriesForAccount("user_1", PageRequest.of(0, 50)))
+            .thenReturn(List.of(iosDelivery));
+        when(clientEventRepository.findByDeliveryIds(List.of("push_delivery_ios")))
+            .thenReturn(List.of());
+        when(subscriptionRepository.findByAccountIdOrderByUpdatedAtDesc("user_1"))
+            .thenReturn(List.of(androidSubscription, iosSubscription));
+
+        PushResponses.PushDeliveryDiagnosticsResponse response = service.deliveryDiagnostics(account);
+
+        PushResponses.PushNotificationDiagnosticGroupResponse notification = response.notifications().getFirst();
+        assertThat(notification.recipients())
+            .extracting(PushResponses.PushRecipientDiagnosticResponse::deviceLabel)
+            .containsExactly("Android Chrome", "iOS Safari");
+        PushResponses.PushRecipientDiagnosticResponse androidRecipient = notification.recipients().getFirst();
+        assertThat(androidRecipient.status()).isEqualTo("not-attempted");
+        assertThat(androidRecipient.reasonCode()).isEqualTo("subscription-registered-after-event");
+        assertThat(androidRecipient.reason()).isEqualTo("Device was registered after this notification was created.");
+        assertThat(androidRecipient.delivery()).isNull();
+        PushResponses.PushRecipientDiagnosticResponse iosRecipient = notification.recipients().get(1);
+        assertThat(iosRecipient.status()).isEqualTo("attempted");
+        assertThat(iosRecipient.delivery().id()).isEqualTo("push_delivery_ios");
+    }
+
+    @Test
+    void testDeviceSendsManualDiagnosticPushAndRecordsDelivery() {
+        String endpoint = "https://fcm.googleapis.com/fcm/send/android";
+        String endpointHash = PushNotificationService.hashEndpoint(endpoint);
+        PushSubscriptionEntity subscription = PushSubscriptionEntity.create(
+            "push_subscription_android",
+            account,
+            endpoint,
+            endpointHash,
+            "p256dh-key",
+            "auth-secret",
+            "Chrome Android Pixel 6a",
+            Instant.parse("2026-06-05T14:30:00Z")
+        );
+        when(subscriptionRepository.findByIdAndAccountId("push_subscription_android", "user_1"))
+            .thenReturn(Optional.of(subscription));
+        when(eventRepository.save(any(PushNotificationEventEntity.class)))
+            .thenAnswer(invocation -> invocation.getArgument(0));
+        when(webPushClient.send(eq(subscription), anyString(), any(WebPushPayload.class)))
+            .thenReturn(PushDeliveryResult.accepted(201));
+        when(deliveryRepository.save(any(PushNotificationDeliveryEntity.class)))
+            .thenAnswer(invocation -> invocation.getArgument(0));
+
+        PushResponses.PushDeviceTestResponse response = service.testDevice(account, "push_subscription_android");
+
+        ArgumentCaptor<PushNotificationEventEntity> eventCaptor = ArgumentCaptor.forClass(PushNotificationEventEntity.class);
+        verify(eventRepository).save(eventCaptor.capture());
+        PushNotificationEventEntity event = eventCaptor.getValue();
+        assertThat(event.getCategory()).isEqualTo("diagnostic-test");
+        assertThat(event.getEventType()).isEqualTo("test");
+        assertThat(event.getTitle()).isEqualTo("LineWatchTO test notification");
+        assertThat(event.getNotificationKey()).startsWith("diagnostic-test|push_subscription_android|");
+        verify(webPushClient).send(eq(subscription), anyString(), any(WebPushPayload.class));
+        verify(deliveryRepository).save(any(PushNotificationDeliveryEntity.class));
+        assertThat(response.delivery().deviceLabel()).isEqualTo("Android Chrome");
+        assertThat(response.delivery().deliveryStatus()).isEqualTo("accepted");
+        assertThat(response.delivery().httpStatus()).isEqualTo(201);
     }
 
     @Test

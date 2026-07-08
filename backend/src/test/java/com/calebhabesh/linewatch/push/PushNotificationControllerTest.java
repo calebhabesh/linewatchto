@@ -117,6 +117,18 @@ class PushNotificationControllerTest {
     }
 
     @Test
+    void sendsTestPushForCurrentAccountDevice() {
+        PushResponses.PushDeviceTestResponse expected = new PushResponses.PushDeviceTestResponse(null);
+        when(accountService.requireAccount("raw-token")).thenReturn(account);
+        when(pushNotificationService.testDevice(account, "push_subscription_android")).thenReturn(expected);
+
+        PushResponses.PushDeviceTestResponse response = controller.testDevice("raw-token", "push_subscription_android");
+
+        assertThat(response).isEqualTo(expected);
+        verify(pushNotificationService).testDevice(account, "push_subscription_android");
+    }
+
+    @Test
     void recordsClientEventForCurrentAccount() {
         PushRequests.ClientEventRequest request = new PushRequests.ClientEventRequest(
             "https://fcm.googleapis.com/fcm/send/subscription",

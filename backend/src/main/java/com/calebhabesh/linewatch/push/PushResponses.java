@@ -211,6 +211,20 @@ public final class PushResponses {
         List<PushClientEventResponse> clientEvents
     ) {}
 
+    public record PushRecipientDiagnosticResponse(
+        String subscriptionId,
+        String deviceLabel,
+        String userAgent,
+        String endpointHashPrefix,
+        boolean subscriptionEnabled,
+        String enabledAt,
+        String disabledAt,
+        String status,
+        String reasonCode,
+        String reason,
+        PushDeliveryDiagnosticResponse delivery
+    ) {}
+
     public record PushNotificationDiagnosticGroupResponse(
         String id,
         String title,
@@ -223,7 +237,8 @@ public final class PushResponses {
         String lineId,
         String lineNumber,
         String eventCreatedAt,
-        List<PushDeliveryDiagnosticResponse> attempts
+        List<PushDeliveryDiagnosticResponse> attempts,
+        List<PushRecipientDiagnosticResponse> recipients
     ) {}
 
     public record PushDeliveryDiagnosticsResponse(
@@ -234,4 +249,8 @@ public final class PushResponses {
             this(List.of(), deliveries);
         }
     }
+
+    public record PushDeviceTestResponse(
+        PushDeliveryDiagnosticResponse delivery
+    ) {}
 }

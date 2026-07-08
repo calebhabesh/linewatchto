@@ -9295,7 +9295,15 @@ button {
   min-width: 0;
 }
 
-.push-device-disable {
+.push-device-actions {
+  align-items: center;
+  display: flex;
+  flex-shrink: 0;
+  gap: 6px;
+}
+
+.push-device-disable,
+.push-device-test {
   align-self: center;
   background: rgba(15, 23, 42, 0.05);
   border: 1px solid rgba(15, 23, 42, 0.12);
@@ -9310,33 +9318,49 @@ button {
   white-space: nowrap;
 }
 
-.push-device-disable:hover:not(:disabled) {
+.push-device-test {
+  background: rgba(14, 165, 233, 0.1);
+  border-color: rgba(14, 165, 233, 0.24);
+}
+
+.push-device-disable:hover:not(:disabled),
+.push-device-test:hover:not(:disabled) {
   background: rgba(15, 23, 42, 0.1);
   border-color: rgba(15, 23, 42, 0.2);
 }
 
-.dark .push-device-disable {
+.dark .push-device-disable,
+.dark .push-device-test {
   background: rgba(255, 255, 255, 0.08);
   border-color: rgba(255, 255, 255, 0.14);
 }
 
-.dark .push-device-disable:hover:not(:disabled) {
+.dark .push-device-test {
+  background: rgba(14, 165, 233, 0.14);
+  border-color: rgba(14, 165, 233, 0.28);
+}
+
+.dark .push-device-disable:hover:not(:disabled),
+.dark .push-device-test:hover:not(:disabled) {
   background: rgba(255, 255, 255, 0.14);
   border-color: rgba(255, 255, 255, 0.22);
 }
 
-.high-contrast .push-device-disable {
+.high-contrast .push-device-disable,
+.high-contrast .push-device-test {
   background: #000000;
   border-color: #ffffff;
   color: #ffffff;
 }
 
-.high-contrast .push-device-disable:hover:not(:disabled) {
+.high-contrast .push-device-disable:hover:not(:disabled),
+.high-contrast .push-device-test:hover:not(:disabled) {
   background: #ffffff;
   color: #000000;
 }
 
-.push-device-disable:disabled {
+.push-device-disable:disabled,
+.push-device-test:disabled {
   cursor: default;
   opacity: 0.5;
 }
@@ -9515,6 +9539,15 @@ button {
 
 .dark .push-diagnostics-attempt {
   border-color: rgba(255, 255, 255, 0.1);
+}
+
+.push-diagnostics-recipient.not-attempted .push-diagnostics-meta span:nth-child(3) {
+  color: #b45309;
+  font-weight: 900;
+}
+
+.dark .push-diagnostics-recipient.not-attempted .push-diagnostics-meta span:nth-child(3) {
+  color: #fbbf24;
 }
 
 .push-diagnostics-events {

@@ -6,10 +6,12 @@ import {
   disablePushDevice,
   getPushDeliveryDiagnostics,
   getPushDevices,
+  sendPushDeviceTestNotification,
   type AccountState,
   type PushDeliveryDiagnostic,
   type PushDevice,
   type PushNotificationDiagnosticGroup,
+  type PushRecipientDiagnostic,
 } from "../app/account-data";
 
 const LINE_COLORS: Record<string, string> = {
@@ -63,16 +65,35 @@ function diagnosticOutcome(delivery: PushDeliveryDiagnostic) {
   return delivery.deliveryStatus || "Queued";
 }
 
-function diagnosticDeviceKey(delivery: PushDeliveryDiagnostic) {
-  return `${delivery.deviceLabel || "Unknown device"}|${delivery.endpointHashPrefix || ""}`;
+function diagnosticDeviceKey(recipient: Pick<PushRecipientDiagnostic, "deviceLabel" | "endpointHashPrefix">) {
+  return `${recipient.deviceLabel || "Unknown device"}|${recipient.endpointHashPrefix || ""}`;
 }
 
-function diagnosticDeviceLabel(delivery: PushDeliveryDiagnostic, duplicatedLabels: Set<string>) {
-  const label = delivery.deviceLabel || "Unknown device";
-  if (duplicatedLabels.has(label) && delivery.endpointHashPrefix) {
-    return `${label} - ${delivery.endpointHashPrefix}`;
+function diagnosticDeviceLabel(recipient: Pick<PushRecipientDiagnostic, "deviceLabel" | "endpointHashPrefix">, duplicatedLabels: Set<string>) {
+  const label = recipient.deviceLabel || "Unknown device";
+  if (duplicatedLabels.has(label) && recipient.endpointHashPrefix) {
+    return `${label} - ${recipient.endpointHashPrefix}`;
   }
   return label;
+}
+
+function recipientsForNotification(notification: PushNotificationDiagnosticGroup): PushRecipientDiagnostic[] {
+  if (Array.isArray(notification.recipients) && notification.recipients.length > 0) {
+    return notification.recipients;
+  }
+  return notification.attempts.map((delivery) => ({
+    subscriptionId: delivery.id,
+    deviceLabel: delivery.deviceLabel,
+    userAgent: delivery.userAgent,
+    endpointHashPrefix: delivery.endpointHashPrefix,
+    subscriptionEnabled: delivery.subscriptionEnabled,
+    enabledAt: null,
+    disabledAt: null,
+    status: "attempted",
+    reasonCode: "attempted",
+    reason: "Delivery was attempted for this device.",
+    delivery,
+  }));
 }
 
 function deviceHealthLabel(device: PushDevice) {
@@ -103,6 +124,7 @@ export function PushDeliveryDiagnosticsPanel({ accountState }: Props) {
   const [diagnosticsState, setDiagnosticsState] = useState<DiagnosticsLoadState>("idle");
   const [diagnosticsMessage, setDiagnosticsMessage] = useState<string | null>(null);
   const [deviceActionId, setDeviceActionId] = useState<string | null>(null);
+  const [deviceActionType, setDeviceActionType] = useState<"disable" | "test" | null>(null);
   const [deviceActionMessage, setDeviceActionMessage] = useState<string | null>(null);
 
   const loadDiagnostics = useCallback(async () => {
@@ -134,6 +156,7 @@ export function PushDeliveryDiagnosticsPanel({ accountState }: Props) {
       }
     }
     setDeviceActionId(subscriptionId);
+    setDeviceActionType("disable");
     setDeviceActionMessage(null);
     try {
       await disablePushDevice(subscriptionId);
@@ -143,6 +166,26 @@ export function PushDeliveryDiagnosticsPanel({ accountState }: Props) {
       setDeviceActionMessage("Could not disable this endpoint.");
     } finally {
       setDeviceActionId(null);
+      setDeviceActionType(null);
+    }
+  }, [loadDiagnostics]);
+
+  const handleTestDevice = useCallback(async (subscriptionId: string) => {
+    setDeviceActionId(subscriptionId);
+    setDeviceActionType("test");
+    setDeviceActionMessage(null);
+    try {
+      const result = await sendPushDeviceTestNotification(subscriptionId);
+      const status = result.delivery.httpStatus
+        ? `${result.delivery.deliveryStatus} ${result.delivery.httpStatus}`
+        : result.delivery.deliveryStatus;
+      setDeviceActionMessage(`Test notification sent: ${status}.`);
+      await loadDiagnostics();
+    } catch {
+      setDeviceActionMessage("Could not send a test notification to this endpoint.");
+    } finally {
+      setDeviceActionId(null);
+      setDeviceActionType(null);
     }
   }, [loadDiagnostics]);
 
@@ -155,19 +198,10 @@ export function PushDeliveryDiagnosticsPanel({ accountState }: Props) {
   }, [diagnosticsState, loadDiagnostics]);
 
   const diagnosticDeviceOptions = useMemo(() => {
-    const attempts = diagnosticNotifications.flatMap((notification) => notification.attempts);
-    const enabledDeviceKeys = new Set(
-      pushDevices
-        .filter((device) => device.enabled)
-        .map((device) => `${device.deviceLabel || "Unknown device"}|${device.endpointHashPrefix || ""}`)
-    );
-    const enabledAttempts = attempts.filter((attempt) => {
-      const key = diagnosticDeviceKey(attempt);
-      return enabledDeviceKeys.has(key);
-    });
+    const recipients = diagnosticNotifications.flatMap(recipientsForNotification);
     const labelCounts = new Map<string, number>();
-    for (const attempt of enabledAttempts) {
-      const label = attempt.deviceLabel || "Unknown device";
+    for (const recipient of recipients) {
+      const label = recipient.deviceLabel || "Unknown device";
       labelCounts.set(label, (labelCounts.get(label) ?? 0) + 1);
     }
     const duplicatedLabels = new Set(
@@ -176,23 +210,26 @@ export function PushDeliveryDiagnosticsPanel({ accountState }: Props) {
         .map(([label]) => label)
     );
     const options = new Map<string, string>();
-    for (const attempt of enabledAttempts) {
-      options.set(diagnosticDeviceKey(attempt), diagnosticDeviceLabel(attempt, duplicatedLabels));
+    for (const recipient of recipients) {
+      options.set(diagnosticDeviceKey(recipient), diagnosticDeviceLabel(recipient, duplicatedLabels));
     }
     return [
       { key: "all", label: "All devices" },
       ...[...options.entries()].map(([key, label]) => ({ key, label })),
     ];
-  }, [diagnosticNotifications, pushDevices]);
+  }, [diagnosticNotifications]);
 
   const visibleNotifications = useMemo(() => diagnosticNotifications
-    .map((notification) => ({
-      ...notification,
-      attempts: selectedDeviceKey === "all"
-        ? notification.attempts
-        : notification.attempts.filter((attempt) => diagnosticDeviceKey(attempt) === selectedDeviceKey),
-    }))
-    .filter((notification) => notification.attempts.length > 0), [diagnosticNotifications, selectedDeviceKey]);
+    .map((notification) => {
+      const recipients = recipientsForNotification(notification);
+      return {
+        ...notification,
+        recipients: selectedDeviceKey === "all"
+          ? recipients
+          : recipients.filter((recipient) => diagnosticDeviceKey(recipient) === selectedDeviceKey),
+      };
+    })
+    .filter((notification) => notification.recipients.length > 0), [diagnosticNotifications, selectedDeviceKey]);
 
   const diagnosticsStatusLabel = useMemo(() => {
     if (!accountState.authenticated) return "Sign In";
@@ -268,17 +305,27 @@ export function PushDeliveryDiagnosticsPanel({ accountState }: Props) {
                             <span>{device.acceptedWithoutDisplayCount} accepted without display</span>
                           </div>
                         </div>
-                        <button
-                          type="button"
-                          className="push-device-disable"
-                          disabled={!device.enabled || deviceActionId === device.id}
-                          onClick={() => {
-                            const isDisplaying = device.deliveryHealth === "displayed" && !device.staleCandidate;
-                            void handleDisableDevice(device.id, isDisplaying);
-                          }}
-                        >
-                          {deviceActionId === device.id ? "Disabling" : "Disable"}
-                        </button>
+                        <div className="push-device-actions">
+                          <button
+                            type="button"
+                            className="push-device-test"
+                            disabled={!device.enabled || deviceActionId === device.id}
+                            onClick={() => void handleTestDevice(device.id)}
+                          >
+                            {deviceActionId === device.id && deviceActionType === "test" ? "Testing" : "Test"}
+                          </button>
+                          <button
+                            type="button"
+                            className="push-device-disable"
+                            disabled={!device.enabled || deviceActionId === device.id}
+                            onClick={() => {
+                              const isDisplaying = device.deliveryHealth === "displayed" && !device.staleCandidate;
+                              void handleDisableDevice(device.id, isDisplaying);
+                            }}
+                          >
+                            {deviceActionId === device.id && deviceActionType === "disable" ? "Disabling" : "Disable"}
+                          </button>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -331,25 +378,32 @@ export function PushDeliveryDiagnosticsPanel({ accountState }: Props) {
                           ) : null}
                           <strong>{notification.title}</strong>
                         </div>
-                        <span>{notification.attempts.length} {notification.attempts.length === 1 ? "attempt" : "attempts"}</span>
+                        <span>{notification.recipients.length} {notification.recipients.length === 1 ? "device" : "devices"}</span>
                       </div>
                       <p className="push-diagnostics-source">
                         Incident: {notification.sourceIncidentKey ?? "Not recorded"}
                       </p>
                       <div className="push-diagnostics-attempts">
-                        {notification.attempts.map((delivery) => {
-                          const recentEvents = delivery.clientEvents.slice(-3);
+                        {notification.recipients.map((recipient) => {
+                          const delivery = recipient.delivery;
+                          const recentEvents = delivery?.clientEvents.slice(-3) ?? [];
                           return (
-                            <div className="push-diagnostics-attempt" key={delivery.id}>
+                            <div className={`push-diagnostics-attempt push-diagnostics-recipient ${recipient.status}`} key={`${notification.id}-${recipient.subscriptionId}-${recipient.endpointHashPrefix}`}>
                               <div className="push-diagnostics-meta">
-                                <span>{delivery.deviceLabel}</span>
-                                <span>{delivery.endpointHashPrefix}</span>
-                                <span>{delivery.deliveryStatus}{delivery.httpStatus ? ` ${delivery.httpStatus}` : ""}</span>
-                                <span>{delivery.attemptCount} {delivery.attemptCount === 1 ? "attempt" : "attempts"}</span>
-                                <span>{delivery.displayedAt ? `Displayed ${formatDiagnosticTimestamp(delivery.displayedAt)}` : "No display ack"}</span>
-                                <span>{diagnosticOutcome(delivery)}</span>
+                                <span>{recipient.deviceLabel}</span>
+                                <span>{recipient.endpointHashPrefix}</span>
+                                <span>{delivery ? `${delivery.deliveryStatus}${delivery.httpStatus ? ` ${delivery.httpStatus}` : ""}` : "Not attempted"}</span>
+                                {delivery ? (
+                                  <span>{delivery.attemptCount} {delivery.attemptCount === 1 ? "attempt" : "attempts"}</span>
+                                ) : null}
+                                {delivery ? (
+                                  <span>{delivery.displayedAt ? `Displayed ${formatDiagnosticTimestamp(delivery.displayedAt)}` : "No display ack"}</span>
+                                ) : null}
+                                <span>{delivery ? diagnosticOutcome(delivery) : recipient.reason}</span>
                               </div>
-                              {recentEvents.length > 0 ? (
+                              {!delivery ? (
+                                <p className="push-diagnostics-empty-events">{recipient.reason}</p>
+                              ) : recentEvents.length > 0 ? (
                                 <ol className="push-diagnostics-events">
                                   {recentEvents.map((event) => (
                                     <li key={`${delivery.id}-${event.stage}-${event.occurredAt}`}>
