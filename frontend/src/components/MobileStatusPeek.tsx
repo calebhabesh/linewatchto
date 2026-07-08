@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertTriangle, Calendar, Construction, Locate } from "lucide-react";
+import { AlertTriangle, Calendar, Construction, Locate, ArrowRight } from "lucide-react";
 import { DelayIcon } from "./DelayIcon";
 import type { LineStatus } from "../app/linewatch-data";
 
@@ -119,7 +119,11 @@ export function MobileStatusPeek({
               }}
             >
               <AlertTriangle size={12} />
-              {activeAlertCount} {activeAlertCount === 1 ? "Active Alert" : "Active Alerts"}
+              <span>
+                <strong className="mobile-status-peek-number">{activeAlertCount}</strong>
+                {activeAlertCount === 1 ? "Active Alert" : "Active Alerts"}
+              </span>
+              <ArrowRight size={11} strokeWidth={2.75} className="mobile-status-peek-chevron" />
             </span>
           ) : null}
           {delayCount > 0 ? (
@@ -148,7 +152,11 @@ export function MobileStatusPeek({
               }}
             >
               <DelayIcon size={12} />
-              {delayCount} {delayCount === 1 ? "Delay" : "Delays"}
+              <span>
+                <strong className="mobile-status-peek-number">{delayCount}</strong>
+                {delayCount === 1 ? "Delay" : "Delays"}
+              </span>
+              <ArrowRight size={11} strokeWidth={2.75} className="mobile-status-peek-chevron" />
             </span>
           ) : null}
           {reducedSpeedZoneCount > 0 ? (
@@ -178,7 +186,11 @@ export function MobileStatusPeek({
               }}
             >
               <Construction size={12} />
-              {reducedSpeedZoneCount} {reducedSpeedZoneCount === 1 ? "Reduced Speed Zone" : "Reduced Speed Zones"}
+              <span>
+                <strong className="mobile-status-peek-number">{reducedSpeedZoneCount}</strong>
+                {reducedSpeedZoneCount === 1 ? "Reduced Speed Zone" : "Reduced Speed Zones"}
+              </span>
+              <ArrowRight size={11} strokeWidth={2.75} className="mobile-status-peek-chevron" />
             </span>
           ) : null}
           {plannedClosureCount > 0 ? (
@@ -207,7 +219,11 @@ export function MobileStatusPeek({
               }}
             >
               <Calendar size={12} />
-              {plannedClosureCount} {plannedClosureCount === 1 ? "Planned Closure" : "Planned Closures"}
+              <span>
+                <strong className="mobile-status-peek-number">{plannedClosureCount}</strong>
+                {plannedClosureCount === 1 ? "Planned Closure" : "Planned Closures"}
+              </span>
+              <ArrowRight size={11} strokeWidth={2.75} className="mobile-status-peek-chevron" />
             </span>
           ) : null}
         </span>

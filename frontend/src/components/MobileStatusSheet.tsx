@@ -40,28 +40,28 @@ export function MobileStatusSheet({ pollText, dataSource, onOpenCategory, onClos
           <button type="button" className="mobile-status-btn-alerts" onClick={() => onOpenCategory("alerts")}>
             <AlertTriangle size={16} className="text-red-500 dark:text-red-400 shrink-0" />
             <span className="mobile-status-btn-text">Active Alerts</span>
-            <span className="mobile-status-btn-circle bg-red-500/20 text-red-600 dark:text-red-400">
+            <span className="mobile-status-btn-circle">
               {activeAlerts.length}
             </span>
           </button>
           <button type="button" className="mobile-status-btn-delays" onClick={() => onOpenCategory("delays")}>
             <DelayIcon size={16} className="delay-tone shrink-0" />
             <span className="mobile-status-btn-text">Delays</span>
-            <span className="mobile-status-btn-circle delay-count-badge">
+            <span className="mobile-status-btn-circle">
               {delays.length}
             </span>
           </button>
           <button type="button" className="mobile-status-btn-rsz" onClick={() => onOpenCategory("reduced-speed-zones")}>
             <Construction size={16} className="text-amber-600 dark:text-amber-400 shrink-0" />
             <span className="mobile-status-btn-text">Reduced Speed Zones</span>
-            <span className="mobile-status-btn-circle rsz-count-badge">
+            <span className="mobile-status-btn-circle">
               {reducedSpeedZones.length}
             </span>
           </button>
           <button type="button" className="mobile-status-btn-closures" onClick={() => onOpenCategory("closures")}>
             <Calendar size={16} className="text-blue-500 dark:text-blue-400 shrink-0" />
             <span className="mobile-status-btn-text">Upcoming Closures</span>
-            <span className="mobile-status-btn-circle bg-blue-500/20 text-blue-600 dark:text-blue-400">
+            <span className="mobile-status-btn-circle">
               {plannedClosures.length}
             </span>
           </button>
@@ -74,14 +74,14 @@ export function MobileStatusSheet({ pollText, dataSource, onOpenCategory, onClos
               className="w-4 h-4 shrink-0"
             />
             <span className="mobile-status-btn-text">Accessibility Outages</span>
-            <span className="mobile-status-btn-circle bg-red-500/20 text-red-600 dark:text-red-400">
+            <span className="mobile-status-btn-circle">
               {accessibilityOutageCount}
             </span>
           </button>
           <button type="button" className="mobile-status-btn-surface flex items-center justify-between" onClick={() => onOpenCategory("surface-notices")}>
             <Bus size={16} className="text-slate-500 dark:text-slate-400 shrink-0" />
             <span className="mobile-status-btn-text">Streetcar & Bus Notices</span>
-            <span className="mobile-status-btn-circle bg-blue-500/20 text-blue-600 dark:text-blue-400">
+            <span className="mobile-status-btn-circle">
               {surfaceNoticeCount}
             </span>
           </button>

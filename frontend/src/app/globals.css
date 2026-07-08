@@ -1011,12 +1011,15 @@ button {
 }
 
 .desktop-header-impact-chips .desktop-status-chip {
-  min-width: 56px;
+  width: 56px;
   height: 56px;
-  border-radius: 12px;
-  padding: 0 14px;
+  border-radius: 50%;
+  padding: 0;
   font-size: 14px;
-  gap: 8px;
+  gap: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .desktop-header-impact-chips .desktop-status-chip-label {
@@ -1027,15 +1030,16 @@ button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 24px;
-  height: 24px;
-  border-radius: 9999px;
+  min-width: 28px;
+  height: 28px;
+  border-radius: 50%;
   font-size: 14px;
   font-weight: 900;
-  padding: 0 6px;
+  padding: 0;
+  aspect-ratio: 1 / 1;
   color: #000000 !important;
   background: #ffffff !important;
-  border: 3px solid #000000 !important;
+  border: 2px solid #000000 !important;
   text-shadow: none;
   line-height: normal;
 }
@@ -1216,6 +1220,12 @@ button {
 }
 
 @media (min-width: 1536px) {
+  .desktop-header-impact-chips .desktop-status-chip {
+    width: auto;
+    padding: 0 16px;
+    border-radius: 9999px;
+    gap: 8px;
+  }
   .desktop-header-impact-chips .desktop-status-chip-label {
     display: inline;
   }
@@ -7454,10 +7464,68 @@ button {
     border-radius: 6px;
     display: inline-flex;
     font-size: 11px;
-    font-weight: 900;
+    font-weight: 600;
     gap: 4px;
     min-height: 24px;
     padding: 0 8px;
+    transition: transform 100ms ease, background-color 150ms ease, border-color 150ms ease, box-shadow 150ms ease;
+    user-select: none;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  }
+  .mobile-status-peek-number {
+    font-weight: 900;
+    margin-right: 3.5px;
+  }
+  .mobile-status-peek-count-badge:active {
+    transform: scale(0.96);
+  }
+
+  .mobile-status-peek-chevron {
+    opacity: 0.85;
+    margin-left: 2px;
+    transition: opacity 150ms ease, transform 150ms ease;
+  }
+
+  .mobile-status-peek-count-badge:hover .mobile-status-peek-chevron,
+  .mobile-status-peek-count-badge:focus .mobile-status-peek-chevron {
+    opacity: 1;
+    transform: translateX(1px);
+  }
+
+  .mobile-status-peek-count-badge.active-alerts:hover {
+    background: rgba(220, 38, 38, 0.12);
+    border-color: rgba(220, 38, 38, 0.3);
+  }
+  .dark .mobile-status-peek-count-badge.active-alerts:hover {
+    background: rgba(239, 68, 68, 0.22);
+    border-color: rgba(239, 68, 68, 0.4);
+  }
+
+  .mobile-status-peek-count-badge.delays:hover {
+    background: rgba(217, 119, 6, 0.12);
+    border-color: rgba(217, 119, 6, 0.3);
+  }
+  .dark .mobile-status-peek-count-badge.delays:hover {
+    background: rgba(254, 236, 65, 0.22);
+    border-color: rgba(254, 236, 65, 0.4);
+  }
+
+  .mobile-status-peek-count-badge.reduced-speed-zones:hover {
+    background: rgba(245, 158, 11, 0.12);
+    border-color: rgba(245, 158, 11, 0.3);
+  }
+  .dark .mobile-status-peek-count-badge.reduced-speed-zones:hover {
+    background: rgba(245, 158, 11, 0.22);
+    border-color: rgba(245, 158, 11, 0.4);
+  }
+
+  .mobile-status-peek-count-badge.planned-closures:hover {
+    background: rgba(37, 99, 235, 0.12);
+    border-color: rgba(37, 99, 235, 0.3);
+  }
+  .dark .mobile-status-peek-count-badge.planned-closures:hover {
+    background: rgba(59, 130, 246, 0.22);
+    border-color: rgba(59, 130, 246, 0.4);
   }
 
   .mobile-status-peek-count-badge.active-alerts {
@@ -7674,14 +7742,19 @@ button {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-width: 20px;
-    height: 20px;
-    border-radius: 9999px;
-    font-size: 9.5px;
+    min-width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    font-size: 10.5px;
     font-weight: 900;
     flex-shrink: 0;
-    padding: 0 4px;
+    padding: 0;
     aspect-ratio: 1 / 1;
+    color: #000000 !important;
+    background: #ffffff !important;
+    border: 2px solid #000000 !important;
+    text-shadow: none;
+    line-height: normal;
   }
 
   /* Outlines and glows for status action cards */
