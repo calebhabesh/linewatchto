@@ -864,13 +864,30 @@ export function SavedCommutesPanel({
               <ChevronLeft className="w-6 h-6 sm:w-7 sm:h-7 text-slate-700 dark:text-slate-300" />
             </button>
           )}
-          <h2 className="text-[clamp(10px,3.5cqw,18px)] font-bold text-slate-900 dark:text-white flex items-center gap-1 sm:gap-2 whitespace-nowrap">
-            <Navigation className="w-[16px] h-[16px] sm:w-[22px] sm:h-[22px] text-emerald-500 shrink-0" />
-            <span>Saved Commutes</span>
-          </h2>
+          <div className="flex flex-col min-w-0">
+            <h2 className="text-[clamp(10px,3.5cqw,18px)] font-bold text-slate-900 dark:text-white flex items-center gap-1 sm:gap-2 whitespace-nowrap">
+              <Navigation className="w-[16px] h-[16px] sm:w-[22px] sm:h-[22px] text-emerald-500 shrink-0" />
+              <span>Saved Commutes</span>
+            </h2>
+            <div className="sm:hidden mt-0.5">
+              <span className={`inline-block text-[7px] px-1 py-0.5 rounded-full font-bold border ${
+                accountState.authenticated
+                  ? accountState.user?.demo
+                    ? "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20"
+                    : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
+                  : "bg-slate-500/10 text-slate-500 dark:text-slate-400 border-slate-500/20"
+              }`}>
+                {accountState.authenticated
+                  ? accountState.user?.demo
+                    ? "Demo Account"
+                    : "Route Impacts Enabled"
+                  : "Route Impacts Disabled"}
+              </span>
+            </div>
+          </div>
         </div>
         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-          <span className={`shrink-0 text-[9px] sm:text-xs px-1.5 sm:px-2 py-0.5 rounded-full font-bold border ${
+          <span className={`hidden sm:inline-block shrink-0 text-xs px-2 py-0.5 rounded-full font-bold border ${
             accountState.authenticated
               ? accountState.user?.demo
                 ? "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20"
