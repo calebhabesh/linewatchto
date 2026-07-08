@@ -44,6 +44,7 @@ public class PushNotificationDispatchService {
     private final PushNotificationPreferenceService preferenceService;
     private final LineSubscriptionPushPlanner lineSubscriptionPushPlanner;
     private final PushLineEventObservationService lineEventObservationService;
+    private final PushSavedCommuteEventObservationService savedCommuteObservationService;
     private final PushNotificationFormatter formatter;
     private final PushReceiptTokenService receiptTokenService;
     private final IngestionFreshness ingestionFreshness;
@@ -62,6 +63,7 @@ public class PushNotificationDispatchService {
         PushNotificationPreferenceService preferenceService,
         LineSubscriptionPushPlanner lineSubscriptionPushPlanner,
         PushLineEventObservationService lineEventObservationService,
+        PushSavedCommuteEventObservationService savedCommuteObservationService,
         PushNotificationFormatter formatter,
         PushReceiptTokenService receiptTokenService,
         IngestionFreshness ingestionFreshness,
@@ -72,6 +74,7 @@ public class PushNotificationDispatchService {
             savedCommuteRepository, planner, eventRepository, subscriptionRepository,
             deliveryRepository, webPushClient, preferenceService, lineSubscriptionPushPlanner,
             lineEventObservationService,
+            savedCommuteObservationService,
             formatter,
             receiptTokenService,
             ingestionFreshness,
@@ -91,6 +94,7 @@ public class PushNotificationDispatchService {
         PushNotificationPreferenceService preferenceService,
         LineSubscriptionPushPlanner lineSubscriptionPushPlanner,
         PushLineEventObservationService lineEventObservationService,
+        PushSavedCommuteEventObservationService savedCommuteObservationService,
         PushNotificationFormatter formatter,
         PushReceiptTokenService receiptTokenService,
         IngestionFreshness ingestionFreshness,
@@ -107,6 +111,7 @@ public class PushNotificationDispatchService {
         this.preferenceService = preferenceService;
         this.lineSubscriptionPushPlanner = lineSubscriptionPushPlanner;
         this.lineEventObservationService = lineEventObservationService;
+        this.savedCommuteObservationService = savedCommuteObservationService;
         this.formatter = formatter;
         this.receiptTokenService = receiptTokenService;
         this.ingestionFreshness = ingestionFreshness;
@@ -121,6 +126,8 @@ public class PushNotificationDispatchService {
             PushNotificationPreferenceEntity preferences = preferenceService.preferenceEntityForAccountId(accountId);
             
             List<SavedCommuteEntity> commutes = savedCommuteRepository.findByAccountIdOrderByCreatedAtAsc(accountId);
+            java.util.Map<String, SavedCommuteEntity> commutesById = commutes.stream()
+                .collect(java.util.stream.Collectors.toMap(SavedCommuteEntity::getId, commute -> commute));
             List<PushNotificationCandidate> savedCommuteCandidates = commutes.stream()
                 .flatMap(commute -> planner.candidatesFor(commute).stream())
                 .toList();
@@ -138,13 +145,14 @@ public class PushNotificationDispatchService {
                 .toList();
 
             List<String> savedCurrentCategories = List.of("saved-commute-current", "saved-commute-impact");
+            List<PushNotificationCandidate> savedCurrentCandidates = savedCommuteCandidates.stream()
+                .filter(candidate -> savedCurrentCategories.contains(candidate.category()))
+                .toList();
             Set<String> savedCurrentNotificationKeys = new java.util.HashSet<>();
             Set<String> savedCurrentSourceIncidentKeys = new java.util.HashSet<>();
-            for (PushNotificationCandidate candidate : savedCommuteCandidates) {
-                if (savedCurrentCategories.contains(candidate.category())) {
-                    savedCurrentNotificationKeys.add(candidate.notificationKey());
-                    savedCurrentSourceIncidentKeys.add(candidate.sourceIncidentKey());
-                }
+            for (PushNotificationCandidate candidate : savedCurrentCandidates) {
+                savedCurrentNotificationKeys.add(candidate.notificationKey());
+                savedCurrentSourceIncidentKeys.add(candidate.sourceIncidentKey());
             }
 
             List<PushNotificationCandidate> sendableCandidates = new java.util.ArrayList<>();
@@ -162,6 +170,17 @@ public class PushNotificationDispatchService {
                     if (decision.shouldSendActive() && candidate.deliveryAllowed()) {
                         sendableCandidates.add(candidate);
                     }
+                } else if (savedCurrentCategories.contains(candidate.category())) {
+                    PushSavedCommuteEventObservationService.ObservationDecision decision =
+                        savedCommuteObservationService.observe(
+                            candidate,
+                            commutesById.get(candidate.commuteId()),
+                            preferences,
+                            clock.instant()
+                        );
+                    if (decision.shouldSendActive() && candidate.deliveryAllowed()) {
+                        sendableCandidates.add(candidate);
+                    }
                 } else if (candidate.deliveryAllowed()) {
                     sendableCandidates.add(candidate);
                 }
@@ -176,7 +195,12 @@ public class PushNotificationDispatchService {
                 preferences,
                 savedCurrentNotificationKeys,
                 savedCurrentSourceIncidentKeys,
-                sendableCandidates
+                savedCurrentCandidates
+            );
+            clearStaleSavedCommuteObservations(
+                accountId,
+                savedCurrentNotificationKeys,
+                savedCurrentSourceIncidentKeys
             );
             sendClearedLineObservationNotifications(
                 accountId,
@@ -248,6 +272,9 @@ public class PushNotificationDispatchService {
         );
 
         for (PushNotificationEventEntity activeEvent : activeEvents) {
+            if (savedCommuteCurrentCategory(activeEvent.getCategory()) && activeEvent.getCommuteId() == null) {
+                continue;
+            }
             if (currentNotificationKeys.contains(activeEvent.getNotificationKey())) {
                 continue;
             }
@@ -280,6 +307,26 @@ public class PushNotificationDispatchService {
                 ));
                 sendEventToSubscriptions(clearedEvent, now);
             }
+        }
+    }
+
+    private void clearStaleSavedCommuteObservations(
+        String accountId,
+        Set<String> currentNotificationKeys,
+        Set<String> currentSourceIncidentKeys
+    ) {
+        if (!ingestionFreshness.isDashboardFresh()) {
+            return;
+        }
+        Instant now = clock.instant();
+        for (PushSavedCommuteEventObservationEntity observation : savedCommuteObservationService.activeObservations(accountId)) {
+            if (currentNotificationKeys.contains(observation.getNotificationKey())) {
+                continue;
+            }
+            if (containsNonBlank(currentSourceIncidentKeys, observation.getSourceIncidentKey())) {
+                continue;
+            }
+            savedCommuteObservationService.markCleared(observation, now);
         }
     }
 
@@ -428,10 +475,15 @@ public class PushNotificationDispatchService {
 
     private String currentCategoryFamily(String category) {
         String normalized = normalize(category);
-        if ("saved-commute-current".equals(normalized) || "saved-commute-impact".equals(normalized)) {
+        if (savedCommuteCurrentCategory(normalized)) {
             return "saved-commute-current";
         }
         return normalized;
+    }
+
+    private boolean savedCommuteCurrentCategory(String category) {
+        String normalized = normalize(category);
+        return "saved-commute-current".equals(normalized) || "saved-commute-impact".equals(normalized);
     }
 
     private boolean compatibleLocations(String first, String second) {

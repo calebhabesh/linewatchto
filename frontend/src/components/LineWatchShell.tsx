@@ -426,6 +426,7 @@ export function LineWatchShell({
   const [accountSuccessMessage, setAccountSuccessMessage] = useState<string | null>(null);
   const [accountBusy, setAccountBusy] = useState(false);
   const [accountCommutes, setAccountCommutes] = useState<AccountSavedCommute[]>([]);
+  const [commutesActiveTab, setCommutesActiveTab] = useState<"create" | "saved">("create");
   const [commutePathPreview, setCommutePathPreview] = useState<AccountCommutePathPreview | null>(null);
   const [authConfig, setAuthConfig] = useState<AuthConfig>(unavailableAuthConfig);
 
@@ -1514,6 +1515,8 @@ export function LineWatchShell({
             onRequestCreateAccount={() => openAuthChoice("register")}
             onOpenNotificationSettings={() => setActiveView("notifications")}
             notificationSummary={notificationSummary}
+            activeView={commutesActiveTab}
+            onActiveViewChange={setCommutesActiveTab}
           />
         );
       case "notifications":
@@ -1713,6 +1716,8 @@ export function LineWatchShell({
           onRequestCreateAccount={() => openAuthChoice("register")}
           onOpenNotificationSettings={() => setActiveView("notifications")}
           notificationSummary={notificationSummary}
+          activeView={commutesActiveTab}
+          onActiveViewChange={setCommutesActiveTab}
         />
       </FloatingPanelShell>
     ) : activeView === "notifications" ? (

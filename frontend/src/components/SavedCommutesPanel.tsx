@@ -97,6 +97,8 @@ interface Props {
     detail: string;
     tone: "on" | "off" | "unavailable";
   };
+  activeView?: "create" | "saved";
+  onActiveViewChange?: (view: "create" | "saved") => void;
 }
 
 function severityPriority(severity: AccountCommuteImpact["severity"]) {
@@ -699,6 +701,8 @@ export function SavedCommutesPanel({
   onRequestCreateAccount,
   onOpenNotificationSettings,
   notificationSummary,
+  activeView: propActiveView,
+  onActiveViewChange,
 }: Props) {
   const [newLabel, setNewLabel] = useState("");
   const [originStationId, setOriginStationId] = useState("");
@@ -710,7 +714,12 @@ export function SavedCommutesPanel({
   const [deletingCommuteId, setDeletingCommuteId] = useState<string | null>(null);
   const [selectedLegIds, setSelectedLegIds] = useState<Record<string, AccountCommuteLegId>>({});
   const [activePicker, setActivePicker] = useState<"origin" | "destination" | null>(null);
-  const [activeView, setActiveView] = useState<"create" | "saved">("create");
+  const [activeViewInternal, setActiveViewInternal] = useState<"create" | "saved">("create");
+  const activeView = propActiveView ?? activeViewInternal;
+  const setActiveView = (view: "create" | "saved") => {
+    setActiveViewInternal(view);
+    onActiveViewChange?.(view);
+  };
   const [newNotificationRule, setNewNotificationRule] = useState<AccountSavedCommuteNotificationRule>(() => cloneNotificationRule(defaultSavedCommuteNotificationRule));
   const [showNotificationSettings, setShowNotificationSettings] = useState(false);
   const [editingNotificationCommuteId, setEditingNotificationCommuteId] = useState<string | null>(null);

@@ -31,6 +31,7 @@ class PushNotificationDispatchServiceTest {
     private final PushNotificationPreferenceService preferenceService = mock(PushNotificationPreferenceService.class);
     private final LineSubscriptionPushPlanner lineSubscriptionPushPlanner = mock(LineSubscriptionPushPlanner.class);
     private final PushLineEventObservationService lineEventObservationService = mock(PushLineEventObservationService.class);
+    private final PushSavedCommuteEventObservationService savedCommuteObservationService = mock(PushSavedCommuteEventObservationService.class);
     private final IngestionFreshness ingestionFreshness = mock(IngestionFreshness.class);
     private final AlertHistoryRepository alertHistoryRepository = mock(AlertHistoryRepository.class);
     private final PushProperties pushProperties = new PushProperties();
@@ -47,6 +48,7 @@ class PushNotificationDispatchServiceTest {
         preferenceService,
         lineSubscriptionPushPlanner,
         lineEventObservationService,
+        savedCommuteObservationService,
         formatter,
         receiptTokenService,
         ingestionFreshness,
@@ -68,6 +70,21 @@ class PushNotificationDispatchServiceTest {
     void setUp() {
         pushProperties.setReceiptSigningSecret("test-receipt-secret");
         when(ingestionFreshness.isDashboardFresh()).thenReturn(true);
+        when(savedCommuteObservationService.observe(
+            any(PushNotificationCandidate.class),
+            any(),
+            any(PushNotificationPreferenceEntity.class),
+            any(Instant.class)
+        )).thenAnswer(invocation -> {
+            PushNotificationCandidate candidate = invocation.getArgument(0);
+            Instant now = invocation.getArgument(3);
+            return new PushSavedCommuteEventObservationService.ObservationDecision(
+                PushSavedCommuteEventObservationEntity.create("saved_obs_default", candidate, now),
+                true,
+                false
+            );
+        });
+        when(savedCommuteObservationService.activeObservations(anyString())).thenReturn(List.of());
     }
 
     @Test
@@ -146,6 +163,172 @@ class PushNotificationDispatchServiceTest {
             any(WebPushPayload.class)
         );
         verify(deliveryRepository).save(any(PushNotificationDeliveryEntity.class));
+    }
+
+    @Test
+    void silentlyBaselinesExistingSavedCommuteReducedSpeedZoneAfterCommuteCreation() {
+        SavedCommuteEntity commute = SavedCommuteEntity.create(
+            "commute_1",
+            account,
+            "Morning commute",
+            "finch",
+            "union",
+            true,
+            Instant.parse("2026-06-05T14:50:00Z")
+        );
+        PushNotificationCandidate candidate = candidate(
+            "commute_1",
+            "outbound",
+            "line-1",
+            "1",
+            "saved-commute-current",
+            "reduced-speed-zone",
+            "on-change",
+            "saved-commute-current|commute_1|outbound|reduced-speed-zone|rsz-line-1",
+            "dedupe-rsz-1",
+            "Eglinton to Davisville",
+            "Morning commute",
+            Instant.parse("2026-06-05T13:00:00Z"),
+            "/?panel=commutes&commute=commute_1"
+        );
+        PushNotificationPreferenceEntity preferences = PushNotificationPreferenceEntity.create(account, Instant.parse("2026-06-05T14:00:00Z"));
+        PushSavedCommuteEventObservationEntity observation = PushSavedCommuteEventObservationEntity.create(
+            "saved_obs_rsz",
+            candidate,
+            clock.instant()
+        );
+
+        when(preferenceService.preferenceEntityForAccountId("user_1")).thenReturn(preferences);
+        when(preferenceService.allows(preferences, candidate)).thenReturn(true);
+        when(preferenceService.subscribedLineIds("user_1")).thenReturn(List.of());
+        when(lineSubscriptionPushPlanner.candidatesFor(anyString(), anyList())).thenReturn(List.of());
+        when(subscriptionRepository.findEnabledAccountIds()).thenReturn(List.of("user_1"));
+        when(savedCommuteRepository.findByAccountIdOrderByCreatedAtAsc("user_1")).thenReturn(List.of(commute));
+        when(planner.candidatesFor(commute)).thenReturn(List.of(candidate));
+        when(savedCommuteObservationService.observe(candidate, commute, preferences, clock.instant()))
+            .thenReturn(new PushSavedCommuteEventObservationService.ObservationDecision(observation, true, true));
+
+        service.evaluateSavedCommuteNotifications();
+
+        verify(savedCommuteObservationService).observe(candidate, commute, preferences, clock.instant());
+        verify(eventRepository, never()).save(any(PushNotificationEventEntity.class));
+        verify(webPushClient, never()).send(any(), anyString(), any(WebPushPayload.class));
+        verify(deliveryRepository, never()).save(any(PushNotificationDeliveryEntity.class));
+    }
+
+    @Test
+    void doesNotSendSavedCommuteClearanceWhenEquivalentCurrentImpactExistsUnderNewKey() {
+        SavedCommuteEntity commute = SavedCommuteEntity.create(
+            "commute_1",
+            account,
+            "Morning commute",
+            "finch",
+            "union",
+            true,
+            Instant.parse("2026-06-05T14:30:00Z")
+        );
+        PushNotificationCandidate previousCandidate = candidate(
+            "commute_1",
+            "outbound",
+            "line-1",
+            "1",
+            "saved-commute-current",
+            "reduced-speed-zone",
+            "on-change",
+            "saved-commute-current|commute_1|outbound|reduced-speed-zone|rsz-old",
+            "dedupe-rsz-old",
+            "Eglinton to Davisville",
+            "Morning commute",
+            Instant.parse("2026-06-05T13:00:00Z"),
+            "/?panel=commutes&commute=commute_1"
+        );
+        PushNotificationEventEntity previousEvent = PushNotificationEventEntity.create(
+            "push_event_rsz_old",
+            previousCandidate,
+            Instant.parse("2026-06-05T14:00:00Z")
+        );
+        PushNotificationCandidate currentCandidate = candidate(
+            "commute_1",
+            "outbound",
+            "line-1",
+            "1",
+            "saved-commute-current",
+            "reduced-speed-zone",
+            "on-change",
+            "saved-commute-current|commute_1|outbound|reduced-speed-zone|rsz-new",
+            "dedupe-rsz-new",
+            "Eglinton to Davisville",
+            "Morning commute",
+            Instant.parse("2026-06-05T13:10:00Z"),
+            "/?panel=commutes&commute=commute_1"
+        );
+        PushNotificationPreferenceEntity preferences = PushNotificationPreferenceEntity.create(account, Instant.parse("2026-06-05T14:00:00Z"));
+        PushSavedCommuteEventObservationEntity observation = PushSavedCommuteEventObservationEntity.create(
+            "saved_obs_rsz_new",
+            currentCandidate,
+            clock.instant()
+        );
+
+        when(preferenceService.preferenceEntityForAccountId("user_1")).thenReturn(preferences);
+        when(preferenceService.allows(preferences, currentCandidate)).thenReturn(true);
+        when(preferenceService.subscribedLineIds("user_1")).thenReturn(List.of());
+        when(lineSubscriptionPushPlanner.candidatesFor(anyString(), anyList())).thenReturn(List.of());
+        when(subscriptionRepository.findEnabledAccountIds()).thenReturn(List.of("user_1"));
+        when(savedCommuteRepository.findByAccountIdOrderByCreatedAtAsc("user_1")).thenReturn(List.of(commute));
+        when(planner.candidatesFor(commute)).thenReturn(List.of(currentCandidate));
+        when(savedCommuteObservationService.observe(currentCandidate, commute, preferences, clock.instant()))
+            .thenReturn(new PushSavedCommuteEventObservationService.ObservationDecision(observation, true, true));
+        when(eventRepository.findByAccountIdAndCategoryInAndNotificationState(
+            eq("user_1"),
+            eq(List.of("saved-commute-current", "saved-commute-impact")),
+            eq("ACTIVE")
+        )).thenReturn(List.of(previousEvent));
+
+        service.evaluateSavedCommuteNotifications();
+
+        verify(eventRepository, never()).save(any(PushNotificationEventEntity.class));
+        verify(webPushClient, never()).send(any(), anyString(), any(WebPushPayload.class));
+    }
+
+    @Test
+    void doesNotSendSavedCommuteClearanceForDeletedCommuteEvent() {
+        PushNotificationCandidate previousCandidate = candidate(
+            null,
+            "outbound",
+            "line-1",
+            "1",
+            "saved-commute-current",
+            "reduced-speed-zone",
+            "on-change",
+            "saved-commute-current|commute_deleted|outbound|reduced-speed-zone|rsz-line-1",
+            "dedupe-rsz-deleted",
+            "Eglinton to Davisville",
+            "Deleted commute",
+            Instant.parse("2026-06-05T13:00:00Z"),
+            "/?panel=commutes&commute=commute_deleted"
+        );
+        PushNotificationEventEntity previousEvent = PushNotificationEventEntity.create(
+            "push_event_deleted_commute",
+            previousCandidate,
+            Instant.parse("2026-06-05T14:00:00Z")
+        );
+        PushNotificationPreferenceEntity preferences = PushNotificationPreferenceEntity.create(account, Instant.parse("2026-06-05T14:00:00Z"));
+
+        when(preferenceService.preferenceEntityForAccountId("user_1")).thenReturn(preferences);
+        when(preferenceService.subscribedLineIds("user_1")).thenReturn(List.of());
+        when(lineSubscriptionPushPlanner.candidatesFor(anyString(), anyList())).thenReturn(List.of());
+        when(subscriptionRepository.findEnabledAccountIds()).thenReturn(List.of("user_1"));
+        when(savedCommuteRepository.findByAccountIdOrderByCreatedAtAsc("user_1")).thenReturn(List.of());
+        when(eventRepository.findByAccountIdAndCategoryInAndNotificationState(
+            eq("user_1"),
+            eq(List.of("saved-commute-current", "saved-commute-impact")),
+            eq("ACTIVE")
+        )).thenReturn(List.of(previousEvent));
+
+        service.evaluateSavedCommuteNotifications();
+
+        verify(eventRepository, never()).save(any(PushNotificationEventEntity.class));
+        verify(webPushClient, never()).send(any(), anyString(), any(WebPushPayload.class));
     }
 
     @Test
