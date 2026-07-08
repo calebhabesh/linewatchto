@@ -6577,7 +6577,7 @@ button {
   gap: 0.4rem;
   border-left: 1px solid rgba(15, 23, 42, 0.12);
   padding-left: 0.5rem;
-  width: 260px; /* Expanded from 200px to avoid squishing */
+  width: 320px; /* Expanded to avoid squishing of station names and accessibility icons */
   flex-shrink: 0;
   overflow-y: auto;
   max-height: 240px;

@@ -455,6 +455,13 @@ export function LineWatchShell({
     };
   }, []);
 
+  useEffect(() => {
+    if (activeView !== "commutes") {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setCommutesActiveTab("saved");
+    }
+  }, [activeView]);
+
   const notificationStatusLabel = useMemo(() => {
     if (
       !accountState.authenticated ||

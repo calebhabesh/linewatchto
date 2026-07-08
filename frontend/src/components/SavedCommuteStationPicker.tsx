@@ -196,7 +196,7 @@ export function SavedCommuteStationPicker({
         const gap = 6;
         const minUsableHeight = mobileViewport ? 120 : 100;
         let left = rect.left;
-        const extraWidth = !mobileViewport && expandedLineId ? 280 : 0;
+        const extraWidth = !mobileViewport && expandedLineId ? 340 : 0;
         let popWidth = rect.width + extraWidth;
 
         const scrollContainer = rootRef.current?.closest(".floating-panel-scroll");
