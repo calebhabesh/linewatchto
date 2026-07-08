@@ -11,8 +11,16 @@ import {
   type PushDeliveryDiagnostic,
   type PushDevice,
   type PushNotificationDiagnosticGroup,
-  type PushRecipientDiagnostic,
 } from "../app/account-data";
+import { getCurrentPushSubscription } from "../app/push-browser-state";
+import {
+  diagnosticDeviceKey,
+  diagnosticDeviceOptions,
+  endpointHashPrefixForEndpoint,
+  recipientsForNotification,
+  selectedDeviceKeyForCurrentEndpoint,
+  visibleRecipientsForNotification,
+} from "../app/push-diagnostics-state";
 
 const LINE_COLORS: Record<string, string> = {
   "line-1": "#FBD13F",
@@ -65,35 +73,16 @@ function diagnosticOutcome(delivery: PushDeliveryDiagnostic) {
   return delivery.deliveryStatus || "Queued";
 }
 
-function diagnosticDeviceKey(recipient: Pick<PushRecipientDiagnostic, "deviceLabel" | "endpointHashPrefix">) {
-  return `${recipient.deviceLabel || "Unknown device"}|${recipient.endpointHashPrefix || ""}`;
-}
-
-function diagnosticDeviceLabel(recipient: Pick<PushRecipientDiagnostic, "deviceLabel" | "endpointHashPrefix">, duplicatedLabels: Set<string>) {
-  const label = recipient.deviceLabel || "Unknown device";
-  if (duplicatedLabels.has(label) && recipient.endpointHashPrefix) {
-    return `${label} - ${recipient.endpointHashPrefix}`;
+async function currentBrowserEndpointHashPrefix() {
+  if (typeof navigator === "undefined" || !("serviceWorker" in navigator)) {
+    return null;
   }
-  return label;
-}
-
-function recipientsForNotification(notification: PushNotificationDiagnosticGroup): PushRecipientDiagnostic[] {
-  if (Array.isArray(notification.recipients) && notification.recipients.length > 0) {
-    return notification.recipients;
+  try {
+    const subscription = await getCurrentPushSubscription(navigator.serviceWorker, { readyTimeoutMs: 1_000 });
+    return subscription?.endpoint ? await endpointHashPrefixForEndpoint(subscription.endpoint) : null;
+  } catch {
+    return null;
   }
-  return notification.attempts.map((delivery) => ({
-    subscriptionId: delivery.id,
-    deviceLabel: delivery.deviceLabel,
-    userAgent: delivery.userAgent,
-    endpointHashPrefix: delivery.endpointHashPrefix,
-    subscriptionEnabled: delivery.subscriptionEnabled,
-    enabledAt: null,
-    disabledAt: null,
-    status: "attempted",
-    reasonCode: "attempted",
-    reason: "Delivery was attempted for this device.",
-    delivery,
-  }));
 }
 
 function deviceHealthLabel(device: PushDevice) {
@@ -121,6 +110,7 @@ export function PushDeliveryDiagnosticsPanel({ accountState }: Props) {
   const [diagnosticNotifications, setDiagnosticNotifications] = useState<PushNotificationDiagnosticGroup[]>([]);
   const [pushDevices, setPushDevices] = useState<PushDevice[]>([]);
   const [selectedDeviceKey, setSelectedDeviceKey] = useState("all");
+  const [showArchivedDevices, setShowArchivedDevices] = useState(false);
   const [diagnosticsState, setDiagnosticsState] = useState<DiagnosticsLoadState>("idle");
   const [diagnosticsMessage, setDiagnosticsMessage] = useState<string | null>(null);
   const [deviceActionId, setDeviceActionId] = useState<string | null>(null);
@@ -132,6 +122,7 @@ export function PushDeliveryDiagnosticsPanel({ accountState }: Props) {
       setDiagnosticNotifications([]);
       setPushDevices([]);
       setSelectedDeviceKey("all");
+      setShowArchivedDevices(false);
       setDiagnosticsState("idle");
       setDiagnosticsMessage(null);
       setDeviceActionMessage(null);
@@ -143,8 +134,11 @@ export function PushDeliveryDiagnosticsPanel({ accountState }: Props) {
       getPushDeliveryDiagnostics(),
       getPushDevices(),
     ]);
+    const currentEndpointHashPrefix = await currentBrowserEndpointHashPrefix();
+    const nextOptions = diagnosticDeviceOptions(diagnosticsResult.notifications, false);
     setDiagnosticNotifications(diagnosticsResult.notifications);
     setPushDevices(devicesResult.devices);
+    setSelectedDeviceKey(selectedDeviceKeyForCurrentEndpoint(currentEndpointHashPrefix, nextOptions));
     setDiagnosticsState(diagnosticsResult.source === "backend" || devicesResult.source === "backend" ? "backend" : "unavailable");
     setDiagnosticsMessage(diagnosticsResult.message ?? devicesResult.message ?? null);
   }, [accountState.authenticated]);
@@ -197,31 +191,19 @@ export function PushDeliveryDiagnosticsPanel({ accountState }: Props) {
     }
   }, [diagnosticsState, loadDiagnostics]);
 
-  const diagnosticDeviceOptions = useMemo(() => {
-    const recipients = diagnosticNotifications.flatMap(recipientsForNotification);
-    const labelCounts = new Map<string, number>();
-    for (const recipient of recipients) {
-      const label = recipient.deviceLabel || "Unknown device";
-      labelCounts.set(label, (labelCounts.get(label) ?? 0) + 1);
-    }
-    const duplicatedLabels = new Set(
-      [...labelCounts.entries()]
-        .filter(([, count]) => count > 1)
-        .map(([label]) => label)
-    );
-    const options = new Map<string, string>();
-    for (const recipient of recipients) {
-      options.set(diagnosticDeviceKey(recipient), diagnosticDeviceLabel(recipient, duplicatedLabels));
-    }
-    return [
-      { key: "all", label: "All devices" },
-      ...[...options.entries()].map(([key, label]) => ({ key, label })),
-    ];
-  }, [diagnosticNotifications]);
+  const diagnosticDeviceOptionsForView = useMemo(
+    () => diagnosticDeviceOptions(diagnosticNotifications, showArchivedDevices),
+    [diagnosticNotifications, showArchivedDevices]
+  );
+
+  const archivedRecipientCount = useMemo(() => diagnosticNotifications
+    .flatMap(recipientsForNotification)
+    .filter((recipient) => !recipient.subscriptionEnabled)
+    .length, [diagnosticNotifications]);
 
   const visibleNotifications = useMemo(() => diagnosticNotifications
     .map((notification) => {
-      const recipients = recipientsForNotification(notification);
+      const recipients = visibleRecipientsForNotification(notification, showArchivedDevices);
       return {
         ...notification,
         recipients: selectedDeviceKey === "all"
@@ -229,7 +211,7 @@ export function PushDeliveryDiagnosticsPanel({ accountState }: Props) {
           : recipients.filter((recipient) => diagnosticDeviceKey(recipient) === selectedDeviceKey),
       };
     })
-    .filter((notification) => notification.recipients.length > 0), [diagnosticNotifications, selectedDeviceKey]);
+    .filter((notification) => notification.recipients.length > 0), [diagnosticNotifications, selectedDeviceKey, showArchivedDevices]);
 
   const diagnosticsStatusLabel = useMemo(() => {
     if (!accountState.authenticated) return "Sign In";
@@ -345,9 +327,28 @@ export function PushDeliveryDiagnosticsPanel({ accountState }: Props) {
               <p className="push-diagnostics-note">No recent push attempts recorded.</p>
             ) : (
               <div className="push-diagnostics-scroll" aria-label="Recent Push Attempts">
-                {diagnosticDeviceOptions.length > 2 ? (
+                {archivedRecipientCount > 0 ? (
+                  <label className="push-diagnostics-archive-toggle">
+                    <input
+                      type="checkbox"
+                      checked={showArchivedDevices}
+                      onChange={(event) => {
+                        const nextShowArchived = event.currentTarget.checked;
+                        setShowArchivedDevices(nextShowArchived);
+                        if (!nextShowArchived) {
+                          const currentOptions = diagnosticDeviceOptions(diagnosticNotifications, false);
+                          if (!currentOptions.some((option) => option.key === selectedDeviceKey)) {
+                            setSelectedDeviceKey("all");
+                          }
+                        }
+                      }}
+                    />
+                    <span>Show archived devices</span>
+                  </label>
+                ) : null}
+                {diagnosticDeviceOptionsForView.length > 2 ? (
                   <div className="push-diagnostics-filter" role="group" aria-label="Filter notification diagnostics by device">
-                    {diagnosticDeviceOptions.map((option) => (
+                    {diagnosticDeviceOptionsForView.map((option) => (
                       <button
                         type="button"
                         key={option.key}

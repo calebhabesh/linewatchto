@@ -9410,6 +9410,24 @@ button {
   gap: 6px;
 }
 
+.push-diagnostics-archive-toggle {
+  align-items: center;
+  color: var(--quiet);
+  display: inline-flex;
+  font-size: 11px;
+  font-weight: 850;
+  gap: 7px;
+  line-height: 1.2;
+  margin: 0;
+}
+
+.push-diagnostics-archive-toggle input {
+  accent-color: #0ea5e9;
+  height: 14px;
+  margin: 0;
+  width: 14px;
+}
+
 .push-diagnostics-filter button {
   background: rgba(255, 255, 255, 0.78);
   border: 1px solid rgba(15, 23, 42, 0.12);

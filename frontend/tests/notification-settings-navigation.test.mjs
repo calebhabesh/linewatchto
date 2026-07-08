@@ -7,6 +7,7 @@ const moreSheetSource = readFileSync(new URL("../src/components/MobileMoreSheet.
 const savedCommutesSource = readFileSync(new URL("../src/components/SavedCommutesPanel.tsx", import.meta.url), "utf8");
 const notificationPanelSource = readFileSync(new URL("../src/components/NotificationSettingsPanel.tsx", import.meta.url), "utf8");
 const diagnosticsPanelSource = readFileSync(new URL("../src/components/PushDeliveryDiagnosticsPanel.tsx", import.meta.url), "utf8");
+const diagnosticsStateSource = readFileSync(new URL("../src/app/push-diagnostics-state.ts", import.meta.url), "utf8");
 const globalCss = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
 
 describe("notification settings navigation", () => {
@@ -68,6 +69,8 @@ describe("notification settings navigation", () => {
     assert.match(diagnosticsPanelSource, /getPushDevices/);
     assert.match(diagnosticsPanelSource, /disablePushDevice/);
     assert.match(diagnosticsPanelSource, /sendPushDeviceTestNotification/);
+    assert.match(diagnosticsPanelSource, /getCurrentPushSubscription/);
+    assert.match(diagnosticsPanelSource, /endpointHashPrefixForEndpoint/);
     assert.match(diagnosticsPanelSource, /Recent Push Attempts/);
     assert.match(diagnosticsPanelSource, /Registered Devices/);
     assert.match(diagnosticsPanelSource, /acceptedWithoutDisplayCount/);
@@ -76,6 +79,9 @@ describe("notification settings navigation", () => {
     assert.match(diagnosticsPanelSource, /diagnosticDeviceOptions/);
     assert.match(diagnosticsPanelSource, /notification\.recipients/);
     assert.match(diagnosticsPanelSource, /recipient\.reason/);
+    assert.match(diagnosticsPanelSource, /showArchivedDevices/);
+    assert.match(diagnosticsPanelSource, /Show archived devices/);
+    assert.match(diagnosticsStateSource, /Current devices/);
     assert.match(diagnosticsPanelSource, /sourceIncidentKey/);
     assert.doesNotMatch(notificationPanelSource, /getPushDeliveryDiagnostics/);
     assert.doesNotMatch(notificationPanelSource, /Delivery Diagnostics/);
@@ -88,5 +94,6 @@ describe("notification settings navigation", () => {
     assert.match(globalCss, /\.push-device-disable/);
     assert.match(globalCss, /\.push-device-test/);
     assert.match(globalCss, /\.push-diagnostics-recipient/);
+    assert.match(globalCss, /\.push-diagnostics-archive-toggle/);
   });
 });
