@@ -100,9 +100,7 @@ export function MobileStatusSheet({ pollText, dataSource, onOpenCategory, onClos
                 <span
                   className="mobile-line-status-number"
                   style={{ backgroundColor: line.color, color: line.id === "line-1" || line.id === "line-6" ? "#111827" : "#ffffff" }}
-                >
-                  {line.number}
-                </span>
+                >{line.number}</span>
                 <span className="mobile-line-status-copy">
                   <strong>{line.name}</strong>
                   {clear ? <em>Good Service</em> : null}

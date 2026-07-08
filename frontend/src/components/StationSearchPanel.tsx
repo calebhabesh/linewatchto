@@ -53,9 +53,7 @@ function StationLineBadge({ line }: { line: StationSearchLine }) {
       style={{ backgroundColor: line.color, color: lineTextColor(line.id) }}
       aria-label={`Line ${line.number}`}
       title={`Line ${line.number} ${line.name}`}
-    >
-      {line.number}
-    </span>
+    >{line.number}</span>
   );
 }
 
@@ -518,9 +516,7 @@ export function StationSearchPanel({
                       <span
                         className="station-search-line-badge"
                         style={{ backgroundColor: activeLineGroup.line.color, color: lineTextColor(activeLineGroup.line.id) }}
-                      >
-                        {activeLineGroup.line.number}
-                      </span>
+                      >{activeLineGroup.line.number}</span>
                       <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                         {activeLineGroup.line.name} Stations
                       </span>

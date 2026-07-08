@@ -42,9 +42,7 @@ function StationLineBadge({ line }: { line: StationSearchLine }) {
       className="commute-station-line-badge"
       style={{ backgroundColor: line.color, color: lineTextColor(line.id) }}
       aria-hidden="true"
-    >
-      {line.number}
-    </span>
+    >{line.number}</span>
   );
 }
 
@@ -413,9 +411,7 @@ export function SavedCommuteStationPicker({
                                 <span
                                   className="commute-station-line-badge"
                                   style={{ backgroundColor: line.color, color: lineTextColor(line.id) }}
-                                >
-                                  {line.number}
-                                </span>
+                                >{line.number}</span>
                                 <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                                   {line.name} Stations
                                 </span>

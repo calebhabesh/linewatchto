@@ -5206,7 +5206,7 @@ button {
   width: 100%;
 }
 
-.commute-station-line-trigger span,
+.commute-station-line-trigger > span,
 .commute-station-option-name {
   align-items: center;
   display: flex;
@@ -5254,7 +5254,7 @@ button {
   padding: 0 !important;
   flex-shrink: 0;
   aspect-ratio: 1 / 1;
-  line-height: 1 !important;
+  line-height: 0 !important;
   box-sizing: border-box !important;
 }
 

@@ -40,9 +40,7 @@ export function LineStatusPanel() {
                   backgroundColor: line.color,
                   color: line.id === "line-1" ? "#000000" : "#ffffff",
                 }}
-              >
-                {line.number}
-              </span>
+              >{line.number}</span>
               <div className="min-w-0">
                 <strong className="block text-sm font-bold text-slate-800 dark:text-white whitespace-normal break-words">
                   {line.name}
