@@ -2537,7 +2537,7 @@ button {
 }
 
 .dark .commute-grid {
-  background: rgb(10, 12, 16);
+  background: transparent;
 }
 
 .high-contrast .commute-grid {
@@ -8562,10 +8562,10 @@ button {
 
   /* Fixed header layouts for panels on mobile */
   .floating-panel-scroll {
-    overflow-y: hidden !important;
+    overflow: hidden !important;
     display: flex !important;
     flex-direction: column !important;
-    padding: 8px 8px 0 !important;
+    padding: 0 !important;
   }
   .floating-panel-scroll .panel,
   .floating-panel-scroll .commute-panel,
@@ -8575,6 +8575,9 @@ button {
     height: 100% !important;
     max-height: inherit !important;
     overflow: hidden !important;
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
   }
   .panel-heading,
   .mobile-sheet-heading {
@@ -8660,10 +8663,10 @@ button {
     display: flex !important;
     flex-direction: row !important;
     flex-wrap: nowrap !important;
-    align-items: center !important;
+    align-items: stretch !important;
     justify-content: space-between !important;
     gap: 4px !important;
-    padding: 8px 10px !important;
+    padding: 12px 14px !important;
     width: 100% !important;
     box-sizing: border-box !important;
     min-width: 0 !important;
@@ -8678,7 +8681,7 @@ button {
   }
 
   .floating-panel-shell .panel-heading h2 {
-    font-size: clamp(12px, 3.8vw, 15px) !important;
+    font-size: clamp(15px, 4.5vw, 18px) !important;
     white-space: nowrap !important;
     overflow: hidden !important;
     text-overflow: ellipsis !important;
@@ -8686,7 +8689,28 @@ button {
     flex: 1 1 auto !important;
     display: flex !important;
     align-items: center !important;
-    gap: 4px !important;
+    gap: 8px !important;
+  }
+
+  /* Reduced Speed Zones: slight font reduction so the full title fits alongside the source label */
+  .mobile-view-content-wrapper[data-active-view="reduced-speed-zones"] .panel-heading h2 {
+    font-size: clamp(12px, 3.5vw, 15px) !important;
+  }
+
+  /* Streetcar & Bus Notices — mobile renders inside mobile-panel shell, target via data-active-view */
+  .mobile-view-content-wrapper[data-active-view="surface-notices"] .panel-heading h2 {
+    font-size: clamp(11.5px, 3.3vw, 14.5px) !important;
+  }
+
+  /* Allow full "TTC LIVE ALERTS + GTFS-RT" to show (general rule clips at 105px) */
+  .mobile-view-content-wrapper[data-active-view="surface-notices"] .panel-heading span.whitespace-nowrap {
+    max-width: 140px !important;
+  }
+
+  /* Center-align source label for surface-notices and accessibility-outages on mobile */
+  .mobile-view-content-wrapper[data-active-view="surface-notices"] .panel-heading > div:last-child,
+  .mobile-view-content-wrapper[data-active-view="accessibility-outages"] .panel-heading > div:last-child {
+    align-items: center !important;
   }
 
   .floating-panel-shell .panel-heading h2 svg,
@@ -8747,6 +8771,7 @@ button {
     align-items: center !important;
     justify-content: center !important;
     flex-shrink: 0 !important;
+    align-self: center !important;
   }
 
   .floating-panel-shell .panel-heading button svg {
@@ -8754,17 +8779,16 @@ button {
     height: 16px !important;
   }
 
-  .floating-panel-shell .commute-panel .panel-heading h2 {
-    font-size: 18px !important;
-    font-weight: 950 !important;
-    gap: 9px !important;
-  }
-
-  .floating-panel-shell .commute-panel .panel-heading h2 svg {
-    width: 18px !important;
-    height: 18px !important;
+  .floating-panel-shell .commute-panel .panel-heading span.whitespace-nowrap {
+    font-size: clamp(8px, 2.2cqw, 10px) !important;
+    padding: 2px 6px !important;
+    display: inline-block !important;
+    max-width: none !important;
+    overflow: visible !important;
+    margin-bottom: 0 !important;
   }
 }
+
 
 @media (max-width: 767px) {
   .linewatch-shell.mobile-map-inspector {
@@ -9894,9 +9918,6 @@ button {
     height: auto !important;
   }
 
-  .floating-panel-shell[data-floating-panel="mobile-panel"]:has([data-active-view="commutes"]) .floating-panel-scroll {
-    padding: 0 !important;
-  }
 
   .floating-panel-shell[data-floating-panel="mobile-panel"]:has([data-active-view="surface-notices"]) .floating-panel-scroll {
     padding: 0 !important;
