@@ -8710,10 +8710,9 @@ button {
 
   /* Shrink/compact buttons in the header */
   .floating-panel-shell .panel-heading button {
-    padding: 6px !important;
-    margin: 0 !important;
-    width: 32px !important;
-    height: 32px !important;
+    padding: 4px !important;
+    width: 24px !important;
+    height: 24px !important;
     display: inline-flex !important;
     align-items: center !important;
     justify-content: center !important;
@@ -8721,8 +8720,8 @@ button {
   }
 
   .floating-panel-shell .panel-heading button svg {
-    width: 18px !important;
-    height: 18px !important;
+    width: 16px !important;
+    height: 16px !important;
   }
 
   .floating-panel-shell .commute-panel .panel-heading h2 {

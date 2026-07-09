@@ -69,7 +69,7 @@ export function AccessibilityOutagesPanel({
         <div className="flex items-center gap-1 min-w-0">
           <button
             onClick={handleBackClick}
-            className="p-1 sm:p-2 -ml-1 sm:-ml-3 mr-0 sm:mr-1 hover:bg-black/10 dark:hover:bg-white/10 rounded-lg transition-colors cursor-pointer shrink-0"
+            className="p-1 sm:p-2 -ml-1.5 sm:ml-0 mr-1 sm:mr-2 hover:bg-black/10 dark:hover:bg-white/10 rounded-lg transition-colors cursor-pointer shrink-0 flex items-center justify-center"
             aria-label="Back"
           >
             <ChevronLeft className="w-6 h-6 sm:w-7 sm:h-7 text-slate-700 dark:text-slate-300" />
@@ -112,10 +112,10 @@ export function AccessibilityOutagesPanel({
           )}
           <button
             onClick={onClose}
-            className="p-1.5 hover:bg-black/10 dark:hover:bg-white/10 rounded-lg transition-colors cursor-pointer shrink-0"
+            className="p-1 sm:p-2 -mr-1.5 sm:mr-0 ml-1 sm:ml-2 hover:bg-black/10 dark:hover:bg-white/10 rounded-lg transition-colors cursor-pointer shrink-0 flex items-center justify-center"
             aria-label="Close"
           >
-            <X className="w-5 h-5 text-slate-700 dark:text-slate-300" />
+            <X className="w-5 h-5 sm:w-6 sm:h-6 text-slate-700 dark:text-slate-300" />
           </button>
         </div>
       </div>
