@@ -8628,14 +8628,13 @@ button {
   .notification-settings-scroll,
   .accessibility-outages-scroll,
   .surface-notices-scroll,
-  .station-detail-scroll,
   .release-notes-content,
   .privacy-acknowledgements-scroll {
     margin-top: 0px !important;
   }
 
   .station-detail-scroll {
-    padding-top: 12px !important;
+    margin-top: 12px !important;
   }
 
   html:not([data-visual-keyboard="open"]) .station-search-panel:not([data-expanded="true"]):not([data-searching="true"]):not([data-input-focused="true"]) {
