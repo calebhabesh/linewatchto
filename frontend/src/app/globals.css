@@ -8762,8 +8762,10 @@ button {
 
   /* Saved Commutes: slight font reduction so the full title fits alongside the account label */
   .mobile-view-content-wrapper[data-active-view="commutes"] .panel-heading h2 {
-    font-size: clamp(12.5px, 3.5vw, 15.5px) !important;
+    font-size: clamp(14px, 4.1vw, 17px) !important;
   }
+
+
 
 
   /* Allow full "TTC LIVE ALERTS + GTFS-RT" to show (general rule clips at 105px) */
