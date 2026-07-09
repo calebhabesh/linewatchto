@@ -857,13 +857,7 @@ button {
   background: rgba(255, 255, 255, 0.08);
 }
 
-.mobile-status-sheet .mobile-sheet-heading {
-  margin-right: 16px;
-}
-
-.mobile-more-sheet .mobile-sheet-heading {
-  margin-right: 10px;
-}
+/* heading edge-to-edge alignment handled via mobile-specific padding rules */
 
 .floating-panel-shell {
   animation: floating-panel-enter 180ms cubic-bezier(0.22, 1, 0.36, 1);
@@ -7721,7 +7715,8 @@ button {
     display: flex;
     gap: 12px;
     justify-content: space-between;
-    padding-bottom: 10px;
+    margin: -12px -12px 0 -12px;
+    padding: 12px 12px 10px;
   }
 
   .mobile-sheet-heading h2 {
@@ -7920,7 +7915,7 @@ button {
     display: flex;
     flex-direction: column;
     gap: 12px;
-    padding: 12px 2px 12px 12px;
+    padding: 12px;
   }
 
   .mobile-more-brand {
@@ -8621,6 +8616,23 @@ button {
     -webkit-mask-image: linear-gradient(to bottom, black calc(100% - 60px), transparent 100%);
   }
 
+  /* Push scrollbar track down so it starts below the header divider,
+     matching the visual gap in the More menu.
+     Note: no margin-right adjustment needed here — .panel has zero right padding on mobile,
+     so these scroll containers are already flush with the floating-panel-scroll border. */
+  .alert-stack,
+  .closure-stack,
+  .commute-grid,
+  .reliability-list,
+  .notification-settings-scroll,
+  .accessibility-outages-scroll,
+  .surface-notices-scroll,
+  .station-detail-scroll,
+  .release-notes-content,
+  .privacy-acknowledgements-scroll {
+    margin-top: 12px !important;
+  }
+
   html:not([data-visual-keyboard="open"]) .station-search-panel:not([data-expanded="true"]):not([data-searching="true"]):not([data-input-focused="true"]) {
     bottom: calc(var(--mobile-bottom-nav-occupied-height) + 8px) !important;
     height: auto !important;
@@ -8648,14 +8660,16 @@ button {
     display: flex !important;
     flex-direction: column !important;
     gap: 16px !important;
-    padding-right: 10px !important;
+    margin-right: -12px !important;
+    padding-right: 12px !important;
   }
 
   .mobile-status-content-scroll {
     display: flex !important;
     flex-direction: column !important;
     gap: 16px !important;
-    padding-right: 16px !important;
+    margin-right: -12px !important;
+    padding-right: 12px !important;
   }
 
   /* Make panel heading fit on one line and fit within web view on mobile */
