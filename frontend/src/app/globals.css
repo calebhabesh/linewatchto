@@ -8624,13 +8624,18 @@ button {
   .closure-stack,
   .commute-grid,
   .reliability-list,
+  .mobile-more-content-scroll,
   .notification-settings-scroll,
   .accessibility-outages-scroll,
   .surface-notices-scroll,
   .station-detail-scroll,
   .release-notes-content,
   .privacy-acknowledgements-scroll {
-    margin-top: 12px !important;
+    margin-top: 0px !important;
+  }
+
+  .station-detail-scroll {
+    padding-top: 12px !important;
   }
 
   html:not([data-visual-keyboard="open"]) .station-search-panel:not([data-expanded="true"]):not([data-searching="true"]):not([data-input-focused="true"]) {
@@ -8725,6 +8730,15 @@ button {
   .mobile-view-content-wrapper[data-active-view="surface-notices"] .panel-heading > div:last-child,
   .mobile-view-content-wrapper[data-active-view="accessibility-outages"] .panel-heading > div:last-child {
     align-items: center !important;
+  }
+
+  .mobile-view-content-wrapper[data-active-view="surface-notices"] .panel-heading span.whitespace-nowrap,
+  .mobile-view-content-wrapper[data-active-view="accessibility-outages"] .panel-heading span.whitespace-nowrap {
+    display: inline-flex !important;
+    align-items: center !important;
+    align-self: center !important;
+    line-height: 1 !important;
+    margin: 0 !important;
   }
 
   .floating-panel-shell .panel-heading h2 svg,
@@ -9927,9 +9941,13 @@ button {
     height: auto !important;
   }
 
-  .floating-panel-shell[data-floating-panel="mobile-panel"]:has([data-active-view="commutes"]) .floating-panel-scroll,
+  .floating-panel-shell[data-floating-panel="mobile-panel"]:has([data-active-view="commutes"]) .floating-panel-scroll {
+    height: auto !important;
+  }
+
   .floating-panel-shell[data-floating-panel="mobile-panel"]:has([data-active-view="status"]) .floating-panel-scroll {
     height: auto !important;
+    padding-bottom: 12px !important;
   }
 
 
@@ -9938,17 +9956,21 @@ button {
   }
 
   .mobile-view-content-wrapper[data-active-view="commutes"] .commute-grid {
-    margin-top: 4px !important;
-    padding-top: 4px !important;
+    margin-top: 0px !important;
+    padding-top: 12px !important;
     padding-bottom: 12px !important;
     mask-image: none !important;
     -webkit-mask-image: none !important;
   }
 
   .mobile-view-content-wrapper[data-active-view="status"] .mobile-status-content-scroll {
-    padding-bottom: 12px !important;
+    padding-bottom: 0 !important;
     mask-image: none !important;
     -webkit-mask-image: none !important;
+  }
+
+  .mobile-view-content-wrapper[data-active-view="status"] .mobile-status-sheet {
+    padding-bottom: 0 !important;
   }
 }
 
