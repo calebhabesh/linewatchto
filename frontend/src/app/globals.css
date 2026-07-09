@@ -1602,6 +1602,31 @@ button {
   margin: 3px 0 0;
 }
 
+/* Ensure heading text and icons are perfectly center-aligned and remove off-center top margin */
+.panel-heading h1,
+.panel-heading h2 {
+  display: flex !important;
+  align-items: center !important;
+  margin: 0 !important;
+}
+
+.panel-heading h1 > svg,
+.panel-heading h1 > img,
+.panel-heading h2 > svg,
+.panel-heading h2 > img,
+.panel-heading h2 > .delay-tone,
+.panel-heading h2 > .rsz-tone {
+  align-self: center !important;
+  display: inline-block !important;
+}
+
+.panel-heading h1 > span,
+.panel-heading h2 > span {
+  align-self: center !important;
+  line-height: 1 !important;
+  display: inline-block !important;
+}
+
 .panel-title-row h2 {
   font-size: 1rem;
   margin: 0;
@@ -8684,7 +8709,7 @@ button {
     display: flex !important;
     flex-direction: row !important;
     flex-wrap: nowrap !important;
-    align-items: stretch !important;
+    align-items: center !important;
     justify-content: space-between !important;
     gap: 4px !important;
     padding: 12px 14px !important;
@@ -8720,9 +8745,19 @@ button {
     font-size: clamp(12px, 3.5vw, 15px) !important;
   }
 
+  /* Accessibility Outages: slight font reduction so the full title fits alongside the source label */
+  .mobile-view-content-wrapper[data-active-view="accessibility-outages"] .panel-heading h2 {
+    font-size: clamp(12.5px, 3.5vw, 15.5px) !important;
+  }
+
+  /* Upcoming Closures: slight font reduction so the full title fits alongside the source label */
+  .mobile-view-content-wrapper[data-active-view="closures"] .panel-heading h2 {
+    font-size: clamp(13px, 3.7vw, 16px) !important;
+  }
+
   /* Streetcar & Bus Notices — mobile renders inside mobile-panel shell, target via data-active-view */
   .mobile-view-content-wrapper[data-active-view="surface-notices"] .panel-heading h2 {
-    font-size: clamp(11.5px, 3.3vw, 14.5px) !important;
+    font-size: clamp(11px, 2.9vw, 13.5px) !important;
   }
 
   /* Allow full "TTC LIVE ALERTS + GTFS-RT" to show (general rule clips at 105px) */
@@ -8746,10 +8781,11 @@ button {
   }
 
   .floating-panel-shell .panel-heading h2 svg,
+  .floating-panel-shell .panel-heading h2 img,
   .floating-panel-shell .panel-heading h2 .delay-tone,
   .floating-panel-shell .panel-heading h2 .rsz-tone {
-    width: 16px !important;
-    height: 16px !important;
+    width: 18px !important;
+    height: 18px !important;
     flex-shrink: 0 !important;
   }
 

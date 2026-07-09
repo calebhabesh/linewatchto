@@ -33,7 +33,7 @@ export function DelaysPanel({ selection, onSelectImpact, onBack, onClose, onFocu
   return (
     <section className="panel min-w-0 border border-black/10 dark:border-white/10 rounded-lg shadow-xl">
       <div className="panel-heading @container border-b border-black/10 dark:border-white/10 px-3 py-2 sm:px-4 sm:py-3 flex items-center justify-between gap-1 sm:gap-3 min-w-0">
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1 min-w-0">
           {onBack && (
             <button
               onClick={onBack}
