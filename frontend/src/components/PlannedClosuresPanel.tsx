@@ -69,7 +69,7 @@ export function PlannedClosuresPanel({ selection, onSelectImpact, onBack, onClos
       <div className={`closure-stack min-w-0 p-3 flex flex-col gap-2 ${plannedClosures.length === 0 ? "is-empty" : ""}`}>
         {plannedClosures.length === 0 ? (
           <div className="text-center py-4 text-sm text-slate-500 dark:text-slate-400 font-medium">
-            No upcoming closures
+            No Upcoming Closures
           </div>
         ) : (
           plannedClosures.map((closure) => {

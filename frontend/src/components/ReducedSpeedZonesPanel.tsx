@@ -80,7 +80,7 @@ export function ReducedSpeedZonesPanel({
       <div className={`alert-stack min-w-0 p-3 flex flex-col gap-2 ${reducedSpeedZones.length === 0 ? "is-empty" : ""}`}>
         {reducedSpeedZones.length === 0 ? (
           <div className="text-center py-4 text-sm text-slate-500 dark:text-slate-400 font-medium">
-            No reduced speed zones
+            No Reduced Speed Zones
           </div>
         ) : (
           reducedSpeedZones.map((zone) => {
