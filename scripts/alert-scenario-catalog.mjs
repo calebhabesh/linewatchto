@@ -19,7 +19,7 @@ export const scenarioNames = [
 
 export const scenarioExpectations = {
   "all-alert-types": {
-    routeCount: 18,
+    routeCount: 20,
     accessibilityCount: 2,
     impactKinds: ["suspension", "delay", "reduced-speed-zone", "planned-closure"],
     directionCoverage: {
@@ -38,6 +38,16 @@ export const scenarioExpectations = {
       },
       "suspension-directional-segment": {
         sourceId: "scenario-active-line-1-king-union",
+        sourceKind: MODELED_GAP_FILL_SOURCE_KIND,
+        modeledFromSourceId: "synthetic-rsz-line-1",
+      },
+      "suspension-four-way-junction-station-line-1": {
+        sourceId: "scenario-station-node-bloor-yonge-line-1",
+        sourceKind: MODELED_GAP_FILL_SOURCE_KIND,
+        modeledFromSourceId: "synthetic-rsz-line-1",
+      },
+      "suspension-four-way-junction-station-line-2": {
+        sourceId: "scenario-station-node-bloor-yonge-line-2",
         sourceKind: MODELED_GAP_FILL_SOURCE_KIND,
         modeledFromSourceId: "synthetic-rsz-line-1",
       },
@@ -402,6 +412,34 @@ function allAlertTypes(now) {
       shuttleType: "Ordered",
       shuttleStart: "Museum",
       shuttleEnd: "St George",
+    }),
+    activeGapFillRoute(now, {
+      id: "scenario-station-node-bloor-yonge-line-1",
+      route: "1",
+      stopStart: "Bloor-Yonge",
+      stopEnd: "Bloor-Yonge",
+      stopIDList: ["Bloor-Yonge"],
+      title: "Trains are not stopping at Bloor-Yonge station due to a security incident.",
+      headerText: "Line 1 Yonge-University: Trains are not stopping at Bloor-Yonge station due to a security incident.",
+      effect: "NO_SERVICE",
+      effectDesc: "No Service",
+      direction: "Both ways",
+      cause: "SECURITY_INCIDENT",
+      causeDescription: "Security incident",
+    }),
+    activeGapFillRoute(now, {
+      id: "scenario-station-node-bloor-yonge-line-2",
+      route: "2",
+      stopStart: "Bloor-Yonge",
+      stopEnd: "Bloor-Yonge",
+      stopIDList: ["Bloor-Yonge"],
+      title: "Trains are not stopping at Bloor-Yonge station due to a security incident.",
+      headerText: "Line 2 Bloor-Danforth: Trains are not stopping at Bloor-Yonge station due to a security incident.",
+      effect: "NO_SERVICE",
+      effectDesc: "No Service",
+      direction: "Both ways",
+      cause: "SECURITY_INCIDENT",
+      causeDescription: "Security incident",
     }),
     activeGapFillRoute(now, {
       id: "scenario-delay-line-4",

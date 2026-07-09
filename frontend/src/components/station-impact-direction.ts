@@ -11,8 +11,17 @@ export type StationImpactArrowDirection =
   | "right"
   | "up"
   | "down"
+  | "up-left"
+  | "up-right"
+  | "down-left"
+  | "down-right"
   | "horizontal-bidirectional"
-  | "vertical-bidirectional";
+  | "vertical-bidirectional"
+  | "three-way-no-left"
+  | "three-way-no-right"
+  | "three-way-no-up"
+  | "three-way-no-down"
+  | "four-way";
 
 export type StationImpactDirectionArrow = {
   direction: StationImpactArrowDirection;
@@ -37,6 +46,13 @@ export type StationImpactDirectionDetails = {
   displayDirection: string;
   arrow: StationImpactDirectionArrow;
 };
+
+export type StationImpactDirectionSummary = {
+  displayDirection: string;
+  arrow: StationImpactDirectionArrow;
+};
+
+type CardinalDirection = "left" | "right" | "up" | "down";
 
 const HORIZONTAL_LINE_IDS = new Set(["line-2", "line-4", "line-5", "line-6"]);
 const VERTICAL_LINE_IDS = new Set(["line-1"]);
@@ -66,6 +82,44 @@ export function stationImpactDirectionForImpact(
     lineId: source.lineId,
     displayDirection: source.displayDirection,
     arrow,
+  };
+}
+
+export function stationImpactDirectionForStationImpacts(
+  impacts: Array<Pick<StationNodeImpact, "stationId" | "kind" | "cardId">>,
+  data: StationImpactDirectionData,
+): StationImpactDirectionSummary | null {
+  const directions = new Set<CardinalDirection>();
+  const directionLabels: string[] = [];
+  const seenLabels = new Set<string>();
+  const seenImpacts = new Set<string>();
+
+  for (const impact of impacts) {
+    const impactKey = `${impact.stationId}:${impact.kind}:${impact.cardId}`;
+    if (seenImpacts.has(impactKey)) continue;
+    seenImpacts.add(impactKey);
+
+    const details = stationImpactDirectionForImpact(impact, data);
+    if (!details) continue;
+
+    for (const direction of cardinalDirectionsForArrow(details.arrow.direction)) {
+      directions.add(direction);
+    }
+
+    const label = details.displayDirection.trim();
+    const normalizedLabel = label.toLowerCase().replace(/\s+/g, " ");
+    if (label && !seenLabels.has(normalizedLabel)) {
+      seenLabels.add(normalizedLabel);
+      directionLabels.push(label);
+    }
+  }
+
+  const aggregateDirection = arrowForCardinalDirections(directions);
+  if (!aggregateDirection) return null;
+
+  return {
+    displayDirection: directionLabels.join("; "),
+    arrow: arrow(aggregateDirection, directionLabels.join("; ") || "Station impact"),
   };
 }
 
@@ -176,6 +230,75 @@ function bidirectionalArrowForLine(
   }
 
   return null;
+}
+
+function cardinalDirectionsForArrow(direction: StationImpactArrowDirection): CardinalDirection[] {
+  switch (direction) {
+    case "left":
+      return ["left"];
+    case "right":
+      return ["right"];
+    case "up":
+      return ["up"];
+    case "down":
+      return ["down"];
+    case "up-left":
+      return ["up", "left"];
+    case "up-right":
+      return ["up", "right"];
+    case "down-left":
+      return ["down", "left"];
+    case "down-right":
+      return ["down", "right"];
+    case "horizontal-bidirectional":
+      return ["left", "right"];
+    case "vertical-bidirectional":
+      return ["up", "down"];
+    case "three-way-no-left":
+      return ["right", "up", "down"];
+    case "three-way-no-right":
+      return ["left", "up", "down"];
+    case "three-way-no-up":
+      return ["left", "right", "down"];
+    case "three-way-no-down":
+      return ["left", "right", "up"];
+    case "four-way":
+      return ["left", "right", "up", "down"];
+  }
+}
+
+function arrowForCardinalDirections(
+  directions: Set<CardinalDirection>,
+): StationImpactArrowDirection | null {
+  const left = directions.has("left");
+  const right = directions.has("right");
+  const up = directions.has("up");
+  const down = directions.has("down");
+  const count = Number(left) + Number(right) + Number(up) + Number(down);
+
+  if (count === 0) return null;
+  if (count === 4) return "four-way";
+
+  if (count === 1) {
+    if (left) return "left";
+    if (right) return "right";
+    if (up) return "up";
+    return "down";
+  }
+
+  if (count === 2) {
+    if (left && right) return "horizontal-bidirectional";
+    if (up && down) return "vertical-bidirectional";
+    if (up && left) return "up-left";
+    if (up && right) return "up-right";
+    if (down && left) return "down-left";
+    return "down-right";
+  }
+
+  if (!left) return "three-way-no-left";
+  if (!right) return "three-way-no-right";
+  if (!up) return "three-way-no-up";
+  return "three-way-no-down";
 }
 
 function isBidirectionalLabel(normalized: string): boolean {

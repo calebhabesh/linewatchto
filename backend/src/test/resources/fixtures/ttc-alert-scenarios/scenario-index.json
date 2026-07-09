@@ -4,7 +4,7 @@
     {
       "name": "all-alert-types",
       "file": "all-alert-types.json",
-      "routeCount": 18,
+      "routeCount": 20,
       "accessibilityCount": 2,
       "impactKinds": [
         "suspension",
@@ -47,6 +47,16 @@
         },
         "suspension-directional-segment": {
           "sourceId": "scenario-active-line-1-king-union",
+          "sourceKind": "modeled-gap-fill",
+          "modeledFromSourceId": "synthetic-rsz-line-1"
+        },
+        "suspension-four-way-junction-station-line-1": {
+          "sourceId": "scenario-station-node-bloor-yonge-line-1",
+          "sourceKind": "modeled-gap-fill",
+          "modeledFromSourceId": "synthetic-rsz-line-1"
+        },
+        "suspension-four-way-junction-station-line-2": {
+          "sourceId": "scenario-station-node-bloor-yonge-line-2",
           "sourceKind": "modeled-gap-fill",
           "modeledFromSourceId": "synthetic-rsz-line-1"
         },

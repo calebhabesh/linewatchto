@@ -4,6 +4,7 @@ import { describe, it } from "node:test";
 import {
   stationImpactDirectionArrow,
   stationImpactDirectionForImpact,
+  stationImpactDirectionForStationImpacts,
 } from "../src/components/station-impact-direction.ts";
 
 describe("station impact map direction arrows", () => {
@@ -103,5 +104,110 @@ describe("station impact map direction arrows", () => {
   it("does not invent an arrow when the source direction is unavailable", () => {
     assert.equal(stationImpactDirectionArrow("line-1", null), null);
     assert.equal(stationImpactDirectionArrow("line-1", "Direction not specified"), null);
+  });
+
+  it("combines junction station card directions into a four-way arrow", () => {
+    const details = stationImpactDirectionForStationImpacts(
+      [
+        {
+          stationId: "bloor-yonge",
+          kind: "delay",
+          cardId: "delay-at-bloor-yonge-line-1",
+        },
+        {
+          stationId: "bloor-yonge",
+          kind: "delay",
+          cardId: "delay-at-bloor-yonge-line-2",
+        },
+      ],
+      {
+        activeAlerts: [],
+        delays: [
+          {
+            id: "delay-at-bloor-yonge-line-1",
+            lineId: "line-1",
+            displayDirection: "Northbound & Southbound",
+          },
+          {
+            id: "delay-at-bloor-yonge-line-2",
+            lineId: "line-2",
+            displayDirection: "Eastbound & Westbound",
+          },
+        ],
+        reducedSpeedZones: [],
+        plannedClosures: [],
+      },
+    );
+
+    assert.equal(details?.arrow.direction, "four-way");
+    assert.equal(details?.displayDirection, "Northbound & Southbound; Eastbound & Westbound");
+  });
+
+  it("combines junction station card directions into adjacent two-way and three-way arrows", () => {
+    const data = {
+      activeAlerts: [],
+      delays: [
+        {
+          id: "northbound",
+          lineId: "line-1",
+          displayDirection: "Northbound",
+        },
+        {
+          id: "eastbound",
+          lineId: "line-2",
+          displayDirection: "Eastbound",
+        },
+        {
+          id: "southbound",
+          lineId: "line-1",
+          displayDirection: "Southbound",
+        },
+      ],
+      reducedSpeedZones: [],
+      plannedClosures: [],
+    };
+
+    assert.equal(
+      stationImpactDirectionForStationImpacts(
+        [
+          {
+            stationId: "bloor-yonge",
+            kind: "delay",
+            cardId: "northbound",
+          },
+          {
+            stationId: "bloor-yonge",
+            kind: "delay",
+            cardId: "eastbound",
+          },
+        ],
+        data,
+      )?.arrow.direction,
+      "up-right",
+    );
+
+    assert.equal(
+      stationImpactDirectionForStationImpacts(
+        [
+          {
+            stationId: "bloor-yonge",
+            kind: "delay",
+            cardId: "northbound",
+          },
+          {
+            stationId: "bloor-yonge",
+            kind: "delay",
+            cardId: "eastbound",
+          },
+          {
+            stationId: "bloor-yonge",
+            kind: "delay",
+            cardId: "southbound",
+          },
+        ],
+        data,
+      )?.arrow.direction,
+      "three-way-no-left",
+    );
   });
 });

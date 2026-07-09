@@ -24,7 +24,7 @@ describe("alert scenario catalog", () => {
   it("makes all-alert-types cover every backend-to-map alert surface", () => {
     const scenario = index.scenarios.find((candidate) => candidate.name === "all-alert-types");
     assert.ok(scenario);
-    assert.equal(scenario.routeCount, 18);
+    assert.equal(scenario.routeCount, 20);
     assert.equal(scenario.accessibilityCount, 2);
     assert.deepEqual(scenario.directionCoverage, {
       "delay": ["bidirectional", "directional"],
@@ -50,6 +50,8 @@ describe("alert scenario catalog", () => {
         "reduced-speed-zone-directionless",
         "suspension-bidirectional-segment",
         "suspension-directional-segment",
+        "suspension-four-way-junction-station-line-1",
+        "suspension-four-way-junction-station-line-2",
       ],
     );
     assert.equal(scenario.coverageMatrix["planned-closure-bidirectional"].sourceKind, "synthetic-template");
@@ -58,6 +60,8 @@ describe("alert scenario catalog", () => {
     assert.equal(scenario.coverageMatrix["accessibility-escalator"].sourceKind, "synthetic-template");
     assert.equal(scenario.coverageMatrix["delay-bidirectional-station"].sourceKind, "modeled-gap-fill");
     assert.equal(scenario.coverageMatrix["delay-directional-station"].sourceKind, "modeled-gap-fill");
+    assert.equal(scenario.coverageMatrix["suspension-four-way-junction-station-line-1"].sourceKind, "modeled-gap-fill");
+    assert.equal(scenario.coverageMatrix["suspension-four-way-junction-station-line-2"].sourceKind, "modeled-gap-fill");
     assert.equal(scenario.coverageMatrix["reduced-speed-zone-directionless"].sourceKind, "modeled-gap-fill");
     assert.deepEqual(
       [...scenario.guidePathIds].sort(),
@@ -117,6 +121,16 @@ describe("alert scenario catalog", () => {
     assert.equal(routesById.get("scenario-active-line-1-king-union")?.effect, "NO_SERVICE");
     assert.equal(routesById.get("scenario-active-line-1-king-union")?.direction, "Southbound");
     assert.deepEqual(routesById.get("scenario-active-line-1-king-union")?.stopIDList, ["King", "Union"]);
+    assert.equal(routesById.get("scenario-station-node-bloor-yonge-line-1")?.stopStart, "Bloor-Yonge");
+    assert.equal(routesById.get("scenario-station-node-bloor-yonge-line-1")?.stopEnd, "Bloor-Yonge");
+    assert.deepEqual(routesById.get("scenario-station-node-bloor-yonge-line-1")?.stopIDList, ["Bloor-Yonge"]);
+    assert.equal(routesById.get("scenario-station-node-bloor-yonge-line-1")?.direction, "Both ways");
+    assert.equal(routesById.get("scenario-station-node-bloor-yonge-line-1")?.effect, "NO_SERVICE");
+    assert.equal(routesById.get("scenario-station-node-bloor-yonge-line-2")?.stopStart, "Bloor-Yonge");
+    assert.equal(routesById.get("scenario-station-node-bloor-yonge-line-2")?.stopEnd, "Bloor-Yonge");
+    assert.deepEqual(routesById.get("scenario-station-node-bloor-yonge-line-2")?.stopIDList, ["Bloor-Yonge"]);
+    assert.equal(routesById.get("scenario-station-node-bloor-yonge-line-2")?.direction, "Both ways");
+    assert.equal(routesById.get("scenario-station-node-bloor-yonge-line-2")?.effect, "NO_SERVICE");
     assert.equal(routesById.get("scenario-delay-line-1-union-st-andrew")?.effectDesc, "Delays");
     assert.equal(routesById.get("scenario-delay-line-1-union-st-andrew")?.direction, "Northbound");
     assert.deepEqual(routesById.get("scenario-delay-line-1-union-st-andrew")?.stopIDList, ["Union", "St Andrew"]);

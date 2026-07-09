@@ -43,7 +43,7 @@ class TtcAlertScenarioCatalogTest {
 
     static Stream<Arguments> scenarios() {
         return Stream.of(
-            Arguments.of("all-alert-types.json", 18, 2, EnumSet.of(
+            Arguments.of("all-alert-types.json", 20, 2, EnumSet.of(
                 AlertImpactKind.SUSPENSION,
                 AlertImpactKind.DELAY,
                 AlertImpactKind.REDUCED_SPEED_ZONE,
@@ -121,6 +121,8 @@ class TtcAlertScenarioCatalogTest {
                 "delay-directional-segment",
                 "delay-directional-station",
                 "delay-bidirectional-station",
+                "suspension-four-way-junction-station-line-1",
+                "suspension-four-way-junction-station-line-2",
                 "reduced-speed-zone-directional",
                 "reduced-speed-zone-bidirectional",
                 "reduced-speed-zone-directionless",
@@ -140,6 +142,10 @@ class TtcAlertScenarioCatalogTest {
         assertThat(coverageMatrix.get("delay-bidirectional-station").get("sourceKind").asText())
             .isEqualTo("modeled-gap-fill");
         assertThat(coverageMatrix.get("delay-directional-station").get("sourceKind").asText())
+            .isEqualTo("modeled-gap-fill");
+        assertThat(coverageMatrix.get("suspension-four-way-junction-station-line-1").get("sourceKind").asText())
+            .isEqualTo("modeled-gap-fill");
+        assertThat(coverageMatrix.get("suspension-four-way-junction-station-line-2").get("sourceKind").asText())
             .isEqualTo("modeled-gap-fill");
         assertThat(coverageMatrix.get("reduced-speed-zone-directionless").get("sourceKind").asText())
             .isEqualTo("modeled-gap-fill");
@@ -214,6 +220,26 @@ class TtcAlertScenarioCatalogTest {
                 assertThat(alert.stationIds()).containsExactly("king", "union");
                 assertThat(alert.impactKind()).isEqualTo(AlertImpactKind.SUSPENSION);
                 assertThat(alert.direction()).isEqualTo(AlertDirection.SOUTHBOUND);
+            });
+        assertThat(routeAlerts)
+            .filteredOn(alert -> alert.sourceId().equals("scenario-station-node-bloor-yonge-line-1"))
+            .singleElement()
+            .satisfies(alert -> {
+                assertThat(alert.startStationId()).isEqualTo("bloor-yonge");
+                assertThat(alert.endStationId()).isEqualTo("bloor-yonge");
+                assertThat(alert.stationIds()).containsExactly("bloor-yonge");
+                assertThat(alert.impactKind()).isEqualTo(AlertImpactKind.SUSPENSION);
+                assertThat(alert.direction()).isEqualTo(AlertDirection.BIDIRECTIONAL);
+            });
+        assertThat(routeAlerts)
+            .filteredOn(alert -> alert.sourceId().equals("scenario-station-node-bloor-yonge-line-2"))
+            .singleElement()
+            .satisfies(alert -> {
+                assertThat(alert.startStationId()).isEqualTo("bloor-yonge");
+                assertThat(alert.endStationId()).isEqualTo("bloor-yonge");
+                assertThat(alert.stationIds()).containsExactly("bloor-yonge");
+                assertThat(alert.impactKind()).isEqualTo(AlertImpactKind.SUSPENSION);
+                assertThat(alert.direction()).isEqualTo(AlertDirection.BIDIRECTIONAL);
             });
         assertThat(routeAlerts)
             .noneMatch(alert -> alert.sourceId().equals("scenario-active-line-1-st-andrew-union"));

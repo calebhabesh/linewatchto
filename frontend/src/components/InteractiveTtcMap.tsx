@@ -47,6 +47,7 @@ import {
 } from "./map-overlap-badges";
 import {
   stationImpactDirectionForImpact,
+  stationImpactDirectionForStationImpacts,
   type StationImpactArrowDirection,
 } from "./station-impact-direction";
 import {
@@ -180,6 +181,18 @@ function isStationVisuallyLarge(station: { id: string; interchange: boolean }): 
     return false;
   }
   return station.interchange;
+}
+
+function stationImpactEffectRadius(isLargeStation: boolean): number {
+  return isLargeStation ? 48 : 26;
+}
+
+function stationImpactDirectionBadgeRadius(isLargeStation: boolean): number {
+  return isLargeStation ? 40 : 24;
+}
+
+function stationImpactRingRadius(isLargeStation: boolean): number {
+  return isLargeStation ? 56 : 38;
 }
 
 function InteractiveTtcMapComponent({
@@ -655,6 +668,39 @@ function InteractiveTtcMapComponent({
   const retainedStationNodeImpacts = useRetainedMapLayers(
     stationNodeImpacts,
     useCallback((impact) => `${impact.kind}:${impact.cardId}:${impact.stationId}`, []),
+  );
+
+  const stationImpactDirectionLayers = useMemo<StationImpactDirectionLayer[]>(() => {
+    const impactsByStation = new Map<string, typeof stationNodeImpacts>();
+
+    for (const impact of stationNodeImpacts) {
+      impactsByStation.set(impact.stationId, [
+        ...(impactsByStation.get(impact.stationId) ?? []),
+        impact,
+      ]);
+    }
+
+    return Array.from(impactsByStation.entries())
+      .map(([stationId, impacts]) => {
+        const direction = stationImpactDirectionForStationImpacts(impacts, {
+          activeAlerts,
+          delays,
+          reducedSpeedZones,
+          plannedClosures,
+        });
+        if (!direction) return null;
+
+        return {
+          stationId,
+          arrow: direction.arrow.direction,
+        };
+      })
+      .filter((layer): layer is StationImpactDirectionLayer => Boolean(layer));
+  }, [activeAlerts, delays, plannedClosures, reducedSpeedZones, stationNodeImpacts]);
+
+  const retainedStationImpactDirectionLayers = useRetainedMapLayers(
+    stationImpactDirectionLayers,
+    useCallback((layer) => layer.stationId, []),
   );
 
   const commutePreviewLayer = useMemo(() => {
@@ -1230,6 +1276,8 @@ function InteractiveTtcMapComponent({
                   const selected = selection?.kind === impact.kind && selection.id === impact.cardId;
                   const point = stationPointFor(station);
                   const isLarge = isStationVisuallyLarge(station);
+                  const effectRadius = stationImpactEffectRadius(isLarge);
+                  const impactRingRadius = stationImpactRingRadius(isLarge);
                   const impactDirection = stationImpactDirectionForImpact(impact, {
                     activeAlerts,
                     delays,
@@ -1252,7 +1300,7 @@ function InteractiveTtcMapComponent({
                           className="station-selection-flash"
                           cx={point.x}
                           cy={point.y}
-                          r={isLarge ? 48 : 38}
+                          r={impactRingRadius}
                           pointerEvents="none"
                         />
                       )}
@@ -1261,7 +1309,7 @@ function InteractiveTtcMapComponent({
                         className={`station-impact-ring ${impact.kind} ${selected ? "selected" : ""}`}
                         cx={point.x}
                         cy={point.y}
-                        r={isLarge ? 48 : 38}
+                        r={impactRingRadius}
                         fill="none"
                         onClick={(event) => {
                           if (exiting) return;
@@ -1284,31 +1332,47 @@ function InteractiveTtcMapComponent({
                         className="station-impact-dot-red-glow"
                         cx={point.x}
                         cy={point.y}
-                        r={isLarge ? 34 : 26}
+                        r={effectRadius}
                         pointerEvents="none"
                       />
                       <circle
                         className="station-impact-dot-red-ping"
                         cx={point.x}
                         cy={point.y}
-                        r={isLarge ? 34 : 26}
+                        r={effectRadius}
                         pointerEvents="none"
                       />
                       <circle
                         className="station-impact-dot-red-beacon"
                         cx={point.x}
                         cy={point.y}
-                        r={isLarge ? 34 : 26}
+                        r={effectRadius}
                         pointerEvents="none"
                       />
-                      {impactDirection ? (
-                        <StationImpactDirectionGlyph
-                          x={point.x}
-                          y={point.y}
-                          direction={impactDirection.arrow.direction}
-                          radius={isLarge ? 29 : 24}
-                        />
-                      ) : null}
+                    </g>
+                  );
+                })}
+              </g>
+              <g aria-label="Station impact direction glyphs">
+                {retainedStationImpactDirectionLayers.map(({ key, item: impactDirection, exiting }) => {
+                  const station = stationBySummaryId.get(impactDirection.stationId);
+                  if (!station) return null;
+                  const point = stationPointFor(station);
+                  const isLarge = isStationVisuallyLarge(station);
+                  const badgeRadius = stationImpactDirectionBadgeRadius(isLarge);
+
+                  return (
+                    <g
+                      key={key}
+                      className={exiting ? "map-layer-exiting" : "map-layer-current"}
+                      style={exiting ? { pointerEvents: "none" } : undefined}
+                    >
+                      <StationImpactDirectionGlyph
+                        x={point.x}
+                        y={point.y}
+                        direction={impactDirection.arrow}
+                        radius={badgeRadius}
+                      />
                     </g>
                   );
                 })}
@@ -1346,6 +1410,11 @@ type RenderedImpactLayer = {
 type RenderedPlannedPreviewLayer = {
   segment: RenderedNetworkSegment;
   closure: PlannedClosure;
+};
+
+type StationImpactDirectionLayer = {
+  stationId: string;
+  arrow: StationImpactArrowDirection;
 };
 
 type SvgBounds = MapBounds;
@@ -2672,25 +2741,134 @@ function StationImpactDirectionGlyph({
       transform={`translate(${x} ${y})`}
     >
       <circle className="station-impact-direction-badge" r={radius} />
-      <path className="station-impact-direction-arrow" d={stationImpactDirectionPath(direction)} />
+      <path className="station-impact-direction-arrow" d={stationImpactDirectionPath(direction, radius)} />
     </g>
   );
 }
 
-function stationImpactDirectionPath(direction: StationImpactArrowDirection): string {
+const FOUR_WAY_STATION_IMPACT_ARROW_SCALE = 0.94;
+
+function stationImpactDirectionPath(direction: StationImpactArrowDirection, radius: number): string {
+  const parts = stationImpactDirectionParts(direction);
+  const pathMetricsRadius =
+    direction === "four-way" ? radius * FOUR_WAY_STATION_IMPACT_ARROW_SCALE : radius;
+  const metrics = stationImpactDirectionMetrics(pathMetricsRadius);
+
+  if (parts.length === 1) {
+    return stationImpactDirectionCenteredPartPath(parts[0], metrics);
+  }
+
+  if (direction === "horizontal-bidirectional") {
+    return [
+      `M -${metrics.extent} 0 H ${metrics.extent}`,
+      `M -${metrics.extent - metrics.headInset} -${metrics.headHalf} L -${metrics.extent} 0 L -${metrics.extent - metrics.headInset} ${metrics.headHalf}`,
+      `M ${metrics.extent - metrics.headInset} -${metrics.headHalf} L ${metrics.extent} 0 L ${metrics.extent - metrics.headInset} ${metrics.headHalf}`,
+    ].join(" ");
+  }
+
+  if (direction === "vertical-bidirectional") {
+    return [
+      `M 0 -${metrics.extent} V ${metrics.extent}`,
+      `M -${metrics.headHalf} -${metrics.extent - metrics.headInset} L 0 -${metrics.extent} L ${metrics.headHalf} -${metrics.extent - metrics.headInset}`,
+      `M -${metrics.headHalf} ${metrics.extent - metrics.headInset} L 0 ${metrics.extent} L ${metrics.headHalf} ${metrics.extent - metrics.headInset}`,
+    ].join(" ");
+  }
+
+  if (direction === "four-way") {
+    return [
+      `M -${metrics.extent} 0 H ${metrics.extent}`,
+      `M 0 -${metrics.extent} V ${metrics.extent}`,
+      `M -${metrics.extent - metrics.headInset} -${metrics.headHalf} L -${metrics.extent} 0 L -${metrics.extent - metrics.headInset} ${metrics.headHalf}`,
+      `M ${metrics.extent - metrics.headInset} -${metrics.headHalf} L ${metrics.extent} 0 L ${metrics.extent - metrics.headInset} ${metrics.headHalf}`,
+      `M -${metrics.headHalf} -${metrics.extent - metrics.headInset} L 0 -${metrics.extent} L ${metrics.headHalf} -${metrics.extent - metrics.headInset}`,
+      `M -${metrics.headHalf} ${metrics.extent - metrics.headInset} L 0 ${metrics.extent} L ${metrics.headHalf} ${metrics.extent - metrics.headInset}`,
+    ].join(" ");
+  }
+
+  return parts
+    .map((part) => stationImpactDirectionSpokePartPath(part, metrics))
+    .join(" ");
+}
+
+function stationImpactDirectionParts(direction: StationImpactArrowDirection): Array<"left" | "right" | "up" | "down"> {
   switch (direction) {
     case "left":
-      return "M 10 0 H -13 M -5 -8 L -13 0 L -5 8";
+      return ["left"];
     case "right":
-      return "M -10 0 H 13 M 5 -8 L 13 0 L 5 8";
+      return ["right"];
     case "up":
-      return "M 0 10 V -13 M -8 -5 L 0 -13 L 8 -5";
+      return ["up"];
     case "down":
-      return "M 0 -10 V 13 M -8 5 L 0 13 L 8 5";
+      return ["down"];
+    case "up-left":
+      return ["left", "up"];
+    case "up-right":
+      return ["right", "up"];
+    case "down-left":
+      return ["left", "down"];
+    case "down-right":
+      return ["right", "down"];
     case "horizontal-bidirectional":
-      return "M -16 0 H 16 M -8 -8 L -16 0 L -8 8 M 8 -8 L 16 0 L 8 8";
+      return ["left", "right"];
     case "vertical-bidirectional":
-      return "M 0 -16 V 16 M -8 -8 L 0 -16 L 8 -8 M -8 8 L 0 16 L 8 8";
+      return ["up", "down"];
+    case "three-way-no-left":
+      return ["right", "up", "down"];
+    case "three-way-no-right":
+      return ["left", "up", "down"];
+    case "three-way-no-up":
+      return ["left", "right", "down"];
+    case "three-way-no-down":
+      return ["left", "right", "up"];
+    case "four-way":
+      return ["left", "right", "up", "down"];
+  }
+}
+
+function stationImpactDirectionMetrics(radius: number): {
+  extent: number;
+  gap: number;
+  headInset: number;
+  headHalf: number;
+} {
+  const extent = Math.round(radius * 0.75);
+  return {
+    extent,
+    gap: Math.max(4, Math.round(radius * 0.17)),
+    headInset: Math.max(8, Math.round(extent * 0.42)),
+    headHalf: Math.max(8, Math.round(radius * 0.25)),
+  };
+}
+
+function stationImpactDirectionCenteredPartPath(
+  direction: "left" | "right" | "up" | "down",
+  metrics: ReturnType<typeof stationImpactDirectionMetrics>,
+): string {
+  switch (direction) {
+    case "left":
+      return `M ${metrics.extent} 0 H -${metrics.extent} M -${metrics.extent - metrics.headInset} -${metrics.headHalf} L -${metrics.extent} 0 L -${metrics.extent - metrics.headInset} ${metrics.headHalf}`;
+    case "right":
+      return `M -${metrics.extent} 0 H ${metrics.extent} M ${metrics.extent - metrics.headInset} -${metrics.headHalf} L ${metrics.extent} 0 L ${metrics.extent - metrics.headInset} ${metrics.headHalf}`;
+    case "up":
+      return `M 0 ${metrics.extent} V -${metrics.extent} M -${metrics.headHalf} -${metrics.extent - metrics.headInset} L 0 -${metrics.extent} L ${metrics.headHalf} -${metrics.extent - metrics.headInset}`;
+    case "down":
+      return `M 0 -${metrics.extent} V ${metrics.extent} M -${metrics.headHalf} ${metrics.extent - metrics.headInset} L 0 ${metrics.extent} L ${metrics.headHalf} ${metrics.extent - metrics.headInset}`;
+  }
+}
+
+function stationImpactDirectionSpokePartPath(
+  direction: "left" | "right" | "up" | "down",
+  metrics: ReturnType<typeof stationImpactDirectionMetrics>,
+): string {
+  switch (direction) {
+    case "left":
+      return `M -${metrics.gap} 0 H -${metrics.extent} M -${metrics.extent - metrics.headInset} -${metrics.headHalf} L -${metrics.extent} 0 L -${metrics.extent - metrics.headInset} ${metrics.headHalf}`;
+    case "right":
+      return `M ${metrics.gap} 0 H ${metrics.extent} M ${metrics.extent - metrics.headInset} -${metrics.headHalf} L ${metrics.extent} 0 L ${metrics.extent - metrics.headInset} ${metrics.headHalf}`;
+    case "up":
+      return `M 0 -${metrics.gap} V -${metrics.extent} M -${metrics.headHalf} -${metrics.extent - metrics.headInset} L 0 -${metrics.extent} L ${metrics.headHalf} -${metrics.extent - metrics.headInset}`;
+    case "down":
+      return `M 0 ${metrics.gap} V ${metrics.extent} M -${metrics.headHalf} ${metrics.extent - metrics.headInset} L 0 ${metrics.extent} L ${metrics.headHalf} ${metrics.extent - metrics.headInset}`;
   }
 }
 
