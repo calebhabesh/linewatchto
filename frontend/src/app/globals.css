@@ -885,7 +885,7 @@ button {
   flex-direction: column;
   gap: 0;
   max-height: min(85vh, calc(100vh - 112px));
-  overflow-y: auto;
+  overflow-y: hidden;
   padding: 0;
 }
 
@@ -897,6 +897,36 @@ button {
   background: transparent !important;
   box-shadow: none !important;
   border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  max-height: inherit;
+  overflow: hidden;
+  min-height: 0;
+}
+
+.panel-heading,
+.mobile-sheet-heading {
+  flex-shrink: 0;
+}
+
+.alert-stack,
+.closure-stack,
+.commute-grid,
+.reliability-list,
+.health-grid,
+.mobile-more-content-scroll,
+.station-search-results,
+.station-search-lines-column,
+.station-search-stations-column,
+.notification-settings-scroll,
+.accessibility-outages-scroll,
+.surface-notices-scroll,
+.station-detail-scroll,
+.release-notes-content,
+.privacy-acknowledgements-scroll,
+.mobile-status-content-scroll {
+  overflow-y: auto;
+  flex: 1 1 auto;
 }
 
 @keyframes floating-panel-enter {

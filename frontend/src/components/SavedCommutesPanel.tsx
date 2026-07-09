@@ -1072,8 +1072,8 @@ export function SavedCommutesPanel({
                 />
               </div>
             ) : (
-              <div className="flex flex-col gap-3">
-                <div className={`flex justify-between items-center mb-1 ${onBack ? "pl-[32px] sm:pl-[36px]" : ""}`}>
+              <div className={`flex flex-col gap-3 ${onBack ? "px-[6px] sm:px-[20px]" : ""}`}>
+                <div className="flex justify-between items-center mb-1">
                   <div className="flex flex-col gap-1 min-w-0">
                     <div className="flex items-baseline gap-1.5">
                       <span className="text-base font-bold text-slate-800 dark:text-slate-100">Your Routes</span>
