@@ -77,78 +77,84 @@ export function ReducedSpeedZonesPanel({
           )}
         </div>
       </div>
-      <div className="alert-stack min-w-0 p-3 flex flex-col gap-2">
-        {reducedSpeedZones.map((zone) => {
-          const isActive = selection?.kind === "reduced-speed-zone" && selection.id === zone.id;
-          const overlappingImpacts = getOverlappingImpactRefs(
-            { kind: "reduced-speed-zone", id: zone.id, segmentIds: zone.affectedSegmentIds ?? [] },
-            { networkSegments, activeAlerts, delays, reducedSpeedZones, plannedClosures, stationNodeImpacts },
-          );
-          return (
-            <div
-              key={zone.id}
-              data-impact-card-id={zone.id}
-              className={`alert-card rsz-card-border min-w-0 w-full text-left p-3 rounded-lg border border-black/10 dark:border-white/10 border-l-4 !bg-slate-50 dark:!bg-[#12151c] transition-all ${
-                isActive ? "!bg-blue-50 dark:!bg-blue-950" : ""
-              }`}
-            >
-              <div className="flex items-start justify-between gap-3 w-full min-w-0">
-                <div className="flex min-w-0 flex-1 items-start gap-2">
-                  <LineBadge lineId={zone.lineId} lineNumber={zone.lineNumber} />
-                  <strong className="block min-w-0 text-sm font-semibold text-slate-800 dark:text-slate-100 whitespace-normal break-words mt-0.5">
-                    {zone.title}
-                  </strong>
+      <div className={`alert-stack min-w-0 p-3 flex flex-col gap-2 ${reducedSpeedZones.length === 0 ? "is-empty" : ""}`}>
+        {reducedSpeedZones.length === 0 ? (
+          <div className="text-center py-4 text-sm text-slate-500 dark:text-slate-400 font-medium">
+            No reduced speed zones
+          </div>
+        ) : (
+          reducedSpeedZones.map((zone) => {
+            const isActive = selection?.kind === "reduced-speed-zone" && selection.id === zone.id;
+            const overlappingImpacts = getOverlappingImpactRefs(
+              { kind: "reduced-speed-zone", id: zone.id, segmentIds: zone.affectedSegmentIds ?? [] },
+              { networkSegments, activeAlerts, delays, reducedSpeedZones, plannedClosures, stationNodeImpacts },
+            );
+            return (
+              <div
+                key={zone.id}
+                data-impact-card-id={zone.id}
+                className={`alert-card rsz-card-border min-w-0 w-full text-left p-3 rounded-lg border border-black/10 dark:border-white/10 border-l-4 !bg-slate-50 dark:!bg-[#12151c] transition-all ${
+                  isActive ? "!bg-blue-50 dark:!bg-blue-950" : ""
+                }`}
+              >
+                <div className="flex items-start justify-between gap-3 w-full min-w-0">
+                  <div className="flex min-w-0 flex-1 items-start gap-2">
+                    <LineBadge lineId={zone.lineId} lineNumber={zone.lineNumber} />
+                    <strong className="block min-w-0 text-sm font-semibold text-slate-800 dark:text-slate-100 whitespace-normal break-words mt-0.5">
+                      {zone.title}
+                    </strong>
+                  </div>
                 </div>
-              </div>
 
-              <ImpactRouteHeader 
-                location={zone.location} 
-                direction={zone.displayDirection}
-              />
+                <ImpactRouteHeader 
+                  location={zone.location} 
+                  direction={zone.displayDirection}
+                />
 
-              <OverlappingImpactRefs
-                overlaps={overlappingImpacts}
-                onSelectImpact={onSelectImpact}
-                label="Overlapping:"
-              />
+                <OverlappingImpactRefs
+                  overlaps={overlappingImpacts}
+                  onSelectImpact={onSelectImpact}
+                  label="Overlapping:"
+                />
 
-              <div className="border-t border-black/10 dark:border-white/10 mt-3 pt-2.5 flex items-end justify-start gap-3 w-full min-w-0">
-                <div className="flex-1 min-w-0">
-                  <MetadataGrid 
-                    className="no-border"
-                    cause={zone.cause}
-                    resolution={zone.resolution}
-                    reason={zone.reason} 
-                    targetRemoval={zone.targetRemoval} 
-                    startedAt={zone.startedAt}
-                    updatedAt={zone.updatedAt}
-                    updatedAgo={zone.updatedAgo} 
-                    extraRows={[
-                      { label: "Reduced speed", value: formatSpeed(zone.reducedSpeed) },
-                      { label: "Average speed", value: formatSpeed(zone.averageSpeed) },
-                    ]}
-                  />
+                <div className="border-t border-black/10 dark:border-white/10 mt-3 pt-2.5 flex items-end justify-start gap-3 w-full min-w-0">
+                  <div className="flex-1 min-w-0">
+                    <MetadataGrid 
+                      className="no-border"
+                      cause={zone.cause}
+                      resolution={zone.resolution}
+                      reason={zone.reason} 
+                      targetRemoval={zone.targetRemoval} 
+                      startedAt={zone.startedAt}
+                      updatedAt={zone.updatedAt}
+                      updatedAgo={zone.updatedAgo} 
+                      extraRows={[
+                        { label: "Reduced speed", value: formatSpeed(zone.reducedSpeed) },
+                        { label: "Average speed", value: formatSpeed(zone.averageSpeed) },
+                      ]}
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleReducedSpeedZoneClick(zone.id)}
+                    className={`w-20 h-20 rounded-xl flex flex-col items-center justify-center border transition-all cursor-pointer shrink-0 ${
+                      isActive
+                        ? "bg-slate-600 text-white border-slate-700 hover:bg-slate-700 dark:bg-slate-500 dark:border-slate-600 dark:hover:bg-slate-400 shadow-[0_0_12px_rgba(100,116,139,0.3)]"
+                        : "bg-slate-100 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700/60 hover:bg-slate-200 dark:bg-slate-800/80 dark:hover:bg-slate-700"
+                    }`}
+                  >
+                    <JumpToLocationIcon className="w-8 h-8" />
+                    <span className="text-[9px] font-black uppercase tracking-wider text-center leading-tight mt-1.5 max-w-[72px] whitespace-normal break-words">
+                      {isActive ? "Unfocus" : "Show on Map"}
+                    </span>
+                  </button>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => handleReducedSpeedZoneClick(zone.id)}
-                  className={`w-20 h-20 rounded-xl flex flex-col items-center justify-center border transition-all cursor-pointer shrink-0 ${
-                    isActive
-                      ? "bg-slate-600 text-white border-slate-700 hover:bg-slate-700 dark:bg-slate-500 dark:border-slate-600 dark:hover:bg-slate-400 shadow-[0_0_12px_rgba(100,116,139,0.3)]"
-                      : "bg-slate-100 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700/60 hover:bg-slate-200 dark:bg-slate-800/80 dark:hover:bg-slate-700"
-                  }`}
-                >
-                  <JumpToLocationIcon className="w-8 h-8" />
-                  <span className="text-[9px] font-black uppercase tracking-wider text-center leading-tight mt-1.5 max-w-[72px] whitespace-normal break-words">
-                    {isActive ? "Unfocus" : "Show on Map"}
-                  </span>
-                </button>
+
+
               </div>
-
-
-            </div>
-          );
-        })}
+            );
+          })
+        )}
       </div>
     </section>
   );

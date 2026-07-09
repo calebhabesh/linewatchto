@@ -12586,3 +12586,21 @@ button {
   color: #000000 !important;
 }
 
+/* Empty state alignment overrides for alert and closure stacks on mobile/desktop */
+.alert-stack.is-empty,
+.closure-stack.is-empty,
+.floating-panel-scroll .alert-stack.is-empty,
+.floating-panel-scroll .closure-stack.is-empty,
+.mobile-view-content-wrapper .alert-stack.is-empty,
+.mobile-view-content-wrapper .closure-stack.is-empty {
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  align-items: center !important;
+  flex-grow: 1 !important;
+  padding-bottom: 12px !important; /* Overrides the mobile 56px bottom padding to keep centering symmetric */
+  mask-image: none !important;
+  -webkit-mask-image: none !important;
+}
+
+
