@@ -1074,7 +1074,7 @@ export function SavedCommutesPanel({
             ) : (
               <div className={`flex flex-col gap-3 ${onBack ? "px-[6px] sm:px-[20px]" : ""}`}>
                 <div className="flex justify-between items-center mb-1">
-                  <div className="flex flex-col gap-1 min-w-0">
+                  <div className="flex flex-col gap-1 min-w-0 ml-1 sm:ml-0">
                     <div className="flex items-baseline gap-1.5">
                       <span className="text-base font-bold text-slate-800 dark:text-slate-100">Your Routes</span>
                       <span className="text-sm font-semibold text-slate-500 dark:text-slate-400">({accountCommutes.length})</span>
@@ -1106,7 +1106,7 @@ export function SavedCommutesPanel({
                 </div>
 
                 {accountCommutes.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-10 text-center">
+                  <div className="flex flex-col items-center justify-center pt-3 pb-10 sm:py-10 text-center">
                     <p className="text-sm font-semibold text-slate-400 dark:text-slate-500 mb-4">No Saved Commutes</p>
                     <button
                       type="button"

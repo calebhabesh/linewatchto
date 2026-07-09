@@ -9937,7 +9937,14 @@ button {
     padding: 0 !important;
   }
 
-  .mobile-view-content-wrapper[data-active-view="commutes"] .commute-grid,
+  .mobile-view-content-wrapper[data-active-view="commutes"] .commute-grid {
+    margin-top: 4px !important;
+    padding-top: 4px !important;
+    padding-bottom: 12px !important;
+    mask-image: none !important;
+    -webkit-mask-image: none !important;
+  }
+
   .mobile-view-content-wrapper[data-active-view="status"] .mobile-status-content-scroll {
     padding-bottom: 12px !important;
     mask-image: none !important;
