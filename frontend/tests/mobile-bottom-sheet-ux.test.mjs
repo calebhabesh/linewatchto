@@ -135,6 +135,14 @@ describe("mobile bottom sheet UX", () => {
     assert.match(globalCss, /\.mobile-legend-pill,[\s\S]*\.theme-toggle-btn,[\s\S]*\.rotate-map-btn,[\s\S]*\.site-guide-trigger,[\s\S]*\.mobile-status-peek\s*\{[^}]*background:\s*var\(--mobile-chrome-background\)\s*!important/s);
   });
 
+  it("keeps mobile list endings compact with a thumb-only scrollbar indicator", () => {
+    assert.doesNotMatch(globalCss, /padding-bottom:\s*56px\s*!important;[\s\S]{0,160}mask-image:\s*linear-gradient\(to bottom, black calc\(100% - 60px\)/);
+    assert.match(globalCss, /\.mobile-more-content-scroll,[\s\S]*?\.mobile-status-content-scroll\s*\{[\s\S]*?scrollbar-width:\s*thin\s*!important/);
+    assert.match(globalCss, /\.mobile-more-content-scroll::-webkit-scrollbar,[\s\S]*?\.mobile-status-content-scroll::-webkit-scrollbar\s*\{[\s\S]*?width:\s*4px/);
+    assert.match(globalCss, /\.mobile-more-content-scroll::-webkit-scrollbar-track,[\s\S]*?\.mobile-status-content-scroll::-webkit-scrollbar-track\s*\{[\s\S]*?background:\s*transparent/);
+    assert.match(globalCss, /\.linewatch-shell\.mobile-map-inspector-station \.station-detail-panel\s*\{[\s\S]*?height:\s*auto;[\s\S]*?max-height:\s*var\(--mobile-inspector-total-height\)/);
+  });
+
   it("simplifies mobile map controls and hides desktop map utilities on phones", () => {
     assert.match(mapSource, /map-utility-cluster/);
     assert.match(mapSource, /map-control-zoom-group/);
@@ -219,7 +227,7 @@ describe("mobile bottom sheet UX", () => {
     assert.match(globalCss, /html\[data-visual-keyboard="open"\]\s+\.commute-station-popover > \.commute-station-options\s*\{[\s\S]*max-height:\s*none/);
   });
 
-  it("uses native mobile scrolling with extra Status spacing", () => {
+  it("uses touch scrolling with a compact mobile scrollbar thumb", () => {
     assert.doesNotMatch(globalCss, /:root\s*\{[^}]*\n\s*color-scheme:\s*dark;\n/);
     assert.match(globalCss, /:root\s*\{[\s\S]*?color-scheme:\s*light dark;/);
     assert.match(globalCss, /\.linewatch-shell\s*\{[\s\S]*?color-scheme:\s*light;/);
@@ -239,7 +247,7 @@ describe("mobile bottom sheet UX", () => {
     assert.match(mobileScrollContainerRule, /-webkit-overflow-scrolling:\s*touch/);
     assert.match(globalCss, /\*\s*\{\s*scrollbar-color:\s*var\(--mobile-scroll-indicator-thumb\)\s*transparent;\s*scrollbar-width:\s*thin;/);
     assert.match(globalCss, /@media\s*\(min-width:\s*768px\)\s*\{\s*\*::-webkit-scrollbar/);
-    assert.doesNotMatch(globalCss, /\.mobile-status-content-scroll::-webkit-scrollbar/);
+    assert.match(globalCss, /\.mobile-status-content-scroll::-webkit-scrollbar\s*\{[\s\S]*?display:\s*block\s*!important/);
     assert.doesNotMatch(globalCss, /\.floating-panel-scroll::-webkit-scrollbar/);
     assert.doesNotMatch(globalCss, /--mobile-native-scrollbar-size/);
     assert.match(globalCss, /\.mobile-status-content-scroll\s*\{[\s\S]*?padding-right:\s*16px\s*!important/);

@@ -8624,22 +8624,119 @@ button {
     flex: 1 1 auto !important;
   }
 
-  /* Give a bit of breathing room at the bottom of lists */
+  /* Keep each list's authored end inset. The old shared 56px spacer and
+     fade mask created an artificial empty tail at the end of every menu. */
+  .alert-stack,
+  .closure-stack,
+  .commute-grid,
+  .reliability-list {
+    padding-bottom: 12px !important;
+  }
+
+  .mobile-more-content-scroll,
+  .station-search-lines-column,
+  .station-search-stations-column,
+  .station-detail-scroll {
+    padding-bottom: 0 !important;
+  }
+
+  .notification-settings-scroll,
+  .surface-notices-scroll {
+    padding-bottom: 12px !important;
+  }
+
+  .release-notes-content,
+  .privacy-acknowledgements-scroll {
+    padding-bottom: 16px !important;
+  }
+
+  .mobile-status-content-scroll {
+    padding-bottom: 0 !important;
+    mask-image: none !important;
+    -webkit-mask-image: none !important;
+  }
+
+  /* Keep a compact position indicator without rendering a full-height rail. */
   .alert-stack,
   .closure-stack,
   .commute-grid,
   .reliability-list,
+  .health-grid,
   .mobile-more-content-scroll,
+  .station-search-results,
   .station-search-lines-column,
+  .station-search-stations-column,
   .notification-settings-scroll,
+  .accessibility-outages-scroll,
   .surface-notices-scroll,
   .station-detail-scroll,
   .release-notes-content,
   .privacy-acknowledgements-scroll,
   .mobile-status-content-scroll {
-    padding-bottom: 56px !important;
-    mask-image: linear-gradient(to bottom, black calc(100% - 60px), transparent 100%);
-    -webkit-mask-image: linear-gradient(to bottom, black calc(100% - 60px), transparent 100%);
+    scrollbar-color: var(--mobile-scroll-indicator-thumb) transparent !important;
+    scrollbar-width: thin !important;
+  }
+
+  .alert-stack::-webkit-scrollbar,
+  .closure-stack::-webkit-scrollbar,
+  .commute-grid::-webkit-scrollbar,
+  .reliability-list::-webkit-scrollbar,
+  .health-grid::-webkit-scrollbar,
+  .mobile-more-content-scroll::-webkit-scrollbar,
+  .station-search-results::-webkit-scrollbar,
+  .station-search-lines-column::-webkit-scrollbar,
+  .station-search-stations-column::-webkit-scrollbar,
+  .notification-settings-scroll::-webkit-scrollbar,
+  .accessibility-outages-scroll::-webkit-scrollbar,
+  .surface-notices-scroll::-webkit-scrollbar,
+  .station-detail-scroll::-webkit-scrollbar,
+  .release-notes-content::-webkit-scrollbar,
+  .privacy-acknowledgements-scroll::-webkit-scrollbar,
+  .mobile-status-content-scroll::-webkit-scrollbar {
+    display: block !important;
+    height: 4px;
+    width: 4px;
+  }
+
+  .alert-stack::-webkit-scrollbar-track,
+  .closure-stack::-webkit-scrollbar-track,
+  .commute-grid::-webkit-scrollbar-track,
+  .reliability-list::-webkit-scrollbar-track,
+  .health-grid::-webkit-scrollbar-track,
+  .mobile-more-content-scroll::-webkit-scrollbar-track,
+  .station-search-results::-webkit-scrollbar-track,
+  .station-search-lines-column::-webkit-scrollbar-track,
+  .station-search-stations-column::-webkit-scrollbar-track,
+  .notification-settings-scroll::-webkit-scrollbar-track,
+  .accessibility-outages-scroll::-webkit-scrollbar-track,
+  .surface-notices-scroll::-webkit-scrollbar-track,
+  .station-detail-scroll::-webkit-scrollbar-track,
+  .release-notes-content::-webkit-scrollbar-track,
+  .privacy-acknowledgements-scroll::-webkit-scrollbar-track,
+  .mobile-status-content-scroll::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .alert-stack::-webkit-scrollbar-thumb,
+  .closure-stack::-webkit-scrollbar-thumb,
+  .commute-grid::-webkit-scrollbar-thumb,
+  .reliability-list::-webkit-scrollbar-thumb,
+  .health-grid::-webkit-scrollbar-thumb,
+  .mobile-more-content-scroll::-webkit-scrollbar-thumb,
+  .station-search-results::-webkit-scrollbar-thumb,
+  .station-search-lines-column::-webkit-scrollbar-thumb,
+  .station-search-stations-column::-webkit-scrollbar-thumb,
+  .notification-settings-scroll::-webkit-scrollbar-thumb,
+  .accessibility-outages-scroll::-webkit-scrollbar-thumb,
+  .surface-notices-scroll::-webkit-scrollbar-thumb,
+  .station-detail-scroll::-webkit-scrollbar-thumb,
+  .release-notes-content::-webkit-scrollbar-thumb,
+  .privacy-acknowledgements-scroll::-webkit-scrollbar-thumb,
+  .mobile-status-content-scroll::-webkit-scrollbar-thumb {
+    background: var(--mobile-scroll-indicator-thumb);
+    background-clip: padding-box;
+    border: 1px solid transparent;
+    border-radius: 999px;
   }
 
   /* Push scrollbar track down so it starts below the header divider,
@@ -8961,7 +9058,8 @@ button {
   }
 
   .linewatch-shell.mobile-map-inspector-station .station-detail-panel {
-    height: var(--mobile-inspector-total-height);
+    height: auto;
+    max-height: var(--mobile-inspector-total-height);
     padding-bottom: calc(16px + var(--mobile-safe-bottom));
   }
 
@@ -12610,5 +12708,3 @@ button {
   mask-image: none !important;
   -webkit-mask-image: none !important;
 }
-
-
