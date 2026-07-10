@@ -962,6 +962,10 @@ test("demo account shows account-backed saved commutes", async ({ page, request,
     expect(Math.abs(popoverBox!.y - (triggerBox!.y + triggerBox!.height + 6))).toBeLessThanOrEqual(4);
     expect(Math.abs(popoverBox!.x - triggerBox!.x)).toBeLessThanOrEqual(4);
     expect(Math.abs(popoverBox!.width - triggerBox!.width)).toBeLessThanOrEqual(8);
+    await originPopover.getByRole("button", { name: /Line 1 Yonge-University/ }).click();
+    await expect(originPopover.getByRole("option", { name: /Stub Station/ })).toBeVisible();
+    await originPopover.getByRole("button", { name: "Back to Lines" }).click();
+    await expect(originPopover.getByRole("button", { name: /Line 1 Yonge-University/ })).toBeVisible();
     await page.keyboard.press("Escape");
     await page.getByRole("button", { name: "Cancel" }).first().click();
   }

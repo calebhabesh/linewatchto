@@ -372,24 +372,26 @@ export function SavedCommuteStationPicker({
               ) : (
                 <div className="commute-station-browse-container">
                   <div className="commute-station-lines-column">
-                    {lineGroups.map((group) => {
-                      const expanded = expandedLineId === group.line.id;
-                      return (
-                        <button
-                          key={group.line.id}
-                          type="button"
-                          className={`commute-station-line-trigger ${expanded ? "active" : ""}`}
-                          onClick={() => setExpandedLineId((current) => current === group.line.id ? null : group.line.id)}
-                          aria-expanded={expanded}
-                        >
-                          <span>
-                            <StationLineBadge line={group.line} />
-                            Line {group.line.number} {group.line.name}
-                          </span>
-                          <ChevronRight size={15} aria-hidden="true" className="commute-station-line-chevron" />
-                        </button>
-                      );
-                    })}
+                    <div className="commute-station-lines-list">
+                      {lineGroups.map((group) => {
+                        const expanded = expandedLineId === group.line.id;
+                        return (
+                          <button
+                            key={group.line.id}
+                            type="button"
+                            className={`commute-station-line-trigger ${expanded ? "active" : ""}`}
+                            onClick={() => setExpandedLineId((current) => current === group.line.id ? null : group.line.id)}
+                            aria-expanded={expanded}
+                          >
+                            <span>
+                              <StationLineBadge line={group.line} />
+                              Line {group.line.number} {group.line.name}
+                            </span>
+                            <ChevronRight size={15} aria-hidden="true" className="commute-station-line-chevron" />
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
 
                   {expandedLineId ? (
@@ -401,38 +403,42 @@ export function SavedCommuteStationPicker({
                       >
                         Back to Lines
                       </button>
-                      <div className="commute-station-stations-column-header">
-                        <div className="flex items-center gap-2 mb-0 pl-0 pr-1">
-                          {(() => {
-                            const line = lineGroups.find((g) => g.line.id === expandedLineId)?.line;
-                            if (!line) return null;
-                            return (
-                              <>
-                                <span
-                                  className="commute-station-line-badge"
-                                  style={{ backgroundColor: line.color, color: lineTextColor(line.id) }}
-                                >{line.number}</span>
-                                <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                                  {line.name} Stations
-                                </span>
-                              </>
-                            );
-                          })()}
+                      <div className="commute-station-stations-scroll">
+                        <div className="commute-station-stations-scroll-content">
+                          <div className="commute-station-stations-column-header">
+                            <div className="flex items-center gap-2 mb-0 pl-0 pr-1">
+                              {(() => {
+                                const line = lineGroups.find((g) => g.line.id === expandedLineId)?.line;
+                                if (!line) return null;
+                                return (
+                                  <>
+                                    <span
+                                      className="commute-station-line-badge"
+                                      style={{ backgroundColor: line.color, color: lineTextColor(line.id) }}
+                                    >{line.number}</span>
+                                    <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                                      {line.name} Stations
+                                    </span>
+                                  </>
+                                );
+                              })()}
+                            </div>
+                          </div>
+                          <div className="commute-station-options">
+                            {lineGroups
+                              .find((group) => group.line.id === expandedLineId)
+                              ?.stations.map((station) => (
+                                <StationOption
+                                  key={`${expandedLineId}-${station.id}`}
+                                  station={station}
+                                  selected={station.id === value}
+                                  disabled={station.id === blockedStationId}
+                                  disabledReason={blockedLabel}
+                                  onChoose={chooseStation}
+                                />
+                              ))}
+                          </div>
                         </div>
-                      </div>
-                      <div className="commute-station-options">
-                        {lineGroups
-                          .find((group) => group.line.id === expandedLineId)
-                          ?.stations.map((station) => (
-                            <StationOption
-                              key={`${expandedLineId}-${station.id}`}
-                              station={station}
-                              selected={station.id === value}
-                              disabled={station.id === blockedStationId}
-                              disabledReason={blockedLabel}
-                              onChoose={chooseStation}
-                            />
-                          ))}
                       </div>
                     </div>
                   ) : null}

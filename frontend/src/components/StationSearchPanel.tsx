@@ -439,16 +439,18 @@ export function StationSearchPanel({
         {query.trim() ? (
           <div className="station-search-results" aria-label="Station search results">
             {results.length > 0 ? (
-              results.map((result, index) => (
-                <StationButton
-                   key={result.station.id}
-                   station={result.station}
-                   selected={selectedStationId === result.station.id}
-                   onSelect={chooseStation}
-                   buttonRef={(element) => { resultButtonRefs.current[index] = element; }}
-                   onKeyDown={(event) => handleResultKeyDown(index, event)}
-                />
-              ))
+              <div className="station-search-results-list">
+                {results.map((result, index) => (
+                  <StationButton
+                    key={result.station.id}
+                    station={result.station}
+                    selected={selectedStationId === result.station.id}
+                    onSelect={chooseStation}
+                    buttonRef={(element) => { resultButtonRefs.current[index] = element; }}
+                    onKeyDown={(event) => handleResultKeyDown(index, event)}
+                  />
+                ))}
+              </div>
             ) : (
               <div className="station-search-empty" role="status">
                 No mapped station matches.

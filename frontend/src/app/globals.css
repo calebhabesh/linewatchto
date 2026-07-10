@@ -3875,7 +3875,8 @@ button {
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  padding: 10px 6px 10px 10px;
+  /* Keep the scroll owner against the panel edge; list padding belongs inside it. */
+  padding: 10px 0 10px 10px;
 }
 
 .station-search-results {
@@ -3885,6 +3886,13 @@ button {
   flex-direction: column;
   gap: 7px;
   min-height: 0;
+}
+
+.station-search-results-list {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding-right: 8px;
 }
 
 .station-search-empty {
@@ -3939,7 +3947,7 @@ button {
   opacity: 1;
   border-left-color: rgba(15, 23, 42, 0.12);
   padding-left: 16px;
-  padding-right: 12px;
+  padding-right: 0;
   transform: translateX(0);
 }
 
@@ -3956,6 +3964,12 @@ button {
   display: flex;
   flex-direction: column;
   gap: 6px;
+  padding-right: 12px;
+}
+
+.station-search-mobile-back,
+.station-search-stations-column-header {
+  margin-right: 12px;
 }
 
 .station-search-line-group {
@@ -5372,10 +5386,11 @@ button {
   box-shadow: 0 18px 44px rgba(15, 23, 42, 0.2);
   display: grid;
   gap: 0.45rem;
+  grid-template-rows: auto minmax(0, 1fr);
   left: 0;
   max-height: 320px;
-  overflow: auto;
-  padding: 0.5rem;
+  overflow: hidden;
+  padding: 0.5rem 0 0.5rem 0.5rem;
   position: absolute;
   right: 0;
   top: calc(100% + 0.35rem);
@@ -5389,6 +5404,7 @@ button {
   gap: 0.35rem;
   grid-template-columns: auto minmax(0, 1fr) auto;
   min-height: 36px;
+  margin-right: 0.5rem;
   padding: 0 0.45rem;
 }
 
@@ -5419,6 +5435,12 @@ button {
 .commute-station-options {
   display: grid;
   gap: 0.3rem;
+}
+
+.commute-station-popover > .commute-station-options {
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 0.5rem;
 }
 
 .commute-station-line-trigger,
@@ -6795,6 +6817,7 @@ button {
 .commute-station-browse-container {
   display: flex;
   gap: 0.5rem;
+  min-height: 0;
   overflow: hidden;
 }
 
@@ -6806,6 +6829,13 @@ button {
   min-width: 0;
 }
 
+.commute-station-lines-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  padding-right: 0.5rem;
+}
+
 .commute-station-stations-column {
   display: flex;
   flex-direction: column;
@@ -6814,8 +6844,32 @@ button {
   padding-left: 0.5rem;
   width: 320px; /* Expanded to avoid squishing of station names and accessibility icons */
   flex-shrink: 0;
-  overflow-y: auto;
+  overflow: hidden;
   max-height: 240px;
+}
+
+.commute-station-stations-column > .commute-station-mobile-back {
+  box-sizing: border-box;
+  margin-right: 0.5rem;
+  width: calc(100% - 0.5rem);
+}
+
+.commute-station-stations-scroll {
+  /* This is the sole scroll owner: its track begins after the Back control. */
+  flex: 1 1 auto;
+  /* Preserve at least one selectable row when the popover is height-constrained. */
+  min-height: 52px;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.commute-station-stations-scroll-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  /* Keep content clear of the edge-pinned scrollbar by the same 8px as the Back control. */
+  margin-right: 0;
+  padding-right: 0.5rem;
 }
 
 .dark .commute-station-stations-column {
@@ -8677,7 +8731,7 @@ button {
     opacity: 1;
     overflow-y: auto;
     padding-left: 2px;
-    padding-right: 8px;
+    padding-right: 0;
     transform: none;
     width: auto;
   }
@@ -8685,7 +8739,7 @@ button {
   .station-search-panel[data-expanded="true"] .station-search-stations-column {
     border-left: 0;
     padding-left: 2px;
-    padding-right: 8px;
+    padding-right: 0;
     width: auto;
   }
 
@@ -10221,7 +10275,8 @@ button {
     border-left: 0 !important;
     flex: 1 !important;
     opacity: 1 !important;
-    overflow-y: auto !important;
+    overflow: hidden !important;
+    min-height: 0 !important;
     padding-left: 0 !important;
     padding-right: 0 !important;
     width: auto !important;
