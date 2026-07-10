@@ -91,6 +91,7 @@ interface Props {
   stationSummaries: StationSummary[];
   viewedCommuteId?: string | null;
   onViewPath: (commute: AccountSavedCommute, legId?: AccountCommuteLegId) => void;
+  onViewImpactOnPath: (commute: AccountSavedCommute, legId: AccountCommuteLegId, impact: AccountMatchedImpact) => void;
   onClearViewedPath: (commuteId: string) => void;
   onRequestSignIn: () => void;
   onRequestCreateAccount: () => void;
@@ -699,6 +700,7 @@ export function SavedCommutesPanel({
   stationSummaries,
   viewedCommuteId,
   onViewPath,
+  onViewImpactOnPath,
   onClearViewedPath,
   onRequestSignIn,
   onRequestCreateAccount,
@@ -1326,19 +1328,34 @@ export function SavedCommutesPanel({
                             {selectedLeg.impact.matchedImpacts.slice(0, 3).map((impact) => (
                               <li key={`${impact.kind}-${impact.id}`}>
                                 <ImpactIcon kind={impact.kind} className="mt-0.5 shrink-0" />
-                                <span className="text-slate-600 dark:text-slate-400 block">
-                                  <strong className="block text-slate-800 dark:text-slate-200">
-                                    {toTitleCase(impactKindLabel(impact.kind))}
-                                  </strong>
-                                  <span className="block mt-0.5">
-                                    {toTitleCase(impactLineLabel(impact))}{impact.location ? `: ${toTitleCase(impact.location)}` : ""}{impact.displayDirection ? ` (${toTitleCase(impact.displayDirection)})` : ""}
-                                  </span>
+                                <div className="saved-commute-impact-copy">
+                                  <div className="saved-commute-impact-details">
+                                    <div className="saved-commute-impact-heading">
+                                      <strong className="text-slate-800 dark:text-slate-200">
+                                        {toTitleCase(impactKindLabel(impact.kind))}
+                                      </strong>
+                                    </div>
+                                    <span className="text-slate-600 dark:text-slate-400">
+                                      {toTitleCase(impactLineLabel(impact))}{impact.location ? `: ${toTitleCase(impact.location)}` : ""}{impact.displayDirection ? ` (${toTitleCase(impact.displayDirection)})` : ""}
+                                    </span>
+                                  </div>
+                                  <div className="saved-commute-impact-action">
+                                    <button
+                                      type="button"
+                                      className="saved-commute-impact-map-button"
+                                      onClick={() => onViewImpactOnPath(commute, selectedLeg.id, impact)}
+                                      aria-label={`View ${impactKindLabel(impact.kind)} on the map for ${commute.label}`}
+                                    >
+                                      <MapPinned size={12} aria-hidden="true" />
+                                      View on Map
+                                    </button>
+                                  </div>
                                   {impact.ignoredByRule ? (
                                     <em className="saved-commute-impact-filter-note">
                                       Ignored By Route Alert Filters
                                     </em>
                                   ) : null}
-                                </span>
+                                </div>
                               </li>
                             ))}
                           </ul>

@@ -1429,7 +1429,7 @@ describe("LineWatch PWA configuration", () => {
     assert.doesNotMatch(nextConfigSource, /Clear-Site-Data[\s\S]*"cookies"/);
   });
 
-  it("LineWatchShell reads URLSearchParams and maps panel query params on mount", () => {
+  it("LineWatchShell reads URLSearchParams, opens panels, and focuses concrete impacts on the map", () => {
     const shellSource = readFileSync(new URL("../src/components/LineWatchShell.tsx", import.meta.url), "utf8");
     assert.match(shellSource, /URLSearchParams/);
     assert.match(shellSource, /window\.location\.search/);
@@ -1441,6 +1441,9 @@ describe("LineWatch PWA configuration", () => {
     assert.match(shellSource, /panel=closures/);
     assert.match(shellSource, /impactKind/);
     assert.match(shellSource, /impactId/);
-    assert.match(shellSource, /setSelection\(\{\s*kind:\s*impactKind,\s*id:\s*impactId\s*\}\)/);
+    assert.match(shellSource, /const impactSelection = impactKind && impactId/);
+    assert.match(shellSource, /setSelection\(impactSelection\)/);
+    assert.match(shellSource, /setMobileInspectorDetent\("map-focus"\)/);
+    assert.match(shellSource, /setActiveView\("map"\)/);
   });
 });

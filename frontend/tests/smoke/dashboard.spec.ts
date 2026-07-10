@@ -241,6 +241,26 @@ test("renders the seeded dashboard API payload", async ({ page, request, isMobil
   }
 });
 
+test("opens an impact notification deep link in the focused map view", async ({ page, request, isMobile }) => {
+  await setStubMode(request, "seeded");
+  await page.goto("/?panel=delays&impactKind=delay&impactId=stub-delay-line-4");
+
+  await expect(page.locator('[data-map-highlight-id="stub-delay-line-4"]')).toBeAttached();
+  await expect(page.getByRole("heading", { name: "Delays" })).toHaveCount(0);
+
+  if (isMobile) {
+    const shell = page.locator(".linewatch-shell");
+    const inspector = page.locator('[data-mobile-impact-inspector]');
+    const mapViewport = shell.locator(":scope > main");
+
+    await expect(shell).toHaveClass(/mobile-map-inspector-impact/);
+    await expect(inspector).toBeVisible();
+    await expect(inspector).toContainText("Delay");
+    await expect(inspector).toContainText("Sheppard-Yonge");
+    await expect(mapViewport).toHaveCSS("bottom", /^(?!0px$).+/);
+  }
+});
+
 test("opens the site guide and blocks invalid account signup input", async ({ page, request, isMobile }) => {
   await setStubMode(request, "seeded");
   await page.goto("/");
@@ -928,6 +948,12 @@ test("demo account shows account-backed saved commutes", async ({ page, request,
   await expect(page.getByText("Clear", { exact: true })).not.toBeVisible();
   await expect(page.getByText("Suspension", { exact: true })).toBeVisible();
   await expect(page.getByText(/Line 1: Stub Station To Stub Terminal/)).toBeVisible();
+
+  await page.getByRole("button", { name: /View Suspension on the map for Morning commute/ }).click();
+  await expect(page.locator("[data-commute-path-preview]")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Back to saved commutes" })).toBeVisible();
+  await page.getByRole("button", { name: "Back to saved commutes" }).click({ force: true });
+  await expect(page.locator("[data-commute-path-preview]")).toHaveCount(0);
 
   await page.getByRole("tab", { name: "To Stub Station" }).click();
   await expect(page.getByText("Default Scheduled Route - To Stub Station")).toBeVisible();

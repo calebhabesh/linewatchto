@@ -95,6 +95,11 @@ describe("account UI source", () => {
     assert.match(savedCommutesSource, /selectedLeg\.path\.stationIds/);
     assert.match(savedCommutesSource, /onViewPath/);
     assert.match(savedCommutesSource, /View path on map/);
+    assert.match(savedCommutesSource, /onViewImpactOnPath/);
+    assert.match(savedCommutesSource, /saved-commute-impact-map-button/);
+    assert.match(savedCommutesSource, /View on Map/);
+    assert.match(shellSource, /handleViewCommuteImpactOnPath/);
+    assert.match(globalCss, /\.saved-commute-impact-map-button/);
   });
 
   it("renders saved commute extra-time estimates without claiming precision for major disruptions", () => {

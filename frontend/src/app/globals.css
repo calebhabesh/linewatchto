@@ -1921,8 +1921,26 @@ button {
 .motion-paused .asset-alert-path.delay-candy,
 .motion-paused .asset-alert-path.suspension-candy,
 .motion-paused .asset-alert-path.delay-static-base,
-.motion-paused .delay-static-path {
+.motion-paused .delay-static-path,
+.motion-paused .commute-path-preview-glow {
   animation: none !important;
+}
+
+.motion-paused .asset-alert-path-glow {
+  opacity: 0.18 !important;
+}
+
+.motion-paused .asset-alert-path-glow.selected,
+.motion-paused .interactive-glow.selected {
+  opacity: 0.26 !important;
+}
+
+.motion-paused .commute-path-preview-glow {
+  opacity: 0.12 !important;
+}
+
+.motion-paused .commute-path-preview-path {
+  opacity: 1 !important;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1933,8 +1951,26 @@ button {
   .delay-static-path,
   .station-selected-indicator,
   .station-selection-flash,
-  .asset-alert-path.map-selection-flash {
+  .asset-alert-path.map-selection-flash,
+  .commute-path-preview-glow {
     animation: none !important;
+  }
+
+  .asset-alert-path-glow {
+    opacity: 0.18 !important;
+  }
+
+  .asset-alert-path-glow.selected,
+  .interactive-glow.selected {
+    opacity: 0.26 !important;
+  }
+
+  .commute-path-preview-glow {
+    opacity: 0.12 !important;
+  }
+
+  .commute-path-preview-path {
+    opacity: 1 !important;
   }
 }
 
@@ -2642,9 +2678,75 @@ button {
   color: rgb(71, 85, 105);
 }
 
+.saved-commute-impact-copy {
+  align-items: center;
+  display: flex;
+  gap: 1.5rem;
+  min-width: 0;
+  width: 100%;
+}
+
+.saved-commute-impact-details {
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+.saved-commute-impact-heading {
+  align-items: center;
+  display: flex;
+  min-width: 0;
+}
+
+.saved-commute-impact-details > span {
+  display: block;
+  margin-top: 0.12rem;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.saved-commute-impact-action {
+  flex: 0 0 auto;
+  margin-left: auto;
+}
+
+.saved-commute-impact-map-button {
+  align-items: center;
+  background: rgba(29, 78, 216, 0.08);
+  border: 1px solid rgba(29, 78, 216, 0.3);
+  border-radius: 6px;
+  color: rgb(29, 78, 216);
+  display: inline-flex;
+  font-size: 0.61rem;
+  font-weight: 900;
+  gap: 0.24rem;
+  min-height: 24px;
+  padding: 0.25rem 0.38rem;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.saved-commute-impact-map-button:hover,
+.saved-commute-impact-map-button:focus-visible {
+  background: rgba(29, 78, 216, 0.16);
+}
+
 .dark .saved-commute-impact-list li,
 .high-contrast .saved-commute-impact-list li {
   color: rgb(203, 213, 225);
+}
+
+.dark .saved-commute-impact-map-button,
+.high-contrast .saved-commute-impact-map-button {
+  background: rgba(96, 165, 250, 0.12);
+  border-color: rgba(147, 197, 253, 0.42);
+  color: rgb(191, 219, 254);
+}
+
+.dark .saved-commute-impact-map-button:hover,
+.dark .saved-commute-impact-map-button:focus-visible,
+.high-contrast .saved-commute-impact-map-button:hover,
+.high-contrast .saved-commute-impact-map-button:focus-visible {
+  background: rgba(96, 165, 250, 0.22);
 }
 
 .saved-commute-impact-list strong {
@@ -3090,6 +3192,12 @@ button {
   .station-impact-dot-red-ping {
     animation: none !important;
   }
+
+  .station-selected-indicator:not(.multi-anchor),
+  .station-selected-indicator.multi-anchor.active {
+    opacity: 0.55 !important;
+    transform: scale(1) !important;
+  }
 }
 @keyframes map-selection-flash {
   0%, 100% {
@@ -3102,6 +3210,21 @@ button {
   }
 }
 
+@keyframes map-selection-latent-pulse {
+  0% {
+    opacity: 0.2;
+    stroke-width: 118;
+    stroke: #0284c7;
+    filter: drop-shadow(0 0 8px rgba(2, 132, 199, 0.4));
+  }
+  100% {
+    opacity: 0.95;
+    stroke-width: 128;
+    stroke: #0284c7;
+    filter: drop-shadow(0 0 20px rgba(2, 132, 199, 0.95));
+  }
+}
+
 .asset-alert-path.map-selection-flash {
   fill: none;
   stroke: #0284c7;
@@ -3111,18 +3234,40 @@ button {
   stroke-width: 118;
   stroke-dasharray: none !important;
   filter: drop-shadow(0 0 16px rgba(2, 132, 199, 0.9));
+}
+
+.asset-alert-path.map-selection-flash.fast {
   animation: map-selection-flash 0.6s ease-in-out 4 forwards;
 }
 
+.asset-alert-path.map-selection-flash.latent {
+  animation: map-selection-latent-pulse 1.2s ease-in-out var(--map-pulse-offset) alternate infinite;
+}
+
 @media (max-width: 767px) {
-  .asset-alert-path.map-selection-flash {
+  .asset-alert-path.map-selection-flash.fast {
     animation: map-selection-flash 0.6s ease-in-out 2 forwards;
   }
 }
 
-.motion-paused .asset-alert-path.map-selection-flash {
+.motion-paused .asset-alert-path.map-selection-flash.fast,
+.motion-paused .asset-alert-path.map-selection-flash.latent {
   animation: none;
   opacity: 0.95;
+}
+
+/* Keep the selected segment legible without obscuring the underlying network on desktop. */
+@media (min-width: 768px) {
+  .motion-paused .asset-alert-path.map-selection-flash.fast,
+  .motion-paused .asset-alert-path.map-selection-flash.latent {
+    opacity: 0.55;
+  }
+}
+
+@media (min-width: 768px) and (prefers-reduced-motion: reduce) {
+  .asset-alert-path.map-selection-flash {
+    opacity: 0.55;
+  }
 }
 
 @keyframes station-selection-flash {
@@ -3134,16 +3279,50 @@ button {
   }
 }
 
+@keyframes station-selection-latent-pulse {
+  0% {
+    opacity: 0.2;
+    fill: #0284c7;
+    filter: drop-shadow(0 0 4px rgba(2, 132, 199, 0.4));
+  }
+  100% {
+    opacity: 0.95;
+    fill: #0284c7;
+    filter: drop-shadow(0 0 10px rgba(2, 132, 199, 0.95));
+  }
+}
+
 .station-selection-flash {
   fill: #0284c7;
   stroke: none;
   filter: drop-shadow(0 0 6px rgba(2, 132, 199, 0.85));
+}
+
+.station-selection-flash.fast {
   animation: station-selection-flash 0.6s ease-in-out 4 forwards;
 }
 
-.motion-paused .station-selection-flash {
+.station-selection-flash.latent {
+  animation: station-selection-latent-pulse 1.2s ease-in-out var(--map-pulse-offset) alternate infinite;
+}
+
+@media (max-width: 767px) {
+  .station-selection-flash.fast {
+    animation: station-selection-flash 0.6s ease-in-out 4 forwards;
+  }
+}
+
+.motion-paused .station-selection-flash.fast,
+.motion-paused .station-selection-flash.latent {
   animation: none;
   opacity: 0.95;
+}
+
+.motion-paused .station-selected-indicator:not(.multi-anchor),
+.motion-paused .station-selected-indicator.multi-anchor.active {
+  animation: none !important;
+  opacity: 0.55 !important;
+  transform: scale(1) !important;
 }
 
 .motion-paused.linewatch-shell.mobile-performance-mode .asset-alert-path-glow,
@@ -6729,6 +6908,8 @@ button {
 .commute-path-preview-glow {
   stroke: rgba(37, 99, 235, 0.7) !important; /* deep blue glow */
   animation: commute-path-glow-pulse 2.2s ease-in-out infinite;
+  opacity: 0.26;
+  stroke-width: 100;
 }
 
 .commute-path-preview-path {

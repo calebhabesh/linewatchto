@@ -319,10 +319,21 @@ describe("asset-backed map layering", () => {
     assert.match(interactiveMapSource, /flashStationId/);
     assert.match(interactiveMapSource, /data-map-highlight-id=\{flashSelection\.id\}/);
     assert.match(interactiveMapSource, /data-map-highlight-id=\{station\.id\}/);
-    assert.match(interactiveMapSource, /className="asset-alert-path map-selection-flash pointer-events-none"/);
-    assert.match(interactiveMapSource, /className="station-selection-flash"/);
+    assert.match(interactiveMapSource, /className={`asset-alert-path map-selection-flash pointer-events-none \$\{[\s\S]*?isSelectionFastFlashing[\s\S]*?\}`}/);
+    assert.match(interactiveMapSource, /className={`station-selection-flash \$\{[\s\S]*?isStationFastFlashing[\s\S]*?\}`}/);
     assert.match(globalCss, /@keyframes map-selection-flash/);
     assert.match(globalCss, /@keyframes station-selection-flash/);
+  });
+
+  it("softens desktop map selection highlights when motion is reduced", () => {
+    assert.match(
+      globalCss,
+      /@media \(min-width:\s*768px\) \{[\s\S]*?\.motion-paused \.asset-alert-path\.map-selection-flash\.fast,[\s\S]*?opacity:\s*0\.55;/,
+    );
+    assert.match(
+      globalCss,
+      /@media \(min-width:\s*768px\) and \(prefers-reduced-motion:\s*reduce\) \{[\s\S]*?\.asset-alert-path\.map-selection-flash\s*\{[\s\S]*?opacity:\s*0\.55;/,
+    );
   });
 
   it("renders saved commute path previews underneath active disruption overlays", () => {
@@ -332,6 +343,14 @@ describe("asset-backed map layering", () => {
     assert.match(interactiveMapSource, /data-commute-path-preview/);
     assert.match(globalCss, /\.commute-path-preview-path/);
     assert.match(globalCss, /\.commute-path-preview-chip/);
+    assert.match(
+      globalCss,
+      /\.motion-paused \.commute-path-preview-path\s*\{\s*opacity:\s*1 !important;/,
+    );
+    assert.match(
+      globalCss,
+      /@media \(prefers-reduced-motion:\s*reduce\) \{[\s\S]*?\.commute-path-preview-path\s*\{\s*opacity:\s*1 !important;/,
+    );
 
     const previewGroupIndex = interactiveMapSource.indexOf('aria-label="Saved commute route preview"');
     const impactLayerIndex = interactiveMapSource.indexOf("retainedImpactLayers.map", previewGroupIndex);

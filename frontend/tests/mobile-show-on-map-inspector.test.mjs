@@ -73,6 +73,20 @@ describe("mobile Show on Map inspector", () => {
     assert.match(mapSource, /focusTargetKey/);
   });
 
+  it("routes an impact deep link through the same mobile map inspector as Show on Map", () => {
+    const deepLinkHandling = shellSource.slice(
+      shellSource.indexOf("const impactKind = params.get"),
+      shellSource.indexOf("if (shouldReplaceUrl)"),
+    );
+
+    assert.match(deepLinkHandling, /const impactSelection = impactKind && impactId/);
+    assert.match(deepLinkHandling, /if \(impactSelection\) \{/);
+    assert.match(deepLinkHandling, /setSelection\(impactSelection\)/);
+    assert.match(deepLinkHandling, /setMobileInspectorDetent\("map-focus"\)/);
+    assert.match(deepLinkHandling, /setActiveView\("map"\)/);
+    assert.match(deepLinkHandling, /else if \(panel && panelToView\[panel\]\)/);
+  });
+
   it("defines mobile split-view CSS for impact and station inspectors", () => {
     assert.match(globalCss, /\.linewatch-shell\.mobile-map-inspector/);
     assert.match(globalCss, /--mobile-inspector-height/);

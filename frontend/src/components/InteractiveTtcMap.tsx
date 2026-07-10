@@ -379,6 +379,9 @@ function InteractiveTtcMapComponent({
 
   const [flashSelection, setFlashSelection] = useState<ImpactSelection>(null);
   const [flashStationId, setFlashStationId] = useState<string | null>(null);
+  const [isSelectionFastFlashing, setIsSelectionFastFlashing] = useState(false);
+  const [isStationFastFlashing, setIsStationFastFlashing] = useState(false);
+
   const commuteFlashStationIds = useMemo(() => {
     if (!commutePathPreview || commutePathPreview.stationIds.length === 0) {
       return [];
@@ -390,17 +393,25 @@ function InteractiveTtcMapComponent({
 
   useEffect(() => {
     if (!selection) {
-      const fallbackTimer = window.setTimeout(() => setFlashSelection(null), 0);
+      const fallbackTimer = window.setTimeout(() => {
+        setFlashSelection(null);
+        setIsSelectionFastFlashing(false);
+      }, 0);
       return () => window.clearTimeout(fallbackTimer);
     }
-    const timer0 = window.setTimeout(() => setFlashSelection(selection), 0);
+    
+    const timer0 = window.setTimeout(() => {
+      setFlashSelection(selection);
+      setIsSelectionFastFlashing(true);
+    }, 0);
     
     let timer: number | undefined;
     const isDesktop = !window.matchMedia("(max-width: 767px)").matches;
     if (isDesktop) {
+      // Transition from fast flash to latent pulse after 2.4 seconds
       timer = window.setTimeout(() => {
-        setFlashSelection(null);
-      }, 2500);
+        setIsSelectionFastFlashing(false);
+      }, 2400);
     }
 
     return () => {
@@ -411,12 +422,37 @@ function InteractiveTtcMapComponent({
 
   useEffect(() => {
     if (!selectedStationId) {
-      const fallbackTimer = window.setTimeout(() => setFlashStationId(null), 0);
+      const fallbackTimer = window.setTimeout(() => {
+        setFlashStationId(null);
+        setIsStationFastFlashing(false);
+      }, 0);
       return () => window.clearTimeout(fallbackTimer);
     }
-    const timer0 = window.setTimeout(() => setFlashStationId(selectedStationId), 0);
-    const timer = window.setTimeout(() => setFlashStationId(null), 2500);
-    return () => { window.clearTimeout(timer0); window.clearTimeout(timer); };
+    
+    const timer0 = window.setTimeout(() => {
+      setFlashStationId(selectedStationId);
+      setIsStationFastFlashing(true);
+    }, 0);
+    
+    let timer: number | undefined;
+    const isDesktop = !window.matchMedia("(max-width: 767px)").matches;
+    if (isDesktop) {
+      // Transition from fast flash to latent pulse after 2.4 seconds on desktop
+      timer = window.setTimeout(() => {
+        setIsStationFastFlashing(false);
+      }, 2400);
+    } else {
+      // On mobile, clear flashStationId after 2.5 seconds
+      timer = window.setTimeout(() => {
+        setFlashStationId(null);
+        setIsStationFastFlashing(false);
+      }, 2500);
+    }
+    
+    return () => {
+      window.clearTimeout(timer0);
+      if (timer) window.clearTimeout(timer);
+    };
   }, [selectedStationId]);
 
   const focusTargetKey = useMemo(() => {
@@ -1093,6 +1129,7 @@ function InteractiveTtcMapComponent({
                       onSelectImpact={onSelectImpact}
                       reducedMotion={reducedMotion}
                       flashSelection={flashSelection}
+                      isSelectionFastFlashing={isSelectionFastFlashing}
                       exiting={exiting}
                     />
                   ))}
@@ -1107,6 +1144,7 @@ function InteractiveTtcMapComponent({
                       onSelectImpact={onSelectImpact}
                       reducedMotion={reducedMotion}
                       flashSelection={flashSelection}
+                      isSelectionFastFlashing={isSelectionFastFlashing}
                       exiting={exiting}
                     />
                   ))}
@@ -1201,7 +1239,7 @@ function InteractiveTtcMapComponent({
                             <circle
                               data-map-highlight-id={station.id}
                               data-station-anchor-id={anchorId}
-                              className="station-selection-flash"
+                              className={`station-selection-flash ${isStationFastFlashing ? "fast" : "latent"}`}
                               cx={point.x}
                               cy={point.y}
                               r={highlightRadius}
@@ -1297,7 +1335,7 @@ function InteractiveTtcMapComponent({
                       {flashSelection && flashSelection.kind === impact.kind && flashSelection.id === impact.cardId && (
                         <circle
                           data-map-highlight-id={flashSelection.id}
-                          className="station-selection-flash"
+                          className={`station-selection-flash ${isSelectionFastFlashing ? "fast" : "latent"}`}
                           cx={point.x}
                           cy={point.y}
                           r={impactRingRadius}
@@ -1386,7 +1424,7 @@ function InteractiveTtcMapComponent({
           <span>
             Viewing <strong>{commutePathPreview.routeLabel}</strong>
           </span>
-          <button type="button" onClick={onClearCommutePathPreview}>
+          <button type="button" onClick={onClearCommutePathPreview} aria-label="Back to saved commutes">
             Back
           </button>
         </div>
@@ -2909,6 +2947,7 @@ function OverlaySegment({
   onSelectImpact,
   reducedMotion,
   flashSelection,
+  isSelectionFastFlashing,
   exiting,
 }: {
   segment: RenderedNetworkSegment;
@@ -2919,6 +2958,7 @@ function OverlaySegment({
   onSelectImpact: (selection: ImpactSelection) => void;
   reducedMotion: boolean;
   flashSelection: ImpactSelection;
+  isSelectionFastFlashing: boolean;
   exiting?: boolean;
 }) {
   const { activeAlerts, delays, reducedSpeedZones, plannedClosures } = useDashboardData();
@@ -3196,7 +3236,9 @@ function OverlaySegment({
       {isMapFlash && flashSelection && (
         <path
           data-map-highlight-id={flashSelection.id}
-          className="asset-alert-path map-selection-flash pointer-events-none"
+          className={`asset-alert-path map-selection-flash pointer-events-none ${
+            isSelectionFastFlashing ? "fast" : "latent"
+          }`}
           d={segment.pathD}
         />
       )}

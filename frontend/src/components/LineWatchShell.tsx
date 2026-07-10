@@ -87,6 +87,7 @@ import {
   type AccountSavedCommute,
   type AccountCommutePathPreview,
   type AccountCommuteLegId,
+  type AccountMatchedImpact,
   type AuthConfig,
 } from "../app/account-data";
 import { GoogleSignInButton } from "./GoogleSignInButton";
@@ -580,16 +581,27 @@ export function LineWatchShell({
     if (hasReleaseNotes) {
       panelToView["release-notes"] = "release-notes";
     }
-    if (panel && panelToView[panel]) {
+    const impactKind = params.get("impactKind") as ImpactKind;
+    const impactId = params.get("impactId");
+    const impactSelection = impactKind && impactId
+      ? { kind: impactKind, id: impactId } as const
+      : null;
+
+    if (impactSelection) {
+      // Notification URLs include their category panel as a fallback. A concrete
+      // impact should instead take the same focused map path as Show on Map, where
+      // mobile reserves a real viewport above the selected impact details.
+      setSelection(impactSelection);
+      setMobileInspectorDetent("map-focus");
+      setActiveView("map");
+      if (panel) {
+        nextParams.delete("panel");
+        shouldReplaceUrl = true;
+      }
+    } else if (panel && panelToView[panel]) {
       setActiveView(panelToView[panel]);
       nextParams.delete("panel");
       shouldReplaceUrl = true;
-    }
-
-    const impactKind = params.get("impactKind") as ImpactKind;
-    const impactId = params.get("impactId");
-    if (impactKind && impactId) {
-      setSelection({ kind: impactKind, id: impactId });
     }
 
     if (shouldReplaceUrl) {
@@ -931,6 +943,21 @@ export function LineWatchShell({
     setActiveView("map");
   };
 
+  const handleViewCommuteImpactOnPath = (
+    commute: AccountSavedCommute,
+    legId: AccountCommuteLegId,
+    impact: AccountMatchedImpact,
+  ) => {
+    const preview = commutePathPreviewFromCommute(commute, legId);
+    if (!preview) return;
+
+    setCommutePathPreview(preview);
+    setSelection({ kind: impact.kind, id: impact.id });
+    setSelectedStationId(null);
+    setMobileInspectorDetent("map-focus");
+    setActiveView("map");
+  };
+
   const handleClearCommutePathPreview = useCallback((commuteIdOrEvent?: string | unknown) => {
     const commuteId = typeof commuteIdOrEvent === "string" ? commuteIdOrEvent : undefined;
     setCommutePathPreview((current) => {
@@ -939,6 +966,8 @@ export function LineWatchShell({
         return current;
       }
       window.setTimeout(() => {
+        setSelection(null);
+        setSelectedStationId(null);
         setActiveView((view) => (view === "map" ? "commutes" : view));
       }, 0);
       return null;
@@ -1515,6 +1544,7 @@ export function LineWatchShell({
             stationSummaries={stationSummaries}
             viewedCommuteId={commutePathPreview?.id ?? null}
             onViewPath={handleViewCommutePath}
+            onViewImpactOnPath={handleViewCommuteImpactOnPath}
             onClearViewedPath={handleClearCommutePathPreview}
             onBack={() => setActiveView("menu")}
             onClose={() => { setActiveView("map"); setSelection(null); }}
@@ -1716,6 +1746,7 @@ export function LineWatchShell({
           stationSummaries={stationSummaries}
           viewedCommuteId={commutePathPreview?.id ?? null}
           onViewPath={handleViewCommutePath}
+          onViewImpactOnPath={handleViewCommuteImpactOnPath}
           onClearViewedPath={handleClearCommutePathPreview}
           onBack={() => setActiveView("menu")}
           onClose={() => { setActiveView("map"); setSelection(null); }}
