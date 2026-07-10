@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Navigation, ChevronDown, ChevronLeft, Loader2, MapPinned, X, AlertTriangle, Construction, Calendar, Clock, Bell, Check } from "lucide-react";
 import {
   createSavedCommute,
@@ -732,6 +732,20 @@ export function SavedCommutesPanel({
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [toastKey, setToastKey] = useState(0);
   const [sortBy, setSortBy] = useState<SavedCommuteSort>("impact");
+  const [sortDropdownOpen, setSortDropdownOpen] = useState(false);
+  const sortDropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (sortDropdownRef.current && !sortDropdownRef.current.contains(event.target as Node)) {
+        setSortDropdownOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
   useEffect(() => {
     if (!successMessage) return;
@@ -1081,21 +1095,21 @@ export function SavedCommutesPanel({
             ) : (
               <div className={`flex flex-col gap-3 ${onBack ? "px-[6px] sm:px-[20px]" : ""}`}>
                 <div className="saved-commute-list-toolbar flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between mb-1">
-                  <div className="flex flex-col gap-1 min-w-0 ml-1 sm:ml-0">
+                  <div className="flex flex-col gap-1 min-w-0">
                     <div className="flex items-baseline gap-1.5">
                       <span className="text-base font-bold text-slate-800 dark:text-slate-100">Your Routes</span>
                       <span className="text-sm font-semibold text-slate-500 dark:text-slate-400">({accountCommutes.length})</span>
                     </div>
                     {accountCommutes.length > 0 && (
                       <div className="flex items-center gap-1.5 mt-0.5" data-testid="commute-status-badges">
-                        {commuteClearCount > 0 && (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-emerald-500/10 dark:bg-emerald-500/20 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                            {commuteClearCount} Clear
-                          </span>
-                        )}
                         {commuteAffectedCount > 0 && (
                           <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-amber-500/10 dark:bg-amber-500/20 text-[10px] font-bold text-amber-700 dark:text-amber-400 border border-amber-500/20">
                             {commuteAffectedCount} Affected
+                          </span>
+                        )}
+                        {commuteClearCount > 0 && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-emerald-500/10 dark:bg-emerald-500/20 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                            {commuteClearCount} Clear
                           </span>
                         )}
                       </div>
@@ -1103,19 +1117,67 @@ export function SavedCommutesPanel({
                   </div>
                   {accountCommutes.length > 0 ? (
                     <div className="saved-commute-list-actions flex items-end gap-2 sm:shrink-0">
-                      <label className="saved-commute-sort-control">
+                      <div className="saved-commute-sort-control" ref={sortDropdownRef}>
                         <span>Sort by</span>
                         <select
                           value={sortBy}
                           onChange={(event) => setSortBy(event.target.value as SavedCommuteSort)}
                           aria-label="Sort saved commutes"
+                          className="sr-only"
+                          tabIndex={-1}
                         >
-                          <option value="impact">Most affected</option>
-                          <option value="recent">Recently saved</option>
-                          <option value="oldest">Oldest saved</option>
-                          <option value="name">Route name A–Z</option>
+                          <option value="impact">Most Affected</option>
+                          <option value="recent">Recently Saved</option>
+                          <option value="oldest">Oldest Saved</option>
+                          <option value="name">Route Name A–Z</option>
                         </select>
-                      </label>
+                        <button
+                          type="button"
+                          className="saved-commute-sort-trigger"
+                          aria-label="Sort saved commutes"
+                          aria-haspopup="listbox"
+                          aria-expanded={sortDropdownOpen}
+                          onClick={() => setSortDropdownOpen(!sortDropdownOpen)}
+                        >
+                          <span className="truncate">
+                            {sortBy === "impact" && "Most Affected"}
+                            {sortBy === "recent" && "Recently Saved"}
+                            {sortBy === "oldest" && "Oldest Saved"}
+                            {sortBy === "name" && "Route Name A–Z"}
+                          </span>
+                          <ChevronDown size={14} className="text-slate-400 dark:text-slate-500 shrink-0" style={{ transform: sortDropdownOpen ? "rotate(180deg)" : "none", transition: "transform 0.2s" }} />
+                        </button>
+                        {sortDropdownOpen && (
+                          <div className="saved-commute-sort-options" role="listbox">
+                            {(
+                              [
+                                { value: "impact", label: "Most Affected" },
+                                { value: "recent", label: "Recently Saved" },
+                                { value: "oldest", label: "Oldest Saved" },
+                                { value: "name", label: "Route Name A–Z" },
+                              ] as const
+                            ).map((option) => {
+                              const isSelected = option.value === sortBy;
+                              return (
+                                <button
+                                  key={option.value}
+                                  type="button"
+                                  role="option"
+                                  aria-selected={isSelected}
+                                  className={`saved-commute-sort-option${isSelected ? " selected" : ""}`}
+                                  onClick={() => {
+                                    setSortBy(option.value);
+                                    setSortDropdownOpen(false);
+                                  }}
+                                >
+                                  <span>{option.label}</span>
+                                  {isSelected && <Check size={12} className="text-emerald-500 dark:text-emerald-400 shrink-0 ml-2" />}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
                       <button
                         type="button"
                         className="saved-commute-add-btn flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition-colors shadow-sm cursor-pointer shrink-0"
