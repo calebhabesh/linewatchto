@@ -33,9 +33,10 @@ public class PushLineEventObservationService {
             .stream()
             .findFirst()
             .map(existing -> {
+                boolean updated = hasTrackedUpdate(existing.getUpdateFingerprint(), candidate.updateFingerprint());
                 existing.refresh(candidate, now);
                 PushLineEventObservationEntity saved = observationRepository.save(existing);
-                return new ObservationDecision(saved, false, false);
+                return new ObservationDecision(saved, false, false, updated);
             })
             .orElseGet(() -> observationRepository.findByAccountIdAndNotificationKey(
                     candidate.accountId(),
@@ -44,7 +45,7 @@ public class PushLineEventObservationService {
                 .map(previous -> {
                     previous.refresh(candidate, now);
                     PushLineEventObservationEntity saved = observationRepository.save(previous);
-                    return new ObservationDecision(saved, true, silentBaseline(candidate, preferences));
+                    return new ObservationDecision(saved, true, silentBaseline(candidate, preferences), false);
                 })
                 .orElseGet(() -> {
                     PushLineEventObservationEntity created = PushLineEventObservationEntity.create(
@@ -53,7 +54,7 @@ public class PushLineEventObservationService {
                         now
                     );
                     PushLineEventObservationEntity saved = observationRepository.save(created);
-                    return new ObservationDecision(saved, true, silentBaseline(candidate, preferences));
+                    return new ObservationDecision(saved, true, silentBaseline(candidate, preferences), false);
                 }));
     }
 
@@ -93,13 +94,28 @@ public class PushLineEventObservationService {
             .orElse(Instant.EPOCH);
     }
 
+    private boolean hasTrackedUpdate(String existingFingerprint, String candidateFingerprint) {
+        return existingFingerprint != null && !existingFingerprint.isBlank()
+            && candidateFingerprint != null && !candidateFingerprint.isBlank()
+            && !existingFingerprint.equals(candidateFingerprint);
+    }
+
     public record ObservationDecision(
         PushLineEventObservationEntity observation,
         boolean firstObserved,
-        boolean silentBaseline
+        boolean silentBaseline,
+        boolean updated
     ) {
+        public ObservationDecision(
+            PushLineEventObservationEntity observation,
+            boolean firstObserved,
+            boolean silentBaseline
+        ) {
+            this(observation, firstObserved, silentBaseline, false);
+        }
+
         public boolean shouldSendActive() {
-            return firstObserved && !silentBaseline;
+            return (firstObserved && !silentBaseline) || updated;
         }
     }
 }

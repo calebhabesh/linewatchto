@@ -172,7 +172,7 @@ class PushLineEventObservationServiceTest {
     }
 
     @Test
-    void refreshesExistingObservationBySourceIncidentWhenEventTypeChanges() {
+    void sendsActiveWhenExistingSourceIncidentEscalatesToAnotherEventType() {
         PushNotificationCandidate suspensionCandidate = candidate(
             "line-5",
             "5",
@@ -207,7 +207,7 @@ class PushLineEventObservationServiceTest {
             service.observe(delayCandidate, preferences, Instant.parse("2026-07-02T03:25:00Z"));
 
         assertThat(decision.firstObserved()).isFalse();
-        assertThat(decision.shouldSendActive()).isFalse();
+        assertThat(decision.shouldSendActive()).isTrue();
         assertThat(existing.getSourceIncidentKey()).isEqualTo("line-current|line-5|ttc-route-71001");
         assertThat(existing.getEventType()).isEqualTo("delay");
         assertThat(existing.getNotificationKey()).isEqualTo("line-current|line-5|delay|ttc-route-71001");

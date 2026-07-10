@@ -957,6 +957,7 @@ describe("LineWatch PWA configuration", () => {
     assert.equal(shownNotifications.length, 2);
     assert.equal(shownNotifications[0].options.tag, "saved-commute-impact|commute_1|outbound|delay|delay-line-1|active");
     assert.equal(shownNotifications[1].options.tag, "saved-commute-impact|commute_1|outbound|delay|delay-line-1|cleared");
+    assert.equal(shownNotifications[0].options.renotify, true);
     assert.equal(shownNotifications[0].options.silent, undefined);
     assert.equal(shownNotifications[1].options.silent, true);
   });

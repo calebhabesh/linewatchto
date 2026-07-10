@@ -3333,6 +3333,12 @@ button {
   animation: none !important;
 }
 
+/* Match the non-animated mobile selection treatment without making it more saturated. */
+.motion-paused.linewatch-shell.mobile-performance-mode .station-selection-flash,
+.motion-paused.linewatch-shell.mobile-performance-mode .asset-alert-path.map-selection-flash {
+  opacity: 0.7;
+}
+
 .impact-route {
   align-items: center;
   display: grid;

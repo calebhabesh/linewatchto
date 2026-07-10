@@ -33,9 +33,10 @@ public class PushSavedCommuteEventObservationService {
             .stream()
             .findFirst()
             .map(existing -> {
+                boolean updated = hasTrackedUpdate(existing.getUpdateFingerprint(), candidate.updateFingerprint());
                 existing.refresh(candidate, now);
                 PushSavedCommuteEventObservationEntity saved = observationRepository.save(existing);
-                return new ObservationDecision(saved, false, false);
+                return new ObservationDecision(saved, false, false, updated);
             })
             .orElseGet(() -> {
                 PushSavedCommuteEventObservationEntity created = PushSavedCommuteEventObservationEntity.create(
@@ -44,7 +45,7 @@ public class PushSavedCommuteEventObservationService {
                     now
                 );
                 PushSavedCommuteEventObservationEntity saved = observationRepository.save(created);
-                return new ObservationDecision(saved, true, silentBaseline(candidate, commute, preferences));
+                return new ObservationDecision(saved, true, silentBaseline(candidate, commute, preferences), false);
             });
     }
 
@@ -85,13 +86,28 @@ public class PushSavedCommuteEventObservationService {
             .orElse(Instant.EPOCH);
     }
 
+    private boolean hasTrackedUpdate(String existingFingerprint, String candidateFingerprint) {
+        return existingFingerprint != null && !existingFingerprint.isBlank()
+            && candidateFingerprint != null && !candidateFingerprint.isBlank()
+            && !existingFingerprint.equals(candidateFingerprint);
+    }
+
     public record ObservationDecision(
         PushSavedCommuteEventObservationEntity observation,
         boolean firstObserved,
-        boolean silentBaseline
+        boolean silentBaseline,
+        boolean updated
     ) {
+        public ObservationDecision(
+            PushSavedCommuteEventObservationEntity observation,
+            boolean firstObserved,
+            boolean silentBaseline
+        ) {
+            this(observation, firstObserved, silentBaseline, false);
+        }
+
         public boolean shouldSendActive() {
-            return firstObserved && !silentBaseline;
+            return (firstObserved && !silentBaseline) || updated;
         }
     }
 }

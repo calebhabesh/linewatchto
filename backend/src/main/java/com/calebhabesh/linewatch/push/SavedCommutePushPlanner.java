@@ -152,18 +152,6 @@ public class SavedCommutePushPlanner {
         
         String stableImpactPart = stableImpactPart(match);
 
-        String dedupeKey = String.join(
-            "|",
-            commute.getAccount().getId(),
-            commute.getId(),
-            legId,
-            eventType,
-            reminderBucket,
-            safe(match.id()),
-            "segments:" + segmentIds,
-            "stations:" + stationIds
-        );
-
         String sourceIncidentKey = String.join(
             "|",
             category,
@@ -179,6 +167,22 @@ public class SavedCommutePushPlanner {
             legId,
             eventType,
             stableImpactPart
+        );
+
+        String updateFingerprint = PushNotificationUpdateFingerprint.forCandidate(
+            match.updatedAt(), eventType, notification, "/?panel=commutes&commute=" + commute.getId()
+        );
+        String dedupeKey = String.join(
+            "|",
+            commute.getAccount().getId(),
+            commute.getId(),
+            legId,
+            eventType,
+            reminderBucket,
+            safe(match.id()),
+            "segments:" + segmentIds,
+            "stations:" + stationIds,
+            "update:" + updateFingerprint
         );
 
         boolean deliveryAllowed = deliveryAllowedFor(commute, legId, path, match, eventType);
@@ -197,6 +201,7 @@ public class SavedCommutePushPlanner {
             dedupeKey,
             notification,
             "/?panel=commutes&commute=" + commute.getId(),
+            updateFingerprint,
             deliveryAllowed
         );
     }

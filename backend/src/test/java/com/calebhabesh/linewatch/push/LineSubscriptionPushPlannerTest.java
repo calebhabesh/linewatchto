@@ -115,7 +115,8 @@ class LineSubscriptionPushPlannerTest {
             assertThat(c.lineId()).isEqualTo("line-1");
             assertThat(c.sourceIncidentKey()).isEqualTo("line-current|line-1|alert-1");
             assertThat(c.notificationKey()).isEqualTo("line-current|line-1|suspension|alert-1");
-            assertThat(c.dedupeKey()).isEqualTo("user_1|line|line-1|suspension|on-change|alert-1");
+            assertThat(c.dedupeKey()).startsWith("user_1|line|line-1|suspension|on-change|alert-1|update|");
+            assertThat(c.updateFingerprint()).hasSize(64);
             assertThat(c.title()).isEqualTo("⚠️ Line 1 Yonge-University Suspension");
             assertThat(c.body()).isEqualTo("""
                 No service between St George and Sheppard West stations due to collision blocking the tracks.
@@ -195,5 +196,33 @@ class LineSubscriptionPushPlannerTest {
                 Delays between Mount Dennis and Kennedy stations while the maintainer fixes a track problem.
                 🕗 Jun 30, 4:34 PM""");
         });
+    }
+
+    @Test
+    void assignsANewDedupeRevisionWhenTheSameSourceAlertIsUpdated() {
+        AlertDashboardService.DelayAlertDto initial = new AlertDashboardService.DelayAlertDto(
+            "alert-line-6", "line-6", "6", "Delay", "Humber College to Mount Olive", "Both Ways",
+            "Delays due to a switch issue.", List.of(),
+            OffsetDateTime.parse("2026-07-10T18:20:00Z"), OffsetDateTime.parse("2026-07-10T18:25:00Z"),
+            "TTC Service Advisory", "Switch issue"
+        );
+        AlertDashboardService.DelayAlertDto updated = new AlertDashboardService.DelayAlertDto(
+            "alert-line-6", "line-6", "6", "Delay", "Humber College to Mount Olive", "Both Ways",
+            "Delays remain between Humber College and Mount Olive.", List.of(),
+            OffsetDateTime.parse("2026-07-10T18:20:00Z"), OffsetDateTime.parse("2026-07-10T18:30:00Z"),
+            "TTC Service Advisory", "Switch issue"
+        );
+        when(dashboardService.activeAlerts()).thenReturn(List.of());
+        when(dashboardService.reducedSpeedZones()).thenReturn(List.of());
+        when(dashboardService.plannedClosures()).thenReturn(List.of());
+        when(dashboardService.delays()).thenReturn(List.of(initial), List.of(updated));
+
+        PushNotificationCandidate first = planner.candidatesFor("user_1", List.of("line-6")).getFirst();
+        PushNotificationCandidate revision = planner.candidatesFor("user_1", List.of("line-6")).getFirst();
+
+        assertThat(revision.sourceIncidentKey()).isEqualTo(first.sourceIncidentKey());
+        assertThat(revision.notificationKey()).isEqualTo(first.notificationKey());
+        assertThat(revision.updateFingerprint()).isNotEqualTo(first.updateFingerprint());
+        assertThat(revision.dedupeKey()).isNotEqualTo(first.dedupeKey());
     }
 }

@@ -56,6 +56,7 @@ public class LineSubscriptionPushPlanner {
                     alert.description(),
                     alert.shuttle(),
                     alert.startedAt() == null ? null : alert.startedAt().toInstant(),
+                    alert.updatedAt(),
                     impactUrl("alerts", "suspension", alert.id())
                 ));
             }
@@ -78,6 +79,7 @@ public class LineSubscriptionPushPlanner {
                     delay.description(),
                     false,
                     delay.startedAt() == null ? null : delay.startedAt().toInstant(),
+                    delay.updatedAt(),
                     impactUrl("delays", "delay", delay.id())
                 ));
             }
@@ -100,6 +102,7 @@ public class LineSubscriptionPushPlanner {
                     zone.description(),
                     false,
                     zone.startedAt() == null ? null : zone.startedAt().toInstant(),
+                    zone.updatedAt(),
                     impactUrl("reduced-speed-zones", "reduced-speed-zone", zone.id())
                 ));
             }
@@ -133,6 +136,7 @@ public class LineSubscriptionPushPlanner {
                     closure.description(),
                     closure.shuttle(),
                     sourceEventAt,
+                    closure.updatedAt(),
                     url
                 ));
 
@@ -156,6 +160,7 @@ public class LineSubscriptionPushPlanner {
                             closure.description(),
                             closure.shuttle(),
                             sourceEventAt,
+                            closure.updatedAt(),
                             url
                         ));
                     }
@@ -178,6 +183,7 @@ public class LineSubscriptionPushPlanner {
                             closure.description(),
                             closure.shuttle(),
                             sourceEventAt,
+                            closure.updatedAt(),
                             url
                         ));
                     }
@@ -203,11 +209,11 @@ public class LineSubscriptionPushPlanner {
         String sourceDescription,
         boolean shuttle,
         Instant sourceEventAt,
+        OffsetDateTime sourceUpdatedAt,
         String url
     ) {
         String sourceIncidentKey = String.join("|", category, lineId, sourceId);
         String notificationKey = String.join("|", category, lineId, eventType, sourceId);
-        String dedupeKey = String.join("|", accountId, "line", lineId, eventType, reminderBucket, sourceId);
         FormattedPushNotification notification = formatter.formatActive(new PushNotificationFacts(
             lineId,
             lineNumber,
@@ -223,6 +229,12 @@ public class LineSubscriptionPushPlanner {
             sourceTitle,
             sourceDescription
         ));
+        String updateFingerprint = PushNotificationUpdateFingerprint.forCandidate(
+            sourceUpdatedAt, eventType, notification, url
+        );
+        String dedupeKey = String.join(
+            "|", accountId, "line", lineId, eventType, reminderBucket, sourceId, "update", updateFingerprint
+        );
 
         return new PushNotificationCandidate(
             accountId,
@@ -237,7 +249,9 @@ public class LineSubscriptionPushPlanner {
             notificationKey,
             dedupeKey,
             notification,
-            url
+            url,
+            updateFingerprint,
+            true
         );
     }
 

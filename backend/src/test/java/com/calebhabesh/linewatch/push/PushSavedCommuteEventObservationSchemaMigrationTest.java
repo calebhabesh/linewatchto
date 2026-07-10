@@ -26,4 +26,19 @@ class PushSavedCommuteEventObservationSchemaMigrationTest {
             assertThat(sql).contains("commute_id is not null");
         }
     }
+
+    @Test
+    void v40AddsUpdateFingerprintsWithoutForcingCatchUpNotifications() throws IOException {
+        try (var input = getClass().getResourceAsStream(
+            "/db/migration/V40__push_notification_update_fingerprints.sql"
+        )) {
+            assertThat(input).isNotNull();
+            String sql = new String(input.readAllBytes(), StandardCharsets.UTF_8);
+
+            assertThat(sql).contains("alter table push_line_event_observations");
+            assertThat(sql).contains("alter table push_saved_commute_event_observations");
+            assertThat(sql).contains("add column update_fingerprint varchar(64)");
+            assertThat(sql).doesNotContain("not null");
+        }
+    }
 }

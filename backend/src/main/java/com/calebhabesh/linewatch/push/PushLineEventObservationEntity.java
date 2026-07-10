@@ -30,6 +30,9 @@ public class PushLineEventObservationEntity {
     @Column(name = "source_incident_key")
     private String sourceIncidentKey;
 
+    @Column(name = "update_fingerprint")
+    private String updateFingerprint;
+
     @Column(name = "notification_subject")
     private String notificationSubject;
 
@@ -78,6 +81,7 @@ public class PushLineEventObservationEntity {
         entity.eventType = candidate.eventType();
         entity.notificationKey = candidate.notificationKey();
         entity.sourceIncidentKey = candidate.sourceIncidentKey();
+        entity.updateFingerprint = candidate.updateFingerprint();
         entity.notificationSubject = candidate.notificationSubject();
         entity.eventLocation = candidate.eventLocation();
         entity.displayDirection = candidate.displayDirection();
@@ -94,6 +98,7 @@ public class PushLineEventObservationEntity {
         this.eventType = candidate.eventType();
         this.notificationKey = candidate.notificationKey();
         this.sourceIncidentKey = candidate.sourceIncidentKey();
+        this.updateFingerprint = candidate.updateFingerprint();
         this.notificationSubject = candidate.notificationSubject();
         this.eventLocation = candidate.eventLocation();
         this.displayDirection = candidate.displayDirection();
@@ -114,6 +119,7 @@ public class PushLineEventObservationEntity {
     public String getEventType() { return eventType; }
     public String getNotificationKey() { return notificationKey; }
     public String getSourceIncidentKey() { return sourceIncidentKey; }
+    public String getUpdateFingerprint() { return updateFingerprint; }
     public String getNotificationSubject() { return notificationSubject; }
     public String getEventLocation() { return eventLocation; }
     public String getDisplayDirection() { return displayDirection; }

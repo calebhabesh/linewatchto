@@ -336,6 +336,17 @@ describe("asset-backed map layering", () => {
     );
   });
 
+  it("keeps reduced-motion mobile selection highlights at the standard mobile opacity", () => {
+    assert.match(
+      globalCss,
+      /\.linewatch-shell\.mobile-performance-mode \.asset-alert-path\.map-selection-flash\s*\{[^}]*opacity:\s*0\.7;/,
+    );
+    assert.match(
+      globalCss,
+      /\.motion-paused\.linewatch-shell\.mobile-performance-mode \.station-selection-flash,\s*\.motion-paused\.linewatch-shell\.mobile-performance-mode \.asset-alert-path\.map-selection-flash\s*\{[^}]*opacity:\s*0\.7;/,
+    );
+  });
+
   it("renders saved commute path previews underneath active disruption overlays", () => {
     assert.match(interactiveMapSource, /commutePathPreview/);
     assert.match(interactiveMapSource, /aria-label="Saved commute route preview"/);

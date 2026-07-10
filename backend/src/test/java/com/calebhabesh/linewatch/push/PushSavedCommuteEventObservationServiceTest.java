@@ -157,6 +157,39 @@ class PushSavedCommuteEventObservationServiceTest {
     }
 
     @Test
+    void sendsActiveWhenAnExistingImpactHasAChangedSourceRevision() {
+        PushNotificationCandidate firstCandidate = candidate(
+            Instant.parse("2026-06-05T15:05:00Z"), "revision-one"
+        );
+        PushSavedCommuteEventObservationEntity existing = PushSavedCommuteEventObservationEntity.create(
+            "saved_obs_existing", firstCandidate, Instant.parse("2026-06-05T15:06:00Z")
+        );
+        PushNotificationCandidate updatedCandidate = candidate(
+            Instant.parse("2026-06-05T15:05:00Z"), "revision-two"
+        );
+        SavedCommuteEntity commute = SavedCommuteEntity.create(
+            "commute_1", account, "Morning commute", "finch", "union", true,
+            Instant.parse("2026-06-05T15:00:00Z")
+        );
+        PushNotificationPreferenceEntity preferences = PushNotificationPreferenceEntity.create(
+            account, Instant.parse("2026-06-05T14:30:00Z")
+        );
+
+        when(observationRepository.findByAccountIdAndSourceIncidentKeyAndClearedAtIsNullOrderByLastSeenAtDesc(
+            "user_1", "saved-commute-current|commute_1|outbound|rsz-line-1"
+        )).thenReturn(List.of(existing));
+        when(observationRepository.save(existing)).thenReturn(existing);
+
+        PushSavedCommuteEventObservationService.ObservationDecision decision =
+            service.observe(updatedCandidate, commute, preferences, Instant.parse("2026-06-05T15:10:00Z"));
+
+        assertThat(decision.firstObserved()).isFalse();
+        assertThat(decision.updated()).isTrue();
+        assertThat(decision.shouldSendActive()).isTrue();
+        assertThat(existing.getUpdateFingerprint()).isEqualTo("revision-two");
+    }
+
+    @Test
     void activeObservationsReturnsRepositoryRows() {
         when(observationRepository.findByAccountIdAndClearedAtIsNullOrderByLastSeenAtDesc("user_1"))
             .thenReturn(List.of());
@@ -165,6 +198,12 @@ class PushSavedCommuteEventObservationServiceTest {
     }
 
     private PushNotificationCandidate candidate(Instant sourceEventAt) {
+        return candidate(sourceEventAt, PushNotificationUpdateFingerprint.forCandidate(
+            null, "reduced-speed-zone", null, "/?panel=commutes&commute=commute_1"
+        ));
+    }
+
+    private PushNotificationCandidate candidate(Instant sourceEventAt, String updateFingerprint) {
         FormattedPushNotification notification = new PushNotificationFormatter().formatActive(
             new PushNotificationFacts(
                 "line-1",
@@ -192,7 +231,9 @@ class PushSavedCommuteEventObservationServiceTest {
             "saved-commute-current|commute_1|outbound|reduced-speed-zone|rsz-line-1",
             "user_1|commute_1|outbound|reduced-speed-zone|on-change|rsz-line-1|segments:line-1-eglinton-davisville|stations:",
             notification,
-            "/?panel=commutes&commute=commute_1"
+            "/?panel=commutes&commute=commute_1",
+            updateFingerprint,
+            true
         );
     }
 }

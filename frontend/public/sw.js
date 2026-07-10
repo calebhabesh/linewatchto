@@ -269,7 +269,7 @@ async function showPushNotification(notification) {
     tag: notification.tag,
     icon: NOTIFICATION_ICON_URL,
     badge: NOTIFICATION_BADGE_URL,
-    renotify: false,
+    renotify: notificationState === "ACTIVE",
     requireInteraction: true,
     data: {
       state: notificationState,

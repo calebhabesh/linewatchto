@@ -16,6 +16,7 @@ public record PushNotificationCandidate(
     String dedupeKey,
     FormattedPushNotification notification,
     String url,
+    String updateFingerprint,
     boolean deliveryAllowed
 ) {
     public PushNotificationCandidate(
@@ -47,7 +48,43 @@ public record PushNotificationCandidate(
             dedupeKey,
             notification,
             url,
+            PushNotificationUpdateFingerprint.forCandidate(null, eventType, notification, url),
             true
+        );
+    }
+
+    public PushNotificationCandidate(
+        String accountId,
+        String commuteId,
+        String legId,
+        String lineId,
+        String lineNumber,
+        String category,
+        String eventType,
+        String reminderBucket,
+        String sourceIncidentKey,
+        String notificationKey,
+        String dedupeKey,
+        FormattedPushNotification notification,
+        String url,
+        boolean deliveryAllowed
+    ) {
+        this(
+            accountId,
+            commuteId,
+            legId,
+            lineId,
+            lineNumber,
+            category,
+            eventType,
+            reminderBucket,
+            sourceIncidentKey,
+            notificationKey,
+            dedupeKey,
+            notification,
+            url,
+            PushNotificationUpdateFingerprint.forCandidate(null, eventType, notification, url),
+            deliveryAllowed
         );
     }
 

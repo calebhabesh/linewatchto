@@ -89,9 +89,10 @@ class SavedCommutePushPlannerTest {
             assertThat(candidate.scopeLabel()).isEqualTo("Morning commute (Outbound)");
             assertThat(candidate.sourceEventAt()).isEqualTo(Instant.parse("2026-06-05T14:20:00Z"));
             assertThat(candidate.url()).isEqualTo("/?panel=commutes&commute=commute_1");
-            assertThat(candidate.dedupeKey()).isEqualTo(
-                "user_1|commute_1|outbound|delay|on-change|delay-line-1|segments:line-1-finch-union|stations:"
+            assertThat(candidate.dedupeKey()).startsWith(
+                "user_1|commute_1|outbound|delay|on-change|delay-line-1|segments:line-1-finch-union|stations:|update:"
             );
+            assertThat(candidate.updateFingerprint()).hasSize(64);
         });
     }
 
