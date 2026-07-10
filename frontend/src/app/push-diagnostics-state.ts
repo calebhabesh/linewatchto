@@ -33,7 +33,12 @@ export function visibleRecipientsForNotification(
   showArchivedDevices: boolean,
 ): PushRecipientDiagnostic[] {
   const recipients = recipientsForNotification(notification);
-  return showArchivedDevices ? recipients : recipients.filter((recipient) => recipient.subscriptionEnabled);
+  // Keep the actual recipient visible even after its browser endpoint has been
+  // replaced. Hiding it turns a historical delivery into the misleading
+  // "registered after" result for the current endpoint.
+  return showArchivedDevices
+    ? recipients
+    : recipients.filter((recipient) => recipient.subscriptionEnabled || recipient.delivery !== null);
 }
 
 export function diagnosticDeviceOptions(
@@ -56,7 +61,7 @@ export function diagnosticDeviceOptions(
     options.set(diagnosticDeviceKey(recipient), diagnosticDeviceLabel(recipient, duplicatedLabels));
   }
   return [
-    { key: "all", label: showArchivedDevices ? "All devices" : "Current devices" },
+    { key: "all", label: showArchivedDevices ? "All devices" : "Current and delivered devices" },
     ...[...options.entries()].map(([key, label]) => ({ key, label })),
   ];
 }

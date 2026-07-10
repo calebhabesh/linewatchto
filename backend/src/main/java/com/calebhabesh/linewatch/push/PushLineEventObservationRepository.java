@@ -12,6 +12,11 @@ public interface PushLineEventObservationRepository extends JpaRepository<PushLi
         String notificationKey
     );
 
+    Optional<PushLineEventObservationEntity> findByAccountIdAndNotificationKey(
+        String accountId,
+        String notificationKey
+    );
+
     List<PushLineEventObservationEntity> findByAccountIdAndSourceIncidentKeyAndClearedAtIsNullOrderByLastSeenAtDesc(
         String accountId,
         String sourceIncidentKey

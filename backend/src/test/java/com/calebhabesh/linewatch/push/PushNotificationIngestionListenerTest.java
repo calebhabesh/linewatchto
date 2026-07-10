@@ -11,7 +11,8 @@ class PushNotificationIngestionListenerTest {
     @Test
     void evaluatesPushNotificationsWhenAlertIngestionSucceeds() {
         PushNotificationDispatchService dispatchService = mock(PushNotificationDispatchService.class);
-        PushNotificationIngestionListener listener = new PushNotificationIngestionListener(dispatchService);
+        PushEvaluationHealthService healthService = mock(PushEvaluationHealthService.class);
+        PushNotificationIngestionListener listener = new PushNotificationIngestionListener(dispatchService, healthService);
 
         listener.onTtcAlertIngestionSucceeded(new TtcAlertIngestionSucceededEvent(
             42L,

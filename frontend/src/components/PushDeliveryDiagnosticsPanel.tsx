@@ -12,13 +12,10 @@ import {
   type PushDevice,
   type PushNotificationDiagnosticGroup,
 } from "../app/account-data";
-import { getCurrentPushSubscription } from "../app/push-browser-state";
 import {
   diagnosticDeviceKey,
   diagnosticDeviceOptions,
-  endpointHashPrefixForEndpoint,
   recipientsForNotification,
-  selectedDeviceKeyForCurrentEndpoint,
   visibleRecipientsForNotification,
 } from "../app/push-diagnostics-state";
 
@@ -74,18 +71,6 @@ function diagnosticOutcome(delivery: PushDeliveryDiagnostic) {
   return delivery.deliveryStatus || "Queued";
 }
 
-async function currentBrowserEndpointHashPrefix() {
-  if (typeof navigator === "undefined" || !("serviceWorker" in navigator)) {
-    return null;
-  }
-  try {
-    const subscription = await getCurrentPushSubscription(navigator.serviceWorker, { readyTimeoutMs: 1_000 });
-    return subscription?.endpoint ? await endpointHashPrefixForEndpoint(subscription.endpoint) : null;
-  } catch {
-    return null;
-  }
-}
-
 function deviceHealthLabel(device: PushDevice) {
   if (device.staleCandidate) {
     return "No display ack";
@@ -135,11 +120,12 @@ export function PushDeliveryDiagnosticsPanel({ accountState }: Props) {
       getPushDeliveryDiagnostics(),
       getPushDevices(),
     ]);
-    const currentEndpointHashPrefix = await currentBrowserEndpointHashPrefix();
-    const nextOptions = diagnosticDeviceOptions(diagnosticsResult.notifications, false);
     setDiagnosticNotifications(diagnosticsResult.notifications);
     setPushDevices(devicesResult.devices);
-    setSelectedDeviceKey(selectedDeviceKeyForCurrentEndpoint(currentEndpointHashPrefix, nextOptions));
+    // Start with the full recipient timeline. Selecting only the current
+    // endpoint hides the device that actually received an older push after a
+    // browser rotates its subscription.
+    setSelectedDeviceKey("all");
     setDiagnosticsState(diagnosticsResult.source === "backend" || devicesResult.source === "backend" ? "backend" : "unavailable");
     setDiagnosticsMessage(diagnosticsResult.message ?? devicesResult.message ?? null);
   }, [accountState.authenticated]);

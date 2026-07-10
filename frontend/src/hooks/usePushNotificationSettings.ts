@@ -111,6 +111,7 @@ export function usePushNotificationSettings(accountState: AccountState): UsePush
       endpoint: subscription.endpoint,
       keys: pushSubscriptionKeys(subscription),
       userAgent: navigator.userAgent,
+      reason: "app-refresh",
     });
     return subscription;
   }, []);

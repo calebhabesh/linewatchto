@@ -8,13 +8,15 @@ import org.springframework.stereotype.Component;
 @ConditionalOnProperty(name = "linewatch.push.enabled", havingValue = "true")
 public class PushNotificationJob {
     private final PushNotificationDispatchService dispatchService;
+    private final PushEvaluationHealthService healthService;
 
-    public PushNotificationJob(PushNotificationDispatchService dispatchService) {
+    public PushNotificationJob(PushNotificationDispatchService dispatchService, PushEvaluationHealthService healthService) {
         this.dispatchService = dispatchService;
+        this.healthService = healthService;
     }
 
     @Scheduled(fixedDelayString = "${linewatch.push.evaluation-delay-ms:60000}")
     public void evaluateSavedCommuteNotifications() {
-        dispatchService.evaluateSavedCommuteNotifications();
+        healthService.record(dispatchService.evaluateSavedCommuteNotifications());
     }
 }

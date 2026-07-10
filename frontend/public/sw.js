@@ -442,7 +442,7 @@ async function handlePushSubscriptionChange(event) {
       });
     }
 
-    await saveChangedPushSubscription(subscription);
+    await saveChangedPushSubscription(subscription, "subscription-change");
   } catch {
     // Browsers fire pushsubscriptionchange inconsistently. App-open subscription refresh remains the fallback.
   }
@@ -461,7 +461,7 @@ async function fetchPushConfigForSubscriptionRepair() {
   return await response.json();
 }
 
-async function saveChangedPushSubscription(subscription) {
+async function saveChangedPushSubscription(subscription, reason) {
   if (!subscription?.endpoint) return;
   await fetch("/api/account/push/subscription", {
     method: "PUT",
@@ -473,6 +473,7 @@ async function saveChangedPushSubscription(subscription) {
       endpoint: subscription.endpoint,
       keys: pushSubscriptionKeys(subscription),
       userAgent: serviceWorkerUserAgent(),
+      reason: typeof reason === "string" && reason.length > 0 ? reason : "service-worker-refresh",
     }),
   });
 }
@@ -485,7 +486,7 @@ async function disableChangedPushSubscription(endpoint) {
     headers: {
       "content-type": "application/json",
     },
-    body: JSON.stringify({ endpoint }),
+    body: JSON.stringify({ endpoint, reason: "subscription-change" }),
   });
 }
 

@@ -81,7 +81,7 @@ describe("push diagnostics state", () => {
 
     assert.deepEqual(
       currentOptions.map((option) => option.label),
-      ["Current devices", "Android Chrome", "iOS Safari"],
+      ["Current and delivered devices", "Android Chrome", "iOS Safari"],
     );
     assert.deepEqual(
       archiveOptions.map((option) => option.label),

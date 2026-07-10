@@ -37,15 +37,24 @@ public class PushLineEventObservationService {
                 PushLineEventObservationEntity saved = observationRepository.save(existing);
                 return new ObservationDecision(saved, false, false);
             })
-            .orElseGet(() -> {
-                PushLineEventObservationEntity created = PushLineEventObservationEntity.create(
-                    PushLineEventObservationEntity.idFor(candidate.accountId(), candidate.sourceIncidentKey()),
-                    candidate,
-                    now
-                );
-                PushLineEventObservationEntity saved = observationRepository.save(created);
-                return new ObservationDecision(saved, true, silentBaseline(candidate, preferences));
-            });
+            .orElseGet(() -> observationRepository.findByAccountIdAndNotificationKey(
+                    candidate.accountId(),
+                    candidate.notificationKey()
+                )
+                .map(previous -> {
+                    previous.refresh(candidate, now);
+                    PushLineEventObservationEntity saved = observationRepository.save(previous);
+                    return new ObservationDecision(saved, true, silentBaseline(candidate, preferences));
+                })
+                .orElseGet(() -> {
+                    PushLineEventObservationEntity created = PushLineEventObservationEntity.create(
+                        PushLineEventObservationEntity.idFor(candidate.accountId(), candidate.sourceIncidentKey()),
+                        candidate,
+                        now
+                    );
+                    PushLineEventObservationEntity saved = observationRepository.save(created);
+                    return new ObservationDecision(saved, true, silentBaseline(candidate, preferences));
+                }));
     }
 
     @Transactional(readOnly = true)

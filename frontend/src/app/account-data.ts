@@ -361,6 +361,7 @@ export type SavePushSubscriptionInput = {
     auth: string;
   };
   userAgent: string;
+  reason?: string;
 };
 
 export type PushSubscriptionResponse = {

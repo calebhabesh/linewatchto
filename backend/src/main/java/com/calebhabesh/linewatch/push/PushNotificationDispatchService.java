@@ -17,11 +17,13 @@ import java.util.Set;
 import java.util.UUID;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class PushNotificationDispatchService {
+    private static final Logger log = LoggerFactory.getLogger(PushNotificationDispatchService.class);
     private static final String ACTIVE_STATE = "ACTIVE";
     private static final String CLEARED_STATE = "CLEARED";
     private static final Duration FAILED_DELIVERY_RETRY_DELAY = Duration.ofSeconds(30);
@@ -120,9 +122,26 @@ public class PushNotificationDispatchService {
         this.clock = clock;
     }
 
-    @Transactional
-    public void evaluateSavedCommuteNotifications() {
+    public PushEvaluationResult evaluateSavedCommuteNotifications() {
+        int accountsEvaluated = 0;
+        int accountsFailed = 0;
+        String lastError = null;
         for (String accountId : subscriptionRepository.findEnabledAccountIds()) {
+            accountsEvaluated++;
+            try {
+                evaluateAccount(accountId);
+            } catch (RuntimeException exception) {
+                accountsFailed++;
+                lastError = exception.getMessage();
+                log.error("Push notification evaluation failed for account {}", accountId, exception);
+            }
+        }
+        return new PushEvaluationResult(accountsEvaluated, accountsFailed, lastError);
+    }
+
+    public record PushEvaluationResult(int accountsEvaluated, int accountsFailed, String lastError) {}
+
+    void evaluateAccount(String accountId) {
             PushNotificationPreferenceEntity preferences = preferenceService.preferenceEntityForAccountId(accountId);
             
             List<SavedCommuteEntity> commutes = savedCommuteRepository.findByAccountIdOrderByCreatedAtAsc(accountId);
@@ -211,7 +230,6 @@ public class PushNotificationDispatchService {
                 currentLineCandidates
             );
             retryRecentClearedLifecycleNotifications(accountId, preferences, subscribedLineIdSet, clock.instant());
-        }
     }
 
     private void retryRecentClearedLifecycleNotifications(

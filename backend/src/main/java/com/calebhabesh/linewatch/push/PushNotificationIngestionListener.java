@@ -13,15 +13,20 @@ public class PushNotificationIngestionListener {
     private static final Logger log = LoggerFactory.getLogger(PushNotificationIngestionListener.class);
 
     private final PushNotificationDispatchService dispatchService;
+    private final PushEvaluationHealthService healthService;
 
-    public PushNotificationIngestionListener(PushNotificationDispatchService dispatchService) {
+    public PushNotificationIngestionListener(
+        PushNotificationDispatchService dispatchService,
+        PushEvaluationHealthService healthService
+    ) {
         this.dispatchService = dispatchService;
+        this.healthService = healthService;
     }
 
     @EventListener
     public void onTtcAlertIngestionSucceeded(TtcAlertIngestionSucceededEvent event) {
         try {
-            dispatchService.evaluateSavedCommuteNotifications();
+            healthService.record(dispatchService.evaluateSavedCommuteNotifications());
         } catch (RuntimeException exception) {
             log.warn("Push notification evaluation failed after TTC alert ingestion run {}", event.runId(), exception);
         }

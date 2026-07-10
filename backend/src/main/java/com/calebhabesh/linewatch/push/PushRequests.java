@@ -8,10 +8,17 @@ public final class PushRequests {
     public record SaveSubscriptionRequest(
         String endpoint,
         PushSubscriptionKeys keys,
-        String userAgent
-    ) {}
+        String userAgent,
+        String reason
+    ) {
+        public SaveSubscriptionRequest(String endpoint, PushSubscriptionKeys keys, String userAgent) {
+            this(endpoint, keys, userAgent, null);
+        }
+    }
 
-    public record SubscriptionEndpointRequest(String endpoint) {}
+    public record SubscriptionEndpointRequest(String endpoint, String reason) {
+        public SubscriptionEndpointRequest(String endpoint) { this(endpoint, null); }
+    }
 
     public record DisplayedNotificationRequest(String endpoint, String tag) {}
 

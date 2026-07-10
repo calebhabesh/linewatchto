@@ -46,6 +46,7 @@ public class PushNotificationService {
     private final WebPushClient webPushClient;
     private final PushReceiptTokenService receiptTokenService;
     private final IngestionFreshness ingestionFreshness;
+    private final PushSubscriptionLifecycleService lifecycleService;
     private final Clock clock;
 
     @Autowired
@@ -61,7 +62,8 @@ public class PushNotificationService {
         PushNotificationClientEventRepository clientEventRepository,
         WebPushClient webPushClient,
         PushReceiptTokenService receiptTokenService,
-        IngestionFreshness ingestionFreshness
+        IngestionFreshness ingestionFreshness,
+        PushSubscriptionLifecycleService lifecycleService
     ) {
         this(
             properties,
@@ -76,7 +78,8 @@ public class PushNotificationService {
             webPushClient,
             ingestionFreshness,
             receiptTokenService,
-            Clock.systemUTC()
+            Clock.systemUTC(),
+            lifecycleService
         );
     }
 
@@ -95,6 +98,20 @@ public class PushNotificationService {
         PushReceiptTokenService receiptTokenService,
         Clock clock
     ) {
+        this(properties, subscriptionRepository, deliveryRepository, eventRepository, savedCommuteRepository, planner,
+            preferenceService, lineSubscriptionPushPlanner, clientEventRepository, webPushClient, ingestionFreshness,
+            receiptTokenService, clock, null);
+    }
+
+    PushNotificationService(
+        PushProperties properties, PushSubscriptionRepository subscriptionRepository,
+        PushNotificationDeliveryRepository deliveryRepository, PushNotificationEventRepository eventRepository,
+        SavedCommuteRepository savedCommuteRepository, SavedCommutePushPlanner planner,
+        PushNotificationPreferenceService preferenceService, LineSubscriptionPushPlanner lineSubscriptionPushPlanner,
+        PushNotificationClientEventRepository clientEventRepository, WebPushClient webPushClient,
+        IngestionFreshness ingestionFreshness, PushReceiptTokenService receiptTokenService, Clock clock,
+        PushSubscriptionLifecycleService lifecycleService
+    ) {
         this.properties = properties;
         this.subscriptionRepository = subscriptionRepository;
         this.deliveryRepository = deliveryRepository;
@@ -108,6 +125,7 @@ public class PushNotificationService {
         this.receiptTokenService = receiptTokenService;
         this.ingestionFreshness = ingestionFreshness;
         this.clock = clock;
+        this.lifecycleService = lifecycleService;
     }
 
     @Transactional(readOnly = true)
@@ -139,6 +157,8 @@ public class PushNotificationService {
         String endpointHash = hashEndpoint(endpoint);
         Instant now = clock.instant();
 
+        boolean existingSubscription = subscriptionRepository
+            .findByAccountIdAndEndpointHash(account.getId(), endpointHash).isPresent();
         PushSubscriptionEntity subscription = subscriptionRepository
             .findByAccountIdAndEndpointHash(account.getId(), endpointHash)
             .map(existing -> {
@@ -156,7 +176,9 @@ public class PushNotificationService {
                 now
             ));
 
-        return toResponse(subscriptionRepository.save(subscription));
+        PushSubscriptionEntity saved = subscriptionRepository.save(subscription);
+        recordLifecycle(saved, existingSubscription ? "refreshed" : "registered", request.reason());
+        return toResponse(saved);
     }
 
     @Transactional
@@ -171,7 +193,7 @@ public class PushNotificationService {
     public void disableSubscription(AccountEntity account, PushRequests.SubscriptionEndpointRequest request) {
         String endpointHash = hashEndpoint(required(request.endpoint(), "missing_endpoint", "Push subscription endpoint is required."));
         subscriptionRepository.findByAccountIdAndEndpointHash(account.getId(), endpointHash)
-            .ifPresent(subscription -> subscription.disable(clock.instant()));
+            .ifPresent(subscription -> { subscription.disable(clock.instant()); recordLifecycle(subscription, "disabled", request.reason()); });
     }
 
     @Transactional
@@ -353,7 +375,7 @@ public class PushNotificationService {
     public void disableDevice(AccountEntity account, String subscriptionId) {
         String id = required(subscriptionId, "missing_subscription_id", "Push device subscription id is required.");
         subscriptionRepository.findByIdAndAccountId(id, account.getId())
-            .ifPresent(subscription -> subscription.disable(clock.instant()));
+            .ifPresent(subscription -> { subscription.disable(clock.instant()); recordLifecycle(subscription, "disabled", "dashboard-disable"); });
     }
 
     @Transactional
@@ -721,6 +743,12 @@ public class PushNotificationService {
         }
         String normalized = endpointHash.trim();
         return normalized.substring(0, Math.min(12, normalized.length()));
+    }
+
+    private void recordLifecycle(PushSubscriptionEntity subscription, String eventType, String reason) {
+        if (lifecycleService == null || subscription == null) return;
+        String normalizedReason = reason == null || reason.isBlank() ? "unspecified" : reason.trim().substring(0, Math.min(80, reason.trim().length()));
+        lifecycleService.record(subscription, eventType, normalizedReason, clock.instant());
     }
 
     private PushResponses.PushDeviceResponse toDeviceResponse(PushSubscriptionEntity subscription) {

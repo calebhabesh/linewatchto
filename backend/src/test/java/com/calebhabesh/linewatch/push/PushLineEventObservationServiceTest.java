@@ -132,6 +132,46 @@ class PushLineEventObservationServiceTest {
     }
 
     @Test
+    void reactivatesClearedObservationWithTheSameNotificationKey() {
+        PushNotificationCandidate candidate = candidate(
+            "line-1",
+            "1",
+            "reduced-speed-zone",
+            "line-current|line-1|reduced-speed-zone|rsz-1",
+            Instant.parse("2026-06-05T15:05:00Z")
+        );
+        PushLineEventObservationEntity previous = PushLineEventObservationEntity.create(
+            "line_obs_legacy_notification_key",
+            candidate,
+            Instant.parse("2026-06-05T14:00:00Z")
+        );
+        previous.markCleared(Instant.parse("2026-06-05T14:30:00Z"));
+        PushNotificationPreferenceEntity preferences = PushNotificationPreferenceEntity.create(
+            account,
+            Instant.parse("2026-06-05T14:00:00Z")
+        );
+
+        when(observationRepository.findByAccountIdAndSourceIncidentKeyAndClearedAtIsNullOrderByLastSeenAtDesc(
+            "user_1",
+            "line-current|line-1|rsz-1"
+        )).thenReturn(List.of());
+        when(observationRepository.findByAccountIdAndNotificationKey(
+            "user_1",
+            "line-current|line-1|reduced-speed-zone|rsz-1"
+        )).thenReturn(Optional.of(previous));
+        when(observationRepository.save(previous)).thenReturn(previous);
+
+        PushLineEventObservationService.ObservationDecision decision =
+            service.observe(candidate, preferences, Instant.parse("2026-06-05T15:10:00Z"));
+
+        assertThat(decision.firstObserved()).isTrue();
+        assertThat(decision.shouldSendActive()).isTrue();
+        assertThat(previous.getClearedAt()).isNull();
+        assertThat(previous.getLastSeenAt()).isEqualTo(Instant.parse("2026-06-05T15:10:00Z"));
+        verify(observationRepository, never()).save(argThat(entity -> entity != previous));
+    }
+
+    @Test
     void refreshesExistingObservationBySourceIncidentWhenEventTypeChanges() {
         PushNotificationCandidate suspensionCandidate = candidate(
             "line-5",

@@ -101,6 +101,7 @@ public class PushLineEventObservationEntity {
         this.sourceEventAt = candidate.sourceEventAt();
         this.url = candidate.url();
         this.lastSeenAt = now;
+        this.clearedAt = null;
     }
 
     public void markCleared(Instant now) {
