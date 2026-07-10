@@ -101,23 +101,6 @@ function commute(id, outboundImpact, returnImpact = null) {
 }
 
 describe("saved commute menu counts", () => {
-  it("sorts affected routes ahead of planned and clear routes while retaining pins first", async () => {
-    const accountData = await import("../src/app/account-data.ts");
-    const clear = { ...commute("clear", impact("clear")), pinned: false };
-    const planned = { ...commute("planned", impact("planned")), pinned: false };
-    const affected = { ...commute("affected", impact("affected")), pinned: false };
-    const pinnedClear = { ...commute("pinned-clear", impact("clear")), pinned: true };
-
-    assert.deepEqual(
-      accountData.sortSavedCommutes([clear, planned, affected, pinnedClear]).map((item) => item.id),
-      ["pinned-clear", "affected", "planned", "clear"]
-    );
-    assert.deepEqual(
-      accountData.sortSavedCommutes([affected, clear], "name").map((item) => item.id),
-      ["affected", "clear"]
-    );
-  });
-
   it("loads saved commutes from the shell instead of waiting for the panel to mount", () => {
     assert.match(shellSource, /getSavedCommutes/);
     assert.match(shellSource, /setAccountCommutes\(result\.commutes\)/);

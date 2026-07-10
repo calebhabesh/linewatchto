@@ -182,7 +182,6 @@ export type AccountSavedCommute = {
   returnLeg: AccountCommuteLeg | null;
   path: AccountCommutePath;
   impact: AccountCommuteImpact;
-  pinned: boolean;
   notificationRule: AccountSavedCommuteNotificationRule;
   createdAt: string;
   updatedAt: string;
@@ -216,75 +215,6 @@ export type SavedCommuteStatusSummary = {
   clear: number;
   affectedNow: number;
 };
-
-export type SavedCommuteSort = "attention" | "recent" | "name" | "duration";
-
-function savedCommuteSeverityPriority(severity: AccountCommuteImpact["severity"]) {
-  return ({ suspended: 5, major: 4, minor: 3, planned: 2, unavailable: 1, clear: 0 } as const)[severity] ?? 0;
-}
-
-function savedCommuteCurrentImpacts(commute: AccountSavedCommute) {
-  return commuteLegsForCommute(commute)
-    .flatMap((leg) => leg.impact.matchedImpacts)
-    .filter((impact) => impact.status === "current" && !impact.ignoredByRule);
-}
-
-function savedCommuteAttentionRank(commute: AccountSavedCommute) {
-  const current = savedCommuteCurrentImpacts(commute);
-  if (current.length > 0) return 3;
-  if (commuteLegsForCommute(commute).some((leg) => leg.impact.status === "planned")) return 2;
-  if (commuteLegsForCommute(commute).some((leg) => leg.impact.status === "unavailable")) return 1;
-  return 0;
-}
-
-function savedCommuteExtraTime(commute: AccountSavedCommute) {
-  return Math.max(0, ...commuteLegsForCommute(commute).map((leg) => leg.impact.travelTimeEstimate?.extraHighSeconds ?? 0));
-}
-
-function savedCommuteLatestImpactUpdate(commute: AccountSavedCommute) {
-  return Math.max(0, ...savedCommuteCurrentImpacts(commute).map((impact) => Date.parse(impact.updatedAt ?? impact.startedAt ?? "") || 0));
-}
-
-function savedCommuteNextPlannedStart(commute: AccountSavedCommute) {
-  const starts = commuteLegsForCommute(commute)
-    .flatMap((leg) => leg.impact.matchedImpacts)
-    .filter((impact) => impact.status === "planned" && !impact.ignoredByRule)
-    .map((impact) => Date.parse(impact.eventStartAt ?? impact.startedAt ?? ""))
-    .filter((timestamp) => Number.isFinite(timestamp) && timestamp > 0);
-  return starts.length > 0 ? Math.min(...starts) : Number.POSITIVE_INFINITY;
-}
-
-export function sortSavedCommutes(commutes: AccountSavedCommute[], sort: SavedCommuteSort = "attention") {
-  return commutes.map((commute, index) => ({ commute, index })).sort((a, b) => {
-    if (a.commute.pinned !== b.commute.pinned) return a.commute.pinned ? -1 : 1;
-    if (sort === "attention") {
-      const attention = savedCommuteAttentionRank(b.commute) - savedCommuteAttentionRank(a.commute);
-      if (attention) return attention;
-      if (savedCommuteAttentionRank(a.commute) === 2) {
-        const plannedStart = savedCommuteNextPlannedStart(a.commute) - savedCommuteNextPlannedStart(b.commute);
-        if (plannedStart) return plannedStart;
-      }
-      const severity = Math.max(...commuteLegsForCommute(b.commute).map((leg) => savedCommuteSeverityPriority(leg.impact.severity)))
-        - Math.max(...commuteLegsForCommute(a.commute).map((leg) => savedCommuteSeverityPriority(leg.impact.severity)));
-      if (severity) return severity;
-      const extra = savedCommuteExtraTime(b.commute) - savedCommuteExtraTime(a.commute);
-      if (extra) return extra;
-      const updated = savedCommuteLatestImpactUpdate(b.commute) - savedCommuteLatestImpactUpdate(a.commute);
-      if (updated) return updated;
-    } else if (sort === "recent") {
-      const recent = Date.parse(b.commute.createdAt) - Date.parse(a.commute.createdAt);
-      if (recent) return recent;
-    } else if (sort === "name") {
-      const name = a.commute.label.localeCompare(b.commute.label, undefined, { sensitivity: "base" });
-      if (name) return name;
-    } else {
-      const duration = (a.commute.outboundLeg?.path.estimatedTravelSeconds ?? a.commute.path.estimatedTravelSeconds)
-        - (b.commute.outboundLeg?.path.estimatedTravelSeconds ?? b.commute.path.estimatedTravelSeconds);
-      if (duration) return duration;
-    }
-    return a.index - b.index;
-  }).map(({ commute }) => commute);
-}
 
 export function summarizeSavedCommuteStatuses(commutes: AccountSavedCommute[]): SavedCommuteStatusSummary {
   return commutes.reduce<SavedCommuteStatusSummary>((summary, commute) => {
@@ -579,7 +509,6 @@ export function normalizeSavedCommuteNotificationRule(
 function normalizeSavedCommute(commute: AccountSavedCommute): AccountSavedCommute {
   return {
     ...commute,
-    pinned: Boolean(commute.pinned),
     notificationRule: normalizeSavedCommuteNotificationRule(commute.notificationRule),
   };
 }
@@ -790,18 +719,6 @@ export async function updateSavedCommuteNotificationRule(
   if (!response.ok) {
     throw new Error(`Update saved commute notification rule failed with ${response.status}`);
   }
-  return normalizeSavedCommute(await readJson<AccountSavedCommute>(response));
-}
-
-export async function updateSavedCommutePin(id: string, pinned: boolean, options: AdapterOptions = {}) {
-  const fetcher = options.fetcher ?? fetch;
-  const response = await fetcher(apiUrl(`/api/account/commutes/${encodeURIComponent(id)}/pin`, options), {
-    method: "PATCH",
-    credentials: "include",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ pinned }),
-  });
-  if (!response.ok) throw new Error(`Update saved commute pin failed with ${response.status}`);
   return normalizeSavedCommute(await readJson<AccountSavedCommute>(response));
 }
 

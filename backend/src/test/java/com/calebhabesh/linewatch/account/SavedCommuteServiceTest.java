@@ -355,26 +355,6 @@ class SavedCommuteServiceTest {
     }
 
     @Test
-    void persistsPinnedStateForTheCurrentAccountsCommute() {
-        StationEntity finch = new StationEntity("finch", "Finch", 0, 0, false, 10, null);
-        StationEntity union = new StationEntity("union", "Union", 0, 0, true, 20, null);
-        SavedCommuteEntity commute = SavedCommuteEntity.create(
-            "commute_1", account, "Morning commute", "finch", "union", false, Instant.parse("2026-06-05T14:30:00Z")
-        );
-        when(commuteRepository.findByIdAndAccountId("commute_1", "user_1")).thenReturn(Optional.of(commute));
-        when(commuteRepository.save(commute)).thenReturn(commute);
-        when(stationRepository.findAllById(List.of("finch", "union"))).thenReturn(List.of(finch, union));
-        stubPath("finch", "union");
-
-        AccountResponses.SavedCommuteResponse response = service.updatePinned(
-            account, "commute_1", new SavedCommuteService.PinnedRequest(true)
-        );
-
-        assertThat(response.pinned()).isTrue();
-        verify(commuteRepository).save(commute);
-    }
-
-    @Test
     void disabledEventTypesDoNotMarkSavedCommuteAffectedButRemainVisibleAsIgnoredRouteMatches() {
         AlertDashboardService dashboardService = mock(AlertDashboardService.class);
         SavedCommuteService serviceWithRealImpactMatching = new SavedCommuteService(

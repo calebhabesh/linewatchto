@@ -63,15 +63,6 @@ public class SavedCommuteController {
         return savedCommuteService.updateNotificationRule(account, id, request);
     }
 
-    @PatchMapping("/{id}/pin")
-    public AccountResponses.SavedCommuteResponse updatePinned(
-        @CookieValue(name = AuthCookieFactory.COOKIE_NAME, required = false) String rawSessionToken,
-        @PathVariable String id,
-        @RequestBody SavedCommuteService.PinnedRequest request
-    ) {
-        return savedCommuteService.updatePinned(accountService.requireAccount(rawSessionToken), id, request);
-    }
-
     @ExceptionHandler(AccountException.class)
     public ResponseEntity<AccountErrorResponse> handleAccountException(AccountException ex) {
         return ResponseEntity.status(ex.getStatus())
