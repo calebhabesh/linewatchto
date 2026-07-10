@@ -80,7 +80,9 @@ describe("account UI source", () => {
     assert.match(savedCommutesSource, /createSavedCommute/);
     assert.match(savedCommutesSource, /deleteSavedCommute/);
     assert.match(savedCommutesSource, /SavedCommuteStationPicker/);
-    assert.doesNotMatch(savedCommutesSource, /<select/);
+    assert.match(savedCommutesSource, /aria-label="Sort saved commutes"/);
+    assert.match(savedCommutesSource, /<option value="impact">Most affected<\/option>/);
+    assert.match(savedCommutesSource, /sortSavedCommutes/);
     assert.match(savedCommutesSource, /Track Return Route/);
     assert.match(savedCommutesSource, /watchReturnTrip/);
     assert.match(savedCommutesSource, /commute-leg-toggle/);

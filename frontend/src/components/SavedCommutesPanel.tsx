@@ -9,6 +9,7 @@ import {
   commuteLegsForCommute,
   commutePathPreviewFromCommute,
   normalizeSavedCommuteNotificationRule,
+  sortSavedCommutes,
   updateSavedCommuteNotificationRule,
   summarizeSavedCommuteStatuses,
   type AccountSavedCommute,
@@ -19,11 +20,11 @@ import {
   type AccountCommuteLegId,
   type AccountCommuteImpact,
   type AccountCommuteTravelTimeEstimate,
+  type SavedCommuteSort,
 } from "../app/account-data";
 import type { StationSummary } from "../app/station-data";
 import { SavedCommuteStationPicker } from "./SavedCommuteStationPicker";
 import { DelayIcon } from "./DelayIcon";
-import { CardSource } from "./ImpactCardFields";
 
 function toTitleCase(str: string): string {
   if (!str) return "";
@@ -730,6 +731,7 @@ export function SavedCommutesPanel({
   const [notificationRuleError, setNotificationRuleError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [toastKey, setToastKey] = useState(0);
+  const [sortBy, setSortBy] = useState<SavedCommuteSort>("impact");
 
   useEffect(() => {
     if (!successMessage) return;
@@ -746,6 +748,11 @@ export function SavedCommutesPanel({
   const { clear: commuteClearCount, affectedNow: commuteAffectedCount } = useMemo(
     () => summarizeSavedCommuteStatuses(accountCommutes),
     [accountCommutes]
+  );
+
+  const sortedCommutes = useMemo(
+    () => sortSavedCommutes(accountCommutes, sortBy),
+    [accountCommutes, sortBy]
   );
 
   function stationNameFor(stationId: string) {
@@ -1073,7 +1080,7 @@ export function SavedCommutesPanel({
               </div>
             ) : (
               <div className={`flex flex-col gap-3 ${onBack ? "px-[6px] sm:px-[20px]" : ""}`}>
-                <div className="flex justify-between items-center mb-1">
+                <div className="saved-commute-list-toolbar flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between mb-1">
                   <div className="flex flex-col gap-1 min-w-0 ml-1 sm:ml-0">
                     <div className="flex items-baseline gap-1.5">
                       <span className="text-base font-bold text-slate-800 dark:text-slate-100">Your Routes</span>
@@ -1094,15 +1101,30 @@ export function SavedCommutesPanel({
                       </div>
                     )}
                   </div>
-                  {accountCommutes.length > 0 && (
-                    <button
-                      type="button"
-                      className="saved-commute-add-btn flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition-colors shadow-sm cursor-pointer shrink-0"
-                      onClick={() => setActiveView("create")}
-                    >
-                      + Add Route
-                    </button>
-                  )}
+                  {accountCommutes.length > 0 ? (
+                    <div className="saved-commute-list-actions flex items-end gap-2 sm:shrink-0">
+                      <label className="saved-commute-sort-control">
+                        <span>Sort by</span>
+                        <select
+                          value={sortBy}
+                          onChange={(event) => setSortBy(event.target.value as SavedCommuteSort)}
+                          aria-label="Sort saved commutes"
+                        >
+                          <option value="impact">Most affected</option>
+                          <option value="recent">Recently saved</option>
+                          <option value="oldest">Oldest saved</option>
+                          <option value="name">Route name A–Z</option>
+                        </select>
+                      </label>
+                      <button
+                        type="button"
+                        className="saved-commute-add-btn flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition-colors shadow-sm cursor-pointer shrink-0"
+                        onClick={() => setActiveView("create")}
+                      >
+                        + Add Route
+                      </button>
+                    </div>
+                  ) : null}
                 </div>
 
                 {accountCommutes.length === 0 ? (
@@ -1117,7 +1139,7 @@ export function SavedCommutesPanel({
                     </button>
                   </div>
                 ) : (
-              accountCommutes.map((commute) => {
+              sortedCommutes.map((commute) => {
                 const legs = commuteLegs(commute);
                 const selectedLegId = selectedLegIds[commute.id] ?? "outbound";
                 const selectedLeg = legs.find((leg) => leg.id === selectedLegId) ?? legs[0];

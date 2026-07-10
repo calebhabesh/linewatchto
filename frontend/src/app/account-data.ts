@@ -211,6 +211,71 @@ export function commuteLegsForCommute(commute: AccountSavedCommute): AccountComm
   return commute.watchReturnTrip && commute.returnLeg ? [outbound, commute.returnLeg] : [outbound];
 }
 
+export type SavedCommuteSort = "impact" | "recent" | "oldest" | "name";
+
+function commuteSeverityPriority(severity: AccountCommuteImpact["severity"]) {
+  switch (severity) {
+    case "suspended":
+      return 5;
+    case "major":
+      return 4;
+    case "minor":
+      return 3;
+    case "planned":
+      return 2;
+    case "unavailable":
+      return 1;
+    case "clear":
+    default:
+      return 0;
+  }
+}
+
+function commuteImpactSortKey(commute: AccountSavedCommute) {
+  const legs = commuteLegsForCommute(commute);
+  return {
+    severity: Math.max(...legs.map((leg) => commuteSeverityPriority(leg.impact.severity)), 0),
+    currentImpacts: legs
+      .flatMap((leg) => leg.impact.matchedImpacts)
+      .filter((impact) => impact.status === "current" && !impact.ignoredByRule).length,
+  };
+}
+
+function savedCommuteTime(value: string) {
+  const timestamp = Date.parse(value);
+  return Number.isNaN(timestamp) ? 0 : timestamp;
+}
+
+/**
+ * Returns a copy so changing the display order never changes the account-owned route order.
+ * The default puts the routes needing the most attention first, then newest routes for ties.
+ */
+export function sortSavedCommutes(commutes: AccountSavedCommute[], sort: SavedCommuteSort = "impact") {
+  return [...commutes].sort((a, b) => {
+    if (sort === "name") {
+      return a.label.localeCompare(b.label, undefined, { sensitivity: "base" })
+        || savedCommuteTime(b.createdAt) - savedCommuteTime(a.createdAt);
+    }
+
+    if (sort === "recent") {
+      return savedCommuteTime(b.createdAt) - savedCommuteTime(a.createdAt)
+        || a.label.localeCompare(b.label, undefined, { sensitivity: "base" });
+    }
+
+    if (sort === "oldest") {
+      return savedCommuteTime(a.createdAt) - savedCommuteTime(b.createdAt)
+        || a.label.localeCompare(b.label, undefined, { sensitivity: "base" });
+    }
+
+    const aImpact = commuteImpactSortKey(a);
+    const bImpact = commuteImpactSortKey(b);
+    return bImpact.severity - aImpact.severity
+      || bImpact.currentImpacts - aImpact.currentImpacts
+      || savedCommuteTime(b.createdAt) - savedCommuteTime(a.createdAt)
+      || a.label.localeCompare(b.label, undefined, { sensitivity: "base" });
+  });
+}
+
 export type SavedCommuteStatusSummary = {
   clear: number;
   affectedNow: number;

@@ -910,8 +910,6 @@ button {
 .health-grid,
 .mobile-more-content-scroll,
 .station-search-results,
-.station-search-lines-column,
-.station-search-stations-column,
 .notification-settings-scroll,
 .accessibility-outages-scroll,
 .surface-notices-scroll,
@@ -3877,7 +3875,7 @@ button {
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  padding: 10px;
+  padding: 10px 6px 10px 10px;
 }
 
 .station-search-results {
@@ -3916,7 +3914,7 @@ button {
   display: flex;
   flex-direction: column;
   gap: 7px;
-  padding-right: 4px;
+  padding-right: 0;
 }
 .station-search-stations-column {
   width: 0;
@@ -3950,8 +3948,7 @@ button {
 }
 
 .station-search-panel:not([data-expanded="true"]) .station-search-stations-column {
-  height: 0;
-  overflow: hidden;
+  display: none !important;
 }
 
 
@@ -4824,6 +4821,70 @@ button {
 
 .saved-commute-form input {
   font-size: 16px;
+}
+
+.saved-commute-sort-control {
+  align-items: flex-start;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 10.5rem;
+}
+
+.saved-commute-sort-control span {
+  color: rgb(71, 85, 105);
+  font-size: 0.625rem;
+  font-weight: 800;
+  letter-spacing: 0.025em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.saved-commute-sort-control select {
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(15, 23, 42, 0.14);
+  border-radius: 6px;
+  color: rgb(15, 23, 42);
+  font-size: 0.75rem;
+  font-weight: 700;
+  height: 34px;
+  padding: 0.35rem 0.5rem;
+  width: 100%;
+}
+
+.dark .saved-commute-sort-control span,
+.high-contrast .saved-commute-sort-control span {
+  color: rgb(203, 213, 225);
+}
+
+.dark .saved-commute-sort-control select,
+.high-contrast .saved-commute-sort-control select {
+  background: rgba(15, 23, 42, 0.82);
+  border-color: rgba(255, 255, 255, 0.14);
+  color: rgb(248, 250, 252);
+}
+
+.high-contrast .saved-commute-sort-control select {
+  border-color: #ffffff;
+}
+
+@media (max-width: 767px) {
+  .saved-commute-list-actions {
+    width: 100%;
+  }
+
+  .saved-commute-sort-control {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .saved-commute-sort-control select {
+    height: 40px;
+  }
+
+  .saved-commute-list-actions .saved-commute-add-btn {
+    min-height: 40px;
+  }
 }
 
 .dark .account-field input,

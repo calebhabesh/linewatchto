@@ -24,12 +24,38 @@ import {
   registerAccount,
   requestPasswordReset,
   savePushSubscription,
+  sortSavedCommutes,
   sendPushDeviceTestNotification,
   updateSavedCommuteNotificationRule,
   updatePushPreferences,
 } from "../src/app/account-data.ts";
 
 describe("account data adapter", () => {
+  it("sorts saved commutes by impact severity before creation time by default", async () => {
+    const result = await getSavedCommutes({
+      fetcher: async () => new Response(JSON.stringify({
+        commutes: [
+          {
+            id: "clear-oldest", label: "Home", originStationId: "finch", originStationName: "Finch", destinationStationId: "union", destinationStationName: "Union", routeLabel: "Finch -> Union", watchReturnTrip: false,
+            path: { status: "available", stationIds: [], segmentIds: [], segmentHops: [], lineIds: [], transferStationIds: [], estimatedTravelSeconds: 0, weightSource: "seeded-fallback", summary: "" },
+            impact: { status: "clear", severity: "clear", statusLabel: "Clear", detail: "", matchedImpacts: [] },
+            createdAt: "2026-06-01T12:00:00Z", updatedAt: "2026-06-01T12:00:00Z",
+          },
+          {
+            id: "affected-newest", label: "Work", originStationId: "finch", originStationName: "Finch", destinationStationId: "union", destinationStationName: "Union", routeLabel: "Finch -> Union", watchReturnTrip: false,
+            path: { status: "available", stationIds: [], segmentIds: [], segmentHops: [], lineIds: [], transferStationIds: [], estimatedTravelSeconds: 0, weightSource: "seeded-fallback", summary: "" },
+            impact: { status: "affected", severity: "major", statusLabel: "Affected", detail: "", matchedImpacts: [{ id: "delay", kind: "delay", status: "current", severity: "major", title: "Delay", lineId: "line-1", lineNumber: "1", location: null, displayDirection: null, source: "TTC", matchedSegmentIds: [], matchedStationIds: [] }] },
+            createdAt: "2026-06-02T12:00:00Z", updatedAt: "2026-06-02T12:00:00Z",
+          },
+        ],
+      }), { status: 200, headers: { "content-type": "application/json" } }),
+    });
+
+    assert.deepEqual(sortSavedCommutes(result.commutes).map((commute) => commute.id), ["affected-newest", "clear-oldest"]);
+    assert.deepEqual(sortSavedCommutes(result.commutes, "oldest").map((commute) => commute.id), ["clear-oldest", "affected-newest"]);
+    assert.deepEqual(sortSavedCommutes(result.commutes, "name").map((commute) => commute.id), ["clear-oldest", "affected-newest"]);
+  });
+
   it("defines saved commute weighted path and impact contracts", () => {
     const source = readFileSync(new URL("../src/app/account-data.ts", import.meta.url), "utf8");
     assert.match(source, /export type AccountCommutePath/);
