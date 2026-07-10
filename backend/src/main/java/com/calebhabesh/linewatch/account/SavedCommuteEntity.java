@@ -24,6 +24,8 @@ public class SavedCommuteEntity {
     private String destinationStationId;
     @Column(name = "watch_return_trip")
     private boolean watchReturnTrip = true;
+    @Column(name = "pinned")
+    private boolean pinned;
     @Column(name = "notification_enabled")
     private boolean notificationEnabled = true;
     @Column(name = "notification_day_mask")
@@ -98,6 +100,7 @@ public class SavedCommuteEntity {
     public String getOriginStationId() { return originStationId; }
     public String getDestinationStationId() { return destinationStationId; }
     public boolean isWatchReturnTrip() { return watchReturnTrip; }
+    public boolean isPinned() { return pinned; }
     public boolean isNotificationEnabled() { return notificationEnabled; }
     public int getNotificationDayMask() { return notificationDayMask; }
     public Integer getNotificationStartMinute() { return notificationStartMinute; }
@@ -143,6 +146,11 @@ public class SavedCommuteEntity {
         this.notificationReducedSpeedZoneEnabled = reducedSpeedZoneEnabled;
         this.notificationPlannedClosureEnabled = plannedClosureEnabled;
         this.notificationRestoredEnabled = restoredEnabled;
+        this.updatedAt = now;
+    }
+
+    public void updatePinned(boolean pinned, Instant now) {
+        this.pinned = pinned;
         this.updatedAt = now;
     }
 }

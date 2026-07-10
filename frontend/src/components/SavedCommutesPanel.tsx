@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Navigation, ChevronDown, ChevronLeft, Loader2, MapPinned, X, AlertTriangle, Construction, Calendar, Clock, Bell, Check } from "lucide-react";
+import { Navigation, ChevronDown, ChevronLeft, Loader2, MapPinned, X, AlertTriangle, Construction, Calendar, Clock, Bell, Check, Pin } from "lucide-react";
 import {
   createSavedCommute,
   defaultSavedCommuteNotificationRule,
@@ -11,6 +11,9 @@ import {
   normalizeSavedCommuteNotificationRule,
   updateSavedCommuteNotificationRule,
   summarizeSavedCommuteStatuses,
+  sortSavedCommutes,
+  updateSavedCommutePin,
+  type SavedCommuteSort,
   type AccountSavedCommute,
   type AccountSavedCommuteNotificationRule,
   type AccountState,
@@ -727,6 +730,7 @@ export function SavedCommutesPanel({
   const [editingNotificationCommuteId, setEditingNotificationCommuteId] = useState<string | null>(null);
   const [notificationDrafts, setNotificationDrafts] = useState<Record<string, AccountSavedCommuteNotificationRule>>({});
   const [savingNotificationRuleId, setSavingNotificationRuleId] = useState<string | null>(null);
+  const [commuteSort, setCommuteSort] = useState<SavedCommuteSort>("attention");
   const [notificationRuleError, setNotificationRuleError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [toastKey, setToastKey] = useState(0);
@@ -747,6 +751,7 @@ export function SavedCommutesPanel({
     () => summarizeSavedCommuteStatuses(accountCommutes),
     [accountCommutes]
   );
+  const sortedCommutes = useMemo(() => sortSavedCommutes(accountCommutes, commuteSort), [accountCommutes, commuteSort]);
 
   function stationNameFor(stationId: string) {
     return stationById.get(stationId)?.name ?? stationId;
@@ -801,6 +806,15 @@ export function SavedCommutesPanel({
       setExpandedCommuteId((current) => current === id ? null : current);
     } catch {
       setCommuteError("Could not delete that commute.");
+    }
+  };
+
+  const handlePinCommute = async (commute: AccountSavedCommute) => {
+    try {
+      const updated = await updateSavedCommutePin(commute.id, !commute.pinned);
+      setAccountCommutes(accountCommutes.map((item) => item.id === updated.id ? updated : item));
+    } catch {
+      setCommuteError("Could not update that route pin.");
     }
   };
 
@@ -1073,7 +1087,7 @@ export function SavedCommutesPanel({
               </div>
             ) : (
               <div className={`flex flex-col gap-3 ${onBack ? "px-[6px] sm:px-[20px]" : ""}`}>
-                <div className="flex justify-between items-center mb-1">
+                <div className="flex justify-between items-center mb-1 gap-2">
                   <div className="flex flex-col gap-1 min-w-0 ml-1 sm:ml-0">
                     <div className="flex items-baseline gap-1.5">
                       <span className="text-base font-bold text-slate-800 dark:text-slate-100">Your Routes</span>
@@ -1094,15 +1108,16 @@ export function SavedCommutesPanel({
                       </div>
                     )}
                   </div>
-                  {accountCommutes.length > 0 && (
-                    <button
-                      type="button"
-                      className="saved-commute-add-btn flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition-colors shadow-sm cursor-pointer shrink-0"
-                      onClick={() => setActiveView("create")}
-                    >
-                      + Add Route
-                    </button>
-                  )}
+                  {accountCommutes.length > 0 && <div className="flex items-center gap-2 shrink-0">
+                    <label className="sr-only" htmlFor="saved-commute-sort">Sort saved routes</label>
+                    <select id="saved-commute-sort" value={commuteSort} onChange={(event) => setCommuteSort(event.target.value as SavedCommuteSort)} className="rounded-lg border border-black/10 bg-white px-2 py-1.5 text-xs font-semibold text-slate-700 dark:border-white/15 dark:bg-[#12151c] dark:text-slate-200">
+                      <option value="attention">Needs attention</option>
+                      <option value="recent">Recently added</option>
+                      <option value="name">Name</option>
+                      <option value="duration">Typical travel time</option>
+                    </select>
+                    <button type="button" className="saved-commute-add-btn flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition-colors shadow-sm cursor-pointer shrink-0" onClick={() => setActiveView("create")}>+ Add Route</button>
+                  </div>}
                 </div>
 
                 {accountCommutes.length === 0 ? (
@@ -1117,7 +1132,7 @@ export function SavedCommutesPanel({
                     </button>
                   </div>
                 ) : (
-              accountCommutes.map((commute) => {
+              sortedCommutes.map((commute) => {
                 const legs = commuteLegs(commute);
                 const selectedLegId = selectedLegIds[commute.id] ?? "outbound";
                 const selectedLeg = legs.find((leg) => leg.id === selectedLegId) ?? legs[0];
@@ -1143,6 +1158,9 @@ export function SavedCommutesPanel({
                             {toTitleCase(commute.label.replace(/\bto\b/g, "->"))}
                           </h3>
                           <span className={`status-pill ${commuteTone(commute)}`}>{toTitleCase(commuteStatusLabel(commute))}</span>
+                          <button type="button" onClick={() => handlePinCommute(commute)} className={`inline-flex items-center gap-1 rounded px-1 py-0.5 text-[10px] font-bold ${commute.pinned ? "text-emerald-700 dark:text-emerald-300" : "text-slate-500 dark:text-slate-400"}`} aria-pressed={commute.pinned} aria-label={`${commute.pinned ? "Unpin" : "Pin"} ${commute.label}`}>
+                            <Pin size={12} fill={commute.pinned ? "currentColor" : "none"} /> {commute.pinned ? "Pinned" : "Pin"}
+                          </button>
                         </div>
                         {(() => {
                           const currentImpactsCount = currentImpactCount(legs);

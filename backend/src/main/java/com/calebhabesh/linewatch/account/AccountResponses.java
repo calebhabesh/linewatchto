@@ -28,6 +28,7 @@ public final class AccountResponses {
         CommuteResponses.CommuteLegResponse returnLeg,
         CommuteResponses.PathResponse path,
         CommuteResponses.ImpactResponse impact,
+        boolean pinned,
         SavedCommuteNotificationRuleResponse notificationRule,
         Instant createdAt,
         Instant updatedAt
@@ -61,9 +62,34 @@ public final class AccountResponses {
                 returnLeg,
                 path,
                 impact,
+                false,
                 defaultNotificationRule(),
                 createdAt,
                 updatedAt
+            );
+        }
+
+        public SavedCommuteResponse(
+            String id,
+            String label,
+            String originStationId,
+            String originStationName,
+            String destinationStationId,
+            String destinationStationName,
+            String routeLabel,
+            boolean watchReturnTrip,
+            CommuteResponses.CommuteLegResponse outboundLeg,
+            CommuteResponses.CommuteLegResponse returnLeg,
+            CommuteResponses.PathResponse path,
+            CommuteResponses.ImpactResponse impact,
+            SavedCommuteNotificationRuleResponse notificationRule,
+            Instant createdAt,
+            Instant updatedAt
+        ) {
+            this(
+                id, label, originStationId, originStationName, destinationStationId, destinationStationName,
+                routeLabel, watchReturnTrip, outboundLeg, returnLeg, path, impact, false, notificationRule,
+                createdAt, updatedAt
             );
         }
     }

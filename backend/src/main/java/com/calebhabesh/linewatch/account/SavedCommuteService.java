@@ -125,6 +125,20 @@ public class SavedCommuteService {
     }
 
     @Transactional
+    public AccountResponses.SavedCommuteResponse updatePinned(AccountEntity account, String commuteId, PinnedRequest request) {
+        SavedCommuteEntity commute = commuteRepository.findByIdAndAccountId(commuteId, account.getId())
+            .orElseThrow(() -> new AccountException(HttpStatus.NOT_FOUND, "commute_not_found", "Saved commute was not found."));
+        if (request == null || request.pinned() == null) {
+            throw new AccountException(HttpStatus.BAD_REQUEST, "missing_pinned", "Choose whether this route should be pinned.");
+        }
+        commute.updatePinned(request.pinned(), clock.instant());
+        commute = commuteRepository.save(commute);
+        Map<String, StationEntity> stationsById = stationRepository.findAllById(List.of(commute.getOriginStationId(), commute.getDestinationStationId()))
+            .stream().collect(Collectors.toMap(StationEntity::getId, Function.identity()));
+        return toResponse(commute, stationsById);
+    }
+
+    @Transactional
     public void delete(AccountEntity account, String commuteId) {
         SavedCommuteEntity commute = commuteRepository.findByIdAndAccountId(commuteId, account.getId())
             .orElseThrow(() -> new AccountException(HttpStatus.NOT_FOUND, "commute_not_found", "Saved commute was not found."));
@@ -167,6 +181,7 @@ public class SavedCommuteService {
             returnLeg,
             outboundLeg.path(),
             outboundLeg.impact(),
+            commute.isPinned(),
             notificationRuleResponse(commute),
             commute.getCreatedAt(),
             commute.getUpdatedAt()
@@ -356,6 +371,8 @@ public class SavedCommuteService {
         Boolean plannedClosures,
         Boolean serviceRestored
     ) {}
+
+    public record PinnedRequest(Boolean pinned) {}
 
     public record SavedCommuteNotificationRuleRequest(
         Boolean enabled,

@@ -26,6 +26,7 @@ import {
   savePushSubscription,
   sendPushDeviceTestNotification,
   updateSavedCommuteNotificationRule,
+  updateSavedCommutePin,
   updatePushPreferences,
 } from "../src/app/account-data.ts";
 
@@ -460,6 +461,24 @@ describe("account data adapter", () => {
     assert.equal(requests[1].input, "/api/account/commutes/commute_1/notification-rule");
     assert.equal(requests[1].init.method, "PATCH");
     assert.deepEqual(JSON.parse(requests[1].init.body), notificationRule);
+  });
+
+  it("persists a saved-commute pin through the account API", async () => {
+    const requests = [];
+    const result = await updateSavedCommutePin("commute_1", true, {
+      fetcher: async (input, init) => {
+        requests.push({ input, init });
+        return new Response(JSON.stringify({ pinned: true, notificationRule: {} }), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        });
+      },
+    });
+
+    assert.equal(requests[0].input, "/api/account/commutes/commute_1/pin");
+    assert.equal(requests[0].init.method, "PATCH");
+    assert.deepEqual(JSON.parse(requests[0].init.body), { pinned: true });
+    assert.equal(result.pinned, true);
   });
 
   it("requests password reset with credentials included", async () => {
