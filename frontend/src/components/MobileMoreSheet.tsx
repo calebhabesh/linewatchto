@@ -118,7 +118,7 @@ export function MobileMoreSheet({
         {canShowPwaInstallHelp ? (
           <div className="mobile-more-section mobile-more-install-section">
             <div className="flex items-center gap-2 px-0 pt-1.5 pb-0.5 select-none">
-              <span className="w-[3px] h-3.5 rounded-full bg-blue-600 dark:bg-blue-400 shrink-0" />
+              <span className="w-[3px] h-3.5 rounded-full bg-logo-blue shrink-0" />
               <h3>{installHelpHeading}</h3>
             </div>
             {canUseNativeInstallPrompt ? (
@@ -148,7 +148,7 @@ export function MobileMoreSheet({
 
         <div className="mobile-more-section">
           <div className="flex items-center gap-2 px-0 pt-1.5 pb-0.5 select-none">
-            <span className="w-[3px] h-3.5 rounded-full bg-blue-600 dark:bg-blue-400 shrink-0" />
+            <span className="w-[3px] h-3.5 rounded-full bg-logo-blue shrink-0" />
             <h3>Account</h3>
           </div>
           {accountState.authenticated && accountState.user ? (
@@ -196,7 +196,7 @@ export function MobileMoreSheet({
 
         <div className="mobile-more-section">
           <div className="flex items-center gap-2 px-0 pt-1.5 pb-0.5 select-none">
-            <span className="w-[3px] h-3.5 rounded-full bg-blue-600 dark:bg-blue-400 shrink-0" />
+            <span className="w-[3px] h-3.5 rounded-full bg-logo-blue shrink-0" />
             <h3>Notifications</h3>
           </div>
           <button type="button" className="mobile-more-row w-full flex items-center justify-between gap-[9px]" onClick={onOpenNotifications}>
@@ -239,7 +239,7 @@ export function MobileMoreSheet({
 
         <div className="mobile-more-section">
           <div className="flex items-center gap-2 px-0 pt-1.5 pb-0.5 select-none">
-            <span className="w-[3px] h-3.5 rounded-full bg-blue-600 dark:bg-blue-400 shrink-0" />
+            <span className="w-[3px] h-3.5 rounded-full bg-logo-blue shrink-0" />
             <h3>Operations</h3>
           </div>
           <button type="button" className="mobile-more-row" onClick={onOpenAnalytics}>
@@ -258,7 +258,7 @@ export function MobileMoreSheet({
 
         <div className="mobile-more-section">
           <div className="flex items-center gap-2 px-0 pt-1.5 pb-0.5 select-none">
-            <span className="w-[3px] h-3.5 rounded-full bg-blue-600 dark:bg-blue-400 shrink-0" />
+            <span className="w-[3px] h-3.5 rounded-full bg-logo-blue shrink-0" />
             <h3>Display</h3>
           </div>
           <button type="button" className="mobile-more-row" aria-pressed={highContrast} onClick={onToggleHighContrast}>
@@ -280,7 +280,7 @@ export function MobileMoreSheet({
 
         <div className="mobile-more-section">
           <div className="flex items-center gap-2 px-0 pt-1.5 pb-0.5 select-none">
-            <span className="w-[3px] h-3.5 rounded-full bg-blue-600 dark:bg-blue-400 shrink-0" />
+            <span className="w-[3px] h-3.5 rounded-full bg-logo-blue shrink-0" />
             <h3>{"Support & About"}</h3>
           </div>
           <button type="button" className="mobile-more-row mobile-more-share-row" onClick={onShareApp}>
@@ -330,7 +330,7 @@ export function MobileMoreSheet({
 
         <div className="mobile-more-section">
           <div className="flex items-center gap-2 px-0 pt-1.5 pb-0.5 select-none">
-            <span className="w-[3px] h-3.5 rounded-full bg-blue-600 dark:bg-blue-400 shrink-0" />
+            <span className="w-[3px] h-3.5 rounded-full bg-logo-blue shrink-0" />
             <h3>Notifications Help</h3>
           </div>
           <PushDeliveryDiagnosticsPanel
