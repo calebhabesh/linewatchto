@@ -2022,7 +2022,7 @@ export function LineWatchShell({
 
                 <div className="account-menu-block flex flex-col px-2 py-2 border-b border-black/10 dark:border-white/10 gap-0.5">
                   <div className="flex items-center gap-2 px-3 pt-2 pb-1 select-none">
-                    <span className="w-1 h-4 rounded-full bg-logo-blue shrink-0 shadow-[0_0_8px_#81c9ff]" />
+                    <span className="w-1 h-4 rounded-full bg-logo-blue shrink-0 shadow-[0_0_4px_rgba(129,201,255,0.35)]" />
                     <span className="text-[12px] uppercase font-bold text-slate-700 dark:text-slate-300 tracking-wider">Account</span>
                   </div>
                   {accountState.authenticated && accountState.user ? (
@@ -2153,7 +2153,7 @@ export function LineWatchShell({
                {/* Maps & Alerts */}
                <div className="flex flex-col px-2 py-2 border-b border-black/10 dark:border-white/10 gap-0.5">
                  <div className="flex items-center gap-2 px-3 pt-2 pb-1 select-none">
-                   <span className="w-1 h-4 rounded-full bg-logo-blue shrink-0 shadow-[0_0_8px_#81c9ff]" />
+                   <span className="w-1 h-4 rounded-full bg-logo-blue shrink-0 shadow-[0_0_4px_rgba(129,201,255,0.35)]" />
                    <span className="text-[12px] uppercase font-bold text-slate-700 dark:text-slate-300 tracking-wider">Maps & Alerts</span>
                  </div>
                  <button
@@ -2280,7 +2280,7 @@ export function LineWatchShell({
                {/* Notifications */}
                <div className="flex flex-col px-2 py-2 border-b border-black/10 dark:border-white/10 gap-0.5">
                  <div className="flex items-center gap-2 px-3 pt-2 pb-1 select-none">
-                   <span className="w-1 h-4 rounded-full bg-logo-blue shrink-0 shadow-[0_0_8px_#81c9ff]" />
+                   <span className="w-1 h-4 rounded-full bg-logo-blue shrink-0 shadow-[0_0_4px_rgba(129,201,255,0.35)]" />
                    <span className="text-[12px] uppercase font-bold text-slate-700 dark:text-slate-300 tracking-wider">Notifications</span>
                  </div>
                  <button
@@ -2306,7 +2306,7 @@ export function LineWatchShell({
                {/* Operations */}
                <div className="flex flex-col px-2 py-2 border-b border-black/10 dark:border-white/10 gap-0.5">
                  <div className="flex items-center gap-2 px-3 pt-2 pb-1 select-none">
-                   <span className="w-1 h-4 rounded-full bg-logo-blue shrink-0 shadow-[0_0_8px_#81c9ff]" />
+                   <span className="w-1 h-4 rounded-full bg-logo-blue shrink-0 shadow-[0_0_4px_rgba(129,201,255,0.35)]" />
                    <span className="text-[12px] uppercase font-bold text-slate-700 dark:text-slate-300 tracking-wider">Operations</span>
                  </div>
                  <button
@@ -2323,7 +2323,7 @@ export function LineWatchShell({
                {/* Display */}
                <div className="flex flex-col px-2 py-2 border-b border-black/10 dark:border-white/10 gap-0.5">
                  <div className="flex items-center gap-2 px-3 pt-2 pb-1 select-none">
-                   <span className="w-1 h-4 rounded-full bg-logo-blue shrink-0 shadow-[0_0_8px_#81c9ff]" />
+                   <span className="w-1 h-4 rounded-full bg-logo-blue shrink-0 shadow-[0_0_4px_rgba(129,201,255,0.35)]" />
                    <span className="text-[12px] uppercase font-bold text-slate-700 dark:text-slate-300 tracking-wider">Display</span>
                  </div>
                  <div className="flex items-center justify-between px-3 py-2.5">
@@ -2361,7 +2361,7 @@ export function LineWatchShell({
                {/* Support & About */}
                <div className="flex flex-col px-2 py-2 border-b border-black/10 dark:border-white/10 gap-0.5">
                  <div className="flex items-center gap-2 px-3 pt-2 pb-1 select-none">
-                   <span className="w-1 h-4 rounded-full bg-logo-blue shrink-0 shadow-[0_0_8px_#81c9ff]" />
+                   <span className="w-1 h-4 rounded-full bg-logo-blue shrink-0 shadow-[0_0_4px_rgba(129,201,255,0.35)]" />
                    <span className="text-[12px] uppercase font-bold text-slate-700 dark:text-slate-300 tracking-wider">Support & About</span>
                  </div>
                  <button
@@ -2399,7 +2399,7 @@ export function LineWatchShell({
                <div className="flex flex-col p-4 gap-4">
                  <div className="flex flex-col gap-2">
                     <div className="flex items-center gap-2 px-1 select-none">
-                      <span className="w-1 h-4 rounded-full bg-logo-blue shrink-0 shadow-[0_0_8px_#81c9ff]" />
+                      <span className="w-1 h-4 rounded-full bg-logo-blue shrink-0 shadow-[0_0_4px_rgba(129,201,255,0.35)]" />
                       <span className="text-[12px] uppercase font-bold text-slate-700 dark:text-slate-300 tracking-wider">Line Status</span>
                     </div>
                     <div className="flex flex-col gap-2">
