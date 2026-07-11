@@ -32,8 +32,14 @@ class GtfsRtSubwayArrivalProviderTest {
 
     private final StationResponses.StationLineResponse line1 =
         new StationResponses.StationLineResponse("line-1", "1", "Yonge-University", "#f4c430", "Northbound / Southbound", true, true);
+    private final StationResponses.StationLineResponse line2 =
+        new StationResponses.StationLineResponse("line-2", "2", "Bloor-Danforth", "#00843d", "Eastbound / Westbound", true, true);
+    private final StationResponses.StationLineResponse line4 =
+        new StationResponses.StationLineResponse("line-4", "4", "Sheppard", "#a15eb5", "Eastbound / Westbound", true, true);
     private final StationResponses.StationLineResponse line6 =
         new StationResponses.StationLineResponse("line-6", "6", "Finch West", "#d9261c", "Eastbound / Westbound", true, true);
+    private final StationResponses.StationLineResponse line5 =
+        new StationResponses.StationLineResponse("line-5", "5", "Eglinton Crosstown", "#eb8738", "Eastbound / Westbound", true, true);
 
     @BeforeEach
     void setUp() {
@@ -71,6 +77,81 @@ class GtfsRtSubwayArrivalProviderTest {
                 org.assertj.core.groups.Tuple.tuple("line-1", "Northbound", "live", "TTC GTFS-RT subway trip updates"),
                 org.assertj.core.groups.Tuple.tuple("line-1", "Southbound to Vaughan Metropolitan Centre", "scheduled", "TTC scheduled service"),
                 org.assertj.core.groups.Tuple.tuple("line-6", "Eastbound to Finch West", "scheduled", "TTC scheduled service")
+            );
+    }
+
+    @Test
+    void usesScheduledLine5HeadsignRowsForThePlatformMissingLivePredictions() {
+        OffsetDateTime now = OffsetDateTime.now(clock);
+        cache.replace(new GtfsRtSubwayArrivalSnapshot(now.minusSeconds(20), now.minusSeconds(18), List.of(
+            new GtfsRtSubwayStationArrival(
+                "sloane",
+                "line-5",
+                "Eastbound",
+                now.plusMinutes(4),
+                "377295",
+                "131606660",
+                "16075"
+            )
+        )));
+        when(scheduledArrivalProvider.arrivalsFor(eq("sloane"), any())).thenReturn(List.of(
+            ArrivalPrediction.scheduled(
+                "line-5",
+                "Eglinton Line towards Kennedy Station",
+                6,
+                now.plusMinutes(6),
+                "TTC scheduled service"
+            ),
+            ArrivalPrediction.scheduled(
+                "line-5",
+                "Eglinton Line towards Mount Dennis Station",
+                8,
+                now.plusMinutes(8),
+                "TTC scheduled service"
+            )
+        ));
+
+        List<ArrivalPrediction> predictions = provider.arrivalsFor("sloane", List.of(line5));
+
+        assertThat(predictions)
+            .extracting(ArrivalPrediction::direction, ArrivalPrediction::status)
+            .containsExactly(
+                org.assertj.core.groups.Tuple.tuple("Eastbound", "live"),
+                org.assertj.core.groups.Tuple.tuple("Eglinton Line towards Mount Dennis Station", "scheduled")
+            );
+    }
+
+    @Test
+    void recognizesTerminalBasedScheduledHeadsignsAcrossRapidTransitLines() {
+        OffsetDateTime now = OffsetDateTime.now(clock);
+        List<StationResponses.StationLineResponse> lines = List.of(line2, line4, line5, line6);
+        cache.replace(new GtfsRtSubwayArrivalSnapshot(now.minusSeconds(20), now.minusSeconds(18), List.of(
+            new GtfsRtSubwayStationArrival("interchange", "line-2", "Eastbound", now.plusMinutes(2), "201", "trip-2", "stop-2"),
+            new GtfsRtSubwayStationArrival("interchange", "line-4", "Eastbound", now.plusMinutes(2), "401", "trip-4", "stop-4"),
+            new GtfsRtSubwayStationArrival("interchange", "line-5", "Eastbound", now.plusMinutes(2), "501", "trip-5", "stop-5"),
+            new GtfsRtSubwayStationArrival("interchange", "line-6", "Eastbound", now.plusMinutes(2), "601", "trip-6", "stop-6")
+        )));
+        when(scheduledArrivalProvider.arrivalsFor(eq("interchange"), any())).thenReturn(List.of(
+            ArrivalPrediction.scheduled("line-2", "Bloor-Danforth Line towards Kennedy Station", 4, now.plusMinutes(4), "TTC scheduled service"),
+            ArrivalPrediction.scheduled("line-2", "Bloor-Danforth Line towards Kipling Station", 6, now.plusMinutes(6), "TTC scheduled service"),
+            ArrivalPrediction.scheduled("line-4", "Sheppard Line towards Don Mills Station", 4, now.plusMinutes(4), "TTC scheduled service"),
+            ArrivalPrediction.scheduled("line-4", "Sheppard Line towards Sheppard Yonge Station", 6, now.plusMinutes(6), "TTC scheduled service"),
+            ArrivalPrediction.scheduled("line-5", "Eglinton Line towards Kennedy Station", 4, now.plusMinutes(4), "TTC scheduled service"),
+            ArrivalPrediction.scheduled("line-5", "Eglinton Line towards Mount Dennis Station", 6, now.plusMinutes(6), "TTC scheduled service"),
+            ArrivalPrediction.scheduled("line-6", "Finch West Line towards Finch West Station", 4, now.plusMinutes(4), "TTC scheduled service"),
+            ArrivalPrediction.scheduled("line-6", "Finch West Line towards Humber College Station", 6, now.plusMinutes(6), "TTC scheduled service")
+        ));
+
+        List<ArrivalPrediction> predictions = provider.arrivalsFor("interchange", lines);
+
+        assertThat(predictions)
+            .filteredOn(prediction -> prediction.status().equals("scheduled"))
+            .extracting(ArrivalPrediction::lineId, ArrivalPrediction::direction)
+            .containsExactly(
+                org.assertj.core.groups.Tuple.tuple("line-2", "Bloor-Danforth Line towards Kipling Station"),
+                org.assertj.core.groups.Tuple.tuple("line-4", "Sheppard Line towards Sheppard Yonge Station"),
+                org.assertj.core.groups.Tuple.tuple("line-5", "Eglinton Line towards Mount Dennis Station"),
+                org.assertj.core.groups.Tuple.tuple("line-6", "Finch West Line towards Humber College Station")
             );
     }
 

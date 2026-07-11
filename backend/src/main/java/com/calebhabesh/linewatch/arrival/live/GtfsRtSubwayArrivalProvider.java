@@ -60,7 +60,7 @@ public class GtfsRtSubwayArrivalProvider implements ArrivalProvider {
 
         List<ArrivalPrediction> result = new ArrayList<>(livePredictions);
         for (ArrivalPrediction scheduled : scheduledPredictions) {
-            String family = directionFamily(scheduled.direction());
+            String family = directionFamily(scheduled.lineId(), scheduled.direction());
             if (family.isBlank()) {
                 if (!liveLineIds.contains(scheduled.lineId())) {
                     result.add(scheduled);
@@ -79,7 +79,7 @@ public class GtfsRtSubwayArrivalProvider implements ArrivalProvider {
 
         result.sort(Comparator
             .comparing((ArrivalPrediction prediction) -> lineRank.getOrDefault(prediction.lineId(), Integer.MAX_VALUE))
-            .thenComparing(prediction -> directionRank(prediction.direction()))
+            .thenComparing(prediction -> directionRank(prediction.lineId(), prediction.direction()))
             .thenComparing(ArrivalPrediction::predictedAt, Comparator.nullsLast(Comparator.naturalOrder())));
         return result;
     }
@@ -113,23 +113,89 @@ public class GtfsRtSubwayArrivalProvider implements ArrivalProvider {
     }
 
     private String directionKey(String lineId, String direction) {
-        return lineId + "|" + directionFamily(direction);
+        return lineId + "|" + directionFamily(lineId, direction);
     }
 
-    private String directionFamily(String direction) {
+    private String directionFamily(String lineId, String direction) {
         if (direction == null) {
             return "";
         }
-        String trimmed = direction.trim();
-        if (trimmed.startsWith("Northbound")) return "Northbound";
-        if (trimmed.startsWith("Southbound")) return "Southbound";
-        if (trimmed.startsWith("Eastbound")) return "Eastbound";
-        if (trimmed.startsWith("Westbound")) return "Westbound";
+        String normalized = direction.trim()
+            .toLowerCase(java.util.Locale.ROOT)
+            .replace('-', ' ')
+            .replaceAll("\\s+", " ");
+        if (normalized.startsWith("northbound")) return "Northbound";
+        if (normalized.startsWith("southbound")) return "Southbound";
+        if (normalized.startsWith("eastbound")) return "Eastbound";
+        if (normalized.startsWith("westbound")) return "Westbound";
+
+        return terminalDirectionFamily(lineId, normalized);
+    }
+
+    private String terminalDirectionFamily(String lineId, String normalizedDirection) {
+        String destination = destinationFromHeadsign(normalizedDirection);
+        return switch (lineId) {
+            case "line-1" -> terminalDirectionFamily(
+                destination,
+                "finch", "Northbound",
+                "vaughan metropolitan centre", "Southbound"
+            );
+            case "line-2" -> terminalDirectionFamily(
+                destination,
+                "kennedy", "Eastbound",
+                "kipling", "Westbound"
+            );
+            case "line-4" -> terminalDirectionFamily(
+                destination,
+                "don mills", "Eastbound",
+                "sheppard yonge", "Westbound"
+            );
+            case "line-5" -> terminalDirectionFamily(
+                destination,
+                "kennedy", "Eastbound",
+                "mount dennis", "Westbound"
+            );
+            case "line-6" -> terminalDirectionFamily(
+                destination,
+                "finch west", "Eastbound",
+                "humber college", "Westbound"
+            );
+            default -> "";
+        };
+    }
+
+    private String destinationFromHeadsign(String normalizedDirection) {
+        int towardsIndex = normalizedDirection.lastIndexOf(" towards ");
+        if (towardsIndex >= 0) {
+            return normalizedDirection.substring(towardsIndex + " towards ".length());
+        }
+
+        int toIndex = normalizedDirection.lastIndexOf(" to ");
+        if (toIndex >= 0) {
+            return normalizedDirection.substring(toIndex + " to ".length());
+        }
+
+        return normalizedDirection;
+    }
+
+    private String terminalDirectionFamily(
+        String normalizedDirection,
+        String firstTerminal,
+        String firstDirection,
+        String secondTerminal,
+        String secondDirection
+    ) {
+        if (normalizedDirection.contains(firstTerminal)) {
+            return firstDirection;
+        }
+        if (normalizedDirection.contains(secondTerminal)) {
+            return secondDirection;
+        }
         return "";
     }
 
-    private int directionRank(String direction) {
-        return switch (directionFamily(direction)) {
+    private int directionRank(String lineId, String direction) {
+        return switch (directionFamily(lineId, direction)) {
             case "Northbound", "Eastbound" -> 10;
             case "Southbound", "Westbound" -> 20;
             default -> 99;
