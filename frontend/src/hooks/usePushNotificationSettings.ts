@@ -24,6 +24,7 @@ import {
   setupStateForDevicePush,
   type DevicePushSetupState,
 } from "../app/push-notification-state";
+import { getOrCreatePushInstallationId } from "../app/push-installation-identity";
 
 export type UsePushNotificationSettingsResult = {
   supported: boolean;
@@ -106,17 +107,21 @@ export function usePushNotificationSettings(accountState: AccountState): UsePush
     [preferences]
   );
 
-  const saveDeviceSubscription = useCallback(async (subscription: PushSubscription) => {
-    await savePushSubscription({
+  const saveDeviceSubscription = useCallback(async (subscription: PushSubscription, reason = "app-refresh") => {
+    const installationId = await getOrCreatePushInstallationId();
+    return await savePushSubscription({
       endpoint: subscription.endpoint,
       keys: pushSubscriptionKeys(subscription),
       userAgent: navigator.userAgent,
-      reason: "app-refresh",
+      reason,
+      installationId,
     });
-    return subscription;
   }, []);
 
-  const createOrRefreshDeviceSubscription = useCallback(async (currentConfig: PushNotificationConfig) => {
+  const createOrRefreshDeviceSubscription = useCallback(async (
+    currentConfig: PushNotificationConfig,
+    reason = "app-refresh",
+  ) => {
     const registration = await serviceWorkerRegistrationForPush();
     const existing = await registration.pushManager.getSubscription();
     let subscription = existing;
@@ -136,7 +141,19 @@ export function usePushNotificationSettings(accountState: AccountState): UsePush
       userVisibleOnly: true,
       applicationServerKey: base64UrlToUint8Array(currentConfig.vapidPublicKey),
     });
-    return await saveDeviceSubscription(subscription);
+    const response = await saveDeviceSubscription(subscription, reason);
+    if (response.enabled) return subscription;
+
+    await subscription.unsubscribe();
+    const replacement = await registration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: base64UrlToUint8Array(currentConfig.vapidPublicKey),
+    });
+    const replacementResponse = await saveDeviceSubscription(replacement, "invalid-endpoint-replacement");
+    if (!replacementResponse.enabled) {
+      throw new Error("Could not replace invalid push subscription.");
+    }
+    return replacement;
   }, [saveDeviceSubscription]);
 
   const fetchConfigAndSubscription = useCallback(async (isMounted: () => boolean) => {
@@ -208,7 +225,7 @@ export function usePushNotificationSettings(accountState: AccountState): UsePush
 
       if (subscription && subscriptionUsesCurrentKey && permission === "granted" && !disabledByUser && !subscriptionSavedDuringRestore) {
         try {
-          await saveDeviceSubscription(subscription);
+          subscription = await createOrRefreshDeviceSubscription(result.config, "app-refresh");
         } catch (err) {
           console.error("Failed to refresh device push subscription", err);
           setMessage("Notifications are on, but this device could not refresh its push registration.");
@@ -242,7 +259,7 @@ export function usePushNotificationSettings(accountState: AccountState): UsePush
         setMessage("Could not load notification preferences.");
       }
     }
-  }, [accountState.authenticated, accountState.user, supported, createOrRefreshDeviceSubscription, saveDeviceSubscription, autoRestoreAttemptedFor]);
+  }, [accountState.authenticated, accountState.user, supported, createOrRefreshDeviceSubscription, autoRestoreAttemptedFor]);
 
   useEffect(() => {
     let mounted = true;
@@ -291,7 +308,7 @@ export function usePushNotificationSettings(accountState: AccountState): UsePush
         setMessage("Notifications not enabled.");
         return;
       }
-      const subscription = await createOrRefreshDeviceSubscription(config);
+      const subscription = await createOrRefreshDeviceSubscription(config, "user-enabled");
       writeDeviceDisabledByUser(accountState.user?.id, false);
       setSubscribed(Boolean(subscription));
       setDeviceNotificationsEnabled(Boolean(subscription));

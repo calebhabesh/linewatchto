@@ -427,6 +427,7 @@ export type SavePushSubscriptionInput = {
   };
   userAgent: string;
   reason?: string;
+  installationId?: string;
 };
 
 export type PushSubscriptionResponse = {
@@ -471,6 +472,8 @@ export type PushDeliveryDiagnostic = {
   deviceLabel: string;
   userAgent: string;
   endpointHashPrefix: string;
+  installationIdPrefix?: string | null;
+  registrationReason?: string | null;
   subscriptionEnabled: boolean;
   deliveryStatus: string;
   httpStatus: number | null;
@@ -486,6 +489,8 @@ export type PushRecipientDiagnostic = {
   deviceLabel: string;
   userAgent: string;
   endpointHashPrefix: string;
+  installationIdPrefix?: string | null;
+  registrationReason?: string | null;
   subscriptionEnabled: boolean;
   enabledAt: string | null;
   disabledAt: string | null;
@@ -523,6 +528,9 @@ export type PushDevice = {
   deviceLabel: string;
   userAgent: string;
   endpointHashPrefix: string;
+  installationIdPrefix?: string | null;
+  registrationReason?: string | null;
+  previousEndpointCount?: number;
   enabled: boolean;
   createdAt: string | null;
   updatedAt: string | null;

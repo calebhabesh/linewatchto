@@ -13,6 +13,8 @@ const LINEWATCH_PUSH_CATEGORIES = new Set([
   "line-planned",
 ]);
 const FALLBACK_PUSH_TAG = "linewatch-commute-update";
+const PUSH_IDENTITY_CACHE = "linewatch-push-identity-v1";
+const PUSH_IDENTITY_CACHE_KEY = "/__linewatch/push-installation-id";
 
 const isDev = new URL(self.location.href).searchParams.get("env") === "dev";
 
@@ -442,7 +444,17 @@ async function handlePushSubscriptionChange(event) {
       });
     }
 
-    await saveChangedPushSubscription(subscription, "subscription-change");
+    const saveResult = await saveChangedPushSubscription(subscription, "subscription-change");
+    if (saveResult === "rejected") {
+      await subscription.unsubscribe();
+      const replacementConfig = await fetchPushConfigForSubscriptionRepair();
+      if (!replacementConfig?.webPushAvailable || !replacementConfig.vapidPublicKey) return;
+      subscription = await self.registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: base64UrlToUint8Array(replacementConfig.vapidPublicKey),
+      });
+      await saveChangedPushSubscription(subscription, "invalid-endpoint-replacement");
+    }
   } catch {
     // Browsers fire pushsubscriptionchange inconsistently. App-open subscription refresh remains the fallback.
   }
@@ -462,8 +474,9 @@ async function fetchPushConfigForSubscriptionRepair() {
 }
 
 async function saveChangedPushSubscription(subscription, reason) {
-  if (!subscription?.endpoint) return;
-  await fetch("/api/account/push/subscription", {
+  if (!subscription?.endpoint) return "failed";
+  const installationId = await getOrCreatePushInstallationId();
+  const response = await fetch("/api/account/push/subscription", {
     method: "PUT",
     credentials: "include",
     headers: {
@@ -474,8 +487,12 @@ async function saveChangedPushSubscription(subscription, reason) {
       keys: pushSubscriptionKeys(subscription),
       userAgent: serviceWorkerUserAgent(),
       reason: typeof reason === "string" && reason.length > 0 ? reason : "service-worker-refresh",
+      installationId,
     }),
   });
+  if (!response.ok) return "failed";
+  const body = await response.json();
+  return body?.enabled === false ? "rejected" : "saved";
 }
 
 async function disableChangedPushSubscription(endpoint) {
@@ -503,6 +520,30 @@ function serviceWorkerUserAgent() {
     return navigator.userAgent;
   }
   return "Service Worker";
+}
+
+async function getOrCreatePushInstallationId() {
+  const cache = await caches.open(PUSH_IDENTITY_CACHE);
+  const cached = typeof cache.match === "function" ? await cache.match(PUSH_IDENTITY_CACHE_KEY) : null;
+  const cachedValue = cached ? (await cached.text()).trim() : "";
+  if (/^[A-Za-z0-9._:-]{8,80}$/.test(cachedValue)) return cachedValue;
+
+  const installationId = typeof self.crypto?.randomUUID === "function"
+    ? self.crypto.randomUUID()
+    : fallbackPushInstallationId();
+  await cache.put(PUSH_IDENTITY_CACHE_KEY, new Response(installationId, {
+    headers: { "content-type": "text/plain" },
+  }));
+  return installationId;
+}
+
+function fallbackPushInstallationId() {
+  if (typeof self.crypto?.getRandomValues === "function") {
+    const bytes = new Uint8Array(16);
+    self.crypto.getRandomValues(bytes);
+    return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
+  }
+  return `fallback-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
 function base64UrlToUint8Array(base64Url) {

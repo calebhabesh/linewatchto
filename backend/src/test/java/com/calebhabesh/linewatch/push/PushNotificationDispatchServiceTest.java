@@ -166,6 +166,66 @@ class PushNotificationDispatchServiceTest {
     }
 
     @Test
+    void persistsHardInvalidSubscriptionFromScheduledDispatch() {
+        SavedCommuteEntity commute = SavedCommuteEntity.create(
+            "commute_1",
+            account,
+            "Morning commute",
+            "finch",
+            "union",
+            true,
+            Instant.parse("2026-06-05T14:30:00Z")
+        );
+        PushNotificationCandidate candidate = candidate(
+            "commute_1",
+            "outbound",
+            "line-1",
+            "1",
+            "saved-commute-impact",
+            "delay",
+            "on-change",
+            "saved-commute-impact|commute_1|outbound|delay|delay-line-1",
+            "dedupe-gone-1",
+            "Finch to Union",
+            "Morning commute",
+            Instant.parse("2026-06-05T14:20:00Z"),
+            "/?panel=commutes&commute=commute_1"
+        );
+        PushSubscriptionEntity subscription = PushSubscriptionEntity.create(
+            "push_subscription_android",
+            account,
+            "https://fcm.googleapis.com/fcm/send/expired-subscription",
+            "expired-endpoint-hash",
+            "p256dh-key",
+            "auth-secret",
+            "Chrome Android",
+            Instant.parse("2026-06-05T14:45:00Z")
+        );
+        PushNotificationPreferenceEntity preferences = PushNotificationPreferenceEntity.create(
+            account,
+            Instant.parse("2026-06-05T14:00:00Z")
+        );
+        when(preferenceService.preferenceEntityForAccountId("user_1")).thenReturn(preferences);
+        when(preferenceService.allows(any(), any())).thenReturn(true);
+        when(preferenceService.subscribedLineIds("user_1")).thenReturn(List.of());
+        when(lineSubscriptionPushPlanner.candidatesFor(anyString(), anyList())).thenReturn(List.of());
+        when(subscriptionRepository.findEnabledAccountIds()).thenReturn(List.of("user_1"));
+        when(savedCommuteRepository.findByAccountIdOrderByCreatedAtAsc("user_1")).thenReturn(List.of(commute));
+        when(planner.candidatesFor(commute)).thenReturn(List.of(candidate));
+        when(eventRepository.existsByDedupeKey("dedupe-gone-1")).thenReturn(false);
+        when(eventRepository.save(any(PushNotificationEventEntity.class)))
+            .thenAnswer(invocation -> invocation.getArgument(0));
+        when(subscriptionRepository.findByAccountIdAndEnabledTrue("user_1")).thenReturn(List.of(subscription));
+        when(webPushClient.send(eq(subscription), anyString(), any(WebPushPayload.class)))
+            .thenReturn(PushDeliveryResult.gone(410));
+
+        service.evaluateSavedCommuteNotifications();
+
+        assertThat(subscription.isEnabled()).isFalse();
+        verify(subscriptionRepository).save(subscription);
+    }
+
+    @Test
     void silentlyBaselinesExistingSavedCommuteReducedSpeedZoneAfterCommuteCreation() {
         SavedCommuteEntity commute = SavedCommuteEntity.create(
             "commute_1",

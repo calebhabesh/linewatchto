@@ -9,10 +9,15 @@ public final class PushRequests {
         String endpoint,
         PushSubscriptionKeys keys,
         String userAgent,
-        String reason
+        String reason,
+        String installationId
     ) {
         public SaveSubscriptionRequest(String endpoint, PushSubscriptionKeys keys, String userAgent) {
-            this(endpoint, keys, userAgent, null);
+            this(endpoint, keys, userAgent, null, null);
+        }
+
+        public SaveSubscriptionRequest(String endpoint, PushSubscriptionKeys keys, String userAgent, String reason) {
+            this(endpoint, keys, userAgent, reason, null);
         }
     }
 

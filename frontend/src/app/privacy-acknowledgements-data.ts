@@ -44,7 +44,7 @@ export const dataPracticeSections: NoticeSection[] = [
   },
   {
     title: "Push Notifications",
-    body: "Browser push notifications are opt-in. When enabled, LineWatchTO stores the browser push subscription endpoint, public browser keys, user-agent context, and notification preferences needed to deliver and deduplicate saved-commute and line-wide alerts.",
+    body: "Browser push notifications are opt-in. When enabled, LineWatchTO stores the browser push subscription endpoint, public browser keys, a random browser-installation identifier, user-agent context, and notification preferences needed to deliver, rotate, and deduplicate saved-commute and line-wide alerts.",
   },
   {
     title: "Feedback",
@@ -52,7 +52,7 @@ export const dataPracticeSections: NoticeSection[] = [
   },
   {
     title: "Browser Storage and PWA Cache",
-    body: "LineWatchTO may keep display preferences, app update state, service-worker cache entries, local storage values, and other local app state in your browser so the dashboard opens quickly and keeps your chosen controls.",
+    body: "LineWatchTO may keep display preferences, app update state, a random push-installation identifier, service-worker cache entries, local storage values, and other local app state in your browser so the dashboard opens quickly and keeps your chosen controls.",
   },
   {
     title: "Cloudflare Web Analytics",

@@ -28,6 +28,12 @@ public class PushSubscriptionEntity {
     private String authSecret;
     @Column(name = "user_agent")
     private String userAgent;
+    @Column(name = "installation_id")
+    private String installationId;
+    @Column(name = "registration_reason")
+    private String registrationReason = "legacy";
+    @Column(name = "disabled_reason")
+    private String disabledReason;
     private boolean enabled = true;
     @Column(name = "commute_notifications_enabled")
     private boolean commuteNotificationsEnabled = true;
@@ -54,6 +60,8 @@ public class PushSubscriptionEntity {
         String p256dhKey,
         String authSecret,
         String userAgent,
+        String installationId,
+        String registrationReason,
         Instant now
     ) {
         this.id = id;
@@ -63,6 +71,8 @@ public class PushSubscriptionEntity {
         this.p256dhKey = p256dhKey;
         this.authSecret = authSecret;
         this.userAgent = userAgent;
+        this.installationId = installationId;
+        this.registrationReason = registrationReason;
         this.createdAt = now;
         this.updatedAt = now;
         this.lastSeenAt = now;
@@ -79,16 +89,50 @@ public class PushSubscriptionEntity {
         String userAgent,
         Instant now
     ) {
-        return new PushSubscriptionEntity(id, account, endpoint, endpointHash, p256dhKey, authSecret, userAgent, now);
+        return new PushSubscriptionEntity(
+            id, account, endpoint, endpointHash, p256dhKey, authSecret, userAgent, null, "legacy", now
+        );
+    }
+
+    public static PushSubscriptionEntity create(
+        String id,
+        AccountEntity account,
+        String endpoint,
+        String endpointHash,
+        String p256dhKey,
+        String authSecret,
+        String userAgent,
+        String installationId,
+        String registrationReason,
+        Instant now
+    ) {
+        return new PushSubscriptionEntity(
+            id, account, endpoint, endpointHash, p256dhKey, authSecret, userAgent,
+            installationId, registrationReason, now
+        );
     }
 
     public void refresh(String p256dhKey, String authSecret, String userAgent, Instant now) {
+        refresh(p256dhKey, authSecret, userAgent, installationId, registrationReason, now);
+    }
+
+    public void refresh(
+        String p256dhKey,
+        String authSecret,
+        String userAgent,
+        String installationId,
+        String registrationReason,
+        Instant now
+    ) {
         boolean wasDisabled = !this.enabled;
         this.p256dhKey = p256dhKey;
         this.authSecret = authSecret;
         this.userAgent = userAgent;
+        this.installationId = installationId;
+        this.registrationReason = registrationReason;
         this.enabled = true;
         this.disabledAt = null;
+        this.disabledReason = null;
         this.updatedAt = now;
         this.lastSeenAt = now;
         if (wasDisabled || this.enabledAt == null) {
@@ -97,8 +141,13 @@ public class PushSubscriptionEntity {
     }
 
     public void disable(Instant now) {
+        disable(now, "unspecified");
+    }
+
+    public void disable(Instant now, String reason) {
         this.enabled = false;
         this.disabledAt = now;
+        this.disabledReason = reason;
         this.updatedAt = now;
     }
 
@@ -116,6 +165,9 @@ public class PushSubscriptionEntity {
     public String getP256dhKey() { return p256dhKey; }
     public String getAuthSecret() { return authSecret; }
     public String getUserAgent() { return userAgent; }
+    public String getInstallationId() { return installationId; }
+    public String getRegistrationReason() { return registrationReason; }
+    public String getDisabledReason() { return disabledReason; }
     public boolean isEnabled() { return enabled; }
     public boolean isCommuteNotificationsEnabled() { return commuteNotificationsEnabled; }
     public boolean isPlannedClosureNotificationsEnabled() { return plannedClosureNotificationsEnabled; }

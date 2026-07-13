@@ -191,6 +191,8 @@ Keep cleanup conservative:
 
 No stale-device scheduler is required in this slice. The only automatic cleanup behavior remains the existing hard-invalid push response path.
 
+Post-implementation follow-up (2026-07-13): browser endpoint rotation now carries a random installation identifier shared by the page and service worker. Registering a different endpoint for the same account installation archives the prior endpoint while retaining its delivery history. Hard-invalid 404/410 results are explicitly saved from scheduled dispatch, and the migration archives enabled legacy subscriptions that already have a persisted `gone` delivery. Accepted-but-unacknowledged endpoints remain enabled.
+
 ## Diagnostics API
 
 Change `/api/account/push/diagnostics` from a flat delivery list to grouped logical notifications.

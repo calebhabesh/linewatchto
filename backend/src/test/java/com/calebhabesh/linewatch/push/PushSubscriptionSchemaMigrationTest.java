@@ -22,4 +22,21 @@ class PushSubscriptionSchemaMigrationTest {
             assertThat(sql).contains("alter column enabled_at set not null");
         }
     }
+
+    @Test
+    void v41AddsInstallationIdentityAndArchivesHistoricalGoneEndpoints() throws IOException {
+        try (var input = getClass().getResourceAsStream(
+            "/db/migration/V41__push_subscription_installation_identity.sql"
+        )) {
+            assertThat(input).isNotNull();
+            String sql = new String(input.readAllBytes(), StandardCharsets.UTF_8);
+
+            assertThat(sql).contains("add column installation_id varchar(80)");
+            assertThat(sql).contains("add column registration_reason varchar(80)");
+            assertThat(sql).contains("add column disabled_reason varchar(80)");
+            assertThat(sql).contains("delivery.status = 'gone'");
+            assertThat(sql).contains("disabled_reason = 'historical-push-service-gone'");
+            assertThat(sql).contains("idx_push_subscriptions_account_installation");
+        }
+    }
 }

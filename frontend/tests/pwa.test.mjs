@@ -405,12 +405,11 @@ async function serviceWorkerPushSubscriptionChange({
   const listeners = new Map();
   const fetchRequests = [];
   const subscribeCalls = [];
+  let identityResponse = null;
   const context = {
     URL,
     Promise,
-    Response: {
-      error: () => ({ source: "response-error" }),
-    },
+    Response: globalThis.Response,
     Uint8Array,
     atob: (value) => Buffer.from(value, "base64").toString("binary"),
     caches: {
@@ -419,7 +418,10 @@ async function serviceWorkerPushSubscriptionChange({
       match: async () => undefined,
       open: async () => ({
         addAll: async () => undefined,
-        put: async () => undefined,
+        match: async () => identityResponse,
+        put: async (_key, response) => {
+          identityResponse = response;
+        },
       }),
     },
     fetch: async (url, options = {}) => {
@@ -432,6 +434,9 @@ async function serviceWorkerPushSubscriptionChange({
     },
     self: {
       location: new URL("https://linewatch.test/sw.js"),
+      crypto: {
+        randomUUID: () => "6d0e67af-4971-4e9c-98a2-c0b3dc6cf324",
+      },
       addEventListener: (type, listener) => {
         listeners.set(type, listener);
       },
@@ -862,6 +867,10 @@ describe("LineWatch PWA configuration", () => {
       "https://fcm.googleapis.com/fcm/send/new-subscription",
     );
     assert.equal(JSON.parse(fetchRequests[2].options.body).keys.p256dh, "https://fcm.googleapis.com/fcm/send/new-subscription-p256dh");
+    assert.equal(
+      JSON.parse(fetchRequests[2].options.body).installationId,
+      "6d0e67af-4971-4e9c-98a2-c0b3dc6cf324",
+    );
     assert.equal(subscribeCalls.length, 1);
     assert.equal(subscribeCalls[0].userVisibleOnly, true);
     assert.equal(subscribeCalls[0].applicationServerKey instanceof Uint8Array, true);

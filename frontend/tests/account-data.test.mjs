@@ -617,6 +617,8 @@ describe("account data adapter", () => {
           auth: "auth-secret",
         },
         userAgent: "Mobile Safari",
+        reason: "app-refresh",
+        installationId: "6d0e67af-4971-4e9c-98a2-c0b3dc6cf324",
       },
       {
         fetcher: async (input, init) => {
@@ -714,6 +716,10 @@ describe("account data adapter", () => {
     assert.equal(requests[0].input, "/api/account/push/subscription");
     assert.equal(requests[0].init.method, "PUT");
     assert.equal(requests[0].init.credentials, "include");
+    assert.equal(
+      JSON.parse(requests[0].init.body).installationId,
+      "6d0e67af-4971-4e9c-98a2-c0b3dc6cf324",
+    );
     assert.equal(requests[1].input, "/api/account/push/preferences");
     assert.equal(requests[1].init.method, "PUT");
     assert.deepEqual(JSON.parse(requests[1].init.body), fullPrefs);

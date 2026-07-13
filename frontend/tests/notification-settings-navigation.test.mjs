@@ -70,7 +70,10 @@ describe("notification settings navigation", () => {
     assert.match(diagnosticsPanelSource, /disablePushDevice/);
     assert.match(diagnosticsPanelSource, /sendPushDeviceTestNotification/);
     assert.match(diagnosticsPanelSource, /Recent Push Attempts/);
-    assert.match(diagnosticsPanelSource, /Registered Devices/);
+    assert.match(diagnosticsPanelSource, /Active Browser Installations/);
+    assert.match(diagnosticsPanelSource, /Endpoint expired/);
+    assert.match(diagnosticsPanelSource, /Replaced expired endpoint/);
+    assert.match(diagnosticsPanelSource, /earlier .*endpoint/);
     assert.match(diagnosticsPanelSource, /acceptedWithoutDisplayCount/);
     assert.match(diagnosticsPanelSource, /staleCandidate/);
     assert.match(diagnosticsPanelSource, /selectedDeviceKey/);
@@ -79,7 +82,7 @@ describe("notification settings navigation", () => {
     assert.match(diagnosticsPanelSource, /recipient\.reason/);
     assert.match(diagnosticsPanelSource, /showArchivedDevices/);
     assert.match(diagnosticsPanelSource, /Show archived devices/);
-    assert.match(diagnosticsStateSource, /Current and delivered devices/);
+    assert.match(diagnosticsStateSource, /Current and delivered endpoints/);
     assert.match(diagnosticsPanelSource, /sourceIncidentKey/);
     assert.doesNotMatch(notificationPanelSource, /getPushDeliveryDiagnostics/);
     assert.doesNotMatch(notificationPanelSource, /Delivery Diagnostics/);

@@ -826,6 +826,87 @@ class PushNotificationServiceTest {
     }
 
     @Test
+    void rotatedEndpointArchivesPreviousSubscriptionForSameInstallation() {
+        String installationId = "6d0e67af-4971-4e9c-98a2-c0b3dc6cf324";
+        PushSubscriptionEntity previous = PushSubscriptionEntity.create(
+            "push_subscription_previous",
+            account,
+            "https://fcm.googleapis.com/fcm/send/previous",
+            PushNotificationService.hashEndpoint("https://fcm.googleapis.com/fcm/send/previous"),
+            "old-p256dh",
+            "old-auth",
+            "Chrome Android",
+            installationId,
+            "app-refresh",
+            Instant.parse("2026-06-05T14:00:00Z")
+        );
+        String replacementEndpoint = "https://fcm.googleapis.com/fcm/send/replacement";
+        when(subscriptionRepository.findByAccountIdAndEndpointHash(
+            "user_1", PushNotificationService.hashEndpoint(replacementEndpoint)
+        )).thenReturn(Optional.empty());
+        when(subscriptionRepository.findByAccountIdAndInstallationIdAndEnabledTrue("user_1", installationId))
+            .thenReturn(List.of(previous));
+        when(subscriptionRepository.save(any(PushSubscriptionEntity.class)))
+            .thenAnswer(invocation -> invocation.getArgument(0));
+
+        PushResponses.PushSubscriptionResponse response = service.saveSubscription(
+            account,
+            new PushRequests.SaveSubscriptionRequest(
+                replacementEndpoint,
+                new PushRequests.PushSubscriptionKeys("new-p256dh", "new-auth"),
+                "Chrome Android",
+                "subscription-change",
+                installationId
+            )
+        );
+
+        assertThat(previous.isEnabled()).isFalse();
+        assertThat(previous.getDisabledReason()).isEqualTo("superseded-by-installation");
+        ArgumentCaptor<PushSubscriptionEntity> subscriptions = ArgumentCaptor.forClass(PushSubscriptionEntity.class);
+        verify(subscriptionRepository, times(2)).save(subscriptions.capture());
+        PushSubscriptionEntity replacement = subscriptions.getAllValues().get(1);
+        assertThat(replacement.getInstallationId()).isEqualTo(installationId);
+        assertThat(replacement.getRegistrationReason()).isEqualTo("subscription-change");
+        assertThat(response.enabled()).isTrue();
+    }
+
+    @Test
+    void appRefreshDoesNotReenableEndpointRejectedByPushService() {
+        String endpoint = "https://fcm.googleapis.com/fcm/send/gone";
+        PushSubscriptionEntity invalid = PushSubscriptionEntity.create(
+            "push_subscription_invalid",
+            account,
+            endpoint,
+            PushNotificationService.hashEndpoint(endpoint),
+            "p256dh",
+            "auth",
+            "Chrome Android",
+            "6d0e67af-4971-4e9c-98a2-c0b3dc6cf324",
+            "app-refresh",
+            Instant.parse("2026-06-05T14:00:00Z")
+        );
+        invalid.disable(Instant.parse("2026-06-05T14:30:00Z"), "push-service-410");
+        when(subscriptionRepository.findByAccountIdAndEndpointHash(
+            "user_1", PushNotificationService.hashEndpoint(endpoint)
+        )).thenReturn(Optional.of(invalid));
+
+        PushResponses.PushSubscriptionResponse response = service.saveSubscription(
+            account,
+            new PushRequests.SaveSubscriptionRequest(
+                endpoint,
+                new PushRequests.PushSubscriptionKeys("p256dh", "auth"),
+                "Chrome Android",
+                "app-refresh",
+                "6d0e67af-4971-4e9c-98a2-c0b3dc6cf324"
+            )
+        );
+
+        assertThat(response.enabled()).isFalse();
+        assertThat(invalid.getDisabledReason()).isEqualTo("push-service-410");
+        verify(subscriptionRepository, never()).save(any(PushSubscriptionEntity.class));
+    }
+
+    @Test
     void testDeviceSendsManualDiagnosticPushAndRecordsDelivery() {
         String endpoint = "https://fcm.googleapis.com/fcm/send/android";
         String endpointHash = PushNotificationService.hashEndpoint(endpoint);
@@ -837,6 +918,8 @@ class PushNotificationServiceTest {
             "p256dh-key",
             "auth-secret",
             "Chrome Android Pixel 6a",
+            "6d0e67af-4971-4e9c-98a2-c0b3dc6cf324",
+            "invalid-endpoint-replacement",
             Instant.parse("2026-06-05T14:30:00Z")
         );
         when(subscriptionRepository.findByIdAndAccountId("push_subscription_android", "user_1"))
@@ -878,6 +961,8 @@ class PushNotificationServiceTest {
             "p256dh-key",
             "auth-secret",
             "Chrome Android Pixel 6a",
+            "6d0e67af-4971-4e9c-98a2-c0b3dc6cf324",
+            "invalid-endpoint-replacement",
             Instant.parse("2026-06-05T14:30:00Z")
         );
         PushSubscriptionEntity iosSubscription = PushSubscriptionEntity.create(
@@ -989,6 +1074,10 @@ class PushNotificationServiceTest {
             "accepted",
             Instant.parse("2026-06-05T13:00:09Z")
         )).thenReturn(2L);
+        when(subscriptionRepository.countByAccountIdAndInstallationId(
+            "user_1",
+            "6d0e67af-4971-4e9c-98a2-c0b3dc6cf324"
+        )).thenReturn(3L);
 
         PushResponses.PushDevicesResponse response = service.devices(account);
 
@@ -997,6 +1086,9 @@ class PushNotificationServiceTest {
         assertThat(android.id()).isEqualTo("push_subscription_android");
         assertThat(android.deviceLabel()).isEqualTo("Android Chrome");
         assertThat(android.endpointHashPrefix()).isEqualTo(androidEndpointHash.substring(0, 12));
+        assertThat(android.installationIdPrefix()).isEqualTo("6d0e67af");
+        assertThat(android.registrationReason()).isEqualTo("invalid-endpoint-replacement");
+        assertThat(android.previousEndpointCount()).isEqualTo(2);
         assertThat(android.lastAttemptAt()).isEqualTo("2026-06-05T15:00:05Z");
         assertThat(android.lastAcceptedAt()).isEqualTo("2026-06-05T15:00:05Z");
         assertThat(android.lastDisplayedAt()).isEqualTo("2026-06-05T15:00:07Z");

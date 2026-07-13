@@ -28,6 +28,7 @@ describe("privacy and acknowledgement content", () => {
     assert.match(combinedCopy, /Account/i);
     assert.match(combinedCopy, /saved commute/i);
     assert.match(combinedCopy, /push notification/i);
+    assert.match(combinedCopy, /random browser-installation identifier/i);
     assert.match(combinedCopy, /feedback/i);
     assert.match(combinedCopy, /Cloudflare Web Analytics/i);
     assert.match(combinedCopy, /local storage/i);

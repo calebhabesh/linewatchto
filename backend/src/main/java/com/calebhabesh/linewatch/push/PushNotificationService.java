@@ -155,15 +155,48 @@ public class PushNotificationService {
         String p256dh = required(keys.p256dh(), "missing_push_keys", "Push subscription p256dh key is required.");
         String auth = required(keys.auth(), "missing_push_keys", "Push subscription auth key is required.");
         String endpointHash = hashEndpoint(endpoint);
+        String installationId = normalizeInstallationId(request.installationId());
+        String registrationReason = normalizeRegistrationReason(request.reason());
         Instant now = clock.instant();
 
-        boolean existingSubscription = subscriptionRepository
-            .findByAccountIdAndEndpointHash(account.getId(), endpointHash).isPresent();
-        PushSubscriptionEntity subscription = subscriptionRepository
-            .findByAccountIdAndEndpointHash(account.getId(), endpointHash)
-            .map(existing -> {
-                existing.refresh(p256dh, auth, normalizeUserAgent(request.userAgent()), now);
-                return existing;
+        Optional<PushSubscriptionEntity> existing = subscriptionRepository
+            .findByAccountIdAndEndpointHash(account.getId(), endpointHash);
+        boolean existingSubscription = existing.isPresent();
+        if (existing.isPresent()
+            && !existing.get().isEnabled()
+            && isHardInvalidReason(existing.get().getDisabledReason())) {
+            recordLifecycle(existing.get(), "refresh-rejected", "hard-invalid-endpoint");
+            return toResponse(existing.get());
+        }
+
+        if (installationId != null) {
+            subscriptionRepository.findByAccountIdAndInstallationIdAndEnabledTrue(account.getId(), installationId)
+                .stream()
+                .filter(previous -> !endpointHash.equals(previous.getEndpointHash()))
+                .forEach(previous -> {
+                    previous.disable(now, "superseded-by-installation");
+                    subscriptionRepository.save(previous);
+                    recordLifecycle(previous, "superseded", registrationReason);
+                });
+        }
+
+        PushSubscriptionEntity subscription = existing
+            .map(current -> {
+                String effectiveInstallationId = installationId == null
+                    ? current.getInstallationId()
+                    : installationId;
+                String effectiveRegistrationReason = "unspecified".equals(registrationReason)
+                    ? current.getRegistrationReason()
+                    : registrationReason;
+                current.refresh(
+                    p256dh,
+                    auth,
+                    normalizeUserAgent(request.userAgent()),
+                    effectiveInstallationId,
+                    effectiveRegistrationReason,
+                    now
+                );
+                return current;
             })
             .orElseGet(() -> PushSubscriptionEntity.create(
                 nextId("push_subscription"),
@@ -173,11 +206,13 @@ public class PushNotificationService {
                 p256dh,
                 auth,
                 normalizeUserAgent(request.userAgent()),
+                installationId,
+                registrationReason,
                 now
             ));
 
         PushSubscriptionEntity saved = subscriptionRepository.save(subscription);
-        recordLifecycle(saved, existingSubscription ? "refreshed" : "registered", request.reason());
+        recordLifecycle(saved, existingSubscription ? "refreshed" : "registered", registrationReason);
         return toResponse(saved);
     }
 
@@ -193,7 +228,11 @@ public class PushNotificationService {
     public void disableSubscription(AccountEntity account, PushRequests.SubscriptionEndpointRequest request) {
         String endpointHash = hashEndpoint(required(request.endpoint(), "missing_endpoint", "Push subscription endpoint is required."));
         subscriptionRepository.findByAccountIdAndEndpointHash(account.getId(), endpointHash)
-            .ifPresent(subscription -> { subscription.disable(clock.instant()); recordLifecycle(subscription, "disabled", request.reason()); });
+            .ifPresent(subscription -> {
+                String reason = normalizeRegistrationReason(request.reason());
+                subscription.disable(clock.instant(), reason);
+                recordLifecycle(subscription, "disabled", reason);
+            });
     }
 
     @Transactional
@@ -349,7 +388,9 @@ public class PushNotificationService {
             WebPushPayload.fromDelivery(event, deliveryId, subscription, receiptTokenService, now, properties)
         );
         if (result.invalidSubscription()) {
-            subscription.disable(now);
+            String reason = hardInvalidReason(result);
+            subscription.disable(now, reason);
+            recordLifecycle(subscription, "disabled", reason);
         }
         PushNotificationDeliveryEntity delivery = deliveryRepository.save(PushNotificationDeliveryEntity.create(
             deliveryId,
@@ -375,7 +416,10 @@ public class PushNotificationService {
     public void disableDevice(AccountEntity account, String subscriptionId) {
         String id = required(subscriptionId, "missing_subscription_id", "Push device subscription id is required.");
         subscriptionRepository.findByIdAndAccountId(id, account.getId())
-            .ifPresent(subscription -> { subscription.disable(clock.instant()); recordLifecycle(subscription, "disabled", "dashboard-disable"); });
+            .ifPresent(subscription -> {
+                subscription.disable(clock.instant(), "dashboard-disable");
+                recordLifecycle(subscription, "disabled", "dashboard-disable");
+            });
     }
 
     @Transactional
@@ -559,6 +603,8 @@ public class PushNotificationService {
             deviceLabel(subscription),
             subscription.getUserAgent(),
             endpointHashPrefix(subscription.getEndpointHash()),
+            installationIdPrefix(subscription.getInstallationId()),
+            subscription.getRegistrationReason(),
             subscription.isEnabled(),
             delivery.getStatus(),
             delivery.getHttpStatus(),
@@ -653,6 +699,8 @@ public class PushNotificationService {
             deviceLabel(subscription),
             subscription.getUserAgent(),
             endpointHashPrefix(subscription.getEndpointHash()),
+            installationIdPrefix(subscription.getInstallationId()),
+            subscription.getRegistrationReason(),
             subscription.isEnabled(),
             instantString(subscription.getEnabledAt()),
             instantString(subscription.getDisabledAt()),
@@ -745,6 +793,48 @@ public class PushNotificationService {
         return normalized.substring(0, Math.min(12, normalized.length()));
     }
 
+    private String installationIdPrefix(String installationId) {
+        if (installationId == null || installationId.isBlank()) return null;
+        String normalized = installationId.trim();
+        return normalized.substring(0, Math.min(8, normalized.length()));
+    }
+
+    private int previousEndpointCount(PushSubscriptionEntity subscription) {
+        String installationId = subscription.getInstallationId();
+        if (installationId == null || installationId.isBlank()) return 0;
+        long count = Math.max(0, subscriptionRepository.countByAccountIdAndInstallationId(
+            subscription.getAccount().getId(), installationId
+        ) - 1);
+        return count > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) count;
+    }
+
+    private String normalizeInstallationId(String installationId) {
+        if (installationId == null || installationId.isBlank()) return null;
+        String normalized = installationId.trim();
+        if (normalized.length() > 80 || !normalized.matches("[A-Za-z0-9._:-]{8,80}")) {
+            throw new AccountException(
+                HttpStatus.BAD_REQUEST,
+                "invalid_installation_id",
+                "Push installation id is invalid."
+            );
+        }
+        return normalized;
+    }
+
+    private String normalizeRegistrationReason(String reason) {
+        if (reason == null || reason.isBlank()) return "unspecified";
+        String normalized = reason.trim();
+        return normalized.substring(0, Math.min(80, normalized.length()));
+    }
+
+    private boolean isHardInvalidReason(String reason) {
+        return reason != null && reason.startsWith("push-service-");
+    }
+
+    private String hardInvalidReason(PushDeliveryResult result) {
+        return "push-service-" + (result.httpStatus() == null ? "invalid" : result.httpStatus());
+    }
+
     private void recordLifecycle(PushSubscriptionEntity subscription, String eventType, String reason) {
         if (lifecycleService == null || subscription == null) return;
         String normalizedReason = reason == null || reason.isBlank() ? "unspecified" : reason.trim().substring(0, Math.min(80, reason.trim().length()));
@@ -765,6 +855,7 @@ public class PushNotificationService {
             .map(PushNotificationDeliveryEntity::getCreatedAt)
             .orElse(null);
         int safeAcceptedWithoutDisplayCount = acceptedWithoutDisplayCount(subscription.getId(), latestDisplayedAt);
+        int previousEndpointCount = previousEndpointCount(subscription);
         String deliveryHealth = deviceDeliveryHealth(
             subscription,
             latestDelivery.orElse(null),
@@ -781,6 +872,9 @@ public class PushNotificationService {
             deviceLabel(subscription),
             subscription.getUserAgent(),
             endpointHashPrefix(subscription.getEndpointHash()),
+            installationIdPrefix(subscription.getInstallationId()),
+            subscription.getRegistrationReason(),
+            previousEndpointCount,
             subscription.isEnabled(),
             instantString(subscription.getCreatedAt()),
             instantString(subscription.getUpdatedAt()),

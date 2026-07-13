@@ -63,12 +63,38 @@ function diagnosticStageLabel(stage: string) {
 
 function diagnosticOutcome(delivery: PushDeliveryDiagnostic) {
   if (delivery.displayedAt) return "Displayed";
+  if (delivery.deliveryStatus?.toLowerCase() === "gone" || delivery.httpStatus === 404 || delivery.httpStatus === 410) {
+    return "Invalid subscription";
+  }
   if (delivery.clientEvents.some((event) => event.stage === "show_failed")) return "Display failed";
   if (delivery.clientEvents.some((event) => event.stage === "ack_failed")) return "Ack failed";
   if (delivery.clientEvents.some((event) => event.stage === "fallback_shown")) return "Fallback displayed";
   if (delivery.clientEvents.some((event) => event.stage === "push_received")) return "Received";
   if (delivery.deliveryStatus?.toLowerCase() === "accepted") return "Accepted, no receipt";
   return delivery.deliveryStatus || "Queued";
+}
+
+function displayEvidenceLabel(delivery: PushDeliveryDiagnostic) {
+  if (delivery.displayedAt) return `Displayed ${formatDiagnosticTimestamp(delivery.displayedAt)}`;
+  if (delivery.deliveryStatus?.toLowerCase() === "gone" || delivery.httpStatus === 404 || delivery.httpStatus === 410) {
+    return "Endpoint expired";
+  }
+  if (delivery.clientEvents.some((event) => event.stage === "push_received")) {
+    return "Received, no display ack";
+  }
+  if (delivery.deliveryStatus?.toLowerCase() === "accepted") return "No receipt or display ack";
+  return "Not displayed";
+}
+
+function registrationReasonLabel(reason?: string | null) {
+  switch (reason) {
+    case "app-refresh": return "Refreshed when app opened";
+    case "subscription-change": return "Rotated by browser";
+    case "invalid-endpoint-replacement": return "Replaced expired endpoint";
+    case "user-enabled": return "Enabled by user";
+    case "legacy": return "Registered before lifecycle tracking";
+    default: return reason ? reason.replaceAll("-", " ") : "Registration source not recorded";
+  }
 }
 
 function deviceHealthLabel(device: PushDevice) {
@@ -248,10 +274,10 @@ export function PushDeliveryDiagnosticsPanel({ accountState }: Props) {
             </div>
 
             {diagnosticsState !== "loading" && diagnosticsState !== "unavailable" ? (
-              <section className="push-devices-section" aria-label="Registered Devices">
+              <section className="push-devices-section" aria-label="Active Browser Installations">
                 <div className="push-devices-header">
-                  <strong>Registered Devices</strong>
-                  <span>Enabled endpoints tied to this account.</span>
+                  <strong>Active Browser Installations</strong>
+                  <span>Current enabled push endpoint for each known browser installation.</span>
                 </div>
                 {deviceActionMessage ? (
                   <p className="push-diagnostics-note" role="status">{deviceActionMessage}</p>
@@ -272,6 +298,10 @@ export function PushDeliveryDiagnosticsPanel({ accountState }: Props) {
                             <span>Last seen {formatDiagnosticTimestamp(device.lastSeenAt)}</span>
                             <span>Last display {formatDiagnosticTimestamp(device.lastDisplayedAt)}</span>
                             <span>{device.acceptedWithoutDisplayCount} accepted without display</span>
+                            <span>{registrationReasonLabel(device.registrationReason)}</span>
+                            {(device.previousEndpointCount ?? 0) > 0 ? (
+                              <span>{device.previousEndpointCount} earlier {device.previousEndpointCount === 1 ? "endpoint" : "endpoints"} archived</span>
+                            ) : null}
                           </div>
                         </div>
                         <div className="push-device-actions">
@@ -385,7 +415,7 @@ export function PushDeliveryDiagnosticsPanel({ accountState }: Props) {
                                   <span>{delivery.attemptCount} {delivery.attemptCount === 1 ? "attempt" : "attempts"}</span>
                                 ) : null}
                                 {delivery ? (
-                                  <span>{delivery.displayedAt ? `Displayed ${formatDiagnosticTimestamp(delivery.displayedAt)}` : "No display ack"}</span>
+                                  <span>{displayEvidenceLabel(delivery)}</span>
                                 ) : null}
                                 <span>{delivery ? diagnosticOutcome(delivery) : recipient.reason}</span>
                               </div>

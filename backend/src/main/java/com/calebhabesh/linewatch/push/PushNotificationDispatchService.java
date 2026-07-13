@@ -52,6 +52,7 @@ public class PushNotificationDispatchService {
     private final IngestionFreshness ingestionFreshness;
     private final AlertHistoryRepository alertHistoryRepository;
     private final PushProperties pushProperties;
+    private final PushSubscriptionLifecycleService lifecycleService;
     private final Clock clock;
 
     @Autowired
@@ -70,7 +71,8 @@ public class PushNotificationDispatchService {
         PushReceiptTokenService receiptTokenService,
         IngestionFreshness ingestionFreshness,
         AlertHistoryRepository alertHistoryRepository,
-        PushProperties pushProperties
+        PushProperties pushProperties,
+        PushSubscriptionLifecycleService lifecycleService
     ) {
         this(
             savedCommuteRepository, planner, eventRepository, subscriptionRepository,
@@ -82,7 +84,8 @@ public class PushNotificationDispatchService {
             ingestionFreshness,
             alertHistoryRepository,
             pushProperties,
-            Clock.systemUTC()
+            Clock.systemUTC(),
+            lifecycleService
         );
     }
 
@@ -104,6 +107,33 @@ public class PushNotificationDispatchService {
         PushProperties pushProperties,
         Clock clock
     ) {
+        this(
+            savedCommuteRepository, planner, eventRepository, subscriptionRepository,
+            deliveryRepository, webPushClient, preferenceService, lineSubscriptionPushPlanner,
+            lineEventObservationService, savedCommuteObservationService, formatter, receiptTokenService,
+            ingestionFreshness, alertHistoryRepository, pushProperties, clock, null
+        );
+    }
+
+    PushNotificationDispatchService(
+        SavedCommuteRepository savedCommuteRepository,
+        SavedCommutePushPlanner planner,
+        PushNotificationEventRepository eventRepository,
+        PushSubscriptionRepository subscriptionRepository,
+        PushNotificationDeliveryRepository deliveryRepository,
+        WebPushClient webPushClient,
+        PushNotificationPreferenceService preferenceService,
+        LineSubscriptionPushPlanner lineSubscriptionPushPlanner,
+        PushLineEventObservationService lineEventObservationService,
+        PushSavedCommuteEventObservationService savedCommuteObservationService,
+        PushNotificationFormatter formatter,
+        PushReceiptTokenService receiptTokenService,
+        IngestionFreshness ingestionFreshness,
+        AlertHistoryRepository alertHistoryRepository,
+        PushProperties pushProperties,
+        Clock clock,
+        PushSubscriptionLifecycleService lifecycleService
+    ) {
         this.savedCommuteRepository = savedCommuteRepository;
         this.planner = planner;
         this.eventRepository = eventRepository;
@@ -120,6 +150,7 @@ public class PushNotificationDispatchService {
         this.alertHistoryRepository = alertHistoryRepository;
         this.pushProperties = pushProperties;
         this.clock = clock;
+        this.lifecycleService = lifecycleService;
     }
 
     public PushEvaluationResult evaluateSavedCommuteNotifications() {
@@ -634,7 +665,7 @@ public class PushNotificationDispatchService {
                 WebPushPayload.fromDelivery(event, deliveryId, subscription, receiptTokenService, now, pushProperties)
             );
             if (result.invalidSubscription()) {
-                subscription.disable(now);
+                disableHardInvalidSubscription(subscription, result, now);
             }
             if (existingDelivery.isPresent()) {
                 PushNotificationDeliveryEntity delivery = existingDelivery.get();
@@ -672,7 +703,7 @@ public class PushNotificationDispatchService {
                 accepted = true;
             }
             if (result.invalidSubscription()) {
-                subscription.disable(now);
+                disableHardInvalidSubscription(subscription, result, now);
             }
             deliveryRepository.save(PushNotificationDeliveryEntity.create(
                 deliveryId,
@@ -683,6 +714,19 @@ public class PushNotificationDispatchService {
             ));
         }
         return accepted;
+    }
+
+    private void disableHardInvalidSubscription(
+        PushSubscriptionEntity subscription,
+        PushDeliveryResult result,
+        Instant now
+    ) {
+        String reason = "push-service-" + (result.httpStatus() == null ? "invalid" : result.httpStatus());
+        subscription.disable(now, reason);
+        subscriptionRepository.save(subscription);
+        if (lifecycleService != null) {
+            lifecycleService.record(subscription, "disabled", reason, now);
+        }
     }
 
     private boolean subscriptionEnabledForEvent(PushSubscriptionEntity subscription, PushNotificationEventEntity event) {
