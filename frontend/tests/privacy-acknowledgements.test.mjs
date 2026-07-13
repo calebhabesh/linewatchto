@@ -47,6 +47,7 @@ describe("privacy and acknowledgement content", () => {
 describe("privacy and acknowledgement navigation", () => {
   const shellSource = readFileSync(new URL("../src/components/LineWatchShell.tsx", import.meta.url), "utf8");
   const moreSheetSource = readFileSync(new URL("../src/components/MobileMoreSheet.tsx", import.meta.url), "utf8");
+  const globalCss = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
 
   it("adds a desktop menu item and a mobile More entry", () => {
     assert.equal(existsSync(panelUrl), true);
@@ -62,5 +63,7 @@ describe("privacy and acknowledgement navigation", () => {
     assert.match(moreSheetSource, /Map Attribution/);
     assert.match(moreSheetSource, /© 2026 Toronto Transit Commission 02\/26 - Map not to scale/);
     assert.match(moreSheetSource, /aria-label="Map Attribution"/);
+    assert.match(globalCss, /\.mobile-more-map-attribution-copyright\s*\{[^}]*color:\s*#475569;/s);
+    assert.match(globalCss, /\.dark \.mobile-more-map-attribution-copyright\s*\{[^}]*color:\s*#cbd5e1;/s);
   });
 });

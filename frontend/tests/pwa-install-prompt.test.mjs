@@ -19,6 +19,8 @@ const nudgeSourceUrl = new URL("../src/components/PwaInstallNudge.tsx", import.m
 const moreSheetSourceUrl = new URL("../src/components/MobileMoreSheet.tsx", import.meta.url);
 const shellSourceUrl = new URL("../src/components/LineWatchShell.tsx", import.meta.url);
 const globalCssUrl = new URL("../src/app/globals.css", import.meta.url);
+const iosGuideIconUrl = new URL("../public/assets/linewatch/guide-icons/share-iphone.svg", import.meta.url);
+const androidGuideIconUrl = new URL("../public/assets/linewatch/guide-icons/add-to-homescreen-android.svg", import.meta.url);
 
 describe("PWA install prompt state", () => {
   it("detects the mobile install platforms that LineWatchTO supports", () => {
@@ -288,5 +290,17 @@ describe("PWA install prompt styles", () => {
     assert.match(globalCss, /\.mobile-more-install-help/);
     assert.match(globalCss, /\.motion-paused \.pwa-install-nudge/);
     assert.match(globalCss, /\.high-contrast \.pwa-install-nudge/);
+    assert.match(globalCss, /\.pwa-install-nudge\s*\{[^}]*background:\s*rgba\(255, 255, 255, 0\.97\);[^}]*color:\s*#0f172a;/s);
+    assert.match(globalCss, /\.dark \.pwa-install-nudge\s*\{[^}]*background:\s*rgba\(10, 12, 16, 0\.96\);[^}]*color:\s*#ffffff;/s);
+  });
+
+  it("keeps install guide assets visible in both themes", () => {
+    const iosGuideIcon = readFileSync(iosGuideIconUrl, "utf8");
+    const androidGuideIcon = readFileSync(androidGuideIconUrl, "utf8");
+
+    assert.match(iosGuideIcon, /stroke="#475569"/);
+    assert.match(iosGuideIcon, /stroke="#ffffff"/);
+    assert.match(androidGuideIcon, /stroke="#475569"/);
+    assert.match(androidGuideIcon, /stroke="#ffffff"/);
   });
 });

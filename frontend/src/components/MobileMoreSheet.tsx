@@ -309,7 +309,7 @@ export function MobileMoreSheet({
               <span>Map Attribution</span>
               <span>
                 Base Map
-                <span>© 2026 Toronto Transit Commission 02/26 - Map not to scale</span>
+                <span className="mobile-more-map-attribution-copyright">© 2026 Toronto Transit Commission 02/26 - Map not to scale</span>
               </span>
             </span>
           </div>

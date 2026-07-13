@@ -6,6 +6,11 @@ const shellSource = readFileSync(new URL("../src/components/LineWatchShell.tsx",
 const panelSource = readFileSync(new URL("../src/components/AccessibilityOutagesPanel.tsx", import.meta.url), "utf8");
 const statusSheetSource = readFileSync(new URL("../src/components/MobileStatusSheet.tsx", import.meta.url), "utf8");
 const moreSheetSource = readFileSync(new URL("../src/components/MobileMoreSheet.tsx", import.meta.url), "utf8");
+const globalCss = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
+const accessibilityIcon = readFileSync(
+  new URL("../public/assets/linewatch/accessibility-alert.svg", import.meta.url),
+  "utf8",
+);
 
 describe("accessibility outages panel and routing source verification", () => {
   it("verifies LineWatchShell.tsx includes accessibility-outages view and mobile status routing", () => {
@@ -52,5 +57,18 @@ describe("accessibility outages panel and routing source verification", () => {
     assert.match(statusSheetSource, /mobile-status-btn-accessibility/);
     assert.doesNotMatch(moreSheetSource, /"accessibility-outages"/);
     assert.doesNotMatch(moreSheetSource, /mobile-status-btn-accessibility/);
+  });
+
+  it("keeps light mobile containers distinct from the panel background", () => {
+    assert.match(globalCss, /--light-container:\s*#f1f5f9/);
+    assert.match(
+      globalCss,
+      /\.mobile-more-account,[\s\S]*?\.mobile-more-install-help\s*\{[\s\S]*?border:\s*none\s*!important/,
+    );
+  });
+
+  it("keeps the accessibility alert figure visible on light and dark surfaces", () => {
+    assert.match(accessibilityIcon, /fill="#475569"/);
+    assert.match(accessibilityIcon, /stroke="#ffffff"/);
   });
 });
