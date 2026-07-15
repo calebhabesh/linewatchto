@@ -2332,8 +2332,16 @@ button {
 
 .overlap-indicator-count-text {
   fill: #ffffff;
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 900;
+}
+
+.overlap-indicator-count-text.large {
+  font-size: 32px;
+}
+
+.overlap-indicator-count-text.mixed {
+  font-size: 22px;
 }
 
 .overlap-impact-ref {

@@ -293,6 +293,11 @@ describe("asset-backed map layering", () => {
     assert.match(globalCss, /\.overlap-indicator-type-icon\.delay\s*\{[^}]*color:\s*#FEEC41;/s);
     assert.match(globalCss, /\.overlap-indicator-count-badge\s*\{[^}]*fill:\s*#ef4444;/s);
     assert.match(globalCss, /\.overlap-indicator-count-text\s*\{[^}]*fill:\s*#ffffff;/s);
+    assert.match(interactiveMapSource, /const radius = large \? 26 : 18;/);
+    assert.match(interactiveMapSource, /const offset = large \? 35 : 23;/);
+    assert.match(interactiveMapSource, /key=\{`\$\{kind\}-count`\}/);
+    assert.match(globalCss, /\.overlap-indicator-count-text\.large\s*\{[^}]*font-size:\s*32px;/s);
+    assert.match(globalCss, /\.overlap-indicator-count-text\.mixed\s*\{[^}]*font-size:\s*22px;/s);
     assert.doesNotMatch(globalCss, /\.overlap-indicator-badge\.delay\s*\{[^}]*#0ea5e9/s);
     assert.doesNotMatch(globalCss, /\.overlap-indicator-badge\.suspension,\s*\.overlap-indicator-badge\.planned-closure/);
     assert.match(globalCss, /\.overlap-indicator-badge\.reduced-speed-zone\s*\{[^}]*var\(--impact-rsz\)/s);

@@ -2722,7 +2722,6 @@ function OverlapIndicatorMarker({
           >
             <circle className={`overlap-indicator-badge ${kind}`} r={badgeRadius} />
             <OverlapKindIcon kind={kind} size={iconSize} />
-            {count > 1 && <OverlapKindCountBadge count={count} large={isSingleKindOverlap} />}
           </g>
         );
       })}
@@ -2734,17 +2733,30 @@ function OverlapIndicatorMarker({
           </text>
         </g>
       )}
+      {visibleKindCounts.map(({ kind, count }, index) => {
+        if (count <= 1) return null;
+        const x = (index - (totalItems - 1) / 2) * spacing;
+        return (
+          <g key={`${kind}-count`} transform={`translate(${x} 0)`}>
+            <OverlapKindCountBadge count={count} large={isSingleKindOverlap} />
+          </g>
+        );
+      })}
     </g>
   );
 }
 
 function OverlapKindCountBadge({ count, large = false }: { count: number; large?: boolean }) {
-  const offset = large ? 25 : 20;
-  const radius = large ? 13 : 12;
+  const offset = large ? 35 : 23;
+  const radius = large ? 26 : 18;
   return (
     <g transform={`translate(${offset} -${offset})`}>
       <circle className="overlap-indicator-count-badge" r={radius} />
-      <text className="overlap-indicator-count-text" textAnchor="middle" dominantBaseline="central">
+      <text
+        className={`overlap-indicator-count-text ${large ? "large" : "mixed"}`}
+        textAnchor="middle"
+        dominantBaseline="central"
+      >
         {count}
       </text>
     </g>
