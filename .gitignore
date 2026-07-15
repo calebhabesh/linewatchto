@@ -54,9 +54,9 @@ traces/
 # Temporary files
 tmp/
 
-# Local TODO
+# Local-only notes and drafts
 TODO.md
+docs/reddit-launch-post.md
 
 # Python
 __pycache__/
-
