@@ -243,6 +243,26 @@ function confidenceLabel(confidence: AccountCommuteTravelTimeEstimate["confidenc
   }
 }
 
+type TravelTimeSeverity = "good" | "decent" | "moderate" | "poor" | "severe";
+
+function travelTimeSeverity(estimate: AccountCommuteTravelTimeEstimate): TravelTimeSeverity {
+  if (estimate.status === "unreliable") return "severe";
+  if (estimate.status === "standard") return "good";
+  if (estimate.status !== "estimated" || estimate.baselineSeconds <= 0) return "severe";
+
+  const lowExtraSeconds = Math.max(0, estimate.extraLowSeconds ?? 0);
+  const highExtraSeconds = Math.max(lowExtraSeconds, estimate.extraHighSeconds ?? lowExtraSeconds);
+  const representativeExtraSeconds = (lowExtraSeconds + highExtraSeconds) / 2;
+  const extraMinutes = representativeExtraSeconds / 60;
+  const percentageIncrease = (representativeExtraSeconds / estimate.baselineSeconds) * 100;
+
+  if (percentageIncrease >= 30 || extraMinutes >= 15) return "severe";
+  if (percentageIncrease >= 15 || extraMinutes >= 8) return "poor";
+  if (percentageIncrease >= 5 || extraMinutes >= 4) return "moderate";
+  if (representativeExtraSeconds > 0) return "decent";
+  return "good";
+}
+
 function fallbackTravelTimeEstimate(leg: AccountCommuteLeg): AccountCommuteTravelTimeEstimate {
   if (leg.path.status !== "available") {
     return {
@@ -270,10 +290,15 @@ function fallbackTravelTimeEstimate(leg: AccountCommuteLeg): AccountCommuteTrave
 
 function TravelTimeEstimateBlock({ leg }: { leg: AccountCommuteLeg }) {
   const estimate = leg.impact.travelTimeEstimate ?? fallbackTravelTimeEstimate(leg);
+  const severity = travelTimeSeverity(estimate);
 
   if (estimate.status === "estimated") {
     return (
-      <div className="saved-commute-time-estimate estimated" aria-label={`Travel time estimate to ${leg.toStationName}`}>
+      <div
+        className={`saved-commute-time-estimate estimated severity-${severity}`}
+        data-travel-time-severity={severity}
+        aria-label={`Travel time estimate to ${leg.toStationName}`}
+      >
         <div className="saved-commute-time-estimate-heading">
           <Clock size={13} aria-hidden="true" />
           <strong>Travel Time</strong>
@@ -285,11 +310,11 @@ function TravelTimeEstimateBlock({ leg }: { leg: AccountCommuteLeg }) {
           </span>
           <span>
             <strong>With Impacts</strong>
-            <em>{formatEstimateRange(estimate.estimatedLowSeconds, estimate.estimatedHighSeconds)}</em>
+            <em className="saved-commute-time-verdict">{formatEstimateRange(estimate.estimatedLowSeconds, estimate.estimatedHighSeconds)}</em>
           </span>
           <span>
             <strong>Extra Time</strong>
-            <em>{formatExtraTimeRange(estimate.extraLowSeconds, estimate.extraHighSeconds)}</em>
+            <em className="saved-commute-time-verdict">{formatExtraTimeRange(estimate.extraLowSeconds, estimate.extraHighSeconds)}</em>
           </span>
           <span>
             <strong>Confidence</strong>
@@ -302,7 +327,11 @@ function TravelTimeEstimateBlock({ leg }: { leg: AccountCommuteLeg }) {
 
   if (estimate.status === "standard") {
     return (
-      <div className="saved-commute-time-estimate standard" aria-label={`Travel time estimate to ${leg.toStationName}`}>
+      <div
+        className={`saved-commute-time-estimate standard severity-${severity}`}
+        data-travel-time-severity={severity}
+        aria-label={`Travel time estimate to ${leg.toStationName}`}
+      >
         <div className="saved-commute-time-estimate-heading">
           <Clock size={13} aria-hidden="true" />
           <strong>Travel Time</strong>
@@ -314,11 +343,11 @@ function TravelTimeEstimateBlock({ leg }: { leg: AccountCommuteLeg }) {
           </span>
           <span>
             <strong>With Impacts</strong>
-            <em>No extra time</em>
+            <em className="saved-commute-time-verdict">No extra time</em>
           </span>
           <span>
             <strong>Extra Time</strong>
-            <em>{formatExtraTimeRange(estimate.extraLowSeconds, estimate.extraHighSeconds)}</em>
+            <em className="saved-commute-time-verdict">{formatExtraTimeRange(estimate.extraLowSeconds, estimate.extraHighSeconds)}</em>
           </span>
           <span>
             <strong>Confidence</strong>
@@ -330,14 +359,20 @@ function TravelTimeEstimateBlock({ leg }: { leg: AccountCommuteLeg }) {
   }
 
   return (
-    <div className={`saved-commute-time-estimate ${estimate.status}`} aria-label={`Travel time estimate to ${leg.toStationName}`}>
+    <div
+      className={`saved-commute-time-estimate ${estimate.status} severity-${severity}`}
+      data-travel-time-severity={severity}
+      aria-label={`Travel time estimate to ${leg.toStationName}`}
+    >
       <div className="saved-commute-time-estimate-heading">
         <Clock size={13} aria-hidden="true" />
         <strong>Travel Time</strong>
       </div>
       <p>
         <strong>Typical {formatEstimateMinutes(estimate.baselineSeconds)}</strong>
-        <em>{estimate.summary || "Major disruption on this route; travel time is not reliable."}</em>
+        <em className="saved-commute-time-verdict">
+          {estimate.summary || "Major disruption on this route; travel time is not reliable."}
+        </em>
         <span>Confidence: {confidenceLabel(estimate.confidence)}</span>
       </p>
     </div>
@@ -878,6 +913,9 @@ export function SavedCommutesPanel({
               onClick={() => {
                 if (activePicker) {
                   setActivePicker(null);
+                } else if (activeView === "create") {
+                  setActiveView("saved");
+                  setCommuteError(null);
                 } else {
                   onBack();
                 }
@@ -1061,7 +1099,7 @@ export function SavedCommutesPanel({
                 <div className="flex gap-2.5 mt-2">
                   <button
                     type="button"
-                    className="saved-commute-cancel-button flex-1 py-2 px-3 border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg text-xs font-bold transition-colors"
+                    className="saved-commute-cancel-button flex-1"
                     onClick={() => {
                       setActiveView("saved");
                       setCommuteError(null);
@@ -1223,8 +1261,8 @@ export function SavedCommutesPanel({
                 return (
                   <div key={commute.id} className={`commute-card ${commuteTone(commute)} min-w-0 rounded-lg border border-black/10 !bg-slate-50 p-3 dark:border-white/10 dark:!bg-[#12151c]`}>
                     <div className="min-w-0">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex flex-wrap items-center gap-2 min-w-0">
+                      <div className="saved-commute-card-header">
+                        <div className="saved-commute-card-identity">
                           <h3 className="min-w-0 text-sm font-bold text-slate-800 dark:text-white whitespace-normal break-words">
                             {toTitleCase(commute.label.replace(/\bto\b/g, "->"))}
                           </h3>
@@ -1240,7 +1278,7 @@ export function SavedCommutesPanel({
                             ? "No Impacts"
                             : `${currentImpactsCount} Impact${currentImpactsCount === 1 ? "" : "s"}`;
                           return (
-                            <div className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider shrink-0 ${impactBgColor}`}>
+                            <div className={`saved-commute-current-impact-badge rounded-full font-bold uppercase tracking-wider shrink-0 ${impactBgColor}`}>
                               <ExclaimAlertIcon className="w-3.5 h-3.5 shrink-0" />
                               <span>{impactText}</span>
                             </div>
@@ -1283,15 +1321,15 @@ export function SavedCommutesPanel({
                         Default Scheduled Route - To {selectedLeg.toStationName}
                       </div>
 
-                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1 text-xs text-white font-medium">
-                        <div className="flex items-center gap-1.5">
-                          <NumStationsIcon className="w-3.5 h-3.5 text-white shrink-0" />
+                      <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 mt-1.5 text-sm sm:text-base text-slate-800 dark:text-white font-bold">
+                        <div className="flex items-center gap-2">
+                          <NumStationsIcon className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-slate-800 dark:text-white shrink-0" />
                           <span>
                             {toTitleCase(`${selectedLeg.path.stationIds.length} Station${selectedLeg.path.stationIds.length === 1 ? "" : "s"}`)}
                           </span>
                         </div>
-                        <div className="flex items-center gap-1.5">
-                          <Clock size={14} className="text-white shrink-0" />
+                        <div className="flex items-center gap-2">
+                          <Clock className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-slate-800 dark:text-white shrink-0" />
                           <span>
                             {selectedLeg.path.status === "available"
                               ? toTitleCase(`About ${Math.max(1, Math.round(selectedLeg.path.estimatedTravelSeconds / 60.0))} Minutes`)
@@ -1342,7 +1380,7 @@ export function SavedCommutesPanel({
                                   <div className="saved-commute-impact-action">
                                     <button
                                       type="button"
-                                      className="saved-commute-impact-map-button"
+                                      className="saved-commute-map-action saved-commute-impact-map-button"
                                       onClick={() => onViewImpactOnPath(commute, selectedLeg.id, impact)}
                                       aria-label={`View ${impactKindLabel(impact.kind)} on the map for ${commute.label}`}
                                     >
@@ -1435,7 +1473,7 @@ export function SavedCommutesPanel({
                         </button>
                         <button
                           type="button"
-                          className="commute-route-map-button"
+                          className="saved-commute-map-action commute-route-map-button"
                           onClick={() => onViewPath(commute, selectedLeg.id)}
                           disabled={!canViewPath}
                           aria-pressed={viewingPath}

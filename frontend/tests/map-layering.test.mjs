@@ -217,6 +217,25 @@ describe("asset-backed map layering", () => {
     );
   });
 
+  it("renders the selected disruption emphasis above every disruption corridor", () => {
+    const disruptionOverlaysStart = interactiveMapSource.indexOf('aria-label="Disruption overlays"');
+    const impactLayersIndex = interactiveMapSource.indexOf("retainedImpactLayers.map", disruptionOverlaysStart);
+    const selectedEmphasisIndex = interactiveMapSource.indexOf(
+      'aria-label="Selected disruption emphasis"',
+      disruptionOverlaysStart,
+    );
+    const stationLayerIndex = interactiveMapSource.indexOf(
+      "dangerouslySetInnerHTML={{ __html: svgParts?.part2",
+      disruptionOverlaysStart,
+    );
+
+    assert.ok(selectedEmphasisIndex > impactLayersIndex, "selected emphasis must render after all disruption corridors");
+    assert.ok(stationLayerIndex > selectedEmphasisIndex, "station art must remain above the selected emphasis");
+    assert.match(interactiveMapSource, /data-selected-impact-emphasis=\{selectedImpactEmphasis\.id\}/);
+    assert.match(interactiveMapSource, /function SelectedImpactEmphasis\(/);
+    assert.match(interactiveMapSource, /className=\{`asset-alert-path map-selection-flash pointer-events-none/);
+  });
+
   it("keeps upcoming closure previews persistent, static, and equal-width to active corridors", () => {
     assert.match(interactiveMapSource, /plannedClosures\.map\(\(closure\) =>/);
     assert.doesNotMatch(interactiveMapSource, /if \(!selectedClosure\) return \[\];/);
@@ -324,7 +343,7 @@ describe("asset-backed map layering", () => {
     assert.match(interactiveMapSource, /flashStationId/);
     assert.match(interactiveMapSource, /data-map-highlight-id=\{flashSelection\.id\}/);
     assert.match(interactiveMapSource, /data-map-highlight-id=\{station\.id\}/);
-    assert.match(interactiveMapSource, /className={`asset-alert-path map-selection-flash pointer-events-none \$\{[\s\S]*?isSelectionFastFlashing[\s\S]*?\}`}/);
+    assert.match(interactiveMapSource, /className={`asset-alert-path map-selection-flash pointer-events-none \$\{[\s\S]*?fast \? "fast" : "latent"[\s\S]*?\}`}/);
     assert.match(interactiveMapSource, /className={`station-selection-flash \$\{[\s\S]*?isStationFastFlashing[\s\S]*?\}`}/);
     assert.match(globalCss, /@keyframes map-selection-flash/);
     assert.match(globalCss, /@keyframes station-selection-flash/);
@@ -357,15 +376,33 @@ describe("asset-backed map layering", () => {
     assert.match(interactiveMapSource, /aria-label="Saved commute route preview"/);
     assert.match(interactiveMapSource, /CommutePathOverlay/);
     assert.match(interactiveMapSource, /data-commute-path-preview/);
+    assert.match(interactiveMapSource, /className="asset-alert-path-glow commute-path-preview-glow"/);
+    assert.match(interactiveMapSource, /className="asset-alert-path commute-path-preview-path"/);
     assert.match(globalCss, /\.commute-path-preview-path/);
     assert.match(globalCss, /\.commute-path-preview-chip/);
     assert.match(
       globalCss,
-      /\.motion-paused \.commute-path-preview-path\s*\{\s*opacity:\s*1 !important;/,
+      /\n\.commute-path-preview-path\s*\{(?=[^}]*stroke-width:\s*102;)(?=[^}]*animation:\s*candy-pulse 1\.2s infinite alternate ease-in-out;)[^}]*\}/s,
     );
     assert.match(
       globalCss,
-      /@media \(prefers-reduced-motion:\s*reduce\) \{[\s\S]*?\.commute-path-preview-path\s*\{\s*opacity:\s*1 !important;/,
+      /\n\.commute-path-preview-glow\s*\{(?=[^}]*stroke-width:\s*155;)(?=[^}]*animation:\s*aura-pulse 1\.2s infinite alternate ease-in-out;)[^}]*\}/s,
+    );
+    assert.match(
+      globalCss,
+      /\.station-commute-green-flash\s*\{(?=[^}]*animation:\s*station-commute-green-flash-anim 1\.2s infinite alternate ease-in-out;)(?=[^}]*animation-delay:\s*var\(--map-pulse-offset\);)[^}]*\}/s,
+    );
+    assert.match(
+      globalCss,
+      /\.motion-paused \.commute-path-preview-path\s*\{[^}]*animation:\s*none\s*!important;[^}]*stroke-width:\s*102[^}]*opacity:\s*1 !important;/s,
+    );
+    assert.match(
+      globalCss,
+      /@media \(prefers-reduced-motion:\s*reduce\) \{[\s\S]*?\.commute-path-preview-path\s*\{[^}]*animation:\s*none\s*!important;[^}]*stroke-width:\s*102[^}]*opacity:\s*1 !important;/,
+    );
+    assert.match(
+      globalCss,
+      /@media \(prefers-reduced-motion:\s*reduce\) \{[\s\S]*?\.station-commute-green-flash[\s\S]*?animation:\s*none\s*!important;/,
     );
 
     const previewGroupIndex = interactiveMapSource.indexOf('aria-label="Saved commute route preview"');

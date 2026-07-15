@@ -532,6 +532,7 @@ export type PushDevice = {
   registrationReason?: string | null;
   previousEndpointCount?: number;
   enabled: boolean;
+  registrationInceptionAt?: string | null;
   createdAt: string | null;
   updatedAt: string | null;
   lastSeenAt: string | null;
@@ -547,6 +548,7 @@ export type PushDevice = {
 export type PushDevicesResult = {
   source: "backend" | "unavailable";
   devices: PushDevice[];
+  vapidKeyFingerprint: string | null;
   message?: string;
 };
 
@@ -899,12 +901,17 @@ export async function getPushDevices(options: AdapterOptions = {}): Promise<Push
     if (!response.ok) {
       throw new Error(`Push devices request failed with ${response.status}`);
     }
-    const body = await readJson<{ devices?: PushDevice[] }>(response);
-    return { source: "backend", devices: Array.isArray(body.devices) ? body.devices : [] };
+    const body = await readJson<{ devices?: PushDevice[]; vapidKeyFingerprint?: string | null }>(response);
+    return {
+      source: "backend",
+      devices: Array.isArray(body.devices) ? body.devices : [],
+      vapidKeyFingerprint: typeof body.vapidKeyFingerprint === "string" ? body.vapidKeyFingerprint : null,
+    };
   } catch {
     return {
       source: "unavailable",
       devices: [],
+      vapidKeyFingerprint: null,
       message: "Push devices are unavailable.",
     };
   }

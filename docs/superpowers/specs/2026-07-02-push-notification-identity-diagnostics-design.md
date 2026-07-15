@@ -193,6 +193,8 @@ No stale-device scheduler is required in this slice. The only automatic cleanup 
 
 Post-implementation follow-up (2026-07-13): browser endpoint rotation now carries a random installation identifier shared by the page and service worker. Registering a different endpoint for the same account installation archives the prior endpoint while retaining its delivery history. Hard-invalid 404/410 results are explicitly saved from scheduled dispatch, and the migration archives enabled legacy subscriptions that already have a persisted `gone` delivery. Accepted-but-unacknowledged endpoints remain enabled.
 
+Android hardening follow-up (2026-07-15): accepted active deliveries without current-attempt browser evidence now receive no more than two sparse retries, after 5 and 15 minutes, within the original 30-minute window. A current-attempt `push_received` event now means `showNotification()` resolved and stops retrying; `show_failed` remains retryable. The service worker performs the display call before network telemetry and then records receipt/display evidence concurrently. Diagnostics distinguish rotating endpoint hashes from browser installation prefixes and expose a VAPID public-key fingerprint so subscription churn can be separated from deployment key rotation.
+
 ## Diagnostics API
 
 Change `/api/account/push/diagnostics` from a flat delivery list to grouped logical notifications.
@@ -292,9 +294,9 @@ Each attempt should show:
 
 Useful outcome labels:
 
-- `Displayed`: `displayedAt` exists or a display acknowledgement client event exists.
-- `Received`: `push_received` exists but no display acknowledgement exists.
-- `Accepted, no receipt`: delivery status is accepted but no `push_received` exists.
+- `Display reported`: `displayedAt` exists or a display acknowledgement client event exists.
+- `Service worker reported display`: `showNotification()` resolved and `push_received` exists, but the signed display acknowledgement is incomplete.
+- `Push service accepted; no browser report`: delivery status is accepted but no current-attempt client evidence exists.
 - `Failed`: delivery status is failed.
 - `Invalid subscription`: delivery status indicates an invalid endpoint or the subscription is disabled after a hard invalid response.
 

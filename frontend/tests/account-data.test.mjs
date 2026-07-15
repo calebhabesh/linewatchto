@@ -935,6 +935,7 @@ describe("account data adapter", () => {
         requests.push({ input, init });
         return new Response(
           JSON.stringify({
+            vapidKeyFingerprint: "15060e1f2db1",
             devices: [
               {
                 id: "push_subscription_ios",
@@ -942,6 +943,7 @@ describe("account data adapter", () => {
                 userAgent: "Mobile Safari iPhone",
                 endpointHashPrefix: "606a0b3ed936",
                 enabled: true,
+                registrationInceptionAt: "2026-06-15T09:30:00Z",
                 createdAt: "2026-07-01T12:00:00Z",
                 updatedAt: "2026-07-01T12:00:00Z",
                 lastSeenAt: "2026-07-01T12:00:00Z",
@@ -968,9 +970,12 @@ describe("account data adapter", () => {
     });
 
     assert.equal(result.source, "backend");
+    assert.equal(result.vapidKeyFingerprint, "15060e1f2db1");
     assert.equal(result.devices.length, 1);
     assert.equal(result.devices[0].deviceLabel, "iOS Safari");
     assert.equal(result.devices[0].endpointHashPrefix, "606a0b3ed936");
+    assert.equal(result.devices[0].registrationInceptionAt, "2026-06-15T09:30:00Z");
+    assert.equal(result.devices[0].createdAt, "2026-07-01T12:00:00Z");
     assert.equal(result.devices[0].deliveryHealth, "accepted-no-display");
     assert.equal(result.devices[0].staleCandidate, true);
     assert.equal(requests[0].input, "/api/account/push/devices");

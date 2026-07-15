@@ -75,6 +75,13 @@ describe("notification settings navigation", () => {
     assert.match(diagnosticsPanelSource, /Replaced expired endpoint/);
     assert.match(diagnosticsPanelSource, /earlier .*endpoint/);
     assert.match(diagnosticsPanelSource, /acceptedWithoutDisplayCount/);
+    assert.match(diagnosticsPanelSource, /Endpoint \{device\.endpointHashPrefix\}/);
+    assert.match(diagnosticsPanelSource, /Installation \{device\.installationIdPrefix/);
+    assert.match(diagnosticsPanelSource, /Endpoint hashes can rotate/);
+    assert.match(diagnosticsPanelSource, /Installation first registered/);
+    assert.match(diagnosticsPanelSource, /Current endpoint registered/);
+    assert.match(diagnosticsPanelSource, /VAPID key/);
+    assert.match(diagnosticsPanelSource, /Service worker reported display/);
     assert.match(diagnosticsPanelSource, /staleCandidate/);
     assert.match(diagnosticsPanelSource, /selectedDeviceKey/);
     assert.match(diagnosticsPanelSource, /diagnosticDeviceOptions/);
@@ -96,5 +103,13 @@ describe("notification settings navigation", () => {
     assert.match(globalCss, /\.push-device-test/);
     assert.match(globalCss, /\.push-diagnostics-recipient/);
     assert.match(globalCss, /\.push-diagnostics-archive-toggle/);
+  });
+
+  it("offers Android battery guidance without promising reliable delivery", () => {
+    assert.match(moreSheetSource, /Android Notification Reliability/);
+    assert.match(moreSheetSource, /Unrestricted/);
+    assert.match(moreSheetSource, /Chrome/);
+    assert.match(moreSheetSource, /more battery/);
+    assert.match(moreSheetSource, /cannot guarantee immediate delivery/);
   });
 });

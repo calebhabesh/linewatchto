@@ -108,6 +108,7 @@ public final class PushResponses {
         String registrationReason,
         int previousEndpointCount,
         boolean enabled,
+        String registrationInceptionAt,
         String createdAt,
         String updatedAt,
         String lastSeenAt,
@@ -121,7 +122,8 @@ public final class PushResponses {
     ) {}
 
     public record PushDevicesResponse(
-        List<PushDeviceResponse> devices
+        List<PushDeviceResponse> devices,
+        String vapidKeyFingerprint
     ) {}
 
     public record PendingPushNotification(

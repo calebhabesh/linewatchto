@@ -28,8 +28,8 @@ const LINE_COLORS: Record<string, string> = {
 };
 
 const DIAGNOSTIC_STAGE_LABELS: Record<string, string> = {
-  push_received: "Push received",
-  displayed_acknowledged: "Display ack",
+  push_received: "Service worker reported display",
+  displayed_acknowledged: "Display report confirmed",
   ack_failed: "Ack failed",
   show_failed: "Display failed",
   notification_click: "Clicked",
@@ -57,33 +57,47 @@ function formatDiagnosticTimestamp(value?: string | null) {
   }).format(date);
 }
 
+function formatRegistrationTimestamp(value?: string | null) {
+  if (!value) return "Not recorded";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Not recorded";
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Toronto",
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(date);
+}
+
 function diagnosticStageLabel(stage: string) {
   return DIAGNOSTIC_STAGE_LABELS[stage] ?? stage.replaceAll("_", " ");
 }
 
 function diagnosticOutcome(delivery: PushDeliveryDiagnostic) {
-  if (delivery.displayedAt) return "Displayed";
+  if (delivery.displayedAt) return "Display reported";
   if (delivery.deliveryStatus?.toLowerCase() === "gone" || delivery.httpStatus === 404 || delivery.httpStatus === 410) {
     return "Invalid subscription";
   }
   if (delivery.clientEvents.some((event) => event.stage === "show_failed")) return "Display failed";
   if (delivery.clientEvents.some((event) => event.stage === "ack_failed")) return "Ack failed";
   if (delivery.clientEvents.some((event) => event.stage === "fallback_shown")) return "Fallback displayed";
-  if (delivery.clientEvents.some((event) => event.stage === "push_received")) return "Received";
-  if (delivery.deliveryStatus?.toLowerCase() === "accepted") return "Accepted, no receipt";
+  if (delivery.clientEvents.some((event) => event.stage === "push_received")) return "Service worker reported display";
+  if (delivery.deliveryStatus?.toLowerCase() === "accepted") return "Push service accepted; no browser report";
   return delivery.deliveryStatus || "Queued";
 }
 
 function displayEvidenceLabel(delivery: PushDeliveryDiagnostic) {
-  if (delivery.displayedAt) return `Displayed ${formatDiagnosticTimestamp(delivery.displayedAt)}`;
+  if (delivery.displayedAt) return `Display reported ${formatDiagnosticTimestamp(delivery.displayedAt)}`;
   if (delivery.deliveryStatus?.toLowerCase() === "gone" || delivery.httpStatus === 404 || delivery.httpStatus === 410) {
     return "Endpoint expired";
   }
   if (delivery.clientEvents.some((event) => event.stage === "push_received")) {
-    return "Received, no display ack";
+    return "Service worker reported display; confirmation incomplete";
   }
-  if (delivery.deliveryStatus?.toLowerCase() === "accepted") return "No receipt or display ack";
-  return "Not displayed";
+  if (delivery.deliveryStatus?.toLowerCase() === "accepted") return "Accepted by push service; browser report unavailable";
+  return "No display report";
 }
 
 function registrationReasonLabel(reason?: string | null) {
@@ -99,15 +113,15 @@ function registrationReasonLabel(reason?: string | null) {
 
 function deviceHealthLabel(device: PushDevice) {
   if (device.staleCandidate) {
-    return "No display ack";
+    return "No display report";
   }
   switch (device.deliveryHealth) {
     case "displayed":
-      return "Displaying";
+      return "Display reported";
     case "accepted-no-display":
-      return "Accepted, no display";
+      return "Accepted, no browser report";
     case "sent-no-display":
-      return "Sent, no display";
+      return "Sent, no browser report";
     case "registered":
       return "Registered";
     case "disabled":
@@ -121,6 +135,7 @@ export function PushDeliveryDiagnosticsPanel({ accountState }: Props) {
   const [open, setOpen] = useState(false);
   const [diagnosticNotifications, setDiagnosticNotifications] = useState<PushNotificationDiagnosticGroup[]>([]);
   const [pushDevices, setPushDevices] = useState<PushDevice[]>([]);
+  const [vapidKeyFingerprint, setVapidKeyFingerprint] = useState<string | null>(null);
   const [selectedDeviceKey, setSelectedDeviceKey] = useState("all");
   const [showArchivedDevices, setShowArchivedDevices] = useState(false);
   const [diagnosticsState, setDiagnosticsState] = useState<DiagnosticsLoadState>("idle");
@@ -133,6 +148,7 @@ export function PushDeliveryDiagnosticsPanel({ accountState }: Props) {
     if (!accountState.authenticated) {
       setDiagnosticNotifications([]);
       setPushDevices([]);
+      setVapidKeyFingerprint(null);
       setSelectedDeviceKey("all");
       setShowArchivedDevices(false);
       setDiagnosticsState("idle");
@@ -148,6 +164,7 @@ export function PushDeliveryDiagnosticsPanel({ accountState }: Props) {
     ]);
     setDiagnosticNotifications(diagnosticsResult.notifications);
     setPushDevices(devicesResult.devices);
+    setVapidKeyFingerprint(devicesResult.vapidKeyFingerprint);
     // Start with the full recipient timeline. Selecting only the current
     // endpoint hides the device that actually received an older push after a
     // browser rotates its subscription.
@@ -277,7 +294,8 @@ export function PushDeliveryDiagnosticsPanel({ accountState }: Props) {
               <section className="push-devices-section" aria-label="Active Browser Installations">
                 <div className="push-devices-header">
                   <strong>Active Browser Installations</strong>
-                  <span>Current enabled push endpoint for each known browser installation.</span>
+                  <span>Endpoint hashes can rotate when a browser replaces a subscription; the installation prefix groups that history.</span>
+                  {vapidKeyFingerprint ? <span>VAPID key <code>{vapidKeyFingerprint}</code> should remain stable across deployments.</span> : null}
                 </div>
                 {deviceActionMessage ? (
                   <p className="push-diagnostics-note" role="status">{deviceActionMessage}</p>
@@ -291,13 +309,16 @@ export function PushDeliveryDiagnosticsPanel({ accountState }: Props) {
                         <div className="push-device-details">
                           <div className="push-device-main">
                             <strong>{device.deviceLabel}</strong>
-                            <code className="push-device-hash">{device.endpointHashPrefix}</code>
+                            <code className="push-device-hash">Endpoint {device.endpointHashPrefix}</code>
+                            {device.installationIdPrefix ? <code className="push-device-hash">Installation {device.installationIdPrefix}</code> : null}
                             <span className="push-device-health">{deviceHealthLabel(device)}</span>
                           </div>
                           <div className="push-device-meta">
+                            <span>Installation first registered {formatRegistrationTimestamp(device.registrationInceptionAt ?? device.createdAt)}</span>
+                            <span>Current endpoint registered {formatRegistrationTimestamp(device.createdAt)}</span>
                             <span>Last seen {formatDiagnosticTimestamp(device.lastSeenAt)}</span>
-                            <span>Last display {formatDiagnosticTimestamp(device.lastDisplayedAt)}</span>
-                            <span>{device.acceptedWithoutDisplayCount} accepted without display</span>
+                            <span>Last display report {formatDiagnosticTimestamp(device.lastDisplayedAt)}</span>
+                            <span>{device.acceptedWithoutDisplayCount} accepted without a display report</span>
                             <span>{registrationReasonLabel(device.registrationReason)}</span>
                             {(device.previousEndpointCount ?? 0) > 0 ? (
                               <span>{device.previousEndpointCount} earlier {device.previousEndpointCount === 1 ? "endpoint" : "endpoints"} archived</span>

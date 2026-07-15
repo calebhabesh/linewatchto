@@ -47,6 +47,21 @@ describe("desktop status capsule", () => {
     assert.match(globalCss, /\.desktop-status-chip-row/);
     assert.match(globalCss, /\.desktop-header-impact-chips/);
     assert.match(globalCss, /\.desktop-status-chip--reduced-speed-zone/);
+    assert.match(
+      globalCss,
+      /\.desktop-header-impact-chips \.desktop-status-chip-count\s*\{(?=[^}]*display:\s*inline-grid;)(?=[^}]*place-items:\s*center;)(?=[^}]*box-sizing:\s*border-box;)(?=[^}]*width:\s*32px;)(?=[^}]*height:\s*32px;)(?=[^}]*min-width:\s*32px;)(?=[^}]*font-family:\s*inherit;)(?=[^}]*font-variant-numeric:\s*tabular-nums;)[^}]*\}/s,
+    );
+    assert.doesNotMatch(globalCss, /\.desktop-header-impact-chips \.desktop-status-chip-count\s*\{[^}]*font-family:\s*Arial/s);
+    assert.match(
+      globalCss,
+      /\.desktop-status-chip-count-value\s*\{(?=[^}]*display:\s*block;)(?=[^}]*line-height:\s*1;)(?=[^}]*transform:\s*translateY\(-0\.5px\);)[^}]*\}/s,
+    );
+    assert.match(
+      globalCss,
+      /\.desktop-status-chip-count\[data-digit-count="multiple"\] \.desktop-status-chip-count-value\s*\{[^}]*transform:\s*translate\(-0\.75px, -0\.5px\);[^}]*\}/s,
+    );
+    assert.equal((shellSource.match(/data-digit-count=\{/g) ?? []).length, 4);
+    assert.equal((shellSource.match(/desktop-status-chip-count-value/g) ?? []).length, 4);
   });
 
   it("keeps the desktop map controls below the compact status capsule", () => {

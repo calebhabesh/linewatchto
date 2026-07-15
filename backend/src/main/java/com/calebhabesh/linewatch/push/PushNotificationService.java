@@ -409,7 +409,7 @@ public class PushNotificationService {
             .stream()
             .map(this::toDeviceResponse)
             .toList();
-        return new PushResponses.PushDevicesResponse(devices);
+        return new PushResponses.PushDevicesResponse(devices, vapidKeyFingerprint(properties.getVapidPublicKey()));
     }
 
     @Transactional
@@ -808,6 +808,17 @@ public class PushNotificationService {
         return count > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) count;
     }
 
+    private Instant registrationInceptionAt(PushSubscriptionEntity subscription) {
+        String installationId = subscription.getInstallationId();
+        if (installationId == null || installationId.isBlank()) {
+            return subscription.getCreatedAt();
+        }
+        return subscriptionRepository.findTopByAccountIdAndInstallationIdOrderByCreatedAtAsc(
+            subscription.getAccount().getId(),
+            installationId
+        ).map(PushSubscriptionEntity::getCreatedAt).orElse(subscription.getCreatedAt());
+    }
+
     private String normalizeInstallationId(String installationId) {
         if (installationId == null || installationId.isBlank()) return null;
         String normalized = installationId.trim();
@@ -876,6 +887,7 @@ public class PushNotificationService {
             subscription.getRegistrationReason(),
             previousEndpointCount,
             subscription.isEnabled(),
+            instantString(registrationInceptionAt(subscription)),
             instantString(subscription.getCreatedAt()),
             instantString(subscription.getUpdatedAt()),
             instantString(subscription.getLastSeenAt()),
@@ -1022,6 +1034,13 @@ public class PushNotificationService {
         } catch (Exception ex) {
             throw new IllegalStateException("Could not hash push endpoint", ex);
         }
+    }
+
+    static String vapidKeyFingerprint(String publicKey) {
+        if (publicKey == null || publicKey.isBlank()) {
+            return null;
+        }
+        return hashEndpoint(publicKey).substring(0, 12);
     }
 
     private String nextId(String prefix) {

@@ -130,6 +130,11 @@ describe("mobile performance guardrails", () => {
 
     assert.match(
       globalCss,
+      /\.linewatch-shell\.mobile-performance-mode \.commute-path-preview-path\s*\{[^}]*animation:\s*none\s*!important;[^}]*stroke-width:\s*112;[^}]*\}/s,
+    );
+
+    assert.match(
+      globalCss,
       /\.linewatch-shell\.mobile-performance-mode \.station-impact-dot-red-glow\s*\{[^}]*transform:\s*scale\(1\);[^}]*opacity:\s*0\.95;[^}]*\}/s,
     );
 

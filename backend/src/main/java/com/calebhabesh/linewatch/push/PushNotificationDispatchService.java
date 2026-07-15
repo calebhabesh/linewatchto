@@ -27,8 +27,6 @@ public class PushNotificationDispatchService {
     private static final String ACTIVE_STATE = "ACTIVE";
     private static final String CLEARED_STATE = "CLEARED";
     private static final Duration FAILED_DELIVERY_RETRY_DELAY = Duration.ofSeconds(30);
-    private static final Duration ACCEPTED_UNDISPLAYED_DELIVERY_RETRY_DELAY = Duration.ofMinutes(2);
-    private static final Duration ACCEPTED_UNDISPLAYED_DELIVERY_RETRY_WINDOW = Duration.ofMinutes(30);
     private static final Duration CLEARED_DELIVERY_RETRY_WINDOW = Duration.ofHours(24);
     private static final int CLEARED_DELIVERY_RETRY_LIMIT = 25;
     private static final List<String> CLEARED_RETRY_CATEGORIES = List.of(
@@ -42,6 +40,7 @@ public class PushNotificationDispatchService {
     private final PushNotificationEventRepository eventRepository;
     private final PushSubscriptionRepository subscriptionRepository;
     private final PushNotificationDeliveryRepository deliveryRepository;
+    private final PushNotificationClientEventRepository clientEventRepository;
     private final WebPushClient webPushClient;
     private final PushNotificationPreferenceService preferenceService;
     private final LineSubscriptionPushPlanner lineSubscriptionPushPlanner;
@@ -62,6 +61,7 @@ public class PushNotificationDispatchService {
         PushNotificationEventRepository eventRepository,
         PushSubscriptionRepository subscriptionRepository,
         PushNotificationDeliveryRepository deliveryRepository,
+        PushNotificationClientEventRepository clientEventRepository,
         WebPushClient webPushClient,
         PushNotificationPreferenceService preferenceService,
         LineSubscriptionPushPlanner lineSubscriptionPushPlanner,
@@ -76,7 +76,7 @@ public class PushNotificationDispatchService {
     ) {
         this(
             savedCommuteRepository, planner, eventRepository, subscriptionRepository,
-            deliveryRepository, webPushClient, preferenceService, lineSubscriptionPushPlanner,
+            deliveryRepository, clientEventRepository, webPushClient, preferenceService, lineSubscriptionPushPlanner,
             lineEventObservationService,
             savedCommuteObservationService,
             formatter,
@@ -95,6 +95,7 @@ public class PushNotificationDispatchService {
         PushNotificationEventRepository eventRepository,
         PushSubscriptionRepository subscriptionRepository,
         PushNotificationDeliveryRepository deliveryRepository,
+        PushNotificationClientEventRepository clientEventRepository,
         WebPushClient webPushClient,
         PushNotificationPreferenceService preferenceService,
         LineSubscriptionPushPlanner lineSubscriptionPushPlanner,
@@ -109,7 +110,7 @@ public class PushNotificationDispatchService {
     ) {
         this(
             savedCommuteRepository, planner, eventRepository, subscriptionRepository,
-            deliveryRepository, webPushClient, preferenceService, lineSubscriptionPushPlanner,
+            deliveryRepository, clientEventRepository, webPushClient, preferenceService, lineSubscriptionPushPlanner,
             lineEventObservationService, savedCommuteObservationService, formatter, receiptTokenService,
             ingestionFreshness, alertHistoryRepository, pushProperties, clock, null
         );
@@ -121,6 +122,7 @@ public class PushNotificationDispatchService {
         PushNotificationEventRepository eventRepository,
         PushSubscriptionRepository subscriptionRepository,
         PushNotificationDeliveryRepository deliveryRepository,
+        PushNotificationClientEventRepository clientEventRepository,
         WebPushClient webPushClient,
         PushNotificationPreferenceService preferenceService,
         LineSubscriptionPushPlanner lineSubscriptionPushPlanner,
@@ -139,6 +141,7 @@ public class PushNotificationDispatchService {
         this.eventRepository = eventRepository;
         this.subscriptionRepository = subscriptionRepository;
         this.deliveryRepository = deliveryRepository;
+        this.clientEventRepository = clientEventRepository;
         this.webPushClient = webPushClient;
         this.preferenceService = preferenceService;
         this.lineSubscriptionPushPlanner = lineSubscriptionPushPlanner;
@@ -638,22 +641,20 @@ public class PushNotificationDispatchService {
 
     private void retryEventToIncompleteSubscriptions(PushNotificationEventEntity event, Instant now) {
         List<PushSubscriptionEntity> subscriptions = subscriptionRepository.findByAccountIdAndEnabledTrue(event.getAccountId());
-        Instant acceptedUndisplayedRetryUntil = ACTIVE_STATE.equals(event.getNotificationState()) && event.getCreatedAt() != null
-            ? event.getCreatedAt().plus(ACCEPTED_UNDISPLAYED_DELIVERY_RETRY_WINDOW)
-            : null;
         for (PushSubscriptionEntity subscription : subscriptions) {
             if (!subscriptionEnabledForEvent(subscription, event)) {
                 continue;
             }
             Optional<PushNotificationDeliveryEntity> existingDelivery =
                 deliveryRepository.findByEventIdAndSubscriptionId(event.getId(), subscription.getId());
-            if (existingDelivery.isPresent() && !existingDelivery.get().shouldRetryDelivery(
-                now,
-                FAILED_DELIVERY_RETRY_DELAY,
-                ACCEPTED_UNDISPLAYED_DELIVERY_RETRY_DELAY,
-                acceptedUndisplayedRetryUntil
-            )) {
-                continue;
+            if (existingDelivery.isPresent()) {
+                PushNotificationDeliveryEntity delivery = existingDelivery.get();
+                boolean shouldRetry = "accepted".equals(delivery.getStatus())
+                    ? shouldRetryAcceptedDelivery(event, delivery, now)
+                    : delivery.shouldRetryDelivery(now, FAILED_DELIVERY_RETRY_DELAY);
+                if (!shouldRetry) {
+                    continue;
+                }
             }
 
             String deliveryId = existingDelivery
@@ -681,6 +682,39 @@ public class PushNotificationDispatchService {
                 ));
             }
         }
+    }
+
+    private boolean shouldRetryAcceptedDelivery(
+        PushNotificationEventEntity event,
+        PushNotificationDeliveryEntity delivery,
+        Instant now
+    ) {
+        if (!ACTIVE_STATE.equals(event.getNotificationState()) || delivery.getCreatedAt() == null) {
+            return false;
+        }
+        if (!PushNotificationAcceptedRetryPolicy.shouldRetry(
+            delivery.getAttemptCount(),
+            delivery.getCreatedAt(),
+            event.getCreatedAt(),
+            delivery.getDisplayedAt() != null,
+            List.of(),
+            now
+        )) {
+            return false;
+        }
+        List<String> currentAttemptStages = clientEventRepository
+            .findCurrentAttemptEvents(delivery.getId(), delivery.getCreatedAt())
+            .stream()
+            .map(PushNotificationClientEventEntity::getStage)
+            .toList();
+        return PushNotificationAcceptedRetryPolicy.shouldRetry(
+            delivery.getAttemptCount(),
+            delivery.getCreatedAt(),
+            event.getCreatedAt(),
+            delivery.getDisplayedAt() != null,
+            currentAttemptStages,
+            now
+        );
     }
 
     private boolean sendEventToSubscriptions(PushNotificationEventEntity event, Instant now) {

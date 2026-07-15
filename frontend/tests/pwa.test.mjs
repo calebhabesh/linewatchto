@@ -297,6 +297,7 @@ async function serviceWorkerPush({
   const waitUntilPromises = [];
   const fetchRequests = [];
   const shownNotifications = [];
+  const operationLog = [];
   let showNotificationCalls = 0;
   const clients = {
     claim: async () => undefined,
@@ -319,6 +320,7 @@ async function serviceWorkerPush({
       }),
     },
     fetch: async (url, options) => {
+      operationLog.push(`fetch:${url}`);
       fetchRequests.push({ url, options });
       return {
         ok: fetchOk,
@@ -341,6 +343,7 @@ async function serviceWorkerPush({
           }),
         },
         showNotification: async (title, options) => {
+          operationLog.push("show-notification");
           showNotificationCalls += 1;
           if (showNotificationError && showNotificationCalls === 1) {
             throw showNotificationError;
@@ -372,7 +375,7 @@ async function serviceWorkerPush({
   pushListener(event);
   await Promise.all(waitUntilPromises);
 
-  return { fetchRequests, shownNotifications, listeners };
+  return { fetchRequests, shownNotifications, listeners, operationLog };
 }
 
 function clientEventRequests(fetchRequests) {
@@ -783,7 +786,7 @@ describe("LineWatch PWA configuration", () => {
   });
 
   it("shows encrypted payload push notifications before fetching pending notifications", async () => {
-    const { fetchRequests, shownNotifications } = await serviceWorkerPush({
+    const { fetchRequests, shownNotifications, operationLog } = await serviceWorkerPush({
       pushData: {
         title: "⚠️ Line 1 Yonge-University Delay",
         body: "Finch to Union.\nAffects Morning commute (Outbound).\n🕗 Jun 5, 10:20 AM",
@@ -808,6 +811,10 @@ describe("LineWatch PWA configuration", () => {
       stage: "push_received",
     });
     assert.notEqual(fetchRequests[0]?.url, "/api/account/push/latest");
+    assert.ok(
+      operationLog.indexOf("show-notification") < operationLog.indexOf("fetch:/api/account/push/client-event"),
+      "the notification display call should happen before receipt telemetry",
+    );
   });
 
   it("shows a generic fallback for expired active payload push notifications", async () => {

@@ -11,6 +11,7 @@ public interface PushSubscriptionRepository extends JpaRepository<PushSubscripti
     List<PushSubscriptionEntity> findByAccountIdOrderByUpdatedAtDesc(String accountId);
     List<PushSubscriptionEntity> findByAccountIdAndEnabledTrueOrderByUpdatedAtDesc(String accountId);
     List<PushSubscriptionEntity> findByAccountIdAndInstallationIdAndEnabledTrue(String accountId, String installationId);
+    Optional<PushSubscriptionEntity> findTopByAccountIdAndInstallationIdOrderByCreatedAtAsc(String accountId, String installationId);
     long countByAccountIdAndEnabledTrue(String accountId);
     long countByAccountIdAndInstallationId(String accountId, String installationId);
 

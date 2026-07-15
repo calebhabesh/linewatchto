@@ -204,6 +204,34 @@ test("renders the seeded dashboard API payload", async ({ page, request, isMobil
     await expect(page.getByText("Stub API Sheppard", { exact: true })).toBeVisible();
     await expect(page.getByRole("button", { name: "Stub Station station details" })).toBeVisible();
     await expect(page.getByText(/Backend offline \(Fixture mode\)/)).toHaveCount(0);
+
+    const countBadges = page.locator(".desktop-header-impact-chips .desktop-status-chip-count");
+    await expect(countBadges).toHaveCount(4);
+    const doubleDigitBadgeMetrics = await countBadges.nth(2).evaluate((badge) => {
+      const value = badge.querySelector<HTMLElement>(".desktop-status-chip-count-value");
+      if (!value) throw new Error("Missing desktop status count value");
+      value.textContent = "11";
+      badge.setAttribute("data-digit-count", "multiple");
+      const badgeBounds = badge.getBoundingClientRect();
+      const valueBounds = value.getBoundingClientRect();
+      return {
+        badgeHeight: badgeBounds.height,
+        badgeWidth: badgeBounds.width,
+        badgeFontFamily: getComputedStyle(badge).fontFamily,
+        buttonFontFamily: getComputedStyle(badge.closest("button")!).fontFamily,
+        horizontalOpticalOffset:
+          badgeBounds.left + badgeBounds.width / 2 - (valueBounds.left + valueBounds.width / 2),
+        verticalCenterDelta: Math.abs(
+          badgeBounds.top + badgeBounds.height / 2 - (valueBounds.top + valueBounds.height / 2),
+        ),
+      };
+    });
+    expect(doubleDigitBadgeMetrics.badgeWidth).toBe(32);
+    expect(doubleDigitBadgeMetrics.badgeHeight).toBe(32);
+    expect(doubleDigitBadgeMetrics.badgeFontFamily).toBe(doubleDigitBadgeMetrics.buttonFontFamily);
+    expect(doubleDigitBadgeMetrics.horizontalOpticalOffset).toBeGreaterThanOrEqual(0.5);
+    expect(doubleDigitBadgeMetrics.horizontalOpticalOffset).toBeLessThanOrEqual(1);
+    expect(doubleDigitBadgeMetrics.verticalCenterDelta).toBeLessThanOrEqual(1);
   }
 
   await openServiceCategory(page, isMobile, /Delay/);
@@ -933,6 +961,7 @@ test("demo account shows account-backed saved commutes", async ({ page, request,
   await expect(page.getByText("5 Stations", { exact: true })).toBeVisible();
   await expect(page.getByText("About 13 Minutes", { exact: true })).toBeVisible();
   await expect(page.getByText("Travel Time", { exact: true })).toBeVisible();
+  await expect(page.locator('[data-travel-time-severity="severe"]')).toBeVisible();
   await expect(page.getByText("Major disruption on this route; travel time is not reliable.")).toBeVisible();
   await expect(page.getByText("Route Notifications: On", { exact: true })).toBeVisible();
   await expect(page.getByText("Any Day", { exact: true })).toBeVisible();
@@ -949,8 +978,77 @@ test("demo account shows account-backed saved commutes", async ({ page, request,
   await expect(page.getByText("Suspension", { exact: true })).toBeVisible();
   await expect(page.getByText(/Line 1: Stub Station To Stub Terminal/)).toBeVisible();
 
+  const commuteHeaderMetrics = await page.locator(".commute-card").first().evaluate((card) => {
+    const header = card.querySelector<HTMLElement>(".saved-commute-card-header");
+    const identity = card.querySelector<HTMLElement>(".saved-commute-card-identity");
+    const badge = card.querySelector<HTMLElement>(".saved-commute-current-impact-badge");
+    if (!header || !identity || !badge) throw new Error("Missing saved commute card header elements");
+    const identityBounds = identity.getBoundingClientRect();
+    const badgeBounds = badge.getBoundingClientRect();
+    return {
+      alignItems: getComputedStyle(header).alignItems,
+      badgeFontSize: Number.parseFloat(getComputedStyle(badge).fontSize),
+      badgeHeight: badgeBounds.height,
+      centerDelta: Math.abs(
+        identityBounds.top + identityBounds.height / 2 - (badgeBounds.top + badgeBounds.height / 2),
+      ),
+    };
+  });
+  expect(commuteHeaderMetrics.alignItems).toBe("center");
+  expect(commuteHeaderMetrics.badgeFontSize).toBeGreaterThanOrEqual(11.5);
+  expect(commuteHeaderMetrics.badgeHeight).toBeGreaterThanOrEqual(28);
+  expect(commuteHeaderMetrics.centerDelta).toBeLessThanOrEqual(1);
+
   await page.getByRole("button", { name: /View Suspension on the map for Morning commute/ }).click();
   await expect(page.locator("[data-commute-path-preview]")).toBeVisible();
+  const selectedImpactEmphasis = page.locator('[data-selected-impact-emphasis="stub-alert-line-1"]');
+  await expect(selectedImpactEmphasis).toBeAttached();
+  expect(
+    await selectedImpactEmphasis.evaluate((path) => path.parentElement?.nextElementSibling === null),
+  ).toBe(true);
+  const commutePathStyle = await page.locator(".commute-path-preview-path").evaluate((path) => {
+    const style = getComputedStyle(path);
+    return {
+      animationName: style.animationName,
+      strokeWidth: Number.parseFloat(style.strokeWidth),
+    };
+  });
+  const commuteGlowStyle = await page.locator(".commute-path-preview-glow").evaluate((path) => {
+    const style = getComputedStyle(path);
+    return {
+      animationName: style.animationName,
+      filter: style.filter,
+      strokeWidth: Number.parseFloat(style.strokeWidth),
+    };
+  });
+  await expect(page.locator(".station-commute-green-flash").first()).toBeVisible();
+  const commuteBeaconStyle = await page.locator(".station-commute-green-flash").first().evaluate((beacon) => {
+    const style = getComputedStyle(beacon);
+    return {
+      animationDelay: style.animationDelay,
+      animationDirection: style.animationDirection,
+      animationDuration: style.animationDuration,
+      animationName: style.animationName,
+    };
+  });
+  if (isMobile) {
+    expect(commutePathStyle).toEqual({ animationName: "none", strokeWidth: 112 });
+    expect(commuteGlowStyle.animationName).toBe("none");
+    expect(commuteGlowStyle.filter).toBe("none");
+    expect(commuteGlowStyle.strokeWidth).toBe(132);
+    expect(commuteBeaconStyle.animationName).toBe("none");
+  } else {
+    expect(commutePathStyle.animationName).toBe("candy-pulse");
+    expect(commutePathStyle.strokeWidth).toBeGreaterThanOrEqual(102);
+    expect(commuteGlowStyle.animationName).toBe("aura-pulse");
+    expect(commuteGlowStyle.strokeWidth).toBe(155);
+    expect(commuteBeaconStyle.animationName).toBe("station-commute-green-flash-anim");
+    expect(commuteBeaconStyle.animationDuration).toBe("1.2s");
+    expect(commuteBeaconStyle.animationDirection).toBe("alternate");
+    expect(commuteBeaconStyle.animationDelay).toBe(
+      await page.locator(".commute-path-preview-path").evaluate((path) => getComputedStyle(path).animationDelay),
+    );
+  }
   await expect(page.getByRole("button", { name: "Back to saved commutes" })).toBeVisible();
   await page.getByRole("button", { name: "Back to saved commutes" }).click({ force: true });
   await expect(page.locator("[data-commute-path-preview]")).toHaveCount(0);
@@ -958,6 +1056,7 @@ test("demo account shows account-backed saved commutes", async ({ page, request,
   await page.getByRole("tab", { name: "To Stub Station" }).click();
   await expect(page.getByText("Default Scheduled Route - To Stub Station")).toBeVisible();
   await expect(page.getByText("No extra time", { exact: true })).toBeVisible();
+  await expect(page.locator('[data-travel-time-severity="good"]')).toBeVisible();
   await expect(page.getByText("Clear", { exact: true })).toBeVisible();
   await expect(page.getByText("Affected Now", { exact: true })).not.toBeVisible();
   await expect(page.getByText("Suspension", { exact: true })).not.toBeVisible();
@@ -1005,7 +1104,41 @@ test("demo account shows account-backed saved commutes", async ({ page, request,
   await expect(stopsList.getByText("Stub Station", { exact: true })).toBeVisible();
   await expect(stopsList.getByText("stub-union", { exact: true })).toBeVisible();
 
-  await page.getByRole("button", { name: "View path on map" }).click();
+  const viewPathButton = page.getByRole("button", { name: "View path on map" });
+  await expect(viewPathButton).toBeVisible();
+  const viewPathButtonStyle = await viewPathButton.evaluate((button) => {
+    const style = getComputedStyle(button);
+    return {
+      backgroundColor: style.backgroundColor,
+      borderColor: style.borderColor,
+      borderRadius: style.borderRadius,
+      borderStyle: style.borderStyle,
+      borderWidth: style.borderWidth,
+      color: style.color,
+      fontSize: style.fontSize,
+      minHeight: style.minHeight,
+      padding: style.padding,
+    };
+  });
+  expect(viewPathButtonStyle.backgroundColor).not.toBe("rgba(0, 0, 0, 0)");
+  expect(viewPathButtonStyle.borderStyle).toBe("solid");
+  expect(Number.parseFloat(viewPathButtonStyle.borderWidth)).toBeGreaterThanOrEqual(1);
+  const impactMapButtonStyle = await page.locator(".saved-commute-impact-map-button").first().evaluate((button) => {
+    const style = getComputedStyle(button);
+    return {
+      backgroundColor: style.backgroundColor,
+      borderColor: style.borderColor,
+      borderRadius: style.borderRadius,
+      borderStyle: style.borderStyle,
+      borderWidth: style.borderWidth,
+      color: style.color,
+      fontSize: style.fontSize,
+      minHeight: style.minHeight,
+      padding: style.padding,
+    };
+  });
+  expect(viewPathButtonStyle).toEqual(impactMapButtonStyle);
+  await viewPathButton.click();
   await expect(page.locator("[data-commute-path-preview]")).toBeVisible();
   await expect(page.getByRole("status").filter({ hasText: "Viewing" })).toBeVisible();
   await page.getByRole("button", { name: "Back" }).click({ force: true });

@@ -2683,7 +2683,9 @@ export function LineWatchShell({
               title={`${activeAlerts.length} ${activeAlerts.length === 1 ? "Active Alert" : "Active Alerts"}`}
             >
               <AlertTriangle size={18} aria-hidden="true" />
-              <span className="desktop-status-chip-count">{activeAlerts.length}</span>
+              <span className="desktop-status-chip-count" data-digit-count={activeAlerts.length >= 10 ? "multiple" : "single"}>
+                <span className="desktop-status-chip-count-value">{activeAlerts.length}</span>
+              </span>
               <span className="desktop-status-chip-label">{activeAlerts.length === 1 ? "Active Alert" : "Active Alerts"}</span>
             </button>
             <button
@@ -2697,7 +2699,9 @@ export function LineWatchShell({
               title={`${delays.length} ${delays.length === 1 ? "Delay" : "Delays"}`}
             >
               <DelayIcon size={18} aria-hidden="true" />
-              <span className="desktop-status-chip-count">{delays.length}</span>
+              <span className="desktop-status-chip-count" data-digit-count={delays.length >= 10 ? "multiple" : "single"}>
+                <span className="desktop-status-chip-count-value">{delays.length}</span>
+              </span>
               <span className="desktop-status-chip-label">{delays.length === 1 ? "Delay" : "Delays"}</span>
             </button>
             <button
@@ -2711,7 +2715,9 @@ export function LineWatchShell({
               title={`${reducedSpeedZones.length} ${reducedSpeedZones.length === 1 ? "Reduced Speed Zone" : "Reduced Speed Zones"}`}
             >
               <Construction size={18} aria-hidden="true" />
-              <span className="desktop-status-chip-count">{reducedSpeedZones.length}</span>
+              <span className="desktop-status-chip-count" data-digit-count={reducedSpeedZones.length >= 10 ? "multiple" : "single"}>
+                <span className="desktop-status-chip-count-value">{reducedSpeedZones.length}</span>
+              </span>
               <span className="desktop-status-chip-label">
                 {reducedSpeedZones.length === 1 ? "Reduced Speed Zone" : "Reduced Speed Zones"}
               </span>
@@ -2727,7 +2733,9 @@ export function LineWatchShell({
               title={`${plannedClosures.length} ${plannedClosures.length === 1 ? "Planned Closure" : "Planned Closures"}`}
             >
               <Calendar size={18} aria-hidden="true" />
-              <span className="desktop-status-chip-count">{plannedClosures.length}</span>
+              <span className="desktop-status-chip-count" data-digit-count={plannedClosures.length >= 10 ? "multiple" : "single"}>
+                <span className="desktop-status-chip-count-value">{plannedClosures.length}</span>
+              </span>
               <span className="desktop-status-chip-label">{plannedClosures.length === 1 ? "Planned Closure" : "Planned Closures"}</span>
             </button>
           </div>

@@ -86,6 +86,17 @@ describe("account UI source", () => {
     assert.match(savedCommutesSource, /Track Return Route/);
     assert.match(savedCommutesSource, /watchReturnTrip/);
     assert.match(savedCommutesSource, /commute-leg-toggle/);
+    assert.match(savedCommutesSource, /saved-commute-card-header/);
+    assert.match(savedCommutesSource, /saved-commute-card-identity/);
+    assert.match(savedCommutesSource, /saved-commute-current-impact-badge/);
+    assert.match(
+      globalCss,
+      /\.saved-commute-card-header\s*\{(?=[^}]*align-items:\s*center;)(?=[^}]*display:\s*flex;)(?=[^}]*flex-wrap:\s*nowrap;)(?=[^}]*justify-content:\s*space-between;)[^}]*\}/s,
+    );
+    assert.match(
+      globalCss,
+      /\.saved-commute-current-impact-badge\s*\{(?=[^}]*align-items:\s*center;)(?=[^}]*justify-content:\s*center;)(?=[^}]*min-height:\s*28px;)(?=[^}]*font-size:\s*0\.72rem;)(?=[^}]*line-height:\s*1;)[^}]*\}/s,
+    );
     assert.match(savedCommutesSource, /To \{leg\.toStationName\}/);
     assert.match(savedCommutesSource, /Clear both ways/);
     assert.match(savedCommutesSource, /Return affected/);
@@ -95,11 +106,18 @@ describe("account UI source", () => {
     assert.match(savedCommutesSource, /selectedLeg\.path\.stationIds/);
     assert.match(savedCommutesSource, /onViewPath/);
     assert.match(savedCommutesSource, /View path on map/);
+    assert.match(
+      globalCss,
+      /\.saved-commute-map-action\s*\{[^}]*background:[^;]+;[^}]*border-color:[^;]+;[^}]*box-shadow:[^;]+;[^}]*color:[^;]+;[^}]*\}/s,
+    );
+    assert.match(globalCss, /\.saved-commute-map-action:hover:not\(:disabled\)/);
+    assert.match(globalCss, /\.saved-commute-map-action:focus-visible/);
     assert.match(savedCommutesSource, /onViewImpactOnPath/);
-    assert.match(savedCommutesSource, /saved-commute-impact-map-button/);
+    assert.match(savedCommutesSource, /saved-commute-map-action saved-commute-impact-map-button/);
+    assert.match(savedCommutesSource, /saved-commute-map-action commute-route-map-button/);
     assert.match(savedCommutesSource, /View on Map/);
     assert.match(shellSource, /handleViewCommuteImpactOnPath/);
-    assert.match(globalCss, /\.saved-commute-impact-map-button/);
+    assert.match(globalCss, /\.saved-commute-map-action/);
   });
 
   it("renders saved commute extra-time estimates without claiming precision for major disruptions", () => {
@@ -112,8 +130,15 @@ describe("account UI source", () => {
     assert.match(savedCommutesSource, /Extra Time/);
     assert.match(savedCommutesSource, /Confidence/);
     assert.match(savedCommutesSource, /Major disruption/);
+    assert.match(savedCommutesSource, /function travelTimeSeverity/);
+    assert.match(savedCommutesSource, /data-travel-time-severity/);
     assert.match(globalCss, /\.saved-commute-time-estimate/);
     assert.match(globalCss, /\.saved-commute-time-estimate\.unreliable/);
+    assert.match(globalCss, /\.severity-good \.saved-commute-time-verdict/);
+    assert.match(globalCss, /\.severity-decent \.saved-commute-time-verdict/);
+    assert.match(globalCss, /\.severity-moderate \.saved-commute-time-verdict/);
+    assert.match(globalCss, /\.severity-poor \.saved-commute-time-verdict/);
+    assert.match(globalCss, /\.severity-severe \.saved-commute-time-verdict/);
   });
 
   it("renders saved-commute granular notification controls inside the commute feature", () => {

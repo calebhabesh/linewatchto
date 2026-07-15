@@ -949,6 +949,7 @@ class PushNotificationServiceTest {
 
     @Test
     void devicesReturnsEnabledSubscriptionsWithDeliveryHealth() {
+        properties.setVapidPublicKey("BPublicVapidKey");
         String androidEndpoint = "https://fcm.googleapis.com/fcm/send/android";
         String androidEndpointHash = PushNotificationService.hashEndpoint(androidEndpoint);
         String iosEndpoint = "https://webpush.push.apple.com/ios";
@@ -964,6 +965,18 @@ class PushNotificationServiceTest {
             "6d0e67af-4971-4e9c-98a2-c0b3dc6cf324",
             "invalid-endpoint-replacement",
             Instant.parse("2026-06-05T14:30:00Z")
+        );
+        PushSubscriptionEntity originalAndroidSubscription = PushSubscriptionEntity.create(
+            "push_subscription_android_original",
+            account,
+            "https://fcm.googleapis.com/fcm/send/android-original",
+            PushNotificationService.hashEndpoint("https://fcm.googleapis.com/fcm/send/android-original"),
+            "p256dh-key",
+            "auth-secret",
+            "Chrome Android Pixel 6a",
+            "6d0e67af-4971-4e9c-98a2-c0b3dc6cf324",
+            "user-enabled",
+            Instant.parse("2026-05-20T12:15:00Z")
         );
         PushSubscriptionEntity iosSubscription = PushSubscriptionEntity.create(
             "push_subscription_ios",
@@ -1078,9 +1091,14 @@ class PushNotificationServiceTest {
             "user_1",
             "6d0e67af-4971-4e9c-98a2-c0b3dc6cf324"
         )).thenReturn(3L);
+        when(subscriptionRepository.findTopByAccountIdAndInstallationIdOrderByCreatedAtAsc(
+            "user_1",
+            "6d0e67af-4971-4e9c-98a2-c0b3dc6cf324"
+        )).thenReturn(Optional.of(originalAndroidSubscription));
 
         PushResponses.PushDevicesResponse response = service.devices(account);
 
+        assertThat(response.vapidKeyFingerprint()).isEqualTo("15060e1f2db1");
         assertThat(response.devices()).hasSize(3);
         PushResponses.PushDeviceResponse android = response.devices().get(0);
         assertThat(android.id()).isEqualTo("push_subscription_android");
@@ -1089,6 +1107,8 @@ class PushNotificationServiceTest {
         assertThat(android.installationIdPrefix()).isEqualTo("6d0e67af");
         assertThat(android.registrationReason()).isEqualTo("invalid-endpoint-replacement");
         assertThat(android.previousEndpointCount()).isEqualTo(2);
+        assertThat(android.registrationInceptionAt()).isEqualTo("2026-05-20T12:15:00Z");
+        assertThat(android.createdAt()).isEqualTo("2026-06-05T14:30:00Z");
         assertThat(android.lastAttemptAt()).isEqualTo("2026-06-05T15:00:05Z");
         assertThat(android.lastAcceptedAt()).isEqualTo("2026-06-05T15:00:05Z");
         assertThat(android.lastDisplayedAt()).isEqualTo("2026-06-05T15:00:07Z");
@@ -1100,6 +1120,7 @@ class PushNotificationServiceTest {
         assertThat(ios.id()).isEqualTo("push_subscription_ios");
         assertThat(ios.deviceLabel()).isEqualTo("iOS Safari");
         assertThat(ios.endpointHashPrefix()).isEqualTo(iosEndpointHash.substring(0, 12));
+        assertThat(ios.registrationInceptionAt()).isEqualTo("2026-06-05T13:30:00Z");
         assertThat(ios.lastAttemptAt()).isEqualTo("2026-06-05T15:00:06Z");
         assertThat(ios.lastAcceptedAt()).isEqualTo("2026-06-05T15:00:06Z");
         assertThat(ios.lastDisplayedAt()).isNull();

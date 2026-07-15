@@ -701,6 +701,21 @@ function InteractiveTtcMapComponent({
     useCallback(({ segment, impact }) => `${segment.id}:${impact.kind}:${impact.cardId}:${impact.travelDirection}`, []),
   );
 
+  const selectedImpactEmphasis = useMemo<SelectedImpactEmphasisLayer | null>(() => {
+    if (!flashSelection) return null;
+
+    const activeLayer = renderedImpactLayers.find(
+      ({ impact }) => impact.kind === flashSelection.kind && impact.cardId === flashSelection.id,
+    );
+    if (activeLayer) {
+      return { id: flashSelection.id, segment: activeLayer.segment };
+    }
+
+    if (flashSelection.kind !== "planned-closure") return null;
+    const previewLayer = plannedPreviewLayers.find(({ closure }) => closure.id === flashSelection.id);
+    return previewLayer ? { id: flashSelection.id, segment: previewLayer.segment } : null;
+  }, [flashSelection, plannedPreviewLayers, renderedImpactLayers]);
+
   const retainedStationNodeImpacts = useRetainedMapLayers(
     stationNodeImpacts,
     useCallback((impact) => `${impact.kind}:${impact.cardId}:${impact.stationId}`, []),
@@ -1128,8 +1143,6 @@ function InteractiveTtcMapComponent({
                       selectedSegmentIds={selectedSegmentIds}
                       onSelectImpact={onSelectImpact}
                       reducedMotion={reducedMotion}
-                      flashSelection={flashSelection}
-                      isSelectionFastFlashing={isSelectionFastFlashing}
                       exiting={exiting}
                     />
                   ))}
@@ -1143,11 +1156,17 @@ function InteractiveTtcMapComponent({
                       selectedSegmentIds={selectedSegmentIds}
                       onSelectImpact={onSelectImpact}
                       reducedMotion={reducedMotion}
-                      flashSelection={flashSelection}
-                      isSelectionFastFlashing={isSelectionFastFlashing}
                       exiting={exiting}
                     />
                   ))}
+                  <g aria-label="Selected disruption emphasis">
+                    {selectedImpactEmphasis ? (
+                      <SelectedImpactEmphasis
+                        emphasis={selectedImpactEmphasis}
+                        fast={isSelectionFastFlashing}
+                      />
+                    ) : null}
+                  </g>
                 </g>
 
                 {/* Top Layer: Stations (layer6) and text */}
@@ -1448,6 +1467,11 @@ type RenderedImpactLayer = {
 type RenderedPlannedPreviewLayer = {
   segment: RenderedNetworkSegment;
   closure: PlannedClosure;
+};
+
+type SelectedImpactEmphasisLayer = {
+  id: string;
+  segment: RenderedNetworkSegment;
 };
 
 type StationImpactDirectionLayer = {
@@ -2935,8 +2959,8 @@ function CommutePathOverlay({
 
   return (
     <g className="commute-path-preview-layer" data-commute-path-preview={preview.id}>
-      <path className="commute-path-preview-glow" d={segment.pathD} />
-      <path className="commute-path-preview-path" d={segment.pathD} />
+      <path className="asset-alert-path-glow commute-path-preview-glow" d={segment.pathD} />
+      <path className="asset-alert-path commute-path-preview-path" d={segment.pathD} />
       {endpointPoints.map((point, index) => (
         <circle
           key={`${preview.id}-${index}`}
@@ -2958,8 +2982,6 @@ function OverlaySegment({
   selectedSegmentIds,
   onSelectImpact,
   reducedMotion,
-  flashSelection,
-  isSelectionFastFlashing,
   exiting,
 }: {
   segment: RenderedNetworkSegment;
@@ -2969,8 +2991,6 @@ function OverlaySegment({
   selectedSegmentIds: string[];
   onSelectImpact: (selection: ImpactSelection) => void;
   reducedMotion: boolean;
-  flashSelection: ImpactSelection;
-  isSelectionFastFlashing: boolean;
   exiting?: boolean;
 }) {
   const { activeAlerts, delays, reducedSpeedZones, plannedClosures } = useDashboardData();
@@ -2994,10 +3014,6 @@ function OverlaySegment({
   const isSelectedImpact = impact
     ? selection?.kind === impact.kind && selection.id === impact.cardId
     : selection?.kind === "planned-closure" && selection.id === plannedClosure?.id;
-  const isMapFlash = impact
-    ? flashSelection?.kind === impact.kind && flashSelection.id === impact.cardId
-    : flashSelection?.kind === "planned-closure" && flashSelection.id === plannedClosure?.id;
-
   const impactSegmentIds = (() => {
     if (plannedClosure) {
       return plannedClosure.previewSegmentIds ?? [];
@@ -3245,16 +3261,27 @@ function OverlaySegment({
         </>
       )}
 
-      {isMapFlash && flashSelection && (
-        <path
-          data-map-highlight-id={flashSelection.id}
-          className={`asset-alert-path map-selection-flash pointer-events-none ${
-            isSelectionFastFlashing ? "fast" : "latent"
-          }`}
-          d={segment.pathD}
-        />
-      )}
     </g>
+  );
+}
+
+function SelectedImpactEmphasis({
+  emphasis: selectedImpactEmphasis,
+  fast,
+}: {
+  emphasis: SelectedImpactEmphasisLayer;
+  fast: boolean;
+}) {
+  return (
+    <path
+      data-selected-impact-emphasis={selectedImpactEmphasis.id}
+      data-map-highlight-id={selectedImpactEmphasis.id}
+      className={`asset-alert-path map-selection-flash pointer-events-none ${
+        fast ? "fast" : "latent"
+      }`}
+      d={selectedImpactEmphasis.segment.pathD}
+      aria-hidden="true"
+    />
   );
 }
 

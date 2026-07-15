@@ -181,7 +181,6 @@ async function showPendingPushNotification(event) {
         return;
       }
       await showTrackedPushNotification(payloadNotification);
-      await acknowledgeDisplayedPushNotification(payloadNotification);
       await reconcilePushNotifications();
       return;
     }
@@ -223,7 +222,6 @@ async function showPendingPushNotification(event) {
       }
 
       await showTrackedPushNotification(notification);
-      await acknowledgeDisplayedPushNotification(notification);
     }
   } catch {
     await showFallbackPushNotification();
@@ -295,17 +293,16 @@ async function showPushNotification(notification) {
 }
 
 async function showTrackedPushNotification(notification) {
-  const receiptEvent = recordPushClientEvent(notification, "push_received");
   try {
     await showPushNotification(notification);
   } catch (error) {
-    await Promise.allSettled([
-      receiptEvent,
-      recordPushClientEvent(notification, "show_failed", clientEventErrorMessage(error)),
-    ]);
+    await recordPushClientEvent(notification, "show_failed", clientEventErrorMessage(error));
     throw error;
   }
-  await receiptEvent;
+  await Promise.allSettled([
+    recordPushClientEvent(notification, "push_received"),
+    acknowledgeDisplayedPushNotification(notification),
+  ]);
 }
 
 async function acknowledgeDisplayedPushNotification(notification) {

@@ -339,13 +339,13 @@ export function MobileMoreSheet({
           />
           {isAndroid && (
             <div className="mobile-more-install-help" role="note">
-              <span>Android Devices</span>
-              <strong>Enable &quot;Pop on screen&quot;</strong>
+              <span>Android Notification Reliability</span>
+              <strong>Use unrestricted battery access when available</strong>
               <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1.5 leading-relaxed">
-                If you want LineWatch notifications to be more visible:
+                Android can delay PWA notifications while the phone is idle. For the best available reliability, open Settings &gt; Apps &gt; LineWatchTO &gt; App battery usage and choose <strong>Unrestricted</strong>. If LineWatchTO is not listed separately, apply the setting to Chrome. Also confirm notification permission and enable &quot;Pop on screen&quot; for the LineWatchTO notification channel.
               </p>
               <div className="text-[11px] text-slate-700 dark:text-slate-300 font-medium mt-1 leading-relaxed">
-                Open System Settings &gt; Notifications &gt; App Notifications &gt; LineWatch &gt; Other &gt; General &gt; Toggle &quot;Pop on screen&quot;
+                Unrestricted background use can consume more battery and improves the odds, but Android and Chrome policy still cannot guarantee immediate delivery. Do not rely on PWA push as the only channel for safety-critical alerts.
               </div>
             </div>
           )}

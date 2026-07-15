@@ -27,6 +27,7 @@ class PushNotificationDispatchServiceTest {
     private final PushNotificationEventRepository eventRepository = mock(PushNotificationEventRepository.class);
     private final PushSubscriptionRepository subscriptionRepository = mock(PushSubscriptionRepository.class);
     private final PushNotificationDeliveryRepository deliveryRepository = mock(PushNotificationDeliveryRepository.class);
+    private final PushNotificationClientEventRepository clientEventRepository = mock(PushNotificationClientEventRepository.class);
     private final WebPushClient webPushClient = mock(WebPushClient.class);
     private final PushNotificationPreferenceService preferenceService = mock(PushNotificationPreferenceService.class);
     private final LineSubscriptionPushPlanner lineSubscriptionPushPlanner = mock(LineSubscriptionPushPlanner.class);
@@ -44,6 +45,7 @@ class PushNotificationDispatchServiceTest {
         eventRepository,
         subscriptionRepository,
         deliveryRepository,
+        clientEventRepository,
         webPushClient,
         preferenceService,
         lineSubscriptionPushPlanner,
@@ -2024,12 +2026,42 @@ class PushNotificationDispatchServiceTest {
             "Mobile Safari iOS",
             Instant.parse("2026-06-05T14:40:00Z")
         );
+        PushSubscriptionEntity reportedAndroidSubscription = PushSubscriptionEntity.create(
+            "push_subscription_android_reported",
+            account,
+            "https://fcm.googleapis.com/fcm/send/android-reported",
+            "android-reported-endpoint-hash",
+            "p256dh-key",
+            "auth-secret",
+            "Chrome Android Pixel 6a",
+            Instant.parse("2026-06-05T14:40:00Z")
+        );
         PushNotificationDeliveryEntity acceptedAndroidDelivery = PushNotificationDeliveryEntity.create(
             "push_delivery_android",
             existingEvent,
             androidSubscription,
             PushDeliveryResult.accepted(202),
             Instant.parse("2026-06-05T14:45:10Z")
+        );
+        PushNotificationDeliveryEntity reportedAndroidDelivery = PushNotificationDeliveryEntity.create(
+            "push_delivery_android_reported",
+            existingEvent,
+            reportedAndroidSubscription,
+            PushDeliveryResult.accepted(202),
+            Instant.parse("2026-06-05T14:45:10Z")
+        );
+        PushNotificationClientEventEntity reportedDisplay = PushNotificationClientEventEntity.create(
+            "push_client_event_android_reported",
+            "user_1",
+            reportedAndroidSubscription,
+            reportedAndroidDelivery,
+            "android-reported-endpoint-hash",
+            existingEvent.getNotificationKey(),
+            "ACTIVE",
+            "push_received",
+            null,
+            Instant.parse("2026-06-05T14:45:20Z"),
+            Instant.parse("2026-06-05T14:45:20Z")
         );
         PushNotificationDeliveryEntity displayedIosDelivery = PushNotificationDeliveryEntity.create(
             "push_delivery_ios",
@@ -2051,11 +2083,17 @@ class PushNotificationDispatchServiceTest {
         when(eventRepository.existsByDedupeKey("dedupe-1")).thenReturn(true);
         when(eventRepository.findByDedupeKey("dedupe-1")).thenReturn(Optional.of(existingEvent));
         when(subscriptionRepository.findByAccountIdAndEnabledTrue("user_1"))
-            .thenReturn(List.of(androidSubscription, iosSubscription));
+            .thenReturn(List.of(androidSubscription, reportedAndroidSubscription, iosSubscription));
         when(deliveryRepository.findByEventIdAndSubscriptionId("push_event_1", "push_subscription_android"))
             .thenReturn(Optional.of(acceptedAndroidDelivery));
         when(deliveryRepository.findByEventIdAndSubscriptionId("push_event_1", "push_subscription_ios"))
             .thenReturn(Optional.of(displayedIosDelivery));
+        when(deliveryRepository.findByEventIdAndSubscriptionId("push_event_1", "push_subscription_android_reported"))
+            .thenReturn(Optional.of(reportedAndroidDelivery));
+        when(clientEventRepository.findCurrentAttemptEvents(
+            "push_delivery_android_reported",
+            Instant.parse("2026-06-05T14:45:10Z")
+        )).thenReturn(List.of(reportedDisplay));
         when(webPushClient.send(
             eq(androidSubscription),
             eq(PushNotificationDispatchService.topicFor(PushNotificationDisplayTags.active("saved-commute-impact|commute_1|outbound|delay|delay-line-1"))),
@@ -2070,7 +2108,9 @@ class PushNotificationDispatchServiceTest {
             any(WebPushPayload.class)
         );
         verify(webPushClient, never()).send(eq(iosSubscription), anyString(), any(WebPushPayload.class));
+        verify(webPushClient, never()).send(eq(reportedAndroidSubscription), anyString(), any(WebPushPayload.class));
         verify(deliveryRepository).save(acceptedAndroidDelivery);
+        verify(deliveryRepository, never()).save(reportedAndroidDelivery);
         assertThat(acceptedAndroidDelivery.getStatus()).isEqualTo("accepted");
         assertThat(acceptedAndroidDelivery.getDisplayedAt()).isNull();
         assertThat(acceptedAndroidDelivery.getCreatedAt()).isEqualTo(clock.instant());
