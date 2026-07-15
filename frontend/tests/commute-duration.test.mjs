@@ -44,7 +44,7 @@ describe("saved commute duration formatting", () => {
       confidence: "low",
     }), {
       value: "1 hr 3 min\u00a0–\u00a01 hr 11 min",
-      context: "Estimated now · Low confidence",
+      context: "Estimated Now · Low Confidence",
     });
   });
 
@@ -57,7 +57,7 @@ describe("saved commute duration formatting", () => {
       confidence: "high",
     }), {
       value: "About 59 min",
-      context: "Typical scheduled time",
+      context: "Typical Scheduled Time",
     });
   });
 

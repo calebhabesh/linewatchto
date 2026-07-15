@@ -250,7 +250,7 @@ function fallbackTravelTimeEstimate(leg: AccountCommuteLeg): AccountCommuteTrave
     extraLowSeconds: 0,
     extraHighSeconds: 0,
     confidence: "high",
-    summary: `Typical commute: about ${formatEstimateDuration(leg.path.estimatedTravelSeconds)}. No extra time estimated.`,
+    summary: `Typical commute: about ${formatEstimateDuration(leg.path.estimatedTravelSeconds)}.`,
   };
 }
 
@@ -292,36 +292,7 @@ function TravelTimeEstimateBlock({ leg }: { leg: AccountCommuteLeg }) {
   }
 
   if (estimate.status === "standard") {
-    return (
-      <div
-        className={`saved-commute-time-estimate standard severity-${severity}`}
-        data-travel-time-severity={severity}
-        aria-label={`Travel time estimate to ${leg.toStationName}`}
-      >
-        <div className="saved-commute-time-estimate-heading">
-          <Clock size={13} aria-hidden="true" />
-          <strong>Travel Time</strong>
-        </div>
-        <div className="saved-commute-time-estimate-grid">
-          <span>
-            <strong>Typical</strong>
-            <em>{formatEstimateDuration(estimate.baselineSeconds)}</em>
-          </span>
-          <span>
-            <strong>With Impacts</strong>
-            <em className="saved-commute-time-verdict">No extra time</em>
-          </span>
-          <span>
-            <strong>Extra Time</strong>
-            <em className="saved-commute-time-verdict">{formatExtraTimeRange(estimate.extraLowSeconds, estimate.extraHighSeconds)}</em>
-          </span>
-          <span>
-            <strong>Confidence</strong>
-            <em>{formatConfidenceLabel(estimate.confidence)}</em>
-          </span>
-        </div>
-      </div>
-    );
+    return null;
   }
 
   return (
@@ -1224,6 +1195,7 @@ export function SavedCommutesPanel({
                 const editingNotificationRule = editingNotificationCommuteId === commute.id;
                 const notificationRuleStatus = notificationRule.enabled ? "On" : "Off";
                 const selectedTravelTimeEstimate = selectedLeg.impact.travelTimeEstimate ?? fallbackTravelTimeEstimate(selectedLeg);
+                const selectedTravelTimeSeverity = travelTimeSeverity(selectedTravelTimeEstimate);
                 const travelTimeHeadline = formatTravelTimeHeadline(selectedTravelTimeEstimate);
 
                 return (
@@ -1308,13 +1280,13 @@ export function SavedCommutesPanel({
                           </span>
                         </div>
                         <div className="flex items-center justify-center gap-2 text-center">
-                          <Clock className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-slate-800 dark:text-white shrink-0" />
+                          <Clock className={`saved-commute-time-headline-clock severity-${selectedTravelTimeSeverity} w-4 h-4 sm:w-4.5 sm:h-4.5 shrink-0`} />
                           <span>{travelTimeHeadline.value}</span>
                         </div>
                       </div>
 
                       <div
-                        className={`mt-1 text-center text-[10px] font-bold tracking-wide ${
+                        className={`mt-1 text-center text-[11px] font-bold tracking-wide ${
                           selectedTravelTimeEstimate.status === "standard"
                             ? "text-emerald-600 dark:text-emerald-400"
                             : selectedTravelTimeEstimate.status === "estimated"
@@ -1325,7 +1297,7 @@ export function SavedCommutesPanel({
                         {travelTimeHeadline.context}
                       </div>
 
-                      <div className="mt-1 mb-3 text-center text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                      <div className="mt-1 mb-3 text-center text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
                         Default Scheduled Route · To {selectedLeg.toStationName}
                       </div>
 
@@ -1338,10 +1310,12 @@ export function SavedCommutesPanel({
                               Active Commute Disruptions
                             </strong>
                           </div>
-                          <ul className="saved-commute-impact-list !mt-1.5">
+                          <ul className="saved-commute-impact-list !mt-2.5">
                             {selectedLeg.impact.matchedImpacts.slice(0, 3).map((impact) => (
                               <li key={`${impact.kind}-${impact.id}`}>
-                                <ImpactIcon kind={impact.kind} className="mt-0.5 shrink-0" />
+                                <span className="saved-commute-impact-icon" aria-hidden="true">
+                                  <ImpactIcon kind={impact.kind} className="shrink-0" />
+                                </span>
                                 <div className="saved-commute-impact-copy">
                                   <div className="saved-commute-impact-details">
                                     <div className="saved-commute-impact-heading">

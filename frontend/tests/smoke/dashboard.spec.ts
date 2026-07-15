@@ -1071,9 +1071,9 @@ test("demo account shows account-backed saved commutes", async ({ page, request,
   await page.getByRole("tab", { name: "To Stub Station" }).click();
   await expect(page.getByText("Default Scheduled Route · To Stub Station")).toBeVisible();
   await expect(page.getByText("About 13 min", { exact: true })).toBeVisible();
-  await expect(page.getByText("Typical scheduled time", { exact: true })).toBeVisible();
-  await expect(page.getByText("No extra time", { exact: true })).toBeVisible();
-  await expect(page.locator('[data-travel-time-severity="good"]')).toBeVisible();
+  await expect(page.getByText("Typical Scheduled Time", { exact: true })).toBeVisible();
+  await expect(page.getByText("No extra time", { exact: true })).not.toBeVisible();
+  await expect(page.locator('[data-travel-time-severity="good"]')).not.toBeVisible();
   await expect(page.getByText("Clear", { exact: true })).toBeVisible();
   await expect(page.getByText("Affected Now", { exact: true })).not.toBeVisible();
   await expect(page.getByText("Suspension", { exact: true })).not.toBeVisible();

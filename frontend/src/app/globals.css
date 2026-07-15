@@ -2748,18 +2748,24 @@ button {
 
 .saved-commute-impact-list {
   display: grid;
-  gap: 0.35rem;
+  gap: 0.75rem;
   margin-top: 0.65rem;
   min-width: 0;
 }
 
 .saved-commute-impact-list li {
+  align-items: start;
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
   gap: 0.4rem;
-  align-items: baseline;
   font-size: 0.72rem;
   color: rgb(71, 85, 105);
+}
+
+.saved-commute-impact-icon {
+  align-items: center;
+  display: flex;
+  height: 0.875rem;
 }
 
 .saved-commute-impact-copy {
@@ -2801,6 +2807,7 @@ button {
 .saved-commute-impact-list strong {
   font-size: 0.66rem;
   letter-spacing: 0.04em;
+  line-height: 0.875rem;
   text-transform: uppercase;
   margin-top: 0;
 }
@@ -6804,23 +6811,28 @@ button {
   text-transform: uppercase;
 }
 
-.saved-commute-time-estimate.severity-good .saved-commute-time-verdict {
+.saved-commute-time-estimate.severity-good .saved-commute-time-verdict,
+.saved-commute-time-headline-clock.severity-good {
   color: #15803d;
 }
 
-.saved-commute-time-estimate.severity-decent .saved-commute-time-verdict {
+.saved-commute-time-estimate.severity-decent .saved-commute-time-verdict,
+.saved-commute-time-headline-clock.severity-decent {
   color: #4d7c0f;
 }
 
-.saved-commute-time-estimate.severity-moderate .saved-commute-time-verdict {
+.saved-commute-time-estimate.severity-moderate .saved-commute-time-verdict,
+.saved-commute-time-headline-clock.severity-moderate {
   color: #a16207;
 }
 
-.saved-commute-time-estimate.severity-poor .saved-commute-time-verdict {
+.saved-commute-time-estimate.severity-poor .saved-commute-time-verdict,
+.saved-commute-time-headline-clock.severity-poor {
   color: #c2410c;
 }
 
-.saved-commute-time-estimate.severity-severe .saved-commute-time-verdict {
+.saved-commute-time-estimate.severity-severe .saved-commute-time-verdict,
+.saved-commute-time-headline-clock.severity-severe {
   color: #b91c1c;
 }
 
@@ -6881,43 +6893,53 @@ button {
   color: rgb(161, 161, 170);
 }
 
-.dark .saved-commute-time-estimate.severity-good .saved-commute-time-verdict {
+.dark .saved-commute-time-estimate.severity-good .saved-commute-time-verdict,
+.dark .saved-commute-time-headline-clock.severity-good {
   color: #86efac;
 }
 
-.dark .saved-commute-time-estimate.severity-decent .saved-commute-time-verdict {
+.dark .saved-commute-time-estimate.severity-decent .saved-commute-time-verdict,
+.dark .saved-commute-time-headline-clock.severity-decent {
   color: #bef264;
 }
 
-.dark .saved-commute-time-estimate.severity-moderate .saved-commute-time-verdict {
+.dark .saved-commute-time-estimate.severity-moderate .saved-commute-time-verdict,
+.dark .saved-commute-time-headline-clock.severity-moderate {
   color: #fde047;
 }
 
-.dark .saved-commute-time-estimate.severity-poor .saved-commute-time-verdict {
+.dark .saved-commute-time-estimate.severity-poor .saved-commute-time-verdict,
+.dark .saved-commute-time-headline-clock.severity-poor {
   color: #fdba74;
 }
 
-.dark .saved-commute-time-estimate.severity-severe .saved-commute-time-verdict {
+.dark .saved-commute-time-estimate.severity-severe .saved-commute-time-verdict,
+.dark .saved-commute-time-headline-clock.severity-severe {
   color: #fca5a5;
 }
 
-.high-contrast .saved-commute-time-estimate.severity-good .saved-commute-time-verdict {
+.high-contrast .saved-commute-time-estimate.severity-good .saved-commute-time-verdict,
+.high-contrast .saved-commute-time-headline-clock.severity-good {
   color: #86efac !important;
 }
 
-.high-contrast .saved-commute-time-estimate.severity-decent .saved-commute-time-verdict {
+.high-contrast .saved-commute-time-estimate.severity-decent .saved-commute-time-verdict,
+.high-contrast .saved-commute-time-headline-clock.severity-decent {
   color: #d9f99d !important;
 }
 
-.high-contrast .saved-commute-time-estimate.severity-moderate .saved-commute-time-verdict {
+.high-contrast .saved-commute-time-estimate.severity-moderate .saved-commute-time-verdict,
+.high-contrast .saved-commute-time-headline-clock.severity-moderate {
   color: #fde047 !important;
 }
 
-.high-contrast .saved-commute-time-estimate.severity-poor .saved-commute-time-verdict {
+.high-contrast .saved-commute-time-estimate.severity-poor .saved-commute-time-verdict,
+.high-contrast .saved-commute-time-headline-clock.severity-poor {
   color: #fdba74 !important;
 }
 
-.high-contrast .saved-commute-time-estimate.severity-severe .saved-commute-time-verdict {
+.high-contrast .saved-commute-time-estimate.severity-severe .saved-commute-time-verdict,
+.high-contrast .saved-commute-time-headline-clock.severity-severe {
   color: #fecaca !important;
 }
 

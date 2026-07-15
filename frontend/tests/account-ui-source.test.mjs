@@ -139,6 +139,12 @@ describe("account UI source", () => {
     assert.match(globalCss, /\.severity-moderate \.saved-commute-time-verdict/);
     assert.match(globalCss, /\.severity-poor \.saved-commute-time-verdict/);
     assert.match(globalCss, /\.severity-severe \.saved-commute-time-verdict/);
+    assert.match(savedCommutesSource, /saved-commute-time-headline-clock severity-\$\{selectedTravelTimeSeverity\}/);
+    assert.match(globalCss, /\.saved-commute-time-headline-clock\.severity-good/);
+    assert.match(globalCss, /\.saved-commute-time-headline-clock\.severity-severe/);
+    assert.match(savedCommutesSource, /saved-commute-impact-icon/);
+    assert.match(globalCss, /\.saved-commute-impact-icon\s*\{[^}]*align-items:\s*center;[^}]*height:\s*0\.875rem;/s);
+    assert.match(globalCss, /\.saved-commute-impact-list\s*\{[^}]*gap:\s*0\.75rem;/s);
   });
 
   it("renders saved-commute granular notification controls inside the commute feature", () => {

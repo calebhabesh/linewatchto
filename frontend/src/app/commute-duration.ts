@@ -76,12 +76,12 @@ export function formatTravelTimeHeadline(estimate: TravelTimeHeadlineEstimate) {
     case "estimated":
       return {
         value: formatEstimateRange(estimate.estimatedLowSeconds, estimate.estimatedHighSeconds),
-        context: `Estimated now · ${formatConfidenceLabel(estimate.confidence)} confidence`,
+        context: `Estimated Now · ${formatConfidenceLabel(estimate.confidence)} Confidence`,
       };
     case "standard":
       return {
         value: `About ${formatEstimateDuration(estimate.baselineSeconds)}`,
-        context: "Typical scheduled time",
+        context: "Typical Scheduled Time",
       };
     case "unreliable":
       return {
