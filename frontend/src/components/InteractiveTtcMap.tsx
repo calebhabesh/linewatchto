@@ -708,12 +708,22 @@ function InteractiveTtcMapComponent({
       ({ impact }) => impact.kind === flashSelection.kind && impact.cardId === flashSelection.id,
     );
     if (activeLayer) {
-      return { id: flashSelection.id, segment: activeLayer.segment };
+      return {
+        id: flashSelection.id,
+        segment: activeLayer.segment,
+        impact: activeLayer.impact,
+        plannedClosure: null,
+      };
     }
 
     if (flashSelection.kind !== "planned-closure") return null;
     const previewLayer = plannedPreviewLayers.find(({ closure }) => closure.id === flashSelection.id);
-    return previewLayer ? { id: flashSelection.id, segment: previewLayer.segment } : null;
+    return previewLayer ? {
+      id: flashSelection.id,
+      segment: previewLayer.segment,
+      impact: null,
+      plannedClosure: previewLayer.closure,
+    } : null;
   }, [flashSelection, plannedPreviewLayers, renderedImpactLayers]);
 
   const retainedStationNodeImpacts = useRetainedMapLayers(
@@ -1123,50 +1133,84 @@ function InteractiveTtcMapComponent({
                     <feComposite in="monoNoise" in2="SourceGraphic" operator="in" />
                   </filter>
                 </defs>
-                  <g aria-label="Disruption overlays">
-                  <g aria-label="Saved commute route preview">
-                    {commutePreviewLayer ? (
-                      <CommutePathOverlay
-                        segment={commutePreviewLayer.segment}
-                        endpointPoints={commutePreviewEndpointPoints}
-                        preview={commutePreviewLayer.preview}
+                <g aria-label="Disruption overlays">
+                  {retainedPlannedPreviewLayers.map(({ key, item: { segment, closure }, exiting }) => {
+                    if (
+                      commutePreviewLayer &&
+                      selectedImpactEmphasis?.plannedClosure?.id === closure.id
+                    ) {
+                      return null;
+                    }
+                    return (
+                      <OverlaySegment
+                        key={key}
+                        segment={segment}
+                        impact={null}
+                        plannedClosure={closure}
+                        selection={selection}
+                        selectedSegmentIds={selectedSegmentIds}
+                        onSelectImpact={onSelectImpact}
+                        reducedMotion={reducedMotion}
+                        exiting={exiting}
                       />
-                    ) : null}
-                  </g>
-                  {retainedPlannedPreviewLayers.map(({ key, item: { segment, closure }, exiting }) => (
-                    <OverlaySegment
-                      key={key}
-                      segment={segment}
-                      impact={null}
-                      plannedClosure={closure}
-                      selection={selection}
-                      selectedSegmentIds={selectedSegmentIds}
-                      onSelectImpact={onSelectImpact}
-                      reducedMotion={reducedMotion}
-                      exiting={exiting}
+                    );
+                  })}
+                  {retainedImpactLayers.map(({ key, item: { segment, impact }, exiting }) => {
+                    if (
+                      commutePreviewLayer &&
+                      selectedImpactEmphasis?.impact?.kind === impact.kind &&
+                      selectedImpactEmphasis.impact.cardId === impact.cardId
+                    ) {
+                      return null;
+                    }
+                    return (
+                      <OverlaySegment
+                        key={key}
+                        segment={segment}
+                        impact={impact}
+                        plannedClosure={undefined}
+                        selection={selection}
+                        selectedSegmentIds={selectedSegmentIds}
+                        onSelectImpact={onSelectImpact}
+                        reducedMotion={reducedMotion}
+                        exiting={exiting}
+                      />
+                    );
+                  })}
+                </g>
+
+                <g aria-label="Saved commute route preview">
+                  {commutePreviewLayer ? (
+                    <CommutePathOverlay
+                      segment={commutePreviewLayer.segment}
+                      endpointPoints={commutePreviewEndpointPoints}
+                      preview={commutePreviewLayer.preview}
                     />
-                  ))}
-                  {retainedImpactLayers.map(({ key, item: { segment, impact }, exiting }) => (
-                    <OverlaySegment
-                      key={key}
-                      segment={segment}
-                      impact={impact}
-                      plannedClosure={undefined}
-                      selection={selection}
-                      selectedSegmentIds={selectedSegmentIds}
-                      onSelectImpact={onSelectImpact}
-                      reducedMotion={reducedMotion}
-                      exiting={exiting}
-                    />
-                  ))}
-                  <g aria-label="Selected disruption emphasis">
-                    {selectedImpactEmphasis ? (
+                  ) : null}
+                </g>
+
+                <g aria-label="Selected disruption emphasis">
+                  {selectedImpactEmphasis ? (
+                    commutePreviewLayer ? (
+                      <g data-selected-commute-impact-overlay={selectedImpactEmphasis.id}>
+                        <OverlaySegment
+                          segment={selectedImpactEmphasis.segment}
+                          impact={selectedImpactEmphasis.impact}
+                          plannedClosure={selectedImpactEmphasis.plannedClosure ?? undefined}
+                          selection={selection}
+                          selectedSegmentIds={selectedSegmentIds}
+                          onSelectImpact={onSelectImpact}
+                          reducedMotion={reducedMotion}
+                          idSuffix="-commute-focus"
+                        />
+                      </g>
+                    ) : (
                       <SelectedImpactEmphasis
                         emphasis={selectedImpactEmphasis}
                         fast={isSelectionFastFlashing}
                       />
-                    ) : null}
-                  </g>
+                    )
+                  ) : null}
                 </g>
 
                 {/* Top Layer: Stations (layer6) and text */}
@@ -1472,6 +1516,8 @@ type RenderedPlannedPreviewLayer = {
 type SelectedImpactEmphasisLayer = {
   id: string;
   segment: RenderedNetworkSegment;
+  impact: MapImpact | null;
+  plannedClosure: PlannedClosure | null;
 };
 
 type StationImpactDirectionLayer = {
@@ -2983,6 +3029,7 @@ function OverlaySegment({
   onSelectImpact,
   reducedMotion,
   exiting,
+  idSuffix = "",
 }: {
   segment: RenderedNetworkSegment;
   impact: MapImpact | null;
@@ -2992,6 +3039,7 @@ function OverlaySegment({
   onSelectImpact: (selection: ImpactSelection) => void;
   reducedMotion: boolean;
   exiting?: boolean;
+  idSuffix?: string;
 }) {
   const { activeAlerts, delays, reducedSpeedZones, plannedClosures } = useDashboardData();
 
@@ -3039,6 +3087,7 @@ function OverlaySegment({
   const isMultiSegment = impactSegmentIds.length > 1;
 
   const chevronBg = RSZ_IMPACT_COLOR;
+  const overlaySegmentId = `${segment.id}${idSuffix}`;
 
   const travelDirection = visualTravelDirection(segment);
   const renderForwardLane = travelDirection !== "reverse";
@@ -3096,7 +3145,7 @@ function OverlaySegment({
       {visualState === "delay-static" && (
         <>
           <defs>
-            <mask id={`${segment.id}-mask`}>
+            <mask id={`${overlaySegmentId}-mask`}>
               <path
                 className="delay-hourglass-mask-path pointer-events-none"
                 d={segment.pathD}
@@ -3111,7 +3160,7 @@ function OverlaySegment({
             style={{ pointerEvents: "none", stroke: "#0ea5e9" }}
           />
           <g
-            mask={`url(#${segment.id}-mask)`}
+            mask={`url(#${overlaySegmentId}-mask)`}
             style={{ "--chevron-step": `${step}px` } as React.CSSProperties}
           >
             {travelDirection === "bidirectional" ? (
@@ -3203,7 +3252,7 @@ function OverlaySegment({
                 style={{ pointerEvents: "none", stroke: "#ef4444" }}
               />
               <defs>
-                <mask id={`${segment.id}-suspension-static-mask`}>
+                <mask id={`${overlaySegmentId}-suspension-static-mask`}>
                   <path
                     className="suspension-mask-path pointer-events-none"
                     d={segment.pathD}
@@ -3212,7 +3261,7 @@ function OverlaySegment({
                   />
                 </mask>
               </defs>
-              <g mask={`url(#${segment.id}-suspension-static-mask)`}>
+              <g mask={`url(#${overlaySegmentId}-suspension-static-mask)`}>
                 <SuspensionNoEntryLane
                   pathD={segment.pathD}
                   step={88}
@@ -3227,7 +3276,7 @@ function OverlaySegment({
                 style={{ pointerEvents: "none", stroke: "#ef4444" }}
               />
               <defs>
-                <mask id={`${segment.id}-suspension-mask`}>
+                <mask id={`${overlaySegmentId}-suspension-mask`}>
                   <path
                     className="suspension-mask-path pointer-events-none"
                     d={segment.pathD}
@@ -3236,7 +3285,7 @@ function OverlaySegment({
                   />
                 </mask>
               </defs>
-              <g mask={`url(#${segment.id}-suspension-mask)`}>
+              <g mask={`url(#${overlaySegmentId}-suspension-mask)`}>
                 {travelDirection === "forward" && (
                   <AnimatedSuspensionLane
                     pathD={segment.pathD}

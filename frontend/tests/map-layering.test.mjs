@@ -39,7 +39,7 @@ describe("asset-backed map layering", () => {
     assert.match(interactiveMapSource, /className="rsz-chevron"/);
     assert.match(interactiveMapSource, /d="M -12 -10 L 8 0 L -12 10"/);
     assert.match(globalCss, /@keyframes chevron-slide/);
-    assert.match(interactiveMapSource, /mask=\{\`url\(#\$\{segment\.id\}-mask\)\`\}/);
+    assert.match(interactiveMapSource, /mask=\{\`url\(#\$\{overlaySegmentId\}-mask\)\`\}/);
     assert.match(interactiveMapSource, /className="asset-alert-path delay-candy pointer-events-none"/);
     assert.match(interactiveMapSource, /style=\{\{\s*pointerEvents:\s*"none",\s*stroke:\s*chevronBg\s*\}\}/);
     assert.match(interactiveMapSource, /SuspensionNoEntryLane/);
@@ -172,7 +172,7 @@ describe("asset-backed map layering", () => {
     assert.ok(suspensionStart > -1, "bidirectional suspension overlay branch must exist");
     assert.ok(suspensionEnd > suspensionStart, "bidirectional suspension branch should end before one-way branch");
     assert.match(suspensionBlock, /<SuspensionNoEntryLane/);
-    assert.match(suspensionBlock, /mask=\{`url\(#\$\{segment\.id\}-suspension-static-mask\)`\}/);
+    assert.match(suspensionBlock, /mask=\{`url\(#\$\{overlaySegmentId\}-suspension-static-mask\)`\}/);
     assert.doesNotMatch(suspensionBlock, /stroke:\s*"url\(#suspension-hash\)"/);
     assert.doesNotMatch(suspensionBlock, /d="M -14 -14 L 10 0 L -14 14"/);
     assert.doesNotMatch(interactiveMapSource, /fixedStripePathDForPath/);
@@ -234,6 +234,27 @@ describe("asset-backed map layering", () => {
     assert.match(interactiveMapSource, /data-selected-impact-emphasis=\{selectedImpactEmphasis\.id\}/);
     assert.match(interactiveMapSource, /function SelectedImpactEmphasis\(/);
     assert.match(interactiveMapSource, /className=\{`asset-alert-path map-selection-flash pointer-events-none/);
+    assert.match(
+      interactiveMapSource,
+      /data-selected-commute-impact-overlay=\{selectedImpactEmphasis\.id\}[\s\S]*?<OverlaySegment[\s\S]*?impact=\{selectedImpactEmphasis\.impact\}[\s\S]*?idSuffix="-commute-focus"/,
+    );
+    assert.match(
+      interactiveMapSource,
+      /retainedImpactLayers\.map[\s\S]*?commutePreviewLayer &&[\s\S]*?selectedImpactEmphasis\?\.impact\?\.kind === impact\.kind &&[\s\S]*?selectedImpactEmphasis\.impact\.cardId === impact\.cardId[\s\S]*?return null;/,
+    );
+    assert.match(
+      interactiveMapSource,
+      /retainedPlannedPreviewLayers\.map[\s\S]*?commutePreviewLayer &&[\s\S]*?selectedImpactEmphasis\?\.plannedClosure\?\.id === closure\.id[\s\S]*?return null;/,
+    );
+    assert.doesNotMatch(globalCss, /commute-impact-focus/);
+    assert.match(
+      globalCss,
+      /@media \(max-width:\s*767px\) \{[\s\S]*?\[data-selected-commute-impact-overlay\] \.asset-alert-path-glow\s*\{[^}]*display:\s*none;[^}]*\}/,
+    );
+    assert.match(
+      globalCss,
+      /\.linewatch-shell\.mobile-performance-mode \[data-selected-commute-impact-overlay\] \.asset-alert-path-glow\s*\{[^}]*display:\s*none;[^}]*\}/,
+    );
   });
 
   it("keeps upcoming closure previews persistent, static, and equal-width to active corridors", () => {
@@ -371,7 +392,7 @@ describe("asset-backed map layering", () => {
     );
   });
 
-  it("renders saved commute path previews underneath active disruption overlays", () => {
+  it("renders selected saved commute paths above disruption corridors but below stations", () => {
     assert.match(interactiveMapSource, /commutePathPreview/);
     assert.match(interactiveMapSource, /aria-label="Saved commute route preview"/);
     assert.match(interactiveMapSource, /CommutePathOverlay/);
@@ -382,7 +403,7 @@ describe("asset-backed map layering", () => {
     assert.match(globalCss, /\.commute-path-preview-chip/);
     assert.match(
       globalCss,
-      /\n\.commute-path-preview-path\s*\{(?=[^}]*stroke-width:\s*102;)(?=[^}]*animation:\s*candy-pulse 1\.2s infinite alternate ease-in-out;)[^}]*\}/s,
+      /\n\.commute-path-preview-path\s*\{(?=[^}]*stroke-width:\s*102;)(?=[^}]*opacity:\s*0\.72;)(?=[^}]*animation:\s*candy-pulse 1\.2s infinite alternate ease-in-out;)[^}]*\}/s,
     );
     assert.match(
       globalCss,
@@ -394,24 +415,38 @@ describe("asset-backed map layering", () => {
     );
     assert.match(
       globalCss,
-      /\.motion-paused \.commute-path-preview-path\s*\{[^}]*animation:\s*none\s*!important;[^}]*stroke-width:\s*102[^}]*opacity:\s*1 !important;/s,
+      /\.motion-paused \.commute-path-preview-path\s*\{[^}]*animation:\s*none\s*!important;[^}]*stroke-width:\s*102[^}]*opacity:\s*0\.72 !important;/s,
     );
     assert.match(
       globalCss,
-      /@media \(prefers-reduced-motion:\s*reduce\) \{[\s\S]*?\.commute-path-preview-path\s*\{[^}]*animation:\s*none\s*!important;[^}]*stroke-width:\s*102[^}]*opacity:\s*1 !important;/,
+      /@media \(prefers-reduced-motion:\s*reduce\) \{[\s\S]*?\.commute-path-preview-path\s*\{[^}]*animation:\s*none\s*!important;[^}]*stroke-width:\s*102[^}]*opacity:\s*0\.72 !important;/,
     );
     assert.match(
       globalCss,
       /@media \(prefers-reduced-motion:\s*reduce\) \{[\s\S]*?\.station-commute-green-flash[\s\S]*?animation:\s*none\s*!important;/,
     );
+    assert.match(
+      globalCss,
+      /@media \(max-width:\s*767px\) \{[\s\S]*?\.station-commute-green-flash\s*\{(?=[^}]*fill:\s*#4ade80\s*!important;)(?=[^}]*stroke-width:\s*3\.5\s*!important;)(?=[^}]*transform:\s*scale\(1\.4\);)[^}]*\}/,
+    );
 
-    const previewGroupIndex = interactiveMapSource.indexOf('aria-label="Saved commute route preview"');
-    const impactLayerIndex = interactiveMapSource.indexOf("retainedImpactLayers.map", previewGroupIndex);
+    const impactLayerIndex = interactiveMapSource.indexOf("retainedImpactLayers.map");
+    const previewGroupIndex = interactiveMapSource.indexOf('aria-label="Saved commute route preview"', impactLayerIndex);
+    const selectedImpactIndex = interactiveMapSource.indexOf('aria-label="Selected disruption emphasis"', previewGroupIndex);
+    const stationLayerIndex = interactiveMapSource.indexOf("svgParts?.part2", selectedImpactIndex);
 
     assert.ok(previewGroupIndex > -1, "saved commute preview group must exist");
     assert.ok(
-      impactLayerIndex > previewGroupIndex,
-      "active disruption overlays must render after commute previews so disruptions remain visually dominant",
+      previewGroupIndex > impactLayerIndex,
+      "the explicitly selected commute route must render above general disruption corridors",
+    );
+    assert.ok(
+      selectedImpactIndex > previewGroupIndex,
+      "a specifically selected commute disruption must render above the saved route",
+    );
+    assert.ok(
+      stationLayerIndex > previewGroupIndex,
+      "station dots and labels must remain above the selected commute route",
     );
   });
 

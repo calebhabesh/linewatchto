@@ -75,7 +75,7 @@ describe("account UI source", () => {
     assert.match(savedCommutesSource, /accountCommutes/);
     assert.match(savedCommutesSource, /status-pill/);
     assert.match(savedCommutesSource, /matchedImpacts/);
-    assert.match(savedCommutesSource, /Route path unavailable/);
+    assert.match(savedCommutesSource, /formatTravelTimeHeadline/);
     assert.doesNotMatch(savedCommutesSource, /Impact matching pending/);
     assert.match(savedCommutesSource, /createSavedCommute/);
     assert.match(savedCommutesSource, /deleteSavedCommute/);
@@ -122,7 +122,7 @@ describe("account UI source", () => {
 
   it("renders saved commute extra-time estimates without claiming precision for major disruptions", () => {
     assert.match(savedCommutesSource, /travelTimeEstimate/);
-    assert.match(savedCommutesSource, /function formatEstimateMinutes/);
+    assert.match(savedCommutesSource, /formatEstimateDuration/);
     assert.match(savedCommutesSource, /function TravelTimeEstimateBlock/);
     assert.match(savedCommutesSource, /saved-commute-time-estimate/);
     assert.match(savedCommutesSource, /Travel Time/);

@@ -23,6 +23,13 @@ import {
   type SavedCommuteSort,
 } from "../app/account-data";
 import type { StationSummary } from "../app/station-data";
+import {
+  formatConfidenceLabel,
+  formatEstimateDuration,
+  formatEstimateRange,
+  formatExtraTimeRange,
+  formatTravelTimeHeadline,
+} from "../app/commute-duration";
 import { SavedCommuteStationPicker } from "./SavedCommuteStationPicker";
 import { DelayIcon } from "./DelayIcon";
 
@@ -202,47 +209,6 @@ function impactLineLabel(impact: AccountMatchedImpact) {
   return impact.lineNumber ? `Line ${impact.lineNumber}` : "Station";
 }
 
-function minutesFromSeconds(seconds: number | null | undefined) {
-  if (!seconds || seconds <= 0) return 0;
-  return Math.max(1, Math.round(seconds / 60));
-}
-
-function formatEstimateMinutes(seconds: number | null | undefined) {
-  const minutes = minutesFromSeconds(seconds);
-  return minutes === 0 ? "Unavailable" : `${minutes} min`;
-}
-
-function formatEstimateRange(lowSeconds: number | null | undefined, highSeconds: number | null | undefined) {
-  const low = minutesFromSeconds(lowSeconds);
-  const high = minutesFromSeconds(highSeconds);
-  if (low === 0 && high === 0) return "Unavailable";
-  if (low === high || high === 0) return `${low} min`;
-  return `${low}-${high} min`;
-}
-
-function formatExtraTimeRange(lowSeconds: number | null | undefined, highSeconds: number | null | undefined) {
-  const low = minutesFromSeconds(lowSeconds);
-  const high = minutesFromSeconds(highSeconds);
-  if (low === 0 && high === 0) return "+0 min";
-  if (low === high || high === 0) return `+${low} min`;
-  return `+${low}-${high} min`;
-}
-
-function confidenceLabel(confidence: AccountCommuteTravelTimeEstimate["confidence"]) {
-  switch (confidence) {
-    case "high":
-      return "High";
-    case "medium":
-      return "Medium";
-    case "low":
-      return "Low";
-    case "none":
-      return "None";
-    default:
-      return toTitleCase(confidence || "Unknown");
-  }
-}
-
 type TravelTimeSeverity = "good" | "decent" | "moderate" | "poor" | "severe";
 
 function travelTimeSeverity(estimate: AccountCommuteTravelTimeEstimate): TravelTimeSeverity {
@@ -284,7 +250,7 @@ function fallbackTravelTimeEstimate(leg: AccountCommuteLeg): AccountCommuteTrave
     extraLowSeconds: 0,
     extraHighSeconds: 0,
     confidence: "high",
-    summary: `Typical commute: about ${formatEstimateMinutes(leg.path.estimatedTravelSeconds)}. No extra time estimated.`,
+    summary: `Typical commute: about ${formatEstimateDuration(leg.path.estimatedTravelSeconds)}. No extra time estimated.`,
   };
 }
 
@@ -306,7 +272,7 @@ function TravelTimeEstimateBlock({ leg }: { leg: AccountCommuteLeg }) {
         <div className="saved-commute-time-estimate-grid">
           <span>
             <strong>Typical</strong>
-            <em>{formatEstimateMinutes(estimate.baselineSeconds)}</em>
+            <em>{formatEstimateDuration(estimate.baselineSeconds)}</em>
           </span>
           <span>
             <strong>With Impacts</strong>
@@ -318,7 +284,7 @@ function TravelTimeEstimateBlock({ leg }: { leg: AccountCommuteLeg }) {
           </span>
           <span>
             <strong>Confidence</strong>
-            <em>{confidenceLabel(estimate.confidence)}</em>
+            <em>{formatConfidenceLabel(estimate.confidence)}</em>
           </span>
         </div>
       </div>
@@ -339,7 +305,7 @@ function TravelTimeEstimateBlock({ leg }: { leg: AccountCommuteLeg }) {
         <div className="saved-commute-time-estimate-grid">
           <span>
             <strong>Typical</strong>
-            <em>{formatEstimateMinutes(estimate.baselineSeconds)}</em>
+            <em>{formatEstimateDuration(estimate.baselineSeconds)}</em>
           </span>
           <span>
             <strong>With Impacts</strong>
@@ -351,7 +317,7 @@ function TravelTimeEstimateBlock({ leg }: { leg: AccountCommuteLeg }) {
           </span>
           <span>
             <strong>Confidence</strong>
-            <em>{confidenceLabel(estimate.confidence)}</em>
+            <em>{formatConfidenceLabel(estimate.confidence)}</em>
           </span>
         </div>
       </div>
@@ -369,11 +335,11 @@ function TravelTimeEstimateBlock({ leg }: { leg: AccountCommuteLeg }) {
         <strong>Travel Time</strong>
       </div>
       <p>
-        <strong>Typical {formatEstimateMinutes(estimate.baselineSeconds)}</strong>
+        <strong>Typical {formatEstimateDuration(estimate.baselineSeconds)}</strong>
         <em className="saved-commute-time-verdict">
           {estimate.summary || "Major disruption on this route; travel time is not reliable."}
         </em>
-        <span>Confidence: {confidenceLabel(estimate.confidence)}</span>
+        <span>Confidence: {formatConfidenceLabel(estimate.confidence)}</span>
       </p>
     </div>
   );
@@ -1257,6 +1223,8 @@ export function SavedCommutesPanel({
                 const notificationDraft = notificationDrafts[commute.id] ?? notificationRule;
                 const editingNotificationRule = editingNotificationCommuteId === commute.id;
                 const notificationRuleStatus = notificationRule.enabled ? "On" : "Off";
+                const selectedTravelTimeEstimate = selectedLeg.impact.travelTimeEstimate ?? fallbackTravelTimeEstimate(selectedLeg);
+                const travelTimeHeadline = formatTravelTimeHeadline(selectedTravelTimeEstimate);
 
                 return (
                   <div key={commute.id} className={`commute-card ${commuteTone(commute)} min-w-0 rounded-lg border border-black/10 !bg-slate-50 p-3 dark:border-white/10 dark:!bg-[#12151c]`}>
@@ -1317,28 +1285,7 @@ export function SavedCommutesPanel({
                         </div>
                       ) : null}
 
-                      <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mt-2">
-                        Default Scheduled Route - To {selectedLeg.toStationName}
-                      </div>
-
-                      <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 mt-1.5 text-sm sm:text-base text-slate-800 dark:text-white font-bold">
-                        <div className="flex items-center gap-2">
-                          <NumStationsIcon className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-slate-800 dark:text-white shrink-0" />
-                          <span>
-                            {toTitleCase(`${selectedLeg.path.stationIds.length} Station${selectedLeg.path.stationIds.length === 1 ? "" : "s"}`)}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Clock className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-slate-800 dark:text-white shrink-0" />
-                          <span>
-                            {selectedLeg.path.status === "available"
-                              ? toTitleCase(`About ${Math.max(1, Math.round(selectedLeg.path.estimatedTravelSeconds / 60.0))} Minutes`)
-                              : toTitleCase("Route path unavailable")}
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="saved-commute-time-estimate-heading mt-3 mb-3 justify-center">
+                      <div className="saved-commute-time-estimate-heading mt-3 justify-center">
                         <strong
                           className={`!text-[0.88rem] inline-block pb-1.5 border-b-2 ${
                             selectedLeg.impact.severity === "clear"
@@ -1351,6 +1298,35 @@ export function SavedCommutesPanel({
                         >
                           {toTitleCase(selectedLeg.impact.statusLabel)}
                         </strong>
+                      </div>
+
+                      <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-1.5 mt-2 text-sm sm:text-base text-slate-800 dark:text-white font-bold">
+                        <div className="flex items-center gap-2">
+                          <NumStationsIcon className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-slate-800 dark:text-white shrink-0" />
+                          <span>
+                            {toTitleCase(`${selectedLeg.path.stationIds.length} Station${selectedLeg.path.stationIds.length === 1 ? "" : "s"}`)}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-center gap-2 text-center">
+                          <Clock className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-slate-800 dark:text-white shrink-0" />
+                          <span>{travelTimeHeadline.value}</span>
+                        </div>
+                      </div>
+
+                      <div
+                        className={`mt-1 text-center text-[10px] font-bold tracking-wide ${
+                          selectedTravelTimeEstimate.status === "standard"
+                            ? "text-emerald-600 dark:text-emerald-400"
+                            : selectedTravelTimeEstimate.status === "estimated"
+                              ? "text-amber-600 dark:text-amber-400"
+                              : "text-red-600 dark:text-red-400"
+                        }`}
+                      >
+                        {travelTimeHeadline.context}
+                      </div>
+
+                      <div className="mt-1 mb-3 text-center text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                        Default Scheduled Route · To {selectedLeg.toStationName}
                       </div>
 
                       <TravelTimeEstimateBlock leg={selectedLeg} />

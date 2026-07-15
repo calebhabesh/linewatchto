@@ -1971,7 +1971,7 @@ button {
 .motion-paused .commute-path-preview-path {
   animation: none !important;
   stroke-width: 102;
-  opacity: 1 !important;
+  opacity: 0.72 !important;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -2003,7 +2003,7 @@ button {
   .commute-path-preview-path {
     animation: none !important;
     stroke-width: 102;
-    opacity: 1 !important;
+    opacity: 0.72 !important;
   }
 }
 
@@ -2028,6 +2028,16 @@ button {
 .overlay-segment-group:has(.asset-alert-path:focus-visible) .interactive-glow,
 .interactive-glow.selected {
   opacity: 0.55;
+}
+
+@media (max-width: 767px) {
+  [data-selected-commute-impact-overlay] .asset-alert-path-glow {
+    display: none;
+  }
+}
+
+.linewatch-shell.mobile-performance-mode [data-selected-commute-impact-overlay] .asset-alert-path-glow {
+  display: none;
 }
 
 .asset-alert-path {
@@ -7094,7 +7104,7 @@ button {
 .commute-path-preview-path {
   animation: candy-pulse 1.2s infinite alternate ease-in-out;
   animation-delay: var(--map-pulse-offset);
-  opacity: 1;
+  opacity: 0.72;
   stroke: #1d4ed8;
   stroke-width: 102;
   transition: none !important;
@@ -7281,6 +7291,16 @@ button {
     filter: none !important;
     opacity: 0.95;
     transform: scale(1);
+  }
+}
+
+@media (max-width: 767px) {
+  .station-commute-green-flash {
+    fill: #4ade80 !important;
+    opacity: 1;
+    stroke: #dcfce7 !important;
+    stroke-width: 3.5 !important;
+    transform: scale(1.4);
   }
 }
 

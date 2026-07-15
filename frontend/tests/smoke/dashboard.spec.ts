@@ -957,9 +957,10 @@ test("demo account shows account-backed saved commutes", async ({ page, request,
 
   await expect(page.getByText("Demo account").filter({ visible: true })).toBeVisible();
   await expect(page.getByText("Stub Station <-> Union")).toBeVisible();
-  await expect(page.getByText("Default Scheduled Route - To Union")).toBeVisible();
+  await expect(page.getByText("Default Scheduled Route · To Union")).toBeVisible();
   await expect(page.getByText("5 Stations", { exact: true })).toBeVisible();
-  await expect(page.getByText("About 13 Minutes", { exact: true })).toBeVisible();
+  await expect(page.getByText("Travel time unreliable", { exact: true })).toBeVisible();
+  await expect(page.getByText("Major disruption on route", { exact: true })).toBeVisible();
   await expect(page.getByText("Travel Time", { exact: true })).toBeVisible();
   await expect(page.locator('[data-travel-time-severity="severe"]')).toBeVisible();
   await expect(page.getByText("Major disruption on this route; travel time is not reliable.")).toBeVisible();
@@ -972,7 +973,7 @@ test("demo account shows account-backed saved commutes", async ({ page, request,
   await expect(page.getByText("Outbound Affected", { exact: true })).toBeVisible();
   await expect(page.getByRole("tab", { name: "To Union" })).toHaveAttribute("aria-selected", "true");
   await expect(page.getByRole("tab", { name: "To Stub Station" })).toBeVisible();
-  await expect(page.getByText("Default Scheduled Route - To Union")).toBeVisible();
+  await expect(page.getByText("Default Scheduled Route · To Union")).toBeVisible();
   await expect(page.getByText("Affected Now", { exact: true })).toBeVisible();
   await expect(page.getByText("Clear", { exact: true })).not.toBeVisible();
   await expect(page.getByText("Suspension", { exact: true })).toBeVisible();
@@ -1001,10 +1002,23 @@ test("demo account shows account-backed saved commutes", async ({ page, request,
 
   await page.getByRole("button", { name: /View Suspension on the map for Morning commute/ }).click();
   await expect(page.locator("[data-commute-path-preview]")).toBeVisible();
-  const selectedImpactEmphasis = page.locator('[data-selected-impact-emphasis="stub-alert-line-1"]');
-  await expect(selectedImpactEmphasis).toBeAttached();
+  const selectedImpactOverlay = page.locator('[data-selected-commute-impact-overlay="stub-alert-line-1"]');
+  await expect(selectedImpactOverlay).toBeAttached();
+  await expect(selectedImpactOverlay.locator(".suspension-candy")).toBeVisible();
+  await expect(selectedImpactOverlay.locator(".suspension-no-entry-lane")).toBeVisible();
+  const selectedImpactGlowStyle = await selectedImpactOverlay.locator(".interactive-glow.selected").evaluate((glow) => {
+    const style = getComputedStyle(glow);
+    return {
+      display: style.display,
+      opacity: Number.parseFloat(style.opacity),
+      strokeWidth: Number.parseFloat(style.strokeWidth),
+    };
+  });
   expect(
-    await selectedImpactEmphasis.evaluate((path) => path.parentElement?.nextElementSibling === null),
+    await selectedImpactOverlay.evaluate((overlay) => {
+      const routePath = document.querySelector(".commute-path-preview-path");
+      return Boolean(routePath && (routePath.compareDocumentPosition(overlay) & Node.DOCUMENT_POSITION_FOLLOWING));
+    }),
   ).toBe(true);
   const commutePathStyle = await page.locator(".commute-path-preview-path").evaluate((path) => {
     const style = getComputedStyle(path);
@@ -1037,6 +1051,7 @@ test("demo account shows account-backed saved commutes", async ({ page, request,
     expect(commuteGlowStyle.filter).toBe("none");
     expect(commuteGlowStyle.strokeWidth).toBe(132);
     expect(commuteBeaconStyle.animationName).toBe("none");
+    expect(selectedImpactGlowStyle.display).toBe("none");
   } else {
     expect(commutePathStyle.animationName).toBe("candy-pulse");
     expect(commutePathStyle.strokeWidth).toBeGreaterThanOrEqual(102);
@@ -1054,7 +1069,9 @@ test("demo account shows account-backed saved commutes", async ({ page, request,
   await expect(page.locator("[data-commute-path-preview]")).toHaveCount(0);
 
   await page.getByRole("tab", { name: "To Stub Station" }).click();
-  await expect(page.getByText("Default Scheduled Route - To Stub Station")).toBeVisible();
+  await expect(page.getByText("Default Scheduled Route · To Stub Station")).toBeVisible();
+  await expect(page.getByText("About 13 min", { exact: true })).toBeVisible();
+  await expect(page.getByText("Typical scheduled time", { exact: true })).toBeVisible();
   await expect(page.getByText("No extra time", { exact: true })).toBeVisible();
   await expect(page.locator('[data-travel-time-severity="good"]')).toBeVisible();
   await expect(page.getByText("Clear", { exact: true })).toBeVisible();
