@@ -45,6 +45,8 @@ export function MobileStatusPeek({
   onRecenter,
 }: Props) {
   const impactCount = activeAlertCount + delayCount + reducedSpeedZoneCount + plannedClosureCount;
+  const categoryCount = [activeAlertCount, delayCount, reducedSpeedZoneCount, plannedClosureCount]
+    .filter((count) => count > 0).length;
   const toTitleCase = (str: string) =>
     str.split(" ").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
   const sourceLabel = dataSource === "backend" ? `Updated ${toTitleCase(pollText)}` : "Fixture Mode";
@@ -54,7 +56,7 @@ export function MobileStatusPeek({
     : "No Current Impacts";
 
   return (
-    <div className="mobile-status-peek">
+    <div className="mobile-status-peek" data-category-count={categoryCount}>
       <div
         className="mobile-status-peek-info-btn"
         role="button"

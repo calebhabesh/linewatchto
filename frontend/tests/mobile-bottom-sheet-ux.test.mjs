@@ -31,6 +31,8 @@ describe("mobile bottom sheet UX", () => {
 
   it("keeps a compact status answer above mobile bottom navigation", () => {
     assert.match(statusPeekSource, /mobile-status-peek/);
+    assert.match(statusPeekSource, /data-category-count=\{categoryCount\}/);
+    assert.match(statusPeekSource, /\.filter\(\(count\) => count > 0\)\.length/);
     assert.match(statusPeekSource, /Reduced Speed Zones/);
     assert.match(statusPeekSource, /onOpenStatus/);
     assert.match(statusPeekSource, /onRecenter/);
@@ -38,6 +40,13 @@ describe("mobile bottom sheet UX", () => {
     assert.match(globalCss, /\.mobile-status-peek/);
     assert.match(globalCss, /--mobile-bottom-nav-height/);
     assert.match(globalCss, /\.mobile-status-peek-info-btn\s*\{[^}]*gap:\s*3px/s);
+    assert.match(globalCss, /\.mobile-status-peek-info-btn\s*\{[^}]*flex:\s*1 1 0;[^}]*min-width:\s*0/s);
+    assert.match(globalCss, /\.mobile-status-peek-counts\s*\{[^}]*flex-wrap:\s*wrap;[^}]*max-width:\s*100%;[^}]*width:\s*100%/s);
+    assert.match(globalCss, /\.mobile-status-peek-count-badge\s*\{[^}]*flex:\s*0 0 auto/s);
+    assert.match(globalCss, /\.mobile-status-peek-recenter-btn\s*\{[^}]*flex:\s*0 0 60px/s);
+    assert.match(globalCss, /\.mobile-status-peek:is\(\[data-category-count="3"\], \[data-category-count="4"\]\)\s*\{[^}]*gap:\s*8px/s);
+    assert.match(globalCss, /\.mobile-status-peek:is\(\[data-category-count="3"\], \[data-category-count="4"\]\) \.mobile-status-peek-counts\s*\{[^}]*gap:\s*4px/s);
+    assert.match(globalCss, /\.mobile-status-peek:is\(\[data-category-count="3"\], \[data-category-count="4"\]\) \.mobile-status-peek-count-badge\s*\{[^}]*gap:\s*3px;[^}]*padding-inline:\s*7px/s);
   });
 
   it("renders a mobile-specific status sheet that drills into existing alert categories", () => {

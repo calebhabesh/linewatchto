@@ -8175,7 +8175,7 @@ button {
     display: flex;
     flex-direction: column;
     gap: 3px;
-    flex: 1;
+    flex: 1 1 0;
     min-width: 0;
     cursor: pointer;
   }
@@ -8251,12 +8251,15 @@ button {
     display: flex;
     flex-wrap: wrap;
     gap: 6px;
+    max-width: 100%;
+    width: 100%;
   }
 
   .mobile-status-peek-count-badge {
     align-items: center;
     border-radius: 6px;
     display: inline-flex;
+    flex: 0 0 auto;
     font-size: 11px;
     font-weight: 600;
     gap: 4px;
@@ -8266,6 +8269,20 @@ button {
     user-select: none;
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
   }
+
+  .mobile-status-peek:is([data-category-count="3"], [data-category-count="4"]) {
+    gap: 8px;
+  }
+
+  .mobile-status-peek:is([data-category-count="3"], [data-category-count="4"]) .mobile-status-peek-counts {
+    gap: 4px;
+  }
+
+  .mobile-status-peek:is([data-category-count="3"], [data-category-count="4"]) .mobile-status-peek-count-badge {
+    gap: 3px;
+    padding-inline: 7px;
+  }
+
   .mobile-status-peek-number {
     font-weight: 900;
     margin-right: 3.5px;
@@ -8400,6 +8417,7 @@ button {
     cursor: pointer;
     display: flex;
     flex-direction: column;
+    flex: 0 0 60px;
     gap: 4px;
     justify-content: center;
     min-width: 60px;
