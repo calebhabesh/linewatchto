@@ -37,6 +37,7 @@ describe("mobile bottom sheet UX", () => {
     assert.match(statusPeekSource, /aria-label="Open current service status"/);
     assert.match(globalCss, /\.mobile-status-peek/);
     assert.match(globalCss, /--mobile-bottom-nav-height/);
+    assert.match(globalCss, /\.mobile-status-peek-info-btn\s*\{[^}]*gap:\s*3px/s);
   });
 
   it("renders a mobile-specific status sheet that drills into existing alert categories", () => {

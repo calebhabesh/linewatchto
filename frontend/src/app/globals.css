@@ -8174,7 +8174,7 @@ button {
     text-align: left;
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 3px;
     flex: 1;
     min-width: 0;
     cursor: pointer;
