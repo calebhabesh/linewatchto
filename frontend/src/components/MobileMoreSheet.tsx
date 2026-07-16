@@ -2,7 +2,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { BarChart3, Bell, Download, FileText, LogIn, LogOut, MessageSquareText, RefreshCcw, Contrast, Pause, Share2, ShieldCheck, Sparkles, UserPlus, UserRound, X, History, Map as MapIcon } from "lucide-react";
+import { BarChart3, Bell, BatteryCharging, Download, FileText, LogIn, LogOut, MessageSquareText, RefreshCcw, Contrast, Pause, Share2, ShieldCheck, Sparkles, TriangleAlert, UserPlus, UserRound, X, History, Map as MapIcon } from "lucide-react";
 import Image from "next/image";
 import type { AccountState } from "../app/account-data";
 import { lineWatchAppVersionLabel } from "../app/app-build";
@@ -338,14 +338,48 @@ export function MobileMoreSheet({
             accountState={accountState}
           />
           {isAndroid && (
-            <div className="mobile-more-install-help" role="note">
-              <span>Android Notification Reliability</span>
-              <strong>Use unrestricted battery access when available</strong>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1.5 leading-relaxed">
-                Android can delay PWA notifications while the phone is idle. For the best available reliability, open Settings &gt; Apps &gt; LineWatchTO &gt; App battery usage and choose <strong>Unrestricted</strong>. If LineWatchTO is not listed separately, apply the setting to Chrome. Also confirm notification permission and enable &quot;Pop on screen&quot; for the LineWatchTO notification channel.
+            <div className="mobile-more-install-help android-notification-help" role="note">
+              <div className="android-notification-help-heading">
+                <BatteryCharging size={18} aria-hidden="true" />
+                <div>
+                  <span>Android Notification Reliability</span>
+                  <strong>Help alerts arrive while your phone is idle</strong>
+                </div>
+              </div>
+
+              <ol className="android-notification-steps" aria-label="Android notification setup steps">
+                <li>
+                  <b>1</b>
+                  <div>
+                    <strong>Open the app settings</strong>
+                    <p>Settings <i>›</i> Apps <i>›</i> LineWatchTO</p>
+                  </div>
+                </li>
+                <li>
+                  <b>2</b>
+                  <div>
+                    <strong>Remove the battery restriction</strong>
+                    <p>App battery usage <i>›</i> <em>Unrestricted</em></p>
+                  </div>
+                </li>
+                <li>
+                  <b>3</b>
+                  <div>
+                    <strong>Allow visible alerts</strong>
+                    <p>Notifications <i>›</i> LineWatchTO <i>›</i> Pop on screen</p>
+                  </div>
+                </li>
+              </ol>
+
+              <p className="android-notification-fallback">
+                Don&apos;t see LineWatchTO in Apps? Apply the battery setting to <strong>Chrome</strong> instead.
               </p>
-              <div className="text-[11px] text-slate-700 dark:text-slate-300 font-medium mt-1 leading-relaxed">
-                Unrestricted background use can consume more battery and improves the odds, but Android and Chrome policy still cannot guarantee immediate delivery. Do not rely on PWA push as the only channel for safety-critical alerts.
+
+              <div className="android-notification-caution">
+                <TriangleAlert size={15} aria-hidden="true" />
+                <p>
+                  Unrestricted access can use more battery and improves the odds, but Android and Chrome policy still cannot guarantee immediate delivery. Do not rely on PWA push as the only channel for safety-critical alerts.
+                </p>
               </div>
             </div>
           )}

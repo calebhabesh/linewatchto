@@ -111,5 +111,9 @@ describe("notification settings navigation", () => {
     assert.match(moreSheetSource, /Chrome/);
     assert.match(moreSheetSource, /more battery/);
     assert.match(moreSheetSource, /cannot guarantee immediate delivery/);
+    assert.match(moreSheetSource, /android-notification-steps/);
+    assert.match(moreSheetSource, /Remove the battery restriction/);
+    assert.match(moreSheetSource, /Allow visible alerts/);
+    assert.match(globalCss, /\.android-notification-caution/);
   });
 });
