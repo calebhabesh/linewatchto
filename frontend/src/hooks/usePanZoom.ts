@@ -4,6 +4,7 @@ import {
   clientPointToLogicalViewportPoint,
   currentDevicePixelRatio,
   distanceBetweenPoints,
+  exceedsMapTapMovement,
   mapPointFromViewportPoint,
   midpointBetweenPoints,
   snapTransformToDevicePixels,
@@ -42,6 +43,7 @@ export function usePanZoom({
   const lastMoveEvent = useRef<{ clientX: number, clientY: number } | null>(null);
   const isGestureActiveRef = useRef(false);
   const activePointersRef = useRef(new Map<number, PanZoomPoint>());
+  const pointerStartPointsRef = useRef(new Map<number, PanZoomPoint>());
   const pinchGestureRef = useRef<{
     startDistance: number;
     startScale: number;
@@ -49,6 +51,9 @@ export function usePanZoom({
   } | null>(null);
   const fitScaleRef = useRef(1);
   const activeDragPointerIdRef = useRef<number | null>(null);
+  const gestureMovedRef = useRef(false);
+  const suppressMapClickRef = useRef(false);
+  const dragPointerTypeRef = useRef<string | null>(null);
 
   const shouldAnimateProgrammaticTransform = !reducedMotion && !disableProgrammaticMotion;
 
@@ -340,21 +345,39 @@ export function usePanZoom({
     isGestureActiveRef.current = true;
     setIsGestureActive(true);
     setMapTransition("none");
-    if (pointerType === "mouse") {
-      setIsDragging(true);
-    }
+    dragPointerTypeRef.current = pointerType;
   }, [setMapTransition]);
+
+  const captureActivePointers = useCallback((element: HTMLDivElement) => {
+    for (const pointerId of activePointersRef.current.keys()) {
+      try {
+        if (!element.hasPointerCapture(pointerId)) {
+          element.setPointerCapture(pointerId);
+        }
+      } catch {
+        // A pointer may have ended between bookkeeping and capture.
+      }
+    }
+  }, []);
 
   const handlePointerDown = useCallback((e: PointerEvent<HTMLDivElement>) => {
     if (e.pointerType === "mouse" && e.button !== 0) return;
+
+    if (activePointersRef.current.size === 0) {
+      gestureMovedRef.current = false;
+      suppressMapClickRef.current = false;
+    }
 
     cancelAnimation();
     startGestureInteraction(e.pointerType);
     const point = pointerPointFromEvent(e);
     activePointersRef.current.set(e.pointerId, point);
-    e.currentTarget.setPointerCapture(e.pointerId);
+    pointerStartPointsRef.current.set(e.pointerId, point);
 
     if (activePointersRef.current.size >= 2) {
+      gestureMovedRef.current = true;
+      suppressMapClickRef.current = true;
+      captureActivePointers(e.currentTarget);
       activeDragPointerIdRef.current = null;
       lastMoveEvent.current = null;
       beginPinchGesture();
@@ -367,7 +390,7 @@ export function usePanZoom({
       x: point.x - transformRef.current.x,
       y: point.y - transformRef.current.y,
     };
-  }, [beginPinchGesture, cancelAnimation, pointerPointFromEvent, startGestureInteraction]);
+  }, [beginPinchGesture, cancelAnimation, captureActivePointers, pointerPointFromEvent, startGestureInteraction]);
 
   const handlePointerMove = useCallback((e: PointerEvent<HTMLDivElement>) => {
     if (!isGestureActiveRef.current) return;
@@ -387,6 +410,18 @@ export function usePanZoom({
     }
 
     if (activeDragPointerIdRef.current !== e.pointerId) return;
+
+    const startPoint = pointerStartPointsRef.current.get(e.pointerId) ?? point;
+    if (!gestureMovedRef.current) {
+      if (!exceedsMapTapMovement(startPoint, point)) return;
+
+      gestureMovedRef.current = true;
+      suppressMapClickRef.current = true;
+      captureActivePointers(e.currentTarget);
+      if (dragPointerTypeRef.current === "mouse") {
+        setIsDragging(true);
+      }
+    }
 
     lastMoveEvent.current = { clientX: point.x, clientY: point.y };
 
@@ -409,7 +444,7 @@ export function usePanZoom({
         dragRafRef.current = null;
       });
     }
-  }, [applyPinchGesture, pointerPointFromEvent, writeMapTransform]);
+  }, [applyPinchGesture, captureActivePointers, pointerPointFromEvent, writeMapTransform]);
 
   const finishPointerInteraction = useCallback((e: PointerEvent<HTMLDivElement>) => {
     if (dragRafRef.current !== null) {
@@ -419,6 +454,7 @@ export function usePanZoom({
 
     const wasGestureActive = isGestureActiveRef.current;
     activePointersRef.current.delete(e.pointerId);
+    pointerStartPointsRef.current.delete(e.pointerId);
 
     try {
       if (e.currentTarget.hasPointerCapture(e.pointerId)) {
@@ -443,6 +479,7 @@ export function usePanZoom({
     if (remainingPointers.length === 1) {
       const [pointerId, point] = remainingPointers[0];
       activeDragPointerIdRef.current = pointerId;
+      pointerStartPointsRef.current.set(pointerId, point);
       startPos.current = {
         x: point.x - transformRef.current.x,
         y: point.y - transformRef.current.y,
@@ -455,6 +492,8 @@ export function usePanZoom({
     isGestureActiveRef.current = false;
     activeDragPointerIdRef.current = null;
     activePointersRef.current.clear();
+    pointerStartPointsRef.current.clear();
+    dragPointerTypeRef.current = null;
     setIsDragging(false);
     restoreIdleMapTransition();
     setTransform({ ...transformRef.current });
@@ -470,8 +509,11 @@ export function usePanZoom({
   }, [finishPointerInteraction]);
 
   const handlePointerCancel = useCallback((e: PointerEvent<HTMLDivElement>) => {
+    suppressMapClickRef.current = true;
     finishPointerInteraction(e);
   }, [finishPointerInteraction]);
+
+  const shouldSuppressMapClick = useCallback(() => suppressMapClickRef.current, []);
 
   const handleWheel = useCallback((e: WheelEvent<HTMLDivElement>) => {
     if (!containerRef.current) return;
@@ -603,5 +645,6 @@ export function usePanZoom({
     zoomToScale,
     zoomToPoint,
     cancelAnimation,
+    shouldSuppressMapClick,
   };
 }

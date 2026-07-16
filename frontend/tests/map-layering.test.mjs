@@ -34,6 +34,22 @@ describe("asset-backed map layering", () => {
     );
   });
 
+  it("uses a larger screen-sized hit stroke without making disruption visuals thicker", () => {
+    assert.match(interactiveMapSource, /className="map-segment-hit-target"/);
+    assert.match(interactiveMapSource, /vectorEffect="non-scaling-stroke"/);
+    assert.match(globalCss, /\.map-segment-hit-target\s*\{[^}]*stroke-width:\s*32px;/s);
+    assert.match(
+      globalCss,
+      /@media \(pointer:\s*coarse\)[\s\S]*?\.map-segment-hit-target\s*\{[^}]*stroke-width:\s*44px;/,
+    );
+  });
+
+  it("provides segment press feedback without adding map instructions", () => {
+    assert.doesNotMatch(interactiveMapSource, /map-interaction-hint/);
+    assert.doesNotMatch(interactiveMapSource, /Tap affected sections/);
+    assert.match(globalCss, /\.overlay-segment-group:has\(\.map-segment-hit-target:active\)/);
+  });
+
   it("renders animated visual effects for delays, closures, and station impacts", () => {
     assert.match(interactiveMapSource, /<pattern id="badge-suspension-hash"/);
     assert.match(interactiveMapSource, /className="rsz-chevron"/);

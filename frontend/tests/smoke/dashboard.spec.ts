@@ -376,6 +376,76 @@ test("map overlays open the corresponding submenu cards", async ({ page, request
   await expect(activeAlertCard).toHaveClass(/highlight-active-card/);
 });
 
+test("affected segment targets distinguish dragging from selection", async ({ page, request, isMobile }) => {
+  await setStubMode(request, "seeded");
+  await page.goto("/");
+  await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
+
+  const target = page.getByRole("button", { name: "delay: Sheppard-Yonge to Don Mills" });
+  await expect(target).toBeVisible();
+  await expect(target).toHaveClass("map-segment-hit-target");
+  await expect(target).toHaveCSS("stroke-width", isMobile ? "44px" : "32px");
+  await page.waitForTimeout(900);
+
+  const mapElement = page.locator(".absolute.top-0.left-0.w-full.h-full.origin-top-left").first();
+  const initialTransform = await mapElement.evaluate((element) => element.style.transform);
+  const start = await target.evaluate((element) => {
+    const path = element as SVGPathElement;
+    const point = path.getPointAtLength(path.getTotalLength() / 2);
+    const matrix = path.getScreenCTM();
+    if (!matrix) throw new Error("Missing segment screen transform");
+    return {
+      x: point.x * matrix.a + point.y * matrix.c + matrix.e,
+      y: point.x * matrix.b + point.y * matrix.d + matrix.f,
+    };
+  });
+
+  if (isMobile) {
+    const viewport = page.locator(".touch-none").first();
+    await target.dispatchEvent("pointerdown", {
+      pointerId: 1,
+      pointerType: "touch",
+      isPrimary: true,
+      clientX: start.x,
+      clientY: start.y,
+      buttons: 1,
+    });
+    await viewport.dispatchEvent("pointermove", {
+      pointerId: 1,
+      pointerType: "touch",
+      isPrimary: true,
+      clientX: start.x + 48,
+      clientY: start.y + 24,
+      buttons: 1,
+    });
+    await page.waitForTimeout(32);
+    await viewport.dispatchEvent("pointerup", {
+      pointerId: 1,
+      pointerType: "touch",
+      isPrimary: true,
+      clientX: start.x + 48,
+      clientY: start.y + 24,
+      buttons: 0,
+    });
+  } else {
+    await page.mouse.move(start.x, start.y);
+    await page.mouse.down();
+    await page.mouse.move(start.x + 48, start.y + 24, { steps: 4 });
+    await page.mouse.up();
+  }
+
+  expect(await mapElement.evaluate((element) => element.style.transform)).not.toEqual(initialTransform);
+  await expect(page.locator('[data-mobile-impact-inspector]')).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "Delays" })).toHaveCount(0);
+
+  await target.click();
+  if (isMobile) {
+    await expect(page.locator('[data-mobile-impact-inspector]')).toBeVisible();
+  } else {
+    await expect(page.getByRole("heading", { name: "Delays" })).toBeVisible();
+  }
+});
+
 test("mobile keeps lightweight map focus flashes and menu transitions", async ({ page, request, isMobile }) => {
   test.skip(!isMobile, "mobile-only motion smoke");
   await setStubMode(request, "seeded");

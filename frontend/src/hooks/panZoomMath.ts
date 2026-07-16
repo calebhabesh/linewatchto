@@ -78,6 +78,14 @@ export function distanceBetweenPoints(a: PanZoomPoint, b: PanZoomPoint): number 
   return Math.hypot(b.x - a.x, b.y - a.y);
 }
 
+export function exceedsMapTapMovement(
+  start: PanZoomPoint,
+  current: PanZoomPoint,
+  threshold = 8,
+): boolean {
+  return distanceBetweenPoints(start, current) > threshold;
+}
+
 export function mapPointFromViewportPoint(
   transform: PanZoomTransform,
   viewportPoint: PanZoomPoint,

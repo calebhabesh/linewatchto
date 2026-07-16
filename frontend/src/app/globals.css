@@ -2007,8 +2007,9 @@ button {
   }
 }
 
-.overlay-segment-group:has(.asset-alert-path:hover) .asset-alert-path-glow,
-.overlay-segment-group:has(.asset-alert-path:focus-visible) .asset-alert-path-glow,
+.overlay-segment-group:has(.map-segment-hit-target:hover) .asset-alert-path-glow,
+.overlay-segment-group:has(.map-segment-hit-target:focus-visible) .asset-alert-path-glow,
+.overlay-segment-group:has(.map-segment-hit-target:active) .asset-alert-path-glow,
 .asset-alert-path-glow.selected {
   stroke-width: 190;
   filter: blur(18px);
@@ -2024,8 +2025,9 @@ button {
   animation: none !important;
 }
 
-.overlay-segment-group:has(.asset-alert-path:hover) .interactive-glow,
-.overlay-segment-group:has(.asset-alert-path:focus-visible) .interactive-glow,
+.overlay-segment-group:has(.map-segment-hit-target:hover) .interactive-glow,
+.overlay-segment-group:has(.map-segment-hit-target:focus-visible) .interactive-glow,
+.overlay-segment-group:has(.map-segment-hit-target:active) .interactive-glow,
 .interactive-glow.selected {
   opacity: 0.55;
 }
@@ -2050,6 +2052,27 @@ button {
   stroke-opacity: 0.95;
   stroke-width: 102;
   transition: stroke-width 0.3s ease;
+}
+
+.map-segment-hit-target {
+  cursor: pointer;
+  fill: none;
+  outline: none;
+  pointer-events: stroke;
+  stroke: transparent;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 32px;
+}
+
+@media (pointer: coarse) {
+  .map-segment-hit-target {
+    stroke-width: 44px;
+  }
+}
+
+.map-segment-hit-target:focus-visible {
+  outline: none;
 }
 
 .asset-alert-path.suspension,
@@ -2116,7 +2139,10 @@ button {
 }
 
 .asset-alert-path.planned-preview:hover,
-.asset-alert-path.planned-preview:focus-visible {
+.asset-alert-path.planned-preview:focus-visible,
+.overlay-segment-group:has(.map-segment-hit-target:hover) .asset-alert-path.planned-preview,
+.overlay-segment-group:has(.map-segment-hit-target:focus-visible) .asset-alert-path.planned-preview,
+.overlay-segment-group:has(.map-segment-hit-target:active) .asset-alert-path.planned-preview {
   opacity: 0.8;
 }
 

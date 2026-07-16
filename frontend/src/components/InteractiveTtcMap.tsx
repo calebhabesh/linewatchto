@@ -288,6 +288,7 @@ function InteractiveTtcMapComponent({
     zoomOut,
     zoomToScale,
     zoomToPoint,
+    shouldSuppressMapClick,
   } = usePanZoom({
     reducedMotion,
     viewportOrientation,
@@ -1150,6 +1151,7 @@ function InteractiveTtcMapComponent({
                         selection={selection}
                         selectedSegmentIds={selectedSegmentIds}
                         onSelectImpact={onSelectImpact}
+                        shouldSuppressMapClick={shouldSuppressMapClick}
                         reducedMotion={reducedMotion}
                         exiting={exiting}
                       />
@@ -1172,6 +1174,7 @@ function InteractiveTtcMapComponent({
                         selection={selection}
                         selectedSegmentIds={selectedSegmentIds}
                         onSelectImpact={onSelectImpact}
+                        shouldSuppressMapClick={shouldSuppressMapClick}
                         reducedMotion={reducedMotion}
                         exiting={exiting}
                       />
@@ -1200,6 +1203,7 @@ function InteractiveTtcMapComponent({
                           selection={selection}
                           selectedSegmentIds={selectedSegmentIds}
                           onSelectImpact={onSelectImpact}
+                          shouldSuppressMapClick={shouldSuppressMapClick}
                           reducedMotion={reducedMotion}
                           idSuffix="-commute-focus"
                         />
@@ -1233,6 +1237,7 @@ function InteractiveTtcMapComponent({
                       selection={selection}
                       onSelectImpact={onSelectImpact}
                       onSelectOverlap={onSelectOverlap}
+                      shouldSuppressMapClick={shouldSuppressMapClick}
                     />
                   ))}
                 </g>
@@ -1348,6 +1353,7 @@ function InteractiveTtcMapComponent({
                             cy={point.y}
                             r={hitRadius}
                             onClick={(event) => {
+                              if (shouldSuppressMapClick()) return;
                               event.stopPropagation();
                               if (hasMultipleVisualAnchors) setHoveredStationId(null);
                               onSelectStationId(selected ? null : station.id);
@@ -1360,7 +1366,6 @@ function InteractiveTtcMapComponent({
                                 onSelectStationId(selected ? null : station.id);
                               }
                             }}
-                            onPointerDown={(event) => event.stopPropagation()}
                             role="button"
                             tabIndex={anchorIndex === 0 ? 0 : -1}
                           />
@@ -1414,6 +1419,7 @@ function InteractiveTtcMapComponent({
                         fill="none"
                         onClick={(event) => {
                           if (exiting) return;
+                          if (shouldSuppressMapClick()) return;
                           event.stopPropagation();
                           onSelectImpact({ kind: impact.kind, id: impact.cardId });
                         }}
@@ -1424,7 +1430,6 @@ function InteractiveTtcMapComponent({
                             onSelectImpact({ kind: impact.kind, id: impact.cardId });
                           }
                         }}
-                        onPointerDown={(event) => event.stopPropagation()}
                         pointerEvents={exiting ? "none" : "stroke"}
                         role="button"
                         tabIndex={exiting ? -1 : 0}
@@ -2702,11 +2707,13 @@ function OverlapIndicatorMarker({
   selection,
   onSelectImpact,
   onSelectOverlap,
+  shouldSuppressMapClick,
 }: {
   badge: OverlapBadgeSegment;
   selection: ImpactSelection;
   onSelectImpact: (selection: ImpactSelection) => void;
   onSelectOverlap?: (selection: MapOverlapSelection) => void;
+  shouldSuppressMapClick: () => boolean;
 }) {
   const kindCounts = overlapBadgeKindCounts(badge.impacts);
   const visibleKindCounts = kindCounts.slice(0, 3);
@@ -2755,11 +2762,11 @@ function OverlapIndicatorMarker({
       data-overlap-segment-id={badge.segmentId}
       data-overlap-collision-avoided={badge.position.collisionAvoided ? "true" : "false"}
       onClick={(event) => {
+        if (shouldSuppressMapClick()) return;
         event.stopPropagation();
         selectOverlapBadge();
       }}
       onKeyDown={handleKeyDown}
-      onPointerDown={(event) => event.stopPropagation()}
       pointerEvents="auto"
       role="button"
       tabIndex={0}
@@ -3027,6 +3034,7 @@ function OverlaySegment({
   selection,
   selectedSegmentIds,
   onSelectImpact,
+  shouldSuppressMapClick,
   reducedMotion,
   exiting,
   idSuffix = "",
@@ -3037,6 +3045,7 @@ function OverlaySegment({
   selection: ImpactSelection;
   selectedSegmentIds: string[];
   onSelectImpact: (selection: ImpactSelection) => void;
+  shouldSuppressMapClick: () => boolean;
   reducedMotion: boolean;
   exiting?: boolean;
   idSuffix?: string;
@@ -3104,6 +3113,7 @@ function OverlaySegment({
   };
 
   const handleSelect = (event: React.MouseEvent<SVGPathElement>) => {
+    if (shouldSuppressMapClick()) return;
     event.stopPropagation();
     selectCurrentImpact();
   };
@@ -3198,16 +3208,24 @@ function OverlaySegment({
         </>
       )}
 
+      {visualState === "planned-preview" ? (
+        <path
+          className={`asset-alert-path planned-preview pointer-events-none ${selectedClass}`}
+          d={segment.pathD}
+          pointerEvents="none"
+        />
+      ) : null}
+
       <path
         aria-label={ariaLabel}
-        className={`asset-alert-path cursor-pointer pointer-events-auto ${visualState} ${selectedClass}`}
+        className="map-segment-hit-target"
         d={segment.pathD}
         onClick={handleSelect}
         onKeyDown={handleKeyDown}
-        onPointerDown={(event) => event.stopPropagation()}
         pointerEvents="stroke"
         role="button"
         tabIndex={0}
+        vectorEffect="non-scaling-stroke"
       />
 
       {visualState === "reduced-speed-zone" && (

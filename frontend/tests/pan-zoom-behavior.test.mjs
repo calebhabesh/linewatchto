@@ -4,6 +4,7 @@ import { describe, it } from "node:test";
 
 import {
   distanceBetweenPoints,
+  exceedsMapTapMovement,
   mapPointFromViewportPoint,
   midpointBetweenPoints,
   snapToDevicePixel,
@@ -17,6 +18,11 @@ const shellSource = readFileSync(new URL("../src/components/LineWatchShell.tsx",
 const globalCss = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
 
 describe("pan zoom behavior guardrails", () => {
+  it("keeps small pointer jitter as a tap and promotes deliberate movement to navigation", () => {
+    assert.equal(exceedsMapTapMovement({ x: 10, y: 10 }, { x: 16, y: 15 }), false);
+    assert.equal(exceedsMapTapMovement({ x: 10, y: 10 }, { x: 19, y: 10 }), true);
+  });
+
   it("snaps default map translations to physical pixels without changing scale", () => {
     assert.equal(snapToDevicePixel(10.24, 2), 10);
     assert.equal(snapToDevicePixel(10.26, 2), 10.5);
@@ -108,6 +114,13 @@ describe("pan zoom behavior guardrails", () => {
     assert.match(hookSource, /handlePointerCancel/);
     assert.match(hookSource, /distanceBetweenPoints/);
     assert.match(hookSource, /transformForMapPointAtViewportPoint/);
+  });
+
+  it("lets map targets participate in pan and pinch gestures without accidental selection", () => {
+    assert.match(hookSource, /pointerStartPointsRef/);
+    assert.match(hookSource, /shouldSuppressMapClick/);
+    assert.match(hookSource, /exceedsMapTapMovement/);
+    assert.doesNotMatch(mapSource, /onPointerDown=\{\(event\) => event\.stopPropagation\(\)\}/);
   });
 
   it("keeps touch gestures on refs instead of React drag state during pointer moves", () => {
