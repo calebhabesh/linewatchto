@@ -40,7 +40,8 @@ describe("mobile bottom sheet UX", () => {
     assert.match(globalCss, /\.mobile-status-peek/);
     assert.match(globalCss, /--mobile-bottom-nav-height/);
     assert.match(globalCss, /\.mobile-status-peek-info-btn\s*\{[^}]*gap:\s*4px/s);
-    assert.match(globalCss, /\.mobile-status-peek-source--updated\s*\{[^}]*margin-top:\s*0\.5px/s);
+    assert.match(globalCss, /\.mobile-status-peek-alert-icon\s*\{[^}]*top:\s*-1\.5px/s);
+    assert.match(globalCss, /\.mobile-status-peek-source--updated\s*\{[^}]*margin-top:\s*0(?:px)?/s);
     assert.match(globalCss, /\.mobile-status-peek-info-btn\s*\{[^}]*flex:\s*1 1 0;[^}]*min-width:\s*0/s);
     assert.match(globalCss, /\.mobile-status-peek-counts\s*\{[^}]*flex-wrap:\s*wrap;[^}]*max-width:\s*100%;[^}]*width:\s*100%/s);
     assert.match(globalCss, /\.mobile-status-peek-count-badge\s*\{[^}]*flex:\s*0 0 auto/s);

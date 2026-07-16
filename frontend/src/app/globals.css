@@ -8202,7 +8202,7 @@ button {
     margin-right: 2px;
     vertical-align: middle;
     position: relative;
-    top: -1px;
+    top: -1.5px;
   }
 
   .mobile-status-peek-alert-icon--muted {
@@ -8229,7 +8229,7 @@ button {
     font-size: 10px;
     font-weight: 800;
     gap: 5px;
-    margin-top: 0.5px;
+    margin-top: 0;
   }
 
   .mobile-status-peek-live-dot {
