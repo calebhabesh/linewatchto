@@ -1460,7 +1460,7 @@ describe("LineWatch PWA configuration", () => {
     assert.match(shellSource, /impactId/);
     assert.match(shellSource, /const impactSelection = impactKind && impactId/);
     assert.match(shellSource, /setSelection\(impactSelection\)/);
-    assert.match(shellSource, /setMobileInspectorDetent\("map-focus"\)/);
+    assert.match(shellSource, /setMobileInspectorDetent\("details-focus"\)/);
     assert.match(shellSource, /setActiveView\("map"\)/);
   });
 });

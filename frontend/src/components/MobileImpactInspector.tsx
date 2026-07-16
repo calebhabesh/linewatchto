@@ -306,13 +306,10 @@ export function MobileImpactInspector({
       <div className="mobile-impact-inspector-header">
         <div className="mobile-impact-inspector-title-row">
           <LineBadge lineId={details.lineId} lineNumber={details.lineNumber || fallbackLineNumber(details.lineId)} />
-          <div className="mobile-impact-inspector-title-copy">
-            <span className="mobile-impact-inspector-kicker">
-              {details.icon}
-              {details.categoryLabel}
-            </span>
-            <h2>{details.title}</h2>
-          </div>
+          <h2 className="mobile-impact-inspector-title">
+            {details.icon}
+            {details.categoryLabel}
+          </h2>
         </div>
         <button type="button" onClick={onUnfocus} className="mobile-impact-inspector-icon-button" aria-label="Unfocus impact">
           <X size={20} />

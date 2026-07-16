@@ -199,7 +199,7 @@ export function LineWatchShell({
   const [previousView, setPreviousView] = useState<ActiveView>("status");
   const [isMobile, setIsMobile] = useState(false);
   const lastActiveViewRef = useRef<ActiveView>("map");
-  const [mobileInspectorDetent, setMobileInspectorDetent] = useState<MobileInspectorDetent>("map-focus");
+  const [mobileInspectorDetent, setMobileInspectorDetent] = useState<MobileInspectorDetent>("details-focus");
   const [mapLayoutSignal, setMapLayoutSignal] = useState(0);
   const [mapPresentationMode, setMapPresentationMode] = useState<MapPresentationMode>("standard");
   const [pwaEngagementSignal, setPwaEngagementSignal] = useState(0);
@@ -592,7 +592,7 @@ export function LineWatchShell({
       // impact should instead take the same focused map path as Show on Map, where
       // mobile reserves a real viewport above the selected impact details.
       setSelection(impactSelection);
-      setMobileInspectorDetent("map-focus");
+      setMobileInspectorDetent("details-focus");
       setActiveView("map");
       if (panel) {
         nextParams.delete("panel");
@@ -954,7 +954,7 @@ export function LineWatchShell({
     setCommutePathPreview(preview);
     setSelection({ kind: impact.kind, id: impact.id });
     setSelectedStationId(null);
-    setMobileInspectorDetent("map-focus");
+    setMobileInspectorDetent("details-focus");
     setActiveView("map");
   };
 
@@ -1329,7 +1329,7 @@ export function LineWatchShell({
     setSelection(nextSelection);
     if (isMobile) {
       recordPwaInstallEngagement();
-      setMobileInspectorDetent("map-focus");
+      setMobileInspectorDetent("details-focus");
       setActiveView("map");
       return;
     }

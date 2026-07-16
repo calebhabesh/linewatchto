@@ -9933,33 +9933,19 @@ button {
   }
 
   .mobile-impact-inspector-title-row {
-    align-items: flex-start;
+    align-items: center;
     display: flex;
     gap: 9px;
     min-width: 0;
   }
 
-  .mobile-impact-inspector-title-copy {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    min-width: 0;
-  }
-
-  .mobile-impact-inspector-kicker {
+  .mobile-impact-inspector-title {
     align-items: center;
-    color: var(--quiet);
-    display: flex;
-    font-size: 10px;
-    font-weight: 950;
-    gap: 5px;
-    text-transform: uppercase;
-  }
-
-  .mobile-impact-inspector-title-copy h2 {
     color: var(--text);
+    display: flex;
     font-size: 15px;
     font-weight: 950;
+    gap: 5px;
     line-height: 1.18;
     margin: 0;
     overflow-wrap: anywhere;

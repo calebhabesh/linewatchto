@@ -37,6 +37,14 @@ describe("mobile Show on Map inspector", () => {
     assert.match(inspectorSource, /ImpactRouteHeader/);
   });
 
+  it("shows one white icon-and-type heading for every selected impact", () => {
+    assert.match(inspectorSource, /<h2 className="mobile-impact-inspector-title">/);
+    assert.match(inspectorSource, /\{details\.icon\}/);
+    assert.match(inspectorSource, /\{details\.categoryLabel\}/);
+    assert.doesNotMatch(inspectorSource, /\{details\.title\}/);
+    assert.match(globalCss, /\.mobile-impact-inspector-title\s*\{[^}]*color:\s*var\(--text\)/s);
+  });
+
   it("keeps the lower metadata block out of the map-focused detent", () => {
     assert.match(inspectorSource, /const showDetailedMetadata = expanded/);
     assert.match(inspectorSource, /\{showDetailedMetadata \? \(\s*<MetadataGrid/);
@@ -73,7 +81,7 @@ describe("mobile Show on Map inspector", () => {
     assert.match(mapSource, /focusTargetKey/);
   });
 
-  it("routes an impact deep link through the same mobile map inspector as Show on Map", () => {
+  it("routes an impact deep link through the details-first mobile map inspector", () => {
     const deepLinkHandling = shellSource.slice(
       shellSource.indexOf("const impactKind = params.get"),
       shellSource.indexOf("if (shouldReplaceUrl)"),
@@ -82,9 +90,20 @@ describe("mobile Show on Map inspector", () => {
     assert.match(deepLinkHandling, /const impactSelection = impactKind && impactId/);
     assert.match(deepLinkHandling, /if \(impactSelection\) \{/);
     assert.match(deepLinkHandling, /setSelection\(impactSelection\)/);
-    assert.match(deepLinkHandling, /setMobileInspectorDetent\("map-focus"\)/);
+    assert.match(deepLinkHandling, /setMobileInspectorDetent\("details-focus"\)/);
     assert.match(deepLinkHandling, /setActiveView\("map"\)/);
     assert.match(deepLinkHandling, /else if \(panel && panelToView\[panel\]\)/);
+  });
+
+  it("opens selected map impacts with details shown and lets the user request more map", () => {
+    const mapSelectionHandling = shellSource.slice(
+      shellSource.indexOf("const handleMapSelectImpact"),
+      shellSource.indexOf("const handleMapSelectOverlap"),
+    );
+
+    assert.match(mapSelectionHandling, /setMobileInspectorDetent\("details-focus"\)/);
+    assert.match(inspectorSource, /const expanded = detent === "details-focus"/);
+    assert.match(inspectorSource, /expanded \? "More Map" : "More Details"/);
   });
 
   it("defines mobile split-view CSS for impact and station inspectors", () => {

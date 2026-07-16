@@ -261,8 +261,10 @@ test("renders the seeded dashboard API payload", async ({ page, request, isMobil
     await expect(inspector).toContainText("Reduced Speed Zone");
     await expect(inspector).toContainText("Eglinton");
     await expect(page.getByRole("button", { name: "Map", exact: true })).toHaveCount(0);
-    await inspector.getByRole("button", { name: "Show more details" }).click();
     await expect(inspector).toContainText("Started");
+    await inspector.getByRole("button", { name: "Show more map" }).click();
+    await expect(inspector.getByText("Started", { exact: true })).toHaveCount(0);
+    await expect(inspector.getByRole("button", { name: "Show more details" })).toBeVisible();
     await inspector.getByRole("button", { name: "View Full List" }).click();
     await expect(page.getByRole("heading", { name: "Reduced Speed Zones" })).toBeVisible();
     await expect(page.locator('[data-impact-card-id="reduced-speed-zone-stub-zone-south-source"]')).toHaveClass(/highlight-active-card/);
@@ -363,8 +365,8 @@ test("map overlays open the corresponding submenu cards", async ({ page, request
   if (isMobile) {
     const inspector = page.locator('[data-mobile-impact-inspector]');
     await expect(inspector).toBeVisible();
-    await expect(inspector).toContainText("Active Alert");
-    await expect(inspector).toContainText("Stub API signal problem");
+    await expect(inspector.getByRole("heading", { name: "Active Alert", exact: true })).toBeVisible();
+    await expect(inspector).not.toContainText("Stub API signal problem");
     await inspector.getByRole("button", { name: "View Full List" }).click();
   }
 
