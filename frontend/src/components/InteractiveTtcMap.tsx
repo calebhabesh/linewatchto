@@ -17,7 +17,10 @@ import {
   type PathFrame,
 } from "../app/map-geometry";
 import { usePanZoom } from "../hooks/usePanZoom";
-import type { MapViewportOrientation } from "../hooks/panZoomMath";
+import {
+  PAN_ZOOM_MAX_RELATIVE_SCALE,
+  type MapViewportOrientation,
+} from "../hooks/panZoomMath";
 import { ZoomIn, ZoomOut, Locate, Sun, Moon } from "lucide-react";
 import { useDashboardData } from "../app/DataContext";
 import type {
@@ -992,7 +995,7 @@ function InteractiveTtcMapComponent({
             <input
               type="range"
               min="0.2"
-              max="5"
+              max={PAN_ZOOM_MAX_RELATIVE_SCALE}
               step="0.05"
               value={relativeScale}
               onChange={(e) => zoomToScale(parseFloat(e.target.value))}
@@ -1261,10 +1264,10 @@ function InteractiveTtcMapComponent({
                   const isLarge = isStationVisuallyLarge(station);
                   const visualAnchors = visualAnchorsForStation(station);
                   const hasMultipleVisualAnchors = visualAnchors.length > 1;
-                  const hitRadius = hasMultipleVisualAnchors ? 76 : isLarge ? 96 : 76;
+                  const hitRadius = hasMultipleVisualAnchors ? 40 : isLarge ? 61 : 36;
+                  const hoverRadius = hasMultipleVisualAnchors ? 49 : isLarge ? 72 : 48;
                   const highlightRadius = hasMultipleVisualAnchors ? 33 : isLarge ? 48 : 38;
-                  const showSynchronizedHover =
-                    hasMultipleVisualAnchors &&
+                  const showStationHover =
                     hoveredStationId === station.id &&
                     !selected;
 
@@ -1273,36 +1276,30 @@ function InteractiveTtcMapComponent({
                       key={station.id}
                       onPointerEnter={(event) => {
                         if (event.pointerType !== "mouse") return;
-                        if (hasMultipleVisualAnchors) setHoveredStationId(station.id);
+                        setHoveredStationId(station.id);
                       }}
                       onPointerLeave={(event) => {
                         if (event.pointerType !== "mouse") return;
-                        if (hasMultipleVisualAnchors) {
-                          setHoveredStationId((current) => current === station.id ? null : current);
-                        }
+                        setHoveredStationId((current) => current === station.id ? null : current);
                       }}
                       onFocus={() => {
-                        if (hasMultipleVisualAnchors) setHoveredStationId(station.id);
+                        setHoveredStationId(station.id);
                       }}
                       onBlur={() => {
-                        if (hasMultipleVisualAnchors) {
-                          setHoveredStationId((current) => current === station.id ? null : current);
-                        }
+                        setHoveredStationId((current) => current === station.id ? null : current);
                       }}
                     >
                       {visualAnchors.map(({ id: anchorId, point }, anchorIndex) => (
                         <g key={`${station.id}:${anchorId}`}>
-                          {hasMultipleVisualAnchors && (
-                            <circle
-                              data-station-hover-id={station.id}
-                              data-station-anchor-id={anchorId}
-                              className={`station-hover-indicator ${showSynchronizedHover ? "active" : ""}`}
-                              cx={point.x}
-                              cy={point.y}
-                              r={highlightRadius}
-                              pointerEvents="none"
-                            />
-                          )}
+                          <circle
+                            data-station-hover-id={station.id}
+                            data-station-anchor-id={anchorId}
+                            className={`station-hover-indicator ${showStationHover ? "active" : ""}`}
+                            cx={point.x}
+                            cy={point.y}
+                            r={hoverRadius}
+                            pointerEvents="none"
+                          />
                           {flashStationId === station.id && (
                             <circle
                               data-map-highlight-id={station.id}

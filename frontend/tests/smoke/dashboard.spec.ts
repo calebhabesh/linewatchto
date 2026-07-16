@@ -288,6 +288,7 @@ test("opens an impact notification deep link in the focused map view", async ({ 
     await expect(inspector).toContainText("Delay");
     await expect(inspector).toContainText("Sheppard-Yonge");
     await expect(mapViewport).toHaveCSS("bottom", /^(?!0px$).+/);
+    await expect(page.locator('input[aria-label="Zoom level slider"]')).toHaveValue("3.8");
   }
 });
 
@@ -384,7 +385,7 @@ test("affected segment targets distinguish dragging from selection", async ({ pa
   const target = page.getByRole("button", { name: "delay: Sheppard-Yonge to Don Mills" });
   await expect(target).toBeVisible();
   await expect(target).toHaveClass("map-segment-hit-target");
-  await expect(target).toHaveCSS("stroke-width", isMobile ? "44px" : "32px");
+  await expect(target).toHaveCSS("stroke-width", "96px");
   await page.waitForTimeout(900);
 
   const mapElement = page.locator(".absolute.top-0.left-0.w-full.h-full.origin-top-left").first();

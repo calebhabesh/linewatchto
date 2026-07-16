@@ -2,11 +2,14 @@ import { useState, useCallback, useRef, useEffect, type PointerEvent, type Wheel
 import {
   clampPanZoomScale,
   clientPointToLogicalViewportPoint,
+  computeMapFitScale,
   currentDevicePixelRatio,
   distanceBetweenPoints,
   exceedsMapTapMovement,
   mapPointFromViewportPoint,
   midpointBetweenPoints,
+  PAN_ZOOM_MAX_RELATIVE_SCALE,
+  PAN_ZOOM_MIN_RELATIVE_SCALE,
   snapTransformToDevicePixels,
   transformForMapPointAtViewportPoint,
   type MapViewportOrientation,
@@ -232,7 +235,7 @@ export function usePanZoom({
           
           const mapWidth = 4500;
           const mapHeight = 2181.82;
-          const newFit = Math.min(width / mapWidth, height / mapHeight);
+          const newFit = computeMapFitScale(width, height, mapWidth, mapHeight);
           
           setFitScale((prevFit) => {
             if (prevFit !== newFit) {
@@ -543,7 +546,7 @@ export function usePanZoom({
     const mapHeight = 2181.82; // Aspect ratio height for 4500px width with 82.5:40 viewBox
     
     // Scale to fit exactly within the viewport
-    const scale = Math.min(width / mapWidth, height / mapHeight);
+    const scale = computeMapFitScale(width, height, mapWidth, mapHeight);
     
     // Center offsets based on visual content midpoint (x = 50%, y = 43.5% of map height)
     const x = width / 2 - (mapWidth / 2) * scale;
@@ -561,7 +564,7 @@ export function usePanZoom({
 
     setTransform(prev => {
       let newScale = prev.scale * 1.25;
-      newScale = Math.min(newScale, 5 * fitScale); // Limit zoom to 5x of fit scale
+      newScale = Math.min(newScale, PAN_ZOOM_MAX_RELATIVE_SCALE * fitScale);
       const scaleRatio = newScale / prev.scale;
       const newX = centerX - (centerX - prev.x) * scaleRatio;
       const newY = centerY - (centerY - prev.y) * scaleRatio;
@@ -578,7 +581,7 @@ export function usePanZoom({
 
     setTransform(prev => {
       let newScale = prev.scale / 1.25;
-      newScale = Math.max(newScale, 0.2 * fitScale); // Limit zoom to 0.2x of fit scale
+      newScale = Math.max(newScale, PAN_ZOOM_MIN_RELATIVE_SCALE * fitScale);
       const scaleRatio = newScale / prev.scale;
       const newX = centerX - (centerX - prev.x) * scaleRatio;
       const newY = centerY - (centerY - prev.y) * scaleRatio;
@@ -595,7 +598,7 @@ export function usePanZoom({
     const targetAbsoluteScale = relativeScale * fitScale;
 
     setTransform(prev => {
-      const clampedScale = Math.min(Math.max(targetAbsoluteScale, 0.2 * fitScale), 5 * fitScale);
+      const clampedScale = clampPanZoomScale(targetAbsoluteScale, fitScale);
       const scaleRatio = clampedScale / prev.scale;
       const newX = centerX - (centerX - prev.x) * scaleRatio;
       const newY = centerY - (centerY - prev.y) * scaleRatio;
@@ -615,13 +618,17 @@ export function usePanZoom({
     const focusX = width * (options?.viewportFocusRatio?.x ?? 0.5);
     const focusY = height * (options?.viewportFocusRatio?.y ?? 0.5);
 
-    const targetAbsoluteScale = targetRelativeScale * fitScale;
+    // Selection deep links can focus before ResizeObserver's fitScale state has
+    // committed. Measure the live viewport so a fast PWA launch cannot treat the
+    // initial fitScale value of 1 as the fitted map scale.
+    const currentFitScale = computeMapFitScale(width, height);
+    const targetAbsoluteScale = targetRelativeScale * currentFitScale;
 
     const newX = focusX - mapX * targetAbsoluteScale;
     const newY = focusY - mapY * targetAbsoluteScale;
 
     animateTransformTo({ x: newX, y: newY, scale: targetAbsoluteScale });
-  }, [animateTransformTo, fitScale, logicalViewportSize]);
+  }, [animateTransformTo, logicalViewportSize]);
 
   // Compute the current user-facing relative zoom level (e.g. 1.0 = 100%)
   const relativeScale = transform.scale / (fitScale || 1);

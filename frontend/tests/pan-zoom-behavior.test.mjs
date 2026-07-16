@@ -3,10 +3,13 @@ import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 
 import {
+  clampPanZoomScale,
+  computeMapFitScale,
   distanceBetweenPoints,
   exceedsMapTapMovement,
   mapPointFromViewportPoint,
   midpointBetweenPoints,
+  PAN_ZOOM_MAX_RELATIVE_SCALE,
   snapToDevicePixel,
   snapTransformToDevicePixels,
   transformForMapPointAtViewportPoint,
@@ -18,6 +21,21 @@ const shellSource = readFileSync(new URL("../src/components/LineWatchShell.tsx",
 const globalCss = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
 
 describe("pan zoom behavior guardrails", () => {
+  it("allows detailed selection zoom up to eight times the fitted map scale", () => {
+    assert.equal(PAN_ZOOM_MAX_RELATIVE_SCALE, 8);
+    assert.equal(clampPanZoomScale(9, 1), 8);
+    assert.equal(clampPanZoomScale(7.5, 1), 7.5);
+    assert.match(mapSource, /max=\{PAN_ZOOM_MAX_RELATIVE_SCALE\}/);
+  });
+
+  it("derives programmatic focus scale from the live viewport on initial deep links", () => {
+    assert.equal(computeMapFitScale(900, 600), 0.2);
+    assert.match(
+      hookSource,
+      /const currentFitScale = computeMapFitScale\(width, height\);[\s\S]*targetAbsoluteScale = targetRelativeScale \* currentFitScale/,
+    );
+  });
+
   it("keeps small pointer jitter as a tap and promotes deliberate movement to navigation", () => {
     assert.equal(exceedsMapTapMovement({ x: 10, y: 10 }, { x: 16, y: 15 }), false);
     assert.equal(exceedsMapTapMovement({ x: 10, y: 10 }, { x: 19, y: 10 }), true);

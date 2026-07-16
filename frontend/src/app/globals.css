@@ -2062,12 +2062,12 @@ button {
   stroke: transparent;
   stroke-linecap: round;
   stroke-linejoin: round;
-  stroke-width: 32px;
+  stroke-width: 96px;
 }
 
 @media (pointer: coarse) {
   .map-segment-hit-target {
-    stroke-width: 44px;
+    stroke-width: 96px;
   }
 }
 
@@ -3078,9 +3078,9 @@ button {
 
 .station-hit-target:hover,
 .station-hit-target:focus-visible {
-  fill: rgba(59, 130, 246, 0.15);
-  stroke: rgba(59, 130, 246, 0.6);
-  stroke-width: 10;
+  fill: transparent;
+  stroke: transparent;
+  stroke-width: 0;
 }
 
 .station-hover-indicator {
@@ -3092,9 +3092,9 @@ button {
 }
 
 .station-hover-indicator.active {
-  fill: rgba(59, 130, 246, 0.15);
-  stroke: rgba(59, 130, 246, 0.6);
-  stroke-width: 10;
+  fill: rgba(59, 130, 246, 0.3);
+  stroke: rgba(59, 130, 246, 0.85);
+  stroke-width: 8;
 }
 
 .station-hit-target.multi-anchor:hover,

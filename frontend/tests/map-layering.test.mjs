@@ -34,13 +34,33 @@ describe("asset-backed map layering", () => {
     );
   });
 
+  it("pins station hit targets to the authored station-dot outlines", () => {
+    assert.match(
+      interactiveMapSource,
+      /const hitRadius = hasMultipleVisualAnchors \? 40 : isLarge \? 61 : 36;/,
+    );
+  });
+
+  it("renders a stronger station hover halo outside the clickable dot", () => {
+    assert.match(
+      interactiveMapSource,
+      /const hoverRadius = hasMultipleVisualAnchors \? 49 : isLarge \? 72 : 48;/,
+    );
+    assert.match(interactiveMapSource, /className=\{`station-hover-indicator/);
+    assert.match(interactiveMapSource, /r=\{hoverRadius\}/);
+    assert.match(
+      globalCss,
+      /\.station-hover-indicator\.active\s*\{[^}]*fill:\s*rgba\(59, 130, 246, 0\.3\);[^}]*stroke:\s*rgba\(59, 130, 246, 0\.85\);[^}]*stroke-width:\s*8;/s,
+    );
+  });
+
   it("uses a larger screen-sized hit stroke without making disruption visuals thicker", () => {
     assert.match(interactiveMapSource, /className="map-segment-hit-target"/);
     assert.match(interactiveMapSource, /vectorEffect="non-scaling-stroke"/);
-    assert.match(globalCss, /\.map-segment-hit-target\s*\{[^}]*stroke-width:\s*32px;/s);
+    assert.match(globalCss, /\.map-segment-hit-target\s*\{[^}]*stroke-width:\s*96px;/s);
     assert.match(
       globalCss,
-      /@media \(pointer:\s*coarse\)[\s\S]*?\.map-segment-hit-target\s*\{[^}]*stroke-width:\s*44px;/,
+      /@media \(pointer:\s*coarse\)[\s\S]*?\.map-segment-hit-target\s*\{[^}]*stroke-width:\s*96px;/,
     );
   });
 

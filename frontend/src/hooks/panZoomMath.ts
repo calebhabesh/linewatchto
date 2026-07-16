@@ -4,6 +4,18 @@ export type PanZoomTransform = {
   scale: number;
 };
 
+export const PAN_ZOOM_MIN_RELATIVE_SCALE = 0.2;
+export const PAN_ZOOM_MAX_RELATIVE_SCALE = 8;
+
+export function computeMapFitScale(
+  viewportWidth: number,
+  viewportHeight: number,
+  mapWidth = 4500,
+  mapHeight = 2181.82,
+): number {
+  return Math.min(viewportWidth / mapWidth, viewportHeight / mapHeight);
+}
+
 export function currentDevicePixelRatio() {
   if (typeof window === "undefined") {
     return 1;
@@ -109,5 +121,8 @@ export function transformForMapPointAtViewportPoint(
 }
 
 export function clampPanZoomScale(scale: number, fitScale: number): number {
-  return Math.min(Math.max(0.2 * fitScale, scale), 5 * fitScale);
+  return Math.min(
+    Math.max(PAN_ZOOM_MIN_RELATIVE_SCALE * fitScale, scale),
+    PAN_ZOOM_MAX_RELATIVE_SCALE * fitScale,
+  );
 }
