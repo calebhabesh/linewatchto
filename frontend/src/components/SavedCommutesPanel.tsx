@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Navigation, ChevronDown, ChevronLeft, Loader2, MapPinned, X, AlertTriangle, Construction, Calendar, Clock, Bell, Check } from "lucide-react";
+import { Navigation, ChevronDown, ChevronLeft, Loader2, MapPinned, Trash2, X, AlertTriangle, Construction, Calendar, Clock, Bell, Check } from "lucide-react";
 import {
   createSavedCommute,
   defaultSavedCommuteNotificationRule,
@@ -1432,8 +1432,8 @@ export function SavedCommutesPanel({
                           {viewingPath ? "Viewing path" : "View path on map"}
                         </button>
                         {deletingCommuteId === commute.id ? (
-                          <div className="flex items-center gap-1 ml-auto">
-                            <span className="text-[10px] font-bold text-red-600 dark:text-red-400 uppercase tracking-wider mr-1">Are you sure?</span>
+                          <div className="commute-route-delete-confirmation">
+                            <span className="commute-route-delete-confirmation-prompt text-[10px] font-bold text-red-600 dark:text-red-400 uppercase tracking-wider mr-1">Are you sure?</span>
                             <button
                               type="button"
                               className="commute-route-delete-confirm-button"
@@ -1460,8 +1460,9 @@ export function SavedCommutesPanel({
                             className="commute-route-delete-button"
                             onClick={() => setDeletingCommuteId(commute.id)}
                             aria-label={`Delete saved commute ${commute.label}`}
+                            title="Delete saved commute"
                           >
-                            Delete
+                            <Trash2 size={22} aria-hidden="true" />
                           </button>
                         )}
                       </div>
