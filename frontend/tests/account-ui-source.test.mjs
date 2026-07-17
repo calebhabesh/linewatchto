@@ -120,7 +120,11 @@ describe("account UI source", () => {
     );
     assert.match(
       globalCss,
-      /@media \(max-width:\s*30rem\)\s*\{\s*\.commute-route-delete-confirmation\s*\{(?=[^}]*flex-basis:\s*100%;)(?=[^}]*justify-content:\s*flex-start;)(?=[^}]*width:\s*100%;)[^}]*\}\s*\.commute-route-delete-confirmation \.commute-route-delete-confirm-button\s*\{[^}]*margin-left:\s*auto !important;/s,
+      /@media \(max-width:\s*30rem\)\s*\{[\s\S]*?\.commute-route-delete-confirmation\s*\{(?=[^}]*flex-basis:\s*100%;)(?=[^}]*justify-content:\s*flex-start;)(?=[^}]*width:\s*100%;)[^}]*\}\s*\.commute-route-delete-confirmation \.commute-route-delete-confirm-button\s*\{[^}]*margin-left:\s*auto !important;/s,
+    );
+    assert.match(
+      globalCss,
+      /@media \(max-width:\s*30rem\)\s*\{(?=[\s\S]*?\.commute-route-actions\s*\{[^}]*gap:\s*0\.25rem;)(?=[\s\S]*?\.commute-route-actions \.commute-route-stop-toggle\s*\{[^}]*font-size:\s*0\.64rem;)(?=[\s\S]*?\.commute-route-actions \.commute-route-map-button\s*\{[^}]*font-size:\s*0\.64rem;)/s,
     );
     assert.match(globalCss, /\.commute-route-delete-confirmation-prompt\s*\{(?=[^}]*left:\s*2px;)(?=[^}]*position:\s*relative;)[^}]*\}/s);
     assert.match(
