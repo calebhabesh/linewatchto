@@ -347,7 +347,7 @@ class AlertDashboardServiceTest {
             assertThat(dto.id()).isEqualTo("delay-line-4");
             assertThat(dto.lineId()).isEqualTo("line-4");
             assertThat(dto.lineNumber()).isEqualTo("4");
-            assertThat(dto.location()).isEqualTo("Sheppard Yonge to Don Mills");
+            assertThat(dto.location()).isEqualTo("Sheppard-Yonge to Don Mills");
             assertThat(dto.startedAt()).isEqualTo(delayStartedAt);
             assertThat(dto.updatedAt()).isEqualTo(delayUpdatedAt);
             assertThat(dto.affectedSegmentIds())

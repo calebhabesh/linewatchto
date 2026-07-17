@@ -90,7 +90,7 @@ class AlertControllerTest {
                 "line-4",
                 "4",
                 "Delay",
-                "Sheppard Yonge to Don Mills",
+                "Sheppard-Yonge to Don Mills",
                 null,
                 "Delays between Sheppard-Yonge and Don Mills.",
                 List.of("line-4-sheppard-yonge-don-mills"),

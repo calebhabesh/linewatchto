@@ -72,6 +72,21 @@ class ReducedSpeedZoneProjectorTest {
     }
 
     @Test
+    void preservesCanonicalHyphensInDirectionalDetailLocations() {
+        Projection projection = projector.project(
+            List.of(alert("ttc-route-bay-bloor", "line-2", "bay", "bloor-yonge", "eastbound")),
+            List.of(segment(
+                "line-2-bay-bloor-yonge", "line-2", "bay", "bloor-yonge", "eastbound"
+            ))
+        );
+
+        assertThat(projection.zones().getFirst().directionalDetails())
+            .singleElement()
+            .extracting(ReducedSpeedZoneProjector.DirectionalDetail::location)
+            .isEqualTo("Bay to Bloor-Yonge");
+    }
+
+    @Test
     void defaultsUnknownDirectionToBidirectionalWithoutInventingCardinalCopy() {
         Projection projection = projector.project(
             List.of(alert("ttc-route-unknown", "line-2", "jane", "runnymede", "unknown")),

@@ -112,6 +112,19 @@ describe("station data adapter", () => {
     assert.ok(!ids.includes("eglington"));
   });
 
+  it("preserves canonical TTC station-name spelling and punctuation", () => {
+    assert.equal(stationById("bloor-yonge").name, "Bloor-Yonge");
+    assert.equal(stationById("sheppard-yonge").name, "Sheppard-Yonge");
+    assert.equal(stationById("queens-park").name, "Queen's Park");
+    assert.equal(stationById("st-patrick").name, "St Patrick");
+    assert.equal(stationById("st-andrew").name, "St Andrew");
+    assert.equal(stationById("st-clair-west").name, "St Clair West");
+    assert.equal(stationById("o_connor").name, "O'Connor");
+    assert.equal(stationById("aga-khan-park-and-museum").name, "Aga Khan Park & Museum");
+    assert.equal(stationById("greenwoood").name, "Greenwood");
+    assert.equal(stationById("st-george").name, "St George");
+  });
+
   it("does not invent active station impacts in fallback mode", () => {
     assert.ok(fallbackStationSummaries.stations.every((station) => !station.hasActiveImpact));
     assert.ok(Object.values(fallbackStationDetails).every((station) => station.impacts.length === 0));

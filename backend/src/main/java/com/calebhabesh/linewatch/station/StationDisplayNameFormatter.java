@@ -1,10 +1,20 @@
 package com.calebhabesh.linewatch.station;
 
 import java.util.Locale;
+import java.util.Map;
 import java.util.regex.Pattern;
 
 public final class StationDisplayNameFormatter {
     private static final Pattern TMU_WORD_PATTERN = Pattern.compile("(?i)\\btmu\\b");
+    private static final Map<String, String> CANONICAL_STATION_NAMES = Map.ofEntries(
+        Map.entry("aga-khan-park-and-museum", "Aga Khan Park & Museum"),
+        Map.entry("bloor-yonge", "Bloor-Yonge"),
+        Map.entry("greenwoood", "Greenwood"),
+        Map.entry("o_connor", "O'Connor"),
+        Map.entry("queens-park", "Queen's Park"),
+        Map.entry("sheppard-yonge", "Sheppard-Yonge"),
+        Map.entry("tmu", "TMU")
+    );
 
     private StationDisplayNameFormatter() {}
 
@@ -12,6 +22,11 @@ public final class StationDisplayNameFormatter {
         String normalized = stationId == null ? "" : stationId.trim();
         if (normalized.isEmpty()) {
             return "";
+        }
+
+        String canonicalName = CANONICAL_STATION_NAMES.get(normalized.toLowerCase(Locale.ROOT));
+        if (canonicalName != null) {
+            return canonicalName;
         }
 
         String[] words = normalized.replace('_', '-').split("[-\\s]+");

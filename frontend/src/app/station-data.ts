@@ -702,7 +702,7 @@ const fallbackStationSummarySeed: StationListResponse = {
     },
     {
         id: "greenwoood",
-        name: "Greenwoood",
+        name: "Greenwood",
         mapX: 6022,
         mapY: 2603,
         interchange: false,
@@ -774,7 +774,7 @@ const fallbackStationSummarySeed: StationListResponse = {
     },
     {
         id: "queens-park",
-        name: "Queens Park",
+        name: "Queen's Park",
         mapX: 4077,
         mapY: 2957,
         interchange: false,
@@ -786,7 +786,7 @@ const fallbackStationSummarySeed: StationListResponse = {
     },
     {
         id: "st-patrick",
-        name: "St. Patrick",
+        name: "St Patrick",
         mapX: 4077,
         mapY: 3092,
         interchange: false,
@@ -810,7 +810,7 @@ const fallbackStationSummarySeed: StationListResponse = {
     },
     {
         id: "st-andrew",
-        name: "St. Andrew",
+        name: "St Andrew",
         mapX: 4077,
         mapY: 3362,
         interchange: false,
@@ -882,7 +882,7 @@ const fallbackStationSummarySeed: StationListResponse = {
     },
     {
         id: "st-clair",
-        name: "St. Clair",
+        name: "St Clair",
         mapX: 4547,
         mapY: 2139,
         interchange: false,
@@ -1110,7 +1110,7 @@ const fallbackStationSummarySeed: StationListResponse = {
     },
     {
         id: "st-clair-west",
-        name: "St. Clair West",
+        name: "St Clair West",
         mapX: 3506,
         mapY: 2139,
         interchange: false,
@@ -1676,4 +1676,3 @@ export function isStationWheelchairAccessible(stationId: string, lineIds: string
 export function isStationElevatorAccessible(stationId: string, lineIds: string[]): boolean {
   return lineIds.some((lineId) => !FALLBACK_WITHOUT_ELEVATOR.has(`${stationId}:${lineId}`));
 }
-
