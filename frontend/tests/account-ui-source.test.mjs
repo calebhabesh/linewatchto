@@ -75,6 +75,7 @@ describe("account UI source", () => {
     assert.match(savedCommutesSource, /accountCommutes/);
     assert.match(savedCommutesSource, /status-pill/);
     assert.match(savedCommutesSource, /matchedImpacts/);
+    assert.doesNotMatch(savedCommutesSource, /matchedImpacts\.slice\(0,\s*3\)/);
     assert.match(savedCommutesSource, /formatTravelTimeHeadline/);
     assert.doesNotMatch(savedCommutesSource, /Impact matching pending/);
     assert.match(savedCommutesSource, /createSavedCommute/);
@@ -145,7 +146,47 @@ describe("account UI source", () => {
     assert.match(savedCommutesSource, /saved-commute-map-action commute-route-map-button/);
     assert.match(savedCommutesSource, /View on Map/);
     assert.match(shellSource, /handleViewCommuteImpactOnPath/);
+    assert.match(shellSource, /viewForSavedCommuteImpact/);
+    assert.match(shellSource, /isMobile \? "map" : viewForSavedCommuteImpact\(impact, activeAlerts\)/);
     assert.match(globalCss, /\.saved-commute-map-action/);
+  });
+
+  it("keeps ignored route impacts visible without treating filters as physical conditions", () => {
+    assert.match(savedCommutesSource, /Clear by filters/);
+    assert.match(savedCommutesSource, /Ignored by Route Filter/);
+    assert.match(savedCommutesSource, /saved-commute-impact-ignored/);
+    assert.match(savedCommutesSource, /leg-btn-filtered/);
+    assert.doesNotMatch(savedCommutesSource, /Ignored By Route Alert Filters/);
+    assert.match(globalCss, /\.saved-commute-impact-ignored/);
+    assert.match(globalCss, /\.commute-leg-toggle button\.leg-btn-filtered/);
+    assert.match(globalCss, /text-decoration:\s*line-through/);
+  });
+
+  it("collapses saved-commute disruptions behind alert-type summary chips", () => {
+    assert.match(savedCommutesSource, /<details className="saved-commute-impact-disclosure">/);
+    assert.match(savedCommutesSource, /saved-commute-impact-summary-chips/);
+    assert.match(savedCommutesSource, /summarizeMatchedImpacts/);
+    assert.match(savedCommutesSource, /<summary className="saved-commute-impact-summary">/);
+    assert.match(globalCss, /\.saved-commute-impact-disclosure/);
+    assert.match(globalCss, /\.saved-commute-impact-summary-chip/);
+    assert.match(globalCss, /\.saved-commute-impact-disclosure\[open\]/);
+    assert.match(globalCss, /\.saved-commute-impact-disclosure\s*\{(?=[^}]*border-bottom:)(?=[^}]*border-top:)[^}]*\}/s);
+    assert.match(globalCss, /\.saved-commute-impact-summary-icon\s*\{[^}]*transform:\s*translateY\(-1px\);/s);
+    assert.match(globalCss, /\.saved-commute-impact-total\s*\{(?=[^}]*color:\s*#f8fafc;)(?=[^}]*text-shadow:)[^}]*\}/s);
+    assert.match(savedCommutesSource, /saved-commute-impact-summary-action-collapsed">List View/);
+    assert.match(savedCommutesSource, /saved-commute-impact-summary-action-expanded">Hide List/);
+    assert.match(globalCss, /\.saved-commute-impact-summary-action\s*\{(?=[^}]*align-self:\s*center;)(?=[^}]*justify-self:\s*end;)[^}]*\}/s);
+    assert.match(savedCommutesSource, /selectedLeg\.impact\.matchedImpacts\.length === 0 \? \(/);
+  });
+
+  it("renders a prominent saved-commute map preview banner", () => {
+    assert.match(globalCss, /\.commute-path-preview-chip\s*\{[^}]*min-width:\s*min\(560px, calc\(100vw - 2rem\)\);/s);
+    assert.match(globalCss, /\.commute-path-preview-chip span\s*\{[^}]*font-size:\s*0\.9rem;/s);
+    assert.match(globalCss, /@media \(max-width: 767px\)[\s\S]*?\.commute-path-preview-chip\s*\{[^}]*left:\s*1rem;[^}]*right:\s*1rem;/s);
+    assert.match(
+      globalCss,
+      /\.linewatch-shell\.mobile-map-inspector-impact \.commute-path-preview-chip\s*\{[^}]*bottom:\s*calc\(var\(--mobile-inspector-total-height\) \+ 10px\);[^}]*top:\s*auto;/s,
+    );
   });
 
   it("renders saved commute extra-time estimates without claiming precision for major disruptions", () => {

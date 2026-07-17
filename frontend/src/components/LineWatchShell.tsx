@@ -152,6 +152,18 @@ function googleLinkSuccessReturnTo() {
   return `${url.pathname}${url.search}${url.hash}`;
 }
 
+function viewForSavedCommuteImpact(
+  impact: AccountMatchedImpact,
+  activeAlerts: DashboardData["activeAlerts"],
+): ActiveView {
+  if (impact.kind === "planned-closure") {
+    return activeAlerts.some((alert) => alert.id === impact.id) ? "alerts" : "closures";
+  }
+  if (impact.kind === "suspension") return "alerts";
+  if (impact.kind === "delay") return "delays";
+  return "reduced-speed-zones";
+}
+
 export function LineWatchShell({
   initialData,
   initialPasswordResetToken = "",
@@ -951,11 +963,12 @@ export function LineWatchShell({
     const preview = commutePathPreviewFromCommute(commute, legId);
     if (!preview) return;
 
+    const impactSelection = { kind: impact.kind, id: impact.id } satisfies NonNullable<ImpactSelection>;
     setCommutePathPreview(preview);
-    setSelection({ kind: impact.kind, id: impact.id });
+    setSelection(impactSelection);
     setSelectedStationId(null);
     setMobileInspectorDetent("details-focus");
-    setActiveView("map");
+    setActiveView(isMobile ? "map" : viewForSavedCommuteImpact(impact, activeAlerts));
   };
 
   const handleClearCommutePathPreview = useCallback((commuteIdOrEvent?: string | unknown) => {
@@ -968,7 +981,7 @@ export function LineWatchShell({
       window.setTimeout(() => {
         setSelection(null);
         setSelectedStationId(null);
-        setActiveView((view) => (view === "map" ? "commutes" : view));
+        setActiveView("commutes");
       }, 0);
       return null;
     });
@@ -1407,7 +1420,6 @@ export function LineWatchShell({
     Boolean(selection) &&
     !selectedStationId &&
     !accountDialogMode &&
-    !commutePathPreview &&
     !showClosedScreen;
 
   const mobileStationInspectorOpen =

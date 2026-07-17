@@ -283,6 +283,14 @@ describe("asset-backed map layering", () => {
       /retainedPlannedPreviewLayers\.map[\s\S]*?commutePreviewLayer &&[\s\S]*?selectedImpactEmphasis\?\.plannedClosure\?\.id === closure\.id[\s\S]*?return null;/,
     );
     assert.doesNotMatch(globalCss, /commute-impact-focus/);
+    assert.doesNotMatch(
+      globalCss,
+      /\[data-selected-commute-impact-overlay\] \.asset-alert-path\.planned-preview\.selected\s*\{/,
+    );
+    assert.match(
+      globalCss,
+      /\[data-selected-commute-impact-overlay\] \.asset-alert-path-glow\.interactive-glow\.planned-preview\.selected\s*\{[^}]*display:\s*block;[^}]*stroke:\s*#f8fafc;[^}]*filter:\s*blur\(6px\);/,
+    );
     assert.match(
       globalCss,
       /@media \(max-width:\s*767px\) \{[\s\S]*?\[data-selected-commute-impact-overlay\] \.asset-alert-path-glow\s*\{[^}]*display:\s*none;[^}]*\}/,

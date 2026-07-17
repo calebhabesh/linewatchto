@@ -451,13 +451,13 @@ class SavedCommuteServiceTest {
         assertThat(response.outboundLeg().impact()).satisfies(impact -> {
             assertThat(impact.status()).isEqualTo("clear");
             assertThat(impact.severity()).isEqualTo("clear");
-            assertThat(impact.statusLabel()).isEqualTo("Clear");
+            assertThat(impact.statusLabel()).isEqualTo("Clear by filters");
             assertThat(impact.matchedImpacts()).singleElement().satisfies(match -> {
                 assertThat(match.kind()).isEqualTo("reduced-speed-zone");
                 assertThat(match.ignoredByRule()).isTrue();
             });
-            assertThat(impact.travelTimeEstimate().status()).isEqualTo("standard");
-            assertThat(impact.travelTimeEstimate().extraHighSeconds()).isZero();
+            assertThat(impact.travelTimeEstimate().status()).isEqualTo("estimated");
+            assertThat(impact.travelTimeEstimate().extraHighSeconds()).isPositive();
         });
     }
 }

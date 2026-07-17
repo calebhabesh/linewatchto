@@ -142,7 +142,11 @@ function commuteWorstSeverity(commute: AccountSavedCommute) {
 }
 
 function commuteTone(commute: AccountSavedCommute) {
-  switch (commuteWorstSeverity(commute)) {
+  const severity = commuteWorstSeverity(commute);
+  if (severity === "clear" && ignoredCurrentImpactCount(commuteLegs(commute)) > 0) {
+    return "filtered";
+  }
+  switch (severity) {
     case "suspended":
     case "major":
       return "danger";
@@ -160,7 +164,9 @@ function commuteTone(commute: AccountSavedCommute) {
 function commuteStatusLabel(commute: AccountSavedCommute) {
   const legs = commuteLegs(commute);
   if (legs.length === 1) {
-    return legs[0].impact.statusLabel;
+    return legs[0].impact.status === "clear" && ignoredCurrentImpactCount(legs) > 0
+      ? "Clear by filters"
+      : legs[0].impact.statusLabel;
   }
   const outboundStatus = legs.find((leg) => leg.id === "outbound")?.impact.status ?? "clear";
   const returnStatus = legs.find((leg) => leg.id === "return")?.impact.status ?? "clear";
@@ -171,11 +177,20 @@ function commuteStatusLabel(commute: AccountSavedCommute) {
   if (outboundStatus === "planned") return "Outbound planned";
   if (returnStatus === "planned") return "Return planned";
   if (outboundStatus === "unavailable" && returnStatus === "unavailable") return "Route unavailable";
+  if (ignoredCurrentImpactCount(legs) > 0) return "Clear by filters";
   return "Clear both ways";
 }
 
 function currentImpactCount(legs: AccountCommuteLeg[]) {
   return legs.flatMap((leg) => leg.impact.matchedImpacts).filter((impact) => impact.status === "current" && !impact.ignoredByRule).length;
+}
+
+function ignoredCurrentImpactCount(legs: AccountCommuteLeg[]) {
+  return legs.flatMap((leg) => leg.impact.matchedImpacts).filter((impact) => impact.status === "current" && impact.ignoredByRule).length;
+}
+
+function legIsClearByFilters(leg: AccountCommuteLeg) {
+  return leg.impact.status === "clear" && ignoredCurrentImpactCount([leg]) > 0;
 }
 
 function ImpactIcon({ kind, className }: { kind: AccountMatchedImpact["kind"]; className?: string }) {
@@ -204,6 +219,25 @@ function impactKindLabel(kind: AccountMatchedImpact["kind"]) {
     default:
       return "Delay";
   }
+}
+
+const IMPACT_KIND_ORDER: AccountMatchedImpact["kind"][] = [
+  "suspension",
+  "delay",
+  "reduced-speed-zone",
+  "planned-closure",
+];
+
+function impactKindCountLabel(kind: AccountMatchedImpact["kind"], count: number) {
+  const label = impactKindLabel(kind);
+  return `${count} ${label}${count === 1 ? "" : "s"}`;
+}
+
+function summarizeMatchedImpacts(impacts: AccountMatchedImpact[]) {
+  return IMPACT_KIND_ORDER.map((kind) => ({
+    kind,
+    count: impacts.filter((impact) => impact.kind === kind).length,
+  })).filter((summary) => summary.count > 0);
 }
 
 function impactLineLabel(impact: AccountMatchedImpact) {
@@ -1204,6 +1238,8 @@ export function SavedCommutesPanel({
                 const selectedTravelTimeEstimate = selectedLeg.impact.travelTimeEstimate ?? fallbackTravelTimeEstimate(selectedLeg);
                 const selectedTravelTimeSeverity = travelTimeSeverity(selectedTravelTimeEstimate);
                 const travelTimeHeadline = formatTravelTimeHeadline(selectedTravelTimeEstimate);
+                const selectedLegClearByFilters = legIsClearByFilters(selectedLeg);
+                const selectedLegImpactSummary = summarizeMatchedImpacts(selectedLeg.impact.matchedImpacts);
 
                 return (
                   <div key={commute.id} className={`commute-card ${commuteTone(commute)} min-w-0 rounded-lg border border-black/10 !bg-slate-50 p-3 dark:border-white/10 dark:!bg-[#12151c]`}>
@@ -1217,13 +1253,18 @@ export function SavedCommutesPanel({
                         </div>
                         {(() => {
                           const currentImpactsCount = currentImpactCount(legs);
+                          const ignoredImpactsCount = ignoredCurrentImpactCount(legs);
                           const hasCurrentImpacts = currentImpactsCount > 0;
                           const impactBgColor = hasCurrentImpacts
                             ? "bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300 border border-amber-200 dark:border-amber-900/60"
-                            : "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-900/60";
-                          const impactText = currentImpactsCount === 0
-                            ? "No Impacts"
-                            : `${currentImpactsCount} Impact${currentImpactsCount === 1 ? "" : "s"}`;
+                            : ignoredImpactsCount > 0
+                              ? "bg-slate-200 text-slate-600 dark:bg-slate-800 dark:text-slate-300 border border-slate-300 dark:border-slate-700"
+                              : "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-900/60";
+                          const impactText = hasCurrentImpacts
+                            ? `${currentImpactsCount} Impact${currentImpactsCount === 1 ? "" : "s"}`
+                            : ignoredImpactsCount > 0
+                              ? `${ignoredImpactsCount} Ignored`
+                              : "No Impacts";
                           return (
                             <div className={`saved-commute-current-impact-badge rounded-full font-bold uppercase tracking-wider shrink-0 ${impactBgColor}`}>
                               <ExclaimAlertIcon className="w-3.5 h-3.5 shrink-0" />
@@ -1248,13 +1289,14 @@ export function SavedCommutesPanel({
                         <div className="commute-leg-toggle" role="tablist" aria-label={`Route direction for ${commute.label}`}>
                           {legs.map((leg) => {
                             const isClear = leg.impact.severity === "clear";
+                            const isClearByFilters = legIsClearByFilters(leg);
                             return (
                               <button
                                 key={leg.id}
                                 type="button"
                                 role="tab"
                                 aria-selected={selectedLeg.id === leg.id}
-                                className={isClear ? "leg-btn-clear" : "leg-btn-affected"}
+                                className={isClearByFilters ? "leg-btn-filtered" : isClear ? "leg-btn-clear" : "leg-btn-affected"}
                                 onClick={() => setSelectedLegIds((current) => ({ ...current, [commute.id]: leg.id }))}
                               >
                                 To {leg.toStationName}
@@ -1267,12 +1309,18 @@ export function SavedCommutesPanel({
                       <div className="saved-commute-time-estimate-heading mt-3 justify-center">
                         <strong
                           className={`!text-[0.88rem] inline-block pb-1.5 border-b-2 ${
-                            selectedLeg.impact.severity === "clear"
+                            selectedLegClearByFilters
+                              ? "text-slate-500 dark:text-slate-400 border-slate-400/30"
+                              : selectedLeg.impact.severity === "clear"
                               ? "text-emerald-600 dark:text-emerald-400 border-emerald-500/30 dark:border-emerald-400/30"
                               : "text-amber-600 dark:text-amber-400 border-amber-500/30 dark:border-amber-400/30"
                           }`}
                           style={{
-                            color: selectedLeg.impact.severity === "clear" ? "var(--ok)" : "var(--warning)",
+                            color: selectedLegClearByFilters
+                              ? "var(--quiet)"
+                              : selectedLeg.impact.severity === "clear"
+                                ? "var(--ok)"
+                                : "var(--warning)",
                           }}
                         >
                           {toTitleCase(selectedLeg.impact.statusLabel)}
@@ -1311,15 +1359,38 @@ export function SavedCommutesPanel({
                       <TravelTimeEstimateBlock leg={selectedLeg} />
 
                       {selectedLeg.impact.matchedImpacts.length > 0 ? (
-                        <div className="mt-4">
-                          <div className="saved-commute-time-estimate-heading">
-                            <strong className="!text-[0.88rem] text-slate-800 dark:text-white">
-                              Active Commute Disruptions
-                            </strong>
-                          </div>
-                          <ul className="saved-commute-impact-list !mt-2.5">
-                            {selectedLeg.impact.matchedImpacts.slice(0, 3).map((impact) => (
-                              <li key={`${impact.kind}-${impact.id}`}>
+                        <details className="saved-commute-impact-disclosure">
+                          <summary className="saved-commute-impact-summary">
+                            <span className="saved-commute-impact-summary-heading">
+                              <ExclaimAlertIcon className="saved-commute-impact-summary-icon" />
+                              <strong>Active Commute Disruptions</strong>
+                              <span className="saved-commute-impact-total">
+                                {selectedLeg.impact.matchedImpacts.length}
+                              </span>
+                            </span>
+                            <span className="saved-commute-impact-summary-chips">
+                              {selectedLegImpactSummary.map(({ kind, count }) => (
+                                <span
+                                  key={kind}
+                                  className={`saved-commute-impact-summary-chip kind-${kind}`}
+                                >
+                                  <ImpactIcon kind={kind} className="shrink-0" />
+                                  {impactKindCountLabel(kind, count)}
+                                </span>
+                              ))}
+                            </span>
+                            <span className="saved-commute-impact-summary-action">
+                              <span className="saved-commute-impact-summary-action-collapsed">List View</span>
+                              <span className="saved-commute-impact-summary-action-expanded">Hide List</span>
+                              <ChevronDown className="saved-commute-impact-summary-chevron" size={16} aria-hidden="true" />
+                            </span>
+                          </summary>
+                          <ul className="saved-commute-impact-list">
+                            {selectedLeg.impact.matchedImpacts.map((impact) => (
+                              <li
+                                key={`${impact.kind}-${impact.id}`}
+                                className={impact.ignoredByRule ? "saved-commute-impact-ignored" : undefined}
+                              >
                                 <span className="saved-commute-impact-icon" aria-hidden="true">
                                   <ImpactIcon kind={impact.kind} className="shrink-0" />
                                 </span>
@@ -1327,7 +1398,14 @@ export function SavedCommutesPanel({
                                   <div className="saved-commute-impact-details">
                                     <div className="saved-commute-impact-heading">
                                       <strong className="text-slate-800 dark:text-slate-200">
-                                        {toTitleCase(impactKindLabel(impact.kind))}
+                                        <span className="saved-commute-impact-kind-label">
+                                          {toTitleCase(impactKindLabel(impact.kind))}
+                                        </span>
+                                        {impact.ignoredByRule ? (
+                                          <em className="saved-commute-impact-filter-note">
+                                            (Ignored by Route Filter)
+                                          </em>
+                                        ) : null}
                                       </strong>
                                     </div>
                                     <span className="text-slate-600 dark:text-slate-400">
@@ -1345,19 +1423,16 @@ export function SavedCommutesPanel({
                                       View on Map
                                     </button>
                                   </div>
-                                  {impact.ignoredByRule ? (
-                                    <em className="saved-commute-impact-filter-note">
-                                      Ignored By Route Alert Filters
-                                    </em>
-                                  ) : null}
                                 </div>
                               </li>
                             ))}
                           </ul>
-                        </div>
+                        </details>
                       ) : null}
 
-                      <hr className="border-slate-800/10 dark:border-slate-200/10 mt-5 mb-1.5 mx-1" />
+                      {selectedLeg.impact.matchedImpacts.length === 0 ? (
+                        <hr className="border-slate-800/10 dark:border-slate-200/10 mt-5 mb-1.5 mx-1" />
+                      ) : null}
                       <div className="saved-commute-rule-summary">
                         <div>
                           <strong>Route Notifications: {notificationRuleStatus}</strong>

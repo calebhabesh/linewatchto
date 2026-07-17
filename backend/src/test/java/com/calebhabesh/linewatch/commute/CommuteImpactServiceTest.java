@@ -214,6 +214,104 @@ class CommuteImpactServiceTest {
             assertThat(match.status()).isEqualTo("planned");
             assertThat(match.window()).isEqualTo("Sat 11:00 PM - Sun 8:00 AM");
         });
+        assertThat(impact.travelTimeEstimate()).satisfies(estimate -> {
+            assertThat(estimate.status()).isEqualTo("standard");
+            assertThat(estimate.baselineSeconds()).isEqualTo(300);
+            assertThat(estimate.extraLowSeconds()).isZero();
+            assertThat(estimate.extraHighSeconds()).isZero();
+        });
+    }
+
+    @Test
+    void ignoredCurrentImpactStillChangesAbsoluteTravelTimeEstimate() {
+        CommuteResponses.MatchedImpactResponse ignoredDelay = new CommuteResponses.MatchedImpactResponse(
+            "delay_ignored",
+            "delay",
+            "current",
+            "minor",
+            "Delays",
+            "line-1",
+            "1",
+            "Eglinton to Davisville",
+            "Southbound",
+            "Trains are delayed.",
+            "TTC Live Alert",
+            List.of("line-1-eglinton-davisville"),
+            List.of(),
+            OffsetDateTime.parse("2026-06-06T12:15:00-04:00"),
+            OffsetDateTime.parse("2026-06-06T12:20:00-04:00"),
+            null,
+            "active-now",
+            OffsetDateTime.parse("2026-06-06T12:15:00-04:00"),
+            true
+        );
+
+        CommuteResponses.ImpactResponse impact = service.responseForMatches(
+            path(
+                List.of("eglinton", "davisville", "st-clair"),
+                List.of("line-1-eglinton-davisville", "line-1-davisville-st-clair")
+            ),
+            List.of(ignoredDelay)
+        );
+
+        assertThat(impact.status()).isEqualTo("clear");
+        assertThat(impact.severity()).isEqualTo("clear");
+        assertThat(impact.statusLabel()).isEqualTo("Clear by filters");
+        assertThat(impact.detail()).contains("ignored by this commute's route filters");
+        assertThat(impact.matchedImpacts()).singleElement().extracting(CommuteResponses.MatchedImpactResponse::ignoredByRule).isEqualTo(true);
+        assertThat(impact.travelTimeEstimate()).satisfies(estimate -> {
+            assertThat(estimate.status()).isEqualTo("estimated");
+            assertThat(estimate.baselineSeconds()).isEqualTo(300);
+            assertThat(estimate.estimatedLowSeconds()).isEqualTo(480);
+            assertThat(estimate.estimatedHighSeconds()).isEqualTo(900);
+        });
+    }
+
+    @Test
+    void activePlannedClosureWindowMarksTravelTimeUnreliable() {
+        when(dashboardService.activeAlerts()).thenReturn(List.of());
+        when(dashboardService.delays()).thenReturn(List.of());
+        when(dashboardService.reducedSpeedZones()).thenReturn(List.of());
+        when(dashboardService.plannedClosures()).thenReturn(List.of(new AlertDashboardService.PlannedClosureDto(
+            "nightly_closure_1",
+            "line-1",
+            "1",
+            "Nightly closure",
+            "Nightly closure windows",
+            "Eglinton to Davisville",
+            "Northbound & Southbound",
+            "No subway service during track work.",
+            OffsetDateTime.parse("2026-06-06T23:59:00-04:00"),
+            OffsetDateTime.parse("2026-06-06T20:00:00-04:00"),
+            List.of("line-1-eglinton-davisville"),
+            true,
+            "TTC Service Advisory",
+            "Track work",
+            "Shuttle buses operate",
+            true,
+            "active-now",
+            true,
+            OffsetDateTime.parse("2026-06-06T23:59:00-04:00"),
+            OffsetDateTime.parse("2026-06-07T05:00:00-04:00"),
+            "Tonight 11:59 PM - 5:00 AM",
+            null,
+            null,
+            null
+        )));
+        when(dashboardService.activeStationNodeImpacts()).thenReturn(List.of());
+
+        CommuteResponses.ImpactResponse impact = service.impactFor(path(
+            List.of("eglinton", "davisville", "st-clair"),
+            List.of("line-1-eglinton-davisville", "line-1-davisville-st-clair")
+        ));
+
+        assertThat(impact.status()).isEqualTo("affected");
+        assertThat(impact.severity()).isEqualTo("major");
+        assertThat(impact.matchedImpacts()).singleElement().satisfies(match -> {
+            assertThat(match.status()).isEqualTo("current");
+            assertThat(match.timingStatus()).isEqualTo("active-now");
+        });
+        assertThat(impact.travelTimeEstimate().status()).isEqualTo("unreliable");
     }
 
     @Test

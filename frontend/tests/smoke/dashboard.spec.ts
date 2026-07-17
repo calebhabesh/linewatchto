@@ -1058,8 +1058,15 @@ test("demo account shows account-backed saved commutes", async ({ page, request,
   await expect(page.getByText("Default Scheduled Route · To Union")).toBeVisible();
   await expect(page.getByText("Affected Now", { exact: true })).toBeVisible();
   await expect(page.getByText("Clear", { exact: true })).not.toBeVisible();
-  await expect(page.getByText("Suspension", { exact: true })).toBeVisible();
-  await expect(page.getByText(/Line 1: Stub Station To Stub Terminal/)).toBeVisible();
+  const impactDisclosure = page.locator(".saved-commute-impact-disclosure").first();
+  await expect(impactDisclosure).toBeVisible();
+  await expect(impactDisclosure).not.toHaveAttribute("open", "");
+  await expect(impactDisclosure.getByText("1 Suspension", { exact: true })).toBeVisible();
+  await expect(impactDisclosure.getByText(/Line 1: Stub Station To Stub Terminal/)).toBeHidden();
+  await impactDisclosure.locator("summary").click();
+  await expect(impactDisclosure).toHaveAttribute("open", "");
+  await expect(impactDisclosure.getByText("Suspension", { exact: true })).toBeVisible();
+  await expect(impactDisclosure.getByText(/Line 1: Stub Station To Stub Terminal/)).toBeVisible();
 
   const commuteHeaderMetrics = await page.locator(".commute-card").first().evaluate((card) => {
     const header = card.querySelector<HTMLElement>(".saved-commute-card-header");
@@ -1084,6 +1091,38 @@ test("demo account shows account-backed saved commutes", async ({ page, request,
 
   await page.getByRole("button", { name: /View Suspension on the map for Morning commute/ }).click();
   await expect(page.locator("[data-commute-path-preview]")).toBeVisible();
+  if (isMobile) {
+    await expect(page.getByRole("complementary", { name: "Selected map impact details" })).toBeVisible();
+    await expect(page.getByText("Seeded smoke alert for browser verification.", { exact: true })).toBeVisible();
+  } else {
+    await expect(page.getByRole("heading", { name: "Active Alerts" })).toBeVisible();
+    await expect(page.locator('[data-impact-card-id="stub-alert-line-1"]')).toBeVisible();
+  }
+  const previewChipMetrics = await page.locator(".commute-path-preview-chip").evaluate((chip) => {
+    const bounds = chip.getBoundingClientRect();
+    return { height: bounds.height, width: bounds.width };
+  });
+  expect(previewChipMetrics.height).toBeGreaterThanOrEqual(60);
+  if (isMobile) {
+    expect(previewChipMetrics.width).toBeGreaterThanOrEqual((page.viewportSize()?.width ?? 320) - 40);
+    const previewInspectorGap = async () => {
+      const chipBounds = await page.locator(".commute-path-preview-chip").boundingBox();
+      const inspectorBounds = await page
+        .getByRole("complementary", { name: "Selected map impact details" })
+        .boundingBox();
+      if (!chipBounds || !inspectorBounds) return Number.POSITIVE_INFINITY;
+      return inspectorBounds.y - (chipBounds.y + chipBounds.height);
+    };
+    await expect.poll(previewInspectorGap).toBeGreaterThanOrEqual(8);
+    await expect.poll(previewInspectorGap).toBeLessThanOrEqual(12);
+
+    await page.getByRole("button", { name: "Show more map" }).click();
+    await expect(page.getByRole("button", { name: "Show more details" })).toBeVisible();
+    await expect.poll(previewInspectorGap).toBeGreaterThanOrEqual(8);
+    await expect.poll(previewInspectorGap).toBeLessThanOrEqual(12);
+  } else {
+    expect(previewChipMetrics.width).toBeGreaterThanOrEqual(560);
+  }
   const selectedImpactOverlay = page.locator('[data-selected-commute-impact-overlay="stub-alert-line-1"]');
   await expect(selectedImpactOverlay).toBeAttached();
   await expect(selectedImpactOverlay.locator(".suspension-candy")).toBeVisible();

@@ -115,13 +115,15 @@ public class CommuteImpactService {
             if (matchedSegmentIds.isEmpty()) {
                 continue;
             }
+            boolean activeNow = closure.activeNow() || "active-now".equals(closure.timingStatus());
             OffsetDateTime eventStartAt = closure.nextWindowStart() != null
                 ? closure.nextWindowStart()
                 : closure.activeWindowStart() != null
                     ? closure.activeWindowStart()
                     : closure.startedAt();
             putMatch(matchesByIdentity, new CommuteResponses.MatchedImpactResponse(
-                closure.id(), "planned-closure", "planned", "planned", closure.title(), closure.lineId(), closure.lineNumber(),
+                closure.id(), "planned-closure", activeNow ? "current" : "planned", activeNow ? "major" : "planned",
+                closure.title(), closure.lineId(), closure.lineNumber(),
                 closure.location(), closure.displayDirection(), closure.description(), closure.source(), matchedSegmentIds, List.of(),
                 closure.startedAt(), closure.updatedAt(), closure.window(), closure.timingStatus(), eventStartAt
             ));
@@ -268,10 +270,10 @@ public class CommuteImpactService {
             return new CommuteResponses.ImpactResponse(
                 "clear",
                 "clear",
-                "Clear",
+                routeMatches.isEmpty() ? "Clear" : "Clear by filters",
                 clearDetail(routeMatches),
                 routeMatches,
-                standardTravelTimeEstimate(path)
+                travelTimeEstimate(path, routeMatches)
             );
         }
         boolean hasCurrent = countedMatches.stream().anyMatch(match -> "current".equals(match.status()));
@@ -285,7 +287,7 @@ public class CommuteImpactService {
             hasCurrent ? "Affected now" : "Planned impact",
             detail(countedMatches, hasCurrent),
             routeMatches,
-            travelTimeEstimate(path, countedMatches)
+            travelTimeEstimate(path, routeMatches)
         );
     }
 
@@ -298,7 +300,7 @@ public class CommuteImpactService {
             + ignoredCount
             + " route "
             + (ignoredCount == 1 ? "impact is" : "impacts are")
-            + " ignored by this commute's alert filters.";
+            + " ignored by this commute's route filters. Travel time still reflects immediate route conditions.";
     }
 
     private CommuteResponses.TravelTimeEstimateResponse travelTimeEstimate(
@@ -306,7 +308,10 @@ public class CommuteImpactService {
         List<CommuteResponses.MatchedImpactResponse> matches
     ) {
         int baselineSeconds = Math.max(0, path.estimatedTravelSeconds());
-        if (hasUnreliableTravelTimeImpact(matches)) {
+        List<CommuteResponses.MatchedImpactResponse> immediateMatches = matches.stream()
+            .filter(match -> "current".equals(match.status()))
+            .toList();
+        if (hasUnreliableTravelTimeImpact(immediateMatches)) {
             return new CommuteResponses.TravelTimeEstimateResponse(
                 "unreliable",
                 baselineSeconds,
@@ -321,10 +326,7 @@ public class CommuteImpactService {
 
         int extraLowSeconds = 0;
         int extraHighSeconds = 0;
-        for (CommuteResponses.MatchedImpactResponse match : matches) {
-            if (!"current".equals(match.status())) {
-                continue;
-            }
+        for (CommuteResponses.MatchedImpactResponse match : immediateMatches) {
             int affectedSeconds = affectedPathSeconds(path, match);
             switch (match.kind()) {
                 case "delay" -> {
@@ -358,7 +360,7 @@ public class CommuteImpactService {
             estimatedHighSeconds,
             extraLowSeconds,
             extraHighSeconds,
-            matches.size() == 1 ? "medium" : "low",
+            immediateMatches.size() == 1 ? "medium" : "low",
             "Typical commute: " + durationLabel(baselineSeconds)
                 + ". With current impacts: " + durationRangeLabel(estimatedLowSeconds, estimatedHighSeconds)
                 + ". Extra time: " + extraRangeLabel(extraLowSeconds, extraHighSeconds) + "."
@@ -366,16 +368,9 @@ public class CommuteImpactService {
     }
 
     private boolean hasUnreliableTravelTimeImpact(List<CommuteResponses.MatchedImpactResponse> matches) {
-        boolean hasCurrentEstimateableImpact = matches.stream().anyMatch(match ->
-            "current".equals(match.status())
-                && ("delay".equals(match.kind()) || "reduced-speed-zone".equals(match.kind()))
-        );
         return matches.stream().anyMatch(match ->
-            "current".equals(match.status())
-                && ("suspension".equals(match.kind()) || "planned-closure".equals(match.kind()))
-        ) || (!hasCurrentEstimateableImpact && matches.stream().anyMatch(match ->
             "suspension".equals(match.kind()) || "planned-closure".equals(match.kind())
-        ));
+        );
     }
 
     private CommuteResponses.TravelTimeEstimateResponse standardTravelTimeEstimate(CommuteResponses.PathResponse path) {
