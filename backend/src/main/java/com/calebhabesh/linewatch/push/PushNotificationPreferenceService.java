@@ -79,6 +79,18 @@ public class PushNotificationPreferenceService {
                 return preferenceRepository.save(newPrefs);
             });
 
+        if (request.plannedClosureFollowUp() != null) {
+            try {
+                PlannedClosureFollowUpPolicy.fromApiValue(request.plannedClosureFollowUp());
+            } catch (IllegalArgumentException exception) {
+                throw new AccountException(
+                    HttpStatus.BAD_REQUEST,
+                    "invalid_planned_closure_follow_up",
+                    "Planned closure follow-up must be smart, within-24-hours, day-of, or announcements-only."
+                );
+            }
+        }
+
         Instant now = clock.instant();
         prefs.updateFrom(request, now);
         preferenceRepository.save(prefs);
@@ -109,13 +121,8 @@ public class PushNotificationPreferenceService {
 
     @Transactional(readOnly = true)
     public boolean allows(PushNotificationPreferenceEntity preferences, PushNotificationCandidate candidate) {
-        if ("closure-24h".equals(candidate.reminderBucket()) && !preferences.isReminderClosure24hEnabled()) {
-            return false;
-        }
-        if ("closure-morning".equals(candidate.reminderBucket()) && !preferences.isReminderClosureMorningEnabled()) {
-            return false;
-        }
-        if ("on-change".equals(candidate.reminderBucket()) && !preferences.isReminderOnChangeEnabled()) {
+        if ("planned-closure".equals(candidate.eventType())
+            && !preferences.getPlannedClosureFollowUpPolicy().allowsReminderBucket(candidate.reminderBucket())) {
             return false;
         }
 
@@ -216,10 +223,11 @@ public class PushNotificationPreferenceService {
                 )
             ),
             new PushResponses.ReminderTimingPreferencesResponse(
-                prefs.isReminderOnChangeEnabled(),
+                true,
                 prefs.isReminderClosure24hEnabled(),
                 prefs.isReminderClosureMorningEnabled()
-            )
+            ),
+            prefs.getPlannedClosureFollowUpPolicy().apiValue()
         );
     }
 }

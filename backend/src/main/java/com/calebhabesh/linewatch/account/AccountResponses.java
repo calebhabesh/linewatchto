@@ -76,28 +76,54 @@ public final class AccountResponses {
         boolean serviceRestored
     ) {}
 
+    public record SavedCommuteNotificationScheduleResponse(
+        int dayMask,
+        Integer startMinute,
+        Integer endMinute
+    ) {}
+
     public record SavedCommuteNotificationRuleResponse(
         boolean enabled,
         int dayMask,
         Integer startMinute,
         Integer endMinute,
-        String sectionStartStationId,
-        String sectionEndStationId,
         boolean outboundEnabled,
         boolean returnEnabled,
-        SavedCommuteNotificationEventTypesResponse eventTypes
-    ) {}
+        SavedCommuteNotificationEventTypesResponse eventTypes,
+        SavedCommuteNotificationScheduleResponse outboundSchedule,
+        SavedCommuteNotificationScheduleResponse returnSchedule
+    ) {
+        public SavedCommuteNotificationRuleResponse(
+            boolean enabled,
+            int dayMask,
+            Integer startMinute,
+            Integer endMinute,
+            boolean outboundEnabled,
+            boolean returnEnabled,
+            SavedCommuteNotificationEventTypesResponse eventTypes
+        ) {
+            this(
+                enabled,
+                dayMask,
+                startMinute,
+                endMinute,
+                outboundEnabled,
+                returnEnabled,
+                eventTypes,
+                new SavedCommuteNotificationScheduleResponse(dayMask, startMinute, endMinute),
+                new SavedCommuteNotificationScheduleResponse(dayMask, startMinute, endMinute)
+            );
+        }
+    }
 
     public record SavedCommuteListResponse(List<SavedCommuteResponse> commutes) {}
 
     public static SavedCommuteNotificationRuleResponse defaultNotificationRule() {
         return new SavedCommuteNotificationRuleResponse(
             true,
-            127,
-            null,
-            null,
-            null,
-            null,
+            62,
+            390,
+            570,
             true,
             true,
             new SavedCommuteNotificationEventTypesResponse(
@@ -106,7 +132,9 @@ public final class AccountResponses {
                 true,
                 true,
                 true
-            )
+            ),
+            new SavedCommuteNotificationScheduleResponse(62, 390, 570),
+            new SavedCommuteNotificationScheduleResponse(62, 900, 1140)
         );
     }
 }

@@ -118,9 +118,12 @@ public class PushNotificationPreferenceEntity {
             }
         }
 
-        if (request.reminderTiming() != null) {
+        if (request.plannedClosureFollowUp() != null) {
+            setPlannedClosureFollowUpPolicy(
+                PlannedClosureFollowUpPolicy.fromApiValue(request.plannedClosureFollowUp())
+            );
+        } else if (request.reminderTiming() != null) {
             var rt = request.reminderTiming();
-            if (rt.onChange() != null) this.reminderOnChangeEnabled = rt.onChange();
             if (rt.closure24h() != null) this.reminderClosure24hEnabled = rt.closure24h();
             if (rt.closureMorning() != null) this.reminderClosureMorningEnabled = rt.closureMorning();
         }
@@ -140,9 +143,19 @@ public class PushNotificationPreferenceEntity {
     public boolean isLineReducedSpeedZoneEnabled() { return lineReducedSpeedZoneEnabled; }
     public boolean isLinePlannedClosureEnabled() { return linePlannedClosureEnabled; }
     public boolean isLineRestoredEnabled() { return lineRestoredEnabled; }
-    public boolean isReminderOnChangeEnabled() { return reminderOnChangeEnabled; }
     public boolean isReminderClosure24hEnabled() { return reminderClosure24hEnabled; }
     public boolean isReminderClosureMorningEnabled() { return reminderClosureMorningEnabled; }
+    public PlannedClosureFollowUpPolicy getPlannedClosureFollowUpPolicy() {
+        return PlannedClosureFollowUpPolicy.fromLegacy(
+            reminderClosure24hEnabled,
+            reminderClosureMorningEnabled
+        );
+    }
+    private void setPlannedClosureFollowUpPolicy(PlannedClosureFollowUpPolicy policy) {
+        this.reminderOnChangeEnabled = true;
+        this.reminderClosure24hEnabled = policy.legacyClosure24hEnabled();
+        this.reminderClosureMorningEnabled = policy.legacyClosureMorningEnabled();
+    }
     public Instant getCreatedAt() { return createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }
 }

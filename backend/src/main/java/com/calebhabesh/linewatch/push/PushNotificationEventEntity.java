@@ -47,6 +47,8 @@ public class PushNotificationEventEntity {
     private String url;
     @Column(name = "created_at")
     private Instant createdAt;
+    @Column(name = "delivery_allowed")
+    private boolean deliveryAllowed;
 
     protected PushNotificationEventEntity() {}
 
@@ -81,6 +83,7 @@ public class PushNotificationEventEntity {
         this.sourceEventAt = notification.sourceEventAt();
         this.url = candidate.url();
         this.createdAt = now;
+        this.deliveryAllowed = candidate.deliveryAllowed();
     }
 
     public static PushNotificationEventEntity create(String id, PushNotificationCandidate candidate, Instant now) {
@@ -107,7 +110,7 @@ public class PushNotificationEventEntity {
         Instant now,
         PushNotificationFormatter formatter
     ) {
-        return cleared(id, activeEvent, now, now, formatter);
+        return cleared(id, activeEvent, now, now, formatter, true);
     }
 
     public static PushNotificationEventEntity cleared(
@@ -116,6 +119,17 @@ public class PushNotificationEventEntity {
         Instant clearedAt,
         Instant now,
         PushNotificationFormatter formatter
+    ) {
+        return cleared(id, activeEvent, clearedAt, now, formatter, true);
+    }
+
+    public static PushNotificationEventEntity cleared(
+        String id,
+        PushNotificationEventEntity activeEvent,
+        Instant clearedAt,
+        Instant now,
+        PushNotificationFormatter formatter,
+        boolean deliveryAllowed
     ) {
         FormattedPushNotification notification = formatter.formatCleared(
             activeEvent.notificationSubject,
@@ -147,6 +161,7 @@ public class PushNotificationEventEntity {
         event.sourceEventAt = notification.sourceEventAt();
         event.url = "/";
         event.createdAt = now;
+        event.deliveryAllowed = deliveryAllowed;
         return event;
     }
 
@@ -203,6 +218,7 @@ public class PushNotificationEventEntity {
         event.sourceEventAt = notification.sourceEventAt();
         event.url = "/";
         event.createdAt = now;
+        event.deliveryAllowed = true;
         return event;
     }
 
@@ -235,6 +251,7 @@ public class PushNotificationEventEntity {
         event.sourceEventAt = now;
         event.url = "/?panel=account";
         event.createdAt = now;
+        event.deliveryAllowed = true;
         return event;
     }
 
@@ -259,4 +276,5 @@ public class PushNotificationEventEntity {
     public Instant getSourceEventAt() { return sourceEventAt; }
     public String getUrl() { return url; }
     public Instant getCreatedAt() { return createdAt; }
+    public boolean isDeliveryAllowed() { return deliveryAllowed; }
 }

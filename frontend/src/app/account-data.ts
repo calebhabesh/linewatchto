@@ -139,25 +139,29 @@ export type AccountSavedCommuteNotificationEventTypes = {
   serviceRestored: boolean;
 };
 
+export type AccountSavedCommuteNotificationSchedule = {
+  dayMask: number;
+  startMinute: number | null;
+  endMinute: number | null;
+};
+
 export type AccountSavedCommuteNotificationRule = {
   enabled: boolean;
   dayMask: number;
   startMinute: number | null;
   endMinute: number | null;
-  sectionStartStationId: string | null;
-  sectionEndStationId: string | null;
   outboundEnabled: boolean;
   returnEnabled: boolean;
   eventTypes: AccountSavedCommuteNotificationEventTypes;
+  outboundSchedule: AccountSavedCommuteNotificationSchedule;
+  returnSchedule: AccountSavedCommuteNotificationSchedule;
 };
 
 export const defaultSavedCommuteNotificationRule: AccountSavedCommuteNotificationRule = {
   enabled: true,
-  dayMask: 127,
-  startMinute: null,
-  endMinute: null,
-  sectionStartStationId: null,
-  sectionEndStationId: null,
+  dayMask: 62,
+  startMinute: 390,
+  endMinute: 570,
   outboundEnabled: true,
   returnEnabled: true,
   eventTypes: {
@@ -166,6 +170,16 @@ export const defaultSavedCommuteNotificationRule: AccountSavedCommuteNotificatio
     reducedSpeedZones: true,
     plannedClosures: true,
     serviceRestored: true,
+  },
+  outboundSchedule: {
+    dayMask: 62,
+    startMinute: 390,
+    endMinute: 570,
+  },
+  returnSchedule: {
+    dayMask: 62,
+    startMinute: 900,
+    endMinute: 1140,
   },
 };
 
@@ -356,18 +370,18 @@ export type PushNotificationLineSubscriptionPreferences = {
   eventTypes: PushNotificationEventTypePreferences;
 };
 
-export type PushNotificationReminderTimingPreferences = {
-  onChange: boolean;
-  closure24h: boolean;
-  closureMorning: boolean;
-};
+export type PlannedClosureFollowUpPolicy =
+  | "smart"
+  | "within-24-hours"
+  | "day-of"
+  | "announcements-only";
 
 export type PushNotificationPreferences = {
   commuteNotificationsEnabled: boolean;
   plannedClosureNotificationsEnabled: boolean;
   savedCommutes: PushNotificationSavedCommutePreferences;
   lineSubscriptions: PushNotificationLineSubscriptionPreferences;
-  reminderTiming: PushNotificationReminderTimingPreferences;
+  plannedClosureFollowUp: PlannedClosureFollowUpPolicy;
 };
 
 export const defaultPushNotificationPreferences: PushNotificationPreferences = {
@@ -400,12 +414,48 @@ export const defaultPushNotificationPreferences: PushNotificationPreferences = {
       serviceRestored: true,
     },
   },
-  reminderTiming: {
-    onChange: true,
-    closure24h: true,
-    closureMorning: true,
-  },
+  plannedClosureFollowUp: "smart",
 };
+
+type LegacyReminderTimingPreferences = {
+  closure24h?: boolean;
+  closureMorning?: boolean;
+};
+
+function isPlannedClosureFollowUpPolicy(value: unknown): value is PlannedClosureFollowUpPolicy {
+  return value === "smart"
+    || value === "within-24-hours"
+    || value === "day-of"
+    || value === "announcements-only";
+}
+
+export function normalizePlannedClosureFollowUpPolicy(
+  value: unknown,
+  legacy?: LegacyReminderTimingPreferences,
+): PlannedClosureFollowUpPolicy {
+  if (isPlannedClosureFollowUpPolicy(value)) return value;
+  const closure24h = legacy?.closure24h ?? true;
+  const closureMorning = legacy?.closureMorning ?? true;
+  if (closure24h && closureMorning) return "smart";
+  if (closure24h) return "within-24-hours";
+  if (closureMorning) return "day-of";
+  return "announcements-only";
+}
+
+function normalizePushNotificationPreferences(
+  preferences: PushNotificationPreferences & {
+    plannedClosureFollowUp?: unknown;
+    reminderTiming?: LegacyReminderTimingPreferences;
+  },
+): PushNotificationPreferences {
+  return {
+    ...preferences,
+    plannedClosureFollowUp: normalizePlannedClosureFollowUpPolicy(
+      preferences.plannedClosureFollowUp,
+      preferences.reminderTiming,
+    ),
+  };
+}
 
 export type PushNotificationConfig = {
   webPushAvailable: boolean;
@@ -567,17 +617,37 @@ async function readJson<T>(response: Response): Promise<T> {
 export function normalizeSavedCommuteNotificationRule(
   rule?: Partial<AccountSavedCommuteNotificationRule> | null
 ): AccountSavedCommuteNotificationRule {
+  const legacySchedule: AccountSavedCommuteNotificationSchedule = rule ? {
+    dayMask: typeof rule.dayMask === "number" ? rule.dayMask : 127,
+    startMinute: typeof rule.startMinute === "number" ? rule.startMinute : null,
+    endMinute: typeof rule.endMinute === "number" ? rule.endMinute : null,
+  } : defaultSavedCommuteNotificationRule.outboundSchedule;
+  const normalizeSchedule = (
+    schedule: AccountSavedCommuteNotificationSchedule | undefined,
+    fallback: AccountSavedCommuteNotificationSchedule,
+  ): AccountSavedCommuteNotificationSchedule => schedule ? ({
+    dayMask: typeof schedule.dayMask === "number" ? schedule.dayMask : fallback.dayMask,
+    startMinute: typeof schedule.startMinute === "number" ? schedule.startMinute : null,
+    endMinute: typeof schedule.endMinute === "number" ? schedule.endMinute : null,
+  }) : ({ ...fallback });
+  const outboundSchedule = normalizeSchedule(rule?.outboundSchedule, legacySchedule);
+  const returnSchedule = normalizeSchedule(
+    rule?.returnSchedule,
+    rule ? legacySchedule : defaultSavedCommuteNotificationRule.returnSchedule,
+  );
   return {
     ...defaultSavedCommuteNotificationRule,
     ...rule,
-    startMinute: typeof rule?.startMinute === "number" ? rule.startMinute : null,
-    endMinute: typeof rule?.endMinute === "number" ? rule.endMinute : null,
-    sectionStartStationId: rule?.sectionStartStationId ?? null,
-    sectionEndStationId: rule?.sectionEndStationId ?? null,
+    // The legacy fields mirror outbound so an older backend/client remains safe during rollout.
+    dayMask: outboundSchedule.dayMask,
+    startMinute: outboundSchedule.startMinute,
+    endMinute: outboundSchedule.endMinute,
     eventTypes: {
       ...defaultSavedCommuteNotificationRule.eventTypes,
       ...(rule?.eventTypes ?? {}),
     },
+    outboundSchedule,
+    returnSchedule,
   };
 }
 
@@ -819,7 +889,13 @@ export async function getPushNotificationConfig(options: AdapterOptions = {}): P
       throw new Error(`Push config request failed with ${response.status}`);
     }
     const config = await readJson<PushNotificationConfig>(response);
-    return { source: "backend", config };
+    return {
+      source: "backend",
+      config: {
+        ...config,
+        preferences: normalizePushNotificationPreferences(config.preferences),
+      },
+    };
   } catch {
     return {
       source: "unavailable",
@@ -926,11 +1002,12 @@ export async function savePushSubscription(input: SavePushSubscriptionInput, opt
 }
 
 export async function updatePushPreferences(input: PushNotificationPreferences, options: AdapterOptions = {}) {
-  return authJsonRequest<PushNotificationPreferences>(
+  const preferences = await authJsonRequest<PushNotificationPreferences>(
     "/api/account/push/preferences",
     { method: "PUT", body: JSON.stringify(input) },
     options
   );
+  return normalizePushNotificationPreferences(preferences);
 }
 
 export async function getLatestPushNotificationForSubscription(endpoint: string, options: AdapterOptions = {}) {

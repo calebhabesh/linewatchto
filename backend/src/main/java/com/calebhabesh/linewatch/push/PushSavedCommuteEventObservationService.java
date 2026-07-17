@@ -34,18 +34,34 @@ public class PushSavedCommuteEventObservationService {
             .findFirst()
             .map(existing -> {
                 boolean updated = hasTrackedUpdate(existing.getUpdateFingerprint(), candidate.updateFingerprint());
+                boolean previouslyAllowed = existing.isDeliveryAllowed();
+                boolean ruleChangedSinceLastSeen = commute != null
+                    && commute.getUpdatedAt() != null
+                    && existing.getLastSeenAt() != null
+                    && commute.getUpdatedAt().isAfter(existing.getLastSeenAt());
+                if (updated) {
+                    existing.clearBaselineSuppression();
+                } else if (ruleChangedSinceLastSeen) {
+                    existing.suppressBaseline();
+                }
+                boolean becameEligible = !previouslyAllowed
+                    && candidate.deliveryAllowed()
+                    && !ruleChangedSinceLastSeen
+                    && !existing.isBaselineSuppressed();
                 existing.refresh(candidate, now);
                 PushSavedCommuteEventObservationEntity saved = observationRepository.save(existing);
-                return new ObservationDecision(saved, false, false, updated);
+                return new ObservationDecision(saved, false, false, updated, becameEligible);
             })
             .orElseGet(() -> {
+                boolean silentBaseline = silentBaseline(candidate, commute, preferences);
                 PushSavedCommuteEventObservationEntity created = PushSavedCommuteEventObservationEntity.create(
                     PushSavedCommuteEventObservationEntity.idFor(candidate.accountId(), candidate.sourceIncidentKey()),
                     candidate,
-                    now
+                    now,
+                    silentBaseline
                 );
                 PushSavedCommuteEventObservationEntity saved = observationRepository.save(created);
-                return new ObservationDecision(saved, true, silentBaseline(candidate, commute, preferences), false);
+                return new ObservationDecision(saved, true, silentBaseline, false, false);
             });
     }
 
@@ -96,18 +112,28 @@ public class PushSavedCommuteEventObservationService {
         PushSavedCommuteEventObservationEntity observation,
         boolean firstObserved,
         boolean silentBaseline,
-        boolean updated
+        boolean updated,
+        boolean becameEligible
     ) {
+        public ObservationDecision(
+            PushSavedCommuteEventObservationEntity observation,
+            boolean firstObserved,
+            boolean silentBaseline,
+            boolean updated
+        ) {
+            this(observation, firstObserved, silentBaseline, updated, false);
+        }
+
         public ObservationDecision(
             PushSavedCommuteEventObservationEntity observation,
             boolean firstObserved,
             boolean silentBaseline
         ) {
-            this(observation, firstObserved, silentBaseline, false);
+            this(observation, firstObserved, silentBaseline, false, false);
         }
 
         public boolean shouldSendActive() {
-            return (firstObserved && !silentBaseline) || updated;
+            return (firstObserved && !silentBaseline) || updated || becameEligible;
         }
     }
 }

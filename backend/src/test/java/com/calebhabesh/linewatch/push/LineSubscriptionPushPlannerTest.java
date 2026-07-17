@@ -152,9 +152,8 @@ class LineSubscriptionPushPlannerTest {
         List<PushNotificationCandidate> closureCandidates = candidates.stream()
             .filter(c -> "planned-closure".equals(c.eventType()))
             .toList();
-        assertThat(closureCandidates).hasSize(2);
-        assertThat(closureCandidates).extracting(PushNotificationCandidate::reminderBucket)
-            .containsExactlyInAnyOrder("on-change", "closure-24h");
+        assertThat(closureCandidates).singleElement()
+            .satisfies(candidate -> assertThat(candidate.reminderBucket()).isEqualTo("closure-24h"));
 
         for (PushNotificationCandidate candidate : closureCandidates) {
             assertThat(candidate.title()).isEqualTo("⚠️ Line 1 Yonge-University Planned Closure");
@@ -164,6 +163,30 @@ class LineSubscriptionPushPlannerTest {
                 assertThat(candidate.body()).contains("Starts within 24 hours.");
             }
         }
+    }
+
+    @Test
+    void announcementOnlyPolicyDoesNotCreateScheduledClosureReminderCandidates() {
+        OffsetDateTime eventStart = OffsetDateTime.parse("2026-06-06T04:00:00Z");
+        AlertDashboardService.PlannedClosureDto closure = new AlertDashboardService.PlannedClosureDto(
+            "closure-1", "line-1", "1", "Planned Closure", "Sat-Sun",
+            "St George to Sheppard West", null, "Closed", eventStart, eventStart,
+            List.of(), true, "TTC Service Advisory", null, null, false, "upcoming",
+            false, null, null, null, eventStart, eventStart.plusDays(2), "Weekend"
+        );
+        when(dashboardService.activeAlerts()).thenReturn(List.of());
+        when(dashboardService.delays()).thenReturn(List.of());
+        when(dashboardService.reducedSpeedZones()).thenReturn(List.of());
+        when(dashboardService.plannedClosures()).thenReturn(List.of(closure));
+
+        List<PushNotificationCandidate> candidates = planner.candidatesFor(
+            "user_1",
+            List.of("line-1"),
+            PlannedClosureFollowUpPolicy.ANNOUNCEMENTS_ONLY
+        );
+
+        assertThat(candidates).singleElement()
+            .satisfies(candidate -> assertThat(candidate.reminderBucket()).isEqualTo("on-change"));
     }
 
     @Test

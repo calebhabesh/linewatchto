@@ -41,4 +41,18 @@ class PushSavedCommuteEventObservationSchemaMigrationTest {
             assertThat(sql).doesNotContain("not null");
         }
     }
+
+    @Test
+    void v44PreservesExistingObservationsAsSilentBaselinesAndTracksSuppressedClearances() throws IOException {
+        try (var input = getClass().getResourceAsStream(
+            "/db/migration/V44__push_notification_delivery_eligibility.sql"
+        )) {
+            assertThat(input).isNotNull();
+            String sql = new String(input.readAllBytes(), StandardCharsets.UTF_8).toLowerCase();
+
+            assertThat(sql).contains("add column delivery_allowed boolean not null default true");
+            assertThat(sql).contains("add column baseline_suppressed boolean not null default true");
+            assertThat(sql).contains("alter table push_notification_events");
+        }
+    }
 }

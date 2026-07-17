@@ -7,11 +7,9 @@ import {
   Calendar,
   CheckCircle2,
   ChevronLeft,
-  Clock3,
   Construction,
   Loader2,
   Navigation,
-  Sun,
   X,
 } from "lucide-react";
 import type { AccountState } from "../app/account-data";
@@ -480,57 +478,69 @@ export function NotificationSettingsPanel({
 
             <div className="notification-settings-section">
               <div className="notification-settings-section-header">
-                <h3>Reminder Timing</h3>
-                <span>Options</span>
+                <h3>Planned Closure Follow-ups</h3>
+                <span>Global</span>
               </div>
-              <div className="notification-settings-list">
+              <p className="notification-settings-note">
+                New and meaningfully changed closures follow the stream and event filters above automatically. Choose if LineWatchTO should add one scheduled follow-up for saved commutes and line subscriptions.
+              </p>
+              <fieldset className="notification-follow-up-options" disabled={busy || !preferencesLoaded}>
+                <legend className="sr-only">Planned closure follow-up policy</legend>
                 {[
                   {
-                    key: "onChange" as const,
-                    label: "Event Starts/Changes",
-                    icon: <Clock3 size={15} />,
-                    desc: "Notify when disruptions start, significantly change, or clear.",
+                    value: "smart" as const,
+                    label: "Smart",
+                    badge: "Recommended",
+                    desc: "One useful follow-up: day-of for later closures, or within 24 hours for early-morning closures.",
                   },
                   {
-                    key: "closure24h" as const,
-                    label: "24h Before Closure",
-                    icon: <Calendar size={15} />,
-                    desc: "Remind 24 hours before planned weekend or weekday closures.",
+                    value: "within-24-hours" as const,
+                    label: "Within 24 Hours",
+                    badge: null,
+                    desc: "Once after the closure enters its final 24-hour window.",
                   },
                   {
-                    key: "closureMorning" as const,
-                    label: "Morning of Closure",
-                    icon: <Sun size={15} />,
-                    desc: "Remind on the morning of a planned closure.",
+                    value: "day-of" as const,
+                    label: "Day Of",
+                    badge: null,
+                    desc: "Once after 6:00 AM Toronto time on the start date; saved commutes still wait for their route window.",
                   },
-                ].map(({ key, label, icon, desc }) => (
-                  <div className="notification-settings-row flex items-center justify-between py-2.5 border-b border-black/5 dark:border-white/5 last:border-b-0" key={key}>
-                    <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                      <span className="notification-settings-icon shrink-0 text-slate-500 dark:text-slate-400">{icon}</span>
-                      <span className="notification-settings-row-label min-w-0">
-                        <strong>{label}</strong>
-                        <em>{desc}</em>
-                      </span>
-                    </div>
-                    <div className="notification-settings-row-actions">
-                      <NotificationSwitch
-                        checked={preferences.reminderTiming[key]}
-                        disabled={busy || !preferencesLoaded}
-                        label={label}
-                        onChange={(checked) => {
+                  {
+                    value: "announcements-only" as const,
+                    label: "Announcements Only",
+                    badge: null,
+                    desc: "Only when a closure is first reported or meaningfully updated—no scheduled follow-up.",
+                  },
+                ].map(({ value, label, badge, desc }) => (
+                  <label
+                    className="notification-follow-up-option"
+                    data-selected={preferences.plannedClosureFollowUp === value}
+                    key={value}
+                  >
+                    <input
+                      type="radio"
+                      name="planned-closure-follow-up"
+                      value={value}
+                      checked={preferences.plannedClosureFollowUp === value}
+                      onChange={() => {
+                        if (preferences.plannedClosureFollowUp !== value) {
                           updatePreferences({
                             ...preferences,
-                            reminderTiming: {
-                              ...preferences.reminderTiming,
-                              [key]: checked,
-                            },
+                            plannedClosureFollowUp: value,
                           });
-                        }}
-                      />
-                    </div>
-                  </div>
+                        }
+                      }}
+                    />
+                    <span className="notification-follow-up-copy">
+                      <span className="notification-follow-up-title">
+                        <strong>{label}</strong>
+                        {badge ? <em>{badge}</em> : null}
+                      </span>
+                      <small>{desc}</small>
+                    </span>
+                  </label>
                 ))}
-              </div>
+              </fieldset>
             </div>
           </>
         ) : null}

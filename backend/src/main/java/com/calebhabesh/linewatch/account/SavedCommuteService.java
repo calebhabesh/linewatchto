@@ -205,7 +205,7 @@ public class SavedCommuteService {
             return impact;
         }
         List<CommuteResponses.MatchedImpactResponse> annotatedMatches = impact.matchedImpacts().stream()
-            .map(match -> match.withIgnoredByRule(!SavedCommuteAlertRules.dashboardMatchCounts(commute, legId, path, match)))
+            .map(match -> match.withIgnoredByRule(!SavedCommuteAlertRules.dashboardMatchCounts(commute, legId, match)))
             .toList();
         return commuteImpactService.responseForMatches(path, annotatedMatches);
     }
@@ -243,18 +243,36 @@ public class SavedCommuteService {
             return;
         }
 
-        Integer startMinute = request.startMinute();
-        Integer endMinute = request.endMinute();
-        validateTimeWindow(startMinute, endMinute);
+        SavedCommuteNotificationScheduleRequest outboundSchedule = request.outboundSchedule();
+        SavedCommuteNotificationScheduleRequest returnSchedule = request.returnSchedule();
+        int legacyDayMask = validateDayMask(valueOrDefault(request.dayMask(), commute.getNotificationOutboundDayMask()));
+        Integer legacyStartMinute = request.startMinute();
+        Integer legacyEndMinute = request.endMinute();
+        validateTimeWindow(legacyStartMinute, legacyEndMinute);
+
+        int outboundDayMask = outboundSchedule == null
+            ? legacyDayMask
+            : validateDayMask(valueOrDefault(outboundSchedule.dayMask(), commute.getNotificationOutboundDayMask()));
+        Integer outboundStartMinute = outboundSchedule == null ? legacyStartMinute : outboundSchedule.startMinute();
+        Integer outboundEndMinute = outboundSchedule == null ? legacyEndMinute : outboundSchedule.endMinute();
+        validateTimeWindow(outboundStartMinute, outboundEndMinute);
+
+        int returnDayMask = returnSchedule == null
+            ? legacyDayMask
+            : validateDayMask(valueOrDefault(returnSchedule.dayMask(), commute.getNotificationReturnDayMask()));
+        Integer returnStartMinute = returnSchedule == null ? legacyStartMinute : returnSchedule.startMinute();
+        Integer returnEndMinute = returnSchedule == null ? legacyEndMinute : returnSchedule.endMinute();
+        validateTimeWindow(returnStartMinute, returnEndMinute);
 
         SavedCommuteNotificationEventTypesRequest eventTypes = request.eventTypes();
         commute.updateNotificationRule(
             valueOrDefault(request.enabled(), commute.isNotificationEnabled()),
-            validateDayMask(valueOrDefault(request.dayMask(), commute.getNotificationDayMask())),
-            startMinute,
-            endMinute,
-            normalizeOptionalStationId(request.sectionStartStationId(), "notification_section_start_station"),
-            normalizeOptionalStationId(request.sectionEndStationId(), "notification_section_end_station"),
+            outboundDayMask,
+            outboundStartMinute,
+            outboundEndMinute,
+            returnDayMask,
+            returnStartMinute,
+            returnEndMinute,
             valueOrDefault(request.outboundEnabled(), commute.isNotificationOutboundEnabled()),
             valueOrDefault(request.returnEnabled(), commute.isNotificationReturnEnabled()),
             eventTypes == null ? commute.isNotificationSuspensionEnabled() : valueOrDefault(eventTypes.suspensions(), commute.isNotificationSuspensionEnabled()),
@@ -269,11 +287,9 @@ public class SavedCommuteService {
     private AccountResponses.SavedCommuteNotificationRuleResponse notificationRuleResponse(SavedCommuteEntity commute) {
         return new AccountResponses.SavedCommuteNotificationRuleResponse(
             commute.isNotificationEnabled(),
-            commute.getNotificationDayMask(),
-            commute.getNotificationStartMinute(),
-            commute.getNotificationEndMinute(),
-            commute.getNotificationSectionStartStationId(),
-            commute.getNotificationSectionEndStationId(),
+            commute.getNotificationOutboundDayMask(),
+            commute.getNotificationOutboundStartMinute(),
+            commute.getNotificationOutboundEndMinute(),
             commute.isNotificationOutboundEnabled(),
             commute.isNotificationReturnEnabled(),
             new AccountResponses.SavedCommuteNotificationEventTypesResponse(
@@ -282,6 +298,16 @@ public class SavedCommuteService {
                 commute.isNotificationReducedSpeedZoneEnabled(),
                 commute.isNotificationPlannedClosureEnabled(),
                 commute.isNotificationRestoredEnabled()
+            ),
+            new AccountResponses.SavedCommuteNotificationScheduleResponse(
+                commute.getNotificationOutboundDayMask(),
+                commute.getNotificationOutboundStartMinute(),
+                commute.getNotificationOutboundEndMinute()
+            ),
+            new AccountResponses.SavedCommuteNotificationScheduleResponse(
+                commute.getNotificationReturnDayMask(),
+                commute.getNotificationReturnStartMinute(),
+                commute.getNotificationReturnEndMinute()
             )
         );
     }
@@ -307,17 +333,6 @@ public class SavedCommuteService {
         if (startMinute.equals(endMinute)) {
             throw new AccountException(HttpStatus.BAD_REQUEST, "invalid_notification_window", "Notification start and end time must be different.");
         }
-    }
-
-    private String normalizeOptionalStationId(String stationId, String errorCode) {
-        if (stationId == null || stationId.isBlank()) {
-            return null;
-        }
-        String normalized = stationId.trim();
-        if (normalized.length() > MAX_STATION_ID_LENGTH) {
-            throw new AccountException(HttpStatus.BAD_REQUEST, errorCode, "Notification station id must be 80 characters or less.");
-        }
-        return normalized;
     }
 
     private boolean valueOrDefault(Boolean value, boolean fallback) {
@@ -357,15 +372,43 @@ public class SavedCommuteService {
         Boolean serviceRestored
     ) {}
 
+    public record SavedCommuteNotificationScheduleRequest(
+        Integer dayMask,
+        Integer startMinute,
+        Integer endMinute
+    ) {}
+
     public record SavedCommuteNotificationRuleRequest(
         Boolean enabled,
         Integer dayMask,
         Integer startMinute,
         Integer endMinute,
-        String sectionStartStationId,
-        String sectionEndStationId,
         Boolean outboundEnabled,
         Boolean returnEnabled,
-        SavedCommuteNotificationEventTypesRequest eventTypes
-    ) {}
+        SavedCommuteNotificationEventTypesRequest eventTypes,
+        SavedCommuteNotificationScheduleRequest outboundSchedule,
+        SavedCommuteNotificationScheduleRequest returnSchedule
+    ) {
+        public SavedCommuteNotificationRuleRequest(
+            Boolean enabled,
+            Integer dayMask,
+            Integer startMinute,
+            Integer endMinute,
+            Boolean outboundEnabled,
+            Boolean returnEnabled,
+            SavedCommuteNotificationEventTypesRequest eventTypes
+        ) {
+            this(
+                enabled,
+                dayMask,
+                startMinute,
+                endMinute,
+                outboundEnabled,
+                returnEnabled,
+                eventTypes,
+                null,
+                null
+            );
+        }
+    }
 }

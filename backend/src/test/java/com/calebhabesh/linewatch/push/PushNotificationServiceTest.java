@@ -64,6 +64,13 @@ class PushNotificationServiceTest {
         properties.setClearedNotificationRetention(Duration.ofHours(4));
         properties.setReceiptSigningSecret("test-receipt-secret");
         when(ingestionFreshness.isDashboardFresh()).thenReturn(true);
+        when(planner.candidatesFor(any(SavedCommuteEntity.class), any(PlannedClosureFollowUpPolicy.class)))
+            .thenAnswer(invocation -> planner.candidatesFor(invocation.getArgument(0)));
+        when(lineSubscriptionPushPlanner.candidatesFor(
+            anyString(), anyList(), any(PlannedClosureFollowUpPolicy.class)
+        )).thenAnswer(invocation -> lineSubscriptionPushPlanner.candidatesFor(
+            invocation.getArgument(0), invocation.getArgument(1)
+        ));
         when(deliveryRepository.findRecentlyDisplayedClearedNotificationKeys(
             anyString(),
             anyString(),

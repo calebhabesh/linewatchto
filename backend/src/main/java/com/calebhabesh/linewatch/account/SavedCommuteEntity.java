@@ -27,15 +27,23 @@ public class SavedCommuteEntity {
     @Column(name = "notification_enabled")
     private boolean notificationEnabled = true;
     @Column(name = "notification_day_mask")
-    private int notificationDayMask = 127;
+    private int notificationDayMask = 62;
     @Column(name = "notification_start_minute")
-    private Integer notificationStartMinute;
+    private Integer notificationStartMinute = 6 * 60 + 30;
     @Column(name = "notification_end_minute")
-    private Integer notificationEndMinute;
-    @Column(name = "notification_section_start_station_id")
-    private String notificationSectionStartStationId;
-    @Column(name = "notification_section_end_station_id")
-    private String notificationSectionEndStationId;
+    private Integer notificationEndMinute = 9 * 60 + 30;
+    @Column(name = "notification_outbound_day_mask")
+    private int notificationOutboundDayMask = 62;
+    @Column(name = "notification_outbound_start_minute")
+    private Integer notificationOutboundStartMinute = 6 * 60 + 30;
+    @Column(name = "notification_outbound_end_minute")
+    private Integer notificationOutboundEndMinute = 9 * 60 + 30;
+    @Column(name = "notification_return_day_mask")
+    private int notificationReturnDayMask = 62;
+    @Column(name = "notification_return_start_minute")
+    private Integer notificationReturnStartMinute = 15 * 60;
+    @Column(name = "notification_return_end_minute")
+    private Integer notificationReturnEndMinute = 19 * 60;
     @Column(name = "notification_outbound_enabled")
     private boolean notificationOutboundEnabled = true;
     @Column(name = "notification_return_enabled")
@@ -102,8 +110,12 @@ public class SavedCommuteEntity {
     public int getNotificationDayMask() { return notificationDayMask; }
     public Integer getNotificationStartMinute() { return notificationStartMinute; }
     public Integer getNotificationEndMinute() { return notificationEndMinute; }
-    public String getNotificationSectionStartStationId() { return notificationSectionStartStationId; }
-    public String getNotificationSectionEndStationId() { return notificationSectionEndStationId; }
+    public int getNotificationOutboundDayMask() { return notificationOutboundDayMask; }
+    public Integer getNotificationOutboundStartMinute() { return notificationOutboundStartMinute; }
+    public Integer getNotificationOutboundEndMinute() { return notificationOutboundEndMinute; }
+    public int getNotificationReturnDayMask() { return notificationReturnDayMask; }
+    public Integer getNotificationReturnStartMinute() { return notificationReturnStartMinute; }
+    public Integer getNotificationReturnEndMinute() { return notificationReturnEndMinute; }
     public boolean isNotificationOutboundEnabled() { return notificationOutboundEnabled; }
     public boolean isNotificationReturnEnabled() { return notificationReturnEnabled; }
     public boolean isNotificationSuspensionEnabled() { return notificationSuspensionEnabled; }
@@ -119,8 +131,42 @@ public class SavedCommuteEntity {
         int dayMask,
         Integer startMinute,
         Integer endMinute,
-        String sectionStartStationId,
-        String sectionEndStationId,
+        boolean outboundEnabled,
+        boolean returnEnabled,
+        boolean suspensionEnabled,
+        boolean delayEnabled,
+        boolean reducedSpeedZoneEnabled,
+        boolean plannedClosureEnabled,
+        boolean restoredEnabled,
+        Instant now
+    ) {
+        updateNotificationRule(
+            enabled,
+            dayMask,
+            startMinute,
+            endMinute,
+            dayMask,
+            startMinute,
+            endMinute,
+            outboundEnabled,
+            returnEnabled,
+            suspensionEnabled,
+            delayEnabled,
+            reducedSpeedZoneEnabled,
+            plannedClosureEnabled,
+            restoredEnabled,
+            now
+        );
+    }
+
+    public void updateNotificationRule(
+        boolean enabled,
+        int outboundDayMask,
+        Integer outboundStartMinute,
+        Integer outboundEndMinute,
+        int returnDayMask,
+        Integer returnStartMinute,
+        Integer returnEndMinute,
         boolean outboundEnabled,
         boolean returnEnabled,
         boolean suspensionEnabled,
@@ -131,11 +177,16 @@ public class SavedCommuteEntity {
         Instant now
     ) {
         this.notificationEnabled = enabled;
-        this.notificationDayMask = dayMask;
-        this.notificationStartMinute = startMinute;
-        this.notificationEndMinute = endMinute;
-        this.notificationSectionStartStationId = sectionStartStationId;
-        this.notificationSectionEndStationId = sectionEndStationId;
+        // Keep the original fields synchronized for cached clients during the API transition.
+        this.notificationDayMask = outboundDayMask;
+        this.notificationStartMinute = outboundStartMinute;
+        this.notificationEndMinute = outboundEndMinute;
+        this.notificationOutboundDayMask = outboundDayMask;
+        this.notificationOutboundStartMinute = outboundStartMinute;
+        this.notificationOutboundEndMinute = outboundEndMinute;
+        this.notificationReturnDayMask = returnDayMask;
+        this.notificationReturnStartMinute = returnStartMinute;
+        this.notificationReturnEndMinute = returnEndMinute;
         this.notificationOutboundEnabled = outboundEnabled;
         this.notificationReturnEnabled = returnEnabled;
         this.notificationSuspensionEnabled = suspensionEnabled;

@@ -51,22 +51,16 @@ const defaultPushNotificationPreferences = {
       serviceRestored: true,
     },
   },
-  reminderTiming: {
-    onChange: true,
-    closure24h: true,
-    closureMorning: true,
-  },
+  plannedClosureFollowUp: "smart",
 };
 
 let pushPreferences = JSON.parse(JSON.stringify(defaultPushNotificationPreferences));
 
 const defaultSavedCommuteNotificationRule = {
   enabled: true,
-  dayMask: 127,
-  startMinute: null,
-  endMinute: null,
-  sectionStartStationId: null,
-  sectionEndStationId: null,
+  dayMask: 62,
+  startMinute: 390,
+  endMinute: 570,
   outboundEnabled: true,
   returnEnabled: true,
   eventTypes: {
@@ -75,6 +69,16 @@ const defaultSavedCommuteNotificationRule = {
     reducedSpeedZones: true,
     plannedClosures: true,
     serviceRestored: true,
+  },
+  outboundSchedule: {
+    dayMask: 62,
+    startMinute: 390,
+    endMinute: 570,
+  },
+  returnSchedule: {
+    dayMask: 62,
+    startMinute: 900,
+    endMinute: 1140,
   },
 };
 
@@ -441,11 +445,8 @@ const server = createServer(async (request, response) => {
         };
       }
     }
-    if (body.reminderTiming) {
-      pushPreferences.reminderTiming = {
-        ...pushPreferences.reminderTiming,
-        ...body.reminderTiming,
-      };
+    if (body.plannedClosureFollowUp) {
+      pushPreferences.plannedClosureFollowUp = body.plannedClosureFollowUp;
     }
 
     sendJson(request, response, 200, pushPreferences);

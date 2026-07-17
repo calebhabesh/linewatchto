@@ -1,6 +1,7 @@
 package com.calebhabesh.linewatch.push;
 
 import com.calebhabesh.linewatch.account.SavedCommuteEntity;
+import com.calebhabesh.linewatch.account.SavedCommuteNotificationSchedule;
 import com.calebhabesh.linewatch.account.SavedCommuteRepository;
 import com.calebhabesh.linewatch.alert.AlertHistoryRepository;
 import com.calebhabesh.linewatch.ingestion.IngestionFreshness;
@@ -182,11 +183,13 @@ public class PushNotificationDispatchService {
             java.util.Map<String, SavedCommuteEntity> commutesById = commutes.stream()
                 .collect(java.util.stream.Collectors.toMap(SavedCommuteEntity::getId, commute -> commute));
             List<PushNotificationCandidate> savedCommuteCandidates = commutes.stream()
-                .flatMap(commute -> planner.candidatesFor(commute).stream())
+                .flatMap(commute -> savedCommuteCandidatesFor(commute, preferences).stream())
                 .toList();
 
             List<String> subscribedLineIds = preferenceService.subscribedLineIds(accountId);
-            List<PushNotificationCandidate> lineCandidates = lineSubscriptionPushPlanner.candidatesFor(accountId, subscribedLineIds);
+            List<PushNotificationCandidate> lineCandidates = lineCandidatesFor(
+                accountId, subscribedLineIds, preferences
+            );
             Set<String> subscribedLineIdSet = new java.util.HashSet<>(subscribedLineIds);
 
             List<PushNotificationCandidate> allCandidates = new java.util.ArrayList<>();
@@ -246,6 +249,7 @@ public class PushNotificationDispatchService {
             sendClearedNotifications(
                 accountId,
                 preferences,
+                commutesById,
                 savedCurrentNotificationKeys,
                 savedCurrentSourceIncidentKeys,
                 savedCurrentCandidates
@@ -263,12 +267,38 @@ public class PushNotificationDispatchService {
                 currentLineSourceIncidentKeys,
                 currentLineCandidates
             );
-            retryRecentClearedLifecycleNotifications(accountId, preferences, subscribedLineIdSet, clock.instant());
+            retryRecentClearedLifecycleNotifications(
+                accountId,
+                preferences,
+                commutesById,
+                subscribedLineIdSet,
+                clock.instant()
+            );
+    }
+
+    private List<PushNotificationCandidate> savedCommuteCandidatesFor(
+        SavedCommuteEntity commute,
+        PushNotificationPreferenceEntity preferences
+    ) {
+        PlannedClosureFollowUpPolicy policy = preferences.getPlannedClosureFollowUpPolicy();
+        return policy == null ? planner.candidatesFor(commute) : planner.candidatesFor(commute, policy);
+    }
+
+    private List<PushNotificationCandidate> lineCandidatesFor(
+        String accountId,
+        List<String> subscribedLineIds,
+        PushNotificationPreferenceEntity preferences
+    ) {
+        PlannedClosureFollowUpPolicy policy = preferences.getPlannedClosureFollowUpPolicy();
+        return policy == null
+            ? lineSubscriptionPushPlanner.candidatesFor(accountId, subscribedLineIds)
+            : lineSubscriptionPushPlanner.candidatesFor(accountId, subscribedLineIds, policy);
     }
 
     private void retryRecentClearedLifecycleNotifications(
         String accountId,
         PushNotificationPreferenceEntity preferences,
+        java.util.Map<String, SavedCommuteEntity> commutesById,
         Set<String> subscribedLineIds,
         Instant now
     ) {
@@ -284,7 +314,7 @@ public class PushNotificationDispatchService {
                 PageRequest.of(0, CLEARED_DELIVERY_RETRY_LIMIT)
             );
         for (PushNotificationEventEntity clearedEvent : clearedEvents) {
-            if (clearedRetryAllowed(clearedEvent, preferences, subscribedLineIds)) {
+            if (clearedRetryAllowed(clearedEvent, preferences, commutesById, subscribedLineIds, now)) {
                 retryEventToIncompleteSubscriptions(clearedEvent, now);
             }
         }
@@ -293,10 +323,20 @@ public class PushNotificationDispatchService {
     private boolean clearedRetryAllowed(
         PushNotificationEventEntity event,
         PushNotificationPreferenceEntity preferences,
-        Set<String> subscribedLineIds
+        java.util.Map<String, SavedCommuteEntity> commutesById,
+        Set<String> subscribedLineIds,
+        Instant now
     ) {
+        if (!event.isDeliveryAllowed()) {
+            return false;
+        }
         if (event.getCommuteId() != null) {
-            return preferences.isSavedCommuteRestoredEnabled();
+            return savedCommuteClearanceAllowed(
+                preferences,
+                commutesById.get(event.getCommuteId()),
+                event.getLegId(),
+                now
+            );
         }
         if (event.getLineId() != null) {
             return preferences.isLineRestoredEnabled() && subscribedLineIds.contains(event.getLineId());
@@ -307,6 +347,7 @@ public class PushNotificationDispatchService {
     private void sendClearedNotifications(
         String accountId,
         PushNotificationPreferenceEntity preferences,
+        java.util.Map<String, SavedCommuteEntity> commutesById,
         Set<String> currentNotificationKeys,
         Set<String> currentSourceIncidentKeys,
         List<PushNotificationCandidate> currentCandidates
@@ -340,26 +381,52 @@ public class PushNotificationDispatchService {
                 continue;
             }
 
-            boolean shouldClear = false;
+            boolean deliveryAllowed = false;
             if (activeEvent.getCommuteId() != null) {
-                // saved-commute scoped
-                shouldClear = preferences.isSavedCommuteRestoredEnabled();
+                deliveryAllowed = savedCommuteClearanceAllowed(
+                    preferences,
+                    commutesById.get(activeEvent.getCommuteId()),
+                    activeEvent.getLegId(),
+                    now
+                );
             } else if (activeEvent.getLineId() != null) {
-                // line scoped
-                shouldClear = preferences.isLineRestoredEnabled();
+                deliveryAllowed = preferences.isLineRestoredEnabled();
             }
 
-            if (shouldClear) {
-                PushNotificationEventEntity clearedEvent = eventRepository.save(PushNotificationEventEntity.cleared(
-                    nextId("push_event"),
-                    activeEvent,
-                    sourceClearedAt(activeEvent.getSourceIncidentKey(), activeEvent.getNotificationKey(), now),
-                    now,
-                    formatter
-                ));
+            PushNotificationEventEntity clearedEvent = eventRepository.save(PushNotificationEventEntity.cleared(
+                nextId("push_event"),
+                activeEvent,
+                sourceClearedAt(activeEvent.getSourceIncidentKey(), activeEvent.getNotificationKey(), now),
+                now,
+                formatter,
+                deliveryAllowed
+            ));
+            if (deliveryAllowed) {
                 sendEventToSubscriptions(clearedEvent, now);
             }
         }
+    }
+
+    private boolean savedCommuteClearanceAllowed(
+        PushNotificationPreferenceEntity preferences,
+        SavedCommuteEntity commute,
+        String legId,
+        Instant now
+    ) {
+        if (!preferences.isSavedCommuteRestoredEnabled() || commute == null) {
+            return false;
+        }
+        if (!commute.isNotificationEnabled() || !commute.isNotificationRestoredEnabled()) {
+            return false;
+        }
+        if ("return".equals(legId)) {
+            if (!commute.isWatchReturnTrip() || !commute.isNotificationReturnEnabled()) {
+                return false;
+            }
+        } else if (!commute.isNotificationOutboundEnabled()) {
+            return false;
+        }
+        return SavedCommuteNotificationSchedule.matches(commute, legId, now);
     }
 
     private void clearStaleSavedCommuteObservations(
@@ -434,9 +501,6 @@ public class PushNotificationDispatchService {
         PushLineEventObservationEntity observation
     ) {
         if (!subscribedLineIds.contains(observation.getLineId())) {
-            return false;
-        }
-        if (!preferences.isReminderOnChangeEnabled()) {
             return false;
         }
         return switch (observation.getEventType()) {

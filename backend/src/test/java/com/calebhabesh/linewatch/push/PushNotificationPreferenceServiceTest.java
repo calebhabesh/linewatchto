@@ -55,8 +55,47 @@ class PushNotificationPreferenceServiceTest {
         assertThat(response.lineSubscriptions().lines())
             .allSatisfy(line -> assertThat(line.subscribed()).isFalse());
         assertThat(response.lineSubscriptions().eventTypes().reducedSpeedZones()).isTrue();
+        assertThat(response.plannedClosureFollowUp()).isEqualTo("smart");
         assertThat(response.reminderTiming().closure24h()).isTrue();
         assertThat(response.reminderTiming().closureMorning()).isTrue();
+    }
+
+    @Test
+    void updatePreferencesStoresOneExplicitPlannedClosureFollowUpPolicy() {
+        PushNotificationPreferenceEntity existingPrefs = PushNotificationPreferenceEntity.create(account, clock.instant());
+        when(preferenceRepository.findById("user_1")).thenReturn(Optional.of(existingPrefs));
+        when(preferenceRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(lineSubscriptionRepository.findByAccountIdOrderByLineIdAsc("user_1")).thenReturn(List.of());
+        when(lineSubscriptionRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        PushRequests.UpdatePushPreferencesRequest request = new PushRequests.UpdatePushPreferencesRequest(
+            null, null, null, null, null, "announcements-only"
+        );
+
+        PushResponses.PushPreferencesResponse response = service.updatePreferences(account, request);
+
+        assertThat(response.plannedClosureFollowUp()).isEqualTo("announcements-only");
+        assertThat(response.reminderTiming().onChange()).isTrue();
+        assertThat(response.reminderTiming().closure24h()).isFalse();
+        assertThat(response.reminderTiming().closureMorning()).isFalse();
+    }
+
+    @Test
+    void updatePreferencesRejectsUnknownPlannedClosureFollowUpPolicy() {
+        PushNotificationPreferenceEntity existingPrefs = PushNotificationPreferenceEntity.create(account, clock.instant());
+        when(preferenceRepository.findById("user_1")).thenReturn(Optional.of(existingPrefs));
+
+        PushRequests.UpdatePushPreferencesRequest request = new PushRequests.UpdatePushPreferencesRequest(
+            null, null, null, null, null, "sometimes"
+        );
+
+        assertThatThrownBy(() -> service.updatePreferences(account, request))
+            .isInstanceOf(AccountException.class)
+            .satisfies(ex -> {
+                AccountException aex = (AccountException) ex;
+                assertThat(aex.getStatus()).isEqualTo(HttpStatus.BAD_REQUEST);
+                assertThat(aex.getError()).isEqualTo("invalid_planned_closure_follow_up");
+            });
     }
 
     @Test

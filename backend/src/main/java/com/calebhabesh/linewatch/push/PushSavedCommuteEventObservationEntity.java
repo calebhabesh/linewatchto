@@ -67,6 +67,12 @@ public class PushSavedCommuteEventObservationEntity {
     @Column(name = "cleared_at")
     private Instant clearedAt;
 
+    @Column(name = "delivery_allowed")
+    private boolean deliveryAllowed;
+
+    @Column(name = "baseline_suppressed")
+    private boolean baselineSuppressed;
+
     protected PushSavedCommuteEventObservationEntity() {}
 
     public static String idFor(String accountId, String sourceIncidentKey) {
@@ -86,9 +92,19 @@ public class PushSavedCommuteEventObservationEntity {
         PushNotificationCandidate candidate,
         Instant now
     ) {
+        return create(id, candidate, now, false);
+    }
+
+    public static PushSavedCommuteEventObservationEntity create(
+        String id,
+        PushNotificationCandidate candidate,
+        Instant now,
+        boolean baselineSuppressed
+    ) {
         PushSavedCommuteEventObservationEntity entity = new PushSavedCommuteEventObservationEntity();
         entity.id = id;
         entity.applyCandidate(candidate);
+        entity.baselineSuppressed = baselineSuppressed;
         entity.observedAt = now;
         entity.lastSeenAt = now;
         return entity;
@@ -115,7 +131,12 @@ public class PushSavedCommuteEventObservationEntity {
         this.scopeLabel = candidate.scopeLabel();
         this.sourceEventAt = candidate.sourceEventAt();
         this.url = candidate.url();
+        this.deliveryAllowed = candidate.deliveryAllowed();
     }
+
+    public void suppressBaseline() { this.baselineSuppressed = true; }
+
+    public void clearBaselineSuppression() { this.baselineSuppressed = false; }
 
     public void markCleared(Instant now) {
         this.clearedAt = now;
@@ -140,4 +161,6 @@ public class PushSavedCommuteEventObservationEntity {
     public Instant getObservedAt() { return observedAt; }
     public Instant getLastSeenAt() { return lastSeenAt; }
     public Instant getClearedAt() { return clearedAt; }
+    public boolean isDeliveryAllowed() { return deliveryAllowed; }
+    public boolean isBaselineSuppressed() { return baselineSuppressed; }
 }

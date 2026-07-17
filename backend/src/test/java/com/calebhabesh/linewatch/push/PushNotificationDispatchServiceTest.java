@@ -72,6 +72,13 @@ class PushNotificationDispatchServiceTest {
     void setUp() {
         pushProperties.setReceiptSigningSecret("test-receipt-secret");
         when(ingestionFreshness.isDashboardFresh()).thenReturn(true);
+        when(planner.candidatesFor(any(SavedCommuteEntity.class), any(PlannedClosureFollowUpPolicy.class)))
+            .thenAnswer(invocation -> planner.candidatesFor(invocation.getArgument(0)));
+        when(lineSubscriptionPushPlanner.candidatesFor(
+            anyString(), anyList(), any(PlannedClosureFollowUpPolicy.class)
+        )).thenAnswer(invocation -> lineSubscriptionPushPlanner.candidatesFor(
+            invocation.getArgument(0), invocation.getArgument(1)
+        ));
         when(savedCommuteObservationService.observe(
             any(PushNotificationCandidate.class),
             any(),
@@ -705,6 +712,10 @@ class PushNotificationDispatchServiceTest {
             true,
             Instant.parse("2026-06-05T14:30:00Z")
         );
+        commute.updateNotificationRule(
+            true, 127, null, null, true, true,
+            true, true, true, true, true, Instant.parse("2026-06-05T14:31:00Z")
+        );
         PushNotificationCandidate previousCandidate = candidate(
             "commute_1",
             "outbound",
@@ -954,7 +965,7 @@ class PushNotificationDispatchServiceTest {
     }
 
     @Test
-    void disablingSavedCommuteServiceRestoredSuppressesSavedCommuteClearedNotifications() {
+    void disablingSavedCommuteServiceRestoredClosesTheLifecycleWithoutDeliveringIt() {
         PushNotificationPreferenceEntity preferences = PushNotificationPreferenceEntity.create(account, clock.instant());
         PushNotificationPreferenceEntity spyPrefs = spy(preferences);
         when(spyPrefs.isSavedCommuteRestoredEnabled()).thenReturn(false);
@@ -974,7 +985,86 @@ class PushNotificationDispatchServiceTest {
 
         service.evaluateSavedCommuteNotifications();
 
-        verify(eventRepository, never()).save(any(PushNotificationEventEntity.class));
+        verify(eventRepository).save(argThat(event ->
+            "CLEARED".equals(event.getNotificationState()) && !event.isDeliveryAllowed()
+        ));
+        verify(webPushClient, never()).send(any(), anyString(), any(WebPushPayload.class));
+    }
+
+    @Test
+    void routeLevelServiceRestoredSettingSuppressesItsClearance() {
+        PushNotificationPreferenceEntity preferences = PushNotificationPreferenceEntity.create(account, clock.instant());
+        when(preferenceService.preferenceEntityForAccountId("user_1")).thenReturn(preferences);
+        when(subscriptionRepository.findEnabledAccountIds()).thenReturn(List.of("user_1"));
+        when(preferenceService.subscribedLineIds("user_1")).thenReturn(List.of());
+        when(lineSubscriptionPushPlanner.candidatesFor(anyString(), anyList())).thenReturn(List.of());
+
+        SavedCommuteEntity commute = SavedCommuteEntity.create(
+            "commute_1", account, "Work", "finch", "union", true, clock.instant().minusSeconds(600)
+        );
+        commute.updateNotificationRule(
+            true, 127, null, null, true, true,
+            true, true, true, true, false, clock.instant().minusSeconds(300)
+        );
+        PushNotificationCandidate previousCandidate = candidate(
+            "commute_1", "outbound", "line-1", "1", "saved-commute-current", "delay", "on-change",
+            "saved-commute-current|commute_1|outbound|delay|delay-line-1", "dedupe-1",
+            "Finch to Union", "Work", clock.instant().minusSeconds(900), "/?panel=commutes"
+        );
+        PushNotificationEventEntity previousEvent = PushNotificationEventEntity.create(
+            "event-1", previousCandidate, clock.instant().minusSeconds(600)
+        );
+        when(savedCommuteRepository.findByAccountIdOrderByCreatedAtAsc("user_1")).thenReturn(List.of(commute));
+        when(planner.candidatesFor(commute)).thenReturn(List.of());
+        when(eventRepository.findByAccountIdAndCategoryInAndNotificationState(eq("user_1"), anyList(), eq("ACTIVE")))
+            .thenReturn(List.of(previousEvent));
+
+        service.evaluateSavedCommuteNotifications();
+
+        verify(eventRepository).save(argThat(event ->
+            "CLEARED".equals(event.getNotificationState()) && !event.isDeliveryAllowed()
+        ));
+        verify(webPushClient, never()).send(any(), anyString(), any(WebPushPayload.class));
+    }
+
+    @Test
+    void savedCommuteClearanceOutsideItsLegWindowIsNotDeliveredOrRetried() {
+        PushNotificationPreferenceEntity preferences = PushNotificationPreferenceEntity.create(account, clock.instant());
+        when(preferenceService.preferenceEntityForAccountId("user_1")).thenReturn(preferences);
+        when(subscriptionRepository.findEnabledAccountIds()).thenReturn(List.of("user_1"));
+        when(preferenceService.subscribedLineIds("user_1")).thenReturn(List.of());
+        when(lineSubscriptionPushPlanner.candidatesFor(anyString(), anyList())).thenReturn(List.of());
+
+        SavedCommuteEntity commute = SavedCommuteEntity.create(
+            "commute_1", account, "Work", "finch", "union", true, clock.instant().minusSeconds(600)
+        );
+        commute.updateNotificationRule(
+            true,
+            62, 7 * 60, 9 * 60,
+            62, 15 * 60, 19 * 60,
+            true, true,
+            true, true, true, true, true,
+            clock.instant().minusSeconds(300)
+        );
+        PushNotificationCandidate previousCandidate = candidate(
+            "commute_1", "outbound", "line-1", "1", "saved-commute-current", "delay", "on-change",
+            "saved-commute-current|commute_1|outbound|delay|delay-line-1", "dedupe-1",
+            "Finch to Union", "Work", clock.instant().minusSeconds(900), "/?panel=commutes"
+        );
+        PushNotificationEventEntity previousEvent = PushNotificationEventEntity.create(
+            "event-1", previousCandidate, clock.instant().minusSeconds(600)
+        );
+        when(savedCommuteRepository.findByAccountIdOrderByCreatedAtAsc("user_1")).thenReturn(List.of(commute));
+        when(planner.candidatesFor(commute)).thenReturn(List.of());
+        when(eventRepository.findByAccountIdAndCategoryInAndNotificationState(eq("user_1"), anyList(), eq("ACTIVE")))
+            .thenReturn(List.of(previousEvent));
+
+        service.evaluateSavedCommuteNotifications();
+
+        verify(eventRepository).save(argThat(event ->
+            "CLEARED".equals(event.getNotificationState()) && !event.isDeliveryAllowed()
+        ));
+        verify(webPushClient, never()).send(any(), anyString(), any(WebPushPayload.class));
     }
 
     @Test

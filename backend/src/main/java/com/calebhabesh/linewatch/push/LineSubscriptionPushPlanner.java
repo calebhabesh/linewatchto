@@ -5,8 +5,6 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.Clock;
 import java.time.Instant;
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -18,7 +16,6 @@ public class LineSubscriptionPushPlanner {
     private final AlertDashboardService dashboardService;
     private final Clock clock;
     private final PushNotificationFormatter formatter;
-    private static final ZoneId TORONTO_ZONE = ZoneId.of("America/Toronto");
 
     @Autowired
     public LineSubscriptionPushPlanner(
@@ -32,10 +29,21 @@ public class LineSubscriptionPushPlanner {
     }
 
     public List<PushNotificationCandidate> candidatesFor(String accountId, List<String> subscribedLineIds) {
+        return candidatesFor(accountId, subscribedLineIds, PlannedClosureFollowUpPolicy.SMART);
+    }
+
+    public List<PushNotificationCandidate> candidatesFor(
+        String accountId,
+        List<String> subscribedLineIds,
+        PlannedClosureFollowUpPolicy followUpPolicy
+    ) {
         if (subscribedLineIds == null || subscribedLineIds.isEmpty()) {
             return List.of();
         }
 
+        PlannedClosureFollowUpPolicy effectivePolicy = followUpPolicy == null
+            ? PlannedClosureFollowUpPolicy.SMART
+            : followUpPolicy;
         List<PushNotificationCandidate> candidates = new ArrayList<>();
         Instant now = clock.instant();
 
@@ -121,13 +129,17 @@ public class LineSubscriptionPushPlanner {
                         : closure.startedAt();
                 Instant sourceEventAt = eventStartAt == null ? null : eventStartAt.toInstant();
 
+                if (sourceEventAt != null && !now.isBefore(sourceEventAt)) {
+                    continue;
+                }
+                String reminderBucket = effectivePolicy.reminderBucket(now, sourceEventAt);
                 candidates.add(createLineCandidate(
                     accountId,
                     closure.lineId(),
                     closure.lineNumber(),
                     category,
                     eventType,
-                    "on-change",
+                    reminderBucket,
                     closure.id(),
                     closure.location(),
                     closure.displayDirection(),
@@ -139,55 +151,6 @@ public class LineSubscriptionPushPlanner {
                     closure.updatedAt(),
                     url
                 ));
-
-                if (eventStartAt != null) {
-                    Instant startInstant = eventStartAt.toInstant();
-                    
-                    Instant twentyFourHoursBefore = startInstant.minus(java.time.Duration.ofHours(24));
-                    if (!now.isBefore(twentyFourHoursBefore) && now.isBefore(startInstant)) {
-                        candidates.add(createLineCandidate(
-                            accountId,
-                            closure.lineId(),
-                            closure.lineNumber(),
-                            category,
-                            eventType,
-                            "closure-24h",
-                            closure.id(),
-                            closure.location(),
-                            closure.displayDirection(),
-                            closure.cause(),
-                            closure.title(),
-                            closure.description(),
-                            closure.shuttle(),
-                            sourceEventAt,
-                            closure.updatedAt(),
-                            url
-                        ));
-                    }
-
-                    ZonedDateTime nowToronto = now.atZone(TORONTO_ZONE);
-                    ZonedDateTime startToronto = eventStartAt.atZoneSameInstant(TORONTO_ZONE);
-                    if (nowToronto.toLocalDate().equals(startToronto.toLocalDate()) && nowToronto.getHour() >= 6) {
-                        candidates.add(createLineCandidate(
-                            accountId,
-                            closure.lineId(),
-                            closure.lineNumber(),
-                            category,
-                            eventType,
-                            "closure-morning",
-                            closure.id(),
-                            closure.location(),
-                            closure.displayDirection(),
-                            closure.cause(),
-                            closure.title(),
-                            closure.description(),
-                            closure.shuttle(),
-                            sourceEventAt,
-                            closure.updatedAt(),
-                            url
-                        ));
-                    }
-                }
             }
         }
 

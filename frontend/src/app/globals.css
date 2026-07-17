@@ -5970,13 +5970,46 @@ button {
   min-width: 0;
 }
 
-.saved-commute-notification-block > strong,
-.saved-commute-section-grid span {
+.saved-commute-notification-block > strong {
   color: rgb(71, 85, 105);
+  display: block;
   font-size: 0.64rem;
   font-weight: 950;
   letter-spacing: 0;
+  margin: 0;
   text-transform: uppercase;
+}
+
+.saved-commute-notification-leg-toggle {
+  align-items: center;
+  color: rgb(51, 65, 85);
+  column-gap: 0.4rem;
+  display: grid;
+  font-size: 0.76rem;
+  font-family: inherit;
+  font-weight: 800;
+  grid-template-columns: 14px max-content;
+  letter-spacing: normal;
+  line-height: 1.25;
+  min-height: 18px;
+  text-transform: none;
+  width: fit-content;
+}
+
+.saved-commute-notification-leg-toggle input {
+  accent-color: rgb(16, 185, 129);
+  border: 0;
+  flex: 0 0 14px;
+  height: 14px;
+  margin: 0;
+  min-height: 0;
+  padding: 0;
+  width: 14px;
+}
+
+.saved-commute-notification-leg-toggle[aria-disabled="true"] {
+  cursor: not-allowed;
+  opacity: 0.55;
 }
 
 .saved-commute-day-grid {
@@ -5987,7 +6020,6 @@ button {
 
 .saved-commute-day-button,
 .saved-commute-notification-segmented button,
-.saved-commute-section-select button,
 .saved-commute-rule-summary button,
 .saved-commute-rule-actions button {
   align-items: center;
@@ -6001,25 +6033,22 @@ button {
 }
 
 .saved-commute-day-button,
-.saved-commute-notification-segmented button,
-.saved-commute-section-select button {
-  background: rgba(255, 255, 255, 0.82);
+.saved-commute-notification-segmented button {
+  background: rgb(255, 255, 255);
   border: 1px solid rgba(15, 23, 42, 0.1);
   color: rgb(51, 65, 85);
   padding: 0.32rem 0.38rem;
 }
 
 .saved-commute-day-button[aria-pressed="true"],
-.saved-commute-notification-segmented button[aria-pressed="true"],
-.saved-commute-section-select button[aria-pressed="true"] {
-  background: rgba(16, 185, 129, 0.16);
+.saved-commute-notification-segmented button[aria-pressed="true"] {
+  background: rgb(217, 243, 233);
   border-color: rgba(16, 185, 129, 0.34);
   color: rgb(4, 120, 87);
 }
 
 .saved-commute-day-button:disabled,
 .saved-commute-notification-segmented button:disabled,
-.saved-commute-section-select button:disabled,
 .saved-commute-notification-checks input:disabled + span {
   cursor: not-allowed;
   opacity: 0.55;
@@ -6031,8 +6060,7 @@ button {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
-.saved-commute-time-window,
-.saved-commute-section-grid {
+.saved-commute-time-window {
   display: grid;
   gap: 0.45rem;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -6051,8 +6079,13 @@ button {
 }
 
 .saved-commute-time-window input {
+  background: rgb(255, 255, 255);
+  border: 1px solid rgba(15, 23, 42, 0.14);
+  border-radius: 8px;
+  color: rgb(15, 23, 42);
   min-height: 34px;
   padding: 0.35rem 0.45rem;
+  width: 100%;
 }
 
 .saved-commute-notification-checks {
@@ -6086,27 +6119,21 @@ button {
   min-width: 0;
 }
 
-.saved-commute-section-select {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.3rem;
-  max-height: 6.2rem;
-  overflow-y: auto;
-  padding-right: 0.1rem;
-}
-
-.saved-commute-section-select button {
-  justify-content: flex-start;
-  line-height: 1.15;
-  min-height: 28px;
-  text-align: left;
-}
-
 .saved-commute-notification-note {
+  align-items: flex-start;
   color: rgb(71, 85, 105);
+  display: flex;
   font-size: 0.68rem;
   font-style: normal;
   font-weight: 700;
+  gap: 0.35rem;
+  line-height: 1.35;
+  margin: 0;
+}
+
+.saved-commute-notification-note svg {
+  flex: 0 0 auto;
+  margin-top: 0.05rem;
 }
 
 .saved-commute-rule-summary {
@@ -6156,7 +6183,7 @@ button {
 }
 
 .saved-commute-rule-editor {
-  margin-top: 0.45rem;
+  margin-top: 0.625rem;
 }
 
 .saved-commute-rule-actions {
@@ -6265,6 +6292,82 @@ button {
   gap: 0.45rem;
 }
 
+.notification-follow-up-options {
+  border: 0;
+  display: grid;
+  gap: 0.45rem;
+  margin: 0;
+  min-width: 0;
+  padding: 0;
+}
+
+.notification-follow-up-option {
+  align-items: flex-start;
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  gap: 0.6rem;
+  padding: 0.62rem;
+}
+
+.notification-follow-up-option[data-selected="true"] {
+  background: rgba(16, 185, 129, 0.08);
+  border-color: rgba(16, 185, 129, 0.34);
+}
+
+.notification-follow-up-option input {
+  accent-color: rgb(16, 185, 129);
+  flex: 0 0 auto;
+  height: 15px;
+  margin: 0.12rem 0 0;
+  min-height: 0;
+  width: 15px;
+}
+
+.notification-follow-up-copy {
+  display: grid;
+  gap: 0.18rem;
+  min-width: 0;
+}
+
+.notification-follow-up-title {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.notification-follow-up-title strong {
+  color: rgb(15, 23, 42);
+  font-size: 0.74rem;
+  font-weight: 900;
+}
+
+.notification-follow-up-title em {
+  background: rgba(16, 185, 129, 0.14);
+  border-radius: 999px;
+  color: rgb(4, 120, 87);
+  font-size: 0.57rem;
+  font-style: normal;
+  font-weight: 950;
+  padding: 0.12rem 0.35rem;
+  text-transform: uppercase;
+}
+
+.notification-follow-up-copy small {
+  color: rgb(71, 85, 105);
+  font-size: 0.67rem;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.notification-follow-up-options:disabled .notification-follow-up-option {
+  cursor: not-allowed;
+  opacity: 0.58;
+}
+
 .notification-settings-note,
 .notification-settings-message,
 .notification-settings-prompt span {
@@ -6334,8 +6437,8 @@ button {
 .high-contrast .saved-commute-rule-summary strong,
 .dark .saved-commute-notification-block > strong,
 .high-contrast .saved-commute-notification-block > strong,
-.dark .saved-commute-section-grid span,
-.high-contrast .saved-commute-section-grid span,
+.dark .saved-commute-notification-leg-toggle,
+.high-contrast .saved-commute-notification-leg-toggle,
 .dark .notification-settings-section-header h3,
 .high-contrast .notification-settings-section-header h3,
 .dark .notification-settings-row-main strong,
@@ -6373,11 +6476,38 @@ button {
 .dark .notification-settings-card,
 .dark .notification-settings-row,
 .dark .notification-settings-prompt,
+.dark .notification-follow-up-option,
 .high-contrast .notification-settings-card,
 .high-contrast .notification-settings-row,
-.high-contrast .notification-settings-prompt {
+.high-contrast .notification-settings-prompt,
+.high-contrast .notification-follow-up-option {
   background: rgba(18, 21, 28, 0.94);
   border-color: rgba(255, 255, 255, 0.1);
+}
+
+.dark .notification-follow-up-option[data-selected="true"] {
+  background: rgba(16, 185, 129, 0.1);
+  border-color: rgba(16, 185, 129, 0.38);
+}
+
+.high-contrast .notification-follow-up-option[data-selected="true"] {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: currentColor;
+}
+
+.dark .notification-follow-up-title strong,
+.high-contrast .notification-follow-up-title strong {
+  color: rgb(241, 245, 249);
+}
+
+.dark .notification-follow-up-copy small,
+.high-contrast .notification-follow-up-copy small {
+  color: rgb(203, 213, 225);
+}
+
+.dark .notification-follow-up-title em,
+.high-contrast .notification-follow-up-title em {
+  color: rgb(110, 231, 183);
 }
 
 .dark .notification-settings-section-header span,
@@ -6406,22 +6536,18 @@ button {
 
 .dark .saved-commute-day-button,
 .dark .saved-commute-notification-segmented button,
-.dark .saved-commute-section-select button,
 .high-contrast .saved-commute-day-button,
-.high-contrast .saved-commute-notification-segmented button,
-.high-contrast .saved-commute-section-select button {
-  background: rgba(15, 23, 42, 0.82);
+.high-contrast .saved-commute-notification-segmented button {
+  background: rgb(15, 23, 42);
   border-color: rgba(255, 255, 255, 0.14);
   color: rgb(226, 232, 240);
 }
 
 .dark .saved-commute-day-button[aria-pressed="true"],
 .dark .saved-commute-notification-segmented button[aria-pressed="true"],
-.dark .saved-commute-section-select button[aria-pressed="true"],
 .high-contrast .saved-commute-day-button[aria-pressed="true"],
-.high-contrast .saved-commute-notification-segmented button[aria-pressed="true"],
-.high-contrast .saved-commute-section-select button[aria-pressed="true"] {
-  background: rgba(16, 185, 129, 0.2);
+.high-contrast .saved-commute-notification-segmented button[aria-pressed="true"] {
+  background: rgb(18, 69, 55);
   border-color: rgba(16, 185, 129, 0.44);
   color: rgb(167, 243, 208);
 }
@@ -6429,6 +6555,14 @@ button {
 .dark .saved-commute-notification-checks label,
 .high-contrast .saved-commute-notification-checks label {
   color: rgb(226, 232, 240);
+}
+
+.dark .saved-commute-time-window input,
+.high-contrast .saved-commute-time-window input {
+  background: rgb(15, 23, 42);
+  border-color: rgba(255, 255, 255, 0.18);
+  color: rgb(248, 250, 252);
+  color-scheme: dark;
 }
 
 .dark .saved-commute-rule-actions button:last-child,
@@ -13479,32 +13613,32 @@ button {
   font-weight: 900;
   justify-content: space-between;
   letter-spacing: 0.05em;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0;
   margin-top: 0.25rem;
   padding: 0.6rem 0.625rem;
   transition: all 0.18s ease;
   width: 100%;
 }
 .saved-commute-customize-toggle {
-  background: rgba(255, 255, 255, 0.82);
+  background: rgb(255, 255, 255);
   border: 1px solid rgba(59, 130, 246, 0.3);
   color: rgb(51, 65, 85);
 }
 .saved-commute-customize-toggle[aria-expanded="true"] {
-  background: rgba(59, 130, 246, 0.08);
+  background: rgb(239, 246, 255);
   border: 2px solid rgba(59, 130, 246, 0.4);
   color: rgb(29, 78, 216);
   box-shadow: 0 0 10px rgba(59, 130, 246, 0.15);
 }
 .dark .saved-commute-customize-toggle,
 .high-contrast .saved-commute-customize-toggle {
-  background: rgba(15, 23, 42, 0.82);
+  background: rgb(15, 23, 42);
   border: 1px solid rgba(59, 130, 246, 0.4);
   color: rgb(226, 232, 240);
 }
 .dark .saved-commute-customize-toggle[aria-expanded="true"],
 .high-contrast .saved-commute-customize-toggle[aria-expanded="true"] {
-  background: rgba(59, 130, 246, 0.15);
+  background: rgb(19, 43, 78);
   border: 2px solid rgba(59, 130, 246, 0.5);
   color: rgb(96, 165, 250);
   box-shadow: 0 0 12px rgba(59, 130, 246, 0.25);

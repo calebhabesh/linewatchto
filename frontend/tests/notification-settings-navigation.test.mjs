@@ -52,10 +52,12 @@ describe("notification settings navigation", () => {
     assert.match(notificationPanelSource, /Reduced Speed Zones/);
     assert.match(notificationPanelSource, /Planned Closures/);
     assert.match(notificationPanelSource, /Service Restored Updates/);
-    assert.match(notificationPanelSource, /Reminder Timing/);
-    assert.match(notificationPanelSource, /Event Starts\/Changes/);
-    assert.match(notificationPanelSource, /24h Before Closure/);
-    assert.match(notificationPanelSource, /Morning of Closure/);
+    assert.match(notificationPanelSource, /Planned Closure Follow-ups/);
+    assert.match(notificationPanelSource, /Smart/);
+    assert.match(notificationPanelSource, /Within 24 Hours/);
+    assert.match(notificationPanelSource, /Day Of/);
+    assert.match(notificationPanelSource, /Announcements Only/);
+    assert.doesNotMatch(notificationPanelSource, /Event Starts\/Changes/);
     assert.doesNotMatch(notificationPanelSource, /Coming later/);
     assert.doesNotMatch(notificationPanelSource, /Line-wide alerts are planned/);
     assert.match(globalCss, /\.notification-settings-panel/);

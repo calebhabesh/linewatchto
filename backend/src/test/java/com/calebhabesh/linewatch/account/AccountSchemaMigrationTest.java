@@ -70,6 +70,28 @@ class AccountSchemaMigrationTest {
         assertThat(sql).contains("idx_account_auth_identities_account_id");
     }
 
+    @Test
+    void v43BackfillsIndependentLegSchedulesFromTheLegacyRule() throws IOException {
+        String sql = migrationSql("/db/migration/V43__saved_commute_leg_notification_schedules.sql").toLowerCase();
+
+        assertThat(sql).contains("notification_outbound_day_mask integer not null default 62");
+        assertThat(sql).contains("notification_outbound_start_minute integer default 390");
+        assertThat(sql).contains("notification_return_day_mask integer not null default 62");
+        assertThat(sql).contains("notification_return_start_minute integer default 900");
+        assertThat(sql).contains("notification_outbound_day_mask = notification_day_mask");
+        assertThat(sql).contains("notification_return_start_minute = notification_start_minute");
+        assertThat(sql).contains("notification_outbound_start_minute <> notification_outbound_end_minute");
+        assertThat(sql).contains("notification_return_start_minute <> notification_return_end_minute");
+    }
+
+    @Test
+    void v45RemovesSavedCommuteSectionRestrictions() throws IOException {
+        String sql = migrationSql("/db/migration/V45__remove_saved_commute_notification_sections.sql").toLowerCase();
+
+        assertThat(sql).contains("drop column notification_section_start_station_id");
+        assertThat(sql).contains("drop column notification_section_end_station_id");
+    }
+
     private String migrationSql(String path) throws IOException {
         try (var input = getClass().getResourceAsStream(path)) {
             assertThat(input).isNotNull();

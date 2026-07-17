@@ -1041,11 +1041,17 @@ test("demo account shows account-backed saved commutes", async ({ page, request,
   await expect(page.locator('[data-travel-time-severity="severe"]')).toBeVisible();
   await expect(page.getByText("Major disruption on this route; travel time is not reliable.")).toBeVisible();
   await expect(page.getByText("Route Notifications: On", { exact: true })).toBeVisible();
-  await expect(page.getByText("Any Day", { exact: true })).toBeVisible();
-  await expect(page.getByText("All Day", { exact: true })).toBeVisible();
-  await expect(page.getByText("Whole Route", { exact: true })).toBeVisible();
+  await expect(page.getByText("Outbound: Weekdays · 6:30 AM-9:30 AM", { exact: true })).toBeVisible();
+  await expect(page.getByText("Return: Weekdays · 3:00 PM-7:00 PM", { exact: true })).toBeVisible();
   await expect(page.getByText("All Events", { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Edit Alerts" })).toBeVisible();
+  await page.getByRole("button", { name: "Edit Alerts" }).click();
+  await expect(page.getByRole("group", { name: "Outbound Route notification window" })
+    .getByRole("button", { name: "AM Rush" })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByRole("group", { name: "Return Route notification window" })
+    .getByRole("button", { name: "PM Rush" })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByText(/Overnight windows belong to the day they start/)).toBeVisible();
+  await page.locator(".saved-commute-rule-summary").getByRole("button", { name: "Close", exact: true }).click();
   await expect(page.getByText("Outbound Affected", { exact: true })).toBeVisible();
   await expect(page.getByRole("tab", { name: "To Union" })).toHaveAttribute("aria-selected", "true");
   await expect(page.getByRole("tab", { name: "To Stub Station" })).toBeVisible();
@@ -1387,6 +1393,13 @@ test("manages push notification preferences on mobile", async ({ page, request, 
   await expect(page.getByText(/Push for this browser|This Device|Enable on This Device/)).toBeVisible();
   await expect(page.getByText(/Account notifications are on|This device is receiving notifications|Push not configured/).first()).toBeVisible();
   await expect(page.getByRole("heading", { name: "Line subscriptions" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Planned Closure Follow-ups" })).toBeVisible();
+  const smartFollowUp = page.getByRole("radio", { name: /^Smart/ });
+  await expect(smartFollowUp).toBeChecked();
+  const announcementsOnly = page.getByRole("radio", { name: /^Announcements Only/ });
+  await announcementsOnly.check();
+  await expect(announcementsOnly).toBeChecked();
+  await expect(page.getByText("Event Starts/Changes")).toHaveCount(0);
 
   const line1Switch = page.getByLabel("Subscribe to Line 1");
   await expect(line1Switch).toBeAttached();

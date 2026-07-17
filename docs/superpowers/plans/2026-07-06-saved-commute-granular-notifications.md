@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Add account-backed per-saved-commute notification rules for selected days, time windows, event types, and monitored route sections.
+**Goal:** Add account-backed per-saved-commute notification rules for selected days, time windows, and event types across the complete saved route.
 
 **Architecture:** Store notification rules on each saved commute so the Saved Commutes feature owns granular targeting. Keep global push preferences as account/device master controls. The saved-commute planner must continue observing all route-visible current impacts for lifecycle correctness, but only deliver new active notifications when the commute rule allows the current event.
 
@@ -39,11 +39,11 @@
 - Test: `backend/src/test/java/com/calebhabesh/linewatch/push/PushNotificationDispatchServiceTest.java`
 
 - [ ] Write failing tests proving a current impact outside the commute time window is still represented as a route-visible candidate, but has `deliveryAllowed=false`.
-- [ ] Write failing tests proving a monitored section suppresses delivery for impacts outside that section.
+- [ ] Write failing tests proving an impact on any segment of the saved route remains eligible for delivery.
 - [ ] Write failing tests proving disabled event types suppress delivery.
 - [ ] Write failing tests proving dispatch uses all route-visible saved-commute current keys for clearance detection, preventing false service-restored notifications when a rule suppresses active delivery.
 - [ ] Add a defaulted `deliveryAllowed` field to `PushNotificationCandidate`.
-- [ ] Gate saved-commute delivery in the planner using Toronto local day/time, event type toggles, outbound/return toggles, and monitored route section intersection.
+- [ ] Gate saved-commute delivery in the planner using Toronto local day/time, event type toggles, and outbound/return toggles while matching the complete computed route.
 - [ ] Keep line-subscription candidates delivery-allowed by default.
 - [ ] Change dispatch saved-commute lifecycle key tracking to use all current saved-commute candidates, while sending only globally allowed and delivery-allowed candidates.
 - [ ] Run `mvn -f backend/pom.xml test -Dtest='com.calebhabesh.linewatch.push.SavedCommutePushPlannerTest,com.calebhabesh.linewatch.push.PushNotificationDispatchServiceTest'`.
@@ -60,10 +60,10 @@
 - Test: `frontend/tests/smoke/dashboard.spec.ts`
 
 - [ ] Write failing adapter tests for `AccountSavedCommuteNotificationRule`, create payload rules, and update endpoint payloads.
-- [ ] Write failing UI source tests for route-level notification controls, day buttons, time inputs, event toggles, and monitored-section controls.
+- [ ] Write failing UI source tests for route-level notification controls, day buttons, time inputs, and event toggles.
 - [ ] Add TypeScript rule types, default rule helpers, create payload support, and `updateSavedCommuteNotificationRule`.
 - [ ] Add compact rule controls to the create route panel for enabled/days/time/event toggles.
-- [ ] Add per-card rule summary and edit controls for saved routes, including whole-route vs selected-section controls based on the route stops.
+- [ ] Add per-card rule summary and edit controls for complete saved routes.
 - [ ] Add restrained dashboard styling for the new controls without nesting decorative cards.
 - [ ] Update smoke stubs and smoke expectations for visible saved-commute rule summaries.
 - [ ] Run `npm --prefix frontend run test:fixtures`.
@@ -77,7 +77,7 @@
 - Modify: `AGENTS.md`
 - Modify: `GEMINI.md`
 
-- [ ] Update documentation to state that saved commutes support account-backed granular push targeting by route, day/time window, event type, and optional route section.
+- [ ] Update documentation to state that saved commutes support account-backed granular push targeting by complete saved route, day/time window, and event type.
 - [ ] Keep limitations explicit: global push/device setup is still required; global accessibility/surface notices are not included; route rules do not send email or recommend alternate routes.
 - [ ] Run `mvn -f backend/pom.xml test`.
 - [ ] Run `npm --prefix frontend run test:fixtures`.

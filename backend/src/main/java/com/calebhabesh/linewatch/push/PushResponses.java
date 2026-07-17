@@ -42,8 +42,29 @@ public final class PushResponses {
         boolean plannedClosureNotificationsEnabled,
         SavedCommutePreferencesResponse savedCommutes,
         LineSubscriptionPreferencesResponse lineSubscriptions,
-        ReminderTimingPreferencesResponse reminderTiming
+        ReminderTimingPreferencesResponse reminderTiming,
+        String plannedClosureFollowUp
     ) {
+        public PushPreferencesResponse(
+            boolean commuteNotificationsEnabled,
+            boolean plannedClosureNotificationsEnabled,
+            SavedCommutePreferencesResponse savedCommutes,
+            LineSubscriptionPreferencesResponse lineSubscriptions,
+            ReminderTimingPreferencesResponse reminderTiming
+        ) {
+            this(
+                commuteNotificationsEnabled,
+                plannedClosureNotificationsEnabled,
+                savedCommutes,
+                lineSubscriptions,
+                reminderTiming,
+                PlannedClosureFollowUpPolicy.fromLegacy(
+                    reminderTiming.closure24h(),
+                    reminderTiming.closureMorning()
+                ).apiValue()
+            );
+        }
+
         public PushPreferencesResponse(boolean commuteNotificationsEnabled, boolean plannedClosureNotificationsEnabled) {
             this(
                 commuteNotificationsEnabled,
@@ -63,7 +84,8 @@ public final class PushResponses {
                     ),
                     new EventTypePreferencesResponse(true, true, true, true, true)
                 ),
-                new ReminderTimingPreferencesResponse(true, true, true)
+                new ReminderTimingPreferencesResponse(true, true, true),
+                PlannedClosureFollowUpPolicy.SMART.apiValue()
             );
         }
     }

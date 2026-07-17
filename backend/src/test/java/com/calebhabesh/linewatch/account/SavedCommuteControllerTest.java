@@ -43,8 +43,6 @@ class SavedCommuteControllerTest {
                 62,
                 8 * 60,
                 9 * 60,
-                "queen",
-                "bloor-yonge",
                 true,
                 false,
                 new SavedCommuteService.SavedCommuteNotificationEventTypesRequest(
@@ -73,8 +71,6 @@ class SavedCommuteControllerTest {
                 62,
                 480,
                 540,
-                "queen",
-                "bloor-yonge",
                 true,
                 false,
                 new AccountResponses.SavedCommuteNotificationEventTypesResponse(

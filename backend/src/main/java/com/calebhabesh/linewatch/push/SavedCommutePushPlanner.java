@@ -2,14 +2,13 @@ package com.calebhabesh.linewatch.push;
 
 import com.calebhabesh.linewatch.account.SavedCommuteAlertRules;
 import com.calebhabesh.linewatch.account.SavedCommuteEntity;
+import com.calebhabesh.linewatch.account.SavedCommuteNotificationSchedule;
 import com.calebhabesh.linewatch.commute.CommuteImpactService;
 import com.calebhabesh.linewatch.commute.CommutePathService;
 import com.calebhabesh.linewatch.commute.CommuteResponses;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.OffsetDateTime;
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -22,7 +21,6 @@ public class SavedCommutePushPlanner {
     private final CommuteImpactService commuteImpactService;
     private final Clock clock;
     private final PushNotificationFormatter formatter;
-    private static final ZoneId TORONTO_ZONE = ZoneId.of("America/Toronto");
 
     @Autowired
     public SavedCommutePushPlanner(
@@ -50,23 +48,36 @@ public class SavedCommutePushPlanner {
     }
 
     public List<PushNotificationCandidate> candidatesFor(SavedCommuteEntity commute) {
+        return candidatesFor(commute, PlannedClosureFollowUpPolicy.SMART);
+    }
+
+    public List<PushNotificationCandidate> candidatesFor(
+        SavedCommuteEntity commute,
+        PlannedClosureFollowUpPolicy followUpPolicy
+    ) {
         if (commute == null || commute.getAccount() == null) {
             return List.of();
         }
+
+        PlannedClosureFollowUpPolicy effectivePolicy = followUpPolicy == null
+            ? PlannedClosureFollowUpPolicy.SMART
+            : followUpPolicy;
 
         List<PushNotificationCandidate> candidates = new ArrayList<>();
         candidates.addAll(candidatesForLeg(
             commute,
             "outbound",
             commute.getOriginStationId(),
-            commute.getDestinationStationId()
+            commute.getDestinationStationId(),
+            effectivePolicy
         ));
         if (commute.isWatchReturnTrip()) {
             candidates.addAll(candidatesForLeg(
                 commute,
                 "return",
                 commute.getDestinationStationId(),
-                commute.getOriginStationId()
+                commute.getOriginStationId(),
+                effectivePolicy
             ));
         }
         return candidates;
@@ -76,7 +87,8 @@ public class SavedCommutePushPlanner {
         SavedCommuteEntity commute,
         String legId,
         String originStationId,
-        String destinationStationId
+        String destinationStationId,
+        PlannedClosureFollowUpPolicy followUpPolicy
     ) {
         CommuteResponses.PathResponse path = commutePathService.path(originStationId, destinationStationId);
         CommuteResponses.ImpactResponse impact = commuteImpactService.impactFor(path);
@@ -93,27 +105,24 @@ public class SavedCommutePushPlanner {
                 candidates.add(candidateFor(commute, legId, path, match, "saved-commute-current", eventType, "on-change"));
             } else if ("planned".equals(match.status())) {
                 String eventType = "planned-closure";
-                
-                // 1. on-change candidate
-                candidates.add(candidateFor(commute, legId, path, match, "saved-commute-planned", eventType, "on-change"));
-                
                 OffsetDateTime eventStartAt = match.eventStartAt();
+                String reminderBucket = "on-change";
                 if (eventStartAt != null) {
                     Instant startInstant = eventStartAt.toInstant();
-                    
-                    // 2. closure-24h candidate
-                    Instant twentyFourHoursBefore = startInstant.minus(java.time.Duration.ofHours(24));
-                    if (!now.isBefore(twentyFourHoursBefore) && now.isBefore(startInstant)) {
-                        candidates.add(candidateFor(commute, legId, path, match, "saved-commute-planned", eventType, "closure-24h"));
+                    if (!now.isBefore(startInstant)) {
+                        continue;
                     }
-                    
-                    // 3. closure-morning candidate
-                    ZonedDateTime nowToronto = now.atZone(TORONTO_ZONE);
-                    ZonedDateTime startToronto = eventStartAt.atZoneSameInstant(TORONTO_ZONE);
-                    if (nowToronto.toLocalDate().equals(startToronto.toLocalDate()) && nowToronto.getHour() >= 6) {
-                        candidates.add(candidateFor(commute, legId, path, match, "saved-commute-planned", eventType, "closure-morning"));
-                    }
+                    reminderBucket = followUpPolicy.reminderBucket(now, startInstant);
                 }
+                candidates.add(candidateFor(
+                    commute,
+                    legId,
+                    path,
+                    match,
+                    "saved-commute-planned",
+                    eventType,
+                    reminderBucket
+                ));
             }
         }
         return candidates;
@@ -222,48 +231,12 @@ public class SavedCommutePushPlanner {
         if (!SavedCommuteAlertRules.eventTypeAllowed(commute, eventType)) {
             return false;
         }
-        if (!SavedCommuteAlertRules.matchesMonitoredSection(commute, path, match)) {
-            return false;
-        }
-        Instant scheduleInstant = scheduleInstant(match);
-        return matchesNotificationSchedule(commute, scheduleInstant);
-    }
-
-    private Instant scheduleInstant(CommuteResponses.MatchedImpactResponse match) {
         if ("planned".equals(match.status()) && match.eventStartAt() != null) {
-            return match.eventStartAt().toInstant();
+            if (!SavedCommuteNotificationSchedule.matches(commute, legId, match.eventStartAt().toInstant())) {
+                return false;
+            }
         }
-        return clock.instant();
-    }
-
-    private boolean matchesNotificationSchedule(SavedCommuteEntity commute, Instant instant) {
-        ZonedDateTime local = instant.atZone(TORONTO_ZONE);
-        int dayBit = dayBit(local);
-        if ((commute.getNotificationDayMask() & dayBit) == 0) {
-            return false;
-        }
-        Integer start = commute.getNotificationStartMinute();
-        Integer end = commute.getNotificationEndMinute();
-        if (start == null || end == null) {
-            return true;
-        }
-        int minute = local.getHour() * 60 + local.getMinute();
-        if (start < end) {
-            return minute >= start && minute <= end;
-        }
-        return minute >= start || minute <= end;
-    }
-
-    private int dayBit(ZonedDateTime local) {
-        return switch (local.getDayOfWeek()) {
-            case SUNDAY -> 1;
-            case MONDAY -> 2;
-            case TUESDAY -> 4;
-            case WEDNESDAY -> 8;
-            case THURSDAY -> 16;
-            case FRIDAY -> 32;
-            case SATURDAY -> 64;
-        };
+        return SavedCommuteNotificationSchedule.matches(commute, legId, clock.instant());
     }
 
     private String stableImpactPart(CommuteResponses.MatchedImpactResponse match) {

@@ -190,6 +190,38 @@ class PushSavedCommuteEventObservationServiceTest {
     }
 
     @Test
+    void sendsAnUnchangedImpactOnceWhenItsNaturalNotificationWindowOpens() {
+        SavedCommuteEntity commute = SavedCommuteEntity.create(
+            "commute_1", account, "Morning commute", "finch", "union", true,
+            Instant.parse("2026-06-05T12:00:00Z")
+        );
+        PushNotificationPreferenceEntity preferences = PushNotificationPreferenceEntity.create(
+            account, Instant.parse("2026-06-05T12:00:00Z")
+        );
+        PushNotificationCandidate outsideWindow = candidate(
+            Instant.parse("2026-06-05T12:50:00Z"), "revision-one", false
+        );
+        PushSavedCommuteEventObservationEntity existing = PushSavedCommuteEventObservationEntity.create(
+            "saved_obs_existing", outsideWindow, Instant.parse("2026-06-05T12:59:00Z")
+        );
+        PushNotificationCandidate insideWindow = candidate(
+            Instant.parse("2026-06-05T12:50:00Z"), "revision-one", true
+        );
+
+        when(observationRepository.findByAccountIdAndSourceIncidentKeyAndClearedAtIsNullOrderByLastSeenAtDesc(
+            "user_1", "saved-commute-current|commute_1|outbound|rsz-line-1"
+        )).thenReturn(List.of(existing));
+        when(observationRepository.save(existing)).thenReturn(existing);
+
+        PushSavedCommuteEventObservationService.ObservationDecision decision = service.observe(
+            insideWindow, commute, preferences, Instant.parse("2026-06-05T13:00:00Z")
+        );
+
+        assertThat(decision.becameEligible()).isTrue();
+        assertThat(decision.shouldSendActive()).isTrue();
+    }
+
+    @Test
     void activeObservationsReturnsRepositoryRows() {
         when(observationRepository.findByAccountIdAndClearedAtIsNullOrderByLastSeenAtDesc("user_1"))
             .thenReturn(List.of());
@@ -204,6 +236,14 @@ class PushSavedCommuteEventObservationServiceTest {
     }
 
     private PushNotificationCandidate candidate(Instant sourceEventAt, String updateFingerprint) {
+        return candidate(sourceEventAt, updateFingerprint, true);
+    }
+
+    private PushNotificationCandidate candidate(
+        Instant sourceEventAt,
+        String updateFingerprint,
+        boolean deliveryAllowed
+    ) {
         FormattedPushNotification notification = new PushNotificationFormatter().formatActive(
             new PushNotificationFacts(
                 "line-1",
@@ -233,7 +273,7 @@ class PushSavedCommuteEventObservationServiceTest {
             notification,
             "/?panel=commutes&commute=commute_1",
             updateFingerprint,
-            true
+            deliveryAllowed
         );
     }
 }

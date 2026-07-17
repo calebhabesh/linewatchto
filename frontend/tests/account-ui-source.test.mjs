@@ -178,18 +178,20 @@ describe("account UI source", () => {
   it("renders saved-commute granular notification controls inside the commute feature", () => {
     assert.match(savedCommutesSource, /updateSavedCommuteNotificationRule/);
     assert.match(savedCommutesSource, /Notify Me For This Route/);
-    assert.match(savedCommutesSource, /Notification Days/);
-    assert.match(savedCommutesSource, /Notification Window/);
-    assert.match(savedCommutesSource, /Whole Route/);
+    assert.match(savedCommutesSource, /outboundSchedule/);
+    assert.match(savedCommutesSource, /returnSchedule/);
+    assert.match(savedCommutesSource, /AM Rush/);
+    assert.match(savedCommutesSource, /PM Rush/);
+    assert.match(savedCommutesSource, /Toronto time/);
+    assert.doesNotMatch(savedCommutesSource, /Route Section|Whole Route|Selected Section/);
     assert.match(savedCommutesSource, /Mon/);
     assert.match(savedCommutesSource, /Tue/);
     assert.match(savedCommutesSource, /Reduced Speed Zones/);
     assert.match(savedCommutesSource, /saved-commute-notification-rule/);
-    assert.match(savedCommutesSource, /saved-commute-section-select/);
     assert.match(savedCommutesSource, /notificationRule/);
     assert.match(globalCss, /\.saved-commute-notification-rule/);
     assert.match(globalCss, /\.saved-commute-day-button/);
-    assert.match(globalCss, /\.saved-commute-section-select/);
+    assert.doesNotMatch(globalCss, /\.saved-commute-section-(grid|select)/);
   });
 
   it("does not show fixture demo commute cards for signed-out or empty account states", () => {

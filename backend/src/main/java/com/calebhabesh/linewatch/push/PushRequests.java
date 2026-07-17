@@ -73,6 +73,24 @@ public final class PushRequests {
         Boolean plannedClosureNotificationsEnabled,
         SavedCommutePreferencesRequest savedCommutes,
         LineSubscriptionPreferencesRequest lineSubscriptions,
-        ReminderTimingPreferencesRequest reminderTiming
-    ) {}
+        ReminderTimingPreferencesRequest reminderTiming,
+        String plannedClosureFollowUp
+    ) {
+        public UpdatePushPreferencesRequest(
+            Boolean commuteNotificationsEnabled,
+            Boolean plannedClosureNotificationsEnabled,
+            SavedCommutePreferencesRequest savedCommutes,
+            LineSubscriptionPreferencesRequest lineSubscriptions,
+            ReminderTimingPreferencesRequest reminderTiming
+        ) {
+            this(
+                commuteNotificationsEnabled,
+                plannedClosureNotificationsEnabled,
+                savedCommutes,
+                lineSubscriptions,
+                reminderTiming,
+                null
+            );
+        }
+    }
 }

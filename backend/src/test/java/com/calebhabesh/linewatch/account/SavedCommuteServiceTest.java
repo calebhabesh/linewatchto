@@ -117,11 +117,15 @@ class SavedCommuteServiceTest {
         assertThat(response.impact().statusLabel()).isEqualTo("Clear");
         assertThat(response.notificationRule()).satisfies(rule -> {
             assertThat(rule.enabled()).isTrue();
-            assertThat(rule.dayMask()).isEqualTo(127);
-            assertThat(rule.startMinute()).isNull();
-            assertThat(rule.endMinute()).isNull();
-            assertThat(rule.sectionStartStationId()).isNull();
-            assertThat(rule.sectionEndStationId()).isNull();
+            assertThat(rule.dayMask()).isEqualTo(62);
+            assertThat(rule.startMinute()).isEqualTo(390);
+            assertThat(rule.endMinute()).isEqualTo(570);
+            assertThat(rule.outboundSchedule()).isEqualTo(
+                new AccountResponses.SavedCommuteNotificationScheduleResponse(62, 390, 570)
+            );
+            assertThat(rule.returnSchedule()).isEqualTo(
+                new AccountResponses.SavedCommuteNotificationScheduleResponse(62, 900, 1140)
+            );
             assertThat(rule.outboundEnabled()).isTrue();
             assertThat(rule.returnEnabled()).isTrue();
             assertThat(rule.eventTypes().suspensions()).isTrue();
@@ -154,8 +158,6 @@ class SavedCommuteServiceTest {
                     62,
                     16 * 60 + 30,
                     17 * 60 + 30,
-                    "queen",
-                    "bloor-yonge",
                     true,
                     false,
                     new SavedCommuteService.SavedCommuteNotificationEventTypesRequest(
@@ -174,8 +176,6 @@ class SavedCommuteServiceTest {
             assertThat(rule.dayMask()).isEqualTo(62);
             assertThat(rule.startMinute()).isEqualTo(990);
             assertThat(rule.endMinute()).isEqualTo(1050);
-            assertThat(rule.sectionStartStationId()).isEqualTo("queen");
-            assertThat(rule.sectionEndStationId()).isEqualTo("bloor-yonge");
             assertThat(rule.outboundEnabled()).isTrue();
             assertThat(rule.returnEnabled()).isFalse();
             assertThat(rule.eventTypes().reducedSpeedZones()).isFalse();
@@ -297,7 +297,7 @@ class SavedCommuteServiceTest {
             assertThat(item.path().estimatedTravelSeconds()).isEqualTo(300);
             assertThat(item.path().weightSource()).isEqualTo("gtfs-scheduled-median");
             assertThat(item.impact().statusLabel()).isEqualTo("Clear");
-            assertThat(item.notificationRule().dayMask()).isEqualTo(127);
+            assertThat(item.notificationRule().dayMask()).isEqualTo(62);
         });
     }
 
@@ -328,8 +328,6 @@ class SavedCommuteServiceTest {
                 62,
                 8 * 60,
                 9 * 60,
-                "finch",
-                "union",
                 true,
                 true,
                 new SavedCommuteService.SavedCommuteNotificationEventTypesRequest(
@@ -338,18 +336,28 @@ class SavedCommuteServiceTest {
                     true,
                     true,
                     false
-                )
+                ),
+                new SavedCommuteService.SavedCommuteNotificationScheduleRequest(62, 7 * 60, 9 * 60 + 30),
+                new SavedCommuteService.SavedCommuteNotificationScheduleRequest(62, 15 * 60, 19 * 60)
             )
         );
 
         assertThat(response.notificationRule()).satisfies(rule -> {
             assertThat(rule.dayMask()).isEqualTo(62);
-            assertThat(rule.startMinute()).isEqualTo(480);
-            assertThat(rule.endMinute()).isEqualTo(540);
-            assertThat(rule.sectionStartStationId()).isEqualTo("finch");
-            assertThat(rule.sectionEndStationId()).isEqualTo("union");
+            assertThat(rule.startMinute()).isEqualTo(420);
+            assertThat(rule.endMinute()).isEqualTo(570);
             assertThat(rule.eventTypes().delays()).isFalse();
             assertThat(rule.eventTypes().serviceRestored()).isFalse();
+            assertThat(rule.outboundSchedule()).satisfies(schedule -> {
+                assertThat(schedule.dayMask()).isEqualTo(62);
+                assertThat(schedule.startMinute()).isEqualTo(420);
+                assertThat(schedule.endMinute()).isEqualTo(570);
+            });
+            assertThat(rule.returnSchedule()).satisfies(schedule -> {
+                assertThat(schedule.dayMask()).isEqualTo(62);
+                assertThat(schedule.startMinute()).isEqualTo(900);
+                assertThat(schedule.endMinute()).isEqualTo(1140);
+            });
         });
         verify(commuteRepository).save(commute);
     }
@@ -378,8 +386,6 @@ class SavedCommuteServiceTest {
         commute.updateNotificationRule(
             true,
             127,
-            null,
-            null,
             null,
             null,
             true,

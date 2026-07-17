@@ -21,6 +21,7 @@ import {
   loginWithGoogle,
   linkGoogleAccount,
   logoutAccount,
+  normalizeSavedCommuteNotificationRule,
   registerAccount,
   requestPasswordReset,
   savePushSubscription,
@@ -31,6 +32,24 @@ import {
 } from "../src/app/account-data.ts";
 
 describe("account data adapter", () => {
+  it("defaults new commute notifications to weekday outbound and return rush windows", () => {
+    const normalized = normalizeSavedCommuteNotificationRule();
+
+    assert.deepEqual(normalized.outboundSchedule, { dayMask: 62, startMinute: 390, endMinute: 570 });
+    assert.deepEqual(normalized.returnSchedule, { dayMask: 62, startMinute: 900, endMinute: 1140 });
+  });
+
+  it("maps a legacy shared commute window to both leg schedules", () => {
+    const normalized = normalizeSavedCommuteNotificationRule({
+      dayMask: 62,
+      startMinute: 420,
+      endMinute: 570,
+    });
+
+    assert.deepEqual(normalized.outboundSchedule, { dayMask: 62, startMinute: 420, endMinute: 570 });
+    assert.deepEqual(normalized.returnSchedule, { dayMask: 62, startMinute: 420, endMinute: 570 });
+  });
+
   it("sorts saved commutes by impact severity before creation time by default", async () => {
     const result = await getSavedCommutes({
       fetcher: async () => new Response(JSON.stringify({
@@ -85,7 +104,7 @@ describe("account data adapter", () => {
     assert.match(source, /export type AccountSavedCommuteNotificationRule/);
     assert.match(source, /dayMask: number/);
     assert.match(source, /startMinute: number \| null/);
-    assert.match(source, /sectionStartStationId: string \| null/);
+    assert.doesNotMatch(source, /sectionStartStationId|sectionEndStationId/);
     assert.match(source, /notificationRule: AccountSavedCommuteNotificationRule/);
     assert.match(source, /updateSavedCommuteNotificationRule/);
   });
@@ -395,8 +414,6 @@ describe("account data adapter", () => {
       dayMask: 62,
       startMinute: 990,
       endMinute: 1050,
-      sectionStartStationId: "queen",
-      sectionEndStationId: "bloor-yonge",
       outboundEnabled: true,
       returnEnabled: false,
       eventTypes: {
@@ -405,6 +422,16 @@ describe("account data adapter", () => {
         reducedSpeedZones: false,
         plannedClosures: true,
         serviceRestored: true,
+      },
+      outboundSchedule: {
+        dayMask: 62,
+        startMinute: 390,
+        endMinute: 570,
+      },
+      returnSchedule: {
+        dayMask: 62,
+        startMinute: 900,
+        endMinute: 1140,
       },
     };
     const commuteResponse = {
@@ -584,6 +611,7 @@ describe("account data adapter", () => {
                 closure24h: true,
                 closureMorning: true,
               },
+              plannedClosureFollowUp: "smart",
             },
           }),
           { status: 200, headers: { "content-type": "application/json" } }
@@ -601,8 +629,7 @@ describe("account data adapter", () => {
     assert.equal(result.config.preferences.lineSubscriptions.lines[0].lineId, "line-1");
     assert.equal(result.config.preferences.lineSubscriptions.lines[0].subscribed, false);
     assert.equal(result.config.preferences.lineSubscriptions.eventTypes.reducedSpeedZones, true);
-    assert.equal(result.config.preferences.reminderTiming.closure24h, true);
-    assert.equal(result.config.preferences.reminderTiming.closureMorning, true);
+    assert.equal(result.config.preferences.plannedClosureFollowUp, "smart");
     assert.equal(requests[0].input, "/api/account/push/config");
     assert.equal(requests[0].init.credentials, "include");
   });
@@ -665,11 +692,7 @@ describe("account data adapter", () => {
           serviceRestored: true,
                 },
       },
-      reminderTiming: {
-        onChange: true,
-        closure24h: true,
-        closureMorning: true,
-      },
+      plannedClosureFollowUp: "smart",
     };
     await updatePushPreferences(
       fullPrefs,

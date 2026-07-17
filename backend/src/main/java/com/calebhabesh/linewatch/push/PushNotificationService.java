@@ -496,11 +496,13 @@ public class PushNotificationService {
                 
                 List<PushNotificationCandidate> commuteCandidates = savedCommuteRepository.findByAccountIdOrderByCreatedAtAsc(account.getId())
                     .stream()
-                    .flatMap(commute -> planner.candidatesFor(commute).stream())
+                    .flatMap(commute -> savedCommuteCandidatesFor(commute, preferences).stream())
                     .toList();
                 
                 List<String> subscribedLineIds = preferenceService.subscribedLineIds(account.getId());
-                List<PushNotificationCandidate> lineCandidates = lineSubscriptionPushPlanner.candidatesFor(account.getId(), subscribedLineIds);
+                List<PushNotificationCandidate> lineCandidates = lineCandidatesFor(
+                    account.getId(), subscribedLineIds, preferences
+                );
                 
                 List<PushNotificationCandidate> allCandidates = new java.util.ArrayList<>();
                 allCandidates.addAll(commuteCandidates);
@@ -520,6 +522,25 @@ public class PushNotificationService {
                 return new PushResponses.ActivePushNotificationsResponse(activeTags, retainedTags, true);
             })
             .orElse(new PushResponses.ActivePushNotificationsResponse(List.of(), List.of(), true));
+    }
+
+    private List<PushNotificationCandidate> savedCommuteCandidatesFor(
+        SavedCommuteEntity commute,
+        PushNotificationPreferenceEntity preferences
+    ) {
+        PlannedClosureFollowUpPolicy policy = preferences.getPlannedClosureFollowUpPolicy();
+        return policy == null ? planner.candidatesFor(commute) : planner.candidatesFor(commute, policy);
+    }
+
+    private List<PushNotificationCandidate> lineCandidatesFor(
+        String accountId,
+        List<String> subscribedLineIds,
+        PushNotificationPreferenceEntity preferences
+    ) {
+        PlannedClosureFollowUpPolicy policy = preferences.getPlannedClosureFollowUpPolicy();
+        return policy == null
+            ? lineSubscriptionPushPlanner.candidatesFor(accountId, subscribedLineIds)
+            : lineSubscriptionPushPlanner.candidatesFor(accountId, subscribedLineIds, policy);
     }
 
     private List<String> retainedNotificationTags(String accountId, String endpointHash, List<String> activeNotificationKeys) {
