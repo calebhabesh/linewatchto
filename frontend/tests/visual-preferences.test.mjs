@@ -38,6 +38,7 @@ describe("visual preference persistence", () => {
       highContrast: true,
       reducedMotion: true,
       estimatedTrainsEnabled: true,
+      dotBackgroundEnabled: false,
     });
 
     assert.deepEqual(readVisualPreferencesFromStorage(storage), {
@@ -45,6 +46,7 @@ describe("visual preference persistence", () => {
       highContrast: true,
       reducedMotion: true,
       estimatedTrainsEnabled: true,
+      dotBackgroundEnabled: false,
     });
   });
 
@@ -54,6 +56,7 @@ describe("visual preference persistence", () => {
       "linewatch-high-contrast-enabled-v1": "yes",
       "linewatch-reduced-motion-enabled-v1": "",
       "linewatch-estimated-trains-enabled-v1": "false",
+      "linewatch-dot-background-enabled-v1": "invalid",
     });
 
     assert.deepEqual(readVisualPreferencesFromStorage(storage), {
@@ -61,6 +64,7 @@ describe("visual preference persistence", () => {
       highContrast: null,
       reducedMotion: null,
       estimatedTrainsEnabled: false,
+      dotBackgroundEnabled: null,
     });
   });
 
@@ -78,6 +82,7 @@ describe("visual preference persistence", () => {
         highContrast: true,
         reducedMotion: false,
         estimatedTrainsEnabled: true,
+        dotBackgroundEnabled: false,
       },
       "https:",
     );
@@ -94,6 +99,7 @@ describe("visual preference persistence", () => {
       reducedMotion: false,
       reducedMotionOverride: true,
       estimatedTrainsEnabled: true,
+      dotBackgroundEnabled: false,
     });
   });
 

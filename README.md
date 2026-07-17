@@ -36,7 +36,7 @@ Implemented now:
 - Redis-backed dashboard cache for status, map, alerts, ingestion health, and TTC performance reads, with database/live fallback when Redis is unavailable.
 - Ingestion/system health panel in fixture mode.
 - High-contrast display toggle.
-- Motion/static-background toggle.
+- Independent reduced-motion and dot-background toggles, with a plain black or white background option.
 - Mobile bottom navigation.
 - Installable mobile PWA shell with supplied LineWatch icons, standalone display metadata, cached static assets, and a conservative offline page that does not replay stale service data.
 - Backend Spring Boot health endpoint.

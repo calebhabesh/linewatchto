@@ -205,6 +205,7 @@ export function LineWatchShell({
   const [highContrast, setHighContrast] = useState(initialVisualPreferences.highContrast);
   const [reducedMotion, setReducedMotion] = useState(initialVisualPreferences.reducedMotion);
   const [reducedMotionOverride, setReducedMotionOverride] = useState(initialVisualPreferences.reducedMotionOverride);
+  const [dotBackgroundEnabled, setDotBackgroundEnabled] = useState(initialVisualPreferences.dotBackgroundEnabled);
   const [visualPreferencesReady, setVisualPreferencesReady] = useState(false);
   const mobilePerformanceMode = useMobilePerformanceMode();
   const [activeView, setActiveView] = useState<ActiveView>("map");
@@ -237,6 +238,7 @@ export function LineWatchShell({
     setIsDark((stored.theme ?? initialVisualPreferences.theme) === "dark");
     setHighContrast(stored.highContrast ?? initialVisualPreferences.highContrast);
     setEstimatedTrainsEnabled(stored.estimatedTrainsEnabled ?? initialVisualPreferences.estimatedTrainsEnabled);
+    setDotBackgroundEnabled(stored.dotBackgroundEnabled ?? initialVisualPreferences.dotBackgroundEnabled);
     setReducedMotionOverride(hasReducedMotionOverride);
     setReducedMotion(
       resolveReducedMotionPreference(
@@ -247,6 +249,7 @@ export function LineWatchShell({
     setVisualPreferencesReady(true);
   }, [
     initialVisualPreferences.estimatedTrainsEnabled,
+    initialVisualPreferences.dotBackgroundEnabled,
     initialVisualPreferences.highContrast,
     initialVisualPreferences.reducedMotion,
     initialVisualPreferences.reducedMotionOverride,
@@ -261,11 +264,12 @@ export function LineWatchShell({
       highContrast,
       reducedMotion: reducedMotionOverride ? reducedMotion : null,
       estimatedTrainsEnabled,
+      dotBackgroundEnabled,
     };
 
     writeVisualPreferencesToStorage(window.localStorage, preferences);
     document.cookie = buildVisualPreferencesCookie(preferences, window.location.protocol);
-  }, [estimatedTrainsEnabled, highContrast, isDark, reducedMotion, reducedMotionOverride, visualPreferencesReady]);
+  }, [dotBackgroundEnabled, estimatedTrainsEnabled, highContrast, isDark, reducedMotion, reducedMotionOverride, visualPreferencesReady]);
 
   useEffect(() => {
     let cancelled = false;
@@ -1388,6 +1392,10 @@ export function LineWatchShell({
     setReducedMotion((current) => !current);
   }, [setReducedMotion, setReducedMotionOverride]);
 
+  const handleToggleDotBackground = useCallback(() => {
+    setDotBackgroundEnabled((current) => !current);
+  }, []);
+
   const handleToggleEstimatedTrains = useCallback(() => {
     setEstimatedTrainsEnabled((current) => !current);
   }, [setEstimatedTrainsEnabled]);
@@ -1618,6 +1626,7 @@ export function LineWatchShell({
             accountBusy={accountBusy}
             highContrast={highContrast}
             reducedMotion={reducedMotion}
+            dotBackgroundEnabled={dotBackgroundEnabled}
             ingestionHealth={ingestionHealth}
             onClose={handleMobileSheetClose}
             onRequestSignIn={() => openAuthChoice("login")}
@@ -1628,6 +1637,7 @@ export function LineWatchShell({
             onLinkGoogleAccount={openGoogleLinkDialog}
             onToggleHighContrast={handleToggleHighContrast}
             onToggleReducedMotion={handleToggleReducedMotion}
+            onToggleDotBackground={handleToggleDotBackground}
             onOpenNotifications={() => setActiveView("notifications")}
             onOpenAnalytics={() => setActiveView("analytics")}
             onOpenAlertHistory={() => setActiveView("alert-history")}
@@ -1813,6 +1823,7 @@ export function LineWatchShell({
           accountBusy={accountBusy}
           highContrast={highContrast}
           reducedMotion={reducedMotion}
+          dotBackgroundEnabled={dotBackgroundEnabled}
           ingestionHealth={ingestionHealth}
           onClose={handleMobileSheetClose}
           onRequestSignIn={() => openAuthChoice("login")}
@@ -1823,6 +1834,7 @@ export function LineWatchShell({
           onLinkGoogleAccount={openGoogleLinkDialog}
           onToggleHighContrast={handleToggleHighContrast}
           onToggleReducedMotion={handleToggleReducedMotion}
+          onToggleDotBackground={handleToggleDotBackground}
           onOpenNotifications={() => setActiveView("notifications")}
           onOpenAnalytics={() => setActiveView("analytics")}
           onOpenAlertHistory={() => setActiveView("alert-history")}
@@ -1926,7 +1938,7 @@ export function LineWatchShell({
           LineWatchTO TTC subway and LRT reliability dashboard
         </h1>
         {/* Background */}
-        <DynamicBackground reducedMotion={reducedMotion} isDark={isDark || highContrast} />
+        <DynamicBackground reducedMotion={reducedMotion} isDark={isDark || highContrast} disabled={!dotBackgroundEnabled} />
 
       {!showClosedScreen && (
       <header
@@ -2367,6 +2379,21 @@ export function LineWatchShell({
                       className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${reducedMotion ? 'bg-blue-500' : 'bg-slate-300 dark:bg-slate-600'}`}
                    >
                      <span className={`absolute left-1 top-1 h-3 w-3 transform rounded-full bg-white transition-transform ${reducedMotion ? 'translate-x-4' : 'translate-x-0'}`} />
+                   </button>
+                 </div>
+                 <div className="flex items-center justify-between px-3 py-2.5">
+                   <span className="text-sm font-medium text-slate-700 dark:text-slate-200 flex items-center gap-3">
+                     <Sparkles size={18} className="text-slate-500 dark:text-slate-400" /> Dot Background
+                   </span>
+                   <button
+                      ref={registerMenuAction(actionIndex++)}
+                      role="menuitemcheckbox"
+                      aria-checked={dotBackgroundEnabled}
+                      aria-label="Toggle dot background"
+                      onClick={handleToggleDotBackground}
+                      className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${dotBackgroundEnabled ? 'bg-blue-500' : 'bg-slate-300 dark:bg-slate-600'}`}
+                   >
+                     <span className={`absolute left-1 top-1 h-3 w-3 transform rounded-full bg-white transition-transform ${dotBackgroundEnabled ? 'translate-x-4' : 'translate-x-0'}`} />
                    </button>
                  </div>
                </div>

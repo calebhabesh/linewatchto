@@ -135,6 +135,7 @@ The `More` sheet contains non-primary mobile utilities:
 - Display settings:
   - High Contrast Mode
   - Reduced Motion
+  - Dot Background
   - Theme toggle if the mobile map utility cluster is hidden
 - Portfolio/deep tools:
   - Reliability Analytics
@@ -202,4 +203,3 @@ Use transform/opacity animations only. Use lazy mounting for `More`, analytics, 
 - Tapping `More` exposes account, display, analytics, guide/logs, and source/health tools.
 - Mobile map controls do not overlap bottom nav/status peek/station sheets.
 - Existing fixture, typecheck, lint, build, and smoke tests pass after updates.
-

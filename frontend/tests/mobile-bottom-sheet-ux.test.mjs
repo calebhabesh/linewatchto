@@ -75,6 +75,7 @@ describe("mobile bottom sheet UX", () => {
     assert.match(moreSheetSource, /mobile-more-build-label/);
     assert.match(moreSheetSource, /High Contrast Mode/);
     assert.match(moreSheetSource, /Reduced Motion/);
+    assert.match(moreSheetSource, /Dot Background/);
     assert.match(moreSheetSource, /Reliability Analytics/);
     assert.match(moreSheetSource, /LogsDropdown/);
     assert.match(moreSheetSource, /Reset Local App Cache/);

@@ -12,7 +12,11 @@ export function DynamicBackground({
   disabled?: boolean;
 }) {
   const backdropClassName = `linewatch-backdrop fixed inset-0 pointer-events-none z-0 transition-colors duration-500 ${
-    isDark ? "linewatch-backdrop--dark bg-[#0d0808]" : "linewatch-backdrop--light bg-slate-50"
+    disabled
+      ? `linewatch-backdrop--plain ${isDark ? "linewatch-backdrop--plain-dark" : "linewatch-backdrop--plain-light"}`
+      : isDark
+        ? "linewatch-backdrop--dark bg-[#0d0808]"
+        : "linewatch-backdrop--light bg-slate-50"
   }`;
 
   if (reducedMotion || disabled) {

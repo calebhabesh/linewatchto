@@ -53,6 +53,16 @@ describe("frosted glass rendering", () => {
     assert.equal(packageJson.devDependencies["@types/three"], undefined);
   });
 
+  it("lets users replace the dot design with a plain black or white background", () => {
+    assert.match(shellSource, /dotBackgroundEnabled/);
+    assert.match(shellSource, /<DynamicBackground[^>]*disabled=\{!dotBackgroundEnabled\}/s);
+    assert.match(dynamicBackgroundSource, /linewatch-backdrop--plain/);
+    assert.match(dynamicBackgroundSource, /linewatch-backdrop--plain-dark/);
+    assert.match(dynamicBackgroundSource, /linewatch-backdrop--plain-light/);
+    assert.match(globalCss, /\.linewatch-backdrop--plain-dark\s*\{[^}]*background-color:\s*#000000;/s);
+    assert.match(globalCss, /\.linewatch-backdrop--plain-light\s*\{[^}]*background-color:\s*#ffffff;/s);
+  });
+
   it("does not use live backdrop blur on interactive panels", () => {
     for (const source of [
       shellSource,

@@ -5,6 +5,7 @@ export type VisualPreferences = {
   highContrast: boolean;
   reducedMotion: boolean;
   estimatedTrainsEnabled: boolean;
+  dotBackgroundEnabled: boolean;
 };
 
 export type InitialVisualPreferences = VisualPreferences & {
@@ -16,6 +17,7 @@ export type StoredVisualPreferences = {
   highContrast: boolean | null;
   reducedMotion: boolean | null;
   estimatedTrainsEnabled: boolean | null;
+  dotBackgroundEnabled: boolean | null;
 };
 
 export type VisualPreferencesToPersist = Omit<VisualPreferences, "reducedMotion"> & {
@@ -32,6 +34,7 @@ export const visualPreferenceStorageKeys = {
   highContrast: "linewatch-high-contrast-enabled-v1",
   reducedMotion: "linewatch-reduced-motion-enabled-v1",
   estimatedTrainsEnabled: "linewatch-estimated-trains-enabled-v1",
+  dotBackgroundEnabled: "linewatch-dot-background-enabled-v1",
 } as const;
 
 export const defaultVisualPreferences: InitialVisualPreferences = {
@@ -40,6 +43,7 @@ export const defaultVisualPreferences: InitialVisualPreferences = {
   reducedMotion: false,
   reducedMotionOverride: false,
   estimatedTrainsEnabled: false,
+  dotBackgroundEnabled: true,
 };
 
 function readStorageValue(storage: PreferenceStorage, key: string) {
@@ -84,6 +88,7 @@ function normalizeCookieRecord(value: unknown): Partial<VisualPreferencesToPersi
     highContrast: typeof record.highContrast === "boolean" ? record.highContrast : undefined,
     reducedMotion: typeof record.reducedMotion === "boolean" ? record.reducedMotion : undefined,
     estimatedTrainsEnabled: typeof record.estimatedTrainsEnabled === "boolean" ? record.estimatedTrainsEnabled : undefined,
+    dotBackgroundEnabled: typeof record.dotBackgroundEnabled === "boolean" ? record.dotBackgroundEnabled : undefined,
   };
 }
 
@@ -93,6 +98,7 @@ export function readVisualPreferencesFromStorage(storage: PreferenceStorage): St
     highContrast: readStoredBoolean(readStorageValue(storage, visualPreferenceStorageKeys.highContrast)),
     reducedMotion: readStoredBoolean(readStorageValue(storage, visualPreferenceStorageKeys.reducedMotion)),
     estimatedTrainsEnabled: readStoredBoolean(readStorageValue(storage, visualPreferenceStorageKeys.estimatedTrainsEnabled)),
+    dotBackgroundEnabled: readStoredBoolean(readStorageValue(storage, visualPreferenceStorageKeys.dotBackgroundEnabled)),
   };
 }
 
@@ -105,6 +111,7 @@ export function writeVisualPreferencesToStorage(storage: PreferenceStorage, pref
     preferences.reducedMotion === null ? null : preferences.reducedMotion ? "true" : "false",
   );
   writeStorageValue(storage, visualPreferenceStorageKeys.estimatedTrainsEnabled, preferences.estimatedTrainsEnabled ? "true" : "false");
+  writeStorageValue(storage, visualPreferenceStorageKeys.dotBackgroundEnabled, preferences.dotBackgroundEnabled ? "true" : "false");
 }
 
 export function resolveReducedMotionPreference(storedPreference: boolean | null, systemPrefersReducedMotion: boolean) {
@@ -126,6 +133,7 @@ export function initialVisualPreferencesFromCookie(cookieValue: string | undefin
       reducedMotion: normalized.reducedMotion ?? defaultVisualPreferences.reducedMotion,
       reducedMotionOverride,
       estimatedTrainsEnabled: normalized.estimatedTrainsEnabled ?? defaultVisualPreferences.estimatedTrainsEnabled,
+      dotBackgroundEnabled: normalized.dotBackgroundEnabled ?? defaultVisualPreferences.dotBackgroundEnabled,
     };
   } catch {
     return defaultVisualPreferences;
@@ -137,6 +145,7 @@ export function buildVisualPreferencesCookie(preferences: VisualPreferencesToPer
     theme: preferences.theme,
     highContrast: preferences.highContrast,
     estimatedTrainsEnabled: preferences.estimatedTrainsEnabled,
+    dotBackgroundEnabled: preferences.dotBackgroundEnabled,
   };
   if (preferences.reducedMotion !== null) {
     payload.reducedMotion = preferences.reducedMotion;

@@ -171,10 +171,17 @@ describe("account UI source", () => {
     assert.match(globalCss, /\.saved-commute-impact-summary-chip/);
     assert.match(globalCss, /\.saved-commute-impact-disclosure\[open\]/);
     assert.match(globalCss, /\.saved-commute-impact-disclosure\s*\{(?=[^}]*border-bottom:)(?=[^}]*border-top:)[^}]*\}/s);
-    assert.match(globalCss, /\.saved-commute-impact-summary-icon\s*\{[^}]*transform:\s*translateY\(-1px\);/s);
+    assert.doesNotMatch(
+      globalCss,
+      /\.saved-commute-impact-summary-icon\s*\{[^}]*transform:\s*translateY\(/s,
+    );
     assert.match(
       globalCss,
-      /\.saved-commute-impact-total\s*\{(?=[^}]*color:\s*#f8fafc;)(?=[^}]*font-variant-numeric:\s*tabular-nums;)(?=[^}]*margin-left:\s*2px;)(?=[^}]*min-width:\s*1\.25rem;)(?=[^}]*padding:\s*0 0\.3rem;)(?=[^}]*transform:\s*translateY\(-1px\);)(?=[^}]*width:\s*auto;)[^}]*\}/s,
+      /\.saved-commute-impact-total\s*\{(?=[^}]*color:\s*#f8fafc;)(?=[^}]*font-variant-numeric:\s*tabular-nums;)(?=[^}]*margin-left:\s*2px;)(?=[^}]*min-width:\s*1\.25rem;)(?=[^}]*padding:\s*0 0\.3rem;)(?=[^}]*width:\s*auto;)[^}]*\}/s,
+    );
+    assert.doesNotMatch(
+      globalCss,
+      /\.saved-commute-impact-total\s*\{[^}]*transform:\s*translateY\(/s,
     );
     assert.match(savedCommutesSource, /saved-commute-impact-summary-action-collapsed">List View/);
     assert.match(savedCommutesSource, /saved-commute-impact-summary-action-expanded">Hide List/);

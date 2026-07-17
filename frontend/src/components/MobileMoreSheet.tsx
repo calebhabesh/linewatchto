@@ -23,6 +23,7 @@ type Props = {
   accountBusy: boolean;
   highContrast: boolean;
   reducedMotion: boolean;
+  dotBackgroundEnabled: boolean;
   ingestionHealth: DashboardData["ingestionHealth"];
   onClose: () => void;
   onRequestSignIn: () => void;
@@ -33,6 +34,7 @@ type Props = {
   onLinkGoogleAccount: () => void;
   onToggleHighContrast: () => void;
   onToggleReducedMotion: () => void;
+  onToggleDotBackground: () => void;
   onOpenNotifications: () => void;
   onOpenAlertHistory: () => void;
   onOpenAnalytics: () => void;
@@ -54,6 +56,7 @@ export function MobileMoreSheet({
   accountBusy,
   highContrast,
   reducedMotion,
+  dotBackgroundEnabled,
   ingestionHealth,
   onClose,
   onRequestSignIn,
@@ -64,6 +67,7 @@ export function MobileMoreSheet({
   onLinkGoogleAccount,
   onToggleHighContrast,
   onToggleReducedMotion,
+  onToggleDotBackground,
   onOpenNotifications,
   onOpenAlertHistory,
   onOpenAnalytics,
@@ -273,6 +277,13 @@ export function MobileMoreSheet({
             Reduced Motion
             <div className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ml-auto shrink-0 ${reducedMotion ? 'bg-blue-500' : 'bg-slate-300 dark:bg-slate-600'}`}>
               <span className={`absolute left-1 top-1 h-3 w-3 transform rounded-full bg-white transition-transform ${reducedMotion ? 'translate-x-4' : 'translate-x-0'}`} />
+            </div>
+          </button>
+          <button type="button" className="mobile-more-row" aria-pressed={dotBackgroundEnabled} onClick={onToggleDotBackground}>
+            <Sparkles size={18} className="text-slate-500 dark:text-slate-400" />
+            Dot Background
+            <div className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ml-auto shrink-0 ${dotBackgroundEnabled ? 'bg-blue-500' : 'bg-slate-300 dark:bg-slate-600'}`}>
+              <span className={`absolute left-1 top-1 h-3 w-3 transform rounded-full bg-white transition-transform ${dotBackgroundEnabled ? 'translate-x-4' : 'translate-x-0'}`} />
             </div>
           </button>
           {/* Note: Live Train Markers toggle has been moved to the map front page on mobile (under the legend). */}
