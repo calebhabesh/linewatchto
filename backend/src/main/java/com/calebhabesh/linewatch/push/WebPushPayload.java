@@ -101,10 +101,6 @@ public record WebPushPayload(
         return fromDelivery(event, deliveryId, subscription, receiptTokenService, event.getCreatedAt(), null);
     }
 
-    public boolean highUrgency() {
-        return !"CLEARED".equalsIgnoreCase(state);
-    }
-
     public String toJson() {
         return "{"
             + "\"title\":" + jsonString(title)

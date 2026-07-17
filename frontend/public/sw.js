@@ -269,8 +269,9 @@ async function showPushNotification(notification) {
     tag: notification.tag,
     icon: NOTIFICATION_ICON_URL,
     badge: NOTIFICATION_BADGE_URL,
-    renotify: notificationState === "ACTIVE",
+    renotify: true,
     requireInteraction: true,
+    silent: false,
     data: {
       state: notificationState,
       url: notification.url || "/",
@@ -281,9 +282,6 @@ async function showPushNotification(notification) {
       expiresAt: notification.expiresAt || "",
     },
   };
-  if (notificationState === "CLEARED") {
-    options.silent = true;
-  }
   const timestamp = Date.parse(notification.timestamp);
   if (Number.isFinite(timestamp)) {
     options.timestamp = timestamp;
@@ -409,6 +407,9 @@ async function showFallbackPushNotification() {
     tag: FALLBACK_PUSH_TAG,
     icon: NOTIFICATION_ICON_URL,
     badge: NOTIFICATION_BADGE_URL,
+    renotify: true,
+    requireInteraction: true,
+    silent: false,
     data: {
       url: "/",
     },

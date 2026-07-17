@@ -974,8 +974,9 @@ describe("LineWatch PWA configuration", () => {
     assert.equal(shownNotifications[0].options.tag, "saved-commute-impact|commute_1|outbound|delay|delay-line-1|active");
     assert.equal(shownNotifications[1].options.tag, "saved-commute-impact|commute_1|outbound|delay|delay-line-1|cleared");
     assert.equal(shownNotifications[0].options.renotify, true);
-    assert.equal(shownNotifications[0].options.silent, undefined);
-    assert.equal(shownNotifications[1].options.silent, true);
+    assert.equal(shownNotifications[0].options.silent, false);
+    assert.equal(shownNotifications[1].options.renotify, true);
+    assert.equal(shownNotifications[1].options.silent, false);
   });
 
   it("closes stale saved-commute notifications when the backend has no active matching tag", async () => {
@@ -1163,6 +1164,9 @@ describe("LineWatch PWA configuration", () => {
       shownNotifications[0].options.body,
       "Open LineWatchTO to view the latest service update.",
     );
+    assert.equal(shownNotifications[0].options.renotify, true);
+    assert.equal(shownNotifications[0].options.requireInteraction, true);
+    assert.equal(shownNotifications[0].options.silent, false);
   });
 
   it("shows a fallback for unauthenticated or unknown push subscriptions to prevent Android Chrome revocation", async () => {
@@ -1172,7 +1176,7 @@ describe("LineWatch PWA configuration", () => {
     assert.equal(shownNotifications[0].title, "⚠️ LineWatchTO Service Alert");
   });
 
-  it("shows a cleared saved-commute push as a quiet replacement even when the tag is no longer active", async () => {
+  it("shows a cleared saved-commute push with full attention even when the tag is no longer active", async () => {
     const { shownNotifications } = await serviceWorkerPush({
       fetchBody: {
         notification: {
@@ -1195,9 +1199,9 @@ describe("LineWatch PWA configuration", () => {
       "Service between Finch and Union stations has resumed.\nNo longer affects Work (Outbound).\n🕗 Jun 5, 11:00 AM",
     );
     assert.equal(shownNotifications[0].options.tag, "saved-commute-impact|commute_1|outbound|delay-line-1|cleared");
-    assert.equal(shownNotifications[0].options.renotify, false);
+    assert.equal(shownNotifications[0].options.renotify, true);
     assert.equal(shownNotifications[0].options.requireInteraction, true);
-    assert.equal(shownNotifications[0].options.silent, true);
+    assert.equal(shownNotifications[0].options.silent, false);
     assert.equal(shownNotifications[0].options.timestamp, Date.parse("2026-06-05T15:00:00Z"));
     assert.equal(shownNotifications[0].options.data.state, "CLEARED");
   });

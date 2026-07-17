@@ -195,6 +195,8 @@ Post-implementation follow-up (2026-07-13): browser endpoint rotation now carrie
 
 Android hardening follow-up (2026-07-15): accepted active deliveries without current-attempt browser evidence now receive no more than two sparse retries, after 5 and 15 minutes, within the original 30-minute window. A current-attempt `push_received` event now means `showNotification()` resolved and stops retrying; `show_failed` remains retryable. The service worker performs the display call before network telemetry and then records receipt/display evidence concurrently. Diagnostics distinguish rotating endpoint hashes from browser installation prefixes and expose a VAPID public-key fingerprint so subscription churn can be separated from deployment key rotation.
 
+Android delivery follow-up (2026-07-16): every LineWatchTO Web Push request now requests `Urgency: high`, including cleared/service-restored lifecycle notifications and payload-less fallback wake-ups. The service worker requests `silent: false`, `renotify: true`, and `requireInteraction: true` for active, cleared, diagnostic, and fallback notifications; browser and OS settings retain final authority over sound, vibration, and heads-up presentation.
+
 ## Diagnostics API
 
 Change `/api/account/push/diagnostics` from a flat delivery list to grouped logical notifications.

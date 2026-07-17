@@ -48,7 +48,7 @@ public class VapidWebPushClient implements WebPushClient {
             URI endpoint = URI.create(subscription.getEndpoint());
             HttpRequest.Builder requestBuilder = HttpRequest.newBuilder(endpoint)
                 .header("TTL", Long.toString(ttlSeconds(payload)))
-                .header("Urgency", payload != null && payload.highUrgency() ? "high" : "normal")
+                .header("Urgency", "high")
                 .header("Authorization", authorizationHeader(endpoint));
             if (topic != null && !topic.isBlank()) {
                 requestBuilder.header("Topic", topic.trim());

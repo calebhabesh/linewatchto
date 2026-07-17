@@ -3,6 +3,7 @@ package com.calebhabesh.linewatch.push;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -27,7 +28,7 @@ import org.mockito.ArgumentCaptor;
 class VapidWebPushClientPayloadTest {
     @Test
     @SuppressWarnings("unchecked")
-    void sendsEncryptedPayloadWithHighUrgencyForActiveNotifications() throws Exception {
+    void sendsEncryptedPayloadWithHighUrgencyForEveryNotificationState() throws Exception {
         PushProperties properties = new PushProperties();
         properties.setVapidPublicKey("BPublicVapidKey");
         properties.setVapidPrivateKey("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAE");
@@ -62,7 +63,7 @@ class VapidWebPushClientPayloadTest {
             "Chrome Android",
             Instant.parse("2026-06-05T14:45:00Z")
         );
-        WebPushPayload payload = new WebPushPayload(
+        WebPushPayload activePayload = new WebPushPayload(
             "⚠️ Line 1 Yonge-University Delay",
             "Finch to Union.\nAffects Morning commute (Outbound).\n🕗 Jun 5, 10:20 AM",
             "/?panel=commutes&commute=commute_1",
@@ -70,19 +71,37 @@ class VapidWebPushClientPayloadTest {
             "ACTIVE",
             "2026-06-05T15:00:00Z"
         );
+        WebPushPayload clearedPayload = new WebPushPayload(
+            "✅ Line 1 Yonge-University Delay Cleared",
+            "Regular service has resumed.\n🕗 Jun 5, 10:30 AM",
+            "/?panel=commutes&commute=commute_1",
+            "saved-commute-impact|commute_1|outbound|delay|delay-line-1|cleared",
+            "CLEARED",
+            "2026-06-05T15:10:00Z"
+        );
 
-        PushDeliveryResult result = client.send(subscription, "topic-1", payload);
+        PushDeliveryResult activeResult = client.send(subscription, "topic-active", activePayload);
+        PushDeliveryResult clearedResult = client.send(subscription, "topic-cleared", clearedPayload);
 
         ArgumentCaptor<HttpRequest> requestCaptor = ArgumentCaptor.forClass(HttpRequest.class);
-        verify(httpClient).send(requestCaptor.capture(), any(HttpResponse.BodyHandler.class));
-        HttpRequest request = requestCaptor.getValue();
-        assertThat(result.status()).isEqualTo("accepted");
-        assertThat(request.headers().firstValue("Topic")).contains("topic-1");
-        assertThat(request.headers().firstValue("TTL")).contains("600");
-        assertThat(request.headers().firstValue("Urgency")).contains("high");
-        assertThat(request.headers().firstValue("Content-Encoding")).contains("aes128gcm");
-        assertThat(request.bodyPublisher()).isPresent();
-        assertThat(request.bodyPublisher().orElseThrow().contentLength()).isGreaterThan(payload.toJson().length());
+        verify(httpClient, times(2))
+            .send(requestCaptor.capture(), any(HttpResponse.BodyHandler.class));
+        HttpRequest activeRequest = requestCaptor.getAllValues().get(0);
+        HttpRequest clearedRequest = requestCaptor.getAllValues().get(1);
+        assertThat(activeResult.status()).isEqualTo("accepted");
+        assertThat(clearedResult.status()).isEqualTo("accepted");
+        assertThat(activeRequest.headers().firstValue("Topic")).contains("topic-active");
+        assertThat(clearedRequest.headers().firstValue("Topic")).contains("topic-cleared");
+        assertThat(activeRequest.headers().firstValue("TTL")).contains("600");
+        assertThat(clearedRequest.headers().firstValue("TTL")).contains("86400");
+        assertThat(activeRequest.headers().firstValue("Urgency")).contains("high");
+        assertThat(clearedRequest.headers().firstValue("Urgency")).contains("high");
+        assertThat(activeRequest.headers().firstValue("Content-Encoding")).contains("aes128gcm");
+        assertThat(clearedRequest.headers().firstValue("Content-Encoding")).contains("aes128gcm");
+        assertThat(activeRequest.bodyPublisher()).isPresent();
+        assertThat(clearedRequest.bodyPublisher()).isPresent();
+        assertThat(activeRequest.bodyPublisher().orElseThrow().contentLength()).isGreaterThan(activePayload.toJson().length());
+        assertThat(clearedRequest.bodyPublisher().orElseThrow().contentLength()).isGreaterThan(clearedPayload.toJson().length());
     }
 
     private static String generateP256dh() throws Exception {
