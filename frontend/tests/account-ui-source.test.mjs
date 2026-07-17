@@ -172,10 +172,22 @@ describe("account UI source", () => {
     assert.match(globalCss, /\.saved-commute-impact-disclosure\[open\]/);
     assert.match(globalCss, /\.saved-commute-impact-disclosure\s*\{(?=[^}]*border-bottom:)(?=[^}]*border-top:)[^}]*\}/s);
     assert.match(globalCss, /\.saved-commute-impact-summary-icon\s*\{[^}]*transform:\s*translateY\(-1px\);/s);
-    assert.match(globalCss, /\.saved-commute-impact-total\s*\{(?=[^}]*color:\s*#f8fafc;)(?=[^}]*text-shadow:)[^}]*\}/s);
+    assert.match(
+      globalCss,
+      /\.saved-commute-impact-total\s*\{(?=[^}]*color:\s*#f8fafc;)(?=[^}]*font-variant-numeric:\s*tabular-nums;)(?=[^}]*margin-left:\s*2px;)(?=[^}]*min-width:\s*1\.25rem;)(?=[^}]*padding:\s*0 0\.3rem;)(?=[^}]*transform:\s*translateY\(-1px\);)(?=[^}]*width:\s*auto;)[^}]*\}/s,
+    );
     assert.match(savedCommutesSource, /saved-commute-impact-summary-action-collapsed">List View/);
     assert.match(savedCommutesSource, /saved-commute-impact-summary-action-expanded">Hide List/);
     assert.match(globalCss, /\.saved-commute-impact-summary-action\s*\{(?=[^}]*align-self:\s*center;)(?=[^}]*justify-self:\s*end;)[^}]*\}/s);
+    assert.match(
+      globalCss,
+      /@media \(max-width:\s*30rem\)\s*\{(?=[\s\S]*?\.saved-commute-impact-summary-heading strong\s*\{[^}]*white-space:\s*nowrap;)(?=[\s\S]*?\.saved-commute-impact-summary-action\s*\{[^}]*grid-row:\s*1;)(?=[\s\S]*?\.saved-commute-impact-summary-chips\s*\{[^}]*grid-column:\s*1 \/ -1;)/s,
+    );
+    assert.match(
+      globalCss,
+      /@media \(max-width:\s*23\.5rem\)\s*\{(?=[\s\S]*?\.saved-commute-impact-summary-heading strong\s*\{[^}]*font-size:\s*0\.72rem;)(?=[\s\S]*?\.saved-commute-impact-summary-action\s*\{[^}]*font-size:\s*0\.52rem;)/s,
+    );
+    assert.match(globalCss, /\.dark \.saved-commute-impact-summary-chip\.kind-delay\s*\{(?=[^}]*#FEEC41)(?=[^}]*rgba\(254, 236, 65, 0\.14\))[^}]*\}/s);
     assert.match(savedCommutesSource, /selectedLeg\.impact\.matchedImpacts\.length === 0 \? \(/);
   });
 
