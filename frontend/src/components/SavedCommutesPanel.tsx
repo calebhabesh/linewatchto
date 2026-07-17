@@ -708,6 +708,7 @@ export function SavedCommutesPanel({
   const [sortBy, setSortBy] = useState<SavedCommuteSort>("impact");
   const [sortDropdownOpen, setSortDropdownOpen] = useState(false);
   const sortDropdownRef = useRef<HTMLDivElement>(null);
+  const deleteConfirmationRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -728,6 +729,37 @@ export function SavedCommutesPanel({
     }, 3000);
     return () => clearTimeout(timer);
   }, [successMessage]);
+
+  useEffect(() => {
+    if (!deletingCommuteId || !window.matchMedia("(max-width: 767px)").matches) return;
+
+    const frame = window.requestAnimationFrame(() => {
+      const confirmation = deleteConfirmationRef.current;
+      if (!confirmation) return;
+
+      const confirmationRect = confirmation.getBoundingClientRect();
+      const scrollContainer = confirmation.closest<HTMLElement>(".commute-grid");
+      const scrollRect = scrollContainer?.getBoundingClientRect();
+      const viewportTop = window.visualViewport?.offsetTop ?? 0;
+      const viewportBottom = viewportTop + (window.visualViewport?.height ?? window.innerHeight);
+      const visibleTop = Math.max(viewportTop, scrollRect?.top ?? viewportTop);
+      const visibleBottom = Math.min(viewportBottom, scrollRect?.bottom ?? viewportBottom);
+      const revealInset = 12;
+      const bottomOverflow = confirmationRect.bottom + revealInset - visibleBottom;
+      const topOverflow = visibleTop + revealInset - confirmationRect.top;
+
+      if (bottomOverflow <= 0 && topOverflow <= 0) return;
+
+      const behavior = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth";
+      const top = bottomOverflow > 0 ? bottomOverflow : -topOverflow;
+      (scrollContainer ?? window).scrollBy({
+        behavior,
+        top,
+      });
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, [deletingCommuteId]);
 
   const stationById = useMemo(() => {
     return new Map(stationSummaries.map((station) => [station.id, station]));
@@ -1432,7 +1464,7 @@ export function SavedCommutesPanel({
                           {viewingPath ? "Viewing path" : "View path on map"}
                         </button>
                         {deletingCommuteId === commute.id ? (
-                          <div className="commute-route-delete-confirmation">
+                          <div ref={deleteConfirmationRef} className="commute-route-delete-confirmation">
                             <span className="commute-route-delete-confirmation-prompt text-[10px] font-bold text-red-600 dark:text-red-400 uppercase tracking-wider mr-1">Are you sure?</span>
                             <button
                               type="button"

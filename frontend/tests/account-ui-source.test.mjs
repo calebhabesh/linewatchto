@@ -127,6 +127,13 @@ describe("account UI source", () => {
       /@media \(max-width:\s*30rem\)\s*\{(?=[\s\S]*?\.commute-route-actions\s*\{[^}]*gap:\s*0\.25rem;)(?=[\s\S]*?\.commute-route-actions \.commute-route-stop-toggle\s*\{[^}]*font-size:\s*0\.64rem;)(?=[\s\S]*?\.saved-commute-map-action,\s*\.commute-route-actions \.commute-route-map-button\s*\{[^}]*font-size:\s*0\.64rem;)/s,
     );
     assert.match(globalCss, /\.commute-route-delete-confirmation-prompt\s*\{(?=[^}]*left:\s*2px;)(?=[^}]*position:\s*relative;)[^}]*\}/s);
+    assert.match(savedCommutesSource, /const deleteConfirmationRef = useRef<HTMLDivElement>\(null\)/);
+    assert.match(savedCommutesSource, /window\.matchMedia\("\(max-width: 767px\)"\)\.matches/);
+    assert.match(savedCommutesSource, /confirmation\.closest<HTMLElement>\("\.commute-grid"\)/);
+    assert.match(savedCommutesSource, /const revealInset = 12/);
+    assert.match(savedCommutesSource, /\(scrollContainer \?\? window\)\.scrollBy\(\{/);
+    assert.match(savedCommutesSource, /prefers-reduced-motion: reduce/);
+    assert.match(savedCommutesSource, /ref=\{deleteConfirmationRef\}/);
     assert.match(
       globalCss,
       /\.saved-commute-map-action\s*\{[^}]*background:[^;]+;[^}]*border-color:[^;]+;[^}]*box-shadow:[^;]+;[^}]*color:[^;]+;[^}]*\}/s,
