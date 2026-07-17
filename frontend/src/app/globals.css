@@ -6576,7 +6576,9 @@ button {
 }
 
 .commute-route-actions .commute-route-stop-toggle {
+  gap: 0.45rem;
   justify-content: flex-start;
+  letter-spacing: 0.025em;
   padding-left: 0;
 }
 
@@ -7400,11 +7402,27 @@ button {
 .commute-route-delete-confirmation {
   align-items: center;
   display: flex;
-  flex-basis: 100%;
   gap: 0.25rem;
   justify-content: center;
-  margin-top: 0.25rem;
-  width: 100%;
+  margin-left: auto;
+}
+
+.commute-route-delete-confirmation .commute-route-delete-confirm-button {
+  margin-left: 0 !important;
+}
+
+@media (max-width: 30rem) {
+  .commute-route-delete-confirmation {
+    flex-basis: 100%;
+    justify-content: flex-start;
+    margin-left: 0;
+    margin-top: 0.25rem;
+    width: 100%;
+  }
+
+  .commute-route-delete-confirmation .commute-route-delete-confirm-button {
+    margin-left: auto !important;
+  }
 }
 
 .commute-route-delete-confirmation-prompt {

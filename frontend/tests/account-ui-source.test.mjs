@@ -105,7 +105,7 @@ describe("account UI source", () => {
     assert.match(savedCommutesSource, /commute-route-stop-list/);
     assert.match(
       globalCss,
-      /\.commute-route-actions \.commute-route-stop-toggle\s*\{(?=[^}]*justify-content:\s*flex-start;)(?=[^}]*padding-left:\s*0;)[^}]*\}/s,
+      /\.commute-route-actions \.commute-route-stop-toggle\s*\{(?=[^}]*gap:\s*0\.45rem;)(?=[^}]*justify-content:\s*flex-start;)(?=[^}]*letter-spacing:\s*0\.025em;)(?=[^}]*padding-left:\s*0;)[^}]*\}/s,
     );
     assert.match(globalCss, /\.commute-route-stop-toggle > svg\s*\{(?=[^}]*left:\s*-2px;)(?=[^}]*position:\s*relative;)[^}]*\}/s);
     assert.match(savedCommutesSource, /selectedLeg\.path\.stationIds/);
@@ -116,7 +116,11 @@ describe("account UI source", () => {
     assert.match(savedCommutesSource, /aria-label=\{`Delete saved commute \$\{commute\.label\}`\}/);
     assert.match(
       globalCss,
-      /\.commute-route-delete-confirmation\s*\{(?=[^}]*flex-basis:\s*100%;)(?=[^}]*justify-content:\s*center;)(?=[^}]*width:\s*100%;)[^}]*\}/s,
+      /\.commute-route-delete-confirmation\s*\{(?=[^}]*justify-content:\s*center;)(?=[^}]*margin-left:\s*auto;)[^}]*\}/s,
+    );
+    assert.match(
+      globalCss,
+      /@media \(max-width:\s*30rem\)\s*\{\s*\.commute-route-delete-confirmation\s*\{(?=[^}]*flex-basis:\s*100%;)(?=[^}]*justify-content:\s*flex-start;)(?=[^}]*width:\s*100%;)[^}]*\}\s*\.commute-route-delete-confirmation \.commute-route-delete-confirm-button\s*\{[^}]*margin-left:\s*auto !important;/s,
     );
     assert.match(globalCss, /\.commute-route-delete-confirmation-prompt\s*\{(?=[^}]*left:\s*2px;)(?=[^}]*position:\s*relative;)[^}]*\}/s);
     assert.match(
