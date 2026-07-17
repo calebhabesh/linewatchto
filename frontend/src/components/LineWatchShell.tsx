@@ -1883,6 +1883,7 @@ export function LineWatchShell({
   const rotatedMapSelectionHudClassName = [
     "rotated-map-selection-hud",
     selectedStationId ? "rotated-map-selection-hud-station-selection" : "",
+    selection || overlapSelection ? "rotated-map-selection-hud-impact-selection" : "",
   ].filter(Boolean).join(" ");
 
   useEffect(() => {
@@ -2626,7 +2627,7 @@ export function LineWatchShell({
         />
       )}
 
-      {!showClosedScreen && (
+      {!showClosedScreen && !rotatedMapMode && (
         <button
           type="button"
           onClick={handleToggleEstimatedTrains}

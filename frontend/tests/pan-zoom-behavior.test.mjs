@@ -168,13 +168,16 @@ describe("pan zoom behavior guardrails", () => {
     assert.match(hookSource, /viewportOrientation/);
   });
 
-  it("biases rotated station focus away from the station preview card", () => {
+  it("biases rotated station and impact focus away from their preview cards", () => {
     assert.match(hookSource, /type ZoomToPointOptions/);
     assert.match(hookSource, /viewportFocusRatio/);
     assert.match(hookSource, /focusX = width \* \(options\?\.viewportFocusRatio\?\.x \?\? 0\.5\)/);
     assert.match(hookSource, /focusY = height \* \(options\?\.viewportFocusRatio\?\.y \?\? 0\.5\)/);
-    assert.match(mapSource, /const rotatedStationFocusRatio/);
+    assert.match(mapSource, /const rotatedPreviewFocusRatio/);
     assert.match(mapSource, /viewportOrientation === "rotated-landscape"/);
-    assert.match(mapSource, /viewportFocusRatio: rotatedStationFocusRatio/);
+    assert.equal(
+      Array.from(mapSource.matchAll(/viewportFocusRatio: rotatedPreviewFocusRatio/g)).length,
+      3,
+    );
   });
 });

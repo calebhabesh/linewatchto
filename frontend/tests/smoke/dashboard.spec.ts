@@ -561,6 +561,7 @@ test("mobile rotated map mode keeps station and impact selections in the rotated
   await expect(shell).toHaveClass(/mobile-map-rotated/);
   await expect(page.getByRole("navigation", { name: "Primary mobile navigation" })).toHaveCount(0);
   await expect(page.locator(".mobile-status-peek")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Toggle live train markers" })).toHaveCount(0);
 
   const mainDimensions = await page.locator(".linewatch-shell > main").evaluate((element) => ({
     clientWidth: element.clientWidth,
@@ -575,6 +576,7 @@ test("mobile rotated map mode keeps station and impact selections in the rotated
   await expect(page.locator('[data-map-highlight-id="stub-delay-line-4"]')).toBeAttached();
   await expect(page.locator("[data-mobile-impact-inspector]")).toHaveCount(0);
   await expect(page.locator("[data-rotated-map-selection-card]")).toBeVisible();
+  await expect(page.locator(".rotated-map-selection-hud")).toHaveClass(/rotated-map-selection-hud-impact-selection/);
   await expect(page.locator("[data-rotated-map-selection-card]")).toContainText("Selected Service Impact");
   await expect(page.locator("[data-rotated-map-selection-card]")).toContainText("Sheppard-Yonge");
 
@@ -588,6 +590,7 @@ test("mobile rotated map mode keeps station and impact selections in the rotated
   await page.getByRole("button", { name: "Rotate map" }).click();
   await page.getByRole("button", { name: "Stub Station station details" }).click();
   await expect(page.locator("[data-rotated-map-selection-card]")).toBeVisible();
+  await expect(page.locator(".rotated-map-selection-hud")).toHaveClass(/rotated-map-selection-hud-station-selection/);
   await expect(page.locator("[data-rotated-map-selection-card]")).toContainText("Station");
   await expect(page.locator("[data-rotated-map-selection-card]")).toContainText("Stub Station");
   await expect(page.getByRole("complementary", { name: "Stub Station station details" })).toHaveCount(0);

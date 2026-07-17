@@ -7423,6 +7423,7 @@ button {
     padding-right: 0.3rem;
   }
 
+  .saved-commute-map-action,
   .commute-route-actions .commute-route-map-button {
     font-size: 0.64rem;
     gap: 0.25rem;
@@ -11402,7 +11403,8 @@ button {
     z-index: 79;
   }
 
-  .linewatch-shell.mobile-map-rotated .rotated-map-selection-hud.rotated-map-selection-hud-station-selection {
+  .linewatch-shell.mobile-map-rotated .rotated-map-selection-hud.rotated-map-selection-hud-station-selection,
+  .linewatch-shell.mobile-map-rotated .rotated-map-selection-hud.rotated-map-selection-hud-impact-selection {
     bottom: max(10px, var(--mobile-safe-bottom));
     top: auto;
   }

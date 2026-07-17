@@ -100,10 +100,14 @@ describe("mobile rotated map mode", () => {
   it("keeps rotated controls pinned while docking station previews below the map focus", () => {
     assert.match(shellSource, /rotatedMapSelectionHudClassName/);
     assert.match(shellSource, /rotated-map-selection-hud-station-selection/);
+    assert.match(shellSource, /rotated-map-selection-hud-impact-selection/);
     assert.match(shellSource, /className="rotated-map-hud"/);
     assert.match(shellSource, /className=\{rotatedMapSelectionHudClassName\}/);
     assert.match(globalCss, /\.linewatch-shell\.mobile-map-rotated \.rotated-map-hud \{[\s\S]*top: max\(10px, var\(--mobile-safe-top\)\);/);
-    assert.match(globalCss, /\.linewatch-shell\.mobile-map-rotated \.rotated-map-selection-hud\.rotated-map-selection-hud-station-selection \{/);
+    assert.match(
+      globalCss,
+      /\.linewatch-shell\.mobile-map-rotated \.rotated-map-selection-hud\.rotated-map-selection-hud-station-selection,\s*\.linewatch-shell\.mobile-map-rotated \.rotated-map-selection-hud\.rotated-map-selection-hud-impact-selection \{/,
+    );
     assert.match(globalCss, /bottom: max\(10px, var\(--mobile-safe-bottom\)\);/);
     assert.match(globalCss, /top: auto;/);
     assert.doesNotMatch(globalCss, /\.rotated-map-hud\.rotated-map-hud-station-selection/);
@@ -149,6 +153,10 @@ describe("mobile rotated map mode", () => {
     assert.match(shellSource, /mapPresentationMode === "standard"/);
     assert.match(globalCss, /\.linewatch-shell\.mobile-map-rotated \.station-detail-panel/);
     assert.match(globalCss, /\.linewatch-shell\.mobile-map-rotated \.mobile-impact-inspector/);
+  });
+
+  it("hides the portrait train toggle while rotated mode is active", () => {
+    assert.match(shellSource, /!showClosedScreen && !rotatedMapMode && \(\s*<button[\s\S]*?className=\{`mobile-train-toggle/);
   });
 
   it("passes viewport orientation into the pan zoom hook without rotating map data", () => {

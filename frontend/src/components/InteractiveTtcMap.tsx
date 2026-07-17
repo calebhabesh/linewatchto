@@ -505,7 +505,7 @@ function InteractiveTtcMapComponent({
       return;
     }
 
-    const rotatedStationFocusRatio =
+    const rotatedPreviewFocusRatio =
       viewportOrientation === "rotated-landscape" ? { x: 0.5, y: 0.34 } : undefined;
 
     if (selection) {
@@ -531,7 +531,9 @@ function InteractiveTtcMapComponent({
             const scaleFactor = 4500 / 8250;
             const isMobile = typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches;
             const targetScale = isMobile ? 3.8 : 1.8;
-            zoomToPoint((sumX / count) * scaleFactor, (sumY / count) * scaleFactor, targetScale);
+            zoomToPoint((sumX / count) * scaleFactor, (sumY / count) * scaleFactor, targetScale, {
+              viewportFocusRatio: rotatedPreviewFocusRatio,
+            });
             lastFocusedTargetKeyRef.current = focusTargetKey;
             lastFocusLayoutSignalRef.current = currentLayoutSignal;
           }
@@ -541,7 +543,9 @@ function InteractiveTtcMapComponent({
         if (center) {
           const isMobile = typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches;
           const targetScale = isMobile ? 3.8 : 1.8;
-          zoomToPoint(center.x, center.y, targetScale);
+          zoomToPoint(center.x, center.y, targetScale, {
+            viewportFocusRatio: rotatedPreviewFocusRatio,
+          });
           lastFocusedTargetKeyRef.current = focusTargetKey;
           lastFocusLayoutSignalRef.current = currentLayoutSignal;
         }
@@ -555,7 +559,7 @@ function InteractiveTtcMapComponent({
         const isMobile = typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches;
         const targetScale = isMobile ? 3.8 : 1.8;
         zoomToPoint(pt.x * scaleFactor, pt.y * scaleFactor, targetScale, {
-          viewportFocusRatio: rotatedStationFocusRatio,
+          viewportFocusRatio: rotatedPreviewFocusRatio,
         });
         lastFocusedTargetKeyRef.current = focusTargetKey;
         lastFocusLayoutSignalRef.current = currentLayoutSignal;
