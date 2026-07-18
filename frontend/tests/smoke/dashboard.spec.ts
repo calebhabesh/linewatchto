@@ -734,14 +734,37 @@ test("shows a compact map hint when multiple alert types overlap", async ({ page
   await expect(overlapMarker).toHaveAttribute("data-overlap-collision-avoided", "true");
   await expect(overlapMarker.locator('[data-overlap-kind="suspension"]')).toBeVisible();
   await expect(overlapMarker.locator('[data-overlap-kind="planned-closure"]')).toBeVisible();
+  const overlapMarkerBox = await overlapMarker.boundingBox();
 
   await overlapMarker.dispatchEvent("click");
-  const overlapChooser = overlapMarker.locator("[data-overlap-chooser]");
+  const overlapChooser = page.locator("[data-overlap-chooser]");
   await expect.poll(async () => overlapChooser.evaluate((element) =>
     element.getAnimations().some((animation) => animation.playState === "running"),
   ), { timeout: 500 }).toBe(true);
   await expect(overlapChooser).toBeVisible();
   await expect(overlapChooser.getByText("Choose Alert", { exact: true })).toBeVisible();
+  await expect.poll(async () => overlapChooser.evaluate((element) =>
+    element.getAnimations().every((animation) => animation.playState !== "running"),
+  )).toBe(true);
+  const chooserWidthAtDefaultZoom = (await overlapChooser.boundingBox())?.width ?? 0;
+  if (isMobile) {
+    expect(chooserWidthAtDefaultZoom).toBeGreaterThanOrEqual(300);
+    expect(chooserWidthAtDefaultZoom).toBeLessThanOrEqual(325);
+  } else {
+    expect(chooserWidthAtDefaultZoom).toBeGreaterThanOrEqual(350);
+  }
+  const chooserBox = await overlapChooser.boundingBox();
+  expect(chooserBox && overlapMarkerBox && (
+    chooserBox.x + chooserBox.width <= overlapMarkerBox.x
+    || chooserBox.x >= overlapMarkerBox.x + overlapMarkerBox.width
+    || chooserBox.y + chooserBox.height <= overlapMarkerBox.y
+    || chooserBox.y >= overlapMarkerBox.y + overlapMarkerBox.height
+  )).toBe(true);
+  if (!isMobile) {
+    await page.getByLabel("Zoom level slider").fill("2");
+    await expect.poll(async () => Math.abs(((await overlapChooser.boundingBox())?.width ?? 0) - chooserWidthAtDefaultZoom))
+      .toBeLessThan(2);
+  }
   const chooserCount = overlapChooser.locator(".overlap-chooser-header-count");
   await expect(chooserCount).toHaveText("3");
   await expect.poll(async () => chooserCount.evaluate((element) => {
@@ -755,12 +778,12 @@ test("shows a compact map hint when multiple alert types overlap", async ({ page
   })).toEqual({
     backgroundColor: "rgb(239, 68, 68)",
     borderRadius: "50%",
-    height: "28px",
-    width: "28px",
+    height: isMobile ? "26px" : "28px",
+    width: isMobile ? "26px" : "28px",
   });
   await expect(overlapChooser.getByText("Suspension", { exact: true })).toBeVisible();
   await expect(overlapChooser.getByText("Active Closure", { exact: true })).toBeVisible();
-  await expect(overlapChooser.getByText("Upcoming Closure", { exact: true })).toBeVisible();
+  await expect(overlapChooser.getByText("Planned Closure", { exact: true })).toBeVisible();
   await expect(overlapChooser.getByText("Line 1: Stub Station to Stub Terminal (Northbound & Southbound)")).toHaveCount(3);
   await expect(overlapChooser.locator(".overlap-chooser-choice-action")).toHaveCount(0);
   await expect(overlapChooser.locator('[data-overlap-choice-kind="planned-closure"]').first()).toHaveCSS("border-left-width", "2px");
@@ -840,7 +863,7 @@ test("uses map overlap metadata for active-alert and sibling submenu overlap ref
   const overlapMarker = page.locator('[data-overlap-segment-id="stub-line-1-segment"]');
   await expect(overlapMarker).toBeVisible();
   await overlapMarker.dispatchEvent("click");
-  const overlapChooser = overlapMarker.locator("[data-overlap-chooser]");
+  const overlapChooser = page.locator("[data-overlap-chooser]");
   await expect(overlapChooser).toBeVisible();
   await overlapChooser.locator('[data-overlap-choice-kind="suspension"]').click();
 

@@ -2153,6 +2153,16 @@ button {
   animation: none !important;
 }
 
+.asset-alert-path-hover-boundary {
+  fill: none;
+  opacity: 0;
+  pointer-events: none;
+  stroke: rgba(248, 250, 252, 0.96);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 120;
+}
+
 .overlay-segment-group:has(.map-segment-hit-target:hover) .interactive-glow,
 .overlay-segment-group:has(.map-segment-hit-target:focus-visible) .interactive-glow,
 .overlay-segment-group:has(.map-segment-hit-target:active) .interactive-glow,
@@ -2278,6 +2288,81 @@ button {
   opacity: 0.65;
 }
 
+@media (hover: hover) and (pointer: fine) {
+  .asset-alert-path-hover-boundary {
+    filter: drop-shadow(0 0 2px rgba(15, 23, 42, 0.9));
+    transition: opacity 180ms ease-out;
+  }
+
+  .overlay-segment-group:has(.map-segment-hit-target:hover) .asset-alert-path-hover-boundary,
+  .overlay-segment-group:has(.map-segment-hit-target:focus-visible) .asset-alert-path-hover-boundary {
+    opacity: 0.94;
+  }
+
+  .asset-alert-path-glow.interactive-glow.planned-preview {
+    display: block;
+    filter: blur(10px);
+    opacity: 0;
+    stroke: var(--planned);
+    stroke-width: 190;
+    transition:
+      filter 300ms ease-out,
+      opacity 240ms ease-out;
+  }
+
+  .overlay-segment-group:has(.map-segment-hit-target:hover) .asset-alert-path-glow.interactive-glow.planned-preview,
+  .overlay-segment-group:has(.map-segment-hit-target:focus-visible) .asset-alert-path-glow.interactive-glow.planned-preview {
+    filter: blur(18px);
+    opacity: 0.55;
+  }
+
+  .asset-alert-path.planned-preview {
+    transition: opacity 240ms ease-out;
+  }
+
+  .asset-alert-path-glow.hover-priority-glow {
+    animation: hover-priority-glow-in 240ms ease-out both !important;
+    display: block;
+    filter: blur(18px);
+    opacity: 0.55;
+    stroke-width: 190;
+  }
+
+  .hover-priority-boundary {
+    animation: hover-priority-boundary-in 180ms ease-out both;
+    opacity: 0.94;
+  }
+}
+
+@keyframes hover-priority-glow-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 0.55;
+  }
+}
+
+@keyframes hover-priority-boundary-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 0.94;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .asset-alert-path-hover-boundary,
+  .asset-alert-path-glow.interactive-glow.planned-preview,
+  .asset-alert-path.planned-preview,
+  .hover-priority-glow,
+  .hover-priority-boundary {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
 [data-selected-commute-impact-overlay] .asset-alert-path-glow.interactive-glow.planned-preview.selected {
   display: block;
   stroke: #f8fafc;
@@ -2398,6 +2483,11 @@ button {
   pointer-events: auto;
   transition-delay: 0s;
   visibility: visible;
+}
+
+.overlap-chooser-portal {
+  position: absolute;
+  z-index: 45;
 }
 
 .overlap-chooser-surface {
@@ -2528,10 +2618,12 @@ button {
 .overlap-chooser-list {
   display: grid;
   gap: 6px;
+  margin-right: -6px;
   min-height: 0;
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
+  padding-right: 6px;
 }
 
 .overlap-chooser-choice {
@@ -2628,6 +2720,68 @@ button {
 
 .dark .overlap-chooser-choice-copy > span:last-child {
   color: #cbd5e1;
+}
+
+@media (max-width: 640px) {
+  .overlap-chooser-object.open .overlap-chooser-surface {
+    animation: none;
+  }
+
+  .overlap-chooser-surface {
+    border-radius: 14px;
+    padding: 10px;
+  }
+
+  .overlap-chooser-header {
+    gap: 10px;
+    padding: 0 0 8px 1px;
+  }
+
+  .overlap-chooser-header-title {
+    gap: 8px;
+  }
+
+  .overlap-chooser-header-count {
+    flex-basis: 26px;
+    font-size: 13px;
+    height: 26px;
+    width: 26px;
+  }
+
+  .overlap-chooser-header strong {
+    font-size: 18px;
+  }
+
+  .overlap-chooser-close {
+    flex-basis: 36px;
+    height: 36px;
+    width: 36px;
+  }
+
+  .overlap-chooser-list {
+    gap: 5px;
+  }
+
+  .overlap-chooser-choice {
+    gap: 9px;
+    grid-template-columns: 40px minmax(0, 1fr);
+    min-height: 58px;
+    padding: 7px 9px;
+  }
+
+  .overlap-chooser-choice-icon {
+    height: 38px;
+    width: 38px;
+  }
+
+  .overlap-chooser-choice-copy strong {
+    font-size: 15px;
+  }
+
+  .overlap-chooser-choice-copy > span:last-child {
+    font-size: 13px;
+    line-height: 1.2;
+  }
 }
 
 .motion-paused .overlap-chooser-object,

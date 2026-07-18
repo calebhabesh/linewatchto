@@ -240,6 +240,7 @@ function InteractiveTtcMapComponent({
   const [svgParts, setSvgParts] = useState<{ part1: string; part2: string } | null>(null);
   const [loadState, setLoadState] = useState<"loading" | "ready" | "error">("loading");
   const [hoveredStationId, setHoveredStationId] = useState<string | null>(null);
+  const [hoveredOverlayHighlight, setHoveredOverlayHighlight] = useState<HoveredOverlayHighlight | null>(null);
   const [expandedOverlapBadgeId, setExpandedOverlapBadgeId] = useState<string | null>(null);
 
   const mapSvgRef = useRef<SVGSVGElement>(null);
@@ -297,6 +298,19 @@ function InteractiveTtcMapComponent({
     viewportOrientation,
     disableProgrammaticMotion: mobilePerformanceMode,
   });
+  const [mapViewportSize, setMapViewportSize] = useState({ width: 392, height: 720 });
+
+  useEffect(() => {
+    const viewport = containerRef.current;
+    if (!viewport) return;
+    const updateSize = () => {
+      setMapViewportSize({ width: viewport.clientWidth, height: viewport.clientHeight });
+    };
+    updateSize();
+    const observer = new ResizeObserver(updateSize);
+    observer.observe(viewport);
+    return () => observer.disconnect();
+  }, [containerRef]);
 
   // Load SVG
   useEffect(() => {
@@ -699,6 +713,26 @@ function InteractiveTtcMapComponent({
       .filter((layer): layer is RenderedPlannedPreviewLayer => Boolean(layer));
   }, [plannedClosures, renderedOverlaySegments]);
 
+  const protectedBoxesByImpact = useMemo(() => {
+    const boxes = new Map<string, SvgBounds[]>();
+    const addBoxes = (key: string, nextBoxes: SvgBounds[]) => {
+      boxes.set(key, [...(boxes.get(key) ?? []), ...nextBoxes]);
+    };
+    for (const layer of renderedImpactLayers) {
+      addBoxes(
+        `${layer.impact.kind}:${layer.impact.cardId}`,
+        pathCorridorCollisionBoxes(layer.segment.pathD, OVERLAY_CORRIDOR_COLLISION_RADIUS),
+      );
+    }
+    for (const layer of plannedPreviewLayers) {
+      addBoxes(
+        `planned-closure:${layer.closure.id}`,
+        pathCorridorCollisionBoxes(layer.segment.pathD, OVERLAY_CORRIDOR_COLLISION_RADIUS),
+      );
+    }
+    return boxes;
+  }, [plannedPreviewLayers, renderedImpactLayers]);
+
   const retainedPlannedPreviewLayers = useRetainedMapLayers(
     plannedPreviewLayers,
     useCallback(({ segment, closure }) => `${segment.id}:${closure.id}`, []),
@@ -896,10 +930,13 @@ function InteractiveTtcMapComponent({
           impacts: group.impacts,
           position,
           size,
+          protectedBoxes: group.impacts.flatMap((impact) =>
+            protectedBoxesByImpact.get(`${impact.kind}:${impact.cardId}`) ?? [],
+          ),
         };
       })
       .filter((badge): badge is OverlapBadgeSegment => Boolean(badge));
-  }, [mapCollisionBoxes, overlayCollisionBoxes, segmentOverlapBadgeGroups]);
+  }, [mapCollisionBoxes, overlayCollisionBoxes, protectedBoxesByImpact, segmentOverlapBadgeGroups]);
 
   const stationOverlapBadges = useMemo<OverlapBadgeSegment[]>(() => {
     const occupiedBoxes = [
@@ -925,6 +962,9 @@ function InteractiveTtcMapComponent({
           impacts: group.impacts,
           position,
           size,
+          protectedBoxes: group.impacts.flatMap((impact) =>
+            protectedBoxesByImpact.get(`${impact.kind}:${impact.cardId}`) ?? [],
+          ),
         };
       })
       .filter((badge): badge is OverlapBadgeSegment => Boolean(badge));
@@ -932,6 +972,7 @@ function InteractiveTtcMapComponent({
     mapCollisionBoxes,
     overlayCollisionBoxes,
     overlapBadgeSegments,
+    protectedBoxesByImpact,
     stationBySummaryId,
     stationOverlapBadgeGroups,
     stationPointFor,
@@ -946,7 +987,7 @@ function InteractiveTtcMapComponent({
     ];
 
     return badges.map((badge) => {
-      const chooserSize = overlapChooserSize(badge.impacts.length);
+      const chooserSize = overlapChooserSize(badge.impacts.length, mapViewportSize.width);
       const chooserPosition = chooseOverlapChooserPosition({
         anchor: badge.position,
         badgeSize: badge.size,
@@ -956,7 +997,11 @@ function InteractiveTtcMapComponent({
       });
       return { ...badge, chooserPosition, chooserSize };
     });
-  }, [mapCollisionBoxes, overlapBadgeSegments, overlayCollisionBoxes, stationOverlapBadges]);
+  }, [mapCollisionBoxes, mapViewportSize.width, overlapBadgeSegments, overlayCollisionBoxes, stationOverlapBadges]);
+  const expandedOverlapBadge = overlapBadges.find((badge) => badge.segmentId === expandedOverlapBadgeId) ?? null;
+  const expandedOverlapChooserLayout = expandedOverlapBadge
+    ? overlapChooserScreenLayout(expandedOverlapBadge, transform, mapViewportSize)
+    : null;
 
 
   return (
@@ -1181,6 +1226,7 @@ function InteractiveTtcMapComponent({
                         shouldSuppressMapClick={shouldSuppressMapClick}
                         reducedMotion={reducedMotion}
                         exiting={exiting}
+                        onHoverHighlightChange={setHoveredOverlayHighlight}
                       />
                     );
                   })}
@@ -1204,6 +1250,7 @@ function InteractiveTtcMapComponent({
                         shouldSuppressMapClick={shouldSuppressMapClick}
                         reducedMotion={reducedMotion}
                         exiting={exiting}
+                        onHoverHighlightChange={setHoveredOverlayHighlight}
                       />
                     );
                   })}
@@ -1233,6 +1280,7 @@ function InteractiveTtcMapComponent({
                           shouldSuppressMapClick={shouldSuppressMapClick}
                           reducedMotion={reducedMotion}
                           idSuffix="-commute-focus"
+                          onHoverHighlightChange={setHoveredOverlayHighlight}
                         />
                       </g>
                     ) : (
@@ -1241,6 +1289,50 @@ function InteractiveTtcMapComponent({
                         fast={isSelectionFastFlashing}
                       />
                     )
+                  ) : null}
+                </g>
+
+                <g aria-hidden="true" className="hover-priority-overlay">
+                  {hoveredOverlayHighlight ? (
+                    <g key={hoveredOverlayHighlight.key}>
+                      <defs>
+                        <mask
+                          id="hover-priority-boundary-ring-mask"
+                          maskUnits="userSpaceOnUse"
+                          x="0"
+                          y="0"
+                          width="8250"
+                          height="4000"
+                        >
+                          <rect width="8250" height="4000" fill="black" />
+                          <path
+                            d={hoveredOverlayHighlight.pathD}
+                            fill="none"
+                            stroke="white"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth="120"
+                          />
+                          <path
+                            d={hoveredOverlayHighlight.pathD}
+                            fill="none"
+                            stroke="black"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth="102"
+                          />
+                        </mask>
+                      </defs>
+                      <path
+                        className={`asset-alert-path-glow hover-priority-glow ${hoveredOverlayHighlight.visualState}`}
+                        d={hoveredOverlayHighlight.pathD}
+                      />
+                      <path
+                        className={`asset-alert-path-hover-boundary hover-priority-boundary ${hoveredOverlayHighlight.visualState}`}
+                        d={hoveredOverlayHighlight.pathD}
+                        mask="url(#hover-priority-boundary-ring-mask)"
+                      />
+                    </g>
                   ) : null}
                 </g>
 
@@ -1264,11 +1356,8 @@ function InteractiveTtcMapComponent({
                         key={badge.segmentId}
                         badge={badge}
                         selection={selection}
-                        onSelectImpact={onSelectImpact}
                         isOpen={false}
                         onToggle={() => setExpandedOverlapBadgeId(badge.segmentId)}
-                        onClose={() => setExpandedOverlapBadgeId(null)}
-                        reducedMotion={reducedMotion}
                         shouldSuppressMapClick={shouldSuppressMapClick}
                       />
                     ))}
@@ -1279,11 +1368,8 @@ function InteractiveTtcMapComponent({
                         key={badge.segmentId}
                         badge={badge}
                         selection={selection}
-                        onSelectImpact={onSelectImpact}
                         isOpen
                         onToggle={() => setExpandedOverlapBadgeId(null)}
-                        onClose={() => setExpandedOverlapBadgeId(null)}
-                        reducedMotion={reducedMotion}
                         shouldSuppressMapClick={shouldSuppressMapClick}
                       />
                     ))}
@@ -1528,6 +1614,25 @@ function InteractiveTtcMapComponent({
             </svg>
           </div>
         )}
+        {expandedOverlapBadge && expandedOverlapChooserLayout ? (
+          <OverlapChooser
+            badge={expandedOverlapBadge}
+            layout={expandedOverlapChooserLayout}
+            onSelectImpact={onSelectImpact}
+            onClose={(restoreFocus) => {
+              setExpandedOverlapBadgeId(null);
+              if (!restoreFocus) return;
+              window.requestAnimationFrame(() => {
+                const escapedId = CSS.escape(expandedOverlapBadge.segmentId);
+                mapRootRef.current
+                  ?.querySelector<SVGGElement>(`[data-overlap-segment-id="${escapedId}"] .overlap-indicator`)
+                  ?.focus();
+              });
+            }}
+            reducedMotion={reducedMotion}
+            compactMotion={mapViewportSize.width <= OVERLAP_CHOOSER_MOBILE_BREAKPOINT}
+          />
+        ) : null}
       </div>
       {commutePathPreview ? (
         <div className="commute-path-preview-chip" role="status" aria-live="polite">
@@ -1590,6 +1695,7 @@ type OverlapBadgeSegment = {
   impacts: MapImpact[];
   position: OverlapBadgePosition;
   size: OverlapBadgeSize;
+  protectedBoxes: SvgBounds[];
 };
 
 type OverlapBadgeWithChooser = OverlapBadgeSegment & {
@@ -1610,6 +1716,12 @@ type OverlayVisualState =
   | "reduced-speed-zone"
   | "planned-preview";
 
+type HoveredOverlayHighlight = {
+  key: string;
+  pathD: string;
+  visualState: OverlayVisualState;
+};
+
 const MAP_VIEWBOX_BOUNDS: SvgBounds = { x: 0, y: 0, width: 8250, height: 4000 };
 const OVERLAY_CORRIDOR_COLLISION_RADIUS = 54;
 const BASE_ROUTE_COLLISION_RADIUS = 78;
@@ -1617,13 +1729,155 @@ const OVERLAP_BADGE_EDGE_GAP = 8;
 const STANDARD_MAP_COMPONENT_MAX_BOUNDS = 1200;
 const LARGE_MAP_COMPONENT_MAX_THICKNESS = 220;
 const LARGE_MAP_COMPONENT_TILE_LENGTH = 760;
-const OVERLAP_CHOOSER_WIDTH = 520;
+const MAP_SVG_TO_CSS_SCALE = 4500 / MAP_VIEWBOX_BOUNDS.width;
+const OVERLAP_CHOOSER_WIDTH = 360;
+const OVERLAP_CHOOSER_MOBILE_BREAKPOINT = 640;
+const OVERLAP_CHOOSER_MOBILE_WIDTH = 320;
+const OVERLAP_CHOOSER_OVERLAY_GAP = 44;
 
-function overlapChooserSize(impactCount: number): OverlapBadgeSize {
+function overlapChooserSize(impactCount: number, viewportWidth = OVERLAP_CHOOSER_WIDTH + 32): OverlapBadgeSize {
+  const isMobile = viewportWidth <= OVERLAP_CHOOSER_MOBILE_BREAKPOINT;
+  const maximumWidth = isMobile ? OVERLAP_CHOOSER_MOBILE_WIDTH : OVERLAP_CHOOSER_WIDTH;
+  const horizontalMargin = isMobile ? 48 : 32;
   return {
-    width: OVERLAP_CHOOSER_WIDTH,
-    height: Math.min(440, 68 + impactCount * 76),
+    width: Math.max(240, Math.min(maximumWidth, viewportWidth - horizontalMargin)),
+    height: isMobile
+      ? Math.min(380, 56 + impactCount * 64)
+      : Math.min(440, 68 + impactCount * 76),
   };
+}
+
+function clampChooserScreenCoordinate(
+  coordinate: number,
+  chooserLength: number,
+  viewportLength: number,
+  margin: number,
+): number {
+  const minimum = margin + chooserLength / 2;
+  const maximum = Math.max(minimum, viewportLength - margin - chooserLength / 2);
+  return Math.min(maximum, Math.max(minimum, coordinate));
+}
+
+type OverlapChooserScreenLayout = {
+  left: number;
+  top: number;
+  anchorOffsetX: number;
+  anchorOffsetY: number;
+};
+
+function overlapChooserScreenLayout(
+  badge: OverlapBadgeWithChooser,
+  mapTransform: { x: number; y: number; scale: number },
+  viewportSize: { width: number; height: number },
+): OverlapChooserScreenLayout {
+  const mapContentScale = mapTransform.scale * MAP_SVG_TO_CSS_SCALE;
+  const anchor = {
+    x: mapTransform.x + badge.position.x * mapContentScale,
+    y: mapTransform.y + badge.position.y * mapContentScale,
+  };
+  const proposed = {
+    x: mapTransform.x + badge.chooserPosition.x * mapContentScale,
+    y: mapTransform.y + badge.chooserPosition.y * mapContentScale,
+  };
+  const protectedBoxes = badge.protectedBoxes.map((box) => ({
+    x: mapTransform.x + box.x * mapContentScale,
+    y: mapTransform.y + box.y * mapContentScale,
+    width: box.width * mapContentScale,
+    height: box.height * mapContentScale,
+  }));
+  const protectedArea = boundsContainingBoxes(protectedBoxes) ?? {
+    x: anchor.x,
+    y: anchor.y,
+    width: 0,
+    height: 0,
+  };
+  const margin = 16;
+  const direction = {
+    x: proposed.x - anchor.x,
+    y: proposed.y - anchor.y,
+  };
+  const preferredAxis = Math.abs(direction.x) > Math.abs(direction.y) ? "horizontal" : "vertical";
+  const preferredHorizontalSign = direction.x < 0 ? -1 : 1;
+  const preferredVerticalSign = direction.y < 0 ? -1 : 1;
+  const horizontalCenter = (sign: number, gap: number) => ({
+    x: sign < 0
+      ? protectedArea.x - badge.chooserSize.width / 2 - gap
+      : protectedArea.x + protectedArea.width + badge.chooserSize.width / 2 + gap,
+    y: clampChooserScreenCoordinate(proposed.y, badge.chooserSize.height, viewportSize.height, margin),
+  });
+  const verticalCenter = (sign: number, gap: number) => ({
+    x: clampChooserScreenCoordinate(proposed.x, badge.chooserSize.width, viewportSize.width, margin),
+    y: sign < 0
+      ? protectedArea.y - badge.chooserSize.height / 2 - gap
+      : protectedArea.y + protectedArea.height + badge.chooserSize.height / 2 + gap,
+  });
+  const candidatesForGap = (gap: number) => preferredAxis === "horizontal"
+    ? [
+        horizontalCenter(preferredHorizontalSign, gap),
+        horizontalCenter(-preferredHorizontalSign, gap),
+        verticalCenter(preferredVerticalSign, gap),
+        verticalCenter(-preferredVerticalSign, gap),
+      ]
+    : [
+        verticalCenter(preferredVerticalSign, gap),
+        verticalCenter(-preferredVerticalSign, gap),
+        horizontalCenter(preferredHorizontalSign, gap),
+        horizontalCenter(-preferredHorizontalSign, gap),
+      ];
+  const preferredCandidates = candidatesForGap(OVERLAP_CHOOSER_OVERLAY_GAP);
+  const edgeCandidates = candidatesForGap(2);
+  const center = preferredCandidates.find((candidate) =>
+    chooserCenterFitsViewport(candidate, badge.chooserSize, viewportSize, margin)
+      && chooserCenterAvoidsProtectedBoxes(candidate, badge.chooserSize, protectedBoxes),
+  ) ?? edgeCandidates.find((candidate) =>
+    chooserCenterFitsViewport(candidate, badge.chooserSize, viewportSize, 0)
+      && chooserCenterAvoidsProtectedBoxes(candidate, badge.chooserSize, protectedBoxes),
+  ) ?? {
+    x: clampChooserScreenCoordinate(proposed.x, badge.chooserSize.width, viewportSize.width, margin),
+    y: clampChooserScreenCoordinate(proposed.y, badge.chooserSize.height, viewportSize.height, margin),
+  };
+
+  return {
+    left: center.x - badge.chooserSize.width / 2,
+    top: center.y - badge.chooserSize.height / 2,
+    anchorOffsetX: anchor.x - center.x,
+    anchorOffsetY: anchor.y - center.y,
+  };
+}
+
+function boundsContainingBoxes(boxes: SvgBounds[]): SvgBounds | null {
+  if (boxes.length === 0) return null;
+  const left = Math.min(...boxes.map((box) => box.x));
+  const top = Math.min(...boxes.map((box) => box.y));
+  const right = Math.max(...boxes.map((box) => box.x + box.width));
+  const bottom = Math.max(...boxes.map((box) => box.y + box.height));
+  return { x: left, y: top, width: right - left, height: bottom - top };
+}
+
+function chooserCenterAvoidsProtectedBoxes(
+  center: MapPoint,
+  chooserSize: OverlapBadgeSize,
+  protectedBoxes: SvgBounds[],
+): boolean {
+  const chooserBox = {
+    x: center.x - chooserSize.width / 2,
+    y: center.y - chooserSize.height / 2,
+    width: chooserSize.width,
+    height: chooserSize.height,
+  };
+  return protectedBoxes.every((box) => !boxesIntersect(chooserBox, box));
+}
+
+function chooserCenterFitsViewport(
+  center: MapPoint,
+  chooserSize: OverlapBadgeSize,
+  viewportSize: { width: number; height: number },
+  margin: number,
+): boolean {
+  return center.x - chooserSize.width / 2 >= margin
+    && center.x + chooserSize.width / 2 <= viewportSize.width - margin
+    && center.y - chooserSize.height / 2 >= margin
+    && center.y + chooserSize.height / 2 <= viewportSize.height - margin;
 }
 
 function overlapBadgePositionCandidates(size: OverlapBadgeSize, frame?: PathFrame | null): Array<{ dx: number; dy: number }> {
@@ -2088,9 +2342,9 @@ function overlapChooserTypeLabel(
   kind: MapImpactKind,
   details: ReturnType<typeof getSelectedImpactDetails>,
 ): string {
-  return kind === "planned-closure" && details
-    ? details.categoryLabel
-    : labelForImpactKind(kind);
+  if (kind !== "planned-closure") return labelForImpactKind(kind);
+  if (details?.categoryLabel === "Upcoming Closure") return "Planned Closure";
+  return details?.categoryLabel ?? "Planned Closure";
 }
 
 function impactLayerKey(impact: MapImpact) {
@@ -2767,30 +3021,168 @@ function AnimatedHourglassLane({
   );
 }
 
+function OverlapChooser({
+  badge,
+  layout,
+  onSelectImpact,
+  onClose,
+  reducedMotion,
+  compactMotion,
+}: {
+  badge: OverlapBadgeWithChooser;
+  layout: OverlapChooserScreenLayout;
+  onSelectImpact: (selection: ImpactSelection) => void;
+  onClose: (restoreFocus: boolean) => void;
+  reducedMotion: boolean;
+  compactMotion: boolean;
+}) {
+  const data = useDashboardData();
+  const surfaceRef = useRef<HTMLDivElement>(null);
+  const firstChoiceRef = useRef<HTMLButtonElement>(null);
+  const closingRef = useRef(false);
+  const initialAnchorOffsetRef = useRef({
+    x: layout.anchorOffsetX,
+    y: layout.anchorOffsetY,
+  });
+  const orderedImpacts = [...badge.impacts].sort(
+    (a, b) => getImpactPriority(b.kind) - getImpactPriority(a.kind),
+  );
+  const chooserId = `overlap-chooser-${badge.segmentId.replace(/[^a-zA-Z0-9_-]/g, "-")}`;
+  const stopChooserPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    event.stopPropagation();
+  };
+
+  useEffect(() => {
+    const focusFrame = window.requestAnimationFrame(() => firstChoiceRef.current?.focus({ preventScroll: true }));
+    if (reducedMotion) return;
+    const initialAnchorOffset = initialAnchorOffsetRef.current;
+    const animation = compactMotion
+      ? surfaceRef.current?.animate([
+          { opacity: 0.62, transform: "translateY(6px) scale(0.97)" },
+          { opacity: 1, transform: "translateY(0) scale(1)" },
+        ], { duration: 180, easing: "cubic-bezier(0.2, 0, 0, 1)" })
+      : surfaceRef.current?.animate([
+          {
+            borderRadius: "999px",
+            filter: "blur(8px)",
+            opacity: 0.28,
+            transform: `translate(${initialAnchorOffset.x}px, ${initialAnchorOffset.y}px) scale(0.08, 0.04)`,
+          },
+          { borderRadius: "28px", filter: "blur(1px)", opacity: 1, offset: 0.56, transform: "scale(1.04, 0.96)" },
+          { borderRadius: "14px", offset: 0.78, transform: "scale(0.975, 1.025)" },
+          { borderRadius: "16px", filter: "blur(0)", opacity: 1, transform: "scale(1, 1)" },
+        ], { duration: 650, easing: "cubic-bezier(0.16, 1, 0.3, 1)" });
+    return () => {
+      window.cancelAnimationFrame(focusFrame);
+      animation?.cancel();
+    };
+  }, [compactMotion, reducedMotion]);
+
+  const close = async (restoreFocus: boolean) => {
+    if (closingRef.current) return;
+    closingRef.current = true;
+    if (!reducedMotion) {
+      const animation = compactMotion
+        ? surfaceRef.current?.animate([
+            { opacity: 1, transform: "translateY(0) scale(1)" },
+            { opacity: 0, transform: "translateY(4px) scale(0.98)" },
+          ], { duration: 140, easing: "cubic-bezier(0.4, 0, 1, 1)", fill: "forwards" })
+        : surfaceRef.current?.animate([
+            { borderRadius: "16px", filter: "blur(0)", opacity: 1, transform: "scale(1, 1)" },
+            { borderRadius: "22px", offset: 0.32, transform: "scale(1.025, 0.96)" },
+            {
+              borderRadius: "999px",
+              filter: "blur(8px)",
+              opacity: 0,
+              transform: `translate(${layout.anchorOffsetX}px, ${layout.anchorOffsetY}px) scale(0.08, 0.04)`,
+            },
+          ], { duration: 220, easing: "cubic-bezier(0.7, 0, 0.84, 0)", fill: "forwards" });
+      try {
+        await animation?.finished;
+      } catch {
+        // A replaced animation should still close the chooser.
+      }
+    }
+    onClose(restoreFocus);
+  };
+
+  return (
+    <div
+      id={chooserId}
+      className="overlap-chooser-portal overlap-chooser-object open"
+      style={{ left: layout.left, top: layout.top, width: badge.chooserSize.width, height: badge.chooserSize.height }}
+      data-overlap-chooser-collision-avoided={badge.chooserPosition.collisionAvoided ? "true" : "false"}
+    >
+      <div
+        ref={surfaceRef}
+        className="overlap-chooser-surface"
+        data-overlap-chooser
+        role="dialog"
+        aria-label={`Choose Alert on ${badge.label}`}
+        onClick={(event) => event.stopPropagation()}
+        onPointerDown={stopChooserPointerDown}
+        onKeyDown={(event) => {
+          if (event.key !== "Escape") return;
+          event.preventDefault();
+          void close(true);
+        }}
+      >
+        <div className="overlap-chooser-header">
+          <div className="overlap-chooser-header-title">
+            <span className="overlap-chooser-header-count" aria-label={`${badge.impacts.length} overlapping alerts`}>
+              {badge.impacts.length}
+            </span>
+            <strong>Choose Alert</strong>
+          </div>
+          <button type="button" className="overlap-chooser-close" aria-label="Close alert chooser" onClick={() => void close(true)}>
+            <X size={20} aria-hidden="true" />
+          </button>
+        </div>
+        <div className="overlap-chooser-list">
+          {orderedImpacts.map((impact, index) => {
+            const details = getSelectedImpactDetails({ kind: impact.kind, id: impact.cardId }, data);
+            return (
+              <button
+                key={`${impact.kind}-${impact.cardId}`}
+                ref={index === 0 ? firstChoiceRef : undefined}
+                type="button"
+                className={`overlap-chooser-choice ${impact.kind}`}
+                data-overlap-choice-kind={impact.kind}
+                data-overlap-choice-id={impact.cardId}
+                onClick={() => {
+                  onClose(false);
+                  onSelectImpact({ kind: impact.kind, id: impact.cardId });
+                }}
+              >
+                <span className={`overlap-chooser-choice-icon ${impact.kind}`}>
+                  <ImpactTypeIcon kind={impact.kind} size={26} />
+                </span>
+                <span className="overlap-chooser-choice-copy">
+                  <strong>{overlapChooserTypeLabel(impact.kind, details)}</strong>
+                  <span>{formatOverlapChooserLocation(details, badge.label)}</span>
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function OverlapIndicatorMarker({
   badge,
   selection,
-  onSelectImpact,
   isOpen,
   onToggle,
-  onClose,
-  reducedMotion,
   shouldSuppressMapClick,
 }: {
   badge: OverlapBadgeWithChooser;
   selection: ImpactSelection;
-  onSelectImpact: (selection: ImpactSelection) => void;
   isOpen: boolean;
   onToggle: () => void;
-  onClose: () => void;
-  reducedMotion: boolean;
   shouldSuppressMapClick: () => boolean;
 }) {
-  const data = useDashboardData();
-  const markerRef = useRef<SVGGElement>(null);
-  const firstChoiceRef = useRef<HTMLButtonElement>(null);
-  const surfaceRef = useRef<HTMLDivElement>(null);
-  const closingRef = useRef(false);
   const kindCounts = overlapBadgeKindCounts(badge.impacts);
   const visibleKindCounts = kindCounts.slice(0, 3);
   const hiddenKindCount = Math.max(0, kindCounts.length - visibleKindCounts.length);
@@ -2806,56 +3198,7 @@ function OverlapIndicatorMarker({
   const label = `Overlapping alerts: ${kindCounts
     .map(({ kind, count }) => `${labelForImpactKind(kind)}${count > 1 ? ` x${count}` : ""}`)
     .join(" + ")} on ${badge.label}`;
-  const orderedImpacts = [...badge.impacts].sort(
-    (a, b) => getImpactPriority(b.kind) - getImpactPriority(a.kind),
-  );
   const chooserId = `overlap-chooser-${badge.segmentId.replace(/[^a-zA-Z0-9_-]/g, "-")}`;
-  const chooserOffset = {
-    x: badge.chooserPosition.x - badge.position.x,
-    y: badge.chooserPosition.y - badge.position.y,
-  };
-
-  useEffect(() => {
-    if (isOpen) {
-      firstChoiceRef.current?.focus({ preventScroll: true });
-    }
-  }, [isOpen]);
-
-  useEffect(() => {
-    if (!isOpen || reducedMotion) return;
-
-    const animation = surfaceRef.current?.animate([
-      {
-        borderRadius: "999px",
-        filter: "blur(8px)",
-        opacity: 0.28,
-        transform: `translate(${-chooserOffset.x}px, ${-chooserOffset.y}px) scale(0.08, 0.04)`,
-      },
-      {
-        borderRadius: "28px",
-        filter: "blur(1px)",
-        opacity: 1,
-        offset: 0.56,
-        transform: "translate(0, 0) scale(1.04, 0.96)",
-      },
-      {
-        borderRadius: "14px",
-        offset: 0.78,
-        transform: "translate(0, 0) scale(0.975, 1.025)",
-      },
-      {
-        borderRadius: "16px",
-        filter: "blur(0)",
-        opacity: 1,
-        transform: "translate(0, 0) scale(1, 1)",
-      },
-    ], {
-      duration: 650,
-      easing: "cubic-bezier(0.16, 1, 0.3, 1)",
-    });
-
-    return () => animation?.cancel();
-  }, [chooserOffset.x, chooserOffset.y, isOpen, reducedMotion]);
 
   const handleKeyDown = (event: React.KeyboardEvent<SVGGElement>) => {
     if (event.key === "Enter" || event.key === " ") {
@@ -2864,52 +3207,6 @@ function OverlapIndicatorMarker({
     }
   };
 
-  const stopChooserPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
-    event.stopPropagation();
-  };
-
-  const animateChooserClosed = async (restoreFocus: boolean) => {
-    if (closingRef.current) return;
-    closingRef.current = true;
-
-    if (!reducedMotion) {
-      const animation = surfaceRef.current?.animate([
-        {
-          borderRadius: "16px",
-          filter: "blur(0)",
-          opacity: 1,
-          transform: "translate(0, 0) scale(1, 1)",
-        },
-        {
-          borderRadius: "22px",
-          offset: 0.32,
-          transform: "translate(0, 0) scale(1.025, 0.96)",
-        },
-        {
-          borderRadius: "999px",
-          filter: "blur(8px)",
-          opacity: 0,
-          transform: `translate(${-chooserOffset.x}px, ${-chooserOffset.y}px) scale(0.08, 0.04)`,
-        },
-      ], {
-        duration: 220,
-        easing: "cubic-bezier(0.7, 0, 0.84, 0)",
-        fill: "forwards",
-      });
-
-      try {
-        await animation?.finished;
-      } catch {
-        // A replaced animation should still close the chooser.
-      }
-    }
-
-    onClose();
-    closingRef.current = false;
-    if (restoreFocus) {
-      window.requestAnimationFrame(() => markerRef.current?.focus());
-    }
-  };
 
   return (
     <g
@@ -2924,7 +3221,6 @@ function OverlapIndicatorMarker({
       transform={`translate(${badge.position.x} ${badge.position.y})`}
     >
       <g
-        ref={markerRef}
         aria-controls={chooserId}
         aria-expanded={isOpen}
         aria-label={isOpen ? `Close alert chooser for ${badge.label}` : label}
@@ -2982,110 +3278,6 @@ function OverlapIndicatorMarker({
           );
         })}
       </g>
-
-      <foreignObject
-        id={chooserId}
-        x={chooserOffset.x - badge.chooserSize.width / 2}
-        y={chooserOffset.y - badge.chooserSize.height / 2}
-        width={badge.chooserSize.width}
-        height={badge.chooserSize.height}
-        className={`overlap-chooser-object ${isOpen ? "open" : ""}`}
-        style={{
-          transformOrigin: `${badge.chooserSize.width / 2 - chooserOffset.x}px ${badge.chooserSize.height / 2 - chooserOffset.y}px`,
-        }}
-        data-overlap-chooser-collision-avoided={badge.chooserPosition.collisionAvoided ? "true" : "false"}
-        aria-hidden={!isOpen}
-        pointerEvents={isOpen ? "auto" : "none"}
-      >
-        <div
-          ref={surfaceRef}
-          className="overlap-chooser-surface"
-          data-overlap-chooser
-          role="dialog"
-          aria-label={`Choose Alert on ${badge.label}`}
-          onClick={(event) => event.stopPropagation()}
-          onPointerDown={stopChooserPointerDown}
-          onKeyDown={(event) => {
-            if (event.key !== "Escape") return;
-            event.preventDefault();
-            void animateChooserClosed(true);
-          }}
-        >
-          <div className="overlap-chooser-header">
-            <div
-              className="overlap-chooser-header-title"
-              style={{ alignItems: "center", display: "flex", gap: "9px", minWidth: 0 }}
-            >
-              <span
-                className="overlap-chooser-header-count"
-                aria-label={`${badge.impacts.length} overlapping alerts`}
-                style={{
-                  alignItems: "center",
-                  background: "#ef4444",
-                  border: "2px solid #ffffff",
-                  borderRadius: "50%",
-                  boxShadow: "0 0 0 1.5px rgba(15, 23, 42, 0.88)",
-                  boxSizing: "border-box",
-                  color: "#ffffff",
-                  display: "inline-flex",
-                  flex: "0 0 28px",
-                  fontSize: "14px",
-                  fontWeight: 900,
-                  height: "28px",
-                  justifyContent: "center",
-                  lineHeight: 1,
-                  width: "28px",
-                }}
-              >
-                {badge.impacts.length}
-              </span>
-              <strong>Choose Alert</strong>
-            </div>
-            <button
-              type="button"
-              className="overlap-chooser-close"
-              aria-label="Close alert chooser"
-              tabIndex={isOpen ? 0 : -1}
-              onClick={() => {
-                void animateChooserClosed(true);
-              }}
-            >
-              <X size={20} aria-hidden="true" />
-            </button>
-          </div>
-          <div className="overlap-chooser-list">
-            {orderedImpacts.map((impact, index) => {
-              const details = getSelectedImpactDetails(
-                { kind: impact.kind, id: impact.cardId },
-                data,
-              );
-              return (
-                <button
-                  key={`${impact.kind}-${impact.cardId}`}
-                  ref={index === 0 ? firstChoiceRef : undefined}
-                  type="button"
-                  className={`overlap-chooser-choice ${impact.kind}`}
-                  data-overlap-choice-kind={impact.kind}
-                  data-overlap-choice-id={impact.cardId}
-                  tabIndex={isOpen ? 0 : -1}
-                  onClick={() => {
-                    onClose();
-                    onSelectImpact({ kind: impact.kind, id: impact.cardId });
-                  }}
-                >
-                  <span className={`overlap-chooser-choice-icon ${impact.kind}`}>
-                    <ImpactTypeIcon kind={impact.kind} size={26} />
-                  </span>
-                  <span className="overlap-chooser-choice-copy">
-                    <strong>{overlapChooserTypeLabel(impact.kind, details)}</strong>
-                    <span>{formatOverlapChooserLocation(details, badge.label)}</span>
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      </foreignObject>
     </g>
   );
 }
@@ -3305,6 +3497,7 @@ function OverlaySegment({
   reducedMotion,
   exiting,
   idSuffix = "",
+  onHoverHighlightChange,
 }: {
   segment: RenderedNetworkSegment;
   impact: MapImpact | null;
@@ -3316,6 +3509,7 @@ function OverlaySegment({
   reducedMotion: boolean;
   exiting?: boolean;
   idSuffix?: string;
+  onHoverHighlightChange?: (highlight: HoveredOverlayHighlight | null) => void;
 }) {
   const { activeAlerts, delays, reducedSpeedZones, plannedClosures } = useDashboardData();
 
@@ -3364,6 +3558,7 @@ function OverlaySegment({
 
   const chevronBg = RSZ_IMPACT_COLOR;
   const overlaySegmentId = `${segment.id}${idSuffix}`;
+  const hoverHighlightKey = `${impact?.kind ?? "planned-closure"}:${impact?.cardId ?? plannedClosure?.id ?? "unknown"}:${overlaySegmentId}`;
 
   const travelDirection = visualTravelDirection(segment);
   const renderForwardLane = travelDirection !== "reverse";
@@ -3404,6 +3599,18 @@ function OverlaySegment({
   return (
     <g
       className={`overlay-segment-group ${connectedClass} ${exiting ? "map-layer-exiting" : "map-layer-current"}`.trim()}
+      onPointerEnter={(event) => {
+        if (event.pointerType !== "mouse" || exiting) return;
+        onHoverHighlightChange?.({
+          key: hoverHighlightKey,
+          pathD: segment.pathD,
+          visualState,
+        });
+      }}
+      onPointerLeave={(event) => {
+        if (event.pointerType !== "mouse") return;
+        onHoverHighlightChange?.(null);
+      }}
       style={exiting ? { pointerEvents: "none" } : undefined}
     >
 
@@ -3415,6 +3622,12 @@ function OverlaySegment({
 
       <path
         className={`asset-alert-path-glow interactive-glow ${visualState} ${selectedClass}`}
+        d={segment.pathD}
+        style={{ pointerEvents: "none" }}
+      />
+
+      <path
+        className={`asset-alert-path-hover-boundary ${visualState}`}
         d={segment.pathD}
         style={{ pointerEvents: "none" }}
       />

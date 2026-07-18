@@ -70,6 +70,42 @@ describe("asset-backed map layering", () => {
     assert.match(globalCss, /\.overlay-segment-group:has\(\.map-segment-hit-target:active\)/);
   });
 
+  it("adds a crisp desktop hover boundary and eases in planned-closure highlights", () => {
+    assert.match(interactiveMapSource, /className=\{`asset-alert-path-hover-boundary \$\{visualState\}`\}/);
+    assert.match(
+      globalCss,
+      /@media \(hover:\s*hover\) and \(pointer:\s*fine\) \{[\s\S]*?\.asset-alert-path-hover-boundary\s*\{[^}]*transition:/,
+    );
+    assert.match(
+      globalCss,
+      /\.asset-alert-path-hover-boundary\s*\{[^}]*stroke-width:\s*120;[\s\S]*?\.overlay-segment-group:has\(\.map-segment-hit-target:hover\) \.asset-alert-path-hover-boundary,[\s\S]*?opacity:\s*0\.94;/,
+    );
+    assert.match(
+      globalCss,
+      /\.asset-alert-path-glow\.interactive-glow\.planned-preview\s*\{[^}]*display:\s*block;[^}]*transition:/s,
+    );
+  });
+
+  it("repaints the mouse-hover highlight above overlapping disruption corridors", () => {
+    assert.match(interactiveMapSource, /const \[hoveredOverlayHighlight, setHoveredOverlayHighlight\]/);
+    assert.match(interactiveMapSource, /onHoverHighlightChange=\{setHoveredOverlayHighlight\}/);
+    assert.match(
+      interactiveMapSource,
+      /<g aria-hidden="true" className="hover-priority-overlay">[\s\S]*?hover-priority-glow[\s\S]*?hover-priority-boundary[\s\S]*?Top Layer: Stations/,
+    );
+    assert.match(
+      interactiveMapSource,
+      /id="hover-priority-boundary-ring-mask"[\s\S]*?stroke="white"[\s\S]*?strokeWidth="120"[\s\S]*?stroke="black"[\s\S]*?strokeWidth="102"/,
+    );
+    assert.match(interactiveMapSource, /mask="url\(#hover-priority-boundary-ring-mask\)"/);
+    assert.match(interactiveMapSource, /event\.pointerType !== "mouse" \|\| exiting/);
+    assert.match(
+      globalCss,
+      /\.asset-alert-path-glow\.hover-priority-glow\s*\{[^}]*display:\s*block;[^}]*opacity:\s*0\.55;/s,
+    );
+    assert.match(globalCss, /@keyframes hover-priority-boundary-in/);
+  });
+
   it("renders animated visual effects for delays, closures, and station impacts", () => {
     assert.match(interactiveMapSource, /<pattern id="badge-suspension-hash"/);
     assert.match(interactiveMapSource, /className="rsz-chevron"/);
@@ -400,27 +436,47 @@ describe("asset-backed map layering", () => {
     assert.match(interactiveMapSource, /getSelectedImpactDetails/);
     assert.match(interactiveMapSource, /chooseOverlapChooserPosition/);
     assert.match(interactiveMapSource, /chooserPosition/);
+    assert.match(interactiveMapSource, /MAP_SVG_TO_CSS_SCALE/);
+    assert.match(interactiveMapSource, /overlapChooserScreenLayout/);
+    assert.match(interactiveMapSource, /OVERLAP_CHOOSER_OVERLAY_GAP/);
+    assert.match(interactiveMapSource, /OVERLAP_CHOOSER_MOBILE_BREAKPOINT/);
+    assert.match(interactiveMapSource, /OVERLAP_CHOOSER_MOBILE_WIDTH/);
+    assert.match(interactiveMapSource, /const isMobile = viewportWidth <= OVERLAP_CHOOSER_MOBILE_BREAKPOINT/);
+    assert.match(interactiveMapSource, /protectedBoxesByImpact/);
+    assert.match(interactiveMapSource, /boundsContainingBoxes/);
+    assert.match(interactiveMapSource, /chooserCenterAvoidsProtectedBoxes/);
+    assert.match(interactiveMapSource, /chooserCenterFitsViewport/);
+    assert.match(interactiveMapSource, /candidatesForGap/);
+    assert.match(interactiveMapSource, /overlap-chooser-portal/);
     assert.match(interactiveMapSource, /formatOverlapChooserLocation/);
     assert.match(interactiveMapSource, /overlap-chooser-header-count/);
     assert.match(interactiveMapSource, /badge\.impacts\.length/);
     assert.match(interactiveMapSource, /transformOrigin:/);
     assert.match(interactiveMapSource, /surfaceRef\.current\?\.animate/);
+    assert.match(interactiveMapSource, /compactMotion/);
+    assert.match(interactiveMapSource, /duration:\s*180/);
+    assert.match(interactiveMapSource, /duration:\s*140/);
     assert.match(interactiveMapSource, /duration:\s*650/);
-    assert.match(interactiveMapSource, /animateChooserClosed/);
+    assert.match(interactiveMapSource, /const close = async/);
     assert.match(interactiveMapSource, /duration:\s*220/);
     assert.match(interactiveMapSource, /animation\?\.finished/);
     assert.match(interactiveMapSource, /borderRadius:\s*"999px"/);
     assert.match(interactiveMapSource, /details\.displayDirection/);
+    assert.match(interactiveMapSource, /return "Planned Closure"/);
     assert.doesNotMatch(interactiveMapSource, /overlap-chooser-choice-action/);
     assert.doesNotMatch(interactiveMapSource, /details\?\.title \?\? labelForImpactKind/);
     assert.match(globalCss, /\.overlap-chooser-surface/);
+    assert.match(globalCss, /\.overlap-chooser-portal\s*\{[^}]*position:\s*absolute;[^}]*z-index:\s*45;/s);
     assert.match(globalCss, /@keyframes overlap-chooser-enter/);
     assert.match(globalCss, /border-radius:\s*50%/);
     assert.match(globalCss, /scale\(1\.04,\s*0\.96\)/);
     assert.match(globalCss, /\.overlap-chooser-header-count/);
     assert.match(globalCss, /\.overlap-chooser-choice\s*\{[^}]*border-left-width:\s*2px;/s);
+    assert.match(globalCss, /\.overlap-chooser-list\s*\{[^}]*margin-right:\s*-6px;[^}]*padding-right:\s*6px;/s);
     assert.match(globalCss, /\.overlap-chooser-choice\.reduced-speed-zone\s*\{[^}]*rgba\(245,\s*158,\s*11,\s*0\.42\)/s);
     assert.match(globalCss, /\.motion-paused \.overlap-chooser-surface/);
+    assert.match(globalCss, /@media \(max-width:\s*640px\)\s*\{[\s\S]*?\.overlap-chooser-choice-copy strong\s*\{[^}]*font-size:\s*15px;/s);
+    assert.match(globalCss, /@media \(max-width:\s*640px\)\s*\{[\s\S]*?\.overlap-chooser-object\.open \.overlap-chooser-surface\s*\{[^}]*animation:\s*none;/s);
     assert.doesNotMatch(interactiveMapSource, /selectPrimaryImpact/);
   });
 
