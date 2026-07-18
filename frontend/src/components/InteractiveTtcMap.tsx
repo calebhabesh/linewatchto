@@ -3091,9 +3091,15 @@ function OverlapChooser({
     const initialAnchorOffset = initialAnchorOffsetRef.current;
     const animation = compactMotion
       ? surfaceRef.current?.animate([
-          { opacity: 0.62, transform: "translateY(6px) scale(0.97)" },
-          { opacity: 1, transform: "translateY(0) scale(1)" },
-        ], { duration: 180, easing: "cubic-bezier(0.2, 0, 0, 1)" })
+          {
+            borderRadius: "999px",
+            opacity: 0.35,
+            transform: `translate(${initialAnchorOffset.x}px, ${initialAnchorOffset.y}px) scale(0.12, 0.06)`,
+          },
+          { borderRadius: "20px", opacity: 1, offset: 0.62, transform: "scale(1.025, 0.98)" },
+          { borderRadius: "14px", offset: 0.82, transform: "scale(0.99, 1.01)" },
+          { borderRadius: "14px", opacity: 1, transform: "scale(1, 1)" },
+        ], { duration: 380, easing: "cubic-bezier(0.16, 1, 0.3, 1)" })
       : surfaceRef.current?.animate([
           {
             borderRadius: "999px",
@@ -3117,9 +3123,14 @@ function OverlapChooser({
     if (!reducedMotion) {
       const animation = compactMotion
         ? surfaceRef.current?.animate([
-            { opacity: 1, transform: "translateY(0) scale(1)" },
-            { opacity: 0, transform: "translateY(4px) scale(0.98)" },
-          ], { duration: 140, easing: "cubic-bezier(0.4, 0, 1, 1)", fill: "forwards" })
+            { borderRadius: "14px", opacity: 1, transform: "scale(1, 1)" },
+            { borderRadius: "20px", offset: 0.34, transform: "scale(1.015, 0.97)" },
+            {
+              borderRadius: "999px",
+              opacity: 0,
+              transform: `translate(${layout.anchorOffsetX}px, ${layout.anchorOffsetY}px) scale(0.12, 0.06)`,
+            },
+          ], { duration: 200, easing: "cubic-bezier(0.7, 0, 0.84, 0)", fill: "forwards" })
         : surfaceRef.current?.animate([
             { borderRadius: "16px", filter: "blur(0)", opacity: 1, transform: "scale(1, 1)" },
             { borderRadius: "22px", offset: 0.32, transform: "scale(1.025, 0.96)" },

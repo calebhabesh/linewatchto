@@ -454,13 +454,21 @@ describe("asset-backed map layering", () => {
     assert.match(interactiveMapSource, /transformOrigin:/);
     assert.match(interactiveMapSource, /surfaceRef\.current\?\.animate/);
     assert.match(interactiveMapSource, /compactMotion/);
-    assert.match(interactiveMapSource, /duration:\s*180/);
-    assert.match(interactiveMapSource, /duration:\s*140/);
+    assert.match(interactiveMapSource, /duration:\s*380/);
+    assert.match(interactiveMapSource, /duration:\s*200/);
     assert.match(interactiveMapSource, /duration:\s*650/);
     assert.match(interactiveMapSource, /const close = async/);
     assert.match(interactiveMapSource, /duration:\s*220/);
     assert.match(interactiveMapSource, /animation\?\.finished/);
     assert.match(interactiveMapSource, /borderRadius:\s*"999px"/);
+    assert.match(
+      interactiveMapSource,
+      /translate\(\$\{initialAnchorOffset\.x\}px, \$\{initialAnchorOffset\.y\}px\) scale\(0\.12, 0\.06\)/,
+    );
+    assert.match(
+      interactiveMapSource,
+      /translate\(\$\{layout\.anchorOffsetX\}px, \$\{layout\.anchorOffsetY\}px\) scale\(0\.12, 0\.06\)/,
+    );
     assert.match(interactiveMapSource, /details\.displayDirection/);
     assert.match(interactiveMapSource, /return "Planned Closure"/);
     assert.doesNotMatch(interactiveMapSource, /overlap-chooser-choice-action/);
