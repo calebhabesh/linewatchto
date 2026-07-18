@@ -225,11 +225,11 @@ describe("floating menu layout", () => {
   it("renders shared clickable overlapping impact refs on every alert card type", () => {
     assert.match(activeAlertsSource, /getOverlappingImpactRefs/);
     assert.match(activeAlertsSource, /OverlappingImpactRefs/);
-    assert.match(activeAlertsSource, /Overlapping:/);
+    assert.match(activeAlertsSource, /Overlap:/);
     assert.doesNotMatch(activeAlertsSource, /Also overlapping:/);
     assert.match(delaysPanelSource, /getOverlappingImpactRefs/);
     assert.match(delaysPanelSource, /OverlappingImpactRefs/);
-    assert.match(delaysPanelSource, /Overlapping:/);
+    assert.match(delaysPanelSource, /Overlap:/);
     assert.doesNotMatch(delaysPanelSource, /Also overlapping:/);
     assert.match(reducedSpeedZonesSource, /getOverlappingImpactRefs/);
     assert.match(reducedSpeedZonesSource, /OverlappingImpactRefs/);

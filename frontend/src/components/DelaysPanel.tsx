@@ -104,7 +104,7 @@ export function DelaysPanel({ selection, onSelectImpact, onBack, onClose, onFocu
                 <OverlappingImpactRefs
                   overlaps={overlappingImpacts}
                   onSelectImpact={onSelectImpact}
-                  label="Overlapping:"
+                  label="Overlap:"
                 />
 
                 <div className="border-t border-black/10 dark:border-white/10 mt-3 pt-2.5 flex items-end justify-start gap-3 w-full min-w-0">

@@ -10556,12 +10556,10 @@ button {
 
   .mobile-impact-inspector-header {
     align-items: flex-start;
-    border-bottom: 1px solid var(--border);
     display: flex;
     flex: 0 0 auto;
     gap: 10px;
     justify-content: space-between;
-    padding-bottom: 10px;
   }
 
   .mobile-impact-inspector-title-row {
@@ -10624,6 +10622,37 @@ button {
     font-weight: 900;
     margin: 0;
     padding: 5px 7px;
+    text-transform: capitalize;
+  }
+
+  .impact-overlap-refs {
+    display: grid;
+    grid-template-columns: max-content minmax(0, 1fr);
+    align-items: start;
+    column-gap: 4px;
+    margin-inline: auto;
+    max-width: 350px;
+    width: 100%;
+  }
+
+  .impact-overlap-refs > span {
+    margin-right: 0;
+  }
+
+  .impact-overlap-ref-list {
+    flex: 1 1 0;
+    gap: 3px;
+    min-width: 0;
+  }
+
+  .overlap-impact-ref {
+    font-size: 10px;
+    gap: 3px;
+    padding: 3px 4px;
+  }
+
+  .overlap-impact-location {
+    font-size: 9px;
   }
 
   .mobile-impact-inspector-badges {
@@ -10652,7 +10681,7 @@ button {
   }
 
   .mobile-impact-inspector .impact-route {
-    margin-top: 0;
+    margin-block: 0;
   }
 
   .mobile-impact-inspector-metadata {

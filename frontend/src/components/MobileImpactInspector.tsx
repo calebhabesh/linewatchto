@@ -336,7 +336,7 @@ export function MobileImpactInspector({
         <OverlappingImpactRefs
           overlaps={overlappingImpacts}
           onSelectImpact={onSelectImpact}
-          label="Overlapping:"
+          label="Overlap:"
         />
 
         {showDetailedMetadata ? (

@@ -4,6 +4,7 @@ import { describe, it } from "node:test";
 
 const shellSource = readFileSync(new URL("../src/components/LineWatchShell.tsx", import.meta.url), "utf8");
 const inspectorSource = readFileSync(new URL("../src/components/MobileImpactInspector.tsx", import.meta.url), "utf8");
+const overlapRefsSource = readFileSync(new URL("../src/components/ImpactOverlapRefs.tsx", import.meta.url), "utf8");
 const mapSource = readFileSync(new URL("../src/components/InteractiveTtcMap.tsx", import.meta.url), "utf8");
 const globalCss = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
 
@@ -32,7 +33,7 @@ describe("mobile Show on Map inspector", () => {
     assert.doesNotMatch(inspectorSource, /View Full Details/);
     assert.match(inspectorSource, /Show more details/);
     assert.match(inspectorSource, /Show more map/);
-    assert.match(inspectorSource, /Overlapping:/);
+    assert.match(inspectorSource, /Overlap:/);
     assert.match(inspectorSource, /MetadataGrid/);
     assert.match(inspectorSource, /ImpactRouteHeader/);
   });
@@ -43,6 +44,24 @@ describe("mobile Show on Map inspector", () => {
     assert.match(inspectorSource, /\{details\.categoryLabel\}/);
     assert.doesNotMatch(inspectorSource, /\{details\.title\}/);
     assert.match(globalCss, /\.mobile-impact-inspector-title\s*\{[^}]*color:\s*var\(--text\)/s);
+  });
+
+  it("keeps the selected route evenly spaced without an upper divider", () => {
+    assert.doesNotMatch(globalCss, /\.mobile-impact-inspector-header\s*\{[^}]*border-bottom:/s);
+    assert.doesNotMatch(globalCss, /\.mobile-impact-inspector-header\s*\{[^}]*padding-bottom:/s);
+    assert.match(globalCss, /\.mobile-impact-inspector\s+\.impact-route\s*\{[^}]*margin-block:\s*0/s);
+    assert.match(globalCss, /\.mobile-impact-inspector\s*\{[^}]*gap:\s*10px/s);
+    assert.match(globalCss, /\.mobile-impact-inspector-scroll\s*\{[^}]*gap:\s*10px/s);
+  });
+
+  it("title-cases closure windows and shares compact mobile overlap layout with submenus", () => {
+    assert.match(globalCss, /\.mobile-impact-inspector-window\s*\{[^}]*text-transform:\s*capitalize/s);
+    assert.match(overlapRefsSource, /className="impact-overlap-refs/);
+    assert.match(overlapRefsSource, /className="impact-overlap-ref-list/);
+    assert.match(globalCss, /\n  \.impact-overlap-refs\s*\{[^}]*display:\s*grid;[^}]*grid-template-columns:\s*max-content minmax\(0, 1fr\);[^}]*max-width:\s*350px;[^}]*width:\s*100%/s);
+    assert.match(globalCss, /\n  \.impact-overlap-ref-list\s*\{[^}]*flex:\s*1 1 0;[^}]*min-width:\s*0/s);
+    assert.match(globalCss, /\n  \.overlap-impact-ref\s*\{[^}]*font-size:\s*10px;[^}]*gap:\s*3px;[^}]*padding:\s*3px 4px/s);
+    assert.doesNotMatch(globalCss, /\.impact-overlap-ref-list\s*\{[^}]*display:\s*contents/s);
   });
 
   it("keeps the lower metadata block out of the map-focused detent", () => {

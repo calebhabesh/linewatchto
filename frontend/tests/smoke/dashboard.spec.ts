@@ -719,7 +719,7 @@ test("shows an active planned closure in both current and scheduled views", asyn
   )).toBe(true);
   const upcomingClosureCard = plannedClosuresPanel.locator('[data-impact-card-id="stub-upcoming-closure-line-1"]');
   await expect(upcomingClosureCard).toBeVisible();
-  await expect(upcomingClosureCard.getByText("Overlapping:")).toBeVisible();
+  await expect(upcomingClosureCard.getByText("Overlap:")).toBeVisible();
   await expect(upcomingClosureCard.getByText("Active Alert", { exact: true })).toBeVisible();
   await expect(upcomingClosureCard.getByText("Active Closure", { exact: true })).toBeVisible();
 });
@@ -814,7 +814,7 @@ test("uses map overlap metadata for active-alert and sibling submenu overlap ref
   await expect(page.getByRole("heading", { name: "Active Alerts" })).toBeVisible();
   const activeAlertCard = page.locator('[data-impact-card-id="stub-alert-line-1"]');
   await expect(activeAlertCard).toBeVisible();
-  await expect(activeAlertCard.getByText("Overlapping:")).toBeVisible();
+  await expect(activeAlertCard.getByText("Overlap:")).toBeVisible();
   await expect(activeAlertCard.getByText("Delay", { exact: true })).toBeVisible();
   await expect(activeAlertCard.getByText("Reduced Speed Zone", { exact: true })).toBeVisible();
 
@@ -824,13 +824,13 @@ test("uses map overlap metadata for active-alert and sibling submenu overlap ref
   });
   const delayCard = delaysPanel.locator('[data-impact-card-id="stub-delay-line-1-overlap"]');
   await expect(delayCard).toBeVisible();
-  await expect(delayCard.getByText("Overlapping:")).toBeVisible();
+  await expect(delayCard.getByText("Overlap:")).toBeVisible();
   await expect(delayCard.getByText("Active Alert", { exact: true })).toBeVisible();
 
   await openServiceCategory(page, isMobile, /Active Alert/);
   const boundaryActiveCard = page.locator('[data-impact-card-id="stub-alert-st-george-boundary"]');
   await expect(boundaryActiveCard).toBeVisible();
-  await expect(boundaryActiveCard.getByText("Overlapping:")).toBeVisible();
+  await expect(boundaryActiveCard.getByText("Overlap:")).toBeVisible();
   await expect(boundaryActiveCard.getByText("Upcoming Closure", { exact: true })).toBeVisible();
 
   await openServiceCategory(page, isMobile, /Closure/);
@@ -839,7 +839,7 @@ test("uses map overlap metadata for active-alert and sibling submenu overlap ref
   });
   const boundaryClosureCard = closuresPanel.locator('[data-impact-card-id="stub-upcoming-closure-st-george-boundary"]');
   await expect(boundaryClosureCard).toBeVisible();
-  await expect(boundaryClosureCard.getByText("Overlapping:")).toBeVisible();
+  await expect(boundaryClosureCard.getByText("Overlap:")).toBeVisible();
   await expect(boundaryClosureCard.getByText("Active Alert", { exact: true })).toBeVisible();
 });
 

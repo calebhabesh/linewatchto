@@ -209,7 +209,7 @@ export function RotatedMapSelectionCard({
       >
         <div className="rotated-map-selection-card-header">
           <div className="rotated-map-selection-card-title-group">
-            <span className="rotated-map-selection-card-kicker">{toTitleCase("Overlapping Alerts")}</span>
+            <span className="rotated-map-selection-card-kicker">{toTitleCase("Alert Overlap")}</span>
             <h2>{toTitleCase(overlapSelection.label)}</h2>
           </div>
           <button type="button" className="rotated-map-selection-icon-button" aria-label="Clear selected map item" onClick={onClearSelection}>
