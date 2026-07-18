@@ -25,7 +25,8 @@ export function BrandedErrorScreen({
   return (
     <main className="linewatch-error-screen">
       <section className="linewatch-error-card" aria-labelledby="linewatch-error-title">
-        <div className="linewatch-error-strip" aria-hidden="true">
+        <div className="linewatch-transit-accent-strip linewatch-error-strip" aria-hidden="true">
+          <span />
           <span />
           <span />
           <span />

@@ -70,16 +70,12 @@ describe("mobile rotated map mode", () => {
     assert.match(globalCss, /\.rotated-map-selection-card/);
   });
 
-  it("shows a rotated overlap selection menu before choosing a specific overlapping impact", () => {
-    assert.match(mapSource, /onSelectOverlap/);
-    assert.match(mapSource, /selectOverlapBadge/);
-    assert.match(shellSource, /overlapSelection/);
-    assert.match(shellSource, /handleMapSelectOverlap/);
-    assert.match(shellSource, /overlapSelection=\{overlapSelection\}/);
-    assert.match(rotatedSelectionSource, /overlapSelection/);
-    assert.match(rotatedSelectionSource, /data-selection-kind="overlap"/);
-    assert.match(rotatedSelectionSource, /Choose Impact/);
-    assert.match(rotatedSelectionSource, /onSelectImpact\(impact\.selection\)/);
+  it("uses the same in-map overlap chooser in standard and rotated modes", () => {
+    assert.match(mapSource, /data-overlap-chooser/);
+    assert.match(mapSource, /Choose Alert/);
+    assert.match(mapSource, /onSelectImpact\(\{ kind: impact\.kind, id: impact\.cardId \}\)/);
+    assert.match(shellSource, /<InteractiveTtcMap[\s\S]*onSelectImpact=\{handleMapSelectImpact\}/);
+    assert.doesNotMatch(shellSource, /onSelectOverlap=\{rotatedMapMode/);
   });
 
   it("flags station schedule disruption in the rotated station preview", () => {

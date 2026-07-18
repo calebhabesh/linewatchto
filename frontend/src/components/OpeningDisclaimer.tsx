@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import { AlertTriangle } from "lucide-react";
 
 export const DISCLAIMER_ACK_STORAGE_KEY = "linewatch-disclaimer-ack-v1";
@@ -56,16 +57,41 @@ export function OpeningDisclaimer() {
         className="opening-disclaimer-panel"
         role="dialog"
       >
-        <div className="opening-disclaimer-kicker">
-          <AlertTriangle aria-hidden="true" size={18} strokeWidth={2.4} />
-          <span>Unofficial dashboard</span>
+        <div className="linewatch-transit-accent-strip opening-disclaimer-strip" aria-hidden="true">
+          <span />
+          <span />
+          <span />
+          <span />
+          <span />
         </div>
-        <p id="opening-disclaimer-copy">
-          LineWatchTO is a <strong className="opening-disclaimer-highlight">personal project</strong> that is <strong className="opening-disclaimer-highlight">not affiliated with, endorsed by, or operated by the TTC</strong>. I am not affiliated with the TTC in any capacity. Service alerts are fetched from TTC&apos;s public Live Alerts endpoint when live polling is enabled, with local fixture data used for offline demos and fallback mode.
-        </p>
-        <button type="button" onClick={handleAcknowledge}>
-          I Understand
-        </button>
+        <div className="opening-disclaimer-content">
+          <header className="opening-disclaimer-welcome">
+            <Image
+              className="opening-disclaimer-logo"
+              src="/assets/linewatch/logo.svg"
+              alt=""
+              width={112}
+              height={112}
+              priority
+            />
+            <h1>
+              <span>Welcome to</span>{" "}
+              <strong>LineWatchTO</strong>
+            </h1>
+            <p>Toronto rapid transit service information, all in one place.</p>
+          </header>
+          <div className="station-arrival-line-divider opening-disclaimer-divider" aria-hidden="true" />
+          <div className="opening-disclaimer-kicker">
+            <AlertTriangle aria-hidden="true" size={18} strokeWidth={2.4} />
+            <span>Unofficial dashboard</span>
+          </div>
+          <p id="opening-disclaimer-copy">
+            LineWatchTO is a <strong className="opening-disclaimer-highlight">personal project</strong> that is <strong className="opening-disclaimer-highlight">not affiliated with, endorsed by, or operated by the TTC</strong>. I am not affiliated with the TTC in any capacity. Service alerts are fetched from TTC&apos;s public Live Alerts endpoint when live polling is enabled, with local fixture data used for offline demos and fallback mode.
+          </p>
+          <button type="button" onClick={handleAcknowledge}>
+            I Understand
+          </button>
+        </div>
       </section>
     </div>
   );

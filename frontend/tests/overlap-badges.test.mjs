@@ -8,9 +8,58 @@ const {
   coveredSegmentOverlapBadgeSignatures,
   overlapBadgeKindCounts,
   overlapBadgeSignature,
+  chooseOverlapChooserPosition,
 } = overlapBadges;
 
 describe("map overlap badge grouping", () => {
+  it("places the chooser on the clearest nearby side of its badge", () => {
+    const position = chooseOverlapChooserPosition({
+      anchor: { x: 500, y: 500 },
+      badgeSize: { width: 100, height: 80 },
+      chooserSize: { width: 300, height: 200 },
+      blockedBoxes: [
+        { x: 540, y: 310, width: 440, height: 380 },
+      ],
+      mapBounds: { x: 0, y: 0, width: 1000, height: 1000 },
+    });
+
+    assert.ok(position.x < 500, `expected the chooser left of the blocked area, got ${JSON.stringify(position)}`);
+    assert.equal(position.collisionAvoided, true);
+  });
+
+  it("keeps a clear chooser fully inside the map bounds", () => {
+    const chooserSize = { width: 300, height: 220 };
+    const position = chooseOverlapChooserPosition({
+      anchor: { x: 40, y: 40 },
+      badgeSize: { width: 88, height: 88 },
+      chooserSize,
+      blockedBoxes: [],
+      mapBounds: { x: 0, y: 0, width: 1000, height: 600 },
+    });
+
+    assert.ok(position.x >= chooserSize.width / 2);
+    assert.ok(position.x <= 1000 - chooserSize.width / 2);
+    assert.ok(position.y >= chooserSize.height / 2);
+    assert.ok(position.y <= 600 - chooserSize.height / 2);
+  });
+
+  it("can slide along a nearby side to avoid a station label", () => {
+    const position = chooseOverlapChooserPosition({
+      anchor: { x: 500, y: 500 },
+      badgeSize: { width: 88, height: 88 },
+      chooserSize: { width: 300, height: 180 },
+      blockedBoxes: [
+        { x: 560, y: 430, width: 300, height: 170 },
+        { x: 180, y: 360, width: 260, height: 280 },
+        { x: 360, y: 650, width: 280, height: 200 },
+      ],
+      mapBounds: { x: 0, y: 0, width: 1000, height: 1000 },
+    });
+
+    assert.ok(position.y < 500, `expected a higher open placement, got ${JSON.stringify(position)}`);
+    assert.equal(position.collisionAvoided, true);
+  });
+
   it("creates a station-boundary overlap group when active and planned impacts only share an endpoint", () => {
     const segments = [
       {

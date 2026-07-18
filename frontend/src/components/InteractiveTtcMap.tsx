@@ -21,7 +21,7 @@ import {
   PAN_ZOOM_MAX_RELATIVE_SCALE,
   type MapViewportOrientation,
 } from "../hooks/panZoomMath";
-import { ZoomIn, ZoomOut, Locate, Sun, Moon } from "lucide-react";
+import { ZoomIn, ZoomOut, Locate, Sun, Moon, X } from "lucide-react";
 import { useDashboardData } from "../app/DataContext";
 import type {
   ActiveAlert,
@@ -42,12 +42,13 @@ import { ImpactTypeIcon } from "./ImpactTypeIcon";
 import { SiteGuideDropdown } from "./SiteGuideDropdown";
 import {
   buildStationOverlapBadgeGroups,
+  chooseOverlapChooserPosition,
   coveredSegmentOverlapBadgeSignatures,
   hasOverlappingImpacts,
-  type MapOverlapSelection,
   overlapBadgeKindCounts,
   overlapBadgeVisualItemCount,
 } from "./map-overlap-badges";
+import { getSelectedImpactDetails } from "./MobileImpactInspector";
 import {
   stationImpactDirectionForImpact,
   stationImpactDirectionForStationImpacts,
@@ -201,7 +202,6 @@ function stationImpactRingRadius(isLargeStation: boolean): number {
 function InteractiveTtcMapComponent({
   selection,
   onSelectImpact,
-  onSelectOverlap,
   stations,
   selectedStationId,
   onSelectStationId,
@@ -220,7 +220,6 @@ function InteractiveTtcMapComponent({
 }: {
   selection: ImpactSelection;
   onSelectImpact: (selection: ImpactSelection) => void;
-  onSelectOverlap?: (selection: MapOverlapSelection) => void;
   stations: StationSummary[];
   selectedStationId: string | null;
   onSelectStationId: (id: string | null) => void;
@@ -241,6 +240,7 @@ function InteractiveTtcMapComponent({
   const [svgParts, setSvgParts] = useState<{ part1: string; part2: string } | null>(null);
   const [loadState, setLoadState] = useState<"loading" | "ready" | "error">("loading");
   const [hoveredStationId, setHoveredStationId] = useState<string | null>(null);
+  const [expandedOverlapBadgeId, setExpandedOverlapBadgeId] = useState<string | null>(null);
 
   const mapSvgRef = useRef<SVGSVGElement>(null);
   const mapRootRef = useRef<HTMLDivElement>(null);
@@ -894,7 +894,6 @@ function InteractiveTtcMapComponent({
           label: segment.label,
           impactKinds: group.impactKinds,
           impacts: group.impacts,
-          primaryImpact: group.primaryImpact,
           position,
           size,
         };
@@ -924,7 +923,6 @@ function InteractiveTtcMapComponent({
           label: station.name,
           impactKinds: group.impactKinds,
           impacts: group.impacts,
-          primaryImpact: group.primaryImpact,
           position,
           size,
         };
@@ -938,6 +936,27 @@ function InteractiveTtcMapComponent({
     stationOverlapBadgeGroups,
     stationPointFor,
   ]);
+
+  const overlapBadges = useMemo<OverlapBadgeWithChooser[]>(() => {
+    const badges = [...overlapBadgeSegments, ...stationOverlapBadges];
+    const blockedBoxes = [
+      ...mapCollisionBoxes,
+      ...overlayCollisionBoxes,
+      ...badges.map((badge) => expandBox(boundsForBadgePosition(badge.position, badge.size), 12)),
+    ];
+
+    return badges.map((badge) => {
+      const chooserSize = overlapChooserSize(badge.impacts.length);
+      const chooserPosition = chooseOverlapChooserPosition({
+        anchor: badge.position,
+        badgeSize: badge.size,
+        chooserSize,
+        blockedBoxes,
+        mapBounds: MAP_VIEWBOX_BOUNDS,
+      });
+      return { ...badge, chooserPosition, chooserSize };
+    });
+  }, [mapCollisionBoxes, overlapBadgeSegments, overlayCollisionBoxes, stationOverlapBadges]);
 
 
   return (
@@ -1036,6 +1055,7 @@ function InteractiveTtcMapComponent({
         onPointerLeave={handlePointerLeave}
         onPointerCancel={handlePointerCancel}
         onWheel={handleWheel}
+        onClick={() => setExpandedOverlapBadgeId(null)}
       >
         {loadState === "loading" && (
           <div className="absolute inset-0 flex items-center justify-center text-slate-600 dark:text-white/60 font-medium">
@@ -1237,16 +1257,36 @@ function InteractiveTtcMapComponent({
                 </g>
 
                 <g aria-label="Overlapping alert badges">
-                  {[...overlapBadgeSegments, ...stationOverlapBadges].map((badge) => (
-                    <OverlapIndicatorMarker
-                      key={badge.segmentId}
-                      badge={badge}
-                      selection={selection}
-                      onSelectImpact={onSelectImpact}
-                      onSelectOverlap={onSelectOverlap}
-                      shouldSuppressMapClick={shouldSuppressMapClick}
-                    />
-                  ))}
+                  {overlapBadges
+                    .filter((badge) => badge.segmentId !== expandedOverlapBadgeId)
+                    .map((badge) => (
+                      <OverlapIndicatorMarker
+                        key={badge.segmentId}
+                        badge={badge}
+                        selection={selection}
+                        onSelectImpact={onSelectImpact}
+                        isOpen={false}
+                        onToggle={() => setExpandedOverlapBadgeId(badge.segmentId)}
+                        onClose={() => setExpandedOverlapBadgeId(null)}
+                        reducedMotion={reducedMotion}
+                        shouldSuppressMapClick={shouldSuppressMapClick}
+                      />
+                    ))}
+                  {overlapBadges
+                    .filter((badge) => badge.segmentId === expandedOverlapBadgeId)
+                    .map((badge) => (
+                      <OverlapIndicatorMarker
+                        key={badge.segmentId}
+                        badge={badge}
+                        selection={selection}
+                        onSelectImpact={onSelectImpact}
+                        isOpen
+                        onToggle={() => setExpandedOverlapBadgeId(null)}
+                        onClose={() => setExpandedOverlapBadgeId(null)}
+                        reducedMotion={reducedMotion}
+                        shouldSuppressMapClick={shouldSuppressMapClick}
+                      />
+                    ))}
                 </g>
 
                 {/* Cardinal North Compass fixed to map */}
@@ -1268,8 +1308,9 @@ function InteractiveTtcMapComponent({
                   const isLarge = isStationVisuallyLarge(station);
                   const visualAnchors = visualAnchorsForStation(station);
                   const hasMultipleVisualAnchors = visualAnchors.length > 1;
-                  const hitRadius = hasMultipleVisualAnchors ? 40 : isLarge ? 61 : 36;
-                  const hoverRadius = hasMultipleVisualAnchors ? 49 : isLarge ? 72 : 48;
+                  const hitRadius = hasMultipleVisualAnchors ? 45 : isLarge ? 66 : 41;
+                  const usesIndependentSpadinaHover = station.id === "spadina" && visualAnchors.length === 2;
+                  const hoverRadius = usesIndependentSpadinaHover ? 34 : isLarge ? 72 : 48;
                   const highlightRadius = hasMultipleVisualAnchors ? 33 : isLarge ? 48 : 38;
                   const showStationHover =
                     hoveredStationId === station.id &&
@@ -1547,9 +1588,13 @@ type OverlapBadgeSegment = {
   label: string;
   impactKinds: MapImpactKind[];
   impacts: MapImpact[];
-  primaryImpact: MapImpact;
   position: OverlapBadgePosition;
   size: OverlapBadgeSize;
+};
+
+type OverlapBadgeWithChooser = OverlapBadgeSegment & {
+  chooserPosition: OverlapBadgePosition;
+  chooserSize: OverlapBadgeSize;
 };
 
 type OverlapBadgeGroup = {
@@ -1557,7 +1602,6 @@ type OverlapBadgeGroup = {
   segments: RenderedNetworkSegment[];
   impacts: MapImpact[];
   impactKinds: MapImpactKind[];
-  primaryImpact: MapImpact;
 };
 
 type OverlayVisualState =
@@ -1573,6 +1617,14 @@ const OVERLAP_BADGE_EDGE_GAP = 8;
 const STANDARD_MAP_COMPONENT_MAX_BOUNDS = 1200;
 const LARGE_MAP_COMPONENT_MAX_THICKNESS = 220;
 const LARGE_MAP_COMPONENT_TILE_LENGTH = 760;
+const OVERLAP_CHOOSER_WIDTH = 520;
+
+function overlapChooserSize(impactCount: number): OverlapBadgeSize {
+  return {
+    width: OVERLAP_CHOOSER_WIDTH,
+    height: Math.min(440, 68 + impactCount * 76),
+  };
+}
 
 function overlapBadgePositionCandidates(size: OverlapBadgeSize, frame?: PathFrame | null): Array<{ dx: number; dy: number }> {
   const sideOffset = OVERLAY_CORRIDOR_COLLISION_RADIUS + size.width / 2 + OVERLAP_BADGE_EDGE_GAP;
@@ -1718,10 +1770,6 @@ function getUniqueImpactKinds(impacts: MapImpact[]): MapImpactKind[] {
     .sort((a, b) => getImpactPriority(b) - getImpactPriority(a));
 }
 
-function primaryImpactForOverlap(impacts: MapImpact[]): MapImpact | undefined {
-  return [...impacts].sort((a, b) => getImpactPriority(b.kind) - getImpactPriority(a.kind))[0];
-}
-
 function activeImpactsForSegment(segment: NetworkSegment): MapImpact[] {
   return segment.impacts?.length ? segment.impacts : legacyImpactsForSegment(segment);
 }
@@ -1772,9 +1820,6 @@ function groupOverlapBadgeSegments(
     const impactKinds = getUniqueImpactKinds(impacts);
     if (!hasOverlappingImpacts(impacts)) continue;
 
-    const primaryImpact = primaryImpactForOverlap(impacts);
-    if (!primaryImpact) continue;
-
     const signature = overlapBadgeSignature(impacts);
     const group = groups.get(signature);
     if (group) {
@@ -1787,7 +1832,6 @@ function groupOverlapBadgeSegments(
       segments: [segment],
       impacts,
       impactKinds,
-      primaryImpact,
     });
   }
 
@@ -2027,6 +2071,26 @@ function labelForImpactKind(kind: MapImpactKind): string {
     case "reduced-speed-zone":
       return "Reduced Speed Zone";
   }
+}
+
+function formatOverlapChooserLocation(
+  details: ReturnType<typeof getSelectedImpactDetails>,
+  fallbackLocation: string,
+): string {
+  if (!details) return fallbackLocation;
+  const linePrefix = details.lineNumber ? `Line ${details.lineNumber}: ` : "";
+  const direction = details.displayDirection?.trim();
+  const directionSuffix = direction ? ` (${direction})` : "";
+  return `${linePrefix}${details.location || fallbackLocation}${directionSuffix}`;
+}
+
+function overlapChooserTypeLabel(
+  kind: MapImpactKind,
+  details: ReturnType<typeof getSelectedImpactDetails>,
+): string {
+  return kind === "planned-closure" && details
+    ? details.categoryLabel
+    : labelForImpactKind(kind);
 }
 
 function impactLayerKey(impact: MapImpact) {
@@ -2707,15 +2771,26 @@ function OverlapIndicatorMarker({
   badge,
   selection,
   onSelectImpact,
-  onSelectOverlap,
+  isOpen,
+  onToggle,
+  onClose,
+  reducedMotion,
   shouldSuppressMapClick,
 }: {
-  badge: OverlapBadgeSegment;
+  badge: OverlapBadgeWithChooser;
   selection: ImpactSelection;
   onSelectImpact: (selection: ImpactSelection) => void;
-  onSelectOverlap?: (selection: MapOverlapSelection) => void;
+  isOpen: boolean;
+  onToggle: () => void;
+  onClose: () => void;
+  reducedMotion: boolean;
   shouldSuppressMapClick: () => boolean;
 }) {
+  const data = useDashboardData();
+  const markerRef = useRef<SVGGElement>(null);
+  const firstChoiceRef = useRef<HTMLButtonElement>(null);
+  const surfaceRef = useRef<HTMLDivElement>(null);
+  const closingRef = useRef(false);
   const kindCounts = overlapBadgeKindCounts(badge.impacts);
   const visibleKindCounts = kindCounts.slice(0, 3);
   const hiddenKindCount = Math.max(0, kindCounts.length - visibleKindCounts.length);
@@ -2731,95 +2806,286 @@ function OverlapIndicatorMarker({
   const label = `Overlapping alerts: ${kindCounts
     .map(({ kind, count }) => `${labelForImpactKind(kind)}${count > 1 ? ` x${count}` : ""}`)
     .join(" + ")} on ${badge.label}`;
-
-  const selectPrimaryImpact = () => {
-    onSelectImpact({ kind: badge.primaryImpact.kind, id: badge.primaryImpact.cardId });
+  const orderedImpacts = [...badge.impacts].sort(
+    (a, b) => getImpactPriority(b.kind) - getImpactPriority(a.kind),
+  );
+  const chooserId = `overlap-chooser-${badge.segmentId.replace(/[^a-zA-Z0-9_-]/g, "-")}`;
+  const chooserOffset = {
+    x: badge.chooserPosition.x - badge.position.x,
+    y: badge.chooserPosition.y - badge.position.y,
   };
 
-  const selectOverlapBadge = () => {
-    if (onSelectOverlap) {
-      onSelectOverlap({
-        label: badge.label,
-        impacts: badge.impacts.map((impact) => ({
-          selection: { kind: impact.kind, id: impact.cardId },
-        })),
-      });
-      return;
+  useEffect(() => {
+    if (isOpen) {
+      firstChoiceRef.current?.focus({ preventScroll: true });
     }
-    selectPrimaryImpact();
-  };
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen || reducedMotion) return;
+
+    const animation = surfaceRef.current?.animate([
+      {
+        borderRadius: "999px",
+        filter: "blur(8px)",
+        opacity: 0.28,
+        transform: `translate(${-chooserOffset.x}px, ${-chooserOffset.y}px) scale(0.08, 0.04)`,
+      },
+      {
+        borderRadius: "28px",
+        filter: "blur(1px)",
+        opacity: 1,
+        offset: 0.56,
+        transform: "translate(0, 0) scale(1.04, 0.96)",
+      },
+      {
+        borderRadius: "14px",
+        offset: 0.78,
+        transform: "translate(0, 0) scale(0.975, 1.025)",
+      },
+      {
+        borderRadius: "16px",
+        filter: "blur(0)",
+        opacity: 1,
+        transform: "translate(0, 0) scale(1, 1)",
+      },
+    ], {
+      duration: 650,
+      easing: "cubic-bezier(0.16, 1, 0.3, 1)",
+    });
+
+    return () => animation?.cancel();
+  }, [chooserOffset.x, chooserOffset.y, isOpen, reducedMotion]);
 
   const handleKeyDown = (event: React.KeyboardEvent<SVGGElement>) => {
     if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
-      selectOverlapBadge();
+      onToggle();
+    }
+  };
+
+  const stopChooserPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    event.stopPropagation();
+  };
+
+  const animateChooserClosed = async (restoreFocus: boolean) => {
+    if (closingRef.current) return;
+    closingRef.current = true;
+
+    if (!reducedMotion) {
+      const animation = surfaceRef.current?.animate([
+        {
+          borderRadius: "16px",
+          filter: "blur(0)",
+          opacity: 1,
+          transform: "translate(0, 0) scale(1, 1)",
+        },
+        {
+          borderRadius: "22px",
+          offset: 0.32,
+          transform: "translate(0, 0) scale(1.025, 0.96)",
+        },
+        {
+          borderRadius: "999px",
+          filter: "blur(8px)",
+          opacity: 0,
+          transform: `translate(${-chooserOffset.x}px, ${-chooserOffset.y}px) scale(0.08, 0.04)`,
+        },
+      ], {
+        duration: 220,
+        easing: "cubic-bezier(0.7, 0, 0.84, 0)",
+        fill: "forwards",
+      });
+
+      try {
+        await animation?.finished;
+      } catch {
+        // A replaced animation should still close the chooser.
+      }
+    }
+
+    onClose();
+    closingRef.current = false;
+    if (restoreFocus) {
+      window.requestAnimationFrame(() => markerRef.current?.focus());
     }
   };
 
   return (
     <g
-      aria-label={label}
-      className={`overlap-indicator ${isSelected ? "selected" : ""}`}
+      className={`overlap-indicator-group ${isOpen ? "open" : ""}`}
       data-overlap-segment-id={badge.segmentId}
       data-overlap-collision-avoided={badge.position.collisionAvoided ? "true" : "false"}
       onClick={(event) => {
         if (shouldSuppressMapClick()) return;
         event.stopPropagation();
-        selectOverlapBadge();
+        onToggle();
       }}
-      onKeyDown={handleKeyDown}
-      pointerEvents="auto"
-      role="button"
-      tabIndex={0}
       transform={`translate(${badge.position.x} ${badge.position.y})`}
     >
-      <title>{label}</title>
-      {isSingleVisualItem ? (
-        <circle
-          className="overlap-indicator-pill"
-          r={badge.size.height / 2}
-        />
-      ) : (
-        <rect
-          className="overlap-indicator-pill"
-          x={-badge.size.width / 2}
-          y={-badge.size.height / 2}
-          width={badge.size.width}
-          height={badge.size.height}
-          rx={badge.size.height / 2}
-        />
-      )}
-      {visibleKindCounts.map(({ kind, count }, index) => {
-        const x = (index - (totalItems - 1) / 2) * spacing;
-        return (
-          <g
-            key={kind}
-            data-overlap-kind={kind}
-            data-overlap-kind-count={count}
-            transform={`translate(${x} 0)`}
-          >
-            <circle className={`overlap-indicator-badge ${kind}`} r={badgeRadius} />
-            <OverlapKindIcon kind={kind} size={iconSize} />
+      <g
+        ref={markerRef}
+        aria-controls={chooserId}
+        aria-expanded={isOpen}
+        aria-label={isOpen ? `Close alert chooser for ${badge.label}` : label}
+        className={`overlap-indicator ${isSelected ? "selected" : ""} ${isOpen ? "open" : ""}`}
+        onKeyDown={handleKeyDown}
+        pointerEvents="auto"
+        role="button"
+        tabIndex={0}
+      >
+        <title>{label}</title>
+        {isSingleVisualItem ? (
+          <circle
+            className="overlap-indicator-pill"
+            r={badge.size.height / 2}
+          />
+        ) : (
+          <rect
+            className="overlap-indicator-pill"
+            x={-badge.size.width / 2}
+            y={-badge.size.height / 2}
+            width={badge.size.width}
+            height={badge.size.height}
+            rx={badge.size.height / 2}
+          />
+        )}
+        {visibleKindCounts.map(({ kind, count }, index) => {
+          const x = (index - (totalItems - 1) / 2) * spacing;
+          return (
+            <g
+              key={kind}
+              data-overlap-kind={kind}
+              data-overlap-kind-count={count}
+              transform={`translate(${x} 0)`}
+            >
+              <circle className={`overlap-indicator-badge ${kind}`} r={badgeRadius} />
+              <OverlapKindIcon kind={kind} size={iconSize} />
+            </g>
+          );
+        })}
+        {hiddenKindCount > 0 && (
+          <g transform={`translate(${(visibleKindCounts.length - (totalItems - 1) / 2) * spacing} 0)`}>
+            <circle className="overlap-indicator-badge more" r={27} />
+            <text className="overlap-indicator-more" textAnchor="middle" dominantBaseline="central">
+              +{hiddenKindCount}
+            </text>
           </g>
-        );
-      })}
-      {hiddenKindCount > 0 && (
-        <g transform={`translate(${(visibleKindCounts.length - (totalItems - 1) / 2) * spacing} 0)`}>
-          <circle className="overlap-indicator-badge more" r={27} />
-          <text className="overlap-indicator-more" textAnchor="middle" dominantBaseline="central">
-            +{hiddenKindCount}
-          </text>
-        </g>
-      )}
-      {visibleKindCounts.map(({ kind, count }, index) => {
-        if (count <= 1) return null;
-        const x = (index - (totalItems - 1) / 2) * spacing;
-        return (
-          <g key={`${kind}-count`} transform={`translate(${x} 0)`}>
-            <OverlapKindCountBadge count={count} large={isSingleKindOverlap} />
-          </g>
-        );
-      })}
+        )}
+        {visibleKindCounts.map(({ kind, count }, index) => {
+          if (count <= 1) return null;
+          const x = (index - (totalItems - 1) / 2) * spacing;
+          return (
+            <g key={`${kind}-count`} transform={`translate(${x} 0)`}>
+              <OverlapKindCountBadge count={count} large={isSingleKindOverlap} />
+            </g>
+          );
+        })}
+      </g>
+
+      <foreignObject
+        id={chooserId}
+        x={chooserOffset.x - badge.chooserSize.width / 2}
+        y={chooserOffset.y - badge.chooserSize.height / 2}
+        width={badge.chooserSize.width}
+        height={badge.chooserSize.height}
+        className={`overlap-chooser-object ${isOpen ? "open" : ""}`}
+        style={{
+          transformOrigin: `${badge.chooserSize.width / 2 - chooserOffset.x}px ${badge.chooserSize.height / 2 - chooserOffset.y}px`,
+        }}
+        data-overlap-chooser-collision-avoided={badge.chooserPosition.collisionAvoided ? "true" : "false"}
+        aria-hidden={!isOpen}
+        pointerEvents={isOpen ? "auto" : "none"}
+      >
+        <div
+          ref={surfaceRef}
+          className="overlap-chooser-surface"
+          data-overlap-chooser
+          role="dialog"
+          aria-label={`Choose Alert on ${badge.label}`}
+          onClick={(event) => event.stopPropagation()}
+          onPointerDown={stopChooserPointerDown}
+          onKeyDown={(event) => {
+            if (event.key !== "Escape") return;
+            event.preventDefault();
+            void animateChooserClosed(true);
+          }}
+        >
+          <div className="overlap-chooser-header">
+            <div
+              className="overlap-chooser-header-title"
+              style={{ alignItems: "center", display: "flex", gap: "9px", minWidth: 0 }}
+            >
+              <span
+                className="overlap-chooser-header-count"
+                aria-label={`${badge.impacts.length} overlapping alerts`}
+                style={{
+                  alignItems: "center",
+                  background: "#ef4444",
+                  border: "2px solid #ffffff",
+                  borderRadius: "50%",
+                  boxShadow: "0 0 0 1.5px rgba(15, 23, 42, 0.88)",
+                  boxSizing: "border-box",
+                  color: "#ffffff",
+                  display: "inline-flex",
+                  flex: "0 0 28px",
+                  fontSize: "14px",
+                  fontWeight: 900,
+                  height: "28px",
+                  justifyContent: "center",
+                  lineHeight: 1,
+                  width: "28px",
+                }}
+              >
+                {badge.impacts.length}
+              </span>
+              <strong>Choose Alert</strong>
+            </div>
+            <button
+              type="button"
+              className="overlap-chooser-close"
+              aria-label="Close alert chooser"
+              tabIndex={isOpen ? 0 : -1}
+              onClick={() => {
+                void animateChooserClosed(true);
+              }}
+            >
+              <X size={20} aria-hidden="true" />
+            </button>
+          </div>
+          <div className="overlap-chooser-list">
+            {orderedImpacts.map((impact, index) => {
+              const details = getSelectedImpactDetails(
+                { kind: impact.kind, id: impact.cardId },
+                data,
+              );
+              return (
+                <button
+                  key={`${impact.kind}-${impact.cardId}`}
+                  ref={index === 0 ? firstChoiceRef : undefined}
+                  type="button"
+                  className={`overlap-chooser-choice ${impact.kind}`}
+                  data-overlap-choice-kind={impact.kind}
+                  data-overlap-choice-id={impact.cardId}
+                  tabIndex={isOpen ? 0 : -1}
+                  onClick={() => {
+                    onClose();
+                    onSelectImpact({ kind: impact.kind, id: impact.cardId });
+                  }}
+                >
+                  <span className={`overlap-chooser-choice-icon ${impact.kind}`}>
+                    <ImpactTypeIcon kind={impact.kind} size={26} />
+                  </span>
+                  <span className="overlap-chooser-choice-copy">
+                    <strong>{overlapChooserTypeLabel(impact.kind, details)}</strong>
+                    <span>{formatOverlapChooserLocation(details, badge.label)}</span>
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </foreignObject>
     </g>
   );
 }

@@ -39,12 +39,17 @@ describe("Next.js branded error routes", () => {
 
   it("styles branded error screens with the transit line strip", () => {
     const source = readRequiredSource("../src/app/globals.css");
+    const componentSource = readRequiredSource("../src/components/BrandedErrorScreen.tsx");
 
     assert.match(source, /\.linewatch-error-screen/);
-    assert.match(source, /\.linewatch-error-strip/);
+    assert.match(componentSource, /linewatch-error-strip/);
+    assert.match(componentSource, /linewatch-transit-accent-strip/);
+    assert.match(source, /\.linewatch-transit-accent-strip/);
+    assert.match(source, /grid-template-columns:\s*repeat\(5, 1fr\)/);
     assert.match(source, /#fed105/);
     assert.match(source, /#0a7c3f/);
     assert.match(source, /#7c277d/);
     assert.match(source, /#e8721b/);
+    assert.match(source, /#8a999a/);
   });
 });

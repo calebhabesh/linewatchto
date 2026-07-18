@@ -6,7 +6,6 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { DynamicBackground } from "./DynamicBackground";
 import { InteractiveTtcMap } from "./InteractiveTtcMap";
-import type { MapOverlapSelection } from "./map-overlap-badges";
 import { DelayIcon } from "./DelayIcon";
 import { ActiveAlertsPanel } from "./ActiveAlertsPanel";
 import { DelaysPanel } from "./DelaysPanel";
@@ -406,7 +405,6 @@ export function LineWatchShell({
 
   // Interactive linking state
   const [selection, setSelection] = useState<ImpactSelection>(null);
-  const [overlapSelection, setOverlapSelection] = useState<MapOverlapSelection | null>(null);
   const [stationSummaries, setStationSummaries] = useState<StationSummary[]>(fallbackStationSummaries.stations);
   const [selectedStationId, setSelectedStationId] = useState<string | null>(null);
   const [visibleStationResult, setVisibleStationResult] = useState<StationDataResult<StationDetail | null> | null>(null);
@@ -422,7 +420,6 @@ export function LineWatchShell({
       return "menu";
     });
     setSelection(null);
-    setOverlapSelection(null);
   }, [isMobile, previousView, setActiveView, setSelection]);
 
   const [accountState, setAccountState] = useState<AccountState>({
@@ -1195,7 +1192,6 @@ export function LineWatchShell({
     setActiveView(prev => {
       if (prev !== "menu" && prev !== "map") {
         setSelection(null);
-        setOverlapSelection(null);
         setSelectedStationId(null);
       }
       return prev === "menu" ? "map" : "menu";
@@ -1208,7 +1204,6 @@ export function LineWatchShell({
     setActiveView((prev) => {
       if (prev !== "search" && prev !== "map") {
         setSelection(null);
-        setOverlapSelection(null);
         setSelectedStationId(null);
       }
 
@@ -1254,7 +1249,6 @@ export function LineWatchShell({
   const handleSelectStationId = useCallback((id: string | null) => {
     setSelectedStationId(id);
     setSelection(null);
-    setOverlapSelection(null);
     setCommutePathPreview(null);
     if (id) {
       recordPwaInstallEngagement();
@@ -1278,7 +1272,6 @@ export function LineWatchShell({
 
   const onMobileNavSelect = useCallback((key: MobileNavKey) => {
     setSelection(null);
-    setOverlapSelection(null);
     setSelectedStationId(null);
     setCommutePathPreview(null);
     setMobileInspectorDetent("map-focus");
@@ -1307,7 +1300,6 @@ export function LineWatchShell({
   const handleMobileSheetClose = useCallback(() => {
     setActiveView("map");
     setSelection(null);
-    setOverlapSelection(null);
     setMapPresentationMode("standard");
     setMobileInspectorDetent("map-focus");
   }, [setActiveView, setSelection]);
@@ -1338,7 +1330,6 @@ export function LineWatchShell({
   const handleMapSelectImpact = useCallback((nextSelection: ImpactSelection) => {
     setSelectedStationId(null);
     setCommutePathPreview(null);
-    setOverlapSelection(null);
     if (!nextSelection) {
       setSelection(null);
       return;
@@ -1353,26 +1344,10 @@ export function LineWatchShell({
     setActiveView(viewForImpactSelection(nextSelection));
   }, [setSelectedStationId, setCommutePathPreview, setSelection, setActiveView, viewForImpactSelection, isMobile, recordPwaInstallEngagement]);
 
-
-  const handleMapSelectOverlap = useCallback((nextOverlap: MapOverlapSelection) => {
-    setSelectedStationId(null);
-    setSelection(null);
-    setCommutePathPreview(null);
-    setOverlapSelection(nextOverlap);
-    setMobileInspectorDetent("map-focus");
-    setActiveView("map");
-  }, [setActiveView, setCommutePathPreview, setMobileInspectorDetent, setSelectedStationId, setSelection]);
-
-  const handleRotatedOverlapImpactSelect = useCallback((nextSelection: ImpactSelection) => {
-    setOverlapSelection(null);
-    handleMapSelectImpact(nextSelection);
-  }, [handleMapSelectImpact]);
-
   const handlePeekClosedMap = () => {
     setClosedMapPeek(true);
     setActiveView("map");
     setSelection(null);
-    setOverlapSelection(null);
     setSelectedStationId(null);
     setMapPresentationMode("standard");
     router.refresh();
@@ -1411,7 +1386,6 @@ export function LineWatchShell({
 
   const handleClearRotatedSelection = useCallback(() => {
     setSelection(null);
-    setOverlapSelection(null);
     setSelectedStationId(null);
     setMobileInspectorDetent("map-focus");
   }, [setMobileInspectorDetent, setSelectedStationId, setSelection]);
@@ -1903,11 +1877,11 @@ export function LineWatchShell({
     rotatedMapMode ? "mobile-map-rotated" : "",
   ].filter(Boolean).join(" ");
 
-  const rotatedSelectionVisible = Boolean(selection || overlapSelection || selectedStationId);
+  const rotatedSelectionVisible = Boolean(selection || selectedStationId);
   const rotatedMapSelectionHudClassName = [
     "rotated-map-selection-hud",
     selectedStationId ? "rotated-map-selection-hud-station-selection" : "",
-    selection || overlapSelection ? "rotated-map-selection-hud-impact-selection" : "",
+    selection ? "rotated-map-selection-hud-impact-selection" : "",
   ].filter(Boolean).join(" ");
 
   useEffect(() => {
@@ -2600,7 +2574,6 @@ export function LineWatchShell({
           selectedStationId={selectedStationId}
           stations={stationSummaries}
           onSelectImpact={handleMapSelectImpact}
-          onSelectOverlap={rotatedMapMode ? handleMapSelectOverlap : undefined}
           onSelectStationId={handleSelectStationId}
           isDark={isDark}
           onToggleTheme={handleToggleTheme}
@@ -2635,7 +2608,6 @@ export function LineWatchShell({
               <MobileMapControls
                 presentationMode="rotated-landscape"
                 onExitRotated={() => {
-                  setOverlapSelection(null);
                   setMapPresentationMode("standard");
                 }}
                 onRecenter={() => setRecenterSignal((prev) => prev + 1)}
@@ -2645,10 +2617,8 @@ export function LineWatchShell({
               <div className={rotatedMapSelectionHudClassName} aria-label="Selected rotated map item">
                 <RotatedMapSelectionCard
                   selection={selection}
-                  overlapSelection={overlapSelection}
                   selectedStationId={selectedStationId}
                   stations={stationSummaries}
-                  onSelectImpact={handleRotatedOverlapImpactSelect}
                   onOpenDetails={handleOpenRotatedSelectionDetails}
                   onClearSelection={handleClearRotatedSelection}
                 />

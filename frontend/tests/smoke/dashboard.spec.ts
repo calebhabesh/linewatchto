@@ -736,6 +736,42 @@ test("shows a compact map hint when multiple alert types overlap", async ({ page
   await expect(overlapMarker.locator('[data-overlap-kind="planned-closure"]')).toBeVisible();
 
   await overlapMarker.dispatchEvent("click");
+  const overlapChooser = overlapMarker.locator("[data-overlap-chooser]");
+  await expect.poll(async () => overlapChooser.evaluate((element) =>
+    element.getAnimations().some((animation) => animation.playState === "running"),
+  ), { timeout: 500 }).toBe(true);
+  await expect(overlapChooser).toBeVisible();
+  await expect(overlapChooser.getByText("Choose Alert", { exact: true })).toBeVisible();
+  const chooserCount = overlapChooser.locator(".overlap-chooser-header-count");
+  await expect(chooserCount).toHaveText("3");
+  await expect.poll(async () => chooserCount.evaluate((element) => {
+    const style = getComputedStyle(element);
+    return {
+      backgroundColor: style.backgroundColor,
+      borderRadius: style.borderRadius,
+      height: style.height,
+      width: style.width,
+    };
+  })).toEqual({
+    backgroundColor: "rgb(239, 68, 68)",
+    borderRadius: "50%",
+    height: "28px",
+    width: "28px",
+  });
+  await expect(overlapChooser.getByText("Suspension", { exact: true })).toBeVisible();
+  await expect(overlapChooser.getByText("Active Closure", { exact: true })).toBeVisible();
+  await expect(overlapChooser.getByText("Upcoming Closure", { exact: true })).toBeVisible();
+  await expect(overlapChooser.getByText("Line 1: Stub Station to Stub Terminal (Northbound & Southbound)")).toHaveCount(3);
+  await expect(overlapChooser.locator(".overlap-chooser-choice-action")).toHaveCount(0);
+  await expect(overlapChooser.locator('[data-overlap-choice-kind="planned-closure"]').first()).toHaveCSS("border-left-width", "2px");
+  await overlapChooser.getByRole("button", { name: "Close alert chooser" }).click();
+  await expect.poll(async () => overlapChooser.evaluate((element) =>
+    element.getAnimations().some((animation) => animation.playState === "running"),
+  ), { timeout: 300 }).toBe(true);
+  await expect(overlapChooser).toBeHidden();
+  await overlapMarker.dispatchEvent("click");
+  await expect(overlapChooser).toBeVisible();
+  await overlapChooser.locator('[data-overlap-choice-kind="suspension"]').click();
   if (isMobile) {
     const inspector = page.locator('[data-mobile-impact-inspector]');
     await expect(inspector).toBeVisible();
@@ -804,6 +840,9 @@ test("uses map overlap metadata for active-alert and sibling submenu overlap ref
   const overlapMarker = page.locator('[data-overlap-segment-id="stub-line-1-segment"]');
   await expect(overlapMarker).toBeVisible();
   await overlapMarker.dispatchEvent("click");
+  const overlapChooser = overlapMarker.locator("[data-overlap-chooser]");
+  await expect(overlapChooser).toBeVisible();
+  await overlapChooser.locator('[data-overlap-choice-kind="suspension"]').click();
 
   if (isMobile) {
     const inspector = page.locator('[data-mobile-impact-inspector]');

@@ -37,14 +37,14 @@ describe("asset-backed map layering", () => {
   it("pins station hit targets to the authored station-dot outlines", () => {
     assert.match(
       interactiveMapSource,
-      /const hitRadius = hasMultipleVisualAnchors \? 40 : isLarge \? 61 : 36;/,
+      /const hitRadius = hasMultipleVisualAnchors \? 45 : isLarge \? 66 : 41;/,
     );
   });
 
   it("renders a stronger station hover halo outside the clickable dot", () => {
     assert.match(
       interactiveMapSource,
-      /const hoverRadius = hasMultipleVisualAnchors \? 49 : isLarge \? 72 : 48;/,
+      /const hoverRadius = usesIndependentSpadinaHover \? 34 : isLarge \? 72 : 48;/,
     );
     assert.match(interactiveMapSource, /className=\{`station-hover-indicator/);
     assert.match(interactiveMapSource, /r=\{hoverRadius\}/);
@@ -390,6 +390,40 @@ describe("asset-backed map layering", () => {
     assert.doesNotMatch(globalCss, /\.overlap-side-rail/);
   });
 
+  it("expands every overlap badge into an explicit in-map impact chooser", () => {
+    assert.match(interactiveMapSource, /expandedOverlapBadgeId/);
+    assert.match(interactiveMapSource, /data-overlap-chooser/);
+    assert.match(interactiveMapSource, /data-overlap-choice-kind=\{impact\.kind\}/);
+    assert.match(interactiveMapSource, /data-overlap-choice-id=\{impact\.cardId\}/);
+    assert.match(interactiveMapSource, /aria-expanded=\{isOpen\}/);
+    assert.match(interactiveMapSource, /Choose Alert/);
+    assert.match(interactiveMapSource, /getSelectedImpactDetails/);
+    assert.match(interactiveMapSource, /chooseOverlapChooserPosition/);
+    assert.match(interactiveMapSource, /chooserPosition/);
+    assert.match(interactiveMapSource, /formatOverlapChooserLocation/);
+    assert.match(interactiveMapSource, /overlap-chooser-header-count/);
+    assert.match(interactiveMapSource, /badge\.impacts\.length/);
+    assert.match(interactiveMapSource, /transformOrigin:/);
+    assert.match(interactiveMapSource, /surfaceRef\.current\?\.animate/);
+    assert.match(interactiveMapSource, /duration:\s*650/);
+    assert.match(interactiveMapSource, /animateChooserClosed/);
+    assert.match(interactiveMapSource, /duration:\s*220/);
+    assert.match(interactiveMapSource, /animation\?\.finished/);
+    assert.match(interactiveMapSource, /borderRadius:\s*"999px"/);
+    assert.match(interactiveMapSource, /details\.displayDirection/);
+    assert.doesNotMatch(interactiveMapSource, /overlap-chooser-choice-action/);
+    assert.doesNotMatch(interactiveMapSource, /details\?\.title \?\? labelForImpactKind/);
+    assert.match(globalCss, /\.overlap-chooser-surface/);
+    assert.match(globalCss, /@keyframes overlap-chooser-enter/);
+    assert.match(globalCss, /border-radius:\s*50%/);
+    assert.match(globalCss, /scale\(1\.04,\s*0\.96\)/);
+    assert.match(globalCss, /\.overlap-chooser-header-count/);
+    assert.match(globalCss, /\.overlap-chooser-choice\s*\{[^}]*border-left-width:\s*2px;/s);
+    assert.match(globalCss, /\.overlap-chooser-choice\.reduced-speed-zone\s*\{[^}]*rgba\(245,\s*158,\s*11,\s*0\.42\)/s);
+    assert.match(globalCss, /\.motion-paused \.overlap-chooser-surface/);
+    assert.doesNotMatch(interactiveMapSource, /selectPrimaryImpact/);
+  });
+
   it("retains disappearing map overlays long enough to fade out", () => {
     assert.match(interactiveMapSource, /useRetainedMapLayers/);
     assert.match(interactiveMapSource, /map-layer-exiting/);
@@ -525,6 +559,12 @@ describe("asset-backed map layering", () => {
     assert.match(interactiveMapSource, /event\.pointerType !== "mouse"/);
     assert.match(globalCss, /\.station-hover-indicator/);
     assert.match(globalCss, /\.station-hit-target\.multi-anchor:hover/);
+  });
+
+  it("renders separate non-intersecting hover highlights over Spadina's two visual anchors", () => {
+    assert.match(interactiveMapSource, /const usesIndependentSpadinaHover = station\.id === "spadina" && visualAnchors\.length === 2;/);
+    assert.match(interactiveMapSource, /const hoverRadius = usesIndependentSpadinaHover \? 34/);
+    assert.doesNotMatch(interactiveMapSource, /data-station-hover-capsule-id/);
   });
 
   it("keeps estimated train markers opt-in and suppresses them while subway is closed", () => {

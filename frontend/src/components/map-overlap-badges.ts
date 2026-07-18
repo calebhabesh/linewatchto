@@ -1,18 +1,10 @@
 import type {
-  ImpactSelection,
   MapImpact,
   MapImpactKind,
   NetworkSegment,
   PlannedClosure,
   StationNodeImpact,
 } from "../app/linewatch-data";
-
-export type MapOverlapSelection = {
-  label: string;
-  impacts: {
-    selection: NonNullable<ImpactSelection>;
-  }[];
-};
 
 export type OverlapBadgeSourceSegment = Pick<
   NetworkSegment,
@@ -33,13 +25,17 @@ export type StationOverlapBadgeGroup = {
   stationId: string;
   impacts: MapImpact[];
   impactKinds: MapImpactKind[];
-  primaryImpact: MapImpact;
 };
 
 export type OverlapBadgeKindCount = {
   kind: MapImpactKind;
   count: number;
 };
+
+export type OverlapChooserPoint = { x: number; y: number };
+export type OverlapChooserSize = { width: number; height: number };
+export type OverlapChooserBounds = OverlapChooserPoint & OverlapChooserSize;
+export type OverlapChooserPosition = OverlapChooserPoint & { collisionAvoided: boolean };
 
 export type SegmentOverlapBadgeCoverageGroup = {
   signature: string;
@@ -85,8 +81,130 @@ export function overlapBadgeVisualItemCount(kindCounts: OverlapBadgeKindCount[])
   return kindCounts.length;
 }
 
-export function primaryImpactForOverlap(impacts: MapImpact[]): MapImpact | undefined {
-  return [...impacts].sort((a, b) => getImpactPriority(b.kind) - getImpactPriority(a.kind))[0];
+function chooserBounds(position: OverlapChooserPoint, size: OverlapChooserSize): OverlapChooserBounds {
+  return {
+    x: position.x - size.width / 2,
+    y: position.y - size.height / 2,
+    width: size.width,
+    height: size.height,
+  };
+}
+
+function expandedChooserBounds(bounds: OverlapChooserBounds, padding: number): OverlapChooserBounds {
+  return {
+    x: bounds.x - padding,
+    y: bounds.y - padding,
+    width: bounds.width + padding * 2,
+    height: bounds.height + padding * 2,
+  };
+}
+
+function chooserIntersectionArea(a: OverlapChooserBounds, b: OverlapChooserBounds): number {
+  const width = Math.max(0, Math.min(a.x + a.width, b.x + b.width) - Math.max(a.x, b.x));
+  const height = Math.max(0, Math.min(a.y + a.height, b.y + b.height) - Math.max(a.y, b.y));
+  return width * height;
+}
+
+function estimatedBlockedRatio(bounds: OverlapChooserBounds, blockedBoxes: OverlapChooserBounds[]): number {
+  const columns = 14;
+  const rows = 10;
+  let blockedSamples = 0;
+
+  for (let row = 0; row < rows; row += 1) {
+    for (let column = 0; column < columns; column += 1) {
+      const point = {
+        x: bounds.x + bounds.width * ((column + 0.5) / columns),
+        y: bounds.y + bounds.height * ((row + 0.5) / rows),
+      };
+      if (blockedBoxes.some((box) => (
+        point.x >= box.x && point.x <= box.x + box.width &&
+        point.y >= box.y && point.y <= box.y + box.height
+      ))) {
+        blockedSamples += 1;
+      }
+    }
+  }
+
+  return blockedSamples / (columns * rows);
+}
+
+function clampChooserPosition(
+  position: OverlapChooserPoint,
+  size: OverlapChooserSize,
+  mapBounds: OverlapChooserBounds,
+): OverlapChooserPoint {
+  return {
+    x: Math.min(mapBounds.x + mapBounds.width - size.width / 2, Math.max(mapBounds.x + size.width / 2, position.x)),
+    y: Math.min(mapBounds.y + mapBounds.height - size.height / 2, Math.max(mapBounds.y + size.height / 2, position.y)),
+  };
+}
+
+export function chooseOverlapChooserPosition({
+  anchor,
+  badgeSize,
+  chooserSize,
+  blockedBoxes,
+  mapBounds,
+  gap = 28,
+}: {
+  anchor: OverlapChooserPoint;
+  badgeSize: OverlapChooserSize;
+  chooserSize: OverlapChooserSize;
+  blockedBoxes: OverlapChooserBounds[];
+  mapBounds: OverlapChooserBounds;
+  gap?: number;
+}): OverlapChooserPosition {
+  const horizontalOffset = badgeSize.width / 2 + gap + chooserSize.width / 2;
+  const verticalOffset = badgeSize.height / 2 + gap + chooserSize.height / 2;
+  const horizontalSlide = chooserSize.width * 0.46;
+  const verticalSlide = chooserSize.height * 0.58;
+  const offsets = [
+    { x: 0, y: -verticalOffset },
+    { x: horizontalOffset, y: 0 },
+    { x: 0, y: verticalOffset },
+    { x: -horizontalOffset, y: 0 },
+    { x: horizontalSlide, y: -verticalOffset },
+    { x: -horizontalSlide, y: -verticalOffset },
+    { x: horizontalOffset, y: -verticalSlide },
+    { x: horizontalOffset, y: verticalSlide },
+    { x: horizontalSlide, y: verticalOffset },
+    { x: -horizontalSlide, y: verticalOffset },
+    { x: -horizontalOffset, y: verticalSlide },
+    { x: -horizontalOffset, y: -verticalSlide },
+    { x: horizontalOffset, y: -verticalOffset },
+    { x: horizontalOffset, y: verticalOffset },
+    { x: -horizontalOffset, y: verticalOffset },
+    { x: -horizontalOffset, y: -verticalOffset },
+  ];
+
+  const seen = new Set<string>();
+  const candidates = offsets.flatMap((offset, index) => {
+    const position = clampChooserPosition(
+      { x: anchor.x + offset.x, y: anchor.y + offset.y },
+      chooserSize,
+      mapBounds,
+    );
+    const key = `${Math.round(position.x)}:${Math.round(position.y)}`;
+    if (seen.has(key)) return [];
+    seen.add(key);
+
+    const bounds = chooserBounds(position, chooserSize);
+    const nearbyBounds = expandedChooserBounds(bounds, 72);
+    const collisionAvoided = blockedBoxes.every((box) => chooserIntersectionArea(bounds, box) === 0);
+    const blockedRatio = estimatedBlockedRatio(bounds, blockedBoxes);
+    const nearbyBlockedRatio = estimatedBlockedRatio(nearbyBounds, blockedBoxes);
+    const distance = Math.hypot(position.x - anchor.x, position.y - anchor.y);
+    return [{
+      position,
+      collisionAvoided,
+      score: (collisionAvoided ? 0 : 1_000_000_000) + blockedRatio * 100_000_000 + nearbyBlockedRatio * 100_000 + distance,
+      index,
+    }];
+  });
+
+  const best = candidates.sort((a, b) => a.score - b.score || a.index - b.index)[0];
+  if (best) return { ...best.position, collisionAvoided: best.collisionAvoided };
+  return { ...clampChooserPosition(anchor, chooserSize, mapBounds), collisionAvoided: false };
 }
 
 function legacyImpactsForSegment(segment: OverlapBadgeSourceSegment): MapImpact[] {
@@ -244,15 +362,11 @@ export function buildStationOverlapBadgeGroups({
       const signature = overlapBadgeSignature(impacts);
       if (suppressedSignatures.has(signature)) return null;
 
-      const primaryImpact = primaryImpactForOverlap(impacts);
-      if (!primaryImpact) return null;
-
       return {
         signature,
         stationId,
         impacts,
         impactKinds,
-        primaryImpact,
       };
     })
     .filter((group): group is StationOverlapBadgeGroup => Boolean(group));

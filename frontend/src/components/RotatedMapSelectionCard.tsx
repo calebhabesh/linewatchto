@@ -9,15 +9,12 @@ import type { StationSummary } from "../app/station-data";
 import { getSelectedImpactDetails } from "./MobileImpactInspector";
 import { STATION_LINE_DEFINITIONS } from "../app/station-data";
 import { ImpactTypeIcon } from "./ImpactTypeIcon";
-import type { MapOverlapSelection } from "./map-overlap-badges";
 import { PhoneRotateLandscapeIcon } from "./MobileMapControls";
 
 type Props = {
   selection: ImpactSelection;
-  overlapSelection: MapOverlapSelection | null;
   selectedStationId: string | null;
   stations: StationSummary[];
-  onSelectImpact: (selection: ImpactSelection) => void;
   onOpenDetails: () => void;
   onClearSelection: () => void;
 };
@@ -181,69 +178,12 @@ function stationPreviewImpactsFor(selectedStationId: string, data: DashboardData
 
 export function RotatedMapSelectionCard({
   selection,
-  overlapSelection,
   selectedStationId,
   stations,
-  onSelectImpact,
   onOpenDetails,
   onClearSelection,
 }: Props) {
   const data = useDashboardData();
-
-  if (overlapSelection) {
-    const impacts = overlapSelection.impacts
-      .map((impact) => ({
-        ...impact,
-        details: getSelectedImpactDetails(impact.selection, data),
-      }))
-      .filter((impact) => impact.details);
-
-    if (impacts.length === 0) return null;
-
-    return (
-      <section
-        className="rotated-map-selection-card rotated-map-selection-card-overlap"
-        data-rotated-map-selection-card
-        data-selection-kind="overlap"
-        aria-label="Overlapping map impacts"
-      >
-        <div className="rotated-map-selection-card-header">
-          <div className="rotated-map-selection-card-title-group">
-            <span className="rotated-map-selection-card-kicker">{toTitleCase("Alert Overlap")}</span>
-            <h2>{toTitleCase(overlapSelection.label)}</h2>
-          </div>
-          <button type="button" className="rotated-map-selection-icon-button" aria-label="Clear selected map item" onClick={onClearSelection}>
-            <X size={17} aria-hidden="true" />
-          </button>
-        </div>
-
-        <div className="rotated-map-overlap-choice-list" aria-label="Choose Impact">
-          {impacts.map((impact) => {
-            const details = impact.details;
-            if (!details) return null;
-
-            return (
-              <button
-                key={`${impact.selection.kind}-${impact.selection.id}`}
-                type="button"
-                className={`rotated-map-overlap-choice rotated-map-overlap-choice-${impact.selection.kind}`}
-                onClick={() => onSelectImpact(impact.selection)}
-              >
-                <ImpactTypeIcon kind={impact.selection.kind} size={16} className="shrink-0" />
-                <span className="rotated-map-overlap-choice-copy">
-                  <span className="rotated-map-overlap-choice-title">{toTitleCase(details.title)}</span>
-                  <span className="rotated-map-overlap-choice-meta">
-                    {toTitleCase(details.categoryLabel)} / {toTitleCase(details.location)}
-                  </span>
-                </span>
-                <span className="rotated-map-overlap-choice-action">Choose Impact</span>
-              </button>
-            );
-          })}
-        </div>
-      </section>
-    );
-  }
 
   if (selection) {
     const details = getSelectedImpactDetails(selection, data);
