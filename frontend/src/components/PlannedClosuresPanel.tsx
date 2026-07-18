@@ -99,7 +99,7 @@ export function PlannedClosuresPanel({ selection, onSelectImpact, onBack, onClos
                   isActive ? "!bg-blue-50 dark:!bg-blue-950" : ""
                 }`}
               >
-                <div className="flex items-start justify-between gap-3 w-full min-w-0">
+                <div className="impact-card-heading has-status-badges flex items-start justify-between gap-3 w-full min-w-0">
                   <div className="flex min-w-0 flex-1 items-start gap-2">
                     <LineBadge lineId={closure.lineId} lineNumber={closure.lineNumber} />
                     <div className="flex flex-col items-start min-w-0">
@@ -108,7 +108,7 @@ export function PlannedClosuresPanel({ selection, onSelectImpact, onBack, onClos
                       </strong>
                     </div>
                   </div>
-                  <div className="flex flex-col items-end gap-1 shrink-0 mt-0.5">
+                  <div className="impact-card-heading__badges flex flex-col items-end gap-1 shrink-0 mt-0.5">
                     {closure.activeNow && (
                       <span className="flex items-center gap-1 text-[10px] bg-red-500/10 text-red-500 dark:text-red-400 px-1.5 py-0.5 rounded font-bold uppercase tracking-wider">
                         Active now
@@ -128,33 +128,6 @@ export function PlannedClosuresPanel({ selection, onSelectImpact, onBack, onClos
                   </div>
                 </div>
 
-                {hasScheduleDetails ? (
-                  <dl className="planned-closure-schedule">
-                    {closure.windowHours && (
-                      <div className="planned-closure-window-hours">
-                        <dt>Closure hours</dt>
-                        <dd>{formatClosureScheduleValue(closure.windowHours)}</dd>
-                      </div>
-                    )}
-                    {closure.windowDates && (
-                      <div className="planned-closure-window-dates">
-                        <dt>Closure dates</dt>
-                        <dd>{formatClosureScheduleValue(closure.windowDates)}</dd>
-                      </div>
-                    )}
-                    {specificWindowLabel && (
-                      <div className={`planned-closure-specific-window ${closure.activeNow ? "is-current" : ""}`}>
-                        <dt>{specificWindowHeading}</dt>
-                        <dd>{formatClosureScheduleValue(specificWindowLabel)}</dd>
-                      </div>
-                    )}
-                  </dl>
-                ) : (
-                  <div className="max-w-full text-[10px] text-blue-600 dark:text-blue-400 font-bold mt-2 bg-blue-500/5 dark:bg-blue-500/10 px-2 py-0.5 rounded-md inline-block whitespace-normal break-words">
-                    {closure.window}
-                  </div>
-                )}
-
                 <ImpactRouteHeader location={closure.location} direction={closure.displayDirection} />
                 
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 leading-relaxed whitespace-normal break-words">
@@ -170,14 +143,38 @@ export function PlannedClosuresPanel({ selection, onSelectImpact, onBack, onClos
                 <div className="border-t border-black/10 dark:border-white/10 mt-3 pt-2.5 flex items-end justify-start gap-3 w-full min-w-0">
                   <div className="flex-1 min-w-0">
                     <MetadataGrid 
-                      className="no-border"
+                      className="no-border planned-closure-metadata"
                       cause={closure.cause}
                       resolution={closure.resolution}
                       reason={closure.reason} 
                       targetRemoval={closure.targetRemoval} 
                       startedAt={closure.startedAt}
                       updatedAt={closure.updatedAt}
-                      updatedAgo={closure.updatedAgo} 
+                      updatedAgo={closure.updatedAgo}
+                      leadingRows={[
+                        {
+                          label: "Closure dates",
+                          value: closure.windowDates
+                            ? formatClosureScheduleValue(closure.windowDates)
+                            : null,
+                        },
+                        {
+                          label: "Closure hours",
+                          value: closure.windowHours
+                            ? formatClosureScheduleValue(closure.windowHours)
+                            : null,
+                        },
+                        {
+                          label: specificWindowHeading,
+                          value: specificWindowLabel
+                            ? formatClosureScheduleValue(specificWindowLabel)
+                            : null,
+                        },
+                        {
+                          label: "Closure window",
+                          value: hasScheduleDetails ? null : closure.window,
+                        },
+                      ]}
                     />
                   </div>
                   <button

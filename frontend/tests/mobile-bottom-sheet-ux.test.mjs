@@ -60,6 +60,13 @@ describe("mobile bottom sheet UX", () => {
     assert.match(statusSheetSource, /"closures"/);
     assert.match(statusSheetSource, /Good Service/);
     assert.match(statusSheetSource, /useDashboardData/);
+    assert.match(statusSheetSource, /<h3>Alerts<\/h3>/);
+    assert.match(statusSheetSource, /<h3>Line Status<\/h3>/);
+    assert.match(statusSheetSource, /lineClosures\.length === 1 \? "Planned Closure" : "Planned Closures"/);
+    assert.match(statusSheetSource, /bg-logo-blue[^\n]*shadow-\[0_0_4px_rgba\(129,201,255,0\.35\)\]/);
+    assert.match(statusSheetSource, /className="mobile-line-status-planned-row"/);
+    assert.match(globalCss, /\.mobile-status-section-heading\s*\{[^}]*align-items:\s*center;[^}]*display:\s*flex;[^}]*gap:\s*8px/s);
+    assert.match(globalCss, /\.mobile-line-status-planned-row\s*\{[^}]*display:\s*flex;[^}]*flex-basis:\s*100%/s);
   });
 
   it("moves secondary mobile utilities into More", () => {

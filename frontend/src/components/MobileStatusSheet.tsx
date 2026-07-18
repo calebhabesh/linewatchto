@@ -36,6 +36,13 @@ export function MobileStatusSheet({ pollText, dataSource, onOpenCategory, onClos
       </div>
 
       <div className="mobile-status-content-scroll">
+        <div className="mobile-status-section-heading">
+          <span
+            className="w-1 h-4 rounded-full bg-logo-blue shrink-0 shadow-[0_0_4px_rgba(129,201,255,0.35)]"
+            aria-hidden="true"
+          />
+          <h3>Alerts</h3>
+        </div>
         <div className="mobile-status-actions" aria-label="Service impact categories">
           <button type="button" className="mobile-status-btn-alerts" onClick={() => onOpenCategory("alerts")}>
             <AlertTriangle size={16} className="text-red-500 dark:text-red-400 shrink-0" />
@@ -88,6 +95,13 @@ export function MobileStatusSheet({ pollText, dataSource, onOpenCategory, onClos
         </div>
 
         <div className="mobile-line-status-list">
+          <div className="mobile-status-section-heading">
+            <span
+              className="w-1 h-4 rounded-full bg-logo-blue shrink-0 shadow-[0_0_4px_rgba(129,201,255,0.35)]"
+              aria-hidden="true"
+            />
+            <h3>Line Status</h3>
+          </div>
           {lineStatuses.map((line) => {
             const lineAlerts = activeAlerts.filter((alert) => alert.lineId === line.id);
             const lineDelays = delays.filter((delay) => delay.lineId === line.id);
@@ -125,10 +139,12 @@ export function MobileStatusSheet({ pollText, dataSource, onOpenCategory, onClos
                         </button>
                       ) : null}
                       {lineClosures.length > 0 ? (
-                        <button type="button" className="mobile-line-status-btn-closures" onClick={() => onOpenCategory("closures")}>
-                          <Calendar size={12} className="text-blue-500 dark:text-blue-400 shrink-0" />
-                          {lineClosures.length} {lineClosures.length === 1 ? "Closure" : "Closures"}
-                        </button>
+                        <span className="mobile-line-status-planned-row">
+                          <button type="button" className="mobile-line-status-btn-closures" onClick={() => onOpenCategory("closures")}>
+                            <Calendar size={12} className="text-blue-500 dark:text-blue-400 shrink-0" />
+                            {lineClosures.length} {lineClosures.length === 1 ? "Planned Closure" : "Planned Closures"}
+                          </button>
+                        </span>
                       ) : null}
                     </span>
                   ) : null}

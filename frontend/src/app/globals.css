@@ -3700,6 +3700,20 @@ button {
   opacity: 0.7;
 }
 
+.impact-card-heading {
+  position: relative;
+}
+
+.impact-card-heading.has-status-badges > :first-child {
+  padding-right: 5rem;
+}
+
+.impact-card-heading__badges {
+  position: absolute;
+  right: 0;
+  top: 0;
+}
+
 .impact-route {
   align-items: center;
   display: grid;
@@ -3707,6 +3721,11 @@ button {
   justify-items: center;
   margin-top: 32px;
   text-align: center;
+}
+
+.alert-card > .impact-route,
+.closure-card > .impact-route {
+  margin-block: 24px;
 }
 
 .impact-route__bounds {
@@ -3760,6 +3779,17 @@ button {
   font-weight: 700;
   margin: 2px 0 0;
   overflow-wrap: break-word;
+}
+
+.planned-closure-metadata .is-emphasized dt {
+  color: var(--color-logo-blue);
+  letter-spacing: 0.035em;
+  text-shadow: 0 0 4px rgba(129, 201, 255, 0.35);
+}
+
+.planned-closure-metadata .is-emphasized dd {
+  font-size: 0.84rem;
+  font-weight: 850;
 }
 
 .subway-closed-map-backdrop {
@@ -5827,138 +5857,6 @@ button {
 
 .planned-closure-card-border {
   border-left-color: #3b82f6;
-  container-type: inline-size;
-}
-
-.planned-closure-schedule {
-  display: grid;
-  grid-template-columns: max-content minmax(0.75rem, 1fr) max-content;
-  gap: 1rem 0;
-  margin-top: 1rem;
-}
-
-.planned-closure-schedule::before {
-  content: "";
-  grid-column: 2;
-  grid-row: 1;
-  justify-self: center;
-  width: 1px;
-  height: 2.25rem;
-  background: rgba(100, 116, 139, 0.13);
-}
-
-.planned-closure-schedule div {
-  min-width: 0;
-}
-
-.planned-closure-specific-window {
-  grid-column: 1 / -1;
-}
-
-.planned-closure-window-hours {
-  grid-column: 1;
-}
-
-.planned-closure-window-dates {
-  grid-column: 3;
-}
-
-.planned-closure-schedule dt {
-  color: rgb(100, 116, 139);
-  font-size: clamp(0.625rem, 2.8cqw, 0.6875rem);
-  font-weight: 900;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
-}
-
-.planned-closure-schedule dd {
-  margin-top: 0.25rem;
-  color: rgb(30, 41, 59);
-  font-size: clamp(0.75rem, 3.75cqw, 0.875rem);
-  font-weight: 750;
-  line-height: 1.35;
-  letter-spacing: -0.01em;
-  white-space: nowrap;
-}
-
-.planned-closure-specific-window.is-current dd {
-  color: rgb(220, 38, 38);
-}
-
-@container (min-width: 38rem) {
-  .planned-closure-schedule::before {
-    display: none;
-  }
-
-  .planned-closure-schedule {
-    column-gap: 0;
-    grid-template-columns: 0.9fr 1.25fr 1.4fr;
-  }
-
-  .planned-closure-schedule > div {
-    padding: 0 0.9rem;
-  }
-
-  .planned-closure-window-hours,
-  .planned-closure-window-dates,
-  .planned-closure-specific-window {
-    grid-column: auto;
-  }
-
-  .planned-closure-schedule > div:first-child {
-    padding-left: 0;
-  }
-
-  .planned-closure-schedule > div:last-child {
-    padding-right: 0;
-  }
-
-  .planned-closure-schedule > div + div {
-    border-left: 1px solid rgba(100, 116, 139, 0.16);
-  }
-
-  .planned-closure-schedule dd {
-    font-size: 0.9375rem;
-  }
-
-  .planned-closure-schedule dt {
-    font-size: 0.6875rem;
-  }
-
-  .planned-closure-specific-window {
-    grid-column: auto;
-  }
-
-  .dark .planned-closure-schedule > div + div {
-    border-left-color: rgba(148, 163, 184, 0.18);
-  }
-
-  .high-contrast .planned-closure-schedule > div + div {
-    border-left-color: rgba(255, 255, 255, 0.45);
-  }
-}
-
-.dark .planned-closure-schedule dt,
-.high-contrast .planned-closure-schedule dt {
-  color: rgb(148, 163, 184);
-}
-
-.dark .planned-closure-schedule::before {
-  background: rgba(148, 163, 184, 0.15);
-}
-
-.high-contrast .planned-closure-schedule::before {
-  background: rgba(255, 255, 255, 0.4);
-}
-
-.dark .planned-closure-schedule dd,
-.high-contrast .planned-closure-schedule dd {
-  color: rgb(226, 232, 240);
-}
-
-.dark .planned-closure-specific-window.is-current dd,
-.high-contrast .planned-closure-specific-window.is-current dd {
-  color: rgb(248, 113, 113);
 }
 
 .rsz-card-active {
@@ -9289,6 +9187,22 @@ button {
     gap: 8px;
   }
 
+  .mobile-status-section-heading {
+    align-items: center;
+    display: flex;
+    gap: 8px;
+    padding: 2px 2px 0;
+  }
+
+  .mobile-status-section-heading h3 {
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    margin: 0;
+    text-transform: uppercase;
+  }
+
   .mobile-line-status-row {
     align-items: flex-start;
     background: var(--panel-soft);
@@ -9337,6 +9251,12 @@ button {
     display: flex;
     flex-wrap: wrap;
     gap: 6px;
+  }
+
+  .mobile-line-status-planned-row {
+    display: flex;
+    flex-basis: 100%;
+    min-width: 0;
   }
 
   .mobile-line-status-impacts button {
@@ -10498,6 +10418,12 @@ button {
     text-overflow: clip !important;
     white-space: nowrap !important;
     display: block !important;
+  }
+
+  /* "Source: TTC Service Advisory" needs slightly more room than the generic cap. */
+  .mobile-view-content-wrapper[data-active-view="closures"] .panel-heading span.whitespace-nowrap {
+    max-width: none !important;
+    overflow: visible !important;
   }
 
   /* Shrink/compact buttons in the header */

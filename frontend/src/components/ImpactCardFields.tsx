@@ -164,6 +164,7 @@ export function MetadataGrid({
   startedAt,
   updatedAt,
   updatedAgo,
+  leadingRows,
   extraRows,
   className = "",
 }: {
@@ -174,16 +175,21 @@ export function MetadataGrid({
   startedAt?: string | null;
   updatedAt?: string | null;
   updatedAgo?: string | null;
+  leadingRows?: Array<{ label: string; value?: string | null }>;
   extraRows?: Array<{ label: string; value?: string | null }>;
   className?: string;
 }) {
   const causeValue = formatCause(cause ?? reason);
   const resolutionValue = resolution ?? targetRemoval;
+  const renderedLeadingRows = (leadingRows ?? [])
+    .filter((row) => row.value && row.value.trim().length > 0)
+    .map((row) => [row.label, row.value] as const);
   const renderedExtraRows = (extraRows ?? [])
     .filter((row) => row.value && row.value.trim().length > 0)
     .map((row) => [row.label, row.value] as const);
 
   const rows = [
+    ...renderedLeadingRows,
     causeValue ? ["Cause", causeValue] as const : null,
     resolutionValue ? ["Est.\u00A0\u00A0\u00A0Resolution", resolutionValue] as const : null,
     ...renderedExtraRows,
@@ -202,8 +208,8 @@ export function MetadataGrid({
 
   return (
     <dl className={`impact-metadata-grid ${className}`.trim()}>
-      {rows.map(([label, value]) => (
-        <div key={label}>
+      {rows.map(([label, value], index) => (
+        <div key={label} className={index < renderedLeadingRows.length ? "is-emphasized" : undefined}>
           <dt>{label}</dt>
           <dd>{value}</dd>
         </div>

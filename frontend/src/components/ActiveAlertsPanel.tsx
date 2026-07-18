@@ -133,7 +133,7 @@ export function ActiveAlertsPanel({
                   isActive ? "!bg-blue-50 dark:!bg-blue-950" : ""
                 }`}
               >
-                <div className="flex items-start justify-between gap-3 w-full min-w-0">
+                <div className="impact-card-heading has-status-badges flex items-start justify-between gap-3 w-full min-w-0">
                   <div className="flex min-w-0 flex-1 items-start gap-2">
                     <LineBadge lineId={alert.lineId} lineNumber={alert.lineNumber} />
                     <strong className="block min-w-0 text-sm font-semibold text-slate-800 dark:text-slate-100 whitespace-normal break-words mt-0.5">
@@ -141,7 +141,7 @@ export function ActiveAlertsPanel({
                     </strong>
                   </div>
                   {alert.shuttle && (
-                    <div className="flex flex-col items-end shrink-0 mt-0.5">
+                    <div className="impact-card-heading__badges flex flex-col items-end shrink-0 mt-0.5">
                       <span className="flex items-center gap-1 text-[10px] bg-blue-500/10 text-blue-500 dark:text-blue-400 px-1.5 py-0.5 rounded font-semibold uppercase">
                         <Bus size={10} />
                         Shuttle

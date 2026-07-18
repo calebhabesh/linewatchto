@@ -107,7 +107,19 @@ describe("floating menu layout", () => {
     assert.doesNotMatch(globalCss, /\.alert-card\s*\{[^}]*display:\s*grid/s);
   });
 
-  it("presents planned closure hours and calendar nights as structured schedule fields", () => {
+  it("keeps equal route spacing across alert submenu cards", () => {
+    for (const panelSource of [activeAlertsSource, delaysPanelSource, reducedSpeedZonesSource, plannedClosuresSource]) {
+      assert.match(panelSource, /impact-card-heading/);
+      assert.match(panelSource, /<ImpactRouteHeader/);
+    }
+
+    assert.match(activeAlertsSource, /impact-card-heading__badges/);
+    assert.match(plannedClosuresSource, /impact-card-heading__badges/);
+    assert.match(globalCss, /\.impact-card-heading__badges\s*\{[^}]*position:\s*absolute;[^}]*right:\s*0;[^}]*top:\s*0/s);
+    assert.match(globalCss, /\.alert-card\s*>\s*\.impact-route,\s*\.closure-card\s*>\s*\.impact-route\s*\{[^}]*margin-block:\s*24px/s);
+  });
+
+  it("presents planned closure schedule fields in the shared metadata grid", () => {
     assert.match(plannedClosuresSource, /closure\.windowHours/);
     assert.match(plannedClosuresSource, /closure\.windowDates/);
     assert.match(plannedClosuresSource, /Closure hours/);
@@ -115,22 +127,27 @@ describe("floating menu layout", () => {
     assert.doesNotMatch(plannedClosuresSource, /closure\.nightly \? "Closure nights"/);
     assert.match(plannedClosuresSource, /Current window/);
     assert.match(plannedClosuresSource, /Next window/);
-    assert.match(plannedClosuresSource, /planned-closure-window-hours/);
-    assert.match(plannedClosuresSource, /planned-closure-window-dates/);
     assert.match(plannedClosuresSource, /function formatClosureScheduleValue/);
     assert.match(plannedClosuresSource, /replace\(\/\\s\*\[–—\]\\s\*\/g, " – "\)/);
     assert.match(plannedClosuresSource, /formatClosureScheduleValue\(specificWindowLabel\)/);
-    assert.match(globalCss, /\.planned-closure-schedule/);
-    assert.match(globalCss, /\.planned-closure-specific-window\s*\{[^}]*grid-column:\s*1 \/ -1/s);
-    assert.match(globalCss, /\.planned-closure-schedule\s*\{[^}]*grid-template-columns:\s*max-content minmax\(0\.75rem, 1fr\) max-content/s);
-    assert.match(globalCss, /\.planned-closure-schedule::before\s*\{[^}]*grid-column:\s*2[^}]*justify-self:\s*center/s);
-    assert.match(globalCss, /\.planned-closure-schedule::before\s*\{[^}]*height:\s*2\.25rem/s);
-    assert.match(globalCss, /@container \(min-width:\s*38rem\)/);
-    assert.match(globalCss, /@container \(min-width:\s*38rem\)[\s\S]*?\.planned-closure-schedule::before\s*\{[^}]*display:\s*none/s);
-    assert.match(globalCss, /\.planned-closure-schedule\s*>\s*div\s*\+\s*div\s*\{[^}]*border-left:/s);
-    assert.match(globalCss, /\.planned-closure-schedule dd\s*\{[^}]*font-size:\s*clamp\([^}]*white-space:\s*nowrap/s);
-    assert.match(globalCss, /font-size:\s*clamp\(0\.75rem, 3\.75cqw, 0\.875rem\)/);
-    assert.doesNotMatch(globalCss, /\.planned-closure-schedule\s*\{[^}]*border-/s);
+    assert.match(plannedClosuresSource, /<MetadataGrid[\s\S]*?leadingRows=\{\[/s);
+    assert.match(plannedClosuresSource, /label:\s*"Closure hours"/);
+    assert.match(plannedClosuresSource, /label:\s*"Closure dates"/);
+    assert.match(plannedClosuresSource, /label:\s*specificWindowHeading/);
+    assert.match(plannedClosuresSource, /label:\s*"Closure window"/);
+    assert.doesNotMatch(plannedClosuresSource, /planned-closure-schedule/);
+    assert.doesNotMatch(globalCss, /\.planned-closure-schedule/);
+    assert.ok(
+      plannedClosuresSource.indexOf('label: "Closure dates"')
+        < plannedClosuresSource.indexOf('label: "Closure hours"'),
+      "closure dates should be rendered before closure hours",
+    );
+    assert.match(impactCardFieldsSource, /\.\.\.renderedLeadingRows,[\s\S]*?causeValue \? \["Cause"/s);
+    assert.match(impactCardFieldsSource, /index < renderedLeadingRows\.length \? "is-emphasized"/);
+    assert.match(plannedClosuresSource, /className="no-border planned-closure-metadata"/);
+    assert.match(globalCss, /\.planned-closure-metadata \.is-emphasized dt\s*\{[^}]*color:\s*var\(--color-logo-blue\);[^}]*text-shadow:\s*0 0 4px rgba\(129, 201, 255, 0\.35\)/s);
+    assert.match(globalCss, /\.planned-closure-metadata \.is-emphasized dd\s*\{[^}]*font-size:\s*0\.84rem;[^}]*font-weight:\s*850/s);
+    assert.match(globalCss, /data-active-view="closures"[^}]*\.panel-heading span\.whitespace-nowrap\s*\{[^}]*max-width:\s*none\s*!important;[^}]*overflow:\s*visible\s*!important/s);
   });
 
   it("keeps floating panels single-column even at desktop viewport widths", () => {
