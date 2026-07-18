@@ -123,26 +123,26 @@ export function MobileStatusSheet({ pollText, dataSource, onOpenCategory, onClos
                       {lineAlerts.length > 0 ? (
                         <button type="button" className="mobile-line-status-btn-alerts" onClick={() => onOpenCategory("alerts")}>
                           <AlertTriangle size={12} className="text-red-500 dark:text-red-400 shrink-0" />
-                          {lineAlerts.length} {lineAlerts.length === 1 ? "Active Alert" : "Active Alerts"}
+                          <span><span className="mobile-line-status-impact-count">{lineAlerts.length}</span>{lineAlerts.length === 1 ? "Active Alert" : "Active Alerts"}</span>
                         </button>
                       ) : null}
                       {lineDelays.length > 0 ? (
                         <button type="button" className="mobile-line-status-btn-delays" onClick={() => onOpenCategory("delays")}>
                           <DelayIcon size={12} className="delay-tone shrink-0" />
-                          {lineDelays.length} {lineDelays.length === 1 ? "Delay" : "Delays"}
+                          <span><span className="mobile-line-status-impact-count">{lineDelays.length}</span>{lineDelays.length === 1 ? "Delay" : "Delays"}</span>
                         </button>
                       ) : null}
                       {lineRsz.length > 0 ? (
                         <button type="button" className="mobile-line-status-btn-rsz" onClick={() => onOpenCategory("reduced-speed-zones")}>
                           <Construction size={12} className="text-amber-600 dark:text-amber-400 shrink-0" />
-                          {lineRsz.length} {lineRsz.length === 1 ? "Reduced Speed Zone" : "Reduced Speed Zones"}
+                          <span><span className="mobile-line-status-impact-count">{lineRsz.length}</span>{lineRsz.length === 1 ? "Reduced Speed Zone" : "Reduced Speed Zones"}</span>
                         </button>
                       ) : null}
                       {lineClosures.length > 0 ? (
                         <span className="mobile-line-status-planned-row">
                           <button type="button" className="mobile-line-status-btn-closures" onClick={() => onOpenCategory("closures")}>
                             <Calendar size={12} className="text-blue-500 dark:text-blue-400 shrink-0" />
-                            {lineClosures.length} {lineClosures.length === 1 ? "Planned Closure" : "Planned Closures"}
+                            <span><span className="mobile-line-status-impact-count">{lineClosures.length}</span>{lineClosures.length === 1 ? "Planned Closure" : "Planned Closures"}</span>
                           </button>
                         </span>
                       ) : null}

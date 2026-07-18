@@ -9264,6 +9264,10 @@ button {
     padding: 5px 8px;
   }
 
+  .mobile-line-status-impact-count {
+    margin-right: 3.5px;
+  }
+
   .mobile-line-status-btn-alerts {
     border-color: rgba(239, 68, 68, 0.45) !important;
   }
