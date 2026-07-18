@@ -123,6 +123,48 @@ class MapControllerTest {
     }
 
     @Test
+    void keepsPlannedClosureIdentityInLayeredImpactsWithLegacyClosedServiceOverlay() {
+        when(stationRepository.findAllByOrderBySortOrderAscNameAsc()).thenReturn(List.of());
+        when(lineSegmentRepository.findAllByOrderBySortOrderAsc()).thenReturn(List.of(
+            new LineSegmentEntity(
+                "line-1-finch-eglinton",
+                "line-1",
+                "finch",
+                "eglinton",
+                null,
+                "M 0 0 L 1 1",
+                10,
+                "southbound",
+                null,
+                false,
+                "station-finch",
+                "station-eglinton"
+            )
+        ));
+        when(dashboardService.activeSegmentImpacts()).thenReturn(Map.of(
+            "line-1-finch-eglinton",
+            List.of(new AlertDashboardService.SegmentImpact(
+                "planned-closure",
+                "planned-closure-nightly",
+                "bidirectional",
+                List.of("planned-closure-nightly")
+            ))
+        ));
+        when(dashboardService.activeStationNodeImpacts()).thenReturn(List.of());
+
+        MapController.MapResponse response = controller.getMap();
+
+        assertThat(response.segments()).singleElement().satisfies(segment -> {
+            assertThat(segment.overlay()).isEqualTo("suspension");
+            assertThat(segment.alertId()).isEqualTo("planned-closure-nightly");
+            assertThat(segment.impacts()).singleElement().satisfies(impact -> {
+                assertThat(impact.kind()).isEqualTo("planned-closure");
+                assertThat(impact.cardId()).isEqualTo("planned-closure-nightly");
+            });
+        });
+    }
+
+    @Test
     void exposesNonlinearGuideMetadataWithActiveImpacts() {
         when(stationRepository.findAllByOrderBySortOrderAscNameAsc()).thenReturn(List.of());
         when(lineSegmentRepository.findAllByOrderBySortOrderAsc()).thenReturn(List.of(

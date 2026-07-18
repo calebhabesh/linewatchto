@@ -556,7 +556,7 @@ class AlertDashboardServiceTest {
             "planned-closure-nightly",
             "planned-closure",
             "planned",
-            "Nightly closure",
+            "Nightly closure, starting 11",
             "No subway service nightly between Finch and Eglinton.",
             "finch",
             "eglinton",
@@ -585,15 +585,15 @@ class AlertDashboardServiceTest {
         AlertActivePeriodRepository.AlertPeriod period1 = new AlertActivePeriodRepository.AlertPeriod(
             "planned-closure-nightly",
             "period-1",
-            OffsetDateTime.parse("2026-06-01T02:00:00Z"),
-            OffsetDateTime.parse("2026-06-01T06:00:00Z"),
+            OffsetDateTime.parse("2026-06-01T03:59:00Z"),
+            OffsetDateTime.parse("2026-06-01T07:30:00Z"),
             0
         );
         AlertActivePeriodRepository.AlertPeriod period2 = new AlertActivePeriodRepository.AlertPeriod(
             "planned-closure-nightly",
             "period-2",
-            OffsetDateTime.parse("2026-06-02T02:00:00Z"),
-            OffsetDateTime.parse("2026-06-02T06:00:00Z"),
+            OffsetDateTime.parse("2026-06-02T03:59:00Z"),
+            OffsetDateTime.parse("2026-06-02T07:30:00Z"),
             1
         );
         when(alertActivePeriodRepository.findByAlertIds(List.of("planned-closure-nightly")))
@@ -603,19 +603,22 @@ class AlertDashboardServiceTest {
 
         assertThat(closures).singleElement().satisfies(dto -> {
             assertThat(dto.id()).isEqualTo("planned-closure-nightly");
+            assertThat(dto.title()).isEqualTo("Nightly closure");
             assertThat(dto.window()).isEqualTo("Nightly closure windows");
+            assertThat(dto.windowHours()).isEqualTo("11:59 PM – 3:30 AM");
+            assertThat(dto.windowDates()).isEqualTo("Sun, May 31 – Mon, Jun 1");
             assertThat(dto.nightly()).isTrue();
             assertThat(dto.activeNow()).isFalse();
             assertThat(dto.timingStatus()).isEqualTo("upcoming");
-            assertThat(dto.nextWindowStart()).isEqualTo(OffsetDateTime.parse("2026-06-02T02:00:00Z"));
-            assertThat(dto.nextWindowEnd()).isEqualTo(OffsetDateTime.parse("2026-06-02T06:00:00Z"));
+            assertThat(dto.nextWindowStart()).isEqualTo(OffsetDateTime.parse("2026-06-02T03:59:00Z"));
+            assertThat(dto.nextWindowEnd()).isEqualTo(OffsetDateTime.parse("2026-06-02T07:30:00Z"));
         });
     }
 
     @Test
-    void plannedClosuresExposeNightlyWindowStateWhenActiveNow() {
+    void activeNightlyClosureRemainsScheduledAndAlsoDrivesCurrentImpactViews() {
         when(ingestionFreshness.isDashboardFresh()).thenReturn(true);
-        AlertEntity alert = alert(
+        AlertEntity alert = withLine(alert(
             "planned-closure-nightly-active",
             "planned-closure",
             "planned",
@@ -625,7 +628,7 @@ class AlertDashboardServiceTest {
             "eglinton",
             OffsetDateTime.parse("2026-06-01T11:45:00Z"),
             null
-        );
+        ), "line-1", "1");
         ReflectionTestUtils.setField(
             alert,
             "activePeriodStart",
@@ -665,10 +668,21 @@ class AlertDashboardServiceTest {
             assertThat(dto.activeWindowStart()).isEqualTo(OffsetDateTime.parse("2026-06-01T11:00:00Z"));
             assertThat(dto.activeWindowEnd()).isEqualTo(OffsetDateTime.parse("2026-06-01T13:00:00Z"));
         });
+        assertThat(service.activeAlerts()).singleElement().satisfies(dto -> {
+            assertThat(dto.id()).isEqualTo("planned-closure-nightly-active");
+            assertThat(dto.severity()).isEqualTo("planned");
+            assertThat(dto.startedAt()).isEqualTo(OffsetDateTime.parse("2026-06-01T11:00:00Z"));
+        });
+        assertThat(service.activePlannedClosures())
+            .extracting(AlertDashboardService.PlannedClosureDto::id)
+            .containsExactly("planned-closure-nightly-active");
+        assertThat(service.activeSegmentImpacts().get("line-1-finch-eglinton"))
+            .extracting(AlertDashboardService.SegmentImpact::kind)
+            .containsExactly("planned-closure");
     }
 
     @Test
-    void activeNightlyParentStaysInPlannedClosuresWhileCurrentClosureMovesIntoActiveAlerts() {
+    void activeClosureRecordsRemainInPlannedClosuresWhileAlsoAppearingAsCurrentImpacts() {
         when(ingestionFreshness.isDashboardFresh()).thenReturn(true);
         AlertEntity parentClosure = withLine(alert(
             "planned-closure-parent",
@@ -769,20 +783,22 @@ class AlertDashboardServiceTest {
 
         assertThat(service.plannedClosures())
             .extracting(AlertDashboardService.PlannedClosureDto::id)
-            .containsExactly("planned-closure-parent", "planned-closure-upcoming");
-        assertThat(service.activeAlerts()).singleElement().satisfies(dto -> {
-            assertThat(dto.id()).isEqualTo("planned-closure-current-window");
+            .containsExactly("planned-closure-parent", "planned-closure-current-window", "planned-closure-upcoming");
+        assertThat(service.activeAlerts()).hasSize(2).allSatisfy(dto -> {
             assertThat(dto.severity()).isEqualTo("planned");
             assertThat(dto.affectedSegmentIds()).containsExactly("line-1-st-george-sheppard-west");
             assertThat(dto.shuttle()).isTrue();
             assertThat(dto.source()).isEqualTo("TTC Service Advisory");
         });
+        assertThat(service.activeAlerts())
+            .extracting(AlertDashboardService.ActiveAlertDto::id)
+            .containsExactlyInAnyOrder("planned-closure-parent", "planned-closure-current-window");
         assertThat(service.activePlannedClosures())
             .extracting(AlertDashboardService.PlannedClosureDto::id)
-            .containsExactly("planned-closure-current-window");
+            .containsExactlyInAnyOrder("planned-closure-parent", "planned-closure-current-window");
         assertThat(service.activeSegmentImpacts().get("line-1-st-george-sheppard-west"))
             .extracting(AlertDashboardService.SegmentImpact::kind)
-            .containsExactly("suspension");
+            .containsExactly("planned-closure", "planned-closure");
         assertThat(service.dashboardVisiblePlannedClosureIds())
             .containsExactly("planned-closure-parent", "planned-closure-current-window", "planned-closure-upcoming");
     }

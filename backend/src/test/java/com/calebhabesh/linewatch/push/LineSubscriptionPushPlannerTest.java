@@ -100,7 +100,9 @@ class LineSubscriptionPushPlannerTest {
             null,
             eventStart,
             eventStart.plusDays(2),
-            "Weekend"
+            "Weekend",
+            null,
+            null
         );
 
         when(dashboardService.activeAlerts()).thenReturn(List.of(suspension));
@@ -172,7 +174,7 @@ class LineSubscriptionPushPlannerTest {
             "closure-1", "line-1", "1", "Planned Closure", "Sat-Sun",
             "St George to Sheppard West", null, "Closed", eventStart, eventStart,
             List.of(), true, "TTC Service Advisory", null, null, false, "upcoming",
-            false, null, null, null, eventStart, eventStart.plusDays(2), "Weekend"
+            false, null, null, null, eventStart, eventStart.plusDays(2), "Weekend", null, null
         );
         when(dashboardService.activeAlerts()).thenReturn(List.of());
         when(dashboardService.delays()).thenReturn(List.of());

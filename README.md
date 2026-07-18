@@ -27,7 +27,7 @@ Implemented now:
 - Active alert cards with affected segments, shuttle indicators, Started timing, and Updated timing.
 - Delay cards with Started based on `activePeriod.start` and Updated based on TTC `lastUpdated`.
 - Reduced Speed Zone cards with Cause, Resolution, and available speed/track metadata.
-- Planned closure cards with map preview highlighting.
+- Planned closure cards with map preview highlighting plus structured Toronto-time closure hours and closure nights/dates derived from TTC active periods; clearly incomplete trailing time fragments in TTC titles are omitted from the display copy.
 - Legend SVG icons for Lines 1, 2, 4, 5, and 6.
 - Account-backed saved commutes with weighted default rapid-transit route matching, optional return-trip monitoring, direction-aware Reduced Speed Zone matching, dashboard-visible impact summaries, standard-vs-impacted travel-time estimates with confidence labels, and per-route notification rules with independent outbound/return day and time schedules and event types across the complete saved route. Route filters change monitored status and notification relevance, but current ignored route conditions still contribute to the absolute travel-time estimate; upcoming closures remain visible without changing that estimate until their active window begins.
 - Account-backed Web Push notification subscriptions and preferences for saved-commute impacts. Saved commute notifications can be narrowed per saved route; delivery is opt-in and requires browser permission, a browser that supports PWA Web Push, configured VAPID keys, `LINEWATCH_PUSH_ENABLED=true`, fresh dashboard-visible impacts, and a matching saved-route notification rule.
@@ -70,7 +70,7 @@ Implemented now:
 - Nonlinear overlays resolve from the authored hidden segment-guides-layer.
 - Opposite-direction Reduced Speed Zone records merge into one bidirectional effect and grouped card.
 - Directionless Reduced Speed Zone records render bidirectionally without inventing a direction label.
-- Nightly closure active-window gating so nightly overlays only appear during the actual active child-period windows.
+- Nightly closure active-window gating derived from TTC parent/child periods. A closure remains in the Planned Closures timeline throughout its current or future schedule; during an active child window the same canonical event also appears in Active Alerts, marks the line `Closure active`, affects matching commutes, and renders a red current-closure map overlay. LineWatchTO derives that current state without requiring TTC to publish a second alert ID.
 
 Not implemented yet:
 

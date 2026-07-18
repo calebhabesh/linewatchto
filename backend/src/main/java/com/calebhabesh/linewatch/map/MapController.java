@@ -155,7 +155,11 @@ public class MapController {
         if (impact == null) {
             return "clear";
         }
-        return "reduced-speed-zone".equals(impact.kind()) ? "delay" : impact.kind();
+        return switch (impact.kind()) {
+            case "reduced-speed-zone" -> "delay";
+            case "planned-closure" -> "suspension";
+            default -> impact.kind();
+        };
     }
 
     private List<String> reducedSpeedZoneIds(AlertDashboardService.SegmentImpact impact) {

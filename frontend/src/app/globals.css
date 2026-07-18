@@ -5827,6 +5827,138 @@ button {
 
 .planned-closure-card-border {
   border-left-color: #3b82f6;
+  container-type: inline-size;
+}
+
+.planned-closure-schedule {
+  display: grid;
+  grid-template-columns: max-content minmax(0.75rem, 1fr) max-content;
+  gap: 1rem 0;
+  margin-top: 1rem;
+}
+
+.planned-closure-schedule::before {
+  content: "";
+  grid-column: 2;
+  grid-row: 1;
+  justify-self: center;
+  width: 1px;
+  height: 2.25rem;
+  background: rgba(100, 116, 139, 0.13);
+}
+
+.planned-closure-schedule div {
+  min-width: 0;
+}
+
+.planned-closure-specific-window {
+  grid-column: 1 / -1;
+}
+
+.planned-closure-window-hours {
+  grid-column: 1;
+}
+
+.planned-closure-window-dates {
+  grid-column: 3;
+}
+
+.planned-closure-schedule dt {
+  color: rgb(100, 116, 139);
+  font-size: clamp(0.625rem, 2.8cqw, 0.6875rem);
+  font-weight: 900;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.planned-closure-schedule dd {
+  margin-top: 0.25rem;
+  color: rgb(30, 41, 59);
+  font-size: clamp(0.75rem, 3.75cqw, 0.875rem);
+  font-weight: 750;
+  line-height: 1.35;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+
+.planned-closure-specific-window.is-current dd {
+  color: rgb(220, 38, 38);
+}
+
+@container (min-width: 38rem) {
+  .planned-closure-schedule::before {
+    display: none;
+  }
+
+  .planned-closure-schedule {
+    column-gap: 0;
+    grid-template-columns: 0.9fr 1.25fr 1.4fr;
+  }
+
+  .planned-closure-schedule > div {
+    padding: 0 0.9rem;
+  }
+
+  .planned-closure-window-hours,
+  .planned-closure-window-dates,
+  .planned-closure-specific-window {
+    grid-column: auto;
+  }
+
+  .planned-closure-schedule > div:first-child {
+    padding-left: 0;
+  }
+
+  .planned-closure-schedule > div:last-child {
+    padding-right: 0;
+  }
+
+  .planned-closure-schedule > div + div {
+    border-left: 1px solid rgba(100, 116, 139, 0.16);
+  }
+
+  .planned-closure-schedule dd {
+    font-size: 0.9375rem;
+  }
+
+  .planned-closure-schedule dt {
+    font-size: 0.6875rem;
+  }
+
+  .planned-closure-specific-window {
+    grid-column: auto;
+  }
+
+  .dark .planned-closure-schedule > div + div {
+    border-left-color: rgba(148, 163, 184, 0.18);
+  }
+
+  .high-contrast .planned-closure-schedule > div + div {
+    border-left-color: rgba(255, 255, 255, 0.45);
+  }
+}
+
+.dark .planned-closure-schedule dt,
+.high-contrast .planned-closure-schedule dt {
+  color: rgb(148, 163, 184);
+}
+
+.dark .planned-closure-schedule::before {
+  background: rgba(148, 163, 184, 0.15);
+}
+
+.high-contrast .planned-closure-schedule::before {
+  background: rgba(255, 255, 255, 0.4);
+}
+
+.dark .planned-closure-schedule dd,
+.high-contrast .planned-closure-schedule dd {
+  color: rgb(226, 232, 240);
+}
+
+.dark .planned-closure-specific-window.is-current dd,
+.high-contrast .planned-closure-specific-window.is-current dd {
+  color: rgb(248, 113, 113);
 }
 
 .rsz-card-active {

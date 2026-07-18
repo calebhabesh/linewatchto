@@ -673,7 +673,7 @@ test("renders fixture fallback when the dashboard API is unavailable", async ({ 
   await expect(page.getByText("Live status", { exact: true })).toHaveCount(0);
 });
 
-test("routes active planned closures to active alerts instead of upcoming closures", async ({ page, request, isMobile }) => {
+test("shows an active planned closure in both current and scheduled views", async ({ page, request, isMobile }) => {
   await setStubMode(request, "seeded");
   await openDashboardMenu(page, isMobile);
 
@@ -699,14 +699,25 @@ test("routes active planned closures to active alerts instead of upcoming closur
     await page.locator(".mobile-status-actions").getByRole("button", { name: /Closure/ }).click();
   } else {
     await page.getByRole("button", { name: "Toggle menu" }).click();
-    await page.getByRole("menuitem", { name: /upcoming closures/i }).click();
+    await page.getByRole("menuitem", { name: /planned closures/i }).click();
   }
-  await expect(page.getByRole("heading", { name: "Upcoming Closures" })).toBeVisible();
-  const upcomingClosuresPanel = page.locator("section").filter({
-    has: page.getByRole("heading", { name: "Upcoming Closures" }),
+  await expect(page.getByRole("heading", { name: "Planned Closures" })).toBeVisible();
+  const plannedClosuresPanel = page.locator("section").filter({
+    has: page.getByRole("heading", { name: "Planned Closures" }),
   });
-  await expect(upcomingClosuresPanel.locator('[data-impact-card-id="stub-closure-line-1"]')).toHaveCount(0);
-  const upcomingClosureCard = upcomingClosuresPanel.locator('[data-impact-card-id="stub-upcoming-closure-line-1"]');
+  const activeClosureCard = plannedClosuresPanel.locator('[data-impact-card-id="stub-closure-line-1"]');
+  await expect(activeClosureCard).toBeVisible();
+  await expect(activeClosureCard.getByText("Active now", { exact: true })).toBeVisible();
+  await expect(activeClosureCard.getByText("Closure hours", { exact: true })).toBeVisible();
+  await expect(activeClosureCard.getByText("11:59 PM – 3:30 AM", { exact: true })).toBeVisible();
+  await expect(activeClosureCard.getByText("Closure dates", { exact: true })).toBeVisible();
+  await expect(activeClosureCard.getByText("Mon, Jul 20 – Wed, Jul 22", { exact: true })).toBeVisible();
+  await expect(activeClosureCard.getByText("Current window", { exact: true })).toBeVisible();
+  await expect(activeClosureCard.getByText("Wed 11:59 PM – Thu 3:30 AM", { exact: true })).toBeVisible();
+  await expect.poll(async () => activeClosureCard.locator(".planned-closure-schedule dd").evaluateAll((values) =>
+    values.every((value) => value.scrollWidth <= value.clientWidth),
+  )).toBe(true);
+  const upcomingClosureCard = plannedClosuresPanel.locator('[data-impact-card-id="stub-upcoming-closure-line-1"]');
   await expect(upcomingClosureCard).toBeVisible();
   await expect(upcomingClosureCard.getByText("Overlapping:")).toBeVisible();
   await expect(upcomingClosureCard.getByText("Active Alert", { exact: true })).toBeVisible();
@@ -824,7 +835,7 @@ test("uses map overlap metadata for active-alert and sibling submenu overlap ref
 
   await openServiceCategory(page, isMobile, /Closure/);
   const closuresPanel = page.locator("section").filter({
-    has: page.getByRole("heading", { name: "Upcoming Closures" }),
+    has: page.getByRole("heading", { name: "Planned Closures" }),
   });
   const boundaryClosureCard = closuresPanel.locator('[data-impact-card-id="stub-upcoming-closure-st-george-boundary"]');
   await expect(boundaryClosureCard).toBeVisible();

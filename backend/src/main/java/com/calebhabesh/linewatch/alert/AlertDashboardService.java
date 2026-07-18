@@ -9,6 +9,7 @@ import com.calebhabesh.linewatch.ingestion.IngestionFreshness;
 import com.calebhabesh.linewatch.ingestion.TtcAlertStore;
 import java.time.Clock;
 import java.time.Duration;
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -22,6 +23,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.regex.Pattern;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -36,7 +38,16 @@ public class AlertDashboardService {
     private static final ZoneId TORONTO_ZONE = ZoneId.of("America/Toronto");
     private static final DateTimeFormatter WINDOW_FORMATTER =
         DateTimeFormatter.ofPattern("EEE h:mm a", Locale.ENGLISH);
+    private static final DateTimeFormatter WINDOW_HOURS_FORMATTER =
+        DateTimeFormatter.ofPattern("h:mm a", Locale.ENGLISH);
+    private static final DateTimeFormatter WINDOW_DATE_FORMATTER =
+        DateTimeFormatter.ofPattern("EEE, MMM d", Locale.ENGLISH);
+    private static final DateTimeFormatter WINDOW_DATE_WITH_YEAR_FORMATTER =
+        DateTimeFormatter.ofPattern("EEE, MMM d, uuuu", Locale.ENGLISH);
     private static final Duration MAX_SINGLE_CLOSURE_WINDOW = Duration.ofHours(18);
+    private static final Pattern TRUNCATED_CLOSURE_START = Pattern.compile(
+        "(?i)[,\\s]+starting(?:\\s+at)?\\s+\\d{1,2}\\s*$"
+    );
 
     private final AlertRepository alertRepository;
     private final LineSegmentRepository lineSegmentRepository;
@@ -81,7 +92,7 @@ public class AlertDashboardService {
             .map(alert -> toActiveAlert(alert, segments))
             .toList();
         List<ActiveAlertDto> activeClosures = plannedClosureDtos(segments).stream()
-            .filter(closure -> closure.activeNow() && !isScheduledClosureParent(closure))
+            .filter(PlannedClosureDto::activeNow)
             .map(this::toActiveClosureAlert)
             .toList();
 
@@ -130,7 +141,6 @@ public class AlertDashboardService {
         }
         List<LineSegmentEntity> segments = lineSegmentRepository.findAllByOrderBySortOrderAsc();
         return plannedClosureDtos(segments).stream()
-            .filter(closure -> !closure.activeNow() || isScheduledClosureParent(closure))
             .sorted(plannedClosureComparator(segments))
             .toList();
     }
@@ -179,16 +189,11 @@ public class AlertDashboardService {
         List<LineSegmentEntity> segments = lineSegmentRepository.findAllByOrderBySortOrderAsc();
         return plannedClosureDtos(segments).stream()
             .filter(PlannedClosureDto::activeNow)
-            .filter(closure -> !isScheduledClosureParent(closure))
             .sorted(plannedClosureComparator(segments))
             .toList();
     }
 
     private record AlertWithWindowState(AlertEntity alert, WindowState ws) {}
-
-    private boolean isScheduledClosureParent(PlannedClosureDto closure) {
-        return closure.nightly();
-    }
 
     public Map<String, List<SegmentImpact>> activeSegmentImpacts() {
         if (!ingestionFreshness.isDashboardFresh()) {
@@ -221,7 +226,7 @@ public class AlertDashboardService {
         for (PlannedClosureDto closure : activePlannedClosures()) {
             for (String segmentId : closure.previewSegmentIds()) {
                 appendImpact(impacts, segmentId, new SegmentImpact(
-                    SUSPENSION_KIND,
+                    PLANNED_CLOSURE_KIND,
                     closure.id(),
                     "bidirectional",
                     List.of(closure.id())
@@ -331,6 +336,8 @@ public class AlertDashboardService {
                 0
             ));
         boolean nightly = isNightly(usablePeriods) || recurringParentWindow;
+        String windowHours = closureWindowHours(usablePeriods);
+        String windowDates = closureWindowDates(usablePeriods, nightly, now);
 
         Optional<AlertActivePeriodRepository.AlertPeriod> active = usablePeriods.stream()
             .filter(period -> startsAtOrBefore(period.startsAt(), now))
@@ -341,7 +348,7 @@ public class AlertDashboardService {
             AlertActivePeriodRepository.AlertPeriod period = active.orElseThrow();
             return new WindowState(true, "active-now", nightly,
                 period.startsAt(), period.endsAt(), window(period.startsAt(), period.endsAt()),
-                null, null, null);
+                null, null, null, windowHours, windowDates);
         }
 
         Optional<AlertActivePeriodRepository.AlertPeriod> next = usablePeriods.stream()
@@ -355,11 +362,92 @@ public class AlertDashboardService {
             AlertActivePeriodRepository.AlertPeriod period = next.orElseThrow();
             return new WindowState(false, "upcoming", nightly,
                 null, null, null,
-                period.startsAt(), period.endsAt(), window(period.startsAt(), period.endsAt()));
+                period.startsAt(), period.endsAt(), window(period.startsAt(), period.endsAt()),
+                windowHours, windowDates);
         }
 
         return new WindowState(false, "unknown", nightly,
-            null, null, null, null, null, null);
+            null, null, null, null, null, null, windowHours, windowDates);
+    }
+
+    private String closureWindowHours(List<AlertActivePeriodRepository.AlertPeriod> periods) {
+        LinkedHashSet<String> ranges = new LinkedHashSet<>();
+        for (AlertActivePeriodRepository.AlertPeriod period : periods) {
+            if (period.startsAt() == null || period.endsAt() == null) {
+                continue;
+            }
+            ranges.add(
+                WINDOW_HOURS_FORMATTER.format(period.startsAt().atZoneSameInstant(TORONTO_ZONE))
+                    + " – "
+                    + WINDOW_HOURS_FORMATTER.format(period.endsAt().atZoneSameInstant(TORONTO_ZONE))
+            );
+        }
+        if (ranges.isEmpty()) {
+            return null;
+        }
+        return ranges.size() == 1 ? ranges.getFirst() : "Varies by closure date";
+    }
+
+    private String closureWindowDates(
+        List<AlertActivePeriodRepository.AlertPeriod> periods,
+        boolean nightly,
+        OffsetDateTime now
+    ) {
+        List<LocalDate> startDates = periods.stream()
+            .map(AlertActivePeriodRepository.AlertPeriod::startsAt)
+            .filter(java.util.Objects::nonNull)
+            .map(value -> value.atZoneSameInstant(TORONTO_ZONE).toLocalDate())
+            .distinct()
+            .sorted()
+            .toList();
+        if (startDates.isEmpty()) {
+            return null;
+        }
+
+        if (nightly) {
+            return summarizedDates(startDates, now);
+        }
+
+        LocalDate firstDate = startDates.getFirst();
+        LocalDate lastDate = periods.stream()
+            .map(AlertActivePeriodRepository.AlertPeriod::endsAt)
+            .filter(java.util.Objects::nonNull)
+            .map(value -> value.atZoneSameInstant(TORONTO_ZONE).toLocalDate())
+            .max(Comparator.naturalOrder())
+            .orElse(firstDate);
+        if (firstDate.equals(lastDate)) {
+            return formattedClosureDate(firstDate, now);
+        }
+        return formattedClosureDate(firstDate, now) + " – " + formattedClosureDate(lastDate, now);
+    }
+
+    private String summarizedDates(List<LocalDate> dates, OffsetDateTime now) {
+        if (dates.size() == 1) {
+            return formattedClosureDate(dates.getFirst(), now);
+        }
+        boolean consecutive = true;
+        for (int index = 1; index < dates.size(); index++) {
+            if (!dates.get(index - 1).plusDays(1).equals(dates.get(index))) {
+                consecutive = false;
+                break;
+            }
+        }
+        if (consecutive) {
+            return formattedClosureDate(dates.getFirst(), now)
+                + " – "
+                + formattedClosureDate(dates.getLast(), now);
+        }
+        return dates.stream()
+            .map(date -> formattedClosureDate(date, now))
+            .collect(java.util.stream.Collectors.joining("; "));
+    }
+
+    private String formattedClosureDate(LocalDate date, OffsetDateTime now) {
+        int currentTorontoYear = now.atZoneSameInstant(TORONTO_ZONE).getYear();
+        DateTimeFormatter formatter = date.getYear() == currentTorontoYear
+            ? WINDOW_DATE_FORMATTER
+            : WINDOW_DATE_WITH_YEAR_FORMATTER;
+        return formatter.format(date);
     }
 
     private boolean isParentPeriod(AlertActivePeriodRepository.AlertPeriod period) {
@@ -397,7 +485,9 @@ public class AlertDashboardService {
         String activeWindowLabel,
         OffsetDateTime nextWindowStart,
         OffsetDateTime nextWindowEnd,
-        String nextWindowLabel
+        String nextWindowLabel,
+        String windowHours,
+        String windowDates
     ) {}
 
     private void appendImpact(
@@ -439,7 +529,7 @@ public class AlertDashboardService {
             closure.location(),
             closure.displayDirection(),
             closure.description(),
-            closure.startedAt(),
+            closure.activeWindowStart() == null ? closure.startedAt() : closure.activeWindowStart(),
             closure.updatedAt(),
             closure.previewSegmentIds(),
             closure.shuttle(),
@@ -481,7 +571,7 @@ public class AlertDashboardService {
             alert.getId(),
             line == null ? null : line.getId(),
             line == null ? null : line.getNumber(),
-            alert.getTitle(),
+            closureDisplayTitle(alert.getTitle()),
             displayWindow(alert, ws),
             location(alert),
             displayDirection(alert),
@@ -501,8 +591,17 @@ public class AlertDashboardService {
             ws.activeWindowLabel(),
             ws.nextWindowStart(),
             ws.nextWindowEnd(),
-            ws.nextWindowLabel()
+            ws.nextWindowLabel(),
+            ws.windowHours(),
+            ws.windowDates()
         );
+    }
+
+    private String closureDisplayTitle(String title) {
+        if (isBlank(title)) {
+            return title;
+        }
+        return TRUNCATED_CLOSURE_START.matcher(title.trim()).replaceFirst("").trim();
     }
 
     private String displayWindow(AlertEntity alert, WindowState ws) {
@@ -961,7 +1060,9 @@ public class AlertDashboardService {
         String activeWindowLabel,
         OffsetDateTime nextWindowStart,
         OffsetDateTime nextWindowEnd,
-        String nextWindowLabel
+        String nextWindowLabel,
+        String windowHours,
+        String windowDates
     ) {
         public PlannedClosureDto(
             String id,
@@ -983,7 +1084,7 @@ public class AlertDashboardService {
             this(
                 id, lineId, lineNumber, title, window, location, displayDirection, description, startedAt, updatedAt,
                 previewSegmentIds, shuttle, source, cause, resolution,
-                false, "unknown", false, null, null, null, null, null, null
+                false, "unknown", false, null, null, null, null, null, null, null, null
             );
         }
     }

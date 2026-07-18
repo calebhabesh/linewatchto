@@ -16,6 +16,12 @@ interface Props {
   onFocusMap?: () => void;
 }
 
+function formatClosureScheduleValue(value: string) {
+  return value
+    .replace(/\s*[–—]\s*/g, " – ")
+    .replace(/\s+-\s+/g, " – ");
+}
+
 export function PlannedClosuresPanel({ selection, onSelectImpact, onBack, onClose, onFocusMap }: Props) {
   const { activeAlerts, delays, reducedSpeedZones, plannedClosures, networkSegments, stationNodeImpacts } = useDashboardData();
   useScrollSelectedImpactCard(selection, "planned-closure");
@@ -45,13 +51,13 @@ export function PlannedClosuresPanel({ selection, onSelectImpact, onBack, onClos
           )}
           <h2 className="text-[clamp(10px,3.5cqw,18px)] font-bold text-slate-900 dark:text-white flex items-center gap-1 sm:gap-3 whitespace-nowrap">
             <Calendar className="w-[16px] h-[16px] sm:w-[22px] sm:h-[22px] text-blue-500 shrink-0" />
-            <span>Upcoming Closures</span>
+            <span>Planned Closures</span>
           </h2>
         </div>
         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           <div className="flex flex-col items-end gap-1 mt-0.5 min-w-0">
             <span className="shrink-0 text-[9px] sm:text-xs bg-blue-500/10 text-blue-500 px-1.5 sm:px-2 py-0.5 rounded-full font-bold">
-              {plannedClosures.length} Upcoming
+              {plannedClosures.length} {plannedClosures.length === 1 ? "Notice" : "Notices"}
             </span>
             <CardSource source={plannedClosures[0]?.source || "TTC Live Alerts"} />
           </div>
@@ -69,11 +75,18 @@ export function PlannedClosuresPanel({ selection, onSelectImpact, onBack, onClos
       <div className={`closure-stack min-w-0 p-3 flex flex-col gap-2 ${plannedClosures.length === 0 ? "is-empty" : ""}`}>
         {plannedClosures.length === 0 ? (
           <div className="text-center py-4 text-sm text-slate-500 dark:text-slate-400 font-medium">
-            No Upcoming Closures
+            No Planned Closures
           </div>
         ) : (
           plannedClosures.map((closure) => {
             const isActive = selection?.kind === "planned-closure" && selection.id === closure.id;
+            const specificWindowLabel = closure.activeNow
+              ? closure.activeWindowLabel
+              : closure.nextWindowLabel;
+            const specificWindowHeading = closure.activeNow ? "Current window" : "Next window";
+            const hasScheduleDetails = Boolean(
+              closure.windowHours || closure.windowDates || specificWindowLabel,
+            );
             const overlappingImpacts = getOverlappingImpactRefs(
               { kind: "planned-closure", id: closure.id, segmentIds: closure.previewSegmentIds ?? [] },
               { networkSegments, activeAlerts, delays, reducedSpeedZones, plannedClosures, stationNodeImpacts },
@@ -93,19 +106,6 @@ export function PlannedClosuresPanel({ selection, onSelectImpact, onBack, onClos
                       <strong className="block min-w-0 text-sm font-semibold text-slate-800 dark:text-slate-100 whitespace-normal break-words mt-0.5">
                         {closure.title}
                       </strong>
-                      <div className="max-w-full text-[10px] text-blue-600 dark:text-blue-400 font-bold mt-2 bg-blue-500/5 dark:bg-blue-500/10 px-2 py-0.5 rounded-md inline-block whitespace-normal break-words">
-                        {closure.window}
-                      </div>
-                      {closure.activeNow && closure.activeWindowLabel && (
-                        <p className="text-[11px] text-red-600 dark:text-red-400 font-semibold mt-1">
-                          Current closure window: {closure.activeWindowLabel}
-                        </p>
-                      )}
-                      {!closure.activeNow && closure.nextWindowLabel && (
-                        <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium mt-1">
-                          Next closure window: {closure.nextWindowLabel}
-                        </p>
-                      )}
                     </div>
                   </div>
                   <div className="flex flex-col items-end gap-1 shrink-0 mt-0.5">
@@ -127,6 +127,33 @@ export function PlannedClosuresPanel({ selection, onSelectImpact, onBack, onClos
                     )}
                   </div>
                 </div>
+
+                {hasScheduleDetails ? (
+                  <dl className="planned-closure-schedule">
+                    {closure.windowHours && (
+                      <div className="planned-closure-window-hours">
+                        <dt>Closure hours</dt>
+                        <dd>{formatClosureScheduleValue(closure.windowHours)}</dd>
+                      </div>
+                    )}
+                    {closure.windowDates && (
+                      <div className="planned-closure-window-dates">
+                        <dt>Closure dates</dt>
+                        <dd>{formatClosureScheduleValue(closure.windowDates)}</dd>
+                      </div>
+                    )}
+                    {specificWindowLabel && (
+                      <div className={`planned-closure-specific-window ${closure.activeNow ? "is-current" : ""}`}>
+                        <dt>{specificWindowHeading}</dt>
+                        <dd>{formatClosureScheduleValue(specificWindowLabel)}</dd>
+                      </div>
+                    )}
+                  </dl>
+                ) : (
+                  <div className="max-w-full text-[10px] text-blue-600 dark:text-blue-400 font-bold mt-2 bg-blue-500/5 dark:bg-blue-500/10 px-2 py-0.5 rounded-md inline-block whitespace-normal break-words">
+                    {closure.window}
+                  </div>
+                )}
 
                 <ImpactRouteHeader location={closure.location} direction={closure.displayDirection} />
                 

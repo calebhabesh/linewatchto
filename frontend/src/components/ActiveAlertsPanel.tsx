@@ -16,8 +16,15 @@ interface Props {
   onFocusMap?: () => void;
 }
 
-function impactKindForAlert(alert: ActiveAlert): Extract<ImpactKind, "suspension" | "delay"> {
-  return alert.severity === "delay" ? "delay" : "suspension";
+function impactKindForAlert(alert: ActiveAlert): ImpactKind {
+  switch (alert.severity) {
+    case "planned":
+      return "planned-closure";
+    case "delay":
+      return "delay";
+    default:
+      return "suspension";
+  }
 }
 
 export function ActiveAlertsPanel({

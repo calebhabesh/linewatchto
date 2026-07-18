@@ -144,6 +144,8 @@ class StatusControllerTest {
             "Mon 2:00 AM - Mon 6:00 AM",
             null,
             null,
+            null,
+            null,
             null
         );
         when(alertDashboardService.activePlannedClosures()).thenReturn(List.of(activeClosure));

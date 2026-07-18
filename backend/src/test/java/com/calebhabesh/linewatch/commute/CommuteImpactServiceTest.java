@@ -196,7 +196,9 @@ class CommuteImpactServiceTest {
             null,
             OffsetDateTime.parse("2026-06-06T23:00:00-04:00"),
             OffsetDateTime.parse("2026-06-07T08:00:00-04:00"),
-            "Sat 11:00 PM - Sun 8:00 AM"
+            "Sat 11:00 PM - Sun 8:00 AM",
+            null,
+            null
         )));
         when(dashboardService.activeStationNodeImpacts()).thenReturn(List.of());
 
@@ -294,6 +296,8 @@ class CommuteImpactServiceTest {
             OffsetDateTime.parse("2026-06-06T23:59:00-04:00"),
             OffsetDateTime.parse("2026-06-07T05:00:00-04:00"),
             "Tonight 11:59 PM - 5:00 AM",
+            null,
+            null,
             null,
             null,
             null

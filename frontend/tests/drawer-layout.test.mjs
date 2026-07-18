@@ -107,6 +107,32 @@ describe("floating menu layout", () => {
     assert.doesNotMatch(globalCss, /\.alert-card\s*\{[^}]*display:\s*grid/s);
   });
 
+  it("presents planned closure hours and calendar nights as structured schedule fields", () => {
+    assert.match(plannedClosuresSource, /closure\.windowHours/);
+    assert.match(plannedClosuresSource, /closure\.windowDates/);
+    assert.match(plannedClosuresSource, /Closure hours/);
+    assert.match(plannedClosuresSource, /Closure dates/);
+    assert.doesNotMatch(plannedClosuresSource, /closure\.nightly \? "Closure nights"/);
+    assert.match(plannedClosuresSource, /Current window/);
+    assert.match(plannedClosuresSource, /Next window/);
+    assert.match(plannedClosuresSource, /planned-closure-window-hours/);
+    assert.match(plannedClosuresSource, /planned-closure-window-dates/);
+    assert.match(plannedClosuresSource, /function formatClosureScheduleValue/);
+    assert.match(plannedClosuresSource, /replace\(\/\\s\*\[–—\]\\s\*\/g, " – "\)/);
+    assert.match(plannedClosuresSource, /formatClosureScheduleValue\(specificWindowLabel\)/);
+    assert.match(globalCss, /\.planned-closure-schedule/);
+    assert.match(globalCss, /\.planned-closure-specific-window\s*\{[^}]*grid-column:\s*1 \/ -1/s);
+    assert.match(globalCss, /\.planned-closure-schedule\s*\{[^}]*grid-template-columns:\s*max-content minmax\(0\.75rem, 1fr\) max-content/s);
+    assert.match(globalCss, /\.planned-closure-schedule::before\s*\{[^}]*grid-column:\s*2[^}]*justify-self:\s*center/s);
+    assert.match(globalCss, /\.planned-closure-schedule::before\s*\{[^}]*height:\s*2\.25rem/s);
+    assert.match(globalCss, /@container \(min-width:\s*38rem\)/);
+    assert.match(globalCss, /@container \(min-width:\s*38rem\)[\s\S]*?\.planned-closure-schedule::before\s*\{[^}]*display:\s*none/s);
+    assert.match(globalCss, /\.planned-closure-schedule\s*>\s*div\s*\+\s*div\s*\{[^}]*border-left:/s);
+    assert.match(globalCss, /\.planned-closure-schedule dd\s*\{[^}]*font-size:\s*clamp\([^}]*white-space:\s*nowrap/s);
+    assert.match(globalCss, /font-size:\s*clamp\(0\.75rem, 3\.75cqw, 0\.875rem\)/);
+    assert.doesNotMatch(globalCss, /\.planned-closure-schedule\s*\{[^}]*border-/s);
+  });
+
   it("keeps floating panels single-column even at desktop viewport widths", () => {
     assert.match(lineStatusSource, /flex-wrap/);
     assert.match(lineStatusSource, /min-w-0/);
@@ -222,9 +248,8 @@ describe("floating menu layout", () => {
     assert.ok(selectedActiveAlertIndex < selectedPlannedClosureIndex);
     assert.ok(impactActiveAlertIndex < impactPlannedClosureIndex);
     assert.match(activeAlertsSource, /function impactKindForAlert/);
-    assert.match(activeAlertsSource, /function impactKindForAlert\(alert: ActiveAlert\): Extract<ImpactKind, "suspension" \| "delay">/);
-    assert.match(activeAlertsSource, /return alert\.severity === "delay" \? "delay" : "suspension"/);
-    assert.doesNotMatch(activeAlertsSource, /alert\.severity === "planned" \? "planned-closure" : "suspension"/);
+    assert.match(activeAlertsSource, /function impactKindForAlert\(alert: ActiveAlert\): ImpactKind/);
+    assert.match(activeAlertsSource, /case "planned":\s*return "planned-closure"/);
     assert.doesNotMatch(activeAlertsSource, /useScrollSelectedImpactCard\(selection, "planned-closure"\)/);
     assert.match(shellSource, /function viewForImpactSelection|const viewForImpactSelection = useCallback/);
     assert.match(shellSource, /nextSelection\.kind === "planned-closure"/);

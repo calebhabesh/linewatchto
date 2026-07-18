@@ -1482,7 +1482,7 @@ export function LineWatchShell({
       case "alerts": return "Active alerts";
       case "delays": return "Delays";
       case "reduced-speed-zones": return "Reduced Speed Zones";
-      case "closures": return "Upcoming closures";
+      case "closures": return "Planned closures";
       case "commutes": return "Saved commutes";
       case "notifications": return "Notifications";
       case "more": return "More options";
@@ -1750,7 +1750,7 @@ export function LineWatchShell({
         />
       </FloatingPanelShell>
     ) : activeView === "closures" ? (
-      <FloatingPanelShell panel="closures" mobileSheetLabel="Upcoming closures">
+      <FloatingPanelShell panel="closures" mobileSheetLabel="Planned closures">
         <PlannedClosuresPanel
           selection={selection}
           onSelectImpact={handleMapSelectImpact}
@@ -2246,7 +2246,7 @@ export function LineWatchShell({
                    className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
                  >
                    <div className="flex items-center gap-3">
-                     <Calendar size={18} className="text-slate-500 dark:text-slate-400" /> Upcoming Closures
+                     <Calendar size={18} className="text-slate-500 dark:text-slate-400" /> Planned Closures
                    </div>
                    {plannedClosures.length > 0 && (
                      <span className="flex h-6 min-w-[24px] items-center justify-center rounded-full bg-blue-500/20 px-2 text-[11px] font-bold text-blue-600 dark:text-blue-400">

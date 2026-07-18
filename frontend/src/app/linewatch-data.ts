@@ -174,6 +174,8 @@ export type PlannedClosure = {
   nextWindowStart?: string | null;
   nextWindowEnd?: string | null;
   nextWindowLabel?: string | null;
+  windowHours?: string | null;
+  windowDates?: string | null;
 };
 
 export type CommuteSummary = {

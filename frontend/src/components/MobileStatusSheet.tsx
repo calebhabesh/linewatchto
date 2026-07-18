@@ -60,7 +60,7 @@ export function MobileStatusSheet({ pollText, dataSource, onOpenCategory, onClos
           </button>
           <button type="button" className="mobile-status-btn-closures" onClick={() => onOpenCategory("closures")}>
             <Calendar size={16} className="text-blue-500 dark:text-blue-400 shrink-0" />
-            <span className="mobile-status-btn-text">Upcoming Closures</span>
+            <span className="mobile-status-btn-text">Planned Closures</span>
             <span className="mobile-status-btn-circle">
               {plannedClosures.length}
             </span>
