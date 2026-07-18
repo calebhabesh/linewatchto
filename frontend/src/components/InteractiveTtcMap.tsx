@@ -1227,6 +1227,7 @@ function InteractiveTtcMapComponent({
                         reducedMotion={reducedMotion}
                         exiting={exiting}
                         onHoverHighlightChange={setHoveredOverlayHighlight}
+                        renderInteractionTarget={false}
                       />
                     );
                   })}
@@ -1251,6 +1252,7 @@ function InteractiveTtcMapComponent({
                         reducedMotion={reducedMotion}
                         exiting={exiting}
                         onHoverHighlightChange={setHoveredOverlayHighlight}
+                        renderInteractionTarget={false}
                       />
                     );
                   })}
@@ -1281,6 +1283,7 @@ function InteractiveTtcMapComponent({
                           reducedMotion={reducedMotion}
                           idSuffix="-commute-focus"
                           onHoverHighlightChange={setHoveredOverlayHighlight}
+                          renderInteractionTarget={false}
                         />
                       </g>
                     ) : (
@@ -1388,13 +1391,43 @@ function InteractiveTtcMapComponent({
               viewBox="0 0 8250 4000"
               preserveAspectRatio="xMidYMid meet"
             >
+              <g aria-label="Disruption overlay interaction targets">
+                {retainedPlannedPreviewLayers.map(({ key, item: { segment, closure }, exiting }) => (
+                  <OverlayInteractionTarget
+                    key={`interaction:${key}`}
+                    segment={segment}
+                    impact={null}
+                    plannedClosure={closure}
+                    selectionActive={Boolean(selection)}
+                    exiting={exiting}
+                    onSelectImpact={onSelectImpact}
+                    shouldSuppressMapClick={shouldSuppressMapClick}
+                    onHoverHighlightChange={setHoveredOverlayHighlight}
+                  />
+                ))}
+                {retainedImpactLayers.map(({ key, item: { segment, impact }, exiting }) => (
+                  <OverlayInteractionTarget
+                    key={`interaction:${key}`}
+                    segment={segment}
+                    impact={impact}
+                    plannedClosure={undefined}
+                    selectionActive={Boolean(selection)}
+                    exiting={exiting}
+                    onSelectImpact={onSelectImpact}
+                    shouldSuppressMapClick={shouldSuppressMapClick}
+                    onHoverHighlightChange={setHoveredOverlayHighlight}
+                  />
+                ))}
+              </g>
               <g aria-label="Station hit targets">
                 {stations.map((station) => {
                   const selected = selectedStationId === station.id;
                   const isLarge = isStationVisuallyLarge(station);
                   const visualAnchors = visualAnchorsForStation(station);
                   const hasMultipleVisualAnchors = visualAnchors.length > 1;
-                  const hitRadius = hasMultipleVisualAnchors ? 45 : isLarge ? 66 : 41;
+                  const hitRadius = selection
+                    ? hasMultipleVisualAnchors ? 30 : isLarge ? 42 : 28
+                    : hasMultipleVisualAnchors ? 45 : isLarge ? 66 : 41;
                   const usesIndependentSpadinaHover = station.id === "spadina" && visualAnchors.length === 2;
                   const hoverRadius = usesIndependentSpadinaHover ? 34 : isLarge ? 72 : 48;
                   const highlightRadius = hasMultipleVisualAnchors ? 33 : isLarge ? 48 : 38;
@@ -3486,6 +3519,73 @@ function CommutePathOverlay({
   );
 }
 
+function OverlayInteractionTarget({
+  segment,
+  impact,
+  plannedClosure,
+  selectionActive,
+  exiting,
+  onSelectImpact,
+  shouldSuppressMapClick,
+  onHoverHighlightChange,
+}: {
+  segment: RenderedNetworkSegment;
+  impact: MapImpact | null;
+  plannedClosure: PlannedClosure | undefined;
+  selectionActive: boolean;
+  exiting?: boolean;
+  onSelectImpact: (selection: ImpactSelection) => void;
+  shouldSuppressMapClick: () => boolean;
+  onHoverHighlightChange: (highlight: HoveredOverlayHighlight | null) => void;
+}) {
+  const visualState = impact ? visualStateForImpactKind(impact.kind) : "planned-preview";
+  const targetId = `${impact?.kind ?? "planned-closure"}:${impact?.cardId ?? plannedClosure?.id ?? "unknown"}:${segment.id}`;
+  const ariaLabel = impact
+    ? `${impact.kind}: ${segment.label}`
+    : `${plannedClosure?.title ?? "Planned closure"}: ${segment.label}`;
+  const selectCurrentImpact = () => {
+    if (impact) {
+      onSelectImpact({ kind: impact.kind, id: impact.cardId });
+    } else if (plannedClosure) {
+      onSelectImpact({ kind: "planned-closure", id: plannedClosure.id });
+    }
+  };
+
+  return (
+    <path
+      aria-label={ariaLabel}
+      className={selectionActive
+        ? "map-segment-hit-target selection-context"
+        : "map-segment-hit-target"}
+      d={segment.pathD}
+      data-overlay-interaction-target={targetId}
+      onClick={(event) => {
+        if (exiting || shouldSuppressMapClick()) return;
+        event.stopPropagation();
+        selectCurrentImpact();
+      }}
+      onKeyDown={(event) => {
+        if (exiting || (event.key !== "Enter" && event.key !== " ")) return;
+        event.preventDefault();
+        selectCurrentImpact();
+      }}
+      onPointerEnter={(event) => {
+        if (event.pointerType !== "mouse" || exiting) return;
+        onHoverHighlightChange({ key: targetId, pathD: segment.pathD, visualState });
+      }}
+      onPointerLeave={(event) => {
+        if (event.pointerType !== "mouse") return;
+        onHoverHighlightChange(null);
+      }}
+      pointerEvents={exiting ? "none" : "stroke"}
+      role="button"
+      style={exiting ? { pointerEvents: "none" } : undefined}
+      tabIndex={exiting ? -1 : 0}
+      vectorEffect="non-scaling-stroke"
+    />
+  );
+}
+
 function OverlaySegment({
   segment,
   impact,
@@ -3498,6 +3598,7 @@ function OverlaySegment({
   exiting,
   idSuffix = "",
   onHoverHighlightChange,
+  renderInteractionTarget = true,
 }: {
   segment: RenderedNetworkSegment;
   impact: MapImpact | null;
@@ -3510,6 +3611,7 @@ function OverlaySegment({
   exiting?: boolean;
   idSuffix?: string;
   onHoverHighlightChange?: (highlight: HoveredOverlayHighlight | null) => void;
+  renderInteractionTarget?: boolean;
 }) {
   const { activeAlerts, delays, reducedSpeedZones, plannedClosures } = useDashboardData();
 
@@ -3599,18 +3701,18 @@ function OverlaySegment({
   return (
     <g
       className={`overlay-segment-group ${connectedClass} ${exiting ? "map-layer-exiting" : "map-layer-current"}`.trim()}
-      onPointerEnter={(event) => {
+      onPointerEnter={renderInteractionTarget ? (event) => {
         if (event.pointerType !== "mouse" || exiting) return;
         onHoverHighlightChange?.({
           key: hoverHighlightKey,
           pathD: segment.pathD,
           visualState,
         });
-      }}
-      onPointerLeave={(event) => {
+      } : undefined}
+      onPointerLeave={renderInteractionTarget ? (event) => {
         if (event.pointerType !== "mouse") return;
         onHoverHighlightChange?.(null);
-      }}
+      } : undefined}
       style={exiting ? { pointerEvents: "none" } : undefined}
     >
 
@@ -3696,17 +3798,19 @@ function OverlaySegment({
         />
       ) : null}
 
-      <path
-        aria-label={ariaLabel}
-        className="map-segment-hit-target"
-        d={segment.pathD}
-        onClick={handleSelect}
-        onKeyDown={handleKeyDown}
-        pointerEvents="stroke"
-        role="button"
-        tabIndex={0}
-        vectorEffect="non-scaling-stroke"
-      />
+      {renderInteractionTarget ? (
+        <path
+          aria-label={ariaLabel}
+          className="map-segment-hit-target"
+          d={segment.pathD}
+          onClick={handleSelect}
+          onKeyDown={handleKeyDown}
+          pointerEvents="stroke"
+          role="button"
+          tabIndex={0}
+          vectorEffect="non-scaling-stroke"
+        />
+      ) : null}
 
       {visualState === "reduced-speed-zone" && (
         <>

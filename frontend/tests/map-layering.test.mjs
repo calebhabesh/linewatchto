@@ -37,7 +37,7 @@ describe("asset-backed map layering", () => {
   it("pins station hit targets to the authored station-dot outlines", () => {
     assert.match(
       interactiveMapSource,
-      /const hitRadius = hasMultipleVisualAnchors \? 45 : isLarge \? 66 : 41;/,
+      /const hitRadius = selection[\s\S]*?hasMultipleVisualAnchors \? 30 : isLarge \? 42 : 28[\s\S]*?hasMultipleVisualAnchors \? 45 : isLarge \? 66 : 41;/,
     );
   });
 
@@ -478,6 +478,15 @@ describe("asset-backed map layering", () => {
     assert.match(globalCss, /@media \(max-width:\s*640px\)\s*\{[\s\S]*?\.overlap-chooser-choice-copy strong\s*\{[^}]*font-size:\s*15px;/s);
     assert.match(globalCss, /@media \(max-width:\s*640px\)\s*\{[\s\S]*?\.overlap-chooser-object\.open \.overlap-chooser-surface\s*\{[^}]*animation:\s*none;/s);
     assert.doesNotMatch(interactiveMapSource, /selectPrimaryImpact/);
+  });
+
+  it("keeps selected alert hover corridors continuous above map artwork", () => {
+    assert.match(interactiveMapSource, /function OverlayInteractionTarget/);
+    assert.match(interactiveMapSource, /aria-label="Disruption overlay interaction targets"/);
+    assert.match(interactiveMapSource, /selectionActive=\{Boolean\(selection\)\}/);
+    assert.match(interactiveMapSource, /const hitRadius = selection/);
+    assert.match(interactiveMapSource, /renderInteractionTarget=\{false\}/);
+    assert.match(globalCss, /\.map-segment-hit-target\.selection-context\s*\{[^}]*stroke-width:\s*190px;/s);
   });
 
   it("retains disappearing map overlays long enough to fade out", () => {

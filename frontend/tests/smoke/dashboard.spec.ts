@@ -440,6 +440,9 @@ test("affected segment targets distinguish dragging from selection", async ({ pa
   await expect(page.getByRole("heading", { name: "Delays" })).toHaveCount(0);
 
   await target.click();
+  await expect(target).toHaveClass(/selection-context/);
+  await expect(target).toHaveCSS("stroke-width", "190px");
+  await expect(page.locator('[data-station-id="stub-station"]')).toHaveAttribute("r", "28");
   if (isMobile) {
     await expect(page.locator('[data-mobile-impact-inspector]')).toBeVisible();
   } else {

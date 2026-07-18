@@ -2203,6 +2203,10 @@ button {
   stroke-width: 96px;
 }
 
+.map-segment-hit-target.selection-context {
+  stroke-width: 190px;
+}
+
 @media (pointer: coarse) {
   .map-segment-hit-target {
     stroke-width: 96px;
