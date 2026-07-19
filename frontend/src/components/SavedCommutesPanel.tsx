@@ -1151,7 +1151,7 @@ export function SavedCommutesPanel({
                         </select>
                         <button
                           type="button"
-                          className="saved-commute-sort-trigger"
+                          className="site-dropdown-trigger saved-commute-sort-trigger"
                           aria-label="Sort saved commutes"
                           aria-haspopup="listbox"
                           aria-expanded={sortDropdownOpen}
@@ -1166,7 +1166,7 @@ export function SavedCommutesPanel({
                           <ChevronDown size={14} className="text-slate-400 dark:text-slate-500 shrink-0" style={{ transform: sortDropdownOpen ? "rotate(180deg)" : "none", transition: "transform 0.2s" }} />
                         </button>
                         {sortDropdownOpen && (
-                          <div className="saved-commute-sort-options" role="listbox">
+                          <div className="site-dropdown-menu saved-commute-sort-options" role="listbox">
                             {(
                               [
                                 { value: "impact", label: "Most Affected" },
@@ -1182,7 +1182,7 @@ export function SavedCommutesPanel({
                                   type="button"
                                   role="option"
                                   aria-selected={isSelected}
-                                  className={`saved-commute-sort-option${isSelected ? " selected" : ""}`}
+                                  className={`site-dropdown-option saved-commute-sort-option${isSelected ? " selected" : ""}`}
                                   onClick={() => {
                                     setSortBy(option.value);
                                     setSortDropdownOpen(false);

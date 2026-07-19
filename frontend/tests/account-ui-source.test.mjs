@@ -277,6 +277,20 @@ describe("account UI source", () => {
     assert.match(savedCommutePickerSource, /aria-haspopup="listbox"/);
     assert.match(globalCss, /\.commute-station-picker/);
     assert.match(globalCss, /\.commute-station-popover/);
+    assert.match(savedCommutePickerSource, /site-dropdown-trigger commute-station-trigger/);
+    assert.match(savedCommutePickerSource, /site-dropdown-menu commute-station-popover/);
+    assert.match(savedCommutesSource, /site-dropdown-trigger saved-commute-sort-trigger/);
+    assert.match(savedCommutesSource, /site-dropdown-menu saved-commute-sort-options/);
+    assert.match(globalCss, /\.site-dropdown-option\.selected/);
+    assert.match(globalCss, /\.commute-station-popover \.commute-station-search-row\s*\{[\s\S]*border:\s*0;[\s\S]*border-bottom:/);
+    assert.match(globalCss, /\.dark \.site-dropdown-option\s*\{[\s\S]*background:\s*transparent/);
+    assert.match(globalCss, /\.commute-station-popover \.commute-station-lines-list\s*\{[\s\S]*gap:\s*0/);
+    assert.match(globalCss, /\.commute-station-popover \.commute-station-options\s*\{[\s\S]*gap:\s*6px/);
+    assert.match(globalCss, /\.commute-station-popover \.commute-station-option\s*\{[\s\S]*border-radius:\s*7px/);
+    assert.doesNotMatch(globalCss, /\.commute-station-popover\s*\{[^}]*background:\s*var\(--panel\)\s*!important/s);
+    assert.match(globalCss, /\.commute-station-search-row input\[type="search"\]::\-webkit-search-cancel-button\s*\{[\s\S]*display:\s*none/);
+    assert.match(globalCss, /\.commute-station-stations-column > \.commute-station-mobile-back\s*\{[\s\S]*margin-left:\s*0\.5rem;[\s\S]*width:\s*calc\(100% - 1rem\)/);
+    assert.match(globalCss, /\.commute-station-stations-scroll-content\s*\{[\s\S]*padding-left:\s*0\.5rem;[\s\S]*padding-right:\s*0\.5rem/);
   });
 
   it("validates create-account input before sending registration requests", () => {

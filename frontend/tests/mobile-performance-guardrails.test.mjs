@@ -180,7 +180,11 @@ describe("mobile performance guardrails", () => {
   it("keeps mobile menu transitions compositor-friendly", () => {
     assert.match(
       globalCss,
-      /\.mobile-bottom-nav-item\s*\{[^}]*transition:\s*background-color 150ms ease,\s*border-color 150ms ease,\s*color 150ms ease,\s*transform 120ms ease;[^}]*\}/s,
+      /\.mobile-bottom-nav::before\s*\{[^}]*transition:\s*transform 220ms[^}]*will-change:\s*transform;[^}]*\}/s,
+    );
+    assert.match(
+      globalCss,
+      /\.mobile-bottom-nav-item\s*\{[^}]*transition:\s*color 170ms ease,\s*transform 120ms ease;[^}]*\}/s,
     );
     assert.match(
       globalCss,

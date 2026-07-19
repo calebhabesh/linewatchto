@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import Image from "next/image";
 import { ChevronDown, ChevronRight, Search, X } from "lucide-react";
@@ -15,6 +15,12 @@ import {
   isStationWheelchairAccessible,
   isStationElevatorAccessible,
 } from "../app/station-data";
+import {
+  calculateMobilePickerAlignmentScroll,
+  calculateCommuteStationPopoverCoords,
+  isVisualKeyboardOpen,
+  type CommuteStationPopoverCoords,
+} from "./commute-station-popover";
 
 type Props = {
   label: string;
@@ -76,7 +82,7 @@ function StationOption({
       role="option"
       aria-selected={selected}
       disabled={disabled}
-      className={`commute-station-option ${selected ? "selected" : ""}`}
+      className={`site-dropdown-option commute-station-option ${selected ? "selected" : ""}`}
       onClick={() => onChoose(station.id)}
       title={disabled ? `${disabledReason}${accessibilityLabel}` : `${station.name}${accessibilityLabel}`}
     >
@@ -130,18 +136,13 @@ export function SavedCommuteStationPicker({
   const inputRef = useRef<HTMLInputElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
   const [localOpen, setLocalOpen] = useState(false);
+  const [mobileInline, setMobileInline] = useState(false);
   const open = isOpen !== undefined ? isOpen : localOpen;
   const setOpen = onOpenChange !== undefined ? onOpenChange : setLocalOpen;
   const [query, setQuery] = useState("");
   const [expandedLineId, setExpandedLineId] = useState<string | null>(null);
-  const [coords, setCoords] = useState<{
-    top?: number;
-    bottom?: number;
-    left: number;
-    width: number;
-    maxHeight: number;
-    placement: "below" | "above";
-  } | null>(null);
+  const [inputFocused, setInputFocused] = useState(false);
+  const [coords, setCoords] = useState<CommuteStationPopoverCoords | null>(null);
 
   const selectedStation = useMemo(
     () => stations.find((station) => station.id === value) ?? null,
@@ -152,9 +153,20 @@ export function SavedCommuteStationPicker({
   const isExpanded = Boolean(expandedLineId) && !query.trim();
 
   useEffect(() => {
+    const mediaQuery = window.matchMedia("(max-width: 767px)");
+    const sync = () => setMobileInline(mediaQuery.matches);
+    sync();
+    mediaQuery.addEventListener("change", sync);
+    return () => mediaQuery.removeEventListener("change", sync);
+  }, []);
+
+  useEffect(() => {
     if (!open) return;
 
-    const focusTimer = window.setTimeout(() => inputRef.current?.focus(), 40);
+    const mobileViewport = window.matchMedia("(max-width: 767px)").matches;
+    const focusTimer = mobileViewport
+      ? null
+      : window.setTimeout(() => inputRef.current?.focus(), 40);
     const handlePointerDown = (event: PointerEvent) => {
       const target = event.target as Node;
       if (target instanceof Element && target.closest(".panel-heading")) {
@@ -170,7 +182,7 @@ export function SavedCommuteStationPicker({
 
     document.addEventListener("pointerdown", handlePointerDown);
     return () => {
-      window.clearTimeout(focusTimer);
+      if (focusTimer !== null) window.clearTimeout(focusTimer);
       document.removeEventListener("pointerdown", handlePointerDown);
     };
   }, [open, setOpen]);
@@ -186,79 +198,27 @@ export function SavedCommuteStationPicker({
       if (trigger) {
         const rect = trigger.getBoundingClientRect();
         const visualViewport = window.visualViewport;
-        const viewportLeft = visualViewport?.offsetLeft ?? 0;
-        const viewportTop = visualViewport?.offsetTop ?? 0;
-        const viewportWidth = visualViewport?.width ?? window.innerWidth;
-        const viewportHeight = visualViewport?.height ?? window.innerHeight;
-        const viewportBottom = viewportTop + viewportHeight;
+        const viewport = {
+          left: visualViewport?.offsetLeft ?? 0,
+          top: visualViewport?.offsetTop ?? 0,
+          width: visualViewport?.width ?? window.innerWidth,
+          height: visualViewport?.height ?? window.innerHeight,
+        };
         const mobileViewport = window.matchMedia("(max-width: 767px)").matches;
-        const edgeInset = mobileViewport ? 8 : 16;
-        const gap = 6;
-        const minUsableHeight = mobileViewport ? 120 : 100;
-        let left = rect.left;
-        const extraWidth = !mobileViewport && expandedLineId ? 340 : 0;
-        let popWidth = rect.width + extraWidth;
-
         const scrollContainer = rootRef.current?.closest(".floating-panel-scroll");
         const containerRect = scrollContainer ? scrollContainer.getBoundingClientRect() : null;
+        const mobileSearchActive = mobileViewport && (
+          inputFocused || isVisualKeyboardOpen(viewport, window.innerHeight)
+        );
 
-        if (mobileViewport && containerRect) {
-          const padding = 8;
-          const minLeft = containerRect.left + padding;
-          const maxRight = containerRect.right - padding;
-          const maxUsableWidth = maxRight - minLeft;
-
-          if (popWidth > maxUsableWidth) {
-            popWidth = maxUsableWidth;
-          }
-          if (left < minLeft) {
-            left = minLeft;
-          }
-          if (left + popWidth > maxRight) {
-            left = maxRight - popWidth;
-          }
-        } else {
-          if (left + popWidth > viewportLeft + viewportWidth - edgeInset) {
-            left = viewportLeft + viewportWidth - popWidth - edgeInset;
-          }
-          if (left < viewportLeft + edgeInset) left = viewportLeft + edgeInset;
-        }
-
-        const belowTop = rect.bottom + gap;
-
-        // Define vertical space limits
-        let belowSpace = viewportBottom - belowTop - edgeInset;
-        let aboveSpace = rect.top - viewportTop - gap - edgeInset;
-
-        if (mobileViewport && containerRect) {
-          const containerTopLimit = Math.max(viewportTop + edgeInset, containerRect.top + 8);
-          const containerBottomLimit = Math.min(viewportBottom - edgeInset, containerRect.bottom - 8);
-          belowSpace = containerBottomLimit - belowTop;
-          aboveSpace = rect.top - gap - containerTopLimit;
-        }
-
-        // On phones the visual viewport can shrink to the keyboard height. Always
-        // placing the popover below then leaves it with no usable results area, so
-        // prefer whichever side of the trigger has enough room.
-        const placeBelow = belowSpace >= minUsableHeight || belowSpace >= aboveSpace;
-        const maxHeight = mobileViewport
-          ? Math.max(0, Math.min(320, placeBelow ? belowSpace : aboveSpace))
-          : Math.max(120, Math.min(320, placeBelow ? belowSpace : aboveSpace));
-        const top = placeBelow
-          ? belowTop
-          : (mobileViewport ? Math.max(viewportTop + edgeInset, rect.top - gap - maxHeight) : undefined);
-        const bottom = (!placeBelow && !mobileViewport)
-          ? (viewportBottom - rect.top + gap)
-          : undefined;
-
-        setCoords({
-          top,
-          bottom,
-          left,
-          width: popWidth,
-          maxHeight,
-          placement: placeBelow ? "below" : "above",
-        });
+        setCoords(calculateCommuteStationPopoverCoords({
+          trigger: rect,
+          viewport,
+          container: containerRect,
+          mobile: mobileViewport,
+          expanded: Boolean(expandedLineId),
+          mobileSearchActive,
+        }));
       }
     };
 
@@ -275,7 +235,44 @@ export function SavedCommuteStationPicker({
       visualViewport?.removeEventListener("resize", updateCoords);
       visualViewport?.removeEventListener("scroll", updateCoords);
     };
-  }, [open, expandedLineId]);
+  }, [open, expandedLineId, inputFocused]);
+
+  useEffect(() => {
+    if (!open || !inputFocused || !mobileInline) return;
+
+    let alignmentFrame: number | null = null;
+    const alignPickerToScrollTop = () => {
+      const picker = rootRef.current;
+      const scrollArea = picker?.closest<HTMLElement>(".commute-grid");
+      if (!picker || !scrollArea) return;
+
+      const scrollBy = calculateMobilePickerAlignmentScroll(
+        picker.getBoundingClientRect().top,
+        scrollArea.getBoundingClientRect().top,
+      );
+      if (Math.abs(scrollBy) > 1) {
+        const targetScrollTop = Math.max(0, scrollArea.scrollTop + scrollBy);
+        scrollArea.scrollTop = targetScrollTop;
+      }
+    };
+    const scheduleAlignment = () => {
+      if (alignmentFrame !== null) window.cancelAnimationFrame(alignmentFrame);
+      alignmentFrame = window.requestAnimationFrame(alignPickerToScrollTop);
+    };
+
+    scheduleAlignment();
+    const earlyAlignmentTimer = window.setTimeout(alignPickerToScrollTop, 80);
+    const settledAlignmentTimer = window.setTimeout(alignPickerToScrollTop, 240);
+    const visualViewport = window.visualViewport;
+    visualViewport?.addEventListener("resize", scheduleAlignment);
+
+    return () => {
+      if (alignmentFrame !== null) window.cancelAnimationFrame(alignmentFrame);
+      window.clearTimeout(earlyAlignmentTimer);
+      window.clearTimeout(settledAlignmentTimer);
+      visualViewport?.removeEventListener("resize", scheduleAlignment);
+    };
+  }, [open, inputFocused, mobileInline]);
 
   function chooseStation(stationId: string) {
     if (stationId === blockedStationId) return;
@@ -283,6 +280,7 @@ export function SavedCommuteStationPicker({
     setOpen(false);
     setQuery("");
     setExpandedLineId(null);
+    setInputFocused(false);
   }
 
   function clearSearchOrClose() {
@@ -293,12 +291,17 @@ export function SavedCommuteStationPicker({
     setOpen(false);
   }
 
+  function mountPopover(popover: ReactNode) {
+    if (mobileInline) return popover;
+    return createPortal(popover, document.querySelector(".linewatch-shell") || document.body);
+  }
+
   return (
     <div ref={rootRef} className="commute-station-picker" data-open={open ? "true" : "false"}>
       <span className="commute-station-label">{label}</span>
       <button
         type="button"
-        className="commute-station-trigger"
+        className="site-dropdown-trigger commute-station-trigger"
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-controls={panelId}
@@ -309,18 +312,25 @@ export function SavedCommuteStationPicker({
       </button>
 
       {open
-        ? createPortal(
+        ? mountPopover(
             <div
               ref={popoverRef}
               id={panelId}
-              className="commute-station-popover"
+              className="site-dropdown-menu commute-station-popover"
               role="listbox"
               aria-label={`${label} station choices`}
               data-expanded={isExpanded ? "true" : "false"}
+              data-searching={query.trim() ? "true" : "false"}
+              data-input-focused={inputFocused ? "true" : "false"}
+              data-mobile-inline={mobileInline ? "true" : "false"}
               data-placement={coords?.placement ?? "below"}
-              style={
-                coords
+              style={coords
+                ? mobileInline
                   ? {
+                      maxHeight: `${coords.maxHeight}px`,
+                      zIndex: 9999,
+                    }
+                  : {
                       position: "fixed",
                       top: coords.top !== undefined ? `${coords.top}px` : "auto",
                       bottom: coords.bottom !== undefined ? `${coords.bottom}px` : "auto",
@@ -330,8 +340,7 @@ export function SavedCommuteStationPicker({
                       right: "auto",
                       zIndex: 9999,
                     }
-                  : undefined
-              }
+                : undefined}
             >
               <div className="commute-station-search-row">
                 <Search size={15} aria-hidden="true" />
@@ -341,6 +350,8 @@ export function SavedCommuteStationPicker({
                   role="searchbox"
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
+                  onFocus={() => setInputFocused(true)}
+                  onBlur={() => setInputFocused(false)}
                   onKeyDown={(event) => {
                     if (event.key === "Escape") {
                       event.preventDefault();
@@ -382,7 +393,7 @@ export function SavedCommuteStationPicker({
                           <button
                             key={group.line.id}
                             type="button"
-                            className={`commute-station-line-trigger ${expanded ? "active" : ""}`}
+                            className={`site-dropdown-option commute-station-line-trigger ${expanded ? "selected active" : ""}`}
                             onClick={() => setExpandedLineId((current) => current === group.line.id ? null : group.line.id)}
                             aria-expanded={expanded}
                           >
@@ -448,7 +459,6 @@ export function SavedCommuteStationPicker({
                 </div>
               )}
             </div>,
-            document.querySelector(".linewatch-shell") || document.body,
           )
         : null}
     </div>

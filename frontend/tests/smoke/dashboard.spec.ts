@@ -1436,7 +1436,28 @@ test("demo account shows account-backed saved commutes", async ({ page, request,
     await expect(originPopover.getByRole("option", { name: /Stub Station/ })).toBeVisible();
     await originPopover.getByRole("button", { name: "Back to Lines" }).click();
     await expect(originPopover.getByRole("button", { name: /Line 1 Yonge-University/ })).toBeVisible();
-    await page.keyboard.press("Escape");
+    const originSearch = originPopover.getByRole("searchbox", { name: "Search origin stations" });
+    await originSearch.fill("stub");
+    await expect(originPopover).toHaveAttribute("data-placement", "below");
+    await expect(page.getByRole("navigation", { name: "Primary mobile navigation" })).toBeHidden();
+    await expect
+      .poll(async () => {
+        const liftedTriggerBox = await originTrigger.boundingBox();
+        const viewportPopoverBox = await originPopover.boundingBox();
+        const commuteContainerBox = await page.locator(".floating-panel-scroll").boundingBox();
+        const pickerBox = await originPicker.boundingBox();
+        const commuteScrollBox = await page.locator(".commute-grid").boundingBox();
+        if (!liftedTriggerBox || !viewportPopoverBox || !commuteContainerBox || !pickerBox || !commuteScrollBox) return false;
+        return (
+          Math.abs(pickerBox.y - commuteScrollBox.y - 8) <= 4 &&
+          Math.abs(viewportPopoverBox.y - (liftedTriggerBox.y + liftedTriggerBox.height + 6)) <= 4 &&
+          viewportPopoverBox.height < 320 &&
+          viewportPopoverBox.y + viewportPopoverBox.height <= commuteContainerBox.y + commuteContainerBox.height + 1
+        );
+      })
+      .toBe(true);
+    await originPopover.getByRole("option", { name: /Stub Station/ }).click();
+    await expect(originPopover).toHaveCount(0);
     await page.getByRole("button", { name: "Cancel" }).first().click();
   }
 

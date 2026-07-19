@@ -42,7 +42,12 @@ export function MobileBottomNav({
   }
 
   return (
-    <nav className="mobile-bottom-nav" role="navigation" aria-label="Primary mobile navigation">
+    <nav
+      className="mobile-bottom-nav"
+      role="navigation"
+      aria-label="Primary mobile navigation"
+      data-active-key={activeKey}
+    >
       {ITEMS.map(({ key, label, Icon }) => {
         const selected = activeKey === key;
         const badge = badgeFor(key);

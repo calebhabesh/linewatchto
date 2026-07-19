@@ -5581,7 +5581,7 @@ button {
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   gap: 10px;
-  border: 1px solid rgba(15, 23, 42, 0.08);
+  border: 1px solid rgba(15, 23, 42, 0.055);
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.66);
   padding: 10px;
@@ -5599,7 +5599,7 @@ button {
 }
 
 .dark .station-search-station {
-  border-color: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.055);
   background: rgba(18, 21, 28, 0.92);
   color: white;
 }
@@ -6531,15 +6531,16 @@ button {
   }
 
   .saved-commute-sort-control select {
-    height: 40px;
+    height: 34px;
   }
 
   .saved-commute-sort-trigger {
-    height: 40px;
+    height: 34px;
   }
 
   .saved-commute-list-actions .saved-commute-add-btn {
-    min-height: 40px;
+    min-height: 34px;
+    padding-block: 0.375rem;
   }
 
   /* Impact filters remain compact even though saved-commute controls use touch-sized targets. */
@@ -9415,6 +9416,39 @@ button {
     z-index: 45;
   }
 
+  .mobile-bottom-nav::before {
+    background: var(--mobile-chrome-nav-active-bg);
+    border: 1px solid var(--mobile-chrome-nav-active-border);
+    border-radius: 999px;
+    box-shadow: 0 5px 14px rgba(0, 0, 0, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.07);
+    content: "";
+    height: calc(100% - 8px);
+    left: 6px;
+    pointer-events: none;
+    position: absolute;
+    top: 4px;
+    transform: translate3d(0, 0, 0);
+    transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
+    width: calc((100% - 20px) / 5);
+    will-change: transform;
+  }
+
+  .mobile-bottom-nav[data-active-key="status"]::before {
+    transform: translate3d(calc(100% + 2px), 0, 0);
+  }
+
+  .mobile-bottom-nav[data-active-key="search"]::before {
+    transform: translate3d(calc(200% + 4px), 0, 0);
+  }
+
+  .mobile-bottom-nav[data-active-key="commutes"]::before {
+    transform: translate3d(calc(300% + 6px), 0, 0);
+  }
+
+  .mobile-bottom-nav[data-active-key="more"]::before {
+    transform: translate3d(calc(400% + 8px), 0, 0);
+  }
+
   .dark .mobile-bottom-nav {
     border: 1px solid rgba(255, 255, 255, 0.08);
   }
@@ -9423,9 +9457,15 @@ button {
     border: 1px solid #ffffff;
   }
 
+  .high-contrast .mobile-bottom-nav::before {
+    background: #ffffff;
+    border-color: #ffffff;
+    box-shadow: none;
+  }
+
   .high-contrast .mobile-bottom-nav-item[data-active="true"] {
-    background: #ffffff !important;
-    border-color: #ffffff !important;
+    background: transparent !important;
+    border-color: transparent !important;
     color: #000000 !important;
   }
 
@@ -9449,12 +9489,14 @@ button {
     min-height: 52px;
     min-width: 0;
     padding: 6px 4px;
-    transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease, transform 120ms ease;
+    position: relative;
+    transition: color 170ms ease, transform 120ms ease;
+    z-index: 1;
   }
 
   .mobile-bottom-nav-item[data-active="true"] {
-    background: var(--mobile-chrome-nav-active-bg);
-    border-color: var(--mobile-chrome-nav-active-border);
+    background: transparent;
+    border-color: transparent;
     color: var(--mobile-chrome-text);
   }
 
@@ -9465,6 +9507,11 @@ button {
   .mobile-bottom-nav-icon {
     display: inline-flex;
     position: relative;
+    transition: transform 200ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .mobile-bottom-nav-item[data-active="true"] .mobile-bottom-nav-icon {
+    transform: translateY(-1px) scale(1.08);
   }
 
   .mobile-bottom-nav-badge {
@@ -9493,6 +9540,11 @@ button {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    transition: opacity 170ms ease, transform 200ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .mobile-bottom-nav-item[data-active="true"] .mobile-bottom-nav-label {
+    transform: translateY(1px);
   }
 
   .mobile-bottom-nav-item[data-nav-key="commutes"] .mobile-bottom-nav-label {
@@ -10648,7 +10700,7 @@ button {
 
 @media (max-width: 767px) {
   .floating-panel-shell {
-    animation: floating-mobile-sheet-enter 180ms cubic-bezier(0.22, 1, 0.36, 1);
+    animation: floating-mobile-sheet-enter 240ms cubic-bezier(0.16, 1, 0.3, 1) both;
     bottom: var(--mobile-bottom-nav-occupied-height);
     left: 0;
     max-height: min(78dvh, calc(var(--visual-viewport-height, 100dvh) - var(--mobile-bottom-nav-occupied-height) - 88px));
@@ -10713,12 +10765,12 @@ button {
 @keyframes floating-mobile-sheet-enter {
   from {
     opacity: 0;
-    transform: translateY(22px);
+    transform: translate3d(0, 28px, 0) scale(0.985);
   }
 
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: translate3d(0, 0, 0) scale(1);
   }
 }
 
@@ -10831,14 +10883,14 @@ button {
     position: fixed;
     right: calc(var(--mobile-safe-right) + 8px);
     top: calc(var(--visual-viewport-offset-top, 0px) + var(--mobile-safe-top) + 10px);
-    transform: translateY(-12px);
+    transform: translate3d(0, -14px, 0) scale(0.985);
     transform-origin: top center;
     width: auto;
     z-index: 60;
   }
 
   .station-search-panel.open {
-    transform: translateY(0);
+    transform: translate3d(0, 0, 0) scale(1);
   }
 
   .station-search-panel[data-expanded="true"] {
@@ -10853,12 +10905,12 @@ button {
     top: auto !important;
     height: auto !important;
     max-height: calc(var(--visual-viewport-height, 100dvh) - var(--mobile-bottom-nav-occupied-height) - var(--mobile-safe-top) - 24px) !important;
-    transform: translateY(12px);
+    transform: translate3d(0, 24px, 0) scale(0.985);
     transform-origin: bottom center;
   }
 
   html:not([data-visual-keyboard="open"]) .station-search-panel.open:not([data-searching="true"]):not([data-input-focused="true"]) {
-    transform: translateY(0);
+    transform: translate3d(0, 0, 0) scale(1);
   }
 
   /* Shrink containers to fit entries when not expanded, not searching, and not focused */
@@ -10955,7 +11007,9 @@ button {
     font-size: 12px;
     font-weight: 900;
     min-height: 42px;
+    justify-content: center;
     padding: 8px 10px;
+    text-align: center;
     margin-bottom: 14px !important;
   }
 }
@@ -11703,7 +11757,7 @@ button {
   height: 100%;
   max-height: 100%;
   overflow: hidden;
-  animation: mobile-content-fade-in 220ms cubic-bezier(0.23, 1, 0.32, 1) both;
+  animation: mobile-content-fade-in 190ms cubic-bezier(0.16, 1, 0.3, 1) both;
   will-change: opacity, transform;
 }
 
@@ -11721,16 +11775,34 @@ button {
 @keyframes mobile-content-fade-in {
   from {
     opacity: 0;
-    transform: translate3d(0, 8px, 0);
+    transform: translate3d(0, 10px, 0) scale(0.995);
   }
   to {
     opacity: 1;
-    transform: translate3d(0, 0, 0);
+    transform: translate3d(0, 0, 0) scale(1);
   }
 }
 
 .motion-paused .mobile-view-content-wrapper {
   animation: none !important;
+}
+
+.motion-paused .mobile-bottom-nav::before,
+.motion-paused .mobile-bottom-nav-icon,
+.motion-paused .mobile-bottom-nav-label {
+  transition: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mobile-view-content-wrapper {
+    animation: none !important;
+  }
+
+  .mobile-bottom-nav::before,
+  .mobile-bottom-nav-icon,
+  .mobile-bottom-nav-label {
+    transition: none !important;
+  }
 }
 
 /* Opaque cards/buttons in Status and More mobile sheets */
@@ -12439,15 +12511,23 @@ button {
     position: fixed !important;
     bottom: auto !important;
     right: auto !important;
-    border-radius: 8px !important;
-    box-shadow: 0 12px 40px rgba(15, 23, 42, 0.24) !important;
     z-index: 9999 !important;
     display: flex !important;
     flex-direction: column !important;
-    background: var(--panel) !important;
-    border: 1px solid var(--border) !important;
     animation: commute-popover-enter-mobile 220ms cubic-bezier(0.23, 1, 0.32, 1) both !important;
     max-width: calc(100vw - 32px) !important;
+  }
+
+  .commute-station-popover[data-mobile-inline="true"] {
+    animation: none !important;
+    bottom: auto !important;
+    left: 0 !important;
+    max-width: none !important;
+    position: absolute !important;
+    right: auto !important;
+    top: calc(100% + 6px) !important;
+    transform: none !important;
+    width: 100% !important;
   }
 
   .commute-station-search-row {
@@ -12467,14 +12547,9 @@ button {
     max-height: none;
   }
 
-  .high-contrast .commute-station-popover {
-    background: #000000 !important;
-    border: 2px solid #ffffff !important;
-  }
-
   .commute-station-browse-container {
     flex-direction: column !important;
-    gap: 10px !important;
+    gap: 0 !important;
     flex: 1 !important;
     overflow: hidden !important;
   }
@@ -15060,4 +15135,248 @@ button {
   padding-bottom: 12px !important; /* Overrides the mobile 56px bottom padding to keep centering symmetric */
   mask-image: none !important;
   -webkit-mask-image: none !important;
+}
+
+/* Shared compact dropdown language used by sorters and station pickers. */
+.site-dropdown-trigger {
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(15, 23, 42, 0.14);
+  border-radius: 6px;
+  color: rgb(15, 23, 42);
+  font-size: 0.75rem;
+  font-weight: 700;
+  transition: background-color 0.2s, border-color 0.2s;
+}
+
+.site-dropdown-trigger:hover,
+.site-dropdown-trigger:focus-visible {
+  background: rgb(241, 245, 249);
+  border-color: rgba(15, 23, 42, 0.25);
+  outline: none;
+}
+
+.site-dropdown-menu {
+  background: rgba(255, 255, 255, 0.98);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(15, 23, 42, 0.14);
+  border-radius: 6px;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+.site-dropdown-option {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  color: rgb(71, 85, 105);
+  font-size: 0.75rem;
+  font-weight: 700;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.site-dropdown-option:hover,
+.site-dropdown-option:focus-visible {
+  background: rgb(248, 250, 252);
+  color: rgb(15, 23, 42);
+  outline: none;
+}
+
+.site-dropdown-option.selected {
+  background: rgb(241, 245, 249);
+  color: rgb(15, 23, 42);
+}
+
+.dark .site-dropdown-trigger,
+.high-contrast .site-dropdown-trigger {
+  background: rgba(15, 23, 42, 0.82);
+  border-color: rgba(255, 255, 255, 0.14);
+  color: rgb(248, 250, 252);
+}
+
+.dark .site-dropdown-trigger:hover,
+.dark .site-dropdown-trigger:focus-visible {
+  background: rgba(30, 41, 59, 0.8);
+}
+
+.dark .site-dropdown-menu {
+  background: rgba(15, 23, 42, 0.98);
+  border-color: rgba(255, 255, 255, 0.14);
+}
+
+.dark .site-dropdown-option {
+  background: transparent;
+  color: rgb(148, 163, 184);
+}
+
+.dark .site-dropdown-option:hover,
+.dark .site-dropdown-option:focus-visible {
+  background: rgba(30, 41, 59, 0.5);
+  color: rgb(248, 250, 252);
+}
+
+.dark .site-dropdown-option.selected {
+  background: rgba(30, 41, 59, 0.8);
+  color: rgb(248, 250, 252);
+}
+
+.high-contrast .site-dropdown-trigger,
+.high-contrast .site-dropdown-menu {
+  background: #000000;
+  border-color: #ffffff;
+}
+
+.high-contrast .site-dropdown-option {
+  background: transparent;
+  color: #ffffff;
+}
+
+.high-contrast .site-dropdown-option:hover,
+.high-contrast .site-dropdown-option:focus-visible,
+.high-contrast .site-dropdown-option.selected {
+  background: #ffffff;
+  color: #000000;
+}
+
+.commute-station-popover.site-dropdown-menu {
+  padding: 4px 0;
+}
+
+.commute-station-popover .commute-station-lines-list {
+  gap: 0;
+  padding-right: 0;
+}
+
+.commute-station-popover .commute-station-options {
+  gap: 6px;
+  padding-right: 0;
+}
+
+.commute-station-popover .commute-station-line-trigger,
+.commute-station-popover .commute-station-option {
+  min-height: 40px;
+  padding: 0.5rem 0.75rem;
+}
+
+.commute-station-popover .commute-station-option {
+  border: 1px solid rgba(15, 23, 42, 0.055);
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.66);
+}
+
+.dark .commute-station-popover .commute-station-option {
+  border-color: rgba(148, 163, 184, 0.12);
+  background: rgba(30, 41, 59, 0.58);
+}
+
+.commute-station-popover .commute-station-option:hover,
+.commute-station-popover .commute-station-option:focus-visible,
+.commute-station-popover .commute-station-option.selected {
+  border-color: rgba(14, 165, 233, 0.42);
+  background: rgba(14, 165, 233, 0.1);
+}
+
+.high-contrast .commute-station-popover .commute-station-option {
+  border-color: #ffffff;
+  background: #000000;
+}
+
+.high-contrast .commute-station-popover .commute-station-option:hover,
+.high-contrast .commute-station-popover .commute-station-option:focus-visible,
+.high-contrast .commute-station-popover .commute-station-option.selected {
+  background: #ffffff;
+}
+
+.commute-station-popover .commute-station-search-row {
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.14);
+  border-radius: 0;
+  margin-left: 0.5rem;
+  padding-inline: 0.125rem;
+  transition: border-color 0.2s;
+}
+
+.commute-station-search-row input[type="search"]::-webkit-search-cancel-button {
+  display: none;
+  -webkit-appearance: none;
+}
+
+.commute-station-popover .commute-station-search-row:focus-within {
+  border-bottom-color: rgba(14, 165, 233, 0.72);
+}
+
+.dark .commute-station-popover .commute-station-search-row {
+  background: transparent;
+  border-bottom-color: rgba(255, 255, 255, 0.16);
+}
+
+.dark .commute-station-popover .commute-station-search-row:focus-within {
+  border-bottom-color: rgba(56, 189, 248, 0.78);
+}
+
+.high-contrast .commute-station-popover .commute-station-search-row,
+.high-contrast .commute-station-popover .commute-station-search-row:focus-within {
+  background: transparent;
+  border-bottom-color: currentColor;
+}
+
+@media (max-width: 767px) {
+  /* Match the main search: opening browses in place; focusing/searching promotes
+     the picker and its parent panel to the visible viewport above either keyboard. */
+  .linewatch-shell:has(.commute-station-popover[data-input-focused="true"]) .mobile-bottom-nav,
+  .linewatch-shell:has(.commute-station-popover[data-searching="true"]) .mobile-bottom-nav {
+    display: none !important;
+  }
+
+  .linewatch-shell:has(.commute-station-popover[data-input-focused="true"]) .floating-panel-shell[data-floating-panel="mobile-panel"]:has([data-active-view="commutes"]),
+  .linewatch-shell:has(.commute-station-popover[data-searching="true"]) .floating-panel-shell[data-floating-panel="mobile-panel"]:has([data-active-view="commutes"]) {
+    bottom: auto;
+    height: calc(var(--visual-viewport-height, 100dvh) - var(--mobile-safe-top) - 16px);
+    max-height: calc(var(--visual-viewport-height, 100dvh) - var(--mobile-safe-top) - 16px);
+    top: calc(var(--visual-viewport-offset-top, 0px) + var(--mobile-safe-top) + 8px);
+  }
+
+  .linewatch-shell:has(.commute-station-popover[data-input-focused="true"]) .floating-panel-shell[data-floating-panel="mobile-panel"]:has([data-active-view="commutes"]) .floating-panel-scroll,
+  .linewatch-shell:has(.commute-station-popover[data-searching="true"]) .floating-panel-shell[data-floating-panel="mobile-panel"]:has([data-active-view="commutes"]) .floating-panel-scroll,
+  .linewatch-shell:has(.commute-station-popover[data-input-focused="true"]) .mobile-view-content-wrapper[data-active-view="commutes"],
+  .linewatch-shell:has(.commute-station-popover[data-searching="true"]) .mobile-view-content-wrapper[data-active-view="commutes"],
+  .linewatch-shell:has(.commute-station-popover[data-input-focused="true"]) .mobile-view-content-wrapper[data-active-view="commutes"] .commute-panel,
+  .linewatch-shell:has(.commute-station-popover[data-searching="true"]) .mobile-view-content-wrapper[data-active-view="commutes"] .commute-panel {
+    height: 100% !important;
+    max-height: 100% !important;
+  }
+
+  .linewatch-shell:has(.commute-station-popover[data-input-focused="true"]) .mobile-view-content-wrapper[data-active-view="commutes"] .commute-grid,
+  .linewatch-shell:has(.commute-station-popover[data-searching="true"]) .mobile-view-content-wrapper[data-active-view="commutes"] .commute-grid {
+    flex: 1 1 auto !important;
+    height: auto !important;
+    min-height: 0 !important;
+    overflow-anchor: none;
+    overflow-y: auto !important;
+    scroll-behavior: auto !important;
+    scroll-snap-type: none !important;
+  }
+
+  html:has(.commute-station-popover[data-input-focused="true"]),
+  html:has(.commute-station-popover[data-searching="true"]) {
+    scroll-behavior: auto !important;
+  }
+
+  .commute-station-stations-column > .commute-station-mobile-back {
+    margin-left: 0.5rem;
+    margin-right: 0.5rem;
+    width: calc(100% - 1rem);
+  }
+
+  .commute-station-stations-scroll {
+    scrollbar-gutter: stable;
+  }
+
+  .commute-station-stations-scroll-content {
+    box-sizing: border-box;
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+    width: 100%;
+  }
+
 }

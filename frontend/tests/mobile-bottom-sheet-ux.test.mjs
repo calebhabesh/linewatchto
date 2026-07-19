@@ -11,6 +11,7 @@ const floatingPanelSource = readFileSync(new URL("../src/components/FloatingPane
 const mapSource = readFileSync(new URL("../src/components/InteractiveTtcMap.tsx", import.meta.url), "utf8");
 const searchSource = readFileSync(new URL("../src/components/StationSearchPanel.tsx", import.meta.url), "utf8");
 const savedCommutePickerSource = readFileSync(new URL("../src/components/SavedCommuteStationPicker.tsx", import.meta.url), "utf8");
+const savedCommutePopoverSource = readFileSync(new URL("../src/components/commute-station-popover.ts", import.meta.url), "utf8");
 const globalCss = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
 
 describe("mobile bottom sheet UX", () => {
@@ -241,14 +242,38 @@ describe("mobile bottom sheet UX", () => {
   it("keeps saved commute station search results visible while the iOS keyboard is open", () => {
     assert.match(savedCommutePickerSource, /window\.visualViewport/);
     assert.match(savedCommutePickerSource, /visualViewport\?\.addEventListener\("resize",\s*updateCoords\)/);
-    assert.match(savedCommutePickerSource, /belowSpace >= minUsableHeight \|\| belowSpace >= aboveSpace/);
-    assert.match(savedCommutePickerSource, /Math\.max\(0, Math\.min\(320, placeBelow \? belowSpace : aboveSpace\)\)/);
+    assert.match(savedCommutePickerSource, /isVisualKeyboardOpen\(viewport, window\.innerHeight\)/);
+    assert.match(savedCommutePickerSource, /calculateCommuteStationPopoverCoords/);
+    assert.match(savedCommutePickerSource, /mobileInline\) return popover/);
+    assert.match(savedCommutePickerSource, /data-mobile-inline=\{mobileInline \? "true" : "false"\}/);
+    assert.match(savedCommutePickerSource, /calculateMobilePickerAlignmentScroll/);
+    assert.match(savedCommutePickerSource, /picker\?\.closest<HTMLElement>\("\.commute-grid"\)/);
+    assert.match(savedCommutePickerSource, /scrollArea\.scrollTop = targetScrollTop/);
+    assert.match(savedCommutePickerSource, /setTimeout\(alignPickerToScrollTop, 80\)/);
+    assert.match(savedCommutePickerSource, /setTimeout\(alignPickerToScrollTop, 240\)/);
+    assert.doesNotMatch(savedCommutePickerSource, /visualViewport\?\.addEventListener\("scroll", scheduleAlignment\)/);
+    assert.doesNotMatch(savedCommutePickerSource, /calculateMobileTriggerRevealScroll/);
+    assert.match(savedCommutePickerSource, /inputFocused \|\| isVisualKeyboardOpen/);
+    assert.match(savedCommutePickerSource, /mobileViewport\s*\? null\s*:\s*window\.setTimeout/);
+    assert.match(savedCommutePopoverSource, /if \(mobile\)/);
+    assert.match(savedCommutePopoverSource, /const top = trigger\.bottom \+ gap/);
+    assert.match(savedCommutePopoverSource, /MOBILE_ACTIVE_BOTTOM_INSET = 16/);
+    assert.match(savedCommutePopoverSource, /mobileSearchActive[\s\S]*viewportBottom - MOBILE_ACTIVE_BOTTOM_INSET/);
+    assert.match(savedCommutePopoverSource, /mobileSearchActive[\s\S]*\? viewportLimit[\s\S]*Math\.min\(viewportLimit, containerLimit\)/);
+    assert.doesNotMatch(savedCommutePopoverSource, /const containerBottom =/);
+    assert.match(savedCommutePopoverSource, /placement:\s*"below"/);
     assert.match(savedCommutePickerSource, /position:\s*"fixed"/);
     assert.match(savedCommutePickerSource, /maxHeight:\s*`\$\{coords\.maxHeight\}px`/);
     assert.match(globalCss, /\.commute-station-search-row\s*\{[\s\S]*position:\s*sticky/);
     assert.match(globalCss, /\.commute-station-search-row\s*\{[\s\S]*top:\s*0/);
     assert.match(globalCss, /\.commute-station-popover > \.commute-station-options\s*\{[\s\S]*overflow-y:\s*auto/);
     assert.match(globalCss, /html\[data-visual-keyboard="open"\]\s+\.commute-station-popover > \.commute-station-options\s*\{[\s\S]*max-height:\s*none/);
+    assert.match(globalCss, /\.commute-station-popover\[data-mobile-inline="true"\]\s*\{[\s\S]*position:\s*absolute\s*!important;[\s\S]*top:\s*calc\(100% \+ 6px\)\s*!important/);
+    assert.doesNotMatch(globalCss, /\.commute-station-popover\[data-placement="viewport"\]/);
+    assert.match(globalCss, /:has\(\.commute-station-popover\[data-input-focused="true"\]\)[\s\S]*\.floating-panel-shell/);
+    assert.match(globalCss, /\.floating-panel-shell\[data-floating-panel="mobile-panel"\]:has\(\[data-active-view="commutes"\]\)\s*\{[\s\S]*height:\s*calc\(var\(--visual-viewport-height/);
+    assert.match(globalCss, /\.mobile-view-content-wrapper\[data-active-view="commutes"\] \.commute-panel\s*\{[\s\S]*height:\s*100%\s*!important/);
+    assert.match(globalCss, /\.mobile-view-content-wrapper\[data-active-view="commutes"\] \.commute-grid\s*\{[\s\S]*flex:\s*1 1 auto\s*!important;[\s\S]*min-height:\s*0\s*!important;[\s\S]*overflow-anchor:\s*none;[\s\S]*scroll-behavior:\s*auto\s*!important/);
   });
 
   it("uses touch scrolling with a compact mobile scrollbar thumb", () => {

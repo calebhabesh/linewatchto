@@ -1222,6 +1222,7 @@ export function LineWatchShell({
 
       if (barEl?.contains(target)) return;
       if (panelEl?.contains(target)) return;
+      if (target instanceof Element && target.closest(".mobile-bottom-nav")) return;
 
       setActiveView("map");
       setStationSearchQuery("");
