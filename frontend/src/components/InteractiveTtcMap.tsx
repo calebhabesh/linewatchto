@@ -1542,7 +1542,7 @@ function InteractiveTtcMapComponent({
                   const visualAnchors = visualAnchorsForStation(station);
                   const hasMultipleVisualAnchors = visualAnchors.length > 1;
                   const hitRadius = selection
-                    ? hasMultipleVisualAnchors ? 30 : isLarge ? 42 : 28
+                    ? hasMultipleVisualAnchors ? 34 : isLarge ? 46 : 32
                     : hasMultipleVisualAnchors ? 45 : isLarge ? 66 : 41;
                   const usesIndependentSpadinaHover = station.id === "spadina" && visualAnchors.length === 2;
                   const hoverRadius = usesIndependentSpadinaHover ? 34 : isLarge ? 72 : 48;

@@ -37,7 +37,7 @@ describe("asset-backed map layering", () => {
   it("pins station hit targets to the authored station-dot outlines", () => {
     assert.match(
       interactiveMapSource,
-      /const hitRadius = selection[\s\S]*?hasMultipleVisualAnchors \? 30 : isLarge \? 42 : 28[\s\S]*?hasMultipleVisualAnchors \? 45 : isLarge \? 66 : 41;/,
+      /const hitRadius = selection[\s\S]*?hasMultipleVisualAnchors \? 34 : isLarge \? 46 : 32[\s\S]*?hasMultipleVisualAnchors \? 45 : isLarge \? 66 : 41;/,
     );
   });
 

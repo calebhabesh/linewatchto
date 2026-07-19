@@ -21,7 +21,8 @@ const infoOverlayAssetNames = [
   "info-upcoming-closure.svg",
   "station-ring-arrow.svg",
   "station-ring-two-way-arrow.svg",
-  "info-overlapping-marker.svg",
+  "info-overlapping-multi-marker.svg",
+  "info-overlapping-single-marker.svg",
 ];
 
 describe("site guide dropdown", () => {
@@ -118,7 +119,7 @@ describe("site guide dropdown", () => {
     assert.match(guideSource, /\/assets\/linewatch\/guide-icons\/add-to-homescreen-android\.svg/);
     assert.match(guideSource, /site-guide-install-asset-icon/);
     assert.doesNotMatch(guideSource, /site-guide-install-asset-box/);
-    assert.match(guideSource, /iPhone Safari/);
+    assert.match(guideSource, /iOS Safari \(iPhone\)/);
     assert.match(guideSource, /Open LineWatchTO in Safari/);
     assert.match(guideSource, /Tap Share/);
     assert.match(guideSource, /Add to Home Screen/);
@@ -138,7 +139,7 @@ describe("site guide dropdown", () => {
     assert.doesNotMatch(guideSource, /both ways shows a red-and-white striped lane/);
     assert.match(guideSource, /"Delay"/);
     assert.match(guideSource, /Reduced Speed Zone/);
-    assert.match(guideSource, /Upcoming Closure Preview/);
+    assert.match(guideSource, /Planned Closure Preview/);
     assert.match(guideSource, /Station Impact Ring/);
     assert.match(guideSource, /Overlap Badge/);
     assert.match(guideSource, /Shuttle Badge/);
