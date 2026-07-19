@@ -5375,6 +5375,22 @@ button {
   text-align: left;
 }
 
+.impact-list-option-label {
+  align-items: center;
+  display: inline-flex;
+  gap: 7px;
+  min-width: 0;
+  white-space: nowrap;
+}
+
+.impact-list-line-badge {
+  display: block;
+  flex: 0 0 22px;
+  height: 22px;
+  object-fit: contain;
+  width: 22px;
+}
+
 .impact-list-control-prefix {
   color: rgb(100, 116, 139);
   font-size: 8px;
@@ -5396,16 +5412,18 @@ button {
   right: auto;
 }
 
-/* Edge case: right-align the Sort selector (the last dropdown) to prevent it from clipping on the right edge */
-.impact-list-selects .impact-list-select-control:last-child .saved-commute-sort-options.impact-list-select-options {
-  left: auto;
-  right: 0;
+@media (min-width: 768px) {
+  /* Desktop edge case: keep the final Sort menu inside the panel's right edge. */
+  .impact-list-selects .impact-list-select-control:last-child .saved-commute-sort-options.impact-list-select-options {
+    left: auto;
+    right: 0;
+  }
 }
 
 
 
 
-@media (max-width: 520px) {
+@media (max-width: 767px) {
   .impact-list-toolbar {
     grid-template-columns: 1fr;
   }
@@ -5414,6 +5432,11 @@ button {
     display: flex;
     flex-wrap: wrap;
     justify-content: flex-start;
+  }
+
+  .impact-list-selects .saved-commute-sort-options.impact-list-select-options {
+    left: 0;
+    right: auto;
   }
 
 }

@@ -779,29 +779,32 @@ test("shows a compact map hint when multiple alert types overlap", async ({ page
     );
     expect(Math.hypot(horizontalGap, verticalGap)).toBeLessThanOrEqual(96);
   }
-  if (isMobile) {
-    const keepoutSelector = [
-      ".mobile-bottom-nav",
-      ".mobile-status-peek",
-      ".mobile-legend-pill",
-      ".mobile-train-toggle",
-      ".map-utility-cluster",
-      ".map-control-rail",
-    ].join(",");
-    const collisions = await overlapChooser.evaluate((chooser, selector) => {
-      const chooserRect = chooser.getBoundingClientRect();
-      return Array.from(document.querySelectorAll(selector)).filter((element) => {
-        const style = getComputedStyle(element);
-        const rect = element.getBoundingClientRect();
-        if (style.display === "none" || style.visibility === "hidden" || rect.width === 0 || rect.height === 0) return false;
-        return chooserRect.left < rect.right
-          && chooserRect.right > rect.left
-          && chooserRect.top < rect.bottom
-          && chooserRect.bottom > rect.top;
-      }).map((element) => element.className);
-    }, keepoutSelector);
-    expect(collisions).toEqual([]);
-  } else {
+  const keepoutSelector = [
+    ".desktop-status-capsule-anchor",
+    ".desktop-map-control-rail",
+    ".desktop-map-legend",
+    ".desktop-status-chip-row-container",
+    ".mobile-bottom-nav",
+    ".mobile-status-peek",
+    ".mobile-legend-pill",
+    ".mobile-train-toggle",
+    ".map-utility-cluster",
+    ".map-control-rail",
+  ].join(",");
+  const collisions = await overlapChooser.evaluate((chooser, selector) => {
+    const chooserRect = chooser.getBoundingClientRect();
+    return Array.from(document.querySelectorAll(selector)).filter((element) => {
+      const style = getComputedStyle(element);
+      const rect = element.getBoundingClientRect();
+      if (style.display === "none" || style.visibility === "hidden" || Number(style.opacity) === 0 || rect.width === 0 || rect.height === 0) return false;
+      return chooserRect.left < rect.right
+        && chooserRect.right > rect.left
+        && chooserRect.top < rect.bottom
+        && chooserRect.bottom > rect.top;
+    }).map((element) => element.className);
+  }, keepoutSelector);
+  expect(collisions).toEqual([]);
+  if (!isMobile) {
     const viewport = page.locator("[data-map-pan-zoom-viewport]");
     const viewportBox = await viewport.boundingBox();
     expect(viewportBox).not.toBeNull();
@@ -1096,7 +1099,7 @@ test("global search opens a condensed alert result in its detailed card and mobi
   }
 });
 
-test("alert category panels filter by line and sort without changing dashboard data", async ({ page, request }) => {
+test("alert category panels filter by line and sort without changing dashboard data", async ({ page, request, isMobile }) => {
   await setStubMode(request, "seeded");
   await page.goto("/?panel=delays");
 
@@ -1109,8 +1112,10 @@ test("alert category panels filter by line and sort without changing dashboard d
   })).toBeTruthy();
 
   await page.getByRole("button", { name: "Filter delays by line" }).click();
-  await page.getByRole("listbox").getByRole("option", { name: "Line 4" }).click();
-  await expect(page.getByRole("button", { name: "Filter delays by line" })).toContainText("Line 4");
+  await page.getByRole("listbox").getByRole("option", { name: "Line 4 Sheppard" }).click();
+  const lineFilterTrigger = page.getByRole("button", { name: "Filter delays by line" });
+  await expect(lineFilterTrigger).toContainText("Sheppard");
+  await expect(lineFilterTrigger.locator(".impact-list-line-badge")).toHaveAttribute("src", /line-4-legend\.svg/);
   await expect(page.locator('[data-impact-card-id="stub-delay-line-4"]')).toBeVisible();
   await expect(page.locator('[data-impact-card-id="stub-delay-st-george-curve"]')).toHaveCount(0);
   await expect(page.getByRole("status").filter({ hasText: /1 of 2/ })).toBeAttached();
@@ -1120,6 +1125,19 @@ test("alert category panels filter by line and sort without changing dashboard d
   await sortTrigger.click();
   const sortOptions = page.getByRole("listbox");
   await expect(sortOptions).toBeVisible();
+  const sortTriggerBox = await sortTrigger.boundingBox();
+  const sortOptionsBox = await sortOptions.boundingBox();
+  expect(sortTriggerBox).not.toBeNull();
+  expect(sortOptionsBox).not.toBeNull();
+  if (sortTriggerBox && sortOptionsBox) {
+    if (isMobile) {
+      expect(Math.abs(sortOptionsBox.x - sortTriggerBox.x)).toBeLessThanOrEqual(1);
+    } else {
+      expect(Math.abs(
+        sortOptionsBox.x + sortOptionsBox.width - (sortTriggerBox.x + sortTriggerBox.width),
+      )).toBeLessThanOrEqual(1);
+    }
+  }
   await sortOptions.getByRole("option", { name: "Line", exact: true }).click();
   await expect(sortTrigger).toContainText("Line");
   const lineSortWidth = (await sortTrigger.boundingBox())?.width ?? 0;

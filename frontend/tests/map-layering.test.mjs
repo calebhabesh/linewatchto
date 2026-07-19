@@ -378,8 +378,12 @@ describe("asset-backed map layering", () => {
     assert.match(interactiveMapSource, /<circle\s+className="overlap-indicator-pill"/);
     assert.match(interactiveMapSource, /if \(impactKindCount === 1\)/);
     assert.match(interactiveMapSource, /height: 88/);
-    assert.match(interactiveMapSource, /const badgeRadius = isSingleKindOverlap \? 38 : 27;/);
-    assert.match(interactiveMapSource, /const iconSize = isSingleKindOverlap \? 44 : 34;/);
+    assert.match(interactiveMapSource, /const badgeRadius = OVERLAP_BADGE_CIRCLE_RADIUS;/);
+    assert.match(interactiveMapSource, /const iconSize = 44;/);
+    assert.match(interactiveMapSource, /const OVERLAP_BADGE_CIRCLE_RADIUS = 38;/);
+    assert.match(interactiveMapSource, /const OVERLAP_BADGE_ITEM_GAP = 12;/);
+    assert.match(interactiveMapSource, /const OVERLAP_BADGE_ITEM_SPACING = OVERLAP_BADGE_CIRCLE_RADIUS \* 2 \+ OVERLAP_BADGE_ITEM_GAP;/);
+    assert.match(interactiveMapSource, /const spacing = OVERLAP_BADGE_ITEM_SPACING;/);
     assert.match(interactiveMapSource, /getUniqueImpactKinds/);
     assert.doesNotMatch(interactiveMapSource, /if \(impactKinds\.length <= 1\) continue;/);
     assert.match(interactiveMapSource, /chooseNonIntersectingBadgePosition/);
@@ -393,6 +397,8 @@ describe("asset-backed map layering", () => {
     assert.match(interactiveMapSource, /const OVERLAP_BADGE_EDGE_GAP = 8;/);
     assert.match(interactiveMapSource, /const OVERLAP_INDICATOR_SCALE = 1\.5;/);
     assert.match(interactiveMapSource, /width: 88 \* OVERLAP_INDICATOR_SCALE,/);
+    assert.match(interactiveMapSource, /\(totalItems - 1\) \* OVERLAP_BADGE_ITEM_SPACING \+ OVERLAP_BADGE_PILL_THICKNESS/);
+    assert.match(interactiveMapSource, /height: OVERLAP_BADGE_PILL_THICKNESS \* OVERLAP_INDICATOR_SCALE/);
     assert.match(interactiveMapSource, /<g transform=\{`scale\(\$\{OVERLAP_INDICATOR_SCALE\}\)`\}>/);
     assert.match(interactiveMapSource, /overlayCollisionBoxes/);
     assert.match(
@@ -454,10 +460,15 @@ describe("asset-backed map layering", () => {
     assert.match(interactiveMapSource, /overlapChooserScreenLayout/);
     assert.match(
       interactiveMapSource,
-      /overlapChooserScreenLayout\([\s\S]*?mobileChooserKeepoutBoxes,[\s\S]*?overlayCollisionBoxes/,
+      /overlapChooserScreenLayout\([\s\S]*?chooserKeepoutBoxes,[\s\S]*?overlayCollisionBoxes/,
     );
-    assert.match(interactiveMapSource, /MOBILE_CHOOSER_KEEPOUT_SELECTOR/);
-    assert.match(interactiveMapSource, /mobileChooserKeepoutBoxes/);
+    assert.match(interactiveMapSource, /CHOOSER_KEEPOUT_SELECTOR/);
+    assert.match(interactiveMapSource, /chooserKeepoutBoxes/);
+    assert.match(interactiveMapSource, /\.desktop-status-capsule-anchor/);
+    assert.match(interactiveMapSource, /\.desktop-map-control-rail/);
+    assert.match(interactiveMapSource, /\.desktop-map-legend/);
+    assert.match(interactiveMapSource, /\.desktop-status-chip-row-container/);
+    assert.doesNotMatch(interactiveMapSource, /mapViewportSize\.width > OVERLAP_CHOOSER_MOBILE_BREAKPOINT/);
     assert.match(interactiveMapSource, /chooserKeepoutEdgeCandidates/);
     assert.match(interactiveMapSource, /boundedChooserViewportCandidates/);
     assert.doesNotMatch(interactiveMapSource, /for \(let y = minimumY; y <= maximumY; y \+= step\)/);

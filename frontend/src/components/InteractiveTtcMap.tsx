@@ -301,7 +301,7 @@ function InteractiveTtcMapComponent({
     disableProgrammaticMotion: mobilePerformanceMode,
   });
   const [mapViewportSize, setMapViewportSize] = useState({ width: 392, height: 720 });
-  const [mobileChooserKeepoutBoxes, setMobileChooserKeepoutBoxes] = useState<SvgBounds[]>([]);
+  const [chooserKeepoutBoxes, setChooserKeepoutBoxes] = useState<SvgBounds[]>([]);
 
   useEffect(() => {
     const viewport = containerRef.current;
@@ -317,24 +317,24 @@ function InteractiveTtcMapComponent({
 
   useLayoutEffect(() => {
     const viewport = containerRef.current;
-    if (!viewport || !expandedOverlapBadgeId || mapViewportSize.width > OVERLAP_CHOOSER_MOBILE_BREAKPOINT) {
-      setMobileChooserKeepoutBoxes([]);
+    if (!viewport || !expandedOverlapBadgeId) {
+      setChooserKeepoutBoxes([]);
       return;
     }
 
     const updateKeepoutBoxes = () => {
       const viewportRect = viewport.getBoundingClientRect();
-      const boxes = Array.from(document.querySelectorAll<HTMLElement>(MOBILE_CHOOSER_KEEPOUT_SELECTOR))
-        .filter((element) => !viewport.contains(element) && isVisibleChooserKeepout(element))
+      const boxes = Array.from(document.querySelectorAll<HTMLElement>(CHOOSER_KEEPOUT_SELECTOR))
+        .filter(isVisibleChooserKeepout)
         .map((element) => viewportRelativeIntersection(element.getBoundingClientRect(), viewportRect))
         .filter((box): box is SvgBounds => Boolean(box));
-      setMobileChooserKeepoutBoxes(boxes);
+      setChooserKeepoutBoxes(boxes);
     };
 
     updateKeepoutBoxes();
     const observer = new ResizeObserver(updateKeepoutBoxes);
     observer.observe(viewport);
-    document.querySelectorAll<HTMLElement>(MOBILE_CHOOSER_KEEPOUT_SELECTOR).forEach((element) => observer.observe(element));
+    document.querySelectorAll<HTMLElement>(CHOOSER_KEEPOUT_SELECTOR).forEach((element) => observer.observe(element));
     window.addEventListener("resize", updateKeepoutBoxes);
     return () => {
       observer.disconnect();
@@ -1043,7 +1043,7 @@ function InteractiveTtcMapComponent({
       expandedOverlapBadge,
       transform,
       mapViewportSize,
-      mobileChooserKeepoutBoxes,
+      chooserKeepoutBoxes,
       overlayCollisionBoxes,
     )
     : null;
@@ -1944,6 +1944,10 @@ const OVERLAP_BADGE_EDGE_GAP = 8;
 // footprint in step with the rendered SVG scale so the larger desktop and
 // mobile targets still clear nearby map content.
 const OVERLAP_INDICATOR_SCALE = 1.5;
+const OVERLAP_BADGE_CIRCLE_RADIUS = 38;
+const OVERLAP_BADGE_ITEM_GAP = 12;
+const OVERLAP_BADGE_ITEM_SPACING = OVERLAP_BADGE_CIRCLE_RADIUS * 2 + OVERLAP_BADGE_ITEM_GAP;
+const OVERLAP_BADGE_PILL_THICKNESS = OVERLAP_BADGE_CIRCLE_RADIUS * 2 + OVERLAP_BADGE_ITEM_GAP * 2;
 const STANDARD_MAP_COMPONENT_MAX_BOUNDS = 1200;
 const LARGE_MAP_COMPONENT_MAX_THICKNESS = 220;
 const LARGE_MAP_COMPONENT_TILE_LENGTH = 760;
@@ -1976,7 +1980,11 @@ function stationOverlapProtectedBox(point: MapPoint): SvgBounds {
   );
 }
 
-const MOBILE_CHOOSER_KEEPOUT_SELECTOR = [
+const CHOOSER_KEEPOUT_SELECTOR = [
+  ".desktop-status-capsule-anchor",
+  ".desktop-map-control-rail",
+  ".desktop-map-legend",
+  ".desktop-status-chip-row-container",
   ".mobile-bottom-nav",
   ".mobile-status-peek",
   ".mobile-legend-pill",
@@ -2553,8 +2561,11 @@ function overlapBadgeSize(impactKindCount: number): OverlapBadgeSize {
   const hasMore = impactKindCount > visibleCount;
   const totalItems = visibleCount + (hasMore ? 1 : 0);
   return {
-    width: Math.max(88, totalItems * 58 + 22) * OVERLAP_INDICATOR_SCALE,
-    height: 76 * OVERLAP_INDICATOR_SCALE,
+    width: Math.max(
+      88,
+      (totalItems - 1) * OVERLAP_BADGE_ITEM_SPACING + OVERLAP_BADGE_PILL_THICKNESS,
+    ) * OVERLAP_INDICATOR_SCALE,
+    height: OVERLAP_BADGE_PILL_THICKNESS * OVERLAP_INDICATOR_SCALE,
   };
 }
 
@@ -3662,11 +3673,11 @@ function OverlapIndicatorMarker({
   const visibleKindCounts = kindCounts.slice(0, 3);
   const hiddenKindCount = Math.max(0, kindCounts.length - visibleKindCounts.length);
   const totalItems = visibleKindCounts.length + (hiddenKindCount > 0 ? 1 : 0);
-  const spacing = 58;
+  const spacing = OVERLAP_BADGE_ITEM_SPACING;
   const isSingleVisualItem = totalItems === 1;
   const isSingleKindOverlap = kindCounts.length === 1 && (kindCounts[0]?.count ?? 0) > 1;
-  const badgeRadius = isSingleKindOverlap ? 38 : 27;
-  const iconSize = isSingleKindOverlap ? 44 : 34;
+  const badgeRadius = OVERLAP_BADGE_CIRCLE_RADIUS;
+  const iconSize = 44;
   const isSelected = selection
     ? badge.impacts.some((impact) => impact.kind === selection.kind && impact.cardId === selection.id)
     : false;
