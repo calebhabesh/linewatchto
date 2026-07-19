@@ -475,8 +475,11 @@ test("mobile keeps lightweight map focus flashes and menu transitions", async ({
   await page.locator('[data-mobile-impact-inspector]').getByRole("button", { name: "Unfocus impact" }).click();
   await page.getByRole("button", { name: "Stub Station station details" }).click();
 
+  await expect(page.locator('[data-station-selected-id="stub-station"]')).toHaveCSS("fill", "rgb(129, 201, 255)");
   const stationFlash = page.locator('[data-map-highlight-id="stub-station"]').first();
   await expect(stationFlash).toBeAttached();
+  await expect(stationFlash).toHaveAttribute("data-station-selection-foreground", "stub-station");
+  await expect(stationFlash).toHaveCSS("fill", "rgb(129, 201, 255)");
   await expect
     .poll(async () => stationFlash.evaluate((element) => getComputedStyle(element).animationName))
     .toBe("none");
@@ -751,8 +754,8 @@ test("shows a compact map hint when multiple alert types overlap", async ({ page
   )).toBe(true);
   const chooserWidthAtDefaultZoom = (await overlapChooser.boundingBox())?.width ?? 0;
   if (isMobile) {
-    expect(chooserWidthAtDefaultZoom).toBeGreaterThanOrEqual(300);
-    expect(chooserWidthAtDefaultZoom).toBeLessThanOrEqual(325);
+    expect(chooserWidthAtDefaultZoom).toBeGreaterThanOrEqual(275);
+    expect(chooserWidthAtDefaultZoom).toBeLessThanOrEqual(285);
   } else {
     expect(chooserWidthAtDefaultZoom).toBeGreaterThanOrEqual(350);
   }
@@ -763,6 +766,40 @@ test("shows a compact map hint when multiple alert types overlap", async ({ page
     || chooserBox.y + chooserBox.height <= overlapMarkerBox.y
     || chooserBox.y >= overlapMarkerBox.y + overlapMarkerBox.height
   )).toBe(true);
+  if (isMobile) {
+    const keepoutSelector = [
+      ".mobile-bottom-nav",
+      ".mobile-status-peek",
+      ".mobile-legend-pill",
+      ".mobile-train-toggle",
+      ".map-utility-cluster",
+      ".map-control-rail",
+    ].join(",");
+    const collisions = await overlapChooser.evaluate((chooser, selector) => {
+      const chooserRect = chooser.getBoundingClientRect();
+      return Array.from(document.querySelectorAll(selector)).filter((element) => {
+        const style = getComputedStyle(element);
+        const rect = element.getBoundingClientRect();
+        if (style.display === "none" || style.visibility === "hidden" || rect.width === 0 || rect.height === 0) return false;
+        return chooserRect.left < rect.right
+          && chooserRect.right > rect.left
+          && chooserRect.top < rect.bottom
+          && chooserRect.bottom > rect.top;
+      }).map((element) => element.className);
+    }, keepoutSelector);
+    expect(collisions).toEqual([]);
+  } else {
+    const viewport = page.locator("[data-map-pan-zoom-viewport]");
+    const viewportBox = await viewport.boundingBox();
+    expect(viewportBox).not.toBeNull();
+    if (viewportBox) {
+      await page.mouse.move(viewportBox.x + viewportBox.width * 0.72, viewportBox.y + viewportBox.height * 0.72);
+      await page.mouse.down();
+      await page.mouse.move(viewportBox.x + viewportBox.width * 0.64, viewportBox.y + viewportBox.height * 0.64, { steps: 4 });
+      await page.mouse.up();
+      await expect(overlapChooser).toBeVisible();
+    }
+  }
   if (!isMobile) {
     await page.getByLabel("Zoom level slider").fill("2");
     await expect.poll(async () => Math.abs(((await overlapChooser.boundingBox())?.width ?? 0) - chooserWidthAtDefaultZoom))
@@ -790,14 +827,23 @@ test("shows a compact map hint when multiple alert types overlap", async ({ page
   await expect(overlapChooser.getByText("Line 1: Stub Station to Stub Terminal (Northbound & Southbound)")).toHaveCount(3);
   await expect(overlapChooser.locator(".overlap-chooser-choice-action")).toHaveCount(0);
   await expect(overlapChooser.locator('[data-overlap-choice-kind="planned-closure"]').first()).toHaveCSS("border-left-width", "2px");
+  if (!isMobile) {
+    await overlapChooser.locator('[data-overlap-choice-kind="suspension"]').hover();
+    const stationImpactHover = page.locator('[data-station-impact-hover-id="stub-alert-line-1"]');
+    await expect(stationImpactHover).toBeVisible();
+    await expect(stationImpactHover).toHaveCSS("stroke", "rgb(129, 201, 255)");
+  }
   await overlapChooser.getByRole("button", { name: "Close alert chooser" }).click();
   await expect.poll(async () => overlapChooser.evaluate((element) =>
     element.getAnimations().some((animation) => animation.playState === "running"),
   ), { timeout: 300 }).toBe(true);
   await expect(overlapChooser).toBeHidden();
+  await overlapMarker.dispatchEvent("pointerdown", { pointerId: 19, pointerType: "mouse", button: 0 });
+  await overlapMarker.dispatchEvent("pointerup", { pointerId: 19, pointerType: "mouse", button: 0 });
   await overlapMarker.dispatchEvent("click");
   await expect(overlapChooser).toBeVisible();
   await overlapChooser.locator('[data-overlap-choice-kind="suspension"]').click();
+  await expect(page.locator('[data-station-impact-selection-id="stub-alert-line-1"]')).toBeAttached();
   if (isMobile) {
     const inspector = page.locator('[data-mobile-impact-inspector]');
     await expect(inspector).toBeVisible();

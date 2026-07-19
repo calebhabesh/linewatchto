@@ -50,8 +50,14 @@ describe("asset-backed map layering", () => {
     assert.match(interactiveMapSource, /r=\{hoverRadius\}/);
     assert.match(
       globalCss,
-      /\.station-hover-indicator\.active\s*\{[^}]*fill:\s*rgba\(59, 130, 246, 0\.3\);[^}]*stroke:\s*rgba\(59, 130, 246, 0\.85\);[^}]*stroke-width:\s*8;/s,
+      /\.station-hover-indicator\.active\s*\{[^}]*fill:\s*rgb\(var\(--station-selection-accent-rgb\)\s*\/\s*30%\);[^}]*stroke:\s*var\(--station-selection-accent\);[^}]*stroke-width:\s*8;/s,
     );
+    assert.match(globalCss, /--station-selection-accent:\s*var\(--color-logo-blue\);/);
+    assert.match(globalCss, /--station-selection-accent-rgb:\s*129 201 255;/);
+    assert.match(globalCss, /\.station-selected-indicator\s*\{[^}]*fill:\s*var\(--station-selection-accent\);/s);
+    assert.match(globalCss, /\.station-impact-hover-priority\s*\{[^}]*stroke:\s*var\(--station-selection-accent\);/s);
+    assert.match(globalCss, /@keyframes station-selected-pulse\s*\{[\s\S]*?0%,[\s\S]*?opacity:\s*1;[\s\S]*?50%\s*\{[^}]*opacity:\s*1;/s);
+    assert.match(globalCss, /\.station-selection-flash\s*\{[^}]*fill:\s*var\(--station-selection-accent\);/s);
   });
 
   it("uses a larger screen-sized hit stroke without making disruption visuals thicker", () => {
@@ -438,11 +444,23 @@ describe("asset-backed map layering", () => {
     assert.match(interactiveMapSource, /chooserPosition/);
     assert.match(interactiveMapSource, /MAP_SVG_TO_CSS_SCALE/);
     assert.match(interactiveMapSource, /overlapChooserScreenLayout/);
+    assert.match(interactiveMapSource, /MOBILE_CHOOSER_KEEPOUT_SELECTOR/);
+    assert.match(interactiveMapSource, /mobileChooserKeepoutBoxes/);
+    assert.match(interactiveMapSource, /chooserKeepoutEdgeCandidates/);
+    assert.match(interactiveMapSource, /onHoverImpact/);
+    assert.match(interactiveMapSource, /data-hover-priority-impact=\{hoveredOverlayHighlight\.key\}/);
+    assert.match(interactiveMapSource, /onPointerEnter=\{\(event\) => \{/);
+    assert.match(interactiveMapSource, /onFocus=\{\(\) => onHoverImpact\(impact\)\}/);
     assert.match(interactiveMapSource, /OVERLAP_CHOOSER_OVERLAY_GAP/);
     assert.match(interactiveMapSource, /OVERLAP_CHOOSER_MOBILE_BREAKPOINT/);
     assert.match(interactiveMapSource, /OVERLAP_CHOOSER_MOBILE_WIDTH/);
     assert.match(interactiveMapSource, /const isMobile = viewportWidth <= OVERLAP_CHOOSER_MOBILE_BREAKPOINT/);
-    assert.match(interactiveMapSource, /protectedBoxesByImpact/);
+    assert.match(
+      interactiveMapSource,
+      /protectedBoxes: pathCorridorCollisionBoxes\(segment\.pathD, OVERLAY_CORRIDOR_COLLISION_RADIUS\)/,
+    );
+    assert.match(interactiveMapSource, /protectedBoxes: \[stationOverlapProtectedBox\(point\)\]/);
+    assert.doesNotMatch(interactiveMapSource, /protectedBoxes: group\.impacts\.flatMap/);
     assert.match(interactiveMapSource, /boundsContainingBoxes/);
     assert.match(interactiveMapSource, /chooserCenterAvoidsProtectedBoxes/);
     assert.match(interactiveMapSource, /chooserCenterFitsViewport/);
@@ -488,6 +506,13 @@ describe("asset-backed map layering", () => {
     assert.doesNotMatch(interactiveMapSource, /selectPrimaryImpact/);
   });
 
+  it("keeps the overlap chooser open when a map pan produces a click", () => {
+    assert.match(
+      interactiveMapSource,
+      /onClick=\{\(\) => \{\s*if \(shouldSuppressMapClick\(\)\) return;\s*setExpandedOverlapBadgeId\(null\);\s*\}\}/s,
+    );
+  });
+
   it("keeps selected alert hover corridors continuous above map artwork", () => {
     assert.match(interactiveMapSource, /function OverlayInteractionTarget/);
     assert.match(interactiveMapSource, /aria-label="Disruption overlay interaction targets"/);
@@ -519,6 +544,16 @@ describe("asset-backed map layering", () => {
     assert.match(interactiveMapSource, /className={`station-selection-flash \$\{[\s\S]*?isStationFastFlashing[\s\S]*?\}`}/);
     assert.match(globalCss, /@keyframes map-selection-flash/);
     assert.match(globalCss, /@keyframes station-selection-flash/);
+    assert.match(interactiveMapSource, /aria-label="Station impact foreground highlights"/);
+    assert.match(interactiveMapSource, /data-station-impact-selection-id=\{impact\.cardId\}/);
+    assert.match(interactiveMapSource, /data-station-impact-hover-id=\{impact\.cardId\}/);
+    assert.match(interactiveMapSource, /data-station-selection-foreground=\{station\.id\}/);
+    assert.match(interactiveMapSource, /station-impact-hover-priority/);
+    const impactRingsIndex = interactiveMapSource.indexOf('aria-label="Station impact rings"');
+    const foregroundHighlightsIndex = interactiveMapSource.indexOf('aria-label="Station impact foreground highlights"');
+    const directionGlyphsIndex = interactiveMapSource.indexOf('aria-label="Station impact direction glyphs"');
+    assert.ok(impactRingsIndex < directionGlyphsIndex);
+    assert.ok(directionGlyphsIndex < foregroundHighlightsIndex);
   });
 
   it("softens desktop map selection highlights when motion is reduced", () => {

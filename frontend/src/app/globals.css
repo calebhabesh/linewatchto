@@ -11,6 +11,8 @@
 :root {
   color-scheme: light dark;
   --map-pulse-offset: 0ms;
+  --station-selection-accent: var(--color-logo-blue);
+  --station-selection-accent-rgb: 129 201 255;
   --mobile-announcement-chip-height: 40px;
   --mobile-edge-inset: clamp(10px, 4vw, 16px);
   --mobile-top-action-button-size: clamp(34px, 10.7vw, 40px);
@@ -3913,8 +3915,8 @@ button {
 }
 
 .station-hover-indicator.active {
-  fill: rgba(59, 130, 246, 0.3);
-  stroke: rgba(59, 130, 246, 0.85);
+  fill: rgb(var(--station-selection-accent-rgb) / 30%);
+  stroke: var(--station-selection-accent);
   stroke-width: 8;
 }
 
@@ -3931,11 +3933,11 @@ button {
 }
 
 .station-selected-indicator {
-  fill: #0284c7;
+  fill: var(--station-selection-accent);
   transform-origin: center;
   transform-box: fill-box;
   stroke: none;
-  filter: drop-shadow(0 0 6px rgba(2, 132, 199, 0.85));
+  filter: drop-shadow(0 0 6px rgb(var(--station-selection-accent-rgb) / 85%));
   animation: station-selected-pulse 2.4s ease-in-out infinite;
   animation-delay: var(--map-pulse-offset);
   transition: opacity 0.2s ease-in-out;
@@ -3975,6 +3977,19 @@ button {
   stroke-width: 8;
   stroke: #ffd700;
   filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.95)) drop-shadow(0 0 20px rgba(255, 215, 0, 0.6));
+}
+
+.station-impact-hover-priority {
+  fill: rgb(var(--station-selection-accent-rgb) / 18%);
+  stroke: var(--station-selection-accent);
+  stroke-width: 9;
+  filter: drop-shadow(0 0 8px rgb(var(--station-selection-accent-rgb) / 90%));
+}
+
+.high-contrast .station-impact-hover-priority {
+  fill: rgb(var(--station-selection-accent-rgb) / 32%);
+  stroke: var(--station-selection-accent);
+  stroke-width: 11;
 }
 
 .station-impact-dot-red-glow {
@@ -4033,12 +4048,14 @@ button {
   0%,
   100% {
     transform: scale(0.9);
-    opacity: 0.4;
+    opacity: 1;
+    filter: drop-shadow(0 0 4px rgb(var(--station-selection-accent-rgb) / 55%));
   }
 
   50% {
     transform: scale(1.05);
-    opacity: 0.85;
+    opacity: 1;
+    filter: drop-shadow(0 0 10px rgb(var(--station-selection-accent-rgb) / 95%));
   }
 }
 
@@ -4178,27 +4195,27 @@ button {
     opacity: 0;
   }
   50% {
-    opacity: 0.9;
+    opacity: 1;
   }
 }
 
 @keyframes station-selection-latent-pulse {
   0% {
     opacity: 0.2;
-    fill: #0284c7;
-    filter: drop-shadow(0 0 4px rgba(2, 132, 199, 0.4));
+    fill: var(--station-selection-accent);
+    filter: drop-shadow(0 0 4px rgb(var(--station-selection-accent-rgb) / 40%));
   }
   100% {
-    opacity: 0.95;
-    fill: #0284c7;
-    filter: drop-shadow(0 0 10px rgba(2, 132, 199, 0.95));
+    opacity: 1;
+    fill: var(--station-selection-accent);
+    filter: drop-shadow(0 0 10px rgb(var(--station-selection-accent-rgb) / 95%));
   }
 }
 
 .station-selection-flash {
-  fill: #0284c7;
+  fill: var(--station-selection-accent);
   stroke: none;
-  filter: drop-shadow(0 0 6px rgba(2, 132, 199, 0.85));
+  filter: drop-shadow(0 0 6px rgb(var(--station-selection-accent-rgb) / 85%));
 }
 
 .station-selection-flash.fast {
