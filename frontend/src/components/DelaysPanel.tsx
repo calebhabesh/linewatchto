@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo, useState } from "react";
 import { ChevronLeft, X } from "lucide-react";
 import type { ImpactSelection } from "../app/linewatch-data";
 import { useDashboardData } from "../app/DataContext";
@@ -7,6 +8,8 @@ import { DelayIcon } from "./DelayIcon";
 import { useScrollSelectedImpactCard } from "../hooks/useScrollSelectedImpactCard";
 import { ImpactRouteHeader, LineBadge, MetadataGrid, CardSource, JumpToLocationIcon } from "./ImpactCardFields";
 import { getOverlappingImpactRefs, OverlappingImpactRefs } from "./ImpactOverlapRefs";
+import { filterAndSortImpacts, type ImpactListSort } from "../app/impact-list-controls";
+import { ImpactListToolbar } from "./ImpactListToolbar";
 
 interface Props {
   selection: ImpactSelection;
@@ -18,10 +21,19 @@ interface Props {
 
 export function DelaysPanel({ selection, onSelectImpact, onBack, onClose, onFocusMap }: Props) {
   const { activeAlerts, delays, reducedSpeedZones, plannedClosures, networkSegments, stationNodeImpacts } = useDashboardData();
+  const [lineId, setLineId] = useState("all");
+  const [query, setQuery] = useState("");
+  const [sort, setSort] = useState<ImpactListSort>("updated");
+  const visibleDelays = useMemo(() => filterAndSortImpacts(delays, { lineId, query, sort }), [delays, lineId, query, sort]);
+  const lineIds = useMemo(() => [...new Set(delays.map((delay) => delay.lineId))].sort(), [delays]);
   useScrollSelectedImpactCard(selection, "delay");
 
   const handleDelayClick = (delayId: string) => {
     const isActivating = !(selection?.kind === "delay" && selection.id === delayId);
+    if (!isActivating && onFocusMap) {
+      onFocusMap();
+      return;
+    }
     onSelectImpact(
       isActivating ? { kind: "delay", id: delayId } : null,
     );
@@ -66,13 +78,32 @@ export function DelaysPanel({ selection, onSelectImpact, onBack, onClose, onFocu
           )}
         </div>
       </div>
-      <div className={`alert-stack min-w-0 p-3 flex flex-col gap-2 ${delays.length === 0 ? "is-empty" : ""}`}>
-        {delays.length === 0 ? (
+      {delays.length > 0 ? (
+        <ImpactListToolbar
+          noun="delays"
+          totalCount={delays.length}
+          visibleCount={visibleDelays.length}
+          lineIds={lineIds}
+          lineId={lineId}
+          onLineIdChange={setLineId}
+          query={query}
+          onQueryChange={setQuery}
+          sort={sort}
+          onSortChange={setSort}
+          sortOptions={[
+            { value: "updated", label: "Recently Updated" },
+            { value: "line", label: "Line" },
+            { value: "location", label: "Location" },
+          ]}
+        />
+      ) : null}
+      <div className={`alert-stack min-w-0 p-3 flex flex-col gap-2 ${visibleDelays.length === 0 ? "is-empty" : ""}`}>
+        {visibleDelays.length === 0 ? (
           <div className="text-center py-4 text-sm text-slate-500 dark:text-slate-400 font-medium">
-            No Delays
+            {delays.length === 0 ? "No Delays" : "No delays match these filters"}
           </div>
         ) : (
-          delays.map((delay) => {
+          visibleDelays.map((delay) => {
             const isActive = selection?.kind === "delay" && selection.id === delay.id;
             const overlappingImpacts = getOverlappingImpactRefs(
               { kind: "delay", id: delay.id, segmentIds: delay.affectedSegmentIds ?? [] },
@@ -127,7 +158,7 @@ export function DelaysPanel({ selection, onSelectImpact, onBack, onClose, onFocu
                   >
                     <JumpToLocationIcon className="w-8 h-8" />
                     <span className="text-[9px] font-black uppercase tracking-wider text-center leading-tight mt-1.5 max-w-[72px] whitespace-normal break-words">
-                      {isActive ? "Unfocus" : "Show on Map"}
+                      {isActive && !onFocusMap ? "Unfocus" : "Show on Map"}
                     </span>
                   </button>
                 </div>

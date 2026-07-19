@@ -1058,6 +1058,75 @@ test("station search dynamically filters mapped stations and opens station detai
   await expect(page.locator('[data-station-search-panel][data-open="false"]')).toBeVisible();
 });
 
+test("global search opens a condensed alert result in its detailed card and mobile map inspector", async ({ page, request, isMobile }) => {
+  await setStubMode(request, "seeded");
+  await page.goto("/");
+
+  if (isMobile) {
+    await page.getByRole("button", { name: "Search", exact: true }).click();
+  } else {
+    await page.locator(".header-search-bar").click({ position: { x: 5, y: 5 } });
+  }
+
+  const searchbox = page.getByRole("searchbox", { name: "Station Search" });
+  await expect(searchbox).toHaveAttribute("placeholder", "Search Stations and Alerts...");
+  await expect(page.locator("[data-station-search-panel]")).toBeVisible();
+  await expect(page.locator(".global-search-browse-alerts button").first()).toHaveCSS("font-size", "11px");
+  await searchbox.fill("Don Mills");
+
+  const result = page.getByRole("button", { name: /Delay: Line 4,.*Sheppard-Yonge to Don Mills/i });
+  await expect(result).toBeVisible();
+  await expect(result).toHaveCSS("border-left-width", "2px");
+  await expect(result).toHaveCSS("border-left-color", "rgb(254, 236, 65)");
+  await expect(result.locator(".global-search-impact-badges")).toHaveCount(0);
+  await result.click();
+
+  const delayCard = page.locator('[data-impact-card-id="stub-delay-line-4"]');
+  await expect(delayCard).toBeVisible();
+  await expect(delayCard).toHaveClass(/highlight-active-card/);
+  await expect(page.locator('[data-map-highlight-id="stub-delay-line-4"]')).toBeAttached();
+
+  if (isMobile) {
+    await delayCard.getByRole("button", { name: "Show on Map" }).click();
+    const inspector = page.locator("[data-mobile-impact-inspector]");
+    await expect(inspector).toBeVisible();
+    await expect(inspector).toContainText("Delay");
+    await inspector.getByRole("button", { name: "View Full List" }).click();
+    await expect(delayCard).toBeVisible();
+  }
+});
+
+test("alert category panels filter by line and sort without changing dashboard data", async ({ page, request }) => {
+  await setStubMode(request, "seeded");
+  await page.goto("/?panel=delays");
+
+  const toolbar = page.locator(".impact-list-toolbar");
+  await expect(toolbar).toHaveCSS("border-top-width", "1px");
+  await expect(toolbar).toHaveCSS("border-bottom-width", "1px");
+  expect(await toolbar.evaluate((element) => {
+    const style = getComputedStyle(element);
+    return style.borderTopColor === style.borderBottomColor;
+  })).toBeTruthy();
+
+  await page.getByRole("button", { name: "Filter delays by line" }).click();
+  await page.getByRole("listbox").getByRole("option", { name: "Line 4" }).click();
+  await expect(page.getByRole("button", { name: "Filter delays by line" })).toContainText("Line 4");
+  await expect(page.locator('[data-impact-card-id="stub-delay-line-4"]')).toBeVisible();
+  await expect(page.locator('[data-impact-card-id="stub-delay-st-george-curve"]')).toHaveCount(0);
+  await expect(page.getByRole("status").filter({ hasText: /1 of 2/ })).toBeAttached();
+
+  const sortTrigger = page.getByRole("button", { name: "Sort delays" });
+  const defaultSortWidth = (await sortTrigger.boundingBox())?.width ?? 0;
+  await sortTrigger.click();
+  const sortOptions = page.getByRole("listbox");
+  await expect(sortOptions).toBeVisible();
+  await sortOptions.getByRole("option", { name: "Line", exact: true }).click();
+  await expect(sortTrigger).toContainText("Line");
+  const lineSortWidth = (await sortTrigger.boundingBox())?.width ?? 0;
+  expect(lineSortWidth).toBeLessThan(defaultSortWidth);
+  await expect(page.locator('[data-impact-card-id="stub-delay-line-4"]')).toBeVisible();
+});
+
 test("station search browses fallback station lists by line", async ({ page, request, isMobile }) => {
   await setStubMode(request, "unavailable");
   await page.goto("/");

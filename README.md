@@ -16,6 +16,7 @@ Implemented now:
 - Opt-in estimated train markers can display schematic train blips on the TTC-style map when the live subway GTFS-RT arrival provider has a fresh mapped snapshot. These markers are inferred from trip updates, line topology, and segment travel-time estimates; they are not physical train positions.
 - Global accessibility outages panel with elevator and escalator drill-downs grouped by TTC transit line and station, showing relative update times, station detail link, and custom icons.
 - Searchable surface service notices panel with category filters (detours, bypasses, service changes, notices) and debounced route/stop search queries.
+- Unified station and rapid-transit alert search with grouped condensed results. Alert results open their detailed category card, preserve the selected map highlight, and continue through the mobile map inspector. Active Alerts, Delays, Reduced Speed Zones, and Planned Closures also provide local text, line, and sort controls.
 - Overnight subway-closed screen that hides the feed during general non-operating hours while allowing a map peek for current overlays and station accessibility details.
 - Edited SVG-backed subway/LRT network map from `frontend/public/assets/linewatch/ttc-subway-map-edited.svg`.
 - TTC-style line colors for Lines 1, 2, 4, 5, and 6.
@@ -735,7 +736,7 @@ Core v1 target:
 - Separate ordinary delay and Reduced Speed Zone cards.
 - Clickable/tappable alert segments and single-station impact rings.
 - Planned closure timeline for today, this weekend, and upcoming dates.
-- Station and line search.
+- Grouped station, line, and current/planned rapid-transit alert search.
 - Saved commute watchlists such as `Finch -> Union`.
 - "Is my commute affected?" impact summary.
 - Standard-vs-impacted saved-commute travel-time estimates with bounded extra-time ranges for delays and Reduced Speed Zones, and an unreliable timing state for suspensions and closures.

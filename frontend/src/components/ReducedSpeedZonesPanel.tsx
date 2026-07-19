@@ -1,12 +1,14 @@
 "use client";
 
-
+import { useMemo, useState } from "react";
 import { useDashboardData } from "../app/DataContext";
 import { Construction, ChevronLeft, X } from "lucide-react";
 import type { ImpactSelection } from "../app/linewatch-data";
 import { useScrollSelectedImpactCard } from "../hooks/useScrollSelectedImpactCard";
 import { LineBadge, ImpactRouteHeader, MetadataGrid, CardSource, JumpToLocationIcon } from "./ImpactCardFields";
 import { getOverlappingImpactRefs, OverlappingImpactRefs } from "./ImpactOverlapRefs";
+import { filterAndSortImpacts, type ImpactListSort } from "../app/impact-list-controls";
+import { ImpactListToolbar } from "./ImpactListToolbar";
 
 const formatSpeed = (val: string | null | undefined): string | null => {
   if (!val) return null;
@@ -29,10 +31,19 @@ export function ReducedSpeedZonesPanel({
   onFocusMap,
 }: Props) {
   const { activeAlerts, delays, reducedSpeedZones, plannedClosures, networkSegments, stationNodeImpacts } = useDashboardData();
+  const [lineId, setLineId] = useState("all");
+  const [query, setQuery] = useState("");
+  const [sort, setSort] = useState<ImpactListSort>("line");
+  const visibleZones = useMemo(() => filterAndSortImpacts(reducedSpeedZones, { lineId, query, sort }), [reducedSpeedZones, lineId, query, sort]);
+  const lineIds = useMemo(() => [...new Set(reducedSpeedZones.map((zone) => zone.lineId))].sort(), [reducedSpeedZones]);
   useScrollSelectedImpactCard(selection, "reduced-speed-zone");
 
   const handleReducedSpeedZoneClick = (alertId: string) => {
     const isActivating = !(selection?.kind === "reduced-speed-zone" && selection.id === alertId);
+    if (!isActivating && onFocusMap) {
+      onFocusMap();
+      return;
+    }
     onSelectImpact(
       isActivating ? { kind: "reduced-speed-zone", id: alertId } : null,
     );
@@ -77,13 +88,32 @@ export function ReducedSpeedZonesPanel({
           )}
         </div>
       </div>
-      <div className={`alert-stack min-w-0 p-3 flex flex-col gap-2 ${reducedSpeedZones.length === 0 ? "is-empty" : ""}`}>
-        {reducedSpeedZones.length === 0 ? (
+      {reducedSpeedZones.length > 0 ? (
+        <ImpactListToolbar
+          noun="Reduced Speed Zones"
+          totalCount={reducedSpeedZones.length}
+          visibleCount={visibleZones.length}
+          lineIds={lineIds}
+          lineId={lineId}
+          onLineIdChange={setLineId}
+          query={query}
+          onQueryChange={setQuery}
+          sort={sort}
+          onSortChange={setSort}
+          sortOptions={[
+            { value: "line", label: "Line" },
+            { value: "updated", label: "Recently Updated" },
+            { value: "location", label: "Location" },
+          ]}
+        />
+      ) : null}
+      <div className={`alert-stack min-w-0 p-3 flex flex-col gap-2 ${visibleZones.length === 0 ? "is-empty" : ""}`}>
+        {visibleZones.length === 0 ? (
           <div className="text-center py-4 text-sm text-slate-500 dark:text-slate-400 font-medium">
-            No Reduced Speed Zones
+            {reducedSpeedZones.length === 0 ? "No Reduced Speed Zones" : "No Reduced Speed Zones match these filters"}
           </div>
         ) : (
-          reducedSpeedZones.map((zone) => {
+          visibleZones.map((zone) => {
             const isActive = selection?.kind === "reduced-speed-zone" && selection.id === zone.id;
             const overlappingImpacts = getOverlappingImpactRefs(
               { kind: "reduced-speed-zone", id: zone.id, segmentIds: zone.affectedSegmentIds ?? [] },
@@ -145,7 +175,7 @@ export function ReducedSpeedZonesPanel({
                   >
                     <JumpToLocationIcon className="w-8 h-8" />
                     <span className="text-[9px] font-black uppercase tracking-wider text-center leading-tight mt-1.5 max-w-[72px] whitespace-normal break-words">
-                      {isActive ? "Unfocus" : "Show on Map"}
+                      {isActive && !onFocusMap ? "Unfocus" : "Show on Map"}
                     </span>
                   </button>
                 </div>

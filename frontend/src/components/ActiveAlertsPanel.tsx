@@ -1,12 +1,14 @@
 "use client";
 
-
+import { useMemo, useState } from "react";
 import { useDashboardData } from "../app/DataContext";
 import { AlertTriangle, Bus, ChevronLeft, X } from "lucide-react";
 import type { ActiveAlert, ImpactKind, ImpactSelection } from "../app/linewatch-data";
 import { useScrollSelectedImpactCard } from "../hooks/useScrollSelectedImpactCard";
 import { LineBadge, ImpactRouteHeader, MetadataGrid, CardSource, JumpToLocationIcon } from "./ImpactCardFields";
 import { getOverlappingImpactRefs, OverlappingImpactRefs } from "./ImpactOverlapRefs";
+import { filterAndSortImpacts, type ImpactListSort } from "../app/impact-list-controls";
+import { ImpactListToolbar } from "./ImpactListToolbar";
 
 interface Props {
   selection: ImpactSelection;
@@ -35,6 +37,11 @@ export function ActiveAlertsPanel({
   onFocusMap,
 }: Props) {
   const { activeAlerts, reducedSpeedZones, delays, plannedClosures, networkSegments, stationNodeImpacts } = useDashboardData();
+  const [lineId, setLineId] = useState("all");
+  const [query, setQuery] = useState("");
+  const [sort, setSort] = useState<ImpactListSort>("updated");
+  const visibleAlerts = useMemo(() => filterAndSortImpacts(activeAlerts, { lineId, query, sort }), [activeAlerts, lineId, query, sort]);
+  const lineIds = useMemo(() => [...new Set(activeAlerts.map((alert) => alert.lineId))].sort(), [activeAlerts]);
   useScrollSelectedImpactCard(selection, "suspension");
 
   const handleAlertClick = (alert: ActiveAlert) => {
@@ -46,6 +53,10 @@ export function ActiveAlertsPanel({
     );
     const isActivating = !isActive;
     const kind = isPlanned ? "planned-closure" : alertImpactKind;
+    if (!isActivating && onFocusMap) {
+      onFocusMap();
+      return;
+    }
     
     onSelectImpact(
       isActivating ? { kind, id: alert.id } : null
@@ -105,13 +116,32 @@ export function ActiveAlertsPanel({
           )}
         </div>
       </div>
-      <div className={`alert-stack min-w-0 p-3 flex flex-col gap-2 ${activeAlerts.length === 0 ? "is-empty" : ""}`}>
-        {activeAlerts.length === 0 ? (
+      {activeAlerts.length > 0 ? (
+        <ImpactListToolbar
+          noun="active alerts"
+          totalCount={activeAlerts.length}
+          visibleCount={visibleAlerts.length}
+          lineIds={lineIds}
+          lineId={lineId}
+          onLineIdChange={setLineId}
+          query={query}
+          onQueryChange={setQuery}
+          sort={sort}
+          onSortChange={setSort}
+          sortOptions={[
+            { value: "updated", label: "Recently Updated" },
+            { value: "line", label: "Line" },
+            { value: "location", label: "Location" },
+          ]}
+        />
+      ) : null}
+      <div className={`alert-stack min-w-0 p-3 flex flex-col gap-2 ${visibleAlerts.length === 0 ? "is-empty" : ""}`}>
+        {visibleAlerts.length === 0 ? (
           <div className="text-center py-4 text-sm text-slate-500 dark:text-slate-400 font-medium">
-            No Active Alerts
+            {activeAlerts.length === 0 ? "No Active Alerts" : "No active alerts match these filters"}
           </div>
         ) : (
-          activeAlerts.map((alert) => {
+          visibleAlerts.map((alert) => {
             const alertImpactKind = impactKindForAlert(alert);
             const isPlanned = alert.severity === "planned";
             const isActive = selection?.id === alert.id && (
@@ -186,7 +216,7 @@ export function ActiveAlertsPanel({
                   >
                     <JumpToLocationIcon className="w-8 h-8" />
                     <span className="text-[9px] font-black uppercase tracking-wider text-center leading-tight mt-1.5 max-w-[72px] whitespace-normal break-words">
-                      {isActive ? "Unfocus" : "Show on Map"}
+                      {isActive && !onFocusMap ? "Unfocus" : "Show on Map"}
                     </span>
                   </button>
                 </div>

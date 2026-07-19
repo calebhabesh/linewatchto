@@ -4,6 +4,14 @@ import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { KeyboardEvent, MutableRefObject } from "react";
 import { AlertTriangle, ChevronRight, Search, X } from "lucide-react";
+import { useDashboardData } from "../app/DataContext";
+import {
+  IMPACT_SEARCH_CATEGORIES,
+  matchImpactCategories,
+  searchDashboardImpacts,
+  type ImpactSearchResult,
+} from "../app/alert-search";
+import type { ImpactKind, ImpactSelection } from "../app/linewatch-data";
 import {
   buildStationLineGroups,
   searchStations,
@@ -15,12 +23,16 @@ import {
   isStationWheelchairAccessible,
   isStationElevatorAccessible,
 } from "../app/station-data";
+import { ImpactTypeIcon } from "./ImpactTypeIcon";
+import { LineBadge } from "./ImpactCardFields";
 
 type Props = {
   open: boolean;
   stations: StationSummary[];
   selectedStationId: string | null;
   onSelectStation: (stationId: string) => void;
+  onSelectImpact: (selection: NonNullable<ImpactSelection>) => void;
+  onOpenImpactCategory: (kind: ImpactKind) => void;
   onClose: () => void;
   onClosedFocusTarget?: () => void;
   /** Controlled search query — owned by the header input bar */
@@ -32,6 +44,50 @@ type Props = {
   keyDownHandlerRef?: React.MutableRefObject<((event: React.KeyboardEvent<HTMLInputElement>) => void) | null>;
   isMobile: boolean;
 };
+
+function ImpactSearchButton({
+  result,
+  onSelect,
+  buttonRef,
+  onKeyDown,
+}: {
+  result: ImpactSearchResult;
+  onSelect: (selection: NonNullable<ImpactSelection>) => void;
+  buttonRef?: (element: HTMLButtonElement | null) => void;
+  onKeyDown?: (event: KeyboardEvent<HTMLButtonElement>) => void;
+}) {
+  return (
+    <button
+      ref={buttonRef}
+      type="button"
+      className={`global-search-impact-result ${result.categoryKind}`}
+      onClick={() => onSelect(result.selection)}
+      onKeyDown={onKeyDown}
+      aria-label={`${result.categoryLabel}: Line ${result.lineNumber}, ${result.title}, ${result.location}`}
+    >
+      <span className="global-search-impact-icon" aria-hidden="true">
+        <ImpactTypeIcon kind={result.categoryKind} size={17} />
+      </span>
+      <span className="global-search-impact-copy">
+        <span className="global-search-impact-heading">
+          <LineBadge lineId={result.lineId} lineNumber={result.lineNumber} />
+          <strong>{result.title}</strong>
+        </span>
+        <span className="global-search-impact-location">
+          {result.location}{result.displayDirection ? ` · ${result.displayDirection}` : ""}
+        </span>
+        {result.activeNow || result.shuttle || result.nightly ? (
+          <span className="global-search-impact-badges">
+            {result.activeNow ? <span>Active now</span> : null}
+            {result.shuttle ? <span>Shuttle</span> : null}
+            {result.nightly ? <span>Nightly</span> : null}
+          </span>
+        ) : null}
+      </span>
+      <ChevronRight size={17} aria-hidden="true" />
+    </button>
+  );
+}
 
 const OUTAGE_ICON_SRC = {
   elevator: "/assets/linewatch/outages/elevator.svg",
@@ -187,6 +243,8 @@ export function StationSearchPanel({
   stations,
   selectedStationId,
   onSelectStation,
+  onSelectImpact,
+  onOpenImpactCategory,
   onClose,
   onClosedFocusTarget,
   query,
@@ -195,9 +253,15 @@ export function StationSearchPanel({
   keyDownHandlerRef,
   isMobile,
 }: Props) {
+  const dashboardData = useDashboardData();
   const [expandedLineId, setExpandedLineId] = useState<string | null>(null);
   const [isInputFocused, setIsInputFocused] = useState(false);
-  const results = useMemo(() => searchStations(stations, query), [query, stations]);
+  const stationResults = useMemo(() => searchStations(stations, query), [query, stations]);
+  const impactGroups = useMemo(
+    () => searchDashboardImpacts(dashboardData, stations, query),
+    [dashboardData, query, stations],
+  );
+  const matchedCategories = useMemo(() => matchImpactCategories(query), [query]);
   const lineGroups = useMemo(() => buildStationLineGroups(stations), [stations]);
   const isExpanded = Boolean(expandedLineId) && !query.trim();
   const stationsColumnRef = useRef<HTMLDivElement>(null);
@@ -265,6 +329,14 @@ export function StationSearchPanel({
     onClosedFocusTarget?.();
   }
 
+  function chooseImpact(nextSelection: NonNullable<ImpactSelection>) {
+    onSelectImpact(nextSelection);
+  }
+
+  function chooseCategory(kind: ImpactKind) {
+    onOpenImpactCategory(kind);
+  }
+
   function focusItem(refs: MutableRefObject<Array<HTMLButtonElement | null>>, index: number) {
     const buttons = refs.current.filter((button): button is HTMLButtonElement => Boolean(button));
     if (buttons.length === 0) return;
@@ -293,9 +365,15 @@ export function StationSearchPanel({
       return;
     }
 
-    if (event.key === "Enter" && query.trim() && results[0]) {
+    if (event.key === "Enter" && query.trim()) {
       event.preventDefault();
-      chooseStation(results[0].station.id);
+      if (stationResults[0]) {
+        chooseStation(stationResults[0].station.id);
+      } else if (impactGroups[0]?.results[0]) {
+        chooseImpact(impactGroups[0].results[0].selection);
+      } else if (matchedCategories[0]) {
+        chooseCategory(matchedCategories[0].kind);
+      }
     }
   }
 
@@ -387,7 +465,7 @@ export function StationSearchPanel({
     <section
       id="station-search-panel"
       className={`station-search-panel panel-strong ${open ? "open" : ""}`}
-      aria-label="Station search"
+      aria-label="Station and alert search"
       aria-hidden={!open}
       inert={!open ? true : undefined}
       data-station-search-panel
@@ -414,7 +492,7 @@ export function StationSearchPanel({
             onKeyDown={handleInputKeyDown}
             onFocus={() => setIsInputFocused(true)}
             onBlur={() => setIsInputFocused(false)}
-            placeholder="Station Search..."
+            placeholder="Search Stations and Alerts..."
             className="station-search-input"
           />
           <button
@@ -437,10 +515,32 @@ export function StationSearchPanel({
 
       <div className="station-search-content">
         {query.trim() ? (
-          <div className="station-search-results" aria-label="Station search results">
-            {results.length > 0 ? (
-              <div className="station-search-results-list">
-                {results.map((result, index) => (
+          <div className="station-search-results global-search-results" aria-label="Search results">
+            {stationResults.length > 0 || impactGroups.length > 0 || matchedCategories.length > 0 ? (
+              <div className="station-search-results-list global-search-results-list">
+                {matchedCategories.length > 0 ? (
+                  <section className="global-search-group" aria-labelledby="global-search-category-heading">
+                    <div className="global-search-group-heading">
+                      <h3 id="global-search-category-heading">Categories</h3>
+                    </div>
+                    <div className="global-search-category-shortcuts">
+                      {matchedCategories.map((category) => (
+                        <button key={category.kind} type="button" onClick={() => chooseCategory(category.kind)}>
+                          <ImpactTypeIcon kind={category.kind} size={15} />
+                          {category.label}
+                        </button>
+                      ))}
+                    </div>
+                  </section>
+                ) : null}
+
+                {stationResults.length > 0 ? (
+                  <section className="global-search-group" aria-labelledby="global-search-stations-heading">
+                    <div className="global-search-group-heading">
+                      <h3 id="global-search-stations-heading">Stations</h3>
+                      <span>{stationResults.length}</span>
+                    </div>
+                    {stationResults.map((result, index) => (
                   <StationButton
                     key={result.station.id}
                     station={result.station}
@@ -448,18 +548,54 @@ export function StationSearchPanel({
                     onSelect={chooseStation}
                     buttonRef={(element) => { resultButtonRefs.current[index] = element; }}
                     onKeyDown={(event) => handleResultKeyDown(index, event)}
-                  />
+                      />
+                    ))}
+                  </section>
+                ) : null}
+
+                {impactGroups.map((group) => (
+                  <section key={group.kind} className="global-search-group" aria-labelledby={`global-search-${group.kind}-heading`}>
+                    <div className="global-search-group-heading">
+                      <h3 id={`global-search-${group.kind}-heading`}>{group.label}</h3>
+                      <button type="button" onClick={() => chooseCategory(group.kind)}>View all</button>
+                    </div>
+                    {group.results.map((result, resultIndex) => {
+                      const keyboardIndex = stationResults.length + impactGroups
+                        .slice(0, impactGroups.findIndex((candidate) => candidate.kind === group.kind))
+                        .reduce((count, candidate) => count + candidate.results.length, 0) + resultIndex;
+                      return (
+                        <ImpactSearchButton
+                          key={`${result.selection.kind}-${result.selection.id}`}
+                          result={result}
+                          onSelect={chooseImpact}
+                          buttonRef={(element) => { resultButtonRefs.current[keyboardIndex] = element; }}
+                          onKeyDown={(event) => handleResultKeyDown(keyboardIndex, event)}
+                        />
+                      );
+                    })}
+                  </section>
                 ))}
               </div>
             ) : (
               <div className="station-search-empty" role="status">
-                No mapped station matches.
+                No mapped station or dashboard alert matches.
               </div>
             )}
           </div>
         ) : (
           <div className="station-search-browse-container" aria-label="Browse stations by line">
             <div className="station-search-lines-column">
+              <div className="global-search-browse-alerts" aria-label="Browse alert categories">
+                <span>Browse alerts</span>
+                <div>
+                  {IMPACT_SEARCH_CATEGORIES.map((category) => (
+                    <button key={category.kind} type="button" onClick={() => chooseCategory(category.kind)}>
+                      <ImpactTypeIcon kind={category.kind} size={15} />
+                      {category.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
               {lineGroups.map((group, index) => {
                 const expanded = expandedLineId === group.line.id;
 

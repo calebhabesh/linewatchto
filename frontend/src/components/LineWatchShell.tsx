@@ -1200,21 +1200,14 @@ export function LineWatchShell({
 
   const [stationSearchQuery, setStationSearchQuery] = useState("");
 
-  const handleToggleSearch = () => {
+  const handleOpenSearch = () => {
     setActiveView((prev) => {
       if (prev !== "search" && prev !== "map") {
         setSelection(null);
         setSelectedStationId(null);
       }
-
-      const next = prev === "search" ? "map" : "search";
-      if (next !== "search") {
-        setStationSearchQuery("");
-      } else {
-        // Focus the header input when opening
-        window.setTimeout(() => stationSearchInputRef.current?.focus(), 60);
-      }
-      return next;
+      window.setTimeout(() => stationSearchInputRef.current?.focus(), 0);
+      return "search";
     });
   };
 
@@ -1326,6 +1319,21 @@ export function LineWatchShell({
     }
     return viewForImpactKind(nextSelection.kind);
   }, [activeAlerts, viewForImpactKind]);
+
+  const handleSearchSelectImpact = useCallback((nextSelection: NonNullable<ImpactSelection>) => {
+    setSelectedStationId(null);
+    setCommutePathPreview(null);
+    setSelection(nextSelection);
+    setMobileInspectorDetent("details-focus");
+    setActiveView(viewForImpactSelection(nextSelection));
+  }, [setActiveView, setCommutePathPreview, setSelectedStationId, setSelection, viewForImpactSelection]);
+
+  const handleSearchOpenImpactCategory = useCallback((kind: ImpactKind) => {
+    setSelectedStationId(null);
+    setCommutePathPreview(null);
+    setSelection(null);
+    setActiveView(viewForImpactKind(kind));
+  }, [setActiveView, setCommutePathPreview, setSelectedStationId, setSelection, viewForImpactKind]);
 
   const handleMapSelectImpact = useCallback((nextSelection: ImpactSelection) => {
     setSelectedStationId(null);
@@ -1496,7 +1504,7 @@ export function LineWatchShell({
             onSelectImpact={handleMapSelectImpact}
             onBack={handleSubmenuBack}
             onClose={() => { setActiveView("map"); setSelection(null); }}
-            onFocusMap={() => { if (isMobile) setActiveView("map"); }}
+            onFocusMap={isMobile ? () => setActiveView("map") : undefined}
           />
         );
       case "delays":
@@ -1506,7 +1514,7 @@ export function LineWatchShell({
             onSelectImpact={handleMapSelectImpact}
             onBack={handleSubmenuBack}
             onClose={() => { setActiveView("map"); setSelection(null); }}
-            onFocusMap={() => { if (isMobile) setActiveView("map"); }}
+            onFocusMap={isMobile ? () => setActiveView("map") : undefined}
           />
         );
       case "reduced-speed-zones":
@@ -1516,7 +1524,7 @@ export function LineWatchShell({
             onSelectImpact={handleMapSelectImpact}
             onBack={handleSubmenuBack}
             onClose={() => { setActiveView("map"); setSelection(null); }}
-            onFocusMap={() => { if (isMobile) setActiveView("map"); }}
+            onFocusMap={isMobile ? () => setActiveView("map") : undefined}
           />
         );
       case "closures":
@@ -1526,7 +1534,7 @@ export function LineWatchShell({
             onSelectImpact={handleMapSelectImpact}
             onBack={handleSubmenuBack}
             onClose={() => { setActiveView("map"); setSelection(null); }}
-            onFocusMap={() => { if (isMobile) setActiveView("map"); }}
+            onFocusMap={isMobile ? () => setActiveView("map") : undefined}
           />
         );
       case "commutes":
@@ -1700,7 +1708,7 @@ export function LineWatchShell({
           onSelectImpact={handleMapSelectImpact}
           onBack={handleSubmenuBack}
           onClose={() => { setActiveView("map"); setSelection(null); }}
-          onFocusMap={() => { if (isMobile) setActiveView("map"); }}
+          onFocusMap={isMobile ? () => setActiveView("map") : undefined}
         />
       </FloatingPanelShell>
     ) : activeView === "delays" ? (
@@ -1710,7 +1718,7 @@ export function LineWatchShell({
           onSelectImpact={handleMapSelectImpact}
           onBack={handleSubmenuBack}
           onClose={() => { setActiveView("map"); setSelection(null); }}
-          onFocusMap={() => { if (isMobile) setActiveView("map"); }}
+          onFocusMap={isMobile ? () => setActiveView("map") : undefined}
         />
       </FloatingPanelShell>
     ) : activeView === "reduced-speed-zones" ? (
@@ -1720,7 +1728,7 @@ export function LineWatchShell({
           onSelectImpact={handleMapSelectImpact}
           onBack={handleSubmenuBack}
           onClose={() => { setActiveView("map"); setSelection(null); }}
-          onFocusMap={() => { if (isMobile) setActiveView("map"); }}
+          onFocusMap={isMobile ? () => setActiveView("map") : undefined}
         />
       </FloatingPanelShell>
     ) : activeView === "closures" ? (
@@ -1730,7 +1738,7 @@ export function LineWatchShell({
           onSelectImpact={handleMapSelectImpact}
           onBack={handleSubmenuBack}
           onClose={() => { setActiveView("map"); setSelection(null); }}
-          onFocusMap={() => { if (isMobile) setActiveView("map"); }}
+          onFocusMap={isMobile ? () => setActiveView("map") : undefined}
         />
       </FloatingPanelShell>
     ) : activeView === "commutes" ? (
@@ -1951,12 +1959,19 @@ export function LineWatchShell({
             ref={headerSearchBarRef}
             className="header-search-bar desktop-top-chrome panel relative flex items-center gap-2 px-3 h-14 rounded-xl border border-black/10 dark:border-white/10 shadow-lg hover:!bg-slate-100 dark:hover:!bg-[#1a1e28] cursor-text outline-none"
             data-active={activeView === "search" ? "true" : undefined}
+            onPointerDown={(event) => {
+              if (event.button !== 0) return;
+              if (activeView !== "search") handleOpenSearch();
+              if (event.target !== stationSearchInputRef.current) {
+                window.setTimeout(() => stationSearchInputRef.current?.focus(), 0);
+              }
+            }}
             onClick={() => {
               stationSearchInputRef.current?.focus();
-              if (activeView !== "search") handleToggleSearch();
+              if (activeView !== "search") handleOpenSearch();
             }}
             role="search"
-            aria-label="Station search"
+            aria-label="Station and alert search"
           >
             <Search
               className={`shrink-0 transition-colors duration-200 ${
@@ -1973,12 +1988,12 @@ export function LineWatchShell({
                 if (activeView !== "search") setActiveView("search");
               }}
               onFocus={() => {
-                if (activeView !== "search") handleToggleSearch();
+                if (activeView !== "search") handleOpenSearch();
               }}
               onKeyDown={(e) => {
                 stationKeyDownHandlerRef.current?.(e);
               }}
-              placeholder="Station Search..."
+              placeholder="Search Stations and Alerts..."
               aria-label="Station Search"
               aria-controls="station-search-panel"
               className="header-search-input min-w-0 flex-1 bg-transparent border-none outline-none text-sm font-semibold text-slate-700 dark:text-white placeholder:font-semibold placeholder:text-slate-400 dark:placeholder:text-slate-400 focus:placeholder:text-transparent caret-blue-500"
@@ -2473,6 +2488,8 @@ export function LineWatchShell({
             stations={stationSummaries}
             selectedStationId={selectedStationId}
             onSelectStation={(id) => handleSelectStationId(id)}
+            onSelectImpact={handleSearchSelectImpact}
+            onOpenImpactCategory={handleSearchOpenImpactCategory}
             onClose={() => { setActiveView("map"); setStationSearchQuery(""); }}
             onClosedFocusTarget={() => stationSearchInputRef.current?.focus()}
             query={stationSearchQuery}

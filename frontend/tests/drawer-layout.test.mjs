@@ -62,7 +62,7 @@ describe("floating menu layout", () => {
     assert.doesNotMatch(shellSource, /lg:left-\[520px\]/);
     assert.doesNotMatch(shellSource, /Collapse status sidebar/);
 
-    assert.match(shellSource, /handleToggleSearch/);
+    assert.match(shellSource, /handleOpenSearch/);
     assert.match(shellSource, /Station Search/);
     assert.match(shellSource, /StationSearchPanel/);
     assert.match(shellSource, /activeView === "search"/);
