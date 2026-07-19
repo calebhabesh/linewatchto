@@ -22,7 +22,7 @@ function storeDisclaimerAcknowledgement() {
   }
 }
 
-export function OpeningDisclaimer() {
+export function OpeningDisclaimer({ onVisibilityChange }: { onVisibilityChange?: (visible: boolean) => void }) {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
@@ -30,14 +30,18 @@ export function OpeningDisclaimer() {
 
     Promise.resolve().then(() => {
       if (!cancelled) {
-        setVisible(!hasAcknowledgedDisclaimer());
+        const show = !hasAcknowledgedDisclaimer();
+        setVisible(show);
+        if (onVisibilityChange) {
+          onVisibilityChange(show);
+        }
       }
     });
 
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [onVisibilityChange]);
 
   if (!visible) {
     return null;
@@ -46,6 +50,9 @@ export function OpeningDisclaimer() {
   const handleAcknowledge = () => {
     storeDisclaimerAcknowledgement();
     setVisible(false);
+    if (onVisibilityChange) {
+      onVisibilityChange(false);
+    }
   };
 
   return (

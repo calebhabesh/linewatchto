@@ -395,12 +395,13 @@ export function LineWatchShell({
   const [closedMapPeek, setClosedMapPeek] = useState(false);
   const [legendExpanded, setLegendExpanded] = useState(false);
   const [guideOpen, setGuideOpen] = useState(false);
+  const [disclaimerVisible, setDisclaimerVisible] = useState(true);
 
   if (subwayOperatingState.status === "open" && closedMapPeek) {
     setClosedMapPeek(false);
   }
 
-  const showClosedScreen = subwayOperatingState.status === "closed" && !closedMapPeek;
+  const showClosedScreen = subwayOperatingState.status === "closed" && !closedMapPeek && !disclaimerVisible;
 
 
   // Interactive linking state
@@ -3159,7 +3160,7 @@ export function LineWatchShell({
           </section>
         </div>
       ) : null}
-      <OpeningDisclaimer />
+      <OpeningDisclaimer onVisibilityChange={setDisclaimerVisible} />
     </div>
     </DataProvider>
   );
