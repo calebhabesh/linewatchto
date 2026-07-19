@@ -766,6 +766,19 @@ test("shows a compact map hint when multiple alert types overlap", async ({ page
     || chooserBox.y + chooserBox.height <= overlapMarkerBox.y
     || chooserBox.y >= overlapMarkerBox.y + overlapMarkerBox.height
   )).toBe(true);
+  if (chooserBox && overlapMarkerBox) {
+    const horizontalGap = Math.max(
+      chooserBox.x - (overlapMarkerBox.x + overlapMarkerBox.width),
+      overlapMarkerBox.x - (chooserBox.x + chooserBox.width),
+      0,
+    );
+    const verticalGap = Math.max(
+      chooserBox.y - (overlapMarkerBox.y + overlapMarkerBox.height),
+      overlapMarkerBox.y - (chooserBox.y + chooserBox.height),
+      0,
+    );
+    expect(Math.hypot(horizontalGap, verticalGap)).toBeLessThanOrEqual(96);
+  }
   if (isMobile) {
     const keepoutSelector = [
       ".mobile-bottom-nav",
@@ -829,6 +842,9 @@ test("shows a compact map hint when multiple alert types overlap", async ({ page
   await expect(overlapChooser.locator('[data-overlap-choice-kind="planned-closure"]').first()).toHaveCSS("border-left-width", "2px");
   if (!isMobile) {
     await overlapChooser.locator('[data-overlap-choice-kind="suspension"]').hover();
+    const foregroundImpact = page.locator('[data-hover-foreground-impact="chooser:suspension:stub-alert-line-1"]');
+    await expect(foregroundImpact).toBeVisible();
+    await expect(foregroundImpact.locator(".asset-alert-path.suspension-candy")).toBeVisible();
     const stationImpactHover = page.locator('[data-station-impact-hover-id="stub-alert-line-1"]');
     await expect(stationImpactHover).toBeVisible();
     await expect(stationImpactHover).toHaveCSS("stroke", "rgb(129, 201, 255)");

@@ -94,10 +94,11 @@ describe("asset-backed map layering", () => {
 
   it("repaints the mouse-hover highlight above overlapping disruption corridors", () => {
     assert.match(interactiveMapSource, /const \[hoveredOverlayHighlight, setHoveredOverlayHighlight\]/);
+    assert.match(interactiveMapSource, /const \[hoveredOverlayForeground, setHoveredOverlayForeground\]/);
     assert.match(interactiveMapSource, /onHoverHighlightChange=\{setHoveredOverlayHighlight\}/);
     assert.match(
       interactiveMapSource,
-      /<g aria-hidden="true" className="hover-priority-overlay">[\s\S]*?hover-priority-glow[\s\S]*?hover-priority-boundary[\s\S]*?Top Layer: Stations/,
+      /<g aria-hidden="true" className="hover-priority-overlay">[\s\S]*?data-hover-foreground-impact[\s\S]*?<OverlaySegment[\s\S]*?hover-priority-glow[\s\S]*?hover-priority-boundary[\s\S]*?Top Layer: Stations/,
     );
     assert.match(
       interactiveMapSource,
@@ -391,6 +392,10 @@ describe("asset-backed map layering", () => {
     assert.match(interactiveMapSource, /const OVERLAY_CORRIDOR_COLLISION_RADIUS = 54;/);
     assert.match(interactiveMapSource, /const OVERLAP_BADGE_EDGE_GAP = 8;/);
     assert.match(interactiveMapSource, /overlayCollisionBoxes/);
+    assert.match(
+      interactiveMapSource,
+      /const collisionBoxesByImpact = useMemo[\s\S]*?stationOverlapProtectedBox\(anchor\.point\)/,
+    );
     assert.match(interactiveMapSource, /function overlapBadgePositionCandidates\(size: OverlapBadgeSize, frame\?: PathFrame \| null\)/);
     assert.match(interactiveMapSource, /radialBadgePositionCandidates/);
     assert.match(interactiveMapSource, /normalOffsetForBadge\(frame\.normal, size\)/);
@@ -444,24 +449,39 @@ describe("asset-backed map layering", () => {
     assert.match(interactiveMapSource, /chooserPosition/);
     assert.match(interactiveMapSource, /MAP_SVG_TO_CSS_SCALE/);
     assert.match(interactiveMapSource, /overlapChooserScreenLayout/);
+    assert.match(
+      interactiveMapSource,
+      /overlapChooserScreenLayout\([\s\S]*?mobileChooserKeepoutBoxes,[\s\S]*?overlayCollisionBoxes/,
+    );
     assert.match(interactiveMapSource, /MOBILE_CHOOSER_KEEPOUT_SELECTOR/);
     assert.match(interactiveMapSource, /mobileChooserKeepoutBoxes/);
     assert.match(interactiveMapSource, /chooserKeepoutEdgeCandidates/);
+    assert.match(interactiveMapSource, /boundedChooserViewportCandidates/);
+    assert.doesNotMatch(interactiveMapSource, /for \(let y = minimumY; y <= maximumY; y \+= step\)/);
     assert.match(interactiveMapSource, /onHoverImpact/);
     assert.match(interactiveMapSource, /data-hover-priority-impact=\{hoveredOverlayHighlight\.key\}/);
     assert.match(interactiveMapSource, /onPointerEnter=\{\(event\) => \{/);
     assert.match(interactiveMapSource, /onFocus=\{\(\) => onHoverImpact\(impact\)\}/);
-    assert.match(interactiveMapSource, /OVERLAP_CHOOSER_OVERLAY_GAP/);
+    assert.match(interactiveMapSource, /setHoveredOverlayForeground\(\{[\s\S]*?impact: renderedImpact\.impact/);
+    assert.match(interactiveMapSource, /const OVERLAP_CHOOSER_TARGET_GAP = 16;/);
+    assert.match(interactiveMapSource, /const OVERLAP_CHOOSER_GAP_DEVIATION_WEIGHT = 4;/);
     assert.match(interactiveMapSource, /OVERLAP_CHOOSER_MOBILE_BREAKPOINT/);
     assert.match(interactiveMapSource, /OVERLAP_CHOOSER_MOBILE_WIDTH/);
     assert.match(interactiveMapSource, /const isMobile = viewportWidth <= OVERLAP_CHOOSER_MOBILE_BREAKPOINT/);
+    assert.match(interactiveMapSource, /protectedBoxesForImpacts\([\s\S]*?group\.impacts,[\s\S]*?collisionBoxesByImpact/);
+    assert.match(interactiveMapSource, /boundsContainingBoxes/);
+    assert.match(interactiveMapSource, /const representedProtectedBoxes = badge\.protectedBoxes\.map/);
+    assert.match(interactiveMapSource, /const alertOverlayProtectedBoxes = mapAlertOverlayBoxes\.map/);
+    assert.match(interactiveMapSource, /const hardBlockedBoxes = \[\.\.\.representedProtectedBoxes, \.\.\.hardKeepoutBoxes\]/);
     assert.match(
       interactiveMapSource,
-      /protectedBoxes: pathCorridorCollisionBoxes\(segment\.pathD, OVERLAY_CORRIDOR_COLLISION_RADIUS\)/,
+      /scoreChooserScreenCandidate\([\s\S]*?representedProtectedBoxes,[\s\S]*?alertOverlayProtectedBoxes/,
     );
-    assert.match(interactiveMapSource, /protectedBoxes: \[stationOverlapProtectedBox\(point\)\]/);
-    assert.doesNotMatch(interactiveMapSource, /protectedBoxes: group\.impacts\.flatMap/);
-    assert.match(interactiveMapSource, /boundsContainingBoxes/);
+    assert.match(interactiveMapSource, /nearestProtectedBoxesToPoint/);
+    assert.match(interactiveMapSource, /minimumBoundsGap/);
+    assert.match(interactiveMapSource, /MAX_SOFT_OVERLAY_DISTANCE_PENALTY/);
+    assert.match(interactiveMapSource, /const viewportCandidates = boundedChooserViewportCandidates/);
+    assert.match(interactiveMapSource, /reduce<\{ position: MapPoint; score: number \} \| null>/);
     assert.match(interactiveMapSource, /chooserCenterAvoidsProtectedBoxes/);
     assert.match(interactiveMapSource, /chooserCenterFitsViewport/);
     assert.match(interactiveMapSource, /candidatesForGap/);
@@ -471,6 +491,7 @@ describe("asset-backed map layering", () => {
     assert.match(interactiveMapSource, /badge\.impacts\.length/);
     assert.match(interactiveMapSource, /transformOrigin:/);
     assert.match(interactiveMapSource, /surfaceRef\.current\?\.animate/);
+    assert.match(interactiveMapSource, /<OverlapChooser[\s\S]*?key=\{expandedOverlapBadge\.segmentId\}/);
     assert.match(interactiveMapSource, /compactMotion/);
     assert.match(interactiveMapSource, /duration:\s*380/);
     assert.match(interactiveMapSource, /duration:\s*200/);
@@ -549,6 +570,14 @@ describe("asset-backed map layering", () => {
     assert.match(interactiveMapSource, /data-station-impact-hover-id=\{impact\.cardId\}/);
     assert.match(interactiveMapSource, /data-station-selection-foreground=\{station\.id\}/);
     assert.match(interactiveMapSource, /station-impact-hover-priority/);
+    assert.match(
+      interactiveMapSource,
+      /station-selected-indicator[\s\S]*?foreground-flash-active/,
+    );
+    assert.match(
+      globalCss,
+      /@media \(min-width:\s*768px\) \{[\s\S]*?\.station-selected-indicator\.foreground-flash-active\s*\{[^}]*animation:\s*none;[^}]*opacity:\s*0;/,
+    );
     const impactRingsIndex = interactiveMapSource.indexOf('aria-label="Station impact rings"');
     const foregroundHighlightsIndex = interactiveMapSource.indexOf('aria-label="Station impact foreground highlights"');
     const directionGlyphsIndex = interactiveMapSource.indexOf('aria-label="Station impact direction glyphs"');

@@ -4226,6 +4226,18 @@ button {
   animation: station-selection-latent-pulse 1.2s ease-in-out var(--map-pulse-offset) alternate infinite;
 }
 
+/*
+ * The foreground flash occupies the same circle as the selected-station
+ * indicator. Hide that underlay while desktop animation is active so the
+ * flash can fully fade out instead of appearing as two competing pulses.
+ */
+@media (min-width: 768px) {
+  .station-selected-indicator.foreground-flash-active {
+    animation: none;
+    opacity: 0;
+  }
+}
+
 @media (max-width: 767px) {
   .station-selection-flash.fast {
     animation: station-selection-flash 0.6s ease-in-out 4 forwards;
