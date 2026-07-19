@@ -91,7 +91,7 @@ export function DelaysPanel({ selection, onSelectImpact, onBack, onClose, onFocu
           sort={sort}
           onSortChange={setSort}
           sortOptions={[
-            { value: "updated", label: "Recently Updated" },
+            { value: "updated", label: "Updated" },
             { value: "line", label: "Line" },
             { value: "location", label: "Location" },
           ]}

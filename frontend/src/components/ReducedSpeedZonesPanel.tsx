@@ -102,7 +102,7 @@ export function ReducedSpeedZonesPanel({
           onSortChange={setSort}
           sortOptions={[
             { value: "line", label: "Line" },
-            { value: "updated", label: "Recently Updated" },
+            { value: "updated", label: "Updated" },
             { value: "location", label: "Location" },
           ]}
         />

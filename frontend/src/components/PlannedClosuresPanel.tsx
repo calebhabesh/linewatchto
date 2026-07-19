@@ -96,8 +96,8 @@ export function PlannedClosuresPanel({ selection, onSelectImpact, onBack, onClos
           sort={sort}
           onSortChange={setSort}
           sortOptions={[
-            { value: "soonest", label: "Active/Soonest" },
-            { value: "updated", label: "Recently Updated" },
+            { value: "soonest", label: "Soonest" },
+            { value: "updated", label: "Updated" },
             { value: "line", label: "Line" },
             { value: "location", label: "Location" },
           ]}

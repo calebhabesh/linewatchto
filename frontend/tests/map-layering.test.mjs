@@ -391,6 +391,9 @@ describe("asset-backed map layering", () => {
     assert.match(interactiveMapSource, /OVERLAY_CORRIDOR_COLLISION_RADIUS/);
     assert.match(interactiveMapSource, /const OVERLAY_CORRIDOR_COLLISION_RADIUS = 54;/);
     assert.match(interactiveMapSource, /const OVERLAP_BADGE_EDGE_GAP = 8;/);
+    assert.match(interactiveMapSource, /const OVERLAP_INDICATOR_SCALE = 1\.5;/);
+    assert.match(interactiveMapSource, /width: 88 \* OVERLAP_INDICATOR_SCALE,/);
+    assert.match(interactiveMapSource, /<g transform=\{`scale\(\$\{OVERLAP_INDICATOR_SCALE\}\)`\}>/);
     assert.match(interactiveMapSource, /overlayCollisionBoxes/);
     assert.match(
       interactiveMapSource,

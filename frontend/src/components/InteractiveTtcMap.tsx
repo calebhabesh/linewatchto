@@ -1940,6 +1940,10 @@ const MAP_VIEWBOX_BOUNDS: SvgBounds = { x: 0, y: 0, width: 8250, height: 4000 };
 const OVERLAY_CORRIDOR_COLLISION_RADIUS = 54;
 const BASE_ROUTE_COLLISION_RADIUS = 78;
 const OVERLAP_BADGE_EDGE_GAP = 8;
+// Overlap markers are a primary alert-discovery control. Keep their collision
+// footprint in step with the rendered SVG scale so the larger desktop and
+// mobile targets still clear nearby map content.
+const OVERLAP_INDICATOR_SCALE = 1.5;
 const STANDARD_MAP_COMPONENT_MAX_BOUNDS = 1200;
 const LARGE_MAP_COMPONENT_MAX_THICKNESS = 220;
 const LARGE_MAP_COMPONENT_TILE_LENGTH = 760;
@@ -2540,8 +2544,8 @@ function groupOverlapBadgeSegments(
 function overlapBadgeSize(impactKindCount: number): OverlapBadgeSize {
   if (impactKindCount === 1) {
     return {
-      width: 88,
-      height: 88,
+      width: 88 * OVERLAP_INDICATOR_SCALE,
+      height: 88 * OVERLAP_INDICATOR_SCALE,
     };
   }
 
@@ -2549,8 +2553,8 @@ function overlapBadgeSize(impactKindCount: number): OverlapBadgeSize {
   const hasMore = impactKindCount > visibleCount;
   const totalItems = visibleCount + (hasMore ? 1 : 0);
   return {
-    width: Math.max(88, totalItems * 58 + 22),
-    height: 76,
+    width: Math.max(88, totalItems * 58 + 22) * OVERLAP_INDICATOR_SCALE,
+    height: 76 * OVERLAP_INDICATOR_SCALE,
   };
 }
 
@@ -3717,37 +3721,39 @@ function OverlapIndicatorMarker({
             rx={badge.size.height / 2}
           />
         )}
-        {visibleKindCounts.map(({ kind, count }, index) => {
-          const x = (index - (totalItems - 1) / 2) * spacing;
-          return (
-            <g
-              key={kind}
-              data-overlap-kind={kind}
-              data-overlap-kind-count={count}
-              transform={`translate(${x} 0)`}
-            >
-              <circle className={`overlap-indicator-badge ${kind}`} r={badgeRadius} />
-              <OverlapKindIcon kind={kind} size={iconSize} />
+        <g transform={`scale(${OVERLAP_INDICATOR_SCALE})`}>
+          {visibleKindCounts.map(({ kind, count }, index) => {
+            const x = (index - (totalItems - 1) / 2) * spacing;
+            return (
+              <g
+                key={kind}
+                data-overlap-kind={kind}
+                data-overlap-kind-count={count}
+                transform={`translate(${x} 0)`}
+              >
+                <circle className={`overlap-indicator-badge ${kind}`} r={badgeRadius} />
+                <OverlapKindIcon kind={kind} size={iconSize} />
+              </g>
+            );
+          })}
+          {hiddenKindCount > 0 && (
+            <g transform={`translate(${(visibleKindCounts.length - (totalItems - 1) / 2) * spacing} 0)`}>
+              <circle className="overlap-indicator-badge more" r={27} />
+              <text className="overlap-indicator-more" textAnchor="middle" dominantBaseline="central">
+                +{hiddenKindCount}
+              </text>
             </g>
-          );
-        })}
-        {hiddenKindCount > 0 && (
-          <g transform={`translate(${(visibleKindCounts.length - (totalItems - 1) / 2) * spacing} 0)`}>
-            <circle className="overlap-indicator-badge more" r={27} />
-            <text className="overlap-indicator-more" textAnchor="middle" dominantBaseline="central">
-              +{hiddenKindCount}
-            </text>
-          </g>
-        )}
-        {visibleKindCounts.map(({ kind, count }, index) => {
-          if (count <= 1) return null;
-          const x = (index - (totalItems - 1) / 2) * spacing;
-          return (
-            <g key={`${kind}-count`} transform={`translate(${x} 0)`}>
-              <OverlapKindCountBadge count={count} large={isSingleKindOverlap} />
-            </g>
-          );
-        })}
+          )}
+          {visibleKindCounts.map(({ kind, count }, index) => {
+            if (count <= 1) return null;
+            const x = (index - (totalItems - 1) / 2) * spacing;
+            return (
+              <g key={`${kind}-count`} transform={`translate(${x} 0)`}>
+                <OverlapKindCountBadge count={count} large={isSingleKindOverlap} />
+              </g>
+            );
+          })}
+        </g>
       </g>
     </g>
   );
