@@ -237,9 +237,12 @@ export function SavedCommuteStationPicker({
           aboveSpace = rect.top - gap - containerTopLimit;
         }
 
-        const placeBelow = mobileViewport ? true : (belowSpace >= minUsableHeight || belowSpace >= aboveSpace);
+        // On phones the visual viewport can shrink to the keyboard height. Always
+        // placing the popover below then leaves it with no usable results area, so
+        // prefer whichever side of the trigger has enough room.
+        const placeBelow = belowSpace >= minUsableHeight || belowSpace >= aboveSpace;
         const maxHeight = mobileViewport
-          ? Math.min(320, belowSpace)
+          ? Math.max(0, Math.min(320, placeBelow ? belowSpace : aboveSpace))
           : Math.max(120, Math.min(320, placeBelow ? belowSpace : aboveSpace));
         const top = placeBelow
           ? belowTop

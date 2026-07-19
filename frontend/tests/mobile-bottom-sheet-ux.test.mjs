@@ -241,6 +241,8 @@ describe("mobile bottom sheet UX", () => {
   it("keeps saved commute station search results visible while the iOS keyboard is open", () => {
     assert.match(savedCommutePickerSource, /window\.visualViewport/);
     assert.match(savedCommutePickerSource, /visualViewport\?\.addEventListener\("resize",\s*updateCoords\)/);
+    assert.match(savedCommutePickerSource, /belowSpace >= minUsableHeight \|\| belowSpace >= aboveSpace/);
+    assert.match(savedCommutePickerSource, /Math\.max\(0, Math\.min\(320, placeBelow \? belowSpace : aboveSpace\)\)/);
     assert.match(savedCommutePickerSource, /position:\s*"fixed"/);
     assert.match(savedCommutePickerSource, /maxHeight:\s*`\$\{coords\.maxHeight\}px`/);
     assert.match(globalCss, /\.commute-station-search-row\s*\{[\s\S]*position:\s*sticky/);
