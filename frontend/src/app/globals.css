@@ -9327,6 +9327,11 @@ button {
   max-width: 78px;
 }
 
+.site-guide-overlay-asset.single-overlap-preview {
+  height: 38px;
+  width: auto;
+}
+
 .site-guide-overlay-asset.station-ring-preview {
   max-width: 32px;
 }

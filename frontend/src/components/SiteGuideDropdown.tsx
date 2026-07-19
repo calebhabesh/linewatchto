@@ -18,6 +18,7 @@ import {
   SquarePlus,
   Sun,
   X,
+  ListFilter,
 } from "lucide-react";
 import { ImpactTypeIcon } from "./ImpactTypeIcon";
 
@@ -127,9 +128,12 @@ function OverlayGuideRow({
       <div className="flex flex-col gap-2 shrink-0 w-[88px] justify-center">
         {previews}
       </div>
-      <span className="site-guide-overlay-icon self-start mt-1">{icon}</span>
       <span className="site-guide-overlay-copy flex-1">
-        <strong>{title}</strong>
+        <strong>
+          <span className="site-guide-overlay-icon !mt-0 align-text-bottom" style={{ marginRight: '4px' }}>{icon}</span>
+          {" "}
+          {title}
+        </strong>
         <span>{text}</span>
       </span>
     </li>
@@ -140,10 +144,12 @@ function OverlayAssetPreview({
   fileName,
   label,
   className = "",
+  labelClassName = "",
 }: {
   fileName: string;
   label: string;
   className?: string;
+  labelClassName?: string;
 }) {
   return (
     <div className="flex flex-col items-center">
@@ -155,7 +161,7 @@ function OverlayAssetPreview({
         height={30}
         className={`site-guide-overlay-asset ${className}`}
       />
-      <span className="text-[9px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider mt-0.5">
+      <span className={`text-[9px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider mt-0.5 ${labelClassName}`}>
         {label}
       </span>
     </div>
@@ -291,7 +297,7 @@ export function SiteGuideDropdown({ onOpenChange }: { onOpenChange?: (open: bool
               <div className="site-guide-install-options">
                 <MobileInstallGuide
                   icon={<Apple size={15} />}
-                  title="iPhone Safari"
+                  title="iOS Safari (iPhone)"
                   steps={[
                     {
                       icon: <Smartphone size={14} />,
@@ -336,7 +342,7 @@ export function SiteGuideDropdown({ onOpenChange }: { onOpenChange?: (open: bool
 
             <hr className="site-guide-divider" />
 
-            <GuideSection icon={<MousePointer2 size={15} />} title="How to Use The Map">
+            <GuideSection icon={<MousePointer2 size={15} />} title="How to Use LineWatchTO">
               <ul className="site-guide-action-list">
                 <GuideActionRow icon={<MousePointer2 size={14} />} label="Drag The Map" text="Pan to navigate the network. Scroll or pinch to zoom." />
                 <GuideActionRow
@@ -348,8 +354,8 @@ export function SiteGuideDropdown({ onOpenChange }: { onOpenChange?: (open: bool
                   label="Click a Colored Overlay"
                   text="Tap any line overlay to view its active alert or closure card."
                 />
-                <GuideActionRow icon={<MapIcon size={14} />} label="Click a Station" text="Tap a station dot to view accessibility status, alerts, and arrivals." />
-                <GuideActionRow icon={<Search size={14} />} label="Station Search" text="Use the search icon on the left to quickly jump to any station." />
+                <GuideActionRow icon={<MapIcon size={14} />} label="Click a Station" text="Tap a station dot to view accessibility status, alerts, arrivals, or to select it for a saved commute." />
+                <GuideActionRow icon={<Search size={14} />} label="Station & Alert Search" text="Use the search icon on the left to quickly jump to any station or find active alerts." />
               </ul>
             </GuideSection>
 
@@ -392,8 +398,8 @@ export function SiteGuideDropdown({ onOpenChange }: { onOpenChange?: (open: bool
                 />
                 <OverlayGuideRow
                   icon={<ImpactTypeIcon kind="planned-closure" size={16} />}
-                  title="Upcoming Closure Preview"
-                  text="Static, translucent blue lane preview scheduled upcoming closures (usually bidirectional)."
+                  title="Planned Closure Preview"
+                  text="Static, translucent blue lane previews scheduled upcoming closures (usually bidirectional)."
                   previews={
                     <OverlayAssetPreview fileName="info-upcoming-closure.svg" label="Preview" />
                   }
@@ -412,9 +418,12 @@ export function SiteGuideDropdown({ onOpenChange }: { onOpenChange?: (open: bool
                 <OverlayGuideRow
                   icon={<Info size={16} />}
                   title="Overlap Badge"
-                  text="Pill badge indicates multiple overlapping alert types on a segment."
+                  text="Badge indicates multiple overlapping alerts on a station or segment. The single-icon badge is used when all overlaps are of the same alert type."
                   previews={
-                    <OverlayAssetPreview fileName="info-overlapping-marker.svg" label="Multiple" className="overlap-badge-preview" />
+                    <>
+                      <OverlayAssetPreview fileName="info-overlapping-multi-marker.svg" label="Multiple" className="overlap-badge-preview" />
+                      <OverlayAssetPreview fileName="info-overlapping-single-marker.svg" label="Single" className="single-overlap-preview" labelClassName="-translate-x-px" />
+                    </>
                   }
                 />
               </ul>
@@ -449,6 +458,7 @@ export function SiteGuideDropdown({ onOpenChange }: { onOpenChange?: (open: bool
                 )}
                 <GuideActionRow icon={<Sun size={14} />} label="Sun / Moon" text="Toggle light and dark map themes." />
                 <GuideActionRow icon={<Bus size={14} />} label="Shuttle Badge" text="Blue badge indicates replacement bus service is active." />
+                <GuideActionRow icon={<ListFilter size={14} />} label="Filter & Sort Alerts" text="Use the toolbar buttons in alert lists to filter by line and sort by time or severity." />
               </ul>
             </GuideSection>
 
