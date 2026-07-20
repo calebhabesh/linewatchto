@@ -2,7 +2,10 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 
-import { clientPointToLogicalViewportPoint } from "../src/hooks/panZoomMath.ts";
+import {
+  clientPointToLogicalViewportPoint,
+  clientRectToLogicalViewportBounds,
+} from "../src/hooks/panZoomMath.ts";
 
 const shellSource = readFileSync(new URL("../src/components/LineWatchShell.tsx", import.meta.url), "utf8");
 const controlsSource = readFileSync(new URL("../src/components/MobileMapControls.tsx", import.meta.url), "utf8");
@@ -33,6 +36,32 @@ describe("mobile rotated map mode", () => {
       ),
       { x: 20, y: 300 },
     );
+  });
+
+  it("maps rotated HUD keepouts into the chooser's logical landscape coordinates", () => {
+    const visualViewport = {
+      left: 0,
+      top: 0,
+      right: 390,
+      bottom: 844,
+      width: 390,
+      height: 844,
+    };
+    const visualHud = {
+      left: 338,
+      top: 10,
+      right: 380,
+      bottom: 834,
+      width: 42,
+      height: 824,
+    };
+
+    assert.deepEqual(
+      clientRectToLogicalViewportBounds(visualHud, visualViewport, "rotated-landscape"),
+      { x: 10, y: 10, width: 824, height: 42 },
+    );
+    assert.match(mapSource, /clientRectToLogicalViewportBounds\([\s\S]*?viewportOrientation/);
+    assert.match(mapSource, /\.rotated-map-hud/);
   });
 
   it("adds shell-owned map presentation mode and rotated mode classes", () => {

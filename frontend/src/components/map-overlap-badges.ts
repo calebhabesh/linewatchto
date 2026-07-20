@@ -36,6 +36,11 @@ export type OverlapChooserPoint = { x: number; y: number };
 export type OverlapChooserSize = { width: number; height: number };
 export type OverlapChooserBounds = OverlapChooserPoint & OverlapChooserSize;
 export type OverlapChooserPosition = OverlapChooserPoint & { collisionAvoided: boolean };
+export type PlacedOverlapBadge = {
+  anchor: OverlapChooserPoint;
+  position: OverlapChooserPoint;
+  size: OverlapChooserSize;
+};
 
 export type SegmentOverlapBadgeCoverageGroup = {
   signature: string;
@@ -44,6 +49,51 @@ export type SegmentOverlapBadgeCoverageGroup = {
 };
 
 type PlannedClosureSegmentSource = Pick<PlannedClosure, "id" | "previewSegmentIds">;
+
+export function alignedOverlapBadgePositionCandidates({
+  anchor,
+  size,
+  placedBadges,
+  gap,
+  maxAnchorDistance,
+}: {
+  anchor: OverlapChooserPoint;
+  size: OverlapChooserSize;
+  placedBadges: PlacedOverlapBadge[];
+  gap: number;
+  maxAnchorDistance: number;
+}): OverlapChooserPoint[] {
+  return placedBadges
+    .map((badge) => ({
+      badge,
+      anchorDistance: Math.hypot(anchor.x - badge.anchor.x, anchor.y - badge.anchor.y),
+    }))
+    .filter(({ anchorDistance }) => anchorDistance > 0 && anchorDistance <= maxAnchorDistance)
+    .sort((a, b) => a.anchorDistance - b.anchorDistance)
+    .map(({ badge }) => {
+      const deltaX = anchor.x - badge.anchor.x;
+      const deltaY = anchor.y - badge.anchor.y;
+      const followsVerticalLane = Math.abs(deltaY) >= Math.abs(deltaX);
+
+      if (followsVerticalLane) {
+        const direction = deltaY < 0 ? -1 : 1;
+        const naturalY = badge.position.y + deltaY;
+        const minimumY = badge.position.y + direction * (badge.size.height / 2 + size.height / 2 + gap);
+        return {
+          x: badge.position.x,
+          y: direction < 0 ? Math.min(naturalY, minimumY) : Math.max(naturalY, minimumY),
+        };
+      }
+
+      const direction = deltaX < 0 ? -1 : 1;
+      const naturalX = badge.position.x + deltaX;
+      const minimumX = badge.position.x + direction * (badge.size.width / 2 + size.width / 2 + gap);
+      return {
+        x: direction < 0 ? Math.min(naturalX, minimumX) : Math.max(naturalX, minimumX),
+        y: badge.position.y,
+      };
+    });
+}
 
 function getImpactPriority(kind: MapImpactKind): number {
   switch (kind) {

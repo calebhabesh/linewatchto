@@ -58,6 +58,18 @@ export type ViewportClientRect = {
   height: number;
 };
 
+export type ClientRectBounds = ViewportClientRect & {
+  right: number;
+  bottom: number;
+};
+
+export type LogicalViewportBounds = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+};
+
 export function clientPointToLogicalViewportPoint(
   clientPoint: PanZoomPoint,
   rect: ViewportClientRect,
@@ -76,6 +88,34 @@ export function clientPointToLogicalViewportPoint(
   return {
     x: visualX,
     y: visualY,
+  };
+}
+
+export function clientRectToLogicalViewportBounds(
+  clientRect: ClientRectBounds,
+  viewportRect: ClientRectBounds,
+  orientation: MapViewportOrientation = "standard",
+): LogicalViewportBounds | null {
+  const left = Math.max(clientRect.left, viewportRect.left);
+  const top = Math.max(clientRect.top, viewportRect.top);
+  const right = Math.min(clientRect.right, viewportRect.right);
+  const bottom = Math.min(clientRect.bottom, viewportRect.bottom);
+  if (right <= left || bottom <= top) return null;
+
+  if (orientation === "rotated-landscape") {
+    return {
+      x: top - viewportRect.top,
+      y: viewportRect.width - (right - viewportRect.left),
+      width: bottom - top,
+      height: right - left,
+    };
+  }
+
+  return {
+    x: left - viewportRect.left,
+    y: top - viewportRect.top,
+    width: right - left,
+    height: bottom - top,
   };
 }
 

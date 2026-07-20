@@ -578,6 +578,22 @@ test("mobile rotated map mode keeps station and impact selections in the rotated
   expect(mainDimensions.clientWidth).toBeGreaterThan(mainDimensions.clientHeight);
   expect(mainDimensions.visualHeight).toBeGreaterThan(mainDimensions.visualWidth);
 
+  await page.locator('[data-overlap-segment-id="stub-line-1-segment"]').dispatchEvent("click");
+  const rotatedChooser = page.locator("[data-overlap-chooser]");
+  const rotatedControls = page.locator(".rotated-map-hud");
+  await expect(rotatedChooser).toBeVisible();
+  await expect(rotatedControls).toBeVisible();
+  await expect.poll(async () => {
+    const chooserBox = await rotatedChooser.boundingBox();
+    const controlsBox = await rotatedControls.boundingBox();
+    if (!chooserBox || !controlsBox) return true;
+    return chooserBox.x < controlsBox.x + controlsBox.width
+      && chooserBox.x + chooserBox.width > controlsBox.x
+      && chooserBox.y < controlsBox.y + controlsBox.height
+      && chooserBox.y + chooserBox.height > controlsBox.y;
+  }).toBe(false);
+  await rotatedChooser.getByRole("button", { name: "Close alert chooser" }).click();
+
   await page.getByRole("button", { name: "delay: Sheppard-Yonge to Don Mills" }).dispatchEvent("click");
   await expect(page.locator('[data-map-highlight-id="stub-delay-line-4"]')).toBeAttached();
   await expect(page.locator("[data-mobile-impact-inspector]")).toHaveCount(0);

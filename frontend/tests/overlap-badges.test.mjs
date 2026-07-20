@@ -4,6 +4,7 @@ import { describe, it } from "node:test";
 import * as overlapBadges from "../src/components/map-overlap-badges.ts";
 
 const {
+  alignedOverlapBadgePositionCandidates,
   buildStationOverlapBadgeGroups,
   coveredSegmentOverlapBadgeSignatures,
   overlapBadgeKindCounts,
@@ -12,6 +13,24 @@ const {
 } = overlapBadges;
 
 describe("map overlap badge grouping", () => {
+  it("keeps nearby badges on one vertical lane by separating them along that lane", () => {
+    const candidates = alignedOverlapBadgePositionCandidates({
+      anchor: { x: 2937, y: 1381 },
+      size: { width: 132, height: 132 },
+      placedBadges: [
+        {
+          anchor: { x: 2936, y: 1246 },
+          position: { x: 3150, y: 1246 },
+          size: { width: 132, height: 132 },
+        },
+      ],
+      gap: 36,
+      maxAnchorDistance: 260,
+    });
+
+    assert.deepEqual(candidates[0], { x: 3150, y: 1414 });
+  });
+
   it("places the chooser on the clearest nearby side of its badge", () => {
     const position = chooseOverlapChooserPosition({
       anchor: { x: 500, y: 500 },

@@ -160,7 +160,7 @@ export function ReducedSpeedZonesPanel({
                       updatedAgo={zone.updatedAgo} 
                       extraRows={[
                         { label: "Reduced speed", value: formatSpeed(zone.reducedSpeed) },
-                        { label: "Average speed", value: formatSpeed(zone.averageSpeed) },
+                        { label: "Typical speed", value: formatSpeed(zone.averageSpeed) },
                       ]}
                     />
                   </div>

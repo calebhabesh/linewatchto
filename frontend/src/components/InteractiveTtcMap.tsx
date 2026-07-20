@@ -18,6 +18,7 @@ import {
 } from "../app/map-geometry";
 import { usePanZoom } from "../hooks/usePanZoom";
 import {
+  clientRectToLogicalViewportBounds,
   PAN_ZOOM_MAX_RELATIVE_SCALE,
   type MapViewportOrientation,
 } from "../hooks/panZoomMath";
@@ -41,12 +42,14 @@ import { LogsDropdown } from "./LogsDropdown";
 import { ImpactTypeIcon } from "./ImpactTypeIcon";
 import { SiteGuideDropdown } from "./SiteGuideDropdown";
 import {
+  alignedOverlapBadgePositionCandidates,
   buildStationOverlapBadgeGroups,
   chooseOverlapChooserPosition,
   coveredSegmentOverlapBadgeSignatures,
   hasOverlappingImpacts,
   overlapBadgeKindCounts,
   overlapBadgeVisualItemCount,
+  type PlacedOverlapBadge,
 } from "./map-overlap-badges";
 import { getSelectedImpactDetails } from "./MobileImpactInspector";
 import {
@@ -326,7 +329,11 @@ function InteractiveTtcMapComponent({
       const viewportRect = viewport.getBoundingClientRect();
       const boxes = Array.from(document.querySelectorAll<HTMLElement>(CHOOSER_KEEPOUT_SELECTOR))
         .filter(isVisibleChooserKeepout)
-        .map((element) => viewportRelativeIntersection(element.getBoundingClientRect(), viewportRect))
+        .map((element) => clientRectToLogicalViewportBounds(
+          element.getBoundingClientRect(),
+          viewportRect,
+          viewportOrientation,
+        ))
         .filter((box): box is SvgBounds => Boolean(box));
       setChooserKeepoutBoxes(boxes);
     };
@@ -942,6 +949,7 @@ function InteractiveTtcMapComponent({
 
   const overlapBadgeSegments = useMemo<OverlapBadgeSegment[]>(() => {
     const occupiedBoxes = [...mapCollisionBoxes, ...overlayCollisionBoxes];
+    const placedBadges: PlacedOverlapBadge[] = [];
     return segmentOverlapBadgeGroups
       .map((group) => {
         const corridor = composeNetworkSegmentPath(group.segments, "bidirectional");
@@ -959,14 +967,16 @@ function InteractiveTtcMapComponent({
         if (!frame) return null;
 
         const size = overlapBadgeSize(overlapBadgeVisualItemCount(overlapBadgeKindCounts(group.impacts)));
-        const position = chooseNonIntersectingBadgePosition(frame.point, size, occupiedBoxes, frame);
+        const position = chooseNonIntersectingBadgePosition(frame.point, size, occupiedBoxes, frame, placedBadges);
         occupiedBoxes.push(expandBox(boundsForBadgePosition(position, size), 12));
+        placedBadges.push({ anchor: frame.point, position, size });
 
         return {
           segmentId: group.segments[0]?.id ?? segment.id,
           label: segment.label,
           impactKinds: group.impactKinds,
           impacts: group.impacts,
+          anchor: frame.point,
           position,
           size,
           protectedBoxes: protectedBoxesForImpacts(
@@ -985,6 +995,11 @@ function InteractiveTtcMapComponent({
       ...overlayCollisionBoxes,
       ...overlapBadgeSegments.map((badge) => expandBox(boundsForBadgePosition(badge.position, badge.size), 12)),
     ];
+    const placedBadges: PlacedOverlapBadge[] = overlapBadgeSegments.map((badge) => ({
+      anchor: badge.anchor,
+      position: badge.position,
+      size: badge.size,
+    }));
 
     return stationOverlapBadgeGroups
       .map((group) => {
@@ -993,14 +1008,16 @@ function InteractiveTtcMapComponent({
 
         const point = stationPointFor(station);
         const size = overlapBadgeSize(overlapBadgeVisualItemCount(overlapBadgeKindCounts(group.impacts)));
-        const position = chooseNonIntersectingBadgePosition(point, size, occupiedBoxes);
+        const position = chooseNonIntersectingBadgePosition(point, size, occupiedBoxes, null, placedBadges);
         occupiedBoxes.push(expandBox(boundsForBadgePosition(position, size), 12));
+        placedBadges.push({ anchor: point, position, size });
 
         return {
           segmentId: `station-${group.stationId}-${group.signature}`,
           label: station.name,
           impactKinds: group.impactKinds,
           impacts: group.impacts,
+          anchor: point,
           position,
           size,
           protectedBoxes: protectedBoxesForImpacts(
@@ -1900,6 +1917,7 @@ type OverlapBadgeSegment = {
   label: string;
   impactKinds: MapImpactKind[];
   impacts: MapImpact[];
+  anchor: MapPoint;
   position: OverlapBadgePosition;
   size: OverlapBadgeSize;
   protectedBoxes: SvgBounds[];
@@ -1940,12 +1958,17 @@ const MAP_VIEWBOX_BOUNDS: SvgBounds = { x: 0, y: 0, width: 8250, height: 4000 };
 const OVERLAY_CORRIDOR_COLLISION_RADIUS = 54;
 const BASE_ROUTE_COLLISION_RADIUS = 78;
 const OVERLAP_BADGE_EDGE_GAP = 8;
+// Matches the 10-unit candidate and 12-unit occupied-box padding below, so an
+// aligned pair can touch those collision envelopes without visually drifting.
+// We add an extra 14 units because 22 was too close visually.
+const OVERLAP_BADGE_SIBLING_CLEARANCE = 36;
+const OVERLAP_BADGE_ALIGNMENT_MAX_ANCHOR_DISTANCE = 260;
 // Overlap markers are a primary alert-discovery control. Keep their collision
 // footprint in step with the rendered SVG scale so the larger desktop and
 // mobile targets still clear nearby map content.
 const OVERLAP_INDICATOR_SCALE = 1.5;
-const OVERLAP_BADGE_CIRCLE_RADIUS = 38;
-const OVERLAP_BADGE_ITEM_GAP = 12;
+const OVERLAP_BADGE_CIRCLE_RADIUS = 35;
+const OVERLAP_BADGE_ITEM_GAP = 10;
 const OVERLAP_BADGE_ITEM_SPACING = OVERLAP_BADGE_CIRCLE_RADIUS * 2 + OVERLAP_BADGE_ITEM_GAP;
 const OVERLAP_BADGE_PILL_THICKNESS = OVERLAP_BADGE_CIRCLE_RADIUS * 2 + OVERLAP_BADGE_ITEM_GAP * 2;
 const STANDARD_MAP_COMPONENT_MAX_BOUNDS = 1200;
@@ -1992,6 +2015,7 @@ const CHOOSER_KEEPOUT_SELECTOR = [
   ".map-utility-cluster",
   ".map-control-rail",
   ".mobile-map-controls",
+  ".rotated-map-hud",
   ".rotated-map-selection-hud",
   ".subway-closing-soon-chip",
   ".subway-closed-peek-chip",
@@ -2007,20 +2031,6 @@ function isVisibleChooserKeepout(element: HTMLElement): boolean {
     && Number(style.opacity) > 0
     && rect.width > 0
     && rect.height > 0;
-}
-
-function viewportRelativeIntersection(elementRect: DOMRect, viewportRect: DOMRect): SvgBounds | null {
-  const left = Math.max(elementRect.left, viewportRect.left);
-  const top = Math.max(elementRect.top, viewportRect.top);
-  const right = Math.min(elementRect.right, viewportRect.right);
-  const bottom = Math.min(elementRect.bottom, viewportRect.bottom);
-  if (right <= left || bottom <= top) return null;
-  return {
-    x: left - viewportRect.left,
-    y: top - viewportRect.top,
-    width: right - left,
-    height: bottom - top,
-  };
 }
 
 function overlapChooserSize(impactCount: number, viewportWidth = OVERLAP_CHOOSER_WIDTH + 32): OverlapBadgeSize {
@@ -2552,8 +2562,8 @@ function groupOverlapBadgeSegments(
 function overlapBadgeSize(impactKindCount: number): OverlapBadgeSize {
   if (impactKindCount === 1) {
     return {
-      width: 88 * OVERLAP_INDICATOR_SCALE,
-      height: 88 * OVERLAP_INDICATOR_SCALE,
+      width: OVERLAP_BADGE_PILL_THICKNESS * OVERLAP_INDICATOR_SCALE,
+      height: OVERLAP_BADGE_PILL_THICKNESS * OVERLAP_INDICATOR_SCALE,
     };
   }
 
@@ -2562,7 +2572,7 @@ function overlapBadgeSize(impactKindCount: number): OverlapBadgeSize {
   const totalItems = visibleCount + (hasMore ? 1 : 0);
   return {
     width: Math.max(
-      88,
+      OVERLAP_BADGE_PILL_THICKNESS,
       (totalItems - 1) * OVERLAP_BADGE_ITEM_SPACING + OVERLAP_BADGE_PILL_THICKNESS,
     ) * OVERLAP_INDICATOR_SCALE,
     height: OVERLAP_BADGE_PILL_THICKNESS * OVERLAP_INDICATOR_SCALE,
@@ -2635,12 +2645,31 @@ function chooseNonIntersectingBadgePosition(
   size: OverlapBadgeSize,
   blockedBoxes: SvgBounds[],
   frame?: PathFrame | null,
+  placedBadges: PlacedOverlapBadge[] = [],
 ): OverlapBadgePosition {
-  const candidates = overlapBadgePositionCandidates(size, frame);
-  const scoredPositions: Array<{ position: MapPoint; score: number; collisionAvoided: boolean }> = [];
+  const alignmentCandidates = alignedOverlapBadgePositionCandidates({
+    anchor: center,
+    size,
+    placedBadges,
+    gap: OVERLAP_BADGE_SIBLING_CLEARANCE,
+    maxAnchorDistance: OVERLAP_BADGE_ALIGNMENT_MAX_ANCHOR_DISTANCE,
+  });
+  const candidates = [
+    ...alignmentCandidates.map((position) => ({ position, aligned: true })),
+    ...overlapBadgePositionCandidates(size, frame).map((candidate) => ({
+      position: { x: center.x + candidate.dx, y: center.y + candidate.dy },
+      aligned: false,
+    })),
+  ];
+  const scoredPositions: Array<{
+    position: MapPoint;
+    score: number;
+    collisionAvoided: boolean;
+    aligned: boolean;
+  }> = [];
   for (const candidate of candidates) {
     const position = clampBadgePosition(
-      { x: center.x + candidate.dx, y: center.y + candidate.dy },
+      candidate.position,
       size,
     );
     const candidateBox = expandBox(boundsForBadgePosition(position, size), 10);
@@ -2649,10 +2678,14 @@ function chooseNonIntersectingBadgePosition(
       position,
       collisionAvoided,
       score: scoreBadgeCandidate(position, center, size, blockedBoxes),
+      aligned: candidate.aligned,
     });
   }
 
-  const best = scoredPositions
+  const alignedBest = scoredPositions
+    .filter((candidate) => candidate.aligned && candidate.collisionAvoided)
+    .sort((a, b) => a.score - b.score)[0];
+  const best = alignedBest ?? scoredPositions
     .sort((a, b) => a.score - b.score)[0];
   if (best) {
     return { ...best.position, collisionAvoided: best.collisionAvoided };

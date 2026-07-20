@@ -387,11 +387,15 @@ describe("asset-backed map layering", () => {
     assert.match(interactiveMapSource, /getUniqueImpactKinds/);
     assert.doesNotMatch(interactiveMapSource, /if \(impactKinds\.length <= 1\) continue;/);
     assert.match(interactiveMapSource, /chooseNonIntersectingBadgePosition/);
+    assert.match(interactiveMapSource, /alignedOverlapBadgePositionCandidates/);
     assert.match(interactiveMapSource, /collectMapCollisionBoxes/);
     assert.match(interactiveMapSource, /pathCorridorCollisionBoxes/);
     assert.match(interactiveMapSource, /pathMidpointFrame/);
     assert.match(interactiveMapSource, /const frame = pathMidpointFrame\(segment\.pathD\)/);
-    assert.match(interactiveMapSource, /chooseNonIntersectingBadgePosition\(frame\.point, size, occupiedBoxes, frame\)/);
+    assert.match(
+      interactiveMapSource,
+      /chooseNonIntersectingBadgePosition\(frame\.point, size, occupiedBoxes, frame, placedBadges\)/,
+    );
     assert.match(interactiveMapSource, /OVERLAY_CORRIDOR_COLLISION_RADIUS/);
     assert.match(interactiveMapSource, /const OVERLAY_CORRIDOR_COLLISION_RADIUS = 54;/);
     assert.match(interactiveMapSource, /const OVERLAP_BADGE_EDGE_GAP = 8;/);

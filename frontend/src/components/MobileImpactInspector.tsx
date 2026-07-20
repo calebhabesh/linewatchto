@@ -163,7 +163,7 @@ export function getSelectedImpactDetails(
       targetRemoval: zone.targetRemoval,
       extraRows: [
         { label: "Reduced speed", value: formatSpeed(zone.reducedSpeed) },
-        { label: "Average speed", value: formatSpeed(zone.averageSpeed) },
+        { label: "Typical speed", value: formatSpeed(zone.averageSpeed) },
       ],
       segmentIds: zone.affectedSegmentIds ?? [],
     };
