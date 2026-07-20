@@ -29,6 +29,9 @@ describe("opening disclaimer", () => {
     assert.match(disclaimerSource, /opening-disclaimer-highlight/);
     assert.match(disclaimerSource, /TTC(?:&apos;|')s public Live Alerts endpoint/);
     assert.match(disclaimerSource, /local fixture data/);
+    assert.match(disclaimerSource, /opening-disclaimer-nudge/);
+    assert.match(disclaimerSource, /free account/);
+    assert.match(disclaimerSource, /Google/i);
     assert.doesNotMatch(disclaimerSource, /Personal project disclaimer/);
     assert.doesNotMatch(disclaimerSource, /not an official TTC source/);
     assert.match(disclaimerSource, /I Understand/);
@@ -46,13 +49,16 @@ describe("opening disclaimer", () => {
     assert.match(globalCss, /grid-template-columns:\s*repeat\(5, 1fr\)/);
     assert.match(globalCss, /#8a999a/);
     assert.match(globalCss, /\.opening-disclaimer-welcome/);
+    assert.match(globalCss, /\.opening-disclaimer-nudge/);
+    assert.match(globalCss, /\.opening-disclaimer-nudge-mobile/);
+    assert.match(globalCss, /\.opening-disclaimer-nudge-desktop/);
     assert.match(globalCss, /\.station-arrival-line-divider/);
     assert.match(globalCss, /\.opening-disclaimer-panel\s*\{[^}]*background:\s*var\(--panel\);/s);
     assert.match(globalCss, /\.opening-disclaimer-divider\s*\{[^}]*border-radius:\s*999px;[^}]*overflow:\s*hidden;/s);
     assert.match(globalCss, /\.opening-disclaimer-highlight/);
     assert.match(globalCss, /\.opening-disclaimer-panel button\s*\{[^}]*background:\s*#facc15;/s);
     assert.match(globalCss, /\.opening-disclaimer-panel button\s*\{[^}]*color:\s*#111827;/s);
-    assert.match(globalCss, /@media \(max-width:\s*640px\)\s*\{[\s\S]*?\.opening-disclaimer-panel\s*\{[^}]*width:\s*min\(86vw, 340px\);/);
+    assert.match(globalCss, /@media \(max-width:\s*640px\)\s*\{[\s\S]*?\.opening-disclaimer-panel\s*\{[^}]*width:\s*min\(94vw, 380px\);/);
     assert.match(globalCss, /@media \(max-width:\s*640px\)\s*\{[\s\S]*?\.opening-disclaimer-logo\s*\{[^}]*height:\s*76px;[^}]*width:\s*76px;/);
   });
 });

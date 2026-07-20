@@ -92,6 +92,17 @@ export function LogsDropdown({ isMobileMore = false }: { isMobileMore?: boolean 
     return sec === "accessibility";
   });
 
+  const isGtfsRt = (alert: RawAlert) => {
+    return alert.sourceId?.startsWith("gtfsrt-") || false;
+  };
+
+  const liveRoutesAlerts = routesAlerts.filter(alert => !isGtfsRt(alert));
+  const liveAccessibilityAlerts = accessibilityAlerts.filter(alert => !isGtfsRt(alert));
+
+  const gtfsRtRoutesAlerts = routesAlerts.filter(alert => isGtfsRt(alert));
+  const gtfsRtAccessibilityAlerts = accessibilityAlerts.filter(alert => isGtfsRt(alert));
+
+
   const getAlertTitle = (payloadStr: string, sourceId: string) => {
     try {
       const parsed = JSON.parse(payloadStr);
@@ -229,26 +240,50 @@ export function LogsDropdown({ isMobileMore = false }: { isMobileMore?: boolean 
               </div>
             ) : (
               <>
-                {/* Routes Group */}
-                {routesAlerts.length > 0 && (
+                {/* Live Routes Group */}
+                {liveRoutesAlerts.length > 0 && (
                   <div className="flex flex-col gap-2">
                     <h3 className="text-xs font-bold text-orange-500 dark:text-amber-500 uppercase tracking-wider px-1">
-                      Routes ({routesAlerts.length})
+                      Routes ({liveRoutesAlerts.length})
                     </h3>
                     <div className="flex flex-col gap-2">
-                      {routesAlerts.map(alert => renderAlertItem(alert))}
+                      {liveRoutesAlerts.map(alert => renderAlertItem(alert))}
                     </div>
                   </div>
                 )}
 
-                {/* Accessibility Group */}
-                {accessibilityAlerts.length > 0 && (
+                {/* Live Accessibility Group */}
+                {liveAccessibilityAlerts.length > 0 && (
                   <div className="flex flex-col gap-2 mt-2">
                     <h3 className="text-xs font-bold text-orange-500 dark:text-amber-500 uppercase tracking-wider px-1">
-                      Accessibility ({accessibilityAlerts.length})
+                      Accessibility ({liveAccessibilityAlerts.length})
                     </h3>
                     <div className="flex flex-col gap-2">
-                      {accessibilityAlerts.map(alert => renderAlertItem(alert))}
+                      {liveAccessibilityAlerts.map(alert => renderAlertItem(alert))}
+                    </div>
+                  </div>
+                )}
+
+                {/* GTFS-RT Routes Group */}
+                {gtfsRtRoutesAlerts.length > 0 && (
+                  <div className="flex flex-col gap-2 mt-2">
+                    <h3 className="text-xs font-bold text-orange-500 dark:text-amber-500 uppercase tracking-wider px-1">
+                      GTFS-RT Routes ({gtfsRtRoutesAlerts.length})
+                    </h3>
+                    <div className="flex flex-col gap-2">
+                      {gtfsRtRoutesAlerts.map(alert => renderAlertItem(alert))}
+                    </div>
+                  </div>
+                )}
+
+                {/* GTFS-RT Accessibility Group */}
+                {gtfsRtAccessibilityAlerts.length > 0 && (
+                  <div className="flex flex-col gap-2 mt-2">
+                    <h3 className="text-xs font-bold text-orange-500 dark:text-amber-500 uppercase tracking-wider px-1">
+                      GTFS-RT Accessibility ({gtfsRtAccessibilityAlerts.length})
+                    </h3>
+                    <div className="flex flex-col gap-2">
+                      {gtfsRtAccessibilityAlerts.map(alert => renderAlertItem(alert))}
                     </div>
                   </div>
                 )}

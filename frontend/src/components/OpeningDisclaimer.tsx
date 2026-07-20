@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, Menu, MoreHorizontal } from "lucide-react";
 
 export const DISCLAIMER_ACK_STORAGE_KEY = "linewatch-disclaimer-ack-v1";
 
@@ -86,6 +86,14 @@ export function OpeningDisclaimer({ onVisibilityChange }: { onVisibilityChange?:
               <strong>LineWatchTO</strong>
             </h1>
             <p>Toronto rapid transit service information, all in one place.</p>
+            <div className="opening-disclaimer-nudge">
+              <p className="opening-disclaimer-nudge-desktop">
+                Create a <strong>free account</strong> to access <strong>all features at no cost</strong>, including real-time commute tracking and push notifications. Sign up with your Google account via the top-left <Menu size={16} className="inline-block align-middle mx-1 text-blue-600 dark:text-blue-400" /> icon.
+              </p>
+              <p className="opening-disclaimer-nudge-mobile">
+                Create a <strong>free account</strong> to access <strong>all features at no cost</strong>, including real-time commute tracking and push notifications. Sign up with your Google account via the bottom-right More (<MoreHorizontal size={16} className="inline-block align-middle mx-0.5 text-blue-600 dark:text-blue-400" />) button.
+              </p>
+            </div>
           </header>
           <div className="station-arrival-line-divider opening-disclaimer-divider" aria-hidden="true" />
           <div className="opening-disclaimer-kicker">

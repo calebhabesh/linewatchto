@@ -1338,11 +1338,11 @@ button {
   border-radius: 8px;
   box-shadow: 0 18px 70px rgba(0, 0, 0, 0.44);
   color: var(--text);
-  max-width: 560px;
+  max-width: 580px;
   max-height: calc(100dvh - 32px);
   overflow-x: hidden;
   overflow-y: auto;
-  width: min(100%, 560px);
+  width: min(100%, 580px);
 }
 
 .opening-disclaimer-strip {
@@ -1436,6 +1436,43 @@ button {
   background: #eab308;
 }
 
+.opening-disclaimer-nudge {
+  padding: 8px 0;
+  margin-top: 14px;
+  text-align: center;
+}
+
+.opening-disclaimer-nudge p {
+  color: var(--text) !important;
+  font-size: 0.88rem !important;
+  line-height: 1.45;
+  margin: 0 !important;
+}
+
+.opening-disclaimer-nudge-mobile {
+  display: block !important;
+}
+
+.opening-disclaimer-nudge-desktop {
+  display: none !important;
+}
+
+@media (min-width: 768px) {
+  .opening-disclaimer-nudge-mobile {
+    display: none !important;
+  }
+
+  .opening-disclaimer-nudge-desktop {
+    display: block !important;
+  }
+}
+
+.opening-disclaimer-nudge strong {
+  color: var(--planned);
+  font-weight: 750;
+}
+
+
 @media (max-height: 560px) {
   .opening-disclaimer-logo {
     height: 72px;
@@ -1455,12 +1492,12 @@ button {
 
   .opening-disclaimer-panel {
     max-height: calc(100dvh - 36px);
-    width: min(86vw, 340px);
+    width: min(94vw, 380px);
   }
 
   .opening-disclaimer-content {
     gap: 9px;
-    padding: 14px 17px 16px;
+    padding: 14px 12px 16px;
   }
 
   .opening-disclaimer-logo {
@@ -13501,7 +13538,7 @@ button {
 
 /* Unified scrollbar styling for desktop scroll containers */
 @media (min-width: 768px) {
-  #linewatch-main-menu,
+  #linewatch-main-menu-scroll,
   .floating-panel-shell > div,
   .station-search-stations-column,
   .station-search-results,
@@ -13515,7 +13552,7 @@ button {
     -ms-overflow-style: auto !important; /* IE 10+ */
   }
 
-  #linewatch-main-menu::-webkit-scrollbar,
+  #linewatch-main-menu-scroll::-webkit-scrollbar,
   .floating-panel-shell > div::-webkit-scrollbar,
   .station-search-stations-column::-webkit-scrollbar,
   .station-search-results::-webkit-scrollbar,
@@ -13529,7 +13566,7 @@ button {
     height: 8px !important;
   }
 
-  #linewatch-main-menu::-webkit-scrollbar-track,
+  #linewatch-main-menu-scroll::-webkit-scrollbar-track,
   .floating-panel-shell > div::-webkit-scrollbar-track,
   .station-search-stations-column::-webkit-scrollbar-track,
   .station-search-results::-webkit-scrollbar-track,
@@ -13541,7 +13578,7 @@ button {
     background: transparent !important;
   }
 
-  #linewatch-main-menu::-webkit-scrollbar-thumb,
+  #linewatch-main-menu-scroll::-webkit-scrollbar-thumb,
   .floating-panel-shell > div::-webkit-scrollbar-thumb,
   .station-search-stations-column::-webkit-scrollbar-thumb,
   .station-search-results::-webkit-scrollbar-thumb,
@@ -13555,7 +13592,7 @@ button {
     border: 1px solid transparent !important;
   }
 
-  #linewatch-main-menu::-webkit-scrollbar-thumb:hover,
+  #linewatch-main-menu-scroll::-webkit-scrollbar-thumb:hover,
   .floating-panel-shell > div::-webkit-scrollbar-thumb:hover,
   .station-search-stations-column::-webkit-scrollbar-thumb:hover,
   .station-search-results::-webkit-scrollbar-thumb:hover,
@@ -13568,38 +13605,38 @@ button {
   }
 
   /* Enable top and bottom buttons (arrows) on desktop main menu */
-  #linewatch-main-menu::-webkit-scrollbar-button {
+  #linewatch-main-menu-scroll::-webkit-scrollbar-button {
     display: block !important;
     width: 8px !important;
     height: 12px !important;
   }
 
   /* Decrement button (up arrow) */
-  #linewatch-main-menu::-webkit-scrollbar-button:vertical:decrement {
+  #linewatch-main-menu-scroll::-webkit-scrollbar-button:vertical:decrement {
     background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'><polyline points='18 15 12 9 6 15'></polyline></svg>") !important;
     background-position: center !important;
     background-repeat: no-repeat !important;
     background-size: 8px !important;
   }
 
-  #linewatch-main-menu::-webkit-scrollbar-button:vertical:decrement:hover {
+  #linewatch-main-menu-scroll::-webkit-scrollbar-button:vertical:decrement:hover {
     background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23cbd5e1' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'><polyline points='18 15 12 9 6 15'></polyline></svg>") !important;
   }
 
   /* Increment button (down arrow) */
-  #linewatch-main-menu::-webkit-scrollbar-button:vertical:increment {
+  #linewatch-main-menu-scroll::-webkit-scrollbar-button:vertical:increment {
     background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'></polyline></svg>") !important;
     background-position: center !important;
     background-repeat: no-repeat !important;
     background-size: 8px !important;
   }
 
-  #linewatch-main-menu::-webkit-scrollbar-button:vertical:increment:hover {
+  #linewatch-main-menu-scroll::-webkit-scrollbar-button:vertical:increment:hover {
     background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23cbd5e1' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'></polyline></svg>") !important;
   }
 
   /* High contrast support */
-  .linewatch-shell.high-contrast #linewatch-main-menu,
+  .linewatch-shell.high-contrast #linewatch-main-menu-scroll,
   .linewatch-shell.high-contrast .floating-panel-shell > div,
   .linewatch-shell.high-contrast .station-search-stations-column,
   .linewatch-shell.high-contrast .station-search-results,
@@ -13611,7 +13648,7 @@ button {
     scrollbar-color: #ffffff #000000 !important;
   }
 
-  .linewatch-shell.high-contrast #linewatch-main-menu::-webkit-scrollbar-thumb,
+  .linewatch-shell.high-contrast #linewatch-main-menu-scroll::-webkit-scrollbar-thumb,
   .linewatch-shell.high-contrast .floating-panel-shell > div::-webkit-scrollbar-thumb,
   .linewatch-shell.high-contrast .station-search-stations-column::-webkit-scrollbar-thumb,
   .linewatch-shell.high-contrast .station-search-results::-webkit-scrollbar-thumb,
@@ -13623,11 +13660,11 @@ button {
     background: #ffffff !important;
   }
 
-  .linewatch-shell.high-contrast #linewatch-main-menu::-webkit-scrollbar-button:vertical:decrement {
+  .linewatch-shell.high-contrast #linewatch-main-menu-scroll::-webkit-scrollbar-button:vertical:decrement {
     background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'><polyline points='18 15 12 9 6 15'></polyline></svg>") !important;
   }
 
-  .linewatch-shell.high-contrast #linewatch-main-menu::-webkit-scrollbar-button:vertical:increment {
+  .linewatch-shell.high-contrast #linewatch-main-menu-scroll::-webkit-scrollbar-button:vertical:increment {
     background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'></polyline></svg>") !important;
   }
 }

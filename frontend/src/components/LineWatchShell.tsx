@@ -2025,9 +2025,17 @@ export function LineWatchShell({
             id="linewatch-main-menu"
             role="menu"
             onKeyDown={handleMenuKeyDown}
-            className={`desktop-top-chrome panel-strong absolute top-[72px] left-0 w-[min(calc(100vw-32px),360px)] max-h-[calc(var(--visual-viewport-height,100dvh)-96px)] overflow-y-auto stealth-scrollbar border border-black/10 dark:border-white/10 rounded-2xl shadow-2xl flex flex-col origin-top-left transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] ${activeView === "menu" ? "opacity-100 scale-100 translate-y-0 pointer-events-auto" : "opacity-0 scale-90 -translate-y-4 pointer-events-none"}`}
+            className={`desktop-top-chrome panel-strong absolute top-[72px] left-0 w-[min(calc(100vw-32px),360px)] max-h-[calc(var(--visual-viewport-height,100dvh)-96px)] overflow-hidden border border-black/10 dark:border-white/10 rounded-2xl shadow-2xl flex flex-col origin-top-left transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] ${activeView === "menu" ? "opacity-100 scale-100 translate-y-0 pointer-events-auto" : "opacity-0 scale-90 -translate-y-4 pointer-events-none"}`}
             aria-hidden={activeView !== "menu"}
           >
+            <div className="linewatch-transit-accent-strip shrink-0" aria-hidden="true">
+              <span />
+              <span />
+              <span />
+              <span />
+              <span />
+            </div>
+            <div id="linewatch-main-menu-scroll" className="flex-1 overflow-y-auto stealth-scrollbar flex flex-col">
                {/* Branding */}
                 <div className="flex items-center gap-3 p-4 border-b border-black/10 dark:border-white/10 bg-white/40 dark:bg-black/20">
                   <div className="flex items-center justify-center shrink-0 w-8 h-8 rounded-lg shadow-sm border border-black/10 dark:border-white/10 bg-white dark:bg-white/10 p-1">
@@ -2484,7 +2492,8 @@ export function LineWatchShell({
                     </div>
                  </div>
                 </div>
-             </div>
+              </div>
+            </div>
           <StationSearchPanel
             open={activeView === "search"}
             stations={stationSummaries}
@@ -2879,7 +2888,7 @@ export function LineWatchShell({
                 <h2 className="text-base font-black text-slate-900 dark:text-white">
                   {accountDialogTitle()}
                 </h2>
-                <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">Create an account to save configured commutes, and see how disruptions affect commute times.</p>
+                <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">Create an account to save configured commutes, get push notifications, and see how disruptions affect commute times.</p>
               </div>
               <button type="button" className="station-search-clear" onClick={() => setAccountDialogMode(null)} aria-label="Close account dialog">
                 <X size={18} />
