@@ -1680,6 +1680,8 @@ export function LineWatchShell({
     }
   };
 
+  const isDesktopPanel = activeView !== "map" && activeView !== "search" && activeView !== "menu";
+
   const activeFloatingPanel = !showClosedScreen ? (
     isMobilePanel ? (
       <FloatingPanelShell panel="mobile-panel" mobileSheetLabel={getMobileSheetLabel()}>
@@ -1687,190 +1689,11 @@ export function LineWatchShell({
           {renderPanelContent()}
         </div>
       </FloatingPanelShell>
-    ) : activeView === "status" ? (
-      <FloatingPanelShell panel="status" mobileSheetLabel="Current service status">
-        <MobileStatusSheet
-          pollText={pollText}
-          dataSource={displayData.dataSource}
-          onOpenCategory={(view) => {
-            setSelection(null);
-            setActiveView(view);
-          }}
-          onClose={handleMobileSheetClose}
-          accessibilityOutageCount={
-            accessibilityOutageResult?.assetTypes.reduce((acc, curr) => acc + curr.count, 0) ?? 0
-          }
-          surfaceNoticeCount={surfaceNoticeCount ?? 0}
-        />
-      </FloatingPanelShell>
-    ) : activeView === "alerts" ? (
-      <FloatingPanelShell panel="alerts" mobileSheetLabel="Active alerts">
-        <ActiveAlertsPanel
-          selection={selection}
-          onSelectImpact={handleMapSelectImpact}
-          onBack={handleSubmenuBack}
-          onClose={() => { setActiveView("map"); setSelection(null); }}
-          onFocusMap={isMobile ? () => setActiveView("map") : undefined}
-        />
-      </FloatingPanelShell>
-    ) : activeView === "delays" ? (
-      <FloatingPanelShell panel="delays" mobileSheetLabel="Delays">
-        <DelaysPanel
-          selection={selection}
-          onSelectImpact={handleMapSelectImpact}
-          onBack={handleSubmenuBack}
-          onClose={() => { setActiveView("map"); setSelection(null); }}
-          onFocusMap={isMobile ? () => setActiveView("map") : undefined}
-        />
-      </FloatingPanelShell>
-    ) : activeView === "reduced-speed-zones" ? (
-      <FloatingPanelShell panel="reduced-speed-zones" mobileSheetLabel="Reduced Speed Zones">
-        <ReducedSpeedZonesPanel
-          selection={selection}
-          onSelectImpact={handleMapSelectImpact}
-          onBack={handleSubmenuBack}
-          onClose={() => { setActiveView("map"); setSelection(null); }}
-          onFocusMap={isMobile ? () => setActiveView("map") : undefined}
-        />
-      </FloatingPanelShell>
-    ) : activeView === "closures" ? (
-      <FloatingPanelShell panel="closures" mobileSheetLabel="Planned closures">
-        <PlannedClosuresPanel
-          selection={selection}
-          onSelectImpact={handleMapSelectImpact}
-          onBack={handleSubmenuBack}
-          onClose={() => { setActiveView("map"); setSelection(null); }}
-          onFocusMap={isMobile ? () => setActiveView("map") : undefined}
-        />
-      </FloatingPanelShell>
-    ) : activeView === "commutes" ? (
-      <FloatingPanelShell panel="commutes" mobileSheetLabel="Saved commutes">
-        <SavedCommutesPanel
-          accountState={accountState}
-          accountCommutes={accountCommutes}
-          setAccountCommutes={setAccountCommutes}
-          stationSummaries={stationSummaries}
-          viewedCommuteId={commutePathPreview?.id ?? null}
-          onViewPath={handleViewCommutePath}
-          onViewImpactOnPath={handleViewCommuteImpactOnPath}
-          onClearViewedPath={handleClearCommutePathPreview}
-          onBack={() => setActiveView("menu")}
-          onClose={() => { setActiveView("map"); setSelection(null); }}
-          onRequestSignIn={() => openAuthChoice("login")}
-          onRequestCreateAccount={() => openAuthChoice("register")}
-          onOpenNotificationSettings={() => setActiveView("notifications")}
-          notificationSummary={notificationSummary}
-          activeView={commutesActiveTab}
-          onActiveViewChange={setCommutesActiveTab}
-        />
-      </FloatingPanelShell>
-    ) : activeView === "notifications" ? (
-      <FloatingPanelShell panel="notifications" mobileSheetLabel="Notifications">
-        <NotificationSettingsPanel
-          accountState={accountState}
-          pushSettings={pushSettings}
-          onBack={() => setActiveView("menu")}
-          onClose={() => { setActiveView("map"); setSelection(null); }}
-          onRequestSignIn={() => openAuthChoice("login")}
-          onRequestCreateAccount={() => openAuthChoice("register")}
-        />
-      </FloatingPanelShell>
-    ) : activeView === "accessibility-outages" ? (
-      <FloatingPanelShell panel="accessibility-outages" mobileSheetLabel="Accessibility outages">
-        <AccessibilityOutagesPanel
-          accessibilityOutageResult={accessibilityOutageResult}
-          onSelectStation={(stationId) => {
-            setSelectedStationId(stationId);
-            setMobileInspectorDetent("details-focus");
-          }}
-          onBack={() => setActiveView("menu")}
-          onClose={() => {
-            setActiveView("map");
-            setSelection(null);
-          }}
-        />
-      </FloatingPanelShell>
-    ) : activeView === "surface-notices" ? (
-      <FloatingPanelShell panel="surface-notices" mobileSheetLabel="Streetcar & Bus Notices">
-        <SurfaceNoticesPanel
-          onBack={() => setActiveView("menu")}
-          onClose={() => {
-            setActiveView("map");
-            setSelection(null);
-          }}
-        />
-      </FloatingPanelShell>
-    ) : activeView === "more" ? (
-      <FloatingPanelShell panel="more" mobileSheetLabel="More options">
-        <MobileMoreSheet
-          accountState={accountState}
-          accountBusy={accountBusy}
-          highContrast={highContrast}
-          reducedMotion={reducedMotion}
-          dotBackgroundEnabled={dotBackgroundEnabled}
-          ingestionHealth={ingestionHealth}
-          onClose={handleMobileSheetClose}
-          onRequestSignIn={() => openAuthChoice("login")}
-          onRequestCreateAccount={() => openAuthChoice("register")}
-          onDemoAccount={handleDemoAccount}
-          onSignOut={handleSignOut}
-          googleSignInAvailable={authConfig.googleSignInAvailable}
-          onLinkGoogleAccount={openGoogleLinkDialog}
-          onToggleHighContrast={handleToggleHighContrast}
-          onToggleReducedMotion={handleToggleReducedMotion}
-          onToggleDotBackground={handleToggleDotBackground}
-          onOpenNotifications={() => setActiveView("notifications")}
-          onOpenAnalytics={() => setActiveView("analytics")}
-          onOpenAlertHistory={() => setActiveView("alert-history")}
-          onOpenFeedback={() => setActiveView("feedback")}
-          onOpenPrivacyAcknowledgements={() => setActiveView("privacy-acknowledgements")}
-          onOpenReleaseNotes={() => setActiveView("release-notes")}
-          onShareApp={handleShareLineWatchApp}
-          shareStatusLabel={shareStatusLabel}
-          notificationStatusLabel={notificationStatusLabel}
-          canOfferPwaInstall={pwaInstallPrompt.canOfferInstall}
-          canShowPwaInstallHelp={pwaInstallPrompt.canShowInstallHelp}
-          onRequestPwaInstall={pwaInstallPrompt.requestInstall}
-          pwaInstallBusy={pwaInstallPrompt.installing}
-          pwaInstallPlatform={pwaInstallPrompt.platform}
-        />
-      </FloatingPanelShell>
-    ) : activeView === "feedback" ? (
-      <FloatingPanelShell panel="feedback" mobileSheetLabel="Leave Feedback / Support">
-        <FeedbackPanel
-          dataSource={displayData.dataSource}
-          supportUrl={supportUrl}
-          onBack={() => setActiveView("menu")}
-          onClose={() => { setActiveView("map"); setSelection(null); }}
-        />
-      </FloatingPanelShell>
-    ) : activeView === "privacy-acknowledgements" ? (
-      <FloatingPanelShell panel="privacy-acknowledgements" mobileSheetLabel="Privacy & Acknowledgements">
-        <PrivacyAcknowledgementsPanel
-          onBack={() => setActiveView("menu")}
-          onClose={() => { setActiveView("map"); setSelection(null); }}
-        />
-      </FloatingPanelShell>
-    ) : activeView === "release-notes" ? (
-      <FloatingPanelShell panel="release-notes" mobileSheetLabel="What's New">
-        <ReleaseNotesPanel
-          onBack={() => setActiveView("menu")}
-          onClose={() => { setActiveView("map"); setSelection(null); }}
-        />
-      </FloatingPanelShell>
-    ) : activeView === "analytics" ? (
-      <FloatingPanelShell panel="analytics" mobileSheetLabel="Reliability analytics">
-        <ReliabilityPanel
-          onBack={() => setActiveView("menu")}
-          onClose={() => { setActiveView("map"); setSelection(null); }}
-        />
-      </FloatingPanelShell>
-    ) : activeView === "alert-history" ? (
-      <FloatingPanelShell panel="alert-history" mobileSheetLabel="Alert History">
-        <AlertHistoryPanel
-          onBack={() => setActiveView("menu")}
-          onClose={() => { setActiveView("map"); setSelection(null); }}
-        />
+    ) : isDesktopPanel ? (
+      <FloatingPanelShell key="desktop-panel" panel={activeView} mobileSheetLabel={getMobileSheetLabel()}>
+        <div key={activeView} className="desktop-view-content-wrapper" data-active-view={activeView}>
+          {renderPanelContent()}
+        </div>
       </FloatingPanelShell>
     ) : null
   ) : null;

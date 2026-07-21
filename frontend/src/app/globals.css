@@ -4392,7 +4392,7 @@ button {
 .related-planned-closure-button {
   align-items: center;
   background: #1e293b;
-  border: 1px solid rgba(59, 130, 246, 0.3);
+  border: 1px solid rgba(59, 130, 246, 0.35);
   border-radius: 6px;
   color: #ffffff;
   cursor: pointer;
@@ -4402,15 +4402,31 @@ button {
   gap: 5px;
   min-height: 28px;
   padding: 4px 8px;
+  transition: transform 100ms ease, background-color 150ms ease, border-color 150ms ease;
 }
 
 .related-planned-closure-button svg {
-  color: var(--color-logo-blue);
+  color: #60a5fa;
+}
+
+.dark .related-planned-closure-button {
+  background: #1e293b;
+  border-color: rgba(96, 165, 250, 0.4);
+  color: #ffffff;
 }
 
 .related-planned-closure-button:hover {
   background: #334155;
-  border-color: rgba(59, 130, 246, 0.5);
+  border-color: rgba(59, 130, 246, 0.58);
+}
+
+.dark .related-planned-closure-button:hover {
+  background: #334155;
+  border-color: rgba(96, 165, 250, 0.65);
+}
+
+.related-planned-closure-button:active {
+  transform: scale(0.96);
 }
 
 .related-planned-closure-button:focus-visible {
@@ -4419,6 +4435,12 @@ button {
 }
 
 .planned-closure-metadata .is-emphasized dt {
+  color: var(--color-logo-blue);
+  letter-spacing: 0.035em;
+  text-shadow: 0 0 4px rgba(129, 201, 255, 0.35);
+}
+
+.planned-closure-metadata .is-status-row dt {
   color: var(--color-logo-blue);
   letter-spacing: 0.035em;
   text-shadow: 0 0 4px rgba(129, 201, 255, 0.35);
@@ -4433,6 +4455,57 @@ button {
 .planned-closure-metadata .is-emphasized dd {
   font-size: 0.84rem;
   font-weight: 850;
+}
+
+.planned-closure-status-button,
+.planned-closure-status-inactive {
+  align-items: center;
+  border-radius: 6px;
+  display: inline-flex;
+  font-size: 11px;
+  font-weight: 600;
+  gap: 5px;
+  min-height: 24px;
+  padding: 0 8px;
+}
+
+.planned-closure-status-button {
+  background: rgba(220, 38, 38, 0.08);
+  border: 1px solid rgba(220, 38, 38, 0.18);
+  color: #dc2626;
+  cursor: pointer;
+  transition: transform 100ms ease, background-color 150ms ease, border-color 150ms ease;
+}
+
+.dark .planned-closure-status-button {
+  background: rgba(239, 68, 68, 0.16);
+  border-color: rgba(239, 68, 68, 0.25);
+  color: #f87171;
+}
+
+.planned-closure-status-button:hover {
+  background: rgba(220, 38, 38, 0.12);
+  border-color: rgba(220, 38, 38, 0.3);
+}
+
+.dark .planned-closure-status-button:hover {
+  background: rgba(239, 68, 68, 0.22);
+  border-color: rgba(239, 68, 68, 0.4);
+}
+
+.planned-closure-status-button:active {
+  transform: scale(0.96);
+}
+
+.planned-closure-status-button:focus-visible {
+  outline: 2px solid #ef4444;
+  outline-offset: 2px;
+}
+
+.planned-closure-status-inactive {
+  background: rgba(100, 116, 139, 0.08);
+  border: 1px solid rgba(100, 116, 139, 0.2);
+  color: var(--quiet);
 }
 
 .subway-closed-map-backdrop {
@@ -11846,6 +11919,51 @@ button {
     background: #ffffff;
     border-color: #ffffff;
     color: #000000;
+  }
+}
+
+.desktop-view-content-wrapper {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  max-height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  animation: desktop-content-fade-in 380ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  transform-origin: center top;
+  will-change: opacity, transform;
+}
+
+.desktop-view-content-wrapper > .panel,
+.desktop-view-content-wrapper > .commute-panel,
+.desktop-view-content-wrapper > .notification-settings-panel,
+.desktop-view-content-wrapper > .analytics-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  max-height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+@keyframes desktop-content-fade-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 24px, 0) scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+.motion-paused .desktop-view-content-wrapper {
+  animation: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .desktop-view-content-wrapper {
+    animation: none !important;
   }
 }
 

@@ -2,13 +2,14 @@
 
 import { useMemo, useState } from "react";
 import { useDashboardData } from "../app/DataContext";
-import { Calendar, Bus, ChevronLeft, X } from "lucide-react";
+import { ArrowRight, Calendar, Bus, ChevronLeft, X } from "lucide-react";
 import type { ImpactSelection } from "../app/linewatch-data";
 import { useScrollSelectedImpactCard } from "../hooks/useScrollSelectedImpactCard";
 import { LineBadge, ImpactRouteHeader, MetadataGrid, CardSource, JumpToLocationIcon } from "./ImpactCardFields";
 import { getOverlappingImpactRefs, OverlappingImpactRefs } from "./ImpactOverlapRefs";
 import { filterAndSortImpacts, type ImpactListSort } from "../app/impact-list-controls";
 import { ImpactListToolbar } from "./ImpactListToolbar";
+import { ImpactTypeIcon } from "./ImpactTypeIcon";
 
 interface Props {
   selection: ImpactSelection;
@@ -111,6 +112,14 @@ export function PlannedClosuresPanel({ selection, onSelectImpact, onBack, onClos
         ) : (
           visibleClosures.map((closure) => {
             const isActive = selection?.kind === "planned-closure" && selection.id === closure.id;
+            const activeAlert = activeAlerts.find(
+              (alert) => alert.relatedPlannedClosureId === closure.id || (
+                closure.activeNow && alert.id === closure.id
+              ),
+            );
+            const activeAlertKind = activeAlert?.relatedPlannedClosureId
+              ? "suspension"
+              : "planned-closure";
             const specificWindowLabel = closure.activeNow
               ? closure.activeWindowLabel
               : closure.nextWindowLabel;
@@ -140,11 +149,6 @@ export function PlannedClosuresPanel({ selection, onSelectImpact, onBack, onClos
                     </div>
                   </div>
                   <div className="impact-card-heading__badges flex flex-col items-end gap-1 shrink-0 mt-0.5">
-                    {closure.activeNow && (
-                      <span className="flex items-center gap-1 text-[10px] bg-red-500/10 text-red-500 dark:text-red-400 px-1.5 py-0.5 rounded font-bold uppercase tracking-wider">
-                        Active now
-                      </span>
-                    )}
                     {closure.nightly && (
                       <span className="flex items-center gap-1 text-[10px] bg-slate-500/10 dark:bg-white/10 text-slate-600 dark:text-slate-300 px-1.5 py-0.5 rounded font-semibold uppercase">
                         Nightly
@@ -204,6 +208,27 @@ export function PlannedClosuresPanel({ selection, onSelectImpact, onBack, onClos
                         {
                           label: "Closure window",
                           value: hasScheduleDetails ? null : closure.window,
+                        },
+                      ]}
+                      trailingRows={[
+                        {
+                          label: "Status",
+                          value: activeAlert ? (
+                            <button
+                              type="button"
+                              className="planned-closure-status-button"
+                              onClick={() => onSelectImpact({ kind: activeAlertKind, id: activeAlert.id })}
+                              aria-label="View active alert"
+                            >
+                              <ImpactTypeIcon kind={activeAlertKind} size={13} />
+                              <span>Active Now</span>
+                              <ArrowRight size={13} aria-hidden="true" />
+                            </button>
+                          ) : (
+                            <span className="planned-closure-status-inactive">
+                              Currently inactive
+                            </span>
+                          ),
                         },
                       ]}
                     />

@@ -22,9 +22,19 @@ const globalCss = readFileSync(new URL("../src/app/globals.css", import.meta.url
 const subwayClosedSource = readFileSync(new URL("../src/components/SubwayClosedScreen.tsx", import.meta.url), "utf8");
 const subwayHoursSource = readFileSync(new URL("../src/app/subway-hours.ts", import.meta.url), "utf8");
 const stationSearchSource = readFileSync(new URL("../src/components/StationSearchPanel.tsx", import.meta.url), "utf8");
+const selectedImpactScrollSource = readFileSync(new URL("../src/hooks/useScrollSelectedImpactCard.ts", import.meta.url), "utf8");
 
 
 describe("floating menu layout", () => {
+  it("keeps the desktop panel chrome stable while animating keyed view content", () => {
+    assert.match(shellSource, /<FloatingPanelShell key="desktop-panel" panel=\{activeView\}/);
+    assert.match(shellSource, /<div key=\{activeView\} className="desktop-view-content-wrapper"/);
+    assert.match(globalCss, /\.desktop-view-content-wrapper\s*\{[^}]*animation:\s*desktop-content-fade-in 380ms/s);
+    assert.match(globalCss, /@keyframes desktop-content-fade-in/);
+    assert.match(selectedImpactScrollSource, /addEventListener\("animationend", handleWrapperAnimationEnd\)/);
+    assert.match(selectedImpactScrollSource, /event\.animationName !== expectedAnimationName/);
+  });
+
   it("keeps the map first while exposing floating menu and submenu states", () => {
     assert.match(shellSource, /type ActiveView = "map" \| "menu" \| "search" \| "status" \| "alerts" \| "delays" \| "reduced-speed-zones" \| "closures" \| "commutes" \| "notifications" \| "analytics" \| "more"/);
     assert.match(shellSource, /handleToggleMenu/);
@@ -127,8 +137,23 @@ describe("floating menu layout", () => {
     assert.match(activeAlertsSource, /kind: "planned-closure", id: alert\.relatedPlannedClosureId/);
     assert.match(mobileImpactInspectorSource, /relatedPlannedClosureId/);
     assert.match(impactCardFieldsSource, /View Details/);
+    assert.match(globalCss, /\.related-planned-closure-button\s*\{[^}]*background:\s*#1e293b;[^}]*border:\s*1px solid rgba\(59, 130, 246, 0\.35\);[^}]*color:\s*#ffffff;[^}]*min-height:\s*28px/s);
+    assert.match(globalCss, /\.dark \.related-planned-closure-button\s*\{[^}]*background:\s*#1e293b;[^}]*color:\s*#ffffff/s);
     assert.match(interactiveMapSource, /kind === "suspension"/);
     assert.match(interactiveMapSource, /details\?\.categoryLabel \?\? "Active Alert"/);
+    assert.match(plannedClosuresSource, /alert\.relatedPlannedClosureId === closure\.id/);
+    assert.match(plannedClosuresSource, /closure\.activeNow && alert\.id === closure\.id/);
+    assert.match(plannedClosuresSource, /label: "Status"/);
+    assert.match(plannedClosuresSource, /trailingRows=\{\[/);
+    assert.match(plannedClosuresSource, /kind: activeAlertKind, id: activeAlert\.id/);
+    assert.match(plannedClosuresSource, /<span>Active Now<\/span>/);
+    assert.match(plannedClosuresSource, /Currently inactive/);
+    assert.doesNotMatch(plannedClosuresSource, />\s*Active now\s*<\/span>/);
+    assert.match(globalCss, /\.planned-closure-status-button/);
+    assert.match(globalCss, /\.planned-closure-status-button\s*\{[^}]*background:\s*rgba\(220, 38, 38, 0\.08\);[^}]*border:\s*1px solid rgba\(220, 38, 38, 0\.18\);[^}]*color:\s*#dc2626/s);
+    assert.match(globalCss, /\.dark \.planned-closure-status-button\s*\{[^}]*background:\s*rgba\(239, 68, 68, 0\.16\);[^}]*color:\s*#f87171/s);
+    assert.match(globalCss, /\.planned-closure-metadata \.is-status-row dt\s*\{[^}]*color:\s*var\(--color-logo-blue\);[^}]*text-shadow:/s);
+    assert.match(globalCss, /\.planned-closure-status-inactive/);
   });
 
   it("presents planned closure schedule fields in the shared metadata grid", () => {

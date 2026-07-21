@@ -181,6 +181,7 @@ export function MetadataGrid({
   updatedAgo,
   leadingRows,
   extraRows,
+  trailingRows,
   className = "",
 }: {
   cause?: string | null;
@@ -192,6 +193,7 @@ export function MetadataGrid({
   updatedAgo?: string | null;
   leadingRows?: Array<{ label: string; value?: string | null }>;
   extraRows?: Array<{ label: string; value?: ReactNode }>;
+  trailingRows?: Array<{ label: string; value?: ReactNode }>;
   className?: string;
 }) {
   const causeValue = formatCause(cause ?? reason);
@@ -200,6 +202,9 @@ export function MetadataGrid({
     .filter((row) => row.value && row.value.trim().length > 0)
     .map((row) => [row.label, row.value] as const);
   const renderedExtraRows = (extraRows ?? [])
+    .filter((row) => row.value !== null && row.value !== undefined && row.value !== "")
+    .map((row) => [row.label, row.value] as const);
+  const renderedTrailingRows = (trailingRows ?? [])
     .filter((row) => row.value !== null && row.value !== undefined && row.value !== "")
     .map((row) => [row.label, row.value] as const);
 
@@ -217,6 +222,7 @@ export function MetadataGrid({
           ? formatElapsed(updatedAgo)
           : <ImpactTimestamp key="updated" timestamp={updatedAt} />,
     ] as const,
+    ...renderedTrailingRows,
   ].filter(Boolean) as Array<[string, ReactNode]>;
 
   if (rows.length === 0) return null;
@@ -224,7 +230,12 @@ export function MetadataGrid({
   return (
     <dl className={`impact-metadata-grid ${className}`.trim()}>
       {rows.map(([label, value], index) => (
-        <div key={label} className={index < renderedLeadingRows.length ? "is-emphasized" : (label === "Planned Closure" ? "is-planned-closure-row" : undefined)}>
+        <div key={label} className={index < renderedLeadingRows.length ? "is-emphasized"
+          : label === "Planned Closure"
+            ? "is-planned-closure-row"
+            : label === "Status"
+              ? "is-status-row"
+              : undefined}>
           <dt>{label}</dt>
           <dd>{value}</dd>
         </div>
