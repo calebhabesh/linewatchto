@@ -48,6 +48,9 @@ public class PushLineEventObservationEntity {
     @Column(name = "source_event_at")
     private Instant sourceEventAt;
 
+    @Column(name = "source_updated_at")
+    private Instant sourceUpdatedAt;
+
     private String url;
 
     @Column(name = "observed_at")
@@ -87,6 +90,7 @@ public class PushLineEventObservationEntity {
         entity.displayDirection = candidate.displayDirection();
         entity.scopeLabel = candidate.scopeLabel();
         entity.sourceEventAt = candidate.sourceEventAt();
+        entity.sourceUpdatedAt = candidate.sourceUpdatedAt();
         entity.url = candidate.url();
         entity.observedAt = now;
         entity.lastSeenAt = now;
@@ -104,6 +108,7 @@ public class PushLineEventObservationEntity {
         this.displayDirection = candidate.displayDirection();
         this.scopeLabel = candidate.scopeLabel();
         this.sourceEventAt = candidate.sourceEventAt();
+        this.sourceUpdatedAt = candidate.sourceUpdatedAt();
         this.url = candidate.url();
         this.lastSeenAt = now;
         this.clearedAt = null;
@@ -125,6 +130,7 @@ public class PushLineEventObservationEntity {
     public String getDisplayDirection() { return displayDirection; }
     public String getScopeLabel() { return scopeLabel; }
     public Instant getSourceEventAt() { return sourceEventAt; }
+    public Instant getSourceUpdatedAt() { return sourceUpdatedAt; }
     public String getUrl() { return url; }
     public Instant getObservedAt() { return observedAt; }
     public Instant getLastSeenAt() { return lastSeenAt; }

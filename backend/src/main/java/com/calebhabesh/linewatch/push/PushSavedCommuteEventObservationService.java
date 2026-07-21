@@ -33,7 +33,14 @@ public class PushSavedCommuteEventObservationService {
             .stream()
             .findFirst()
             .map(existing -> {
-                boolean updated = hasTrackedUpdate(existing.getUpdateFingerprint(), candidate.updateFingerprint());
+                boolean updated = PushNotificationUpdateDetector.hasMeaningfulUpdate(
+                    existing.getUpdateFingerprint(),
+                    existing.getSourceUpdatedAt(),
+                    existing.getEventType(),
+                    existing.getEventLocation(),
+                    existing.getDisplayDirection(),
+                    candidate
+                );
                 boolean previouslyAllowed = existing.isDeliveryAllowed();
                 boolean ruleChangedSinceLastSeen = commute != null
                     && commute.getUpdatedAt() != null
@@ -100,12 +107,6 @@ public class PushSavedCommuteEventObservationService {
             .filter(value -> value != null)
             .max(Comparator.naturalOrder())
             .orElse(Instant.EPOCH);
-    }
-
-    private boolean hasTrackedUpdate(String existingFingerprint, String candidateFingerprint) {
-        return existingFingerprint != null && !existingFingerprint.isBlank()
-            && candidateFingerprint != null && !candidateFingerprint.isBlank()
-            && !existingFingerprint.equals(candidateFingerprint);
     }
 
     public record ObservationDecision(

@@ -55,4 +55,19 @@ class PushSavedCommuteEventObservationSchemaMigrationTest {
             assertThat(sql).contains("alter table push_notification_events");
         }
     }
+
+    @Test
+    void v46PersistsSourceRevisionForDeploymentSafeUpdateDetection() throws IOException {
+        try (var input = getClass().getResourceAsStream(
+            "/db/migration/V46__push_observation_source_revisions.sql"
+        )) {
+            assertThat(input).isNotNull();
+            String sql = new String(input.readAllBytes(), StandardCharsets.UTF_8).toLowerCase();
+
+            assertThat(sql).contains("alter table push_line_event_observations");
+            assertThat(sql).contains("alter table push_saved_commute_event_observations");
+            assertThat(sql).contains("add column source_updated_at timestamp with time zone");
+            assertThat(sql).doesNotContain("not null");
+        }
+    }
 }

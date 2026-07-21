@@ -33,7 +33,14 @@ public class PushLineEventObservationService {
             .stream()
             .findFirst()
             .map(existing -> {
-                boolean updated = hasTrackedUpdate(existing.getUpdateFingerprint(), candidate.updateFingerprint());
+                boolean updated = PushNotificationUpdateDetector.hasMeaningfulUpdate(
+                    existing.getUpdateFingerprint(),
+                    existing.getSourceUpdatedAt(),
+                    existing.getEventType(),
+                    existing.getEventLocation(),
+                    existing.getDisplayDirection(),
+                    candidate
+                );
                 existing.refresh(candidate, now);
                 PushLineEventObservationEntity saved = observationRepository.save(existing);
                 return new ObservationDecision(saved, false, false, updated);
@@ -92,12 +99,6 @@ public class PushLineEventObservationService {
             .filter(value -> value != null)
             .max(Comparator.naturalOrder())
             .orElse(Instant.EPOCH);
-    }
-
-    private boolean hasTrackedUpdate(String existingFingerprint, String candidateFingerprint) {
-        return existingFingerprint != null && !existingFingerprint.isBlank()
-            && candidateFingerprint != null && !candidateFingerprint.isBlank()
-            && !existingFingerprint.equals(candidateFingerprint);
     }
 
     public record ObservationDecision(

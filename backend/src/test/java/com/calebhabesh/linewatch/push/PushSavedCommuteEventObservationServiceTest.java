@@ -5,7 +5,11 @@ import static org.mockito.Mockito.*;
 
 import com.calebhabesh.linewatch.account.AccountEntity;
 import com.calebhabesh.linewatch.account.SavedCommuteEntity;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.time.Instant;
+import java.time.OffsetDateTime;
+import java.util.HexFormat;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
@@ -158,14 +162,14 @@ class PushSavedCommuteEventObservationServiceTest {
 
     @Test
     void sendsActiveWhenAnExistingImpactHasAChangedSourceRevision() {
-        PushNotificationCandidate firstCandidate = candidate(
-            Instant.parse("2026-06-05T15:05:00Z"), "revision-one"
+        PushNotificationCandidate firstCandidate = candidateWithSourceRevision(
+            OffsetDateTime.parse("2026-06-05T11:05:00-04:00")
         );
         PushSavedCommuteEventObservationEntity existing = PushSavedCommuteEventObservationEntity.create(
             "saved_obs_existing", firstCandidate, Instant.parse("2026-06-05T15:06:00Z")
         );
-        PushNotificationCandidate updatedCandidate = candidate(
-            Instant.parse("2026-06-05T15:05:00Z"), "revision-two"
+        PushNotificationCandidate updatedCandidate = candidateWithSourceRevision(
+            OffsetDateTime.parse("2026-06-05T11:08:00-04:00")
         );
         SavedCommuteEntity commute = SavedCommuteEntity.create(
             "commute_1", account, "Morning commute", "finch", "union", true,
@@ -186,7 +190,37 @@ class PushSavedCommuteEventObservationServiceTest {
         assertThat(decision.firstObserved()).isFalse();
         assertThat(decision.updated()).isTrue();
         assertThat(decision.shouldSendActive()).isTrue();
-        assertThat(existing.getUpdateFingerprint()).isEqualTo("revision-two");
+        assertThat(existing.getSourceUpdatedAt()).isEqualTo(Instant.parse("2026-06-05T15:08:00Z"));
+    }
+
+    @Test
+    void silentlyMigratesLegacyFingerprintAfterBackendDeployment() throws Exception {
+        OffsetDateTime sourceUpdatedAt = OffsetDateTime.parse("2026-07-21T15:30:00-04:00");
+        PushNotificationCandidate candidate = candidateWithSourceRevision(sourceUpdatedAt);
+        PushSavedCommuteEventObservationEntity existing = mock(PushSavedCommuteEventObservationEntity.class);
+        when(existing.getUpdateFingerprint()).thenReturn(legacyFingerprint(candidate, sourceUpdatedAt));
+        when(existing.getEventType()).thenReturn(candidate.eventType());
+        when(existing.getEventLocation()).thenReturn(candidate.eventLocation());
+        when(existing.getDisplayDirection()).thenReturn(candidate.displayDirection());
+        when(existing.isDeliveryAllowed()).thenReturn(true);
+        when(observationRepository.findByAccountIdAndSourceIncidentKeyAndClearedAtIsNullOrderByLastSeenAtDesc(
+            candidate.accountId(), candidate.sourceIncidentKey()
+        )).thenReturn(List.of(existing));
+        when(observationRepository.save(existing)).thenReturn(existing);
+
+        PushSavedCommuteEventObservationService.ObservationDecision decision = service.observe(
+            candidate,
+            SavedCommuteEntity.create(
+                "commute_1", account, "Morning commute", "finch", "union", true,
+                Instant.parse("2026-06-05T15:00:00Z")
+            ),
+            PushNotificationPreferenceEntity.create(account, Instant.parse("2026-06-05T14:30:00Z")),
+            Instant.parse("2026-07-21T19:31:00Z")
+        );
+
+        assertThat(decision.updated()).isFalse();
+        assertThat(decision.shouldSendActive()).isFalse();
+        verify(existing).refresh(candidate, Instant.parse("2026-07-21T19:31:00Z"));
     }
 
     @Test
@@ -275,5 +309,46 @@ class PushSavedCommuteEventObservationServiceTest {
             updateFingerprint,
             deliveryAllowed
         );
+    }
+
+    private PushNotificationCandidate candidateWithSourceRevision(OffsetDateTime sourceUpdatedAt) {
+        PushNotificationCandidate base = candidate(
+            Instant.parse("2026-07-10T14:22:00Z"),
+            "placeholder-current-fingerprint"
+        );
+        String currentFingerprint = PushNotificationUpdateFingerprint.forCandidate(
+            sourceUpdatedAt,
+            base.eventType(),
+            base.notification(),
+            base.url()
+        );
+        return new PushNotificationCandidate(
+            base.accountId(), base.commuteId(), base.legId(), base.lineId(), base.lineNumber(),
+            base.category(), base.eventType(), base.reminderBucket(), base.sourceIncidentKey(),
+            base.notificationKey(), base.dedupeKey(), base.notification(), base.url(),
+            currentFingerprint, base.deliveryAllowed(), sourceUpdatedAt.toInstant()
+        );
+    }
+
+    private String legacyFingerprint(
+        PushNotificationCandidate candidate,
+        OffsetDateTime sourceUpdatedAt
+    ) throws Exception {
+        String value = String.join("\u001f",
+            normalize(sourceUpdatedAt.toInstant().toString()),
+            normalize(candidate.eventType()),
+            normalize(candidate.title()),
+            normalize(candidate.body()),
+            normalize(candidate.eventLocation()),
+            normalize(candidate.displayDirection()),
+            normalize(candidate.url())
+        );
+        return HexFormat.of().formatHex(
+            MessageDigest.getInstance("SHA-256").digest(value.getBytes(StandardCharsets.UTF_8))
+        );
+    }
+
+    private String normalize(String value) {
+        return value == null ? "" : value.trim().replaceAll("\\s+", " ");
     }
 }

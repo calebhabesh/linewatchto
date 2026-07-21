@@ -56,6 +56,9 @@ public class PushSavedCommuteEventObservationEntity {
     @Column(name = "source_event_at")
     private Instant sourceEventAt;
 
+    @Column(name = "source_updated_at")
+    private Instant sourceUpdatedAt;
+
     private String url;
 
     @Column(name = "observed_at")
@@ -130,6 +133,7 @@ public class PushSavedCommuteEventObservationEntity {
         this.displayDirection = candidate.displayDirection();
         this.scopeLabel = candidate.scopeLabel();
         this.sourceEventAt = candidate.sourceEventAt();
+        this.sourceUpdatedAt = candidate.sourceUpdatedAt();
         this.url = candidate.url();
         this.deliveryAllowed = candidate.deliveryAllowed();
     }
@@ -157,6 +161,7 @@ public class PushSavedCommuteEventObservationEntity {
     public String getDisplayDirection() { return displayDirection; }
     public String getScopeLabel() { return scopeLabel; }
     public Instant getSourceEventAt() { return sourceEventAt; }
+    public Instant getSourceUpdatedAt() { return sourceUpdatedAt; }
     public String getUrl() { return url; }
     public Instant getObservedAt() { return observedAt; }
     public Instant getLastSeenAt() { return lastSeenAt; }
