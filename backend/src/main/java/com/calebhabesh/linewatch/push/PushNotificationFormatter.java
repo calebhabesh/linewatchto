@@ -62,7 +62,9 @@ public class PushNotificationFormatter {
             bodyParts.add("Affects " + scopeLabel + ".");
         }
         if (facts.sourceEventAt() != null) {
-            bodyParts.add(clockLine(facts.sourceEventAt()));
+            bodyParts.add("planned-closure".equals(facts.eventType())
+                ? closureStartLine(facts.sourceEventAt())
+                : clockLine(facts.sourceEventAt()));
         }
 
         return new FormattedPushNotification(
@@ -149,6 +151,10 @@ public class PushNotificationFormatter {
             return "TTC Service Alert";
         }
         return identity + " " + eventLabel(eventType);
+    }
+
+    private String closureStartLine(Instant sourceEventAt) {
+        return "🕗 Closure starts " + EVENT_TIME_FORMATTER.format(sourceEventAt);
     }
 
     private String eventLabel(String eventType) {

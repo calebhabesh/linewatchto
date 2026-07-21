@@ -137,8 +137,8 @@ public class SavedCommutePushPlanner {
         String eventType,
         String reminderBucket
     ) {
-        boolean planned = "saved-commute-planned".equals(category);
-        OffsetDateTime eventTime = planned ? match.eventStartAt() : match.startedAt();
+        boolean plannedClosure = "planned-closure".equals(eventType);
+        OffsetDateTime eventTime = plannedClosure ? match.eventStartAt() : match.startedAt();
         Instant sourceEventAt = eventTime == null ? null : eventTime.toInstant();
 
         FormattedPushNotification notification = formatter.formatActive(new PushNotificationFacts(
@@ -214,7 +214,8 @@ public class SavedCommutePushPlanner {
             notification,
             "/?panel=commutes&commute=" + commute.getId(),
             updateFingerprint,
-            deliveryAllowed
+            deliveryAllowed,
+            match.updatedAt() == null ? null : match.updatedAt().toInstant()
         );
     }
 

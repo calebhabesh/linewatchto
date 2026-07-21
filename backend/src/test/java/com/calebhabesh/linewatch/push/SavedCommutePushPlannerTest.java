@@ -146,7 +146,7 @@ class SavedCommutePushPlannerTest {
             assertThat(candidate.body()).contains("Closure dates: Sun, Jun 7 – Mon, Jun 8.");
             assertThat(candidate.body()).contains("Closure hours: 12:00 AM – 5:00 AM.");
             assertThat(candidate.body()).contains("Affects Evening Route (Return).");
-            assertThat(candidate.body()).endsWith("🕗 Jun 7, 12:00 AM");
+            assertThat(candidate.body()).endsWith("🕗 Closure starts Jun 7, 12:00 AM");
             assertThat(candidate.category()).isEqualTo("saved-commute-planned");
         });
     }
@@ -170,6 +170,34 @@ class SavedCommutePushPlannerTest {
 
         assertThat(candidates).isEmpty();
         verify(commutePathService, never()).path("union", "finch");
+    }
+
+    @Test
+    void activePlannedClosureKeepsItsWindowStartForCurrentCommuteNotifications() {
+        SavedCommuteEntity commute = SavedCommuteEntity.create(
+            "commute_active_closure", account, "Late shift", "finch", "union", false,
+            Instant.parse("2026-06-05T14:30:00Z")
+        );
+        CommuteResponses.PathResponse outboundPath = path("finch", "union", "line-1-finch-union");
+        OffsetDateTime alertOpenedAt = OffsetDateTime.parse("2026-06-04T09:00:00-04:00");
+        OffsetDateTime windowStart = OffsetDateTime.parse("2026-06-05T10:30:00-04:00");
+        when(commutePathService.path("finch", "union")).thenReturn(outboundPath);
+        when(commuteImpactService.impactFor(outboundPath)).thenReturn(impactWith(
+            new CommuteResponses.MatchedImpactResponse(
+                "closure-line-1", "planned-closure", "current", "major", "Planned Closure",
+                "line-1", "1", "Finch to Union", null, null, "TTC Service Advisory",
+                List.of("line-1-finch-union"), List.of(), alertOpenedAt, windowStart,
+                "Today", "active-now", windowStart
+            )
+        ));
+
+        List<PushNotificationCandidate> candidates = planner.candidatesFor(commute);
+
+        assertThat(candidates).singleElement().satisfies(candidate -> {
+            assertThat(candidate.category()).isEqualTo("saved-commute-current");
+            assertThat(candidate.sourceEventAt()).isEqualTo(windowStart.toInstant());
+            assertThat(candidate.body()).endsWith("🕗 Closure starts Jun 5, 10:30 AM");
+        });
     }
 
     @Test

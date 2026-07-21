@@ -260,7 +260,8 @@ public class LineSubscriptionPushPlanner {
             notification,
             url,
             updateFingerprint,
-            true
+            true,
+            sourceUpdatedAt == null ? null : sourceUpdatedAt.toInstant()
         );
     }
 

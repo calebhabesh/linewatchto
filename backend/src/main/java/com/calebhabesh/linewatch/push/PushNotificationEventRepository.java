@@ -11,6 +11,12 @@ public interface PushNotificationEventRepository extends JpaRepository<PushNotif
 
     Optional<PushNotificationEventEntity> findByDedupeKey(String dedupeKey);
 
+    Optional<PushNotificationEventEntity> findFirstByAccountIdAndNotificationKeyAndReminderBucketOrderByCreatedAtDesc(
+        String accountId,
+        String notificationKey,
+        String reminderBucket
+    );
+
     boolean existsByNotificationKeyAndNotificationState(String notificationKey, String notificationState);
 
     List<PushNotificationEventEntity> findByAccountIdAndCategoryAndNotificationState(

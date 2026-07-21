@@ -83,7 +83,7 @@ class PushNotificationFormatterTest {
             Shuttle buses are running.
             Starts today.
             Affects Evening Route (Return).
-            🕗 Jun 7, 12:00 AM""");
+            🕗 Closure starts Jun 7, 12:00 AM""");
     }
 
     @Test

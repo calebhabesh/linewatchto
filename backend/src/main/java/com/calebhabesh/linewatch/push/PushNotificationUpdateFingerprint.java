@@ -17,11 +17,8 @@ final class PushNotificationUpdateFingerprint {
         String value = String.join("\u001f",
             normalize(sourceUpdatedAt == null ? null : sourceUpdatedAt.toInstant().toString()),
             normalize(eventType),
-            normalize(notification == null ? null : notification.title()),
-            normalize(notification == null ? null : notification.body()),
             normalize(notification == null ? null : notification.eventLocation()),
-            normalize(notification == null ? null : notification.displayDirection()),
-            normalize(url)
+            normalize(notification == null ? null : notification.displayDirection())
         );
         try {
             return HexFormat.of().formatHex(

@@ -688,6 +688,10 @@ public class PushNotificationDispatchService {
                 .ifPresent(event -> retryEventToIncompleteSubscriptions(event, clock.instant()));
             return;
         }
+        Optional<PushNotificationEventEntity> previousPlannedEvent = previousPlannedEvent(candidate);
+        if (previousPlannedEvent.isPresent() && !sourceUpdatedAfter(candidate, previousPlannedEvent.orElseThrow())) {
+            return;
+        }
         Instant now = clock.instant();
         List<PushSubscriptionEntity> subscriptions = subscriptionRepository.findByAccountIdAndEnabledTrue(candidate.accountId());
         if (subscriptions.isEmpty()) {
@@ -696,11 +700,36 @@ public class PushNotificationDispatchService {
         PushNotificationEventEntity event = eventRepository.save(PushNotificationEventEntity.create(
             nextId("push_event"),
             candidate,
-            sourceOpenedAt(candidate.sourceIncidentKey(), candidate.notificationKey(), candidate.sourceEventAt()),
+            sourceEventAtForDelivery(candidate),
             formatter,
             now
         ));
         sendEventToSubscriptions(event, subscriptions, now);
+    }
+
+    private Optional<PushNotificationEventEntity> previousPlannedEvent(PushNotificationCandidate candidate) {
+        if (!"planned-closure".equals(candidate.eventType())) {
+            return Optional.empty();
+        }
+        return eventRepository.findFirstByAccountIdAndNotificationKeyAndReminderBucketOrderByCreatedAtDesc(
+            candidate.accountId(), candidate.notificationKey(), candidate.reminderBucket()
+        );
+    }
+
+    private boolean sourceUpdatedAfter(
+        PushNotificationCandidate candidate,
+        PushNotificationEventEntity previousEvent
+    ) {
+        return candidate.sourceUpdatedAt() != null
+            && previousEvent.getCreatedAt() != null
+            && candidate.sourceUpdatedAt().isAfter(previousEvent.getCreatedAt());
+    }
+
+    private Instant sourceEventAtForDelivery(PushNotificationCandidate candidate) {
+        if ("planned-closure".equals(candidate.eventType())) {
+            return candidate.sourceEventAt();
+        }
+        return sourceOpenedAt(candidate.sourceIncidentKey(), candidate.notificationKey(), candidate.sourceEventAt());
     }
 
     private void retryEventToIncompleteSubscriptions(PushNotificationEventEntity event, Instant now) {
