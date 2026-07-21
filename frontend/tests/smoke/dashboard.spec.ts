@@ -706,14 +706,26 @@ test("shows an active planned closure in both current and scheduled views", asyn
     await page.getByRole("menuitem", { name: /^Active Alerts/ }).click();
   }
   await expect(page.getByRole("heading", { name: "Active Alerts" })).toBeVisible();
-  await expect(page.locator('[data-impact-card-id="stub-closure-line-1"]')).toBeVisible();
+  const activeClosureChildCard = page.locator('[data-impact-card-id="stub-active-closure-child-line-1"]');
+  await expect(activeClosureChildCard).toBeVisible();
+  await expect(activeClosureChildCard.getByText("Planned Closure", { exact: true })).toBeVisible();
+  await expect(activeClosureChildCard.getByRole("button", { name: "View related planned closure details" })).toBeVisible();
 
-  await page.locator('[data-impact-card-id="stub-closure-line-1"]').getByRole("button", { name: "Show on Map" }).click();
+  await activeClosureChildCard.getByRole("button", { name: "Show on Map" }).click();
   if (isMobile) {
     const inspector = page.locator('[data-mobile-impact-inspector]');
     await expect(inspector).toBeVisible();
     await inspector.getByRole("button", { name: "View Full List" }).click();
   }
+  await expect(page.locator('[data-impact-card-id="stub-active-closure-child-line-1"]')).toHaveClass(/highlight-active-card/);
+
+  await activeClosureChildCard.getByRole("button", { name: "View related planned closure details" }).click();
+  if (isMobile) {
+    const relatedClosureInspector = page.locator('[data-mobile-impact-inspector]');
+    await expect(relatedClosureInspector.getByText("Active Closure Window", { exact: true })).toBeVisible();
+    await relatedClosureInspector.getByRole("button", { name: "View Full List" }).click();
+  }
+  await expect(page.getByRole("heading", { name: "Planned Closures" })).toBeVisible();
   await expect(page.locator('[data-impact-card-id="stub-closure-line-1"]')).toHaveClass(/highlight-active-card/);
 
   if (isMobile) {
@@ -742,8 +754,8 @@ test("shows an active planned closure in both current and scheduled views", asyn
   const upcomingClosureCard = plannedClosuresPanel.locator('[data-impact-card-id="stub-upcoming-closure-line-1"]');
   await expect(upcomingClosureCard).toBeVisible();
   await expect(upcomingClosureCard.getByText("Overlap:")).toBeVisible();
-  await expect(upcomingClosureCard.getByText("Active Alert", { exact: true })).toBeVisible();
-  await expect(upcomingClosureCard.getByText("Active Closure", { exact: true })).toBeVisible();
+  await expect(upcomingClosureCard.getByText("Active Alert", { exact: true })).toHaveCount(2);
+  await expect(upcomingClosureCard.getByText("Active Closure", { exact: true })).toHaveCount(0);
 });
 
 test("shows a compact map hint when multiple alert types overlap", async ({ page, request, isMobile }) => {
@@ -853,14 +865,14 @@ test("shows a compact map hint when multiple alert types overlap", async ({ page
     height: isMobile ? "26px" : "28px",
     width: isMobile ? "26px" : "28px",
   });
-  await expect(overlapChooser.getByText("Suspension", { exact: true })).toBeVisible();
-  await expect(overlapChooser.getByText("Active Closure", { exact: true })).toBeVisible();
+  await expect(overlapChooser.getByText("Active Alert", { exact: true })).toHaveCount(2);
+  await expect(overlapChooser.getByText("Active Closure", { exact: true })).toHaveCount(0);
   await expect(overlapChooser.getByText("Planned Closure", { exact: true })).toBeVisible();
   await expect(overlapChooser.getByText("Line 1: Stub Station to Stub Terminal (Northbound & Southbound)")).toHaveCount(3);
   await expect(overlapChooser.locator(".overlap-chooser-choice-action")).toHaveCount(0);
   await expect(overlapChooser.locator('[data-overlap-choice-kind="planned-closure"]').first()).toHaveCSS("border-left-width", "2px");
   if (!isMobile) {
-    await overlapChooser.locator('[data-overlap-choice-kind="suspension"]').hover();
+    await overlapChooser.locator('[data-overlap-choice-id="stub-alert-line-1"]').hover();
     const foregroundImpact = page.locator('[data-hover-foreground-impact="chooser:suspension:stub-alert-line-1"]');
     await expect(foregroundImpact).toBeVisible();
     await expect(foregroundImpact.locator(".asset-alert-path.suspension-candy")).toBeVisible();
@@ -877,7 +889,7 @@ test("shows a compact map hint when multiple alert types overlap", async ({ page
   await overlapMarker.dispatchEvent("pointerup", { pointerId: 19, pointerType: "mouse", button: 0 });
   await overlapMarker.dispatchEvent("click");
   await expect(overlapChooser).toBeVisible();
-  await overlapChooser.locator('[data-overlap-choice-kind="suspension"]').click();
+  await overlapChooser.locator('[data-overlap-choice-id="stub-alert-line-1"]').click();
   await expect(page.locator('[data-station-impact-selection-id="stub-alert-line-1"]')).toBeAttached();
   if (isMobile) {
     const inspector = page.locator('[data-mobile-impact-inspector]');
@@ -949,7 +961,7 @@ test("uses map overlap metadata for active-alert and sibling submenu overlap ref
   await overlapMarker.dispatchEvent("click");
   const overlapChooser = page.locator("[data-overlap-chooser]");
   await expect(overlapChooser).toBeVisible();
-  await overlapChooser.locator('[data-overlap-choice-kind="suspension"]').click();
+  await overlapChooser.locator('[data-overlap-choice-id="stub-alert-line-1"]').click();
 
   if (isMobile) {
     const inspector = page.locator('[data-mobile-impact-inspector]');
@@ -971,7 +983,7 @@ test("uses map overlap metadata for active-alert and sibling submenu overlap ref
   const delayCard = delaysPanel.locator('[data-impact-card-id="stub-delay-line-1-overlap"]');
   await expect(delayCard).toBeVisible();
   await expect(delayCard.getByText("Overlap:")).toBeVisible();
-  await expect(delayCard.getByText("Active Alert", { exact: true })).toBeVisible();
+  await expect(delayCard.getByText("Active Alert", { exact: true })).toHaveCount(2);
 
   await openServiceCategory(page, isMobile, /Active Alert/);
   const boundaryActiveCard = page.locator('[data-impact-card-id="stub-alert-st-george-boundary"]');

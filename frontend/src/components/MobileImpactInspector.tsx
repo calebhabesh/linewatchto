@@ -6,7 +6,7 @@ import type { DashboardData } from "../app/DataContext";
 import { useDashboardData } from "../app/DataContext";
 import type { ImpactKind, ImpactSelection } from "../app/linewatch-data";
 import { DelayIcon } from "./DelayIcon";
-import { CardSource, ImpactRouteHeader, LineBadge, MetadataGrid } from "./ImpactCardFields";
+import { CardSource, ImpactRouteHeader, LineBadge, MetadataGrid, RelatedPlannedClosureButton } from "./ImpactCardFields";
 import { getOverlappingImpactRefs, OverlappingImpactRefs } from "./ImpactOverlapRefs";
 
 export type MobileInspectorDetent = "map-focus" | "details-focus";
@@ -34,7 +34,8 @@ type SelectedImpactDetails = {
   resolution?: string | null;
   reason?: string | null;
   targetRemoval?: string | null;
-  extraRows?: Array<{ label: string; value?: string | null }>;
+  relatedPlannedClosureId?: string | null;
+  extraRows?: Array<{ label: string; value?: ReactNode }>;
   segmentIds: string[];
 };
 
@@ -66,7 +67,7 @@ export function getSelectedImpactDetails(
     return {
       id: alert.id,
       kind: "suspension",
-      categoryLabel: alert.severity === "planned" ? "Active Closure" : "Active Alert",
+      categoryLabel: alert.relatedPlannedClosureId ? "Active Alert" : alert.severity === "planned" ? "Active Closure" : "Active Alert",
       tone: "suspension",
       icon: <AlertTriangle size={16} className="text-red-500" />,
       lineId: alert.lineId,
@@ -84,6 +85,7 @@ export function getSelectedImpactDetails(
       resolution: alert.resolution,
       reason: alert.reason,
       targetRemoval: alert.targetRemoval,
+      relatedPlannedClosureId: alert.relatedPlannedClosureId,
       segmentIds: alert.affectedSegmentIds ?? [],
     };
   }
@@ -349,7 +351,17 @@ export function MobileImpactInspector({
             startedAt={details.startedAt}
             updatedAt={details.updatedAt}
             updatedAgo={details.updatedAgo}
-            extraRows={details.extraRows}
+            extraRows={[
+              ...(details.relatedPlannedClosureId ? [{
+                label: "Planned Closure",
+                value: (
+                  <RelatedPlannedClosureButton
+                    onClick={() => onSelectImpact({ kind: "planned-closure", id: details.relatedPlannedClosureId! })}
+                  />
+                ),
+              }] : []),
+              ...(details.extraRows ?? []),
+            ]}
           />
         ) : null}
       </div>

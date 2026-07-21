@@ -34,12 +34,14 @@ export type OverlappingImpactRef = {
 };
 
 function impactKindForActiveAlert(alert: ActiveAlert): ImpactKind {
+  if (alert.relatedPlannedClosureId) return "suspension";
   if (alert.severity === "planned") return "planned-closure";
   if (alert.severity === "delay") return "delay";
   return "suspension";
 }
 
 function labelForActiveAlert(alert: ActiveAlert): string {
+  if (alert.relatedPlannedClosureId) return "Active Alert";
   if (alert.severity === "planned") return "Active Closure";
   if (alert.severity === "delay") return "Delay";
   return "Active Alert";
@@ -148,6 +150,8 @@ export function getOverlappingImpactRefs(
     currentImpact.segmentIds,
     data,
   );
+  const currentActiveAlert = data.activeAlerts.find((alert) => alert.id === currentImpact.id);
+  const relatedPlannedClosureId = currentActiveAlert?.relatedPlannedClosureId;
 
   const addRef = (ref: OverlappingImpactRef, segmentIds: string[]) => {
     if (ref.selection.id === currentImpact.id) {
@@ -168,6 +172,9 @@ export function getOverlappingImpactRefs(
   };
 
   for (const alert of data.activeAlerts) {
+    if (alert.relatedPlannedClosureId === currentImpact.id) {
+      continue;
+    }
     const kind = impactKindForActiveAlert(alert);
     addRef(
       {
@@ -182,6 +189,9 @@ export function getOverlappingImpactRefs(
   }
 
   for (const closure of data.plannedClosures) {
+    if (closure.id === relatedPlannedClosureId) {
+      continue;
+    }
     addRef(
       {
         key: `planned-closure-${closure.id}`,

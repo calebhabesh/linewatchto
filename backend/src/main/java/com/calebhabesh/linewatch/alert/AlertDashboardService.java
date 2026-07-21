@@ -93,8 +93,7 @@ public class AlertDashboardService {
             .toList();
         List<ActiveAlertDto> activeClosures = plannedClosureViews(segments).stream()
             .filter(view -> view.closure().activeNow())
-            .map(view -> activeClosurePresentation(view, segments))
-            .map(this::toActiveClosureAlert)
+            .map(view -> toActiveClosureAlert(view, segments))
             .toList();
 
         List<ActiveAlertDto> alerts = new ArrayList<>(routeAlerts);
@@ -258,13 +257,19 @@ public class AlertDashboardService {
             }
         }
 
-        for (PlannedClosureDto closure : activePlannedClosures()) {
+        for (PlannedClosureView view : plannedClosureViews(segments).stream()
+            .filter(candidate -> candidate.closure().activeNow())
+            .toList()) {
+            PlannedClosureDto closure = activeClosurePresentation(view, segments);
+            AlertEntity currentSourceAlert = view.currentSourceAlert();
+            String impactKind = currentSourceAlert == null ? PLANNED_CLOSURE_KIND : SUSPENSION_KIND;
+            String cardId = currentSourceAlert == null ? closure.id() : currentSourceAlert.getId();
             for (String segmentId : closure.previewSegmentIds()) {
                 appendImpact(impacts, segmentId, new SegmentImpact(
-                    PLANNED_CLOSURE_KIND,
-                    closure.id(),
+                    impactKind,
+                    cardId,
                     "bidirectional",
-                    List.of(closure.id())
+                    List.of(cardId)
                 ));
             }
         }
@@ -551,7 +556,8 @@ public class AlertDashboardService {
             !isBlank(alert.getShuttleType()),
             sourceLabel(alert, "TTC Live Alert"),
             cause(alert),
-            resolution(alert)
+            resolution(alert),
+            null
         );
     }
 
@@ -597,9 +603,14 @@ public class AlertDashboardService {
         );
     }
 
-    private ActiveAlertDto toActiveClosureAlert(PlannedClosureDto closure) {
+    private ActiveAlertDto toActiveClosureAlert(
+        PlannedClosureView view,
+        List<LineSegmentEntity> segments
+    ) {
+        PlannedClosureDto closure = activeClosurePresentation(view, segments);
+        AlertEntity currentSourceAlert = view.currentSourceAlert();
         return new ActiveAlertDto(
-            closure.id(),
+            currentSourceAlert == null ? closure.id() : currentSourceAlert.getId(),
             closure.lineId(),
             closure.lineNumber(),
             closure.title(),
@@ -613,7 +624,8 @@ public class AlertDashboardService {
             closure.shuttle(),
             closure.source(),
             closure.cause(),
-            closure.resolution()
+            closure.resolution(),
+            currentSourceAlert == null ? null : view.closure().id()
         );
     }
 
@@ -1096,8 +1108,31 @@ public class AlertDashboardService {
         boolean shuttle,
         String source,
         String cause,
-        String resolution
-    ) {}
+        String resolution,
+        String relatedPlannedClosureId
+    ) {
+        public ActiveAlertDto(
+            String id,
+            String lineId,
+            String lineNumber,
+            String title,
+            String severity,
+            String location,
+            String displayDirection,
+            String description,
+            OffsetDateTime startedAt,
+            OffsetDateTime updatedAt,
+            List<String> affectedSegmentIds,
+            boolean shuttle,
+            String source,
+            String cause,
+            String resolution
+        ) {
+            this(id, lineId, lineNumber, title, severity, location, displayDirection,
+                description, startedAt, updatedAt, affectedSegmentIds, shuttle, source,
+                cause, resolution, null);
+        }
+    }
 
     public record DelayAlertDto(
         String id,

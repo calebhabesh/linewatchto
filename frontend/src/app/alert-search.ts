@@ -101,6 +101,7 @@ export function matchImpactCategories(query: string) {
 }
 
 function selectionForActiveAlert(alert: ActiveAlert): NonNullable<ImpactSelection> {
+  if (alert.relatedPlannedClosureId) return { kind: "suspension", id: alert.id };
   if (alert.severity === "planned") return { kind: "planned-closure", id: alert.id };
   if (alert.severity === "delay") return { kind: "delay", id: alert.id };
   return { kind: "suspension", id: alert.id };

@@ -128,6 +128,7 @@ export type ActiveAlert = {
   affectedSegmentIds: string[];
   shuttle: boolean;
   source: string;
+  relatedPlannedClosureId?: string | null;
 };
 
 export type DelayAlert = {

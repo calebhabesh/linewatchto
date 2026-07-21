@@ -108,4 +108,47 @@ describe("overlapping impact refs", () => {
     assert.ok(refs.some((ref) => ref.selection.id === "segment-delay-jane-runnymede"));
     assert.ok(refs.some((ref) => ref.selection.id === "rsz-jane-runnymede"));
   });
+
+  it("does not present a linked closure parent and child as overlapping incidents", () => {
+    const linkedData = {
+      ...overlapData,
+      activeAlerts: [{
+        id: "active-child",
+        lineId: "line-2",
+        lineNumber: "2",
+        title: "No service",
+        severity: "planned",
+        location: "Jane to Runnymede",
+        description: "Current closure wording.",
+        affectedSegmentIds: ["jane-runnymede"],
+        shuttle: true,
+        source: "Test",
+        relatedPlannedClosureId: "closure-parent",
+      }],
+      plannedClosures: [{
+        id: "closure-parent",
+        lineId: "line-2",
+        lineNumber: "2",
+        title: "Planned closure",
+        window: "Nightly",
+        location: "Jane to Runnymede",
+        description: "Canonical schedule.",
+        previewSegmentIds: ["jane-runnymede"],
+        shuttle: true,
+        source: "Test",
+      }],
+    };
+
+    const childRefs = getOverlappingImpactRefs(
+      { kind: "suspension", id: "active-child", segmentIds: ["jane-runnymede"] },
+      linkedData,
+    );
+    const parentRefs = getOverlappingImpactRefs(
+      { kind: "planned-closure", id: "closure-parent", segmentIds: ["jane-runnymede"] },
+      linkedData,
+    );
+
+    assert.ok(!childRefs.some((ref) => ref.selection.id === "closure-parent"));
+    assert.ok(!parentRefs.some((ref) => ref.selection.id === "active-child"));
+  });
 });

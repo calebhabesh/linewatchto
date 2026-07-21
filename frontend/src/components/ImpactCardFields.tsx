@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { Calendar } from "lucide-react";
 import { ImpactTimestamp } from "./ImpactTimestamp";
 
 export function formatCause(cause: string | null | undefined): string {
@@ -43,6 +44,20 @@ export function LineBadge({ lineId, lineNumber }: { lineId: string; lineNumber: 
     <span className="line-badge small shrink-0" style={lineColor(lineId)}>
       {lineNumber}
     </span>
+  );
+}
+
+export function RelatedPlannedClosureButton({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      className="related-planned-closure-button"
+      onClick={onClick}
+      aria-label="View related planned closure details"
+    >
+      <Calendar size={14} aria-hidden="true" />
+      <span>View Details</span>
+    </button>
   );
 }
 
@@ -176,7 +191,7 @@ export function MetadataGrid({
   updatedAt?: string | null;
   updatedAgo?: string | null;
   leadingRows?: Array<{ label: string; value?: string | null }>;
-  extraRows?: Array<{ label: string; value?: string | null }>;
+  extraRows?: Array<{ label: string; value?: ReactNode }>;
   className?: string;
 }) {
   const causeValue = formatCause(cause ?? reason);
@@ -185,7 +200,7 @@ export function MetadataGrid({
     .filter((row) => row.value && row.value.trim().length > 0)
     .map((row) => [row.label, row.value] as const);
   const renderedExtraRows = (extraRows ?? [])
-    .filter((row) => row.value && row.value.trim().length > 0)
+    .filter((row) => row.value !== null && row.value !== undefined && row.value !== "")
     .map((row) => [row.label, row.value] as const);
 
   const rows = [

@@ -5,7 +5,7 @@ import { useDashboardData } from "../app/DataContext";
 import { AlertTriangle, Bus, ChevronLeft, X } from "lucide-react";
 import type { ActiveAlert, ImpactKind, ImpactSelection } from "../app/linewatch-data";
 import { useScrollSelectedImpactCard } from "../hooks/useScrollSelectedImpactCard";
-import { LineBadge, ImpactRouteHeader, MetadataGrid, CardSource, JumpToLocationIcon } from "./ImpactCardFields";
+import { LineBadge, ImpactRouteHeader, MetadataGrid, CardSource, JumpToLocationIcon, RelatedPlannedClosureButton } from "./ImpactCardFields";
 import { getOverlappingImpactRefs, OverlappingImpactRefs } from "./ImpactOverlapRefs";
 import { filterAndSortImpacts, type ImpactListSort } from "../app/impact-list-controls";
 import { ImpactListToolbar } from "./ImpactListToolbar";
@@ -19,6 +19,7 @@ interface Props {
 }
 
 function impactKindForAlert(alert: ActiveAlert): ImpactKind {
+  if (alert.relatedPlannedClosureId) return "suspension";
   switch (alert.severity) {
     case "planned":
       return "planned-closure";
@@ -46,7 +47,7 @@ export function ActiveAlertsPanel({
 
   const handleAlertClick = (alert: ActiveAlert) => {
     const alertImpactKind = impactKindForAlert(alert);
-    const isPlanned = alert.severity === "planned";
+    const isPlanned = alert.severity === "planned" && !alert.relatedPlannedClosureId;
     const isActive = selection?.id === alert.id && (
       selection?.kind === alertImpactKind ||
       (selection?.kind === "planned-closure" && isPlanned)
@@ -143,7 +144,7 @@ export function ActiveAlertsPanel({
         ) : (
           visibleAlerts.map((alert) => {
             const alertImpactKind = impactKindForAlert(alert);
-            const isPlanned = alert.severity === "planned";
+            const isPlanned = alert.severity === "planned" && !alert.relatedPlannedClosureId;
             const isActive = selection?.id === alert.id && (
               selection?.kind === alertImpactKind ||
               (selection?.kind === "planned-closure" && isPlanned)
@@ -203,6 +204,14 @@ export function ActiveAlertsPanel({
                       startedAt={alert.startedAt}
                       updatedAt={alert.updatedAt}
                       updatedAgo={alert.updatedAgo} 
+                      extraRows={alert.relatedPlannedClosureId ? [{
+                        label: "Planned Closure",
+                        value: (
+                          <RelatedPlannedClosureButton
+                            onClick={() => onSelectImpact({ kind: "planned-closure", id: alert.relatedPlannedClosureId! })}
+                          />
+                        ),
+                      }] : undefined}
                     />
                   </div>
                   <button

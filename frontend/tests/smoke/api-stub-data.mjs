@@ -22,10 +22,10 @@ export const mapResponse = {
           sourceAlertIds: ["stub-alert-line-1"],
         },
         {
-          kind: "planned-closure",
-          cardId: "stub-closure-line-1",
+          kind: "suspension",
+          cardId: "stub-active-closure-child-line-1",
           travelDirection: "bidirectional",
-          sourceAlertIds: ["stub-closure-line-1"],
+          sourceAlertIds: ["stub-active-closure-child-line-1"],
         },
       ],
       overlay: "suspension",
@@ -240,7 +240,7 @@ export const activeAlertsResponse = [
     source: "Playwright API stub",
   },
   {
-    id: "stub-closure-line-1",
+    id: "stub-active-closure-child-line-1",
     lineId: "line-1",
     lineNumber: "1",
     title: "Stub API active planned closure",
@@ -254,6 +254,7 @@ export const activeAlertsResponse = [
     affectedSegmentIds: ["stub-line-1-segment"],
     shuttle: false,
     source: "Playwright API stub",
+    relatedPlannedClosureId: "stub-closure-line-1",
   },
 ];
 

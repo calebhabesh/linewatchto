@@ -358,6 +358,7 @@ describe("asset-backed map layering", () => {
   it("renders collision-aware floating badges for segments with overlapping alert types", () => {
     assert.match(interactiveMapSource, /overlapBadgeSegments/);
     assert.match(interactiveMapSource, /plannedPreviewImpactsForSegment\(segment, plannedClosures\)/);
+    assert.match(interactiveMapSource, /groupOverlapBadgeSegments\(renderedOverlaySegments, overlapPlannedClosures\)/);
     assert.match(interactiveMapSource, /groupOverlapBadgeSegments/);
     assert.match(interactiveMapSource, /overlapBadgeSignature/);
     assert.match(interactiveMapSource, /kind: "planned-closure"/);
@@ -377,11 +378,10 @@ describe("asset-backed map layering", () => {
     assert.match(interactiveMapSource, /isSingleVisualItem \? \(/);
     assert.match(interactiveMapSource, /<circle\s+className="overlap-indicator-pill"/);
     assert.match(interactiveMapSource, /if \(impactKindCount === 1\)/);
-    assert.match(interactiveMapSource, /height: 88/);
     assert.match(interactiveMapSource, /const badgeRadius = OVERLAP_BADGE_CIRCLE_RADIUS;/);
     assert.match(interactiveMapSource, /const iconSize = 44;/);
-    assert.match(interactiveMapSource, /const OVERLAP_BADGE_CIRCLE_RADIUS = 38;/);
-    assert.match(interactiveMapSource, /const OVERLAP_BADGE_ITEM_GAP = 12;/);
+    assert.match(interactiveMapSource, /const OVERLAP_BADGE_CIRCLE_RADIUS = 35;/);
+    assert.match(interactiveMapSource, /const OVERLAP_BADGE_ITEM_GAP = 10;/);
     assert.match(interactiveMapSource, /const OVERLAP_BADGE_ITEM_SPACING = OVERLAP_BADGE_CIRCLE_RADIUS \* 2 \+ OVERLAP_BADGE_ITEM_GAP;/);
     assert.match(interactiveMapSource, /const spacing = OVERLAP_BADGE_ITEM_SPACING;/);
     assert.match(interactiveMapSource, /getUniqueImpactKinds/);
@@ -400,7 +400,7 @@ describe("asset-backed map layering", () => {
     assert.match(interactiveMapSource, /const OVERLAY_CORRIDOR_COLLISION_RADIUS = 54;/);
     assert.match(interactiveMapSource, /const OVERLAP_BADGE_EDGE_GAP = 8;/);
     assert.match(interactiveMapSource, /const OVERLAP_INDICATOR_SCALE = 1\.5;/);
-    assert.match(interactiveMapSource, /width: 88 \* OVERLAP_INDICATOR_SCALE,/);
+    assert.match(interactiveMapSource, /width: OVERLAP_BADGE_PILL_THICKNESS \* OVERLAP_INDICATOR_SCALE,/);
     assert.match(interactiveMapSource, /\(totalItems - 1\) \* OVERLAP_BADGE_ITEM_SPACING \+ OVERLAP_BADGE_PILL_THICKNESS/);
     assert.match(interactiveMapSource, /height: OVERLAP_BADGE_PILL_THICKNESS \* OVERLAP_INDICATOR_SCALE/);
     assert.match(interactiveMapSource, /<g transform=\{`scale\(\$\{OVERLAP_INDICATOR_SCALE\}\)`\}>/);

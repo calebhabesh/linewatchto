@@ -4389,6 +4389,30 @@ button {
   overflow-wrap: break-word;
 }
 
+.related-planned-closure-button {
+  align-items: center;
+  background: color-mix(in srgb, var(--color-logo-blue) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-logo-blue) 55%, var(--border));
+  border-radius: 6px;
+  color: var(--color-logo-blue);
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 0.7rem;
+  font-weight: 850;
+  gap: 5px;
+  min-height: 28px;
+  padding: 4px 8px;
+}
+
+.related-planned-closure-button:hover {
+  background: color-mix(in srgb, var(--color-logo-blue) 20%, transparent);
+}
+
+.related-planned-closure-button:focus-visible {
+  outline: 2px solid var(--color-logo-blue);
+  outline-offset: 2px;
+}
+
 .planned-closure-metadata .is-emphasized dt {
   color: var(--color-logo-blue);
   letter-spacing: 0.035em;

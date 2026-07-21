@@ -785,11 +785,12 @@ class AlertDashboardServiceTest {
             .extracting(AlertDashboardService.PlannedClosureDto::id)
             .containsExactly("planned-closure-parent", "planned-closure-upcoming");
         assertThat(service.activeAlerts()).singleElement().satisfies(dto -> {
-            assertThat(dto.id()).isEqualTo("planned-closure-parent");
+            assertThat(dto.id()).isEqualTo("planned-closure-current-window");
             assertThat(dto.title()).isEqualTo(
                 "There is no subway service between St George and Sheppard West"
             );
             assertThat(dto.severity()).isEqualTo("planned");
+            assertThat(dto.relatedPlannedClosureId()).isEqualTo("planned-closure-parent");
             assertThat(dto.affectedSegmentIds()).containsExactly("line-1-st-george-sheppard-west");
             assertThat(dto.shuttle()).isTrue();
             assertThat(dto.source()).isEqualTo("TTC Service Advisory");
@@ -804,8 +805,11 @@ class AlertDashboardServiceTest {
             assertThat(dto.updatedAt()).isEqualTo(OffsetDateTime.parse("2026-06-01T11:55:00Z"));
         });
         assertThat(service.activeSegmentImpacts().get("line-1-st-george-sheppard-west"))
-            .extracting(AlertDashboardService.SegmentImpact::kind)
-            .containsExactly("planned-closure");
+            .singleElement().satisfies(impact -> {
+                assertThat(impact.kind()).isEqualTo("suspension");
+                assertThat(impact.cardId()).isEqualTo("planned-closure-current-window");
+                assertThat(impact.sourceAlertIds()).containsExactly("planned-closure-current-window");
+            });
         assertThat(service.dashboardVisiblePlannedClosureIds())
             .containsExactly("planned-closure-parent", "planned-closure-upcoming");
     }

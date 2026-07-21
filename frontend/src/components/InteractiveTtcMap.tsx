@@ -641,6 +641,23 @@ function InteractiveTtcMapComponent({
     return new Map(stations.map((station) => [station.id, station]));
   }, [stations]);
 
+  const linkedPlannedClosureIds = useMemo(() => new Set(
+    activeAlerts
+      .map((alert) => alert.relatedPlannedClosureId)
+      .filter((id): id is string => Boolean(id)),
+  ), [activeAlerts]);
+  const overlapPlannedClosures = useMemo(
+    () => plannedClosures.filter((closure) => !linkedPlannedClosureIds.has(closure.id)),
+    [linkedPlannedClosureIds, plannedClosures],
+  );
+  const plannedPreviewClosures = useMemo(
+    () => plannedClosures.filter((closure) =>
+      !linkedPlannedClosureIds.has(closure.id)
+        || (selection?.kind === "planned-closure" && selection.id === closure.id),
+    ),
+    [linkedPlannedClosureIds, plannedClosures, selection],
+  );
+
   const plannedPreviewSegmentIds = useMemo(() => {
     return new Set(plannedClosures.map((closure) => closure.previewSegmentIds).flat());
   }, [plannedClosures]);
@@ -727,7 +744,7 @@ function InteractiveTtcMapComponent({
   }, [activeAlerts, delays, plannedClosures, reducedSpeedZones, renderedOverlaySegments]);
 
   const plannedPreviewLayers = useMemo<RenderedPlannedPreviewLayer[]>(() => {
-    return plannedClosures
+    return plannedPreviewClosures
       .map((closure) => {
         const orderedSegments = orderSegmentsByIds(
           renderedOverlaySegments.filter((segment) => shouldRenderPlannedPreviewLayer(segment, closure)),
@@ -748,7 +765,7 @@ function InteractiveTtcMapComponent({
         };
       })
       .filter((layer): layer is RenderedPlannedPreviewLayer => Boolean(layer));
-  }, [plannedClosures, renderedOverlaySegments]);
+  }, [plannedPreviewClosures, renderedOverlaySegments]);
 
   const retainedPlannedPreviewLayers = useRetainedMapLayers(
     plannedPreviewLayers,
@@ -927,17 +944,17 @@ function InteractiveTtcMapComponent({
   }, [collisionBoxesByImpact]);
 
   const rawSegmentOverlapBadgeGroups = useMemo(() => {
-    return groupOverlapBadgeSegments(renderedOverlaySegments, plannedClosures);
-  }, [plannedClosures, renderedOverlaySegments]);
+    return groupOverlapBadgeSegments(renderedOverlaySegments, overlapPlannedClosures);
+  }, [overlapPlannedClosures, renderedOverlaySegments]);
 
   const stationOverlapBadgeGroups = useMemo(() => {
     return buildStationOverlapBadgeGroups({
       segments: renderedOverlaySegments,
-      plannedClosures,
+      plannedClosures: overlapPlannedClosures,
       stationNodeImpacts,
       suppressedSignatures: new Set(rawSegmentOverlapBadgeGroups.map((group) => group.signature)),
     });
-  }, [plannedClosures, renderedOverlaySegments, rawSegmentOverlapBadgeGroups, stationNodeImpacts]);
+  }, [overlapPlannedClosures, renderedOverlaySegments, rawSegmentOverlapBadgeGroups, stationNodeImpacts]);
 
   const coveredSegmentOverlapSignatures = useMemo(() => {
     return coveredSegmentOverlapBadgeSignatures(rawSegmentOverlapBadgeGroups, stationOverlapBadgeGroups);
@@ -2169,7 +2186,18 @@ function overlapChooserScreenLayout(
       chooserCenterFitsViewport(candidate, badge.chooserSize, viewportSize, 0)
         && chooserCenterAvoidsProtectedBoxes(candidate, badge.chooserSize, hardBlockedBoxes),
     );
-  const center = validCandidates.reduce<{ position: MapPoint; score: number } | null>((best, position) => {
+  const hardKeepoutCandidates = validCandidates.length > 0 ? [] : [
+    ...preferredCandidates,
+    ...edgeCandidates,
+    ...alertEdgeCandidates,
+    ...uiEdgeCandidates,
+    ...viewportCandidates,
+  ].filter((candidate) =>
+    chooserCenterFitsViewport(candidate, badge.chooserSize, viewportSize, 0)
+      && chooserCenterAvoidsProtectedBoxes(candidate, badge.chooserSize, hardKeepoutBoxes),
+  );
+  const centerCandidates = validCandidates.length > 0 ? validCandidates : hardKeepoutCandidates;
+  const center = centerCandidates.reduce<{ position: MapPoint; score: number } | null>((best, position) => {
     const score = scoreChooserScreenCandidate(
       position,
       anchor,
@@ -2835,6 +2863,7 @@ function overlapChooserTypeLabel(
   kind: MapImpactKind,
   details: ReturnType<typeof getSelectedImpactDetails>,
 ): string {
+  if (kind === "suspension") return details?.categoryLabel ?? "Active Alert";
   if (kind !== "planned-closure") return labelForImpactKind(kind);
   if (details?.categoryLabel === "Upcoming Closure") return "Planned Closure";
   return details?.categoryLabel ?? "Planned Closure";

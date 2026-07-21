@@ -16,6 +16,8 @@ const impactTypeIconSource = readFileSync(new URL("../src/components/ImpactTypeI
 const savedCommutesSource = readFileSync(new URL("../src/components/SavedCommutesPanel.tsx", import.meta.url), "utf8");
 const reliabilitySource = readFileSync(new URL("../src/components/ReliabilityPanel.tsx", import.meta.url), "utf8");
 const dashboardDataSource = readFileSync(new URL("../src/app/dashboard-data.ts", import.meta.url), "utf8");
+const linewatchDataSource = readFileSync(new URL("../src/app/linewatch-data.ts", import.meta.url), "utf8");
+const mobileImpactInspectorSource = readFileSync(new URL("../src/components/MobileImpactInspector.tsx", import.meta.url), "utf8");
 const globalCss = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
 const subwayClosedSource = readFileSync(new URL("../src/components/SubwayClosedScreen.tsx", import.meta.url), "utf8");
 const subwayHoursSource = readFileSync(new URL("../src/app/subway-hours.ts", import.meta.url), "utf8");
@@ -117,6 +119,16 @@ describe("floating menu layout", () => {
     assert.match(plannedClosuresSource, /impact-card-heading__badges/);
     assert.match(globalCss, /\.impact-card-heading__badges\s*\{[^}]*position:\s*absolute;[^}]*right:\s*0;[^}]*top:\s*0/s);
     assert.match(globalCss, /\.alert-card\s*>\s*\.impact-route,\s*\.closure-card\s*>\s*\.impact-route\s*\{[^}]*margin-block:\s*24px/s);
+  });
+
+  it("links TTC active closure children back to their canonical planned closure", () => {
+    assert.match(linewatchDataSource, /relatedPlannedClosureId\?: string \| null/);
+    assert.match(activeAlertsSource, /RelatedPlannedClosureButton/);
+    assert.match(activeAlertsSource, /kind: "planned-closure", id: alert\.relatedPlannedClosureId/);
+    assert.match(mobileImpactInspectorSource, /relatedPlannedClosureId/);
+    assert.match(impactCardFieldsSource, /View Details/);
+    assert.match(interactiveMapSource, /kind === "suspension"/);
+    assert.match(interactiveMapSource, /details\?\.categoryLabel \?\? "Active Alert"/);
   });
 
   it("presents planned closure schedule fields in the shared metadata grid", () => {
