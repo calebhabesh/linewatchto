@@ -71,7 +71,7 @@ Implemented now:
 - Nonlinear overlays resolve from the authored hidden segment-guides-layer.
 - Opposite-direction Reduced Speed Zone records merge into one bidirectional effect and grouped card.
 - Directionless Reduced Speed Zone records render bidirectionally without inventing a direction label.
-- Nightly closure active-window gating derived from TTC parent/child periods. A closure remains in the Planned Closures timeline throughout its current or future schedule; during an active child window the same canonical event also appears in Active Alerts, marks the line `Closure active`, affects matching commutes, and renders a red current-closure map overlay. LineWatchTO derives that current state without requiring TTC to publish a second alert ID.
+- Nightly closure active-window gating derived from TTC parent/child periods. A closure remains in the Planned Closures timeline throughout its current or future schedule; during an active child window the same canonical event also appears in Active Alerts, marks the line `Closure active`, affects matching commutes, and renders a red current-closure map overlay. When TTC also publishes the active child as a standalone route alert, LineWatchTO links it by the parent period's exact source ID, keeps one canonical closure and map impact, and uses the child's current operational wording in Active Alerts.
 
 Not implemented yet:
 

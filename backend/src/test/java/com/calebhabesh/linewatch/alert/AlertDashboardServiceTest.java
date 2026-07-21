@@ -682,7 +682,7 @@ class AlertDashboardServiceTest {
     }
 
     @Test
-    void activeClosureRecordsRemainInPlannedClosuresWhileAlsoAppearingAsCurrentImpacts() {
+    void linkedOperationalClosureChildUsesCanonicalParentWithoutDuplicateImpacts() {
         when(ingestionFreshness.isDashboardFresh()).thenReturn(true);
         AlertEntity parentClosure = withLine(alert(
             "planned-closure-parent",
@@ -709,11 +709,11 @@ class AlertDashboardServiceTest {
             "planned-closure-current-window",
             "planned-closure",
             "planned",
-            "Nightly closure current window",
-            "No subway service nightly between St George and Sheppard West.",
+            "There is no subway service between St George and Sheppard West",
+            "Shuttle buses are running between St George and Sheppard West.",
             "st-george",
             "sheppard-west",
-            OffsetDateTime.parse("2026-06-01T11:45:00Z"),
+            OffsetDateTime.parse("2026-06-01T11:55:00Z"),
             "shuttle-bus"
         ), "line-1", "1");
         ReflectionTestUtils.setField(
@@ -755,7 +755,7 @@ class AlertDashboardServiceTest {
         ));
         AlertActivePeriodRepository.AlertPeriod parentActivePeriod = new AlertActivePeriodRepository.AlertPeriod(
             "planned-closure-parent",
-            "period-active",
+            "planned-closure-current-window",
             OffsetDateTime.parse("2026-06-01T11:00:00Z"),
             OffsetDateTime.parse("2026-06-01T13:00:00Z"),
             0
@@ -783,24 +783,31 @@ class AlertDashboardServiceTest {
 
         assertThat(service.plannedClosures())
             .extracting(AlertDashboardService.PlannedClosureDto::id)
-            .containsExactly("planned-closure-parent", "planned-closure-current-window", "planned-closure-upcoming");
-        assertThat(service.activeAlerts()).hasSize(2).allSatisfy(dto -> {
+            .containsExactly("planned-closure-parent", "planned-closure-upcoming");
+        assertThat(service.activeAlerts()).singleElement().satisfies(dto -> {
+            assertThat(dto.id()).isEqualTo("planned-closure-parent");
+            assertThat(dto.title()).isEqualTo(
+                "There is no subway service between St George and Sheppard West"
+            );
             assertThat(dto.severity()).isEqualTo("planned");
             assertThat(dto.affectedSegmentIds()).containsExactly("line-1-st-george-sheppard-west");
             assertThat(dto.shuttle()).isTrue();
             assertThat(dto.source()).isEqualTo("TTC Service Advisory");
+            assertThat(dto.startedAt()).isEqualTo(OffsetDateTime.parse("2026-06-01T11:00:00Z"));
+            assertThat(dto.updatedAt()).isEqualTo(OffsetDateTime.parse("2026-06-01T11:55:00Z"));
         });
-        assertThat(service.activeAlerts())
-            .extracting(AlertDashboardService.ActiveAlertDto::id)
-            .containsExactlyInAnyOrder("planned-closure-parent", "planned-closure-current-window");
-        assertThat(service.activePlannedClosures())
-            .extracting(AlertDashboardService.PlannedClosureDto::id)
-            .containsExactlyInAnyOrder("planned-closure-parent", "planned-closure-current-window");
+        assertThat(service.activePlannedClosures()).singleElement().satisfies(dto -> {
+            assertThat(dto.id()).isEqualTo("planned-closure-parent");
+            assertThat(dto.title()).isEqualTo(
+                "There is no subway service between St George and Sheppard West"
+            );
+            assertThat(dto.updatedAt()).isEqualTo(OffsetDateTime.parse("2026-06-01T11:55:00Z"));
+        });
         assertThat(service.activeSegmentImpacts().get("line-1-st-george-sheppard-west"))
             .extracting(AlertDashboardService.SegmentImpact::kind)
-            .containsExactly("planned-closure", "planned-closure");
+            .containsExactly("planned-closure");
         assertThat(service.dashboardVisiblePlannedClosureIds())
-            .containsExactly("planned-closure-parent", "planned-closure-current-window", "planned-closure-upcoming");
+            .containsExactly("planned-closure-parent", "planned-closure-upcoming");
     }
 
     @Test

@@ -91,8 +91,9 @@ public class AlertDashboardService {
             .filter(alert -> hasImpactKind(alert, SUSPENSION_KIND))
             .map(alert -> toActiveAlert(alert, segments))
             .toList();
-        List<ActiveAlertDto> activeClosures = plannedClosureDtos(segments).stream()
-            .filter(PlannedClosureDto::activeNow)
+        List<ActiveAlertDto> activeClosures = plannedClosureViews(segments).stream()
+            .filter(view -> view.closure().activeNow())
+            .map(view -> activeClosurePresentation(view, segments))
             .map(this::toActiveClosureAlert)
             .toList();
 
@@ -158,6 +159,12 @@ public class AlertDashboardService {
     }
 
     private List<PlannedClosureDto> plannedClosureDtos(List<LineSegmentEntity> segments) {
+        return plannedClosureViews(segments).stream()
+            .map(PlannedClosureView::closure)
+            .toList();
+    }
+
+    private List<PlannedClosureView> plannedClosureViews(List<LineSegmentEntity> segments) {
         List<AlertEntity> alerts = alertRepository.findByActiveTrueAndType(PLANNED_CLOSURE_TYPE).stream()
             .filter(alert -> hasImpactKind(alert, PLANNED_CLOSURE_KIND))
             .filter(this::isCurrentOrFuture)
@@ -170,15 +177,37 @@ public class AlertDashboardService {
         List<String> alertIds = alerts.stream().map(AlertEntity::getId).toList();
         Map<String, List<AlertActivePeriodRepository.AlertPeriod>> periodsByAlertId =
             periodRepository.findByAlertIds(alertIds);
+        Map<String, AlertEntity> alertsBySourceId = alerts.stream()
+            .filter(alert -> !isBlank(alert.getSourceId()))
+            .collect(java.util.stream.Collectors.toMap(
+                AlertEntity::getSourceId,
+                Function.identity(),
+                (first, ignored) -> first,
+                LinkedHashMap::new
+            ));
+        Set<String> linkedChildSourceIds = new LinkedHashSet<>();
+        for (List<AlertActivePeriodRepository.AlertPeriod> periods : periodsByAlertId.values()) {
+            for (AlertActivePeriodRepository.AlertPeriod period : periods) {
+                if (!isParentPeriod(period) && alertsBySourceId.containsKey(period.sourcePeriodId())) {
+                    linkedChildSourceIds.add(period.sourcePeriodId());
+                }
+            }
+        }
 
         return alerts.stream()
+            .filter(alert -> !linkedChildSourceIds.contains(alert.getSourceId()))
             .map(alert -> {
                 List<AlertActivePeriodRepository.AlertPeriod> periods = periodsByAlertId.get(alert.getId());
                 WindowState ws = windowState(alert, periods);
                 return new AlertWithWindowState(alert, ws);
             })
             .filter(aw -> "active-now".equals(aw.ws.timingStatus()) || "upcoming".equals(aw.ws.timingStatus()))
-            .map(aw -> toPlannedClosure(aw.alert, segments, aw.ws))
+            .map(aw -> new PlannedClosureView(
+                toPlannedClosure(aw.alert, segments, aw.ws),
+                aw.ws.activeSourcePeriodId() == null
+                    ? null
+                    : alertsBySourceId.get(aw.ws.activeSourcePeriodId())
+            ))
             .toList();
     }
 
@@ -187,13 +216,19 @@ public class AlertDashboardService {
             return List.of();
         }
         List<LineSegmentEntity> segments = lineSegmentRepository.findAllByOrderBySortOrderAsc();
-        return plannedClosureDtos(segments).stream()
-            .filter(PlannedClosureDto::activeNow)
+        return plannedClosureViews(segments).stream()
+            .filter(view -> view.closure().activeNow())
+            .map(view -> activeClosurePresentation(view, segments))
             .sorted(plannedClosureComparator(segments))
             .toList();
     }
 
     private record AlertWithWindowState(AlertEntity alert, WindowState ws) {}
+
+    private record PlannedClosureView(
+        PlannedClosureDto closure,
+        AlertEntity currentSourceAlert
+    ) {}
 
     public Map<String, List<SegmentImpact>> activeSegmentImpacts() {
         if (!ingestionFreshness.isDashboardFresh()) {
@@ -348,7 +383,7 @@ public class AlertDashboardService {
             AlertActivePeriodRepository.AlertPeriod period = active.orElseThrow();
             return new WindowState(true, "active-now", nightly,
                 period.startsAt(), period.endsAt(), window(period.startsAt(), period.endsAt()),
-                null, null, null, windowHours, windowDates);
+                null, null, null, windowHours, windowDates, period.sourcePeriodId());
         }
 
         Optional<AlertActivePeriodRepository.AlertPeriod> next = usablePeriods.stream()
@@ -363,11 +398,11 @@ public class AlertDashboardService {
             return new WindowState(false, "upcoming", nightly,
                 null, null, null,
                 period.startsAt(), period.endsAt(), window(period.startsAt(), period.endsAt()),
-                windowHours, windowDates);
+                windowHours, windowDates, null);
         }
 
         return new WindowState(false, "unknown", nightly,
-            null, null, null, null, null, null, windowHours, windowDates);
+            null, null, null, null, null, null, windowHours, windowDates, null);
     }
 
     private String closureWindowHours(List<AlertActivePeriodRepository.AlertPeriod> periods) {
@@ -487,7 +522,8 @@ public class AlertDashboardService {
         OffsetDateTime nextWindowEnd,
         String nextWindowLabel,
         String windowHours,
-        String windowDates
+        String windowDates,
+        String activeSourcePeriodId
     ) {}
 
     private void appendImpact(
@@ -516,6 +552,48 @@ public class AlertDashboardService {
             sourceLabel(alert, "TTC Live Alert"),
             cause(alert),
             resolution(alert)
+        );
+    }
+
+    private PlannedClosureDto activeClosurePresentation(
+        PlannedClosureView view,
+        List<LineSegmentEntity> segments
+    ) {
+        PlannedClosureDto closure = view.closure();
+        AlertEntity currentSourceAlert = view.currentSourceAlert();
+        if (currentSourceAlert == null) {
+            return closure;
+        }
+        TransitLineEntity line = currentSourceAlert.getLine();
+        return new PlannedClosureDto(
+            closure.id(),
+            line == null ? closure.lineId() : line.getId(),
+            line == null ? closure.lineNumber() : line.getNumber(),
+            closureDisplayTitle(currentSourceAlert.getTitle()),
+            closure.window(),
+            location(currentSourceAlert),
+            displayDirection(currentSourceAlert),
+            currentSourceAlert.getDescription(),
+            closure.startedAt(),
+            sourceUpdatedAt(currentSourceAlert),
+            closure.previewSegmentIds().isEmpty()
+                ? affectedSegmentIds(currentSourceAlert, segments)
+                : closure.previewSegmentIds(),
+            !isBlank(currentSourceAlert.getShuttleType()),
+            sourceLabel(currentSourceAlert, "TTC Service Advisory"),
+            cause(currentSourceAlert),
+            resolution(currentSourceAlert),
+            closure.activeNow(),
+            closure.timingStatus(),
+            closure.nightly(),
+            closure.activeWindowStart(),
+            closure.activeWindowEnd(),
+            closure.activeWindowLabel(),
+            closure.nextWindowStart(),
+            closure.nextWindowEnd(),
+            closure.nextWindowLabel(),
+            closure.windowHours(),
+            closure.windowDates()
         );
     }
 
