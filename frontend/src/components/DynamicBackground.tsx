@@ -19,13 +19,14 @@ export function DynamicBackground({
         : "linewatch-backdrop--light bg-slate-50"
   }`;
 
-  if (reducedMotion || disabled) {
+  if (disabled) {
     return <div aria-hidden="true" className={backdropClassName} />;
   }
 
   return (
     <div aria-hidden="true" className={backdropClassName}>
       <DotGrid
+        interactive={!reducedMotion}
         dotSize={2}
         gap={38}
         baseColor="#1b2a36"

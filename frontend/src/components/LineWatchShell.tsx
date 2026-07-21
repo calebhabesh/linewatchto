@@ -60,7 +60,7 @@ import {
 import { useTorontoClock } from "../hooks/useTorontoClock";
 import { useMobilePerformanceMode } from "../hooks/useMobilePerformanceMode";
 import { usePushNotificationSettings } from "../hooks/usePushNotificationSettings";
-import { Menu, X, Map as MapIcon, Train, AlertTriangle, Calendar, Navigation, ShieldCheck, BarChart3, Bell, Construction, Search, LogIn, LogOut, UserPlus, UserRound, Sun, Moon, Bus, Mail, Contrast, Pause, History, MessageSquareText, FileText, Sparkles } from "lucide-react";
+import { Menu, X, Map as MapIcon, Train, AlertTriangle, Calendar, Navigation, ShieldCheck, BarChart3, Bell, Construction, Search, LogIn, LogOut, UserPlus, UserRound, Sun, Moon, Bus, Mail, Contrast, Pause, History, MessageSquareText, FileText, Sparkles, Pin, PinOff } from "lucide-react";
 import { SubwayClosedScreen } from "./SubwayClosedScreen";
 import { useSubwayOperatingState } from "../hooks/useSubwayOperatingState";
 import { StationSearchPanel } from "./StationSearchPanel";
@@ -208,6 +208,8 @@ export function LineWatchShell({
   const [visualPreferencesReady, setVisualPreferencesReady] = useState(false);
   const mobilePerformanceMode = useMobilePerformanceMode();
   const [activeView, setActiveView] = useState<ActiveView>("map");
+  const [menuPinned, setMenuPinned] = useState(false);
+  const [menuPinPreferenceReady, setMenuPinPreferenceReady] = useState(false);
   const [previousView, setPreviousView] = useState<ActiveView>("status");
   const [isMobile, setIsMobile] = useState(false);
   const lastActiveViewRef = useRef<ActiveView>("map");
@@ -219,6 +221,18 @@ export function LineWatchShell({
   const [estimatedTrainSnapshot, setEstimatedTrainSnapshot] = useState<EstimatedTrainSnapshot>(EMPTY_ESTIMATED_TRAIN_SNAPSHOT);
   const subwayOperatingState = useSubwayOperatingState();
   const estimatedTrainMarkersVisible = estimatedTrainsEnabled && subwayOperatingState.status === "open";
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setMenuPinned(window.localStorage.getItem("linewatch-menu-pinned") === "true");
+    setMenuPinPreferenceReady(true);
+  }, []);
+
+  useEffect(() => {
+    if (!menuPinPreferenceReady || typeof window === "undefined") return;
+    window.localStorage.setItem("linewatch-menu-pinned", String(menuPinned));
+  }, [menuPinPreferenceReady, menuPinned]);
 
   const recordPwaInstallEngagement = useCallback(() => {
     if (!isMobile) return;
@@ -987,7 +1001,7 @@ export function LineWatchShell({
       }, 0);
       return null;
     });
-  }, [setCommutePathPreview, setActiveView]);
+  }, [setCommutePathPreview, setSelection, setSelectedStationId, setActiveView]);
 
   const menuButtonRef = useRef<HTMLButtonElement>(null);
   const stationSearchInputRef = useRef<HTMLInputElement>(null);
@@ -1014,6 +1028,7 @@ export function LineWatchShell({
 
     if (event.key === "Escape") {
       event.preventDefault();
+      setMenuPinned(false);
       setActiveView("map");
       menuButtonRef.current?.focus();
       return;
@@ -1190,6 +1205,11 @@ export function LineWatchShell({
   }, [selectedStationId]);
 
   const handleToggleMenu = () => {
+    if (menuPinned) {
+      setMenuPinned(false);
+      setActiveView("map");
+      return;
+    }
     setActiveView(prev => {
       if (prev !== "menu" && prev !== "map") {
         setSelection(null);
@@ -1198,6 +1218,8 @@ export function LineWatchShell({
       return prev === "menu" ? "map" : "menu";
     });
   };
+
+  const menuVisible = activeView === "menu" || menuPinned;
 
   const [stationSearchQuery, setStationSearchQuery] = useState("");
 
@@ -1252,7 +1274,7 @@ export function LineWatchShell({
       }
       setActiveView("map");
     }
-  }, [setSelectedStationId, setSelection, setCommutePathPreview, setActiveView, isMobile, recordPwaInstallEngagement]);
+  }, [setSelectedStationId, setSelection, setCommutePathPreview, setMobileInspectorDetent, setActiveView, isMobile, recordPwaInstallEngagement]);
 
 
   const mobileNavKey = useMemo<MobileNavKey>(() => {
@@ -1289,7 +1311,7 @@ export function LineWatchShell({
       default:
         setActiveView("map");
     }
-  }, [setActiveView, setCommutePathPreview, setSelectedStationId, setSelection, recordPwaInstallEngagement]);
+  }, [setActiveView, setCommutePathPreview, setMapPresentationMode, setMobileInspectorDetent, setSelectedStationId, setSelection, recordPwaInstallEngagement]);
 
 
   const handleMobileSheetClose = useCallback(() => {
@@ -1297,7 +1319,7 @@ export function LineWatchShell({
     setSelection(null);
     setMapPresentationMode("standard");
     setMobileInspectorDetent("map-focus");
-  }, [setActiveView, setSelection]);
+  }, [setActiveView, setMapPresentationMode, setMobileInspectorDetent, setSelection]);
 
   const viewForImpactKind = useCallback((kind: ImpactKind): ActiveView => {
     switch (kind) {
@@ -1328,7 +1350,7 @@ export function LineWatchShell({
     setSelection(nextSelection);
     setMobileInspectorDetent("details-focus");
     setActiveView(viewForImpactSelection(nextSelection));
-  }, [setActiveView, setCommutePathPreview, setSelectedStationId, setSelection, viewForImpactSelection]);
+  }, [setActiveView, setCommutePathPreview, setMobileInspectorDetent, setSelectedStationId, setSelection, viewForImpactSelection]);
 
   const handleSearchOpenImpactCategory = useCallback((kind: ImpactKind) => {
     setSelectedStationId(null);
@@ -1352,7 +1374,7 @@ export function LineWatchShell({
       return;
     }
     setActiveView(viewForImpactSelection(nextSelection));
-  }, [setSelectedStationId, setCommutePathPreview, setSelection, setActiveView, viewForImpactSelection, isMobile, recordPwaInstallEngagement]);
+  }, [setSelectedStationId, setCommutePathPreview, setMobileInspectorDetent, setSelection, setActiveView, viewForImpactSelection, isMobile, recordPwaInstallEngagement]);
 
   const handlePeekClosedMap = () => {
     setClosedMapPeek(true);
@@ -1739,6 +1761,7 @@ export function LineWatchShell({
       <div
         style={{ height: "var(--visual-viewport-height, 100dvh)" }}
         data-active-view={activeView}
+        data-menu-pinned={menuPinned ? "true" : undefined}
         className={`linewatch-shell relative w-full overflow-hidden transition-colors duration-500 ${(isDark || highContrast) ? "dark bg-[#0d0808] text-slate-100" : "bg-slate-50 text-slate-900"} ${highContrast ? "high-contrast" : ""} ${reducedMotion ? "motion-paused" : ""} ${mobilePerformanceMode ? "mobile-performance-mode" : ""} ${shellInspectorClasses}`}
       >
         <h1 className="sr-only">
@@ -1757,22 +1780,23 @@ export function LineWatchShell({
           <button
             ref={menuButtonRef}
             onClick={handleToggleMenu}
-            className={`menu-toggle-btn desktop-top-chrome panel relative flex items-center justify-center w-14 h-14 rounded-xl border border-black/10 dark:border-white/10 shadow-lg hover:!bg-slate-100 dark:hover:!bg-[#1a1e28] hover:scale-105 active:scale-95 outline-none focus-visible:ring-4 focus-visible:ring-black/10 dark:focus-visible:ring-white/10 transition-all cursor-pointer`}
+            className={`menu-toggle-btn menu-attention-beam desktop-top-chrome panel relative flex items-center justify-center w-14 h-14 rounded-xl border border-black/10 dark:border-white/10 shadow-lg hover:!bg-slate-100 dark:hover:!bg-[#1a1e28] hover:scale-105 active:scale-95 outline-none focus-visible:ring-4 focus-visible:ring-black/10 dark:focus-visible:ring-white/10 transition-all cursor-pointer`}
             aria-label={"Toggle menu"}
             aria-controls="linewatch-main-menu"
-            aria-expanded={activeView === "menu"}
+            aria-expanded={menuVisible}
+            data-menu-visible={menuVisible ? "true" : "false"}
           >
             <div className="relative w-7 h-7 flex items-center justify-center">
                <Menu
-                  className={`absolute text-slate-800 dark:text-white transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] ${activeView === "menu" ? "opacity-0 rotate-90 scale-50" : "opacity-100 rotate-0 scale-100"}`}
+                  className={`absolute text-slate-800 dark:text-white transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] ${menuVisible ? "opacity-0 rotate-90 scale-50" : "opacity-100 rotate-0 scale-100"}`}
                   size={26}
                />
                <X
-                  className={`absolute text-slate-800 dark:text-white transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] ${activeView === "menu" ? "opacity-100 rotate-0 scale-100" : "opacity-0 -rotate-90 scale-50"}`}
+                  className={`absolute text-slate-800 dark:text-white transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] ${menuVisible ? "opacity-100 rotate-0 scale-100" : "opacity-0 -rotate-90 scale-50"}`}
                   size={26}
                />
             </div>
-            {activeAlerts.length > 0 && activeView !== "menu" && (
+            {activeAlerts.length > 0 && !menuVisible && (
               <span className="absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-black text-white shadow-md border border-white dark:border-[#12151c]">
                 {activeAlerts.length}
               </span>
@@ -1848,8 +1872,8 @@ export function LineWatchShell({
             id="linewatch-main-menu"
             role="menu"
             onKeyDown={handleMenuKeyDown}
-            className={`desktop-top-chrome panel-strong absolute top-[72px] left-0 w-[min(calc(100vw-32px),360px)] max-h-[calc(var(--visual-viewport-height,100dvh)-96px)] overflow-hidden border border-black/10 dark:border-white/10 rounded-2xl shadow-2xl flex flex-col origin-top-left transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] ${activeView === "menu" ? "opacity-100 scale-100 translate-y-0 pointer-events-auto" : "opacity-0 scale-90 -translate-y-4 pointer-events-none"}`}
-            aria-hidden={activeView !== "menu"}
+            className={`desktop-top-chrome panel-strong absolute top-[72px] left-0 w-[min(calc(100vw-32px),360px)] max-h-[calc(var(--visual-viewport-height,100dvh)-96px)] overflow-hidden border border-black/10 dark:border-white/10 rounded-2xl shadow-2xl flex flex-col origin-top-left transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] ${menuVisible ? "opacity-100 scale-100 translate-y-0 pointer-events-auto" : "opacity-0 scale-90 -translate-y-4 pointer-events-none"}`}
+            aria-hidden={!menuVisible}
           >
             <div className="linewatch-transit-accent-strip shrink-0" aria-hidden="true">
               <span />
@@ -1865,6 +1889,21 @@ export function LineWatchShell({
                      <Image src="/assets/linewatch/logo.svg" alt="LineWatchTO Logo" width={24} height={24} className="drop-shadow-sm dark:brightness-200" />
                   </div>
                   <strong className="text-slate-900 dark:text-white font-bold tracking-wide">LineWatchTO</strong>
+                  <div className="ml-auto hidden md:flex items-center gap-2">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400/80 dark:text-slate-500/80 drop-shadow-[0_1px_1px_rgba(0,0,0,0.15)] dark:drop-shadow-[0_1px_1px_rgba(0,0,0,0.3)] select-none whitespace-nowrap">
+                      Pin Main Menu
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setMenuPinned((current) => !current)}
+                      className="main-menu-pin flex items-center justify-center w-9 h-9 rounded-lg text-slate-500 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-300 hover:bg-blue-500/10 transition-colors shrink-0"
+                      aria-label={menuPinned ? "Unpin main menu" : "Pin main menu open"}
+                      aria-pressed={menuPinned}
+                      title={menuPinned ? "Unpin main menu" : "Keep main menu open"}
+                    >
+                      {menuPinned ? <PinOff size={19} /> : <Pin size={19} />}
+                    </button>
+                  </div>
                 </div>
 
                 <div className="account-menu-block flex flex-col px-2 py-2 border-b border-black/10 dark:border-white/10 gap-0.5">

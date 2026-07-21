@@ -40,6 +40,8 @@ describe("floating menu layout", () => {
     assert.match(shellSource, /handleToggleMenu/);
     assert.match(shellSource, /Toggle menu/);
     assert.match(shellSource, /Floating Dropdown Menu/);
+    assert.match(globalCss, /@keyframes menu-border-pulse/);
+    assert.match(globalCss, /animation:\s*menu-border-pulse 2\.8s cubic-bezier\(0\.4, 0, 0\.2, 1\) infinite/);
     assert.match(shellSource, /Floating Submenus/);
     assert.match(shellSource, /activeView === "alerts"/);
     assert.match(shellSource, /activeView === "delays"/);
@@ -147,7 +149,7 @@ describe("floating menu layout", () => {
     assert.match(plannedClosuresSource, /trailingRows=\{\[/);
     assert.match(plannedClosuresSource, /kind: activeAlertKind, id: activeAlert\.id/);
     assert.match(plannedClosuresSource, /<span>Active Now<\/span>/);
-    assert.match(plannedClosuresSource, /Currently inactive/);
+    assert.match(plannedClosuresSource, /Currently Inactive/);
     assert.doesNotMatch(plannedClosuresSource, />\s*Active now\s*<\/span>/);
     assert.match(globalCss, /\.planned-closure-status-button/);
     assert.match(globalCss, /\.planned-closure-status-button\s*\{[^}]*background:\s*rgba\(220, 38, 38, 0\.08\);[^}]*border:\s*1px solid rgba\(220, 38, 38, 0\.18\);[^}]*color:\s*#dc2626/s);

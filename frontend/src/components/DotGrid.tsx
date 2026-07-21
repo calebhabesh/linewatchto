@@ -27,6 +27,7 @@ export type DotGridProps = {
   maxSpeed?: number;
   resistance?: number;
   returnDuration?: number;
+  interactive?: boolean;
   className?: string;
   style?: CSSProperties;
 };
@@ -68,6 +69,7 @@ export default function DotGrid({
   maxSpeed = 5000,
   resistance = 750,
   returnDuration = 1.5,
+  interactive = true,
   className = "",
   style,
 }: DotGridProps) {
@@ -140,7 +142,17 @@ export default function DotGrid({
     }
 
     dotsRef.current = dots;
-  }, [dotSize, gap]);
+
+    if (ctx && circlePath) {
+      ctx.fillStyle = baseColor;
+      for (const dot of dots) {
+        ctx.save();
+        ctx.translate(dot.cx, dot.cy);
+        ctx.fill(circlePath);
+        ctx.restore();
+      }
+    }
+  }, [baseColor, circlePath, dotSize, gap]);
 
   useEffect(() => {
     if (!circlePath) {
@@ -166,8 +178,8 @@ export default function DotGrid({
       const { x: px, y: py } = pointerRef.current;
 
       for (const dot of dotsRef.current) {
-        const ox = dot.cx + dot.xOffset;
-        const oy = dot.cy + dot.yOffset;
+        const ox = dot.cx + (interactive ? dot.xOffset : 0);
+        const oy = dot.cy + (interactive ? dot.yOffset : 0);
         const dx = dot.cx - px;
         const dy = dot.cy - py;
         const dsq = dx * dx + dy * dy;
@@ -189,13 +201,15 @@ export default function DotGrid({
         ctx.restore();
       }
 
-      rafId = requestAnimationFrame(draw);
+      if (interactive) {
+        rafId = requestAnimationFrame(draw);
+      }
     };
 
     draw();
 
     return () => cancelAnimationFrame(rafId);
-  }, [proximity, baseColor, activeRgb, baseRgb, circlePath]);
+  }, [proximity, baseColor, activeRgb, baseRgb, circlePath, interactive]);
 
   useEffect(() => {
     buildGrid();
@@ -223,6 +237,10 @@ export default function DotGrid({
   }, [buildGrid]);
 
   useEffect(() => {
+    if (!interactive) {
+      return undefined;
+    }
+
     const pushDot = (dot: Dot, xOffset: number, yOffset: number) => {
       dot.inertiaApplied = true;
       gsap.killTweensOf(dot);
@@ -311,8 +329,14 @@ export default function DotGrid({
     return () => {
       window.removeEventListener("mousemove", throttledMove);
       window.removeEventListener("click", onClick);
+      for (const dot of dotsRef.current) {
+        gsap.killTweensOf(dot);
+        dot.xOffset = 0;
+        dot.yOffset = 0;
+        dot.inertiaApplied = false;
+      }
     };
-  }, [maxSpeed, speedTrigger, proximity, resistance, returnDuration, shockRadius, shockStrength]);
+  }, [interactive, maxSpeed, speedTrigger, proximity, resistance, returnDuration, shockRadius, shockStrength]);
 
   return (
     <section className={`relative h-full w-full overflow-hidden ${className}`} style={style}>

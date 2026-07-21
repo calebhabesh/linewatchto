@@ -226,7 +226,7 @@ export function PlannedClosuresPanel({ selection, onSelectImpact, onBack, onClos
                             </button>
                           ) : (
                             <span className="planned-closure-status-inactive">
-                              Currently inactive
+                              Currently Inactive
                             </span>
                           ),
                         },

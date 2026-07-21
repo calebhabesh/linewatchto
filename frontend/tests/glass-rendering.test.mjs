@@ -4,6 +4,7 @@ import { describe, it } from "node:test";
 
 const shellSource = readFileSync(new URL("../src/components/LineWatchShell.tsx", import.meta.url), "utf8");
 const dynamicBackgroundSource = readFileSync(new URL("../src/components/DynamicBackground.tsx", import.meta.url), "utf8");
+const dotGridSource = readFileSync(new URL("../src/components/DotGrid.tsx", import.meta.url), "utf8");
 const interactiveMapSource = readFileSync(new URL("../src/components/InteractiveTtcMap.tsx", import.meta.url), "utf8");
 const activeAlertsSource = readFileSync(new URL("../src/components/ActiveAlertsPanel.tsx", import.meta.url), "utf8");
 const plannedClosuresSource = readFileSync(new URL("../src/components/PlannedClosuresPanel.tsx", import.meta.url), "utf8");
@@ -61,6 +62,14 @@ describe("frosted glass rendering", () => {
     assert.match(dynamicBackgroundSource, /linewatch-backdrop--plain-light/);
     assert.match(globalCss, /\.linewatch-backdrop--plain-dark\s*\{[^}]*background-color:\s*#000000;/s);
     assert.match(globalCss, /\.linewatch-backdrop--plain-light\s*\{[^}]*background-color:\s*#ffffff;/s);
+  });
+
+  it("keeps the dot background visible but non-interactive when motion is reduced", () => {
+    assert.match(dynamicBackgroundSource, /if \(disabled\)/);
+    assert.doesNotMatch(dynamicBackgroundSource, /if \(reducedMotion \|\| disabled\)/);
+    assert.match(dynamicBackgroundSource, /interactive=\{!reducedMotion\}/);
+    assert.match(dotGridSource, /if \(interactive\) \{\s*rafId = requestAnimationFrame\(draw\);\s*\}/s);
+    assert.match(dotGridSource, /if \(!interactive\) \{\s*return undefined;\s*\}/s);
   });
 
   it("does not use live backdrop blur on interactive panels", () => {

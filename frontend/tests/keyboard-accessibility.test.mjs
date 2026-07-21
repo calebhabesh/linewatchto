@@ -12,7 +12,10 @@ describe("keyboard accessibility source", () => {
     assert.match(shellSource, /menuPanelRef/);
     assert.match(shellSource, /menuActionRefs/);
     assert.match(shellSource, /aria-controls="linewatch-main-menu"/);
-    assert.match(shellSource, /aria-expanded=\{activeView === "menu"\}/);
+    assert.match(shellSource, /aria-expanded=\{menuVisible\}/);
+    assert.match(shellSource, /aria-label=\{menuPinned \? "Unpin main menu" : "Pin main menu open"\}/);
+    assert.match(shellSource, /localStorage\.getItem\("linewatch-menu-pinned"\)/);
+    assert.match(shellSource, /localStorage\.setItem\("linewatch-menu-pinned", String\(menuPinned\)\)/);
     assert.match(shellSource, /handleMenuKeyDown/);
     assert.match(shellSource, /event\.key === "Escape"/);
     assert.match(shellSource, /event\.key === "ArrowDown"/);

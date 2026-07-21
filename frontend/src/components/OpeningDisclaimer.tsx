@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
-import { AlertTriangle, Menu, MoreHorizontal } from "lucide-react";
+import { AlertTriangle, Info, Menu, MoreHorizontal } from "lucide-react";
 
 export const DISCLAIMER_ACK_STORAGE_KEY = "linewatch-disclaimer-ack-v1";
 
@@ -88,10 +88,10 @@ export function OpeningDisclaimer({ onVisibilityChange }: { onVisibilityChange?:
             <p>Toronto rapid transit service information, all in one place.</p>
             <div className="opening-disclaimer-nudge">
               <p className="opening-disclaimer-nudge-desktop">
-                Create a <strong>free account</strong> to access <strong>all features at no cost</strong>, including real-time commute tracking and push notifications. Sign up with your Google account via the top-left <Menu size={16} className="inline-block align-middle mx-1 text-blue-600 dark:text-blue-400" /> icon.
+                Create a <strong>free account</strong> to access <strong>all features at no cost</strong>, including real-time commute tracking and push notifications. Sign up with your Google account via the top-left <Menu size={16} className="inline-block align-middle mx-1 text-blue-600 dark:text-blue-400" /> icon. Click the <Info size={16} className="inline-block align-middle mx-0.5 text-blue-600 dark:text-blue-400" /> info button in the top-right of your screen to find out how to use and navigate the app.
               </p>
               <p className="opening-disclaimer-nudge-mobile">
-                Create a <strong>free account</strong> to access <strong>all features at no cost</strong>, including real-time commute tracking and push notifications. Sign up with your Google account via the bottom-right More (<MoreHorizontal size={16} className="inline-block align-middle mx-0.5 text-blue-600 dark:text-blue-400" />) button.
+                Create a <strong>free account</strong> to access <strong>all features at no cost</strong>, including real-time commute tracking and push notifications. Sign up with your Google account via the bottom-right More (<MoreHorizontal size={16} className="inline-block align-middle mx-0.5 text-blue-600 dark:text-blue-400" />) button. Click the <Info size={16} className="inline-block align-middle mx-0.5 text-blue-600 dark:text-blue-400" /> info button in the top-right of your screen to find out how to use and navigate the app.
               </p>
             </div>
           </header>

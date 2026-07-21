@@ -45,7 +45,8 @@ describe("mobile performance guardrails", () => {
     assert.match(shellSource, /mobilePerformanceMode/);
     assert.match(shellSource, /mobile-performance-mode/);
     assert.match(backgroundSource, /disabled/);
-    assert.match(backgroundSource, /if \(reducedMotion \|\| disabled\)/);
+    assert.match(backgroundSource, /if \(disabled\)/);
+    assert.match(backgroundSource, /interactive=\{!reducedMotion\}/);
     assert.doesNotMatch(shellSource, /<DynamicBackground[^>]*disabled=\{mobilePerformanceMode\}/s);
   });
 

@@ -284,7 +284,7 @@ export function SiteGuideDropdown({ onOpenChange }: { onOpenChange?: (open: bool
               title="What LineWatchTO Does"
             >
               <p>
-                LineWatchTO shows subway/LRT alerts, delays, reduced speed zones, planned closures, station details, and saved commute impacts. It displays live backend updates when ingestion is running, and falls back to demo fixtures otherwise.
+                LineWatchTO shows TTC subway/LRT alerts, delays, reduced speed zones, planned closures, station details, and saved commute impacts. It displays live backend updates when ingestion is running, and falls back to demo fixtures otherwise.
               </p>
             </GuideSection>
 
@@ -356,6 +356,9 @@ export function SiteGuideDropdown({ onOpenChange }: { onOpenChange?: (open: bool
                 />
                 <GuideActionRow icon={<MapIcon size={14} />} label="Click a Station" text="Tap a station dot to view accessibility status, alerts, arrivals, or to select it for a saved commute." />
                 <GuideActionRow icon={<Search size={14} />} label="Station & Alert Search" text="Use the search icon on the left to quickly jump to any station or find active alerts." />
+                {!isMobile && (
+                  <GuideActionRow icon={<Menu size={14} />} label="Main Menu" text="Use the menu icon at the top left to create an account and access lists, commutes, analytics, contrast, and motion controls." />
+                )}
               </ul>
             </GuideSection>
 
@@ -441,7 +444,6 @@ export function SiteGuideDropdown({ onOpenChange }: { onOpenChange?: (open: bool
                   />
                 ) : (
                   <>
-                    <GuideActionRow icon={<Menu size={14} />} label="Main Menu" text="Access lists, commutes, analytics, contrast, and motion controls." />
                     <GuideActionRow
                       icon={
                         <svg viewBox="0 0 32 32" fill="currentColor" className="w-3.5 h-3.5">

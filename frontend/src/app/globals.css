@@ -14791,6 +14791,67 @@ button {
   border: 1px solid #ffffff !important;
 }
 
+/* A restrained pulse makes the closed desktop menu discoverable without
+   introducing another shape around the control. */
+.menu-attention-beam[data-menu-visible="false"] {
+  border-color: transparent !important;
+}
+
+.menu-attention-beam[data-menu-visible="false"]::before {
+  animation: menu-border-pulse 2.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  border: 2.25px solid #81c9ff;
+  border-radius: inherit;
+  box-shadow: 0 0 4px rgba(129, 201, 255, 0.18);
+  content: "";
+  inset: -1px;
+  pointer-events: none;
+  position: absolute;
+}
+
+@keyframes menu-border-pulse {
+  0%,
+  100% {
+    opacity: 0.15;
+  }
+
+  50% {
+    opacity: 1;
+  }
+}
+
+.menu-attention-beam:focus-visible::before {
+  animation: none;
+  opacity: 0;
+}
+
+.main-menu-pin[aria-pressed="true"] {
+  background: rgba(59, 130, 246, 0.14);
+  color: #2563eb;
+}
+
+.dark .main-menu-pin[aria-pressed="true"] {
+  color: #81c9ff;
+}
+
+@media (min-width: 768px) {
+  .linewatch-shell[data-menu-pinned="true"] .floating-panel-shell {
+    left: 400px;
+    width: min(calc(100vw - 416px), 680px);
+  }
+}
+
+.motion-paused .menu-attention-beam[data-menu-visible="false"]::before {
+  animation: none;
+  opacity: 0.58;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .menu-attention-beam[data-menu-visible="false"]::before {
+    animation: none;
+    opacity: 0.58;
+  }
+}
+
 /* Active search button highlight */
 .search-btn[aria-expanded="true"] {
   border-color: #3b82f6 !important;
