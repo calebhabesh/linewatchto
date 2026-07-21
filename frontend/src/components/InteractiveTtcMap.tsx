@@ -3833,7 +3833,7 @@ function OverlapIndicatorMarker({
 }
 
 function OverlapKindCountBadge({ count, large = false }: { count: number; large?: boolean }) {
-  const offset = large ? 35 : 23;
+  const offset = large ? 35 : 28;
   const radius = large ? 26 : 18;
   return (
     <g transform={`translate(${offset} -${offset})`}>

@@ -438,7 +438,7 @@ describe("asset-backed map layering", () => {
     assert.match(globalCss, /\.overlap-indicator-count-badge\s*\{[^}]*fill:\s*#ef4444;/s);
     assert.match(globalCss, /\.overlap-indicator-count-text\s*\{[^}]*fill:\s*#ffffff;/s);
     assert.match(interactiveMapSource, /const radius = large \? 26 : 18;/);
-    assert.match(interactiveMapSource, /const offset = large \? 35 : 23;/);
+    assert.match(interactiveMapSource, /const offset = large \? 35 : 28;/);
     assert.match(interactiveMapSource, /key=\{`\$\{kind\}-count`\}/);
     assert.match(globalCss, /\.overlap-indicator-count-text\.large\s*\{[^}]*font-size:\s*32px;/s);
     assert.match(globalCss, /\.overlap-indicator-count-text\.mixed\s*\{[^}]*font-size:\s*22px;/s);

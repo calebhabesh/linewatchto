@@ -224,7 +224,7 @@ export function MetadataGrid({
   return (
     <dl className={`impact-metadata-grid ${className}`.trim()}>
       {rows.map(([label, value], index) => (
-        <div key={label} className={index < renderedLeadingRows.length ? "is-emphasized" : undefined}>
+        <div key={label} className={index < renderedLeadingRows.length ? "is-emphasized" : (label === "Planned Closure" ? "is-planned-closure-row" : undefined)}>
           <dt>{label}</dt>
           <dd>{value}</dd>
         </div>

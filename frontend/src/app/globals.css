@@ -4391,10 +4391,10 @@ button {
 
 .related-planned-closure-button {
   align-items: center;
-  background: color-mix(in srgb, var(--color-logo-blue) 12%, transparent);
-  border: 1px solid color-mix(in srgb, var(--color-logo-blue) 55%, var(--border));
+  background: #1e293b;
+  border: 1px solid rgba(59, 130, 246, 0.3);
   border-radius: 6px;
-  color: var(--color-logo-blue);
+  color: #ffffff;
   cursor: pointer;
   display: inline-flex;
   font-size: 0.7rem;
@@ -4404,8 +4404,13 @@ button {
   padding: 4px 8px;
 }
 
+.related-planned-closure-button svg {
+  color: var(--color-logo-blue);
+}
+
 .related-planned-closure-button:hover {
-  background: color-mix(in srgb, var(--color-logo-blue) 20%, transparent);
+  background: #334155;
+  border-color: rgba(59, 130, 246, 0.5);
 }
 
 .related-planned-closure-button:focus-visible {
@@ -4414,6 +4419,12 @@ button {
 }
 
 .planned-closure-metadata .is-emphasized dt {
+  color: var(--color-logo-blue);
+  letter-spacing: 0.035em;
+  text-shadow: 0 0 4px rgba(129, 201, 255, 0.35);
+}
+
+.impact-metadata-grid .is-planned-closure-row dt {
   color: var(--color-logo-blue);
   letter-spacing: 0.035em;
   text-shadow: 0 0 4px rgba(129, 201, 255, 0.35);
