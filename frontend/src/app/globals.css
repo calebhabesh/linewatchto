@@ -2803,16 +2803,19 @@ button {
 
   .overlap-chooser-list {
     gap: 5px;
+    grid-auto-rows: max-content;
   }
 
   .overlap-chooser-choice {
+    align-items: start;
     gap: 9px;
     grid-template-columns: 40px minmax(0, 1fr);
-    min-height: 58px;
+    min-height: 82px;
     padding: 7px 9px;
   }
 
   .overlap-chooser-choice-icon {
+    align-self: center;
     height: 38px;
     width: 38px;
   }

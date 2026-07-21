@@ -153,7 +153,10 @@ public class SavedCommutePushPlanner {
             legId,
             sourceEventAt,
             null,
-            match.description()
+            null,
+            match.description(),
+            match.closureHours(),
+            match.closureDates()
         ));
 
         String segmentIds = String.join(",", emptyWhenNull(match.matchedSegmentIds()));

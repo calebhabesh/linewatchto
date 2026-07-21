@@ -777,6 +777,9 @@ test("shows a compact map hint when multiple alert types overlap", async ({ page
   ), { timeout: 500 }).toBe(true);
   await expect(overlapChooser).toBeVisible();
   await expect(overlapChooser.getByText("Choose Alert", { exact: true })).toBeVisible();
+  await expect.poll(async () => overlapChooser.locator(".overlap-chooser-choice").evaluateAll((choices) =>
+    choices.every((choice) => choice.scrollHeight <= choice.clientHeight + 1),
+  )).toBe(true);
   await expect.poll(async () => overlapChooser.evaluate((element) =>
     element.getAnimations().every((animation) => animation.playState !== "running"),
   )).toBe(true);

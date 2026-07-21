@@ -147,6 +147,8 @@ public class LineSubscriptionPushPlanner {
                     closure.title(),
                     closure.description(),
                     closure.shuttle(),
+                    closure.windowHours(),
+                    closure.windowDates(),
                     sourceEventAt,
                     closure.updatedAt(),
                     url
@@ -175,6 +177,48 @@ public class LineSubscriptionPushPlanner {
         OffsetDateTime sourceUpdatedAt,
         String url
     ) {
+        return createLineCandidate(
+            accountId,
+            lineId,
+            lineNumber,
+            category,
+            eventType,
+            reminderBucket,
+            sourceId,
+            location,
+            displayDirection,
+            cause,
+            sourceTitle,
+            sourceDescription,
+            shuttle,
+            null,
+            null,
+            sourceEventAt,
+            sourceUpdatedAt,
+            url
+        );
+    }
+
+    private PushNotificationCandidate createLineCandidate(
+        String accountId,
+        String lineId,
+        String lineNumber,
+        String category,
+        String eventType,
+        String reminderBucket,
+        String sourceId,
+        String location,
+        String displayDirection,
+        String cause,
+        String sourceTitle,
+        String sourceDescription,
+        boolean shuttle,
+        String closureHours,
+        String closureDates,
+        Instant sourceEventAt,
+        OffsetDateTime sourceUpdatedAt,
+        String url
+    ) {
         String sourceIncidentKey = String.join("|", category, lineId, sourceId);
         String notificationKey = String.join("|", category, lineId, eventType, sourceId);
         FormattedPushNotification notification = formatter.formatActive(new PushNotificationFacts(
@@ -190,7 +234,9 @@ public class LineSubscriptionPushPlanner {
             sourceEventAt,
             cause,
             sourceTitle,
-            sourceDescription
+            sourceDescription,
+            closureHours,
+            closureDates
         ));
         String updateFingerprint = PushNotificationUpdateFingerprint.forCandidate(
             sourceUpdatedAt, eventType, notification, url

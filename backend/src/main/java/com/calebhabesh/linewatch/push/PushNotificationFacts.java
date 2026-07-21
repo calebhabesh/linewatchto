@@ -15,8 +15,79 @@ public record PushNotificationFacts(
     Instant sourceEventAt,
     String cause,
     String sourceTitle,
-    String sourceDescription
+    String sourceDescription,
+    String closureHours,
+    String closureDates
 ) {
+    public PushNotificationFacts(
+        String lineId,
+        String lineNumber,
+        String eventType,
+        String reminderBucket,
+        String location,
+        String displayDirection,
+        boolean shuttle,
+        String commuteLabel,
+        String legId,
+        Instant sourceEventAt,
+        String cause,
+        String sourceTitle,
+        String sourceDescription,
+        String closureHours
+    ) {
+        this(
+            lineId,
+            lineNumber,
+            eventType,
+            reminderBucket,
+            location,
+            displayDirection,
+            shuttle,
+            commuteLabel,
+            legId,
+            sourceEventAt,
+            cause,
+            sourceTitle,
+            sourceDescription,
+            closureHours,
+            null
+        );
+    }
+
+    public PushNotificationFacts(
+        String lineId,
+        String lineNumber,
+        String eventType,
+        String reminderBucket,
+        String location,
+        String displayDirection,
+        boolean shuttle,
+        String commuteLabel,
+        String legId,
+        Instant sourceEventAt,
+        String cause,
+        String sourceTitle,
+        String sourceDescription
+    ) {
+        this(
+            lineId,
+            lineNumber,
+            eventType,
+            reminderBucket,
+            location,
+            displayDirection,
+            shuttle,
+            commuteLabel,
+            legId,
+            sourceEventAt,
+            cause,
+            sourceTitle,
+            sourceDescription,
+            null,
+            null
+        );
+    }
+
     public PushNotificationFacts(
         String lineId,
         String lineNumber,
@@ -44,7 +115,9 @@ public record PushNotificationFacts(
             sourceEventAt,
             cause,
             null,
-            sourceDescription
+            sourceDescription,
+            null,
+            null
         );
     }
 
@@ -74,6 +147,8 @@ public record PushNotificationFacts(
             sourceEventAt,
             cause,
             null,
+            null,
+            null,
             null
         );
     }
@@ -101,6 +176,8 @@ public record PushNotificationFacts(
             commuteLabel,
             legId,
             sourceEventAt,
+            null,
+            null,
             null,
             null,
             null

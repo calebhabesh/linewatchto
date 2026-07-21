@@ -40,6 +40,16 @@ public class PushNotificationFormatter {
         } else {
             bodyParts.add(activeFallbackSentence(facts.eventType(), location, facts.displayDirection(), facts.cause()));
         }
+        if ("planned-closure".equals(facts.eventType())) {
+            String closureDates = normalizeText(facts.closureDates());
+            if (!closureDates.isEmpty()) {
+                bodyParts.add("Closure dates: " + stripTerminalPunctuation(closureDates) + ".");
+            }
+            String closureHours = normalizeText(facts.closureHours());
+            if (!closureHours.isEmpty()) {
+                bodyParts.add("Closure hours: " + stripTerminalPunctuation(closureHours) + ".");
+            }
+        }
         if (facts.shuttle()) {
             bodyParts.add("Shuttle buses are running.");
         }

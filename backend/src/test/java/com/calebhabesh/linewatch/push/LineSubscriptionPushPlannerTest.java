@@ -101,8 +101,8 @@ class LineSubscriptionPushPlannerTest {
             eventStart,
             eventStart.plusDays(2),
             "Weekend",
-            null,
-            null
+            "12:00 AM – 5:00 AM",
+            "Sat, Jun 6 – Mon, Jun 8"
         );
 
         when(dashboardService.activeAlerts()).thenReturn(List.of(suspension));
@@ -164,6 +164,8 @@ class LineSubscriptionPushPlannerTest {
             if ("closure-24h".equals(candidate.reminderBucket())) {
                 assertThat(candidate.body()).contains("Starts within 24 hours.");
             }
+            assertThat(candidate.body()).contains("Closure dates: Sat, Jun 6 – Mon, Jun 8.");
+            assertThat(candidate.body()).contains("Closure hours: 12:00 AM – 5:00 AM.");
         }
     }
 

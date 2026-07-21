@@ -486,6 +486,8 @@ describe("asset-backed map layering", () => {
     assert.match(interactiveMapSource, /OVERLAP_CHOOSER_MOBILE_BREAKPOINT/);
     assert.match(interactiveMapSource, /OVERLAP_CHOOSER_MOBILE_WIDTH/);
     assert.match(interactiveMapSource, /const isMobile = viewportWidth <= OVERLAP_CHOOSER_MOBILE_BREAKPOINT/);
+    assert.match(globalCss, /@media \(max-width: 640px\)[\s\S]*?\.overlap-chooser-list\s*\{[^}]*grid-auto-rows:\s*max-content;/);
+    assert.match(globalCss, /@media \(max-width: 640px\)[\s\S]*?\.overlap-chooser-choice\s*\{[^}]*min-height:\s*82px;/);
     assert.match(interactiveMapSource, /protectedBoxesForImpacts\([\s\S]*?group\.impacts,[\s\S]*?collisionBoxesByImpact/);
     assert.match(interactiveMapSource, /boundsContainingBoxes/);
     assert.match(interactiveMapSource, /const representedProtectedBoxes = badge\.protectedBoxes\.map/);

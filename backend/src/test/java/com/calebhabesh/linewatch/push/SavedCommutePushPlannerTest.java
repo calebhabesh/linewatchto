@@ -131,7 +131,10 @@ class SavedCommutePushPlannerTest {
                 OffsetDateTime.parse("2026-06-05T09:00:00-04:00"),
                 "Sat 12:00 AM - Mon 5:00 AM",
                 "upcoming",
-                OffsetDateTime.parse("2026-06-07T00:00:00-04:00")
+                OffsetDateTime.parse("2026-06-07T00:00:00-04:00"),
+                "12:00 AM – 5:00 AM",
+                "Sun, Jun 7 – Mon, Jun 8",
+                false
             )
         ));
 
@@ -140,6 +143,8 @@ class SavedCommutePushPlannerTest {
         assertThat(candidates).singleElement().satisfies(candidate -> {
             assertThat(candidate.legId()).isEqualTo("return");
             assertThat(candidate.title()).isEqualTo("⚠️ Line 2 Bloor-Danforth Planned Closure");
+            assertThat(candidate.body()).contains("Closure dates: Sun, Jun 7 – Mon, Jun 8.");
+            assertThat(candidate.body()).contains("Closure hours: 12:00 AM – 5:00 AM.");
             assertThat(candidate.body()).contains("Affects Evening Route (Return).");
             assertThat(candidate.body()).endsWith("🕗 Jun 7, 12:00 AM");
             assertThat(candidate.category()).isEqualTo("saved-commute-planned");

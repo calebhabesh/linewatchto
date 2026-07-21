@@ -68,11 +68,18 @@ class PushNotificationFormatterTest {
             true,
             "Evening Route",
             "return",
-            Instant.parse("2026-06-07T04:00:00Z")
+            Instant.parse("2026-06-07T04:00:00Z"),
+            null,
+            null,
+            null,
+            "11:59 PM – 5:00 AM",
+            "Sat, Jun 6 – Sun, Jun 7"
         ));
 
         assertThat(result.body()).isEqualTo("""
             Planned closure between Keele and Union stations.
+            Closure dates: Sat, Jun 6 – Sun, Jun 7.
+            Closure hours: 11:59 PM – 5:00 AM.
             Shuttle buses are running.
             Starts today.
             Affects Evening Route (Return).

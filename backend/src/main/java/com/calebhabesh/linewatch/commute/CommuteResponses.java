@@ -90,6 +90,8 @@ public final class CommuteResponses {
         String window,
         String timingStatus,
         OffsetDateTime eventStartAt,
+        String closureHours,
+        String closureDates,
         boolean ignoredByRule
     ) {
         public MatchedImpactResponse(
@@ -131,7 +133,55 @@ public final class CommuteResponses {
                 window,
                 timingStatus,
                 eventStartAt,
+                null,
+                null,
                 false
+            );
+        }
+
+        public MatchedImpactResponse(
+            String id,
+            String kind,
+            String status,
+            String severity,
+            String title,
+            String lineId,
+            String lineNumber,
+            String location,
+            String displayDirection,
+            String description,
+            String source,
+            List<String> matchedSegmentIds,
+            List<String> matchedStationIds,
+            OffsetDateTime startedAt,
+            OffsetDateTime updatedAt,
+            String window,
+            String timingStatus,
+            OffsetDateTime eventStartAt,
+            boolean ignoredByRule
+        ) {
+            this(
+                id,
+                kind,
+                status,
+                severity,
+                title,
+                lineId,
+                lineNumber,
+                location,
+                displayDirection,
+                description,
+                source,
+                matchedSegmentIds,
+                matchedStationIds,
+                startedAt,
+                updatedAt,
+                window,
+                timingStatus,
+                eventStartAt,
+                null,
+                null,
+                ignoredByRule
             );
         }
 
@@ -155,6 +205,8 @@ public final class CommuteResponses {
                 window,
                 timingStatus,
                 eventStartAt,
+                closureHours,
+                closureDates,
                 ignoredByRule
             );
         }
