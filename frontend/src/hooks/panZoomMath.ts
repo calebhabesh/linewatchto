@@ -16,6 +16,31 @@ export function computeMapFitScale(
   return Math.min(viewportWidth / mapWidth, viewportHeight / mapHeight);
 }
 
+export type ViewportInsets = {
+  left?: number;
+  right?: number;
+  top?: number;
+  bottom?: number;
+};
+
+export function computeInsetViewportFocus(
+  viewportWidth: number,
+  viewportHeight: number,
+  insets: ViewportInsets = {},
+) {
+  const left = Math.min(Math.max(insets.left ?? 0, 0), viewportWidth);
+  const right = Math.min(Math.max(insets.right ?? 0, 0), Math.max(viewportWidth - left, 0));
+  const top = Math.min(Math.max(insets.top ?? 0, 0), viewportHeight);
+  const bottom = Math.min(Math.max(insets.bottom ?? 0, 0), Math.max(viewportHeight - top, 0));
+  const availableWidth = Math.max(viewportWidth - left - right, 1);
+  const availableHeight = Math.max(viewportHeight - top - bottom, 1);
+
+  return {
+    focusX: left + availableWidth / 2,
+    focusY: top + availableHeight / 2,
+  };
+}
+
 export function currentDevicePixelRatio() {
   if (typeof window === "undefined") {
     return 1;

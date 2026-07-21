@@ -214,6 +214,7 @@ function InteractiveTtcMapComponent({
   recenterSignal,
   reducedMotion,
   mobilePerformanceMode = false,
+  desktopMenuPinned = false,
   preserveCameraOnSelectionClear = false,
   commutePathPreview,
   onClearCommutePathPreview,
@@ -232,6 +233,7 @@ function InteractiveTtcMapComponent({
   recenterSignal?: number;
   reducedMotion: boolean;
   mobilePerformanceMode?: boolean;
+  desktopMenuPinned?: boolean;
   preserveCameraOnSelectionClear?: boolean;
   commutePathPreview?: AccountCommutePathPreview | null;
   onClearCommutePathPreview?: () => void;
@@ -517,7 +519,7 @@ function InteractiveTtcMapComponent({
   }, [selection, selectedStationId]);
 
   const lastFocusedTargetKeyRef = useRef<string | null>(null);
-  const lastFocusLayoutSignalRef = useRef(0);
+  const lastFocusLayoutKeyRef = useRef("");
   const lastHandledLayoutResetSignalRef = useRef(0);
 
   useEffect(() => {
@@ -534,14 +536,14 @@ function InteractiveTtcMapComponent({
   useEffect(() => {
     if (loadState !== "ready") return;
 
-    const currentLayoutSignal = layoutResetSignal ?? 0;
+    const currentLayoutKey = `${layoutResetSignal ?? 0}:${desktopMenuPinned ? "pinned" : "free"}:${viewportOrientation}`;
 
     if (isGestureActive) return;
 
     if (!focusTargetKey) {
       if (lastFocusedTargetKeyRef.current !== null) {
         lastFocusedTargetKeyRef.current = null;
-        lastFocusLayoutSignalRef.current = currentLayoutSignal;
+        lastFocusLayoutKeyRef.current = currentLayoutKey;
         if (!preserveCameraOnSelectionClear) {
           recenter();
         }
@@ -551,13 +553,45 @@ function InteractiveTtcMapComponent({
 
     if (
       lastFocusedTargetKeyRef.current === focusTargetKey &&
-      lastFocusLayoutSignalRef.current === currentLayoutSignal
+      lastFocusLayoutKeyRef.current === currentLayoutKey
     ) {
       return;
     }
 
     const rotatedPreviewFocusRatio =
       viewportOrientation === "rotated-landscape" ? { x: 0.5, y: 0.34 } : undefined;
+    const pinnedDesktopFocusInsets = (() => {
+      if (!desktopMenuPinned || typeof window === "undefined" || window.matchMedia("(max-width: 767px)").matches) {
+        return undefined;
+      }
+
+      const viewport = containerRef.current;
+      const shell = viewport?.closest<HTMLElement>(".linewatch-shell");
+      if (!viewport || !shell) return undefined;
+
+      const viewportRect = viewport.getBoundingClientRect();
+      const overlayRightEdges = [
+        shell.querySelector<HTMLElement>("#linewatch-main-menu"),
+        shell.querySelector<HTMLElement>(".floating-panel-shell"),
+      ].flatMap((element) => {
+        if (!element || element.getAttribute("aria-hidden") === "true") return [];
+        const rect = element.getBoundingClientRect();
+        return rect.width > 0 && rect.height > 0 ? [rect.right] : [];
+      });
+
+      if (overlayRightEdges.length === 0) return undefined;
+      const overlayRight = Math.max(...overlayRightEdges);
+      const minimumVisibleWidth = Math.min(320, viewportRect.width * 0.4);
+      const left = Math.min(
+        Math.max(overlayRight - viewportRect.left + 16, 0),
+        Math.max(viewportRect.width - minimumVisibleWidth, 0),
+      );
+      return left > 0 ? { left } : undefined;
+    })();
+    const focusViewportOptions = {
+      viewportFocusRatio: rotatedPreviewFocusRatio,
+      viewportInsets: pinnedDesktopFocusInsets,
+    };
 
     if (selection) {
       if (selectedSegmentIds.length === 0) {
@@ -583,10 +617,10 @@ function InteractiveTtcMapComponent({
             const isMobile = typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches;
             const targetScale = isMobile ? 3.8 : 1.8;
             zoomToPoint((sumX / count) * scaleFactor, (sumY / count) * scaleFactor, targetScale, {
-              viewportFocusRatio: rotatedPreviewFocusRatio,
+              ...focusViewportOptions,
             });
             lastFocusedTargetKeyRef.current = focusTargetKey;
-            lastFocusLayoutSignalRef.current = currentLayoutSignal;
+            lastFocusLayoutKeyRef.current = currentLayoutKey;
           }
         }
       } else {
@@ -595,10 +629,10 @@ function InteractiveTtcMapComponent({
           const isMobile = typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches;
           const targetScale = isMobile ? 3.8 : 1.8;
           zoomToPoint(center.x, center.y, targetScale, {
-            viewportFocusRatio: rotatedPreviewFocusRatio,
+            ...focusViewportOptions,
           });
           lastFocusedTargetKeyRef.current = focusTargetKey;
-          lastFocusLayoutSignalRef.current = currentLayoutSignal;
+          lastFocusLayoutKeyRef.current = currentLayoutKey;
         }
       }
     } else if (selectedStationId) {
@@ -610,10 +644,10 @@ function InteractiveTtcMapComponent({
         const isMobile = typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches;
         const targetScale = isMobile ? 3.8 : 1.8;
         zoomToPoint(pt.x * scaleFactor, pt.y * scaleFactor, targetScale, {
-          viewportFocusRatio: rotatedPreviewFocusRatio,
+          ...focusViewportOptions,
         });
         lastFocusedTargetKeyRef.current = focusTargetKey;
-        lastFocusLayoutSignalRef.current = currentLayoutSignal;
+        lastFocusLayoutKeyRef.current = currentLayoutKey;
       }
     }
   }, [
@@ -635,6 +669,8 @@ function InteractiveTtcMapComponent({
     stationPointFor,
     layoutResetSignal,
     viewportOrientation,
+    desktopMenuPinned,
+    containerRef,
   ]);
 
   const stationBySummaryId = useMemo(() => {

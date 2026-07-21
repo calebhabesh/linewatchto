@@ -5,6 +5,7 @@ import { describe, it } from "node:test";
 import {
   clampPanZoomScale,
   computeMapFitScale,
+  computeInsetViewportFocus,
   distanceBetweenPoints,
   exceedsMapTapMovement,
   mapPointFromViewportPoint,
@@ -34,6 +35,18 @@ describe("pan zoom behavior guardrails", () => {
       hookSource,
       /const currentFitScale = computeMapFitScale\(width, height\);[\s\S]*targetAbsoluteScale = targetRelativeScale \* currentFitScale/,
     );
+  });
+
+  it("frames pinned-menu selections inside the unobscured desktop map viewport", () => {
+    assert.deepEqual(
+      computeInsetViewportFocus(1536, 864, { left: 720 }),
+      { focusX: 1128, focusY: 432 },
+    );
+    assert.match(mapSource, /desktopMenuPinned/);
+    assert.match(mapSource, /#linewatch-main-menu/);
+    assert.match(mapSource, /\.floating-panel-shell/);
+    assert.match(mapSource, /viewportInsets: pinnedDesktopFocusInsets/);
+    assert.match(shellSource, /desktopMenuPinned=\{menuPinned\}/);
   });
 
   it("keeps small pointer jitter as a tap and promotes deliberate movement to navigation", () => {
@@ -171,12 +184,12 @@ describe("pan zoom behavior guardrails", () => {
   it("biases rotated station and impact focus away from their preview cards", () => {
     assert.match(hookSource, /type ZoomToPointOptions/);
     assert.match(hookSource, /viewportFocusRatio/);
-    assert.match(hookSource, /focusX = width \* \(options\?\.viewportFocusRatio\?\.x \?\? 0\.5\)/);
-    assert.match(hookSource, /focusY = height \* \(options\?\.viewportFocusRatio\?\.y \?\? 0\.5\)/);
+    assert.match(hookSource, /focusX = options\?\.viewportFocusRatio[\s\S]*width \* options\.viewportFocusRatio\.x[\s\S]*insetViewport\.focusX/);
+    assert.match(hookSource, /focusY = options\?\.viewportFocusRatio[\s\S]*height \* options\.viewportFocusRatio\.y[\s\S]*insetViewport\.focusY/);
     assert.match(mapSource, /const rotatedPreviewFocusRatio/);
     assert.match(mapSource, /viewportOrientation === "rotated-landscape"/);
     assert.equal(
-      Array.from(mapSource.matchAll(/viewportFocusRatio: rotatedPreviewFocusRatio/g)).length,
+      Array.from(mapSource.matchAll(/\.\.\.focusViewportOptions/g)).length,
       3,
     );
   });

@@ -94,9 +94,9 @@ describe("mobile Show on Map inspector", () => {
   it("resizes the actual mobile map viewport while preserving focused selection", () => {
     assert.match(shellSource, /mapLayoutSignal/);
     assert.match(shellSource, /layoutResetSignal=\{mapLayoutSignal\}/);
-    assert.match(mapSource, /lastFocusLayoutSignalRef/);
+    assert.match(mapSource, /lastFocusLayoutKeyRef/);
     assert.match(mapSource, /layoutResetSignal \?\? 0/);
-    assert.match(mapSource, /lastFocusLayoutSignalRef\.current === currentLayoutSignal/);
+    assert.match(mapSource, /lastFocusLayoutKeyRef\.current === currentLayoutKey/);
     assert.match(mapSource, /focusTargetKey/);
   });
 

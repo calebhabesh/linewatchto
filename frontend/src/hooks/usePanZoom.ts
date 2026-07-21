@@ -2,6 +2,7 @@ import { useState, useCallback, useRef, useEffect, type PointerEvent, type Wheel
 import {
   clampPanZoomScale,
   clientPointToLogicalViewportPoint,
+  computeInsetViewportFocus,
   computeMapFitScale,
   currentDevicePixelRatio,
   distanceBetweenPoints,
@@ -15,6 +16,7 @@ import {
   type MapViewportOrientation,
   type PanZoomPoint,
   type PanZoomTransform,
+  type ViewportInsets,
 } from "./panZoomMath";
 
 type UsePanZoomOptions = {
@@ -25,6 +27,7 @@ type UsePanZoomOptions = {
 
 type ZoomToPointOptions = {
   viewportFocusRatio?: PanZoomPoint;
+  viewportInsets?: ViewportInsets;
 };
 
 export function usePanZoom({
@@ -615,8 +618,13 @@ export function usePanZoom({
     if (!containerRef.current) return;
     const { width, height } = logicalViewportSize();
     if (width <= 0 || height <= 0) return;
-    const focusX = width * (options?.viewportFocusRatio?.x ?? 0.5);
-    const focusY = height * (options?.viewportFocusRatio?.y ?? 0.5);
+    const insetViewport = computeInsetViewportFocus(width, height, options?.viewportInsets);
+    const focusX = options?.viewportFocusRatio
+      ? width * options.viewportFocusRatio.x
+      : insetViewport.focusX;
+    const focusY = options?.viewportFocusRatio
+      ? height * options.viewportFocusRatio.y
+      : insetViewport.focusY;
 
     // Selection deep links can focus before ResizeObserver's fitScale state has
     // committed. Measure the live viewport so a fast PWA launch cannot treat the

@@ -2471,6 +2471,7 @@ export function LineWatchShell({
           recenterSignal={recenterSignal}
           reducedMotion={reducedMotion}
           mobilePerformanceMode={mobilePerformanceMode}
+          desktopMenuPinned={menuPinned}
           preserveCameraOnSelectionClear={isMobile}
           commutePathPreview={commutePathPreview}
           onClearCommutePathPreview={handleClearCommutePathPreview}

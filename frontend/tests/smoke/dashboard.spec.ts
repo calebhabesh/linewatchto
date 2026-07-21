@@ -1089,6 +1089,42 @@ test("station search dynamically filters mapped stations and opens station detai
   await expect(page.locator('[data-station-search-panel][data-open="false"]')).toBeVisible();
 });
 
+test("pinned desktop menu focuses impacts in the unobscured map area", async ({ page, request, isMobile }) => {
+  test.skip(isMobile, "desktop-only pinned menu layout");
+  await setStubMode(request, "seeded");
+  await page.addInitScript(() => {
+    window.localStorage.setItem("linewatch-menu-pinned", "true");
+  });
+  await page.goto("/?panel=delays");
+
+  const panel = page.locator(".floating-panel-shell");
+  const viewport = page.locator("[data-map-pan-zoom-viewport]");
+  await expect(page.locator(".linewatch-shell")).toHaveAttribute("data-menu-pinned", "true");
+  await expect(panel).toBeVisible();
+
+  const delayCard = page.locator('[data-impact-card-id="stub-delay-line-4"]');
+  await delayCard.getByRole("button", { name: "Show on Map" }).click();
+  const highlight = page.locator('[data-map-highlight-id="stub-delay-line-4"]');
+  await expect(highlight).toBeAttached();
+  await page.waitForTimeout(900);
+
+  const [panelBox, viewportBox, highlightBox] = await Promise.all([
+    panel.boundingBox(),
+    viewport.boundingBox(),
+    highlight.boundingBox(),
+  ]);
+  expect(panelBox).not.toBeNull();
+  expect(viewportBox).not.toBeNull();
+  expect(highlightBox).not.toBeNull();
+
+  const visibleMapCenter = (
+    panelBox!.x + panelBox!.width + 16 + viewportBox!.x + viewportBox!.width
+  ) / 2;
+  const highlightCenter = highlightBox!.x + highlightBox!.width / 2;
+  expect(highlightCenter).toBeGreaterThan(panelBox!.x + panelBox!.width);
+  expect(Math.abs(highlightCenter - visibleMapCenter)).toBeLessThan(100);
+});
+
 test("global search opens a condensed alert result in its detailed card and mobile map inspector", async ({ page, request, isMobile }) => {
   await setStubMode(request, "seeded");
   await page.goto("/");
