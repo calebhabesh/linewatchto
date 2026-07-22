@@ -42,6 +42,48 @@ describe("station map visuals", () => {
         { id: "spadina-2", point: { x: 3740, y: 2603 } },
       ],
     );
+
+    assert.deepEqual(
+      stationVisualAnchorsFor(
+        { id: "spadina", mapX: 3740, mapY: 2564 },
+        new Map(),
+      ),
+      [{ id: "spadina", point: { x: 3740, y: 2564 } }],
+    );
+  });
+
+  it("routes Line 1 Spadina alerts to the top dot and Line 2 alerts to the bottom dot", async () => {
+    const { stationImpactBelongsToAnchor, stationImpactVisualAnchors } = await loadStationMapVisuals();
+    const centers = new Map([
+      ["spadina-1", { x: 3740, y: 2524 }],
+      ["spadina-2", { x: 3740, y: 2603 }],
+    ]);
+
+    assert.equal(stationImpactBelongsToAnchor("spadina", "spadina-1", "line-1", "Southbound"), true);
+    assert.equal(stationImpactBelongsToAnchor("spadina", "spadina-2", "line-1", "Southbound"), false);
+    assert.equal(stationImpactBelongsToAnchor("spadina", "spadina-1", "line-2", "Westbound"), false);
+    assert.equal(stationImpactBelongsToAnchor("spadina", "spadina-2", "line-2", "Westbound"), true);
+
+    const line1Impact = { stationId: "spadina", kind: "delay", cardId: "delay-line-1" };
+    const line2Impact = { stationId: "spadina", kind: "delay", cardId: "delay-line-2" };
+    const data = {
+      activeAlerts: [],
+      delays: [
+        { id: "delay-line-1", lineId: "line-1", displayDirection: "Southbound" },
+        { id: "delay-line-2", lineId: "line-2", displayDirection: "Westbound" },
+      ],
+      reducedSpeedZones: [],
+      plannedClosures: [],
+    };
+
+    assert.deepEqual(
+      stationImpactVisualAnchors({ id: "spadina", mapX: 3740, mapY: 2564 }, line1Impact, data, centers),
+      [{ id: "spadina-1", point: { x: 3740, y: 2524 } }],
+    );
+    assert.deepEqual(
+      stationImpactVisualAnchors({ id: "spadina", mapX: 3740, mapY: 2564 }, line2Impact, data, centers),
+      [{ id: "spadina-2", point: { x: 3740, y: 2603 } }],
+    );
   });
 
   it("keeps ordinary stations on one anchor and safely falls back when special geometry is incomplete", async () => {

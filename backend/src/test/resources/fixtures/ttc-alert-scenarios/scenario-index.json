@@ -4,7 +4,7 @@
     {
       "name": "all-alert-types",
       "file": "all-alert-types.json",
-      "routeCount": 20,
+      "routeCount": 23,
       "accessibilityCount": 2,
       "impactKinds": [
         "suspension",
@@ -77,6 +77,11 @@
         },
         "delay-bidirectional-station": {
           "sourceId": "scenario-station-node-dundas-west-bidirectional",
+          "sourceKind": "modeled-gap-fill",
+          "modeledFromSourceId": "synthetic-rsz-line-1"
+        },
+        "delay-multi-dot-interchange-station": {
+          "sourceId": "scenario-station-node-spadina",
           "sourceKind": "modeled-gap-fill",
           "modeledFromSourceId": "synthetic-rsz-line-1"
         },

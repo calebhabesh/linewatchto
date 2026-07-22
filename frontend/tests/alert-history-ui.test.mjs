@@ -96,13 +96,16 @@ describe("alert history timeline UI", () => {
     assert.doesNotMatch(cssSource, /\.alert-history-route-arrow/);
   });
 
-  it("renders search and transit line selector controls", () => {
+  it("renders search, transit line, and sort by alert type selector controls on two lines", () => {
     assert.match(timelineSource, /Search alert history/);
     assert.match(timelineSource, /Transit line/);
+    assert.match(timelineSource, /Sort alert history/);
     assert.match(timelineSource, /Search\s+size=\{14\}/);
     assert.match(timelineSource, /buildAlertHistoryLineOptions/);
+    assert.match(timelineSource, /buildAlertHistorySortOptions/);
     assert.match(timelineSource, /filterAndSortAlertHistory/);
     assert.match(cssSource, /\.alert-history-search-row/);
+    assert.match(cssSource, /\.alert-history-selects-row/);
     assert.match(cssSource, /\.alert-history-search-field/);
     assert.match(cssSource, /\.alert-history-line-filter/);
     assert.match(cssSource, /\.alert-history-line-filter-trigger/);

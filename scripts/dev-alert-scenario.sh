@@ -2,7 +2,31 @@
 set -eu
 
 SCENARIO="${1:-all-alert-types}"
-PORT="${LINEWATCH_ALERT_SCENARIO_PORT:-8081}"
+find_free_port() {
+  node -e '
+    const net = require("net");
+    function check(port) {
+      return new Promise((resolve) => {
+        const s = net.createServer();
+        s.once("error", () => resolve(false));
+        s.once("listening", () => { s.close(() => resolve(true)); });
+        s.listen(port, "127.0.0.1");
+      });
+    }
+    (async () => {
+      let p = parseInt(process.argv[1], 10);
+      while (!(await check(p))) { p++; }
+      process.stdout.write(String(p));
+    })();
+  ' "$1"
+}
+
+REQUESTED_PORT="${LINEWATCH_ALERT_SCENARIO_PORT:-8081}"
+PORT=$(find_free_port "$REQUESTED_PORT")
+if [ "$PORT" != "$REQUESTED_PORT" ]; then
+  echo "Notice: Mock alert server port $REQUESTED_PORT is currently in use. Automatically switching to next free port $PORT."
+fi
+
 # .env.local contains live-dev defaults; capture explicit shell overrides before sourcing it.
 ORIGINAL_SERVER_PORT="${SERVER_PORT:-}"
 ORIGINAL_SPRING_DATASOURCE_URL="${SPRING_DATASOURCE_URL:-}"
@@ -24,7 +48,12 @@ elif [ -f "$REPO_ROOT/.env" ]; then
   set +a
 fi
 
-SCENARIO_SERVER_PORT="${LINEWATCH_ALERT_SCENARIO_BACKEND_PORT:-${ORIGINAL_SERVER_PORT:-8082}}"
+REQUESTED_SCENARIO_SERVER_PORT="${LINEWATCH_ALERT_SCENARIO_BACKEND_PORT:-${ORIGINAL_SERVER_PORT:-8082}}"
+SCENARIO_SERVER_PORT=$(find_free_port "$REQUESTED_SCENARIO_SERVER_PORT")
+if [ "$SCENARIO_SERVER_PORT" != "$REQUESTED_SCENARIO_SERVER_PORT" ]; then
+  echo "Notice: Scenario backend server port $REQUESTED_SCENARIO_SERVER_PORT is currently in use. Automatically switching to next free port $SCENARIO_SERVER_PORT."
+fi
+
 SCENARIO_SPRING_DATASOURCE_URL="${LINEWATCH_ALERT_SCENARIO_DATASOURCE_URL:-${ORIGINAL_SPRING_DATASOURCE_URL:-jdbc:postgresql://127.0.0.1:5434/linewatch_scenario}}"
 SCENARIO_SPRING_DATA_REDIS_DATABASE="${LINEWATCH_ALERT_SCENARIO_REDIS_DATABASE:-${ORIGINAL_SPRING_DATA_REDIS_DATABASE:-1}}"
 : "${LINEWATCH_AUTH_DEV_ACCOUNT_ENABLED:=true}"

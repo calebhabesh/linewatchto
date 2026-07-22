@@ -162,8 +162,8 @@ describe("asset-backed map layering", () => {
     assert.match(interactiveMapSource, /Math\.round\(radius \* 0\.75\)/);
     assert.match(interactiveMapSource, /stationImpactDirectionCenteredPartPath/);
     assert.match(interactiveMapSource, /stationImpactDirectionSpokePartPath/);
-    assert.match(interactiveMapSource, /metrics\.gap/);
     assert.match(interactiveMapSource, /metrics\.extent/);
+    assert.match(interactiveMapSource, /metrics\.headInset/);
     assert.match(interactiveMapSource, /direction === "four-way"/);
     assert.match(globalCss, /\.station-impact-direction-badge/);
     assert.match(globalCss, /\.station-impact-direction-arrow/);
