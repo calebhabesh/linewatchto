@@ -13,6 +13,7 @@ export function NetworkMap({ network, ...props }: TtcMapProps & { network: Netwo
         onSelectImpact={props.onSelectImpact}
         selectedStationId={props.selectedStationId}
         onSelectStationId={props.onSelectStationId}
+        reducedMotion={props.reducedMotion}
         recenterSignal={props.recenterSignal}
       />
     );

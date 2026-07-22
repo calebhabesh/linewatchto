@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent, type WheelEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent, type WheelEvent } from "react";
 import { Locate, ZoomIn, ZoomOut } from "lucide-react";
 import type { ImpactSelection } from "../app/linewatch-data";
 import { REGIONAL_ROUTE_DEFINITIONS } from "../app/regional-data";
@@ -11,9 +11,6 @@ const MAP_WIDTH = 4461.4725;
 const MAP_HEIGHT = 3009.83436;
 const MIN_SCALE = 0.1;
 const MAX_SCALE = 1.6;
-const SVG_VIEWBOX_X = -200;
-const SVG_VIEWBOX_Y = -200;
-const SVG_UNITS_PER_STAGE_PIXEL = 1 / 0.3;
 
 type Camera = { x: number; y: number; scale: number };
 
@@ -26,22 +23,25 @@ export function InteractiveRegionalMap({
   onSelectImpact,
   selectedStationId,
   onSelectStationId,
+  reducedMotion,
   recenterSignal,
 }: {
   selection: ImpactSelection;
   onSelectImpact: (selection: ImpactSelection) => void;
   selectedStationId: string | null;
   onSelectStationId: (id: string | null) => void;
+  reducedMotion: boolean;
   recenterSignal?: number;
 }) {
   const { activeAlerts, networkSegments, stationNodeImpacts } = useDashboardData();
   const viewportRef = useRef<HTMLDivElement>(null);
-  const viewportSizeRef = useRef<{ width: number; height: number } | null>(null);
   const cameraInitializedRef = useRef(false);
+  const lastRecenterSignalRef = useRef(recenterSignal);
   const dragRef = useRef<{ pointerId: number; x: number; y: number; camera: Camera } | null>(null);
   const [svgMarkup, setSvgMarkup] = useState("");
   const [camera, setCamera] = useState<Camera>({ x: 0, y: 0, scale: 0.7 });
   const [loadError, setLoadError] = useState(false);
+  const [dragging, setDragging] = useState(false);
 
   const [fitScale, setFitScale] = useState(0.233);
 
@@ -52,7 +52,6 @@ export function InteractiveRegionalMap({
     const height = viewport.clientHeight;
     const scale = Math.max(MIN_SCALE, Math.min(1, Math.min(width / MAP_WIDTH, height / MAP_HEIGHT) * 0.92));
     cameraInitializedRef.current = true;
-    viewportSizeRef.current = { width, height };
     setFitScale(scale);
     setCamera(snapCameraToDevicePixels({
       x: (width - MAP_WIDTH * scale) / 2,
@@ -155,21 +154,11 @@ export function InteractiveRegionalMap({
     return () => { cancelled = true; };
   }, [activeAlerts, fitNetwork, networkSegments, stationNodeImpacts]);
 
-  useLayoutEffect(() => {
-    const viewport = viewportRef.current;
-    const root = viewport?.querySelector<SVGSVGElement>(".regional-map-stage > svg");
-    if (!viewport || !root || camera.scale <= 0) return;
-
-    const svgUnitsPerViewportPixel = SVG_UNITS_PER_STAGE_PIXEL / camera.scale;
-    const viewBoxX = SVG_VIEWBOX_X - camera.x * svgUnitsPerViewportPixel;
-    const viewBoxY = SVG_VIEWBOX_Y - camera.y * svgUnitsPerViewportPixel;
-    const viewBoxWidth = viewport.clientWidth * svgUnitsPerViewportPixel;
-    const viewBoxHeight = viewport.clientHeight * svgUnitsPerViewportPixel;
-    root.setAttribute("viewBox", `${viewBoxX} ${viewBoxY} ${viewBoxWidth} ${viewBoxHeight}`);
-  }, [camera, svgMarkup]);
-
   useEffect(() => {
-    if (recenterSignal === undefined) return;
+    // Treat this as an edge-triggered command. A remount or data refresh must
+    // never replay an old Center request that is still stored by the shell.
+    if (recenterSignal === undefined || recenterSignal === lastRecenterSignalRef.current) return;
+    lastRecenterSignalRef.current = recenterSignal;
     fitNetwork();
   }, [fitNetwork, recenterSignal]);
 
@@ -177,24 +166,9 @@ export function InteractiveRegionalMap({
     const viewport = viewportRef.current;
     if (!viewport) return;
     const observer = new ResizeObserver(() => {
-      const width = viewport.clientWidth;
-      const height = viewport.clientHeight;
-      const previous = viewportSizeRef.current;
-      viewportSizeRef.current = { width, height };
-
-      if (!previous) {
-        fitNetwork();
-        return;
-      }
-      if (previous.width === width && previous.height === height) return;
-
-      const nextFitScale = Math.max(MIN_SCALE, Math.min(1, Math.min(width / MAP_WIDTH, height / MAP_HEIGHT) * 0.92));
-      setFitScale(nextFitScale);
-      setCamera((current) => snapCameraToDevicePixels({
-        ...current,
-        x: current.x + (width - previous.width) / 2,
-        y: current.y + (height - previous.height) / 2,
-      }));
+      if (cameraInitializedRef.current) return;
+      if (viewport.clientWidth <= 0 || viewport.clientHeight <= 0) return;
+      fitNetwork();
     });
     observer.observe(viewport);
     return () => observer.disconnect();
@@ -258,6 +232,7 @@ export function InteractiveRegionalMap({
     if (event.button !== 0) return;
     event.currentTarget.setPointerCapture(event.pointerId);
     dragRef.current = { pointerId: event.pointerId, x: event.clientX, y: event.clientY, camera };
+    setDragging(true);
   }, [camera]);
 
   const onPointerMove = useCallback((event: PointerEvent<HTMLDivElement>) => {
@@ -273,6 +248,7 @@ export function InteractiveRegionalMap({
   const onPointerUp = useCallback((event: PointerEvent<HTMLDivElement>) => {
     if (dragRef.current?.pointerId === event.pointerId) {
       dragRef.current = null;
+      setDragging(false);
     }
   }, []);
 
@@ -316,6 +292,15 @@ export function InteractiveRegionalMap({
         {loadError ? <p role="alert" className="regional-map-error">Regional map could not be loaded.</p> : null}
         <div
           className="regional-map-stage"
+          style={{
+            width: `${MAP_WIDTH}px`,
+            height: `${MAP_HEIGHT}px`,
+            right: "auto",
+            bottom: "auto",
+            transform: `translate(${camera.x}px, ${camera.y}px) scale(${camera.scale})`,
+            transformOrigin: "0 0",
+            transition: reducedMotion || dragging ? "none" : "transform 0.1s ease-out",
+          }}
           dangerouslySetInnerHTML={{ __html: svgMarkup }}
         />
       </div>

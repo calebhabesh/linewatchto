@@ -209,6 +209,21 @@ test("switches the complete dashboard to the fixture-backed regional network", a
   await expect(page.getByRole("button", { name: "Toggle live train markers" })).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "Subway Closed" })).toHaveCount(0);
 
+  const regionalStage = page.locator(".regional-map-stage");
+  const initialCamera = await regionalStage.evaluate((element) => (element as HTMLElement).style.transform);
+  const initialViewBox = await regionalStage.locator(":scope > svg").getAttribute("viewBox");
+  const initialViewport = page.viewportSize();
+  expect(initialViewport).not.toBeNull();
+  await page.setViewportSize({
+    width: Math.max(initialViewport!.width - 120, 360),
+    height: Math.max(initialViewport!.height - 80, 540),
+  });
+  await page.evaluate(() => new Promise<void>((resolve) => {
+    requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+  }));
+  await expect.poll(() => regionalStage.evaluate((element) => (element as HTMLElement).style.transform)).toBe(initialCamera);
+  await expect(regionalStage.locator(":scope > svg")).toHaveAttribute("viewBox", initialViewBox!);
+
   const weston = page.locator('[data-regional-station-id="weston"]');
   await expect(weston).toHaveAttribute("tabindex", "0");
   await weston.press("Enter");

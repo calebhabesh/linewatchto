@@ -81,18 +81,25 @@ describe("network-scoped regional dashboard", () => {
     assert.match(regionalMapSource, /aria-label="Fit regional network"/);
   });
 
-  it("zooms through the SVG viewBox so vector geometry is rasterized at final resolution", () => {
+  it("uses the same React-owned CSS camera model as the stable TTC map", () => {
     assert.match(regionalMapSource, /snapCameraToDevicePixels/);
-    assert.match(regionalMapSource, /root\.setAttribute\("viewBox"/);
+    assert.match(regionalMapSource, /transform: `translate\(\$\{camera\.x\}px, \$\{camera\.y\}px\) scale\(\$\{camera\.scale\}\)`/);
+    assert.match(regionalMapSource, /transformOrigin: "0 0"/);
     assert.match(regionalMapSource, /root\.setAttribute\("preserveAspectRatio", "xMidYMid meet"\)/);
-    assert.doesNotMatch(regionalMapSource, /style=\{\{[^}]*scale\(/s);
-    assert.doesNotMatch(regionalMapSource, /translate3d\(/);
+    assert.doesNotMatch(regionalMapSource, /root\.setAttribute\("viewBox"/);
   });
 
-  it("preserves the current camera when the dashboard viewport resizes", () => {
+  it("does not move or zoom the initialized camera when the dashboard viewport resizes", () => {
     assert.doesNotMatch(regionalMapSource, /new ResizeObserver\(fitNetwork\)/);
-    assert.match(regionalMapSource, /x: current\.x \+ \(width - previous\.width\) \/ 2/);
-    assert.match(regionalMapSource, /y: current\.y \+ \(height - previous\.height\) \/ 2/);
+    const resizeObserverBody = regionalMapSource.match(/const observer = new ResizeObserver\(\(\) => \{([\s\S]*?)\n    \}\);/)?.[1] ?? "";
+    assert.match(resizeObserverBody, /if \(cameraInitializedRef\.current\) return/);
+    assert.doesNotMatch(resizeObserverBody, /setCamera/);
+    assert.doesNotMatch(resizeObserverBody, /setFitScale/);
+  });
+
+  it("does not replay a stale recenter command after a remount or refresh", () => {
+    assert.match(regionalMapSource, /const lastRecenterSignalRef = useRef\(recenterSignal\)/);
+    assert.match(regionalMapSource, /recenterSignal === lastRecenterSignalRef\.current/);
   });
 
   it("does not refit an initialized camera when refreshed dashboard data rebuilds the SVG", () => {
