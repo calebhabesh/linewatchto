@@ -48,15 +48,21 @@ public class LineSubscriptionPushPlanner {
         Instant now = clock.instant();
 
         for (AlertDashboardService.ActiveAlertDto alert : dashboardService.activeAlerts()) {
-            if ("suspension".equals(alert.severity()) && subscribedLineIds.contains(alert.lineId())) {
+            if (subscribedLineIds.contains(alert.lineId())
+                && ("suspension".equals(alert.severity()) || "planned".equals(alert.severity()))) {
+                boolean activePlannedClosure = "planned".equals(alert.severity());
+                String eventType = activePlannedClosure ? "planned-closure" : "suspension";
+                String impactId = activePlannedClosure && alert.relatedPlannedClosureId() != null
+                    ? alert.relatedPlannedClosureId()
+                    : alert.id();
                 candidates.add(createLineCandidate(
                     accountId,
                     alert.lineId(),
                     alert.lineNumber(),
                     "line-current",
-                    "suspension",
+                    eventType,
                     "on-change",
-                    alert.id(),
+                    impactId,
                     alert.location(),
                     alert.displayDirection(),
                     alert.cause(),
@@ -65,7 +71,9 @@ public class LineSubscriptionPushPlanner {
                     alert.shuttle(),
                     alert.startedAt() == null ? null : alert.startedAt().toInstant(),
                     alert.updatedAt(),
-                    impactUrl("alerts", "suspension", alert.id())
+                    activePlannedClosure
+                        ? impactUrl("closures", eventType, impactId)
+                        : impactUrl("alerts", eventType, impactId)
                 ));
             }
         }

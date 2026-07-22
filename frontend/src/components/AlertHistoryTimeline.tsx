@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { AlertTriangle, Check, ChevronDown, Clock3, Loader2, Search } from "lucide-react";
+import { AlertTriangle, Calendar, Check, ChevronDown, Clock3, Construction, Loader2, Search } from "lucide-react";
 import {
   getAlertHistory,
   type AlertHistoryIncident,
@@ -9,10 +9,13 @@ import {
 } from "../app/alert-history-data";
 import { formatFullImpactTimestamp, formatImpactTimestamp } from "../app/impact-time";
 import { formatCause, formatCompactLocation, lineColor } from "./ImpactCardFields";
+import { DelayIcon } from "./DelayIcon";
 import {
   ALL_LINES_VALUE,
   buildAlertHistoryLineOptions,
+  buildAlertHistorySortOptions,
   filterAndSortAlertHistory,
+  MOST_RECENT_SORT_VALUE,
   type AlertHistoryLifecycleFilter,
   type AlertHistoryViewItem,
 } from "./alert-history-filters";
@@ -29,20 +32,46 @@ const FILTERS: Array<{ value: AlertHistoryLifecycleFilter; label: string }> = [
   { value: "clearances", label: "Clearances" },
 ];
 
+function renderSortOptionIcon(value: string) {
+  if (value === MOST_RECENT_SORT_VALUE) {
+    return <Clock3 size={14} className="text-slate-400 shrink-0" aria-hidden="true" />;
+  }
+  if (value === "suspension") {
+    return <AlertTriangle size={14} className="text-red-500 shrink-0" aria-hidden="true" />;
+  }
+  if (value === "delay") {
+    return <DelayIcon size={14} className="text-amber-500 dark:text-amber-400 shrink-0" aria-hidden="true" />;
+  }
+  if (value === "reduced-speed-zone") {
+    return <Construction size={14} className="rsz-tone shrink-0" aria-hidden="true" />;
+  }
+  if (value === "planned-closure") {
+    return <Calendar size={14} className="text-blue-500 dark:text-blue-400 shrink-0" aria-hidden="true" />;
+  }
+  return <AlertTriangle size={14} className="text-slate-400 shrink-0" aria-hidden="true" />;
+}
+
 export function AlertHistoryTimeline() {
   const [period, setPeriod] = useState<AlertHistoryPeriod>("today");
   const [filter, setFilter] = useState<AlertHistoryLifecycleFilter>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedLineId, setSelectedLineId] = useState(ALL_LINES_VALUE);
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [selectedSortBy, setSelectedSortBy] = useState(MOST_RECENT_SORT_VALUE);
+  const [isLineDropdownOpen, setIsLineDropdownOpen] = useState(false);
+  const [isSortDropdownOpen, setIsSortDropdownOpen] = useState(false);
   const [history, setHistory] = useState<AlertHistoryIncident[]>([]);
-  const dropdownRef = useRef<HTMLDivElement>(null);
+  const lineDropdownRef = useRef<HTMLDivElement>(null);
+  const sortDropdownRef = useRef<HTMLDivElement>(null);
 
-  // Close dropdown on click outside
+  // Close dropdowns on click outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsDropdownOpen(false);
+      const target = event.target as Node;
+      if (lineDropdownRef.current && !lineDropdownRef.current.contains(target)) {
+        setIsLineDropdownOpen(false);
+      }
+      if (sortDropdownRef.current && !sortDropdownRef.current.contains(target)) {
+        setIsSortDropdownOpen(false);
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
@@ -67,6 +96,7 @@ export function AlertHistoryTimeline() {
   }, [period]);
 
   const lineOptions = useMemo(() => buildAlertHistoryLineOptions(history), [history]);
+  const sortOptions = useMemo(() => buildAlertHistorySortOptions(history), [history]);
 
   if (selectedLineId !== ALL_LINES_VALUE && !lineOptions.some((option) => option.value === selectedLineId)) {
     setSelectedLineId(ALL_LINES_VALUE);
@@ -76,11 +106,16 @@ export function AlertHistoryTimeline() {
     lifecycleFilter: filter,
     lineId: selectedLineId,
     searchQuery,
-  }), [filter, history, searchQuery, selectedLineId]);
+    sortBy: selectedSortBy,
+  }), [filter, history, searchQuery, selectedLineId, selectedSortBy]);
 
-  const selectedOption = useMemo(() => {
+  const selectedLineOption = useMemo(() => {
     return lineOptions.find((o) => o.value === selectedLineId);
   }, [lineOptions, selectedLineId]);
+
+  const selectedSortOption = useMemo(() => {
+    return sortOptions.find((o) => o.value === selectedSortBy) ?? sortOptions[0];
+  }, [sortOptions, selectedSortBy]);
 
   return (
     <section className="alert-history-timeline notification-settings-section" aria-label="Alert history timeline">
@@ -131,58 +166,104 @@ export function AlertHistoryTimeline() {
               aria-label="Search alert history"
             />
           </label>
-          <div className="alert-history-line-filter relative" ref={dropdownRef}>
-            <span>Line</span>
-            <button
-              type="button"
-              className="alert-history-line-filter-trigger"
-              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-              aria-label="Transit line"
-              aria-expanded={isDropdownOpen}
-            >
-              {selectedOption?.lineNumber && selectedOption?.lineId ? (
-                <span className="flex items-center gap-2 min-w-0">
-                  <span className="line-badge small shrink-0 font-black" style={lineColor(selectedOption.lineId)}>
-                    {selectedOption.lineNumber}
+          <div className="alert-history-selects-row">
+            <div className="alert-history-line-filter relative" ref={lineDropdownRef}>
+              <span className="alert-history-control-prefix">Line</span>
+              <button
+                type="button"
+                className="alert-history-line-filter-trigger"
+                onClick={() => {
+                  setIsLineDropdownOpen((prev) => !prev);
+                  setIsSortDropdownOpen(false);
+                }}
+                aria-label="Transit line"
+                aria-expanded={isLineDropdownOpen}
+              >
+                {selectedLineOption?.lineNumber && selectedLineOption?.lineId ? (
+                  <span className="flex items-center gap-2 min-w-0">
+                    <span className="line-badge small shrink-0 font-black" style={lineColor(selectedLineOption.lineId)}>
+                      {selectedLineOption.lineNumber}
+                    </span>
+                    {selectedLineOption.lineName && <span className="truncate">{selectedLineOption.lineName}</span>}
                   </span>
-                  {selectedOption.lineName && <span className="truncate">{selectedOption.lineName}</span>}
-                </span>
-              ) : (
-                <span className="truncate">{selectedOption?.label ?? "All lines"}</span>
-              )}
-              <ChevronDown size={14} className="shrink-0 ml-1" aria-hidden="true" />
-            </button>
-            {isDropdownOpen && (
-              <ul className="alert-history-line-filter-options">
-                {lineOptions.map((option) => (
-                  <li key={option.value}>
-                    <button
-                      type="button"
-                      className={`alert-history-line-filter-option ${selectedLineId === option.value ? "selected" : ""}`}
-                      onClick={() => {
-                        if (selectedLineId === option.value) {
-                          setSelectedLineId(ALL_LINES_VALUE);
-                        } else {
-                          setSelectedLineId(option.value);
-                        }
-                        setIsDropdownOpen(false);
-                      }}
-                    >
-                      {option.lineNumber && option.lineId ? (
-                        <span className="flex items-center gap-2 min-w-0">
-                          <span className="line-badge small shrink-0 font-black" style={lineColor(option.lineId)}>
-                            {option.lineNumber}
+                ) : (
+                  <span className="truncate">{selectedLineOption?.label ?? "All Lines"}</span>
+                )}
+                <ChevronDown size={14} className="shrink-0 ml-1" aria-hidden="true" />
+              </button>
+              {isLineDropdownOpen && (
+                <ul className="alert-history-line-filter-options">
+                  {lineOptions.map((option) => (
+                    <li key={option.value}>
+                      <button
+                        type="button"
+                        className={`alert-history-line-filter-option ${selectedLineId === option.value ? "selected" : ""}`}
+                        onClick={() => {
+                          if (selectedLineId === option.value) {
+                            setSelectedLineId(ALL_LINES_VALUE);
+                          } else {
+                            setSelectedLineId(option.value);
+                          }
+                          setIsLineDropdownOpen(false);
+                        }}
+                      >
+                        {option.lineNumber && option.lineId ? (
+                          <span className="flex items-center gap-2 min-w-0">
+                            <span className="line-badge small shrink-0 font-black" style={lineColor(option.lineId)}>
+                              {option.lineNumber}
+                            </span>
+                            {option.lineName && <span className="truncate">{option.lineName}</span>}
                           </span>
-                          {option.lineName && <span className="truncate">{option.lineName}</span>}
+                        ) : (
+                          <span className="truncate">{option.label}</span>
+                        )}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+
+            <div className="alert-history-line-filter relative" ref={sortDropdownRef}>
+              <span className="alert-history-control-prefix">Sort</span>
+              <button
+                type="button"
+                className="alert-history-line-filter-trigger"
+                onClick={() => {
+                  setIsSortDropdownOpen((prev) => !prev);
+                  setIsLineDropdownOpen(false);
+                }}
+                aria-label="Sort alert history"
+                aria-expanded={isSortDropdownOpen}
+              >
+                <span className="flex items-center gap-1.5 min-w-0">
+                  {renderSortOptionIcon(selectedSortOption.value)}
+                  <span className="truncate">{selectedSortOption.label}</span>
+                </span>
+                <ChevronDown size={14} className="shrink-0 ml-1" aria-hidden="true" />
+              </button>
+              {isSortDropdownOpen && (
+                <ul className="alert-history-line-filter-options">
+                  {sortOptions.map((option) => (
+                    <li key={option.value}>
+                      <button
+                        type="button"
+                        className={`alert-history-line-filter-option ${selectedSortBy === option.value ? "selected" : ""}`}
+                        onClick={() => {
+                          setSelectedSortBy(option.value);
+                          setIsSortDropdownOpen(false);
+                        }}
+                      >
+                        <span className="flex items-center gap-2 min-w-0">
+                          {renderSortOptionIcon(option.value)}
+                          <span className="truncate">{option.label}</span>
                         </span>
-                      ) : (
-                        <span className="truncate">{option.label}</span>
-                      )}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
           </div>
         </div>
       </div>

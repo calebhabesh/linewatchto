@@ -194,6 +194,50 @@ class LineSubscriptionPushPlannerTest {
     }
 
     @Test
+    void plansActiveClosureWhenAnUpcomingClosureWindowStarts() {
+        OffsetDateTime windowStart = OffsetDateTime.parse("2026-06-05T14:30:00Z");
+        AlertDashboardService.ActiveAlertDto activeClosure = new AlertDashboardService.ActiveAlertDto(
+            "closure-child-1",
+            "line-2",
+            "2",
+            "No subway service between Jane and Ossington stations due to planned track work.",
+            "planned",
+            "Jane to Ossington",
+            "Eastbound & Westbound",
+            "Shuttle buses are running between Jane and Ossington stations.",
+            windowStart,
+            OffsetDateTime.parse("2026-06-05T14:31:00Z"),
+            List.of("line-2-jane-runnymede", "line-2-runnymede-high-park"),
+            true,
+            "TTC Service Advisory",
+            "planned track work",
+            null,
+            "closure-parent-1"
+        );
+
+        when(dashboardService.activeAlerts()).thenReturn(List.of(activeClosure));
+        when(dashboardService.delays()).thenReturn(List.of());
+        when(dashboardService.reducedSpeedZones()).thenReturn(List.of());
+        when(dashboardService.plannedClosures()).thenReturn(List.of());
+
+        List<PushNotificationCandidate> candidates = planner.candidatesFor("user_1", List.of("line-2"));
+
+        assertThat(candidates).singleElement().satisfies(candidate -> {
+            assertThat(candidate.category()).isEqualTo("line-current");
+            assertThat(candidate.eventType()).isEqualTo("planned-closure");
+            assertThat(candidate.reminderBucket()).isEqualTo("on-change");
+            assertThat(candidate.sourceIncidentKey()).isEqualTo("line-current|line-2|closure-parent-1");
+            assertThat(candidate.notificationKey())
+                .isEqualTo("line-current|line-2|planned-closure|closure-parent-1");
+            assertThat(candidate.title()).isEqualTo("⚠️ Line 2 Bloor-Danforth Planned Closure");
+            assertThat(candidate.body()).contains("No subway service between Jane and Ossington stations");
+            assertThat(candidate.sourceEventAt()).isEqualTo(windowStart.toInstant());
+            assertThat(candidate.url())
+                .isEqualTo("/?panel=closures&impactKind=planned-closure&impactId=closure-parent-1");
+        });
+    }
+
+    @Test
     void usesDetailedDelayTitleBeforeGenericTravelTimeDescription() {
         AlertDashboardService.DelayAlertDto delay = new AlertDashboardService.DelayAlertDto(
             "alert-line-5-delay",

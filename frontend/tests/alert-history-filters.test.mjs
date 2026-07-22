@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 import {
   ALL_LINES_VALUE,
   buildAlertHistoryLineOptions,
+  buildAlertHistorySortOptions,
   filterAndSortAlertHistory,
   selectDisplayEvent,
 } from "../src/components/alert-history-filters.ts";
@@ -172,7 +173,36 @@ describe("alert history filtering", () => {
 
     assert.deepEqual(
       options.map((option) => option.label),
-      ["Line 2 Bloor-Danforth", "Line 5 Eglinton", "Line unavailable"],
+      ["All Lines", "Line 2 Bloor-Danforth", "Line 5 Eglinton", "Line Unavailable"],
     );
+  });
+
+  it("builds sort options starting with Most Recent followed by title case alert types", () => {
+    const options = buildAlertHistorySortOptions([
+      activeLine5Incident,
+      clearedLine2Incident,
+    ]);
+
+    assert.equal(options[0].value, "most-recent");
+    assert.equal(options[0].label, "Most Recent");
+    assert.ok(options.some((o) => o.value === "suspension" && o.label === "Suspension"));
+    assert.ok(options.some((o) => o.value === "delay" && o.label === "Delay"));
+    assert.ok(options.some((o) => o.value === "reduced-speed-zone" && o.label === "Reduced Speed Zone"));
+    assert.ok(options.some((o) => o.value === "planned-closure" && o.label === "Planned Closure"));
+  });
+
+  it("sorts incidents matching selected alert type to top", () => {
+    const visible = filterAndSortAlertHistory(
+      [clearedLine2Incident, activeLine5Incident],
+      {
+        lifecycleFilter: "all",
+        lineId: ALL_LINES_VALUE,
+        searchQuery: "",
+        sortBy: "reduced-speed-zone",
+      },
+    );
+
+    assert.equal(visible[0].incident.alertId, "ttc-route-5-avenue");
+    assert.equal(visible[1].incident.alertId, "ttc-route-2-warden");
   });
 });

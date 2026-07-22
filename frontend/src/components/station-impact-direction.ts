@@ -165,7 +165,7 @@ export function stationImpactDirectionArrow(
   return null;
 }
 
-function stationImpactDirectionSource(
+export function stationImpactDirectionSource(
   impact: Pick<StationNodeImpact, "kind" | "cardId">,
   data: StationImpactDirectionData,
 ): DirectionSource | undefined {
@@ -217,6 +217,8 @@ function unionStationImpactDirectionArrow(
 
   return null;
 }
+
+
 
 function bidirectionalArrowForLine(
   lineId: string | null | undefined,

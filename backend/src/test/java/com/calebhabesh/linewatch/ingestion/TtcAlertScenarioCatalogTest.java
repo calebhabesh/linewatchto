@@ -43,7 +43,7 @@ class TtcAlertScenarioCatalogTest {
 
     static Stream<Arguments> scenarios() {
         return Stream.of(
-            Arguments.of("all-alert-types.json", 20, 2, EnumSet.of(
+            Arguments.of("all-alert-types.json", 23, 2, EnumSet.of(
                 AlertImpactKind.SUSPENSION,
                 AlertImpactKind.DELAY,
                 AlertImpactKind.REDUCED_SPEED_ZONE,
@@ -280,6 +280,16 @@ class TtcAlertScenarioCatalogTest {
                 assertThat(alert.endStationId()).isEqualTo("union");
                 assertThat(alert.stationIds()).containsExactly("union");
                 assertThat(alert.direction()).isEqualTo(AlertDirection.NORTHBOUND);
+            });
+        assertThat(routeAlerts)
+            .filteredOn(alert -> alert.sourceId().equals("scenario-station-node-spadina"))
+            .singleElement()
+            .satisfies(alert -> {
+                assertThat(alert.startStationId()).isEqualTo("spadina");
+                assertThat(alert.endStationId()).isEqualTo("spadina");
+                assertThat(alert.stationIds()).containsExactly("spadina");
+                assertThat(alert.impactKind()).isEqualTo(AlertImpactKind.DELAY);
+                assertThat(alert.direction()).isEqualTo(AlertDirection.BIDIRECTIONAL);
             });
         assertThat(routeAlerts)
             .filteredOn(alert -> alert.impactKind() == AlertImpactKind.REDUCED_SPEED_ZONE)

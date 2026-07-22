@@ -1,6 +1,6 @@
 {
   "lastUpdated": "2026-06-03T14:59:00.000Z",
-  "total": 22,
+  "total": 25,
   "routes": [
     {
       "id": "scenario-active-line-2",
@@ -436,6 +436,87 @@
       "causeDescription": "Emergency alarm",
       "childAlerts": [],
       "direction": "Northbound To Vaughan Metropolitan Centre",
+      "activePeriodGroup": [
+        "Current"
+      ]
+    },
+    {
+      "id": "scenario-station-node-spadina",
+      "alertType": "Live",
+      "lastUpdated": "2026-06-03T14:55:00.000Z",
+      "activePeriod": {
+        "start": "2026-06-03T14:30:00.000Z",
+        "end": "0001-01-01T00:00:00Z"
+      },
+      "route": "1",
+      "routeType": "Subway",
+      "stopStart": "Spadina",
+      "stopEnd": "Spadina",
+      "stopIDList": [
+        "Spadina"
+      ],
+      "title": "Delays at Spadina station while we respond to an emergency alarm.",
+      "headerText": "Line 1 Yonge-University: Delays at Spadina station while we respond to an emergency alarm.",
+      "effect": "SIGNIFICANT_DELAYS",
+      "effectDesc": "Delays",
+      "cause": "MEDICAL_EMERGENCY",
+      "causeDescription": "Emergency alarm",
+      "childAlerts": [],
+      "direction": "Both ways",
+      "activePeriodGroup": [
+        "Current"
+      ]
+    },
+    {
+      "id": "scenario-station-node-lawrence-west",
+      "alertType": "Live",
+      "lastUpdated": "2026-06-03T14:55:00.000Z",
+      "activePeriod": {
+        "start": "2026-06-03T14:30:00.000Z",
+        "end": "0001-01-01T00:00:00Z"
+      },
+      "route": "1",
+      "routeType": "Subway",
+      "stopStart": "Lawrence West",
+      "stopEnd": "Lawrence West",
+      "stopIDList": [
+        "Lawrence West"
+      ],
+      "title": "Delays both ways at Lawrence West station while we respond to an emergency alarm.",
+      "headerText": "Line 1 Yonge-University: Delays both ways at Lawrence West station while we respond to an emergency alarm.",
+      "effect": "SIGNIFICANT_DELAYS",
+      "effectDesc": "Delays",
+      "cause": "MEDICAL_EMERGENCY",
+      "causeDescription": "Emergency alarm",
+      "childAlerts": [],
+      "direction": "Both ways",
+      "activePeriodGroup": [
+        "Current"
+      ]
+    },
+    {
+      "id": "scenario-station-node-spadina-line-2-westbound",
+      "alertType": "Live",
+      "lastUpdated": "2026-06-03T14:55:00.000Z",
+      "activePeriod": {
+        "start": "2026-06-03T14:30:00.000Z",
+        "end": "0001-01-01T00:00:00Z"
+      },
+      "route": "2",
+      "routeType": "Subway",
+      "stopStart": "Spadina",
+      "stopEnd": "Spadina",
+      "stopIDList": [
+        "Spadina"
+      ],
+      "title": "Delays westbound at Spadina station while we respond to an emergency alarm.",
+      "headerText": "Line 2 Bloor-Danforth: Delays westbound at Spadina station while we respond to an emergency alarm.",
+      "effect": "SIGNIFICANT_DELAYS",
+      "effectDesc": "Delays",
+      "cause": "MEDICAL_EMERGENCY",
+      "causeDescription": "Emergency alarm",
+      "childAlerts": [],
+      "direction": "Westbound",
       "activePeriodGroup": [
         "Current"
       ]

@@ -14,6 +14,12 @@ export type AlertHistoryLineOption = {
   lineName?: string | null;
 };
 
+export type AlertHistorySortOption = {
+  value: string;
+  label: string;
+  eventType: string | null;
+};
+
 export type AlertHistoryViewItem = {
   incident: AlertHistoryIncident;
   displayEvent: AlertHistoryEvent | null;
@@ -24,10 +30,12 @@ export type AlertHistoryFilterControls = {
   lifecycleFilter: AlertHistoryLifecycleFilter;
   lineId: string;
   searchQuery: string;
+  sortBy?: string;
 };
 
 export const ALL_LINES_VALUE = "all";
 export const UNKNOWN_LINE_VALUE = "__unknown";
+export const MOST_RECENT_SORT_VALUE = "most-recent";
 
 const TTC_LINE_ORDER = new Map<string, number>([
   ["line-1", 1],
@@ -37,13 +45,21 @@ const TTC_LINE_ORDER = new Map<string, number>([
   ["line-6", 6],
 ]);
 
+const STANDARD_ALERT_TYPES = [
+  "suspension",
+  "delay",
+  "reduced-speed-zone",
+  "planned-closure",
+];
+
 export function filterAndSortAlertHistory(
   incidents: AlertHistoryIncident[],
   controls: AlertHistoryFilterControls,
 ): AlertHistoryViewItem[] {
   const query = normalizeSearchText(controls.searchQuery);
+  const sortBy = controls.sortBy ?? MOST_RECENT_SORT_VALUE;
 
-  return incidents.flatMap((incident) => {
+  const filtered = incidents.flatMap((incident) => {
     const displayEvent = selectDisplayEvent(incident, controls.lifecycleFilter);
     if (!displayEvent) {
       return [];
@@ -66,6 +82,31 @@ export function filterAndSortAlertHistory(
       cleared: displayEvent.state === "cleared",
     }];
   });
+
+  return filtered.sort((a, b) => {
+    if (sortBy !== MOST_RECENT_SORT_VALUE) {
+      const aType = (a.incident.eventType || "").toLowerCase();
+      const bType = (b.incident.eventType || "").toLowerCase();
+      const targetType = sortBy.toLowerCase();
+      const aMatches = aType === targetType;
+      const bMatches = bType === targetType;
+      if (aMatches && !bMatches) return -1;
+      if (!aMatches && bMatches) return 1;
+    }
+    const timeA = getEventTimestamp(a);
+    const timeB = getEventTimestamp(b);
+    return timeB - timeA;
+  });
+}
+
+function getEventTimestamp(item: AlertHistoryViewItem): number {
+  const isoString =
+    item.displayEvent?.happenedAt ??
+    item.incident.clearedAt ??
+    item.incident.firstSeenAt ??
+    "";
+  const time = new Date(isoString).getTime();
+  return Number.isNaN(time) ? 0 : time;
 }
 
 export function selectDisplayEvent(
@@ -88,6 +129,12 @@ export function buildAlertHistoryLineOptions(
 ): AlertHistoryLineOption[] {
   const byValue = new Map<string, AlertHistoryLineOption>();
 
+  byValue.set(ALL_LINES_VALUE, {
+    value: ALL_LINES_VALUE,
+    label: "All Lines",
+    sortKey: 0,
+  });
+
   for (const incident of incidents) {
     const value = lineValue(incident);
     if (byValue.has(value)) {
@@ -109,6 +156,49 @@ export function buildAlertHistoryLineOptions(
     }
     return a.label.localeCompare(b.label);
   });
+}
+
+export function buildAlertHistorySortOptions(
+  incidents: AlertHistoryIncident[],
+): AlertHistorySortOption[] {
+  const options: AlertHistorySortOption[] = [
+    { value: MOST_RECENT_SORT_VALUE, label: "Most Recent", eventType: null },
+  ];
+
+  const seenTypes = new Set<string>();
+
+  for (const type of STANDARD_ALERT_TYPES) {
+    seenTypes.add(type);
+    options.push({
+      value: type,
+      label: formatAlertTypeName(type),
+      eventType: type,
+    });
+  }
+
+  for (const incident of incidents) {
+    if (incident.eventType) {
+      const normalized = incident.eventType.toLowerCase();
+      if (!seenTypes.has(normalized)) {
+        seenTypes.add(normalized);
+        options.push({
+          value: normalized,
+          label: formatAlertTypeName(normalized),
+          eventType: normalized,
+        });
+      }
+    }
+  }
+
+  return options;
+}
+
+export function formatAlertTypeName(eventType: string): string {
+  if (!eventType) return "Alert";
+  return eventType
+    .split(/[-_\s]+/)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(" ");
 }
 
 function incidentMatchesSearch(
@@ -155,7 +245,7 @@ function lineValue(incident: AlertHistoryIncident): string {
 
 function lineOptionLabel(incident: AlertHistoryIncident): string {
   if (!incident.lineNumber) {
-    return "Line unavailable";
+    return "Line Unavailable";
   }
   return incident.lineName
     ? `Line ${incident.lineNumber} ${incident.lineName}`

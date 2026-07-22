@@ -58,6 +58,8 @@ import {
   type StationImpactArrowDirection,
 } from "./station-impact-direction";
 import {
+  stationImpactVisualAnchors,
+  stationVisualAnchorIds,
   stationVisualAnchorsFor,
   stationVisualCenterIds,
 } from "./station-map-visuals";
@@ -173,6 +175,9 @@ function useRetainedMapLayers<T>(
 }
 
 function isStationVisuallyLarge(station: { id: string; interchange: boolean }): boolean {
+  if (stationVisualAnchorIds(station.id).length > 1) {
+    return false;
+  }
   const largeTerminals = [
     "kipling",
     "finch",
@@ -843,37 +848,66 @@ function InteractiveTtcMapComponent({
     useCallback((impact) => `${impact.kind}:${impact.cardId}:${impact.stationId}`, []),
   );
 
+  const directionData = useMemo(
+    () => ({
+      activeAlerts,
+      delays,
+      reducedSpeedZones,
+      plannedClosures,
+    }),
+    [activeAlerts, delays, plannedClosures, reducedSpeedZones],
+  );
+
   const stationImpactDirectionLayers = useMemo<StationImpactDirectionLayer[]>(() => {
-    const impactsByStation = new Map<string, typeof stationNodeImpacts>();
+    const impactsByAnchor = new Map<
+      string,
+      { stationId: string; anchorId: string; impacts: typeof stationNodeImpacts }
+    >();
 
     for (const impact of stationNodeImpacts) {
-      impactsByStation.set(impact.stationId, [
-        ...(impactsByStation.get(impact.stationId) ?? []),
+      const station = stationBySummaryId.get(impact.stationId);
+      if (!station) continue;
+
+      const anchors = stationImpactVisualAnchors(
+        station,
         impact,
-      ]);
+        directionData,
+        stationCenterPoints,
+      );
+
+      for (const anchor of anchors) {
+        const key = `${station.id}:${anchor.id}`;
+        const existing = impactsByAnchor.get(key);
+        if (existing) {
+          existing.impacts.push(impact);
+        } else {
+          impactsByAnchor.set(key, {
+            stationId: station.id,
+            anchorId: anchor.id,
+            impacts: [impact],
+          });
+        }
+      }
     }
 
-    return Array.from(impactsByStation.entries())
-      .map(([stationId, impacts]) => {
-        const direction = stationImpactDirectionForStationImpacts(impacts, {
-          activeAlerts,
-          delays,
-          reducedSpeedZones,
-          plannedClosures,
-        });
+    return Array.from(impactsByAnchor.values())
+      .map(({ stationId, anchorId, impacts }) => {
+        const direction = stationImpactDirectionForStationImpacts(impacts, directionData);
         if (!direction) return null;
 
         return {
+          key: `${stationId}:${anchorId}`,
           stationId,
+          anchorId,
           arrow: direction.arrow.direction,
         };
       })
       .filter((layer): layer is StationImpactDirectionLayer => Boolean(layer));
-  }, [activeAlerts, delays, plannedClosures, reducedSpeedZones, stationNodeImpacts]);
+  }, [directionData, stationBySummaryId, stationCenterPoints, stationNodeImpacts]);
 
   const retainedStationImpactDirectionLayers = useRetainedMapLayers(
     stationImpactDirectionLayers,
-    useCallback((layer) => layer.stationId, []),
+    useCallback((layer) => layer.key, []),
   );
 
   const commutePreviewLayer = useMemo(() => {
@@ -969,11 +1003,16 @@ function InteractiveTtcMapComponent({
       addBoxes(
         impact.kind,
         impact.cardId,
-        visualAnchorsForStation(station).map((anchor) => stationOverlapProtectedBox(anchor.point)),
+        stationImpactVisualAnchors(
+          station,
+          impact,
+          directionData,
+          stationCenterPoints,
+        ).map((anchor) => stationOverlapProtectedBox(anchor.point)),
       );
     }
     return boxesByImpact;
-  }, [plannedPreviewLayers, renderedImpactLayers, stationBySummaryId, stationNodeImpacts, visualAnchorsForStation]);
+  }, [directionData, plannedPreviewLayers, renderedImpactLayers, stationBySummaryId, stationCenterPoints, stationNodeImpacts]);
 
   const overlayCollisionBoxes = useMemo<SvgBounds[]>(() => {
     return Array.from(collisionBoxesByImpact.values()).flat();
@@ -1718,16 +1757,16 @@ function InteractiveTtcMapComponent({
                   const station = stationBySummaryId.get(impact.stationId);
                   if (!station) return null;
                   const selected = selection?.kind === impact.kind && selection.id === impact.cardId;
-                  const point = stationPointFor(station);
+                  const visualAnchors = stationImpactVisualAnchors(
+                    station,
+                    impact,
+                    directionData,
+                    stationCenterPoints,
+                  );
                   const isLarge = isStationVisuallyLarge(station);
                   const effectRadius = stationImpactEffectRadius(isLarge);
                   const impactRingRadius = stationImpactRingRadius(isLarge);
-                  const impactDirection = stationImpactDirectionForImpact(impact, {
-                    activeAlerts,
-                    delays,
-                    reducedSpeedZones,
-                    plannedClosures,
-                  });
+                  const impactDirection = stationImpactDirectionForImpact(impact, directionData);
                   const directionLabel = impactDirection?.displayDirection
                     ? ` (${impactDirection.displayDirection})`
                     : "";
@@ -1738,65 +1777,69 @@ function InteractiveTtcMapComponent({
                       className={exiting ? "map-layer-exiting" : "map-layer-current"}
                       style={exiting ? { pointerEvents: "none" } : undefined}
                     >
-                      <circle
-                        aria-label={`${impact.title}: ${station.name}${directionLabel}`}
-                        className={`station-impact-ring ${impact.kind} ${selected ? "selected" : ""}`}
-                        cx={point.x}
-                        cy={point.y}
-                        r={impactRingRadius}
-                        fill="none"
-                        onClick={(event) => {
-                          if (exiting) return;
-                          if (shouldSuppressMapClick()) return;
-                          event.stopPropagation();
-                          onSelectImpact({ kind: impact.kind, id: impact.cardId });
-                        }}
-                        onKeyDown={(event) => {
-                          if (exiting) return;
-                          if (event.key === "Enter" || event.key === " ") {
-                            event.preventDefault();
-                            onSelectImpact({ kind: impact.kind, id: impact.cardId });
-                          }
-                        }}
-                        onPointerEnter={(event) => {
-                          if (event.pointerType !== "mouse" || exiting) return;
-                          setHoveredStationImpact({ kind: impact.kind, id: impact.cardId });
-                        }}
-                        onPointerLeave={(event) => {
-                          if (event.pointerType !== "mouse") return;
-                          setHoveredStationImpact((current) =>
-                            current?.kind === impact.kind && current.id === impact.cardId ? null : current,
-                          );
-                        }}
-                        onFocus={() => setHoveredStationImpact({ kind: impact.kind, id: impact.cardId })}
-                        onBlur={() => setHoveredStationImpact((current) =>
-                          current?.kind === impact.kind && current.id === impact.cardId ? null : current,
-                        )}
-                        pointerEvents={exiting ? "none" : "stroke"}
-                        role="button"
-                        tabIndex={exiting ? -1 : 0}
-                      />
-                      <circle
-                        className="station-impact-dot-red-glow"
-                        cx={point.x}
-                        cy={point.y}
-                        r={effectRadius}
-                        pointerEvents="none"
-                      />
-                      <circle
-                        className="station-impact-dot-red-ping"
-                        cx={point.x}
-                        cy={point.y}
-                        r={effectRadius}
-                        pointerEvents="none"
-                      />
-                      <circle
-                        className="station-impact-dot-red-beacon"
-                        cx={point.x}
-                        cy={point.y}
-                        r={effectRadius}
-                        pointerEvents="none"
-                      />
+                      {visualAnchors.map(({ id: anchorId, point }) => (
+                        <g key={`${key}:${anchorId}`}>
+                          <circle
+                            aria-label={`${impact.title}: ${station.name}${directionLabel}`}
+                            className={`station-impact-ring ${impact.kind} ${selected ? "selected" : ""}`}
+                            cx={point.x}
+                            cy={point.y}
+                            r={impactRingRadius}
+                            fill="none"
+                            onClick={(event) => {
+                              if (exiting) return;
+                              if (shouldSuppressMapClick()) return;
+                              event.stopPropagation();
+                              onSelectImpact({ kind: impact.kind, id: impact.cardId });
+                            }}
+                            onKeyDown={(event) => {
+                              if (exiting) return;
+                              if (event.key === "Enter" || event.key === " ") {
+                                event.preventDefault();
+                                onSelectImpact({ kind: impact.kind, id: impact.cardId });
+                              }
+                            }}
+                            onPointerEnter={(event) => {
+                              if (event.pointerType !== "mouse" || exiting) return;
+                              setHoveredStationImpact({ kind: impact.kind, id: impact.cardId });
+                            }}
+                            onPointerLeave={(event) => {
+                              if (event.pointerType !== "mouse") return;
+                              setHoveredStationImpact((current) =>
+                                current?.kind === impact.kind && current.id === impact.cardId ? null : current,
+                              );
+                            }}
+                            onFocus={() => setHoveredStationImpact({ kind: impact.kind, id: impact.cardId })}
+                            onBlur={() => setHoveredStationImpact((current) =>
+                              current?.kind === impact.kind && current.id === impact.cardId ? null : current,
+                            )}
+                            pointerEvents={exiting ? "none" : "stroke"}
+                            role="button"
+                            tabIndex={exiting ? -1 : 0}
+                          />
+                          <circle
+                            className="station-impact-dot-red-glow"
+                            cx={point.x}
+                            cy={point.y}
+                            r={effectRadius}
+                            pointerEvents="none"
+                          />
+                          <circle
+                            className="station-impact-dot-red-ping"
+                            cx={point.x}
+                            cy={point.y}
+                            r={effectRadius}
+                            pointerEvents="none"
+                          />
+                          <circle
+                            className="station-impact-dot-red-beacon"
+                            cx={point.x}
+                            cy={point.y}
+                            r={effectRadius}
+                            pointerEvents="none"
+                          />
+                        </g>
+                      ))}
                     </g>
                   );
                 })}
@@ -1805,7 +1848,7 @@ function InteractiveTtcMapComponent({
                 {retainedStationImpactDirectionLayers.map(({ key, item: impactDirection, exiting }) => {
                   const station = stationBySummaryId.get(impactDirection.stationId);
                   if (!station) return null;
-                  const point = stationPointFor(station);
+                  const point = stationCenterPoints.get(impactDirection.anchorId) ?? stationPointFor(station);
                   const isLarge = isStationVisuallyLarge(station);
                   const badgeRadius = stationImpactDirectionBadgeRadius(isLarge);
 
@@ -1830,7 +1873,7 @@ function InteractiveTtcMapComponent({
                   if (flashStationId !== station.id) return null;
                   const visualAnchors = visualAnchorsForStation(station);
                   const isLarge = isStationVisuallyLarge(station);
-                  const highlightRadius = visualAnchors.length > 1 ? 33 : isLarge ? 48 : 38;
+                  const highlightRadius = stationImpactRingRadius(isLarge);
 
                   return (
                     <g key={`station-selection-foreground:${station.id}`}>
@@ -1853,32 +1896,42 @@ function InteractiveTtcMapComponent({
                   if (exiting) return null;
                   const station = stationBySummaryId.get(impact.stationId);
                   if (!station) return null;
-                  const point = stationPointFor(station);
-                  const impactRingRadius = stationImpactRingRadius(isStationVisuallyLarge(station));
+                  const visualAnchors = stationImpactVisualAnchors(
+                    station,
+                    impact,
+                    directionData,
+                    stationCenterPoints,
+                  );
+                  const isLarge = isStationVisuallyLarge(station);
+                  const impactRingRadius = stationImpactRingRadius(isLarge);
                   const hoverHighlighted = hoveredStationImpact?.kind === impact.kind
                     && hoveredStationImpact.id === impact.cardId;
 
                   return (
                     <g key={`foreground:${key}`}>
-                      {flashSelection && flashSelection.kind === impact.kind && flashSelection.id === impact.cardId ? (
-                        <circle
-                          data-map-highlight-id={flashSelection.id}
-                          data-station-impact-selection-id={impact.cardId}
-                          className={`station-selection-flash ${isSelectionFastFlashing ? "fast" : "latent"}`}
-                          cx={point.x}
-                          cy={point.y}
-                          r={impactRingRadius}
-                        />
-                      ) : null}
-                      {hoverHighlighted ? (
-                        <circle
-                          data-station-impact-hover-id={impact.cardId}
-                          className="station-impact-hover-priority"
-                          cx={point.x}
-                          cy={point.y}
-                          r={impactRingRadius + 5}
-                        />
-                      ) : null}
+                      {visualAnchors.map(({ id: anchorId, point }) => (
+                        <g key={`foreground-anchor:${key}:${anchorId}`}>
+                          {flashSelection && flashSelection.kind === impact.kind && flashSelection.id === impact.cardId ? (
+                            <circle
+                              data-map-highlight-id={flashSelection.id}
+                              data-station-impact-selection-id={impact.cardId}
+                              className={`station-selection-flash ${isSelectionFastFlashing ? "fast" : "latent"}`}
+                              cx={point.x}
+                              cy={point.y}
+                              r={impactRingRadius}
+                            />
+                          ) : null}
+                          {hoverHighlighted ? (
+                            <circle
+                              data-station-impact-hover-id={impact.cardId}
+                              className="station-impact-hover-priority"
+                              cx={point.x}
+                              cy={point.y}
+                              r={impactRingRadius + 5}
+                            />
+                          ) : null}
+                        </g>
+                      ))}
                     </g>
                   );
                 })}
@@ -1950,7 +2003,9 @@ type SelectedImpactEmphasisLayer = {
 };
 
 type StationImpactDirectionLayer = {
+  key: string;
   stationId: string;
+  anchorId: string;
   arrow: StationImpactArrowDirection;
 };
 
@@ -3930,6 +3985,40 @@ function stationImpactDirectionPath(direction: StationImpactArrowDirection, radi
     return stationImpactDirectionCenteredPartPath(parts[0], metrics);
   }
 
+  if (
+    direction === "up-right" ||
+    direction === "up-left" ||
+    direction === "down-right" ||
+    direction === "down-left"
+  ) {
+    const cx = Math.round(pathMetricsRadius * 0.52);
+    const cy = Math.round(pathMetricsRadius * 0.52);
+    const offX = Math.round(metrics.headHalf * 0.38);
+    const offY = Math.round(metrics.headHalf * 0.38);
+
+    const isUp = direction === "up-right" || direction === "up-left";
+    const isRight = direction === "up-right" || direction === "down-right";
+
+    const cornerX = (isRight ? -cx : cx) + (isRight ? offX : -offX);
+    const cornerY = (isUp ? cy : -cy) + (isUp ? -offY : offY);
+
+    const verticalTipY = (isUp ? -cy : cy) + (isUp ? -offY : offY);
+    const horizontalTipX = (isRight ? cx : -cx) + (isRight ? offX : -offX);
+
+    const headInset = metrics.headInset;
+    const headHalf = metrics.headHalf;
+
+    const upDownHeadDir = isUp ? -1 : 1;
+    const rightLeftHeadDir = isRight ? 1 : -1;
+
+    return [
+      `M ${cornerX} ${cornerY} V ${verticalTipY}`,
+      `M ${cornerX - headHalf} ${verticalTipY - upDownHeadDir * headInset} L ${cornerX} ${verticalTipY} L ${cornerX + headHalf} ${verticalTipY - upDownHeadDir * headInset}`,
+      `M ${cornerX} ${cornerY} H ${horizontalTipX}`,
+      `M ${horizontalTipX - rightLeftHeadDir * headInset} ${cornerY - headHalf} L ${horizontalTipX} ${cornerY} L ${horizontalTipX - rightLeftHeadDir * headInset} ${cornerY + headHalf}`,
+    ].join(" ");
+  }
+
   if (direction === "horizontal-bidirectional") {
     return [
       `M -${metrics.extent} 0 H ${metrics.extent}`,
@@ -4034,13 +4123,13 @@ function stationImpactDirectionSpokePartPath(
 ): string {
   switch (direction) {
     case "left":
-      return `M -${metrics.gap} 0 H -${metrics.extent} M -${metrics.extent - metrics.headInset} -${metrics.headHalf} L -${metrics.extent} 0 L -${metrics.extent - metrics.headInset} ${metrics.headHalf}`;
+      return `M 0 0 H -${metrics.extent} M -${metrics.extent - metrics.headInset} -${metrics.headHalf} L -${metrics.extent} 0 L -${metrics.extent - metrics.headInset} ${metrics.headHalf}`;
     case "right":
-      return `M ${metrics.gap} 0 H ${metrics.extent} M ${metrics.extent - metrics.headInset} -${metrics.headHalf} L ${metrics.extent} 0 L ${metrics.extent - metrics.headInset} ${metrics.headHalf}`;
+      return `M 0 0 H ${metrics.extent} M ${metrics.extent - metrics.headInset} -${metrics.headHalf} L ${metrics.extent} 0 L ${metrics.extent - metrics.headInset} ${metrics.headHalf}`;
     case "up":
-      return `M 0 -${metrics.gap} V -${metrics.extent} M -${metrics.headHalf} -${metrics.extent - metrics.headInset} L 0 -${metrics.extent} L ${metrics.headHalf} -${metrics.extent - metrics.headInset}`;
+      return `M 0 0 V -${metrics.extent} M -${metrics.headHalf} -${metrics.extent - metrics.headInset} L 0 -${metrics.extent} L ${metrics.headHalf} -${metrics.extent - metrics.headInset}`;
     case "down":
-      return `M 0 ${metrics.gap} V ${metrics.extent} M -${metrics.headHalf} ${metrics.extent - metrics.headInset} L 0 ${metrics.extent} L ${metrics.headHalf} ${metrics.extent - metrics.headInset}`;
+      return `M 0 0 V ${metrics.extent} M -${metrics.headHalf} ${metrics.extent - metrics.headInset} L 0 ${metrics.extent} L ${metrics.headHalf} ${metrics.extent - metrics.headInset}`;
   }
 }
 

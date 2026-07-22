@@ -210,4 +210,39 @@ describe("station impact map direction arrows", () => {
       "three-way-no-left",
     );
   });
+
+  it("maps Line 1 Spadina delays to standard vertical arrows", () => {
+    const data = {
+      activeAlerts: [],
+      delays: [
+        { id: "spadina-sb", lineId: "line-1", displayDirection: "Southbound" },
+        { id: "spadina-nb", lineId: "line-1", displayDirection: "Northbound" },
+        { id: "spadina-bw", lineId: "line-1", displayDirection: "Both ways" },
+      ],
+      reducedSpeedZones: [],
+      plannedClosures: [],
+    };
+
+    assert.equal(
+      stationImpactDirectionForImpact(
+        { stationId: "spadina", kind: "delay", cardId: "spadina-sb" },
+        data,
+      )?.arrow.direction,
+      "down",
+    );
+    assert.equal(
+      stationImpactDirectionForImpact(
+        { stationId: "spadina", kind: "delay", cardId: "spadina-nb" },
+        data,
+      )?.arrow.direction,
+      "up",
+    );
+    assert.equal(
+      stationImpactDirectionForImpact(
+        { stationId: "spadina", kind: "delay", cardId: "spadina-bw" },
+        data,
+      )?.arrow.direction,
+      "vertical-bidirectional",
+    );
+  });
 });

@@ -24,7 +24,7 @@ describe("alert scenario catalog", () => {
   it("makes all-alert-types cover every backend-to-map alert surface", () => {
     const scenario = index.scenarios.find((candidate) => candidate.name === "all-alert-types");
     assert.ok(scenario);
-    assert.equal(scenario.routeCount, 20);
+    assert.equal(scenario.routeCount, 23);
     assert.equal(scenario.accessibilityCount, 2);
     assert.deepEqual(scenario.directionCoverage, {
       "delay": ["bidirectional", "directional"],
@@ -43,6 +43,7 @@ describe("alert scenario catalog", () => {
         "delay-bidirectional-station",
         "delay-directional-segment",
         "delay-directional-station",
+        "delay-multi-dot-interchange-station",
         "planned-closure-bidirectional",
         "planned-closure-directional",
         "reduced-speed-zone-bidirectional",
@@ -60,6 +61,7 @@ describe("alert scenario catalog", () => {
     assert.equal(scenario.coverageMatrix["accessibility-escalator"].sourceKind, "synthetic-template");
     assert.equal(scenario.coverageMatrix["delay-bidirectional-station"].sourceKind, "modeled-gap-fill");
     assert.equal(scenario.coverageMatrix["delay-directional-station"].sourceKind, "modeled-gap-fill");
+    assert.equal(scenario.coverageMatrix["delay-multi-dot-interchange-station"].sourceKind, "modeled-gap-fill");
     assert.equal(scenario.coverageMatrix["suspension-four-way-junction-station-line-1"].sourceKind, "modeled-gap-fill");
     assert.equal(scenario.coverageMatrix["suspension-four-way-junction-station-line-2"].sourceKind, "modeled-gap-fill");
     assert.equal(scenario.coverageMatrix["reduced-speed-zone-directionless"].sourceKind, "modeled-gap-fill");
@@ -93,6 +95,10 @@ describe("alert scenario catalog", () => {
     assert.equal(routesById.get("scenario-station-node-union-vaughan")?.stopEnd, "Union");
     assert.deepEqual(routesById.get("scenario-station-node-union-vaughan")?.stopIDList, ["Union"]);
     assert.equal(routesById.get("scenario-station-node-union-vaughan")?.direction, "Northbound To Vaughan Metropolitan Centre");
+    assert.equal(routesById.get("scenario-station-node-spadina")?.stopStart, "Spadina");
+    assert.equal(routesById.get("scenario-station-node-spadina")?.stopEnd, "Spadina");
+    assert.deepEqual(routesById.get("scenario-station-node-spadina")?.stopIDList, ["Spadina"]);
+    assert.equal(routesById.get("scenario-station-node-spadina")?.direction, "Both ways");
     assert.equal(routesById.get("scenario-active-line-2")?.effect, "NO_SERVICE");
     assert.equal(routesById.get("scenario-active-line-2")?.stopEnd, "Kennedy");
     assert.deepEqual(
