@@ -346,7 +346,7 @@ describe("mobile bottom sheet UX", () => {
   it("keeps rotated-map selections in a rotated preview instead of portrait sheets", () => {
     assert.match(shellSource, /RotatedMapSelectionCard/);
     assert.match(shellSource, /rotated-map-hud/);
-    assert.match(shellSource, /!rotatedMapMode && selectedStationId/);
+    assert.match(shellSource, /!rotatedMapMode && selectedNetwork === "ttc" && selectedStationId/);
     assert.match(globalCss, /\.rotated-map-selection-card/);
   });
 });

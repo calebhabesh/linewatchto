@@ -60,6 +60,7 @@ async function fetchSafe<T>(path: string): Promise<T | null> {
 
 function fromBackendPayload(payload: DashboardApiResponse): DashboardData {
   return {
+    networkId: "ttc",
     dataSource: "backend",
     networkSegments: payload.map.segments,
     stations: payload.map.stations,
@@ -80,6 +81,7 @@ function fromBackendPayload(payload: DashboardApiResponse): DashboardData {
 
 function fallbackDashboardData(): DashboardData {
   return {
+    networkId: "ttc",
     dataSource: "fallback",
     networkSegments: fallbackSegments,
     stations: fallbackStations,

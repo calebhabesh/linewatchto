@@ -6,6 +6,154 @@
   --color-logo-blue: #81c9ff;
 }
 
+/* Network-scoped TTC / GO & UP selector and regional schematic. */
+.network-selector-anchor {
+  position: fixed;
+  top: 5.5rem;
+  left: 50%;
+  z-index: 58;
+  transform: translateX(-50%);
+  pointer-events: auto;
+}
+
+.linewatch-shell:not([data-active-view="map"]) .network-selector-anchor {
+  display: none;
+}
+
+.network-selector {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(4.75rem, 1fr));
+  gap: 0.2rem;
+  padding: 0.25rem;
+  border: 1px solid rgba(148, 163, 184, 0.32);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(2, 6, 23, 0.28);
+}
+
+.network-selector button {
+  min-height: 2.25rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: 6px;
+  color: #64748b;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+.network-selector button[aria-pressed="true"] {
+  background: #0f766e;
+  color: #fff;
+}
+
+.regional-map,
+.regional-map-viewport {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.regional-map-viewport {
+  cursor: grab;
+  touch-action: none;
+}
+
+.regional-map-viewport:active { cursor: grabbing; }
+
+.regional-map-stage {
+  position: absolute;
+  width: 1487.1575px;
+  height: 1003.27812px;
+  transform-origin: 0 0;
+  will-change: transform;
+}
+
+.regional-map-stage > svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.dark .regional-map-stage > svg { filter: brightness(0.82) contrast(1.08); }
+.regional-station-hit-target { cursor: pointer; }
+.regional-station-visual { pointer-events: none; }
+.regional-station-visual[data-regional-station-selected="true"] { filter: drop-shadow(0 0 16px #38bdf8) drop-shadow(0 0 8px #fff); }
+.regional-map-stage [data-regional-impact-selected="true"] { filter: drop-shadow(0 0 14px #fff); }
+
+.regional-map-controls {
+  position: absolute;
+  right: 1rem;
+  top: 9.5rem;
+  z-index: 4;
+  display: grid;
+  gap: 0.4rem;
+}
+
+.regional-map-controls button {
+  display: grid;
+  width: 2.65rem;
+  height: 2.65rem;
+  place-items: center;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  border-radius: 7px;
+  background: rgba(15, 23, 42, 0.9);
+  color: #fff;
+}
+
+.regional-map-controls svg { width: 1.15rem; }
+
+.regional-map-legend {
+  position: absolute;
+  right: 1rem;
+  bottom: 1rem;
+  z-index: 4;
+  width: min(20rem, calc(100vw - 2rem));
+  padding: 0.75rem;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  border-radius: 8px;
+  font-size: 0.7rem;
+}
+
+.regional-map-legend ul {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.25rem 0.75rem;
+  margin: 0.45rem 0;
+}
+
+.regional-map-legend li { display: flex; align-items: center; gap: 0.35rem; }
+.regional-map-legend li > span { width: 0.75rem; height: 0.35rem; border-radius: 2px; }
+.regional-map-legend p { display: flex; align-items: center; gap: 0.35rem; }
+.regional-map-legend small { color: #64748b; }
+.regional-map-legend em { display: block; margin-top: 0.4rem; color: #f59e0b; font-style: normal; font-weight: 700; }
+.limited-service-swatch { width: 1.25rem; height: 0.45rem; background: repeating-linear-gradient(90deg, #475569 0 4px, #fff 4px 7px); }
+
+.regional-station-detail {
+  position: fixed;
+  z-index: 50;
+  right: 1rem;
+  top: 8.5rem;
+  width: min(22rem, calc(100vw - 2rem));
+  padding: 1rem;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  border-radius: 8px;
+}
+
+.regional-station-detail > button { float: right; }
+.regional-station-detail > span { color: #0f766e; font-size: 0.7rem; font-weight: 800; text-transform: uppercase; }
+.regional-station-detail h2 { margin-top: 0.2rem; font-size: 1.25rem; font-weight: 850; }
+.regional-station-routes { display: flex; flex-wrap: wrap; gap: 0.35rem; margin: 0.75rem 0; }
+.regional-station-routes b { border-left: 4px solid; padding: 0.2rem 0.45rem; background: rgba(148, 163, 184, 0.14); border-radius: 4px; font-size: 0.72rem; }
+.regional-station-detail p, .regional-station-detail em { display: block; margin-top: 0.5rem; font-size: 0.78rem; }
+.regional-station-detail em { color: #64748b; }
+
+@media (max-width: 767px) {
+  .network-selector-anchor { top: 0.75rem; }
+  .regional-map-controls { top: 4.5rem; right: 0.65rem; }
+  .regional-map-legend { right: 0.65rem; bottom: 5.25rem; width: min(18rem, calc(100vw - 1.3rem)); }
+  .regional-map-legend ul { grid-template-columns: 1fr 1fr; }
+  .regional-station-detail { top: auto; right: 0; bottom: 0; width: 100%; border-radius: 8px 8px 0 0; }
+}
+
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {
@@ -45,6 +193,16 @@
   --impact-rsz-soft: rgba(245, 158, 11, 0.14);
   --impact-rsz-border: rgba(245, 158, 11, 0.55);
   --impact-rsz-active: rgba(245, 158, 11, 0.22);
+
+  /* Regional Rail / Metrolinx Line Palette (Official July 2026) */
+  --line-up: #4084cd;
+  --line-br: #155ba0;
+  --line-ki: #138336;
+  --line-le: #ee2722;
+  --line-lw: #8b0a31;
+  --line-mi: #f47216;
+  --line-rh: #27adea;
+  --line-st: #774111;
 }
 
 html[data-safe-area-debug="iphone-dynamic-island"] {

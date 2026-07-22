@@ -733,7 +733,7 @@ describe("asset-backed map layering", () => {
     assert.match(shellSource, /readVisualPreferencesFromStorage/);
     assert.match(shellSource, /getEstimatedTrainMarkers/);
     assert.match(shellSource, /estimatedTrainMarkerRefreshMs/);
-    assert.match(shellSource, /const estimatedTrainMarkersVisible = estimatedTrainsEnabled && subwayOperatingState\.status === "open";/);
+    assert.match(shellSource, /const estimatedTrainMarkersVisible = selectedNetwork === "ttc" && estimatedTrainsEnabled && subwayOperatingState\.status === "open";/);
     assert.match(shellSource, /let trainMarkerRefreshInFlight = false;/);
     assert.match(shellSource, /if \(trainMarkerRefreshInFlight\) \{\s*return;\s*\}/);
     assert.match(shellSource, /trainMarkerRefreshInFlight = true;/);

@@ -195,6 +195,30 @@ test("shows subway closed screen overnight and lets riders peek at the map", asy
   await expect(page.getByRole("heading", { name: "Subway Closed" })).toBeVisible();
 });
 
+test("switches the complete dashboard to the fixture-backed regional network", async ({ page, request }) => {
+  await setStubMode(request, "seeded");
+  await page.goto("/");
+
+  const networkSelector = page.getByRole("group", { name: "Select transit network" });
+  await expect(networkSelector.getByRole("button", { name: "TTC", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await networkSelector.getByRole("button", { name: "GO & UP", exact: true }).click();
+
+  await expect(page.getByRole("region", { name: "Interactive GO and UP map" })).toBeVisible();
+  await expect(page.getByText("Demo fixture — not live service information", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Fit regional network" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Toggle live train markers" })).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "Subway Closed" })).toHaveCount(0);
+
+  const weston = page.locator('[data-regional-station-id="weston"]');
+  await expect(weston).toHaveAttribute("tabindex", "0");
+  await weston.press("Enter");
+  await expect(page.getByRole("complementary", { name: "Weston regional station details" })).toBeVisible();
+
+  await networkSelector.getByRole("button", { name: "TTC", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Interactive GO and UP map" })).toHaveCount(0);
+});
+
 test("renders the seeded dashboard API payload", async ({ page, request, isMobile }) => {
   await setStubMode(request, "seeded");
   await openDashboardMenu(page, isMobile);

@@ -221,7 +221,7 @@ export function PlannedClosuresPanel({ selection, onSelectImpact, onBack, onClos
                               aria-label="View active alert"
                             >
                               <ImpactTypeIcon kind={activeAlertKind} size={13} />
-                              <span>Active Now</span>
+                              <span>Active now</span>
                               <ArrowRight size={13} aria-hidden="true" />
                             </button>
                           ) : (

@@ -5,7 +5,9 @@ import type { KeyboardEvent } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { DynamicBackground } from "./DynamicBackground";
-import { InteractiveTtcMap } from "./InteractiveTtcMap";
+import { NetworkMap } from "./NetworkMap";
+import { NetworkSelector } from "./NetworkSelector";
+import { RegionalStationDetailPanel } from "./RegionalStationDetailPanel";
 import { DelayIcon } from "./DelayIcon";
 import { ActiveAlertsPanel } from "./ActiveAlertsPanel";
 import { DelaysPanel } from "./DelaysPanel";
@@ -103,6 +105,12 @@ import {
   writeVisualPreferencesToStorage,
   type InitialVisualPreferences,
 } from "../app/visual-preferences";
+import {
+  DEFAULT_NETWORK_ID,
+  regionalDashboardData,
+  regionalStationSummaries,
+  type NetworkId,
+} from "../app/regional-data";
 
 
 type ActiveView = "map" | "menu" | "search" | "status" | "alerts" | "delays" | "reduced-speed-zones" | "closures" | "commutes" | "notifications" | "analytics" | "more" | "accessibility-outages" | "surface-notices" | "alert-history" | "feedback" | "privacy-acknowledgements" | "release-notes";
@@ -173,16 +181,18 @@ export function LineWatchShell({
   initialVisualPreferences?: InitialVisualPreferences;
 }) {
   const router = useRouter();
-  const [displayData, setDisplayData] = useState(initialData);
+  const [selectedNetwork, setSelectedNetwork] = useState<NetworkId>(DEFAULT_NETWORK_ID);
+  const [ttcData, setTtcData] = useState(initialData);
+  const displayData = selectedNetwork === "regional" ? regionalDashboardData : ttcData;
 
   useEffect(() => {
     if (initialData.dataSource === "backend") {
       // eslint-disable-next-line react-hooks/set-state-in-effect
-      setDisplayData(initialData);
+      setTtcData(initialData);
       return;
     }
 
-    setDisplayData((previous) => {
+    setTtcData((previous) => {
       if (previous.dataSource === "backend") {
         return previous;
       }
@@ -220,7 +230,7 @@ export function LineWatchShell({
   const [estimatedTrainsEnabled, setEstimatedTrainsEnabled] = useState(initialVisualPreferences.estimatedTrainsEnabled);
   const [estimatedTrainSnapshot, setEstimatedTrainSnapshot] = useState<EstimatedTrainSnapshot>(EMPTY_ESTIMATED_TRAIN_SNAPSHOT);
   const subwayOperatingState = useSubwayOperatingState();
-  const estimatedTrainMarkersVisible = estimatedTrainsEnabled && subwayOperatingState.status === "open";
+  const estimatedTrainMarkersVisible = selectedNetwork === "ttc" && estimatedTrainsEnabled && subwayOperatingState.status === "open";
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -415,7 +425,7 @@ export function LineWatchShell({
     setClosedMapPeek(false);
   }
 
-  const showClosedScreen = subwayOperatingState.status === "closed" && !closedMapPeek && !disclaimerVisible;
+  const showClosedScreen = selectedNetwork === "ttc" && subwayOperatingState.status === "closed" && !closedMapPeek && !disclaimerVisible;
 
 
   // Interactive linking state
@@ -1100,6 +1110,9 @@ export function LineWatchShell({
   }, []);
 
   useEffect(() => {
+    if (selectedNetwork !== "ttc") {
+      return;
+    }
     if (subwayOperatingState.status === "closed" && !closedMapPeek) {
       return;
     }
@@ -1129,11 +1142,19 @@ export function LineWatchShell({
       window.clearInterval(interval);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, [closedMapPeek, router, subwayOperatingState.status, fetchAccessibilityOutages, fetchSurfaceNoticesCount]);
+  }, [closedMapPeek, router, selectedNetwork, subwayOperatingState.status, fetchAccessibilityOutages, fetchSurfaceNoticesCount]);
 
 
   useEffect(() => {
     let cancelled = false;
+
+    if (selectedNetwork === "regional") {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setStationSummaries(regionalStationSummaries.stations);
+      setAccessibilityOutageResult(null);
+      setSurfaceNoticeCount(null);
+      return () => { cancelled = true; };
+    }
 
     getStationSummaries().then((result) => {
       if (!cancelled) {
@@ -1141,20 +1162,19 @@ export function LineWatchShell({
       }
     });
 
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchAccessibilityOutages();
     fetchSurfaceNoticesCount();
 
     return () => {
       cancelled = true;
     };
-  }, [fetchAccessibilityOutages, fetchSurfaceNoticesCount]);
+  }, [selectedNetwork, fetchAccessibilityOutages, fetchSurfaceNoticesCount]);
 
   useEffect(() => {
     let cancelled = false;
     let requestId = 0;
 
-    if (!selectedStationId) {
+    if (!selectedStationId || selectedNetwork !== "ttc") {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setVisibleStationResult(null);
       setStationLoading(false);
@@ -1202,7 +1222,7 @@ export function LineWatchShell({
       window.clearInterval(interval);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, [selectedStationId]);
+  }, [selectedNetwork, selectedStationId]);
 
   const handleToggleMenu = () => {
     if (menuPinned) {
@@ -1222,6 +1242,19 @@ export function LineWatchShell({
   const menuVisible = activeView === "menu" || menuPinned;
 
   const [stationSearchQuery, setStationSearchQuery] = useState("");
+
+  const handleNetworkChange = (network: NetworkId) => {
+    setSelectedNetwork(network);
+    setSelection(null);
+    setSelectedStationId(null);
+    setVisibleStationResult(null);
+    setClosedMapPeek(false);
+    setStationSearchQuery("");
+    setActiveView("map");
+    setMapPresentationMode("standard");
+    setMobileInspectorDetent("map-focus");
+    setMapLayoutSignal((current) => current + 1);
+  };
 
   const handleOpenSearch = () => {
     setActiveView((prev) => {
@@ -1765,10 +1798,14 @@ export function LineWatchShell({
         className={`linewatch-shell relative w-full overflow-hidden transition-colors duration-500 ${(isDark || highContrast) ? "dark bg-[#0d0808] text-slate-100" : "bg-slate-50 text-slate-900"} ${highContrast ? "high-contrast" : ""} ${reducedMotion ? "motion-paused" : ""} ${mobilePerformanceMode ? "mobile-performance-mode" : ""} ${shellInspectorClasses}`}
       >
         <h1 className="sr-only">
-          LineWatchTO TTC subway and LRT reliability dashboard
+          {selectedNetwork === "ttc" ? "LineWatchTO TTC subway and LRT reliability dashboard" : "LineWatchTO GO and UP regional rail reliability dashboard"}
         </h1>
         {/* Background */}
         <DynamicBackground reducedMotion={reducedMotion} isDark={isDark || highContrast} disabled={!dotBackgroundEnabled} />
+
+        <div className="network-selector-anchor">
+          <NetworkSelector network={selectedNetwork} onChange={handleNetworkChange} />
+        </div>
 
       {!showClosedScreen && (
       <header
@@ -2115,7 +2152,7 @@ export function LineWatchShell({
                      </span>
                    )}
                  </button>
-                 <button
+                 {selectedNetwork === "ttc" ? <button
                    ref={registerMenuAction(actionIndex++)}
                    role="menuitem"
                    onClick={() => setActiveView("accessibility-outages")}
@@ -2144,8 +2181,8 @@ export function LineWatchShell({
                        {accessibilityOutageResult.assetTypes.reduce((acc, curr) => acc + curr.count, 0)}
                      </span>
                    )}
-                 </button>
-                 <button
+                 </button> : null}
+                 {selectedNetwork === "ttc" ? <button
                    ref={registerMenuAction(actionIndex++)}
                    role="menuitem"
                    onClick={() => setActiveView("surface-notices")}
@@ -2160,7 +2197,7 @@ export function LineWatchShell({
                        {surfaceNoticeCount}
                      </span>
                    )}
-                 </button>
+                 </button> : null}
                </div>
 
                {/* Notifications */}
@@ -2394,6 +2431,7 @@ export function LineWatchShell({
                     <strong className="text-sm font-bold text-slate-800 dark:text-white">{clock.time}</strong>
                   )}
                 </div>
+                {selectedNetwork === "ttc" ? <>
                 <span className="desktop-status-divider" />
                 <div className="flex items-center gap-2">
                   <Train size={26} className="text-slate-500 dark:text-slate-400" />
@@ -2411,6 +2449,7 @@ export function LineWatchShell({
                     <span className={`absolute left-1 top-1 h-3 w-3 transform rounded-full bg-white transition-transform ${estimatedTrainsEnabled ? 'translate-x-4' : 'translate-x-0'}`} />
                   </button>
                 </div>
+                </> : null}
                 <span className="desktop-status-divider" />
                 <div className="desktop-status-poll">
                    <div className="desktop-status-live-dot" />
@@ -2436,7 +2475,7 @@ export function LineWatchShell({
               <Moon size={24} className="text-purple-500 fill-purple-500" />
             )}
           </button>
-          <button
+          {selectedNetwork === "ttc" ? <button
             onClick={() => {
               setMapPresentationMode("rotated-landscape");
               setActiveView("map");
@@ -2448,7 +2487,7 @@ export function LineWatchShell({
             <span className="text-[9px] font-black leading-[1.1] text-left uppercase tracking-wider text-slate-800 dark:text-white">
               Rotate<br />Map
             </span>
-          </button>
+          </button> : null}
           <SiteGuideDropdown onOpenChange={setGuideOpen} />
         </div>
       </header>
@@ -2459,7 +2498,8 @@ export function LineWatchShell({
 
       {/* Main Viewport (TTC Map Front & Center, Borderless) */}
       <main className={`absolute inset-0 z-auto md:z-10 ${showClosedScreen ? "subway-closed-map-backdrop" : ""}`}>
-        <InteractiveTtcMap
+        <NetworkMap
+          network={selectedNetwork}
           selection={selection}
           selectedStationId={selectedStationId}
           stations={stationSummaries}
@@ -2480,7 +2520,7 @@ export function LineWatchShell({
           estimatedTrainMarkers={estimatedTrainMarkersVisible ? estimatedTrainSnapshot.markers : []}
         />
 
-        {subwayOperatingState.status === "closed" && closedMapPeek ? (
+        {selectedNetwork === "ttc" && subwayOperatingState.status === "closed" && closedMapPeek ? (
           <div className="subway-closed-peek-chip" role="status" aria-live="polite">
             <Moon className="subway-closed-peek-icon shrink-0" size={18} strokeWidth={2.4} aria-hidden="true" />
             <div className="subway-closed-peek-text">
@@ -2519,7 +2559,7 @@ export function LineWatchShell({
         ) : null}
       </main>
 
-      {!showClosedScreen && (
+      {!showClosedScreen && selectedNetwork === "ttc" && (
         <MobileLegend
           closingSoon={subwayOperatingState.closingSoon || (subwayOperatingState.status === "closed" && closedMapPeek)}
           expanded={legendExpanded}
@@ -2527,7 +2567,7 @@ export function LineWatchShell({
         />
       )}
 
-      {!showClosedScreen && !rotatedMapMode && (
+      {!showClosedScreen && !rotatedMapMode && selectedNetwork === "ttc" && (
         <button
           type="button"
           onClick={handleToggleEstimatedTrains}
@@ -2547,7 +2587,7 @@ export function LineWatchShell({
         </button>
       )}
 
-      {!showClosedScreen && !rotatedMapMode && selectedStationId && (
+      {!showClosedScreen && !rotatedMapMode && selectedNetwork === "ttc" && selectedStationId && (
         <StationDetailPanel
           stationResult={visibleStationResult}
           loading={stationLoading}
@@ -2558,6 +2598,13 @@ export function LineWatchShell({
           reducedMotion={reducedMotion}
         />
       )}
+
+      {!showClosedScreen && !rotatedMapMode && selectedNetwork === "regional" && selectedStationId ? (
+        <RegionalStationDetailPanel
+          station={stationSummaries.find((station) => station.id === selectedStationId) ?? regionalStationSummaries.stations[0]}
+          onClose={() => setSelectedStationId(null)}
+        />
+      ) : null}
 
       {showClosedScreen ? (
         <SubwayClosedScreen
@@ -2643,7 +2690,7 @@ export function LineWatchShell({
         </aside>
 
         <aside className="desktop-map-legend fixed bottom-10 right-6 z-20 pointer-events-none">
-          <LineLegend
+          {selectedNetwork === "ttc" ? <LineLegend
             onAlertClick={() => {
               setActiveView("alerts");
               setSelection(null);
@@ -2660,7 +2707,7 @@ export function LineWatchShell({
               setActiveView("closures");
               setSelection(null);
             }}
-          />
+          /> : null}
         </aside>
       </>
       )}

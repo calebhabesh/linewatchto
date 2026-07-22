@@ -103,7 +103,7 @@ describe("mobile rotated map mode", () => {
     assert.match(mapSource, /data-overlap-chooser/);
     assert.match(mapSource, /Choose Alert/);
     assert.match(mapSource, /onSelectImpact\(\{ kind: impact\.kind, id: impact\.cardId \}\)/);
-    assert.match(shellSource, /<InteractiveTtcMap[\s\S]*onSelectImpact=\{handleMapSelectImpact\}/);
+    assert.match(shellSource, /<NetworkMap[\s\S]*onSelectImpact=\{handleMapSelectImpact\}/);
     assert.doesNotMatch(shellSource, /onSelectOverlap=\{rotatedMapMode/);
   });
 
@@ -174,14 +174,14 @@ describe("mobile rotated map mode", () => {
   });
 
   it("does not render portrait mobile detail surfaces while rotated mode is active", () => {
-    assert.match(shellSource, /!rotatedMapMode && selectedStationId/);
+    assert.match(shellSource, /!rotatedMapMode && selectedNetwork === "ttc" && selectedStationId/);
     assert.match(shellSource, /mapPresentationMode === "standard"/);
     assert.match(globalCss, /\.linewatch-shell\.mobile-map-rotated \.station-detail-panel/);
     assert.match(globalCss, /\.linewatch-shell\.mobile-map-rotated \.mobile-impact-inspector/);
   });
 
   it("hides the portrait train toggle while rotated mode is active", () => {
-    assert.match(shellSource, /!showClosedScreen && !rotatedMapMode && \(\s*<button[\s\S]*?className=\{`mobile-train-toggle/);
+    assert.match(shellSource, /!showClosedScreen && !rotatedMapMode && selectedNetwork === "ttc" && \(\s*<button[\s\S]*?className=\{`mobile-train-toggle/);
   });
 
   it("passes viewport orientation into the pan zoom hook without rotating map data", () => {
