@@ -17,6 +17,32 @@ elif [ -f "$REPO_ROOT/.env" ]; then
   set +a
 fi
 
+find_free_port() {
+  node -e '
+    const net = require("net");
+    function check(port) {
+      return new Promise((resolve) => {
+        const s = net.createServer();
+        s.once("error", () => resolve(false));
+        s.once("listening", () => { s.close(() => resolve(true)); });
+        s.listen(port, "127.0.0.1");
+      });
+    }
+    (async () => {
+      let p = parseInt(process.argv[1], 10);
+      while (!(await check(p))) { p++; }
+      process.stdout.write(String(p));
+    })();
+  ' "$1"
+}
+
+REQUESTED_SERVER_PORT="${SERVER_PORT:-${LINEWATCH_BACKEND_PORT:-8080}}"
+SERVER_PORT=$(find_free_port "$REQUESTED_SERVER_PORT")
+if [ "$SERVER_PORT" != "$REQUESTED_SERVER_PORT" ]; then
+  echo "Notice: Backend server port $REQUESTED_SERVER_PORT is currently in use. Automatically switching to next free port $SERVER_PORT."
+fi
+export SERVER_PORT
+
 : "${LINEWATCH_AUTH_PASSWORD_RESET_DEV_LINKS:=true}"
 export LINEWATCH_AUTH_PASSWORD_RESET_DEV_LINKS
 : "${LINEWATCH_AUTH_DEV_ACCOUNT_ENABLED:=true}"

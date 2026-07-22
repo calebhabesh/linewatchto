@@ -5,7 +5,32 @@ SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 REPO_ROOT=$(CDPATH= cd -- "$SCRIPT_DIR/.." && pwd)
 
 SCENARIO="${LINEWATCH_ALERT_SCENARIO:-${1:-all-alert-types}}"
-PORT="${PORT:-3001}"
+
+find_free_port() {
+  node -e '
+    const net = require("net");
+    function check(port) {
+      return new Promise((resolve) => {
+        const s = net.createServer();
+        s.once("error", () => resolve(false));
+        s.once("listening", () => { s.close(() => resolve(true)); });
+        s.listen(port, "127.0.0.1");
+      });
+    }
+    (async () => {
+      let p = parseInt(process.argv[1], 10);
+      while (!(await check(p))) { p++; }
+      process.stdout.write(String(p));
+    })();
+  ' "$1"
+}
+
+REQUESTED_PORT="${PORT:-3001}"
+PORT=$(find_free_port "$REQUESTED_PORT")
+if [ "$PORT" != "$REQUESTED_PORT" ]; then
+  echo "Notice: Port $REQUESTED_PORT is currently in use. Automatically switching to next free port $PORT."
+fi
+
 LINEWATCH_BACKEND_URL="${LINEWATCH_BACKEND_URL:-http://localhost:8082}"
 NEXT_DIST_DIR="${NEXT_DIST_DIR:-.next-scenario}"
 
