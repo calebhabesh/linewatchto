@@ -1571,6 +1571,14 @@ button {
   .desktop-map-control-rail {
     top: 96px !important;
   }
+  .regional-map-control-rail {
+    top: 96px !important;
+    right: 24px !important;
+    width: 56px !important;
+    left: auto !important;
+    transform: none !important;
+    border-radius: 12px !important;
+  }
 }
 
 @media (min-width: 1536px) {
@@ -6297,6 +6305,23 @@ button {
 
 .map-control-slider span {
   line-height: 1;
+}
+
+.regional-map-control-rail .map-control-button {
+  box-sizing: border-box;
+  height: auto !important;
+  min-height: 42px !important;
+  min-width: 0 !important;
+  padding: 6px 4px !important;
+  width: 100% !important;
+  border-radius: 8px !important;
+}
+
+.regional-map-control-rail .map-control-slider {
+  height: auto !important;
+  min-width: 0 !important;
+  padding: 4px 0 !important;
+  width: 100% !important;
 }
 
 .station-detail-panel {

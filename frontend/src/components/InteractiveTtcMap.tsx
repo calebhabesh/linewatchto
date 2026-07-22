@@ -1243,8 +1243,6 @@ function InteractiveTtcMapComponent({
           <span className="map-control-recenter-mobile-label">Center Map</span>
         </div>
 
-
-
         <div className="map-control-zoom-group">
           <div className="map-control-divider" aria-hidden="true" />
 

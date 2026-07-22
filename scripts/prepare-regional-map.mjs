@@ -27,8 +27,8 @@ function replaceElementIdForLabel(svg, label, nextId, tagNames = "g|circle|rect|
 
 function prepareRegionalMap(source) {
   let prepared = source.replace(
-    /viewBox="0 0 14471\.575 9632\.7812"/,
-    'viewBox="-200 -200 14871.575 10032.7812"',
+    /viewBox="0 0 (\d+(?:\.\d+)?) (\d+(?:\.\d+)?)"/,
+    (_match, w, h) => `viewBox="-200 -200 ${parseFloat(w) + 400} ${parseFloat(h) + 400}"`,
   );
   if (prepared === source) {
     throw new Error("The expected authoring viewBox was not found.");

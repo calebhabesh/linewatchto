@@ -7,8 +7,8 @@ import { REGIONAL_ROUTE_DEFINITIONS } from "../app/regional-data";
 import { useDashboardData } from "../app/DataContext";
 import { currentDevicePixelRatio, snapTransformToDevicePixels } from "../hooks/panZoomMath";
 
-const MAP_WIDTH = 4461.4725;
-const MAP_HEIGHT = 3009.83436;
+const MAP_WIDTH = 4739.2821;
+const MAP_HEIGHT = 2616.8174;
 const MIN_SCALE = 0.1;
 const MAX_SCALE = 1.6;
 
@@ -42,23 +42,50 @@ export function InteractiveRegionalMap({
   const [camera, setCamera] = useState<Camera>({ x: 0, y: 0, scale: 0.7 });
   const [loadError, setLoadError] = useState(false);
   const [dragging, setDragging] = useState(false);
+  const [fitScale, setFitScale] = useState(0.35);
+  const [mapTransition, setMapTransition] = useState<string>("none");
+  const animTimeoutRef = useRef<number | null>(null);
 
-  const [fitScale, setFitScale] = useState(0.233);
+  const animateCameraTo = useCallback((targetCamera: Camera, nextFitScale?: number) => {
+    if (nextFitScale !== undefined) {
+      setFitScale(nextFitScale);
+    }
+    if (reducedMotion) {
+      setCamera(targetCamera);
+      return;
+    }
+    if (animTimeoutRef.current !== null) {
+      window.clearTimeout(animTimeoutRef.current);
+    }
+    setMapTransition("transform 0.8s cubic-bezier(0.25, 1, 0.5, 1)");
+    setCamera(targetCamera);
+    animTimeoutRef.current = window.setTimeout(() => {
+      animTimeoutRef.current = null;
+      setMapTransition("none");
+    }, 850);
+  }, [reducedMotion]);
+
+  useEffect(() => {
+    return () => {
+      if (animTimeoutRef.current !== null) {
+        window.clearTimeout(animTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const fitNetwork = useCallback(() => {
     const viewport = viewportRef.current;
     if (!viewport) return;
     const width = viewport.clientWidth;
     const height = viewport.clientHeight;
-    const scale = Math.max(MIN_SCALE, Math.min(1, Math.min(width / MAP_WIDTH, height / MAP_HEIGHT) * 0.92));
+    const scale = Math.max(MIN_SCALE, Math.min(1.6, Math.min(width / MAP_WIDTH, height / MAP_HEIGHT) * 0.90));
     cameraInitializedRef.current = true;
-    setFitScale(scale);
-    setCamera(snapCameraToDevicePixels({
+    animateCameraTo(snapCameraToDevicePixels({
       x: (width - MAP_WIDTH * scale) / 2,
-      y: (height - MAP_HEIGHT * scale) / 2 + 40,
+      y: (height - MAP_HEIGHT * scale) / 2,
       scale,
-    }));
-  }, []);
+    }), scale);
+  }, [animateCameraTo]);
 
   useEffect(() => {
     let cancelled = false;
@@ -299,42 +326,42 @@ export function InteractiveRegionalMap({
             bottom: "auto",
             transform: `translate(${camera.x}px, ${camera.y}px) scale(${camera.scale})`,
             transformOrigin: "0 0",
-            transition: reducedMotion || dragging ? "none" : "transform 0.1s ease-out",
+            transition: reducedMotion || dragging ? "none" : mapTransition !== "none" ? mapTransition : "transform 0.1s ease-out",
           }}
           dangerouslySetInnerHTML={{ __html: svgMarkup }}
         />
       </div>
-      {/* Top center map controls matching TTC map structure */}
-      <div className="map-control-rail desktop-map-control-rail absolute top-14 sm:top-[92px] left-1/2 -translate-x-1/2 z-30 flex flex-row items-center justify-center gap-1 sm:gap-2 pointer-events-auto">
-        <div className="map-control-recenter-container">
+      {/* Regional map controls positioned vertically on right side centered below top-right info button */}
+      <div className="map-control-rail regional-map-control-rail absolute top-20 sm:top-[96px] right-4 sm:right-6 z-30 w-10 sm:w-14 flex flex-col items-center justify-center gap-1.5 py-2 px-1 rounded-xl pointer-events-auto">
+        <div className="map-control-recenter-container flex flex-col items-center w-full">
           <button
             type="button"
             onClick={fitNetwork}
-            className="map-control-button group"
+            className="map-control-button group w-full flex flex-col items-center justify-center py-1 rounded-lg hover:bg-slate-900/10 dark:hover:bg-white/10 transition-colors"
             title="Fit regional network"
             aria-label="Fit regional network"
           >
-            <Locate size={20} className="group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors" />
-            <span className="map-control-recenter-desktop-label text-[10px] font-black uppercase tracking-widest group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">Center</span>
+            <Locate size={18} className="group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors" />
+            <span className="map-control-recenter-desktop-label text-[9px] font-black uppercase tracking-wider group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors mt-0.5 leading-none">Center</span>
           </button>
           <span className="map-control-recenter-mobile-label">Center Map</span>
         </div>
 
-        <div className="map-control-zoom-group">
-          <div className="map-control-divider" aria-hidden="true" />
+        <div className="w-8 h-[1px] bg-slate-900/15 dark:bg-white/20 my-0.5" aria-hidden="true" />
 
+        <div className="map-control-zoom-group flex flex-col items-center w-full gap-1.5">
           <button
             type="button"
-            onClick={() => zoomAtCenter(0.85)}
-            className="map-control-button group"
-            title="Zoom out"
-            aria-label="Zoom out"
+            onClick={() => zoomAtCenter(1.18)}
+            className="map-control-button group w-full flex flex-col items-center justify-center py-1 rounded-lg hover:bg-slate-900/10 dark:hover:bg-white/10 transition-colors"
+            title="Zoom in"
+            aria-label="Zoom in"
           >
-            <ZoomOut size={20} className="group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors" />
-            <span className="text-[10px] font-black uppercase tracking-widest group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">Out</span>
+            <ZoomIn size={18} className="group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors" />
+            <span className="text-[9px] font-black uppercase tracking-wider group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors mt-0.5 leading-none">In</span>
           </button>
 
-          <div className="map-control-slider flex flex-col items-center justify-center gap-1.5 mx-0.5 sm:mx-1">
+          <div className="map-control-slider flex flex-col items-center justify-center gap-1 my-0.5 w-full">
             <input
               type="range"
               min={MIN_SCALE}
@@ -342,24 +369,24 @@ export function InteractiveRegionalMap({
               step="0.05"
               value={camera.scale}
               onChange={(e) => zoomToScale(parseFloat(e.target.value))}
-              className="w-16 md:w-20 accent-slate-900 dark:accent-white hover:accent-blue-600 dark:hover:accent-blue-400 cursor-pointer h-1.5 rounded-lg appearance-none bg-slate-900/20 dark:bg-white/30 transition-all outline-none"
+              className="h-16 w-1.5 accent-slate-900 dark:accent-white hover:accent-blue-600 dark:hover:accent-blue-400 cursor-pointer rounded-lg appearance-none bg-slate-900/20 dark:bg-white/30 transition-all outline-none [writing-mode:vertical-lr] [direction:rtl]"
               title="Zoom level"
               aria-label="Zoom level slider"
             />
-            <span className="text-[10px] font-mono font-black select-none tracking-wider">
-              {Math.round((camera.scale / (fitScale || 0.233)) * 100)}%
+            <span className="text-[9px] font-mono font-black select-none tracking-tight leading-none">
+              {Math.round((camera.scale / (fitScale || 0.35)) * 100)}%
             </span>
           </div>
 
           <button
             type="button"
-            onClick={() => zoomAtCenter(1.18)}
-            className="map-control-button group"
-            title="Zoom in"
-            aria-label="Zoom in"
+            onClick={() => zoomAtCenter(0.85)}
+            className="map-control-button group w-full flex flex-col items-center justify-center py-1 rounded-lg hover:bg-slate-900/10 dark:hover:bg-white/10 transition-colors"
+            title="Zoom out"
+            aria-label="Zoom out"
           >
-            <ZoomIn size={20} className="group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors" />
-            <span className="text-[10px] font-black uppercase tracking-widest group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">In</span>
+            <ZoomOut size={18} className="group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors" />
+            <span className="text-[9px] font-black uppercase tracking-wider group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors mt-0.5 leading-none">Out</span>
           </button>
         </div>
       </div>
