@@ -60,10 +60,15 @@ describe("network-scoped regional dashboard", () => {
     assert.match(shellSource, /selectedNetwork === "ttc" && estimatedTrainsEnabled/);
   });
 
-  it("distinguishes route-wide, station-node, and explicit segment impacts", () => {
-    assert.deepEqual(regionalDashboardData.activeAlerts[0].affectedSegmentIds, []);
-    assert.equal(regionalDashboardData.stationNodeImpacts[0].stationId, "unionville");
-    assert.deepEqual(regionalDashboardData.delays[0].affectedSegmentIds, ["segment-ki-weston-mount-dennis"]);
+  it("does not invent current disruptions in regional fallback mode", () => {
+    assert.deepEqual(regionalDashboardData.activeAlerts, []);
+    assert.deepEqual(regionalDashboardData.delays, []);
+    assert.deepEqual(regionalDashboardData.plannedClosures, []);
+    assert.deepEqual(regionalDashboardData.stationNodeImpacts, []);
+    assert.ok(regionalDashboardData.networkSegments.every((segment) => segment.overlay === "clear"));
+  });
+
+  it("retains route-wide, station-node, and explicit segment overlay plumbing", () => {
     assert.match(regionalMapSource, /item\.affectedSegmentIds\.length === 0/);
     assert.match(regionalMapSource, /segment\.guidePathId/);
     assert.match(regionalMapSource, /stationNodeImpacts/);
@@ -74,5 +79,23 @@ describe("network-scoped regional dashboard", () => {
     assert.match(regionalMapSource, /onPointerDown=\{onPointerDown\}/);
     assert.match(regionalMapSource, /event\.key !== "Enter" && event\.key !== " "/);
     assert.match(regionalMapSource, /aria-label="Fit regional network"/);
+  });
+
+  it("zooms through the SVG viewBox so vector geometry is rasterized at final resolution", () => {
+    assert.match(regionalMapSource, /snapCameraToDevicePixels/);
+    assert.match(regionalMapSource, /root\.setAttribute\("viewBox"/);
+    assert.match(regionalMapSource, /root\.setAttribute\("preserveAspectRatio", "xMidYMid meet"\)/);
+    assert.doesNotMatch(regionalMapSource, /style=\{\{[^}]*scale\(/s);
+    assert.doesNotMatch(regionalMapSource, /translate3d\(/);
+  });
+
+  it("preserves the current camera when the dashboard viewport resizes", () => {
+    assert.doesNotMatch(regionalMapSource, /new ResizeObserver\(fitNetwork\)/);
+    assert.match(regionalMapSource, /x: current\.x \+ \(width - previous\.width\) \/ 2/);
+    assert.match(regionalMapSource, /y: current\.y \+ \(height - previous\.height\) \/ 2/);
+  });
+
+  it("does not refit an initialized camera when refreshed dashboard data rebuilds the SVG", () => {
+    assert.match(regionalMapSource, /if \(!cameraInitializedRef\.current\)\s*{\s*window\.requestAnimationFrame\(\(\) =>\s*{\s*if \(!cameraInitializedRef\.current\) fitNetwork\(\)/s);
   });
 });

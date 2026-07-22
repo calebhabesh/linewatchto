@@ -13,7 +13,7 @@ The current app is a full-stack dashboard demo with graceful local-fixture fallb
 Implemented now:
 
 - Dark, map-first Next.js dashboard.
-- Fixture-backed GO/UP network mode with a network-scoped TTC / GO & UP selector, a custom interactive regional schematic, all eight rail corridors and 72 logical stations, regional-only station search, route/station/segment impact examples, and explicit demo-source messaging. Regional realtime ingestion is not implemented and this mode must not be treated as live service information.
+- Fixture-backed GO/UP network mode with a network-scoped TTC / GO & UP selector, a custom interactive regional schematic, all eight rail corridors and 72 logical stations, regional-only station search, route/station/segment overlay plumbing, and explicit demo-source messaging. The default regional fixture does not invent current disruptions. Regional realtime ingestion is not implemented and this mode must not be treated as live service information.
 - Opt-in estimated train markers can display schematic train blips on the TTC-style map when the live subway GTFS-RT arrival provider has a fresh mapped snapshot. These markers are inferred from trip updates, line topology, and segment travel-time estimates; they are not physical train positions.
 - Global accessibility outages panel with elevator and escalator drill-downs grouped by TTC transit line and station, showing relative update times, station detail link, and custom icons.
 - Searchable surface service notices panel with category filters (detours, bypasses, service changes, notices) and debounced route/stop search queries.

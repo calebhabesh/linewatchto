@@ -250,7 +250,7 @@ export function usePanZoom({
                 if (prevTransform.scale === 1 && prevFit === 1) {
                   const next = snapTransformToDevicePixels({
                     x: width / 2 - (mapWidth / 2) * targetAbsolute,
-                    y: height / 2 - (mapHeight * 0.435) * targetAbsolute,
+                    y: height / 2 - (mapHeight * 0.38) * targetAbsolute,
                     scale: targetAbsolute
                   }, currentDevicePixelRatio());
                   transformRef.current = next;
@@ -551,9 +551,9 @@ export function usePanZoom({
     // Scale to fit exactly within the viewport
     const scale = computeMapFitScale(width, height, mapWidth, mapHeight);
     
-    // Center offsets based on visual content midpoint (x = 50%, y = 43.5% of map height)
+    // Center offsets based on visual content midpoint (x = 50%, y = 38% of map height)
     const x = width / 2 - (mapWidth / 2) * scale;
-    const y = height / 2 - (mapHeight * 0.435) * scale;
+    const y = height / 2 - (mapHeight * 0.38) * scale;
     
     animateTransformTo({ x, y, scale }, scale);
   }, [animateTransformTo, logicalViewportSize]);

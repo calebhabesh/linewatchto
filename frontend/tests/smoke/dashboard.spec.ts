@@ -201,7 +201,7 @@ test("switches the complete dashboard to the fixture-backed regional network", a
 
   const networkSelector = page.getByRole("group", { name: "Select transit network" });
   await expect(networkSelector.getByRole("button", { name: "TTC", exact: true })).toHaveAttribute("aria-pressed", "true");
-  await networkSelector.getByRole("button", { name: "GO & UP", exact: true }).click();
+  await networkSelector.getByRole("button", { name: "GO/UP", exact: true }).click();
 
   await expect(page.getByRole("region", { name: "Interactive GO and UP map" })).toBeVisible();
   await expect(page.getByText("Demo fixture — not live service information", { exact: true })).toBeVisible();
@@ -1795,17 +1795,13 @@ test("manages push notification preferences on mobile", async ({ page, request, 
   await expect(page.getByRole("navigation", { name: "Primary mobile navigation" }).getByRole("button", { name: "Notifications" })).toHaveCount(0);
 });
 
-test("renders estimated train markers only after the layer is enabled", async ({ page, request, isMobile }) => {
+test("renders estimated train markers only after the layer is enabled", async ({ page, request }) => {
   await setStubMode(request, "seeded");
   await page.goto("/");
   await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
   await expect(page.locator(".estimated-train-marker-core")).toHaveCount(0);
 
-  if (isMobile) {
-    await page.getByRole("button", { name: "Toggle live train markers" }).click();
-  } else {
-    await page.getByRole("checkbox", { name: "Toggle estimated train markers" }).click();
-  }
+  await page.getByRole("button", { name: "Toggle live train markers" }).click();
 
   await expect(page.locator(".estimated-train-marker-core")).toHaveCount(1);
   await expect(page.locator('[data-train-marker-line-id="line-1"]')).toBeVisible();

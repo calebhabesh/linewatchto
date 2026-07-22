@@ -61,7 +61,19 @@ function prepareRegionalMap(source) {
   }
   prepared = replaceElementIdForLabel(prepared, "LW-1", "regional-route-lw-main-path", "path");
   prepared = replaceElementIdForLabel(prepared, "LW-2", "regional-route-lw-branch-path", "path");
+  prepared = replaceElementIdForLabel(prepared, "LW-DIV", "regional-route-lw-div");
   prepared = prepared.replace('inkscape:label="service-pattern-st-limited"', 'inkscape:label="service-pattern-stouffville-limited"');
+
+  let ttcLineBadgeCount = 0;
+  prepared = prepared.replace(/<g(?=[^>]*inkscape:label="line-[125]")[^>]*>/g, (tag) => {
+    ttcLineBadgeCount += 1;
+    return tag.includes('class="')
+      ? tag.replace(/class="([^"]*)"/, 'class="$1 regional-ttc-line-badge"')
+      : tag.replace("<g", '<g class="regional-ttc-line-badge"');
+  });
+  if (ttcLineBadgeCount !== 6) {
+    throw new Error(`Expected 6 TTC line-number badges; found ${ttcLineBadgeCount}.`);
+  }
 
   const segmentGuides = `<g id="regional-segment-guides-layer" style="display:none">
     <path id="segment-guide-ki-weston-mount-dennis" d="M 3888.5286,2466.7061 C 4140,2466.7061 4400,2785 4657.3393,2905.7143" />

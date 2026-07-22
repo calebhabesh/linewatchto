@@ -1436,6 +1436,7 @@ export function LineWatchShell({
     setDotBackgroundEnabled((current) => !current);
   }, []);
 
+  // Live Train Markers toggle handler
   const handleToggleEstimatedTrains = useCallback(() => {
     setEstimatedTrainsEnabled((current) => !current);
   }, [setEstimatedTrainsEnabled]);
@@ -1802,10 +1803,6 @@ export function LineWatchShell({
         </h1>
         {/* Background */}
         <DynamicBackground reducedMotion={reducedMotion} isDark={isDark || highContrast} disabled={!dotBackgroundEnabled} />
-
-        <div className="network-selector-anchor">
-          <NetworkSelector network={selectedNetwork} onChange={handleNetworkChange} />
-        </div>
 
       {!showClosedScreen && (
       <header
@@ -2431,25 +2428,6 @@ export function LineWatchShell({
                     <strong className="text-sm font-bold text-slate-800 dark:text-white">{clock.time}</strong>
                   )}
                 </div>
-                {selectedNetwork === "ttc" ? <>
-                <span className="desktop-status-divider" />
-                <div className="flex items-center gap-2">
-                  <Train size={26} className="text-slate-500 dark:text-slate-400" />
-                  <span className="flex flex-col leading-tight text-left">
-                    <span className="text-xs font-bold text-slate-700 dark:text-slate-200 whitespace-nowrap">Live Train Markers</span>
-                    <span className="text-[10px] font-normal text-slate-500 dark:text-slate-400">{estimatedTrainStatusLabel}</span>
-                  </span>
-                  <button
-                     role="checkbox"
-                     aria-checked={estimatedTrainsEnabled}
-                     aria-label="Toggle estimated train markers"
-                     onClick={handleToggleEstimatedTrains}
-                     className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors shrink-0 ${estimatedTrainsEnabled ? 'bg-emerald-600 dark:bg-emerald-500' : 'bg-slate-200 dark:bg-slate-800'}`}
-                  >
-                    <span className={`absolute left-1 top-1 h-3 w-3 transform rounded-full bg-white transition-transform ${estimatedTrainsEnabled ? 'translate-x-4' : 'translate-x-0'}`} />
-                  </button>
-                </div>
-                </> : null}
                 <span className="desktop-status-divider" />
                 <div className="desktop-status-poll">
                    <div className="desktop-status-live-dot" />
@@ -2457,6 +2435,8 @@ export function LineWatchShell({
                       Last Polled: {pollText.toLowerCase() === "just now" ? "Just Now" : pollText}
                    </span>
                 </div>
+                <span className="desktop-status-divider" />
+                <NetworkSelector network={selectedNetwork} onChange={handleNetworkChange} />
               </div>
             </div>
           </div>
@@ -2578,7 +2558,7 @@ export function LineWatchShell({
               : ""
           } ${estimatedTrainsEnabled ? "active" : ""}`}
           aria-pressed={estimatedTrainsEnabled}
-          aria-label="Toggle live train markers"
+          aria-label={`Toggle live train markers (${estimatedTrainStatusLabel})`}
         >
           <Train size={16} />
           <span>

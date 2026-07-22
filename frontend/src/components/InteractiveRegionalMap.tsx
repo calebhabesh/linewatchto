@@ -1,50 +1,64 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent, type WheelEvent } from "react";
-import { Locate, Minus, Plus } from "lucide-react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent, type WheelEvent } from "react";
+import { Locate, ZoomIn, ZoomOut } from "lucide-react";
 import type { ImpactSelection } from "../app/linewatch-data";
 import { REGIONAL_ROUTE_DEFINITIONS } from "../app/regional-data";
 import { useDashboardData } from "../app/DataContext";
+import { currentDevicePixelRatio, snapTransformToDevicePixels } from "../hooks/panZoomMath";
 
-const MAP_WIDTH = 1487.1575;
-const MAP_HEIGHT = 1003.27812;
-const MIN_SCALE = 0.42;
-const MAX_SCALE = 3.2;
+const MAP_WIDTH = 4461.4725;
+const MAP_HEIGHT = 3009.83436;
+const MIN_SCALE = 0.1;
+const MAX_SCALE = 1.6;
+const SVG_VIEWBOX_X = -200;
+const SVG_VIEWBOX_Y = -200;
+const SVG_UNITS_PER_STAGE_PIXEL = 1 / 0.3;
 
 type Camera = { x: number; y: number; scale: number };
+
+function snapCameraToDevicePixels(camera: Camera): Camera {
+  return snapTransformToDevicePixels(camera, currentDevicePixelRatio());
+}
 
 export function InteractiveRegionalMap({
   selection,
   onSelectImpact,
   selectedStationId,
   onSelectStationId,
-  reducedMotion,
   recenterSignal,
 }: {
   selection: ImpactSelection;
   onSelectImpact: (selection: ImpactSelection) => void;
   selectedStationId: string | null;
   onSelectStationId: (id: string | null) => void;
-  reducedMotion: boolean;
   recenterSignal?: number;
 }) {
   const { activeAlerts, networkSegments, stationNodeImpacts } = useDashboardData();
   const viewportRef = useRef<HTMLDivElement>(null);
+  const viewportSizeRef = useRef<{ width: number; height: number } | null>(null);
+  const cameraInitializedRef = useRef(false);
   const dragRef = useRef<{ pointerId: number; x: number; y: number; camera: Camera } | null>(null);
   const [svgMarkup, setSvgMarkup] = useState("");
   const [camera, setCamera] = useState<Camera>({ x: 0, y: 0, scale: 0.7 });
   const [loadError, setLoadError] = useState(false);
-  const [dragging, setDragging] = useState(false);
+
+  const [fitScale, setFitScale] = useState(0.233);
 
   const fitNetwork = useCallback(() => {
     const viewport = viewportRef.current;
     if (!viewport) return;
-    const scale = Math.max(MIN_SCALE, Math.min(1, Math.min(viewport.clientWidth / MAP_WIDTH, viewport.clientHeight / MAP_HEIGHT) * 0.92));
-    setCamera({
-      x: (viewport.clientWidth - MAP_WIDTH * scale) / 2,
-      y: (viewport.clientHeight - MAP_HEIGHT * scale) / 2,
+    const width = viewport.clientWidth;
+    const height = viewport.clientHeight;
+    const scale = Math.max(MIN_SCALE, Math.min(1, Math.min(width / MAP_WIDTH, height / MAP_HEIGHT) * 0.92));
+    cameraInitializedRef.current = true;
+    viewportSizeRef.current = { width, height };
+    setFitScale(scale);
+    setCamera(snapCameraToDevicePixels({
+      x: (width - MAP_WIDTH * scale) / 2,
+      y: (height - MAP_HEIGHT * scale) / 2 + 40,
       scale,
-    });
+    }));
   }, []);
 
   useEffect(() => {
@@ -125,14 +139,34 @@ export function InteractiveRegionalMap({
           stationVisual.before(ring);
         }
         const root = documentNode.documentElement;
+        root.removeAttribute("width");
+        root.removeAttribute("height");
+        root.setAttribute("preserveAspectRatio", "xMidYMid meet");
         root.setAttribute("aria-label", "GO and UP regional rail schematic");
         root.setAttribute("role", "img");
         setSvgMarkup(new XMLSerializer().serializeToString(root));
-        window.requestAnimationFrame(fitNetwork);
+        if (!cameraInitializedRef.current) {
+          window.requestAnimationFrame(() => {
+            if (!cameraInitializedRef.current) fitNetwork();
+          });
+        }
       })
       .catch(() => setLoadError(true));
     return () => { cancelled = true; };
   }, [activeAlerts, fitNetwork, networkSegments, stationNodeImpacts]);
+
+  useLayoutEffect(() => {
+    const viewport = viewportRef.current;
+    const root = viewport?.querySelector<SVGSVGElement>(".regional-map-stage > svg");
+    if (!viewport || !root || camera.scale <= 0) return;
+
+    const svgUnitsPerViewportPixel = SVG_UNITS_PER_STAGE_PIXEL / camera.scale;
+    const viewBoxX = SVG_VIEWBOX_X - camera.x * svgUnitsPerViewportPixel;
+    const viewBoxY = SVG_VIEWBOX_Y - camera.y * svgUnitsPerViewportPixel;
+    const viewBoxWidth = viewport.clientWidth * svgUnitsPerViewportPixel;
+    const viewBoxHeight = viewport.clientHeight * svgUnitsPerViewportPixel;
+    root.setAttribute("viewBox", `${viewBoxX} ${viewBoxY} ${viewBoxWidth} ${viewBoxHeight}`);
+  }, [camera, svgMarkup]);
 
   useEffect(() => {
     if (recenterSignal === undefined) return;
@@ -142,7 +176,26 @@ export function InteractiveRegionalMap({
   useEffect(() => {
     const viewport = viewportRef.current;
     if (!viewport) return;
-    const observer = new ResizeObserver(fitNetwork);
+    const observer = new ResizeObserver(() => {
+      const width = viewport.clientWidth;
+      const height = viewport.clientHeight;
+      const previous = viewportSizeRef.current;
+      viewportSizeRef.current = { width, height };
+
+      if (!previous) {
+        fitNetwork();
+        return;
+      }
+      if (previous.width === width && previous.height === height) return;
+
+      const nextFitScale = Math.max(MIN_SCALE, Math.min(1, Math.min(width / MAP_WIDTH, height / MAP_HEIGHT) * 0.92));
+      setFitScale(nextFitScale);
+      setCamera((current) => snapCameraToDevicePixels({
+        ...current,
+        x: current.x + (width - previous.width) / 2,
+        y: current.y + (height - previous.height) / 2,
+      }));
+    });
     observer.observe(viewport);
     return () => observer.disconnect();
   }, [fitNetwork]);
@@ -172,7 +225,27 @@ export function InteractiveRegionalMap({
     setCamera((current) => {
       const nextScale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, current.scale * factor));
       const ratio = nextScale / current.scale;
-      return { x: centerX - (centerX - current.x) * ratio, y: centerY - (centerY - current.y) * ratio, scale: nextScale };
+      return snapCameraToDevicePixels({
+        x: centerX - (centerX - current.x) * ratio,
+        y: centerY - (centerY - current.y) * ratio,
+        scale: nextScale,
+      });
+    });
+  }, []);
+
+  const zoomToScale = useCallback((targetScale: number) => {
+    const viewport = viewportRef.current;
+    if (!viewport) return;
+    const centerX = viewport.clientWidth / 2;
+    const centerY = viewport.clientHeight / 2;
+    setCamera((current) => {
+      const nextScale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, targetScale));
+      const ratio = nextScale / current.scale;
+      return snapCameraToDevicePixels({
+        x: centerX - (centerX - current.x) * ratio,
+        y: centerY - (centerY - current.y) * ratio,
+        scale: nextScale,
+      });
     });
   }, []);
 
@@ -185,19 +258,21 @@ export function InteractiveRegionalMap({
     if (event.button !== 0) return;
     event.currentTarget.setPointerCapture(event.pointerId);
     dragRef.current = { pointerId: event.pointerId, x: event.clientX, y: event.clientY, camera };
-    setDragging(true);
   }, [camera]);
 
   const onPointerMove = useCallback((event: PointerEvent<HTMLDivElement>) => {
     const drag = dragRef.current;
     if (!drag || drag.pointerId !== event.pointerId) return;
-    setCamera({ ...drag.camera, x: drag.camera.x + event.clientX - drag.x, y: drag.camera.y + event.clientY - drag.y });
+    setCamera(snapCameraToDevicePixels({
+      ...drag.camera,
+      x: drag.camera.x + event.clientX - drag.x,
+      y: drag.camera.y + event.clientY - drag.y,
+    }));
   }, []);
 
   const onPointerUp = useCallback((event: PointerEvent<HTMLDivElement>) => {
     if (dragRef.current?.pointerId === event.pointerId) {
       dragRef.current = null;
-      setDragging(false);
     }
   }, []);
 
@@ -241,14 +316,67 @@ export function InteractiveRegionalMap({
         {loadError ? <p role="alert" className="regional-map-error">Regional map could not be loaded.</p> : null}
         <div
           className="regional-map-stage"
-          style={{ transform: `translate3d(${camera.x}px, ${camera.y}px, 0) scale(${camera.scale})`, transition: reducedMotion || dragging ? "none" : "transform 160ms ease-out" }}
           dangerouslySetInnerHTML={{ __html: svgMarkup }}
         />
       </div>
-      <div className="regional-map-controls" aria-label="Regional map controls">
-        <button type="button" onClick={() => zoomAtCenter(1.2)} aria-label="Zoom in"><Plus /></button>
-        <button type="button" onClick={() => zoomAtCenter(0.8)} aria-label="Zoom out"><Minus /></button>
-        <button type="button" onClick={fitNetwork} aria-label="Fit regional network"><Locate /></button>
+      {/* Top center map controls matching TTC map structure */}
+      <div className="map-control-rail desktop-map-control-rail absolute top-14 sm:top-[92px] left-1/2 -translate-x-1/2 z-30 flex flex-row items-center justify-center gap-1 sm:gap-2 pointer-events-auto">
+        <div className="map-control-recenter-container">
+          <button
+            type="button"
+            onClick={fitNetwork}
+            className="map-control-button group"
+            title="Fit regional network"
+            aria-label="Fit regional network"
+          >
+            <Locate size={20} className="group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors" />
+            <span className="map-control-recenter-desktop-label text-[10px] font-black uppercase tracking-widest group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">Center</span>
+          </button>
+          <span className="map-control-recenter-mobile-label">Center Map</span>
+        </div>
+
+        <div className="map-control-zoom-group">
+          <div className="map-control-divider" aria-hidden="true" />
+
+          <button
+            type="button"
+            onClick={() => zoomAtCenter(0.85)}
+            className="map-control-button group"
+            title="Zoom out"
+            aria-label="Zoom out"
+          >
+            <ZoomOut size={20} className="group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors" />
+            <span className="text-[10px] font-black uppercase tracking-widest group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">Out</span>
+          </button>
+
+          <div className="map-control-slider flex flex-col items-center justify-center gap-1.5 mx-0.5 sm:mx-1">
+            <input
+              type="range"
+              min={MIN_SCALE}
+              max={MAX_SCALE}
+              step="0.05"
+              value={camera.scale}
+              onChange={(e) => zoomToScale(parseFloat(e.target.value))}
+              className="w-16 md:w-20 accent-slate-900 dark:accent-white hover:accent-blue-600 dark:hover:accent-blue-400 cursor-pointer h-1.5 rounded-lg appearance-none bg-slate-900/20 dark:bg-white/30 transition-all outline-none"
+              title="Zoom level"
+              aria-label="Zoom level slider"
+            />
+            <span className="text-[10px] font-mono font-black select-none tracking-wider">
+              {Math.round((camera.scale / (fitScale || 0.233)) * 100)}%
+            </span>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => zoomAtCenter(1.18)}
+            className="map-control-button group"
+            title="Zoom in"
+            aria-label="Zoom in"
+          >
+            <ZoomIn size={20} className="group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors" />
+            <span className="text-[10px] font-black uppercase tracking-widest group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">In</span>
+          </button>
+        </div>
       </div>
       <aside className="regional-map-legend panel" aria-label="Regional rail legend">
         <strong>GO &amp; UP corridors</strong>

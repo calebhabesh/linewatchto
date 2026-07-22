@@ -1,5 +1,5 @@
 import type { DashboardData } from "./DataContext";
-import type { LineStatus, NetworkSegment, Station, StationNodeImpact } from "./linewatch-data";
+import type { LineStatus, NetworkSegment, Station } from "./linewatch-data";
 import type { StationListResponse } from "./station-data";
 
 export type NetworkId = "ttc" | "regional";
@@ -88,7 +88,7 @@ export const regionalStationSummaries: StationListResponse = {
     mapY: 0,
     interchange: station.interchange ?? false,
     lineIds: routeIdsByStation[station.id] ?? [],
-    hasActiveImpact: station.id === "unionville",
+    hasActiveImpact: false,
     accessStatus: "normal",
     accessOutageCounts: { elevator: 0, escalator: 0 },
   })),
@@ -100,8 +100,8 @@ const regionalLineStatuses: LineStatus[] = REGIONAL_ROUTE_DEFINITIONS.map((route
   name: route.name,
   route: `${route.name} corridor`,
   color: route.color,
-  status: route.number === "KI" ? "delay" : route.number === "ST" ? "planned" : "normal",
-  statusLabel: route.number === "KI" ? "Delay demo" : route.number === "ST" ? "Planned change demo" : "Good service demo",
+  status: "normal",
+  statusLabel: "No current regional fixture impacts",
   summary: "Fixture-backed regional status for interface development.",
   updatedAgo: "Demo fixture",
 }));
@@ -117,8 +117,7 @@ const regionalSegments: NetworkSegment[] = [
     stationBAnchorId: REGIONAL_JUNCTION_ANCHORS["mount-dennis"].KI,
     guidePathId: "segment-guide-ki-weston-mount-dennis",
     pathD: "",
-    overlay: "delay",
-    impacts: [{ kind: "delay", cardId: "regional-delay-ki", travelDirection: "bidirectional", sourceAlertIds: ["regional-fixture-ki"] }],
+    overlay: "clear",
   },
   {
     id: "segment-up-weston-pearson-airport",
@@ -146,13 +145,6 @@ const regionalSegments: NetworkSegment[] = [
   },
 ];
 
-const regionalStationNodeImpacts: StationNodeImpact[] = [{
-  stationId: "unionville",
-  kind: "planned-closure",
-  cardId: "regional-planned-st",
-  title: "Unionville station service change demo",
-}];
-
 export const regionalDashboardData: DashboardData = {
   networkId: "regional",
   dataSource: "fallback",
@@ -160,42 +152,11 @@ export const regionalDashboardData: DashboardData = {
   stations: regionalStations,
   lineStatuses: regionalLineStatuses,
   generatedAt: { time: "Fixture mode", date: "Local regional demo", live: false, lastPoll: "regional fixture mode" },
-  activeAlerts: [{
-    id: "regional-alert-lw",
-    lineId: "regional-lw",
-    lineNumber: "LW",
-    title: "Route-wide service suspension demo",
-    severity: "suspension",
-    location: "Lakeshore West corridor",
-    description: "Fixture-only route-wide impact used to develop the regional dashboard. Not live service information.",
-    affectedSegmentIds: [],
-    shuttle: false,
-    source: "LineWatchTO regional demo fixture",
-  }],
-  delays: [{
-    id: "regional-delay-ki",
-    lineId: "regional-ki",
-    lineNumber: "KI",
-    title: "Segment delay demo",
-    location: "Weston to Mount Dennis",
-    description: "Fixture-only segment impact used to verify route-specific KI anchors.",
-    affectedSegmentIds: ["segment-ki-weston-mount-dennis"],
-    source: "LineWatchTO regional demo fixture",
-  }],
+  activeAlerts: [],
+  delays: [],
   reducedSpeedZones: [],
-  plannedClosures: [{
-    id: "regional-planned-st",
-    lineId: "regional-st",
-    lineNumber: "ST",
-    title: "Station service change demo",
-    window: "Demo fixture",
-    location: "Unionville",
-    description: "Fixture-only station impact used to develop planned-change interactions.",
-    previewSegmentIds: [],
-    shuttle: false,
-    source: "LineWatchTO regional demo fixture",
-  }],
-  stationNodeImpacts: regionalStationNodeImpacts,
+  plannedClosures: [],
+  stationNodeImpacts: [],
   commuteImpacts: [],
   reliabilitySummaries: [],
   ttcPerformance: {
