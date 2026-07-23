@@ -81,12 +81,34 @@ describe("network-scoped regional dashboard", () => {
     assert.match(regionalMapSource, /aria-label="Fit regional network"/);
   });
 
+  it("matches the TTC map fitted zoom range and button increments", () => {
+    assert.match(regionalMapSource, /PAN_ZOOM_MIN_RELATIVE_SCALE/);
+    assert.match(regionalMapSource, /PAN_ZOOM_MAX_RELATIVE_SCALE/);
+    assert.match(regionalMapSource, /clampPanZoomScale\(current\.scale \* factor, fitScale\)/);
+    assert.match(regionalMapSource, /clampPanZoomScale\(targetRelativeScale \* fitScale, fitScale\)/);
+    assert.match(regionalMapSource, /value=\{relativeScale\}/);
+    assert.match(regionalMapSource, /zoomAtCenter\(1\.25\)/);
+    assert.match(regionalMapSource, /zoomAtCenter\(1 \/ 1\.25\)/);
+  });
+
   it("uses the same React-owned CSS camera model as the stable TTC map", () => {
     assert.match(regionalMapSource, /snapCameraToDevicePixels/);
     assert.match(regionalMapSource, /transform: `translate\(\$\{camera\.x\}px, \$\{camera\.y\}px\) scale\(\$\{camera\.scale\}\)`/);
     assert.match(regionalMapSource, /transformOrigin: "0 0"/);
     assert.match(regionalMapSource, /root\.setAttribute\("preserveAspectRatio", "xMidYMid meet"\)/);
     assert.doesNotMatch(regionalMapSource, /root\.setAttribute\("viewBox"/);
+  });
+
+  it("uses the TTC map fly-in sequence for programmatic camera moves", () => {
+    assert.match(regionalMapSource, /setMapTransition\("transform 1s cubic-bezier\(0\.25, 1, 0\.5, 1\)"\)/);
+    assert.match(regionalMapSource, /programmaticAnimationFrameRef\.current = window\.requestAnimationFrame/);
+    assert.match(regionalMapSource, /writeMapTransform\(targetCamera\)/);
+    assert.match(regionalMapSource, /window\.setTimeout\(\(\) => \{[\s\S]*setCamera\(\{ \.\.\.cameraRef\.current \}\)/);
+    assert.match(regionalMapSource, /cancelCameraAnimation\(\);[\s\S]*dragRef\.current/);
+    assert.match(regionalMapSource, /x: centerX > 0 \? centerX - \(centerX - fitted\.camera\.x\) \* scaleRatio : fitted\.camera\.x \* 0\.5/);
+    assert.match(regionalMapSource, /scale: fitted\.scale \* 0\.5/);
+    assert.match(regionalMapSource, /setMapTransition\("none"\);[\s\S]*writeMapTransform\(entryCamera\);[\s\S]*setCamera\(entryCamera\)/);
+    assert.doesNotMatch(regionalMapSource, /setMapTransition\("transform 1s[^\n]+\);\s*setCamera\(targetCamera\)/);
   });
 
   it("does not move or zoom the initialized camera when the dashboard viewport resizes", () => {
@@ -103,6 +125,7 @@ describe("network-scoped regional dashboard", () => {
   });
 
   it("does not refit an initialized camera when refreshed dashboard data rebuilds the SVG", () => {
-    assert.match(regionalMapSource, /if \(!cameraInitializedRef\.current\)\s*{\s*window\.requestAnimationFrame\(\(\) =>\s*{\s*if \(!cameraInitializedRef\.current\) fitNetwork\(\)/s);
+    assert.match(regionalMapSource, /if \(cameraInitializedRef\.current \|\| !svgMarkup\) return/);
+    assert.match(regionalMapSource, /cameraInitializedRef\.current = true/);
   });
 });

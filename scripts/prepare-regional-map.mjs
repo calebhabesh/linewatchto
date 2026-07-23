@@ -64,17 +64,6 @@ function prepareRegionalMap(source) {
   prepared = replaceElementIdForLabel(prepared, "LW-DIV", "regional-route-lw-div");
   prepared = prepared.replace('inkscape:label="service-pattern-st-limited"', 'inkscape:label="service-pattern-stouffville-limited"');
 
-  let ttcLineBadgeCount = 0;
-  prepared = prepared.replace(/<g(?=[^>]*inkscape:label="line-[125]")[^>]*>/g, (tag) => {
-    ttcLineBadgeCount += 1;
-    return tag.includes('class="')
-      ? tag.replace(/class="([^"]*)"/, 'class="$1 regional-ttc-line-badge"')
-      : tag.replace("<g", '<g class="regional-ttc-line-badge"');
-  });
-  if (ttcLineBadgeCount !== 6) {
-    throw new Error(`Expected 6 TTC line-number badges; found ${ttcLineBadgeCount}.`);
-  }
-
   const segmentGuides = `<g id="regional-segment-guides-layer" style="display:none">
     <path id="segment-guide-ki-weston-mount-dennis" d="M 3888.5286,2466.7061 C 4140,2466.7061 4400,2785 4657.3393,2905.7143" />
     <path id="segment-guide-up-weston-pearson-airport" d="M 3793.6614,2607.9456 C 3250,2607.9456 2700,2963.4448 2244.3745,2963.4448" />
@@ -96,7 +85,7 @@ function prepareRegionalMap(source) {
     throw new Error("Could not hide the lakes layer.");
   }
 
-  return prepared;
+  return prepared.replace(/[ \t]+$/gm, "");
 }
 
 const source = await readFile(sourcePath, "utf8");

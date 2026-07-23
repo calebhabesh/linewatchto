@@ -78,7 +78,7 @@ describe("pan zoom behavior guardrails", () => {
 
   it("animates recenter without an immediate React transform render", () => {
     assert.match(hookSource, /const animateTransformTo = useCallback/);
-    assert.match(hookSource, /setMapTransition\("transform 0\.8s cubic-bezier\(0\.25, 1, 0\.5, 1\)"\)/);
+    assert.match(hookSource, /setMapTransition\("transform 1s cubic-bezier\(0\.25, 1, 0\.5, 1\)"\)/);
     assert.match(hookSource, /programmaticAnimationFrameRef\.current = requestAnimationFrame/);
     assert.match(hookSource, /writeMapTransform\(snapped\)/);
     assert.match(hookSource, /window\.setTimeout\(\(\) => \{[\s\S]*setTransform\(\{ \.\.\.transformRef\.current \}\)/);

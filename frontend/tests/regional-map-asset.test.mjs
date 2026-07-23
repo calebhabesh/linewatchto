@@ -7,7 +7,7 @@ const css = readFileSync(new URL("../src/app/globals.css", import.meta.url), "ut
 
 describe("regional application map asset", () => {
   it("uses padded bounds and hides authored lakes and labels", () => {
-    assert.match(svg, /viewBox="-200 -200 15797\.607 8722\.7246"/);
+    assert.match(svg, /viewBox="-200 -200 17036\.959 9325\.9981"/);
     assert.match(svg, /id="regional-lakes-layer"[\s\S]{0,200}style="[^"]*display:none/);
   });
 
@@ -26,6 +26,26 @@ describe("regional application map asset", () => {
     assert.match(svg, /id="regional-route-up-path"/);
     assert.match(svg, /inkscape:label="service-pattern-stouffville-limited"/);
     assert.doesNotMatch(svg, /inkscape:label="service-pattern-st-limited"/);
+  });
+
+  it("keeps the authored TTC-weight regional corridor strokes", () => {
+    for (const id of [
+      "regional-route-br-path",
+      "regional-route-ki-path",
+      "regional-route-up-path",
+      "regional-route-mi-path",
+      "regional-route-lw-main-path",
+      "regional-route-lw-branch-path",
+      "regional-route-rh-path",
+      "regional-route-st-path",
+      "regional-route-le-path",
+    ]) {
+      assert.match(
+        svg,
+        new RegExp(`<path(?=[^>]*id="${id}")(?=[^>]*stroke-width:175(?:;|"))[^>]*>`),
+        `${id} should retain the authored 175-unit stroke`,
+      );
+    }
   });
 
   it("contains explicit route-specific guide geometry for supported fixture segments", () => {
@@ -49,9 +69,10 @@ describe("regional application map asset", () => {
     assert.match(svg, /<path(?=[^>]*id="regional-route-lw-main-path")(?=[^>]*style="[^"]*stroke:#8b0a31)[^>]*>/);
   });
 
-  it("removes outer outline ring on TTC interchange line-number badges", () => {
-    assert.equal((svg.match(/class="regional-ttc-line-badge"/g) ?? []).length, 6);
-    assert.match(css, /\.regional-ttc-line-badge > path:first-of-type\s*{[^}]*display:\s*none\s*!important/s);
+  it("preserves the authored TTC interchange line-number badges", () => {
+    assert.equal((svg.match(/inkscape:label="line-[125]"/g) ?? []).length, 6);
+    assert.doesNotMatch(svg, /class="regional-ttc-line-badge"/);
+    assert.doesNotMatch(css, /\.regional-ttc-line-badge/);
   });
 
   it("colors the LW-DIV divider to match background across light, dark, and high-contrast themes", () => {
@@ -62,7 +83,12 @@ describe("regional application map asset", () => {
 
   it("renders join-rectangle interchange connectors with white fill and black stroke", () => {
     assert.equal((svg.match(/inkscape:label="join-rectangle"/g) ?? []).length, 6);
-    assert.match(css, /\.regional-map-stage \[inkscape\\:label="join-rectangle"\]\s*{[^}]*fill:\s*#ffffff\s*!important;[^}]*stroke:\s*#000000\s*!important;/s);
+    assert.doesNotMatch(css, /\.regional-map-stage \[inkscape\\:label="join-rectangle"\]/);
+    const joinRectangles = [...svg.matchAll(/<rect(?=[^>]*inkscape:label="join-rectangle")[^>]*>/g)].map((match) => match[0]);
+    assert.equal(joinRectangles.length, 6);
+    assert.ok(joinRectangles.every((rectangle) => /fill:#ffffff/.test(rectangle)));
+    assert.ok(joinRectangles.every((rectangle) => /stroke:#000000/.test(rectangle)));
+    assert.ok(joinRectangles.every((rectangle) => /stroke-width:10(?:;|")/.test(rectangle)));
   });
 
   it("removes white stroke outlines from transit route-label badges", () => {

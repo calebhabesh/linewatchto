@@ -60,6 +60,7 @@ export function usePanZoom({
   const gestureMovedRef = useRef(false);
   const suppressMapClickRef = useRef(false);
   const dragPointerTypeRef = useRef<string | null>(null);
+  const cameraInitializedRef = useRef(false);
 
   const shouldAnimateProgrammaticTransform = !reducedMotion && !disableProgrammaticMotion;
 
@@ -168,7 +169,7 @@ export function usePanZoom({
       return;
     }
 
-    setMapTransition("transform 0.8s cubic-bezier(0.25, 1, 0.5, 1)");
+    setMapTransition("transform 1s cubic-bezier(0.25, 1, 0.5, 1)");
     programmaticAnimationFrameRef.current = requestAnimationFrame(() => {
       programmaticAnimationFrameRef.current = null;
       writeMapTransform(snapped);
@@ -181,7 +182,7 @@ export function usePanZoom({
         setFitScale(nextFitScale);
       }
       setTransform({ ...transformRef.current });
-    }, 850);
+    }, 1050);
   }, [
     clearProgrammaticAnimation,
     commitTransform,
@@ -555,8 +556,36 @@ export function usePanZoom({
     const x = width / 2 - (mapWidth / 2) * scale;
     const y = height / 2 - (mapHeight * 0.38) * scale;
     
+    if (!cameraInitializedRef.current && shouldAnimateProgrammaticTransform) {
+      cameraInitializedRef.current = true;
+      const entryScale = scale * 0.5;
+      const scaleRatio = entryScale / scale;
+      const entryX = width / 2 - (width / 2 - x) * scaleRatio;
+      const entryY = height / 2 - (height / 2 - y) * scaleRatio;
+      const entryTransform = snapTransform({ x: entryX, y: entryY, scale: entryScale });
+
+      transformRef.current = entryTransform;
+      setMapTransition("none");
+      writeMapTransform(entryTransform);
+      setTransform(entryTransform);
+
+      programmaticAnimationFrameRef.current = requestAnimationFrame(() => {
+        programmaticAnimationFrameRef.current = null;
+        animateTransformTo({ x, y, scale }, scale);
+      });
+      return;
+    }
+    cameraInitializedRef.current = true;
+
     animateTransformTo({ x, y, scale }, scale);
-  }, [animateTransformTo, logicalViewportSize]);
+  }, [
+    animateTransformTo,
+    logicalViewportSize,
+    shouldAnimateProgrammaticTransform,
+    snapTransform,
+    setMapTransition,
+    writeMapTransform,
+  ]);
 
   const zoomIn = useCallback(() => {
     if (!containerRef.current) return;

@@ -5,12 +5,16 @@ import { Locate, ZoomIn, ZoomOut } from "lucide-react";
 import type { ImpactSelection } from "../app/linewatch-data";
 import { REGIONAL_ROUTE_DEFINITIONS } from "../app/regional-data";
 import { useDashboardData } from "../app/DataContext";
-import { currentDevicePixelRatio, snapTransformToDevicePixels } from "../hooks/panZoomMath";
+import {
+  clampPanZoomScale,
+  currentDevicePixelRatio,
+  PAN_ZOOM_MAX_RELATIVE_SCALE,
+  PAN_ZOOM_MIN_RELATIVE_SCALE,
+  snapTransformToDevicePixels,
+} from "../hooks/panZoomMath";
 
 const MAP_WIDTH = 4739.2821;
 const MAP_HEIGHT = 2616.8174;
-const MIN_SCALE = 0.1;
-const MAX_SCALE = 1.6;
 
 type Camera = { x: number; y: number; scale: number };
 
@@ -35,57 +39,155 @@ export function InteractiveRegionalMap({
 }) {
   const { activeAlerts, networkSegments, stationNodeImpacts } = useDashboardData();
   const viewportRef = useRef<HTMLDivElement>(null);
+  const mapStageRef = useRef<HTMLDivElement>(null);
   const cameraInitializedRef = useRef(false);
   const lastRecenterSignalRef = useRef(recenterSignal);
   const dragRef = useRef<{ pointerId: number; x: number; y: number; camera: Camera } | null>(null);
   const [svgMarkup, setSvgMarkup] = useState("");
-  const [camera, setCamera] = useState<Camera>({ x: 0, y: 0, scale: 0.7 });
+  const [camera, setCamera] = useState<Camera>({ x: 0, y: 0, scale: 1 });
   const [loadError, setLoadError] = useState(false);
   const [dragging, setDragging] = useState(false);
   const [fitScale, setFitScale] = useState(0.35);
-  const [mapTransition, setMapTransition] = useState<string>("none");
   const animTimeoutRef = useRef<number | null>(null);
+  const programmaticAnimationFrameRef = useRef<number | null>(null);
+  const cameraRef = useRef(camera);
 
-  const animateCameraTo = useCallback((targetCamera: Camera, nextFitScale?: number) => {
-    if (nextFitScale !== undefined) {
-      setFitScale(nextFitScale);
+  const writeMapTransform = useCallback((nextCamera: Camera) => {
+    if (mapStageRef.current) {
+      mapStageRef.current.style.transform = `translate(${nextCamera.x}px, ${nextCamera.y}px) scale(${nextCamera.scale})`;
     }
-    if (reducedMotion) {
-      setCamera(targetCamera);
-      return;
+  }, []);
+
+  const setMapTransition = useCallback((transition: string) => {
+    if (mapStageRef.current) {
+      mapStageRef.current.style.transition = transition;
+    }
+  }, []);
+
+  const clearProgrammaticAnimation = useCallback(() => {
+    if (programmaticAnimationFrameRef.current !== null) {
+      window.cancelAnimationFrame(programmaticAnimationFrameRef.current);
+      programmaticAnimationFrameRef.current = null;
     }
     if (animTimeoutRef.current !== null) {
       window.clearTimeout(animTimeoutRef.current);
+      animTimeoutRef.current = null;
     }
-    setMapTransition("transform 0.8s cubic-bezier(0.25, 1, 0.5, 1)");
-    setCamera(targetCamera);
+  }, []);
+
+  const currentRenderedCamera = useCallback((): Camera | null => {
+    if (!mapStageRef.current) return null;
+    const computedTransform = window.getComputedStyle(mapStageRef.current).transform;
+    if (!computedTransform || computedTransform === "none") return null;
+    const matrix = new DOMMatrixReadOnly(computedTransform);
+    return snapCameraToDevicePixels({ x: matrix.m41, y: matrix.m42, scale: matrix.a });
+  }, []);
+
+  const cancelCameraAnimation = useCallback(() => {
+    const renderedCamera = currentRenderedCamera();
+    clearProgrammaticAnimation();
+    setMapTransition(reducedMotion ? "none" : "transform 0.1s ease-out");
+    if (!renderedCamera) return;
+    cameraRef.current = renderedCamera;
+    writeMapTransform(renderedCamera);
+    setCamera(renderedCamera);
+  }, [clearProgrammaticAnimation, currentRenderedCamera, reducedMotion, setMapTransition, writeMapTransform]);
+
+  const animateCameraTo = useCallback((targetCamera: Camera, nextFitScale?: number) => {
+    cameraRef.current = targetCamera;
+    clearProgrammaticAnimation();
+
+    if (!mapStageRef.current || reducedMotion) {
+      setMapTransition("none");
+      writeMapTransform(targetCamera);
+      if (nextFitScale !== undefined) setFitScale(nextFitScale);
+      setCamera(targetCamera);
+      return;
+    }
+
+    setMapTransition("transform 1s cubic-bezier(0.25, 1, 0.5, 1)");
+    programmaticAnimationFrameRef.current = window.requestAnimationFrame(() => {
+      programmaticAnimationFrameRef.current = null;
+      writeMapTransform(targetCamera);
+    });
+
     animTimeoutRef.current = window.setTimeout(() => {
       animTimeoutRef.current = null;
       setMapTransition("none");
-    }, 850);
-  }, [reducedMotion]);
+      if (nextFitScale !== undefined) setFitScale(nextFitScale);
+      setCamera({ ...cameraRef.current });
+    }, 1050);
+  }, [clearProgrammaticAnimation, reducedMotion, setMapTransition, writeMapTransform]);
+
+  useEffect(() => {
+    cameraRef.current = camera;
+  }, [camera]);
 
   useEffect(() => {
     return () => {
-      if (animTimeoutRef.current !== null) {
-        window.clearTimeout(animTimeoutRef.current);
-      }
+      clearProgrammaticAnimation();
+    };
+  }, [clearProgrammaticAnimation]);
+
+  const fittedCamera = useCallback(() => {
+    const viewport = viewportRef.current;
+    if (!viewport) return null;
+    const width = viewport.clientWidth;
+    const height = viewport.clientHeight;
+    if (width <= 0 || height <= 0) return null;
+    const scale = Math.min(width / MAP_WIDTH, height / MAP_HEIGHT) * 0.90;
+    return {
+      camera: snapCameraToDevicePixels({
+        x: (width - MAP_WIDTH * scale) / 2,
+        y: (height - MAP_HEIGHT * scale) / 2,
+        scale,
+      }),
+      scale,
     };
   }, []);
 
   const fitNetwork = useCallback(() => {
-    const viewport = viewportRef.current;
-    if (!viewport) return;
-    const width = viewport.clientWidth;
-    const height = viewport.clientHeight;
-    const scale = Math.max(MIN_SCALE, Math.min(1.6, Math.min(width / MAP_WIDTH, height / MAP_HEIGHT) * 0.90));
+    const fitted = fittedCamera();
+    if (!fitted) return;
     cameraInitializedRef.current = true;
-    animateCameraTo(snapCameraToDevicePixels({
-      x: (width - MAP_WIDTH * scale) / 2,
-      y: (height - MAP_HEIGHT * scale) / 2,
-      scale,
-    }), scale);
-  }, [animateCameraTo]);
+    animateCameraTo(fitted.camera, fitted.scale);
+  }, [animateCameraTo, fittedCamera]);
+
+  const startInitialFlyIn = useCallback(() => {
+    if (cameraInitializedRef.current || !svgMarkup) return;
+    const fitted = fittedCamera();
+    if (!fitted) return;
+    cameraInitializedRef.current = true;
+
+    if (reducedMotion) {
+      animateCameraTo(fitted.camera, fitted.scale);
+      return;
+    }
+
+    // Match the TTC toggle entrance: begin centered at half of the fitted camera scale and
+    // fly inward to the full fitted view with the shared camera transition.
+    const entryScale = fitted.scale * 0.5;
+    const scaleRatio = entryScale / fitted.scale;
+    const width = viewportRef.current?.clientWidth ?? 0;
+    const height = viewportRef.current?.clientHeight ?? 0;
+    const centerX = width / 2;
+    const centerY = height / 2;
+
+    const entryCamera = snapCameraToDevicePixels({
+      x: centerX > 0 ? centerX - (centerX - fitted.camera.x) * scaleRatio : fitted.camera.x * 0.5,
+      y: centerY > 0 ? centerY - (centerY - fitted.camera.y) * scaleRatio : fitted.camera.y * 0.5,
+      scale: fitted.scale * 0.5,
+    });
+    cameraRef.current = entryCamera;
+    setMapTransition("none");
+    writeMapTransform(entryCamera);
+    setCamera(entryCamera);
+
+    programmaticAnimationFrameRef.current = window.requestAnimationFrame(() => {
+      programmaticAnimationFrameRef.current = null;
+      animateCameraTo(fitted.camera, fitted.scale);
+    });
+  }, [animateCameraTo, fittedCamera, reducedMotion, setMapTransition, svgMarkup, writeMapTransform]);
 
   useEffect(() => {
     let cancelled = false;
@@ -171,15 +273,15 @@ export function InteractiveRegionalMap({
         root.setAttribute("aria-label", "GO and UP regional rail schematic");
         root.setAttribute("role", "img");
         setSvgMarkup(new XMLSerializer().serializeToString(root));
-        if (!cameraInitializedRef.current) {
-          window.requestAnimationFrame(() => {
-            if (!cameraInitializedRef.current) fitNetwork();
-          });
-        }
       })
       .catch(() => setLoadError(true));
     return () => { cancelled = true; };
-  }, [activeAlerts, fitNetwork, networkSegments, stationNodeImpacts]);
+  }, [activeAlerts, networkSegments, stationNodeImpacts]);
+
+  useEffect(() => {
+    const frameId = window.requestAnimationFrame(startInitialFlyIn);
+    return () => window.cancelAnimationFrame(frameId);
+  }, [startInitialFlyIn]);
 
   useEffect(() => {
     // Treat this as an edge-triggered command. A remount or data refresh must
@@ -194,12 +296,11 @@ export function InteractiveRegionalMap({
     if (!viewport) return;
     const observer = new ResizeObserver(() => {
       if (cameraInitializedRef.current) return;
-      if (viewport.clientWidth <= 0 || viewport.clientHeight <= 0) return;
-      fitNetwork();
+      startInitialFlyIn();
     });
     observer.observe(viewport);
     return () => observer.disconnect();
-  }, [fitNetwork]);
+  }, [startInitialFlyIn]);
 
   useEffect(() => {
     const root = viewportRef.current;
@@ -224,7 +325,7 @@ export function InteractiveRegionalMap({
     const centerX = viewport.clientWidth / 2;
     const centerY = viewport.clientHeight / 2;
     setCamera((current) => {
-      const nextScale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, current.scale * factor));
+      const nextScale = clampPanZoomScale(current.scale * factor, fitScale);
       const ratio = nextScale / current.scale;
       return snapCameraToDevicePixels({
         x: centerX - (centerX - current.x) * ratio,
@@ -232,15 +333,15 @@ export function InteractiveRegionalMap({
         scale: nextScale,
       });
     });
-  }, []);
+  }, [fitScale]);
 
-  const zoomToScale = useCallback((targetScale: number) => {
+  const zoomToScale = useCallback((targetRelativeScale: number) => {
     const viewport = viewportRef.current;
     if (!viewport) return;
     const centerX = viewport.clientWidth / 2;
     const centerY = viewport.clientHeight / 2;
     setCamera((current) => {
-      const nextScale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, targetScale));
+      const nextScale = clampPanZoomScale(targetRelativeScale * fitScale, fitScale);
       const ratio = nextScale / current.scale;
       return snapCameraToDevicePixels({
         x: centerX - (centerX - current.x) * ratio,
@@ -248,7 +349,7 @@ export function InteractiveRegionalMap({
         scale: nextScale,
       });
     });
-  }, []);
+  }, [fitScale]);
 
   const onWheel = useCallback((event: WheelEvent<HTMLDivElement>) => {
     event.preventDefault();
@@ -257,10 +358,11 @@ export function InteractiveRegionalMap({
 
   const onPointerDown = useCallback((event: PointerEvent<HTMLDivElement>) => {
     if (event.button !== 0) return;
+    cancelCameraAnimation();
     event.currentTarget.setPointerCapture(event.pointerId);
-    dragRef.current = { pointerId: event.pointerId, x: event.clientX, y: event.clientY, camera };
+    dragRef.current = { pointerId: event.pointerId, x: event.clientX, y: event.clientY, camera: cameraRef.current };
     setDragging(true);
-  }, [camera]);
+  }, [cancelCameraAnimation]);
 
   const onPointerMove = useCallback((event: PointerEvent<HTMLDivElement>) => {
     const drag = dragRef.current;
@@ -302,6 +404,7 @@ export function InteractiveRegionalMap({
   const legend = useMemo(() => REGIONAL_ROUTE_DEFINITIONS.map((route) => (
     <li key={route.number}><span style={{ backgroundColor: route.color }} />{route.number} {route.name}</li>
   )), []);
+  const relativeScale = camera.scale / (fitScale || 1);
 
   return (
     <section className="regional-map" aria-label="Interactive GO and UP map">
@@ -318,6 +421,7 @@ export function InteractiveRegionalMap({
       >
         {loadError ? <p role="alert" className="regional-map-error">Regional map could not be loaded.</p> : null}
         <div
+          ref={mapStageRef}
           className="regional-map-stage"
           style={{
             width: `${MAP_WIDTH}px`,
@@ -326,7 +430,7 @@ export function InteractiveRegionalMap({
             bottom: "auto",
             transform: `translate(${camera.x}px, ${camera.y}px) scale(${camera.scale})`,
             transformOrigin: "0 0",
-            transition: reducedMotion || dragging ? "none" : mapTransition !== "none" ? mapTransition : "transform 0.1s ease-out",
+            transition: reducedMotion || dragging ? "none" : "transform 0.1s ease-out",
           }}
           dangerouslySetInnerHTML={{ __html: svgMarkup }}
         />
@@ -352,7 +456,7 @@ export function InteractiveRegionalMap({
         <div className="map-control-zoom-group flex flex-col items-center w-full gap-1.5">
           <button
             type="button"
-            onClick={() => zoomAtCenter(1.18)}
+            onClick={() => zoomAtCenter(1.25)}
             className="map-control-button group w-full flex flex-col items-center justify-center py-1 rounded-lg hover:bg-slate-900/10 dark:hover:bg-white/10 transition-colors"
             title="Zoom in"
             aria-label="Zoom in"
@@ -364,23 +468,23 @@ export function InteractiveRegionalMap({
           <div className="map-control-slider flex flex-col items-center justify-center gap-1 my-0.5 w-full">
             <input
               type="range"
-              min={MIN_SCALE}
-              max={MAX_SCALE}
+              min={PAN_ZOOM_MIN_RELATIVE_SCALE}
+              max={PAN_ZOOM_MAX_RELATIVE_SCALE}
               step="0.05"
-              value={camera.scale}
+              value={relativeScale}
               onChange={(e) => zoomToScale(parseFloat(e.target.value))}
               className="h-16 w-1.5 accent-slate-900 dark:accent-white hover:accent-blue-600 dark:hover:accent-blue-400 cursor-pointer rounded-lg appearance-none bg-slate-900/20 dark:bg-white/30 transition-all outline-none [writing-mode:vertical-lr] [direction:rtl]"
               title="Zoom level"
               aria-label="Zoom level slider"
             />
             <span className="text-[9px] font-mono font-black select-none tracking-tight leading-none">
-              {Math.round((camera.scale / (fitScale || 0.35)) * 100)}%
+              {Math.round(relativeScale * 100)}%
             </span>
           </div>
 
           <button
             type="button"
-            onClick={() => zoomAtCenter(0.85)}
+            onClick={() => zoomAtCenter(1 / 1.25)}
             className="map-control-button group w-full flex flex-col items-center justify-center py-1 rounded-lg hover:bg-slate-900/10 dark:hover:bg-white/10 transition-colors"
             title="Zoom out"
             aria-label="Zoom out"
