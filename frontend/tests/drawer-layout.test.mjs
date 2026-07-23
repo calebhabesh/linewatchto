@@ -22,6 +22,7 @@ const globalCss = readFileSync(new URL("../src/app/globals.css", import.meta.url
 const subwayClosedSource = readFileSync(new URL("../src/components/SubwayClosedScreen.tsx", import.meta.url), "utf8");
 const subwayHoursSource = readFileSync(new URL("../src/app/subway-hours.ts", import.meta.url), "utf8");
 const stationSearchSource = readFileSync(new URL("../src/components/StationSearchPanel.tsx", import.meta.url), "utf8");
+const stationOutageBadgeSource = readFileSync(new URL("../src/components/StationOutageBadge.tsx", import.meta.url), "utf8");
 const selectedImpactScrollSource = readFileSync(new URL("../src/hooks/useScrollSelectedImpactCard.ts", import.meta.url), "utf8");
 
 
@@ -87,11 +88,12 @@ describe("floating menu layout", () => {
     assert.match(stationSearchSource, /searchStations/);
     assert.match(stationSearchSource, /buildStationLineGroups/);
     assert.match(stationSearchSource, /onSelectStation/);
-    assert.match(stationSearchSource, /station-search-outage-badge/);
-    assert.match(stationSearchSource, /width=\{22\}/);
-    assert.match(stationSearchSource, /height=\{22\}/);
-    assert.match(stationSearchSource, /\/assets\/linewatch\/outages\/elevator\.svg/);
-    assert.match(stationSearchSource, /\/assets\/linewatch\/outages\/escalator\.svg/);
+    assert.match(stationSearchSource, /<StationOutageBadge/);
+    assert.match(stationOutageBadgeSource, /station-search-outage-badge/);
+    assert.match(stationOutageBadgeSource, /width=\{22\}/);
+    assert.match(stationOutageBadgeSource, /height=\{22\}/);
+    assert.match(stationOutageBadgeSource, /\/assets\/linewatch\/outages\/elevator\.svg/);
+    assert.match(stationOutageBadgeSource, /\/assets\/linewatch\/outages\/escalator\.svg/);
     assert.match(globalCss, /\.station-search-outage-badge\s*\{[^}]*width:\s*22px;[^}]*height:\s*22px;[^}]*flex:\s*0 0 22px;/s);
     assert.match(globalCss, /\.station-search-outage-count\s*\{[^}]*min-width:\s*14px;[^}]*height:\s*14px;[^}]*font-size:\s*8px;/s);
     assert.doesNotMatch(stationSearchSource, /station-search-flag-access/);

@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { KeyboardEvent, MutableRefObject } from "react";
-import { AlertTriangle, Bookmark, ChevronRight, LoaderCircle, Search, X } from "lucide-react";
+import { Bookmark, ChevronRight, LoaderCircle, Search, X } from "lucide-react";
 import { useDashboardData } from "../app/DataContext";
 import {
   IMPACT_SEARCH_CATEGORIES,
@@ -23,9 +23,12 @@ import {
   isStationWheelchairAccessible,
   isStationElevatorAccessible,
 } from "../app/station-data";
+import { stationImpactKindsByStation } from "../app/station-impact-types";
 import { ImpactTypeIcon } from "./ImpactTypeIcon";
 import { LineBadge } from "./ImpactCardFields";
 import { TransitLineBadge } from "./TransitLineBadge";
+import { StationImpactTypeBadges } from "./StationImpactTypeBadges";
+import { StationOutageBadge } from "./StationOutageBadge";
 
 type Props = {
   open: boolean;
@@ -95,11 +98,6 @@ function ImpactSearchButton({
   );
 }
 
-const OUTAGE_ICON_SRC = {
-  elevator: "/assets/linewatch/outages/elevator.svg",
-  escalator: "/assets/linewatch/outages/escalator.svg",
-} as const;
-
 function lineById(lineId: string) {
   return STATION_SEARCH_LINES.find((line) => line.id === lineId);
 }
@@ -108,50 +106,17 @@ function StationLineBadge({ line }: { line: StationSearchLine }) {
   return <TransitLineBadge lineId={line.id} lineNumber={line.number} lineName={line.name} size={24} />;
 }
 
-function formatOutageLabel(assetType: "elevator" | "escalator", count: number) {
-  const label = assetType === "elevator" ? "Elevator" : "Escalator";
-  return `${count} ${label} ${count === 1 ? "Outage" : "Outages"}`;
-}
-
-function StationOutageBadge({
-  assetType,
-  count,
-}: {
-  assetType: "elevator" | "escalator";
-  count: number;
-}) {
-  const label = formatOutageLabel(assetType, count);
-
-  return (
-    <span className="station-search-outage-badge" aria-label={label} title={label}>
-      <Image
-        src={OUTAGE_ICON_SRC[assetType]}
-        alt=""
-        width={22}
-        height={22}
-        aria-hidden="true"
-      />
-      <span className="station-search-outage-count">{count}</span>
-    </span>
-  );
-}
-
-function StationMetaFlags({ station }: { station: StationSummary }) {
+function StationMetaFlags({ station, impactKinds }: { station: StationSummary; impactKinds: ImpactKind[] }) {
   const outageCounts = station.accessOutageCounts ?? { elevator: 0, escalator: 0 };
   const hasAccessOutages = outageCounts.elevator > 0 || outageCounts.escalator > 0;
 
-  if (!station.hasActiveImpact && !hasAccessOutages) {
+  if (impactKinds.length === 0 && !hasAccessOutages) {
     return null;
   }
 
   return (
     <span className="station-search-flags">
-      {station.hasActiveImpact ? (
-        <span className="station-search-flag station-search-flag-impact">
-          <AlertTriangle size={12} />
-          Impact
-        </span>
-      ) : null}
+      <StationImpactTypeBadges kinds={impactKinds} />
       {outageCounts.elevator > 0 ? (
         <StationOutageBadge assetType="elevator" count={outageCounts.elevator} />
       ) : null}
@@ -164,6 +129,7 @@ function StationMetaFlags({ station }: { station: StationSummary }) {
 
 function StationButton({
   station,
+  impactKinds,
   selected,
   onSelect,
   buttonRef,
@@ -175,6 +141,7 @@ function StationButton({
   onRequestSignIn,
 }: {
   station: StationSummary;
+  impactKinds: ImpactKind[];
   selected: boolean;
   onSelect: (stationId: string) => void;
   buttonRef?: (element: HTMLButtonElement | null) => void;
@@ -233,7 +200,7 @@ function StationButton({
             </span>
           )}
         </span>
-        <StationMetaFlags station={station} />
+        <StationMetaFlags station={station} impactKinds={impactKinds} />
       </span>
       <span className="station-search-line-badges" aria-hidden="true">
         {lines.map((line) => (
@@ -284,6 +251,10 @@ export function StationSearchPanel({
   onRequestSignIn,
 }: Props) {
   const dashboardData = useDashboardData();
+  const stationImpactKinds = useMemo(
+    () => stationImpactKindsByStation(dashboardData),
+    [dashboardData],
+  );
   const [expandedLineId, setExpandedLineId] = useState<string | null>(null);
   const [isInputFocused, setIsInputFocused] = useState(false);
   const stationResults = useMemo(() => searchStations(stations, query), [query, stations]);
@@ -574,6 +545,7 @@ export function StationSearchPanel({
                   <StationButton
                     key={result.station.id}
                     station={result.station}
+                    impactKinds={stationImpactKinds.get(result.station.id) ?? []}
                     selected={selectedStationId === result.station.id}
                     onSelect={chooseStation}
                     buttonRef={(element) => { resultButtonRefs.current[index] = element; }}
@@ -697,6 +669,7 @@ export function StationSearchPanel({
                       <StationButton
                         key={`${activeLineGroup.line.id}-${station.id}`}
                         station={station}
+                        impactKinds={stationImpactKinds.get(station.id) ?? []}
                         selected={selectedStationId === station.id}
                         onSelect={chooseStation}
                         buttonRef={(element) => { stationButtonRefs.current[index] = element; }}

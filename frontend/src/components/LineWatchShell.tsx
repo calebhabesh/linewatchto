@@ -438,6 +438,7 @@ export function LineWatchShell({
   const [stationLoading, setStationLoading] = useState(false);
   const [accessibilityOutageResult, setAccessibilityOutageResult] = useState<AccessibilityOutageResponse | null>(null);
   const [accessibilityOutageTarget, setAccessibilityOutageTarget] = useState<AccessibilityOutageTarget | null>(null);
+  const [expandedMyStationDisruptionIds, setExpandedMyStationDisruptionIds] = useState<Set<string>>(() => new Set());
   const [surfaceNoticeCount, setSurfaceNoticeCount] = useState<number | null>(null);
 
   useEffect(() => {
@@ -1508,6 +1509,7 @@ export function LineWatchShell({
   }, [setActiveView, setCommutePathPreview, setSelectedStationId, setSelection, viewForImpactKind]);
 
   const handleMyStationsSelectImpactDetails = useCallback((nextSelection: NonNullable<ImpactSelection>) => {
+    setPreviousView("my-stations");
     setSelectedStationId(null);
     setCommutePathPreview(null);
     setSelection(nextSelection);
@@ -1519,12 +1521,22 @@ export function LineWatchShell({
     assetType: AccessibilityOutageTarget["assetType"],
     stationId: string,
   ) => {
+    setPreviousView("my-stations");
     setSelection(null);
     setSelectedStationId(null);
     setCommutePathPreview(null);
     setAccessibilityOutageTarget({ assetType, stationId });
     setActiveView("accessibility-outages");
   }, [setActiveView, setCommutePathPreview, setSelectedStationId, setSelection]);
+
+  const handleMyStationsDisruptionExpandedChange = useCallback((stationId: string, expanded: boolean) => {
+    setExpandedMyStationDisruptionIds((current) => {
+      const next = new Set(current);
+      if (expanded) next.add(stationId);
+      else next.delete(stationId);
+      return next;
+    });
+  }, []);
 
   const handleMapSelectImpact = useCallback((nextSelection: ImpactSelection) => {
     setSelectedStationId(null);
@@ -1766,6 +1778,8 @@ export function LineWatchShell({
             }}
             onSelectImpactDetails={handleMyStationsSelectImpactDetails}
             onSelectAccessibilityOutageDetails={handleMyStationsSelectAccessibilityOutageDetails}
+            expandedDisruptionStationIds={expandedMyStationDisruptionIds}
+            onDisruptionExpandedChange={handleMyStationsDisruptionExpandedChange}
             onRetry={() => { void refreshSavedStations(); }}
             onBack={() => setActiveView(isMobile ? "more" : "menu")}
             onClose={() => { setActiveView("map"); setSelection(null); }}

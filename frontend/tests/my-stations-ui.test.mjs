@@ -51,14 +51,16 @@ describe("My Stations UI", () => {
     assert.match(styles, /\.submenu-search-input::placeholder\s*\{[^}]*font-size:\s*0\.78rem;[^}]*font-weight:\s*750;/s);
   });
 
-  it("uses prominent line headers, opaque rows, and Save bookmark controls", () => {
+  it("uses prominent line headers, opaque rows, and standalone bookmark controls", () => {
     assert.match(styles, /\.my-stations-picker-section-heading\s*\{[^}]*font-size:\s*14px;[^}]*min-height:\s*48px;/s);
     assert.match(styles, /\.dark \.my-stations-row,[\s\S]*?background-color:\s*rgb\(21, 24, 33\) !important;/s);
     assert.match(panel, /has-line-accent/);
     assert.match(panel, /borderLeftColor: group\.line\.color/);
-    assert.match(panel, /<Bookmark size=\{24\}/);
-    assert.match(panel, /saved \? "Saved" : "Save"/);
-    assert.match(styles, /\.my-stations-picker-action\s*\{[^}]*border:\s*1\.5px[^}]*flex:\s*0 0 64px;[^}]*height:\s*64px;[^}]*min-height:\s*64px;[^}]*text-transform:\s*uppercase;[^}]*width:\s*64px;/s);
+    assert.match(panel, /<Bookmark size=\{28\} fill=\{saved \? "currentColor" : "none"\}/);
+    assert.doesNotMatch(panel, /pending \? \(saved \? "Removing\.\.\."/);
+    assert.match(styles, /\.my-stations-picker-action\s*\{[^}]*flex:\s*0 0 44px;[^}]*height:\s*44px;[^}]*min-height:\s*44px;[^}]*width:\s*44px;/s);
+    assert.doesNotMatch(styles, /\.my-stations-picker-action\s*\{[^}]*(?:border|border-radius|background):/s);
+    assert.match(styles, /\.my-stations-picker-row\s*\{[^}]*min-height:\s*0;/s);
     assert.match(styles, /\.my-stations-picker-section-heading\.has-line-accent\s*\{[^}]*border-left-width:\s*2px;/s);
   });
 
@@ -72,6 +74,12 @@ describe("My Stations UI", () => {
     assert.doesNotMatch(panel, />Condensed</);
     assert.match(panel, /saved-commute-impact-summary/);
     assert.match(panel, /saved-commute-impact-summary-chip/);
+    assert.match(panel, /SAVED_STATION_OUTAGE_ICON_SRC/);
+    assert.match(panel, /\/assets\/linewatch\/outages\/elevator\.svg/);
+    assert.match(panel, /\/assets\/linewatch\/outages\/escalator\.svg/);
+    assert.match(panel, /saved-station-outage-icon-mark">×/);
+    assert.match(styles, /\.saved-station-outage-icon-mark\s*\{[^}]*background:\s*rgb\(220, 38, 38\);[^}]*border-radius:\s*999px;/s);
+    assert.match(styles, /\.saved-station-disruption-chips > span\.kind-elevator,[\s\S]*?\.saved-station-disruption-chips > span\.kind-escalator\s*\{[^}]*gap:\s*9px;/s);
     assert.match(panel, /saved-commute-impact-kind-label/);
     assert.match(panel, /className=\{`kind-\$\{disruptionKindClassName/);
     assert.match(panel, /disruptionKindCountLabel/);
@@ -145,6 +153,11 @@ describe("My Stations UI", () => {
     assert.match(shell, /previousView === "my-stations"/);
     assert.match(shell, /setActiveView\(viewForImpactSelection\(nextSelection\)\)/);
     assert.match(shell, /initialTarget=\{accessibilityOutageTarget\}/);
+    assert.match(shell, /setPreviousView\("my-stations"\)/);
+    assert.match(shell, /expandedDisruptionStationIds=\{expandedMyStationDisruptionIds\}/);
+    assert.match(panel, /open=\{disruptionExpanded\}/);
+    assert.match(panel, /onToggle=\{\(event\) => onDisruptionExpandedChange\(event\.currentTarget\.open\)\}/);
+    assert.doesNotMatch(panel, /<span>Station: \{saved\.station\.name\}<\/span>/);
   });
 
   it("keeps removal undo feedback inline at the deleted row position", () => {
@@ -185,6 +198,13 @@ describe("My Stations UI", () => {
     assert.match(styles, /@media \(max-width: 767px\)[\s\S]*\.my-stations-add-wide\s*\{[^}]*display:\s*inline;/s);
   });
 
+  it("keeps the mobile title descender visible and the picker scrollbar clear of rows", () => {
+    assert.match(styles, /@media \(max-width: 767px\)[\s\S]*?\.my-stations-title h2 > span\s*\{[^}]*line-height:\s*1\.2 !important;/s);
+    assert.match(styles, /@media \(max-width: 767px\)[\s\S]*?\.my-stations-list\s*\{[^}]*padding-right:\s*8px;/s);
+    assert.match(styles, /\.my-stations-list::-webkit-scrollbar\s*\{[\s\S]*?width:\s*4px/);
+    assert.match(styles, /\.my-stations-list::-webkit-scrollbar-thumb\s*\{[\s\S]*?background:\s*var\(--mobile-scroll-indicator-thumb\)/);
+  });
+
   it("places the uppercase save label inside the station bookmark button", () => {
     assert.match(stationDetail, /<Bookmark[\s\S]*<span>\{saved \? "Saved" : "Save"\}<\/span>[\s\S]*<\/button>/);
     assert.match(styles, /\.station-detail-save-control button\s*\{[^}]*gap:\s*4px;/s);
@@ -192,7 +212,7 @@ describe("My Stations UI", () => {
   });
 
   it("keeps fixed touch targets and high-contrast bookmark treatment", () => {
-    assert.match(styles, /\.my-stations-picker-action[\s\S]*min-height: 64px/);
+    assert.match(styles, /\.my-stations-picker-action[\s\S]*min-height: 44px/);
     assert.match(styles, /\.station-search-bookmark[\s\S]*min-height: 44px/);
     assert.match(styles, /\.station-detail-save-control button,[\s\S]*height: 44px/);
     assert.match(styles, /\.high-contrast \.my-stations-bookmark/);

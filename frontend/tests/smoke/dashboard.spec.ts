@@ -1647,6 +1647,7 @@ test("signed-in riders save, browse, remove, undo, and reload My Stations", asyn
   await expect(page.getByRole("heading", { name: "Active Alerts" })).toBeVisible();
   await page.getByRole("button", { name: "Back", exact: true }).click();
   await expect(panel).toBeVisible();
+  await expect(panel.locator(".saved-station-disruption-disclosure")).toHaveAttribute("open", "");
   await panel.getByRole("button", { name: "Remove Stub Station from My Stations" }).click();
   await expect(panel.getByText("No Saved Stations", { exact: true })).toBeVisible();
   await panel.getByRole("button", { name: "Undo", exact: true }).click();

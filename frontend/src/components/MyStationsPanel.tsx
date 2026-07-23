@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import Image from "next/image";
 import { AlertCircle, Bookmark, ChevronDown, ChevronLeft, ChevronRight, Clock3, FileText, LoaderCircle, Plus, Search, TriangleAlert, X } from "lucide-react";
 import type { AccountSavedStation } from "../app/saved-station-data";
-import type { ImpactSelection } from "../app/linewatch-data";
+import type { ImpactKind, ImpactSelection } from "../app/linewatch-data";
 import { filterAndSortSavedStations, type SavedStationSort } from "../app/saved-stations";
 import {
   formatArrivalSourceBadgeLabel,
@@ -14,10 +15,13 @@ import {
   shouldUseDetailedArrivalCountdown,
 } from "../app/station-arrivals";
 import { getStationDetail, type StationDataResult, type StationDetail, type StationImpactSeverity, type StationSummary } from "../app/station-data";
+import { stationImpactKindsByStation } from "../app/station-impact-types";
 import { useDashboardData } from "../app/DataContext";
 import { useSubwayOperatingState } from "../hooks/useSubwayOperatingState";
 import { ToolbarSelectMenu, type ToolbarSelectOption } from "./ImpactListToolbar";
 import { TransitLineBadge } from "./TransitLineBadge";
+import { StationImpactTypeBadges } from "./StationImpactTypeBadges";
+import { StationOutageBadge } from "./StationOutageBadge";
 
 type Props = {
   savedStations: AccountSavedStation[];
@@ -30,6 +34,8 @@ type Props = {
   onSelectStation: (stationId: string) => void;
   onSelectImpactDetails: (selection: NonNullable<ImpactSelection>) => void;
   onSelectAccessibilityOutageDetails: (assetType: "elevator" | "escalator", stationId: string) => void;
+  expandedDisruptionStationIds: Set<string>;
+  onDisruptionExpandedChange: (stationId: string, expanded: boolean) => void;
   onRetry: () => void;
   onBack: () => void;
   onClose: () => void;
@@ -60,6 +66,11 @@ const SAVED_STATION_DETAIL_REFRESH_MS = 15_000;
 
 type SavedStationDisruptionKind = StationImpactSeverity | "elevator" | "escalator";
 
+const SAVED_STATION_OUTAGE_ICON_SRC = {
+  elevator: "/assets/linewatch/outages/elevator.svg",
+  escalator: "/assets/linewatch/outages/escalator.svg",
+} as const;
+
 function disruptionKindLabel(kind: SavedStationDisruptionKind) {
   switch (kind) {
     case "suspension": return "Suspension";
@@ -80,9 +91,16 @@ function disruptionKindClassName(kind: SavedStationDisruptionKind) {
 }
 
 function DisruptionIcon({ kind, size = 13 }: { kind: SavedStationDisruptionKind; size?: number }) {
-  return kind === "elevator" || kind === "escalator"
-    ? <AlertCircle size={size} aria-hidden="true" />
-    : <TriangleAlert size={size} aria-hidden="true" />;
+  if (kind === "elevator" || kind === "escalator") {
+    return (
+      <span className="saved-station-outage-icon" style={{ width: size, height: size }} aria-hidden="true">
+        <Image src={SAVED_STATION_OUTAGE_ICON_SRC[kind]} alt="" width={size} height={size} />
+        <span className="saved-station-outage-icon-mark">×</span>
+      </span>
+    );
+  }
+
+  return <TriangleAlert size={size} aria-hidden="true" />;
 }
 
 function stationImpactContext(
@@ -151,6 +169,27 @@ function stationState(station: StationSummary) {
   };
 }
 
+function PickerStationConditions({ station, impactKinds }: { station: StationSummary; impactKinds: ImpactKind[] }) {
+  const outageCounts = station.accessOutageCounts ?? { elevator: 0, escalator: 0 };
+  const hasConditions = impactKinds.length > 0 || outageCounts.elevator > 0 || outageCounts.escalator > 0;
+
+  if (!hasConditions) {
+    return null;
+  }
+
+  return (
+    <span className="my-stations-picker-conditions">
+      <StationImpactTypeBadges kinds={impactKinds} />
+      {outageCounts.elevator > 0 ? (
+        <StationOutageBadge assetType="elevator" count={outageCounts.elevator} />
+      ) : null}
+      {outageCounts.escalator > 0 ? (
+        <StationOutageBadge assetType="escalator" count={outageCounts.escalator} />
+      ) : null}
+    </span>
+  );
+}
+
 function formatCondensedArrivalDirection(directionLabel: string) {
   const match = directionLabel.match(/^(Northbound|Southbound|Eastbound|Westbound)\s+to\s+(.+)$/i);
   if (!match) return { direction: directionLabel, destination: null };
@@ -166,6 +205,8 @@ function SavedStationRow({
   onOpen,
   onSelectImpactDetails,
   onSelectAccessibilityOutageDetails,
+  disruptionExpanded,
+  onDisruptionExpandedChange,
   onRemove,
 }: {
   saved: AccountSavedStation;
@@ -176,6 +217,8 @@ function SavedStationRow({
   onOpen: () => void;
   onSelectImpactDetails: (selection: NonNullable<ImpactSelection>) => void;
   onSelectAccessibilityOutageDetails: (assetType: "elevator" | "escalator", stationId: string) => void;
+  disruptionExpanded: boolean;
+  onDisruptionExpandedChange: (expanded: boolean) => void;
   onRemove: () => void;
 }) {
   const dashboard = useDashboardData();
@@ -237,7 +280,11 @@ function SavedStationRow({
         <div className="saved-station-detail-loading">Station information is unavailable.</div>
       ) : (
         <div className="saved-station-rich-content">
-          <details className={`saved-commute-impact-disclosure saved-station-disruption-disclosure${disruptionCount === 0 ? " is-clear" : ""}`}>
+          <details
+            className={`saved-commute-impact-disclosure saved-station-disruption-disclosure${disruptionCount === 0 ? " is-clear" : ""}`}
+            open={disruptionExpanded}
+            onToggle={(event) => onDisruptionExpandedChange(event.currentTarget.open)}
+          >
             <summary className="saved-commute-impact-summary saved-station-disruption-summary">
               <span className="saved-commute-impact-summary-heading saved-station-disruption-heading">
                 {disruptionCount > 0 ? <AlertCircle className="saved-commute-impact-summary-icon" size={16} aria-hidden="true" /> : <span className="saved-station-clear-dot" aria-hidden="true" />}
@@ -293,7 +340,6 @@ function SavedStationRow({
                     <div className="saved-commute-impact-copy">
                       <div className="saved-commute-impact-details">
                         <div className="saved-commute-impact-heading"><strong><span className="saved-commute-impact-kind-label">{disruptionKindLabel(outage.assetType)}</span></strong></div>
-                        <span>Station: {saved.station.name}</span>
                       </div>
                       <div className="saved-commute-impact-action">
                         <button
@@ -385,10 +431,13 @@ export function MyStationsPanel({
   onSelectStation,
   onSelectImpactDetails,
   onSelectAccessibilityOutageDetails,
+  expandedDisruptionStationIds,
+  onDisruptionExpandedChange,
   onRetry,
   onBack,
   onClose,
 }: Props) {
+  const dashboardData = useDashboardData();
   const [mode, setMode] = useState<"list" | "add">("list");
   const [query, setQuery] = useState("");
   const [lineId, setLineId] = useState("all");
@@ -399,6 +448,10 @@ export function MyStationsPanel({
   const subwayOperatingState = useSubwayOperatingState();
   const modeButtonRef = useRef<HTMLButtonElement>(null);
   const savedIds = useMemo(() => new Set(savedStations.map((saved) => saved.station.id)), [savedStations]);
+  const stationImpactKinds = useMemo(
+    () => stationImpactKindsByStation(dashboardData),
+    [dashboardData],
+  );
   const visible = useMemo(
     () => filterAndSortSavedStations(savedStations, query, lineId, sort),
     [savedStations, query, lineId, sort],
@@ -600,7 +653,7 @@ export function MyStationsPanel({
                       <div className="my-stations-picker-row" key={`${group.id}-${station.id}`}>
                         <span className="my-stations-row-copy">
                           <span className="my-stations-row-heading"><strong>{station.name}</strong><StationLineBadges lineIds={station.lineIds} /></span>
-                          <span className={`my-stations-state ${stationState(station).tone}`}>{stationState(station).label}</span>
+                          <PickerStationConditions station={station} impactKinds={stationImpactKinds.get(station.id) ?? []} />
                         </span>
                         <button
                           type="button"
@@ -610,8 +663,7 @@ export function MyStationsPanel({
                           aria-pressed={saved}
                           aria-label={saved ? `Remove ${station.name} from My Stations` : `Save ${station.name} to My Stations`}
                         >
-                          <Bookmark size={24} fill={saved ? "currentColor" : "none"} />
-                          <span>{pending ? (saved ? "Removing..." : "Saving...") : saved ? "Saved" : "Save"}</span>
+                          <Bookmark size={28} fill={saved ? "currentColor" : "none"} />
                         </button>
                       </div>
                     );
@@ -650,6 +702,8 @@ export function MyStationsPanel({
                   onOpen={() => onSelectStation(saved.station.id)}
                   onSelectImpactDetails={onSelectImpactDetails}
                   onSelectAccessibilityOutageDetails={onSelectAccessibilityOutageDetails}
+                  disruptionExpanded={expandedDisruptionStationIds.has(saved.station.id)}
+                  onDisruptionExpandedChange={(expanded) => onDisruptionExpandedChange(saved.station.id, expanded)}
                   onRemove={() => void remove(saved, index)}
                 />
               </div>
