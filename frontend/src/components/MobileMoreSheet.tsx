@@ -215,6 +215,21 @@ export function MobileMoreSheet({
                 <UserRound size={18} />
                 Demo Account
               </button>
+              <button type="button" className="mobile-more-row" onClick={onOpenCommutes}>
+                <Navigation size={18} className="text-slate-500 dark:text-slate-400" />
+                Saved Commutes
+              </button>
+              <button type="button" className="mobile-more-row w-full flex items-center justify-between" onClick={onOpenMyStations}>
+                <span className="flex items-center gap-[9px]">
+                  <Bookmark size={18} className="text-slate-500 dark:text-slate-400" />
+                  My Stations
+                </span>
+                {savedStationCount > 0 ? (
+                  <span className="flex h-6 min-w-6 items-center justify-center rounded-full bg-sky-500/15 px-2 text-[11px] font-bold text-sky-700 dark:text-sky-300">
+                    {savedStationCount}
+                  </span>
+                ) : null}
+              </button>
             </>
           )}
         </div>

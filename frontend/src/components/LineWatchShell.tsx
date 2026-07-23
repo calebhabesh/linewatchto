@@ -1766,6 +1766,7 @@ export function LineWatchShell({
       case "my-stations":
         return (
           <MyStationsPanel
+            accountState={accountState}
             savedStations={savedStations}
             stations={stationSummaries}
             loading={savedStationsLoading}
@@ -1783,6 +1784,8 @@ export function LineWatchShell({
             onRetry={() => { void refreshSavedStations(); }}
             onBack={() => setActiveView(isMobile ? "more" : "menu")}
             onClose={() => { setActiveView("map"); setSelection(null); }}
+            onRequestSignIn={() => openAuthChoice("login")}
+            onRequestCreateAccount={() => openAuthChoice("register")}
           />
         );
       case "notifications":
@@ -2254,6 +2257,23 @@ export function LineWatchShell({
                             </span>
                           </div>
                         )}
+                      </button>
+                      <button
+                        ref={registerMenuAction(actionIndex++)}
+                        role="menuitem"
+                        onClick={() => setActiveView("my-stations")}
+                        aria-current={activeView === "my-stations" ? "page" : undefined}
+                        className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors w-full"
+                      >
+                        <span className="flex items-center gap-3">
+                          <Bookmark size={18} className="text-slate-500 dark:text-slate-400" />
+                          My Stations
+                        </span>
+                        {savedStations.length > 0 ? (
+                          <span className="flex h-6 min-w-6 items-center justify-center rounded-full bg-sky-500/15 px-2 text-[11px] font-bold text-sky-700 dark:text-sky-300" aria-label={`${savedStations.length} saved stations`}>
+                            {savedStations.length}
+                          </span>
+                        ) : null}
                       </button>
                     </div>
                   )}

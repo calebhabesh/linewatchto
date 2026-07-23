@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { AlertCircle, Bookmark, ChevronDown, ChevronLeft, ChevronRight, Clock3, FileText, LoaderCircle, Plus, Search, TriangleAlert, X } from "lucide-react";
 import type { AccountSavedStation } from "../app/saved-station-data";
+import type { AccountState } from "../app/account-data";
 import type { ImpactKind, ImpactSelection } from "../app/linewatch-data";
 import { filterAndSortSavedStations, type SavedStationSort } from "../app/saved-stations";
 import {
@@ -24,6 +25,7 @@ import { StationImpactTypeBadges } from "./StationImpactTypeBadges";
 import { StationOutageBadge } from "./StationOutageBadge";
 
 type Props = {
+  accountState?: AccountState;
   savedStations: AccountSavedStation[];
   stations: StationSummary[];
   loading: boolean;
@@ -39,6 +41,8 @@ type Props = {
   onRetry: () => void;
   onBack: () => void;
   onClose: () => void;
+  onRequestSignIn?: () => void;
+  onRequestCreateAccount?: () => void;
 };
 
 const LINES = [
@@ -295,7 +299,7 @@ function SavedStationRow({
                 <span className="saved-commute-impact-summary-chips saved-station-disruption-chips">
                   {disruptionSummary.map(({ kind, count }) => (
                     <span key={kind} className={`saved-commute-impact-summary-chip kind-${disruptionKindClassName(kind)}`}>
-                      <DisruptionIcon kind={kind} size={12} />
+                      <DisruptionIcon kind={kind} size={14} />
                       {disruptionKindCountLabel(kind, count)}
                     </span>
                   ))}
@@ -421,6 +425,7 @@ function SavedStationRow({
 }
 
 export function MyStationsPanel({
+  accountState,
   savedStations,
   stations,
   loading,
@@ -436,7 +441,10 @@ export function MyStationsPanel({
   onRetry,
   onBack,
   onClose,
+  onRequestSignIn,
+  onRequestCreateAccount,
 }: Props) {
+  const authenticated = accountState ? accountState.authenticated : true;
   const dashboardData = useDashboardData();
   const [mode, setMode] = useState<"list" | "add">("list");
   const [query, setQuery] = useState("");
@@ -479,7 +487,7 @@ export function MyStationsPanel({
       }))
       .filter((group) => group.stations.length > 0);
   }, [lineId, pickerStations, query]);
-  const compactEmpty = mode === "list" && !loading && !error && savedStations.length === 0 && !lastRemoved;
+  const compactEmpty = authenticated && mode === "list" && !loading && !error && savedStations.length === 0 && !lastRemoved;
 
   const visibleStationIds = useMemo(
     () => visible.map((saved) => saved.station.id).join(","),
@@ -557,7 +565,9 @@ export function MyStationsPanel({
           </h2>
         </div>
         <div className="my-stations-heading-actions flex items-center gap-2 sm:gap-3 shrink-0">
-          <span className="my-stations-count" aria-label={`${savedStations.length} saved stations`}>{savedStations.length}</span>
+          {authenticated ? (
+            <span className="my-stations-count" aria-label={`${savedStations.length} saved stations`}>{savedStations.length}</span>
+          ) : null}
           <button type="button" className="my-stations-close p-1 sm:p-2 -mr-1.5 sm:mr-0 ml-1 sm:ml-2 hover:bg-black/10 dark:hover:bg-white/10 rounded-lg transition-colors cursor-pointer shrink-0 flex items-center justify-center" onClick={onClose} aria-label="Close My Stations">
             <X className="w-5 h-5 sm:w-6 sm:h-6 text-slate-700 dark:text-slate-300" />
           </button>
@@ -565,6 +575,58 @@ export function MyStationsPanel({
       </div>
 
       <div className="my-stations-body">
+        {!authenticated ? (
+          <div className="saved-commute-account-prompt p-4 rounded-lg flex flex-col gap-4 border border-black/10 dark:border-white/10">
+            <div>
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2 mb-1.5">
+                <Bookmark className="w-4 h-4 text-sky-500 shrink-0" aria-hidden="true" />
+                Save Favorite Stations
+              </h3>
+              <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+                Save rapid-transit stations for quick access to live arrivals, line disruptions, and elevator or escalator outages.
+              </p>
+            </div>
+
+            <div className="space-y-3 my-1 border-t border-b border-black/5 dark:border-white/5 py-3">
+              <div className="flex items-start gap-2.5">
+                <span className="text-xs text-emerald-600 dark:text-emerald-400 font-bold mt-0.5">✓</span>
+                <div className="text-xs">
+                  <span className="font-bold text-slate-800 dark:text-slate-200 block">Personal Station Watchlist</span>
+                  <span className="text-slate-500 dark:text-slate-400">Save stations across Lines 1, 2, 4, 5, and 6 for fast monitoring.</span>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-2.5">
+                <span className="text-xs text-emerald-600 dark:text-emerald-400 font-bold mt-0.5">✓</span>
+                <div className="text-xs">
+                  <span className="font-bold text-slate-800 dark:text-slate-200 block">Disruptions & Accessibility Outages</span>
+                  <span className="text-slate-500 dark:text-slate-400">View active delays, suspensions, closures, and elevator or escalator outages in one place.</span>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-2.5">
+                <span className="text-xs text-emerald-600 dark:text-emerald-400 font-bold mt-0.5">✓</span>
+                <div className="text-xs">
+                  <span className="font-bold text-slate-800 dark:text-slate-200 block">Live & Scheduled Arrivals</span>
+                  <span className="text-slate-500 dark:text-slate-400">Check live subway trip updates and scheduled arrivals for all your saved stops.</span>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-2.5">
+                <span className="text-xs text-emerald-600 dark:text-emerald-400 font-bold mt-0.5">✓</span>
+                <div className="text-xs">
+                  <span className="font-bold text-slate-800 dark:text-slate-200 block">Free</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="account-action-row mt-1">
+              <button type="button" onClick={onRequestSignIn}>Sign In</button>
+              <button type="button" onClick={onRequestCreateAccount} className="saved-commute-signup-btn">Create Account</button>
+            </div>
+          </div>
+        ) : (
+          <>
         <div className="my-stations-controls">
           <div className="my-stations-controls-top">
             <label className={`impact-list-search my-stations-search${mode === "add" ? " picker-nudge" : ""}`}>
@@ -722,7 +784,9 @@ export function MyStationsPanel({
             ) : null}
           </div>
         )}
-      </div>
+      </>
+    )}
+  </div>
     </section>
   );
 }

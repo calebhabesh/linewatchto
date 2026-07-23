@@ -20,6 +20,14 @@ describe("My Stations UI", () => {
     assert.ok(mobileMore.indexOf("Saved Commutes") < mobileMore.indexOf("My Stations"));
   });
 
+  it("renders a signed-out account prompt blurb with feature benefits", () => {
+    assert.match(panel, /!authenticated/);
+    assert.match(panel, /Save Favorite Stations/);
+    assert.match(panel, /Personal Station Watchlist/);
+    assert.match(panel, /onRequestSignIn/);
+    assert.match(panel, /onRequestCreateAccount/);
+  });
+
   it("renders requested controls, empty states, mini picker, and undo", () => {
     assert.match(panel, /Search saved stations\.\.\./);
     assert.match(panel, /Add Station/);
