@@ -265,7 +265,7 @@ test("renders the seeded dashboard API payload", async ({ page, request, isMobil
     await inspector.getByRole("button", { name: "Show more map" }).click();
     await expect(inspector.getByText("Started", { exact: true })).toHaveCount(0);
     await expect(inspector.getByRole("button", { name: "Show more details" })).toBeVisible();
-    await inspector.getByRole("button", { name: "View Full List" }).click();
+    await inspector.getByRole("button", { name: "View in List" }).click();
     await expect(page.getByRole("heading", { name: "Reduced Speed Zones" })).toBeVisible();
     await expect(page.locator('[data-impact-card-id="reduced-speed-zone-stub-zone-south-source"]')).toHaveClass(/highlight-active-card/);
   }
@@ -345,7 +345,7 @@ test("map overlays open the corresponding submenu cards", async ({ page, request
     await expect(inspector).toContainText("Delay");
     await expect(inspector).toContainText("Sheppard-Yonge");
     await expect(page.locator('[data-map-highlight-id="stub-delay-line-4"]')).toBeAttached();
-    await inspector.getByRole("button", { name: "View Full List" }).click();
+    await inspector.getByRole("button", { name: "View in List" }).click();
   }
 
   await expect(page.getByRole("heading", { name: "Delays" })).toBeVisible();
@@ -368,7 +368,7 @@ test("map overlays open the corresponding submenu cards", async ({ page, request
     await expect(inspector).toBeVisible();
     await expect(inspector.getByRole("heading", { name: "Active Alert", exact: true })).toBeVisible();
     await expect(inspector).not.toContainText("Stub API signal problem");
-    await inspector.getByRole("button", { name: "View Full List" }).click();
+    await inspector.getByRole("button", { name: "View in List" }).click();
   }
 
   await expect(page.getByRole("heading", { name: "Delays" })).toBeVisible();
@@ -715,7 +715,7 @@ test("shows an active planned closure in both current and scheduled views", asyn
   if (isMobile) {
     const inspector = page.locator('[data-mobile-impact-inspector]');
     await expect(inspector).toBeVisible();
-    await inspector.getByRole("button", { name: "View Full List" }).click();
+    await inspector.getByRole("button", { name: "View in List" }).click();
   }
   await expect(page.locator('[data-impact-card-id="stub-active-closure-child-line-1"]')).toHaveClass(/highlight-active-card/);
 
@@ -723,7 +723,7 @@ test("shows an active planned closure in both current and scheduled views", asyn
   if (isMobile) {
     const relatedClosureInspector = page.locator('[data-mobile-impact-inspector]');
     await expect(relatedClosureInspector.getByText("Active Closure Window", { exact: true })).toBeVisible();
-    await relatedClosureInspector.getByRole("button", { name: "View Full List" }).click();
+    await relatedClosureInspector.getByRole("button", { name: "View in List" }).click();
   }
   await expect(page.getByRole("heading", { name: "Planned Closures" })).toBeVisible();
   await expect(page.locator('[data-impact-card-id="stub-closure-line-1"]')).toHaveClass(/highlight-active-card/);
@@ -897,7 +897,7 @@ test("shows a compact map hint when multiple alert types overlap", async ({ page
   if (isMobile) {
     const inspector = page.locator('[data-mobile-impact-inspector]');
     await expect(inspector).toBeVisible();
-    await inspector.getByRole("button", { name: "View Full List" }).click();
+    await inspector.getByRole("button", { name: "View in List" }).click();
   }
   await expect(page.getByRole("heading", { name: "Active Alerts" })).toBeVisible();
   await expect(page.locator('[data-impact-card-id="stub-alert-line-1"]')).toHaveClass(/highlight-active-card/);
@@ -969,7 +969,7 @@ test("uses map overlap metadata for active-alert and sibling submenu overlap ref
   if (isMobile) {
     const inspector = page.locator('[data-mobile-impact-inspector]');
     await expect(inspector).toBeVisible();
-    await inspector.getByRole("button", { name: "View Full List" }).click();
+    await inspector.getByRole("button", { name: "View in List" }).click();
   }
 
   await expect(page.getByRole("heading", { name: "Active Alerts" })).toBeVisible();
@@ -1039,7 +1039,7 @@ test("nonlinear guide-backed overlays open their corresponding cards", async ({ 
     await expect(inspector).toBeVisible();
     await expect(inspector).toContainText("Reduced Speed Zone");
     await expect(inspector).toContainText("King");
-    await inspector.getByRole("button", { name: "View Full List" }).click();
+    await inspector.getByRole("button", { name: "View in List" }).click();
   }
   await expect(page.getByRole("heading", { name: "Reduced Speed Zones" })).toBeVisible();
   const unionCurveCard = page.locator('[data-impact-card-id="reduced-speed-zone-stub-union-curve"]');
@@ -1060,7 +1060,7 @@ test("nonlinear guide-backed overlays open their corresponding cards", async ({ 
     await expect(inspector).toBeVisible();
     await expect(inspector).toContainText("Delay");
     await expect(inspector).toContainText("Spadina");
-    await inspector.getByRole("button", { name: "View Full List" }).click();
+    await inspector.getByRole("button", { name: "View in List" }).click();
   }
   await expect(page.getByRole("heading", { name: "Delays" })).toBeVisible();
   const stGeorgeCurveCard = page.locator('[data-impact-card-id="stub-delay-st-george-curve"]');
@@ -1161,7 +1161,7 @@ test("global search opens a condensed alert result in its detailed card and mobi
     const inspector = page.locator("[data-mobile-impact-inspector]");
     await expect(inspector).toBeVisible();
     await expect(inspector).toContainText("Delay");
-    await inspector.getByRole("button", { name: "View Full List" }).click();
+    await inspector.getByRole("button", { name: "View in List" }).click();
     await expect(delayCard).toBeVisible();
   }
 });

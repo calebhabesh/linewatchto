@@ -29,7 +29,7 @@ describe("mobile Show on Map inspector", () => {
     assert.match(inspectorSource, /data-mobile-impact-inspector/);
     assert.match(inspectorSource, /aria-label="Selected map impact details"/);
     assert.match(inspectorSource, /getSelectedImpactDetails/);
-    assert.match(inspectorSource, /View Full List/);
+    assert.match(inspectorSource, /View in List/);
     assert.doesNotMatch(inspectorSource, /View Full Details/);
     assert.match(inspectorSource, /Show more details/);
     assert.match(inspectorSource, /Show more map/);
