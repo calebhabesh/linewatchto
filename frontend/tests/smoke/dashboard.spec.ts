@@ -371,7 +371,7 @@ test("map overlays open the corresponding submenu cards", async ({ page, request
     await inspector.getByRole("button", { name: "View Full List" }).click();
   }
 
-  await expect(page.getByRole("heading", { name: "Active Alerts" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Delays" })).toBeVisible();
   const activeAlertCard = page.locator('[data-impact-card-id="stub-alert-line-1"]');
   await expect(activeAlertCard).toBeVisible();
   await expect(activeAlertCard).toHaveClass(/highlight-active-card/);
@@ -1640,6 +1640,13 @@ test("signed-in riders save, browse, remove, undo, and reload My Stations", asyn
   await doneButton.click();
   await expect(panel.locator(".my-stations-row-heading strong", { hasText: "Stub Station" })).toBeVisible();
   await expect(panel.getByText("Active Disruptions", { exact: true })).toBeVisible();
+  await panel.getByText("Active Disruptions", { exact: true }).click();
+  const viewAlertDetails = panel.getByRole("button", { name: "View Stub Station alert details" });
+  await expect(viewAlertDetails).toContainText("View Details");
+  await viewAlertDetails.click();
+  await expect(page.getByRole("heading", { name: "Active Alerts" })).toBeVisible();
+  await page.getByRole("button", { name: "Back", exact: true }).click();
+  await expect(panel).toBeVisible();
   await panel.getByRole("button", { name: "Remove Stub Station from My Stations" }).click();
   await expect(panel.getByText("No Saved Stations", { exact: true })).toBeVisible();
   await panel.getByRole("button", { name: "Undo", exact: true }).click();

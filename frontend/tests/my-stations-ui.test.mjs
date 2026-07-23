@@ -102,8 +102,10 @@ describe("My Stations UI", () => {
     assert.match(styles, /\.saved-station-rich-heading \.my-stations-row-main\s*\{[^}]*padding-block:\s*8px;/s);
     assert.match(styles, /\.saved-station-rich-heading \.my-stations-row-heading strong\s*\{[^}]*font-size:\s*25px;[^}]*font-weight:\s*750;[^}]*line-height:\s*1;/s);
     assert.match(panel, /<TransitLineBadge key=\{id\} lineId=\{id\} lineNumber=\{line\.number\} size=\{28\}/);
-    assert.match(panel, /lineId=\{group\.lineId\} lineNumber=\{group\.lineNumber\} lineName=\{group\.line\?\.name\} size=\{32\}/);
+    assert.match(panel, /lineId=\{group\.lineId\} lineNumber=\{group\.lineNumber\} lineName=\{group\.line\?\.name\} size=\{30\}/);
     assert.match(styles, /@media \(max-width:\s*30rem\)[\s\S]*?\.saved-station-rich-heading \.my-stations-row-heading strong\s*\{[^}]*font-size:\s*18px;/s);
+    assert.match(styles, /@media \(max-width:\s*30rem\)[\s\S]*?\.saved-station-rich-heading\s*\{[^}]*flex-basis:\s*auto;[^}]*height:\s*auto;/s);
+    assert.match(styles, /@media \(max-width:\s*30rem\)[\s\S]*?\.saved-station-rich-heading \.my-stations-row-heading\s*\{[^}]*grid-template-columns:\s*minmax\(0, 1fr\) auto;/s);
     assert.match(transitLineBadge, /\/assets\/linewatch\/\$\{lineId\}-legend\.svg\?v=2/);
     assert.match(styles, /\.saved-station-disruption-total\s*\{[^}]*height:\s*22px;[^}]*min-width:\s*22px;/s);
     assert.match(styles, /\.saved-station-arrival-groups/);
@@ -126,12 +128,19 @@ describe("My Stations UI", () => {
   it("labels saved-station navigation and disruption actions explicitly", () => {
     assert.match(panel, />Open Station</);
     assert.match(panel, /saved-station-open-action/);
-    assert.match(panel, /> View on Map/);
+    assert.doesNotMatch(panel, /> View on Map/);
+    assert.match(panel, /> View Details/);
+    assert.match(panel, /<FileText size=\{12\} aria-hidden="true" \/>/);
     assert.match(panel, /stationImpactSelection/);
-    assert.match(panel, /onSelectImpact\(impactSelection\)/);
-    assert.match(panel, /aria-label=\{`View \$\{saved\.station\.name\} alert on the map`\}/);
+    assert.match(panel, /onSelectImpactDetails\(impactSelection\)/);
+    assert.match(panel, /aria-label=\{`View \$\{saved\.station\.name\} alert details`\}/);
+    assert.match(panel, /onSelectAccessibilityOutageDetails\(outage\.assetType, saved\.station\.id\)/);
     assert.match(panel, /saved-commute-impact-map-button/);
-    assert.match(shell, /onSelectImpact=\{handleMapSelectImpact\}/);
+    assert.match(shell, /onSelectImpactDetails=\{handleMyStationsSelectImpactDetails\}/);
+    assert.match(shell, /onSelectAccessibilityOutageDetails=\{handleMyStationsSelectAccessibilityOutageDetails\}/);
+    assert.match(shell, /previousView === "my-stations"/);
+    assert.match(shell, /setActiveView\(viewForImpactSelection\(nextSelection\)\)/);
+    assert.match(shell, /initialTarget=\{accessibilityOutageTarget\}/);
   });
 
   it("keeps removal undo feedback inline at the deleted row position", () => {

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { AlertCircle, Bookmark, ChevronDown, ChevronLeft, ChevronRight, Clock3, LoaderCircle, MapPinned, Plus, Search, TriangleAlert, X } from "lucide-react";
+import { AlertCircle, Bookmark, ChevronDown, ChevronLeft, ChevronRight, Clock3, FileText, LoaderCircle, Plus, Search, TriangleAlert, X } from "lucide-react";
 import type { AccountSavedStation } from "../app/saved-station-data";
 import type { ImpactSelection } from "../app/linewatch-data";
 import { filterAndSortSavedStations, type SavedStationSort } from "../app/saved-stations";
@@ -28,7 +28,8 @@ type Props = {
   onSave: (stationId: string) => Promise<boolean>;
   onRemove: (stationId: string) => Promise<boolean>;
   onSelectStation: (stationId: string) => void;
-  onSelectImpact: (selection: NonNullable<ImpactSelection>) => void;
+  onSelectImpactDetails: (selection: NonNullable<ImpactSelection>) => void;
+  onSelectAccessibilityOutageDetails: (assetType: "elevator" | "escalator", stationId: string) => void;
   onRetry: () => void;
   onBack: () => void;
   onClose: () => void;
@@ -163,7 +164,8 @@ function SavedStationRow({
   arrivalTick,
   pending,
   onOpen,
-  onSelectImpact,
+  onSelectImpactDetails,
+  onSelectAccessibilityOutageDetails,
   onRemove,
 }: {
   saved: AccountSavedStation;
@@ -172,7 +174,8 @@ function SavedStationRow({
   arrivalTick: number;
   pending: boolean;
   onOpen: () => void;
-  onSelectImpact: (selection: NonNullable<ImpactSelection>) => void;
+  onSelectImpactDetails: (selection: NonNullable<ImpactSelection>) => void;
+  onSelectAccessibilityOutageDetails: (assetType: "elevator" | "escalator", stationId: string) => void;
   onRemove: () => void;
 }) {
   const dashboard = useDashboardData();
@@ -273,12 +276,12 @@ function SavedStationRow({
                           className="saved-commute-map-action saved-commute-impact-map-button"
                           onClick={() => {
                             const impactSelection = stationImpactSelection(impact.id, dashboard);
-                            if (impactSelection) onSelectImpact(impactSelection);
+                            if (impactSelection) onSelectImpactDetails(impactSelection);
                             else onOpen();
                           }}
-                          aria-label={`View ${saved.station.name} alert on the map`}
+                          aria-label={`View ${saved.station.name} alert details`}
                         >
-                          <MapPinned size={12} aria-hidden="true" /> View on Map
+                          <FileText size={12} aria-hidden="true" /> View Details
                         </button>
                       </div>
                     </div>
@@ -293,8 +296,13 @@ function SavedStationRow({
                         <span>Station: {saved.station.name}</span>
                       </div>
                       <div className="saved-commute-impact-action">
-                        <button type="button" className="saved-commute-map-action saved-commute-impact-map-button" onClick={onOpen} aria-label={`View ${saved.station.name} on the map`}>
-                          <MapPinned size={12} aria-hidden="true" /> View on Map
+                        <button
+                          type="button"
+                          className="saved-commute-map-action saved-commute-impact-map-button"
+                          onClick={() => onSelectAccessibilityOutageDetails(outage.assetType, saved.station.id)}
+                          aria-label={`View ${saved.station.name} ${outage.assetType} outage details`}
+                        >
+                          <FileText size={12} aria-hidden="true" /> View Details
                         </button>
                       </div>
                     </div>
@@ -325,7 +333,7 @@ function SavedStationRow({
                   const direction = formatCondensedArrivalDirection(group.directionLabel);
                   return (
                     <div className="saved-station-arrival-group" key={group.key}>
-                      <TransitLineBadge lineId={group.lineId} lineNumber={group.lineNumber} lineName={group.line?.name} size={32} />
+                      <TransitLineBadge lineId={group.lineId} lineNumber={group.lineNumber} lineName={group.line?.name} size={30} />
                       <span className="saved-station-arrival-direction">
                         <strong>{direction.direction}</strong>
                         {direction.destination ? <span className="saved-station-arrival-destination">{direction.destination}</span> : null}
@@ -369,7 +377,8 @@ export function MyStationsPanel({
   onSave,
   onRemove,
   onSelectStation,
-  onSelectImpact,
+  onSelectImpactDetails,
+  onSelectAccessibilityOutageDetails,
   onRetry,
   onBack,
   onClose,
@@ -633,7 +642,8 @@ export function MyStationsPanel({
                   arrivalTick={arrivalTick}
                   pending={pendingStationIds.has(saved.station.id)}
                   onOpen={() => onSelectStation(saved.station.id)}
-                  onSelectImpact={onSelectImpact}
+                  onSelectImpactDetails={onSelectImpactDetails}
+                  onSelectAccessibilityOutageDetails={onSelectAccessibilityOutageDetails}
                   onRemove={() => void remove(saved, index)}
                 />
               </div>

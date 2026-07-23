@@ -41,7 +41,7 @@ import {
   type AccessibilityOutageResponse,
   getAccessibilityOutages,
 } from "../app/accessibility-outage-data";
-import { AccessibilityOutagesPanel } from "./AccessibilityOutagesPanel";
+import { AccessibilityOutagesPanel, type AccessibilityOutageTarget } from "./AccessibilityOutagesPanel";
 import { getSurfaceNotices } from "../app/surface-notice-data";
 import { SurfaceNoticesPanel } from "./SurfaceNoticesPanel";
 import {
@@ -386,7 +386,11 @@ export function LineWatchShell({
     const prev = lastActiveViewRef.current;
     if (prev !== activeView) {
       const isSubmenu = (view: ActiveView) =>
-        view === "alerts" || view === "delays" || view === "reduced-speed-zones" || view === "closures";
+        view === "alerts" ||
+        view === "delays" ||
+        view === "reduced-speed-zones" ||
+        view === "closures" ||
+        view === "accessibility-outages";
       
       if (isSubmenu(activeView) && !isSubmenu(prev)) {
         setPreviousView(prev);
@@ -433,16 +437,30 @@ export function LineWatchShell({
   const [visibleStationResult, setVisibleStationResult] = useState<StationDataResult<StationDetail | null> | null>(null);
   const [stationLoading, setStationLoading] = useState(false);
   const [accessibilityOutageResult, setAccessibilityOutageResult] = useState<AccessibilityOutageResponse | null>(null);
+  const [accessibilityOutageTarget, setAccessibilityOutageTarget] = useState<AccessibilityOutageTarget | null>(null);
   const [surfaceNoticeCount, setSurfaceNoticeCount] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (activeView !== "accessibility-outages" && accessibilityOutageTarget) {
+      // The target only describes a direct My Stations drill-down and must not
+      // leak into a later visit from the normal Status navigation.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setAccessibilityOutageTarget(null);
+    }
+  }, [accessibilityOutageTarget, activeView]);
 
   const handleSubmenuBack = useCallback(() => {
     setActiveView(() => {
+      if (previousView === "my-stations") {
+        return "my-stations";
+      }
       if (isMobile) {
         return previousView || "status";
       }
       return "menu";
     });
     setSelection(null);
+    setAccessibilityOutageTarget(null);
   }, [isMobile, previousView, setActiveView, setSelection]);
 
   const [accountState, setAccountState] = useState<AccountState>({
@@ -1489,6 +1507,25 @@ export function LineWatchShell({
     setActiveView(viewForImpactKind(kind));
   }, [setActiveView, setCommutePathPreview, setSelectedStationId, setSelection, viewForImpactKind]);
 
+  const handleMyStationsSelectImpactDetails = useCallback((nextSelection: NonNullable<ImpactSelection>) => {
+    setSelectedStationId(null);
+    setCommutePathPreview(null);
+    setSelection(nextSelection);
+    setMobileInspectorDetent("details-focus");
+    setActiveView(viewForImpactSelection(nextSelection));
+  }, [setActiveView, setCommutePathPreview, setMobileInspectorDetent, setSelectedStationId, setSelection, viewForImpactSelection]);
+
+  const handleMyStationsSelectAccessibilityOutageDetails = useCallback((
+    assetType: AccessibilityOutageTarget["assetType"],
+    stationId: string,
+  ) => {
+    setSelection(null);
+    setSelectedStationId(null);
+    setCommutePathPreview(null);
+    setAccessibilityOutageTarget({ assetType, stationId });
+    setActiveView("accessibility-outages");
+  }, [setActiveView, setCommutePathPreview, setSelectedStationId, setSelection]);
+
   const handleMapSelectImpact = useCallback((nextSelection: ImpactSelection) => {
     setSelectedStationId(null);
     setCommutePathPreview(null);
@@ -1727,7 +1764,8 @@ export function LineWatchShell({
             onSelectStation={(stationId) => {
               handleSelectStationId(stationId);
             }}
-            onSelectImpact={handleMapSelectImpact}
+            onSelectImpactDetails={handleMyStationsSelectImpactDetails}
+            onSelectAccessibilityOutageDetails={handleMyStationsSelectAccessibilityOutageDetails}
             onRetry={() => { void refreshSavedStations(); }}
             onBack={() => setActiveView(isMobile ? "more" : "menu")}
             onClose={() => { setActiveView("map"); setSelection(null); }}
@@ -1748,6 +1786,7 @@ export function LineWatchShell({
         return (
           <AccessibilityOutagesPanel
             accessibilityOutageResult={accessibilityOutageResult}
+            initialTarget={accessibilityOutageTarget}
             onSelectStation={(stationId) => {
               setSelectedStationId(stationId);
               setMobileInspectorDetent("details-focus");
@@ -1755,12 +1794,11 @@ export function LineWatchShell({
                 setActiveView("map");
               }
             }}
-            onBack={() => {
-              setActiveView(isMobile ? "status" : "menu");
-            }}
+            onBack={handleSubmenuBack}
             onClose={() => {
               setActiveView("map");
               setSelection(null);
+              setAccessibilityOutageTarget(null);
             }}
           />
         );

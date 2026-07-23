@@ -518,8 +518,25 @@
 }
 
 @media (max-width: 30rem) {
+  .saved-station-rich-heading {
+    flex-basis: auto;
+    height: auto;
+  }
+
+  .saved-station-rich-heading .my-stations-row-main {
+    min-height: 68px;
+  }
+
+  .saved-station-rich-heading .my-stations-row-heading {
+    align-items: center;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    width: 100%;
+  }
+
   .saved-station-rich-heading .my-stations-row-heading strong {
     font-size: 18px;
+    line-height: 1.05;
   }
 }
 
