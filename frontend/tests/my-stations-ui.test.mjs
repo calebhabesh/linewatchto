@@ -8,6 +8,7 @@ const stationDetail = readFileSync(new URL("../src/components/StationDetailPanel
 const stationSearch = readFileSync(new URL("../src/components/StationSearchPanel.tsx", import.meta.url), "utf8");
 const mobileMore = readFileSync(new URL("../src/components/MobileMoreSheet.tsx", import.meta.url), "utf8");
 const styles = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
+const transitLineBadge = readFileSync(new URL("../src/components/TransitLineBadge.tsx", import.meta.url), "utf8");
 
 describe("My Stations UI", () => {
   it("adds an account-owned shell view with desktop and mobile navigation", () => {
@@ -43,6 +44,9 @@ describe("My Stations UI", () => {
     assert.match(styles, /@keyframes my-stations-mode-swap/);
     assert.match(styles, /@keyframes my-stations-search-nudge/);
     assert.match(styles, /\.my-stations-done\s*\{[^}]*width:\s*54px !important;/s);
+    assert.match(styles, /\.my-stations-add\s*\{[^}]*padding-left:\s*12px;[^}]*padding-right:\s*18px;[^}]*width:\s*110px;/s);
+    assert.match(styles, /\.my-stations-done\s*\{[^}]*background:\s*rgb\(5, 150, 105\);/s);
+    assert.match(styles, /\.my-stations-done:hover\s*\{[^}]*background:\s*rgb\(4, 120, 87\);/s);
     assert.match(styles, /@keyframes my-stations-search-nudge\s*\{[\s\S]*?21%, 63%/s);
     assert.match(styles, /\.submenu-search-input::placeholder\s*\{[^}]*font-size:\s*0\.78rem;[^}]*font-weight:\s*750;/s);
   });
@@ -55,6 +59,86 @@ describe("My Stations UI", () => {
     assert.match(panel, /<Bookmark size=\{24\}/);
     assert.match(panel, /saved \? "Saved" : "Save"/);
     assert.match(styles, /\.my-stations-picker-action\s*\{[^}]*border:\s*1\.5px[^}]*flex:\s*0 0 64px;[^}]*height:\s*64px;[^}]*min-height:\s*64px;[^}]*text-transform:\s*uppercase;[^}]*width:\s*64px;/s);
+    assert.match(styles, /\.my-stations-picker-section-heading\.has-line-accent\s*\{[^}]*border-left-width:\s*2px;/s);
+  });
+
+  it("enriches saved rows with condensed disruptions and source-labeled arrivals", () => {
+    assert.match(panel, /getStationDetail/);
+    assert.doesNotMatch(panel, /StationImpactBadge/);
+    assert.doesNotMatch(styles, /\.my-stations-impact-badge/);
+    assert.match(panel, /Active Disruptions/);
+    assert.match(panel, /List View/);
+    assert.match(panel, /Hide List/);
+    assert.doesNotMatch(panel, />Condensed</);
+    assert.match(panel, /saved-commute-impact-summary/);
+    assert.match(panel, /saved-commute-impact-summary-chip/);
+    assert.match(panel, /saved-commute-impact-kind-label/);
+    assert.match(panel, /className=\{`kind-\$\{disruptionKindClassName/);
+    assert.match(panel, /disruptionKindCountLabel/);
+    assert.match(panel, /stationImpactContext/);
+    assert.match(panel, /Line \$\{match\.lineNumber\}: \$\{match\.location\}/);
+    assert.match(panel, /Station: \$\{stationName\}/);
+    assert.doesNotMatch(panel, /<span>\{impact\.title\}<\/span>/);
+    assert.doesNotMatch(panel, /<small>\{impact\.summary\}<\/small>/);
+    assert.doesNotMatch(panel, /<small>\{outage\.description\}<\/small>/);
+    assert.match(panel, /saved-station-arrivals/);
+    assert.match(panel, /formatArrivalSourceSummary/);
+    assert.match(panel, /groupStationArrivals/);
+    assert.match(panel, /shouldUseDetailedArrivalCountdown/);
+    assert.match(panel, /detailedCountdown: detailed/);
+    assert.match(panel, /formatCondensedArrivalDirection/);
+    assert.match(panel, /saved-station-arrival-destination/);
+    assert.match(panel, /<strong>Arrivals<\/strong>/);
+    assert.match(panel, /isArrivalDue/);
+    assert.match(panel, /is-due/);
+    assert.match(panel, /is-soon/);
+    assert.match(styles, /\.saved-station-rich-row/);
+    assert.match(styles, /\.saved-station-rich-heading\s*\{[^}]*flex:\s*0 0 68px;[^}]*height:\s*68px;[^}]*min-height:\s*68px;/s);
+    assert.match(panel, /saved-station-rich-row \$\{displayedDisruptionCount > 0 \? "is-affected" : "is-clear"\}/);
+    assert.match(styles, /\.saved-station-rich-row\s*\{[^}]*border-width:\s*2px;/s);
+    assert.match(styles, /\.saved-station-rich-row\.is-affected\s*\{[^}]*border-left:\s*3px solid var\(--warning\);/s);
+    assert.match(styles, /\.saved-station-rich-row\.is-clear\s*\{[^}]*border-left:\s*3px solid var\(--ok\);/s);
+    assert.match(styles, /\.saved-station-rich-heading \.my-stations-bookmark\s*\{[^}]*border-left-width:\s*2px;/s);
+    assert.match(styles, /\.saved-station-rich-heading \.my-stations-row-main\s*\{[^}]*padding-block:\s*8px;/s);
+    assert.match(styles, /\.saved-station-rich-heading \.my-stations-row-heading strong\s*\{[^}]*font-size:\s*25px;[^}]*font-weight:\s*750;[^}]*line-height:\s*1;/s);
+    assert.match(panel, /<TransitLineBadge key=\{id\} lineId=\{id\} lineNumber=\{line\.number\} size=\{28\}/);
+    assert.match(panel, /lineId=\{group\.lineId\} lineNumber=\{group\.lineNumber\} lineName=\{group\.line\?\.name\} size=\{32\}/);
+    assert.match(styles, /@media \(max-width:\s*30rem\)[\s\S]*?\.saved-station-rich-heading \.my-stations-row-heading strong\s*\{[^}]*font-size:\s*18px;/s);
+    assert.match(transitLineBadge, /\/assets\/linewatch\/\$\{lineId\}-legend\.svg\?v=2/);
+    assert.match(styles, /\.saved-station-disruption-total\s*\{[^}]*height:\s*22px;[^}]*min-width:\s*22px;/s);
+    assert.match(styles, /\.saved-station-arrival-groups/);
+    assert.match(panel, /station-arrival-line-divider saved-station-section-divider/);
+    assert.match(styles, /\.station-arrival-line-divider\s*\{[^}]*linear-gradient/s);
+    assert.match(styles, /\.saved-station-section-divider\s*\{[^}]*height:\s*4px;[^}]*margin:\s*0 2px 5px;/s);
+    assert.match(styles, /\.saved-station-arrivals\s*\{[^}]*background:\s*transparent;[^}]*border-radius:\s*0;[^}]*box-shadow:\s*none;/s);
+    assert.match(styles, /\.saved-station-disruption-summary\s*\{[^}]*padding:\s*14px 8px;/s);
+    assert.match(styles, /\.saved-station-arrival-source::after\s*\{[^}]*height:\s*18px/s);
+    assert.match(styles, /\.saved-station-arrival-times strong\.is-due/);
+    assert.match(styles, /\.saved-station-arrival-times strong\.is-soon/);
+    assert.match(styles, /\.saved-station-arrival-group\s*\{[^}]*min-height:\s*44px/s);
+    assert.match(styles, /@media \(min-width:\s*768px\)[\s\S]*?\.saved-station-arrival-group\s*\{[^}]*min-height:\s*52px/s);
+    assert.match(styles, /\.saved-commute-impact-disclosure\.saved-station-disruption-disclosure\s*\{[^}]*border:\s*0;[^}]*margin-top:\s*0;/s);
+    assert.match(styles, /\.saved-station-rich-content\s*\{[^}]*padding:\s*0 12px 14px;/s);
+    assert.match(styles, /\.saved-station-rich-content\s*\{[^}]*border-top:\s*2px solid/s);
+    assert.doesNotMatch(styles, /\.saved-station-disruption-list\s*\{[^}]*border-top:/s);
+  });
+
+  it("labels saved-station navigation and disruption actions explicitly", () => {
+    assert.match(panel, />Open Station</);
+    assert.match(panel, /saved-station-open-action/);
+    assert.match(panel, /> View on Map/);
+    assert.match(panel, /stationImpactSelection/);
+    assert.match(panel, /onSelectImpact\(impactSelection\)/);
+    assert.match(panel, /aria-label=\{`View \$\{saved\.station\.name\} alert on the map`\}/);
+    assert.match(panel, /saved-commute-impact-map-button/);
+    assert.match(shell, /onSelectImpact=\{handleMapSelectImpact\}/);
+  });
+
+  it("keeps removal undo feedback inline at the deleted row position", () => {
+    assert.match(panel, /lastRemoved\.index/);
+    assert.match(panel, /saved-station-inline-undo/);
+    assert.doesNotMatch(panel, /className="my-stations-undo"/);
+    assert.match(styles, /\.saved-station-inline-undo/);
   });
 
   it("uses the same bookmark semantics in detail, search, and panel surfaces", () => {

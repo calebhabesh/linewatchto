@@ -2,6 +2,7 @@
 
 import { useDashboardData } from "../app/DataContext";
 import { Activity } from "lucide-react";
+import { TransitLineBadge } from "./TransitLineBadge";
 
 export function LineStatusPanel() {
   const { lineStatuses } = useDashboardData();
@@ -34,13 +35,7 @@ export function LineStatusPanel() {
         {lineStatuses.map((line) => (
           <div key={line.id} className="line-row flex flex-wrap items-start justify-between gap-3">
             <div className="flex min-w-0 flex-1 items-start gap-2.5">
-              <span
-                className="line-badge shrink-0"
-                style={{
-                  backgroundColor: line.color,
-                  color: line.id === "line-1" ? "#000000" : "#ffffff",
-                }}
-              >{line.number}</span>
+              <TransitLineBadge lineId={line.id} lineNumber={line.number} lineName={line.name} size={28} className="shrink-0" />
               <div className="min-w-0">
                 <strong className="block text-sm font-bold text-slate-800 dark:text-white whitespace-normal break-words">
                   {line.name}

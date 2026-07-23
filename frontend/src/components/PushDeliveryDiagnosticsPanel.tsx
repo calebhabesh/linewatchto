@@ -18,14 +18,7 @@ import {
   recipientsForNotification,
   visibleRecipientsForNotification,
 } from "../app/push-diagnostics-state";
-
-const LINE_COLORS: Record<string, string> = {
-  "line-1": "#FBD13F",
-  "line-2": "#00843D",
-  "line-4": "#B241A1",
-  "line-5": "#F58220",
-  "line-6": "#969594",
-};
+import { TransitLineBadge } from "./TransitLineBadge";
 
 const DIAGNOSTIC_STAGE_LABELS: Record<string, string> = {
   push_received: "Service worker reported display",
@@ -399,21 +392,12 @@ export function PushDeliveryDiagnosticsPanel({ accountState }: Props) {
                   </div>
                 ) : null}
                 {visibleNotifications.map((notification) => {
-                  const lineColor = notification.lineId ? LINE_COLORS[notification.lineId] : null;
                   return (
                     <div className="push-diagnostics-item" key={notification.id}>
                       <div className="push-diagnostics-item-heading">
                         <div>
-                          {notification.lineNumber && lineColor ? (
-                            <span
-                              className="notification-line-badge"
-                              style={{
-                                backgroundColor: lineColor,
-                                color: notification.lineId === "line-1" ? "#111827" : "#ffffff",
-                              }}
-                            >
-                              {notification.lineNumber}
-                            </span>
+                          {notification.lineNumber && notification.lineId ? (
+                            <TransitLineBadge lineId={notification.lineId} lineNumber={notification.lineNumber} size={26} className="notification-line-badge" />
                           ) : null}
                           <strong>{notification.title}</strong>
                         </div>

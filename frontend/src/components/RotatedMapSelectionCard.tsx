@@ -10,6 +10,7 @@ import { getSelectedImpactDetails } from "./MobileImpactInspector";
 import { STATION_LINE_DEFINITIONS } from "../app/station-data";
 import { ImpactTypeIcon } from "./ImpactTypeIcon";
 import { PhoneRotateLandscapeIcon } from "./MobileMapControls";
+import { TransitLineBadge } from "./TransitLineBadge";
 
 type Props = {
   selection: ImpactSelection;
@@ -88,22 +89,13 @@ function toTitleCase(str: string | null | undefined): string {
     .replace(/\bAn\b/g, "an");
 }
 
-function lineBadgeTextColor(lineId: string) {
-  return lineId === "line-1" || lineId === "line-6" ? "#000000" : "#ffffff";
-}
-
 function LineBadge({ lineId, number, name }: { lineId: string; number: string; name?: string }) {
-  const lineDef = STATION_LINE_DEFINITIONS[lineId];
-  const color = lineDef?.color ?? "#64748b";
-  const lineName = name || lineDef?.name || "";
+  const lineName = name || STATION_LINE_DEFINITIONS[lineId]?.name || "";
 
   return (
-    <span
-      className="inline-flex min-h-8 max-w-full min-w-0 items-center gap-2 rounded-full border border-black/10 px-3 py-1 text-xs font-black dark:border-white/10"
-      style={{ backgroundColor: color, color: lineBadgeTextColor(lineId) }}
-    >
-      <span>{number}</span>
-      {lineName ? <span className="min-w-0 truncate">{lineName}</span> : null}
+    <span className="inline-flex min-h-8 max-w-full min-w-0 items-center gap-2 text-xs font-black">
+      <TransitLineBadge lineId={lineId} lineNumber={number} lineName={lineName} size={32} />
+      {lineName ? <span className="min-w-0 truncate">Line {number} {lineName}</span> : null}
     </span>
   );
 }

@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { Calendar } from "lucide-react";
 import { ImpactTimestamp } from "./ImpactTimestamp";
+import { TransitLineBadge } from "./TransitLineBadge";
 
 export function formatCause(cause: string | null | undefined): string {
   if (!cause) return "";
@@ -40,11 +41,7 @@ export function lineColor(lineId: string) {
 }
 
 export function LineBadge({ lineId, lineNumber }: { lineId: string; lineNumber: string }) {
-  return (
-    <span className="line-badge small shrink-0" style={lineColor(lineId)}>
-      {lineNumber}
-    </span>
-  );
+  return <TransitLineBadge lineId={lineId} lineNumber={lineNumber} size={28} className="impact-card-line-badge shrink-0" />;
 }
 
 export function RelatedPlannedClosureButton({ onClick }: { onClick: () => void }) {

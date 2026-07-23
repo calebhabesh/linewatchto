@@ -25,6 +25,7 @@ import {
 } from "../app/station-data";
 import { ImpactTypeIcon } from "./ImpactTypeIcon";
 import { LineBadge } from "./ImpactCardFields";
+import { TransitLineBadge } from "./TransitLineBadge";
 
 type Props = {
   open: boolean;
@@ -99,23 +100,12 @@ const OUTAGE_ICON_SRC = {
   escalator: "/assets/linewatch/outages/escalator.svg",
 } as const;
 
-function lineTextColor(lineId: string) {
-  return lineId === "line-1" ? "#111827" : "#ffffff";
-}
-
 function lineById(lineId: string) {
   return STATION_SEARCH_LINES.find((line) => line.id === lineId);
 }
 
 function StationLineBadge({ line }: { line: StationSearchLine }) {
-  return (
-    <span
-      className="station-search-line-badge"
-      style={{ backgroundColor: line.color, color: lineTextColor(line.id) }}
-      aria-label={`Line ${line.number}`}
-      title={`Line ${line.number} ${line.name}`}
-    >{line.number}</span>
-  );
+  return <TransitLineBadge lineId={line.id} lineNumber={line.number} lineName={line.name} size={24} />;
 }
 
 function formatOutageLabel(assetType: "elevator" | "escalator", count: number) {
@@ -696,10 +686,7 @@ export function StationSearchPanel({
                   ) : null}
                   <div className="station-search-stations-column-header">
                     <div className="flex items-center gap-2 mb-3 px-1">
-                      <span
-                        className="station-search-line-badge"
-                        style={{ backgroundColor: activeLineGroup.line.color, color: lineTextColor(activeLineGroup.line.id) }}
-                      >{activeLineGroup.line.number}</span>
+                      <TransitLineBadge lineId={activeLineGroup.line.id} lineNumber={activeLineGroup.line.number} lineName={activeLineGroup.line.name} size={24} />
                       <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                         {activeLineGroup.line.name} Stations
                       </span>

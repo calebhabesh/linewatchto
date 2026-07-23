@@ -85,8 +85,8 @@ export function formatTravelTimeHeadline(estimate: TravelTimeHeadlineEstimate) {
       };
     case "unreliable":
       return {
-        value: "Travel time unreliable",
-        context: "Major disruption on route",
+        value: "Travel Time Unreliable",
+        context: "Major Disruption on Route",
       };
     case "unavailable":
       return {

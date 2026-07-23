@@ -8,8 +8,9 @@ import {
   type AlertHistoryPeriod,
 } from "../app/alert-history-data";
 import { formatFullImpactTimestamp, formatImpactTimestamp } from "../app/impact-time";
-import { formatCause, formatCompactLocation, lineColor } from "./ImpactCardFields";
+import { formatCause, formatCompactLocation } from "./ImpactCardFields";
 import { DelayIcon } from "./DelayIcon";
+import { TransitLineBadge } from "./TransitLineBadge";
 import {
   ALL_LINES_VALUE,
   buildAlertHistoryLineOptions,
@@ -182,9 +183,7 @@ export function AlertHistoryTimeline() {
               >
                 {selectedLineOption?.lineNumber && selectedLineOption?.lineId ? (
                   <span className="flex items-center gap-2 min-w-0">
-                    <span className="line-badge small shrink-0 font-black" style={lineColor(selectedLineOption.lineId)}>
-                      {selectedLineOption.lineNumber}
-                    </span>
+                    <TransitLineBadge lineId={selectedLineOption.lineId} lineNumber={selectedLineOption.lineNumber} size={24} className="shrink-0" />
                     {selectedLineOption.lineName && <span className="truncate">{selectedLineOption.lineName}</span>}
                   </span>
                 ) : (
@@ -210,9 +209,7 @@ export function AlertHistoryTimeline() {
                       >
                         {option.lineNumber && option.lineId ? (
                           <span className="flex items-center gap-2 min-w-0">
-                            <span className="line-badge small shrink-0 font-black" style={lineColor(option.lineId)}>
-                              {option.lineNumber}
-                            </span>
+                            <TransitLineBadge lineId={option.lineId} lineNumber={option.lineNumber} size={24} className="shrink-0" />
                             {option.lineName && <span className="truncate">{option.lineName}</span>}
                           </span>
                         ) : (
@@ -365,12 +362,8 @@ function HistoryLineIdentity({ incident }: { incident: AlertHistoryIncident }) {
   }
 
   return (
-    <span
-      className="alert-history-line-identity inline-flex min-h-6 max-w-full min-w-0 items-center gap-1.5 rounded-full border border-black/10 px-2.5 py-0.5 text-[11px] font-black dark:border-white/10"
-      style={lineColor(incident.lineId)}
-      aria-label={lineLabel(incident)}
-    >
-      {incident.lineNumber}
+    <span className="alert-history-line-identity inline-flex min-h-6 max-w-full min-w-0 items-center gap-1.5 text-[11px] font-black" aria-label={lineLabel(incident)}>
+      <TransitLineBadge lineId={incident.lineId} lineNumber={incident.lineNumber} lineName={incident.lineName ?? undefined} size={24} decorative />
       <span className="alert-history-line-name min-w-0 truncate">{incident.lineName ?? `Line ${incident.lineNumber}`}</span>
     </span>
   );

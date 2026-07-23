@@ -1267,7 +1267,11 @@ export function SavedCommutesPanel({
                               : "No Impacts";
                           return (
                             <div className={`saved-commute-current-impact-badge rounded-full font-bold uppercase tracking-wider shrink-0 ${impactBgColor}`}>
-                              <ExclaimAlertIcon className="w-3.5 h-3.5 shrink-0" />
+                              {hasCurrentImpacts || ignoredImpactsCount > 0 ? (
+                                <ExclaimAlertIcon className="w-3.5 h-3.5 shrink-0" />
+                              ) : (
+                                <Check className="w-3.5 h-3.5 shrink-0" strokeWidth={3} aria-hidden="true" />
+                              )}
                               <span>{impactText}</span>
                             </div>
                           );

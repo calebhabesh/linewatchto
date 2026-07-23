@@ -32,6 +32,7 @@ import { PwaInstallNudge } from "./PwaInstallNudge";
 import { usePwaInstallPrompt } from "../hooks/usePwaInstallPrompt";
 import { LineLegend } from "./LineLegend";
 import { MobileLegend } from "./MobileLegend";
+import { TransitLineBadge } from "./TransitLineBadge";
 import { LogsDropdown } from "./LogsDropdown";
 import { SiteGuideDropdown } from "./SiteGuideDropdown";
 import { DataProvider, DashboardData } from "../app/DataContext";
@@ -1726,6 +1727,7 @@ export function LineWatchShell({
             onSelectStation={(stationId) => {
               handleSelectStationId(stationId);
             }}
+            onSelectImpact={handleMapSelectImpact}
             onRetry={() => { void refreshSavedStations(); }}
             onBack={() => setActiveView(isMobile ? "more" : "menu")}
             onClose={() => { setActiveView("map"); setSelection(null); }}
@@ -2483,9 +2485,7 @@ export function LineWatchShell({
                         
                         return (
                           <div key={l.id} className="flex items-center gap-3 px-2 py-2 rounded-lg !bg-white dark:!bg-[#12151c] border border-black/5 dark:border-white/5 shadow-sm">
-                             <span className="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold shadow-sm border border-black dark:border-white/30" style={{ backgroundColor: l.color, color: l.id === "line-1" ? "#000" : "#fff" }}>
-                               {l.number}
-                             </span>
+                             <TransitLineBadge lineId={l.id} lineNumber={l.number} lineName={l.name} size={24} className="flex-shrink-0" />
                              <div className="flex flex-col justify-center">
                                 <div className="flex items-center gap-2">
                                   <span className="text-sm font-bold text-slate-800 dark:text-slate-200">{l.name}</span>

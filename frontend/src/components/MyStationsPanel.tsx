@@ -1,11 +1,23 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
-import { Bookmark, ChevronLeft, ChevronRight, Plus, Search, X } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { AlertCircle, Bookmark, ChevronDown, ChevronLeft, ChevronRight, Clock3, LoaderCircle, MapPinned, Plus, Search, TriangleAlert, X } from "lucide-react";
 import type { AccountSavedStation } from "../app/saved-station-data";
+import type { ImpactSelection } from "../app/linewatch-data";
 import { filterAndSortSavedStations, type SavedStationSort } from "../app/saved-stations";
-import type { StationSummary } from "../app/station-data";
+import {
+  formatArrivalSourceBadgeLabel,
+  formatArrivalSourceSummary,
+  formatArrivalTileLabel,
+  groupStationArrivals,
+  isArrivalDue,
+  shouldUseDetailedArrivalCountdown,
+} from "../app/station-arrivals";
+import { getStationDetail, type StationDataResult, type StationDetail, type StationImpactSeverity, type StationSummary } from "../app/station-data";
+import { useDashboardData } from "../app/DataContext";
+import { useSubwayOperatingState } from "../hooks/useSubwayOperatingState";
 import { ToolbarSelectMenu, type ToolbarSelectOption } from "./ImpactListToolbar";
+import { TransitLineBadge } from "./TransitLineBadge";
 
 type Props = {
   savedStations: AccountSavedStation[];
@@ -16,6 +28,7 @@ type Props = {
   onSave: (stationId: string) => Promise<boolean>;
   onRemove: (stationId: string) => Promise<boolean>;
   onSelectStation: (stationId: string) => void;
+  onSelectImpact: (selection: NonNullable<ImpactSelection>) => void;
   onRetry: () => void;
   onBack: () => void;
   onClose: () => void;
@@ -42,13 +55,84 @@ const LINE_OPTIONS: ToolbarSelectOption<string>[] = [
   ...LINES.map((line) => ({ value: line.id, label: line.name, lineId: line.id })),
 ];
 
+const SAVED_STATION_DETAIL_REFRESH_MS = 15_000;
+
+type SavedStationDisruptionKind = StationImpactSeverity | "elevator" | "escalator";
+
+function disruptionKindLabel(kind: SavedStationDisruptionKind) {
+  switch (kind) {
+    case "suspension": return "Suspension";
+    case "delay": return "Delay";
+    case "planned": return "Closure";
+    case "elevator": return "Elevator Outage";
+    case "escalator": return "Escalator Outage";
+  }
+}
+
+function disruptionKindCountLabel(kind: SavedStationDisruptionKind, count: number) {
+  const label = disruptionKindLabel(kind);
+  return `${count} ${label}${count === 1 ? "" : "s"}`;
+}
+
+function disruptionKindClassName(kind: SavedStationDisruptionKind) {
+  return kind === "planned" ? "planned-closure" : kind;
+}
+
+function DisruptionIcon({ kind, size = 13 }: { kind: SavedStationDisruptionKind; size?: number }) {
+  return kind === "elevator" || kind === "escalator"
+    ? <AlertCircle size={size} aria-hidden="true" />
+    : <TriangleAlert size={size} aria-hidden="true" />;
+}
+
+function stationImpactContext(
+  impactId: string,
+  stationName: string,
+  dashboard: ReturnType<typeof useDashboardData>,
+) {
+  const match = dashboard.activeAlerts.find((impact) => impact.id === impactId)
+    ?? dashboard.delays.find((impact) => impact.id === impactId)
+    ?? dashboard.plannedClosures.find((impact) => impact.id === impactId)
+    ?? dashboard.reducedSpeedZones.find((impact) => impact.id === impactId || impact.sourceAlertIds.includes(impactId));
+
+  if (!match) return `Station: ${stationName}`;
+  return `Line ${match.lineNumber}: ${match.location}${match.displayDirection ? ` (${match.displayDirection})` : ""}`;
+}
+
+function stationImpactSelection(
+  impactId: string,
+  dashboard: ReturnType<typeof useDashboardData>,
+): NonNullable<ImpactSelection> | null {
+  const reducedSpeedZone = dashboard.reducedSpeedZones.find(
+    (impact) => impact.id === impactId || impact.sourceAlertIds.includes(impactId),
+  );
+  if (reducedSpeedZone) return { kind: "reduced-speed-zone", id: reducedSpeedZone.id };
+
+  const activeAlert = dashboard.activeAlerts.find((impact) => impact.id === impactId);
+  if (activeAlert) {
+    const kind = activeAlert.severity === "planned"
+      ? "planned-closure"
+      : activeAlert.severity === "suspension"
+        ? "suspension"
+        : "delay";
+    return { kind, id: activeAlert.id };
+  }
+
+  const delay = dashboard.delays.find((impact) => impact.id === impactId);
+  if (delay) return { kind: "delay", id: delay.id };
+
+  const plannedClosure = dashboard.plannedClosures.find((impact) => impact.id === impactId);
+  if (plannedClosure) return { kind: "planned-closure", id: plannedClosure.id };
+
+  return null;
+}
+
 function StationLineBadges({ lineIds }: { lineIds: string[] }) {
   return (
     <span className="my-stations-line-badges" aria-label={lineIds.map((id) => `Line ${id.replace("line-", "")}`).join(", ")}>
       {lineIds.map((id) => {
         const line = LINES.find((candidate) => candidate.id === id);
         if (!line) return null;
-        return <span key={id} style={{ backgroundColor: line.color, color: line.text }}>{line.number}</span>;
+        return <TransitLineBadge key={id} lineId={id} lineNumber={line.number} size={28} decorative />;
       })}
     </span>
   );
@@ -57,53 +141,222 @@ function StationLineBadges({ lineIds }: { lineIds: string[] }) {
 function stationState(station: StationSummary) {
   const counts = station.accessOutageCounts ?? { elevator: 0, escalator: 0 };
   const outageCount = counts.elevator + counts.escalator;
-  if (station.hasActiveImpact) {
-    return { label: "Active station impact", tone: "impact" };
-  }
-  if (outageCount > 0 || station.accessStatus === "outage") {
-    return {
-      label: `${Math.max(outageCount, 1)} accessibility ${Math.max(outageCount, 1) === 1 ? "outage" : "outages"}`,
-      tone: "outage",
-    };
-  }
-  return { label: "No active station impacts", tone: "clear" };
+  const impactCount = (station.hasActiveImpact ? 1 : 0)
+    + (outageCount > 0 ? outageCount : station.accessStatus === "outage" ? 1 : 0);
+  return {
+    count: impactCount,
+    label: impactCount > 0 ? `${impactCount} Impact${impactCount === 1 ? "" : "s"}` : "No Impacts",
+    tone: impactCount > 0 ? "impact" : "clear",
+  };
+}
+
+function formatCondensedArrivalDirection(directionLabel: string) {
+  const match = directionLabel.match(/^(Northbound|Southbound|Eastbound|Westbound)\s+to\s+(.+)$/i);
+  if (!match) return { direction: directionLabel, destination: null };
+  return { direction: match[1], destination: `To ${match[2]}` };
 }
 
 function SavedStationRow({
   saved,
+  detailResult,
+  subwayClosed,
+  arrivalTick,
   pending,
   onOpen,
+  onSelectImpact,
   onRemove,
 }: {
   saved: AccountSavedStation;
+  detailResult?: StationDataResult<StationDetail | null>;
+  subwayClosed: boolean;
+  arrivalTick: number;
   pending: boolean;
   onOpen: () => void;
+  onSelectImpact: (selection: NonNullable<ImpactSelection>) => void;
   onRemove: () => void;
 }) {
-  const state = stationState(saved.station);
+  const dashboard = useDashboardData();
+  const detail = detailResult?.data ?? null;
+  const activeImpacts = detail?.impacts.filter((impact) => impact.type === "active-alert") ?? [];
+  const accessOutages = detail?.access.outages ?? [];
+  const disruptionCount = activeImpacts.length + accessOutages.length;
+  const displayedDisruptionCount = detail ? disruptionCount : stationState(saved.station).count;
+  const disruptionSummary = (() => {
+    const counts = new Map<SavedStationDisruptionKind, number>();
+    for (const impact of activeImpacts) counts.set(impact.severity, (counts.get(impact.severity) ?? 0) + 1);
+    for (const outage of accessOutages) counts.set(outage.assetType, (counts.get(outage.assetType) ?? 0) + 1);
+    const order: SavedStationDisruptionKind[] = ["suspension", "delay", "planned", "elevator", "escalator"];
+    return order.flatMap((kind) => counts.has(kind) ? [{ kind, count: counts.get(kind) ?? 0 }] : []);
+  })();
+  const hasUnavailableArrivals = detail?.arrivals.some((arrival) => arrival.status === "unavailable") ?? false;
+  const hasLiveArrivals = detail?.arrivals.some((arrival) => arrival.status === "live") ?? false;
+  const arrivalGroups = detail && !hasUnavailableArrivals
+    ? groupStationArrivals(detail.arrivals, detail.lines, {
+        stationId: detail.id,
+        maxArrivalsPerDirection: 2,
+        includeEmptyDirections: hasLiveArrivals,
+      })
+    : [];
+
   return (
-    <div className="my-stations-row">
-      <button type="button" className="my-stations-row-main" onClick={onOpen}>
-        <span className="my-stations-row-copy">
-          <span className="my-stations-row-heading">
-            <strong>{saved.station.name}</strong>
-            <StationLineBadges lineIds={saved.station.lineIds} />
+    <article className={`my-stations-row saved-station-rich-row ${displayedDisruptionCount > 0 ? "is-affected" : "is-clear"}`}>
+      <div className="saved-station-rich-heading">
+        <button type="button" className="my-stations-row-main" onClick={onOpen}>
+          <span className="my-stations-row-copy">
+            <span className="my-stations-row-heading">
+              <strong>{saved.station.name}</strong>
+              <StationLineBadges lineIds={saved.station.lineIds} />
+            </span>
           </span>
-          <span className={`my-stations-state ${state.tone}`}>{state.label}</span>
-        </span>
-        <ChevronRight size={18} aria-hidden="true" />
-      </button>
-      <button
-        type="button"
-        className="my-stations-bookmark saved"
-        onClick={onRemove}
-        disabled={pending}
-        aria-pressed="true"
-        aria-label={`Remove ${saved.station.name} from My Stations`}
-      >
-        <Bookmark size={20} fill="currentColor" aria-hidden="true" />
-      </button>
-    </div>
+          <span className="saved-station-open-action">
+            <span>Open Station</span>
+            <ChevronRight size={18} aria-hidden="true" />
+          </span>
+        </button>
+        <button
+          type="button"
+          className="my-stations-bookmark saved"
+          onClick={onRemove}
+          disabled={pending}
+          aria-pressed="true"
+          aria-label={`Remove ${saved.station.name} from My Stations`}
+        >
+          <Bookmark size={20} fill="currentColor" aria-hidden="true" />
+        </button>
+      </div>
+
+      {!detailResult ? (
+        <div className="saved-station-detail-loading" role="status">
+          <LoaderCircle size={15} aria-hidden="true" />
+          Loading station information...
+        </div>
+      ) : !detail ? (
+        <div className="saved-station-detail-loading">Station information is unavailable.</div>
+      ) : (
+        <div className="saved-station-rich-content">
+          <details className={`saved-commute-impact-disclosure saved-station-disruption-disclosure${disruptionCount === 0 ? " is-clear" : ""}`}>
+            <summary className="saved-commute-impact-summary saved-station-disruption-summary">
+              <span className="saved-commute-impact-summary-heading saved-station-disruption-heading">
+                {disruptionCount > 0 ? <AlertCircle className="saved-commute-impact-summary-icon" size={16} aria-hidden="true" /> : <span className="saved-station-clear-dot" aria-hidden="true" />}
+                <strong>{disruptionCount > 0 ? "Active Disruptions" : "No Active Disruptions"}</strong>
+                <span className="saved-commute-impact-total saved-station-disruption-total">{disruptionCount}</span>
+              </span>
+              {disruptionCount > 0 ? (
+                <span className="saved-commute-impact-summary-chips saved-station-disruption-chips">
+                  {disruptionSummary.map(({ kind, count }) => (
+                    <span key={kind} className={`saved-commute-impact-summary-chip kind-${disruptionKindClassName(kind)}`}>
+                      <DisruptionIcon kind={kind} size={12} />
+                      {disruptionKindCountLabel(kind, count)}
+                    </span>
+                  ))}
+                </span>
+              ) : null}
+              <span className="saved-commute-impact-summary-action saved-station-disruption-action">
+                <span className="saved-commute-impact-summary-action-collapsed">List View</span>
+                <span className="saved-commute-impact-summary-action-expanded">Hide List</span>
+                <ChevronDown className="saved-commute-impact-summary-chevron" size={15} aria-hidden="true" />
+              </span>
+            </summary>
+            {disruptionCount > 0 ? (
+              <ul className="saved-commute-impact-list saved-station-disruption-list">
+                {activeImpacts.map((impact) => (
+                  <li key={impact.id} className={`kind-${disruptionKindClassName(impact.severity)}`}>
+                    <span className="saved-commute-impact-icon" aria-hidden="true"><DisruptionIcon kind={impact.severity} size={15} /></span>
+                    <div className="saved-commute-impact-copy">
+                      <div className="saved-commute-impact-details">
+                        <div className="saved-commute-impact-heading"><strong><span className="saved-commute-impact-kind-label">{disruptionKindLabel(impact.severity)}</span></strong></div>
+                        <span>{stationImpactContext(impact.id, saved.station.name, dashboard)}</span>
+                      </div>
+                      <div className="saved-commute-impact-action">
+                        <button
+                          type="button"
+                          className="saved-commute-map-action saved-commute-impact-map-button"
+                          onClick={() => {
+                            const impactSelection = stationImpactSelection(impact.id, dashboard);
+                            if (impactSelection) onSelectImpact(impactSelection);
+                            else onOpen();
+                          }}
+                          aria-label={`View ${saved.station.name} alert on the map`}
+                        >
+                          <MapPinned size={12} aria-hidden="true" /> View on Map
+                        </button>
+                      </div>
+                    </div>
+                  </li>
+                ))}
+                {accessOutages.map((outage) => (
+                  <li key={outage.id} className={`kind-${disruptionKindClassName(outage.assetType)}`}>
+                    <span className="saved-commute-impact-icon" aria-hidden="true"><DisruptionIcon kind={outage.assetType} size={15} /></span>
+                    <div className="saved-commute-impact-copy">
+                      <div className="saved-commute-impact-details">
+                        <div className="saved-commute-impact-heading"><strong><span className="saved-commute-impact-kind-label">{disruptionKindLabel(outage.assetType)}</span></strong></div>
+                        <span>Station: {saved.station.name}</span>
+                      </div>
+                      <div className="saved-commute-impact-action">
+                        <button type="button" className="saved-commute-map-action saved-commute-impact-map-button" onClick={onOpen} aria-label={`View ${saved.station.name} on the map`}>
+                          <MapPinned size={12} aria-hidden="true" /> View on Map
+                        </button>
+                      </div>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            ) : <p className="saved-station-disruption-clear-copy">No directly linked service impacts or accessibility outages.</p>}
+          </details>
+
+          <section className="saved-station-arrivals" aria-label={`Arrivals at ${saved.station.name}`}>
+            <div className="station-arrival-line-divider saved-station-section-divider" aria-hidden="true" />
+            <div className="saved-station-arrivals-heading">
+              <span><Clock3 size={15} aria-hidden="true" /><strong>Arrivals</strong></span>
+              <small>{formatArrivalSourceSummary(detail.arrivals, detail.arrivalsSource)}</small>
+            </div>
+            {subwayClosed ? (
+              <p className="saved-station-arrivals-empty">Subway Closed · Arrivals Not Available</p>
+            ) : hasUnavailableArrivals ? (
+              <p className="saved-station-arrivals-empty">Arrival Data Unavailable</p>
+            ) : arrivalGroups.length === 0 ? (
+              <p className="saved-station-arrivals-empty">No Arrivals Available</p>
+            ) : (
+              <div className="saved-station-arrival-groups">
+                {arrivalGroups.map((group) => {
+                  const sourceLabel = formatArrivalSourceBadgeLabel(group.arrivals, {
+                    emptyLiveDirection: hasLiveArrivals && group.arrivals.length === 0,
+                  });
+                  const direction = formatCondensedArrivalDirection(group.directionLabel);
+                  return (
+                    <div className="saved-station-arrival-group" key={group.key}>
+                      <TransitLineBadge lineId={group.lineId} lineNumber={group.lineNumber} lineName={group.line?.name} size={32} />
+                      <span className="saved-station-arrival-direction">
+                        <strong>{direction.direction}</strong>
+                        {direction.destination ? <span className="saved-station-arrival-destination">{direction.destination}</span> : null}
+                      </span>
+                      <span className={`saved-station-arrival-source source-${sourceLabel.toLowerCase().replaceAll(" ", "-")}`}>{sourceLabel}</span>
+                      <span className="saved-station-arrival-times">
+                        {group.arrivals.length > 0
+                          ? group.arrivals.map((arrival, index) => {
+                              const detailed = index === 0 && shouldUseDetailedArrivalCountdown(arrival, arrivalTick);
+                              const due = isArrivalDue(arrival, arrivalTick);
+                              return (
+                                <strong
+                                  className={[detailed ? "is-detailed is-soon" : "", due ? "is-due" : ""].filter(Boolean).join(" ") || undefined}
+                                  key={`${arrival.predictedAt ?? arrival.label}-${index}`}
+                                >
+                                  {formatArrivalTileLabel(arrival, { detailedCountdown: detailed, now: arrivalTick })}
+                                </strong>
+                              );
+                            })
+                          : <em>—</em>}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </section>
+          {detailResult.source === "fallback" ? <p className="saved-station-source-note">Showing local demo station data.</p> : null}
+        </div>
+      )}
+    </article>
   );
 }
 
@@ -116,6 +369,7 @@ export function MyStationsPanel({
   onSave,
   onRemove,
   onSelectStation,
+  onSelectImpact,
   onRetry,
   onBack,
   onClose,
@@ -124,7 +378,10 @@ export function MyStationsPanel({
   const [query, setQuery] = useState("");
   const [lineId, setLineId] = useState("all");
   const [sort, setSort] = useState<SavedStationSort>("attention");
-  const [lastRemoved, setLastRemoved] = useState<AccountSavedStation | null>(null);
+  const [lastRemoved, setLastRemoved] = useState<{ saved: AccountSavedStation; index: number } | null>(null);
+  const [stationDetails, setStationDetails] = useState<Record<string, StationDataResult<StationDetail | null>>>({});
+  const [arrivalTick, setArrivalTick] = useState(() => Date.now());
+  const subwayOperatingState = useSubwayOperatingState();
   const modeButtonRef = useRef<HTMLButtonElement>(null);
   const savedIds = useMemo(() => new Set(savedStations.map((saved) => saved.station.id)), [savedStations]);
   const visible = useMemo(
@@ -154,17 +411,56 @@ export function MyStationsPanel({
       }))
       .filter((group) => group.stations.length > 0);
   }, [lineId, pickerStations, query]);
-  const compactEmpty = mode === "list" && !loading && !error && savedStations.length === 0;
+  const compactEmpty = mode === "list" && !loading && !error && savedStations.length === 0 && !lastRemoved;
 
-  async function remove(saved: AccountSavedStation) {
-    if (await onRemove(saved.station.id)) {
-      setLastRemoved(saved);
+  const visibleStationIds = useMemo(
+    () => visible.map((saved) => saved.station.id).join(","),
+    [visible],
+  );
+
+  useEffect(() => {
+    if (mode !== "list" || !visibleStationIds) return;
+    let cancelled = false;
+    const stationIds = visibleStationIds.split(",");
+
+    const refresh = async () => {
+      const results = await Promise.all(stationIds.map(async (stationId) => [stationId, await getStationDetail(stationId)] as const));
+      if (!cancelled) {
+        setStationDetails((current) => ({ ...current, ...Object.fromEntries(results) }));
+      }
+    };
+
+    void refresh();
+    const interval = window.setInterval(() => {
+      if (document.visibilityState === "visible") void refresh();
+    }, SAVED_STATION_DETAIL_REFRESH_MS);
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") void refresh();
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [mode, visibleStationIds]);
+
+  useEffect(() => {
+    const interval = window.setInterval(() => setArrivalTick(Date.now()), 3_000);
+    return () => window.clearInterval(interval);
+  }, []);
+
+  async function remove(saved: AccountSavedStation, index: number) {
+    setLastRemoved({ saved, index });
+    if (!(await onRemove(saved.station.id))) {
+      setLastRemoved((current) => current?.saved.station.id === saved.station.id ? null : current);
     }
   }
 
   async function undoRemove() {
     if (!lastRemoved) return;
-    const restored = await onSave(lastRemoved.station.id);
+    const restored = await onSave(lastRemoved.saved.station.id);
     if (restored) setLastRemoved(null);
   }
 
@@ -276,9 +572,7 @@ export function MyStationsPanel({
                   style={group.line ? { borderLeftColor: group.line.color } : undefined}
                 >
                   {group.line ? (
-                    <span className="my-stations-picker-line-number" style={{ backgroundColor: group.line.color, color: group.line.text }}>
-                      {group.line.number}
-                    </span>
+                    <TransitLineBadge lineId={group.line.id} lineNumber={group.line.number} lineName={group.line.name} size={28} className="my-stations-picker-line-number" />
                   ) : null}
                   <span>{group.label}</span>
                   <span className="my-stations-picker-section-count">{group.stations.length}</span>
@@ -312,37 +606,53 @@ export function MyStationsPanel({
             ))}
             {pickerStations.length === 0 ? <div className="my-stations-empty"><p>No Stations Match</p></div> : null}
           </div>
-        ) : savedStations.length === 0 ? (
+        ) : savedStations.length === 0 && !lastRemoved ? (
           <div className="my-stations-empty">
             <p>No Saved Stations</p>
           </div>
-        ) : visible.length === 0 ? (
+        ) : visible.length === 0 && !lastRemoved ? (
           <div className="my-stations-empty">
             <p>No Saved Stations Match</p>
             <button type="button" onClick={() => { setQuery(""); setLineId("all"); }}>Clear Filters</button>
           </div>
         ) : (
           <div className="my-stations-list" aria-label="Saved stations">
-            {visible.map((saved) => (
-              <SavedStationRow
-                key={saved.station.id}
-                saved={saved}
-                pending={pendingStationIds.has(saved.station.id)}
-                onOpen={() => onSelectStation(saved.station.id)}
-                onRemove={() => void remove(saved)}
-              />
+            {visible.map((saved, index) => (
+              <div className="saved-station-list-slot" key={saved.station.id}>
+                {lastRemoved?.index === index ? (
+                  <div className="saved-station-inline-undo" role="status">
+                    <span>{lastRemoved.saved.station.name} removed</span>
+                    <button type="button" onClick={() => void undoRemove()}>Undo</button>
+                    <button type="button" onClick={() => setLastRemoved(null)} aria-label="Dismiss undo"><X size={15} /></button>
+                  </div>
+                ) : null}
+                <SavedStationRow
+                  saved={saved}
+                  detailResult={stationDetails[saved.station.id]}
+                  subwayClosed={subwayOperatingState.status === "closed"}
+                  arrivalTick={arrivalTick}
+                  pending={pendingStationIds.has(saved.station.id)}
+                  onOpen={() => onSelectStation(saved.station.id)}
+                  onSelectImpact={onSelectImpact}
+                  onRemove={() => void remove(saved, index)}
+                />
+              </div>
             ))}
+            {lastRemoved && lastRemoved.index >= visible.length ? (
+              <div className="saved-station-inline-undo" role="status">
+                <span>{lastRemoved.saved.station.name} removed</span>
+                <button type="button" onClick={() => void undoRemove()}>Undo</button>
+                <button type="button" onClick={() => setLastRemoved(null)} aria-label="Dismiss undo"><X size={15} /></button>
+              </div>
+            ) : null}
+            {savedStations.length === 0 && lastRemoved ? (
+              <div className="my-stations-empty saved-station-empty-after-removal">
+                <p>No Saved Stations</p>
+              </div>
+            ) : null}
           </div>
         )}
       </div>
-
-      {lastRemoved ? (
-        <div className="my-stations-undo" role="status">
-          <span>{lastRemoved.station.name} removed</span>
-          <button type="button" onClick={() => void undoRemove()}>Undo</button>
-          <button type="button" onClick={() => setLastRemoved(null)} aria-label="Dismiss undo"><X size={15} /></button>
-        </div>
-      ) : null}
     </section>
   );
 }

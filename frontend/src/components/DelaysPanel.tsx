@@ -118,9 +118,9 @@ export function DelaysPanel({ selection, onSelectImpact, onBack, onClose, onFocu
                 }`}
               >
                 <div className="impact-card-heading flex items-start justify-between gap-3 w-full min-w-0">
-                  <div className="flex min-w-0 flex-1 items-start gap-2">
+                  <div className="flex min-w-0 flex-1 items-center gap-2">
                     <LineBadge lineId={delay.lineId} lineNumber={delay.lineNumber} />
-                    <strong className="block min-w-0 text-sm font-semibold text-slate-800 dark:text-slate-100 whitespace-normal break-words mt-0.5">
+                    <strong className="block min-w-0 text-sm font-semibold text-slate-800 dark:text-slate-100 whitespace-normal break-words">
                       {delay.title}
                     </strong>
                   </div>

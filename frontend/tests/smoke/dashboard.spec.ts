@@ -1327,8 +1327,8 @@ test("demo account shows account-backed saved commutes", async ({ page, request,
   await expect(page.getByText("Stub Station <-> Union")).toBeVisible();
   await expect(page.getByText("Default Scheduled Route · To Union")).toBeVisible();
   await expect(page.getByText("5 Stations", { exact: true })).toBeVisible();
-  await expect(page.getByText("Travel time unreliable", { exact: true })).toBeVisible();
-  await expect(page.getByText("Major disruption on route", { exact: true })).toBeVisible();
+  await expect(page.getByText("Travel Time Unreliable", { exact: true })).toBeVisible();
+  await expect(page.getByText("Major Disruption on Route", { exact: true })).toBeVisible();
   await expect(page.getByText("Travel Time", { exact: true })).toBeVisible();
   await expect(page.locator('[data-travel-time-severity="severe"]')).toBeVisible();
   await expect(page.getByText("Major disruption on this route; travel time is not reliable.")).toBeVisible();
@@ -1639,7 +1639,7 @@ test("signed-in riders save, browse, remove, undo, and reload My Stations", asyn
   expect(pickerRowStyle.backgroundColor).toBe("rgb(21, 24, 33)");
   await doneButton.click();
   await expect(panel.locator(".my-stations-row-heading strong", { hasText: "Stub Station" })).toBeVisible();
-  await expect(panel.getByText("Active station impact", { exact: true })).toBeVisible();
+  await expect(panel.getByText("Active Disruptions", { exact: true })).toBeVisible();
   await panel.getByRole("button", { name: "Remove Stub Station from My Stations" }).click();
   await expect(panel.getByText("No Saved Stations", { exact: true })).toBeVisible();
   await panel.getByRole("button", { name: "Undo", exact: true }).click();

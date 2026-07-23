@@ -15,6 +15,7 @@ import {
 import type { AccountState } from "../app/account-data";
 import { type UsePushNotificationSettingsResult } from "../hooks/usePushNotificationSettings";
 import { DelayIcon } from "./DelayIcon";
+import { TransitLineBadge } from "./TransitLineBadge";
 
 type Props = {
   accountState: AccountState;
@@ -23,15 +24,6 @@ type Props = {
   onClose?: () => void;
   onRequestSignIn: () => void;
   onRequestCreateAccount: () => void;
-};
-
-// Mapped line options for tests: Line 1, Line 2, Line 4, Line 5, Line 6
-const LINE_COLORS: Record<string, string> = {
-  "line-1": "#FBD13F",
-  "line-2": "#00843D",
-  "line-4": "#B241A1",
-  "line-5": "#F58220",
-  "line-6": "#969594",
 };
 
 function NotificationSwitch({
@@ -346,19 +338,10 @@ export function NotificationSettingsPanel({
               </div>
               <div className="notification-settings-list" aria-label="Line-wide notification subscriptions">
                 {preferences.lineSubscriptions.lines.map((line) => {
-                  const color = LINE_COLORS[line.lineId] || "#cccccc";
                   return (
                     <div className="notification-settings-row flex items-center justify-between py-2 border-b border-black/5 dark:border-white/5 last:border-b-0" key={line.lineId}>
                       <div className="flex items-center gap-2.5 min-w-0">
-                        <span
-                          className="notification-line-badge shrink-0 w-6 h-6 flex items-center justify-center rounded-full font-bold text-sm"
-                          style={{
-                            backgroundColor: color,
-                            color: line.lineId === "line-1" ? "#111827" : "#ffffff",
-                          }}
-                        >
-                          {line.lineNumber}
-                        </span>
+                        <TransitLineBadge lineId={line.lineId} lineNumber={line.lineNumber} lineName={line.label} size={26} className="notification-line-badge shrink-0" />
                         <span className="notification-settings-row-label min-w-0 truncate">
                           <strong>Line {line.lineNumber}</strong>
                           <em>{line.label}</em>

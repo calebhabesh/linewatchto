@@ -41,11 +41,9 @@ describe("notification settings navigation", () => {
     assert.match(notificationPanelSource, /Current Disruptions Affecting Saved Commutes/);
     assert.match(notificationPanelSource, /Planned Closure Reminders/);
     assert.match(notificationPanelSource, /Line Subscriptions/);
-    assert.match(notificationPanelSource, /Line 1/);
-    assert.match(notificationPanelSource, /Line 2/);
-    assert.match(notificationPanelSource, /Line 4/);
-    assert.match(notificationPanelSource, /Line 5/);
-    assert.match(notificationPanelSource, /Line 6/);
+    assert.match(notificationPanelSource, /TransitLineBadge/);
+    assert.match(notificationPanelSource, /lineId=\{line\.lineId\}/);
+    assert.match(notificationPanelSource, /lineNumber=\{line\.lineNumber\}/);
     assert.match(notificationPanelSource, /Event Types/);
     assert.match(notificationPanelSource, /Suspensions \/ Closures/);
     assert.match(notificationPanelSource, /Delays/);

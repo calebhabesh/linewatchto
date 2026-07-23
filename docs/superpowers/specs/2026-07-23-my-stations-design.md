@@ -161,15 +161,30 @@ Each row shows:
 - a filled bookmark action to remove the station;
 - a chevron or `Open` action for station details.
 
+The implemented rich-row iteration also loads the existing station-detail API
+for each visible saved station and shows:
+
+- an `Active Disruptions` condensed summary with service-impact and
+  accessibility-outage counts;
+- a `List View` / `Hide List` disclosure for directly linked impact and outage
+  details, using the same typed chips and expanded information hierarchy as
+  Saved Commutes;
+- a scaled-down next-arrivals board grouped by line and direction; and
+- the existing live, scheduled, mixed, unavailable, or demo source label.
+
+The mini arrival board follows the same closed-hours gate as station detail and
+never removes or weakens the arrival source label. Detail reads refresh only
+while the panel is visible, reuse the existing station-detail freshness rules,
+and retain local fixture fallback labeling when the backend is unavailable.
+
 Selecting the main row closes My Stations and opens the existing station detail
 panel/map selection. Removing a station does not require a confirmation dialog
-because the operation is reversible. Show a short Undo toast that restores the
-relationship with the same PUT operation.
+because the operation is reversible. Show a short Undo row in the deleted
+station's list position; restoring uses the same PUT operation.
 
-Do not put full arrival boards or full alert cards in the watchlist for the
-first release. That would make the panel expensive and visually duplicate the
-station detail panel. The station detail remains the source for arrivals,
-platform accessibility, directly linked impacts, and outage details.
+Use condensed arrival and disruption treatments rather than duplicating the
+full station-detail cards. Station detail remains the source for full arrivals,
+platform accessibility, directly linked impact, and outage detail treatments.
 
 ## Add Station Mini Picker
 

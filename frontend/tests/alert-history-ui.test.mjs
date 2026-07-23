@@ -47,11 +47,10 @@ describe("alert history timeline UI", () => {
     assert.match(cssSource, /\.alert-history-divider/);
   });
 
-  it("uses compact card-like rows with simple filled TTC line badges", () => {
-    assert.match(timelineSource, /lineColor/);
+  it("uses compact card-like rows with the authored TTC legend badges", () => {
+    assert.match(timelineSource, /TransitLineBadge/);
     assert.match(timelineSource, /formatCompactLocation/);
-    assert.match(timelineSource, /min-h-6 max-w-full min-w-0 items-center gap-1\.5 rounded-full/);
-    assert.match(timelineSource, /border-black\/10 px-2\.5 py-0\.5 text-\[11px\] font-black/);
+    assert.match(timelineSource, /min-h-6 max-w-full min-w-0 items-center gap-1\.5 text-\[11px\] font-black/);
     assert.match(timelineSource, /alert-history-line-identity/);
     assert.match(timelineSource, /alert-history-fact-grid/);
     assert.match(timelineSource, /alert-history-status-label/);
