@@ -60,6 +60,13 @@ describe("network-scoped regional dashboard", () => {
     assert.match(shellSource, /selectedNetwork === "ttc" && estimatedTrainsEnabled/);
   });
 
+  it("centers the desktop impact badges only for the regional network", () => {
+    assert.match(
+      shellSource,
+      /selectedNetwork === "regional" \? "left-1\/2 -translate-x-1\/2" : "left-6"/,
+    );
+  });
+
   it("does not invent current disruptions in regional fallback mode", () => {
     assert.deepEqual(regionalDashboardData.activeAlerts, []);
     assert.deepEqual(regionalDashboardData.delays, []);
@@ -79,6 +86,20 @@ describe("network-scoped regional dashboard", () => {
     assert.match(regionalMapSource, /onPointerDown=\{onPointerDown\}/);
     assert.match(regionalMapSource, /event\.key !== "Enter" && event\.key !== " "/);
     assert.match(regionalMapSource, /aria-label="Fit regional network"/);
+  });
+
+  it("frames the desktop network between the upper console and regional impact badges using TTC horizontal padding", () => {
+    assert.match(regionalMapSource, /\.desktop-status-capsule/);
+    assert.match(regionalMapSource, /\.desktop-status-chip-row-container/);
+    assert.match(regionalMapSource, /setDesktopMapTopInset/);
+    assert.match(regionalMapSource, /setDesktopMapBottomInset/);
+    assert.match(regionalMapSource, /computeBoundedMapFrame/);
+    assert.match(regionalMapSource, /const REGIONAL_MAP_HORIZONTAL_INSET_RATIO = 0\.025/);
+    assert.match(regionalMapSource, /Math\.min\(64, Math\.max\(32, width \* REGIONAL_MAP_HORIZONTAL_INSET_RATIO\)\)/);
+    assert.match(regionalMapSource, /left:\s*horizontalInset/);
+    assert.match(regionalMapSource, /right:\s*horizontalInset/);
+    assert.match(regionalMapSource, /top:\s*desktopMapTopInset/);
+    assert.match(regionalMapSource, /bottom:\s*desktopMapBottomInset/);
   });
 
   it("matches the TTC map fitted zoom range and button increments", () => {

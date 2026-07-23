@@ -1,12 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent, type WheelEvent } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent, type WheelEvent } from "react";
 import { Locate, ZoomIn, ZoomOut } from "lucide-react";
 import type { ImpactSelection } from "../app/linewatch-data";
 import { REGIONAL_ROUTE_DEFINITIONS } from "../app/regional-data";
 import { useDashboardData } from "../app/DataContext";
 import {
   clampPanZoomScale,
+  computeBoundedMapFrame,
   currentDevicePixelRatio,
   PAN_ZOOM_MAX_RELATIVE_SCALE,
   PAN_ZOOM_MIN_RELATIVE_SCALE,
@@ -15,6 +16,8 @@ import {
 
 const MAP_WIDTH = 4739.2821;
 const MAP_HEIGHT = 2616.8174;
+const REGIONAL_MAP_HORIZONTAL_INSET_RATIO = 0.025;
+const REGIONAL_MAP_MOBILE_INSET_RATIO = 0.05;
 
 type Camera = { x: number; y: number; scale: number };
 
@@ -48,6 +51,8 @@ export function InteractiveRegionalMap({
   const [loadError, setLoadError] = useState(false);
   const [dragging, setDragging] = useState(false);
   const [fitScale, setFitScale] = useState(0.35);
+  const [desktopMapTopInset, setDesktopMapTopInset] = useState(0);
+  const [desktopMapBottomInset, setDesktopMapBottomInset] = useState(0);
   const animTimeoutRef = useRef<number | null>(null);
   const programmaticAnimationFrameRef = useRef<number | null>(null);
   const cameraRef = useRef(camera);
@@ -129,22 +134,71 @@ export function InteractiveRegionalMap({
     };
   }, [clearProgrammaticAnimation]);
 
+  useLayoutEffect(() => {
+    const viewport = viewportRef.current;
+    const shell = viewport?.closest<HTMLElement>(".linewatch-shell");
+    const consoleCapsule = shell?.querySelector<HTMLElement>(".desktop-status-capsule");
+    const impactBadges = shell?.querySelector<HTMLElement>(".desktop-status-chip-row-container");
+    if (!viewport || !consoleCapsule || !impactBadges) return;
+
+    const measureDesktopInsets = () => {
+      const viewportRect = viewport.getBoundingClientRect();
+      const consoleRect = consoleCapsule.getBoundingClientRect();
+      const badgesRect = impactBadges.getBoundingClientRect();
+      const nextTopInset = consoleRect.width > 0 && consoleRect.height > 0
+        ? Math.min(viewportRect.height, Math.max(0, Math.round(consoleRect.bottom - viewportRect.top)))
+        : 0;
+      const nextBottomInset = badgesRect.width > 0 && badgesRect.height > 0
+        ? Math.min(viewportRect.height - nextTopInset, Math.max(0, Math.round(viewportRect.bottom - badgesRect.top)))
+        : 0;
+      setDesktopMapTopInset((current) => current === nextTopInset ? current : nextTopInset);
+      setDesktopMapBottomInset((current) => current === nextBottomInset ? current : nextBottomInset);
+    };
+
+    measureDesktopInsets();
+    const observer = new ResizeObserver(measureDesktopInsets);
+    observer.observe(viewport);
+    observer.observe(consoleCapsule);
+    observer.observe(impactBadges);
+    window.addEventListener("resize", measureDesktopInsets);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", measureDesktopInsets);
+    };
+  }, []);
+
   const fittedCamera = useCallback(() => {
     const viewport = viewportRef.current;
     if (!viewport) return null;
     const width = viewport.clientWidth;
     const height = viewport.clientHeight;
     if (width <= 0 || height <= 0) return null;
-    const scale = Math.min(width / MAP_WIDTH, height / MAP_HEIGHT) * 0.90;
+    const horizontalInset = desktopMapTopInset > 0
+      ? Math.min(64, Math.max(32, width * REGIONAL_MAP_HORIZONTAL_INSET_RATIO))
+      : width * REGIONAL_MAP_MOBILE_INSET_RATIO;
+    const frame = computeBoundedMapFrame(
+      width,
+      height,
+      { x: 0, y: 0, width: MAP_WIDTH, height: MAP_HEIGHT },
+      desktopMapTopInset > 0
+        ? {
+            left: horizontalInset,
+            right: horizontalInset,
+            top: desktopMapTopInset,
+            bottom: desktopMapBottomInset,
+          }
+        : {
+            left: horizontalInset,
+            right: horizontalInset,
+            top: height * REGIONAL_MAP_MOBILE_INSET_RATIO,
+            bottom: height * REGIONAL_MAP_MOBILE_INSET_RATIO,
+          },
+    );
     return {
-      camera: snapCameraToDevicePixels({
-        x: (width - MAP_WIDTH * scale) / 2,
-        y: (height - MAP_HEIGHT * scale) / 2,
-        scale,
-      }),
-      scale,
+      camera: snapCameraToDevicePixels(frame),
+      scale: frame.scale,
     };
-  }, []);
+  }, [desktopMapBottomInset, desktopMapTopInset]);
 
   const fitNetwork = useCallback(() => {
     const fitted = fittedCamera();
@@ -171,7 +225,7 @@ export function InteractiveRegionalMap({
     const width = viewportRef.current?.clientWidth ?? 0;
     const height = viewportRef.current?.clientHeight ?? 0;
     const centerX = width / 2;
-    const centerY = height / 2;
+    const centerY = desktopMapTopInset + (height - desktopMapTopInset - desktopMapBottomInset) / 2;
 
     const entryCamera = snapCameraToDevicePixels({
       x: centerX > 0 ? centerX - (centerX - fitted.camera.x) * scaleRatio : fitted.camera.x * 0.5,
@@ -187,7 +241,7 @@ export function InteractiveRegionalMap({
       programmaticAnimationFrameRef.current = null;
       animateCameraTo(fitted.camera, fitted.scale);
     });
-  }, [animateCameraTo, fittedCamera, reducedMotion, setMapTransition, svgMarkup, writeMapTransform]);
+  }, [animateCameraTo, desktopMapBottomInset, desktopMapTopInset, fittedCamera, reducedMotion, setMapTransition, svgMarkup, writeMapTransform]);
 
   useEffect(() => {
     let cancelled = false;
