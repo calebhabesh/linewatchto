@@ -4,6 +4,7 @@ import { describe, it } from "node:test";
 
 import {
   clampPanZoomScale,
+  computeBoundedMapFrame,
   computeMapFitScale,
   computeInsetViewportFocus,
   distanceBetweenPoints,
@@ -22,6 +23,32 @@ const shellSource = readFileSync(new URL("../src/components/LineWatchShell.tsx",
 const globalCss = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
 
 describe("pan zoom behavior guardrails", () => {
+  it("centers desktop artwork within the space below the controls", () => {
+    const bounds = { x: 100, y: 100, width: 4200, height: 1940 };
+    const frame = computeBoundedMapFrame(2048, 1163, bounds, {
+      left: 48,
+      right: 48,
+      top: 145,
+    });
+    const artworkLeft = frame.x + bounds.x * frame.scale;
+    const artworkRight = frame.x + (bounds.x + bounds.width) * frame.scale;
+    const artworkTop = frame.y + bounds.y * frame.scale;
+    const artworkBottom = frame.y + (bounds.y + bounds.height) * frame.scale;
+
+    assert.ok(Math.abs(artworkLeft - (2048 - artworkRight)) < 1e-9);
+    assert.ok(Math.abs(artworkLeft - 48) < 1e-9);
+    assert.ok(Math.abs((artworkTop - 145) - (1163 - artworkBottom)) < 1e-9);
+    assert.ok(artworkTop >= 145);
+    assert.ok(artworkBottom <= 1163);
+  });
+
+  it("keeps the cardinal north marker inside the transformed map layer", () => {
+    assert.match(
+      mapSource,
+      /ref=\{mapRef\}[\s\S]*aria-label="Cardinal North Compass"/,
+    );
+  });
+
   it("allows detailed selection zoom up to eight times the fitted map scale", () => {
     assert.equal(PAN_ZOOM_MAX_RELATIVE_SCALE, 8);
     assert.equal(clampPanZoomScale(9, 1), 8);
@@ -33,7 +60,7 @@ describe("pan zoom behavior guardrails", () => {
     assert.equal(computeMapFitScale(900, 600), 0.2);
     assert.match(
       hookSource,
-      /const currentFitScale = computeMapFitScale\(width, height\);[\s\S]*targetAbsoluteScale = targetRelativeScale \* currentFitScale/,
+      /const currentFitScale = defaultTransformForViewport\(width, height\)\.scale;[\s\S]*targetAbsoluteScale = targetRelativeScale \* currentFitScale/,
     );
   });
 

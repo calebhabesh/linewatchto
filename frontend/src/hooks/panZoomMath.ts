@@ -23,6 +23,44 @@ export type ViewportInsets = {
   bottom?: number;
 };
 
+export type MapContentBounds = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+};
+
+/**
+ * Frames authored map artwork inside a bounded viewport. The artwork remains
+ * fully contained between the controls and viewport edge, with equal remainder
+ * on each axis instead of inheriting whitespace from the source SVG canvas.
+ */
+export function computeBoundedMapFrame(
+  viewportWidth: number,
+  viewportHeight: number,
+  bounds: MapContentBounds,
+  insets: ViewportInsets = {},
+): PanZoomTransform {
+  const left = Math.min(Math.max(insets.left ?? 0, 0), viewportWidth);
+  const right = Math.min(Math.max(insets.right ?? 0, 0), Math.max(viewportWidth - left, 0));
+  const top = Math.min(Math.max(insets.top ?? 0, 0), viewportHeight);
+  const bottom = Math.min(Math.max(insets.bottom ?? 0, 0), Math.max(viewportHeight - top, 0));
+  const availableWidth = Math.max(viewportWidth - left - right, 1);
+  const availableHeight = Math.max(viewportHeight - top - bottom, 1);
+  const scale = Math.min(
+    availableWidth / Math.max(bounds.width, 1),
+    availableHeight / Math.max(bounds.height, 1),
+  );
+  const framedWidth = bounds.width * scale;
+  const framedHeight = bounds.height * scale;
+
+  return {
+    x: left + (availableWidth - framedWidth) / 2 - bounds.x * scale,
+    y: top + (availableHeight - framedHeight) / 2 - bounds.y * scale,
+    scale,
+  };
+}
+
 export function computeInsetViewportFocus(
   viewportWidth: number,
   viewportHeight: number,

@@ -164,7 +164,7 @@ describe("mobile performance guardrails", () => {
     );
     assert.match(
       mapSource,
-      /usePanZoom\(\{\s*reducedMotion,\s*viewportOrientation,\s*disableProgrammaticMotion:\s*mobilePerformanceMode,\s*\}\)/s,
+      /usePanZoom\(\{\s*reducedMotion,\s*viewportOrientation,\s*disableProgrammaticMotion:\s*mobilePerformanceMode,\s*defaultFrame:\s*defaultMapFrame,\s*\}\)/s,
     );
     assert.match(
       shellSource,
