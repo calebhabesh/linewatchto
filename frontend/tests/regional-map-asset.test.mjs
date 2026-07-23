@@ -7,7 +7,7 @@ const css = readFileSync(new URL("../src/app/globals.css", import.meta.url), "ut
 
 describe("regional application map asset", () => {
   it("uses padded bounds and hides authored lakes and labels", () => {
-    assert.match(svg, /viewBox="-200 -200 17036\.959 9325\.9981"/);
+    assert.match(svg, /viewBox="-200 -200 17036\.959 9031\.6719"/);
     assert.match(svg, /id="regional-lakes-layer"[\s\S]{0,200}style="[^"]*display:none/);
   });
 
