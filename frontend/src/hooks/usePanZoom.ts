@@ -2,6 +2,7 @@ import { useState, useCallback, useRef, useEffect, type PointerEvent, type Wheel
 import {
   clampPanZoomScale,
   clientPointToLogicalViewportPoint,
+  computeBoundedMapFrame,
   computeInsetViewportFocus,
   computeMapFitScale,
   currentDevicePixelRatio,
@@ -14,6 +15,7 @@ import {
   snapTransformToDevicePixels,
   transformForMapPointAtViewportPoint,
   type MapViewportOrientation,
+  type MapContentBounds,
   type PanZoomPoint,
   type PanZoomTransform,
   type ViewportInsets,
@@ -23,6 +25,11 @@ type UsePanZoomOptions = {
   reducedMotion?: boolean;
   viewportOrientation?: MapViewportOrientation;
   disableProgrammaticMotion?: boolean;
+  defaultFrame?: {
+    bounds: MapContentBounds;
+    topInset: number;
+    horizontalInsetRatio?: number;
+  };
 };
 
 type ZoomToPointOptions = {
@@ -34,6 +41,7 @@ export function usePanZoom({
   reducedMotion = false,
   viewportOrientation = "standard",
   disableProgrammaticMotion = false,
+  defaultFrame,
 }: UsePanZoomOptions = {}) {
   const [transform, setTransform] = useState({ x: 0, y: 0, scale: 1 });
   const [fitScale, setFitScale] = useState(1);
@@ -71,6 +79,33 @@ export function usePanZoom({
   const snapTransform = useCallback((next: PanZoomTransform) => {
     return snapTransformToDevicePixels(next, currentDevicePixelRatio());
   }, []);
+
+  const defaultTransformForViewport = useCallback((width: number, height: number) => {
+    if (defaultFrame) {
+      const horizontalInset = defaultFrame.horizontalInsetRatio
+        ? Math.min(64, Math.max(32, width * defaultFrame.horizontalInsetRatio))
+        : 0;
+      return computeBoundedMapFrame(
+        width,
+        height,
+        defaultFrame.bounds,
+        {
+          left: horizontalInset,
+          right: horizontalInset,
+          top: defaultFrame.topInset,
+        },
+      );
+    }
+
+    const mapWidth = 4500;
+    const mapHeight = 2181.82;
+    const scale = computeMapFitScale(width, height, mapWidth, mapHeight);
+    return {
+      x: width / 2 - (mapWidth / 2) * scale,
+      y: height / 2 - (mapHeight * 0.435) * scale,
+      scale,
+    };
+  }, [defaultFrame]);
 
   const writeMapTransform = useCallback((next: PanZoomTransform) => {
     if (mapRef.current) {
@@ -237,9 +272,8 @@ export function usePanZoom({
           
           lastDimensions.current = { width, height };
           
-          const mapWidth = 4500;
-          const mapHeight = 2181.82;
-          const newFit = computeMapFitScale(width, height, mapWidth, mapHeight);
+          const defaultTransform = defaultTransformForViewport(width, height);
+          const newFit = defaultTransform.scale;
           
           setFitScale((prevFit) => {
             if (prevFit !== newFit) {
@@ -249,11 +283,7 @@ export function usePanZoom({
                 
                 // If it was default scale (1.0) and uninitialized fit (1.0), center it cleanly
                 if (prevTransform.scale === 1 && prevFit === 1) {
-                  const next = snapTransformToDevicePixels({
-                    x: width / 2 - (mapWidth / 2) * targetAbsolute,
-                    y: height / 2 - (mapHeight * 0.38) * targetAbsolute,
-                    scale: targetAbsolute
-                  }, currentDevicePixelRatio());
+                  const next = snapTransformToDevicePixels(defaultTransform, currentDevicePixelRatio());
                   transformRef.current = next;
                   return next;
                 }
@@ -276,7 +306,7 @@ export function usePanZoom({
 
     observer.observe(el);
     return () => observer.disconnect();
-  }, []);
+  }, [defaultTransformForViewport]);
 
   const logicalViewportSize = useCallback(() => {
     const element = containerRef.current;
@@ -546,16 +576,9 @@ export function usePanZoom({
     if (!containerRef.current) return;
     const { width, height } = logicalViewportSize();
     if (width <= 0 || height <= 0) return;
-    const mapWidth = 4500;
-    const mapHeight = 2181.82; // Aspect ratio height for 4500px width with 82.5:40 viewBox
-    
-    // Scale to fit exactly within the viewport
-    const scale = computeMapFitScale(width, height, mapWidth, mapHeight);
-    
-    // Center offsets based on visual content midpoint (x = 50%, y = 38% of map height)
-    const x = width / 2 - (mapWidth / 2) * scale;
-    const y = height / 2 - (mapHeight * 0.38) * scale;
-    
+    const next = defaultTransformForViewport(width, height);
+    const { x, y, scale } = next;
+
     if (!cameraInitializedRef.current && shouldAnimateProgrammaticTransform) {
       cameraInitializedRef.current = true;
       const entryScale = scale * 0.5;
@@ -571,15 +594,16 @@ export function usePanZoom({
 
       programmaticAnimationFrameRef.current = requestAnimationFrame(() => {
         programmaticAnimationFrameRef.current = null;
-        animateTransformTo({ x, y, scale }, scale);
+        animateTransformTo(next, scale);
       });
       return;
     }
     cameraInitializedRef.current = true;
 
-    animateTransformTo({ x, y, scale }, scale);
+    animateTransformTo(next, scale);
   }, [
     animateTransformTo,
+    defaultTransformForViewport,
     logicalViewportSize,
     shouldAnimateProgrammaticTransform,
     snapTransform,
@@ -658,14 +682,14 @@ export function usePanZoom({
     // Selection deep links can focus before ResizeObserver's fitScale state has
     // committed. Measure the live viewport so a fast PWA launch cannot treat the
     // initial fitScale value of 1 as the fitted map scale.
-    const currentFitScale = computeMapFitScale(width, height);
+    const currentFitScale = defaultTransformForViewport(width, height).scale;
     const targetAbsoluteScale = targetRelativeScale * currentFitScale;
 
     const newX = focusX - mapX * targetAbsoluteScale;
     const newY = focusY - mapY * targetAbsoluteScale;
 
     animateTransformTo({ x: newX, y: newY, scale: targetAbsoluteScale });
-  }, [animateTransformTo, logicalViewportSize]);
+  }, [animateTransformTo, defaultTransformForViewport, logicalViewportSize]);
 
   // Compute the current user-facing relative zoom level (e.g. 1.0 = 100%)
   const relativeScale = transform.scale / (fitScale || 1);

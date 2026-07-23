@@ -20,6 +20,7 @@ import { usePanZoom } from "../hooks/usePanZoom";
 import {
   clientRectToLogicalViewportBounds,
   PAN_ZOOM_MAX_RELATIVE_SCALE,
+  type MapContentBounds,
   type MapViewportOrientation,
 } from "../hooks/panZoomMath";
 import { ZoomIn, ZoomOut, Locate, Sun, Moon, X } from "lucide-react";
@@ -63,6 +64,16 @@ import {
   stationVisualAnchorsFor,
   stationVisualCenterIds,
 } from "./station-map-visuals";
+
+const SVG_TO_RENDERED_MAP_SCALE = 4500 / 8250;
+const DESKTOP_MAP_HORIZONTAL_INSET_RATIO = 0.025;
+// Authored visible-art bounds, extended through x=7900 to include the compass.
+const DESKTOP_MAP_CONTENT_BOUNDS: MapContentBounds = {
+  x: 190 * SVG_TO_RENDERED_MAP_SCALE,
+  y: 184.343 * SVG_TO_RENDERED_MAP_SCALE,
+  width: (7900 - 190) * SVG_TO_RENDERED_MAP_SCALE,
+  height: (3743.003 - 184.343) * SVG_TO_RENDERED_MAP_SCALE,
+};
 
 const RSZ_IMPACT_COLOR = "#F59E0B";
 
@@ -257,6 +268,8 @@ function InteractiveTtcMapComponent({
 
   const mapSvgRef = useRef<SVGSVGElement>(null);
   const mapRootRef = useRef<HTMLDivElement>(null);
+  const mapControlRailRef = useRef<HTMLDivElement>(null);
+  const [desktopMapTopInset, setDesktopMapTopInset] = useState(0);
   const [anchorPoints, setAnchorPoints] = useState(new Map<string, MapPoint>());
   const [guidePaths, setGuidePaths] = useState(new Map<string, string>());
   const [stationCenterPoints, setStationCenterPoints] = useState(new Map<string, MapPoint>());
@@ -286,6 +299,12 @@ function InteractiveTtcMapComponent({
     [stationCenterPoints],
   );
 
+  const defaultMapFrame = useMemo(() => desktopMapTopInset > 0 ? {
+    bounds: DESKTOP_MAP_CONTENT_BOUNDS,
+    topInset: desktopMapTopInset,
+    horizontalInsetRatio: DESKTOP_MAP_HORIZONTAL_INSET_RATIO,
+  } : undefined, [desktopMapTopInset]);
+
   const {
     transform,
     relativeScale,
@@ -309,9 +328,38 @@ function InteractiveTtcMapComponent({
     reducedMotion,
     viewportOrientation,
     disableProgrammaticMotion: mobilePerformanceMode,
+    defaultFrame: defaultMapFrame,
   });
   const [mapViewportSize, setMapViewportSize] = useState({ width: 392, height: 720 });
   const [chooserKeepoutBoxes, setChooserKeepoutBoxes] = useState<SvgBounds[]>([]);
+
+  useLayoutEffect(() => {
+    const root = mapRootRef.current;
+    const rail = mapControlRailRef.current;
+    if (!root || !rail) return;
+
+    const measureTopInset = () => {
+      const railStyle = window.getComputedStyle(rail);
+      if (railStyle.display === "none") {
+        setDesktopMapTopInset(0);
+        return;
+      }
+
+      const rootRect = root.getBoundingClientRect();
+      const railRect = rail.getBoundingClientRect();
+      setDesktopMapTopInset(Math.max(0, Math.round(railRect.bottom - rootRect.top)));
+    };
+
+    measureTopInset();
+    const observer = new ResizeObserver(measureTopInset);
+    observer.observe(root);
+    observer.observe(rail);
+    window.addEventListener("resize", measureTopInset);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", measureTopInset);
+    };
+  }, []);
 
   useEffect(() => {
     const viewport = containerRef.current;
@@ -1229,7 +1277,7 @@ function InteractiveTtcMapComponent({
 
       {/* Top center map controls */}
       {/* Note: ml-2 sm:ml-3 is added to visually center the mass of the controls, since the left side has 2 buttons and is visually heavier than the right side */}
-      <div className="map-control-rail desktop-map-control-rail absolute top-14 sm:top-[92px] left-1/2 -translate-x-1/2 z-30 flex flex-row items-center justify-center gap-1 sm:gap-2 pointer-events-auto">
+      <div ref={mapControlRailRef} className="map-control-rail desktop-map-control-rail absolute top-14 sm:top-[92px] left-1/2 -translate-x-1/2 z-30 flex flex-row items-center justify-center gap-1 sm:gap-2 pointer-events-auto">
         <div className="map-control-recenter-container">
           <button
             onClick={recenter}
