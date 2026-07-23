@@ -92,6 +92,18 @@ class AccountSchemaMigrationTest {
         assertThat(sql).contains("drop column notification_section_end_station_id");
     }
 
+    @Test
+    void v47CreatesAccountOwnedSavedStations() throws IOException {
+        String sql = migrationSql("/db/migration/V47__saved_stations.sql").toLowerCase();
+
+        assertThat(sql).contains("create table saved_stations");
+        assertThat(sql).contains("account_id varchar(80) not null references accounts(id) on delete cascade");
+        assertThat(sql).contains("station_id varchar(80) not null references stations(id) on delete cascade");
+        assertThat(sql).contains("primary key (account_id, station_id)");
+        assertThat(sql).contains("idx_saved_stations_account_created");
+        assertThat(sql).contains("created_at desc");
+    }
+
     private String migrationSql(String path) throws IOException {
         try (var input = getClass().getResourceAsStream(path)) {
             assertThat(input).isNotNull();

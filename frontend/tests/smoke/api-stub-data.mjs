@@ -386,7 +386,7 @@ export const delaysResponse = [
     affectedSegmentIds: ["line-4-sheppard-yonge-don-mills"],
     startedAt: "2026-06-01T22:15:00-04:00",
     updatedAt: "2026-06-01T22:39:00-04:00",
-    source: "TTC Live Alert",
+    source: "TTC Live Alerts",
     cause: "Operational issue",
   },
   {
@@ -552,11 +552,11 @@ export const stationDetailResponse = {
   },
   impacts: [
     {
-      id: "stub-station-linked-alert",
+      id: "stub-alert-line-1",
       type: "active-alert",
-      severity: "delay",
-      title: "Station delay",
-      summary: "Trains are delayed at Stub Station.",
+      severity: "suspension",
+      title: "Station suspension",
+      summary: "Service is suspended at Stub Station.",
       updatedAt: "2026-06-02T14:12:00-04:00",
       source: "TTC Live Alerts",
     },

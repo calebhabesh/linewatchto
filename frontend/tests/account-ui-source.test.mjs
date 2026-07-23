@@ -177,7 +177,7 @@ describe("account UI source", () => {
     );
     assert.match(
       globalCss,
-      /\.saved-commute-impact-total\s*\{(?=[^}]*color:\s*#f8fafc;)(?=[^}]*font-variant-numeric:\s*tabular-nums;)(?=[^}]*margin-left:\s*2px;)(?=[^}]*min-width:\s*1\.25rem;)(?=[^}]*padding:\s*0 0\.3rem;)(?=[^}]*width:\s*auto;)[^}]*\}/s,
+      /\.saved-commute-impact-total\s*\{(?=[^}]*color:\s*#f8fafc;)(?=[^}]*font-variant-numeric:\s*tabular-nums;)(?=[^}]*margin-left:\s*2px;)(?=[^}]*min-width:\s*1\.4rem;)(?=[^}]*padding:\s*0 0\.34rem;)(?=[^}]*width:\s*auto;)[^}]*\}/s,
     );
     assert.doesNotMatch(
       globalCss,
@@ -222,12 +222,14 @@ describe("account UI source", () => {
     assert.match(savedCommutesSource, /data-travel-time-severity/);
     assert.match(globalCss, /\.saved-commute-time-estimate/);
     assert.match(globalCss, /\.saved-commute-time-estimate\.unreliable/);
+    assert.match(globalCss, /\.saved-commute-time-estimate\.unreliable p\s*\{[^}]*justify-items:\s*center;[^}]*text-align:\s*center;/s);
     assert.match(globalCss, /\.severity-good \.saved-commute-time-verdict/);
     assert.match(globalCss, /\.severity-decent \.saved-commute-time-verdict/);
     assert.match(globalCss, /\.severity-moderate \.saved-commute-time-verdict/);
     assert.match(globalCss, /\.severity-poor \.saved-commute-time-verdict/);
     assert.match(globalCss, /\.severity-severe \.saved-commute-time-verdict/);
     assert.match(savedCommutesSource, /saved-commute-time-headline-clock severity-\$\{selectedTravelTimeSeverity\}/);
+    assert.match(savedCommutesSource, /hasCurrentImpacts \|\| ignoredImpactsCount > 0 \? \([\s\S]*?<ExclaimAlertIcon[\s\S]*?: \([\s\S]*?<Check/s);
     assert.match(globalCss, /\.saved-commute-time-headline-clock\.severity-good/);
     assert.match(globalCss, /\.saved-commute-time-headline-clock\.severity-severe/);
     assert.match(savedCommutesSource, /saved-commute-impact-icon/);

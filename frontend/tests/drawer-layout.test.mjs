@@ -22,6 +22,7 @@ const globalCss = readFileSync(new URL("../src/app/globals.css", import.meta.url
 const subwayClosedSource = readFileSync(new URL("../src/components/SubwayClosedScreen.tsx", import.meta.url), "utf8");
 const subwayHoursSource = readFileSync(new URL("../src/app/subway-hours.ts", import.meta.url), "utf8");
 const stationSearchSource = readFileSync(new URL("../src/components/StationSearchPanel.tsx", import.meta.url), "utf8");
+const stationOutageBadgeSource = readFileSync(new URL("../src/components/StationOutageBadge.tsx", import.meta.url), "utf8");
 const selectedImpactScrollSource = readFileSync(new URL("../src/hooks/useScrollSelectedImpactCard.ts", import.meta.url), "utf8");
 
 
@@ -42,6 +43,10 @@ describe("floating menu layout", () => {
     assert.match(shellSource, /Floating Dropdown Menu/);
     assert.match(globalCss, /@keyframes menu-border-pulse/);
     assert.match(globalCss, /animation:\s*menu-border-pulse 2\.8s cubic-bezier\(0\.4, 0, 0\.2, 1\) infinite/);
+    assert.match(shellSource, /const showMenuAttention = !menuVisible && !isDesktopPanel;/);
+    assert.match(shellSource, /data-menu-attention=\{showMenuAttention \? "true" : "false"\}/);
+    assert.match(globalCss, /\.menu-attention-beam\[data-menu-attention="false"\]::before\s*\{[^}]*animation:\s*none;[^}]*content:\s*none;/s);
+    assert.doesNotMatch(globalCss, /\.menu-attention-beam:focus-visible::before\s*\{[^}]*opacity:\s*0;/s);
     assert.match(shellSource, /Floating Submenus/);
     assert.match(shellSource, /activeView === "alerts"/);
     assert.match(shellSource, /activeView === "delays"/);
@@ -83,11 +88,12 @@ describe("floating menu layout", () => {
     assert.match(stationSearchSource, /searchStations/);
     assert.match(stationSearchSource, /buildStationLineGroups/);
     assert.match(stationSearchSource, /onSelectStation/);
-    assert.match(stationSearchSource, /station-search-outage-badge/);
-    assert.match(stationSearchSource, /width=\{22\}/);
-    assert.match(stationSearchSource, /height=\{22\}/);
-    assert.match(stationSearchSource, /\/assets\/linewatch\/outages\/elevator\.svg/);
-    assert.match(stationSearchSource, /\/assets\/linewatch\/outages\/escalator\.svg/);
+    assert.match(stationSearchSource, /<StationOutageBadge/);
+    assert.match(stationOutageBadgeSource, /station-search-outage-badge/);
+    assert.match(stationOutageBadgeSource, /width=\{22\}/);
+    assert.match(stationOutageBadgeSource, /height=\{22\}/);
+    assert.match(stationOutageBadgeSource, /\/assets\/linewatch\/outages\/elevator\.svg/);
+    assert.match(stationOutageBadgeSource, /\/assets\/linewatch\/outages\/escalator\.svg/);
     assert.match(globalCss, /\.station-search-outage-badge\s*\{[^}]*width:\s*22px;[^}]*height:\s*22px;[^}]*flex:\s*0 0 22px;/s);
     assert.match(globalCss, /\.station-search-outage-count\s*\{[^}]*min-width:\s*14px;[^}]*height:\s*14px;[^}]*font-size:\s*8px;/s);
     assert.doesNotMatch(stationSearchSource, /station-search-flag-access/);

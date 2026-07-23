@@ -311,7 +311,7 @@ public class AlertDashboardService {
                     alert.getImpactKind(),
                     alert.getId(),
                     alert.getTitle(),
-                    sourceLabel(alert, "TTC Live Alert")
+                    sourceLabel(alert, "TTC Live Alerts")
                 )));
         }
 
@@ -324,7 +324,7 @@ public class AlertDashboardService {
                     zone.displayDirection().equals("Direction not specified")
                         ? "Reduced Speed Zone"
                         : "Reduced Speed Zone " + zone.displayDirection(),
-                    sourceLabel(zone.sourceAlerts().getFirst(), "TTC Live Alert")
+                    sourceLabel(zone.sourceAlerts().getFirst(), "TTC Live Alerts")
                 )));
         }
 
@@ -554,7 +554,7 @@ public class AlertDashboardService {
             sourceUpdatedAt(alert),
             affectedSegmentIds(alert, segments),
             !isBlank(alert.getShuttleType()),
-            sourceLabel(alert, "TTC Live Alert"),
+            sourceLabel(alert, "TTC Live Alerts"),
             cause(alert),
             resolution(alert),
             null
@@ -642,7 +642,7 @@ public class AlertDashboardService {
             affectedSegmentIds(alert, segments),
             alert.getActivePeriodStart(),
             sourceUpdatedAt(alert),
-            sourceLabel(alert, "TTC Live Alert"),
+            sourceLabel(alert, "TTC Live Alerts"),
             cause(alert)
         );
     }
@@ -849,7 +849,7 @@ public class AlertDashboardService {
                     detail.description()
                 ))
                 .toList(),
-            sourceLabel(first, "TTC Live Alert"),
+            sourceLabel(first, "TTC Live Alerts"),
             firstNonBlank(zone.sourceAlerts(), this::cause),
             groupedResolution(zone.sourceAlerts()),
             firstNonBlank(zone.sourceAlerts(), AlertEntity::getRszLength),
@@ -1252,7 +1252,7 @@ public class AlertDashboardService {
             String cardId,
             String title
         ) {
-            this(stationId, kind, cardId, title, "TTC Live Alert");
+            this(stationId, kind, cardId, title, "TTC Live Alerts");
         }
     }
 }

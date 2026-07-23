@@ -140,10 +140,10 @@ export function PlannedClosuresPanel({ selection, onSelectImpact, onBack, onClos
                 }`}
               >
                 <div className="impact-card-heading has-status-badges flex items-start justify-between gap-3 w-full min-w-0">
-                  <div className="flex min-w-0 flex-1 items-start gap-2">
+                  <div className="flex min-w-0 flex-1 items-center gap-2">
                     <LineBadge lineId={closure.lineId} lineNumber={closure.lineNumber} />
                     <div className="flex flex-col items-start min-w-0">
-                      <strong className="block min-w-0 text-sm font-semibold text-slate-800 dark:text-slate-100 whitespace-normal break-words mt-0.5">
+                    <strong className="block min-w-0 text-sm font-semibold text-slate-800 dark:text-slate-100 whitespace-normal break-words">
                         {closure.title}
                       </strong>
                     </div>

@@ -433,7 +433,7 @@ class SavedCommuteServiceTest {
             List.of(segmentId),
             List.of("ttc-route-1"),
             List.of(),
-            "TTC Live Alert",
+            "TTC Live Alerts",
             null,
             null,
             null,

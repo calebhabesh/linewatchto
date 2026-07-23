@@ -59,6 +59,10 @@ describe("accessibility outages panel and routing source verification", () => {
     assert.doesNotMatch(moreSheetSource, /mobile-status-btn-accessibility/);
   });
 
+  it("keeps the desktop main-menu accessibility icon neutral", () => {
+    assert.match(shellSource, /viewBox="0 0 24 24"[\s\S]*?text-slate-500 dark:text-slate-400[\s\S]*?Accessibility Outages/);
+  });
+
   it("keeps light mobile containers distinct from the panel background", () => {
     assert.match(globalCss, /--light-container:\s*#f1f5f9/);
     assert.match(
@@ -68,7 +72,8 @@ describe("accessibility outages panel and routing source verification", () => {
   });
 
   it("keeps the accessibility alert figure visible on light and dark surfaces", () => {
-    assert.match(accessibilityIcon, /fill="#475569"/);
-    assert.match(accessibilityIcon, /stroke="#ffffff"/);
+    assert.match(accessibilityIcon, /fill="#ffffff"/);
+    assert.match(accessibilityIcon, /stroke="#475569"/);
+    assert.match(accessibilityIcon, /fill="#ef4444"/);
   });
 });

@@ -8,19 +8,42 @@ import { formatImpactTimestamp } from "../app/impact-time";
 
 interface Props {
   accessibilityOutageResult: AccessibilityOutageResponse | null;
+  initialTarget?: AccessibilityOutageTarget | null;
   onSelectStation: (stationId: string) => void;
   onBack: () => void;
   onClose: () => void;
 }
 
+export type AccessibilityOutageTarget = {
+  assetType: "elevator" | "escalator";
+  stationId: string;
+};
+
+function initiallyExpandedStations(
+  accessibilityOutageResult: AccessibilityOutageResponse | null,
+  initialTarget: AccessibilityOutageTarget | null,
+) {
+  if (!initialTarget) return {};
+
+  return Object.fromEntries(
+    (accessibilityOutageResult?.groups ?? [])
+      .filter((group) => group.stations.some((station) => station.stationId === initialTarget.stationId))
+      .map((group) => [`${group.lineId}-${initialTarget.stationId}`, true]),
+  );
+}
+
 export function AccessibilityOutagesPanel({
   accessibilityOutageResult,
+  initialTarget = null,
   onSelectStation,
   onBack,
   onClose,
 }: Props) {
-  const [selectedAssetType, setSelectedAssetType] = useState<"elevator" | "escalator" | null>(null);
-  const [expandedStations, setExpandedStations] = useState<Record<string, boolean>>({});
+  const [selectedAssetType, setSelectedAssetType] = useState<"elevator" | "escalator" | null>(initialTarget?.assetType ?? null);
+  const [expandedStations, setExpandedStations] = useState<Record<string, boolean>>(
+    () => initiallyExpandedStations(accessibilityOutageResult, initialTarget),
+  );
+  const enteredAtInitialTarget = React.useRef(Boolean(initialTarget));
 
   const toggleStation = (lineId: string, stationId: string) => {
     const key = `${lineId}-${stationId}`;
@@ -39,6 +62,10 @@ export function AccessibilityOutagesPanel({
 
   const handleBackClick = () => {
     if (selectedAssetType) {
+      if (enteredAtInitialTarget.current) {
+        onBack();
+        return;
+      }
       setSelectedAssetType(null);
     } else {
       onBack();

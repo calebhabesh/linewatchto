@@ -382,7 +382,7 @@ export function MobileImpactInspector({
           className="mobile-impact-inspector-action primary"
         >
           <ExternalLink size={16} />
-          View Full List
+          View in List
         </button>
       </div>
     </aside>

@@ -4,6 +4,7 @@ import Image from "next/image";
 import { AlertTriangle, Calendar, Construction, X, Bus } from "lucide-react";
 import { useDashboardData } from "../app/DataContext";
 import { DelayIcon } from "./DelayIcon";
+import { TransitLineBadge } from "./TransitLineBadge";
 
 type StatusCategory = "alerts" | "delays" | "reduced-speed-zones" | "closures" | "accessibility-outages" | "surface-notices";
 
@@ -111,10 +112,7 @@ export function MobileStatusSheet({ pollText, dataSource, onOpenCategory, onClos
 
             return (
               <article key={line.id} className="mobile-line-status-row">
-                <span
-                  className="mobile-line-status-number"
-                  style={{ backgroundColor: line.color, color: line.id === "line-1" || line.id === "line-6" ? "#111827" : "#ffffff" }}
-                >{line.number}</span>
+                <TransitLineBadge lineId={line.id} lineNumber={line.number} lineName={line.name} size={30} className="mobile-line-status-number" />
                 <span className="mobile-line-status-copy">
                   <strong>{line.name}</strong>
                   {clear ? <em>Good Service</em> : null}

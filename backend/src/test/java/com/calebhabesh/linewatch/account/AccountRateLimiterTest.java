@@ -91,6 +91,22 @@ class AccountRateLimiterTest {
             .isEqualTo("203.0.113.20");
     }
 
+    @Test
+    void preferenceMutationsUseTheirOwnAccountBucket() {
+        MutableClock clock = new MutableClock(Instant.parse("2026-06-15T14:00:00Z"));
+        AccountRateLimitProperties properties = new AccountRateLimitProperties();
+        properties.setPreferenceMutationMaxRequests(1);
+        AccountRateLimiter limiter = new AccountRateLimiter(properties, clock);
+
+        limiter.requirePreferenceMutation("user_1");
+        limiter.requireAuthAttempt("login", "203.0.113.10");
+
+        assertThatThrownBy(() -> limiter.requirePreferenceMutation("user_1"))
+            .isInstanceOf(AccountException.class)
+            .extracting("status")
+            .isEqualTo(HttpStatus.TOO_MANY_REQUESTS);
+    }
+
     private static final class MutableClock extends Clock {
         private Instant instant;
 

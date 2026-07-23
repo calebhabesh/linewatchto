@@ -21,6 +21,7 @@ import {
   isVisualKeyboardOpen,
   type CommuteStationPopoverCoords,
 } from "./commute-station-popover";
+import { TransitLineBadge } from "./TransitLineBadge";
 
 type Props = {
   label: string;
@@ -34,22 +35,12 @@ type Props = {
   onOpenChange?: (open: boolean) => void;
 };
 
-function lineTextColor(lineId: string) {
-  return lineId === "line-1" ? "#111827" : "#ffffff";
-}
-
 function lineById(lineId: string) {
   return STATION_SEARCH_LINES.find((line) => line.id === lineId);
 }
 
 function StationLineBadge({ line }: { line: StationSearchLine }) {
-  return (
-    <span
-      className="commute-station-line-badge"
-      style={{ backgroundColor: line.color, color: lineTextColor(line.id) }}
-      aria-hidden="true"
-    >{line.number}</span>
-  );
+  return <TransitLineBadge lineId={line.id} lineNumber={line.number} lineName={line.name} size={20} decorative />;
 }
 
 function StationOption({
@@ -359,6 +350,7 @@ export function SavedCommuteStationPicker({
                     }
                   }}
                   placeholder="Station Search..."
+                  className="submenu-search-input"
                   aria-label={`Search ${label.toLowerCase()} stations`}
                 />
                 <button type="button" onClick={clearSearchOrClose} aria-label={query ? "Clear station search" : "Close station choices"}>
@@ -426,10 +418,7 @@ export function SavedCommuteStationPicker({
                                 if (!line) return null;
                                 return (
                                   <>
-                                    <span
-                                      className="commute-station-line-badge"
-                                      style={{ backgroundColor: line.color, color: lineTextColor(line.id) }}
-                                    >{line.number}</span>
+                                    <TransitLineBadge lineId={line.id} lineNumber={line.number} lineName={line.name} size={20} decorative />
                                     <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                                       {line.name} Stations
                                     </span>

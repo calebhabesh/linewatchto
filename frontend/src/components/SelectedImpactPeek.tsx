@@ -71,7 +71,7 @@ export function SelectedImpactPeek({ selection, dashboardData, onUnfocus, onView
           className="mt-1 flex w-full items-center justify-center gap-2 rounded-lg border border-black/10 bg-white/80 py-2 text-xs font-bold text-slate-800 shadow-sm transition-all hover:bg-white active:scale-[0.98] dark:border-white/10 dark:bg-black/40 dark:text-slate-200 dark:hover:bg-black/60"
         >
           {icon}
-          View Full List
+          View in List
           <ChevronUp size={14} className="text-slate-500 ml-1" />
         </button>
       </div>

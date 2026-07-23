@@ -42,7 +42,7 @@ class AlertControllerTest {
                 OffsetDateTime.parse("2026-06-01T11:58:00Z"),
                 List.of("line-2-jane-ossington"),
                 true,
-                "TTC Live Alert",
+                "TTC Live Alerts",
                 null,
                 null
             )
@@ -96,7 +96,7 @@ class AlertControllerTest {
                 List.of("line-4-sheppard-yonge-don-mills"),
                 OffsetDateTime.parse("2026-06-01T22:15:00-04:00"),
                 OffsetDateTime.parse("2026-06-01T22:39:00-04:00"),
-                "TTC Live Alert",
+                "TTC Live Alerts",
                 "Signal issue"
             )
         );
@@ -123,7 +123,7 @@ class AlertControllerTest {
                 List.of("line-2-jane-ossington"),
                 List.of("123"),
                 List.of(),
-                "TTC Live Alert",
+                "TTC Live Alerts",
                 null,
                 null,
                 null,

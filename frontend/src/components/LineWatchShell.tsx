@@ -14,6 +14,7 @@ import { DelaysPanel } from "./DelaysPanel";
 import { ReducedSpeedZonesPanel } from "./ReducedSpeedZonesPanel";
 import { PlannedClosuresPanel } from "./PlannedClosuresPanel";
 import { SavedCommutesPanel } from "./SavedCommutesPanel";
+import { MyStationsPanel } from "./MyStationsPanel";
 import { NotificationSettingsPanel } from "./NotificationSettingsPanel";
 import { ReliabilityPanel } from "./ReliabilityPanel";
 import { AlertHistoryPanel } from "./AlertHistoryPanel";
@@ -33,6 +34,7 @@ import { PwaInstallNudge } from "./PwaInstallNudge";
 import { usePwaInstallPrompt } from "../hooks/usePwaInstallPrompt";
 import { LineLegend } from "./LineLegend";
 import { MobileLegend } from "./MobileLegend";
+import { TransitLineBadge } from "./TransitLineBadge";
 import { LogsDropdown } from "./LogsDropdown";
 import { SiteGuideDropdown } from "./SiteGuideDropdown";
 import { DataProvider, DashboardData } from "../app/DataContext";
@@ -41,7 +43,7 @@ import {
   type AccessibilityOutageResponse,
   getAccessibilityOutages,
 } from "../app/accessibility-outage-data";
-import { AccessibilityOutagesPanel } from "./AccessibilityOutagesPanel";
+import { AccessibilityOutagesPanel, type AccessibilityOutageTarget } from "./AccessibilityOutagesPanel";
 import { getSurfaceNotices } from "../app/surface-notice-data";
 import { SurfaceNoticesPanel } from "./SurfaceNoticesPanel";
 import {
@@ -62,7 +64,7 @@ import {
 import { useTorontoClock } from "../hooks/useTorontoClock";
 import { useMobilePerformanceMode } from "../hooks/useMobilePerformanceMode";
 import { usePushNotificationSettings } from "../hooks/usePushNotificationSettings";
-import { Menu, X, Map as MapIcon, Train, AlertTriangle, Calendar, Navigation, ShieldCheck, BarChart3, Bell, Construction, Search, LogIn, LogOut, UserPlus, UserRound, Sun, Moon, Bus, Mail, Contrast, Pause, History, MessageSquareText, FileText, Sparkles, Pin, PinOff } from "lucide-react";
+import { Menu, X, Map as MapIcon, Train, AlertTriangle, Bookmark, Calendar, Navigation, ShieldCheck, BarChart3, Bell, Construction, Search, LogIn, LogOut, UserPlus, UserRound, Sun, Moon, Bus, Mail, Contrast, Pause, History, MessageSquareText, FileText, Sparkles, Pin, PinOff } from "lucide-react";
 import { SubwayClosedScreen } from "./SubwayClosedScreen";
 import { useSubwayOperatingState } from "../hooks/useSubwayOperatingState";
 import { StationSearchPanel } from "./StationSearchPanel";
@@ -91,6 +93,12 @@ import {
   type AccountMatchedImpact,
   type AuthConfig,
 } from "../app/account-data";
+import {
+  getSavedStations,
+  removeSavedStation,
+  saveStation,
+  type AccountSavedStation,
+} from "../app/saved-station-data";
 import { GoogleSignInButton } from "./GoogleSignInButton";
 import { accountOAuthErrorState } from "../app/account-oauth-error";
 import { normalizeAccountEmail, validateAccountCredentials } from "../app/account-validation";
@@ -113,7 +121,7 @@ import {
 } from "../app/regional-data";
 
 
-type ActiveView = "map" | "menu" | "search" | "status" | "alerts" | "delays" | "reduced-speed-zones" | "closures" | "commutes" | "notifications" | "analytics" | "more" | "accessibility-outages" | "surface-notices" | "alert-history" | "feedback" | "privacy-acknowledgements" | "release-notes";
+type ActiveView = "map" | "menu" | "search" | "status" | "alerts" | "delays" | "reduced-speed-zones" | "closures" | "commutes" | "notifications" | "analytics" | "more" | "my-stations" | "accessibility-outages" | "surface-notices" | "alert-history" | "feedback" | "privacy-acknowledgements" | "release-notes";
 type AccountDialogMode = "auth-choice" | "login" | "register" | "forgot-password" | "reset-password" | "link-google";
 type AccountEntryIntent = "login" | "register";
 
@@ -388,7 +396,11 @@ export function LineWatchShell({
     const prev = lastActiveViewRef.current;
     if (prev !== activeView) {
       const isSubmenu = (view: ActiveView) =>
-        view === "alerts" || view === "delays" || view === "reduced-speed-zones" || view === "closures";
+        view === "alerts" ||
+        view === "delays" ||
+        view === "reduced-speed-zones" ||
+        view === "closures" ||
+        view === "accessibility-outages";
       
       if (isSubmenu(activeView) && !isSubmenu(prev)) {
         setPreviousView(prev);
@@ -435,16 +447,31 @@ export function LineWatchShell({
   const [visibleStationResult, setVisibleStationResult] = useState<StationDataResult<StationDetail | null> | null>(null);
   const [stationLoading, setStationLoading] = useState(false);
   const [accessibilityOutageResult, setAccessibilityOutageResult] = useState<AccessibilityOutageResponse | null>(null);
+  const [accessibilityOutageTarget, setAccessibilityOutageTarget] = useState<AccessibilityOutageTarget | null>(null);
+  const [expandedMyStationDisruptionIds, setExpandedMyStationDisruptionIds] = useState<Set<string>>(() => new Set());
   const [surfaceNoticeCount, setSurfaceNoticeCount] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (activeView !== "accessibility-outages" && accessibilityOutageTarget) {
+      // The target only describes a direct My Stations drill-down and must not
+      // leak into a later visit from the normal Status navigation.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setAccessibilityOutageTarget(null);
+    }
+  }, [accessibilityOutageTarget, activeView]);
 
   const handleSubmenuBack = useCallback(() => {
     setActiveView(() => {
+      if (previousView === "my-stations") {
+        return "my-stations";
+      }
       if (isMobile) {
         return previousView || "status";
       }
       return "menu";
     });
     setSelection(null);
+    setAccessibilityOutageTarget(null);
   }, [isMobile, previousView, setActiveView, setSelection]);
 
   const [accountState, setAccountState] = useState<AccountState>({
@@ -465,9 +492,21 @@ export function LineWatchShell({
   const [accountSuccessMessage, setAccountSuccessMessage] = useState<string | null>(null);
   const [accountBusy, setAccountBusy] = useState(false);
   const [accountCommutes, setAccountCommutes] = useState<AccountSavedCommute[]>([]);
+  const [savedStations, setSavedStations] = useState<AccountSavedStation[]>([]);
+  const [savedStationsLoading, setSavedStationsLoading] = useState(false);
+  const [savedStationsError, setSavedStationsError] = useState<string | null>(null);
+  const [pendingSavedStationIds, setPendingSavedStationIds] = useState<Set<string>>(() => new Set());
+  const [savedStationNotice, setSavedStationNotice] = useState<string | null>(null);
+  const [savedStationNoticeKey, setSavedStationNoticeKey] = useState(0);
+  const savedStationNoticeTimerRef = useRef<number | null>(null);
   const [commutesActiveTab, setCommutesActiveTab] = useState<"create" | "saved">("saved");
   const [commutePathPreview, setCommutePathPreview] = useState<AccountCommutePathPreview | null>(null);
   const [authConfig, setAuthConfig] = useState<AuthConfig>(unavailableAuthConfig);
+
+  const savedStationIds = useMemo(
+    () => new Set(savedStations.map((saved) => saved.station.id)),
+    [savedStations],
+  );
 
   const pushSettings = usePushNotificationSettings(accountState);
   const supportUrl = process.env.NEXT_PUBLIC_LINEWATCH_SUPPORT_URL?.trim() ?? "";
@@ -669,6 +708,48 @@ export function LineWatchShell({
     };
   }, [accountState.authenticated, accountState.user?.id]);
 
+  const refreshSavedStations = useCallback(async () => {
+    if (!accountState.authenticated) {
+      setSavedStations([]);
+      setSavedStationsError(null);
+      setSavedStationsLoading(false);
+      return;
+    }
+
+    setSavedStationsLoading(true);
+    const result = await getSavedStations();
+    if (result.source === "backend") {
+      setSavedStations(result.stations);
+      setSavedStationsError(null);
+    } else {
+      setSavedStationsError(result.message ?? "Saved stations are unavailable.");
+    }
+    setSavedStationsLoading(false);
+  }, [accountState.authenticated]);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void refreshSavedStations();
+  }, [accountState.user?.id, refreshSavedStations]);
+
+  useEffect(() => () => {
+    if (savedStationNoticeTimerRef.current !== null) {
+      window.clearTimeout(savedStationNoticeTimerRef.current);
+    }
+  }, []);
+
+  const showSavedStationNotice = useCallback((message: string) => {
+    if (savedStationNoticeTimerRef.current !== null) {
+      window.clearTimeout(savedStationNoticeTimerRef.current);
+    }
+    setSavedStationNotice(message);
+    setSavedStationNoticeKey((current) => current + 1);
+    savedStationNoticeTimerRef.current = window.setTimeout(() => {
+      setSavedStationNotice(null);
+      savedStationNoticeTimerRef.current = null;
+    }, 3200);
+  }, []);
+
   const resetAccountForm = () => {
     setAccountEmail("");
     setAccountPassword("");
@@ -686,6 +767,71 @@ export function LineWatchShell({
     setAccountEntryIntent(intent);
     setAccountDialogMode("auth-choice");
   };
+
+  const setSavedStationPending = useCallback((stationId: string, pending: boolean) => {
+    setPendingSavedStationIds((current) => {
+      const next = new Set(current);
+      if (pending) next.add(stationId);
+      else next.delete(stationId);
+      return next;
+    });
+  }, []);
+
+  const handleSaveStation = useCallback(async (stationId: string) => {
+    if (!accountState.authenticated) {
+      setAccountEntryIntent("login");
+      setAccountDialogMode("auth-choice");
+      setAccountError("Sign in to save stations.");
+      return false;
+    }
+    if (savedStationIds.has(stationId)) return true;
+    const station = stationSummaries.find((candidate) => candidate.id === stationId);
+    if (!station || pendingSavedStationIds.has(stationId)) return false;
+
+    const optimistic: AccountSavedStation = { station, savedAt: new Date().toISOString() };
+    setSavedStationPending(stationId, true);
+    setSavedStations((current) => [optimistic, ...current.filter((saved) => saved.station.id !== stationId)]);
+    try {
+      const saved = await saveStation(stationId);
+      setSavedStations((current) => [saved, ...current.filter((item) => item.station.id !== stationId)]);
+      showSavedStationNotice(`${station.name} saved to My Stations`);
+      return true;
+    } catch (error) {
+      setSavedStations((current) => current.filter((saved) => saved.station.id !== stationId));
+      showSavedStationNotice(error instanceof Error ? error.message : "Could not save station");
+      return false;
+    } finally {
+      setSavedStationPending(stationId, false);
+    }
+  }, [accountState.authenticated, pendingSavedStationIds, savedStationIds, setAccountDialogMode, setAccountEntryIntent, setAccountError, setSavedStationPending, showSavedStationNotice, stationSummaries]);
+
+  const handleRemoveSavedStation = useCallback(async (stationId: string) => {
+    if (!accountState.authenticated || pendingSavedStationIds.has(stationId)) return false;
+    const previous = savedStations.find((saved) => saved.station.id === stationId);
+    if (!previous) return true;
+
+    setSavedStationPending(stationId, true);
+    setSavedStations((current) => current.filter((saved) => saved.station.id !== stationId));
+    try {
+      await removeSavedStation(stationId);
+      showSavedStationNotice(`${previous.station.name} removed from My Stations`);
+      return true;
+    } catch (error) {
+      setSavedStations((current) => [previous, ...current.filter((saved) => saved.station.id !== stationId)]);
+      showSavedStationNotice(error instanceof Error ? error.message : "Could not remove station");
+      return false;
+    } finally {
+      setSavedStationPending(stationId, false);
+    }
+  }, [accountState.authenticated, pendingSavedStationIds, savedStations, setSavedStationPending, showSavedStationNotice]);
+
+  const handleToggleSavedStation = useCallback((stationId: string) => {
+    if (savedStationIds.has(stationId)) {
+      void handleRemoveSavedStation(stationId);
+    } else {
+      void handleSaveStation(stationId);
+    }
+  }, [handleRemoveSavedStation, handleSaveStation, savedStationIds]);
 
   const openEmailAuth = () => {
     setAccountError(null);
@@ -929,6 +1075,9 @@ export function LineWatchShell({
       await logoutAccount({ pushEndpoint });
       setAccountState({ source: "backend", authenticated: false, user: null });
       setAccountCommutes([]);
+      setSavedStations([]);
+      setPendingSavedStationIds(new Set());
+      setSavedStationsError(null);
       setCommutePathPreview(null);
     } finally {
       setAccountBusy(false);
@@ -1316,7 +1465,7 @@ export function LineWatchShell({
     }
     if (activeView === "search") return "search";
     if (activeView === "commutes") return "commutes";
-    if (activeView === "notifications" || activeView === "more" || activeView === "analytics" || activeView === "alert-history" || activeView === "feedback" || activeView === "privacy-acknowledgements" || activeView === "release-notes") return "more";
+    if (activeView === "my-stations" || activeView === "notifications" || activeView === "more" || activeView === "analytics" || activeView === "alert-history" || activeView === "feedback" || activeView === "privacy-acknowledgements" || activeView === "release-notes") return "more";
     return "map";
   }, [activeView]);
 
@@ -1391,6 +1540,36 @@ export function LineWatchShell({
     setSelection(null);
     setActiveView(viewForImpactKind(kind));
   }, [setActiveView, setCommutePathPreview, setSelectedStationId, setSelection, viewForImpactKind]);
+
+  const handleMyStationsSelectImpactDetails = useCallback((nextSelection: NonNullable<ImpactSelection>) => {
+    setPreviousView("my-stations");
+    setSelectedStationId(null);
+    setCommutePathPreview(null);
+    setSelection(nextSelection);
+    setMobileInspectorDetent("details-focus");
+    setActiveView(viewForImpactSelection(nextSelection));
+  }, [setActiveView, setCommutePathPreview, setMobileInspectorDetent, setSelectedStationId, setSelection, viewForImpactSelection]);
+
+  const handleMyStationsSelectAccessibilityOutageDetails = useCallback((
+    assetType: AccessibilityOutageTarget["assetType"],
+    stationId: string,
+  ) => {
+    setPreviousView("my-stations");
+    setSelection(null);
+    setSelectedStationId(null);
+    setCommutePathPreview(null);
+    setAccessibilityOutageTarget({ assetType, stationId });
+    setActiveView("accessibility-outages");
+  }, [setActiveView, setCommutePathPreview, setSelectedStationId, setSelection]);
+
+  const handleMyStationsDisruptionExpandedChange = useCallback((stationId: string, expanded: boolean) => {
+    setExpandedMyStationDisruptionIds((current) => {
+      const next = new Set(current);
+      if (expanded) next.add(stationId);
+      else next.delete(stationId);
+      return next;
+    });
+  }, []);
 
   const handleMapSelectImpact = useCallback((nextSelection: ImpactSelection) => {
     setSelectedStationId(null);
@@ -1505,6 +1684,7 @@ export function LineWatchShell({
     activeView === "reduced-speed-zones" ||
     activeView === "closures" ||
     activeView === "commutes" ||
+    activeView === "my-stations" ||
     activeView === "notifications" ||
     activeView === "more" ||
     activeView === "analytics" ||
@@ -1524,6 +1704,7 @@ export function LineWatchShell({
       case "reduced-speed-zones": return "Reduced Speed Zones";
       case "closures": return "Planned closures";
       case "commutes": return "Saved commutes";
+      case "my-stations": return "My Stations";
       case "notifications": return "Notifications";
       case "more": return "More options";
       case "analytics": return "Reliability analytics";
@@ -1606,7 +1787,7 @@ export function LineWatchShell({
             onViewPath={handleViewCommutePath}
             onViewImpactOnPath={handleViewCommuteImpactOnPath}
             onClearViewedPath={handleClearCommutePathPreview}
-            onBack={() => setActiveView("menu")}
+            onBack={() => setActiveView(isMobile ? "more" : "menu")}
             onClose={() => { setActiveView("map"); setSelection(null); }}
             onRequestSignIn={() => openAuthChoice("login")}
             onRequestCreateAccount={() => openAuthChoice("register")}
@@ -1614,6 +1795,31 @@ export function LineWatchShell({
             notificationSummary={notificationSummary}
             activeView={commutesActiveTab}
             onActiveViewChange={setCommutesActiveTab}
+          />
+        );
+      case "my-stations":
+        return (
+          <MyStationsPanel
+            accountState={accountState}
+            savedStations={savedStations}
+            stations={stationSummaries}
+            loading={savedStationsLoading}
+            error={savedStationsError}
+            pendingStationIds={pendingSavedStationIds}
+            onSave={handleSaveStation}
+            onRemove={handleRemoveSavedStation}
+            onSelectStation={(stationId) => {
+              handleSelectStationId(stationId);
+            }}
+            onSelectImpactDetails={handleMyStationsSelectImpactDetails}
+            onSelectAccessibilityOutageDetails={handleMyStationsSelectAccessibilityOutageDetails}
+            expandedDisruptionStationIds={expandedMyStationDisruptionIds}
+            onDisruptionExpandedChange={handleMyStationsDisruptionExpandedChange}
+            onRetry={() => { void refreshSavedStations(); }}
+            onBack={() => setActiveView(isMobile ? "more" : "menu")}
+            onClose={() => { setActiveView("map"); setSelection(null); }}
+            onRequestSignIn={() => openAuthChoice("login")}
+            onRequestCreateAccount={() => openAuthChoice("register")}
           />
         );
       case "notifications":
@@ -1631,6 +1837,7 @@ export function LineWatchShell({
         return (
           <AccessibilityOutagesPanel
             accessibilityOutageResult={accessibilityOutageResult}
+            initialTarget={accessibilityOutageTarget}
             onSelectStation={(stationId) => {
               setSelectedStationId(stationId);
               setMobileInspectorDetent("details-focus");
@@ -1638,12 +1845,11 @@ export function LineWatchShell({
                 setActiveView("map");
               }
             }}
-            onBack={() => {
-              setActiveView(isMobile ? "status" : "menu");
-            }}
+            onBack={handleSubmenuBack}
             onClose={() => {
               setActiveView("map");
               setSelection(null);
+              setAccessibilityOutageTarget(null);
             }}
           />
         );
@@ -1679,6 +1885,9 @@ export function LineWatchShell({
             onToggleReducedMotion={handleToggleReducedMotion}
             onToggleDotBackground={handleToggleDotBackground}
             onOpenNotifications={() => setActiveView("notifications")}
+            onOpenCommutes={() => setActiveView("commutes")}
+            onOpenMyStations={() => setActiveView("my-stations")}
+            savedStationCount={savedStations.length}
             onOpenAnalytics={() => setActiveView("analytics")}
             onOpenAlertHistory={() => setActiveView("alert-history")}
             onOpenFeedback={() => setActiveView("feedback")}
@@ -1737,6 +1946,7 @@ export function LineWatchShell({
   };
 
   const isDesktopPanel = activeView !== "map" && activeView !== "search" && activeView !== "menu";
+  const showMenuAttention = !menuVisible && !isDesktopPanel;
 
   const activeFloatingPanel = !showClosedScreen ? (
     isMobilePanel ? (
@@ -1818,7 +2028,7 @@ export function LineWatchShell({
             aria-label={"Toggle menu"}
             aria-controls="linewatch-main-menu"
             aria-expanded={menuVisible}
-            data-menu-visible={menuVisible ? "true" : "false"}
+            data-menu-attention={showMenuAttention ? "true" : "false"}
           >
             <div className="relative w-7 h-7 flex items-center justify-center">
                <Menu
@@ -2009,6 +2219,23 @@ export function LineWatchShell({
                           </div>
                         )}
                       </button>
+                      <button
+                        ref={registerMenuAction(actionIndex++)}
+                        role="menuitem"
+                        onClick={() => setActiveView("my-stations")}
+                        aria-current={activeView === "my-stations" ? "page" : undefined}
+                        className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors w-full"
+                      >
+                        <span className="flex items-center gap-3">
+                          <Bookmark size={18} className="text-slate-500 dark:text-slate-400" />
+                          My Stations
+                        </span>
+                        {savedStations.length > 0 ? (
+                          <span className="flex h-6 min-w-6 items-center justify-center rounded-full bg-sky-500/15 px-2 text-[11px] font-bold text-sky-700 dark:text-sky-300" aria-label={`${savedStations.length} saved stations`}>
+                            {savedStations.length}
+                          </span>
+                        ) : null}
+                      </button>
                     </div>
                   ) : (
                     <div className="account-action-row">
@@ -2064,6 +2291,23 @@ export function LineWatchShell({
                             </span>
                           </div>
                         )}
+                      </button>
+                      <button
+                        ref={registerMenuAction(actionIndex++)}
+                        role="menuitem"
+                        onClick={() => setActiveView("my-stations")}
+                        aria-current={activeView === "my-stations" ? "page" : undefined}
+                        className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors w-full"
+                      >
+                        <span className="flex items-center gap-3">
+                          <Bookmark size={18} className="text-slate-500 dark:text-slate-400" />
+                          My Stations
+                        </span>
+                        {savedStations.length > 0 ? (
+                          <span className="flex h-6 min-w-6 items-center justify-center rounded-full bg-sky-500/15 px-2 text-[11px] font-bold text-sky-700 dark:text-sky-300" aria-label={`${savedStations.length} saved stations`}>
+                            {savedStations.length}
+                          </span>
+                        ) : null}
                       </button>
                     </div>
                   )}
@@ -2347,9 +2591,7 @@ export function LineWatchShell({
                         
                         return (
                           <div key={l.id} className="flex items-center gap-3 px-2 py-2 rounded-lg !bg-white dark:!bg-[#12151c] border border-black/5 dark:border-white/5 shadow-sm">
-                             <span className="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold shadow-sm border border-black dark:border-white/30" style={{ backgroundColor: l.color, color: l.id === "line-1" ? "#000" : "#fff" }}>
-                               {l.number}
-                             </span>
+                             <TransitLineBadge lineId={l.id} lineNumber={l.number} lineName={l.name} size={24} className="flex-shrink-0" />
                              <div className="flex flex-col justify-center">
                                 <div className="flex items-center gap-2">
                                   <span className="text-sm font-bold text-slate-800 dark:text-slate-200">{l.name}</span>
@@ -2404,6 +2646,15 @@ export function LineWatchShell({
             inputRef={stationSearchInputRef}
             keyDownHandlerRef={stationKeyDownHandlerRef}
             isMobile={isMobile}
+            authenticated={accountState.authenticated}
+            savedStationIds={savedStationIds}
+            pendingSavedStationIds={pendingSavedStationIds}
+            onToggleSavedStation={handleToggleSavedStation}
+            onRequestSignIn={() => {
+              setAccountEntryIntent("login");
+              setAccountDialogMode("auth-choice");
+              setAccountError("Sign in to save stations.");
+            }}
           />
         </div>
 
@@ -2576,6 +2827,15 @@ export function LineWatchShell({
           onClose={() => setSelectedStationId(null)}
           onSelectImpact={handleMapSelectImpact}
           reducedMotion={reducedMotion}
+          authenticated={accountState.authenticated}
+          saved={savedStationIds.has(selectedStationId)}
+          savePending={pendingSavedStationIds.has(selectedStationId)}
+          onToggleSaved={handleToggleSavedStation}
+          onRequestSignIn={() => {
+            setAccountEntryIntent("login");
+            setAccountDialogMode("auth-choice");
+            setAccountError("Sign in to save stations.");
+          }}
         />
       )}
 
@@ -2764,6 +3024,12 @@ export function LineWatchShell({
           onSelect={onMobileNavSelect}
         />
       ) : null}
+      {savedStationNotice ? (
+        <div key={savedStationNoticeKey} className="saved-station-global-notice" role="status" aria-live="polite">
+          <Bookmark size={16} fill="currentColor" aria-hidden="true" />
+          <span>{savedStationNotice}</span>
+        </div>
+      ) : null}
       {accountDialogMode ? (
         <div className="account-dialog-backdrop" role="presentation" onMouseDown={() => setAccountDialogMode(null)}>
           <section
@@ -2778,7 +3044,7 @@ export function LineWatchShell({
                 <h2 className="text-base font-black text-slate-900 dark:text-white">
                   {accountDialogTitle()}
                 </h2>
-                <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">Create an account to save configured commutes, get push notifications, and see how disruptions affect commute times.</p>
+                <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">Create an account to save stations and configured commutes, get push notifications, and see how disruptions affect commute times.</p>
               </div>
               <button type="button" className="station-search-clear" onClick={() => setAccountDialogMode(null)} aria-label="Close account dialog">
                 <X size={18} />

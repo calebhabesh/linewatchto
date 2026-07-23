@@ -31,6 +31,7 @@ linewatch:
       auth-max-requests: ${LINEWATCH_AUTH_RATE_LIMIT_AUTH_MAX_REQUESTS:12}
       password-reset-max-requests: ${LINEWATCH_AUTH_RATE_LIMIT_PASSWORD_RESET_MAX_REQUESTS:5}
       demo-max-requests: ${LINEWATCH_AUTH_RATE_LIMIT_DEMO_MAX_REQUESTS:20}
+      preference-mutation-max-requests: ${LINEWATCH_AUTH_RATE_LIMIT_PREFERENCE_MUTATION_MAX_REQUESTS:120}
     password-reset:
       dev-links: ${LINEWATCH_AUTH_PASSWORD_RESET_DEV_LINKS:false}
       frontend-base-url: ${LINEWATCH_PASSWORD_RESET_FRONTEND_BASE_URL:http://localhost:3000}

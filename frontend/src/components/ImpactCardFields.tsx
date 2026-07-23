@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { Calendar } from "lucide-react";
 import { ImpactTimestamp } from "./ImpactTimestamp";
+import { TransitLineBadge } from "./TransitLineBadge";
 
 export function formatCause(cause: string | null | undefined): string {
   if (!cause) return "";
@@ -40,11 +41,7 @@ export function lineColor(lineId: string) {
 }
 
 export function LineBadge({ lineId, lineNumber }: { lineId: string; lineNumber: string }) {
-  return (
-    <span className="line-badge small shrink-0" style={lineColor(lineId)}>
-      {lineNumber}
-    </span>
-  );
+  return <TransitLineBadge lineId={lineId} lineNumber={lineNumber} size={28} className="impact-card-line-badge shrink-0" />;
 }
 
 export function RelatedPlannedClosureButton({ onClick }: { onClick: () => void }) {
@@ -246,9 +243,10 @@ export function MetadataGrid({
 
 export function CardSource({ source }: { source: string }) {
   if (!source) return null;
+  const displaySource = source === "TTC Live Alert" ? "TTC Live Alerts" : source;
   return (
     <span className="inline-flex items-center shrink-0 text-[7px] sm:text-[8px] text-slate-500/80 dark:text-slate-400/80 font-bold px-1 sm:px-1.5 py-0.5 rounded-[3px] border border-black/10 dark:border-white/10 uppercase tracking-wide sm:tracking-widest bg-black/5 dark:bg-white/5 whitespace-nowrap">
-      Source: {source}
+      Source: {displaySource}
     </span>
   );
 }
