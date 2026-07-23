@@ -82,6 +82,10 @@
   width: 44px;
 }
 
+.station-detail-save-control button {
+  gap: 4px;
+}
+
 .dark .station-detail-save-control button,
 .dark .station-detail-close-button {
   border-color: rgba(255, 255, 255, 0.1);
@@ -504,10 +508,23 @@
   padding-block: 8px;
 }
 
+.saved-station-rich-heading .my-stations-row-heading {
+  align-items: center;
+  flex-wrap: nowrap;
+  justify-content: flex-start;
+}
+
+.saved-station-rich-heading .my-stations-line-badges {
+  align-items: center;
+  flex: 0 0 auto;
+}
+
 .saved-station-rich-heading .my-stations-row-heading strong {
+  flex: 0 1 auto;
   font-size: 25px;
   font-weight: 750;
   line-height: 1;
+  min-width: 0;
 }
 
 .saved-station-rich-heading .my-stations-line-badges > span {
@@ -529,8 +546,9 @@
 
   .saved-station-rich-heading .my-stations-row-heading {
     align-items: center;
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
+    display: flex;
+    flex-wrap: nowrap;
+    justify-content: flex-start;
     width: 100%;
   }
 
@@ -830,6 +848,13 @@
   padding: 7px 8px;
 }
 
+.saved-station-arrival-line-badge {
+  flex-basis: 24px !important;
+  height: 24px !important;
+  min-width: 24px !important;
+  width: 24px !important;
+}
+
 .dark .saved-station-arrival-group {
   background: rgba(15, 18, 24, 0.72);
 }
@@ -968,6 +993,13 @@
     gap: 9px;
     min-height: 52px;
     padding: 9px 10px;
+  }
+
+  .saved-station-arrival-line-badge {
+    flex-basis: 27px !important;
+    height: 27px !important;
+    min-width: 27px !important;
+    width: 27px !important;
   }
 
   .saved-station-arrival-line {

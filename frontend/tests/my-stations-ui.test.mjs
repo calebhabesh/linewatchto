@@ -102,10 +102,12 @@ describe("My Stations UI", () => {
     assert.match(styles, /\.saved-station-rich-heading \.my-stations-row-main\s*\{[^}]*padding-block:\s*8px;/s);
     assert.match(styles, /\.saved-station-rich-heading \.my-stations-row-heading strong\s*\{[^}]*font-size:\s*25px;[^}]*font-weight:\s*750;[^}]*line-height:\s*1;/s);
     assert.match(panel, /<TransitLineBadge key=\{id\} lineId=\{id\} lineNumber=\{line\.number\} size=\{28\}/);
-    assert.match(panel, /lineId=\{group\.lineId\} lineNumber=\{group\.lineNumber\} lineName=\{group\.line\?\.name\} size=\{30\}/);
+    assert.match(panel, /lineName=\{group\.line\?\.name\}[\s\S]*?size=\{27\}[\s\S]*?className="saved-station-arrival-line-badge"/);
     assert.match(styles, /@media \(max-width:\s*30rem\)[\s\S]*?\.saved-station-rich-heading \.my-stations-row-heading strong\s*\{[^}]*font-size:\s*18px;/s);
     assert.match(styles, /@media \(max-width:\s*30rem\)[\s\S]*?\.saved-station-rich-heading\s*\{[^}]*flex-basis:\s*auto;[^}]*height:\s*auto;/s);
-    assert.match(styles, /@media \(max-width:\s*30rem\)[\s\S]*?\.saved-station-rich-heading \.my-stations-row-heading\s*\{[^}]*grid-template-columns:\s*minmax\(0, 1fr\) auto;/s);
+    assert.match(styles, /\.saved-station-rich-heading \.my-stations-row-heading\s*\{[^}]*align-items:\s*center;[^}]*flex-wrap:\s*nowrap;[^}]*justify-content:\s*flex-start;/s);
+    assert.match(styles, /\.saved-station-rich-heading \.my-stations-line-badges\s*\{[^}]*align-items:\s*center;[^}]*flex:\s*0 0 auto;/s);
+    assert.doesNotMatch(styles, /\.saved-station-rich-heading \.my-stations-row-heading\s*\{[^}]*grid-template-columns:/s);
     assert.match(transitLineBadge, /\/assets\/linewatch\/\$\{lineId\}-legend\.svg\?v=2/);
     assert.match(styles, /\.saved-station-disruption-total\s*\{[^}]*height:\s*22px;[^}]*min-width:\s*22px;/s);
     assert.match(styles, /\.saved-station-arrival-groups/);
@@ -118,7 +120,9 @@ describe("My Stations UI", () => {
     assert.match(styles, /\.saved-station-arrival-times strong\.is-due/);
     assert.match(styles, /\.saved-station-arrival-times strong\.is-soon/);
     assert.match(styles, /\.saved-station-arrival-group\s*\{[^}]*min-height:\s*44px/s);
+    assert.match(styles, /\.saved-station-arrival-line-badge\s*\{[^}]*height:\s*24px !important;[^}]*width:\s*24px !important;/s);
     assert.match(styles, /@media \(min-width:\s*768px\)[\s\S]*?\.saved-station-arrival-group\s*\{[^}]*min-height:\s*52px/s);
+    assert.match(styles, /@media \(min-width:\s*768px\)[\s\S]*?\.saved-station-arrival-line-badge\s*\{[^}]*height:\s*27px !important;[^}]*width:\s*27px !important;/s);
     assert.match(styles, /\.saved-commute-impact-disclosure\.saved-station-disruption-disclosure\s*\{[^}]*border:\s*0;[^}]*margin-top:\s*0;/s);
     assert.match(styles, /\.saved-station-rich-content\s*\{[^}]*padding:\s*0 12px 14px;/s);
     assert.match(styles, /\.saved-station-rich-content\s*\{[^}]*border-top:\s*2px solid/s);
@@ -146,6 +150,8 @@ describe("My Stations UI", () => {
   it("keeps removal undo feedback inline at the deleted row position", () => {
     assert.match(panel, /lastRemoved\.index/);
     assert.match(panel, /saved-station-inline-undo/);
+    assert.match(panel, /\{lastRemoved\.saved\.station\.name\} Removed/g);
+    assert.doesNotMatch(panel, /\{lastRemoved\.saved\.station\.name\} removed/);
     assert.doesNotMatch(panel, /className="my-stations-undo"/);
     assert.match(styles, /\.saved-station-inline-undo/);
   });
@@ -181,6 +187,7 @@ describe("My Stations UI", () => {
 
   it("places the uppercase save label inside the station bookmark button", () => {
     assert.match(stationDetail, /<Bookmark[\s\S]*<span>\{saved \? "Saved" : "Save"\}<\/span>[\s\S]*<\/button>/);
+    assert.match(styles, /\.station-detail-save-control button\s*\{[^}]*gap:\s*4px;/s);
     assert.match(styles, /\.station-detail-save-control button > span\s*\{[^}]*text-transform:\s*uppercase;/s);
   });
 

@@ -333,7 +333,13 @@ function SavedStationRow({
                   const direction = formatCondensedArrivalDirection(group.directionLabel);
                   return (
                     <div className="saved-station-arrival-group" key={group.key}>
-                      <TransitLineBadge lineId={group.lineId} lineNumber={group.lineNumber} lineName={group.line?.name} size={30} />
+                      <TransitLineBadge
+                        lineId={group.lineId}
+                        lineNumber={group.lineNumber}
+                        lineName={group.line?.name}
+                        size={27}
+                        className="saved-station-arrival-line-badge"
+                      />
                       <span className="saved-station-arrival-direction">
                         <strong>{direction.direction}</strong>
                         {direction.destination ? <span className="saved-station-arrival-destination">{direction.destination}</span> : null}
@@ -630,7 +636,7 @@ export function MyStationsPanel({
               <div className="saved-station-list-slot" key={saved.station.id}>
                 {lastRemoved?.index === index ? (
                   <div className="saved-station-inline-undo" role="status">
-                    <span>{lastRemoved.saved.station.name} removed</span>
+                    <span>{lastRemoved.saved.station.name} Removed</span>
                     <button type="button" onClick={() => void undoRemove()}>Undo</button>
                     <button type="button" onClick={() => setLastRemoved(null)} aria-label="Dismiss undo"><X size={15} /></button>
                   </div>
@@ -650,7 +656,7 @@ export function MyStationsPanel({
             ))}
             {lastRemoved && lastRemoved.index >= visible.length ? (
               <div className="saved-station-inline-undo" role="status">
-                <span>{lastRemoved.saved.station.name} removed</span>
+                <span>{lastRemoved.saved.station.name} Removed</span>
                 <button type="button" onClick={() => void undoRemove()}>Undo</button>
                 <button type="button" onClick={() => setLastRemoved(null)} aria-label="Dismiss undo"><X size={15} /></button>
               </div>
