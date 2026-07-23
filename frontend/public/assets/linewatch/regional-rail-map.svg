@@ -23,15 +23,15 @@
    inkscape:pageopacity="0.0"
    inkscape:pagecheckerboard="0"
    inkscape:deskcolor="#d1d1d1"
-   inkscape:zoom="0.10398536"
-   inkscape:cx="2567.6691"
-   inkscape:cy="6072.9703"
+   inkscape:zoom="0.29411501"
+   inkscape:cx="3808.0341"
+   inkscape:cy="7250.5649"
    inkscape:window-width="2560"
    inkscape:window-height="1363"
    inkscape:window-x="0"
    inkscape:window-y="0"
    inkscape:window-maximized="1"
-   inkscape:current-layer="layer6"
+   inkscape:current-layer="layer5"
    showguides="true" />
  <defs
    id="defs1">
@@ -1338,7 +1338,7 @@
      id="path15"
      inkscape:label="service-pattern-lw-hamilton-limited"
      sodipodi:nodetypes="ccc" /><path
-     style="clip-rule:evenodd;display:inline;fill:none;fill-rule:evenodd;stroke:#ffffff;stroke-width:20;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:80, 80;stroke-dashoffset:0;stroke-opacity:1;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
+     style="clip-rule:evenodd;display:inline;fill:none;fill-rule:evenodd;stroke:#ffffff;stroke-width:20;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:80,80;stroke-dashoffset:58;stroke-opacity:1;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
      d="m -1130.17,7209.4484 h 4732.5748 l 677.3969,391.0953 h 872.4094"
      id="path25"
      inkscape:label="service-pattern-lw-niagara-falls"
