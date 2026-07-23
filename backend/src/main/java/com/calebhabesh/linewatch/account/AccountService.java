@@ -353,12 +353,12 @@ public class AccountService {
     @Transactional(readOnly = true)
     public AccountEntity requireAccount(String rawSessionToken) {
         if (rawSessionToken == null || rawSessionToken.isBlank()) {
-            throw new AccountException(HttpStatus.UNAUTHORIZED, "not_authenticated", "Sign in to use saved commute preferences.");
+            throw new AccountException(HttpStatus.UNAUTHORIZED, "not_authenticated", "Sign in to use account features.");
         }
         String tokenHash = tokenService.hashToken(rawSessionToken);
         UserSessionEntity session = sessionRepository.findByTokenHash(tokenHash)
             .filter(candidate -> candidate.getExpiresAt().isAfter(clock.instant()))
-            .orElseThrow(() -> new AccountException(HttpStatus.UNAUTHORIZED, "not_authenticated", "Sign in to use saved commute preferences."));
+            .orElseThrow(() -> new AccountException(HttpStatus.UNAUTHORIZED, "not_authenticated", "Sign in to use account features."));
         return session.getAccount();
     }
 

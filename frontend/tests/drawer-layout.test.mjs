@@ -42,6 +42,10 @@ describe("floating menu layout", () => {
     assert.match(shellSource, /Floating Dropdown Menu/);
     assert.match(globalCss, /@keyframes menu-border-pulse/);
     assert.match(globalCss, /animation:\s*menu-border-pulse 2\.8s cubic-bezier\(0\.4, 0, 0\.2, 1\) infinite/);
+    assert.match(shellSource, /const showMenuAttention = !menuVisible && !isDesktopPanel;/);
+    assert.match(shellSource, /data-menu-attention=\{showMenuAttention \? "true" : "false"\}/);
+    assert.match(globalCss, /\.menu-attention-beam\[data-menu-attention="false"\]::before\s*\{[^}]*animation:\s*none;[^}]*content:\s*none;/s);
+    assert.doesNotMatch(globalCss, /\.menu-attention-beam:focus-visible::before\s*\{[^}]*opacity:\s*0;/s);
     assert.match(shellSource, /Floating Submenus/);
     assert.match(shellSource, /activeView === "alerts"/);
     assert.match(shellSource, /activeView === "delays"/);

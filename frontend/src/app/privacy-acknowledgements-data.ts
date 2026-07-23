@@ -36,7 +36,11 @@ export const acknowledgementSections: NoticeSection[] = [
 export const dataPracticeSections: NoticeSection[] = [
   {
     title: "Accounts",
-    body: "If you create an account, LineWatchTO uses your email address, display name, login method, and authentication state to sign you in and connect saved commute and notification settings to your account.",
+    body: "If you create an account, LineWatchTO uses your email address, display name, login method, and authentication state to sign you in and connect saved stations, saved commutes, and notification settings to your account.",
+  },
+  {
+    title: "My Stations",
+    body: "My Stations stores the stable station IDs you choose and the time each station was saved. Removing a station deletes that account preference. Station conditions shown beside it follow the same source and freshness limits as the station dashboard.",
   },
   {
     title: "Saved Commutes",

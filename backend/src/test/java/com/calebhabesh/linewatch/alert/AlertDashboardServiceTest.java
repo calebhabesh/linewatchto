@@ -75,7 +75,7 @@ class AlertDashboardServiceTest {
                 "line-2-jane-ossington"
             );
             assertThat(dto.shuttle()).isTrue();
-            assertThat(dto.source()).isEqualTo("TTC Live Alert");
+            assertThat(dto.source()).isEqualTo("TTC Live Alerts");
         });
     }
 
@@ -352,7 +352,7 @@ class AlertDashboardServiceTest {
             assertThat(dto.updatedAt()).isEqualTo(delayUpdatedAt);
             assertThat(dto.affectedSegmentIds())
                 .containsExactly("line-4-sheppard-yonge-don-mills");
-            assertThat(dto.source()).isEqualTo("TTC Live Alert");
+            assertThat(dto.source()).isEqualTo("TTC Live Alerts");
             assertThat(dto.cause()).isEqualTo("Signal issue");
         });
 

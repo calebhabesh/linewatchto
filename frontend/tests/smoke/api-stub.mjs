@@ -20,6 +20,7 @@ import {
 const port = Number(process.env.LINEWATCH_STUB_PORT ?? "4174");
 let mode = "seeded";
 let demoSessionActive = false;
+let demoSavedStations = [];
 
 const defaultPushNotificationPreferences = {
   commuteNotificationsEnabled: true,
@@ -256,7 +257,7 @@ function corsHeaders(request, extra = {}) {
     "access-control-allow-origin": origin ?? "*",
     "access-control-allow-credentials": "true",
     "access-control-allow-headers": "content-type",
-    "access-control-allow-methods": "GET,POST,PATCH,DELETE,OPTIONS",
+    "access-control-allow-methods": "GET,POST,PUT,PATCH,DELETE,OPTIONS",
     ...extra,
   };
 }
@@ -299,6 +300,7 @@ const server = createServer(async (request, response) => {
     }
     mode = body.mode;
     demoSessionActive = false;
+    demoSavedStations = [];
     pushPreferences = JSON.parse(JSON.stringify(defaultPushNotificationPreferences));
     sendJson(request, response, 200, { mode });
     return;
@@ -366,6 +368,49 @@ const server = createServer(async (request, response) => {
       return;
     }
     sendJson(request, response, 200, { commutes: demoCommutes });
+    return;
+  }
+
+  if (request.method === "GET" && url.pathname === "/api/account/stations") {
+    if (!demoSessionActive) {
+      sendJson(request, response, 401, { error: "not_authenticated", message: "Sign in to use account features." });
+      return;
+    }
+    sendJson(request, response, 200, { stations: demoSavedStations });
+    return;
+  }
+
+  if (request.method === "PUT" && /^\/api\/account\/stations\/[^/]+$/.test(url.pathname)) {
+    if (!demoSessionActive) {
+      sendJson(request, response, 401, { error: "not_authenticated", message: "Sign in to use account features." });
+      return;
+    }
+    const stationId = decodeURIComponent(url.pathname.split("/").at(-1));
+    const station = stationSummariesResponse.stations.find((item) => item.id === stationId);
+    if (!station) {
+      sendJson(request, response, 404, { error: "unknown_station", message: "Station was not found." });
+      return;
+    }
+    const existing = demoSavedStations.find((item) => item.station.id === stationId);
+    if (existing) {
+      sendJson(request, response, 200, existing);
+      return;
+    }
+    const saved = { station, savedAt: "2026-07-23T14:30:00Z" };
+    demoSavedStations = [saved, ...demoSavedStations];
+    sendJson(request, response, 201, saved);
+    return;
+  }
+
+  if (request.method === "DELETE" && /^\/api\/account\/stations\/[^/]+$/.test(url.pathname)) {
+    if (!demoSessionActive) {
+      sendJson(request, response, 401, { error: "not_authenticated", message: "Sign in to use account features." });
+      return;
+    }
+    const stationId = decodeURIComponent(url.pathname.split("/").at(-1));
+    demoSavedStations = demoSavedStations.filter((item) => item.station.id !== stationId);
+    response.writeHead(204, corsHeaders(request));
+    response.end();
     return;
   }
 

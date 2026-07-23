@@ -250,7 +250,7 @@ class LineSubscriptionPushPlannerTest {
             List.of(),
             OffsetDateTime.parse("2026-06-30T20:34:00Z"),
             OffsetDateTime.parse("2026-06-30T20:34:00Z"),
-            "TTC Live Alert",
+            "TTC Live Alerts",
             "LRT - Track Problem"
         );
 

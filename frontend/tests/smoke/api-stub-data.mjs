@@ -386,7 +386,7 @@ export const delaysResponse = [
     affectedSegmentIds: ["line-4-sheppard-yonge-don-mills"],
     startedAt: "2026-06-01T22:15:00-04:00",
     updatedAt: "2026-06-01T22:39:00-04:00",
-    source: "TTC Live Alert",
+    source: "TTC Live Alerts",
     cause: "Operational issue",
   },
   {

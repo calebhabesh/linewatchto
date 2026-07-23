@@ -160,6 +160,7 @@ export function AlertHistoryTimeline() {
             <Search size={14} aria-hidden="true" />
             <input
               type="search"
+              className="submenu-search-input"
               value={searchQuery}
               onChange={(event) => setSearchQuery(event.target.value)}
               placeholder="Search history"

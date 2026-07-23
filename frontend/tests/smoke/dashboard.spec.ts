@@ -1596,6 +1596,67 @@ test("demo account shows account-backed saved commutes", async ({ page, request,
   await expect(page.locator("[data-commute-path-preview]")).toHaveCount(0);
 });
 
+test("signed-in riders save, browse, remove, undo, and reload My Stations", async ({ page, request, isMobile }) => {
+  await setStubMode(request, "seeded");
+  if (isMobile) {
+    await page.goto("/");
+    await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
+    await page.getByRole("button", { name: "More", exact: true }).click();
+    await page.getByRole("button", { name: "Demo Account" }).click();
+  } else {
+    await openDashboardMenu(page, isMobile);
+    await page.getByRole("menuitem", { name: "Demo account" }).click({ force: true });
+  }
+
+  await expect(page.getByRole("heading", { name: "Saved Commutes" })).toBeVisible();
+  await page.getByRole("button", { name: "Close", exact: true }).first().click();
+  await page.getByRole("button", { name: "Stub Station station details" }).click();
+  await expect(page.getByRole("button", { name: "Save Stub Station to My Stations" })).toBeVisible();
+  await page.getByRole("button", { name: "Save Stub Station to My Stations" }).click();
+  await expect(page.getByRole("button", { name: "Remove Stub Station from My Stations" })).toBeVisible();
+  await page.getByRole("button", { name: "Close station details" }).click();
+
+  if (isMobile) {
+    await page.getByRole("button", { name: "More", exact: true }).click();
+    await page.getByRole("button", { name: "My Stations" }).click();
+  } else {
+    await page.getByRole("button", { name: "Toggle menu" }).click();
+    await page.getByRole("menuitem", { name: "My Stations" }).click();
+  }
+
+  const panel = page.getByRole("region", { name: "My Stations" });
+  await expect(panel).toBeVisible();
+  await panel.getByRole("button", { name: "Add Station", exact: true }).click();
+  const doneButton = panel.getByRole("button", { name: "Done adding stations" });
+  await expect(doneButton).toBeVisible();
+  await expect.poll(async () => (await doneButton.boundingBox())?.width ?? 0).toBeLessThanOrEqual(56);
+  await expect.poll(async () => (await panel.locator(".my-stations-picker-section-heading").first().boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(46);
+  const pickerRowStyle = await panel.locator(".my-stations-picker-row").first().evaluate((row) => {
+    const style = getComputedStyle(row);
+    return { backgroundColor: style.backgroundColor, opacity: style.opacity };
+  });
+  expect(pickerRowStyle.opacity).toBe("1");
+  expect(pickerRowStyle.backgroundColor).toBe("rgb(21, 24, 33)");
+  await doneButton.click();
+  await expect(panel.locator(".my-stations-row-heading strong", { hasText: "Stub Station" })).toBeVisible();
+  await expect(panel.getByText("Active station impact", { exact: true })).toBeVisible();
+  await panel.getByRole("button", { name: "Remove Stub Station from My Stations" }).click();
+  await expect(panel.getByText("No Saved Stations", { exact: true })).toBeVisible();
+  await panel.getByRole("button", { name: "Undo", exact: true }).click();
+  await expect(panel.locator(".my-stations-row-heading strong", { hasText: "Stub Station" })).toBeVisible();
+
+  await page.reload();
+  await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
+  if (isMobile) {
+    await page.getByRole("button", { name: "More", exact: true }).click();
+    await page.getByRole("button", { name: "My Stations" }).click();
+  } else {
+    await page.getByRole("button", { name: "Toggle menu" }).click();
+    await page.getByRole("menuitem", { name: "My Stations" }).click();
+  }
+  await expect(page.locator(".my-stations-row-heading strong", { hasText: "Stub Station" })).toBeVisible();
+});
+
 test("requests and confirms a password reset from the sign-in dialog", async ({ page, request, isMobile }) => {
   await setStubMode(request, "seeded");
   await page.goto("/");

@@ -10,7 +10,7 @@ type SortOption = {
   label: string;
 };
 
-type SelectOption<T extends string> = {
+export type ToolbarSelectOption<T extends string> = {
   value: T;
   label: string;
   lineId?: string;
@@ -42,7 +42,7 @@ function lineLabel(lineId: string) {
   return LINE_FILTER_DETAILS[lineId]?.name ?? `Line ${lineId.replace("line-", "")}`;
 }
 
-function SelectOptionLabel({ option }: { option: SelectOption<string> }) {
+function SelectOptionLabel({ option }: { option: ToolbarSelectOption<string> }) {
   const line = option.lineId ? LINE_FILTER_DETAILS[option.lineId] : null;
   return (
     <span className="impact-list-option-label">
@@ -61,18 +61,20 @@ function SelectOptionLabel({ option }: { option: SelectOption<string> }) {
   );
 }
 
-function ToolbarSelectMenu<T extends string>({
+export function ToolbarSelectMenu<T extends string>({
   ariaLabel,
   prefix,
   value,
   options,
   onChange,
+  disabled = false,
 }: {
   ariaLabel: string;
   prefix: string;
   value: T;
-  options: SelectOption<T>[];
+  options: ToolbarSelectOption<T>[];
   onChange: (value: T) => void;
+  disabled?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -96,6 +98,7 @@ function ToolbarSelectMenu<T extends string>({
         aria-label={ariaLabel}
         className="sr-only"
         tabIndex={-1}
+        disabled={disabled}
       >
         {options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
       </select>
@@ -105,6 +108,7 @@ function ToolbarSelectMenu<T extends string>({
         aria-label={ariaLabel}
         aria-haspopup="listbox"
         aria-expanded={open}
+        disabled={disabled}
         onClick={() => setOpen((current) => !current)}
       >
         <span className="impact-list-control-prefix">{prefix}</span>
@@ -115,7 +119,7 @@ function ToolbarSelectMenu<T extends string>({
           style={{ transform: open ? "rotate(180deg)" : "none", transition: "transform 0.2s" }}
         />
       </button>
-      {open ? (
+      {open && !disabled ? (
         <div className="saved-commute-sort-options impact-list-select-options" role="listbox">
           {options.map((option) => {
             const selected = option.value === value;
@@ -158,7 +162,7 @@ export function ImpactListToolbar({
   sortOptions,
 }: Props) {
   const filtering = lineId !== "all" || Boolean(query.trim());
-  const lineOptions: SelectOption<string>[] = [
+  const lineOptions: ToolbarSelectOption<string>[] = [
     { value: "all", label: "All Lines" },
     ...lineIds.map((id) => ({ value: id, label: lineLabel(id), lineId: id })),
   ];
@@ -170,6 +174,7 @@ export function ImpactListToolbar({
         <span className="sr-only">Filter {noun}</span>
         <input
           type="search"
+          className="submenu-search-input"
           value={query}
           onChange={(event) => onQueryChange(event.target.value)}
           placeholder={`Filter ${noun}...`}

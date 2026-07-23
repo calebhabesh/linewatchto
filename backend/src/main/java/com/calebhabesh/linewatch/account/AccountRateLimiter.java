@@ -33,6 +33,10 @@ public class AccountRateLimiter {
         check("password-reset-email:" + normalize(email), properties.getPasswordResetMaxRequests());
     }
 
+    public void requirePreferenceMutation(String accountId) {
+        check("preference:" + normalize(accountId), properties.getPreferenceMutationMaxRequests());
+    }
+
     public static String clientAddress(HttpServletRequest request) {
         String cloudflare = firstHeaderValue(request.getHeader("CF-Connecting-IP"));
         if (!cloudflare.isBlank()) {

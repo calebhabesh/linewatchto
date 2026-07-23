@@ -2,7 +2,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { BarChart3, Bell, BatteryCharging, Download, FileText, LogIn, LogOut, MessageSquareText, RefreshCcw, Contrast, Pause, Share2, ShieldCheck, Sparkles, TriangleAlert, UserPlus, UserRound, X, History, Map as MapIcon } from "lucide-react";
+import { BarChart3, Bell, BatteryCharging, Bookmark, Download, FileText, LogIn, LogOut, MessageSquareText, Navigation, RefreshCcw, Contrast, Pause, Share2, ShieldCheck, Sparkles, TriangleAlert, UserPlus, UserRound, X, History, Map as MapIcon } from "lucide-react";
 import Image from "next/image";
 import type { AccountState } from "../app/account-data";
 import { lineWatchAppVersionLabel } from "../app/app-build";
@@ -36,6 +36,9 @@ type Props = {
   onToggleReducedMotion: () => void;
   onToggleDotBackground: () => void;
   onOpenNotifications: () => void;
+  onOpenCommutes: () => void;
+  onOpenMyStations: () => void;
+  savedStationCount: number;
   onOpenAlertHistory: () => void;
   onOpenAnalytics: () => void;
   onOpenFeedback: () => void;
@@ -69,6 +72,9 @@ export function MobileMoreSheet({
   onToggleReducedMotion,
   onToggleDotBackground,
   onOpenNotifications,
+  onOpenCommutes,
+  onOpenMyStations,
+  savedStationCount,
   onOpenAlertHistory,
   onOpenAnalytics,
   onOpenFeedback,
@@ -179,6 +185,21 @@ export function MobileMoreSheet({
                   </button>
                 )
               ) : null}
+              <button type="button" className="mobile-more-row" onClick={onOpenCommutes}>
+                <Navigation size={18} className="text-slate-500 dark:text-slate-400" />
+                Saved Commutes
+              </button>
+              <button type="button" className="mobile-more-row w-full flex items-center justify-between" onClick={onOpenMyStations}>
+                <span className="flex items-center gap-[9px]">
+                  <Bookmark size={18} className="text-slate-500 dark:text-slate-400" />
+                  My Stations
+                </span>
+                {savedStationCount > 0 ? (
+                  <span className="flex h-6 min-w-6 items-center justify-center rounded-full bg-sky-500/15 px-2 text-[11px] font-bold text-sky-700 dark:text-sky-300">
+                    {savedStationCount}
+                  </span>
+                ) : null}
+              </button>
             </>
           ) : (
             <>

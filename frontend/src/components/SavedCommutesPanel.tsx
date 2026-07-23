@@ -742,7 +742,7 @@ export function SavedCommutesPanel({
     if (!successMessage) return;
     const timer = setTimeout(() => {
       setSuccessMessage(null);
-    }, 3000);
+    }, 3200);
     return () => clearTimeout(timer);
   }, [successMessage]);
 

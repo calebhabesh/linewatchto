@@ -59,7 +59,7 @@ class CommuteImpactServiceTest {
             List.of("line-1-eglinton-davisville"),
             OffsetDateTime.parse("2026-06-06T12:15:00-04:00"),
             OffsetDateTime.parse("2026-06-06T12:20:00-04:00"),
-            "TTC Live Alert",
+            "TTC Live Alerts",
             "Mechanical issue"
         )));
         when(dashboardService.reducedSpeedZones()).thenReturn(List.of());
@@ -109,7 +109,7 @@ class CommuteImpactServiceTest {
             OffsetDateTime.parse("2026-06-06T12:20:00-04:00"),
             List.of("line-1-eglinton-davisville"),
             true,
-            "TTC Live Alert",
+            "TTC Live Alerts",
             "Emergency",
             "Shuttle buses operate"
         )));
@@ -237,7 +237,7 @@ class CommuteImpactServiceTest {
             "Eglinton to Davisville",
             "Southbound",
             "Trains are delayed.",
-            "TTC Live Alert",
+            "TTC Live Alerts",
             List.of("line-1-eglinton-davisville"),
             List.of(),
             OffsetDateTime.parse("2026-06-06T12:15:00-04:00"),
@@ -336,7 +336,7 @@ class CommuteImpactServiceTest {
             List.of(segmentId),
             List.of("ttc-route-1"),
             List.of(),
-            "TTC Live Alert",
+            "TTC Live Alerts",
             null,
             null,
             null,
@@ -386,7 +386,7 @@ class CommuteImpactServiceTest {
             List.of(segmentId),
             List.of("ttc-route-1"),
             List.of(),
-            "TTC Live Alert",
+            "TTC Live Alerts",
             null,
             null,
             null,

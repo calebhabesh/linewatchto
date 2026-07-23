@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { KeyboardEvent, MutableRefObject } from "react";
-import { AlertTriangle, ChevronRight, Search, X } from "lucide-react";
+import { AlertTriangle, Bookmark, ChevronRight, LoaderCircle, Search, X } from "lucide-react";
 import { useDashboardData } from "../app/DataContext";
 import {
   IMPACT_SEARCH_CATEGORIES,
@@ -43,6 +43,11 @@ type Props = {
   /** The panel fills this ref with its keydown handler so the shell can wire it to the header input */
   keyDownHandlerRef?: React.MutableRefObject<((event: React.KeyboardEvent<HTMLInputElement>) => void) | null>;
   isMobile: boolean;
+  authenticated: boolean;
+  savedStationIds: Set<string>;
+  pendingSavedStationIds: Set<string>;
+  onToggleSavedStation: (stationId: string) => void;
+  onRequestSignIn: () => void;
 };
 
 function ImpactSearchButton({
@@ -173,12 +178,22 @@ function StationButton({
   onSelect,
   buttonRef,
   onKeyDown,
+  saved,
+  pending,
+  authenticated,
+  onToggleSaved,
+  onRequestSignIn,
 }: {
   station: StationSummary;
   selected: boolean;
   onSelect: (stationId: string) => void;
   buttonRef?: (element: HTMLButtonElement | null) => void;
   onKeyDown?: (event: KeyboardEvent<HTMLButtonElement>) => void;
+  saved: boolean;
+  pending: boolean;
+  authenticated: boolean;
+  onToggleSaved: (stationId: string) => void;
+  onRequestSignIn: () => void;
 }) {
   const lines = station.lineIds
     .map((lineId) => lineById(lineId))
@@ -192,15 +207,16 @@ function StationButton({
   if (hasElevator) accessibilityLabel += " (Elevator Access)";
 
   return (
-    <button
-      ref={buttonRef}
-      onKeyDown={onKeyDown}
-      type="button"
-      className={`station-search-station ${selected ? "selected" : ""}`}
-      onClick={() => onSelect(station.id)}
-      aria-current={selected ? "true" : undefined}
-      aria-label={`${station.name} station search result${accessibilityLabel}`}
-    >
+    <div className="station-search-station-row">
+      <button
+        ref={buttonRef}
+        onKeyDown={onKeyDown}
+        type="button"
+        className={`station-search-station ${selected ? "selected" : ""}`}
+        onClick={() => onSelect(station.id)}
+        aria-current={selected ? "true" : undefined}
+        aria-label={`${station.name} station search result${accessibilityLabel}`}
+      >
       <span className="min-w-0">
         <span className="flex items-center gap-1.5 flex-wrap">
           <span className="station-search-station-name !inline-block">{station.name}</span>
@@ -234,7 +250,26 @@ function StationButton({
           <StationLineBadge key={line.id} line={line} />
         ))}
       </span>
-    </button>
+      </button>
+      <button
+        type="button"
+        className={`station-search-bookmark${saved ? " saved" : ""}`}
+        onPointerDown={(event) => event.stopPropagation()}
+        onClick={(event) => {
+          event.stopPropagation();
+          if (!authenticated) {
+            onRequestSignIn();
+            return;
+          }
+          onToggleSaved(station.id);
+        }}
+        disabled={pending}
+        aria-pressed={saved}
+        aria-label={`${saved ? "Remove" : "Save"} ${station.name} ${saved ? "from" : "to"} My Stations`}
+      >
+        {pending ? <LoaderCircle size={18} className="station-search-bookmark-spinner" /> : <Bookmark size={19} fill={saved ? "currentColor" : "none"} />}
+      </button>
+    </div>
   );
 }
 
@@ -252,6 +287,11 @@ export function StationSearchPanel({
   inputRef,
   keyDownHandlerRef,
   isMobile,
+  authenticated,
+  savedStationIds,
+  pendingSavedStationIds,
+  onToggleSavedStation,
+  onRequestSignIn,
 }: Props) {
   const dashboardData = useDashboardData();
   const [expandedLineId, setExpandedLineId] = useState<string | null>(null);
@@ -548,6 +588,11 @@ export function StationSearchPanel({
                     onSelect={chooseStation}
                     buttonRef={(element) => { resultButtonRefs.current[index] = element; }}
                     onKeyDown={(event) => handleResultKeyDown(index, event)}
+                    saved={savedStationIds.has(result.station.id)}
+                    pending={pendingSavedStationIds.has(result.station.id)}
+                    authenticated={authenticated}
+                    onToggleSaved={onToggleSavedStation}
+                    onRequestSignIn={onRequestSignIn}
                       />
                     ))}
                   </section>
@@ -669,6 +714,11 @@ export function StationSearchPanel({
                         onSelect={chooseStation}
                         buttonRef={(element) => { stationButtonRefs.current[index] = element; }}
                         onKeyDown={(event) => handleStationButtonKeyDown(index, event)}
+                        saved={savedStationIds.has(station.id)}
+                        pending={pendingSavedStationIds.has(station.id)}
+                        authenticated={authenticated}
+                        onToggleSaved={onToggleSavedStation}
+                        onRequestSignIn={onRequestSignIn}
                       />
                     ))}
                   </div>
