@@ -1,8 +1,35 @@
+"use client";
+
+import { useEffect, useLayoutEffect, useRef } from "react";
 import type { NetworkId } from "../app/regional-data";
 
+const useIsomorphicLayoutEffect = typeof window !== "undefined" ? useLayoutEffect : useEffect;
+
 export function NetworkSelector({ network, onChange }: { network: NetworkId; onChange: (network: NetworkId) => void }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const ttcRef = useRef<HTMLButtonElement>(null);
+  const regionalRef = useRef<HTMLButtonElement>(null);
+
+  useIsomorphicLayoutEffect(() => {
+    const updateDimensions = () => {
+      if (!containerRef.current || !ttcRef.current || !regionalRef.current) return;
+      const ttcW = ttcRef.current.offsetWidth;
+      const regW = regionalRef.current.offsetWidth;
+      containerRef.current.style.setProperty("--ttc-width", `${ttcW}px`);
+      containerRef.current.style.setProperty("--regional-width", `${regW}px`);
+      containerRef.current.style.setProperty("--glider-offset", `${ttcW + 4}px`);
+    };
+
+    updateDimensions();
+    const observer = new ResizeObserver(updateDimensions);
+    if (ttcRef.current) observer.observe(ttcRef.current);
+    if (regionalRef.current) observer.observe(regionalRef.current);
+    return () => observer.disconnect();
+  }, []);
+
   return (
     <div
+      ref={containerRef}
       className="network-selector panel"
       role="group"
       aria-label="Select transit network"
@@ -10,6 +37,7 @@ export function NetworkSelector({ network, onChange }: { network: NetworkId; onC
     >
       <div className="network-selector-glider" aria-hidden="true" />
       <button
+        ref={ttcRef}
         type="button"
         aria-pressed={network === "ttc"}
         onClick={() => onChange("ttc")}
@@ -20,6 +48,7 @@ export function NetworkSelector({ network, onChange }: { network: NetworkId; onC
         <span className="network-accent-ridges" aria-hidden="true" />
       </button>
       <button
+        ref={regionalRef}
         type="button"
         aria-pressed={network === "regional"}
         onClick={() => onChange("regional")}
@@ -32,5 +61,6 @@ export function NetworkSelector({ network, onChange }: { network: NetworkId; onC
     </div>
   );
 }
+
 
 

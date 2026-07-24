@@ -32,7 +32,8 @@ export function MobileLegend({
   expanded?: boolean;
   onToggleExpanded?: () => void;
 }) {
-  const lines = mode === "regional" ? REGIONAL_LINES : TTC_LINES;
+  const isRegional = mode === "regional";
+  const lines = isRegional ? REGIONAL_LINES : TTC_LINES;
   return (
     <div
       onClick={onToggleExpanded}
@@ -46,20 +47,28 @@ export function MobileLegend({
       aria-expanded={expanded}
       aria-label="Transit line legend"
     >
-      {lines.map((line) => (
-        <div key={line.id} className="flex items-center gap-2 overflow-hidden">
-          <div className="w-[20px] h-[20px] flex items-center justify-center shrink-0">
-            <TransitLineBadge lineId={line.id} lineNumber={line.number} size={20} className="opacity-95" />
+      <div
+        className={
+          expanded && isRegional
+            ? "grid grid-cols-2 gap-x-4 gap-y-1.5"
+            : "flex flex-col gap-1.5"
+        }
+      >
+        {lines.map((line) => (
+          <div key={line.id} className="flex items-center gap-2 overflow-hidden">
+            <div className={`${expanded ? "w-[24px] h-[24px]" : "w-[20px] h-[20px]"} flex items-center justify-center shrink-0`}>
+              <TransitLineBadge lineId={line.id} lineNumber={line.number} size={expanded ? 24 : 20} className="opacity-95" />
+            </div>
+            <span
+              className={`legend-line-name font-subway text-[13px] font-bold tracking-normal text-slate-800 dark:text-slate-200 transition-all duration-300 truncate ${
+                expanded ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-2 pointer-events-none"
+              }`}
+            >
+              {line.name}
+            </span>
           </div>
-          <span
-            className={`legend-line-name font-subway text-[11px] font-bold tracking-normal text-slate-800 dark:text-slate-200 transition-all duration-300 truncate ${
-              expanded ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-2 pointer-events-none"
-            }`}
-          >
-            {line.name}
-          </span>
-        </div>
-      ))}
+        ))}
+      </div>
     </div>
   );
 }

@@ -84,10 +84,10 @@ describe("network-scoped regional dashboard", () => {
     assert.match(shellSource, /selectedNetwork === "ttc" && estimatedTrainsEnabled/);
   });
 
-  it("centers the desktop impact badges only for the regional network", () => {
+  it("docks desktop impact badges to the bottom-left corner across networks", () => {
     assert.match(
       shellSource,
-      /selectedNetwork === "regional" \? "left-1\/2 -translate-x-1\/2" : "left-6"/,
+      /desktop-status-chip-row-container fixed bottom-6 left-6/,
     );
   });
 

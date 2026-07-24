@@ -492,11 +492,11 @@ export function InteractiveRegionalMap({
             viewBox="-200 -200 17036.959 9031.6719"
             preserveAspectRatio="xMidYMid meet"
           >
-            <g aria-label="Cardinal North Compass" transform="translate(14250, 4100)">
+            <g aria-label="Cardinal North Compass" transform="translate(14500, 5300)">
               <image
                 href="/assets/linewatch/cardinal-north.svg"
-                width="650"
-                height="850"
+                width="1250"
+                height="1250"
                 className="opacity-90"
                 style={{ filter: isDark ? "invert(1)" : "none" }}
               />

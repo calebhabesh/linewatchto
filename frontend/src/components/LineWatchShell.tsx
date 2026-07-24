@@ -2884,7 +2884,7 @@ export function LineWatchShell({
       {/* Fixed borderless legend at the bottom right */}
       {!showClosedScreen && (
       <>
-        <aside className={`desktop-status-chip-row-container fixed bottom-6 z-20 pointer-events-auto transition-opacity duration-200 ${selectedNetwork === "regional" ? "left-1/2 -translate-x-1/2" : "left-6"} ${activeView === "menu" ? "opacity-0 pointer-events-none" : "opacity-100"}`}>
+        <aside className={`desktop-status-chip-row-container fixed bottom-6 left-6 z-20 pointer-events-auto transition-opacity duration-200 ${activeView === "menu" ? "opacity-0 pointer-events-none" : "opacity-100"}`}>
           <div className="desktop-status-chip-row desktop-header-impact-chips" aria-label="Open impact categories">
             <button
               type="button"

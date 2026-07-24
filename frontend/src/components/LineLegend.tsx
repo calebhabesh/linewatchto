@@ -37,60 +37,104 @@ export function LineLegend({
   onReducedSpeedZoneClick?: (lineId: string) => void;
 }) {
   const { activeAlerts, delays, reducedSpeedZones, plannedClosures } = useDashboardData();
-  const lines = mode === "regional" ? REGIONAL_LINES : TTC_LINES;
+  const isRegional = mode === "regional";
+  const lines = isRegional ? REGIONAL_LINES : TTC_LINES;
+
   return (
-    <div className="flex flex-col gap-4 select-none pointer-events-none">
-      {lines.map(line => {
-        const alert = activeAlerts.find(a => a.lineId === line.id);
-        const delay = delays.find(a => a.lineId === line.id);
-        const rsz = reducedSpeedZones.find(a => a.lineId === line.id);
-        const closure = plannedClosures.find(c => c.lineId === line.id);
+    <div
+      className={`select-none pointer-events-none ${
+        isRegional
+          ? "grid grid-cols-2 gap-x-6 gap-y-4"
+          : "flex flex-col gap-4"
+      }`}
+    >
+      {lines.map((line) => {
+        const alert = activeAlerts.find((a) => a.lineId === line.id);
+        const delay = delays.find((a) => a.lineId === line.id);
+        const rsz = reducedSpeedZones.find((a) => a.lineId === line.id);
+        const closure = plannedClosures.find((c) => c.lineId === line.id);
+        const hasImpact = !!(alert || delay || rsz || closure);
+
         return (
-          <div key={line.id} className="flex items-center gap-3.5">
-            <div className="flex items-center gap-2 w-28 shrink-0 justify-end h-[44px]">
+          <div
+            key={line.id}
+            className={`flex items-center gap-3.5 ${
+              isRegional ? "min-w-0" : ""
+            }`}
+          >
+            <div
+              className={`flex items-center gap-2 shrink-0 justify-end ${
+                isRegional
+                  ? hasImpact ? "h-[52px]" : "hidden"
+                  : "w-28 h-[44px]"
+              }`}
+            >
               {alert && (
                 <button
-                  onClick={(e) => { e.stopPropagation(); onAlertClick?.(line.id); }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onAlertClick?.(line.id);
+                  }}
                   className="pointer-events-auto cursor-pointer text-red-500 bg-white/95 dark:bg-[#12151c] p-2 rounded-full shadow-lg border border-red-500/30 hover:bg-red-50 dark:hover:bg-red-950/30 hover:scale-110 transition-all"
                   title={`View Alert for ${line.name}`}
                   aria-label={`View Alert for ${line.name}`}
                 >
-                  <ImpactTypeIcon kind="suspension" size={18} />
+                  <ImpactTypeIcon kind="suspension" size={20} />
                 </button>
               )}
               {delay && (
                 <button
-                  onClick={(e) => { e.stopPropagation(); onDelayClick?.(line.id); }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDelayClick?.(line.id);
+                  }}
                   className="legend-delay-button pointer-events-auto cursor-pointer bg-white/95 dark:bg-[#12151c] p-2 rounded-full shadow-lg border hover:scale-110 transition-all"
                   title={`View delay for ${line.name}`}
                   aria-label={`View delay for ${line.name}`}
                 >
-                  <ImpactTypeIcon kind="delay" size={18} />
+                  <ImpactTypeIcon kind="delay" size={20} />
                 </button>
               )}
               {rsz && (
                 <button
-                  onClick={(e) => { e.stopPropagation(); onReducedSpeedZoneClick?.(line.id); }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onReducedSpeedZoneClick?.(line.id);
+                  }}
                   className="legend-rsz-button pointer-events-auto cursor-pointer bg-white/95 dark:bg-[#12151c] p-2 rounded-full shadow-lg border hover:scale-110 transition-all"
                   title={`View reduced speed zone for ${line.name}`}
                   aria-label={`View reduced speed zone for ${line.name}`}
                 >
-                  <ImpactTypeIcon kind="reduced-speed-zone" size={18} />
+                  <ImpactTypeIcon kind="reduced-speed-zone" size={20} />
                 </button>
               )}
               {closure && (
                 <button
-                  onClick={(e) => { e.stopPropagation(); onClosureClick?.(line.id); }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onClosureClick?.(line.id);
+                  }}
                   className="pointer-events-auto cursor-pointer text-blue-500 bg-white/95 dark:bg-[#12151c] p-2 rounded-full shadow-lg border border-blue-500/30 hover:bg-blue-50 dark:hover:bg-blue-950/30 hover:scale-110 transition-all"
                   title={`View Closure for ${line.name}`}
                   aria-label={`View Closure for ${line.name}`}
                 >
-                  <ImpactTypeIcon kind="planned-closure" size={18} />
+                  <ImpactTypeIcon kind="planned-closure" size={20} />
                 </button>
               )}
             </div>
-            <TransitLineBadge lineId={line.id} lineNumber={line.number} size={44} className="opacity-95" />
-            <span className="legend-line-name font-subway text-black dark:text-white drop-shadow-md text-[22px] font-bold tracking-normal">{line.name}</span>
+            <TransitLineBadge
+              lineId={line.id}
+              lineNumber={line.number}
+              size={isRegional ? 52 : 44}
+              className="opacity-95 shrink-0"
+            />
+            <span
+              className={`legend-line-name font-subway text-black dark:text-white drop-shadow-md font-bold tracking-normal whitespace-nowrap ${
+                isRegional ? "text-[24px]" : "text-[22px]"
+              }`}
+            >
+              {line.name}
+            </span>
           </div>
         );
       })}
