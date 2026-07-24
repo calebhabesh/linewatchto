@@ -1843,20 +1843,16 @@ export function LineWatchShell({
                 setActiveView("map");
               }
             }}
-            onBack={() => {
-              setNavDirection("back");
-              setActiveView(isMobile ? "status" : "menu");
-            }}
+            onBack={handleSubmenuBack}
+            /* setActiveView(isMobile ? "status" : "menu") */
             onClose={handleClosePanel}
           />
         );
       case "surface-notices":
         return (
           <SurfaceNoticesPanel
-            onBack={() => {
-              setNavDirection("back");
-              setActiveView(isMobile ? "status" : "menu");
-            }}
+            onBack={handleSubmenuBack}
+            /* setActiveView(isMobile ? "status" : "menu") */
             onClose={handleClosePanel}
           />
         );
