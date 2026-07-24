@@ -8,6 +8,7 @@ export function NetworkSelector({ network, onChange }: { network: NetworkId; onC
       aria-label="Select transit network"
       data-network={network}
     >
+      <div className="network-selector-glider" aria-hidden="true" />
       <button
         type="button"
         aria-pressed={network === "ttc"}
@@ -16,6 +17,7 @@ export function NetworkSelector({ network, onChange }: { network: NetworkId; onC
       >
         <span className="network-indicator-dot network-dot-ttc" aria-hidden="true" />
         <span className="network-btn-text">TTC</span>
+        <span className="network-accent-ridges" aria-hidden="true" />
       </button>
       <button
         type="button"
@@ -25,7 +27,10 @@ export function NetworkSelector({ network, onChange }: { network: NetworkId; onC
       >
         <span className="network-indicator-dot network-dot-regional" aria-hidden="true" />
         <span className="network-btn-text">GO/UP</span>
+        <span className="network-accent-ridges" aria-hidden="true" />
       </button>
     </div>
   );
 }
+
+

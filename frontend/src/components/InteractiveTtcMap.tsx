@@ -227,6 +227,7 @@ function InteractiveTtcMapComponent({
   isDark,
   onToggleTheme,
   layoutResetSignal,
+  entranceSignal,
   recenterSignal,
   reducedMotion,
   mobilePerformanceMode = false,
@@ -246,6 +247,7 @@ function InteractiveTtcMapComponent({
   isDark: boolean;
   onToggleTheme: () => void;
   layoutResetSignal?: number;
+  entranceSignal?: number;
   recenterSignal?: number;
   reducedMotion: boolean;
   mobilePerformanceMode?: boolean;
@@ -324,6 +326,7 @@ function InteractiveTtcMapComponent({
     zoomToScale,
     zoomToPoint,
     shouldSuppressMapClick,
+    replayEntrance,
   } = usePanZoom({
     reducedMotion,
     viewportOrientation,
@@ -470,6 +473,15 @@ function InteractiveTtcMapComponent({
     if (!recenterSignal || loadState !== "ready") return;
     recenter();
   }, [recenterSignal, loadState, recenter]);
+
+  const lastEntranceSignalRef = useRef(entranceSignal ?? 0);
+
+  useEffect(() => {
+    if (entranceSignal === undefined || entranceSignal === lastEntranceSignalRef.current || loadState !== "ready") return;
+
+    lastEntranceSignalRef.current = entranceSignal;
+    replayEntrance();
+  }, [entranceSignal, loadState, replayEntrance]);
 
   const selectedSegmentIds = useMemo(() => {
     if (!selection) return [];

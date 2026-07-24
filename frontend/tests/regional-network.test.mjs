@@ -10,9 +10,13 @@ import {
 } from "../src/app/regional-data.ts";
 
 const shellSource = readFileSync(new URL("../src/components/LineWatchShell.tsx", import.meta.url), "utf8");
+const networkSelectorSource = readFileSync(new URL("../src/components/NetworkSelector.tsx", import.meta.url), "utf8");
 const networkMapSource = readFileSync(new URL("../src/components/NetworkMap.tsx", import.meta.url), "utf8");
 const regionalMapSource = readFileSync(new URL("../src/components/InteractiveRegionalMap.tsx", import.meta.url), "utf8");
+const ttcMapSource = readFileSync(new URL("../src/components/InteractiveTtcMap.tsx", import.meta.url), "utf8");
+const panZoomSource = readFileSync(new URL("../src/hooks/usePanZoom.ts", import.meta.url), "utf8");
 const regionalSvg = readFileSync(new URL("../public/assets/linewatch/regional-rail-map.svg", import.meta.url), "utf8");
+const globalsCss = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
 
 describe("network-scoped regional dashboard", () => {
   it("keeps TTC as the default and dispatches to separate map implementations", () => {
@@ -22,6 +26,26 @@ describe("network-scoped regional dashboard", () => {
     assert.match(networkMapSource, /<InteractiveRegionalMap/);
     assert.match(networkMapSource, /<InteractiveTtcMap/);
   });
+
+  it("includes smooth sliding light-switch toggle glider and carousel map swap styling", () => {
+    assert.match(networkSelectorSource, /className="network-selector-glider"/);
+    assert.match(globalsCss, /\.network-selector-glider/);
+    assert.match(globalsCss, /\.network-accent-ridges/);
+    assert.match(globalsCss, /\.network-map-carousel-track/);
+    assert.match(globalsCss, /\.network-map-slide/);
+    assert.match(networkMapSource, /network-map-carousel-track/);
+    assert.match(networkMapSource, /network-map-slide/);
+  });
+
+  it("replays the TTC map entrance when the carousel returns to TTC", () => {
+    assert.match(networkMapSource, /ttcEntranceSignal/);
+    assert.match(networkMapSource, /entranceSignal=\{ttcEntranceSignal\}/);
+    assert.match(ttcMapSource, /replayEntrance\(\)/);
+    assert.match(panZoomSource, /const replayEntrance = useCallback/);
+  });
+
+
+
 
   it("provides all eight corridors and all 72 logical stations as fallback demo data", () => {
     assert.deepEqual(regionalDashboardData.lineStatuses.map((line) => line.number), ["BR", "KI", "LE", "LW", "MI", "RH", "ST", "UP"]);

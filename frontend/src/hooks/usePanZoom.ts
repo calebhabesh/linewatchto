@@ -611,6 +611,11 @@ export function usePanZoom({
     writeMapTransform,
   ]);
 
+  const replayEntrance = useCallback(() => {
+    cameraInitializedRef.current = false;
+    recenter();
+  }, [recenter]);
+
   const zoomIn = useCallback(() => {
     if (!containerRef.current) return;
     const { width, height } = logicalViewportSize();
@@ -708,6 +713,7 @@ export function usePanZoom({
     handlePointerCancel,
     handleWheel,
     recenter,
+    replayEntrance,
     zoomIn,
     zoomOut,
     zoomToScale,
