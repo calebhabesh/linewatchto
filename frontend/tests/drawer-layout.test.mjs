@@ -231,6 +231,14 @@ describe("floating menu layout", () => {
     assert.doesNotMatch(lineLegendSource, /onReducedSpeedZoneClick\?\.\(rsz\.id\)/);
   });
 
+  it("LineLegend includes Regular Service and Limited Service items in a symmetrical 5x2 regional matrix grid", () => {
+    assert.match(lineLegendSource, /grid-cols-2/);
+    assert.match(lineLegendSource, /Regular Service/);
+    assert.match(lineLegendSource, /Limited Service/);
+    assert.match(lineLegendSource, /regular-service/);
+    assert.match(lineLegendSource, /limited-service/);
+  });
+
   it("Card actions are renamed properly", () => {
     assert.doesNotMatch(activeAlertsSource, /Preview on Map|Hide Map Preview/);
     assert.doesNotMatch(reducedSpeedZonesSource, /Preview Reduced Speed Zone|Hide Map Preview/);

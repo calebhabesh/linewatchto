@@ -15,9 +15,10 @@ export function NetworkSelector({ network, onChange }: { network: NetworkId; onC
       if (!containerRef.current || !ttcRef.current || !regionalRef.current) return;
       const ttcW = ttcRef.current.offsetWidth;
       const regW = regionalRef.current.offsetWidth;
-      containerRef.current.style.setProperty("--ttc-width", `${ttcW}px`);
-      containerRef.current.style.setProperty("--regional-width", `${regW}px`);
-      containerRef.current.style.setProperty("--glider-offset", `${ttcW + 4}px`);
+      const equalW = Math.max(ttcW, regW);
+      containerRef.current.style.setProperty("--ttc-width", `${equalW}px`);
+      containerRef.current.style.setProperty("--regional-width", `${equalW}px`);
+      containerRef.current.style.setProperty("--glider-offset", `${equalW + 4}px`);
     };
 
     updateDimensions();

@@ -1,53 +1,36 @@
-import { useEffect, useState, type ComponentProps } from "react";
+import type { ComponentProps } from "react";
+import { DataProvider, type DashboardData } from "../app/DataContext";
 import type { NetworkId } from "../app/regional-data";
 import { InteractiveRegionalMap } from "./InteractiveRegionalMap";
 import { InteractiveTtcMap } from "./InteractiveTtcMap";
 
 type TtcMapProps = ComponentProps<typeof InteractiveTtcMap>;
+type NetworkMapProps = TtcMapProps & {
+  network: NetworkId;
+  ttcData: DashboardData;
+  regionalData: DashboardData;
+};
 
-export function NetworkMap({ network, ...props }: TtcMapProps & { network: NetworkId }) {
-  const isRegional = network === "regional";
-  const [prevNetwork, setPrevNetwork] = useState(network);
-  const [isTransitioning, setIsTransitioning] = useState(false);
-  const [ttcEntranceSignal, setTtcEntranceSignal] = useState(0);
-
-  if (network !== prevNetwork) {
-    setPrevNetwork(network);
-    setIsTransitioning(true);
-    if (network === "ttc") {
-      setTtcEntranceSignal((signal) => signal + 1);
-    }
-  }
-
-  useEffect(() => {
-    if (isTransitioning) {
-      const timer = setTimeout(() => {
-        setIsTransitioning(false);
-      }, 520);
-      return () => clearTimeout(timer);
-    }
-  }, [isTransitioning, network]);
-
-  const shouldRenderRegional = isRegional || isTransitioning;
+export function NetworkMap({ network, ttcData, regionalData, ...props }: NetworkMapProps) {
+  const regionalSelected = network === "regional";
 
   return (
-    <div className="network-map-wrapper w-full h-full relative overflow-hidden">
+    <div
+      className="network-map-wrapper w-full h-full relative overflow-hidden"
+      data-camera-direction={regionalSelected ? "right" : "left"}
+    >
       <div
-        className={`network-map-carousel-track w-full h-full flex ${
-          props.reducedMotion ? "transition-none" : "transition-transform duration-500 ease-[cubic-bezier(0.25,1,0.5,1)]"
-        } ${isRegional ? "translate-x-[-100%]" : "translate-x-0"}`}
+        className={`network-map-carousel-track ${
+          regionalSelected ? "network-map-carousel-track--regional" : ""
+        } ${props.reducedMotion ? "network-map-carousel-track--reduced-motion" : ""}`}
       >
-        <div
-          className={`network-map-slide w-full h-full flex-shrink-0 relative ${isRegional ? "pointer-events-none" : ""}`}
-          aria-hidden={isRegional}
-        >
-          <InteractiveTtcMap {...props} entranceSignal={ttcEntranceSignal} />
+        <div className="network-map-slide" aria-hidden={regionalSelected} inert={regionalSelected}>
+          <DataProvider data={ttcData}>
+            <InteractiveTtcMap {...props} />
+          </DataProvider>
         </div>
-        {shouldRenderRegional && (
-          <div
-            className={`network-map-slide w-full h-full flex-shrink-0 relative ${!isRegional ? "pointer-events-none" : ""}`}
-            aria-hidden={!isRegional}
-          >
+        <div className="network-map-slide" aria-hidden={!regionalSelected} inert={!regionalSelected}>
+          <DataProvider data={regionalData}>
             <InteractiveRegionalMap
               selection={props.selection}
               onSelectImpact={props.onSelectImpact}
@@ -57,8 +40,8 @@ export function NetworkMap({ network, ...props }: TtcMapProps & { network: Netwo
               recenterSignal={props.recenterSignal}
               isDark={props.isDark}
             />
-          </div>
-        )}
+          </DataProvider>
+        </div>
       </div>
     </div>
   );

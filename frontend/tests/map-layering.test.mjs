@@ -690,7 +690,7 @@ describe("asset-backed map layering", () => {
     const desktopFontSize = attributionBlock.match(/font-size:\s*(\d+)px;/);
 
     assert.match(interactiveMapSource, /aria-label="TTC map copyright notice"/);
-    assert.match(interactiveMapSource, /© 2026 Toronto Transit Commission 02\/26 - Map not to scale/);
+    assert.match(interactiveMapSource, /© 2026 Toronto Transit Commission 02\/26 - Map Not to Scale/);
     assert.match(interactiveMapSource, /map-attribution-notice/);
     assert.match(attributionBlock, /position:\s*absolute;/);
     assert.match(attributionBlock, /right:\s*(?!;)[^;]+;/);

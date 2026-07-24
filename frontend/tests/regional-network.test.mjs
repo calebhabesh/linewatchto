@@ -12,9 +12,8 @@ import {
 const shellSource = readFileSync(new URL("../src/components/LineWatchShell.tsx", import.meta.url), "utf8");
 const networkSelectorSource = readFileSync(new URL("../src/components/NetworkSelector.tsx", import.meta.url), "utf8");
 const networkMapSource = readFileSync(new URL("../src/components/NetworkMap.tsx", import.meta.url), "utf8");
+const networkMapLegendsSource = readFileSync(new URL("../src/components/NetworkMapLegends.tsx", import.meta.url), "utf8");
 const regionalMapSource = readFileSync(new URL("../src/components/InteractiveRegionalMap.tsx", import.meta.url), "utf8");
-const ttcMapSource = readFileSync(new URL("../src/components/InteractiveTtcMap.tsx", import.meta.url), "utf8");
-const panZoomSource = readFileSync(new URL("../src/hooks/usePanZoom.ts", import.meta.url), "utf8");
 const regionalSvg = readFileSync(new URL("../public/assets/linewatch/regional-rail-map.svg", import.meta.url), "utf8");
 const globalsCss = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
 
@@ -22,12 +21,15 @@ describe("network-scoped regional dashboard", () => {
   it("keeps TTC as the default and dispatches to separate map implementations", () => {
     assert.equal(DEFAULT_NETWORK_ID, "ttc");
     assert.match(shellSource, /useState<NetworkId>\(DEFAULT_NETWORK_ID\)/);
-    assert.match(networkMapSource, /network === "regional"/);
+    assert.match(networkMapSource, /ttcData: DashboardData/);
+    assert.match(networkMapSource, /regionalData: DashboardData/);
+    assert.match(networkMapSource, /<DataProvider data=\{ttcData\}>/);
+    assert.match(networkMapSource, /<DataProvider data=\{regionalData\}>/);
     assert.match(networkMapSource, /<InteractiveRegionalMap/);
     assert.match(networkMapSource, /<InteractiveTtcMap/);
   });
 
-  it("includes smooth sliding light-switch toggle glider and carousel map swap styling", () => {
+  it("keeps TTC and GO/UP fixed on one linear left-to-right map track", () => {
     assert.match(networkSelectorSource, /className="network-selector-glider"/);
     assert.match(globalsCss, /\.network-selector-glider/);
     assert.match(globalsCss, /\.network-accent-ridges/);
@@ -35,13 +37,35 @@ describe("network-scoped regional dashboard", () => {
     assert.match(globalsCss, /\.network-map-slide/);
     assert.match(networkMapSource, /network-map-carousel-track/);
     assert.match(networkMapSource, /network-map-slide/);
+    assert.match(networkMapSource, /data-camera-direction=.*"right"/s);
+    assert.match(networkMapSource, /data-camera-direction=.*"left"/s);
+    assert.match(networkMapSource, /regionalSelected \? "network-map-carousel-track--regional"/);
+    assert.match(globalsCss, /\.network-map-carousel-track,\s*\.network-legend-track\s*\{[\s\S]*?width:\s*200%/);
+    assert.match(globalsCss, /\.network-map-carousel-track--regional,\s*\.network-legend-track--regional\s*\{[\s\S]*?transform:\s*translateX\(-50%\)/);
+    assert.match(globalsCss, /\.network-map-slide\s*\{[\s\S]*?flex:\s*0 0 50%/);
+    assert.match(globalsCss, /transition:\s*transform 700ms cubic-bezier\(0\.4, 0, 0\.2, 1\)/);
   });
 
-  it("replays the TTC map entrance when the carousel returns to TTC", () => {
-    assert.match(networkMapSource, /ttcEntranceSignal/);
-    assert.match(networkMapSource, /entranceSignal=\{ttcEntranceSignal\}/);
-    assert.match(ttcMapSource, /replayEntrance\(\)/);
-    assert.match(panZoomSource, /const replayEntrance = useCallback/);
+  it("moves both mode-specific legends on the same fixed track as their map", () => {
+    assert.match(networkMapLegendsSource, /network-legend-track--regional/);
+    assert.match(networkMapLegendsSource, /network-legend-track--reduced-motion/);
+    assert.match(shellSource, /<NetworkMapLegends[\s\S]*reducedMotion=\{reducedMotion\}/);
+    assert.match(networkMapLegendsSource, /<LegendPane[\s\S]*mode="ttc"/);
+    assert.match(networkMapLegendsSource, /<LegendPane[\s\S]*mode="regional"/);
+    assert.match(networkMapLegendsSource, /<DataProvider data=\{data\}>/);
+    assert.match(networkMapLegendsSource, /data=\{ttcData\}/);
+    assert.match(networkMapLegendsSource, /data=\{regionalData\}/);
+    assert.match(globalsCss, /\.network-legend-track-viewport\s*\{[\s\S]*?overflow:\s*hidden/);
+    assert.match(globalsCss, /\.network-map-carousel-track,[\s\S]*?\.network-legend-track\s*\{/);
+    assert.match(globalsCss, /\.network-map-carousel-track--regional,[\s\S]*?\.network-legend-track--regional\s*\{/);
+  });
+
+  it("keeps mode changes as a horizontal slideshow without a map camera entrance", () => {
+    assert.doesNotMatch(networkMapSource, /entranceSignal=/);
+    assert.doesNotMatch(regionalMapSource, /startInitialFlyIn/);
+    assert.doesNotMatch(regionalMapSource, /entryCamera/);
+    assert.match(regionalMapSource, /const initializeMapCamera = useCallback/);
+    assert.match(regionalMapSource, /setMapTransition\("none"\);[\s\S]*writeMapTransform\(fitted\.camera\)/);
   });
 
 
@@ -112,18 +136,26 @@ describe("network-scoped regional dashboard", () => {
     assert.match(regionalMapSource, /aria-label="Fit regional network"/);
   });
 
-  it("frames the desktop network between the upper console and regional impact badges using TTC horizontal padding", () => {
+  it("centers the enlarged default desktop network frame between the upper console and regional impact badges", () => {
     assert.match(regionalMapSource, /\.desktop-status-capsule/);
     assert.match(regionalMapSource, /\.desktop-status-chip-row-container/);
     assert.match(regionalMapSource, /setDesktopMapTopInset/);
     assert.match(regionalMapSource, /setDesktopMapBottomInset/);
     assert.match(regionalMapSource, /computeBoundedMapFrame/);
+    assert.match(regionalMapSource, /computeInsetViewportFocus/);
     assert.match(regionalMapSource, /const REGIONAL_MAP_HORIZONTAL_INSET_RATIO = 0\.025/);
+    assert.match(regionalMapSource, /const REGIONAL_MAP_DEFAULT_FRAME_SCALE = 1\.04/);
+    assert.match(regionalMapSource, /const REGIONAL_MAP_DESKTOP_VERTICAL_OPTICAL_OFFSET_RATIO = 0\.02/);
     assert.match(regionalMapSource, /Math\.min\(64, Math\.max\(32, width \* REGIONAL_MAP_HORIZONTAL_INSET_RATIO\)\)/);
     assert.match(regionalMapSource, /left:\s*horizontalInset/);
     assert.match(regionalMapSource, /right:\s*horizontalInset/);
     assert.match(regionalMapSource, /top:\s*desktopMapTopInset/);
     assert.match(regionalMapSource, /bottom:\s*desktopMapBottomInset/);
+    assert.match(regionalMapSource, /desktopFrameHeight = height - desktopMapTopInset - desktopMapBottomInset/);
+    assert.match(regionalMapSource, /desktopFrameHeight \* REGIONAL_MAP_DESKTOP_VERTICAL_OPTICAL_OFFSET_RATIO/);
+    assert.match(regionalMapSource, /x: focus\.focusX - \(focus\.focusX - frame\.x\) \* REGIONAL_MAP_DEFAULT_FRAME_SCALE/);
+    assert.match(regionalMapSource, /y: focus\.focusY - \(focus\.focusY - frame\.y\) \* REGIONAL_MAP_DEFAULT_FRAME_SCALE \+ verticalOpticalOffset/);
+    assert.match(regionalMapSource, /scale: frame\.scale \* REGIONAL_MAP_DEFAULT_FRAME_SCALE/);
   });
 
   it("matches the TTC map fitted zoom range and button increments", () => {
@@ -144,16 +176,14 @@ describe("network-scoped regional dashboard", () => {
     assert.doesNotMatch(regionalMapSource, /root\.setAttribute\("viewBox"/);
   });
 
-  it("uses the TTC map fly-in sequence for programmatic camera moves", () => {
+  it("keeps camera animation for explicit regional map controls only", () => {
     assert.match(regionalMapSource, /setMapTransition\("transform 1s cubic-bezier\(0\.25, 1, 0\.5, 1\)"\)/);
     assert.match(regionalMapSource, /programmaticAnimationFrameRef\.current = window\.requestAnimationFrame/);
     assert.match(regionalMapSource, /writeMapTransform\(targetCamera\)/);
     assert.match(regionalMapSource, /window\.setTimeout\(\(\) => \{[\s\S]*setCamera\(\{ \.\.\.cameraRef\.current \}\)/);
     assert.match(regionalMapSource, /cancelCameraAnimation\(\);[\s\S]*dragRef\.current/);
-    assert.match(regionalMapSource, /x: centerX > 0 \? centerX - \(centerX - fitted\.camera\.x\) \* scaleRatio : fitted\.camera\.x \* 0\.5/);
-    assert.match(regionalMapSource, /scale: fitted\.scale \* 0\.5/);
-    assert.match(regionalMapSource, /setMapTransition\("none"\);[\s\S]*writeMapTransform\(entryCamera\);[\s\S]*setCamera\(entryCamera\)/);
     assert.doesNotMatch(regionalMapSource, /setMapTransition\("transform 1s[^\n]+\);\s*setCamera\(targetCamera\)/);
+    assert.doesNotMatch(regionalMapSource, /entryCamera/);
   });
 
   it("does not move or zoom the initialized camera when the dashboard viewport resizes", () => {

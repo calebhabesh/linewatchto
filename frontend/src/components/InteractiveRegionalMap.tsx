@@ -7,6 +7,7 @@ import { useDashboardData } from "../app/DataContext";
 import {
   clampPanZoomScale,
   computeBoundedMapFrame,
+  computeInsetViewportFocus,
   currentDevicePixelRatio,
   PAN_ZOOM_MAX_RELATIVE_SCALE,
   PAN_ZOOM_MIN_RELATIVE_SCALE,
@@ -17,6 +18,14 @@ const MAP_WIDTH = 4739.2821;
 const MAP_HEIGHT = 2616.8174;
 const REGIONAL_MAP_HORIZONTAL_INSET_RATIO = 0.025;
 const REGIONAL_MAP_MOBILE_INSET_RATIO = 0.05;
+// The authored SVG is slightly wider than the camera canvas, leaving just over
+// 4% of vertical letterbox room in the fitted frame. Stay below that limit so
+// the tighter default never crosses the console or impact-badge bounds.
+const REGIONAL_MAP_DEFAULT_FRAME_SCALE = 1.04;
+// The rail diagram sits optically high inside its authored canvas. Nudge the
+// desktop frame down within the same measured bounds so its visible endpoints
+// balance against the console above and the status chips below.
+const REGIONAL_MAP_DESKTOP_VERTICAL_OPTICAL_OFFSET_RATIO = 0.02;
 
 type Camera = { x: number; y: number; scale: number };
 
@@ -177,27 +186,40 @@ export function InteractiveRegionalMap({
     const horizontalInset = desktopMapTopInset > 0
       ? Math.min(64, Math.max(32, width * REGIONAL_MAP_HORIZONTAL_INSET_RATIO))
       : width * REGIONAL_MAP_MOBILE_INSET_RATIO;
+    const insets = desktopMapTopInset > 0
+      ? {
+          left: horizontalInset,
+          right: horizontalInset,
+          top: desktopMapTopInset,
+          bottom: desktopMapBottomInset,
+        }
+      : {
+          left: horizontalInset,
+          right: horizontalInset,
+          top: height * REGIONAL_MAP_MOBILE_INSET_RATIO,
+          bottom: height * REGIONAL_MAP_MOBILE_INSET_RATIO,
+        };
     const frame = computeBoundedMapFrame(
       width,
       height,
       { x: 0, y: 0, width: MAP_WIDTH, height: MAP_HEIGHT },
-      desktopMapTopInset > 0
-        ? {
-            left: horizontalInset,
-            right: horizontalInset,
-            top: desktopMapTopInset,
-            bottom: desktopMapBottomInset,
-          }
-        : {
-            left: horizontalInset,
-            right: horizontalInset,
-            top: height * REGIONAL_MAP_MOBILE_INSET_RATIO,
-            bottom: height * REGIONAL_MAP_MOBILE_INSET_RATIO,
-          },
+      insets,
     );
+    const focus = computeInsetViewportFocus(width, height, insets);
+    const desktopFrameHeight = height - desktopMapTopInset - desktopMapBottomInset;
+    const verticalOpticalOffset = desktopMapTopInset > 0
+      ? desktopFrameHeight * REGIONAL_MAP_DESKTOP_VERTICAL_OPTICAL_OFFSET_RATIO
+      : 0;
+    // Use more of the available horizontal canvas while keeping the enlarged
+    // default frame balanced in the space between the top console and alerts.
+    const defaultFrame = {
+      x: focus.focusX - (focus.focusX - frame.x) * REGIONAL_MAP_DEFAULT_FRAME_SCALE,
+      y: focus.focusY - (focus.focusY - frame.y) * REGIONAL_MAP_DEFAULT_FRAME_SCALE + verticalOpticalOffset,
+      scale: frame.scale * REGIONAL_MAP_DEFAULT_FRAME_SCALE,
+    };
     return {
-      camera: snapCameraToDevicePixels(frame),
-      scale: frame.scale,
+      camera: snapCameraToDevicePixels(defaultFrame),
+      scale: defaultFrame.scale,
     };
   }, [desktopMapBottomInset, desktopMapTopInset]);
 
@@ -208,41 +230,17 @@ export function InteractiveRegionalMap({
     animateCameraTo(fitted.camera, fitted.scale);
   }, [animateCameraTo, fittedCamera]);
 
-  const startInitialFlyIn = useCallback(() => {
+  const initializeMapCamera = useCallback(() => {
     if (cameraInitializedRef.current || !svgMarkup) return;
     const fitted = fittedCamera();
     if (!fitted) return;
     cameraInitializedRef.current = true;
-
-    if (reducedMotion) {
-      animateCameraTo(fitted.camera, fitted.scale);
-      return;
-    }
-
-    // Match the TTC toggle entrance: begin centered at half of the fitted camera scale and
-    // fly inward to the full fitted view with the shared camera transition.
-    const entryScale = fitted.scale * 0.5;
-    const scaleRatio = entryScale / fitted.scale;
-    const width = viewportRef.current?.clientWidth ?? 0;
-    const height = viewportRef.current?.clientHeight ?? 0;
-    const centerX = width / 2;
-    const centerY = desktopMapTopInset + (height - desktopMapTopInset - desktopMapBottomInset) / 2;
-
-    const entryCamera = snapCameraToDevicePixels({
-      x: centerX > 0 ? centerX - (centerX - fitted.camera.x) * scaleRatio : fitted.camera.x * 0.5,
-      y: centerY > 0 ? centerY - (centerY - fitted.camera.y) * scaleRatio : fitted.camera.y * 0.5,
-      scale: fitted.scale * 0.5,
-    });
-    cameraRef.current = entryCamera;
     setMapTransition("none");
-    writeMapTransform(entryCamera);
-    setCamera(entryCamera);
-
-    programmaticAnimationFrameRef.current = window.requestAnimationFrame(() => {
-      programmaticAnimationFrameRef.current = null;
-      animateCameraTo(fitted.camera, fitted.scale);
-    });
-  }, [animateCameraTo, desktopMapBottomInset, desktopMapTopInset, fittedCamera, reducedMotion, setMapTransition, svgMarkup, writeMapTransform]);
+    cameraRef.current = fitted.camera;
+    writeMapTransform(fitted.camera);
+    setFitScale(fitted.scale);
+    setCamera(fitted.camera);
+  }, [fittedCamera, setMapTransition, svgMarkup, writeMapTransform]);
 
   useEffect(() => {
     let cancelled = false;
@@ -334,9 +332,9 @@ export function InteractiveRegionalMap({
   }, [activeAlerts, networkSegments, stationNodeImpacts]);
 
   useEffect(() => {
-    const frameId = window.requestAnimationFrame(startInitialFlyIn);
+    const frameId = window.requestAnimationFrame(initializeMapCamera);
     return () => window.cancelAnimationFrame(frameId);
-  }, [startInitialFlyIn]);
+  }, [initializeMapCamera]);
 
   useEffect(() => {
     // Treat this as an edge-triggered command. A remount or data refresh must
@@ -351,11 +349,11 @@ export function InteractiveRegionalMap({
     if (!viewport) return;
     const observer = new ResizeObserver(() => {
       if (cameraInitializedRef.current) return;
-      startInitialFlyIn();
+      initializeMapCamera();
     });
     observer.observe(viewport);
     return () => observer.disconnect();
-  }, [startInitialFlyIn]);
+  }, [initializeMapCamera]);
 
   useEffect(() => {
     const root = viewportRef.current;
@@ -492,11 +490,11 @@ export function InteractiveRegionalMap({
             viewBox="-200 -200 17036.959 9031.6719"
             preserveAspectRatio="xMidYMid meet"
           >
-            <g aria-label="Cardinal North Compass" transform="translate(14500, 5300)">
+            <g aria-label="Cardinal North Compass" transform="translate(14800, 5100)">
               <image
                 href="/assets/linewatch/cardinal-north.svg"
-                width="1250"
-                height="1250"
+                width="1000"
+                height="1000"
                 className="opacity-90"
                 style={{ filter: isDark ? "invert(1)" : "none" }}
               />
@@ -505,36 +503,36 @@ export function InteractiveRegionalMap({
         </div>
       </div>
       {/* Regional map controls positioned vertically on right side centered below top-right info button */}
-      <div className="map-control-rail regional-map-control-rail absolute top-20 sm:top-[96px] right-4 sm:right-6 z-30 w-10 sm:w-14 flex flex-col items-center justify-center gap-1.5 py-2 px-1 rounded-xl pointer-events-auto">
-        <div className="map-control-recenter-container flex flex-col items-center w-full">
+      <div className="map-control-rail regional-map-control-rail absolute top-40 sm:top-[176px] right-4 sm:right-6 z-30 flex flex-col items-center justify-center gap-1 sm:gap-2 pointer-events-auto">
+        <div className="map-control-recenter-container">
           <button
             type="button"
             onClick={fitNetwork}
-            className="map-control-button group w-full flex flex-col items-center justify-center py-1 rounded-lg hover:bg-slate-900/10 dark:hover:bg-white/10 transition-colors"
+            className="map-control-button group"
             title="Fit regional network"
             aria-label="Fit regional network"
           >
-            <Locate size={18} className="group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors" />
-            <span className="map-control-recenter-desktop-label text-[9px] font-black uppercase tracking-wider group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors mt-0.5 leading-none">Center</span>
+            <Locate size={20} className="group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors" />
+            <span className="map-control-recenter-desktop-label text-[10px] font-black uppercase tracking-widest group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">Center</span>
           </button>
           <span className="map-control-recenter-mobile-label">Center Map</span>
         </div>
 
-        <div className="w-8 h-[1px] bg-slate-900/15 dark:bg-white/20 my-0.5" aria-hidden="true" />
+        <div className="map-control-zoom-group flex flex-col items-center gap-1 sm:gap-2">
+          <div className="map-control-divider-v" aria-hidden="true" />
 
-        <div className="map-control-zoom-group flex flex-col items-center w-full gap-1.5">
           <button
             type="button"
-            onClick={() => zoomAtCenter(1.25)}
-            className="map-control-button group w-full flex flex-col items-center justify-center py-1 rounded-lg hover:bg-slate-900/10 dark:hover:bg-white/10 transition-colors"
-            title="Zoom in"
-            aria-label="Zoom in"
+            onClick={() => zoomAtCenter(1 / 1.25)}
+            className="map-control-button group"
+            title="Zoom out"
+            aria-label="Zoom out"
           >
-            <ZoomIn size={18} className="group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors" />
-            <span className="text-[9px] font-black uppercase tracking-wider group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors mt-0.5 leading-none">In</span>
+            <ZoomOut size={20} className="group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors" />
+            <span className="text-[10px] font-black uppercase tracking-widest group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">Out</span>
           </button>
 
-          <div className="map-control-slider flex flex-col items-center justify-center gap-1 my-0.5 w-full">
+          <div className="map-control-slider flex flex-col items-center justify-center gap-1.5 my-0.5 sm:my-1">
             <input
               type="range"
               min={PAN_ZOOM_MIN_RELATIVE_SCALE}
@@ -542,24 +540,24 @@ export function InteractiveRegionalMap({
               step="0.05"
               value={relativeScale}
               onChange={(e) => zoomToScale(parseFloat(e.target.value))}
-              className="h-16 w-1.5 accent-slate-900 dark:accent-white hover:accent-blue-600 dark:hover:accent-blue-400 cursor-pointer rounded-lg appearance-none bg-slate-900/20 dark:bg-white/30 transition-all outline-none [writing-mode:vertical-lr] [direction:rtl]"
+              className="h-16 md:h-20 w-1.5 accent-slate-900 dark:accent-white hover:accent-blue-600 dark:hover:accent-blue-400 cursor-pointer rounded-lg appearance-none bg-slate-900/20 dark:bg-white/30 transition-all outline-none [writing-mode:vertical-lr] [direction:rtl]"
               title="Zoom level"
               aria-label="Zoom level slider"
             />
-            <span className="text-[9px] font-mono font-black select-none tracking-tight leading-none">
+            <span className="text-[10px] font-mono font-black select-none tracking-wider">
               {Math.round(relativeScale * 100)}%
             </span>
           </div>
 
           <button
             type="button"
-            onClick={() => zoomAtCenter(1 / 1.25)}
-            className="map-control-button group w-full flex flex-col items-center justify-center py-1 rounded-lg hover:bg-slate-900/10 dark:hover:bg-white/10 transition-colors"
-            title="Zoom out"
-            aria-label="Zoom out"
+            onClick={() => zoomAtCenter(1.25)}
+            className="map-control-button group"
+            title="Zoom in"
+            aria-label="Zoom in"
           >
-            <ZoomOut size={18} className="group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors" />
-            <span className="text-[9px] font-black uppercase tracking-wider group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors mt-0.5 leading-none">Out</span>
+            <ZoomIn size={20} className="group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors" />
+            <span className="text-[10px] font-black uppercase tracking-widest group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">In</span>
           </button>
         </div>
       </div>

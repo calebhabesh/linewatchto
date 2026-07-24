@@ -6,6 +6,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { DynamicBackground } from "./DynamicBackground";
 import { NetworkMap } from "./NetworkMap";
+import { NetworkMapLegends } from "./NetworkMapLegends";
 import { NetworkSelector } from "./NetworkSelector";
 import { RegionalStationDetailPanel } from "./RegionalStationDetailPanel";
 import { DelayIcon } from "./DelayIcon";
@@ -32,8 +33,6 @@ import { MobileStatusSheet } from "./MobileStatusSheet";
 import { MobileMoreSheet } from "./MobileMoreSheet";
 import { PwaInstallNudge } from "./PwaInstallNudge";
 import { usePwaInstallPrompt } from "../hooks/usePwaInstallPrompt";
-import { LineLegend } from "./LineLegend";
-import { MobileLegend } from "./MobileLegend";
 import { TransitLineBadge } from "./TransitLineBadge";
 import { LogsDropdown } from "./LogsDropdown";
 import { SiteGuideDropdown } from "./SiteGuideDropdown";
@@ -2756,6 +2755,8 @@ export function LineWatchShell({
       <main className={`absolute inset-0 z-auto md:z-10 ${showClosedScreen ? "subway-closed-map-backdrop" : ""}`}>
         <NetworkMap
           network={selectedNetwork}
+          ttcData={ttcData}
+          regionalData={regionalDashboardData}
           selection={selection}
           selectedStationId={selectedStationId}
           stations={stationSummaries}
@@ -2814,15 +2815,6 @@ export function LineWatchShell({
           </>
         ) : null}
       </main>
-
-      {!showClosedScreen && (
-        <MobileLegend
-          mode={selectedNetwork}
-          closingSoon={subwayOperatingState.closingSoon || (subwayOperatingState.status === "closed" && closedMapPeek)}
-          expanded={legendExpanded}
-          onToggleExpanded={() => setLegendExpanded(!legendExpanded)}
-        />
-      )}
 
       {!showClosedScreen && !rotatedMapMode && selectedNetwork === "ttc" && (
         <button
@@ -2955,27 +2947,31 @@ export function LineWatchShell({
           </div>
         </aside>
 
-        <aside className="desktop-map-legend fixed bottom-10 right-6 z-20 pointer-events-none">
-          <LineLegend
-            mode={selectedNetwork}
-            onAlertClick={() => {
-              setActiveView("alerts");
-              setSelection(null);
-            }}
-            onDelayClick={() => {
-              setActiveView("delays");
-              setSelection(null);
-            }}
-            onReducedSpeedZoneClick={() => {
-              setActiveView("reduced-speed-zones");
-              setSelection(null);
-            }}
-            onClosureClick={() => {
-              setActiveView("closures");
-              setSelection(null);
-            }}
-          />
-        </aside>
+        <NetworkMapLegends
+          network={selectedNetwork}
+          ttcData={ttcData}
+          regionalData={regionalDashboardData}
+          ttcClosingSoon={subwayOperatingState.closingSoon || (subwayOperatingState.status === "closed" && closedMapPeek)}
+          reducedMotion={reducedMotion}
+          expanded={legendExpanded}
+          onToggleExpanded={() => setLegendExpanded(!legendExpanded)}
+          onAlertClick={() => {
+            setActiveView("alerts");
+            setSelection(null);
+          }}
+          onDelayClick={() => {
+            setActiveView("delays");
+            setSelection(null);
+          }}
+          onReducedSpeedZoneClick={() => {
+            setActiveView("reduced-speed-zones");
+            setSelection(null);
+          }}
+          onClosureClick={() => {
+            setActiveView("closures");
+            setSelection(null);
+          }}
+        />
       </>
       )}
 

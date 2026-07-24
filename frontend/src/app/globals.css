@@ -30,9 +30,9 @@
   position: relative;
   overflow: hidden;
   user-select: none;
-  --ttc-width: 97px;
-  --regional-width: 117px;
-  --glider-offset: 101px;
+  --ttc-width: 116px;
+  --regional-width: 116px;
+  --glider-offset: 120px;
 }
 
 .network-selector[data-network="ttc"] {
@@ -76,10 +76,11 @@
 .network-selector-btn {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 12px;
+  justify-content: space-between;
   height: 2.25rem;
-  padding: 0 16px;
+  padding: 0 14px;
+  width: var(--ttc-width, 116px);
+  min-width: 116px;
   border: none;
   border-radius: 9px;
   color: #94a3b8;
@@ -114,6 +115,7 @@
 }
 
 .network-btn-text {
+  flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -175,24 +177,67 @@
   }
 }
 
-/* Carousel map swap animation track and slides */
-.network-map-carousel-track {
+/* Fixed left-to-right TTC / GO-UP map and legend tracks. */
+.network-map-carousel-track,
+.network-legend-track {
   display: flex;
-  width: 100%;
+  width: 200%;
   height: 100%;
-  transition: transform 0.5s cubic-bezier(0.25, 1, 0.5, 1);
+  position: relative;
+  transform: translateX(0);
+  transition: transform 700ms cubic-bezier(0.4, 0, 0.2, 1);
   will-change: transform;
 }
 
+.network-map-carousel-track--regional,
+.network-legend-track--regional {
+  transform: translateX(-50%);
+}
+
 .network-map-slide {
-  width: 100%;
-  height: 100%;
-  flex-shrink: 0;
   position: relative;
+  flex: 0 0 50%;
+  width: 50%;
+  height: 100%;
+}
+
+.network-map-carousel-track--reduced-motion {
+  transition: none;
+}
+
+.network-legend-track--reduced-motion {
+  transition: none;
+}
+
+.network-legend-track-viewport {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.network-legend-pane {
+  position: relative;
+  flex: 0 0 50%;
+  width: 50%;
+  height: 100%;
+}
+
+.network-legend-pane .desktop-map-legend {
+  position: absolute !important;
+  right: 1.5rem;
+  bottom: 2.5rem;
+}
+
+.network-legend-pane .mobile-legend-pill {
+  position: absolute !important;
+  pointer-events: auto;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .network-map-carousel-track {
+  .network-map-carousel-track,
+  .network-legend-track {
     transition: none !important;
   }
 }
@@ -2954,9 +2999,9 @@ button {
     top: 96px !important;
   }
   .regional-map-control-rail {
-    top: 96px !important;
+    top: 176px !important;
     right: 24px !important;
-    width: 56px !important;
+    width: 62px !important;
     left: auto !important;
     transform: none !important;
     border-radius: 12px !important;
@@ -7815,18 +7860,34 @@ img.transit-line-badge {
   background-color: #ffffff;
 }
 
+.map-control-divider-v {
+  align-self: center;
+  background-color: rgba(15, 23, 42, 0.16);
+  height: 1px;
+  margin: 4px 0;
+  width: 32px;
+}
+
+.dark .map-control-divider-v {
+  background-color: rgba(255, 255, 255, 0.18);
+}
+
+.high-contrast .map-control-divider-v {
+  background-color: #ffffff;
+}
+
 .map-control-button {
   align-items: center;
   border-radius: 8px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  height: 56px;
+  gap: 4px;
+  height: 52px;
   justify-content: center;
   outline: none;
-  padding: 0 12px;
+  padding: 0 10px;
   transition: background-color 150ms ease, color 150ms ease, transform 120ms ease;
-  min-width: 56px;
+  min-width: 52px;
 }
 
 .map-control-button span {
@@ -7852,29 +7913,41 @@ img.transit-line-badge {
 }
 
 .map-control-slider {
-  min-width: 72px;
-  height: 56px;
+  min-width: 68px;
+  height: 52px;
 }
 
 .map-control-slider span {
   line-height: 1;
 }
 
+.regional-map-control-rail {
+  width: 62px !important;
+  border-radius: 12px !important;
+  padding: 4px !important;
+}
+
 .regional-map-control-rail .map-control-button {
   box-sizing: border-box;
-  height: auto !important;
-  min-height: 42px !important;
-  min-width: 0 !important;
-  padding: 6px 4px !important;
-  width: 100% !important;
+  height: 52px !important;
+  min-height: 52px !important;
+  min-width: 52px !important;
+  width: 52px !important;
+  padding: 0 10px !important;
   border-radius: 8px !important;
 }
 
 .regional-map-control-rail .map-control-slider {
   height: auto !important;
-  min-width: 0 !important;
+  min-height: 84px !important;
+  min-width: 52px !important;
+  width: 52px !important;
   padding: 4px 0 !important;
-  width: 100% !important;
+}
+
+.regional-map-control-rail .map-control-recenter-desktop-label {
+  font-size: 8.5px !important;
+  letter-spacing: 0.04em !important;
 }
 
 .station-detail-panel {
@@ -17763,5 +17836,3 @@ img.transit-line-badge {
     }
   }
 }
-
-

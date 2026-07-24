@@ -195,16 +195,23 @@ test("shows subway closed screen overnight and lets riders peek at the map", asy
   await expect(page.getByRole("heading", { name: "Subway Closed" })).toBeVisible();
 });
 
-test("switches the complete dashboard to the fixture-backed regional network", async ({ page, request }) => {
+test("switches the complete dashboard to the fixture-backed regional network", async ({ page, request, isMobile }) => {
+  test.skip(isMobile, "network selection is desktop-only");
   await setStubMode(request, "seeded");
   await page.goto("/");
 
   const networkSelector = page.getByRole("group", { name: "Select transit network" });
+  const mapSlideshow = page.locator(".network-map-wrapper");
+  const mapTrack = mapSlideshow.locator(".network-map-carousel-track");
+  const legendTrack = page.locator(".network-legend-track");
   await expect(networkSelector.getByRole("button", { name: "TTC", exact: true })).toHaveAttribute("aria-pressed", "true");
   await networkSelector.getByRole("button", { name: "GO/UP", exact: true }).click();
+  await expect(mapSlideshow).toHaveAttribute("data-camera-direction", "right");
+  await expect(mapTrack).toHaveClass(/network-map-carousel-track--regional/);
+  await expect(legendTrack).toHaveClass(/network-legend-track--regional/);
 
   await expect(page.getByRole("region", { name: "Interactive GO and UP map" })).toBeVisible();
-  await expect(page.getByText("Demo fixture — not live service information", { exact: true })).toBeVisible();
+  await expect(page.getByText("Last Polled: regional fixture mode", { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Fit regional network" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Toggle live train markers" })).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "Subway Closed" })).toHaveCount(0);
@@ -230,6 +237,9 @@ test("switches the complete dashboard to the fixture-backed regional network", a
   await expect(page.getByRole("complementary", { name: "Weston regional station details" })).toBeVisible();
 
   await networkSelector.getByRole("button", { name: "TTC", exact: true }).click();
+  await expect(mapSlideshow).toHaveAttribute("data-camera-direction", "left");
+  await expect(mapTrack).not.toHaveClass(/network-map-carousel-track--regional/);
+  await expect(legendTrack).not.toHaveClass(/network-legend-track--regional/);
   await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
   await expect(page.getByRole("region", { name: "Interactive GO and UP map" })).toHaveCount(0);
 });
@@ -327,7 +337,7 @@ test("opens an impact notification deep link in the focused map view", async ({ 
     await expect(inspector).toContainText("Delay");
     await expect(inspector).toContainText("Sheppard-Yonge");
     await expect(mapViewport).toHaveCSS("bottom", /^(?!0px$).+/);
-    await expect(page.locator('input[aria-label="Zoom level slider"]')).toHaveValue("3.8");
+    await expect(page.locator(".network-map-slide").first().getByLabel("Zoom level slider")).toHaveValue("3.8");
   }
 });
 
@@ -887,7 +897,7 @@ test("shows a compact map hint when multiple alert types overlap", async ({ page
     }
   }
   if (!isMobile) {
-    await page.getByLabel("Zoom level slider").fill("2");
+    await page.locator(".network-map-slide").first().getByLabel("Zoom level slider").fill("2");
     await expect.poll(async () => Math.abs(((await overlapChooser.boundingBox())?.width ?? 0) - chooserWidthAtDefaultZoom))
       .toBeLessThan(2);
   }
@@ -1276,7 +1286,7 @@ test("drag after focus zoom cancels animation and retains transform", async ({ p
   await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
 
   // Verify the control rail styling and visibility
-  const rail = page.locator(".map-control-rail");
+  const rail = page.locator(".network-map-slide").first().locator(".map-control-rail");
   await expect(rail).toBeVisible();
   await expect(rail).toHaveCSS("border-radius", "8px");
 
