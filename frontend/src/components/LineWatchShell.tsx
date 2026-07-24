@@ -468,7 +468,7 @@ export function LineWatchShell({
       setMapPresentationMode("standard");
       setMobileInspectorDetent("map-focus");
       setAccessibilityOutageTarget(null);
-    }, 180);
+    }, 200);
   }, [isClosingPanel, setActiveView, setSelection, setSelectedStationId, setMapPresentationMode, setMobileInspectorDetent]);
 
   const [isGoingBack, setIsGoingBack] = useState(false);

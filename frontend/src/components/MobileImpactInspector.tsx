@@ -304,7 +304,7 @@ export function MobileImpactInspector({
     window.setTimeout(() => {
       onUnfocus();
       setIsClosing(false);
-    }, 180);
+    }, 200);
   };
 
   return (

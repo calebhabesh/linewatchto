@@ -17307,37 +17307,23 @@ img.transit-line-badge {
 }
 
 /* Container Exit Animations (Pressing Close 'x' Button) */
-.floating-panel-shell.floating-panel-closing,
-.desktop-view-content-wrapper[data-closing="true"],
-.mobile-view-content-wrapper[data-closing="true"] {
-  animation: floating-panel-exit 180ms cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
-}
-
-@keyframes floating-panel-exit {
-  from {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-  to {
-    opacity: 0;
-    transform: translateY(-12px) scale(0.96);
-  }
-}
-
 @media (max-width: 767px) {
   .floating-panel-shell.floating-panel-closing,
+  .floating-panel-shell[data-closing="true"],
+  .mobile-view-content-wrapper[data-closing="true"],
   .panel-container-exit,
   .mobile-impact-inspector.mobile-impact-inspector-closing,
   .station-detail-panel.station-detail-closing {
-    animation: floating-mobile-sheet-exit 180ms cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+    animation: mobile-sheet-slide-down-exit 200ms cubic-bezier(0.32, 0, 0.67, 0) forwards !important;
+    will-change: transform, opacity;
   }
 
-  @keyframes floating-mobile-sheet-exit {
-    from {
+  @keyframes mobile-sheet-slide-down-exit {
+    0% {
       opacity: 1;
       transform: translateY(0);
     }
-    to {
+    100% {
       opacity: 0;
       transform: translateY(100%);
     }
@@ -17345,18 +17331,37 @@ img.transit-line-badge {
 }
 
 @media (min-width: 768px) {
+  .floating-panel-shell.floating-panel-closing,
+  .floating-panel-shell[data-closing="true"],
+  .desktop-view-content-wrapper[data-closing="true"] {
+    animation: floating-panel-exit-desktop 200ms cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+    will-change: transform, opacity;
+  }
+
+  @keyframes floating-panel-exit-desktop {
+    0% {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+    100% {
+      opacity: 0;
+      transform: translateY(-12px) scale(0.96);
+    }
+  }
+
   .station-detail-panel.station-detail-closing {
-    animation: station-detail-exit-desktop 180ms cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+    animation: station-detail-exit-desktop 200ms cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+    will-change: transform, opacity;
   }
 
   @keyframes station-detail-exit-desktop {
-    from {
+    0% {
       opacity: 1;
       transform: translateX(0) scale(1);
     }
-    to {
+    100% {
       opacity: 0;
-      transform: translateX(20px) scale(0.97);
+      transform: translateX(24px) scale(0.97);
     }
   }
 }

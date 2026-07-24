@@ -345,7 +345,7 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
     window.setTimeout(() => {
       onClose();
       setIsClosing(false);
-    }, 180);
+    }, 200);
   };
 
   return (
