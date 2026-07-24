@@ -32,7 +32,7 @@ export function NetworkMap({
           isDark={props.isDark}
         />
       ) : (
-        <InteractiveTtcMap {...props} />
+        <InteractiveTtcMap {...props} animateInitialEntrance={false} />
       )}
       <NetworkMapLegend
         mode={network}

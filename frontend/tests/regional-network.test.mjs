@@ -54,7 +54,10 @@ describe("network-scoped regional dashboard", () => {
     assert.doesNotMatch(regionalMapSource, /entryCamera/);
     assert.match(regionalMapSource, /const initializeMapCamera = useCallback/);
     assert.match(regionalMapSource, /setMapTransition\("none"\);[\s\S]*writeMapTransform\(fitted\.camera\)/);
-    assert.match(networkMapSource, /<InteractiveTtcMap \{\.\.\.props\}/);
+    assert.match(
+      networkMapSource,
+      /<InteractiveTtcMap \{\.\.\.props\} animateInitialEntrance=\{false\}/,
+    );
   });
 
   it("slides compositor snapshots while keeping inactive React maps unmounted", () => {
