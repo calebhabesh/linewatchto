@@ -10,6 +10,10 @@ public final class DashboardResponses {
     private DashboardResponses() {}
 
     public record DashboardResponse(
+        String networkId,
+        String availability,
+        List<String> sourceSystems,
+        String message,
         MapController.MapResponse map,
         StatusController.StatusResponse status,
         List<AlertDashboardService.ActiveAlertDto> activeAlerts,

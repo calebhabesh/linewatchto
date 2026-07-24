@@ -104,6 +104,16 @@ class AccountSchemaMigrationTest {
         assertThat(sql).contains("created_at desc");
     }
 
+    @Test
+    void v48ScopesSavedStationsByTransitNetwork() throws IOException {
+        String sql = migrationSql("/db/migration/V48__network_scoped_saved_stations.sql").toLowerCase();
+
+        assertThat(sql).contains("add column network_id");
+        assertThat(sql).contains("primary key (account_id, network_id, station_id)");
+        assertThat(sql).contains("'ttc'", "'regional'");
+        assertThat(sql).contains("drop constraint saved_stations_station_id_fkey");
+    }
+
     private String migrationSql(String path) throws IOException {
         try (var input = getClass().getResourceAsStream(path)) {
             assertThat(input).isNotNull();

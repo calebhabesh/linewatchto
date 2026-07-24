@@ -8,6 +8,7 @@ import {
 } from "../src/app/saved-station-data.ts";
 
 const savedStation = {
+  networkId: "ttc",
   station: {
     id: "sheppard-yonge",
     name: "Sheppard-Yonge",
@@ -46,15 +47,19 @@ describe("saved station data adapter", () => {
     const fetcher = async (input, init) => {
       requests.push({ input, init });
       return init.method === "PUT"
-        ? new Response(JSON.stringify(savedStation), { status: 201, headers: { "content-type": "application/json" } })
+        ? new Response(JSON.stringify({ station: savedStation.station, savedAt: savedStation.savedAt }), {
+            status: 201,
+            headers: { "content-type": "application/json" },
+          })
         : new Response(null, { status: 204 });
     };
 
-    const saved = await saveStation("station/with slash", { fetcher });
-    await removeSavedStation("station/with slash", { fetcher });
+    const saved = await saveStation("station/with slash", "regional", { fetcher });
+    await removeSavedStation("station/with slash", "regional", { fetcher });
 
     assert.equal(saved.station.id, "sheppard-yonge");
-    assert.equal(requests[0].input, "/api/account/stations/station%2Fwith%20slash");
+    assert.equal(saved.networkId, "regional");
+    assert.equal(requests[0].input, "/api/account/stations/station%2Fwith%20slash?network=regional");
     assert.equal(requests[0].init.method, "PUT");
     assert.equal(requests[1].init.method, "DELETE");
   });
@@ -67,7 +72,7 @@ describe("saved station data adapter", () => {
 
   it("surfaces backend error codes for mutations", async () => {
     await assert.rejects(
-      saveStation("unknown", {
+      saveStation("unknown", "ttc", {
         fetcher: async () => new Response(JSON.stringify({ error: "unknown_station", message: "Station was not found." }), {
           status: 404,
           headers: { "content-type": "application/json" },

@@ -55,7 +55,7 @@ describe("floating menu layout", () => {
     assert.match(delaysPanelSource, /MetadataGrid/);
     assert.match(impactCardFieldsSource, /\["Started"/);
     assert.match(impactCardFieldsSource, /"Updated"/);
-    assert.match(lineLegendSource, /onDelayClick\?\.\(line\.id\)/);
+    assert.match(lineLegendSource, /onDelayClick\?\.\(dataLineId\)/);
     assert.match(shellSource, /"reduced-speed-zones"/);
     assert.match(shellSource, /Reduced Speed Zones/);
     assert.match(reducedSpeedZonesSource, /Reduced Speed Zones/);
@@ -226,8 +226,8 @@ describe("floating menu layout", () => {
     assert.match(dashboardDataSource, /fixture mode/);
   });
 
-  it("LineLegend calls onReducedSpeedZoneClick with line.id", () => {
-    assert.match(lineLegendSource, /onReducedSpeedZoneClick\?\.\(line\.id\)/);
+  it("LineLegend calls onReducedSpeedZoneClick with the network-scoped line id", () => {
+    assert.match(lineLegendSource, /onReducedSpeedZoneClick\?\.\(dataLineId\)/);
     assert.doesNotMatch(lineLegendSource, /onReducedSpeedZoneClick\?\.\(rsz\.id\)/);
   });
 

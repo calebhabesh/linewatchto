@@ -33,9 +33,16 @@ const FALLBACK_COLORS: Record<string, { backgroundColor: string; color: string }
   "up-express": { backgroundColor: "#4084CD", color: "#ffffff" },
 };
 
+function regionalBadgeAssetId(lineId: string) {
+  if (lineId === "regional-up") return "up-express";
+  if (lineId.startsWith("regional-")) return `go-${lineId.replace("regional-", "")}`;
+  return lineId;
+}
+
 export function transitLineBadgeSrc(lineId: string) {
-  return LINE_NAMES[lineId]
-    ? `/assets/linewatch/${lineId}-legend.svg?v=2`
+  const assetId = regionalBadgeAssetId(lineId);
+  return LINE_NAMES[assetId]
+    ? `/assets/linewatch/${assetId}-legend.svg?v=2`
     : null;
 }
 
@@ -61,11 +68,15 @@ export function TransitLineBadge({
   className = "",
   decorative = false,
 }: TransitLineBadgeProps) {
+  const assetId = regionalBadgeAssetId(lineId);
+  const resolvedLineName = lineName ?? LINE_NAMES[assetId];
   const label = lineName
     ? lineId.startsWith("line-")
       ? `Line ${lineNumber} ${lineName}`
       : `${lineName} Line`
-    : `Line ${lineNumber}`;
+    : resolvedLineName
+      ? `${resolvedLineName} Line`
+      : `Line ${lineNumber}`;
   const src = transitLineBadgeSrc(lineId);
 
   if (!src) {
@@ -73,7 +84,7 @@ export function TransitLineBadge({
       <span
         className={`transit-line-badge transit-line-badge--fallback ${className}`.trim()}
         style={{
-          ...(FALLBACK_COLORS[lineId] ?? { backgroundColor: "#64748b", color: "#ffffff" }),
+          ...(FALLBACK_COLORS[assetId] ?? { backgroundColor: "#64748b", color: "#ffffff" }),
           "--transit-line-badge-size": `${size}px`,
         } as CSSProperties}
         aria-hidden={decorative || undefined}

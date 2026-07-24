@@ -42,6 +42,7 @@ type Props = {
   onOpenMyStations: () => void;
   savedStationCount: number;
   defaultNetwork: NetworkId;
+  currentNetwork: NetworkId;
   onDefaultNetworkChange: (network: NetworkId) => void;
   onOpenAlertHistory: () => void;
   onOpenAnalytics: () => void;
@@ -80,6 +81,7 @@ export function MobileMoreSheet({
   onOpenMyStations,
   savedStationCount,
   defaultNetwork,
+  currentNetwork,
   onDefaultNetworkChange,
   onOpenAlertHistory,
   onOpenAnalytics,
@@ -191,10 +193,10 @@ export function MobileMoreSheet({
                   </button>
                 )
               ) : null}
-              <button type="button" className="mobile-more-row" onClick={onOpenCommutes}>
+              {currentNetwork === "ttc" ? <button type="button" className="mobile-more-row" onClick={onOpenCommutes}>
                 <Navigation size={18} className="text-slate-500 dark:text-slate-400" />
                 Saved Commutes
-              </button>
+              </button> : null}
               <button type="button" className="mobile-more-row w-full flex items-center justify-between" onClick={onOpenMyStations}>
                 <span className="flex items-center gap-[9px]">
                   <Bookmark size={18} className="text-slate-500 dark:text-slate-400" />
@@ -221,10 +223,10 @@ export function MobileMoreSheet({
                 <UserRound size={18} />
                 Demo Account
               </button>
-              <button type="button" className="mobile-more-row" onClick={onOpenCommutes}>
+              {currentNetwork === "ttc" ? <button type="button" className="mobile-more-row" onClick={onOpenCommutes}>
                 <Navigation size={18} className="text-slate-500 dark:text-slate-400" />
                 Saved Commutes
-              </button>
+              </button> : null}
               <button type="button" className="mobile-more-row w-full flex items-center justify-between" onClick={onOpenMyStations}>
                 <span className="flex items-center gap-[9px]">
                   <Bookmark size={18} className="text-slate-500 dark:text-slate-400" />
@@ -245,7 +247,7 @@ export function MobileMoreSheet({
           />
         </div>
 
-        <div className="mobile-more-section">
+        {currentNetwork === "ttc" ? <div className="mobile-more-section">
           <div className="flex items-center gap-2 px-0 pt-1.5 pb-0.5 select-none">
             <span className="w-1 h-4 rounded-full bg-logo-blue shrink-0 shadow-[0_0_4px_rgba(129,201,255,0.35)]" />
             <h3>Notifications</h3>
@@ -286,17 +288,17 @@ export function MobileMoreSheet({
             <History size={18} className="text-slate-500 dark:text-slate-400" />
             Alert History
           </button>
-        </div>
+        </div> : null}
 
         <div className="mobile-more-section">
           <div className="flex items-center gap-2 px-0 pt-1.5 pb-0.5 select-none">
             <span className="w-1 h-4 rounded-full bg-logo-blue shrink-0 shadow-[0_0_4px_rgba(129,201,255,0.35)]" />
             <h3>Operations</h3>
           </div>
-          <button type="button" className="mobile-more-row" onClick={onOpenAnalytics}>
+          {currentNetwork === "ttc" ? <button type="button" className="mobile-more-row" onClick={onOpenAnalytics}>
             <BarChart3 size={18} className="text-slate-500 dark:text-slate-400" />
             Reliability Analytics
-          </button>
+          </button> : null}
           <div className="mobile-more-health-grid" aria-label="Source Health">
             {ingestionHealth.map((health, index) => (
               <div key={`${health.label}-${index}`}>
@@ -386,7 +388,7 @@ export function MobileMoreSheet({
           ) : null}
         </div>
 
-        <div className="mobile-more-section">
+        {currentNetwork === "ttc" ? <div className="mobile-more-section">
           <div className="flex items-center gap-2 px-0 pt-1.5 pb-0.5 select-none">
             <span className="w-1 h-4 rounded-full bg-logo-blue shrink-0 shadow-[0_0_4px_rgba(129,201,255,0.35)]" />
             <h3>Notifications Help</h3>
@@ -441,7 +443,7 @@ export function MobileMoreSheet({
               </div>
             </div>
           )}
-        </div>
+        </div> : null}
       </div>
     </section>
   );

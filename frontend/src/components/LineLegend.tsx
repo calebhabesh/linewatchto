@@ -57,10 +57,15 @@ export function LineLegend({
   const isRegional = mode === "regional";
 
   const renderLineItem = (line: { id: string; number: string; name: string }) => {
-    const alert = activeAlerts.find((a) => a.lineId === line.id);
-    const delay = delays.find((a) => a.lineId === line.id);
-    const rsz = reducedSpeedZones.find((a) => a.lineId === line.id);
-    const closure = plannedClosures.find((c) => c.lineId === line.id);
+    const dataLineId = isRegional
+      ? line.id === "up-express"
+        ? "regional-up"
+        : `regional-${line.id.replace("go-", "")}`
+      : line.id;
+    const alert = activeAlerts.find((a) => a.lineId === dataLineId);
+    const delay = delays.find((a) => a.lineId === dataLineId);
+    const rsz = isRegional ? undefined : reducedSpeedZones.find((a) => a.lineId === dataLineId);
+    const closure = plannedClosures.find((c) => c.lineId === dataLineId);
     const hasImpact = !!(alert || delay || rsz || closure);
 
     return (
@@ -81,7 +86,7 @@ export function LineLegend({
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                onAlertClick?.(line.id);
+                onAlertClick?.(dataLineId);
               }}
               className="pointer-events-auto cursor-pointer text-red-500 bg-white/95 dark:bg-[#12151c] p-2 rounded-full shadow-lg border border-red-500/30 hover:bg-red-50 dark:hover:bg-red-950/30 hover:scale-110 transition-all"
               title={`View Alert for ${line.name}`}
@@ -94,7 +99,7 @@ export function LineLegend({
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                onDelayClick?.(line.id);
+                onDelayClick?.(dataLineId);
               }}
               className="legend-delay-button pointer-events-auto cursor-pointer bg-white/95 dark:bg-[#12151c] p-2 rounded-full shadow-lg border hover:scale-110 transition-all"
               title={`View delay for ${line.name}`}
@@ -107,7 +112,7 @@ export function LineLegend({
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                onReducedSpeedZoneClick?.(line.id);
+                onReducedSpeedZoneClick?.(dataLineId);
               }}
               className="legend-rsz-button pointer-events-auto cursor-pointer bg-white/95 dark:bg-[#12151c] p-2 rounded-full shadow-lg border hover:scale-110 transition-all"
               title={`View reduced speed zone for ${line.name}`}
@@ -120,7 +125,7 @@ export function LineLegend({
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                onClosureClick?.(line.id);
+                onClosureClick?.(dataLineId);
               }}
               className="pointer-events-auto cursor-pointer text-blue-500 bg-white/95 dark:bg-[#12151c] p-2 rounded-full shadow-lg border border-blue-500/30 hover:bg-blue-50 dark:hover:bg-blue-950/30 hover:scale-110 transition-all"
               title={`View Closure for ${line.name}`}
@@ -271,4 +276,3 @@ export function LineLegend({
     </div>
   );
 }
-

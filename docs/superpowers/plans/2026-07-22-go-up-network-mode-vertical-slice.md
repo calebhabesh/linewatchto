@@ -1,7 +1,7 @@
 # GO/UP Network Mode Fixture Vertical Slice Implementation Plan
 
 **Date:** 2026-07-22  
-**Status:** In progress  
+**Status:** Integrated fixture slice; realtime source mapping deferred
 **Branch:** `feature/go-up-network-mode`
 
 ## Goal
@@ -10,9 +10,9 @@ Add a source-independent GO/UP dashboard mode without weakening the existing TTC
 
 ## Architecture
 
-Introduce `NetworkId = "ttc" | "regional"` at the dashboard data boundary. The server continues loading TTC through the current aggregate/legacy API compatibility path. The client owns the initial selector and supplies the regional fixture snapshot until a reviewed network-scoped backend DTO exists. `DataProvider` always receives the selected network's complete snapshot.
+`NetworkId = "ttc" | "regional"` exists at the dashboard data boundary. The aggregate backend endpoint accepts the network parameter and returns network/source/availability metadata with independent cache keys. TTC retains its live-or-fallback path. Regional mode currently returns its static station/status catalog with realtime explicitly unavailable, while the client supplies the complete typed fixture topology and source-honest local scenarios. `DataProvider` always receives the selected network's complete snapshot.
 
-Keep `InteractiveTtcMap` unchanged behind a small `NetworkMap` dispatcher. Add `InteractiveRegionalMap` for the custom regional SVG, its camera, stations, and overlays. Shared extraction is deferred until both implementations prove a genuinely identical primitive.
+`InteractiveTtcMap` remains isolated behind the `NetworkMap` dispatcher. `InteractiveRegionalMap` owns the custom regional SVG and camera while intentionally reusing the TTC map's proven visual primitives: station hover/selection indicators, impact group/glow/boundary classes, wide transparent hit targets, keyboard activation, and card selection behavior.
 
 ## Rollout Order
 
@@ -36,16 +36,16 @@ Keep `InteractiveTtcMap` unchanged behind a small `NetworkMap` dispatcher. Add `
 
 - Define BR, KI, LE, LW, MI, RH, ST, and UP route metadata from the reviewed palette.
 - Define every logical SVG station and corridor membership in route order.
-- Add representative route-wide, station-node, and segment-specific impacts using future-facing DTO shapes.
+- Add opt-in local route-wide, station-node, segment-specific, overlapping, and stale-source scenarios using future-facing DTO shapes. Keep the default fixture disruption-free.
 - Use route-prefixed adjacent segment IDs. Every segment must use an explicit `guidePathId` or reviewed route-specific anchor pair; no inferred straight-line production geometry.
 - Model Weston, Mount Dennis, and Bloor as one logical selectable station each with separate KI/UP child anchor IDs.
-- Add invisible route-specific Union attachment anchors in a later authored-geometry task before overlays converge there.
+- Use the authored guide when available and reviewed route-specific station anchors as the fixture-only fallback. Production source matching remains deferred.
 
 ### 4. Interactive regional map
 
 - Load only `regional-rail-map.svg` in the regional component.
 - Implement pointer pan, wheel/button zoom, fit-network, and a useful mobile initial camera.
-- Add large transparent station targets, hover/focus/keyboard selection, and logical selection for junction groups.
+- Add large transparent station targets, TTC-derived hover/selection indicators, hover boundaries, focus/keyboard selection, and logical selection for junction groups.
 - Resolve route-wide overlays from authored corridor paths; resolve station and segment overlays only from stable route anchors/guides.
 - Explain white-striped scheduled artwork in an original “Limited service” legend. Do not treat it as realtime disruption styling.
 
@@ -59,9 +59,16 @@ Keep `InteractiveTtcMap` unchanged behind a small `NetworkMap` dispatcher. Add `
 ### 6. Backend compatibility strategy
 
 - Do not change Metrolinx normalization before representative key-backed payloads are captured.
-- Preserve `/api/dashboard` and legacy TTC endpoints during the frontend slice.
-- Later add `GET /api/dashboard?network=ttc|regional` with provider-neutral display DTOs, network/source namespaces, independent health/freshness, and cache keys.
+- Preserve `/api/dashboard` and legacy TTC endpoints.
+- Support `GET /api/dashboard?network=ttc|regional` with provider-neutral network/source/availability metadata and independent cache keys. The regional response remains a source-unavailable static catalog until key-backed payloads are reviewed.
 - The browser API must expose purpose-built display data, never an API key or redistributed raw feed.
+
+### 6a. Account boundary integrated in this slice
+
+- Qualify saved-station identities and API mutations by `networkId`.
+- Validate TTC stations through the TTC repository and regional stations through the reviewed static catalog.
+- Keep My Stations scoped to the active network while retaining both networks' rows in the account.
+- Do not enable regional saved commutes, reliability analytics, or notification delivery.
 
 ### 7. Verification and later slices
 

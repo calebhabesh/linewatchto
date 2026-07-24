@@ -39,6 +39,10 @@ type StatusApiResponse = {
 };
 
 type DashboardApiResponse = {
+  networkId?: "ttc" | "regional";
+  availability?: "available" | "unavailable";
+  sourceSystems?: string[];
+  message?: string;
   map: MapApiResponse;
   status: StatusApiResponse;
   activeAlerts: ActiveAlert[];
@@ -105,7 +109,7 @@ function fallbackDashboardData(): DashboardData {
 }
 
 async function loadDashboardFromAggregate(): Promise<DashboardData | null> {
-  const payload = await fetchSafe<DashboardApiResponse>("/api/dashboard");
+  const payload = await fetchSafe<DashboardApiResponse>("/api/dashboard?network=ttc");
   if (!payload?.map || !payload.status || !payload.activeAlerts || !payload.delays || !payload.reducedSpeedZones || !payload.plannedClosures) {
     return null;
   }

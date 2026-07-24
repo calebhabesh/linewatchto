@@ -1,8 +1,10 @@
 import { apiUrl } from "./api-client.ts";
 import { AccountRequestError } from "./account-data.ts";
 import type { StationSummary } from "./station-data.ts";
+import type { NetworkId } from "./regional-data.ts";
 
 export type AccountSavedStation = {
+  networkId: NetworkId;
   station: StationSummary;
   savedAt: string;
 };
@@ -45,8 +47,14 @@ export async function getSavedStations(options: AdapterOptions = {}): Promise<Sa
     if (!response.ok) {
       throw await requestError(response);
     }
-    const body = await readJson<{ stations: AccountSavedStation[] }>(response);
-    return { source: "backend", stations: body.stations };
+    const body = await readJson<{ stations: Array<AccountSavedStation | Omit<AccountSavedStation, "networkId">> }>(response);
+    return {
+      source: "backend",
+      stations: body.stations.map((saved) => ({
+        ...saved,
+        networkId: "networkId" in saved ? saved.networkId : "ttc",
+      })),
+    };
   } catch {
     return {
       source: "unavailable",
@@ -56,22 +64,34 @@ export async function getSavedStations(options: AdapterOptions = {}): Promise<Sa
   }
 }
 
-export async function saveStation(stationId: string, options: AdapterOptions = {}) {
+export async function saveStation(
+  stationId: string,
+  networkId: NetworkId = "ttc",
+  options: AdapterOptions = {},
+) {
   const fetcher = options.fetcher ?? fetch;
   const response = await fetcher(
-    apiUrl(`/api/account/stations/${encodeURIComponent(stationId)}`, options.apiBaseUrl),
+    apiUrl(`/api/account/stations/${encodeURIComponent(stationId)}?network=${networkId}`, options.apiBaseUrl),
     { method: "PUT", credentials: "include" },
   );
   if (!response.ok) {
     throw await requestError(response);
   }
-  return readJson<AccountSavedStation>(response);
+  const saved = await readJson<AccountSavedStation | Omit<AccountSavedStation, "networkId">>(response);
+  return {
+    ...saved,
+    networkId: "networkId" in saved ? saved.networkId : networkId,
+  };
 }
 
-export async function removeSavedStation(stationId: string, options: AdapterOptions = {}) {
+export async function removeSavedStation(
+  stationId: string,
+  networkId: NetworkId = "ttc",
+  options: AdapterOptions = {},
+) {
   const fetcher = options.fetcher ?? fetch;
   const response = await fetcher(
-    apiUrl(`/api/account/stations/${encodeURIComponent(stationId)}`, options.apiBaseUrl),
+    apiUrl(`/api/account/stations/${encodeURIComponent(stationId)}?network=${networkId}`, options.apiBaseUrl),
     { method: "DELETE", credentials: "include" },
   );
   if (!response.ok) {

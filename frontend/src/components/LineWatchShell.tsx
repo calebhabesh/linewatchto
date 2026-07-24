@@ -118,8 +118,10 @@ import {
 } from "../app/visual-preferences";
 import {
   regionalDashboardData,
+  regionalDashboardDataForScenario,
   regionalStationSummaries,
   type NetworkId,
+  type RegionalScenarioId,
 } from "../app/regional-data";
 
 
@@ -195,11 +197,27 @@ export function LineWatchShell({
   const [initialMapReady, setInitialMapReady] = useState(false);
   const [defaultNetworkPreference, setDefaultNetworkPreference] = useState<NetworkId>(initialVisualPreferences.defaultNetwork);
   const [ttcData, setTtcData] = useState(initialData);
-  const displayData = selectedNetwork === "regional" ? regionalDashboardData : ttcData;
+  const [regionalData, setRegionalData] = useState(regionalDashboardData);
+  const displayData = selectedNetwork === "regional" ? regionalData : ttcData;
   const networkViewTransitionRef = useRef<{
     finished: Promise<void>;
     skipTransition: () => void;
   } | null>(null);
+
+  useEffect(() => {
+    if (window.location.hostname !== "localhost" && window.location.hostname !== "127.0.0.1") return;
+    const requestedScenario = new URLSearchParams(window.location.search).get("regionalScenario");
+    const supportedScenarios: RegionalScenarioId[] = [
+      "none",
+      "all-impact-types",
+      "shared-station",
+      "stale-source",
+    ];
+    if (requestedScenario && supportedScenarios.includes(requestedScenario as RegionalScenarioId)) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setRegionalData(regionalDashboardDataForScenario(requestedScenario as RegionalScenarioId));
+    }
+  }, []);
 
   useEffect(() => {
     if (initialData.dataSource === "backend") {
@@ -562,9 +580,13 @@ export function LineWatchShell({
   const [commutePathPreview, setCommutePathPreview] = useState<AccountCommutePathPreview | null>(null);
   const [authConfig, setAuthConfig] = useState<AuthConfig>(unavailableAuthConfig);
 
+  const currentSavedStations = useMemo(
+    () => savedStations.filter((saved) => saved.networkId === selectedNetwork),
+    [savedStations, selectedNetwork],
+  );
   const savedStationIds = useMemo(
-    () => new Set(savedStations.map((saved) => saved.station.id)),
-    [savedStations],
+    () => new Set(currentSavedStations.map((saved) => saved.station.id)),
+    [currentSavedStations],
   );
 
   const pushSettings = usePushNotificationSettings(accountState);
@@ -847,42 +869,61 @@ export function LineWatchShell({
     const station = stationSummaries.find((candidate) => candidate.id === stationId);
     if (!station || pendingSavedStationIds.has(stationId)) return false;
 
-    const optimistic: AccountSavedStation = { station, savedAt: new Date().toISOString() };
+    const optimistic: AccountSavedStation = {
+      networkId: selectedNetwork,
+      station,
+      savedAt: new Date().toISOString(),
+    };
     setSavedStationPending(stationId, true);
-    setSavedStations((current) => [optimistic, ...current.filter((saved) => saved.station.id !== stationId)]);
+    setSavedStations((current) => [
+      optimistic,
+      ...current.filter((saved) => saved.networkId !== selectedNetwork || saved.station.id !== stationId),
+    ]);
     try {
-      const saved = await saveStation(stationId);
-      setSavedStations((current) => [saved, ...current.filter((item) => item.station.id !== stationId)]);
+      const saved = await saveStation(stationId, selectedNetwork);
+      setSavedStations((current) => [
+        saved,
+        ...current.filter((item) => item.networkId !== selectedNetwork || item.station.id !== stationId),
+      ]);
       showSavedStationNotice(`${station.name} saved to My Stations`);
       return true;
     } catch (error) {
-      setSavedStations((current) => current.filter((saved) => saved.station.id !== stationId));
+      setSavedStations((current) => current.filter(
+        (saved) => saved.networkId !== selectedNetwork || saved.station.id !== stationId,
+      ));
       showSavedStationNotice(error instanceof Error ? error.message : "Could not save station");
       return false;
     } finally {
       setSavedStationPending(stationId, false);
     }
-  }, [accountState.authenticated, pendingSavedStationIds, savedStationIds, setAccountDialogMode, setAccountEntryIntent, setAccountError, setSavedStationPending, showSavedStationNotice, stationSummaries]);
+  }, [accountState.authenticated, pendingSavedStationIds, savedStationIds, selectedNetwork, setAccountDialogMode, setAccountEntryIntent, setAccountError, setSavedStationPending, showSavedStationNotice, stationSummaries]);
 
   const handleRemoveSavedStation = useCallback(async (stationId: string) => {
     if (!accountState.authenticated || pendingSavedStationIds.has(stationId)) return false;
-    const previous = savedStations.find((saved) => saved.station.id === stationId);
+    const previous = savedStations.find(
+      (saved) => saved.networkId === selectedNetwork && saved.station.id === stationId,
+    );
     if (!previous) return true;
 
     setSavedStationPending(stationId, true);
-    setSavedStations((current) => current.filter((saved) => saved.station.id !== stationId));
+    setSavedStations((current) => current.filter(
+      (saved) => saved.networkId !== selectedNetwork || saved.station.id !== stationId,
+    ));
     try {
-      await removeSavedStation(stationId);
+      await removeSavedStation(stationId, selectedNetwork);
       showSavedStationNotice(`${previous.station.name} removed from My Stations`);
       return true;
     } catch (error) {
-      setSavedStations((current) => [previous, ...current.filter((saved) => saved.station.id !== stationId)]);
+      setSavedStations((current) => [
+        previous,
+        ...current.filter((saved) => saved.networkId !== selectedNetwork || saved.station.id !== stationId),
+      ]);
       showSavedStationNotice(error instanceof Error ? error.message : "Could not remove station");
       return false;
     } finally {
       setSavedStationPending(stationId, false);
     }
-  }, [accountState.authenticated, pendingSavedStationIds, savedStations, setSavedStationPending, showSavedStationNotice]);
+  }, [accountState.authenticated, pendingSavedStationIds, savedStations, selectedNetwork, setSavedStationPending, showSavedStationNotice]);
 
   const handleToggleSavedStation = useCallback((stationId: string) => {
     if (savedStationIds.has(stationId)) {
@@ -1834,6 +1875,7 @@ export function LineWatchShell({
           <MobileStatusSheet
             pollText={pollText}
             dataSource={displayData.dataSource}
+            networkId={selectedNetwork}
             onOpenCategory={(view) => {
               setSelection(null);
               setActiveView(view);
@@ -1910,7 +1952,7 @@ export function LineWatchShell({
         return (
           <MyStationsPanel
             accountState={accountState}
-            savedStations={savedStations}
+            savedStations={currentSavedStations}
             stations={stationSummaries}
             loading={savedStationsLoading}
             error={savedStationsError}
@@ -1989,8 +2031,9 @@ export function LineWatchShell({
             onOpenNotifications={() => { setNavDirection("forward"); setActiveView("notifications"); }}
             onOpenCommutes={() => { setNavDirection("forward"); setActiveView("commutes"); }}
             onOpenMyStations={() => { setNavDirection("forward"); setActiveView("my-stations"); }}
-            savedStationCount={savedStations.length}
+            savedStationCount={currentSavedStations.length}
             defaultNetwork={defaultNetworkPreference}
+            currentNetwork={selectedNetwork}
             onDefaultNetworkChange={handleDefaultNetworkChange}
             onOpenAnalytics={() => { setNavDirection("forward"); setActiveView("analytics"); }}
             onOpenAlertHistory={() => { setNavDirection("forward"); setActiveView("alert-history"); }}
@@ -2223,8 +2266,8 @@ export function LineWatchShell({
 
           {selectedNetworkIsClosed && closedMapPeek ? (
             <div
-              className={`subway-closed-peek-chip ${
-                selectedNetwork === "regional" ? "go-up-closed-peek-chip" : ""
+              className={`${
+                selectedNetwork === "regional" ? "go-up-closed-peek-chip" : "subway-closed-peek-chip"
               } ${isExitingPeekChip ? "subway-closed-peek-chip--exiting" : ""}`}
               role="status"
               aria-live="polite"
@@ -2367,9 +2410,9 @@ export function LineWatchShell({
                           <Bookmark size={18} className="text-slate-500 dark:text-slate-400" />
                           My Stations
                         </span>
-                        {savedStations.length > 0 ? (
-                          <span className="flex h-6 min-w-6 items-center justify-center rounded-full bg-sky-500/15 px-2 text-[11px] font-bold text-sky-700 dark:text-sky-300" aria-label={`${savedStations.length} saved stations`}>
-                            {savedStations.length}
+                        {currentSavedStations.length > 0 ? (
+                          <span className="flex h-6 min-w-6 items-center justify-center rounded-full bg-sky-500/15 px-2 text-[11px] font-bold text-sky-700 dark:text-sky-300" aria-label={`${currentSavedStations.length} saved stations`}>
+                            {currentSavedStations.length}
                           </span>
                         ) : null}
                       </button>
@@ -2440,9 +2483,9 @@ export function LineWatchShell({
                           <Bookmark size={18} className="text-slate-500 dark:text-slate-400" />
                           My Stations
                         </span>
-                        {savedStations.length > 0 ? (
-                          <span className="flex h-6 min-w-6 items-center justify-center rounded-full bg-sky-500/15 px-2 text-[11px] font-bold text-sky-700 dark:text-sky-300" aria-label={`${savedStations.length} saved stations`}>
-                            {savedStations.length}
+                        {currentSavedStations.length > 0 ? (
+                          <span className="flex h-6 min-w-6 items-center justify-center rounded-full bg-sky-500/15 px-2 text-[11px] font-bold text-sky-700 dark:text-sky-300" aria-label={`${currentSavedStations.length} saved stations`}>
+                            {currentSavedStations.length}
                           </span>
                         ) : null}
                       </button>
@@ -2502,7 +2545,7 @@ export function LineWatchShell({
                      </span>
                    )}
                  </button>
-                 <button
+                 {selectedNetwork === "ttc" ? <button
                    ref={registerMenuAction(actionIndex++)}
                    role="menuitem"
                    onClick={() => setActiveView("reduced-speed-zones")}
@@ -2517,7 +2560,7 @@ export function LineWatchShell({
                        {reducedSpeedZones.length}
                      </span>
                    )}
-                 </button>
+                 </button> : null}
                  <button
                    ref={registerMenuAction(actionIndex++)}
                    role="menuitem"
@@ -2583,7 +2626,7 @@ export function LineWatchShell({
                </div>
 
                {/* Notifications */}
-               <div className="flex flex-col px-2 py-2 border-b border-black/10 dark:border-white/10 gap-0.5">
+               {selectedNetwork === "ttc" ? <div className="flex flex-col px-2 py-2 border-b border-black/10 dark:border-white/10 gap-0.5">
                  <div className="flex items-center gap-2 px-3 pt-2 pb-1 select-none">
                    <span className="w-1 h-4 rounded-full bg-logo-blue shrink-0 shadow-[0_0_4px_rgba(129,201,255,0.35)]" />
                    <span className="text-[12px] uppercase font-bold text-slate-700 dark:text-slate-300 tracking-wider">Notifications</span>
@@ -2606,10 +2649,10 @@ export function LineWatchShell({
                  >
                    <History size={18} className="text-slate-500 dark:text-slate-400" /> Alert History
                  </button>
-               </div>
+               </div> : null}
 
                {/* Operations */}
-               <div className="flex flex-col px-2 py-2 border-b border-black/10 dark:border-white/10 gap-0.5">
+               {selectedNetwork === "ttc" ? <div className="flex flex-col px-2 py-2 border-b border-black/10 dark:border-white/10 gap-0.5">
                  <div className="flex items-center gap-2 px-3 pt-2 pb-1 select-none">
                    <span className="w-1 h-4 rounded-full bg-logo-blue shrink-0 shadow-[0_0_4px_rgba(129,201,255,0.35)]" />
                    <span className="text-[12px] uppercase font-bold text-slate-700 dark:text-slate-300 tracking-wider">Operations</span>
@@ -2623,7 +2666,7 @@ export function LineWatchShell({
                  >
                    <BarChart3 size={18} className="text-slate-500 dark:text-slate-400" /> Reliability Analytics
                  </button>
-               </div>
+               </div> : null}
 
                {/* Display */}
                <div className="flex flex-col px-2 py-2 border-b border-black/10 dark:border-white/10 gap-0.5">
@@ -2742,7 +2785,15 @@ export function LineWatchShell({
                                     {hasRSZ && <Construction size={14} className="rsz-tone" />}
                                     {hasClosure && <Calendar size={14} className="text-blue-500 dark:text-blue-400" />}
                                   </div>
-                                  {isClear && <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider ml-1">Good Service</span>}
+                                  {isClear && (
+                                    <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider ml-1">
+                                      {displayData.dataSource === "backend"
+                                        ? "Good Service"
+                                        : selectedNetwork === "regional"
+                                          ? "Demo Status"
+                                          : "Fixture Data"}
+                                    </span>
+                                  )}
                                 </div>
                              </div>
                           </div>
@@ -2986,6 +3037,16 @@ export function LineWatchShell({
         <RegionalStationDetailPanel
           station={stationSummaries.find((station) => station.id === selectedStationId) ?? regionalStationSummaries.stations[0]}
           onClose={() => setSelectedStationId(null)}
+          onSelectImpact={handleMapSelectImpact}
+          authenticated={accountState.authenticated}
+          saved={savedStationIds.has(selectedStationId)}
+          savePending={pendingSavedStationIds.has(selectedStationId)}
+          onToggleSaved={handleToggleSavedStation}
+          onRequestSignIn={() => {
+            setAccountEntryIntent("login");
+            setAccountDialogMode("auth-choice");
+            setAccountError("Sign in to save stations.");
+          }}
         />
       ) : null}
 
@@ -3046,7 +3107,7 @@ export function LineWatchShell({
               </span>
               <span className="desktop-status-chip-label">{delays.length === 1 ? "Delay" : "Delays"}</span>
             </button>
-            <button
+            {selectedNetwork === "ttc" ? <button
               type="button"
               className="desktop-status-chip desktop-status-chip--reduced-speed-zone"
               onClick={() => {
@@ -3063,7 +3124,7 @@ export function LineWatchShell({
               <span className="desktop-status-chip-label">
                 {reducedSpeedZones.length === 1 ? "Reduced Speed Zone" : "Reduced Speed Zones"}
               </span>
-            </button>
+            </button> : null}
             <button
               type="button"
               className="desktop-status-chip desktop-status-chip--closures"

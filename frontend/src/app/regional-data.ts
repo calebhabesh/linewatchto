@@ -1,5 +1,13 @@
 import type { DashboardData } from "./DataContext";
-import type { LineStatus, NetworkSegment, Station } from "./linewatch-data";
+import type {
+  ActiveAlert,
+  DelayAlert,
+  LineStatus,
+  NetworkSegment,
+  PlannedClosure,
+  Station,
+  StationNodeImpact,
+} from "./linewatch-data";
 import type { StationListResponse } from "./station-data";
 
 export type NetworkId = "ttc" | "regional";
@@ -17,7 +25,7 @@ export const REGIONAL_ROUTE_DEFINITIONS = [
   { id: "regional-up", number: "UP", name: "Union Pearson Express", color: "#4084cd" },
 ] as const;
 
-type RegionalRouteCode = typeof REGIONAL_ROUTE_DEFINITIONS[number]["number"];
+export type RegionalRouteCode = typeof REGIONAL_ROUTE_DEFINITIONS[number]["number"];
 
 export const REGIONAL_ROUTE_STATIONS: Record<RegionalRouteCode, readonly string[]> = {
   BR: ["union", "downsview-park", "rutherford", "maple", "king-city", "aurora", "newmarket", "east-gwillimbury", "bradford", "barrie-south", "allandale-waterfront"],
@@ -61,7 +69,7 @@ function stationName(id: string) {
   return STATION_NAME_OVERRIDES[id] ?? id.split("-").map((part) => `${part[0].toUpperCase()}${part.slice(1)}`).join(" ");
 }
 
-const routeIdsByStation = Object.entries(REGIONAL_ROUTE_STATIONS)
+export const regionalRouteIdsByStation = Object.entries(REGIONAL_ROUTE_STATIONS)
   .reduce<Record<string, string[]>>((result, [routeCode, stationIds]) => {
     for (const stationId of stationIds) {
       result[stationId] = [...(result[stationId] ?? []), `regional-${routeCode.toLowerCase()}`];
@@ -76,7 +84,7 @@ export const regionalStations: Station[] = allRegionalStationIds.map((id) => ({
   name: stationName(id),
   x: 0,
   y: 0,
-  interchange: (routeIdsByStation[id]?.length ?? 0) > 1,
+  interchange: (regionalRouteIdsByStation[id]?.length ?? 0) > 1,
 }));
 
 export const regionalStationSummaries: StationListResponse = {
@@ -87,7 +95,7 @@ export const regionalStationSummaries: StationListResponse = {
     mapX: 0,
     mapY: 0,
     interchange: station.interchange ?? false,
-    lineIds: routeIdsByStation[station.id] ?? [],
+    lineIds: regionalRouteIdsByStation[station.id] ?? [],
     hasActiveImpact: false,
     accessStatus: "normal",
     accessOutageCounts: { elevator: 0, escalator: 0 },
@@ -100,50 +108,42 @@ const regionalLineStatuses: LineStatus[] = REGIONAL_ROUTE_DEFINITIONS.map((route
   name: route.name,
   route: `${route.name} corridor`,
   color: route.color,
-  status: "normal",
-  statusLabel: "No current regional fixture impacts",
-  summary: "Fixture-backed regional status for interface development.",
+  status: "ready",
+  statusLabel: "Demo data",
+  summary: "Realtime regional status is unavailable until Metrolinx ingestion is configured.",
   updatedAgo: "Demo fixture",
 }));
 
-const regionalSegments: NetworkSegment[] = [
-  {
-    id: "segment-ki-weston-mount-dennis",
-    lineId: "regional-ki",
-    label: "Weston to Mount Dennis",
-    stationAId: "weston",
-    stationBId: "mount-dennis",
-    stationAAnchorId: REGIONAL_JUNCTION_ANCHORS.weston.KI,
-    stationBAnchorId: REGIONAL_JUNCTION_ANCHORS["mount-dennis"].KI,
-    guidePathId: "segment-guide-ki-weston-mount-dennis",
-    pathD: "",
-    overlay: "clear",
-  },
-  {
-    id: "segment-up-weston-pearson-airport",
-    lineId: "regional-up",
-    label: "Weston to Pearson Airport",
-    stationAId: "weston",
-    stationBId: "pearson-airport",
-    stationAAnchorId: REGIONAL_JUNCTION_ANCHORS.weston.UP,
-    stationBAnchorId: "station-pearson-airport",
-    guidePathId: "segment-guide-up-weston-pearson-airport",
-    pathD: "",
-    overlay: "clear",
-  },
-  {
-    id: "segment-le-pickering-ajax",
-    lineId: "regional-le",
-    label: "Pickering to Ajax",
-    stationAId: "pickering",
-    stationBId: "ajax",
-    stationAAnchorId: "station-pickering",
-    stationBAnchorId: "station-ajax",
-    guidePathId: "segment-guide-le-pickering-ajax",
-    pathD: "",
-    overlay: "clear",
-  },
-];
+function regionalStationAnchorId(stationId: string, routeCode: RegionalRouteCode) {
+  const junction = REGIONAL_JUNCTION_ANCHORS[stationId];
+  return junction?.[routeCode as "KI" | "UP"] ?? `station-${stationId}`;
+}
+
+function regionalSegmentId(routeCode: RegionalRouteCode, stationAId: string, stationBId: string) {
+  return `segment-${routeCode.toLowerCase()}-${stationAId}-${stationBId}`;
+}
+
+export const regionalSegments: NetworkSegment[] = Object.entries(REGIONAL_ROUTE_STATIONS)
+  .flatMap(([rawRouteCode, stationIds]) => {
+    const routeCode = rawRouteCode as RegionalRouteCode;
+    return stationIds.slice(0, -1).map((stationAId, index) => {
+      const stationBId = stationIds[index + 1];
+      const id = regionalSegmentId(routeCode, stationAId, stationBId);
+      return {
+        id,
+        lineId: `regional-${routeCode.toLowerCase()}`,
+        label: `${stationName(stationAId)} to ${stationName(stationBId)}`,
+        stationAId,
+        stationBId,
+        stationAAnchorId: regionalStationAnchorId(stationAId, routeCode),
+        stationBAnchorId: regionalStationAnchorId(stationBId, routeCode),
+        guidePathId: `segment-guide-${routeCode.toLowerCase()}-${stationAId}-${stationBId}`,
+        pathD: "",
+        impacts: [],
+        overlay: "clear" as const,
+      };
+    });
+  });
 
 export const regionalDashboardData: DashboardData = {
   networkId: "regional",
@@ -176,3 +176,137 @@ export const regionalDashboardData: DashboardData = {
     legendIcons: {},
   },
 };
+
+export type RegionalScenarioId =
+  | "none"
+  | "all-impact-types"
+  | "shared-station"
+  | "stale-source";
+
+function scenarioActiveAlert(
+  overrides: Partial<ActiveAlert> & Pick<ActiveAlert, "id" | "lineId" | "lineNumber" | "title" | "severity">,
+): ActiveAlert {
+  return {
+    location: "Regional fixture scenario",
+    description: "Synthetic regional scenario data for interface verification.",
+    affectedSegmentIds: [],
+    shuttle: false,
+    source: "Synthetic regional fixture",
+    ...overrides,
+  };
+}
+
+export function regionalDashboardDataForScenario(
+  scenario: RegionalScenarioId,
+): DashboardData {
+  if (scenario === "none") return regionalDashboardData;
+
+  const data = structuredClone(regionalDashboardData);
+  if (scenario === "stale-source") {
+    data.generatedAt = {
+      time: "Unavailable",
+      date: "Regional source has not been configured",
+      live: false,
+      lastPoll: "not configured",
+    };
+    data.ingestionHealth = [{
+      label: "Regional source",
+      value: "Unavailable — no Metrolinx API connection",
+      state: "error",
+    }];
+    return data;
+  }
+
+  const delaySegmentId = regionalSegmentId("LE", "pickering", "ajax");
+  const suspensionSegmentId = regionalSegmentId("KI", "weston", "mount-dennis");
+  const delay: DelayAlert = {
+    id: "regional-demo-delay",
+    lineId: "regional-le",
+    lineNumber: "LE",
+    title: "Synthetic delay between Pickering and Ajax",
+    location: "Pickering to Ajax",
+    description: "Synthetic regional scenario data for interface verification.",
+    affectedSegmentIds: [delaySegmentId],
+    source: "Synthetic regional fixture",
+  };
+  const suspension = scenarioActiveAlert({
+    id: "regional-demo-suspension",
+    lineId: "regional-ki",
+    lineNumber: "KI",
+    title: "Synthetic service suspension",
+    severity: "suspension",
+    location: "Weston to Mount Dennis",
+    affectedSegmentIds: [suspensionSegmentId],
+  });
+  const plannedClosure: PlannedClosure = {
+    id: "regional-demo-planned",
+    lineId: "regional-br",
+    lineNumber: "BR",
+    title: "Synthetic planned service change",
+    window: "Fixture scenario",
+    location: "Rutherford to Maple",
+    description: "Synthetic regional scenario data for interface verification.",
+    previewSegmentIds: [regionalSegmentId("BR", "rutherford", "maple")],
+    shuttle: false,
+    source: "Synthetic regional fixture",
+  };
+  const stationImpact: StationNodeImpact = {
+    stationId: scenario === "shared-station" ? "bloor" : "union",
+    kind: "delay",
+    cardId: delay.id,
+    title: "Synthetic station impact",
+  };
+
+  data.activeAlerts = [
+    suspension,
+    scenarioActiveAlert({
+      id: delay.id,
+      lineId: delay.lineId,
+      lineNumber: delay.lineNumber,
+      title: delay.title,
+      severity: "delay",
+      location: delay.location,
+      affectedSegmentIds: delay.affectedSegmentIds,
+    }),
+  ];
+  data.delays = [delay];
+  data.plannedClosures = [plannedClosure];
+  data.stationNodeImpacts = [stationImpact];
+  data.networkSegments = data.networkSegments.map((segment) => {
+    const impacts = [];
+    if (segment.id === delaySegmentId) {
+      impacts.push({
+        kind: "delay" as const,
+        cardId: delay.id,
+        travelDirection: "bidirectional" as const,
+        sourceAlertIds: [delay.id],
+      });
+    }
+    if (segment.id === suspensionSegmentId) {
+      impacts.push({
+        kind: "suspension" as const,
+        cardId: suspension.id,
+        travelDirection: "bidirectional" as const,
+        sourceAlertIds: [suspension.id],
+      });
+    }
+    if (plannedClosure.previewSegmentIds.includes(segment.id)) {
+      impacts.push({
+        kind: "planned-closure" as const,
+        cardId: plannedClosure.id,
+        travelDirection: "bidirectional" as const,
+        sourceAlertIds: [plannedClosure.id],
+      });
+    }
+    return {
+      ...segment,
+      impacts,
+      overlay: impacts.some((impact) => impact.kind === "suspension")
+        ? "suspension"
+        : impacts.length > 0
+          ? "delay"
+          : "clear",
+    };
+  });
+  return data;
+}

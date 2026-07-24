@@ -18,6 +18,7 @@ import {
 import { getStationDetail, type StationDataResult, type StationDetail, type StationSummary } from "../app/station-data";
 import { stationImpactKindsByStation, stationImpactSelection } from "../app/station-impact-types";
 import { useDashboardData } from "../app/DataContext";
+import { REGIONAL_ROUTE_DEFINITIONS } from "../app/regional-data";
 import { useSubwayOperatingState } from "../hooks/useSubwayOperatingState";
 import { ToolbarSelectMenu, type ToolbarSelectOption } from "./ImpactListToolbar";
 import { ImpactTypeIcon } from "./ImpactTypeIcon";
@@ -52,6 +53,13 @@ const LINES = [
   { id: "line-4", number: "4", name: "Sheppard", color: "#A21A68", text: "#ffffff" },
   { id: "line-5", number: "5", name: "Eglinton Crosstown", color: "#EB8738", text: "#111827" },
   { id: "line-6", number: "6", name: "Finch West", color: "#969594", text: "#111827" },
+  ...REGIONAL_ROUTE_DEFINITIONS.map((line) => ({
+    id: line.id,
+    number: line.number,
+    name: line.name,
+    color: line.color,
+    text: "#ffffff",
+  })),
 ] as const;
 
 const SORT_OPTIONS: Array<{ value: SavedStationSort; label: string }> = [
@@ -60,11 +68,6 @@ const SORT_OPTIONS: Array<{ value: SavedStationSort; label: string }> = [
   { value: "recent", label: "Recently Saved" },
   { value: "oldest", label: "Oldest Saved" },
   { value: "line", label: "Line" },
-];
-
-const LINE_OPTIONS: ToolbarSelectOption<string>[] = [
-  { value: "all", label: "All Lines" },
-  ...LINES.map((line) => ({ value: line.id, label: line.name, lineId: line.id })),
 ];
 
 const SAVED_STATION_DETAIL_REFRESH_MS = 15_000;
@@ -186,6 +189,7 @@ function SavedStationRow({
   disruptionExpanded,
   onDisruptionExpandedChange,
   onRemove,
+  regional,
 }: {
   saved: AccountSavedStation;
   detailResult?: StationDataResult<StationDetail | null>;
@@ -198,6 +202,7 @@ function SavedStationRow({
   disruptionExpanded: boolean;
   onDisruptionExpandedChange: (expanded: boolean) => void;
   onRemove: () => void;
+  regional: boolean;
 }) {
   const dashboard = useDashboardData();
   const detail = detailResult?.data ?? null;
@@ -254,7 +259,11 @@ function SavedStationRow({
         </button>
       </div>
 
-      {!detailResult ? (
+      {regional ? (
+        <div className="saved-station-detail-loading">
+          Realtime arrivals and accessibility details are unavailable in regional demo mode.
+        </div>
+      ) : !detailResult ? (
         <div className="saved-station-detail-loading" role="status">
           <LoaderCircle size={15} aria-hidden="true" />
           Loading station information...
@@ -439,6 +448,14 @@ export function MyStationsPanel({
     () => stationImpactKindsByStation(dashboardData),
     [dashboardData],
   );
+  const availableLines = useMemo(
+    () => LINES.filter((line) => stations.some((station) => station.lineIds.includes(line.id))),
+    [stations],
+  );
+  const lineOptions = useMemo<ToolbarSelectOption<string>[]>(() => [
+    { value: "all", label: "All Lines" },
+    ...availableLines.map((line) => ({ value: line.id, label: line.name, lineId: line.id })),
+  ], [availableLines]);
   const visible = useMemo(
     () => filterAndSortSavedStations(savedStations, query, lineId, sort),
     [savedStations, query, lineId, sort],
@@ -456,7 +473,7 @@ export function MyStationsPanel({
       return [{ id: "search-results", label: "Search Results", line: null, stations: pickerStations }];
     }
 
-    return LINES
+    return availableLines
       .filter((line) => lineId === "all" || line.id === lineId)
       .map((line) => ({
         id: line.id,
@@ -465,7 +482,7 @@ export function MyStationsPanel({
         stations: pickerStations.filter((station) => station.lineIds.includes(line.id)),
       }))
       .filter((group) => group.stations.length > 0);
-  }, [lineId, pickerStations, query]);
+  }, [availableLines, lineId, pickerStations, query]);
   const compactEmpty = authenticated && mode === "list" && !loading && !error && savedStations.length === 0 && !lastRemoved;
 
   const visibleStationIds = useMemo(
@@ -474,7 +491,7 @@ export function MyStationsPanel({
   );
 
   useEffect(() => {
-    if (mode !== "list" || !visibleStationIds) return;
+    if (dashboardData.networkId === "regional" || mode !== "list" || !visibleStationIds) return;
     let cancelled = false;
     const stationIds = visibleStationIds.split(",");
 
@@ -499,7 +516,7 @@ export function MyStationsPanel({
       window.clearInterval(interval);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, [mode, visibleStationIds]);
+  }, [dashboardData.networkId, mode, visibleStationIds]);
 
   useEffect(() => {
     const interval = window.setInterval(() => setArrivalTick(Date.now()), 3_000);
@@ -650,7 +667,7 @@ export function MyStationsPanel({
               ariaLabel="Filter stations by line"
               prefix="Line"
               value={lineId}
-              options={LINE_OPTIONS}
+              options={lineOptions}
               onChange={setLineId}
             />
             <ToolbarSelectMenu
@@ -738,6 +755,7 @@ export function MyStationsPanel({
                   saved={saved}
                   detailResult={stationDetails[saved.station.id]}
                   subwayClosed={subwayOperatingState.status === "closed"}
+                  regional={dashboardData.networkId === "regional"}
                   arrivalTick={arrivalTick}
                   pending={pendingStationIds.has(saved.station.id)}
                   onOpen={() => onSelectStation(saved.station.id)}

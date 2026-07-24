@@ -43,7 +43,7 @@ describe("dashboard server data binding", () => {
     assert.match(dashboardDataSource, /dataSource: "backend"/);
     assert.match(shellSource, /displayData/);
     assert.match(shellSource, /setTtcData\(initialData\)/);
-    assert.match(shellSource, /selectedNetwork === "regional" \? regionalDashboardData : ttcData/);
+    assert.match(shellSource, /selectedNetwork === "regional" \? regionalData : ttcData/);
     assert.match(shellSource, /initialData\.dataSource === "backend"/);
   });
 });

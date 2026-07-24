@@ -43,10 +43,10 @@ class SavedStationControllerTest {
     void saveReturnsCreatedForNewRelationshipAndRateLimitsByAccount() {
         SavedStationResponses.SavedStationResponse response = response();
         when(accountService.requireAccount("raw-token")).thenReturn(account);
-        when(savedStationService.save(account, "union"))
+        when(savedStationService.save(account, "regional", "union"))
             .thenReturn(new SavedStationResponses.SaveResult(response, true));
 
-        var result = controller.save("raw-token", "union");
+        var result = controller.save("raw-token", "union", "regional");
 
         assertThat(result.getStatusCode()).isEqualTo(HttpStatus.CREATED);
         assertThat(result.getBody()).isEqualTo(response);
@@ -56,24 +56,25 @@ class SavedStationControllerTest {
     @Test
     void saveReturnsOkWhenRelationshipAlreadyExists() {
         when(accountService.requireAccount("raw-token")).thenReturn(account);
-        when(savedStationService.save(account, "union"))
+        when(savedStationService.save(account, "ttc", "union"))
             .thenReturn(new SavedStationResponses.SaveResult(response(), false));
 
-        assertThat(controller.save("raw-token", "union").getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(controller.save("raw-token", "union", "ttc").getStatusCode()).isEqualTo(HttpStatus.OK);
     }
 
     @Test
     void deleteUsesCurrentSessionAccount() {
         when(accountService.requireAccount("raw-token")).thenReturn(account);
 
-        controller.delete("raw-token", "union");
+        controller.delete("raw-token", "union", "regional");
 
         verify(rateLimiter).requirePreferenceMutation("user_1");
-        verify(savedStationService).delete(account, "union");
+        verify(savedStationService).delete(account, "regional", "union");
     }
 
     private SavedStationResponses.SavedStationResponse response() {
         return new SavedStationResponses.SavedStationResponse(
+            "ttc",
             new StationResponses.StationSummaryResponse(
                 "union",
                 "Union",

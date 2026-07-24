@@ -5,7 +5,9 @@ import { describe, it } from "node:test";
 import {
   DEFAULT_NETWORK_ID,
   REGIONAL_JUNCTION_ANCHORS,
+  REGIONAL_ROUTE_STATIONS,
   regionalDashboardData,
+  regionalDashboardDataForScenario,
   regionalStationSummaries,
 } from "../src/app/regional-data.ts";
 import { defaultVisualPreferences } from "../src/app/visual-preferences.ts";
@@ -161,6 +163,24 @@ describe("network-scoped regional dashboard", () => {
     assert.deepEqual(regionalDashboardData.stations.map((station) => station.id).sort(), svgLogicalStationIds);
   });
 
+  it("indexes every adjacent station pair with network-safe route topology", () => {
+    const expectedSegmentCount = Object.values(REGIONAL_ROUTE_STATIONS)
+      .reduce((total, stationIds) => total + stationIds.length - 1, 0);
+    assert.equal(expectedSegmentCount, 74);
+    assert.equal(regionalDashboardData.networkSegments.length, expectedSegmentCount);
+    assert.equal(
+      new Set(regionalDashboardData.networkSegments.map((segment) => segment.id)).size,
+      expectedSegmentCount,
+    );
+    assert.ok(regionalDashboardData.networkSegments.every((segment) =>
+      segment.stationAId
+      && segment.stationBId
+      && segment.stationAAnchorId
+      && segment.stationBAnchorId
+      && segment.guidePathId
+    ));
+  });
+
   it("isolates regional station search input from TTC fixtures", () => {
     const ids = new Set(regionalStationSummaries.stations.map((station) => station.id));
     assert.equal(ids.has("pearson-airport"), true);
@@ -207,6 +227,32 @@ describe("network-scoped regional dashboard", () => {
     assert.match(regionalMapSource, /item\.affectedSegmentIds\.length === 0/);
     assert.match(regionalMapSource, /segment\.guidePathId/);
     assert.match(regionalMapSource, /stationNodeImpacts/);
+  });
+
+  it("provides source-honest synthetic scenarios without changing the default fixture", () => {
+    const scenario = regionalDashboardDataForScenario("all-impact-types");
+    assert.equal(regionalDashboardData.activeAlerts.length, 0);
+    assert.equal(scenario.activeAlerts.length, 2);
+    assert.equal(scenario.delays.length, 1);
+    assert.equal(scenario.plannedClosures.length, 1);
+    assert.equal(scenario.stationNodeImpacts.length, 1);
+    assert.ok(scenario.networkSegments.some((segment) => (segment.impacts?.length ?? 0) > 0));
+    assert.ok(scenario.activeAlerts.every((alert) => /Synthetic regional fixture/.test(alert.source)));
+  });
+
+  it("adds visible hover, focus, and selection feedback to regional stations", () => {
+    assert.match(globalsCss, /\.regional-station-hit-target:hover \+ \.regional-station-hover-indicator/);
+    assert.match(globalsCss, /\.regional-station-hit-target:focus-visible \+ \.regional-station-hover-indicator/);
+    assert.match(regionalMapSource, /"station-hover-indicator", "regional-station-hover-indicator"/);
+    assert.match(regionalMapSource, /"station-selected-indicator", "regional-station-selected-indicator"/);
+    assert.match(regionalMapSource, /"map-segment-hit-target", "regional-impact-hit-target"/);
+    assert.match(regionalMapSource, /"asset-alert-path-hover-boundary", "regional-impact-hover-boundary"/);
+    assert.match(regionalMapSource, /createElementNS\(SVG_NAMESPACE, "title"\)/);
+  });
+
+  it("renders every layered segment impact instead of discarding overlaps", () => {
+    assert.match(regionalMapSource, /for \(const \[impactIndex, impact\] of \(segment\.impacts \?\? \[\]\)\.entries\(\)\)/);
+    assert.doesNotMatch(regionalMapSource, /const impact = segment\.impacts\?\.\[0\]/);
   });
 
   it("supports pointer, wheel, fit-network, and keyboard map interactions", () => {
