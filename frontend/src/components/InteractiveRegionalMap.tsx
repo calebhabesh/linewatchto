@@ -19,6 +19,27 @@ const MAP_WIDTH = 4739.2821;
 const MAP_HEIGHT = 2616.8174;
 const REGIONAL_MAP_HORIZONTAL_INSET_RATIO = 0.025;
 const REGIONAL_MAP_MOBILE_INSET_RATIO = 0.05;
+
+const REGIONAL_LARGE_TERMINAL_IDS = new Set([
+  "union",
+  "allandale-waterfront",
+  "niagara-falls",
+  "durham-college-oshawa",
+  "stratford",
+  "kitchener",
+  "milton",
+  "bloomington",
+  "old-elm",
+  "pearson-airport",
+  "hamilton",
+  "west-harbour",
+  "exhibition",
+  "kipling",
+  "kennedy",
+  "bloor",
+  "weston",
+  "mount-dennis",
+]);
 // The authored SVG is slightly wider than the camera canvas, leaving just over
 // 4% of vertical letterbox room in the fitted frame. Stay below that limit so
 // the tighter default never crosses the console or impact-badge bounds.
@@ -73,9 +94,13 @@ function regionalImpactGroup(
   group.style.setProperty("--regional-impact-width", `${Math.max(48, 104 - layerIndex * 20)}px`);
   group.style.setProperty("--regional-impact-dasharray", regionalImpactDashArray(kind));
 
-  const glow = sourcePath.cloneNode(false) as SVGPathElement;
-  removeDescendantIds(glow);
-  glow.classList.add("asset-alert-path-glow", "interactive-glow", "regional-impact-glow");
+  const aura = sourcePath.cloneNode(false) as SVGPathElement;
+  removeDescendantIds(aura);
+  aura.classList.add("asset-alert-path-glow", "regional-impact-glow", "regional-impact-aura");
+
+  const interactiveGlow = sourcePath.cloneNode(false) as SVGPathElement;
+  removeDescendantIds(interactiveGlow);
+  interactiveGlow.classList.add("asset-alert-path-glow", "interactive-glow", "regional-impact-glow", "regional-impact-interactive-glow");
 
   const boundary = sourcePath.cloneNode(false) as SVGPathElement;
   removeDescendantIds(boundary);
@@ -96,7 +121,7 @@ function regionalImpactGroup(
   title.textContent = label;
   hitTarget.prepend(title);
 
-  group.append(glow, boundary, visiblePath, hitTarget);
+  group.append(aura, interactiveGlow, boundary, visiblePath, hitTarget);
   return group;
 }
 
@@ -146,6 +171,8 @@ function InteractiveRegionalMapComponent({
   recenterSignal,
   isDark = true,
   animateInitialEntrance = true,
+  desktopMenuPinned = false,
+  preserveCameraOnSelectionClear = false,
   onReady,
 }: {
   selection: ImpactSelection;
@@ -156,6 +183,8 @@ function InteractiveRegionalMapComponent({
   recenterSignal?: number;
   isDark?: boolean;
   animateInitialEntrance?: boolean;
+  desktopMenuPinned?: boolean;
+  preserveCameraOnSelectionClear?: boolean;
   onReady?: () => void;
 }) {
   const { activeAlerts, networkSegments, stationNodeImpacts } = useDashboardData();
@@ -169,6 +198,7 @@ function InteractiveRegionalMapComponent({
   const [loadError, setLoadError] = useState(false);
   const [dragging, setDragging] = useState(false);
   const [fitScale, setFitScale] = useState(0.35);
+  const [selectionPulsePhase, setSelectionPulsePhase] = useState<"fast" | "latent">("fast");
   const [desktopMapTopInset, setDesktopMapTopInset] = useState(0);
   const [desktopMapBottomInset, setDesktopMapBottomInset] = useState(0);
   const animTimeoutRef = useRef<number | null>(null);
@@ -176,9 +206,17 @@ function InteractiveRegionalMapComponent({
   const dragAnimationFrameRef = useRef<number | null>(null);
   const pendingDragPointRef = useRef<{ x: number; y: number } | null>(null);
   const dragMovedRef = useRef(false);
+  const pointerActivationRef = useRef<
+    { type: "station"; id: string }
+    | { type: "impact"; selection: NonNullable<ImpactSelection> }
+    | null
+  >(null);
+  const suppressNextClickRef = useRef(false);
   const wheelCommitTimeoutRef = useRef<number | null>(null);
   const cameraRef = useRef(camera);
   const readyNotifiedRef = useRef(false);
+  const lastFocusedTargetKeyRef = useRef<string | null>(null);
+  const lastFocusLayoutKeyRef = useRef("");
 
   const writeMapTransform = useCallback((nextCamera: Camera) => {
     if (mapStageRef.current) {
@@ -403,23 +441,88 @@ function InteractiveRegionalMapComponent({
           const title = documentNode.createElementNS(SVG_NAMESPACE, "title");
           title.textContent = `${stationId.replaceAll("-", " ")} station`;
           hitTarget.prepend(title);
-          const hitShapes = hitTarget.matches("circle, rect") ? [hitTarget] : [...hitTarget.querySelectorAll<SVGElement>("circle, rect")];
+          const hitShapes = hitTarget.matches("circle, rect, ellipse") ? [hitTarget] : [...hitTarget.querySelectorAll<SVGElement>("circle, rect, ellipse")];
           for (const shape of hitShapes) {
             shape.setAttribute("style", "fill:transparent;stroke:transparent;stroke-width:120;pointer-events:all");
           }
 
+          const isLarge = REGIONAL_LARGE_TERMINAL_IDS.has(stationId);
+          const scaleFactor = isLarge ? 1.35 : 1.45;
+
           const hoverIndicator = element.cloneNode(true) as SVGElement;
           removeDescendantIds(hoverIndicator);
           hoverIndicator.classList.add("station-hover-indicator", "regional-station-hover-indicator");
+          if (isLarge) hoverIndicator.classList.add("large-terminal");
           hoverIndicator.setAttribute("aria-hidden", "true");
+          const hoverShapes = hoverIndicator.matches("circle, rect, ellipse") ? [hoverIndicator] : [...hoverIndicator.querySelectorAll<SVGElement>("circle, rect, ellipse")];
+          for (const shape of hoverShapes) {
+            if (shape.getAttribute("inkscape:label") === "join-rectangle") {
+              shape.remove();
+              continue;
+            }
+            const tagName = shape.tagName.toLowerCase();
+            if (tagName === "circle") {
+              const r = Number(shape.getAttribute("r") ?? 0);
+              shape.setAttribute("r", String(r * scaleFactor));
+            } else if (tagName === "ellipse") {
+              const rx = Number(shape.getAttribute("rx") ?? 0);
+              const ry = Number(shape.getAttribute("ry") ?? 0);
+              shape.setAttribute("rx", String(rx * scaleFactor));
+              shape.setAttribute("ry", String(ry * scaleFactor));
+            } else if (tagName === "rect") {
+              const w = Number(shape.getAttribute("width") ?? 0);
+              const h = Number(shape.getAttribute("height") ?? 0);
+              const x = Number(shape.getAttribute("x") ?? 0);
+              const y = Number(shape.getAttribute("y") ?? 0);
+              const rx = Number(shape.getAttribute("rx") ?? 0);
+              const ry = Number(shape.getAttribute("ry") ?? 0);
+              const padding = stationId === "union" ? 75 : (w * (scaleFactor - 1)) / 2;
+              shape.setAttribute("width", String(w + padding * 2));
+              shape.setAttribute("height", String(h + padding * 2));
+              shape.setAttribute("x", String(x - padding));
+              shape.setAttribute("y", String(y - padding));
+              if (rx) shape.setAttribute("rx", String(rx + padding));
+              if (ry) shape.setAttribute("ry", String(ry + padding));
+            }
+          }
 
           const selectedIndicator = element.cloneNode(true) as SVGElement;
           removeDescendantIds(selectedIndicator);
           selectedIndicator.dataset.regionalStationSelectionId = stationId;
           selectedIndicator.classList.add("station-selected-indicator", "regional-station-selected-indicator");
           selectedIndicator.setAttribute("aria-hidden", "true");
+          const selectedShapes = selectedIndicator.matches("circle, rect, ellipse") ? [selectedIndicator] : [...selectedIndicator.querySelectorAll<SVGElement>("circle, rect, ellipse")];
+          for (const shape of selectedShapes) {
+            if (shape.getAttribute("inkscape:label") === "join-rectangle") {
+              shape.remove();
+              continue;
+            }
+            const tagName = shape.tagName.toLowerCase();
+            const selectedScaleFactor = isLarge ? 1 : 1.2;
+            if (tagName === "circle") {
+              const radius = Number(shape.getAttribute("r") ?? 0);
+              shape.setAttribute("r", String(radius * selectedScaleFactor));
+            } else if (tagName === "ellipse") {
+              const radiusX = Number(shape.getAttribute("rx") ?? 0);
+              const radiusY = Number(shape.getAttribute("ry") ?? 0);
+              shape.setAttribute("rx", String(radiusX * selectedScaleFactor));
+              shape.setAttribute("ry", String(radiusY * selectedScaleFactor));
+            } else if (tagName === "rect") {
+              const width = Number(shape.getAttribute("width") ?? 0);
+              const height = Number(shape.getAttribute("height") ?? 0);
+              const x = Number(shape.getAttribute("x") ?? 0);
+              const y = Number(shape.getAttribute("y") ?? 0);
+              const paddingX = (width * (selectedScaleFactor - 1)) / 2;
+              const paddingY = (height * (selectedScaleFactor - 1)) / 2;
+              shape.setAttribute("width", String(width + paddingX * 2));
+              shape.setAttribute("height", String(height + paddingY * 2));
+              shape.setAttribute("x", String(x - paddingX));
+              shape.setAttribute("y", String(y - paddingY));
+            }
+          }
 
-          element.before(hitTarget, hoverIndicator, selectedIndicator);
+          element.before(hitTarget, hoverIndicator);
+          element.after(selectedIndicator);
           element.classList.add("regional-station-visual");
         }
         for (const alert of activeAlerts.filter((item) => item.affectedSegmentIds.length === 0)) {
@@ -477,8 +580,12 @@ function InteractiveRegionalMapComponent({
           ring.setAttribute("role", "button");
           ring.setAttribute("tabindex", "0");
           ring.setAttribute("aria-label", impact.title);
-          const shapes = ring.matches("circle, rect") ? [ring] : [...ring.querySelectorAll<SVGElement>("circle, rect")];
+          const shapes = ring.matches("circle, rect, ellipse") ? [ring] : [...ring.querySelectorAll<SVGElement>("circle, rect, ellipse")];
           for (const shape of shapes) {
+            if (shape.getAttribute("inkscape:label") === "join-rectangle") {
+              shape.remove();
+              continue;
+            }
             shape.setAttribute(
               "style",
               "fill:transparent;pointer-events:stroke",
@@ -546,19 +653,157 @@ function InteractiveRegionalMapComponent({
     const root = viewportRef.current;
     root?.querySelectorAll("[data-regional-station-selected]").forEach((element) => element.removeAttribute("data-regional-station-selected"));
     if (selectedStationId) {
-      root?.querySelector(`[data-regional-station-selection-id="${CSS.escape(selectedStationId)}"]`)
-        ?.setAttribute("data-regional-station-selected", "true");
+      const indicator = root?.querySelector(
+        `[data-regional-station-selection-id="${CSS.escape(selectedStationId)}"]`,
+      );
+      indicator?.setAttribute("data-regional-station-selected", "true");
+      indicator?.setAttribute("data-regional-selection-phase", selectionPulsePhase);
     }
-  }, [selectedStationId, svgMarkup]);
+  }, [selectedStationId, selectionPulsePhase, svgMarkup]);
 
   useEffect(() => {
     const root = viewportRef.current;
     root?.querySelectorAll("[data-regional-impact-selected]").forEach((element) => element.removeAttribute("data-regional-impact-selected"));
     if (selection) {
       root?.querySelectorAll(`[data-regional-impact-kind="${selection.kind}"][data-regional-impact-id="${CSS.escape(selection.id)}"]`)
-        .forEach((element) => element.setAttribute("data-regional-impact-selected", "true"));
+        .forEach((element) => {
+          element.setAttribute("data-regional-impact-selected", "true");
+          element.setAttribute("data-regional-selection-phase", selectionPulsePhase);
+        });
     }
-  }, [selection, svgMarkup]);
+  }, [selection, selectionPulsePhase, svgMarkup]);
+
+  useEffect(() => {
+    if (!selection && !selectedStationId) return;
+    let fastPhaseFrame: number | null = null;
+    let latentPhaseTimer: number | null = null;
+    const fastPhaseTimer = window.setTimeout(() => {
+      setSelectionPulsePhase("fast");
+      fastPhaseFrame = window.requestAnimationFrame(() => {
+        latentPhaseTimer = window.setTimeout(() => setSelectionPulsePhase("latent"), 2400);
+      });
+    }, 0);
+    return () => {
+      window.clearTimeout(fastPhaseTimer);
+      if (fastPhaseFrame !== null) window.cancelAnimationFrame(fastPhaseFrame);
+      if (latentPhaseTimer !== null) window.clearTimeout(latentPhaseTimer);
+    };
+  }, [selectedStationId, selection]);
+
+  const selectedMapElements = useCallback(() => {
+    const root = viewportRef.current;
+    if (!root) return [];
+    if (selection) {
+      return [...root.querySelectorAll<SVGGraphicsElement>(
+        `[data-regional-impact-kind="${selection.kind}"][data-regional-impact-id="${CSS.escape(selection.id)}"]`,
+      )];
+    }
+    if (selectedStationId) {
+      const station = root.querySelector<SVGGraphicsElement>(
+        `[data-regional-station-selection-id="${CSS.escape(selectedStationId)}"]`,
+      );
+      return station ? [station] : [];
+    }
+    return [];
+  }, [selectedStationId, selection]);
+
+  const focusSelectedMapElements = useCallback(() => {
+    const viewport = viewportRef.current;
+    const elements = selectedMapElements();
+    if (!viewport || elements.length === 0) return false;
+
+    const visibleRects = elements
+      .map((element) => element.getBoundingClientRect())
+      .filter((rect) => rect.width > 0 || rect.height > 0);
+    if (visibleRects.length === 0) return false;
+
+    const viewportRect = viewport.getBoundingClientRect();
+    const current = cameraRef.current;
+    const left = Math.min(...visibleRects.map((rect) => rect.left));
+    const right = Math.max(...visibleRects.map((rect) => rect.right));
+    const top = Math.min(...visibleRects.map((rect) => rect.top));
+    const bottom = Math.max(...visibleRects.map((rect) => rect.bottom));
+    const renderedCenterX = (left + right) / 2 - viewportRect.left;
+    const renderedCenterY = (top + bottom) / 2 - viewportRect.top;
+    const mapX = (renderedCenterX - current.x) / current.scale;
+    const mapY = (renderedCenterY - current.y) / current.scale;
+    const isMobile = window.matchMedia("(max-width: 767px)").matches;
+    const targetScale = clampPanZoomScale(fitScale * (isMobile ? 3.8 : 1.8), fitScale);
+
+    let focusX = viewport.clientWidth / 2;
+    const focusY = viewport.clientHeight / 2;
+    if (!isMobile && desktopMenuPinned) {
+      const shell = viewport.closest<HTMLElement>(".linewatch-shell");
+      const overlayRightEdges = [
+        shell?.querySelector<HTMLElement>("#linewatch-main-menu"),
+        shell?.querySelector<HTMLElement>(".floating-panel-shell"),
+      ].flatMap((element) => {
+        if (!element || element.getAttribute("aria-hidden") === "true") return [];
+        const rect = element.getBoundingClientRect();
+        return rect.width > 0 && rect.height > 0 ? [rect.right] : [];
+      });
+      if (overlayRightEdges.length > 0) {
+        const minimumVisibleWidth = Math.min(320, viewportRect.width * 0.4);
+        const insetLeft = Math.min(
+          Math.max(Math.max(...overlayRightEdges) - viewportRect.left + 16, 0),
+          Math.max(viewportRect.width - minimumVisibleWidth, 0),
+        );
+        focusX = insetLeft + (viewport.clientWidth - insetLeft) / 2;
+      }
+    }
+
+    animateCameraTo(snapCameraToDevicePixels({
+      x: focusX - mapX * targetScale,
+      y: focusY - mapY * targetScale,
+      scale: targetScale,
+    }));
+    return true;
+  }, [animateCameraTo, desktopMenuPinned, fitScale, selectedMapElements]);
+
+  const focusTargetKey = selection
+    ? `${selection.kind}:${selection.id}`
+    : selectedStationId
+      ? `station:${selectedStationId}`
+      : null;
+
+  useEffect(() => {
+    if (!cameraInitializedRef.current || !svgMarkup) return;
+    const layoutKey = `${desktopMenuPinned ? "pinned" : "free"}:${desktopMapTopInset}:${desktopMapBottomInset}`;
+
+    if (!focusTargetKey) {
+      if (lastFocusedTargetKeyRef.current !== null) {
+        lastFocusedTargetKeyRef.current = null;
+        lastFocusLayoutKeyRef.current = layoutKey;
+        if (!preserveCameraOnSelectionClear) {
+          const recenterFrame = window.requestAnimationFrame(fitNetwork);
+          return () => window.cancelAnimationFrame(recenterFrame);
+        }
+      }
+      return;
+    }
+    if (
+      lastFocusedTargetKeyRef.current === focusTargetKey
+      && lastFocusLayoutKeyRef.current === layoutKey
+    ) {
+      return;
+    }
+
+    const frame = window.requestAnimationFrame(() => {
+      if (!focusSelectedMapElements()) return;
+      lastFocusedTargetKeyRef.current = focusTargetKey;
+      lastFocusLayoutKeyRef.current = layoutKey;
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [
+    desktopMapBottomInset,
+    desktopMapTopInset,
+    desktopMenuPinned,
+    fitNetwork,
+    focusSelectedMapElements,
+    focusTargetKey,
+    preserveCameraOnSelectionClear,
+    svgMarkup,
+  ]);
 
   const zoomAtCenter = useCallback((factor: number) => {
     const viewport = viewportRef.current;
@@ -628,6 +873,20 @@ function InteractiveRegionalMapComponent({
   const onPointerDown = useCallback((event: PointerEvent<HTMLDivElement>) => {
     if (event.button !== 0) return;
     cancelCameraAnimation();
+    const target = event.target instanceof Element ? event.target : null;
+    const impact = target?.closest<SVGElement>("[data-regional-impact-kind]");
+    const station = target?.closest<SVGElement>("[data-regional-station-id]");
+    pointerActivationRef.current = impact?.dataset.regionalImpactKind && impact.dataset.regionalImpactId
+      ? {
+          type: "impact",
+          selection: {
+            kind: impact.dataset.regionalImpactKind as NonNullable<ImpactSelection>["kind"],
+            id: impact.dataset.regionalImpactId,
+          },
+        }
+      : station?.dataset.regionalStationId
+        ? { type: "station", id: station.dataset.regionalStationId }
+        : null;
     event.currentTarget.setPointerCapture(event.pointerId);
     dragRef.current = { pointerId: event.pointerId, x: event.clientX, y: event.clientY, camera: cameraRef.current };
     pendingDragPointRef.current = null;
@@ -679,9 +938,19 @@ function InteractiveRegionalMapComponent({
     }
     pendingDragPointRef.current = null;
     dragRef.current = null;
+    const activation = pointerActivationRef.current;
+    pointerActivationRef.current = null;
+    if (event.type === "pointerup" && !dragMovedRef.current && activation) {
+      suppressNextClickRef.current = true;
+      if (activation.type === "station") {
+        onSelectStationId(selectedStationId === activation.id ? null : activation.id);
+      } else {
+        onSelectImpact(activation.selection);
+      }
+    }
     setCamera({ ...cameraRef.current });
     setDragging(false);
-  }, [writeMapTransform]);
+  }, [onSelectImpact, onSelectStationId, selectedStationId, writeMapTransform]);
 
   const activateTarget = useCallback((target: EventTarget | null) => {
     if (!(target instanceof Element)) return;
@@ -716,6 +985,10 @@ function InteractiveRegionalMapComponent({
         onPointerUp={onPointerUp}
         onPointerCancel={onPointerUp}
         onClick={(event) => {
+          if (suppressNextClickRef.current) {
+            suppressNextClickRef.current = false;
+            return;
+          }
           if (dragMovedRef.current) return;
           activateTarget(event.target);
         }}

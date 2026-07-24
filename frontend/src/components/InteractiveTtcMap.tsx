@@ -201,7 +201,7 @@ function isStationVisuallyLarge(station: { id: string; interchange: boolean }): 
     return true;
   }
   if (station.id === "union") {
-    return false;
+    return true;
   }
   return station.interchange;
 }

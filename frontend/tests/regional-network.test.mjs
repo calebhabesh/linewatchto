@@ -5,6 +5,7 @@ import { describe, it } from "node:test";
 import {
   DEFAULT_NETWORK_ID,
   REGIONAL_JUNCTION_ANCHORS,
+  REGIONAL_ROUTE_CARDINAL_DIRECTIONS,
   REGIONAL_ROUTE_STATIONS,
   regionalDashboardData,
   regionalDashboardDataForScenario,
@@ -19,6 +20,7 @@ const mobileMoreSource = readFileSync(new URL("../src/components/MobileMoreSheet
 const networkMapSource = readFileSync(new URL("../src/components/NetworkMap.tsx", import.meta.url), "utf8");
 const networkMapLegendsSource = readFileSync(new URL("../src/components/NetworkMapLegends.tsx", import.meta.url), "utf8");
 const regionalMapSource = readFileSync(new URL("../src/components/InteractiveRegionalMap.tsx", import.meta.url), "utf8");
+const regionalStationDetailSource = readFileSync(new URL("../src/components/RegionalStationDetailPanel.tsx", import.meta.url), "utf8");
 const panZoomSource = readFileSync(new URL("../src/hooks/usePanZoom.ts", import.meta.url), "utf8");
 const regionalSvg = readFileSync(new URL("../public/assets/linewatch/regional-rail-map.svg", import.meta.url), "utf8");
 const globalsCss = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
@@ -192,6 +194,33 @@ describe("network-scoped regional dashboard", () => {
     assert.match(shellSource, /setTtcStationSummaries\(result\.data\.stations\)/);
   });
 
+  it("uses the TTC station-detail layout while keeping regional data limitations explicit", () => {
+    assert.match(regionalStationDetailSource, /station-detail-header-actions/);
+    assert.match(regionalStationDetailSource, /station-detail-save-control/);
+    assert.match(regionalStationDetailSource, /data-station-header-line-details/);
+    assert.match(regionalStationDetailSource, /data-station-section="arrivals"/);
+    assert.match(regionalStationDetailSource, /Regional realtime unavailable/);
+    assert.match(regionalStationDetailSource, /Arrival Data Unavailable/);
+    assert.match(regionalStationDetailSource, /Metrolinx realtime coverage has not been configured/);
+    assert.match(regionalStationDetailSource, /Accessibility and platform-condition details are unavailable/);
+    assert.doesNotMatch(regionalStationDetailSource, /wheel-chair-symbol|elevator-icon/);
+  });
+
+  it("uses cardinal directions consistently for every regional rail corridor", () => {
+    assert.deepEqual(REGIONAL_ROUTE_CARDINAL_DIRECTIONS, {
+      BR: "Northbound / Southbound",
+      KI: "Eastbound / Westbound",
+      LE: "Eastbound / Westbound",
+      LW: "Eastbound / Westbound",
+      MI: "Eastbound / Westbound",
+      RH: "Northbound / Southbound",
+      ST: "Northbound / Southbound",
+      UP: "Eastbound / Westbound",
+    });
+    assert.match(regionalStationDetailSource, /REGIONAL_ROUTE_CARDINAL_DIRECTIONS\[route\.number(?:\s+as\s+[^\]]+)?\]/);
+    assert.doesNotMatch(regionalStationDetailSource, /Toward/);
+  });
+
   it("keeps grouped junction selection logical while exposing KI and UP route anchors", () => {
     for (const stationId of ["weston", "mount-dennis", "bloor"]) {
       assert.deepEqual(REGIONAL_JUNCTION_ANCHORS[stationId], {
@@ -244,10 +273,62 @@ describe("network-scoped regional dashboard", () => {
     assert.match(globalsCss, /\.regional-station-hit-target:hover \+ \.regional-station-hover-indicator/);
     assert.match(globalsCss, /\.regional-station-hit-target:focus-visible \+ \.regional-station-hover-indicator/);
     assert.match(regionalMapSource, /"station-hover-indicator", "regional-station-hover-indicator"/);
+    assert.match(regionalMapSource, /stationId === "union" \? 75/);
     assert.match(regionalMapSource, /"station-selected-indicator", "regional-station-selected-indicator"/);
     assert.match(regionalMapSource, /"map-segment-hit-target", "regional-impact-hit-target"/);
     assert.match(regionalMapSource, /"asset-alert-path-hover-boundary", "regional-impact-hover-boundary"/);
     assert.match(regionalMapSource, /createElementNS\(SVG_NAMESPACE, "title"\)/);
+    assert.match(
+      globalsCss,
+      /\.regional-station-selected-indicator\s*\{[^}]*animation:\s*none\s*!important/s,
+    );
+    assert.match(
+      globalsCss,
+      /\.regional-station-selected-indicator\[data-regional-station-selected="true"\]\[data-regional-selection-phase="latent"\]\s*\{[^}]*animation:\s*station-selection-latent-pulse[^;]*!important/s,
+    );
+  });
+
+  it("uses TTC-derived disruption motion and selection emphasis at regional map scale", () => {
+    assert.match(regionalMapSource, /"regional-impact-aura"/);
+    assert.match(regionalMapSource, /"regional-impact-interactive-glow"/);
+    assert.match(globalsCss, /data-regional-impact-kind="delay"[\s\S]*regional-delay-static-shift/);
+    assert.match(globalsCss, /data-regional-impact-kind="reduced-speed-zone"[\s\S]*regional-chevron-slide/);
+    assert.match(globalsCss, /data-regional-impact-kind="suspension"[\s\S]*regional-impact-width-pulse/);
+    assert.match(globalsCss, /data-regional-impact-kind="planned-closure"[\s\S]*regional-impact-aura[\s\S]*display:\s*none/);
+    assert.match(globalsCss, /data-regional-impact-selected="true"[\s\S]*regional-impact-interactive-glow[\s\S]*regional-selection-flash/);
+    assert.match(globalsCss, /\.motion-paused \.regional-impact-aura/);
+    assert.match(globalsCss, /prefers-reduced-motion:\s*reduce[\s\S]*\.regional-impact-aura/);
+  });
+
+  it("gives every selected regional station and impact a fast flash followed by a latent pulse", () => {
+    assert.match(regionalMapSource, /selectionPulsePhase/);
+    assert.match(regionalMapSource, /setSelectionPulsePhase\("fast"\)/);
+    assert.match(
+      regionalMapSource,
+      /setSelectionPulsePhase\("fast"\)[\s\S]*requestAnimationFrame[\s\S]*setSelectionPulsePhase\("latent"\), 2400/,
+    );
+    assert.match(regionalMapSource, /data-regional-selection-phase/);
+    assert.match(globalsCss, /regional-station-selected-indicator[\s\S]*data-regional-selection-phase="fast"[\s\S]*station-selection-flash/);
+    assert.match(globalsCss, /regional-station-selected-indicator[\s\S]*data-regional-selection-phase="latent"[\s\S]*station-selection-latent-pulse/);
+    assert.match(globalsCss, /regional-impact-interactive-glow[\s\S]*regional-selection-flash/);
+    assert.match(globalsCss, /regional-impact-interactive-glow[\s\S]*regional-selection-latent-pulse/);
+    assert.match(globalsCss, /regional-station-impact-ring[\s\S]*regional-station-selection-flash/);
+    assert.match(globalsCss, /regional-station-impact-ring[\s\S]*regional-station-selection-latent-pulse/);
+  });
+
+  it("fits terminal selections to their authored shape and slightly enlarges regular station dots", () => {
+    assert.match(regionalMapSource, /const selectedScaleFactor = isLarge \? 1 : 1\.2/);
+    assert.doesNotMatch(regionalMapSource, /stationId === "union" \? 104/);
+    assert.match(regionalMapSource, /element\.before\(hitTarget, hoverIndicator\)/);
+    assert.match(regionalMapSource, /element\.after\(selectedIndicator\)/);
+    assert.match(
+      globalsCss,
+      /regional-impact-interactive-glow\s*\{[\s\S]*stroke:\s*var\(--station-selection-accent\)/,
+    );
+    assert.match(
+      globalsCss,
+      /regional-station-impact-ring\[data-regional-impact-selected="true"\][\s\S]*fill:\s*rgb\(var\(--station-selection-accent-rgb\)[^;]*!important[\s\S]*stroke:\s*var\(--station-selection-accent\)\s*!important/,
+    );
   });
 
   it("renders every layered segment impact instead of discarding overlaps", () => {
@@ -260,6 +341,26 @@ describe("network-scoped regional dashboard", () => {
     assert.match(regionalMapSource, /onPointerDown=\{onPointerDown\}/);
     assert.match(regionalMapSource, /event\.key !== "Enter" && event\.key !== " "/);
     assert.match(regionalMapSource, /aria-label="Fit regional network"/);
+  });
+
+  it("focuses the regional camera on station and impact selections from every UI entry point", () => {
+    assert.match(networkMapSource, /desktopMenuPinned=\{props\.desktopMenuPinned\}/);
+    assert.match(networkMapSource, /preserveCameraOnSelectionClear=\{props\.preserveCameraOnSelectionClear\}/);
+    assert.match(regionalMapSource, /data-regional-station-selection-id/);
+    assert.match(regionalMapSource, /data-regional-impact-kind/);
+    assert.match(regionalMapSource, /selectedMapElements/);
+    assert.match(regionalMapSource, /getBoundingClientRect\(\)/);
+    assert.match(regionalMapSource, /fitScale \* \(isMobile \? 3\.8 : 1\.8\)/);
+    assert.match(regionalMapSource, /focusX - mapX \* targetScale/);
+    assert.match(regionalMapSource, /focusY - mapY \* targetScale/);
+    assert.match(regionalMapSource, /animateCameraTo\(snapCameraToDevicePixels/);
+    assert.match(regionalMapSource, /if \(!preserveCameraOnSelectionClear\)[\s\S]*requestAnimationFrame\(fitNetwork\)/);
+  });
+
+  it("preserves station activation across viewport pointer capture", () => {
+    assert.match(regionalMapSource, /pointerActivationRef/);
+    assert.match(regionalMapSource, /event\.type === "pointerup" && !dragMovedRef\.current && activation/);
+    assert.match(regionalMapSource, /onSelectStationId\(selectedStationId === activation\.id \? null : activation\.id\)/);
   });
 
   it("batches regional drag transforms outside React renders", () => {

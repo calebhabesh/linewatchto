@@ -27,6 +27,17 @@ export const REGIONAL_ROUTE_DEFINITIONS = [
 
 export type RegionalRouteCode = typeof REGIONAL_ROUTE_DEFINITIONS[number]["number"];
 
+export const REGIONAL_ROUTE_CARDINAL_DIRECTIONS: Record<RegionalRouteCode, string> = {
+  BR: "Northbound / Southbound",
+  KI: "Eastbound / Westbound",
+  LE: "Eastbound / Westbound",
+  LW: "Eastbound / Westbound",
+  MI: "Eastbound / Westbound",
+  RH: "Northbound / Southbound",
+  ST: "Northbound / Southbound",
+  UP: "Eastbound / Westbound",
+};
+
 export const REGIONAL_ROUTE_STATIONS: Record<RegionalRouteCode, readonly string[]> = {
   BR: ["union", "downsview-park", "rutherford", "maple", "king-city", "aurora", "newmarket", "east-gwillimbury", "bradford", "barrie-south", "allandale-waterfront"],
   KI: ["union", "bloor", "weston", "mount-dennis", "etobicoke-north", "malton", "bramalea", "brampton-innovation-district", "mount-pleasant", "georgetown", "acton", "guelph-central", "kitchener", "stratford"],

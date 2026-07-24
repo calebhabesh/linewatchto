@@ -8,7 +8,7 @@ const DEFAULT_TARGET = "frontend/public/assets/linewatch/regional-rail-map.svg";
 const sourcePath = path.resolve(process.argv[2] ?? DEFAULT_SOURCE);
 const targetPath = path.resolve(process.argv[3] ?? DEFAULT_TARGET);
 
-function replaceElementIdForLabel(svg, label, nextId, tagNames = "g|circle|rect|path") {
+function replaceElementIdForLabel(svg, label, nextId, tagNames = "g|circle|ellipse|rect|path") {
   const escapedLabel = label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   const openingTag = new RegExp(`<(${tagNames})(?=[^>]*inkscape:label="${escapedLabel}")[^>]*>`, "g");
   let replacements = 0;

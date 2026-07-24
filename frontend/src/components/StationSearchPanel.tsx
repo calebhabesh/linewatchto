@@ -15,7 +15,7 @@ import type { ImpactKind, ImpactSelection } from "../app/linewatch-data";
 import {
   buildStationLineGroups,
   searchStations,
-  STATION_SEARCH_LINES,
+  stationSearchLineById,
   type StationSearchLine,
 } from "../app/station-search";
 import {
@@ -99,7 +99,7 @@ function ImpactSearchButton({
 }
 
 function lineById(lineId: string) {
-  return STATION_SEARCH_LINES.find((line) => line.id === lineId);
+  return stationSearchLineById(lineId);
 }
 
 function StationLineBadge({ line }: { line: StationSearchLine }) {
@@ -251,6 +251,7 @@ export function StationSearchPanel({
   onRequestSignIn,
 }: Props) {
   const dashboardData = useDashboardData();
+  const searchPlaceholder = "Search Stations and Alerts...";
   const stationImpactKinds = useMemo(
     () => stationImpactKindsByStation(dashboardData),
     [dashboardData],
@@ -493,7 +494,7 @@ export function StationSearchPanel({
             onKeyDown={handleInputKeyDown}
             onFocus={() => setIsInputFocused(true)}
             onBlur={() => setIsInputFocused(false)}
-            placeholder="Search Stations and Alerts..."
+            placeholder={searchPlaceholder}
             className="station-search-input"
           />
           <button
@@ -623,7 +624,9 @@ export function StationSearchPanel({
                       <div className="flex items-center gap-2">
                         <Image src={group.line.icon} alt="" width={34} height={34} aria-hidden="true" />
                         <span className="station-search-line-copy">
-                          <span className="station-search-line-title">Line {group.line.number}</span>
+                          <span className="station-search-line-title">
+                            {group.line.id.startsWith("regional-") ? group.line.number : `Line ${group.line.number}`}
+                          </span>
                           <span className="station-search-line-name">{group.line.name}</span>
                         </span>
                       </div>

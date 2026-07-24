@@ -34,6 +34,23 @@ export const STATION_SEARCH_LINES: StationSearchLine[] = Object.values(STATION_L
   icon: `/assets/linewatch/${line.id}-legend.svg?v=2`,
 }));
 
+export const REGIONAL_STATION_SEARCH_LINES: StationSearchLine[] = [
+  { id: "regional-br", number: "BR", name: "Barrie", color: "#155ba0", icon: "/assets/linewatch/go-br-legend.svg?v=2" },
+  { id: "regional-ki", number: "KI", name: "Kitchener", color: "#138336", icon: "/assets/linewatch/go-ki-legend.svg?v=2" },
+  { id: "regional-le", number: "LE", name: "Lakeshore East", color: "#ee2722", icon: "/assets/linewatch/go-le-legend.svg?v=2" },
+  { id: "regional-lw", number: "LW", name: "Lakeshore West", color: "#8b0a31", icon: "/assets/linewatch/go-lw-legend.svg?v=2" },
+  { id: "regional-mi", number: "MI", name: "Milton", color: "#f47216", icon: "/assets/linewatch/go-mi-legend.svg?v=2" },
+  { id: "regional-rh", number: "RH", name: "Richmond Hill", color: "#27adea", icon: "/assets/linewatch/go-rh-legend.svg?v=2" },
+  { id: "regional-st", number: "ST", name: "Stouffville", color: "#774111", icon: "/assets/linewatch/go-st-legend.svg?v=2" },
+  { id: "regional-up", number: "UP", name: "Union Pearson Express", color: "#4084cd", icon: "/assets/linewatch/up-express-legend.svg?v=2" },
+];
+
+export const ALL_STATION_SEARCH_LINES = [...STATION_SEARCH_LINES, ...REGIONAL_STATION_SEARCH_LINES];
+
+export function stationSearchLineById(lineId: string) {
+  return ALL_STATION_SEARCH_LINES.find((line) => line.id === lineId);
+}
+
 export function normalizeStationQuery(value: string) {
   return value
     .normalize("NFKD")
@@ -142,8 +159,10 @@ function scoreStation(station: StationSummary, query: string): Pick<StationSearc
 
 export function buildStationLineGroups(stations: StationSummary[]): StationLineGroup[] {
   const stationById = new Map(stations.map((station) => [station.id, station]));
+  const visibleLineIds = new Set(stations.flatMap((station) => station.lineIds));
+  const lines = ALL_STATION_SEARCH_LINES.filter((line) => visibleLineIds.has(line.id));
 
-  return STATION_SEARCH_LINES.map((line) => {
+  return lines.map((line) => {
     const orderedIds = STATION_LINE_STATION_IDS[line.id] ?? [];
     const orderedStations = orderedIds
       .map((stationId) => stationById.get(stationId))

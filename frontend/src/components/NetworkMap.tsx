@@ -33,6 +33,8 @@ export function NetworkMap({
           recenterSignal={props.recenterSignal}
           isDark={props.isDark}
           animateInitialEntrance={props.animateInitialEntrance}
+          desktopMenuPinned={props.desktopMenuPinned}
+          preserveCameraOnSelectionClear={props.preserveCameraOnSelectionClear}
           onReady={onInitialMapReady}
         />
       ) : (

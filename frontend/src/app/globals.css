@@ -333,31 +333,60 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
 .regional-station-hover-indicator,
 .regional-station-selected-indicator {
   opacity: 0;
+  transition: opacity 0.2s ease-in-out;
 }
 
-.regional-station-hover-indicator :is(circle, rect),
-.regional-station-hover-indicator:is(circle, rect) {
-  fill: rgb(var(--station-selection-accent-rgb) / 30%) !important;
-  stroke: var(--station-selection-accent) !important;
-  stroke-width: 42px !important;
+.regional-station-selected-indicator {
+  /* TTC's base selected marker animates immediately. Regional markers are
+     persistent SVG clones, so keep them inert until their data state is set. */
+  animation: none !important;
+  filter: none;
+}
+
+.regional-station-hover-indicator :is(circle, rect, ellipse),
+.regional-station-hover-indicator:is(circle, rect, ellipse) {
+  fill: transparent !important;
+  stroke: transparent !important;
+  stroke-width: 0 !important;
+  transition: fill 0.2s ease-in-out, stroke 0.2s ease-in-out, stroke-width 0.2s ease-in-out;
 }
 
 .regional-station-hit-target:hover + .regional-station-hover-indicator,
 .regional-station-hit-target:focus-visible + .regional-station-hover-indicator {
   opacity: 1;
-  filter: drop-shadow(0 0 10px rgb(var(--station-selection-accent-rgb) / 85%));
 }
 
-.regional-station-selected-indicator :is(circle, rect),
-.regional-station-selected-indicator:is(circle, rect) {
+.regional-station-hit-target:hover + .regional-station-hover-indicator :is(circle, rect, ellipse),
+.regional-station-hit-target:hover + .regional-station-hover-indicator:is(circle, rect, ellipse),
+.regional-station-hit-target:focus-visible + .regional-station-hover-indicator :is(circle, rect, ellipse),
+.regional-station-hit-target:focus-visible + .regional-station-hover-indicator:is(circle, rect, ellipse) {
+  fill: rgb(var(--station-selection-accent-rgb) / 30%) !important;
+  stroke: var(--station-selection-accent) !important;
+  stroke-width: 16px !important;
+}
+
+.regional-station-selected-indicator :is(circle, rect, ellipse),
+.regional-station-selected-indicator:is(circle, rect, ellipse) {
   fill: var(--station-selection-accent) !important;
   stroke: none !important;
 }
 
 .regional-station-selected-indicator[data-regional-station-selected="true"] {
   opacity: 1;
-  animation: station-selected-pulse 2.4s ease-in-out infinite;
+  transform-origin: center;
+  transform-box: fill-box;
+  filter: drop-shadow(0 0 6px rgb(var(--station-selection-accent-rgb) / 85%));
+  animation: station-selected-pulse 2.4s ease-in-out infinite !important;
   animation-delay: var(--map-pulse-offset);
+  transition: opacity 0.2s ease-in-out;
+}
+
+.regional-station-selected-indicator[data-regional-station-selected="true"][data-regional-selection-phase="fast"] {
+  animation: station-selection-flash 0.6s ease-in-out 4 forwards !important;
+}
+
+.regional-station-selected-indicator[data-regional-station-selected="true"][data-regional-selection-phase="latent"] {
+  animation: station-selection-latent-pulse 1.2s ease-in-out var(--map-pulse-offset) alternate infinite !important;
 }
 
 .regional-overlay-segment-group {
@@ -390,6 +419,58 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
   filter: blur(12px);
 }
 
+.regional-impact-aura {
+  animation: regional-impact-aura-pulse 1.2s infinite alternate ease-in-out;
+}
+
+.regional-impact-interactive-glow {
+  animation: none !important;
+  opacity: 0;
+}
+
+.regional-overlay-segment-group[data-regional-impact-kind="planned-closure"] .regional-impact-aura {
+  display: none !important;
+}
+
+.regional-overlay-segment-group[data-regional-impact-kind="delay"] .regional-impact-path {
+  stroke-dasharray: 18 8 5 8;
+  animation: regional-delay-static-shift 900ms steps(6, end) infinite;
+}
+
+.regional-overlay-segment-group[data-regional-impact-kind="reduced-speed-zone"] .regional-impact-path {
+  stroke-dasharray: 35 45;
+  animation: regional-chevron-slide 850ms linear infinite;
+}
+
+.regional-overlay-segment-group[data-regional-impact-kind="suspension"] .regional-impact-path {
+  animation: regional-impact-width-pulse 1.2s infinite alternate ease-in-out;
+}
+
+.regional-overlay-segment-group[data-regional-impact-kind="planned-closure"] .regional-impact-path {
+  opacity: 0.6;
+  stroke-dasharray: 120 70;
+}
+
+@keyframes regional-impact-aura-pulse {
+  from { opacity: 0.16; }
+  to { opacity: 0.38; }
+}
+
+@keyframes regional-impact-width-pulse {
+  from { stroke-width: var(--regional-impact-width); }
+  to { stroke-width: calc(var(--regional-impact-width) + 12px); }
+}
+
+@keyframes regional-delay-static-shift {
+  from { stroke-dashoffset: 0; }
+  to { stroke-dashoffset: -94px; }
+}
+
+@keyframes regional-chevron-slide {
+  from { stroke-dashoffset: 0; }
+  to { stroke-dashoffset: -80px; }
+}
+
 .regional-impact-hover-boundary {
   stroke-width: calc(var(--regional-impact-width) + 18px);
 }
@@ -405,13 +486,52 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
   filter: blur(18px);
 }
 
+.regional-overlay-segment-group[data-regional-impact-selected="true"] .regional-impact-interactive-glow {
+  stroke: var(--station-selection-accent);
+  stroke-width: calc(var(--regional-impact-width) + 38px);
+  filter: blur(8px) drop-shadow(0 0 12px rgb(var(--station-selection-accent-rgb) / 90%));
+  opacity: 0.72;
+}
+
+.regional-overlay-segment-group[data-regional-impact-selected="true"][data-regional-selection-phase="fast"] .regional-impact-interactive-glow {
+  animation: regional-selection-flash 0.6s ease-in-out 4 forwards !important;
+}
+
+.regional-overlay-segment-group[data-regional-impact-selected="true"][data-regional-selection-phase="latent"] .regional-impact-interactive-glow {
+  animation: regional-selection-latent-pulse 1.2s ease-in-out var(--map-pulse-offset) alternate infinite !important;
+}
+
+@keyframes regional-selection-flash {
+  0%, 100% {
+    opacity: 0;
+    stroke-width: calc(var(--regional-impact-width) + 38px);
+  }
+  50% {
+    opacity: 0.95;
+    stroke-width: calc(var(--regional-impact-width) + 72px);
+  }
+}
+
+@keyframes regional-selection-latent-pulse {
+  from {
+    opacity: 0.22;
+    stroke-width: calc(var(--regional-impact-width) + 38px);
+    filter: blur(8px) drop-shadow(0 0 8px rgb(2 132 199 / 45%));
+  }
+  to {
+    opacity: 0.9;
+    stroke-width: calc(var(--regional-impact-width) + 54px);
+    filter: blur(8px) drop-shadow(0 0 20px rgb(2 132 199 / 95%));
+  }
+}
+
 .regional-overlay-segment-group:has(.regional-impact-hit-target:hover) .regional-impact-hover-boundary,
 .regional-overlay-segment-group:has(.regional-impact-hit-target:focus-visible) .regional-impact-hover-boundary {
   opacity: 0.94;
 }
 
 .regional-overlay-segment-group[data-regional-impact-selected="true"] .regional-impact-path {
-  filter: drop-shadow(0 0 14px #fff);
+  filter: drop-shadow(0 0 14px rgb(var(--station-selection-accent-rgb) / 95%));
 }
 
 .regional-station-impact-ring {
@@ -419,8 +539,8 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
   stroke-width: var(--regional-station-impact-width);
 }
 
-.regional-station-impact-ring :is(circle, rect),
-.regional-station-impact-ring:is(circle, rect) {
+.regional-station-impact-ring :is(circle, rect, ellipse),
+.regional-station-impact-ring:is(circle, rect, ellipse) {
   fill: transparent !important;
   stroke: var(--regional-impact-color) !important;
   stroke-width: var(--regional-station-impact-width) !important;
@@ -432,9 +552,64 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
   filter: drop-shadow(0 0 12px var(--regional-impact-color)) drop-shadow(0 0 20px rgb(255 255 255 / 35%));
 }
 
+.regional-station-impact-ring[data-regional-impact-selected="true"] :is(circle, rect, ellipse),
+.regional-station-impact-ring[data-regional-impact-selected="true"]:is(circle, rect, ellipse) {
+  fill: rgb(var(--station-selection-accent-rgb) / 28%) !important;
+  stroke: var(--station-selection-accent) !important;
+  filter: drop-shadow(0 0 12px rgb(var(--station-selection-accent-rgb) / 95%));
+}
+
+.regional-station-impact-ring[data-regional-impact-selected="true"][data-regional-selection-phase="fast"] {
+  animation: regional-station-selection-flash 0.6s ease-in-out 4 forwards !important;
+}
+
+.regional-station-impact-ring[data-regional-impact-selected="true"][data-regional-selection-phase="latent"] {
+  animation: regional-station-selection-latent-pulse 1.2s ease-in-out var(--map-pulse-offset) alternate infinite !important;
+}
+
+@keyframes regional-station-selection-flash {
+  0%, 100% {
+    opacity: 0.25;
+  }
+  50% {
+    opacity: 1;
+    filter: drop-shadow(0 0 16px var(--regional-impact-color)) drop-shadow(0 0 26px rgb(255 255 255 / 65%));
+  }
+}
+
+@keyframes regional-station-selection-latent-pulse {
+  from {
+    opacity: 0.45;
+    filter: drop-shadow(0 0 6px var(--regional-impact-color));
+  }
+  to {
+    opacity: 1;
+    filter: drop-shadow(0 0 16px var(--regional-impact-color)) drop-shadow(0 0 24px rgb(255 255 255 / 55%));
+  }
+}
+
 .motion-paused .regional-station-selected-indicator[data-regional-station-selected="true"],
-.motion-paused .regional-station-impact-ring {
+.motion-paused .regional-station-hover-indicator,
+.motion-paused .regional-station-impact-ring,
+.motion-paused .regional-impact-aura,
+.motion-paused .regional-impact-path,
+.motion-paused .regional-impact-interactive-glow {
   animation: none !important;
+  transition: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .regional-impact-aura,
+  .regional-impact-path,
+  .regional-impact-interactive-glow,
+  .regional-station-selected-indicator {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  .regional-impact-aura {
+    opacity: 0.18;
+  }
 }
 
 .regional-map-controls {
@@ -485,44 +660,6 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
 .regional-map-legend em { display: block; margin-top: 0.4rem; color: #f59e0b; font-style: normal; font-weight: 700; }
 .limited-service-swatch { width: 1.25rem; height: 0.45rem; background: repeating-linear-gradient(90deg, #475569 0 4px, #fff 4px 7px); }
 
-.regional-station-detail {
-  position: fixed;
-  z-index: 50;
-  right: 1rem;
-  top: 8.5rem;
-  width: min(22rem, calc(100vw - 2rem));
-  padding: 1rem;
-  border: 1px solid rgba(148, 163, 184, 0.3);
-  border-radius: 8px;
-  display: flex;
-  flex-direction: column;
-  gap: 0.8rem;
-}
-
-.regional-station-detail-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 0.75rem; }
-.regional-station-detail-header span { color: #0f766e; font-size: 0.7rem; font-weight: 800; text-transform: uppercase; }
-.regional-station-detail-actions { display: flex; gap: 0.35rem; }
-.regional-station-detail-actions button {
-  display: grid;
-  place-items: center;
-  width: 2.75rem;
-  height: 2.75rem;
-  border: 1px solid rgba(100, 116, 139, 0.3);
-  border-radius: 6px;
-}
-.regional-station-detail-actions button[aria-pressed="true"] { color: #0284c7; background: rgba(14, 165, 233, 0.12); }
-.regional-station-detail h2 { margin-top: 0.2rem; font-size: 1.25rem; font-weight: 850; }
-.regional-station-routes { display: flex; flex-wrap: wrap; gap: 0.35rem; margin: 0.75rem 0; }
-.regional-station-routes > span { display: flex; align-items: center; gap: 0.4rem; padding: 0.25rem 0.45rem; background: rgba(148, 163, 184, 0.14); border-radius: 4px; }
-.regional-station-routes b { font-size: 0.72rem; }
-.regional-station-detail p, .regional-station-detail em { display: block; margin-top: 0.5rem; font-size: 0.78rem; }
-.regional-station-detail em { color: #64748b; }
-.regional-station-impact-section,
-.regional-station-unavailable { padding-top: 0.7rem; border-top: 1px solid rgba(100, 116, 139, 0.25); }
-.regional-station-impact-section h3 { display: flex; align-items: center; gap: 0.4rem; font-size: 0.78rem; font-weight: 800; text-transform: uppercase; }
-.regional-station-impact-section ul { display: grid; gap: 0.35rem; margin-top: 0.45rem; }
-.regional-station-impact-section li button { display: flex; align-items: center; gap: 0.45rem; width: 100%; min-height: 2.75rem; padding: 0.45rem; text-align: left; border-radius: 5px; background: rgba(148, 163, 184, 0.12); }
-.regional-station-unavailable strong { font-size: 0.82rem; }
 .regional-station-official-links { display: flex; flex-wrap: wrap; gap: 0.5rem; }
 .regional-station-official-links a { display: inline-flex; align-items: center; gap: 0.3rem; min-height: 2.75rem; padding: 0.45rem 0.6rem; color: #0369a1; font-size: 0.76rem; font-weight: 750; border: 1px solid rgba(2, 132, 199, 0.3); border-radius: 5px; }
 .dark .regional-station-official-links a { color: #7dd3fc; }
@@ -531,7 +668,6 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
   .regional-map-controls { top: 4.5rem; right: 0.65rem; }
   .regional-map-legend { right: 0.65rem; bottom: 5.25rem; width: min(18rem, calc(100vw - 1.3rem)); }
   .regional-map-legend ul { grid-template-columns: 1fr 1fr; }
-  .regional-station-detail { top: auto; right: 0; bottom: 0; width: 100%; border-radius: 8px 8px 0 0; }
 }
 
 /* Subway legend font definition */

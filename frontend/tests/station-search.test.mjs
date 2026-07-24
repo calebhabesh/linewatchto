@@ -107,6 +107,37 @@ describe("station search helpers", () => {
     );
   });
 
+  it("builds regional corridor groups without leaking TTC lines", () => {
+    const groups = buildStationLineGroups([
+      {
+        id: "union",
+        name: "Union",
+        mapX: 0,
+        mapY: 0,
+        interchange: true,
+        lineIds: ["regional-ki", "regional-up"],
+        hasActiveImpact: false,
+        accessStatus: "normal",
+      },
+      {
+        id: "pearson-airport",
+        name: "Pearson Airport",
+        mapX: 0,
+        mapY: 0,
+        interchange: false,
+        lineIds: ["regional-up"],
+        hasActiveImpact: false,
+        accessStatus: "normal",
+      },
+    ]);
+
+    assert.deepEqual(groups.map((group) => group.line.number), ["KI", "UP"]);
+    assert.deepEqual(
+      groups.find((group) => group.line.id === "regional-up")?.stations.map((station) => station.id),
+      ["pearson-airport", "union"],
+    );
+  });
+
   it("ranks exact, acronym, token-prefix, and subsequence fuzzy matches", () => {
     assert.equal(searchStations(stations, "Union")[0].station.id, "union");
     assert.equal(searchStations(stations, "vmc")[0].station.id, "vaughan-metropolitan-centre");
