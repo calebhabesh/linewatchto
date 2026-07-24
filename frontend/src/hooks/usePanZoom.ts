@@ -30,6 +30,7 @@ type UsePanZoomOptions = {
     topInset: number;
     horizontalInsetRatio?: number;
   };
+  animateInitialEntrance?: boolean;
 };
 
 type ZoomToPointOptions = {
@@ -42,6 +43,7 @@ export function usePanZoom({
   viewportOrientation = "standard",
   disableProgrammaticMotion = false,
   defaultFrame,
+  animateInitialEntrance = true,
 }: UsePanZoomOptions = {}) {
   const [transform, setTransform] = useState({ x: 0, y: 0, scale: 1 });
   const [fitScale, setFitScale] = useState(1);
@@ -180,7 +182,7 @@ export function usePanZoom({
     }
   }, [clearProgrammaticAnimation, currentRenderedTransform, restoreIdleMapTransition, writeMapTransform]);
 
-  const animateTransformTo = useCallback((next: PanZoomTransform, nextFitScale?: number) => {
+  const animateTransformTo = useCallback((next: PanZoomTransform, nextFitScale?: number, animate = true) => {
     if (isGestureActiveRef.current) {
       return;
     }
@@ -194,7 +196,7 @@ export function usePanZoom({
       fitScaleRef.current = nextFitScale;
     }
 
-    if (!mapRef.current || !shouldAnimateProgrammaticTransform) {
+    if (!mapRef.current || !shouldAnimateProgrammaticTransform || !animate) {
       setMapTransition("none");
       writeMapTransform(snapped);
       if (nextFitScale !== undefined) {
@@ -572,15 +574,16 @@ export function usePanZoom({
     });
   }, [fitScale, pointFromClientPoint, snappedTransformFrom]);
 
-  const recenter = useCallback(() => {
+  const moveToDefaultCamera = useCallback((animate: boolean, playEntrance: boolean) => {
     if (!containerRef.current) return;
     const { width, height } = logicalViewportSize();
     if (width <= 0 || height <= 0) return;
     const next = defaultTransformForViewport(width, height);
     const { x, y, scale } = next;
+    const isInitialCamera = !cameraInitializedRef.current;
+    cameraInitializedRef.current = true;
 
-    if (!cameraInitializedRef.current && shouldAnimateProgrammaticTransform) {
-      cameraInitializedRef.current = true;
+    if (isInitialCamera && shouldAnimateProgrammaticTransform && playEntrance) {
       const entryScale = scale * 0.5;
       const scaleRatio = entryScale / scale;
       const entryX = width / 2 - (width / 2 - x) * scaleRatio;
@@ -598,7 +601,11 @@ export function usePanZoom({
       });
       return;
     }
-    cameraInitializedRef.current = true;
+
+    if (!animate) {
+      animateTransformTo(next, scale, false);
+      return;
+    }
 
     animateTransformTo(next, scale);
   }, [
@@ -610,6 +617,14 @@ export function usePanZoom({
     setMapTransition,
     writeMapTransform,
   ]);
+
+  const initializeCamera = useCallback(() => {
+    moveToDefaultCamera(animateInitialEntrance, animateInitialEntrance);
+  }, [animateInitialEntrance, moveToDefaultCamera]);
+
+  const recenter = useCallback(() => {
+    moveToDefaultCamera(true, true);
+  }, [moveToDefaultCamera]);
 
   const replayEntrance = useCallback(() => {
     cameraInitializedRef.current = false;
@@ -713,6 +728,7 @@ export function usePanZoom({
     handlePointerCancel,
     handleWheel,
     recenter,
+    initializeCamera,
     replayEntrance,
     zoomIn,
     zoomOut,

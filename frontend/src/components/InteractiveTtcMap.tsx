@@ -238,6 +238,7 @@ function InteractiveTtcMapComponent({
   viewportOrientation = "standard",
   estimatedTrainsEnabled = false,
   estimatedTrainMarkers = [],
+  animateInitialEntrance = true,
 }: {
   selection: ImpactSelection;
   onSelectImpact: (selection: ImpactSelection) => void;
@@ -258,6 +259,7 @@ function InteractiveTtcMapComponent({
   viewportOrientation?: MapViewportOrientation;
   estimatedTrainsEnabled?: boolean;
   estimatedTrainMarkers?: EstimatedTrainMarker[];
+  animateInitialEntrance?: boolean;
 }) {
   const { networkSegments, activeAlerts, delays, reducedSpeedZones, plannedClosures, stationNodeImpacts, stations: mapStations } = useDashboardData();
   const [svgParts, setSvgParts] = useState<{ part1: string; part2: string } | null>(null);
@@ -320,6 +322,7 @@ function InteractiveTtcMapComponent({
     handlePointerLeave,
     handlePointerCancel,
     handleWheel,
+    initializeCamera,
     recenter,
     zoomIn,
     zoomOut,
@@ -332,6 +335,7 @@ function InteractiveTtcMapComponent({
     viewportOrientation,
     disableProgrammaticMotion: mobilePerformanceMode,
     defaultFrame: defaultMapFrame,
+    animateInitialEntrance,
   });
   const [mapViewportSize, setMapViewportSize] = useState({ width: 392, height: 720 });
   const [chooserKeepoutBoxes, setChooserKeepoutBoxes] = useState<SvgBounds[]>([]);
@@ -456,7 +460,7 @@ function InteractiveTtcMapComponent({
       if (!containerRef.current) return;
       const rect = containerRef.current.getBoundingClientRect();
       if (rect.width > 0 && rect.height > 0) {
-        recenter();
+        initializeCamera();
       } else if (attempts < 10) {
         attempts++;
         setTimeout(checkAndCenter, 100);
@@ -465,7 +469,7 @@ function InteractiveTtcMapComponent({
 
     checkAndCenter();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loadState, recenter]);
+  }, [initializeCamera, loadState]);
 
 
 

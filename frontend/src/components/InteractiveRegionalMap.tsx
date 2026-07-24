@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent, type PointerEvent, type WheelEvent } from "react";
+import { memo, useCallback, useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent, type PointerEvent, type WheelEvent } from "react";
 import { Locate, ZoomIn, ZoomOut } from "lucide-react";
 import type { ImpactSelection } from "../app/linewatch-data";
 import { useDashboardData } from "../app/DataContext";
@@ -33,7 +33,7 @@ function snapCameraToDevicePixels(camera: Camera): Camera {
   return snapTransformToDevicePixels(camera, currentDevicePixelRatio());
 }
 
-export function InteractiveRegionalMap({
+function InteractiveRegionalMapComponent({
   selection,
   onSelectImpact,
   selectedStationId,
@@ -65,6 +65,10 @@ export function InteractiveRegionalMap({
   const [desktopMapBottomInset, setDesktopMapBottomInset] = useState(0);
   const animTimeoutRef = useRef<number | null>(null);
   const programmaticAnimationFrameRef = useRef<number | null>(null);
+  const dragAnimationFrameRef = useRef<number | null>(null);
+  const pendingDragPointRef = useRef<{ x: number; y: number } | null>(null);
+  const dragMovedRef = useRef(false);
+  const wheelCommitTimeoutRef = useRef<number | null>(null);
   const cameraRef = useRef(camera);
 
   const writeMapTransform = useCallback((nextCamera: Camera) => {
@@ -141,6 +145,12 @@ export function InteractiveRegionalMap({
   useEffect(() => {
     return () => {
       clearProgrammaticAnimation();
+      if (dragAnimationFrameRef.current !== null) {
+        window.cancelAnimationFrame(dragAnimationFrameRef.current);
+      }
+      if (wheelCommitTimeoutRef.current !== null) {
+        window.clearTimeout(wheelCommitTimeoutRef.current);
+      }
     };
   }, [clearProgrammaticAnimation]);
 
@@ -406,33 +416,94 @@ export function InteractiveRegionalMap({
 
   const onWheel = useCallback((event: WheelEvent<HTMLDivElement>) => {
     event.preventDefault();
-    zoomAtCenter(event.deltaY < 0 ? 1.12 : 0.89);
-  }, [zoomAtCenter]);
+    const viewport = viewportRef.current;
+    if (!viewport) return;
+
+    clearProgrammaticAnimation();
+    setMapTransition("none");
+
+    const rect = viewport.getBoundingClientRect();
+    const pointerX = event.clientX - rect.left;
+    const pointerY = event.clientY - rect.top;
+    const current = cameraRef.current;
+    const delta = -event.deltaY * 0.001;
+    const nextScale = clampPanZoomScale(current.scale * (1 + delta), fitScale);
+    const scaleRatio = nextScale / current.scale;
+    const nextCamera = snapCameraToDevicePixels({
+      x: pointerX - (pointerX - current.x) * scaleRatio,
+      y: pointerY - (pointerY - current.y) * scaleRatio,
+      scale: nextScale,
+    });
+
+    cameraRef.current = nextCamera;
+    writeMapTransform(nextCamera);
+
+    if (wheelCommitTimeoutRef.current !== null) {
+      window.clearTimeout(wheelCommitTimeoutRef.current);
+    }
+    wheelCommitTimeoutRef.current = window.setTimeout(() => {
+      wheelCommitTimeoutRef.current = null;
+      setCamera({ ...cameraRef.current });
+    }, 80);
+  }, [clearProgrammaticAnimation, fitScale, setMapTransition, writeMapTransform]);
 
   const onPointerDown = useCallback((event: PointerEvent<HTMLDivElement>) => {
     if (event.button !== 0) return;
     cancelCameraAnimation();
     event.currentTarget.setPointerCapture(event.pointerId);
     dragRef.current = { pointerId: event.pointerId, x: event.clientX, y: event.clientY, camera: cameraRef.current };
+    pendingDragPointRef.current = null;
+    dragMovedRef.current = false;
     setDragging(true);
   }, [cancelCameraAnimation]);
 
   const onPointerMove = useCallback((event: PointerEvent<HTMLDivElement>) => {
     const drag = dragRef.current;
     if (!drag || drag.pointerId !== event.pointerId) return;
-    setCamera(snapCameraToDevicePixels({
-      ...drag.camera,
-      x: drag.camera.x + event.clientX - drag.x,
-      y: drag.camera.y + event.clientY - drag.y,
-    }));
-  }, []);
+    pendingDragPointRef.current = { x: event.clientX, y: event.clientY };
+    if (Math.abs(event.clientX - drag.x) > 3 || Math.abs(event.clientY - drag.y) > 3) {
+      dragMovedRef.current = true;
+    }
+    if (dragAnimationFrameRef.current !== null) return;
+
+    dragAnimationFrameRef.current = window.requestAnimationFrame(() => {
+      dragAnimationFrameRef.current = null;
+      const activeDrag = dragRef.current;
+      const point = pendingDragPointRef.current;
+      if (!activeDrag || !point) return;
+      const nextCamera = snapCameraToDevicePixels({
+        ...activeDrag.camera,
+        x: activeDrag.camera.x + point.x - activeDrag.x,
+        y: activeDrag.camera.y + point.y - activeDrag.y,
+      });
+      cameraRef.current = nextCamera;
+      writeMapTransform(nextCamera);
+    });
+  }, [writeMapTransform]);
 
   const onPointerUp = useCallback((event: PointerEvent<HTMLDivElement>) => {
-    if (dragRef.current?.pointerId === event.pointerId) {
-      dragRef.current = null;
-      setDragging(false);
+    const drag = dragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+
+    if (dragAnimationFrameRef.current !== null) {
+      window.cancelAnimationFrame(dragAnimationFrameRef.current);
+      dragAnimationFrameRef.current = null;
     }
-  }, []);
+    const point = pendingDragPointRef.current;
+    if (point) {
+      const nextCamera = snapCameraToDevicePixels({
+        ...drag.camera,
+        x: drag.camera.x + point.x - drag.x,
+        y: drag.camera.y + point.y - drag.y,
+      });
+      cameraRef.current = nextCamera;
+      writeMapTransform(nextCamera);
+    }
+    pendingDragPointRef.current = null;
+    dragRef.current = null;
+    setCamera({ ...cameraRef.current });
+    setDragging(false);
+  }, [writeMapTransform]);
 
   const activateTarget = useCallback((target: EventTarget | null) => {
     if (!(target instanceof Element)) return;
@@ -466,7 +537,10 @@ export function InteractiveRegionalMap({
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
         onPointerCancel={onPointerUp}
-        onClick={(event) => activateTarget(event.target)}
+        onClick={(event) => {
+          if (dragMovedRef.current) return;
+          activateTarget(event.target);
+        }}
         onKeyDown={onKeyDown}
       >
         {loadError ? <p role="alert" className="regional-map-error">Regional map could not be loaded.</p> : null}
@@ -564,3 +638,6 @@ export function InteractiveRegionalMap({
     </section>
   );
 }
+
+export const InteractiveRegionalMap = memo(InteractiveRegionalMapComponent);
+InteractiveRegionalMap.displayName = "InteractiveRegionalMap";

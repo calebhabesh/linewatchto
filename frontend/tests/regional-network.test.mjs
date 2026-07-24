@@ -21,51 +21,72 @@ describe("network-scoped regional dashboard", () => {
   it("keeps TTC as the default and dispatches to separate map implementations", () => {
     assert.equal(DEFAULT_NETWORK_ID, "ttc");
     assert.match(shellSource, /useState<NetworkId>\(DEFAULT_NETWORK_ID\)/);
-    assert.match(networkMapSource, /ttcData: DashboardData/);
-    assert.match(networkMapSource, /regionalData: DashboardData/);
-    assert.match(networkMapSource, /<DataProvider data=\{ttcData\}>/);
-    assert.match(networkMapSource, /<DataProvider data=\{regionalData\}>/);
     assert.match(networkMapSource, /<InteractiveRegionalMap/);
     assert.match(networkMapSource, /<InteractiveTtcMap/);
   });
 
-  it("keeps TTC and GO/UP fixed on one linear left-to-right map track", () => {
+  it("preloads both maps on one sliding track", () => {
     assert.match(networkSelectorSource, /className="network-selector-glider"/);
     assert.match(globalsCss, /\.network-selector-glider/);
     assert.match(globalsCss, /\.network-accent-ridges/);
-    assert.match(globalsCss, /\.network-map-carousel-track/);
-    assert.match(globalsCss, /\.network-map-slide/);
+    assert.match(networkMapSource, /ttcData: DashboardData/);
+    assert.match(networkMapSource, /regionalData: DashboardData/);
+    assert.match(networkMapSource, /<DataProvider data=\{ttcData\}>/);
+    assert.match(networkMapSource, /<DataProvider data=\{regionalData\}>/);
     assert.match(networkMapSource, /network-map-carousel-track/);
     assert.match(networkMapSource, /network-map-slide/);
-    assert.match(networkMapSource, /data-camera-direction=.*"right"/s);
-    assert.match(networkMapSource, /data-camera-direction=.*"left"/s);
-    assert.match(networkMapSource, /regionalSelected \? "network-map-carousel-track--regional"/);
-    assert.match(globalsCss, /\.network-map-carousel-track,\s*\.network-legend-track\s*\{[\s\S]*?width:\s*200%/);
-    assert.match(globalsCss, /\.network-map-carousel-track--regional,\s*\.network-legend-track--regional\s*\{[\s\S]*?transform:\s*translateX\(-50%\)/);
-    assert.match(globalsCss, /\.network-map-slide\s*\{[\s\S]*?flex:\s*0 0 50%/);
-    assert.match(globalsCss, /transition:\s*transform 700ms cubic-bezier\(0\.4, 0, 0\.2, 1\)/);
+    assert.match(networkMapSource, /network-map-active/);
+    assert.match(networkMapSource, /aria-hidden=\{regionalSelected\}/);
+    assert.match(globalsCss, /\.network-map-carousel-track[\s\S]*width:\s*200%/);
+    assert.match(globalsCss, /\.network-map-slide[\s\S]*flex:\s*0 0 50%/);
   });
 
-  it("moves both mode-specific legends on the same fixed track as their map", () => {
-    assert.match(networkMapLegendsSource, /network-legend-track--regional/);
-    assert.match(networkMapLegendsSource, /network-legend-track--reduced-motion/);
-    assert.match(shellSource, /<NetworkMapLegends[\s\S]*reducedMotion=\{reducedMotion\}/);
-    assert.match(networkMapLegendsSource, /<LegendPane[\s\S]*mode="ttc"/);
-    assert.match(networkMapLegendsSource, /<LegendPane[\s\S]*mode="regional"/);
-    assert.match(networkMapLegendsSource, /<DataProvider data=\{data\}>/);
-    assert.match(networkMapLegendsSource, /data=\{ttcData\}/);
-    assert.match(networkMapLegendsSource, /data=\{regionalData\}/);
-    assert.match(globalsCss, /\.network-legend-track-viewport\s*\{[\s\S]*?overflow:\s*hidden/);
-    assert.match(globalsCss, /\.network-map-carousel-track,[\s\S]*?\.network-legend-track\s*\{/);
-    assert.match(globalsCss, /\.network-map-carousel-track--regional,[\s\S]*?\.network-legend-track--regional\s*\{/);
+  it("preloads each legend inside its complete map scene", () => {
+    assert.match(networkMapSource, /<DataProvider data=\{ttcData\}>[\s\S]*<InteractiveTtcMap[\s\S]*<NetworkMapLegend[\s\S]*mode="ttc"/);
+    assert.match(networkMapSource, /<DataProvider data=\{regionalData\}>[\s\S]*<InteractiveRegionalMap[\s\S]*<NetworkMapLegend[\s\S]*mode="regional"/);
+    assert.match(networkMapLegendsSource, /<LineLegend[\s\S]*mode=\{mode\}/);
+    assert.match(networkMapLegendsSource, /<MobileLegend[\s\S]*mode=\{mode\}/);
+    assert.match(globalsCss, /\.network-map-slide \.desktop-map-legend,[\s\S]*\.network-map-slide \.mobile-legend-pill[\s\S]*position:\s*absolute !important/);
+    assert.doesNotMatch(networkMapLegendsSource, /hidden=/);
   });
 
-  it("keeps mode changes as a horizontal slideshow without a map camera entrance", () => {
+  it("switches fixed maps without replaying a map camera entrance", () => {
+    const networkChangeBody = shellSource.match(
+      /const handleNetworkChange = \(network: NetworkId\) => \{([\s\S]*?)\n  \};/,
+    )?.[1] ?? "";
+
     assert.doesNotMatch(networkMapSource, /entranceSignal=/);
+    assert.doesNotMatch(networkChangeBody, /setMapLayoutSignal/);
+    assert.doesNotMatch(networkMapSource, /key=\{network\}/);
     assert.doesNotMatch(regionalMapSource, /startInitialFlyIn/);
     assert.doesNotMatch(regionalMapSource, /entryCamera/);
     assert.match(regionalMapSource, /const initializeMapCamera = useCallback/);
     assert.match(regionalMapSource, /setMapTransition\("none"\);[\s\S]*writeMapTransform\(fitted\.camera\)/);
+    assert.match(networkMapSource, /<InteractiveTtcMap \{\.\.\.props\}/);
+  });
+
+  it("slides complete preloaded scenes without a transition-end content swap", () => {
+    assert.doesNotMatch(shellSource, /startViewTransition/);
+    assert.match(networkMapSource, /network-map-carousel-track--regional/);
+    assert.match(networkMapSource, /network-map-carousel-track--reduced-motion/);
+    assert.doesNotMatch(networkMapSource, /onTransitionEnd=/);
+    assert.doesNotMatch(shellSource, /settledNetwork/);
+    assert.doesNotMatch(shellSource, /<NetworkMapLegends/);
+    assert.match(globalsCss, /\.network-map-carousel-track--regional[\s\S]*transform:\s*translateX\(-50%\)/);
+    assert.match(globalsCss, /transition:\s*transform 700ms cubic-bezier\(0\.4, 0, 0\.2, 1\)/);
+    assert.match(globalsCss, /\.network-map-slide[\s\S]*overflow:\s*hidden/);
+  });
+
+  it("keeps an acknowledged overnight screen dismissed across network swaps", () => {
+    const networkChangeBody = shellSource.match(
+      /const handleNetworkChange = \(network: NetworkId\) => \{([\s\S]*?)\n  \};/,
+    )?.[1] ?? "";
+
+    assert.doesNotMatch(networkChangeBody, /setClosedMapPeek\(false\)/);
+    assert.match(
+      shellSource,
+      /aria-label="Station Search"[\s\S]*subway-closed-peek-chip[\s\S]*Floating Dropdown Menu/,
+    );
   });
 
 
@@ -134,6 +155,17 @@ describe("network-scoped regional dashboard", () => {
     assert.match(regionalMapSource, /onPointerDown=\{onPointerDown\}/);
     assert.match(regionalMapSource, /event\.key !== "Enter" && event\.key !== " "/);
     assert.match(regionalMapSource, /aria-label="Fit regional network"/);
+  });
+
+  it("batches regional drag transforms outside React renders", () => {
+    assert.match(regionalMapSource, /memo\(InteractiveRegionalMapComponent\)/);
+    assert.match(regionalMapSource, /dragAnimationFrameRef/);
+    assert.match(regionalMapSource, /window\.requestAnimationFrame/);
+    assert.match(regionalMapSource, /writeMapTransform\(nextCamera\)/);
+    assert.doesNotMatch(
+      regionalMapSource,
+      /const onPointerMove[\s\S]*?setCamera\(snapCameraToDevicePixels/,
+    );
   });
 
   it("centers the enlarged default desktop network frame between the upper console and regional impact badges", () => {

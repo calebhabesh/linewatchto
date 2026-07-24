@@ -6,7 +6,6 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { DynamicBackground } from "./DynamicBackground";
 import { NetworkMap } from "./NetworkMap";
-import { NetworkMapLegends } from "./NetworkMapLegends";
 import { NetworkSelector } from "./NetworkSelector";
 import { RegionalStationDetailPanel } from "./RegionalStationDetailPanel";
 import { DelayIcon } from "./DelayIcon";
@@ -429,6 +428,8 @@ export function LineWatchShell({
   const [recenterSignal, setRecenterSignal] = useState(0);
 
   const [closedMapPeek, setClosedMapPeek] = useState(false);
+  const [isClosedScreenExiting, setIsClosedScreenExiting] = useState(false);
+  const [isExitingPeekChip, setIsExitingPeekChip] = useState(false);
   const [legendExpanded, setLegendExpanded] = useState(false);
   const [guideOpen, setGuideOpen] = useState(false);
   const [disclaimerVisible, setDisclaimerVisible] = useState(true);
@@ -1424,16 +1425,16 @@ export function LineWatchShell({
   const [stationSearchQuery, setStationSearchQuery] = useState("");
 
   const handleNetworkChange = (network: NetworkId) => {
+    if (network === selectedNetwork) return;
+
     setSelectedNetwork(network);
     setSelection(null);
     setSelectedStationId(null);
     setVisibleStationResult(null);
-    setClosedMapPeek(false);
     setStationSearchQuery("");
     setActiveView("map");
     setMapPresentationMode("standard");
     setMobileInspectorDetent("map-focus");
-    setMapLayoutSignal((current) => current + 1);
   };
 
   const handleOpenSearch = () => {
@@ -1620,13 +1621,23 @@ export function LineWatchShell({
   }, [setSelectedStationId, setCommutePathPreview, setMobileInspectorDetent, setSelection, setActiveView, viewForImpactSelection, isMobile, recordPwaInstallEngagement]);
 
   const handlePeekClosedMap = () => {
+    if (isClosedScreenExiting) return;
+    setIsClosedScreenExiting(true);
     setClosedMapPeek(true);
     setActiveView("map");
     setSelection(null);
     setSelectedStationId(null);
     setMapPresentationMode("standard");
-    router.refresh();
   };
+
+  const handleOpenClosedScreen = useCallback(() => {
+    if (isExitingPeekChip) return;
+    setIsExitingPeekChip(true);
+    setTimeout(() => {
+      setClosedMapPeek(false);
+      setIsExitingPeekChip(false);
+    }, 100);
+  }, [isExitingPeekChip]);
 
 
   const handleToggleTheme = useCallback(() => {
@@ -2132,6 +2143,27 @@ export function LineWatchShell({
               minutesUntilClose={subwayOperatingState.minutesUntilClose}
               nextCloseLabel={subwayOperatingState.nextCloseLabel}
             />
+          ) : null}
+
+          {selectedNetwork === "ttc" && subwayOperatingState.status === "closed" && closedMapPeek ? (
+            <div
+              className={`subway-closed-peek-chip ${isExitingPeekChip ? "subway-closed-peek-chip--exiting" : ""}`}
+              role="status"
+              aria-live="polite"
+            >
+              <Moon className="subway-closed-peek-icon shrink-0" size={18} strokeWidth={2.4} aria-hidden="true" />
+              <div className="subway-closed-peek-text">
+                <strong className="subway-closed-peek-title">Subway Closed</strong>
+                <span className="subway-closed-peek-subtitle">
+                  Resumes {subwayOperatingState.nextResumeLabel?.endsWith(".")
+                    ? subwayOperatingState.nextResumeLabel
+                    : `${subwayOperatingState.nextResumeLabel}.`}
+                </span>
+              </div>
+              <button type="button" onClick={handleOpenClosedScreen}>
+                Closed Screen
+              </button>
+            </div>
           ) : null}
 
           {/* Floating Dropdown Menu */}
@@ -2757,6 +2789,27 @@ export function LineWatchShell({
           network={selectedNetwork}
           ttcData={ttcData}
           regionalData={regionalDashboardData}
+          ttcClosingSoon={subwayOperatingState.closingSoon || (subwayOperatingState.status === "closed" && closedMapPeek)}
+          legendProps={{
+            expanded: legendExpanded,
+            onToggleExpanded: () => setLegendExpanded(!legendExpanded),
+            onAlertClick: () => {
+              setActiveView("alerts");
+              setSelection(null);
+            },
+            onDelayClick: () => {
+              setActiveView("delays");
+              setSelection(null);
+            },
+            onReducedSpeedZoneClick: () => {
+              setActiveView("reduced-speed-zones");
+              setSelection(null);
+            },
+            onClosureClick: () => {
+              setActiveView("closures");
+              setSelection(null);
+            },
+          }}
           selection={selection}
           selectedStationId={selectedStationId}
           stations={stationSummaries}
@@ -2776,19 +2829,6 @@ export function LineWatchShell({
           estimatedTrainsEnabled={estimatedTrainMarkersVisible}
           estimatedTrainMarkers={estimatedTrainMarkersVisible ? estimatedTrainSnapshot.markers : []}
         />
-
-        {selectedNetwork === "ttc" && subwayOperatingState.status === "closed" && closedMapPeek ? (
-          <div className="subway-closed-peek-chip" role="status" aria-live="polite">
-            <Moon className="subway-closed-peek-icon shrink-0" size={18} strokeWidth={2.4} aria-hidden="true" />
-            <div className="subway-closed-peek-text">
-              <strong className="subway-closed-peek-title">Subway Closed</strong>
-              <span className="subway-closed-peek-subtitle">Resumes {subwayOperatingState.nextResumeLabel?.endsWith(".") ? subwayOperatingState.nextResumeLabel : `${subwayOperatingState.nextResumeLabel}.`}</span>
-            </div>
-            <button type="button" onClick={() => setClosedMapPeek(false)}>
-              Closed Screen
-            </button>
-          </div>
-        ) : null}
 
         {rotatedMapMode ? (
           <>
@@ -2864,10 +2904,12 @@ export function LineWatchShell({
         />
       ) : null}
 
-      {showClosedScreen ? (
+      {showClosedScreen || isClosedScreenExiting ? (
         <SubwayClosedScreen
           operatingState={subwayOperatingState}
+          isExiting={isClosedScreenExiting}
           onPeekMap={handlePeekClosedMap}
+          onExitComplete={() => setIsClosedScreenExiting(false)}
         />
       ) : null}
 
@@ -2947,31 +2989,6 @@ export function LineWatchShell({
           </div>
         </aside>
 
-        <NetworkMapLegends
-          network={selectedNetwork}
-          ttcData={ttcData}
-          regionalData={regionalDashboardData}
-          ttcClosingSoon={subwayOperatingState.closingSoon || (subwayOperatingState.status === "closed" && closedMapPeek)}
-          reducedMotion={reducedMotion}
-          expanded={legendExpanded}
-          onToggleExpanded={() => setLegendExpanded(!legendExpanded)}
-          onAlertClick={() => {
-            setActiveView("alerts");
-            setSelection(null);
-          }}
-          onDelayClick={() => {
-            setActiveView("delays");
-            setSelection(null);
-          }}
-          onReducedSpeedZoneClick={() => {
-            setActiveView("reduced-speed-zones");
-            setSelection(null);
-          }}
-          onClosureClick={() => {
-            setActiveView("closures");
-            setSelection(null);
-          }}
-        />
       </>
       )}
 
