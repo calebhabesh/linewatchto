@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { AlertTriangle, Calendar, ChevronDown, ChevronUp, Construction, ExternalLink, X } from "lucide-react";
 import type { DashboardData } from "../app/DataContext";
 import { useDashboardData } from "../app/DataContext";
@@ -290,6 +290,8 @@ export function MobileImpactInspector({
     };
   }, [detent, selectedDetailKey]);
 
+  const [isClosing, setIsClosing] = useState(false);
+
   if (!details) return null;
 
   const overlappingImpacts = getOverlappingImpactRefs(
@@ -297,10 +299,18 @@ export function MobileImpactInspector({
     data,
   );
 
+  const handleUnfocusClick = () => {
+    setIsClosing(true);
+    window.setTimeout(() => {
+      onUnfocus();
+      setIsClosing(false);
+    }, 200);
+  };
+
   return (
     <aside
       ref={inspectorRef}
-      className={`mobile-impact-inspector ${toneClassName(details.tone)} mobile-impact-inspector-${detent}`}
+      className={`mobile-impact-inspector ${isClosing ? "mobile-impact-inspector-closing" : ""} ${toneClassName(details.tone)} mobile-impact-inspector-${detent}`}
       data-mobile-impact-inspector
       role="complementary"
       aria-label="Selected map impact details"
@@ -313,7 +323,7 @@ export function MobileImpactInspector({
             {details.categoryLabel}
           </h2>
         </div>
-        <button type="button" onClick={onUnfocus} className="mobile-impact-inspector-icon-button" aria-label="Unfocus impact">
+        <button type="button" onClick={handleUnfocusClick} className="mobile-impact-inspector-icon-button" aria-label="Unfocus impact">
           <X size={20} />
         </button>
       </div>

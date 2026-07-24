@@ -4,7 +4,7 @@
     {
       "name": "all-alert-types",
       "file": "all-alert-types.json",
-      "routeCount": 23,
+      "routeCount": 24,
       "accessibilityCount": 2,
       "impactKinds": [
         "suspension",
@@ -105,6 +105,11 @@
         },
         "planned-closure-directional": {
           "sourceId": "scenario-planned-line-1-northbound-early-access",
+          "sourceKind": "modeled-gap-fill",
+          "modeledFromSourceId": "synthetic-planned-line-1"
+        },
+        "planned-closure-long-upcoming": {
+          "sourceId": "scenario-planned-line-2-long-upcoming",
           "sourceKind": "modeled-gap-fill",
           "modeledFromSourceId": "synthetic-planned-line-1"
         },

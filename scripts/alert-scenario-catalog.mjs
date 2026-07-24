@@ -19,7 +19,7 @@ export const scenarioNames = [
 
 export const scenarioExpectations = {
   "all-alert-types": {
-    routeCount: 23,
+    routeCount: 24,
     accessibilityCount: 2,
     impactKinds: ["suspension", "delay", "reduced-speed-zone", "planned-closure"],
     directionCoverage: {
@@ -96,6 +96,11 @@ export const scenarioExpectations = {
       },
       "planned-closure-directional": {
         sourceId: "scenario-planned-line-1-northbound-early-access",
+        sourceKind: MODELED_GAP_FILL_SOURCE_KIND,
+        modeledFromSourceId: "synthetic-planned-line-1",
+      },
+      "planned-closure-long-upcoming": {
+        sourceId: "scenario-planned-line-2-long-upcoming",
         sourceKind: MODELED_GAP_FILL_SOURCE_KIND,
         modeledFromSourceId: "synthetic-planned-line-1",
       },
@@ -681,6 +686,47 @@ function allAlertTypes(now) {
     }, {
       activePeriod: finitePeriod(now, -90, 540),
       activePeriodGroup: ["Current"],
+    }),
+    plannedGapFillRoute(now, {
+      id: "scenario-planned-line-2-long-upcoming",
+      alertType: "Planned",
+      route: "2",
+      stopStart: "Broadview",
+      stopEnd: "Kennedy",
+      stopIDList: [
+        "Broadview",
+        "Chester",
+        "Pape",
+        "Donlands",
+        "Greenwood",
+        "Coxwell",
+        "Woodbine",
+        "Main Street",
+        "Victoria Park",
+        "Warden",
+        "Kennedy",
+      ],
+      title: "There will be no subway service between Broadview and Kennedy stations from Saturday to Monday for planned track work.",
+      headerText: "Line 2 Bloor-Danforth: There will be no subway service between Broadview and Kennedy stations from Saturday to Monday for planned track work.",
+      effect: "REDUCED_SERVICE",
+      effectDesc: "Subway Closure - Early Access",
+      direction: "Both ways",
+      cause: "MAINTENANCE",
+      causeDescription: "CLOSURE - Planned Track Work",
+      activePeriod: finitePeriod(now, 1440, 5760),
+      activePeriodGroup: ["Upcoming", "Weekend"],
+      shuttleType: "Will Operate",
+      shuttleStart: "Broadview",
+      shuttleEnd: "Kennedy",
+      childAlerts: [
+        { id: "scenario-planned-line-2-long-upcoming-window", startTime: iso(now, 1440), endTime: iso(now, 5760) },
+      ],
+    }, {
+      activePeriod: finitePeriod(now, 1440, 5760),
+      activePeriodGroup: ["Upcoming", "Weekend"],
+      childAlerts: [
+        { id: "scenario-planned-line-2-long-upcoming-window", startTime: iso(now, 1440), endTime: iso(now, 5760) },
+      ],
     }),
   ], [
     historicalAccessibility(now, "warden-elevator-test-e1"),

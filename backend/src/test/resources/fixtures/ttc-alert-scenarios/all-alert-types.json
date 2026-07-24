@@ -1,6 +1,6 @@
 {
   "lastUpdated": "2026-06-03T14:59:00.000Z",
-  "total": 25,
+  "total": 26,
   "routes": [
     {
       "id": "scenario-active-line-2",
@@ -692,6 +692,53 @@
         }
       ],
       "direction": "Northbound"
+    },
+    {
+      "id": "scenario-planned-line-2-long-upcoming",
+      "alertType": "Planned",
+      "lastUpdated": "2026-06-03T14:55:00.000Z",
+      "activePeriod": {
+        "start": "2026-06-04T15:00:00.000Z",
+        "end": "2026-06-07T15:00:00.000Z"
+      },
+      "activePeriodGroup": [
+        "Upcoming",
+        "Weekend"
+      ],
+      "route": "2",
+      "routeType": "Subway",
+      "stopStart": "Broadview",
+      "stopEnd": "Kennedy",
+      "stopIDList": [
+        "Broadview",
+        "Chester",
+        "Pape",
+        "Donlands",
+        "Greenwood",
+        "Coxwell",
+        "Woodbine",
+        "Main Street",
+        "Victoria Park",
+        "Warden",
+        "Kennedy"
+      ],
+      "title": "There will be no subway service between Broadview and Kennedy stations from Saturday to Monday for planned track work.",
+      "headerText": "Line 2 Bloor-Danforth: There will be no subway service between Broadview and Kennedy stations from Saturday to Monday for planned track work.",
+      "effect": "REDUCED_SERVICE",
+      "effectDesc": "Subway Closure - Early Access",
+      "cause": "MAINTENANCE",
+      "causeDescription": "CLOSURE - Planned Track Work",
+      "shuttleType": "Will Operate",
+      "shuttleStart": "Broadview",
+      "shuttleEnd": "Kennedy",
+      "childAlerts": [
+        {
+          "id": "scenario-planned-line-2-long-upcoming-window",
+          "startTime": "2026-06-04T15:00:00.000Z",
+          "endTime": "2026-06-07T15:00:00.000Z"
+        }
+      ],
+      "direction": "Both ways"
     }
   ],
   "accessibility": [

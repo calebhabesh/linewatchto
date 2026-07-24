@@ -43,7 +43,7 @@ class TtcAlertScenarioCatalogTest {
 
     static Stream<Arguments> scenarios() {
         return Stream.of(
-            Arguments.of("all-alert-types.json", 23, 2, EnumSet.of(
+            Arguments.of("all-alert-types.json", 24, 2, EnumSet.of(
                 AlertImpactKind.SUSPENSION,
                 AlertImpactKind.DELAY,
                 AlertImpactKind.REDUCED_SPEED_ZONE,
@@ -128,6 +128,7 @@ class TtcAlertScenarioCatalogTest {
                 "reduced-speed-zone-directionless",
                 "planned-closure-bidirectional",
                 "planned-closure-directional",
+                "planned-closure-long-upcoming",
                 "accessibility-elevator",
                 "accessibility-escalator"
             );
@@ -289,6 +290,15 @@ class TtcAlertScenarioCatalogTest {
                 assertThat(alert.endStationId()).isEqualTo("spadina");
                 assertThat(alert.stationIds()).containsExactly("spadina");
                 assertThat(alert.impactKind()).isEqualTo(AlertImpactKind.DELAY);
+                assertThat(alert.direction()).isEqualTo(AlertDirection.BIDIRECTIONAL);
+            });
+        assertThat(routeAlerts)
+            .filteredOn(alert -> alert.sourceId().equals("scenario-planned-line-2-long-upcoming"))
+            .singleElement()
+            .satisfies(alert -> {
+                assertThat(alert.startStationId()).isEqualTo("broadview");
+                assertThat(alert.endStationId()).isEqualTo("kennedy");
+                assertThat(alert.impactKind()).isEqualTo(AlertImpactKind.PLANNED_CLOSURE);
                 assertThat(alert.direction()).isEqualTo(AlertDirection.BIDIRECTIONAL);
             });
         assertThat(routeAlerts)

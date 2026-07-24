@@ -943,7 +943,7 @@ export function SavedCommutesPanel({
           )}
         </div>
       </div>
-      <div className="commute-grid min-w-0 px-3 sm:px-4 py-3 flex flex-col gap-3">
+      <div key={activeView} className="commute-grid min-w-0 px-3 sm:px-4 py-3 flex flex-col gap-3" data-nav-direction={activeView === "create" ? "forward" : "back"}>
         {!accountState.authenticated ? (
           <div className="saved-commute-account-prompt p-4 rounded-lg flex flex-col gap-4 border border-black/10 dark:border-white/10">
             <div>
