@@ -76,7 +76,7 @@ export function LineLegend({
               )}
             </div>
             <TransitLineBadge lineId={line.id} lineNumber={line.number} size={44} className="opacity-95" />
-            <span className="text-black dark:text-white drop-shadow-md text-base font-extrabold tracking-widest">{line.name}</span>
+            <span className="legend-line-name font-subway text-black dark:text-white drop-shadow-md text-[22px] font-bold tracking-normal">{line.name}</span>
           </div>
         );
       })}

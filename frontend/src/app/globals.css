@@ -3,8 +3,18 @@
 @theme {
   --font-sans: var(--font-sans), Arial, Helvetica, sans-serif;
   --font-mono: var(--font-mono), monospace;
+  --font-subway: "Tex Gyre Heros", "TeX Gyre Heros", "Toronto Subway", "Helvetica Neue", Helvetica, Arial, sans-serif;
   --color-logo-blue: #81c9ff;
 }
+
+/* Subway legend font definition */
+.font-subway,
+.legend-line-name,
+.desktop-map-legend span,
+.mobile-legend-pill span {
+  font-family: var(--font-subway);
+}
+
 
 /* Account-backed station watchlist */
 .my-stations-panel {
@@ -15108,7 +15118,8 @@ img.transit-line-badge {
   }
 
   .mobile-legend-pill--expanded {
-    width: min(190px, calc(100vw - 32px)) !important;
+    width: fit-content !important;
+    max-width: calc(100vw - 32px) !important;
   }
 }
 
