@@ -31,6 +31,7 @@ export function InteractiveRegionalMap({
   onSelectStationId,
   reducedMotion,
   recenterSignal,
+  isDark = true,
 }: {
   selection: ImpactSelection;
   onSelectImpact: (selection: ImpactSelection) => void;
@@ -38,6 +39,7 @@ export function InteractiveRegionalMap({
   onSelectStationId: (id: string | null) => void;
   reducedMotion: boolean;
   recenterSignal?: number;
+  isDark?: boolean;
 }) {
   const { activeAlerts, networkSegments, stationNodeImpacts } = useDashboardData();
   const viewportRef = useRef<HTMLDivElement>(null);
@@ -472,7 +474,7 @@ export function InteractiveRegionalMap({
         {loadError ? <p role="alert" className="regional-map-error">Regional map could not be loaded.</p> : null}
         <div
           ref={mapStageRef}
-          className="regional-map-stage"
+          className="regional-map-stage relative"
           style={{
             width: `${MAP_WIDTH}px`,
             height: `${MAP_HEIGHT}px`,
@@ -482,8 +484,25 @@ export function InteractiveRegionalMap({
             transformOrigin: "0 0",
             transition: reducedMotion || dragging ? "none" : "transform 0.1s ease-out",
           }}
-          dangerouslySetInnerHTML={{ __html: svgMarkup }}
-        />
+        >
+          <div dangerouslySetInnerHTML={{ __html: svgMarkup }} className="w-full h-full" />
+          {/* Static North Compass fixed to regional map canvas */}
+          <svg
+            className="absolute top-0 left-0 w-full h-full pointer-events-none"
+            viewBox="-200 -200 17036.959 9031.6719"
+            preserveAspectRatio="xMidYMid meet"
+          >
+            <g aria-label="Cardinal North Compass" transform="translate(14250, 4100)">
+              <image
+                href="/assets/linewatch/cardinal-north.svg"
+                width="650"
+                height="850"
+                className="opacity-90"
+                style={{ filter: isDark ? "invert(1)" : "none" }}
+              />
+            </g>
+          </svg>
+        </div>
       </div>
       {/* Regional map controls positioned vertically on right side centered below top-right info button */}
       <div className="map-control-rail regional-map-control-rail absolute top-20 sm:top-[96px] right-4 sm:right-6 z-30 w-10 sm:w-14 flex flex-col items-center justify-center gap-1.5 py-2 px-1 rounded-xl pointer-events-auto">
