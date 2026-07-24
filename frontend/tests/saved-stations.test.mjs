@@ -68,3 +68,13 @@ test("saved date and line sorts are deterministic", () => {
   assert.deepEqual(filterAndSortSavedStations(stations, "", "all", "oldest").map((item) => item.station.id), ["kennedy", "union"]);
   assert.deepEqual(filterAndSortSavedStations(stations, "", "all", "line").map((item) => item.station.id), ["union", "kennedy"]);
 });
+
+test("saved station notice toast uses max-content width so mobile toasts remain single-line unless constrained", () => {
+  const css = fs.readFileSync(path.join(root, "src/app/globals.css"), "utf8");
+  const noticeRuleMatch = css.match(/\.saved-station-global-notice\s*\{([^}]+)\}/);
+  assert.ok(noticeRuleMatch, "found .saved-station-global-notice rule");
+  const block = noticeRuleMatch[1];
+  assert.match(block, /width:\s*max-content;/, "toast specifies width: max-content");
+  assert.match(block, /max-width:\s*calc\(100vw\s*-\s*24px\);/, "toast specifies max-width constraint");
+});
+

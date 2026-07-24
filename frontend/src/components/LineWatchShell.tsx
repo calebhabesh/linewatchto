@@ -216,6 +216,7 @@ export function LineWatchShell({
   const [visualPreferencesReady, setVisualPreferencesReady] = useState(false);
   const mobilePerformanceMode = useMobilePerformanceMode();
   const [activeView, setActiveView] = useState<ActiveView>("map");
+  const [navDirection, setNavDirection] = useState<"forward" | "back">("forward");
   const [menuPinned, setMenuPinned] = useState(false);
   const [menuPinPreferenceReady, setMenuPinPreferenceReady] = useState(false);
   const [previousView, setPreviousView] = useState<ActiveView>("status");
@@ -450,18 +451,49 @@ export function LineWatchShell({
     }
   }, [accessibilityOutageTarget, activeView]);
 
+  const [isClosingPanel, setIsClosingPanel] = useState(false);
+  const closingTimeoutRef = useRef<number | null>(null);
+
+  const handleClosePanel = useCallback(() => {
+    if (isClosingPanel) return;
+    setIsClosingPanel(true);
+    if (closingTimeoutRef.current) {
+      window.clearTimeout(closingTimeoutRef.current);
+    }
+    closingTimeoutRef.current = window.setTimeout(() => {
+      setActiveView("map");
+      setIsClosingPanel(false);
+      setSelection(null);
+      setSelectedStationId(null);
+      setMapPresentationMode("standard");
+      setMobileInspectorDetent("map-focus");
+      setAccessibilityOutageTarget(null);
+    }, 180);
+  }, [isClosingPanel, setActiveView, setSelection, setSelectedStationId, setMapPresentationMode, setMobileInspectorDetent]);
+
+  const [isGoingBack, setIsGoingBack] = useState(false);
+  const backTimeoutRef = useRef<number | null>(null);
+
   const handleSubmenuBack = useCallback(() => {
-    setActiveView(() => {
-      if (previousView === "my-stations") {
-        return "my-stations";
-      }
-      if (isMobile) {
-        return previousView || "status";
-      }
-      return "menu";
-    });
-    setSelection(null);
-    setAccessibilityOutageTarget(null);
+    setNavDirection("back");
+    setIsGoingBack(true);
+    if (backTimeoutRef.current) {
+      window.clearTimeout(backTimeoutRef.current);
+    }
+    backTimeoutRef.current = window.setTimeout(() => {
+      setActiveView(() => {
+        if (previousView === "my-stations") {
+          return "my-stations";
+        }
+        if (isMobile) {
+          return previousView && previousView !== "map" ? previousView : "more";
+        }
+        return "menu";
+      });
+      setIsGoingBack(false);
+      setSelection(null);
+      setAccessibilityOutageTarget(null);
+    }, 180);
   }, [isMobile, previousView, setActiveView, setSelection]);
 
   const [accountState, setAccountState] = useState<AccountState>({
@@ -1708,7 +1740,7 @@ export function LineWatchShell({
             selection={selection}
             onSelectImpact={handleMapSelectImpact}
             onBack={handleSubmenuBack}
-            onClose={() => { setActiveView("map"); setSelection(null); }}
+            onClose={handleClosePanel}
             onFocusMap={isMobile ? () => setActiveView("map") : undefined}
           />
         );
@@ -1718,7 +1750,7 @@ export function LineWatchShell({
             selection={selection}
             onSelectImpact={handleMapSelectImpact}
             onBack={handleSubmenuBack}
-            onClose={() => { setActiveView("map"); setSelection(null); }}
+            onClose={handleClosePanel}
             onFocusMap={isMobile ? () => setActiveView("map") : undefined}
           />
         );
@@ -1728,7 +1760,7 @@ export function LineWatchShell({
             selection={selection}
             onSelectImpact={handleMapSelectImpact}
             onBack={handleSubmenuBack}
-            onClose={() => { setActiveView("map"); setSelection(null); }}
+            onClose={handleClosePanel}
             onFocusMap={isMobile ? () => setActiveView("map") : undefined}
           />
         );
@@ -1738,7 +1770,7 @@ export function LineWatchShell({
             selection={selection}
             onSelectImpact={handleMapSelectImpact}
             onBack={handleSubmenuBack}
-            onClose={() => { setActiveView("map"); setSelection(null); }}
+            onClose={handleClosePanel}
             onFocusMap={isMobile ? () => setActiveView("map") : undefined}
           />
         );
@@ -1753,8 +1785,8 @@ export function LineWatchShell({
             onViewPath={handleViewCommutePath}
             onViewImpactOnPath={handleViewCommuteImpactOnPath}
             onClearViewedPath={handleClearCommutePathPreview}
-            onBack={() => setActiveView(isMobile ? "more" : "menu")}
-            onClose={() => { setActiveView("map"); setSelection(null); }}
+            onBack={handleSubmenuBack}
+            onClose={handleClosePanel}
             onRequestSignIn={() => openAuthChoice("login")}
             onRequestCreateAccount={() => openAuthChoice("register")}
             onOpenNotificationSettings={() => setActiveView("notifications")}
@@ -1782,8 +1814,8 @@ export function LineWatchShell({
             expandedDisruptionStationIds={expandedMyStationDisruptionIds}
             onDisruptionExpandedChange={handleMyStationsDisruptionExpandedChange}
             onRetry={() => { void refreshSavedStations(); }}
-            onBack={() => setActiveView(isMobile ? "more" : "menu")}
-            onClose={() => { setActiveView("map"); setSelection(null); }}
+            onBack={handleSubmenuBack}
+            onClose={handleClosePanel}
             onRequestSignIn={() => openAuthChoice("login")}
             onRequestCreateAccount={() => openAuthChoice("register")}
           />
@@ -1793,8 +1825,8 @@ export function LineWatchShell({
           <NotificationSettingsPanel
             accountState={accountState}
             pushSettings={pushSettings}
-            onBack={() => setActiveView(isMobile ? "more" : "menu")}
-            onClose={() => { setActiveView("map"); setSelection(null); }}
+            onBack={handleSubmenuBack}
+            onClose={handleClosePanel}
             onRequestSignIn={() => openAuthChoice("login")}
             onRequestCreateAccount={() => openAuthChoice("register")}
           />
@@ -1811,24 +1843,21 @@ export function LineWatchShell({
                 setActiveView("map");
               }
             }}
-            onBack={handleSubmenuBack}
-            onClose={() => {
-              setActiveView("map");
-              setSelection(null);
-              setAccessibilityOutageTarget(null);
+            onBack={() => {
+              setNavDirection("back");
+              setActiveView(isMobile ? "status" : "menu");
             }}
+            onClose={handleClosePanel}
           />
         );
       case "surface-notices":
         return (
           <SurfaceNoticesPanel
             onBack={() => {
+              setNavDirection("back");
               setActiveView(isMobile ? "status" : "menu");
             }}
-            onClose={() => {
-              setActiveView("map");
-              setSelection(null);
-            }}
+            onClose={handleClosePanel}
           />
         );
       case "more":
@@ -1840,7 +1869,7 @@ export function LineWatchShell({
             reducedMotion={reducedMotion}
             dotBackgroundEnabled={dotBackgroundEnabled}
             ingestionHealth={ingestionHealth}
-            onClose={handleMobileSheetClose}
+            onClose={handleClosePanel}
             onRequestSignIn={() => openAuthChoice("login")}
             onRequestCreateAccount={() => openAuthChoice("register")}
             onDemoAccount={handleDemoAccount}
@@ -1850,15 +1879,15 @@ export function LineWatchShell({
             onToggleHighContrast={handleToggleHighContrast}
             onToggleReducedMotion={handleToggleReducedMotion}
             onToggleDotBackground={handleToggleDotBackground}
-            onOpenNotifications={() => setActiveView("notifications")}
-            onOpenCommutes={() => setActiveView("commutes")}
-            onOpenMyStations={() => setActiveView("my-stations")}
+            onOpenNotifications={() => { setNavDirection("forward"); setActiveView("notifications"); }}
+            onOpenCommutes={() => { setNavDirection("forward"); setActiveView("commutes"); }}
+            onOpenMyStations={() => { setNavDirection("forward"); setActiveView("my-stations"); }}
             savedStationCount={savedStations.length}
-            onOpenAnalytics={() => setActiveView("analytics")}
-            onOpenAlertHistory={() => setActiveView("alert-history")}
-            onOpenFeedback={() => setActiveView("feedback")}
-            onOpenPrivacyAcknowledgements={() => setActiveView("privacy-acknowledgements")}
-            onOpenReleaseNotes={() => setActiveView("release-notes")}
+            onOpenAnalytics={() => { setNavDirection("forward"); setActiveView("analytics"); }}
+            onOpenAlertHistory={() => { setNavDirection("forward"); setActiveView("alert-history"); }}
+            onOpenFeedback={() => { setNavDirection("forward"); setActiveView("feedback"); }}
+            onOpenPrivacyAcknowledgements={() => { setNavDirection("forward"); setActiveView("privacy-acknowledgements"); }}
+            onOpenReleaseNotes={() => { setNavDirection("forward"); setActiveView("release-notes"); }}
             onShareApp={handleShareLineWatchApp}
             shareStatusLabel={shareStatusLabel}
             notificationStatusLabel={notificationStatusLabel}
@@ -1874,36 +1903,36 @@ export function LineWatchShell({
           <FeedbackPanel
             dataSource={displayData.dataSource}
             supportUrl={supportUrl}
-            onBack={() => setActiveView(isMobile ? "more" : "menu")}
-            onClose={() => { setActiveView("map"); setSelection(null); }}
+            onBack={handleSubmenuBack}
+            onClose={handleClosePanel}
           />
         );
       case "privacy-acknowledgements":
         return (
           <PrivacyAcknowledgementsPanel
-            onBack={() => setActiveView(isMobile ? "more" : "menu")}
-            onClose={() => { setActiveView("map"); setSelection(null); }}
+            onBack={handleSubmenuBack}
+            onClose={handleClosePanel}
           />
         );
       case "release-notes":
         return (
           <ReleaseNotesPanel
-            onBack={() => setActiveView(isMobile ? "more" : "menu")}
-            onClose={() => { setActiveView("map"); setSelection(null); }}
+            onBack={handleSubmenuBack}
+            onClose={handleClosePanel}
           />
         );
       case "analytics":
         return (
           <ReliabilityPanel
-            onBack={() => setActiveView("menu")}
-            onClose={() => { setActiveView("map"); setSelection(null); }}
+            onBack={handleSubmenuBack}
+            onClose={handleClosePanel}
           />
         );
       case "alert-history":
         return (
           <AlertHistoryPanel
-            onBack={() => setActiveView(isMobile ? "more" : "menu")}
-            onClose={() => { setActiveView("map"); setSelection(null); }}
+            onBack={handleSubmenuBack}
+            onClose={handleClosePanel}
           />
         );
       default:
@@ -1914,16 +1943,16 @@ export function LineWatchShell({
   const isDesktopPanel = activeView !== "map" && activeView !== "search" && activeView !== "menu";
   const showMenuAttention = !menuVisible && !isDesktopPanel;
 
-  const activeFloatingPanel = !showClosedScreen ? (
-    isMobilePanel ? (
-      <FloatingPanelShell panel="mobile-panel" mobileSheetLabel={getMobileSheetLabel()}>
-        <div key={activeView} className="mobile-view-content-wrapper" data-active-view={activeView}>
+  const activeFloatingPanel = (!showClosedScreen && (isDesktopPanel || isMobilePanel || isClosingPanel || isGoingBack)) ? (
+    isMobilePanel || (isMobile && (isGoingBack || isClosingPanel)) ? (
+      <FloatingPanelShell panel="mobile-panel" mobileSheetLabel={getMobileSheetLabel()} navDirection={navDirection} isClosing={isClosingPanel} isGoingBack={isGoingBack}>
+        <div key={activeView} className="mobile-view-content-wrapper" data-active-view={activeView} data-nav-direction={navDirection} data-closing={isClosingPanel ? "true" : undefined} data-going-back={isGoingBack ? "true" : undefined}>
           {renderPanelContent()}
         </div>
       </FloatingPanelShell>
-    ) : isDesktopPanel ? (
-      <FloatingPanelShell key="desktop-panel" panel={activeView} mobileSheetLabel={getMobileSheetLabel()}>
-        <div key={activeView} className="desktop-view-content-wrapper" data-active-view={activeView}>
+    ) : (isDesktopPanel || isGoingBack || isClosingPanel) ? (
+      <FloatingPanelShell key="desktop-panel" panel={activeView} mobileSheetLabel={getMobileSheetLabel()} navDirection={navDirection} isClosing={isClosingPanel} isGoingBack={isGoingBack}>
+        <div key={activeView} className="desktop-view-content-wrapper" data-active-view={activeView} data-nav-direction={navDirection} data-closing={isClosingPanel ? "true" : undefined} data-going-back={isGoingBack ? "true" : undefined}>
           {renderPanelContent()}
         </div>
       </FloatingPanelShell>

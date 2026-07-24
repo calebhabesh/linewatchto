@@ -338,9 +338,19 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
     }
   };
 
+  const [isClosing, setIsClosing] = useState(false);
+
+  const handleCloseClick = () => {
+    setIsClosing(true);
+    window.setTimeout(() => {
+      onClose();
+      setIsClosing(false);
+    }, 180);
+  };
+
   return (
     <aside
-      className="station-detail-panel fixed left-0 right-0 bottom-0 z-45 max-h-[calc(var(--visual-viewport-height,100dvh)*0.64)] flex flex-col overflow-hidden rounded-t-lg border border-black/10 bg-white p-4 text-slate-900 shadow-2xl dark:border-white/10 dark:bg-[#0a0c10] dark:text-white md:left-auto md:right-6 md:top-[104px] md:bottom-auto md:w-[min(calc(100vw-48px),460px)] md:max-h-[calc(var(--visual-viewport-height,100dvh)-128px)] md:rounded-lg"
+      className={`station-detail-panel ${isClosing ? "station-detail-closing" : ""} fixed left-0 right-0 bottom-0 z-45 max-h-[calc(var(--visual-viewport-height,100dvh)*0.64)] flex flex-col overflow-hidden rounded-t-lg border border-black/10 bg-white p-4 text-slate-900 shadow-2xl dark:border-white/10 dark:bg-[#0a0c10] dark:text-white md:left-auto md:right-6 md:top-[104px] md:bottom-auto md:w-[min(calc(100vw-48px),460px)] md:max-h-[calc(var(--visual-viewport-height,100dvh)-128px)] md:rounded-lg`}
       aria-live="polite"
       aria-label={station ? `${station.name} station details` : "Station details"}
     >
@@ -380,7 +390,7 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
           </div>
           <button
             type="button"
-            onClick={onClose}
+            onClick={handleCloseClick}
             className="station-detail-close-button h-11 w-11"
             aria-label="Close station details"
           >

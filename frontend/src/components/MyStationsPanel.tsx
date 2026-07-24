@@ -574,7 +574,7 @@ export function MyStationsPanel({
         </div>
       </div>
 
-      <div className="my-stations-body">
+      <div key={mode} className="my-stations-body" data-nav-direction={mode === "add" ? "forward" : "back"}>
         {!authenticated ? (
           <div className="saved-commute-account-prompt p-4 rounded-lg flex flex-col gap-4 border border-black/10 dark:border-white/10">
             <div>

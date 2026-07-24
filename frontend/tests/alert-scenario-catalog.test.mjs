@@ -24,7 +24,7 @@ describe("alert scenario catalog", () => {
   it("makes all-alert-types cover every backend-to-map alert surface", () => {
     const scenario = index.scenarios.find((candidate) => candidate.name === "all-alert-types");
     assert.ok(scenario);
-    assert.equal(scenario.routeCount, 23);
+    assert.equal(scenario.routeCount, 24);
     assert.equal(scenario.accessibilityCount, 2);
     assert.deepEqual(scenario.directionCoverage, {
       "delay": ["bidirectional", "directional"],
@@ -46,6 +46,7 @@ describe("alert scenario catalog", () => {
         "delay-multi-dot-interchange-station",
         "planned-closure-bidirectional",
         "planned-closure-directional",
+        "planned-closure-long-upcoming",
         "reduced-speed-zone-bidirectional",
         "reduced-speed-zone-directional",
         "reduced-speed-zone-directionless",
@@ -148,6 +149,10 @@ describe("alert scenario catalog", () => {
     assert.equal(routesById.get("synthetic-planned-line-1")?.alertType, "Planned");
     assert.ok(routesById.get("synthetic-planned-line-1")?.childAlerts.length > 0);
     assert.equal(routesById.get("scenario-planned-line-1-northbound-early-access")?.direction, "Northbound");
+    assert.equal(routesById.get("scenario-planned-line-2-long-upcoming")?.alertType, "Planned");
+    assert.equal(routesById.get("scenario-planned-line-2-long-upcoming")?.route, "2");
+    assert.equal(routesById.get("scenario-planned-line-2-long-upcoming")?.stopStart, "Broadview");
+    assert.equal(routesById.get("scenario-planned-line-2-long-upcoming")?.stopEnd, "Kennedy");
     assert.deepEqual(feed.accessibility.map((record) => record.routeType).sort(), ["Elevator", "Escalator"]);
   });
 

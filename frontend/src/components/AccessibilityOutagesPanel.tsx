@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import React, { useState } from "react";
-import { ChevronLeft, X, ChevronDown, ChevronUp, MapPin } from "lucide-react";
+import { ChevronLeft, X, ChevronDown, MapPin } from "lucide-react";
 import { AccessibilityOutageResponse } from "../app/accessibility-outage-data";
 import { formatImpactTimestamp } from "../app/impact-time";
 
@@ -141,7 +141,7 @@ export function AccessibilityOutagesPanel({
       </div>
 
       {/* Panel Content */}
-      <div className="flex-1 overflow-y-auto min-w-0 p-3 sm:p-4 accessibility-outages-scroll">
+      <div key={selectedAssetType || "all"} className="flex-1 overflow-y-auto min-w-0 p-3 sm:p-4 accessibility-outages-scroll" data-nav-direction={selectedAssetType ? "forward" : "back"}>
         {!selectedAssetType ? (
           /* First View: Asset List */
           <div className="flex flex-col gap-4">
@@ -303,65 +303,67 @@ export function AccessibilityOutagesPanel({
                                 ({station.count} {station.count === 1 ? "outage" : "outages"})
                               </span>
                             </span>
-                            {expanded ? (
-                              <ChevronUp className="w-4 h-4 text-slate-500" />
-                            ) : (
-                              <ChevronDown className="w-4 h-4 text-slate-500" />
-                            )}
+                            <ChevronDown
+                              className="w-4 h-4 text-slate-500 accessibility-accordion-chevron"
+                              data-expanded={expanded ? "true" : "false"}
+                            />
                           </button>
 
                           {/* Station Expanded Outages */}
-                          {expanded && (
-                            <div
-                              id={`outages-list-${expandedKey}`}
-                              className="px-3 pt-3 pb-3 flex flex-col gap-2 bg-slate-100/50 dark:bg-[#11151d] border-t border-black/5 dark:border-white/5"
-                            >
-                              {/* Outage Cards */}
-                              {station.outages.map((outage) => (
-                                <div
-                                  key={outage.id}
-                                  className="p-3 rounded border border-black/10 dark:border-white/10 bg-white dark:bg-[#161a23] border-l-4"
-                                  style={{ borderLeftColor: group.color }}
-                                >
-                                  <h4 className="text-xs font-normal text-slate-900 dark:text-white mb-1">
-                                    {outage.title}
-                                  </h4>
-                                  {outage.description && (
-                                    <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed mb-2">
-                                      {outage.description}
-                                    </p>
-                                  )}
-                                  <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1 text-[10px] text-slate-500 dark:text-slate-400 font-medium">
-                                    {outage.cause && (
+                          <div
+                            id={`outages-list-${expandedKey}`}
+                            className="accessibility-accordion-wrapper"
+                            data-expanded={expanded ? "true" : "false"}
+                          >
+                            <div className="overflow-hidden">
+                              <div className="px-3 pt-3 pb-3 flex flex-col gap-2 bg-slate-100/50 dark:bg-[#11151d] border-t border-black/5 dark:border-white/5">
+                                {/* Outage Cards */}
+                                {station.outages.map((outage) => (
+                                  <div
+                                    key={outage.id}
+                                    className="p-3 rounded border border-black/10 dark:border-white/10 bg-white dark:bg-[#161a23] border-l-4"
+                                    style={{ borderLeftColor: group.color }}
+                                  >
+                                    <h4 className="text-xs font-normal text-slate-900 dark:text-white mb-1">
+                                      {outage.title}
+                                    </h4>
+                                    {outage.description && (
+                                      <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed mb-2">
+                                        {outage.description}
+                                      </p>
+                                    )}
+                                    <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1 text-[10px] text-slate-500 dark:text-slate-400 font-medium">
+                                      {outage.cause && (
+                                        <div>
+                                          <span className="font-bold text-slate-400 dark:text-slate-500 uppercase mr-1">
+                                            Cause:
+                                          </span>
+                                          {outage.cause}
+                                        </div>
+                                      )}
                                       <div>
                                         <span className="font-bold text-slate-400 dark:text-slate-500 uppercase mr-1">
-                                          Cause:
+                                          Updated:
                                         </span>
-                                        {outage.cause}
+                                        {formatImpactTimestamp(outage.updatedAt)}
                                       </div>
-                                    )}
-                                    <div>
-                                      <span className="font-bold text-slate-400 dark:text-slate-500 uppercase mr-1">
-                                        Updated:
-                                      </span>
-                                      {formatImpactTimestamp(outage.updatedAt)}
                                     </div>
                                   </div>
-                                </div>
-                              ))}
+                                ))}
 
-                              {/* Station Action Button */}
-                              <div className="flex justify-end pt-1">
-                                <button
-                                  onClick={() => onSelectStation(station.stationId)}
-                                  className="inline-flex min-h-[34px] items-center gap-2 rounded-lg bg-blue-600 px-3 text-white transition-colors hover:bg-blue-700 cursor-pointer"
-                                >
-                                  <MapPin size={15} />
-                                  <span className="text-sm font-bold leading-none">View Station</span>
-                                </button>
+                                {/* Station Action Button */}
+                                <div className="flex justify-end pt-1">
+                                  <button
+                                    onClick={() => onSelectStation(station.stationId)}
+                                    className="inline-flex min-h-[34px] items-center gap-2 rounded-lg bg-blue-600 px-3 text-white transition-colors hover:bg-blue-700 cursor-pointer"
+                                  >
+                                    <MapPin size={15} />
+                                    <span className="text-sm font-bold leading-none">View Station</span>
+                                  </button>
+                                </div>
                               </div>
                             </div>
-                          )}
+                          </div>
                         </div>
                       );
                     })}
