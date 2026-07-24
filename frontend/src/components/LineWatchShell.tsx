@@ -2815,8 +2815,9 @@ export function LineWatchShell({
         ) : null}
       </main>
 
-      {!showClosedScreen && selectedNetwork === "ttc" && (
+      {!showClosedScreen && (
         <MobileLegend
+          mode={selectedNetwork}
           closingSoon={subwayOperatingState.closingSoon || (subwayOperatingState.status === "closed" && closedMapPeek)}
           expanded={legendExpanded}
           onToggleExpanded={() => setLegendExpanded(!legendExpanded)}
@@ -2955,7 +2956,8 @@ export function LineWatchShell({
         </aside>
 
         <aside className="desktop-map-legend fixed bottom-10 right-6 z-20 pointer-events-none">
-          {selectedNetwork === "ttc" ? <LineLegend
+          <LineLegend
+            mode={selectedNetwork}
             onAlertClick={() => {
               setActiveView("alerts");
               setSelection(null);
@@ -2972,7 +2974,7 @@ export function LineWatchShell({
               setActiveView("closures");
               setSelection(null);
             }}
-          /> : null}
+          />
         </aside>
       </>
       )}

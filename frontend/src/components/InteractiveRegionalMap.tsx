@@ -1,9 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent, type WheelEvent } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent, type PointerEvent, type WheelEvent } from "react";
 import { Locate, ZoomIn, ZoomOut } from "lucide-react";
 import type { ImpactSelection } from "../app/linewatch-data";
-import { REGIONAL_ROUTE_DEFINITIONS } from "../app/regional-data";
 import { useDashboardData } from "../app/DataContext";
 import {
   clampPanZoomScale,
@@ -455,9 +454,6 @@ export function InteractiveRegionalMap({
     activateTarget(event.target);
   }, [activateTarget]);
 
-  const legend = useMemo(() => REGIONAL_ROUTE_DEFINITIONS.map((route) => (
-    <li key={route.number}><span style={{ backgroundColor: route.color }} />{route.number} {route.name}</li>
-  )), []);
   const relativeScale = camera.scale / (fitScale || 1);
 
   return (
@@ -548,12 +544,6 @@ export function InteractiveRegionalMap({
           </button>
         </div>
       </div>
-      <aside className="regional-map-legend panel" aria-label="Regional rail legend">
-        <strong>GO &amp; UP corridors</strong>
-        <ul>{legend}</ul>
-        <p><span className="limited-service-swatch" aria-hidden="true" /> Limited service <small>Scheduled service pattern, not a disruption.</small></p>
-        <em>Demo fixture — not live service information</em>
-      </aside>
     </section>
   );
 }

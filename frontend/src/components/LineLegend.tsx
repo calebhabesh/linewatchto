@@ -4,7 +4,7 @@ import { useDashboardData } from "../app/DataContext";
 import { ImpactTypeIcon } from "./ImpactTypeIcon";
 import { TransitLineBadge } from "./TransitLineBadge";
 
-const LINES = [
+const TTC_LINES = [
   { id: "line-1", number: "1", name: "Line 1 Yonge-University" },
   { id: "line-2", number: "2", name: "Line 2 Bloor-Danforth" },
   { id: "line-4", number: "4", name: "Line 4 Sheppard" },
@@ -12,21 +12,35 @@ const LINES = [
   { id: "line-6", number: "6", name: "Line 6 Finch West" },
 ];
 
+const REGIONAL_LINES = [
+  { id: "go-br", number: "BR", name: "Barrie Line" },
+  { id: "go-ki", number: "KI", name: "Kitchener Line" },
+  { id: "go-le", number: "LE", name: "Lakeshore East Line" },
+  { id: "go-lw", number: "LW", name: "Lakeshore West Line" },
+  { id: "go-mi", number: "MI", name: "Milton Line" },
+  { id: "go-rh", number: "RH", name: "Richmond Hill Line" },
+  { id: "go-st", number: "ST", name: "Stouffville Line" },
+  { id: "up-express", number: "UP", name: "Union Pearson Express" },
+];
+
 export function LineLegend({ 
+  mode = "ttc",
   onAlertClick, 
   onDelayClick,
   onClosureClick,
   onReducedSpeedZoneClick,
 }: { 
+  mode?: "ttc" | "regional";
   onAlertClick?: (lineId: string) => void;
   onDelayClick?: (lineId: string) => void;
   onClosureClick?: (lineId: string) => void;
   onReducedSpeedZoneClick?: (lineId: string) => void;
 }) {
   const { activeAlerts, delays, reducedSpeedZones, plannedClosures } = useDashboardData();
+  const lines = mode === "regional" ? REGIONAL_LINES : TTC_LINES;
   return (
     <div className="flex flex-col gap-4 select-none pointer-events-none">
-      {LINES.map(line => {
+      {lines.map(line => {
         const alert = activeAlerts.find(a => a.lineId === line.id);
         const delay = delays.find(a => a.lineId === line.id);
         const rsz = reducedSpeedZones.find(a => a.lineId === line.id);

@@ -2,7 +2,7 @@
 
 import { TransitLineBadge } from "./TransitLineBadge";
 
-const LINES = [
+const TTC_LINES = [
   { id: "line-1", number: "1", name: "Line 1 Yonge-University" },
   { id: "line-2", number: "2", name: "Line 2 Bloor-Danforth" },
   { id: "line-4", number: "4", name: "Line 4 Sheppard" },
@@ -10,15 +10,29 @@ const LINES = [
   { id: "line-6", number: "6", name: "Line 6 Finch West" },
 ];
 
+const REGIONAL_LINES = [
+  { id: "go-br", number: "BR", name: "Barrie Line" },
+  { id: "go-ki", number: "KI", name: "Kitchener Line" },
+  { id: "go-le", number: "LE", name: "Lakeshore East Line" },
+  { id: "go-lw", number: "LW", name: "Lakeshore West Line" },
+  { id: "go-mi", number: "MI", name: "Milton Line" },
+  { id: "go-rh", number: "RH", name: "Richmond Hill Line" },
+  { id: "go-st", number: "ST", name: "Stouffville Line" },
+  { id: "up-express", number: "UP", name: "Union Pearson Express" },
+];
+
 export function MobileLegend({ 
+  mode = "ttc",
   closingSoon, 
   expanded = false, 
   onToggleExpanded,
 }: { 
+  mode?: "ttc" | "regional";
   closingSoon?: boolean;
   expanded?: boolean;
   onToggleExpanded?: () => void;
 }) {
+  const lines = mode === "regional" ? REGIONAL_LINES : TTC_LINES;
   return (
     <div
       onClick={onToggleExpanded}
@@ -32,7 +46,7 @@ export function MobileLegend({
       aria-expanded={expanded}
       aria-label="Transit line legend"
     >
-      {LINES.map((line) => (
+      {lines.map((line) => (
         <div key={line.id} className="flex items-center gap-2 overflow-hidden">
           <div className="w-[20px] h-[20px] flex items-center justify-center shrink-0">
             <TransitLineBadge lineId={line.id} lineNumber={line.number} size={20} className="opacity-95" />
