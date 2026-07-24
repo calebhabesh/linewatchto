@@ -39,6 +39,7 @@ describe("visual preference persistence", () => {
       reducedMotion: true,
       estimatedTrainsEnabled: true,
       dotBackgroundEnabled: false,
+      defaultNetwork: "regional",
     });
 
     assert.deepEqual(readVisualPreferencesFromStorage(storage), {
@@ -47,6 +48,7 @@ describe("visual preference persistence", () => {
       reducedMotion: true,
       estimatedTrainsEnabled: true,
       dotBackgroundEnabled: false,
+      defaultNetwork: "regional",
     });
   });
 
@@ -57,6 +59,7 @@ describe("visual preference persistence", () => {
       "linewatch-reduced-motion-enabled-v1": "",
       "linewatch-estimated-trains-enabled-v1": "false",
       "linewatch-dot-background-enabled-v1": "invalid",
+      "linewatch-default-network-v1": "bus",
     });
 
     assert.deepEqual(readVisualPreferencesFromStorage(storage), {
@@ -65,6 +68,7 @@ describe("visual preference persistence", () => {
       reducedMotion: null,
       estimatedTrainsEnabled: false,
       dotBackgroundEnabled: null,
+      defaultNetwork: null,
     });
   });
 
@@ -83,6 +87,7 @@ describe("visual preference persistence", () => {
         reducedMotion: false,
         estimatedTrainsEnabled: true,
         dotBackgroundEnabled: false,
+        defaultNetwork: "regional",
       },
       "https:",
     );
@@ -100,6 +105,7 @@ describe("visual preference persistence", () => {
       reducedMotionOverride: true,
       estimatedTrainsEnabled: true,
       dotBackgroundEnabled: false,
+      defaultNetwork: "regional",
     });
   });
 

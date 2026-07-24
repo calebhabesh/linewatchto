@@ -30,6 +30,25 @@ export type MapContentBounds = {
   height: number;
 };
 
+const FITTED_CAMERA_FLY_IN_OFFSET_RATIO = 0.18;
+const FITTED_CAMERA_FLY_IN_SCALE_RATIO = 1.35;
+
+/**
+ * Normalizes the initial fitted-camera trajectory across differently authored
+ * map canvases by starting slightly enlarged toward the viewport's top-left.
+ */
+export function computeFittedCameraFlyInStart(
+  fittedCamera: PanZoomTransform,
+  viewportWidth: number,
+  viewportHeight: number,
+): PanZoomTransform {
+  return {
+    x: fittedCamera.x - viewportWidth * FITTED_CAMERA_FLY_IN_OFFSET_RATIO,
+    y: fittedCamera.y - viewportHeight * FITTED_CAMERA_FLY_IN_OFFSET_RATIO,
+    scale: fittedCamera.scale * FITTED_CAMERA_FLY_IN_SCALE_RATIO,
+  };
+}
+
 /**
  * Frames authored map artwork inside a bounded viewport. The artwork remains
  * fully contained between the controls and viewport edge, with equal remainder

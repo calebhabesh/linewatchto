@@ -7,10 +7,12 @@ import Image from "next/image";
 import type { AccountState } from "../app/account-data";
 import { lineWatchAppVersionLabel } from "../app/app-build";
 import type { DashboardData } from "../app/DataContext";
+import type { NetworkId } from "../app/regional-data";
 import { resetLineWatchLocalAppState } from "../app/local-app-reset";
 import { hasReleaseNotes } from "../app/release-notes";
 import { LogsDropdown } from "./LogsDropdown";
 import { PushDeliveryDiagnosticsPanel } from "./PushDeliveryDiagnosticsPanel";
+import { DefaultMapModeControl } from "./DefaultMapModeControl";
 import {
   getPwaInstallHeading,
   getPwaInstallInstructionText,
@@ -39,6 +41,8 @@ type Props = {
   onOpenCommutes: () => void;
   onOpenMyStations: () => void;
   savedStationCount: number;
+  defaultNetwork: NetworkId;
+  onDefaultNetworkChange: (network: NetworkId) => void;
   onOpenAlertHistory: () => void;
   onOpenAnalytics: () => void;
   onOpenFeedback: () => void;
@@ -75,6 +79,8 @@ export function MobileMoreSheet({
   onOpenCommutes,
   onOpenMyStations,
   savedStationCount,
+  defaultNetwork,
+  onDefaultNetworkChange,
   onOpenAlertHistory,
   onOpenAnalytics,
   onOpenFeedback,
@@ -232,6 +238,11 @@ export function MobileMoreSheet({
               </button>
             </>
           )}
+          <DefaultMapModeControl
+            compact
+            value={defaultNetwork}
+            onChange={onDefaultNetworkChange}
+          />
         </div>
 
         <div className="mobile-more-section">

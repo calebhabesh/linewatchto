@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
-import { AlertCircle, Bookmark, ChevronDown, ChevronLeft, ChevronRight, Clock3, FileText, LoaderCircle, Plus, Search, TriangleAlert, X } from "lucide-react";
+import { AlertCircle, Bookmark, ChevronDown, ChevronLeft, ChevronRight, Clock3, FileText, LoaderCircle, Plus, Search, X } from "lucide-react";
 import type { AccountSavedStation } from "../app/saved-station-data";
 import type { AccountState } from "../app/account-data";
 import type { ImpactKind, ImpactSelection } from "../app/linewatch-data";
@@ -15,11 +15,12 @@ import {
   isArrivalDue,
   shouldUseDetailedArrivalCountdown,
 } from "../app/station-arrivals";
-import { getStationDetail, type StationDataResult, type StationDetail, type StationImpactSeverity, type StationSummary } from "../app/station-data";
-import { stationImpactKindsByStation } from "../app/station-impact-types";
+import { getStationDetail, type StationDataResult, type StationDetail, type StationSummary } from "../app/station-data";
+import { stationImpactKindsByStation, stationImpactSelection } from "../app/station-impact-types";
 import { useDashboardData } from "../app/DataContext";
 import { useSubwayOperatingState } from "../hooks/useSubwayOperatingState";
 import { ToolbarSelectMenu, type ToolbarSelectOption } from "./ImpactListToolbar";
+import { ImpactTypeIcon } from "./ImpactTypeIcon";
 import { TransitLineBadge } from "./TransitLineBadge";
 import { StationImpactTypeBadges } from "./StationImpactTypeBadges";
 import { StationOutageBadge } from "./StationOutageBadge";
@@ -68,7 +69,7 @@ const LINE_OPTIONS: ToolbarSelectOption<string>[] = [
 
 const SAVED_STATION_DETAIL_REFRESH_MS = 15_000;
 
-type SavedStationDisruptionKind = StationImpactSeverity | "elevator" | "escalator";
+type SavedStationDisruptionKind = ImpactKind | "elevator" | "escalator";
 
 const SAVED_STATION_OUTAGE_ICON_SRC = {
   elevator: "/assets/linewatch/outages/elevator.svg",
@@ -79,7 +80,8 @@ function disruptionKindLabel(kind: SavedStationDisruptionKind) {
   switch (kind) {
     case "suspension": return "Suspension";
     case "delay": return "Delay";
-    case "planned": return "Closure";
+    case "reduced-speed-zone": return "Reduced Speed Zone";
+    case "planned-closure": return "Planned Closure";
     case "elevator": return "Elevator Outage";
     case "escalator": return "Escalator Outage";
   }
@@ -91,7 +93,7 @@ function disruptionKindCountLabel(kind: SavedStationDisruptionKind, count: numbe
 }
 
 function disruptionKindClassName(kind: SavedStationDisruptionKind) {
-  return kind === "planned" ? "planned-closure" : kind;
+  return kind;
 }
 
 function DisruptionIcon({ kind, size = 13 }: { kind: SavedStationDisruptionKind; size?: number }) {
@@ -104,7 +106,7 @@ function DisruptionIcon({ kind, size = 13 }: { kind: SavedStationDisruptionKind;
     );
   }
 
-  return <TriangleAlert size={size} aria-hidden="true" />;
+  return <ImpactTypeIcon kind={kind} size={size} />;
 }
 
 function stationImpactContext(
@@ -112,41 +114,13 @@ function stationImpactContext(
   stationName: string,
   dashboard: ReturnType<typeof useDashboardData>,
 ) {
-  const match = dashboard.activeAlerts.find((impact) => impact.id === impactId)
+  const match = dashboard.reducedSpeedZones.find((impact) => impact.id === impactId || impact.sourceAlertIds.includes(impactId))
+    ?? dashboard.activeAlerts.find((impact) => impact.id === impactId)
     ?? dashboard.delays.find((impact) => impact.id === impactId)
-    ?? dashboard.plannedClosures.find((impact) => impact.id === impactId)
-    ?? dashboard.reducedSpeedZones.find((impact) => impact.id === impactId || impact.sourceAlertIds.includes(impactId));
+    ?? dashboard.plannedClosures.find((impact) => impact.id === impactId);
 
   if (!match) return `Station: ${stationName}`;
   return `Line ${match.lineNumber}: ${match.location}${match.displayDirection ? ` (${match.displayDirection})` : ""}`;
-}
-
-function stationImpactSelection(
-  impactId: string,
-  dashboard: ReturnType<typeof useDashboardData>,
-): NonNullable<ImpactSelection> | null {
-  const reducedSpeedZone = dashboard.reducedSpeedZones.find(
-    (impact) => impact.id === impactId || impact.sourceAlertIds.includes(impactId),
-  );
-  if (reducedSpeedZone) return { kind: "reduced-speed-zone", id: reducedSpeedZone.id };
-
-  const activeAlert = dashboard.activeAlerts.find((impact) => impact.id === impactId);
-  if (activeAlert) {
-    const kind = activeAlert.severity === "planned"
-      ? "planned-closure"
-      : activeAlert.severity === "suspension"
-        ? "suspension"
-        : "delay";
-    return { kind, id: activeAlert.id };
-  }
-
-  const delay = dashboard.delays.find((impact) => impact.id === impactId);
-  if (delay) return { kind: "delay", id: delay.id };
-
-  const plannedClosure = dashboard.plannedClosures.find((impact) => impact.id === impactId);
-  if (plannedClosure) return { kind: "planned-closure", id: plannedClosure.id };
-
-  return null;
 }
 
 function StationLineBadges({ lineIds }: { lineIds: string[] }) {
@@ -228,14 +202,19 @@ function SavedStationRow({
   const dashboard = useDashboardData();
   const detail = detailResult?.data ?? null;
   const activeImpacts = detail?.impacts.filter((impact) => impact.type === "active-alert") ?? [];
+  const classifiedActiveImpacts = activeImpacts.map((impact) => ({
+    impact,
+    kind: stationImpactSelection(impact.id, dashboard)?.kind
+      ?? (impact.severity === "planned" ? "planned-closure" : impact.severity),
+  }));
   const accessOutages = detail?.access.outages ?? [];
   const disruptionCount = activeImpacts.length + accessOutages.length;
   const displayedDisruptionCount = detail ? disruptionCount : stationState(saved.station).count;
   const disruptionSummary = (() => {
     const counts = new Map<SavedStationDisruptionKind, number>();
-    for (const impact of activeImpacts) counts.set(impact.severity, (counts.get(impact.severity) ?? 0) + 1);
+    for (const { kind } of classifiedActiveImpacts) counts.set(kind, (counts.get(kind) ?? 0) + 1);
     for (const outage of accessOutages) counts.set(outage.assetType, (counts.get(outage.assetType) ?? 0) + 1);
-    const order: SavedStationDisruptionKind[] = ["suspension", "delay", "planned", "elevator", "escalator"];
+    const order: SavedStationDisruptionKind[] = ["suspension", "delay", "reduced-speed-zone", "planned-closure", "elevator", "escalator"];
     return order.flatMap((kind) => counts.has(kind) ? [{ kind, count: counts.get(kind) ?? 0 }] : []);
   })();
   const hasUnavailableArrivals = detail?.arrivals.some((arrival) => arrival.status === "unavailable") ?? false;
@@ -313,12 +292,12 @@ function SavedStationRow({
             </summary>
             {disruptionCount > 0 ? (
               <ul className="saved-commute-impact-list saved-station-disruption-list">
-                {activeImpacts.map((impact) => (
-                  <li key={impact.id} className={`kind-${disruptionKindClassName(impact.severity)}`}>
-                    <span className="saved-commute-impact-icon" aria-hidden="true"><DisruptionIcon kind={impact.severity} size={15} /></span>
+                {classifiedActiveImpacts.map(({ impact, kind }) => (
+                  <li key={impact.id} className={`kind-${disruptionKindClassName(kind)}`}>
+                    <span className="saved-commute-impact-icon" aria-hidden="true"><DisruptionIcon kind={kind} size={15} /></span>
                     <div className="saved-commute-impact-copy">
                       <div className="saved-commute-impact-details">
-                        <div className="saved-commute-impact-heading"><strong><span className="saved-commute-impact-kind-label">{disruptionKindLabel(impact.severity)}</span></strong></div>
+                        <div className="saved-commute-impact-heading"><strong><span className="saved-commute-impact-kind-label">{disruptionKindLabel(kind)}</span></strong></div>
                         <span>{stationImpactContext(impact.id, saved.station.name, dashboard)}</span>
                       </div>
                       <div className="saved-commute-impact-action">

@@ -1,4 +1,13 @@
-import type { ImpactKind, NetworkSegment, StationNodeImpact } from "./linewatch-data.ts";
+import type {
+  ActiveAlert,
+  DelayAlert,
+  ImpactKind,
+  ImpactSelection,
+  NetworkSegment,
+  PlannedClosure,
+  ReducedSpeedZone,
+  StationNodeImpact,
+} from "./linewatch-data.ts";
 
 const IMPACT_KIND_ORDER: ImpactKind[] = [
   "suspension",
@@ -11,6 +20,41 @@ type StationImpactTypeData = {
   networkSegments: NetworkSegment[];
   stationNodeImpacts: StationNodeImpact[];
 };
+
+type StationImpactSelectionData = {
+  activeAlerts: ActiveAlert[];
+  delays: DelayAlert[];
+  plannedClosures: PlannedClosure[];
+  reducedSpeedZones: ReducedSpeedZone[];
+};
+
+export function stationImpactSelection(
+  impactId: string,
+  data: StationImpactSelectionData,
+): NonNullable<ImpactSelection> | null {
+  const reducedSpeedZone = data.reducedSpeedZones.find(
+    (impact) => impact.id === impactId || impact.sourceAlertIds.includes(impactId),
+  );
+  if (reducedSpeedZone) return { kind: "reduced-speed-zone", id: reducedSpeedZone.id };
+
+  const activeAlert = data.activeAlerts.find((impact) => impact.id === impactId);
+  if (activeAlert) {
+    const kind = activeAlert.severity === "planned"
+      ? "planned-closure"
+      : activeAlert.severity === "suspension"
+        ? "suspension"
+        : "delay";
+    return { kind, id: activeAlert.id };
+  }
+
+  const delay = data.delays.find((impact) => impact.id === impactId);
+  if (delay) return { kind: "delay", id: delay.id };
+
+  const plannedClosure = data.plannedClosures.find((impact) => impact.id === impactId);
+  if (plannedClosure) return { kind: "planned-closure", id: plannedClosure.id };
+
+  return null;
+}
 
 export function stationImpactKindsByStation(data: StationImpactTypeData) {
   const kindsByStation = new Map<string, Set<ImpactKind>>();

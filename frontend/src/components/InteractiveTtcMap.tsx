@@ -239,6 +239,7 @@ function InteractiveTtcMapComponent({
   estimatedTrainsEnabled = false,
   estimatedTrainMarkers = [],
   animateInitialEntrance = true,
+  onReady,
 }: {
   selection: ImpactSelection;
   onSelectImpact: (selection: ImpactSelection) => void;
@@ -260,6 +261,7 @@ function InteractiveTtcMapComponent({
   estimatedTrainsEnabled?: boolean;
   estimatedTrainMarkers?: EstimatedTrainMarker[];
   animateInitialEntrance?: boolean;
+  onReady?: () => void;
 }) {
   const { networkSegments, activeAlerts, delays, reducedSpeedZones, plannedClosures, stationNodeImpacts, stations: mapStations } = useDashboardData();
   const [svgParts, setSvgParts] = useState<{ part1: string; part2: string } | null>(null);
@@ -269,6 +271,7 @@ function InteractiveTtcMapComponent({
   const [hoveredOverlayForeground, setHoveredOverlayForeground] = useState<HoveredOverlayForeground | null>(null);
   const [hoveredStationImpact, setHoveredStationImpact] = useState<ImpactSelection>(null);
   const [expandedOverlapBadgeId, setExpandedOverlapBadgeId] = useState<string | null>(null);
+  const readyNotifiedRef = useRef(false);
 
   const mapSvgRef = useRef<SVGSVGElement>(null);
   const mapRootRef = useRef<HTMLDivElement>(null);
@@ -456,20 +459,44 @@ function InteractiveTtcMapComponent({
     if (loadState !== "ready") return;
 
     let attempts = 0;
+    let retryTimer: number | null = null;
+    let readyTimer: number | null = null;
+    let firstPaintFrame: number | null = null;
+    let secondPaintFrame: number | null = null;
+    const notifyReadyAfterPaint = () => {
+      firstPaintFrame = window.requestAnimationFrame(() => {
+        secondPaintFrame = window.requestAnimationFrame(() => {
+          if (readyNotifiedRef.current) return;
+          readyNotifiedRef.current = true;
+          onReady?.();
+        });
+      });
+    };
     const checkAndCenter = () => {
       if (!containerRef.current) return;
       const rect = containerRef.current.getBoundingClientRect();
       if (rect.width > 0 && rect.height > 0) {
         initializeCamera();
+        if (animateInitialEntrance && !reducedMotion && !mobilePerformanceMode) {
+          readyTimer = window.setTimeout(notifyReadyAfterPaint, 850);
+        } else {
+          notifyReadyAfterPaint();
+        }
       } else if (attempts < 10) {
         attempts++;
-        setTimeout(checkAndCenter, 100);
+        retryTimer = window.setTimeout(checkAndCenter, 100);
       }
     };
 
     checkAndCenter();
+    return () => {
+      if (retryTimer !== null) window.clearTimeout(retryTimer);
+      if (readyTimer !== null) window.clearTimeout(readyTimer);
+      if (firstPaintFrame !== null) window.cancelAnimationFrame(firstPaintFrame);
+      if (secondPaintFrame !== null) window.cancelAnimationFrame(secondPaintFrame);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initializeCamera, loadState]);
+  }, [animateInitialEntrance, initializeCamera, loadState, mobilePerformanceMode, onReady, reducedMotion]);
 
 
 

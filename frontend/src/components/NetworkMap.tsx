@@ -8,12 +8,14 @@ type TtcMapProps = ComponentProps<typeof InteractiveTtcMap>;
 type NetworkMapProps = TtcMapProps & {
   network: NetworkId;
   ttcClosingSoon: boolean;
+  onInitialMapReady: () => void;
   legendProps: Omit<NetworkMapLegendProps, "mode" | "closingSoon">;
 };
 
 export function NetworkMap({
   network,
   ttcClosingSoon,
+  onInitialMapReady,
   legendProps,
   ...props
 }: NetworkMapProps) {
@@ -30,9 +32,14 @@ export function NetworkMap({
           reducedMotion={props.reducedMotion}
           recenterSignal={props.recenterSignal}
           isDark={props.isDark}
+          animateInitialEntrance={props.animateInitialEntrance}
+          onReady={onInitialMapReady}
         />
       ) : (
-        <InteractiveTtcMap {...props} animateInitialEntrance={false} />
+        <InteractiveTtcMap
+          {...props}
+          onReady={onInitialMapReady}
+        />
       )}
       <NetworkMapLegend
         mode={network}

@@ -7,6 +7,7 @@ import { useDashboardData } from "../app/DataContext";
 import {
   clampPanZoomScale,
   computeBoundedMapFrame,
+  computeFittedCameraFlyInStart,
   computeInsetViewportFocus,
   currentDevicePixelRatio,
   PAN_ZOOM_MAX_RELATIVE_SCALE,
@@ -37,6 +38,8 @@ function InteractiveRegionalMapComponent({
   reducedMotion,
   recenterSignal,
   isDark = true,
+  animateInitialEntrance = true,
+  onReady,
 }: {
   selection: ImpactSelection;
   onSelectImpact: (selection: ImpactSelection) => void;
@@ -45,6 +48,8 @@ function InteractiveRegionalMapComponent({
   reducedMotion: boolean;
   recenterSignal?: number;
   isDark?: boolean;
+  animateInitialEntrance?: boolean;
+  onReady?: () => void;
 }) {
   const { activeAlerts, networkSegments, stationNodeImpacts } = useDashboardData();
   const viewportRef = useRef<HTMLDivElement>(null);
@@ -66,6 +71,7 @@ function InteractiveRegionalMapComponent({
   const dragMovedRef = useRef(false);
   const wheelCommitTimeoutRef = useRef<number | null>(null);
   const cameraRef = useRef(camera);
+  const readyNotifiedRef = useRef(false);
 
   const writeMapTransform = useCallback((nextCamera: Camera) => {
     if (mapStageRef.current) {
@@ -242,12 +248,30 @@ function InteractiveRegionalMapComponent({
     const fitted = fittedCamera();
     if (!fitted) return;
     cameraInitializedRef.current = true;
+    if (animateInitialEntrance && !reducedMotion) {
+      const viewport = viewportRef.current;
+      const mapSurface = viewport?.closest<HTMLElement>(".network-map-transition-surface");
+      const width = viewport?.clientWidth || mapSurface?.clientWidth || 0;
+      const height = viewport?.clientHeight || mapSurface?.clientHeight || 0;
+      const entryCamera = snapCameraToDevicePixels(
+        computeFittedCameraFlyInStart(fitted.camera, width, height),
+      );
+      cameraRef.current = entryCamera;
+      setMapTransition("none");
+      writeMapTransform(entryCamera);
+      setCamera(entryCamera);
+      programmaticAnimationFrameRef.current = window.requestAnimationFrame(() => {
+        programmaticAnimationFrameRef.current = null;
+        animateCameraTo(fitted.camera, fitted.scale);
+      });
+      return;
+    }
     setMapTransition("none");
     cameraRef.current = fitted.camera;
     writeMapTransform(fitted.camera);
     setFitScale(fitted.scale);
     setCamera(fitted.camera);
-  }, [fittedCamera, setMapTransition, svgMarkup, writeMapTransform]);
+  }, [animateCameraTo, animateInitialEntrance, fittedCamera, reducedMotion, setMapTransition, svgMarkup, writeMapTransform]);
 
   useEffect(() => {
     let cancelled = false;
@@ -342,6 +366,24 @@ function InteractiveRegionalMapComponent({
     const frameId = window.requestAnimationFrame(initializeMapCamera);
     return () => window.cancelAnimationFrame(frameId);
   }, [initializeMapCamera]);
+
+  useEffect(() => {
+    if (!svgMarkup || !cameraInitializedRef.current || readyNotifiedRef.current) return;
+
+    let secondPaintFrame: number | null = null;
+    const firstPaintFrame = window.requestAnimationFrame(() => {
+      secondPaintFrame = window.requestAnimationFrame(() => {
+        if (readyNotifiedRef.current) return;
+        readyNotifiedRef.current = true;
+        onReady?.();
+      });
+    });
+
+    return () => {
+      window.cancelAnimationFrame(firstPaintFrame);
+      if (secondPaintFrame !== null) window.cancelAnimationFrame(secondPaintFrame);
+    };
+  }, [camera, onReady, svgMarkup]);
 
   useEffect(() => {
     // Treat this as an edge-triggered command. A remount or data refresh must

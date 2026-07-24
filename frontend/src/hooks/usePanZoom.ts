@@ -3,6 +3,7 @@ import {
   clampPanZoomScale,
   clientPointToLogicalViewportPoint,
   computeBoundedMapFrame,
+  computeFittedCameraFlyInStart,
   computeInsetViewportFocus,
   computeMapFitScale,
   currentDevicePixelRatio,
@@ -579,16 +580,14 @@ export function usePanZoom({
     const { width, height } = logicalViewportSize();
     if (width <= 0 || height <= 0) return;
     const next = defaultTransformForViewport(width, height);
-    const { x, y, scale } = next;
+    const { scale } = next;
     const isInitialCamera = !cameraInitializedRef.current;
     cameraInitializedRef.current = true;
 
     if (isInitialCamera && shouldAnimateProgrammaticTransform && playEntrance) {
-      const entryScale = scale * 0.5;
-      const scaleRatio = entryScale / scale;
-      const entryX = width / 2 - (width / 2 - x) * scaleRatio;
-      const entryY = height / 2 - (height / 2 - y) * scaleRatio;
-      const entryTransform = snapTransform({ x: entryX, y: entryY, scale: entryScale });
+      const entryTransform = snapTransform(
+        computeFittedCameraFlyInStart(next, width, height),
+      );
 
       transformRef.current = entryTransform;
       setMapTransition("none");

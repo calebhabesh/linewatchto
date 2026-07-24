@@ -1130,6 +1130,32 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
   padding: 3px 6px;
 }
 
+.saved-station-disruption-chips > span.kind-suspension {
+  background: rgba(255, 69, 69, 0.1);
+  border-color: rgba(255, 69, 69, 0.35);
+  color: var(--danger);
+}
+
+.saved-station-disruption-chips > span.kind-delay {
+  background: rgba(254, 236, 65, 0.1);
+  border-color: rgba(254, 236, 65, 0.32);
+  color: #a16207;
+}
+
+.dark .saved-station-disruption-chips > span.kind-delay {
+  color: #FEEC41;
+}
+
+.saved-station-disruption-chips > span.kind-reduced-speed-zone {
+  color: var(--warning);
+}
+
+.saved-station-disruption-chips > span.kind-planned-closure {
+  background: rgba(59, 130, 246, 0.1);
+  border-color: rgba(59, 130, 246, 0.35);
+  color: var(--planned);
+}
+
 .saved-station-disruption-chips > span.kind-elevator,
 .saved-station-disruption-chips > span.kind-escalator {
   background: rgba(14, 165, 233, 0.08);
@@ -1197,6 +1223,10 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
 }
 
 .saved-station-disruption-list li.kind-delay .saved-commute-impact-icon {
+  color: var(--warning);
+}
+
+.saved-station-disruption-list li.kind-reduced-speed-zone .saved-commute-impact-icon {
   color: var(--warning);
 }
 
@@ -6568,6 +6598,215 @@ img.transit-line-badge {
   outline-offset: 2px;
 }
 
+.default-map-mode-control {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  margin: 2px 0 0;
+  min-height: 46px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  width: 100%;
+}
+
+.default-map-mode-label {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  min-width: 0;
+  flex: 1;
+}
+
+.default-map-mode-label .default-map-mode-icon,
+.default-map-mode-label > svg {
+  color: #64748b;
+  flex: 0 0 auto;
+  transition: color 0.15s;
+}
+
+.default-map-mode-text,
+.default-map-mode-label > div,
+.default-map-mode-label > span {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.default-map-mode-label strong {
+  color: #334155;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.default-map-mode-label small {
+  color: #64748b;
+  font-size: 0.6875rem;
+  line-height: 1.2;
+  margin-top: 1px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.default-map-mode-options {
+  background: rgba(226, 232, 240, 0.7);
+  border: 1px solid rgba(203, 213, 225, 0.8);
+  border-radius: 7px;
+  display: inline-flex;
+  align-items: center;
+  flex: 0 0 auto;
+  padding: 2px;
+  gap: 2px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.default-map-mode-options[data-network="ttc"] {
+  border-color: rgba(239, 68, 68, 0.35);
+}
+
+.default-map-mode-options[data-network="regional"] {
+  border-color: rgba(16, 185, 129, 0.35);
+}
+
+.default-map-mode-btn {
+  border: none;
+  border-radius: 5px;
+  color: #64748b;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  height: 26px;
+  padding: 0 9px;
+  white-space: nowrap;
+  cursor: pointer;
+  background: transparent;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.default-map-mode-btn:hover:not(.is-selected) {
+  color: #0f172a;
+}
+
+.default-map-mode-btn-ttc.is-selected {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  color: #ffffff !important;
+  font-weight: 800;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 1px 4px rgba(239, 68, 68, 0.4), inset 0 1px 0.5px rgba(255, 255, 255, 0.3);
+}
+
+.default-map-mode-btn-regional.is-selected {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: #ffffff !important;
+  font-weight: 800;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 1px 4px rgba(16, 185, 129, 0.4), inset 0 1px 0.5px rgba(255, 255, 255, 0.3);
+}
+
+.dark .default-map-mode-label strong {
+  color: #e2e8f0;
+}
+
+.dark .default-map-mode-label .default-map-mode-icon,
+.dark .default-map-mode-label > svg,
+.dark .default-map-mode-label small {
+  color: #94a3b8;
+}
+
+.dark .default-map-mode-options {
+  background: rgba(15, 23, 42, 0.6);
+  border-color: rgba(51, 65, 85, 0.7);
+}
+
+.dark .default-map-mode-options[data-network="ttc"] {
+  border-color: rgba(239, 68, 68, 0.35);
+}
+
+.dark .default-map-mode-options[data-network="regional"] {
+  border-color: rgba(16, 185, 129, 0.35);
+}
+
+.dark .default-map-mode-btn:not(.is-selected) {
+  color: #94a3b8;
+}
+
+.dark .default-map-mode-btn.is-selected {
+  color: #ffffff !important;
+}
+
+.dark .default-map-mode-btn:hover:not(.is-selected) {
+  color: #f8fafc;
+}
+
+.default-map-mode-control.is-compact {
+  margin: 0;
+  padding: 8px 12px;
+}
+
+.high-contrast .default-map-mode-options button.is-selected {
+  outline: 2px solid white;
+  outline-offset: -2px;
+}
+
+@media (max-width: 390px) {
+  .default-map-mode-label small {
+    display: none;
+  }
+
+  .default-map-mode-options button {
+    padding-inline: 7px;
+  }
+}
+
+.go-up-closed-content {
+  width: min(100%, 720px);
+}
+
+.go-up-closed-resume,
+.go-up-closed-resume svg,
+.go-up-closed-resume .subway-closed-resume-prefix,
+.go-up-closed-schedule-container .subway-closed-schedule-label {
+  color: #48d597;
+}
+
+.go-up-closed-schedule-table tr:not(:last-child) td {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  padding-bottom: 8px;
+}
+
+.go-up-closed-schedule-table tr:not(:first-child) td {
+  padding-top: 8px;
+}
+
+.go-up-closed-schedule-table td:first-child {
+  padding-right: 14px;
+  white-space: nowrap;
+}
+
+.go-up-closed-primary-action {
+  background: #48d597;
+  border-color: rgba(167, 243, 208, 0.62);
+}
+
+.go-up-closed-primary-action:hover {
+  background: #6ee7b7;
+  box-shadow: 0 4px 14px rgba(72, 213, 151, 0.32);
+}
+
+.go-up-closing-soon-chip,
+.go-up-closed-peek-chip {
+  border-color: rgba(72, 213, 151, 0.42);
+}
+
+.go-up-closing-soon-chip .subway-closing-soon-copy strong,
+.go-up-closed-peek-chip .subway-closed-peek-icon {
+  color: #48d597;
+}
+
 .subway-closed-peek-chip {
   align-items: center;
   background: rgba(8, 10, 16, 0.94);
@@ -6946,6 +7185,11 @@ img.transit-line-badge {
     min-height: 38px;
     font-size: 0.8rem;
     padding: 0 16px;
+  }
+
+  .go-up-closed-schedule-table td:first-child {
+    max-width: 112px;
+    white-space: normal;
   }
 }
 

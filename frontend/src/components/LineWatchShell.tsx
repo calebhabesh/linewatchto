@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import { DynamicBackground } from "./DynamicBackground";
 import { NetworkMap } from "./NetworkMap";
 import { NetworkSelector } from "./NetworkSelector";
+import { DefaultMapModeControl } from "./DefaultMapModeControl";
 import { RegionalStationDetailPanel } from "./RegionalStationDetailPanel";
 import { DelayIcon } from "./DelayIcon";
 import { ActiveAlertsPanel } from "./ActiveAlertsPanel";
@@ -66,6 +67,9 @@ import { usePushNotificationSettings } from "../hooks/usePushNotificationSetting
 import { Menu, X, Map as MapIcon, Train, AlertTriangle, Bookmark, Calendar, Navigation, ShieldCheck, BarChart3, Bell, Construction, Search, LogIn, LogOut, UserPlus, UserRound, Sun, Moon, Bus, Mail, Contrast, Pause, History, MessageSquareText, FileText, Sparkles, Pin, PinOff } from "lucide-react";
 import { SubwayClosedScreen } from "./SubwayClosedScreen";
 import { useSubwayOperatingState } from "../hooks/useSubwayOperatingState";
+import { GoUpClosedScreen } from "./GoUpClosedScreen";
+import { GoUpClosingSoonChip } from "./GoUpClosingSoonChip";
+import { useRegionalRailOperatingState } from "../hooks/useRegionalRailOperatingState";
 import { StationSearchPanel } from "./StationSearchPanel";
 import { OpeningDisclaimer } from "./OpeningDisclaimer";
 import { SubwayClosingSoonChip } from "./SubwayClosingSoonChip";
@@ -113,7 +117,6 @@ import {
   type InitialVisualPreferences,
 } from "../app/visual-preferences";
 import {
-  DEFAULT_NETWORK_ID,
   regionalDashboardData,
   regionalStationSummaries,
   type NetworkId,
@@ -188,7 +191,9 @@ export function LineWatchShell({
   initialVisualPreferences?: InitialVisualPreferences;
 }) {
   const router = useRouter();
-  const [selectedNetwork, setSelectedNetwork] = useState<NetworkId>(DEFAULT_NETWORK_ID);
+  const [selectedNetwork, setSelectedNetwork] = useState<NetworkId>(initialVisualPreferences.defaultNetwork);
+  const [initialMapReady, setInitialMapReady] = useState(false);
+  const [defaultNetworkPreference, setDefaultNetworkPreference] = useState<NetworkId>(initialVisualPreferences.defaultNetwork);
   const [ttcData, setTtcData] = useState(initialData);
   const displayData = selectedNetwork === "regional" ? regionalDashboardData : ttcData;
   const networkViewTransitionRef = useRef<{
@@ -242,6 +247,7 @@ export function LineWatchShell({
   const [estimatedTrainsEnabled, setEstimatedTrainsEnabled] = useState(initialVisualPreferences.estimatedTrainsEnabled);
   const [estimatedTrainSnapshot, setEstimatedTrainSnapshot] = useState<EstimatedTrainSnapshot>(EMPTY_ESTIMATED_TRAIN_SNAPSHOT);
   const subwayOperatingState = useSubwayOperatingState();
+  const regionalRailOperatingState = useRegionalRailOperatingState();
   const estimatedTrainMarkersVisible = selectedNetwork === "ttc" && estimatedTrainsEnabled && subwayOperatingState.status === "open";
 
   useEffect(() => {
@@ -274,6 +280,9 @@ export function LineWatchShell({
     setHighContrast(stored.highContrast ?? initialVisualPreferences.highContrast);
     setEstimatedTrainsEnabled(stored.estimatedTrainsEnabled ?? initialVisualPreferences.estimatedTrainsEnabled);
     setDotBackgroundEnabled(stored.dotBackgroundEnabled ?? initialVisualPreferences.dotBackgroundEnabled);
+    const preferredNetwork = stored.defaultNetwork ?? initialVisualPreferences.defaultNetwork;
+    setDefaultNetworkPreference(preferredNetwork);
+    setSelectedNetwork(preferredNetwork);
     setReducedMotionOverride(hasReducedMotionOverride);
     setReducedMotion(
       resolveReducedMotionPreference(
@@ -285,6 +294,7 @@ export function LineWatchShell({
   }, [
     initialVisualPreferences.estimatedTrainsEnabled,
     initialVisualPreferences.dotBackgroundEnabled,
+    initialVisualPreferences.defaultNetwork,
     initialVisualPreferences.highContrast,
     initialVisualPreferences.reducedMotion,
     initialVisualPreferences.reducedMotionOverride,
@@ -300,11 +310,12 @@ export function LineWatchShell({
       reducedMotion: reducedMotionOverride ? reducedMotion : null,
       estimatedTrainsEnabled,
       dotBackgroundEnabled,
+      defaultNetwork: defaultNetworkPreference,
     };
 
     writeVisualPreferencesToStorage(window.localStorage, preferences);
     document.cookie = buildVisualPreferencesCookie(preferences, window.location.protocol);
-  }, [dotBackgroundEnabled, estimatedTrainsEnabled, highContrast, isDark, reducedMotion, reducedMotionOverride, visualPreferencesReady]);
+  }, [defaultNetworkPreference, dotBackgroundEnabled, estimatedTrainsEnabled, highContrast, isDark, reducedMotion, reducedMotionOverride, visualPreferencesReady]);
 
   useEffect(() => {
     let cancelled = false;
@@ -433,17 +444,25 @@ export function LineWatchShell({
   const [recenterSignal, setRecenterSignal] = useState(0);
 
   const [closedMapPeek, setClosedMapPeek] = useState(false);
+  const [closedScreenAcknowledged, setClosedScreenAcknowledged] = useState(false);
   const [isClosedScreenExiting, setIsClosedScreenExiting] = useState(false);
   const [isExitingPeekChip, setIsExitingPeekChip] = useState(false);
   const [legendExpanded, setLegendExpanded] = useState(false);
   const [guideOpen, setGuideOpen] = useState(false);
   const [disclaimerVisible, setDisclaimerVisible] = useState(true);
 
-  if (subwayOperatingState.status === "open" && closedMapPeek) {
-    setClosedMapPeek(false);
-  }
+  const selectedNetworkIsClosed = selectedNetwork === "ttc"
+    ? subwayOperatingState.status === "closed"
+    : regionalRailOperatingState.status === "closed";
 
-  const showClosedScreen = selectedNetwork === "ttc" && subwayOperatingState.status === "closed" && !closedMapPeek && !disclaimerVisible;
+  const showTtcClosedScreen = selectedNetwork === "ttc" && subwayOperatingState.status === "closed"
+    && !closedScreenAcknowledged
+    && !disclaimerVisible;
+  const showRegionalClosedScreen = selectedNetwork === "regional"
+    && regionalRailOperatingState.status === "closed"
+    && !closedScreenAcknowledged
+    && !disclaimerVisible;
+  const showClosedScreen = showTtcClosedScreen || showRegionalClosedScreen;
 
 
   // Interactive linking state
@@ -1435,6 +1454,9 @@ export function LineWatchShell({
     if (network === selectedNetwork) return;
 
     const applyNetworkChange = () => {
+      setClosedScreenAcknowledged(true);
+      setClosedMapPeek(true);
+      setIsClosedScreenExiting(false);
       setSelectedNetwork(network);
       setSelection(null);
       setSelectedStationId(null);
@@ -1471,6 +1493,14 @@ export function LineWatchShell({
     };
     void transition.finished.then(finishNetworkTransition, finishNetworkTransition);
   };
+
+  const handleDefaultNetworkChange = (network: NetworkId) => {
+    setDefaultNetworkPreference(network);
+  };
+
+  const handleInitialMapReady = useCallback(() => {
+    setInitialMapReady(true);
+  }, []);
 
   const handleOpenSearch = () => {
     setActiveView((prev) => {
@@ -1658,6 +1688,7 @@ export function LineWatchShell({
   const handlePeekClosedMap = () => {
     if (isClosedScreenExiting) return;
     setIsClosedScreenExiting(true);
+    setClosedScreenAcknowledged(true);
     setClosedMapPeek(true);
     setActiveView("map");
     setSelection(null);
@@ -1669,6 +1700,7 @@ export function LineWatchShell({
     if (isExitingPeekChip) return;
     setIsExitingPeekChip(true);
     setTimeout(() => {
+      setClosedScreenAcknowledged(false);
       setClosedMapPeek(false);
       setIsExitingPeekChip(false);
     }, 50);
@@ -1958,6 +1990,8 @@ export function LineWatchShell({
             onOpenCommutes={() => { setNavDirection("forward"); setActiveView("commutes"); }}
             onOpenMyStations={() => { setNavDirection("forward"); setActiveView("my-stations"); }}
             savedStationCount={savedStations.length}
+            defaultNetwork={defaultNetworkPreference}
+            onDefaultNetworkChange={handleDefaultNetworkChange}
             onOpenAnalytics={() => { setNavDirection("forward"); setActiveView("analytics"); }}
             onOpenAlertHistory={() => { setNavDirection("forward"); setActiveView("alert-history"); }}
             onOpenFeedback={() => { setNavDirection("forward"); setActiveView("feedback"); }}
@@ -2173,26 +2207,38 @@ export function LineWatchShell({
             )}
           </div>
 
-          {subwayOperatingState.closingSoon && subwayOperatingState.minutesUntilClose !== null && subwayOperatingState.nextCloseLabel ? (
+          {selectedNetwork === "ttc" && subwayOperatingState.closingSoon && subwayOperatingState.minutesUntilClose !== null && subwayOperatingState.nextCloseLabel ? (
             <SubwayClosingSoonChip
               minutesUntilClose={subwayOperatingState.minutesUntilClose}
               nextCloseLabel={subwayOperatingState.nextCloseLabel}
             />
           ) : null}
 
-          {selectedNetwork === "ttc" && subwayOperatingState.status === "closed" && closedMapPeek ? (
+          {selectedNetwork === "regional" && regionalRailOperatingState.closingSoon && regionalRailOperatingState.minutesUntilClose !== null && regionalRailOperatingState.nextCloseLabel ? (
+            <GoUpClosingSoonChip
+              minutesUntilClose={regionalRailOperatingState.minutesUntilClose}
+              nextCloseLabel={regionalRailOperatingState.nextCloseLabel}
+            />
+          ) : null}
+
+          {selectedNetworkIsClosed && closedMapPeek ? (
             <div
-              className={`subway-closed-peek-chip ${isExitingPeekChip ? "subway-closed-peek-chip--exiting" : ""}`}
+              className={`subway-closed-peek-chip ${
+                selectedNetwork === "regional" ? "go-up-closed-peek-chip" : ""
+              } ${isExitingPeekChip ? "subway-closed-peek-chip--exiting" : ""}`}
               role="status"
               aria-live="polite"
             >
               <Moon className="subway-closed-peek-icon shrink-0" size={18} strokeWidth={2.4} aria-hidden="true" />
               <div className="subway-closed-peek-text">
-                <strong className="subway-closed-peek-title">Subway Closed</strong>
+                <strong className="subway-closed-peek-title">
+                  {selectedNetwork === "ttc" ? "Subway Closed" : "GO & UP Rail Closed"}
+                </strong>
                 <span className="subway-closed-peek-subtitle">
-                  Resumes {subwayOperatingState.nextResumeLabel?.endsWith(".")
+                  {selectedNetwork === "ttc" ? "Resumes" : "Rail begins returning"}{" "}
+                  {(selectedNetwork === "ttc"
                     ? subwayOperatingState.nextResumeLabel
-                    : `${subwayOperatingState.nextResumeLabel}.`}
+                    : regionalRailOperatingState.nextResumeLabel)?.replace(/\.$/, "")}.
                 </span>
               </div>
               <button type="button" onClick={handleOpenClosedScreen}>
@@ -2402,6 +2448,10 @@ export function LineWatchShell({
                       </button>
                     </div>
                   )}
+                  <DefaultMapModeControl
+                    value={defaultNetworkPreference}
+                    onChange={handleDefaultNetworkChange}
+                  />
                   {accountError ? <p className="px-2 pb-2 text-xs font-semibold text-red-600 dark:text-red-300">{accountError}</p> : null}
                 </div>
 
@@ -2822,7 +2872,9 @@ export function LineWatchShell({
       <main className={`network-map-transition-surface absolute inset-0 z-auto md:z-10 ${showClosedScreen ? "subway-closed-map-backdrop" : ""}`}>
         <NetworkMap
           network={selectedNetwork}
-          ttcClosingSoon={subwayOperatingState.closingSoon || (subwayOperatingState.status === "closed" && closedMapPeek)}
+          animateInitialEntrance={!initialMapReady}
+          onInitialMapReady={handleInitialMapReady}
+          ttcClosingSoon={selectedNetwork === "ttc" && (subwayOperatingState.closingSoon || (subwayOperatingState.status === "closed" && closedMapPeek))}
           legendProps={{
             expanded: legendExpanded,
             onToggleExpanded: () => setLegendExpanded(!legendExpanded),
@@ -2937,9 +2989,18 @@ export function LineWatchShell({
         />
       ) : null}
 
-      {showClosedScreen || isClosedScreenExiting ? (
+      {selectedNetwork === "ttc" && (showTtcClosedScreen || isClosedScreenExiting) ? (
         <SubwayClosedScreen
           operatingState={subwayOperatingState}
+          isExiting={isClosedScreenExiting}
+          onPeekMap={handlePeekClosedMap}
+          onExitComplete={() => setIsClosedScreenExiting(false)}
+        />
+      ) : null}
+
+      {selectedNetwork === "regional" && (showRegionalClosedScreen || isClosedScreenExiting) ? (
+        <GoUpClosedScreen
+          operatingState={regionalRailOperatingState}
           isExiting={isClosedScreenExiting}
           onPeekMap={handlePeekClosedMap}
           onExitComplete={() => setIsClosedScreenExiting(false)}

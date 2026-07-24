@@ -8,21 +8,42 @@ import {
   regionalDashboardData,
   regionalStationSummaries,
 } from "../src/app/regional-data.ts";
+import { defaultVisualPreferences } from "../src/app/visual-preferences.ts";
 
 const shellSource = readFileSync(new URL("../src/components/LineWatchShell.tsx", import.meta.url), "utf8");
 const networkSelectorSource = readFileSync(new URL("../src/components/NetworkSelector.tsx", import.meta.url), "utf8");
+const defaultMapModeSource = readFileSync(new URL("../src/components/DefaultMapModeControl.tsx", import.meta.url), "utf8");
+const mobileMoreSource = readFileSync(new URL("../src/components/MobileMoreSheet.tsx", import.meta.url), "utf8");
 const networkMapSource = readFileSync(new URL("../src/components/NetworkMap.tsx", import.meta.url), "utf8");
 const networkMapLegendsSource = readFileSync(new URL("../src/components/NetworkMapLegends.tsx", import.meta.url), "utf8");
 const regionalMapSource = readFileSync(new URL("../src/components/InteractiveRegionalMap.tsx", import.meta.url), "utf8");
+const panZoomSource = readFileSync(new URL("../src/hooks/usePanZoom.ts", import.meta.url), "utf8");
 const regionalSvg = readFileSync(new URL("../public/assets/linewatch/regional-rail-map.svg", import.meta.url), "utf8");
 const globalsCss = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
 
 describe("network-scoped regional dashboard", () => {
   it("keeps TTC as the default and dispatches to separate map implementations", () => {
     assert.equal(DEFAULT_NETWORK_ID, "ttc");
-    assert.match(shellSource, /useState<NetworkId>\(DEFAULT_NETWORK_ID\)/);
+    assert.equal(defaultVisualPreferences.defaultNetwork, DEFAULT_NETWORK_ID);
+    assert.match(shellSource, /useState<NetworkId>\(initialVisualPreferences\.defaultNetwork\)/);
     assert.match(networkMapSource, /<InteractiveRegionalMap/);
     assert.match(networkMapSource, /<InteractiveTtcMap/);
+  });
+
+  it("lets riders persist a default map below My Stations on desktop and mobile", () => {
+    assert.match(defaultMapModeSource, /Default Map/);
+    assert.match(defaultMapModeSource, /TTC/);
+    assert.match(defaultMapModeSource, /GO &amp; UP/);
+    assert.match(shellSource, /<DefaultMapModeControl/);
+    assert.ok(shellSource.indexOf("My Stations") < shellSource.indexOf("<DefaultMapModeControl"));
+    assert.match(mobileMoreSource, /<DefaultMapModeControl/);
+    assert.ok(mobileMoreSource.indexOf("My Stations") < mobileMoreSource.indexOf("<DefaultMapModeControl"));
+    assert.match(shellSource, /defaultNetwork:\s*defaultNetworkPreference/);
+    const preferenceChangeBody = shellSource.match(
+      /const handleDefaultNetworkChange = \(network: NetworkId\) => \{([\s\S]*?)\n  \};/,
+    )?.[1] ?? "";
+    assert.match(preferenceChangeBody, /setDefaultNetworkPreference\(network\)/);
+    assert.doesNotMatch(preferenceChangeBody, /handleNetworkChange|setSelectedNetwork|setActiveView/);
   });
 
   it("keeps only the selected interactive map mounted in steady state", () => {
@@ -51,13 +72,40 @@ describe("network-scoped regional dashboard", () => {
     assert.doesNotMatch(networkChangeBody, /setMapLayoutSignal/);
     assert.doesNotMatch(networkMapSource, /key=\{network\}/);
     assert.doesNotMatch(regionalMapSource, /startInitialFlyIn/);
-    assert.doesNotMatch(regionalMapSource, /entryCamera/);
+    assert.match(shellSource, /animateInitialEntrance=\{!initialMapReady\}/);
     assert.match(regionalMapSource, /const initializeMapCamera = useCallback/);
-    assert.match(regionalMapSource, /setMapTransition\("none"\);[\s\S]*writeMapTransform\(fitted\.camera\)/);
+    assert.match(regionalMapSource, /if \(animateInitialEntrance && !reducedMotion\) \{[\s\S]*computeFittedCameraFlyInStart[\s\S]*animateCameraTo\(fitted\.camera, fitted\.scale\)/);
     assert.match(
       networkMapSource,
-      /<InteractiveTtcMap \{\.\.\.props\} animateInitialEntrance=\{false\}/,
+      /<InteractiveTtcMap[\s\S]*\{\.\.\.props\}[\s\S]*onReady=\{onInitialMapReady\}/,
     );
+  });
+
+  it("gives either initially preferred map the main-worktree camera fly-in", () => {
+    assert.match(
+      shellSource,
+      /const \[initialMapReady, setInitialMapReady\] = useState\(false\)/,
+    );
+    assert.match(
+      shellSource,
+      /animateInitialEntrance=\{!initialMapReady\}/,
+    );
+    assert.match(
+      shellSource,
+      /onInitialMapReady=\{handleInitialMapReady\}/,
+    );
+    assert.match(
+      networkMapSource,
+      /onReady=\{onInitialMapReady\}/g,
+    );
+    assert.match(
+      panZoomSource,
+      /const initializeCamera = useCallback\(\(\) => \{\s*moveToDefaultCamera\(animateInitialEntrance, animateInitialEntrance\)/,
+    );
+    assert.match(regionalMapSource, /computeFittedCameraFlyInStart\(fitted\.camera, width, height\)/);
+    assert.match(panZoomSource, /computeFittedCameraFlyInStart\(next, width, height\)/);
+    assert.match(regionalMapSource, /transform 0\.8s cubic-bezier\(0\.25, 1, 0\.5, 1\)/);
+    assert.doesNotMatch(shellSource, /animate-map-center-fade/);
   });
 
   it("slides compositor snapshots while keeping inactive React maps unmounted", () => {
@@ -88,6 +136,8 @@ describe("network-scoped regional dashboard", () => {
     )?.[1] ?? "";
 
     assert.doesNotMatch(networkChangeBody, /setClosedMapPeek\(false\)/);
+    assert.match(shellSource, /closedScreenAcknowledged/);
+    assert.doesNotMatch(shellSource, /if \(!selectedNetworkIsClosed && closedMapPeek\)/);
     assert.match(
       shellSource,
       /aria-label="Station Search"[\s\S]*subway-closed-peek-chip[\s\S]*Floating Dropdown Menu/,
@@ -219,14 +269,14 @@ describe("network-scoped regional dashboard", () => {
     assert.doesNotMatch(regionalMapSource, /root\.setAttribute\("viewBox"/);
   });
 
-  it("keeps camera animation for explicit regional map controls only", () => {
+  it("keeps the regional entrance and map controls on one camera animation pipeline", () => {
     assert.match(regionalMapSource, /setMapTransition\("transform 0\.8s cubic-bezier\(0\.25, 1, 0\.5, 1\)"\)/);
     assert.match(regionalMapSource, /programmaticAnimationFrameRef\.current = window\.requestAnimationFrame/);
     assert.match(regionalMapSource, /writeMapTransform\(targetCamera\)/);
     assert.match(regionalMapSource, /window\.setTimeout\(\(\) => \{[\s\S]*setCamera\(\{ \.\.\.cameraRef\.current \}\)/);
     assert.match(regionalMapSource, /cancelCameraAnimation\(\);[\s\S]*dragRef\.current/);
     assert.doesNotMatch(regionalMapSource, /setMapTransition\("transform 0\.8s[^\n]+\);\s*setCamera\(targetCamera\)/);
-    assert.doesNotMatch(regionalMapSource, /entryCamera/);
+    assert.match(regionalMapSource, /if \(animateInitialEntrance && !reducedMotion\) \{[\s\S]*entryCamera[\s\S]*animateCameraTo/);
   });
 
   it("does not move or zoom the initialized camera when the dashboard viewport resizes", () => {
