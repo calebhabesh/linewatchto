@@ -3,6 +3,7 @@
 @theme {
   --font-sans: var(--font-sans), Arial, Helvetica, sans-serif;
   --font-mono: var(--font-mono), monospace;
+  --font-subway: "Tex Gyre Heros", "TeX Gyre Heros", "Toronto Subway", "Helvetica Neue", Helvetica, Arial, sans-serif;
   --color-logo-blue: #81c9ff;
 }
 
@@ -142,14 +143,10 @@
   opacity: 0.85;
 }
 
-
-
-
 .network-dot-ttc {
   background: #ef4444;
   box-shadow: 0 0 4px rgba(239, 68, 68, 0.6);
 }
-
 
 .network-dot-regional {
   background: #10b981;
@@ -195,8 +192,6 @@
     transition: none !important;
   }
 }
-
-
 
 .regional-map,
 .regional-map-viewport {
@@ -335,6 +330,17 @@
   .regional-station-detail { top: auto; right: 0; bottom: 0; width: 100%; border-radius: 8px 8px 0 0; }
 }
 
+=======
+/* Subway legend font definition */
+.font-subway,
+.legend-line-name,
+.desktop-map-legend span,
+.mobile-legend-pill span {
+  font-family: var(--font-subway);
+}
+
+
+>>>>>>> origin/main
 /* Account-backed station watchlist */
 .my-stations-panel {
   border: 1px solid rgba(15, 23, 42, 0.12);
@@ -15498,7 +15504,8 @@ img.transit-line-badge {
   }
 
   .mobile-legend-pill--expanded {
-    width: min(190px, calc(100vw - 32px)) !important;
+    width: fit-content !important;
+    max-width: calc(100vw - 32px) !important;
   }
 }
 
