@@ -330,7 +330,6 @@
   .regional-station-detail { top: auto; right: 0; bottom: 0; width: 100%; border-radius: 8px 8px 0 0; }
 }
 
-=======
 /* Subway legend font definition */
 .font-subway,
 .legend-line-name,
@@ -339,8 +338,6 @@
   font-family: var(--font-subway);
 }
 
-
->>>>>>> origin/main
 /* Account-backed station watchlist */
 .my-stations-panel {
   border: 1px solid rgba(15, 23, 42, 0.12);
