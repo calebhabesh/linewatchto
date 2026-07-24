@@ -22,10 +22,6 @@ const REGIONAL_MAP_MOBILE_INSET_RATIO = 0.05;
 // 4% of vertical letterbox room in the fitted frame. Stay below that limit so
 // the tighter default never crosses the console or impact-badge bounds.
 const REGIONAL_MAP_DEFAULT_FRAME_SCALE = 1.04;
-// The rail diagram sits optically high inside its authored canvas. Nudge the
-// desktop frame down within the same measured bounds so its visible endpoints
-// balance against the console above and the status chips below.
-const REGIONAL_MAP_DESKTOP_VERTICAL_OPTICAL_OFFSET_RATIO = 0.02;
 
 type Camera = { x: number; y: number; scale: number };
 
@@ -124,7 +120,7 @@ function InteractiveRegionalMapComponent({
       return;
     }
 
-    setMapTransition("transform 1s cubic-bezier(0.25, 1, 0.5, 1)");
+    setMapTransition("transform 0.8s cubic-bezier(0.25, 1, 0.5, 1)");
     programmaticAnimationFrameRef.current = window.requestAnimationFrame(() => {
       programmaticAnimationFrameRef.current = null;
       writeMapTransform(targetCamera);
@@ -135,7 +131,7 @@ function InteractiveRegionalMapComponent({
       setMapTransition("none");
       if (nextFitScale !== undefined) setFitScale(nextFitScale);
       setCamera({ ...cameraRef.current });
-    }, 1050);
+    }, 850);
   }, [clearProgrammaticAnimation, reducedMotion, setMapTransition, writeMapTransform]);
 
   useEffect(() => {
@@ -156,13 +152,16 @@ function InteractiveRegionalMapComponent({
 
   useLayoutEffect(() => {
     const viewport = viewportRef.current;
+    const mapSurface = viewport?.closest<HTMLElement>(".network-map-transition-surface");
     const shell = viewport?.closest<HTMLElement>(".linewatch-shell");
     const consoleCapsule = shell?.querySelector<HTMLElement>(".desktop-status-capsule");
     const impactBadges = shell?.querySelector<HTMLElement>(".desktop-status-chip-row-container");
-    if (!viewport || !consoleCapsule || !impactBadges) return;
+    if (!viewport || !mapSurface || !consoleCapsule || !impactBadges) return;
 
     const measureDesktopInsets = () => {
-      const viewportRect = viewport.getBoundingClientRect();
+      const viewportRect = viewport.getClientRects().length > 0
+        ? viewport.getBoundingClientRect()
+        : mapSurface.getBoundingClientRect();
       const consoleRect = consoleCapsule.getBoundingClientRect();
       const badgesRect = impactBadges.getBoundingClientRect();
       const nextTopInset = consoleRect.width > 0 && consoleRect.height > 0
@@ -178,6 +177,7 @@ function InteractiveRegionalMapComponent({
     measureDesktopInsets();
     const observer = new ResizeObserver(measureDesktopInsets);
     observer.observe(viewport);
+    observer.observe(mapSurface);
     observer.observe(consoleCapsule);
     observer.observe(impactBadges);
     window.addEventListener("resize", measureDesktopInsets);
@@ -190,8 +190,9 @@ function InteractiveRegionalMapComponent({
   const fittedCamera = useCallback(() => {
     const viewport = viewportRef.current;
     if (!viewport) return null;
-    const width = viewport.clientWidth;
-    const height = viewport.clientHeight;
+    const mapSurface = viewport.closest<HTMLElement>(".network-map-transition-surface");
+    const width = viewport.clientWidth || mapSurface?.clientWidth || 0;
+    const height = viewport.clientHeight || mapSurface?.clientHeight || 0;
     if (width <= 0 || height <= 0) return null;
     const horizontalInset = desktopMapTopInset > 0
       ? Math.min(64, Math.max(32, width * REGIONAL_MAP_HORIZONTAL_INSET_RATIO))
@@ -216,15 +217,11 @@ function InteractiveRegionalMapComponent({
       insets,
     );
     const focus = computeInsetViewportFocus(width, height, insets);
-    const desktopFrameHeight = height - desktopMapTopInset - desktopMapBottomInset;
-    const verticalOpticalOffset = desktopMapTopInset > 0
-      ? desktopFrameHeight * REGIONAL_MAP_DESKTOP_VERTICAL_OPTICAL_OFFSET_RATIO
-      : 0;
     // Use more of the available horizontal canvas while keeping the enlarged
-    // default frame balanced in the space between the top console and alerts.
+    // default frame centered in the space between the top console and alerts.
     const defaultFrame = {
       x: focus.focusX - (focus.focusX - frame.x) * REGIONAL_MAP_DEFAULT_FRAME_SCALE,
-      y: focus.focusY - (focus.focusY - frame.y) * REGIONAL_MAP_DEFAULT_FRAME_SCALE + verticalOpticalOffset,
+      y: focus.focusY - (focus.focusY - frame.y) * REGIONAL_MAP_DEFAULT_FRAME_SCALE,
       scale: frame.scale * REGIONAL_MAP_DEFAULT_FRAME_SCALE,
     };
     return {
@@ -362,6 +359,8 @@ function InteractiveRegionalMapComponent({
       initializeMapCamera();
     });
     observer.observe(viewport);
+    const mapSurface = viewport.closest<HTMLElement>(".network-map-transition-surface");
+    if (mapSurface) observer.observe(mapSurface);
     return () => observer.disconnect();
   }, [initializeMapCamera]);
 

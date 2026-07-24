@@ -216,32 +216,27 @@ test("switches the complete dashboard to the fixture-backed regional network", a
   await page.goto("/");
 
   const networkSelector = page.getByRole("group", { name: "Select transit network" });
-  const mapSwitcher = page.locator(".network-map-wrapper");
-  const ttcScene = mapSwitcher.locator(".network-map-slide").nth(0);
-  const regionalScene = mapSwitcher.locator(".network-map-slide").nth(1);
-  const ttcLegend = ttcScene.locator(".desktop-map-legend");
-  const regionalLegend = regionalScene.locator(".desktop-map-legend");
+  const mapSurface = page.locator(".network-map-transition-surface");
+  const root = page.locator("html");
+  const mapLegend = mapSurface.locator(".desktop-map-legend");
   await expect(networkSelector.getByRole("button", { name: "TTC", exact: true })).toHaveAttribute("aria-pressed", "true");
-  await expect(ttcScene).toHaveAttribute("aria-hidden", "false");
-  await expect(regionalScene).toHaveAttribute("aria-hidden", "true");
-  await expect(ttcLegend.getByText("Line 1 Yonge-University", { exact: true })).toBeAttached();
-  await expect(regionalLegend.getByText("Barrie Line", { exact: true })).toBeAttached();
-  await expect(mapSwitcher.locator(".ttc-svg-container")).toHaveCount(1);
-  await expect(mapSwitcher.locator(".regional-map")).toHaveCount(1);
-  await expect(mapSwitcher.locator(".regional-map-stage svg").first()).toBeAttached();
+  await expect(mapLegend.getByText("Line 1 Yonge-University", { exact: true })).toBeVisible();
+  await expect(mapSurface.locator(".ttc-svg-container")).toHaveCount(1);
+  await expect(mapSurface.locator(".regional-map")).toHaveCount(0);
+  await expect(mapSurface).toHaveCSS("view-transition-name", "none");
   await networkSelector.getByRole("button", { name: "GO/UP", exact: true }).click();
 
-  await expect(mapSwitcher.locator(".network-map-carousel-track")).toHaveClass(/network-map-carousel-track--regional/);
-  await expect(ttcScene).toHaveAttribute("aria-hidden", "true");
-  await expect(regionalScene).toHaveAttribute("aria-hidden", "false");
+  await expect(root).toHaveAttribute("data-network-transition-direction", "forward");
+  await expect(mapSurface.locator(".ttc-svg-container")).toHaveCount(0);
+  await expect(mapSurface.locator(".regional-map")).toHaveCount(1);
   await expect(page.getByRole("region", { name: "Interactive GO and UP map" })).toBeVisible();
   await expect.poll(async () => {
-    const box = await regionalLegend.boundingBox();
+    const box = await mapLegend.boundingBox();
     return box ? box.x + box.width <= page.viewportSize()!.width + 1 : false;
   }).toBe(true);
-  await expect(regionalLegend.getByText("Barrie Line", { exact: true })).toBeVisible();
-  await expect(mapSwitcher.locator(".ttc-svg-container")).toHaveCount(1);
-  await expect(mapSwitcher.locator(".regional-map")).toHaveCount(1);
+  await expect(mapLegend.getByText("Barrie Line", { exact: true })).toBeVisible();
+  await expect(root).not.toHaveAttribute("data-network-transition-direction");
+  await expect(mapSurface).toHaveCSS("view-transition-name", "none");
   await expect(page.getByText("Last Polled: regional fixture mode", { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Fit regional network" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Toggle live train markers" })).toHaveCount(0);
@@ -268,16 +263,16 @@ test("switches the complete dashboard to the fixture-backed regional network", a
   await expect(page.getByRole("complementary", { name: "Weston regional station details" })).toBeVisible();
 
   await networkSelector.getByRole("button", { name: "TTC", exact: true }).click();
-  await expect(mapSwitcher.locator(".network-map-carousel-track")).not.toHaveClass(/network-map-carousel-track--regional/);
-  await expect(ttcScene).toHaveAttribute("aria-hidden", "false");
-  await expect(regionalScene).toHaveAttribute("aria-hidden", "true");
+  await expect(root).toHaveAttribute("data-network-transition-direction", "back");
+  await expect(mapSurface.locator(".ttc-svg-container")).toHaveCount(1);
+  await expect(mapSurface.locator(".regional-map")).toHaveCount(0);
   await expect.poll(async () => {
-    const box = await ttcLegend.boundingBox();
+    const box = await mapLegend.boundingBox();
     return box ? box.x + box.width <= page.viewportSize()!.width + 1 : false;
   }).toBe(true);
-  await expect(ttcLegend.getByText("Line 1 Yonge-University", { exact: true })).toBeVisible();
-  await expect(mapSwitcher.locator(".ttc-svg-container")).toHaveCount(1);
-  await expect(mapSwitcher.locator(".regional-map")).toHaveCount(1);
+  await expect(mapLegend.getByText("Line 1 Yonge-University", { exact: true })).toBeVisible();
+  await expect(root).not.toHaveAttribute("data-network-transition-direction");
+  await expect(mapSurface).toHaveCSS("view-transition-name", "none");
   await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
   await expect(page.getByRole("region", { name: "Interactive GO and UP map" })).toBeHidden();
 });
@@ -375,7 +370,7 @@ test("opens an impact notification deep link in the focused map view", async ({ 
     await expect(inspector).toContainText("Delay");
     await expect(inspector).toContainText("Sheppard-Yonge");
     await expect(mapViewport).toHaveCSS("bottom", /^(?!0px$).+/);
-    await expect(page.locator(".network-map-active").getByLabel("Zoom level slider")).toHaveValue("3.8");
+    await expect(page.locator(".network-map-transition-surface").getByLabel("Zoom level slider")).toHaveValue("3.8");
   }
 });
 
@@ -935,7 +930,7 @@ test("shows a compact map hint when multiple alert types overlap", async ({ page
     }
   }
   if (!isMobile) {
-    await page.locator(".network-map-active").getByLabel("Zoom level slider").fill("2");
+    await page.locator(".network-map-transition-surface").getByLabel("Zoom level slider").fill("2");
     await expect.poll(async () => Math.abs(((await overlapChooser.boundingBox())?.width ?? 0) - chooserWidthAtDefaultZoom))
       .toBeLessThan(2);
   }
@@ -1324,7 +1319,7 @@ test("drag after focus zoom cancels animation and retains transform", async ({ p
   await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
 
   // Verify the control rail styling and visibility
-  const rail = page.locator(".network-map-active").locator(".map-control-rail");
+  const rail = page.locator(".network-map-transition-surface").locator(".map-control-rail");
   await expect(rail).toBeVisible();
   await expect(rail).toHaveCSS("border-radius", "8px");
 
@@ -1355,6 +1350,38 @@ test("drag after focus zoom cancels animation and retains transform", async ({ p
   await page.waitForTimeout(600);
   const finalTransform = await mapElement.evaluate((el) => el.style.transform);
   expect(finalTransform).not.toEqual(initialTransform);
+});
+
+test("desktop wheel zoom keeps the main-map compositor topology and updates smoothly", async ({ page, request, isMobile }) => {
+  test.skip(isMobile, "desktop wheel-zoom behavior");
+  await setStubMode(request, "seeded");
+  await page.goto("/");
+  await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
+
+  const mapSurface = page.locator(".network-map-transition-surface");
+  const mapElement = mapSurface.locator(".absolute.top-0.left-0.w-full.h-full.origin-top-left");
+  const viewport = mapSurface.locator(".cursor-grab").first();
+  const viewportBox = await viewport.boundingBox();
+  expect(viewportBox).not.toBeNull();
+
+  await expect(mapSurface.locator(".ttc-svg-container")).toHaveCount(1);
+  await expect(mapSurface.locator(".regional-map")).toHaveCount(0);
+  await expect(mapSurface).toHaveCSS("view-transition-name", "none");
+
+  await page.mouse.move(
+    viewportBox!.x + viewportBox!.width / 2,
+    viewportBox!.y + viewportBox!.height / 2,
+  );
+
+  const transformSamples: string[] = [];
+  for (let index = 0; index < 6; index += 1) {
+    await page.mouse.wheel(0, -24);
+    await page.evaluate(() => new Promise<void>((resolve) => requestAnimationFrame(() => resolve())));
+    transformSamples.push(await mapElement.evaluate((element) => (element as HTMLElement).style.transform));
+  }
+
+  expect(new Set(transformSamples).size).toBeGreaterThanOrEqual(4);
+  await expect(mapSurface).toHaveCSS("view-transition-name", "none");
 });
 
 test("keyboard opens and closes the main menu", async ({ page, request, isMobile }) => {

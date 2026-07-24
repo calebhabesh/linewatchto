@@ -206,7 +206,7 @@ export function usePanZoom({
       return;
     }
 
-    setMapTransition("transform 1s cubic-bezier(0.25, 1, 0.5, 1)");
+    setMapTransition("transform 0.8s cubic-bezier(0.25, 1, 0.5, 1)");
     programmaticAnimationFrameRef.current = requestAnimationFrame(() => {
       programmaticAnimationFrameRef.current = null;
       writeMapTransform(snapped);
@@ -219,7 +219,7 @@ export function usePanZoom({
         setFitScale(nextFitScale);
       }
       setTransform({ ...transformRef.current });
-    }, 1050);
+    }, 850);
   }, [
     clearProgrammaticAnimation,
     commitTransform,

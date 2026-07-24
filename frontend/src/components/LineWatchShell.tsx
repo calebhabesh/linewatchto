@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import type { KeyboardEvent } from "react";
+import { flushSync } from "react-dom";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { DynamicBackground } from "./DynamicBackground";
@@ -190,6 +191,10 @@ export function LineWatchShell({
   const [selectedNetwork, setSelectedNetwork] = useState<NetworkId>(DEFAULT_NETWORK_ID);
   const [ttcData, setTtcData] = useState(initialData);
   const displayData = selectedNetwork === "regional" ? regionalDashboardData : ttcData;
+  const networkViewTransitionRef = useRef<{
+    finished: Promise<void>;
+    skipTransition: () => void;
+  } | null>(null);
 
   useEffect(() => {
     if (initialData.dataSource === "backend") {
@@ -443,7 +448,10 @@ export function LineWatchShell({
 
   // Interactive linking state
   const [selection, setSelection] = useState<ImpactSelection>(null);
-  const [stationSummaries, setStationSummaries] = useState<StationSummary[]>(fallbackStationSummaries.stations);
+  const [ttcStationSummaries, setTtcStationSummaries] = useState<StationSummary[]>(fallbackStationSummaries.stations);
+  const stationSummaries = selectedNetwork === "regional"
+    ? regionalStationSummaries.stations
+    : ttcStationSummaries;
   const [selectedStationId, setSelectedStationId] = useState<string | null>(null);
   const [visibleStationResult, setVisibleStationResult] = useState<StationDataResult<StationDetail | null> | null>(null);
   const [stationLoading, setStationLoading] = useState(false);
@@ -1331,7 +1339,6 @@ export function LineWatchShell({
 
     if (selectedNetwork === "regional") {
       // eslint-disable-next-line react-hooks/set-state-in-effect
-      setStationSummaries(regionalStationSummaries.stations);
       setAccessibilityOutageResult(null);
       setSurfaceNoticeCount(null);
       return () => { cancelled = true; };
@@ -1339,7 +1346,7 @@ export function LineWatchShell({
 
     getStationSummaries().then((result) => {
       if (!cancelled) {
-        setStationSummaries(result.data.stations);
+        setTtcStationSummaries(result.data.stations);
       }
     });
 
@@ -1427,14 +1434,42 @@ export function LineWatchShell({
   const handleNetworkChange = (network: NetworkId) => {
     if (network === selectedNetwork) return;
 
-    setSelectedNetwork(network);
-    setSelection(null);
-    setSelectedStationId(null);
-    setVisibleStationResult(null);
-    setStationSearchQuery("");
-    setActiveView("map");
-    setMapPresentationMode("standard");
-    setMobileInspectorDetent("map-focus");
+    const applyNetworkChange = () => {
+      setSelectedNetwork(network);
+      setSelection(null);
+      setSelectedStationId(null);
+      setVisibleStationResult(null);
+      setStationSearchQuery("");
+      setActiveView("map");
+      setMapPresentationMode("standard");
+      setMobileInspectorDetent("map-focus");
+    };
+    const transitionDocument = document as Document & {
+      startViewTransition?: (update: () => void) => {
+        finished: Promise<void>;
+        skipTransition: () => void;
+      };
+    };
+
+    if (reducedMotion || !transitionDocument.startViewTransition) {
+      applyNetworkChange();
+      return;
+    }
+
+    networkViewTransitionRef.current?.skipTransition();
+    document.documentElement.dataset.networkTransitionDirection =
+      network === "regional" ? "forward" : "back";
+
+    const transition = transitionDocument.startViewTransition(() => {
+      flushSync(applyNetworkChange);
+    });
+    networkViewTransitionRef.current = transition;
+    const finishNetworkTransition = () => {
+      if (networkViewTransitionRef.current !== transition) return;
+      networkViewTransitionRef.current = null;
+      delete document.documentElement.dataset.networkTransitionDirection;
+    };
+    void transition.finished.then(finishNetworkTransition, finishNetworkTransition);
   };
 
   const handleOpenSearch = () => {
@@ -1636,7 +1671,7 @@ export function LineWatchShell({
     setTimeout(() => {
       setClosedMapPeek(false);
       setIsExitingPeekChip(false);
-    }, 100);
+    }, 50);
   }, [isExitingPeekChip]);
 
 
@@ -2784,11 +2819,9 @@ export function LineWatchShell({
       {activeFloatingPanel}
 
       {/* Main Viewport (TTC Map Front & Center, Borderless) */}
-      <main className={`absolute inset-0 z-auto md:z-10 ${showClosedScreen ? "subway-closed-map-backdrop" : ""}`}>
+      <main className={`network-map-transition-surface absolute inset-0 z-auto md:z-10 ${showClosedScreen ? "subway-closed-map-backdrop" : ""}`}>
         <NetworkMap
           network={selectedNetwork}
-          ttcData={ttcData}
-          regionalData={regionalDashboardData}
           ttcClosingSoon={subwayOperatingState.closingSoon || (subwayOperatingState.status === "closed" && closedMapPeek)}
           legendProps={{
             expanded: legendExpanded,

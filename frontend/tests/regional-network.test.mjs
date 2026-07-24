@@ -25,32 +25,24 @@ describe("network-scoped regional dashboard", () => {
     assert.match(networkMapSource, /<InteractiveTtcMap/);
   });
 
-  it("preloads both maps on one sliding track", () => {
+  it("keeps only the selected interactive map mounted in steady state", () => {
     assert.match(networkSelectorSource, /className="network-selector-glider"/);
     assert.match(globalsCss, /\.network-selector-glider/);
     assert.match(globalsCss, /\.network-accent-ridges/);
-    assert.match(networkMapSource, /ttcData: DashboardData/);
-    assert.match(networkMapSource, /regionalData: DashboardData/);
-    assert.match(networkMapSource, /<DataProvider data=\{ttcData\}>/);
-    assert.match(networkMapSource, /<DataProvider data=\{regionalData\}>/);
-    assert.match(networkMapSource, /network-map-carousel-track/);
-    assert.match(networkMapSource, /network-map-slide/);
-    assert.match(networkMapSource, /network-map-active/);
-    assert.match(networkMapSource, /aria-hidden=\{regionalSelected\}/);
-    assert.match(globalsCss, /\.network-map-carousel-track[\s\S]*width:\s*200%/);
-    assert.match(globalsCss, /\.network-map-slide[\s\S]*flex:\s*0 0 50%/);
+    assert.match(networkMapSource, /\{regionalSelected \? \([\s\S]*<InteractiveRegionalMap[\s\S]*\) : \([\s\S]*<InteractiveTtcMap/);
+    assert.doesNotMatch(networkMapSource, /DataProvider|network-map-slide|settledNetwork/);
+    assert.doesNotMatch(networkMapSource, /aria-hidden|inert=/);
+    assert.doesNotMatch(shellSource, /ttcData=\{ttcData\}|regionalData=\{regionalDashboardData\}/);
   });
 
-  it("preloads each legend inside its complete map scene", () => {
-    assert.match(networkMapSource, /<DataProvider data=\{ttcData\}>[\s\S]*<InteractiveTtcMap[\s\S]*<NetworkMapLegend[\s\S]*mode="ttc"/);
-    assert.match(networkMapSource, /<DataProvider data=\{regionalData\}>[\s\S]*<InteractiveRegionalMap[\s\S]*<NetworkMapLegend[\s\S]*mode="regional"/);
+  it("renders one legend for the selected map scene", () => {
+    assert.match(networkMapSource, /<NetworkMapLegend[\s\S]*mode=\{network\}/);
     assert.match(networkMapLegendsSource, /<LineLegend[\s\S]*mode=\{mode\}/);
     assert.match(networkMapLegendsSource, /<MobileLegend[\s\S]*mode=\{mode\}/);
-    assert.match(globalsCss, /\.network-map-slide \.desktop-map-legend,[\s\S]*\.network-map-slide \.mobile-legend-pill[\s\S]*position:\s*absolute !important/);
     assert.doesNotMatch(networkMapLegendsSource, /hidden=/);
   });
 
-  it("switches fixed maps without replaying a map camera entrance", () => {
+  it("switches map implementations without replaying a map camera entrance", () => {
     const networkChangeBody = shellSource.match(
       /const handleNetworkChange = \(network: NetworkId\) => \{([\s\S]*?)\n  \};/,
     )?.[1] ?? "";
@@ -65,16 +57,26 @@ describe("network-scoped regional dashboard", () => {
     assert.match(networkMapSource, /<InteractiveTtcMap \{\.\.\.props\}/);
   });
 
-  it("slides complete preloaded scenes without a transition-end content swap", () => {
-    assert.doesNotMatch(shellSource, /startViewTransition/);
-    assert.match(networkMapSource, /network-map-carousel-track--regional/);
-    assert.match(networkMapSource, /network-map-carousel-track--reduced-motion/);
-    assert.doesNotMatch(networkMapSource, /onTransitionEnd=/);
-    assert.doesNotMatch(shellSource, /settledNetwork/);
+  it("slides compositor snapshots while keeping inactive React maps unmounted", () => {
+    assert.match(shellSource, /startViewTransition/);
+    assert.match(shellSource, /flushSync\(applyNetworkChange\)/);
+    assert.match(shellSource, /networkTransitionDirection/);
+    assert.match(shellSource, /network-map-transition-surface/);
+    assert.doesNotMatch(networkMapSource, /useState|useEffect|AnimationEvent|network-map-slide/);
     assert.doesNotMatch(shellSource, /<NetworkMapLegends/);
-    assert.match(globalsCss, /\.network-map-carousel-track--regional[\s\S]*transform:\s*translateX\(-50%\)/);
-    assert.match(globalsCss, /transition:\s*transform 700ms cubic-bezier\(0\.4, 0, 0\.2, 1\)/);
-    assert.match(globalsCss, /\.network-map-slide[\s\S]*overflow:\s*hidden/);
+    assert.match(globalsCss, /view-transition-name:\s*network-map/);
+    assert.match(globalsCss, /::view-transition-old\(network-map\)/);
+    assert.match(globalsCss, /::view-transition-new\(network-map\)/);
+    assert.match(globalsCss, /@keyframes network-map-slide-in-from-right/);
+    assert.match(globalsCss, /@keyframes network-map-slide-out-to-left/);
+    assert.match(globalsCss, /@keyframes network-map-slide-in-from-left/);
+    assert.match(globalsCss, /@keyframes network-map-slide-out-to-right/);
+    assert.doesNotMatch(
+      globalsCss.match(/\.network-selector-glider\s*\{([\s\S]*?)\}/)?.[1] ?? "",
+      /will-change/,
+    );
+    assert.match(regionalMapSource, /viewport\.clientWidth \|\| mapSurface\?\.clientWidth/);
+    assert.match(regionalMapSource, /viewport\.getClientRects\(\)\.length > 0/);
   });
 
   it("keeps an acknowledged overnight screen dismissed across network swaps", () => {
@@ -110,7 +112,11 @@ describe("network-scoped regional dashboard", () => {
     const ids = new Set(regionalStationSummaries.stations.map((station) => station.id));
     assert.equal(ids.has("pearson-airport"), true);
     assert.equal(ids.has("finch"), false);
-    assert.match(shellSource, /setStationSummaries\(regionalStationSummaries\.stations\)/);
+    assert.match(
+      shellSource,
+      /const stationSummaries = selectedNetwork === "regional"[\s\S]*regionalStationSummaries\.stations[\s\S]*ttcStationSummaries/,
+    );
+    assert.match(shellSource, /setTtcStationSummaries\(result\.data\.stations\)/);
   });
 
   it("keeps grouped junction selection logical while exposing KI and UP route anchors", () => {
@@ -175,18 +181,20 @@ describe("network-scoped regional dashboard", () => {
     assert.match(regionalMapSource, /setDesktopMapBottomInset/);
     assert.match(regionalMapSource, /computeBoundedMapFrame/);
     assert.match(regionalMapSource, /computeInsetViewportFocus/);
+    assert.match(
+      globalsCss,
+      /\.regional-map-stage > div > svg\s*\{[^}]*display:\s*block;[^}]*width:\s*100%;[^}]*height:\s*100%;/s,
+    );
     assert.match(regionalMapSource, /const REGIONAL_MAP_HORIZONTAL_INSET_RATIO = 0\.025/);
     assert.match(regionalMapSource, /const REGIONAL_MAP_DEFAULT_FRAME_SCALE = 1\.04/);
-    assert.match(regionalMapSource, /const REGIONAL_MAP_DESKTOP_VERTICAL_OPTICAL_OFFSET_RATIO = 0\.02/);
+    assert.doesNotMatch(regionalMapSource, /REGIONAL_MAP_DESKTOP_VERTICAL_OPTICAL_OFFSET_RATIO/);
     assert.match(regionalMapSource, /Math\.min\(64, Math\.max\(32, width \* REGIONAL_MAP_HORIZONTAL_INSET_RATIO\)\)/);
     assert.match(regionalMapSource, /left:\s*horizontalInset/);
     assert.match(regionalMapSource, /right:\s*horizontalInset/);
     assert.match(regionalMapSource, /top:\s*desktopMapTopInset/);
     assert.match(regionalMapSource, /bottom:\s*desktopMapBottomInset/);
-    assert.match(regionalMapSource, /desktopFrameHeight = height - desktopMapTopInset - desktopMapBottomInset/);
-    assert.match(regionalMapSource, /desktopFrameHeight \* REGIONAL_MAP_DESKTOP_VERTICAL_OPTICAL_OFFSET_RATIO/);
     assert.match(regionalMapSource, /x: focus\.focusX - \(focus\.focusX - frame\.x\) \* REGIONAL_MAP_DEFAULT_FRAME_SCALE/);
-    assert.match(regionalMapSource, /y: focus\.focusY - \(focus\.focusY - frame\.y\) \* REGIONAL_MAP_DEFAULT_FRAME_SCALE \+ verticalOpticalOffset/);
+    assert.match(regionalMapSource, /y: focus\.focusY - \(focus\.focusY - frame\.y\) \* REGIONAL_MAP_DEFAULT_FRAME_SCALE/);
     assert.match(regionalMapSource, /scale: frame\.scale \* REGIONAL_MAP_DEFAULT_FRAME_SCALE/);
   });
 
@@ -209,12 +217,12 @@ describe("network-scoped regional dashboard", () => {
   });
 
   it("keeps camera animation for explicit regional map controls only", () => {
-    assert.match(regionalMapSource, /setMapTransition\("transform 1s cubic-bezier\(0\.25, 1, 0\.5, 1\)"\)/);
+    assert.match(regionalMapSource, /setMapTransition\("transform 0\.8s cubic-bezier\(0\.25, 1, 0\.5, 1\)"\)/);
     assert.match(regionalMapSource, /programmaticAnimationFrameRef\.current = window\.requestAnimationFrame/);
     assert.match(regionalMapSource, /writeMapTransform\(targetCamera\)/);
     assert.match(regionalMapSource, /window\.setTimeout\(\(\) => \{[\s\S]*setCamera\(\{ \.\.\.cameraRef\.current \}\)/);
     assert.match(regionalMapSource, /cancelCameraAnimation\(\);[\s\S]*dragRef\.current/);
-    assert.doesNotMatch(regionalMapSource, /setMapTransition\("transform 1s[^\n]+\);\s*setCamera\(targetCamera\)/);
+    assert.doesNotMatch(regionalMapSource, /setMapTransition\("transform 0\.8s[^\n]+\);\s*setCamera\(targetCamera\)/);
     assert.doesNotMatch(regionalMapSource, /entryCamera/);
   });
 
