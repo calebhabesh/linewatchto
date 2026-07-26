@@ -852,7 +852,16 @@ test("shows a compact map hint when multiple alert types overlap", async ({ page
   await expect(overlapMarker.locator('[data-overlap-kind="planned-closure"]')).toBeVisible();
   const overlapMarkerBox = await overlapMarker.boundingBox();
 
+  if (!isMobile && overlapMarkerBox) {
+    await page.mouse.move(
+      overlapMarkerBox.x + overlapMarkerBox.width / 2,
+      overlapMarkerBox.y + overlapMarkerBox.height / 2,
+    );
+    await expect.poll(() => page.locator("[data-hover-priority-impact]").count()).toBeGreaterThan(0);
+  }
+
   await overlapMarker.dispatchEvent("click");
+  await expect(page.locator("[data-hover-priority-impact]")).toHaveCount(0);
   const overlapChooser = page.locator("[data-overlap-chooser]");
   await expect.poll(async () => overlapChooser.evaluate((element) =>
     element.getAnimations().some((animation) => animation.playState === "running"),
@@ -1164,14 +1173,36 @@ test("station search dynamically filters mapped stations and opens station detai
   await expect(page.getByRole("searchbox", { name: "Station Search" })).toBeFocused();
 
   await page.getByRole("searchbox", { name: "Station Search" }).fill("stub");
-  await expect(page.getByRole("button", { name: "Stub Station station search result" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Stub Station TTC station search result" })).toBeVisible();
 
   await page.getByRole("searchbox", { name: "Station Search" }).fill("stb stn");
-  await expect(page.getByRole("button", { name: "Stub Station station search result" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Stub Station TTC station search result" })).toBeVisible();
 
   await page.keyboard.press("Enter");
   await expect(page.getByRole("complementary", { name: "Stub Station station details" })).toBeVisible();
   await expect(page.locator('[data-station-search-panel][data-open="false"]')).toBeVisible();
+});
+
+test("global station search switches maps for a station on the other network", async ({ page, request, isMobile }) => {
+  await setStubMode(request, "seeded");
+  await page.goto("/");
+  await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
+
+  if (isMobile) {
+    await page.getByRole("button", { name: "Search", exact: true }).click();
+    await page.getByRole("searchbox", { name: "Station Search" }).click();
+  } else {
+    await page.getByRole("searchbox", { name: "Station Search" }).click();
+  }
+
+  await page.getByRole("searchbox", { name: "Station Search" }).fill("Oakville");
+  const oakville = page.getByRole("button", { name: "Oakville GO and UP station search result" });
+  await expect(oakville).toBeVisible();
+  await oakville.click();
+
+  await expect(page.getByRole("region", { name: "Interactive GO and UP map" })).toBeVisible();
+  await expect(page.getByRole("complementary", { name: "Oakville regional station details" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "GO/UP" })).toHaveAttribute("aria-pressed", "true");
 });
 
 test("pinned desktop menu focuses impacts in the unobscured map area", async ({ page, request, isMobile }) => {
@@ -1221,7 +1252,7 @@ test("global search opens a condensed alert result in its detailed card and mobi
   }
 
   const searchbox = page.getByRole("searchbox", { name: "Station Search" });
-  await expect(searchbox).toHaveAttribute("placeholder", "Search Stations and Alerts...");
+  await expect(searchbox).toHaveAttribute("placeholder", "Search LineWatchTO...");
   await expect(page.locator("[data-station-search-panel]")).toBeVisible();
   await expect(page.locator(".global-search-browse-alerts button").first()).toHaveCSS("font-size", "11px");
   await searchbox.fill("Don Mills");
@@ -1305,9 +1336,9 @@ test("station search browses fallback station lists by line", async ({ page, req
     await page.getByRole("searchbox", { name: "Station Search" }).click();
   }
   await page.getByRole("button", { name: /Line 5\s+Eglinton Crosstown/ }).click();
-  await expect(page.getByRole("button", { name: "Mount Dennis station search result" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Mount Dennis TTC station search result" })).toBeVisible();
 
-  await page.getByRole("button", { name: "Mount Dennis station search result" }).click();
+  await page.getByRole("button", { name: "Mount Dennis TTC station search result" }).click();
   await expect(page.getByRole("complementary", { name: "Mount Dennis station details" })).toBeVisible();
   await expect(page.getByText("Backend unavailable. Showing local fallback station data.")).toBeVisible();
 });

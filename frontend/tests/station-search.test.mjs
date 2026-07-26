@@ -2,11 +2,14 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import {
+  buildNetworkStationLineGroups,
   buildStationLineGroups,
   normalizeStationQuery,
+  searchStationsAcrossNetworks,
   searchStations,
 } from "../src/app/station-search.ts";
 import { fallbackStationSummaries } from "../src/app/station-data.ts";
+import { regionalStationSummaries } from "../src/app/regional-data.ts";
 
 describe("station search helpers", () => {
   const stations = fallbackStationSummaries.stations;
@@ -148,5 +151,50 @@ describe("station search helpers", () => {
   it("returns no results for an empty query", () => {
     assert.deepEqual(searchStations(stations, ""), []);
     assert.deepEqual(searchStations(stations, "   "), []);
+  });
+
+  it("searches both station catalogs without collapsing shared logical ids", () => {
+    const results = searchStationsAcrossNetworks(
+      {
+        ttc: stations,
+        regional: regionalStationSummaries.stations,
+      },
+      "ttc",
+      "union",
+    );
+
+    assert.deepEqual(
+      results.slice(0, 2).map((result) => [result.networkId, result.station.id]),
+      [["ttc", "union"], ["regional", "union"]],
+    );
+  });
+
+  it("slightly prioritizes the active network while retaining cross-network matches", () => {
+    const results = searchStationsAcrossNetworks(
+      {
+        ttc: stations,
+        regional: regionalStationSummaries.stations,
+      },
+      "regional",
+      "bloor",
+    );
+
+    assert.equal(results[0].networkId, "regional");
+    assert.ok(results.some((result) => result.networkId === "ttc"));
+  });
+
+  it("browses the current network first and keeps shared ids network-safe", () => {
+    const groups = buildNetworkStationLineGroups(
+      {
+        ttc: stations,
+        regional: regionalStationSummaries.stations,
+      },
+      "regional",
+    );
+
+    assert.equal(groups[0].networkId, "regional");
+    assert.equal(groups.at(-1).networkId, "ttc");
+    assert.ok(groups.some((group) => group.networkId === "regional" && group.stations.some((station) => station.id === "union")));
+    assert.ok(groups.some((group) => group.networkId === "ttc" && group.stations.some((station) => station.id === "union")));
   });
 });

@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { KeyboardEvent, MutableRefObject } from "react";
-import { Bookmark, ChevronRight, LoaderCircle, Search, X } from "lucide-react";
+import { Bookmark, Bus, ChevronRight, LoaderCircle, Navigation, PanelsTopLeft, Search, TrainFront, X } from "lucide-react";
 import { useDashboardData } from "../app/DataContext";
 import {
   IMPACT_SEARCH_CATEGORIES,
@@ -13,10 +13,12 @@ import {
 } from "../app/alert-search";
 import type { ImpactKind, ImpactSelection } from "../app/linewatch-data";
 import {
-  buildStationLineGroups,
-  searchStations,
+  buildNetworkStationLineGroups,
+  searchStationsAcrossNetworks,
   stationSearchLineById,
+  type NetworkStationLineGroup,
   type StationSearchLine,
+  type StationSearchCatalogs,
 } from "../app/station-search";
 import {
   type StationSummary,
@@ -24,6 +26,16 @@ import {
   isStationElevatorAccessible,
 } from "../app/station-data";
 import { stationImpactKindsByStation } from "../app/station-impact-types";
+import { getSurfaceNotices, type SurfaceNoticeDetail } from "../app/surface-notice-data";
+import type { AccountSavedCommute } from "../app/account-data";
+import type { NetworkId } from "../app/regional-data";
+import {
+  matchGlobalDestinations,
+  searchSavedCommutes,
+  searchSurfaceNotices,
+  searchTransitLines,
+  type GlobalDestinationView,
+} from "../app/unified-search";
 import { ImpactTypeIcon } from "./ImpactTypeIcon";
 import { LineBadge } from "./ImpactCardFields";
 import { TransitLineBadge } from "./TransitLineBadge";
@@ -32,9 +44,10 @@ import { StationOutageBadge } from "./StationOutageBadge";
 
 type Props = {
   open: boolean;
-  stations: StationSummary[];
+  stationCatalogs: StationSearchCatalogs;
+  currentNetwork: NetworkId;
   selectedStationId: string | null;
-  onSelectStation: (stationId: string) => void;
+  onSelectStation: (stationId: string, networkId: NetworkId) => void;
   onSelectImpact: (selection: NonNullable<ImpactSelection>) => void;
   onOpenImpactCategory: (kind: ImpactKind) => void;
   onClose: () => void;
@@ -48,10 +61,15 @@ type Props = {
   keyDownHandlerRef?: React.MutableRefObject<((event: React.KeyboardEvent<HTMLInputElement>) => void) | null>;
   isMobile: boolean;
   authenticated: boolean;
-  savedStationIds: Set<string>;
+  savedStationKeys: Set<string>;
   pendingSavedStationIds: Set<string>;
-  onToggleSavedStation: (stationId: string) => void;
+  onToggleSavedStation: (stationId: string, networkId: NetworkId) => void;
   onRequestSignIn: () => void;
+  savedCommutes: AccountSavedCommute[];
+  surfaceSearchEnabled: boolean;
+  onOpenDestination: (view: GlobalDestinationView) => void;
+  onOpenSavedCommute: (commuteId: string) => void;
+  onOpenSurfaceNotice: (notice: SurfaceNoticeDetail) => void;
 };
 
 function ImpactSearchButton({
@@ -129,6 +147,7 @@ function StationMetaFlags({ station, impactKinds }: { station: StationSummary; i
 
 function StationButton({
   station,
+  networkId,
   impactKinds,
   selected,
   onSelect,
@@ -141,23 +160,24 @@ function StationButton({
   onRequestSignIn,
 }: {
   station: StationSummary;
+  networkId: NetworkId;
   impactKinds: ImpactKind[];
   selected: boolean;
-  onSelect: (stationId: string) => void;
+  onSelect: (stationId: string, networkId: NetworkId) => void;
   buttonRef?: (element: HTMLButtonElement | null) => void;
   onKeyDown?: (event: KeyboardEvent<HTMLButtonElement>) => void;
   saved: boolean;
   pending: boolean;
   authenticated: boolean;
-  onToggleSaved: (stationId: string) => void;
+  onToggleSaved: (stationId: string, networkId: NetworkId) => void;
   onRequestSignIn: () => void;
 }) {
   const lines = station.lineIds
     .map((lineId) => lineById(lineId))
     .filter((line): line is StationSearchLine => Boolean(line));
 
-  const isWheelchair = isStationWheelchairAccessible(station.id, station.lineIds);
-  const hasElevator = isStationElevatorAccessible(station.id, station.lineIds);
+  const isWheelchair = networkId === "ttc" && isStationWheelchairAccessible(station.id, station.lineIds);
+  const hasElevator = networkId === "ttc" && isStationElevatorAccessible(station.id, station.lineIds);
 
   let accessibilityLabel = "";
   if (isWheelchair) accessibilityLabel += " (Wheelchair Accessible)";
@@ -170,13 +190,13 @@ function StationButton({
         onKeyDown={onKeyDown}
         type="button"
         className={`station-search-station ${selected ? "selected" : ""}`}
-        onClick={() => onSelect(station.id)}
+        onClick={() => onSelect(station.id, networkId)}
         aria-current={selected ? "true" : undefined}
-        aria-label={`${station.name} station search result${accessibilityLabel}`}
+        aria-label={`${station.name} ${networkId === "ttc" ? "TTC" : "GO and UP"} station search result${accessibilityLabel}`}
       >
       <span className="min-w-0">
-        <span className="flex items-center gap-1.5 flex-wrap">
-          <span className="station-search-station-name !inline-block">{station.name}</span>
+          <span className="flex items-center gap-1.5 flex-wrap">
+            <span className="station-search-station-name !inline-block">{station.name}</span>
           {isWheelchair && (
             <span className="inline-flex items-center justify-center shrink-0" title="Wheelchair accessible">
               <Image
@@ -218,11 +238,11 @@ function StationButton({
             onRequestSignIn();
             return;
           }
-          onToggleSaved(station.id);
+          onToggleSaved(station.id, networkId);
         }}
         disabled={pending}
         aria-pressed={saved}
-        aria-label={`${saved ? "Remove" : "Save"} ${station.name} ${saved ? "from" : "to"} My Stations`}
+        aria-label={`${saved ? "Remove" : "Save"} ${station.name} (${networkId === "ttc" ? "TTC" : "GO/UP"}) ${saved ? "from" : "to"} My Stations`}
       >
         {pending ? <LoaderCircle size={18} className="station-search-bookmark-spinner" /> : <Bookmark size={19} fill={saved ? "currentColor" : "none"} />}
       </button>
@@ -232,7 +252,8 @@ function StationButton({
 
 export function StationSearchPanel({
   open,
-  stations,
+  stationCatalogs,
+  currentNetwork,
   selectedStationId,
   onSelectStation,
   onSelectImpact,
@@ -245,26 +266,73 @@ export function StationSearchPanel({
   keyDownHandlerRef,
   isMobile,
   authenticated,
-  savedStationIds,
+  savedStationKeys,
   pendingSavedStationIds,
   onToggleSavedStation,
   onRequestSignIn,
+  savedCommutes,
+  surfaceSearchEnabled,
+  onOpenDestination,
+  onOpenSavedCommute,
+  onOpenSurfaceNotice,
 }: Props) {
   const dashboardData = useDashboardData();
-  const searchPlaceholder = "Search Stations and Alerts...";
+  const searchPlaceholder = "Search LineWatchTO...";
   const stationImpactKinds = useMemo(
     () => stationImpactKindsByStation(dashboardData),
     [dashboardData],
   );
   const [expandedLineId, setExpandedLineId] = useState<string | null>(null);
   const [isInputFocused, setIsInputFocused] = useState(false);
-  const stationResults = useMemo(() => searchStations(stations, query), [query, stations]);
+  const currentStations = stationCatalogs[currentNetwork];
+  const stationResults = useMemo(
+    () => searchStationsAcrossNetworks(stationCatalogs, currentNetwork, query),
+    [currentNetwork, query, stationCatalogs],
+  );
+  const savedStationResults = useMemo(
+    () => stationResults.filter((result) => savedStationKeys.has(`${result.networkId}:${result.station.id}`)),
+    [savedStationKeys, stationResults],
+  );
+  const otherStationResults = useMemo(
+    () => stationResults.filter((result) => !savedStationKeys.has(`${result.networkId}:${result.station.id}`)),
+    [savedStationKeys, stationResults],
+  );
+  const lineResults = useMemo(
+    () => searchTransitLines(
+      [...new Set(Object.values(stationCatalogs).flatMap((stations) => stations.flatMap((station) => station.lineIds)))],
+      query,
+    ).sort((a, b) => {
+      const aNetwork: NetworkId = a.line.id.startsWith("regional-") ? "regional" : "ttc";
+      const bNetwork: NetworkId = b.line.id.startsWith("regional-") ? "regional" : "ttc";
+      if (a.score !== b.score) return a.score - b.score;
+      if (aNetwork !== bNetwork) return aNetwork === currentNetwork ? -1 : 1;
+      return a.line.name.localeCompare(b.line.name);
+    }),
+    [currentNetwork, query, stationCatalogs],
+  );
+  const destinationResults = useMemo(() => matchGlobalDestinations(query), [query]);
+  const savedCommuteResults = useMemo(
+    () => searchSavedCommutes(savedCommutes, query),
+    [query, savedCommutes],
+  );
+  const [surfaceNotices, setSurfaceNotices] = useState<SurfaceNoticeDetail[]>([]);
+  const surfaceNoticesRequestedRef = useRef(false);
+  const surfaceNoticeResults = useMemo(
+    () => searchSurfaceNotices(surfaceNotices, query),
+    [query, surfaceNotices],
+  );
   const impactGroups = useMemo(
-    () => searchDashboardImpacts(dashboardData, stations, query),
-    [dashboardData, query, stations],
+    () => searchDashboardImpacts(dashboardData, currentStations, query),
+    [currentStations, dashboardData, query],
   );
   const matchedCategories = useMemo(() => matchImpactCategories(query), [query]);
-  const lineGroups = useMemo(() => buildStationLineGroups(stations), [stations]);
+  const lineGroups = useMemo(
+    () => buildNetworkStationLineGroups(stationCatalogs, currentNetwork),
+    [currentNetwork, stationCatalogs],
+  );
+  const networkResultOrder: NetworkId[] = currentNetwork === "ttc"
+    ? ["ttc", "regional"]
+    : ["regional", "ttc"];
   const isExpanded = Boolean(expandedLineId) && !query.trim();
   const stationsColumnRef = useRef<HTMLDivElement>(null);
 
@@ -274,6 +342,20 @@ export function StationSearchPanel({
   const mobileInputRef = useRef<HTMLInputElement>(null);
 
   const [viewportHeight, setViewportHeight] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!open || !surfaceSearchEnabled || surfaceNoticesRequestedRef.current) return;
+
+    let active = true;
+    surfaceNoticesRequestedRef.current = true;
+    void getSurfaceNotices({ limit: 100 }).then((result) => {
+      if (!active) return;
+      setSurfaceNotices(result.data.fresh ? result.data.notices : []);
+    });
+    return () => {
+      active = false;
+    };
+  }, [open, surfaceSearchEnabled]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -325,8 +407,8 @@ export function StationSearchPanel({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, isMobile]);
 
-  function chooseStation(stationId: string) {
-    onSelectStation(stationId);
+  function chooseStation(stationId: string, networkId: NetworkId) {
+    onSelectStation(stationId, networkId);
     onClose();
     onClosedFocusTarget?.();
   }
@@ -337,6 +419,11 @@ export function StationSearchPanel({
 
   function chooseCategory(kind: ImpactKind) {
     onOpenImpactCategory(kind);
+  }
+
+  function chooseLine(lineId: string) {
+    onQueryChange("");
+    setExpandedLineId(lineId);
   }
 
   function focusItem(refs: MutableRefObject<Array<HTMLButtonElement | null>>, index: number) {
@@ -369,10 +456,20 @@ export function StationSearchPanel({
 
     if (event.key === "Enter" && query.trim()) {
       event.preventDefault();
-      if (stationResults[0]) {
-        chooseStation(stationResults[0].station.id);
+      if (destinationResults[0]) {
+        onOpenDestination(destinationResults[0].view);
+      } else if (lineResults[0]) {
+        chooseLine(lineResults[0].line.id);
+      } else if (savedStationResults[0]) {
+        chooseStation(savedStationResults[0].station.id, savedStationResults[0].networkId);
+      } else if (otherStationResults[0]) {
+        chooseStation(otherStationResults[0].station.id, otherStationResults[0].networkId);
+      } else if (savedCommuteResults[0]) {
+        onOpenSavedCommute(savedCommuteResults[0].commute.id);
       } else if (impactGroups[0]?.results[0]) {
         chooseImpact(impactGroups[0].results[0].selection);
+      } else if (surfaceNoticeResults[0]) {
+        onOpenSurfaceNotice(surfaceNoticeResults[0].notice);
       } else if (matchedCategories[0]) {
         chooseCategory(matchedCategories[0].kind);
       }
@@ -387,9 +484,11 @@ export function StationSearchPanel({
   });
 
 
-  const activeLineGroup = useMemo(() => {
+  const activeLineGroup = useMemo<NetworkStationLineGroup | undefined>(() => {
     return lineGroups.find((group) => group.line.id === expandedLineId) || lineGroups[0];
   }, [lineGroups, expandedLineId]);
+
+  let nextResultButtonIndex = 0;
 
   function handleResultKeyDown(index: number, event: KeyboardEvent<HTMLButtonElement>) {
     if (event.key === "Escape") {
@@ -467,7 +566,7 @@ export function StationSearchPanel({
     <section
       id="station-search-panel"
       className={`station-search-panel panel-strong ${open ? "open" : ""}`}
-      aria-label="Station and alert search"
+      aria-label="Global LineWatchTO search"
       aria-hidden={!open}
       inert={!open ? true : undefined}
       data-station-search-panel
@@ -518,8 +617,36 @@ export function StationSearchPanel({
       <div className="station-search-content">
         {query.trim() ? (
           <div className="station-search-results global-search-results" aria-label="Search results">
-            {stationResults.length > 0 || impactGroups.length > 0 || matchedCategories.length > 0 ? (
+            {destinationResults.length > 0 || lineResults.length > 0 || stationResults.length > 0 || savedCommuteResults.length > 0 || impactGroups.length > 0 || surfaceNoticeResults.length > 0 || matchedCategories.length > 0 ? (
               <div className="station-search-results-list global-search-results-list">
+                {destinationResults.length > 0 ? (
+                  <section className="global-search-group" aria-labelledby="global-search-destinations-heading">
+                    <div className="global-search-group-heading">
+                      <h3 id="global-search-destinations-heading">Go to</h3>
+                    </div>
+                    {destinationResults.map((destination) => {
+                      const keyboardIndex = nextResultButtonIndex++;
+                      return (
+                        <button
+                          key={destination.view}
+                          ref={(element) => { resultButtonRefs.current[keyboardIndex] = element; }}
+                          type="button"
+                          className="global-search-resource-result"
+                          onClick={() => onOpenDestination(destination.view)}
+                          onKeyDown={(event) => handleResultKeyDown(keyboardIndex, event)}
+                        >
+                          <span className="global-search-resource-icon"><PanelsTopLeft size={18} /></span>
+                          <span>
+                            <strong>{destination.label}</strong>
+                            <small>{destination.description}</small>
+                          </span>
+                          <ChevronRight size={17} aria-hidden="true" />
+                        </button>
+                      );
+                    })}
+                  </section>
+                ) : null}
+
                 {matchedCategories.length > 0 ? (
                   <section className="global-search-group" aria-labelledby="global-search-category-heading">
                     <div className="global-search-group-heading">
@@ -536,41 +663,154 @@ export function StationSearchPanel({
                   </section>
                 ) : null}
 
-                {stationResults.length > 0 ? (
+                {lineResults.length > 0 ? (
+                  <section className="global-search-group" aria-labelledby="global-search-lines-heading">
+                    <div className="global-search-group-heading">
+                      <h3 id="global-search-lines-heading">Lines</h3>
+                    </div>
+                    {lineResults.map((result) => {
+                      const keyboardIndex = nextResultButtonIndex++;
+                      return (
+                        <button
+                          key={result.line.id}
+                          ref={(element) => { resultButtonRefs.current[keyboardIndex] = element; }}
+                          type="button"
+                          className="global-search-resource-result"
+                          onClick={() => chooseLine(result.line.id)}
+                          onKeyDown={(event) => handleResultKeyDown(keyboardIndex, event)}
+                        >
+                          <span className="global-search-resource-icon"><TrainFront size={18} /></span>
+                          <span>
+                            <strong>{result.line.id.startsWith("regional-") ? result.line.number : `Line ${result.line.number}`} · {result.line.name}</strong>
+                            <small>{result.line.id.startsWith("regional-") ? "GO/UP Rail" : "TTC Subway & LRT"} · Browse stations</small>
+                          </span>
+                          <ChevronRight size={17} aria-hidden="true" />
+                        </button>
+                      );
+                    })}
+                  </section>
+                ) : null}
+
+                {savedStationResults.length > 0 ? (
+                  <section className="global-search-group" aria-labelledby="global-search-saved-stations-heading">
+                    <div className="global-search-group-heading">
+                      <h3 id="global-search-saved-stations-heading">Saved stations</h3>
+                      <span>{savedStationResults.length}</span>
+                    </div>
+                    {networkResultOrder.map((networkId) => {
+                      const networkResults = savedStationResults.filter((result) => result.networkId === networkId);
+                      if (networkResults.length === 0) return null;
+                      return (
+                        <div key={networkId} className="global-search-network-subgroup">
+                          <div className={`global-search-network-heading ${networkId}`}>
+                            {networkId === "ttc" ? "TTC Subway & LRT" : "GO/UP Rail"}
+                          </div>
+                          {networkResults.map((result) => {
+                            const keyboardIndex = nextResultButtonIndex++;
+                            return (
+                              <StationButton
+                                key={`${result.networkId}:${result.station.id}`}
+                                station={result.station}
+                                networkId={result.networkId}
+                                impactKinds={result.networkId === currentNetwork ? stationImpactKinds.get(result.station.id) ?? [] : []}
+                                selected={result.networkId === currentNetwork && selectedStationId === result.station.id}
+                                onSelect={chooseStation}
+                                buttonRef={(element) => { resultButtonRefs.current[keyboardIndex] = element; }}
+                                onKeyDown={(event) => handleResultKeyDown(keyboardIndex, event)}
+                                saved
+                                pending={pendingSavedStationIds.has(result.station.id)}
+                                authenticated={authenticated}
+                                onToggleSaved={onToggleSavedStation}
+                                onRequestSignIn={onRequestSignIn}
+                              />
+                            );
+                          })}
+                        </div>
+                      );
+                    })}
+                  </section>
+                ) : null}
+
+                {otherStationResults.length > 0 ? (
                   <section className="global-search-group" aria-labelledby="global-search-stations-heading">
                     <div className="global-search-group-heading">
                       <h3 id="global-search-stations-heading">Stations</h3>
-                      <span>{stationResults.length}</span>
+                      <span>{otherStationResults.length}</span>
                     </div>
-                    {stationResults.map((result, index) => (
-                  <StationButton
-                    key={result.station.id}
-                    station={result.station}
-                    impactKinds={stationImpactKinds.get(result.station.id) ?? []}
-                    selected={selectedStationId === result.station.id}
-                    onSelect={chooseStation}
-                    buttonRef={(element) => { resultButtonRefs.current[index] = element; }}
-                    onKeyDown={(event) => handleResultKeyDown(index, event)}
-                    saved={savedStationIds.has(result.station.id)}
-                    pending={pendingSavedStationIds.has(result.station.id)}
-                    authenticated={authenticated}
-                    onToggleSaved={onToggleSavedStation}
-                    onRequestSignIn={onRequestSignIn}
-                      />
-                    ))}
+                    {networkResultOrder.map((networkId) => {
+                      const networkResults = otherStationResults.filter((result) => result.networkId === networkId);
+                      if (networkResults.length === 0) return null;
+                      return (
+                        <div key={networkId} className="global-search-network-subgroup">
+                          <div className={`global-search-network-heading ${networkId}`}>
+                            {networkId === "ttc" ? "TTC Subway & LRT" : "GO/UP Rail"}
+                          </div>
+                          {networkResults.map((result) => {
+                            const keyboardIndex = nextResultButtonIndex++;
+                            return (
+                              <StationButton
+                                key={`${result.networkId}:${result.station.id}`}
+                                station={result.station}
+                                networkId={result.networkId}
+                                impactKinds={result.networkId === currentNetwork ? stationImpactKinds.get(result.station.id) ?? [] : []}
+                                selected={result.networkId === currentNetwork && selectedStationId === result.station.id}
+                                onSelect={chooseStation}
+                                buttonRef={(element) => { resultButtonRefs.current[keyboardIndex] = element; }}
+                                onKeyDown={(event) => handleResultKeyDown(keyboardIndex, event)}
+                                saved={false}
+                                pending={pendingSavedStationIds.has(result.station.id)}
+                                authenticated={authenticated}
+                                onToggleSaved={onToggleSavedStation}
+                                onRequestSignIn={onRequestSignIn}
+                              />
+                            );
+                          })}
+                        </div>
+                      );
+                    })}
+                  </section>
+                ) : null}
+
+                {savedCommuteResults.length > 0 ? (
+                  <section className="global-search-group" aria-labelledby="global-search-commutes-heading">
+                    <div className="global-search-group-heading">
+                      <h3 id="global-search-commutes-heading">Saved commutes</h3>
+                      <span>{savedCommuteResults.length}</span>
+                    </div>
+                    {savedCommuteResults.map(({ commute }) => {
+                      const keyboardIndex = nextResultButtonIndex++;
+                      return (
+                        <button
+                          key={commute.id}
+                          ref={(element) => { resultButtonRefs.current[keyboardIndex] = element; }}
+                          type="button"
+                          className="global-search-resource-result"
+                          onClick={() => onOpenSavedCommute(commute.id)}
+                          onKeyDown={(event) => handleResultKeyDown(keyboardIndex, event)}
+                        >
+                          <span className="global-search-resource-icon"><Navigation size={18} /></span>
+                          <span>
+                            <strong>{commute.label}</strong>
+                            <small>{commute.originStationName} to {commute.destinationStationName} · {commute.impact.statusLabel}</small>
+                          </span>
+                          <ChevronRight size={17} aria-hidden="true" />
+                        </button>
+                      );
+                    })}
                   </section>
                 ) : null}
 
                 {impactGroups.map((group) => (
                   <section key={group.kind} className="global-search-group" aria-labelledby={`global-search-${group.kind}-heading`}>
                     <div className="global-search-group-heading">
-                      <h3 id={`global-search-${group.kind}-heading`}>{group.label}</h3>
+                      <h3 id={`global-search-${group.kind}-heading`}>
+                        <ImpactTypeIcon kind={group.kind} size={14} />
+                        {group.label}
+                      </h3>
                       <button type="button" onClick={() => chooseCategory(group.kind)}>View all</button>
                     </div>
-                    {group.results.map((result, resultIndex) => {
-                      const keyboardIndex = stationResults.length + impactGroups
-                        .slice(0, impactGroups.findIndex((candidate) => candidate.kind === group.kind))
-                        .reduce((count, candidate) => count + candidate.results.length, 0) + resultIndex;
+                    {group.results.map((result) => {
+                      const keyboardIndex = nextResultButtonIndex++;
                       return (
                         <ImpactSearchButton
                           key={`${result.selection.kind}-${result.selection.id}`}
@@ -583,10 +823,40 @@ export function StationSearchPanel({
                     })}
                   </section>
                 ))}
+
+                {surfaceNoticeResults.length > 0 ? (
+                  <section className="global-search-group" aria-labelledby="global-search-surface-heading">
+                    <div className="global-search-group-heading">
+                      <h3 id="global-search-surface-heading">Streetcar & Bus Notices</h3>
+                      <button type="button" onClick={() => onOpenDestination("surface-notices")}>View all</button>
+                    </div>
+                    {surfaceNoticeResults.map(({ notice }) => {
+                      const keyboardIndex = nextResultButtonIndex++;
+                      const routes = notice.routeIds.length > 0 ? `Route ${notice.routeIds.join(", ")}` : notice.routeType;
+                      return (
+                        <button
+                          key={notice.id}
+                          ref={(element) => { resultButtonRefs.current[keyboardIndex] = element; }}
+                          type="button"
+                          className="global-search-resource-result"
+                          onClick={() => onOpenSurfaceNotice(notice)}
+                          onKeyDown={(event) => handleResultKeyDown(keyboardIndex, event)}
+                        >
+                          <span className="global-search-resource-icon"><Bus size={18} /></span>
+                          <span>
+                            <strong>{notice.title}</strong>
+                            <small>{routes}{notice.location ? ` · ${notice.location}` : ""}</small>
+                          </span>
+                          <ChevronRight size={17} aria-hidden="true" />
+                        </button>
+                      );
+                    })}
+                  </section>
+                ) : null}
               </div>
             ) : (
               <div className="station-search-empty" role="status">
-                No mapped station or dashboard alert matches.
+                No station, line, alert, saved item, or service notice matches.
               </div>
             )}
           </div>
@@ -606,35 +876,44 @@ export function StationSearchPanel({
               </div>
               {lineGroups.map((group, index) => {
                 const expanded = expandedLineId === group.line.id;
+                const previousGroup = lineGroups[index - 1];
+                const startsNetworkSection = !previousGroup || previousGroup.networkId !== group.networkId;
 
                 return (
-                  <div
-                    key={group.line.id}
-                    className={`station-search-line-group ${expanded ? "expanded" : ""}`}
-                  >
-                    <button
-                      ref={(element) => { lineTriggerRefs.current[index] = element; }}
-                      onKeyDown={(event) => handleLineTriggerKeyDown(index, event)}
-                      type="button"
-                      className={`station-search-line-trigger ${expanded ? "active" : ""}`}
-                      onClick={() => setExpandedLineId((current) => current === group.line.id ? null : group.line.id)}
-                      aria-expanded={expanded}
-                      aria-controls="station-search-stations-column"
-                    >
-                      <div className="flex items-center gap-2">
-                        <Image src={group.line.icon} alt="" width={34} height={34} aria-hidden="true" />
-                        <span className="station-search-line-copy">
-                          <span className="station-search-line-title">
-                            {group.line.id.startsWith("regional-") ? group.line.number : `Line ${group.line.number}`}
-                          </span>
-                          <span className="station-search-line-name">{group.line.name}</span>
-                        </span>
+                  <div key={`${group.networkId}:${group.line.id}`}>
+                    {startsNetworkSection ? (
+                      <div className={`station-search-network-heading ${group.networkId}`}>
+                        {group.networkId === "ttc" ? "TTC Subway & LRT" : "GO/UP Rail"}
+                        {group.networkId === currentNetwork ? <span>Current map</span> : null}
                       </div>
-                      <span className="station-search-line-action">
-                        <span className="station-search-line-action-text">List View</span>
-                        <ChevronRight size={17} className="station-search-line-chevron" aria-hidden="true" />
-                      </span>
-                    </button>
+                    ) : null}
+                    <div
+                      className={`station-search-line-group ${expanded ? "expanded" : ""}`}
+                    >
+                      <button
+                        ref={(element) => { lineTriggerRefs.current[index] = element; }}
+                        onKeyDown={(event) => handleLineTriggerKeyDown(index, event)}
+                        type="button"
+                        className={`station-search-line-trigger ${expanded ? "active" : ""}`}
+                        onClick={() => setExpandedLineId((current) => current === group.line.id ? null : group.line.id)}
+                        aria-expanded={expanded}
+                        aria-controls="station-search-stations-column"
+                      >
+                        <div className="flex items-center gap-2">
+                          <Image src={group.line.icon} alt="" width={34} height={34} aria-hidden="true" />
+                          <span className="station-search-line-copy">
+                            <span className="station-search-line-title">
+                              {group.line.id.startsWith("regional-") ? group.line.number : `Line ${group.line.number}`}
+                            </span>
+                            <span className="station-search-line-name">{group.line.name}</span>
+                          </span>
+                        </div>
+                        <span className="station-search-line-action">
+                          <span className="station-search-line-action-text">List View</span>
+                          <ChevronRight size={17} className="station-search-line-chevron" aria-hidden="true" />
+                        </span>
+                      </button>
+                    </div>
                   </div>
                 );
               })}
@@ -659,11 +938,11 @@ export function StationSearchPanel({
                       Back to Lines
                     </button>
                   ) : null}
-                  <div className="station-search-stations-column-header">
-                    <div className="flex items-center gap-2 mb-3 px-1">
+                  <div className={`station-search-stations-column-header ${activeLineGroup.networkId}`}>
+                    <div className="station-search-stations-column-heading-content">
                       <TransitLineBadge lineId={activeLineGroup.line.id} lineNumber={activeLineGroup.line.number} lineName={activeLineGroup.line.name} size={24} />
                       <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                        {activeLineGroup.line.name} Stations
+                        {activeLineGroup.line.name} Stations · {activeLineGroup.networkId === "ttc" ? "TTC" : "GO/UP"}
                       </span>
                     </div>
                   </div>
@@ -672,12 +951,13 @@ export function StationSearchPanel({
                       <StationButton
                         key={`${activeLineGroup.line.id}-${station.id}`}
                         station={station}
-                        impactKinds={stationImpactKinds.get(station.id) ?? []}
-                        selected={selectedStationId === station.id}
+                        networkId={activeLineGroup.networkId}
+                        impactKinds={activeLineGroup.networkId === currentNetwork ? stationImpactKinds.get(station.id) ?? [] : []}
+                        selected={activeLineGroup.networkId === currentNetwork && selectedStationId === station.id}
                         onSelect={chooseStation}
                         buttonRef={(element) => { stationButtonRefs.current[index] = element; }}
                         onKeyDown={(event) => handleStationButtonKeyDown(index, event)}
-                        saved={savedStationIds.has(station.id)}
+                        saved={savedStationKeys.has(`${activeLineGroup.networkId}:${station.id}`)}
                         pending={pendingSavedStationIds.has(station.id)}
                         authenticated={authenticated}
                         onToggleSaved={onToggleSavedStation}

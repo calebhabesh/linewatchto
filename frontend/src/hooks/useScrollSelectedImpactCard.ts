@@ -15,13 +15,14 @@ export function useScrollSelectedImpactCard(
 
     let highlightTimeout: number | undefined;
 
-    const scrollToCard = () => {
-      const card = document.querySelector<HTMLElement>(
-        `[data-impact-card-id="${CSS.escape(selection.id)}"]`,
-      );
+    const selectedCard = () => document.querySelector<HTMLElement>(
+      `[data-impact-card-id="${CSS.escape(selection.id)}"]`,
+    );
+
+    const highlightCard = () => {
+      const card = selectedCard();
       if (!card) return;
 
-      card.scrollIntoView({ block: "center", behavior: "smooth" });
       card.classList.remove("highlight-active-card");
       void card.offsetWidth;
       card.classList.add("highlight-active-card");
@@ -29,6 +30,15 @@ export function useScrollSelectedImpactCard(
         card.classList.remove("highlight-active-card");
       }, 2500);
     };
+
+    const scrollToCard = () => {
+      const card = selectedCard();
+      if (!card) return;
+
+      card.scrollIntoView({ block: "center", behavior: "smooth" });
+    };
+
+    highlightCard();
 
     const wrapper = document.querySelector<HTMLElement>(
       ".desktop-view-content-wrapper, .mobile-view-content-wrapper",
@@ -66,9 +76,7 @@ export function useScrollSelectedImpactCard(
       if (scrollTimeout !== undefined) window.clearTimeout(scrollTimeout);
       if (highlightTimeout !== undefined) window.clearTimeout(highlightTimeout);
       wrapper?.removeEventListener("animationend", handleWrapperAnimationEnd);
-      const card = document.querySelector<HTMLElement>(
-        `[data-impact-card-id="${CSS.escape(selection.id)}"]`,
-      );
+      const card = selectedCard();
       if (card) {
         card.classList.remove("highlight-active-card");
       }

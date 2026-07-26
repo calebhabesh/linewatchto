@@ -3,6 +3,7 @@ import {
   STATION_LINE_STATION_IDS,
   type StationSummary,
 } from "./station-data.ts";
+import type { NetworkId } from "./regional-data.ts";
 
 type MatchKind = "exact" | "acronym" | "prefix" | "token-prefix" | "substring" | "subsequence";
 
@@ -24,6 +25,16 @@ export type StationSearchResult = {
   score: number;
   matchKind: MatchKind;
   lineIds: string[];
+};
+
+export type StationSearchCatalogs = Record<NetworkId, StationSummary[]>;
+
+export type NetworkStationSearchResult = StationSearchResult & {
+  networkId: NetworkId;
+};
+
+export type NetworkStationLineGroup = StationLineGroup & {
+  networkId: NetworkId;
 };
 
 export const STATION_SEARCH_LINES: StationSearchLine[] = Object.values(STATION_LINE_DEFINITIONS).map((line) => ({
@@ -179,6 +190,22 @@ export function buildStationLineGroups(stations: StationSummary[]): StationLineG
   }).filter((group) => group.stations.length > 0);
 }
 
+export function buildNetworkStationLineGroups(
+  catalogs: StationSearchCatalogs,
+  currentNetwork: NetworkId,
+): NetworkStationLineGroup[] {
+  const networkOrder: NetworkId[] = currentNetwork === "ttc"
+    ? ["ttc", "regional"]
+    : ["regional", "ttc"];
+
+  return networkOrder.flatMap((networkId) =>
+    buildStationLineGroups(catalogs[networkId]).map((group) => ({
+      ...group,
+      networkId,
+    })),
+  );
+}
+
 export function searchStations(stations: StationSummary[], query: string, limit = 12): StationSearchResult[] {
   return stations
     .map((station) => {
@@ -200,6 +227,31 @@ export function searchStations(stations: StationSummary[], query: string, limit 
         return a.score - b.score;
       }
 
+      return a.station.name.localeCompare(b.station.name);
+    })
+    .slice(0, limit);
+}
+
+export function searchStationsAcrossNetworks(
+  catalogs: StationSearchCatalogs,
+  currentNetwork: NetworkId,
+  query: string,
+  limit = 16,
+): NetworkStationSearchResult[] {
+  const results = (Object.entries(catalogs) as Array<[NetworkId, StationSummary[]]>)
+    .flatMap(([networkId, stations]) =>
+      searchStations(stations, query, limit).map((result) => ({
+        ...result,
+        networkId,
+      })),
+    );
+
+  return results
+    .sort((a, b) => {
+      const aScore = a.score + (a.networkId === currentNetwork ? 0 : 3);
+      const bScore = b.score + (b.networkId === currentNetwork ? 0 : 3);
+      if (aScore !== bScore) return aScore - bScore;
+      if (a.networkId !== b.networkId) return a.networkId === currentNetwork ? -1 : 1;
       return a.station.name.localeCompare(b.station.name);
     })
     .slice(0, limit);

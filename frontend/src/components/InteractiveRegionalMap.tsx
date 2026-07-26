@@ -100,7 +100,7 @@ function regionalImpactGroup(
 
   const interactiveGlow = sourcePath.cloneNode(false) as SVGPathElement;
   removeDescendantIds(interactiveGlow);
-  interactiveGlow.classList.add("asset-alert-path-glow", "interactive-glow", "regional-impact-glow", "regional-impact-interactive-glow");
+  interactiveGlow.classList.add("asset-alert-path-glow", "regional-impact-glow", "regional-impact-interactive-glow", "map-selection-attention");
 
   const boundary = sourcePath.cloneNode(false) as SVGPathElement;
   removeDescendantIds(boundary);
@@ -158,6 +158,10 @@ function fallbackSegmentPath(
 
 type Camera = { x: number; y: number; scale: number };
 
+const RegionalSvgMarkup = memo(function RegionalSvgMarkup({ markup }: { markup: string }) {
+  return <div dangerouslySetInnerHTML={{ __html: markup }} className="w-full h-full" />;
+});
+
 function snapCameraToDevicePixels(camera: Camera): Camera {
   return snapTransformToDevicePixels(camera, currentDevicePixelRatio());
 }
@@ -198,7 +202,6 @@ function InteractiveRegionalMapComponent({
   const [loadError, setLoadError] = useState(false);
   const [dragging, setDragging] = useState(false);
   const [fitScale, setFitScale] = useState(0.35);
-  const [selectionPulsePhase, setSelectionPulsePhase] = useState<"fast" | "latent">("fast");
   const [desktopMapTopInset, setDesktopMapTopInset] = useState(0);
   const [desktopMapBottomInset, setDesktopMapBottomInset] = useState(0);
   const animTimeoutRef = useRef<number | null>(null);
@@ -489,7 +492,7 @@ function InteractiveRegionalMapComponent({
           const selectedIndicator = element.cloneNode(true) as SVGElement;
           removeDescendantIds(selectedIndicator);
           selectedIndicator.dataset.regionalStationSelectionId = stationId;
-          selectedIndicator.classList.add("station-selected-indicator", "regional-station-selected-indicator");
+          selectedIndicator.classList.add("map-selection-attention", "station-selected-indicator", "regional-station-selected-indicator");
           selectedIndicator.setAttribute("aria-hidden", "true");
           const selectedShapes = selectedIndicator.matches("circle, rect, ellipse") ? [selectedIndicator] : [...selectedIndicator.querySelectorAll<SVGElement>("circle, rect, ellipse")];
           for (const shape of selectedShapes) {
@@ -574,7 +577,7 @@ function InteractiveRegionalMapComponent({
           removeDescendantIds(ring);
           ring.dataset.regionalImpactKind = impact.kind;
           ring.dataset.regionalImpactId = impact.cardId;
-          ring.classList.add("station-impact-ring", "regional-station-impact-ring", `regional-station-impact-ring--${impact.kind}`);
+          ring.classList.add("station-impact-ring", "regional-station-impact-ring", "map-selection-attention", `regional-station-impact-ring--${impact.kind}`);
           ring.style.setProperty("--regional-impact-color", regionalImpactColor(impact.kind));
           ring.style.setProperty("--regional-station-impact-width", `${65 + impactIndex * 20}px`);
           ring.setAttribute("role", "button");
@@ -657,9 +660,8 @@ function InteractiveRegionalMapComponent({
         `[data-regional-station-selection-id="${CSS.escape(selectedStationId)}"]`,
       );
       indicator?.setAttribute("data-regional-station-selected", "true");
-      indicator?.setAttribute("data-regional-selection-phase", selectionPulsePhase);
     }
-  }, [selectedStationId, selectionPulsePhase, svgMarkup]);
+  }, [selectedStationId, svgMarkup]);
 
   useEffect(() => {
     const root = viewportRef.current;
@@ -668,27 +670,9 @@ function InteractiveRegionalMapComponent({
       root?.querySelectorAll(`[data-regional-impact-kind="${selection.kind}"][data-regional-impact-id="${CSS.escape(selection.id)}"]`)
         .forEach((element) => {
           element.setAttribute("data-regional-impact-selected", "true");
-          element.setAttribute("data-regional-selection-phase", selectionPulsePhase);
         });
     }
-  }, [selection, selectionPulsePhase, svgMarkup]);
-
-  useEffect(() => {
-    if (!selection && !selectedStationId) return;
-    let fastPhaseFrame: number | null = null;
-    let latentPhaseTimer: number | null = null;
-    const fastPhaseTimer = window.setTimeout(() => {
-      setSelectionPulsePhase("fast");
-      fastPhaseFrame = window.requestAnimationFrame(() => {
-        latentPhaseTimer = window.setTimeout(() => setSelectionPulsePhase("latent"), 2400);
-      });
-    }, 0);
-    return () => {
-      window.clearTimeout(fastPhaseTimer);
-      if (fastPhaseFrame !== null) window.cancelAnimationFrame(fastPhaseFrame);
-      if (latentPhaseTimer !== null) window.clearTimeout(latentPhaseTimer);
-    };
-  }, [selectedStationId, selection]);
+  }, [selection, svgMarkup]);
 
   const selectedMapElements = useCallback(() => {
     const root = viewportRef.current;
@@ -1008,7 +992,7 @@ function InteractiveRegionalMapComponent({
             transition: reducedMotion || dragging ? "none" : "transform 0.1s ease-out",
           }}
         >
-          <div dangerouslySetInnerHTML={{ __html: svgMarkup }} className="w-full h-full" />
+          <RegionalSvgMarkup markup={svgMarkup} />
           {/* Static North Compass fixed to regional map canvas */}
           <svg
             className="absolute top-0 left-0 w-full h-full pointer-events-none"

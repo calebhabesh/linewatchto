@@ -17,6 +17,7 @@ const shellSource = readFileSync(new URL("../src/components/LineWatchShell.tsx",
 const networkSelectorSource = readFileSync(new URL("../src/components/NetworkSelector.tsx", import.meta.url), "utf8");
 const defaultMapModeSource = readFileSync(new URL("../src/components/DefaultMapModeControl.tsx", import.meta.url), "utf8");
 const mobileMoreSource = readFileSync(new URL("../src/components/MobileMoreSheet.tsx", import.meta.url), "utf8");
+const mobileLegendSource = readFileSync(new URL("../src/components/MobileLegend.tsx", import.meta.url), "utf8");
 const networkMapSource = readFileSync(new URL("../src/components/NetworkMap.tsx", import.meta.url), "utf8");
 const networkMapLegendsSource = readFileSync(new URL("../src/components/NetworkMapLegends.tsx", import.meta.url), "utf8");
 const regionalMapSource = readFileSync(new URL("../src/components/InteractiveRegionalMap.tsx", import.meta.url), "utf8");
@@ -38,6 +39,12 @@ describe("network-scoped regional dashboard", () => {
     assert.match(defaultMapModeSource, /Default Map/);
     assert.match(defaultMapModeSource, /TTC/);
     assert.match(defaultMapModeSource, /GO &amp; UP/);
+    assert.match(defaultMapModeSource, /className="default-map-mode-glider"/);
+    assert.match(globalsCss, /\.default-map-mode-glider/);
+    assert.match(
+      globalsCss,
+      /\.default-map-mode-options\[data-network="regional"\] \.default-map-mode-glider\s*\{[^}]*transform:\s*translateX\(100%\)/s,
+    );
     assert.match(shellSource, /<DefaultMapModeControl/);
     assert.ok(shellSource.indexOf("My Stations") < shellSource.indexOf("<DefaultMapModeControl"));
     assert.match(mobileMoreSource, /<DefaultMapModeControl/);
@@ -62,9 +69,37 @@ describe("network-scoped regional dashboard", () => {
 
   it("renders one legend for the selected map scene", () => {
     assert.match(networkMapSource, /<NetworkMapLegend[\s\S]*mode=\{network\}/);
+    assert.match(networkMapSource, /closingSoon=\{mobileAnnouncementVisible\}/);
     assert.match(networkMapLegendsSource, /<LineLegend[\s\S]*mode=\{mode\}/);
     assert.match(networkMapLegendsSource, /<MobileLegend[\s\S]*mode=\{mode\}/);
     assert.doesNotMatch(networkMapLegendsSource, /hidden=/);
+  });
+
+  it("offsets the regional mobile legend below closing-soon and closed notices", () => {
+    assert.match(
+      shellSource,
+      /mobileAnnouncementVisible=\{selectedNetwork === "ttc"[\s\S]*regionalRailOperatingState\.closingSoon[\s\S]*regionalRailOperatingState\.status === "closed" && closedMapPeek/,
+    );
+    assert.match(globalsCss, /\.subway-closing-soon-chip,[\s\S]*\.go-up-closed-peek-chip\s*\{[\s\S]*overflow:\s*hidden\s*!important/);
+    assert.match(globalsCss, /\.subway-closed-peek-text\s*\{[\s\S]*overflow:\s*hidden\s*!important/);
+    assert.match(mobileLegendSource, /mobile-legend-pill--regional/);
+    assert.match(
+      globalsCss,
+      /\.mobile-legend-pill--regional\.mobile-legend-pill--announcement\s*\{[\s\S]*var\(--mobile-regional-announcement-chip-height\)/,
+    );
+  });
+
+  it("shows the rotate-map action in regional mobile mode and preserves complete notice copy", () => {
+    assert.doesNotMatch(
+      shellSource,
+      /selectedNetwork === "ttc"\s*\?\s*<button\s*[\s\S]{0,300}className="rotate-map-btn/,
+    );
+    assert.match(shellSource, /<button[\s\S]{0,400}className="rotate-map-btn/);
+    assert.match(
+      globalsCss,
+      /\.go-up-closed-peek-chip \.subway-closed-peek-subtitle\s*\{[\s\S]*white-space:\s*normal\s*!important/,
+    );
+    assert.match(globalsCss, /--mobile-regional-announcement-chip-height:\s*48px/);
   });
 
   it("switches map implementations without replaying a map camera entrance", () => {
@@ -183,14 +218,16 @@ describe("network-scoped regional dashboard", () => {
     ));
   });
 
-  it("isolates regional station search input from TTC fixtures", () => {
+  it("keeps map station data scoped while exposing both catalogs to global search", () => {
     const ids = new Set(regionalStationSummaries.stations.map((station) => station.id));
     assert.equal(ids.has("pearson-airport"), true);
     assert.equal(ids.has("finch"), false);
     assert.match(
       shellSource,
-      /const stationSummaries = selectedNetwork === "regional"[\s\S]*regionalStationSummaries\.stations[\s\S]*ttcStationSummaries/,
+      /const stationCatalogs = useMemo\([\s\S]*ttc:\s*ttcStationSummaries[\s\S]*regional:\s*regionalStationSummaries\.stations/,
     );
+    assert.match(shellSource, /const stationSummaries = stationCatalogs\[selectedNetwork\]/);
+    assert.match(shellSource, /stationCatalogs=\{stationCatalogs\}/);
     assert.match(shellSource, /setTtcStationSummaries\(result\.data\.stations\)/);
   });
 
@@ -278,14 +315,8 @@ describe("network-scoped regional dashboard", () => {
     assert.match(regionalMapSource, /"map-segment-hit-target", "regional-impact-hit-target"/);
     assert.match(regionalMapSource, /"asset-alert-path-hover-boundary", "regional-impact-hover-boundary"/);
     assert.match(regionalMapSource, /createElementNS\(SVG_NAMESPACE, "title"\)/);
-    assert.match(
-      globalsCss,
-      /\.regional-station-selected-indicator\s*\{[^}]*animation:\s*none\s*!important/s,
-    );
-    assert.match(
-      globalsCss,
-      /\.regional-station-selected-indicator\[data-regional-station-selected="true"\]\[data-regional-selection-phase="latent"\]\s*\{[^}]*animation:\s*station-selection-latent-pulse[^;]*!important/s,
-    );
+    assert.match(globalsCss, /\.map-selection-attention\s*\{[^}]*--selection-intro-name:\s*none/s);
+    assert.match(regionalMapSource, /"map-selection-attention", "station-selected-indicator", "regional-station-selected-indicator"/);
   });
 
   it("uses TTC-derived disruption motion and selection emphasis at regional map scale", () => {
@@ -295,25 +326,24 @@ describe("network-scoped regional dashboard", () => {
     assert.match(globalsCss, /data-regional-impact-kind="reduced-speed-zone"[\s\S]*regional-chevron-slide/);
     assert.match(globalsCss, /data-regional-impact-kind="suspension"[\s\S]*regional-impact-width-pulse/);
     assert.match(globalsCss, /data-regional-impact-kind="planned-closure"[\s\S]*regional-impact-aura[\s\S]*display:\s*none/);
-    assert.match(globalsCss, /data-regional-impact-selected="true"[\s\S]*regional-impact-interactive-glow[\s\S]*regional-selection-flash/);
+    assert.match(globalsCss, /data-regional-impact-selected="true"[\s\S]*regional-impact-interactive-glow[\s\S]*regional-selection-path-intro/);
     assert.match(globalsCss, /\.motion-paused \.regional-impact-aura/);
     assert.match(globalsCss, /prefers-reduced-motion:\s*reduce[\s\S]*\.regional-impact-aura/);
   });
 
-  it("gives every selected regional station and impact a fast flash followed by a latent pulse", () => {
-    assert.match(regionalMapSource, /selectionPulsePhase/);
-    assert.match(regionalMapSource, /setSelectionPulsePhase\("fast"\)/);
-    assert.match(
+  it("reuses the smooth attention-to-breathing lifecycle for every selected regional station and impact", () => {
+    assert.doesNotMatch(regionalMapSource, /selectionPulsePhase|data-regional-selection-phase/);
+    assert.match(regionalMapSource, /"map-selection-attention", "station-selected-indicator", "regional-station-selected-indicator"/);
+    assert.match(regionalMapSource, /"regional-impact-interactive-glow", "map-selection-attention"/);
+    assert.doesNotMatch(
       regionalMapSource,
-      /setSelectionPulsePhase\("fast"\)[\s\S]*requestAnimationFrame[\s\S]*setSelectionPulsePhase\("latent"\), 2400/,
+      /interactiveGlow\.classList\.add\([^;]*"interactive-glow"/,
     );
-    assert.match(regionalMapSource, /data-regional-selection-phase/);
-    assert.match(globalsCss, /regional-station-selected-indicator[\s\S]*data-regional-selection-phase="fast"[\s\S]*station-selection-flash/);
-    assert.match(globalsCss, /regional-station-selected-indicator[\s\S]*data-regional-selection-phase="latent"[\s\S]*station-selection-latent-pulse/);
-    assert.match(globalsCss, /regional-impact-interactive-glow[\s\S]*regional-selection-flash/);
-    assert.match(globalsCss, /regional-impact-interactive-glow[\s\S]*regional-selection-latent-pulse/);
-    assert.match(globalsCss, /regional-station-impact-ring[\s\S]*regional-station-selection-flash/);
-    assert.match(globalsCss, /regional-station-impact-ring[\s\S]*regional-station-selection-latent-pulse/);
+    assert.match(regionalMapSource, /"station-impact-ring", "regional-station-impact-ring", "map-selection-attention"/);
+    assert.match(globalsCss, /\.map-selection-attention\s*\{[^}]*animation-delay:\s*0s,\s*var\(--selection-intro-duration\)/s);
+    assert.match(globalsCss, /regional-station-selected-indicator\[data-regional-station-selected="true"\][\s\S]*--selection-intro-name:\s*map-selection-station-intro/);
+    assert.match(globalsCss, /regional-impact-interactive-glow[\s\S]*--selection-intro-name:\s*regional-selection-path-intro/);
+    assert.match(globalsCss, /regional-station-impact-ring[\s\S]*--selection-intro-name:\s*regional-selection-ring-intro/);
   });
 
   it("fits terminal selections to their authored shape and slightly enlarges regular station dots", () => {
@@ -414,6 +444,15 @@ describe("network-scoped regional dashboard", () => {
     assert.match(regionalMapSource, /transformOrigin: "0 0"/);
     assert.match(regionalMapSource, /root\.setAttribute\("preserveAspectRatio", "xMidYMid meet"\)/);
     assert.doesNotMatch(regionalMapSource, /root\.setAttribute\("viewBox"/);
+  });
+
+  it("keeps the serialized regional SVG mounted while camera state commits", () => {
+    assert.match(regionalMapSource, /const RegionalSvgMarkup = memo\(function RegionalSvgMarkup/);
+    assert.match(regionalMapSource, /<RegionalSvgMarkup markup=\{svgMarkup\}\s*\/>/);
+    assert.doesNotMatch(
+      regionalMapSource,
+      /<div dangerouslySetInnerHTML=\{\{ __html: svgMarkup \}\}/,
+    );
   });
 
   it("keeps the regional entrance and map controls on one camera animation pipeline", () => {

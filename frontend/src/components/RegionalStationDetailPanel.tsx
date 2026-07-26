@@ -220,7 +220,7 @@ export function RegionalStationDetailPanel({
                 </div>
                 <div className="regional-station-official-links mt-3">
                   <a href="https://www.gotransit.com/en/see-schedules" target="_blank" rel="noreferrer">
-                    GO schedules <ExternalLink size={14} />
+                    GO Schedules <ExternalLink size={14} />
                   </a>
                   {station.lineIds.includes("regional-up") ? (
                     <a
@@ -228,7 +228,7 @@ export function RegionalStationDetailPanel({
                       target="_blank"
                       rel="noreferrer"
                     >
-                      UP schedules <ExternalLink size={14} />
+                      UP Schedules <ExternalLink size={14} />
                     </a>
                   ) : null}
                 </div>

@@ -7,14 +7,14 @@ import { NetworkMapLegend, type NetworkMapLegendProps } from "./NetworkMapLegend
 type TtcMapProps = ComponentProps<typeof InteractiveTtcMap>;
 type NetworkMapProps = TtcMapProps & {
   network: NetworkId;
-  ttcClosingSoon: boolean;
+  mobileAnnouncementVisible: boolean;
   onInitialMapReady: () => void;
   legendProps: Omit<NetworkMapLegendProps, "mode" | "closingSoon">;
 };
 
 export function NetworkMap({
   network,
-  ttcClosingSoon,
+  mobileAnnouncementVisible,
   onInitialMapReady,
   legendProps,
   ...props
@@ -45,7 +45,7 @@ export function NetworkMap({
       )}
       <NetworkMapLegend
         mode={network}
-        closingSoon={regionalSelected ? false : ttcClosingSoon}
+        closingSoon={mobileAnnouncementVisible}
         {...legendProps}
       />
     </>

@@ -40,6 +40,8 @@ export function MobileLegend({
       className={`mobile-legend-pill fixed left-4 flex flex-col gap-1.5 p-2 bg-white/95 dark:bg-[#0a0c10]/95 border border-black/10 dark:border-white/10 rounded-xl shadow-xl transition-all duration-300 ease-in-out cursor-pointer select-none md:hidden ${
         closingSoon ? "mobile-legend-pill--announcement" : "top-4"
       } ${
+        isRegional ? "mobile-legend-pill--regional" : ""
+      } ${
         expanded ? "w-fit max-w-[calc(100vw-32px)] pr-3.5 mobile-legend-pill--expanded" : "w-[36px]"
       }`}
       style={{ zIndex: expanded ? 41 : 35 }}

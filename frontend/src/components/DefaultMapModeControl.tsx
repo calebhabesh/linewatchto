@@ -18,6 +18,7 @@ export function DefaultMapModeControl({ value, onChange, compact = false }: Prop
         </div>
       </div>
       <div className="default-map-mode-options" role="group" aria-label="Default map" data-network={value}>
+        <span className="default-map-mode-glider" aria-hidden="true" />
         <button
           type="button"
           className={`default-map-mode-btn default-map-mode-btn-ttc ${value === "ttc" ? "is-selected" : ""}`}
@@ -38,6 +39,5 @@ export function DefaultMapModeControl({ value, onChange, compact = false }: Prop
     </div>
   );
 }
-
 
 

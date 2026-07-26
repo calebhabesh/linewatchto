@@ -34,6 +34,8 @@ describe("floating menu layout", () => {
     assert.match(globalCss, /@keyframes desktop-content-fade-in/);
     assert.match(selectedImpactScrollSource, /addEventListener\("animationend", handleWrapperAnimationEnd\)/);
     assert.match(selectedImpactScrollSource, /event\.animationName !== expectedAnimationName/);
+    assert.match(selectedImpactScrollSource, /highlightCard\(\);[\s\S]*const wrapper = /);
+    assert.match(globalCss, /\.highlight-active-card\s*\{[^}]*var\(--selection-fast-cycle-duration\)/s);
   });
 
   it("keeps the map first while exposing floating menu and submenu states", () => {
@@ -86,7 +88,7 @@ describe("floating menu layout", () => {
     assert.match(shellSource, /StationSearchPanel/);
     assert.match(shellSource, /activeView === "search"/);
     assert.match(stationSearchSource, /searchStations/);
-    assert.match(stationSearchSource, /buildStationLineGroups/);
+    assert.match(stationSearchSource, /buildNetworkStationLineGroups/);
     assert.match(stationSearchSource, /onSelectStation/);
     assert.match(stationSearchSource, /<StationOutageBadge/);
     assert.match(stationOutageBadgeSource, /station-search-outage-badge/);
@@ -112,6 +114,16 @@ describe("floating menu layout", () => {
     assert.match(shellSource, /MobileMoreSheet/);
     assert.match(globalCss, /\.mobile-bottom-nav/);
     assert.match(globalCss, /\.mobile-status-peek/);
+  });
+
+  it("shows the combined alert-category total on the hamburger badge", () => {
+    assert.match(
+      shellSource,
+      /const totalAlertCount =\s*activeAlerts\.length\s*\+ delays\.length\s*\+ reducedSpeedZones\.length\s*\+ plannedClosures\.length;/,
+    );
+    assert.match(shellSource, /\{totalAlertCount > 0 && !menuVisible && \(/);
+    assert.match(shellSource, /\{totalAlertCount\}/);
+    assert.match(shellSource, /`Toggle menu, \$\{totalAlertCount\} total \$\{totalAlertCount === 1 \? "alert" : "alerts"\}`/);
   });
 
   it("allows alert and planned closure copy to wrap instead of collapsing into narrow columns", () => {

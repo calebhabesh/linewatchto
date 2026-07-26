@@ -88,14 +88,28 @@ describe("GO and UP closed-hours UI", () => {
     new URL("../src/components/LineWatchShell.tsx", import.meta.url),
     "utf8",
   );
+  const globalCss = readFileSync(
+    new URL("../src/app/globals.css", import.meta.url),
+    "utf8",
+  );
 
   it("renders corridor-aware schedule copy and official schedule links", () => {
     assert.match(closedScreenSource, /GO &amp; UP Rail Closed/);
-    assert.match(closedScreenSource, /GO all-day rail/);
+    assert.match(closedScreenSource, /GO All-Day Rail/);
+    assert.match(closedScreenSource, /Weekday Peak Rail/);
     assert.match(closedScreenSource, /Milton and Richmond Hill/);
     assert.match(closedScreenSource, /gotransit\.com\/en\/see-schedules/);
+    assert.match(closedScreenSource, /gotransit\.com\/en\/see-schedules\/pdf-schedules/);
+    assert.match(closedScreenSource, /Rail and bus schedules change frequently/);
     assert.match(closedScreenSource, /upexpress\.com/);
     assert.match(closedScreenSource, /Peek at Regional Map/);
+  });
+
+  it("keeps the regional closed chip inline beside desktop search", () => {
+    assert.doesNotMatch(
+      globalCss,
+      /@media \(min-width: 768px\)\s*\{\s*\.go-up-closed-peek-chip\s*\{[^}]*position:\s*absolute/s,
+    );
   });
 
   it("renders a regional closing-soon chip", () => {
@@ -116,5 +130,7 @@ describe("GO and UP closed-hours UI", () => {
     assert.match(shellSource, /showRegionalClosedScreen/);
     assert.match(shellSource, /GoUpClosedScreen/);
     assert.match(shellSource, /GO & UP Rail Closed/);
+    assert.match(shellSource, /Trains return/);
+    assert.match(shellSource, /replace\(\/\^\(Today\|Tomorrow\)\//);
   });
 });

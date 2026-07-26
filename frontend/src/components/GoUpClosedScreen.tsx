@@ -92,11 +92,11 @@ export function GoUpClosedScreen({
                   <td>Union: 4:55 A.M. weekdays / 6:00 A.M. weekends – 1:00 A.M.</td>
                 </tr>
                 <tr>
-                  <td>GO all-day rail</td>
+                  <td>GO All-Day Rail</td>
                   <td>Hours vary by corridor, direction, and day</td>
                 </tr>
                 <tr>
-                  <td>Weekday peak rail</td>
+                  <td>Weekday Peak Rail</td>
                   <td>Milton and Richmond Hill</td>
                 </tr>
               </tbody>
@@ -111,25 +111,34 @@ export function GoUpClosedScreen({
           <p className="subway-closed-caveat">
             <Info size={16} aria-hidden="true" />
             <span>
-              {operatingState.operatingHours.caveat} Check the{" "}
+              {operatingState.operatingHours.caveat} Rail and bus schedules change frequently.
+              Check the{" "}
               <a
                 href="https://www.gotransit.com/en/see-schedules"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="subway-closed-link"
               >
-                GO schedules
+                GO Schedules
               </a>{" "}
-              and{" "}
+              or{" "}
+              <a
+                href="https://www.gotransit.com/en/see-schedules/pdf-schedules"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="subway-closed-link"
+              >
+                GO PDF Schedules
+              </a>, and the{" "}
               <a
                 href="https://www.upexpress.com/en/up-express-stations/union-station/departures-and-schedules"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="subway-closed-link"
               >
-                UP Express schedule
+                UP Express Schedules
               </a>{" "}
-              before travelling.
+              before travelling. GO notes that PDFs may not be the most recent.
             </span>
           </p>
 

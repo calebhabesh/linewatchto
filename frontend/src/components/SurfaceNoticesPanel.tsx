@@ -13,15 +13,23 @@ import { formatImpactTimestamp, formatOperationalDateTime } from "../app/impact-
 interface Props {
   onBack: () => void;
   onClose: () => void;
+  initialQuery?: string;
 }
 
-export function SurfaceNoticesPanel({ onBack, onClose }: Props) {
+export function SurfaceNoticesPanel({ onBack, onClose, initialQuery = "" }: Props) {
   const [category, setCategory] = useState<SurfaceNoticeCategory | "all">("all");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [debouncedQuery, setDebouncedQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState(initialQuery);
+  const [debouncedQuery, setDebouncedQuery] = useState(initialQuery);
   const [data, setData] = useState<SurfaceNoticeResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [expandedNoticeIds, setExpandedNoticeIds] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    if (!initialQuery) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setSearchQuery(initialQuery);
+    setDebouncedQuery(initialQuery);
+  }, [initialQuery]);
 
   // Debounce query
   useEffect(() => {
