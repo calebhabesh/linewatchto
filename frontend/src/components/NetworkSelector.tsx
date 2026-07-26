@@ -5,7 +5,15 @@ import type { NetworkId } from "../app/regional-data";
 
 const useIsomorphicLayoutEffect = typeof window !== "undefined" ? useLayoutEffect : useEffect;
 
-export function NetworkSelector({ network, onChange }: { network: NetworkId; onChange: (network: NetworkId) => void }) {
+export function NetworkSelector({
+  network,
+  onChange,
+  compactVertical = false,
+}: {
+  network: NetworkId;
+  onChange: (network: NetworkId) => void;
+  compactVertical?: boolean;
+}) {
   const containerRef = useRef<HTMLDivElement>(null);
   const ttcRef = useRef<HTMLButtonElement>(null);
   const regionalRef = useRef<HTMLButtonElement>(null);
@@ -31,7 +39,7 @@ export function NetworkSelector({ network, onChange }: { network: NetworkId; onC
   return (
     <div
       ref={containerRef}
-      className="network-selector panel"
+      className={`network-selector panel${compactVertical ? " network-selector--compact-vertical" : ""}`}
       role="group"
       aria-label="Select transit network"
       data-network={network}
@@ -62,6 +70,5 @@ export function NetworkSelector({ network, onChange }: { network: NetworkId; onC
     </div>
   );
 }
-
 
 

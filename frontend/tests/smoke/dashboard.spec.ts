@@ -1217,6 +1217,57 @@ test("global station search switches maps for a station on the other network", a
   await expect(page.getByRole("button", { name: "GO/UP" })).toHaveAttribute("aria-pressed", "true");
 });
 
+test("mobile GO and UP map uses the rotated logical landscape viewport", async ({ page, request, isMobile }) => {
+  test.skip(!isMobile, "mobile-only regional rotation smoke");
+  await setStubMode(request, "seeded");
+  await page.goto("/");
+  await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
+
+  const mobileNetworkSelector = page.locator(".mobile-network-selector-slot").getByRole("group", { name: "Select transit network" });
+  const siteGuideButton = page.getByRole("button", { name: "Open site guide" });
+  await expect(mobileNetworkSelector).toBeVisible();
+  await expect.poll(async () => {
+    const [selectorBox, guideBox] = await Promise.all([
+      mobileNetworkSelector.boundingBox(),
+      siteGuideButton.boundingBox(),
+    ]);
+    return selectorBox && guideBox
+      ? {
+          belowGuide: selectorBox.y >= guideBox.y + guideBox.height,
+          sameWidth: Math.abs(selectorBox.width - guideBox.width) <= 1,
+        }
+      : null;
+  }).toEqual({ belowGuide: true, sameWidth: true });
+  await mobileNetworkSelector.getByRole("button", { name: "GO/UP", exact: true }).click();
+  await expect(page.getByRole("region", { name: "Interactive GO and UP map" })).toBeVisible();
+  await expect(page.locator(".regional-station-selected-indicator")).toHaveCount(72);
+  await expect.poll(() => page.locator(".regional-station-selected-indicator").evaluateAll((indicators) => (
+    indicators.every((indicator) => getComputedStyle(indicator).opacity === "0")
+  ))).toBe(true);
+
+  await page.getByRole("button", { name: "Rotate map" }).click();
+  const shell = page.locator(".linewatch-shell");
+  const regionalViewport = page.locator(".regional-map-viewport");
+  await expect(shell).toHaveClass(/mobile-map-rotated/);
+  await expect(regionalViewport).toHaveAttribute("data-map-viewport-orientation", "rotated-landscape");
+  await expect(page.getByRole("button", { name: "Exit rotated map" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Center map" })).toBeVisible();
+
+  const dimensions = await regionalViewport.evaluate((element) => ({
+    clientWidth: element.clientWidth,
+    clientHeight: element.clientHeight,
+    visualWidth: element.getBoundingClientRect().width,
+    visualHeight: element.getBoundingClientRect().height,
+  }));
+  expect(dimensions.clientWidth).toBeGreaterThan(dimensions.clientHeight);
+  expect(dimensions.visualHeight).toBeGreaterThan(dimensions.visualWidth);
+
+  await page.getByRole("button", { name: "Center map" }).click();
+  await page.getByRole("button", { name: "Exit rotated map" }).click();
+  await expect(shell).not.toHaveClass(/mobile-map-rotated/);
+  await expect(regionalViewport).toHaveAttribute("data-map-viewport-orientation", "standard");
+});
+
 test("pinned desktop menu focuses impacts in the unobscured map area", async ({ page, request, isMobile }) => {
   test.skip(isMobile, "desktop-only pinned menu layout");
   await setStubMode(request, "seeded");

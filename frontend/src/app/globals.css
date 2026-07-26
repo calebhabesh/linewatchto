@@ -173,6 +173,10 @@
   box-shadow: 0 0 6px rgba(255, 255, 255, 0.9);
 }
 
+.mobile-network-selector-slot {
+  display: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .network-selector-glider {
     transition: none !important;
@@ -378,6 +382,14 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
   transform-box: fill-box;
   filter: drop-shadow(0 0 6px rgb(var(--station-selection-accent-rgb) / 85%));
   transition: opacity 0.2s ease-in-out;
+}
+
+/* Generic TTC selection rules are optimized for markers that only exist while
+   selected. Regional markers stay mounted, so their explicit state must win. */
+.linewatch-shell .regional-station-selected-indicator:not([data-regional-station-selected="true"]) {
+  animation: none !important;
+  filter: none !important;
+  opacity: 0 !important;
 }
 
 .regional-overlay-segment-group {
@@ -5230,7 +5242,6 @@ img.transit-line-badge {
   width: var(--transit-line-badge-size);
 }
 
-
 .status-pill {
   border-radius: 999px;
   font-size: 0.76rem;
@@ -6849,14 +6860,25 @@ img.transit-line-badge {
 
 .default-map-mode-control {
   align-items: center;
+  background: var(--light-container);
+  border: none;
   display: flex;
   gap: 12px;
   justify-content: space-between;
-  margin: 2px 0 0;
-  min-height: 46px;
-  padding: 8px 12px;
+  margin: 6px 0 2px;
+  min-height: 58px;
+  padding: 10px 12px;
   border-radius: 8px;
   width: 100%;
+}
+
+.dark .default-map-mode-control {
+  background: #151821;
+}
+
+.high-contrast .default-map-mode-control {
+  background: #000000;
+  border-color: #ffffff;
 }
 
 .default-map-mode-label {
@@ -13792,8 +13814,83 @@ img.transit-line-badge {
   }
 
   .map-utility-cluster {
+    align-items: flex-start !important;
     gap: var(--mobile-top-action-gap) !important;
     z-index: 50 !important;
+  }
+
+  .site-guide-network-stack {
+    align-items: center;
+    display: flex;
+    flex-direction: column;
+    gap: var(--mobile-top-action-gap);
+    width: var(--mobile-top-action-button-size);
+  }
+
+  .mobile-network-selector-slot {
+    display: block;
+    width: var(--mobile-top-action-button-size);
+  }
+
+  .network-selector--compact-vertical {
+    --compact-network-option-height: 30px;
+    --compact-network-glider-height: 30px;
+    align-items: stretch;
+    background: var(--mobile-chrome-background);
+    border-radius: clamp(8px, 3vw, 12px);
+    box-shadow: var(--mobile-chrome-shadow);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 5px;
+    width: var(--mobile-top-action-button-size);
+  }
+
+  .network-selector--compact-vertical .network-selector-glider {
+    bottom: auto;
+    height: var(--compact-network-glider-height);
+    left: 5px;
+    right: 5px;
+    top: 5px;
+    width: auto !important;
+  }
+
+  .network-selector--compact-vertical[data-network="regional"] .network-selector-glider {
+    transform: translateY(calc(var(--compact-network-option-height) + 4px));
+  }
+
+  .network-selector--compact-vertical .network-selector-btn {
+    height: var(--compact-network-option-height);
+    min-height: var(--compact-network-option-height);
+    min-width: 0;
+    padding: 0 2px;
+    width: 100%;
+  }
+
+  .network-selector--compact-vertical .network-btn-text {
+    font-size: clamp(6px, 1.8vw, 7px);
+    letter-spacing: 0;
+    padding-top: 5px;
+  }
+
+  .network-selector--compact-vertical .network-indicator-dot {
+    display: none;
+  }
+
+  .network-selector--compact-vertical .network-accent-ridges {
+    background: linear-gradient(
+      to bottom,
+      rgba(255, 255, 255, 0.9) 0 1px,
+      transparent 1px 1.75px,
+      rgba(255, 255, 255, 0.9) 1.75px 2.75px,
+      transparent 2.75px
+    );
+    height: 3px;
+    left: 50%;
+    position: absolute;
+    top: 6px;
+    transform: translateX(-50%);
+    width: 7px;
   }
 
   .menu-toggle-btn,
@@ -13836,7 +13933,7 @@ img.transit-line-badge {
     line-height: 1.05 !important;
   }
 
-  .map-utility-cluster > *:not(.site-guide-dropdown):not(.theme-toggle-btn):not(.rotate-map-btn) {
+  .map-utility-cluster > *:not(.site-guide-dropdown):not(.site-guide-network-stack):not(.theme-toggle-btn):not(.rotate-map-btn) {
     display: none !important;
   }
 
@@ -13923,6 +14020,7 @@ img.transit-line-badge {
   .linewatch-shell[data-active-view="search"] .theme-toggle-btn,
   .linewatch-shell[data-active-view="search"] .rotate-map-btn,
   .linewatch-shell[data-active-view="search"] .site-guide-trigger,
+  .linewatch-shell[data-active-view="search"] .mobile-network-selector-slot,
   .linewatch-shell[data-active-view="search"] .mobile-legend-pill,
   .linewatch-shell[data-active-view="search"] .subway-closed-peek-chip,
   .linewatch-shell[data-active-view="search"] .go-up-closed-peek-chip,

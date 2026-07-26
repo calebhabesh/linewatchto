@@ -6,6 +6,8 @@ import type { ImpactKind, ImpactSelection } from "../app/linewatch-data";
 import { useDashboardData } from "../app/DataContext";
 import {
   clampPanZoomScale,
+  clientPointToLogicalViewportPoint,
+  clientRectToLogicalViewportBounds,
   computeBoundedMapFrame,
   computeFittedCameraFlyInStart,
   computeInsetViewportFocus,
@@ -13,6 +15,7 @@ import {
   PAN_ZOOM_MAX_RELATIVE_SCALE,
   PAN_ZOOM_MIN_RELATIVE_SCALE,
   snapTransformToDevicePixels,
+  type MapViewportOrientation,
 } from "../hooks/panZoomMath";
 
 const MAP_WIDTH = 4739.2821;
@@ -177,6 +180,7 @@ function InteractiveRegionalMapComponent({
   animateInitialEntrance = true,
   desktopMenuPinned = false,
   preserveCameraOnSelectionClear = false,
+  viewportOrientation = "standard",
   onReady,
 }: {
   selection: ImpactSelection;
@@ -189,6 +193,7 @@ function InteractiveRegionalMapComponent({
   animateInitialEntrance?: boolean;
   desktopMenuPinned?: boolean;
   preserveCameraOnSelectionClear?: boolean;
+  viewportOrientation?: MapViewportOrientation;
   onReady?: () => void;
 }) {
   const { activeAlerts, networkSegments, stationNodeImpacts } = useDashboardData();
@@ -640,6 +645,12 @@ function InteractiveRegionalMapComponent({
   }, [fitNetwork, recenterSignal]);
 
   useEffect(() => {
+    if (!cameraInitializedRef.current) return;
+    const frame = window.requestAnimationFrame(fitNetwork);
+    return () => window.cancelAnimationFrame(frame);
+  }, [fitNetwork, viewportOrientation]);
+
+  useEffect(() => {
     const viewport = viewportRef.current;
     if (!viewport) return;
     const observer = new ResizeObserver(() => {
@@ -696,19 +707,23 @@ function InteractiveRegionalMapComponent({
     const elements = selectedMapElements();
     if (!viewport || elements.length === 0) return false;
 
-    const visibleRects = elements
-      .map((element) => element.getBoundingClientRect())
-      .filter((rect) => rect.width > 0 || rect.height > 0);
-    if (visibleRects.length === 0) return false;
-
     const viewportRect = viewport.getBoundingClientRect();
+    const visibleBounds = elements
+      .map((element) => clientRectToLogicalViewportBounds(
+        element.getBoundingClientRect(),
+        viewportRect,
+        viewportOrientation,
+      ))
+      .filter((bounds) => bounds !== null);
+    if (visibleBounds.length === 0) return false;
+
     const current = cameraRef.current;
-    const left = Math.min(...visibleRects.map((rect) => rect.left));
-    const right = Math.max(...visibleRects.map((rect) => rect.right));
-    const top = Math.min(...visibleRects.map((rect) => rect.top));
-    const bottom = Math.max(...visibleRects.map((rect) => rect.bottom));
-    const renderedCenterX = (left + right) / 2 - viewportRect.left;
-    const renderedCenterY = (top + bottom) / 2 - viewportRect.top;
+    const left = Math.min(...visibleBounds.map((bounds) => bounds.x));
+    const right = Math.max(...visibleBounds.map((bounds) => bounds.x + bounds.width));
+    const top = Math.min(...visibleBounds.map((bounds) => bounds.y));
+    const bottom = Math.max(...visibleBounds.map((bounds) => bounds.y + bounds.height));
+    const renderedCenterX = (left + right) / 2;
+    const renderedCenterY = (top + bottom) / 2;
     const mapX = (renderedCenterX - current.x) / current.scale;
     const mapY = (renderedCenterY - current.y) / current.scale;
     const isMobile = window.matchMedia("(max-width: 767px)").matches;
@@ -742,7 +757,7 @@ function InteractiveRegionalMapComponent({
       scale: targetScale,
     }));
     return true;
-  }, [animateCameraTo, desktopMenuPinned, fitScale, selectedMapElements]);
+  }, [animateCameraTo, desktopMenuPinned, fitScale, selectedMapElements, viewportOrientation]);
 
   const focusTargetKey = selection
     ? `${selection.kind}:${selection.id}`
@@ -829,9 +844,13 @@ function InteractiveRegionalMapComponent({
     clearProgrammaticAnimation();
     setMapTransition("none");
 
-    const rect = viewport.getBoundingClientRect();
-    const pointerX = event.clientX - rect.left;
-    const pointerY = event.clientY - rect.top;
+    const pointer = clientPointToLogicalViewportPoint(
+      { x: event.clientX, y: event.clientY },
+      viewport.getBoundingClientRect(),
+      viewportOrientation,
+    );
+    const pointerX = pointer.x;
+    const pointerY = pointer.y;
     const current = cameraRef.current;
     const delta = -event.deltaY * 0.001;
     const nextScale = clampPanZoomScale(current.scale * (1 + delta), fitScale);
@@ -852,7 +871,7 @@ function InteractiveRegionalMapComponent({
       wheelCommitTimeoutRef.current = null;
       setCamera({ ...cameraRef.current });
     }, 80);
-  }, [clearProgrammaticAnimation, fitScale, setMapTransition, writeMapTransform]);
+  }, [clearProgrammaticAnimation, fitScale, setMapTransition, viewportOrientation, writeMapTransform]);
 
   const onPointerDown = useCallback((event: PointerEvent<HTMLDivElement>) => {
     if (event.button !== 0) return;
@@ -871,18 +890,28 @@ function InteractiveRegionalMapComponent({
       : station?.dataset.regionalStationId
         ? { type: "station", id: station.dataset.regionalStationId }
         : null;
+    const point = clientPointToLogicalViewportPoint(
+      { x: event.clientX, y: event.clientY },
+      event.currentTarget.getBoundingClientRect(),
+      viewportOrientation,
+    );
     event.currentTarget.setPointerCapture(event.pointerId);
-    dragRef.current = { pointerId: event.pointerId, x: event.clientX, y: event.clientY, camera: cameraRef.current };
+    dragRef.current = { pointerId: event.pointerId, x: point.x, y: point.y, camera: cameraRef.current };
     pendingDragPointRef.current = null;
     dragMovedRef.current = false;
     setDragging(true);
-  }, [cancelCameraAnimation]);
+  }, [cancelCameraAnimation, viewportOrientation]);
 
   const onPointerMove = useCallback((event: PointerEvent<HTMLDivElement>) => {
     const drag = dragRef.current;
     if (!drag || drag.pointerId !== event.pointerId) return;
-    pendingDragPointRef.current = { x: event.clientX, y: event.clientY };
-    if (Math.abs(event.clientX - drag.x) > 3 || Math.abs(event.clientY - drag.y) > 3) {
+    const point = clientPointToLogicalViewportPoint(
+      { x: event.clientX, y: event.clientY },
+      event.currentTarget.getBoundingClientRect(),
+      viewportOrientation,
+    );
+    pendingDragPointRef.current = point;
+    if (Math.abs(point.x - drag.x) > 3 || Math.abs(point.y - drag.y) > 3) {
       dragMovedRef.current = true;
     }
     if (dragAnimationFrameRef.current !== null) return;
@@ -900,7 +929,7 @@ function InteractiveRegionalMapComponent({
       cameraRef.current = nextCamera;
       writeMapTransform(nextCamera);
     });
-  }, [writeMapTransform]);
+  }, [viewportOrientation, writeMapTransform]);
 
   const onPointerUp = useCallback((event: PointerEvent<HTMLDivElement>) => {
     const drag = dragRef.current;
@@ -963,6 +992,7 @@ function InteractiveRegionalMapComponent({
       <div
         ref={viewportRef}
         className="regional-map-viewport"
+        data-map-viewport-orientation={viewportOrientation}
         onWheel={onWheel}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}

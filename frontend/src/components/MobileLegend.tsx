@@ -42,7 +42,11 @@ export function MobileLegend({
       } ${
         isRegional ? "mobile-legend-pill--regional" : ""
       } ${
-        expanded ? "w-fit max-w-[calc(100vw-32px)] pr-3.5 mobile-legend-pill--expanded" : "w-[36px]"
+        expanded
+          ? "w-fit max-w-[calc(100vw-32px)] pr-3.5 mobile-legend-pill--expanded"
+          : isRegional
+            ? "w-[40px]"
+            : "w-[36px]"
       }`}
       style={{ zIndex: expanded ? 41 : 35 }}
       role="button"
@@ -57,13 +61,25 @@ export function MobileLegend({
         }
       >
         {lines.map((line) => (
-          <div key={line.id} className="flex items-center gap-2 overflow-hidden">
+          <div
+            key={line.id}
+            className={`flex items-center overflow-hidden ${
+              expanded ? "gap-2" : "w-full justify-center gap-0"
+            }`}
+          >
             <div className={`${expanded ? "w-[24px] h-[24px]" : "w-[20px] h-[20px]"} flex items-center justify-center shrink-0`}>
-              <TransitLineBadge lineId={line.id} lineNumber={line.number} size={expanded ? 24 : 20} className="opacity-95" />
+              <TransitLineBadge
+                lineId={line.id}
+                lineNumber={line.number}
+                size={expanded ? 24 : 20}
+                className="opacity-95"
+              />
             </div>
             <span
               className={`legend-line-name font-subway text-[13px] font-bold tracking-normal text-slate-800 dark:text-slate-200 transition-all duration-300 truncate ${
-                expanded ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-2 pointer-events-none"
+                expanded
+                  ? "opacity-100 translate-x-0"
+                  : "w-0 opacity-0 -translate-x-2 pointer-events-none"
               }`}
             >
               {line.name}

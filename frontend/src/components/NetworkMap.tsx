@@ -35,6 +35,7 @@ export function NetworkMap({
           animateInitialEntrance={props.animateInitialEntrance}
           desktopMenuPinned={props.desktopMenuPinned}
           preserveCameraOnSelectionClear={props.preserveCameraOnSelectionClear}
+          viewportOrientation={props.viewportOrientation}
           onReady={onInitialMapReady}
         />
       ) : (

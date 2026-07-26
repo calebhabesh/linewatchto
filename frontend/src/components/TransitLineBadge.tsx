@@ -42,7 +42,7 @@ function regionalBadgeAssetId(lineId: string) {
 export function transitLineBadgeSrc(lineId: string) {
   const assetId = regionalBadgeAssetId(lineId);
   return LINE_NAMES[assetId]
-    ? `/assets/linewatch/${assetId}-legend.svg?v=2`
+    ? `/assets/linewatch/${assetId}-legend.svg?v=3`
     : null;
 }
 

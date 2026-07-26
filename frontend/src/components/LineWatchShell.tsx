@@ -2982,7 +2982,16 @@ export function LineWatchShell({
               Rotate<br />Map
             </span>
           </button>
-          <SiteGuideDropdown onOpenChange={setGuideOpen} />
+          <div className="site-guide-network-stack">
+            <SiteGuideDropdown onOpenChange={setGuideOpen} />
+            <div className="mobile-network-selector-slot">
+              <NetworkSelector
+                network={selectedNetwork}
+                onChange={handleNetworkChange}
+                compactVertical
+              />
+            </div>
+          </div>
         </div>
       </header>
       )}

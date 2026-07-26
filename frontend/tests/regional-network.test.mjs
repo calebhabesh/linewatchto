@@ -67,6 +67,28 @@ describe("network-scoped regional dashboard", () => {
     assert.doesNotMatch(shellSource, /ttcData=\{ttcData\}|regionalData=\{regionalDashboardData\}/);
   });
 
+  it("reuses a compact vertical network selector below the mobile site guide", () => {
+    assert.match(shellSource, /className="site-guide-network-stack"[\s\S]*<SiteGuideDropdown[\s\S]*className="mobile-network-selector-slot"[\s\S]*<NetworkSelector[\s\S]*compactVertical/);
+    assert.match(networkSelectorSource, /compactVertical = false/);
+    assert.match(networkSelectorSource, /network-selector--compact-vertical/);
+    assert.match(globalsCss, /\.network-selector--compact-vertical\s*\{[\s\S]*flex-direction:\s*column/);
+    assert.match(globalsCss, /\.network-selector--compact-vertical\[data-network="regional"\] \.network-selector-glider\s*\{[\s\S]*translateY/);
+    assert.match(globalsCss, /\.site-guide-network-stack\s*\{[\s\S]*width:\s*var\(--mobile-top-action-button-size\)/);
+    assert.match(globalsCss, /\.network-selector--compact-vertical \.network-indicator-dot\s*\{[\s\S]*display:\s*none/);
+    assert.match(globalsCss, /--compact-network-option-height:\s*30px[\s\S]*--compact-network-glider-height:\s*30px/);
+    assert.match(globalsCss, /\.network-selector--compact-vertical \.network-selector-glider\s*\{[\s\S]*height:\s*var\(--compact-network-glider-height\)/);
+    assert.match(globalsCss, /\.network-selector--compact-vertical \.network-accent-ridges\s*\{[\s\S]*to bottom[\s\S]*transparent 1px 1\.75px[\s\S]*height:\s*3px/);
+  });
+
+  it("keeps unselected regional station indicators dormant in mobile performance modes", () => {
+    assert.match(
+      globalsCss,
+      /\.linewatch-shell \.regional-station-selected-indicator:not\(\[data-regional-station-selected="true"\]\)\s*\{[\s\S]*opacity:\s*0\s*!important/,
+    );
+    assert.match(regionalMapSource, /dataset\.regionalStationSelectionId = stationId/);
+    assert.match(regionalMapSource, /setAttribute\("data-regional-station-selected", "true"\)/);
+  });
+
   it("renders one legend for the selected map scene", () => {
     assert.match(networkMapSource, /<NetworkMapLegend[\s\S]*mode=\{network\}/);
     assert.match(networkMapSource, /closingSoon=\{mobileAnnouncementVisible\}/);
@@ -83,6 +105,11 @@ describe("network-scoped regional dashboard", () => {
     assert.match(globalsCss, /\.subway-closing-soon-chip,[\s\S]*\.go-up-closed-peek-chip\s*\{[\s\S]*overflow:\s*hidden\s*!important/);
     assert.match(globalsCss, /\.subway-closed-peek-text\s*\{[\s\S]*overflow:\s*hidden\s*!important/);
     assert.match(mobileLegendSource, /mobile-legend-pill--regional/);
+    assert.match(mobileLegendSource, /expanded \? "gap-2" : "w-full justify-center gap-0"/);
+    assert.match(mobileLegendSource, /"w-0 opacity-0 -translate-x-2 pointer-events-none"/);
+    assert.match(mobileLegendSource, /size=\{expanded \? 24 : 20\}/);
+    assert.match(mobileLegendSource, /isRegional[\s\S]*?\?\s*"w-\[40px\]"/);
+    assert.doesNotMatch(mobileLegendSource, /compactText/);
     assert.match(
       globalsCss,
       /\.mobile-legend-pill--regional\.mobile-legend-pill--announcement\s*\{[\s\S]*var\(--mobile-regional-announcement-chip-height\)/,
@@ -100,6 +127,11 @@ describe("network-scoped regional dashboard", () => {
       /\.go-up-closed-peek-chip \.subway-closed-peek-subtitle\s*\{[\s\S]*white-space:\s*normal\s*!important/,
     );
     assert.match(globalsCss, /--mobile-regional-announcement-chip-height:\s*48px/);
+    assert.match(networkMapSource, /viewportOrientation=\{props\.viewportOrientation\}/);
+    assert.match(regionalMapSource, /viewportOrientation = "standard"/);
+    assert.match(regionalMapSource, /clientPointToLogicalViewportPoint/);
+    assert.match(regionalMapSource, /clientRectToLogicalViewportBounds/);
+    assert.match(regionalMapSource, /data-map-viewport-orientation=\{viewportOrientation\}/);
   });
 
   it("switches map implementations without replaying a map camera entrance", () => {
