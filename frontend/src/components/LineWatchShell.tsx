@@ -532,6 +532,7 @@ export function LineWatchShell({
   const handleClosePanel = useCallback(() => {
     if (isClosingPanel) return;
     setIsClosingPanel(true);
+    setSelectedStationId(null);
     if (closingTimeoutRef.current) {
       window.clearTimeout(closingTimeoutRef.current);
     }
@@ -539,7 +540,6 @@ export function LineWatchShell({
       setActiveView("map");
       setIsClosingPanel(false);
       setSelection(null);
-      setSelectedStationId(null);
       setMapPresentationMode("standard");
       setMobileInspectorDetent("map-focus");
       setAccessibilityOutageTarget(null);
