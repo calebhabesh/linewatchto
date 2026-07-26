@@ -1,6 +1,7 @@
 "use client";
 
-import { AlertTriangle, Calendar, Construction, Locate, ArrowRight } from "lucide-react";
+import { AlertTriangle, Construction, Locate, ArrowRight } from "lucide-react";
+import { PlannedClosureIcon } from "./PlannedClosureIcon";
 import { DelayIcon } from "./DelayIcon";
 import type { LineStatus } from "../app/linewatch-data";
 
@@ -220,7 +221,7 @@ export function MobileStatusPeek({
                 }
               }}
             >
-              <Calendar size={12} />
+              <PlannedClosureIcon size={12} />
               <span>
                 <strong className="mobile-status-peek-number">{plannedClosureCount}</strong>
                 {plannedClosureCount === 1 ? "Planned Closure" : "Planned Closures"}

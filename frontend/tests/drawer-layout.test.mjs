@@ -150,6 +150,9 @@ describe("floating menu layout", () => {
     assert.match(plannedClosuresSource, /impact-card-heading__badges/);
     assert.match(globalCss, /\.impact-card-heading__badges\s*\{[^}]*position:\s*absolute;[^}]*right:\s*0;[^}]*top:\s*0/s);
     assert.match(globalCss, /\.alert-card\s*>\s*\.impact-route,\s*\.closure-card\s*>\s*\.impact-route\s*\{[^}]*margin-block:\s*24px/s);
+    assert.match(globalCss, /\.impact-route__bounds\s*\{[^}]*font-size:\s*1\.08rem;[^}]*gap:\s*11px;/s);
+    assert.match(globalCss, /@media \(min-width:\s*768px\)\s*\{[^}]*\.impact-route__bounds\s*\{[^}]*font-size:\s*1\.55rem;[^}]*gap:\s*17px;/s);
+    assert.match(globalCss, /\.impact-route__arrow\s*\{[^}]*height:\s*20px;[^}]*width:\s*40px;/s);
   });
 
   it("links TTC active closure children back to their canonical planned closure", () => {

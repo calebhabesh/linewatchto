@@ -1,7 +1,8 @@
 "use client";
 
-import { X, ChevronUp, AlertTriangle, Construction, Calendar } from "lucide-react";
+import { X, ChevronUp, AlertTriangle, Construction } from "lucide-react";
 import { DelayIcon } from "./DelayIcon";
+import { PlannedClosureIcon } from "./PlannedClosureIcon";
 import type { DashboardData } from "../app/DataContext";
 import type { ImpactSelection } from "../app/linewatch-data";
 import { LineBadge } from "./ImpactCardFields";
@@ -36,7 +37,7 @@ export function SelectedImpactPeek({ selection, dashboardData, onUnfocus, onView
       break;
     case "planned-closure":
       impactData = plannedClosures.find((c) => c.id === selection.id) || activeAlerts.find(a => a.id === selection.id);
-      icon = <Calendar size={16} className="text-blue-500" />;
+      icon = <PlannedClosureIcon size={16} className="text-blue-500" />;
       toneClass = "border-blue-500/30 bg-blue-50 dark:bg-blue-950/20";
       break;
   }

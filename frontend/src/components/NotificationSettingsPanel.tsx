@@ -4,7 +4,6 @@ import { useMemo } from "react";
 import {
   AlertTriangle,
   Bell,
-  Calendar,
   CheckCircle2,
   ChevronLeft,
   Construction,
@@ -15,6 +14,7 @@ import {
 import type { AccountState } from "../app/account-data";
 import { type UsePushNotificationSettingsResult } from "../hooks/usePushNotificationSettings";
 import { DelayIcon } from "./DelayIcon";
+import { PlannedClosureIcon } from "./PlannedClosureIcon";
 import { TransitLineBadge } from "./TransitLineBadge";
 
 type Props = {
@@ -294,7 +294,7 @@ export function NotificationSettingsPanel({
                 <div className="flex items-start gap-2.5">
                   <div className="notification-settings-row-main flex-1">
                     <span className="notification-settings-icon shrink-0">
-                      <Calendar size={15} className="text-blue-600 dark:text-blue-400" aria-hidden="true" />
+                      <PlannedClosureIcon size={15} className="text-blue-600 dark:text-blue-400" aria-hidden="true" />
                     </span>
                     <div>
                       <strong>Planned Closure Reminders</strong>
@@ -403,7 +403,7 @@ export function NotificationSettingsPanel({
                   {
                     key: "plannedClosures" as const,
                     label: "Planned Closures",
-                    icon: <Calendar size={15} className="text-blue-500" />,
+                    icon: <PlannedClosureIcon size={15} className="text-blue-500" />,
                   },
                   {
                     key: "serviceRestored" as const,

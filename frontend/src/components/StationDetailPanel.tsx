@@ -2,7 +2,7 @@
 
 
 import { Fragment, useEffect, useRef, useState } from "react";
-import { AlertCircle, AlertTriangle, ArrowRight, Bookmark, Calendar, Check, ChevronDown, Clock3, Construction, LoaderCircle, X } from "lucide-react";
+import { AlertCircle, AlertTriangle, ArrowRight, Bookmark, Check, ChevronDown, Clock3, Construction, LoaderCircle, X } from "lucide-react";
 import Image from "next/image";
 import { normalizeDashboardSourceLabel } from "../app/dashboard-source-label";
 import { formatImpactTimestamp } from "../app/impact-time";
@@ -29,6 +29,7 @@ import type {
   ReducedSpeedZone,
 } from "../app/linewatch-data";
 import { DelayIcon } from "./DelayIcon";
+import { PlannedClosureIcon } from "./PlannedClosureIcon";
 
 type Props = {
   stationResult: StationDataResult<StationDetail | null> | null;
@@ -135,7 +136,7 @@ function StationImpactDetailsIcon({
   }
 
   if (kind === "planned-closure") {
-    return <Calendar size={14} className="shrink-0 text-blue-500" />;
+    return <PlannedClosureIcon size={14} className="shrink-0 text-blue-500" />;
   }
 
   return <AlertTriangle size={14} className="shrink-0 text-red-500" />;

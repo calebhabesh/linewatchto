@@ -1,8 +1,9 @@
 "use client";
 
-import { AlertTriangle, Calendar, Construction } from "lucide-react";
+import { AlertTriangle, Construction } from "lucide-react";
 import type { ImpactKind } from "../app/linewatch-data";
 import { DelayIcon } from "./DelayIcon";
+import { PlannedClosureIcon } from "./PlannedClosureIcon";
 
 function classNames(...values: Array<string | false | null | undefined>) {
   return values.filter(Boolean).join(" ");
@@ -32,7 +33,7 @@ export function ImpactTypeIcon({
   }
 
   if (kind === "planned-closure") {
-    return <Calendar size={size} className={iconClassName} />;
+    return <PlannedClosureIcon size={size} className={iconClassName} />;
   }
 
   return <AlertTriangle size={size} className={iconClassName} />;

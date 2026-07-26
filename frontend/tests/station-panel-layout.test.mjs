@@ -171,7 +171,7 @@ describe("station detail panel layout", () => {
     assert.match(panelSource, /label:\s*"Active Closure"/);
     assert.match(panelSource, /"Upcoming Closure"/);
     assert.match(panelSource, /kind === "planned-closure" && tone === "active"[\s\S]*AlertTriangle/);
-    assert.match(panelSource, /kind === "planned-closure"[\s\S]*Calendar/);
+    assert.match(panelSource, /kind === "planned-closure"[\s\S]*PlannedClosureIcon/);
     assert.match(panelSource, /data-station-impact-classification/);
     assert.match(panelSource, /id=\{`station-impact-\$\{impact\.id\}`\}/);
     assert.match(panelSource, /detailsTarget && onSelectImpact/);

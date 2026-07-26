@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Navigation, ChevronDown, ChevronLeft, Loader2, MapPinned, Trash2, X, AlertTriangle, Construction, Calendar, Clock, Bell, Check, Info } from "lucide-react";
+import { Navigation, ChevronDown, ChevronLeft, Loader2, MapPinned, Trash2, X, AlertTriangle, Construction, Clock, Bell, Check, Info } from "lucide-react";
 import {
   createSavedCommute,
   defaultSavedCommuteNotificationRule,
@@ -33,6 +33,7 @@ import {
 } from "../app/commute-duration";
 import { SavedCommuteStationPicker } from "./SavedCommuteStationPicker";
 import { DelayIcon } from "./DelayIcon";
+import { PlannedClosureIcon } from "./PlannedClosureIcon";
 
 function toTitleCase(str: string): string {
   if (!str) return "";
@@ -198,7 +199,7 @@ function ImpactIcon({ kind, className }: { kind: AccountMatchedImpact["kind"]; c
     case "reduced-speed-zone":
       return <Construction className={`rsz-tone ${className || ""}`} size={14} />;
     case "planned-closure":
-      return <Calendar className={`text-blue-500 dark:text-blue-400 ${className || ""}`} size={14} />;
+      return <PlannedClosureIcon className={`text-blue-500 dark:text-blue-400 ${className || ""}`} size={14} />;
     case "suspension":
       return <AlertTriangle className={`text-red-500 dark:text-red-400 ${className || ""}`} size={14} />;
     case "delay":

@@ -2,13 +2,14 @@
 
 import { useMemo, useState } from "react";
 import { useDashboardData } from "../app/DataContext";
-import { ArrowRight, Calendar, Bus, ChevronLeft, X } from "lucide-react";
+import { ArrowRight, Bus, ChevronLeft, X } from "lucide-react";
 import type { ImpactSelection } from "../app/linewatch-data";
 import { useScrollSelectedImpactCard } from "../hooks/useScrollSelectedImpactCard";
 import { LineBadge, ImpactRouteHeader, MetadataGrid, CardSource, JumpToLocationIcon } from "./ImpactCardFields";
 import { getOverlappingImpactRefs, OverlappingImpactRefs } from "./ImpactOverlapRefs";
 import { filterAndSortImpacts, type ImpactListSort } from "../app/impact-list-controls";
 import { ImpactListToolbar } from "./ImpactListToolbar";
+import { PlannedClosureIcon } from "./PlannedClosureIcon";
 import { ImpactTypeIcon } from "./ImpactTypeIcon";
 import { dashboardImpactSourceLabel } from "../app/dashboard-source-label";
 
@@ -64,7 +65,7 @@ export function PlannedClosuresPanel({ selection, onSelectImpact, onBack, onClos
             </button>
           )}
           <h2 className="text-[clamp(10px,3.5cqw,18px)] font-bold text-slate-900 dark:text-white flex items-center gap-1 sm:gap-3 whitespace-nowrap">
-            <Calendar className="w-[16px] h-[16px] sm:w-[22px] sm:h-[22px] text-blue-500 shrink-0" />
+            <PlannedClosureIcon className="w-[16px] h-[16px] sm:w-[22px] sm:h-[22px] text-blue-500 shrink-0" />
             <span>Planned Closures</span>
           </h2>
         </div>

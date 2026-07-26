@@ -41,6 +41,19 @@ describe("site guide dropdown", () => {
     }
   });
 
+  it("shows the current planned-closure rail and alert-calendar symbol", () => {
+    const plannedClosureAsset = readFileSync(
+      new URL("../public/assets/linewatch/info-map-overlays/info-upcoming-closure.svg", import.meta.url),
+      "utf8",
+    );
+
+    assert.match(plannedClosureAsset, /fill="#f1f5f9"/);
+    assert.match(plannedClosureAsset, /fill-opacity="0\.68"/);
+    assert.match(plannedClosureAsset, /stroke="#3b82f6"/);
+    assert.match(plannedClosureAsset, /<rect x="3" y="5" width="18" height="16" rx="3"\/>/);
+    assert.match(plannedClosureAsset, /M3 9H21M12 12V15M12 18H12\.01/);
+  });
+
   it("uses the no-entry bidirectional active alert guide asset", () => {
     const activeAsset = readFileSync(
       new URL("../public/assets/linewatch/info-map-overlays/2-way-active.svg", import.meta.url),

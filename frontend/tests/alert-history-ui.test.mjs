@@ -49,7 +49,9 @@ describe("alert history timeline UI", () => {
 
   it("uses compact card-like rows with the authored TTC legend badges", () => {
     assert.match(timelineSource, /TransitLineBadge/);
-    assert.match(timelineSource, /formatCompactLocation/);
+    assert.match(timelineSource, /CompactImpactLocation/);
+    assert.match(timelineSource, /<CompactImpactLocation location=\{incident\.location\}/);
+    assert.match(cssSource, /\.compact-impact-location__arrow\s*\{[^}]*display:\s*block;[^}]*height:\s*0\.75rem;[^}]*width:\s*1\.25rem;/s);
     assert.match(timelineSource, /min-h-6 max-w-full min-w-0 items-center gap-1\.5 text-\[11px\] font-black/);
     assert.match(timelineSource, /alert-history-line-identity/);
     assert.match(timelineSource, /alert-history-fact-grid/);

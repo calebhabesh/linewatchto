@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { AlertTriangle, Calendar, Check, ChevronDown, Clock3, Construction, Loader2, Search } from "lucide-react";
+import { AlertTriangle, Check, ChevronDown, Clock3, Construction, Loader2, Search } from "lucide-react";
 import {
   getAlertHistory,
   type AlertHistoryIncident,
@@ -9,8 +9,9 @@ import {
 } from "../app/alert-history-data";
 import { normalizeDashboardSourceLabel } from "../app/dashboard-source-label";
 import { formatFullImpactTimestamp, formatImpactTimestamp } from "../app/impact-time";
-import { formatCause, formatCompactLocation } from "./ImpactCardFields";
+import { CompactImpactLocation, formatCause } from "./ImpactCardFields";
 import { DelayIcon } from "./DelayIcon";
+import { PlannedClosureIcon } from "./PlannedClosureIcon";
 import { TransitLineBadge } from "./TransitLineBadge";
 import {
   ALL_LINES_VALUE,
@@ -48,7 +49,7 @@ function renderSortOptionIcon(value: string) {
     return <Construction size={14} className="rsz-tone shrink-0" aria-hidden="true" />;
   }
   if (value === "planned-closure") {
-    return <Calendar size={14} className="text-blue-500 dark:text-blue-400 shrink-0" aria-hidden="true" />;
+    return <PlannedClosureIcon size={14} className="text-blue-500 dark:text-blue-400 shrink-0" aria-hidden="true" />;
   }
   return <AlertTriangle size={14} className="text-slate-400 shrink-0" aria-hidden="true" />;
 }
@@ -296,7 +297,6 @@ function HistoryIncident({ item }: { item: AlertHistoryViewItem }) {
   const title = compactHistoryTitle(incident);
   const statusLabel = cleared ? "Cleared" : formatHistoryStatusLabel(displayEvent?.label);
   const facts = [
-    incident.location ? { label: "Location", value: formatCompactLocation(incident.location) } : null,
     incident.displayDirection ? { label: "Direction", value: incident.displayDirection } : null,
     incident.cause ? { label: "Cause", value: formatCause(incident.cause) } : null,
     incident.source ? { label: "Source", value: normalizeDashboardSourceLabel(incident.source) } : null,
@@ -317,6 +317,12 @@ function HistoryIncident({ item }: { item: AlertHistoryViewItem }) {
         </div>
         <strong className="alert-history-title">{title}</strong>
         <div className="alert-history-fact-grid" aria-label="Alert summary">
+          {incident.location ? (
+            <span className="alert-history-fact">
+              <span>Location</span>
+              <strong><CompactImpactLocation location={incident.location} /></strong>
+            </span>
+          ) : null}
           {facts.map((fact) => (
             <span className="alert-history-fact" key={fact.label}>
               <span>{fact.label}</span>

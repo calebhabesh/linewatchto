@@ -65,7 +65,7 @@ import {
 import { useTorontoClock } from "../hooks/useTorontoClock";
 import { useMobilePerformanceMode } from "../hooks/useMobilePerformanceMode";
 import { usePushNotificationSettings } from "../hooks/usePushNotificationSettings";
-import { Menu, X, Map as MapIcon, Train, AlertTriangle, Bookmark, Calendar, Navigation, ShieldCheck, BarChart3, Bell, Construction, Search, LogIn, LogOut, UserPlus, UserRound, Sun, Moon, Bus, Mail, Contrast, Pause, History, MessageSquareText, FileText, Sparkles, Pin, PinOff } from "lucide-react";
+import { Menu, X, Map as MapIcon, Train, AlertTriangle, Bookmark, Navigation, ShieldCheck, BarChart3, Bell, Construction, Search, LogIn, LogOut, UserPlus, UserRound, Sun, Moon, Bus, Mail, Contrast, Pause, History, MessageSquareText, FileText, Sparkles, Pin, PinOff } from "lucide-react";
 import { SubwayClosedScreen } from "./SubwayClosedScreen";
 import { useSubwayOperatingState } from "../hooks/useSubwayOperatingState";
 import { GoUpClosedScreen } from "./GoUpClosedScreen";
@@ -74,6 +74,7 @@ import { useRegionalRailOperatingState } from "../hooks/useRegionalRailOperating
 import { StationSearchPanel } from "./StationSearchPanel";
 import { OpeningDisclaimer } from "./OpeningDisclaimer";
 import { SubwayClosingSoonChip } from "./SubwayClosingSoonChip";
+import { PlannedClosureIcon } from "./PlannedClosureIcon";
 import {
   AccountRequestError,
   confirmPasswordReset,
@@ -2629,7 +2630,7 @@ export function LineWatchShell({
                    className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
                  >
                    <div className="flex items-center gap-3">
-                     <Calendar size={18} className="text-slate-500 dark:text-slate-400" /> Planned Closures
+                     <PlannedClosureIcon size={18} className="text-slate-500 dark:text-slate-400" /> Planned Closures
                    </div>
                    {plannedClosures.length > 0 && (
                      <span className="flex h-6 min-w-[24px] items-center justify-center rounded-full bg-blue-500/20 px-2 text-[11px] font-bold text-blue-600 dark:text-blue-400">
@@ -2843,7 +2844,7 @@ export function LineWatchShell({
                                     {hasAlert && <AlertTriangle size={14} className="text-red-500 dark:text-red-400" />}
                                     {hasDelay && <DelayIcon size={14} className="delay-tone" /> /* /assets/linewatch/delay-icon.svg */}
                                     {hasRSZ && <Construction size={14} className="rsz-tone" />}
-                                    {hasClosure && <Calendar size={14} className="text-blue-500 dark:text-blue-400" />}
+                                    {hasClosure && <PlannedClosureIcon size={14} className="text-blue-500 dark:text-blue-400" />}
                                   </div>
                                   {isClear && (
                                     <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider ml-1">
@@ -2946,6 +2947,30 @@ export function LineWatchShell({
                   )}
                 </div>
                 <span className="desktop-status-divider" />
+                {selectedNetwork === "ttc" ? (
+                  <div className="desktop-status-train-control">
+                    <Train size={24} className="desktop-status-train-icon" aria-hidden="true" />
+                    <span className="desktop-status-train-copy">
+                      <strong>Estimated Train Markers</strong>
+                      <span>{estimatedTrainStatusLabel}</span>
+                    </span>
+                    <span className="desktop-status-train-copy desktop-status-train-copy--compact" aria-hidden="true">
+                      <strong>Trains</strong>
+                      <span>{estimatedTrainStatusLabel}</span>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={handleToggleEstimatedTrains}
+                      disabled={subwayOperatingState.status === "closed"}
+                      className="desktop-status-train-switch"
+                      aria-pressed={estimatedTrainsEnabled}
+                      aria-label={`Toggle estimated train markers (${estimatedTrainStatusLabel})`}
+                    >
+                      <span aria-hidden="true" />
+                    </button>
+                  </div>
+                ) : null}
+                {selectedNetwork === "ttc" ? <span className="desktop-status-divider" /> : null}
                 <div className="desktop-status-poll">
                    <div className="desktop-status-live-dot" />
                    <span>
@@ -2960,19 +2985,6 @@ export function LineWatchShell({
         </div>
 
         <div className="map-utility-cluster pointer-events-auto flex items-center gap-2">
-          {selectedNetwork === "ttc" ? (
-            <button
-              type="button"
-              onClick={handleToggleEstimatedTrains}
-              disabled={subwayOperatingState.status === "closed"}
-              className={`train-layer-toggle panel hidden h-14 w-14 items-center justify-center rounded-xl border border-black/10 bg-white shadow-lg transition-all hover:scale-105 hover:!bg-slate-100 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 md:inline-flex dark:border-white/10 dark:bg-[#0a0c10] dark:hover:!bg-[#1a1e28] ${estimatedTrainsEnabled ? "active" : ""}`}
-              aria-pressed={estimatedTrainsEnabled}
-              aria-label={`Toggle live train markers (${estimatedTrainStatusLabel})`}
-              title={`Estimated train markers: ${estimatedTrainStatusLabel}`}
-            >
-              <Train size={24} />
-            </button>
-          ) : null}
           <LogsDropdown />
           <button
             onClick={handleToggleTheme}
@@ -3235,7 +3247,7 @@ export function LineWatchShell({
               aria-label={`${plannedClosures.length} ${plannedClosures.length === 1 ? "planned closure" : "planned closures"}`}
               title={`${plannedClosures.length} ${plannedClosures.length === 1 ? "Planned Closure" : "Planned Closures"}`}
             >
-              <Calendar size={18} aria-hidden="true" />
+              <PlannedClosureIcon size={18} aria-hidden="true" />
               <span className="desktop-status-chip-count" data-digit-count={plannedClosures.length >= 10 ? "multiple" : "single"}>
                 <span className="desktop-status-chip-count-value">{plannedClosures.length}</span>
               </span>

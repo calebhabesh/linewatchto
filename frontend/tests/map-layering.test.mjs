@@ -5,6 +5,7 @@ import { describe, it } from "node:test";
 const transitMapSource = readFileSync(new URL("../src/app/transit-map.tsx", import.meta.url), "utf8");
 const globalCss = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
 const interactiveMapSource = readFileSync(new URL("../src/components/InteractiveTtcMap.tsx", import.meta.url), "utf8");
+const plannedClosureIconSource = readFileSync(new URL("../src/components/PlannedClosureIcon.tsx", import.meta.url), "utf8");
 const mapImpactNormalizationSource = readFileSync(new URL("../src/components/map-impact-normalization.ts", import.meta.url), "utf8");
 
 function cssBlockFor(selector) {
@@ -90,6 +91,45 @@ describe("asset-backed map layering", () => {
     assert.match(
       globalCss,
       /\.asset-alert-path-glow\.interactive-glow\.planned-preview\s*\{[^}]*display:\s*block;[^}]*transition:/s,
+    );
+  });
+
+  it("renders planned closures on a contrasting rail with the shared static calendar icon", () => {
+    assert.match(interactiveMapSource, /import \{ PlannedClosureIcon \} from "\.\/PlannedClosureIcon"/);
+    assert.match(interactiveMapSource, /function PlannedClosureIconLane\(/);
+    assert.match(interactiveMapSource, /className="planned-closure-icon-lane"/);
+    assert.match(interactiveMapSource, /<PlannedClosureIcon[\s\S]*?className="planned-closure-map-icon"/);
+    assert.match(plannedClosureIconSource, /<rect[\s\S]*?x="3"[\s\S]*?y="5"[\s\S]*?width="18"[\s\S]*?height="16"[\s\S]*?rx="3"/);
+    assert.match(plannedClosureIconSource, /M3 9H21M12 12V15M12 18H12\.01M7 3V5M17 3V5/);
+    assert.match(interactiveMapSource, /x=\{point\.x - 32\}[\s\S]*?y=\{point\.y - 32\}[\s\S]*?width=\{64\}[\s\S]*?height=\{64\}/);
+    assert.match(interactiveMapSource, /<PlannedClosureIconLane[\s\S]*?pathD=\{segment\.pathD\}/);
+    assert.doesNotMatch(interactiveMapSource, /planned-preview-underlay/);
+    assert.doesNotMatch(globalCss, /planned-preview-separator/);
+    assert.match(globalCss, /--planned-preview-rail:\s*#f1f5f9;/);
+    assert.match(globalCss, /--planned-preview-ink:\s*#087fff;/);
+    assert.match(
+      globalCss,
+      /\.asset-alert-path\.planned-preview\s*\{[^}]*opacity:\s*0\.68;[^}]*stroke:\s*var\(--planned-preview-rail\);[^}]*stroke-width:\s*82;/s,
+    );
+    assert.match(
+      globalCss,
+      /\.planned-closure-map-icon\s*\{[^}]*color:\s*var\(--planned-preview-ink\);/s,
+    );
+    assert.match(
+      globalCss,
+      /\.planned-closure-map-icon\s*\{[^}]*filter:\s*drop-shadow\(0 0 1px var\(--planned-preview-glow\)\)[^}]*drop-shadow\(0 0 3px rgba\(0, 200, 255, 0\.14\)\);/s,
+    );
+    assert.match(
+      globalCss,
+      /\.planned-closure-map-icon :is\(rect, path\)\s*\{[^}]*stroke:\s*var\(--planned-preview-ink\) !important;/s,
+    );
+    assert.match(
+      globalCss,
+      /\.linewatch-shell\.mobile-performance-mode \.planned-closure-map-icon\s*\{[^}]*filter:\s*none;/s,
+    );
+    assert.doesNotMatch(
+      cssBlockFor(".planned-closure-map-icon"),
+      /animation:/,
     );
   });
 
@@ -345,13 +385,13 @@ describe("asset-backed map layering", () => {
     );
   });
 
-  it("keeps upcoming closure previews persistent, static, and equal-width to active corridors", () => {
+  it("keeps upcoming closure previews persistent and static", () => {
     assert.match(interactiveMapSource, /plannedClosures\.map\(\(closure\) =>/);
     assert.doesNotMatch(interactiveMapSource, /if \(!selectedClosure\) return \[\];/);
     assert.match(interactiveMapSource, /plannedPreviewSegmentIds/);
     assert.match(interactiveMapSource, /shouldRenderPlannedPreviewLayer\(segment, closure\)/);
     assert.match(globalCss, /\.asset-alert-path\.planned-preview\s*\{[^}]*opacity:\s*(?:0\.\d+|1(?:\.0)?);/s);
-    assert.match(globalCss, /\.asset-alert-path\.planned-preview\s*\{[^}]*stroke:\s*var\(--planned\);[^}]*stroke-dasharray:\s*none;[^}]*stroke-width:\s*102;/s);
+    assert.match(globalCss, /\.asset-alert-path\.planned-preview\s*\{[^}]*stroke:\s*var\(--planned-preview-rail\);[^}]*stroke-dasharray:\s*none;[^}]*stroke-width:\s*82;/s);
     assert.doesNotMatch(globalCss, /\.asset-alert-path\.planned-preview\s*\{[^}]*animation:/s);
     assert.doesNotMatch(globalCss, /\.asset-alert-path\.planned-preview\.selected\s*\{[^}]*stroke-width:\s*118;/s);
   });

@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
-import { Calendar } from "lucide-react";
 import { normalizeDashboardSourceLabel } from "../app/dashboard-source-label";
 import { ImpactTimestamp } from "./ImpactTimestamp";
+import { PlannedClosureIcon } from "./PlannedClosureIcon";
 import { TransitLineBadge } from "./TransitLineBadge";
 
 export function formatCause(cause: string | null | undefined): string {
@@ -53,7 +53,7 @@ export function RelatedPlannedClosureButton({ onClick }: { onClick: () => void }
       onClick={onClick}
       aria-label="View related planned closure details"
     >
-      <Calendar size={14} aria-hidden="true" />
+      <PlannedClosureIcon size={14} aria-hidden="true" />
       <span>View Details</span>
     </button>
   );
@@ -87,7 +87,7 @@ function formatElapsed(timeStr: string) {
 
 function LongArrowRight() {
   return (
-    <svg width="32" height="16" viewBox="0 0 32 16" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="mx-1 text-slate-800 dark:text-white">
+    <svg width="32" height="16" viewBox="0 0 32 16" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="impact-route__arrow text-slate-800 dark:text-white" aria-hidden="true">
       <path d="M0 8h30M23 1l7 7-7 7"/>
     </svg>
   );
@@ -95,7 +95,7 @@ function LongArrowRight() {
 
 function LongArrowLeftRight() {
   return (
-    <svg width="32" height="16" viewBox="0 0 32 16" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="mx-1 text-slate-800 dark:text-white">
+    <svg width="32" height="16" viewBox="0 0 32 16" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="impact-route__arrow text-slate-800 dark:text-white" aria-hidden="true">
       <path d="M2 8h28M9 1L2 8l7 7M23 1l7 7-7 7"/>
     </svg>
   );
@@ -140,6 +140,36 @@ export function formatCompactLocation(location: string): string {
   const bounds = splitLocation(location);
   if (!bounds) return location || "Affected segment unavailable";
   return `${bounds.from} ${bounds.twoWay ? "↔" : "→"} ${bounds.to}`;
+}
+
+export function CompactImpactLocation({ location }: { location: string }) {
+  const bounds = splitLocation(location);
+  if (!bounds) return <>{location || "Affected segment unavailable"}</>;
+
+  const formattedLocation = formatCompactLocation(location);
+  return (
+    <span className="compact-impact-location" aria-label={formattedLocation}>
+      <span>{bounds.from}</span>
+      <svg
+        className="compact-impact-location__arrow"
+        viewBox="0 0 20 12"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2.25"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+        focusable="false"
+      >
+        {bounds.twoWay ? (
+          <path d="M2 6h16M6 2 2 6l4 4m8-8 4 4-4 4" />
+        ) : (
+          <path d="M1 6h17m-5-4 5 4-5 4" />
+        )}
+      </svg>
+      <span>{bounds.to}</span>
+    </span>
+  );
 }
 
 export function ImpactRouteHeader({

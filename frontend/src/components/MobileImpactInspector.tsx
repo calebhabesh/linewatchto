@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { AlertTriangle, Calendar, ChevronDown, ChevronUp, Construction, ExternalLink, X } from "lucide-react";
+import { AlertTriangle, ChevronDown, ChevronUp, Construction, ExternalLink, X } from "lucide-react";
 import type { DashboardData } from "../app/DataContext";
 import { useDashboardData } from "../app/DataContext";
 import type { ImpactKind, ImpactSelection } from "../app/linewatch-data";
 import { DelayIcon } from "./DelayIcon";
+import { PlannedClosureIcon } from "./PlannedClosureIcon";
 import { CardSource, ImpactRouteHeader, LineBadge, MetadataGrid, RelatedPlannedClosureButton } from "./ImpactCardFields";
 import { getOverlappingImpactRefs, OverlappingImpactRefs } from "./ImpactOverlapRefs";
 
@@ -205,7 +206,7 @@ export function getSelectedImpactDetails(
     kind: "planned-closure",
     categoryLabel: closure.activeNow ? "Active Closure Window" : "Upcoming Closure",
     tone: "planned-closure",
-    icon: <Calendar size={16} className="text-blue-500" />,
+    icon: <PlannedClosureIcon size={16} className="text-blue-500" />,
     lineId: closure.lineId,
     lineNumber: closure.lineNumber,
     title: closure.title,

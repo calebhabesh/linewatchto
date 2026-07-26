@@ -41,6 +41,7 @@ import type { AccountCommutePathPreview } from "../app/account-data";
 import { estimatedTrainMarkerRenderKey, type EstimatedTrainMarker } from "../app/train-markers";
 import { LogsDropdown } from "./LogsDropdown";
 import { ImpactTypeIcon } from "./ImpactTypeIcon";
+import { PlannedClosureIcon } from "./PlannedClosureIcon";
 import { SiteGuideDropdown } from "./SiteGuideDropdown";
 import {
   alignedOverlapBadgePositionCandidates,
@@ -3770,6 +3771,51 @@ function AnimatedHourglassLane({
   );
 }
 
+function PlannedClosureIconLane({ pathD }: { pathD: string }) {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    const handle = setTimeout(() => setMounted(true), 0);
+    return () => clearTimeout(handle);
+  }, []);
+
+  const points = useMemo(() => {
+    if (!mounted || typeof document === "undefined") return [];
+
+    try {
+      const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      path.setAttribute("d", pathD);
+      const length = path.getTotalLength();
+      if (length <= 0) return [];
+
+      const count = Math.max(1, Math.floor(length / 96));
+      return Array.from({ length: count }, (_, index) =>
+        path.getPointAtLength((length * (index + 1)) / (count + 1)),
+      );
+    } catch {
+      return [];
+    }
+  }, [mounted, pathD]);
+
+  if (points.length === 0) return null;
+
+  return (
+    <g className="planned-closure-icon-lane" aria-hidden="true">
+      {points.map((point, index) => (
+        <PlannedClosureIcon
+          key={`${point.x}-${point.y}-${index}`}
+          className="planned-closure-map-icon"
+          x={point.x - 32}
+          y={point.y - 32}
+          width={64}
+          height={64}
+          strokeWidth={2.25}
+        />
+      ))}
+    </g>
+  );
+}
+
 function OverlapChooser({
   badge,
   layout,
@@ -4585,11 +4631,14 @@ function OverlaySegment({
       )}
 
       {visualState === "planned-preview" ? (
-        <path
-          className={`asset-alert-path planned-preview pointer-events-none ${selectedClass}`}
-          d={segment.pathD}
-          pointerEvents="none"
-        />
+        <>
+          <path
+            className={`asset-alert-path planned-preview pointer-events-none ${selectedClass}`}
+            d={segment.pathD}
+            pointerEvents="none"
+          />
+          <PlannedClosureIconLane pathD={segment.pathD} />
+        </>
       ) : null}
 
       {renderInteractionTarget ? (

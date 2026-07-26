@@ -1,7 +1,8 @@
 "use client";
 
 import Image from "next/image";
-import { AlertTriangle, Calendar, Construction, X, Bus } from "lucide-react";
+import { AlertTriangle, Construction, X, Bus } from "lucide-react";
+import { PlannedClosureIcon } from "./PlannedClosureIcon";
 import { useDashboardData } from "../app/DataContext";
 import { DelayIcon } from "./DelayIcon";
 import { TransitLineBadge } from "./TransitLineBadge";
@@ -74,7 +75,7 @@ export function MobileStatusSheet({ pollText, dataSource, onOpenCategory, onClos
             </span>
           </button> : null}
           <button type="button" className="mobile-status-btn-closures" onClick={() => onOpenCategory("closures")}>
-            <Calendar size={16} className="text-blue-500 dark:text-blue-400 shrink-0" />
+            <PlannedClosureIcon size={16} className="text-blue-500 dark:text-blue-400 shrink-0" />
             <span className="mobile-status-btn-text">Planned Closures</span>
             <span className="mobile-status-btn-circle">
               {plannedClosures.length}
@@ -146,7 +147,7 @@ export function MobileStatusSheet({ pollText, dataSource, onOpenCategory, onClos
                       {lineClosures.length > 0 ? (
                         <span className="mobile-line-status-planned-row">
                           <button type="button" className="mobile-line-status-btn-closures" onClick={() => onOpenCategory("closures")}>
-                            <Calendar size={12} className="text-blue-500 dark:text-blue-400 shrink-0" />
+                            <PlannedClosureIcon size={12} className="text-blue-500 dark:text-blue-400 shrink-0" />
                             <span><span className="mobile-line-status-impact-count">{lineClosures.length}</span>{lineClosures.length === 1 ? "Planned Closure" : "Planned Closures"}</span>
                           </button>
                         </span>

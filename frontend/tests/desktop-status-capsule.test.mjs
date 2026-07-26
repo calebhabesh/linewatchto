@@ -18,7 +18,7 @@ describe("desktop status capsule", () => {
     assert.match(shellSource, /AlertTriangle size=\{18\}/);
     assert.match(shellSource, /DelayIcon size=\{18\}/);
     assert.match(shellSource, /Construction size=\{18\}/);
-    assert.match(shellSource, /Calendar size=\{18\}/);
+    assert.match(shellSource, /PlannedClosureIcon size=\{18\}/);
     assert.match(shellSource, /Reduced Speed Zone/);
     assert.doesNotMatch(shellSource, /desktop-status-chip[\s\S]{0,800}>RSZ</);
   });
@@ -37,6 +37,7 @@ describe("desktop status capsule", () => {
 
   it("styles the desktop status capsule as a compact primary surface with search-adjacent chips", () => {
     assert.match(globalCss, /\.desktop-status-capsule-anchor/);
+    assert.match(globalCss, /\.desktop-status-capsule-anchor\s*\{[^}]*max-width:\s*min\(960px, calc\(100vw - 320px\)\)/s);
     assert.match(globalCss, /\.desktop-status-stack/);
     assert.match(globalCss, /\.desktop-status-stack\s*\{[\s\S]*align-items:\s*center/);
     assert.match(globalCss, /\.desktop-status-stack\s*\{[\s\S]*flex-direction:\s*column/);
@@ -62,6 +63,20 @@ describe("desktop status capsule", () => {
     );
     assert.equal((shellSource.match(/data-digit-count=\{/g) ?? []).length, 4);
     assert.equal((shellSource.match(/desktop-status-chip-count-value/g) ?? []).length, 4);
+  });
+
+  it("keeps the labeled estimated-train switch in the center status console", () => {
+    const capsuleIndex = shellSource.indexOf('desktop-status-capsule desktop-top-chrome');
+    const switchIndex = shellSource.indexOf('desktop-status-train-switch');
+    const utilityIndex = shellSource.indexOf('map-utility-cluster');
+
+    assert.ok(capsuleIndex >= 0 && switchIndex > capsuleIndex && switchIndex < utilityIndex);
+    assert.match(shellSource, /Estimated Train Markers/);
+    assert.match(shellSource, /desktop-status-train-copy/);
+    assert.match(shellSource, /desktop-status-train-copy--compact/);
+    assert.match(globalCss, /\.desktop-status-train-switch\[aria-pressed="true"\]/);
+    assert.match(globalCss, /@media \(max-width:\s*1023px\)\s*\{[^}]*\.desktop-status-capsule-anchor[^}]*\}[^}]*\.desktop-status-train-copy:not\(\.desktop-status-train-copy--compact\)\s*\{[^}]*display:\s*none;[^}]*\}[^}]*\.desktop-status-train-copy--compact\s*\{[^}]*display:\s*flex;/s);
+    assert.match(globalCss, /@media \(max-width:\s*1023px\)\s*\{[^}]*\.desktop-status-capsule-anchor\s*\{[^}]*max-width:\s*calc\(100vw - 48px\)/s);
   });
 
   it("keeps the desktop TTC map controls centered below the status capsule and regional controls on the right", () => {

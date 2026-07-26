@@ -2140,6 +2140,9 @@ body {
   --warning: #d97706;
   --ok: #16a34a;
   --planned: #2563eb;
+  --planned-preview-rail: #f1f5f9;
+  --planned-preview-ink: #087fff;
+  --planned-preview-glow: rgba(0, 200, 255, 0.38);
   --shadow: 0 8px 30px rgba(15, 23, 42, 0.12);
   /* Mobile theme-specific chrome styles (Light mode) */
   --mobile-chrome-background: rgba(255, 255, 255, 0.94);
@@ -2171,6 +2174,9 @@ body {
   --warning: #ff9f1c;
   --ok: #30d175;
   --planned: #4aa3ff;
+  --planned-preview-rail: #f1f5f9;
+  --planned-preview-ink: #087fff;
+  --planned-preview-glow: rgba(0, 200, 255, 0.42);
   --shadow: 0 10px 40px rgba(0, 0, 0, 0.35);
   /* Mobile theme-specific chrome styles (Dark mode) */
   --mobile-chrome-background: rgb(14, 16, 22);
@@ -2741,6 +2747,9 @@ button {
   --warning: #ffd400;
   --ok: #28ff80;
   --planned: #4ab5ff;
+  --planned-preview-rail: #ffffff;
+  --planned-preview-ink: #087fff;
+  --planned-preview-glow: rgba(0, 220, 255, 0.55);
   /* Mobile theme-specific chrome styles (High Contrast) */
   --mobile-chrome-background: #000000;
   --mobile-chrome-border: #ffffff;
@@ -2988,7 +2997,7 @@ button {
 
 .desktop-status-capsule-anchor {
   justify-content: center;
-  max-width: min(760px, calc(100vw - 320px));
+  max-width: min(960px, calc(100vw - 320px));
   width: max-content;
 }
 
@@ -3035,6 +3044,100 @@ button {
   display: flex;
   flex: 0 0 auto;
   min-width: 90px;
+}
+
+.desktop-status-train-control {
+  align-items: center;
+  display: flex;
+  flex: 0 0 auto;
+  gap: 8px;
+}
+
+.desktop-status-train-icon {
+  color: var(--muted);
+  flex: 0 0 auto;
+}
+
+.desktop-status-train-copy {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+  min-width: 0;
+  text-align: left;
+}
+
+.desktop-status-train-copy strong {
+  color: var(--text);
+  font-size: 0.72rem;
+  font-weight: 850;
+  white-space: nowrap;
+}
+
+.desktop-status-train-copy > span {
+  color: var(--muted);
+  font-size: 0.62rem;
+  font-weight: 700;
+}
+
+.desktop-status-train-copy--compact {
+  display: none;
+}
+
+.desktop-status-train-switch {
+  background: rgb(203, 213, 225);
+  border-radius: 999px;
+  flex: 0 0 auto;
+  height: 22px;
+  padding: 3px;
+  transition: background-color 160ms ease;
+  width: 38px;
+}
+
+.desktop-status-train-switch > span {
+  background: #ffffff;
+  border-radius: 999px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.28);
+  display: block;
+  height: 16px;
+  transform: translateX(0);
+  transition: transform 160ms ease;
+  width: 16px;
+}
+
+.desktop-status-train-switch[aria-pressed="true"] {
+  background: #059669;
+}
+
+.desktop-status-train-switch[aria-pressed="true"] > span {
+  transform: translateX(16px);
+}
+
+.desktop-status-train-switch:focus-visible {
+  outline: 3px solid rgba(59, 130, 246, 0.4);
+  outline-offset: 2px;
+}
+
+.desktop-status-train-switch:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.dark .desktop-status-train-switch {
+  background: rgb(51, 65, 85);
+}
+
+.dark .desktop-status-train-switch[aria-pressed="true"] {
+  background: #10b981;
+}
+
+.high-contrast .desktop-status-train-switch {
+  background: #ffffff;
+  border: 2px solid #ffffff;
+  padding: 1px;
+}
+
+.high-contrast .desktop-status-train-switch > span {
+  background: #000000;
 }
 
 .desktop-status-poll {
@@ -3307,7 +3410,15 @@ button {
 
 @media (max-width: 1023px) {
   .desktop-status-capsule-anchor {
-    max-width: min(420px, calc(100vw - 220px));
+    max-width: calc(100vw - 48px);
+  }
+
+  .desktop-status-train-copy:not(.desktop-status-train-copy--compact) {
+    display: none;
+  }
+
+  .desktop-status-train-copy--compact {
+    display: flex;
   }
 
   .desktop-status-chip-row {
@@ -4376,11 +4487,35 @@ button {
 }
 
 .asset-alert-path.planned-preview {
-  opacity: 0.6;
-  stroke: var(--planned);
+  opacity: 0.68;
+  stroke: var(--planned-preview-rail);
   stroke-dasharray: none;
-  stroke-width: 102;
+  stroke-width: 82;
   transition: none;
+}
+
+.planned-closure-icon-lane {
+  overflow: visible;
+  pointer-events: none;
+}
+
+.planned-closure-map-icon {
+  color: var(--planned-preview-ink);
+  fill: none;
+  filter:
+    drop-shadow(0 0 1px var(--planned-preview-glow))
+    drop-shadow(0 0 3px rgba(0, 200, 255, 0.14));
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2.25;
+}
+
+.planned-closure-map-icon :is(rect, path) {
+  stroke: var(--planned-preview-ink) !important;
+}
+
+.linewatch-shell.mobile-performance-mode .planned-closure-map-icon {
+  filter: none;
 }
 
 .asset-alert-path.planned-preview:hover,
@@ -4388,11 +4523,11 @@ button {
 .overlay-segment-group:has(.map-segment-hit-target:hover) .asset-alert-path.planned-preview,
 .overlay-segment-group:has(.map-segment-hit-target:focus-visible) .asset-alert-path.planned-preview,
 .overlay-segment-group:has(.map-segment-hit-target:active) .asset-alert-path.planned-preview {
-  opacity: 0.8;
+  opacity: 0.88;
 }
 
 .asset-alert-path.planned-preview.selected {
-  opacity: 0.65;
+  opacity: 0.8;
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -4552,6 +4687,7 @@ button {
 .delay-hourglass-mask-path,
 .suspension-mask-path,
 .suspension-no-entry-glyph,
+.planned-closure-map-icon,
 .rsz-chevron,
 .station-hit-target,
 .station-hover-indicator,
@@ -6430,17 +6566,40 @@ img.transit-line-badge {
   color: var(--text);
   display: flex;
   flex-wrap: wrap;
-  font-size: 1rem;
+  font-size: 1.08rem;
   font-weight: 850;
-  gap: 8px;
+  gap: 11px;
   justify-content: center;
   line-height: 1.25;
 }
 
+.impact-route__arrow {
+  flex: 0 0 auto;
+  height: 20px;
+  margin-inline: 2px;
+  width: 40px;
+}
+
 .impact-route__direction {
   color: var(--muted);
-  font-size: 0.8rem;
+  font-size: 0.88rem;
   font-weight: 800;
+}
+
+@media (min-width: 768px) {
+  .impact-route__bounds {
+    font-size: 1.55rem;
+    gap: 17px;
+  }
+
+  .impact-route__arrow {
+    height: 25px;
+    width: 52px;
+  }
+
+  .impact-route__direction {
+    font-size: 1.08rem;
+  }
 }
 
 .impact-metadata-grid {
@@ -17294,6 +17453,27 @@ img.transit-line-badge {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.compact-impact-location {
+  align-items: center;
+  display: inline-flex;
+  gap: 0.32rem;
+  max-width: 100%;
+  vertical-align: middle;
+}
+
+.compact-impact-location__arrow {
+  color: rgb(71, 85, 105);
+  display: block;
+  flex: 0 0 auto;
+  height: 0.75rem;
+  width: 1.25rem;
+}
+
+.dark .compact-impact-location__arrow,
+.high-contrast .compact-impact-location__arrow {
+  color: rgb(226, 232, 240);
 }
 
 .dark .alert-history-fact > span,
