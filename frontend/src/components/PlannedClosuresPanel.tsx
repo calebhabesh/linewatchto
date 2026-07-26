@@ -119,9 +119,6 @@ export function PlannedClosuresPanel({ selection, onSelectImpact, onBack, onClos
                 closure.activeNow && alert.id === closure.id
               ),
             );
-            const activeAlertKind = activeAlert?.relatedPlannedClosureId
-              ? "suspension"
-              : "planned-closure";
             const specificWindowLabel = closure.activeNow
               ? closure.activeWindowLabel
               : closure.nextWindowLabel;
@@ -219,11 +216,11 @@ export function PlannedClosuresPanel({ selection, onSelectImpact, onBack, onClos
                             <button
                               type="button"
                               className="planned-closure-status-button"
-                              onClick={() => onSelectImpact({ kind: activeAlertKind, id: activeAlert.id })}
+                              onClick={() => onSelectImpact({ kind: "suspension", id: activeAlert.id })}
                               aria-label="View active alert"
                             >
-                              <ImpactTypeIcon kind={activeAlertKind} size={13} />
-                              <span>Active now</span>
+                              <ImpactTypeIcon kind="suspension" size={13} />
+                              <span>Active Now</span>
                               <ArrowRight size={13} aria-hidden="true" />
                             </button>
                           ) : (

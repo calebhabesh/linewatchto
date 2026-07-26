@@ -364,7 +364,7 @@ const server = createServer(async (request, response) => {
 
   if (request.method === "GET" && url.pathname === "/api/account/commutes") {
     if (!demoSessionActive) {
-      sendJson(request, response, 401, { error: "not_authenticated", message: "Sign in to use saved commute preferences." });
+      sendJson(request, response, 401, { error: "not_authenticated", message: "Sign in to use My Commutes." });
       return;
     }
     sendJson(request, response, 200, { commutes: demoCommutes });
@@ -416,14 +416,14 @@ const server = createServer(async (request, response) => {
 
   if (request.method === "PATCH" && /^\/api\/account\/commutes\/[^/]+\/notification-rule$/.test(url.pathname)) {
     if (!demoSessionActive) {
-      sendJson(request, response, 401, { error: "not_authenticated", message: "Sign in to use saved commute preferences." });
+      sendJson(request, response, 401, { error: "not_authenticated", message: "Sign in to use My Commutes." });
       return;
     }
     const body = await readJson(request);
     const commuteId = url.pathname.split("/")[4];
     const commute = demoCommutes.find((item) => item.id === commuteId);
     if (!commute) {
-      sendJson(request, response, 404, { error: "not_found", message: "Saved commute not found." });
+      sendJson(request, response, 404, { error: "not_found", message: "Commute not found." });
       return;
     }
     commute.notificationRule = {

@@ -88,7 +88,7 @@ export function calculateCommuteStationPopoverCoords({
       ? viewportBottom - MOBILE_ACTIVE_BOTTOM_INSET
       : viewportBottom - edgeInset;
     const containerLimit = (container?.bottom ?? viewportBottom) - edgeInset;
-    // Active mobile search gives the Saved Commutes sheet this same stable
+    // Active mobile search gives the My Commutes sheet this same stable
     // visual-viewport boundary in CSS. Do not re-read its animated bottom on
     // iOS; the transient measurement is what previously collapsed the menu.
     const visibleBottom = mobileSearchActive

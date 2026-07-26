@@ -1272,7 +1272,7 @@ describe("LineWatch PWA configuration", () => {
     assert.match(offlinePageSource, /LineWatchTO is offline/);
     assert.match(offlinePageSource, /<img src="\/assets\/linewatch\/pwa\/offline-icon-512\.png"/);
     assert.match(offlinePageSource, /Current TTC service cannot be verified while your device is offline\./);
-    assert.match(offlinePageSource, /Reconnect and reopen the dashboard for fresh alerts, station details, and saved commute checks\./);
+    assert.match(offlinePageSource, /Reconnect and reopen the dashboard for fresh alerts, station details, and commute impact checks\./);
     assert.doesNotMatch(offlinePageSource, /last loaded service status/i);
     assert.doesNotMatch(offlinePageSource, /cached alerts/i);
   });

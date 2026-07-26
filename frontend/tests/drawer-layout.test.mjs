@@ -12,6 +12,7 @@ const reducedSpeedZonesSource = readFileSync(new URL("../src/components/ReducedS
 const lineLegendSource = readFileSync(new URL("../src/components/LineLegend.tsx", import.meta.url), "utf8");
 const plannedClosuresSource = readFileSync(new URL("../src/components/PlannedClosuresPanel.tsx", import.meta.url), "utf8");
 const impactOverlapRefsSource = readFileSync(new URL("../src/components/ImpactOverlapRefs.tsx", import.meta.url), "utf8");
+const impactOverlapRefsLogicSource = readFileSync(new URL("../src/components/impact-overlap-refs.ts", import.meta.url), "utf8");
 const impactTypeIconSource = readFileSync(new URL("../src/components/ImpactTypeIcon.tsx", import.meta.url), "utf8");
 const savedCommutesSource = readFileSync(new URL("../src/components/SavedCommutesPanel.tsx", import.meta.url), "utf8");
 const reliabilitySource = readFileSync(new URL("../src/components/ReliabilityPanel.tsx", import.meta.url), "utf8");
@@ -165,8 +166,8 @@ describe("floating menu layout", () => {
     assert.match(plannedClosuresSource, /closure\.activeNow && alert\.id === closure\.id/);
     assert.match(plannedClosuresSource, /label: "Status"/);
     assert.match(plannedClosuresSource, /trailingRows=\{\[/);
-    assert.match(plannedClosuresSource, /kind: activeAlertKind, id: activeAlert\.id/);
-    assert.match(plannedClosuresSource, /<span>Active now<\/span>/);
+    assert.match(plannedClosuresSource, /kind: "suspension", id: activeAlert\.id/);
+    assert.match(plannedClosuresSource, /<span>Active Now<\/span>/);
     assert.match(plannedClosuresSource, /Currently Inactive/);
     assert.match(globalCss, /\.planned-closure-status-button/);
     assert.match(globalCss, /\.planned-closure-status-button\s*\{[^}]*background:\s*rgba\(220, 38, 38, 0\.08\);[^}]*border:\s*1px solid rgba\(220, 38, 38, 0\.18\);[^}]*color:\s*#dc2626/s);
@@ -306,6 +307,9 @@ describe("floating menu layout", () => {
     assert.match(impactTypeIconSource, /impact-type-icon/);
     assert.match(impactOverlapRefsSource, /overlap-impact-ref/);
     assert.doesNotMatch(impactOverlapRefsSource, /text-sky-500/);
+    assert.match(impactOverlapRefsLogicSource, /if \(alert\.severity === "delay"\) return "delay";\s*return "suspension";/);
+    assert.match(impactOverlapRefsLogicSource, /activePlannedClosureIds/);
+    assert.match(impactOverlapRefsLogicSource, /activePlannedClosureIds\.has\(closure\.id\)/);
   });
 
   it("routes active planned closures through active alerts instead of upcoming closures", () => {
@@ -330,7 +334,7 @@ describe("floating menu layout", () => {
     assert.ok(impactActiveAlertIndex < impactPlannedClosureIndex);
     assert.match(activeAlertsSource, /function impactKindForAlert/);
     assert.match(activeAlertsSource, /function impactKindForAlert\(alert: ActiveAlert\): ImpactKind/);
-    assert.match(activeAlertsSource, /case "planned":\s*return "planned-closure"/);
+    assert.doesNotMatch(activeAlertsSource, /case "planned":\s*return "planned-closure"/);
     assert.doesNotMatch(activeAlertsSource, /useScrollSelectedImpactCard\(selection, "planned-closure"\)/);
     assert.match(shellSource, /function viewForImpactSelection|const viewForImpactSelection = useCallback/);
     assert.match(shellSource, /nextSelection\.kind === "planned-closure"/);

@@ -123,7 +123,7 @@ class MapControllerTest {
     }
 
     @Test
-    void keepsPlannedClosureIdentityInLayeredImpactsWithLegacyClosedServiceOverlay() {
+    void exposesActivePlannedClosureAsSuspensionImpactWithCanonicalCardIdentity() {
         when(stationRepository.findAllByOrderBySortOrderAscNameAsc()).thenReturn(List.of());
         when(lineSegmentRepository.findAllByOrderBySortOrderAsc()).thenReturn(List.of(
             new LineSegmentEntity(
@@ -144,7 +144,7 @@ class MapControllerTest {
         when(dashboardService.activeSegmentImpacts()).thenReturn(Map.of(
             "line-1-finch-eglinton",
             List.of(new AlertDashboardService.SegmentImpact(
-                "planned-closure",
+                "suspension",
                 "planned-closure-nightly",
                 "bidirectional",
                 List.of("planned-closure-nightly")
@@ -158,7 +158,7 @@ class MapControllerTest {
             assertThat(segment.overlay()).isEqualTo("suspension");
             assertThat(segment.alertId()).isEqualTo("planned-closure-nightly");
             assertThat(segment.impacts()).singleElement().satisfies(impact -> {
-                assertThat(impact.kind()).isEqualTo("planned-closure");
+                assertThat(impact.kind()).isEqualTo("suspension");
                 assertThat(impact.cardId()).isEqualTo("planned-closure-nightly");
             });
         });

@@ -195,7 +195,7 @@ export function MobileMoreSheet({
               ) : null}
               {currentNetwork === "ttc" ? <button type="button" className="mobile-more-row" onClick={onOpenCommutes}>
                 <Navigation size={18} className="text-slate-500 dark:text-slate-400" />
-                Saved Commutes
+                My Commutes
               </button> : null}
               <button type="button" className="mobile-more-row w-full flex items-center justify-between" onClick={onOpenMyStations}>
                 <span className="flex items-center gap-[9px]">
@@ -225,7 +225,7 @@ export function MobileMoreSheet({
               </button>
               {currentNetwork === "ttc" ? <button type="button" className="mobile-more-row" onClick={onOpenCommutes}>
                 <Navigation size={18} className="text-slate-500 dark:text-slate-400" />
-                Saved Commutes
+                My Commutes
               </button> : null}
               <button type="button" className="mobile-more-row w-full flex items-center justify-between" onClick={onOpenMyStations}>
                 <span className="flex items-center gap-[9px]">

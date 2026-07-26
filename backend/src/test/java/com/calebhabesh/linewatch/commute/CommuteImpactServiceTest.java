@@ -438,7 +438,7 @@ class CommuteImpactServiceTest {
         assertThat(impact.status()).isEqualTo("unavailable");
         assertThat(impact.severity()).isEqualTo("unavailable");
         assertThat(impact.statusLabel()).isEqualTo("Route unavailable");
-        assertThat(impact.detail()).isEqualTo("LineWatchTO could not compute a rapid-transit path for this saved commute.");
+        assertThat(impact.detail()).isEqualTo("LineWatchTO could not compute a rapid-transit path for this commute.");
         assertThat(impact.matchedImpacts()).isEmpty();
         assertThat(impact.travelTimeEstimate()).satisfies(estimate -> {
             assertThat(estimate.status()).isEqualTo("unavailable");

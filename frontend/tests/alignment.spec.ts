@@ -14,7 +14,7 @@ test('check alignment', async ({ page }) => {
   await page.getByRole('button', { name: 'Toggle menu' }).click({ force: true });
   await page.getByRole('menuitem', { name: 'Demo Account' }).click({ force: true });
   await page.getByRole('button', { name: 'Toggle menu' }).click({ force: true });
-  await page.getByRole('menuitem', { name: 'Saved Commutes' }).click({ force: true });
+  await page.getByRole('menuitem', { name: 'My Commutes' }).click({ force: true });
 
   // Wait for the panel to load
   await page.waitForSelector('.saved-commute-form');

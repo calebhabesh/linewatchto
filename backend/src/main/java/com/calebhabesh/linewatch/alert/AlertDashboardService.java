@@ -262,11 +262,10 @@ public class AlertDashboardService {
             .toList()) {
             PlannedClosureDto closure = activeClosurePresentation(view, segments);
             AlertEntity currentSourceAlert = view.currentSourceAlert();
-            String impactKind = currentSourceAlert == null ? PLANNED_CLOSURE_KIND : SUSPENSION_KIND;
             String cardId = currentSourceAlert == null ? closure.id() : currentSourceAlert.getId();
             for (String segmentId : closure.previewSegmentIds()) {
                 appendImpact(impacts, segmentId, new SegmentImpact(
-                    impactKind,
+                    SUSPENSION_KIND,
                     cardId,
                     "bidirectional",
                     List.of(cardId)

@@ -47,9 +47,9 @@ export type SurfaceNoticeSearchResult = {
 export const GLOBAL_SEARCH_DESTINATIONS: GlobalDestination[] = [
   {
     view: "commutes",
-    label: "Saved Commutes",
+    label: "My Commutes",
     description: "Open monitored routes and travel-time impacts",
-    aliases: ["saved commute", "saved commutes", "commute", "commutes", "route", "routes", "trip", "trips", "saved"],
+    aliases: ["my commute", "my commutes", "saved commute", "saved commutes", "commute", "commutes", "route", "routes", "trip", "trips", "saved"],
   },
   {
     view: "my-stations",

@@ -15,9 +15,9 @@ describe("My Stations UI", () => {
     assert.match(shell, /"my-stations"/);
     assert.match(shell, /<MyStationsPanel/);
     assert.match(shell, /onClick=\{\(\) => setActiveView\("my-stations"\)\}/);
-    assert.match(mobileMore, /Saved Commutes/);
+    assert.match(mobileMore, /My Commutes/);
     assert.match(mobileMore, /My Stations/);
-    assert.ok(mobileMore.indexOf("Saved Commutes") < mobileMore.indexOf("My Stations"));
+    assert.ok(mobileMore.indexOf("My Commutes") < mobileMore.indexOf("My Stations"));
   });
 
   it("renders a signed-out account prompt blurb with feature benefits", () => {

@@ -4,6 +4,7 @@
 import { Fragment, useEffect, useRef, useState } from "react";
 import { AlertCircle, AlertTriangle, ArrowRight, Bookmark, Calendar, Check, ChevronDown, Clock3, Construction, LoaderCircle, X } from "lucide-react";
 import Image from "next/image";
+import { normalizeDashboardSourceLabel } from "../app/dashboard-source-label";
 import { formatImpactTimestamp } from "../app/impact-time";
 import {
   formatArrivalClockTime,
@@ -796,7 +797,7 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
 	                        <strong className={stationImpactTitleClassName(impactTone)}>{impact.title}</strong>
 	                        <p className="mt-1 text-slate-600 dark:text-slate-300">{impact.summary}</p>
 	                        <p className="mt-1 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-	                          {impact.source} / {impact.updatedAt
+	                          {normalizeDashboardSourceLabel(impact.source)} / {impact.updatedAt
 	                            ? formatImpactTimestamp(impact.updatedAt)
 	                            : impact.updatedAgo}
 	                        </p>

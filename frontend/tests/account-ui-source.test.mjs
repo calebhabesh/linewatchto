@@ -81,7 +81,7 @@ describe("account UI source", () => {
     assert.match(savedCommutesSource, /createSavedCommute/);
     assert.match(savedCommutesSource, /deleteSavedCommute/);
     assert.match(savedCommutesSource, /SavedCommuteStationPicker/);
-    assert.match(savedCommutesSource, /aria-label="Sort saved commutes"/);
+    assert.match(savedCommutesSource, /aria-label="Sort My Commutes"/);
     assert.match(savedCommutesSource, /<option value="impact">Most Affected<\/option>/);
     assert.match(savedCommutesSource, /sortSavedCommutes/);
     assert.match(savedCommutesSource, /Track Return Route/);
@@ -114,7 +114,7 @@ describe("account UI source", () => {
     assert.match(savedCommutesSource, /View path on map/);
     assert.match(savedCommutesSource, /<Trash2 size=\{22\} aria-hidden="true"/);
     assert.match(globalCss, /\.commute-route-delete-button svg\s*\{[^}]*height:\s*22px;[^}]*width:\s*22px;/s);
-    assert.match(savedCommutesSource, /aria-label=\{`Delete saved commute \$\{commute\.label\}`\}/);
+    assert.match(savedCommutesSource, /aria-label=\{`Delete commute \$\{commute\.label\}`\}/);
     assert.match(
       globalCss,
       /\.commute-route-delete-confirmation\s*\{(?=[^}]*justify-content:\s*center;)(?=[^}]*margin-left:\s*auto;)[^}]*\}/s,

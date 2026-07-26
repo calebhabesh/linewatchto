@@ -188,7 +188,7 @@ Use staging to verify:
 - Station detail opens and arrival state is clearly source-labeled.
 - Account register/login/logout works.
 - Password reset email flow works when staging SMTP credentials are configured.
-- Saved commute creation and impact matching works.
+- My Commutes creation and impact matching works.
 - PWA install/update behavior works on a real phone when testing through HTTPS tunnel.
 - Web Push works when staging VAPID keys are configured, browser permission is granted, and fresh dashboard-visible impacts exist.
 

@@ -42,6 +42,10 @@ import { TransitLineBadge } from "./TransitLineBadge";
 import { StationImpactTypeBadges } from "./StationImpactTypeBadges";
 import { StationOutageBadge } from "./StationOutageBadge";
 
+const BROWSE_IMPACT_CATEGORIES = (
+  ["suspension", "delay", "planned-closure", "reduced-speed-zone"] satisfies ImpactKind[]
+).map((kind) => IMPACT_SEARCH_CATEGORIES.find((category) => category.kind === kind)!);
+
 type Props = {
   open: boolean;
   stationCatalogs: StationSearchCatalogs;
@@ -105,7 +109,7 @@ function ImpactSearchButton({
         </span>
         {result.activeNow || result.shuttle || result.nightly ? (
           <span className="global-search-impact-badges">
-            {result.activeNow ? <span>Active now</span> : null}
+            {result.activeNow ? <span>Active Now</span> : null}
             {result.shuttle ? <span>Shuttle</span> : null}
             {result.nightly ? <span>Nightly</span> : null}
           </span>
@@ -277,7 +281,7 @@ export function StationSearchPanel({
   onOpenSurfaceNotice,
 }: Props) {
   const dashboardData = useDashboardData();
-  const searchPlaceholder = "Search LineWatchTO...";
+  const searchPlaceholder = "Search Stations and Alerts...";
   const stationImpactKinds = useMemo(
     () => stationImpactKindsByStation(dashboardData),
     [dashboardData],
@@ -774,7 +778,7 @@ export function StationSearchPanel({
                 {savedCommuteResults.length > 0 ? (
                   <section className="global-search-group" aria-labelledby="global-search-commutes-heading">
                     <div className="global-search-group-heading">
-                      <h3 id="global-search-commutes-heading">Saved commutes</h3>
+                      <h3 id="global-search-commutes-heading">My Commutes</h3>
                       <span>{savedCommuteResults.length}</span>
                     </div>
                     {savedCommuteResults.map(({ commute }) => {
@@ -866,7 +870,7 @@ export function StationSearchPanel({
               <div className="global-search-browse-alerts" aria-label="Browse alert categories">
                 <span>Browse alerts</span>
                 <div>
-                  {IMPACT_SEARCH_CATEGORIES.map((category) => (
+                  {BROWSE_IMPACT_CATEGORIES.map((category) => (
                     <button key={category.kind} type="button" onClick={() => chooseCategory(category.kind)}>
                       <ImpactTypeIcon kind={category.kind} size={15} />
                       {category.label}

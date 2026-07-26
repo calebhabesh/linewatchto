@@ -5,6 +5,7 @@ import { describe, it } from "node:test";
 const transitMapSource = readFileSync(new URL("../src/app/transit-map.tsx", import.meta.url), "utf8");
 const globalCss = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
 const interactiveMapSource = readFileSync(new URL("../src/components/InteractiveTtcMap.tsx", import.meta.url), "utf8");
+const mapImpactNormalizationSource = readFileSync(new URL("../src/components/map-impact-normalization.ts", import.meta.url), "utf8");
 
 function cssBlockFor(selector) {
   const start = globalCss.indexOf(`${selector} {`);
@@ -357,6 +358,10 @@ describe("asset-backed map layering", () => {
 
   it("renders collision-aware floating badges for segments with overlapping alert types", () => {
     assert.match(interactiveMapSource, /overlapBadgeSegments/);
+    assert.match(interactiveMapSource, /closure\.activeNow \|\| closure\.timingStatus === "active-now"/);
+    assert.match(interactiveMapSource, /normalizeActiveClosureMapImpact/);
+    assert.match(mapImpactNormalizationSource, /kind: "suspension"/);
+    assert.match(interactiveMapSource, /activeClosureImpactCardIds/);
     assert.match(interactiveMapSource, /plannedPreviewImpactsForSegment\(segment, plannedClosures\)/);
     assert.match(interactiveMapSource, /groupOverlapBadgeSegments\(renderedOverlaySegments, overlapPlannedClosures\)/);
     assert.match(interactiveMapSource, /groupOverlapBadgeSegments/);
@@ -636,7 +641,7 @@ describe("asset-backed map layering", () => {
 
   it("renders selected saved commute paths above disruption corridors but below stations", () => {
     assert.match(interactiveMapSource, /commutePathPreview/);
-    assert.match(interactiveMapSource, /aria-label="Saved commute route preview"/);
+    assert.match(interactiveMapSource, /aria-label="Commute route preview"/);
     assert.match(interactiveMapSource, /CommutePathOverlay/);
     assert.match(interactiveMapSource, /data-commute-path-preview/);
     assert.match(interactiveMapSource, /className="asset-alert-path-glow commute-path-preview-glow"/);
@@ -673,7 +678,7 @@ describe("asset-backed map layering", () => {
     );
 
     const impactLayerIndex = interactiveMapSource.indexOf("retainedImpactLayers.map");
-    const previewGroupIndex = interactiveMapSource.indexOf('aria-label="Saved commute route preview"', impactLayerIndex);
+    const previewGroupIndex = interactiveMapSource.indexOf('aria-label="Commute route preview"', impactLayerIndex);
     const selectedImpactIndex = interactiveMapSource.indexOf('aria-label="Selected disruption emphasis"', previewGroupIndex);
     const stationLayerIndex = interactiveMapSource.indexOf("svgParts?.part2", selectedImpactIndex);
 

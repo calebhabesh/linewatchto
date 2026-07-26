@@ -7,6 +7,7 @@ import {
   type AlertHistoryIncident,
   type AlertHistoryPeriod,
 } from "../app/alert-history-data";
+import { normalizeDashboardSourceLabel } from "../app/dashboard-source-label";
 import { formatFullImpactTimestamp, formatImpactTimestamp } from "../app/impact-time";
 import { formatCause, formatCompactLocation } from "./ImpactCardFields";
 import { DelayIcon } from "./DelayIcon";
@@ -298,7 +299,7 @@ function HistoryIncident({ item }: { item: AlertHistoryViewItem }) {
     incident.location ? { label: "Location", value: formatCompactLocation(incident.location) } : null,
     incident.displayDirection ? { label: "Direction", value: incident.displayDirection } : null,
     incident.cause ? { label: "Cause", value: formatCause(incident.cause) } : null,
-    incident.source ? { label: "Source", value: incident.source } : null,
+    incident.source ? { label: "Source", value: normalizeDashboardSourceLabel(incident.source) } : null,
   ].filter((fact): fact is { label: string; value: string } => Boolean(fact?.value));
 
   return (

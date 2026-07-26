@@ -20,10 +20,7 @@ interface Props {
 }
 
 function impactKindForAlert(alert: ActiveAlert): ImpactKind {
-  if (alert.relatedPlannedClosureId) return "suspension";
   switch (alert.severity) {
-    case "planned":
-      return "planned-closure";
     case "delay":
       return "delay";
     default:
@@ -49,20 +46,15 @@ export function ActiveAlertsPanel({
 
   const handleAlertClick = (alert: ActiveAlert) => {
     const alertImpactKind = impactKindForAlert(alert);
-    const isPlanned = alert.severity === "planned" && !alert.relatedPlannedClosureId;
-    const isActive = selection?.id === alert.id && (
-      selection?.kind === alertImpactKind ||
-      (selection?.kind === "planned-closure" && isPlanned)
-    );
+    const isActive = selection?.id === alert.id && selection?.kind === alertImpactKind;
     const isActivating = !isActive;
-    const kind = isPlanned ? "planned-closure" : alertImpactKind;
     if (!isActivating && onFocusMap) {
       onFocusMap();
       return;
     }
     
     onSelectImpact(
-      isActivating ? { kind, id: alert.id } : null
+      isActivating ? { kind: alertImpactKind, id: alert.id } : null
     );
     
     if (isActivating && onFocusMap) {
@@ -146,11 +138,7 @@ export function ActiveAlertsPanel({
         ) : (
           visibleAlerts.map((alert) => {
             const alertImpactKind = impactKindForAlert(alert);
-            const isPlanned = alert.severity === "planned" && !alert.relatedPlannedClosureId;
-            const isActive = selection?.id === alert.id && (
-              selection?.kind === alertImpactKind ||
-              (selection?.kind === "planned-closure" && isPlanned)
-            );
+            const isActive = selection?.id === alert.id && selection?.kind === alertImpactKind;
             const overlappingImpacts = getOverlappingImpactRefs(
               { kind: alertImpactKind, id: alert.id, segmentIds: alert.affectedSegmentIds ?? [] },
               { networkSegments, activeAlerts, delays, reducedSpeedZones, plannedClosures, stationNodeImpacts },

@@ -822,7 +822,7 @@ export async function getSavedCommutes(options: AdapterOptions = {}): Promise<Ac
       credentials: "include",
     });
     if (!response.ok) {
-      throw new Error(`Saved commutes request failed with ${response.status}`);
+      throw new Error(`My Commutes request failed with ${response.status}`);
     }
     const body = await readJson<{ commutes: AccountSavedCommute[] }>(response);
     return { source: "backend", commutes: body.commutes.map(normalizeSavedCommute) };
@@ -830,7 +830,7 @@ export async function getSavedCommutes(options: AdapterOptions = {}): Promise<Ac
     return {
       source: "unavailable",
       commutes: [],
-      message: "Saved commutes are unavailable.",
+      message: "My Commutes is unavailable.",
     };
   }
 }
@@ -844,7 +844,7 @@ export async function createSavedCommute(input: CreateSavedCommuteInput, options
     body: JSON.stringify(input),
   });
   if (!response.ok) {
-    throw new Error(`Create saved commute failed with ${response.status}`);
+    throw new Error(`Create commute failed with ${response.status}`);
   }
   return normalizeSavedCommute(await readJson<AccountSavedCommute>(response));
 }
@@ -862,7 +862,7 @@ export async function updateSavedCommuteNotificationRule(
     body: JSON.stringify(notificationRule),
   });
   if (!response.ok) {
-    throw new Error(`Update saved commute notification rule failed with ${response.status}`);
+    throw new Error(`Update commute notification rule failed with ${response.status}`);
   }
   return normalizeSavedCommute(await readJson<AccountSavedCommute>(response));
 }
@@ -874,7 +874,7 @@ export async function deleteSavedCommute(id: string, options: AdapterOptions = {
     credentials: "include",
   });
   if (!response.ok) {
-    throw new Error(`Delete saved commute failed with ${response.status}`);
+    throw new Error(`Delete commute failed with ${response.status}`);
   }
 }
 

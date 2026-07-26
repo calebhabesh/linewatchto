@@ -823,7 +823,7 @@ test("shows an active planned closure in both current and scheduled views", asyn
   });
   const activeClosureCard = plannedClosuresPanel.locator('[data-impact-card-id="stub-closure-line-1"]');
   await expect(activeClosureCard).toBeVisible();
-  await expect(activeClosureCard.getByText("Active now", { exact: true })).toBeVisible();
+  await expect(activeClosureCard.getByText("Active Now", { exact: true })).toBeVisible();
   await expect(activeClosureCard.getByText("Closure hours", { exact: true })).toBeVisible();
   await expect(activeClosureCard.getByText("11:59 PM – 3:30 AM", { exact: true })).toBeVisible();
   await expect(activeClosureCard.getByText("Closure dates", { exact: true })).toBeVisible();
@@ -992,6 +992,18 @@ test("shows a compact map hint when multiple alert types overlap", async ({ page
   }
   await expect(page.getByRole("heading", { name: "Active Alerts" })).toBeVisible();
   await expect(page.locator('[data-impact-card-id="stub-alert-line-1"]')).toHaveClass(/highlight-active-card/);
+});
+
+test("uses an active-alert overlap badge for an in-effect cached planned closure", async ({ page, request }) => {
+  await setStubMode(request, "seeded");
+  await page.goto("/");
+  await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
+
+  const overlapMarker = page.locator('[data-overlap-segment-id="stub-line-1-segment"]');
+  await expect(overlapMarker.locator('[data-overlap-kind="suspension"]'))
+    .toHaveAttribute("data-overlap-kind-count", "2");
+  await expect(overlapMarker.locator('[data-overlap-kind="planned-closure"]'))
+    .toHaveAttribute("data-overlap-kind-count", "1");
 });
 
 test("Spadina uses two visual dots for one station selection", async ({ page, request, isMobile }) => {
@@ -1252,8 +1264,39 @@ test("global search opens a condensed alert result in its detailed card and mobi
   }
 
   const searchbox = page.getByRole("searchbox", { name: "Station Search" });
-  await expect(searchbox).toHaveAttribute("placeholder", "Search LineWatchTO...");
-  await expect(page.locator("[data-station-search-panel]")).toBeVisible();
+  await expect(searchbox).toHaveAttribute("placeholder", "Search Stations and Alerts...");
+  const searchPanel = page.locator("[data-station-search-panel]");
+  await expect(searchPanel).toBeVisible();
+  if (!isMobile) {
+    await expect
+      .poll(async () => {
+        const [searchBarBox, searchPanelBox] = await Promise.all([
+          page.locator(".header-search-bar").boundingBox(),
+          searchPanel.boundingBox(),
+        ]);
+        return Math.abs((searchBarBox?.width ?? 0) - (searchPanelBox?.width ?? 1));
+      })
+      .toBeLessThanOrEqual(1);
+
+    const [activeAlertsBox, plannedClosuresBox, reducedSpeedZonesBox] = await Promise.all([
+      page.getByRole("button", { name: "Active Alerts", exact: true }).boundingBox(),
+      page.getByRole("button", { name: "Planned Closures", exact: true }).boundingBox(),
+      page.getByRole("button", { name: "Reduced Speed Zones", exact: true }).boundingBox(),
+    ]);
+    expect(activeAlertsBox).not.toBeNull();
+    expect(plannedClosuresBox).not.toBeNull();
+    expect(reducedSpeedZonesBox).not.toBeNull();
+    expect(Math.abs(plannedClosuresBox!.y - activeAlertsBox!.y)).toBeLessThanOrEqual(1);
+    expect(reducedSpeedZonesBox!.y).toBeGreaterThan(activeAlertsBox!.y);
+
+    const linesColumn = page.locator(".station-search-lines-column");
+    await expect(linesColumn).toHaveAttribute("data-scroll-more-below", "");
+    expect(await linesColumn.evaluate((element) => getComputedStyle(element).maskImage)).toContain("linear-gradient");
+    await linesColumn.evaluate((element) => {
+      element.scrollTop = element.scrollHeight;
+    });
+    await expect(linesColumn).not.toHaveAttribute("data-scroll-more-below", "");
+  }
   await expect(page.locator(".global-search-browse-alerts button").first()).toHaveCSS("font-size", "11px");
   await searchbox.fill("Don Mills");
 
@@ -1276,6 +1319,34 @@ test("global search opens a condensed alert result in its detailed card and mobi
     await expect(inspector).toContainText("Delay");
     await inspector.getByRole("button", { name: "View in List" }).click();
     await expect(delayCard).toBeVisible();
+  }
+});
+
+test("shows seamless continuation gradients on constrained desktop and mobile lists", async ({ page, request, isMobile }) => {
+  await setStubMode(request, "seeded");
+  await page.setViewportSize(isMobile
+    ? { width: 390, height: 480 }
+    : { width: 1100, height: 420 });
+  await openDashboardMenu(page, isMobile);
+
+  const primaryList = isMobile
+    ? page.locator(".mobile-more-content-scroll")
+    : page.locator("#linewatch-main-menu-scroll");
+  await expect(primaryList).toHaveAttribute("data-scroll-more-below", "");
+  expect(await primaryList.evaluate((element) => getComputedStyle(element).maskImage))
+    .toContain("linear-gradient");
+
+  await primaryList.evaluate((element) => {
+    element.scrollTop = element.scrollHeight;
+  });
+  await expect(primaryList).not.toHaveAttribute("data-scroll-more-below", "");
+
+  if (!isMobile) {
+    await page.getByRole("menuitem", { name: /^Active Alerts/ }).click();
+    const submenuList = page.locator(".alert-stack");
+    await expect(submenuList).toHaveAttribute("data-scroll-more-below", "");
+    expect(await submenuList.evaluate((element) => getComputedStyle(element).maskImage))
+      .toContain("linear-gradient");
   }
 });
 
@@ -1460,12 +1531,12 @@ test("demo account shows account-backed saved commutes", async ({ page, request,
     await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
     await page.getByRole("button", { name: "More", exact: true }).click();
     await page.getByRole("button", { name: "Demo Account" }).click();
-    await expect(page.getByRole("heading", { name: "Saved Commutes" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "My Commutes" })).toBeVisible();
   } else {
     await openDashboardMenu(page, isMobile);
     await page.getByRole("menuitem", { name: "Demo account" }).click({ force: true });
     await page.getByRole("button", { name: "Toggle menu" }).click({ force: true });
-    await page.getByRole("menuitem", { name: "Saved Commutes" }).click({ force: true });
+    await page.getByRole("menuitem", { name: "My Commutes" }).click({ force: true });
   }
 
   await expect(page.getByText("Demo account").filter({ visible: true })).toBeVisible();
@@ -1622,8 +1693,8 @@ test("demo account shows account-backed saved commutes", async ({ page, request,
       await page.locator(".commute-path-preview-path").evaluate((path) => getComputedStyle(path).animationDelay),
     );
   }
-  await expect(page.getByRole("button", { name: "Back to saved commutes" })).toBeVisible();
-  await page.getByRole("button", { name: "Back to saved commutes" }).click({ force: true });
+  await expect(page.getByRole("button", { name: "Back to My Commutes" })).toBeVisible();
+  await page.getByRole("button", { name: "Back to My Commutes" }).click({ force: true });
   await expect(page.locator("[data-commute-path-preview]")).toHaveCount(0);
 
   await page.getByRole("tab", { name: "To Stub Station" }).click();
@@ -1753,7 +1824,7 @@ test("signed-in riders save, browse, remove, undo, and reload My Stations", asyn
     await page.getByRole("menuitem", { name: "Demo account" }).click({ force: true });
   }
 
-  await expect(page.getByRole("heading", { name: "Saved Commutes" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "My Commutes" })).toBeVisible();
   await page.getByRole("button", { name: "Close", exact: true }).first().click();
   await page.getByRole("button", { name: "Stub Station station details" }).click();
   await expect(page.getByRole("button", { name: "Save Stub Station to My Stations" })).toBeVisible();
@@ -1907,6 +1978,16 @@ test("mobile uses bottom navigation and status sheets", async ({ page, request, 
 
   await page.getByRole("button", { name: "Status", exact: true }).click();
   await expect(page.getByRole("heading", { name: "System Status" })).toBeVisible();
+  const multiImpactLineRow = page.locator(".mobile-line-status-row").nth(1);
+  const [lineRowBox, lineBadgeBox] = await Promise.all([
+    multiImpactLineRow.boundingBox(),
+    multiImpactLineRow.locator(".mobile-line-status-number").boundingBox(),
+  ]);
+  expect(lineRowBox).not.toBeNull();
+  expect(lineBadgeBox).not.toBeNull();
+  const lineRowCenter = lineRowBox!.y + lineRowBox!.height / 2;
+  const lineBadgeCenter = lineBadgeBox!.y + lineBadgeBox!.height / 2;
+  expect(Math.abs(lineBadgeCenter - lineRowCenter)).toBeLessThanOrEqual(1);
   await page.locator(".mobile-status-actions").getByRole("button", { name: /Delay/ }).click();
   await expect(page.getByRole("heading", { name: "Delays" })).toBeVisible();
 

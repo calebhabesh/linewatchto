@@ -7488,7 +7488,7 @@ img.transit-line-badge {
   position: absolute;
   top: 72px;
   left: 68px;
-  width: min(calc(100vw - 100px), 390px);
+  width: min(calc(100vw - 100px), var(--desktop-global-search-width));
   max-height: min(72vh, 680px);
   display: flex;
   flex-direction: column;
@@ -8084,7 +8084,7 @@ img.transit-line-badge {
   width: max-content;
 }
 
-/* Ensure left alignment overrides the saved commutes defaults when combined */
+/* Ensure left alignment overrides the My Commutes defaults when combined */
 .saved-commute-sort-options.impact-list-select-options {
   left: 0;
   right: auto;
@@ -8195,16 +8195,18 @@ img.transit-line-badge {
 }
 
 .station-search-network-heading {
+  position: relative;
   display: flex;
   min-height: 28px;
   align-items: center;
   justify-content: flex-start;
   gap: 8px;
+  overflow: hidden;
   border: 1px solid rgba(239, 68, 68, 0.24);
   border-radius: 6px;
   background: rgba(239, 68, 68, 0.08);
   margin-bottom: 8px;
-  padding: 6px 8px;
+  padding: 6px 8px 6px 11px;
   color: rgb(127, 29, 29);
   font-size: 10px;
   font-weight: 950;
@@ -8215,15 +8217,16 @@ img.transit-line-badge {
 
 .station-search-network-heading::before,
 .global-search-network-heading::before {
-  width: 6px;
-  height: 11px;
-  flex: 0 0 6px;
-  border-radius: 1px;
-  background: repeating-linear-gradient(
-    90deg,
-    #ef4444 0 1px,
-    transparent 1px 3px
-  );
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  left: 0;
+  width: 1px;
+  border-radius: 0 1px 1px 0;
+  background: #ff5a5f;
+  box-shadow:
+    0 0 3px rgba(255, 90, 95, 0.95),
+    1px 0 7px rgba(255, 90, 95, 0.48);
   content: "";
 }
 
@@ -8235,11 +8238,10 @@ img.transit-line-badge {
 
 .station-search-network-heading.regional::before,
 .global-search-network-heading.regional::before {
-  background: repeating-linear-gradient(
-    90deg,
-    #10b981 0 1px,
-    transparent 1px 3px
-  );
+  background: #31f0aa;
+  box-shadow:
+    0 0 3px rgba(49, 240, 170, 0.95),
+    1px 0 7px rgba(49, 240, 170, 0.48);
 }
 
 .station-search-network-heading span {
@@ -8469,10 +8471,12 @@ img.transit-line-badge {
 }
 
 .global-search-network-heading {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 7px;
-  padding: 5px 7px;
+  overflow: hidden;
+  padding: 5px 7px 5px 10px;
   color: rgb(127, 29, 29);
   font-size: 9px;
   font-weight: 950;
@@ -13198,7 +13202,7 @@ img.transit-line-badge {
   }
 
   .mobile-line-status-row {
-    align-items: flex-start;
+    align-items: center;
     background: var(--panel-soft);
     border: 1px solid var(--border);
     border-radius: 8px;
@@ -14366,7 +14370,7 @@ img.transit-line-badge {
     font-size: clamp(11px, 2.9vw, 13.5px) !important;
   }
 
-  /* Saved Commutes: slight font reduction so the full title fits alongside the account label */
+  /* My Commutes: slight font reduction so the full title fits alongside the account label */
   .mobile-view-content-wrapper[data-active-view="commutes"] .panel-heading h2 {
     font-size: clamp(14px, 4.1vw, 17px) !important;
   }
@@ -17805,6 +17809,10 @@ img.transit-line-badge {
 
 /* --- Header inline search bar -------------------------------------------- */
 
+.linewatch-shell {
+  --desktop-global-search-width: 370px;
+}
+
 .header-search-bar {
   min-width: 0;
   max-width: 390px;
@@ -17820,7 +17828,7 @@ img.transit-line-badge {
 
 .header-search-bar:focus-within,
 .header-search-bar[data-active="true"] {
-  width: 370px;
+  width: var(--desktop-global-search-width);
   padding-right: 12px !important;
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.18);
 }
@@ -18230,7 +18238,7 @@ img.transit-line-badge {
   }
 }
 
-/* Redesigned Saved Commutes CTA and Cancel Actions */
+/* Redesigned My Commutes CTA and Cancel Actions */
 .saved-commute-add-btn {
   background-color: #10b981; /* Tailwind emerald-500 */
   color: #ffffff !important;
@@ -18756,4 +18764,26 @@ img.transit-line-badge {
       transform: translateX(24px) scale(0.97);
     }
   }
+}
+
+/* A shallow content fade signals that a list continues without adding a
+   visible edge or painting a dark overlay across the next row. This rule
+   intentionally lives after the mobile list resets above. */
+.linewatch-shell [data-scroll-more-below] {
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    #000 0,
+    #000 calc(100% - 36px),
+    rgba(0, 0, 0, 0.72) calc(100% - 24px),
+    rgba(0, 0, 0, 0.32) calc(100% - 10px),
+    transparent 100%
+  ) !important;
+  mask-image: linear-gradient(
+    to bottom,
+    #000 0,
+    #000 calc(100% - 36px),
+    rgba(0, 0, 0, 0.72) calc(100% - 24px),
+    rgba(0, 0, 0, 0.32) calc(100% - 10px),
+    transparent 100%
+  ) !important;
 }

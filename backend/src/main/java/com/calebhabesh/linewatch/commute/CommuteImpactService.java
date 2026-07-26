@@ -31,7 +31,7 @@ public class CommuteImpactService {
                 "unavailable",
                 "unavailable",
                 "Route unavailable",
-                "LineWatchTO could not compute a rapid-transit path for this saved commute.",
+                "LineWatchTO could not compute a rapid-transit path for this commute.",
                 List.of(),
                 unavailableTravelTimeEstimate()
             );

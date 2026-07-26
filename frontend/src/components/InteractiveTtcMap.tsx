@@ -64,6 +64,10 @@ import {
   stationVisualAnchorsFor,
   stationVisualCenterIds,
 } from "./station-map-visuals";
+import {
+  buildActiveClosureImpactCardIds,
+  normalizeActiveClosureMapImpact,
+} from "./map-impact-normalization";
 
 const SVG_TO_RENDERED_MAP_SCALE = 4500 / 8250;
 const DESKTOP_MAP_HORIZONTAL_INSET_RATIO = 0.025;
@@ -711,16 +715,26 @@ function InteractiveTtcMapComponent({
       .map((alert) => alert.relatedPlannedClosureId)
       .filter((id): id is string => Boolean(id)),
   ), [activeAlerts]);
+  const currentPlannedClosureIds = useMemo(() => new Set([
+    ...linkedPlannedClosureIds,
+    ...plannedClosures
+      .filter((closure) => closure.activeNow || closure.timingStatus === "active-now")
+      .map((closure) => closure.id),
+  ]), [linkedPlannedClosureIds, plannedClosures]);
   const overlapPlannedClosures = useMemo(
-    () => plannedClosures.filter((closure) => !linkedPlannedClosureIds.has(closure.id)),
-    [linkedPlannedClosureIds, plannedClosures],
+    () => plannedClosures.filter((closure) => !currentPlannedClosureIds.has(closure.id)),
+    [currentPlannedClosureIds, plannedClosures],
   );
   const plannedPreviewClosures = useMemo(
     () => plannedClosures.filter((closure) =>
-      !linkedPlannedClosureIds.has(closure.id)
+      !currentPlannedClosureIds.has(closure.id)
         || (selection?.kind === "planned-closure" && selection.id === closure.id),
     ),
-    [linkedPlannedClosureIds, plannedClosures, selection],
+    [currentPlannedClosureIds, plannedClosures, selection],
+  );
+  const activeClosureImpactCardIds = useMemo(
+    () => buildActiveClosureImpactCardIds(activeAlerts, plannedClosures),
+    [activeAlerts, plannedClosures],
   );
 
   const plannedPreviewSegmentIds = useMemo(() => {
@@ -752,6 +766,9 @@ function InteractiveTtcMapComponent({
 
         return {
           ...segment,
+          impacts: segment.impacts?.map((impact) =>
+            normalizeActiveClosureMapImpact(impact, activeClosureImpactCardIds)
+          ),
           pathD: resolveNetworkSegmentPath(segment, mapStations, anchorPoints, guidePaths),
           patternOriginX: originX,
           patternOriginY: originY,
@@ -759,7 +776,7 @@ function InteractiveTtcMapComponent({
         } as RenderedNetworkSegment;
       })
       .filter((segment): segment is RenderedNetworkSegment => Boolean(segment.pathD));
-  }, [networkSegments, mapStations, anchorPoints, guidePaths]);
+  }, [networkSegments, mapStations, anchorPoints, guidePaths, activeClosureImpactCardIds]);
 
   const renderedOverlaySegments = useMemo(() => {
     return renderedNetworkSegments.filter((segment) => {
@@ -1539,7 +1556,7 @@ function InteractiveTtcMapComponent({
                   })}
                 </g>
 
-                <g aria-label="Saved commute route preview">
+                <g aria-label="Commute route preview">
                   {commutePreviewLayer ? (
                     <CommutePathOverlay
                       segment={commutePreviewLayer.segment}
@@ -2073,7 +2090,7 @@ function InteractiveTtcMapComponent({
           <span>
             Viewing <strong>{commutePathPreview.routeLabel}</strong>
           </span>
-          <button type="button" onClick={onClearCommutePathPreview} aria-label="Back to saved commutes">
+          <button type="button" onClick={onClearCommutePathPreview} aria-label="Back to My Commutes">
             Back
           </button>
         </div>

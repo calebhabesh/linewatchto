@@ -79,7 +79,7 @@ public class SavedCommuteService {
         String destinationId = normalizeStationId(request.destinationStationId());
         validateLabelLength(request.label());
         if (originId.equals(destinationId)) {
-            throw new AccountException(HttpStatus.BAD_REQUEST, "same_station", "Choose two different stations for a saved commute.");
+            throw new AccountException(HttpStatus.BAD_REQUEST, "same_station", "Choose two different stations for this commute.");
         }
         StationEntity origin = stationRepository.findById(originId)
             .orElseThrow(() -> new AccountException(HttpStatus.BAD_REQUEST, "unknown_origin_station", "Origin station is not mapped."));
@@ -113,7 +113,7 @@ public class SavedCommuteService {
         SavedCommuteNotificationRuleRequest request
     ) {
         SavedCommuteEntity commute = commuteRepository.findByIdAndAccountId(commuteId, account.getId())
-            .orElseThrow(() -> new AccountException(HttpStatus.NOT_FOUND, "commute_not_found", "Saved commute was not found."));
+            .orElseThrow(() -> new AccountException(HttpStatus.NOT_FOUND, "commute_not_found", "Commute was not found."));
         applyNotificationRule(commute, request, clock.instant());
         commute = commuteRepository.save(commute);
 
@@ -127,7 +127,7 @@ public class SavedCommuteService {
     @Transactional
     public void delete(AccountEntity account, String commuteId) {
         SavedCommuteEntity commute = commuteRepository.findByIdAndAccountId(commuteId, account.getId())
-            .orElseThrow(() -> new AccountException(HttpStatus.NOT_FOUND, "commute_not_found", "Saved commute was not found."));
+            .orElseThrow(() -> new AccountException(HttpStatus.NOT_FOUND, "commute_not_found", "Commute was not found."));
         commuteRepository.delete(commute);
     }
 

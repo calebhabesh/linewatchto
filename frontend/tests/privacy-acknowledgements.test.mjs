@@ -26,7 +26,7 @@ describe("privacy and acknowledgement content", () => {
     const combinedCopy = JSON.stringify(dataPracticeSections);
 
     assert.match(combinedCopy, /Account/i);
-    assert.match(combinedCopy, /saved commute/i);
+    assert.match(combinedCopy, /My Commutes/);
     assert.match(combinedCopy, /push notification/i);
     assert.match(combinedCopy, /random browser-installation identifier/i);
     assert.match(combinedCopy, /feedback/i);

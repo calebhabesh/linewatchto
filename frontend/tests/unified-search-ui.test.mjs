@@ -37,11 +37,11 @@ describe("unified search alert group headings", () => {
     assert.match(shellSource, /crossNetworkStationSelectionRef/);
     assert.match(
       globalCss,
-      /\.station-search-network-heading::before,[\s\S]*?\.global-search-network-heading::before\s*\{[^}]*background:\s*repeating-linear-gradient\([^)]*#ef4444 0 1px,[^)]*transparent 1px 3px[^)]*\);/s,
+      /\.station-search-network-heading::before,[\s\S]*?\.global-search-network-heading::before\s*\{[^}]*position:\s*absolute;[^}]*left:\s*0;[^}]*width:\s*1px;[^}]*background:\s*#ff5a5f;[^}]*box-shadow:/s,
     );
     assert.match(
       globalCss,
-      /\.station-search-network-heading\.regional::before,[\s\S]*?\.global-search-network-heading\.regional::before\s*\{[^}]*background:\s*repeating-linear-gradient\([^)]*#10b981 0 1px,[^)]*transparent 1px 3px[^)]*\);/s,
+      /\.station-search-network-heading\.regional::before,[\s\S]*?\.global-search-network-heading\.regional::before\s*\{[^}]*background:\s*#31f0aa;[^}]*box-shadow:/s,
     );
     assert.match(
       globalCss,

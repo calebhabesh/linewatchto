@@ -37,6 +37,7 @@ import { usePwaInstallPrompt } from "../hooks/usePwaInstallPrompt";
 import { TransitLineBadge } from "./TransitLineBadge";
 import { LogsDropdown } from "./LogsDropdown";
 import { SiteGuideDropdown } from "./SiteGuideDropdown";
+import { ScrollOverflowAffordances } from "./ScrollOverflowAffordances";
 import { DataProvider, DashboardData } from "../app/DataContext";
 import type { ImpactKind, ImpactSelection } from "../app/linewatch-data";
 import {
@@ -685,7 +686,7 @@ export function LineWatchShell({
       label: notificationStatusLabel,
       detail: notificationStatusLabel === "Device Setup Needed"
         ? "Preferences saved. Enable notifications for push delivery"
-        : "Saved commute alerts and closure reminders",
+        : "My Commutes alerts and closure reminders",
       tone,
     };
   }, [notificationStatusLabel]);
@@ -1900,7 +1901,7 @@ export function LineWatchShell({
       case "delays": return "Delays";
       case "reduced-speed-zones": return "Reduced Speed Zones";
       case "closures": return "Planned closures";
-      case "commutes": return "Saved commutes";
+      case "commutes": return "My Commutes";
       case "my-stations": return "My Stations";
       case "notifications": return "Notifications";
       case "more": return "More options";
@@ -2203,6 +2204,7 @@ export function LineWatchShell({
         data-menu-pinned={menuPinned ? "true" : undefined}
         className={`linewatch-shell relative w-full overflow-hidden transition-colors duration-500 ${(isDark || highContrast) ? "dark bg-[#0d0808] text-slate-100" : "bg-slate-50 text-slate-900"} ${highContrast ? "high-contrast" : ""} ${reducedMotion ? "motion-paused" : ""} ${mobilePerformanceMode ? "mobile-performance-mode" : ""} ${shellInspectorClasses}`}
       >
+        <ScrollOverflowAffordances />
         <h1 className="sr-only">
           {selectedNetwork === "ttc" ? "LineWatchTO TTC subway and LRT reliability dashboard" : "LineWatchTO GO and UP regional rail reliability dashboard"}
         </h1>
@@ -2286,7 +2288,7 @@ export function LineWatchShell({
               onKeyDown={(e) => {
                 stationKeyDownHandlerRef.current?.(e);
               }}
-              placeholder="Search LineWatchTO..."
+              placeholder="Search Stations and Alerts..."
               aria-label="Station Search"
               aria-controls="station-search-panel"
               className="header-search-input min-w-0 flex-1 bg-transparent border-none outline-none text-sm font-semibold text-slate-700 dark:text-white placeholder:font-semibold placeholder:text-slate-400 dark:placeholder:text-slate-400 focus:placeholder:text-transparent caret-blue-500"
@@ -2441,7 +2443,7 @@ export function LineWatchShell({
                       >
                         <div className="flex items-center gap-3">
                           <Navigation size={18} className="text-slate-500 dark:text-slate-400" />
-                          Saved Commutes
+                          My Commutes
                         </div>
                         {accountCommutes.length > 0 && (
                           <div className="flex items-center gap-1.5 shrink-0" data-testid="commute-status-badges">
@@ -2514,7 +2516,7 @@ export function LineWatchShell({
                       >
                         <div className="flex items-center gap-3">
                           <Navigation size={18} className="text-slate-500 dark:text-slate-400" />
-                          Saved Commutes
+                          My Commutes
                         </div>
                         {accountCommutes.length > 0 && (
                           <div className="flex items-center gap-1.5 shrink-0" data-testid="commute-status-badges">
