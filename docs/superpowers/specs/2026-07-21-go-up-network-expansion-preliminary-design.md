@@ -1,8 +1,8 @@
 # LineWatchTO GO/UP Network Expansion — Preliminary Design Record
 
-**Date:** 2026-07-21  
-**Status:** Preliminary decisions captured before implementation  
-**Branch:** `feature/go-up-network-mode`  
+**Date:** 2026-07-21
+**Status:** Preliminary decisions captured before implementation
+**Branch:** `feature/go-up-network-mode`
 **Worktree:** `~/dev/ttc-reliability-navigator-go-up`
 
 ## Purpose

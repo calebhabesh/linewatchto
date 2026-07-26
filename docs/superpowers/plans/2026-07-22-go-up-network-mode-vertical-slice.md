@@ -1,6 +1,6 @@
 # GO/UP Network Mode Fixture Vertical Slice Implementation Plan
 
-**Date:** 2026-07-22  
+**Date:** 2026-07-22
 **Status:** Integrated fixture slice; realtime source mapping deferred
 **Branch:** `feature/go-up-network-mode`
 

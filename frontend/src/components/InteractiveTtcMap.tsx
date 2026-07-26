@@ -463,6 +463,7 @@ function InteractiveTtcMapComponent({
   // Center map automatically when SVG loads and container dimensions are resolved
   useEffect(() => {
     if (loadState !== "ready") return;
+    if (readyNotifiedRef.current) return;
 
     let attempts = 0;
     let retryTimer: number | null = null;
@@ -2408,7 +2409,21 @@ function overlapChooserScreenLayout(
     chooserCenterFitsViewport(candidate, badge.chooserSize, viewportSize, 0)
       && chooserCenterAvoidsProtectedBoxes(candidate, badge.chooserSize, hardKeepoutBoxes),
   );
-  const centerCandidates = validCandidates.length > 0 ? validCandidates : hardKeepoutCandidates;
+  const badgeOnlyCandidates = validCandidates.length > 0 || hardKeepoutCandidates.length > 0
+    ? []
+    : [
+        ...preferredCandidates,
+        ...edgeCandidates,
+        ...viewportCandidates,
+      ].filter((candidate) =>
+        chooserCenterFitsViewport(candidate, badge.chooserSize, viewportSize, 0)
+          && chooserCenterAvoidsProtectedBoxes(candidate, badge.chooserSize, [badgeScreenBox]),
+      );
+  const centerCandidates = validCandidates.length > 0
+    ? validCandidates
+    : hardKeepoutCandidates.length > 0
+      ? hardKeepoutCandidates
+      : badgeOnlyCandidates;
   const center = centerCandidates.reduce<{ position: MapPoint; score: number } | null>((best, position) => {
     const score = scoreChooserScreenCandidate(
       position,

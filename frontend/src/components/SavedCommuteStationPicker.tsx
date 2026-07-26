@@ -74,6 +74,7 @@ function StationOption({
       aria-selected={selected}
       disabled={disabled}
       className={`site-dropdown-option commute-station-option ${selected ? "selected" : ""}`}
+      onPointerDown={(event) => event.preventDefault()}
       onClick={() => onChoose(station.id)}
       title={disabled ? `${disabledReason}${accessibilityLabel}` : `${station.name}${accessibilityLabel}`}
     >
@@ -231,18 +232,27 @@ export function SavedCommuteStationPicker({
   useEffect(() => {
     if (!open || !inputFocused || !mobileInline) return;
 
+    const picker = rootRef.current;
+    const scrollArea = picker?.closest<HTMLElement>(".commute-grid");
+    if (!picker || !scrollArea) return;
+
     let alignmentFrame: number | null = null;
     const alignPickerToScrollTop = () => {
-      const picker = rootRef.current;
-      const scrollArea = picker?.closest<HTMLElement>(".commute-grid");
-      if (!picker || !scrollArea) return;
-
       const scrollBy = calculateMobilePickerAlignmentScroll(
         picker.getBoundingClientRect().top,
         scrollArea.getBoundingClientRect().top,
       );
       if (Math.abs(scrollBy) > 1) {
         const targetScrollTop = Math.max(0, scrollArea.scrollTop + scrollBy);
+        const maximumScrollTop = Math.max(0, scrollArea.scrollHeight - scrollArea.clientHeight);
+        if (maximumScrollTop < targetScrollTop) {
+          const currentPaddingBottom = Number.parseFloat(window.getComputedStyle(scrollArea).paddingBottom) || 0;
+          scrollArea.style.setProperty(
+            "padding-bottom",
+            `${currentPaddingBottom + targetScrollTop - maximumScrollTop}px`,
+            "important",
+          );
+        }
         scrollArea.scrollTop = targetScrollTop;
       }
     };
@@ -262,8 +272,9 @@ export function SavedCommuteStationPicker({
       window.clearTimeout(earlyAlignmentTimer);
       window.clearTimeout(settledAlignmentTimer);
       visualViewport?.removeEventListener("resize", scheduleAlignment);
+      scrollArea.style.removeProperty("padding-bottom");
     };
-  }, [open, inputFocused, mobileInline]);
+  }, [open, inputFocused, mobileInline, query]);
 
   function chooseStation(stationId: string) {
     if (stationId === blockedStationId) return;

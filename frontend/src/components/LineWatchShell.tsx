@@ -561,6 +561,9 @@ export function LineWatchShell({
           return "my-stations";
         }
         if (isMobile) {
+          if (activeView === "notifications") {
+            return "more";
+          }
           return previousView && previousView !== "map" ? previousView : "more";
         }
         return "menu";
@@ -569,7 +572,7 @@ export function LineWatchShell({
       setSelection(null);
       setAccessibilityOutageTarget(null);
     }, 180);
-  }, [isMobile, previousView, setActiveView, setSelection]);
+  }, [activeView, isMobile, previousView, setActiveView, setSelection]);
 
   const [accountState, setAccountState] = useState<AccountState>({
     source: "unavailable",
@@ -2957,6 +2960,19 @@ export function LineWatchShell({
         </div>
 
         <div className="map-utility-cluster pointer-events-auto flex items-center gap-2">
+          {selectedNetwork === "ttc" ? (
+            <button
+              type="button"
+              onClick={handleToggleEstimatedTrains}
+              disabled={subwayOperatingState.status === "closed"}
+              className={`train-layer-toggle panel hidden h-14 w-14 items-center justify-center rounded-xl border border-black/10 bg-white shadow-lg transition-all hover:scale-105 hover:!bg-slate-100 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 md:inline-flex dark:border-white/10 dark:bg-[#0a0c10] dark:hover:!bg-[#1a1e28] ${estimatedTrainsEnabled ? "active" : ""}`}
+              aria-pressed={estimatedTrainsEnabled}
+              aria-label={`Toggle live train markers (${estimatedTrainStatusLabel})`}
+              title={`Estimated train markers: ${estimatedTrainStatusLabel}`}
+            >
+              <Train size={24} />
+            </button>
+          ) : null}
           <LogsDropdown />
           <button
             onClick={handleToggleTheme}
@@ -3239,6 +3255,7 @@ export function LineWatchShell({
           onUnfocus={() => {
             setSelection(null);
             setMobileInspectorDetent("map-focus");
+            setRecenterSignal((current) => current + 1);
           }}
           onViewFullDetails={() => setActiveView(viewForImpactSelection(selection))}
           onSelectImpact={handleMapSelectImpact}

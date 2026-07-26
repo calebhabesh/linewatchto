@@ -108,10 +108,11 @@ class AccountSchemaMigrationTest {
     void v48ScopesSavedStationsByTransitNetwork() throws IOException {
         String sql = migrationSql("/db/migration/V48__network_scoped_saved_stations.sql").toLowerCase();
 
-        assertThat(sql).contains("add column network_id");
+        assertThat(sql).contains("add column network_id varchar(20) not null default 'ttc'");
         assertThat(sql).contains("primary key (account_id, network_id, station_id)");
         assertThat(sql).contains("'ttc'", "'regional'");
         assertThat(sql).contains("drop constraint saved_stations_station_id_fkey");
+        assertThat(sql).contains("on saved_stations(account_id, network_id, created_at desc)");
     }
 
     private String migrationSql(String path) throws IOException {

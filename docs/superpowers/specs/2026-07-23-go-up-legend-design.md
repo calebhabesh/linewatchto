@@ -1,7 +1,7 @@
 # Spec: GO/UP Regional Rail Map Legend & Line Label System
 
-**Date:** 2026-07-23  
-**Status:** Approved  
+**Date:** 2026-07-23
+**Status:** Approved
 **Target Application:** LineWatchTO / TTC Reliability Navigator (GO/UP Regional Rail View)
 
 ---

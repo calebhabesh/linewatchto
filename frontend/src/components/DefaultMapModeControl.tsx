@@ -39,5 +39,3 @@ export function DefaultMapModeControl({ value, onChange, compact = false }: Prop
     </div>
   );
 }
-
-
