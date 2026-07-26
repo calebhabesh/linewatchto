@@ -13833,8 +13833,8 @@ img.transit-line-badge {
   }
 
   .network-selector--compact-vertical {
-    --compact-network-option-height: 30px;
-    --compact-network-glider-height: 30px;
+    --compact-network-option-height: 32px;
+    --compact-network-glider-height: 32px;
     align-items: stretch;
     background: var(--mobile-chrome-background);
     border-radius: clamp(8px, 3vw, 12px);
@@ -13842,16 +13842,16 @@ img.transit-line-badge {
     display: flex;
     flex-direction: column;
     gap: 4px;
-    padding: 5px;
+    padding: 4px;
     width: var(--mobile-top-action-button-size);
   }
 
   .network-selector--compact-vertical .network-selector-glider {
     bottom: auto;
     height: var(--compact-network-glider-height);
-    left: 5px;
-    right: 5px;
-    top: 5px;
+    left: 4px;
+    right: 4px;
+    top: 4px;
     width: auto !important;
   }
 
@@ -13871,6 +13871,7 @@ img.transit-line-badge {
     font-size: clamp(6px, 1.8vw, 7px);
     letter-spacing: 0;
     padding-top: 5px;
+    white-space: nowrap;
   }
 
   .network-selector--compact-vertical .network-indicator-dot {

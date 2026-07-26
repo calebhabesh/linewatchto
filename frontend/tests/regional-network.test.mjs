@@ -75,7 +75,7 @@ describe("network-scoped regional dashboard", () => {
     assert.match(globalsCss, /\.network-selector--compact-vertical\[data-network="regional"\] \.network-selector-glider\s*\{[\s\S]*translateY/);
     assert.match(globalsCss, /\.site-guide-network-stack\s*\{[\s\S]*width:\s*var\(--mobile-top-action-button-size\)/);
     assert.match(globalsCss, /\.network-selector--compact-vertical \.network-indicator-dot\s*\{[\s\S]*display:\s*none/);
-    assert.match(globalsCss, /--compact-network-option-height:\s*30px[\s\S]*--compact-network-glider-height:\s*30px/);
+    assert.match(globalsCss, /--compact-network-option-height:\s*32px[\s\S]*--compact-network-glider-height:\s*32px/);
     assert.match(globalsCss, /\.network-selector--compact-vertical \.network-selector-glider\s*\{[\s\S]*height:\s*var\(--compact-network-glider-height\)/);
     assert.match(globalsCss, /\.network-selector--compact-vertical \.network-accent-ridges\s*\{[\s\S]*to bottom[\s\S]*transparent 1px 1\.75px[\s\S]*height:\s*3px/);
   });
