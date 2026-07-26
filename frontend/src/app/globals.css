@@ -6554,7 +6554,6 @@ img.transit-line-badge {
   justify-items: center;
   margin-top: 32px;
   text-align: center;
-  width: 100%;
 }
 
 .alert-card > .impact-route,
@@ -6565,47 +6564,19 @@ img.transit-line-badge {
 .impact-route__bounds {
   align-items: center;
   color: var(--text);
+  display: flex;
+  flex-wrap: wrap;
   font-size: 1.08rem;
   font-weight: 850;
   gap: 11px;
+  justify-content: center;
   line-height: 1.25;
 }
 
-.impact-route__bounds--segment {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  position: relative;
-  width: 100%;
-}
-
-.impact-route__bounds--single {
-  display: flex;
-  justify-content: center;
-}
-
-.impact-route__station {
-  hyphens: manual;
-  min-width: 0;
-  overflow-wrap: break-word;
-  text-wrap: balance;
-}
-
-.impact-route__station--from {
-  padding-right: 26px;
-  text-align: right;
-}
-
-.impact-route__station--to {
-  padding-left: 26px;
-  text-align: left;
-}
-
 .impact-route__arrow {
+  flex: 0 0 auto;
   height: 20px;
-  left: 50%;
-  position: absolute;
-  top: 50%;
-  transform: translate(-50%, -50%);
+  margin-inline: 2px;
   width: 40px;
 }
 
@@ -6613,8 +6584,6 @@ img.transit-line-badge {
   color: var(--muted);
   font-size: 0.88rem;
   font-weight: 800;
-  text-align: center;
-  width: 100%;
 }
 
 @media (min-width: 768px) {
@@ -6626,14 +6595,6 @@ img.transit-line-badge {
   .impact-route__arrow {
     height: 25px;
     width: 52px;
-  }
-
-  .impact-route__station--from {
-    padding-right: 35px;
-  }
-
-  .impact-route__station--to {
-    padding-left: 35px;
   }
 
   .impact-route__direction {
