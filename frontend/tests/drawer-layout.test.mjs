@@ -152,7 +152,14 @@ describe("floating menu layout", () => {
     assert.match(globalCss, /\.alert-card\s*>\s*\.impact-route,\s*\.closure-card\s*>\s*\.impact-route\s*\{[^}]*margin-block:\s*24px/s);
     assert.match(globalCss, /\.impact-route__bounds\s*\{[^}]*font-size:\s*1\.08rem;[^}]*gap:\s*11px;/s);
     assert.match(globalCss, /@media \(min-width:\s*768px\)\s*\{[^}]*\.impact-route__bounds\s*\{[^}]*font-size:\s*1\.55rem;[^}]*gap:\s*17px;/s);
-    assert.match(globalCss, /\.impact-route__arrow\s*\{[^}]*height:\s*20px;[^}]*width:\s*40px;/s);
+    assert.match(globalCss, /\.impact-route\s*\{[^}]*width:\s*100%;/s);
+    assert.match(globalCss, /\.impact-route__arrow\s*\{[^}]*height:\s*20px;[^}]*left:\s*50%;[^}]*position:\s*absolute;[^}]*transform:\s*translate\(-50%, -50%\);[^}]*width:\s*40px;/s);
+    assert.match(globalCss, /\.impact-route__bounds--segment\s*\{[^}]*display:\s*grid;[^}]*grid-template-columns:\s*repeat\(2, minmax\(0, 1fr\)\);[^}]*position:\s*relative;[^}]*width:\s*100%;/s);
+    assert.match(globalCss, /\.impact-route__station--from\s*\{[^}]*text-align:\s*right;/s);
+    assert.match(globalCss, /\.impact-route__station--to\s*\{[^}]*text-align:\s*left;/s);
+    assert.match(globalCss, /\.impact-route__station\s*\{[^}]*hyphens:\s*manual;[^}]*overflow-wrap:\s*break-word;[^}]*text-wrap:\s*balance;/s);
+    assert.match(globalCss, /\.impact-route__bounds--single\s*\{[^}]*display:\s*flex;[^}]*justify-content:\s*center;/s);
+    assert.match(globalCss, /\.impact-route__direction\s*\{[^}]*text-align:\s*center;[^}]*width:\s*100%;/s);
   });
 
   it("links TTC active closure children back to their canonical planned closure", () => {

@@ -184,13 +184,13 @@ export function ImpactRouteHeader({
   return (
     <div className="impact-route">
       {bounds ? (
-        <div className="impact-route__bounds">
-          <span>{bounds.from}</span>
+        <div className="impact-route__bounds impact-route__bounds--segment">
+          <span className="impact-route__station impact-route__station--from">{bounds.from}</span>
           {showTwoWay ? <LongArrowLeftRight /> : <LongArrowRight />}
-          <span>{bounds.to}</span>
+          <span className="impact-route__station impact-route__station--to">{bounds.to}</span>
         </div>
       ) : (
-        <div className="impact-route__bounds">
+        <div className="impact-route__bounds impact-route__bounds--single">
           <span>{location || "Affected segment unavailable"}</span>
         </div>
       )}
