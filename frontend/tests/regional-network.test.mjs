@@ -77,7 +77,7 @@ describe("network-scoped regional dashboard", () => {
     assert.match(globalsCss, /\.network-selector--compact-vertical \.network-indicator-dot\s*\{[\s\S]*display:\s*none/);
     assert.match(globalsCss, /--compact-network-option-height:\s*32px[\s\S]*--compact-network-glider-height:\s*32px/);
     assert.match(globalsCss, /\.network-selector--compact-vertical \.network-selector-glider\s*\{[\s\S]*height:\s*var\(--compact-network-glider-height\)/);
-    assert.match(globalsCss, /\.network-selector--compact-vertical \.network-accent-ridges\s*\{[\s\S]*to bottom[\s\S]*transparent 1px 1\.75px[\s\S]*height:\s*3px/);
+    assert.match(globalsCss, /\.network-selector--compact-vertical \.network-accent-ridges\s*\{[\s\S]*to bottom[\s\S]*transparent 1px 2px[\s\S]*height:\s*3px/);
   });
 
   it("keeps unselected regional station indicators dormant in mobile performance modes", () => {
