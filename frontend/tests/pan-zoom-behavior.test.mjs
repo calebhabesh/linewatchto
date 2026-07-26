@@ -5,6 +5,7 @@ import { describe, it } from "node:test";
 import {
   clampPanZoomScale,
   computeBoundedMapFrame,
+  computeFittedCameraFlyInStart,
   computeMapFitScale,
   computeInsetViewportFocus,
   distanceBetweenPoints,
@@ -89,6 +90,18 @@ describe("pan zoom behavior guardrails", () => {
     const snapped = snapTransformToDevicePixels({ x: 22.26, y: -8.74, scale: 0.1733333333 }, 2);
 
     assert.deepEqual(snapped, { x: 22.5, y: -8.5, scale: 0.1733333333 });
+  });
+
+  it("normalizes the fitted-camera entrance from the viewport's top-left", () => {
+    assert.deepEqual(
+      computeFittedCameraFlyInStart(
+        { x: 100, y: 80, scale: 0.2 },
+        1000,
+        600,
+      ),
+      { x: -80, y: -28, scale: 0.27 },
+    );
+    assert.match(hookSource, /computeFittedCameraFlyInStart\(next, width, height\)/);
   });
 
   it("cancels focus animation as soon as a drag starts", () => {

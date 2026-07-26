@@ -149,7 +149,7 @@ export function NotificationSettingsPanel({
               <div className="flex items-start gap-2.5">
                 <span className="text-xs text-emerald-600 dark:text-emerald-400 font-bold mt-0.5">✓</span>
                 <div className="text-xs">
-                  <span className="font-bold text-slate-800 dark:text-slate-200 block">Saved Commute Impacts</span>
+                  <span className="font-bold text-slate-800 dark:text-slate-200 block">My Commute Impacts</span>
                   <span className="text-slate-500 dark:text-slate-400">Get notified the instant a delay, suspension, or slowdown affects your specific commute path.</span>
                 </div>
               </div>
@@ -248,7 +248,7 @@ export function NotificationSettingsPanel({
 
             <div className="notification-settings-section">
               <div className="notification-settings-section-header">
-                <h3>Saved Commute Alerts</h3>
+                <h3>My Commute Alerts</h3>
                 <span>Active</span>
               </div>
               <div className="notification-settings-card border border-black/10 dark:border-white/10 p-3 rounded-lg flex flex-col gap-2">
@@ -258,7 +258,7 @@ export function NotificationSettingsPanel({
                       <Navigation size={15} className="text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
                     </span>
                     <div>
-                      <strong>Current Disruptions Affecting Saved Commutes</strong>
+                      <strong>Current Disruptions Affecting My Commutes</strong>
                       <em>Delays, suspensions, Reduced Speed Zones, and cleared updates only when they affect a saved route.</em>
                       {!subscribed && accountNotificationsDesired ? (
                         <p className="notification-settings-muted-warning text-xs text-slate-400 dark:text-slate-500 italic mt-1.5">
@@ -276,7 +276,7 @@ export function NotificationSettingsPanel({
                     <NotificationSwitch
                       checked={preferences.savedCommutes.currentDisruptions}
                       disabled={busy || !preferencesLoaded}
-                      label="Current disruptions affecting saved commutes"
+                      label="Current disruptions affecting My Commutes"
                       onChange={(checked) => {
                         updatePreferences({
                           ...preferences,
@@ -380,7 +380,7 @@ export function NotificationSettingsPanel({
               <div className="notification-event-type-grid border border-black/10 dark:border-white/10 rounded-lg overflow-hidden bg-slate-50 dark:bg-black/25">
                 <div className="notification-event-type-header grid grid-cols-[1fr_80px_80px] gap-2 px-3 py-2 items-end border-b border-black/10 dark:border-white/10 font-bold text-xs text-slate-700 dark:text-slate-300">
                   <span>Event Type</span>
-                  <span className="text-center">Saved Commutes</span>
+                  <span className="text-center">My Commutes</span>
                   <span className="text-center">Line Subs</span>
                 </div>
 
@@ -420,7 +420,7 @@ export function NotificationSettingsPanel({
                       <NotificationSwitch
                         checked={preferences.savedCommutes.eventTypes[key]}
                         disabled={busy || !preferencesLoaded}
-                        label={`Saved commute ${label}`}
+                        label={`My Commutes: ${label}`}
                         onChange={(checked) => {
                           updatePreferences({
                             ...preferences,
@@ -465,7 +465,7 @@ export function NotificationSettingsPanel({
                 <span>Global</span>
               </div>
               <p className="notification-settings-note">
-                New and meaningfully changed closures follow the stream and event filters above automatically. Choose if LineWatchTO should add one scheduled follow-up for saved commutes and line subscriptions.
+                New and meaningfully changed closures follow the stream and event filters above automatically. Choose if LineWatchTO should add one scheduled follow-up for My Commutes and line subscriptions.
               </p>
               <fieldset className="notification-follow-up-options" disabled={busy || !preferencesLoaded}>
                 <legend className="sr-only">Planned closure follow-up policy</legend>
@@ -486,7 +486,7 @@ export function NotificationSettingsPanel({
                     value: "day-of" as const,
                     label: "Day Of",
                     badge: null,
-                    desc: "Once after 6:00 AM Toronto time on the start date; saved commutes still wait for their route window.",
+                    desc: "Once after 6:00 AM Toronto time on the start date; My Commutes alerts still wait for their route window.",
                   },
                   {
                     value: "announcements-only" as const,

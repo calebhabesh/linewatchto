@@ -5,6 +5,7 @@ import { describe, it } from "node:test";
 const transitMapSource = readFileSync(new URL("../src/app/transit-map.tsx", import.meta.url), "utf8");
 const globalCss = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
 const interactiveMapSource = readFileSync(new URL("../src/components/InteractiveTtcMap.tsx", import.meta.url), "utf8");
+const mapImpactNormalizationSource = readFileSync(new URL("../src/components/map-impact-normalization.ts", import.meta.url), "utf8");
 
 function cssBlockFor(selector) {
   const start = globalCss.indexOf(`${selector} {`);
@@ -102,9 +103,9 @@ describe("asset-backed map layering", () => {
     );
     assert.match(
       interactiveMapSource,
-      /id="hover-priority-boundary-ring-mask"[\s\S]*?stroke="white"[\s\S]*?strokeWidth="120"[\s\S]*?stroke="black"[\s\S]*?strokeWidth="102"/,
+      /id=\{maskId\}[\s\S]*?stroke="white"[\s\S]*?strokeWidth="120"[\s\S]*?stroke="black"[\s\S]*?strokeWidth="102"/,
     );
-    assert.match(interactiveMapSource, /mask="url\(#hover-priority-boundary-ring-mask\)"/);
+    assert.match(interactiveMapSource, /mask=\{`url\(#\$\{maskId\}\)`\}/);
     assert.match(interactiveMapSource, /event\.pointerType !== "mouse" \|\| exiting/);
     assert.match(
       globalCss,
@@ -172,7 +173,7 @@ describe("asset-backed map layering", () => {
 
     assert.match(interactiveMapSource, /data-map-highlight-id/);
     assert.match(interactiveMapSource, /map-selection-flash/);
-    assert.match(interactiveMapSource, /setTimeout\([^,]+,\s*2500\s*\)/);
+    assert.doesNotMatch(interactiveMapSource, /isSelectionFastFlashing|isStationFastFlashing/);
   });
 
   it("renders reduced speed zone chevron glyphs without a clipping mask", () => {
@@ -312,7 +313,7 @@ describe("asset-backed map layering", () => {
     assert.ok(stationLayerIndex > selectedEmphasisIndex, "station art must remain above the selected emphasis");
     assert.match(interactiveMapSource, /data-selected-impact-emphasis=\{selectedImpactEmphasis\.id\}/);
     assert.match(interactiveMapSource, /function SelectedImpactEmphasis\(/);
-    assert.match(interactiveMapSource, /className=\{`asset-alert-path map-selection-flash pointer-events-none/);
+    assert.match(interactiveMapSource, /className="asset-alert-path map-selection-flash map-selection-attention pointer-events-none"/);
     assert.match(
       interactiveMapSource,
       /data-selected-commute-impact-overlay=\{selectedImpactEmphasis\.id\}[\s\S]*?<OverlaySegment[\s\S]*?impact=\{selectedImpactEmphasis\.impact\}[\s\S]*?idSuffix="-commute-focus"/,
@@ -357,6 +358,10 @@ describe("asset-backed map layering", () => {
 
   it("renders collision-aware floating badges for segments with overlapping alert types", () => {
     assert.match(interactiveMapSource, /overlapBadgeSegments/);
+    assert.match(interactiveMapSource, /closure\.activeNow \|\| closure\.timingStatus === "active-now"/);
+    assert.match(interactiveMapSource, /normalizeActiveClosureMapImpact/);
+    assert.match(mapImpactNormalizationSource, /kind: "suspension"/);
+    assert.match(interactiveMapSource, /activeClosureImpactCardIds/);
     assert.match(interactiveMapSource, /plannedPreviewImpactsForSegment\(segment, plannedClosures\)/);
     assert.match(interactiveMapSource, /groupOverlapBadgeSegments\(renderedOverlaySegments, overlapPlannedClosures\)/);
     assert.match(interactiveMapSource, /groupOverlapBadgeSegments/);
@@ -477,9 +482,10 @@ describe("asset-backed map layering", () => {
     assert.match(interactiveMapSource, /boundedChooserViewportCandidates/);
     assert.doesNotMatch(interactiveMapSource, /for \(let y = minimumY; y <= maximumY; y \+= step\)/);
     assert.match(interactiveMapSource, /onHoverImpact/);
-    assert.match(interactiveMapSource, /data-hover-priority-impact=\{hoveredOverlayHighlight\.key\}/);
+    assert.match(interactiveMapSource, /data-hover-priority-impact=\{highlight\.key\}/);
     assert.match(interactiveMapSource, /onPointerEnter=\{\(event\) => \{/);
-    assert.match(interactiveMapSource, /onFocus=\{\(\) => onHoverImpact\(impact\)\}/);
+    assert.doesNotMatch(interactiveMapSource, /onFocus=\{\(\) => onHoverImpact\(impact\)\}/);
+    assert.match(interactiveMapSource, /expandedOverlapBadgeId && !hoveredOverlapChooserImpact/);
     assert.match(interactiveMapSource, /setHoveredOverlayForeground\(\{[\s\S]*?impact: renderedImpact\.impact/);
     assert.match(interactiveMapSource, /const OVERLAP_CHOOSER_TARGET_GAP = 16;/);
     assert.match(interactiveMapSource, /const OVERLAP_CHOOSER_GAP_DEVIATION_WEIGHT = 4;/);
@@ -576,15 +582,21 @@ describe("asset-backed map layering", () => {
     assert.match(interactiveMapSource, /readSvgStationCenters/);
   });
 
-  it("keeps alert and station focus flash elements wired for mobile-safe animation", () => {
-    assert.match(interactiveMapSource, /flashSelection/);
-    assert.match(interactiveMapSource, /flashStationId/);
-    assert.match(interactiveMapSource, /data-map-highlight-id=\{flashSelection\.id\}/);
+  it("keeps alert and station selections on one smooth attention-to-breathing animation lifecycle", () => {
+    assert.match(interactiveMapSource, /data-map-highlight-id=\{selection\.id\}/);
     assert.match(interactiveMapSource, /data-map-highlight-id=\{station\.id\}/);
-    assert.match(interactiveMapSource, /className={`asset-alert-path map-selection-flash pointer-events-none \$\{[\s\S]*?fast \? "fast" : "latent"[\s\S]*?\}`}/);
-    assert.match(interactiveMapSource, /className={`station-selection-flash \$\{[\s\S]*?isStationFastFlashing[\s\S]*?\}`}/);
-    assert.match(globalCss, /@keyframes map-selection-flash/);
-    assert.match(globalCss, /@keyframes station-selection-flash/);
+    assert.match(interactiveMapSource, /className="asset-alert-path map-selection-flash map-selection-attention pointer-events-none"/);
+    assert.match(interactiveMapSource, /className="station-selection-flash map-selection-attention"/);
+    assert.doesNotMatch(interactiveMapSource, /isSelectionFastFlashing|isStationFastFlashing/);
+    assert.match(globalCss, /\.map-selection-attention\s*\{[^}]*animation-name:\s*var\(--selection-intro-name\),\s*var\(--selection-breathe-name\)/s);
+    assert.match(globalCss, /animation-delay:\s*0s,\s*var\(--selection-intro-duration\)/);
+    assert.match(globalCss, /--selection-breathe-duration:\s*1\.2s/);
+    assert.match(globalCss, /@keyframes map-selection-path-intro[\s\S]*12\.5%[\s\S]*37\.5%[\s\S]*62\.5%[\s\S]*87\.5%/);
+    assert.match(globalCss, /@keyframes map-selection-station-intro[\s\S]*12\.5%[\s\S]*37\.5%[\s\S]*62\.5%[\s\S]*87\.5%/);
+    assert.match(globalCss, /@keyframes map-selection-path-intro/);
+    assert.match(globalCss, /@keyframes map-selection-path-breathe/);
+    assert.match(globalCss, /@keyframes map-selection-station-intro/);
+    assert.match(globalCss, /@keyframes map-selection-station-breathe/);
     assert.match(interactiveMapSource, /aria-label="Station impact foreground highlights"/);
     assert.match(interactiveMapSource, /data-station-impact-selection-id=\{impact\.cardId\}/);
     assert.match(interactiveMapSource, /data-station-impact-hover-id=\{impact\.cardId\}/);
@@ -608,7 +620,7 @@ describe("asset-backed map layering", () => {
   it("softens desktop map selection highlights when motion is reduced", () => {
     assert.match(
       globalCss,
-      /@media \(min-width:\s*768px\) \{[\s\S]*?\.motion-paused \.asset-alert-path\.map-selection-flash\.fast,[\s\S]*?opacity:\s*0\.55;/,
+      /@media \(min-width:\s*768px\) \{[\s\S]*?\.motion-paused \.asset-alert-path\.map-selection-flash[\s\S]*?opacity:\s*0\.55;/,
     );
     assert.match(
       globalCss,
@@ -629,7 +641,7 @@ describe("asset-backed map layering", () => {
 
   it("renders selected saved commute paths above disruption corridors but below stations", () => {
     assert.match(interactiveMapSource, /commutePathPreview/);
-    assert.match(interactiveMapSource, /aria-label="Saved commute route preview"/);
+    assert.match(interactiveMapSource, /aria-label="Commute route preview"/);
     assert.match(interactiveMapSource, /CommutePathOverlay/);
     assert.match(interactiveMapSource, /data-commute-path-preview/);
     assert.match(interactiveMapSource, /className="asset-alert-path-glow commute-path-preview-glow"/);
@@ -666,7 +678,7 @@ describe("asset-backed map layering", () => {
     );
 
     const impactLayerIndex = interactiveMapSource.indexOf("retainedImpactLayers.map");
-    const previewGroupIndex = interactiveMapSource.indexOf('aria-label="Saved commute route preview"', impactLayerIndex);
+    const previewGroupIndex = interactiveMapSource.indexOf('aria-label="Commute route preview"', impactLayerIndex);
     const selectedImpactIndex = interactiveMapSource.indexOf('aria-label="Selected disruption emphasis"', previewGroupIndex);
     const stationLayerIndex = interactiveMapSource.indexOf("svgParts?.part2", selectedImpactIndex);
 
@@ -690,7 +702,7 @@ describe("asset-backed map layering", () => {
     const desktopFontSize = attributionBlock.match(/font-size:\s*(\d+)px;/);
 
     assert.match(interactiveMapSource, /aria-label="TTC map copyright notice"/);
-    assert.match(interactiveMapSource, /© 2026 Toronto Transit Commission 02\/26 - Map not to scale/);
+    assert.match(interactiveMapSource, /© 2026 Toronto Transit Commission 02\/26 - Map Not to Scale/);
     assert.match(interactiveMapSource, /map-attribution-notice/);
     assert.match(attributionBlock, /position:\s*absolute;/);
     assert.match(attributionBlock, /right:\s*(?!;)[^;]+;/);
@@ -733,7 +745,7 @@ describe("asset-backed map layering", () => {
     assert.match(shellSource, /readVisualPreferencesFromStorage/);
     assert.match(shellSource, /getEstimatedTrainMarkers/);
     assert.match(shellSource, /estimatedTrainMarkerRefreshMs/);
-    assert.match(shellSource, /const estimatedTrainMarkersVisible = estimatedTrainsEnabled && subwayOperatingState\.status === "open";/);
+    assert.match(shellSource, /const estimatedTrainMarkersVisible = selectedNetwork === "ttc" && estimatedTrainsEnabled && subwayOperatingState\.status === "open";/);
     assert.match(shellSource, /let trainMarkerRefreshInFlight = false;/);
     assert.match(shellSource, /if \(trainMarkerRefreshInFlight\) \{\s*return;\s*\}/);
     assert.match(shellSource, /trainMarkerRefreshInFlight = true;/);

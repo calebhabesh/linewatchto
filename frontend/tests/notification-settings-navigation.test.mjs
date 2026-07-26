@@ -37,8 +37,8 @@ describe("notification settings navigation", () => {
     assert.match(notificationPanelSource, /This device is receiving notifications/);
     assert.match(notificationPanelSource, /Enable on This Device/);
     assert.match(shellSource, /Device Setup Needed/);
-    assert.match(notificationPanelSource, /Saved Commute Alerts/);
-    assert.match(notificationPanelSource, /Current Disruptions Affecting Saved Commutes/);
+    assert.match(notificationPanelSource, /My Commute Alerts/);
+    assert.match(notificationPanelSource, /Current Disruptions Affecting My Commutes/);
     assert.match(notificationPanelSource, /Planned Closure Reminders/);
     assert.match(notificationPanelSource, /Line Subscriptions/);
     assert.match(notificationPanelSource, /TransitLineBadge/);

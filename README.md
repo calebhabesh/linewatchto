@@ -1,6 +1,6 @@
 # LineWatchTO
 
-LineWatchTO is an unofficial TTC reliability dashboard for Toronto subway and LRT riders. The goal is to combine live service alerts, planned closures, GTFS route data, saved commute checks, and historical alert snapshots into a map-first dashboard that quickly answers:
+LineWatchTO is an unofficial TTC reliability dashboard for Toronto subway and LRT riders. The goal is to combine live service alerts, planned closures, GTFS route data, My Commutes impact checks, and historical alert snapshots into a map-first dashboard that quickly answers:
 
 > Is my route affected now, later today, or this weekend?
 
@@ -13,10 +13,11 @@ The current app is a full-stack dashboard demo with graceful local-fixture fallb
 Implemented now:
 
 - Dark, map-first Next.js dashboard.
+- Fixture-backed GO/UP network mode with a network-scoped TTC / GO & UP selector, a per-device default-map preference, a custom interactive regional schematic, all eight rail corridors, 72 logical stations, and all 74 adjacent route links. The regional map reuses the TTC map's hover/selection indicators, wide accessible hit targets, layered impact glow/boundary treatment, and card-opening interactions. Station search, station details, line legend actions, My Stations, status copy, and mobile inspection are scoped to the selected network; TTC-only arrivals, accessibility, Reduced Speed Zones, My Commutes, reliability, notifications, and surface notices are absent or explicitly unavailable in regional mode. The backend accepts `GET /api/dashboard?network=ttc|regional`; the regional response supplies the static catalog and explicitly reports realtime availability as unavailable. Saved-station identities include the network so identically named/identified stations cannot collide. Local synthetic scenarios exercise route, segment, overlap, station-node, and stale-source presentation without changing the disruption-free default fixture. TTC remains the default. Regional realtime ingestion is not implemented, and GO/UP mode must not be treated as live service information.
 - Opt-in estimated train markers can display schematic train blips on the TTC-style map when the live subway GTFS-RT arrival provider has a fresh mapped snapshot. These markers are inferred from trip updates, line topology, and segment travel-time estimates; they are not physical train positions.
 - Global accessibility outages panel with elevator and escalator drill-downs grouped by TTC transit line and station, showing relative update times, station detail link, and custom icons.
 - Searchable surface service notices panel with category filters (detours, bypasses, service changes, notices) and debounced route/stop search queries.
-- Unified station and rapid-transit alert search with grouped condensed results. Alert results open their detailed category card, preserve the selected map highlight, and continue through the mobile map inspector. Active Alerts, Delays, Reduced Speed Zones, and Planned Closures also provide local text, line, and sort controls.
+- Unified global search with grouped results for TTC and GO/UP lines and stations, dashboard-visible rapid-transit alerts, account-owned saved stations and commutes, searchable Streetcar & Bus notices, and core app destinations. Both station catalogs remain searchable from either map mode; shared logical IDs stay network-scoped, the current map wins equal-result ties, and selecting a station on the other network switches maps before focusing its detail panel. Results otherwise hand off to the existing detail view or specialized submenu, where local filters remain available. Surface notice results remain unavailable in fixture mode, and account-owned result groups appear only when those items have been loaded for the signed-in account.
 - Overnight subway-closed screen that hides the feed during general non-operating hours while allowing a map peek for current overlays and station accessibility details.
 - Edited SVG-backed subway/LRT network map from `frontend/public/assets/linewatch/ttc-subway-map-edited.svg`.
 - TTC-style line colors for Lines 1, 2, 4, 5, and 6.
@@ -30,9 +31,9 @@ Implemented now:
 - Reduced Speed Zone cards with Cause, Resolution, and available speed/track metadata.
 - Planned closure cards with map preview highlighting plus structured Toronto-time closure hours and closure nights/dates derived from TTC active periods; clearly incomplete trailing time fragments in TTC titles are omitted from the display copy.
 - Legend SVG icons for Lines 1, 2, 4, 5, and 6.
-- Account-backed saved commutes with weighted default rapid-transit route matching, optional return-trip monitoring, direction-aware Reduced Speed Zone matching, dashboard-visible impact summaries, standard-vs-impacted travel-time estimates with confidence labels, and per-route notification rules with independent outbound/return day and time schedules and event types across the complete saved route. Route filters change monitored status and notification relevance, but current ignored route conditions still contribute to the absolute travel-time estimate; upcoming closures remain visible without changing that estimate until their active window begins.
+- Account-backed My Commutes with weighted default rapid-transit route matching, optional return-trip monitoring, direction-aware Reduced Speed Zone matching, dashboard-visible impact summaries, standard-vs-impacted travel-time estimates with confidence labels, and per-route notification rules with independent outbound/return day and time schedules and event types across the complete route. Route filters change monitored status and notification relevance, but current ignored route conditions still contribute to the absolute travel-time estimate; upcoming closures remain visible without changing that estimate until their active window begins.
 - Account-backed My Stations watchlists with save/remove actions in station details and global search, a searchable/filterable/sortable station submenu, expandable fresh station-impact and accessibility-outage summaries, source-labeled compact station arrivals, and consistent desktop Account/mobile More navigation. My Stations does not send push notifications.
-- Account-backed Web Push notification subscriptions and preferences for saved-commute impacts. Saved commute notifications can be narrowed per saved route; delivery is opt-in and requires browser permission, a browser that supports PWA Web Push, configured VAPID keys, `LINEWATCH_PUSH_ENABLED=true`, fresh dashboard-visible impacts, and a matching saved-route notification rule.
+- Account-backed Web Push notification subscriptions and preferences for My Commutes impacts. My Commutes notifications can be narrowed per route; delivery is opt-in and requires browser permission, a browser that supports PWA Web Push, configured VAPID keys, `LINEWATCH_PUSH_ENABLED=true`, fresh dashboard-visible impacts, and a matching route notification rule.
 - Account sign-in supports optional Google sign-in when a Google OAuth web client ID, client secret, and redirect URI are configured, while retaining email/password registration, explicit Google linking for existing password accounts, password reset through emailed reset links when SMTP is configured, local/dev reset-token fallback, and demo login.
 - Official TTC.ca performance metrics panel for current on-time and elevator/escalator status, source-labeled with the TTC.ca updated timestamp, daily refresh guard, and stale last-good fallback.
 - Redis-backed dashboard cache for status, map, alerts, ingestion health, and TTC performance reads, with database/live fallback when Redis is unavailable.
@@ -72,7 +73,7 @@ Implemented now:
 - Nonlinear overlays resolve from the authored hidden segment-guides-layer.
 - Opposite-direction Reduced Speed Zone records merge into one bidirectional effect and grouped card.
 - Directionless Reduced Speed Zone records render bidirectionally without inventing a direction label.
-- Nightly closure active-window gating derived from TTC parent/child periods. A closure remains in the Planned Closures timeline throughout its current or future schedule; during an active child window it also appears in Active Alerts, marks the line `Closure active`, affects matching commutes, and renders a red current-closure map overlay. When TTC publishes the active child as a standalone route alert, LineWatchTO links it by the parent period's exact source ID, uses the child's active-alert identity and warning icon for the single current map impact, and provides a `View Details` link back to the canonical planned closure. If TTC does not publish a standalone child, LineWatchTO projects the canonical closure into the active view for the effective window.
+- Nightly closure active-window gating derived from TTC parent/child periods. A closure remains in the Planned Closures timeline throughout its current or future schedule; during an active child window it also appears in Active Alerts, marks the line `Closure active`, affects matching commutes, and renders a red current-closure map overlay with the active-alert warning identity. When TTC publishes the active child as a standalone route alert, LineWatchTO links it by the parent period's exact source ID, uses the child's identity for the single current map impact, and provides a `View Details` link back to the canonical planned closure. If TTC does not publish a standalone child, LineWatchTO projects the canonical closure into the active view for the effective window while retaining that same active-alert presentation.
 
 Not implemented yet:
 
@@ -371,7 +372,7 @@ LINEWATCH_AUTH_GOOGLE_TOKEN_URI=https://oauth2.googleapis.com/token
 
 Use a Google OAuth Web application client. Configure Authorized redirect URIs for each environment, for example `http://localhost:3000/api/auth/google/callback`, `https://staging.linewatchto.ca/api/auth/google/callback`, `https://linewatchto.ca/api/auth/google/callback`, and `https://www.linewatchto.ca/api/auth/google/callback` if the `www` host serves the app. The custom frontend button starts the backend OAuth redirect flow; the backend exchanges the authorization code, verifies the returned Google ID token, and still creates its own HttpOnly `linewatch_session` cookie. Google sign-in is optional; when it is disabled or unconfigured, the UI falls back to email/password and demo login.
 
-Existing email/password accounts are not auto-linked by matching email during Google sign-in. A signed-in user links Google from the account menu, which runs the same OAuth redirect flow and requires the Google email to match the current LineWatch account email. This preserves saved commutes and push preferences on the original account and avoids duplicate same-email accounts.
+Existing email/password accounts are not auto-linked by matching email during Google sign-in. A signed-in user links Google from the account menu, which runs the same OAuth redirect flow and requires the Google email to match the current LineWatch account email. This preserves My Commutes and push preferences on the original account and avoids duplicate same-email accounts.
 
 Run the deployment smoke checker after DNS and TLS are working:
 
@@ -435,7 +436,7 @@ when several LineWatchTO tabs are open, and it sets the local browser title to
 `LineWatchTO Dev`. By default, the helper also opts the browser into local dev
 account auto-login. With `scripts/dev-live-backend.sh` running, localhost signs
 into `dev@linewatch.local` through the real backend auth/session endpoints and
-opens account-backed features such as saved commutes without a staging deploy.
+opens account-backed features such as My Commutes without a staging deploy.
 Set `NEXT_PUBLIC_LINEWATCH_DEV_ACCOUNT_AUTO_LOGIN=false` before running the
 frontend helper to disable the shortcut.
 
@@ -497,7 +498,7 @@ The same helper enables the local dev account endpoint by default with
 `LINEWATCH_AUTH_DEV_ACCOUNT_ENABLED=true`. That endpoint is disabled by default
 in application configuration and should stay off for staging, production, and
 public tunnel/push workflows. The dev account is not a demo account; it is a
-local developer persona seeded with saved commutes for quick desktop/mobile UI
+local developer persona seeded with My Commutes routes for quick desktop/mobile UI
 testing. Normal Web Push delivery remains off unless you explicitly enable the
 push settings below.
 
@@ -550,9 +551,9 @@ If the tunnel is already running separately, start only the app processes with:
 LINEWATCH_SKIP_CLOUDFLARED=true scripts/dev-cloudflare-push.sh
 ```
 
-New saved commutes default to weekday 6:30-9:30 AM outbound and 3:00-7:00 PM return notification windows. Existing saved commutes keep their prior schedule during migration.
+New My Commutes routes default to weekday 6:30-9:30 AM outbound and 3:00-7:00 PM return notification windows. Existing routes keep their prior schedule during migration.
 
-New and meaningfully changed planned closures are automatic when their stream and event-type filters allow them; there is no separate event-change master switch. One account-level follow-up policy applies to saved commutes and line subscriptions: **Smart** chooses a day-of follow-up for later closures or a within-24-hours follow-up for early-morning closures, while **Within 24 Hours**, **Day Of**, and **Announcements Only** provide explicit alternatives. Both planners emit only one applicable timing candidate per closure evaluation. Saved-commute delivery also waits until the configured leg window is open.
+New and meaningfully changed planned closures are automatic when their stream and event-type filters allow them; there is no separate event-change master switch. One account-level follow-up policy applies to My Commutes and line subscriptions: **Smart** chooses a day-of follow-up for later closures or a within-24-hours follow-up for early-morning closures, while **Within 24 Hours**, **Day Of**, and **Announcements Only** provide explicit alternatives. Both planners emit only one applicable timing candidate per closure evaluation. My Commutes delivery also waits until the configured leg window is open.
 
 The browser still controls permission prompts, notification ranking, and delivery. Local HTTP development works only where the browser treats the origin as trustworthy, such as `localhost`; production should use HTTPS. Notifications carry encrypted display payloads when sent, and the service worker can also fetch pending payloads from the signed-in account endpoint so stale service data is not cached into offline notifications. Saved-commute disruption notifications use stable lifecycle tags and Web Push topics. Each saved commute has its own notification rule, with independent outbound and return schedules in `America/Toronto`, quick weekday rush-hour presets, custom/overnight windows, event types, and leg toggles. Every enabled leg monitors its complete computed saved route. Window starts are inclusive, ends are exclusive, and an overnight window belongs to the day on which it starts. A current impact that starts while its rule is established but outside the configured window remains observed and can notify once when that natural window opens. Current impacts that already existed when a commute was added or its route rule was changed are recorded silently and shown in-app without a catch-up OS push. Planned-closure delivery waits until the configured leg window is open. A later clearance is only pushed for current impacts that previously produced an active saved-commute notification, and it must still pass the route's service-restored toggle, leg selection, and current leg window. Suppressed clearances are recorded as closed so they cannot leak out through a later retry. Suppressed-but-still-current saved-commute impacts remain part of lifecycle tracking so LineWatch does not send false service-restored notices merely because a route rule muted an active alert. Notification titles use the controlled format `⚠️ Line {N} {Line Name} {Event Type}`. A distinct TTC alert update—including a delay escalating to a suspension—creates a new active delivery and re-notifies the existing active lifecycle entry; unchanged polling snapshots remain deduplicated. Backend restarts, deployments, notification-copy or navigation changes, and compatible fingerprint-algorithm upgrades do not count as alert updates; existing observation rows are refreshed silently. When a current disruption clears, LineWatch sends a distinct attention-requesting `✅ Line {N} {Line Name} {Event Type} Cleared` notification with a separate browser display tag, so the active update and the clearance can both remain visible where the browser/OS allows it. Every LineWatchTO Web Push request—including active disruptions, planned alerts, diagnostic tests, cleared/service-restored updates, and payload-less fallback wake-ups—requests the Web Push protocol's highest `Urgency: high` delivery class. The service worker requests non-silent display, re-notification, and persistent presentation for active, cleared, diagnostic, and fallback notifications; browser and OS notification-channel settings retain final authority over sound, vibration, and heads-up presentation. Active deliveries accepted by the push service without a current-attempt browser report receive at most two sparse retries—after 5 minutes and then 15 minutes—within the alert's first 30 minutes. A service-worker display report stops those retries; this improves the odds during transient gaps without creating a two-minute retry storm or treating missing telemetry as proof of failure. Active push transport defaults to `LINEWATCH_PUSH_ACTIVE_DELIVERY_TTL=PT1H`, while exact active-alert display remains bounded by `LINEWATCH_PUSH_ACTIVE_DISPLAY_TTL=PT10M`; if a delayed active push arrives after that display window, the service worker shows a generic LineWatch service-update fallback instead of stale alert text. The service worker calls `showNotification()` before starting receipt telemetry, then sends its receipt and signed display acknowledgement concurrently to conserve the browser's background execution window. Active bodies include the TTC-provided start time in `America/Toronto` when available; cleared bodies include the LineWatch clearance-detection time. The clock line uses `🕗 MMM d, h:mm AM/PM` without an additional Started/Cleared label. When the app opens or receives another push event, the service worker asks the backend which notification tags should remain visible. Active impacts are removed when they are no longer dashboard-visible, while displayed service-restored notifications are retained for `LINEWATCH_PUSH_CLEARED_NOTIFICATION_RETENTION`, default `PT24H`, before cleanup may close them. Android and iOS may still age, rank, or remove PWA notifications according to browser and OS policy; in-app Alert History is the reliable history surface. Line-wide current alerts use a stream-observation layer: LineWatch records eligible subscribed-line events separately from delivered push events, so a clearance can be sent for an event observed while subscribed even if the active push was suppressed as catch-up or failed delivery.
 
@@ -741,7 +742,7 @@ Core v1 target:
 - Clickable/tappable alert segments and single-station impact rings.
 - Planned closure timeline for today, this weekend, and upcoming dates.
 - Grouped station, line, and current/planned rapid-transit alert search.
-- Saved commute watchlists such as `Finch -> Union`.
+- My Commutes routes such as `Finch -> Union`.
 - "Is my commute affected?" impact summary.
 - Standard-vs-impacted saved-commute travel-time estimates with bounded extra-time ranges for delays and Reduced Speed Zones, and an unreliable timing state for suspensions and closures.
 - Opt-in saved-commute Web Push alerts for dashboard-visible impacts when push is configured and the saved route's granular rule allows delivery.
@@ -796,7 +797,7 @@ Next.js dashboard
         |
         +--> live subway/LRT map
         +--> planned closure timeline
-        +--> saved commute cards
+        +--> My Commutes cards
         +--> reliability explorer
 ```
 
@@ -863,7 +864,7 @@ LineWatchTO is intended to demonstrate:
 
 Suggested resume bullet once backend and live data are implemented:
 
-> Engineered LineWatchTO, an unofficial TTC reliability dashboard using Java 21, Spring Boot, PostgreSQL/PostGIS, Redis, Next.js, and TypeScript to visualize live subway/LRT disruptions, planned closures, and saved commute impact across Toronto.
+> Engineered LineWatchTO, an unofficial TTC reliability dashboard using Java 21, Spring Boot, PostgreSQL/PostGIS, Redis, Next.js, and TypeScript to visualize live subway/LRT disruptions, planned closures, and My Commutes impacts across Toronto.
 
 ## Roadmap
 

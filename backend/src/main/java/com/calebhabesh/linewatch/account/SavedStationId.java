@@ -5,13 +5,15 @@ import java.util.Objects;
 
 public class SavedStationId implements Serializable {
     private String accountId;
+    private String networkId;
     private String stationId;
 
     public SavedStationId() {
     }
 
-    public SavedStationId(String accountId, String stationId) {
+    public SavedStationId(String accountId, String networkId, String stationId) {
         this.accountId = accountId;
+        this.networkId = networkId;
         this.stationId = stationId;
     }
 
@@ -23,11 +25,13 @@ public class SavedStationId implements Serializable {
         if (!(other instanceof SavedStationId that)) {
             return false;
         }
-        return Objects.equals(accountId, that.accountId) && Objects.equals(stationId, that.stationId);
+        return Objects.equals(accountId, that.accountId)
+            && Objects.equals(networkId, that.networkId)
+            && Objects.equals(stationId, that.stationId);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(accountId, stationId);
+        return Objects.hash(accountId, networkId, stationId);
     }
 }

@@ -8,7 +8,7 @@ import {
 } from "../src/components/commute-station-popover.ts";
 
 describe("saved commute station popover geometry", () => {
-  it("aligns the active picker label with the top of the Saved Commutes scroll area", () => {
+  it("aligns the active picker label with the top of the My Commutes scroll area", () => {
     assert.equal(calculateMobilePickerAlignmentScroll(260, 62), 190);
     assert.equal(calculateMobilePickerAlignmentScroll(66, 62), -4);
   });

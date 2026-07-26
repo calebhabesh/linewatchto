@@ -244,7 +244,7 @@ export type ReliabilitySummary = {
 export type IngestionHealthItem = {
   label: string;
   value: string;
-  state: "ok";
+  state: "ok" | "warning" | "error";
 };
 
 export const generatedAt = {

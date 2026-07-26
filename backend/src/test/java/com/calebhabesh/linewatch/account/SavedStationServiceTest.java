@@ -48,6 +48,7 @@ class SavedStationServiceTest {
 
         assertThat(response.stations()).singleElement().satisfies(item -> {
             assertThat(item.station().id()).isEqualTo("sheppard-yonge");
+            assertThat(item.networkId()).isEqualTo("ttc");
             assertThat(item.station().hasActiveImpact()).isTrue();
             assertThat(item.station().accessStatus()).isEqualTo("outage");
             assertThat(item.savedAt()).isEqualTo(Instant.parse("2026-07-23T14:20:00Z"));
@@ -59,17 +60,17 @@ class SavedStationServiceTest {
     void savesKnownStationIdempotently() {
         SavedStationEntity saved = savedStation("user_1", "union", "2026-07-23T14:30:00Z");
         when(stationRepository.existsById("union")).thenReturn(true);
-        when(savedStationRepository.insertIfAbsent("user_1", "union", clock.instant())).thenReturn(1);
-        when(savedStationRepository.findByAccountIdAndStationId("user_1", "union")).thenReturn(Optional.of(saved));
+        when(savedStationRepository.insertIfAbsent("user_1", "ttc", "union", clock.instant())).thenReturn(1);
+        when(savedStationRepository.findByAccountIdAndNetworkIdAndStationId("user_1", "ttc", "union")).thenReturn(Optional.of(saved));
         stubSummaries(summary("union", false, "normal"));
 
-        SavedStationResponses.SaveResult first = service.save(account, " union ");
+        SavedStationResponses.SaveResult first = service.save(account, "ttc", " union ");
 
         assertThat(first.created()).isTrue();
         assertThat(first.station().station().name()).isEqualTo("Union");
 
-        when(savedStationRepository.insertIfAbsent("user_1", "union", clock.instant())).thenReturn(0);
-        SavedStationResponses.SaveResult duplicate = service.save(account, "union");
+        when(savedStationRepository.insertIfAbsent("user_1", "ttc", "union", clock.instant())).thenReturn(0);
+        SavedStationResponses.SaveResult duplicate = service.save(account, "ttc", "union");
 
         assertThat(duplicate.created()).isFalse();
         assertThat(duplicate.station().savedAt()).isEqualTo(clock.instant());
@@ -79,29 +80,45 @@ class SavedStationServiceTest {
     void rejectsUnknownAndOverlongStationsBeforeInsert() {
         when(stationRepository.existsById("not-a-station")).thenReturn(false);
 
-        assertThatThrownBy(() -> service.save(account, "not-a-station"))
+        assertThatThrownBy(() -> service.save(account, "ttc", "not-a-station"))
             .isInstanceOf(AccountException.class)
             .extracting("status")
             .isEqualTo(HttpStatus.NOT_FOUND);
 
-        assertThatThrownBy(() -> service.save(account, "a".repeat(81)))
+        assertThatThrownBy(() -> service.save(account, "ttc", "a".repeat(81)))
             .isInstanceOf(AccountException.class)
             .hasMessageContaining("80 characters or less");
-        verify(savedStationRepository, never()).insertIfAbsent("user_1", "not-a-station", clock.instant());
+        verify(savedStationRepository, never()).insertIfAbsent("user_1", "ttc", "not-a-station", clock.instant());
+    }
+
+    @Test
+    void savesRegionalStationsWithoutCollidingWithTtcIds() {
+        SavedStationEntity saved = savedStation("user_1", "union", "2026-07-23T14:30:00Z");
+        when(saved.getNetworkId()).thenReturn("regional");
+        when(savedStationRepository.insertIfAbsent("user_1", "regional", "union", clock.instant())).thenReturn(1);
+        when(savedStationRepository.findByAccountIdAndNetworkIdAndStationId("user_1", "regional", "union"))
+            .thenReturn(Optional.of(saved));
+
+        SavedStationResponses.SaveResult result = service.save(account, "regional", "union");
+
+        assertThat(result.station().networkId()).isEqualTo("regional");
+        assertThat(result.station().station().lineIds()).contains("regional-br", "regional-up");
+        verify(stationRepository, never()).existsById("union");
     }
 
     @Test
     void deleteIsAccountScopedAndIdempotent() {
-        service.delete(account, "union");
-        service.delete(account, "union");
+        service.delete(account, "ttc", "union");
+        service.delete(account, "ttc", "union");
 
         verify(savedStationRepository, org.mockito.Mockito.times(2))
-            .deleteByAccountIdAndStationId("user_1", "union");
+            .deleteByAccountIdAndNetworkIdAndStationId("user_1", "ttc", "union");
     }
 
     private SavedStationEntity savedStation(String accountId, String stationId, String createdAt) {
         SavedStationEntity saved = mock(SavedStationEntity.class);
         when(saved.getAccountId()).thenReturn(accountId);
+        when(saved.getNetworkId()).thenReturn("ttc");
         when(saved.getStationId()).thenReturn(stationId);
         when(saved.getCreatedAt()).thenReturn(Instant.parse(createdAt));
         return saved;

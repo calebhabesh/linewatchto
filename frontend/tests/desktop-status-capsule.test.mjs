@@ -64,8 +64,9 @@ describe("desktop status capsule", () => {
     assert.equal((shellSource.match(/desktop-status-chip-count-value/g) ?? []).length, 4);
   });
 
-  it("keeps the desktop map controls below the compact status capsule", () => {
+  it("keeps the desktop TTC map controls centered below the status capsule and regional controls on the right", () => {
     assert.match(mapSource, /desktop-map-control-rail/);
     assert.match(globalCss, /@media \(min-width:\s*1024px\)\s*\{[\s\S]*\.desktop-map-control-rail\s*\{[\s\S]*top:\s*96px\s*!important/);
+    assert.match(globalCss, /\.regional-map-control-rail\s*\{[\s\S]*right:\s*24px\s*!important/);
   });
 });

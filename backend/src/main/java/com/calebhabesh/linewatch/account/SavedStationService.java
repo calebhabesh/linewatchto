@@ -3,6 +3,7 @@ package com.calebhabesh.linewatch.account;
 import com.calebhabesh.linewatch.station.StationRepository;
 import com.calebhabesh.linewatch.station.StationResponses;
 import com.calebhabesh.linewatch.station.StationService;
+import com.calebhabesh.linewatch.regional.RegionalNetworkCatalog;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
@@ -15,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class SavedStationService {
+    private static final String TTC_NETWORK_ID = "ttc";
     private static final int MAX_STATION_ID_LENGTH = 80;
 
     private final SavedStationRepository savedStationRepository;
@@ -42,7 +44,8 @@ public class SavedStationService {
 
         List<SavedStationResponses.SavedStationResponse> responses = savedStations.stream()
             .map(saved -> new SavedStationResponses.SavedStationResponse(
-                requireSummary(summariesById, saved.getStationId()),
+                saved.getNetworkId(),
+                requireSummary(summariesById, saved.getNetworkId(), saved.getStationId()),
                 saved.getCreatedAt()
             ))
             .toList();
@@ -50,29 +53,35 @@ public class SavedStationService {
     }
 
     @Transactional
-    public SavedStationResponses.SaveResult save(AccountEntity account, String rawStationId) {
+    public SavedStationResponses.SaveResult save(AccountEntity account, String rawNetworkId, String rawStationId) {
+        String networkId = validateNetworkId(rawNetworkId);
         String stationId = validateStationId(rawStationId);
-        if (!stationRepository.existsById(stationId)) {
+        if (!stationExists(networkId, stationId)) {
             throw new AccountException(HttpStatus.NOT_FOUND, "unknown_station", "Station was not found.");
         }
 
         Instant now = clock.instant();
-        boolean created = savedStationRepository.insertIfAbsent(account.getId(), stationId, now) > 0;
+        boolean created = savedStationRepository.insertIfAbsent(account.getId(), networkId, stationId, now) > 0;
         SavedStationEntity saved = savedStationRepository
-            .findByAccountIdAndStationId(account.getId(), stationId)
+            .findByAccountIdAndNetworkIdAndStationId(account.getId(), networkId, stationId)
             .orElseThrow(() -> new IllegalStateException("Saved station insert did not produce a readable row."));
-        StationResponses.StationSummaryResponse summary = requireSummary(stationSummariesById(), stationId);
+        StationResponses.StationSummaryResponse summary = requireSummary(
+            TTC_NETWORK_ID.equals(networkId) ? stationSummariesById() : Map.of(),
+            networkId,
+            stationId
+        );
 
         return new SavedStationResponses.SaveResult(
-            new SavedStationResponses.SavedStationResponse(summary, saved.getCreatedAt()),
+            new SavedStationResponses.SavedStationResponse(networkId, summary, saved.getCreatedAt()),
             created
         );
     }
 
     @Transactional
-    public void delete(AccountEntity account, String rawStationId) {
+    public void delete(AccountEntity account, String rawNetworkId, String rawStationId) {
+        String networkId = validateNetworkId(rawNetworkId);
         String stationId = validateStationId(rawStationId);
-        savedStationRepository.deleteByAccountIdAndStationId(account.getId(), stationId);
+        savedStationRepository.deleteByAccountIdAndNetworkIdAndStationId(account.getId(), networkId, stationId);
     }
 
     private Map<String, StationResponses.StationSummaryResponse> stationSummariesById() {
@@ -82,13 +91,30 @@ public class SavedStationService {
 
     private StationResponses.StationSummaryResponse requireSummary(
         Map<String, StationResponses.StationSummaryResponse> summariesById,
+        String networkId,
         String stationId
     ) {
-        StationResponses.StationSummaryResponse summary = summariesById.get(stationId);
+        StationResponses.StationSummaryResponse summary = TTC_NETWORK_ID.equals(networkId)
+            ? summariesById.get(stationId)
+            : RegionalNetworkCatalog.station(stationId).orElse(null);
         if (summary == null) {
             throw new IllegalStateException("Saved station references an unavailable station: " + stationId);
         }
         return summary;
+    }
+
+    private boolean stationExists(String networkId, String stationId) {
+        return TTC_NETWORK_ID.equals(networkId)
+            ? stationRepository.existsById(stationId)
+            : RegionalNetworkCatalog.station(stationId).isPresent();
+    }
+
+    private String validateNetworkId(String rawNetworkId) {
+        String networkId = rawNetworkId == null ? TTC_NETWORK_ID : rawNetworkId.trim().toLowerCase();
+        if (!TTC_NETWORK_ID.equals(networkId) && !RegionalNetworkCatalog.NETWORK_ID.equals(networkId)) {
+            throw new AccountException(HttpStatus.BAD_REQUEST, "invalid_network", "Choose a supported transit network.");
+        }
+        return networkId;
     }
 
     private String validateStationId(String rawStationId) {

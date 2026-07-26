@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { Calendar } from "lucide-react";
+import { normalizeDashboardSourceLabel } from "../app/dashboard-source-label";
 import { ImpactTimestamp } from "./ImpactTimestamp";
 import { TransitLineBadge } from "./TransitLineBadge";
 
@@ -243,7 +244,7 @@ export function MetadataGrid({
 
 export function CardSource({ source }: { source: string }) {
   if (!source) return null;
-  const displaySource = source === "TTC Live Alert" ? "TTC Live Alerts" : source;
+  const displaySource = normalizeDashboardSourceLabel(source);
   return (
     <span className="inline-flex items-center shrink-0 text-[7px] sm:text-[8px] text-slate-500/80 dark:text-slate-400/80 font-bold px-1 sm:px-1.5 py-0.5 rounded-[3px] border border-black/10 dark:border-white/10 uppercase tracking-wide sm:tracking-widest bg-black/5 dark:bg-white/5 whitespace-nowrap">
       Source: {displaySource}

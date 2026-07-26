@@ -7,7 +7,7 @@ import { ChevronDown, ChevronRight, Search, X } from "lucide-react";
 import {
   buildStationLineGroups,
   searchStations,
-  STATION_SEARCH_LINES,
+  stationSearchLineById,
   type StationSearchLine,
 } from "../app/station-search";
 import {
@@ -36,7 +36,7 @@ type Props = {
 };
 
 function lineById(lineId: string) {
-  return STATION_SEARCH_LINES.find((line) => line.id === lineId);
+  return stationSearchLineById(lineId);
 }
 
 function StationLineBadge({ line }: { line: StationSearchLine }) {
@@ -391,7 +391,9 @@ export function SavedCommuteStationPicker({
                           >
                             <span>
                               <StationLineBadge line={group.line} />
-                              Line {group.line.number} {group.line.name}
+                              {group.line.id.startsWith("regional-")
+                                ? `${group.line.number} ${group.line.name}`
+                                : `Line ${group.line.number} ${group.line.name}`}
                             </span>
                             <ChevronRight size={15} aria-hidden="true" className="commute-station-line-chevron" />
                           </button>

@@ -16,6 +16,10 @@ public class SavedStationEntity {
     private String accountId;
 
     @Id
+    @Column(name = "network_id")
+    private String networkId;
+
+    @Id
     @Column(name = "station_id")
     private String stationId;
 
@@ -31,6 +35,10 @@ public class SavedStationEntity {
 
     public String getStationId() {
         return stationId;
+    }
+
+    public String getNetworkId() {
+        return networkId;
     }
 
     public Instant getCreatedAt() {

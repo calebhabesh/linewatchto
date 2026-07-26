@@ -9,6 +9,7 @@ import { LineBadge, ImpactRouteHeader, MetadataGrid, CardSource, JumpToLocationI
 import { getOverlappingImpactRefs, OverlappingImpactRefs } from "./ImpactOverlapRefs";
 import { filterAndSortImpacts, type ImpactListSort } from "../app/impact-list-controls";
 import { ImpactListToolbar } from "./ImpactListToolbar";
+import { dashboardImpactSourceLabel } from "../app/dashboard-source-label";
 
 interface Props {
   selection: ImpactSelection;
@@ -19,10 +20,7 @@ interface Props {
 }
 
 function impactKindForAlert(alert: ActiveAlert): ImpactKind {
-  if (alert.relatedPlannedClosureId) return "suspension";
   switch (alert.severity) {
-    case "planned":
-      return "planned-closure";
     case "delay":
       return "delay";
     default:
@@ -37,7 +35,8 @@ export function ActiveAlertsPanel({
   onClose,
   onFocusMap,
 }: Props) {
-  const { activeAlerts, reducedSpeedZones, delays, plannedClosures, networkSegments, stationNodeImpacts } = useDashboardData();
+  const dashboard = useDashboardData();
+  const { activeAlerts, reducedSpeedZones, delays, plannedClosures, networkSegments, stationNodeImpacts } = dashboard;
   const [lineId, setLineId] = useState("all");
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<ImpactListSort>("updated");
@@ -47,20 +46,15 @@ export function ActiveAlertsPanel({
 
   const handleAlertClick = (alert: ActiveAlert) => {
     const alertImpactKind = impactKindForAlert(alert);
-    const isPlanned = alert.severity === "planned" && !alert.relatedPlannedClosureId;
-    const isActive = selection?.id === alert.id && (
-      selection?.kind === alertImpactKind ||
-      (selection?.kind === "planned-closure" && isPlanned)
-    );
+    const isActive = selection?.id === alert.id && selection?.kind === alertImpactKind;
     const isActivating = !isActive;
-    const kind = isPlanned ? "planned-closure" : alertImpactKind;
     if (!isActivating && onFocusMap) {
       onFocusMap();
       return;
     }
     
     onSelectImpact(
-      isActivating ? { kind, id: alert.id } : null
+      isActivating ? { kind: alertImpactKind, id: alert.id } : null
     );
     
     if (isActivating && onFocusMap) {
@@ -104,7 +98,7 @@ export function ActiveAlertsPanel({
             <span className="shrink-0 text-[9px] sm:text-xs bg-red-500/10 text-red-600 dark:text-red-400 px-1.5 sm:px-2 py-0.5 rounded-full font-bold">
               {activeAlerts.length} {activeAlerts.length === 1 ? "Alert" : "Alerts"}
             </span>
-            <CardSource source={activeAlerts[0]?.source || "TTC Live Alerts"} />
+            <CardSource source={dashboardImpactSourceLabel(dashboard, activeAlerts[0]?.source)} />
           </div>
           {onClose && (
             <button
@@ -144,11 +138,7 @@ export function ActiveAlertsPanel({
         ) : (
           visibleAlerts.map((alert) => {
             const alertImpactKind = impactKindForAlert(alert);
-            const isPlanned = alert.severity === "planned" && !alert.relatedPlannedClosureId;
-            const isActive = selection?.id === alert.id && (
-              selection?.kind === alertImpactKind ||
-              (selection?.kind === "planned-closure" && isPlanned)
-            );
+            const isActive = selection?.id === alert.id && selection?.kind === alertImpactKind;
             const overlappingImpacts = getOverlappingImpactRefs(
               { kind: alertImpactKind, id: alert.id, segmentIds: alert.affectedSegmentIds ?? [] },
               { networkSegments, activeAlerts, delays, reducedSpeedZones, plannedClosures, stationNodeImpacts },

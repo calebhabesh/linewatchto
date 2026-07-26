@@ -2,11 +2,14 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import {
+  buildNetworkStationLineGroups,
   buildStationLineGroups,
   normalizeStationQuery,
+  searchStationsAcrossNetworks,
   searchStations,
 } from "../src/app/station-search.ts";
 import { fallbackStationSummaries } from "../src/app/station-data.ts";
+import { regionalStationSummaries } from "../src/app/regional-data.ts";
 
 describe("station search helpers", () => {
   const stations = fallbackStationSummaries.stations;
@@ -107,6 +110,37 @@ describe("station search helpers", () => {
     );
   });
 
+  it("builds regional corridor groups without leaking TTC lines", () => {
+    const groups = buildStationLineGroups([
+      {
+        id: "union",
+        name: "Union",
+        mapX: 0,
+        mapY: 0,
+        interchange: true,
+        lineIds: ["regional-ki", "regional-up"],
+        hasActiveImpact: false,
+        accessStatus: "normal",
+      },
+      {
+        id: "pearson-airport",
+        name: "Pearson Airport",
+        mapX: 0,
+        mapY: 0,
+        interchange: false,
+        lineIds: ["regional-up"],
+        hasActiveImpact: false,
+        accessStatus: "normal",
+      },
+    ]);
+
+    assert.deepEqual(groups.map((group) => group.line.number), ["KI", "UP"]);
+    assert.deepEqual(
+      groups.find((group) => group.line.id === "regional-up")?.stations.map((station) => station.id),
+      ["pearson-airport", "union"],
+    );
+  });
+
   it("ranks exact, acronym, token-prefix, and subsequence fuzzy matches", () => {
     assert.equal(searchStations(stations, "Union")[0].station.id, "union");
     assert.equal(searchStations(stations, "vmc")[0].station.id, "vaughan-metropolitan-centre");
@@ -117,5 +151,50 @@ describe("station search helpers", () => {
   it("returns no results for an empty query", () => {
     assert.deepEqual(searchStations(stations, ""), []);
     assert.deepEqual(searchStations(stations, "   "), []);
+  });
+
+  it("searches both station catalogs without collapsing shared logical ids", () => {
+    const results = searchStationsAcrossNetworks(
+      {
+        ttc: stations,
+        regional: regionalStationSummaries.stations,
+      },
+      "ttc",
+      "union",
+    );
+
+    assert.deepEqual(
+      results.slice(0, 2).map((result) => [result.networkId, result.station.id]),
+      [["ttc", "union"], ["regional", "union"]],
+    );
+  });
+
+  it("slightly prioritizes the active network while retaining cross-network matches", () => {
+    const results = searchStationsAcrossNetworks(
+      {
+        ttc: stations,
+        regional: regionalStationSummaries.stations,
+      },
+      "regional",
+      "bloor",
+    );
+
+    assert.equal(results[0].networkId, "regional");
+    assert.ok(results.some((result) => result.networkId === "ttc"));
+  });
+
+  it("browses the current network first and keeps shared ids network-safe", () => {
+    const groups = buildNetworkStationLineGroups(
+      {
+        ttc: stations,
+        regional: regionalStationSummaries.stations,
+      },
+      "regional",
+    );
+
+    assert.equal(groups[0].networkId, "regional");
+    assert.equal(groups.at(-1).networkId, "ttc");
+    assert.ok(groups.some((group) => group.networkId === "regional" && group.stations.some((station) => station.id === "union")));
+    assert.ok(groups.some((group) => group.networkId === "ttc" && group.stations.some((station) => station.id === "union")));
   });
 });

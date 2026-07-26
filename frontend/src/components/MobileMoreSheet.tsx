@@ -7,10 +7,12 @@ import Image from "next/image";
 import type { AccountState } from "../app/account-data";
 import { lineWatchAppVersionLabel } from "../app/app-build";
 import type { DashboardData } from "../app/DataContext";
+import type { NetworkId } from "../app/regional-data";
 import { resetLineWatchLocalAppState } from "../app/local-app-reset";
 import { hasReleaseNotes } from "../app/release-notes";
 import { LogsDropdown } from "./LogsDropdown";
 import { PushDeliveryDiagnosticsPanel } from "./PushDeliveryDiagnosticsPanel";
+import { DefaultMapModeControl } from "./DefaultMapModeControl";
 import {
   getPwaInstallHeading,
   getPwaInstallInstructionText,
@@ -39,6 +41,9 @@ type Props = {
   onOpenCommutes: () => void;
   onOpenMyStations: () => void;
   savedStationCount: number;
+  defaultNetwork: NetworkId;
+  currentNetwork: NetworkId;
+  onDefaultNetworkChange: (network: NetworkId) => void;
   onOpenAlertHistory: () => void;
   onOpenAnalytics: () => void;
   onOpenFeedback: () => void;
@@ -75,6 +80,9 @@ export function MobileMoreSheet({
   onOpenCommutes,
   onOpenMyStations,
   savedStationCount,
+  defaultNetwork,
+  currentNetwork,
+  onDefaultNetworkChange,
   onOpenAlertHistory,
   onOpenAnalytics,
   onOpenFeedback,
@@ -185,10 +193,10 @@ export function MobileMoreSheet({
                   </button>
                 )
               ) : null}
-              <button type="button" className="mobile-more-row" onClick={onOpenCommutes}>
+              {currentNetwork === "ttc" ? <button type="button" className="mobile-more-row" onClick={onOpenCommutes}>
                 <Navigation size={18} className="text-slate-500 dark:text-slate-400" />
-                Saved Commutes
-              </button>
+                My Commutes
+              </button> : null}
               <button type="button" className="mobile-more-row w-full flex items-center justify-between" onClick={onOpenMyStations}>
                 <span className="flex items-center gap-[9px]">
                   <Bookmark size={18} className="text-slate-500 dark:text-slate-400" />
@@ -215,10 +223,10 @@ export function MobileMoreSheet({
                 <UserRound size={18} />
                 Demo Account
               </button>
-              <button type="button" className="mobile-more-row" onClick={onOpenCommutes}>
+              {currentNetwork === "ttc" ? <button type="button" className="mobile-more-row" onClick={onOpenCommutes}>
                 <Navigation size={18} className="text-slate-500 dark:text-slate-400" />
-                Saved Commutes
-              </button>
+                My Commutes
+              </button> : null}
               <button type="button" className="mobile-more-row w-full flex items-center justify-between" onClick={onOpenMyStations}>
                 <span className="flex items-center gap-[9px]">
                   <Bookmark size={18} className="text-slate-500 dark:text-slate-400" />
@@ -232,9 +240,14 @@ export function MobileMoreSheet({
               </button>
             </>
           )}
+          <DefaultMapModeControl
+            compact
+            value={defaultNetwork}
+            onChange={onDefaultNetworkChange}
+          />
         </div>
 
-        <div className="mobile-more-section">
+        {currentNetwork === "ttc" ? <div className="mobile-more-section">
           <div className="flex items-center gap-2 px-0 pt-1.5 pb-0.5 select-none">
             <span className="w-1 h-4 rounded-full bg-logo-blue shrink-0 shadow-[0_0_4px_rgba(129,201,255,0.35)]" />
             <h3>Notifications</h3>
@@ -275,17 +288,17 @@ export function MobileMoreSheet({
             <History size={18} className="text-slate-500 dark:text-slate-400" />
             Alert History
           </button>
-        </div>
+        </div> : null}
 
         <div className="mobile-more-section">
           <div className="flex items-center gap-2 px-0 pt-1.5 pb-0.5 select-none">
             <span className="w-1 h-4 rounded-full bg-logo-blue shrink-0 shadow-[0_0_4px_rgba(129,201,255,0.35)]" />
             <h3>Operations</h3>
           </div>
-          <button type="button" className="mobile-more-row" onClick={onOpenAnalytics}>
+          {currentNetwork === "ttc" ? <button type="button" className="mobile-more-row" onClick={onOpenAnalytics}>
             <BarChart3 size={18} className="text-slate-500 dark:text-slate-400" />
             Reliability Analytics
-          </button>
+          </button> : null}
           <div className="mobile-more-health-grid" aria-label="Source Health">
             {ingestionHealth.map((health, index) => (
               <div key={`${health.label}-${index}`}>
@@ -356,7 +369,7 @@ export function MobileMoreSheet({
               <span>Map Attribution</span>
               <span>
                 Base Map
-                <span className="mobile-more-map-attribution-copyright">© 2026 Toronto Transit Commission 02/26 - Map not to scale</span>
+                <span className="mobile-more-map-attribution-copyright">© 2026 Toronto Transit Commission 02/26 - Map Not to Scale</span>
               </span>
             </span>
           </div>
@@ -375,7 +388,7 @@ export function MobileMoreSheet({
           ) : null}
         </div>
 
-        <div className="mobile-more-section">
+        {currentNetwork === "ttc" ? <div className="mobile-more-section">
           <div className="flex items-center gap-2 px-0 pt-1.5 pb-0.5 select-none">
             <span className="w-1 h-4 rounded-full bg-logo-blue shrink-0 shadow-[0_0_4px_rgba(129,201,255,0.35)]" />
             <h3>Notifications Help</h3>
@@ -430,7 +443,7 @@ export function MobileMoreSheet({
               </div>
             </div>
           )}
-        </div>
+        </div> : null}
       </div>
     </section>
   );

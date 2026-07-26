@@ -9,6 +9,7 @@ import { LineBadge, ImpactRouteHeader, MetadataGrid, CardSource, JumpToLocationI
 import { getOverlappingImpactRefs, OverlappingImpactRefs } from "./ImpactOverlapRefs";
 import { filterAndSortImpacts, type ImpactListSort } from "../app/impact-list-controls";
 import { ImpactListToolbar } from "./ImpactListToolbar";
+import { dashboardImpactSourceLabel } from "../app/dashboard-source-label";
 
 const formatSpeed = (val: string | null | undefined): string | null => {
   if (!val) return null;
@@ -30,7 +31,8 @@ export function ReducedSpeedZonesPanel({
   onClose,
   onFocusMap,
 }: Props) {
-  const { activeAlerts, delays, reducedSpeedZones, plannedClosures, networkSegments, stationNodeImpacts } = useDashboardData();
+  const dashboard = useDashboardData();
+  const { activeAlerts, delays, reducedSpeedZones, plannedClosures, networkSegments, stationNodeImpacts } = dashboard;
   const [lineId, setLineId] = useState("all");
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<ImpactListSort>("line");
@@ -75,7 +77,7 @@ export function ReducedSpeedZonesPanel({
             <span className="rsz-count-badge shrink-0 text-[9px] sm:text-xs px-1.5 sm:px-2 py-0.5 rounded-full font-bold">
               {reducedSpeedZones.length} {reducedSpeedZones.length === 1 ? "Zone" : "Zones"}
             </span>
-            <CardSource source={reducedSpeedZones[0]?.source || "TTC Live Alerts"} />
+            <CardSource source={dashboardImpactSourceLabel(dashboard, reducedSpeedZones[0]?.source)} />
           </div>
           {onClose && (
             <button

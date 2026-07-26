@@ -67,7 +67,7 @@ export function getSelectedImpactDetails(
     return {
       id: alert.id,
       kind: "suspension",
-      categoryLabel: alert.relatedPlannedClosureId ? "Active Alert" : alert.severity === "planned" ? "Active Closure" : "Active Alert",
+      categoryLabel: "Active Alert",
       tone: "suspension",
       icon: <AlertTriangle size={16} className="text-red-500" />,
       lineId: alert.lineId,
@@ -342,7 +342,7 @@ export function MobileImpactInspector({
         <div className="mobile-impact-inspector-badges">
           <CardSource source={details.source} />
           {details.shuttle ? <span className="mobile-impact-inspector-badge shuttle">Shuttle</span> : null}
-          {details.activeNow ? <span className="mobile-impact-inspector-badge active-now">Active now</span> : null}
+          {details.activeNow ? <span className="mobile-impact-inspector-badge active-now">Active Now</span> : null}
         </div>
 
         <OverlappingImpactRefs

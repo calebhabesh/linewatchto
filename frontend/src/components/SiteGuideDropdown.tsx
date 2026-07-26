@@ -284,7 +284,7 @@ export function SiteGuideDropdown({ onOpenChange }: { onOpenChange?: (open: bool
               title="What LineWatchTO Does"
             >
               <p>
-                LineWatchTO shows TTC subway/LRT alerts, delays, reduced speed zones, planned closures, station details, and saved commute impacts. It displays live backend updates when ingestion is running, and falls back to demo fixtures otherwise.
+                LineWatchTO shows TTC subway/LRT alerts, delays, reduced speed zones, planned closures, station details, and My Commutes impact checks. It displays live backend updates when ingestion is running, and falls back to demo fixtures otherwise.
               </p>
             </GuideSection>
 
@@ -354,7 +354,7 @@ export function SiteGuideDropdown({ onOpenChange }: { onOpenChange?: (open: bool
                   label="Click a Colored Overlay"
                   text="Tap any line overlay to view its active alert or closure card."
                 />
-                <GuideActionRow icon={<MapIcon size={14} />} label="Click a Station" text="Tap a station dot to view accessibility status, alerts, arrivals, or to select it for a saved commute." />
+                <GuideActionRow icon={<MapIcon size={14} />} label="Click a Station" text="Tap a station dot to view accessibility status, alerts, arrivals, or select it as an origin or destination in My Commutes." />
                 <GuideActionRow icon={<Search size={14} />} label="Station & Alert Search" text="Use the search icon on the left to quickly jump to any station or find active alerts." />
                 {!isMobile && (
                   <GuideActionRow icon={<Menu size={14} />} label="Main Menu" text="Use the menu icon at the top left to create an account and access lists, commutes, analytics, contrast, and motion controls." />

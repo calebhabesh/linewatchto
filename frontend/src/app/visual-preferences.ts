@@ -1,3 +1,5 @@
+import type { NetworkId } from "./regional-data";
+
 export type LineWatchThemePreference = "dark" | "light";
 
 export type VisualPreferences = {
@@ -6,6 +8,7 @@ export type VisualPreferences = {
   reducedMotion: boolean;
   estimatedTrainsEnabled: boolean;
   dotBackgroundEnabled: boolean;
+  defaultNetwork: NetworkId;
 };
 
 export type InitialVisualPreferences = VisualPreferences & {
@@ -18,6 +21,7 @@ export type StoredVisualPreferences = {
   reducedMotion: boolean | null;
   estimatedTrainsEnabled: boolean | null;
   dotBackgroundEnabled: boolean | null;
+  defaultNetwork: NetworkId | null;
 };
 
 export type VisualPreferencesToPersist = Omit<VisualPreferences, "reducedMotion"> & {
@@ -35,6 +39,7 @@ export const visualPreferenceStorageKeys = {
   reducedMotion: "linewatch-reduced-motion-enabled-v1",
   estimatedTrainsEnabled: "linewatch-estimated-trains-enabled-v1",
   dotBackgroundEnabled: "linewatch-dot-background-enabled-v1",
+  defaultNetwork: "linewatch-default-network-v1",
 } as const;
 
 export const defaultVisualPreferences: InitialVisualPreferences = {
@@ -44,6 +49,7 @@ export const defaultVisualPreferences: InitialVisualPreferences = {
   reducedMotionOverride: false,
   estimatedTrainsEnabled: false,
   dotBackgroundEnabled: true,
+  defaultNetwork: "ttc",
 };
 
 function readStorageValue(storage: PreferenceStorage, key: string) {
@@ -77,6 +83,11 @@ function readStoredTheme(value: string | null): LineWatchThemePreference | null 
   return null;
 }
 
+function readStoredNetwork(value: string | null): NetworkId | null {
+  if (value === "ttc" || value === "regional") return value;
+  return null;
+}
+
 function normalizeCookieRecord(value: unknown): Partial<VisualPreferencesToPersist> {
   if (!value || typeof value !== "object") {
     return {};
@@ -89,6 +100,7 @@ function normalizeCookieRecord(value: unknown): Partial<VisualPreferencesToPersi
     reducedMotion: typeof record.reducedMotion === "boolean" ? record.reducedMotion : undefined,
     estimatedTrainsEnabled: typeof record.estimatedTrainsEnabled === "boolean" ? record.estimatedTrainsEnabled : undefined,
     dotBackgroundEnabled: typeof record.dotBackgroundEnabled === "boolean" ? record.dotBackgroundEnabled : undefined,
+    defaultNetwork: readStoredNetwork(typeof record.defaultNetwork === "string" ? record.defaultNetwork : null) ?? undefined,
   };
 }
 
@@ -99,6 +111,7 @@ export function readVisualPreferencesFromStorage(storage: PreferenceStorage): St
     reducedMotion: readStoredBoolean(readStorageValue(storage, visualPreferenceStorageKeys.reducedMotion)),
     estimatedTrainsEnabled: readStoredBoolean(readStorageValue(storage, visualPreferenceStorageKeys.estimatedTrainsEnabled)),
     dotBackgroundEnabled: readStoredBoolean(readStorageValue(storage, visualPreferenceStorageKeys.dotBackgroundEnabled)),
+    defaultNetwork: readStoredNetwork(readStorageValue(storage, visualPreferenceStorageKeys.defaultNetwork)),
   };
 }
 
@@ -112,6 +125,7 @@ export function writeVisualPreferencesToStorage(storage: PreferenceStorage, pref
   );
   writeStorageValue(storage, visualPreferenceStorageKeys.estimatedTrainsEnabled, preferences.estimatedTrainsEnabled ? "true" : "false");
   writeStorageValue(storage, visualPreferenceStorageKeys.dotBackgroundEnabled, preferences.dotBackgroundEnabled ? "true" : "false");
+  writeStorageValue(storage, visualPreferenceStorageKeys.defaultNetwork, preferences.defaultNetwork);
 }
 
 export function resolveReducedMotionPreference(storedPreference: boolean | null, systemPrefersReducedMotion: boolean) {
@@ -134,6 +148,7 @@ export function initialVisualPreferencesFromCookie(cookieValue: string | undefin
       reducedMotionOverride,
       estimatedTrainsEnabled: normalized.estimatedTrainsEnabled ?? defaultVisualPreferences.estimatedTrainsEnabled,
       dotBackgroundEnabled: normalized.dotBackgroundEnabled ?? defaultVisualPreferences.dotBackgroundEnabled,
+      defaultNetwork: normalized.defaultNetwork ?? defaultVisualPreferences.defaultNetwork,
     };
   } catch {
     return defaultVisualPreferences;
@@ -146,6 +161,7 @@ export function buildVisualPreferencesCookie(preferences: VisualPreferencesToPer
     highContrast: preferences.highContrast,
     estimatedTrainsEnabled: preferences.estimatedTrainsEnabled,
     dotBackgroundEnabled: preferences.dotBackgroundEnabled,
+    defaultNetwork: preferences.defaultNetwork,
   };
   if (preferences.reducedMotion !== null) {
     payload.reducedMotion = preferences.reducedMotion;

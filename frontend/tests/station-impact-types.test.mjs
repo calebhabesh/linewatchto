@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 
-import { stationImpactKindsByStation } from "../src/app/station-impact-types.ts";
+import { stationImpactKindsByStation, stationImpactSelection } from "../src/app/station-impact-types.ts";
 
 const stationSearch = readFileSync(new URL("../src/components/StationSearchPanel.tsx", import.meta.url), "utf8");
 const myStations = readFileSync(new URL("../src/components/MyStationsPanel.tsx", import.meta.url), "utf8");
@@ -11,6 +11,23 @@ const outageBadge = readFileSync(new URL("../src/components/StationOutageBadge.t
 const styles = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
 
 describe("station impact type badges", () => {
+  it("resolves Reduced Speed Zone source alerts before their broad delay severity", () => {
+    const selection = stationImpactSelection("rsz-source-1", {
+      activeAlerts: [{
+        id: "rsz-source-1",
+        severity: "delay",
+      }],
+      delays: [],
+      plannedClosures: [],
+      reducedSpeedZones: [{
+        id: "rsz-group-1",
+        sourceAlertIds: ["rsz-source-1"],
+      }],
+    });
+
+    assert.deepEqual(selection, { kind: "reduced-speed-zone", id: "rsz-group-1" });
+  });
+
   it("derives ordered, deduplicated impact kinds from station nodes and adjacent segments", () => {
     const kinds = stationImpactKindsByStation({
       stationNodeImpacts: [
@@ -38,6 +55,9 @@ describe("station impact type badges", () => {
     assert.match(myStations, /<PickerStationConditions station=\{station\} impactKinds=/);
     assert.match(myStations, /<StationImpactTypeBadges kinds=\{impactKinds\}/);
     assert.match(myStations, /<StationOutageBadge assetType="elevator" count=\{outageCounts\.elevator\}/);
+    assert.match(myStations, /<ImpactTypeIcon kind=\{kind\} size=\{size\}/);
+    assert.match(myStations, /classifiedActiveImpacts/);
+    assert.match(myStations, /Reduced Speed Zone/);
     assert.match(outageBadge, /\/assets\/linewatch\/outages\/elevator\.svg/);
     assert.match(outageBadge, /\/assets\/linewatch\/outages\/escalator\.svg/);
     assert.doesNotMatch(myStations, /stationState\(station\)\.label/);

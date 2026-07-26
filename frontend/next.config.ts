@@ -131,6 +131,20 @@ const nextConfig: NextConfig = {
       }
     ]
   },
+  webpack: (config, { dev }) => {
+    if (dev) {
+      config.watchOptions = config.watchOptions || {};
+      config.watchOptions.ignored = [
+        ...(Array.isArray(config.watchOptions.ignored)
+          ? config.watchOptions.ignored
+          : config.watchOptions.ignored
+          ? [config.watchOptions.ignored]
+          : []),
+        '**/.git',
+      ];
+    }
+    return config;
+  },
 };
 
 export default nextConfig;

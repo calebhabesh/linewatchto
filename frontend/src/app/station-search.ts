@@ -3,6 +3,7 @@ import {
   STATION_LINE_STATION_IDS,
   type StationSummary,
 } from "./station-data.ts";
+import type { NetworkId } from "./regional-data.ts";
 
 type MatchKind = "exact" | "acronym" | "prefix" | "token-prefix" | "substring" | "subsequence";
 
@@ -26,6 +27,16 @@ export type StationSearchResult = {
   lineIds: string[];
 };
 
+export type StationSearchCatalogs = Record<NetworkId, StationSummary[]>;
+
+export type NetworkStationSearchResult = StationSearchResult & {
+  networkId: NetworkId;
+};
+
+export type NetworkStationLineGroup = StationLineGroup & {
+  networkId: NetworkId;
+};
+
 export const STATION_SEARCH_LINES: StationSearchLine[] = Object.values(STATION_LINE_DEFINITIONS).map((line) => ({
   id: line.id,
   number: line.number,
@@ -33,6 +44,23 @@ export const STATION_SEARCH_LINES: StationSearchLine[] = Object.values(STATION_L
   color: line.color,
   icon: `/assets/linewatch/${line.id}-legend.svg?v=2`,
 }));
+
+export const REGIONAL_STATION_SEARCH_LINES: StationSearchLine[] = [
+  { id: "regional-br", number: "BR", name: "Barrie", color: "#155ba0", icon: "/assets/linewatch/go-br-legend.svg?v=2" },
+  { id: "regional-ki", number: "KI", name: "Kitchener", color: "#138336", icon: "/assets/linewatch/go-ki-legend.svg?v=2" },
+  { id: "regional-le", number: "LE", name: "Lakeshore East", color: "#ee2722", icon: "/assets/linewatch/go-le-legend.svg?v=2" },
+  { id: "regional-lw", number: "LW", name: "Lakeshore West", color: "#8b0a31", icon: "/assets/linewatch/go-lw-legend.svg?v=2" },
+  { id: "regional-mi", number: "MI", name: "Milton", color: "#f47216", icon: "/assets/linewatch/go-mi-legend.svg?v=2" },
+  { id: "regional-rh", number: "RH", name: "Richmond Hill", color: "#27adea", icon: "/assets/linewatch/go-rh-legend.svg?v=2" },
+  { id: "regional-st", number: "ST", name: "Stouffville", color: "#774111", icon: "/assets/linewatch/go-st-legend.svg?v=2" },
+  { id: "regional-up", number: "UP", name: "Union Pearson Express", color: "#4084cd", icon: "/assets/linewatch/up-express-legend.svg?v=2" },
+];
+
+export const ALL_STATION_SEARCH_LINES = [...STATION_SEARCH_LINES, ...REGIONAL_STATION_SEARCH_LINES];
+
+export function stationSearchLineById(lineId: string) {
+  return ALL_STATION_SEARCH_LINES.find((line) => line.id === lineId);
+}
 
 export function normalizeStationQuery(value: string) {
   return value
@@ -142,8 +170,10 @@ function scoreStation(station: StationSummary, query: string): Pick<StationSearc
 
 export function buildStationLineGroups(stations: StationSummary[]): StationLineGroup[] {
   const stationById = new Map(stations.map((station) => [station.id, station]));
+  const visibleLineIds = new Set(stations.flatMap((station) => station.lineIds));
+  const lines = ALL_STATION_SEARCH_LINES.filter((line) => visibleLineIds.has(line.id));
 
-  return STATION_SEARCH_LINES.map((line) => {
+  return lines.map((line) => {
     const orderedIds = STATION_LINE_STATION_IDS[line.id] ?? [];
     const orderedStations = orderedIds
       .map((stationId) => stationById.get(stationId))
@@ -158,6 +188,22 @@ export function buildStationLineGroups(stations: StationSummary[]): StationLineG
       stations: [...orderedStations, ...appendedStations],
     };
   }).filter((group) => group.stations.length > 0);
+}
+
+export function buildNetworkStationLineGroups(
+  catalogs: StationSearchCatalogs,
+  currentNetwork: NetworkId,
+): NetworkStationLineGroup[] {
+  const networkOrder: NetworkId[] = currentNetwork === "ttc"
+    ? ["ttc", "regional"]
+    : ["regional", "ttc"];
+
+  return networkOrder.flatMap((networkId) =>
+    buildStationLineGroups(catalogs[networkId]).map((group) => ({
+      ...group,
+      networkId,
+    })),
+  );
 }
 
 export function searchStations(stations: StationSummary[], query: string, limit = 12): StationSearchResult[] {
@@ -181,6 +227,31 @@ export function searchStations(stations: StationSummary[], query: string, limit 
         return a.score - b.score;
       }
 
+      return a.station.name.localeCompare(b.station.name);
+    })
+    .slice(0, limit);
+}
+
+export function searchStationsAcrossNetworks(
+  catalogs: StationSearchCatalogs,
+  currentNetwork: NetworkId,
+  query: string,
+  limit = 16,
+): NetworkStationSearchResult[] {
+  const results = (Object.entries(catalogs) as Array<[NetworkId, StationSummary[]]>)
+    .flatMap(([networkId, stations]) =>
+      searchStations(stations, query, limit).map((result) => ({
+        ...result,
+        networkId,
+      })),
+    );
+
+  return results
+    .sort((a, b) => {
+      const aScore = a.score + (a.networkId === currentNetwork ? 0 : 3);
+      const bScore = b.score + (b.networkId === currentNetwork ? 0 : 3);
+      if (aScore !== bScore) return aScore - bScore;
+      if (a.networkId !== b.networkId) return a.networkId === currentNetwork ? -1 : 1;
       return a.station.name.localeCompare(b.station.name);
     })
     .slice(0, limit);

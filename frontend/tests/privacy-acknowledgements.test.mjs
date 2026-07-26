@@ -26,7 +26,7 @@ describe("privacy and acknowledgement content", () => {
     const combinedCopy = JSON.stringify(dataPracticeSections);
 
     assert.match(combinedCopy, /Account/i);
-    assert.match(combinedCopy, /saved commute/i);
+    assert.match(combinedCopy, /My Commutes/);
     assert.match(combinedCopy, /push notification/i);
     assert.match(combinedCopy, /random browser-installation identifier/i);
     assert.match(combinedCopy, /feedback/i);
@@ -62,7 +62,7 @@ describe("privacy and acknowledgement navigation", () => {
 
   it("shows the TTC map attribution directly in mobile More", () => {
     assert.match(moreSheetSource, /Map Attribution/);
-    assert.match(moreSheetSource, /© 2026 Toronto Transit Commission 02\/26 - Map not to scale/);
+    assert.match(moreSheetSource, /© 2026 Toronto Transit Commission 02\/26 - Map Not to Scale/);
     assert.match(moreSheetSource, /aria-label="Map Attribution"/);
     assert.match(globalCss, /\.mobile-more-map-attribution-copyright\s*\{[^}]*color:\s*#475569;/s);
     assert.match(globalCss, /\.dark \.mobile-more-map-attribution-copyright\s*\{[^}]*color:\s*#cbd5e1;/s);

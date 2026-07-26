@@ -15,8 +15,10 @@ import {
   StationNodeImpact,
   TtcPerformanceSnapshot
 } from "./linewatch-data";
+import type { NetworkId } from "./regional-data";
 
 export interface DashboardData {
+  networkId: NetworkId;
   dataSource: "backend" | "fallback";
   networkSegments: NetworkSegment[];
   stations: Station[];

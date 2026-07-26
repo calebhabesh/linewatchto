@@ -9,7 +9,7 @@ const prodBuildPushSource = readFileSync(new URL("../../scripts/prod-build-push.
 
 describe("dashboard spike mitigation", () => {
   it("prefers the single aggregate dashboard endpoint before legacy fan-out", () => {
-    assert.match(dashboardDataSource, /fetchSafe<DashboardApiResponse>\("\/api\/dashboard"\)/);
+    assert.match(dashboardDataSource, /fetchSafe<DashboardApiResponse>\("\/api\/dashboard\?network=ttc"\)/);
     assert.match(dashboardDataSource, /loadDashboardFromAggregate/);
     assert.match(dashboardDataSource, /loadDashboardFromLegacyEndpoints/);
   });

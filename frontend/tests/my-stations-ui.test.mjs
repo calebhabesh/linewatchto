@@ -15,9 +15,9 @@ describe("My Stations UI", () => {
     assert.match(shell, /"my-stations"/);
     assert.match(shell, /<MyStationsPanel/);
     assert.match(shell, /onClick=\{\(\) => setActiveView\("my-stations"\)\}/);
-    assert.match(mobileMore, /Saved Commutes/);
+    assert.match(mobileMore, /My Commutes/);
     assert.match(mobileMore, /My Stations/);
-    assert.ok(mobileMore.indexOf("Saved Commutes") < mobileMore.indexOf("My Stations"));
+    assert.ok(mobileMore.indexOf("My Commutes") < mobileMore.indexOf("My Stations"));
   });
 
   it("renders a signed-out account prompt blurb with feature benefits", () => {
@@ -124,7 +124,7 @@ describe("My Stations UI", () => {
     assert.match(styles, /\.saved-station-rich-heading \.my-stations-row-heading\s*\{[^}]*align-items:\s*center;[^}]*flex-wrap:\s*nowrap;[^}]*justify-content:\s*flex-start;/s);
     assert.match(styles, /\.saved-station-rich-heading \.my-stations-line-badges\s*\{[^}]*align-items:\s*center;[^}]*flex:\s*0 0 auto;/s);
     assert.doesNotMatch(styles, /\.saved-station-rich-heading \.my-stations-row-heading\s*\{[^}]*grid-template-columns:/s);
-    assert.match(transitLineBadge, /\/assets\/linewatch\/\$\{lineId\}-legend\.svg\?v=2/);
+    assert.match(transitLineBadge, /\/assets\/linewatch\/\$\{assetId\}-legend\.svg\?v=3/);
     assert.match(styles, /\.saved-station-disruption-total\s*\{[^}]*height:\s*22px;[^}]*min-width:\s*22px;/s);
     assert.match(styles, /\.saved-station-arrival-groups/);
     assert.match(panel, /station-arrival-line-divider saved-station-section-divider/);

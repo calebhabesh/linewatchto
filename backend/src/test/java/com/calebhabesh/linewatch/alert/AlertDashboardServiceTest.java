@@ -677,8 +677,11 @@ class AlertDashboardServiceTest {
             .extracting(AlertDashboardService.PlannedClosureDto::id)
             .containsExactly("planned-closure-nightly-active");
         assertThat(service.activeSegmentImpacts().get("line-1-finch-eglinton"))
-            .extracting(AlertDashboardService.SegmentImpact::kind)
-            .containsExactly("planned-closure");
+            .singleElement()
+            .satisfies(impact -> {
+                assertThat(impact.kind()).isEqualTo("suspension");
+                assertThat(impact.cardId()).isEqualTo("planned-closure-nightly-active");
+            });
     }
 
     @Test

@@ -88,8 +88,9 @@ class DashboardControllerTest {
         when(alertDashboardService.plannedClosures()).thenReturn(List.of());
         when(performanceController.performance()).thenReturn(performance);
 
-        DashboardResponses.DashboardResponse response = controller.dashboard();
+        DashboardResponses.DashboardResponse response = controller.dashboard("ttc");
 
+        assertThat(response.networkId()).isEqualTo("ttc");
         assertThat(response.map()).isSameAs(map);
         assertThat(response.status()).isSameAs(status);
         assertThat(response.activeAlerts()).isEmpty();
@@ -131,13 +132,26 @@ class DashboardControllerTest {
             List.of()
         ));
 
-        controller.dashboard();
+        controller.dashboard("ttc");
 
         verify(cache).getOrCompute(
-            org.mockito.ArgumentMatchers.eq("dashboard:full"),
+            org.mockito.ArgumentMatchers.eq("dashboard:full:ttc"),
             any(),
             org.mockito.ArgumentMatchers.eq(Duration.ofSeconds(30)),
             any()
         );
+    }
+
+    @Test
+    void returnsSourceHonestRegionalCatalogWithoutRealtimeClaims() {
+        DashboardResponses.DashboardResponse response = controller.dashboard("regional");
+
+        assertThat(response.networkId()).isEqualTo("regional");
+        assertThat(response.availability()).isEqualTo("unavailable");
+        assertThat(response.status().generatedAt().live()).isFalse();
+        assertThat(response.status().lines()).hasSize(8);
+        assertThat(response.map().stations()).hasSize(72);
+        assertThat(response.activeAlerts()).isEmpty();
+        assertThat(response.message()).contains("not configured");
     }
 }

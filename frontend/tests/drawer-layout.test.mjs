@@ -12,6 +12,7 @@ const reducedSpeedZonesSource = readFileSync(new URL("../src/components/ReducedS
 const lineLegendSource = readFileSync(new URL("../src/components/LineLegend.tsx", import.meta.url), "utf8");
 const plannedClosuresSource = readFileSync(new URL("../src/components/PlannedClosuresPanel.tsx", import.meta.url), "utf8");
 const impactOverlapRefsSource = readFileSync(new URL("../src/components/ImpactOverlapRefs.tsx", import.meta.url), "utf8");
+const impactOverlapRefsLogicSource = readFileSync(new URL("../src/components/impact-overlap-refs.ts", import.meta.url), "utf8");
 const impactTypeIconSource = readFileSync(new URL("../src/components/ImpactTypeIcon.tsx", import.meta.url), "utf8");
 const savedCommutesSource = readFileSync(new URL("../src/components/SavedCommutesPanel.tsx", import.meta.url), "utf8");
 const reliabilitySource = readFileSync(new URL("../src/components/ReliabilityPanel.tsx", import.meta.url), "utf8");
@@ -34,6 +35,8 @@ describe("floating menu layout", () => {
     assert.match(globalCss, /@keyframes desktop-content-fade-in/);
     assert.match(selectedImpactScrollSource, /addEventListener\("animationend", handleWrapperAnimationEnd\)/);
     assert.match(selectedImpactScrollSource, /event\.animationName !== expectedAnimationName/);
+    assert.match(selectedImpactScrollSource, /highlightCard\(\);[\s\S]*const wrapper = /);
+    assert.match(globalCss, /\.highlight-active-card\s*\{[^}]*var\(--selection-fast-cycle-duration\)/s);
   });
 
   it("keeps the map first while exposing floating menu and submenu states", () => {
@@ -55,7 +58,7 @@ describe("floating menu layout", () => {
     assert.match(delaysPanelSource, /MetadataGrid/);
     assert.match(impactCardFieldsSource, /\["Started"/);
     assert.match(impactCardFieldsSource, /"Updated"/);
-    assert.match(lineLegendSource, /onDelayClick\?\.\(line\.id\)/);
+    assert.match(lineLegendSource, /onDelayClick\?\.\(dataLineId\)/);
     assert.match(shellSource, /"reduced-speed-zones"/);
     assert.match(shellSource, /Reduced Speed Zones/);
     assert.match(reducedSpeedZonesSource, /Reduced Speed Zones/);
@@ -86,7 +89,7 @@ describe("floating menu layout", () => {
     assert.match(shellSource, /StationSearchPanel/);
     assert.match(shellSource, /activeView === "search"/);
     assert.match(stationSearchSource, /searchStations/);
-    assert.match(stationSearchSource, /buildStationLineGroups/);
+    assert.match(stationSearchSource, /buildNetworkStationLineGroups/);
     assert.match(stationSearchSource, /onSelectStation/);
     assert.match(stationSearchSource, /<StationOutageBadge/);
     assert.match(stationOutageBadgeSource, /station-search-outage-badge/);
@@ -112,6 +115,16 @@ describe("floating menu layout", () => {
     assert.match(shellSource, /MobileMoreSheet/);
     assert.match(globalCss, /\.mobile-bottom-nav/);
     assert.match(globalCss, /\.mobile-status-peek/);
+  });
+
+  it("shows the combined alert-category total on the hamburger badge", () => {
+    assert.match(
+      shellSource,
+      /const totalAlertCount =\s*activeAlerts\.length\s*\+ delays\.length\s*\+ reducedSpeedZones\.length\s*\+ plannedClosures\.length;/,
+    );
+    assert.match(shellSource, /\{totalAlertCount > 0 && !menuVisible && \(/);
+    assert.match(shellSource, /\{totalAlertCount\}/);
+    assert.match(shellSource, /`Toggle menu, \$\{totalAlertCount\} total \$\{totalAlertCount === 1 \? "alert" : "alerts"\}`/);
   });
 
   it("allows alert and planned closure copy to wrap instead of collapsing into narrow columns", () => {
@@ -153,10 +166,9 @@ describe("floating menu layout", () => {
     assert.match(plannedClosuresSource, /closure\.activeNow && alert\.id === closure\.id/);
     assert.match(plannedClosuresSource, /label: "Status"/);
     assert.match(plannedClosuresSource, /trailingRows=\{\[/);
-    assert.match(plannedClosuresSource, /kind: activeAlertKind, id: activeAlert\.id/);
+    assert.match(plannedClosuresSource, /kind: "suspension", id: activeAlert\.id/);
     assert.match(plannedClosuresSource, /<span>Active Now<\/span>/);
     assert.match(plannedClosuresSource, /Currently Inactive/);
-    assert.doesNotMatch(plannedClosuresSource, />\s*Active now\s*<\/span>/);
     assert.match(globalCss, /\.planned-closure-status-button/);
     assert.match(globalCss, /\.planned-closure-status-button\s*\{[^}]*background:\s*rgba\(220, 38, 38, 0\.08\);[^}]*border:\s*1px solid rgba\(220, 38, 38, 0\.18\);[^}]*color:\s*#dc2626/s);
     assert.match(globalCss, /\.dark \.planned-closure-status-button\s*\{[^}]*background:\s*rgba\(239, 68, 68, 0\.16\);[^}]*color:\s*#f87171/s);
@@ -227,9 +239,17 @@ describe("floating menu layout", () => {
     assert.match(dashboardDataSource, /fixture mode/);
   });
 
-  it("LineLegend calls onReducedSpeedZoneClick with line.id", () => {
-    assert.match(lineLegendSource, /onReducedSpeedZoneClick\?\.\(line\.id\)/);
+  it("LineLegend calls onReducedSpeedZoneClick with the network-scoped line id", () => {
+    assert.match(lineLegendSource, /onReducedSpeedZoneClick\?\.\(dataLineId\)/);
     assert.doesNotMatch(lineLegendSource, /onReducedSpeedZoneClick\?\.\(rsz\.id\)/);
+  });
+
+  it("LineLegend includes Regular Service and Limited Service items in a symmetrical 5x2 regional matrix grid", () => {
+    assert.match(lineLegendSource, /grid-cols-2/);
+    assert.match(lineLegendSource, /Regular Service/);
+    assert.match(lineLegendSource, /Limited Service/);
+    assert.match(lineLegendSource, /regular-service/);
+    assert.match(lineLegendSource, /limited-service/);
   });
 
   it("Card actions are renamed properly", () => {
@@ -287,6 +307,9 @@ describe("floating menu layout", () => {
     assert.match(impactTypeIconSource, /impact-type-icon/);
     assert.match(impactOverlapRefsSource, /overlap-impact-ref/);
     assert.doesNotMatch(impactOverlapRefsSource, /text-sky-500/);
+    assert.match(impactOverlapRefsLogicSource, /if \(alert\.severity === "delay"\) return "delay";\s*return "suspension";/);
+    assert.match(impactOverlapRefsLogicSource, /activePlannedClosureIds/);
+    assert.match(impactOverlapRefsLogicSource, /activePlannedClosureIds\.has\(closure\.id\)/);
   });
 
   it("routes active planned closures through active alerts instead of upcoming closures", () => {
@@ -311,7 +334,7 @@ describe("floating menu layout", () => {
     assert.ok(impactActiveAlertIndex < impactPlannedClosureIndex);
     assert.match(activeAlertsSource, /function impactKindForAlert/);
     assert.match(activeAlertsSource, /function impactKindForAlert\(alert: ActiveAlert\): ImpactKind/);
-    assert.match(activeAlertsSource, /case "planned":\s*return "planned-closure"/);
+    assert.doesNotMatch(activeAlertsSource, /case "planned":\s*return "planned-closure"/);
     assert.doesNotMatch(activeAlertsSource, /useScrollSelectedImpactCard\(selection, "planned-closure"\)/);
     assert.match(shellSource, /function viewForImpactSelection|const viewForImpactSelection = useCallback/);
     assert.match(shellSource, /nextSelection\.kind === "planned-closure"/);

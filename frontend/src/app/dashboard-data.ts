@@ -39,6 +39,10 @@ type StatusApiResponse = {
 };
 
 type DashboardApiResponse = {
+  networkId?: "ttc" | "regional";
+  availability?: "available" | "unavailable";
+  sourceSystems?: string[];
+  message?: string;
   map: MapApiResponse;
   status: StatusApiResponse;
   activeAlerts: ActiveAlert[];
@@ -60,6 +64,7 @@ async function fetchSafe<T>(path: string): Promise<T | null> {
 
 function fromBackendPayload(payload: DashboardApiResponse): DashboardData {
   return {
+    networkId: "ttc",
     dataSource: "backend",
     networkSegments: payload.map.segments,
     stations: payload.map.stations,
@@ -80,6 +85,7 @@ function fromBackendPayload(payload: DashboardApiResponse): DashboardData {
 
 function fallbackDashboardData(): DashboardData {
   return {
+    networkId: "ttc",
     dataSource: "fallback",
     networkSegments: fallbackSegments,
     stations: fallbackStations,
@@ -103,7 +109,7 @@ function fallbackDashboardData(): DashboardData {
 }
 
 async function loadDashboardFromAggregate(): Promise<DashboardData | null> {
-  const payload = await fetchSafe<DashboardApiResponse>("/api/dashboard");
+  const payload = await fetchSafe<DashboardApiResponse>("/api/dashboard?network=ttc");
   if (!payload?.map || !payload.status || !payload.activeAlerts || !payload.delays || !payload.reducedSpeedZones || !payload.plannedClosures) {
     return null;
   }

@@ -5,6 +5,7 @@ import { AlertTriangle, Calendar, Construction, X, Bus } from "lucide-react";
 import { useDashboardData } from "../app/DataContext";
 import { DelayIcon } from "./DelayIcon";
 import { TransitLineBadge } from "./TransitLineBadge";
+import type { NetworkId } from "../app/regional-data";
 
 type StatusCategory = "alerts" | "delays" | "reduced-speed-zones" | "closures" | "accessibility-outages" | "surface-notices";
 
@@ -15,19 +16,25 @@ type Props = {
   onClose: () => void;
   accessibilityOutageCount?: number;
   surfaceNoticeCount?: number;
+  networkId?: NetworkId;
 };
 
-export function MobileStatusSheet({ pollText, dataSource, onOpenCategory, onClose, accessibilityOutageCount = 0, surfaceNoticeCount = 0 }: Props) {
+export function MobileStatusSheet({ pollText, dataSource, onOpenCategory, onClose, accessibilityOutageCount = 0, surfaceNoticeCount = 0, networkId = "ttc" }: Props) {
   const { activeAlerts, delays, reducedSpeedZones, plannedClosures, lineStatuses } = useDashboardData();
+  const regional = networkId === "regional";
   const toTitleCase = (str: string) =>
     str.split(" ").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
-  const sourceLabel = dataSource === "backend" ? `Updated ${toTitleCase(pollText)}` : "Backend offline. Fixture mode.";
+  const sourceLabel = dataSource === "backend"
+    ? `Updated ${toTitleCase(pollText)}`
+    : regional
+      ? "Regional demo data — not live service information."
+      : "Backend offline. Fixture mode.";
 
   return (
     <section className="mobile-status-sheet panel" aria-label="Current service status">
       <div className="mobile-sheet-heading">
         <div>
-          <p className="mobile-sheet-kicker">Current TTC rapid transit</p>
+          <p className="mobile-sheet-kicker">{regional ? "GO & UP regional rail" : "Current TTC rapid transit"}</p>
           <h2>System Status</h2>
           <p>{sourceLabel}</p>
         </div>
@@ -59,13 +66,13 @@ export function MobileStatusSheet({ pollText, dataSource, onOpenCategory, onClos
               {delays.length}
             </span>
           </button>
-          <button type="button" className="mobile-status-btn-rsz" onClick={() => onOpenCategory("reduced-speed-zones")}>
+          {!regional ? <button type="button" className="mobile-status-btn-rsz" onClick={() => onOpenCategory("reduced-speed-zones")}>
             <Construction size={16} className="text-amber-600 dark:text-amber-400 shrink-0" />
             <span className="mobile-status-btn-text">Reduced Speed Zones</span>
             <span className="mobile-status-btn-circle">
               {reducedSpeedZones.length}
             </span>
-          </button>
+          </button> : null}
           <button type="button" className="mobile-status-btn-closures" onClick={() => onOpenCategory("closures")}>
             <Calendar size={16} className="text-blue-500 dark:text-blue-400 shrink-0" />
             <span className="mobile-status-btn-text">Planned Closures</span>
@@ -73,7 +80,7 @@ export function MobileStatusSheet({ pollText, dataSource, onOpenCategory, onClos
               {plannedClosures.length}
             </span>
           </button>
-          <button type="button" className="mobile-status-btn-accessibility flex items-center justify-between" onClick={() => onOpenCategory("accessibility-outages")}>
+          {!regional ? <button type="button" className="mobile-status-btn-accessibility flex items-center justify-between" onClick={() => onOpenCategory("accessibility-outages")}>
             <Image
               src="/assets/linewatch/accessibility-alert.svg"
               alt=""
@@ -85,14 +92,14 @@ export function MobileStatusSheet({ pollText, dataSource, onOpenCategory, onClos
             <span className="mobile-status-btn-circle">
               {accessibilityOutageCount}
             </span>
-          </button>
-          <button type="button" className="mobile-status-btn-surface flex items-center justify-between" onClick={() => onOpenCategory("surface-notices")}>
+          </button> : null}
+          {!regional ? <button type="button" className="mobile-status-btn-surface flex items-center justify-between" onClick={() => onOpenCategory("surface-notices")}>
             <Bus size={16} className="text-slate-500 dark:text-slate-400 shrink-0" />
             <span className="mobile-status-btn-text">Streetcar & Bus Notices</span>
             <span className="mobile-status-btn-circle">
               {surfaceNoticeCount}
             </span>
-          </button>
+          </button> : null}
         </div>
 
         <div className="mobile-line-status-list">
@@ -115,7 +122,7 @@ export function MobileStatusSheet({ pollText, dataSource, onOpenCategory, onClos
                 <TransitLineBadge lineId={line.id} lineNumber={line.number} lineName={line.name} size={30} className="mobile-line-status-number" />
                 <span className="mobile-line-status-copy">
                   <strong>{line.name}</strong>
-                  {clear ? <em>Good Service</em> : null}
+                  {clear ? <em>{dataSource === "backend" ? "Good Service" : regional ? "Demo status unavailable" : "Fixture data"}</em> : null}
                   {!clear ? (
                     <span className="mobile-line-status-impacts">
                       {lineAlerts.length > 0 ? (

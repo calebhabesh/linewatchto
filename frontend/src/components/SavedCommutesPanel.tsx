@@ -364,7 +364,7 @@ function SavedCommuteNotificationSummary({
 }) {
   const summary = notificationSummary || {
     label: "Unavailable",
-    detail: "Saved commute alerts and closure reminders",
+    detail: "My Commutes alerts and closure reminders",
     tone: "unavailable",
   };
 
@@ -909,7 +909,7 @@ export function SavedCommutesPanel({
           )}
           <h2 className="text-[clamp(10px,3.5cqw,18px)] font-bold text-slate-900 dark:text-white flex items-center gap-1 sm:gap-2 whitespace-nowrap">
             <Navigation className="w-[16px] h-[16px] sm:w-[22px] sm:h-[22px] text-emerald-500 shrink-0" />
-            <span>Saved Commutes</span>
+            <span>My Commutes</span>
           </h2>
         </div>
         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
@@ -1018,7 +1018,7 @@ export function SavedCommutesPanel({
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <h3 className="text-sm font-bold text-slate-900 dark:text-white">Create a Route</h3>
                 </div>
-                <input value={newLabel} onChange={(event) => setNewLabel(event.target.value)} placeholder="Enter a Commute Label (e.g. Work)" aria-label="Saved commute label" />
+                <input value={newLabel} onChange={(event) => setNewLabel(event.target.value)} placeholder="Enter a Commute Label (e.g. Work)" aria-label="Commute label" />
                 <div className="saved-commute-station-grid">
                   <SavedCommuteStationPicker
                     label="Origin"
@@ -1140,7 +1140,7 @@ export function SavedCommutesPanel({
                         <select
                           value={sortBy}
                           onChange={(event) => setSortBy(event.target.value as SavedCommuteSort)}
-                          aria-label="Sort saved commutes"
+                          aria-label="Sort My Commutes"
                           className="sr-only"
                           tabIndex={-1}
                         >
@@ -1152,7 +1152,7 @@ export function SavedCommutesPanel({
                         <button
                           type="button"
                           className="site-dropdown-trigger saved-commute-sort-trigger"
-                          aria-label="Sort saved commutes"
+                          aria-label="Sort My Commutes"
                           aria-haspopup="listbox"
                           aria-expanded={sortDropdownOpen}
                           onClick={() => setSortDropdownOpen(!sortDropdownOpen)}
@@ -1209,7 +1209,7 @@ export function SavedCommutesPanel({
 
                 {accountCommutes.length === 0 ? (
                   <div className="flex flex-col items-center justify-center pt-3 pb-10 sm:py-10 text-center">
-                    <p className="text-sm font-semibold text-slate-400 dark:text-slate-500 mb-4">No Saved Commutes</p>
+                    <p className="text-sm font-semibold text-slate-400 dark:text-slate-500 mb-4">No Commutes Yet</p>
                     <button
                       type="button"
                       className="saved-commute-add-btn flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition-colors shadow-sm cursor-pointer"
@@ -1450,7 +1450,7 @@ export function SavedCommutesPanel({
                                 <li>{formatEventTypes(notificationRule)}</li>
                               </>
                             ) : (
-                              <li>Saved commute notifications are disabled for this route.</li>
+                              <li>Notifications are disabled for this commute.</li>
                             )}
                           </ul>
                         </div>
@@ -1525,7 +1525,7 @@ export function SavedCommutesPanel({
                                 handleDeleteCommute(commute.id);
                                 setDeletingCommuteId(null);
                               }}
-                              aria-label={`Confirm delete saved commute ${commute.label}`}
+                              aria-label={`Confirm delete commute ${commute.label}`}
                             >
                               Yes
                             </button>
@@ -1533,7 +1533,7 @@ export function SavedCommutesPanel({
                               type="button"
                               className="commute-route-delete-cancel-button"
                               onClick={() => setDeletingCommuteId(null)}
-                              aria-label={`Cancel delete saved commute ${commute.label}`}
+                              aria-label={`Cancel delete commute ${commute.label}`}
                             >
                               Cancel
                             </button>
@@ -1543,8 +1543,8 @@ export function SavedCommutesPanel({
                             type="button"
                             className="commute-route-delete-button"
                             onClick={() => setDeletingCommuteId(commute.id)}
-                            aria-label={`Delete saved commute ${commute.label}`}
-                            title="Delete saved commute"
+                            aria-label={`Delete commute ${commute.label}`}
+                            title="Delete commute"
                           >
                             <Trash2 size={22} aria-hidden="true" />
                           </button>

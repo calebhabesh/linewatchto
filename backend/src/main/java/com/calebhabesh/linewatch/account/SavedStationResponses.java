@@ -12,6 +12,7 @@ public final class SavedStationResponses {
     }
 
     public record SavedStationResponse(
+        String networkId,
         StationResponses.StationSummaryResponse station,
         Instant savedAt
     ) {

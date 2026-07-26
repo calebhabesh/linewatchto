@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -40,11 +41,12 @@ public class SavedStationController {
     @PutMapping("/{stationId}")
     public ResponseEntity<SavedStationResponses.SavedStationResponse> save(
         @CookieValue(name = AuthCookieFactory.COOKIE_NAME, required = false) String rawSessionToken,
-        @PathVariable String stationId
+        @PathVariable String stationId,
+        @RequestParam(defaultValue = "ttc") String network
     ) {
         AccountEntity account = accountService.requireAccount(rawSessionToken);
         accountRateLimiter.requirePreferenceMutation(account.getId());
-        SavedStationResponses.SaveResult result = savedStationService.save(account, stationId);
+        SavedStationResponses.SaveResult result = savedStationService.save(account, network, stationId);
         return ResponseEntity.status(result.created() ? HttpStatus.CREATED : HttpStatus.OK)
             .body(result.station());
     }
@@ -53,11 +55,12 @@ public class SavedStationController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(
         @CookieValue(name = AuthCookieFactory.COOKIE_NAME, required = false) String rawSessionToken,
-        @PathVariable String stationId
+        @PathVariable String stationId,
+        @RequestParam(defaultValue = "ttc") String network
     ) {
         AccountEntity account = accountService.requireAccount(rawSessionToken);
         accountRateLimiter.requirePreferenceMutation(account.getId());
-        savedStationService.delete(account, stationId);
+        savedStationService.delete(account, network, stationId);
     }
 
     @ExceptionHandler(AccountException.class)

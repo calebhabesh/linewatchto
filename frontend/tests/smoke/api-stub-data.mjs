@@ -22,10 +22,12 @@ export const mapResponse = {
           sourceAlertIds: ["stub-alert-line-1"],
         },
         {
-          kind: "suspension",
-          cardId: "stub-active-closure-child-line-1",
+          // Exercise normalization of a cached/legacy map payload that still
+          // presents an in-effect closure with its planned identity.
+          kind: "planned-closure",
+          cardId: "stub-closure-line-1",
           travelDirection: "bidirectional",
-          sourceAlertIds: ["stub-active-closure-child-line-1"],
+          sourceAlertIds: ["stub-closure-line-1"],
         },
       ],
       overlay: "suspension",

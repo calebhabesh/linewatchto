@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 
 const shellSource = readFileSync(new URL("../src/components/LineWatchShell.tsx", import.meta.url), "utf8");
+const networkMapLegendsSource = readFileSync(new URL("../src/components/NetworkMapLegends.tsx", import.meta.url), "utf8");
 const bottomNavSource = readFileSync(new URL("../src/components/MobileBottomNav.tsx", import.meta.url), "utf8");
 const statusPeekSource = readFileSync(new URL("../src/components/MobileStatusPeek.tsx", import.meta.url), "utf8");
 const statusSheetSource = readFileSync(new URL("../src/components/MobileStatusSheet.tsx", import.meta.url), "utf8");
@@ -309,8 +310,8 @@ describe("mobile bottom sheet UX", () => {
 
   it("hides desktop-only chrome on mobile without deleting it", () => {
     assert.match(shellSource, /desktop-top-chrome/);
-    assert.match(shellSource, /desktop-map-legend/);
-    assert.match(shellSource, /desktop-map-legend fixed bottom-10 right-6/);
+    assert.match(shellSource, /<NetworkMap/);
+    assert.match(networkMapLegendsSource, /desktop-map-legend absolute bottom-10 right-6/);
     assert.match(globalCss, /\.desktop-top-chrome/);
     assert.match(globalCss, /\.desktop-map-legend/);
   });
@@ -346,7 +347,7 @@ describe("mobile bottom sheet UX", () => {
   it("keeps rotated-map selections in a rotated preview instead of portrait sheets", () => {
     assert.match(shellSource, /RotatedMapSelectionCard/);
     assert.match(shellSource, /rotated-map-hud/);
-    assert.match(shellSource, /!rotatedMapMode && selectedStationId/);
+    assert.match(shellSource, /!rotatedMapMode && selectedNetwork === "ttc" && selectedStationId/);
     assert.match(globalCss, /\.rotated-map-selection-card/);
   });
 });

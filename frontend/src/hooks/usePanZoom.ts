@@ -3,6 +3,7 @@ import {
   clampPanZoomScale,
   clientPointToLogicalViewportPoint,
   computeBoundedMapFrame,
+  computeFittedCameraFlyInStart,
   computeInsetViewportFocus,
   computeMapFitScale,
   currentDevicePixelRatio,
@@ -30,6 +31,7 @@ type UsePanZoomOptions = {
     topInset: number;
     horizontalInsetRatio?: number;
   };
+  animateInitialEntrance?: boolean;
 };
 
 type ZoomToPointOptions = {
@@ -42,6 +44,7 @@ export function usePanZoom({
   viewportOrientation = "standard",
   disableProgrammaticMotion = false,
   defaultFrame,
+  animateInitialEntrance = true,
 }: UsePanZoomOptions = {}) {
   const [transform, setTransform] = useState({ x: 0, y: 0, scale: 1 });
   const [fitScale, setFitScale] = useState(1);
@@ -68,6 +71,7 @@ export function usePanZoom({
   const gestureMovedRef = useRef(false);
   const suppressMapClickRef = useRef(false);
   const dragPointerTypeRef = useRef<string | null>(null);
+  const cameraInitializedRef = useRef(false);
 
   const shouldAnimateProgrammaticTransform = !reducedMotion && !disableProgrammaticMotion;
 
@@ -179,7 +183,7 @@ export function usePanZoom({
     }
   }, [clearProgrammaticAnimation, currentRenderedTransform, restoreIdleMapTransition, writeMapTransform]);
 
-  const animateTransformTo = useCallback((next: PanZoomTransform, nextFitScale?: number) => {
+  const animateTransformTo = useCallback((next: PanZoomTransform, nextFitScale?: number, animate = true) => {
     if (isGestureActiveRef.current) {
       return;
     }
@@ -193,7 +197,7 @@ export function usePanZoom({
       fitScaleRef.current = nextFitScale;
     }
 
-    if (!mapRef.current || !shouldAnimateProgrammaticTransform) {
+    if (!mapRef.current || !shouldAnimateProgrammaticTransform || !animate) {
       setMapTransition("none");
       writeMapTransform(snapped);
       if (nextFitScale !== undefined) {
@@ -571,13 +575,60 @@ export function usePanZoom({
     });
   }, [fitScale, pointFromClientPoint, snappedTransformFrom]);
 
-  const recenter = useCallback(() => {
+  const moveToDefaultCamera = useCallback((animate: boolean, playEntrance: boolean) => {
     if (!containerRef.current) return;
     const { width, height } = logicalViewportSize();
     if (width <= 0 || height <= 0) return;
     const next = defaultTransformForViewport(width, height);
-    animateTransformTo(next, next.scale);
-  }, [animateTransformTo, defaultTransformForViewport, logicalViewportSize]);
+    const { scale } = next;
+    const isInitialCamera = !cameraInitializedRef.current;
+    cameraInitializedRef.current = true;
+
+    if (isInitialCamera && shouldAnimateProgrammaticTransform && playEntrance) {
+      const entryTransform = snapTransform(
+        computeFittedCameraFlyInStart(next, width, height),
+      );
+
+      transformRef.current = entryTransform;
+      setMapTransition("none");
+      writeMapTransform(entryTransform);
+      setTransform(entryTransform);
+
+      programmaticAnimationFrameRef.current = requestAnimationFrame(() => {
+        programmaticAnimationFrameRef.current = null;
+        animateTransformTo(next, scale);
+      });
+      return;
+    }
+
+    if (!animate) {
+      animateTransformTo(next, scale, false);
+      return;
+    }
+
+    animateTransformTo(next, scale);
+  }, [
+    animateTransformTo,
+    defaultTransformForViewport,
+    logicalViewportSize,
+    shouldAnimateProgrammaticTransform,
+    snapTransform,
+    setMapTransition,
+    writeMapTransform,
+  ]);
+
+  const initializeCamera = useCallback(() => {
+    moveToDefaultCamera(animateInitialEntrance, animateInitialEntrance);
+  }, [animateInitialEntrance, moveToDefaultCamera]);
+
+  const recenter = useCallback(() => {
+    moveToDefaultCamera(true, true);
+  }, [moveToDefaultCamera]);
+
+  const replayEntrance = useCallback(() => {
+    cameraInitializedRef.current = false;
+    recenter();
+  }, [recenter]);
 
   const zoomIn = useCallback(() => {
     if (!containerRef.current) return;
@@ -676,6 +727,8 @@ export function usePanZoom({
     handlePointerCancel,
     handleWheel,
     recenter,
+    initializeCamera,
+    replayEntrance,
     zoomIn,
     zoomOut,
     zoomToScale,
