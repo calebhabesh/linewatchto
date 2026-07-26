@@ -12,9 +12,13 @@ import {
   computeFittedCameraFlyInStart,
   computeInsetViewportFocus,
   currentDevicePixelRatio,
+  distanceBetweenPoints,
+  mapPointFromViewportPoint,
+  midpointBetweenPoints,
   PAN_ZOOM_MAX_RELATIVE_SCALE,
   PAN_ZOOM_MIN_RELATIVE_SCALE,
   snapTransformToDevicePixels,
+  transformForMapPointAtViewportPoint,
   type MapViewportOrientation,
 } from "../hooks/panZoomMath";
 
@@ -175,6 +179,7 @@ function InteractiveRegionalMapComponent({
   selectedStationId,
   onSelectStationId,
   reducedMotion,
+  mobilePerformanceMode = false,
   recenterSignal,
   isDark = true,
   animateInitialEntrance = true,
@@ -188,6 +193,7 @@ function InteractiveRegionalMapComponent({
   selectedStationId: string | null;
   onSelectStationId: (id: string | null) => void;
   reducedMotion: boolean;
+  mobilePerformanceMode?: boolean;
   recenterSignal?: number;
   isDark?: boolean;
   animateInitialEntrance?: boolean;
@@ -202,10 +208,16 @@ function InteractiveRegionalMapComponent({
   const cameraInitializedRef = useRef(false);
   const lastRecenterSignalRef = useRef(recenterSignal);
   const dragRef = useRef<{ pointerId: number; x: number; y: number; camera: Camera } | null>(null);
+  const activePointersRef = useRef(new Map<number, { x: number; y: number }>());
+  const pinchGestureRef = useRef<{
+    startDistance: number;
+    startScale: number;
+    mapPointAtMidpoint: { x: number; y: number };
+  } | null>(null);
   const [svgMarkup, setSvgMarkup] = useState("");
   const [camera, setCamera] = useState<Camera>({ x: 0, y: 0, scale: 1 });
   const [loadError, setLoadError] = useState(false);
-  const [dragging, setDragging] = useState(false);
+  const [isGestureActive, setIsGestureActive] = useState(false);
   const [fitScale, setFitScale] = useState(0.35);
   const [desktopMapTopInset, setDesktopMapTopInset] = useState(0);
   const [desktopMapBottomInset, setDesktopMapBottomInset] = useState(0);
@@ -225,6 +237,7 @@ function InteractiveRegionalMapComponent({
   const readyNotifiedRef = useRef(false);
   const lastFocusedTargetKeyRef = useRef<string | null>(null);
   const lastFocusLayoutKeyRef = useRef("");
+  const shouldAnimateProgrammaticTransform = !reducedMotion && !mobilePerformanceMode;
 
   const writeMapTransform = useCallback((nextCamera: Camera) => {
     if (mapStageRef.current) {
@@ -260,18 +273,18 @@ function InteractiveRegionalMapComponent({
   const cancelCameraAnimation = useCallback(() => {
     const renderedCamera = currentRenderedCamera();
     clearProgrammaticAnimation();
-    setMapTransition(reducedMotion ? "none" : "transform 0.1s ease-out");
+    setMapTransition(shouldAnimateProgrammaticTransform ? "transform 0.1s ease-out" : "none");
     if (!renderedCamera) return;
     cameraRef.current = renderedCamera;
     writeMapTransform(renderedCamera);
     setCamera(renderedCamera);
-  }, [clearProgrammaticAnimation, currentRenderedCamera, reducedMotion, setMapTransition, writeMapTransform]);
+  }, [clearProgrammaticAnimation, currentRenderedCamera, setMapTransition, shouldAnimateProgrammaticTransform, writeMapTransform]);
 
   const animateCameraTo = useCallback((targetCamera: Camera, nextFitScale?: number) => {
     cameraRef.current = targetCamera;
     clearProgrammaticAnimation();
 
-    if (!mapStageRef.current || reducedMotion) {
+    if (!mapStageRef.current || !shouldAnimateProgrammaticTransform) {
       setMapTransition("none");
       writeMapTransform(targetCamera);
       if (nextFitScale !== undefined) setFitScale(nextFitScale);
@@ -291,7 +304,7 @@ function InteractiveRegionalMapComponent({
       if (nextFitScale !== undefined) setFitScale(nextFitScale);
       setCamera({ ...cameraRef.current });
     }, 850);
-  }, [clearProgrammaticAnimation, reducedMotion, setMapTransition, writeMapTransform]);
+  }, [clearProgrammaticAnimation, setMapTransition, shouldAnimateProgrammaticTransform, writeMapTransform]);
 
   useEffect(() => {
     cameraRef.current = camera;
@@ -401,7 +414,7 @@ function InteractiveRegionalMapComponent({
     const fitted = fittedCamera();
     if (!fitted) return;
     cameraInitializedRef.current = true;
-    if (animateInitialEntrance && !reducedMotion) {
+    if (animateInitialEntrance && shouldAnimateProgrammaticTransform) {
       const viewport = viewportRef.current;
       const mapSurface = viewport?.closest<HTMLElement>(".network-map-transition-surface");
       const width = viewport?.clientWidth || mapSurface?.clientWidth || 0;
@@ -424,7 +437,7 @@ function InteractiveRegionalMapComponent({
     writeMapTransform(fitted.camera);
     setFitScale(fitted.scale);
     setCamera(fitted.camera);
-  }, [animateCameraTo, animateInitialEntrance, fittedCamera, reducedMotion, setMapTransition, svgMarkup, writeMapTransform]);
+  }, [animateCameraTo, animateInitialEntrance, fittedCamera, setMapTransition, shouldAnimateProgrammaticTransform, svgMarkup, writeMapTransform]);
 
   useEffect(() => {
     let cancelled = false;
@@ -873,82 +886,147 @@ function InteractiveRegionalMapComponent({
     }, 80);
   }, [clearProgrammaticAnimation, fitScale, setMapTransition, viewportOrientation, writeMapTransform]);
 
+  const applyActiveGesture = useCallback(() => {
+    const pointers = [...activePointersRef.current.values()];
+    const pinch = pinchGestureRef.current;
+    let nextCamera: Camera | null = null;
+
+    if (pinch && pointers.length >= 2) {
+      const [first, second] = pointers;
+      const distance = distanceBetweenPoints(first, second);
+      if (pinch.startDistance > 0) {
+        const midpoint = midpointBetweenPoints(first, second);
+        const nextScale = clampPanZoomScale(
+          pinch.startScale * (distance / pinch.startDistance),
+          fitScale,
+        );
+        nextCamera = snapCameraToDevicePixels(
+          transformForMapPointAtViewportPoint(pinch.mapPointAtMidpoint, midpoint, nextScale),
+        );
+      }
+    } else {
+      const drag = dragRef.current;
+      const point = pendingDragPointRef.current;
+      if (drag && point) {
+        nextCamera = snapCameraToDevicePixels({
+          ...drag.camera,
+          x: drag.camera.x + point.x - drag.x,
+          y: drag.camera.y + point.y - drag.y,
+        });
+      }
+    }
+
+    if (!nextCamera) return;
+    cameraRef.current = nextCamera;
+    writeMapTransform(nextCamera);
+  }, [fitScale, writeMapTransform]);
+
   const onPointerDown = useCallback((event: PointerEvent<HTMLDivElement>) => {
-    if (event.button !== 0) return;
+    if (event.pointerType === "mouse" && event.button !== 0) return;
     cancelCameraAnimation();
-    const target = event.target instanceof Element ? event.target : null;
-    const impact = target?.closest<SVGElement>("[data-regional-impact-kind]");
-    const station = target?.closest<SVGElement>("[data-regional-station-id]");
-    pointerActivationRef.current = impact?.dataset.regionalImpactKind && impact.dataset.regionalImpactId
-      ? {
-          type: "impact",
-          selection: {
-            kind: impact.dataset.regionalImpactKind as NonNullable<ImpactSelection>["kind"],
-            id: impact.dataset.regionalImpactId,
-          },
-        }
-      : station?.dataset.regionalStationId
-        ? { type: "station", id: station.dataset.regionalStationId }
-        : null;
     const point = clientPointToLogicalViewportPoint(
       { x: event.clientX, y: event.clientY },
       event.currentTarget.getBoundingClientRect(),
       viewportOrientation,
     );
+
+    if (activePointersRef.current.size === 0) {
+      const target = event.target instanceof Element ? event.target : null;
+      const impact = target?.closest<SVGElement>("[data-regional-impact-kind]");
+      const station = target?.closest<SVGElement>("[data-regional-station-id]");
+      pointerActivationRef.current = impact?.dataset.regionalImpactKind && impact.dataset.regionalImpactId
+        ? {
+            type: "impact",
+            selection: {
+              kind: impact.dataset.regionalImpactKind as NonNullable<ImpactSelection>["kind"],
+              id: impact.dataset.regionalImpactId,
+            },
+          }
+        : station?.dataset.regionalStationId
+          ? { type: "station", id: station.dataset.regionalStationId }
+          : null;
+      dragMovedRef.current = false;
+      dragRef.current = { pointerId: event.pointerId, x: point.x, y: point.y, camera: cameraRef.current };
+    }
+
+    activePointersRef.current.set(event.pointerId, point);
     event.currentTarget.setPointerCapture(event.pointerId);
-    dragRef.current = { pointerId: event.pointerId, x: point.x, y: point.y, camera: cameraRef.current };
-    pendingDragPointRef.current = null;
-    dragMovedRef.current = false;
-    setDragging(true);
+    pendingDragPointRef.current = point;
+
+    if (activePointersRef.current.size >= 2) {
+      const [first, second] = [...activePointersRef.current.values()];
+      const midpoint = midpointBetweenPoints(first, second);
+      pinchGestureRef.current = {
+        startDistance: distanceBetweenPoints(first, second),
+        startScale: cameraRef.current.scale,
+        mapPointAtMidpoint: mapPointFromViewportPoint(cameraRef.current, midpoint),
+      };
+      dragRef.current = null;
+      pointerActivationRef.current = null;
+      dragMovedRef.current = true;
+    }
+    setIsGestureActive(true);
   }, [cancelCameraAnimation, viewportOrientation]);
 
   const onPointerMove = useCallback((event: PointerEvent<HTMLDivElement>) => {
-    const drag = dragRef.current;
-    if (!drag || drag.pointerId !== event.pointerId) return;
+    if (!activePointersRef.current.has(event.pointerId)) return;
     const point = clientPointToLogicalViewportPoint(
       { x: event.clientX, y: event.clientY },
       event.currentTarget.getBoundingClientRect(),
       viewportOrientation,
     );
+    activePointersRef.current.set(event.pointerId, point);
     pendingDragPointRef.current = point;
-    if (Math.abs(point.x - drag.x) > 3 || Math.abs(point.y - drag.y) > 3) {
+
+    const drag = dragRef.current;
+    if (drag && drag.pointerId === event.pointerId && (Math.abs(point.x - drag.x) > 3 || Math.abs(point.y - drag.y) > 3)) {
       dragMovedRef.current = true;
+      pointerActivationRef.current = null;
     }
     if (dragAnimationFrameRef.current !== null) return;
-
     dragAnimationFrameRef.current = window.requestAnimationFrame(() => {
       dragAnimationFrameRef.current = null;
-      const activeDrag = dragRef.current;
-      const point = pendingDragPointRef.current;
-      if (!activeDrag || !point) return;
-      const nextCamera = snapCameraToDevicePixels({
-        ...activeDrag.camera,
-        x: activeDrag.camera.x + point.x - activeDrag.x,
-        y: activeDrag.camera.y + point.y - activeDrag.y,
-      });
-      cameraRef.current = nextCamera;
-      writeMapTransform(nextCamera);
+      applyActiveGesture();
     });
-  }, [viewportOrientation, writeMapTransform]);
+  }, [applyActiveGesture, viewportOrientation]);
 
   const onPointerUp = useCallback((event: PointerEvent<HTMLDivElement>) => {
-    const drag = dragRef.current;
-    if (!drag || drag.pointerId !== event.pointerId) return;
-
+    if (!activePointersRef.current.has(event.pointerId)) return;
     if (dragAnimationFrameRef.current !== null) {
       window.cancelAnimationFrame(dragAnimationFrameRef.current);
       dragAnimationFrameRef.current = null;
     }
-    const point = pendingDragPointRef.current;
-    if (point) {
-      const nextCamera = snapCameraToDevicePixels({
-        ...drag.camera,
-        x: drag.camera.x + point.x - drag.x,
-        y: drag.camera.y + point.y - drag.y,
-      });
-      cameraRef.current = nextCamera;
-      writeMapTransform(nextCamera);
+    applyActiveGesture();
+    activePointersRef.current.delete(event.pointerId);
+    try {
+      if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+        event.currentTarget.releasePointerCapture(event.pointerId);
+      }
+    } catch {
+      // Pointer capture may already be released by the browser during cancellation.
     }
+
+    const remainingPointers = [...activePointersRef.current.entries()];
+    if (remainingPointers.length === 1) {
+      const [pointerId, point] = remainingPointers[0];
+      pinchGestureRef.current = null;
+      pendingDragPointRef.current = point;
+      dragRef.current = { pointerId, x: point.x, y: point.y, camera: cameraRef.current };
+      return;
+    }
+    if (remainingPointers.length > 1) {
+      const [, first] = remainingPointers[0];
+      const [, second] = remainingPointers[1];
+      const midpoint = midpointBetweenPoints(first, second);
+      pinchGestureRef.current = {
+        startDistance: distanceBetweenPoints(first, second),
+        startScale: cameraRef.current.scale,
+        mapPointAtMidpoint: mapPointFromViewportPoint(cameraRef.current, midpoint),
+      };
+      return;
+    }
+
+    pinchGestureRef.current = null;
     pendingDragPointRef.current = null;
     dragRef.current = null;
     const activation = pointerActivationRef.current;
@@ -962,8 +1040,8 @@ function InteractiveRegionalMapComponent({
       }
     }
     setCamera({ ...cameraRef.current });
-    setDragging(false);
-  }, [onSelectImpact, onSelectStationId, selectedStationId, writeMapTransform]);
+    setIsGestureActive(false);
+  }, [applyActiveGesture, onSelectImpact, onSelectStationId, selectedStationId]);
 
   const activateTarget = useCallback((target: EventTarget | null) => {
     if (!(target instanceof Element)) return;
@@ -988,7 +1066,11 @@ function InteractiveRegionalMapComponent({
   const relativeScale = camera.scale / (fitScale || 1);
 
   return (
-    <section className="regional-map" aria-label="Interactive GO and UP map">
+    <section
+      className={`regional-map ${isGestureActive ? "map-gesture-active" : ""}`}
+      data-map-gesture-active={isGestureActive ? "true" : "false"}
+      aria-label="Interactive GO and UP map"
+    >
       <div
         ref={viewportRef}
         className="regional-map-viewport"
@@ -1019,7 +1101,9 @@ function InteractiveRegionalMapComponent({
             bottom: "auto",
             transform: `translate(${camera.x}px, ${camera.y}px) scale(${camera.scale})`,
             transformOrigin: "0 0",
-            transition: reducedMotion || dragging ? "none" : "transform 0.1s ease-out",
+            transition: shouldAnimateProgrammaticTransform && !isGestureActive
+              ? "transform 0.1s ease-out"
+              : "none",
           }}
         >
           <RegionalSvgMarkup markup={svgMarkup} />

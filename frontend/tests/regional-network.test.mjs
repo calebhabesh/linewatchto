@@ -145,7 +145,7 @@ describe("network-scoped regional dashboard", () => {
     assert.doesNotMatch(regionalMapSource, /startInitialFlyIn/);
     assert.match(shellSource, /animateInitialEntrance=\{!initialMapReady\}/);
     assert.match(regionalMapSource, /const initializeMapCamera = useCallback/);
-    assert.match(regionalMapSource, /if \(animateInitialEntrance && !reducedMotion\) \{[\s\S]*computeFittedCameraFlyInStart[\s\S]*animateCameraTo\(fitted\.camera, fitted\.scale\)/);
+    assert.match(regionalMapSource, /if \(animateInitialEntrance && shouldAnimateProgrammaticTransform\) \{[\s\S]*computeFittedCameraFlyInStart[\s\S]*animateCameraTo\(fitted\.camera, fitted\.scale\)/);
     assert.match(
       networkMapSource,
       /<InteractiveTtcMap[\s\S]*\{\.\.\.props\}[\s\S]*onReady=\{onInitialMapReady\}/,
@@ -436,6 +436,26 @@ describe("network-scoped regional dashboard", () => {
     );
   });
 
+  it("applies the TTC mobile performance contract to the regional camera and overlays", () => {
+    assert.match(networkMapSource, /mobilePerformanceMode=\{props\.mobilePerformanceMode\}/);
+    assert.match(regionalMapSource, /mobilePerformanceMode\?:\s*boolean/);
+    assert.match(regionalMapSource, /const shouldAnimateProgrammaticTransform = !reducedMotion && !mobilePerformanceMode/);
+    assert.match(regionalMapSource, /isGestureActive \? "map-gesture-active" : ""/);
+    assert.match(
+      globalsCss,
+      /\.linewatch-shell\.mobile-performance-mode \.regional-impact-aura,[\s\S]*?\.linewatch-shell\.mobile-performance-mode \.regional-station-impact-ring\s*\{[^}]*animation:\s*none\s*!important;[^}]*filter:\s*none\s*!important;[^}]*transition:\s*none\s*!important;/s,
+    );
+  });
+
+  it("uses the TTC-style multi-pointer pinch pipeline for the regional map", () => {
+    assert.match(regionalMapSource, /activePointersRef = useRef\(new Map<number, \{ x: number; y: number \}>\(\)\)/);
+    assert.match(regionalMapSource, /pinchGestureRef/);
+    assert.match(regionalMapSource, /distanceBetweenPoints/);
+    assert.match(regionalMapSource, /midpointBetweenPoints/);
+    assert.match(regionalMapSource, /transformForMapPointAtViewportPoint/);
+    assert.match(regionalMapSource, /activePointersRef\.current\.size >= 2/);
+  });
+
   it("centers the enlarged default desktop network frame between the upper console and regional impact badges", () => {
     assert.match(regionalMapSource, /\.desktop-status-capsule/);
     assert.match(regionalMapSource, /\.desktop-status-chip-row-container/);
@@ -494,7 +514,7 @@ describe("network-scoped regional dashboard", () => {
     assert.match(regionalMapSource, /window\.setTimeout\(\(\) => \{[\s\S]*setCamera\(\{ \.\.\.cameraRef\.current \}\)/);
     assert.match(regionalMapSource, /cancelCameraAnimation\(\);[\s\S]*dragRef\.current/);
     assert.doesNotMatch(regionalMapSource, /setMapTransition\("transform 0\.8s[^\n]+\);\s*setCamera\(targetCamera\)/);
-    assert.match(regionalMapSource, /if \(animateInitialEntrance && !reducedMotion\) \{[\s\S]*entryCamera[\s\S]*animateCameraTo/);
+    assert.match(regionalMapSource, /if \(animateInitialEntrance && shouldAnimateProgrammaticTransform\) \{[\s\S]*entryCamera[\s\S]*animateCameraTo/);
   });
 
   it("does not move or zoom the initialized camera when the dashboard viewport resizes", () => {

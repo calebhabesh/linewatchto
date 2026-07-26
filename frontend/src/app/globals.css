@@ -3955,6 +3955,22 @@ button {
   transition: none !important;
 }
 
+/* The regional map owns additional SVG animation names, so explicitly give it
+   the same static mobile rendering contract as the TTC map. */
+.linewatch-shell.mobile-performance-mode .regional-impact-aura,
+.linewatch-shell.mobile-performance-mode .regional-impact-path,
+.linewatch-shell.mobile-performance-mode .regional-impact-interactive-glow,
+.linewatch-shell.mobile-performance-mode .regional-station-selected-indicator,
+.linewatch-shell.mobile-performance-mode .regional-station-impact-ring {
+  animation: none !important;
+  filter: none !important;
+  transition: none !important;
+}
+
+.linewatch-shell.mobile-performance-mode .regional-impact-glow {
+  filter: none !important;
+}
+
 .linewatch-shell.mobile-performance-mode .asset-alert-path-glow {
   filter: none !important;
   opacity: 0.34;
@@ -6860,25 +6876,32 @@ img.transit-line-badge {
 
 .default-map-mode-control {
   align-items: center;
-  background: var(--light-container);
+  background: transparent;
   border: none;
   display: flex;
   gap: 12px;
   justify-content: space-between;
-  margin: 6px 0 2px;
-  min-height: 58px;
+  margin: 0;
   padding: 10px 12px;
   border-radius: 8px;
   width: 100%;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.default-map-mode-control:hover:not(.is-compact) {
+  background: rgba(0, 0, 0, 0.05);
 }
 
 .dark .default-map-mode-control {
-  background: #151821;
+  background: transparent;
+}
+
+.dark .default-map-mode-control:hover:not(.is-compact) {
+  background: rgba(255, 255, 255, 0.05);
 }
 
 .high-contrast .default-map-mode-control {
-  background: #000000;
-  border-color: #ffffff;
+  background: transparent;
 }
 
 .default-map-mode-label {
@@ -6906,8 +6929,8 @@ img.transit-line-badge {
 
 .default-map-mode-label strong {
   color: #334155;
-  font-size: 0.8125rem;
-  font-weight: 600;
+  font-size: 0.875rem;
+  font-weight: 500;
   line-height: 1.25;
 }
 
@@ -7035,8 +7058,13 @@ img.transit-line-badge {
 }
 
 .default-map-mode-control.is-compact {
+  background: var(--light-container);
   margin: 0;
   padding: 8px 12px;
+}
+
+.dark .default-map-mode-control.is-compact {
+  background: #151821;
 }
 
 .high-contrast .default-map-mode-options button.is-selected {
@@ -15966,7 +15994,12 @@ img.transit-line-badge {
 .map-gesture-active .commute-path-preview-glow,
 .map-gesture-active .commute-path-preview-path,
 .map-gesture-active .asset-alert-path.map-selection-flash,
-.map-gesture-active .station-selection-flash {
+.map-gesture-active .station-selection-flash,
+.map-gesture-active .regional-impact-aura,
+.map-gesture-active .regional-impact-path,
+.map-gesture-active .regional-impact-interactive-glow,
+.map-gesture-active .regional-station-selected-indicator,
+.map-gesture-active .regional-station-impact-ring {
   animation: none !important;
   filter: none !important;
   transition: none !important;

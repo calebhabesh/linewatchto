@@ -30,6 +30,7 @@ export function NetworkMap({
           selectedStationId={props.selectedStationId}
           onSelectStationId={props.onSelectStationId}
           reducedMotion={props.reducedMotion}
+          mobilePerformanceMode={props.mobilePerformanceMode}
           recenterSignal={props.recenterSignal}
           isDark={props.isDark}
           animateInitialEntrance={props.animateInitialEntrance}
