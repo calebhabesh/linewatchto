@@ -56,29 +56,29 @@ export function MobileLegend({
       <div
         className={
           expanded && isRegional
-            ? "grid grid-cols-2 gap-x-4 gap-y-1.5"
+            ? "grid grid-cols-[max-content_max-content] gap-x-4 gap-y-1.5"
             : "flex flex-col gap-1.5"
         }
       >
         {lines.map((line) => (
           <div
             key={line.id}
-            className={`flex items-center overflow-hidden ${
+            className={`flex items-center h-[20px] overflow-hidden ${
               expanded ? "gap-2" : "w-full justify-center gap-0"
             }`}
           >
-            <div className={`${expanded ? "w-[24px] h-[24px]" : "w-[20px] h-[20px]"} flex items-center justify-center shrink-0`}>
+            <div className="w-[20px] h-[20px] flex items-center justify-center shrink-0">
               <TransitLineBadge
                 lineId={line.id}
                 lineNumber={line.number}
-                size={expanded ? 24 : 20}
+                size={20}
                 className="opacity-95"
               />
             </div>
             <span
-              className={`legend-line-name font-subway text-[13px] font-bold tracking-normal text-slate-800 dark:text-slate-200 transition-all duration-300 truncate ${
+              className={`legend-line-name font-subway text-[13px] leading-tight font-bold tracking-normal text-slate-800 dark:text-slate-200 transition-all duration-300 ${
                 expanded
-                  ? "opacity-100 translate-x-0"
+                  ? "opacity-100 translate-x-0 whitespace-nowrap"
                   : "w-0 opacity-0 -translate-x-2 pointer-events-none"
               }`}
             >

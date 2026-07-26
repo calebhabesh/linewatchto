@@ -107,7 +107,7 @@ describe("network-scoped regional dashboard", () => {
     assert.match(mobileLegendSource, /mobile-legend-pill--regional/);
     assert.match(mobileLegendSource, /expanded \? "gap-2" : "w-full justify-center gap-0"/);
     assert.match(mobileLegendSource, /"w-0 opacity-0 -translate-x-2 pointer-events-none"/);
-    assert.match(mobileLegendSource, /size=\{expanded \? 24 : 20\}/);
+    assert.match(mobileLegendSource, /size=\{20\}/);
     assert.match(mobileLegendSource, /isRegional[\s\S]*?\?\s*"w-\[40px\]"/);
     assert.doesNotMatch(mobileLegendSource, /compactText/);
     assert.match(

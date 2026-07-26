@@ -16637,6 +16637,7 @@ img.transit-line-badge {
   .mobile-legend-pill--expanded {
     width: fit-content !important;
     max-width: calc(100vw - 32px) !important;
+    z-index: 55 !important;
   }
 }
 
