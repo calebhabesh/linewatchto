@@ -3788,7 +3788,7 @@ function PlannedClosureIconLane({ pathD }: { pathD: string }) {
       const length = path.getTotalLength();
       if (length <= 0) return [];
 
-      const count = Math.max(1, Math.floor(length / 96));
+      const count = Math.max(1, Math.floor(length / 112));
       return Array.from({ length: count }, (_, index) =>
         path.getPointAtLength((length * (index + 1)) / (count + 1)),
       );
@@ -3805,10 +3805,10 @@ function PlannedClosureIconLane({ pathD }: { pathD: string }) {
         <PlannedClosureIcon
           key={`${point.x}-${point.y}-${index}`}
           className="planned-closure-map-icon"
-          x={point.x - 32}
-          y={point.y - 32}
-          width={64}
-          height={64}
+          x={point.x - 39}
+          y={point.y - 39}
+          width={78}
+          height={78}
           strokeWidth={2.25}
         />
       ))}

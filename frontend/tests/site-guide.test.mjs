@@ -48,7 +48,7 @@ describe("site guide dropdown", () => {
     );
 
     assert.match(plannedClosureAsset, /fill="#f1f5f9"/);
-    assert.match(plannedClosureAsset, /fill-opacity="0\.68"/);
+    assert.doesNotMatch(plannedClosureAsset, /fill-opacity=/);
     assert.match(plannedClosureAsset, /stroke="#3b82f6"/);
     assert.match(plannedClosureAsset, /<rect x="3" y="5" width="18" height="16" rx="3"\/>/);
     assert.match(plannedClosureAsset, /M3 9H21M12 12V15M12 18H12\.01/);

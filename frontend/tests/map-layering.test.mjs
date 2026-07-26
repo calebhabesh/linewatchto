@@ -99,9 +99,10 @@ describe("asset-backed map layering", () => {
     assert.match(interactiveMapSource, /function PlannedClosureIconLane\(/);
     assert.match(interactiveMapSource, /className="planned-closure-icon-lane"/);
     assert.match(interactiveMapSource, /<PlannedClosureIcon[\s\S]*?className="planned-closure-map-icon"/);
+    assert.match(interactiveMapSource, /Math\.floor\(length \/ 112\)/);
     assert.match(plannedClosureIconSource, /<rect[\s\S]*?x="3"[\s\S]*?y="5"[\s\S]*?width="18"[\s\S]*?height="16"[\s\S]*?rx="3"/);
     assert.match(plannedClosureIconSource, /M3 9H21M12 12V15M12 18H12\.01M7 3V5M17 3V5/);
-    assert.match(interactiveMapSource, /x=\{point\.x - 32\}[\s\S]*?y=\{point\.y - 32\}[\s\S]*?width=\{64\}[\s\S]*?height=\{64\}/);
+    assert.match(interactiveMapSource, /x=\{point\.x - 39\}[\s\S]*?y=\{point\.y - 39\}[\s\S]*?width=\{78\}[\s\S]*?height=\{78\}/);
     assert.match(interactiveMapSource, /<PlannedClosureIconLane[\s\S]*?pathD=\{segment\.pathD\}/);
     assert.doesNotMatch(interactiveMapSource, /planned-preview-underlay/);
     assert.doesNotMatch(globalCss, /planned-preview-separator/);
@@ -109,7 +110,7 @@ describe("asset-backed map layering", () => {
     assert.match(globalCss, /--planned-preview-ink:\s*#087fff;/);
     assert.match(
       globalCss,
-      /\.asset-alert-path\.planned-preview\s*\{[^}]*opacity:\s*0\.68;[^}]*stroke:\s*var\(--planned-preview-rail\);[^}]*stroke-width:\s*82;/s,
+      /\.asset-alert-path\.planned-preview\s*\{[^}]*opacity:\s*1;[^}]*stroke:\s*var\(--planned-preview-rail\);[^}]*stroke-width:\s*82;/s,
     );
     assert.match(
       globalCss,

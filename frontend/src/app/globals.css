@@ -4487,7 +4487,7 @@ button {
 }
 
 .asset-alert-path.planned-preview {
-  opacity: 0.68;
+  opacity: 1;
   stroke: var(--planned-preview-rail);
   stroke-dasharray: none;
   stroke-width: 82;
@@ -4523,11 +4523,11 @@ button {
 .overlay-segment-group:has(.map-segment-hit-target:hover) .asset-alert-path.planned-preview,
 .overlay-segment-group:has(.map-segment-hit-target:focus-visible) .asset-alert-path.planned-preview,
 .overlay-segment-group:has(.map-segment-hit-target:active) .asset-alert-path.planned-preview {
-  opacity: 0.88;
+  opacity: 1;
 }
 
 .asset-alert-path.planned-preview.selected {
-  opacity: 0.8;
+  opacity: 1;
 }
 
 @media (hover: hover) and (pointer: fine) {

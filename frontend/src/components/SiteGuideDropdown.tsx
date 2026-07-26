@@ -402,7 +402,7 @@ export function SiteGuideDropdown({ onOpenChange }: { onOpenChange?: (open: bool
                 <OverlayGuideRow
                   icon={<ImpactTypeIcon kind="planned-closure" size={16} />}
                   title="Planned Closure Preview"
-                  text="Static, translucent smoky-white lane with blue calendar-alert icons previews scheduled upcoming closures (usually bidirectional)."
+                  text="Static, smoky-white lane with blue calendar-alert icons previews scheduled upcoming closures (usually bidirectional)."
                   previews={
                     <OverlayAssetPreview fileName="info-upcoming-closure.svg" label="Preview" />
                   }
