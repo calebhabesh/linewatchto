@@ -4,6 +4,7 @@ import { describe, it } from "node:test";
 
 const bottomNavSource = readFileSync(new URL("../src/components/MobileBottomNav.tsx", import.meta.url), "utf8");
 const shellSource = readFileSync(new URL("../src/components/LineWatchShell.tsx", import.meta.url), "utf8");
+const floatingPanelSource = readFileSync(new URL("../src/components/FloatingPanelShell.tsx", import.meta.url), "utf8");
 const globalCss = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
 
 describe("mobile navigation motion", () => {
@@ -24,6 +25,29 @@ describe("mobile navigation motion", () => {
   it("removes the new motion when reduced motion is active", () => {
     assert.match(globalCss, /\.motion-paused \.mobile-bottom-nav::before/);
     assert.match(globalCss, /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.mobile-bottom-nav::before/);
+    assert.match(globalCss, /\.motion-paused \*,\s*\.motion-paused \*::before,\s*\.motion-paused \*::after\s*\{[^}]*animation:\s*none !important;[^}]*transition:\s*none !important;/s);
+    assert.match(globalCss, /@media \(prefers-reduced-motion: reduce\)\s*\{[\s\S]*\.linewatch-shell \*::after\s*\{[^}]*animation:\s*none !important;[^}]*transition:\s*none !important;/s);
+    assert.match(shellSource, /reducedMotion \? 0 : 200/);
+    assert.match(shellSource, /reducedMotion \? 0 : 180/);
+  });
+
+  it("distinguishes root navigation, forward drill-ins, reverse Back, and Close", () => {
+    assert.match(floatingPanelSource, /navDirection = "root"/);
+    assert.match(floatingPanelSource, /"root" \| "forward" \| "back"/);
+    assert.match(globalCss, /data-nav-direction="root"[\s\S]*panel-container-root/);
+    assert.match(globalCss, /data-nav-direction="forward"[\s\S]*panel-container-forward/);
+    assert.match(globalCss, /data-nav-direction="back"[\s\S]*panel-container-back/);
+    assert.match(globalCss, /data-closing="true"[\s\S]*mobile-sheet-slide-down-exit/);
+    assert.match(shellSource, /onMobileNavSelect[\s\S]*setNavDirection\("root"\)/);
+    assert.match(shellSource, /handleSubmenuBack[\s\S]*setNavDirection\("back"\)/);
+    assert.match(shellSource, /onOpenCategory=\{\(view\) => \{\s*setNavDirection\("forward"\)/);
+  });
+
+  it("animates account container entry and keyed inner view changes", () => {
+    assert.match(shellSource, /key=\{accountDialogMode\}[\s\S]*data-account-dialog-view=\{accountDialogMode\}/);
+    assert.match(globalCss, /\.account-dialog-backdrop\s*\{[^}]*linewatch-backdrop-enter/s);
+    assert.match(globalCss, /\.account-dialog\s*\{[^}]*linewatch-dialog-enter/s);
+    assert.match(globalCss, /data-account-dialog-view[^}]*linewatch-dialog-content-enter/s);
   });
 
   it("does not route through Map when leaving Search from the bottom nav", () => {

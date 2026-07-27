@@ -508,9 +508,9 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
                     <Image
                       src="/assets/linewatch/wheel-chair-symbol.svg"
                       alt="Wheelchair accessible"
-                      width={39}
-                      height={40}
-                      className="rounded-md drop-shadow-[0_0_3px_rgba(0,103,167,0.5)] dark:drop-shadow-[0_0_4px_rgba(0,103,167,0.7)]"
+                      width={36}
+                      height={36}
+                      className="w-[36px] h-[36px] rounded-md drop-shadow-[0_0_3px_rgba(0,103,167,0.5)] dark:drop-shadow-[0_0_4px_rgba(0,103,167,0.7)]"
                     />
                   </span>
                 )}
@@ -525,7 +525,7 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
                       alt={hasElevatorOutage ? "Elevator available, outage reported" : "Elevator available"}
                       width={40}
                       height={40}
-                      className="drop-shadow-[0_0_3px_rgba(0,130,201,0.5)] dark:drop-shadow-[0_0_4px_rgba(0,130,201,0.7)]"
+                      className="w-[40px] h-[40px] drop-shadow-[0_0_3px_rgba(0,130,201,0.5)] dark:drop-shadow-[0_0_4px_rgba(0,130,201,0.7)]"
                     />
                   </span>
                 )}

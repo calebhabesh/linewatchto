@@ -260,7 +260,7 @@ export function LineWatchShell({
   const [visualPreferencesReady, setVisualPreferencesReady] = useState(false);
   const mobilePerformanceMode = useMobilePerformanceMode();
   const [activeView, setActiveView] = useState<ActiveView>("map");
-  const [navDirection, setNavDirection] = useState<"forward" | "back">("forward");
+  const [navDirection, setNavDirection] = useState<"root" | "forward" | "back">("root");
   const [menuPinned, setMenuPinned] = useState(false);
   const [menuPinPreferenceReady, setMenuPinPreferenceReady] = useState(false);
   const [previousView, setPreviousView] = useState<ActiveView>("status");
@@ -544,8 +544,8 @@ export function LineWatchShell({
       setMapPresentationMode("standard");
       setMobileInspectorDetent("map-focus");
       setAccessibilityOutageTarget(null);
-    }, 200);
-  }, [isClosingPanel, setActiveView, setSelection, setSelectedStationId, setMapPresentationMode, setMobileInspectorDetent]);
+    }, reducedMotion ? 0 : 200);
+  }, [isClosingPanel, reducedMotion, setActiveView, setSelection, setSelectedStationId, setMapPresentationMode, setMobileInspectorDetent]);
 
   const [isGoingBack, setIsGoingBack] = useState(false);
   const backTimeoutRef = useRef<number | null>(null);
@@ -572,8 +572,8 @@ export function LineWatchShell({
       setIsGoingBack(false);
       setSelection(null);
       setAccessibilityOutageTarget(null);
-    }, 180);
-  }, [activeView, isMobile, previousView, setActiveView, setSelection]);
+    }, reducedMotion ? 0 : 180);
+  }, [activeView, isMobile, previousView, reducedMotion, setActiveView, setSelection]);
 
   const [accountState, setAccountState] = useState<AccountState>({
     source: "unavailable",
@@ -1501,6 +1501,7 @@ export function LineWatchShell({
   }, [selectedNetwork, selectedStationId]);
 
   const handleToggleMenu = () => {
+    setNavDirection("root");
     if (menuPinned) {
       setMenuPinned(false);
       setActiveView("map");
@@ -1576,6 +1577,7 @@ export function LineWatchShell({
   }, []);
 
   const handleOpenSearch = () => {
+    setNavDirection("root");
     setActiveView((prev) => {
       if (prev !== "search" && prev !== "map") {
         setSelection(null);
@@ -1640,6 +1642,7 @@ export function LineWatchShell({
   }, [activeView]);
 
   const onMobileNavSelect = useCallback((key: MobileNavKey) => {
+    setNavDirection("root");
     setSelection(null);
     setSelectedStationId(null);
     setCommutePathPreview(null);
@@ -1667,6 +1670,7 @@ export function LineWatchShell({
 
 
   const handleMobileSheetClose = useCallback(() => {
+    setNavDirection("root");
     setActiveView("map");
     setSelection(null);
     setMapPresentationMode("standard");
@@ -1697,6 +1701,7 @@ export function LineWatchShell({
   }, [activeAlerts, viewForImpactKind]);
 
   const handleSearchSelectImpact = useCallback((nextSelection: NonNullable<ImpactSelection>) => {
+    setNavDirection("forward");
     setSelectedStationId(null);
     setCommutePathPreview(null);
     setSelection(nextSelection);
@@ -1716,6 +1721,7 @@ export function LineWatchShell({
   };
 
   const handleSearchOpenImpactCategory = useCallback((kind: ImpactKind) => {
+    setNavDirection("forward");
     setSelectedStationId(null);
     setCommutePathPreview(null);
     setSelection(null);
@@ -1723,6 +1729,7 @@ export function LineWatchShell({
   }, [setActiveView, setCommutePathPreview, setSelectedStationId, setSelection, viewForImpactKind]);
 
   const handleSearchOpenSurfaceNotice = useCallback((notice: SurfaceNoticeDetail) => {
+    setNavDirection("forward");
     const targetQuery = notice.routeIds[0]
       ?? notice.stops?.[0]?.stopName
       ?? notice.stopIds[0]
@@ -1732,6 +1739,7 @@ export function LineWatchShell({
   }, [setActiveView]);
 
   const handleMyStationsSelectImpactDetails = useCallback((nextSelection: NonNullable<ImpactSelection>) => {
+    setNavDirection("forward");
     setPreviousView("my-stations");
     setSelectedStationId(null);
     setCommutePathPreview(null);
@@ -1744,6 +1752,7 @@ export function LineWatchShell({
     assetType: AccessibilityOutageTarget["assetType"],
     stationId: string,
   ) => {
+    setNavDirection("forward");
     setPreviousView("my-stations");
     setSelection(null);
     setSelectedStationId(null);
@@ -1929,6 +1938,7 @@ export function LineWatchShell({
             dataSource={displayData.dataSource}
             networkId={selectedNetwork}
             onOpenCategory={(view) => {
+              setNavDirection("forward");
               setSelection(null);
               setActiveView(view);
             }}
@@ -1994,7 +2004,7 @@ export function LineWatchShell({
             onClose={handleClosePanel}
             onRequestSignIn={() => openAuthChoice("login")}
             onRequestCreateAccount={() => openAuthChoice("register")}
-            onOpenNotificationSettings={() => setActiveView("notifications")}
+            onOpenNotificationSettings={() => { setNavDirection("forward"); setActiveView("notifications"); }}
             notificationSummary={notificationSummary}
             activeView={commutesActiveTab}
             onActiveViewChange={setCommutesActiveTab}
@@ -2441,7 +2451,7 @@ export function LineWatchShell({
                       <button
                         ref={registerMenuAction(actionIndex++)}
                         role="menuitem"
-                        onClick={() => setActiveView("commutes")}
+                        onClick={() => { setNavDirection("root"); setActiveView("commutes"); }}
                         aria-current={activeView === "commutes" ? "page" : undefined}
                         className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors w-full"
                       >
@@ -2463,7 +2473,7 @@ export function LineWatchShell({
                       <button
                         ref={registerMenuAction(actionIndex++)}
                         role="menuitem"
-                        onClick={() => setActiveView("my-stations")}
+                        onClick={() => { setNavDirection("root"); setActiveView("my-stations"); }}
                         aria-current={activeView === "my-stations" ? "page" : undefined}
                         className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors w-full"
                       >
@@ -2514,7 +2524,7 @@ export function LineWatchShell({
                       <button
                         ref={registerMenuAction(actionIndex++)}
                         role="menuitem"
-                        onClick={() => setActiveView("commutes")}
+                        onClick={() => { setNavDirection("root"); setActiveView("commutes"); }}
                         aria-current={activeView === "commutes" ? "page" : undefined}
                         className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors w-full"
                       >
@@ -2536,7 +2546,7 @@ export function LineWatchShell({
                       <button
                         ref={registerMenuAction(actionIndex++)}
                         role="menuitem"
-                        onClick={() => setActiveView("my-stations")}
+                        onClick={() => { setNavDirection("root"); setActiveView("my-stations"); }}
                         aria-current={activeView === "my-stations" ? "page" : undefined}
                         className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors w-full"
                       >
@@ -2577,7 +2587,7 @@ export function LineWatchShell({
                  <button
                    ref={registerMenuAction(actionIndex++)}
                    role="menuitem"
-                   onClick={() => setActiveView("alerts")}
+                   onClick={() => { setNavDirection("root"); setActiveView("alerts"); }}
                    aria-current={activeView === "alerts" ? "page" : undefined}
                    className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
                  >
@@ -2593,7 +2603,7 @@ export function LineWatchShell({
                  <button
                    ref={registerMenuAction(actionIndex++)}
                    role="menuitem"
-                   onClick={() => setActiveView("delays")}
+                   onClick={() => { setNavDirection("root"); setActiveView("delays"); }}
                    aria-current={activeView === "delays" ? "page" : undefined}
                    className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
                  >
@@ -2609,7 +2619,7 @@ export function LineWatchShell({
                  {selectedNetwork === "ttc" ? <button
                    ref={registerMenuAction(actionIndex++)}
                    role="menuitem"
-                   onClick={() => setActiveView("reduced-speed-zones")}
+                   onClick={() => { setNavDirection("root"); setActiveView("reduced-speed-zones"); }}
                    aria-current={activeView === "reduced-speed-zones" ? "page" : undefined}
                    className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
                  >
@@ -2625,7 +2635,7 @@ export function LineWatchShell({
                  <button
                    ref={registerMenuAction(actionIndex++)}
                    role="menuitem"
-                   onClick={() => setActiveView("closures")}
+                   onClick={() => { setNavDirection("root"); setActiveView("closures"); }}
                    aria-current={activeView === "closures" ? "page" : undefined}
                    className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
                  >
@@ -2641,7 +2651,7 @@ export function LineWatchShell({
                  {selectedNetwork === "ttc" ? <button
                    ref={registerMenuAction(actionIndex++)}
                    role="menuitem"
-                   onClick={() => setActiveView("accessibility-outages")}
+                   onClick={() => { setNavDirection("root"); setActiveView("accessibility-outages"); }}
                    aria-current={activeView === "accessibility-outages" ? "page" : undefined}
                    className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
                  >
@@ -2671,7 +2681,7 @@ export function LineWatchShell({
                  {selectedNetwork === "ttc" ? <button
                    ref={registerMenuAction(actionIndex++)}
                    role="menuitem"
-                   onClick={() => setActiveView("surface-notices")}
+                   onClick={() => { setNavDirection("root"); setActiveView("surface-notices"); }}
                    aria-current={activeView === "surface-notices" ? "page" : undefined}
                    className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
                  >
@@ -2695,7 +2705,7 @@ export function LineWatchShell({
                  <button
                    ref={registerMenuAction(actionIndex++)}
                    role="menuitem"
-                   onClick={() => setActiveView("notifications")}
+                   onClick={() => { setNavDirection("root"); setActiveView("notifications"); }}
                    aria-current={activeView === "notifications" ? "page" : undefined}
                    className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
                  >
@@ -2704,7 +2714,7 @@ export function LineWatchShell({
                  <button
                    ref={registerMenuAction(actionIndex++)}
                    role="menuitem"
-                   onClick={() => setActiveView("alert-history")}
+                   onClick={() => { setNavDirection("root"); setActiveView("alert-history"); }}
                    aria-current={activeView === "alert-history" ? "page" : undefined}
                    className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
                  >
@@ -2721,7 +2731,7 @@ export function LineWatchShell({
                  <button
                    ref={registerMenuAction(actionIndex++)}
                    role="menuitem"
-                   onClick={() => setActiveView("analytics")}
+                   onClick={() => { setNavDirection("root"); setActiveView("analytics"); }}
                    aria-current={activeView === "analytics" ? "page" : undefined}
                    className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
                  >
@@ -2791,7 +2801,7 @@ export function LineWatchShell({
                  <button
                    ref={registerMenuAction(actionIndex++)}
                    role="menuitem"
-                   onClick={() => setActiveView("feedback")}
+                   onClick={() => { setNavDirection("root"); setActiveView("feedback"); }}
                    aria-current={activeView === "feedback" ? "page" : undefined}
                    className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
                  >
@@ -2800,7 +2810,7 @@ export function LineWatchShell({
                  <button
                    ref={registerMenuAction(actionIndex++)}
                    role="menuitem"
-                   onClick={() => setActiveView("privacy-acknowledgements")}
+                   onClick={() => { setNavDirection("root"); setActiveView("privacy-acknowledgements"); }}
                    aria-current={activeView === "privacy-acknowledgements" ? "page" : undefined}
                    className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
                  >
@@ -2810,7 +2820,7 @@ export function LineWatchShell({
                    <button
                      ref={registerMenuAction(actionIndex++)}
                      role="menuitem"
-                     onClick={() => setActiveView("release-notes")}
+                     onClick={() => { setNavDirection("root"); setActiveView("release-notes"); }}
                      aria-current={activeView === "release-notes" ? "page" : undefined}
                      className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
                    >
@@ -3404,6 +3414,8 @@ export function LineWatchShell({
               </button>
             </div>
             <form
+              key={accountDialogMode}
+              data-account-dialog-view={accountDialogMode}
               className="flex flex-col gap-3 p-3"
               onSubmit={(event) => {
                 event.preventDefault();

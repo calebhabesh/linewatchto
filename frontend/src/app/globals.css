@@ -8015,6 +8015,19 @@ img.transit-line-badge {
   color: rgb(37, 99, 235);
 }
 
+.global-search-resource-icon--standard {
+  background: transparent;
+  border-radius: 0;
+}
+
+.global-search-resource-icon--standard .transit-line-badge,
+.global-search-resource-icon--standard img {
+  flex: 0 0 auto;
+  max-height: 28px;
+  max-width: 28px;
+  object-fit: contain;
+}
+
 .dark .global-search-resource-result {
   border-color: rgba(255, 255, 255, 0.1);
   background: rgba(18, 21, 28, 0.92);
@@ -8034,6 +8047,10 @@ img.transit-line-badge {
 .dark .global-search-resource-icon {
   background: rgba(96, 165, 250, 0.14);
   color: rgb(147, 197, 253);
+}
+
+.dark .global-search-resource-icon--standard {
+  background: transparent;
 }
 
 .global-search-impact-result.suspension {
@@ -8361,7 +8378,7 @@ img.transit-line-badge {
   flex-direction: column;
   gap: 7px;
   padding-left: 10px;
-  padding-right: 0;
+  padding-right: 2px;
 }
 .station-search-stations-column {
   width: 0;
@@ -8373,11 +8390,12 @@ img.transit-line-badge {
   flex-direction: column;
   overflow-y: auto;
   overflow-x: hidden;
-  transform: translateX(-8px);
+  transform: translate3d(-8px, 0, 0);
   transition: 
-    opacity 180ms cubic-bezier(0.23, 1, 0.32, 1),
-    transform 180ms cubic-bezier(0.23, 1, 0.32, 1),
-    border-color 180ms cubic-bezier(0.23, 1, 0.32, 1);
+    opacity 220ms cubic-bezier(0.16, 1, 0.3, 1),
+    transform 220ms cubic-bezier(0.16, 1, 0.3, 1),
+    width 220ms cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 220ms cubic-bezier(0.16, 1, 0.3, 1);
   min-width: 0;
 }
 
@@ -8387,7 +8405,7 @@ img.transit-line-badge {
   border-left-color: rgba(15, 23, 42, 0.12);
   padding-left: 16px;
   padding-right: 0;
-  transform: translateX(0);
+  transform: translate3d(0, 0, 0);
 }
 
 .dark .station-search-panel[data-expanded="true"] .station-search-stations-column {
@@ -8396,6 +8414,22 @@ img.transit-line-badge {
 
 .station-search-panel:not([data-expanded="true"]) .station-search-stations-column {
   display: none !important;
+}
+
+.station-search-panel[data-expanded="true"] .station-search-stations-column-header,
+.station-search-panel[data-expanded="true"] .station-search-stations-list {
+  animation: station-search-list-slide-in 220ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes station-search-list-slide-in {
+  from {
+    opacity: 0;
+    transform: translate3d(8px, 0, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
 }
 
 
@@ -11966,13 +12000,43 @@ img.transit-line-badge {
   padding-right: 0.5rem;
 }
 
-.dark .commute-station-stations-column {
-  border-left-color: rgba(255, 255, 255, 0.12);
+.commute-station-popover[data-expanded="true"] .commute-station-stations-column {
+  animation: mini-search-expansion-slide-in 220ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-.commute-station-stations-column-header {
-  padding: 0.2rem 0 0 0;
-  font-size: 0.65rem;
+@keyframes mini-search-expansion-slide-in {
+  from {
+    opacity: 0;
+    transform: translate3d(10px, 0, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+.commute-station-popover[data-expanded="true"] .commute-station-stations-scroll-content {
+  animation: mini-search-list-slide-in 200ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes mini-search-list-slide-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 6px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+.commute-station-line-chevron {
+  transition: transform 180ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.commute-station-line-trigger.active .commute-station-line-chevron,
+.commute-station-line-trigger[aria-expanded="true"] .commute-station-line-chevron {
+  transform: translateX(4px);
 }
 
 
@@ -14196,9 +14260,9 @@ img.transit-line-badge {
   /* Override for initial / non-focused state: extend from bottom nav bar */
   html:not([data-visual-keyboard="open"]) .station-search-panel:not([data-searching="true"]):not([data-input-focused="true"]) {
     bottom: calc(var(--mobile-bottom-nav-occupied-height) + 8px) !important;
-    top: auto !important;
-    height: auto !important;
-    max-height: calc(var(--visual-viewport-height, 100dvh) - var(--mobile-bottom-nav-occupied-height) - var(--mobile-safe-top) - 24px) !important;
+    top: calc(var(--visual-viewport-offset-top, 0px) + var(--mobile-safe-top) + 10px) !important;
+    height: calc(var(--visual-viewport-height, 100dvh) - var(--mobile-bottom-nav-occupied-height) - var(--mobile-safe-top) - 18px) !important;
+    max-height: calc(var(--visual-viewport-height, 100dvh) - var(--mobile-bottom-nav-occupied-height) - var(--mobile-safe-top) - 18px) !important;
     transform: translate3d(0, 24px, 0) scale(0.985);
     transform-origin: bottom center;
   }
@@ -14207,13 +14271,6 @@ img.transit-line-badge {
     transform: translate3d(0, 0, 0) scale(1);
   }
 
-  /* Shrink containers to fit entries when not expanded, not searching, and not focused */
-  html:not([data-visual-keyboard="open"]) .station-search-panel:not([data-expanded="true"]):not([data-searching="true"]):not([data-input-focused="true"]) .station-search-content,
-  html:not([data-visual-keyboard="open"]) .station-search-panel:not([data-expanded="true"]):not([data-searching="true"]):not([data-input-focused="true"]) .station-search-browse-container,
-  html:not([data-visual-keyboard="open"]) .station-search-panel:not([data-expanded="true"]):not([data-searching="true"]):not([data-input-focused="true"]) .station-search-lines-column {
-    flex: 0 0 auto !important;
-    height: auto !important;
-  }
 
   /* Hide other mobile controls when in search view */
   .linewatch-shell[data-active-view="search"] .theme-toggle-btn,
@@ -14263,11 +14320,26 @@ img.transit-line-badge {
     flex: 1 1 auto;
     max-height: none;
     min-height: 0;
-    padding-right: 0;
+    padding-right: 6px;
   }
 
   .station-search-panel[data-expanded="true"] .station-search-lines-column {
     display: none;
+  }
+
+  .station-search-panel:not([data-expanded="true"]) .station-search-lines-column {
+    animation: mobile-station-search-lines-slide-back 200ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  @keyframes mobile-station-search-lines-slide-back {
+    from {
+      opacity: 0;
+      transform: translate3d(-10px, 0, 0);
+    }
+    to {
+      opacity: 1;
+      transform: translate3d(0, 0, 0);
+    }
   }
 
   .station-search-stations-column {
@@ -14287,6 +14359,18 @@ img.transit-line-badge {
     padding-left: 2px;
     padding-right: 0;
     width: auto;
+    animation: mobile-station-search-slide-in 220ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  @keyframes mobile-station-search-slide-in {
+    from {
+      opacity: 0;
+      transform: translate3d(14px, 0, 0);
+    }
+    to {
+      opacity: 1;
+      transform: translate3d(0, 0, 0);
+    }
   }
 
   .station-search-panel:not([data-expanded="true"]) .station-search-stations-column {
@@ -14576,21 +14660,6 @@ img.transit-line-badge {
     top: auto !important;
   }
 
-  html:not([data-visual-keyboard="open"]) .station-search-panel:not([data-expanded="true"]):not([data-searching="true"]):not([data-input-focused="true"]) .station-search-content,
-  html:not([data-visual-keyboard="open"]) .station-search-panel:not([data-expanded="true"]):not([data-searching="true"]):not([data-input-focused="true"]) .station-search-browse-container,
-  html:not([data-visual-keyboard="open"]) .station-search-panel:not([data-expanded="true"]):not([data-searching="true"]):not([data-input-focused="true"]) .station-search-lines-column {
-    flex: 0 0 auto !important;
-    height: auto !important;
-    max-height: none !important;
-    min-height: 0 !important;
-  }
-
-  html:not([data-visual-keyboard="open"]) .station-search-panel:not([data-expanded="true"]):not([data-searching="true"]):not([data-input-focused="true"]) .station-search-lines-column {
-    -webkit-mask-image: none !important;
-    mask-image: none !important;
-    overflow-y: visible !important;
-    padding-bottom: 0 !important;
-  }
   
   .mobile-more-content-scroll {
     display: flex !important;
@@ -15929,6 +15998,21 @@ img.transit-line-badge {
     display: none !important;
   }
 
+  .commute-station-popover:not([data-expanded="true"]) .commute-station-lines-column {
+    animation: mobile-mini-search-lines-slide-back 200ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  @keyframes mobile-mini-search-lines-slide-back {
+    from {
+      opacity: 0;
+      transform: translate3d(-10px, 0, 0);
+    }
+    to {
+      opacity: 1;
+      transform: translate3d(0, 0, 0);
+    }
+  }
+
   .commute-station-stations-column {
     border-left: 0 !important;
     flex: 1 !important;
@@ -15938,6 +16022,21 @@ img.transit-line-badge {
     padding-left: 0 !important;
     padding-right: 0 !important;
     width: auto !important;
+  }
+
+  .commute-station-popover[data-expanded="true"] .commute-station-stations-column {
+    animation: mobile-mini-search-expansion-slide-in 220ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  @keyframes mobile-mini-search-expansion-slide-in {
+    from {
+      opacity: 0;
+      transform: translate3d(12px, 0, 0);
+    }
+    to {
+      opacity: 1;
+      transform: translate3d(0, 0, 0);
+    }
   }
 
   .commute-station-popover:not([data-expanded="true"]) .commute-station-stations-column {
@@ -19115,4 +19214,97 @@ img.transit-line-badge {
     rgba(0, 0, 0, 0.32) calc(100% - 10px),
     transparent 100%
   ) !important;
+}
+
+/* Interaction motion contract: root destinations do not imply hierarchy,
+   while drill-ins and Back preserve a consistent horizontal path. */
+.desktop-view-content-wrapper[data-nav-direction="root"],
+.mobile-view-content-wrapper[data-nav-direction="root"] {
+  animation: panel-container-root 220ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes panel-container-root {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 10px, 0) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+.account-dialog-backdrop {
+  animation: linewatch-backdrop-enter 160ms ease-out both;
+}
+
+.account-dialog {
+  animation: linewatch-dialog-enter 220ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.account-dialog [data-account-dialog-view] {
+  animation: linewatch-dialog-content-enter 180ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes linewatch-backdrop-enter {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes linewatch-dialog-enter {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 12px, 0) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes linewatch-dialog-content-enter {
+  from {
+    opacity: 0;
+    transform: translate3d(8px, 0, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+/* Give controls without a bespoke interaction animation the same quiet
+   press response as the primary dashboard controls. */
+.linewatch-shell button:not(:disabled),
+.linewatch-shell [role="button"]:not([aria-disabled="true"]) {
+  transition-duration: 160ms;
+  transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.linewatch-shell button:not(:disabled):active,
+.linewatch-shell [role="button"]:not([aria-disabled="true"]):active {
+  transform: scale(0.98);
+}
+
+/* The in-app switch is authoritative for the complete shell, including
+   newly added transitions. The media query provides the same guarantee
+   before the stored preference has hydrated. */
+.motion-paused,
+.motion-paused *,
+.motion-paused *::before,
+.motion-paused *::after {
+  animation: none !important;
+  scroll-behavior: auto !important;
+  transition: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .linewatch-shell,
+  .linewatch-shell *,
+  .linewatch-shell *::before,
+  .linewatch-shell *::after {
+    animation: none !important;
+    scroll-behavior: auto !important;
+    transition: none !important;
+  }
 }

@@ -16,6 +16,14 @@ const shellSource = readFileSync(
 );
 
 describe("unified search alert group headings", () => {
+  it("reuses canonical badges for transit lines and accessibility destinations", () => {
+    assert.match(searchPanelSource, /<TransitLineBadge[\s\S]*lineId=\{result\.line\.id\}[\s\S]*size=\{28\}[\s\S]*decorative/);
+    assert.match(searchPanelSource, /<TransitLineBadge[\s\S]*lineId=\{group\.line\.id\}[\s\S]*size=\{30\}[\s\S]*decorative/);
+    assert.match(searchPanelSource, /src="\/assets\/linewatch\/accessibility-alert\.svg"/);
+    assert.doesNotMatch(searchPanelSource, /PanelsTopLeft|TrainFront/);
+    assert.match(globalCss, /\.global-search-resource-icon--standard\s*\{[^}]*background:\s*transparent;/s);
+  });
+
   it("uses a muted alert-type icon beside each alert group label", () => {
     assert.match(
       searchPanelSource,

@@ -6,14 +6,14 @@ export function FloatingPanelShell({
   children,
   panel,
   mobileSheetLabel,
-  navDirection = "forward",
+  navDirection = "root",
   isClosing = false,
   isGoingBack = false,
 }: {
   children: ReactNode;
   panel: string;
   mobileSheetLabel?: string;
-  navDirection?: "forward" | "back";
+  navDirection?: "root" | "forward" | "back";
   isClosing?: boolean;
   isGoingBack?: boolean;
 }) {

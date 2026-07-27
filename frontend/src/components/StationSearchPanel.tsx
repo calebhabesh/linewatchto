@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { KeyboardEvent, MutableRefObject } from "react";
-import { Bookmark, Bus, ChevronRight, LoaderCircle, Navigation, PanelsTopLeft, Search, TrainFront, X } from "lucide-react";
+import { Bookmark, Bus, ChevronRight, LoaderCircle, Navigation, Search, X } from "lucide-react";
 import { useDashboardData } from "../app/DataContext";
 import {
   IMPACT_SEARCH_CATEGORIES,
@@ -128,6 +128,34 @@ function StationLineBadge({ line }: { line: StationSearchLine }) {
   return <TransitLineBadge lineId={line.id} lineNumber={line.number} lineName={line.name} size={24} />;
 }
 
+function GlobalDestinationBadge({ view }: { view: GlobalDestinationView }) {
+  if (view === "accessibility-outages") {
+    return (
+      <span className="global-search-resource-icon global-search-resource-icon--standard">
+        <Image
+          src="/assets/linewatch/accessibility-alert.svg"
+          alt=""
+          width={24}
+          height={24}
+          aria-hidden="true"
+        />
+      </span>
+    );
+  }
+
+  const Icon = view === "commutes"
+    ? Navigation
+    : view === "my-stations"
+      ? Bookmark
+      : Bus;
+
+  return (
+    <span className="global-search-resource-icon">
+      <Icon size={18} aria-hidden="true" />
+    </span>
+  );
+}
+
 function StationMetaFlags({ station, impactKinds }: { station: StationSummary; impactKinds: ImpactKind[] }) {
   const outageCounts = station.accessOutageCounts ?? { elevator: 0, escalator: 0 };
   const hasAccessOutages = outageCounts.elevator > 0 || outageCounts.escalator > 0;
@@ -208,7 +236,7 @@ function StationButton({
                 alt="Wheelchair accessible"
                 width={14}
                 height={14}
-                className="rounded-[2px] drop-shadow-[0_0_1px_rgba(0,103,167,0.4)] dark:drop-shadow-[0_0_1.5px_rgba(0,103,167,0.6)]"
+                className="h-[14px] w-[14px] rounded-[2px] drop-shadow-[0_0_1px_rgba(0,103,167,0.4)] dark:drop-shadow-[0_0_1.5px_rgba(0,103,167,0.6)]"
               />
             </span>
           )}
@@ -219,7 +247,7 @@ function StationButton({
                 alt="Elevator available"
                 width={14}
                 height={14}
-                className="drop-shadow-[0_0_1px_rgba(0,130,201,0.4)] dark:drop-shadow-[0_0_1.5px_rgba(0,130,201,0.6)]"
+                className="h-[14px] w-[14px] drop-shadow-[0_0_1px_rgba(0,130,201,0.4)] dark:drop-shadow-[0_0_1.5px_rgba(0,130,201,0.6)]"
               />
             </span>
           )}
@@ -639,7 +667,7 @@ export function StationSearchPanel({
                           onClick={() => onOpenDestination(destination.view)}
                           onKeyDown={(event) => handleResultKeyDown(keyboardIndex, event)}
                         >
-                          <span className="global-search-resource-icon"><PanelsTopLeft size={18} /></span>
+                          <GlobalDestinationBadge view={destination.view} />
                           <span>
                             <strong>{destination.label}</strong>
                             <small>{destination.description}</small>
@@ -683,7 +711,15 @@ export function StationSearchPanel({
                           onClick={() => chooseLine(result.line.id)}
                           onKeyDown={(event) => handleResultKeyDown(keyboardIndex, event)}
                         >
-                          <span className="global-search-resource-icon"><TrainFront size={18} /></span>
+                          <span className="global-search-resource-icon global-search-resource-icon--standard">
+                            <TransitLineBadge
+                              lineId={result.line.id}
+                              lineNumber={result.line.number}
+                              lineName={result.line.name}
+                              size={28}
+                              decorative
+                            />
+                          </span>
                           <span>
                             <strong>{result.line.id.startsWith("regional-") ? result.line.number : `Line ${result.line.number}`} · {result.line.name}</strong>
                             <small>{result.line.id.startsWith("regional-") ? "GO/UP Rail" : "TTC Subway & LRT"} · Browse stations</small>
@@ -904,7 +940,13 @@ export function StationSearchPanel({
                         aria-controls="station-search-stations-column"
                       >
                         <div className="flex items-center gap-2">
-                          <Image src={group.line.icon} alt="" width={34} height={34} aria-hidden="true" />
+                          <TransitLineBadge
+                            lineId={group.line.id}
+                            lineNumber={group.line.number}
+                            lineName={group.line.name}
+                            size={30}
+                            decorative
+                          />
                           <span className="station-search-line-copy">
                             <span className="station-search-line-title">
                               {group.line.id.startsWith("regional-") ? group.line.number : `Line ${group.line.number}`}

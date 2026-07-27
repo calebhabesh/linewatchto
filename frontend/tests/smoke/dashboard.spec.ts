@@ -1180,7 +1180,7 @@ test("station search dynamically filters mapped stations and opens station detai
     await page.getByRole("button", { name: "Search", exact: true }).click();
     await page.getByRole("searchbox", { name: "Station Search" }).click();
   } else {
-    await page.getByRole("searchbox", { name: "Station Search" }).click();
+    await page.locator(".header-search-bar").click({ position: { x: 5, y: 5 } });
   }
   await expect(page.getByRole("searchbox", { name: "Station Search" })).toBeFocused();
 
@@ -1343,6 +1343,13 @@ test("global search opens a condensed alert result in its detailed card and mobi
     const linesColumn = page.locator(".station-search-lines-column");
     await expect(linesColumn).toHaveAttribute("data-scroll-more-below", "");
     expect(await linesColumn.evaluate((element) => getComputedStyle(element).maskImage)).toContain("linear-gradient");
+    await linesColumn.evaluate((element) => {
+      element.scrollTop = element.scrollHeight;
+    });
+    await expect(linesColumn).not.toHaveAttribute("data-scroll-more-below", "");
+  } else {
+    const linesColumn = page.locator(".station-search-lines-column");
+    await expect(linesColumn).toHaveAttribute("data-scroll-more-below", "");
     await linesColumn.evaluate((element) => {
       element.scrollTop = element.scrollHeight;
     });

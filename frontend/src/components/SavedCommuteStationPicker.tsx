@@ -87,7 +87,7 @@ function StationOption({
               alt="Wheelchair accessible"
               width={12}
               height={12}
-              className="rounded-[1.5px] drop-shadow-[0_0_1px_rgba(0,103,167,0.3)]"
+              className="h-3 w-3 rounded-[1.5px] drop-shadow-[0_0_1px_rgba(0,103,167,0.3)]"
             />
           </span>
         )}
@@ -98,7 +98,7 @@ function StationOption({
               alt="Elevator available"
               width={12}
               height={12}
-              className="drop-shadow-[0_0_1px_rgba(0,130,201,0.3)]"
+              className="h-3 w-3 drop-shadow-[0_0_1px_rgba(0,130,201,0.3)]"
             />
           </span>
         )}
