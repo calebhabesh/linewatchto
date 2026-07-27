@@ -6208,7 +6208,8 @@ img.transit-line-badge {
   .station-hit-target,
   .station-hit-target:hover,
   .station-hit-target:focus-visible {
-    stroke-width: 16px;
+    /* Keep even small map dots near a finger-sized target without changing their artwork. */
+    stroke-width: 40px;
   }
 }
 

@@ -44,8 +44,8 @@ describe("asset-backed map layering", () => {
     );
     assert.match(
       globalCss,
-      /@media \(pointer:\s*coarse\) \{[\s\S]*?\.station-hit-target,[\s\S]*?stroke-width:\s*16px;/,
-      "touch pointers should receive a modest screen-sized buffer around each station",
+      /@media \(pointer:\s*coarse\) \{[\s\S]*?\.station-hit-target,[\s\S]*?stroke-width:\s*40px;/,
+      "touch pointers should receive a finger-sized screen-space buffer around each station",
     );
   });
 
