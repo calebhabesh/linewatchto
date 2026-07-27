@@ -183,6 +183,7 @@ function InteractiveRegionalMapComponent({
   recenterSignal,
   isDark = true,
   animateInitialEntrance = true,
+  deferInitialEntrance = false,
   desktopMenuPinned = false,
   preserveCameraOnSelectionClear = false,
   viewportOrientation = "standard",
@@ -197,6 +198,7 @@ function InteractiveRegionalMapComponent({
   recenterSignal?: number;
   isDark?: boolean;
   animateInitialEntrance?: boolean;
+  deferInitialEntrance?: boolean;
   desktopMenuPinned?: boolean;
   preserveCameraOnSelectionClear?: boolean;
   viewportOrientation?: MapViewportOrientation;
@@ -216,12 +218,14 @@ function InteractiveRegionalMapComponent({
   } | null>(null);
   const [svgMarkup, setSvgMarkup] = useState("");
   const [camera, setCamera] = useState<Camera>({ x: 0, y: 0, scale: 1 });
+  const [cameraReady, setCameraReady] = useState(false);
   const [loadError, setLoadError] = useState(false);
   const [isGestureActive, setIsGestureActive] = useState(false);
   const [fitScale, setFitScale] = useState(0.35);
   const [desktopMapTopInset, setDesktopMapTopInset] = useState(0);
   const [desktopMapBottomInset, setDesktopMapBottomInset] = useState(0);
   const animTimeoutRef = useRef<number | null>(null);
+  const initialEntranceTimeoutRef = useRef<number | null>(null);
   const programmaticAnimationFrameRef = useRef<number | null>(null);
   const dragAnimationFrameRef = useRef<number | null>(null);
   const pendingDragPointRef = useRef<{ x: number; y: number } | null>(null);
@@ -235,6 +239,7 @@ function InteractiveRegionalMapComponent({
   const wheelCommitTimeoutRef = useRef<number | null>(null);
   const cameraRef = useRef(camera);
   const readyNotifiedRef = useRef(false);
+  const entranceWasDeferredRef = useRef(false);
   const lastFocusedTargetKeyRef = useRef<string | null>(null);
   const lastFocusLayoutKeyRef = useRef("");
   const shouldAnimateProgrammaticTransform = !reducedMotion && !mobilePerformanceMode;
@@ -252,6 +257,10 @@ function InteractiveRegionalMapComponent({
   }, []);
 
   const clearProgrammaticAnimation = useCallback(() => {
+    if (initialEntranceTimeoutRef.current !== null) {
+      window.clearTimeout(initialEntranceTimeoutRef.current);
+      initialEntranceTimeoutRef.current = null;
+    }
     if (programmaticAnimationFrameRef.current !== null) {
       window.cancelAnimationFrame(programmaticAnimationFrameRef.current);
       programmaticAnimationFrameRef.current = null;
@@ -409,11 +418,40 @@ function InteractiveRegionalMapComponent({
     animateCameraTo(fitted.camera, fitted.scale);
   }, [animateCameraTo, fittedCamera]);
 
+  const stageInitialEntrance = useCallback(() => {
+    if (!svgMarkup) return;
+    const fitted = fittedCamera();
+    if (!fitted) return;
+    const viewport = viewportRef.current;
+    const mapSurface = viewport?.closest<HTMLElement>(".network-map-transition-surface");
+    const width = viewport?.clientWidth || mapSurface?.clientWidth || 0;
+    const height = viewport?.clientHeight || mapSurface?.clientHeight || 0;
+    if (width <= 0 || height <= 0) return;
+    const entryCamera = snapCameraToDevicePixels(
+      computeFittedCameraFlyInStart(fitted.camera, width, height),
+    );
+
+    cameraInitializedRef.current = true;
+    setCameraReady(true);
+    cameraRef.current = entryCamera;
+    setMapTransition("none");
+    writeMapTransform(entryCamera);
+    setFitScale(fitted.scale);
+    setCamera(entryCamera);
+  }, [fittedCamera, setMapTransition, svgMarkup, writeMapTransform]);
+
+  const completeStagedEntrance = useCallback(() => {
+    const fitted = fittedCamera();
+    if (!fitted) return;
+    animateCameraTo(fitted.camera, fitted.scale);
+  }, [animateCameraTo, fittedCamera]);
+
   const initializeMapCamera = useCallback(() => {
     if (cameraInitializedRef.current || !svgMarkup) return;
     const fitted = fittedCamera();
     if (!fitted) return;
     cameraInitializedRef.current = true;
+    setCameraReady(true);
     if (animateInitialEntrance && shouldAnimateProgrammaticTransform) {
       const viewport = viewportRef.current;
       const mapSurface = viewport?.closest<HTMLElement>(".network-map-transition-surface");
@@ -426,10 +464,10 @@ function InteractiveRegionalMapComponent({
       setMapTransition("none");
       writeMapTransform(entryCamera);
       setCamera(entryCamera);
-      programmaticAnimationFrameRef.current = window.requestAnimationFrame(() => {
-        programmaticAnimationFrameRef.current = null;
+      initialEntranceTimeoutRef.current = window.setTimeout(() => {
+        initialEntranceTimeoutRef.current = null;
         animateCameraTo(fitted.camera, fitted.scale);
-      });
+      }, 250);
       return;
     }
     setMapTransition("none");
@@ -626,13 +664,20 @@ function InteractiveRegionalMapComponent({
     return () => { cancelled = true; };
   }, [activeAlerts, networkSegments, stationNodeImpacts]);
 
-  useEffect(() => {
-    const frameId = window.requestAnimationFrame(initializeMapCamera);
-    return () => window.cancelAnimationFrame(frameId);
-  }, [initializeMapCamera]);
+  useLayoutEffect(() => {
+    if (deferInitialEntrance) {
+      entranceWasDeferredRef.current = true;
+      stageInitialEntrance();
+    } else if (entranceWasDeferredRef.current) {
+      entranceWasDeferredRef.current = false;
+      completeStagedEntrance();
+    } else {
+      initializeMapCamera();
+    }
+  }, [completeStagedEntrance, deferInitialEntrance, initializeMapCamera, stageInitialEntrance]);
 
   useEffect(() => {
-    if (!svgMarkup || !cameraInitializedRef.current || readyNotifiedRef.current) return;
+    if (deferInitialEntrance || !svgMarkup || !cameraInitializedRef.current || readyNotifiedRef.current) return;
 
     let secondPaintFrame: number | null = null;
     const firstPaintFrame = window.requestAnimationFrame(() => {
@@ -647,7 +692,7 @@ function InteractiveRegionalMapComponent({
       window.cancelAnimationFrame(firstPaintFrame);
       if (secondPaintFrame !== null) window.cancelAnimationFrame(secondPaintFrame);
     };
-  }, [camera, onReady, svgMarkup]);
+  }, [camera, deferInitialEntrance, onReady, svgMarkup]);
 
   useEffect(() => {
     // Treat this as an edge-triggered command. A remount or data refresh must
@@ -1099,6 +1144,7 @@ function InteractiveRegionalMapComponent({
             height: `${MAP_HEIGHT}px`,
             right: "auto",
             bottom: "auto",
+            visibility: svgMarkup && cameraReady ? "visible" : "hidden",
             transform: `translate(${camera.x}px, ${camera.y}px) scale(${camera.scale})`,
             transformOrigin: "0 0",
             transition: shouldAnimateProgrammaticTransform && !isGestureActive

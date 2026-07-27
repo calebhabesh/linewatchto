@@ -3074,6 +3074,9 @@ export function LineWatchShell({
         <NetworkMap
           network={selectedNetwork}
           animateInitialEntrance={!initialMapReady}
+          deferInitialEntrance={disclaimerVisible
+            || (selectedNetwork === "ttc" && subwayOperatingState.status === "closed" && !closedScreenAcknowledged)
+            || (selectedNetwork === "regional" && regionalRailOperatingState.status === "closed" && !closedScreenAcknowledged)}
           onInitialMapReady={handleInitialMapReady}
           mobileAnnouncementVisible={selectedNetwork === "ttc"
             ? subwayOperatingState.closingSoon

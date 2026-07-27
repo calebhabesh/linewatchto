@@ -34,6 +34,7 @@ export function NetworkMap({
           recenterSignal={props.recenterSignal}
           isDark={props.isDark}
           animateInitialEntrance={props.animateInitialEntrance}
+          deferInitialEntrance={props.deferInitialEntrance}
           desktopMenuPinned={props.desktopMenuPinned}
           preserveCameraOnSelectionClear={props.preserveCameraOnSelectionClear}
           viewportOrientation={props.viewportOrientation}

@@ -225,6 +225,10 @@ describe("asset-backed map layering", () => {
     assert.doesNotMatch(interactiveMapSource, /isSelectionFastFlashing|isStationFastFlashing/);
   });
 
+  it("does not flash a loading label while the TTC map asset is fetched", () => {
+    assert.doesNotMatch(interactiveMapSource, /Loading TTC Map/i);
+  });
+
   it("renders reduced speed zone chevron glyphs without a clipping mask", () => {
     const rszStart = interactiveMapSource.indexOf('{visualState === "reduced-speed-zone"');
     const suspensionStart = interactiveMapSource.indexOf('{visualState === "suspension"', rszStart);

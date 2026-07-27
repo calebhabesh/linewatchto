@@ -171,11 +171,21 @@ describe("network-scoped regional dashboard", () => {
     );
     assert.match(
       panZoomSource,
-      /const initializeCamera = useCallback\(\(\) => \{\s*moveToDefaultCamera\(animateInitialEntrance, animateInitialEntrance\)/,
+      /const initializeCamera = useCallback\(\(\) => \{\s*moveToDefaultCamera\(animateInitialEntrance, animateInitialEntrance, 250\)/,
     );
     assert.match(regionalMapSource, /computeFittedCameraFlyInStart\(fitted\.camera, width, height\)/);
+    assert.match(networkMapSource, /deferInitialEntrance=\{props\.deferInitialEntrance\}/);
+    assert.match(regionalMapSource, /const stageInitialEntrance = useCallback/);
+    assert.match(regionalMapSource, /const completeStagedEntrance = useCallback/);
+    assert.match(regionalMapSource, /useLayoutEffect\(\(\) => \{[\s\S]*?stageInitialEntrance\(\)[\s\S]*?initializeMapCamera\(\)/);
+    assert.match(regionalMapSource, /visibility: svgMarkup && cameraReady \? "visible" : "hidden"/);
+    assert.match(shellSource, /selectedNetwork === "regional" && regionalRailOperatingState\.status === "closed" && !closedScreenAcknowledged/);
     assert.match(panZoomSource, /computeFittedCameraFlyInStart\(next, width, height\)/);
     assert.match(regionalMapSource, /transform 0\.8s cubic-bezier\(0\.25, 1, 0\.5, 1\)/);
+    assert.match(
+      regionalMapSource,
+      /initialEntranceTimeoutRef\.current = window\.setTimeout\(\(\) => \{[\s\S]*?animateCameraTo\(fitted\.camera, fitted\.scale\);[\s\S]*?\}, 250\)/,
+    );
     assert.doesNotMatch(shellSource, /animate-map-center-fade/);
   });
 

@@ -51,6 +51,7 @@ export function usePanZoom({
   const [isDragging, setIsDragging] = useState(false);
   const [isGestureActive, setIsGestureActive] = useState(false);
   const animTimeoutRef = useRef<number | null>(null);
+  const initialEntranceTimeoutRef = useRef<number | null>(null);
   const programmaticAnimationFrameRef = useRef<number | null>(null);
   const startPos = useRef({ x: 0, y: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
@@ -162,6 +163,10 @@ export function usePanZoom({
   }, [snapTransform]);
 
   const clearProgrammaticAnimation = useCallback(() => {
+    if (initialEntranceTimeoutRef.current !== null) {
+      window.clearTimeout(initialEntranceTimeoutRef.current);
+      initialEntranceTimeoutRef.current = null;
+    }
     if (programmaticAnimationFrameRef.current !== null) {
       cancelAnimationFrame(programmaticAnimationFrameRef.current);
       programmaticAnimationFrameRef.current = null;
@@ -575,7 +580,7 @@ export function usePanZoom({
     });
   }, [fitScale, pointFromClientPoint, snappedTransformFrom]);
 
-  const moveToDefaultCamera = useCallback((animate: boolean, playEntrance: boolean) => {
+  const moveToDefaultCamera = useCallback((animate: boolean, playEntrance: boolean, entranceDelayMs = 0) => {
     if (!containerRef.current) return;
     const { width, height } = logicalViewportSize();
     if (width <= 0 || height <= 0) return;
@@ -594,10 +599,14 @@ export function usePanZoom({
       writeMapTransform(entryTransform);
       setTransform(entryTransform);
 
-      programmaticAnimationFrameRef.current = requestAnimationFrame(() => {
-        programmaticAnimationFrameRef.current = null;
+      if (entranceDelayMs > 0) {
+        initialEntranceTimeoutRef.current = window.setTimeout(() => {
+          initialEntranceTimeoutRef.current = null;
+          animateTransformTo(next, scale);
+        }, entranceDelayMs);
+      } else {
         animateTransformTo(next, scale);
-      });
+      }
       return;
     }
 
@@ -618,8 +627,28 @@ export function usePanZoom({
   ]);
 
   const initializeCamera = useCallback(() => {
-    moveToDefaultCamera(animateInitialEntrance, animateInitialEntrance);
+    moveToDefaultCamera(animateInitialEntrance, animateInitialEntrance, 250);
   }, [animateInitialEntrance, moveToDefaultCamera]);
+
+  const stageInitialEntrance = useCallback(() => {
+    if (!containerRef.current) return;
+    const { width, height } = logicalViewportSize();
+    if (width <= 0 || height <= 0) return;
+    const fittedTransform = defaultTransformForViewport(width, height);
+    const entryTransform = snapTransform(
+      computeFittedCameraFlyInStart(fittedTransform, width, height),
+    );
+
+    cameraInitializedRef.current = true;
+    transformRef.current = entryTransform;
+    setMapTransition("none");
+    writeMapTransform(entryTransform);
+    setTransform(entryTransform);
+  }, [defaultTransformForViewport, logicalViewportSize, setMapTransition, snapTransform, writeMapTransform]);
+
+  const completeStagedEntrance = useCallback(() => {
+    moveToDefaultCamera(true, false);
+  }, [moveToDefaultCamera]);
 
   const recenter = useCallback(() => {
     moveToDefaultCamera(true, true);
@@ -728,6 +757,8 @@ export function usePanZoom({
     handleWheel,
     recenter,
     initializeCamera,
+    stageInitialEntrance,
+    completeStagedEntrance,
     replayEntrance,
     zoomIn,
     zoomOut,

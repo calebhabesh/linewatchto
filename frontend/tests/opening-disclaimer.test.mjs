@@ -61,4 +61,8 @@ describe("opening disclaimer", () => {
     assert.match(globalCss, /@media \(max-width:\s*640px\)\s*\{[\s\S]*?\.opening-disclaimer-panel\s*\{[^}]*width:\s*min\(94vw, 380px\);/);
     assert.match(globalCss, /@media \(max-width:\s*640px\)\s*\{[\s\S]*?\.opening-disclaimer-logo\s*\{[^}]*height:\s*76px;[^}]*width:\s*76px;/);
   });
+
+  it("keeps the map centered until the welcome overlay reveals it", () => {
+    assert.match(shellSource, /deferInitialEntrance=\{disclaimerVisible/);
+  });
 });

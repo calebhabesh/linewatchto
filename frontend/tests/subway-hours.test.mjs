@@ -10,6 +10,8 @@ import {
   isSubwayClosed,
 } from "../src/app/subway-hours.ts";
 
+const shellSource = readFileSync(new URL("../src/components/LineWatchShell.tsx", import.meta.url), "utf8");
+
 describe("subway operating hours", () => {
   it("closes after 2 a.m. on weekdays until the 6 a.m. start", () => {
     const state = getSubwayOperatingState(new Date("2026-06-04T03:15:00-04:00"));
@@ -105,5 +107,14 @@ describe("subway operating state hook source", () => {
     assert.match(hookSource, /window\.location\.href/);
     assert.match(hookSource, /window\.setInterval/);
     assert.match(hookSource, /30_000/);
+  });
+});
+
+describe("subway closed map entrance", () => {
+  it("waits to animate the TTC map until the closed-service card is dismissed", () => {
+    assert.match(
+      shellSource,
+      /deferInitialEntrance=\{disclaimerVisible[\s\S]*?selectedNetwork === "ttc"[\s\S]*?subwayOperatingState\.status === "closed"[\s\S]*?!closedScreenAcknowledged/,
+    );
   });
 });

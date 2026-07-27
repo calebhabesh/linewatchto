@@ -244,6 +244,7 @@ function InteractiveTtcMapComponent({
   estimatedTrainsEnabled = false,
   estimatedTrainMarkers = [],
   animateInitialEntrance = true,
+  deferInitialEntrance = false,
   onReady,
 }: {
   selection: ImpactSelection;
@@ -266,6 +267,7 @@ function InteractiveTtcMapComponent({
   estimatedTrainsEnabled?: boolean;
   estimatedTrainMarkers?: EstimatedTrainMarker[];
   animateInitialEntrance?: boolean;
+  deferInitialEntrance?: boolean;
   onReady?: () => void;
 }) {
   const { networkSegments, activeAlerts, delays, reducedSpeedZones, plannedClosures, stationNodeImpacts, stations: mapStations } = useDashboardData();
@@ -279,6 +281,7 @@ function InteractiveTtcMapComponent({
   const [hoveredOverlapChooserImpact, setHoveredOverlapChooserImpact] = useState<ImpactSelection>(null);
   const [expandedOverlapBadgeId, setExpandedOverlapBadgeId] = useState<string | null>(null);
   const readyNotifiedRef = useRef(false);
+  const entranceWasDeferredRef = useRef(false);
 
   const mapSvgRef = useRef<SVGSVGElement>(null);
   const mapRootRef = useRef<HTMLDivElement>(null);
@@ -333,6 +336,8 @@ function InteractiveTtcMapComponent({
     handlePointerCancel,
     handleWheel,
     initializeCamera,
+    stageInitialEntrance,
+    completeStagedEntrance,
     recenter,
     zoomIn,
     zoomOut,
@@ -484,7 +489,17 @@ function InteractiveTtcMapComponent({
       if (!containerRef.current) return;
       const rect = containerRef.current.getBoundingClientRect();
       if (rect.width > 0 && rect.height > 0) {
-        initializeCamera();
+        if (deferInitialEntrance) {
+          entranceWasDeferredRef.current = true;
+          stageInitialEntrance();
+          return;
+        }
+        if (entranceWasDeferredRef.current) {
+          entranceWasDeferredRef.current = false;
+          completeStagedEntrance();
+        } else {
+          initializeCamera();
+        }
         if (animateInitialEntrance && !reducedMotion && !mobilePerformanceMode) {
           readyTimer = window.setTimeout(notifyReadyAfterPaint, 850);
         } else {
@@ -504,7 +519,7 @@ function InteractiveTtcMapComponent({
       if (secondPaintFrame !== null) window.cancelAnimationFrame(secondPaintFrame);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [animateInitialEntrance, initializeCamera, loadState, mobilePerformanceMode, onReady, reducedMotion]);
+  }, [animateInitialEntrance, completeStagedEntrance, deferInitialEntrance, initializeCamera, loadState, mobilePerformanceMode, onReady, reducedMotion, stageInitialEntrance]);
 
 
 
@@ -1402,11 +1417,6 @@ function InteractiveTtcMapComponent({
           setExpandedOverlapBadgeId(null);
         }}
       >
-        {loadState === "loading" && (
-          <div className="absolute inset-0 flex items-center justify-center text-slate-600 dark:text-white/60 font-medium">
-            Loading TTC Map...
-          </div>
-        )}
         {loadState === "error" && (
           <div className="absolute inset-0 flex items-center justify-center text-red-500 dark:text-red-400 font-medium">
             Failed to load map asset.

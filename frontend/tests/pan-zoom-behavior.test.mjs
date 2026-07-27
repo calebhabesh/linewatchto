@@ -92,15 +92,13 @@ describe("pan zoom behavior guardrails", () => {
     assert.deepEqual(snapped, { x: 22.5, y: -8.5, scale: 0.1733333333 });
   });
 
-  it("normalizes the fitted-camera entrance from the viewport's top-left", () => {
-    assert.deepEqual(
-      computeFittedCameraFlyInStart(
-        { x: 100, y: 80, scale: 0.2 },
-        1000,
-        600,
-      ),
-      { x: -80, y: -28, scale: 0.27 },
-    );
+  it("starts the fitted-camera entrance slightly zoomed out around the viewport center", () => {
+    const fitted = { x: 100, y: 80, scale: 0.2 };
+    const entrance = computeFittedCameraFlyInStart(fitted, 1000, 600);
+    assert.equal(entrance.x, 172);
+    assert.ok(Math.abs(entrance.y - 119.6) < 1e-9);
+    assert.equal(entrance.scale, 0.164);
+    assert.ok(entrance.scale < fitted.scale);
     assert.match(hookSource, /computeFittedCameraFlyInStart\(next, width, height\)/);
   });
 
@@ -123,6 +121,20 @@ describe("pan zoom behavior guardrails", () => {
     assert.match(hookSource, /writeMapTransform\(snapped\)/);
     assert.match(hookSource, /window\.setTimeout\(\(\) => \{[\s\S]*setTransform\(\{ \.\.\.transformRef\.current \}\)/);
     assert.doesNotMatch(hookSource, /commitTransform\(\{ x, y, scale \}\);\s*setFitScale\(scale\);\s*startAnimation\(\);/);
+  });
+
+  it("briefly settles the initial map paint before starting the entrance", () => {
+    assert.match(
+      hookSource,
+      /moveToDefaultCamera\(animateInitialEntrance, animateInitialEntrance, 250\)/,
+    );
+  });
+
+  it("stages a covered map at the zoomed-out entrance before completing it", () => {
+    assert.match(hookSource, /const stageInitialEntrance = useCallback/);
+    assert.match(hookSource, /computeFittedCameraFlyInStart\(fittedTransform, width, height\)/);
+    assert.match(hookSource, /const completeStagedEntrance = useCallback/);
+    assert.match(hookSource, /moveToDefaultCamera\(true, false\)/);
   });
 
   it("dragging disables transform transitions without React animation state", () => {

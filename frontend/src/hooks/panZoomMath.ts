@@ -30,21 +30,23 @@ export type MapContentBounds = {
   height: number;
 };
 
-const FITTED_CAMERA_FLY_IN_OFFSET_RATIO = 0.18;
-const FITTED_CAMERA_FLY_IN_SCALE_RATIO = 1.35;
+const FITTED_CAMERA_FLY_IN_SCALE_RATIO = 0.82;
 
 /**
  * Normalizes the initial fitted-camera trajectory across differently authored
- * map canvases by starting slightly enlarged toward the viewport's top-left.
+ * map canvases by starting slightly zoomed out around the viewport center.
  */
 export function computeFittedCameraFlyInStart(
   fittedCamera: PanZoomTransform,
   viewportWidth: number,
   viewportHeight: number,
 ): PanZoomTransform {
+  const viewportCenterX = viewportWidth / 2;
+  const viewportCenterY = viewportHeight / 2;
+
   return {
-    x: fittedCamera.x - viewportWidth * FITTED_CAMERA_FLY_IN_OFFSET_RATIO,
-    y: fittedCamera.y - viewportHeight * FITTED_CAMERA_FLY_IN_OFFSET_RATIO,
+    x: viewportCenterX - (viewportCenterX - fittedCamera.x) * FITTED_CAMERA_FLY_IN_SCALE_RATIO,
+    y: viewportCenterY - (viewportCenterY - fittedCamera.y) * FITTED_CAMERA_FLY_IN_SCALE_RATIO,
     scale: fittedCamera.scale * FITTED_CAMERA_FLY_IN_SCALE_RATIO,
   };
 }
