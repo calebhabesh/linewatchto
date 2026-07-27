@@ -30,6 +30,11 @@ describe("asset-backed map layering", () => {
     assert.match(interactiveMapSource, /station-hit-target/);
     assert.match(interactiveMapSource, /onSelectStationId/);
     assert.ok(
+      interactiveMapSource.indexOf('aria-label="Disruption overlay interaction targets"') <
+        interactiveMapSource.indexOf('aria-label="Station hit targets"'),
+      "station targets must receive pointer hits above disruption corridors",
+    );
+    assert.ok(
       interactiveMapSource.indexOf('aria-label="Station hit targets"') <
         interactiveMapSource.indexOf('aria-label="Station impact rings"'),
       "station rings must render after station hit targets so ring strokes remain clickable",
@@ -44,8 +49,8 @@ describe("asset-backed map layering", () => {
     );
     assert.match(
       globalCss,
-      /@media \(pointer:\s*coarse\) \{[\s\S]*?\.station-hit-target,[\s\S]*?stroke-width:\s*40px;/,
-      "touch pointers should receive a finger-sized screen-space buffer around each station",
+      /@media \(pointer:\s*coarse\) \{[\s\S]*?\.station-hit-target,[\s\S]*?stroke-width:\s*72px;/,
+      "touch pointers should prioritize stations where their screen-space targets overlap disruption corridors",
     );
   });
 
