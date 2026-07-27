@@ -1876,6 +1876,7 @@ function InteractiveTtcMapComponent({
                                 onSelectStationId(selected ? null : station.id);
                               }
                             }}
+                            pointerEvents="all"
                             role="button"
                             tabIndex={anchorIndex === 0 ? 0 : -1}
                           />
