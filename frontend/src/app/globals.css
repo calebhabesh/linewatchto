@@ -6204,6 +6204,14 @@ img.transit-line-badge {
   stroke-width: 0;
 }
 
+@media (pointer: coarse) {
+  .station-hit-target,
+  .station-hit-target:hover,
+  .station-hit-target:focus-visible {
+    stroke-width: 16px;
+  }
+}
+
 .station-hover-indicator {
   fill: transparent;
   pointer-events: none;

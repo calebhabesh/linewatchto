@@ -36,8 +36,27 @@ class PushNotificationUpdateDetectorTest {
     }
 
     @Test
-    void detectsNewerSourceRevision() {
+    void ignoresTimestampOnlyRevisionForReducedSpeedZone() {
         PushNotificationCandidate candidate = candidate(
+            "reduced-speed-zone",
+            "current-fingerprint",
+            Instant.parse("2026-07-21T19:35:00Z")
+        );
+
+        assertThat(PushNotificationUpdateDetector.hasMeaningfulUpdate(
+            "previous-fingerprint",
+            Instant.parse("2026-07-21T19:30:00Z"),
+            candidate.eventType(),
+            candidate.eventLocation(),
+            candidate.displayDirection(),
+            candidate
+        )).isFalse();
+    }
+
+    @Test
+    void detectsNewerSourceRevisionForOrdinaryDelay() {
+        PushNotificationCandidate candidate = candidate(
+            "delay",
             "current-fingerprint",
             Instant.parse("2026-07-21T19:35:00Z")
         );
@@ -67,11 +86,15 @@ class PushNotificationUpdateDetectorTest {
     }
 
     private PushNotificationCandidate candidate(String fingerprint, Instant sourceUpdatedAt) {
+        return candidate("reduced-speed-zone", fingerprint, sourceUpdatedAt);
+    }
+
+    private PushNotificationCandidate candidate(String eventType, String fingerprint, Instant sourceUpdatedAt) {
         FormattedPushNotification notification = new PushNotificationFormatter().formatActive(
             new PushNotificationFacts(
                 "line-2",
                 "2",
-                "reduced-speed-zone",
+                eventType,
                 "on-change",
                 "High Park to Runnymede",
                 "Westbound",
@@ -88,10 +111,10 @@ class PushNotificationUpdateDetectorTest {
             "line-2",
             "2",
             "line-current",
-            "reduced-speed-zone",
+            eventType,
             "on-change",
             "line-current|line-2|rsz-1",
-            "line-current|line-2|reduced-speed-zone|rsz-1",
+            "line-current|line-2|" + eventType + "|rsz-1",
             "dedupe-key",
             notification,
             "/?panel=reduced-speed-zones",

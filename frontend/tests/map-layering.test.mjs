@@ -39,8 +39,13 @@ describe("asset-backed map layering", () => {
   it("uses explicit SVG hit testing for station touch targets", () => {
     assert.match(
       interactiveMapSource,
-      /className=\{`station-hit-target[\s\S]*?pointerEvents="all"[\s\S]*?role="button"/,
+      /className=\{`station-hit-target[\s\S]*?pointerEvents="all"[\s\S]*?role="button"[\s\S]*?vectorEffect="non-scaling-stroke"/,
       "transparent station circles must remain tappable in mobile SVG implementations",
+    );
+    assert.match(
+      globalCss,
+      /@media \(pointer:\s*coarse\) \{[\s\S]*?\.station-hit-target,[\s\S]*?stroke-width:\s*16px;/,
+      "touch pointers should receive a modest screen-sized buffer around each station",
     );
   });
 

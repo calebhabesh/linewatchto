@@ -15,35 +15,31 @@ final class PushNotificationUpdateDetector {
         String existingDisplayDirection,
         PushNotificationCandidate candidate
     ) {
+        boolean structuredIdentityChanged = structuredIdentityChanged(
+            existingEventType,
+            existingEventLocation,
+            existingDisplayDirection,
+            candidate
+        );
+        if ("line-current".equals(normalize(candidate.category()))
+            && "reduced-speed-zone".equals(normalize(candidate.eventType()))) {
+            return structuredIdentityChanged;
+        }
+
         if (existingSourceUpdatedAt != null) {
             return (
                 candidate.sourceUpdatedAt() != null
                     && !Objects.equals(existingSourceUpdatedAt, candidate.sourceUpdatedAt())
             )
-                || structuredIdentityChanged(
-                    existingEventType,
-                    existingEventLocation,
-                    existingDisplayDirection,
-                    candidate
-                );
+                || structuredIdentityChanged;
         }
 
         if (candidate.sourceUpdatedAt() == null) {
-            return structuredIdentityChanged(
-                existingEventType,
-                existingEventLocation,
-                existingDisplayDirection,
-                candidate
-            );
+            return structuredIdentityChanged;
         }
 
         if (existingFingerprint == null || existingFingerprint.isBlank()) {
-            return structuredIdentityChanged(
-                existingEventType,
-                existingEventLocation,
-                existingDisplayDirection,
-                candidate
-            );
+            return structuredIdentityChanged;
         }
         if (existingFingerprint.equals(candidate.updateFingerprint())) {
             return false;

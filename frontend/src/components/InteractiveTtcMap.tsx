@@ -1879,6 +1879,7 @@ function InteractiveTtcMapComponent({
                             pointerEvents="all"
                             role="button"
                             tabIndex={anchorIndex === 0 ? 0 : -1}
+                            vectorEffect="non-scaling-stroke"
                           />
                         </g>
                       ))}

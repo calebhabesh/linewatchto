@@ -20,6 +20,8 @@ public class PushNotificationFormatter {
         Pattern.compile("(?i)^between\\s+(.+?)\\s+and\\s+(.+)$");
     private static final Pattern TO_PATTERN =
         Pattern.compile("(?i)^(.+?)\\s+to\\s+(.+)$");
+    private static final Pattern BIDIRECTIONAL_RANGE_PATTERN =
+        Pattern.compile("^(.+?)\\s*(?:<->|↔)\\s*(.+)$");
     private static final Pattern LINE_PREFIX_PATTERN =
         Pattern.compile("(?i)^line\\s+\\d+\\s+[^:]+:\\s+(.+)$");
     private static final Pattern WORD_PATTERN =
@@ -35,7 +37,9 @@ public class PushNotificationFormatter {
         List<String> bodyParts = new ArrayList<>();
         String sourceDescription = normalizeDisplayText(firstSourceDescription(facts.sourceTitle(), facts.sourceDescription()));
 
-        if (!sourceDescription.isEmpty()) {
+        if (shouldPreferStructuredLocation(facts.eventType(), location)) {
+            bodyParts.add(activeFallbackSentence(facts.eventType(), location, facts.displayDirection(), facts.cause()));
+        } else if (!sourceDescription.isEmpty()) {
             bodyParts.add(sentence(sourceDescription));
         } else {
             bodyParts.add(activeFallbackSentence(facts.eventType(), location, facts.displayDirection(), facts.cause()));
@@ -193,6 +197,18 @@ public class PushNotificationFormatter {
         }
 
         String withoutPunctuation = stripTerminalPunctuation(location);
+        Matcher bidirectionalRangeMatcher = BIDIRECTIONAL_RANGE_PATTERN.matcher(withoutPunctuation);
+        if (bidirectionalRangeMatcher.matches()) {
+            return "Service between "
+                + bidirectionalRangeMatcher.group(1).trim()
+                + " and "
+                + rangeEndWithStationLabel(
+                    bidirectionalRangeMatcher.group(1),
+                    bidirectionalRangeMatcher.group(2)
+                )
+                + " has resumed.";
+        }
+
         Matcher betweenMatcher = BETWEEN_PATTERN.matcher(withoutPunctuation);
         if (betweenMatcher.matches()) {
             return "Service between "
@@ -216,6 +232,17 @@ public class PushNotificationFormatter {
 
     private String clearanceLocationPhrase(String location) {
         String withoutPunctuation = stripTerminalPunctuation(location);
+        Matcher bidirectionalRangeMatcher = BIDIRECTIONAL_RANGE_PATTERN.matcher(withoutPunctuation);
+        if (bidirectionalRangeMatcher.matches()) {
+            return "between "
+                + bidirectionalRangeMatcher.group(1).trim()
+                + " and "
+                + rangeEndWithStationLabel(
+                    bidirectionalRangeMatcher.group(1),
+                    bidirectionalRangeMatcher.group(2)
+                );
+        }
+
         Matcher betweenMatcher = BETWEEN_PATTERN.matcher(withoutPunctuation);
         if (betweenMatcher.matches()) {
             return "between "
@@ -343,6 +370,17 @@ public class PushNotificationFormatter {
 
     private String activeLocationPhrase(String location) {
         String withoutPunctuation = stripTerminalPunctuation(location);
+        Matcher bidirectionalRangeMatcher = BIDIRECTIONAL_RANGE_PATTERN.matcher(withoutPunctuation);
+        if (bidirectionalRangeMatcher.matches()) {
+            return "between "
+                + bidirectionalRangeMatcher.group(1).trim()
+                + " and "
+                + rangeEndWithStationLabel(
+                    bidirectionalRangeMatcher.group(1),
+                    bidirectionalRangeMatcher.group(2)
+                );
+        }
+
         Matcher betweenMatcher = BETWEEN_PATTERN.matcher(withoutPunctuation);
         if (betweenMatcher.matches()) {
             return "between "
@@ -394,6 +432,12 @@ public class PushNotificationFormatter {
             return "";
         }
         return description;
+    }
+
+    private boolean shouldPreferStructuredLocation(String eventType, String location) {
+        return "reduced-speed-zone".equalsIgnoreCase(normalizeText(eventType))
+            && !location.isEmpty()
+            && !"multiple affected sections".equalsIgnoreCase(location);
     }
 
     private String firstSourceDescription(String... values) {

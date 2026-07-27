@@ -1015,6 +1015,49 @@ class PushNotificationDispatchServiceTest {
     }
 
     @Test
+    void newlyObservedOldLineWideReducedSpeedZoneIsBaselinedWithoutPush() {
+        PushNotificationPreferenceEntity preferences = PushNotificationPreferenceEntity.create(
+            account,
+            Instant.parse("2026-05-01T12:00:00Z")
+        );
+        PushSubscriptionEntity subscription = PushSubscriptionEntity.create(
+            "push_subscription_old_rsz",
+            account,
+            "https://fcm.googleapis.com/fcm/send/subscription-old-rsz",
+            "endpoint-hash-old-rsz",
+            "p256dh-key",
+            "auth-secret",
+            "Chrome Android",
+            clock.instant()
+        );
+        when(preferenceService.preferenceEntityForAccountId("user_1")).thenReturn(preferences);
+        when(subscriptionRepository.findEnabledAccountIds()).thenReturn(List.of("user_1"));
+        when(subscriptionRepository.findByAccountIdAndEnabledTrue("user_1")).thenReturn(List.of(subscription));
+        when(preferenceService.subscribedLineIds("user_1")).thenReturn(List.of("line-1"));
+
+        PushNotificationCandidate staleRszCandidate = candidate(
+            null, null, "line-1", "1", "line-current", "reduced-speed-zone", "on-change",
+            "line-current|line-1|reduced-speed-zone|zone-old",
+            "user_1|line|line-1|reduced-speed-zone|on-change|zone-old",
+            "Eglinton to Davisville", null, Instant.parse("2026-05-31T15:00:00Z"),
+            "/?panel=reduced-speed-zones"
+        );
+        when(lineSubscriptionPushPlanner.candidatesFor("user_1", List.of("line-1")))
+            .thenReturn(List.of(staleRszCandidate));
+        when(preferenceService.allows(preferences, staleRszCandidate)).thenReturn(true);
+        PushLineEventObservationEntity observation = PushLineEventObservationEntity.create(
+            "obs-old-rsz", staleRszCandidate, clock.instant()
+        );
+        when(lineEventObservationService.observe(eq(staleRszCandidate), eq(preferences), any(Instant.class)))
+            .thenReturn(new PushLineEventObservationService.ObservationDecision(observation, true, false));
+
+        service.evaluateSavedCommuteNotifications();
+
+        verify(eventRepository, never()).save(any(PushNotificationEventEntity.class));
+        verify(webPushClient, never()).send(any(), anyString(), any(WebPushPayload.class));
+    }
+
+    @Test
     void disablingSavedCommuteCurrentDisruptionsSuppressesSavedCommuteCurrentCandidates() {
         PushNotificationPreferenceEntity preferences = PushNotificationPreferenceEntity.create(account, clock.instant());
         when(preferenceService.preferenceEntityForAccountId("user_1")).thenReturn(preferences);

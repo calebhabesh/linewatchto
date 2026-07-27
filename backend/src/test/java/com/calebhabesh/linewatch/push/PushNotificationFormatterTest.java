@@ -186,6 +186,45 @@ class PushNotificationFormatterTest {
     }
 
     @Test
+    void prioritizesGroupedReducedSpeedZoneStationRangeOverGenericDescription() {
+        FormattedPushNotification result = formatter.formatActive(new PushNotificationFacts(
+            "line-1",
+            "1",
+            "reduced-speed-zone",
+            "on-change",
+            "Eglinton <-> Davisville",
+            "Northbound & Southbound",
+            false,
+            null,
+            null,
+            Instant.parse("2026-07-22T14:40:00Z"),
+            null,
+            "Reduced Speed Zone",
+            "TTC reports reduced speeds on this corridor."
+        ));
+
+        assertThat(result.body()).isEqualTo("""
+            Reduced speeds in both directions between Eglinton and Davisville stations.
+            🕗 Jul 22, 10:40 AM""");
+        assertThat(result.eventLocation()).isEqualTo("Eglinton <-> Davisville");
+    }
+
+    @Test
+    void formatsGroupedReducedSpeedZoneClearanceAsStationRange() {
+        FormattedPushNotification result = formatter.formatCleared(
+            "Line 1 Yonge-University Reduced Speed Zone",
+            "Eglinton <-> Davisville",
+            "Northbound & Southbound",
+            null,
+            Instant.parse("2026-07-22T16:00:00Z")
+        );
+
+        assertThat(result.body()).isEqualTo("""
+            Service has resumed in both directions between Eglinton and Davisville stations.
+            🕗 Jul 22, 12:00 PM""");
+    }
+
+    @Test
     void includesCauseWhenSourceSuppliesReason() {
         FormattedPushNotification result = formatter.formatActive(new PushNotificationFacts(
             "line-5",

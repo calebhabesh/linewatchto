@@ -221,9 +221,12 @@ public class PushNotificationDispatchService {
                     currentLineNotificationKeys.add(candidate.notificationKey());
                     currentLineSourceIncidentKeys.add(candidate.sourceIncidentKey());
                     currentLineCandidates.add(candidate);
+                    Instant observedAt = clock.instant();
                     PushLineEventObservationService.ObservationDecision decision =
-                        lineEventObservationService.observe(candidate, preferences, clock.instant());
-                    if (decision.shouldSendActive() && candidate.deliveryAllowed()) {
+                        lineEventObservationService.observe(candidate, preferences, observedAt);
+                    if (decision.shouldSendActive()
+                        && candidate.deliveryAllowed()
+                        && initialLineCurrentDeliveryIsTimely(candidate, decision, observedAt)) {
                         sendableCandidates.add(candidate);
                     }
                 } else if (savedCurrentCategories.contains(candidate.category())) {
@@ -293,6 +296,21 @@ public class PushNotificationDispatchService {
         return policy == null
             ? lineSubscriptionPushPlanner.candidatesFor(accountId, subscribedLineIds)
             : lineSubscriptionPushPlanner.candidatesFor(accountId, subscribedLineIds, policy);
+    }
+
+    private boolean initialLineCurrentDeliveryIsTimely(
+        PushNotificationCandidate candidate,
+        PushLineEventObservationService.ObservationDecision decision,
+        Instant now
+    ) {
+        if (!decision.firstObserved() || !"reduced-speed-zone".equals(candidate.eventType())) {
+            return true;
+        }
+        if (candidate.sourceEventAt() == null) {
+            return false;
+        }
+        Duration initialDeliveryWindow = pushProperties.displayTtlForState(ACTIVE_STATE);
+        return candidate.sourceEventAt().isAfter(now.minus(initialDeliveryWindow));
     }
 
     private void retryRecentClearedLifecycleNotifications(
