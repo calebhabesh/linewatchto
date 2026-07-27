@@ -12294,6 +12294,44 @@ img.transit-line-badge {
   flex-direction: column;
 }
 
+/* Top-right utility popovers share the same anchored lifecycle. Keeping the
+   closing panel mounted lets the reverse transition finish before removal. */
+.utility-popover {
+  transform-origin: top right;
+  will-change: opacity, transform;
+}
+
+.utility-popover--opening {
+  animation: utility-popover-enter 280ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.utility-popover--closing {
+  animation: utility-popover-exit 220ms cubic-bezier(0.4, 0, 1, 1) both;
+  pointer-events: none;
+}
+
+@keyframes utility-popover-enter {
+  from {
+    opacity: 0;
+    transform: translate3d(0, -18px, 0) scale(0.955);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes utility-popover-exit {
+  from {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translate3d(0, -14px, 0) scale(0.96);
+  }
+}
+
 .dark .site-guide-panel,
 .high-contrast .site-guide-panel {
   background: rgba(10, 12, 16, 0.97);

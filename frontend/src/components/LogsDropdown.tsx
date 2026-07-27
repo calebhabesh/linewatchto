@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Terminal, Copy, Check, ChevronDown, ChevronUp, AlertCircle, RefreshCw, Newspaper } from "lucide-react";
 import { mockRawAlerts, RawAlert } from "../app/mock-raw-alerts";
 import { apiUrl } from "../app/api-client.ts";
 
 export function LogsDropdown({ isMobileMore = false }: { isMobileMore?: boolean }) {
   const [isOpen, setIsOpen] = useState(false);
+  const [isClosing, setIsClosing] = useState(false);
   const [rawAlerts, setRawAlerts] = useState<RawAlert[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(false);
@@ -15,19 +16,43 @@ export function LogsDropdown({ isMobileMore = false }: { isMobileMore?: boolean 
   const [copiedId, setCopiedId] = useState<string | null>(null);
   
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const closeTimerRef = useRef<number | null>(null);
 
-  const toggleDropdown = () => setIsOpen(!isOpen);
+  const closeDropdown = useCallback(() => {
+    if (!isOpen || isClosing) return;
+    setIsClosing(true);
+    const reducedMotion = Boolean(dropdownRef.current?.closest(".motion-paused"))
+      || window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    closeTimerRef.current = window.setTimeout(() => {
+      setIsOpen(false);
+      setIsClosing(false);
+      closeTimerRef.current = null;
+    }, reducedMotion ? 0 : 220);
+  }, [isClosing, isOpen]);
+
+  const toggleDropdown = () => {
+    if (isOpen) {
+      closeDropdown();
+      return;
+    }
+    setIsClosing(false);
+    setIsOpen(true);
+  };
+
+  useEffect(() => () => {
+    if (closeTimerRef.current !== null) window.clearTimeout(closeTimerRef.current);
+  }, []);
 
   // Close dropdown on click outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
+        closeDropdown();
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+  }, [closeDropdown]);
 
   // Fetch raw alerts from backend on open, or fallback to mock raw alerts
   const fetchRawAlerts = () => {
@@ -162,7 +187,7 @@ export function LogsDropdown({ isMobileMore = false }: { isMobileMore?: boolean 
             : "logs-trigger-btn panel flex items-center justify-center w-10 sm:w-14 h-10 sm:h-14 rounded-xl border border-black/10 dark:border-white/10 shadow-lg hover:!bg-slate-200 dark:hover:!bg-[#1a1e28] hover:scale-105 active:scale-95 outline-none focus-visible:ring-4 focus-visible:ring-black/10 dark:focus-visible:ring-white/10 transition-all cursor-pointer bg-white dark:bg-[#0a0c10] text-slate-800 dark:text-white"
         }
         aria-label="Toggle Ingestion Logs"
-        aria-expanded={isOpen}
+        aria-expanded={isOpen && !isClosing}
       >
         <span className="flex items-center gap-3">
           <Newspaper
@@ -185,7 +210,10 @@ export function LogsDropdown({ isMobileMore = false }: { isMobileMore?: boolean 
 
       {/* Floating Logs Dropdown Card */}
       {isOpen && (
-        <div className={`absolute top-[48px] sm:top-[64px] ${isMobileMore ? "left-0 right-0 w-full" : "right-0 w-[min(calc(100vw-32px),550px)]"} rounded-2xl shadow-2xl flex flex-col z-50 animate-in fade-in slide-in-from-top-2 duration-200 border border-black/10 dark:border-white/10 bg-white/95 dark:bg-[#0a0c10]/95 backdrop-blur-md text-slate-800 dark:text-slate-200`}>
+        <div
+          className={`logs-dropdown-panel utility-popover ${isClosing ? "utility-popover--closing" : "utility-popover--opening"} absolute top-[48px] sm:top-[64px] ${isMobileMore ? "left-0 right-0 w-full" : "right-0 w-[min(calc(100vw-32px),550px)]"} rounded-2xl shadow-2xl flex flex-col z-50 border border-black/10 dark:border-white/10 bg-white/95 dark:bg-[#0a0c10]/95 backdrop-blur-md text-slate-800 dark:text-slate-200`}
+          data-popover-state={isClosing ? "closing" : "open"}
+        >
           
           {/* Header */}
           <div className="flex items-center justify-between p-4 border-b border-black/10 dark:border-white/10">

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from "react";
 import Image from "next/image";
 import {
   AlertTriangle,
@@ -162,7 +162,7 @@ function OverlayAssetPreview({
         height={30}
         className={`site-guide-overlay-asset ${className}`}
       />
-      <span className={`text-[9px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider mt-0.5 ${labelClassName}`}>
+      <span className={`block w-full text-center text-[9px] leading-tight text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider mt-0.5 ${labelClassName}`}>
         {label}
       </span>
     </div>
@@ -171,19 +171,38 @@ function OverlayAssetPreview({
 
 export function SiteGuideDropdown({ onOpenChange }: { onOpenChange?: (open: boolean) => void }) {
   const [isOpen, setIsOpen] = useState(false);
+  const [isClosing, setIsClosing] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const panelId = useId();
+  const closeTimerRef = useRef<number | null>(null);
+
+  const closeGuide = useCallback(() => {
+    if (!isOpen || isClosing) return;
+    setIsClosing(true);
+    const reducedMotion = Boolean(dropdownRef.current?.closest(".motion-paused"))
+      || window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    closeTimerRef.current = window.setTimeout(() => {
+      setIsOpen(false);
+      setIsClosing(false);
+      closeTimerRef.current = null;
+      onOpenChange?.(false);
+    }, reducedMotion ? 0 : 220);
+  }, [isClosing, isOpen, onOpenChange]);
+
+  useEffect(() => () => {
+    if (closeTimerRef.current !== null) window.clearTimeout(closeTimerRef.current);
+  }, []);
 
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && !isClosing) {
       const timer = setTimeout(() => {
         panelRef.current?.focus();
       }, 0);
       return () => clearTimeout(timer);
     }
-  }, [isOpen]);
+  }, [isClosing, isOpen]);
 
   useEffect(() => {
     const mediaQuery = window.matchMedia("(max-width: 767px)");
@@ -196,15 +215,13 @@ export function SiteGuideDropdown({ onOpenChange }: { onOpenChange?: (open: bool
   useEffect(() => {
     function handlePointerDown(event: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
-        onOpenChange?.(false);
+        closeGuide();
       }
     }
 
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") {
-        setIsOpen(false);
-        onOpenChange?.(false);
+        closeGuide();
       }
     }
 
@@ -214,7 +231,7 @@ export function SiteGuideDropdown({ onOpenChange }: { onOpenChange?: (open: bool
       document.removeEventListener("mousedown", handlePointerDown);
       document.removeEventListener("keydown", handleKeyDown);
     };
-  }, [onOpenChange]);
+  }, [closeGuide]);
 
   return (
     <div className="site-guide-dropdown relative pointer-events-auto" ref={dropdownRef}>
@@ -222,12 +239,16 @@ export function SiteGuideDropdown({ onOpenChange }: { onOpenChange?: (open: bool
         type="button"
         className="site-guide-trigger panel flex items-center justify-center w-10 sm:w-14 h-10 sm:h-14 rounded-xl border border-black/10 dark:border-white/10 shadow-lg hover:!bg-slate-200 dark:hover:!bg-[#1a1e28] hover:scale-105 active:scale-95 outline-none focus-visible:ring-4 focus-visible:ring-black/10 dark:focus-visible:ring-white/10 transition-all cursor-pointer bg-white dark:bg-[#0a0c10]"
         aria-controls={panelId}
-        aria-expanded={isOpen}
+        aria-expanded={isOpen && !isClosing}
         aria-label="Open site guide"
         onClick={() => {
-          const next = !isOpen;
-          setIsOpen(next);
-          onOpenChange?.(next);
+          if (isOpen) {
+            closeGuide();
+            return;
+          }
+          setIsClosing(false);
+          setIsOpen(true);
+          onOpenChange?.(true);
         }}
       >
         <Image
@@ -246,7 +267,8 @@ export function SiteGuideDropdown({ onOpenChange }: { onOpenChange?: (open: bool
           ref={panelRef}
           tabIndex={-1}
           id={panelId}
-          className="site-guide-panel outline-none"
+          className={`site-guide-panel utility-popover ${isClosing ? "utility-popover--closing" : "utility-popover--opening"} outline-none`}
+          data-popover-state={isClosing ? "closing" : "open"}
           role="dialog"
           aria-label="LineWatchTO site guide"
         >
@@ -261,8 +283,7 @@ export function SiteGuideDropdown({ onOpenChange }: { onOpenChange?: (open: bool
             <button
               type="button"
               onClick={() => {
-                setIsOpen(false);
-                onOpenChange?.(false);
+                closeGuide();
               }}
               aria-label="Close site guide"
             >
@@ -403,9 +424,12 @@ export function SiteGuideDropdown({ onOpenChange }: { onOpenChange?: (open: bool
                 <OverlayGuideRow
                   icon={<ImpactTypeIcon kind="planned-closure" size={16} />}
                   title="Planned Closure Preview"
-                  text="Static, smoky-white lane with blue calendar-alert icons previews scheduled upcoming closures (usually bidirectional)."
+                  text="Smoky-white lane with blue calendar-alert icons previews scheduled closures. Both ways stays static. An explicitly one-way closure uses slowly moving calendars followed by evenly spaced chevrons."
                   previews={
-                    <OverlayAssetPreview fileName="info-upcoming-closure.svg" label="Preview" />
+                    <>
+                      <OverlayAssetPreview fileName="info-one-way-closure.svg" label="One Way" />
+                      <OverlayAssetPreview fileName="info-upcoming-closure.svg" label="Both Ways" />
+                    </>
                   }
                 />
                 <OverlayGuideRow

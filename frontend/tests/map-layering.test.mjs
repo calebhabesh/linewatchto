@@ -112,7 +112,7 @@ describe("asset-backed map layering", () => {
     assert.match(interactiveMapSource, /keyPoints=\{direction === "reverse" \? "1;0" : "0;1"\}/);
     assert.match(interactiveMapSource, /d="M -10 -13 L 10 0 L -10 13"/);
     assert.match(interactiveMapSource, /rotate=\{direction === "reverse" \? "auto-reverse" : "auto"\}/);
-    assert.match(interactiveMapSource, /x=\{-39\}[\s\S]*?y=\{-39\}[\s\S]*?width=\{78\}[\s\S]*?height=\{78\}/);
+    assert.match(interactiveMapSource, /x=\{-44\}[\s\S]*?y=\{-44\}[\s\S]*?width=\{88\}[\s\S]*?height=\{88\}/);
     assert.match(interactiveMapSource, /<PlannedClosureIconLane[\s\S]*?pathD=\{segment\.pathD\}[\s\S]*?travelDirection=\{travelDirection\}[\s\S]*?reducedMotion=\{reducedMotion\}/);
     assert.match(interactiveMapSource, /closure\.travelDirection \?\? "bidirectional"/);
     assert.doesNotMatch(interactiveMapSource, /planned-preview-underlay/);

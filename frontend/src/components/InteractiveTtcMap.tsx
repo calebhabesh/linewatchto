@@ -3851,10 +3851,10 @@ function PlannedClosureIconLane({
             <PlannedClosureIcon
               key={`${point.x}-${point.y}-${index}`}
               className="planned-closure-map-icon planned-closure-map-icon--static"
-              x={point.x - 39}
-              y={point.y - 39}
-              width={78}
-              height={78}
+              x={point.x - 44}
+              y={point.y - 44}
+              width={88}
+              height={88}
               strokeWidth={2.25}
             />
           );
@@ -3888,10 +3888,10 @@ function PlannedClosureIconLane({
               ) : null}
               <PlannedClosureIcon
                 className="planned-closure-map-icon"
-                x={-39}
-                y={-39}
-                width={78}
-                height={78}
+                x={-44}
+                y={-44}
+                width={88}
+                height={88}
                 strokeWidth={2.25}
               />
             </g>

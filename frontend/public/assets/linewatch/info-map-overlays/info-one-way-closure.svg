@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="147.65149mm" height="33.524212mm" viewBox="0 0 147.65149 33.524212" xmlns="http://www.w3.org/2000/svg">
+  <rect width="147.65149" height="33.524212" rx="16.762106" fill="#f1f5f9"/>
+  <defs>
+    <g id="planned-closure-icon">
+      <rect x="3" y="5" width="18" height="16" rx="3"/>
+      <path d="M3 9H21M12 12V15M12 18H12.01M7 3V5M17 3V5"/>
+    </g>
+    <path id="planned-closure-chevron" d="M0 3L8 9L0 15"/>
+  </defs>
+  <g fill="none" stroke="#3b82f6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <use href="#planned-closure-icon" transform="translate(4 4.762106) scale(1.05)"/>
+    <use href="#planned-closure-chevron" transform="translate(37 5.762106)"/>
+    <use href="#planned-closure-icon" transform="translate(52 4.762106) scale(1.05)"/>
+    <use href="#planned-closure-chevron" transform="translate(85 5.762106)"/>
+    <use href="#planned-closure-icon" transform="translate(100 4.762106) scale(1.05)"/>
+    <use href="#planned-closure-chevron" transform="translate(133 5.762106)"/>
+  </g>
+</svg>

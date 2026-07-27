@@ -5,6 +5,7 @@ import { describe, it } from "node:test";
 const interactiveMapSource = readFileSync(new URL("../src/components/InteractiveTtcMap.tsx", import.meta.url), "utf8");
 const globalCss = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
 const guideComponentUrl = new URL("../src/components/SiteGuideDropdown.tsx", import.meta.url);
+const logsComponentUrl = new URL("../src/components/LogsDropdown.tsx", import.meta.url);
 const guideAssetUrl = new URL("../public/assets/linewatch/site-guide.svg", import.meta.url);
 const logoAssetUrl = new URL("../public/assets/linewatch/transportation-train.svg", import.meta.url);
 const guideIconAssetNames = [
@@ -18,6 +19,7 @@ const infoOverlayAssetNames = [
   "2-way-delay.svg",
   "1-way-rsz.svg",
   "2-way-rsz.svg",
+  "info-one-way-closure.svg",
   "info-upcoming-closure.svg",
   "station-ring-arrow.svg",
   "station-ring-two-way-arrow.svg",
@@ -26,6 +28,23 @@ const infoOverlayAssetNames = [
 ];
 
 describe("site guide dropdown", () => {
+  it("animates utility popovers through both open and close lifecycles", () => {
+    const guideSource = readFileSync(guideComponentUrl, "utf8");
+    const logsSource = readFileSync(logsComponentUrl, "utf8");
+
+    for (const source of [guideSource, logsSource]) {
+      assert.match(source, /utility-popover--closing/);
+      assert.match(source, /utility-popover--opening/);
+      assert.match(source, /data-popover-state=/);
+      assert.match(source, /prefers-reduced-motion: reduce/);
+      assert.match(source, /reducedMotion \? 0 : 220/);
+    }
+    assert.match(globalCss, /\.utility-popover--opening\s*\{[^}]*utility-popover-enter 280ms/s);
+    assert.match(globalCss, /\.utility-popover--closing\s*\{[^}]*utility-popover-exit 220ms/s);
+    assert.match(globalCss, /@keyframes utility-popover-enter/);
+    assert.match(globalCss, /@keyframes utility-popover-exit/);
+  });
+
   it("ships the guide icon and logo as public LineWatch assets", () => {
     assert.equal(existsSync(guideAssetUrl), true);
     assert.equal(existsSync(logoAssetUrl), true);
@@ -52,6 +71,14 @@ describe("site guide dropdown", () => {
     assert.match(plannedClosureAsset, /stroke="#3b82f6"/);
     assert.match(plannedClosureAsset, /<rect x="3" y="5" width="18" height="16" rx="3"\/>/);
     assert.match(plannedClosureAsset, /M3 9H21M12 12V15M12 18H12\.01/);
+
+    const directionalClosureAsset = readFileSync(
+      new URL("../public/assets/linewatch/info-map-overlays/info-one-way-closure.svg", import.meta.url),
+      "utf8",
+    );
+    assert.match(directionalClosureAsset, /id="planned-closure-icon"/);
+    assert.match(directionalClosureAsset, /id="planned-closure-chevron"/);
+    assert.match(directionalClosureAsset, /stroke="#3b82f6"/);
   });
 
   it("uses the no-entry bidirectional active alert guide asset", () => {
@@ -153,6 +180,11 @@ describe("site guide dropdown", () => {
     assert.match(guideSource, /"Delay"/);
     assert.match(guideSource, /Reduced Speed Zone/);
     assert.match(guideSource, /Planned Closure Preview/);
+    assert.match(guideSource, /Both ways stays static/);
+    assert.match(guideSource, /explicitly one-way closure uses slowly moving calendars followed by evenly spaced chevrons/);
+    assert.match(guideSource, /info-one-way-closure\.svg" label="One Way"/);
+    assert.match(guideSource, /info-upcoming-closure\.svg" label="Both Ways"/);
+    assert.match(guideSource, /block w-full text-center text-\[9px\] leading-tight/);
     assert.match(guideSource, /Station Impact Ring/);
     assert.match(guideSource, /Overlap Badge/);
     assert.match(guideSource, /Shuttle Badge/);
