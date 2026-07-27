@@ -99,6 +99,10 @@ describe("pan zoom behavior guardrails", () => {
     assert.ok(Math.abs(entrance.y - 119.6) < 1e-9);
     assert.equal(entrance.scale, 0.164);
     assert.ok(entrance.scale < fitted.scale);
+    const insetEntrance = computeFittedCameraFlyInStart(fitted, 1000, 600, { x: 500, y: 240 });
+    assert.equal(insetEntrance.x, 172);
+    assert.ok(Math.abs(insetEntrance.y - 108.8) < 1e-9);
+    assert.equal(insetEntrance.scale, 0.164);
     assert.match(hookSource, /computeFittedCameraFlyInStart\(next, width, height\)/);
   });
 
@@ -123,11 +127,12 @@ describe("pan zoom behavior guardrails", () => {
     assert.doesNotMatch(hookSource, /commitTransform\(\{ x, y, scale \}\);\s*setFitScale\(scale\);\s*startAnimation\(\);/);
   });
 
-  it("briefly settles the initial map paint before starting the entrance", () => {
+  it("starts the initial map entrance without a loading hold", () => {
     assert.match(
       hookSource,
-      /moveToDefaultCamera\(animateInitialEntrance, animateInitialEntrance, 250\)/,
+      /moveToDefaultCamera\(animateInitialEntrance, animateInitialEntrance\)/,
     );
+    assert.match(hookSource, /programmaticAnimationFrameRef\.current = window\.requestAnimationFrame/);
   });
 
   it("stages a covered map at the zoomed-out entrance before completing it", () => {

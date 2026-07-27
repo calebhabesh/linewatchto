@@ -40,13 +40,11 @@ export function computeFittedCameraFlyInStart(
   fittedCamera: PanZoomTransform,
   viewportWidth: number,
   viewportHeight: number,
+  viewportFocus: PanZoomPoint = { x: viewportWidth / 2, y: viewportHeight / 2 },
 ): PanZoomTransform {
-  const viewportCenterX = viewportWidth / 2;
-  const viewportCenterY = viewportHeight / 2;
-
   return {
-    x: viewportCenterX - (viewportCenterX - fittedCamera.x) * FITTED_CAMERA_FLY_IN_SCALE_RATIO,
-    y: viewportCenterY - (viewportCenterY - fittedCamera.y) * FITTED_CAMERA_FLY_IN_SCALE_RATIO,
+    x: viewportFocus.x - (viewportFocus.x - fittedCamera.x) * FITTED_CAMERA_FLY_IN_SCALE_RATIO,
+    y: viewportFocus.y - (viewportFocus.y - fittedCamera.y) * FITTED_CAMERA_FLY_IN_SCALE_RATIO,
     scale: fittedCamera.scale * FITTED_CAMERA_FLY_IN_SCALE_RATIO,
   };
 }

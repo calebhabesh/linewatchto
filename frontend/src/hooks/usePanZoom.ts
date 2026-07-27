@@ -605,7 +605,10 @@ export function usePanZoom({
           animateTransformTo(next, scale);
         }, entranceDelayMs);
       } else {
-        animateTransformTo(next, scale);
+        programmaticAnimationFrameRef.current = window.requestAnimationFrame(() => {
+          programmaticAnimationFrameRef.current = null;
+          animateTransformTo(next, scale);
+        });
       }
       return;
     }
@@ -627,7 +630,7 @@ export function usePanZoom({
   ]);
 
   const initializeCamera = useCallback(() => {
-    moveToDefaultCamera(animateInitialEntrance, animateInitialEntrance, 250);
+    moveToDefaultCamera(animateInitialEntrance, animateInitialEntrance);
   }, [animateInitialEntrance, moveToDefaultCamera]);
 
   const stageInitialEntrance = useCallback(() => {

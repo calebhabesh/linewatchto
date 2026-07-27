@@ -225,7 +225,6 @@ function InteractiveRegionalMapComponent({
   const [desktopMapTopInset, setDesktopMapTopInset] = useState(0);
   const [desktopMapBottomInset, setDesktopMapBottomInset] = useState(0);
   const animTimeoutRef = useRef<number | null>(null);
-  const initialEntranceTimeoutRef = useRef<number | null>(null);
   const programmaticAnimationFrameRef = useRef<number | null>(null);
   const dragAnimationFrameRef = useRef<number | null>(null);
   const pendingDragPointRef = useRef<{ x: number; y: number } | null>(null);
@@ -257,10 +256,6 @@ function InteractiveRegionalMapComponent({
   }, []);
 
   const clearProgrammaticAnimation = useCallback(() => {
-    if (initialEntranceTimeoutRef.current !== null) {
-      window.clearTimeout(initialEntranceTimeoutRef.current);
-      initialEntranceTimeoutRef.current = null;
-    }
     if (programmaticAnimationFrameRef.current !== null) {
       window.cancelAnimationFrame(programmaticAnimationFrameRef.current);
       programmaticAnimationFrameRef.current = null;
@@ -314,10 +309,6 @@ function InteractiveRegionalMapComponent({
       setCamera({ ...cameraRef.current });
     }, 850);
   }, [clearProgrammaticAnimation, setMapTransition, shouldAnimateProgrammaticTransform, writeMapTransform]);
-
-  useEffect(() => {
-    cameraRef.current = camera;
-  }, [camera]);
 
   useEffect(() => {
     return () => {
@@ -408,6 +399,7 @@ function InteractiveRegionalMapComponent({
     return {
       camera: snapCameraToDevicePixels(defaultFrame),
       scale: defaultFrame.scale,
+      focus: { x: focus.focusX, y: focus.focusY },
     };
   }, [desktopMapBottomInset, desktopMapTopInset]);
 
@@ -428,7 +420,7 @@ function InteractiveRegionalMapComponent({
     const height = viewport?.clientHeight || mapSurface?.clientHeight || 0;
     if (width <= 0 || height <= 0) return;
     const entryCamera = snapCameraToDevicePixels(
-      computeFittedCameraFlyInStart(fitted.camera, width, height),
+      computeFittedCameraFlyInStart(fitted.camera, width, height, fitted.focus),
     );
 
     cameraInitializedRef.current = true;
@@ -458,16 +450,16 @@ function InteractiveRegionalMapComponent({
       const width = viewport?.clientWidth || mapSurface?.clientWidth || 0;
       const height = viewport?.clientHeight || mapSurface?.clientHeight || 0;
       const entryCamera = snapCameraToDevicePixels(
-        computeFittedCameraFlyInStart(fitted.camera, width, height),
+        computeFittedCameraFlyInStart(fitted.camera, width, height, fitted.focus),
       );
       cameraRef.current = entryCamera;
       setMapTransition("none");
       writeMapTransform(entryCamera);
       setCamera(entryCamera);
-      initialEntranceTimeoutRef.current = window.setTimeout(() => {
-        initialEntranceTimeoutRef.current = null;
+      programmaticAnimationFrameRef.current = window.requestAnimationFrame(() => {
+        programmaticAnimationFrameRef.current = null;
         animateCameraTo(fitted.camera, fitted.scale);
-      }, 250);
+      });
       return;
     }
     setMapTransition("none");
@@ -865,34 +857,40 @@ function InteractiveRegionalMapComponent({
   const zoomAtCenter = useCallback((factor: number) => {
     const viewport = viewportRef.current;
     if (!viewport) return;
+    setMapTransition(shouldAnimateProgrammaticTransform ? "transform 0.1s ease-out" : "none");
     const centerX = viewport.clientWidth / 2;
     const centerY = viewport.clientHeight / 2;
     setCamera((current) => {
       const nextScale = clampPanZoomScale(current.scale * factor, fitScale);
       const ratio = nextScale / current.scale;
-      return snapCameraToDevicePixels({
+      const nextCamera = snapCameraToDevicePixels({
         x: centerX - (centerX - current.x) * ratio,
         y: centerY - (centerY - current.y) * ratio,
         scale: nextScale,
       });
+      cameraRef.current = nextCamera;
+      return nextCamera;
     });
-  }, [fitScale]);
+  }, [fitScale, setMapTransition, shouldAnimateProgrammaticTransform]);
 
   const zoomToScale = useCallback((targetRelativeScale: number) => {
     const viewport = viewportRef.current;
     if (!viewport) return;
+    setMapTransition(shouldAnimateProgrammaticTransform ? "transform 0.1s ease-out" : "none");
     const centerX = viewport.clientWidth / 2;
     const centerY = viewport.clientHeight / 2;
     setCamera((current) => {
       const nextScale = clampPanZoomScale(targetRelativeScale * fitScale, fitScale);
       const ratio = nextScale / current.scale;
-      return snapCameraToDevicePixels({
+      const nextCamera = snapCameraToDevicePixels({
         x: centerX - (centerX - current.x) * ratio,
         y: centerY - (centerY - current.y) * ratio,
         scale: nextScale,
       });
+      cameraRef.current = nextCamera;
+      return nextCamera;
     });
-  }, [fitScale]);
+  }, [fitScale, setMapTransition, shouldAnimateProgrammaticTransform]);
 
   const onWheel = useCallback((event: WheelEvent<HTMLDivElement>) => {
     event.preventDefault();
@@ -1147,9 +1145,7 @@ function InteractiveRegionalMapComponent({
             visibility: svgMarkup && cameraReady ? "visible" : "hidden",
             transform: `translate(${camera.x}px, ${camera.y}px) scale(${camera.scale})`,
             transformOrigin: "0 0",
-            transition: shouldAnimateProgrammaticTransform && !isGestureActive
-              ? "transform 0.1s ease-out"
-              : "none",
+            transition: "none",
           }}
         >
           <RegionalSvgMarkup markup={svgMarkup} />
