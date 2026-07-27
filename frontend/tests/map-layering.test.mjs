@@ -94,16 +94,27 @@ describe("asset-backed map layering", () => {
     );
   });
 
-  it("renders planned closures on a contrasting rail with the shared static calendar icon", () => {
+  it("renders direction-aware planned closures with slowly moving calendar icons", () => {
     assert.match(interactiveMapSource, /import \{ PlannedClosureIcon \} from "\.\/PlannedClosureIcon"/);
     assert.match(interactiveMapSource, /function PlannedClosureIconLane\(/);
     assert.match(interactiveMapSource, /className="planned-closure-icon-lane"/);
     assert.match(interactiveMapSource, /<PlannedClosureIcon[\s\S]*?className="planned-closure-map-icon"/);
-    assert.match(interactiveMapSource, /Math\.floor\(length \/ 112\)/);
+    assert.match(interactiveMapSource, /isDirectional \? Math\.round\(length \/ 128\) : Math\.floor\(length \/ 112\)/);
+    assert.match(interactiveMapSource, /const step = length \/ count/);
+    assert.match(interactiveMapSource, /const chevronDistance = \(distance \+ step \/ 2\) % length/);
     assert.match(plannedClosureIconSource, /<rect[\s\S]*?x="3"[\s\S]*?y="5"[\s\S]*?width="18"[\s\S]*?height="16"[\s\S]*?rx="3"/);
     assert.match(plannedClosureIconSource, /M3 9H21M12 12V15M12 18H12\.01M7 3V5M17 3V5/);
-    assert.match(interactiveMapSource, /x=\{point\.x - 39\}[\s\S]*?y=\{point\.y - 39\}[\s\S]*?width=\{78\}[\s\S]*?height=\{78\}/);
-    assert.match(interactiveMapSource, /<PlannedClosureIconLane[\s\S]*?pathD=\{segment\.pathD\}/);
+    assert.match(interactiveMapSource, /travelDirection === "bidirectional"[\s\S]*?planned-closure-map-icon planned-closure-map-icon--static/);
+    assert.match(interactiveMapSource, /<animateMotion[\s\S]*?calcMode="linear"[\s\S]*?repeatCount="indefinite"[\s\S]*?rotate="0"/);
+    assert.match(interactiveMapSource, /className="planned-closure-direction-chevron"/);
+    assert.match(interactiveMapSource, /begin=\{calendarBegin\}/);
+    assert.match(interactiveMapSource, /begin=\{chevronBegin\}/);
+    assert.match(interactiveMapSource, /keyPoints=\{direction === "reverse" \? "1;0" : "0;1"\}/);
+    assert.match(interactiveMapSource, /d="M -10 -13 L 10 0 L -10 13"/);
+    assert.match(interactiveMapSource, /rotate=\{direction === "reverse" \? "auto-reverse" : "auto"\}/);
+    assert.match(interactiveMapSource, /x=\{-39\}[\s\S]*?y=\{-39\}[\s\S]*?width=\{78\}[\s\S]*?height=\{78\}/);
+    assert.match(interactiveMapSource, /<PlannedClosureIconLane[\s\S]*?pathD=\{segment\.pathD\}[\s\S]*?travelDirection=\{travelDirection\}[\s\S]*?reducedMotion=\{reducedMotion\}/);
+    assert.match(interactiveMapSource, /closure\.travelDirection \?\? "bidirectional"/);
     assert.doesNotMatch(interactiveMapSource, /planned-preview-underlay/);
     assert.doesNotMatch(globalCss, /planned-preview-separator/);
     assert.match(globalCss, /--planned-preview-rail:\s*#f1f5f9;/);
@@ -123,6 +134,10 @@ describe("asset-backed map layering", () => {
     assert.match(
       globalCss,
       /\.planned-closure-map-icon :is\(rect, path\)\s*\{[^}]*stroke:\s*var\(--planned-preview-ink\) !important;/s,
+    );
+    assert.match(
+      globalCss,
+      /\.planned-closure-direction-chevron\s*\{[^}]*stroke:\s*var\(--planned-preview-ink\);/s,
     );
     assert.match(
       globalCss,

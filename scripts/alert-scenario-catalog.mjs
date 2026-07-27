@@ -90,11 +90,11 @@ export const scenarioExpectations = {
         sourceKind: MODELED_GAP_FILL_SOURCE_KIND,
         modeledFromSourceId: "synthetic-rsz-line-1",
       },
-      "planned-closure-bidirectional": {
+      "planned-closure-bidirectional-static": {
         sourceId: "synthetic-planned-line-1",
         sourceKind: SYNTHETIC_TEMPLATE_SOURCE_KIND,
       },
-      "planned-closure-directional": {
+      "planned-closure-directional-moving": {
         sourceId: "scenario-planned-line-1-northbound-early-access",
         sourceKind: MODELED_GAP_FILL_SOURCE_KIND,
         modeledFromSourceId: "synthetic-planned-line-1",

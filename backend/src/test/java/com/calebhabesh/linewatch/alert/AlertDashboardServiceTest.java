@@ -470,10 +470,11 @@ class AlertDashboardServiceTest {
             "activePeriodEnd",
             OffsetDateTime.parse("2026-06-08T09:00:00Z")
         );
+        ReflectionTestUtils.setField(alert, "direction", "eastbound");
         when(alertRepository.findByActiveTrueAndType("planned-closure"))
             .thenReturn(List.of(alert));
         when(lineSegmentRepository.findAllByOrderBySortOrderAsc()).thenReturn(List.of(
-            segment("line-2-jane-ossington", "line-2", "jane", "ossington", 10)
+            segment("line-2-jane-ossington", "line-2", "jane", "ossington", 10, "eastbound")
         ));
 
         List<AlertDashboardService.PlannedClosureDto> closures = service.plannedClosures();
@@ -487,6 +488,7 @@ class AlertDashboardServiceTest {
             assertThat(dto.startedAt()).isEqualTo(OffsetDateTime.parse("2026-06-06T04:00:00Z"));
             assertThat(dto.updatedAt()).isEqualTo(OffsetDateTime.parse("2026-06-01T11:45:00Z"));
             assertThat(dto.previewSegmentIds()).containsExactly("line-2-jane-ossington");
+            assertThat(dto.travelDirection()).isEqualTo("forward");
             assertThat(dto.shuttle()).isFalse();
             assertThat(dto.source()).isEqualTo("TTC Service Advisory");
         });
@@ -1188,6 +1190,7 @@ class AlertDashboardServiceTest {
         assertThat(service.plannedClosures()).singleElement().satisfies(dto -> {
             assertThat(dto.displayDirection()).isEqualTo("Northbound & Southbound");
             assertThat(dto.location()).isEqualTo("St George to Spadina");
+            assertThat(dto.travelDirection()).isEqualTo("bidirectional");
         });
         assertThat(service.activeSegmentImpacts().get("line-2-jane-runnymede"))
             .singleElement()

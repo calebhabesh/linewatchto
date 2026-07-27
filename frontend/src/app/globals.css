@@ -4507,6 +4507,10 @@ button {
   pointer-events: none;
 }
 
+.planned-closure-moving-glyph {
+  will-change: transform;
+}
+
 .planned-closure-map-icon {
   color: var(--planned-preview-ink);
   fill: none;
@@ -4520,6 +4524,14 @@ button {
 
 .planned-closure-map-icon :is(rect, path) {
   stroke: var(--planned-preview-ink) !important;
+}
+
+.planned-closure-direction-chevron {
+  fill: none;
+  stroke: var(--planned-preview-ink);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 7;
 }
 
 .linewatch-shell.mobile-performance-mode .planned-closure-map-icon {

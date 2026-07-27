@@ -35,6 +35,7 @@ import type {
   PlannedClosure,
   ReducedSpeedZone,
   Station,
+  TravelDirection,
 } from "../app/linewatch-data";
 import type { StationSummary } from "../app/station-data";
 import type { AccountCommutePathPreview } from "../app/account-data";
@@ -849,7 +850,10 @@ function InteractiveTtcMapComponent({
           renderedOverlaySegments.filter((segment) => shouldRenderPlannedPreviewLayer(segment, closure)),
           closure.previewSegmentIds,
         );
-        const corridor = composeNetworkSegmentPath(orderedSegments, "bidirectional");
+        const corridor = composeNetworkSegmentPath(
+          orderedSegments,
+          closure.travelDirection ?? "bidirectional",
+        );
         if (!corridor.pathD) return null;
         return {
           segment: compositeSegment(
@@ -3782,7 +3786,15 @@ function AnimatedHourglassLane({
   );
 }
 
-function PlannedClosureIconLane({ pathD }: { pathD: string }) {
+function PlannedClosureIconLane({
+  pathD,
+  travelDirection,
+  reducedMotion,
+}: {
+  pathD: string;
+  travelDirection: TravelDirection;
+  reducedMotion: boolean;
+}) {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -3790,39 +3802,123 @@ function PlannedClosureIconLane({ pathD }: { pathD: string }) {
     return () => clearTimeout(handle);
   }, []);
 
-  const points = useMemo(() => {
+  const pathMetrics = useMemo(() => {
     if (!mounted || typeof document === "undefined") return [];
 
     try {
       const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
       path.setAttribute("d", pathD);
       const length = path.getTotalLength();
-      if (length <= 0) return [];
+      if (length <= 0) return { length: 0, points: [] };
 
-      const count = Math.max(1, Math.floor(length / 112));
-      return Array.from({ length: count }, (_, index) =>
-        path.getPointAtLength((length * (index + 1)) / (count + 1)),
-      );
+      const isDirectional = travelDirection !== "bidirectional";
+      const count = Math.max(1, isDirectional ? Math.round(length / 128) : Math.floor(length / 112));
+      const step = length / count;
+      return {
+        length,
+        points: Array.from({ length: count }, (_, index) => {
+          const distance = isDirectional
+            ? (index + 0.25) * step
+            : (length * (index + 1)) / (count + 1);
+          const chevronDistance = (distance + step / 2) % length;
+          const point = path.getPointAtLength(distance);
+          const chevronPoint = path.getPointAtLength(chevronDistance);
+          const before = path.getPointAtLength(Math.max(0, chevronDistance - 4));
+          const after = path.getPointAtLength(Math.min(length, chevronDistance + 4));
+          return {
+            x: point.x,
+            y: point.y,
+            progress: distance / length,
+            chevronX: chevronPoint.x,
+            chevronY: chevronPoint.y,
+            chevronProgress: chevronDistance / length,
+            angle: Math.atan2(after.y - before.y, after.x - before.x) * (180 / Math.PI),
+          };
+        }),
+      };
     } catch {
-      return [];
+      return { length: 0, points: [] };
     }
-  }, [mounted, pathD]);
+  }, [mounted, pathD, travelDirection]);
 
-  if (points.length === 0) return null;
+  if (Array.isArray(pathMetrics) || pathMetrics.points.length === 0) return null;
 
   return (
     <g className="planned-closure-icon-lane" aria-hidden="true">
-      {points.map((point, index) => (
-        <PlannedClosureIcon
-          key={`${point.x}-${point.y}-${index}`}
-          className="planned-closure-map-icon"
-          x={point.x - 39}
-          y={point.y - 39}
-          width={78}
-          height={78}
-          strokeWidth={2.25}
-        />
-      ))}
+      {pathMetrics.points.map((point, index) => {
+        if (travelDirection === "bidirectional") {
+          return (
+            <PlannedClosureIcon
+              key={`${point.x}-${point.y}-${index}`}
+              className="planned-closure-map-icon planned-closure-map-icon--static"
+              x={point.x - 39}
+              y={point.y - 39}
+              width={78}
+              height={78}
+              strokeWidth={2.25}
+            />
+          );
+        }
+
+        const direction = travelDirection;
+        const durationSeconds = Math.max(28, pathMetrics.length / 13);
+        const calendarOffset = direction === "reverse" ? 1 - point.progress : point.progress;
+        const chevronOffset = direction === "reverse" ? 1 - point.chevronProgress : point.chevronProgress;
+        const calendarBegin = `${-(durationSeconds * calendarOffset)}s`;
+        const chevronBegin = `${-(durationSeconds * chevronOffset)}s`;
+        const staticAngle = point.angle + (direction === "reverse" ? 180 : 0);
+
+        return (
+          <g
+            key={`${point.x}-${point.y}-${index}`}
+            className={`planned-closure-moving-glyph planned-closure-moving-glyph--${direction}`}
+          >
+            <g transform={reducedMotion ? `translate(${point.x} ${point.y})` : undefined}>
+              {!reducedMotion ? (
+                <animateMotion
+                  begin={calendarBegin}
+                  calcMode="linear"
+                  dur={`${durationSeconds}s`}
+                  keyPoints={direction === "reverse" ? "1;0" : "0;1"}
+                  keyTimes="0;1"
+                  path={pathD}
+                  repeatCount="indefinite"
+                  rotate="0"
+                />
+              ) : null}
+              <PlannedClosureIcon
+                className="planned-closure-map-icon"
+                x={-39}
+                y={-39}
+                width={78}
+                height={78}
+                strokeWidth={2.25}
+              />
+            </g>
+            <g transform={reducedMotion
+              ? `translate(${point.chevronX} ${point.chevronY}) rotate(${staticAngle})`
+              : undefined}
+            >
+              {!reducedMotion ? (
+                <animateMotion
+                  begin={chevronBegin}
+                  calcMode="linear"
+                  dur={`${durationSeconds}s`}
+                  keyPoints={direction === "reverse" ? "1;0" : "0;1"}
+                  keyTimes="0;1"
+                  path={pathD}
+                  repeatCount="indefinite"
+                  rotate={direction === "reverse" ? "auto-reverse" : "auto"}
+                />
+              ) : null}
+              <path
+                className="planned-closure-direction-chevron"
+                d="M -10 -13 L 10 0 L -10 13"
+              />
+            </g>
+          </g>
+        );
+      })}
     </g>
   );
 }
@@ -4648,7 +4744,11 @@ function OverlaySegment({
             d={segment.pathD}
             pointerEvents="none"
           />
-          <PlannedClosureIconLane pathD={segment.pathD} />
+          <PlannedClosureIconLane
+            pathD={segment.pathD}
+            travelDirection={travelDirection}
+            reducedMotion={reducedMotion}
+          />
         </>
       ) : null}
 

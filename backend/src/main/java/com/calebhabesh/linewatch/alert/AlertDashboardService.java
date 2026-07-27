@@ -574,6 +574,9 @@ public class AlertDashboardService {
             return closure;
         }
         TransitLineEntity line = currentSourceAlert.getLine();
+        List<String> previewSegmentIds = closure.previewSegmentIds().isEmpty()
+            ? affectedSegmentIds(currentSourceAlert, segments)
+            : closure.previewSegmentIds();
         return new PlannedClosureDto(
             closure.id(),
             line == null ? closure.lineId() : line.getId(),
@@ -594,9 +597,7 @@ public class AlertDashboardService {
             currentSourceAlert.getDescription(),
             closure.startedAt(),
             sourceUpdatedAt(currentSourceAlert),
-            closure.previewSegmentIds().isEmpty()
-                ? affectedSegmentIds(currentSourceAlert, segments)
-                : closure.previewSegmentIds(),
+            previewSegmentIds,
             !isBlank(currentSourceAlert.getShuttleType()),
             sourceLabel(currentSourceAlert, "TTC Service Advisory"),
             cause(currentSourceAlert),
@@ -612,7 +613,8 @@ public class AlertDashboardService {
             closure.nextWindowLabel(),
             closure.windowHours(),
             closure.windowDates(),
-            closureNotificationTitle(currentSourceAlert.getTitle())
+            closureNotificationTitle(currentSourceAlert.getTitle()),
+            plannedClosureTravelDirection(currentSourceAlert, previewSegmentIds, segments)
         );
     }
 
@@ -671,6 +673,7 @@ public class AlertDashboardService {
 
     private PlannedClosureDto toPlannedClosure(AlertEntity alert, List<LineSegmentEntity> segments, WindowState ws) {
         TransitLineEntity line = alert.getLine();
+        List<String> previewSegmentIds = affectedSegmentIds(alert, segments);
         return new PlannedClosureDto(
             alert.getId(),
             line == null ? null : line.getId(),
@@ -682,7 +685,7 @@ public class AlertDashboardService {
             alert.getDescription(),
             alert.getActivePeriodStart(),
             alert.getSourceUpdatedAt(),
-            affectedSegmentIds(alert, segments),
+            previewSegmentIds,
             !isBlank(alert.getShuttleType()),
             sourceLabel(alert, "TTC Service Advisory"),
             cause(alert),
@@ -698,8 +701,24 @@ public class AlertDashboardService {
             ws.nextWindowLabel(),
             ws.windowHours(),
             ws.windowDates(),
-            closureNotificationTitle(alert.getTitle())
+            closureNotificationTitle(alert.getTitle()),
+            plannedClosureTravelDirection(alert, previewSegmentIds, segments)
         );
+    }
+
+    private String plannedClosureTravelDirection(
+        AlertEntity alert,
+        List<String> previewSegmentIds,
+        List<LineSegmentEntity> segments
+    ) {
+        if (previewSegmentIds.isEmpty()) {
+            return "bidirectional";
+        }
+        return segments.stream()
+            .filter(segment -> previewSegmentIds.getFirst().equals(segment.getId()))
+            .findFirst()
+            .map(segment -> travelDirection(alert, segment))
+            .orElse("bidirectional");
     }
 
     private String closureNotificationTitle(String title) {
@@ -1313,8 +1332,46 @@ public class AlertDashboardService {
         String nextWindowLabel,
         String windowHours,
         String windowDates,
-        @com.fasterxml.jackson.annotation.JsonIgnore String notificationTitle
+        @com.fasterxml.jackson.annotation.JsonIgnore String notificationTitle,
+        String travelDirection
     ) {
+        public PlannedClosureDto(
+            String id,
+            String lineId,
+            String lineNumber,
+            String title,
+            String window,
+            String location,
+            String displayDirection,
+            String description,
+            OffsetDateTime startedAt,
+            OffsetDateTime updatedAt,
+            List<String> previewSegmentIds,
+            boolean shuttle,
+            String source,
+            String cause,
+            String resolution,
+            boolean activeNow,
+            String timingStatus,
+            boolean nightly,
+            OffsetDateTime activeWindowStart,
+            OffsetDateTime activeWindowEnd,
+            String activeWindowLabel,
+            OffsetDateTime nextWindowStart,
+            OffsetDateTime nextWindowEnd,
+            String nextWindowLabel,
+            String windowHours,
+            String windowDates,
+            String notificationTitle
+        ) {
+            this(
+                id, lineId, lineNumber, title, window, location, displayDirection, description, startedAt, updatedAt,
+                previewSegmentIds, shuttle, source, cause, resolution, activeNow, timingStatus, nightly,
+                activeWindowStart, activeWindowEnd, activeWindowLabel, nextWindowStart, nextWindowEnd,
+                nextWindowLabel, windowHours, windowDates, notificationTitle, "bidirectional"
+            );
+        }
+
         public PlannedClosureDto(
             String id,
             String lineId,
@@ -1347,7 +1404,7 @@ public class AlertDashboardService {
                 id, lineId, lineNumber, title, window, location, displayDirection, description, startedAt, updatedAt,
                 previewSegmentIds, shuttle, source, cause, resolution, activeNow, timingStatus, nightly,
                 activeWindowStart, activeWindowEnd, activeWindowLabel, nextWindowStart, nextWindowEnd,
-                nextWindowLabel, windowHours, windowDates, title
+                nextWindowLabel, windowHours, windowDates, title, "bidirectional"
             );
         }
 
@@ -1371,7 +1428,7 @@ public class AlertDashboardService {
             this(
                 id, lineId, lineNumber, title, window, location, displayDirection, description, startedAt, updatedAt,
                 previewSegmentIds, shuttle, source, cause, resolution,
-                false, "unknown", false, null, null, null, null, null, null, null, null, title
+                false, "unknown", false, null, null, null, null, null, null, null, null, title, "bidirectional"
             );
         }
     }

@@ -99,11 +99,11 @@
           "sourceKind": "modeled-gap-fill",
           "modeledFromSourceId": "synthetic-rsz-line-1"
         },
-        "planned-closure-bidirectional": {
+        "planned-closure-bidirectional-static": {
           "sourceId": "synthetic-planned-line-1",
           "sourceKind": "synthetic-template"
         },
-        "planned-closure-directional": {
+        "planned-closure-directional-moving": {
           "sourceId": "scenario-planned-line-1-northbound-early-access",
           "sourceKind": "modeled-gap-fill",
           "modeledFromSourceId": "synthetic-planned-line-1"

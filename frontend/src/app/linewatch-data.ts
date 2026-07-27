@@ -154,6 +154,7 @@ export type PlannedClosure = {
   window: string;
   location: string;
   displayDirection?: string | null;
+  travelDirection?: TravelDirection | null;
   description: string;
   startedAt?: string | null;
   updatedAt?: string | null;

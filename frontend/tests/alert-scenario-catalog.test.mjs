@@ -44,8 +44,8 @@ describe("alert scenario catalog", () => {
         "delay-directional-segment",
         "delay-directional-station",
         "delay-multi-dot-interchange-station",
-        "planned-closure-bidirectional",
-        "planned-closure-directional",
+        "planned-closure-bidirectional-static",
+        "planned-closure-directional-moving",
         "planned-closure-long-upcoming",
         "reduced-speed-zone-bidirectional",
         "reduced-speed-zone-directional",
@@ -56,7 +56,7 @@ describe("alert scenario catalog", () => {
         "suspension-four-way-junction-station-line-2",
       ],
     );
-    assert.equal(scenario.coverageMatrix["planned-closure-bidirectional"].sourceKind, "synthetic-template");
+    assert.equal(scenario.coverageMatrix["planned-closure-bidirectional-static"].sourceKind, "synthetic-template");
     assert.equal(scenario.coverageMatrix["reduced-speed-zone-directional"].sourceKind, "synthetic-template");
     assert.equal(scenario.coverageMatrix["accessibility-elevator"].sourceKind, "synthetic-template");
     assert.equal(scenario.coverageMatrix["accessibility-escalator"].sourceKind, "synthetic-template");
@@ -147,8 +147,17 @@ describe("alert scenario catalog", () => {
     assert.equal(routesById.get("scenario-rsz-line-2-jane-runnymede")?.direction, "Both ways");
     assert.equal(routesById.get("scenario-rsz-line-1-wilson-yorkdale-directionless")?.direction, null);
     assert.equal(routesById.get("synthetic-planned-line-1")?.alertType, "Planned");
+    assert.equal(routesById.get("synthetic-planned-line-1")?.direction, "Both ways");
     assert.ok(routesById.get("synthetic-planned-line-1")?.childAlerts.length > 0);
+    assert.equal(
+      scenario.coverageMatrix["planned-closure-bidirectional-static"].sourceId,
+      "synthetic-planned-line-1",
+    );
     assert.equal(routesById.get("scenario-planned-line-1-northbound-early-access")?.direction, "Northbound");
+    assert.equal(
+      scenario.coverageMatrix["planned-closure-directional-moving"].sourceId,
+      "scenario-planned-line-1-northbound-early-access",
+    );
     assert.equal(routesById.get("scenario-planned-line-2-long-upcoming")?.alertType, "Planned");
     assert.equal(routesById.get("scenario-planned-line-2-long-upcoming")?.route, "2");
     assert.equal(routesById.get("scenario-planned-line-2-long-upcoming")?.stopStart, "Broadview");

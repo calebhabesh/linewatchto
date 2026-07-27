@@ -126,13 +126,13 @@ class TtcAlertScenarioCatalogTest {
                 "reduced-speed-zone-directional",
                 "reduced-speed-zone-bidirectional",
                 "reduced-speed-zone-directionless",
-                "planned-closure-bidirectional",
-                "planned-closure-directional",
+                "planned-closure-bidirectional-static",
+                "planned-closure-directional-moving",
                 "planned-closure-long-upcoming",
                 "accessibility-elevator",
                 "accessibility-escalator"
             );
-        assertThat(coverageMatrix.get("planned-closure-bidirectional").get("sourceKind").asText())
+        assertThat(coverageMatrix.get("planned-closure-bidirectional-static").get("sourceKind").asText())
             .isEqualTo("synthetic-template");
         assertThat(coverageMatrix.get("reduced-speed-zone-directional").get("sourceKind").asText())
             .isEqualTo("synthetic-template");
