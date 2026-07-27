@@ -235,8 +235,8 @@ curl -I https://linewatchto.ca/api/trains
 curl -I https://linewatchto.ca/api/trains
 curl -I 'https://linewatchto.ca/api/alerts?type=delay'
 curl -I 'https://linewatchto.ca/api/alerts?type=delay'
-curl -I https://linewatchto.ca/api/stations/stn_union
-curl -I https://linewatchto.ca/api/stations/stn_union
+curl -I https://linewatchto.ca/api/stations/union
+curl -I https://linewatchto.ca/api/stations/union
 curl -I https://linewatchto.ca/api/alert-history
 curl -I https://linewatchto.ca/api/alert-history
 curl -I https://linewatchto.ca/assets/linewatch/ttc-subway-map-edited.svg
@@ -282,7 +282,7 @@ npx autocannon -c 100 -d 60 https://linewatchto.ca/
 npx autocannon -c 300 -d 120 https://linewatchto.ca/
 npx autocannon -c 300 -d 120 https://linewatchto.ca/api/dashboard
 npx autocannon -c 300 -d 120 https://linewatchto.ca/api/trains
-npx autocannon -c 300 -d 120 https://linewatchto.ca/api/stations/stn_union
+npx autocannon -c 300 -d 120 https://linewatchto.ca/api/stations/union
 npx autocannon -c 300 -d 120 https://linewatchto.ca/api/alert-history
 ```
 
