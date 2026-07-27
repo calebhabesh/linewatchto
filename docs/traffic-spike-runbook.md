@@ -144,16 +144,22 @@ Create this as a second rate limiting rule only if the Cloudflare plan allows mo
 ```text
 Rule name: LineWatchTO public dashboard API burst limit
 Expression:
-(http.request.uri.path in {
-  "/api/dashboard"
-  "/api/status"
-  "/api/map"
-  "/api/trains"
-  "/api/alerts"
-  "/api/performance"
-  "/api/accessibility-outages"
-  "/api/surface-notices"
-})
+(
+  http.request.uri.path in {
+    "/api/dashboard"
+    "/api/status"
+    "/api/map"
+    "/api/trains"
+    "/api/alerts"
+    "/api/performance"
+    "/api/accessibility-outages"
+    "/api/surface-notices"
+    "/api/stations"
+    "/api/alert-history"
+  }
+) or (
+  starts_with(http.request.uri.path, "/api/stations/")
+)
 
 With the same characteristics: IP
 When rate exceeds: 30 requests / 10 seconds
@@ -229,6 +235,10 @@ curl -I https://linewatchto.ca/api/trains
 curl -I https://linewatchto.ca/api/trains
 curl -I 'https://linewatchto.ca/api/alerts?type=delay'
 curl -I 'https://linewatchto.ca/api/alerts?type=delay'
+curl -I https://linewatchto.ca/api/stations/stn_union
+curl -I https://linewatchto.ca/api/stations/stn_union
+curl -I https://linewatchto.ca/api/alert-history
+curl -I https://linewatchto.ca/api/alert-history
 curl -I https://linewatchto.ca/assets/linewatch/ttc-subway-map-edited.svg
 curl -I https://linewatchto.ca/assets/linewatch/ttc-subway-map-edited.svg
 ```
@@ -272,6 +282,8 @@ npx autocannon -c 100 -d 60 https://linewatchto.ca/
 npx autocannon -c 300 -d 120 https://linewatchto.ca/
 npx autocannon -c 300 -d 120 https://linewatchto.ca/api/dashboard
 npx autocannon -c 300 -d 120 https://linewatchto.ca/api/trains
+npx autocannon -c 300 -d 120 https://linewatchto.ca/api/stations/stn_union
+npx autocannon -c 300 -d 120 https://linewatchto.ca/api/alert-history
 ```
 
 Watch Grafana:

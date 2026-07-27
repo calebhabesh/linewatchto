@@ -40,9 +40,16 @@ describe("Caddy cache headers", () => {
     assertCachePolicy(awsLabCaddyfile, "Caddyfile.aws-lab");
   });
 
-  it("documents train markers as a cacheable public dashboard API", () => {
+  it("documents public APIs including train markers, station details, and alert history in traffic spike runbook", () => {
     assert.match(trafficSpikeRunbook, /"\/api\/trains"/, "runbook should include train markers in cache rules");
+    assert.match(trafficSpikeRunbook, /"\/api\/stations"/, "runbook should include stations in cache rules");
+    assert.match(trafficSpikeRunbook, /starts_with\(http\.request\.uri\.path, "\/api\/stations\/"\)/, "runbook should include dynamic station details in cache rules");
+    assert.match(trafficSpikeRunbook, /"\/api\/alert-history"/, "runbook should include alert history in cache rules");
     assert.match(trafficSpikeRunbook, /curl -I https:\/\/linewatchto\.ca\/api\/trains/, "runbook should verify train marker cache headers");
+    assert.match(trafficSpikeRunbook, /curl -I https:\/\/linewatchto\.ca\/api\/stations\/stn_union/, "runbook should verify station detail cache headers");
+    assert.match(trafficSpikeRunbook, /curl -I https:\/\/linewatchto\.ca\/api\/alert-history/, "runbook should verify alert history cache headers");
     assert.match(trafficSpikeRunbook, /autocannon .*https:\/\/linewatchto\.ca\/api\/trains/, "runbook should load-test train markers");
+    assert.match(trafficSpikeRunbook, /autocannon .*https:\/\/linewatchto\.ca\/api\/stations\/stn_union/, "runbook should load-test station details");
+    assert.match(trafficSpikeRunbook, /autocannon .*https:\/\/linewatchto\.ca\/api\/alert-history/, "runbook should load-test alert history");
   });
 });
