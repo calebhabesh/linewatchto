@@ -16,6 +16,9 @@ function assertCachePolicy(source, label) {
   assert.match(source, /\/api\/dashboard/, `${label} should cache aggregate dashboard endpoint`);
   assert.match(source, /\/api\/trains/, `${label} should cache public train marker endpoint`);
   assert.match(source, /\/api\/alerts/, `${label} should cache public alert endpoint`);
+  assert.match(source, /\/api\/stations/, `${label} should cache public stations endpoint`);
+  assert.match(source, /\/api\/stations\/\*/, `${label} should cache dynamic station detail endpoint`);
+  assert.match(source, /\/api\/alert-history/, `${label} should cache public alert history endpoint`);
   assert.match(source, /s-maxage=30/, `${label} should expose a short shared-cache TTL`);
   assert.match(source, /@linewatch_private_api_no_store/, `${label} should define private API no-store matcher`);
   assert.match(source, /\/api\/auth\/\*/, `${label} should keep auth uncached`);

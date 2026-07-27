@@ -84,16 +84,22 @@ Browser TTL: Respect origin
 Expression:
 
 ```text
-(http.request.uri.path in {
-  "/api/dashboard"
-  "/api/status"
-  "/api/map"
-  "/api/trains"
-  "/api/alerts"
-  "/api/performance"
-  "/api/accessibility-outages"
-  "/api/surface-notices"
-})
+(
+  http.request.uri.path in {
+    "/api/dashboard"
+    "/api/status"
+    "/api/map"
+    "/api/trains"
+    "/api/alerts"
+    "/api/performance"
+    "/api/accessibility-outages"
+    "/api/surface-notices"
+    "/api/stations"
+    "/api/alert-history"
+  }
+) or (
+  starts_with(http.request.uri.path, "/api/stations/")
+)
 ```
 
 Action:
