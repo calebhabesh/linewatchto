@@ -6,6 +6,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.calebhabesh.linewatch.alert.AlertDashboardService;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
@@ -168,7 +169,7 @@ class CommuteImpactServiceTest {
     }
 
     @Test
-    void plannedClosureMatchesByPreviewSegmentWhenNoCurrentImpactMatches() {
+    void plannedClosureMatchesByPreviewSegmentWhenNoCurrentImpactMatches() throws Exception {
         when(dashboardService.activeAlerts()).thenReturn(List.of());
         when(dashboardService.delays()).thenReturn(List.of());
         when(dashboardService.reducedSpeedZones()).thenReturn(List.of());
@@ -198,7 +199,8 @@ class CommuteImpactServiceTest {
             OffsetDateTime.parse("2026-06-07T08:00:00-04:00"),
             "Sat 11:00 PM - Sun 8:00 AM",
             null,
-            null
+            null,
+            "No subway service between Kipling and Jane stations"
         )));
         when(dashboardService.activeStationNodeImpacts()).thenReturn(List.of());
 
@@ -215,6 +217,11 @@ class CommuteImpactServiceTest {
             assertThat(match.kind()).isEqualTo("planned-closure");
             assertThat(match.status()).isEqualTo("planned");
             assertThat(match.window()).isEqualTo("Sat 11:00 PM - Sun 8:00 AM");
+            assertThat(match.notificationTitle()).isEqualTo(
+                "No subway service between Kipling and Jane stations"
+            );
+            assertThat(match.notificationCause()).isEqualTo("Track work");
+            assertThat(match.notificationShuttle()).isTrue();
         });
         assertThat(impact.travelTimeEstimate()).satisfies(estimate -> {
             assertThat(estimate.status()).isEqualTo("standard");
@@ -222,6 +229,13 @@ class CommuteImpactServiceTest {
             assertThat(estimate.extraLowSeconds()).isZero();
             assertThat(estimate.extraHighSeconds()).isZero();
         });
+        String json = new ObjectMapper().findAndRegisterModules()
+            .writeValueAsString(impact.matchedImpacts().getFirst());
+        assertThat(json).doesNotContain(
+            "notificationTitle",
+            "notificationCause",
+            "notificationShuttle"
+        );
     }
 
     @Test

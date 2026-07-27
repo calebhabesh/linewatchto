@@ -14,7 +14,7 @@ describe("Next.js branded error routes", () => {
 
     assert.match(source, /lineWatchAppTitle/);
     assert.match(source, /Page not in service/);
-    assert.match(source, /Return to dashboard/);
+    assert.match(source, /Return to Dashboard/);
     assert.match(source, /primaryActionHref="\/"/);
   });
 

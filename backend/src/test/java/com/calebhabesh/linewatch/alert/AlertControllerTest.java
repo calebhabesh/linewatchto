@@ -9,6 +9,7 @@ import java.util.List;
 import static org.mockito.ArgumentMatchers.any;
 import com.calebhabesh.linewatch.cache.DashboardCacheProperties;
 import com.calebhabesh.linewatch.cache.DashboardCacheService;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -80,6 +81,44 @@ class AlertControllerTest {
         Object response = controller.getAlerts("planned");
 
         assertThat(response).isEqualTo(closures);
+    }
+
+    @Test
+    void keepsInternalNotificationTitleOutOfPlannedClosureJson() throws Exception {
+        AlertDashboardService.PlannedClosureDto closure = new AlertDashboardService.PlannedClosureDto(
+            "ttc-route-200",
+            "line-1",
+            "1",
+            "Expanded display title",
+            "Weekend",
+            "Finch to Eglinton",
+            null,
+            "No subway service this weekend.",
+            null,
+            null,
+            List.of(),
+            false,
+            "TTC Service Advisory",
+            null,
+            null,
+            false,
+            "upcoming",
+            true,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            "11:00 PM – 5:00 AM",
+            "Sat, Jun 6 – Sun, Jun 7",
+            "Concise notification title"
+        );
+
+        String json = new ObjectMapper().findAndRegisterModules().writeValueAsString(closure);
+
+        assertThat(json).contains("Expanded display title");
+        assertThat(json).doesNotContain("notificationTitle", "Concise notification title");
     }
 
     @Test

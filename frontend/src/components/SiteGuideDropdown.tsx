@@ -13,6 +13,7 @@ import {
   MousePointer2,
   MoreHorizontal,
   MoreVertical,
+  Newspaper,
   Search,
   Smartphone,
   SquarePlus,
@@ -219,7 +220,7 @@ export function SiteGuideDropdown({ onOpenChange }: { onOpenChange?: (open: bool
     <div className="site-guide-dropdown relative pointer-events-auto" ref={dropdownRef}>
       <button
         type="button"
-        className="site-guide-trigger panel flex items-center justify-center w-10 sm:w-14 h-10 sm:h-14 rounded-xl border border-black/10 dark:border-white/10 shadow-lg hover:!bg-slate-100 dark:hover:!bg-[#1a1e28] hover:scale-105 active:scale-95 outline-none focus-visible:ring-4 focus-visible:ring-black/10 dark:focus-visible:ring-white/10 transition-all cursor-pointer bg-white dark:bg-[#0a0c10]"
+        className="site-guide-trigger panel flex items-center justify-center w-10 sm:w-14 h-10 sm:h-14 rounded-xl border border-black/10 dark:border-white/10 shadow-lg hover:!bg-slate-200 dark:hover:!bg-[#1a1e28] hover:scale-105 active:scale-95 outline-none focus-visible:ring-4 focus-visible:ring-black/10 dark:focus-visible:ring-white/10 transition-all cursor-pointer bg-white dark:bg-[#0a0c10]"
         aria-controls={panelId}
         aria-expanded={isOpen}
         aria-label="Open site guide"
@@ -445,14 +446,7 @@ export function SiteGuideDropdown({ onOpenChange }: { onOpenChange?: (open: bool
                 ) : (
                   <>
                     <GuideActionRow
-                      icon={
-                        <svg viewBox="0 0 32 32" fill="currentColor" className="w-3.5 h-3.5">
-                          <rect x="10" y="18" width="8" height="2" />
-                          <rect x="10" y="13" width="12" height="2" />
-                          <rect x="10" y="23" width="5" height="2" />
-                          <path d="M25,5H22V4a2,2,0,0,0-2-2H12a2,2,0,0,0-2,2V5H7A2,2,0,0,0,5,7V28a2,2,0,0,0,2,2H25a2,2,0,0,0,2-2V7A2,2,0,0,0,25,5ZM12,4h8V8H12ZM25,28H7V7h3v3H22V7h3Z" />
-                        </svg>
-                      }
+                      icon={<Newspaper size={14} />}
                       label="Ingested TTC Alerts"
                       text="View the raw alert feed used to inspect backend ingestion."
                     />

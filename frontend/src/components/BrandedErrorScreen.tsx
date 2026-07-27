@@ -16,7 +16,7 @@ export function BrandedErrorScreen({
   eyebrow,
   title,
   message,
-  primaryActionLabel = "Return to dashboard",
+  primaryActionLabel = "Return to Dashboard",
   primaryActionHref = "/",
   onPrimaryAction,
   secondaryActionLabel,

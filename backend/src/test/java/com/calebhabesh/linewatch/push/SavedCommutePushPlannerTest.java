@@ -118,7 +118,9 @@ class SavedCommutePushPlannerTest {
                 "planned-closure",
                 "planned",
                 "planned",
-                "Weekend closure",
+                "There will be no subway service between Keele and Union stations overnight from Sunday, June 7 "
+                    + "through Monday, June 8. Each nightly closure runs from 12:00 AM until 5:00 AM "
+                    + "the following morning.",
                 "line-2",
                 "2",
                 "Keele to Union",
@@ -134,7 +136,10 @@ class SavedCommutePushPlannerTest {
                 OffsetDateTime.parse("2026-06-07T00:00:00-04:00"),
                 "12:00 AM – 5:00 AM",
                 "Sun, Jun 7 – Mon, Jun 8",
-                false
+                false,
+                "There will be no subway service between Keele and Union stations",
+                "planned track work",
+                true
             )
         ));
 
@@ -143,8 +148,13 @@ class SavedCommutePushPlannerTest {
         assertThat(candidates).singleElement().satisfies(candidate -> {
             assertThat(candidate.legId()).isEqualTo("return");
             assertThat(candidate.title()).isEqualTo("⚠️ Line 2 Bloor-Danforth Planned Closure");
+            assertThat(candidate.body()).startsWith(
+                "There will be no subway service between Keele and Union stations."
+            );
+            assertThat(candidate.body()).doesNotContain("Each nightly closure runs");
             assertThat(candidate.body()).contains("Closure dates: Sun, Jun 7 – Mon, Jun 8.");
             assertThat(candidate.body()).contains("Closure hours: 12:00 AM – 5:00 AM.");
+            assertThat(candidate.body()).contains("Shuttle buses are running.");
             assertThat(candidate.body()).contains("Affects Evening Route (Return).");
             assertThat(candidate.body()).endsWith("🕗 Closure starts Jun 7, 12:00 AM");
             assertThat(candidate.category()).isEqualTo("saved-commute-planned");

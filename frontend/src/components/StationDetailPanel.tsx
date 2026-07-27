@@ -2,7 +2,7 @@
 
 
 import { Fragment, useEffect, useRef, useState } from "react";
-import { AlertCircle, AlertTriangle, ArrowRight, Bookmark, Check, ChevronDown, Clock3, Construction, LoaderCircle, X } from "lucide-react";
+import { AlertCircle, AlertTriangle, ArrowRight, BadgeInfo, Bookmark, Check, ChevronDown, Clock3, Construction, LoaderCircle, X } from "lucide-react";
 import Image from "next/image";
 import { normalizeDashboardSourceLabel } from "../app/dashboard-source-label";
 import { formatImpactTimestamp } from "../app/impact-time";
@@ -119,27 +119,29 @@ function getStationImpactDetailsTarget(
 function StationImpactDetailsIcon({
   kind,
   tone,
+  size = 14,
 }: {
   kind: ImpactKind;
   tone?: StationImpactDetailsTarget["tone"];
+  size?: number;
 }) {
   if (kind === "delay") {
-    return <DelayIcon size={14} className="shrink-0 delay-tone" />;
+    return <DelayIcon size={size} className="shrink-0 delay-tone" />;
   }
 
   if (kind === "reduced-speed-zone") {
-    return <Construction size={14} className="rsz-tone shrink-0" />;
+    return <Construction size={size} className="rsz-tone shrink-0" />;
   }
 
   if (kind === "planned-closure" && tone === "active") {
-    return <AlertTriangle size={14} className="shrink-0 text-red-500" />;
+    return <AlertTriangle size={size} className="shrink-0 text-red-500" />;
   }
 
   if (kind === "planned-closure") {
-    return <PlannedClosureIcon size={14} className="shrink-0 text-blue-500" />;
+    return <PlannedClosureIcon size={size} className="shrink-0 text-blue-500" />;
   }
 
-  return <AlertTriangle size={14} className="shrink-0 text-red-500" />;
+  return <AlertTriangle size={size} className="shrink-0 text-red-500" />;
 }
 
 function lineBadgeTextColor(lineId: string) {
@@ -201,31 +203,46 @@ function fallbackStationImpactTone(impact: StationImpact): StationImpactDetailsT
   return "delay";
 }
 
-function stationImpactCardClassName(tone: StationImpactDetailsTarget["tone"]) {
-  const base = "flex flex-col gap-2 rounded-md border p-3 text-sm";
-  if (tone === "active") {
-    return `${base} border-red-500/40 bg-red-500/10`;
+function fallbackStationImpactLabel(impact: StationImpact): string {
+  if (impact.type === "planned-closure" || impact.severity === "planned") {
+    return "Upcoming Closure";
   }
-  if (tone === "planned") {
-    return `${base} border-blue-500/30 bg-blue-500/10`;
+  if (impact.severity === "suspension") {
+    return "Active Alert";
   }
-  if (tone === "reduced-speed-zone") {
-    return `${base} border-[var(--impact-rsz-border)] bg-[var(--impact-rsz-soft)]`;
-  }
-  return `${base} border-[#FEEC41]/30 bg-[#FEEC41]/10`;
+  return "Delay";
 }
 
-function stationImpactTitleClassName(tone: StationImpactDetailsTarget["tone"]) {
+function stationImpactCardClassName(tone: StationImpactDetailsTarget["tone"]) {
+  const base = "flex flex-col gap-2.5 rounded-lg border border-black/10 bg-slate-50 p-3 text-sm border-l-2 dark:border-white/10 dark:bg-white/5 transition-all";
   if (tone === "active") {
-    return "block text-red-800 dark:text-red-200";
+    return `${base} suspension-card-border shadow-[inset_2px_0_6px_-2px_rgba(239,68,68,0.2)]`;
   }
   if (tone === "planned") {
-    return "block text-blue-800 dark:text-blue-200";
+    return `${base} planned-closure-card-border shadow-[inset_2px_0_6px_-2px_rgba(59,130,246,0.2)]`;
   }
   if (tone === "reduced-speed-zone") {
-    return "rsz-tone block";
+    return `${base} rsz-card-border shadow-[inset_2px_0_6px_-2px_rgba(245,158,11,0.2)]`;
   }
-  return "block text-[#FEEC41]";
+  return `${base} delay-card-border shadow-[inset_2px_0_6px_-2px_rgba(254,236,65,0.18)]`;
+}
+
+function stationImpactTitleClassName() {
+  return "block font-bold text-slate-900 dark:text-white";
+}
+
+function stationImpactButtonClassName(tone: StationImpactDetailsTarget["tone"]) {
+  const base = "ml-auto inline-flex min-h-8 shrink-0 items-center justify-center gap-1.5 rounded-md border px-2.5 py-1 text-xs font-bold leading-none text-slate-900 dark:text-white transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 active:scale-95";
+  if (tone === "active") {
+    return `${base} border-red-500/35 bg-red-500/10 hover:bg-red-500/20 hover:border-red-500/60`;
+  }
+  if (tone === "planned") {
+    return `${base} border-blue-500/35 bg-blue-500/10 hover:bg-blue-500/20 hover:border-blue-500/60`;
+  }
+  if (tone === "reduced-speed-zone") {
+    return `${base} border-[#F59E0B]/35 bg-[#F59E0B]/10 hover:bg-[#F59E0B]/20 hover:border-[#F59E0B]/65`;
+  }
+  return `${base} border-[#FEEC41]/35 bg-[#FEEC41]/10 hover:bg-[#FEEC41]/20 hover:border-[#FEEC41]/65`;
 }
 
 function arrivalSourceBadgeClassName(label: string) {
@@ -551,9 +568,9 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
                   data-arrivals-subway-closed="true"
                   data-station-section="arrivals"
                 >
-                  <h3 className="flex items-center gap-2 text-sm font-black">
-                    <Clock3 size={16} />
-                    {arrivalHeading}
+                  <h3 className="flex items-center gap-2.5 text-lg font-black text-slate-900 dark:text-white">
+                    <Clock3 size={20} className="shrink-0" />
+                    <span>{arrivalHeading}</span>
                   </h3>
                   <p className="mt-1 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
                     {formatArrivalSourceSummary(station.arrivals, station.arrivalsSource)}
@@ -592,9 +609,9 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
                 data-station-section="arrivals"
               >
                 {/* Schedule May Be Disrupted */}
-                <h3 className="flex items-center gap-2 text-sm font-black">
-                  <Clock3 size={16} />
-                  {arrivalHeading}
+                <h3 className="flex items-center gap-2.5 text-lg font-black text-slate-900 dark:text-white">
+                  <Clock3 size={20} className="shrink-0" />
+                  <span>{arrivalHeading}</span>
                 </h3>
                 <p className="mt-1 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
                   {formatArrivalSourceSummary(station.arrivals, station.arrivalsSource)}
@@ -762,9 +779,9 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
 	          })()}
 
 	          <section data-station-section="station-impacts" className="rounded-lg border border-black/10 bg-slate-50 p-3 dark:border-white/10 dark:bg-white/5">
-	            <h3 className="flex items-center gap-2 text-sm font-black">
-	              <AlertCircle size={16} />
-	              Station Impacts
+	            <h3 className="flex items-center gap-2.5 text-lg font-black text-slate-900 dark:text-white">
+	              <AlertCircle size={20} className="shrink-0" />
+	              <span>Station Impacts</span>
 	            </h3>
 	            {station.impacts.length === 0 ? (
 	              <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">No active impacts for this station.</p>
@@ -779,6 +796,8 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
 	                    plannedClosures
 	                  );
 	                  const impactTone = detailsTarget?.tone ?? fallbackStationImpactTone(impact);
+	                  const classificationLabel = detailsTarget?.label ?? fallbackStationImpactLabel(impact);
+	                  const impactKind = detailsTarget?.selection.kind ?? stationImpactKind(impact);
 
 	                  return (
 	                    <div
@@ -786,34 +805,36 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
 	                      id={`station-impact-${impact.id}`}
 	                      className={stationImpactCardClassName(impactTone)}
 	                    >
-	                      <div className="flex flex-col gap-2">
-	                        {detailsTarget && (
-	                          <span
-	                            data-station-impact-classification={detailsTarget.label}
-	                            className="w-fit rounded-full border border-current/20 bg-white/60 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-slate-600 dark:bg-black/20 dark:text-slate-300"
-	                          >
-	                            {detailsTarget.label}
-	                          </span>
+	                      <div className="flex items-center gap-2.5 font-bold text-sm text-slate-900 dark:text-white">
+	                        <StationImpactDetailsIcon kind={impactKind} tone={impactTone} size={26} />
+	                        <span data-station-impact-classification={classificationLabel} className="leading-none flex items-center">{classificationLabel}</span>
+	                      </div>
+
+	                      <div className="flex flex-col gap-1">
+	                        <strong className={stationImpactTitleClassName()}>{impact.title}</strong>
+	                        {impact.summary && impact.summary !== impact.title && (
+	                          <p className="text-slate-700 dark:text-slate-200 leading-snug">{impact.summary}</p>
 	                        )}
-	                        <strong className={stationImpactTitleClassName(impactTone)}>{impact.title}</strong>
-	                        <p className="mt-1 text-slate-600 dark:text-slate-300">{impact.summary}</p>
-	                        <p className="mt-1 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+	                      </div>
+
+	                      <div className="flex flex-wrap items-center justify-between gap-2">
+	                        <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 min-w-0">
 	                          {normalizeDashboardSourceLabel(impact.source)} / {impact.updatedAt
 	                            ? formatImpactTimestamp(impact.updatedAt)
 	                            : impact.updatedAgo}
 	                        </p>
+	                        {detailsTarget && onSelectImpact && (
+	                          <button
+	                            type="button"
+	                            onClick={() => onSelectImpact(detailsTarget.selection)}
+	                            aria-label={`Open ${detailsTarget.label} details`}
+	                            className={stationImpactButtonClassName(detailsTarget.tone)}
+	                          >
+	                            <BadgeInfo size={16} className="shrink-0 text-current" aria-hidden="true" />
+	                            <span className="truncate leading-none flex items-center">View Details</span>
+	                          </button>
+	                        )}
 	                      </div>
-	                      {detailsTarget && onSelectImpact && (
-	                        <button
-	                          type="button"
-	                          onClick={() => onSelectImpact(detailsTarget.selection)}
-	                          aria-label={`Open ${detailsTarget.label} details`}
-	                          className="mt-1 self-start inline-flex min-h-9 w-fit max-w-full items-center justify-center gap-2 rounded-md border border-slate-200 bg-white/80 px-3 py-1.5 text-xs font-bold text-slate-700 shadow-sm transition-all hover:bg-white hover:text-slate-900 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-500/30 active:scale-95 dark:border-white/10 dark:bg-[#12151c]/80 dark:text-slate-300 dark:hover:bg-[#12151c] dark:hover:text-white"
-	                        >
-	                          <StationImpactDetailsIcon kind={detailsTarget.selection.kind} tone={detailsTarget.tone} />
-	                          <span className="truncate">View Details</span>
-	                        </button>
-	                      )}
 	                    </div>
 	                  );
 	                })}

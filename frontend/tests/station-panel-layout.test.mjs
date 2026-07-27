@@ -178,8 +178,8 @@ describe("station detail panel layout", () => {
     assert.match(panelSource, /onSelectImpact\(detailsTarget\.selection\)/);
     assert.match(panelSource, /Open \$\{detailsTarget\.label\} details/);
     assert.match(panelSource, /<StationImpactDetailsIcon[\s\S]*kind=\{target\?\.selection\.kind \?\? stationImpactKind\(impact\)\}[\s\S]*tone=\{target\?\.tone\}/);
-    assert.match(panelSource, /<StationImpactDetailsIcon[\s\S]*kind=\{detailsTarget\.selection\.kind\}[\s\S]*tone=\{detailsTarget\.tone\}/);
-    assert.match(panelSource, /self-start/);
+    assert.match(panelSource, /<BadgeInfo[\s\S]*View Details/);
+    assert.match(panelSource, /ml-auto/);
     assert.doesNotMatch(panelSource, /self-end/);
     assert.match(panelSource, /View Details/);
   });

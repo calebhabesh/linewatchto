@@ -37,7 +37,7 @@ describe("desktop status capsule", () => {
 
   it("styles the desktop status capsule as a compact primary surface with search-adjacent chips", () => {
     assert.match(globalCss, /\.desktop-status-capsule-anchor/);
-    assert.match(globalCss, /\.desktop-status-capsule-anchor\s*\{[^}]*max-width:\s*min\(960px, calc\(100vw - 320px\)\)/s);
+    assert.match(globalCss, /\.desktop-status-capsule-anchor\s*\{[^}]*max-width:\s*min\(1320px, calc\(100vw - 320px\)\)/s);
     assert.match(globalCss, /\.desktop-status-stack/);
     assert.match(globalCss, /\.desktop-status-stack\s*\{[\s\S]*align-items:\s*center/);
     assert.match(globalCss, /\.desktop-status-stack\s*\{[\s\S]*flex-direction:\s*column/);

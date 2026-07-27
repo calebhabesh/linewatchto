@@ -2997,7 +2997,7 @@ button {
 
 .desktop-status-capsule-anchor {
   justify-content: center;
-  max-width: min(960px, calc(100vw - 320px));
+  max-width: min(1320px, calc(100vw - 320px));
   width: max-content;
 }
 
@@ -4377,6 +4377,14 @@ button {
   stroke-width: 120;
 }
 
+.linewatch-shell:not(.dark) .asset-alert-path-hover-boundary {
+  stroke: rgba(15, 23, 42, 0.88);
+}
+
+.linewatch-shell.dark .asset-alert-path-hover-boundary.planned-preview {
+  stroke: var(--planned-preview-ink);
+}
+
 .overlay-segment-group:has(.map-segment-hit-target:hover) .interactive-glow,
 .overlay-segment-group:has(.map-segment-hit-target:focus-visible) .interactive-glow,
 .overlay-segment-group:has(.map-segment-hit-target:active) .interactive-glow,
@@ -4534,6 +4542,10 @@ button {
   .asset-alert-path-hover-boundary {
     filter: drop-shadow(0 0 2px rgba(15, 23, 42, 0.9));
     transition: opacity 180ms ease-out;
+  }
+
+  .linewatch-shell:not(.dark) .asset-alert-path-hover-boundary {
+    filter: drop-shadow(0 0 2px rgba(255, 255, 255, 0.8));
   }
 
   .overlay-segment-group:has(.map-segment-hit-target:hover) .asset-alert-path-hover-boundary,

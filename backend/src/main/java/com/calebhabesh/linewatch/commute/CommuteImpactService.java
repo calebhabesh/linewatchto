@@ -126,7 +126,8 @@ public class CommuteImpactService {
                 closure.title(), closure.lineId(), closure.lineNumber(),
                 closure.location(), closure.displayDirection(), closure.description(), closure.source(), matchedSegmentIds, List.of(),
                 closure.startedAt(), closure.updatedAt(), closure.window(), closure.timingStatus(), eventStartAt,
-                closure.windowHours(), closure.windowDates(), false
+                closure.windowHours(), closure.windowDates(), false,
+                closure.notificationTitle(), closure.cause(), closure.shuttle()
             ));
         }
 

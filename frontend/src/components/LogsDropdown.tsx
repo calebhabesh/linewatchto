@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Terminal, Copy, Check, ChevronDown, ChevronUp, AlertCircle, RefreshCw } from "lucide-react";
+import { Terminal, Copy, Check, ChevronDown, ChevronUp, AlertCircle, RefreshCw, Newspaper } from "lucide-react";
 import { mockRawAlerts, RawAlert } from "../app/mock-raw-alerts";
 import { apiUrl } from "../app/api-client.ts";
 
@@ -159,26 +159,19 @@ export function LogsDropdown({ isMobileMore = false }: { isMobileMore?: boolean 
         className={
           isMobileMore
             ? "mobile-more-row w-full flex items-center justify-between hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer"
-            : "logs-trigger-btn panel flex items-center justify-center w-10 sm:w-14 h-10 sm:h-14 rounded-xl border border-black/10 dark:border-white/10 shadow-lg hover:!bg-slate-100 dark:hover:!bg-[#1a1e28] hover:scale-105 active:scale-95 outline-none focus-visible:ring-4 focus-visible:ring-black/10 dark:focus-visible:ring-white/10 transition-all cursor-pointer bg-white dark:bg-[#0a0c10] text-slate-800 dark:text-white"
+            : "logs-trigger-btn panel flex items-center justify-center w-10 sm:w-14 h-10 sm:h-14 rounded-xl border border-black/10 dark:border-white/10 shadow-lg hover:!bg-slate-200 dark:hover:!bg-[#1a1e28] hover:scale-105 active:scale-95 outline-none focus-visible:ring-4 focus-visible:ring-black/10 dark:focus-visible:ring-white/10 transition-all cursor-pointer bg-white dark:bg-[#0a0c10] text-slate-800 dark:text-white"
         }
         aria-label="Toggle Ingestion Logs"
         aria-expanded={isOpen}
       >
         <span className="flex items-center gap-3">
-          <svg
-            viewBox="0 0 32 32"
-            fill="currentColor"
+          <Newspaper
             className={`shrink-0 ${
               isMobileMore
                 ? "w-[18px] h-[18px] text-slate-500 dark:text-slate-400"
                 : "w-[18px] h-[18px] sm:w-[24px] sm:h-[24px] text-slate-800 dark:text-white"
             }`}
-          >
-            <rect x="10" y="18" width="8" height="2"/>
-            <rect x="10" y="13" width="12" height="2"/>
-            <rect x="10" y="23" width="5" height="2"/>
-            <path d="M25,5H22V4a2,2,0,0,0-2-2H12a2,2,0,0,0-2-2H12a2,2,0,0,0-2,2V5H7A2,2,0,0,0,5,7V28a2,2,0,0,0,2,2H25a2,2,0,0,0,2-2V7A2,2,0,0,0,25,5ZM12,4h8V8H12ZM25,28H7V7h3v3H22V7h3Z"/>
-          </svg>
+          />
           {isMobileMore ? (
             <span>TTC Live Alerts Feed</span>
           ) : null}

@@ -126,6 +126,10 @@ describe("asset-backed map layering", () => {
     );
     assert.match(
       globalCss,
+      /\.linewatch-shell\.dark \.asset-alert-path-hover-boundary\.planned-preview\s*\{[^}]*stroke:\s*var\(--planned-preview-ink\);/s,
+    );
+    assert.match(
+      globalCss,
       /\.linewatch-shell\.mobile-performance-mode \.planned-closure-map-icon\s*\{[^}]*filter:\s*none;/s,
     );
     assert.doesNotMatch(
@@ -144,9 +148,13 @@ describe("asset-backed map layering", () => {
     );
     assert.match(
       interactiveMapSource,
-      /id=\{maskId\}[\s\S]*?stroke="white"[\s\S]*?strokeWidth="120"[\s\S]*?stroke="black"[\s\S]*?strokeWidth="102"/,
+      /id=\{maskId\}[\s\S]*?stroke="white"[\s\S]*?style=\{\{ strokeWidth: highlight\.visualState === "planned-preview" \? 100 : 120 \}\}[\s\S]*?stroke="black"[\s\S]*?strokeWidth=\{highlight\.visualState === "planned-preview" \? 82 : 102\}/,
     );
     assert.match(interactiveMapSource, /mask=\{`url\(#\$\{maskId\}\)`\}/);
+    assert.match(
+      interactiveMapSource,
+      /className=\{`asset-alert-path-hover-boundary hover-priority-boundary \$\{highlight\.visualState\}`\}[\s\S]*?style=\{\{ strokeWidth: highlight\.visualState === "planned-preview" \? 100 : 120 \}\}/,
+    );
     assert.match(interactiveMapSource, /event\.pointerType !== "mouse" \|\| exiting/);
     assert.match(
       globalCss,

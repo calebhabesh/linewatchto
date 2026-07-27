@@ -92,8 +92,42 @@ public final class CommuteResponses {
         OffsetDateTime eventStartAt,
         String closureHours,
         String closureDates,
-        boolean ignoredByRule
+        boolean ignoredByRule,
+        @com.fasterxml.jackson.annotation.JsonIgnore String notificationTitle,
+        @com.fasterxml.jackson.annotation.JsonIgnore String notificationCause,
+        @com.fasterxml.jackson.annotation.JsonIgnore boolean notificationShuttle
     ) {
+        public MatchedImpactResponse(
+            String id,
+            String kind,
+            String status,
+            String severity,
+            String title,
+            String lineId,
+            String lineNumber,
+            String location,
+            String displayDirection,
+            String description,
+            String source,
+            List<String> matchedSegmentIds,
+            List<String> matchedStationIds,
+            OffsetDateTime startedAt,
+            OffsetDateTime updatedAt,
+            String window,
+            String timingStatus,
+            OffsetDateTime eventStartAt,
+            String closureHours,
+            String closureDates,
+            boolean ignoredByRule
+        ) {
+            this(
+                id, kind, status, severity, title, lineId, lineNumber, location, displayDirection,
+                description, source, matchedSegmentIds, matchedStationIds, startedAt, updatedAt,
+                window, timingStatus, eventStartAt, closureHours, closureDates, ignoredByRule,
+                title, null, false
+            );
+        }
+
         public MatchedImpactResponse(
             String id,
             String kind,
@@ -134,6 +168,9 @@ public final class CommuteResponses {
                 timingStatus,
                 eventStartAt,
                 null,
+                null,
+                false,
+                title,
                 null,
                 false
             );
@@ -181,7 +218,10 @@ public final class CommuteResponses {
                 eventStartAt,
                 null,
                 null,
-                ignoredByRule
+                ignoredByRule,
+                title,
+                null,
+                false
             );
         }
 
@@ -207,7 +247,10 @@ public final class CommuteResponses {
                 eventStartAt,
                 closureHours,
                 closureDates,
-                ignoredByRule
+                ignoredByRule,
+                notificationTitle,
+                notificationCause,
+                notificationShuttle
             );
         }
     }

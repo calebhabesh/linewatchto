@@ -12,6 +12,7 @@ import com.calebhabesh.linewatch.arrival.ArrivalService;
 import com.calebhabesh.linewatch.ingestion.IngestionFreshness;
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
@@ -226,7 +227,10 @@ class StationServiceTest {
                 olderUpdatedAt
             )
         ));
-        when(alertDashboardService.dashboardVisiblePlannedClosureIds()).thenReturn(Set.of("ttc-route-closure-newer"));
+        when(alertDashboardService.dashboardVisiblePlannedClosureTitlesById()).thenReturn(Map.of(
+            "ttc-route-closure-newer",
+            "No subway service between St George and Sheppard West"
+        ));
         when(arrivalService.arrivalsFor(any(), any())).thenReturn(List.of(
             ArrivalPrediction.scheduled("line-1", "Northbound to Finch", 3, OffsetDateTime.now(), "TTC scheduled service")
         ));
@@ -272,7 +276,12 @@ class StationServiceTest {
                 olderUpdatedAt
             )
         ));
-        when(alertDashboardService.dashboardVisiblePlannedClosureIds()).thenReturn(Set.of("ttc-route-closure-visible"));
+        when(alertDashboardService.dashboardVisiblePlannedClosureTitlesById()).thenReturn(Map.of(
+            "ttc-route-closure-visible",
+            "There will be no subway service between St George and Sheppard West stations overnight from "
+                + "Monday, June 8 through Thursday, June 11. Each nightly closure runs from "
+                + "11:59 PM until 3:30 AM the following morning."
+        ));
         when(arrivalService.arrivalsFor(any(), any())).thenReturn(List.of(
             ArrivalPrediction.scheduled("line-1", "Northbound to Vaughan Metropolitan Centre", 4, OffsetDateTime.now(), "TTC scheduled service")
         ));
@@ -281,9 +290,19 @@ class StationServiceTest {
 
         assertThat(response.impacts()).extracting(StationResponses.StationImpactResponse::id)
             .containsExactly("ttc-route-closure-visible");
+        assertThat(response.impacts()).extracting(StationResponses.StationImpactResponse::title)
+            .containsExactly(
+                "There will be no subway service between St George and Sheppard West stations overnight from "
+                    + "Monday, June 8 through Thursday, June 11. Each nightly closure runs from "
+                    + "11:59 PM until 3:30 AM the following morning."
+            );
         assertThat(response.arrivalContext().scheduleMayBeDisrupted()).isTrue();
         assertThat(response.arrivalContext().reason())
-            .isEqualTo("There will be no subway service between St George and Sheppard West stations, starting at 12");
+            .isEqualTo(
+                "There will be no subway service between St George and Sheppard West stations overnight from "
+                    + "Monday, June 8 through Thursday, June 11. Each nightly closure runs from "
+                    + "11:59 PM until 3:30 AM the following morning."
+            );
     }
 
     @Test

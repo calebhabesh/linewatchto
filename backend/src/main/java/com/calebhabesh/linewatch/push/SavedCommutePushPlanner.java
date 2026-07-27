@@ -148,12 +148,12 @@ public class SavedCommutePushPlanner {
             reminderBucket,
             match.location(),
             match.displayDirection(),
-            false,
+            plannedClosure && match.notificationShuttle(),
             commute.getLabel(),
             legId,
             sourceEventAt,
-            null,
-            null,
+            plannedClosure ? match.notificationCause() : null,
+            plannedClosure ? notificationTitle(match.notificationTitle(), match.title()) : null,
             match.description(),
             match.closureHours(),
             match.closureDates()
@@ -262,5 +262,11 @@ public class SavedCommutePushPlanner {
 
     private String safe(String value) {
         return value == null ? "" : value.trim().toLowerCase(Locale.ROOT);
+    }
+
+    private String notificationTitle(String notificationTitle, String displayTitle) {
+        return notificationTitle == null || notificationTitle.isBlank()
+            ? displayTitle
+            : notificationTitle;
     }
 }

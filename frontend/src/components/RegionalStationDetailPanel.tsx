@@ -203,9 +203,9 @@ export function RegionalStationDetailPanel({
                 className="rounded-lg border border-black/10 bg-slate-50 p-3 dark:border-white/10 dark:bg-white/5"
                 data-station-section="arrivals"
               >
-                <h3 className="flex items-center gap-2 text-sm font-black">
-                  <Clock3 size={16} />
-                  Arrivals
+                <h3 className="flex items-center gap-2.5 text-lg font-black text-slate-900 dark:text-white">
+                  <Clock3 size={20} className="shrink-0" />
+                  <span>Arrivals</span>
                 </h3>
                 <p className="mt-1 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
                   Regional realtime unavailable

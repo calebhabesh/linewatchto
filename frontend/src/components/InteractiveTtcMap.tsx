@@ -1314,7 +1314,7 @@ function InteractiveTtcMapComponent({
         <LogsDropdown />
         <button
           onClick={onToggleTheme}
-          className="theme-toggle-btn panel flex items-center justify-center w-10 sm:w-14 h-10 sm:h-14 rounded-xl border border-black/10 dark:border-white/10 shadow-lg hover:!bg-slate-100 dark:hover:!bg-[#1a1e28] hover:scale-105 active:scale-95 outline-none focus-visible:ring-4 focus-visible:ring-black/10 dark:focus-visible:ring-white/10 transition-all cursor-pointer bg-white dark:bg-[#0a0c10]"
+          className="theme-toggle-btn panel flex items-center justify-center w-10 sm:w-14 h-10 sm:h-14 rounded-xl border border-black/10 dark:border-white/10 shadow-lg hover:!bg-slate-200 dark:hover:!bg-[#1a1e28] hover:scale-105 active:scale-95 outline-none focus-visible:ring-4 focus-visible:ring-black/10 dark:focus-visible:ring-white/10 transition-all cursor-pointer bg-white dark:bg-[#0a0c10]"
           aria-label="Toggle theme"
         >
           {isDark ? (
@@ -1638,7 +1638,7 @@ function InteractiveTtcMapComponent({
                             stroke="white"
                             strokeLinecap="round"
                             strokeLinejoin="round"
-                            strokeWidth="120"
+                            style={{ strokeWidth: highlight.visualState === "planned-preview" ? 100 : 120 }}
                           />
                           <path
                             d={highlight.pathD}
@@ -1646,7 +1646,7 @@ function InteractiveTtcMapComponent({
                             stroke="black"
                             strokeLinecap="round"
                             strokeLinejoin="round"
-                            strokeWidth="102"
+                            strokeWidth={highlight.visualState === "planned-preview" ? 82 : 102}
                           />
                         </mask>
                       </defs>
@@ -1658,6 +1658,7 @@ function InteractiveTtcMapComponent({
                         className={`asset-alert-path-hover-boundary hover-priority-boundary ${highlight.visualState}`}
                         d={highlight.pathD}
                         mask={`url(#${maskId})`}
+                        style={{ strokeWidth: highlight.visualState === "planned-preview" ? 100 : 120 }}
                       />
                       </g>
                     );

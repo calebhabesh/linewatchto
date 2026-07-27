@@ -291,13 +291,14 @@ public class StationService {
     }
 
     private StationResponses.StationImpactResponse toImpactResponse(
-        StationLiveReadRepository.LinkedAlert alert
+        StationLiveReadRepository.LinkedAlert alert,
+        String plannedClosureTitle
     ) {
         return new StationResponses.StationImpactResponse(
             alert.id(),
             alert.type(),
             alert.severity(),
-            alert.title(),
+            plannedClosureTitle == null ? alert.title() : plannedClosureTitle,
             alert.description(),
             null,
             alert.updatedAt(),
@@ -313,22 +314,25 @@ public class StationService {
 
     private List<StationResponses.StationImpactResponse> toLiveImpactResponses(String stationId) {
         List<StationLiveReadRepository.LinkedAlert> alerts = liveReadRepository.findActiveAlertsByStationId(stationId);
-        Set<String> dashboardVisiblePlannedClosureIds = alerts.stream().anyMatch(this::isPlannedClosure)
-            ? alertDashboardService.dashboardVisiblePlannedClosureIds()
-            : Set.of();
-        return toDistinctLiveImpactResponses(alerts, dashboardVisiblePlannedClosureIds);
+        Map<String, String> plannedClosureTitlesById = alerts.stream().anyMatch(this::isPlannedClosure)
+            ? alertDashboardService.dashboardVisiblePlannedClosureTitlesById()
+            : Map.of();
+        return toDistinctLiveImpactResponses(alerts, plannedClosureTitlesById);
     }
 
     private List<StationResponses.StationImpactResponse> toDistinctLiveImpactResponses(
         List<StationLiveReadRepository.LinkedAlert> alerts,
-        Set<String> dashboardVisiblePlannedClosureIds
+        Map<String, String> plannedClosureTitlesById
     ) {
         Map<String, StationResponses.StationImpactResponse> impactsByIdentity = new LinkedHashMap<>();
         for (StationLiveReadRepository.LinkedAlert alert : alerts) {
-            if (isPlannedClosure(alert) && !dashboardVisiblePlannedClosureIds.contains(alert.id())) {
+            if (isPlannedClosure(alert) && !plannedClosureTitlesById.containsKey(alert.id())) {
                 continue;
             }
-            StationResponses.StationImpactResponse response = toImpactResponse(alert);
+            StationResponses.StationImpactResponse response = toImpactResponse(
+                alert,
+                plannedClosureTitlesById.get(alert.id())
+            );
             impactsByIdentity.putIfAbsent(stationImpactIdentity(response), response);
         }
         return List.copyOf(impactsByIdentity.values());

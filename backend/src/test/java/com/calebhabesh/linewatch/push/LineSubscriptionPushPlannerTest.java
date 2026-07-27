@@ -80,7 +80,9 @@ class LineSubscriptionPushPlannerTest {
             "closure-1",
             "line-1",
             "1",
-            "Planned Closure",
+            "There will be no subway service between St George and Sheppard West stations overnight from "
+                + "Saturday, June 6 through Monday, June 8. Each nightly closure runs from "
+                + "12:00 AM until 5:00 AM the following morning.",
             "Sat-Sun",
             "St George to Sheppard West",
             null,
@@ -102,7 +104,8 @@ class LineSubscriptionPushPlannerTest {
             eventStart.plusDays(2),
             "Weekend",
             "12:00 AM – 5:00 AM",
-            "Sat, Jun 6 – Mon, Jun 8"
+            "Sat, Jun 6 – Mon, Jun 8",
+            "There will be no subway service between St George and Sheppard West stations"
         );
 
         when(dashboardService.activeAlerts()).thenReturn(List.of(suspension));
@@ -166,6 +169,10 @@ class LineSubscriptionPushPlannerTest {
             }
             assertThat(candidate.body()).contains("Closure dates: Sat, Jun 6 – Mon, Jun 8.");
             assertThat(candidate.body()).contains("Closure hours: 12:00 AM – 5:00 AM.");
+            assertThat(candidate.body()).startsWith(
+                "Synthetic scenario: no subway service between St George and Sheppard West for a test closure."
+            );
+            assertThat(candidate.body()).doesNotContain("Each nightly closure runs");
         }
     }
 
@@ -200,7 +207,8 @@ class LineSubscriptionPushPlannerTest {
             "closure-child-1",
             "line-2",
             "2",
-            "No subway service between Jane and Ossington stations due to planned track work.",
+            "No subway service between Jane and Ossington stations overnight from Saturday, June 6 through "
+                + "Sunday, June 7. Each nightly closure runs from 11:00 PM until 5:00 AM the following morning.",
             "planned",
             "Jane to Ossington",
             "Eastbound & Westbound",
@@ -212,7 +220,8 @@ class LineSubscriptionPushPlannerTest {
             "TTC Service Advisory",
             "planned track work",
             null,
-            "closure-parent-1"
+            "closure-parent-1",
+            "No subway service between Jane and Ossington stations due to planned track work."
         );
 
         when(dashboardService.activeAlerts()).thenReturn(List.of(activeClosure));
@@ -231,6 +240,7 @@ class LineSubscriptionPushPlannerTest {
                 .isEqualTo("line-current|line-2|planned-closure|closure-parent-1");
             assertThat(candidate.title()).isEqualTo("⚠️ Line 2 Bloor-Danforth Planned Closure");
             assertThat(candidate.body()).contains("No subway service between Jane and Ossington stations");
+            assertThat(candidate.body()).doesNotContain("Each nightly closure runs");
             assertThat(candidate.sourceEventAt()).isEqualTo(windowStart.toInstant());
             assertThat(candidate.url())
                 .isEqualTo("/?panel=closures&impactKind=planned-closure&impactId=closure-parent-1");

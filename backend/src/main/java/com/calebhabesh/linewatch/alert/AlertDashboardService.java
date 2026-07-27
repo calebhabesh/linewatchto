@@ -146,15 +146,19 @@ public class AlertDashboardService {
     }
 
     public Set<String> dashboardVisiblePlannedClosureIds() {
+        return dashboardVisiblePlannedClosureTitlesById().keySet();
+    }
+
+    public Map<String, String> dashboardVisiblePlannedClosureTitlesById() {
         if (!ingestionFreshness.isDashboardFresh()) {
-            return Set.of();
+            return Map.of();
         }
         List<LineSegmentEntity> segments = lineSegmentRepository.findAllByOrderBySortOrderAsc();
-        Set<String> ids = new LinkedHashSet<>();
+        Map<String, String> titlesById = new LinkedHashMap<>();
         for (PlannedClosureDto closure : plannedClosureDtos(segments)) {
-            ids.add(closure.id());
+            titlesById.put(closure.id(), closure.title());
         }
-        return ids;
+        return java.util.Collections.unmodifiableMap(titlesById);
     }
 
     private List<PlannedClosureDto> plannedClosureDtos(List<LineSegmentEntity> segments) {
@@ -574,7 +578,16 @@ public class AlertDashboardService {
             closure.id(),
             line == null ? closure.lineId() : line.getId(),
             line == null ? closure.lineNumber() : line.getNumber(),
-            closureDisplayTitle(currentSourceAlert.getTitle()),
+            closureDisplayTitle(
+                currentSourceAlert.getTitle(),
+                closure.windowHours(),
+                closure.windowDates(),
+                closure.nightly(),
+                isOvernightClosure(
+                    closure.activeWindowStart() == null ? closure.nextWindowStart() : closure.activeWindowStart(),
+                    closure.activeWindowEnd() == null ? closure.nextWindowEnd() : closure.activeWindowEnd()
+                )
+            ),
             closure.window(),
             location(currentSourceAlert),
             displayDirection(currentSourceAlert),
@@ -598,7 +611,8 @@ public class AlertDashboardService {
             closure.nextWindowEnd(),
             closure.nextWindowLabel(),
             closure.windowHours(),
-            closure.windowDates()
+            closure.windowDates(),
+            closureNotificationTitle(currentSourceAlert.getTitle())
         );
     }
 
@@ -624,7 +638,8 @@ public class AlertDashboardService {
             closure.source(),
             closure.cause(),
             closure.resolution(),
-            currentSourceAlert == null ? null : view.closure().id()
+            currentSourceAlert == null ? null : view.closure().id(),
+            closure.notificationTitle()
         );
     }
 
@@ -660,7 +675,7 @@ public class AlertDashboardService {
             alert.getId(),
             line == null ? null : line.getId(),
             line == null ? null : line.getNumber(),
-            closureDisplayTitle(alert.getTitle()),
+            closureDisplayTitle(alert.getTitle(), ws),
             displayWindow(alert, ws),
             location(alert),
             displayDirection(alert),
@@ -682,15 +697,114 @@ public class AlertDashboardService {
             ws.nextWindowEnd(),
             ws.nextWindowLabel(),
             ws.windowHours(),
-            ws.windowDates()
+            ws.windowDates(),
+            closureNotificationTitle(alert.getTitle())
         );
     }
 
-    private String closureDisplayTitle(String title) {
+    private String closureNotificationTitle(String title) {
         if (isBlank(title)) {
             return title;
         }
         return TRUNCATED_CLOSURE_START.matcher(title.trim()).replaceFirst("").trim();
+    }
+
+    private String closureDisplayTitle(String title, WindowState ws) {
+        OffsetDateTime windowStart = ws.activeWindowStart() == null
+            ? ws.nextWindowStart()
+            : ws.activeWindowStart();
+        OffsetDateTime windowEnd = ws.activeWindowEnd() == null
+            ? ws.nextWindowEnd()
+            : ws.activeWindowEnd();
+        return closureDisplayTitle(
+            title,
+            ws.windowHours(),
+            ws.windowDates(),
+            ws.nightly(),
+            isOvernightClosure(windowStart, windowEnd)
+        );
+    }
+
+    private String closureDisplayTitle(
+        String title,
+        String windowHours,
+        String windowDates,
+        boolean nightly,
+        boolean overnight
+    ) {
+        if (isBlank(title)) {
+            return title;
+        }
+        String trimmed = title.trim();
+        java.util.regex.Matcher matcher = TRUNCATED_CLOSURE_START.matcher(trimmed);
+        if (!matcher.find()) {
+            return trimmed;
+        }
+
+        String baseTitle = matcher.replaceFirst("").replaceFirst("[\\s,;:.]+$", "").trim();
+        String hours = naturalClosureHours(windowHours);
+        String dates = naturalClosureDates(windowDates);
+        if (hours == null && dates == null) {
+            return baseTitle;
+        }
+
+        StringBuilder titleBuilder = new StringBuilder(baseTitle);
+        if (dates != null) {
+            titleBuilder.append(overnight ? " overnight from " : " from ").append(dates);
+        } else if (overnight) {
+            titleBuilder.append(" overnight");
+        }
+        titleBuilder.append('.');
+        if (hours != null) {
+            String closureSubject = overnight && nightly
+                ? "Each nightly closure"
+                : nightly
+                    ? "Each scheduled closure"
+                    : "The closure";
+            titleBuilder.append(' ')
+                .append(closureSubject)
+                .append(" runs from ")
+                .append(hours);
+            if (overnight) {
+                titleBuilder.append(" the following morning");
+            }
+            titleBuilder.append('.');
+        }
+        return titleBuilder.toString();
+    }
+
+    private boolean isOvernightClosure(OffsetDateTime startsAt, OffsetDateTime endsAt) {
+        if (startsAt == null || endsAt == null) {
+            return false;
+        }
+        LocalDate localStartDate = startsAt.atZoneSameInstant(TORONTO_ZONE).toLocalDate();
+        LocalDate localEndDate = endsAt.atZoneSameInstant(TORONTO_ZONE).toLocalDate();
+        return localEndDate.isAfter(localStartDate);
+    }
+
+    private String naturalClosureHours(String windowHours) {
+        if (isBlank(windowHours) || "Varies by closure date".equalsIgnoreCase(windowHours)) {
+            return null;
+        }
+        return windowHours.replace(" – ", " until ");
+    }
+
+    private String naturalClosureDates(String windowDates) {
+        if (isBlank(windowDates)) {
+            return null;
+        }
+        String natural = windowDates.replace(" – ", " through ").replace("; ", ", ");
+        String[][] names = {
+            {"Mon", "Monday"}, {"Tue", "Tuesday"}, {"Wed", "Wednesday"},
+            {"Thu", "Thursday"}, {"Fri", "Friday"}, {"Sat", "Saturday"}, {"Sun", "Sunday"},
+            {"Jan", "January"}, {"Feb", "February"}, {"Mar", "March"}, {"Apr", "April"},
+            {"Jun", "June"}, {"Jul", "July"}, {"Aug", "August"}, {"Sep", "September"},
+            {"Oct", "October"}, {"Nov", "November"}, {"Dec", "December"}
+        };
+        for (String[] name : names) {
+            natural = natural.replaceAll("\\b" + name[0] + "\\b", name[1]);
+        }
+        return natural;
     }
 
     private String displayWindow(AlertEntity alert, WindowState ws) {
@@ -1108,8 +1222,32 @@ public class AlertDashboardService {
         String source,
         String cause,
         String resolution,
-        String relatedPlannedClosureId
+        String relatedPlannedClosureId,
+        @com.fasterxml.jackson.annotation.JsonIgnore String notificationTitle
     ) {
+        public ActiveAlertDto(
+            String id,
+            String lineId,
+            String lineNumber,
+            String title,
+            String severity,
+            String location,
+            String displayDirection,
+            String description,
+            OffsetDateTime startedAt,
+            OffsetDateTime updatedAt,
+            List<String> affectedSegmentIds,
+            boolean shuttle,
+            String source,
+            String cause,
+            String resolution,
+            String relatedPlannedClosureId
+        ) {
+            this(id, lineId, lineNumber, title, severity, location, displayDirection,
+                description, startedAt, updatedAt, affectedSegmentIds, shuttle, source,
+                cause, resolution, relatedPlannedClosureId, title);
+        }
+
         public ActiveAlertDto(
             String id,
             String lineId,
@@ -1129,7 +1267,7 @@ public class AlertDashboardService {
         ) {
             this(id, lineId, lineNumber, title, severity, location, displayDirection,
                 description, startedAt, updatedAt, affectedSegmentIds, shuttle, source,
-                cause, resolution, null);
+                cause, resolution, null, title);
         }
     }
 
@@ -1174,8 +1312,45 @@ public class AlertDashboardService {
         OffsetDateTime nextWindowEnd,
         String nextWindowLabel,
         String windowHours,
-        String windowDates
+        String windowDates,
+        @com.fasterxml.jackson.annotation.JsonIgnore String notificationTitle
     ) {
+        public PlannedClosureDto(
+            String id,
+            String lineId,
+            String lineNumber,
+            String title,
+            String window,
+            String location,
+            String displayDirection,
+            String description,
+            OffsetDateTime startedAt,
+            OffsetDateTime updatedAt,
+            List<String> previewSegmentIds,
+            boolean shuttle,
+            String source,
+            String cause,
+            String resolution,
+            boolean activeNow,
+            String timingStatus,
+            boolean nightly,
+            OffsetDateTime activeWindowStart,
+            OffsetDateTime activeWindowEnd,
+            String activeWindowLabel,
+            OffsetDateTime nextWindowStart,
+            OffsetDateTime nextWindowEnd,
+            String nextWindowLabel,
+            String windowHours,
+            String windowDates
+        ) {
+            this(
+                id, lineId, lineNumber, title, window, location, displayDirection, description, startedAt, updatedAt,
+                previewSegmentIds, shuttle, source, cause, resolution, activeNow, timingStatus, nightly,
+                activeWindowStart, activeWindowEnd, activeWindowLabel, nextWindowStart, nextWindowEnd,
+                nextWindowLabel, windowHours, windowDates, title
+            );
+        }
+
         public PlannedClosureDto(
             String id,
             String lineId,
@@ -1196,7 +1371,7 @@ public class AlertDashboardService {
             this(
                 id, lineId, lineNumber, title, window, location, displayDirection, description, startedAt, updatedAt,
                 previewSegmentIds, shuttle, source, cause, resolution,
-                false, "unknown", false, null, null, null, null, null, null, null, null
+                false, "unknown", false, null, null, null, null, null, null, null, null, title
             );
         }
     }

@@ -556,7 +556,7 @@ class AlertDashboardServiceTest {
             "planned-closure-nightly",
             "planned-closure",
             "planned",
-            "Nightly closure, starting 11",
+            "There will be no subway service between Finch and Eglinton stations, starting 11",
             "No subway service nightly between Finch and Eglinton.",
             "finch",
             "eglinton",
@@ -603,7 +603,14 @@ class AlertDashboardServiceTest {
 
         assertThat(closures).singleElement().satisfies(dto -> {
             assertThat(dto.id()).isEqualTo("planned-closure-nightly");
-            assertThat(dto.title()).isEqualTo("Nightly closure");
+            assertThat(dto.title()).isEqualTo(
+                "There will be no subway service between Finch and Eglinton stations overnight from "
+                    + "Sunday, May 31 through Monday, June 1. Each nightly closure runs from "
+                    + "11:59 PM until 3:30 AM the following morning."
+            );
+            assertThat(dto.notificationTitle()).isEqualTo(
+                "There will be no subway service between Finch and Eglinton stations"
+            );
             assertThat(dto.window()).isEqualTo("Nightly closure windows");
             assertThat(dto.windowHours()).isEqualTo("11:59 PM – 3:30 AM");
             assertThat(dto.windowDates()).isEqualTo("Sun, May 31 – Mon, Jun 1");
@@ -613,6 +620,24 @@ class AlertDashboardServiceTest {
             assertThat(dto.nextWindowStart()).isEqualTo(OffsetDateTime.parse("2026-06-02T03:59:00Z"));
             assertThat(dto.nextWindowEnd()).isEqualTo(OffsetDateTime.parse("2026-06-02T07:30:00Z"));
         });
+    }
+
+    @Test
+    void truncatedDaytimeClosureUsesNeutralSameDayScheduleLanguage() {
+        String title = ReflectionTestUtils.invokeMethod(
+            service,
+            "closureDisplayTitle",
+            "There will be no subway service between Kennedy and Warden stations, starting 9",
+            "9:00 AM – 2:00 PM",
+            "Sat, Aug 8",
+            false,
+            false
+        );
+
+        assertThat(title).isEqualTo(
+            "There will be no subway service between Kennedy and Warden stations from Saturday, August 8. "
+                + "The closure runs from 9:00 AM until 2:00 PM."
+        );
     }
 
     @Test

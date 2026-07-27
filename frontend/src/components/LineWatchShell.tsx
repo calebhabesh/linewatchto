@@ -2225,7 +2225,7 @@ export function LineWatchShell({
           <button
             ref={menuButtonRef}
             onClick={handleToggleMenu}
-            className={`menu-toggle-btn menu-attention-beam desktop-top-chrome panel relative flex items-center justify-center w-14 h-14 rounded-xl border border-black/10 dark:border-white/10 shadow-lg hover:!bg-slate-100 dark:hover:!bg-[#1a1e28] hover:scale-105 active:scale-95 outline-none focus-visible:ring-4 focus-visible:ring-black/10 dark:focus-visible:ring-white/10 transition-all cursor-pointer`}
+            className={`menu-toggle-btn menu-attention-beam desktop-top-chrome panel relative flex items-center justify-center w-14 h-14 rounded-xl border border-black/10 dark:border-white/10 shadow-lg hover:!bg-slate-200 dark:hover:!bg-[#1a1e28] hover:scale-105 active:scale-95 outline-none focus-visible:ring-4 focus-visible:ring-black/10 dark:focus-visible:ring-white/10 transition-all cursor-pointer`}
             aria-label={totalAlertCount > 0
               ? `Toggle menu, ${totalAlertCount} total ${totalAlertCount === 1 ? "alert" : "alerts"}`
               : "Toggle menu"}
@@ -2256,7 +2256,7 @@ export function LineWatchShell({
           {/* Header station search input — replaces the old static button */}
           <div
             ref={headerSearchBarRef}
-            className="header-search-bar desktop-top-chrome panel relative flex items-center gap-2 px-3 h-14 rounded-xl border border-black/10 dark:border-white/10 shadow-lg hover:!bg-slate-100 dark:hover:!bg-[#1a1e28] cursor-text outline-none"
+            className="header-search-bar desktop-top-chrome panel relative flex items-center gap-2 px-3 h-14 rounded-xl border border-black/10 dark:border-white/10 shadow-lg hover:!bg-slate-200 dark:hover:!bg-[#1a1e28] cursor-text outline-none"
             data-active={activeView === "search" ? "true" : undefined}
             onPointerDown={(event) => {
               if (event.button !== 0) return;
@@ -2309,21 +2309,21 @@ export function LineWatchShell({
             )}
           </div>
 
-          {selectedNetwork === "ttc" && subwayOperatingState.closingSoon && subwayOperatingState.minutesUntilClose !== null && subwayOperatingState.nextCloseLabel ? (
+          {selectedNetwork === "ttc" && subwayOperatingState.closingSoon && subwayOperatingState.minutesUntilClose !== null && subwayOperatingState.nextCloseLabel && isMobile ? (
             <SubwayClosingSoonChip
               minutesUntilClose={subwayOperatingState.minutesUntilClose}
               nextCloseLabel={subwayOperatingState.nextCloseLabel}
             />
           ) : null}
 
-          {selectedNetwork === "regional" && regionalRailOperatingState.closingSoon && regionalRailOperatingState.minutesUntilClose !== null && regionalRailOperatingState.nextCloseLabel ? (
+          {selectedNetwork === "regional" && regionalRailOperatingState.closingSoon && regionalRailOperatingState.minutesUntilClose !== null && regionalRailOperatingState.nextCloseLabel && isMobile ? (
             <GoUpClosingSoonChip
               minutesUntilClose={regionalRailOperatingState.minutesUntilClose}
               nextCloseLabel={regionalRailOperatingState.nextCloseLabel}
             />
           ) : null}
 
-          {selectedNetworkIsClosed && closedMapPeek ? (
+          {selectedNetworkIsClosed && closedMapPeek && isMobile ? (
             <div
               className={`${
                 selectedNetwork === "regional" ? "go-up-closed-peek-chip" : "subway-closed-peek-chip"
@@ -2926,7 +2926,7 @@ export function LineWatchShell({
         </div>
 
         {/* Floating Desktop Status Capsule (Top Center) */}
-        <div className="desktop-status-capsule-anchor hidden sm:flex absolute top-6 left-1/2 -translate-x-1/2 z-20 pointer-events-auto items-center">
+        <div className="desktop-status-capsule-anchor hidden sm:flex absolute top-6 left-1/2 -translate-x-1/2 z-20 pointer-events-auto items-center gap-3">
           <div className="desktop-status-stack">
             <div className="desktop-status-capsule desktop-top-chrome" aria-label="Current dashboard status summary">
               <div className="desktop-status-primary-row">
@@ -2982,13 +2982,55 @@ export function LineWatchShell({
               </div>
             </div>
           </div>
+
+          {selectedNetwork === "ttc" && subwayOperatingState.closingSoon && subwayOperatingState.minutesUntilClose !== null && subwayOperatingState.nextCloseLabel && !isMobile ? (
+            <SubwayClosingSoonChip
+              minutesUntilClose={subwayOperatingState.minutesUntilClose}
+              nextCloseLabel={subwayOperatingState.nextCloseLabel}
+            />
+          ) : null}
+
+          {selectedNetwork === "regional" && regionalRailOperatingState.closingSoon && regionalRailOperatingState.minutesUntilClose !== null && regionalRailOperatingState.nextCloseLabel && !isMobile ? (
+            <GoUpClosingSoonChip
+              minutesUntilClose={regionalRailOperatingState.minutesUntilClose}
+              nextCloseLabel={regionalRailOperatingState.nextCloseLabel}
+            />
+          ) : null}
+
+          {selectedNetworkIsClosed && closedMapPeek && !isMobile ? (
+            <div
+              className={`${
+                selectedNetwork === "regional" ? "go-up-closed-peek-chip" : "subway-closed-peek-chip"
+              } ${isExitingPeekChip ? "subway-closed-peek-chip--exiting" : ""}`}
+              role="status"
+              aria-live="polite"
+            >
+              <Moon className="subway-closed-peek-icon shrink-0" size={18} strokeWidth={2.4} aria-hidden="true" />
+              <div className="subway-closed-peek-text">
+                <strong className="subway-closed-peek-title">
+                  {selectedNetwork === "ttc" ? "Subway Closed" : "GO & UP Rail Closed"}
+                </strong>
+                <span className="subway-closed-peek-subtitle">
+                  {selectedNetwork === "ttc" ? "Resumes" : "Trains return"}{" "}
+                  {(selectedNetwork === "ttc"
+                    ? subwayOperatingState.nextResumeLabel
+                    : regionalRailOperatingState.nextResumeLabel)
+                    ?.replace(/^(Today|Tomorrow)/, (day) => day.toLowerCase())
+                    .replace(/\.$/, "")}.
+                </span>
+              </div>
+              <button type="button" onClick={handleOpenClosedScreen}>
+                Closed Screen
+              </button>
+            </div>
+          ) : null}
         </div>
 
         <div className="map-utility-cluster pointer-events-auto flex items-center gap-2">
           <LogsDropdown />
           <button
             onClick={handleToggleTheme}
-            className="theme-toggle-btn panel flex items-center justify-center w-10 sm:w-14 h-10 sm:h-14 rounded-xl border border-black/10 dark:border-white/10 shadow-lg hover:!bg-slate-100 dark:hover:!bg-[#1a1e28] hover:scale-105 active:scale-95 outline-none focus-visible:ring-4 focus-visible:ring-black/10 dark:focus-visible:ring-white/10 transition-all cursor-pointer bg-white dark:bg-[#0a0c10]"
+            className="theme-toggle-btn panel flex items-center justify-center w-10 sm:w-14 h-10 sm:h-14 rounded-xl border border-black/10 dark:border-white/10 shadow-lg hover:!bg-slate-200 dark:hover:!bg-[#1a1e28] hover:scale-105 active:scale-95 outline-none focus-visible:ring-4 focus-visible:ring-black/10 dark:focus-visible:ring-white/10 transition-all cursor-pointer bg-white dark:bg-[#0a0c10]"
             aria-label="Toggle theme"
           >
             {isDark ? (
@@ -3002,7 +3044,7 @@ export function LineWatchShell({
               setMapPresentationMode("rotated-landscape");
               setActiveView("map");
             }}
-            className="rotate-map-btn panel flex items-center justify-center gap-1.5 px-2.5 rounded-xl border border-black/10 dark:border-white/10 shadow-lg hover:!bg-slate-100 dark:hover:!bg-[#1a1e28] hover:scale-105 active:scale-95 outline-none focus-visible:ring-4 focus-visible:ring-black/10 dark:focus-visible:ring-white/10 transition-all cursor-pointer bg-white dark:bg-[#0a0c10] h-10 md:hidden"
+            className="rotate-map-btn panel flex items-center justify-center gap-1.5 px-2.5 rounded-xl border border-black/10 dark:border-white/10 shadow-lg hover:!bg-slate-200 dark:hover:!bg-[#1a1e28] hover:scale-105 active:scale-95 outline-none focus-visible:ring-4 focus-visible:ring-black/10 dark:focus-visible:ring-white/10 transition-all cursor-pointer bg-white dark:bg-[#0a0c10] h-10 md:hidden"
             aria-label="Rotate map"
           >
             <PhoneRotateLandscapeIcon size={20} />

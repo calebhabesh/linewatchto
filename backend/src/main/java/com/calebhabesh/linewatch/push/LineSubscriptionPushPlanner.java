@@ -66,7 +66,7 @@ public class LineSubscriptionPushPlanner {
                     alert.location(),
                     alert.displayDirection(),
                     alert.cause(),
-                    alert.title(),
+                    notificationTitle(alert.notificationTitle(), alert.title()),
                     alert.description(),
                     alert.shuttle(),
                     alert.startedAt() == null ? null : alert.startedAt().toInstant(),
@@ -152,7 +152,7 @@ public class LineSubscriptionPushPlanner {
                     closure.location(),
                     closure.displayDirection(),
                     closure.cause(),
-                    closure.title(),
+                    notificationTitle(closure.notificationTitle(), closure.title()),
                     closure.description(),
                     closure.shuttle(),
                     closure.windowHours(),
@@ -280,6 +280,12 @@ public class LineSubscriptionPushPlanner {
         return "/?panel=" + encode(panel)
             + "&impactKind=" + encode(impactKind)
             + "&impactId=" + encode(impactId);
+    }
+
+    private String notificationTitle(String notificationTitle, String displayTitle) {
+        return notificationTitle == null || notificationTitle.isBlank()
+            ? displayTitle
+            : notificationTitle;
     }
 
     private String encode(String value) {

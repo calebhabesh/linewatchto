@@ -21,9 +21,9 @@ export default function GlobalErrorPage({ error }: GlobalErrorPageProps) {
           eyebrow="App shell error"
           title="LineWatchTO needs a refresh"
           message="The app shell could not recover this view. Refresh the dashboard to load a clean session."
-          primaryActionLabel="Refresh dashboard"
+          primaryActionLabel="Refresh Dashboard"
           onPrimaryAction={() => window.location.assign("/")}
-          secondaryActionLabel="Open dashboard"
+          secondaryActionLabel="Open Dashboard"
           secondaryActionHref="/"
         />
       </body>
