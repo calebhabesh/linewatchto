@@ -141,6 +141,17 @@ public final class RegionalNetworkCatalog {
         return Optional.ofNullable(STOP_CODE_TO_STATION_ID.get(stopCode.trim().toUpperCase(Locale.CANADA)));
     }
 
+    public static Optional<String> stopCodeForStationId(String stationId) {
+        if (stationId == null) {
+            return Optional.empty();
+        }
+        String normalized = stationId.trim().toLowerCase(Locale.CANADA);
+        return STOP_CODE_TO_STATION_ID.entrySet().stream()
+            .filter(entry -> entry.getValue().equals(normalized))
+            .map(Map.Entry::getKey)
+            .findFirst();
+    }
+
     public static List<Segment> segments() {
         return SEGMENTS;
     }

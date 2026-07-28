@@ -314,6 +314,15 @@ test("renders fresh Metrolinx impacts in regional mode", async ({ page, request,
   await expect(page.getByText("Last Polled: Metrolinx smoke poll", { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Pickering to Ajax delay impact" })).toBeAttached();
   await expect(page.getByText("Last Polled: regional fixture mode", { exact: true })).toHaveCount(0);
+
+  const pickeringStation = page.locator('[data-regional-station-id="pickering"]');
+  await pickeringStation.press("Enter");
+  const stationPanel = page.getByRole("complementary", { name: "Pickering regional station details" });
+  await expect(stationPanel).toBeVisible();
+  await expect(stationPanel.getByText("Metrolinx GO Next Service", { exact: true })).toBeVisible();
+  await expect(stationPanel.getByText("Kitchener GO", { exact: true })).toBeVisible();
+  await expect(stationPanel.getByText("7 min", { exact: true })).toBeVisible();
+  await expect(stationPanel.getByText("Platform 11 · 3 min behind schedule", { exact: true })).toBeVisible();
 });
 
 test("renders the seeded dashboard API payload", async ({ page, request, isMobile }) => {

@@ -634,6 +634,48 @@ const server = createServer(async (request, response) => {
     return;
   }
 
+  const regionalArrivalMatch = url.pathname.match(/^\/api\/regional\/stations\/([^/]+)\/arrivals$/);
+  if (request.method === "GET" && regionalArrivalMatch) {
+    const stationId = decodeURIComponent(regionalArrivalMatch[1]);
+    if (mode !== "regional-live") {
+      sendJson(request, response, 200, {
+        stationId,
+        stationName: stationId,
+        availability: "disabled",
+        generatedAt: "2026-07-28T19:48:00Z",
+        sourceUpdatedAt: null,
+        source: "Metrolinx",
+        message: "Regional station arrivals are disabled.",
+        arrivals: [],
+      });
+      return;
+    }
+    sendJson(request, response, 200, {
+      stationId,
+      stationName: "Union",
+      availability: "available",
+      generatedAt: "2026-07-28T19:48:00Z",
+      sourceUpdatedAt: "2026-07-28T19:47:43Z",
+      source: "Metrolinx GO Next Service",
+      message: "Fresh Metrolinx regional train estimates.",
+      arrivals: [{
+        lineId: "regional-ki",
+        lineNumber: "KI",
+        lineName: "Kitchener",
+        direction: "Kitchener GO",
+        minutes: 7,
+        predictedAt: "2026-07-28T19:55:00Z",
+        scheduledAt: "2026-07-28T19:52:00Z",
+        delayMinutes: 3,
+        platform: "11",
+        tripNumber: "3775",
+        source: "Metrolinx GO Next Service",
+        status: "live",
+      }],
+    });
+    return;
+  }
+
   if (request.method === "GET" && url.pathname === "/api/stations") {
     sendJson(request, response, 200, stationSummariesResponse);
     return;

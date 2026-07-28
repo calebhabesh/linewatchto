@@ -316,15 +316,16 @@ describe("network-scoped regional dashboard", () => {
     assert.match(shellSource, /setTtcStationSummaries\(result\.data\.stations\)/);
   });
 
-  it("uses the TTC station-detail layout while keeping regional data limitations explicit", () => {
+  it("uses the TTC station-detail layout with source-labeled regional arrivals", () => {
     assert.match(regionalStationDetailSource, /station-detail-header-actions/);
     assert.match(regionalStationDetailSource, /station-detail-save-control/);
     assert.match(regionalStationDetailSource, /data-station-header-line-details/);
     assert.match(regionalStationDetailSource, /data-station-section="arrivals"/);
-    assert.match(regionalStationDetailSource, /Live service alerts connected/);
+    assert.match(regionalStationDetailSource, /Checking Metrolinx arrivals/);
     assert.match(regionalStationDetailSource, /Regional realtime unavailable/);
     assert.match(regionalStationDetailSource, /Arrival Data Unavailable/);
-    assert.match(regionalStationDetailSource, /Station arrivals are not included in the current regional integration/);
+    assert.match(regionalStationDetailSource, /Upcoming regional train arrivals/);
+    assert.match(regionalStationDetailSource, /Realtime estimates can change/);
     assert.match(regionalStationDetailSource, /Accessibility and platform-condition details are unavailable/);
     assert.doesNotMatch(regionalStationDetailSource, /wheel-chair-symbol|elevator-icon/);
   });

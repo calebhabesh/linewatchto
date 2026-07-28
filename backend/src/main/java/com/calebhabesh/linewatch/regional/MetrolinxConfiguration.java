@@ -7,7 +7,7 @@ import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.web.client.RestClient;
 
 @Configuration
-@EnableConfigurationProperties(MetrolinxProperties.class)
+@EnableConfigurationProperties({MetrolinxProperties.class, RegionalArrivalProperties.class})
 public class MetrolinxConfiguration {
     @Bean
     RestClient metrolinxRestClient(RestClient.Builder builder, MetrolinxProperties properties) {

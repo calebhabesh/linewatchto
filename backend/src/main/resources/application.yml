@@ -92,6 +92,13 @@ linewatch:
     gtfs-refresh-min-service-days-remaining: ${LINEWATCH_ARRIVALS_GTFS_REFRESH_MIN_SERVICE_DAYS_REMAINING:14}
     gtfs-promotion-initial-delay: ${LINEWATCH_ARRIVALS_GTFS_PROMOTION_INITIAL_DELAY:PT30S}
     gtfs-promotion-fixed-delay: ${LINEWATCH_ARRIVALS_GTFS_PROMOTION_FIXED_DELAY:PT5M}
+  regional:
+    arrivals:
+      enabled: ${LINEWATCH_REGIONAL_ARRIVALS_ENABLED:false}
+      cache-ttl: ${LINEWATCH_REGIONAL_ARRIVALS_CACHE_TTL:PT30S}
+      max-source-age: ${LINEWATCH_REGIONAL_ARRIVALS_MAX_SOURCE_AGE:PT5M}
+      horizon: ${LINEWATCH_REGIONAL_ARRIVALS_HORIZON:PT3H}
+      max-arrivals-per-line: ${LINEWATCH_REGIONAL_ARRIVALS_MAX_PER_LINE:4}
   performance:
     ttc:
       enabled: ${LINEWATCH_PERFORMANCE_TTC_ENABLED:true}

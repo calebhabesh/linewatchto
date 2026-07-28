@@ -5,6 +5,12 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useDashboardData } from "../app/DataContext";
 import type { ImpactKind, ImpactSelection } from "../app/linewatch-data";
 import { REGIONAL_ROUTE_CARDINAL_DIRECTIONS, REGIONAL_ROUTE_DEFINITIONS } from "../app/regional-data";
+import {
+  emptyRegionalArrivalSnapshot,
+  getRegionalStationArrivals,
+  regionalArrivalMinuteLabel,
+  type RegionalArrivalSnapshot,
+} from "../app/regional-arrivals";
 import type { StationSummary } from "../app/station-data";
 import { ImpactTypeIcon } from "./ImpactTypeIcon";
 import { STATION_LINE_DEFINITIONS, STATION_LINE_STATION_IDS } from "../app/station-data";
@@ -52,6 +58,14 @@ export function RegionalStationDetailPanel({
 }: Props) {
   const dashboard = useDashboardData();
   const [isClosing, setIsClosing] = useState(false);
+  const [arrivalState, setArrivalState] = useState<{
+    stationId: string;
+    snapshot: RegionalArrivalSnapshot;
+  }>(() => ({ stationId: "", snapshot: emptyRegionalArrivalSnapshot(station.id) }));
+  const arrivalsLoading = arrivalState.stationId !== station.id;
+  const arrivalSnapshot = arrivalsLoading
+    ? emptyRegionalArrivalSnapshot(station.id)
+    : arrivalState.snapshot;
   const closeTimeoutRef = useRef<number | null>(null);
   const routes = REGIONAL_ROUTE_DEFINITIONS.filter((route) => station.lineIds.includes(route.id));
   const impacts = useMemo(() => {
@@ -98,6 +112,16 @@ export function RegionalStationDetailPanel({
       window.clearTimeout(closeTimeoutRef.current);
     }
   }, []);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    void getRegionalStationArrivals(station.id, { signal: controller.signal }).then((result) => {
+      if (!controller.signal.aborted) {
+        setArrivalState({ stationId: station.id, snapshot: result.data });
+      }
+    }).catch(() => undefined);
+    return () => controller.abort();
+  }, [station.id]);
 
   const handleClose = () => {
     setIsClosing(true);
@@ -218,18 +242,65 @@ export function RegionalStationDetailPanel({
                   <span>Arrivals</span>
                 </h3>
                 <p className="mt-1 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-                  {dashboard.dataSource === "backend"
-                    ? "Live service alerts connected"
-                    : "Regional realtime unavailable"}
+                  {arrivalsLoading
+                    ? "Checking Metrolinx arrivals"
+                    : arrivalSnapshot.availability === "available"
+                      ? arrivalSnapshot.source
+                      : "Regional realtime unavailable"}
                 </p>
-                <div className="mt-3 rounded-md border border-black/10 bg-white/60 px-3 py-4 text-center dark:border-white/10 dark:bg-black/10">
-                  <p className="text-sm font-semibold leading-snug text-slate-500 dark:text-slate-400">
-                    <span className="block">Arrival Data Unavailable</span>
-                    <span className="mt-1 block text-xs font-medium">
-                      Station arrivals are not included in the current regional integration.
-                    </span>
+                {arrivalsLoading ? (
+                  <div className="mt-3 flex min-h-20 items-center justify-center rounded-md border border-black/10 bg-white/60 dark:border-white/10 dark:bg-black/10">
+                    <LoaderCircle size={22} className="animate-spin text-slate-500" aria-label="Loading regional arrivals" />
+                  </div>
+                ) : arrivalSnapshot.availability === "available" && arrivalSnapshot.arrivals.length > 0 ? (
+                  <ul className="mt-3 grid gap-2" aria-label="Upcoming regional train arrivals">
+                    {arrivalSnapshot.arrivals.map((arrival) => {
+                      const route = REGIONAL_ROUTE_DEFINITIONS.find((item) => item.id === arrival.lineId);
+                      return (
+                        <li
+                          key={`${arrival.lineId}:${arrival.tripNumber}:${arrival.predictedAt}`}
+                          className="rounded-md border border-black/10 bg-white/80 px-3 py-2.5 dark:border-white/10 dark:bg-black/10"
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-2">
+                                <span
+                                  className="inline-flex min-w-8 items-center justify-center rounded px-1.5 py-0.5 text-[10px] font-black"
+                                  style={{
+                                    backgroundColor: route?.color ?? "#475569",
+                                    color: route ? routeBadgeTextColor(route.color) : "#ffffff",
+                                  }}
+                                >
+                                  {arrival.lineNumber}
+                                </span>
+                                <span className="truncate text-sm font-black">{arrival.direction}</span>
+                              </div>
+                              <p className="mt-1 text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+                                {arrival.platform ? `Platform ${arrival.platform}` : "Platform not assigned"}
+                                {arrival.delayMinutes > 0 ? ` · ${arrival.delayMinutes} min behind schedule` : " · On schedule"}
+                              </p>
+                            </div>
+                            <span className="shrink-0 text-sm font-black text-slate-950 dark:text-white">
+                              {regionalArrivalMinuteLabel(arrival.minutes)}
+                            </span>
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                ) : (
+                  <div className="mt-3 rounded-md border border-black/10 bg-white/60 px-3 py-4 text-center dark:border-white/10 dark:bg-black/10">
+                    <p className="text-sm font-semibold leading-snug text-slate-500 dark:text-slate-400">
+                      <span className="block">Arrival Data Unavailable</span>
+                      <span className="mt-1 block text-xs font-medium">{arrivalSnapshot.message}</span>
+                    </p>
+                  </div>
+                )}
+                {!arrivalsLoading && arrivalSnapshot.availability === "available" ? (
+                  <p className="mt-2 text-[10px] font-semibold leading-relaxed text-slate-500 dark:text-slate-400">
+                    Realtime estimates can change. Confirm departure details with GO Transit or UP Express.
                   </p>
-                </div>
+                ) : null}
                 <div className="regional-station-official-links mt-3">
                   <a href="https://www.gotransit.com/en/see-schedules" target="_blank" rel="noreferrer">
                     GO Schedules <ExternalLink size={14} />
