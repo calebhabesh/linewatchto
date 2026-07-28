@@ -177,6 +177,59 @@ class LineSubscriptionPushPlannerTest {
     }
 
     @Test
+    void describesEverySectionInAGroupedReducedSpeedZoneNotification() {
+        AlertDashboardService.ReducedSpeedZoneDto zone = new AlertDashboardService.ReducedSpeedZoneDto(
+            "zone-grouped",
+            "line-1",
+            "1",
+            "Reduced Speed Zone",
+            "Multiple affected sections",
+            "Northbound & Southbound",
+            "TTC reports reduced speeds on this corridor.",
+            OffsetDateTime.parse("2026-06-05T14:55:00Z"),
+            OffsetDateTime.parse("2026-06-05T14:56:00Z"),
+            List.of(),
+            List.of("rsz-north", "rsz-south"),
+            List.of(
+                new AlertDashboardService.DirectionalDetailDto(
+                    "rsz-north",
+                    "Northbound",
+                    "Eglinton to Davisville",
+                    "Northbound trains are moving slowly."
+                ),
+                new AlertDashboardService.DirectionalDetailDto(
+                    "rsz-south",
+                    "Southbound",
+                    "St Clair to Summerhill",
+                    "Southbound trains are moving slowly."
+                )
+            ),
+            "TTC Live Alerts",
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+        );
+        when(dashboardService.activeAlerts()).thenReturn(List.of());
+        when(dashboardService.delays()).thenReturn(List.of());
+        when(dashboardService.reducedSpeedZones()).thenReturn(List.of(zone));
+        when(dashboardService.plannedClosures()).thenReturn(List.of());
+
+        PushNotificationCandidate candidate = planner.candidatesFor("user_1", List.of("line-1")).getFirst();
+
+        assertThat(candidate.body()).isEqualTo("""
+            Reduced speeds across Eglinton to Davisville (Northbound) and St Clair to Summerhill (Southbound).
+            🕗 Jun 5, 10:55 AM""");
+        assertThat(candidate.body()).doesNotContain("on this corridor");
+        assertThat(candidate.eventLocation()).isEqualTo(
+            "Eglinton to Davisville (Northbound); St Clair to Summerhill (Southbound)"
+        );
+    }
+
+    @Test
     void announcementOnlyPolicyDoesNotCreateScheduledClosureReminderCandidates() {
         OffsetDateTime eventStart = OffsetDateTime.parse("2026-06-06T04:00:00Z");
         AlertDashboardService.PlannedClosureDto closure = new AlertDashboardService.PlannedClosureDto(

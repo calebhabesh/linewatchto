@@ -197,6 +197,10 @@ public class PushNotificationFormatter {
         }
 
         String withoutPunctuation = stripTerminalPunctuation(location);
+        List<String> sections = multipleSections(withoutPunctuation);
+        if (sections.size() > 1) {
+            return "Service across " + naturalJoin(sections) + " has resumed.";
+        }
         Matcher bidirectionalRangeMatcher = BIDIRECTIONAL_RANGE_PATTERN.matcher(withoutPunctuation);
         if (bidirectionalRangeMatcher.matches()) {
             return "Service between "
@@ -355,7 +359,9 @@ public class PushNotificationFormatter {
 
     private String directionPhrase(String displayDirection, String location) {
         String direction = normalizeText(displayDirection);
-        if (direction.isEmpty() || containsIgnoreCase(location, direction)) {
+        if (direction.isEmpty()
+            || containsIgnoreCase(location, direction)
+            || multipleSections(location).size() > 1) {
             return "";
         }
         String lowered = direction.toLowerCase(Locale.ROOT);
@@ -370,6 +376,10 @@ public class PushNotificationFormatter {
 
     private String activeLocationPhrase(String location) {
         String withoutPunctuation = stripTerminalPunctuation(location);
+        List<String> sections = multipleSections(withoutPunctuation);
+        if (sections.size() > 1) {
+            return "across " + naturalJoin(sections);
+        }
         Matcher bidirectionalRangeMatcher = BIDIRECTIONAL_RANGE_PATTERN.matcher(withoutPunctuation);
         if (bidirectionalRangeMatcher.matches()) {
             return "between "
@@ -401,6 +411,29 @@ public class PushNotificationFormatter {
             return withoutPunctuation;
         }
         return "at " + withoutPunctuation;
+    }
+
+    private List<String> multipleSections(String location) {
+        if (location == null || !location.contains(";")) {
+            return List.of();
+        }
+        return java.util.Arrays.stream(location.split(";"))
+            .map(this::normalizeDisplayText)
+            .filter(section -> !section.isBlank())
+            .distinct()
+            .toList();
+    }
+
+    private String naturalJoin(List<String> values) {
+        if (values.size() == 1) {
+            return values.getFirst();
+        }
+        if (values.size() == 2) {
+            return values.getFirst() + " and " + values.getLast();
+        }
+        return String.join(", ", values.subList(0, values.size() - 1))
+            + ", and "
+            + values.getLast();
     }
 
     private String reasonPhrase(String cause) {

@@ -225,6 +225,21 @@ class PushNotificationFormatterTest {
     }
 
     @Test
+    void formatsMultiSectionReducedSpeedZoneClearanceWithEverySection() {
+        FormattedPushNotification result = formatter.formatCleared(
+            "Line 1 Yonge-University Reduced Speed Zone",
+            "Eglinton to Davisville (Northbound); St Clair to Summerhill (Southbound)",
+            "Northbound & Southbound",
+            null,
+            Instant.parse("2026-07-22T16:00:00Z")
+        );
+
+        assertThat(result.body()).isEqualTo("""
+            Service across Eglinton to Davisville (Northbound) and St Clair to Summerhill (Southbound) has resumed.
+            🕗 Jul 22, 12:00 PM""");
+    }
+
+    @Test
     void includesCauseWhenSourceSuppliesReason() {
         FormattedPushNotification result = formatter.formatActive(new PushNotificationFacts(
             "line-5",

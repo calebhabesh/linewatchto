@@ -111,7 +111,7 @@ public class LineSubscriptionPushPlanner {
                     "reduced-speed-zone",
                     "on-change",
                     zone.id(),
-                    zone.location(),
+                    reducedSpeedZonePushLocation(zone),
                     zone.displayDirection(),
                     zone.cause(),
                     zone.title(),
@@ -165,6 +165,34 @@ public class LineSubscriptionPushPlanner {
         }
 
         return candidates;
+    }
+
+    private String reducedSpeedZonePushLocation(AlertDashboardService.ReducedSpeedZoneDto zone) {
+        if (!"multiple affected sections".equalsIgnoreCase(zone.location())) {
+            return zone.location();
+        }
+
+        List<String> sections = zone.directionalDetails().stream()
+            .map(detail -> reducedSpeedZoneSection(detail.location(), detail.displayDirection()))
+            .filter(section -> !section.isBlank())
+            .distinct()
+            .toList();
+        return sections.isEmpty() ? zone.location() : String.join("; ", sections);
+    }
+
+    private String reducedSpeedZoneSection(String location, String displayDirection) {
+        String normalizedLocation = location == null ? "" : location.trim().replaceAll("\\s+", " ");
+        String normalizedDirection = displayDirection == null
+            ? ""
+            : displayDirection.trim().replaceAll("\\s+", " ");
+        if (normalizedLocation.isBlank() || normalizedDirection.isBlank()) {
+            return normalizedLocation;
+        }
+        if (normalizedLocation.toLowerCase(java.util.Locale.ROOT)
+            .contains(normalizedDirection.toLowerCase(java.util.Locale.ROOT))) {
+            return normalizedLocation;
+        }
+        return normalizedLocation + " (" + normalizedDirection + ")";
     }
 
     private PushNotificationCandidate createLineCandidate(

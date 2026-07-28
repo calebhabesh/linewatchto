@@ -226,7 +226,7 @@ public class PushNotificationDispatchService {
                         lineEventObservationService.observe(candidate, preferences, observedAt);
                     if (decision.shouldSendActive()
                         && candidate.deliveryAllowed()
-                        && initialLineCurrentDeliveryIsTimely(candidate, decision, observedAt)) {
+                        && lineCurrentDeliveryIsTimely(candidate, observedAt)) {
                         sendableCandidates.add(candidate);
                     }
                 } else if (savedCurrentCategories.contains(candidate.category())) {
@@ -298,12 +298,11 @@ public class PushNotificationDispatchService {
             : lineSubscriptionPushPlanner.candidatesFor(accountId, subscribedLineIds, policy);
     }
 
-    private boolean initialLineCurrentDeliveryIsTimely(
+    private boolean lineCurrentDeliveryIsTimely(
         PushNotificationCandidate candidate,
-        PushLineEventObservationService.ObservationDecision decision,
         Instant now
     ) {
-        if (!decision.firstObserved() || !"reduced-speed-zone".equals(candidate.eventType())) {
+        if (!"reduced-speed-zone".equals(candidate.eventType())) {
             return true;
         }
         if (candidate.sourceEventAt() == null) {
