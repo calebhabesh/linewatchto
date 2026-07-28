@@ -44,9 +44,8 @@ describe("feedback navigation", () => {
     assert.match(shellSource, /FeedbackPanel/);
     assert.match(shellSource, /NEXT_PUBLIC_LINEWATCH_SUPPORT_URL/);
     assert.match(shellSource, /Leave Feedback/);
-    assert.match(shellSource, /setActiveView\("feedback"\)/);
+    assert.match(shellSource, /navigateForward\("feedback"\)/);
     assert.match(moreSheetSource, /onOpenFeedback/);
     assert.match(moreSheetSource, /Leave Feedback/);
   });
 });
-

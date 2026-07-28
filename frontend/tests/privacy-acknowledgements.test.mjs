@@ -54,7 +54,7 @@ describe("privacy and acknowledgement navigation", () => {
     assert.equal(existsSync(panelUrl), true);
     assert.match(shellSource, /"privacy-acknowledgements"/);
     assert.match(shellSource, /PrivacyAcknowledgementsPanel/);
-    assert.match(shellSource, /setActiveView\("privacy-acknowledgements"\)/);
+    assert.match(shellSource, /navigateForward\("privacy-acknowledgements"\)/);
     assert.match(shellSource, /Privacy & Acknowledgements/);
     assert.match(moreSheetSource, /onOpenPrivacyAcknowledgements/);
     assert.match(moreSheetSource, /Privacy & Acknowledgements/);

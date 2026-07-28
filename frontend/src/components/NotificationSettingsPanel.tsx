@@ -134,7 +134,7 @@ export function NotificationSettingsPanel({
 
       <div className="notification-settings-scroll">
         {!accountState.authenticated ? (
-          <div className="notification-settings-prompt !p-4 !flex !flex-col !gap-4">
+          <div className="account-feature-preview notification-settings-prompt !p-4 !flex !flex-col !gap-4">
             <div>
               <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2 mb-1.5">
                 <Bell className="w-4 h-4 text-emerald-500 shrink-0" aria-hidden="true" />

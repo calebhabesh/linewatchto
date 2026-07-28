@@ -38,9 +38,12 @@ describe("mobile navigation motion", () => {
     assert.match(globalCss, /data-nav-direction="forward"[\s\S]*panel-container-forward/);
     assert.match(globalCss, /data-nav-direction="back"[\s\S]*panel-container-back/);
     assert.match(globalCss, /data-closing="true"[\s\S]*mobile-sheet-slide-down-exit/);
-    assert.match(shellSource, /onMobileNavSelect[\s\S]*setNavDirection\("root"\)/);
+    assert.match(shellSource, /onMobileNavSelect[\s\S]*navigateRoot\("status"\)/);
     assert.match(shellSource, /handleSubmenuBack[\s\S]*setNavDirection\("back"\)/);
-    assert.match(shellSource, /onOpenCategory=\{\(view\) => \{\s*setNavDirection\("forward"\)/);
+    assert.match(shellSource, /onOpenCategory=\{\(view\) => \{[\s\S]*navigateForward\(view\)/);
+    assert.match(shellSource, /onOpenCommutes=\{\(\) => navigateForward\("commutes"\)\}/);
+    assert.match(shellSource, /onOpenMyStations=\{\(\) => navigateForward\("my-stations"\)\}/);
+    assert.match(shellSource, /popViewHistory\(viewHistoryRef\.current, fallback\)/);
   });
 
   it("animates account container entry and keyed inner view changes", () => {

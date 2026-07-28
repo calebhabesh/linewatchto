@@ -68,7 +68,7 @@ describe("release notes UI wiring", () => {
   });
 
   it("adds release notes to desktop, mobile More, and update surfaces", () => {
-    assert.match(shellSource, /setActiveView\("release-notes"\)/);
+    assert.match(shellSource, /navigateForward\("release-notes"\)/);
     assert.match(shellSource, /What's New/);
     assert.match(moreSheetSource, /onOpenReleaseNotes/);
     assert.match(moreSheetSource, /hasReleaseNotes/);

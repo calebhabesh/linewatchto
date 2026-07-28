@@ -1999,7 +1999,7 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
   }
 
   .my-stations-body {
-    padding: 10px;
+    padding: 12px;
   }
 
   .my-stations-title h2 > span {
@@ -10856,6 +10856,29 @@ img.transit-line-badge {
   border-radius: 8px;
 }
 
+/* Keep signed-out feature previews visually identical across Notifications,
+   My Commutes, and My Stations. */
+.account-feature-preview {
+  background: rgba(255, 255, 255, 0.82) !important;
+  border: 1px solid rgba(15, 23, 42, 0.08) !important;
+  border-radius: 8px !important;
+  box-shadow: none !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 1rem !important;
+  padding: 1rem !important;
+}
+
+.dark .account-feature-preview {
+  background: #151821 !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+.high-contrast .account-feature-preview {
+  background: #000000 !important;
+  border-color: #ffffff !important;
+}
+
 .notification-settings-card {
   display: grid;
   gap: 0.5rem;
@@ -16215,7 +16238,7 @@ img.transit-line-badge {
     border: 1px solid #ffffff;
   }
 
-  .saved-commute-account-prompt {
+  .saved-commute-account-prompt:not(.account-feature-preview) {
     border: none !important;
     background: transparent !important;
     box-shadow: none !important;

@@ -967,7 +967,7 @@ export function SavedCommutesPanel({
       </div>
       <div key={activeView} className="commute-grid min-w-0 px-3 sm:px-4 py-3 flex flex-col gap-3" data-nav-direction={activeView === "create" ? "forward" : "back"}>
         {!accountState.authenticated ? (
-          <div className="saved-commute-account-prompt p-4 rounded-lg flex flex-col gap-4 border border-black/10 dark:border-white/10">
+          <div className="account-feature-preview saved-commute-account-prompt p-4 rounded-lg flex flex-col gap-4 border border-black/10 dark:border-white/10">
             <div>
               <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2 mb-1.5">
                 <svg className="w-4 h-4 text-emerald-500 shrink-0" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">

@@ -601,7 +601,7 @@ export function MyStationsPanel({
 
       <div key={mode} className="my-stations-body" data-nav-direction={mode === "add" ? "forward" : "back"}>
         {!authenticated ? (
-          <div className="saved-commute-account-prompt p-4 rounded-lg flex flex-col gap-4 border border-black/10 dark:border-white/10">
+          <div className="account-feature-preview saved-commute-account-prompt p-4 rounded-lg flex flex-col gap-4 border border-black/10 dark:border-white/10">
             <div>
               <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2 mb-1.5">
                 <Bookmark className="w-4 h-4 text-sky-500 shrink-0" aria-hidden="true" />

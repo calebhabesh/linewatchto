@@ -319,8 +319,10 @@ describe("mobile bottom sheet UX", () => {
   });
 
   it("ensures mobile submenu headers are below top URL bar and fit on a single line", () => {
-    // Check back navigation history state
-    assert.match(shellSource, /previousView/);
+    // Check chronological back navigation history state
+    assert.match(shellSource, /viewHistoryRef/);
+    assert.match(shellSource, /pushViewHistory/);
+    assert.match(shellSource, /popViewHistory/);
     assert.match(shellSource, /handleSubmenuBack/);
     // Check css rules for single-line headers and top offset max-height constraint
     assert.match(globalCss, /\.floating-panel-shell \.panel-heading/);

@@ -126,6 +126,7 @@ import {
   type NetworkId,
   type RegionalScenarioId,
 } from "../app/regional-data";
+import { popViewHistory, pushViewHistory } from "../app/view-navigation";
 
 
 type ActiveView = "map" | "menu" | "search" | "status" | "alerts" | "delays" | "reduced-speed-zones" | "closures" | "commutes" | "notifications" | "analytics" | "more" | "my-stations" | "accessibility-outages" | "surface-notices" | "alert-history" | "feedback" | "privacy-acknowledgements" | "release-notes";
@@ -268,9 +269,9 @@ export function LineWatchShell({
   const [navDirection, setNavDirection] = useState<"root" | "forward" | "back">("root");
   const [menuPinned, setMenuPinned] = useState(false);
   const [menuPinPreferenceReady, setMenuPinPreferenceReady] = useState(false);
-  const [previousView, setPreviousView] = useState<ActiveView>("status");
   const [isMobile, setIsMobile] = useState(false);
-  const lastActiveViewRef = useRef<ActiveView>("map");
+  const activeViewRef = useRef<ActiveView>("map");
+  const viewHistoryRef = useRef<ActiveView[]>([]);
   const [mobileInspectorDetent, setMobileInspectorDetent] = useState<MobileInspectorDetent>("details-focus");
   const [mapLayoutSignal, setMapLayoutSignal] = useState(0);
   const [mapPresentationMode, setMapPresentationMode] = useState<MapPresentationMode>("standard");
@@ -439,21 +440,23 @@ export function LineWatchShell({
   }, []);
 
   useEffect(() => {
-    const prev = lastActiveViewRef.current;
-    if (prev !== activeView) {
-      const isSubmenu = (view: ActiveView) =>
-        view === "alerts" ||
-        view === "delays" ||
-        view === "reduced-speed-zones" ||
-        view === "closures" ||
-        view === "accessibility-outages";
-      
-      if (isSubmenu(activeView) && !isSubmenu(prev)) {
-        setPreviousView(prev);
-      }
-      lastActiveViewRef.current = activeView;
-    }
+    activeViewRef.current = activeView;
   }, [activeView]);
+
+  const navigateForward = useCallback((nextView: ActiveView) => {
+    const currentView = activeViewRef.current;
+    viewHistoryRef.current = pushViewHistory(viewHistoryRef.current, currentView, nextView);
+    activeViewRef.current = nextView;
+    setNavDirection("forward");
+    setActiveView(nextView);
+  }, [setActiveView]);
+
+  const navigateRoot = useCallback((nextView: ActiveView) => {
+    viewHistoryRef.current = [];
+    activeViewRef.current = nextView;
+    setNavDirection("root");
+    setActiveView(nextView);
+  }, [setActiveView]);
 
   useEffect(() => {
     if (!isMobile && mapPresentationMode !== "standard") {
@@ -539,11 +542,13 @@ export function LineWatchShell({
   const handleClosePanel = useCallback(() => {
     if (isClosingPanel) return;
     setIsClosingPanel(true);
+    viewHistoryRef.current = [];
     setSelectedStationId(null);
     if (closingTimeoutRef.current) {
       window.clearTimeout(closingTimeoutRef.current);
     }
     closingTimeoutRef.current = window.setTimeout(() => {
+      activeViewRef.current = "map";
       setActiveView("map");
       setIsClosingPanel(false);
       setSelection(null);
@@ -563,23 +568,26 @@ export function LineWatchShell({
       window.clearTimeout(backTimeoutRef.current);
     }
     backTimeoutRef.current = window.setTimeout(() => {
-      setActiveView(() => {
-        if (previousView === "my-stations") {
-          return "my-stations";
-        }
-        if (isMobile) {
-          if (activeView === "notifications") {
-            return "more";
-          }
-          return previousView && previousView !== "map" ? previousView : "more";
-        }
-        return "menu";
-      });
+      const mobileFallback = activeView === "alerts"
+        || activeView === "delays"
+        || activeView === "reduced-speed-zones"
+        || activeView === "closures"
+        || activeView === "accessibility-outages"
+        || activeView === "surface-notices"
+          ? "status"
+          : activeView === "commutes"
+            ? "map"
+            : "more";
+      const fallback: ActiveView = isMobile ? mobileFallback : "menu";
+      const previous = popViewHistory(viewHistoryRef.current, fallback);
+      viewHistoryRef.current = previous.history;
+      activeViewRef.current = previous.view;
+      setActiveView(previous.view);
       setIsGoingBack(false);
       setSelection(null);
       setAccessibilityOutageTarget(null);
     }, reducedMotion ? 0 : 180);
-  }, [activeView, isMobile, previousView, reducedMotion, setActiveView, setSelection]);
+  }, [activeView, isMobile, reducedMotion, setActiveView, setSelection]);
 
   const [accountState, setAccountState] = useState<AccountState>({
     source: "unavailable",
@@ -874,8 +882,7 @@ export function LineWatchShell({
     setSelection(null);
     setSelectedStationId(null);
     setCommutePathPreview(null);
-    setNavDirection("forward");
-    setActiveView("my-stations");
+    navigateForward("my-stations");
   };
 
   const resetAccountForm = () => {
@@ -1527,19 +1534,17 @@ export function LineWatchShell({
   }, [selectedNetwork, selectedStationId]);
 
   const handleToggleMenu = () => {
-    setNavDirection("root");
     if (menuPinned) {
       setMenuPinned(false);
-      setActiveView("map");
+      navigateRoot("map");
       return;
     }
-    setActiveView(prev => {
-      if (prev !== "menu" && prev !== "map") {
-        setSelection(null);
-        setSelectedStationId(null);
-      }
-      return prev === "menu" ? "map" : "menu";
-    });
+    const nextView = activeViewRef.current === "menu" ? "map" : "menu";
+    if (activeViewRef.current !== "menu" && activeViewRef.current !== "map") {
+      setSelection(null);
+      setSelectedStationId(null);
+    }
+    navigateRoot(nextView);
   };
 
   const menuVisible = activeView === "menu" || menuPinned;
@@ -1603,15 +1608,12 @@ export function LineWatchShell({
   }, []);
 
   const handleOpenSearch = () => {
-    setNavDirection("root");
-    setActiveView((prev) => {
-      if (prev !== "search" && prev !== "map") {
-        setSelection(null);
-        setSelectedStationId(null);
-      }
-      window.setTimeout(() => stationSearchInputRef.current?.focus(), 0);
-      return "search";
-    });
+    if (activeViewRef.current !== "search" && activeViewRef.current !== "map") {
+      setSelection(null);
+      setSelectedStationId(null);
+    }
+    window.setTimeout(() => stationSearchInputRef.current?.focus(), 0);
+    navigateRoot("search");
   };
 
   // Dismiss search when clicking outside the header bar and the search panel
@@ -1671,7 +1673,6 @@ export function LineWatchShell({
   }, [activeView]);
 
   const onMobileNavSelect = useCallback((key: MobileNavKey) => {
-    setNavDirection("root");
     setSelection(null);
     setSelectedStationId(null);
     setCommutePathPreview(null);
@@ -1680,31 +1681,30 @@ export function LineWatchShell({
     recordPwaInstallEngagement();
     switch (key) {
       case "status":
-        setActiveView("status");
+        navigateRoot("status");
         return;
       case "search":
-        setActiveView("search");
+        navigateRoot("search");
         return;
       case "commutes":
-        setActiveView("commutes");
+        navigateRoot("commutes");
         return;
       case "more":
-        setActiveView("more");
+        navigateRoot("more");
         return;
       case "map":
       default:
-        setActiveView("map");
+        navigateRoot("map");
     }
-  }, [setActiveView, setCommutePathPreview, setMapPresentationMode, setMobileInspectorDetent, setSelectedStationId, setSelection, recordPwaInstallEngagement]);
+  }, [navigateRoot, setCommutePathPreview, setMapPresentationMode, setMobileInspectorDetent, setSelectedStationId, setSelection, recordPwaInstallEngagement]);
 
 
   const handleMobileSheetClose = useCallback(() => {
-    setNavDirection("root");
-    setActiveView("map");
+    navigateRoot("map");
     setSelection(null);
     setMapPresentationMode("standard");
     setMobileInspectorDetent("map-focus");
-  }, [setActiveView, setMapPresentationMode, setMobileInspectorDetent, setSelection]);
+  }, [navigateRoot, setMapPresentationMode, setMobileInspectorDetent, setSelection]);
 
   const viewForImpactKind = useCallback((kind: ImpactKind): ActiveView => {
     switch (kind) {
@@ -1730,13 +1730,12 @@ export function LineWatchShell({
   }, [activeAlerts, viewForImpactKind]);
 
   const handleSearchSelectImpact = useCallback((nextSelection: NonNullable<ImpactSelection>) => {
-    setNavDirection("forward");
     setSelectedStationId(null);
     setCommutePathPreview(null);
     setSelection(nextSelection);
     setMobileInspectorDetent("details-focus");
-    setActiveView(viewForImpactSelection(nextSelection));
-  }, [setActiveView, setCommutePathPreview, setMobileInspectorDetent, setSelectedStationId, setSelection, viewForImpactSelection]);
+    navigateForward(viewForImpactSelection(nextSelection));
+  }, [navigateForward, setCommutePathPreview, setMobileInspectorDetent, setSelectedStationId, setSelection, viewForImpactSelection]);
 
   const handleSearchSelectStation = (stationId: string, networkId: NetworkId) => {
     if (networkId === selectedNetwork) {
@@ -1750,45 +1749,39 @@ export function LineWatchShell({
   };
 
   const handleSearchOpenImpactCategory = useCallback((kind: ImpactKind) => {
-    setNavDirection("forward");
     setSelectedStationId(null);
     setCommutePathPreview(null);
     setSelection(null);
-    setActiveView(viewForImpactKind(kind));
-  }, [setActiveView, setCommutePathPreview, setSelectedStationId, setSelection, viewForImpactKind]);
+    navigateForward(viewForImpactKind(kind));
+  }, [navigateForward, setCommutePathPreview, setSelectedStationId, setSelection, viewForImpactKind]);
 
   const handleSearchOpenSurfaceNotice = useCallback((notice: SurfaceNoticeDetail) => {
-    setNavDirection("forward");
     const targetQuery = notice.routeIds[0]
       ?? notice.stops?.[0]?.stopName
       ?? notice.stopIds[0]
       ?? notice.title;
     setSurfaceNoticeInitialQuery(targetQuery);
-    setActiveView("surface-notices");
-  }, [setActiveView]);
+    navigateForward("surface-notices");
+  }, [navigateForward]);
 
   const handleMyStationsSelectImpactDetails = useCallback((nextSelection: NonNullable<ImpactSelection>) => {
-    setNavDirection("forward");
-    setPreviousView("my-stations");
     setSelectedStationId(null);
     setCommutePathPreview(null);
     setSelection(nextSelection);
     setMobileInspectorDetent("details-focus");
-    setActiveView(viewForImpactSelection(nextSelection));
-  }, [setActiveView, setCommutePathPreview, setMobileInspectorDetent, setSelectedStationId, setSelection, viewForImpactSelection]);
+    navigateForward(viewForImpactSelection(nextSelection));
+  }, [navigateForward, setCommutePathPreview, setMobileInspectorDetent, setSelectedStationId, setSelection, viewForImpactSelection]);
 
   const handleMyStationsSelectAccessibilityOutageDetails = useCallback((
     assetType: AccessibilityOutageTarget["assetType"],
     stationId: string,
   ) => {
-    setNavDirection("forward");
-    setPreviousView("my-stations");
     setSelection(null);
     setSelectedStationId(null);
     setCommutePathPreview(null);
     setAccessibilityOutageTarget({ assetType, stationId });
-    setActiveView("accessibility-outages");
-  }, [setActiveView, setCommutePathPreview, setSelectedStationId, setSelection]);
+    navigateForward("accessibility-outages");
+  }, [navigateForward, setCommutePathPreview, setSelectedStationId, setSelection]);
 
   const handleMyStationsDisruptionExpandedChange = useCallback((stationId: string, expanded: boolean) => {
     setExpandedMyStationDisruptionIds((current) => {
@@ -1967,9 +1960,8 @@ export function LineWatchShell({
             dataSource={displayData.dataSource}
             networkId={selectedNetwork}
             onOpenCategory={(view) => {
-              setNavDirection("forward");
               setSelection(null);
-              setActiveView(view);
+              navigateForward(view);
             }}
             onClose={handleMobileSheetClose}
             accessibilityOutageCount={
@@ -2033,7 +2025,7 @@ export function LineWatchShell({
             onClose={handleClosePanel}
             onRequestSignIn={() => openAuthChoice("login")}
             onRequestCreateAccount={() => openAuthChoice("register")}
-            onOpenNotificationSettings={() => { setNavDirection("forward"); setActiveView("notifications"); }}
+            onOpenNotificationSettings={() => navigateForward("notifications")}
             notificationSummary={notificationSummary}
             activeView={commutesActiveTab}
             onActiveViewChange={setCommutesActiveTab}
@@ -2120,18 +2112,18 @@ export function LineWatchShell({
             onToggleHighContrast={handleToggleHighContrast}
             onToggleReducedMotion={handleToggleReducedMotion}
             onToggleDotBackground={handleToggleDotBackground}
-            onOpenNotifications={() => { setNavDirection("forward"); setActiveView("notifications"); }}
-            onOpenCommutes={() => { setNavDirection("forward"); setActiveView("commutes"); }}
-            onOpenMyStations={() => { setNavDirection("forward"); setActiveView("my-stations"); }}
+            onOpenNotifications={() => navigateForward("notifications")}
+            onOpenCommutes={() => navigateForward("commutes")}
+            onOpenMyStations={() => navigateForward("my-stations")}
             savedStationCount={currentSavedStations.length}
             defaultNetwork={defaultNetworkPreference}
             currentNetwork={selectedNetwork}
             onDefaultNetworkChange={handleDefaultNetworkChange}
-            onOpenAnalytics={() => { setNavDirection("forward"); setActiveView("analytics"); }}
-            onOpenAlertHistory={() => { setNavDirection("forward"); setActiveView("alert-history"); }}
-            onOpenFeedback={() => { setNavDirection("forward"); setActiveView("feedback"); }}
-            onOpenPrivacyAcknowledgements={() => { setNavDirection("forward"); setActiveView("privacy-acknowledgements"); }}
-            onOpenReleaseNotes={() => { setNavDirection("forward"); setActiveView("release-notes"); }}
+            onOpenAnalytics={() => navigateForward("analytics")}
+            onOpenAlertHistory={() => navigateForward("alert-history")}
+            onOpenFeedback={() => navigateForward("feedback")}
+            onOpenPrivacyAcknowledgements={() => navigateForward("privacy-acknowledgements")}
+            onOpenReleaseNotes={() => navigateForward("release-notes")}
             onShareApp={handleShareLineWatchApp}
             shareStatusLabel={shareStatusLabel}
             notificationStatusLabel={notificationStatusLabel}
@@ -2480,7 +2472,7 @@ export function LineWatchShell({
                       <button
                         ref={registerMenuAction(actionIndex++)}
                         role="menuitem"
-                        onClick={() => { setNavDirection("root"); setActiveView("commutes"); }}
+                        onClick={() => navigateForward("commutes")}
                         aria-current={activeView === "commutes" ? "page" : undefined}
                         className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors w-full"
                       >
@@ -2502,7 +2494,7 @@ export function LineWatchShell({
                       <button
                         ref={registerMenuAction(actionIndex++)}
                         role="menuitem"
-                        onClick={() => { setNavDirection("root"); setActiveView("my-stations"); }}
+                        onClick={() => navigateForward("my-stations")}
                         aria-current={activeView === "my-stations" ? "page" : undefined}
                         className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors w-full"
                       >
@@ -2553,7 +2545,7 @@ export function LineWatchShell({
                       <button
                         ref={registerMenuAction(actionIndex++)}
                         role="menuitem"
-                        onClick={() => { setNavDirection("root"); setActiveView("commutes"); }}
+                        onClick={() => navigateForward("commutes")}
                         aria-current={activeView === "commutes" ? "page" : undefined}
                         className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors w-full"
                       >
@@ -2575,7 +2567,7 @@ export function LineWatchShell({
                       <button
                         ref={registerMenuAction(actionIndex++)}
                         role="menuitem"
-                        onClick={() => { setNavDirection("root"); setActiveView("my-stations"); }}
+                        onClick={() => navigateForward("my-stations")}
                         aria-current={activeView === "my-stations" ? "page" : undefined}
                         className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors w-full"
                       >
@@ -2616,7 +2608,7 @@ export function LineWatchShell({
                  <button
                    ref={registerMenuAction(actionIndex++)}
                    role="menuitem"
-                   onClick={() => { setNavDirection("root"); setActiveView("alerts"); }}
+                   onClick={() => navigateForward("alerts")}
                    aria-current={activeView === "alerts" ? "page" : undefined}
                    className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
                  >
@@ -2632,7 +2624,7 @@ export function LineWatchShell({
                  <button
                    ref={registerMenuAction(actionIndex++)}
                    role="menuitem"
-                   onClick={() => { setNavDirection("root"); setActiveView("delays"); }}
+                   onClick={() => navigateForward("delays")}
                    aria-current={activeView === "delays" ? "page" : undefined}
                    className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
                  >
@@ -2648,7 +2640,7 @@ export function LineWatchShell({
                  {selectedNetwork === "ttc" ? <button
                    ref={registerMenuAction(actionIndex++)}
                    role="menuitem"
-                   onClick={() => { setNavDirection("root"); setActiveView("reduced-speed-zones"); }}
+                   onClick={() => navigateForward("reduced-speed-zones")}
                    aria-current={activeView === "reduced-speed-zones" ? "page" : undefined}
                    className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
                  >
@@ -2664,7 +2656,7 @@ export function LineWatchShell({
                  <button
                    ref={registerMenuAction(actionIndex++)}
                    role="menuitem"
-                   onClick={() => { setNavDirection("root"); setActiveView("closures"); }}
+                   onClick={() => navigateForward("closures")}
                    aria-current={activeView === "closures" ? "page" : undefined}
                    className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
                  >
@@ -2680,7 +2672,7 @@ export function LineWatchShell({
                  {selectedNetwork === "ttc" ? <button
                    ref={registerMenuAction(actionIndex++)}
                    role="menuitem"
-                   onClick={() => { setNavDirection("root"); setActiveView("accessibility-outages"); }}
+                   onClick={() => navigateForward("accessibility-outages")}
                    aria-current={activeView === "accessibility-outages" ? "page" : undefined}
                    className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
                  >
@@ -2710,7 +2702,7 @@ export function LineWatchShell({
                  {selectedNetwork === "ttc" ? <button
                    ref={registerMenuAction(actionIndex++)}
                    role="menuitem"
-                   onClick={() => { setNavDirection("root"); setActiveView("surface-notices"); }}
+                   onClick={() => navigateForward("surface-notices")}
                    aria-current={activeView === "surface-notices" ? "page" : undefined}
                    className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
                  >
@@ -2734,7 +2726,7 @@ export function LineWatchShell({
                  <button
                    ref={registerMenuAction(actionIndex++)}
                    role="menuitem"
-                   onClick={() => { setNavDirection("root"); setActiveView("notifications"); }}
+                   onClick={() => navigateForward("notifications")}
                    aria-current={activeView === "notifications" ? "page" : undefined}
                    className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
                  >
@@ -2743,7 +2735,7 @@ export function LineWatchShell({
                  <button
                    ref={registerMenuAction(actionIndex++)}
                    role="menuitem"
-                   onClick={() => { setNavDirection("root"); setActiveView("alert-history"); }}
+                   onClick={() => navigateForward("alert-history")}
                    aria-current={activeView === "alert-history" ? "page" : undefined}
                    className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
                  >
@@ -2760,7 +2752,7 @@ export function LineWatchShell({
                  <button
                    ref={registerMenuAction(actionIndex++)}
                    role="menuitem"
-                   onClick={() => { setNavDirection("root"); setActiveView("analytics"); }}
+                   onClick={() => navigateForward("analytics")}
                    aria-current={activeView === "analytics" ? "page" : undefined}
                    className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
                  >
@@ -2830,7 +2822,7 @@ export function LineWatchShell({
                  <button
                    ref={registerMenuAction(actionIndex++)}
                    role="menuitem"
-                   onClick={() => { setNavDirection("root"); setActiveView("feedback"); }}
+                   onClick={() => navigateForward("feedback")}
                    aria-current={activeView === "feedback" ? "page" : undefined}
                    className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
                  >
@@ -2839,7 +2831,7 @@ export function LineWatchShell({
                  <button
                    ref={registerMenuAction(actionIndex++)}
                    role="menuitem"
-                   onClick={() => { setNavDirection("root"); setActiveView("privacy-acknowledgements"); }}
+                   onClick={() => navigateForward("privacy-acknowledgements")}
                    aria-current={activeView === "privacy-acknowledgements" ? "page" : undefined}
                    className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
                  >
@@ -2849,7 +2841,7 @@ export function LineWatchShell({
                    <button
                      ref={registerMenuAction(actionIndex++)}
                      role="menuitem"
-                     onClick={() => { setNavDirection("root"); setActiveView("release-notes"); }}
+                     onClick={() => navigateForward("release-notes")}
                      aria-current={activeView === "release-notes" ? "page" : undefined}
                      className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
                    >
@@ -2954,11 +2946,11 @@ export function LineWatchShell({
               if (view === "commutes") {
                 setCommutesActiveTab("saved");
               }
-              setActiveView(view);
+              navigateForward(view);
             }}
             onOpenSavedCommute={() => {
               setCommutesActiveTab("saved");
-              setActiveView("commutes");
+              navigateForward("commutes");
             }}
             onOpenSurfaceNotice={handleSearchOpenSurfaceNotice}
           />
@@ -3137,19 +3129,19 @@ export function LineWatchShell({
             expanded: legendExpanded,
             onToggleExpanded: () => setLegendExpanded(!legendExpanded),
             onAlertClick: () => {
-              setActiveView("alerts");
+              navigateForward("alerts");
               setSelection(null);
             },
             onDelayClick: () => {
-              setActiveView("delays");
+              navigateForward("delays");
               setSelection(null);
             },
             onReducedSpeedZoneClick: () => {
-              setActiveView("reduced-speed-zones");
+              navigateForward("reduced-speed-zones");
               setSelection(null);
             },
             onClosureClick: () => {
-              setActiveView("closures");
+              navigateForward("closures");
               setSelection(null);
             },
           }}
@@ -3289,7 +3281,7 @@ export function LineWatchShell({
               className="desktop-status-chip desktop-status-chip--alerts"
               onClick={() => {
                 setSelection(null);
-                setActiveView("alerts");
+                navigateForward("alerts");
               }}
               aria-label={`${activeAlerts.length} ${activeAlerts.length === 1 ? "active alert" : "active alerts"}`}
               title={`${activeAlerts.length} ${activeAlerts.length === 1 ? "Active Alert" : "Active Alerts"}`}
@@ -3305,7 +3297,7 @@ export function LineWatchShell({
               className="desktop-status-chip desktop-status-chip--delays"
               onClick={() => {
                 setSelection(null);
-                setActiveView("delays");
+                navigateForward("delays");
               }}
               aria-label={`${delays.length} ${delays.length === 1 ? "delay" : "delays"}`}
               title={`${delays.length} ${delays.length === 1 ? "Delay" : "Delays"}`}
@@ -3321,7 +3313,7 @@ export function LineWatchShell({
               className="desktop-status-chip desktop-status-chip--reduced-speed-zone"
               onClick={() => {
                 setSelection(null);
-                setActiveView("reduced-speed-zones");
+                navigateForward("reduced-speed-zones");
               }}
               aria-label={`${reducedSpeedZones.length} ${reducedSpeedZones.length === 1 ? "reduced speed zone" : "reduced speed zones"}`}
               title={`${reducedSpeedZones.length} ${reducedSpeedZones.length === 1 ? "Reduced Speed Zone" : "Reduced Speed Zones"}`}
@@ -3339,7 +3331,7 @@ export function LineWatchShell({
               className="desktop-status-chip desktop-status-chip--closures"
               onClick={() => {
                 setSelection(null);
-                setActiveView("closures");
+                navigateForward("closures");
               }}
               aria-label={`${plannedClosures.length} ${plannedClosures.length === 1 ? "planned closure" : "planned closures"}`}
               title={`${plannedClosures.length} ${plannedClosures.length === 1 ? "Planned Closure" : "Planned Closures"}`}
@@ -3396,7 +3388,7 @@ export function LineWatchShell({
         onViewReleaseNotes={() => {
           setSelection(null);
           setSelectedStationId(null);
-          setActiveView("release-notes");
+          navigateForward("release-notes");
         }}
       />
 
@@ -3409,10 +3401,10 @@ export function LineWatchShell({
           plannedClosureCount={plannedClosures.length}
           pollText={pollText}
           dataSource={displayData.dataSource}
-          onOpenStatus={() => setActiveView("status")}
+          onOpenStatus={() => navigateForward("status")}
           onOpenCategory={(view) => {
             setSelection(null);
-            setActiveView(view);
+            navigateForward(view);
           }}
           onRecenter={() => setRecenterSignal((prev) => prev + 1)}
         />

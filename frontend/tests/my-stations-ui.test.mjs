@@ -14,7 +14,7 @@ describe("My Stations UI", () => {
   it("adds an account-owned shell view with desktop and mobile navigation", () => {
     assert.match(shell, /"my-stations"/);
     assert.match(shell, /<MyStationsPanel/);
-    assert.match(shell, /onClick=\{\(\) => \{ setNavDirection\("root"\); setActiveView\("my-stations"\); \}\}/);
+    assert.match(shell, /onClick=\{\(\) => navigateForward\("my-stations"\)\}/);
     assert.match(mobileMore, /My Commutes/);
     assert.match(mobileMore, /My Stations/);
     assert.ok(mobileMore.indexOf("My Commutes") < mobileMore.indexOf("My Stations"));
@@ -25,7 +25,7 @@ describe("My Stations UI", () => {
     assert.match(shell, /className="saved-station-notice-action"[\s\S]*My Stations/);
     assert.match(shell, /className="site-guide-network-stack"[\s\S]*className="mobile-network-selector-slot"[\s\S]*className="mobile-my-stations-shortcut md:hidden"/);
     assert.match(shell, /aria-label="Open My Stations"/);
-    assert.match(shell, /setActiveView\("my-stations"\)/);
+    assert.match(shell, /navigateForward\("my-stations"\)/);
     assert.match(styles, /\.mobile-my-stations-shortcut\s*\{[\s\S]*width:\s*var\(--mobile-top-action-button-size\) !important;/);
     assert.match(styles, /\.saved-station-notice-action\s*\{/);
   });
@@ -170,10 +170,9 @@ describe("My Stations UI", () => {
     assert.match(panel, /saved-commute-impact-map-button/);
     assert.match(shell, /onSelectImpactDetails=\{handleMyStationsSelectImpactDetails\}/);
     assert.match(shell, /onSelectAccessibilityOutageDetails=\{handleMyStationsSelectAccessibilityOutageDetails\}/);
-    assert.match(shell, /previousView === "my-stations"/);
-    assert.match(shell, /setActiveView\(viewForImpactSelection\(nextSelection\)\)/);
+    assert.match(shell, /navigateForward\(viewForImpactSelection\(nextSelection\)\)/);
     assert.match(shell, /initialTarget=\{accessibilityOutageTarget\}/);
-    assert.match(shell, /setPreviousView\("my-stations"\)/);
+    assert.match(shell, /navigateForward\("accessibility-outages"\)/);
     assert.match(shell, /expandedDisruptionStationIds=\{expandedMyStationDisruptionIds\}/);
     assert.match(panel, /open=\{disruptionExpanded\}/);
     assert.match(panel, /onToggle=\{\(event\) => onDisruptionExpandedChange\(event\.currentTarget\.open\)\}/);

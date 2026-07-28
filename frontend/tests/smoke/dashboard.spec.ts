@@ -2133,6 +2133,31 @@ test("mobile uses bottom navigation and status sheets", async ({ page, request, 
   await expect(page.getByRole("button", { name: /High Contrast Mode/ })).toBeVisible();
 });
 
+test("submenu Back reverses the path used to open account features", async ({ page, request, isMobile }) => {
+  await setStubMode(request, "seeded");
+  await openDashboardMenu(page, isMobile);
+
+  const openFeature = async (name: "My Commutes" | "My Stations" | "Notifications") => {
+    if (isMobile) {
+      const mobileName = name === "Notifications" ? /^Notifications/ : name;
+      await page.getByRole("button", { name: mobileName, exact: name !== "Notifications" }).click();
+    } else {
+      await page.getByRole("menuitem", { name, exact: true }).click();
+    }
+    await expect(page.getByRole("heading", { name, exact: true })).toBeVisible();
+    await page.getByRole("button", { name: "Back", exact: true }).click();
+    if (isMobile) {
+      await expect(page.getByRole("heading", { name: "More", exact: true })).toBeVisible();
+    } else {
+      await expect(page.getByRole("menu")).toBeVisible();
+    }
+  };
+
+  await openFeature("My Commutes");
+  await openFeature("My Stations");
+  await openFeature("Notifications");
+});
+
 test("manages push notification preferences on mobile", async ({ page, request, isMobile }) => {
   test.skip(!isMobile, "mobile-only push notification preferences smoke");
   await setStubMode(request, "seeded");
