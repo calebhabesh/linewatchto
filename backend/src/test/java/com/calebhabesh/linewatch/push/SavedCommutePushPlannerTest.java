@@ -546,6 +546,24 @@ class SavedCommutePushPlannerTest {
         });
     }
 
+    @Test
+    void excludesRegionalCommutesUntilRegionalPushSliceExists() {
+        SavedCommuteEntity commute = SavedCommuteEntity.create(
+            "commute_regional",
+            account,
+            "Airport",
+            "regional",
+            "bloor",
+            "pearson-airport",
+            true,
+            Instant.parse("2026-07-28T14:30:00Z")
+        );
+
+        assertThat(planner.candidatesFor(commute)).isEmpty();
+        verify(commutePathService, never()).path("bloor", "pearson-airport");
+        verify(commutePathService, never()).path("pearson-airport", "bloor");
+    }
+
     private CommuteResponses.PathResponse path(String fromStationId, String toStationId, String segmentId) {
         return new CommuteResponses.PathResponse(
             "available",

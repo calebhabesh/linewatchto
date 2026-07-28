@@ -2,7 +2,7 @@
 
 
 import { Fragment, useEffect, useRef, useState } from "react";
-import { AlertCircle, AlertTriangle, ArrowRight, BadgeInfo, Bookmark, Check, ChevronDown, Clock3, Construction, LoaderCircle, X } from "lucide-react";
+import { AlertCircle, AlertTriangle, ArrowRight, BadgeInfo, Check, ChevronDown, Clock3, Construction } from "lucide-react";
 import Image from "next/image";
 import { normalizeDashboardSourceLabel } from "../app/dashboard-source-label";
 import { formatImpactTimestamp } from "../app/impact-time";
@@ -30,6 +30,7 @@ import type {
 } from "../app/linewatch-data";
 import { DelayIcon } from "./DelayIcon";
 import { PlannedClosureIcon } from "./PlannedClosureIcon";
+import { StationDetailHeader } from "./StationDetailHeader";
 
 type Props = {
   stationResult: StationDataResult<StationDetail | null> | null;
@@ -383,50 +384,21 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
       aria-live="polite"
       aria-label={station ? `${station.name} station details` : "Station details"}
     >
-      <div className="flex items-start justify-between gap-3" style={{ flexShrink: 0 }}>
-        <div className="min-w-0 flex-1">
-          <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
-            Station
-          </span>
-          <h2 className="mt-1 break-words text-3xl font-black text-slate-950 dark:text-white">
-            {station?.name ?? selectedStationName ?? "Station details"}
-          </h2>
-          {updating && (
-            <span className="station-detail-updating" role="status">
-              Updating
-            </span>
-          )}
-        </div>
-        <div className="station-detail-header-actions">
-          <div className="station-detail-save-control">
-            <button
-              type="button"
-              onClick={() => {
-                if (!authenticated) {
-                  onRequestSignIn?.();
-                  return;
-                }
-                if (station?.id) onToggleSaved?.(station.id);
-              }}
-              disabled={savePending || (!station && loading)}
-              className={saved ? "saved" : ""}
-              aria-pressed={saved}
-              aria-label={`${saved ? "Remove" : "Save"} ${station?.name ?? selectedStationName ?? "station"} ${saved ? "from" : "to"} My Stations`}
-            >
-              {savePending ? <LoaderCircle size={20} className="station-detail-save-spinner" /> : <Bookmark size={20} fill={saved ? "currentColor" : "none"} />}
-              <span>{saved ? "Saved" : "Save"}</span>
-            </button>
-          </div>
-          <button
-            type="button"
-            onClick={handleCloseClick}
-            className="station-detail-close-button h-11 w-11"
-            aria-label="Close station details"
-          >
-            <X size={20} />
-          </button>
-        </div>
-      </div>
+      <StationDetailHeader
+        stationName={station?.name ?? selectedStationName ?? "Station details"}
+        updating={updating}
+        saved={saved}
+        savePending={savePending}
+        saveDisabled={!station && loading}
+        onToggleSaved={() => {
+          if (!authenticated) {
+            onRequestSignIn?.();
+            return;
+          }
+          if (station?.id) onToggleSaved?.(station.id);
+        }}
+        onClose={handleCloseClick}
+      />
 
       <div className={`station-detail-body-wrapper flex-1 min-h-0 flex flex-col transition-all duration-200 ${updating ? "station-detail-body-updating" : ""}`}>
         <div

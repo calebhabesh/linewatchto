@@ -48,7 +48,7 @@ class RegionalTrainMarkerServiceTest {
 
     private RegionalTrainMarkerRecord marker(OffsetDateTime updatedAt) {
         return new RegionalTrainMarkerRecord("go-1", "regional-ki", "Outbound", "forward",
-            "segment-ki-bloor-weston", "bloor", "weston", "weston", 0.5,
+            "segment-ki-mount-dennis-weston", "mount-dennis", "weston", "weston", 0.5,
             "cab-1", "trip-1", updatedAt, "GO source");
     }
 }

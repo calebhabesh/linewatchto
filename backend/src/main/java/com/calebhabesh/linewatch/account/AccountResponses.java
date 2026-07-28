@@ -18,6 +18,7 @@ public final class AccountResponses {
     public record SavedCommuteResponse(
         String id,
         String label,
+        String networkId,
         String originStationId,
         String originStationName,
         String destinationStationId,
@@ -45,12 +46,37 @@ public final class AccountResponses {
             CommuteResponses.CommuteLegResponse returnLeg,
             CommuteResponses.PathResponse path,
             CommuteResponses.ImpactResponse impact,
+            SavedCommuteNotificationRuleResponse notificationRule,
+            Instant createdAt,
+            Instant updatedAt
+        ) {
+            this(
+                id, label, "ttc", originStationId, originStationName, destinationStationId,
+                destinationStationName, routeLabel, watchReturnTrip, outboundLeg, returnLeg,
+                path, impact, notificationRule, createdAt, updatedAt
+            );
+        }
+
+        public SavedCommuteResponse(
+            String id,
+            String label,
+            String originStationId,
+            String originStationName,
+            String destinationStationId,
+            String destinationStationName,
+            String routeLabel,
+            boolean watchReturnTrip,
+            CommuteResponses.CommuteLegResponse outboundLeg,
+            CommuteResponses.CommuteLegResponse returnLeg,
+            CommuteResponses.PathResponse path,
+            CommuteResponses.ImpactResponse impact,
             Instant createdAt,
             Instant updatedAt
         ) {
             this(
                 id,
                 label,
+                "ttc",
                 originStationId,
                 originStationName,
                 destinationStationId,

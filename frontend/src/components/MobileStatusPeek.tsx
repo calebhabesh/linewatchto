@@ -4,6 +4,8 @@ import { AlertTriangle, Construction, Locate, ArrowRight } from "lucide-react";
 import { PlannedClosureIcon } from "./PlannedClosureIcon";
 import { DelayIcon } from "./DelayIcon";
 import type { LineStatus } from "../app/linewatch-data";
+import type { NetworkId } from "../app/regional-data";
+import { dashboardStatusSourceLabel } from "../app/network-presentation";
 
 function BellFilledIcon({ size = 12 }: { size?: number }) {
   return (
@@ -28,6 +30,7 @@ type Props = {
   plannedClosureCount: number;
   pollText: string;
   dataSource: "backend" | "fallback";
+  networkId?: NetworkId;
   onOpenStatus: () => void;
   onOpenCategory?: (view: "alerts" | "delays" | "reduced-speed-zones" | "closures") => void;
   onRecenter?: () => void;
@@ -41,6 +44,7 @@ export function MobileStatusPeek({
   plannedClosureCount,
   pollText,
   dataSource,
+  networkId = "ttc",
   onOpenStatus,
   onOpenCategory,
   onRecenter,
@@ -48,9 +52,11 @@ export function MobileStatusPeek({
   const impactCount = activeAlertCount + delayCount + reducedSpeedZoneCount + plannedClosureCount;
   const categoryCount = [activeAlertCount, delayCount, reducedSpeedZoneCount, plannedClosureCount]
     .filter((count) => count > 0).length;
-  const toTitleCase = (str: string) =>
-    str.split(" ").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
-  const sourceLabel = dataSource === "backend" ? `Updated ${toTitleCase(pollText)}` : "Fixture Mode";
+  const sourceLabel = dashboardStatusSourceLabel(
+    { networkId, dataSource },
+    pollText,
+    "compact",
+  );
 
   const titleText = impactCount > 0
     ? `${impactCount} Current Impact${impactCount === 1 ? "" : "s"}`

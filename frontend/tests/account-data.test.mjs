@@ -81,7 +81,7 @@ describe("account data adapter", () => {
     assert.match(source, /estimatedTravelSeconds: number/);
     assert.match(source, /export type AccountCommutePathSegmentHop/);
     assert.match(source, /segmentHops: AccountCommutePathSegmentHop\[\]/);
-    assert.match(source, /weightSource: "gtfs-scheduled-median" \| "mixed-scheduled-fallback" \| "seeded-fallback" \| "topology-fallback" \| "unavailable"/);
+    assert.match(source, /weightSource: "gtfs-scheduled-median" \| "mixed-scheduled-fallback" \| "seeded-fallback" \| "topology-fallback" \| "regional-topology-estimate" \| "unavailable"/);
     assert.match(source, /export type AccountCommuteImpact/);
     assert.match(source, /export type AccountCommuteLeg/);
     assert.match(source, /watchReturnTrip: boolean/);

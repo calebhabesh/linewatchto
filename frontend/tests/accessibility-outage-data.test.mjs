@@ -52,6 +52,26 @@ describe("accessibility outage data adapter", () => {
     assert.equal(requests[0], "/api/accessibility-outages?asset=elevator");
   });
 
+  it("requests regional outages without mixing them into the TTC cache key", async () => {
+    const requests = [];
+    const response = await getAccessibilityOutages(undefined, {
+      networkId: "regional",
+      fetcher: async (input) => {
+        requests.push(input);
+        return new Response(JSON.stringify({
+          generatedAt: "2026-07-28T16:00:00Z",
+          fresh: true,
+          source: "Metrolinx Open API",
+          assetTypes: [],
+          groups: [],
+        }), { status: 200, headers: { "content-type": "application/json" } });
+      },
+    });
+
+    assert.equal(response.source, "backend");
+    assert.equal(requests[0], "/api/accessibility-outages?network=regional");
+  });
+
   it("falls back empty when fetch throws", async () => {
     const response = await getAccessibilityOutages(undefined, {
       fetcher: async () => {

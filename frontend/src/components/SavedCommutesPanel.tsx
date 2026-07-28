@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Navigation, ChevronDown, ChevronLeft, Loader2, MapPinned, Trash2, X, AlertTriangle, Construction, Clock, Bell, Check, Info } from "lucide-react";
+import { Navigation, ChevronDown, ChevronLeft, Loader2, MapPinned, Pencil, Trash2, X, AlertTriangle, Construction, Clock, Bell, Check, Info } from "lucide-react";
 import {
   createSavedCommute,
   defaultSavedCommuteNotificationRule,
@@ -10,6 +10,7 @@ import {
   commutePathPreviewFromCommute,
   normalizeSavedCommuteNotificationRule,
   sortSavedCommutes,
+  updateSavedCommute,
   updateSavedCommuteNotificationRule,
   summarizeSavedCommuteStatuses,
   type AccountSavedCommute,
@@ -23,6 +24,7 @@ import {
   type AccountCommuteTravelTimeEstimate,
   type SavedCommuteSort,
 } from "../app/account-data";
+import type { NetworkId } from "../app/regional-data";
 import type { StationSummary } from "../app/station-data";
 import {
   formatConfidenceLabel,
@@ -98,6 +100,7 @@ interface Props {
   accountCommutes: AccountSavedCommute[];
   setAccountCommutes: (commutes: AccountSavedCommute[]) => void;
   stationSummaries: StationSummary[];
+  networkId: NetworkId;
   viewedCommuteId?: string | null;
   onViewPath: (commute: AccountSavedCommute, legId?: AccountCommuteLegId) => void;
   onViewImpactOnPath: (commute: AccountSavedCommute, legId: AccountCommuteLegId, impact: AccountMatchedImpact) => void;
@@ -263,7 +266,8 @@ function summarizeMatchedImpacts(impacts: AccountMatchedImpact[]) {
 }
 
 function impactLineLabel(impact: AccountMatchedImpact) {
-  return impact.lineNumber ? `Line ${impact.lineNumber}` : "Station";
+  if (!impact.lineNumber) return "Station";
+  return impact.lineId?.startsWith("regional-") ? `${impact.lineNumber} corridor` : `Line ${impact.lineNumber}`;
 }
 
 type TravelTimeSeverity = "good" | "decent" | "moderate" | "poor" | "severe";
@@ -708,6 +712,7 @@ export function SavedCommutesPanel({
   accountCommutes,
   setAccountCommutes,
   stationSummaries,
+  networkId,
   viewedCommuteId,
   onViewPath,
   onViewImpactOnPath,
@@ -720,6 +725,7 @@ export function SavedCommutesPanel({
   onActiveViewChange,
 }: Props) {
   const [newLabel, setNewLabel] = useState("");
+  const [editingCommuteId, setEditingCommuteId] = useState<string | null>(null);
   const [originStationId, setOriginStationId] = useState("");
   const [destinationStationId, setDestinationStationId] = useState("");
   const [saving, setSaving] = useState(false);
@@ -803,21 +809,34 @@ export function SavedCommutesPanel({
     return new Map(stationSummaries.map((station) => [station.id, station]));
   }, [stationSummaries]);
 
+  const networkCommutes = useMemo(
+    () => accountCommutes.filter((commute) => (commute.networkId ?? "ttc") === networkId),
+    [accountCommutes, networkId]
+  );
+
   const { clear: commuteClearCount, affectedNow: commuteAffectedCount } = useMemo(
-    () => summarizeSavedCommuteStatuses(accountCommutes),
-    [accountCommutes]
+    () => summarizeSavedCommuteStatuses(networkCommutes),
+    [networkCommutes]
   );
 
   const sortedCommutes = useMemo(
-    () => sortSavedCommutes(accountCommutes, sortBy),
-    [accountCommutes, sortBy]
+    () => sortSavedCommutes(networkCommutes, sortBy),
+    [networkCommutes, sortBy]
   );
 
   function stationNameFor(stationId: string) {
     return stationById.get(stationId)?.name ?? stationId;
   }
 
-  const handleCreateCommute = async () => {
+  const resetRouteDraft = () => {
+    setNewLabel("");
+    setOriginStationId("");
+    setDestinationStationId("");
+    setWatchReturnTrip(true);
+    setEditingCommuteId(null);
+  };
+
+  const handleSaveCommute = async () => {
     if (!originStationId || !destinationStationId) {
       setCommuteError("Choose an origin and destination station.");
       return;
@@ -833,20 +852,22 @@ export function SavedCommutesPanel({
     setSaving(true);
     setCommuteError(null);
     try {
-      const created = await createSavedCommute({
-        label: newLabel,
-        originStationId,
-        destinationStationId,
-        watchReturnTrip,
-        notificationRule: newNotificationRule,
-      });
-      setAccountCommutes([...accountCommutes, created]);
-      setNewLabel("");
-      setOriginStationId("");
-      setDestinationStationId("");
-      setWatchReturnTrip(true);
+      const saved = editingCommuteId
+        ? await updateSavedCommute(editingCommuteId, { label: newLabel, originStationId, destinationStationId, watchReturnTrip })
+        : await createSavedCommute({
+            label: newLabel,
+            networkId,
+            originStationId,
+            destinationStationId,
+            watchReturnTrip,
+            ...(networkId === "ttc" ? { notificationRule: newNotificationRule } : {}),
+          });
+      setAccountCommutes(editingCommuteId
+        ? accountCommutes.map((commute) => commute.id === saved.id ? saved : commute)
+        : [...accountCommutes, saved]);
+      resetRouteDraft();
       setNewNotificationRule(cloneNotificationRule(defaultSavedCommuteNotificationRule));
-      setSuccessMessage("Commute Saved Successfully");
+      setSuccessMessage(editingCommuteId ? "Commute Updated Successfully" : "Commute Saved Successfully");
       setToastKey((prev) => prev + 1);
       setActiveView("saved");
     } catch {
@@ -854,6 +875,16 @@ export function SavedCommutesPanel({
     } finally {
       setSaving(false);
     }
+  };
+
+  const startEditingCommute = (commute: AccountSavedCommute) => {
+    setEditingCommuteId(commute.id);
+    setNewLabel(commute.label);
+    setOriginStationId(commute.originStationId);
+    setDestinationStationId(commute.destinationStationId);
+    setWatchReturnTrip(commute.watchReturnTrip);
+    setCommuteError(null);
+    setActiveView("create");
   };
 
   const handleDeleteCommute = async (id: string) => {
@@ -981,7 +1012,7 @@ export function SavedCommutesPanel({
                 Track Your Daily Commute
               </h3>
               <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-                Unlock personalized tracking and route impact alerts for your daily subway and LRT routes.
+                Unlock personalized tracking and route impact checks for your daily {networkId === "regional" ? "GO and UP" : "subway and LRT"} routes.
               </p>
             </div>
 
@@ -990,7 +1021,7 @@ export function SavedCommutesPanel({
                 <span className="text-xs text-emerald-600 dark:text-emerald-400 font-bold mt-0.5">✓</span>
                 <div className="text-xs">
                   <span className="font-bold text-slate-800 dark:text-slate-200 block">Personalized Route Pathing</span>
-                  <span className="text-slate-500 dark:text-slate-400">Save custom origin-destination pairs on subway Lines 1, 2, 4 and LRT Lines 5, 6.</span>
+                  <span className="text-slate-500 dark:text-slate-400">Save custom origin-destination pairs on the selected LineWatchTO rail network.</span>
                 </div>
               </div>
 
@@ -998,7 +1029,7 @@ export function SavedCommutesPanel({
                 <span className="text-xs text-emerald-600 dark:text-emerald-400 font-bold mt-0.5">✓</span>
                 <div className="text-xs">
                   <span className="font-bold text-slate-800 dark:text-slate-200 block">Direction-Aware Impact Matching</span>
-                  <span className="text-slate-500 dark:text-slate-400">Only get alerted for service disruptions that actually lie in your path and travel direction.</span>
+                  <span className="text-slate-500 dark:text-slate-400">See fresh dashboard-visible disruptions that match the stations, segments, or corridors on your route.</span>
                 </div>
               </div>
 
@@ -1014,7 +1045,7 @@ export function SavedCommutesPanel({
                 <span className="text-xs text-emerald-600 dark:text-emerald-400 font-bold mt-0.5">✓</span>
                 <div className="text-xs">
                   <span className="font-bold text-slate-800 dark:text-slate-200 block">Route Impact Alerts</span>
-                  <span className="text-slate-500 dark:text-slate-400">Receive route impact alerts when notifications are enabled.</span>
+                  <span className="text-slate-500 dark:text-slate-400">{networkId === "regional" ? "Regional push notifications are a later slice." : "Receive route impact alerts when notifications are enabled."}</span>
                 </div>
               </div>
 
@@ -1038,7 +1069,10 @@ export function SavedCommutesPanel({
             {activeView === "create" ? (
               <div className="saved-commute-form">
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <h3 className="text-sm font-bold text-slate-900 dark:text-white">Create a Route</h3>
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-white">{editingCommuteId ? "Edit Route" : "Create a Route"}</h3>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                    {networkId === "regional" ? "GO & UP" : "TTC"}
+                  </span>
                 </div>
                 <input value={newLabel} onChange={(event) => setNewLabel(event.target.value)} placeholder="Enter a Commute Label (e.g. Work)" aria-label="Commute label" />
                 <div className="saved-commute-station-grid">
@@ -1076,17 +1110,23 @@ export function SavedCommutesPanel({
                   </div>
                   <span>Track Return Route</span>
                 </label>
-                <button
-                  type="button"
-                  className="saved-commute-customize-toggle"
-                  aria-expanded={showNotificationSettings}
-                  onClick={() => setShowNotificationSettings(!showNotificationSettings)}
-                >
-                  <span>Customize Commute Notifications</span>
-                  <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${showNotificationSettings ? "rotate-180" : ""}`} />
-                </button>
-                
-                {showNotificationSettings ? (
+                {networkId === "ttc" && !editingCommuteId ? <button
+                    type="button"
+                    className="saved-commute-customize-toggle"
+                    aria-expanded={showNotificationSettings}
+                    onClick={() => setShowNotificationSettings(!showNotificationSettings)}
+                  >
+                    <span>Customize Commute Notifications</span>
+                    <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${showNotificationSettings ? "rotate-180" : ""}`} />
+                  </button> : null}
+
+                {networkId === "regional" ? (
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Travel times are low-confidence planning estimates over the reviewed schematic topology. Regional push notifications are not enabled yet.
+                  </p>
+                ) : null}
+
+                {networkId === "ttc" && !editingCommuteId && showNotificationSettings ? (
                   <div>
                     <SavedCommuteNotificationRuleEditor
                       rule={newNotificationRule}
@@ -1101,6 +1141,7 @@ export function SavedCommutesPanel({
                     type="button"
                     className="saved-commute-cancel-button flex-1"
                     onClick={() => {
+                      resetRouteDraft();
                       setActiveView("saved");
                       setCommuteError(null);
                     }}
@@ -1111,7 +1152,7 @@ export function SavedCommutesPanel({
                   <button
                     type="button"
                     className="saved-commute-primary-button flex-1"
-                    onClick={handleCreateCommute}
+                    onClick={handleSaveCommute}
                     disabled={saving}
                     aria-busy={saving}
                   >
@@ -1121,16 +1162,16 @@ export function SavedCommutesPanel({
                         Plotting route
                       </>
                     ) : (
-                      "Save commute"
+                      editingCommuteId ? "Save changes" : "Save commute"
                     )}
                   </button>
                 </div>
                 {commuteError ? <p className="text-xs font-semibold text-red-600 dark:text-red-300">{commuteError}</p> : null}
 
-                <SavedCommuteNotificationSummary
-                  onOpenNotificationSettings={onOpenNotificationSettings}
-                  notificationSummary={notificationSummary}
-                />
+                {networkId === "ttc" ? <SavedCommuteNotificationSummary
+                    onOpenNotificationSettings={onOpenNotificationSettings}
+                    notificationSummary={notificationSummary}
+                  /> : null}
               </div>
             ) : (
               <div className={`flex flex-col gap-3 ${onBack ? "px-[6px] sm:px-[20px]" : ""}`}>
@@ -1138,9 +1179,9 @@ export function SavedCommutesPanel({
                   <div className="flex flex-col gap-1 min-w-0">
                     <div className="flex items-baseline gap-1.5">
                       <span className="text-base font-bold text-slate-800 dark:text-slate-100">Your Routes</span>
-                      <span className="text-sm font-semibold text-slate-500 dark:text-slate-400">({accountCommutes.length})</span>
+                      <span className="text-sm font-semibold text-slate-500 dark:text-slate-400">({networkCommutes.length})</span>
                     </div>
-                    {accountCommutes.length > 0 && (
+                    {networkCommutes.length > 0 && (
                       <div className="flex items-center gap-1.5 mt-0.5" data-testid="commute-status-badges">
                         {commuteAffectedCount > 0 && (
                           <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-amber-500/10 dark:bg-amber-500/20 text-[10px] font-bold text-amber-700 dark:text-amber-400 border border-amber-500/20">
@@ -1155,7 +1196,7 @@ export function SavedCommutesPanel({
                       </div>
                     )}
                   </div>
-                  {accountCommutes.length > 0 ? (
+                  {networkCommutes.length > 0 ? (
                     <div className="saved-commute-list-actions flex items-end gap-2 sm:shrink-0">
                       <div className="saved-commute-sort-control" ref={sortDropdownRef}>
                         <span>Sort by</span>
@@ -1229,9 +1270,9 @@ export function SavedCommutesPanel({
                   ) : null}
                 </div>
 
-                {accountCommutes.length === 0 ? (
+                {networkCommutes.length === 0 ? (
                   <div className="flex flex-col items-center justify-center pt-3 pb-10 sm:py-10 text-center">
-                    <p className="text-sm font-semibold text-slate-400 dark:text-slate-500 mb-4">No Commutes Yet</p>
+                    <p className="text-sm font-semibold text-slate-400 dark:text-slate-500 mb-4">No {networkId === "regional" ? "GO/UP" : "TTC"} Commutes Yet</p>
                     <button
                       type="button"
                       className="saved-commute-add-btn flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition-colors shadow-sm cursor-pointer"
@@ -1379,7 +1420,7 @@ export function SavedCommutesPanel({
                       </div>
 
                       <div className="mt-1 mb-3 text-center text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
-                        Default Scheduled Route · To {selectedLeg.toStationName}
+                        {commute.networkId === "regional" ? "Topology Planning Estimate" : "Default Scheduled Route"} · To {selectedLeg.toStationName}
                       </div>
 
                       <TravelTimeEstimateBlock leg={selectedLeg} />
@@ -1461,7 +1502,7 @@ export function SavedCommutesPanel({
                       {selectedLeg.impact.matchedImpacts.length === 0 ? (
                         <hr className="border-slate-800/10 dark:border-slate-200/10 mt-5 mb-1.5 mx-1" />
                       ) : null}
-                      <div className="saved-commute-rule-summary">
+                      {commute.networkId === "ttc" ? <div className="saved-commute-rule-summary">
                         <div>
                           <strong>Route Notifications: {notificationRuleStatus}</strong>
                           <ul className="list-disc list-outside pl-3 mt-1 space-y-0.5 text-[0.66rem] font-medium text-slate-600 dark:text-slate-400">
@@ -1485,9 +1526,18 @@ export function SavedCommutesPanel({
                         >
                           {editingNotificationRule ? "Close" : "Edit Alerts"}
                         </button>
-                      </div>
+                      </div> : (
+                        <div className="saved-commute-rule-summary">
+                          <div>
+                            <strong>Regional Notifications: Not available yet</strong>
+                            <p className="mt-1 text-[0.66rem] font-medium text-slate-600 dark:text-slate-400">
+                              This route is checked in the dashboard only. It is excluded from TTC push matching.
+                            </p>
+                          </div>
+                        </div>
+                      )}
 
-                      {editingNotificationRule ? (
+                      {commute.networkId === "ttc" && editingNotificationRule ? (
                         <div className="saved-commute-rule-editor">
                           <SavedCommuteNotificationRuleEditor
                             rule={notificationDraft}
@@ -1518,6 +1568,15 @@ export function SavedCommutesPanel({
                       ) : null}
 
                       <div className="commute-route-actions">
+                        {commute.networkId === "regional" ? <button
+                          type="button"
+                          className="commute-route-stop-toggle"
+                          onClick={() => startEditingCommute(commute)}
+                          aria-label={`Edit commute ${commute.label}`}
+                        >
+                          <Pencil size={13} aria-hidden="true" />
+                          Edit route
+                        </button> : null}
                         <button
                           type="button"
                           className="commute-route-stop-toggle"

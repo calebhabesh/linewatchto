@@ -59,6 +59,13 @@ describe("accessibility outages panel and routing source verification", () => {
     assert.doesNotMatch(moreSheetSource, /mobile-status-btn-accessibility/);
   });
 
+  it("keeps accessibility navigation available in GO and UP mode", () => {
+    assert.doesNotMatch(statusSheetSource, /!regional \? <button[^>]+mobile-status-btn-accessibility/);
+    assert.match(shellSource, /getAccessibilityOutages\(undefined, \{ networkId/);
+    assert.match(shellSource, /networkId=\{selectedNetwork\}/);
+    assert.match(panelSource, /GO and UP rail stations/);
+  });
+
   it("keeps the desktop main-menu accessibility icon neutral", () => {
     assert.match(shellSource, /viewBox="0 0 24 24"[\s\S]*?text-slate-500 dark:text-slate-400[\s\S]*?Accessibility Outages/);
   });

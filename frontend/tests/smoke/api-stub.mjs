@@ -635,6 +635,54 @@ const server = createServer(async (request, response) => {
     return;
   }
 
+  if (request.method === "GET" && url.pathname === "/api/accessibility-outages") {
+    const regional = url.searchParams.get("network") === "regional";
+    const hasRegionalOutage = regional && mode === "regional-live";
+    sendJson(request, response, 200, {
+      generatedAt: "2026-07-28T19:48:00Z",
+      fresh: hasRegionalOutage,
+      source: regional ? "Metrolinx Open API" : "TTC Live Alerts",
+      assetTypes: hasRegionalOutage ? [{
+        assetType: "elevator",
+        label: "Elevator outages",
+        count: 1,
+        lines: [{
+          lineId: "regional-le",
+          lineNumber: "LE",
+          lineName: "Lakeshore East",
+          color: "#ee2722",
+          count: 1,
+        }],
+      }, {
+        assetType: "escalator",
+        label: "Escalator outages",
+        count: 0,
+        lines: [],
+      }] : [],
+      groups: hasRegionalOutage ? [{
+        lineId: "regional-le",
+        lineNumber: "LE",
+        lineName: "Lakeshore East",
+        color: "#ee2722",
+        stations: [{
+          stationId: "eglinton",
+          stationName: "Eglinton",
+          count: 1,
+          outages: [{
+            id: "regional-accessibility-smoke",
+            assetType: "elevator",
+            title: "Elevator out of service",
+            description: "The east tunnel elevator is out of service.",
+            cause: "Elevator-Escalator Disruption",
+            updatedAt: "2026-07-28T18:50:33Z",
+            source: "Metrolinx Open API",
+          }],
+        }],
+      }] : [],
+    });
+    return;
+  }
+
   if (request.method === "GET" && url.pathname === "/api/regional/trains") {
     sendJson(request, response, 200, regionalEstimatedTrainsResponse);
     return;

@@ -50,9 +50,14 @@ describe("regional application map asset", () => {
 
   it("contains explicit route-specific guide geometry for supported fixture segments", () => {
     assert.match(svg, /id="regional-segment-guides-layer"[^>]*display:none/);
-    assert.match(svg, /id="segment-guide-ki-weston-mount-dennis"/);
+    assert.match(svg, /id="segment-guide-ki-bloor-mount-dennis"/);
+    assert.match(
+      svg,
+      /id="segment-guide-ki-weston-etobicoke-north" d="M 3428\.5664,2278\.2556 L 2987\.0609,2023\.1482 H 2845\.6543"/,
+    );
+    assert.match(svg, /id="segment-guide-up-bloor-mount-dennis"/);
     assert.match(svg, /id="segment-guide-up-weston-pearson-airport"/);
-    assert.match(svg, /id="segment-guide-le-pickering-ajax"/);
+    assert.doesNotMatch(svg, /id="segment-guide-le-pickering-ajax"/);
   });
 
   it("loads the authored TeX Gyre Heros Bold face in the browser", () => {

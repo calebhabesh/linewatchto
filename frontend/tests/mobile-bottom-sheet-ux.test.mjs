@@ -7,6 +7,7 @@ const networkMapLegendsSource = readFileSync(new URL("../src/components/NetworkM
 const bottomNavSource = readFileSync(new URL("../src/components/MobileBottomNav.tsx", import.meta.url), "utf8");
 const statusPeekSource = readFileSync(new URL("../src/components/MobileStatusPeek.tsx", import.meta.url), "utf8");
 const statusSheetSource = readFileSync(new URL("../src/components/MobileStatusSheet.tsx", import.meta.url), "utf8");
+const networkPresentationSource = readFileSync(new URL("../src/app/network-presentation.ts", import.meta.url), "utf8");
 const moreSheetSource = readFileSync(new URL("../src/components/MobileMoreSheet.tsx", import.meta.url), "utf8");
 const backgroundPreferenceSource = readFileSync(new URL("../src/app/background-preference.ts", import.meta.url), "utf8");
 const floatingPanelSource = readFileSync(new URL("../src/components/FloatingPanelShell.tsx", import.meta.url), "utf8");
@@ -61,7 +62,8 @@ describe("mobile bottom sheet UX", () => {
     assert.match(statusSheetSource, /"delays"/);
     assert.match(statusSheetSource, /"reduced-speed-zones"/);
     assert.match(statusSheetSource, /"closures"/);
-    assert.match(statusSheetSource, /Good Service/);
+    assert.match(statusSheetSource, /clearServiceStatusLabel/);
+    assert.match(networkPresentationSource, /Good Service/);
     assert.match(statusSheetSource, /useDashboardData/);
     assert.match(statusSheetSource, /<h3>Alerts<\/h3>/);
     assert.match(statusSheetSource, /<h3>Line Status<\/h3>/);

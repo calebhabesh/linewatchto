@@ -23,6 +23,7 @@ const networkMapSource = readFileSync(new URL("../src/components/NetworkMap.tsx"
 const networkMapLegendsSource = readFileSync(new URL("../src/components/NetworkMapLegends.tsx", import.meta.url), "utf8");
 const regionalMapSource = readFileSync(new URL("../src/components/InteractiveRegionalMap.tsx", import.meta.url), "utf8");
 const regionalStationDetailSource = readFileSync(new URL("../src/components/RegionalStationDetailPanel.tsx", import.meta.url), "utf8");
+const stationDetailHeaderSource = readFileSync(new URL("../src/components/StationDetailHeader.tsx", import.meta.url), "utf8");
 const panZoomSource = readFileSync(new URL("../src/hooks/usePanZoom.ts", import.meta.url), "utf8");
 const regionalSvg = readFileSync(new URL("../public/assets/linewatch/regional-rail-map.svg", import.meta.url), "utf8");
 const globalsCss = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
@@ -317,8 +318,10 @@ describe("network-scoped regional dashboard", () => {
   });
 
   it("uses the TTC station-detail layout with source-labeled regional arrivals", () => {
-    assert.match(regionalStationDetailSource, /station-detail-header-actions/);
-    assert.match(regionalStationDetailSource, /station-detail-save-control/);
+    assert.match(regionalStationDetailSource, /<StationDetailHeader/);
+    assert.match(stationDetailHeaderSource, /station-detail-header-actions/);
+    assert.match(stationDetailHeaderSource, /station-detail-save-control/);
+    assert.match(regionalStationDetailSource, /<TransitLineBadge/);
     assert.match(regionalStationDetailSource, /data-station-header-line-details/);
     assert.match(regionalStationDetailSource, /data-station-section="arrivals"/);
     assert.match(regionalStationDetailSource, /Checking Metrolinx arrivals/);
@@ -326,7 +329,9 @@ describe("network-scoped regional dashboard", () => {
     assert.match(regionalStationDetailSource, /Arrival Data Unavailable/);
     assert.match(regionalStationDetailSource, /Upcoming regional train arrivals/);
     assert.match(regionalStationDetailSource, /Realtime estimates can change/);
-    assert.match(regionalStationDetailSource, /Accessibility and platform-condition details are unavailable/);
+    assert.match(regionalStationDetailSource, /data-station-section="accessibility"/);
+    assert.match(regionalStationDetailSource, /Metrolinx Open API/);
+    assert.doesNotMatch(regionalStationDetailSource, /Accessibility and platform-condition details are unavailable/);
     assert.doesNotMatch(regionalStationDetailSource, /wheel-chair-symbol|elevator-icon/);
   });
 
@@ -381,6 +386,23 @@ describe("network-scoped regional dashboard", () => {
     assert.match(regionalMapSource, /item\.affectedSegmentIds\.length === 0/);
     assert.match(regionalMapSource, /segment\.guidePathId/);
     assert.match(regionalMapSource, /stationNodeImpacts/);
+    assert.match(regionalMapSource, /regionalOverlayRuns\(overlayPieces\)/);
+    assert.match(regionalMapSource, /previous\?\.stationBId !== piece\.segment\.stationAId/);
+    assert.match(regionalMapSource, /appendConnectedPathData\(current\.pathD, piece\.pathD\)/);
+    assert.match(regionalMapSource, /group\.dataset\.regionalImpactSegmentCount = String\(segmentCount\)/);
+  });
+
+  it("keeps the shared KI and UP corridor in geographic order through Mount Dennis", () => {
+    assert.deepEqual(REGIONAL_ROUTE_STATIONS.KI.slice(0, 5), [
+      "union", "bloor", "mount-dennis", "weston", "etobicoke-north",
+    ]);
+    assert.deepEqual(REGIONAL_ROUTE_STATIONS.UP, [
+      "union", "bloor", "mount-dennis", "weston", "pearson-airport",
+    ]);
+    assert.match(regionalMapSource, /pointInRegionalStationsLayer/);
+    assert.match(regionalMapSource, /anchor\.matches\("circle, ellipse"\)/);
+    assert.match(regionalMapSource, /operation === "rotate"/);
+    assert.match(regionalMapSource, /operation === "translate"/);
   });
 
   it("provides source-honest synthetic scenarios without changing the default fixture", () => {
@@ -401,22 +423,58 @@ describe("network-scoped regional dashboard", () => {
     assert.match(regionalMapSource, /stationId === "union" \? 75/);
     assert.match(regionalMapSource, /"station-selected-indicator", "regional-station-selected-indicator"/);
     assert.match(regionalMapSource, /"map-segment-hit-target", "regional-impact-hit-target"/);
-    assert.match(regionalMapSource, /"asset-alert-path-hover-boundary", "regional-impact-hover-boundary"/);
+    assert.match(regionalMapSource, /"asset-alert-path-hover-boundary", visualState, "regional-impact-hover-boundary"/);
     assert.match(regionalMapSource, /createElementNS\(SVG_NAMESPACE, "title"\)/);
     assert.match(globalsCss, /\.map-selection-attention\s*\{[^}]*--selection-intro-name:\s*none/s);
     assert.match(regionalMapSource, /"map-selection-attention", "station-selected-indicator", "regional-station-selected-indicator"/);
   });
 
   it("uses TTC-derived disruption motion and selection emphasis at regional map scale", () => {
+    assert.match(regionalMapSource, /function regionalImpactVisualState\(kind: ImpactKind\)/);
+    assert.match(regionalMapSource, /return "delay-static"/);
     assert.match(regionalMapSource, /"regional-impact-aura"/);
     assert.match(regionalMapSource, /"regional-impact-interactive-glow"/);
-    assert.match(globalsCss, /data-regional-impact-kind="delay"[\s\S]*regional-delay-static-shift/);
+    assert.match(regionalMapSource, /visiblePath\.classList\.add\("delay-static-base"\)/);
+    assert.match(regionalMapSource, /regionalDelayGlyphLane\(documentNode, sourcePath, travelDirection, reducedMotion\)/);
+    assert.match(regionalMapSource, /lane\.dataset\.regionalDelayDirection = travelDirection/);
+    assert.match(regionalMapSource, /travelDirection === "bidirectional" \|\| index % 2 === 0/);
+    assert.match(regionalMapSource, /REGIONAL_IMPACT_OVERLAY_WIDTH = 196/);
+    assert.match(regionalMapSource, /REGIONAL_DELAY_GLYPH_SPACING = 96/);
+    assert.match(regionalMapSource, /travelDirection === "bidirectional"[\s\S]*REGIONAL_DELAY_GLYPH_SPACING \* 1\.3[\s\S]*Math\.floor\(length \/ glyphSpacing\)/);
+    assert.match(regionalMapSource, /REGIONAL_DELAY_TRAVEL_UNITS_PER_SECOND = \(160 \/ 12\) \* \(175 \/ 102\)/);
+    assert.match(regionalMapSource, /travelDirection === "bidirectional" \|\| !pathD/);
+    assert.match(regionalMapSource, /createElementNS\(SVG_NAMESPACE, "animateMotion"\)/);
+    assert.match(regionalMapSource, /impact\.travelDirection/);
+    assert.match(globalsCss, /data-regional-impact-kind="delay"[\s\S]*stroke:\s*#0ea5e9[\s\S]*stroke-width:\s*var\(--regional-impact-width\)/);
+    assert.doesNotMatch(globalsCss, /regional-delay-static-shift/);
     assert.match(globalsCss, /data-regional-impact-kind="reduced-speed-zone"[\s\S]*regional-chevron-slide/);
-    assert.match(globalsCss, /data-regional-impact-kind="suspension"[\s\S]*regional-impact-width-pulse/);
+    assert.match(globalsCss, /\.regional-impact-aura\s*\{[^}]*animation:\s*aura-pulse 1\.2s infinite alternate ease-in-out;[^}]*animation-delay:\s*var\(--map-pulse-offset\)/s);
+    assert.match(globalsCss, /regional-overlay-segment-group:not\(\[data-regional-impact-selected="true"\]\)[^}]*regional-impact-interactive-glow\s*\{[^}]*animation:\s*none\s*!important/s);
+    assert.match(globalsCss, /data-regional-impact-kind="suspension"[\s\S]*regional-candy-pulse/);
+    assert.match(globalsCss, /@keyframes regional-candy-pulse\s*\{[\s\S]*calc\(var\(--regional-impact-width\) \+ 23px\)/);
+    assert.match(globalsCss, /regional-impact-hit-target:active[\s\S]*regional-impact-glow/);
+    assert.match(globalsCss, /regional-impact-width\) \+ 169px/);
     assert.match(globalsCss, /data-regional-impact-kind="planned-closure"[\s\S]*regional-impact-aura[\s\S]*display:\s*none/);
     assert.match(globalsCss, /data-regional-impact-selected="true"[\s\S]*regional-impact-interactive-glow[\s\S]*regional-selection-path-intro/);
     assert.match(globalsCss, /\.motion-paused \.regional-impact-aura/);
     assert.match(globalsCss, /prefers-reduced-motion:\s*reduce[\s\S]*\.regional-impact-aura/);
+  });
+
+  it("exercises the unidirectional regional delay treatment in the authored scenario", () => {
+    const scenario = regionalDashboardDataForScenario("all-impact-types");
+    const delayImpact = scenario.networkSegments
+      .flatMap((segment) => segment.impacts ?? [])
+      .find((impact) => impact.kind === "delay");
+
+    assert.equal(delayImpact?.travelDirection, "forward");
+    assert.equal(
+      scenario.networkSegments.filter((segment) =>
+        segment.impacts?.some((impact) => impact.cardId === "regional-demo-delay")
+      ).length,
+      2,
+    );
+    assert.match(regionalMapSource, /`regional-delay-glyph--\$\{kind\}`/);
+    assert.match(regionalMapSource, /kind: "hourglass" \| "arrow"/);
   });
 
   it("reuses the smooth attention-to-breathing lifecycle for every selected regional station and impact", () => {
@@ -459,6 +517,8 @@ describe("network-scoped regional dashboard", () => {
     assert.match(regionalMapSource, /onPointerDown=\{onPointerDown\}/);
     assert.match(regionalMapSource, /event\.key !== "Enter" && event\.key !== " "/);
     assert.match(regionalMapSource, /aria-label="Fit regional network"/);
+    assert.match(globalsCss, /\.regional-map-viewport\s*\{[^}]*-webkit-user-select:\s*none;[^}]*user-select:\s*none;/s);
+    assert.match(globalsCss, /\.regional-map-stage :is\(text, tspan\)[^{]*\{[^}]*user-select:\s*none;/s);
   });
 
   it("focuses the regional camera on station and impact selections from every UI entry point", () => {
@@ -468,7 +528,12 @@ describe("network-scoped regional dashboard", () => {
     assert.match(regionalMapSource, /data-regional-impact-kind/);
     assert.match(regionalMapSource, /selectedMapElements/);
     assert.match(regionalMapSource, /getBoundingClientRect\(\)/);
-    assert.match(regionalMapSource, /fitScale \* \(isMobile \? 3\.8 : 1\.8\)/);
+    assert.match(regionalMapSource, /preferredTargetScale = clampPanZoomScale\(fitScale \* \(isMobile \? 3\.8 : 1\.8\), fitScale\)/);
+    assert.match(regionalMapSource, /if \(!isMobile\)[\s\S]*desktopMenuPinned[\s\S]*\.floating-panel-shell/);
+    assert.match(regionalMapSource, /focusInsets\.left = Math\.max\(focusInsets\.left, insetLeft\)/);
+    assert.match(regionalMapSource, /const selectionFit = computeBoundedMapFrame\(/);
+    assert.match(regionalMapSource, /const targetScale = clampPanZoomScale\([\s\S]*Math\.min\(preferredTargetScale, selectionFit\.scale\)/);
+    assert.match(regionalMapSource, /computeInsetViewportFocus\([\s\S]*focusInsets/);
     assert.match(regionalMapSource, /focusX - mapX \* targetScale/);
     assert.match(regionalMapSource, /focusY - mapY \* targetScale/);
     assert.match(regionalMapSource, /animateCameraTo\(snapCameraToDevicePixels/);

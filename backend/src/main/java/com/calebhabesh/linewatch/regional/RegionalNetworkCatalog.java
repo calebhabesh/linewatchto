@@ -31,7 +31,7 @@ public final class RegionalNetworkCatalog {
             "union", "downsview-park", "rutherford", "maple", "king-city", "aurora", "newmarket",
             "east-gwillimbury", "bradford", "barrie-south", "allandale-waterfront"),
         route("regional-ki", "KI", "Kitchener", "#138336",
-            "union", "bloor", "weston", "mount-dennis", "etobicoke-north", "malton", "bramalea",
+            "union", "bloor", "mount-dennis", "weston", "etobicoke-north", "malton", "bramalea",
             "brampton-innovation-district", "mount-pleasant", "georgetown", "acton", "guelph-central",
             "kitchener", "stratford"),
         route("regional-le", "LE", "Lakeshore East", "#ee2722",
@@ -50,7 +50,7 @@ public final class RegionalNetworkCatalog {
             "union", "kennedy", "agincourt", "milliken", "unionville", "centennial", "markham",
             "mount-joy", "stouffville", "old-elm"),
         route("regional-up", "UP", "Union Pearson Express", "#4084cd",
-            "union", "bloor", "weston", "mount-dennis", "pearson-airport")
+            "union", "bloor", "mount-dennis", "weston", "pearson-airport")
     );
 
     private static final Map<String, String> NAME_OVERRIDES = Map.ofEntries(

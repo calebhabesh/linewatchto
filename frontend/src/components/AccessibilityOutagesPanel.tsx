@@ -5,6 +5,7 @@ import React, { useState } from "react";
 import { ChevronLeft, X, ChevronDown, MapPin } from "lucide-react";
 import { AccessibilityOutageResponse } from "../app/accessibility-outage-data";
 import { formatImpactTimestamp } from "../app/impact-time";
+import type { NetworkId } from "../app/regional-data";
 
 interface Props {
   accessibilityOutageResult: AccessibilityOutageResponse | null;
@@ -12,6 +13,7 @@ interface Props {
   onSelectStation: (stationId: string) => void;
   onBack: () => void;
   onClose: () => void;
+  networkId?: NetworkId;
 }
 
 export type AccessibilityOutageTarget = {
@@ -38,12 +40,34 @@ export function AccessibilityOutagesPanel({
   onSelectStation,
   onBack,
   onClose,
+  networkId = "ttc",
 }: Props) {
   const [selectedAssetType, setSelectedAssetType] = useState<"elevator" | "escalator" | null>(initialTarget?.assetType ?? null);
   const [expandedStations, setExpandedStations] = useState<Record<string, boolean>>(
     () => initiallyExpandedStations(accessibilityOutageResult, initialTarget),
   );
   const enteredAtInitialTarget = React.useRef(Boolean(initialTarget));
+  const regional = networkId === "regional";
+  const stationScopeLabel = regional ? "GO and UP rail stations" : "TTC subway & LRT stations";
+  const emptySourceLabel = regional ? "Metrolinx" : "TTC";
+
+  const lineBadge = (line: { lineId: string; lineNumber: string; lineName: string; color: string }) => regional ? (
+    <span
+      aria-hidden="true"
+      className="inline-flex h-5 min-w-7 shrink-0 items-center justify-center rounded px-1 text-[9px] font-black text-white"
+      style={{ backgroundColor: line.color }}
+    >
+      {line.lineNumber}
+    </span>
+  ) : (
+    <Image
+      src={`/assets/linewatch/${line.lineId}-legend.svg?v=2`}
+      alt=""
+      width={20}
+      height={20}
+      className="w-5 h-5 shrink-0 select-none"
+    />
+  );
 
   const toggleStation = (lineId: string, stationId: string) => {
     const key = `${lineId}-${stationId}`;
@@ -164,7 +188,7 @@ export function AccessibilityOutagesPanel({
                       Elevator Outages
                     </h3>
                     <p className="text-xs text-slate-500 dark:text-slate-400">
-                      TTC subway & LRT stations
+                      {stationScopeLabel}
                     </p>
                   </div>
                 </div>
@@ -180,13 +204,7 @@ export function AccessibilityOutagesPanel({
                       key={line.lineId}
                       className="inline-flex items-center gap-2 text-[11px] font-semibold text-slate-600 dark:text-slate-300"
                     >
-                      <Image
-                        src={`/assets/linewatch/${line.lineId}-legend.svg?v=2`}
-                        alt=""
-                        width={20}
-                        height={20}
-                        className="w-5 h-5 shrink-0 select-none"
-                      />
+                      {lineBadge(line)}
                       <span>
                         {line.lineName}: {line.count} {line.count === 1 ? "outage" : "outages"}
                       </span>
@@ -195,7 +213,7 @@ export function AccessibilityOutagesPanel({
                 </div>
               ) : (
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                  No active TTC elevator outages linked to mapped stations.
+                  No active {emptySourceLabel} elevator outages linked to mapped stations.
                 </p>
               )}
             </button>
@@ -219,7 +237,7 @@ export function AccessibilityOutagesPanel({
                       Escalator Outages
                     </h3>
                     <p className="text-xs text-slate-500 dark:text-slate-400">
-                      TTC subway & LRT stations
+                      {stationScopeLabel}
                     </p>
                   </div>
                 </div>
@@ -235,13 +253,7 @@ export function AccessibilityOutagesPanel({
                       key={line.lineId}
                       className="inline-flex items-center gap-2 text-[11px] font-semibold text-slate-600 dark:text-slate-300"
                     >
-                      <Image
-                        src={`/assets/linewatch/${line.lineId}-legend.svg?v=2`}
-                        alt=""
-                        width={20}
-                        height={20}
-                        className="w-5 h-5 shrink-0 select-none"
-                      />
+                      {lineBadge(line)}
                       <span>
                         {line.lineName}: {line.count} {line.count === 1 ? "outage" : "outages"}
                       </span>
@@ -250,7 +262,7 @@ export function AccessibilityOutagesPanel({
                 </div>
               ) : (
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                  No active TTC escalator outages linked to mapped stations.
+                  No active {emptySourceLabel} escalator outages linked to mapped stations.
                 </p>
               )}
             </button>
@@ -260,7 +272,7 @@ export function AccessibilityOutagesPanel({
           <div className="flex flex-col gap-4">
             {filteredGroups.length === 0 ? (
               <div className="text-center py-8 text-slate-500 dark:text-slate-400 text-sm">
-                No active TTC {selectedAssetType} outages linked to mapped stations.
+                No active {emptySourceLabel} {selectedAssetType} outages linked to mapped stations.
               </div>
             ) : (
               filteredGroups.map((group) => (
@@ -273,14 +285,8 @@ export function AccessibilityOutagesPanel({
                     className="px-3 py-2 flex items-center gap-2 font-bold text-slate-800 dark:text-slate-200 bg-slate-100 dark:bg-[#161a23] border-b border-black/10 dark:border-white/10 text-sm border-l-4"
                     style={{ borderLeftColor: group.color }}
                   >
-                    <Image
-                      src={`/assets/linewatch/${group.lineId}-legend.svg?v=2`}
-                      alt=""
-                      width={20}
-                      height={20}
-                      className="w-5 h-5 shrink-0 select-none"
-                    />
-                    <span>{group.lineName} Line</span>
+                    {lineBadge(group)}
+                    <span>{group.lineName}{regional ? " corridor" : " Line"}</span>
                   </div>
 
                   {/* Stations Accordeon */}

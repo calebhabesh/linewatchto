@@ -205,7 +205,10 @@ public class RegionalDashboardService {
         String first = RegionalNetworkCatalog.station(ordered.getFirst()).map(station -> station.name()).orElse(ordered.getFirst());
         if (ordered.size() == 1) return first;
         String last = RegionalNetworkCatalog.station(ordered.getLast()).map(station -> station.name()).orElse(ordered.getLast());
-        return first + " to " + last;
+        // Regional alert normalization does not yet retain a trustworthy travel
+        // direction. Keep the station span bidirectional instead of letting the
+        // frontend infer a one-way impact from the word "to".
+        return first + " ↔ " + last;
     }
 
     private String window(RegionalNormalizedAlert alert) {

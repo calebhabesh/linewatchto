@@ -7,6 +7,11 @@ import { useDashboardData } from "../app/DataContext";
 import { DelayIcon } from "./DelayIcon";
 import { TransitLineBadge } from "./TransitLineBadge";
 import type { NetworkId } from "../app/regional-data";
+import {
+  clearServiceStatusLabel,
+  dashboardStatusSourceLabel,
+  networkStatusKicker,
+} from "../app/network-presentation";
 
 type StatusCategory = "alerts" | "delays" | "reduced-speed-zones" | "closures" | "accessibility-outages" | "surface-notices";
 
@@ -23,19 +28,14 @@ type Props = {
 export function MobileStatusSheet({ pollText, dataSource, onOpenCategory, onClose, accessibilityOutageCount = 0, surfaceNoticeCount = 0, networkId = "ttc" }: Props) {
   const { activeAlerts, delays, reducedSpeedZones, plannedClosures, lineStatuses } = useDashboardData();
   const regional = networkId === "regional";
-  const toTitleCase = (str: string) =>
-    str.split(" ").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
-  const sourceLabel = dataSource === "backend"
-    ? `Updated ${toTitleCase(pollText)}`
-    : regional
-      ? "Regional demo data — not live service information."
-      : "Backend offline. Fixture mode.";
+  const presentationState = { networkId, dataSource } as const;
+  const sourceLabel = dashboardStatusSourceLabel(presentationState, pollText);
 
   return (
     <section className="mobile-status-sheet panel" aria-label="Current service status">
       <div className="mobile-sheet-heading">
         <div>
-          <p className="mobile-sheet-kicker">{regional ? "GO & UP regional rail" : "Current TTC rapid transit"}</p>
+          <p className="mobile-sheet-kicker">{networkStatusKicker(networkId)}</p>
           <h2>System Status</h2>
           <p>{sourceLabel}</p>
         </div>
@@ -81,7 +81,7 @@ export function MobileStatusSheet({ pollText, dataSource, onOpenCategory, onClos
               {plannedClosures.length}
             </span>
           </button>
-          {!regional ? <button type="button" className="mobile-status-btn-accessibility flex items-center justify-between" onClick={() => onOpenCategory("accessibility-outages")}>
+          <button type="button" className="mobile-status-btn-accessibility flex items-center justify-between" onClick={() => onOpenCategory("accessibility-outages")}>
             <Image
               src="/assets/linewatch/accessibility-alert.svg"
               alt=""
@@ -93,7 +93,7 @@ export function MobileStatusSheet({ pollText, dataSource, onOpenCategory, onClos
             <span className="mobile-status-btn-circle">
               {accessibilityOutageCount}
             </span>
-          </button> : null}
+          </button>
           {!regional ? <button type="button" className="mobile-status-btn-surface flex items-center justify-between" onClick={() => onOpenCategory("surface-notices")}>
             <Bus size={16} className="text-slate-500 dark:text-slate-400 shrink-0" />
             <span className="mobile-status-btn-text">Streetcar & Bus Notices</span>
@@ -123,7 +123,7 @@ export function MobileStatusSheet({ pollText, dataSource, onOpenCategory, onClos
                 <TransitLineBadge lineId={line.id} lineNumber={line.number} lineName={line.name} size={30} className="mobile-line-status-number" />
                 <span className="mobile-line-status-copy">
                   <strong>{line.name}</strong>
-                  {clear ? <em>{dataSource === "backend" ? "Good Service" : regional ? "Demo status unavailable" : "Fixture data"}</em> : null}
+                  {clear ? <em>{clearServiceStatusLabel(presentationState)}</em> : null}
                   {!clear ? (
                     <span className="mobile-line-status-impacts">
                       {lineAlerts.length > 0 ? (

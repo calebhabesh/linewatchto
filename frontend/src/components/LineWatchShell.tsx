@@ -112,6 +112,7 @@ import { normalizeAccountEmail, validateAccountCredentials } from "../app/accoun
 import { getCurrentPushSubscription } from "../app/push-browser-state";
 import { hasReleaseNotes } from "../app/release-notes";
 import { lineWatchAppVersionLabel } from "../app/app-build";
+import { clearServiceStatusLabel } from "../app/network-presentation";
 import {
   buildVisualPreferencesCookie,
   defaultVisualPreferences,
@@ -554,7 +555,13 @@ export function LineWatchShell({
   const [stationPanelActivationKey, setStationPanelActivationKey] = useState(0);
   const [visibleStationResult, setVisibleStationResult] = useState<StationDataResult<StationDetail | null> | null>(null);
   const [stationLoading, setStationLoading] = useState(false);
-  const [accessibilityOutageResult, setAccessibilityOutageResult] = useState<AccessibilityOutageResponse | null>(null);
+  const [accessibilityOutageState, setAccessibilityOutageState] = useState<{
+    networkId: NetworkId;
+    data: AccessibilityOutageResponse;
+  } | null>(null);
+  const accessibilityOutageResult = accessibilityOutageState?.networkId === selectedNetwork
+    ? accessibilityOutageState.data
+    : null;
   const [accessibilityOutageTarget, setAccessibilityOutageTarget] = useState<AccessibilityOutageTarget | null>(null);
   const [expandedMyStationDisruptionIds, setExpandedMyStationDisruptionIds] = useState<Set<string>>(() => new Set());
   const [surfaceNoticeCount, setSurfaceNoticeCount] = useState<number | null>(null);
@@ -750,8 +757,10 @@ export function LineWatchShell({
   }, [notificationStatusLabel]);
 
   const { clear: commuteClearCount, affectedNow: commuteAffectedCount } = useMemo(
-    () => summarizeSavedCommuteStatuses(accountCommutes),
-    [accountCommutes]
+    () => summarizeSavedCommuteStatuses(
+      accountCommutes.filter((commute) => (commute.networkId ?? "ttc") === selectedNetwork)
+    ),
+    [accountCommutes, selectedNetwork]
   );
 
   useEffect(() => {
@@ -1436,13 +1445,14 @@ export function LineWatchShell({
   }, [reducedMotionOverride]);
 
   const fetchAccessibilityOutages = useCallback(async () => {
+    const networkId = selectedNetwork;
     try {
-      const res = await getAccessibilityOutages();
-      setAccessibilityOutageResult(res.data);
+      const res = await getAccessibilityOutages(undefined, { networkId });
+      setAccessibilityOutageState({ networkId, data: res.data });
     } catch (err) {
       console.error("Failed to fetch accessibility outages:", err);
     }
-  }, []);
+  }, [selectedNetwork]);
 
   const fetchSurfaceNoticesCount = useCallback(async () => {
     try {
@@ -1460,10 +1470,10 @@ export function LineWatchShell({
   }, []);
 
   useEffect(() => {
-    if (selectedNetwork !== "ttc") {
+    if (selectedNetwork === "ttc" && subwayOperatingState.status === "closed" && !closedMapPeek) {
       return;
     }
-    if (subwayOperatingState.status === "closed" && !closedMapPeek) {
+    if (selectedNetwork === "regional" && regionalRailOperatingState.status === "closed" && !closedMapPeek) {
       return;
     }
 
@@ -1472,17 +1482,17 @@ export function LineWatchShell({
         return;
       }
 
-      router.refresh();
+      if (selectedNetwork === "ttc") router.refresh();
       fetchAccessibilityOutages();
-      fetchSurfaceNoticesCount();
+      if (selectedNetwork === "ttc") fetchSurfaceNoticesCount();
     };
 
     const interval = window.setInterval(refreshDashboardData, dashboardRefreshIntervalMs());
     const handleVisibilityChange = () => {
       if (document.visibilityState === "visible") {
-        router.refresh();
+        if (selectedNetwork === "ttc") router.refresh();
         fetchAccessibilityOutages();
-        fetchSurfaceNoticesCount();
+        if (selectedNetwork === "ttc") fetchSurfaceNoticesCount();
       }
     };
 
@@ -1492,7 +1502,7 @@ export function LineWatchShell({
       window.clearInterval(interval);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, [closedMapPeek, router, selectedNetwork, subwayOperatingState.status, fetchAccessibilityOutages, fetchSurfaceNoticesCount]);
+  }, [closedMapPeek, router, selectedNetwork, subwayOperatingState.status, regionalRailOperatingState.status, fetchAccessibilityOutages, fetchSurfaceNoticesCount]);
 
 
   useEffect(() => {
@@ -1500,8 +1510,9 @@ export function LineWatchShell({
 
     if (selectedNetwork === "regional") {
       // eslint-disable-next-line react-hooks/set-state-in-effect
-      setAccessibilityOutageResult(null);
+      setAccessibilityOutageState(null);
       setSurfaceNoticeCount(null);
+      fetchAccessibilityOutages();
       return () => { cancelled = true; };
     }
 
@@ -1604,6 +1615,7 @@ export function LineWatchShell({
       setIsClosedScreenExiting(false);
       setSelectedNetwork(network);
       setSelection(null);
+      setCommutePathPreview(null);
       setSelectedStationId(pendingStationSelection?.stationId ?? null);
       setVisibleStationResult(null);
       setStationSearchQuery("");
@@ -2057,6 +2069,7 @@ export function LineWatchShell({
             accountCommutes={accountCommutes}
             setAccountCommutes={setAccountCommutes}
             stationSummaries={stationSummaries}
+            networkId={selectedNetwork}
             viewedCommuteId={commutePathPreview?.id ?? null}
             onViewPath={handleViewCommutePath}
             onViewImpactOnPath={handleViewCommuteImpactOnPath}
@@ -2111,6 +2124,7 @@ export function LineWatchShell({
         return (
           <AccessibilityOutagesPanel
             accessibilityOutageResult={accessibilityOutageResult}
+            networkId={selectedNetwork}
             initialTarget={accessibilityOutageTarget}
             onSelectStation={(stationId) => {
               setSelectedStationId(stationId);
@@ -2709,7 +2723,7 @@ export function LineWatchShell({
                      </span>
                    )}
                  </button>
-                 {selectedNetwork === "ttc" ? <button
+                 <button
                    ref={registerMenuAction(actionIndex++)}
                    role="menuitem"
                    onClick={() => navigateForward("accessibility-outages")}
@@ -2738,7 +2752,7 @@ export function LineWatchShell({
                        {accessibilityOutageResult.assetTypes.reduce((acc, curr) => acc + curr.count, 0)}
                      </span>
                    )}
-                 </button> : null}
+                 </button>
                  {selectedNetwork === "ttc" ? <button
                    ref={registerMenuAction(actionIndex++)}
                    role="menuitem"
@@ -2919,11 +2933,10 @@ export function LineWatchShell({
                                   </div>
                                   {isClear && (
                                     <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider ml-1">
-                                      {displayData.dataSource === "backend"
-                                        ? "Good Service"
-                                        : selectedNetwork === "regional"
-                                          ? "Demo Status"
-                                          : "Fixture Data"}
+                                      {clearServiceStatusLabel({
+                                        networkId: selectedNetwork,
+                                        dataSource: displayData.dataSource,
+                                      })}
                                     </span>
                                   )}
                                 </div>
@@ -3277,6 +3290,14 @@ export function LineWatchShell({
         <RegionalStationDetailPanel
           key={`${selectedStationId}:${stationPanelActivationKey}`}
           station={stationSummaries.find((station) => station.id === selectedStationId) ?? regionalStationSummaries.stations[0]}
+          accessibilityOutages={Array.from(new Map(
+            (accessibilityOutageResult?.groups ?? [])
+              .flatMap((group) => group.stations)
+              .filter((station) => station.stationId === selectedStationId)
+              .flatMap((station) => station.outages)
+              .map((outage) => [outage.id, outage]),
+          ).values())}
+          accessibilityFresh={accessibilityOutageResult?.fresh === true}
           onClose={() => setSelectedStationId((current) => current === selectedStationId ? null : current)}
           onSelectImpact={handleMapSelectImpact}
           authenticated={accountState.authenticated}
@@ -3441,6 +3462,7 @@ export function LineWatchShell({
           plannedClosureCount={plannedClosures.length}
           pollText={pollText}
           dataSource={displayData.dataSource}
+          networkId={selectedNetwork}
           onOpenStatus={() => navigateForward("status")}
           onOpenCategory={(view) => {
             setSelection(null);

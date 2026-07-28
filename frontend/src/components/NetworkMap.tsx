@@ -41,6 +41,8 @@ export function NetworkMap({
           onReady={onInitialMapReady}
           estimatedTrainsEnabled={props.estimatedTrainsEnabled}
           estimatedTrainMarkers={props.estimatedTrainMarkers}
+          commutePathPreview={props.commutePathPreview}
+          onClearCommutePathPreview={props.onClearCommutePathPreview}
         />
       ) : (
         <InteractiveTtcMap

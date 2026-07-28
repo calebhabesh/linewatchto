@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 
 const panelSource = readFileSync(new URL("../src/components/StationDetailPanel.tsx", import.meta.url), "utf8");
+const stationHeaderSource = readFileSync(new URL("../src/components/StationDetailHeader.tsx", import.meta.url), "utf8");
 const shellSource = readFileSync(new URL("../src/components/LineWatchShell.tsx", import.meta.url), "utf8");
 const globalCss = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
 
@@ -92,8 +93,7 @@ describe("station detail panel layout", () => {
     const arrivalsIndex = panelSource.indexOf('data-station-section="arrivals"');
     const accessibilityIndex = panelSource.indexOf('data-station-section="accessibility"');
     const impactsIndex = panelSource.indexOf('data-station-section="station-impacts"');
-    const titleRowIndex = panelSource.indexOf('className="flex items-start justify-between gap-3"');
-    const closeButtonEndIndex = panelSource.indexOf("</button>", titleRowIndex);
+    const titleRowIndex = panelSource.indexOf("<StationDetailHeader");
     const accessibilityChipsIndex = panelSource.indexOf("isWheelchairAccessible || hasElevator");
 
     assert.notEqual(headerDetailsIndex, -1);
@@ -101,17 +101,15 @@ describe("station detail panel layout", () => {
     assert.notEqual(accessibilityIndex, -1);
     assert.notEqual(impactsIndex, -1);
     assert.notEqual(titleRowIndex, -1);
-    assert.notEqual(closeButtonEndIndex, -1);
     assert.notEqual(accessibilityChipsIndex, -1);
     assert.equal(panelSource.indexOf('data-station-section="line-details"'), -1);
-    assert.ok(titleRowIndex < closeButtonEndIndex);
-    assert.ok(closeButtonEndIndex < accessibilityChipsIndex);
+    assert.ok(titleRowIndex < accessibilityChipsIndex);
     assert.ok(accessibilityChipsIndex < headerDetailsIndex);
     assert.ok(headerDetailsIndex < arrivalsIndex);
     assert.ok(arrivalsIndex < impactsIndex);
     assert.ok(impactsIndex < accessibilityIndex);
     assert.match(panelSource, /data-station-header-line-details[\s\S]*grid-cols-\[minmax\(0,1fr\)_auto\]/);
-    assert.match(panelSource, /className="min-w-0 flex-1"/);
+    assert.match(stationHeaderSource, /className="min-w-0 flex-1"/);
   });
 
   it("surfaces accessibility outage counts near the top of the station panel", () => {
@@ -141,7 +139,7 @@ describe("station detail panel layout", () => {
 
   it("keeps the station panel constrained and touch friendly", () => {
     assert.match(panelSource, /max-h-\[calc\(var\(--visual-viewport-height,100dvh\)\*0\.64\)\]/);
-    assert.match(panelSource, /h-11 w-11/);
+    assert.match(stationHeaderSource, /h-11 w-11/);
     assert.match(panelSource, /overflow-y-auto/);
     assert.doesNotMatch(panelSource, /backdrop-blur/);
   });
@@ -198,7 +196,7 @@ describe("station detail panel layout", () => {
 
   it("supports updating state, animation, and prefers-reduced-motion overrides", () => {
     assert.match(panelSource, /updating\?: boolean/);
-    assert.match(panelSource, /station-detail-updating/);
+    assert.match(stationHeaderSource, /station-detail-updating/);
     assert.match(globalCss, /@keyframes station-detail-enter/);
     assert.match(globalCss, /\.motion-paused \.station-detail-panel/);
     assert.match(panelSource, /station-detail-body-wrapper/);

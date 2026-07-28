@@ -1,8 +1,9 @@
 "use client";
 
 import { memo, useCallback, useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent, type PointerEvent, type WheelEvent } from "react";
-import { Locate, ZoomIn, ZoomOut } from "lucide-react";
-import type { ImpactKind, ImpactSelection } from "../app/linewatch-data";
+import { Locate, X, ZoomIn, ZoomOut } from "lucide-react";
+import type { ImpactKind, ImpactSelection, MapImpact, NetworkSegment, TravelDirection } from "../app/linewatch-data";
+import type { AccountCommutePathPreview } from "../app/account-data";
 import { estimatedTrainMarkerRenderKey, type EstimatedTrainMarker } from "../app/train-markers";
 import { useDashboardData } from "../app/DataContext";
 import {
@@ -53,6 +54,11 @@ const REGIONAL_LARGE_TERMINAL_IDS = new Set([
 // the tighter default never crosses the console or impact-badge bounds.
 const REGIONAL_MAP_DEFAULT_FRAME_SCALE = 1.04;
 const SVG_NAMESPACE = "http://www.w3.org/2000/svg";
+const REGIONAL_IMPACT_OVERLAY_WIDTH = 196;
+const REGIONAL_DELAY_GLYPH_SPACING = 96;
+// TTC's lane advances 160 SVG units over 12 seconds. Regional authored map
+// units are about 175 / 102 larger for the equivalent corridor stroke.
+const REGIONAL_DELAY_TRAVEL_UNITS_PER_SECOND = (160 / 12) * (175 / 102);
 
 function regionalImpactColor(kind: ImpactKind) {
   switch (kind) {
@@ -64,7 +70,7 @@ function regionalImpactColor(kind: ImpactKind) {
       return "#d97706";
     case "delay":
     default:
-      return "#f59e0b";
+      return "#0ea5e9";
   }
 }
 
@@ -74,9 +80,133 @@ function regionalImpactDashArray(kind: ImpactKind) {
   return "none";
 }
 
+function regionalImpactVisualState(kind: ImpactKind) {
+  switch (kind) {
+    case "suspension":
+      return "suspension";
+    case "planned-closure":
+      return "planned-preview";
+    case "reduced-speed-zone":
+      return "reduced-speed-zone";
+    case "delay":
+    default:
+      return "delay-static";
+  }
+}
+
 function removeDescendantIds(element: SVGElement) {
   element.removeAttribute("id");
   element.querySelectorAll("[id]").forEach((child) => child.removeAttribute("id"));
+}
+
+function appendRegionalDelayGlyph(
+  documentNode: Document,
+  parent: SVGGElement,
+  kind: "hourglass" | "arrow",
+) {
+  const glyph = documentNode.createElementNS(SVG_NAMESPACE, "g");
+  glyph.classList.add("regional-delay-glyph", `regional-delay-glyph--${kind}`);
+
+  if (kind === "hourglass") {
+    // Deliberately replicate the mature TTC delay glyph so both map modes use
+    // the same visual vocabulary even though the regional SVG is injected as
+    // serialized markup instead of rendered as React-owned paths.
+    const artwork = documentNode.createElementNS(SVG_NAMESPACE, "g");
+    artwork.setAttribute("transform", "scale(0.16) translate(-550 -512)");
+    artwork.classList.add("delay-hourglass");
+    const paths = [
+      ["M576 512c0 190.72 448 345.6-25.6 345.6s-25.6-154.88-25.6-345.6-448-345.6 25.6-345.6 25.6 154.88 25.6 345.6z", "#F7E6A3"],
+      ["M550.4 870.4c-147.2 0-212.48-14.08-226.56-48.64-14.08-33.28 23.04-71.68 71.68-121.6 51.2-52.48 116.48-120.32 116.48-188.16 0-67.84-65.28-135.68-117.76-189.44-47.36-48.64-85.76-87.04-71.68-121.6C337.92 167.68 403.2 153.6 550.4 153.6s212.48 14.08 226.56 48.64c14.08 33.28-23.04 71.68-71.68 121.6-51.2 52.48-116.48 120.32-116.48 188.16 0 67.84 65.28 135.68 117.76 189.44 47.36 48.64 85.76 87.04 71.68 121.6C762.88 856.32 697.6 870.4 550.4 870.4z m0-691.2c-157.44 0-197.12 17.92-203.52 33.28-7.68 17.92 29.44 56.32 65.28 93.44 55.04 57.6 125.44 128 125.44 207.36 0 79.36-69.12 149.76-125.44 207.36-35.84 37.12-72.96 75.52-65.28 93.44 6.4 12.8 46.08 30.72 203.52 30.72s197.12-17.92 203.52-33.28c7.68-17.92-29.44-56.32-65.28-93.44C632.32 661.76 563.2 591.36 563.2 512c0-79.36 69.12-149.76 125.44-207.36 35.84-37.12 72.96-75.52 65.28-93.44-6.4-14.08-46.08-32-203.52-32z", "#0284c7"],
+      ["M819.2 153.6c0 14.08-11.52 25.6-25.6 25.6H294.4c-14.08 0-25.6-11.52-25.6-25.6v-12.8c0-14.08 11.52-25.6 25.6-25.6h499.2c14.08 0 25.6 11.52 25.6 25.6v12.8z", "#7dd3fc"],
+      ["M793.6 192H294.4c-21.76 0-38.4-16.64-38.4-38.4v-12.8c0-21.76 16.64-38.4 38.4-38.4h499.2c21.76 0 38.4 16.64 38.4 38.4v12.8c0 21.76-16.64 38.4-38.4 38.4z m-499.2-64c-7.68 0-12.8 5.12-12.8 12.8v12.8c0 7.68 5.12 12.8 12.8 12.8h499.2c7.68 0 12.8-5.12 12.8-12.8v-12.8c0-7.68-5.12-12.8-12.8-12.8H294.4z", "#0369a1"],
+      ["M819.2 883.2c0 14.08-11.52 25.6-25.6 25.6H294.4c-14.08 0-25.6-11.52-25.6-25.6v-12.8c0-14.08 11.52-25.6 25.6-25.6h499.2c14.08 0 25.6 11.52 25.6 25.6v12.8z", "#7dd3fc"],
+      ["M793.6 921.6H294.4c-21.76 0-38.4-16.64-38.4-38.4v-12.8c0-21.76 16.64-38.4 38.4-38.4h499.2c21.76 0 38.4 16.64 38.4 38.4v12.8c0 21.76-16.64 38.4-38.4 38.4z m-499.2-64c-7.68 0-12.8 5.12-12.8 12.8v12.8c0 7.68 5.12 12.8 12.8 12.8h499.2c7.68 0 12.8-5.12 12.8-12.8v-12.8c0-7.68-5.12-12.8-12.8-12.8H294.4z", "#0369a1"],
+      ["M307.2 179.2h25.6v665.6h-25.6z", "#0369a1"],
+      ["M768 179.2h25.6v665.6h-25.6z", "#0369a1"],
+    ] as const;
+    for (const [pathD, fill] of paths) {
+      const path = documentNode.createElementNS(SVG_NAMESPACE, "path");
+      path.setAttribute("d", pathD);
+      path.setAttribute("fill", fill);
+      artwork.append(path);
+    }
+    glyph.append(artwork);
+  } else {
+    const arrow = documentNode.createElementNS(SVG_NAMESPACE, "path");
+    arrow.setAttribute("d", "M -12 -10 L 8 0 L -12 10");
+    arrow.setAttribute("transform", "scale(1.8)");
+    arrow.classList.add("regional-delay-direction-arrow");
+    glyph.append(arrow);
+  }
+
+  parent.append(glyph);
+  return glyph;
+}
+
+function regionalDelayGlyphLane(
+  documentNode: Document,
+  sourcePath: SVGPathElement,
+  travelDirection: TravelDirection,
+  reducedMotion: boolean,
+) {
+  const lane = documentNode.createElementNS(SVG_NAMESPACE, "g");
+  lane.classList.add("regional-delay-glyph-lane");
+  lane.dataset.regionalDelayDirection = travelDirection;
+  lane.setAttribute("aria-hidden", "true");
+
+  let length = 0;
+  try {
+    length = sourcePath.getTotalLength();
+  } catch {
+    return lane;
+  }
+  if (length <= 0) return lane;
+
+  // Directional TTC lanes alternate hourglasses and arrows. A directionless
+  // lane has no arrow glyphs, so use a middle interval that preserves the TTC
+  // visual density without making adjacent hourglasses touch.
+  const glyphSpacing = travelDirection === "bidirectional"
+    ? REGIONAL_DELAY_GLYPH_SPACING * 1.3
+    : REGIONAL_DELAY_GLYPH_SPACING;
+  const count = Math.max(1, Math.floor(length / glyphSpacing));
+  const durationSeconds = Math.max(10, length / REGIONAL_DELAY_TRAVEL_UNITS_PER_SECOND);
+  const pathD = sourcePath.getAttribute("d") ?? "";
+
+  for (let index = 0; index < count; index += 1) {
+    const glyphKind = travelDirection === "bidirectional" || index % 2 === 0
+      ? "hourglass"
+      : "arrow";
+    const glyph = appendRegionalDelayGlyph(documentNode, lane, glyphKind);
+    const progress = (index + 0.5) / count;
+
+    // TTC displays a directionless/bidirectional delay as a static hourglass
+    // lane. Only a trustworthy one-way direction produces moving arrows.
+    if (reducedMotion || travelDirection === "bidirectional" || !pathD) {
+      const distance = travelDirection === "reverse"
+        ? length * (1 - progress)
+        : length * progress;
+      const point = sourcePath.getPointAtLength(distance);
+      const before = sourcePath.getPointAtLength(Math.max(0, distance - 2));
+      const after = sourcePath.getPointAtLength(Math.min(length, distance + 2));
+      const angle = Math.atan2(after.y - before.y, after.x - before.x) * 180 / Math.PI
+        + (travelDirection === "reverse" ? 180 : 0);
+      glyph.setAttribute("transform", `translate(${point.x} ${point.y}) rotate(${angle})`);
+      continue;
+    }
+
+    const motion = documentNode.createElementNS(SVG_NAMESPACE, "animateMotion");
+    motion.setAttribute("path", pathD);
+    motion.setAttribute("dur", `${durationSeconds}s`);
+    motion.setAttribute("begin", `${-(durationSeconds * progress)}s`);
+    motion.setAttribute("repeatCount", "indefinite");
+    motion.setAttribute("calcMode", "linear");
+    motion.setAttribute("keyTimes", "0;1");
+    motion.setAttribute("keyPoints", travelDirection === "reverse" ? "1;0" : "0;1");
+    motion.setAttribute("rotate", travelDirection === "reverse" ? "auto-reverse" : "auto");
+    glyph.append(motion);
+  }
+
+  return lane;
 }
 
 function regionalImpactGroup(
@@ -87,37 +217,50 @@ function regionalImpactGroup(
     kind,
     label,
     layerIndex = 0,
+    segmentCount = 1,
+    travelDirection = "bidirectional",
+    reducedMotion = false,
   }: {
     impactId: string;
     kind: ImpactKind;
     label: string;
     layerIndex?: number;
+    segmentCount?: number;
+    travelDirection?: TravelDirection;
+    reducedMotion?: boolean;
   },
 ) {
+  const visualState = regionalImpactVisualState(kind);
   const group = documentNode.createElementNS(SVG_NAMESPACE, "g");
   group.classList.add("overlay-segment-group", "regional-overlay-segment-group");
+  if (segmentCount > 1) group.classList.add("connected-corridor");
   group.dataset.regionalImpactKind = kind;
   group.dataset.regionalImpactId = impactId;
+  group.dataset.regionalImpactSegmentCount = String(segmentCount);
   group.style.setProperty("--regional-impact-color", regionalImpactColor(kind));
-  group.style.setProperty("--regional-impact-width", `${Math.max(48, 104 - layerIndex * 20)}px`);
+  group.style.setProperty(
+    "--regional-impact-width",
+    `${Math.max(88, REGIONAL_IMPACT_OVERLAY_WIDTH - layerIndex * 28)}px`,
+  );
   group.style.setProperty("--regional-impact-dasharray", regionalImpactDashArray(kind));
 
   const aura = sourcePath.cloneNode(false) as SVGPathElement;
   removeDescendantIds(aura);
-  aura.classList.add("asset-alert-path-glow", "regional-impact-glow", "regional-impact-aura");
+  aura.classList.add("asset-alert-path-glow", visualState, "regional-impact-glow", "regional-impact-aura");
 
   const interactiveGlow = sourcePath.cloneNode(false) as SVGPathElement;
   removeDescendantIds(interactiveGlow);
-  interactiveGlow.classList.add("asset-alert-path-glow", "regional-impact-glow", "regional-impact-interactive-glow", "map-selection-attention");
+  interactiveGlow.classList.add("asset-alert-path-glow", visualState, "regional-impact-glow", "regional-impact-interactive-glow", "map-selection-attention");
 
   const boundary = sourcePath.cloneNode(false) as SVGPathElement;
   removeDescendantIds(boundary);
-  boundary.classList.add("asset-alert-path-hover-boundary", "regional-impact-hover-boundary");
+  boundary.classList.add("asset-alert-path-hover-boundary", visualState, "regional-impact-hover-boundary");
 
   const visiblePath = sourcePath.cloneNode(false) as SVGPathElement;
   removeDescendantIds(visiblePath);
   visiblePath.classList.add("asset-alert-path", "regional-impact-path", `regional-impact-path--${kind}`);
   if (kind === "planned-closure") visiblePath.classList.add("planned-preview");
+  if (kind === "delay") visiblePath.classList.add("delay-static-base");
 
   const hitTarget = sourcePath.cloneNode(false) as SVGPathElement;
   removeDescendantIds(hitTarget);
@@ -129,27 +272,71 @@ function regionalImpactGroup(
   title.textContent = label;
   hitTarget.prepend(title);
 
-  group.append(aura, interactiveGlow, boundary, visiblePath, hitTarget);
+  group.append(aura, interactiveGlow, boundary, visiblePath);
+  if (kind === "delay") {
+    group.append(regionalDelayGlyphLane(documentNode, sourcePath, travelDirection, reducedMotion));
+  }
+  group.append(hitTarget);
   return group;
+}
+
+type SvgPoint = { x: number; y: number };
+
+function applySvgTransform(point: SvgPoint, transform: string | null): SvgPoint {
+  if (!transform) return point;
+  let next = point;
+  for (const match of transform.matchAll(/([a-zA-Z]+)\(([^)]*)\)/g)) {
+    const operation = match[1];
+    const values = match[2].trim().split(/[\s,]+/).filter(Boolean).map(Number);
+    if (operation === "translate") {
+      next = { x: next.x + (values[0] ?? 0), y: next.y + (values[1] ?? 0) };
+    } else if (operation === "scale") {
+      next = { x: next.x * (values[0] ?? 1), y: next.y * (values[1] ?? values[0] ?? 1) };
+    } else if (operation === "rotate") {
+      const radians = ((values[0] ?? 0) * Math.PI) / 180;
+      const centerX = values[1] ?? 0;
+      const centerY = values[2] ?? 0;
+      const offsetX = next.x - centerX;
+      const offsetY = next.y - centerY;
+      next = {
+        x: centerX + Math.cos(radians) * offsetX - Math.sin(radians) * offsetY,
+        y: centerY + Math.sin(radians) * offsetX + Math.cos(radians) * offsetY,
+      };
+    } else if (operation === "matrix" && values.length >= 6) {
+      const [a, b, c, d, e, f] = values;
+      next = { x: a * next.x + c * next.y + e, y: b * next.x + d * next.y + f };
+    }
+  }
+  return next;
+}
+
+function pointInRegionalStationsLayer(element: SVGElement, point: SvgPoint): SvgPoint {
+  let next = point;
+  let current: SVGElement | null = element;
+  while (current && current.id !== "regional-stations-layer") {
+    next = applySvgTransform(next, current.getAttribute("transform"));
+    current = current.parentElement as SVGElement | null;
+  }
+  return next;
 }
 
 function svgAnchorPoint(documentNode: Document, anchorId: string | undefined) {
   if (!anchorId) return null;
-  const anchor = documentNode.getElementById(anchorId);
+  const anchor = documentNode.getElementById(anchorId) as SVGElement | null;
   if (!anchor) return null;
-  if (anchor.tagName.toLowerCase() === "circle") {
-    return {
+  if (anchor.matches("circle, ellipse")) {
+    return pointInRegionalStationsLayer(anchor, {
       x: Number(anchor.getAttribute("cx") ?? 0),
       y: Number(anchor.getAttribute("cy") ?? 0),
-    };
+    });
   }
   if (anchor.tagName.toLowerCase() === "rect") {
     const x = Number(anchor.getAttribute("x") ?? 0);
     const y = Number(anchor.getAttribute("y") ?? 0);
-    return {
+    return pointInRegionalStationsLayer(anchor, {
       x: x + Number(anchor.getAttribute("width") ?? 0) / 2,
       y: y + Number(anchor.getAttribute("height") ?? 0) / 2,
-    };
+    });
   }
   return null;
 }
@@ -162,6 +349,65 @@ function fallbackSegmentPath(
   const start = svgAnchorPoint(documentNode, stationAAnchorId);
   const end = svgAnchorPoint(documentNode, stationBAnchorId);
   return start && end ? `M ${start.x},${start.y} L ${end.x},${end.y}` : null;
+}
+
+type RegionalOverlayPiece = {
+  segment: NetworkSegment;
+  impact: MapImpact;
+  impactIndex: number;
+  pathD: string;
+};
+
+type RegionalOverlayRun = {
+  impact: MapImpact;
+  impactIndex: number;
+  lineId: string;
+  segments: NetworkSegment[];
+  pathD: string;
+};
+
+function appendConnectedPathData(pathD: string, nextPathD: string) {
+  const nextWithoutMove = nextPathD.replace(
+    /^\s*[Mm]\s*[-+]?(?:\d*\.?\d+)(?:[eE][-+]?\d+)?\s*,?\s*[-+]?(?:\d*\.?\d+)(?:[eE][-+]?\d+)?/,
+    "",
+  );
+  return `${pathD.trim()} ${nextWithoutMove.trim()}`.trim();
+}
+
+function regionalOverlayRuns(pieces: RegionalOverlayPiece[]): RegionalOverlayRun[] {
+  const grouped = new Map<string, RegionalOverlayPiece[]>();
+  for (const piece of pieces) {
+    const key = [
+      piece.segment.lineId,
+      piece.impact.kind,
+      piece.impact.cardId,
+      piece.impact.travelDirection,
+    ].join(":");
+    grouped.set(key, [...(grouped.get(key) ?? []), piece]);
+  }
+
+  const runs: RegionalOverlayRun[] = [];
+  for (const groupPieces of grouped.values()) {
+    let current: RegionalOverlayRun | null = null;
+    for (const piece of groupPieces) {
+      const previous = current?.segments.at(-1);
+      if (!current || previous?.stationBId !== piece.segment.stationAId) {
+        current = {
+          impact: piece.impact,
+          impactIndex: piece.impactIndex,
+          lineId: piece.segment.lineId,
+          segments: [piece.segment],
+          pathD: piece.pathD,
+        };
+        runs.push(current);
+        continue;
+      }
+      current.segments.push(piece.segment);
+      current.pathD = appendConnectedPathData(current.pathD, piece.pathD);
+      current.impactIndex = Math.min(current.impactIndex, piece.impactIndex);
+    }
+  }
+  return runs;
 }
 
 type Camera = { x: number; y: number; scale: number };
@@ -191,6 +437,8 @@ function InteractiveRegionalMapComponent({
   onReady,
   estimatedTrainsEnabled = false,
   estimatedTrainMarkers = [],
+  commutePathPreview = null,
+  onClearCommutePathPreview,
 }: {
   selection: ImpactSelection;
   onSelectImpact: (selection: ImpactSelection) => void;
@@ -208,6 +456,8 @@ function InteractiveRegionalMapComponent({
   onReady?: () => void;
   estimatedTrainsEnabled?: boolean;
   estimatedTrainMarkers?: EstimatedTrainMarker[];
+  commutePathPreview?: AccountCommutePathPreview | null;
+  onClearCommutePathPreview?: () => void;
 }) {
   const { activeAlerts, networkSegments, stationNodeImpacts } = useDashboardData();
   const viewportRef = useRef<HTMLDivElement>(null);
@@ -594,10 +844,12 @@ function InteractiveRegionalMapComponent({
               impactId: alert.id,
               kind,
               label: `${alert.lineNumber} ${alert.title}`,
+              reducedMotion,
             }));
           }
         }
         const stationsLayer = documentNode.getElementById("regional-stations-layer");
+        const overlayPieces: RegionalOverlayPiece[] = [];
         for (const segment of networkSegments.filter((item) => (item.impacts?.length ?? 0) > 0)) {
           const guide = documentNode.getElementById(segment.guidePathId ?? "") as SVGPathElement | null;
           const fallbackPathD = fallbackSegmentPath(
@@ -607,21 +859,31 @@ function InteractiveRegionalMapComponent({
           );
           if ((!guide && !fallbackPathD) || !stationsLayer) continue;
           for (const [impactIndex, impact] of (segment.impacts ?? []).entries()) {
-            const overlaySource = guide
-              ? guide.cloneNode(false) as SVGPathElement
-              : documentNode.createElementNS(SVG_NAMESPACE, "path");
-            removeDescendantIds(overlaySource);
-            overlaySource.setAttribute("style", "display:inline");
-            if (!guide && fallbackPathD) overlaySource.setAttribute("d", fallbackPathD);
-            const overlay = regionalImpactGroup(documentNode, overlaySource, {
-              impactId: impact.cardId,
-              kind: impact.kind,
-              label: `${segment.label} ${impact.kind} impact`,
-              layerIndex: impactIndex,
-            });
-            const firstStationTarget = stationsLayer.querySelector(".regional-station-hit-target");
-            stationsLayer.insertBefore(overlay, firstStationTarget);
+            const pathD = guide?.getAttribute("d") ?? fallbackPathD;
+            if (!pathD) continue;
+            overlayPieces.push({ segment, impact, impactIndex, pathD });
           }
+        }
+        for (const run of regionalOverlayRuns(overlayPieces)) {
+          if (!stationsLayer) break;
+          const overlaySource = documentNode.createElementNS(SVG_NAMESPACE, "path");
+          overlaySource.setAttribute("style", "display:inline");
+          overlaySource.setAttribute("d", run.pathD);
+          const firstSegment = run.segments[0];
+          const lastSegment = run.segments.at(-1) ?? firstSegment;
+          const startLabel = firstSegment.label.split(" to ")[0];
+          const endLabel = lastSegment.label.split(" to ").at(-1) ?? lastSegment.label;
+          const overlay = regionalImpactGroup(documentNode, overlaySource, {
+            impactId: run.impact.cardId,
+            kind: run.impact.kind,
+            label: `${startLabel} to ${endLabel} ${run.impact.kind} impact`,
+            layerIndex: run.impactIndex,
+            segmentCount: run.segments.length,
+            travelDirection: run.impact.travelDirection,
+            reducedMotion,
+          });
+          const firstStationTarget = stationsLayer.querySelector(".regional-station-hit-target");
+          stationsLayer.insertBefore(overlay, firstStationTarget);
         }
         for (const [impactIndex, impact] of stationNodeImpacts.entries()) {
           const stationVisual = documentNode.getElementById(`station-${impact.stationId}`) as SVGElement | null;
@@ -648,6 +910,32 @@ function InteractiveRegionalMapComponent({
             );
           }
           stationVisual.before(ring);
+        }
+        if (commutePathPreview && stationsLayer) {
+          const previewLayer = documentNode.createElementNS(SVG_NAMESPACE, "g");
+          previewLayer.classList.add("commute-path-preview-layer", "regional-commute-path-preview-layer");
+          previewLayer.dataset.commutePathPreview = commutePathPreview.id;
+          previewLayer.setAttribute("aria-label", commutePathPreview.routeLabel);
+          for (const segmentId of commutePathPreview.segmentIds) {
+            const segment = networkSegments.find((item) => item.id === segmentId);
+            if (!segment) continue;
+            const guide = documentNode.getElementById(segment.guidePathId ?? "") as SVGPathElement | null;
+            const pathD = guide?.getAttribute("d") ?? fallbackSegmentPath(
+              documentNode,
+              segment.stationAAnchorId,
+              segment.stationBAnchorId,
+            );
+            if (!pathD) continue;
+            const glow = documentNode.createElementNS(SVG_NAMESPACE, "path");
+            glow.setAttribute("d", pathD);
+            glow.classList.add("asset-alert-path-glow", "commute-path-preview-glow");
+            const path = documentNode.createElementNS(SVG_NAMESPACE, "path");
+            path.setAttribute("d", pathD);
+            path.classList.add("asset-alert-path", "commute-path-preview-path");
+            previewLayer.append(glow, path);
+          }
+          const firstStationTarget = stationsLayer.querySelector(".regional-station-hit-target");
+          stationsLayer.insertBefore(previewLayer, firstStationTarget);
         }
         if (estimatedTrainsEnabled) {
           const markerLayer = documentNode.createElementNS(SVG_NAMESPACE, "g");
@@ -696,7 +984,7 @@ function InteractiveRegionalMapComponent({
       })
       .catch(() => setLoadError(true));
     return () => { cancelled = true; };
-  }, [activeAlerts, estimatedTrainMarkers, estimatedTrainsEnabled, networkSegments, stationNodeImpacts]);
+  }, [activeAlerts, commutePathPreview, estimatedTrainMarkers, estimatedTrainsEnabled, networkSegments, reducedMotion, stationNodeImpacts]);
 
   useLayoutEffect(() => {
     if (deferInitialEntrance) {
@@ -819,14 +1107,21 @@ function InteractiveRegionalMapComponent({
     const mapX = (renderedCenterX - current.x) / current.scale;
     const mapY = (renderedCenterY - current.y) / current.scale;
     const isMobile = window.matchMedia("(max-width: 767px)").matches;
-    const targetScale = clampPanZoomScale(fitScale * (isMobile ? 3.8 : 1.8), fitScale);
+    const preferredTargetScale = clampPanZoomScale(fitScale * (isMobile ? 3.8 : 1.8), fitScale);
+    const focusPadding = isMobile ? 24 : 40;
+    const focusInsets = {
+      left: focusPadding,
+      right: focusPadding,
+      top: Math.max(desktopMapTopInset, focusPadding),
+      bottom: Math.max(desktopMapBottomInset, focusPadding),
+    };
 
-    let focusX = viewport.clientWidth / 2;
-    const focusY = viewport.clientHeight / 2;
-    if (!isMobile && desktopMenuPinned) {
+    if (!isMobile) {
       const shell = viewport.closest<HTMLElement>(".linewatch-shell");
       const overlayRightEdges = [
-        shell?.querySelector<HTMLElement>("#linewatch-main-menu"),
+        desktopMenuPinned
+          ? shell?.querySelector<HTMLElement>("#linewatch-main-menu")
+          : null,
         shell?.querySelector<HTMLElement>(".floating-panel-shell"),
       ].flatMap((element) => {
         if (!element || element.getAttribute("aria-hidden") === "true") return [];
@@ -839,9 +1134,31 @@ function InteractiveRegionalMapComponent({
           Math.max(Math.max(...overlayRightEdges) - viewportRect.left + 16, 0),
           Math.max(viewportRect.width - minimumVisibleWidth, 0),
         );
-        focusX = insetLeft + (viewport.clientWidth - insetLeft) / 2;
+        focusInsets.left = Math.max(focusInsets.left, insetLeft);
       }
     }
+
+    const mapBounds = {
+      x: (left - current.x) / current.scale,
+      y: (top - current.y) / current.scale,
+      width: Math.max((right - left) / current.scale, 1),
+      height: Math.max((bottom - top) / current.scale, 1),
+    };
+    const selectionFit = computeBoundedMapFrame(
+      viewport.clientWidth,
+      viewport.clientHeight,
+      mapBounds,
+      focusInsets,
+    );
+    const targetScale = clampPanZoomScale(
+      Math.min(preferredTargetScale, selectionFit.scale),
+      fitScale,
+    );
+    const { focusX, focusY } = computeInsetViewportFocus(
+      viewport.clientWidth,
+      viewport.clientHeight,
+      focusInsets,
+    );
 
     animateCameraTo(snapCameraToDevicePixels({
       x: focusX - mapX * targetScale,
@@ -849,7 +1166,15 @@ function InteractiveRegionalMapComponent({
       scale: targetScale,
     }));
     return true;
-  }, [animateCameraTo, desktopMenuPinned, fitScale, selectedMapElements, viewportOrientation]);
+  }, [
+    animateCameraTo,
+    desktopMapBottomInset,
+    desktopMapTopInset,
+    desktopMenuPinned,
+    fitScale,
+    selectedMapElements,
+    viewportOrientation,
+  ]);
 
   const focusTargetKey = selection
     ? `${selection.kind}:${selection.id}`
@@ -1209,6 +1534,14 @@ function InteractiveRegionalMapComponent({
           </svg>
         </div>
       </div>
+      {commutePathPreview ? (
+        <div className="commute-path-preview-chip" role="status" aria-live="polite">
+          <span>Viewing <strong>{commutePathPreview.routeLabel}</strong></span>
+          <button type="button" onClick={onClearCommutePathPreview} aria-label="Back to My Commutes">
+            <X size={15} aria-hidden="true" />
+          </button>
+        </div>
+      ) : null}
       {/* Regional map controls positioned vertically on right side centered below top-right info button */}
       <div className="map-control-rail regional-map-control-rail absolute top-40 sm:top-[176px] right-4 sm:right-6 z-30 flex flex-col items-center justify-center gap-1 sm:gap-2 pointer-events-auto">
         <div className="map-control-recenter-container">

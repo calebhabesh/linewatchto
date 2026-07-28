@@ -1,4 +1,5 @@
 import { apiUrl as buildApiUrl } from "./api-client.ts";
+import type { NetworkId } from "./regional-data.ts";
 
 type Fetcher = typeof fetch;
 
@@ -64,7 +65,7 @@ export type AccountCommutePath = {
   lineIds: string[];
   transferStationIds: string[];
   estimatedTravelSeconds: number;
-  weightSource: "gtfs-scheduled-median" | "mixed-scheduled-fallback" | "seeded-fallback" | "topology-fallback" | "unavailable";
+  weightSource: "gtfs-scheduled-median" | "mixed-scheduled-fallback" | "seeded-fallback" | "topology-fallback" | "regional-topology-estimate" | "unavailable";
   summary: string;
 };
 
@@ -186,6 +187,7 @@ export const defaultSavedCommuteNotificationRule: AccountSavedCommuteNotificatio
 export type AccountSavedCommute = {
   id: string;
   label: string;
+  networkId: NetworkId;
   originStationId: string;
   originStationName: string;
   destinationStationId: string;
@@ -338,10 +340,18 @@ export type AccountSavedCommuteResult = {
 
 export type CreateSavedCommuteInput = {
   label: string;
+  networkId?: NetworkId;
   originStationId: string;
   destinationStationId: string;
   watchReturnTrip?: boolean;
   notificationRule?: AccountSavedCommuteNotificationRule;
+};
+
+export type UpdateSavedCommuteInput = {
+  label: string;
+  originStationId: string;
+  destinationStationId: string;
+  watchReturnTrip: boolean;
 };
 
 export type PushNotificationEventTypePreferences = {
@@ -654,6 +664,7 @@ export function normalizeSavedCommuteNotificationRule(
 function normalizeSavedCommute(commute: AccountSavedCommute): AccountSavedCommute {
   return {
     ...commute,
+    networkId: commute.networkId ?? "ttc",
     notificationRule: normalizeSavedCommuteNotificationRule(commute.notificationRule),
   };
 }
@@ -863,6 +874,24 @@ export async function updateSavedCommuteNotificationRule(
   });
   if (!response.ok) {
     throw new Error(`Update commute notification rule failed with ${response.status}`);
+  }
+  return normalizeSavedCommute(await readJson<AccountSavedCommute>(response));
+}
+
+export async function updateSavedCommute(
+  id: string,
+  input: UpdateSavedCommuteInput,
+  options: AdapterOptions = {}
+) {
+  const fetcher = options.fetcher ?? fetch;
+  const response = await fetcher(apiUrl(`/api/account/commutes/${encodeURIComponent(id)}`, options), {
+    method: "PATCH",
+    credentials: "include",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  if (!response.ok) {
+    throw new Error(`Update commute failed with ${response.status}`);
   }
   return normalizeSavedCommute(await readJson<AccountSavedCommute>(response));
 }

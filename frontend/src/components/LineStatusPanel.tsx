@@ -5,7 +5,7 @@ import { Activity } from "lucide-react";
 import { TransitLineBadge } from "./TransitLineBadge";
 
 export function LineStatusPanel() {
-  const { lineStatuses } = useDashboardData();
+  const { lineStatuses, networkId } = useDashboardData();
   const getStatusPill = (status: string, label: string) => {
     let classes = "status-pill neutral";
     if (status === "suspension") {
@@ -28,7 +28,7 @@ export function LineStatusPanel() {
       <div className="panel-heading border-b border-black/10 dark:border-white/10 px-4 py-3 flex items-center justify-between">
         <h2 className="text-base font-semibold text-slate-900 dark:text-white flex min-w-0 items-center gap-2">
           <Activity size={18} className="text-blue-500 animate-pulse" />
-          Subway & LRT Lines
+          {networkId === "regional" ? "GO & UP Corridors" : "Subway & LRT Lines"}
         </h2>
       </div>
       <div className="line-list min-w-0 p-3 flex flex-col gap-3">

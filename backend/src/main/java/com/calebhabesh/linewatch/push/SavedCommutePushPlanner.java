@@ -55,7 +55,7 @@ public class SavedCommutePushPlanner {
         SavedCommuteEntity commute,
         PlannedClosureFollowUpPolicy followUpPolicy
     ) {
-        if (commute == null || commute.getAccount() == null) {
+        if (commute == null || commute.getAccount() == null || !"ttc".equals(commute.getNetworkId())) {
             return List.of();
         }
 

@@ -42,7 +42,7 @@ class RegionalDashboardServiceTest {
             OffsetDateTime.parse("2026-07-28T09:01:00-04:00"), null,
             OffsetDateTime.parse("2026-07-28T14:12:32-04:00"),
             List.of("bloor", "weston", "mount-dennis"),
-            List.of("segment-ki-bloor-weston", "segment-ki-weston-mount-dennis"), ""
+            List.of("segment-ki-bloor-mount-dennis", "segment-ki-mount-dennis-weston"), ""
         )));
 
         DashboardResponses.DashboardResponse dashboard = service.dashboard();
@@ -51,16 +51,18 @@ class RegionalDashboardServiceTest {
         assertThat(dashboard.status().generatedAt().live()).isTrue();
         assertThat(dashboard.delays()).singleElement().satisfies(delay -> {
             assertThat(delay.lineNumber()).isEqualTo("KI");
-            assertThat(delay.location()).isEqualTo("Bloor to Mount Dennis");
+            assertThat(delay.location()).isEqualTo("Bloor ↔ Weston");
             assertThat(delay.source()).isEqualTo("Metrolinx Open API");
         });
         assertThat(dashboard.status().lines()).filteredOn(line -> line.number().equals("KI"))
             .singleElement().extracting(line -> line.status()).isEqualTo("delay");
-        assertThat(dashboard.map().segments()).filteredOn(segment -> segment.id().equals("segment-ki-bloor-weston"))
+        assertThat(dashboard.map().segments()).filteredOn(segment -> segment.id().equals("segment-ki-bloor-mount-dennis"))
             .singleElement().satisfies(segment -> {
                 assertThat(segment.overlay()).isEqualTo("delay");
-                assertThat(segment.impacts()).singleElement().extracting(impact -> impact.cardId())
-                    .isEqualTo("regional-go-M1-ki");
+                assertThat(segment.impacts()).singleElement().satisfies(impact -> {
+                    assertThat(impact.cardId()).isEqualTo("regional-go-M1-ki");
+                    assertThat(impact.travelDirection()).isEqualTo("bidirectional");
+                });
             });
         assertThat(dashboard.map().segments()).hasSize(74);
     }

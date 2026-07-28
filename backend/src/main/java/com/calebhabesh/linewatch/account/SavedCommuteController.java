@@ -63,6 +63,16 @@ public class SavedCommuteController {
         return savedCommuteService.updateNotificationRule(account, id, request);
     }
 
+    @PatchMapping("/{id}")
+    public AccountResponses.SavedCommuteResponse updateRoute(
+        @CookieValue(name = AuthCookieFactory.COOKIE_NAME, required = false) String rawSessionToken,
+        @PathVariable String id,
+        @RequestBody SavedCommuteService.UpdateSavedCommuteRequest request
+    ) {
+        AccountEntity account = accountService.requireAccount(rawSessionToken);
+        return savedCommuteService.updateRoute(account, id, request);
+    }
+
     @ExceptionHandler(AccountException.class)
     public ResponseEntity<AccountErrorResponse> handleAccountException(AccountException ex) {
         return ResponseEntity.status(ex.getStatus())

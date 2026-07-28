@@ -285,7 +285,11 @@ test("switches the complete dashboard to the fixture-backed regional network", a
   const weston = page.locator('[data-regional-station-id="weston"]');
   await expect(weston).toHaveAttribute("tabindex", "0");
   await weston.press("Enter");
-  await expect(page.getByRole("complementary", { name: "Weston regional station details" })).toBeVisible();
+  const westonPanel = page.getByRole("complementary", { name: "Weston regional station details" });
+  await expect(westonPanel).toBeVisible();
+  await expect(westonPanel.getByRole("button", { name: "Save Weston to My Stations" })).toBeVisible();
+  await expect(westonPanel.getByRole("button", { name: "Close station details" })).toBeVisible();
+  await expect(westonPanel.locator(".transit-line-badge").first()).toBeVisible();
 
   await networkSelector.getByRole("button", { name: "TTC", exact: true }).click();
   await expect(root).toHaveAttribute("data-network-transition-direction", "back");
@@ -302,6 +306,31 @@ test("switches the complete dashboard to the fixture-backed regional network", a
   await expect(page.getByRole("region", { name: "Interactive GO and UP map" })).toBeHidden();
 });
 
+test("mobile preserves status and station interaction language across network switches", async ({ page, request, isMobile }) => {
+  test.skip(!isMobile, "mobile-only cross-network parity smoke");
+  await setStubMode(request, "seeded");
+  await page.goto("/");
+
+  const networkSelector = page.locator(".mobile-network-selector-slot")
+    .getByRole("group", { name: "Select transit network" });
+  await networkSelector.getByRole("button", { name: "GO/UP", exact: true }).click();
+
+  await expect(page.getByText("Regional Demo · Not Live", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Status", exact: true }).click();
+  const statusSheet = page.getByRole("region", { name: "Current service status" });
+  await expect(statusSheet).toContainText("GO & UP regional rail");
+  await expect(statusSheet).toContainText("Regional demo data — not live service information.");
+  await expect(statusSheet.getByRole("button", { name: /Accessibility Outages/ })).toBeVisible();
+  await expect(statusSheet.getByRole("button", { name: /Reduced Speed Zones/ })).toHaveCount(0);
+
+  await statusSheet.getByRole("button", { name: "Close status" }).click();
+  const weston = page.locator('[data-regional-station-id="weston"]');
+  await weston.press("Enter");
+  const stationPanel = page.getByRole("complementary", { name: "Weston regional station details" });
+  await expect(stationPanel.getByRole("button", { name: "Save Weston to My Stations" })).toBeVisible();
+  await expect(stationPanel.getByRole("button", { name: "Close station details" })).toBeVisible();
+});
+
 test("renders fresh Metrolinx impacts in regional mode", async ({ page, request, isMobile }) => {
   test.skip(isMobile, "network selection is desktop-only");
   await setStubMode(request, "regional-live");
@@ -312,8 +341,16 @@ test("renders fresh Metrolinx impacts in regional mode", async ({ page, request,
     .click();
 
   await expect(page.getByText("Last Polled: Metrolinx smoke poll", { exact: true })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Pickering to Ajax delay impact" })).toBeAttached();
+  await expect(page.getByRole("button", { name: "Pickering to Whitby delay impact" })).toBeAttached();
   await expect(page.getByText("Last Polled: regional fixture mode", { exact: true })).toHaveCount(0);
+
+  const delayOverlay = page.locator('.regional-overlay-segment-group[data-regional-impact-kind="delay"]');
+  await expect(delayOverlay).toHaveCount(1);
+  await expect(delayOverlay).toHaveAttribute("data-regional-impact-segment-count", "2");
+  await expect(delayOverlay.locator(".delay-static-base")).toBeAttached();
+  await expect(delayOverlay.locator('[data-regional-delay-direction="forward"]')).toBeAttached();
+  await expect(delayOverlay.locator(".regional-delay-glyph--hourglass").first()).toBeAttached();
+  await expect(delayOverlay.locator(".regional-delay-glyph--arrow").first()).toBeAttached();
 
   const pickeringStation = page.locator('[data-regional-station-id="pickering"]');
   await pickeringStation.press("Enter");
@@ -323,6 +360,29 @@ test("renders fresh Metrolinx impacts in regional mode", async ({ page, request,
   await expect(stationPanel.getByText("Kitchener GO", { exact: true })).toBeVisible();
   await expect(stationPanel.getByText("7 min", { exact: true })).toBeVisible();
   await expect(stationPanel.getByText("Platform 11 · 3 min behind schedule", { exact: true })).toBeVisible();
+});
+
+test("renders regional accessibility outages in the global and station views", async ({ page, request, isMobile }) => {
+  test.skip(isMobile, "regional network selection is covered on desktop");
+  await setStubMode(request, "regional-live");
+  await page.goto("/");
+  await page.getByRole("group", { name: "Select transit network" })
+    .getByRole("button", { name: "GO/UP", exact: true })
+    .click();
+  await page.getByRole("button", { name: "Toggle menu" }).click();
+  await page.getByRole("menuitem", { name: /^Accessibility Outages/ }).click();
+
+  await expect(page.getByRole("heading", { name: "Accessibility Outages" })).toBeVisible();
+  await page.getByRole("button", { name: /Elevator Outages/ }).click();
+  await expect(page.getByText("Lakeshore East corridor", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: /Eglinton.*1 outage/ }).click();
+  await expect(page.getByText("The east tunnel elevator is out of service.", { exact: true })).toBeVisible();
+
+  await page.getByRole("button", { name: "View Station" }).click();
+  const stationPanel = page.getByRole("complementary", { name: "Eglinton regional station details" });
+  await expect(stationPanel).toBeVisible();
+  await expect(stationPanel.getByText("Metrolinx Open API", { exact: true })).toBeVisible();
+  await expect(stationPanel.getByText("Elevator out of service", { exact: true })).toBeVisible();
 });
 
 test("renders regional estimated train markers from the network-scoped endpoint", async ({ page, request, isMobile }) => {

@@ -1,4 +1,5 @@
 import { apiUrl } from "./api-client.ts";
+import type { NetworkId } from "./regional-data.ts";
 
 export type AccessibilityAssetType = "elevator" | "escalator";
 
@@ -58,6 +59,7 @@ export type AccessibilityOutageResult = {
 export type AccessibilityOutageFetchOptions = {
   fetcher?: typeof fetch;
   apiBaseUrl?: string;
+  networkId?: NetworkId;
 };
 
 export const fallbackAccessibilityOutages: AccessibilityOutageResponse = {
@@ -73,9 +75,11 @@ export async function getAccessibilityOutages(
   options: AccessibilityOutageFetchOptions = {}
 ): Promise<AccessibilityOutageResult> {
   const fetcher = options.fetcher ?? fetch;
-  const path = asset 
-    ? `/api/accessibility-outages?asset=${encodeURIComponent(asset)}`
-    : "/api/accessibility-outages";
+  const parameters = new URLSearchParams();
+  if (asset) parameters.set("asset", asset);
+  if (options.networkId === "regional") parameters.set("network", "regional");
+  const query = parameters.toString();
+  const path = `/api/accessibility-outages${query ? `?${query}` : ""}`;
 
   try {
     const response = await fetcher(apiUrl(path, options.apiBaseUrl));
@@ -90,7 +94,13 @@ export async function getAccessibilityOutages(
   } catch {
     return {
       source: "fallback",
-      data: fallbackAccessibilityOutages,
+      data: options.networkId === "regional"
+        ? {
+            ...fallbackAccessibilityOutages,
+            generatedAt: new Date().toISOString(),
+            source: "Metrolinx Open API unavailable",
+          }
+        : fallbackAccessibilityOutages,
     };
   }
 }

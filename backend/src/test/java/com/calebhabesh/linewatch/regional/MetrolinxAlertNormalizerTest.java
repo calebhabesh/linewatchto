@@ -63,8 +63,8 @@ class MetrolinxAlertNormalizerTest {
             assertThat(alert.impactKind()).isEqualTo("delay");
             assertThat(alert.stationIds()).containsExactly("bloor", "mount-dennis", "weston");
             assertThat(alert.affectedSegmentIds()).containsExactly(
-                "segment-ki-bloor-weston",
-                "segment-ki-weston-mount-dennis"
+                "segment-ki-bloor-mount-dennis",
+                "segment-ki-mount-dennis-weston"
             );
         });
     }
@@ -110,8 +110,7 @@ class MetrolinxAlertNormalizerTest {
             assertThat(alert.impactKind()).isEqualTo("suspension");
             assertThat(alert.stationIds()).containsExactly("weston", "pearson-airport");
             assertThat(alert.affectedSegmentIds()).containsExactly(
-                "segment-up-weston-mount-dennis",
-                "segment-up-mount-dennis-pearson-airport"
+                "segment-up-weston-pearson-airport"
             );
         });
     }

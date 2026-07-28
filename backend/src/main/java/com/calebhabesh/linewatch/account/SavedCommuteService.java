@@ -3,6 +3,9 @@ package com.calebhabesh.linewatch.account;
 import com.calebhabesh.linewatch.commute.CommuteImpactService;
 import com.calebhabesh.linewatch.commute.CommutePathService;
 import com.calebhabesh.linewatch.commute.CommuteResponses;
+import com.calebhabesh.linewatch.regional.RegionalCommuteImpactService;
+import com.calebhabesh.linewatch.regional.RegionalCommutePathService;
+import com.calebhabesh.linewatch.regional.RegionalNetworkCatalog;
 import com.calebhabesh.linewatch.station.StationEntity;
 import com.calebhabesh.linewatch.station.StationRepository;
 import java.time.Clock;
@@ -10,7 +13,6 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -30,6 +32,8 @@ public class SavedCommuteService {
     private final StationRepository stationRepository;
     private final CommutePathService commutePathService;
     private final CommuteImpactService commuteImpactService;
+    private final RegionalCommutePathService regionalCommutePathService;
+    private final RegionalCommuteImpactService regionalCommuteImpactService;
     private final Clock clock;
 
     @Autowired
@@ -37,9 +41,14 @@ public class SavedCommuteService {
         SavedCommuteRepository commuteRepository,
         StationRepository stationRepository,
         CommutePathService commutePathService,
-        CommuteImpactService commuteImpactService
+        CommuteImpactService commuteImpactService,
+        RegionalCommutePathService regionalCommutePathService,
+        RegionalCommuteImpactService regionalCommuteImpactService
     ) {
-        this(commuteRepository, stationRepository, commutePathService, commuteImpactService, Clock.systemUTC());
+        this(
+            commuteRepository, stationRepository, commutePathService, commuteImpactService,
+            regionalCommutePathService, regionalCommuteImpactService, Clock.systemUTC()
+        );
     }
 
     SavedCommuteService(
@@ -49,10 +58,24 @@ public class SavedCommuteService {
         CommuteImpactService commuteImpactService,
         Clock clock
     ) {
+        this(commuteRepository, stationRepository, commutePathService, commuteImpactService, null, null, clock);
+    }
+
+    SavedCommuteService(
+        SavedCommuteRepository commuteRepository,
+        StationRepository stationRepository,
+        CommutePathService commutePathService,
+        CommuteImpactService commuteImpactService,
+        RegionalCommutePathService regionalCommutePathService,
+        RegionalCommuteImpactService regionalCommuteImpactService,
+        Clock clock
+    ) {
         this.commuteRepository = commuteRepository;
         this.stationRepository = stationRepository;
         this.commutePathService = commutePathService;
         this.commuteImpactService = commuteImpactService;
+        this.regionalCommutePathService = regionalCommutePathService;
+        this.regionalCommuteImpactService = regionalCommuteImpactService;
         this.clock = clock;
     }
 
@@ -60,15 +83,23 @@ public class SavedCommuteService {
     public AccountResponses.SavedCommuteListResponse list(AccountEntity account) {
         List<SavedCommuteEntity> commutes = commuteRepository.findByAccountIdOrderByCreatedAtAsc(account.getId());
         List<String> stationIds = commutes.stream()
+            .filter(commute -> "ttc".equals(commute.getNetworkId()))
             .flatMap(commute -> List.of(commute.getOriginStationId(), commute.getDestinationStationId()).stream())
             .distinct()
             .toList();
-        Map<String, StationEntity> stationsById = stationRepository.findAllById(stationIds)
+        Map<String, String> stationNamesByKey = stationRepository.findAllById(stationIds)
             .stream()
-            .collect(Collectors.toMap(StationEntity::getId, Function.identity()));
+            .collect(Collectors.toMap(station -> stationKey("ttc", station.getId()), StationEntity::getName));
+        commutes.stream()
+            .filter(commute -> "regional".equals(commute.getNetworkId()))
+            .flatMap(commute -> List.of(commute.getOriginStationId(), commute.getDestinationStationId()).stream())
+            .distinct()
+            .forEach(stationId -> RegionalNetworkCatalog.station(stationId).ifPresent(station ->
+                stationNamesByKey.put(stationKey("regional", stationId), station.name())
+            ));
         return new AccountResponses.SavedCommuteListResponse(
             commutes.stream()
-                .map(commute -> toResponse(commute, stationsById))
+                .map(commute -> toResponse(commute, stationNamesByKey))
                 .toList()
         );
     }
@@ -77,33 +108,80 @@ public class SavedCommuteService {
     public AccountResponses.SavedCommuteResponse create(AccountEntity account, CreateSavedCommuteRequest request) {
         String originId = normalizeStationId(request.originStationId());
         String destinationId = normalizeStationId(request.destinationStationId());
+        String networkId = normalizeNetworkId(request.networkId());
         validateLabelLength(request.label());
         if (originId.equals(destinationId)) {
             throw new AccountException(HttpStatus.BAD_REQUEST, "same_station", "Choose two different stations for this commute.");
         }
-        StationEntity origin = stationRepository.findById(originId)
-            .orElseThrow(() -> new AccountException(HttpStatus.BAD_REQUEST, "unknown_origin_station", "Origin station is not mapped."));
-        StationEntity destination = stationRepository.findById(destinationId)
-            .orElseThrow(() -> new AccountException(HttpStatus.BAD_REQUEST, "unknown_destination_station", "Destination station is not mapped."));
-        if (commuteRepository.existsByAccountIdAndOriginStationIdAndDestinationStationId(account.getId(), originId, destinationId)) {
+        String originName = stationName(networkId, originId, "unknown_origin_station", "Origin station is not mapped.");
+        String destinationName = stationName(networkId, destinationId, "unknown_destination_station", "Destination station is not mapped.");
+        if (commuteRepository.existsByAccountIdAndNetworkIdAndOriginStationIdAndDestinationStationId(account.getId(), networkId, originId, destinationId)) {
             throw new AccountException(HttpStatus.CONFLICT, "commute_exists", "That commute is already saved.");
         }
 
         Instant now = clock.instant();
-        String label = normalizeLabel(request.label(), origin.getName(), destination.getName());
+        String label = normalizeLabel(request.label(), originName, destinationName);
         boolean watchReturnTrip = request.watchReturnTrip() == null || request.watchReturnTrip();
         SavedCommuteEntity commute = SavedCommuteEntity.create(
             nextId(),
             account,
             label,
+            networkId,
             originId,
             destinationId,
             watchReturnTrip,
             now
         );
-        applyNotificationRule(commute, request.notificationRule(), now);
+        if ("ttc".equals(networkId)) {
+            applyNotificationRule(commute, request.notificationRule(), now);
+        } else {
+            disableNotificationRule(commute, now);
+        }
         commute = commuteRepository.save(commute);
-        return toResponse(commute, Map.of(originId, origin, destinationId, destination));
+        return toResponse(commute, Map.of(
+            stationKey(networkId, originId), originName,
+            stationKey(networkId, destinationId), destinationName
+        ));
+    }
+
+    @Transactional
+    public AccountResponses.SavedCommuteResponse updateRoute(
+        AccountEntity account,
+        String commuteId,
+        UpdateSavedCommuteRequest request
+    ) {
+        SavedCommuteEntity commute = commuteRepository.findByIdAndAccountId(commuteId, account.getId())
+            .orElseThrow(() -> new AccountException(HttpStatus.NOT_FOUND, "commute_not_found", "Commute was not found."));
+        if (!"regional".equals(commute.getNetworkId())) {
+            throw new AccountException(
+                HttpStatus.BAD_REQUEST,
+                "ttc_route_edit_unavailable",
+                "TTC commute route editing is not implemented yet."
+            );
+        }
+        String originId = normalizeStationId(request.originStationId());
+        String destinationId = normalizeStationId(request.destinationStationId());
+        if (originId.equals(destinationId)) {
+            throw new AccountException(HttpStatus.BAD_REQUEST, "same_station", "Choose two different stations for this commute.");
+        }
+        String networkId = commute.getNetworkId();
+        String originName = stationName(networkId, originId, "unknown_origin_station", "Origin station is not mapped.");
+        String destinationName = stationName(networkId, destinationId, "unknown_destination_station", "Destination station is not mapped.");
+        boolean duplicate = (!originId.equals(commute.getOriginStationId()) || !destinationId.equals(commute.getDestinationStationId()))
+            && commuteRepository.existsByAccountIdAndNetworkIdAndOriginStationIdAndDestinationStationId(
+                account.getId(), networkId, originId, destinationId
+            );
+        if (duplicate) {
+            throw new AccountException(HttpStatus.CONFLICT, "commute_exists", "That commute is already saved.");
+        }
+        String label = normalizeLabel(request.label(), originName, destinationName);
+        boolean watchReturnTrip = request.watchReturnTrip() == null ? commute.isWatchReturnTrip() : request.watchReturnTrip();
+        commute.updateRoute(label, originId, destinationId, watchReturnTrip, clock.instant());
+        commute = commuteRepository.save(commute);
+        return toResponse(commute, Map.of(
+            stationKey(networkId, originId), originName,
+            stationKey(networkId, destinationId), destinationName
+        ));
     }
 
     @Transactional
@@ -114,13 +192,20 @@ public class SavedCommuteService {
     ) {
         SavedCommuteEntity commute = commuteRepository.findByIdAndAccountId(commuteId, account.getId())
             .orElseThrow(() -> new AccountException(HttpStatus.NOT_FOUND, "commute_not_found", "Commute was not found."));
+        if (!"ttc".equals(commute.getNetworkId())) {
+            throw new AccountException(
+                HttpStatus.BAD_REQUEST,
+                "regional_notifications_unavailable",
+                "Regional commute notifications are not implemented yet."
+            );
+        }
         applyNotificationRule(commute, request, clock.instant());
         commute = commuteRepository.save(commute);
 
         List<String> stationIds = List.of(commute.getOriginStationId(), commute.getDestinationStationId());
-        Map<String, StationEntity> stationsById = stationRepository.findAllById(stationIds)
+        Map<String, String> stationsById = stationRepository.findAllById(stationIds)
             .stream()
-            .collect(Collectors.toMap(StationEntity::getId, Function.identity()));
+            .collect(Collectors.toMap(station -> stationKey("ttc", station.getId()), StationEntity::getName));
         return toResponse(commute, stationsById);
     }
 
@@ -131,11 +216,10 @@ public class SavedCommuteService {
         commuteRepository.delete(commute);
     }
 
-    private AccountResponses.SavedCommuteResponse toResponse(SavedCommuteEntity commute, Map<String, StationEntity> stationsById) {
-        StationEntity origin = stationsById.get(commute.getOriginStationId());
-        StationEntity destination = stationsById.get(commute.getDestinationStationId());
-        String originName = origin == null ? commute.getOriginStationId() : origin.getName();
-        String destinationName = destination == null ? commute.getDestinationStationId() : destination.getName();
+    private AccountResponses.SavedCommuteResponse toResponse(SavedCommuteEntity commute, Map<String, String> stationsById) {
+        String networkId = commute.getNetworkId();
+        String originName = stationsById.getOrDefault(stationKey(networkId, commute.getOriginStationId()), commute.getOriginStationId());
+        String destinationName = stationsById.getOrDefault(stationKey(networkId, commute.getDestinationStationId()), commute.getDestinationStationId());
         CommuteResponses.CommuteLegResponse outboundLeg = legResponse(
             commute,
             "outbound",
@@ -157,6 +241,7 @@ public class SavedCommuteService {
         return new AccountResponses.SavedCommuteResponse(
             commute.getId(),
             commute.getLabel(),
+            networkId,
             commute.getOriginStationId(),
             originName,
             commute.getDestinationStationId(),
@@ -181,8 +266,12 @@ public class SavedCommuteService {
         String toStationId,
         String toStationName
     ) {
-        CommuteResponses.PathResponse path = commutePathService.path(fromStationId, toStationId);
-        CommuteResponses.ImpactResponse impact = filteredImpactFor(commute, id, path);
+        CommuteResponses.PathResponse path = "regional".equals(commute.getNetworkId())
+            ? requireRegionalPathService().path(fromStationId, toStationId)
+            : commutePathService.path(fromStationId, toStationId);
+        CommuteResponses.ImpactResponse impact = "regional".equals(commute.getNetworkId())
+            ? requireRegionalImpactService().impactFor(path)
+            : filteredImpactFor(commute, id, path);
         return new CommuteResponses.CommuteLegResponse(
             id,
             fromStationName + " -> " + toStationName,
@@ -232,6 +321,45 @@ public class SavedCommuteService {
             throw new AccountException(HttpStatus.BAD_REQUEST, "invalid_station", "Station id must be 80 characters or less.");
         }
         return normalized;
+    }
+
+    private String normalizeNetworkId(String networkId) {
+        String normalized = networkId == null || networkId.isBlank() ? "ttc" : networkId.trim().toLowerCase(java.util.Locale.CANADA);
+        if (!"ttc".equals(normalized) && !"regional".equals(normalized)) {
+            throw new AccountException(HttpStatus.BAD_REQUEST, "invalid_network", "Choose TTC or GO/UP for this commute.");
+        }
+        return normalized;
+    }
+
+    private String stationName(String networkId, String stationId, String error, String message) {
+        if ("regional".equals(networkId)) {
+            return RegionalNetworkCatalog.station(stationId).map(station -> station.name())
+                .orElseThrow(() -> new AccountException(HttpStatus.BAD_REQUEST, error, message));
+        }
+        return stationRepository.findById(stationId).map(StationEntity::getName)
+            .orElseThrow(() -> new AccountException(HttpStatus.BAD_REQUEST, error, message));
+    }
+
+    private String stationKey(String networkId, String stationId) {
+        return networkId + ":" + stationId;
+    }
+
+    private RegionalCommutePathService requireRegionalPathService() {
+        if (regionalCommutePathService == null) throw new IllegalStateException("Regional commute routing is unavailable");
+        return regionalCommutePathService;
+    }
+
+    private RegionalCommuteImpactService requireRegionalImpactService() {
+        if (regionalCommuteImpactService == null) throw new IllegalStateException("Regional commute matching is unavailable");
+        return regionalCommuteImpactService;
+    }
+
+    private void disableNotificationRule(SavedCommuteEntity commute, Instant now) {
+        commute.updateNotificationRule(
+            false, commute.getNotificationOutboundDayMask(), commute.getNotificationOutboundStartMinute(), commute.getNotificationOutboundEndMinute(),
+            commute.getNotificationReturnDayMask(), commute.getNotificationReturnStartMinute(), commute.getNotificationReturnEndMinute(),
+            false, false, false, false, false, false, false, now
+        );
     }
 
     private void applyNotificationRule(
@@ -352,7 +480,8 @@ public class SavedCommuteService {
         String originStationId,
         String destinationStationId,
         Boolean watchReturnTrip,
-        SavedCommuteNotificationRuleRequest notificationRule
+        SavedCommuteNotificationRuleRequest notificationRule,
+        String networkId
     ) {
         public CreateSavedCommuteRequest(
             String label,
@@ -360,9 +489,26 @@ public class SavedCommuteService {
             String destinationStationId,
             Boolean watchReturnTrip
         ) {
-            this(label, originStationId, destinationStationId, watchReturnTrip, null);
+            this(label, originStationId, destinationStationId, watchReturnTrip, null, "ttc");
+        }
+
+        public CreateSavedCommuteRequest(
+            String label,
+            String originStationId,
+            String destinationStationId,
+            Boolean watchReturnTrip,
+            SavedCommuteNotificationRuleRequest notificationRule
+        ) {
+            this(label, originStationId, destinationStationId, watchReturnTrip, notificationRule, "ttc");
         }
     }
+
+    public record UpdateSavedCommuteRequest(
+        String label,
+        String originStationId,
+        String destinationStationId,
+        Boolean watchReturnTrip
+    ) {}
 
     public record SavedCommuteNotificationEventTypesRequest(
         Boolean suspensions,

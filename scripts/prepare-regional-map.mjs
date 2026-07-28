@@ -65,15 +65,16 @@ function prepareRegionalMap(source) {
   prepared = prepared.replace('inkscape:label="service-pattern-st-limited"', 'inkscape:label="service-pattern-stouffville-limited"');
 
   const segmentGuides = `<g id="regional-segment-guides-layer" style="display:none">
-    <path id="segment-guide-ki-weston-mount-dennis" d="M 3888.5286,2466.7061 C 4140,2466.7061 4400,2785 4657.3393,2905.7143" />
-    <path id="segment-guide-up-weston-pearson-airport" d="M 3793.6614,2607.9456 C 3250,2607.9456 2700,2963.4448 2244.3745,2963.4448" />
-    <path id="segment-guide-le-pickering-ajax" d="M 13131.177,2750.0437 H 13392.387" />
+    <path id="segment-guide-ki-bloor-mount-dennis" d="M 4531.3117,3677.5021 L 4529.7746,2913.8344 L 4131.9047,2682.7025" />
+    <path id="segment-guide-ki-weston-etobicoke-north" d="M 3428.5664,2278.2556 L 2987.0609,2023.1482 H 2845.6543" />
+    <path id="segment-guide-up-bloor-mount-dennis" d="M 4261.9824,3678.6078 L 4263.2112,3122.3055 L 3962.0964,2953.3683" />
+    <path id="segment-guide-up-weston-pearson-airport" d="M 3263.5664,2559.7402 L 2850.3846,2326.7284 H 2606.1017 L 1672.8678,2913.9392" />
   </g>`;
   prepared = prepared.replace(
     /(<g\s+inkscape:groupmode="layer"\s+id="regional-stations-layer"[^>]*>)/,
     `$1${segmentGuides}`,
   );
-  if (!prepared.includes('id="segment-guide-ki-weston-mount-dennis"')) {
+  if (!prepared.includes('id="segment-guide-ki-bloor-mount-dennis"')) {
     throw new Error("Could not inject regional segment guide paths.");
   }
 

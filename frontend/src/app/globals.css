@@ -274,6 +274,16 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
 .regional-map-viewport {
   cursor: grab;
   touch-action: none;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.regional-map-stage,
+.regional-map-stage svg,
+.regional-map-stage :is(text, tspan) {
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 .regional-map-viewport:active { cursor: grabbing; }
@@ -408,26 +418,35 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
   stroke-linejoin: round;
 }
 
-.regional-impact-path {
+.regional-overlay-segment-group .regional-impact-path {
   opacity: 0.95;
   stroke: var(--regional-impact-color) !important;
   stroke-dasharray: var(--regional-impact-dasharray);
   stroke-width: var(--regional-impact-width);
 }
 
-.regional-impact-glow {
-  opacity: 0.18;
+.regional-overlay-segment-group .regional-impact-glow {
+  opacity: 0.4;
   stroke: var(--regional-impact-color);
-  stroke-width: calc(var(--regional-impact-width) + 70px);
-  filter: blur(12px);
+  stroke-width: calc(var(--regional-impact-width) + 102px);
+  filter: blur(16px);
+  transition:
+    filter 300ms ease-out,
+    opacity 240ms ease-out,
+    stroke-width 300ms ease-out;
 }
 
 .regional-impact-aura {
-  animation: regional-impact-aura-pulse 1.2s infinite alternate ease-in-out;
+  animation: aura-pulse 1.2s infinite alternate ease-in-out;
+  animation-delay: var(--map-pulse-offset);
 }
 
-.regional-impact-interactive-glow {
+.regional-overlay-segment-group .regional-impact-interactive-glow {
   opacity: 0;
+}
+
+.regional-overlay-segment-group:not([data-regional-impact-selected="true"]) .regional-impact-interactive-glow {
+  animation: none !important;
 }
 
 .regional-overlay-segment-group[data-regional-impact-kind="planned-closure"] .regional-impact-aura {
@@ -435,8 +454,25 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
 }
 
 .regional-overlay-segment-group[data-regional-impact-kind="delay"] .regional-impact-path {
-  stroke-dasharray: 18 8 5 8;
-  animation: regional-delay-static-shift 900ms steps(6, end) infinite;
+  animation: regional-candy-pulse 1.2s infinite alternate ease-in-out;
+  animation-delay: var(--map-pulse-offset);
+  stroke: #0ea5e9 !important;
+  stroke-dasharray: none;
+  stroke-width: var(--regional-impact-width);
+}
+
+.regional-delay-glyph-lane,
+.regional-delay-glyph {
+  overflow: visible;
+  pointer-events: none;
+}
+
+.regional-delay-direction-arrow {
+  fill: none;
+  stroke: #f8fafc;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 3.5;
 }
 
 .regional-overlay-segment-group[data-regional-impact-kind="reduced-speed-zone"] .regional-impact-path {
@@ -445,7 +481,8 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
 }
 
 .regional-overlay-segment-group[data-regional-impact-kind="suspension"] .regional-impact-path {
-  animation: regional-impact-width-pulse 1.2s infinite alternate ease-in-out;
+  animation: regional-candy-pulse 1.2s infinite alternate ease-in-out;
+  animation-delay: var(--map-pulse-offset);
 }
 
 .regional-overlay-segment-group[data-regional-impact-kind="planned-closure"] .regional-impact-path {
@@ -453,19 +490,9 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
   stroke-dasharray: 120 70;
 }
 
-@keyframes regional-impact-aura-pulse {
-  from { opacity: 0.16; }
-  to { opacity: 0.38; }
-}
-
-@keyframes regional-impact-width-pulse {
+@keyframes regional-candy-pulse {
   from { stroke-width: var(--regional-impact-width); }
-  to { stroke-width: calc(var(--regional-impact-width) + 12px); }
-}
-
-@keyframes regional-delay-static-shift {
-  from { stroke-dashoffset: 0; }
-  to { stroke-dashoffset: -94px; }
+  to { stroke-width: calc(var(--regional-impact-width) + 23px); }
 }
 
 @keyframes regional-chevron-slide {
@@ -473,19 +500,21 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
   to { stroke-dashoffset: -80px; }
 }
 
-.regional-impact-hover-boundary {
-  stroke-width: calc(var(--regional-impact-width) + 18px);
+.regional-overlay-segment-group .regional-impact-hover-boundary {
+  stroke-width: calc(var(--regional-impact-width) + 35px);
 }
 
-.regional-impact-hit-target {
+.regional-overlay-segment-group .regional-impact-hit-target {
   stroke-width: max(120px, calc(var(--regional-impact-width) + 28px));
 }
 
 .regional-overlay-segment-group:has(.regional-impact-hit-target:hover) .regional-impact-glow,
 .regional-overlay-segment-group:has(.regional-impact-hit-target:focus-visible) .regional-impact-glow,
+.regional-overlay-segment-group:has(.regional-impact-hit-target:active) .regional-impact-glow,
 .regional-overlay-segment-group[data-regional-impact-selected="true"] .regional-impact-glow {
   opacity: 0.55;
   filter: blur(18px);
+  stroke-width: calc(var(--regional-impact-width) + 169px);
 }
 
 .regional-overlay-segment-group[data-regional-impact-selected="true"] .regional-impact-interactive-glow {
@@ -524,7 +553,8 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
 }
 
 .regional-overlay-segment-group:has(.regional-impact-hit-target:hover) .regional-impact-hover-boundary,
-.regional-overlay-segment-group:has(.regional-impact-hit-target:focus-visible) .regional-impact-hover-boundary {
+.regional-overlay-segment-group:has(.regional-impact-hit-target:focus-visible) .regional-impact-hover-boundary,
+.regional-overlay-segment-group:has(.regional-impact-hit-target:active) .regional-impact-hover-boundary {
   opacity: 0.94;
 }
 
@@ -589,6 +619,7 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
 .motion-paused .regional-station-impact-ring,
 .motion-paused .regional-impact-aura,
 .motion-paused .regional-impact-path,
+.motion-paused .regional-delay-glyph,
 .motion-paused .regional-impact-interactive-glow {
   animation: none !important;
   transition: none !important;
@@ -597,6 +628,7 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
 @media (prefers-reduced-motion: reduce) {
   .regional-impact-aura,
   .regional-impact-path,
+  .regional-delay-glyph,
   .regional-impact-interactive-glow,
   .regional-station-selected-indicator {
     animation: none !important;
@@ -659,6 +691,8 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
 .regional-station-official-links { display: flex; flex-wrap: wrap; gap: 0.5rem; }
 .regional-station-official-links a { display: inline-flex; align-items: center; gap: 0.3rem; min-height: 2.75rem; padding: 0.45rem 0.6rem; color: #0369a1; font-size: 0.76rem; font-weight: 750; border: 1px solid rgba(2, 132, 199, 0.3); border-radius: 5px; }
 .dark .regional-station-official-links a { color: #7dd3fc; }
+.station-route-identity { display: inline-flex; min-height: 2rem; max-width: 100%; min-width: 0; align-items: center; gap: 0.5rem; border: 1px solid rgba(15, 23, 42, 0.1); border-radius: 5px; padding: 0.25rem 0.55rem 0.25rem 0.25rem; background: rgba(255, 255, 255, 0.76); }
+.dark .station-route-identity { border-color: rgba(255, 255, 255, 0.1); background: rgba(0, 0, 0, 0.14); }
 
 @media (max-width: 767px) {
   .regional-map-controls { top: 4.5rem; right: 0.65rem; }

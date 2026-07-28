@@ -1,6 +1,7 @@
 "use client";
 
-import { AlertTriangle, Bookmark, Clock3, ExternalLink, LoaderCircle, X } from "lucide-react";
+import { AlertTriangle, Clock3, ExternalLink, LoaderCircle } from "lucide-react";
+import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useDashboardData } from "../app/DataContext";
 import type { ImpactKind, ImpactSelection } from "../app/linewatch-data";
@@ -14,6 +15,10 @@ import {
 import type { StationSummary } from "../app/station-data";
 import { ImpactTypeIcon } from "./ImpactTypeIcon";
 import { STATION_LINE_DEFINITIONS, STATION_LINE_STATION_IDS } from "../app/station-data";
+import type { AccessibilityOutageDetail } from "../app/accessibility-outage-data";
+import { formatImpactTimestamp } from "../app/impact-time";
+import { StationDetailHeader } from "./StationDetailHeader";
+import { TransitLineBadge } from "./TransitLineBadge";
 
 type Props = {
   station: StationSummary;
@@ -24,6 +29,8 @@ type Props = {
   savePending: boolean;
   onToggleSaved: (stationId: string) => void;
   onRequestSignIn: () => void;
+  accessibilityOutages: AccessibilityOutageDetail[];
+  accessibilityFresh: boolean;
 };
 
 type RegionalStationImpact = {
@@ -31,20 +38,6 @@ type RegionalStationImpact = {
   id: string;
   title: string;
 };
-
-function routeBadgeTextColor(color: string) {
-  const normalized = color.replace("#", "");
-  const red = Number.parseInt(normalized.slice(0, 2), 16);
-  const green = Number.parseInt(normalized.slice(2, 4), 16);
-  const blue = Number.parseInt(normalized.slice(4, 6), 16);
-  const luminance = (red * 299 + green * 587 + blue * 114) / 1000;
-  return luminance > 155 ? "#111827" : "#ffffff";
-}
-
-function ttcLineBadgeTextColor(lineId: string) {
-  return lineId === "line-1" || lineId === "line-6" ? "#000000" : "#ffffff";
-}
-
 
 export function RegionalStationDetailPanel({
   station,
@@ -55,6 +48,8 @@ export function RegionalStationDetailPanel({
   savePending,
   onToggleSaved,
   onRequestSignIn,
+  accessibilityOutages,
+  accessibilityFresh,
 }: Props) {
   const dashboard = useDashboardData();
   const [isClosing, setIsClosing] = useState(false);
@@ -137,41 +132,13 @@ export function RegionalStationDetailPanel({
       aria-live="polite"
       aria-label={`${station.name} regional station details`}
     >
-      <header className="flex items-start justify-between gap-3 shrink-0">
-        <div className="min-w-0 flex-1">
-          <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
-            Station
-          </span>
-          <h2 className="mt-1 break-words text-3xl font-black text-slate-950 dark:text-white">
-            {station.name}
-          </h2>
-        </div>
-        <div className="station-detail-header-actions">
-          <div className="station-detail-save-control">
-            <button
-              type="button"
-              onClick={toggleSaved}
-              disabled={savePending}
-              className={saved ? "saved" : ""}
-              aria-pressed={saved}
-              aria-label={`${saved ? "Remove" : "Save"} ${station.name} ${saved ? "from" : "to"} My Stations`}
-            >
-              {savePending
-                ? <LoaderCircle size={20} className="station-detail-save-spinner" />
-                : <Bookmark size={20} fill={saved ? "currentColor" : "none"} />}
-              <span>{saved ? "Saved" : "Save"}</span>
-            </button>
-          </div>
-          <button
-            type="button"
-            onClick={handleClose}
-            className="station-detail-close-button h-11 w-11"
-            aria-label="Close regional station details"
-          >
-            <X size={20} />
-          </button>
-        </div>
-      </header>
+      <StationDetailHeader
+        stationName={station.name}
+        saved={saved}
+        savePending={savePending}
+        onToggleSaved={toggleSaved}
+        onClose={handleClose}
+      />
 
       <div className="station-detail-body-wrapper flex-1 min-h-0 flex flex-col">
         <div
@@ -194,14 +161,14 @@ export function RegionalStationDetailPanel({
             >
               <div className="flex flex-wrap gap-2">
                 {directionRoutes.map((route) => (
-                  <span
-                    key={route.id}
-                    className="inline-flex min-h-8 max-w-full min-w-0 items-center gap-2 rounded-full border border-black/10 px-3 py-1 text-xs font-black dark:border-white/10"
-                    style={{ backgroundColor: route.color, color: routeBadgeTextColor(route.color) }}
-                    title={route.name}
-                  >
-                    <b>{route.number}</b>
-                    <span className="min-w-0 truncate">{route.name}</span>
+                  <span key={route.id} className="station-route-identity">
+                    <TransitLineBadge
+                      lineId={route.id}
+                      lineNumber={route.number}
+                      lineName={route.name}
+                      size={30}
+                    />
+                    <span className="min-w-0 truncate text-xs font-black">{route.name}</span>
                   </span>
                 ))}
               </div>
@@ -214,14 +181,14 @@ export function RegionalStationDetailPanel({
             <div className="flex flex-col gap-3 rounded-md border border-black/10 bg-slate-50 p-3 dark:border-white/10 dark:bg-white/5">
               <div className="flex flex-wrap gap-2">
                 {ttcLines.map((line) => (
-                  <span
-                    key={line.id}
-                    className="inline-flex min-h-8 max-w-full min-w-0 items-center gap-2 rounded-full border border-black/10 px-3 py-1 text-xs font-black dark:border-white/10"
-                    style={{ backgroundColor: line.color, color: ttcLineBadgeTextColor(line.id) }}
-                    title={line.name}
-                  >
-                    <b>{line.number}</b>
-                    <span className="min-w-0 truncate">{line.name}</span>
+                  <span key={line.id} className="station-route-identity">
+                    <TransitLineBadge
+                      lineId={line.id}
+                      lineNumber={line.number}
+                      lineName={line.name}
+                      size={30}
+                    />
+                    <span className="min-w-0 truncate text-xs font-black">{line.name}</span>
                   </span>
                 ))}
               </div>
@@ -264,15 +231,12 @@ export function RegionalStationDetailPanel({
                           <div className="flex items-start justify-between gap-3">
                             <div className="min-w-0">
                               <div className="flex items-center gap-2">
-                                <span
-                                  className="inline-flex min-w-8 items-center justify-center rounded px-1.5 py-0.5 text-[10px] font-black"
-                                  style={{
-                                    backgroundColor: route?.color ?? "#475569",
-                                    color: route ? routeBadgeTextColor(route.color) : "#ffffff",
-                                  }}
-                                >
-                                  {arrival.lineNumber}
-                                </span>
+                                <TransitLineBadge
+                                  lineId={arrival.lineId}
+                                  lineNumber={arrival.lineNumber}
+                                  lineName={route?.name}
+                                  size={24}
+                                />
                                 <span className="truncate text-sm font-black">{arrival.direction}</span>
                               </div>
                               <p className="mt-1 text-[11px] font-semibold text-slate-500 dark:text-slate-400">
@@ -349,9 +313,65 @@ export function RegionalStationDetailPanel({
                 )}
               </section>
 
-              <p className="text-[11px] leading-relaxed text-slate-500">
-                Accessibility and platform-condition details are unavailable until their regional data coverage is verified.
-              </p>
+              <section
+                className="rounded-lg border border-black/10 bg-slate-50 p-3 dark:border-white/10 dark:bg-white/5"
+                data-station-section="accessibility"
+                aria-label="Regional accessibility outages"
+              >
+                <h3 className="flex items-center gap-2 text-sm font-black">
+                  <Image
+                    src="/assets/linewatch/accessibility-alert.svg"
+                    alt=""
+                    width={18}
+                    height={18}
+                    className="h-[18px] w-[18px] shrink-0"
+                  />
+                  Accessibility Outages
+                </h3>
+                <p className="mt-1 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+                  Metrolinx Open API
+                </p>
+                {accessibilityOutages.length > 0 ? (
+                  <ul className="mt-3 grid gap-2">
+                    {accessibilityOutages.map((outage) => (
+                      <li
+                        key={outage.id}
+                        className="rounded-md border border-amber-500/30 bg-white/80 p-3 dark:bg-black/10"
+                      >
+                        <div className="flex items-start gap-2.5">
+                          <Image
+                            src={`/assets/linewatch/outages/${outage.assetType}.svg`}
+                            alt=""
+                            width={22}
+                            height={22}
+                            className="h-[22px] w-[22px] shrink-0"
+                          />
+                          <div className="min-w-0">
+                            <p className="text-sm font-black text-slate-900 dark:text-white">{outage.title}</p>
+                            {outage.description ? (
+                              <p className="mt-1 text-xs leading-relaxed text-slate-600 dark:text-slate-300">
+                                {outage.description}
+                              </p>
+                            ) : null}
+                            <p className="mt-2 text-[10px] font-semibold text-slate-500 dark:text-slate-400">
+                              Updated {formatImpactTimestamp(outage.updatedAt)}
+                            </p>
+                          </div>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="mt-3 text-sm font-semibold text-slate-500 dark:text-slate-400">
+                    {accessibilityFresh
+                      ? "No active elevator or escalator outages are linked to this station in the latest Metrolinx dataset."
+                      : "Regional accessibility outage data is disabled, unavailable, or stale."}
+                  </p>
+                )}
+                <p className="mt-2 text-[10px] leading-relaxed text-slate-500 dark:text-slate-400">
+                  Notices describe station facilities and accessible paths; they do not indicate rail service status.
+                </p>
+              </section>
             </div>
           </div>
         </div>

@@ -41,8 +41,8 @@ class MetrolinxVehiclePositionClientTest {
         assertThat(feed.sourceUpdatedAt()).isEqualTo(OffsetDateTime.parse("2026-07-28T19:47:23Z"));
         assertThat(feed.markers()).singleElement().satisfies(marker -> {
             assertThat(marker.lineId()).isEqualTo("regional-ki");
-            assertThat(marker.segmentId()).isEqualTo("segment-ki-bloor-weston");
-            assertThat(marker.fromStationId()).isEqualTo("bloor");
+            assertThat(marker.segmentId()).isEqualTo("segment-ki-mount-dennis-weston");
+            assertThat(marker.fromStationId()).isEqualTo("mount-dennis");
             assertThat(marker.nextStationId()).isEqualTo("weston");
             assertThat(marker.direction()).isEqualTo("Outbound");
             assertThat(marker.progress()).isEqualTo(0.5);

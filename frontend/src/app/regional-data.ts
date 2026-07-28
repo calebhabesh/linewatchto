@@ -40,13 +40,13 @@ export const REGIONAL_ROUTE_CARDINAL_DIRECTIONS: Record<RegionalRouteCode, strin
 
 export const REGIONAL_ROUTE_STATIONS: Record<RegionalRouteCode, readonly string[]> = {
   BR: ["union", "downsview-park", "rutherford", "maple", "king-city", "aurora", "newmarket", "east-gwillimbury", "bradford", "barrie-south", "allandale-waterfront"],
-  KI: ["union", "bloor", "weston", "mount-dennis", "etobicoke-north", "malton", "bramalea", "brampton-innovation-district", "mount-pleasant", "georgetown", "acton", "guelph-central", "kitchener", "stratford"],
+  KI: ["union", "bloor", "mount-dennis", "weston", "etobicoke-north", "malton", "bramalea", "brampton-innovation-district", "mount-pleasant", "georgetown", "acton", "guelph-central", "kitchener", "stratford"],
   LE: ["union", "danforth", "scarborough", "eglinton", "guildwood", "rouge-hill", "pickering", "ajax", "whitby", "durham-college-oshawa"],
   LW: ["union", "exhibition", "mimico", "long-branch", "port-credit", "clarkson", "oakville", "bronte", "appleby", "burlington", "aldershot", "west-harbour", "hamilton", "confederation", "st-catharines", "niagara-falls"],
   MI: ["union", "kipling", "dixie", "cooksville", "erindale", "streetsville", "meadowvale", "lisgar", "milton"],
   RH: ["union", "oriole", "old-cummer", "langstaff", "richmond-hill", "gormley", "bloomington"],
   ST: ["union", "kennedy", "agincourt", "milliken", "unionville", "centennial", "markham", "mount-joy", "stouffville", "old-elm"],
-  UP: ["union", "bloor", "weston", "mount-dennis", "pearson-airport"],
+  UP: ["union", "bloor", "mount-dennis", "weston", "pearson-airport"],
 };
 
 // Keep logical station selection separate from the route-specific SVG dots used
@@ -295,16 +295,19 @@ export function regionalDashboardDataForScenario(
     return data;
   }
 
-  const delaySegmentId = regionalSegmentId("LE", "pickering", "ajax");
-  const suspensionSegmentId = regionalSegmentId("KI", "weston", "mount-dennis");
+  const delaySegmentIds = [
+    regionalSegmentId("LE", "pickering", "ajax"),
+    regionalSegmentId("LE", "ajax", "whitby"),
+  ];
+  const suspensionSegmentId = regionalSegmentId("KI", "mount-dennis", "weston");
   const delay: DelayAlert = {
     id: "regional-demo-delay",
     lineId: "regional-le",
     lineNumber: "LE",
-    title: "Synthetic delay between Pickering and Ajax",
-    location: "Pickering to Ajax",
+    title: "Synthetic delay between Pickering and Whitby",
+    location: "Pickering to Whitby",
     description: "Synthetic regional scenario data for interface verification.",
-    affectedSegmentIds: [delaySegmentId],
+    affectedSegmentIds: delaySegmentIds,
     source: "Synthetic regional fixture",
   };
   const suspension = scenarioActiveAlert({
@@ -352,11 +355,11 @@ export function regionalDashboardDataForScenario(
   data.stationNodeImpacts = [stationImpact];
   data.networkSegments = data.networkSegments.map((segment) => {
     const impacts = [];
-    if (segment.id === delaySegmentId) {
+    if (delaySegmentIds.includes(segment.id)) {
       impacts.push({
         kind: "delay" as const,
         cardId: delay.id,
-        travelDirection: "bidirectional" as const,
+        travelDirection: "forward" as const,
         sourceAlertIds: [delay.id],
       });
     }

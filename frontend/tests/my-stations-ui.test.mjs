@@ -5,6 +5,7 @@ import { describe, it } from "node:test";
 const shell = readFileSync(new URL("../src/components/LineWatchShell.tsx", import.meta.url), "utf8");
 const panel = readFileSync(new URL("../src/components/MyStationsPanel.tsx", import.meta.url), "utf8");
 const stationDetail = readFileSync(new URL("../src/components/StationDetailPanel.tsx", import.meta.url), "utf8");
+const stationDetailHeader = readFileSync(new URL("../src/components/StationDetailHeader.tsx", import.meta.url), "utf8");
 const stationSearch = readFileSync(new URL("../src/components/StationSearchPanel.tsx", import.meta.url), "utf8");
 const mobileMore = readFileSync(new URL("../src/components/MobileMoreSheet.tsx", import.meta.url), "utf8");
 const styles = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
@@ -191,11 +192,12 @@ describe("My Stations UI", () => {
   });
 
   it("uses the same bookmark semantics in detail, search, and panel surfaces", () => {
-    for (const source of [panel, stationDetail, stationSearch]) {
+    for (const source of [panel, stationDetailHeader, stationSearch]) {
       assert.match(source, /Bookmark/);
       assert.match(source, /aria-pressed/);
     }
-    assert.match(stationDetail, /\{saved \? "Saved" : "Save"\}/);
+    assert.match(stationDetail, /<StationDetailHeader/);
+    assert.match(stationDetailHeader, /\{saved \? "Saved" : "Save"\}/);
     assert.match(stationSearch, /station-search-station-row/);
     assert.match(stationSearch, /station-search-bookmark/);
   });
@@ -227,7 +229,7 @@ describe("My Stations UI", () => {
   });
 
   it("places the uppercase save label inside the station bookmark button", () => {
-    assert.match(stationDetail, /<Bookmark[\s\S]*<span>\{saved \? "Saved" : "Save"\}<\/span>[\s\S]*<\/button>/);
+    assert.match(stationDetailHeader, /<Bookmark[\s\S]*<span>\{saved \? "Saved" : "Save"\}<\/span>[\s\S]*<\/button>/);
     assert.match(styles, /\.station-detail-save-control button\s*\{[^}]*gap:\s*4px;/s);
     assert.match(styles, /\.station-detail-save-control button > span\s*\{[^}]*text-transform:\s*uppercase;/s);
   });

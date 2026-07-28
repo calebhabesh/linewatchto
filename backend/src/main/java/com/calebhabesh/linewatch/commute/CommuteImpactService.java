@@ -370,7 +370,9 @@ public class CommuteImpactService {
             estimatedHighSeconds,
             extraLowSeconds,
             extraHighSeconds,
-            immediateMatches.size() == 1 ? "medium" : "low",
+            "regional-topology-estimate".equals(path.weightSource())
+                ? "low"
+                : immediateMatches.size() == 1 ? "medium" : "low",
             "Typical commute: " + durationLabel(baselineSeconds)
                 + ". With current impacts: " + durationRangeLabel(estimatedLowSeconds, estimatedHighSeconds)
                 + ". Extra time: " + extraRangeLabel(extraLowSeconds, extraHighSeconds) + "."
@@ -385,6 +387,7 @@ public class CommuteImpactService {
 
     private CommuteResponses.TravelTimeEstimateResponse standardTravelTimeEstimate(CommuteResponses.PathResponse path) {
         int baselineSeconds = Math.max(0, path.estimatedTravelSeconds());
+        boolean regionalEstimate = "regional-topology-estimate".equals(path.weightSource());
         return new CommuteResponses.TravelTimeEstimateResponse(
             "standard",
             baselineSeconds,
@@ -392,8 +395,10 @@ public class CommuteImpactService {
             baselineSeconds,
             0,
             0,
-            "high",
-            "Typical commute: " + durationLabel(baselineSeconds) + ". No extra time estimated."
+            regionalEstimate ? "low" : "high",
+            regionalEstimate
+                ? "Planning estimate: " + durationLabel(baselineSeconds) + ". No extra time estimated from current matched impacts."
+                : "Typical commute: " + durationLabel(baselineSeconds) + ". No extra time estimated."
         );
     }
 

@@ -18,6 +18,8 @@ public class SavedCommuteEntity {
     @JoinColumn(name = "account_id")
     private AccountEntity account;
     private String label;
+    @Column(name = "network_id")
+    private String networkId = "ttc";
     @Column(name = "origin_station_id")
     private String originStationId;
     @Column(name = "destination_station_id")
@@ -69,6 +71,7 @@ public class SavedCommuteEntity {
         String id,
         AccountEntity account,
         String label,
+        String networkId,
         String originStationId,
         String destinationStationId,
         boolean watchReturnTrip,
@@ -77,6 +80,7 @@ public class SavedCommuteEntity {
         this.id = id;
         this.account = account;
         this.label = label;
+        this.networkId = networkId;
         this.originStationId = originStationId;
         this.destinationStationId = destinationStationId;
         this.watchReturnTrip = watchReturnTrip;
@@ -85,7 +89,7 @@ public class SavedCommuteEntity {
     }
 
     public static SavedCommuteEntity create(String id, AccountEntity account, String label, String originStationId, String destinationStationId, Instant now) {
-        return create(id, account, label, originStationId, destinationStationId, true, now);
+        return create(id, account, label, "ttc", originStationId, destinationStationId, true, now);
     }
 
     public static SavedCommuteEntity create(
@@ -97,12 +101,26 @@ public class SavedCommuteEntity {
         boolean watchReturnTrip,
         Instant now
     ) {
-        return new SavedCommuteEntity(id, account, label, originStationId, destinationStationId, watchReturnTrip, now);
+        return create(id, account, label, "ttc", originStationId, destinationStationId, watchReturnTrip, now);
+    }
+
+    public static SavedCommuteEntity create(
+        String id,
+        AccountEntity account,
+        String label,
+        String networkId,
+        String originStationId,
+        String destinationStationId,
+        boolean watchReturnTrip,
+        Instant now
+    ) {
+        return new SavedCommuteEntity(id, account, label, networkId, originStationId, destinationStationId, watchReturnTrip, now);
     }
 
     public String getId() { return id; }
     public AccountEntity getAccount() { return account; }
     public String getLabel() { return label; }
+    public String getNetworkId() { return networkId == null || networkId.isBlank() ? "ttc" : networkId; }
     public String getOriginStationId() { return originStationId; }
     public String getDestinationStationId() { return destinationStationId; }
     public boolean isWatchReturnTrip() { return watchReturnTrip; }
@@ -125,6 +143,20 @@ public class SavedCommuteEntity {
     public boolean isNotificationRestoredEnabled() { return notificationRestoredEnabled; }
     public Instant getCreatedAt() { return createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }
+
+    public void updateRoute(
+        String label,
+        String originStationId,
+        String destinationStationId,
+        boolean watchReturnTrip,
+        Instant now
+    ) {
+        this.label = label;
+        this.originStationId = originStationId;
+        this.destinationStationId = destinationStationId;
+        this.watchReturnTrip = watchReturnTrip;
+        this.updatedAt = now;
+    }
 
     public void updateNotificationRule(
         boolean enabled,

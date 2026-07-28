@@ -12,6 +12,8 @@ import com.calebhabesh.linewatch.commute.CommuteImpactService;
 import com.calebhabesh.linewatch.commute.CommutePathService;
 import com.calebhabesh.linewatch.commute.CommuteResponses;
 import com.calebhabesh.linewatch.alert.AlertDashboardService;
+import com.calebhabesh.linewatch.regional.RegionalCommuteImpactService;
+import com.calebhabesh.linewatch.regional.RegionalCommutePathService;
 import com.calebhabesh.linewatch.station.StationEntity;
 import com.calebhabesh.linewatch.station.StationRepository;
 import java.time.Clock;
@@ -459,5 +461,60 @@ class SavedCommuteServiceTest {
             assertThat(impact.travelTimeEstimate().status()).isEqualTo("estimated");
             assertThat(impact.travelTimeEstimate().extraHighSeconds()).isPositive();
         });
+    }
+
+    @Test
+    void createsNetworkScopedRegionalCommuteWithoutUsingTtcStationRepositoryOrPushRules() {
+        RegionalCommutePathService regionalPathService = mock(RegionalCommutePathService.class);
+        RegionalCommuteImpactService regionalImpactService = mock(RegionalCommuteImpactService.class);
+        SavedCommuteService regionalService = new SavedCommuteService(
+            commuteRepository,
+            stationRepository,
+            commutePathService,
+            commuteImpactService,
+            regionalPathService,
+            regionalImpactService,
+            clock
+        );
+        CommuteResponses.PathResponse path = new CommuteResponses.PathResponse(
+            "available",
+            List.of("bloor", "mount-dennis", "weston", "pearson-airport"),
+            List.of("segment-up-bloor-mount-dennis", "segment-up-mount-dennis-weston", "segment-up-weston-pearson-airport"),
+            List.of(),
+            List.of("regional-up"),
+            List.of(),
+            900,
+            "regional-topology-estimate",
+            "Default regional route: 4 stations on UP, planning estimate about 15 min"
+        );
+        CommuteResponses.ImpactResponse impact = new CommuteResponses.ImpactResponse(
+            "clear", "clear", "Clear", "No fresh regional impacts match this route.", List.of()
+        );
+        when(regionalPathService.path("bloor", "pearson-airport")).thenReturn(path);
+        when(regionalImpactService.impactFor(path)).thenReturn(impact);
+        when(commuteRepository.existsByAccountIdAndNetworkIdAndOriginStationIdAndDestinationStationId(
+            "user_1", "regional", "bloor", "pearson-airport"
+        )).thenReturn(false);
+        when(commuteRepository.save(any(SavedCommuteEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        AccountResponses.SavedCommuteResponse response = regionalService.create(
+            account,
+            new SavedCommuteService.CreateSavedCommuteRequest(
+                "Airport",
+                "bloor",
+                "pearson-airport",
+                false,
+                null,
+                "regional"
+            )
+        );
+
+        assertThat(response.networkId()).isEqualTo("regional");
+        assertThat(response.originStationName()).isEqualTo("Bloor");
+        assertThat(response.destinationStationName()).isEqualTo("Pearson Airport");
+        assertThat(response.path().lineIds()).containsExactly("regional-up");
+        assertThat(response.notificationRule().enabled()).isFalse();
+        verify(stationRepository, never()).findById(any());
+        verify(commutePathService, never()).path(any(), any());
     }
 }

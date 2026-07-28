@@ -16,6 +16,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import static org.mockito.ArgumentMatchers.any;
 import com.calebhabesh.linewatch.cache.DashboardCacheProperties;
 import com.calebhabesh.linewatch.cache.DashboardCacheService;
+import com.calebhabesh.linewatch.regional.RegionalAccessibilityOutageService;
 
 @ExtendWith(MockitoExtension.class)
 class AccessibilityOutageControllerTest {
@@ -28,6 +29,9 @@ class AccessibilityOutageControllerTest {
 
     @Mock
     private DashboardCacheProperties cacheProperties;
+
+    @Mock
+    private RegionalAccessibilityOutageService regionalService;
 
     @InjectMocks
     private AccessibilityOutageController controller;
@@ -48,7 +52,7 @@ class AccessibilityOutageControllerTest {
         );
         when(service.getAccessibilityOutages(null)).thenReturn(dummyResponse);
 
-        AccessibilityOutagesResponse response = controller.outages(null);
+        AccessibilityOutagesResponse response = controller.outages(null, "ttc");
 
         assertThat(response.fresh()).isTrue();
         assertThat(response.generatedAt()).isEqualTo(now);
@@ -63,9 +67,23 @@ class AccessibilityOutageControllerTest {
         );
         when(service.getAccessibilityOutages("escalator")).thenReturn(dummyResponse);
 
-        AccessibilityOutagesResponse response = controller.outages("escalator");
+        AccessibilityOutagesResponse response = controller.outages("escalator", "ttc");
 
         assertThat(response.fresh()).isTrue();
         verify(service).getAccessibilityOutages("escalator");
+    }
+
+    @Test
+    void regionalNetworkUsesTheRegionalReadService() {
+        OffsetDateTime now = OffsetDateTime.now();
+        AccessibilityOutagesResponse dummyResponse = new AccessibilityOutagesResponse(
+            now, true, "Metrolinx Open API", List.of(), List.of()
+        );
+        when(regionalService.getAccessibilityOutages(null)).thenReturn(dummyResponse);
+
+        AccessibilityOutagesResponse response = controller.outages(null, "regional");
+
+        assertThat(response.source()).isEqualTo("Metrolinx Open API");
+        verify(regionalService).getAccessibilityOutages(null);
     }
 }
