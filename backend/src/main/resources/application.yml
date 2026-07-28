@@ -99,6 +99,11 @@ linewatch:
       max-source-age: ${LINEWATCH_REGIONAL_ARRIVALS_MAX_SOURCE_AGE:PT5M}
       horizon: ${LINEWATCH_REGIONAL_ARRIVALS_HORIZON:PT3H}
       max-arrivals-per-line: ${LINEWATCH_REGIONAL_ARRIVALS_MAX_PER_LINE:4}
+    train-markers:
+      enabled: ${LINEWATCH_REGIONAL_TRAIN_MARKERS_ENABLED:false}
+      cache-ttl: ${LINEWATCH_REGIONAL_TRAIN_MARKERS_CACHE_TTL:PT15S}
+      max-source-age: ${LINEWATCH_REGIONAL_TRAIN_MARKERS_MAX_SOURCE_AGE:PT2M}
+      max-markers: ${LINEWATCH_REGIONAL_TRAIN_MARKERS_MAX_MARKERS:80}
   performance:
     ttc:
       enabled: ${LINEWATCH_PERFORMANCE_TTC_ENABLED:true}

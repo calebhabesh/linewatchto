@@ -830,7 +830,7 @@ describe("asset-backed map layering", () => {
     assert.doesNotMatch(interactiveMapSource, /data-station-hover-capsule-id/);
   });
 
-  it("keeps estimated train markers opt-in and suppresses them while subway is closed", () => {
+  it("keeps estimated train markers opt-in and suppresses them while the selected rail network is closed", () => {
     const shellSource = readFileSync(new URL("../src/components/LineWatchShell.tsx", import.meta.url), "utf8");
     const moreSheetSource = readFileSync(new URL("../src/components/MobileMoreSheet.tsx", import.meta.url), "utf8");
     const visualPreferencesSource = readFileSync(new URL("../src/app/visual-preferences.ts", import.meta.url), "utf8");
@@ -839,7 +839,8 @@ describe("asset-backed map layering", () => {
     assert.match(shellSource, /readVisualPreferencesFromStorage/);
     assert.match(shellSource, /getEstimatedTrainMarkers/);
     assert.match(shellSource, /estimatedTrainMarkerRefreshMs/);
-    assert.match(shellSource, /const estimatedTrainMarkersVisible = selectedNetwork === "ttc" && estimatedTrainsEnabled && subwayOperatingState\.status === "open";/);
+    assert.match(shellSource, /const trainNetworkOpen = selectedNetwork === "ttc"/);
+    assert.match(shellSource, /const estimatedTrainMarkersVisible = estimatedTrainsEnabled && trainNetworkOpen;/);
     assert.match(shellSource, /let trainMarkerRefreshInFlight = false;/);
     assert.match(shellSource, /if \(trainMarkerRefreshInFlight\) \{\s*return;\s*\}/);
     assert.match(shellSource, /trainMarkerRefreshInFlight = true;/);

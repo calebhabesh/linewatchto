@@ -356,9 +356,10 @@ describe("network-scoped regional dashboard", () => {
     assert.match(regionalMapSource, /data-regional-station-id/);
   });
 
-  it("gates TTC-only closed-hours and train-marker behavior", () => {
+  it("keeps network-specific closed-hours behavior and enables regional train markers", () => {
     assert.match(shellSource, /selectedNetwork === "ttc" && subwayOperatingState\.status/);
-    assert.match(shellSource, /selectedNetwork === "ttc" && estimatedTrainsEnabled/);
+    assert.match(shellSource, /getEstimatedTrainMarkers\(\{ network: selectedNetwork \}\)/);
+    assert.match(regionalMapSource, /Estimated regional train markers/);
   });
 
   it("docks desktop impact badges to the bottom-left corner across networks", () => {

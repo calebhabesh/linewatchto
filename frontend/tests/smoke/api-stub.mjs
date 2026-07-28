@@ -16,6 +16,7 @@ import {
   statusResponse,
   rawAlertsResponse,
   estimatedTrainsResponse,
+  regionalEstimatedTrainsResponse,
 } from "./api-stub-data.mjs";
 
 const port = Number(process.env.LINEWATCH_STUB_PORT ?? "4174");
@@ -631,6 +632,11 @@ const server = createServer(async (request, response) => {
 
   if (request.method === "GET" && url.pathname === "/api/trains") {
     sendJson(request, response, 200, estimatedTrainsResponse);
+    return;
+  }
+
+  if (request.method === "GET" && url.pathname === "/api/regional/trains") {
+    sendJson(request, response, 200, regionalEstimatedTrainsResponse);
     return;
   }
 

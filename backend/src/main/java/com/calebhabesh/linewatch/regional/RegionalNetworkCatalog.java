@@ -134,6 +134,21 @@ public final class RegionalNetworkCatalog {
         return ROUTES.stream().filter(route -> route.id().equals(lineId)).findFirst();
     }
 
+    public static Optional<String> lineIdForSourceCode(String sourceCode) {
+        if (sourceCode == null) return Optional.empty();
+        String normalized = sourceCode.trim().toUpperCase(Locale.CANADA);
+        if ("GT".equals(normalized)) normalized = "KI";
+        String code = normalized;
+        return ROUTES.stream().filter(route -> route.number().equals(code)).map(Route::id).findFirst();
+    }
+
+    public static Optional<Segment> segmentBetween(String lineId, String stationAId, String stationBId) {
+        return SEGMENTS.stream().filter(segment -> segment.lineId().equals(lineId))
+            .filter(segment -> (segment.stationAId().equals(stationAId) && segment.stationBId().equals(stationBId))
+                || (segment.stationAId().equals(stationBId) && segment.stationBId().equals(stationAId)))
+            .findFirst();
+    }
+
     public static Optional<String> stationIdForStopCode(String stopCode) {
         if (stopCode == null) {
             return Optional.empty();

@@ -19151,6 +19151,15 @@ img.transit-line-badge {
   color: #969594;
 }
 
+.estimated-train-marker-regional-br { color: #155ba0; }
+.estimated-train-marker-regional-ki { color: #138336; }
+.estimated-train-marker-regional-le { color: #ee2722; }
+.estimated-train-marker-regional-lw { color: #8b0a31; }
+.estimated-train-marker-regional-mi { color: #f47216; }
+.estimated-train-marker-regional-rh { color: #27adea; }
+.estimated-train-marker-regional-st { color: #774111; }
+.estimated-train-marker-regional-up { color: #4084cd; }
+
 .high-contrast .estimated-train-marker-halo {
   /* Unused: Halo removed to eliminate shadow glow */
 }

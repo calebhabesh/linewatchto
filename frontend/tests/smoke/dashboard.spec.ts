@@ -264,7 +264,7 @@ test("switches the complete dashboard to the fixture-backed regional network", a
   await expect(mapSurface).toHaveCSS("view-transition-name", "none");
   await expect(page.getByText("Last Polled: regional fixture mode", { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Fit regional network" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Toggle live train markers" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /Toggle estimated train markers/ })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Subway Closed" })).toHaveCount(0);
 
   const regionalStage = page.locator(".regional-map-stage");
@@ -323,6 +323,22 @@ test("renders fresh Metrolinx impacts in regional mode", async ({ page, request,
   await expect(stationPanel.getByText("Kitchener GO", { exact: true })).toBeVisible();
   await expect(stationPanel.getByText("7 min", { exact: true })).toBeVisible();
   await expect(stationPanel.getByText("Platform 11 · 3 min behind schedule", { exact: true })).toBeVisible();
+});
+
+test("renders regional estimated train markers from the network-scoped endpoint", async ({ page, request, isMobile }) => {
+  test.skip(isMobile, "regional network selection is covered on desktop");
+  await setStubMode(request, "seeded");
+  await page.goto("/");
+  const networkSelector = page.getByRole("group", { name: "Select transit network" });
+  await networkSelector.getByRole("button", { name: "GO/UP", exact: true }).click();
+  await expect(page.getByRole("region", { name: "Interactive GO and UP map" })).toBeVisible();
+  await expect(page.locator(".regional-estimated-train-marker-layer")).toHaveCount(0);
+
+  await page.getByRole("button", { name: /Toggle estimated train markers/ }).click();
+
+  await expect(page.locator(".regional-estimated-train-marker-layer")).toBeAttached();
+  await expect(page.locator(".estimated-train-marker-regional-ki")).toHaveCount(1);
+  await expect(page.locator('[data-marker-key="regional-ki:outbound:3775:cab-3775"]')).toBeAttached();
 });
 
 test("renders the seeded dashboard API payload", async ({ page, request, isMobile }) => {
@@ -738,7 +754,7 @@ test("mobile rotated map mode keeps station and impact selections in the rotated
   await expect(shell).toHaveClass(/mobile-map-rotated/);
   await expect(page.getByRole("navigation", { name: "Primary mobile navigation" })).toHaveCount(0);
   await expect(page.locator(".mobile-status-peek")).toHaveCount(0);
-  await expect(page.getByRole("button", { name: "Toggle live train markers" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /Toggle estimated train markers/ })).toHaveCount(0);
 
   const mainDimensions = await page.locator(".linewatch-shell > main").evaluate((element) => ({
     clientWidth: element.clientWidth,
@@ -2274,7 +2290,7 @@ test("renders estimated train markers only after the layer is enabled", async ({
   await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
   await expect(page.locator(".estimated-train-marker-core")).toHaveCount(0);
 
-  await page.getByRole("button", { name: "Toggle live train markers" }).click();
+  await page.getByRole("button", { name: /Toggle estimated train markers/ }).click();
 
   await expect(page.locator(".estimated-train-marker-core")).toHaveCount(1);
   await expect(page.locator('[data-train-marker-line-id="line-1"]')).toBeVisible();

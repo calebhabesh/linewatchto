@@ -669,3 +669,30 @@ export const estimatedTrainsResponse = {
     },
   ],
 };
+
+export const regionalEstimatedTrainsResponse = {
+  fresh: true,
+  availability: "available",
+  source: "Metrolinx GO GTFS-RT VehiclePosition / Metrolinx UP Express GTFS-RT VehiclePosition",
+  message: "Fresh schematic regional train markers.",
+  disclaimer: "Estimated regional train markers are schematic placements derived from Metrolinx GTFS-RT vehicle positions and LineWatchTO topology. They are not exact physical train locations.",
+  feedCreatedAt: "2026-07-28T19:47:43Z",
+  generatedAt: "2026-07-28T19:48:00Z",
+  markers: [{
+    id: "go-3775",
+    lineId: "regional-ki",
+    direction: "Outbound",
+    travelDirection: "forward",
+    segmentId: "segment-ki-bloor-weston",
+    fromStationId: "bloor",
+    toStationId: "weston",
+    nextStationId: "weston",
+    progress: 0.5,
+    segmentTravelSeconds: 0,
+    predictedAt: "2026-07-28T19:47:40Z",
+    vehicleId: "cab-3775",
+    tripId: "3775",
+    feedCreatedAt: "2026-07-28T19:47:43Z",
+    updatedAt: "2026-07-28T19:47:40Z",
+  }],
+};

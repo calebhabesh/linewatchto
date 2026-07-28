@@ -20,6 +20,7 @@ export type EstimatedTrainMarker = {
 
 export type EstimatedTrainSnapshot = {
   fresh: boolean;
+  availability?: "available" | "disabled" | "stale" | "partial-source" | "unavailable";
   source: string;
   message: string;
   disclaimer: string;
@@ -36,6 +37,7 @@ export type EstimatedTrainDataResult = {
 export type EstimatedTrainFetchOptions = {
   fetcher?: typeof fetch;
   apiBaseUrl?: string;
+  network?: "ttc" | "regional";
 };
 
 export const EMPTY_ESTIMATED_TRAIN_SNAPSHOT: EstimatedTrainSnapshot = {
@@ -43,6 +45,17 @@ export const EMPTY_ESTIMATED_TRAIN_SNAPSHOT: EstimatedTrainSnapshot = {
   source: "TTC GTFS-RT subway trip updates",
   message: "Estimated train markers are unavailable.",
   disclaimer: "Estimated train markers are schematic placements inferred from TTC GTFS-RT trip updates and LineWatchTO topology. They are not physical train positions.",
+  feedCreatedAt: null,
+  generatedAt: null,
+  markers: [],
+};
+
+export const EMPTY_REGIONAL_TRAIN_SNAPSHOT: EstimatedTrainSnapshot = {
+  fresh: false,
+  availability: "unavailable",
+  source: "Metrolinx GTFS-RT vehicle positions",
+  message: "Regional estimated train markers are unavailable.",
+  disclaimer: "Estimated regional train markers are schematic placements derived from Metrolinx GTFS-RT vehicle positions and LineWatchTO topology. They are not exact physical train locations.",
   feedCreatedAt: null,
   generatedAt: null,
   markers: [],
@@ -80,7 +93,8 @@ export async function getEstimatedTrainMarkers(
   const fetcher = options.fetcher ?? fetch;
 
   try {
-    const response = await fetcher(apiUrl("/api/trains", options.apiBaseUrl), {
+    const path = options.network === "regional" ? "/api/regional/trains" : "/api/trains";
+    const response = await fetcher(apiUrl(path, options.apiBaseUrl), {
       cache: "no-store",
       signal: AbortSignal.timeout(2000),
     });
@@ -89,6 +103,9 @@ export async function getEstimatedTrainMarkers(
     }
     return { source: "backend", data: (await response.json()) as EstimatedTrainSnapshot };
   } catch {
-    return { source: "fallback", data: EMPTY_ESTIMATED_TRAIN_SNAPSHOT };
+    return {
+      source: "fallback",
+      data: options.network === "regional" ? EMPTY_REGIONAL_TRAIN_SNAPSHOT : EMPTY_ESTIMATED_TRAIN_SNAPSHOT,
+    };
   }
 }

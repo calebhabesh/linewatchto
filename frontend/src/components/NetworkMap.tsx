@@ -39,6 +39,8 @@ export function NetworkMap({
           preserveCameraOnSelectionClear={props.preserveCameraOnSelectionClear}
           viewportOrientation={props.viewportOrientation}
           onReady={onInitialMapReady}
+          estimatedTrainsEnabled={props.estimatedTrainsEnabled}
+          estimatedTrainMarkers={props.estimatedTrainMarkers}
         />
       ) : (
         <InteractiveTtcMap

@@ -59,6 +59,7 @@ import {
 import { StationDetailPanel } from "./StationDetailPanel";
 import {
   EMPTY_ESTIMATED_TRAIN_SNAPSHOT,
+  EMPTY_REGIONAL_TRAIN_SNAPSHOT,
   estimatedTrainMarkerRefreshMs,
   getEstimatedTrainMarkers,
   type EstimatedTrainSnapshot,
@@ -314,7 +315,10 @@ export function LineWatchShell({
   const [estimatedTrainSnapshot, setEstimatedTrainSnapshot] = useState<EstimatedTrainSnapshot>(EMPTY_ESTIMATED_TRAIN_SNAPSHOT);
   const subwayOperatingState = useSubwayOperatingState();
   const regionalRailOperatingState = useRegionalRailOperatingState();
-  const estimatedTrainMarkersVisible = selectedNetwork === "ttc" && estimatedTrainsEnabled && subwayOperatingState.status === "open";
+  const trainNetworkOpen = selectedNetwork === "ttc"
+    ? subwayOperatingState.status === "open"
+    : regionalRailOperatingState.status === "open";
+  const estimatedTrainMarkersVisible = estimatedTrainsEnabled && trainNetworkOpen;
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -397,7 +401,7 @@ export function LineWatchShell({
       }
       trainMarkerRefreshInFlight = true;
       try {
-        const result = await getEstimatedTrainMarkers();
+        const result = await getEstimatedTrainMarkers({ network: selectedNetwork });
         if (!cancelled) {
           setEstimatedTrainSnapshot(result.data);
         }
@@ -411,7 +415,9 @@ export function LineWatchShell({
       intervalId = window.setInterval(refresh, estimatedTrainMarkerRefreshMs());
     } else {
       // eslint-disable-next-line react-hooks/set-state-in-effect
-      setEstimatedTrainSnapshot(EMPTY_ESTIMATED_TRAIN_SNAPSHOT);
+      setEstimatedTrainSnapshot(selectedNetwork === "regional"
+        ? EMPTY_REGIONAL_TRAIN_SNAPSHOT
+        : EMPTY_ESTIMATED_TRAIN_SNAPSHOT);
     }
 
     return () => {
@@ -420,7 +426,7 @@ export function LineWatchShell({
         window.clearInterval(intervalId);
       }
     };
-  }, [estimatedTrainMarkersVisible]);
+  }, [estimatedTrainMarkersVisible, selectedNetwork]);
 
 
   useEffect(() => {
@@ -721,7 +727,7 @@ export function LineWatchShell({
     pushSettings.subscribed,
   ]);
 
-  const estimatedTrainStatusLabel = subwayOperatingState.status === "closed"
+  const estimatedTrainStatusLabel = !trainNetworkOpen
     ? "Closed"
     : estimatedTrainsEnabled
       ? estimatedTrainSnapshot.fresh
@@ -3012,8 +3018,7 @@ export function LineWatchShell({
                   )}
                 </div>
                 <span className="desktop-status-divider" />
-                {selectedNetwork === "ttc" ? (
-                  <div className="desktop-status-train-control">
+                <div className="desktop-status-train-control">
                     <Train size={24} className="desktop-status-train-icon" aria-hidden="true" />
                     <span className="desktop-status-train-copy">
                       <strong>Estimated Train Markers</strong>
@@ -3026,16 +3031,15 @@ export function LineWatchShell({
                     <button
                       type="button"
                       onClick={handleToggleEstimatedTrains}
-                      disabled={subwayOperatingState.status === "closed"}
+                      disabled={!trainNetworkOpen}
                       className="desktop-status-train-switch"
                       aria-pressed={estimatedTrainsEnabled}
                       aria-label={`Toggle estimated train markers (${estimatedTrainStatusLabel})`}
                     >
                       <span aria-hidden="true" />
                     </button>
-                  </div>
-                ) : null}
-                {selectedNetwork === "ttc" ? <span className="desktop-status-divider" /> : null}
+                </div>
+                <span className="desktop-status-divider" />
                 <div className="desktop-status-poll">
                    <div className="desktop-status-live-dot" />
                    <span>
@@ -3225,18 +3229,20 @@ export function LineWatchShell({
         ) : null}
       </main>
 
-      {!showClosedScreen && !rotatedMapMode && selectedNetwork === "ttc" && (
+      {!showClosedScreen && !rotatedMapMode && (
         <button
           type="button"
           onClick={handleToggleEstimatedTrains}
-          disabled={subwayOperatingState.status === "closed"}
+          disabled={!trainNetworkOpen}
           className={`mobile-train-toggle md:hidden ${
-            (subwayOperatingState.closingSoon || (subwayOperatingState.status === "closed" && closedMapPeek))
+            (selectedNetwork === "ttc"
+              ? subwayOperatingState.closingSoon || (subwayOperatingState.status === "closed" && closedMapPeek)
+              : regionalRailOperatingState.closingSoon || (regionalRailOperatingState.status === "closed" && closedMapPeek))
               ? "mobile-train-toggle--announcement"
               : ""
           } ${estimatedTrainsEnabled ? "active" : ""}`}
           aria-pressed={estimatedTrainsEnabled}
-          aria-label={`Toggle live train markers (${estimatedTrainStatusLabel})`}
+          aria-label={`Toggle estimated train markers (${estimatedTrainStatusLabel})`}
         >
           <Train size={16} />
           <span>

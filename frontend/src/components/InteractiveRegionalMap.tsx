@@ -3,6 +3,7 @@
 import { memo, useCallback, useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent, type PointerEvent, type WheelEvent } from "react";
 import { Locate, ZoomIn, ZoomOut } from "lucide-react";
 import type { ImpactKind, ImpactSelection } from "../app/linewatch-data";
+import { estimatedTrainMarkerRenderKey, type EstimatedTrainMarker } from "../app/train-markers";
 import { useDashboardData } from "../app/DataContext";
 import {
   clampPanZoomScale,
@@ -188,6 +189,8 @@ function InteractiveRegionalMapComponent({
   preserveCameraOnSelectionClear = false,
   viewportOrientation = "standard",
   onReady,
+  estimatedTrainsEnabled = false,
+  estimatedTrainMarkers = [],
 }: {
   selection: ImpactSelection;
   onSelectImpact: (selection: ImpactSelection) => void;
@@ -203,6 +206,8 @@ function InteractiveRegionalMapComponent({
   preserveCameraOnSelectionClear?: boolean;
   viewportOrientation?: MapViewportOrientation;
   onReady?: () => void;
+  estimatedTrainsEnabled?: boolean;
+  estimatedTrainMarkers?: EstimatedTrainMarker[];
 }) {
   const { activeAlerts, networkSegments, stationNodeImpacts } = useDashboardData();
   const viewportRef = useRef<HTMLDivElement>(null);
@@ -644,6 +649,43 @@ function InteractiveRegionalMapComponent({
           }
           stationVisual.before(ring);
         }
+        if (estimatedTrainsEnabled) {
+          const markerLayer = documentNode.createElementNS(SVG_NAMESPACE, "g");
+          markerLayer.classList.add("estimated-train-marker-layer", "regional-estimated-train-marker-layer");
+          markerLayer.setAttribute("aria-label", "Estimated regional train markers");
+          for (const marker of estimatedTrainMarkers) {
+            const segment = networkSegments.find((item) => item.id === marker.segmentId);
+            const start = svgAnchorPoint(documentNode, segment?.stationAAnchorId);
+            const end = svgAnchorPoint(documentNode, segment?.stationBAnchorId);
+            if (!start || !end) continue;
+            const fromIsA = marker.fromStationId === segment?.stationAId;
+            const from = fromIsA ? start : end;
+            const to = fromIsA ? end : start;
+            const progress = Math.max(0.05, Math.min(0.95, marker.progress));
+            const x = from.x + (to.x - from.x) * progress;
+            const y = from.y + (to.y - from.y) * progress;
+            const angle = Math.atan2(to.y - from.y, to.x - from.x) * 180 / Math.PI;
+            const group = documentNode.createElementNS(SVG_NAMESPACE, "g");
+            group.classList.add("estimated-train-marker", `estimated-train-marker-${marker.lineId}`);
+            group.setAttribute("data-marker-key", estimatedTrainMarkerRenderKey(marker));
+            group.setAttribute("transform", `translate(${x} ${y}) rotate(${angle}) scale(1.8)`);
+            const title = documentNode.createElementNS(SVG_NAMESPACE, "title");
+            title.textContent = `${marker.lineId.replace("regional-", "").toUpperCase()} toward ${marker.direction}; schematic estimated position`;
+            const halo = documentNode.createElementNS(SVG_NAMESPACE, "circle");
+            halo.setAttribute("r", "38");
+            halo.classList.add("estimated-train-marker-halo");
+            const body = documentNode.createElementNS(SVG_NAMESPACE, "rect");
+            body.setAttribute("x", "-30"); body.setAttribute("y", "-13");
+            body.setAttribute("width", "48"); body.setAttribute("height", "26"); body.setAttribute("rx", "7");
+            body.classList.add("estimated-train-marker-core");
+            const arrow = documentNode.createElementNS(SVG_NAMESPACE, "path");
+            arrow.setAttribute("d", "M 13 -9 L 30 0 L 13 9 Z");
+            arrow.classList.add("estimated-train-marker-arrow");
+            group.append(title, halo, body, arrow);
+            markerLayer.append(group);
+          }
+          documentNode.documentElement.append(markerLayer);
+        }
         const root = documentNode.documentElement;
         root.removeAttribute("width");
         root.removeAttribute("height");
@@ -654,7 +696,7 @@ function InteractiveRegionalMapComponent({
       })
       .catch(() => setLoadError(true));
     return () => { cancelled = true; };
-  }, [activeAlerts, networkSegments, stationNodeImpacts]);
+  }, [activeAlerts, estimatedTrainMarkers, estimatedTrainsEnabled, networkSegments, stationNodeImpacts]);
 
   useLayoutEffect(() => {
     if (deferInitialEntrance) {

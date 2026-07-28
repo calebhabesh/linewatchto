@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 
 import {
   EMPTY_ESTIMATED_TRAIN_SNAPSHOT,
+  EMPTY_REGIONAL_TRAIN_SNAPSHOT,
   estimatedTrainMarkerRenderKey,
   estimatedTrainMarkerRefreshMs,
   getEstimatedTrainMarkers,
@@ -50,6 +51,22 @@ describe("estimated train marker data adapter", () => {
 
     assert.equal(result.source, "fallback");
     assert.deepEqual(result.data, EMPTY_ESTIMATED_TRAIN_SNAPSHOT);
+  });
+
+  it("uses the regional endpoint and regional fallback state", async () => {
+    let requestedUrl = "";
+    const result = await getEstimatedTrainMarkers({
+      network: "regional",
+      apiBaseUrl: "http://backend.test",
+      fetcher: async (input) => {
+        requestedUrl = String(input);
+        return new Response("nope", { status: 503 });
+      },
+    });
+
+    assert.equal(requestedUrl, "http://backend.test/api/regional/trains");
+    assert.equal(result.source, "fallback");
+    assert.deepEqual(result.data, EMPTY_REGIONAL_TRAIN_SNAPSHOT);
   });
 
   it("uses a bounded refresh interval", () => {
