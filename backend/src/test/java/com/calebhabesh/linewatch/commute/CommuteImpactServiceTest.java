@@ -333,6 +333,73 @@ class CommuteImpactServiceTest {
     }
 
     @Test
+    void linkedActiveClosureChildReplacesCanonicalClosureInCurrentDisruptions() {
+        String segmentId = "line-4-sheppard-yonge-bayview";
+        when(dashboardService.activeAlerts()).thenReturn(List.of(new AlertDashboardService.ActiveAlertDto(
+            "closure-active-child",
+            "line-4",
+            "4",
+            "No subway service between Sheppard-Yonge and Don Mills",
+            "planned",
+            "Sheppard-Yonge to Don Mills",
+            "Eastbound & Westbound",
+            "No subway service during the active overnight closure window.",
+            OffsetDateTime.parse("2026-07-28T23:59:00-04:00"),
+            OffsetDateTime.parse("2026-07-28T20:00:00-04:00"),
+            List.of(segmentId),
+            false,
+            "TTC Live Alerts",
+            "Planned work",
+            null,
+            "closure-parent"
+        )));
+        when(dashboardService.delays()).thenReturn(List.of());
+        when(dashboardService.reducedSpeedZones()).thenReturn(List.of());
+        when(dashboardService.plannedClosures()).thenReturn(List.of(new AlertDashboardService.PlannedClosureDto(
+            "closure-parent",
+            "line-4",
+            "4",
+            "No subway service between Sheppard-Yonge and Don Mills",
+            "Nightly closure windows",
+            "Sheppard-Yonge to Don Mills",
+            "Eastbound & Westbound",
+            "No subway service during planned work.",
+            OffsetDateTime.parse("2026-07-27T23:59:00-04:00"),
+            OffsetDateTime.parse("2026-07-24T12:00:00-04:00"),
+            List.of(segmentId),
+            false,
+            "TTC Service Advisory",
+            "Planned work",
+            null,
+            true,
+            "active-now",
+            true,
+            OffsetDateTime.parse("2026-07-28T23:59:00-04:00"),
+            OffsetDateTime.parse("2026-07-29T03:30:00-04:00"),
+            "Tonight 11:59 PM - 3:30 AM",
+            null,
+            null,
+            null,
+            "11:59 PM - 3:30 AM",
+            "Jul 27 - Jul 31"
+        )));
+        when(dashboardService.activeStationNodeImpacts()).thenReturn(List.of());
+
+        CommuteResponses.ImpactResponse impact = service.impactFor(path(
+            List.of("sheppard-yonge", "bayview"),
+            List.of(segmentId)
+        ));
+
+        assertThat(impact.status()).isEqualTo("affected");
+        assertThat(impact.matchedImpacts()).singleElement().satisfies(match -> {
+            assertThat(match.id()).isEqualTo("closure-active-child");
+            assertThat(match.kind()).isEqualTo("planned-closure");
+            assertThat(match.status()).isEqualTo("current");
+        });
+        assertThat(impact.travelTimeEstimate().status()).isEqualTo("unreliable");
+    }
+
+    @Test
     void reducedSpeedZoneDoesNotMatchWhenRouteTravelsOppositeDirectionOnSegment() {
         String segmentId = "line-1-lawrence-west-glencairn";
         when(dashboardService.activeAlerts()).thenReturn(List.of());

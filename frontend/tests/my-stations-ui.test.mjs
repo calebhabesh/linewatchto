@@ -82,12 +82,12 @@ describe("My Stations UI", () => {
     assert.doesNotMatch(panel, />Condensed</);
     assert.match(panel, /saved-commute-impact-summary/);
     assert.match(panel, /saved-commute-impact-summary-chip/);
+    assert.match(styles, /\.saved-station-disruption-chips > span\s*\{[^}]*border-radius:\s*6px;[^}]*font-size:\s*0\.78rem;[^}]*gap:\s*0\.35rem;[^}]*line-height:\s*1;[^}]*min-height:\s*29px;[^}]*padding:\s*0\.35rem 0\.65rem;/s);
     assert.match(panel, /SAVED_STATION_OUTAGE_ICON_SRC/);
     assert.match(panel, /\/assets\/linewatch\/outages\/elevator\.svg/);
     assert.match(panel, /\/assets\/linewatch\/outages\/escalator\.svg/);
     assert.match(panel, /saved-station-outage-icon-mark">×/);
     assert.match(styles, /\.saved-station-outage-icon-mark\s*\{[^}]*background:\s*rgb\(220, 38, 38\);[^}]*border-radius:\s*999px;/s);
-    assert.match(styles, /\.saved-station-disruption-chips > span\.kind-elevator,[\s\S]*?\.saved-station-disruption-chips > span\.kind-escalator\s*\{[^}]*gap:\s*9px;/s);
     assert.match(panel, /saved-commute-impact-kind-label/);
     assert.match(panel, /className=\{`kind-\$\{disruptionKindClassName/);
     assert.match(panel, /disruptionKindCountLabel/);
@@ -152,7 +152,7 @@ describe("My Stations UI", () => {
     assert.match(panel, /> View Details/);
     assert.match(panel, /<FileText size=\{12\} aria-hidden="true" \/>/);
     assert.match(panel, /stationImpactSelection/);
-    assert.match(panel, /onSelectImpactDetails\(impactSelection\)/);
+    assert.match(panel, /if \(selection\) onSelectImpactDetails\(selection\)/);
     assert.match(panel, /aria-label=\{`View \$\{saved\.station\.name\} alert details`\}/);
     assert.match(panel, /onSelectAccessibilityOutageDetails\(outage\.assetType, saved\.station\.id\)/);
     assert.match(panel, /saved-commute-impact-map-button/);

@@ -284,7 +284,10 @@ describe("account UI source", () => {
     assert.match(savedCommutesSource, /site-dropdown-trigger saved-commute-sort-trigger/);
     assert.match(savedCommutesSource, /site-dropdown-menu saved-commute-sort-options/);
     assert.match(globalCss, /\.site-dropdown-option\.selected/);
-    assert.match(globalCss, /\.commute-station-popover \.commute-station-search-row\s*\{[\s\S]*border:\s*0;[\s\S]*border-bottom:/);
+    assert.match(globalCss, /\.commute-station-popover \.commute-station-search-row\s*\{[^}]*border:\s*1px solid[^}]*border-radius:\s*7px;[^}]*margin:\s*4px 8px 0;/s);
+    assert.match(globalCss, /\.commute-station-popover \.commute-station-search-row input\[type="search"\]\s*\{[^}]*appearance:\s*none;[^}]*background:\s*transparent !important;[^}]*box-shadow:\s*none;/s);
+    assert.match(globalCss, /\.commute-station-popover \.commute-station-option\s*\{[^}]*margin-inline:\s*8px;[^}]*width:\s*calc\(100% - 16px\);/s);
+    assert.match(globalCss, /\.commute-station-stations-scroll-content \.commute-station-option\s*\{[^}]*margin-left:\s*2px;[^}]*margin-right:\s*14px;/s);
     assert.match(globalCss, /\.dark \.site-dropdown-option\s*\{[\s\S]*background:\s*transparent/);
     assert.match(globalCss, /\.commute-station-popover \.commute-station-lines-list\s*\{[\s\S]*gap:\s*0/);
     assert.match(globalCss, /\.commute-station-popover \.commute-station-options\s*\{[\s\S]*gap:\s*6px/);

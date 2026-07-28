@@ -28,6 +28,8 @@ type StationImpactSelectionData = {
   reducedSpeedZones: ReducedSpeedZone[];
 };
 
+type StationImpactRouteData = StationImpactTypeData & StationImpactSelectionData;
+
 export function stationImpactSelection(
   impactId: string,
   data: StationImpactSelectionData,
@@ -37,7 +39,9 @@ export function stationImpactSelection(
   );
   if (reducedSpeedZone) return { kind: "reduced-speed-zone", id: reducedSpeedZone.id };
 
-  const activeAlert = data.activeAlerts.find((impact) => impact.id === impactId);
+  const activeAlert = data.activeAlerts.find(
+    (impact) => impact.id === impactId || impact.relatedPlannedClosureId === impactId,
+  );
   if (activeAlert) {
     const kind = activeAlert.severity === "planned"
       ? "planned-closure"
@@ -81,5 +85,41 @@ export function stationImpactKindsByStation(data: StationImpactTypeData) {
       stationId,
       IMPACT_KIND_ORDER.filter((kind) => kinds.has(kind)),
     ]),
+  );
+}
+
+export function stationImpactSelectionsByStation(data: StationImpactRouteData) {
+  const selectionsByStation = new Map<string, Map<string, NonNullable<ImpactSelection>>>();
+  const add = (stationId: string | undefined, impactId: string) => {
+    if (!stationId) return;
+    const selection = stationImpactSelection(impactId, data);
+    if (!selection) return;
+    const selections = selectionsByStation.get(stationId) ?? new Map<string, NonNullable<ImpactSelection>>();
+    selections.set(`${selection.kind}|${selection.id}`, selection);
+    selectionsByStation.set(stationId, selections);
+  };
+
+  for (const impact of data.stationNodeImpacts) {
+    add(impact.stationId, impact.cardId);
+  }
+
+  const segmentsById = new Map(data.networkSegments.map((segment) => [segment.id, segment]));
+  for (const segment of data.networkSegments) {
+    for (const impact of segment.impacts ?? []) {
+      add(segment.stationAId, impact.cardId);
+      add(segment.stationBId, impact.cardId);
+    }
+  }
+
+  for (const closure of data.plannedClosures) {
+    for (const segmentId of closure.previewSegmentIds) {
+      const segment = segmentsById.get(segmentId);
+      add(segment?.stationAId, closure.id);
+      add(segment?.stationBId, closure.id);
+    }
+  }
+
+  return new Map(
+    [...selectionsByStation].map(([stationId, selections]) => [stationId, [...selections.values()]]),
   );
 }

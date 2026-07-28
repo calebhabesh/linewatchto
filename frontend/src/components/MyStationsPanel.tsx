@@ -16,7 +16,7 @@ import {
   shouldUseDetailedArrivalCountdown,
 } from "../app/station-arrivals";
 import { getStationDetail, type StationDataResult, type StationDetail, type StationSummary } from "../app/station-data";
-import { stationImpactKindsByStation, stationImpactSelection } from "../app/station-impact-types";
+import { stationImpactKindsByStation, stationImpactSelection, stationImpactSelectionsByStation } from "../app/station-impact-types";
 import { useDashboardData } from "../app/DataContext";
 import { REGIONAL_ROUTE_DEFINITIONS } from "../app/regional-data";
 import { useSubwayOperatingState } from "../hooks/useSubwayOperatingState";
@@ -72,7 +72,7 @@ const SORT_OPTIONS: Array<{ value: SavedStationSort; label: string }> = [
 
 const SAVED_STATION_DETAIL_REFRESH_MS = 15_000;
 
-type SavedStationDisruptionKind = ImpactKind | "elevator" | "escalator";
+type SavedStationDisruptionKind = ImpactKind | "active-closure" | "elevator" | "escalator";
 
 const SAVED_STATION_OUTAGE_ICON_SRC = {
   elevator: "/assets/linewatch/outages/elevator.svg",
@@ -85,6 +85,7 @@ function disruptionKindLabel(kind: SavedStationDisruptionKind) {
     case "delay": return "Delay";
     case "reduced-speed-zone": return "Reduced Speed Zone";
     case "planned-closure": return "Planned Closure";
+    case "active-closure": return "Active Closure";
     case "elevator": return "Elevator Outage";
     case "escalator": return "Escalator Outage";
   }
@@ -96,7 +97,7 @@ function disruptionKindCountLabel(kind: SavedStationDisruptionKind, count: numbe
 }
 
 function disruptionKindClassName(kind: SavedStationDisruptionKind) {
-  return kind;
+  return kind === "active-closure" ? "suspension" : kind;
 }
 
 function DisruptionIcon({ kind, size = 13 }: { kind: SavedStationDisruptionKind; size?: number }) {
@@ -109,6 +110,10 @@ function DisruptionIcon({ kind, size = 13 }: { kind: SavedStationDisruptionKind;
     );
   }
 
+  if (kind === "active-closure") {
+    return <ImpactTypeIcon kind="suspension" size={size} />;
+  }
+
   return <ImpactTypeIcon kind={kind} size={size} />;
 }
 
@@ -118,7 +123,9 @@ function stationImpactContext(
   dashboard: ReturnType<typeof useDashboardData>,
 ) {
   const match = dashboard.reducedSpeedZones.find((impact) => impact.id === impactId || impact.sourceAlertIds.includes(impactId))
-    ?? dashboard.activeAlerts.find((impact) => impact.id === impactId)
+    ?? dashboard.activeAlerts.find(
+      (impact) => impact.id === impactId || impact.relatedPlannedClosureId === impactId,
+    )
     ?? dashboard.delays.find((impact) => impact.id === impactId)
     ?? dashboard.plannedClosures.find((impact) => impact.id === impactId);
 
@@ -190,6 +197,7 @@ function SavedStationRow({
   onDisruptionExpandedChange,
   onRemove,
   regional,
+  routeImpactSelections,
 }: {
   saved: AccountSavedStation;
   detailResult?: StationDataResult<StationDetail | null>;
@@ -203,23 +211,35 @@ function SavedStationRow({
   onDisruptionExpandedChange: (expanded: boolean) => void;
   onRemove: () => void;
   regional: boolean;
+  routeImpactSelections: NonNullable<ImpactSelection>[];
 }) {
   const dashboard = useDashboardData();
   const detail = detailResult?.data ?? null;
-  const activeImpacts = detail?.impacts.filter((impact) => impact.type === "active-alert") ?? [];
-  const classifiedActiveImpacts = activeImpacts.map((impact) => ({
-    impact,
-    kind: stationImpactSelection(impact.id, dashboard)?.kind
-      ?? (impact.severity === "planned" ? "planned-closure" : impact.severity),
-  }));
+  const directlyLinkedImpacts = detail?.impacts.filter((impact) =>
+    impact.type === "active-alert" || impact.type === "planned-closure"
+  ) ?? [];
+  const impactCandidates = [
+    ...directlyLinkedImpacts.map((impact) => ({ impactId: impact.id, impact, selection: stationImpactSelection(impact.id, dashboard) })),
+    ...routeImpactSelections.map((selection) => ({ impactId: selection.id, impact: null, selection })),
+  ];
+  const classifiedActiveImpacts = Array.from(new Map(impactCandidates.map(({ impactId, impact, selection }) => {
+    const kind = (dashboard.activeAlerts.some(
+      (alert) => alert.severity === "planned"
+        && (alert.id === impactId || alert.relatedPlannedClosureId === impactId || alert.id === selection?.id),
+    )
+      ? "active-closure"
+      : selection?.kind
+        ?? (impact?.severity === "planned" ? "planned-closure" : impact?.severity)) as SavedStationDisruptionKind;
+    return [selection ? `${selection.kind}|${selection.id}` : impactId, { impactId, kind, selection }] as const;
+  })).values());
   const accessOutages = detail?.access.outages ?? [];
-  const disruptionCount = activeImpacts.length + accessOutages.length;
+  const disruptionCount = classifiedActiveImpacts.length + accessOutages.length;
   const displayedDisruptionCount = detail ? disruptionCount : stationState(saved.station).count;
   const disruptionSummary = (() => {
     const counts = new Map<SavedStationDisruptionKind, number>();
     for (const { kind } of classifiedActiveImpacts) counts.set(kind, (counts.get(kind) ?? 0) + 1);
     for (const outage of accessOutages) counts.set(outage.assetType, (counts.get(outage.assetType) ?? 0) + 1);
-    const order: SavedStationDisruptionKind[] = ["suspension", "delay", "reduced-speed-zone", "planned-closure", "elevator", "escalator"];
+    const order: SavedStationDisruptionKind[] = ["suspension", "active-closure", "delay", "reduced-speed-zone", "planned-closure", "elevator", "escalator"];
     return order.flatMap((kind) => counts.has(kind) ? [{ kind, count: counts.get(kind) ?? 0 }] : []);
   })();
   const hasUnavailableArrivals = detail?.arrivals.some((arrival) => arrival.status === "unavailable") ?? false;
@@ -301,21 +321,20 @@ function SavedStationRow({
             </summary>
             {disruptionCount > 0 ? (
               <ul className="saved-commute-impact-list saved-station-disruption-list">
-                {classifiedActiveImpacts.map(({ impact, kind }) => (
-                  <li key={impact.id} className={`kind-${disruptionKindClassName(kind)}`}>
+                {classifiedActiveImpacts.map(({ impactId, kind, selection }) => (
+                  <li key={selection ? `${selection.kind}-${selection.id}` : impactId} className={`kind-${disruptionKindClassName(kind)}`}>
                     <span className="saved-commute-impact-icon" aria-hidden="true"><DisruptionIcon kind={kind} size={15} /></span>
                     <div className="saved-commute-impact-copy">
                       <div className="saved-commute-impact-details">
                         <div className="saved-commute-impact-heading"><strong><span className="saved-commute-impact-kind-label">{disruptionKindLabel(kind)}</span></strong></div>
-                        <span>{stationImpactContext(impact.id, saved.station.name, dashboard)}</span>
+                        <span>{stationImpactContext(selection?.id ?? impactId, saved.station.name, dashboard)}</span>
                       </div>
                       <div className="saved-commute-impact-action">
                         <button
                           type="button"
                           className="saved-commute-map-action saved-commute-impact-map-button"
                           onClick={() => {
-                            const impactSelection = stationImpactSelection(impact.id, dashboard);
-                            if (impactSelection) onSelectImpactDetails(impactSelection);
+                            if (selection) onSelectImpactDetails(selection);
                             else onOpen();
                           }}
                           aria-label={`View ${saved.station.name} alert details`}
@@ -448,6 +467,10 @@ export function MyStationsPanel({
     () => stationImpactKindsByStation(dashboardData),
     [dashboardData],
   );
+  const stationImpactSelections = useMemo(
+    () => stationImpactSelectionsByStation(dashboardData),
+    [dashboardData],
+  );
   const availableLines = useMemo(
     () => LINES.filter((line) => stations.some((station) => station.lineIds.includes(line.id))),
     [stations],
@@ -456,9 +479,15 @@ export function MyStationsPanel({
     { value: "all", label: "All Lines" },
     ...availableLines.map((line) => ({ value: line.id, label: line.name, lineId: line.id })),
   ], [availableLines]);
+  const savedStationsWithRouteImpacts = useMemo(
+    () => savedStations.map((saved) => stationImpactSelections.has(saved.station.id)
+      ? { ...saved, station: { ...saved.station, hasActiveImpact: true } }
+      : saved),
+    [savedStations, stationImpactSelections],
+  );
   const visible = useMemo(
-    () => filterAndSortSavedStations(savedStations, query, lineId, sort),
-    [savedStations, query, lineId, sort],
+    () => filterAndSortSavedStations(savedStationsWithRouteImpacts, query, lineId, sort),
+    [savedStationsWithRouteImpacts, query, lineId, sort],
   );
   const pickerStations = useMemo(() => {
     const needle = query.trim().toLocaleLowerCase("en-CA");
@@ -756,6 +785,7 @@ export function MyStationsPanel({
                   detailResult={stationDetails[saved.station.id]}
                   subwayClosed={subwayOperatingState.status === "closed"}
                   regional={dashboardData.networkId === "regional"}
+                  routeImpactSelections={stationImpactSelections.get(saved.station.id) ?? []}
                   arrivalTick={arrivalTick}
                   pending={pendingStationIds.has(saved.station.id)}
                   onOpen={() => onSelectStation(saved.station.id)}

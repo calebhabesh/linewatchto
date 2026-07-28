@@ -1389,14 +1389,15 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
   align-items: center;
   background: rgba(245, 158, 11, 0.1);
   border: 1px solid rgba(245, 158, 11, 0.3);
-  border-radius: 5px;
+  border-radius: 6px;
   color: rgb(180, 83, 9);
   display: inline-flex;
-  font-size: 9px;
+  font-size: 0.78rem;
   font-weight: 850;
-  gap: 3px;
-  min-height: 22px;
-  padding: 3px 6px;
+  gap: 0.35rem;
+  line-height: 1;
+  min-height: 29px;
+  padding: 0.35rem 0.65rem;
 }
 
 .saved-station-disruption-chips > span.kind-suspension {
@@ -1430,7 +1431,6 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
   background: rgba(14, 165, 233, 0.08);
   border-color: rgba(14, 165, 233, 0.28);
   color: rgb(3, 105, 161);
-  gap: 9px;
 }
 
 .dark .saved-station-disruption-chips > span.kind-elevator,
@@ -18933,7 +18933,7 @@ img.transit-line-badge {
 
 .commute-station-popover .commute-station-options {
   gap: 6px;
-  padding-right: 0;
+  padding: 0 0 4px;
 }
 
 .commute-station-popover .commute-station-line-trigger,
@@ -18946,6 +18946,14 @@ img.transit-line-badge {
   border: 1px solid rgba(15, 23, 42, 0.055);
   border-radius: 7px;
   background: rgba(255, 255, 255, 0.66);
+  margin-inline: 8px;
+  width: calc(100% - 16px);
+}
+
+/* Align the whole click-through card with the line badge without widening it. */
+.commute-station-stations-scroll-content .commute-station-option {
+  margin-left: 2px;
+  margin-right: 14px;
 }
 
 .dark .commute-station-popover .commute-station-option {
@@ -18972,13 +18980,20 @@ img.transit-line-badge {
 }
 
 .commute-station-popover .commute-station-search-row {
-  background: transparent;
-  border: 0;
-  border-bottom: 1px solid rgba(15, 23, 42, 0.14);
+  background: rgba(255, 255, 255, 0.5);
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  border-radius: 7px;
+  margin: 4px 8px 0;
+  padding-inline: 8px;
+  transition: background-color 0.2s, border-color 0.2s, box-shadow 0.2s;
+}
+
+.commute-station-popover .commute-station-search-row input[type="search"] {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent !important;
   border-radius: 0;
-  margin-left: 0.5rem;
-  padding-inline: 0.125rem;
-  transition: border-color 0.2s;
+  box-shadow: none;
 }
 
 .commute-station-search-row input[type="search"]::-webkit-search-cancel-button {
@@ -18987,22 +19002,27 @@ img.transit-line-badge {
 }
 
 .commute-station-popover .commute-station-search-row:focus-within {
-  border-bottom-color: rgba(14, 165, 233, 0.72);
+  background: rgba(255, 255, 255, 0.8);
+  border-color: rgba(14, 165, 233, 0.68);
+  box-shadow: 0 0 0 2px rgba(14, 165, 233, 0.1);
 }
 
 .dark .commute-station-popover .commute-station-search-row {
-  background: transparent;
-  border-bottom-color: rgba(255, 255, 255, 0.16);
+  background: rgba(30, 41, 59, 0.48);
+  border-color: rgba(148, 163, 184, 0.16);
 }
 
 .dark .commute-station-popover .commute-station-search-row:focus-within {
-  border-bottom-color: rgba(56, 189, 248, 0.78);
+  background: rgba(30, 41, 59, 0.72);
+  border-color: rgba(56, 189, 248, 0.72);
+  box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.1);
 }
 
 .high-contrast .commute-station-popover .commute-station-search-row,
 .high-contrast .commute-station-popover .commute-station-search-row:focus-within {
-  background: transparent;
-  border-bottom-color: currentColor;
+  background: #000000;
+  border-color: currentColor;
+  box-shadow: none;
 }
 
 @media (max-width: 767px) {

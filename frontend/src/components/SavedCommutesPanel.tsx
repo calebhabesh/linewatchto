@@ -194,11 +194,14 @@ function legIsClearByFilters(leg: AccountCommuteLeg) {
   return leg.impact.status === "clear" && ignoredCurrentImpactCount([leg]) > 0;
 }
 
-function ImpactIcon({ kind, className }: { kind: AccountMatchedImpact["kind"]; className?: string }) {
+function ImpactIcon({ kind, activeClosure = false, className }: { kind: AccountMatchedImpact["kind"]; activeClosure?: boolean; className?: string }) {
   switch (kind) {
     case "reduced-speed-zone":
       return <Construction className={`rsz-tone ${className || ""}`} size={14} />;
     case "planned-closure":
+      if (activeClosure) {
+        return <AlertTriangle className={`text-red-500 dark:text-red-400 ${className || ""}`} size={14} />;
+      }
       return <PlannedClosureIcon className={`text-blue-500 dark:text-blue-400 ${className || ""}`} size={14} />;
     case "suspension":
       return <AlertTriangle className={`text-red-500 dark:text-red-400 ${className || ""}`} size={14} />;
@@ -208,12 +211,12 @@ function ImpactIcon({ kind, className }: { kind: AccountMatchedImpact["kind"]; c
   }
 }
 
-function impactKindLabel(kind: AccountMatchedImpact["kind"]) {
+function impactKindLabel(kind: AccountMatchedImpact["kind"], activeClosure = false) {
   switch (kind) {
     case "reduced-speed-zone":
       return "Reduced Speed Zone";
     case "planned-closure":
-      return "Planned Closure";
+      return activeClosure ? "Active Closure" : "Planned Closure";
     case "suspension":
       return "Suspension";
     case "delay":
@@ -235,10 +238,28 @@ function impactKindCountLabel(kind: AccountMatchedImpact["kind"], count: number)
 }
 
 function summarizeMatchedImpacts(impacts: AccountMatchedImpact[]) {
-  return IMPACT_KIND_ORDER.map((kind) => ({
-    kind,
-    count: impacts.filter((impact) => impact.kind === kind).length,
-  })).filter((summary) => summary.count > 0);
+  const summaries: Array<{
+    key: string;
+    kind: AccountMatchedImpact["kind"];
+    activeClosure: boolean;
+    count: number;
+  }> = [];
+  for (const kind of IMPACT_KIND_ORDER) {
+    if (kind !== "planned-closure") {
+      const count = impacts.filter((impact) => impact.kind === kind).length;
+      if (count > 0) summaries.push({ key: kind, kind, activeClosure: false, count });
+      continue;
+    }
+    const activeCount = impacts.filter(
+      (impact) => impact.kind === kind && impact.status === "current",
+    ).length;
+    const plannedCount = impacts.filter(
+      (impact) => impact.kind === kind && impact.status !== "current",
+    ).length;
+    if (activeCount > 0) summaries.push({ key: "active-closure", kind, activeClosure: true, count: activeCount });
+    if (plannedCount > 0) summaries.push({ key: kind, kind, activeClosure: false, count: plannedCount });
+  }
+  return summaries;
 }
 
 function impactLineLabel(impact: AccountMatchedImpact) {
@@ -1374,13 +1395,15 @@ export function SavedCommutesPanel({
                               </span>
                             </span>
                             <span className="saved-commute-impact-summary-chips">
-                              {selectedLegImpactSummary.map(({ kind, count }) => (
+                              {selectedLegImpactSummary.map(({ key, kind, activeClosure, count }) => (
                                 <span
-                                  key={kind}
-                                  className={`saved-commute-impact-summary-chip kind-${kind}`}
+                                  key={key}
+                                  className={`saved-commute-impact-summary-chip kind-${activeClosure ? "suspension" : kind}`}
                                 >
-                                  <ImpactIcon kind={kind} className="shrink-0" />
-                                  {impactKindCountLabel(kind, count)}
+                                  <ImpactIcon kind={kind} activeClosure={activeClosure} className="shrink-0" />
+                                  {activeClosure
+                                    ? `${count} Active Closure${count === 1 ? "" : "s"}`
+                                    : impactKindCountLabel(kind, count)}
                                 </span>
                               ))}
                             </span>
@@ -1397,14 +1420,14 @@ export function SavedCommutesPanel({
                                 className={impact.ignoredByRule ? "saved-commute-impact-ignored" : undefined}
                               >
                                 <span className="saved-commute-impact-icon" aria-hidden="true">
-                                  <ImpactIcon kind={impact.kind} className="shrink-0" />
+                                  <ImpactIcon kind={impact.kind} activeClosure={impact.kind === "planned-closure" && impact.status === "current"} className="shrink-0" />
                                 </span>
                                 <div className="saved-commute-impact-copy">
                                   <div className="saved-commute-impact-details">
                                     <div className="saved-commute-impact-heading">
                                       <strong className="text-slate-800 dark:text-slate-200">
                                         <span className="saved-commute-impact-kind-label">
-                                          {toTitleCase(impactKindLabel(impact.kind))}
+                                          {toTitleCase(impactKindLabel(impact.kind, impact.kind === "planned-closure" && impact.status === "current"))}
                                         </span>
                                         {impact.ignoredByRule ? (
                                           <em className="saved-commute-impact-filter-note">
@@ -1422,7 +1445,7 @@ export function SavedCommutesPanel({
                                       type="button"
                                       className="saved-commute-map-action saved-commute-impact-map-button"
                                       onClick={() => onViewImpactOnPath(commute, selectedLeg.id, impact)}
-                                      aria-label={`View ${impactKindLabel(impact.kind)} on the map for ${commute.label}`}
+                                      aria-label={`View ${impactKindLabel(impact.kind, impact.kind === "planned-closure" && impact.status === "current")} on the map for ${commute.label}`}
                                     >
                                       <MapPinned size={12} aria-hidden="true" />
                                       View on Map

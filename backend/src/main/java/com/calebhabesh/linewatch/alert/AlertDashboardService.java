@@ -940,14 +940,14 @@ public class AlertDashboardService {
 
     private String bidirectionalLabel(TransitLineEntity line) {
         String num = line != null ? line.getNumber() : "";
-        if ("1".equals(num) || "4".equals(num)) {
+        if ("1".equals(num)) {
             return "Northbound & Southbound";
         }
-        if ("2".equals(num) || "5".equals(num) || "6".equals(num)) {
+        if ("2".equals(num) || "4".equals(num) || "5".equals(num) || "6".equals(num)) {
             return "Eastbound & Westbound";
         }
         String id = line != null ? line.getId() : "";
-        if (id != null && (id.contains("1") || id.contains("4"))) {
+        if ("line-1".equals(id)) {
             return "Northbound & Southbound";
         }
         return "Eastbound & Westbound";

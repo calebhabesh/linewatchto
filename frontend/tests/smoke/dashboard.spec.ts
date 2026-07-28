@@ -1665,11 +1665,13 @@ test("demo account shows account-backed saved commutes", async ({ page, request,
   await expect(impactDisclosure).toBeVisible();
   await expect(impactDisclosure).not.toHaveAttribute("open", "");
   await expect(impactDisclosure.getByText("1 Suspension", { exact: true })).toBeVisible();
-  await expect(impactDisclosure.getByText(/Line 1: Stub Station To Stub Terminal/)).toBeHidden();
+  await expect(impactDisclosure.getByText("1 Active Closure", { exact: true })).toBeVisible();
+  await expect(impactDisclosure.getByText(/Line 1: Stub Station To Stub Terminal/).first()).toBeHidden();
   await impactDisclosure.locator("summary").click();
   await expect(impactDisclosure).toHaveAttribute("open", "");
   await expect(impactDisclosure.getByText("Suspension", { exact: true })).toBeVisible();
-  await expect(impactDisclosure.getByText(/Line 1: Stub Station To Stub Terminal/)).toBeVisible();
+  await expect(impactDisclosure.getByText("Active Closure", { exact: true })).toBeVisible();
+  await expect(impactDisclosure.getByText(/Line 1: Stub Station To Stub Terminal/).first()).toBeVisible();
 
   const commuteHeaderMetrics = await page.locator(".commute-card").first().evaluate((card) => {
     const header = card.querySelector<HTMLElement>(".saved-commute-card-header");
@@ -1952,7 +1954,8 @@ test("signed-in riders save, browse, remove, undo, and reload My Stations", asyn
   await expect(panel.locator(".my-stations-row-heading strong", { hasText: "Stub Station" })).toBeVisible();
   await expect(panel.getByText("Active Disruptions", { exact: true })).toBeVisible();
   await panel.getByText("Active Disruptions", { exact: true }).click();
-  const viewAlertDetails = panel.getByRole("button", { name: "View Stub Station alert details" });
+  await expect(panel.getByText("1 Active Closure", { exact: true })).toBeVisible();
+  const viewAlertDetails = panel.getByRole("button", { name: "View Stub Station alert details" }).first();
   await expect(viewAlertDetails).toContainText("View Details");
   await viewAlertDetails.click();
   await expect(page.getByRole("heading", { name: "Active Alerts" })).toBeVisible();

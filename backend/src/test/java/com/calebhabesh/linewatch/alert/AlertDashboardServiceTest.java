@@ -1282,12 +1282,25 @@ class AlertDashboardServiceTest {
         ), "line-2", "2");
         ReflectionTestUtils.setField(alert2, "direction", "bidirectional");
 
+        AlertEntity alert4 = withLine(alert(
+            "suspension-l4",
+            "active-alert",
+            "suspension",
+            "No service",
+            "No service.",
+            "sheppard-yonge",
+            "don-mills",
+            OffsetDateTime.parse("2026-06-01T11:50:00Z"),
+            null
+        ), "line-4", "4");
+        ReflectionTestUtils.setField(alert4, "direction", "bidirectional");
+
         when(alertRepository.findByActiveTrueAndType("active-alert"))
-            .thenReturn(List.of(alert1, alert2));
+            .thenReturn(List.of(alert1, alert2, alert4));
 
         List<AlertDashboardService.ActiveAlertDto> activeAlerts = service.activeAlerts();
 
-        assertThat(activeAlerts).hasSize(2);
+        assertThat(activeAlerts).hasSize(3);
         
         AlertDashboardService.ActiveAlertDto dto1 = activeAlerts.stream()
             .filter(d -> d.id().equals("suspension-l1")).findFirst().orElseThrow();
@@ -1296,6 +1309,10 @@ class AlertDashboardServiceTest {
         AlertDashboardService.ActiveAlertDto dto2 = activeAlerts.stream()
             .filter(d -> d.id().equals("suspension-l2")).findFirst().orElseThrow();
         assertThat(dto2.displayDirection()).isEqualTo("Eastbound & Westbound");
+
+        AlertDashboardService.ActiveAlertDto dto4 = activeAlerts.stream()
+            .filter(d -> d.id().equals("suspension-l4")).findFirst().orElseThrow();
+        assertThat(dto4.displayDirection()).isEqualTo("Eastbound & Westbound");
     }
 
     @Test

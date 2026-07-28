@@ -43,7 +43,8 @@ public class CommuteImpactService {
         Map<String, List<AlertDashboardService.SegmentImpact>> activeSegmentImpacts = activeSegmentImpacts();
         Map<String, CommuteResponses.MatchedImpactResponse> matchesByIdentity = new LinkedHashMap<>();
 
-        for (AlertDashboardService.ActiveAlertDto alert : dashboardService.activeAlerts()) {
+        List<AlertDashboardService.ActiveAlertDto> activeAlerts = dashboardService.activeAlerts();
+        for (AlertDashboardService.ActiveAlertDto alert : activeAlerts) {
             List<String> matchedSegmentIds = currentSegmentIntersection(
                 alert.affectedSegmentIds(),
                 pathDirectionsBySegmentId,
@@ -116,6 +117,13 @@ public class CommuteImpactService {
                 continue;
             }
             boolean activeNow = closure.activeNow() || "active-now".equals(closure.timingStatus());
+            boolean representedByActiveAlert = activeNow && activeAlerts.stream().anyMatch(alert ->
+                "planned".equals(alert.severity())
+                    && (closure.id().equals(alert.id()) || closure.id().equals(alert.relatedPlannedClosureId()))
+            );
+            if (representedByActiveAlert) {
+                continue;
+            }
             OffsetDateTime eventStartAt = closure.nextWindowStart() != null
                 ? closure.nextWindowStart()
                 : closure.activeWindowStart() != null
