@@ -907,9 +907,9 @@ export function LineWatchShell({
 
   const handleSaveStation = useCallback(async (stationId: string, networkId: NetworkId = selectedNetwork) => {
     if (!accountState.authenticated) {
-      setAccountEntryIntent("login");
+      setAccountEntryIntent("register");
       setAccountDialogMode("auth-choice");
-      setAccountError("Sign in to save stations.");
+      setAccountError(null);
       return false;
     }
     if (savedStations.some((saved) => saved.networkId === networkId && saved.station.id === stationId)) return true;
@@ -1025,6 +1025,13 @@ export function LineWatchShell({
       default:
         return "Sign in to LineWatchTO";
     }
+  };
+
+  const accountDialogDescription = () => {
+    if (accountDialogMode === "auth-choice" && accountEntryIntent === "login") {
+      return "Sign in to access your saved stations and commutes, notification settings, and disruption impacts.";
+    }
+    return "Create a free account to save stations and commutes, get push notifications, and track disruption impacts. All features are free.";
   };
 
   const handleSubmitAccount = async () => {
@@ -2937,9 +2944,9 @@ export function LineWatchShell({
             pendingSavedStationIds={pendingSavedStationIds}
             onToggleSavedStation={handleToggleSavedStation}
             onRequestSignIn={() => {
-              setAccountEntryIntent("login");
+              setAccountEntryIntent("register");
               setAccountDialogMode("auth-choice");
-              setAccountError("Sign in to save stations.");
+              setAccountError(null);
             }}
             savedCommutes={accountCommutes}
             surfaceSearchEnabled={selectedNetwork === "ttc"}
@@ -3227,9 +3234,9 @@ export function LineWatchShell({
           savePending={pendingSavedStationIds.has(selectedStationId)}
           onToggleSaved={handleToggleSavedStation}
           onRequestSignIn={() => {
-            setAccountEntryIntent("login");
+            setAccountEntryIntent("register");
             setAccountDialogMode("auth-choice");
-            setAccountError("Sign in to save stations.");
+            setAccountError(null);
           }}
         />
       )}
@@ -3245,9 +3252,9 @@ export function LineWatchShell({
           savePending={pendingSavedStationIds.has(selectedStationId)}
           onToggleSaved={handleToggleSavedStation}
           onRequestSignIn={() => {
-            setAccountEntryIntent("login");
+            setAccountEntryIntent("register");
             setAccountDialogMode("auth-choice");
-            setAccountError("Sign in to save stations.");
+            setAccountError(null);
           }}
         />
       ) : null}
@@ -3442,21 +3449,21 @@ export function LineWatchShell({
             aria-label={accountDialogAriaLabel()}
             onMouseDown={(event) => event.stopPropagation()}
           >
-            <div className="flex items-start justify-between gap-3 border-b border-black/10 p-3 dark:border-white/10">
-              <div>
+            <div className="account-dialog-header">
+              <div className="account-dialog-intro">
                 <h2 className="text-base font-black text-slate-900 dark:text-white">
                   {accountDialogTitle()}
                 </h2>
-                <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">Create an account to save stations and configured commutes, get push notifications, and see how disruptions affect commute times.</p>
+                <p className="account-dialog-description">{accountDialogDescription()}</p>
               </div>
-              <button type="button" className="station-search-clear" onClick={() => setAccountDialogMode(null)} aria-label="Close account dialog">
+              <button type="button" className="account-dialog-close" onClick={() => setAccountDialogMode(null)} aria-label="Close account dialog">
                 <X size={18} />
               </button>
             </div>
             <form
               key={accountDialogMode}
               data-account-dialog-view={accountDialogMode}
-              className="flex flex-col gap-3 p-3"
+              className="flex flex-col gap-3 p-4"
               onSubmit={(event) => {
                 event.preventDefault();
                 handleSubmitAccount();

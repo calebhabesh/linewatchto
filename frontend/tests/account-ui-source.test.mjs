@@ -39,6 +39,22 @@ describe("account UI source", () => {
     assert.match(shellSource, /Back To Options/);
     assert.match(shellSource, /account-provider-stack/);
     assert.match(shellSource, /account-choice-primary/);
+    assert.match(shellSource, /Create a free account[^<]*All features are free\./);
+    assert.match(shellSource, /Sign in to access your saved stations and commutes/);
+    assert.doesNotMatch(shellSource, /Welcome back/);
+    assert.doesNotMatch(shellSource, /Your account and all features are free\./);
+    assert.match(shellSource, /account-dialog-header/);
+    assert.match(shellSource, /account-dialog-description/);
+  });
+
+  it("routes signed-out station saves to account creation without a redundant error", () => {
+    assert.doesNotMatch(shellSource, /Sign in to save stations\./);
+    assert.match(
+      shellSource,
+      /if \(!accountState\.authenticated\) \{\s*setAccountEntryIntent\("register"\);\s*setAccountDialogMode\("auth-choice"\);\s*setAccountError\(null\);/,
+    );
+    assert.match(shellSource, /className="account-dialog-close"/);
+    assert.match(globalCss, /\.account-dialog-close\s*\{[^}]*flex:\s*0 0 38px;[^}]*-webkit-tap-highlight-color:\s*transparent;/s);
   });
 
   it("supports optional local dev account bootstrap without bypassing backend auth", () => {

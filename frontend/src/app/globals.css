@@ -9453,10 +9453,41 @@ img.transit-line-badge {
   border: 1px solid rgba(15, 23, 42, 0.12);
   border-radius: 8px;
   box-shadow: 0 24px 80px rgba(2, 6, 23, 0.28);
-  max-width: 380px;
+  max-width: 420px;
   overflow: hidden;
   width: 100%;
   margin: auto;
+}
+
+.account-dialog-header {
+  align-items: flex-start;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.1);
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+  padding: 16px;
+}
+
+.dark .account-dialog-header,
+.high-contrast .account-dialog-header {
+  border-bottom-color: rgba(255, 255, 255, 0.1);
+}
+
+.account-dialog-intro {
+  min-width: 0;
+}
+
+.account-dialog-description {
+  color: rgb(71, 85, 105);
+  font-size: 13px;
+  line-height: 1.45;
+  margin-top: 5px;
+  max-width: 350px;
+}
+
+.dark .account-dialog-description,
+.high-contrast .account-dialog-description {
+  color: rgb(203, 213, 225);
 }
 
 @media (max-width: 767px), (max-height: 600px) {
@@ -9474,6 +9505,41 @@ img.transit-line-badge {
 .high-contrast .account-dialog {
   background: rgba(15, 23, 42, 0.98);
   border-color: rgba(255, 255, 255, 0.14);
+}
+
+.account-dialog-close {
+  align-items: center;
+  border-radius: 8px;
+  color: rgb(71, 85, 105);
+  display: inline-flex;
+  flex: 0 0 38px;
+  height: 38px;
+  justify-content: center;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 160ms ease, color 160ms ease, box-shadow 160ms ease;
+  width: 38px;
+}
+
+.account-dialog-close:hover,
+.account-dialog-close:focus-visible {
+  background: rgba(15, 23, 42, 0.08);
+  box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.08);
+  color: rgb(15, 23, 42);
+  outline: none;
+}
+
+.dark .account-dialog-close,
+.high-contrast .account-dialog-close {
+  color: rgb(203, 213, 225);
+}
+
+.dark .account-dialog-close:hover,
+.dark .account-dialog-close:focus-visible,
+.high-contrast .account-dialog-close:hover,
+.high-contrast .account-dialog-close:focus-visible {
+  background: rgba(255, 255, 255, 0.1);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+  color: white;
 }
 
 .account-linked-status {
