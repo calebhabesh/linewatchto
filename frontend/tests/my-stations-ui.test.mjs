@@ -20,6 +20,16 @@ describe("My Stations UI", () => {
     assert.ok(mobileMore.indexOf("My Commutes") < mobileMore.indexOf("My Stations"));
   });
 
+  it("links successful save toasts and the mobile map shortcut to My Stations", () => {
+    assert.match(shell, /station\.name\} added to/);
+    assert.match(shell, /className="saved-station-notice-action"[\s\S]*My Stations/);
+    assert.match(shell, /className="site-guide-network-stack"[\s\S]*className="mobile-network-selector-slot"[\s\S]*className="mobile-my-stations-shortcut md:hidden"/);
+    assert.match(shell, /aria-label="Open My Stations"/);
+    assert.match(shell, /setActiveView\("my-stations"\)/);
+    assert.match(styles, /\.mobile-my-stations-shortcut\s*\{[\s\S]*width:\s*var\(--mobile-top-action-button-size\) !important;/);
+    assert.match(styles, /\.saved-station-notice-action\s*\{/);
+  });
+
   it("renders a signed-out account prompt blurb with feature benefits", () => {
     assert.match(panel, /!authenticated/);
     assert.match(panel, /Save Favorite Stations/);
@@ -42,7 +52,9 @@ describe("My Stations UI", () => {
     assert.match(panel, /pickerGroups\.map/);
     assert.match(panel, />Undo</);
     assert.match(panel, /my-stations-panel-empty/);
+    assert.match(panel, /const compactEmpty = authenticated && mode === "list" && !loading && !error && savedStations\.length === 0;/);
     assert.match(styles, /\.my-stations-panel\.my-stations-panel-empty\s*\{[^}]*min-height:\s*0;/s);
+    assert.match(styles, /\.my-stations-panel\s*\{[^}]*transition:\s*min-height 280ms cubic-bezier\(0\.16, 1, 0\.3, 1\);/s);
   });
 
   it("animates add mode and nudges its shared submenu search field", () => {
@@ -174,7 +186,9 @@ describe("My Stations UI", () => {
     assert.match(panel, /\{lastRemoved\.saved\.station\.name\} Removed/g);
     assert.doesNotMatch(panel, /\{lastRemoved\.saved\.station\.name\} removed/);
     assert.doesNotMatch(panel, /className="my-stations-undo"/);
+    assert.doesNotMatch(panel, /saved-station-empty-after-removal/);
     assert.match(styles, /\.saved-station-inline-undo/);
+    assert.doesNotMatch(styles, /\.saved-station-empty-after-removal/);
   });
 
   it("uses the same bookmark semantics in detail, search, and panel surfaces", () => {

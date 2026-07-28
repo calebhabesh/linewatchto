@@ -512,7 +512,7 @@ export function MyStationsPanel({
       }))
       .filter((group) => group.stations.length > 0);
   }, [availableLines, lineId, pickerStations, query]);
-  const compactEmpty = authenticated && mode === "list" && !loading && !error && savedStations.length === 0 && !lastRemoved;
+  const compactEmpty = authenticated && mode === "list" && !loading && !error && savedStations.length === 0;
 
   const visibleStationIds = useMemo(
     () => visible.map((saved) => saved.station.id).join(","),
@@ -802,11 +802,6 @@ export function MyStationsPanel({
                 <span>{lastRemoved.saved.station.name} Removed</span>
                 <button type="button" onClick={() => void undoRemove()}>Undo</button>
                 <button type="button" onClick={() => setLastRemoved(null)} aria-label="Dismiss undo"><X size={15} /></button>
-              </div>
-            ) : null}
-            {savedStations.length === 0 && lastRemoved ? (
-              <div className="my-stations-empty saved-station-empty-after-removal">
-                <p>No Saved Stations</p>
               </div>
             ) : null}
           </div>

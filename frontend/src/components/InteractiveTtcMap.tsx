@@ -2277,6 +2277,7 @@ const CHOOSER_KEEPOUT_SELECTOR = [
   ".mobile-status-peek",
   ".mobile-legend-pill",
   ".mobile-train-toggle",
+  ".mobile-my-stations-shortcut",
   ".map-utility-cluster",
   ".map-control-rail",
   ".mobile-map-controls",

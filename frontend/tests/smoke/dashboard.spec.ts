@@ -1923,19 +1923,34 @@ test("signed-in riders save, browse, remove, undo, and reload My Stations", asyn
 
   await expect(page.getByRole("heading", { name: "My Commutes" })).toBeVisible();
   await page.getByRole("button", { name: "Close", exact: true }).first().click();
+  if (isMobile) {
+    const myStationsShortcut = page.getByRole("button", { name: "Open My Stations" });
+    const mobileNetworkSelector = page.locator(".mobile-network-selector-slot");
+    await expect(myStationsShortcut).toBeVisible();
+    await expect.poll(async () => {
+      const [selectorBox, shortcutBox] = await Promise.all([
+        mobileNetworkSelector.boundingBox(),
+        myStationsShortcut.boundingBox(),
+      ]);
+      return selectorBox && shortcutBox
+        ? {
+            belowSwitcher: shortcutBox.y >= selectorBox.y + selectorBox.height,
+            sameWidth: Math.abs(shortcutBox.width - selectorBox.width) <= 1,
+          }
+        : null;
+    }).toEqual({ belowSwitcher: true, sameWidth: true });
+    await myStationsShortcut.click();
+    await expect(page.getByRole("region", { name: "My Stations" })).toBeVisible();
+    await page.getByRole("button", { name: "Close My Stations" }).click();
+    await expect(myStationsShortcut).toBeVisible();
+  }
   await page.getByRole("button", { name: "Stub Station station details" }).click();
   await expect(page.getByRole("button", { name: "Save Stub Station to My Stations" })).toBeVisible();
   await page.getByRole("button", { name: "Save Stub Station to My Stations" }).click();
   await expect(page.getByRole("button", { name: "Remove Stub Station from My Stations" })).toBeVisible();
-  await page.getByRole("button", { name: "Close station details" }).click();
-
-  if (isMobile) {
-    await page.getByRole("button", { name: "More", exact: true }).click();
-    await page.getByRole("button", { name: "My Stations" }).click();
-  } else {
-    await page.getByRole("button", { name: "Toggle menu" }).click();
-    await page.getByRole("menuitem", { name: "My Stations" }).click();
-  }
+  const saveNotice = page.getByRole("status").filter({ hasText: "Stub Station added to" });
+  await expect(saveNotice).toBeVisible();
+  await saveNotice.getByRole("button", { name: "My Stations" }).click();
 
   const panel = page.getByRole("region", { name: "My Stations" });
   await expect(panel).toBeVisible();

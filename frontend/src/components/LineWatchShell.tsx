@@ -131,6 +131,10 @@ import {
 type ActiveView = "map" | "menu" | "search" | "status" | "alerts" | "delays" | "reduced-speed-zones" | "closures" | "commutes" | "notifications" | "analytics" | "more" | "my-stations" | "accessibility-outages" | "surface-notices" | "alert-history" | "feedback" | "privacy-acknowledgements" | "release-notes";
 type AccountDialogMode = "auth-choice" | "login" | "register" | "forgot-password" | "reset-password" | "link-google";
 type AccountEntryIntent = "login" | "register";
+type SavedStationNotice = {
+  message: string;
+  linksToMyStations?: boolean;
+};
 
 const DEFAULT_DASHBOARD_REFRESH_MS = 30_000;
 const MIN_DASHBOARD_REFRESH_MS = 10_000;
@@ -599,7 +603,7 @@ export function LineWatchShell({
   const [savedStationsLoading, setSavedStationsLoading] = useState(false);
   const [savedStationsError, setSavedStationsError] = useState<string | null>(null);
   const [pendingSavedStationIds, setPendingSavedStationIds] = useState<Set<string>>(() => new Set());
-  const [savedStationNotice, setSavedStationNotice] = useState<string | null>(null);
+  const [savedStationNotice, setSavedStationNotice] = useState<SavedStationNotice | null>(null);
   const [savedStationNoticeKey, setSavedStationNoticeKey] = useState(0);
   const savedStationNoticeTimerRef = useRef<number | null>(null);
   const [commutesActiveTab, setCommutesActiveTab] = useState<"create" | "saved">("saved");
@@ -849,17 +853,30 @@ export function LineWatchShell({
     }
   }, []);
 
-  const showSavedStationNotice = useCallback((message: string) => {
+  const showSavedStationNotice = useCallback((message: string, linksToMyStations = false) => {
     if (savedStationNoticeTimerRef.current !== null) {
       window.clearTimeout(savedStationNoticeTimerRef.current);
     }
-    setSavedStationNotice(message);
+    setSavedStationNotice({ message, linksToMyStations });
     setSavedStationNoticeKey((current) => current + 1);
     savedStationNoticeTimerRef.current = window.setTimeout(() => {
       setSavedStationNotice(null);
       savedStationNoticeTimerRef.current = null;
     }, 3200);
   }, []);
+
+  const openMyStations = () => {
+    if (savedStationNoticeTimerRef.current !== null) {
+      window.clearTimeout(savedStationNoticeTimerRef.current);
+      savedStationNoticeTimerRef.current = null;
+    }
+    setSavedStationNotice(null);
+    setSelection(null);
+    setSelectedStationId(null);
+    setCommutePathPreview(null);
+    setNavDirection("forward");
+    setActiveView("my-stations");
+  };
 
   const resetAccountForm = () => {
     setAccountEmail("");
@@ -915,7 +932,7 @@ export function LineWatchShell({
         saved,
         ...current.filter((item) => item.networkId !== networkId || item.station.id !== stationId),
       ]);
-      showSavedStationNotice(`${station.name} saved to My Stations`);
+      showSavedStationNotice(`${station.name} added to`, true);
       return true;
     } catch (error) {
       setSavedStations((current) => current.filter(
@@ -3076,6 +3093,17 @@ export function LineWatchShell({
                 compactVertical
               />
             </div>
+            {activeView === "map" && !selection && !selectedStationId && !accountDialogMode && !commutePathPreview ? (
+              <button
+                type="button"
+                onClick={openMyStations}
+                className="mobile-my-stations-shortcut md:hidden"
+                aria-label="Open My Stations"
+                title="My Stations"
+              >
+                <Bookmark size={19} aria-hidden="true" />
+              </button>
+            ) : null}
           </div>
         </div>
       </header>
@@ -3397,7 +3425,12 @@ export function LineWatchShell({
       {savedStationNotice ? (
         <div key={savedStationNoticeKey} className="saved-station-global-notice" role="status" aria-live="polite">
           <Bookmark size={16} fill="currentColor" aria-hidden="true" />
-          <span>{savedStationNotice}</span>
+          <span>{savedStationNotice.message}</span>
+          {savedStationNotice.linksToMyStations ? (
+            <button type="button" className="saved-station-notice-action" onClick={openMyStations}>
+              My Stations
+            </button>
+          ) : null}
         </div>
       ) : null}
       {accountDialogMode ? (
