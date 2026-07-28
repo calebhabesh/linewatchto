@@ -15,8 +15,8 @@ export function dashboardImpactSourceLabel(
   if (itemSource) return normalizeDashboardSourceLabel(itemSource);
   if (dashboard.networkId === "regional") {
     return dashboard.dataSource === "backend"
-      ? "Metrolinx GTFS-RT"
-      : "Metrolinx GTFS-RT · Not connected";
+      ? "Metrolinx Open API"
+      : "Metrolinx Open API · Not connected";
   }
   return "TTC Live Alerts";
 }

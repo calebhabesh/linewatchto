@@ -1,6 +1,6 @@
 # LineWatchTO
 
-LineWatchTO is an unofficial TTC reliability dashboard for Toronto subway and LRT riders. The goal is to combine live service alerts, planned closures, GTFS route data, My Commutes impact checks, and historical alert snapshots into a map-first dashboard that quickly answers:
+LineWatchTO is an unofficial transit reliability dashboard for TTC subway/LRT and GO/UP rail riders. The goal is to combine source-linked service alerts, planned closures, GTFS route data, My Commutes impact checks, and historical alert snapshots into a map-first dashboard that quickly answers:
 
 > Is my route affected now, later today, or this weekend?
 
@@ -8,12 +8,12 @@ The project is intentionally scoped as a full-stack portfolio build: practical e
 
 ## Current Status
 
-The current app is a full-stack dashboard demo with graceful local-fixture fallback. Next.js fetches Spring Boot dashboard boundaries on initial render when the backend is available and falls back to typed local fixtures when any required dashboard request fails. The backend can poll and normalize the official TTC Live Alerts feed when explicitly enabled. User-facing alert, status, map-overlay, and station-detail dynamic reads use those normalized records only while the latest successful ingestion run is fresh; stale live rows are suppressed instead of remaining visible.
+The current app is a full-stack dashboard with graceful local-fixture fallback. Next.js fetches Spring Boot dashboard boundaries when the backend is available and falls back to typed local fixtures when a required request fails. The backend can poll and normalize TTC Live Alerts and the Metrolinx Open API when each source is explicitly enabled. User-facing dynamic reads use source records only while that source's latest successful ingestion run is fresh; stale live rows are suppressed instead of remaining visible.
 
 Implemented now:
 
 - Dark, map-first Next.js dashboard.
-- Fixture-backed GO/UP network mode with a network-scoped TTC / GO & UP selector, a per-device default-map preference, a custom interactive regional schematic, all eight rail corridors, 72 logical stations, and all 74 adjacent route links. The regional map reuses the TTC map's hover/selection indicators, wide accessible hit targets, layered impact glow/boundary treatment, and card-opening interactions. Station search, station details, line legend actions, My Stations, status copy, and mobile inspection are scoped to the selected network; TTC-only arrivals, accessibility, Reduced Speed Zones, My Commutes, reliability, notifications, and surface notices are absent or explicitly unavailable in regional mode. The backend accepts `GET /api/dashboard?network=ttc|regional`; the regional response supplies the static catalog and explicitly reports realtime availability as unavailable. Saved-station identities include the network so identically named/identified stations cannot collide. Local synthetic scenarios exercise route, segment, overlap, station-node, and stale-source presentation without changing the disruption-free default fixture. TTC remains the default. Regional realtime ingestion is not implemented, and GO/UP mode must not be treated as live service information.
+- GO/UP network mode with a network-scoped TTC / GO & UP selector, a per-device default-map preference, a custom interactive regional schematic, all eight rail corridors, 72 logical stations, and all 74 adjacent route links. Opt-in backend-only Metrolinx Open API polling filters GO service updates to rail corridors and reads the dedicated UP Express GTFS-RT alerts feed. Fresh successful runs can drive regional line status, alert cards, affected route links, and station rings through `GET /api/dashboard?network=regional`; stale, disabled, or unavailable ingestion falls back to the disruption-free fixture and is labeled accordingly. The regional map reuses the TTC map's hover/selection indicators, wide accessible hit targets, layered impact treatment, and card-opening interactions. Station search, station details, line legend actions, My Stations, status copy, and mobile inspection are scoped to the selected network. TTC-only arrivals, accessibility, Reduced Speed Zones, My Commutes, reliability, notifications, and surface notices remain absent or explicitly unavailable in regional mode. Saved-station identities include the network so identically named stations cannot collide. Local synthetic scenarios exercise route, segment, overlap, station-node, and stale-source presentation. TTC remains the default.
 - Opt-in estimated train markers can display schematic train blips on the TTC-style map when the live subway GTFS-RT arrival provider has a fresh mapped snapshot. These markers are inferred from trip updates, line topology, and segment travel-time estimates; they are not physical train positions.
 - Global accessibility outages panel with elevator and escalator drill-downs grouped by TTC transit line and station, showing relative update times, station detail link, and custom icons.
 - Searchable surface service notices panel with category filters (detours, bypasses, service changes, notices) and debounced route/stop search queries.
@@ -53,6 +53,7 @@ Implemented now:
 - Source-labeled station arrivals. The default provider uses TTC scheduled service when a merged GTFS schedule import is active. The opt-in `live` provider polls TTC GTFS-RT Subway Trip Updates, maps `stop_id` values through the active static GTFS import, and falls back to scheduled rows when the live feed is stale, missing a direction, or missing a line. If no schedule import is active, the station detail API returns an unavailable scheduled-source state and the frontend fallback remains clearly labeled as demo data.
 - PostGIS-enabled Flyway schema for stations, transit lines, line segments, alerts, alert-segment links, snapshots, and ingestion runs.
 - Dashboard API boundaries for `/api/map`, `/api/status`, and `/api/alerts`, with fixture fallback when backend data is unavailable.
+- Network-scoped `/api/dashboard?network=ttc|regional`, including the complete GO/UP static catalog and freshness-gated Metrolinx rail impacts.
 - Next.js Server Component dashboard loading with complete local-fixture fallback.
 - Playwright Chromium smoke tests for seeded API, fallback rendering, delay overlay clicks, station-ring interactions, and station accessibility details on desktop and mobile viewports.
 - Opt-in scheduled polling for the official TTC Live Alerts feed at `https://alerts.ttc.ca/api/alerts/live-alerts`.
@@ -63,6 +64,7 @@ Implemented now:
 - Alert snapshots for new, changed, deactivated, and reactivated normalized route alerts.
 - In-app service alert lifecycle history for Today, 7 days, and 30 days, showing alert openings, meaningful updates, and clearances based on LineWatch snapshot records, with a 5,000-event API cap per request.
 - Durable ingestion-run tracking and `/api/health/ingestion`.
+- Backend-only Metrolinx developer-key configuration, raw source staging, normalized GO/UP rail-alert persistence, source-scoped deactivation, dashboard freshness gating, and `/api/health/regional-ingestion`.
 - Scheduled operational cleanup for inactive GTFS schedule imports, old ingestion-run rows, and stale inactive TTC source staging rows. Alert history snapshots are retained.
 - Persisted route-alert impact kind so ordinary delays are not categorized as Reduced Speed Zones.
 - Live Alerts reduced-speed records now derive explicit cardinal direction from TTC wording.
@@ -82,6 +84,7 @@ Not implemented yet:
 - Populated geographic PostGIS geometry and production geospatial matching remain unimplemented.
 - TTC Reduced Speed Zones webpage ingestion remains unimplemented.
 - Exact live physical on-map train position tracking remains unimplemented. The on-map train markers are schematic estimates inferred from arrival predictions.
+- GO/UP train arrivals, vehicle positions, accessibility outages, commute matching, reliability aggregation, and push notifications remain outside the regional integration.
 - The arrival provider architecture supports live, scheduled, unavailable, and demo status states.
 - Standalone commute-impact endpoint, route review/edit, commute email notifications, alternate-route suggestions, and accessibility-personalized commute matching.
 - Line-wide Web Push subscriptions are implemented for Lines 1, 2, 4, 5, and 6, but they are opt-in and filtered by selected line, event type, and one account-level planned-closure follow-up policy. Reduced Speed Zone line-wide alerts default on for new notification preferences. Existing active Reduced Speed Zones are recorded silently when a line stream becomes eligible, new Reduced Speed Zones send one active notification, and observed Reduced Speed Zones can send a clearance when fresh dashboard data shows they are gone.
@@ -265,6 +268,7 @@ curl https://linewatchto.ca/api/health
 curl https://api.linewatchto.ca/api/health
 curl https://api.linewatchto.ca/api/health/ingestion
 curl https://api.linewatchto.ca/api/health/schedule
+curl https://api.linewatchto.ca/api/health/regional-ingestion
 ```
 
 Production backend settings should include:
@@ -494,6 +498,15 @@ Start the backend with TTC Live Alerts polling enabled for live alert cards and 
 scripts/dev-live-backend.sh
 ```
 
+The same helper reads ignored `.env.local` configuration for optional Metrolinx polling. Keep the developer key backend-only:
+
+```bash
+LINEWATCH_INGESTION_METROLINX_ENABLED=true
+LINEWATCH_INGESTION_METROLINX_API_KEY=your_metrolinx_developer_key
+```
+
+With those values in `.env.local`, `scripts/dev-live-backend.sh` polls GO rail service updates and the dedicated UP Express GTFS-RT alerts feed. The key is added only to backend-to-Metrolinx requests and is never returned by the API or included in frontend configuration.
+
 This dev helper also enables local password-reset links by default. It returns a short-lived reset token to the frontend for existing local accounts so the `Forgot password?` flow can be tested without email delivery.
 
 The same helper enables the local dev account endpoint by default with
@@ -570,9 +583,12 @@ Health endpoint:
 ```bash
 curl http://localhost:8080/api/health
 curl http://localhost:8080/api/health/schedule
+curl http://localhost:8080/api/health/regional-ingestion
 ```
 
 Alert ingestion is disabled by default for offline-safe local runs, CI, and demos that should not depend on the TTC public API. The `scripts/dev-live-backend.sh` command runs the backend with the `dev-live` Spring profile, which enables one scheduled poller process.
+
+Metrolinx ingestion is independently disabled by default and requires both `LINEWATCH_INGESTION_METROLINX_ENABLED=true` and a developer key. Its poll and freshness windows default to two and ten minutes respectively. GO bus messages and non-service amenity notices are filtered out; GO rail line codes are mapped to the eight authored corridors, while UP alerts come from Metrolinx's dedicated feed. Because source notices can describe broad station groups, map projection is topology-based and may be approximate.
 
 When alert ingestion is enabled, `LINEWATCH_INGESTION_ALERTS_SURFACE_GTFS_RT_ENABLED` defaults to `true` and `LINEWATCH_INGESTION_ALERTS_SURFACE_GTFS_RT_URLS` defaults to TTC's bus and streetcar service-alert feeds. These GTFS-RT records are used only for the surface notices panel. Rapid-transit GTFS-RT records are filtered before normalization so TTC Live Alerts remains the source for subway/LRT map overlays, line status, saved-commute impacts, and push notifications.
 
@@ -703,6 +719,8 @@ Current backend scope:
 | `GET` | `/api/health` | Backend service health. |
 | `GET` | `/api/health/ingestion` | Latest TTC Live Alerts poll status and record counts. |
 | `GET` | `/api/health/schedule` | Active TTC GTFS schedule import status, service coverage dates, and days remaining before expiry. |
+| `GET` | `/api/health/regional-ingestion` | Metrolinx configuration, latest poll outcome, record counts, and dashboard freshness. |
+| `GET` | `/api/dashboard?network=ttc\|regional` | Network-scoped dashboard payload; the regional response includes fresh Metrolinx rail impacts only when ingestion is current. |
 | `GET` | `/api/accessibility-outages` | Global active elevator and escalator outages grouped by transit line and station. |
 | `GET` | `/api/surface-notices` | Searchable detours, bypasses, service changes, and notices for surface routes (bus/streetcar). |
 | `GET` | `/api/map` | Seeded station/topology data plus fresh layered segment and station-node impact metadata when ingestion is current. |
@@ -809,6 +827,8 @@ LineWatchTO should use public and source-linked data. It should also be honest a
 
 - The implemented poller reads the public TTC Live Alerts endpoint at `https://alerts.ttc.ca/api/alerts/live-alerts`.
 - The visible dashboard treats successful poll results as usable only inside the configured freshness window.
+- The optional regional poller uses a backend-only Metrolinx developer key. GO rail service updates and dedicated UP Express GTFS-RT alerts are freshness-gated independently from TTC data; the key and raw upstream payloads are never sent to the browser.
+- Metrolinx notices may identify a whole corridor, a set of stations, or scheduled adjustments rather than exact affected track geometry. Regional segment and station highlighting is a reviewed topology projection and may be approximate.
 - The optional live-arrival provider reads TTC GTFS-RT Subway Trip Updates from `https://gtfsrt.ttc.ca/trips/subway?format=text`; it infers schematic estimated train positions from predicted arrival times and falls back to scheduled service when fresh mapped live rows are unavailable.
 - Estimated train markers are schematic placements inferred from arrival predictions. They should not be treated as exact train locations or live train movement.
 - TTC alerts can be vague.
@@ -821,7 +841,7 @@ LineWatchTO should use public and source-linked data. It should also be honest a
 - Saved commute route matching uses scheduled adjacent-station weights from the active TTC GTFS import when available, then seeded per-segment fallback travel times, with deterministic topology fallback weights only as a last resort. Return trips are computed as a separate monitored leg when enabled, and directional service impacts only count when they match the commute leg direction or are bidirectional. Extra-time estimates are bounded heuristics over the matched dashboard-visible impacts: delays and Reduced Speed Zones can produce a range, while suspensions and closures are marked unreliable instead of inventing a detour duration. This is useful for in-app route awareness, but it is not a full TTC trip planner and does not reflect live train travel times.
 - Saved-commute push notifications are derived from the same dashboard-visible impact matching and each saved route's notification rule. They should not be described as comprehensive TTC alerts, all-map alerts, email alerts, alternate-route recommendations, or guaranteed delivery.
 - Global accessibility outages use fresh TTC Live Alerts rows. Surface notices use fresh TTC Live Alerts rows plus filtered TTC GTFS-RT bus/streetcar service-alert records, and disappear when ingestion is stale. They are searchable and source-linked, but do not affect rapid-transit segment highlights, current line status, saved-commute impacts, or push notifications.
-- This app is unofficial and should not be treated as the sole source of truth for TTC service.
+- This app is unofficial, is not affiliated with TTC or Metrolinx, and should not be treated as the sole source of truth for transit service.
 
 ## Verification Baseline
 

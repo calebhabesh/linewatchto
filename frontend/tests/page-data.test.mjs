@@ -4,6 +4,7 @@ import { describe, it } from "node:test";
 
 const dashboardDataSource = readFileSync(new URL("../src/app/dashboard-data.ts", import.meta.url), "utf8");
 const shellSource = readFileSync(new URL("../src/components/LineWatchShell.tsx", import.meta.url), "utf8");
+const regionalDataSource = readFileSync(new URL("../src/app/regional-data.ts", import.meta.url), "utf8");
 
 describe("dashboard server data binding", () => {
   it("trusts map API overlay metadata instead of rebuilding reduced speed zone impacts", () => {
@@ -45,5 +46,14 @@ describe("dashboard server data binding", () => {
     assert.match(shellSource, /setTtcData\(initialData\)/);
     assert.match(shellSource, /selectedNetwork === "regional" \? regionalData : ttcData/);
     assert.match(shellSource, /initialData\.dataSource === "backend"/);
+  });
+
+  it("loads and refreshes the selected regional dashboard through the network-scoped API", () => {
+    assert.match(regionalDataSource, /regionalDashboardDataFromApi/);
+    assert.match(shellSource, /apiUrl\("\/api\/dashboard\?network=regional"\)/);
+    assert.match(shellSource, /setRegionalData\(regionalDashboardDataFromApi\(payload\)\)/);
+    assert.match(shellSource, /selectedNetwork !== "regional"/);
+    assert.match(shellSource, /document\.visibilityState !== "visible"/);
+    assert.match(shellSource, /window\.setInterval\(fetchRegionalDashboard/);
   });
 });

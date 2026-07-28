@@ -611,7 +611,7 @@ function InteractiveRegionalMapComponent({
             const overlay = regionalImpactGroup(documentNode, overlaySource, {
               impactId: impact.cardId,
               kind: impact.kind,
-              label: `${segment.label} ${impact.kind} synthetic scenario`,
+              label: `${segment.label} ${impact.kind} impact`,
               layerIndex: impactIndex,
             });
             const firstStationTarget = stationsLayer.querySelector(".regional-station-hit-target");

@@ -15,4 +15,20 @@ class RegionalNetworkCatalogTest {
         });
         assertThat(RegionalNetworkCatalog.station("finch")).isEmpty();
     }
+
+    @Test
+    void resolvesOfficialMetrolinxStopCodesAndAdjacentRouteSegments() {
+        assertThat(RegionalNetworkCatalog.stationIdForStopCode("UN")).contains("union");
+        assertThat(RegionalNetworkCatalog.stationIdForStopCode("PA")).contains("pearson-airport");
+        assertThat(RegionalNetworkCatalog.stationIdForStopCode("00736")).isEmpty();
+
+        assertThat(RegionalNetworkCatalog.segmentIds(
+            "regional-le",
+            java.util.List.of("pickering", "ajax", "whitby")
+        )).containsExactly(
+            "segment-le-pickering-ajax",
+            "segment-le-ajax-whitby"
+        );
+        assertThat(RegionalNetworkCatalog.segments()).hasSize(74);
+    }
 }

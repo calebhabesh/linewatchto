@@ -4,7 +4,7 @@ const appUrl = "http://127.0.0.1:4173";
 const stubUrl = "http://127.0.0.1:4174";
 const disclaimerStorageKey = "linewatch-disclaimer-ack-v1";
 
-async function setStubMode(request: APIRequestContext, mode: "seeded" | "unavailable" | "map-authoritative-overlap") {
+async function setStubMode(request: APIRequestContext, mode: "seeded" | "unavailable" | "map-authoritative-overlap" | "regional-live") {
   const response = await request.post(`${stubUrl}/__test/mode`, {
     data: { mode },
   });
@@ -300,6 +300,20 @@ test("switches the complete dashboard to the fixture-backed regional network", a
   await expect(mapSurface).toHaveCSS("view-transition-name", "none");
   await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
   await expect(page.getByRole("region", { name: "Interactive GO and UP map" })).toBeHidden();
+});
+
+test("renders fresh Metrolinx impacts in regional mode", async ({ page, request, isMobile }) => {
+  test.skip(isMobile, "network selection is desktop-only");
+  await setStubMode(request, "regional-live");
+
+  await page.goto("/");
+  await page.getByRole("group", { name: "Select transit network" })
+    .getByRole("button", { name: "GO/UP", exact: true })
+    .click();
+
+  await expect(page.getByText("Last Polled: Metrolinx smoke poll", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Pickering to Ajax delay impact" })).toBeAttached();
+  await expect(page.getByText("Last Polled: regional fixture mode", { exact: true })).toHaveCount(0);
 });
 
 test("renders the seeded dashboard API payload", async ({ page, request, isMobile }) => {

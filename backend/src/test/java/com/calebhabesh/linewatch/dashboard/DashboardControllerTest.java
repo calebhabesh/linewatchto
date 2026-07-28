@@ -16,6 +16,7 @@ import com.calebhabesh.linewatch.ingestion.IngestionRunStore;
 import com.calebhabesh.linewatch.map.MapController;
 import com.calebhabesh.linewatch.performance.PerformanceController;
 import com.calebhabesh.linewatch.performance.TtcPerformanceResponses;
+import com.calebhabesh.linewatch.regional.RegionalDashboardService;
 import com.calebhabesh.linewatch.status.StatusController;
 import java.time.Clock;
 import java.time.Duration;
@@ -37,6 +38,7 @@ class DashboardControllerTest {
     private final DashboardCacheService cache = mock(DashboardCacheService.class);
     private final DashboardCacheProperties cacheProperties = new DashboardCacheProperties();
     private final IngestionRunStore ingestionRunStore = mock(IngestionRunStore.class);
+    private final RegionalDashboardService regionalDashboardService = mock(RegionalDashboardService.class);
     private final IngestionFreshness ingestionFreshness = new IngestionFreshness(
         ingestionRunStore,
         new AlertIngestionProperties(),
@@ -50,7 +52,8 @@ class DashboardControllerTest {
         cache,
         cacheProperties,
         ingestionFreshness,
-        ingestionRunStore
+        ingestionRunStore,
+        regionalDashboardService
     );
 
     @BeforeEach
@@ -59,6 +62,7 @@ class DashboardControllerTest {
             java.util.function.Supplier<?> supplier = invocation.getArgument(3);
             return supplier.get();
         });
+        when(regionalDashboardService.dashboard()).thenReturn(regionalUnavailableDashboard());
     }
 
     @Test
@@ -153,5 +157,26 @@ class DashboardControllerTest {
         assertThat(response.map().stations()).hasSize(72);
         assertThat(response.activeAlerts()).isEmpty();
         assertThat(response.message()).contains("not configured");
+    }
+
+    private DashboardResponses.DashboardResponse regionalUnavailableDashboard() {
+        return new DashboardResponses.DashboardResponse(
+            "regional", "unavailable", List.of("metrolinx-go-service-alerts", "metrolinx-up-gtfs-alerts"),
+            "Regional realtime ingestion is not configured.",
+            new MapController.MapResponse(
+                com.calebhabesh.linewatch.regional.RegionalNetworkCatalog.stations().stream()
+                    .map(station -> new MapController.StationDto(station.id(), station.name(), 0, 0, station.interchange()))
+                    .toList(),
+                List.of(), List.of()
+            ),
+            new StatusController.StatusResponse(
+                new StatusController.GeneratedAtDto("Unavailable", "Regional source not configured", false, "not configured"),
+                com.calebhabesh.linewatch.regional.RegionalNetworkCatalog.routes().stream()
+                    .map(route -> new StatusController.LineStatusDto(route.id(), route.number(), route.name(), route.name(), route.color(), "ready", "Data unavailable", "Not configured", "Not configured"))
+                    .toList()
+            ),
+            List.of(), List.of(), List.of(), List.of(),
+            new TtcPerformanceResponses.SnapshotResponse("disabled", "Unavailable", "", "Regional performance unavailable", "Not available", null, false, "Unavailable", List.of())
+        );
     }
 }

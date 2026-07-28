@@ -8,6 +8,7 @@ import {
   REGIONAL_ROUTE_CARDINAL_DIRECTIONS,
   REGIONAL_ROUTE_STATIONS,
   regionalDashboardData,
+  regionalDashboardDataFromApi,
   regionalDashboardDataForScenario,
   regionalStationSummaries,
 } from "../src/app/regional-data.ts";
@@ -242,6 +243,48 @@ describe("network-scoped regional dashboard", () => {
     assert.deepEqual(regionalDashboardData.stations.map((station) => station.id).sort(), svgLogicalStationIds);
   });
 
+  it("promotes only fresh regional API payloads to backend data", () => {
+    const live = regionalDashboardDataFromApi({
+      networkId: "regional",
+      availability: "available",
+      sourceSystems: ["metrolinx-go-service-alerts", "metrolinx-up-gtfs-alerts"],
+      message: "Fresh regional data.",
+      map: {
+        stations: regionalDashboardData.stations,
+        segments: regionalDashboardData.networkSegments,
+        stationNodeImpacts: [],
+      },
+      status: {
+        generatedAt: { time: "2:12 PM", date: "Jul 28, 2026", live: true, lastPoll: "latest poll" },
+        lines: regionalDashboardData.lineStatuses.map((line) => ({ ...line, status: "normal", statusLabel: "Normal" })),
+      },
+      activeAlerts: [],
+      delays: [],
+      reducedSpeedZones: [],
+      plannedClosures: [],
+      performance: regionalDashboardData.ttcPerformance,
+    });
+    assert.equal(live.dataSource, "backend");
+    assert.equal(live.generatedAt.live, true);
+    assert.match(live.ingestionHealth[0].value, /Fresh regional data/);
+
+    const unavailable = regionalDashboardDataFromApi({
+      ...{
+        networkId: "regional",
+        availability: "unavailable",
+        sourceSystems: [],
+        message: "The latest successful regional ingestion is stale.",
+        map: { stations: [], segments: [], stationNodeImpacts: [] },
+        status: { generatedAt: { time: "Unavailable", date: "Unavailable", live: false, lastPoll: "stale" }, lines: [] },
+        activeAlerts: [], delays: [], reducedSpeedZones: [], plannedClosures: [],
+        performance: regionalDashboardData.ttcPerformance,
+      },
+    });
+    assert.equal(unavailable.dataSource, "fallback");
+    assert.equal(unavailable.generatedAt.live, false);
+    assert.match(unavailable.ingestionHealth[0].value, /stale/i);
+  });
+
   it("indexes every adjacent station pair with network-safe route topology", () => {
     const expectedSegmentCount = Object.values(REGIONAL_ROUTE_STATIONS)
       .reduce((total, stationIds) => total + stationIds.length - 1, 0);
@@ -278,9 +321,10 @@ describe("network-scoped regional dashboard", () => {
     assert.match(regionalStationDetailSource, /station-detail-save-control/);
     assert.match(regionalStationDetailSource, /data-station-header-line-details/);
     assert.match(regionalStationDetailSource, /data-station-section="arrivals"/);
+    assert.match(regionalStationDetailSource, /Live service alerts connected/);
     assert.match(regionalStationDetailSource, /Regional realtime unavailable/);
     assert.match(regionalStationDetailSource, /Arrival Data Unavailable/);
-    assert.match(regionalStationDetailSource, /Metrolinx realtime coverage has not been configured/);
+    assert.match(regionalStationDetailSource, /Station arrivals are not included in the current regional integration/);
     assert.match(regionalStationDetailSource, /Accessibility and platform-condition details are unavailable/);
     assert.doesNotMatch(regionalStationDetailSource, /wheel-chair-symbol|elevator-icon/);
   });

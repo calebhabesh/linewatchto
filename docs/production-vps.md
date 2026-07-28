@@ -214,6 +214,7 @@ curl https://linewatchto.ca/api/health
 curl https://api.linewatchto.ca/api/health
 curl https://api.linewatchto.ca/api/health/ingestion
 curl https://api.linewatchto.ca/api/health/schedule
+curl https://api.linewatchto.ca/api/health/regional-ingestion
 ```
 
 Create a database backup:
@@ -262,4 +263,4 @@ LINEWATCH_DEPLOY_BACKEND_URL=https://api.linewatchto.ca \
 node scripts/smoke-deploy.mjs
 ```
 
-Do not describe the dashboard as live unless `/api/health/ingestion` reports a fresh successful ingestion run.
+Do not describe TTC dashboard data as live unless `/api/health/ingestion` reports a fresh successful ingestion run. Do not describe GO/UP dashboard data as live unless Metrolinx polling is configured and `/api/health/regional-ingestion` reports a fresh successful run. Store `LINEWATCH_INGESTION_METROLINX_API_KEY` only in the server-local `.env.production`; never add it to frontend variables or Git.

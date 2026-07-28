@@ -218,13 +218,15 @@ export function RegionalStationDetailPanel({
                   <span>Arrivals</span>
                 </h3>
                 <p className="mt-1 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-                  Regional realtime unavailable
+                  {dashboard.dataSource === "backend"
+                    ? "Live service alerts connected"
+                    : "Regional realtime unavailable"}
                 </p>
                 <div className="mt-3 rounded-md border border-black/10 bg-white/60 px-3 py-4 text-center dark:border-white/10 dark:bg-black/10">
                   <p className="text-sm font-semibold leading-snug text-slate-500 dark:text-slate-400">
                     <span className="block">Arrival Data Unavailable</span>
                     <span className="mt-1 block text-xs font-medium">
-                      Metrolinx realtime coverage has not been configured.
+                      Station arrivals are not included in the current regional integration.
                     </span>
                   </p>
                 </div>
@@ -269,7 +271,9 @@ export function RegionalStationDetailPanel({
                   </ul>
                 ) : (
                   <p className="mt-3 text-sm font-semibold text-slate-500 dark:text-slate-400">
-                    No station impacts in the current regional dataset.
+                    {dashboard.dataSource === "backend"
+                      ? "No station impacts in the latest Metrolinx alert dataset."
+                      : "No station impacts in the regional demo dataset."}
                   </p>
                 )}
               </section>

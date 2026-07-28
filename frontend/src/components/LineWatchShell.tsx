@@ -121,11 +121,14 @@ import {
 } from "../app/visual-preferences";
 import {
   regionalDashboardData,
+  regionalDashboardDataFromApi,
   regionalDashboardDataForScenario,
   regionalStationSummaries,
   type NetworkId,
+  type RegionalDashboardApiResponse,
   type RegionalScenarioId,
 } from "../app/regional-data";
+import { apiUrl } from "../app/api-client";
 import { popViewHistory, pushViewHistory } from "../app/view-navigation";
 
 
@@ -206,6 +209,7 @@ export function LineWatchShell({
   const [defaultNetworkPreference, setDefaultNetworkPreference] = useState<NetworkId>(initialVisualPreferences.defaultNetwork);
   const [ttcData, setTtcData] = useState(initialData);
   const [regionalData, setRegionalData] = useState(regionalDashboardData);
+  const regionalScenarioActiveRef = useRef(false);
   const displayData = selectedNetwork === "regional" ? regionalData : ttcData;
   const networkViewTransitionRef = useRef<{
     finished: Promise<void>;
@@ -223,6 +227,7 @@ export function LineWatchShell({
       "stale-source",
     ];
     if (requestedScenario && supportedScenarios.includes(requestedScenario as RegionalScenarioId)) {
+      regionalScenarioActiveRef.current = true;
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setRegionalData(regionalDashboardDataForScenario(requestedScenario as RegionalScenarioId));
     }
@@ -242,6 +247,35 @@ export function LineWatchShell({
       return initialData;
     });
   }, [initialData]);
+
+  const fetchRegionalDashboard = useCallback(async () => {
+    if (regionalScenarioActiveRef.current || document.visibilityState !== "visible") return;
+    try {
+      const response = await fetch(apiUrl("/api/dashboard?network=regional"), {
+        cache: "no-store",
+        signal: AbortSignal.timeout(5000),
+      });
+      if (!response.ok) throw new Error(`Regional dashboard request failed (${response.status})`);
+      const payload = await response.json() as RegionalDashboardApiResponse;
+      setRegionalData(regionalDashboardDataFromApi(payload));
+    } catch {
+      setRegionalData(regionalDashboardData);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (selectedNetwork !== "regional" || regionalScenarioActiveRef.current) return;
+    void fetchRegionalDashboard();
+    const interval = window.setInterval(fetchRegionalDashboard, dashboardRefreshIntervalMs());
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") void fetchRegionalDashboard();
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      window.clearInterval(interval);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [fetchRegionalDashboard, selectedNetwork]);
 
   const {
     generatedAt,

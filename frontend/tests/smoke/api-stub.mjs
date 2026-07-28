@@ -1,4 +1,5 @@
 import { createServer } from "node:http";
+import { regionalDashboardDataForScenario } from "../../src/app/regional-data.ts";
 import {
   activeAlertsResponse,
   delaysResponse,
@@ -312,7 +313,7 @@ const server = createServer(async (request, response) => {
 
   if (request.method === "POST" && url.pathname === "/__test/mode") {
     const body = await readJson(request);
-    if (!["seeded", "unavailable", "map-authoritative-overlap"].includes(body.mode)) {
+    if (!["seeded", "unavailable", "map-authoritative-overlap", "regional-live"].includes(body.mode)) {
       sendJson(request, response, 400, { error: "Unsupported smoke stub mode" });
       return;
     }
@@ -326,6 +327,40 @@ const server = createServer(async (request, response) => {
 
   if (mode === "unavailable" && url.pathname.startsWith("/api/")) {
     sendJson(request, response, 503, { error: "Smoke stub unavailable mode" });
+    return;
+  }
+
+  if (request.method === "GET" && url.pathname === "/api/dashboard" && url.searchParams.get("network") === "regional") {
+    if (mode !== "regional-live") {
+      sendJson(request, response, 503, { error: "Regional smoke source unavailable" });
+      return;
+    }
+    const regional = regionalDashboardDataForScenario("all-impact-types");
+    sendJson(request, response, 200, {
+      networkId: "regional",
+      availability: "available",
+      sourceSystems: ["Metrolinx Open API"],
+      message: "Fresh Metrolinx rail alerts loaded.",
+      map: {
+        stations: regional.stations,
+        segments: regional.networkSegments,
+        stationNodeImpacts: regional.stationNodeImpacts,
+      },
+      status: {
+        generatedAt: {
+          time: "12:00 PM",
+          date: "Thursday, June 4, 2026",
+          live: true,
+          lastPoll: "Metrolinx smoke poll",
+        },
+        lines: regional.lineStatuses,
+      },
+      activeAlerts: regional.activeAlerts,
+      delays: regional.delays,
+      reducedSpeedZones: regional.reducedSpeedZones,
+      plannedClosures: regional.plannedClosures,
+      performance: regional.ttcPerformance,
+    });
     return;
   }
 

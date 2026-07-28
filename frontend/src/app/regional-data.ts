@@ -188,6 +188,73 @@ export const regionalDashboardData: DashboardData = {
   },
 };
 
+export type RegionalDashboardApiResponse = {
+  networkId?: NetworkId;
+  availability?: "available" | "unavailable";
+  sourceSystems?: string[];
+  message?: string;
+  map: {
+    stations: DashboardData["stations"];
+    segments: DashboardData["networkSegments"];
+    stationNodeImpacts: DashboardData["stationNodeImpacts"];
+  };
+  status: {
+    generatedAt: DashboardData["generatedAt"];
+    lines: DashboardData["lineStatuses"];
+  };
+  activeAlerts: DashboardData["activeAlerts"];
+  delays: DashboardData["delays"];
+  reducedSpeedZones: DashboardData["reducedSpeedZones"];
+  plannedClosures: DashboardData["plannedClosures"];
+  performance: DashboardData["ttcPerformance"];
+};
+
+export function regionalDashboardDataFromApi(payload: RegionalDashboardApiResponse): DashboardData {
+  const fresh = payload.networkId === "regional"
+    && payload.availability === "available"
+    && payload.status?.generatedAt?.live === true
+    && Array.isArray(payload.map?.segments)
+    && payload.map.segments.length === regionalSegments.length;
+
+  if (!fresh) {
+    const fallback = structuredClone(regionalDashboardData);
+    const message = payload.message?.trim() || "Regional realtime data is unavailable.";
+    fallback.generatedAt = {
+      time: "Unavailable",
+      date: "Regional source unavailable",
+      live: false,
+      lastPoll: payload.status?.generatedAt?.lastPoll || "not configured or stale",
+    };
+    fallback.ingestionHealth = [{
+      label: "Metrolinx source",
+      value: message,
+      state: "error",
+    }];
+    return fallback;
+  }
+
+  return {
+    ...regionalDashboardData,
+    networkId: "regional",
+    dataSource: "backend",
+    networkSegments: payload.map.segments,
+    stations: payload.map.stations,
+    lineStatuses: payload.status.lines,
+    generatedAt: payload.status.generatedAt,
+    activeAlerts: payload.activeAlerts,
+    delays: payload.delays,
+    reducedSpeedZones: payload.reducedSpeedZones,
+    plannedClosures: payload.plannedClosures,
+    stationNodeImpacts: payload.map.stationNodeImpacts,
+    ttcPerformance: payload.performance,
+    ingestionHealth: [{
+      label: "Metrolinx source",
+      value: payload.message?.trim() || "Fresh regional data loaded.",
+      state: "ok",
+    }],
+  };
+}
+
 export type RegionalScenarioId =
   | "none"
   | "all-impact-types"

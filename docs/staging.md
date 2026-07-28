@@ -184,6 +184,7 @@ Use staging to verify:
 - `/api/health` returns `status: ok`.
 - `/api/health/ingestion` reports whether dashboard data is fresh.
 - `/api/health/schedule` reports schedule import and latest refresh status.
+- `/api/health/regional-ingestion` reports whether Metrolinx is configured and whether GO/UP dashboard data is fresh.
 - Map overlays render and can be tapped/clicked.
 - Station detail opens and arrival state is clearly source-labeled.
 - Account register/login/logout works.
@@ -192,4 +193,4 @@ Use staging to verify:
 - PWA install/update behavior works on a real phone when testing through HTTPS tunnel.
 - Web Push works when staging VAPID keys are configured, browser permission is granted, and fresh dashboard-visible impacts exist.
 
-Do not describe staging data as production data or official TTC data. LineWatchTO remains an unofficial dashboard using public source-linked data.
+Do not describe staging data as production data or official TTC/Metrolinx data. LineWatchTO remains an unofficial dashboard using source-linked data. Keep any staging Metrolinx developer key only in ignored `.env.staging` configuration, never in the example file or frontend variables.
