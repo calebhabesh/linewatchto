@@ -460,7 +460,7 @@ export function NotificationSettingsPanel({
             </div>
 
             <div className="notification-settings-section">
-              <div className="notification-settings-section-header">
+              <div className="notification-settings-section-header notification-follow-up-header">
                 <h3>Planned Closure Follow-ups</h3>
                 <span>Global</span>
               </div>

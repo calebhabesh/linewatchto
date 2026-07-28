@@ -10,6 +10,8 @@ import { getOverlappingImpactRefs, OverlappingImpactRefs } from "./ImpactOverlap
 import { filterAndSortImpacts, type ImpactListSort } from "../app/impact-list-controls";
 import { ImpactListToolbar } from "./ImpactListToolbar";
 import { dashboardImpactSourceLabel } from "../app/dashboard-source-label";
+import { CompactImpactListItem, CompactImpactTimeValue } from "./CompactImpactListItem";
+import { useImpactListView } from "../hooks/useImpactListView";
 
 const formatSpeed = (val: string | null | undefined): string | null => {
   if (!val) return null;
@@ -36,6 +38,7 @@ export function ReducedSpeedZonesPanel({
   const [lineId, setLineId] = useState("all");
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<ImpactListSort>("line");
+  const { viewMode, setViewMode } = useImpactListView();
   const visibleZones = useMemo(() => filterAndSortImpacts(reducedSpeedZones, { lineId, query, sort }), [reducedSpeedZones, lineId, query, sort]);
   const lineIds = useMemo(() => [...new Set(reducedSpeedZones.map((zone) => zone.lineId))].sort(), [reducedSpeedZones]);
   useScrollSelectedImpactCard(selection, "reduced-speed-zone");
@@ -107,9 +110,11 @@ export function ReducedSpeedZonesPanel({
             { value: "updated", label: "Updated" },
             { value: "location", label: "Location" },
           ]}
+          viewMode={viewMode}
+          onViewModeChange={setViewMode}
         />
       ) : null}
-      <div className={`alert-stack min-w-0 p-3 flex flex-col gap-2 ${visibleZones.length === 0 ? "is-empty" : ""}`}>
+      <div className={`alert-stack min-w-0 p-3 flex flex-col gap-2 ${viewMode === "list" ? "is-list-view" : ""} ${visibleZones.length === 0 ? "is-empty" : ""}`}>
         {visibleZones.length === 0 ? (
           <div className="text-center py-4 text-sm text-slate-500 dark:text-slate-400 font-medium">
             {reducedSpeedZones.length === 0 ? "No Reduced Speed Zones" : "No Reduced Speed Zones match these filters"}
@@ -121,6 +126,28 @@ export function ReducedSpeedZonesPanel({
               { kind: "reduced-speed-zone", id: zone.id, segmentIds: zone.affectedSegmentIds ?? [] },
               { networkSegments, activeAlerts, delays, reducedSpeedZones, plannedClosures, stationNodeImpacts },
             );
+            if (viewMode === "list") {
+              return (
+                <CompactImpactListItem
+                  key={zone.id}
+                  impactId={zone.id}
+                  lineId={zone.lineId}
+                  lineNumber={zone.lineNumber}
+                  title={zone.title}
+                  location={zone.location}
+                  direction={zone.displayDirection}
+                  facts={[
+                    { column: 1, label: "Reduced speed", value: formatSpeed(zone.reducedSpeed) || "Not reported" },
+                    { column: 2, label: "Started", value: <CompactImpactTimeValue timestamp={zone.startedAt} /> },
+                    { column: 3, label: "Updated", value: <CompactImpactTimeValue timestamp={zone.updatedAt} fallback={zone.updatedAgo} /> },
+                    { column: 4, label: "Est. resolution", value: zone.resolution || zone.targetRemoval || "TBD" },
+                  ]}
+                  active={isActive}
+                  toneClassName="rsz-card-border"
+                  onShowOnMap={() => handleReducedSpeedZoneClick(zone.id)}
+                />
+              );
+            }
             return (
               <div
                 key={zone.id}

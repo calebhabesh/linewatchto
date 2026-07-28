@@ -11,6 +11,8 @@ import { getOverlappingImpactRefs, OverlappingImpactRefs } from "./ImpactOverlap
 import { filterAndSortImpacts, type ImpactListSort } from "../app/impact-list-controls";
 import { ImpactListToolbar } from "./ImpactListToolbar";
 import { dashboardImpactSourceLabel } from "../app/dashboard-source-label";
+import { CompactImpactListItem, CompactImpactTimeValue } from "./CompactImpactListItem";
+import { useImpactListView } from "../hooks/useImpactListView";
 
 interface Props {
   selection: ImpactSelection;
@@ -26,6 +28,7 @@ export function DelaysPanel({ selection, onSelectImpact, onBack, onClose, onFocu
   const [lineId, setLineId] = useState("all");
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<ImpactListSort>("updated");
+  const { viewMode, setViewMode } = useImpactListView();
   const visibleDelays = useMemo(() => filterAndSortImpacts(delays, { lineId, query, sort }), [delays, lineId, query, sort]);
   const lineIds = useMemo(() => [...new Set(delays.map((delay) => delay.lineId))].sort(), [delays]);
   useScrollSelectedImpactCard(selection, "delay");
@@ -97,9 +100,11 @@ export function DelaysPanel({ selection, onSelectImpact, onBack, onClose, onFocu
             { value: "line", label: "Line" },
             { value: "location", label: "Location" },
           ]}
+          viewMode={viewMode}
+          onViewModeChange={setViewMode}
         />
       ) : null}
-      <div className={`alert-stack min-w-0 p-3 flex flex-col gap-2 ${visibleDelays.length === 0 ? "is-empty" : ""}`}>
+      <div className={`alert-stack min-w-0 p-3 flex flex-col gap-2 ${viewMode === "list" ? "is-list-view" : ""} ${visibleDelays.length === 0 ? "is-empty" : ""}`}>
         {visibleDelays.length === 0 ? (
           <div className="text-center py-4 text-sm text-slate-500 dark:text-slate-400 font-medium">
             {delays.length === 0 ? "No Delays" : "No delays match these filters"}
@@ -111,6 +116,27 @@ export function DelaysPanel({ selection, onSelectImpact, onBack, onClose, onFocu
               { kind: "delay", id: delay.id, segmentIds: delay.affectedSegmentIds ?? [] },
               { networkSegments, activeAlerts, delays, reducedSpeedZones, plannedClosures, stationNodeImpacts },
             );
+            if (viewMode === "list") {
+              return (
+                <CompactImpactListItem
+                  key={delay.id}
+                  impactId={delay.id}
+                  lineId={delay.lineId}
+                  lineNumber={delay.lineNumber}
+                  title={delay.title}
+                  location={delay.location}
+                  direction={delay.displayDirection}
+                  facts={[
+                    { column: 1, label: "Cause", value: delay.cause || "Service delay" },
+                    { column: 2, label: "Started", value: <CompactImpactTimeValue timestamp={delay.startedAt} /> },
+                    { column: 3, label: "Updated", value: <CompactImpactTimeValue timestamp={delay.updatedAt} /> },
+                  ]}
+                  active={isActive}
+                  toneClassName="delay-card-border"
+                  onShowOnMap={() => handleDelayClick(delay.id)}
+                />
+              );
+            }
             return (
               <article
                 key={delay.id}

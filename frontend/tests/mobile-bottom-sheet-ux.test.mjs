@@ -284,8 +284,8 @@ describe("mobile bottom sheet UX", () => {
     assert.match(globalCss, /:root\s*\{[\s\S]*?color-scheme:\s*light dark;/);
     assert.match(globalCss, /\.linewatch-shell\s*\{[\s\S]*?color-scheme:\s*light;/);
     assert.match(globalCss, /\.linewatch-shell\.dark\s*\{[\s\S]*?color-scheme:\s*dark;/);
-    assert.match(globalCss, /--mobile-scroll-indicator-thumb:\s*rgba\(15,\s*23,\s*42,\s*0\.54\)/);
-    assert.match(globalCss, /\.linewatch-shell\.dark\s*\{[\s\S]*?--mobile-scroll-indicator-thumb:\s*rgba\(148,\s*163,\s*184,\s*0\.72\)/);
+    assert.match(globalCss, /--mobile-scroll-indicator-thumb:\s*#7d828c/);
+    assert.match(globalCss, /\.linewatch-shell\.dark\s*\{[\s\S]*?--mobile-scroll-indicator-thumb:\s*#6e7789/);
     assert.doesNotMatch(globalCss, /--mobile-scroll-affordance-/);
     assert.doesNotMatch(shellSource, /MOBILE_SCROLLBAR_SELECTOR/);
     assert.doesNotMatch(shellSource, /linewatch-mobile-scrollbar/);

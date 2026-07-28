@@ -2,8 +2,9 @@
 
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
-import { Check, ChevronDown, Search } from "lucide-react";
+import { Check, ChevronDown, LayoutList, PanelsTopLeft, Search } from "lucide-react";
 import type { ImpactListSort } from "../app/impact-list-controls";
+import type { ImpactListView } from "../hooks/useImpactListView";
 
 type SortOption = {
   value: ImpactListSort;
@@ -28,6 +29,8 @@ type Props = {
   sort: ImpactListSort;
   onSortChange: (sort: ImpactListSort) => void;
   sortOptions: SortOption[];
+  viewMode?: ImpactListView;
+  onViewModeChange?: (viewMode: ImpactListView) => void;
 };
 
 const LINE_FILTER_DETAILS: Record<string, { number: string; name: string; icon: string }> = {
@@ -160,6 +163,8 @@ export function ImpactListToolbar({
   sort,
   onSortChange,
   sortOptions,
+  viewMode,
+  onViewModeChange,
 }: Props) {
   const filtering = lineId !== "all" || Boolean(query.trim());
   const lineOptions: ToolbarSelectOption<string>[] = [
@@ -196,6 +201,28 @@ export function ImpactListToolbar({
           options={sortOptions}
           onChange={onSortChange}
         />
+        {viewMode && onViewModeChange ? (
+          <div className="impact-list-view-toggle" role="group" aria-label={`${noun} view`}>
+            <button
+              type="button"
+              aria-label="Card view"
+              aria-pressed={viewMode === "cards"}
+              title="Card view"
+              onClick={() => onViewModeChange("cards")}
+            >
+              <PanelsTopLeft size={15} aria-hidden="true" />
+            </button>
+            <button
+              type="button"
+              aria-label="List view"
+              aria-pressed={viewMode === "list"}
+              title="List view"
+              onClick={() => onViewModeChange("list")}
+            >
+              <LayoutList size={16} aria-hidden="true" />
+            </button>
+          </div>
+        ) : null}
       </div>
       <span className="sr-only" role="status">
         {filtering ? `${visibleCount} of ${totalCount}` : `${totalCount} total`}

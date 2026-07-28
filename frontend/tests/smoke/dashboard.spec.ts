@@ -614,6 +614,41 @@ test("mobile keeps lightweight map focus flashes and menu transitions", async ({
   expect(searchTransitionProperty).not.toContain("width");
 });
 
+test("alert submenus persist one per-device card or list preference", async ({ page, request, isMobile }) => {
+  await setStubMode(request, "seeded");
+  await page.goto("/");
+  await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
+
+  await openServiceCategory(page, isMobile, /Reduced Speed Zone/);
+  await page.getByRole("button", { name: "List view" }).click();
+  await expect(page.locator(".alert-stack")).toHaveClass(/is-list-view/);
+  await expect(page.locator(".compact-impact-list-item")).toHaveCount(2);
+  await expect(page.locator(".alert-card")).toHaveCount(0);
+  const firstCompactRow = page.locator(".compact-impact-list-item").first();
+  await expect(firstCompactRow).toContainText("Direction:");
+  await expect(firstCompactRow).toContainText("Reduced speed:");
+  await expect(firstCompactRow).toContainText("Est. resolution:");
+  await expect(firstCompactRow).toContainText("Updated:");
+  const compactGridColumnCount = await firstCompactRow.locator(".compact-impact-list-item__facts").evaluate(
+    (element) => getComputedStyle(element).gridTemplateColumns.split(" ").length,
+  );
+  expect(compactGridColumnCount).toBe(isMobile ? 2 : 4);
+  const firstStartedBounds = await firstCompactRow.locator(".is-column-2").boundingBox();
+  const secondStartedBounds = await page.locator(".compact-impact-list-item").nth(1).locator(".is-column-2").boundingBox();
+  expect(firstStartedBounds).not.toBeNull();
+  expect(secondStartedBounds).not.toBeNull();
+  expect(Math.abs(firstStartedBounds!.x - secondStartedBounds!.x)).toBeLessThanOrEqual(1);
+  await expect.poll(() => page.evaluate(() => window.localStorage.getItem("linewatch-impact-list-view-v1"))).toBe("list");
+
+  await openServiceCategory(page, isMobile, /Delay/);
+  await expect(page.locator(".alert-stack")).toHaveClass(/is-list-view/);
+  await expect(page.locator(".compact-impact-list-item").first()).toBeVisible();
+
+  await page.getByRole("button", { name: "Card view" }).click();
+  await expect(page.locator(".alert-stack")).not.toHaveClass(/is-list-view/);
+  await expect(page.locator(".alert-card").first()).toBeVisible();
+});
+
 test("mobile closing station details preserves the focused map camera", async ({ page, request, isMobile }) => {
   test.skip(!isMobile, "mobile-only station camera behavior");
   await setStubMode(request, "seeded");

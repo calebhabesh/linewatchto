@@ -12,6 +12,8 @@ import { ImpactListToolbar } from "./ImpactListToolbar";
 import { PlannedClosureIcon } from "./PlannedClosureIcon";
 import { ImpactTypeIcon } from "./ImpactTypeIcon";
 import { dashboardImpactSourceLabel } from "../app/dashboard-source-label";
+import { CompactImpactListItem, CompactImpactTimeValue } from "./CompactImpactListItem";
+import { useImpactListView } from "../hooks/useImpactListView";
 
 interface Props {
   selection: ImpactSelection;
@@ -33,6 +35,7 @@ export function PlannedClosuresPanel({ selection, onSelectImpact, onBack, onClos
   const [lineId, setLineId] = useState("all");
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<ImpactListSort>("soonest");
+  const { viewMode, setViewMode } = useImpactListView();
   const visibleClosures = useMemo(() => filterAndSortImpacts(plannedClosures, { lineId, query, sort }), [plannedClosures, lineId, query, sort]);
   const lineIds = useMemo(() => [...new Set(plannedClosures.map((closure) => closure.lineId))].sort(), [plannedClosures]);
   useScrollSelectedImpactCard(selection, "planned-closure");
@@ -105,9 +108,11 @@ export function PlannedClosuresPanel({ selection, onSelectImpact, onBack, onClos
             { value: "line", label: "Line" },
             { value: "location", label: "Location" },
           ]}
+          viewMode={viewMode}
+          onViewModeChange={setViewMode}
         />
       ) : null}
-      <div className={`closure-stack min-w-0 p-3 flex flex-col gap-2 ${visibleClosures.length === 0 ? "is-empty" : ""}`}>
+      <div className={`closure-stack min-w-0 p-3 flex flex-col gap-2 ${viewMode === "list" ? "is-list-view" : ""} ${visibleClosures.length === 0 ? "is-empty" : ""}`}>
         {visibleClosures.length === 0 ? (
           <div className="text-center py-4 text-sm text-slate-500 dark:text-slate-400 font-medium">
             {plannedClosures.length === 0 ? "No Planned Closures" : "No planned closures match these filters"}
@@ -131,6 +136,32 @@ export function PlannedClosuresPanel({ selection, onSelectImpact, onBack, onClos
               { kind: "planned-closure", id: closure.id, segmentIds: closure.previewSegmentIds ?? [] },
               { networkSegments, activeAlerts, delays, reducedSpeedZones, plannedClosures, stationNodeImpacts },
             );
+            if (viewMode === "list") {
+              return (
+                <CompactImpactListItem
+                  key={closure.id}
+                  impactId={closure.id}
+                  lineId={closure.lineId}
+                  lineNumber={closure.lineNumber}
+                  title={closure.title}
+                  location={closure.location}
+                  direction={closure.displayDirection}
+                  facts={[
+                    {
+                      column: 1,
+                      label: specificWindowLabel ? specificWindowHeading : "Closure window",
+                      value: specificWindowLabel ? formatClosureScheduleValue(specificWindowLabel) : closure.window,
+                    },
+                    { column: 2, label: "Started", value: <CompactImpactTimeValue timestamp={closure.startedAt} /> },
+                    { column: 3, label: "Updated", value: <CompactImpactTimeValue timestamp={closure.updatedAt} fallback={closure.updatedAgo} /> },
+                  ]}
+                  status={closure.activeNow ? "Active now" : closure.nightly ? "Nightly" : closure.shuttle ? "Shuttle" : null}
+                  active={isActive}
+                  toneClassName="planned-closure-card-border"
+                  onShowOnMap={() => handleClosureClick(closure.id)}
+                />
+              );
+            }
             return (
               <div
                 key={closure.id}

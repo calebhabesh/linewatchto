@@ -10,6 +10,8 @@ import { getOverlappingImpactRefs, OverlappingImpactRefs } from "./ImpactOverlap
 import { filterAndSortImpacts, type ImpactListSort } from "../app/impact-list-controls";
 import { ImpactListToolbar } from "./ImpactListToolbar";
 import { dashboardImpactSourceLabel } from "../app/dashboard-source-label";
+import { CompactImpactListItem, CompactImpactTimeValue } from "./CompactImpactListItem";
+import { useImpactListView } from "../hooks/useImpactListView";
 
 interface Props {
   selection: ImpactSelection;
@@ -40,6 +42,7 @@ export function ActiveAlertsPanel({
   const [lineId, setLineId] = useState("all");
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<ImpactListSort>("updated");
+  const { viewMode, setViewMode } = useImpactListView();
   const visibleAlerts = useMemo(() => filterAndSortImpacts(activeAlerts, { lineId, query, sort }), [activeAlerts, lineId, query, sort]);
   const lineIds = useMemo(() => [...new Set(activeAlerts.map((alert) => alert.lineId))].sort(), [activeAlerts]);
   useScrollSelectedImpactCard(selection, "suspension");
@@ -128,9 +131,11 @@ export function ActiveAlertsPanel({
             { value: "line", label: "Line" },
             { value: "location", label: "Location" },
           ]}
+          viewMode={viewMode}
+          onViewModeChange={setViewMode}
         />
       ) : null}
-      <div className={`alert-stack min-w-0 p-3 flex flex-col gap-2 ${visibleAlerts.length === 0 ? "is-empty" : ""}`}>
+      <div className={`alert-stack min-w-0 p-3 flex flex-col gap-2 ${viewMode === "list" ? "is-list-view" : ""} ${visibleAlerts.length === 0 ? "is-empty" : ""}`}>
         {visibleAlerts.length === 0 ? (
           <div className="text-center py-4 text-sm text-slate-500 dark:text-slate-400 font-medium">
             {activeAlerts.length === 0 ? "No Active Alerts" : "No active alerts match these filters"}
@@ -143,6 +148,30 @@ export function ActiveAlertsPanel({
               { kind: alertImpactKind, id: alert.id, segmentIds: alert.affectedSegmentIds ?? [] },
               { networkSegments, activeAlerts, delays, reducedSpeedZones, plannedClosures, stationNodeImpacts },
             );
+
+            if (viewMode === "list") {
+              return (
+                <CompactImpactListItem
+                  key={alert.id}
+                  impactId={alert.id}
+                  lineId={alert.lineId}
+                  lineNumber={alert.lineNumber}
+                  title={alert.title}
+                  location={alert.location}
+                  direction={alert.displayDirection}
+                  facts={[
+                    ...(alert.cause ? [{ column: 1 as const, label: "Cause", value: alert.cause }] : []),
+                    { column: 2, label: "Started", value: <CompactImpactTimeValue timestamp={alert.startedAt} /> },
+                    { column: 3, label: "Updated", value: <CompactImpactTimeValue timestamp={alert.updatedAt} fallback={alert.updatedAgo} /> },
+                    ...(alert.resolution ? [{ column: 4 as const, label: "Est. resolution", value: alert.resolution }] : []),
+                  ]}
+                  status={alert.shuttle ? <><Bus size={11} /> Shuttle</> : null}
+                  active={isActive}
+                  toneClassName={getSeverityColor(alert.severity)}
+                  onShowOnMap={() => handleAlertClick(alert)}
+                />
+              );
+            }
 
             return (
               <div
