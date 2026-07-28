@@ -337,6 +337,9 @@ printf '%s\n' "$*" >> "${FAKE_DOCKER_LOG:?}"
 if [[ " $* " == *" up "* ]] && [[ "${FAKE_DOCKER_UP_FAIL:-false}" == "true" ]]; then
   exit 23
 fi
+if [[ "$*" == "image prune -a --force" ]] && [[ "${FAKE_DOCKER_PRUNE_FAIL:-false}" == "true" ]]; then
+  exit 24
+fi
 EOF
   chmod +x "$path"
 }
@@ -372,6 +375,7 @@ test_deploy_promotes_release_after_healthy_start() {
   assert_equals "$(linewatch_read_release_value "$release_env" LINEWATCH_IMAGE_TAG)" "$new_sha"
   assert_contains "$(cat "$log")" "pull postgres backend frontend"
   assert_contains "$(cat "$log")" "up -d --no-build --remove-orphans --wait"
+  assert_contains "$(cat "$log")" "image prune -a --force"
   assert_contains "$output" "Deployed LineWatchTO release $new_sha."
 }
 
@@ -411,6 +415,42 @@ test_deploy_keeps_previous_release_after_failed_start() {
   assert_equals "$status" "1"
   assert_equals "$(linewatch_read_release_value "$release_env" LINEWATCH_IMAGE_TAG)" "$TEST_SHA"
   assert_contains "$output" "Deployment failed for release $new_sha."
+  assert_not_contains "$(cat "$log")" "image prune"
+}
+
+test_deploy_keeps_success_when_image_prune_fails() {
+  local temp_dir
+  local prod_env
+  local release_env
+  local fake_docker
+  local log
+  local output
+  local new_sha="abcdef0123456789abcdef0123456789abcdef01"
+
+  temp_dir="$(mktemp -d "$TEST_TMP/deploy-prune-failure.XXXXXX")"
+  prod_env="$temp_dir/.env.production"
+  release_env="$temp_dir/.env.release"
+  fake_docker="$temp_dir/docker"
+  log="$temp_dir/docker.log"
+
+  printf 'POSTGRES_PASSWORD=test\n' > "$prod_env"
+  linewatch_write_release_env "$release_env" "ghcr.io/calebhabesh" "$TEST_SHA"
+  make_fake_deploy_docker "$fake_docker"
+
+  output="$(
+    FAKE_DOCKER_LOG="$log" \
+    FAKE_DOCKER_PRUNE_FAIL=true \
+    DOCKER_BIN="$fake_docker" \
+    LINEWATCH_PROD_ENV_FILE="$prod_env" \
+    LINEWATCH_RELEASE_ENV_FILE="$release_env" \
+    LINEWATCH_DEPLOY_SKIP_CONFIG_CHECK=true \
+      "$ROOT_DIR/scripts/prod-deploy.sh" "$new_sha" 2>&1
+  )"
+
+  assert_equals "$(linewatch_read_release_value "$release_env" LINEWATCH_IMAGE_TAG)" "$new_sha"
+  assert_contains "$(cat "$log")" "image prune -a --force"
+  assert_contains "$output" "Warning: deployment succeeded, but unused Docker image cleanup failed."
+  assert_contains "$output" "Deployed LineWatchTO release $new_sha."
 }
 
 verify_test_harness
@@ -427,5 +467,6 @@ run_test "build script targets ARM64 registry images" test_build_script_targets_
 run_test "Compose wrapper loads both env files" test_compose_wrapper_loads_runtime_and_release_env
 run_test "deploy promotes a healthy candidate" test_deploy_promotes_release_after_healthy_start
 run_test "deploy retains the previous tag on failure" test_deploy_keeps_previous_release_after_failed_start
+run_test "deploy remains successful when image cleanup fails" test_deploy_keeps_success_when_image_prune_fails
 
 printf '%s tests passed\n' "$TEST_COUNT"

@@ -62,6 +62,12 @@ export LINEWATCH_RELEASE_ENV_FILE="$RELEASE_ENV"
 
 linewatch_compose ps
 
+if [[ "${LINEWATCH_DEPLOY_PRUNE_IMAGES:-true}" == "true" ]]; then
+  if ! "${DOCKER_BIN:-docker}" image prune -a --force; then
+    printf 'Warning: deployment succeeded, but unused Docker image cleanup failed.\n' >&2
+  fi
+fi
+
 cat <<EOF
 Deployed LineWatchTO release $TAG.
 

@@ -6,6 +6,7 @@ import { flushSync } from "react-dom";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { DynamicBackground } from "./DynamicBackground";
+import { BACKGROUND_PREFERENCE_LABEL } from "../app/background-preference";
 import { NetworkMap } from "./NetworkMap";
 import { NetworkSelector } from "./NetworkSelector";
 import { DefaultMapModeControl } from "./DefaultMapModeControl";
@@ -2781,13 +2782,13 @@ export function LineWatchShell({
                  </div>
                  <div className="flex items-center justify-between px-3 py-2.5">
                    <span className="text-sm font-medium text-slate-700 dark:text-slate-200 flex items-center gap-3">
-                     <Sparkles size={18} className="text-slate-500 dark:text-slate-400" /> Constellation Background
+                     <Sparkles size={18} className="text-slate-500 dark:text-slate-400" /> {BACKGROUND_PREFERENCE_LABEL}
                    </span>
                    <button
                       ref={registerMenuAction(actionIndex++)}
                       role="menuitemcheckbox"
                       aria-checked={dotBackgroundEnabled}
-                      aria-label="Toggle constellation background"
+                      aria-label={`Toggle ${BACKGROUND_PREFERENCE_LABEL.toLowerCase()}`}
                       onClick={handleToggleDotBackground}
                       className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${dotBackgroundEnabled ? 'bg-blue-500' : 'bg-slate-300 dark:bg-slate-600'}`}
                    >

@@ -8,6 +8,7 @@ const bottomNavSource = readFileSync(new URL("../src/components/MobileBottomNav.
 const statusPeekSource = readFileSync(new URL("../src/components/MobileStatusPeek.tsx", import.meta.url), "utf8");
 const statusSheetSource = readFileSync(new URL("../src/components/MobileStatusSheet.tsx", import.meta.url), "utf8");
 const moreSheetSource = readFileSync(new URL("../src/components/MobileMoreSheet.tsx", import.meta.url), "utf8");
+const backgroundPreferenceSource = readFileSync(new URL("../src/app/background-preference.ts", import.meta.url), "utf8");
 const floatingPanelSource = readFileSync(new URL("../src/components/FloatingPanelShell.tsx", import.meta.url), "utf8");
 const mapSource = readFileSync(new URL("../src/components/InteractiveTtcMap.tsx", import.meta.url), "utf8");
 const searchSource = readFileSync(new URL("../src/components/StationSearchPanel.tsx", import.meta.url), "utf8");
@@ -86,7 +87,8 @@ describe("mobile bottom sheet UX", () => {
     assert.match(moreSheetSource, /mobile-more-build-label/);
     assert.match(moreSheetSource, /High Contrast Mode/);
     assert.match(moreSheetSource, /Reduced Motion/);
-    assert.match(moreSheetSource, /Dot Background/);
+    assert.match(moreSheetSource, /BACKGROUND_PREFERENCE_LABEL/);
+    assert.match(backgroundPreferenceSource, /BACKGROUND_PREFERENCE_LABEL = "Constellation Background"/);
     assert.match(moreSheetSource, /Reliability Analytics/);
     assert.match(moreSheetSource, /LogsDropdown/);
     assert.match(moreSheetSource, /Reset Local App Cache/);

@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { BarChart3, Bell, BatteryCharging, Bookmark, Download, FileText, LogIn, LogOut, MessageSquareText, Navigation, RefreshCcw, Contrast, Pause, Share2, ShieldCheck, Sparkles, TriangleAlert, UserPlus, UserRound, X, History, Map as MapIcon } from "lucide-react";
 import Image from "next/image";
 import type { AccountState } from "../app/account-data";
+import { BACKGROUND_PREFERENCE_LABEL } from "../app/background-preference";
 import { lineWatchAppVersionLabel } from "../app/app-build";
 import type { DashboardData } from "../app/DataContext";
 import type { NetworkId } from "../app/regional-data";
@@ -330,7 +331,7 @@ export function MobileMoreSheet({
           </button>
           <button type="button" className="mobile-more-row" aria-pressed={dotBackgroundEnabled} onClick={onToggleDotBackground}>
             <Sparkles size={18} className="text-slate-500 dark:text-slate-400" />
-            Dot Background
+            {BACKGROUND_PREFERENCE_LABEL}
             <div className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ml-auto shrink-0 ${dotBackgroundEnabled ? 'bg-blue-500' : 'bg-slate-300 dark:bg-slate-600'}`}>
               <span className={`absolute left-1 top-1 h-3 w-3 transform rounded-full bg-white transition-transform ${dotBackgroundEnabled ? 'translate-x-4' : 'translate-x-0'}`} />
             </div>

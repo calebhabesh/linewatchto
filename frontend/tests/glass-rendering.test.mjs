@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 
 const shellSource = readFileSync(new URL("../src/components/LineWatchShell.tsx", import.meta.url), "utf8");
+const mobileMoreSource = readFileSync(new URL("../src/components/MobileMoreSheet.tsx", import.meta.url), "utf8");
 const dynamicBackgroundSource = readFileSync(new URL("../src/components/DynamicBackground.tsx", import.meta.url), "utf8");
 const constellationSource = readFileSync(new URL("../src/components/ConstellationBackground.tsx", import.meta.url), "utf8");
 const interactiveMapSource = readFileSync(new URL("../src/components/InteractiveTtcMap.tsx", import.meta.url), "utf8");
@@ -40,6 +41,7 @@ describe("frosted glass rendering", () => {
     assert.match(constellationSource, /CONNECTION_DISTANCE/);
     assert.match(constellationSource, /MOBILE_NODE_SPACING/);
     assert.match(constellationSource, /MOBILE_CONNECTION_DISTANCE/);
+    assert.match(constellationSource, /const drift = isMobile \? 0\.07 : 0\.12/);
     assert.match(constellationSource, /requestAnimationFrame\(draw\)/);
     assert.match(constellationSource, /pointermove/);
     assert.doesNotMatch(dynamicBackgroundSource, /import\("three"\)/);
@@ -57,6 +59,12 @@ describe("frosted glass rendering", () => {
     assert.match(dynamicBackgroundSource, /linewatch-backdrop--plain-light/);
     assert.match(globalCss, /\.linewatch-backdrop--plain-dark\s*\{[^}]*background-color:\s*#000000;/s);
     assert.match(globalCss, /\.linewatch-backdrop--plain-light\s*\{[^}]*background-color:\s*#ffffff;/s);
+  });
+
+  it("uses the shared constellation preference label on desktop and mobile", () => {
+    assert.match(shellSource, /BACKGROUND_PREFERENCE_LABEL/);
+    assert.match(mobileMoreSource, /BACKGROUND_PREFERENCE_LABEL/);
+    assert.doesNotMatch(mobileMoreSource, /Dot Background/);
   });
 
   it("keeps the constellation visible but non-interactive when motion is reduced", () => {

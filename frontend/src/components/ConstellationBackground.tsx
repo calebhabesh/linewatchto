@@ -45,7 +45,7 @@ export function ConstellationBackground({
     const createNodes = () => {
       const nodeSpacing = isMobile ? MOBILE_NODE_SPACING : NODE_SPACING;
       const count = Math.max(isMobile ? 12 : 24, Math.min(isMobile ? 42 : 110, Math.round((width * height) / (nodeSpacing * nodeSpacing))));
-      const drift = isMobile ? 0.035 : 0.12;
+      const drift = isMobile ? 0.07 : 0.12;
       nodes = Array.from({ length: count }, () => ({
         x: Math.random() * width,
         y: Math.random() * height,

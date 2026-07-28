@@ -230,6 +230,8 @@ git pull --ff-only
 scripts/prod-deploy.sh <full-git-sha>
 ```
 
+After a healthy deployment, the deploy script removes Docker images that are no longer referenced by a container. This prevents immutable SHA-tagged releases from filling the VPS boot volume. Running images and persistent volumes are not removed; a rollback pulls its requested public GHCR image again when it is no longer cached locally. Set `LINEWATCH_DEPLOY_PRUNE_IMAGES=false` only when temporarily retaining unused local images for troubleshooting.
+
 For later deployments, back up first:
 
 ```bash

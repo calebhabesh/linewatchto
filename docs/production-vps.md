@@ -177,6 +177,8 @@ git pull --ff-only
 scripts/prod-deploy.sh <full-git-sha>
 ```
 
+Once the candidate stack is healthy and the release file has been promoted, deployment prunes Docker images that are not referenced by any container. This keeps immutable release tags from accumulating on the boot volume without touching running images or persistent volumes. Rollback can pull an uncached public GHCR image again. Temporarily set `LINEWATCH_DEPLOY_PRUNE_IMAGES=false` to skip this cleanup while troubleshooting.
+
 Routine deployment after the first database exists:
 
 ```bash
