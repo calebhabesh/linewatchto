@@ -620,6 +620,9 @@ test("alert submenus persist one per-device card or list preference", async ({ p
   await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
 
   await openServiceCategory(page, isMobile, /Reduced Speed Zone/);
+  const cardEdgeWidth = await page.locator(".alert-card").first().evaluate(
+    (element) => getComputedStyle(element).borderLeftWidth,
+  );
   await page.getByRole("button", { name: "List view" }).click();
   await expect(page.locator(".alert-stack")).toHaveClass(/is-list-view/);
   await expect(page.locator(".compact-impact-list-item")).toHaveCount(2);
@@ -629,6 +632,8 @@ test("alert submenus persist one per-device card or list preference", async ({ p
   await expect(firstCompactRow).toContainText("Reduced speed:");
   await expect(firstCompactRow).toContainText("Est. resolution:");
   await expect(firstCompactRow).toContainText("Updated:");
+  await expect(firstCompactRow).toHaveCSS("border-left-color", "rgb(245, 158, 11)");
+  await expect(firstCompactRow).toHaveCSS("border-left-width", cardEdgeWidth);
   const compactGridColumnCount = await firstCompactRow.locator(".compact-impact-list-item__facts").evaluate(
     (element) => getComputedStyle(element).gridTemplateColumns.split(" ").length,
   );
@@ -643,6 +648,7 @@ test("alert submenus persist one per-device card or list preference", async ({ p
   await openServiceCategory(page, isMobile, /Delay/);
   await expect(page.locator(".alert-stack")).toHaveClass(/is-list-view/);
   await expect(page.locator(".compact-impact-list-item").first()).toBeVisible();
+  await expect(page.locator(".compact-impact-list-item").first()).toHaveCSS("border-left-color", "rgb(254, 236, 65)");
 
   await page.getByRole("button", { name: "Card view" }).click();
   await expect(page.locator(".alert-stack")).not.toHaveClass(/is-list-view/);

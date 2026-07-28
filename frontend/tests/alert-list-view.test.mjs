@@ -43,6 +43,11 @@ describe("alert card and list views", () => {
     assert.match(globalCss, /\.compact-impact-list-item__detail\s*\{[^}]*grid-column:\s*2 \/ 4;/s);
     assert.match(globalCss, /\.compact-impact-list-item__facts\s*\{[^}]*grid-template-columns:\s*repeat\(4, minmax\(0, 1fr\)\);/s);
     assert.match(globalCss, /@container compact-impact \(max-width: 520px\)/);
+    assert.match(globalCss, /\.compact-impact-list-item\.rsz-card-border\s*\{[^}]*border-left-color:\s*var\(--impact-rsz\);/s);
+    assert.match(globalCss, /\.compact-impact-list-item\.suspension-card-border\s*\{[^}]*border-left-color:\s*#ef4444;/s);
+    assert.match(globalCss, /\.compact-impact-list-item\.delay-card-border\s*\{[^}]*border-left-color:\s*#FEEC41;/s);
+    assert.match(globalCss, /\.compact-impact-list-item\.planned-closure-card-border\s*\{[^}]*border-left-color:\s*#3b82f6;/s);
+    assert.doesNotMatch(globalCss, /\.compact-impact-list-item\s*\{[^}]*border-left-width:\s*4px;/s);
   });
 
   it("supports compact rows in every alert-type submenu", () => {

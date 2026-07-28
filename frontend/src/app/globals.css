@@ -8481,7 +8481,6 @@ img.transit-line-badge {
   column-gap: 10px;
   row-gap: 3px;
   border: 1px solid rgba(15, 23, 42, 0.12);
-  border-left-width: 4px;
   border-radius: 7px;
   background: rgb(248, 250, 252);
   padding: 9px 10px;
@@ -8501,6 +8500,22 @@ img.transit-line-badge {
   border-color: #fff;
   background: #000;
   color: #fff;
+}
+
+.compact-impact-list-item.rsz-card-border {
+  border-left-color: var(--impact-rsz);
+}
+
+.compact-impact-list-item.suspension-card-border {
+  border-left-color: #ef4444;
+}
+
+.compact-impact-list-item.delay-card-border {
+  border-left-color: #FEEC41;
+}
+
+.compact-impact-list-item.planned-closure-card-border {
+  border-left-color: #3b82f6;
 }
 
 .compact-impact-list-item:hover {
