@@ -7,7 +7,7 @@ import { createRequire } from "node:module";
 
 const require = createRequire(import.meta.url);
 const ts = require("typescript");
-const root = process.cwd();
+const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), "..");
 
 function loadModule(relativePath, extra = {}) {
   const filename = path.join(root, relativePath);

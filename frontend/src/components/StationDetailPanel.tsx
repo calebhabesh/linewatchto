@@ -70,7 +70,9 @@ function getStationImpactDetailsTarget(
     };
   }
 
-  const matchingAlert = activeAlerts.find((a) => a.id === impact.id);
+  const matchingAlert = activeAlerts.find(
+    (alert) => alert.id === impact.id || alert.relatedPlannedClosureId === impact.id
+  );
   if (matchingAlert) {
     if (matchingAlert.severity === "planned") {
       return {
@@ -98,7 +100,7 @@ function getStationImpactDetailsTarget(
   const plannedClosure = plannedClosures.find((closure) => closure.id === impact.id);
   if (plannedClosure) {
     return {
-      label: "Upcoming Closure",
+      label: "Planned Closure",
       selection: { kind: "planned-closure", id: plannedClosure.id },
       tone: "planned",
     };
@@ -205,7 +207,7 @@ function fallbackStationImpactTone(impact: StationImpact): StationImpactDetailsT
 
 function fallbackStationImpactLabel(impact: StationImpact): string {
   if (impact.type === "planned-closure" || impact.severity === "planned") {
-    return "Upcoming Closure";
+    return "Planned Closure";
   }
   if (impact.severity === "suspension") {
     return "Active Alert";
@@ -358,10 +360,18 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
   };
 
   const [isClosing, setIsClosing] = useState(false);
+  const closeTimeoutRef = useRef<number | null>(null);
+
+  useEffect(() => () => {
+    if (closeTimeoutRef.current !== null) {
+      window.clearTimeout(closeTimeoutRef.current);
+    }
+  }, []);
 
   const handleCloseClick = () => {
     setIsClosing(true);
-    window.setTimeout(() => {
+    closeTimeoutRef.current = window.setTimeout(() => {
+      closeTimeoutRef.current = null;
       onClose();
       setIsClosing(false);
     }, 200);

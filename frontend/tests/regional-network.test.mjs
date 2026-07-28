@@ -432,7 +432,8 @@ describe("network-scoped regional dashboard", () => {
   it("preserves station activation across viewport pointer capture", () => {
     assert.match(regionalMapSource, /pointerActivationRef/);
     assert.match(regionalMapSource, /event\.type === "pointerup" && !dragMovedRef\.current && activation/);
-    assert.match(regionalMapSource, /onSelectStationId\(selectedStationId === activation\.id \? null : activation\.id\)/);
+    assert.match(regionalMapSource, /onSelectStationId\(activation\.id\)/);
+    assert.doesNotMatch(regionalMapSource, /onSelectStationId\(selectedStationId === activation\.id \? null : activation\.id\)/);
   });
 
   it("batches regional drag transforms outside React renders", () => {

@@ -1,7 +1,7 @@
 "use client";
 
 import { AlertTriangle, Bookmark, Clock3, ExternalLink, LoaderCircle, X } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useDashboardData } from "../app/DataContext";
 import type { ImpactKind, ImpactSelection } from "../app/linewatch-data";
 import { REGIONAL_ROUTE_CARDINAL_DIRECTIONS, REGIONAL_ROUTE_DEFINITIONS } from "../app/regional-data";
@@ -52,6 +52,7 @@ export function RegionalStationDetailPanel({
 }: Props) {
   const dashboard = useDashboardData();
   const [isClosing, setIsClosing] = useState(false);
+  const closeTimeoutRef = useRef<number | null>(null);
   const routes = REGIONAL_ROUTE_DEFINITIONS.filter((route) => station.lineIds.includes(route.id));
   const impacts = useMemo(() => {
     const related = new Map<string, RegionalStationImpact>();
@@ -92,9 +93,18 @@ export function RegionalStationDetailPanel({
     onToggleSaved(station.id);
   };
 
+  useEffect(() => () => {
+    if (closeTimeoutRef.current !== null) {
+      window.clearTimeout(closeTimeoutRef.current);
+    }
+  }, []);
+
   const handleClose = () => {
     setIsClosing(true);
-    window.setTimeout(onClose, 200);
+    closeTimeoutRef.current = window.setTimeout(() => {
+      closeTimeoutRef.current = null;
+      onClose();
+    }, 200);
   };
 
   return (

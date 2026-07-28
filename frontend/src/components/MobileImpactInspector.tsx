@@ -204,7 +204,7 @@ export function getSelectedImpactDetails(
   return {
     id: closure.id,
     kind: "planned-closure",
-    categoryLabel: closure.activeNow ? "Active Closure Window" : "Upcoming Closure",
+    categoryLabel: closure.activeNow ? "Active Closure Window" : "Planned Closure",
     tone: "planned-closure",
     icon: <PlannedClosureIcon size={16} className="text-blue-500" />,
     lineId: closure.lineId,

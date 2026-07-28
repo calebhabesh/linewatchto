@@ -19,6 +19,14 @@ function cssBlockFor(selector) {
 }
 
 describe("asset-backed map layering", () => {
+  it("keeps station-dot activation idempotent so repeated clicks cannot dismiss details", () => {
+    assert.match(interactiveMapSource, /onSelectStationId\(station\.id\)/);
+    assert.doesNotMatch(interactiveMapSource, /onSelectStationId\(selected \? null : station\.id\)/);
+    assert.match(interactiveMapSource, /onPointerDown=\{\(event\) => \{[\s\S]*setPointerCapture\(event\.pointerId\)/);
+    assert.match(interactiveMapSource, /onPointerUp=\{\(event\) => \{[\s\S]*shouldSuppressMapClick\(\)[\s\S]*onSelectStationId\(station\.id\)/);
+    assert.match(interactiveMapSource, /if \(event\.detail !== 0 \|\| shouldSuppressMapClick\(\)\) return/);
+  });
+
   it("renders a station and label layer above alert overlays", () => {
     assert.match(transitMapSource, /className="asset-label-frame"/);
     assert.match(globalCss, /\.asset-label-frame/);

@@ -3,9 +3,19 @@ import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 
 const panelSource = readFileSync(new URL("../src/components/StationDetailPanel.tsx", import.meta.url), "utf8");
+const shellSource = readFileSync(new URL("../src/components/LineWatchShell.tsx", import.meta.url), "utf8");
 const globalCss = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
 
 describe("station detail panel layout", () => {
+  it("only lets a delayed panel close clear the station that started closing", () => {
+    assert.match(
+      shellSource,
+      /onClose=\{\(\) => setSelectedStationId\(\(current\) => current === selectedStationId \? null : current\)\}/,
+    );
+    assert.match(shellSource, /key=\{`\$\{selectedStationId\}:\$\{stationPanelActivationKey\}`\}/);
+    assert.match(panelSource, /window\.clearTimeout\(closeTimeoutRef\.current\)/);
+  });
+
   it("uses a right dock on desktop and a bottom sheet on mobile", () => {
     assert.match(panelSource, /station-detail-panel/);
     assert.match(panelSource, /md:right-6/);
@@ -168,8 +178,10 @@ describe("station detail panel layout", () => {
     assert.ok(activeAlertLookupIndex < plannedClosureLookupIndex);
     assert.match(panelSource, /getStationImpactDetailsTarget/);
     assert.match(panelSource, /sourceAlertIds\?\.includes\(impact\.id\)/);
+    assert.match(panelSource, /alert\.relatedPlannedClosureId === impact\.id/);
     assert.match(panelSource, /label:\s*"Active Closure"/);
-    assert.match(panelSource, /"Upcoming Closure"/);
+    assert.match(panelSource, /label:\s*"Planned Closure"/);
+    assert.doesNotMatch(panelSource, /"Upcoming Closure"/);
     assert.match(panelSource, /kind === "planned-closure" && tone === "active"[\s\S]*AlertTriangle/);
     assert.match(panelSource, /kind === "planned-closure"[\s\S]*PlannedClosureIcon/);
     assert.match(panelSource, /data-station-impact-classification/);

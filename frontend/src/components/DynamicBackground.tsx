@@ -1,6 +1,6 @@
 "use client";
 
-import DotGrid from "./DotGrid";
+import { ConstellationBackground } from "./ConstellationBackground";
 
 export function DynamicBackground({
   reducedMotion,
@@ -25,18 +25,7 @@ export function DynamicBackground({
 
   return (
     <div aria-hidden="true" className={backdropClassName}>
-      <DotGrid
-        interactive={!reducedMotion}
-        dotSize={2}
-        gap={38}
-        baseColor="#1b2a36"
-        activeColor="#9E2F2F"
-        proximity={100}
-        shockRadius={100}
-        shockStrength={3}
-        resistance={1250} 
-        returnDuration={3.9}
-      />
+      <ConstellationBackground interactive={!reducedMotion} isDark={isDark} />
     </div>
   );
 }

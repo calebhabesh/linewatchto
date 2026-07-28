@@ -1862,18 +1862,35 @@ function InteractiveTtcMapComponent({
                             cx={point.x}
                             cy={point.y}
                             r={hitRadius}
-                            onClick={(event) => {
+                            onPointerDown={(event) => {
+                              if (event.pointerType === "mouse" && event.button !== 0) return;
+                              try {
+                                event.currentTarget.setPointerCapture(event.pointerId);
+                              } catch {
+                                // Pointer capture can fail if the browser ended the pointer first.
+                              }
+                            }}
+                            onPointerUp={(event) => {
+                              if (event.pointerType === "mouse" && event.button !== 0) return;
                               if (shouldSuppressMapClick()) return;
+                              if (hasMultipleVisualAnchors) setHoveredStationId(null);
+                              onSelectStationId(station.id);
+                            }}
+                            onClick={(event) => {
+                              // Primary mouse/touch activation is handled on pointerup because
+                              // browsers can drop the later synthesized click when the map camera
+                              // transform is committed between pointerdown and click.
+                              if (event.detail !== 0 || shouldSuppressMapClick()) return;
                               event.stopPropagation();
                               if (hasMultipleVisualAnchors) setHoveredStationId(null);
-                              onSelectStationId(selected ? null : station.id);
+                              onSelectStationId(station.id);
                             }}
                             onKeyDown={(event) => {
                               if (anchorIndex !== 0) return;
                               if (event.key === "Enter" || event.key === " ") {
                                 event.preventDefault();
                                 if (hasMultipleVisualAnchors) setHoveredStationId(null);
-                                onSelectStationId(selected ? null : station.id);
+                                onSelectStationId(station.id);
                               }
                             }}
                             pointerEvents="all"

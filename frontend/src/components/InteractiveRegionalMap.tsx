@@ -1077,14 +1077,14 @@ function InteractiveRegionalMapComponent({
     if (event.type === "pointerup" && !dragMovedRef.current && activation) {
       suppressNextClickRef.current = true;
       if (activation.type === "station") {
-        onSelectStationId(selectedStationId === activation.id ? null : activation.id);
+        onSelectStationId(activation.id);
       } else {
         onSelectImpact(activation.selection);
       }
     }
     setCamera({ ...cameraRef.current });
     setIsGestureActive(false);
-  }, [applyActiveGesture, onSelectImpact, onSelectStationId, selectedStationId]);
+  }, [applyActiveGesture, onSelectImpact, onSelectStationId]);
 
   const activateTarget = useCallback((target: EventTarget | null) => {
     if (!(target instanceof Element)) return;
@@ -1096,9 +1096,9 @@ function InteractiveRegionalMapComponent({
     const station = target.closest("[data-regional-station-id]") as SVGElement | null;
     if (station?.dataset.regionalStationId) {
       const id = station.dataset.regionalStationId;
-      onSelectStationId(selectedStationId === id ? null : id);
+      onSelectStationId(id);
     }
-  }, [onSelectImpact, onSelectStationId, selectedStationId]);
+  }, [onSelectImpact, onSelectStationId]);
 
   const onKeyDown = useCallback((event: KeyboardEvent<HTMLDivElement>) => {
     if (event.key !== "Enter" && event.key !== " ") return;

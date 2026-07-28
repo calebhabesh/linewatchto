@@ -503,6 +503,7 @@ export function LineWatchShell({
   );
   const stationSummaries = stationCatalogs[selectedNetwork];
   const [selectedStationId, setSelectedStationId] = useState<string | null>(null);
+  const [stationPanelActivationKey, setStationPanelActivationKey] = useState(0);
   const [visibleStationResult, setVisibleStationResult] = useState<StationDataResult<StationDetail | null> | null>(null);
   const [stationLoading, setStationLoading] = useState(false);
   const [accessibilityOutageResult, setAccessibilityOutageResult] = useState<AccessibilityOutageResponse | null>(null);
@@ -1618,6 +1619,9 @@ export function LineWatchShell({
   }, [activeView]);
 
   const handleSelectStationId = useCallback((id: string | null) => {
+    if (id) {
+      setStationPanelActivationKey((current) => current + 1);
+    }
     setSelectedStationId(id);
     setSelection(null);
     setCommutePathPreview(null);
@@ -2777,13 +2781,13 @@ export function LineWatchShell({
                  </div>
                  <div className="flex items-center justify-between px-3 py-2.5">
                    <span className="text-sm font-medium text-slate-700 dark:text-slate-200 flex items-center gap-3">
-                     <Sparkles size={18} className="text-slate-500 dark:text-slate-400" /> Dot Background
+                     <Sparkles size={18} className="text-slate-500 dark:text-slate-400" /> Constellation Background
                    </span>
                    <button
                       ref={registerMenuAction(actionIndex++)}
                       role="menuitemcheckbox"
                       aria-checked={dotBackgroundEnabled}
-                      aria-label="Toggle dot background"
+                      aria-label="Toggle constellation background"
                       onClick={handleToggleDotBackground}
                       className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${dotBackgroundEnabled ? 'bg-blue-500' : 'bg-slate-300 dark:bg-slate-600'}`}
                    >
@@ -3181,11 +3185,12 @@ export function LineWatchShell({
 
       {!showClosedScreen && !rotatedMapMode && selectedNetwork === "ttc" && selectedStationId && (
         <StationDetailPanel
+          key={`${selectedStationId}:${stationPanelActivationKey}`}
           stationResult={visibleStationResult}
           loading={stationLoading}
           updating={stationLoading && Boolean(visibleStationResult?.data)}
           selectedStationName={stationSummaries.find((station) => station.id === selectedStationId)?.name}
-          onClose={() => setSelectedStationId(null)}
+          onClose={() => setSelectedStationId((current) => current === selectedStationId ? null : current)}
           onSelectImpact={handleMapSelectImpact}
           reducedMotion={reducedMotion}
           authenticated={accountState.authenticated}
@@ -3202,8 +3207,9 @@ export function LineWatchShell({
 
       {!showClosedScreen && !rotatedMapMode && selectedNetwork === "regional" && selectedStationId ? (
         <RegionalStationDetailPanel
+          key={`${selectedStationId}:${stationPanelActivationKey}`}
           station={stationSummaries.find((station) => station.id === selectedStationId) ?? regionalStationSummaries.stations[0]}
-          onClose={() => setSelectedStationId(null)}
+          onClose={() => setSelectedStationId((current) => current === selectedStationId ? null : current)}
           onSelectImpact={handleMapSelectImpact}
           authenticated={accountState.authenticated}
           saved={savedStationIds.has(selectedStationId)}

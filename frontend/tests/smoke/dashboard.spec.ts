@@ -210,6 +210,31 @@ test("shows subway closed screen overnight and lets riders peek at the map", asy
   await expect(page.getByRole("heading", { name: "Subway Closed" })).toBeVisible();
 });
 
+test("station activation survives repeated clicks and an earlier panel close", async ({ page, request }) => {
+  await setStubMode(request, "seeded");
+  await page.goto("/");
+
+  const stubStation = page.getByRole("button", { name: "Stub Station station details" });
+  const stubPanel = page.getByRole("complementary", { name: "Stub Station station details" });
+  for (let attempt = 0; attempt < 4; attempt += 1) {
+    await stubStation.click();
+    await expect(stubPanel).toBeVisible();
+    await page.getByRole("button", { name: "Close station details" }).click();
+    await expect(stubPanel).toHaveCount(0);
+  }
+
+  await stubStation.click();
+  await expect(stubPanel).toBeVisible();
+  await stubStation.click({ force: true });
+  await expect(stubPanel).toBeVisible();
+
+  await page.getByRole("button", { name: "Close station details" }).click();
+  await stubStation.click({ force: true });
+  await expect(stubPanel).toBeVisible();
+  await page.waitForTimeout(250);
+  await expect(stubPanel).toBeVisible();
+});
+
 test("switches the complete dashboard to the fixture-backed regional network", async ({ page, request, isMobile }) => {
   test.skip(isMobile, "network selection is desktop-only");
   await setStubMode(request, "seeded");
@@ -740,7 +765,7 @@ test("station detail shows accessibility facilities and active outage warning", 
   await expect(page.getByText("Schedule May Be Disrupted")).toBeVisible();
   const arrivalsSection = page.locator('[data-arrivals-disrupted="true"]');
   await expect(arrivalsSection).toBeVisible();
-  await expect(arrivalsSection.getByRole("link", { name: /Jump to station impact:/ })).toBeVisible();
+  await expect(arrivalsSection.getByRole("link", { name: /Jump to station impact:/ }).first()).toBeVisible();
   await expect(arrivalsSection.locator('[data-arrival-group="line-1:Northbound to Finch"]')).toBeVisible();
   await expect(arrivalsSection.locator('[data-arrival-group="line-1:Southbound to Union"]')).toBeVisible();
   await expect(arrivalsSection.locator('[data-arrival-due="true"]')).toBeVisible();
@@ -752,6 +777,18 @@ test("station detail shows accessibility facilities and active outage warning", 
   await expect(arrivalsSection.getByText("3m")).toBeVisible();
   await expect(arrivalsSection.getByText("Scheduled arrivals use TTC timetable data and are not live train predictions.")).toBeVisible();
   await expect(arrivalsSection.getByText(/demo placeholders/)).toHaveCount(0);
+
+  const activeClosureImpact = stationPanel.locator("#station-impact-stub-closure-line-1");
+  await expect(activeClosureImpact.getByText("Active Closure", { exact: true })).toBeVisible();
+  await expect(activeClosureImpact.getByText("Planned Closure", { exact: true })).toHaveCount(0);
+  await activeClosureImpact.getByRole("button", { name: "Open Active Closure details" }).click();
+  if (isMobile) {
+    const inspector = page.locator('[data-mobile-impact-inspector]');
+    await expect(inspector.getByRole("heading", { name: "Active Closure", exact: true })).toBeVisible();
+    await inspector.getByRole("button", { name: "View in List" }).click();
+  }
+  await expect(page.getByRole("heading", { name: "Active Alerts" })).toBeVisible();
+  await expect(page.locator('[data-impact-card-id="stub-active-closure-child-line-1"]')).toBeVisible();
 });
 
 test("LineLegend clicks open view but do not highlight any card", async ({ page, request, isMobile }) => {
@@ -790,7 +827,7 @@ test("shows an active planned closure in both current and scheduled views", asyn
   await expect(page.getByRole("heading", { name: "Active Alerts" })).toBeVisible();
   const activeClosureChildCard = page.locator('[data-impact-card-id="stub-active-closure-child-line-1"]');
   await expect(activeClosureChildCard).toBeVisible();
-  await expect(activeClosureChildCard.getByText("Planned Closure", { exact: true })).toBeVisible();
+  await expect(activeClosureChildCard.getByRole("term").filter({ hasText: "Planned Closure" })).toBeVisible();
   await expect(activeClosureChildCard.getByRole("button", { name: "View related planned closure details" })).toBeVisible();
 
   await activeClosureChildCard.getByRole("button", { name: "Show on Map" }).click();
@@ -1095,7 +1132,7 @@ test("uses map overlap metadata for active-alert and sibling submenu overlap ref
   const boundaryActiveCard = page.locator('[data-impact-card-id="stub-alert-st-george-boundary"]');
   await expect(boundaryActiveCard).toBeVisible();
   await expect(boundaryActiveCard.getByText("Overlap:")).toBeVisible();
-  await expect(boundaryActiveCard.getByText("Upcoming Closure", { exact: true })).toBeVisible();
+  await expect(boundaryActiveCard.getByText("Planned Closure", { exact: true })).toBeVisible();
 
   await openServiceCategory(page, isMobile, /Closure/);
   const closuresPanel = page.locator("section").filter({

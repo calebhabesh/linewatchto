@@ -562,6 +562,15 @@ export const stationDetailResponse = {
       updatedAt: "2026-06-02T14:12:00-04:00",
       source: "TTC Live Alerts",
     },
+    {
+      id: "stub-closure-line-1",
+      type: "planned-closure",
+      severity: "planned",
+      title: "Stub API active planned closure",
+      summary: "Seeded active planned closure for browser verification.",
+      updatedAt: "2026-06-02T14:10:00-04:00",
+      source: "TTC Live Alerts",
+    },
   ],
   arrivals: [
     {

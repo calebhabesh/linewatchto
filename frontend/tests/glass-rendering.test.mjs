@@ -4,7 +4,7 @@ import { describe, it } from "node:test";
 
 const shellSource = readFileSync(new URL("../src/components/LineWatchShell.tsx", import.meta.url), "utf8");
 const dynamicBackgroundSource = readFileSync(new URL("../src/components/DynamicBackground.tsx", import.meta.url), "utf8");
-const dotGridSource = readFileSync(new URL("../src/components/DotGrid.tsx", import.meta.url), "utf8");
+const constellationSource = readFileSync(new URL("../src/components/ConstellationBackground.tsx", import.meta.url), "utf8");
 const interactiveMapSource = readFileSync(new URL("../src/components/InteractiveTtcMap.tsx", import.meta.url), "utf8");
 const activeAlertsSource = readFileSync(new URL("../src/components/ActiveAlertsPanel.tsx", import.meta.url), "utf8");
 const plannedClosuresSource = readFileSync(new URL("../src/components/PlannedClosuresPanel.tsx", import.meta.url), "utf8");
@@ -33,28 +33,23 @@ describe("frosted glass rendering", () => {
     assert.match(globalCss, /\.linewatch-shell\.dark\s*\{/);
   });
 
-  it("keeps the React Bits DotGrid background with a CSS fallback layer", () => {
+  it("renders a dependency-free constellation background with a CSS fallback layer", () => {
     assert.match(dynamicBackgroundSource, /linewatch-backdrop/);
     assert.match(globalCss, /\.linewatch-backdrop\s*\{/);
-    assert.match(dynamicBackgroundSource, /DotGrid/);
-    assert.match(dynamicBackgroundSource, /dotSize=\{2\}/);
-    assert.match(dynamicBackgroundSource, /gap=\{38\}/);
-    assert.match(dynamicBackgroundSource, /baseColor="#1b2a36"/);
-    assert.match(dynamicBackgroundSource, /activeColor="#9E2F2F"/);
-    assert.match(dynamicBackgroundSource, /proximity=\{100\}/);
-    assert.match(dynamicBackgroundSource, /shockRadius=\{100\}/);
-    assert.match(dynamicBackgroundSource, /shockStrength=\{3\}/);
-    assert.match(dynamicBackgroundSource, /resistance=\{1250\}\s*/);
-    assert.match(dynamicBackgroundSource, /returnDuration=\{3\.9\}/);
+    assert.match(dynamicBackgroundSource, /ConstellationBackground/);
+    assert.match(constellationSource, /CONNECTION_DISTANCE/);
+    assert.match(constellationSource, /MOBILE_NODE_SPACING/);
+    assert.match(constellationSource, /MOBILE_CONNECTION_DISTANCE/);
+    assert.match(constellationSource, /requestAnimationFrame\(draw\)/);
+    assert.match(constellationSource, /pointermove/);
     assert.doesNotMatch(dynamicBackgroundSource, /import\("three"\)/);
     assert.doesNotMatch(dynamicBackgroundSource, /vanta/i);
-    assert.equal(packageJson.dependencies.gsap, "^3.13.0");
     assert.equal(packageJson.devDependencies.vanta, undefined);
     assert.equal(packageJson.devDependencies.three, undefined);
     assert.equal(packageJson.devDependencies["@types/three"], undefined);
   });
 
-  it("lets users replace the dot design with a plain black or white background", () => {
+  it("lets users replace the constellation with a plain black or white background", () => {
     assert.match(shellSource, /dotBackgroundEnabled/);
     assert.match(shellSource, /<DynamicBackground[^>]*disabled=\{!dotBackgroundEnabled\}/s);
     assert.match(dynamicBackgroundSource, /linewatch-backdrop--plain/);
@@ -64,12 +59,13 @@ describe("frosted glass rendering", () => {
     assert.match(globalCss, /\.linewatch-backdrop--plain-light\s*\{[^}]*background-color:\s*#ffffff;/s);
   });
 
-  it("keeps the dot background visible but non-interactive when motion is reduced", () => {
+  it("keeps the constellation visible but non-interactive when motion is reduced", () => {
     assert.match(dynamicBackgroundSource, /if \(disabled\)/);
     assert.doesNotMatch(dynamicBackgroundSource, /if \(reducedMotion \|\| disabled\)/);
     assert.match(dynamicBackgroundSource, /interactive=\{!reducedMotion\}/);
-    assert.match(dotGridSource, /if \(interactive\) \{\s*rafId = requestAnimationFrame\(draw\);\s*\}/s);
-    assert.match(dotGridSource, /if \(!interactive\) \{\s*return undefined;\s*\}/s);
+    assert.match(constellationSource, /if \(interactive\) frameId = window\.requestAnimationFrame\(draw\)/);
+    assert.match(constellationSource, /if \(interactive && !isMobile\)/);
+    assert.match(constellationSource, /if \(interactive\) \{\s*window\.addEventListener\("pointermove"/s);
   });
 
   it("does not use live backdrop blur on interactive panels", () => {

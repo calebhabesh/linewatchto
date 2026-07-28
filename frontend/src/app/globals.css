@@ -2215,6 +2215,12 @@ body {
   position: absolute !important;
 }
 
+.constellation-background-canvas {
+  display: block;
+  height: 100%;
+  width: 100%;
+}
+
 button,
 input,
 select,
@@ -14785,7 +14791,7 @@ img.transit-line-badge {
     font-size: clamp(12.5px, 3.5vw, 15.5px) !important;
   }
 
-  /* Upcoming Closures: slight font reduction so the full title fits alongside the source label */
+  /* Planned Closures: slight font reduction so the full title fits alongside the source label */
   .mobile-view-content-wrapper[data-active-view="closures"] .panel-heading h2 {
     font-size: clamp(13px, 3.7vw, 16px) !important;
   }

@@ -198,7 +198,7 @@ export function getOverlappingImpactRefs(
       {
         key: `planned-closure-${closure.id}`,
         kind: "planned-closure",
-        label: "Upcoming Closure",
+        label: "Planned Closure",
         location: closure.location,
         selection: { kind: "planned-closure", id: closure.id },
       },
