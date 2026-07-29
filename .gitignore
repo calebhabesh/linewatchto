@@ -29,6 +29,9 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
+# Generated benchmark reports
+artifacts/performance/
+
 # OS / editors
 .DS_Store
 .idea/

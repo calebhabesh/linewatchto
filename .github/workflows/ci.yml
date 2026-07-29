@@ -41,6 +41,9 @@ jobs:
       - name: Install frontend dependencies
         run: npm --prefix frontend ci
 
+      - name: Performance measurement tool tests
+        run: node scripts/tests/performance-measurements.test.mjs
+
       - name: Fixture tests
         run: npm --prefix frontend run test:fixtures
 

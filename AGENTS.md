@@ -1,6 +1,6 @@
 # Agent Guide for LineWatchTO
 
-Last updated: 2026-07-28
+Last updated: 2026-07-29
 
 This repository contains LineWatchTO, an unofficial transit reliability dashboard for TTC subway/LRT and GO/UP rail. The app is a portfolio-grade full-stack project intended to show Java/Spring backend engineering, PostgreSQL/PostGIS data modeling, Redis caching, public transit ingestion, and a polished Next.js interface.
 
@@ -41,6 +41,7 @@ The project is early but no longer an empty scaffold.
 - Planned-closure push timing uses one account-level follow-up policy shared by My Commutes and line subscriptions: Smart, Within 24 Hours, Day Of, or Announcements Only. New and meaningfully changed closure notices remain automatic when their stream and event-type filters allow them. Both planners emit one applicable timing candidate per closure evaluation, and My Commutes delivery still respects the relevant leg's Toronto-time route window.
 - Opt-in schematic train markers, derived from the GTFS-RT subway arrival cache and mapped onto rapid-transit segment topology, are served at `/api/trains` and rendered on the SVG map only while the general subway operating window is open. During closed hours, markers are suppressed even if TTC continues publishing fresh subway Trip Updates.
 - Production-grade observability using Grafana Cloud and a host-based Grafana Alloy collector that scrapes Spring Boot Prometheus actuator metrics, host Unix exporter metrics, Docker cAdvisor container metrics, Postgres, Redis, and ships Loki Docker container logs is implemented.
+- Dependency-free portfolio performance measurement tooling records repeatable sequential API latency samples and wall-clock backend/frontend build and test timings with source, environment, workload, success, and failure metadata in local JSON and Markdown reports.
 - Safe, non-public actuator exposure running on private management port 9090 inside the Docker network, and blocked by Caddy reverse-proxy rules at the edge is implemented.
 - Conditionally loaded Cloudflare Web Analytics beacon script on the frontend layout when a client token is supplied is implemented.
 - A cross-network design-language consistency pass is implemented for TTC and GO/UP modes. Equivalent experiences share the mature TTC presentation patterns for time/freshness vocabulary, menu structure, authored line badges, station-panel chrome, transitions, responsive layouts, cards, loading/empty/error states, and map interactions. Network-specific content and capabilities remain source-honest rather than being forced into TTC-shaped UI.
@@ -119,6 +120,7 @@ Run commands from the repository root unless noted.
 Frontend:
 
 ```bash
+node scripts/tests/performance-measurements.test.mjs
 npm --prefix frontend run test:fixtures
 npm --prefix frontend run typecheck
 npm --prefix frontend run lint
@@ -141,6 +143,7 @@ scripts/dev-alert-scenario-backend.sh all-alert-types
 Infrastructure:
 
 ```bash
+node scripts/measure-portfolio-performance.mjs --help
 docker compose up -d postgres redis
 docker compose down
 scripts/prod-build-push.sh
@@ -311,8 +314,7 @@ When changing agent instructions, update both `AGENTS.md` and `GEMINI.md` togeth
 
 ## Suggested Next Implementation Order
 
-1. Add repeatable portfolio measurements for API, build, and test performance.
-2. Revisit cross-network routing and optional email notifications only with a concrete product need.
+1. Revisit cross-network routing and optional email notifications only with a concrete product need.
 
 ## Agent Handoff Notes
 

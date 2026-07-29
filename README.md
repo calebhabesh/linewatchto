@@ -857,6 +857,7 @@ LineWatchTO should use public and source-linked data. It should also be honest a
 Before claiming a frontend change is complete, run:
 
 ```bash
+node scripts/tests/performance-measurements.test.mjs
 npm --prefix frontend run test:fixtures
 npm --prefix frontend run typecheck
 npm --prefix frontend run lint
@@ -874,6 +875,53 @@ Before claiming a backend change is complete, run:
 ```bash
 mvn -f backend/pom.xml test
 ```
+
+## Repeatable Performance Measurements
+
+The dependency-free portfolio measurement runner records the source revision,
+dirty-worktree state, host/runtime metadata, exact workload, failures, and
+timing summaries in both JSON and Markdown. Reports default to the ignored
+`artifacts/performance/` directory so machine-specific results are not presented
+as universal production numbers.
+
+With a local backend already running against PostgreSQL/PostGIS and Redis,
+measure the primary read-only API boundaries:
+
+```bash
+node scripts/measure-portfolio-performance.mjs api \
+  --base-url http://localhost:8080 \
+  --warmup 5 \
+  --requests 50 \
+  --label local-seeded
+```
+
+This sends sequential requests from one client, consumes each response body,
+excludes warm-up requests, and reports success counts, response sizes, and min,
+median, p95, p99, max, and mean latency. It is a latency comparison harness, not
+a concurrent load or capacity test. Failed attempt duration is retained
+separately and does not distort the successful-response latency summary. Run
+production measurements from a separate machine and describe whether Cloudflare
+or Caddy caching is in the request path.
+
+Measure build and test wall-clock time against the current dependency and build
+caches:
+
+```bash
+node scripts/measure-portfolio-performance.mjs commands \
+  --runs 3 \
+  --label dev-server-warm-cache
+```
+
+The command catalog includes backend tests, frontend fixture tests, typecheck,
+lint, production build, and the complete Playwright smoke suite. Use repeated
+`--command <id>` options to select a smaller comparison set; run `--help` for
+the catalog. The report is still written and the process exits nonzero if any
+request or command fails.
+
+Compare reports only when the host, power profile, revision, cache state,
+backend profile, database snapshot, and workload match. See
+[`docs/superpowers/specs/2026-07-29-portfolio-performance-measurements-design.md`](docs/superpowers/specs/2026-07-29-portfolio-performance-measurements-design.md)
+for the methodology and interpretation guardrails.
 
 ## Portfolio Story
 
@@ -899,8 +947,9 @@ Suggested resume bullet once backend and live data are implemented:
 
 ## Roadmap
 
-1. Publish repeatable API, build, and test performance measurements.
-2. Revisit cross-network routing and optional email notifications only with a concrete product need.
+Repeatable API, build, and test performance measurement tooling is implemented.
+Further product expansion—such as cross-network routing or optional email
+notifications—should start only with a concrete rider or portfolio need.
 
 ## License and Disclaimer
 
