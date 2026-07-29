@@ -15,6 +15,7 @@ import {
   stationSummariesResponse,
   statusResponse,
   rawAlertsResponse,
+  regionalRawAlertsResponse,
   estimatedTrainsResponse,
   regionalEstimatedTrainsResponse,
 } from "./api-stub-data.mjs";
@@ -627,6 +628,11 @@ const server = createServer(async (request, response) => {
       return;
     }
     sendJson(request, response, 200, mode === "map-authoritative-overlap" ? mapAuthoritativeActiveAlertsResponse : activeAlertsResponse);
+    return;
+  }
+
+  if (request.method === "GET" && url.pathname === "/api/regional/alerts/raw") {
+    sendJson(request, response, 200, regionalRawAlertsResponse);
     return;
   }
 

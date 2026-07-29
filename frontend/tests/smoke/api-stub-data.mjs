@@ -642,6 +642,40 @@ export const rawAlertsResponse = [
   }
 ];
 
+export const regionalRawAlertsResponse = [
+  {
+    sourceSection: "go",
+    sourceId: "M1",
+    routeType: "GO Rail",
+    sourceUpdatedAt: "2026-07-29T12:00:00-04:00",
+    payload: JSON.stringify({
+      Code: "M1",
+      PostedDateTime: "2026-07-29 11:55:00",
+      SubjectEnglish: "Lakeshore East service adjustment",
+      BodyEnglish: "Trains are operating with delays between Pickering and Whitby.",
+      Category: "Service Disruption",
+      Lines: [{ Code: "LE" }],
+    }),
+    active: true,
+  },
+  {
+    sourceSection: "up",
+    sourceId: "UP1",
+    routeType: "UP Express",
+    sourceUpdatedAt: "2026-07-29T12:00:00-04:00",
+    payload: JSON.stringify({
+      id: "UP1",
+      alert: {
+        effect: "SIGNIFICANT_DELAYS",
+        header_text: {
+          translation: [{ text: "UP Express service delay", language: "en" }],
+        },
+      },
+    }),
+    active: true,
+  },
+];
+
 export const estimatedTrainsResponse = {
   fresh: true,
   source: "TTC GTFS-RT subway trip updates",

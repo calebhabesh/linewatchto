@@ -4,8 +4,14 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { Terminal, Copy, Check, ChevronDown, ChevronUp, AlertCircle, RefreshCw, Newspaper } from "lucide-react";
 import { mockRawAlerts, RawAlert } from "../app/mock-raw-alerts";
 import { apiUrl } from "../app/api-client.ts";
+import type { NetworkId } from "../app/regional-data";
 
-export function LogsDropdown({ isMobileMore = false }: { isMobileMore?: boolean }) {
+type Props = {
+  isMobileMore?: boolean;
+  network?: NetworkId;
+};
+
+export function LogsDropdown({ isMobileMore = false, network = "ttc" }: Props) {
   const [isOpen, setIsOpen] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
   const [rawAlerts, setRawAlerts] = useState<RawAlert[]>([]);
@@ -54,11 +60,15 @@ export function LogsDropdown({ isMobileMore = false }: { isMobileMore?: boolean 
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [closeDropdown]);
 
-  // Fetch raw alerts from backend on open, or fallback to mock raw alerts
-  const fetchRawAlerts = () => {
+  // Fetch source records for the selected map. TTC retains its demo fallback;
+  // regional mode stays empty when its backend-only ingestion data is unavailable.
+  const fetchRawAlerts = useCallback(() => {
     setLoading(true);
     setError(false);
-    fetch(apiUrl("/api/alerts?type=raw"))
+    const endpoint = network === "regional"
+      ? "/api/regional/alerts/raw"
+      : "/api/alerts?type=raw";
+    fetch(apiUrl(endpoint))
       .then((res) => {
         if (!res.ok) throw new Error("Failed to fetch");
         return res.json();
@@ -68,20 +78,27 @@ export function LogsDropdown({ isMobileMore = false }: { isMobileMore?: boolean 
         setLoading(false);
       })
       .catch((err) => {
-        console.warn("Backend raw alerts unavailable, falling back to mock fixtures:", err);
-        setRawAlerts(mockRawAlerts);
+        if (network === "ttc") {
+          console.warn("Backend raw alerts unavailable, falling back to mock fixtures:", err);
+          setRawAlerts(mockRawAlerts);
+        } else {
+          console.warn("Regional raw alerts unavailable:", err);
+          setRawAlerts([]);
+        }
         setError(true);
         setLoading(false);
       });
-  };
+  }, [network]);
 
   useEffect(() => {
     if (isOpen) {
+      setRawAlerts([]);
+      setExpandedIds({});
       Promise.resolve().then(() => {
         fetchRawAlerts();
       });
     }
-  }, [isOpen]);
+  }, [fetchRawAlerts, isOpen]);
 
   const toggleExpand = (id: string) => {
     setExpandedIds(prev => ({
@@ -127,11 +144,27 @@ export function LogsDropdown({ isMobileMore = false }: { isMobileMore?: boolean 
   const gtfsRtRoutesAlerts = routesAlerts.filter(alert => isGtfsRt(alert));
   const gtfsRtAccessibilityAlerts = accessibilityAlerts.filter(alert => isGtfsRt(alert));
 
+  const goAlerts = filteredAlerts.filter(alert => {
+    const sec = alert.sourceSection || alert.source_section;
+    return sec === "go";
+  });
+  const upAlerts = filteredAlerts.filter(alert => {
+    const sec = alert.sourceSection || alert.source_section;
+    return sec === "up";
+  });
 
   const getAlertTitle = (payloadStr: string, sourceId: string) => {
     try {
       const parsed = JSON.parse(payloadStr);
-      return parsed.title || parsed.headerText || parsed.customHeaderText || `Alert ID: ${sourceId}`;
+      const translatedHeader = parsed.alert?.header_text?.translation?.find(
+        (translation: { text?: string; language?: string }) => translation.language === "en"
+      )?.text || parsed.alert?.header_text?.translation?.[0]?.text;
+      return parsed.title
+        || parsed.headerText
+        || parsed.customHeaderText
+        || parsed.SubjectEnglish
+        || translatedHeader
+        || `Alert ID: ${sourceId}`;
     } catch {
       return `Alert ID: ${sourceId}`;
     }
@@ -169,6 +202,18 @@ export function LogsDropdown({ isMobileMore = false }: { isMobileMore?: boolean 
           type: "route" 
         });
       }
+      if (parsed.Category) {
+        badges.push({ text: parsed.Category, type: "default" });
+      }
+      if (parsed.Lines?.length) {
+        badges.push({
+          text: parsed.Lines.map((line: { Code?: string }) => line.Code).filter(Boolean).join(", "),
+          type: "route",
+        });
+      }
+      if (parsed.alert?.effect) {
+        badges.push({ text: parsed.alert.effect.replaceAll("_", " "), type: "default" });
+      }
 
       return badges;
     } catch {
@@ -198,7 +243,7 @@ export function LogsDropdown({ isMobileMore = false }: { isMobileMore?: boolean 
             }`}
           />
           {isMobileMore ? (
-            <span>TTC Live Alerts Feed</span>
+            <span>{network === "regional" ? "GO / UP Ingested Alerts" : "TTC Live Alerts Feed"}</span>
           ) : null}
         </span>
         {isMobileMore ? (
@@ -219,10 +264,12 @@ export function LogsDropdown({ isMobileMore = false }: { isMobileMore?: boolean 
           <div className="flex items-center justify-between p-4 border-b border-black/10 dark:border-white/10">
             <div className="flex items-center gap-2 min-w-0">
               <Terminal size={18} className="text-slate-500 dark:text-slate-400 shrink-0" />
-              <strong className="text-sm font-bold tracking-wide truncate">Ingested TTC Alerts</strong>
+              <strong className="text-sm font-bold tracking-wide truncate">
+                {network === "regional" ? "Ingested GO / UP Alerts" : "Ingested TTC Alerts"}
+              </strong>
               {error && (
                 <span className="text-[9px] bg-amber-500/10 text-amber-600 dark:text-amber-400 px-1.5 py-0.5 rounded font-black uppercase tracking-wider border border-amber-500/20 shrink-0">
-                  Fallback
+                  {network === "regional" ? "Unavailable" : "Fallback"}
                 </span>
               )}
             </div>
@@ -254,11 +301,22 @@ export function LogsDropdown({ isMobileMore = false }: { isMobileMore?: boolean 
                 <RefreshCw className="w-6 h-6 animate-spin text-slate-400" />
                 <span className="text-xs text-slate-500">Loading raw feeds...</span>
               </div>
-            ) : rawAlerts.length === 0 ? (
+            ) : filteredAlerts.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-8 gap-2 text-slate-500">
                 <AlertCircle className="w-6 h-6" />
-                <span className="text-xs">No raw alerts stored.</span>
+                <span className="text-xs">
+                  {showActiveOnly && rawAlerts.length > 0 ? "No active raw alerts stored." : "No raw alerts stored."}
+                </span>
               </div>
+            ) : network === "regional" ? (
+              <>
+                {goAlerts.length > 0 && (
+                  <AlertGroup title="GO Rail" alerts={goAlerts} />
+                )}
+                {upAlerts.length > 0 && (
+                  <AlertGroup title="UP Express" alerts={upAlerts} />
+                )}
+              </>
             ) : (
               <>
                 {/* Live Routes Group */}
@@ -316,8 +374,21 @@ export function LogsDropdown({ isMobileMore = false }: { isMobileMore?: boolean 
     </div>
   );
 
+  function AlertGroup({ title, alerts }: { title: string; alerts: RawAlert[] }) {
+    return (
+      <div className="flex flex-col gap-2">
+        <h3 className="text-xs font-bold text-orange-500 dark:text-amber-500 uppercase tracking-wider px-1">
+          {title} ({alerts.length})
+        </h3>
+        <div className="flex flex-col gap-2">
+          {alerts.map(alert => renderAlertItem(alert))}
+        </div>
+      </div>
+    );
+  }
+
   function renderAlertItem(alert: RawAlert) {
-    const uniqueId = `${alert.sourceSection}-${alert.sourceId}`;
+    const uniqueId = `${alert.sourceSection || alert.source_section}-${alert.sourceId}`;
     const isExpanded = !!expandedIds[uniqueId];
     const title = getAlertTitle(alert.payload, alert.sourceId);
     const badges = getAlertBadges(alert.payload);

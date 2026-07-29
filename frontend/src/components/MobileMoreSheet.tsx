@@ -380,7 +380,7 @@ export function MobileMoreSheet({
               {"What's New"}
             </button>
           ) : null}
-          <LogsDropdown isMobileMore={true} />
+          <LogsDropdown isMobileMore={true} network={currentNetwork} />
           {canResetLocalAppCache ? (
             <button type="button" className="mobile-more-row" onClick={() => { void resetLineWatchLocalAppState(); }}>
               <RefreshCcw size={18} className="text-slate-500 dark:text-slate-400" />

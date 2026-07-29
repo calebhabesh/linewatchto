@@ -1325,6 +1325,32 @@ test("opens logs dropdown and expands raw JSON payload", async ({ page, request,
   await expect(page.getByText("Copied!")).toBeVisible();
 });
 
+test("opens GO and UP ingested alert JSONs in regional map mode", async ({ page, request, isMobile }) => {
+  await setStubMode(request, "seeded");
+  await page.goto("/");
+  await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
+
+  await page.getByRole("group", { name: "Select transit network" })
+    .getByRole("button", { name: "GO/UP", exact: true })
+    .click();
+  await expect(page.getByRole("region", { name: "Interactive GO and UP map" })).toBeVisible();
+  await expect(page.locator("html")).not.toHaveAttribute("data-network-transition-direction");
+
+  if (isMobile) {
+    await page.getByRole("button", { name: "More", exact: true }).click();
+    await expect(page.getByText("GO / UP Ingested Alerts")).toBeVisible();
+  }
+
+  await page.getByRole("button", { name: "Toggle Ingestion Logs" }).click();
+  await expect(page.getByText("Ingested GO / UP Alerts")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "GO Rail (1)" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "UP Express (1)" })).toBeVisible();
+
+  await page.getByRole("button", { name: /Lakeshore East service adjustment/ }).click();
+  await expect(page.getByText("Raw JSON Payload")).toBeVisible();
+  await expect(page.locator("pre").filter({ hasText: "Service Disruption" })).toBeVisible();
+});
+
 test("nonlinear guide-backed overlays open their corresponding cards", async ({ page, request, isMobile }) => {
   await setStubMode(request, "seeded");
   await page.goto("/");

@@ -1,5 +1,6 @@
 package com.calebhabesh.linewatch.regional;
 
+import com.calebhabesh.linewatch.alert.RawAlertDto;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.OffsetDateTime;
@@ -176,6 +177,25 @@ public class RegionalAlertStore {
                 strings(resultSet.getString("affected_segment_ids")),
                 ""
             ));
+    }
+
+    public List<RawAlertDto> findRawAlerts() {
+        return jdbc.query("""
+            select source_system, source_id, payload::text, active, last_seen_at
+            from metrolinx_alert_source_records
+            order by active desc, last_seen_at desc, source_system, source_id
+            """, (resultSet, rowNumber) -> {
+                String sourceSystem = resultSet.getString("source_system");
+                boolean upExpress = MetrolinxSourceSystem.UP_GTFS_ALERTS.equals(sourceSystem);
+                return new RawAlertDto(
+                    upExpress ? "up" : "go",
+                    resultSet.getString("source_id"),
+                    upExpress ? "UP Express" : "GO Rail",
+                    resultSet.getObject("last_seen_at", OffsetDateTime.class),
+                    resultSet.getString("payload"),
+                    resultSet.getBoolean("active")
+                );
+            });
     }
 
     public Map<String, Set<String>> sourceIdsBySystem(MetrolinxFeed feed) {

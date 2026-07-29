@@ -75,7 +75,7 @@ describe("desktop status capsule", () => {
     assert.match(shellSource, /desktop-status-train-copy/);
     assert.match(shellSource, /desktop-status-train-copy--compact/);
     assert.match(globalCss, /\.desktop-status-train-switch\[aria-pressed="true"\]/);
-    assert.match(globalCss, /@media \(max-width:\s*1023px\)\s*\{[^}]*\.desktop-status-capsule-anchor[^}]*\}[^}]*\.desktop-status-train-copy:not\(\.desktop-status-train-copy--compact\)\s*\{[^}]*display:\s*none;[^}]*\}[^}]*\.desktop-status-train-copy--compact\s*\{[^}]*display:\s*flex;/s);
+    assert.match(globalCss, /@media \(max-width:\s*1399px\)\s*\{[^}]*\.desktop-status-train-copy:not\(\.desktop-status-train-copy--compact\)\s*\{[^}]*display:\s*none;[^}]*\}[^}]*\.desktop-status-train-copy--compact\s*\{[^}]*display:\s*flex;/s);
     assert.match(globalCss, /@media \(max-width:\s*1023px\)\s*\{[^}]*\.desktop-status-capsule-anchor\s*\{[^}]*max-width:\s*calc\(100vw - 48px\)/s);
   });
 

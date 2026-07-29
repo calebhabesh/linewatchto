@@ -3469,7 +3469,9 @@ button {
   .desktop-status-capsule-anchor {
     max-width: calc(100vw - 48px);
   }
+}
 
+@media (max-width: 1399px) {
   .desktop-status-train-copy:not(.desktop-status-train-copy--compact) {
     display: none;
   }
@@ -3477,7 +3479,9 @@ button {
   .desktop-status-train-copy--compact {
     display: flex;
   }
+}
 
+@media (max-width: 1023px) {
   .desktop-status-chip-row {
     display: none;
   }
