@@ -516,6 +516,20 @@ export const stationSummariesResponse = {
         escalator: 0,
       },
     },
+    {
+      id: "stub-union",
+      name: "Union",
+      mapX: 4311,
+      mapY: 3597,
+      interchange: true,
+      lineIds: ["line-1"],
+      hasActiveImpact: false,
+      accessStatus: "available",
+      accessOutageCounts: {
+        elevator: 0,
+        escalator: 0,
+      },
+    },
   ],
 };
 

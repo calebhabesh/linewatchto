@@ -94,6 +94,31 @@ function regionalImpactVisualState(kind: ImpactKind) {
   }
 }
 
+function regionalImpactPriority(kind: ImpactKind) {
+  switch (kind) {
+    case "suspension":
+      return 0;
+    case "delay":
+      return 1;
+    case "reduced-speed-zone":
+      return 2;
+    case "planned-closure":
+      return 3;
+  }
+}
+
+function regionalImpactLayerIndex(impact: MapImpact, impacts: MapImpact[]) {
+  const ordered = [...new Map(
+    impacts.map((candidate) => [`${candidate.kind}:${candidate.cardId}`, candidate]),
+  ).values()].sort((left, right) =>
+    regionalImpactPriority(left.kind) - regionalImpactPriority(right.kind)
+      || left.cardId.localeCompare(right.cardId)
+  );
+  return Math.max(0, ordered.findIndex(
+    (candidate) => candidate.kind === impact.kind && candidate.cardId === impact.cardId,
+  ));
+}
+
 function removeDescendantIds(element: SVGElement) {
   element.removeAttribute("id");
   element.querySelectorAll("[id]").forEach((child) => child.removeAttribute("id"));
@@ -218,6 +243,7 @@ function regionalImpactGroup(
     label,
     layerIndex = 0,
     segmentCount = 1,
+    segmentIds = [],
     travelDirection = "bidirectional",
     reducedMotion = false,
   }: {
@@ -226,6 +252,7 @@ function regionalImpactGroup(
     label: string;
     layerIndex?: number;
     segmentCount?: number;
+    segmentIds?: string[];
     travelDirection?: TravelDirection;
     reducedMotion?: boolean;
   },
@@ -237,6 +264,7 @@ function regionalImpactGroup(
   group.dataset.regionalImpactKind = kind;
   group.dataset.regionalImpactId = impactId;
   group.dataset.regionalImpactSegmentCount = String(segmentCount);
+  group.dataset.regionalImpactSegmentIds = segmentIds.join(",");
   group.style.setProperty("--regional-impact-color", regionalImpactColor(kind));
   group.style.setProperty(
     "--regional-impact-width",
@@ -628,6 +656,79 @@ function regionalOverlayRuns(pieces: RegionalOverlayPiece[]): RegionalOverlayRun
     }
   }
   return runs;
+}
+
+function bringRegionalImpactToFront(
+  root: HTMLElement,
+  kind: ImpactKind,
+  id: string,
+) {
+  root.querySelectorAll<SVGElement>(
+    `.regional-overlay-segment-group[data-regional-impact-kind="${kind}"][data-regional-impact-id="${CSS.escape(id)}"]`,
+  ).forEach((element) => {
+    const firstStationTarget = element.parentElement?.querySelector(".regional-station-hit-target");
+    if (firstStationTarget) {
+      element.parentElement?.insertBefore(element, firstStationTarget);
+    }
+  });
+}
+
+function bringRegionalStationImpactToFront(
+  root: HTMLElement,
+  kind: ImpactKind,
+  id: string,
+) {
+  root.querySelectorAll<SVGElement>(
+    `.regional-station-impact-ring[data-regional-impact-kind="${kind}"][data-regional-impact-id="${CSS.escape(id)}"]`,
+  ).forEach((element) => {
+    const stationId = element.dataset.regionalStationImpactStationId;
+    const stationVisual = stationId
+      ? root.querySelector<SVGElement>(`#station-${CSS.escape(stationId)}`)
+      : null;
+    stationVisual?.before(element);
+  });
+}
+
+function nextRegionalPointerImpactSelection(
+  root: ParentNode,
+  impact: SVGElement,
+  currentSelection: ImpactSelection,
+): NonNullable<ImpactSelection> {
+  const clicked = {
+    kind: impact.dataset.regionalImpactKind as ImpactKind,
+    id: impact.dataset.regionalImpactId!,
+  };
+  const stationId = impact.dataset.regionalStationImpactStationId;
+  const segmentIds = new Set(
+    (impact.dataset.regionalImpactSegmentIds ?? "").split(",").filter(Boolean),
+  );
+  const candidates = stationId
+    ? [...root.querySelectorAll<SVGElement>(
+        `.regional-station-impact-ring[data-regional-station-impact-station-id="${CSS.escape(stationId)}"]`,
+      )]
+    : segmentIds.size > 0
+      ? [...root.querySelectorAll<SVGElement>(".regional-overlay-segment-group")]
+          .filter((candidate) =>
+            (candidate.dataset.regionalImpactSegmentIds ?? "")
+              .split(",")
+              .some((segmentId) => segmentIds.has(segmentId))
+          )
+      : [impact];
+  const selections = [...new Map(candidates.flatMap((candidate) => {
+    const kind = candidate.dataset.regionalImpactKind as ImpactKind | undefined;
+    const id = candidate.dataset.regionalImpactId;
+    return kind && id ? [[`${kind}:${id}`, { kind, id } as NonNullable<ImpactSelection>]] : [];
+  })).values()].sort((left, right) =>
+    regionalImpactPriority(left.kind) - regionalImpactPriority(right.kind)
+      || left.id.localeCompare(right.id)
+  );
+  if (selections.length < 2) return clicked;
+  const currentIndex = currentSelection
+    ? selections.findIndex(
+        (candidate) => candidate.kind === currentSelection.kind && candidate.id === currentSelection.id,
+      )
+    : -1;
+  return selections[(currentIndex + 1) % selections.length] ?? clicked;
 }
 
 type Camera = { x: number; y: number; scale: number };
@@ -1052,7 +1153,10 @@ function InteractiveRegionalMapComponent({
           element.classList.add("regional-station-visual");
         }
         const stationsLayer = documentNode.getElementById("regional-stations-layer");
-        for (const alert of activeAlerts.filter((item) => item.affectedSegmentIds.length === 0)) {
+        const stationOnlyImpactIds = new Set(stationNodeImpacts.map((impact) => impact.cardId));
+        for (const alert of activeAlerts.filter(
+          (item) => item.affectedSegmentIds.length === 0 && !stationOnlyImpactIds.has(item.id)
+        )) {
           const pathD = authoredRegionalCorridorPathData(documentNode, alert.lineId);
           if (!stationsLayer || !pathD) continue;
           const overlaySource = documentNode.createElementNS(SVG_NAMESPACE, "path");
@@ -1096,12 +1200,16 @@ function InteractiveRegionalMapComponent({
           const lastSegment = run.segments.at(-1) ?? firstSegment;
           const startLabel = firstSegment.label.split(" to ")[0];
           const endLabel = lastSegment.label.split(" to ").at(-1) ?? lastSegment.label;
+          const overlappingImpacts = networkSegments
+            .filter((segment) => runSegmentIds.has(segment.id))
+            .flatMap((segment) => segment.impacts ?? []);
           const overlay = regionalImpactGroup(documentNode, overlaySource, {
             impactId: run.impact.cardId,
             kind: run.impact.kind,
             label: `${startLabel} to ${endLabel} ${run.impact.kind} impact`,
-            layerIndex: run.impactIndex,
+            layerIndex: regionalImpactLayerIndex(run.impact, overlappingImpacts),
             segmentCount: run.segments.length,
+            segmentIds: run.segments.map((segment) => segment.id),
             travelDirection: run.impact.travelDirection,
             reducedMotion,
           });
@@ -1115,6 +1223,7 @@ function InteractiveRegionalMapComponent({
           removeDescendantIds(ring);
           ring.dataset.regionalImpactKind = impact.kind;
           ring.dataset.regionalImpactId = impact.cardId;
+          ring.dataset.regionalStationImpactStationId = impact.stationId;
           ring.classList.add("station-impact-ring", "regional-station-impact-ring", "map-selection-attention", `regional-station-impact-ring--${impact.kind}`);
           ring.style.setProperty("--regional-impact-color", regionalImpactColor(impact.kind));
           ring.style.setProperty("--regional-station-impact-width", `${65 + impactIndex * 20}px`);
@@ -1280,6 +1389,10 @@ function InteractiveRegionalMapComponent({
         .forEach((element) => {
           element.setAttribute("data-regional-impact-selected", "true");
         });
+      if (root) {
+        bringRegionalImpactToFront(root, selection.kind, selection.id);
+        bringRegionalStationImpactToFront(root, selection.kind, selection.id);
+      }
     }
   }, [selection, svgMarkup]);
 
@@ -1565,10 +1678,11 @@ function InteractiveRegionalMapComponent({
       pointerActivationRef.current = impact?.dataset.regionalImpactKind && impact.dataset.regionalImpactId
         ? {
             type: "impact",
-            selection: {
-              kind: impact.dataset.regionalImpactKind as NonNullable<ImpactSelection>["kind"],
-              id: impact.dataset.regionalImpactId,
-            },
+            selection: nextRegionalPointerImpactSelection(
+              event.currentTarget,
+              impact,
+              selection,
+            ),
           }
         : station?.dataset.regionalStationId
           ? { type: "station", id: station.dataset.regionalStationId }
@@ -1594,7 +1708,7 @@ function InteractiveRegionalMapComponent({
       dragMovedRef.current = true;
     }
     setIsGestureActive(true);
-  }, [cancelCameraAnimation, viewportOrientation]);
+  }, [cancelCameraAnimation, selection, viewportOrientation]);
 
   const onPointerMove = useCallback((event: PointerEvent<HTMLDivElement>) => {
     if (!activePointersRef.current.has(event.pointerId)) return;

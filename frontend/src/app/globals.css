@@ -3481,6 +3481,31 @@ button {
   }
 }
 
+@media (min-width: 768px) and (max-width: 1399px) {
+  .desktop-status-capsule-anchor {
+    left: calc(50% + clamp(40px, 7vw, 90px));
+  }
+
+  .desktop-status-capsule {
+    padding-inline: 10px;
+  }
+
+  .desktop-status-primary-row {
+    gap: 8px;
+  }
+
+  .desktop-status-capsule .network-selector-btn {
+    min-width: 88px;
+    padding-inline: 10px;
+    width: 88px;
+  }
+
+  .linewatch-shell[data-active-view="search"] .desktop-status-capsule-anchor {
+    opacity: 0;
+    pointer-events: none;
+  }
+}
+
 @media (max-width: 1023px) {
   .desktop-status-chip-row {
     display: none;
@@ -8429,6 +8454,7 @@ img.transit-line-badge {
 }
 
 .impact-list-select-control {
+  display: inline-flex;
   position: relative;
   min-width: 0;
   width: max-content;

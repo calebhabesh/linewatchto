@@ -54,6 +54,8 @@ describe("My Stations UI", () => {
     assert.match(panel, />Undo</);
     assert.match(panel, /my-stations-panel-empty/);
     assert.match(panel, /const compactEmpty = authenticated && mode === "list" && !loading && !error && savedStations\.length === 0;/);
+    assert.match(panel, /savedStations\.length === 0 \? \([\s\S]*?No Saved Stations[\s\S]*?lastRemoved \? \(/);
+    assert.doesNotMatch(panel, /savedStations\.length === 0 && !lastRemoved/);
     assert.match(styles, /\.my-stations-panel\.my-stations-panel-empty\s*\{[^}]*min-height:\s*0;/s);
     assert.match(styles, /\.my-stations-panel\s*\{[^}]*transition:\s*min-height 280ms cubic-bezier\(0\.16, 1, 0\.3, 1\);/s);
   });

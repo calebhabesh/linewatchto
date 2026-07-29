@@ -647,6 +647,18 @@ describe("asset-backed map layering", () => {
     assert.doesNotMatch(interactiveMapSource, /selectPrimaryImpact/);
   });
 
+  it("owns station-impact pointer activation before the map can retarget the click", () => {
+    assert.match(
+      interactiveMapSource,
+      /className=\{`station-impact-ring[\s\S]*?onPointerDown=\{\(event\) => \{[\s\S]*?event\.stopPropagation\(\);[\s\S]*?setPointerCapture\(event\.pointerId\)/,
+    );
+    assert.match(
+      interactiveMapSource,
+      /className=\{`station-impact-ring[\s\S]*?onPointerUp=\{\(event\) => \{[\s\S]*?onSelectImpact\(\{ kind: impact\.kind, id: impact\.cardId \}\)/,
+    );
+    assert.match(interactiveMapSource, /if \(event\.detail !== 0 \|\| shouldSuppressMapClick\(\)\) return;/);
+  });
+
   it("keeps the overlap chooser open when a map pan produces a click", () => {
     assert.match(
       interactiveMapSource,

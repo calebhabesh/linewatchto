@@ -377,13 +377,13 @@ export function regionalDashboardDataForScenario(
   });
   const plannedClosure: PlannedClosure = {
     id: "regional-demo-planned",
-    lineId: "regional-br",
-    lineNumber: "BR",
+    lineId: "regional-le",
+    lineNumber: "LE",
     title: "Synthetic planned service change",
     window: "Fixture scenario",
-    location: "Rutherford to Maple",
-    description: "Synthetic regional scenario data for interface verification.",
-    previewSegmentIds: [regionalSegmentId("BR", "rutherford", "maple")],
+    location: "Pickering to Ajax",
+    description: "Synthetic regional scenario data for overlapping impact verification.",
+    previewSegmentIds: [regionalSegmentId("LE", "pickering", "ajax")],
     shuttle: false,
     source: "Synthetic regional fixture",
   };

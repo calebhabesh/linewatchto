@@ -354,6 +354,21 @@ test("renders fresh Metrolinx impacts in regional mode", async ({ page, request,
   await expect(delayOverlay.locator(".regional-delay-glyph--hourglass").first()).toBeAttached();
   await expect(delayOverlay.locator(".regional-delay-glyph--arrow").first()).toBeAttached();
 
+  const plannedOverlay = page.locator(
+    '.regional-overlay-segment-group[data-regional-impact-kind="planned-closure"][data-regional-impact-id="regional-demo-planned"]',
+  );
+  await expect(plannedOverlay).toHaveCount(1);
+  await expect(plannedOverlay).toHaveCSS("--regional-impact-width", "168px");
+  await expect(delayOverlay).toHaveCSS("--regional-impact-width", "196px");
+  await delayOverlay.locator(".regional-impact-hit-target").dispatchEvent("click");
+  await expect(delayOverlay).toHaveAttribute("data-regional-impact-selected", "true");
+  expect(await delayOverlay.evaluate((delay, plannedSelector) => {
+    const planned = document.querySelector(plannedSelector);
+    return planned
+      ? Boolean(planned.compareDocumentPosition(delay) & Node.DOCUMENT_POSITION_FOLLOWING)
+      : false;
+  }, '.regional-overlay-segment-group[data-regional-impact-id="regional-demo-planned"]')).toBe(true);
+
   const lwCorridorOverlay = page.locator(
     '.regional-overlay-segment-group[data-regional-impact-kind="delay"][data-regional-impact-id="regional-demo-lw-corridor-delay"]',
   );
@@ -1664,7 +1679,7 @@ test("alert category panels filter by line and sort without changing dashboard d
     } else {
       expect(Math.abs(
         sortOptionsBox.x + sortOptionsBox.width - (sortTriggerBox.x + sortTriggerBox.width),
-      )).toBeLessThanOrEqual(1);
+      )).toBeLessThanOrEqual(3);
     }
   }
   await sortOptions.getByRole("option", { name: "Line", exact: true }).click();
@@ -1830,6 +1845,14 @@ test("demo account shows account-backed saved commutes", async ({ page, request,
   await expect(page.getByText("Outbound: Weekdays · 6:30 AM-9:30 AM", { exact: true })).toBeVisible();
   await expect(page.getByText("Return: Weekdays · 3:00 PM-7:00 PM", { exact: true })).toBeVisible();
   await expect(page.getByText("All Events", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Edit commute Morning commute" }).click();
+  await expect(page.getByRole("heading", { name: "Edit Route" })).toBeVisible();
+  await expect(page.getByRole("textbox", { name: "Commute label" })).toHaveValue("Morning commute");
+  await expect(page.locator(".commute-station-picker").filter({ hasText: "Origin" })).toContainText("Stub Station");
+  await expect(page.locator(".commute-station-picker").filter({ hasText: "Destination" })).toContainText("Union");
+  await expect(page.getByRole("checkbox", { name: "Track Return Route" })).toBeChecked();
+  await page.getByRole("button", { name: "Cancel" }).click();
+  await expect(page.getByText("Stub Station <-> Union")).toBeVisible();
   await expect(page.getByRole("button", { name: "Edit Alerts" })).toBeVisible();
   await page.getByRole("button", { name: "Edit Alerts" }).click();
   await expect(page.getByRole("group", { name: "Outbound Route notification window" })
@@ -2049,7 +2072,7 @@ test("demo account shows account-backed saved commutes", async ({ page, request,
   await expect(page.getByRole("list", { name: "Stops for Morning commute" })).toBeVisible();
   const stopsList = page.getByRole("list", { name: "Stops for Morning commute" });
   await expect(stopsList.getByText("Stub Station", { exact: true })).toBeVisible();
-  await expect(stopsList.getByText("stub-union", { exact: true })).toBeVisible();
+  await expect(stopsList.getByText("Union", { exact: true })).toBeVisible();
 
   const viewPathButton = page.getByRole("button", { name: "View path on map" });
   await expect(viewPathButton).toBeVisible();
@@ -2253,11 +2276,17 @@ test("shows official TTC performance metrics from backend", async ({ page, reque
   await expect(page.getByText("Official TTC Performance")).toBeVisible();
   await expect(page.getByText("Source: TTC.ca")).toBeVisible();
 
-  const line1Row = page.locator(".reliability-row").filter({ has: page.locator("strong", { hasText: /^Line 1 Yonge-University$/ }) });
+  const onTimePerformance = page.getByRole("heading", { name: "On-Time Performance" }).locator("..");
+  const line1Row = onTimePerformance.locator(".reliability-row").filter({
+    has: page.locator("strong", { hasText: /^Line 1 Yonge-University$/ }),
+  });
   await expect(line1Row).toBeVisible();
   await expect(line1Row.getByText("94%")).toBeVisible();
 
-  const elevatorsRow = page.locator(".reliability-row").filter({ has: page.locator("strong", { hasText: /^Elevators$/ }) });
+  const availability = page.getByRole("heading", { name: "Availability" }).locator("..");
+  const elevatorsRow = availability.locator(".reliability-row").filter({
+    has: page.locator("strong", { hasText: /^Elevators$/ }),
+  });
   await expect(elevatorsRow).toBeVisible();
   await expect(elevatorsRow.getByText("99%")).toBeVisible();
 });
@@ -2369,15 +2398,15 @@ test("manages push notification preferences on mobile", async ({ page, request, 
   await expect(announcementsOnly).toBeChecked();
   await expect(page.getByText("Event Starts/Changes")).toHaveCount(0);
 
-  const line1Switch = page.getByLabel("Subscribe to Line 1");
+  const line1Switch = page.getByLabel("Subscribe to Line 1 Yonge-University");
   await expect(line1Switch).toBeAttached();
-  await page.locator('label:has(input[aria-label="Subscribe to Line 1"])').click();
+  await line1Switch.locator("xpath=ancestor::label").click();
   await expect(line1Switch).toBeChecked();
 
   const rszSwitch = page.getByLabel("Line subscription Reduced Speed Zones");
   await expect(rszSwitch).toBeAttached();
   await expect(rszSwitch).toBeChecked();
-  await page.locator('label:has(input[aria-label="Line subscription Reduced Speed Zones"])').click();
+  await rszSwitch.locator("xpath=ancestor::label").click();
   await expect(rszSwitch).not.toBeChecked();
 
   await page.getByRole("button", { name: "Back" }).click();

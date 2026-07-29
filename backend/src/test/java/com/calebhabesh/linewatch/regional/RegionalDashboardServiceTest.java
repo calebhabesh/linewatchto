@@ -68,6 +68,47 @@ class RegionalDashboardServiceTest {
     }
 
     @Test
+    void exposesPlannedSegmentPreviewsAndKeepsStationOnlyImpactsOffTheCorridor() {
+        when(freshness.remainingFreshness(any())).thenReturn(Optional.of(Duration.ofMinutes(5)));
+        when(alertStore.findActiveAlerts()).thenReturn(List.of(
+            new RegionalNormalizedAlert(
+                "regional-go-planned-le", MetrolinxSourceSystem.GO_SERVICE_ALERTS, "P1", "regional-le",
+                "planned-closure", "Planned track work", "Service changes are planned.", "Construction",
+                OffsetDateTime.parse("2026-07-29T22:00:00-04:00"),
+                OffsetDateTime.parse("2026-07-30T05:00:00-04:00"),
+                OffsetDateTime.parse("2026-07-29T14:00:00-04:00"),
+                List.of("pickering", "ajax"), List.of("segment-le-pickering-ajax"), ""
+            ),
+            new RegionalNormalizedAlert(
+                "regional-go-station-ki", MetrolinxSourceSystem.GO_SERVICE_ALERTS, "S1", "regional-ki",
+                "suspension", "Bloor station service suspension", "Trains are bypassing Bloor GO.", "Emergency",
+                OffsetDateTime.parse("2026-07-29T14:05:00-04:00"), null,
+                OffsetDateTime.parse("2026-07-29T14:08:00-04:00"),
+                List.of("bloor"), List.of(), ""
+            )
+        ));
+
+        DashboardResponses.DashboardResponse dashboard = service.dashboard();
+
+        assertThat(dashboard.map().segments())
+            .filteredOn(segment -> segment.id().equals("segment-le-pickering-ajax"))
+            .singleElement()
+            .satisfies(segment -> assertThat(segment.impacts())
+                .singleElement()
+                .satisfies(impact -> assertThat(impact.kind()).isEqualTo("planned-closure")));
+        assertThat(dashboard.map().stationNodeImpacts())
+            .singleElement()
+            .satisfies(impact -> {
+                assertThat(impact.stationId()).isEqualTo("bloor");
+                assertThat(impact.cardId()).isEqualTo("regional-go-station-ki");
+            });
+        assertThat(dashboard.map().segments())
+            .noneSatisfy(segment -> assertThat(segment.impacts())
+                .extracting(impact -> impact.cardId())
+                .contains("regional-go-station-ki"));
+    }
+
+    @Test
     void suppressesPersistedImpactsWhenTheLatestRegionalRunIsStale() {
         when(freshness.remainingFreshness(any())).thenReturn(Optional.empty());
 

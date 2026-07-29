@@ -149,13 +149,6 @@ public class SavedCommuteService {
     ) {
         SavedCommuteEntity commute = commuteRepository.findByIdAndAccountId(commuteId, account.getId())
             .orElseThrow(() -> new AccountException(HttpStatus.NOT_FOUND, "commute_not_found", "Commute was not found."));
-        if (!"regional".equals(commute.getNetworkId())) {
-            throw new AccountException(
-                HttpStatus.BAD_REQUEST,
-                "ttc_route_edit_unavailable",
-                "TTC commute route editing is not implemented yet."
-            );
-        }
         String originId = normalizeStationId(request.originStationId());
         String destinationId = normalizeStationId(request.destinationStationId());
         if (originId.equals(destinationId)) {

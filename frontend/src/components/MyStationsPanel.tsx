@@ -760,10 +760,19 @@ export function MyStationsPanel({
             ))}
             {pickerStations.length === 0 ? <div className="my-stations-empty"><p>No Stations Match</p></div> : null}
           </div>
-        ) : savedStations.length === 0 && !lastRemoved ? (
-          <div className="my-stations-empty">
-            <p>No Saved Stations</p>
-          </div>
+        ) : savedStations.length === 0 ? (
+          <>
+            <div className="my-stations-empty">
+              <p>No Saved Stations</p>
+            </div>
+            {lastRemoved ? (
+              <div className="saved-station-inline-undo" role="status">
+                <span>{lastRemoved.saved.station.name} Removed</span>
+                <button type="button" onClick={() => void undoRemove()}>Undo</button>
+                <button type="button" onClick={() => setLastRemoved(null)} aria-label="Dismiss undo"><X size={15} /></button>
+              </div>
+            ) : null}
+          </>
         ) : visible.length === 0 && !lastRemoved ? (
           <div className="my-stations-empty">
             <p>No Saved Stations Match</p>

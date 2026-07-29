@@ -517,4 +517,72 @@ class SavedCommuteServiceTest {
         verify(stationRepository, never()).findById(any());
         verify(commutePathService, never()).path(any(), any());
     }
+
+    @Test
+    void updatesTtcCommuteRouteAndRecalculatesBothLegsWithoutChangingNotificationRules() {
+        StationEntity queen = new StationEntity("queen", "Queen", 0, 0, false, 10, null);
+        StationEntity bloorYonge = new StationEntity("bloor-yonge", "Bloor-Yonge", 0, 0, true, 20, null);
+        SavedCommuteEntity commute = SavedCommuteEntity.create(
+            "commute_1",
+            account,
+            "Old route",
+            "finch",
+            "union",
+            false,
+            Instant.parse("2026-06-05T14:00:00Z")
+        );
+        commute.updateNotificationRule(
+            true,
+            62,
+            420,
+            570,
+            true,
+            false,
+            true,
+            false,
+            true,
+            false,
+            true,
+            Instant.parse("2026-06-05T14:05:00Z")
+        );
+        when(commuteRepository.findByIdAndAccountId("commute_1", "user_1")).thenReturn(Optional.of(commute));
+        when(commuteRepository.existsByAccountIdAndNetworkIdAndOriginStationIdAndDestinationStationId(
+            "user_1", "ttc", "queen", "bloor-yonge"
+        )).thenReturn(false);
+        when(stationRepository.findById("queen")).thenReturn(Optional.of(queen));
+        when(stationRepository.findById("bloor-yonge")).thenReturn(Optional.of(bloorYonge));
+        when(commuteRepository.save(commute)).thenReturn(commute);
+        stubPath("queen", "bloor-yonge");
+        stubPath("bloor-yonge", "queen");
+
+        AccountResponses.SavedCommuteResponse response = service.updateRoute(
+            account,
+            "commute_1",
+            new SavedCommuteService.UpdateSavedCommuteRequest(
+                "Downtown",
+                "queen",
+                "bloor-yonge",
+                true
+            )
+        );
+
+        assertThat(response.networkId()).isEqualTo("ttc");
+        assertThat(response.label()).isEqualTo("Downtown");
+        assertThat(response.routeLabel()).isEqualTo("Queen -> Bloor-Yonge");
+        assertThat(response.watchReturnTrip()).isTrue();
+        assertThat(response.outboundLeg().path().segmentIds())
+            .containsExactly("segment_queen_bloor-yonge");
+        assertThat(response.returnLeg().path().segmentIds())
+            .containsExactly("segment_bloor-yonge_queen");
+        assertThat(response.notificationRule()).satisfies(rule -> {
+            assertThat(rule.enabled()).isTrue();
+            assertThat(rule.outboundEnabled()).isTrue();
+            assertThat(rule.returnEnabled()).isFalse();
+            assertThat(rule.eventTypes().delays()).isFalse();
+            assertThat(rule.eventTypes().reducedSpeedZones()).isTrue();
+            assertThat(rule.eventTypes().plannedClosures()).isFalse();
+        });
+        verify(commutePathService).path("queen", "bloor-yonge");
+        verify(commutePathService).path("bloor-yonge", "queen");
+    }
 }

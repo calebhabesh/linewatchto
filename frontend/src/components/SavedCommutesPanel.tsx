@@ -1559,7 +1559,7 @@ export function SavedCommutesPanel({
                       ) : null}
 
                       <div className="commute-route-actions">
-                        {commute.networkId === "regional" ? <button
+                        <button
                           type="button"
                           className="commute-route-stop-toggle"
                           onClick={() => startEditingCommute(commute)}
@@ -1567,7 +1567,7 @@ export function SavedCommutesPanel({
                         >
                           <Pencil size={13} aria-hidden="true" />
                           Edit route
-                        </button> : null}
+                        </button>
                         <button
                           type="button"
                           className="commute-route-stop-toggle"

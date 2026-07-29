@@ -1938,9 +1938,26 @@ function InteractiveTtcMapComponent({
                             cy={point.y}
                             r={impactRingRadius}
                             fill="none"
+                            onPointerDown={(event) => {
+                              if (exiting || (event.pointerType === "mouse" && event.button !== 0)) return;
+                              event.stopPropagation();
+                              try {
+                                event.currentTarget.setPointerCapture(event.pointerId);
+                              } catch {
+                                // Pointer capture can fail if the browser ended the pointer first.
+                              }
+                            }}
+                            onPointerUp={(event) => {
+                              if (exiting || (event.pointerType === "mouse" && event.button !== 0)) return;
+                              event.stopPropagation();
+                              if (shouldSuppressMapClick()) return;
+                              onSelectImpact({ kind: impact.kind, id: impact.cardId });
+                            }}
                             onClick={(event) => {
                               if (exiting) return;
-                              if (shouldSuppressMapClick()) return;
+                              // Pointer activation is handled on pointerup so a map-camera
+                              // update cannot retarget the synthesized click to the station.
+                              if (event.detail !== 0 || shouldSuppressMapClick()) return;
                               event.stopPropagation();
                               onSelectImpact({ kind: impact.kind, id: impact.cardId });
                             }}

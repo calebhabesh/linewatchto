@@ -16,6 +16,7 @@ describe("impact list toolbar", () => {
   });
 
   it("left-aligns dropdown menus on mobile while retaining the desktop sort edge case", () => {
+    assert.match(globalCss, /\.impact-list-select-control\s*\{[^}]*display:\s*inline-flex;/s);
     assert.match(globalCss, /@media \(min-width: 768px\)[\s\S]*?impact-list-select-control:last-child[\s\S]*?right:\s*0;/);
     assert.match(globalCss, /@media \(max-width: 767px\)[\s\S]*?saved-commute-sort-options\.impact-list-select-options[\s\S]*?left:\s*0;[\s\S]*?right:\s*auto;/);
   });

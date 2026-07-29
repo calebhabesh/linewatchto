@@ -72,9 +72,7 @@ public class RegionalDashboardService {
             .map(station -> new MapController.StationDto(station.id(), station.name(), 0, 0, station.interchange()))
             .toList();
         Map<String, List<RegionalNormalizedAlert>> alertsBySegment = new LinkedHashMap<>();
-        for (RegionalNormalizedAlert alert : alerts.stream()
-            .filter(candidate -> !"planned-closure".equals(candidate.impactKind()))
-            .toList()) {
+        for (RegionalNormalizedAlert alert : alerts) {
             for (String segmentId : alert.affectedSegmentIds()) {
                 alertsBySegment.computeIfAbsent(segmentId, ignored -> new ArrayList<>()).add(alert);
             }
@@ -83,7 +81,6 @@ public class RegionalDashboardService {
             .map(segment -> segment(segment, alertsBySegment.getOrDefault(segment.id(), List.of())))
             .toList();
         List<MapController.StationNodeImpactDto> stationImpacts = alerts.stream()
-            .filter(alert -> !"planned-closure".equals(alert.impactKind()))
             .filter(alert -> alert.stationIds().size() == 1 && alert.affectedSegmentIds().isEmpty())
             .map(alert -> new MapController.StationNodeImpactDto(
                 alert.stationIds().getFirst(), alert.impactKind(), alert.id(), alert.title()

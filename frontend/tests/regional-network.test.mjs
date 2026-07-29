@@ -407,7 +407,8 @@ describe("network-scoped regional dashboard", () => {
   });
 
   it("retains route-wide, station-node, and explicit segment overlay plumbing", () => {
-    assert.match(regionalMapSource, /item\.affectedSegmentIds\.length === 0/);
+    assert.match(regionalMapSource, /const stationOnlyImpactIds = new Set\(stationNodeImpacts\.map\(\(impact\) => impact\.cardId\)\)/);
+    assert.match(regionalMapSource, /item\.affectedSegmentIds\.length === 0 && !stationOnlyImpactIds\.has\(item\.id\)/);
     assert.match(regionalMapSource, /segment\.guidePathId/);
     assert.match(regionalMapSource, /stationNodeImpacts/);
     assert.match(regionalMapSource, /corridorSegmentPath\(documentNode, segment\)/);
@@ -560,6 +561,26 @@ describe("network-scoped regional dashboard", () => {
   it("renders every layered segment impact instead of discarding overlaps", () => {
     assert.match(regionalMapSource, /for \(const \[impactIndex, impact\] of \(segment\.impacts \?\? \[\]\)\.entries\(\)\)/);
     assert.doesNotMatch(regionalMapSource, /const impact = segment\.impacts\?\.\[0\]/);
+    assert.match(regionalMapSource, /function regionalImpactLayerIndex\(impact: MapImpact, impacts: MapImpact\[\]\)/);
+    assert.match(regionalMapSource, /regionalImpactPriority\(left\.kind\) - regionalImpactPriority\(right\.kind\)/);
+    assert.match(regionalMapSource, /layerIndex: regionalImpactLayerIndex\(run\.impact, overlappingImpacts\)/);
+    assert.doesNotMatch(regionalMapSource, /layerIndex: run\.impactIndex/);
+  });
+
+  it("repaints linked regional selections above overlapping map layers without moving focused hit targets", () => {
+    assert.match(regionalMapSource, /function bringRegionalImpactToFront\(/);
+    assert.match(regionalMapSource, /element\.parentElement\?\.insertBefore\(element, firstStationTarget\)/);
+    assert.match(regionalMapSource, /bringRegionalImpactToFront\(root, selection\.kind, selection\.id\)/);
+    assert.match(regionalMapSource, /bringRegionalStationImpactToFront\(root, selection\.kind, selection\.id\)/);
+    assert.doesNotMatch(regionalMapSource, /if \(hovered\) \{[\s\S]*bringRegionalImpactToFront/);
+  });
+
+  it("cycles pointer activation through overlapping regional segment and station impacts", () => {
+    assert.match(regionalMapSource, /function nextRegionalPointerImpactSelection\(/);
+    assert.match(regionalMapSource, /group\.dataset\.regionalImpactSegmentIds = segmentIds\.join\(","\)/);
+    assert.match(regionalMapSource, /data-regional-station-impact-station-id/);
+    assert.match(regionalMapSource, /regionalImpactPriority\(left\.kind\) - regionalImpactPriority\(right\.kind\)/);
+    assert.match(regionalMapSource, /nextRegionalPointerImpactSelection\([\s\S]*event\.currentTarget,[\s\S]*impact,[\s\S]*selection/);
   });
 
   it("supports pointer, wheel, fit-network, and keyboard map interactions", () => {
