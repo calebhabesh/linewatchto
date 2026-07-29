@@ -82,6 +82,35 @@ class RegionalArrivalServiceTest {
         assertThat(response.message()).isEqualTo("Published regional train schedule.");
     }
 
+    @Test
+    void keepsTheNextScheduledArrivalForEachDirectionOnInfrequentLines() {
+        MetrolinxArrivalClient client = mock(MetrolinxArrivalClient.class);
+        RegionalScheduledArrivalProvider scheduled = mock(RegionalScheduledArrivalProvider.class);
+        RegionalArrivalProperties properties = new RegionalArrivalProperties();
+        properties.setScheduleEnabled(true);
+        properties.setMaxArrivalsPerLine(2);
+        when(scheduled.arrivals("milton", List.of("regional-mi"))).thenReturn(List.of(
+            scheduledArrival("Milton GO", "2026-07-28T20:10:00Z", "MI201"),
+            scheduledArrival("Milton GO", "2026-07-28T20:40:00Z", "MI203"),
+            scheduledArrival("Union Station", "2026-07-29T10:32:00-04:00", "MI100")
+        ));
+        when(scheduled.hasActiveSchedule(List.of("regional-mi"))).thenReturn(true);
+        RegionalArrivalService service = new RegionalArrivalService(client, scheduled, properties, CLOCK);
+
+        RegionalArrivalResponses.SnapshotResponse response = service.arrivals("milton");
+
+        assertThat(response.arrivals()).extracting(RegionalArrivalResponses.ArrivalResponse::direction)
+            .containsExactly("Milton GO", "Milton GO", "Union Station");
+    }
+
+    private RegionalArrivalRecord scheduledArrival(String direction, String predictedAt, String tripNumber) {
+        OffsetDateTime time = OffsetDateTime.parse(predictedAt);
+        return new RegionalArrivalRecord(
+            "regional-mi", direction, time, time, "", tripNumber,
+            RegionalScheduledArrivalProvider.SOURCE, "scheduled"
+        );
+    }
+
     private RegionalArrivalRecord arrival(String lineId, String direction, String predictedAt) {
         OffsetDateTime time = OffsetDateTime.parse(predictedAt);
         return new RegionalArrivalRecord(

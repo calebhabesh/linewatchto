@@ -1,5 +1,6 @@
 package com.calebhabesh.linewatch.regional;
 
+import java.net.http.HttpClient;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -19,15 +20,11 @@ public class MetrolinxConfiguration {
     }
 
     @Bean
-    @Qualifier("regionalScheduleRestClient")
-    RestClient regionalScheduleRestClient(
-        RestClient.Builder builder,
-        RegionalArrivalProperties properties
-    ) {
-        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
-        factory.setConnectTimeout((int) properties.getScheduleConnectTimeout().toMillis());
-        factory.setReadTimeout((int) properties.getScheduleReadTimeout().toMillis());
-
-        return builder.requestFactory(factory).build();
+    @Qualifier("regionalScheduleHttpClient")
+    HttpClient regionalScheduleHttpClient(RegionalArrivalProperties properties) {
+        return HttpClient.newBuilder()
+            .connectTimeout(properties.getScheduleConnectTimeout())
+            .followRedirects(HttpClient.Redirect.NORMAL)
+            .build();
     }
 }

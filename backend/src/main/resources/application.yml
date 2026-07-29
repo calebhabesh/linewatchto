@@ -104,8 +104,8 @@ linewatch:
       schedule-refresh-enabled: ${LINEWATCH_REGIONAL_ARRIVALS_SCHEDULE_REFRESH_ENABLED:false}
       go-schedule-zip-path: ${LINEWATCH_REGIONAL_ARRIVALS_GO_GTFS_ZIP_PATH:}
       up-schedule-zip-path: ${LINEWATCH_REGIONAL_ARRIVALS_UP_GTFS_ZIP_PATH:}
-      go-schedule-url: ${LINEWATCH_REGIONAL_ARRIVALS_GO_GTFS_URL:https://assets.metrolinx.com/raw/upload/Documents/Metrolinx/Open Data/GO-GTFS.zip}
-      up-schedule-url: ${LINEWATCH_REGIONAL_ARRIVALS_UP_GTFS_URL:https://assets.metrolinx.com/raw/upload/Documents/Metrolinx/Open Data/UP-GTFS.zip}
+      go-schedule-url: ${LINEWATCH_REGIONAL_ARRIVALS_GO_GTFS_URL:https://assets.metrolinx.com/raw/upload/Documents/Metrolinx/Open%20Data/GO-GTFS.zip}
+      up-schedule-url: ${LINEWATCH_REGIONAL_ARRIVALS_UP_GTFS_URL:https://assets.metrolinx.com/raw/upload/Documents/Metrolinx/Open%20Data/UP-GTFS.zip}
       schedule-connect-timeout: ${LINEWATCH_REGIONAL_ARRIVALS_SCHEDULE_CONNECT_TIMEOUT:PT10S}
       schedule-read-timeout: ${LINEWATCH_REGIONAL_ARRIVALS_SCHEDULE_READ_TIMEOUT:PT2M}
       schedule-refresh-initial-delay: ${LINEWATCH_REGIONAL_ARRIVALS_SCHEDULE_REFRESH_INITIAL_DELAY:PT45S}

@@ -7,6 +7,7 @@ import {
   getRegionalStationArrivals,
   groupRegionalStationArrivals,
   regionalArrivalMinuteLabel,
+  regionalArrivalTimeDisplay,
 } from "../src/app/regional-arrivals.ts";
 
 describe("regional station arrivals adapter", () => {
@@ -56,6 +57,31 @@ describe("regional station arrivals adapter", () => {
     assert.equal(regionalArrivalMinuteLabel(0), "Due");
     assert.equal(regionalArrivalMinuteLabel(1), "1 min");
     assert.equal(regionalArrivalMinuteLabel(12), "12 min");
+  });
+
+  it("switches hour-away arrivals from large minute counts to clock times", () => {
+    const now = new Date("2026-07-29T12:00:00-04:00");
+    assert.deepEqual(
+      regionalArrivalTimeDisplay(
+        { minutes: 59, predictedAt: "2026-07-29T12:59:00-04:00" },
+        now,
+      ),
+      { primary: "59 min", secondary: "12:59 PM" },
+    );
+    assert.deepEqual(
+      regionalArrivalTimeDisplay(
+        { minutes: 60, predictedAt: "2026-07-29T13:00:00-04:00" },
+        now,
+      ),
+      { primary: "1:00 PM", secondary: "Today" },
+    );
+    assert.deepEqual(
+      regionalArrivalTimeDisplay(
+        { minutes: 1_350, predictedAt: "2026-07-30T10:30:00-04:00" },
+        now,
+      ),
+      { primary: "10:30 AM", secondary: "Tomorrow" },
+    );
   });
 
   it("groups arrivals by travel direction and then platform", () => {
@@ -111,6 +137,33 @@ describe("regional station arrivals adapter", () => {
     assert.deepEqual(groups[0].platforms.map((platform) => platform.label), ["Platform 1", "Platform 2"]);
     assert.equal(groups[1].directionLabel, "Southbound");
     assert.equal(groups[1].destinationLabel, "To Union Station");
+  });
+
+  it("distinguishes prefixed Milton headsigns as westbound and eastbound", () => {
+    const base = {
+      lineId: "regional-mi",
+      lineNumber: "MI",
+      lineName: "Milton",
+      minutes: 90,
+      predictedAt: "2026-07-29T17:30:00-04:00",
+      scheduledAt: "2026-07-29T17:30:00-04:00",
+      delayMinutes: 0,
+      platform: "",
+      source: "Metrolinx published schedule",
+      status: "scheduled",
+    };
+    const groups = groupRegionalStationArrivals([
+      { ...base, direction: "MI - Milton GO", tripNumber: "MI201" },
+      { ...base, direction: "MI - Union Station GO", tripNumber: "MI100" },
+    ], "milton");
+
+    assert.deepEqual(
+      groups.map((group) => [group.directionLabel, group.destinationLabel]),
+      [
+        ["Westbound", "To Milton GO"],
+        ["Eastbound", "To Union Station GO"],
+      ],
+    );
   });
 
   it("formats regional prediction clock times in Toronto time", () => {

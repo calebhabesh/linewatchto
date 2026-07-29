@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import org.springframework.stereotype.Service;
@@ -106,7 +107,7 @@ public class RegionalArrivalService {
                 .thenComparing(RegionalArrivalRecord::lineId)
                 .thenComparing(RegionalArrivalRecord::tripNumber))
             .toList();
-        List<RegionalArrivalRecord> bounded = boundPerLine(visible);
+        List<RegionalArrivalRecord> bounded = boundPerDirection(visible);
         OffsetDateTime sourceUpdatedAt = freshFeeds.stream()
             .map(RegionalArrivalFeed::sourceUpdatedAt)
             .max(OffsetDateTime::compareTo)
@@ -161,15 +162,16 @@ public class RegionalArrivalService {
         return age.isNegative() || age.compareTo(properties.getMaxSourceAge()) <= 0;
     }
 
-    private List<RegionalArrivalRecord> boundPerLine(List<RegionalArrivalRecord> arrivals) {
+    private List<RegionalArrivalRecord> boundPerDirection(List<RegionalArrivalRecord> arrivals) {
         Map<String, Integer> counts = new LinkedHashMap<>();
         List<RegionalArrivalRecord> result = new ArrayList<>();
         int maximum = Math.max(1, properties.getMaxArrivalsPerLine());
         for (RegionalArrivalRecord arrival : arrivals) {
-            int count = counts.getOrDefault(arrival.lineId(), 0);
+            String key = arrival.lineId() + ":" + arrival.direction().trim().toLowerCase(Locale.ROOT);
+            int count = counts.getOrDefault(key, 0);
             if (count < maximum) {
                 result.add(arrival);
-                counts.put(arrival.lineId(), count + 1);
+                counts.put(key, count + 1);
             }
         }
         return List.copyOf(result);

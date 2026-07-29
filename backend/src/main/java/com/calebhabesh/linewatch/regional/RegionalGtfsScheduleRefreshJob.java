@@ -3,6 +3,9 @@ package com.calebhabesh.linewatch.regional;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
@@ -13,7 +16,6 @@ import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-import org.springframework.web.client.RestClient;
 
 @Component
 public class RegionalGtfsScheduleRefreshJob implements ApplicationRunner {
@@ -21,16 +23,16 @@ public class RegionalGtfsScheduleRefreshJob implements ApplicationRunner {
 
     private final RegionalArrivalProperties properties;
     private final RegionalGtfsScheduleImportService importService;
-    private final RestClient restClient;
+    private final HttpClient httpClient;
 
     public RegionalGtfsScheduleRefreshJob(
         RegionalArrivalProperties properties,
         RegionalGtfsScheduleImportService importService,
-        @Qualifier("regionalScheduleRestClient") RestClient restClient
+        @Qualifier("regionalScheduleHttpClient") HttpClient httpClient
     ) {
         this.properties = properties;
         this.importService = importService;
-        this.restClient = restClient;
+        this.httpClient = httpClient;
     }
 
     @Override
@@ -64,16 +66,13 @@ public class RegionalGtfsScheduleRefreshJob implements ApplicationRunner {
         try {
             temporary = Files.createTempFile("linewatch-" + source + "-gtfs-", ".zip");
             Path destination = temporary;
-            java.net.http.HttpClient httpClient = java.net.http.HttpClient.newBuilder()
-                .followRedirects(java.net.http.HttpClient.Redirect.NORMAL)
-                .build();
-            URI targetUri = URI.create(sourceUrl.toString().replace("%2520", "%20"));
-            java.net.http.HttpRequest request = java.net.http.HttpRequest.newBuilder(targetUri)
+            URI targetUri = normalizeSourceUri(sourceUrl);
+            HttpRequest request = HttpRequest.newBuilder(targetUri)
                 .timeout(properties.getScheduleReadTimeout())
                 .GET()
                 .build();
-            java.net.http.HttpResponse<InputStream> response =
-                httpClient.send(request, java.net.http.HttpResponse.BodyHandlers.ofInputStream());
+            HttpResponse<InputStream> response =
+                httpClient.send(request, HttpResponse.BodyHandlers.ofInputStream());
             if (response.statusCode() < 200 || response.statusCode() >= 300) {
                 throw new IOException("Regional GTFS download for " + sourceUrl + " returned HTTP " + response.statusCode());
             }
@@ -98,5 +97,9 @@ public class RegionalGtfsScheduleRefreshJob implements ApplicationRunner {
                 }
             }
         }
+    }
+
+    static URI normalizeSourceUri(URI sourceUrl) {
+        return URI.create(sourceUrl.toString().replace("%2520", "%20"));
     }
 }

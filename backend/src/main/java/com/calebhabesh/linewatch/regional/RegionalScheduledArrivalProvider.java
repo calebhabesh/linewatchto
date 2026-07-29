@@ -7,7 +7,10 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 import org.springframework.stereotype.Component;
 
@@ -49,11 +52,11 @@ public class RegionalScheduledArrivalProvider {
                     departure.tripId(), SOURCE, "scheduled"
                 ));
             }
-            if (enoughPerLine(result, lineIds)) break;
         }
-        return result.stream()
+        List<RegionalArrivalRecord> sorted = result.stream()
             .sorted(Comparator.comparing(RegionalArrivalRecord::predictedAt))
             .toList();
+        return boundPerDirection(sorted);
     }
 
     public boolean hasActiveSchedule(List<String> lineIds) {
@@ -73,10 +76,18 @@ public class RegionalScheduledArrivalProvider {
             .max(OffsetDateTime::compareTo);
     }
 
-    private boolean enoughPerLine(List<RegionalArrivalRecord> arrivals, List<String> lineIds) {
+    private List<RegionalArrivalRecord> boundPerDirection(List<RegionalArrivalRecord> arrivals) {
         int maximum = Math.max(1, properties.getMaxArrivalsPerLine());
-        return lineIds.stream().allMatch(lineId ->
-            arrivals.stream().filter(arrival -> arrival.lineId().equals(lineId)).count() >= maximum
-        );
+        Map<String, Integer> counts = new LinkedHashMap<>();
+        List<RegionalArrivalRecord> result = new ArrayList<>();
+        for (RegionalArrivalRecord arrival : arrivals) {
+            String key = arrival.lineId() + ":" + arrival.direction().trim().toLowerCase(Locale.ROOT);
+            int count = counts.getOrDefault(key, 0);
+            if (count < maximum) {
+                result.add(arrival);
+                counts.put(key, count + 1);
+            }
+        }
+        return List.copyOf(result);
     }
 }

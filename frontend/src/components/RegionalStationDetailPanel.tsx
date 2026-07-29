@@ -8,10 +8,9 @@ import type { ImpactKind, ImpactSelection } from "../app/linewatch-data";
 import { REGIONAL_ROUTE_CARDINAL_DIRECTIONS, REGIONAL_ROUTE_DEFINITIONS } from "../app/regional-data";
 import {
   emptyRegionalArrivalSnapshot,
-  formatRegionalArrivalClockTime,
   getRegionalStationArrivals,
   groupRegionalStationArrivals,
-  regionalArrivalMinuteLabel,
+  regionalArrivalTimeDisplay,
   type RegionalArrivalSnapshot,
 } from "../app/regional-arrivals";
 import type { StationSummary } from "../app/station-data";
@@ -346,6 +345,7 @@ export function RegionalStationDetailPanel({
                               <div className="grid grid-cols-3 gap-2">
                                 {platform.arrivals.map((arrival) => {
                                   const due = arrival.minutes <= 0;
+                                  const timeDisplay = regionalArrivalTimeDisplay(arrival);
                                   return (
                                     <div
                                       key={`${arrival.tripNumber}:${arrival.predictedAt}`}
@@ -357,13 +357,13 @@ export function RegionalStationDetailPanel({
                                       ].join(" ")}
                                     >
                                       <strong className="text-base font-black leading-none">
-                                        {regionalArrivalMinuteLabel(arrival.minutes)}
+                                        {timeDisplay.primary}
                                       </strong>
                                       <span className={due
                                         ? "mt-1 text-xs font-semibold text-red-100/80"
                                         : "mt-1 text-xs font-semibold text-slate-500 dark:text-slate-400"}
                                       >
-                                        {formatRegionalArrivalClockTime(arrival.predictedAt)}
+                                        {timeDisplay.secondary}
                                       </span>
                                     </div>
                                   );
