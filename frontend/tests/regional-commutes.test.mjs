@@ -22,11 +22,12 @@ describe("regional My Commutes UI boundary", () => {
     assert.match(accountDataSource, /export async function updateSavedCommute/);
   });
 
-  it("renders regional path previews and keeps regional push controls unavailable", () => {
+  it("renders regional path previews and regional route notification controls", () => {
     assert.match(regionalMapSource, /regional-commute-path-preview-layer/);
     assert.match(regionalMapSource, /commutePathPreview\.segmentIds/);
-    assert.match(panelSource, /Regional Notifications: Not available yet/);
-    assert.match(panelSource, /excluded from TTC push matching/);
+    assert.match(panelSource, /Route Notifications:/);
+    assert.doesNotMatch(panelSource, /Regional Notifications: Not available yet/);
+    assert.doesNotMatch(panelSource, /excluded from TTC push matching/);
   });
 
   it("labels regional travel-time modeling as a low-confidence planning estimate", () => {

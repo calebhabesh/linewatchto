@@ -369,7 +369,20 @@ export type PushNotificationSavedCommutePreferences = {
 };
 
 export type PushNotificationLinePreference = {
-  lineId: "line-1" | "line-2" | "line-4" | "line-5" | "line-6";
+  lineId:
+    | "line-1"
+    | "line-2"
+    | "line-4"
+    | "line-5"
+    | "line-6"
+    | "regional-br"
+    | "regional-ki"
+    | "regional-le"
+    | "regional-lw"
+    | "regional-mi"
+    | "regional-rh"
+    | "regional-st"
+    | "regional-up";
   lineNumber: string;
   label: string;
   subscribed: boolean;
@@ -415,6 +428,14 @@ export const defaultPushNotificationPreferences: PushNotificationPreferences = {
       { lineId: "line-4", lineNumber: "4", label: "Sheppard", subscribed: false },
       { lineId: "line-5", lineNumber: "5", label: "Eglinton", subscribed: false },
       { lineId: "line-6", lineNumber: "6", label: "Finch West", subscribed: false },
+      { lineId: "regional-br", lineNumber: "BR", label: "Barrie", subscribed: false },
+      { lineId: "regional-ki", lineNumber: "KI", label: "Kitchener", subscribed: false },
+      { lineId: "regional-le", lineNumber: "LE", label: "Lakeshore East", subscribed: false },
+      { lineId: "regional-lw", lineNumber: "LW", label: "Lakeshore West", subscribed: false },
+      { lineId: "regional-mi", lineNumber: "MI", label: "Milton", subscribed: false },
+      { lineId: "regional-rh", lineNumber: "RH", label: "Richmond Hill", subscribed: false },
+      { lineId: "regional-st", lineNumber: "ST", label: "Stouffville", subscribed: false },
+      { lineId: "regional-up", lineNumber: "UP", label: "Union Pearson Express", subscribed: false },
     ],
     eventTypes: {
       suspensions: true,

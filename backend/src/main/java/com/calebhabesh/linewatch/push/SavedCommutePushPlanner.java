@@ -6,6 +6,8 @@ import com.calebhabesh.linewatch.account.SavedCommuteNotificationSchedule;
 import com.calebhabesh.linewatch.commute.CommuteImpactService;
 import com.calebhabesh.linewatch.commute.CommutePathService;
 import com.calebhabesh.linewatch.commute.CommuteResponses;
+import com.calebhabesh.linewatch.regional.RegionalCommuteImpactService;
+import com.calebhabesh.linewatch.regional.RegionalCommutePathService;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.OffsetDateTime;
@@ -19,6 +21,8 @@ import org.springframework.stereotype.Service;
 public class SavedCommutePushPlanner {
     private final CommutePathService commutePathService;
     private final CommuteImpactService commuteImpactService;
+    private final RegionalCommutePathService regionalCommutePathService;
+    private final RegionalCommuteImpactService regionalCommuteImpactService;
     private final Clock clock;
     private final PushNotificationFormatter formatter;
 
@@ -26,13 +30,26 @@ public class SavedCommutePushPlanner {
     public SavedCommutePushPlanner(
         CommutePathService commutePathService,
         CommuteImpactService commuteImpactService,
+        RegionalCommutePathService regionalCommutePathService,
+        RegionalCommuteImpactService regionalCommuteImpactService,
         Clock clock,
         PushNotificationFormatter formatter
     ) {
         this.commutePathService = commutePathService;
         this.commuteImpactService = commuteImpactService;
+        this.regionalCommutePathService = regionalCommutePathService;
+        this.regionalCommuteImpactService = regionalCommuteImpactService;
         this.clock = clock;
         this.formatter = formatter;
+    }
+
+    public SavedCommutePushPlanner(
+        CommutePathService commutePathService,
+        CommuteImpactService commuteImpactService,
+        Clock clock,
+        PushNotificationFormatter formatter
+    ) {
+        this(commutePathService, commuteImpactService, null, null, clock, formatter);
     }
 
     public SavedCommutePushPlanner(
@@ -42,6 +59,8 @@ public class SavedCommutePushPlanner {
         this(
             commutePathService,
             commuteImpactService,
+            null,
+            null,
             Clock.systemUTC(),
             new PushNotificationFormatter()
         );
@@ -55,7 +74,11 @@ public class SavedCommutePushPlanner {
         SavedCommuteEntity commute,
         PlannedClosureFollowUpPolicy followUpPolicy
     ) {
-        if (commute == null || commute.getAccount() == null || !"ttc".equals(commute.getNetworkId())) {
+        if (commute == null || commute.getAccount() == null) {
+            return List.of();
+        }
+        if ("regional".equals(commute.getNetworkId())
+            && (regionalCommutePathService == null || regionalCommuteImpactService == null)) {
             return List.of();
         }
 
@@ -90,8 +113,13 @@ public class SavedCommutePushPlanner {
         String destinationStationId,
         PlannedClosureFollowUpPolicy followUpPolicy
     ) {
-        CommuteResponses.PathResponse path = commutePathService.path(originStationId, destinationStationId);
-        CommuteResponses.ImpactResponse impact = commuteImpactService.impactFor(path);
+        boolean regional = "regional".equals(commute.getNetworkId());
+        CommuteResponses.PathResponse path = regional
+            ? regionalCommutePathService.path(originStationId, destinationStationId)
+            : commutePathService.path(originStationId, destinationStationId);
+        CommuteResponses.ImpactResponse impact = regional
+            ? regionalCommuteImpactService.impactFor(path)
+            : commuteImpactService.impactFor(path);
         if (impact == null || impact.matchedImpacts() == null || impact.matchedImpacts().isEmpty()) {
             return List.of();
         }
@@ -181,8 +209,10 @@ public class SavedCommutePushPlanner {
             stableImpactPart
         );
 
+        String url = ("regional".equals(commute.getNetworkId()) ? "/?network=regional&" : "/?")
+            + "panel=commutes&commute=" + commute.getId();
         String updateFingerprint = PushNotificationUpdateFingerprint.forCandidate(
-            match.updatedAt(), eventType, notification, "/?panel=commutes&commute=" + commute.getId()
+            match.updatedAt(), eventType, notification, url
         );
         String dedupeKey = String.join(
             "|",
@@ -212,7 +242,7 @@ public class SavedCommutePushPlanner {
             notificationKey,
             dedupeKey,
             notification,
-            "/?panel=commutes&commute=" + commute.getId(),
+            url,
             updateFingerprint,
             deliveryAllowed,
             match.updatedAt() == null ? null : match.updatedAt().toInstant()

@@ -102,6 +102,18 @@ export function NotificationSettingsPanel({
         return null;
     }
   }, [message, deviceSetupState, deviceNotificationsEnabled]);
+  const lineSubscriptionGroups = [
+    {
+      id: "ttc",
+      label: "TTC Subway & LRT",
+      lines: preferences.lineSubscriptions.lines.filter((line) => !line.lineId.startsWith("regional-")),
+    },
+    {
+      id: "regional",
+      label: "GO & UP Corridors",
+      lines: preferences.lineSubscriptions.lines.filter((line) => line.lineId.startsWith("regional-")),
+    },
+  ];
 
   return (
     <section className="notification-settings-panel panel min-w-0 border border-black/10 dark:border-white/10 rounded-lg shadow-xl" aria-label="Notification settings">
@@ -141,7 +153,7 @@ export function NotificationSettingsPanel({
                 Enable Push Notifications
               </h3>
               <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-                Stay updated on subway and LRT service changes without needing to check the app.
+                Stay updated on TTC subway/LRT and GO/UP rail service changes without needing to check the app.
               </p>
             </div>
 
@@ -158,7 +170,7 @@ export function NotificationSettingsPanel({
                 <span className="text-xs text-emerald-600 dark:text-emerald-400 font-bold mt-0.5">✓</span>
                 <div className="text-xs">
                   <span className="font-bold text-slate-800 dark:text-slate-200 block">Line-Wide Subscription Alerts</span>
-                  <span className="text-slate-500 dark:text-slate-400">Subscribe to all alerts for specific lines (Lines 1, 2, 4, 5, or 6) with customized event filters.</span>
+                  <span className="text-slate-500 dark:text-slate-400">Subscribe to supported TTC lines or GO/UP corridors with customized event filters.</span>
                 </div>
               </div>
 
@@ -333,42 +345,51 @@ export function NotificationSettingsPanel({
 
             <div className="notification-settings-section">
               <div className="notification-settings-section-header">
-                <h3>Line Subscriptions</h3>
+                <h3>Line Subscriptions & GO/UP Corridors</h3>
                 <span>Active</span>
               </div>
-              <div className="notification-settings-list" aria-label="Line-wide notification subscriptions">
-                {preferences.lineSubscriptions.lines.map((line) => {
-                  return (
-                    <div className="notification-settings-row flex items-center justify-between py-2 border-b border-black/5 dark:border-white/5 last:border-b-0" key={line.lineId}>
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        <TransitLineBadge lineId={line.lineId} lineNumber={line.lineNumber} lineName={line.label} size={26} className="notification-line-badge shrink-0" />
-                        <span className="notification-settings-row-label min-w-0 truncate">
-                          <strong>Line {line.lineNumber}</strong>
-                          <em>{line.label}</em>
-                        </span>
-                      </div>
-                      <div className="notification-settings-row-actions">
-                        <NotificationSwitch
-                          checked={line.subscribed}
-                          disabled={busy || !preferencesLoaded}
-                          label={`Subscribe to Line ${line.lineNumber}`}
-                          onChange={(checked) => {
-                            const updatedLines = preferences.lineSubscriptions.lines.map((l) =>
-                              l.lineId === line.lineId ? { ...l, subscribed: checked } : l
-                            );
-                            updatePreferences({
-                              ...preferences,
-                              lineSubscriptions: {
-                                ...preferences.lineSubscriptions,
-                                lines: updatedLines,
-                              },
-                            });
-                          }}
-                        />
-                      </div>
-                    </div>
-                  );
-                })}
+              <div className="notification-settings-list" aria-label="Line and corridor notification subscriptions">
+                {lineSubscriptionGroups.map((group) => (
+                  <div key={group.id}>
+                    <p className="px-1 pt-2 pb-1 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                      {group.label}
+                    </p>
+                    {group.lines.map((line) => {
+                      const regional = line.lineId.startsWith("regional-");
+                      const identity = regional ? line.lineNumber : `Line ${line.lineNumber}`;
+                      return (
+                        <div className="notification-settings-row flex items-center justify-between py-2 border-b border-black/5 dark:border-white/5 last:border-b-0" key={line.lineId}>
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <TransitLineBadge lineId={line.lineId} lineNumber={line.lineNumber} lineName={line.label} size={26} className="notification-line-badge shrink-0" />
+                            <span className="notification-settings-row-label min-w-0 truncate">
+                              <strong>{identity}</strong>
+                              <em>{line.label}</em>
+                            </span>
+                          </div>
+                          <div className="notification-settings-row-actions">
+                            <NotificationSwitch
+                              checked={line.subscribed}
+                              disabled={busy || !preferencesLoaded}
+                              label={`Subscribe to ${identity} ${line.label}`}
+                              onChange={(checked) => {
+                                const updatedLines = preferences.lineSubscriptions.lines.map((item) =>
+                                  item.lineId === line.lineId ? { ...item, subscribed: checked } : item
+                                );
+                                updatePreferences({
+                                  ...preferences,
+                                  lineSubscriptions: {
+                                    ...preferences.lineSubscriptions,
+                                    lines: updatedLines,
+                                  },
+                                });
+                              }}
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ))}
               </div>
             </div>
 

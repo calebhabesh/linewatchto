@@ -11,6 +11,8 @@ import com.calebhabesh.linewatch.account.SavedCommuteEntity;
 import com.calebhabesh.linewatch.commute.CommuteImpactService;
 import com.calebhabesh.linewatch.commute.CommutePathService;
 import com.calebhabesh.linewatch.commute.CommuteResponses;
+import com.calebhabesh.linewatch.regional.RegionalCommuteImpactService;
+import com.calebhabesh.linewatch.regional.RegionalCommutePathService;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -547,7 +549,17 @@ class SavedCommutePushPlannerTest {
     }
 
     @Test
-    void excludesRegionalCommutesUntilRegionalPushSliceExists() {
+    void createsFreshRegionalCommuteCandidateWithRegionalIdentityAndDeepLink() {
+        RegionalCommutePathService regionalPathService = mock(RegionalCommutePathService.class);
+        RegionalCommuteImpactService regionalImpactService = mock(RegionalCommuteImpactService.class);
+        SavedCommutePushPlanner regionalPlanner = new SavedCommutePushPlanner(
+            commutePathService,
+            commuteImpactService,
+            regionalPathService,
+            regionalImpactService,
+            clock,
+            formatter
+        );
         SavedCommuteEntity commute = SavedCommuteEntity.create(
             "commute_regional",
             account,
@@ -558,8 +570,37 @@ class SavedCommutePushPlannerTest {
             true,
             Instant.parse("2026-07-28T14:30:00Z")
         );
+        CommuteResponses.PathResponse outboundPath = new CommuteResponses.PathResponse(
+            "available",
+            List.of("bloor", "weston", "pearson-airport"),
+            List.of("segment-up-bloor-weston", "segment-up-weston-pearson-airport"),
+            List.of(),
+            List.of("regional-up"),
+            List.of(),
+            900,
+            "regional-topology-estimate",
+            "Default regional route: 3 stations on UP, planning estimate about 15 min"
+        );
+        when(regionalPathService.path("bloor", "pearson-airport")).thenReturn(outboundPath);
+        when(regionalPathService.path("pearson-airport", "bloor")).thenReturn(outboundPath);
+        when(regionalImpactService.impactFor(outboundPath)).thenReturn(impactWith(
+            new CommuteResponses.MatchedImpactResponse(
+                "regional-up-delay", "delay", "current", "minor", "UP Express delay",
+                "regional-up", "UP", "Weston to Pearson Airport", null,
+                "UP Express trains are delayed between Weston and Pearson Airport.",
+                "Metrolinx UP Express GTFS-RT",
+                List.of("segment-up-weston-pearson-airport"), List.of(),
+                OffsetDateTime.parse("2026-07-29T08:15:00-04:00"),
+                OffsetDateTime.parse("2026-07-29T08:20:00-04:00"),
+                "Now", "active", OffsetDateTime.parse("2026-07-29T08:15:00-04:00")
+            )
+        ));
 
-        assertThat(planner.candidatesFor(commute)).isEmpty();
+        assertThat(regionalPlanner.candidatesFor(commute)).hasSize(2).allSatisfy(candidate -> {
+            assertThat(candidate.lineId()).isEqualTo("regional-up");
+            assertThat(candidate.title()).isEqualTo("⚠️ UP Express Delay");
+            assertThat(candidate.url()).isEqualTo("/?network=regional&panel=commutes&commute=commute_regional");
+        });
         verify(commutePathService, never()).path("bloor", "pearson-airport");
         verify(commutePathService, never()).path("pearson-airport", "bloor");
     }

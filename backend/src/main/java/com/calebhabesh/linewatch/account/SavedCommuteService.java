@@ -8,6 +8,7 @@ import com.calebhabesh.linewatch.regional.RegionalCommutePathService;
 import com.calebhabesh.linewatch.regional.RegionalNetworkCatalog;
 import com.calebhabesh.linewatch.station.StationEntity;
 import com.calebhabesh.linewatch.station.StationRepository;
+import com.calebhabesh.linewatch.station.StationResponses;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
@@ -132,11 +133,7 @@ public class SavedCommuteService {
             watchReturnTrip,
             now
         );
-        if ("ttc".equals(networkId)) {
-            applyNotificationRule(commute, request.notificationRule(), now);
-        } else {
-            disableNotificationRule(commute, now);
-        }
+        applyNotificationRule(commute, request.notificationRule(), now);
         commute = commuteRepository.save(commute);
         return toResponse(commute, Map.of(
             stationKey(networkId, originId), originName,
@@ -192,20 +189,24 @@ public class SavedCommuteService {
     ) {
         SavedCommuteEntity commute = commuteRepository.findByIdAndAccountId(commuteId, account.getId())
             .orElseThrow(() -> new AccountException(HttpStatus.NOT_FOUND, "commute_not_found", "Commute was not found."));
-        if (!"ttc".equals(commute.getNetworkId())) {
-            throw new AccountException(
-                HttpStatus.BAD_REQUEST,
-                "regional_notifications_unavailable",
-                "Regional commute notifications are not implemented yet."
-            );
-        }
         applyNotificationRule(commute, request, clock.instant());
         commute = commuteRepository.save(commute);
 
-        List<String> stationIds = List.of(commute.getOriginStationId(), commute.getDestinationStationId());
-        Map<String, String> stationsById = stationRepository.findAllById(stationIds)
-            .stream()
-            .collect(Collectors.toMap(station -> stationKey("ttc", station.getId()), StationEntity::getName));
+        Map<String, String> stationsById;
+        if ("regional".equals(commute.getNetworkId())) {
+            stationsById = List.of(commute.getOriginStationId(), commute.getDestinationStationId()).stream()
+                .collect(Collectors.toMap(
+                    stationId -> stationKey("regional", stationId),
+                    stationId -> RegionalNetworkCatalog.station(stationId)
+                        .map(StationResponses.StationSummaryResponse::name)
+                        .orElse(stationId)
+                ));
+        } else {
+            List<String> stationIds = List.of(commute.getOriginStationId(), commute.getDestinationStationId());
+            stationsById = stationRepository.findAllById(stationIds)
+                .stream()
+                .collect(Collectors.toMap(station -> stationKey("ttc", station.getId()), StationEntity::getName));
+        }
         return toResponse(commute, stationsById);
     }
 
@@ -352,14 +353,6 @@ public class SavedCommuteService {
     private RegionalCommuteImpactService requireRegionalImpactService() {
         if (regionalCommuteImpactService == null) throw new IllegalStateException("Regional commute matching is unavailable");
         return regionalCommuteImpactService;
-    }
-
-    private void disableNotificationRule(SavedCommuteEntity commute, Instant now) {
-        commute.updateNotificationRule(
-            false, commute.getNotificationOutboundDayMask(), commute.getNotificationOutboundStartMinute(), commute.getNotificationOutboundEndMinute(),
-            commute.getNotificationReturnDayMask(), commute.getNotificationReturnStartMinute(), commute.getNotificationReturnEndMinute(),
-            false, false, false, false, false, false, false, now
-        );
     }
 
     private void applyNotificationRule(

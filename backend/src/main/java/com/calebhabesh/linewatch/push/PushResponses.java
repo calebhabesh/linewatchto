@@ -80,7 +80,15 @@ public final class PushResponses {
                         new LineSubscriptionResponse("line-2", "2", "Bloor-Danforth", false),
                         new LineSubscriptionResponse("line-4", "4", "Sheppard", false),
                         new LineSubscriptionResponse("line-5", "5", "Eglinton", false),
-                        new LineSubscriptionResponse("line-6", "6", "Finch West", false)
+                        new LineSubscriptionResponse("line-6", "6", "Finch West", false),
+                        new LineSubscriptionResponse("regional-br", "BR", "Barrie", false),
+                        new LineSubscriptionResponse("regional-ki", "KI", "Kitchener", false),
+                        new LineSubscriptionResponse("regional-le", "LE", "Lakeshore East", false),
+                        new LineSubscriptionResponse("regional-lw", "LW", "Lakeshore West", false),
+                        new LineSubscriptionResponse("regional-mi", "MI", "Milton", false),
+                        new LineSubscriptionResponse("regional-rh", "RH", "Richmond Hill", false),
+                        new LineSubscriptionResponse("regional-st", "ST", "Stouffville", false),
+                        new LineSubscriptionResponse("regional-up", "UP", "Union Pearson Express", false)
                     ),
                     new EventTypePreferencesResponse(true, true, true, true, true)
                 ),

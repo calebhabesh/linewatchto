@@ -464,7 +464,7 @@ class SavedCommuteServiceTest {
     }
 
     @Test
-    void createsNetworkScopedRegionalCommuteWithoutUsingTtcStationRepositoryOrPushRules() {
+    void createsNetworkScopedRegionalCommuteWithRouteNotificationRules() {
         RegionalCommutePathService regionalPathService = mock(RegionalCommutePathService.class);
         RegionalCommuteImpactService regionalImpactService = mock(RegionalCommuteImpactService.class);
         SavedCommuteService regionalService = new SavedCommuteService(
@@ -513,7 +513,7 @@ class SavedCommuteServiceTest {
         assertThat(response.originStationName()).isEqualTo("Bloor");
         assertThat(response.destinationStationName()).isEqualTo("Pearson Airport");
         assertThat(response.path().lineIds()).containsExactly("regional-up");
-        assertThat(response.notificationRule().enabled()).isFalse();
+        assertThat(response.notificationRule().enabled()).isTrue();
         verify(stationRepository, never()).findById(any());
         verify(commutePathService, never()).path(any(), any());
     }

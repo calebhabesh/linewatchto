@@ -5,6 +5,7 @@ import com.calebhabesh.linewatch.account.SavedCommuteNotificationSchedule;
 import com.calebhabesh.linewatch.account.SavedCommuteRepository;
 import com.calebhabesh.linewatch.alert.AlertHistoryRepository;
 import com.calebhabesh.linewatch.ingestion.IngestionFreshness;
+import com.calebhabesh.linewatch.regional.RegionalIngestionFreshness;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.time.Clock;
@@ -45,11 +46,13 @@ public class PushNotificationDispatchService {
     private final WebPushClient webPushClient;
     private final PushNotificationPreferenceService preferenceService;
     private final LineSubscriptionPushPlanner lineSubscriptionPushPlanner;
+    private final RegionalLineSubscriptionPushPlanner regionalLineSubscriptionPushPlanner;
     private final PushLineEventObservationService lineEventObservationService;
     private final PushSavedCommuteEventObservationService savedCommuteObservationService;
     private final PushNotificationFormatter formatter;
     private final PushReceiptTokenService receiptTokenService;
     private final IngestionFreshness ingestionFreshness;
+    private final RegionalIngestionFreshness regionalIngestionFreshness;
     private final AlertHistoryRepository alertHistoryRepository;
     private final PushProperties pushProperties;
     private final PushSubscriptionLifecycleService lifecycleService;
@@ -66,11 +69,13 @@ public class PushNotificationDispatchService {
         WebPushClient webPushClient,
         PushNotificationPreferenceService preferenceService,
         LineSubscriptionPushPlanner lineSubscriptionPushPlanner,
+        RegionalLineSubscriptionPushPlanner regionalLineSubscriptionPushPlanner,
         PushLineEventObservationService lineEventObservationService,
         PushSavedCommuteEventObservationService savedCommuteObservationService,
         PushNotificationFormatter formatter,
         PushReceiptTokenService receiptTokenService,
         IngestionFreshness ingestionFreshness,
+        RegionalIngestionFreshness regionalIngestionFreshness,
         AlertHistoryRepository alertHistoryRepository,
         PushProperties pushProperties,
         PushSubscriptionLifecycleService lifecycleService
@@ -78,11 +83,13 @@ public class PushNotificationDispatchService {
         this(
             savedCommuteRepository, planner, eventRepository, subscriptionRepository,
             deliveryRepository, clientEventRepository, webPushClient, preferenceService, lineSubscriptionPushPlanner,
+            regionalLineSubscriptionPushPlanner,
             lineEventObservationService,
             savedCommuteObservationService,
             formatter,
             receiptTokenService,
             ingestionFreshness,
+            regionalIngestionFreshness,
             alertHistoryRepository,
             pushProperties,
             Clock.systemUTC(),
@@ -112,8 +119,8 @@ public class PushNotificationDispatchService {
         this(
             savedCommuteRepository, planner, eventRepository, subscriptionRepository,
             deliveryRepository, clientEventRepository, webPushClient, preferenceService, lineSubscriptionPushPlanner,
-            lineEventObservationService, savedCommuteObservationService, formatter, receiptTokenService,
-            ingestionFreshness, alertHistoryRepository, pushProperties, clock, null
+            null, lineEventObservationService, savedCommuteObservationService, formatter, receiptTokenService,
+            ingestionFreshness, null, alertHistoryRepository, pushProperties, clock, null
         );
     }
 
@@ -127,11 +134,13 @@ public class PushNotificationDispatchService {
         WebPushClient webPushClient,
         PushNotificationPreferenceService preferenceService,
         LineSubscriptionPushPlanner lineSubscriptionPushPlanner,
+        RegionalLineSubscriptionPushPlanner regionalLineSubscriptionPushPlanner,
         PushLineEventObservationService lineEventObservationService,
         PushSavedCommuteEventObservationService savedCommuteObservationService,
         PushNotificationFormatter formatter,
         PushReceiptTokenService receiptTokenService,
         IngestionFreshness ingestionFreshness,
+        RegionalIngestionFreshness regionalIngestionFreshness,
         AlertHistoryRepository alertHistoryRepository,
         PushProperties pushProperties,
         Clock clock,
@@ -146,11 +155,13 @@ public class PushNotificationDispatchService {
         this.webPushClient = webPushClient;
         this.preferenceService = preferenceService;
         this.lineSubscriptionPushPlanner = lineSubscriptionPushPlanner;
+        this.regionalLineSubscriptionPushPlanner = regionalLineSubscriptionPushPlanner;
         this.lineEventObservationService = lineEventObservationService;
         this.savedCommuteObservationService = savedCommuteObservationService;
         this.formatter = formatter;
         this.receiptTokenService = receiptTokenService;
         this.ingestionFreshness = ingestionFreshness;
+        this.regionalIngestionFreshness = regionalIngestionFreshness;
         this.alertHistoryRepository = alertHistoryRepository;
         this.pushProperties = pushProperties;
         this.clock = clock;
@@ -293,9 +304,21 @@ public class PushNotificationDispatchService {
         PushNotificationPreferenceEntity preferences
     ) {
         PlannedClosureFollowUpPolicy policy = preferences.getPlannedClosureFollowUpPolicy();
-        return policy == null
-            ? lineSubscriptionPushPlanner.candidatesFor(accountId, subscribedLineIds)
-            : lineSubscriptionPushPlanner.candidatesFor(accountId, subscribedLineIds, policy);
+        List<String> ttcLineIds = subscribedLineIds.stream()
+            .filter(lineId -> !regionalLine(lineId))
+            .toList();
+        List<PushNotificationCandidate> candidates = new java.util.ArrayList<>(policy == null
+            ? lineSubscriptionPushPlanner.candidatesFor(accountId, ttcLineIds)
+            : lineSubscriptionPushPlanner.candidatesFor(accountId, ttcLineIds, policy));
+        if (regionalLineSubscriptionPushPlanner != null) {
+            List<String> regionalLineIds = subscribedLineIds.stream().filter(this::regionalLine).toList();
+            candidates.addAll(regionalLineSubscriptionPushPlanner.candidatesFor(
+                accountId,
+                regionalLineIds,
+                policy == null ? PlannedClosureFollowUpPolicy.SMART : policy
+            ));
+        }
+        return List.copyOf(candidates);
     }
 
     private boolean lineCurrentDeliveryIsTimely(
@@ -319,9 +342,6 @@ public class PushNotificationDispatchService {
         Set<String> subscribedLineIds,
         Instant now
     ) {
-        if (!ingestionFreshness.isDashboardFresh()) {
-            return;
-        }
         List<PushNotificationEventEntity> clearedEvents =
             eventRepository.findByAccountIdAndCategoryInAndNotificationStateAndCreatedAtAfterOrderByCreatedAtDesc(
                 accountId,
@@ -331,7 +351,8 @@ public class PushNotificationDispatchService {
                 PageRequest.of(0, CLEARED_DELIVERY_RETRY_LIMIT)
             );
         for (PushNotificationEventEntity clearedEvent : clearedEvents) {
-            if (clearedRetryAllowed(clearedEvent, preferences, commutesById, subscribedLineIds, now)) {
+            if (freshForLine(clearedEvent.getLineId())
+                && clearedRetryAllowed(clearedEvent, preferences, commutesById, subscribedLineIds, now)) {
                 retryEventToIncompleteSubscriptions(clearedEvent, now);
             }
         }
@@ -369,9 +390,6 @@ public class PushNotificationDispatchService {
         Set<String> currentSourceIncidentKeys,
         List<PushNotificationCandidate> currentCandidates
     ) {
-        if (!ingestionFreshness.isDashboardFresh()) {
-            return;
-        }
         Instant now = clock.instant();
         List<String> currentCategories = List.of("saved-commute-current", "saved-commute-impact");
         
@@ -382,6 +400,9 @@ public class PushNotificationDispatchService {
         );
 
         for (PushNotificationEventEntity activeEvent : activeEvents) {
+            if (!freshForLine(activeEvent.getLineId())) {
+                continue;
+            }
             if (savedCommuteCurrentCategory(activeEvent.getCategory()) && activeEvent.getCommuteId() == null) {
                 continue;
             }
@@ -451,11 +472,11 @@ public class PushNotificationDispatchService {
         Set<String> currentNotificationKeys,
         Set<String> currentSourceIncidentKeys
     ) {
-        if (!ingestionFreshness.isDashboardFresh()) {
-            return;
-        }
         Instant now = clock.instant();
         for (PushSavedCommuteEventObservationEntity observation : savedCommuteObservationService.activeObservations(accountId)) {
+            if (!freshForLine(observation.getLineId())) {
+                continue;
+            }
             if (currentNotificationKeys.contains(observation.getNotificationKey())) {
                 continue;
             }
@@ -474,12 +495,12 @@ public class PushNotificationDispatchService {
         Set<String> currentLineSourceIncidentKeys,
         List<PushNotificationCandidate> currentLineCandidates
     ) {
-        if (!ingestionFreshness.isDashboardFresh()) {
-            return;
-        }
         Instant now = clock.instant();
 
         for (PushLineEventObservationEntity observation : lineEventObservationService.activeObservations(accountId)) {
+            if (!freshForLine(observation.getLineId())) {
+                continue;
+            }
             if (currentLineNotificationKeys.contains(observation.getNotificationKey())) {
                 continue;
             }
@@ -617,6 +638,17 @@ public class PushNotificationDispatchService {
     private boolean savedCommuteCurrentCategory(String category) {
         String normalized = normalize(category);
         return "saved-commute-current".equals(normalized) || "saved-commute-impact".equals(normalized);
+    }
+
+    private boolean freshForLine(String lineId) {
+        if (regionalLine(lineId)) {
+            return regionalIngestionFreshness != null && regionalIngestionFreshness.isFresh();
+        }
+        return ingestionFreshness.isDashboardFresh();
+    }
+
+    private boolean regionalLine(String lineId) {
+        return lineId != null && lineId.startsWith("regional-");
     }
 
     private boolean compatibleLocations(String first, String second) {

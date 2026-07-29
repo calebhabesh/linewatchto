@@ -10,6 +10,7 @@ import com.calebhabesh.linewatch.account.SavedCommuteEntity;
 import com.calebhabesh.linewatch.account.SavedCommuteRepository;
 import com.calebhabesh.linewatch.alert.AlertHistoryRepository;
 import com.calebhabesh.linewatch.ingestion.IngestionFreshness;
+import com.calebhabesh.linewatch.regional.RegionalIngestionFreshness;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.OffsetDateTime;
@@ -31,9 +32,11 @@ class PushNotificationDispatchServiceTest {
     private final WebPushClient webPushClient = mock(WebPushClient.class);
     private final PushNotificationPreferenceService preferenceService = mock(PushNotificationPreferenceService.class);
     private final LineSubscriptionPushPlanner lineSubscriptionPushPlanner = mock(LineSubscriptionPushPlanner.class);
+    private final RegionalLineSubscriptionPushPlanner regionalLineSubscriptionPushPlanner = mock(RegionalLineSubscriptionPushPlanner.class);
     private final PushLineEventObservationService lineEventObservationService = mock(PushLineEventObservationService.class);
     private final PushSavedCommuteEventObservationService savedCommuteObservationService = mock(PushSavedCommuteEventObservationService.class);
     private final IngestionFreshness ingestionFreshness = mock(IngestionFreshness.class);
+    private final RegionalIngestionFreshness regionalIngestionFreshness = mock(RegionalIngestionFreshness.class);
     private final AlertHistoryRepository alertHistoryRepository = mock(AlertHistoryRepository.class);
     private final PushProperties pushProperties = new PushProperties();
     private final PushReceiptTokenService receiptTokenService = new PushReceiptTokenService(pushProperties);
@@ -1448,6 +1451,59 @@ class PushNotificationDispatchServiceTest {
         verify(eventRepository, never()).save(any(PushNotificationEventEntity.class));
         verify(webPushClient, never()).send(any(), anyString(), any(WebPushPayload.class));
         verify(lineEventObservationService, never()).markCleared(any(), any());
+    }
+
+    @Test
+    void doesNotClearRegionalObservationWhenMetrolinxIngestionIsStaleEvenIfTtcIsFresh() {
+        PushNotificationDispatchService regionalService = new PushNotificationDispatchService(
+            savedCommuteRepository,
+            planner,
+            eventRepository,
+            subscriptionRepository,
+            deliveryRepository,
+            clientEventRepository,
+            webPushClient,
+            preferenceService,
+            lineSubscriptionPushPlanner,
+            regionalLineSubscriptionPushPlanner,
+            lineEventObservationService,
+            savedCommuteObservationService,
+            formatter,
+            receiptTokenService,
+            ingestionFreshness,
+            regionalIngestionFreshness,
+            alertHistoryRepository,
+            pushProperties,
+            clock,
+            null
+        );
+        when(regionalIngestionFreshness.isFresh()).thenReturn(false);
+        PushNotificationPreferenceEntity preferences = PushNotificationPreferenceEntity.create(account, clock.instant());
+        when(preferenceService.preferenceEntityForAccountId("user_1")).thenReturn(preferences);
+        when(preferenceService.subscribedLineIds("user_1")).thenReturn(List.of("regional-lw"));
+        when(subscriptionRepository.findEnabledAccountIds()).thenReturn(List.of("user_1"));
+        when(regionalLineSubscriptionPushPlanner.candidatesFor(
+            eq("user_1"), eq(List.of("regional-lw")), any(PlannedClosureFollowUpPolicy.class)
+        )).thenReturn(List.of());
+
+        PushNotificationCandidate previousCandidate = candidate(
+            null, null, "regional-lw", "LW", "line-current", "delay", "on-change",
+            "line-current|regional-lw|regional-alert-lw",
+            "user_1|line|regional-lw|delay|on-change|regional-alert-lw",
+            "Oakville to Union",
+            null,
+            Instant.parse("2026-07-29T11:40:00Z"),
+            "/?network=regional&panel=delays"
+        );
+        PushLineEventObservationEntity observation = PushLineEventObservationEntity.create(
+            "regional_line_obs_1", previousCandidate, clock.instant()
+        );
+        when(lineEventObservationService.activeObservations("user_1")).thenReturn(List.of(observation));
+
+        regionalService.evaluateSavedCommuteNotifications();
+
+        verify(lineEventObservationService, never()).markCleared(observation, clock.instant());
+        verify(eventRepository, never()).save(any(PushNotificationEventEntity.class));
     }
 
     @Test

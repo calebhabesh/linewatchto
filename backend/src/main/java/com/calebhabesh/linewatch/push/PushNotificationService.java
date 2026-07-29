@@ -5,6 +5,7 @@ import com.calebhabesh.linewatch.account.AccountException;
 import com.calebhabesh.linewatch.account.SavedCommuteEntity;
 import com.calebhabesh.linewatch.account.SavedCommuteRepository;
 import com.calebhabesh.linewatch.ingestion.IngestionFreshness;
+import com.calebhabesh.linewatch.regional.RegionalIngestionFreshness;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.time.Clock;
@@ -42,10 +43,12 @@ public class PushNotificationService {
     private final SavedCommutePushPlanner planner;
     private final PushNotificationPreferenceService preferenceService;
     private final LineSubscriptionPushPlanner lineSubscriptionPushPlanner;
+    private final RegionalLineSubscriptionPushPlanner regionalLineSubscriptionPushPlanner;
     private final PushNotificationClientEventRepository clientEventRepository;
     private final WebPushClient webPushClient;
     private final PushReceiptTokenService receiptTokenService;
     private final IngestionFreshness ingestionFreshness;
+    private final RegionalIngestionFreshness regionalIngestionFreshness;
     private final PushSubscriptionLifecycleService lifecycleService;
     private final Clock clock;
 
@@ -59,10 +62,12 @@ public class PushNotificationService {
         SavedCommutePushPlanner planner,
         PushNotificationPreferenceService preferenceService,
         LineSubscriptionPushPlanner lineSubscriptionPushPlanner,
+        RegionalLineSubscriptionPushPlanner regionalLineSubscriptionPushPlanner,
         PushNotificationClientEventRepository clientEventRepository,
         WebPushClient webPushClient,
         PushReceiptTokenService receiptTokenService,
         IngestionFreshness ingestionFreshness,
+        RegionalIngestionFreshness regionalIngestionFreshness,
         PushSubscriptionLifecycleService lifecycleService
     ) {
         this(
@@ -74,9 +79,11 @@ public class PushNotificationService {
             planner,
             preferenceService,
             lineSubscriptionPushPlanner,
+            regionalLineSubscriptionPushPlanner,
             clientEventRepository,
             webPushClient,
             ingestionFreshness,
+            regionalIngestionFreshness,
             receiptTokenService,
             Clock.systemUTC(),
             lifecycleService
@@ -99,8 +106,8 @@ public class PushNotificationService {
         Clock clock
     ) {
         this(properties, subscriptionRepository, deliveryRepository, eventRepository, savedCommuteRepository, planner,
-            preferenceService, lineSubscriptionPushPlanner, clientEventRepository, webPushClient, ingestionFreshness,
-            receiptTokenService, clock, null);
+            preferenceService, lineSubscriptionPushPlanner, null, clientEventRepository, webPushClient, ingestionFreshness,
+            null, receiptTokenService, clock, null);
     }
 
     PushNotificationService(
@@ -108,8 +115,10 @@ public class PushNotificationService {
         PushNotificationDeliveryRepository deliveryRepository, PushNotificationEventRepository eventRepository,
         SavedCommuteRepository savedCommuteRepository, SavedCommutePushPlanner planner,
         PushNotificationPreferenceService preferenceService, LineSubscriptionPushPlanner lineSubscriptionPushPlanner,
+        RegionalLineSubscriptionPushPlanner regionalLineSubscriptionPushPlanner,
         PushNotificationClientEventRepository clientEventRepository, WebPushClient webPushClient,
-        IngestionFreshness ingestionFreshness, PushReceiptTokenService receiptTokenService, Clock clock,
+        IngestionFreshness ingestionFreshness, RegionalIngestionFreshness regionalIngestionFreshness,
+        PushReceiptTokenService receiptTokenService, Clock clock,
         PushSubscriptionLifecycleService lifecycleService
     ) {
         this.properties = properties;
@@ -120,10 +129,12 @@ public class PushNotificationService {
         this.planner = planner;
         this.preferenceService = preferenceService;
         this.lineSubscriptionPushPlanner = lineSubscriptionPushPlanner;
+        this.regionalLineSubscriptionPushPlanner = regionalLineSubscriptionPushPlanner;
         this.clientEventRepository = clientEventRepository;
         this.webPushClient = webPushClient;
         this.receiptTokenService = receiptTokenService;
         this.ingestionFreshness = ingestionFreshness;
+        this.regionalIngestionFreshness = regionalIngestionFreshness;
         this.clock = clock;
         this.lifecycleService = lifecycleService;
     }
@@ -488,18 +499,24 @@ public class PushNotificationService {
         return subscriptionRepository.findByAccountIdAndEndpointHash(account.getId(), endpointHash)
             .filter(PushSubscriptionEntity::isEnabled)
             .map(subscription -> {
-                if (!ingestionFreshness.isDashboardFresh()) {
+                if (!ingestionFreshness.isDashboardFresh() && regionalIngestionFreshness == null) {
                     return new PushResponses.ActivePushNotificationsResponse(List.of(), List.of(), false);
                 }
-
                 PushNotificationPreferenceEntity preferences = preferenceService.preferenceEntityForAccountId(account.getId());
-                
-                List<PushNotificationCandidate> commuteCandidates = savedCommuteRepository.findByAccountIdOrderByCreatedAtAsc(account.getId())
+                List<SavedCommuteEntity> commutes =
+                    savedCommuteRepository.findByAccountIdOrderByCreatedAtAsc(account.getId());
+                List<PushNotificationCandidate> commuteCandidates = commutes
                     .stream()
                     .flatMap(commute -> savedCommuteCandidatesFor(commute, preferences).stream())
                     .toList();
                 
                 List<String> subscribedLineIds = preferenceService.subscribedLineIds(account.getId());
+                boolean ttcScope = commutes.stream().anyMatch(commute -> !"regional".equals(commute.getNetworkId()))
+                    || subscribedLineIds.stream().anyMatch(lineId -> !regionalLine(lineId));
+                boolean regionalScope = commutes.stream().anyMatch(commute -> "regional".equals(commute.getNetworkId()))
+                    || subscribedLineIds.stream().anyMatch(this::regionalLine);
+                boolean cleanupAllowed = (!ttcScope || ingestionFreshness.isDashboardFresh())
+                    && (!regionalScope || (regionalIngestionFreshness != null && regionalIngestionFreshness.isFresh()));
                 List<PushNotificationCandidate> lineCandidates = lineCandidatesFor(
                     account.getId(), subscribedLineIds, preferences
                 );
@@ -519,7 +536,7 @@ public class PushNotificationService {
                     .toList();
 
                 List<String> retainedTags = retainedNotificationTags(account.getId(), endpointHash, activeNotificationKeys);
-                return new PushResponses.ActivePushNotificationsResponse(activeTags, retainedTags, true);
+                return new PushResponses.ActivePushNotificationsResponse(activeTags, retainedTags, cleanupAllowed);
             })
             .orElse(new PushResponses.ActivePushNotificationsResponse(List.of(), List.of(), true));
     }
@@ -538,9 +555,22 @@ public class PushNotificationService {
         PushNotificationPreferenceEntity preferences
     ) {
         PlannedClosureFollowUpPolicy policy = preferences.getPlannedClosureFollowUpPolicy();
-        return policy == null
-            ? lineSubscriptionPushPlanner.candidatesFor(accountId, subscribedLineIds)
-            : lineSubscriptionPushPlanner.candidatesFor(accountId, subscribedLineIds, policy);
+        List<String> ttcLineIds = subscribedLineIds.stream().filter(lineId -> !regionalLine(lineId)).toList();
+        List<PushNotificationCandidate> candidates = new ArrayList<>(policy == null
+            ? lineSubscriptionPushPlanner.candidatesFor(accountId, ttcLineIds)
+            : lineSubscriptionPushPlanner.candidatesFor(accountId, ttcLineIds, policy));
+        if (regionalLineSubscriptionPushPlanner != null) {
+            candidates.addAll(regionalLineSubscriptionPushPlanner.candidatesFor(
+                accountId,
+                subscribedLineIds.stream().filter(this::regionalLine).toList(),
+                policy == null ? PlannedClosureFollowUpPolicy.SMART : policy
+            ));
+        }
+        return List.copyOf(candidates);
+    }
+
+    private boolean regionalLine(String lineId) {
+        return lineId != null && lineId.startsWith("regional-");
     }
 
     private List<String> retainedNotificationTags(String accountId, String endpointHash, List<String> activeNotificationKeys) {

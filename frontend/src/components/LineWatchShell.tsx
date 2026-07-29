@@ -802,10 +802,14 @@ export function LineWatchShell({
     const params = new URLSearchParams(window.location.search);
     const nextParams = new URLSearchParams(params);
     let shouldReplaceUrl = false;
+    const requestedNetwork = params.get("network");
+    if (requestedNetwork === "ttc" || requestedNetwork === "regional") {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setSelectedNetwork(requestedNetwork);
+    }
 
     const accountLinkedValue = params.get(GOOGLE_LINK_SUCCESS_PARAM);
     if (accountLinkedValue === GOOGLE_LINK_SUCCESS_VALUE) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setAccountDialogMode("link-google");
       setAccountError(null);
       setAccountSuccessMessage("Google sign-in has been linked to your account.");

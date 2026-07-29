@@ -37,13 +37,17 @@ describe("push notification preferences schema", () => {
     }), "announcements-only");
   });
 
-  it("exports default push notification preferences with all lines unsubscribed", () => {
+  it("exports default push notification preferences with all TTC lines and regional corridors unsubscribed", () => {
     assert.equal(defaultPushNotificationPreferences.commuteNotificationsEnabled, true);
     assert.equal(defaultPushNotificationPreferences.plannedClosureNotificationsEnabled, true);
     assert.equal(defaultPushNotificationPreferences.savedCommutes.currentDisruptions, true);
     assert.equal(defaultPushNotificationPreferences.savedCommutes.plannedClosureReminders, true);
     assert.equal(defaultPushNotificationPreferences.savedCommutes.eventTypes.reducedSpeedZones, true);
-    assert.equal(defaultPushNotificationPreferences.lineSubscriptions.lines.length, 5);
+    assert.equal(defaultPushNotificationPreferences.lineSubscriptions.lines.length, 13);
+    assert.equal(
+      defaultPushNotificationPreferences.lineSubscriptions.lines.filter((line) => line.lineId.startsWith("regional-")).length,
+      8,
+    );
     
     // All lines must be unsubscribed by default
     for (const line of defaultPushNotificationPreferences.lineSubscriptions.lines) {

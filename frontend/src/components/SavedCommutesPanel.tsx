@@ -860,7 +860,7 @@ export function SavedCommutesPanel({
             originStationId,
             destinationStationId,
             watchReturnTrip,
-            ...(networkId === "ttc" ? { notificationRule: newNotificationRule } : {}),
+            notificationRule: newNotificationRule,
           });
       setAccountCommutes(editingCommuteId
         ? accountCommutes.map((commute) => commute.id === saved.id ? saved : commute)
@@ -1045,7 +1045,7 @@ export function SavedCommutesPanel({
                 <span className="text-xs text-emerald-600 dark:text-emerald-400 font-bold mt-0.5">✓</span>
                 <div className="text-xs">
                   <span className="font-bold text-slate-800 dark:text-slate-200 block">Route Impact Alerts</span>
-                  <span className="text-slate-500 dark:text-slate-400">{networkId === "regional" ? "Regional push notifications are a later slice." : "Receive route impact alerts when notifications are enabled."}</span>
+                  <span className="text-slate-500 dark:text-slate-400">Receive route impact alerts when notifications are enabled and the selected network source is fresh.</span>
                 </div>
               </div>
 
@@ -1110,7 +1110,7 @@ export function SavedCommutesPanel({
                   </div>
                   <span>Track Return Route</span>
                 </label>
-                {networkId === "ttc" && !editingCommuteId ? <button
+                {!editingCommuteId ? <button
                     type="button"
                     className="saved-commute-customize-toggle"
                     aria-expanded={showNotificationSettings}
@@ -1122,11 +1122,11 @@ export function SavedCommutesPanel({
 
                 {networkId === "regional" ? (
                   <p className="text-xs text-slate-500 dark:text-slate-400">
-                    Travel times are low-confidence planning estimates over the reviewed schematic topology. Regional push notifications are not enabled yet.
+                    Travel times are low-confidence planning estimates. Notification matching uses only fresh dashboard-visible Metrolinx corridor, segment, and station impacts.
                   </p>
                 ) : null}
 
-                {networkId === "ttc" && !editingCommuteId && showNotificationSettings ? (
+                {!editingCommuteId && showNotificationSettings ? (
                   <div>
                     <SavedCommuteNotificationRuleEditor
                       rule={newNotificationRule}
@@ -1502,7 +1502,7 @@ export function SavedCommutesPanel({
                       {selectedLeg.impact.matchedImpacts.length === 0 ? (
                         <hr className="border-slate-800/10 dark:border-slate-200/10 mt-5 mb-1.5 mx-1" />
                       ) : null}
-                      {commute.networkId === "ttc" ? <div className="saved-commute-rule-summary">
+                      <div className="saved-commute-rule-summary">
                         <div>
                           <strong>Route Notifications: {notificationRuleStatus}</strong>
                           <ul className="list-disc list-outside pl-3 mt-1 space-y-0.5 text-[0.66rem] font-medium text-slate-600 dark:text-slate-400">
@@ -1526,18 +1526,9 @@ export function SavedCommutesPanel({
                         >
                           {editingNotificationRule ? "Close" : "Edit Alerts"}
                         </button>
-                      </div> : (
-                        <div className="saved-commute-rule-summary">
-                          <div>
-                            <strong>Regional Notifications: Not available yet</strong>
-                            <p className="mt-1 text-[0.66rem] font-medium text-slate-600 dark:text-slate-400">
-                              This route is checked in the dashboard only. It is excluded from TTC push matching.
-                            </p>
-                          </div>
-                        </div>
-                      )}
+                      </div>
 
-                      {commute.networkId === "ttc" && editingNotificationRule ? (
+                      {editingNotificationRule ? (
                         <div className="saved-commute-rule-editor">
                           <SavedCommuteNotificationRuleEditor
                             rule={notificationDraft}

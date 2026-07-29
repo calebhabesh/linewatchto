@@ -51,7 +51,11 @@ class PushNotificationPreferenceServiceTest {
         assertThat(response.savedCommutes().eventTypes().reducedSpeedZones()).isTrue();
         assertThat(response.lineSubscriptions().lines())
             .extracting(PushResponses.LineSubscriptionResponse::lineId)
-            .containsExactly("line-1", "line-2", "line-4", "line-5", "line-6");
+            .containsExactly(
+                "line-1", "line-2", "line-4", "line-5", "line-6",
+                "regional-br", "regional-ki", "regional-le", "regional-lw",
+                "regional-mi", "regional-rh", "regional-st", "regional-up"
+            );
         assertThat(response.lineSubscriptions().lines())
             .allSatisfy(line -> assertThat(line.subscribed()).isFalse());
         assertThat(response.lineSubscriptions().eventTypes().reducedSpeedZones()).isTrue();
