@@ -143,13 +143,13 @@ function getMetricDetails(id: string, originalLabel: string) {
     default:
       return {
         label: originalLabel,
-        icon: <Accessibility className="w-5 h-5 text-slate-500 dark:text-slate-400 shrink-0" />,
+        icon: <BarChart3 className="w-5 h-5 text-slate-500 dark:text-slate-400 shrink-0" />,
       };
   }
 }
 
 export function ReliabilityPanel({ onBack, onClose }: ReliabilityProps = {}) {
-  const { ttcPerformance } = useDashboardData();
+  const { networkId, reliability, ttcPerformance } = useDashboardData();
   const metrics = ttcPerformance.metrics;
 
   const onTimeMetrics = metrics.filter(m => m.category !== "accessibility");
@@ -212,10 +212,10 @@ export function ReliabilityPanel({ onBack, onClose }: ReliabilityProps = {}) {
           <div className="min-w-0">
             <h2 className="text-[clamp(10px,3.5cqw,18px)] font-bold text-slate-900 dark:text-white flex items-center gap-1 sm:gap-2 whitespace-nowrap">
               <BarChart3 className="w-[16px] h-[16px] sm:w-[22px] sm:h-[22px] text-purple-500 shrink-0" />
-              <span>Official TTC Performance</span>
+              <span>Reliability Analytics</span>
             </h2>
             <p className="text-[11px] text-slate-500 dark:text-slate-400">
-              Source: {ttcPerformance.source} · Updated: {ttcPerformance.updatedLabel}
+              {reliability.coverageLabel} · {reliability.confidence} confidence
             </p>
           </div>
         </div>
@@ -230,7 +230,65 @@ export function ReliabilityPanel({ onBack, onClose }: ReliabilityProps = {}) {
         )}
       </div>
       <div className="reliability-list min-w-0 p-3 flex flex-col gap-2">
-        {metrics.length === 0 ? (
+        <div className="flex flex-col gap-2">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <h3 className="text-[15px] font-black text-slate-900 dark:text-white">
+                Observed disruptions · 30 days
+              </h3>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                Source: {reliability.source}
+              </p>
+            </div>
+            <span className="rounded-md border border-black/10 dark:border-white/10 px-2 py-1 text-[10px] font-bold uppercase text-slate-600 dark:text-slate-300">
+              {reliability.confidence}
+            </span>
+          </div>
+          <p className="text-xs text-slate-500 dark:text-slate-400">{reliability.message}</p>
+          {reliability.metrics.length === 0 ? (
+            <div className="reliability-row min-w-0 p-3 rounded-lg !bg-slate-50 dark:!bg-[#12151c] border border-black/5 dark:border-white/5">
+              <strong className="text-sm font-bold text-slate-800 dark:text-white">History is accumulating</strong>
+              <p className="text-xs text-slate-500 dark:text-slate-400">{reliability.coverageLabel}</p>
+            </div>
+          ) : reliability.metrics.map((item) => {
+            const details = getMetricDetails(item.id, item.label);
+            return (
+              <div key={item.id} className="reliability-row min-w-0 p-3 rounded-lg !bg-slate-50 dark:!bg-[#12151c] border border-black/5 dark:border-white/5">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex min-w-0 items-center gap-2.5">
+                    {details.icon}
+                    <strong className="text-sm font-bold text-slate-800 dark:text-white">
+                      {networkId === "regional" && item.number ? `${item.number} · ` : ""}{details.label}
+                    </strong>
+                  </div>
+                  <strong className="whitespace-nowrap text-sm text-slate-700 dark:text-slate-300">
+                    {item.incidents} {item.incidents === 1 ? "incident" : "incidents"}
+                  </strong>
+                </div>
+                <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+                  {item.medianDurationMinutes == null
+                    ? "No completed incident duration yet"
+                    : `Median ${item.medianDurationMinutes} min`}
+                  {" · "}{item.observedDisruptionMinutes} observed disruption min
+                  {item.activeIncidents > 0 ? ` · ${item.activeIncidents} active` : ""}
+                </p>
+              </div>
+            );
+          })}
+        </div>
+
+        {networkId === "ttc" && <hr className="border-black/10 dark:border-white/10 my-2" />}
+
+        {networkId === "ttc" && (
+          <div className="flex flex-col gap-2">
+            <h3 className="text-[15px] font-black text-slate-900 dark:text-white">Official TTC Performance</h3>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400">
+              Source: {ttcPerformance.source} · Updated: {ttcPerformance.updatedLabel}
+            </p>
+          </div>
+        )}
+
+        {networkId === "ttc" && (metrics.length === 0 ? (
           <div className="reliability-row min-w-0 p-3 rounded-lg !bg-slate-50 dark:!bg-[#12151c] border border-black/5 dark:border-white/5">
             <strong className="text-sm font-bold text-slate-800 dark:text-white">Official metrics unavailable</strong>
             <p className="text-xs text-slate-500 dark:text-slate-400">{ttcPerformance.message}</p>
@@ -255,7 +313,7 @@ export function ReliabilityPanel({ onBack, onClose }: ReliabilityProps = {}) {
               </div>
             )}
           </>
-        )}
+        ))}
       </div>
     </section>
   );

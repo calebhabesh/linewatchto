@@ -170,6 +170,18 @@ export const regionalDashboardData: DashboardData = {
   stationNodeImpacts: [],
   commuteImpacts: [],
   reliabilitySummaries: [],
+  reliability: {
+    networkId: "regional",
+    period: "30d",
+    since: "",
+    until: "",
+    source: "Metrolinx alert history",
+    observedDays: 0,
+    confidence: "low",
+    coverageLabel: "No observed history",
+    message: "Regional reliability history will appear after alert lifecycle observations accumulate.",
+    metrics: [],
+  },
   ttcPerformance: {
     status: "disabled",
     source: "Unavailable in regional fixture mode",
@@ -209,7 +221,10 @@ export type RegionalDashboardApiResponse = {
   performance: DashboardData["ttcPerformance"];
 };
 
-export function regionalDashboardDataFromApi(payload: RegionalDashboardApiResponse): DashboardData {
+export function regionalDashboardDataFromApi(
+  payload: RegionalDashboardApiResponse,
+  reliability: DashboardData["reliability"] = regionalDashboardData.reliability,
+): DashboardData {
   const fresh = payload.networkId === "regional"
     && payload.availability === "available"
     && payload.status?.generatedAt?.live === true
@@ -246,6 +261,7 @@ export function regionalDashboardDataFromApi(payload: RegionalDashboardApiRespon
     reducedSpeedZones: payload.reducedSpeedZones,
     plannedClosures: payload.plannedClosures,
     stationNodeImpacts: payload.map.stationNodeImpacts,
+    reliability,
     ttcPerformance: payload.performance,
     ingestionHealth: [{
       label: "Metrolinx source",

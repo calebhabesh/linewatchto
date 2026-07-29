@@ -11,9 +11,11 @@ import {
   ingestionHealth,
   commuteImpacts,
   reliabilitySummaries,
+  reliabilitySnapshot as fallbackReliability,
   mapAsset,
   ttcPerformanceSnapshot as fallbackPerformance,
   type TtcPerformanceSnapshot,
+  type ReliabilitySnapshot,
   type ReducedSpeedZone,
   type ActiveAlert,
   type DelayAlert,
@@ -62,7 +64,7 @@ async function fetchSafe<T>(path: string): Promise<T | null> {
   }
 }
 
-function fromBackendPayload(payload: DashboardApiResponse): DashboardData {
+function fromBackendPayload(payload: DashboardApiResponse, reliability: ReliabilitySnapshot = fallbackReliability): DashboardData {
   return {
     networkId: "ttc",
     dataSource: "backend",
@@ -77,6 +79,7 @@ function fromBackendPayload(payload: DashboardApiResponse): DashboardData {
     stationNodeImpacts: payload.map.stationNodeImpacts,
     commuteImpacts,
     reliabilitySummaries,
+    reliability,
     ttcPerformance: payload.performance ?? fallbackPerformance,
     ingestionHealth,
     mapAsset
@@ -102,6 +105,7 @@ function fallbackDashboardData(): DashboardData {
     stationNodeImpacts: fallbackStationNodeImpacts,
     commuteImpacts,
     reliabilitySummaries,
+    reliability: fallbackReliability,
     ttcPerformance: fallbackPerformance,
     ingestionHealth,
     mapAsset
@@ -109,22 +113,26 @@ function fallbackDashboardData(): DashboardData {
 }
 
 async function loadDashboardFromAggregate(): Promise<DashboardData | null> {
-  const payload = await fetchSafe<DashboardApiResponse>("/api/dashboard?network=ttc");
+  const [payload, reliability] = await Promise.all([
+    fetchSafe<DashboardApiResponse>("/api/dashboard?network=ttc"),
+    fetchSafe<ReliabilitySnapshot>("/api/reliability/lines?network=ttc"),
+  ]);
   if (!payload?.map || !payload.status || !payload.activeAlerts || !payload.delays || !payload.reducedSpeedZones || !payload.plannedClosures) {
     return null;
   }
-  return fromBackendPayload(payload);
+  return fromBackendPayload(payload, reliability ?? fallbackReliability);
 }
 
 async function loadDashboardFromLegacyEndpoints(): Promise<DashboardData | null> {
-  const [mapData, statusData, activeAlerts, delays, reducedSpeedZones, plannedClosures, performanceData] = await Promise.all([
+  const [mapData, statusData, activeAlerts, delays, reducedSpeedZones, plannedClosures, performanceData, reliability] = await Promise.all([
     fetchSafe<MapApiResponse>("/api/map"),
     fetchSafe<StatusApiResponse>("/api/status"),
     fetchSafe<ActiveAlert[]>("/api/alerts"),
     fetchSafe<DelayAlert[]>("/api/alerts?type=delay"),
     fetchSafe<ReducedSpeedZone[]>("/api/alerts?type=slowdown"),
     fetchSafe<PlannedClosure[]>("/api/alerts?type=planned"),
-    fetchSafe<TtcPerformanceSnapshot>("/api/performance")
+    fetchSafe<TtcPerformanceSnapshot>("/api/performance"),
+    fetchSafe<ReliabilitySnapshot>("/api/reliability/lines?network=ttc"),
   ]);
 
   const useFallback = !mapData || !statusData || !activeAlerts || !delays || !reducedSpeedZones || !plannedClosures;
@@ -140,7 +148,7 @@ async function loadDashboardFromLegacyEndpoints(): Promise<DashboardData | null>
     reducedSpeedZones,
     plannedClosures,
     performance: performanceData ?? fallbackPerformance,
-  });
+  }, reliability ?? fallbackReliability);
 }
 
 export async function loadDashboardInitialData(): Promise<DashboardData> {

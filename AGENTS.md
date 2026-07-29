@@ -44,7 +44,8 @@ The project is early but no longer an empty scaffold.
 - Safe, non-public actuator exposure running on private management port 9090 inside the Docker network, and blocked by Caddy reverse-proxy rules at the edge is implemented.
 - Conditionally loaded Cloudflare Web Analytics beacon script on the frontend layout when a client token is supplied is implemented.
 - A cross-network design-language consistency pass is implemented for TTC and GO/UP modes. Equivalent experiences share the mature TTC presentation patterns for time/freshness vocabulary, menu structure, authored line badges, station-panel chrome, transitions, responsive layouts, cards, loading/empty/error states, and map interactions. Network-specific content and capabilities remain source-honest rather than being forced into TTC-shaped UI.
-- Populated geographic geometry, production segment matching, standalone commute-impact API, route review/edit, commute email notifications, and reliability aggregation are planned but not yet implemented.
+- Source-labeled 30-day TTC line/station and GO/UP corridor/station disruption aggregation is implemented from retained normalized alert lifecycles, with incident/duration metrics plus observation coverage and confidence labels. Regional history begins accumulating from its reliability migration, so early regional results are explicitly low-confidence.
+- Standalone commute-impact API, TTC route review/edit, cross-network routing, regional push notifications, and commute email notifications remain planned.
 
 Do not claim that the visible dashboard is live unless there is a fresh successful ingestion run. Do not claim imported GTFS geometry, production geospatial matching, or Redis-backed status until those features exist in code and have passing verification. Do not claim TTC live station arrivals unless `LINEWATCH_ARRIVALS_PROVIDER=live`, a fresh TTC GTFS-RT Subway Trip Updates snapshot has been mapped through an active static GTFS import, and the returned rows are source-labeled live. Do not claim GO/UP station arrivals unless `LINEWATCH_REGIONAL_ARRIVALS_ENABLED=true`, the backend-only Metrolinx key is configured, and the endpoint returns freshness-checked source-labeled rows. Regional arrivals are realtime estimates, not guaranteed departure times or physical train positions. Do not claim GO/UP estimated train markers unless `LINEWATCH_REGIONAL_TRAIN_MARKERS_ENABLED=true`, the backend-only Metrolinx key is configured, and `/api/regional/trains` returns a fresh source-labeled snapshot. Regional markers are conservative topology-projected schematic placements, not exact coordinates or physical movement. Do not claim visitor analytics or engineering telemetry shows data unless Grafana Cloud and Cloudflare Web Analytics are configured with active credentials/tokens. Do not claim estimated train markers are exact physical train positions or reflect real-time physical movement; always refer to them as estimated train markers or schematic placements. Do not claim overnight subway Trip Updates represent in-service trains; the app hides estimated markers during closed hours.
 Do not claim My Commutes sends push notifications unless Web Push is configured/enabled and the notification is based on fresh dashboard-visible commute impacts allowed by the route's notification rule. Do not claim My Commutes sends email notifications, recommends alternate routes, accounts for walking transfers, provides route review/edit, provides accessibility-personalized matching, or uses live train movement for route timing. Do not present commute extra-time ranges as precise predictions; they are confidence-labeled heuristics over the matched dashboard-visible impacts.
@@ -256,12 +257,9 @@ The backend now owns:
 
 The backend should eventually own:
 
-- Static TTC GTFS shape import for subway/LRT geometry.
-- PostGIS modeling for stations, line segments, and shapes.
 - Additional planned-closure source ingestion if needed beyond the live-alert feed.
 - TTC Reduced Speed Zones webpage ingestion if needed beyond the live-alert feed.
 - Alert-to-line/station/segment impact matching.
-- Reliability aggregation.
 - Commute impact matching.
 - User-facing live status reads.
 - Exact live physical on-map train tracking.
@@ -312,9 +310,9 @@ When changing agent instructions, update both `AGENTS.md` and `GEMINI.md` togeth
 
 ## Suggested Next Implementation Order
 
-1. Import static GTFS shapes and implement production alert-to-segment matching.
-2. Implement regional reliability aggregation.
-3. Implement regional notification delivery after regional commute matching.
+1. Implement regional notification delivery after regional commute matching.
+2. Add TTC My Commutes route review and editing.
+3. Revisit cross-network routing and optional email notifications only with a concrete product need.
 
 ## Agent Handoff Notes
 

@@ -13,7 +13,8 @@ import {
   ReducedSpeedZone,
   DelayAlert,
   StationNodeImpact,
-  TtcPerformanceSnapshot
+  TtcPerformanceSnapshot,
+  ReliabilitySnapshot
 } from "./linewatch-data";
 import type { NetworkId } from "./regional-data";
 
@@ -31,6 +32,7 @@ export interface DashboardData {
   stationNodeImpacts: StationNodeImpact[];
   commuteImpacts: CommuteSummary[];
   reliabilitySummaries: ReliabilitySummary[];
+  reliability: ReliabilitySnapshot;
   ttcPerformance: TtcPerformanceSnapshot;
   ingestionHealth: IngestionHealthItem[];
   mapAsset: { src: string; viewBox: readonly [number, number, number, number]; legendIcons: Record<string, string> };

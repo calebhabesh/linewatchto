@@ -14,7 +14,7 @@ Implemented now:
 
 - Dark, map-first Next.js dashboard.
 - Cross-network design-language consistency for equivalent TTC and GO/UP experiences: shared time/freshness and fallback vocabulary, menu and responsive navigation patterns, authored line badges, station-panel chrome and transitions, impact cards, loading/empty/error hierarchy, and map interaction feedback. Unsupported regional capabilities remain absent rather than being represented with TTC-only controls or data.
-- GO/UP network mode with a network-scoped TTC / GO & UP selector, a per-device default-map preference, a custom interactive regional schematic, all eight rail corridors, 72 logical stations, and all 74 adjacent route links. Opt-in backend-only Metrolinx Open API polling filters GO service updates to rail corridors and reads the dedicated UP Express GTFS-RT alerts feed. Fresh successful runs can drive regional line status, alert cards, affected route links, station rings, and saved-commute disruption matching through `GET /api/dashboard?network=regional` and the account commute boundary; stale, disabled, or unavailable ingestion suppresses regional commute impacts. Independently opt-in regional station arrivals use Metrolinx GO Next Service train rows and the dedicated UP Express GTFS-RT TripUpdates feed through a purpose-built station endpoint, with source freshness checks, short backend caching, and explicit unavailable states. Fresh GO amenity records for elevator/escalator disruptions drive the network-scoped accessibility drill-down and regional station-detail outage rows when station and corridor codes map cleanly to the reviewed catalog. The regional map reuses the TTC map's interaction patterns and can preview account-owned GO/UP commute paths. Station search, station details, line legend actions, My Stations, My Commutes, status copy, and mobile inspection are scoped to the selected network. Reduced Speed Zones, reliability, notifications, and surface notices remain absent or explicitly unavailable in regional mode. Saved-station and saved-commute identities include the network so shared logical station IDs cannot collide. TTC remains the default.
+- GO/UP network mode with a network-scoped TTC / GO & UP selector, a per-device default-map preference, a custom interactive regional schematic, all eight rail corridors, 72 logical stations, and all 74 adjacent route links. Opt-in backend-only Metrolinx Open API polling filters GO service updates to rail corridors and reads the dedicated UP Express GTFS-RT alerts feed. Fresh successful runs can drive regional line status, alert cards, affected route links, station rings, and saved-commute disruption matching through `GET /api/dashboard?network=regional` and the account commute boundary; stale, disabled, or unavailable ingestion suppresses regional commute impacts. Independently opt-in regional station arrivals use Metrolinx GO Next Service train rows and the dedicated UP Express GTFS-RT TripUpdates feed through a purpose-built station endpoint, with source freshness checks, short backend caching, and explicit unavailable states. Fresh GO amenity records for elevator/escalator disruptions drive the network-scoped accessibility drill-down and regional station-detail outage rows when station and corridor codes map cleanly to the reviewed catalog. The regional map reuses the TTC map's interaction patterns and can preview account-owned GO/UP commute paths. Station search, station details, line legend actions, My Stations, My Commutes, reliability analytics, status copy, and mobile inspection are scoped to the selected network. Reduced Speed Zones, notifications, and surface notices remain absent or explicitly unavailable in regional mode. Saved-station and saved-commute identities include the network so shared logical station IDs cannot collide. TTC remains the default.
 - Opt-in estimated train markers can display schematic train blips on the TTC-style map when the live subway GTFS-RT arrival provider has a fresh mapped snapshot. These markers are inferred from trip updates, line topology, and segment travel-time estimates; they are not physical train positions.
 - Network-scoped accessibility outages panel with elevator and escalator drill-downs grouped by TTC line or GO/UP corridor and station, showing update times, station detail links, and custom icons.
 - Searchable surface service notices panel with category filters (detours, bypasses, service changes, notices) and debounced route/stop search queries.
@@ -38,6 +38,7 @@ Implemented now:
 - Account-backed Web Push notification subscriptions and preferences for My Commutes impacts. My Commutes notifications can be narrowed per route; delivery is opt-in and requires browser permission, a browser that supports PWA Web Push, configured VAPID keys, `LINEWATCH_PUSH_ENABLED=true`, fresh dashboard-visible impacts, and a matching route notification rule.
 - Account sign-in supports optional Google sign-in when a Google OAuth web client ID, client secret, and redirect URI are configured, while retaining email/password registration, explicit Google linking for existing password accounts, password reset through emailed reset links when SMTP is configured, local/dev reset-token fallback, and demo login.
 - Official TTC.ca performance metrics panel for current on-time and elevator/escalator status, source-labeled with the TTC.ca updated timestamp, daily refresh guard, and stale last-good fallback.
+- Source-labeled 30-day TTC line/station and GO/UP corridor/station disruption summaries derived from retained normalized alert lifecycles. The UI reports incident counts, active incidents, observed disruption minutes, median completed duration, observation coverage, and low/medium/high confidence without inventing a reliability score.
 - Redis-backed dashboard cache for status, map, alerts, ingestion health, and TTC performance reads, with database/live fallback when Redis is unavailable.
 - Ingestion/system health panel in fixture mode.
 - High-contrast display toggle.
@@ -82,15 +83,12 @@ Implemented now:
 Not implemented yet:
 
 - TTC alert polling remains opt-in by default; use the live backend dev script for fresh alert cards and map overlays.
-- Static GTFS shape import remains unimplemented.
-- Populated geographic PostGIS geometry and production geospatial matching remain unimplemented.
 - TTC Reduced Speed Zones webpage ingestion remains unimplemented.
 - Exact live physical on-map train position tracking remains unimplemented. The on-map train markers are schematic estimates inferred from arrival predictions.
-- GO/UP reliability aggregation and push notifications remain outside the regional integration. Regional commute baseline times are topology planning estimates, not timetable predictions, and cross-network TTC-to-GO/UP routing is not implemented. Regional accessibility notices do not establish complete facility coverage or platform-level asset identity. Regional arrivals are on-demand realtime estimates, not guaranteed departure times. Regional estimated train markers are freshness-gated topology-projected schematic placements, not exact train locations or physical movement.
+- GO/UP push notifications remain outside the regional integration. Regional commute baseline times are topology planning estimates, not timetable predictions, and cross-network TTC-to-GO/UP routing is not implemented. Regional accessibility notices do not establish complete facility coverage or platform-level asset identity. Regional arrivals are on-demand realtime estimates, not guaranteed departure times. Regional estimated train markers are freshness-gated topology-projected schematic placements, not exact train locations or physical movement.
 - The arrival provider architecture supports live, scheduled, unavailable, and demo status states.
 - Standalone commute-impact endpoint, route review/edit, commute email notifications, alternate-route suggestions, and accessibility-personalized commute matching.
 - Line-wide Web Push subscriptions are implemented for Lines 1, 2, 4, 5, and 6, but they are opt-in and filtered by selected line, event type, and one account-level planned-closure follow-up policy. Reduced Speed Zone line-wide alerts default on for new notification preferences. Existing active Reduced Speed Zones are recorded silently when a line stream becomes eligible, new Reduced Speed Zones send one active notification, and observed Reduced Speed Zones can send a clearance when fresh dashboard data shows they are gone.
-- Real historical LineWatch reliability aggregation remains unimplemented.
 - Redis cache improves current read performance; it does not make stale TTC alert data live.
 
 The UI demonstrates the intended product behavior with realistic local data and an opt-in fresh-ingestion live alert path. Additional backend-backed live data will be added incrementally.
@@ -901,10 +899,10 @@ Suggested resume bullet once backend and live data are implemented:
 
 ## Roadmap
 
-1. Import static GTFS shapes and implement production alert-to-segment matching.
-2. Implement regional reliability aggregation with corridor/station coverage and confidence labels.
-3. Implement regional notification delivery after the regional reliability and matching boundaries are proven.
-3. Publish measured API/build/test metrics.
+1. Implement regional notification delivery after the regional reliability and matching boundaries are proven.
+2. Add TTC My Commutes route review and editing.
+3. Revisit cross-network routing and optional email notifications only with a concrete product need.
+4. Publish measured API/build/test metrics.
 
 ## License and Disclaimer
 

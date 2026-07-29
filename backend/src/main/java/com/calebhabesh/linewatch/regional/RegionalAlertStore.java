@@ -80,6 +80,7 @@ public class RegionalAlertStore {
                 .addValue("stationIds", json(alert.stationIds()))
                 .addValue("affectedSegmentIds", json(alert.affectedSegmentIds()))
                 .addValue("now", now));
+        snapshotIfChanged(alert.id(), now);
     }
 
     public void deactivateMissingSources(String sourceSystem, Set<String> sourceIds) {
@@ -100,6 +101,55 @@ public class RegionalAlertStore {
                 .addValue("alertIds", alertIds)
                 .addValue("now", now)
         );
+        snapshotDeactivations(sourceSystem, now);
+    }
+
+    private void snapshotIfChanged(String alertId, OffsetDateTime now) {
+        jdbc.update("""
+            insert into regional_alert_snapshots (
+                alert_id, line_id, impact_kind, title, station_ids, active, snapshot_time
+            )
+            select a.id, a.line_id, a.impact_kind, a.title, a.station_ids, a.active, :now
+            from regional_alerts a
+            where a.id = :alertId
+              and not exists (
+                  select 1
+                  from regional_alert_snapshots s
+                  where s.id = (
+                      select latest.id from regional_alert_snapshots latest
+                      where latest.alert_id = a.id
+                      order by latest.snapshot_time desc, latest.id desc limit 1
+                  )
+                    and s.line_id = a.line_id and s.impact_kind = a.impact_kind
+                    and s.title = a.title and s.station_ids = a.station_ids and s.active = a.active
+              )
+            """, new MapSqlParameterSource()
+                .addValue("alertId", alertId)
+                .addValue("now", now));
+    }
+
+    private void snapshotDeactivations(String sourceSystem, OffsetDateTime now) {
+        jdbc.update("""
+            insert into regional_alert_snapshots (
+                alert_id, line_id, impact_kind, title, station_ids, active, snapshot_time
+            )
+            select a.id, a.line_id, a.impact_kind, a.title, a.station_ids, false, :now
+            from regional_alerts a
+            where a.source_system = :sourceSystem
+              and a.active = false
+              and not exists (
+                  select 1
+                  from regional_alert_snapshots s
+                  where s.id = (
+                      select latest.id from regional_alert_snapshots latest
+                      where latest.alert_id = a.id
+                      order by latest.snapshot_time desc, latest.id desc limit 1
+                  )
+                    and s.active = false
+              )
+            """, new MapSqlParameterSource()
+                .addValue("sourceSystem", sourceSystem)
+                .addValue("now", now));
     }
 
     public List<RegionalNormalizedAlert> findActiveAlerts() {

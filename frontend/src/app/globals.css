@@ -4648,6 +4648,10 @@ button {
     stroke-width: 190;
   }
 
+  .asset-alert-path-glow.hover-priority-glow.planned-preview {
+    stroke: rgb(248 250 252 / 70%);
+  }
+
   .hover-priority-boundary {
     animation: hover-priority-boundary-in 180ms ease-out both;
     opacity: 0.94;

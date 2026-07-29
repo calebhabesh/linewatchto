@@ -253,13 +253,23 @@ export function LineWatchShell({
   const fetchRegionalDashboard = useCallback(async () => {
     if (regionalScenarioActiveRef.current || document.visibilityState !== "visible") return;
     try {
-      const response = await fetch(apiUrl("/api/dashboard?network=regional"), {
-        cache: "no-store",
-        signal: AbortSignal.timeout(5000),
-      });
+      const [response, reliabilityResponse] = await Promise.all([
+        fetch(apiUrl("/api/dashboard?network=regional"), {
+          cache: "no-store",
+          signal: AbortSignal.timeout(5000),
+        }),
+        fetch(apiUrl("/api/reliability/lines?network=regional"), {
+          cache: "no-store",
+          signal: AbortSignal.timeout(5000),
+        }),
+      ]);
       if (!response.ok) throw new Error(`Regional dashboard request failed (${response.status})`);
       const payload = await response.json() as RegionalDashboardApiResponse;
+      const reliability = reliabilityResponse.ok
+        ? await reliabilityResponse.json() as DashboardData["reliability"]
+        : regionalDashboardData.reliability;
       setRegionalData(regionalDashboardDataFromApi(payload));
+      setRegionalData((current) => ({ ...current, reliability }));
     } catch {
       setRegionalData(regionalDashboardData);
     }

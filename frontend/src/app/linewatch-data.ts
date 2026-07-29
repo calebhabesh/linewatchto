@@ -242,6 +242,28 @@ export type ReliabilitySummary = {
   medianDuration: string;
 };
 
+export type ReliabilitySnapshot = {
+  networkId: "ttc" | "regional";
+  period: "30d";
+  since: string;
+  until: string;
+  source: string;
+  observedDays: number;
+  confidence: "low" | "medium" | "high";
+  coverageLabel: string;
+  message: string;
+  metrics: {
+    id: string;
+    number: string;
+    label: string;
+    incidents: number;
+    activeIncidents: number;
+    medianDurationMinutes: number | null;
+    observedDisruptionMinutes: number;
+    confidence: "low" | "medium" | "high";
+  }[];
+};
+
 export type IngestionHealthItem = {
   label: string;
   value: string;
@@ -444,6 +466,28 @@ export const reliabilitySummaries: ReliabilitySummary[] = [
   { lineId: "line-5", lineNumber: "5", label: "Eglinton", score: 91, incidents7d: 2, medianDuration: "12 min" },
   { lineId: "line-6", lineNumber: "6", label: "Finch West", score: 93, incidents7d: 1, medianDuration: "10 min" },
 ];
+
+export const reliabilitySnapshot: ReliabilitySnapshot = {
+  networkId: "ttc",
+  period: "30d",
+  since: "2026-06-28T12:00:00Z",
+  until: "2026-07-28T12:00:00Z",
+  source: "LineWatch fixture alert history",
+  observedDays: 30,
+  confidence: "high",
+  coverageLabel: "30 of 30 days observed",
+  message: "Fixture-mode disruption history for interface demonstration.",
+  metrics: reliabilitySummaries.map((item) => ({
+    id: item.lineId,
+    number: item.lineNumber,
+    label: item.label,
+    incidents: item.incidents7d,
+    activeIncidents: 0,
+    medianDurationMinutes: Number.parseInt(item.medianDuration, 10),
+    observedDisruptionMinutes: item.incidents7d * Number.parseInt(item.medianDuration, 10),
+    confidence: "high",
+  })),
+};
 
 export const ingestionHealth: IngestionHealthItem[] = [
   { label: "GTFS snapshot", value: "4 lines / 16 display stops", state: "ok" },
