@@ -42,6 +42,11 @@ import type { AccountCommutePathPreview } from "../app/account-data";
 import { estimatedTrainMarkerRenderKey, type EstimatedTrainMarker } from "../app/train-markers";
 import { LogsDropdown } from "./LogsDropdown";
 import { ImpactTypeIcon } from "./ImpactTypeIcon";
+import {
+  MapOverlapIndicator,
+  mapOverlapIndicatorSizeForKindCount,
+  type MapOverlapIndicatorSize,
+} from "./MapOverlapIndicator";
 import { PlannedClosureIcon } from "./PlannedClosureIcon";
 import { SiteGuideDropdown } from "./SiteGuideDropdown";
 import {
@@ -2185,10 +2190,7 @@ type StationImpactDirectionLayer = {
 
 type SvgBounds = MapBounds;
 
-type OverlapBadgeSize = {
-  width: number;
-  height: number;
-};
+type OverlapBadgeSize = MapOverlapIndicatorSize;
 
 type OverlapBadgePosition = MapPoint & {
   collisionAvoided: boolean;
@@ -2248,11 +2250,6 @@ const OVERLAP_BADGE_ALIGNMENT_MAX_ANCHOR_DISTANCE = 260;
 // Overlap markers are a primary alert-discovery control. Keep their collision
 // footprint in step with the rendered SVG scale so the larger desktop and
 // mobile targets still clear nearby map content.
-const OVERLAP_INDICATOR_SCALE = 1.5;
-const OVERLAP_BADGE_CIRCLE_RADIUS = 35;
-const OVERLAP_BADGE_ITEM_GAP = 10;
-const OVERLAP_BADGE_ITEM_SPACING = OVERLAP_BADGE_CIRCLE_RADIUS * 2 + OVERLAP_BADGE_ITEM_GAP;
-const OVERLAP_BADGE_PILL_THICKNESS = OVERLAP_BADGE_CIRCLE_RADIUS * 2 + OVERLAP_BADGE_ITEM_GAP * 2;
 const STANDARD_MAP_COMPONENT_MAX_BOUNDS = 1200;
 const LARGE_MAP_COMPONENT_MAX_THICKNESS = 220;
 const LARGE_MAP_COMPONENT_TILE_LENGTH = 760;
@@ -2868,23 +2865,7 @@ function groupOverlapBadgeSegments(
 }
 
 function overlapBadgeSize(impactKindCount: number): OverlapBadgeSize {
-  if (impactKindCount === 1) {
-    return {
-      width: OVERLAP_BADGE_PILL_THICKNESS * OVERLAP_INDICATOR_SCALE,
-      height: OVERLAP_BADGE_PILL_THICKNESS * OVERLAP_INDICATOR_SCALE,
-    };
-  }
-
-  const visibleCount = Math.min(3, impactKindCount);
-  const hasMore = impactKindCount > visibleCount;
-  const totalItems = visibleCount + (hasMore ? 1 : 0);
-  return {
-    width: Math.max(
-      OVERLAP_BADGE_PILL_THICKNESS,
-      (totalItems - 1) * OVERLAP_BADGE_ITEM_SPACING + OVERLAP_BADGE_PILL_THICKNESS,
-    ) * OVERLAP_INDICATOR_SCALE,
-    height: OVERLAP_BADGE_PILL_THICKNESS * OVERLAP_INDICATOR_SCALE,
-  };
+  return mapOverlapIndicatorSizeForKindCount(impactKindCount);
 }
 
 function boundsForBadgePosition(position: MapPoint, size: OverlapBadgeSize): SvgBounds {
@@ -4148,146 +4129,20 @@ function OverlapIndicatorMarker({
   onHoverChange: (hovered: boolean) => void;
   shouldSuppressMapClick: () => boolean;
 }) {
-  const kindCounts = overlapBadgeKindCounts(badge.impacts);
-  const visibleKindCounts = kindCounts.slice(0, 3);
-  const hiddenKindCount = Math.max(0, kindCounts.length - visibleKindCounts.length);
-  const totalItems = visibleKindCounts.length + (hiddenKindCount > 0 ? 1 : 0);
-  const spacing = OVERLAP_BADGE_ITEM_SPACING;
-  const isSingleVisualItem = totalItems === 1;
-  const isSingleKindOverlap = kindCounts.length === 1 && (kindCounts[0]?.count ?? 0) > 1;
-  const badgeRadius = OVERLAP_BADGE_CIRCLE_RADIUS;
-  const iconSize = 44;
-  const isSelected = selection
-    ? badge.impacts.some((impact) => impact.kind === selection.kind && impact.cardId === selection.id)
-    : false;
-  const label = `Overlapping alerts: ${kindCounts
-    .map(({ kind, count }) => `${labelForImpactKind(kind)}${count > 1 ? ` x${count}` : ""}`)
-    .join(" + ")} on ${badge.label}`;
-  const chooserId = `overlap-chooser-${badge.segmentId.replace(/[^a-zA-Z0-9_-]/g, "-")}`;
-
-  const handleKeyDown = (event: React.KeyboardEvent<SVGGElement>) => {
-    if (event.key === "Enter" || event.key === " ") {
-      event.preventDefault();
-      handleToggle();
-    }
-  };
-
-  const handleToggle = () => {
-    onHoverChange(false);
-    onToggle();
-  };
-
   return (
-    <g
-      className={`overlap-indicator-group ${isOpen ? "open" : ""}`}
-      data-overlap-segment-id={badge.segmentId}
-      data-overlap-collision-avoided={badge.position.collisionAvoided ? "true" : "false"}
-      onClick={(event) => {
-        if (shouldSuppressMapClick()) return;
-        event.stopPropagation();
-        handleToggle();
-      }}
-      transform={`translate(${badge.position.x} ${badge.position.y})`}
-    >
-      <g
-        aria-controls={chooserId}
-        aria-expanded={isOpen}
-        aria-label={isOpen ? `Close alert chooser for ${badge.label}` : label}
-        className={`overlap-indicator ${isSelected ? "selected" : ""} ${isOpen ? "open" : ""}`}
-        onKeyDown={handleKeyDown}
-        onPointerEnter={(event) => {
-          if (!isOpen && event.pointerType === "mouse") onHoverChange(true);
-        }}
-        onPointerLeave={(event) => {
-          if (event.pointerType === "mouse") onHoverChange(false);
-        }}
-        onFocus={() => {
-          if (!isOpen && window.matchMedia("(hover: hover) and (pointer: fine)").matches) {
-            onHoverChange(true);
-          }
-        }}
-        onBlur={() => onHoverChange(false)}
-        pointerEvents="auto"
-        role="button"
-        tabIndex={0}
-      >
-        <title>{label}</title>
-        {isSingleVisualItem ? (
-          <circle
-            className="overlap-indicator-pill"
-            r={badge.size.height / 2}
-          />
-        ) : (
-          <rect
-            className="overlap-indicator-pill"
-            x={-badge.size.width / 2}
-            y={-badge.size.height / 2}
-            width={badge.size.width}
-            height={badge.size.height}
-            rx={badge.size.height / 2}
-          />
-        )}
-        <g transform={`scale(${OVERLAP_INDICATOR_SCALE})`}>
-          {visibleKindCounts.map(({ kind, count }, index) => {
-            const x = (index - (totalItems - 1) / 2) * spacing;
-            return (
-              <g
-                key={kind}
-                data-overlap-kind={kind}
-                data-overlap-kind-count={count}
-                transform={`translate(${x} 0)`}
-              >
-                <circle className={`overlap-indicator-badge ${kind}`} r={badgeRadius} />
-                <OverlapKindIcon kind={kind} size={iconSize} />
-              </g>
-            );
-          })}
-          {hiddenKindCount > 0 && (
-            <g transform={`translate(${(visibleKindCounts.length - (totalItems - 1) / 2) * spacing} 0)`}>
-              <circle className="overlap-indicator-badge more" r={27} />
-              <text className="overlap-indicator-more" textAnchor="middle" dominantBaseline="central">
-                +{hiddenKindCount}
-              </text>
-            </g>
-          )}
-          {visibleKindCounts.map(({ kind, count }, index) => {
-            if (count <= 1) return null;
-            const x = (index - (totalItems - 1) / 2) * spacing;
-            return (
-              <g key={`${kind}-count`} transform={`translate(${x} 0)`}>
-                <OverlapKindCountBadge count={count} large={isSingleKindOverlap} />
-              </g>
-            );
-          })}
-        </g>
-      </g>
-    </g>
-  );
-}
-
-function OverlapKindCountBadge({ count, large = false }: { count: number; large?: boolean }) {
-  const offset = large ? 35 : 28;
-  const radius = large ? 26 : 18;
-  return (
-    <g transform={`translate(${offset} -${offset})`}>
-      <circle className="overlap-indicator-count-badge" r={radius} />
-      <text
-        className={`overlap-indicator-count-text ${large ? "large" : "mixed"}`}
-        textAnchor="middle"
-        dominantBaseline="central"
-      >
-        {count}
-      </text>
-    </g>
-  );
-}
-
-function OverlapKindIcon({ kind, size }: { kind: MapImpactKind; size: number }) {
-  const offset = -size / 2;
-  return (
-    <g transform={`translate(${offset} ${offset})`}>
-      <ImpactTypeIcon kind={kind} size={size} className={`overlap-indicator-type-icon ${kind}`} />
-    </g>
+    <MapOverlapIndicator
+      markerId={badge.segmentId}
+      label={badge.label}
+      impacts={badge.impacts}
+      position={badge.position}
+      size={badge.size}
+      selection={selection}
+      isOpen={isOpen}
+      collisionAvoided={badge.position.collisionAvoided}
+      onActivate={onToggle}
+      onHoverChange={onHoverChange}
+      shouldSuppressMapClick={shouldSuppressMapClick}
+    />
   );
 }
 

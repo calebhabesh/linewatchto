@@ -23,6 +23,8 @@ const mobileLegendSource = readFileSync(new URL("../src/components/MobileLegend.
 const networkMapSource = readFileSync(new URL("../src/components/NetworkMap.tsx", import.meta.url), "utf8");
 const networkMapLegendsSource = readFileSync(new URL("../src/components/NetworkMapLegends.tsx", import.meta.url), "utf8");
 const regionalMapSource = readFileSync(new URL("../src/components/InteractiveRegionalMap.tsx", import.meta.url), "utf8");
+const overlapIndicatorSource = readFileSync(new URL("../src/components/MapOverlapIndicator.tsx", import.meta.url), "utf8");
+const overlapChooserSource = readFileSync(new URL("../src/components/MapOverlapChooser.tsx", import.meta.url), "utf8");
 const regionalStationDetailSource = readFileSync(new URL("../src/components/RegionalStationDetailPanel.tsx", import.meta.url), "utf8");
 const stationDetailHeaderSource = readFileSync(new URL("../src/components/StationDetailHeader.tsx", import.meta.url), "utf8");
 const panZoomSource = readFileSync(new URL("../src/hooks/usePanZoom.ts", import.meta.url), "utf8");
@@ -581,6 +583,32 @@ describe("network-scoped regional dashboard", () => {
     assert.match(regionalMapSource, /data-regional-station-impact-station-id/);
     assert.match(regionalMapSource, /regionalImpactPriority\(left\.kind\) - regionalImpactPriority\(right\.kind\)/);
     assert.match(regionalMapSource, /nextRegionalPointerImpactSelection\([\s\S]*event\.currentTarget,[\s\S]*impact,[\s\S]*selection/);
+  });
+
+  it("reuses the TTC overlap indicator for regional same-type and mixed impacts", () => {
+    assert.match(regionalMapSource, /function regionalOverlapBadgeGroups\(segments: NetworkSegment\[\]\)/);
+    assert.match(regionalMapSource, /hasOverlappingImpacts\(impacts\)/);
+    assert.match(regionalMapSource, /overlapBadgeSignature\(impacts\)/);
+    assert.match(regionalMapSource, /mapOverlapIndicatorSize\(group\.impacts\)/);
+    assert.match(regionalMapSource, /aria-label="Overlapping alert badges"/);
+    assert.match(regionalMapSource, /<MapOverlapIndicator/);
+    assert.match(regionalMapSource, /visualScale=\{REGIONAL_OVERLAP_INDICATOR_SCALE\}/);
+    assert.match(regionalMapSource, /openRegionalOverlapChooser\(badge\)/);
+    assert.match(regionalMapSource, /setRegionalOverlapImpactsHovered\(badge\.impacts, hovered\)/);
+    assert.match(regionalMapSource, /<MapOverlapChooser/);
+    assert.match(regionalMapSource, /onHoverImpact=\{hoverRegionalChooserImpact\}/);
+    assert.match(regionalMapSource, /pointInSvgRootCoordinates\(stationsLayer, position\)/);
+    assert.match(regionalMapSource, /Math\.max\(REGIONAL_MAP_VIEWBOX\.x \+ horizontalMargin, rootPosition\.x\)/);
+    assert.match(regionalMapSource, /const candidates = \[1, -1\]\.map/);
+    assert.match(regionalMapSource, /squaredPointDistance\(leftRoot, mapCenter\) - squaredPointDistance\(rightRoot, mapCenter\)/);
+    assert.match(regionalMapSource, /const REGIONAL_OVERLAP_INDICATOR_OFFSET = 135/);
+    assert.match(regionalMapSource, /const authoredUnitsPerPixel = REGIONAL_MAP_VIEWBOX\.width \/ overlayRect\.width/);
+    assert.match(regionalMapSource, /markerRect\.left < viewportRect\.left \+ padding/);
+    assert.match(regionalMapSource, /badge\.position\.x \+ deltaX \* authoredUnitsPerPixel/);
+    assert.match(overlapIndicatorSource, /const isSingleKindOverlap = kindCounts\.length === 1/);
+    assert.match(overlapIndicatorSource, /<OverlapKindCountBadge count=\{count\} large=\{isSingleKindOverlap\}/);
+    assert.match(overlapChooserSource, /<strong>Choose Alert<\/strong>/);
+    assert.match(overlapChooserSource, /data-overlap-choice-id=\{impact\.cardId\}/);
   });
 
   it("supports pointer, wheel, fit-network, and keyboard map interactions", () => {

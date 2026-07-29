@@ -360,6 +360,41 @@ test("renders fresh Metrolinx impacts in regional mode", async ({ page, request,
   await expect(plannedOverlay).toHaveCount(1);
   await expect(plannedOverlay).toHaveCSS("--regional-impact-width", "168px");
   await expect(delayOverlay).toHaveCSS("--regional-impact-width", "196px");
+
+  const regionalOverlapMarker = page.locator('[data-overlap-segment-id^="regional-overlap-"]').first();
+  await expect(regionalOverlapMarker).toBeVisible();
+  const markerBox = await regionalOverlapMarker.boundingBox();
+  const viewport = page.viewportSize();
+  expect(markerBox).not.toBeNull();
+  expect(viewport).not.toBeNull();
+  expect(markerBox!.x).toBeGreaterThanOrEqual(0);
+  expect(markerBox!.y).toBeGreaterThanOrEqual(0);
+  expect(markerBox!.x + markerBox!.width).toBeLessThanOrEqual(viewport!.width);
+  expect(markerBox!.y + markerBox!.height).toBeLessThanOrEqual(viewport!.height);
+
+  await page.mouse.move(
+    markerBox!.x + markerBox!.width / 2,
+    markerBox!.y + markerBox!.height / 2,
+  );
+  await expect(delayOverlay).toHaveAttribute("data-regional-impact-hovered", "true");
+  await expect(plannedOverlay).toHaveAttribute("data-regional-impact-hovered", "true");
+
+  await regionalOverlapMarker.click();
+  const regionalOverlapChooser = page.locator("[data-overlap-chooser]");
+  await expect(regionalOverlapChooser).toBeVisible();
+  await expect(regionalOverlapChooser.getByText("Choose Alert", { exact: true })).toBeVisible();
+  await expect(regionalOverlapChooser.locator(".overlap-chooser-choice")).toHaveCount(2);
+  await regionalOverlapChooser
+    .locator('[data-overlap-choice-id="regional-demo-delay"]')
+    .hover();
+  await expect(delayOverlay).toHaveAttribute("data-regional-impact-hovered", "true");
+  await expect(plannedOverlay).not.toHaveAttribute("data-regional-impact-hovered");
+  await regionalOverlapChooser
+    .locator('[data-overlap-choice-id="regional-demo-delay"]')
+    .click();
+  await expect(regionalOverlapChooser).toHaveCount(0);
+  await expect(delayOverlay).toHaveAttribute("data-regional-impact-selected", "true");
+
   await delayOverlay.locator(".regional-impact-hit-target").dispatchEvent("click");
   await expect(delayOverlay).toHaveAttribute("data-regional-impact-selected", "true");
   expect(await delayOverlay.evaluate((delay, plannedSelector) => {
