@@ -1590,8 +1590,14 @@ function InteractiveRegionalMapComponent({
       ".regional-estimated-train-marker-layer",
     );
     if (!markerLayer) return;
-    markerLayer.replaceChildren();
-    if (!estimatedTrainsEnabled) return;
+    const existingMarkersByKey = new Map(
+      [...markerLayer.querySelectorAll<SVGGElement>(":scope > .estimated-train-marker")]
+        .map((group) => [group.dataset.markerKey ?? "", group]),
+    );
+    if (!estimatedTrainsEnabled) {
+      existingMarkersByKey.forEach((group) => group.remove());
+      return;
+    }
 
     const documentNode = markerLayer.ownerDocument;
     for (const marker of estimatedTrainMarkers) {
@@ -1599,9 +1605,11 @@ function InteractiveRegionalMapComponent({
       if (!segment) continue;
       const frame = regionalTrainMarkerFrame(documentNode, segment, marker);
       if (!frame) continue;
-      const group = documentNode.createElementNS(SVG_NAMESPACE, "g");
-      group.classList.add("estimated-train-marker", `estimated-train-marker-${marker.lineId}`);
-      group.setAttribute("data-marker-key", estimatedTrainMarkerRenderKey(marker));
+      const markerKey = estimatedTrainMarkerRenderKey(marker);
+      const existingGroup = existingMarkersByKey.get(markerKey);
+      const group = existingGroup ?? documentNode.createElementNS(SVG_NAMESPACE, "g");
+      group.setAttribute("class", `estimated-train-marker estimated-train-marker-${marker.lineId}`);
+      group.setAttribute("data-marker-key", markerKey);
       group.setAttribute("data-train-marker-id", marker.id);
       group.setAttribute("data-train-marker-line-id", marker.lineId);
       group.setAttribute("data-train-marker-direction", marker.direction);
@@ -1611,12 +1619,17 @@ function InteractiveRegionalMapComponent({
         "transform",
         `translate(${frame.point.x} ${frame.point.y}) rotate(${frame.angle}) scale(1.8)`,
       );
-      const title = documentNode.createElementNS(SVG_NAMESPACE, "title");
+      const title = group.querySelector("title")
+        ?? documentNode.createElementNS(SVG_NAMESPACE, "title");
       title.textContent = `${marker.lineId.replace("regional-", "").toUpperCase()} toward ${marker.direction}; schematic estimated position`;
-      group.append(title);
-      appendRegionalTrainMarkerGlyph(documentNode, group);
+      if (!existingGroup) {
+        group.append(title);
+        appendRegionalTrainMarkerGlyph(documentNode, group);
+      }
       markerLayer.append(group);
+      existingMarkersByKey.delete(markerKey);
     }
+    existingMarkersByKey.forEach((group) => group.remove());
   }, [estimatedTrainMarkers, estimatedTrainsEnabled, networkSegments, svgMarkup]);
 
   useLayoutEffect(() => {

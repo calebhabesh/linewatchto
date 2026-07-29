@@ -425,7 +425,10 @@ export function LineWatchShell({
 
     if (estimatedTrainMarkersVisible) {
       refresh();
-      intervalId = window.setInterval(refresh, estimatedTrainMarkerRefreshMs());
+      intervalId = window.setInterval(
+        refresh,
+        estimatedTrainMarkerRefreshMs(selectedNetwork),
+      );
     } else {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setEstimatedTrainSnapshot(selectedNetwork === "regional"

@@ -1,0 +1,88 @@
+{
+  "name": "go-corridor-overlap",
+  "generatedAt": "2026-07-29T18:00:00.000Z",
+  "go": {
+    "Metadata": {
+      "TimeStamp": "2026-07-29 13:58:00",
+      "ErrorCode": "200",
+      "ErrorMessage": "OK"
+    },
+    "Messages": {
+      "Message": [
+        {
+          "Code": "LW-SCENARIO-LE-DELAY",
+          "Status": "UPD",
+          "PostedDateTime": "2026-07-29 13:40:00",
+          "SubjectEnglish": "Lakeshore East trains operating with delays",
+          "BodyEnglish": "Synthetic scenario: trains are delayed between Pickering and Whitby.",
+          "Category": "Service Disruption",
+          "SubCategory": "Modified Trip",
+          "Lines": [
+            {
+              "Code": "LE"
+            }
+          ],
+          "Stops": [
+            {
+              "Code": "PIN"
+            },
+            {
+              "Code": "AJ"
+            },
+            {
+              "Code": "WH"
+            }
+          ],
+          "_linewatchScenarioOrigin": "synthetic"
+        },
+        {
+          "Code": "LW-SCENARIO-LE-PLANNED",
+          "Status": "UPD",
+          "PostedDateTime": "2026-07-29 15:30:00",
+          "SubjectEnglish": "Planned service change on Lakeshore East",
+          "BodyEnglish": "Synthetic scenario: a planned closure will affect Pickering to Ajax.",
+          "Category": "Service Disruption",
+          "SubCategory": "Planned Service",
+          "Lines": [
+            {
+              "Code": "LE"
+            }
+          ],
+          "Stops": [
+            {
+              "Code": "PIN"
+            },
+            {
+              "Code": "AJ"
+            }
+          ],
+          "_linewatchScenarioOrigin": "synthetic"
+        },
+        {
+          "Code": "LW-SCENARIO-LW-ROUTE",
+          "Status": "UPD",
+          "PostedDateTime": "2026-07-29 13:40:00",
+          "SubjectEnglish": "Lakeshore West corridor delay",
+          "BodyEnglish": "Synthetic scenario: service is operating with delays across the corridor.",
+          "Category": "Service Disruption",
+          "SubCategory": "Modified Trip",
+          "Lines": [
+            {
+              "Code": "LW"
+            }
+          ],
+          "Stops": [],
+          "_linewatchScenarioOrigin": "synthetic"
+        }
+      ]
+    }
+  },
+  "up": {
+    "header": {
+      "gtfs_realtime_version": "2.0",
+      "incrementality": "FULL_DATASET",
+      "timestamp": 1785347880
+    },
+    "entity": []
+  }
+}

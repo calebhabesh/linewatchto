@@ -190,7 +190,7 @@ export function groupRegionalStationArrivals(
     const routeCode = arrival.lineNumber.toUpperCase() as RegionalRouteCode;
     const destination = cleanRegionalDestination(arrival.direction, routeCode);
     const directionLabel = regionalTravelDirection(arrival, stationId);
-    const key = `${arrival.lineId}:${directionLabel}:${normalizeStationName(destination)}`;
+    const key = `${arrival.lineId}:${directionLabel}`;
     let group = groups.get(key);
     if (!group) {
       group = {
@@ -218,13 +218,25 @@ export function groupRegionalStationArrivals(
     platform.arrivals.push(arrival);
   }
 
-  return [...groups.values()].map((group) => ({
-    ...group,
-    platforms: group.platforms.map((platform) => ({
-      ...platform,
-      arrivals: [...platform.arrivals].sort((a, b) => a.minutes - b.minutes),
-    })),
-  }));
+  return [...groups.values()].map((group) => {
+    const destinations = [...new Set(group.platforms
+      .flatMap((platform) => platform.arrivals)
+      .map((arrival) => cleanRegionalDestination(
+        arrival.direction,
+        arrival.lineNumber.toUpperCase() as RegionalRouteCode,
+      ))
+      .filter(Boolean))];
+    return {
+      ...group,
+      destinationLabel: destinations.length > 1
+        ? `Destinations: ${destinations.join(" / ")}`
+        : `To ${destinations[0] ?? group.lineName}`,
+      platforms: group.platforms.map((platform) => ({
+        ...platform,
+        arrivals: [...platform.arrivals].sort((a, b) => a.minutes - b.minutes),
+      })),
+    };
+  });
 }
 
 export function formatRegionalArrivalClockTime(value: string, now: Date | number = Date.now()) {

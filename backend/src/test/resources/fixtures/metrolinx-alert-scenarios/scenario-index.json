@@ -1,0 +1,105 @@
+{
+  "generatedAt": "2026-07-29T18:00:00.000Z",
+  "scenarios": [
+    {
+      "name": "all-alert-types",
+      "file": "all-alert-types.json",
+      "goRecordCount": 9,
+      "upRecordCount": 3,
+      "normalizedAlertCount": 12,
+      "accessibilityCount": 3,
+      "impactKinds": [
+        "delay",
+        "suspension",
+        "planned-closure"
+      ],
+      "lineIds": [
+        "regional-br",
+        "regional-ki",
+        "regional-le",
+        "regional-lw",
+        "regional-mi",
+        "regional-rh",
+        "regional-st",
+        "regional-up"
+      ],
+      "scopes": [
+        "route-wide",
+        "segment",
+        "station"
+      ],
+      "recordOrigins": [
+        "synthetic",
+        "synthetic"
+      ]
+    },
+    {
+      "name": "go-corridor-overlap",
+      "file": "go-corridor-overlap.json",
+      "goRecordCount": 3,
+      "upRecordCount": 0,
+      "normalizedAlertCount": 3,
+      "accessibilityCount": 0,
+      "impactKinds": [
+        "delay",
+        "planned-closure"
+      ],
+      "lineIds": [
+        "regional-le",
+        "regional-lw"
+      ],
+      "scopes": [
+        "route-wide",
+        "segment"
+      ],
+      "recordOrigins": [
+        "synthetic"
+      ]
+    },
+    {
+      "name": "go-station-and-accessibility",
+      "file": "go-station-and-accessibility.json",
+      "goRecordCount": 4,
+      "upRecordCount": 0,
+      "normalizedAlertCount": 1,
+      "accessibilityCount": 3,
+      "impactKinds": [
+        "suspension"
+      ],
+      "lineIds": [
+        "regional-ki"
+      ],
+      "scopes": [
+        "station"
+      ],
+      "recordOrigins": [
+        "synthetic",
+        "synthetic"
+      ]
+    },
+    {
+      "name": "up-service-alerts",
+      "file": "up-service-alerts.json",
+      "goRecordCount": 0,
+      "upRecordCount": 3,
+      "normalizedAlertCount": 3,
+      "accessibilityCount": 0,
+      "impactKinds": [
+        "delay",
+        "suspension",
+        "planned-closure"
+      ],
+      "lineIds": [
+        "regional-up"
+      ],
+      "scopes": [
+        "route-wide",
+        "segment",
+        "station"
+      ],
+      "recordOrigins": [
+        "synthetic"
+      ]
+    }
+  ]
+}

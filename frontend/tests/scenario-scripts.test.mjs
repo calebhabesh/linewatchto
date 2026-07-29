@@ -18,6 +18,9 @@ const liveBackendAliasUrl = new URL("../../scripts/dev-live-backend.sh", import.
 const liveFrontendScriptUrl = new URL("../../scripts/dev-live-frontend.sh", import.meta.url);
 const alertScenarioBackendAliasUrl = new URL("../../scripts/dev-alert-scenario-backend.sh", import.meta.url);
 const alertScenarioFrontendAliasUrl = new URL("../../scripts/dev-alert-scenario-frontend.sh", import.meta.url);
+const regionalScenarioBackendUrl = new URL("../../scripts/dev-regional-alert-scenario-backend.sh", import.meta.url);
+const regionalScenarioFrontendUrl = new URL("../../scripts/dev-regional-alert-scenario-frontend.sh", import.meta.url);
+const regionalMockServerUrl = new URL("../../scripts/mock-regional-alerts-server.mjs", import.meta.url);
 const livePushBackendScriptUrl = new URL("../../scripts/dev-backend-live-push.sh", import.meta.url);
 const cloudflarePushScriptUrl = new URL("../../scripts/dev-cloudflare-push.sh", import.meta.url);
 const smokeDeployScriptUrl = new URL("../../scripts/smoke-deploy.mjs", import.meta.url);
@@ -68,6 +71,16 @@ describe("alert scenario scripts", () => {
     assert.doesNotMatch(mockAlertsServerSource, /sendJson\(response, 200, buildScenarioFeed\(scenario, \{ now: new Date\(\) \}\)\);/);
   });
 
+  it("makes the shared all-alert-types runner deterministic across TTC and GO/UP modes", () => {
+    assert.match(mockAlertsServerSource, /buildRegionalScenario\("all-alert-types"/);
+    assert.match(mockAlertsServerSource, /ServiceUpdate\/ServiceAlert\/All/);
+    assert.match(mockAlertsServerSource, /UP\/Gtfs\/Feed\/Alerts/);
+    assert.match(scenarioBackendScript, /if \[ "\$SCENARIO" = "all-alert-types" \]/);
+    assert.match(scenarioBackendScript, /LINEWATCH_INGESTION_METROLINX_ENABLED="\$REGIONAL_SCENARIO_ENABLED"/);
+    assert.match(scenarioBackendScript, /LINEWATCH_INGESTION_METROLINX_BASE_URL="\$REGIONAL_SCENARIO_BASE_URL"/);
+    assert.match(scenarioBackendScript, /GO\/UP ingestion is disabled for this TTC-focused scenario/);
+  });
+
   it("provides a named live dev frontend script with a dev tab label", () => {
     assert.equal(existsSync(liveFrontendScriptUrl), true);
 
@@ -106,6 +119,25 @@ describe("alert scenario scripts", () => {
       readFileSync(alertScenarioFrontendAliasUrl, "utf8"),
       /exec "\$SCRIPT_DIR\/dev-frontend-scenario\.sh" "\$@"/,
     );
+  });
+
+  it("runs regional scenarios through isolated Metrolinx-shaped source endpoints", () => {
+    assert.equal(existsSync(regionalScenarioBackendUrl), true);
+    assert.equal(existsSync(regionalScenarioFrontendUrl), true);
+    assert.equal(existsSync(regionalMockServerUrl), true);
+
+    const backend = readFileSync(regionalScenarioBackendUrl, "utf8");
+    const frontend = readFileSync(regionalScenarioFrontendUrl, "utf8");
+    const source = readFileSync(regionalMockServerUrl, "utf8");
+    assert.match(backend, /LINEWATCH_INGESTION_METROLINX_ENABLED=true/);
+    assert.match(backend, /LINEWATCH_INGESTION_ALERTS_ENABLED=false/);
+    assert.match(backend, /linewatch_regional_scenario/);
+    assert.match(backend, /CREATE DATABASE linewatch_regional_scenario/);
+    assert.match(backend, /LINEWATCH_REGIONAL_ALERT_SCENARIO_REDIS_DATABASE:-2/);
+    assert.match(frontend, /Dev: regional \$SCENARIO/);
+    assert.match(source, /ServiceUpdate\/ServiceAlert\/All/);
+    assert.match(source, /UP\/Gtfs\/Feed\/Alerts/);
+    assert.match(source, /const payload = buildRegionalScenario\(scenario, \{ now: new Date\(\) \}\)/);
   });
 
   it("provides an opt-in live backend script with local Web Push keys", () => {

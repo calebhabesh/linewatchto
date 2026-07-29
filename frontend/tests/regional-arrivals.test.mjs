@@ -166,6 +166,34 @@ describe("regional station arrivals adapter", () => {
     );
   });
 
+  it("consolidates short-turn destinations into one corridor direction section", () => {
+    const base = {
+      lineId: "regional-ki",
+      lineNumber: "KI",
+      lineName: "Kitchener",
+      minutes: 27,
+      predictedAt: "2026-07-29T17:30:00-04:00",
+      scheduledAt: "2026-07-29T17:30:00-04:00",
+      delayMinutes: 0,
+      platform: "",
+      source: "Metrolinx published schedule",
+      status: "scheduled",
+    };
+    const groups = groupRegionalStationArrivals([
+      { ...base, direction: "KI - Bramalea GO", tripNumber: "KI201" },
+      { ...base, direction: "KI - Mount Pleasant GO", tripNumber: "KI203", minutes: 57 },
+      { ...base, direction: "KI - Kitchener GO", tripNumber: "KI205", minutes: 87 },
+    ], "weston");
+
+    assert.equal(groups.length, 1);
+    assert.equal(groups[0].directionLabel, "Westbound");
+    assert.equal(
+      groups[0].destinationLabel,
+      "Destinations: Bramalea GO / Mount Pleasant GO / Kitchener GO",
+    );
+    assert.equal(groups[0].platforms[0].arrivals.length, 3);
+  });
+
   it("formats regional prediction clock times in Toronto time", () => {
     const now = new Date("2026-07-28T12:00:00-04:00");
     assert.equal(formatRegionalArrivalClockTime("2026-07-28T19:55:00Z", now), "3:55 PM");

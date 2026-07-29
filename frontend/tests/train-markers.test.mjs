@@ -70,9 +70,12 @@ describe("estimated train marker data adapter", () => {
   });
 
   it("uses a bounded refresh interval", () => {
-    assert.equal(estimatedTrainMarkerRefreshMs("9000"), 9000);
-    assert.equal(estimatedTrainMarkerRefreshMs("500"), 1000);
-    assert.equal(estimatedTrainMarkerRefreshMs("bad"), 1000);
+    assert.equal(estimatedTrainMarkerRefreshMs("ttc", "9000"), 9000);
+    assert.equal(estimatedTrainMarkerRefreshMs("ttc", "500"), 1000);
+    assert.equal(estimatedTrainMarkerRefreshMs("ttc", "bad"), 1000);
+    assert.equal(estimatedTrainMarkerRefreshMs("regional", "30000"), 30000);
+    assert.equal(estimatedTrainMarkerRefreshMs("regional", "5000"), 15000);
+    assert.equal(estimatedTrainMarkerRefreshMs("regional", "bad"), 15000);
   });
 
   it("uses stable render keys while the same train advances to the next station", () => {

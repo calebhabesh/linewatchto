@@ -32,17 +32,18 @@ class RegionalTrainMarkerServiceTest {
         MutableClock clock = new MutableClock(CLOCK.instant(), CLOCK.getZone());
         RegionalTrainMarkerService service = new RegionalTrainMarkerService(client, properties, clock);
         RegionalTrainMarkerService.Snapshot result = service.markers();
-        double firstProgress = result.markers().getFirst().progress();
+        OffsetDateTime firstGeneratedAt = result.generatedAt();
         clock.advance(Duration.ofSeconds(1));
         RegionalTrainMarkerService.Snapshot nextResult = service.markers();
 
         assertThat(result.fresh()).isTrue();
         assertThat(result.availability()).isEqualTo("partial-source");
         assertThat(result.markers()).singleElement().satisfies(marker -> {
-            assertThat(marker.progress()).isGreaterThan(0.5);
+            assertThat(marker.progress()).isEqualTo(0.5);
             assertThat(marker.segmentTravelSeconds()).isEqualTo(420);
         });
-        assertThat(nextResult.markers().getFirst().progress()).isGreaterThan(firstProgress);
+        assertThat(nextResult.markers().getFirst().progress()).isEqualTo(0.5);
+        assertThat(nextResult.generatedAt()).isEqualTo(firstGeneratedAt);
         assertThat(result.disclaimer()).contains("not exact physical train locations");
         verify(client).fetchGo();
         verify(client).fetchUp();

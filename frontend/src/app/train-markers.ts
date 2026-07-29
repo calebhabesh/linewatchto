@@ -70,15 +70,21 @@ export const EMPTY_REGIONAL_TRAIN_SNAPSHOT: EstimatedTrainSnapshot = {
   markers: [],
 };
 
-const DEFAULT_TRAIN_MARKER_REFRESH_MS = 1_000;
-const MIN_TRAIN_MARKER_REFRESH_MS = 1_000;
+const TTC_TRAIN_MARKER_REFRESH_MS = 1_000;
+const REGIONAL_TRAIN_MARKER_REFRESH_MS = 15_000;
 
-export function estimatedTrainMarkerRefreshMs(configured = process.env.NEXT_PUBLIC_LINEWATCH_TRAIN_MARKER_REFRESH_MS) {
+export function estimatedTrainMarkerRefreshMs(
+  network: "ttc" | "regional" = "ttc",
+  configured = process.env.NEXT_PUBLIC_LINEWATCH_TRAIN_MARKER_REFRESH_MS,
+) {
+  const minimum = network === "regional"
+    ? REGIONAL_TRAIN_MARKER_REFRESH_MS
+    : TTC_TRAIN_MARKER_REFRESH_MS;
   const parsed = Number(configured);
   if (!Number.isFinite(parsed) || parsed <= 0) {
-    return DEFAULT_TRAIN_MARKER_REFRESH_MS;
+    return minimum;
   }
-  return Math.max(MIN_TRAIN_MARKER_REFRESH_MS, parsed);
+  return Math.max(minimum, parsed);
 }
 
 export function estimatedTrainMarkerRenderKey(marker: EstimatedTrainMarker) {

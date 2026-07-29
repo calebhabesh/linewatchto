@@ -103,10 +103,87 @@ class RegionalArrivalServiceTest {
             .containsExactly("Milton GO", "Milton GO", "Union Station");
     }
 
+    @Test
+    void usesScheduledRowsOnlyForLineDirectionsWithoutLivePredictions() {
+        MetrolinxArrivalClient client = mock(MetrolinxArrivalClient.class);
+        RegionalScheduledArrivalProvider scheduled = mock(RegionalScheduledArrivalProvider.class);
+        RegionalArrivalProperties properties = new RegionalArrivalProperties();
+        properties.setEnabled(true);
+        properties.setScheduleEnabled(true);
+        properties.setMaxArrivalsPerLine(2);
+        OffsetDateTime updatedAt = OffsetDateTime.parse("2026-07-28T19:47:43Z");
+        when(client.fetchGoNextService("WE")).thenReturn(new RegionalArrivalFeed(updatedAt, List.of(
+            arrival("regional-ki", "Union Station GO", "2026-07-28T19:55:00Z"),
+            arrival("regional-ki", "Union Station GO", "2026-07-28T20:10:00Z")
+        )));
+        when(client.fetchUpTripUpdates("WE")).thenReturn(new RegionalArrivalFeed(updatedAt, List.of()));
+        when(scheduled.arrivals("weston", List.of("regional-ki", "regional-up"))).thenReturn(List.of(
+            regionalScheduledArrival(
+                "regional-ki", "KI - Union Station GO", "2026-07-28T19:55:00Z", "KI100"
+            ),
+            regionalScheduledArrival(
+                "regional-ki", "KI - Bramalea GO", "2026-07-28T20:15:00Z", "KI201"
+            ),
+            regionalScheduledArrival(
+                "regional-ki", "KI - Mount Pleasant GO", "2026-07-28T20:45:00Z", "KI203"
+            ),
+            regionalScheduledArrival(
+                "regional-ki", "KI - Kitchener GO", "2026-07-28T21:15:00Z", "KI205"
+            )
+        ));
+        when(scheduled.hasActiveSchedule(List.of("regional-ki", "regional-up"))).thenReturn(true);
+        RegionalArrivalService service = new RegionalArrivalService(client, scheduled, properties, CLOCK);
+
+        RegionalArrivalResponses.SnapshotResponse response = service.arrivals("weston");
+
+        assertThat(response.arrivals())
+            .extracting(
+                RegionalArrivalResponses.ArrivalResponse::direction,
+                RegionalArrivalResponses.ArrivalResponse::status
+            )
+            .containsExactly(
+                org.assertj.core.groups.Tuple.tuple("Union Station GO", "live"),
+                org.assertj.core.groups.Tuple.tuple("Union Station GO", "live"),
+                org.assertj.core.groups.Tuple.tuple("KI - Bramalea GO", "scheduled"),
+                org.assertj.core.groups.Tuple.tuple("KI - Mount Pleasant GO", "scheduled")
+            );
+    }
+
+    @Test
+    void deduplicatesRepeatedRealtimeRowsBeforeBoundingDirections() {
+        MetrolinxArrivalClient client = mock(MetrolinxArrivalClient.class);
+        RegionalScheduledArrivalProvider scheduled = mock(RegionalScheduledArrivalProvider.class);
+        RegionalArrivalProperties properties = new RegionalArrivalProperties();
+        properties.setEnabled(true);
+        OffsetDateTime updatedAt = OffsetDateTime.parse("2026-07-28T19:47:43Z");
+        RegionalArrivalRecord repeated = arrival(
+            "regional-ki", "Union Station GO", "2026-07-28T19:55:00Z"
+        );
+        when(client.fetchGoNextService("WE")).thenReturn(new RegionalArrivalFeed(
+            updatedAt, List.of(repeated, repeated)
+        ));
+        when(client.fetchUpTripUpdates("WE")).thenReturn(new RegionalArrivalFeed(updatedAt, List.of()));
+        when(scheduled.arrivals("weston", List.of("regional-ki", "regional-up"))).thenReturn(List.of());
+        RegionalArrivalService service = new RegionalArrivalService(client, scheduled, properties, CLOCK);
+
+        RegionalArrivalResponses.SnapshotResponse response = service.arrivals("weston");
+
+        assertThat(response.arrivals()).hasSize(1);
+    }
+
     private RegionalArrivalRecord scheduledArrival(String direction, String predictedAt, String tripNumber) {
+        return regionalScheduledArrival("regional-mi", direction, predictedAt, tripNumber);
+    }
+
+    private RegionalArrivalRecord regionalScheduledArrival(
+        String lineId,
+        String direction,
+        String predictedAt,
+        String tripNumber
+    ) {
         OffsetDateTime time = OffsetDateTime.parse(predictedAt);
         return new RegionalArrivalRecord(
-            "regional-mi", direction, time, time, "", tripNumber,
+            lineId, direction, time, time, "", tripNumber,
             RegionalScheduledArrivalProvider.SOURCE, "scheduled"
         );
     }

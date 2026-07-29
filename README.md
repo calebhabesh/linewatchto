@@ -595,7 +595,7 @@ Alert ingestion is disabled by default for offline-safe local runs, CI, and demo
 
 Metrolinx ingestion is independently disabled by default and requires both `LINEWATCH_INGESTION_METROLINX_ENABLED=true` and a developer key. Its poll and freshness windows default to two and ten minutes respectively. GO bus messages and amenity notices are excluded from regional service status and map impacts. Purpose-built accessibility reads retain current `Amenity` / `Elevator-Escalator Disruption` records, omit restoration notices and unmapped/bus-only facilities, and expose them only while the same ingestion run is fresh. GO rail line codes are mapped to the eight authored corridors, while UP alerts come from Metrolinx's dedicated feed. Because source notices can describe broad station groups, map projection is topology-based and may be approximate.
 
-Regional realtime station arrivals and static schedule fallback are independently configurable. `LINEWATCH_REGIONAL_ARRIVALS_ENABLED=true` enables the Metrolinx-key-backed GO Next Service and UP TripUpdates reads. `LINEWATCH_REGIONAL_ARRIVALS_SCHEDULE_ENABLED=true` enables persisted public GO/UP static-GTFS reads without a developer key, while `LINEWATCH_REGIONAL_ARRIVALS_SCHEDULE_REFRESH_ENABLED=true` downloads both official packages daily and atomically retains the active last-good import on failure. The purpose-built `GET /api/regional/stations/{stationId}/arrivals` response prefers a matching fresh estimate, fills missing trips and corridors from the published timetable, and looks ahead up to seven service days for infrequent Milton and Richmond Hill service. It distinguishes `no-service` from unavailable data and labels every row `live` or `scheduled`. Realtime estimates can change; scheduled rows are published timetable times, not live predictions or guaranteed departures.
+Regional realtime station arrivals and static schedule fallback are independently configurable. `LINEWATCH_REGIONAL_ARRIVALS_ENABLED=true` enables the Metrolinx-key-backed GO Next Service and UP TripUpdates reads. `LINEWATCH_REGIONAL_ARRIVALS_SCHEDULE_ENABLED=true` enables persisted public GO/UP static-GTFS reads without a developer key, while `LINEWATCH_REGIONAL_ARRIVALS_SCHEDULE_REFRESH_ENABLED=true` downloads both official packages daily and atomically retains the active last-good import on failure. The purpose-built `GET /api/regional/stations/{stationId}/arrivals` response uses fresh estimates for each corridor direction where available, fills only missing corridor directions from the published timetable, deduplicates repeated source rows, and looks ahead up to seven service days for infrequent Milton and Richmond Hill service. It distinguishes `no-service` from unavailable data and labels every row `live` or `scheduled`. Realtime estimates can change; scheduled rows are published timetable times, not live predictions or guaranteed departures.
 
 Regional estimated train markers are also independently disabled by default. `LINEWATCH_REGIONAL_TRAIN_MARKERS_ENABLED=true` enables `GET /api/regional/trains` using the same backend-only Metrolinx key. The read combines the GO and UP Express GTFS-RT VehiclePosition full datasets, uses a 15-second backend cache, rejects source or vehicle timestamps older than two minutes, and returns explicit disabled, stale, partial-source, unavailable, and available states. Only records whose route and reported next stop map cleanly to an adjacent authored regional topology link are shown. Placement within that link is intentionally schematic and status-based; the endpoint does not expose raw payloads, geographic coordinates, exact physical locations, or movement tracks.
 
@@ -700,6 +700,12 @@ Run the backend against a scenario:
 scripts/dev-alert-scenario-backend.sh all-alert-types
 ```
 
+The shared `all-alert-types` runner supplies both the TTC Live Alerts-shaped
+catalog and the GO/UP Metrolinx-shaped catalog. Switching between TTC and GO/UP
+therefore keeps both map modes deterministic and synthetic/reviewed-fixture
+backed. TTC-focused scenarios such as `nonlinear-union-curve` disable regional
+ingestion instead of silently showing locally configured live Metrolinx data.
+
 If `tmp/ttc-merged-gtfs.zip` or `/tmp/ttc-merged-gtfs.zip` exists, the scenario
 backend also imports scheduled rapid-transit arrivals into the `linewatch_scenario`
 database. Override the zip location with `LINEWATCH_SCENARIO_GTFS_ZIP=/path/to/gtfs.zip`.
@@ -719,6 +725,40 @@ Browser tab titles are intentionally distinct across common environments:
 production remains `LineWatchTO`, staging builds as `LineWatchTO Staging`,
 normal local dev shows `LineWatchTO Dev`, and alert scenarios show
 `LineWatchTO Dev: <scenario-name>`.
+
+### GO/UP Alert Scenario Harness
+
+The regional companion harness exercises the real Metrolinx client envelope,
+GO/UP normalizers, persistence path, regional dashboard DTOs, and interactive
+map mode without requiring a developer key. Its generated fixtures live under
+`backend/src/test/resources/fixtures/metrolinx-alert-scenarios/`.
+`all-alert-types` combines reviewed, source-shaped samples already captured in
+the repository with explicitly marked synthetic gap-fill records. It covers
+all eight GO/UP corridors, GO and UP Express source formats, delay,
+suspension, planned-change, route-wide, segment, station-only, overlapping
+segment, elevator, escalator, and multi-corridor cases.
+
+Regenerate the regional fixtures after editing their catalog:
+
+```bash
+node scripts/generate-regional-alert-scenarios.mjs
+```
+
+Run the backend and frontend in separate terminals:
+
+```bash
+scripts/dev-regional-alert-scenario-backend.sh all-alert-types
+scripts/dev-regional-alert-scenario-frontend.sh all-alert-types
+```
+
+Other focused scenarios are `go-corridor-overlap`,
+`go-station-and-accessibility`, and `up-service-alerts`. The backend uses an
+isolated local Metrolinx-shaped source on port 8083, an isolated application
+port (8084), database (`linewatch_regional_scenario`), and Redis database (2).
+Select GO/UP in the UI, then inspect `/api/dashboard?network=regional`,
+`/api/accessibility-outages?network=regional`, and
+`/api/health/regional-ingestion`. Every scenario record is dev/test data; the
+harness must never be described as fresh public Metrolinx service information.
 
 
 Current backend scope:

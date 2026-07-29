@@ -128,6 +128,7 @@ npm --prefix frontend run build
 npm --prefix frontend run dev
 scripts/dev-live-frontend.sh
 scripts/dev-alert-scenario-frontend.sh all-alert-types
+scripts/dev-regional-alert-scenario-frontend.sh all-alert-types
 npm --prefix frontend run test:smoke
 ```
 
@@ -138,6 +139,7 @@ mvn -f backend/pom.xml test
 mvn -f backend/pom.xml spring-boot:run
 scripts/dev-live-backend.sh
 scripts/dev-alert-scenario-backend.sh all-alert-types
+scripts/dev-regional-alert-scenario-backend.sh all-alert-types
 ```
 
 Infrastructure:
@@ -329,6 +331,9 @@ If you are antigravity-cli, Gemini, Codex, or another coding agent:
 - `scripts/alert-scenario-catalog.mjs` is the source of truth for those generated fixtures; run `node scripts/generate-alert-scenarios.mjs` after editing it.
 - `scripts/dev-alert-scenario-backend.sh <scenario-name>` runs the backend against a local scenario feed for manual browser testing.
 - `scripts/dev-alert-scenario-frontend.sh <scenario-name>` starts the matching scenario frontend with a scenario-specific browser tab title.
+- The shared `all-alert-types` backend scenario serves both TTC-shaped and Metrolinx-shaped regional fixtures; TTC-focused scenarios disable regional ingestion so they cannot silently display configured live Metrolinx data.
 - Scenario records may be synthetic when captured public TTC samples are unavailable; do not describe scenario data as live TTC service.
+- `backend/src/test/resources/fixtures/metrolinx-alert-scenarios/` contains generated GO/UP source-shaped scenario feeds. `scripts/regional-alert-scenario-catalog.mjs` is their source of truth; regenerate them with `node scripts/generate-regional-alert-scenarios.mjs`.
+- `scripts/dev-regional-alert-scenario-backend.sh <scenario-name>` and `scripts/dev-regional-alert-scenario-frontend.sh <scenario-name>` run the isolated regional harness. Reviewed samples and synthetic gap-fill records are marked separately; never describe either as current public Metrolinx service information.
 - Do not overclaim features that are only represented by fixtures.
 - Station arrivals are scheduled rapid-transit estimates by default. With `LINEWATCH_ARRIVALS_PROVIDER=live`, fresh mapped TTC GTFS-RT Subway Trip Updates can produce source-labeled live station arrival rows, with scheduled fallback for missing/stale rows. Surface connections are outside this slice. Do not claim estimated train markers are exact physical train positions, and do not claim live train movement-based route timing.

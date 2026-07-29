@@ -29,8 +29,11 @@ describe("regional estimated train marker rendering", () => {
     assert.doesNotMatch(regionalMapSource, /documentNode\.documentElement\.append\(markerLayer\)/);
   });
 
-  it("updates regional markers without rebuilding the animated disruption SVG", () => {
-    assert.match(regionalMapSource, /markerLayer\.replaceChildren\(\)/);
+  it("updates regional markers without rebuilding the map or replaying marker motion", () => {
+    assert.match(regionalMapSource, /existingMarkersByKey/);
+    assert.match(regionalMapSource, /estimatedTrainMarkerRenderKey\(marker\)/);
+    assert.match(regionalMapSource, /existingMarkersByKey\.delete\(markerKey\)/);
+    assert.doesNotMatch(regionalMapSource, /markerLayer\.replaceChildren\(\)/);
     assert.match(
       regionalMapSource,
       /\}, \[activeAlerts, commutePathPreview, networkSegments, reducedMotion, stationNodeImpacts\]\);/,

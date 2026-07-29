@@ -1,0 +1,345 @@
+{
+  "name": "all-alert-types",
+  "generatedAt": "2026-07-29T18:00:00.000Z",
+  "go": {
+    "Metadata": {
+      "TimeStamp": "2026-07-29 13:58:00",
+      "ErrorCode": "200",
+      "ErrorMessage": "OK"
+    },
+    "Messages": {
+      "Message": [
+        {
+          "Code": "LW-SCENARIO-LE-DELAY",
+          "Status": "UPD",
+          "PostedDateTime": "2026-07-29 13:40:00",
+          "SubjectEnglish": "Lakeshore East trains operating with delays",
+          "BodyEnglish": "Synthetic scenario: trains are delayed between Pickering and Whitby.",
+          "Category": "Service Disruption",
+          "SubCategory": "Modified Trip",
+          "Lines": [
+            {
+              "Code": "LE"
+            }
+          ],
+          "Stops": [
+            {
+              "Code": "PIN"
+            },
+            {
+              "Code": "AJ"
+            },
+            {
+              "Code": "WH"
+            }
+          ],
+          "_linewatchScenarioOrigin": "synthetic"
+        },
+        {
+          "Code": "LW-SCENARIO-LE-PLANNED",
+          "Status": "UPD",
+          "PostedDateTime": "2026-07-29 15:30:00",
+          "SubjectEnglish": "Planned service change on Lakeshore East",
+          "BodyEnglish": "Synthetic scenario: a planned closure will affect Pickering to Ajax.",
+          "Category": "Service Disruption",
+          "SubCategory": "Planned Service",
+          "Lines": [
+            {
+              "Code": "LE"
+            }
+          ],
+          "Stops": [
+            {
+              "Code": "PIN"
+            },
+            {
+              "Code": "AJ"
+            }
+          ],
+          "_linewatchScenarioOrigin": "synthetic"
+        },
+        {
+          "Code": "LW-SCENARIO-LW-ROUTE",
+          "Status": "UPD",
+          "PostedDateTime": "2026-07-29 13:40:00",
+          "SubjectEnglish": "Lakeshore West corridor delay",
+          "BodyEnglish": "Synthetic scenario: service is operating with delays across the corridor.",
+          "Category": "Service Disruption",
+          "SubCategory": "Modified Trip",
+          "Lines": [
+            {
+              "Code": "LW"
+            }
+          ],
+          "Stops": [],
+          "_linewatchScenarioOrigin": "synthetic"
+        },
+        {
+          "Code": "LW-SCENARIO-KI-STATION",
+          "Status": "UPD",
+          "PostedDateTime": "2026-07-29 13:40:00",
+          "SubjectEnglish": "Service suspended at Bloor GO",
+          "BodyEnglish": "Synthetic scenario: Kitchener trains are temporarily bypassing Bloor GO.",
+          "Category": "Service Disruption",
+          "SubCategory": "Service Suspension",
+          "Lines": [
+            {
+              "Code": "GT"
+            }
+          ],
+          "Stops": [
+            {
+              "Code": "BL"
+            }
+          ],
+          "_linewatchScenarioOrigin": "synthetic"
+        },
+        {
+          "Code": "LW-SCENARIO-KI-ADJUSTMENT",
+          "Status": "UPD",
+          "PostedDateTime": "2026-07-29 13:40:00",
+          "SubjectEnglish": "Kitchener line service adjustment",
+          "BodyEnglish": "Synthetic scenario: test trains are five minutes later than usual.",
+          "Category": "Service Disruption",
+          "SubCategory": "Modified Trip",
+          "Lines": [
+            {
+              "Code": "GT"
+            }
+          ],
+          "Stops": [
+            {
+              "Code": "BL"
+            },
+            {
+              "Code": "MD"
+            },
+            {
+              "Code": "WE"
+            }
+          ],
+          "_linewatchScenarioOrigin": "synthetic"
+        },
+        {
+          "Code": "LW-SCENARIO-MULTI-LINE",
+          "Status": "UPD",
+          "PostedDateTime": "2026-07-29 13:40:00",
+          "SubjectEnglish": "Network rail service delay",
+          "BodyEnglish": "Synthetic scenario: several GO corridors are operating with delays.",
+          "Category": "Service Disruption",
+          "SubCategory": "Modified Trip",
+          "Lines": [
+            {
+              "Code": "BR"
+            },
+            {
+              "Code": "MI"
+            },
+            {
+              "Code": "RH"
+            },
+            {
+              "Code": "ST"
+            }
+          ],
+          "Stops": [],
+          "_linewatchScenarioOrigin": "synthetic"
+        },
+        {
+          "Code": "LW-SCENARIO-AG-ELEVATOR",
+          "Status": "UPD",
+          "PostedDateTime": "2026-07-29 13:40:00",
+          "SubjectEnglish": "Elevator out of service",
+          "BodyEnglish": "Synthetic scenario: the station elevator is unavailable.",
+          "Category": "Amenity",
+          "SubCategory": "Elevator-Escalator Disruption",
+          "Lines": [
+            {
+              "Code": "ST"
+            }
+          ],
+          "Stops": [
+            {
+              "Code": "AG"
+            }
+          ],
+          "_linewatchScenarioOrigin": "synthetic"
+        },
+        {
+          "Code": "LW-SCENARIO-UN-MAINTENANCE",
+          "Status": "UPD",
+          "PostedDateTime": "2026-07-29 13:40:00",
+          "SubjectEnglish": "Elevator Maintenance Notice - York Concourse",
+          "BodyEnglish": "Synthetic scenario: a Union elevator is unavailable for a test maintenance window.",
+          "Category": "Amenity",
+          "SubCategory": "Elevator-Escalator Disruption",
+          "Lines": [
+            {
+              "Code": "BR"
+            },
+            {
+              "Code": "GT"
+            },
+            {
+              "Code": "LE"
+            },
+            {
+              "Code": "LW"
+            },
+            {
+              "Code": "MI"
+            },
+            {
+              "Code": "RH"
+            },
+            {
+              "Code": "ST"
+            }
+          ],
+          "Stops": [
+            {
+              "Code": "UN"
+            }
+          ],
+          "_linewatchScenarioOrigin": "synthetic"
+        },
+        {
+          "Code": "LW-SCENARIO-ESCALATOR",
+          "Status": "UPD",
+          "PostedDateTime": "2026-07-29 13:40:00",
+          "SubjectEnglish": "Escalator out of service",
+          "BodyEnglish": "Synthetic scenario: the platform escalator is out of service.",
+          "Category": "Amenity",
+          "SubCategory": "Elevator-Escalator Disruption",
+          "Lines": [
+            {
+              "Code": "LW"
+            }
+          ],
+          "Stops": [
+            {
+              "Code": "OA"
+            }
+          ],
+          "_linewatchScenarioOrigin": "synthetic"
+        }
+      ]
+    }
+  },
+  "up": {
+    "header": {
+      "gtfs_realtime_version": "2.0",
+      "incrementality": "FULL_DATASET",
+      "timestamp": 1785347880
+    },
+    "entity": [
+      {
+        "id": "linewatch-up-suspension",
+        "is_deleted": false,
+        "alert": {
+          "active_period": [
+            {
+              "start": 1785346200,
+              "end": 1785358800
+            }
+          ],
+          "cause": "TECHNICAL_PROBLEM",
+          "effect": "NO_SERVICE",
+          "header_text": {
+            "translation": [
+              {
+                "text": "UP Express service suspended",
+                "language": "en"
+              }
+            ]
+          },
+          "description_text": {
+            "translation": [
+              {
+                "text": "Synthetic scenario: no service between Weston and Pearson.",
+                "language": "en"
+              }
+            ]
+          },
+          "informed_entity": [
+            {
+              "stop_id": "WE"
+            },
+            {
+              "stop_id": "PA"
+            }
+          ]
+        },
+        "_linewatchScenarioOrigin": "synthetic"
+      },
+      {
+        "id": "linewatch-up-station-delay",
+        "is_deleted": false,
+        "alert": {
+          "active_period": [
+            {
+              "start": 1785346200,
+              "end": 1785358800
+            }
+          ],
+          "cause": "OTHER_CAUSE",
+          "effect": "SIGNIFICANT_DELAYS",
+          "header_text": {
+            "translation": [
+              {
+                "text": "UP Express delay at Mount Dennis",
+                "language": "en"
+              }
+            ]
+          },
+          "description_text": {
+            "translation": [
+              {
+                "text": "Synthetic scenario: trains are delayed at Mount Dennis.",
+                "language": "en"
+              }
+            ]
+          },
+          "informed_entity": [
+            {
+              "stop_id": "MD"
+            }
+          ]
+        },
+        "_linewatchScenarioOrigin": "synthetic"
+      },
+      {
+        "id": "linewatch-up-planned",
+        "is_deleted": false,
+        "alert": {
+          "active_period": [
+            {
+              "start": 1785355200,
+              "end": 1785366000
+            }
+          ],
+          "cause": "CONSTRUCTION",
+          "effect": "MODIFIED_SERVICE",
+          "header_text": {
+            "translation": [
+              {
+                "text": "Planned UP Express service change",
+                "language": "en"
+              }
+            ]
+          },
+          "description_text": {
+            "translation": [
+              {
+                "text": "Synthetic scenario: scheduled service changes affect the full route.",
+                "language": "en"
+              }
+            ]
+          },
+          "informed_entity": []
+        },
+        "_linewatchScenarioOrigin": "synthetic"
+      }
+    ]
+  }
+}

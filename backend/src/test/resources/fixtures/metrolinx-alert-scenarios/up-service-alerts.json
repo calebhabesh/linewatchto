@@ -1,0 +1,130 @@
+{
+  "name": "up-service-alerts",
+  "generatedAt": "2026-07-29T18:00:00.000Z",
+  "go": {
+    "Metadata": {
+      "TimeStamp": "2026-07-29 13:58:00",
+      "ErrorCode": "200",
+      "ErrorMessage": "OK"
+    },
+    "Messages": {
+      "Message": []
+    }
+  },
+  "up": {
+    "header": {
+      "gtfs_realtime_version": "2.0",
+      "incrementality": "FULL_DATASET",
+      "timestamp": 1785347880
+    },
+    "entity": [
+      {
+        "id": "linewatch-up-suspension",
+        "is_deleted": false,
+        "alert": {
+          "active_period": [
+            {
+              "start": 1785346200,
+              "end": 1785358800
+            }
+          ],
+          "cause": "TECHNICAL_PROBLEM",
+          "effect": "NO_SERVICE",
+          "header_text": {
+            "translation": [
+              {
+                "text": "UP Express service suspended",
+                "language": "en"
+              }
+            ]
+          },
+          "description_text": {
+            "translation": [
+              {
+                "text": "Synthetic scenario: no service between Weston and Pearson.",
+                "language": "en"
+              }
+            ]
+          },
+          "informed_entity": [
+            {
+              "stop_id": "WE"
+            },
+            {
+              "stop_id": "PA"
+            }
+          ]
+        },
+        "_linewatchScenarioOrigin": "synthetic"
+      },
+      {
+        "id": "linewatch-up-station-delay",
+        "is_deleted": false,
+        "alert": {
+          "active_period": [
+            {
+              "start": 1785346200,
+              "end": 1785358800
+            }
+          ],
+          "cause": "OTHER_CAUSE",
+          "effect": "SIGNIFICANT_DELAYS",
+          "header_text": {
+            "translation": [
+              {
+                "text": "UP Express delay at Mount Dennis",
+                "language": "en"
+              }
+            ]
+          },
+          "description_text": {
+            "translation": [
+              {
+                "text": "Synthetic scenario: trains are delayed at Mount Dennis.",
+                "language": "en"
+              }
+            ]
+          },
+          "informed_entity": [
+            {
+              "stop_id": "MD"
+            }
+          ]
+        },
+        "_linewatchScenarioOrigin": "synthetic"
+      },
+      {
+        "id": "linewatch-up-planned",
+        "is_deleted": false,
+        "alert": {
+          "active_period": [
+            {
+              "start": 1785355200,
+              "end": 1785366000
+            }
+          ],
+          "cause": "CONSTRUCTION",
+          "effect": "MODIFIED_SERVICE",
+          "header_text": {
+            "translation": [
+              {
+                "text": "Planned UP Express service change",
+                "language": "en"
+              }
+            ]
+          },
+          "description_text": {
+            "translation": [
+              {
+                "text": "Synthetic scenario: scheduled service changes affect the full route.",
+                "language": "en"
+              }
+            ]
+          },
+          "informed_entity": []
+        },
+        "_linewatchScenarioOrigin": "synthetic"
+      }
+    ]
+  }
+}

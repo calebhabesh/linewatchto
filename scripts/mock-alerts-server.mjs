@@ -4,6 +4,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { buildScenarioFeed, scenarioNames } from "./alert-scenario-catalog.mjs";
+import { buildRegionalScenario } from "./regional-alert-scenario-catalog.mjs";
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
 
@@ -17,6 +18,9 @@ if (!scenarioNames.includes(scenario)) {
 }
 
 const activeScenarioFeed = buildScenarioFeed(scenario, { now: new Date() });
+const activeRegionalScenarioFeed = scenario === "all-alert-types"
+  ? buildRegionalScenario("all-alert-types", { now: new Date() })
+  : null;
 
 function sendJson(response, status, body) {
   response.writeHead(status, {
@@ -30,7 +34,29 @@ const server = createServer((request, response) => {
   const url = new URL(request.url ?? "/", `http://127.0.0.1:${port}`);
 
   if (request.method === "GET" && url.pathname === "/__scenarios") {
-    sendJson(response, 200, { active: scenario, scenarios: scenarioNames });
+    sendJson(response, 200, {
+      active: scenario,
+      regional: activeRegionalScenarioFeed == null ? "disabled" : "all-alert-types",
+      scenarios: scenarioNames,
+    });
+    return;
+  }
+
+  if (
+    request.method === "GET"
+    && url.pathname === "/OpenDataAPI/api/V1/ServiceUpdate/ServiceAlert/All"
+    && activeRegionalScenarioFeed != null
+  ) {
+    sendJson(response, 200, activeRegionalScenarioFeed.go);
+    return;
+  }
+
+  if (
+    request.method === "GET"
+    && url.pathname === "/OpenDataAPI/api/V1/UP/Gtfs/Feed/Alerts"
+    && activeRegionalScenarioFeed != null
+  ) {
+    sendJson(response, 200, activeRegionalScenarioFeed.up);
     return;
   }
 

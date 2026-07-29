@@ -12,7 +12,9 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -97,17 +99,17 @@ public class RegionalArrivalService {
             return unavailable(station, "unavailable", now, message);
         }
 
-        List<RegionalArrivalRecord> realtime = freshFeeds.stream()
+        List<RegionalArrivalRecord> realtime = deduplicate(freshFeeds.stream()
             .flatMap(feed -> feed.arrivals().stream())
             .filter(arrival -> !arrival.predictedAt().isBefore(now.minus(PAST_TOLERANCE)))
             .filter(arrival -> !arrival.predictedAt().isAfter(now.plus(properties.getHorizon())))
-            .toList();
-        List<RegionalArrivalRecord> visible = merge(realtime, scheduled).stream()
+            .toList());
+        List<RegionalArrivalRecord> visible = merge(station.id(), realtime, deduplicate(scheduled)).stream()
             .sorted(Comparator.comparing(RegionalArrivalRecord::predictedAt)
                 .thenComparing(RegionalArrivalRecord::lineId)
                 .thenComparing(RegionalArrivalRecord::tripNumber))
             .toList();
-        List<RegionalArrivalRecord> bounded = boundPerDirection(visible);
+        List<RegionalArrivalRecord> bounded = boundPerDirection(station.id(), visible);
         OffsetDateTime sourceUpdatedAt = freshFeeds.stream()
             .map(RegionalArrivalFeed::sourceUpdatedAt)
             .max(OffsetDateTime::compareTo)
@@ -140,20 +142,100 @@ public class RegionalArrivalService {
     }
 
     private List<RegionalArrivalRecord> merge(
+        String stationId,
         List<RegionalArrivalRecord> realtime,
         List<RegionalArrivalRecord> scheduled
     ) {
+        Set<String> liveDirectionKeys = realtime.stream()
+            .map(arrival -> directionKey(stationId, arrival))
+            .filter(key -> !key.endsWith(":"))
+            .collect(Collectors.toSet());
+        Set<String> liveLineIds = realtime.stream()
+            .map(RegionalArrivalRecord::lineId)
+            .collect(Collectors.toSet());
         List<RegionalArrivalRecord> result = new ArrayList<>(realtime);
         for (RegionalArrivalRecord candidate : scheduled) {
-            boolean represented = realtime.stream().anyMatch(live ->
-                live.lineId().equals(candidate.lineId())
-                    && ((!live.tripNumber().isBlank() && live.tripNumber().equals(candidate.tripNumber()))
-                    || (live.direction().equalsIgnoreCase(candidate.direction())
-                    && Math.abs(Duration.between(live.scheduledAt(), candidate.scheduledAt()).toMinutes()) <= 5))
-            );
-            if (!represented) result.add(candidate);
+            String directionKey = directionKey(stationId, candidate);
+            boolean hasDirection = !directionKey.endsWith(":");
+            if ((hasDirection && !liveDirectionKeys.contains(directionKey))
+                || (!hasDirection && !liveLineIds.contains(candidate.lineId()))) {
+                result.add(candidate);
+            }
         }
         return List.copyOf(result);
+    }
+
+    private List<RegionalArrivalRecord> deduplicate(List<RegionalArrivalRecord> arrivals) {
+        Map<String, RegionalArrivalRecord> unique = new LinkedHashMap<>();
+        for (RegionalArrivalRecord arrival : arrivals) {
+            String tripIdentity = arrival.tripNumber().isBlank()
+                ? normalize(arrival.direction()) + ":" + normalize(arrival.platform())
+                : normalize(arrival.tripNumber());
+            String key = arrival.lineId() + ":" + tripIdentity + ":" + arrival.predictedAt();
+            unique.putIfAbsent(key, arrival);
+        }
+        return List.copyOf(unique.values());
+    }
+
+    private String directionKey(String stationId, RegionalArrivalRecord arrival) {
+        return arrival.lineId() + ":" + directionFamily(stationId, arrival);
+    }
+
+    private String directionFamily(String stationId, RegionalArrivalRecord arrival) {
+        String normalizedDirection = normalize(arrival.direction());
+        for (String cardinal : List.of("northbound", "southbound", "eastbound", "westbound")) {
+            if (normalizedDirection.startsWith(cardinal)) {
+                return cardinal;
+            }
+        }
+
+        RegionalNetworkCatalog.Route route = RegionalNetworkCatalog.route(arrival.lineId()).orElse(null);
+        if (route == null) return "";
+        int currentIndex = route.stationIds().indexOf(stationId);
+        if (currentIndex < 0) return "";
+
+        String destinationName = normalize(arrival.direction()
+            .replaceFirst("(?i)^\\s*" + route.number() + "\\s*-\\s*", ""));
+        int destinationIndex = -1;
+        for (String candidateId : route.stationIds()) {
+            String candidateName = RegionalNetworkCatalog.station(candidateId)
+                .map(station -> normalize(station.name()))
+                .orElse("");
+            if (candidateName.equals(destinationName)) {
+                destinationIndex = route.stationIds().indexOf(candidateId);
+                break;
+            }
+        }
+
+        String outward = switch (route.number()) {
+            case "BR", "RH", "ST" -> "northbound";
+            case "LE" -> "eastbound";
+            case "KI", "LW", "MI", "UP" -> "westbound";
+            default -> "";
+        };
+        String inward = switch (outward) {
+            case "northbound" -> "southbound";
+            case "eastbound" -> "westbound";
+            case "westbound" -> "eastbound";
+            default -> "";
+        };
+        if (destinationIndex >= 0) {
+            if (destinationIndex == currentIndex) {
+                if (destinationIndex == 0) return inward;
+                if (destinationIndex == route.stationIds().size() - 1) return outward;
+                return "";
+            }
+            return destinationIndex > currentIndex ? outward : inward;
+        }
+        return "union".equals(destinationName) ? inward : "";
+    }
+
+    private String normalize(String value) {
+        if (value == null) return "";
+        return value.toLowerCase(Locale.ROOT)
+            .replaceAll("\\b(go|station|terminal)\\b", "")
+            .replaceAll("[^a-z0-9]+", " ")
+            .trim();
     }
 
     private boolean isFresh(RegionalArrivalFeed feed, OffsetDateTime now) {
@@ -162,12 +244,18 @@ public class RegionalArrivalService {
         return age.isNegative() || age.compareTo(properties.getMaxSourceAge()) <= 0;
     }
 
-    private List<RegionalArrivalRecord> boundPerDirection(List<RegionalArrivalRecord> arrivals) {
+    private List<RegionalArrivalRecord> boundPerDirection(
+        String stationId,
+        List<RegionalArrivalRecord> arrivals
+    ) {
         Map<String, Integer> counts = new LinkedHashMap<>();
         List<RegionalArrivalRecord> result = new ArrayList<>();
         int maximum = Math.max(1, properties.getMaxArrivalsPerLine());
         for (RegionalArrivalRecord arrival : arrivals) {
-            String key = arrival.lineId() + ":" + arrival.direction().trim().toLowerCase(Locale.ROOT);
+            String family = directionFamily(stationId, arrival);
+            String key = arrival.lineId() + ":" + (family.isBlank()
+                ? normalize(arrival.direction())
+                : family);
             int count = counts.getOrDefault(key, 0);
             if (count < maximum) {
                 result.add(arrival);
