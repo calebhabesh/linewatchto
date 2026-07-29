@@ -9,6 +9,7 @@ public record RegionalArrivalRecord(
     OffsetDateTime predictedAt,
     String platform,
     String tripNumber,
-    String source
+    String source,
+    String status
 ) {
 }

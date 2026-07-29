@@ -114,7 +114,12 @@ describe("regional station arrivals adapter", () => {
   });
 
   it("formats regional prediction clock times in Toronto time", () => {
-    assert.equal(formatRegionalArrivalClockTime("2026-07-28T19:55:00Z"), "3:55 PM");
+    const now = new Date("2026-07-28T12:00:00-04:00");
+    assert.equal(formatRegionalArrivalClockTime("2026-07-28T19:55:00Z", now), "3:55 PM");
+    assert.equal(
+      formatRegionalArrivalClockTime("2026-07-29T10:32:00-04:00", now),
+      "Tomorrow, 10:32 AM",
+    );
     assert.equal(formatRegionalArrivalClockTime(""), "");
   });
 });

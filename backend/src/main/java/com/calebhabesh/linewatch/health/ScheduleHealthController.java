@@ -71,6 +71,9 @@ public class ScheduleHealthController {
                     refreshCompletedAt,
                     refreshRecordsProcessed,
                     refreshErrorMessage,
+                    0,
+                    0,
+                    java.util.List.of(),
                     message
                 );
             });
@@ -89,6 +92,11 @@ public class ScheduleHealthController {
             ? null
             : ChronoUnit.DAYS.between(LocalDate.now(clock.withZone(TORONTO_ZONE)), serviceEnd);
         String status = status(daysRemaining);
+        GtfsScheduleReadRepository.ScheduleCoverage coverage =
+            repository.findStationLineCoverage(activeImport.id());
+        if (coverage == null) {
+            coverage = new GtfsScheduleReadRepository.ScheduleCoverage(0, java.util.List.of());
+        }
         return new ScheduleHealthResponse(
             status,
             "active".equals(status) || "expiring".equals(status),
@@ -102,7 +110,13 @@ public class ScheduleHealthController {
             refreshCompletedAt,
             refreshRecordsProcessed,
             refreshErrorMessage,
-            message(status, daysRemaining)
+            coverage.expectedStationLines(),
+            coverage.mappedStationLines(),
+            coverage.missingStationLines(),
+            coverage.missingStationLines().isEmpty()
+                ? message(status, daysRemaining)
+                : message(status, daysRemaining) + " "
+                    + coverage.missingStationLines().size() + " station-line mappings are missing."
         );
     }
 
@@ -141,6 +155,9 @@ public class ScheduleHealthController {
         OffsetDateTime refreshCompletedAt,
         Integer refreshRecordsProcessed,
         String refreshErrorMessage,
+        int expectedStationLines,
+        int mappedStationLines,
+        java.util.List<String> missingStationLines,
         String message
     ) {}
 }

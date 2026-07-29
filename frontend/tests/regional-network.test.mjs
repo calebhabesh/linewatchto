@@ -369,7 +369,9 @@ describe("network-scoped regional dashboard", () => {
     assert.match(regionalStationDetailSource, /data-station-header-line-details/);
     assert.match(regionalStationDetailSource, /data-station-section="arrivals"/);
     assert.match(regionalStationDetailSource, /Checking Metrolinx arrivals/);
-    assert.match(regionalStationDetailSource, /Regional realtime unavailable/);
+    assert.match(regionalStationDetailSource, /Regional arrivals unavailable/);
+    assert.match(regionalStationDetailSource, /Published regional schedule/);
+    assert.match(regionalStationDetailSource, /"Mixed"/);
     assert.match(regionalStationDetailSource, /Arrival Data Unavailable/);
     assert.match(regionalStationDetailSource, /Upcoming regional train arrivals/);
     assert.match(regionalStationDetailSource, /groupRegionalStationArrivals/);

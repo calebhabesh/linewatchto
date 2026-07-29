@@ -287,7 +287,9 @@ export function RegionalStationDetailPanel({
                     ? "Checking Metrolinx arrivals"
                     : arrivalSnapshot.availability === "available"
                       ? arrivalSnapshot.source
-                      : "Regional realtime unavailable"}
+                      : arrivalSnapshot.availability === "no-service"
+                        ? "Published regional schedule"
+                        : "Regional arrivals unavailable"}
                 </p>
                 {arrivalsLoading ? (
                   <div className="mt-3 flex min-h-20 items-center justify-center rounded-md border border-black/10 bg-white/60 dark:border-white/10 dark:bg-black/10">
@@ -318,7 +320,11 @@ export function RegionalStationDetailPanel({
                             </span>
                           </div>
                           <span className="ml-auto inline-flex h-5 shrink-0 items-center rounded border border-emerald-500/35 bg-emerald-500/10 px-1.5 text-[10px] font-black uppercase tracking-wide text-emerald-700 dark:text-emerald-200">
-                            Live
+                            {group.platforms.flatMap((platform) => platform.arrivals).some((arrival) => arrival.status === "live")
+                              ? group.platforms.flatMap((platform) => platform.arrivals).some((arrival) => arrival.status === "scheduled")
+                                ? "Mixed"
+                                : "Live"
+                              : "Scheduled"}
                           </span>
                         </div>
 
@@ -330,9 +336,11 @@ export function RegionalStationDetailPanel({
                                   {platform.label}
                                 </h4>
                                 <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400">
-                                  {platform.arrivals.some((arrival) => arrival.delayMinutes > 0)
+                                  {platform.arrivals.some((arrival) => arrival.status === "live" && arrival.delayMinutes > 0)
                                     ? "Delayed estimate"
-                                    : "On schedule"}
+                                    : platform.arrivals.some((arrival) => arrival.status === "live")
+                                      ? "On schedule"
+                                      : "Published schedule"}
                                 </span>
                               </div>
                               <div className="grid grid-cols-3 gap-2">
@@ -370,14 +378,20 @@ export function RegionalStationDetailPanel({
                 ) : (
                   <div className="mt-3 rounded-md border border-black/10 bg-white/60 px-3 py-4 text-center dark:border-white/10 dark:bg-black/10">
                     <p className="text-sm font-semibold leading-snug text-slate-500 dark:text-slate-400">
-                      <span className="block">Arrival Data Unavailable</span>
+                      <span className="block">
+                        {arrivalSnapshot.availability === "no-service"
+                          ? "No Scheduled Service"
+                          : "Arrival Data Unavailable"}
+                      </span>
                       <span className="mt-1 block text-xs font-medium">{arrivalSnapshot.message}</span>
                     </p>
                   </div>
                 )}
                 {!arrivalsLoading && arrivalSnapshot.availability === "available" ? (
                   <p className="mt-2 text-[10px] font-semibold leading-relaxed text-slate-500 dark:text-slate-400">
-                    Realtime estimates can change. Confirm departure details with GO Transit or UP Express.
+                    {arrivalSnapshot.arrivals.some((arrival) => arrival.status === "live")
+                      ? "Realtime estimates can change; scheduled rows are published timetable fallback. Confirm departure details with GO Transit or UP Express."
+                      : "Published schedule times are not live predictions. Confirm departure details with GO Transit or UP Express."}
                   </p>
                 ) : null}
                 <div className="regional-station-official-links mt-3">

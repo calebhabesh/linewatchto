@@ -4,3 +4,8 @@ linewatch:
       enabled: true
       fixed-delay: ${LINEWATCH_INGESTION_ALERTS_FIXED_DELAY:PT15S}
       max-dashboard-age: ${LINEWATCH_INGESTION_ALERTS_MAX_DASHBOARD_AGE:PT2M}
+  regional:
+    arrivals:
+      schedule-enabled: ${LINEWATCH_REGIONAL_ARRIVALS_SCHEDULE_ENABLED:true}
+      schedule-refresh-enabled: ${LINEWATCH_REGIONAL_ARRIVALS_SCHEDULE_REFRESH_ENABLED:true}
+

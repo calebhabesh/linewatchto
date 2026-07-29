@@ -6,7 +6,7 @@ import {
   type RegionalRouteCode,
 } from "./regional-data.ts";
 
-export type RegionalArrivalAvailability = "available" | "disabled" | "unavailable";
+export type RegionalArrivalAvailability = "available" | "no-service" | "disabled" | "unavailable";
 
 export type RegionalArrival = {
   lineId: string;
@@ -20,7 +20,7 @@ export type RegionalArrival = {
   platform: string;
   tripNumber: string;
   source: string;
-  status: "live";
+  status: "live" | "scheduled";
 };
 
 export type RegionalArrivalSnapshot = {
@@ -189,13 +189,30 @@ export function groupRegionalStationArrivals(
   }));
 }
 
-export function formatRegionalArrivalClockTime(value: string) {
+export function formatRegionalArrivalClockTime(value: string, now: Date | number = Date.now()) {
   if (!value) return "";
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime())) return "";
-  return new Intl.DateTimeFormat("en-US", {
+  const time = new Intl.DateTimeFormat("en-US", {
     timeZone: "America/Toronto",
     hour: "numeric",
     minute: "2-digit",
   }).format(parsed);
+  const dateKey = (date: Date) => new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Toronto",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(date);
+  const current = new Date(now);
+  const todayKey = dateKey(current);
+  const arrivalKey = dateKey(parsed);
+  if (arrivalKey === todayKey) return time;
+  const tomorrow = new Date(current.getTime() + 86_400_000);
+  if (arrivalKey === dateKey(tomorrow)) return `Tomorrow, ${time}`;
+  const day = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/Toronto",
+    weekday: "short",
+  }).format(parsed);
+  return `${day}, ${time}`;
 }

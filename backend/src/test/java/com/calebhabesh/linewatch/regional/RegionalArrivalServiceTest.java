@@ -27,7 +27,9 @@ class RegionalArrivalServiceTest {
         when(client.fetchUpTripUpdates("BL")).thenReturn(new RegionalArrivalFeed(updatedAt, List.of(
             arrival("regional-up", "Pearson Airport", "2026-07-28T19:53:00Z")
         )));
-        RegionalArrivalService service = new RegionalArrivalService(client, properties, CLOCK);
+        RegionalScheduledArrivalProvider scheduled = mock(RegionalScheduledArrivalProvider.class);
+        when(scheduled.arrivals("bloor", List.of("regional-ki", "regional-up"))).thenReturn(List.of());
+        RegionalArrivalService service = new RegionalArrivalService(client, scheduled, properties, CLOCK);
 
         RegionalArrivalResponses.SnapshotResponse response = service.arrivals("bloor");
 
@@ -44,6 +46,7 @@ class RegionalArrivalServiceTest {
         MetrolinxArrivalClient client = mock(MetrolinxArrivalClient.class);
         RegionalArrivalService service = new RegionalArrivalService(
             client,
+            mock(RegionalScheduledArrivalProvider.class),
             new RegionalArrivalProperties(),
             CLOCK
         );
@@ -54,10 +57,35 @@ class RegionalArrivalServiceTest {
         assertThat(response.arrivals()).isEmpty();
     }
 
+    @Test
+    void returnsPublishedScheduleWhenRealtimeIsDisabled() {
+        MetrolinxArrivalClient client = mock(MetrolinxArrivalClient.class);
+        RegionalScheduledArrivalProvider scheduled = mock(RegionalScheduledArrivalProvider.class);
+        RegionalArrivalProperties properties = new RegionalArrivalProperties();
+        properties.setScheduleEnabled(true);
+        OffsetDateTime time = OffsetDateTime.parse("2026-07-29T10:32:00-04:00");
+        when(scheduled.arrivals("milton", List.of("regional-mi"))).thenReturn(List.of(
+            new RegionalArrivalRecord(
+                "regional-mi", "Union Station", time, time, "1", "MI100",
+                RegionalScheduledArrivalProvider.SOURCE, "scheduled"
+            )
+        ));
+        when(scheduled.hasActiveSchedule(List.of("regional-mi"))).thenReturn(true);
+        RegionalArrivalService service = new RegionalArrivalService(client, scheduled, properties, CLOCK);
+
+        RegionalArrivalResponses.SnapshotResponse response = service.arrivals("milton");
+
+        assertThat(response.availability()).isEqualTo("available");
+        assertThat(response.arrivals()).singleElement()
+            .extracting(RegionalArrivalResponses.ArrivalResponse::status)
+            .isEqualTo("scheduled");
+        assertThat(response.message()).isEqualTo("Published regional train schedule.");
+    }
+
     private RegionalArrivalRecord arrival(String lineId, String direction, String predictedAt) {
         OffsetDateTime time = OffsetDateTime.parse(predictedAt);
         return new RegionalArrivalRecord(
-            lineId, direction, time.minusMinutes(1), time, "", "1234", "Metrolinx test feed"
+            lineId, direction, time.minusMinutes(1), time, "", "1234", "Metrolinx test feed", "live"
         );
     }
 }

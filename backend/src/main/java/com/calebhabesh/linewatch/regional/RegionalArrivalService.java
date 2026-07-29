@@ -22,16 +22,19 @@ public class RegionalArrivalService {
     }
 
     private final MetrolinxArrivalClient client;
+    private final RegionalScheduledArrivalProvider scheduledProvider;
     private final RegionalArrivalProperties properties;
     private final Clock clock;
     private final Map<String, CachedSnapshot> cache = new ConcurrentHashMap<>();
 
     public RegionalArrivalService(
         MetrolinxArrivalClient client,
+        RegionalScheduledArrivalProvider scheduledProvider,
         RegionalArrivalProperties properties,
         Clock clock
     ) {
         this.client = client;
+        this.scheduledProvider = scheduledProvider;
         this.properties = properties;
         this.clock = clock;
     }
@@ -40,7 +43,7 @@ public class RegionalArrivalService {
         StationResponses.StationSummaryResponse station = RegionalNetworkCatalog.station(stationId)
             .orElseThrow(() -> new StationNotFoundException(stationId));
         OffsetDateTime now = OffsetDateTime.now(clock);
-        if (!properties.isEnabled()) {
+        if (!properties.isEnabled() && !properties.isScheduleEnabled()) {
             return unavailable(station, "disabled", now,
                 "Regional station arrivals are disabled.");
         }
@@ -64,7 +67,7 @@ public class RegionalArrivalService {
         int requestedFeeds = 0;
         int failedFeeds = 0;
 
-        if (station.lineIds().stream().anyMatch(lineId -> !"regional-up".equals(lineId))) {
+        if (properties.isEnabled() && station.lineIds().stream().anyMatch(lineId -> !"regional-up".equals(lineId))) {
             requestedFeeds++;
             try {
                 feeds.add(client.fetchGoNextService(stopCode));
@@ -72,7 +75,7 @@ public class RegionalArrivalService {
                 failedFeeds++;
             }
         }
-        if (station.lineIds().contains("regional-up")) {
+        if (properties.isEnabled() && station.lineIds().contains("regional-up")) {
             requestedFeeds++;
             try {
                 feeds.add(client.fetchUpTripUpdates(stopCode));
@@ -82,17 +85,23 @@ public class RegionalArrivalService {
         }
 
         List<RegionalArrivalFeed> freshFeeds = feeds.stream().filter(feed -> isFresh(feed, now)).toList();
-        if (freshFeeds.isEmpty()) {
-            String message = failedFeeds == requestedFeeds
+        List<RegionalArrivalRecord> scheduled = scheduledProvider.arrivals(station.id(), station.lineIds());
+        boolean scheduleAvailable = scheduledProvider.hasActiveSchedule(station.lineIds());
+        if (freshFeeds.isEmpty() && scheduled.isEmpty() && !scheduleAvailable) {
+            String message = requestedFeeds > 0 && failedFeeds == requestedFeeds
                 ? "Metrolinx station arrivals are temporarily unavailable."
-                : "The latest Metrolinx station-arrival data is stale.";
+                : properties.isScheduleEnabled()
+                    ? "No current regional GTFS schedule import covers this station."
+                    : "The latest Metrolinx station-arrival data is stale.";
             return unavailable(station, "unavailable", now, message);
         }
 
-        List<RegionalArrivalRecord> visible = freshFeeds.stream()
+        List<RegionalArrivalRecord> realtime = freshFeeds.stream()
             .flatMap(feed -> feed.arrivals().stream())
             .filter(arrival -> !arrival.predictedAt().isBefore(now.minus(PAST_TOLERANCE)))
             .filter(arrival -> !arrival.predictedAt().isAfter(now.plus(properties.getHorizon())))
+            .toList();
+        List<RegionalArrivalRecord> visible = merge(realtime, scheduled).stream()
             .sorted(Comparator.comparing(RegionalArrivalRecord::predictedAt)
                 .thenComparing(RegionalArrivalRecord::lineId)
                 .thenComparing(RegionalArrivalRecord::tripNumber))
@@ -101,24 +110,49 @@ public class RegionalArrivalService {
         OffsetDateTime sourceUpdatedAt = freshFeeds.stream()
             .map(RegionalArrivalFeed::sourceUpdatedAt)
             .max(OffsetDateTime::compareTo)
+            .or(() -> scheduledProvider.latestImportedAt(station.lineIds()))
             .orElse(null);
-        String source = freshFeeds.stream()
-            .flatMap(feed -> feed.arrivals().stream())
+        String source = bounded.stream()
             .map(RegionalArrivalRecord::source)
             .distinct()
             .reduce((left, right) -> left + " / " + right)
             .orElse(station.lineIds().contains("regional-up")
                 ? MetrolinxArrivalClient.UP_SOURCE : MetrolinxArrivalClient.GO_SOURCE);
+        boolean hasLive = bounded.stream().anyMatch(row -> "live".equals(row.status()));
+        boolean hasScheduled = bounded.stream().anyMatch(row -> "scheduled".equals(row.status()));
+        String availability = bounded.isEmpty() && scheduleAvailable ? "no-service" : "available";
         String message = bounded.isEmpty()
-            ? "No upcoming regional rail departures were returned for this station."
+            ? "No scheduled train service was found in the next "
+                + properties.getScheduleLookaheadDays() + " days."
+            : hasLive && hasScheduled
+                ? "Fresh estimates with published schedule fallback."
+                : hasScheduled
+                    ? "Published regional train schedule."
             : failedFeeds > 0
                 ? "Showing the available fresh regional arrival source; another source is temporarily unavailable."
                 : "Fresh Metrolinx regional train estimates.";
 
         return new RegionalArrivalResponses.SnapshotResponse(
-            station.id(), station.name(), "available", now, sourceUpdatedAt, source, message,
+            station.id(), station.name(), availability, now, sourceUpdatedAt, source, message,
             bounded.stream().map(arrival -> response(arrival, now)).toList()
         );
+    }
+
+    private List<RegionalArrivalRecord> merge(
+        List<RegionalArrivalRecord> realtime,
+        List<RegionalArrivalRecord> scheduled
+    ) {
+        List<RegionalArrivalRecord> result = new ArrayList<>(realtime);
+        for (RegionalArrivalRecord candidate : scheduled) {
+            boolean represented = realtime.stream().anyMatch(live ->
+                live.lineId().equals(candidate.lineId())
+                    && ((!live.tripNumber().isBlank() && live.tripNumber().equals(candidate.tripNumber()))
+                    || (live.direction().equalsIgnoreCase(candidate.direction())
+                    && Math.abs(Duration.between(live.scheduledAt(), candidate.scheduledAt()).toMinutes()) <= 5))
+            );
+            if (!represented) result.add(candidate);
+        }
+        return List.copyOf(result);
     }
 
     private boolean isFresh(RegionalArrivalFeed feed, OffsetDateTime now) {
@@ -150,7 +184,7 @@ public class RegionalArrivalService {
         return new RegionalArrivalResponses.ArrivalResponse(
             route.id(), route.number(), route.name(), arrival.direction(), minutes,
             arrival.predictedAt(), arrival.scheduledAt(), delayMinutes, arrival.platform(),
-            arrival.tripNumber(), arrival.source(), "live"
+            arrival.tripNumber(), arrival.source(), arrival.status()
         );
     }
 

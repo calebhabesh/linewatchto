@@ -92,6 +92,27 @@ public class GtfsScheduleReadRepository {
         return imports.stream().findFirst();
     }
 
+    public ScheduleCoverage findStationLineCoverage(long importId) {
+        List<String> missing = jdbc.query("""
+            select station_line.station_id || ':' || station_line.line_id as station_line
+            from station_lines station_line
+            where station_line.line_id in ('line-1', 'line-2', 'line-4', 'line-5', 'line-6')
+              and not exists (
+                  select 1 from gtfs_station_stops mapping
+                  where mapping.import_id = :importId
+                    and mapping.station_id = station_line.station_id
+                    and mapping.line_id = station_line.line_id
+              )
+            order by station_line.line_id, station_line.sort_order, station_line.station_id
+            """, Map.of("importId", importId), (rs, row) -> rs.getString("station_line"));
+        Integer total = jdbc.queryForObject("""
+            select count(*)
+            from station_lines
+            where line_id in ('line-1', 'line-2', 'line-4', 'line-5', 'line-6')
+            """, Map.of(), Integer.class);
+        return new ScheduleCoverage(total == null ? 0 : total, missing);
+    }
+
     public List<String> findActiveServiceIds(long importId, LocalDate serviceDate) {
         return jdbc.query("""
             select service_id
@@ -261,4 +282,9 @@ public class GtfsScheduleReadRepository {
         LocalDate serviceStart,
         LocalDate serviceEnd
     ) {}
+    public record ScheduleCoverage(int expectedStationLines, List<String> missingStationLines) {
+        public int mappedStationLines() {
+            return expectedStationLines - missingStationLines.size();
+        }
+    }
 }

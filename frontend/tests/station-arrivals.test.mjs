@@ -270,7 +270,12 @@ describe("station arrival grouping", () => {
   });
 
   it("formats predicted arrival clock times in Toronto time", () => {
-    assert.equal(formatArrivalClockTime("2026-06-04T21:53:00-04:00"), "9:53 PM");
+    const now = new Date("2026-06-04T12:00:00-04:00");
+    assert.equal(formatArrivalClockTime("2026-06-04T21:53:00-04:00", now), "9:53 PM");
+    assert.equal(
+      formatArrivalClockTime("2026-06-05T06:32:00-04:00", now),
+      "Tomorrow, 6:32 AM",
+    );
     assert.equal(formatArrivalClockTime(null), null);
   });
 

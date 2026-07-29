@@ -304,7 +304,10 @@ export function isArrivalDue(arrival: ArrivalTimeFields, now?: Date | number | s
   return arrival.label.toLowerCase() === "due" || (arrival.minutes !== null && arrival.minutes <= 0);
 }
 
-export function formatArrivalClockTime(predictedAt: string | null): string | null {
+export function formatArrivalClockTime(
+  predictedAt: string | null,
+  now: Date | number = Date.now(),
+): string | null {
   if (!predictedAt) {
     return null;
   }
@@ -312,12 +315,28 @@ export function formatArrivalClockTime(predictedAt: string | null): string | nul
   if (Number.isNaN(date.getTime())) {
     return null;
   }
-  return new Intl.DateTimeFormat("en-US", {
+  const time = new Intl.DateTimeFormat("en-US", {
     timeZone: "America/Toronto",
     hour: "numeric",
     minute: "2-digit",
     hour12: true,
   }).format(date);
+  const dateKey = (value: Date) => new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Toronto",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(value);
+  const current = new Date(now);
+  if (dateKey(date) === dateKey(current)) return time;
+  if (dateKey(date) === dateKey(new Date(current.getTime() + 86_400_000))) {
+    return `Tomorrow, ${time}`;
+  }
+  const day = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/Toronto",
+    weekday: "short",
+  }).format(date);
+  return `${day}, ${time}`;
 }
 
 export function formatArrivalTileLabel(arrival: ArrivalTileLabelFields, options: ArrivalTileLabelOptions = {}): string {

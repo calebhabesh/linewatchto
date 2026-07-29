@@ -23,6 +23,7 @@ public class ArrivalProperties {
     private String scheduledSourceName = "TTC scheduled service";
     private URI scheduledSourceUrl = URI.create("https://ckan0.cf.opendata.inter.prod-toronto.ca/en/dataset/merged-gtfs-ttc-routes-and-schedules");
     private Duration scheduleHorizon = Duration.ofMinutes(90);
+    private int scheduleLookaheadDays = 7;
     private Duration trainMarkerHorizon = Duration.ofMinutes(20);
     private int maxArrivalsPerLine = 4;
     private URI liveGtfsRtUrl = URI.create("https://gtfsrt.ttc.ca/trips/subway?format=text");
@@ -105,6 +106,14 @@ public class ArrivalProperties {
 
     public Duration getScheduleHorizon() {
         return scheduleHorizon;
+    }
+
+    public int getScheduleLookaheadDays() {
+        return scheduleLookaheadDays;
+    }
+
+    public void setScheduleLookaheadDays(int scheduleLookaheadDays) {
+        this.scheduleLookaheadDays = scheduleLookaheadDays;
     }
 
     public void setScheduleHorizon(Duration scheduleHorizon) {

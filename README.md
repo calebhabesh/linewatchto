@@ -504,10 +504,12 @@ The same helper reads ignored `.env.local` configuration for optional Metrolinx 
 LINEWATCH_INGESTION_METROLINX_ENABLED=true
 LINEWATCH_INGESTION_METROLINX_API_KEY=your_metrolinx_developer_key
 LINEWATCH_REGIONAL_ARRIVALS_ENABLED=true
+LINEWATCH_REGIONAL_ARRIVALS_SCHEDULE_ENABLED=true
+LINEWATCH_REGIONAL_ARRIVALS_SCHEDULE_REFRESH_ENABLED=true
 LINEWATCH_REGIONAL_TRAIN_MARKERS_ENABLED=true
 ```
 
-With those values in `.env.local`, `scripts/dev-live-backend.sh` polls GO rail service updates and the dedicated UP Express GTFS-RT alerts feed, enables on-demand station arrivals from GO Next Service and UP Express TripUpdates, and enables freshness-gated schematic regional markers from the dedicated GO/UP VehiclePosition feeds. The key is added only to backend-to-Metrolinx requests and is never returned by the API or included in frontend configuration.
+With those values in `.env.local`, `scripts/dev-live-backend.sh` polls GO rail service updates and the dedicated UP Express GTFS-RT alerts feed, enables on-demand station estimates from GO Next Service and UP Express TripUpdates, imports the public GO/UP schedules as fallback, and enables freshness-gated schematic regional markers from the dedicated GO/UP VehiclePosition feeds. The key is added only to backend-to-Metrolinx requests and is never returned by the API or included in frontend configuration. Static schedule import does not require the developer key.
 
 This dev helper also enables local password-reset links by default. It returns a short-lived reset token to the frontend for existing local accounts so the `Forgot password?` flow can be tested without email delivery.
 
@@ -586,13 +588,14 @@ Health endpoint:
 curl http://localhost:8080/api/health
 curl http://localhost:8080/api/health/schedule
 curl http://localhost:8080/api/health/regional-ingestion
+curl http://localhost:8080/api/health/regional-schedule
 ```
 
 Alert ingestion is disabled by default for offline-safe local runs, CI, and demos that should not depend on the TTC public API. The `scripts/dev-live-backend.sh` command runs the backend with the `dev-live` Spring profile, which enables one scheduled poller process.
 
 Metrolinx ingestion is independently disabled by default and requires both `LINEWATCH_INGESTION_METROLINX_ENABLED=true` and a developer key. Its poll and freshness windows default to two and ten minutes respectively. GO bus messages and amenity notices are excluded from regional service status and map impacts. Purpose-built accessibility reads retain current `Amenity` / `Elevator-Escalator Disruption` records, omit restoration notices and unmapped/bus-only facilities, and expose them only while the same ingestion run is fresh. GO rail line codes are mapped to the eight authored corridors, while UP alerts come from Metrolinx's dedicated feed. Because source notices can describe broad station groups, map projection is topology-based and may be approximate.
 
-Regional station arrivals are independently disabled by default. `LINEWATCH_REGIONAL_ARRIVALS_ENABLED=true` enables the purpose-built `GET /api/regional/stations/{stationId}/arrivals` read when the same backend-only Metrolinx key is configured. GO rows come from the station-scoped Next Service API and are filtered to train service; UP rows come from the dedicated GTFS-RT TripUpdates full dataset. Responses default to a 30-second backend cache, reject source data older than five minutes, look ahead three hours, and expose at most four rows per corridor. These are realtime estimates that can change, not exact train locations or guaranteed departure times.
+Regional realtime station arrivals and static schedule fallback are independently configurable. `LINEWATCH_REGIONAL_ARRIVALS_ENABLED=true` enables the Metrolinx-key-backed GO Next Service and UP TripUpdates reads. `LINEWATCH_REGIONAL_ARRIVALS_SCHEDULE_ENABLED=true` enables persisted public GO/UP static-GTFS reads without a developer key, while `LINEWATCH_REGIONAL_ARRIVALS_SCHEDULE_REFRESH_ENABLED=true` downloads both official packages daily and atomically retains the active last-good import on failure. The purpose-built `GET /api/regional/stations/{stationId}/arrivals` response prefers a matching fresh estimate, fills missing trips and corridors from the published timetable, and looks ahead up to seven service days for infrequent Milton and Richmond Hill service. It distinguishes `no-service` from unavailable data and labels every row `live` or `scheduled`. Realtime estimates can change; scheduled rows are published timetable times, not live predictions or guaranteed departures.
 
 Regional estimated train markers are also independently disabled by default. `LINEWATCH_REGIONAL_TRAIN_MARKERS_ENABLED=true` enables `GET /api/regional/trains` using the same backend-only Metrolinx key. The read combines the GO and UP Express GTFS-RT VehiclePosition full datasets, uses a 15-second backend cache, rejects source or vehicle timestamps older than two minutes, and returns explicit disabled, stale, partial-source, unavailable, and available states. Only records whose route and reported next stop map cleanly to an adjacent authored regional topology link are shown. Placement within that link is intentionally schematic and status-based; the endpoint does not expose raw payloads, geographic coordinates, exact physical locations, or movement tracks.
 
@@ -624,7 +627,7 @@ docker compose up -d postgres redis
 scripts/import-ttc-gtfs-schedule.sh /tmp/ttc-merged-gtfs.zip
 ```
 
-These arrivals are timetable-based estimates, not live train predictions. If no import is active, the station detail API returns a schedule-unavailable state and the frontend fallback remains demo-labeled.
+These arrivals are timetable-based estimates, not live train predictions. The scheduled provider looks ahead up to seven service days so an infrequent next trip is not hidden by the normal 90-minute horizon. If no import is active, the station detail API returns a schedule-unavailable state and the frontend fallback remains demo-labeled.
 
 For deployed environments, prefer the automatic refresh job over manual imports:
 
@@ -638,7 +641,7 @@ Automatic GTFS refresh uses a two-pass streaming import that reads the 4.2M-row 
 
 The entire replacement writes inside one atomic transaction. The old active schedule remains available and active until the candidate transaction commits successfully, ensuring a failed download or database exception does not clear or disrupt the existing schedule.
 
-The `/api/health/schedule` endpoint reports both active schedule availability (active/expired status) and the outcome of the latest refresh attempt (status, timestamps, and error message).
+The `/api/health/schedule` endpoint reports active schedule availability, the latest refresh outcome, and station-line mapping coverage. Missing Line 6 or other route mappings are listed explicitly.
 
 ### Optional Live Arrival Provider
 
@@ -724,10 +727,11 @@ Current backend scope:
 | --- | --- | --- |
 | `GET` | `/api/health` | Backend service health. |
 | `GET` | `/api/health/ingestion` | Latest TTC Live Alerts poll status and record counts. |
-| `GET` | `/api/health/schedule` | Active TTC GTFS schedule import status, service coverage dates, and days remaining before expiry. |
+| `GET` | `/api/health/schedule` | Active TTC GTFS schedule import, refresh, service-date, and station-line mapping coverage. |
 | `GET` | `/api/health/regional-ingestion` | Metrolinx configuration, latest poll outcome, record counts, and dashboard freshness. |
+| `GET` | `/api/health/regional-schedule` | Active GO/UP static-GTFS imports and mapped station-corridor coverage. |
 | `GET` | `/api/dashboard?network=ttc\|regional` | Network-scoped dashboard payload; the regional response includes fresh Metrolinx rail impacts only when ingestion is current. |
-| `GET` | `/api/regional/stations/{stationId}/arrivals` | Source-labeled, freshness-checked GO train and UP Express station arrival estimates when regional arrivals are enabled. |
+| `GET` | `/api/regional/stations/{stationId}/arrivals` | Source-labeled GO/UP live estimates, scheduled fallback, and explicit no-service/unavailable states. |
 | `GET` | `/api/regional/trains` | Source-labeled, freshness-checked schematic GO/UP estimated train markers when regional vehicle-position reads are enabled. |
 | `GET` | `/api/accessibility-outages?network=ttc\|regional` | Fresh network-scoped elevator and escalator notices grouped by line/corridor and mapped station; defaults to TTC. |
 | `GET` | `/api/surface-notices` | Searchable detours, bypasses, service changes, and notices for surface routes (bus/streetcar). |

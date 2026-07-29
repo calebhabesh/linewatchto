@@ -46,7 +46,11 @@ public class ScheduledArrivalProvider implements ArrivalProvider {
 
         Optional<Long> todayImportId = repository.findImportIdForServiceDate(today);
         Optional<Long> yesterdayImportId = repository.findImportIdForServiceDate(yesterday);
-        if (todayImportId.isEmpty() && yesterdayImportId.isEmpty()) {
+        boolean futureImportAvailable = java.util.stream.IntStream
+            .rangeClosed(1, Math.max(0, properties.getScheduleLookaheadDays()))
+            .mapToObj(today::plusDays)
+            .anyMatch(serviceDate -> repository.findImportIdForServiceDate(serviceDate).isPresent());
+        if (todayImportId.isEmpty() && yesterdayImportId.isEmpty() && !futureImportAvailable) {
             return lines.stream()
                 .map(line -> ArrivalPrediction.unavailable(line.id(), "Scheduled service"))
                 .collect(Collectors.toList());
@@ -58,12 +62,9 @@ public class ScheduledArrivalProvider implements ArrivalProvider {
         List<String> activeServiceIdsYesterday = yesterdayImportId
             .map(importId -> repository.findActiveServiceIds(importId, yesterday))
             .orElseGet(List::of);
-        if (activeServiceIdsToday.isEmpty() && activeServiceIdsYesterday.isEmpty()) {
-            return lines.stream()
-                .map(line -> ArrivalPrediction.unavailable(line.id(), "Scheduled service"))
-                .collect(Collectors.toList());
-        }
-
+        boolean[] activeCalendar = {
+            !activeServiceIdsToday.isEmpty() || !activeServiceIdsYesterday.isEmpty()
+        };
         List<GtfsScheduleReadRepository.ScheduledDeparture> depsToday = todayImportId
             .map(importId -> repository.findUpcomingDepartures(
                 importId,
@@ -97,6 +98,29 @@ public class ScheduledArrivalProvider implements ArrivalProvider {
         List<GtfsScheduleReadRepository.ScheduledDeparture> allDeps = new ArrayList<>();
         allDeps.addAll(resolvedToday);
         allDeps.addAll(resolvedYesterday);
+        for (int dayOffset = 1; dayOffset <= Math.max(0, properties.getScheduleLookaheadDays()); dayOffset++) {
+            LocalDate serviceDate = today.plusDays(dayOffset);
+            repository.findImportIdForServiceDate(serviceDate).ifPresent(importId -> {
+                List<String> activeServiceIds = repository.findActiveServiceIds(importId, serviceDate);
+                if (!activeServiceIds.isEmpty()) {
+                    activeCalendar[0] = true;
+                    allDeps.addAll(repository.findUpcomingDepartures(
+                        importId,
+                        stationId,
+                        lineIds,
+                        activeServiceIds,
+                        0,
+                        172799,
+                        properties.getMaxArrivalsPerLine()
+                    ).stream().map(departure -> departure.withServiceDate(serviceDate)).toList());
+                }
+            });
+        }
+        if (!activeCalendar[0]) {
+            return lines.stream()
+                .map(line -> ArrivalPrediction.unavailable(line.id(), "Scheduled service"))
+                .collect(Collectors.toList());
+        }
 
         OffsetDateTime cutoff = nowToronto.minusSeconds(30).toOffsetDateTime();
         OffsetDateTime nowOdt = nowToronto.toOffsetDateTime();

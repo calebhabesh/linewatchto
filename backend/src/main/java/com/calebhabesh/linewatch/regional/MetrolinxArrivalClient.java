@@ -74,7 +74,8 @@ public class MetrolinxArrivalClient {
                 predictedAt,
                 preferred(row.path("ActualPlatform").asText(""), row.path("ScheduledPlatform").asText("")),
                 row.path("TripNumber").asText("").trim(),
-                GO_SOURCE
+                GO_SOURCE,
+                "live"
             ));
         }
         return new RegionalArrivalFeed(
@@ -108,7 +109,7 @@ public class MetrolinxArrivalClient {
                 if (predictedAt != null) {
                     OffsetDateTime scheduledAt = predictedAt.minusSeconds(Math.max(0, event.path("delay").asLong(0)));
                     arrivals.add(new RegionalArrivalRecord(
-                        "regional-up", direction, scheduledAt, predictedAt, "", tripNumber, UP_SOURCE
+                        "regional-up", direction, scheduledAt, predictedAt, "", tripNumber, UP_SOURCE, "live"
                     ));
                 }
             }
