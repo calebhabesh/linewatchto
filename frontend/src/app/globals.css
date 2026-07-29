@@ -17515,6 +17515,16 @@ img.transit-line-badge {
   .mobile-train-toggle--announcement {
     top: calc(var(--mobile-safe-top) + var(--mobile-edge-inset) + var(--mobile-announcement-chip-height) + var(--mobile-announcement-gap) + 142px + 8px) !important;
   }
+
+  .linewatch-shell[data-network="regional"] .mobile-train-toggle,
+  .mobile-train-toggle--regional {
+    top: calc(var(--mobile-safe-top) + var(--mobile-edge-inset) + 220px + 12px) !important;
+  }
+
+  .linewatch-shell[data-network="regional"] .mobile-train-toggle--announcement,
+  .mobile-train-toggle--regional.mobile-train-toggle--announcement {
+    top: calc(var(--mobile-safe-top) + var(--mobile-edge-inset) + var(--mobile-regional-announcement-chip-height) + var(--mobile-announcement-gap) + 220px + 12px) !important;
+  }
 }
 
 @media (max-width: 480px) {

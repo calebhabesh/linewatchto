@@ -119,6 +119,22 @@ describe("network-scoped regional dashboard", () => {
       globalsCss,
       /\.mobile-legend-pill--regional\.mobile-legend-pill--announcement\s*\{[\s\S]*var\(--mobile-regional-announcement-chip-height\)/,
     );
+    assert.match(
+      shellSource,
+      /data-network=\{selectedNetwork\}/,
+    );
+    assert.match(
+      shellSource,
+      /selectedNetwork === "regional"\s*\?\s*"mobile-train-toggle--regional"\s*:\s*""/,
+    );
+    assert.match(
+      globalsCss,
+      /\.linewatch-shell\[data-network="regional"\] \.mobile-train-toggle,[\s\S]*\.mobile-train-toggle--regional\s*\{[\s\S]*220px \+ 12px\)/,
+    );
+    assert.match(
+      globalsCss,
+      /\.linewatch-shell\[data-network="regional"\] \.mobile-train-toggle--announcement,[\s\S]*\.mobile-train-toggle--regional\.mobile-train-toggle--announcement\s*\{[\s\S]*var\(--mobile-regional-announcement-chip-height\)[\s\S]*220px \+ 12px\)/,
+    );
   });
 
   it("shows the rotate-map action in regional mobile mode and preserves complete notice copy", () => {
@@ -348,15 +364,30 @@ describe("network-scoped regional dashboard", () => {
     assert.match(stationDetailHeaderSource, /station-detail-header-actions/);
     assert.match(stationDetailHeaderSource, /station-detail-save-control/);
     assert.match(regionalStationDetailSource, /<TransitLineBadge/);
+    assert.match(regionalStationDetailSource, /transitLineBadgeColors\(route\.id\)/);
+    assert.match(regionalStationDetailSource, /transitLineBadgeColors\(line\.id\)/);
     assert.match(regionalStationDetailSource, /data-station-header-line-details/);
     assert.match(regionalStationDetailSource, /data-station-section="arrivals"/);
     assert.match(regionalStationDetailSource, /Checking Metrolinx arrivals/);
     assert.match(regionalStationDetailSource, /Regional realtime unavailable/);
     assert.match(regionalStationDetailSource, /Arrival Data Unavailable/);
     assert.match(regionalStationDetailSource, /Upcoming regional train arrivals/);
+    assert.match(regionalStationDetailSource, /groupRegionalStationArrivals/);
+    assert.match(regionalStationDetailSource, /data-regional-arrival-direction/);
+    assert.match(regionalStationDetailSource, /data-regional-arrival-platform/);
+    assert.match(regionalStationDetailSource, /formatRegionalArrivalClockTime/);
     assert.match(regionalStationDetailSource, /Realtime estimates can change/);
+    assert.match(regionalStationDetailSource, />Station Impacts</);
+    assert.doesNotMatch(regionalStationDetailSource, /Station Conditions/);
+    assert.match(regionalStationDetailSource, /stationImpactCardClassName/);
+    assert.match(regionalStationDetailSource, /View Details/);
     assert.match(regionalStationDetailSource, /data-station-section="accessibility"/);
     assert.match(regionalStationDetailSource, /Metrolinx Open API/);
+    assert.match(regionalStationDetailSource, /station-accessibility-summary/);
+    assert.match(regionalStationDetailSource, /accessibilityOutages\.length/);
+    assert.doesNotMatch(regionalStationDetailSource, /open=\{accessibilityOutages\.length > 0\}/);
+    assert.doesNotMatch(regionalStationDetailSource, /No active elevator or escalator outages/);
+    assert.doesNotMatch(regionalStationDetailSource, /Regional accessibility outage data is disabled/);
     assert.doesNotMatch(regionalStationDetailSource, /Accessibility and platform-condition details are unavailable/);
     assert.doesNotMatch(regionalStationDetailSource, /wheel-chair-symbol|elevator-icon/);
   });

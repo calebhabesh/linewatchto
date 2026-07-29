@@ -39,6 +39,11 @@ function regionalBadgeAssetId(lineId: string) {
   return lineId;
 }
 
+export function transitLineBadgeColors(lineId: string) {
+  const assetId = regionalBadgeAssetId(lineId);
+  return FALLBACK_COLORS[assetId] ?? { backgroundColor: "#64748b", color: "#ffffff" };
+}
+
 export function transitLineBadgeSrc(lineId: string) {
   const assetId = regionalBadgeAssetId(lineId);
   return LINE_NAMES[assetId]
@@ -84,7 +89,7 @@ export function TransitLineBadge({
       <span
         className={`transit-line-badge transit-line-badge--fallback ${className}`.trim()}
         style={{
-          ...(FALLBACK_COLORS[assetId] ?? { backgroundColor: "#64748b", color: "#ffffff" }),
+          ...transitLineBadgeColors(lineId),
           "--transit-line-badge-size": `${size}px`,
         } as CSSProperties}
         aria-hidden={decorative || undefined}

@@ -68,13 +68,19 @@ public class MetrolinxVehiclePositionClient {
             String tripId = trip.path("trip_id").asText("").trim();
             String status = vehicle.path("current_status").asText("").toUpperCase(Locale.CANADA);
             double progress = "INCOMING_AT".equals(status) ? 0.85 : "STOPPED_AT".equals(status) ? 0.98 : 0.5;
+            int segmentTravelSeconds = "regional-up".equals(lineId) ? 300 : 420;
+            boolean moving = !"STOPPED_AT".equals(status);
             OffsetDateTime updatedAt = epoch(vehicle.get("timestamp"));
             if (updatedAt == null) updatedAt = sourceUpdatedAt;
+            OffsetDateTime predictedAt = updatedAt == null ? null : updatedAt.plusSeconds(
+                Math.max(1, Math.round((1 - progress) * segmentTravelSeconds))
+            );
             String direction = directionId == 1 ? "Inbound" : "Outbound";
             markers.add(new RegionalTrainMarkerRecord(
                 preferred(entity.path("id").asText(""), lineId + ":" + tripId + ":" + vehicleId),
                 lineId, direction, directionId == 1 ? "reverse" : "forward", segment.id(),
-                fromStationId, nextStationId, nextStationId, progress, vehicleId, tripId, updatedAt, source
+                fromStationId, nextStationId, nextStationId, progress, segmentTravelSeconds, predictedAt,
+                moving, vehicleId, tripId, updatedAt, source
             ));
         }
         return new RegionalTrainMarkerFeed(sourceUpdatedAt, source, List.copyOf(markers));
@@ -96,7 +102,13 @@ public class MetrolinxVehiclePositionClient {
 
     private String resolveLineId(String routeId, boolean upFeed) {
         if (upFeed) return "regional-up";
-        return RegionalNetworkCatalog.lineIdForSourceCode(routeId).orElse(null);
+        String normalized = routeId == null ? "" : routeId.trim();
+        String lineId = RegionalNetworkCatalog.lineIdForSourceCode(normalized).orElse(null);
+        if (lineId != null) return lineId;
+
+        int separator = normalized.lastIndexOf('-');
+        if (separator < 0 || separator == normalized.length() - 1) return null;
+        return RegionalNetworkCatalog.lineIdForSourceCode(normalized.substring(separator + 1)).orElse(null);
     }
 
     private URI uri(String path) {

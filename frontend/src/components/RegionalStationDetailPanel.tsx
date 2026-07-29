@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertTriangle, Clock3, ExternalLink, LoaderCircle } from "lucide-react";
+import { AlertCircle, AlertTriangle, BadgeInfo, ChevronDown, Clock3, Construction, ExternalLink, LoaderCircle } from "lucide-react";
 import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useDashboardData } from "../app/DataContext";
@@ -8,17 +8,21 @@ import type { ImpactKind, ImpactSelection } from "../app/linewatch-data";
 import { REGIONAL_ROUTE_CARDINAL_DIRECTIONS, REGIONAL_ROUTE_DEFINITIONS } from "../app/regional-data";
 import {
   emptyRegionalArrivalSnapshot,
+  formatRegionalArrivalClockTime,
   getRegionalStationArrivals,
+  groupRegionalStationArrivals,
   regionalArrivalMinuteLabel,
   type RegionalArrivalSnapshot,
 } from "../app/regional-arrivals";
 import type { StationSummary } from "../app/station-data";
-import { ImpactTypeIcon } from "./ImpactTypeIcon";
 import { STATION_LINE_DEFINITIONS, STATION_LINE_STATION_IDS } from "../app/station-data";
 import type { AccessibilityOutageDetail } from "../app/accessibility-outage-data";
 import { formatImpactTimestamp } from "../app/impact-time";
+import { normalizeDashboardSourceLabel } from "../app/dashboard-source-label";
 import { StationDetailHeader } from "./StationDetailHeader";
-import { TransitLineBadge } from "./TransitLineBadge";
+import { TransitLineBadge, transitLineBadgeColors } from "./TransitLineBadge";
+import { DelayIcon } from "./DelayIcon";
+import { PlannedClosureIcon } from "./PlannedClosureIcon";
 
 type Props = {
   station: StationSummary;
@@ -37,7 +41,44 @@ type RegionalStationImpact = {
   kind: ImpactKind;
   id: string;
   title: string;
+  description: string;
+  source: string;
+  updatedAt?: string | null;
+  updatedAgo?: string | null;
+  classification: string;
+  tone: "active" | "delay" | "planned" | "reduced-speed-zone";
 };
+
+function stationImpactCardClassName(tone: RegionalStationImpact["tone"]) {
+  const base = "flex flex-col gap-2.5 rounded-lg border border-black/10 bg-slate-50 p-3 text-sm border-l-2 dark:border-white/10 dark:bg-white/5 transition-all";
+  if (tone === "active") {
+    return `${base} suspension-card-border shadow-[inset_2px_0_6px_-2px_rgba(239,68,68,0.2)]`;
+  }
+  if (tone === "planned") {
+    return `${base} planned-closure-card-border shadow-[inset_2px_0_6px_-2px_rgba(59,130,246,0.2)]`;
+  }
+  if (tone === "reduced-speed-zone") {
+    return `${base} rsz-card-border shadow-[inset_2px_0_6px_-2px_rgba(245,158,11,0.2)]`;
+  }
+  return `${base} delay-card-border shadow-[inset_2px_0_6px_-2px_rgba(254,236,65,0.18)]`;
+}
+
+function stationImpactButtonClassName(tone: RegionalStationImpact["tone"]) {
+  const base = "ml-auto inline-flex min-h-8 shrink-0 items-center justify-center gap-1.5 rounded-md border px-2.5 py-1 text-xs font-bold leading-none text-slate-900 dark:text-white transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 active:scale-95";
+  if (tone === "active") return `${base} border-red-500/35 bg-red-500/10 hover:bg-red-500/20`;
+  if (tone === "planned") return `${base} border-blue-500/35 bg-blue-500/10 hover:bg-blue-500/20`;
+  if (tone === "reduced-speed-zone") return `${base} border-[#F59E0B]/35 bg-[#F59E0B]/10 hover:bg-[#F59E0B]/20`;
+  return `${base} border-[#FEEC41]/35 bg-[#FEEC41]/10 hover:bg-[#FEEC41]/20`;
+}
+
+function RegionalStationImpactIcon({ impact }: { impact: RegionalStationImpact }) {
+  if (impact.kind === "delay") return <DelayIcon size={26} className="shrink-0 delay-tone" />;
+  if (impact.kind === "reduced-speed-zone") return <Construction size={26} className="rsz-tone shrink-0" />;
+  if (impact.kind === "planned-closure" && impact.tone !== "active") {
+    return <PlannedClosureIcon size={26} className="shrink-0 text-blue-500" />;
+  }
+  return <AlertTriangle size={26} className="shrink-0 text-red-500" />;
+}
 
 export function RegionalStationDetailPanel({
   station,
@@ -49,7 +90,6 @@ export function RegionalStationDetailPanel({
   onToggleSaved,
   onRequestSignIn,
   accessibilityOutages,
-  accessibilityFresh,
 }: Props) {
   const dashboard = useDashboardData();
   const [isClosing, setIsClosing] = useState(false);
@@ -65,8 +105,40 @@ export function RegionalStationDetailPanel({
   const routes = REGIONAL_ROUTE_DEFINITIONS.filter((route) => station.lineIds.includes(route.id));
   const impacts = useMemo(() => {
     const related = new Map<string, RegionalStationImpact>();
-    const add = (kind: ImpactKind, id: string, title: string) => {
-      related.set(`${kind}:${id}`, { kind, id, title });
+    const add = (kind: ImpactKind, id: string, fallbackTitle: string) => {
+      const active = dashboard.activeAlerts.find((item) => item.id === id);
+      const delay = dashboard.delays.find((item) => item.id === id);
+      const planned = dashboard.plannedClosures.find((item) => item.id === id);
+      const reducedSpeedZone = dashboard.reducedSpeedZones.find((item) => item.id === id);
+      const card = active ?? delay ?? planned ?? reducedSpeedZone;
+      const tone: RegionalStationImpact["tone"] =
+        kind === "reduced-speed-zone"
+          ? "reduced-speed-zone"
+          : kind === "planned-closure"
+            ? active ? "active" : "planned"
+            : kind === "suspension"
+              ? "active"
+              : "delay";
+      const classification =
+        kind === "reduced-speed-zone"
+          ? "Reduced Speed Zone"
+          : kind === "planned-closure"
+            ? active ? "Active Closure" : "Planned Closure"
+            : kind === "suspension"
+              ? "Active Alert"
+              : "Delay";
+
+      related.set(`${kind}:${id}`, {
+        kind,
+        id,
+        title: card?.title ?? fallbackTitle,
+        description: card?.description ?? "",
+        source: card?.source ?? "Metrolinx Open API",
+        updatedAt: card?.updatedAt,
+        updatedAgo: card && "updatedAgo" in card ? card.updatedAgo : null,
+        classification,
+        tone,
+      });
     };
 
     for (const impact of dashboard.stationNodeImpacts.filter((item) => item.stationId === station.id)) {
@@ -86,6 +158,10 @@ export function RegionalStationDetailPanel({
     }
     return [...related.values()];
   }, [dashboard, station.id]);
+  const arrivalGroups = useMemo(
+    () => groupRegionalStationArrivals(arrivalSnapshot.arrivals, station.id),
+    [arrivalSnapshot.arrivals, station.id],
+  );
 
   const ttcLines = useMemo(() => {
     return Object.values(STATION_LINE_DEFINITIONS).filter((line) =>
@@ -161,14 +237,13 @@ export function RegionalStationDetailPanel({
             >
               <div className="flex flex-wrap gap-2">
                 {directionRoutes.map((route) => (
-                  <span key={route.id} className="station-route-identity">
-                    <TransitLineBadge
-                      lineId={route.id}
-                      lineNumber={route.number}
-                      lineName={route.name}
-                      size={30}
-                    />
-                    <span className="min-w-0 truncate text-xs font-black">{route.name}</span>
+                  <span
+                    key={route.id}
+                    className="regional-route-pill inline-flex min-h-8 max-w-full min-w-0 items-center gap-2 rounded-full border border-black/10 px-3 py-1 text-xs font-black dark:border-white/10"
+                    style={transitLineBadgeColors(route.id)}
+                  >
+                    <span>{route.number}</span>
+                    <span className="min-w-0 truncate">{route.name}</span>
                   </span>
                 ))}
               </div>
@@ -181,14 +256,13 @@ export function RegionalStationDetailPanel({
             <div className="flex flex-col gap-3 rounded-md border border-black/10 bg-slate-50 p-3 dark:border-white/10 dark:bg-white/5">
               <div className="flex flex-wrap gap-2">
                 {ttcLines.map((line) => (
-                  <span key={line.id} className="station-route-identity">
-                    <TransitLineBadge
-                      lineId={line.id}
-                      lineNumber={line.number}
-                      lineName={line.name}
-                      size={30}
-                    />
-                    <span className="min-w-0 truncate text-xs font-black">{line.name}</span>
+                  <span
+                    key={line.id}
+                    className="regional-route-pill inline-flex min-h-8 max-w-full min-w-0 items-center gap-2 rounded-full border border-black/10 px-3 py-1 text-xs font-black dark:border-white/10"
+                    style={transitLineBadgeColors(line.id)}
+                  >
+                    <span>{line.number}</span>
+                    <span className="min-w-0 truncate">{line.name}</span>
                   </span>
                 ))}
               </div>
@@ -219,39 +293,80 @@ export function RegionalStationDetailPanel({
                   <div className="mt-3 flex min-h-20 items-center justify-center rounded-md border border-black/10 bg-white/60 dark:border-white/10 dark:bg-black/10">
                     <LoaderCircle size={22} className="animate-spin text-slate-500" aria-label="Loading regional arrivals" />
                   </div>
-                ) : arrivalSnapshot.availability === "available" && arrivalSnapshot.arrivals.length > 0 ? (
-                  <ul className="mt-3 grid gap-2" aria-label="Upcoming regional train arrivals">
-                    {arrivalSnapshot.arrivals.map((arrival) => {
-                      const route = REGIONAL_ROUTE_DEFINITIONS.find((item) => item.id === arrival.lineId);
-                      return (
-                        <li
-                          key={`${arrival.lineId}:${arrival.tripNumber}:${arrival.predictedAt}`}
-                          className="rounded-md border border-black/10 bg-white/80 px-3 py-2.5 dark:border-white/10 dark:bg-black/10"
-                        >
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="min-w-0">
-                              <div className="flex items-center gap-2">
-                                <TransitLineBadge
-                                  lineId={arrival.lineId}
-                                  lineNumber={arrival.lineNumber}
-                                  lineName={route?.name}
-                                  size={24}
-                                />
-                                <span className="truncate text-sm font-black">{arrival.direction}</span>
-                              </div>
-                              <p className="mt-1 text-[11px] font-semibold text-slate-500 dark:text-slate-400">
-                                {arrival.platform ? `Platform ${arrival.platform}` : "Platform not assigned"}
-                                {arrival.delayMinutes > 0 ? ` · ${arrival.delayMinutes} min behind schedule` : " · On schedule"}
-                              </p>
-                            </div>
-                            <span className="shrink-0 text-sm font-black text-slate-950 dark:text-white">
-                              {regionalArrivalMinuteLabel(arrival.minutes)}
+                ) : arrivalSnapshot.availability === "available" && arrivalGroups.length > 0 ? (
+                  <div className="mt-3 flex flex-col gap-3" aria-label="Upcoming regional train arrivals">
+                    {arrivalGroups.map((group) => (
+                      <article
+                        key={group.key}
+                        data-regional-arrival-direction={group.directionLabel}
+                        className="rounded-md border border-black/10 bg-white/80 p-3 text-sm shadow-sm dark:border-white/10 dark:bg-[#12151c]/80"
+                      >
+                        <div className="flex min-w-0 items-start gap-3">
+                          <TransitLineBadge
+                            lineId={group.lineId}
+                            lineNumber={group.lineNumber}
+                            lineName={group.lineName}
+                            size={28}
+                            className="shrink-0"
+                          />
+                          <div className="flex min-w-0 flex-col leading-tight">
+                            <strong className="min-w-0 break-words font-black text-slate-900 dark:text-white">
+                              {group.directionLabel}
+                            </strong>
+                            <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                              {group.destinationLabel}
                             </span>
                           </div>
-                        </li>
-                      );
-                    })}
-                  </ul>
+                          <span className="ml-auto inline-flex h-5 shrink-0 items-center rounded border border-emerald-500/35 bg-emerald-500/10 px-1.5 text-[10px] font-black uppercase tracking-wide text-emerald-700 dark:text-emerald-200">
+                            Live
+                          </span>
+                        </div>
+
+                        <div className="mt-3 flex flex-col gap-3">
+                          {group.platforms.map((platform) => (
+                            <div key={platform.key} data-regional-arrival-platform={platform.key}>
+                              <div className="mb-2 flex items-center justify-between gap-2">
+                                <h4 className="text-[11px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                                  {platform.label}
+                                </h4>
+                                <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400">
+                                  {platform.arrivals.some((arrival) => arrival.delayMinutes > 0)
+                                    ? "Delayed estimate"
+                                    : "On schedule"}
+                                </span>
+                              </div>
+                              <div className="grid grid-cols-3 gap-2">
+                                {platform.arrivals.map((arrival) => {
+                                  const due = arrival.minutes <= 0;
+                                  return (
+                                    <div
+                                      key={`${arrival.tripNumber}:${arrival.predictedAt}`}
+                                      className={[
+                                        "flex min-h-[66px] flex-col items-center justify-center rounded-md border px-2 py-2 text-center",
+                                        due
+                                          ? "border-red-400/80 bg-red-900/85 text-red-50 shadow-[0_0_0_1px_rgba(248,113,113,0.25)]"
+                                          : "border-black/10 bg-slate-950/[0.03] text-slate-900 dark:border-white/10 dark:bg-[#0f1117] dark:text-white",
+                                      ].join(" ")}
+                                    >
+                                      <strong className="text-base font-black leading-none">
+                                        {regionalArrivalMinuteLabel(arrival.minutes)}
+                                      </strong>
+                                      <span className={due
+                                        ? "mt-1 text-xs font-semibold text-red-100/80"
+                                        : "mt-1 text-xs font-semibold text-slate-500 dark:text-slate-400"}
+                                      >
+                                        {formatRegionalArrivalClockTime(arrival.predictedAt)}
+                                      </span>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </article>
+                    ))}
+                  </div>
                 ) : (
                   <div className="mt-3 rounded-md border border-black/10 bg-white/60 px-3 py-4 text-center dark:border-white/10 dark:bg-black/10">
                     <p className="text-sm font-semibold leading-snug text-slate-500 dark:text-slate-400">
@@ -283,95 +398,115 @@ export function RegionalStationDetailPanel({
 
               <section
                 className="rounded-lg border border-black/10 bg-slate-50 p-3 dark:border-white/10 dark:bg-white/5"
+                data-station-section="station-impacts"
                 aria-label="Station service impacts"
               >
-                <h3 className="flex items-center gap-2 text-sm font-black">
-                  <AlertTriangle size={16} />
-                  Station Conditions
+                <h3 className="flex items-center gap-2.5 text-lg font-black text-slate-900 dark:text-white">
+                  <AlertCircle size={20} className="shrink-0" />
+                  <span>Station Impacts</span>
                 </h3>
                 {impacts.length > 0 ? (
-                  <ul className="mt-3 grid gap-2">
+                  <div className="mt-2 flex flex-col gap-2">
                     {impacts.map((impact) => (
-                      <li key={`${impact.kind}:${impact.id}`}>
-                        <button
-                          type="button"
-                          className="flex min-h-11 w-full items-center gap-2 rounded-md border border-black/10 bg-white/80 px-3 py-2 text-left text-sm font-semibold transition-colors hover:bg-slate-100 dark:border-white/10 dark:bg-[#12151c]/80 dark:hover:bg-white/10"
-                          onClick={() => onSelectImpact({ kind: impact.kind, id: impact.id })}
-                        >
-                          <ImpactTypeIcon kind={impact.kind} size={16} />
-                          <span>{impact.title}</span>
-                        </button>
-                      </li>
+                      <div key={`${impact.kind}:${impact.id}`} className={stationImpactCardClassName(impact.tone)}>
+                        <div className="flex items-center gap-2.5 text-sm font-bold text-slate-900 dark:text-white">
+                          <RegionalStationImpactIcon impact={impact} />
+                          <span className="flex items-center leading-none">{impact.classification}</span>
+                        </div>
+                        <div className="flex flex-col gap-1">
+                          <strong className="block font-bold text-slate-900 dark:text-white">{impact.title}</strong>
+                          {impact.description && impact.description !== impact.title ? (
+                            <p className="leading-snug text-slate-700 dark:text-slate-200">{impact.description}</p>
+                          ) : null}
+                        </div>
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <p className="min-w-0 text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                            {normalizeDashboardSourceLabel(impact.source)}
+                            {impact.updatedAt || impact.updatedAgo
+                              ? ` / ${impact.updatedAt ? formatImpactTimestamp(impact.updatedAt) : impact.updatedAgo}`
+                              : ""}
+                          </p>
+                          <button
+                            type="button"
+                            className={stationImpactButtonClassName(impact.tone)}
+                            onClick={() => onSelectImpact({ kind: impact.kind, id: impact.id })}
+                            aria-label={`Open ${impact.classification} details`}
+                          >
+                            <BadgeInfo size={16} className="shrink-0" aria-hidden="true" />
+                            <span>View Details</span>
+                          </button>
+                        </div>
+                      </div>
                     ))}
-                  </ul>
-                ) : (
-                  <p className="mt-3 text-sm font-semibold text-slate-500 dark:text-slate-400">
-                    {dashboard.dataSource === "backend"
-                      ? "No station impacts in the latest Metrolinx alert dataset."
-                      : "No station impacts in the regional demo dataset."}
-                  </p>
-                )}
+                  </div>
+                ) : null}
               </section>
 
-              <section
-                className="rounded-lg border border-black/10 bg-slate-50 p-3 dark:border-white/10 dark:bg-white/5"
+              <details
+                className="station-accessibility-details rounded-lg border border-black/10 bg-slate-50 p-3 dark:border-white/10 dark:bg-white/5"
                 data-station-section="accessibility"
                 aria-label="Regional accessibility outages"
               >
-                <h3 className="flex items-center gap-2 text-sm font-black">
-                  <Image
-                    src="/assets/linewatch/accessibility-alert.svg"
-                    alt=""
-                    width={18}
-                    height={18}
-                    className="h-[18px] w-[18px] shrink-0"
+                <summary className="station-accessibility-summary flex cursor-pointer list-none items-center gap-2.5 text-lg font-black">
+                  <span className="flex min-w-0 items-center gap-2.5">
+                    <Image
+                      src="/assets/linewatch/accessibility-alert.svg"
+                      alt=""
+                      width={24}
+                      height={24}
+                      aria-hidden="true"
+                      className="shrink-0"
+                    />
+                    <span className="min-w-0 truncate">Accessibility Outages</span>
+                    <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-slate-200 px-1.5 py-0.5 text-xs font-bold text-slate-800 dark:bg-white/10 dark:text-slate-200">
+                      {accessibilityOutages.length}
+                    </span>
+                  </span>
+                  <ChevronDown
+                    size={18}
+                    aria-hidden="true"
+                    className="station-accessibility-chevron ml-auto shrink-0 text-slate-500 dark:text-slate-300"
                   />
-                  Accessibility Outages
-                </h3>
-                <p className="mt-1 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
-                  Metrolinx Open API
-                </p>
-                {accessibilityOutages.length > 0 ? (
-                  <ul className="mt-3 grid gap-2">
-                    {accessibilityOutages.map((outage) => (
-                      <li
-                        key={outage.id}
-                        className="rounded-md border border-amber-500/30 bg-white/80 p-3 dark:bg-black/10"
-                      >
-                        <div className="flex items-start gap-2.5">
-                          <Image
-                            src={`/assets/linewatch/outages/${outage.assetType}.svg`}
-                            alt=""
-                            width={22}
-                            height={22}
-                            className="h-[22px] w-[22px] shrink-0"
-                          />
-                          <div className="min-w-0">
-                            <p className="text-sm font-black text-slate-900 dark:text-white">{outage.title}</p>
-                            {outage.description ? (
-                              <p className="mt-1 text-xs leading-relaxed text-slate-600 dark:text-slate-300">
-                                {outage.description}
-                              </p>
-                            ) : null}
-                            <p className="mt-2 text-[10px] font-semibold text-slate-500 dark:text-slate-400">
-                              Updated {formatImpactTimestamp(outage.updatedAt)}
-                            </p>
-                          </div>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="mt-3 text-sm font-semibold text-slate-500 dark:text-slate-400">
-                    {accessibilityFresh
-                      ? "No active elevator or escalator outages are linked to this station in the latest Metrolinx dataset."
-                      : "Regional accessibility outage data is disabled, unavailable, or stale."}
-                  </p>
-                )}
-                <p className="mt-2 text-[10px] leading-relaxed text-slate-500 dark:text-slate-400">
-                  Notices describe station facilities and accessible paths; they do not indicate rail service status.
-                </p>
-              </section>
+                </summary>
+                <div className="station-accessibility-content-wrapper">
+                  <div className="station-accessibility-content pt-3 flex flex-col gap-3">
+                    <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                      Metrolinx Open API
+                    </p>
+                    {accessibilityOutages.length > 0 ? (
+                      <ul className="grid gap-2">
+                        {accessibilityOutages.map((outage) => (
+                          <li
+                            key={outage.id}
+                            className="rounded-md border border-amber-500/30 bg-white/80 p-3 dark:bg-black/10"
+                          >
+                            <div className="flex items-start gap-2.5">
+                              <Image
+                                src={`/assets/linewatch/outages/${outage.assetType}.svg`}
+                                alt=""
+                                width={22}
+                                height={22}
+                                className="h-[22px] w-[22px] shrink-0"
+                              />
+                              <div className="min-w-0">
+                                <p className="text-sm font-black text-slate-900 dark:text-white">{outage.title}</p>
+                                {outage.description ? (
+                                  <p className="mt-1 text-xs leading-relaxed text-slate-600 dark:text-slate-300">
+                                    {outage.description}
+                                  </p>
+                                ) : null}
+                                <p className="mt-2 text-[10px] font-semibold text-slate-500 dark:text-slate-400">
+                                  Updated {formatImpactTimestamp(outage.updatedAt)}
+                                </p>
+                              </div>
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : null}
+                  </div>
+                </div>
+              </details>
             </div>
           </div>
         </div>

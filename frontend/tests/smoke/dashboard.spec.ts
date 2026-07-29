@@ -289,7 +289,7 @@ test("switches the complete dashboard to the fixture-backed regional network", a
   await expect(westonPanel).toBeVisible();
   await expect(westonPanel.getByRole("button", { name: "Save Weston to My Stations" })).toBeVisible();
   await expect(westonPanel.getByRole("button", { name: "Close station details" })).toBeVisible();
-  await expect(westonPanel.locator(".transit-line-badge").first()).toBeVisible();
+  await expect(westonPanel.locator(".regional-route-pill").first()).toBeVisible();
 
   await networkSelector.getByRole("button", { name: "TTC", exact: true }).click();
   await expect(root).toHaveAttribute("data-network-transition-direction", "back");
@@ -465,9 +465,10 @@ test("renders fresh Metrolinx impacts in regional mode", async ({ page, request,
   const stationPanel = page.getByRole("complementary", { name: "Pickering regional station details" });
   await expect(stationPanel).toBeVisible();
   await expect(stationPanel.getByText("Metrolinx GO Next Service", { exact: true })).toBeVisible();
-  await expect(stationPanel.getByText("Kitchener GO", { exact: true })).toBeVisible();
+  await expect(stationPanel.getByText("To Kitchener GO", { exact: true })).toBeVisible();
   await expect(stationPanel.getByText("7 min", { exact: true })).toBeVisible();
-  await expect(stationPanel.getByText("Platform 11 · 3 min behind schedule", { exact: true })).toBeVisible();
+  await expect(stationPanel.getByRole("heading", { name: "Platform 11" })).toBeVisible();
+  await expect(stationPanel.getByText("Delayed estimate", { exact: true })).toBeVisible();
 });
 
 test("renders regional accessibility outages in the global and station views", async ({ page, request, isMobile }) => {
@@ -489,24 +490,45 @@ test("renders regional accessibility outages in the global and station views", a
   await page.getByRole("button", { name: "View Station" }).click();
   const stationPanel = page.getByRole("complementary", { name: "Eglinton regional station details" });
   await expect(stationPanel).toBeVisible();
+  await expect(stationPanel.getByText("Metrolinx Open API", { exact: true })).toBeHidden();
+  await expect(stationPanel.getByText("Elevator out of service", { exact: true })).toBeHidden();
+  await stationPanel.locator("summary.station-accessibility-summary").click();
   await expect(stationPanel.getByText("Metrolinx Open API", { exact: true })).toBeVisible();
   await expect(stationPanel.getByText("Elevator out of service", { exact: true })).toBeVisible();
 });
 
 test("renders regional estimated train markers from the network-scoped endpoint", async ({ page, request, isMobile }) => {
   test.skip(isMobile, "regional network selection is covered on desktop");
-  await setStubMode(request, "seeded");
+  await setStubMode(request, "regional-live");
   await page.goto("/");
   const networkSelector = page.getByRole("group", { name: "Select transit network" });
   await networkSelector.getByRole("button", { name: "GO/UP", exact: true }).click();
   await expect(page.getByRole("region", { name: "Interactive GO and UP map" })).toBeVisible();
-  await expect(page.locator(".regional-estimated-train-marker-layer")).toHaveCount(0);
+  await expect(page.locator(".regional-estimated-train-marker-layer")).toBeAttached();
+  await expect(page.locator(".regional-estimated-train-marker-layer .estimated-train-marker")).toHaveCount(0);
 
   await page.getByRole("button", { name: /Toggle estimated train markers/ }).click();
 
   await expect(page.locator(".regional-estimated-train-marker-layer")).toBeAttached();
+  const marker = page.locator('[data-marker-key="regional-ki:outbound:3775:cab-3775"]');
   await expect(page.locator(".estimated-train-marker-regional-ki")).toHaveCount(1);
-  await expect(page.locator('[data-marker-key="regional-ki:outbound:3775:cab-3775"]')).toBeAttached();
+  await expect(marker).toBeAttached();
+  await expect(marker.locator(".estimated-train-marker-outline")).toHaveCount(1);
+  await expect(marker.locator(".estimated-train-marker-core")).toHaveCount(1);
+  await expect(marker.locator(".estimated-train-marker-window")).toHaveCount(3);
+  await expect(marker.locator(".estimated-train-marker-arrow")).toHaveCount(1);
+  expect(await marker.evaluate((node) => node.parentElement?.parentElement?.id)).toBe(
+    "regional-stations-layer",
+  );
+
+  const disruptionOverlay = page.locator(".regional-overlay-segment-group").first();
+  await expect(disruptionOverlay).toBeAttached();
+  const originalDisruptionOverlay = await disruptionOverlay.elementHandle();
+  expect(originalDisruptionOverlay).not.toBeNull();
+  await page.waitForResponse((response) =>
+    new URL(response.url()).pathname === "/api/regional/trains"
+  );
+  expect(await originalDisruptionOverlay!.evaluate((node) => node.isConnected)).toBe(true);
 });
 
 test("renders the seeded dashboard API payload", async ({ page, request, isMobile }) => {

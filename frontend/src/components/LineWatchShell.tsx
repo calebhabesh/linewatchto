@@ -2348,6 +2348,7 @@ export function LineWatchShell({
       <div
         style={{ height: "var(--visual-viewport-height, 100dvh)" }}
         data-active-view={activeView}
+        data-network={selectedNetwork}
         data-menu-pinned={menuPinned ? "true" : undefined}
         className={`linewatch-shell relative w-full overflow-hidden transition-colors duration-500 ${(isDark || highContrast) ? "dark bg-[#0d0808] text-slate-100" : "bg-slate-50 text-slate-900"} ${highContrast ? "high-contrast" : ""} ${reducedMotion ? "motion-paused" : ""} ${mobilePerformanceMode ? "mobile-performance-mode" : ""} ${shellInspectorClasses}`}
       >
@@ -3294,6 +3295,8 @@ export function LineWatchShell({
           onClick={handleToggleEstimatedTrains}
           disabled={!trainNetworkOpen}
           className={`mobile-train-toggle md:hidden ${
+            selectedNetwork === "regional" ? "mobile-train-toggle--regional" : ""
+          } ${
             (selectedNetwork === "ttc"
               ? subwayOperatingState.closingSoon || (subwayOperatingState.status === "closed" && closedMapPeek)
               : regionalRailOperatingState.closingSoon || (regionalRailOperatingState.status === "closed" && closedMapPeek))

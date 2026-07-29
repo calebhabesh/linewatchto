@@ -39,7 +39,13 @@ import type {
 } from "../app/linewatch-data";
 import type { StationSummary } from "../app/station-data";
 import type { AccountCommutePathPreview } from "../app/account-data";
-import { estimatedTrainMarkerRenderKey, type EstimatedTrainMarker } from "../app/train-markers";
+import {
+  estimatedTrainMarkerRenderKey,
+  TRAIN_MARKER_ARROW_PATH,
+  TRAIN_MARKER_BODY_PATH,
+  TRAIN_MARKER_WINDOWS,
+  type EstimatedTrainMarker,
+} from "../app/train-markers";
 import { LogsDropdown } from "./LogsDropdown";
 import { ImpactTypeIcon } from "./ImpactTypeIcon";
 import {
@@ -4848,16 +4854,16 @@ function TrainMarkerGlyph() {
     <>
       <path
         className="estimated-train-marker-outline"
-        d="M -21 -15 H 14 L 36 0 L 14 15 H -21 A 15 15 0 0 1 -36 0 A 15 15 0 0 1 -21 -15 Z"
+        d={TRAIN_MARKER_BODY_PATH}
       />
       <path
         className="estimated-train-marker-core"
-        d="M -21 -15 H 14 L 36 0 L 14 15 H -21 A 15 15 0 0 1 -36 0 A 15 15 0 0 1 -21 -15 Z"
+        d={TRAIN_MARKER_BODY_PATH}
       />
-      <rect className="estimated-train-marker-window" x="-27" y="-6" width="8" height="12" rx="1.5" />
-      <rect className="estimated-train-marker-window" x="-15" y="-6" width="8" height="12" rx="1.5" />
-      <rect className="estimated-train-marker-window" x="-3" y="-6" width="8" height="12" rx="1.5" />
-      <path className="estimated-train-marker-arrow" d="M 13 -8 L 27 0 L 13 8 Z" />
+      {TRAIN_MARKER_WINDOWS.map((window) => (
+        <rect key={window.x} className="estimated-train-marker-window" {...window} />
+      ))}
+      <path className="estimated-train-marker-arrow" d={TRAIN_MARKER_ARROW_PATH} />
     </>
   );
 }

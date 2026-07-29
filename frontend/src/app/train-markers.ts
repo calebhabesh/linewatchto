@@ -40,6 +40,15 @@ export type EstimatedTrainFetchOptions = {
   network?: "ttc" | "regional";
 };
 
+export const TRAIN_MARKER_BODY_PATH =
+  "M -21 -15 H 14 L 36 0 L 14 15 H -21 A 15 15 0 0 1 -36 0 A 15 15 0 0 1 -21 -15 Z";
+export const TRAIN_MARKER_ARROW_PATH = "M 13 -8 L 27 0 L 13 8 Z";
+export const TRAIN_MARKER_WINDOWS = [
+  { x: -27, y: -6, width: 8, height: 12, rx: 1.5 },
+  { x: -15, y: -6, width: 8, height: 12, rx: 1.5 },
+  { x: -3, y: -6, width: 8, height: 12, rx: 1.5 },
+] as const;
+
 export const EMPTY_ESTIMATED_TRAIN_SNAPSHOT: EstimatedTrainSnapshot = {
   fresh: false,
   source: "TTC GTFS-RT subway trip updates",

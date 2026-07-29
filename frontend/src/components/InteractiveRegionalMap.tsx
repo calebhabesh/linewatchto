@@ -4,7 +4,13 @@ import { memo, useCallback, useEffect, useLayoutEffect, useRef, useState, type K
 import { Locate, X, ZoomIn, ZoomOut } from "lucide-react";
 import type { ImpactKind, ImpactSelection, MapImpact, NetworkSegment, TravelDirection } from "../app/linewatch-data";
 import type { AccountCommutePathPreview } from "../app/account-data";
-import { estimatedTrainMarkerRenderKey, type EstimatedTrainMarker } from "../app/train-markers";
+import {
+  estimatedTrainMarkerRenderKey,
+  TRAIN_MARKER_ARROW_PATH,
+  TRAIN_MARKER_BODY_PATH,
+  TRAIN_MARKER_WINDOWS,
+  type EstimatedTrainMarker,
+} from "../app/train-markers";
 import { useDashboardData } from "../app/DataContext";
 import {
   MapOverlapIndicator,
@@ -627,6 +633,67 @@ function resolvedRegionalSegmentPath(documentNode: Document, segment: NetworkSeg
   return guide?.getAttribute("d")
     ?? corridorSegmentPath(documentNode, segment)
     ?? fallbackSegmentPath(documentNode, segment.stationAAnchorId, segment.stationBAnchorId);
+}
+
+function regionalTrainMarkerFrame(
+  documentNode: Document,
+  segment: NetworkSegment,
+  marker: EstimatedTrainMarker,
+) {
+  const pathD = resolvedRegionalSegmentPath(documentNode, segment);
+  const fromAnchorId = marker.fromStationId === segment.stationAId
+    ? segment.stationAAnchorId
+    : segment.stationBAnchorId;
+  const from = svgAnchorPoint(documentNode, fromAnchorId);
+  if (!pathD || !from) return null;
+
+  const markerPath = documentNode.createElementNS(SVG_NAMESPACE, "path");
+  markerPath.setAttribute("d", pathD);
+  try {
+    const length = markerPath.getTotalLength();
+    if (!Number.isFinite(length) || length <= 0) return null;
+    const pathStart = markerPath.getPointAtLength(0);
+    const pathEnd = markerPath.getPointAtLength(length);
+    const pathStartsAtFrom = squaredPointDistance(pathStart, from)
+      <= squaredPointDistance(pathEnd, from);
+    const progress = Math.max(0.05, Math.min(0.95, marker.progress));
+    const pathProgress = pathStartsAtFrom ? progress : 1 - progress;
+    const distance = length * pathProgress;
+    const point = markerPath.getPointAtLength(distance);
+    const delta = Math.min(24, Math.max(2, length * 0.015));
+    const before = markerPath.getPointAtLength(Math.max(0, distance - delta));
+    const after = markerPath.getPointAtLength(Math.min(length, distance + delta));
+    const pathAngle = Math.atan2(after.y - before.y, after.x - before.x) * 180 / Math.PI;
+    return {
+      point,
+      angle: pathStartsAtFrom ? pathAngle : pathAngle + 180,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function appendRegionalTrainMarkerGlyph(documentNode: Document, group: SVGGElement) {
+  for (const className of ["estimated-train-marker-outline", "estimated-train-marker-core"]) {
+    const body = documentNode.createElementNS(SVG_NAMESPACE, "path");
+    body.setAttribute("d", TRAIN_MARKER_BODY_PATH);
+    body.classList.add(className);
+    group.append(body);
+  }
+  for (const window of TRAIN_MARKER_WINDOWS) {
+    const pane = documentNode.createElementNS(SVG_NAMESPACE, "rect");
+    pane.setAttribute("x", String(window.x));
+    pane.setAttribute("y", String(window.y));
+    pane.setAttribute("width", String(window.width));
+    pane.setAttribute("height", String(window.height));
+    pane.setAttribute("rx", String(window.rx));
+    pane.classList.add("estimated-train-marker-window");
+    group.append(pane);
+  }
+  const arrow = documentNode.createElementNS(SVG_NAMESPACE, "path");
+  arrow.setAttribute("d", TRAIN_MARKER_ARROW_PATH);
+  arrow.classList.add("estimated-train-marker-arrow");
+  group.append(arrow);
 }
 
 function regionalOverlapBadgeGroups(segments: NetworkSegment[]) {
@@ -1498,42 +1565,12 @@ function InteractiveRegionalMapComponent({
           const firstStationTarget = stationsLayer.querySelector(".regional-station-hit-target");
           stationsLayer.insertBefore(previewLayer, firstStationTarget);
         }
-        if (estimatedTrainsEnabled) {
+        if (stationsLayer) {
           const markerLayer = documentNode.createElementNS(SVG_NAMESPACE, "g");
           markerLayer.classList.add("estimated-train-marker-layer", "regional-estimated-train-marker-layer");
           markerLayer.setAttribute("aria-label", "Estimated regional train markers");
-          for (const marker of estimatedTrainMarkers) {
-            const segment = networkSegments.find((item) => item.id === marker.segmentId);
-            const start = svgAnchorPoint(documentNode, segment?.stationAAnchorId);
-            const end = svgAnchorPoint(documentNode, segment?.stationBAnchorId);
-            if (!start || !end) continue;
-            const fromIsA = marker.fromStationId === segment?.stationAId;
-            const from = fromIsA ? start : end;
-            const to = fromIsA ? end : start;
-            const progress = Math.max(0.05, Math.min(0.95, marker.progress));
-            const x = from.x + (to.x - from.x) * progress;
-            const y = from.y + (to.y - from.y) * progress;
-            const angle = Math.atan2(to.y - from.y, to.x - from.x) * 180 / Math.PI;
-            const group = documentNode.createElementNS(SVG_NAMESPACE, "g");
-            group.classList.add("estimated-train-marker", `estimated-train-marker-${marker.lineId}`);
-            group.setAttribute("data-marker-key", estimatedTrainMarkerRenderKey(marker));
-            group.setAttribute("transform", `translate(${x} ${y}) rotate(${angle}) scale(1.8)`);
-            const title = documentNode.createElementNS(SVG_NAMESPACE, "title");
-            title.textContent = `${marker.lineId.replace("regional-", "").toUpperCase()} toward ${marker.direction}; schematic estimated position`;
-            const halo = documentNode.createElementNS(SVG_NAMESPACE, "circle");
-            halo.setAttribute("r", "38");
-            halo.classList.add("estimated-train-marker-halo");
-            const body = documentNode.createElementNS(SVG_NAMESPACE, "rect");
-            body.setAttribute("x", "-30"); body.setAttribute("y", "-13");
-            body.setAttribute("width", "48"); body.setAttribute("height", "26"); body.setAttribute("rx", "7");
-            body.classList.add("estimated-train-marker-core");
-            const arrow = documentNode.createElementNS(SVG_NAMESPACE, "path");
-            arrow.setAttribute("d", "M 13 -9 L 30 0 L 13 9 Z");
-            arrow.classList.add("estimated-train-marker-arrow");
-            group.append(title, halo, body, arrow);
-            markerLayer.append(group);
-          }
-          documentNode.documentElement.append(markerLayer);
+          markerLayer.setAttribute("pointer-events", "none");
+          stationsLayer.append(markerLayer);
         }
         const root = documentNode.documentElement;
         root.removeAttribute("width");
@@ -1546,7 +1583,41 @@ function InteractiveRegionalMapComponent({
       })
       .catch(() => setLoadError(true));
     return () => { cancelled = true; };
-  }, [activeAlerts, commutePathPreview, estimatedTrainMarkers, estimatedTrainsEnabled, networkSegments, reducedMotion, stationNodeImpacts]);
+  }, [activeAlerts, commutePathPreview, networkSegments, reducedMotion, stationNodeImpacts]);
+
+  useLayoutEffect(() => {
+    const markerLayer = viewportRef.current?.querySelector<SVGGElement>(
+      ".regional-estimated-train-marker-layer",
+    );
+    if (!markerLayer) return;
+    markerLayer.replaceChildren();
+    if (!estimatedTrainsEnabled) return;
+
+    const documentNode = markerLayer.ownerDocument;
+    for (const marker of estimatedTrainMarkers) {
+      const segment = networkSegments.find((item) => item.id === marker.segmentId);
+      if (!segment) continue;
+      const frame = regionalTrainMarkerFrame(documentNode, segment, marker);
+      if (!frame) continue;
+      const group = documentNode.createElementNS(SVG_NAMESPACE, "g");
+      group.classList.add("estimated-train-marker", `estimated-train-marker-${marker.lineId}`);
+      group.setAttribute("data-marker-key", estimatedTrainMarkerRenderKey(marker));
+      group.setAttribute("data-train-marker-id", marker.id);
+      group.setAttribute("data-train-marker-line-id", marker.lineId);
+      group.setAttribute("data-train-marker-direction", marker.direction);
+      group.setAttribute("data-train-marker-segment-id", marker.segmentId);
+      group.setAttribute("data-train-marker-travel-direction", marker.travelDirection);
+      group.setAttribute(
+        "transform",
+        `translate(${frame.point.x} ${frame.point.y}) rotate(${frame.angle}) scale(1.8)`,
+      );
+      const title = documentNode.createElementNS(SVG_NAMESPACE, "title");
+      title.textContent = `${marker.lineId.replace("regional-", "").toUpperCase()} toward ${marker.direction}; schematic estimated position`;
+      group.append(title);
+      appendRegionalTrainMarkerGlyph(documentNode, group);
+      markerLayer.append(group);
+    }
+  }, [estimatedTrainMarkers, estimatedTrainsEnabled, networkSegments, svgMarkup]);
 
   useLayoutEffect(() => {
     if (deferInitialEntrance) {

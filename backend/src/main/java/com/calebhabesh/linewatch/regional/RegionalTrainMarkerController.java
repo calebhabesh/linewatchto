@@ -29,8 +29,9 @@ public class RegionalTrainMarkerController {
                          OffsetDateTime feedCreatedAt, OffsetDateTime updatedAt) {
         static Marker from(RegionalTrainMarkerRecord marker) {
             return new Marker(marker.id(), marker.lineId(), marker.direction(), marker.travelDirection(), marker.segmentId(),
-                marker.fromStationId(), marker.toStationId(), marker.nextStationId(), marker.progress(), 0,
-                marker.updatedAt(), marker.vehicleId(), marker.tripId(), marker.updatedAt(), marker.updatedAt());
+                marker.fromStationId(), marker.toStationId(), marker.nextStationId(), marker.progress(),
+                marker.segmentTravelSeconds(), marker.predictedAt(), marker.vehicleId(), marker.tripId(),
+                marker.updatedAt(), marker.updatedAt());
         }
     }
 }

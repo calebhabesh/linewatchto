@@ -18,7 +18,8 @@ class RegionalTrainMarkerControllerTest {
             "Fresh schematic regional train markers.", RegionalTrainMarkerService.DISCLAIMER,
             timestamp.minusSeconds(20), timestamp, List.of(new RegionalTrainMarkerRecord(
                 "go-3775", "regional-ki", "Outbound", "forward", "segment-ki-mount-dennis-weston",
-                "mount-dennis", "weston", "weston", 0.5, "cab-3775", "3775", timestamp.minusSeconds(20),
+                "mount-dennis", "weston", "weston", 0.55, 420, timestamp.plusMinutes(3), true,
+                "cab-3775", "3775", timestamp.minusSeconds(20),
                 MetrolinxVehiclePositionClient.GO_SOURCE
             ))
         ));
@@ -30,7 +31,9 @@ class RegionalTrainMarkerControllerTest {
         assertThat(response.markers()).singleElement().satisfies(marker -> {
             assertThat(marker.lineId()).isEqualTo("regional-ki");
             assertThat(marker.segmentId()).isEqualTo("segment-ki-mount-dennis-weston");
-            assertThat(marker.progress()).isEqualTo(0.5);
+            assertThat(marker.progress()).isEqualTo(0.55);
+            assertThat(marker.segmentTravelSeconds()).isEqualTo(420);
+            assertThat(marker.predictedAt()).isAfter(timestamp);
         });
         assertThat(response.disclaimer()).contains("not exact physical train locations");
     }

@@ -28,12 +28,16 @@ class MetrolinxVehiclePositionClientTest {
     }
 
     @Test
-    void mapsFreshGoVehicleToAdjacentSchematicSegment() {
+    void mapsVersionedGoRailRouteIdToAdjacentSchematicSegmentAndRejectsBusRoute() {
         server.expect(requestTo("https://api.example.test/OpenDataAPI/api/V1/Gtfs/Feed/VehiclePosition?key=secret"))
             .andRespond(withSuccess("""
                 {"header":{"gtfs_realtime_version":"2.0","incrementality":"FULL_DATASET","timestamp":1785268043},
-                 "entity":[{"id":"go-3775","vehicle":{"trip":{"trip_id":"3775","route_id":"KI","direction_id":0},
-                   "vehicle":{"id":"cab-3775"},"current_status":"IN_TRANSIT_TO","stop_id":"WE","timestamp":1785268040}}]}
+                 "entity":[
+                   {"id":"go-3775","vehicle":{"trip":{"trip_id":"3775","route_id":"06260926-KI","direction_id":0},
+                     "vehicle":{"id":"cab-3775"},"current_status":"IN_TRANSIT_TO","stop_id":"WE","timestamp":1785268040}},
+                   {"id":"go-bus-31","vehicle":{"trip":{"trip_id":"bus-31","route_id":"06260926-31","direction_id":0},
+                     "vehicle":{"id":"bus-31"},"current_status":"IN_TRANSIT_TO","stop_id":"WE","timestamp":1785268040}}
+                 ]}
                 """, MediaType.APPLICATION_JSON));
 
         RegionalTrainMarkerFeed feed = client.fetchGo();

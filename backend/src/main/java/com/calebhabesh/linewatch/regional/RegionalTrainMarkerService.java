@@ -32,10 +32,10 @@ public class RegionalTrainMarkerService {
         OffsetDateTime now = OffsetDateTime.now(clock);
         if (!properties.isEnabled()) return unavailable("disabled", "Regional estimated train markers are disabled.", now);
         Cached current = cache;
-        if (current != null && current.expiresAt().isAfter(now)) return current.snapshot();
+        if (current != null && current.expiresAt().isAfter(now)) return projected(current.snapshot(), now);
         Snapshot refreshed = refresh(now);
         cache = new Cached(now.plus(properties.getCacheTtl()), refreshed);
-        return refreshed;
+        return projected(refreshed, now);
     }
 
     private Snapshot refresh(OffsetDateTime now) {
@@ -71,6 +71,35 @@ public class RegionalTrainMarkerService {
     private boolean fresh(OffsetDateTime timestamp, OffsetDateTime now) {
         Duration age = Duration.between(timestamp, now);
         return age.isNegative() || age.compareTo(properties.getMaxSourceAge()) <= 0;
+    }
+
+    private Snapshot projected(Snapshot snapshot, OffsetDateTime now) {
+        if (!snapshot.fresh() || snapshot.markers().isEmpty()) {
+            return snapshot;
+        }
+        List<RegionalTrainMarkerRecord> markers = snapshot.markers().stream()
+            .map(marker -> projected(marker, now))
+            .toList();
+        return new Snapshot(
+            snapshot.fresh(), snapshot.availability(), snapshot.source(), snapshot.message(),
+            snapshot.disclaimer(), snapshot.feedCreatedAt(), now, markers
+        );
+    }
+
+    private RegionalTrainMarkerRecord projected(RegionalTrainMarkerRecord marker, OffsetDateTime now) {
+        if (!marker.moving() || marker.predictedAt() == null || marker.segmentTravelSeconds() <= 0) {
+            return marker;
+        }
+        long secondsToNext = Math.max(0, Duration.between(now, marker.predictedAt()).toSeconds());
+        double estimatedProgress = (marker.segmentTravelSeconds() - secondsToNext)
+            / (double) marker.segmentTravelSeconds();
+        double progress = Math.max(marker.progress(), Math.min(0.95, estimatedProgress));
+        return new RegionalTrainMarkerRecord(
+            marker.id(), marker.lineId(), marker.direction(), marker.travelDirection(), marker.segmentId(),
+            marker.fromStationId(), marker.toStationId(), marker.nextStationId(), progress,
+            marker.segmentTravelSeconds(), marker.predictedAt(), marker.moving(), marker.vehicleId(),
+            marker.tripId(), marker.updatedAt(), marker.source()
+        );
     }
 
     private Snapshot unavailable(String availability, String message, OffsetDateTime now) {
