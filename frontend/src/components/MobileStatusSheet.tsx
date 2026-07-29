@@ -18,7 +18,7 @@ type StatusCategory = "alerts" | "delays" | "reduced-speed-zones" | "closures" |
 type Props = {
   pollText: string;
   dataSource: "backend" | "fallback";
-  onOpenCategory: (view: StatusCategory) => void;
+  onOpenCategory: (view: StatusCategory, lineId?: string) => void;
   onClose: () => void;
   accessibilityOutageCount?: number;
   surfaceNoticeCount?: number;
@@ -127,26 +127,26 @@ export function MobileStatusSheet({ pollText, dataSource, onOpenCategory, onClos
                   {!clear ? (
                     <span className="mobile-line-status-impacts">
                       {lineAlerts.length > 0 ? (
-                        <button type="button" className="mobile-line-status-btn-alerts" onClick={() => onOpenCategory("alerts")}>
+                        <button type="button" className="mobile-line-status-btn-alerts" onClick={() => onOpenCategory("alerts", line.id)}>
                           <AlertTriangle size={12} className="text-red-500 dark:text-red-400 shrink-0" />
                           <span><span className="mobile-line-status-impact-count">{lineAlerts.length}</span>{lineAlerts.length === 1 ? "Active Alert" : "Active Alerts"}</span>
                         </button>
                       ) : null}
                       {lineDelays.length > 0 ? (
-                        <button type="button" className="mobile-line-status-btn-delays" onClick={() => onOpenCategory("delays")}>
+                        <button type="button" className="mobile-line-status-btn-delays" onClick={() => onOpenCategory("delays", line.id)}>
                           <DelayIcon size={12} className="delay-tone shrink-0" />
                           <span><span className="mobile-line-status-impact-count">{lineDelays.length}</span>{lineDelays.length === 1 ? "Delay" : "Delays"}</span>
                         </button>
                       ) : null}
                       {lineRsz.length > 0 ? (
-                        <button type="button" className="mobile-line-status-btn-rsz" onClick={() => onOpenCategory("reduced-speed-zones")}>
+                        <button type="button" className="mobile-line-status-btn-rsz" onClick={() => onOpenCategory("reduced-speed-zones", line.id)}>
                           <Construction size={12} className="text-amber-600 dark:text-amber-400 shrink-0" />
                           <span><span className="mobile-line-status-impact-count">{lineRsz.length}</span>{lineRsz.length === 1 ? "Reduced Speed Zone" : "Reduced Speed Zones"}</span>
                         </button>
                       ) : null}
                       {lineClosures.length > 0 ? (
                         <span className="mobile-line-status-planned-row">
-                          <button type="button" className="mobile-line-status-btn-closures" onClick={() => onOpenCategory("closures")}>
+                          <button type="button" className="mobile-line-status-btn-closures" onClick={() => onOpenCategory("closures", line.id)}>
                             <PlannedClosureIcon size={12} className="text-blue-500 dark:text-blue-400 shrink-0" />
                             <span><span className="mobile-line-status-impact-count">{lineClosures.length}</span>{lineClosures.length === 1 ? "Planned Closure" : "Planned Closures"}</span>
                           </button>

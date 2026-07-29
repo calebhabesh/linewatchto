@@ -21,6 +21,7 @@ interface Props {
   onBack?: () => void;
   onClose?: () => void;
   onFocusMap?: () => void;
+  initialLineId?: string | null;
 }
 
 function formatClosureScheduleValue(value: string) {
@@ -29,10 +30,10 @@ function formatClosureScheduleValue(value: string) {
     .replace(/\s+-\s+/g, " – ");
 }
 
-export function PlannedClosuresPanel({ selection, onSelectImpact, onBack, onClose, onFocusMap }: Props) {
+export function PlannedClosuresPanel({ selection, onSelectImpact, onBack, onClose, onFocusMap, initialLineId }: Props) {
   const dashboard = useDashboardData();
   const { activeAlerts, delays, reducedSpeedZones, plannedClosures, networkSegments, stationNodeImpacts } = dashboard;
-  const [lineId, setLineId] = useState("all");
+  const [lineId, setLineId] = useState(initialLineId ?? "all");
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<ImpactListSort>("soonest");
   const { viewMode, setViewMode } = useImpactListView();

@@ -372,6 +372,47 @@ test("renders fresh Metrolinx impacts in regional mode", async ({ page, request,
   expect(markerBox!.x + markerBox!.width).toBeLessThanOrEqual(viewport!.width);
   expect(markerBox!.y + markerBox!.height).toBeLessThanOrEqual(viewport!.height);
 
+  const lwOverlapMarker = page.getByRole("button", {
+    name: /Overlapping alerts: Delay x2 on Union to Niagara Falls/,
+  });
+  await expect(lwOverlapMarker).toBeVisible();
+  const [lwMarkerBox, applebyBox, burlingtonBox] = await Promise.all([
+    lwOverlapMarker.boundingBox(),
+    page.locator('[data-regional-station-id="appleby"]').boundingBox(),
+    page.locator('[data-regional-station-id="burlington"]').boundingBox(),
+  ]);
+  expect(lwMarkerBox).not.toBeNull();
+  expect(applebyBox).not.toBeNull();
+  expect(burlingtonBox).not.toBeNull();
+  const lwMarkerCenter = {
+    x: lwMarkerBox!.x + lwMarkerBox!.width / 2,
+    y: lwMarkerBox!.y + lwMarkerBox!.height / 2,
+  };
+  const lwOverlapCenter = {
+    x: (applebyBox!.x + applebyBox!.width / 2 + burlingtonBox!.x + burlingtonBox!.width / 2) / 2,
+    y: (applebyBox!.y + applebyBox!.height / 2 + burlingtonBox!.y + burlingtonBox!.height / 2) / 2,
+  };
+  expect(
+    Math.abs(lwMarkerCenter.y - lwOverlapCenter.y) - lwMarkerBox!.height / 2,
+  ).toBeGreaterThan(8);
+  expect(Math.hypot(
+    lwMarkerCenter.x - lwOverlapCenter.x,
+    lwMarkerCenter.y - lwOverlapCenter.y,
+  )).toBeLessThan(120);
+
+  await lwOverlapMarker.click();
+  const lwOverlapChooser = page.locator("[data-overlap-chooser]");
+  await expect(lwOverlapChooser).toBeVisible();
+  const lwChooserBox = await lwOverlapChooser.boundingBox();
+  expect(lwChooserBox).not.toBeNull();
+  const markerSide = Math.sign(lwMarkerCenter.y - lwOverlapCenter.y);
+  const chooserCenterY = lwChooserBox!.y + lwChooserBox!.height / 2;
+  expect(Math.sign(chooserCenterY - lwOverlapCenter.y)).toBe(markerSide);
+  expect(Math.abs(chooserCenterY - lwOverlapCenter.y))
+    .toBeGreaterThan(Math.abs(lwMarkerCenter.y - lwOverlapCenter.y));
+  await lwOverlapChooser.getByRole("button", { name: "Close alert chooser" }).click();
+  await expect(lwOverlapChooser).toHaveCount(0);
+
   await page.mouse.move(
     markerBox!.x + markerBox!.width / 2,
     markerBox!.y + markerBox!.height / 2,
@@ -998,15 +1039,37 @@ test("station detail shows accessibility facilities and active outage warning", 
   await expect(page.locator('[data-impact-card-id="stub-active-closure-child-line-1"]')).toBeVisible();
 });
 
-test("LineLegend clicks open view but do not highlight any card", async ({ page, request, isMobile }) => {
+test("LineLegend clicks open a temporary line-focused view without highlighting a card", async ({ page, request, isMobile }) => {
   test.skip(isMobile, "desktop-only legend interaction");
   await setStubMode(request, "seeded");
   await page.goto("/");
   await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
-  await page.getByTitle(/View reduced speed zone/i).click();
+  await page.getByRole("button", { name: "View reduced speed zone for Line 1 Yonge-University" }).click();
   await expect(page.getByRole("heading", { name: "Reduced Speed Zones" })).toBeVisible();
+  await expect(page.locator('select[aria-label="Filter Reduced Speed Zones by line"]')).toHaveValue("line-1");
   await expect(page.locator(".highlight-active-card")).toHaveCount(0);
   await expect(page.locator(".alert-card").first()).not.toHaveClass(/!bg-amber-950|highlight-active-card/);
+
+  await page.getByRole("button", { name: "Back" }).click();
+  await expect(page.getByText("Maps & Alerts", { exact: true })).toBeVisible();
+  await page.getByRole("menuitem", { name: /Reduced Speed Zones/ }).click();
+  await expect(page.locator('select[aria-label="Filter Reduced Speed Zones by line"]')).toHaveValue("all");
+});
+
+test("mobile Line Status opens a temporary line-focused alert category", async ({ page, request, isMobile }) => {
+  test.skip(!isMobile, "mobile-only System Status interaction");
+  await setStubMode(request, "seeded");
+  await page.goto("/");
+  await page.getByRole("button", { name: "Status", exact: true }).click();
+
+  const statusSheet = page.getByRole("region", { name: "Current service status" });
+  const lineOneStatus = statusSheet.locator(".mobile-line-status-row").filter({ hasText: "Yonge-University" });
+  await lineOneStatus.getByRole("button", { name: /Reduced Speed Zone/ }).click();
+  await expect(page.locator('select[aria-label="Filter Reduced Speed Zones by line"]')).toHaveValue("line-1");
+
+  await page.getByRole("button", { name: "Back" }).click();
+  await statusSheet.getByRole("button", { name: /Reduced Speed Zones/ }).first().click();
+  await expect(page.locator('select[aria-label="Filter Reduced Speed Zones by line"]')).toHaveValue("all");
 });
 
 test("renders fixture fallback when the dashboard API is unavailable", async ({ page, request, isMobile }) => {

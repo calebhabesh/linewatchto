@@ -366,6 +366,16 @@ export function regionalDashboardDataForScenario(
     affectedSegmentIds: lwCorridorSegmentIds,
     source: "Synthetic regional fixture",
   };
+  const lwOverlappingDelay: DelayAlert = {
+    id: "regional-demo-lw-overlapping-delay",
+    lineId: "regional-lw",
+    lineNumber: "LW",
+    title: "Synthetic overlapping delay across Lakeshore West",
+    location: "Entire Lakeshore West corridor",
+    description: "Synthetic regional scenario data for same-type overlap badge verification.",
+    affectedSegmentIds: lwCorridorSegmentIds,
+    source: "Synthetic regional fixture",
+  };
   const suspension = scenarioActiveAlert({
     id: "regional-demo-suspension",
     lineId: "regional-ki",
@@ -414,8 +424,17 @@ export function regionalDashboardDataForScenario(
       location: lwCorridorDelay.location,
       affectedSegmentIds: lwCorridorDelay.affectedSegmentIds,
     }),
+    scenarioActiveAlert({
+      id: lwOverlappingDelay.id,
+      lineId: lwOverlappingDelay.lineId,
+      lineNumber: lwOverlappingDelay.lineNumber,
+      title: lwOverlappingDelay.title,
+      severity: "delay",
+      location: lwOverlappingDelay.location,
+      affectedSegmentIds: lwOverlappingDelay.affectedSegmentIds,
+    }),
   ];
-  data.delays = [delay, lwCorridorDelay];
+  data.delays = [delay, lwCorridorDelay, lwOverlappingDelay];
   data.plannedClosures = [plannedClosure];
   data.stationNodeImpacts = [stationImpact];
   data.networkSegments = data.networkSegments.map((segment) => {
@@ -434,6 +453,12 @@ export function regionalDashboardDataForScenario(
         cardId: lwCorridorDelay.id,
         travelDirection: "bidirectional" as const,
         sourceAlertIds: [lwCorridorDelay.id],
+      });
+      impacts.push({
+        kind: "delay" as const,
+        cardId: lwOverlappingDelay.id,
+        travelDirection: "bidirectional" as const,
+        sourceAlertIds: [lwOverlappingDelay.id],
       });
     }
     if (segment.id === suspensionSegmentId) {

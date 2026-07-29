@@ -444,8 +444,8 @@ describe("network-scoped regional dashboard", () => {
   it("provides source-honest synthetic scenarios without changing the default fixture", () => {
     const scenario = regionalDashboardDataForScenario("all-impact-types");
     assert.equal(regionalDashboardData.activeAlerts.length, 0);
-    assert.equal(scenario.activeAlerts.length, 3);
-    assert.equal(scenario.delays.length, 2);
+    assert.equal(scenario.activeAlerts.length, 4);
+    assert.equal(scenario.delays.length, 3);
     assert.equal(scenario.plannedClosures.length, 1);
     assert.equal(scenario.stationNodeImpacts.length, 1);
     assert.ok(scenario.networkSegments.some((segment) => (segment.impacts?.length ?? 0) > 0));
@@ -457,6 +457,9 @@ describe("network-scoped regional dashboard", () => {
     assert.ok(fullLwImpactSegmentIds.includes("segment-lw-aldershot-west-harbour"));
     assert.ok(fullLwImpactSegmentIds.includes("segment-lw-aldershot-hamilton"));
     assert.ok(fullLwImpactSegmentIds.includes("segment-lw-west-harbour-hamilton"));
+    assert.ok(scenario.networkSegments
+      .filter((segment) => segment.lineId === "regional-lw")
+      .every((segment) => segment.impacts?.filter((impact) => impact.kind === "delay").length === 2));
     assert.ok(scenario.activeAlerts.every((alert) => /Synthetic regional fixture/.test(alert.source)));
   });
 
@@ -593,18 +596,30 @@ describe("network-scoped regional dashboard", () => {
     assert.match(regionalMapSource, /aria-label="Overlapping alert badges"/);
     assert.match(regionalMapSource, /<MapOverlapIndicator/);
     assert.match(regionalMapSource, /visualScale=\{REGIONAL_OVERLAP_INDICATOR_SCALE\}/);
+    assert.match(regionalMapSource, /isolatePointerDown/);
     assert.match(regionalMapSource, /openRegionalOverlapChooser\(badge\)/);
+    assert.match(regionalMapSource, /candidate\.dataset\.overlapSegmentId === markerId/);
+    assert.match(regionalMapSource, /function regionalOverlapChooserLayout\(/);
+    assert.match(regionalMapSource, /const REGIONAL_OVERLAP_CHOOSER_GAP = 24/);
+    assert.match(regionalMapSource, /markerCenter\.x - alertAnchor\.x/);
+    assert.match(regionalMapSource, /const outwardCenter = centerForDirection\(outward\)/);
+    assert.match(regionalMapSource, /anchorPoint\.matrixTransform\(screenMatrix\)/);
     assert.match(regionalMapSource, /setRegionalOverlapImpactsHovered\(badge\.impacts, hovered\)/);
     assert.match(regionalMapSource, /<MapOverlapChooser/);
     assert.match(regionalMapSource, /onHoverImpact=\{hoverRegionalChooserImpact\}/);
-    assert.match(regionalMapSource, /pointInSvgRootCoordinates\(stationsLayer, position\)/);
-    assert.match(regionalMapSource, /Math\.max\(REGIONAL_MAP_VIEWBOX\.x \+ horizontalMargin, rootPosition\.x\)/);
+    assert.match(regionalMapSource, /const rootAnchor = pointInSvgRootCoordinates\(stationsLayer, placement\.anchor\)/);
+    assert.match(regionalMapSource, /const rootPosition = pointInSvgRootCoordinates\(stationsLayer, placement\.position\)/);
+    assert.match(regionalMapSource, /anchor: rootAnchor/);
+    assert.match(regionalMapSource, /position: rootPosition/);
+    assert.doesNotMatch(regionalMapSource, /overlapLayerTransform/);
+    assert.doesNotMatch(regionalMapSource, /clampedRootPosition/);
     assert.match(regionalMapSource, /const candidates = \[1, -1\]\.map/);
     assert.match(regionalMapSource, /squaredPointDistance\(leftRoot, mapCenter\) - squaredPointDistance\(rightRoot, mapCenter\)/);
-    assert.match(regionalMapSource, /const REGIONAL_OVERLAP_INDICATOR_OFFSET = 135/);
-    assert.match(regionalMapSource, /const authoredUnitsPerPixel = REGIONAL_MAP_VIEWBOX\.width \/ overlayRect\.width/);
-    assert.match(regionalMapSource, /markerRect\.left < viewportRect\.left \+ padding/);
-    assert.match(regionalMapSource, /badge\.position\.x \+ deltaX \* authoredUnitsPerPixel/);
+    assert.match(regionalMapSource, /const REGIONAL_OVERLAP_INDICATOR_EDGE_GAP = 88/);
+    assert.match(regionalMapSource, /const renderedBadgeHalfExtent = \(/);
+    assert.match(regionalMapSource, /REGIONAL_IMPACT_OVERLAY_WIDTH \/ 2[\s\S]*renderedBadgeHalfExtent[\s\S]*REGIONAL_OVERLAP_INDICATOR_EDGE_GAP/);
+    assert.doesNotMatch(regionalMapSource, /setOverlapBadges\(\(current\) => current\.map/);
+    assert.doesNotMatch(regionalMapSource, /badge\.position\.x \+ deltaX \* authoredUnitsPerPixel/);
     assert.match(overlapIndicatorSource, /const isSingleKindOverlap = kindCounts\.length === 1/);
     assert.match(overlapIndicatorSource, /<OverlapKindCountBadge count=\{count\} large=\{isSingleKindOverlap\}/);
     assert.match(overlapChooserSource, /<strong>Choose Alert<\/strong>/);

@@ -19,6 +19,7 @@ interface Props {
   onBack?: () => void;
   onClose?: () => void;
   onFocusMap?: () => void;
+  initialLineId?: string | null;
 }
 
 function impactKindForAlert(alert: ActiveAlert): ImpactKind {
@@ -36,10 +37,11 @@ export function ActiveAlertsPanel({
   onBack,
   onClose,
   onFocusMap,
+  initialLineId,
 }: Props) {
   const dashboard = useDashboardData();
   const { activeAlerts, reducedSpeedZones, delays, plannedClosures, networkSegments, stationNodeImpacts } = dashboard;
-  const [lineId, setLineId] = useState("all");
+  const [lineId, setLineId] = useState(initialLineId ?? "all");
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<ImpactListSort>("updated");
   const { viewMode, setViewMode } = useImpactListView();

@@ -7,10 +7,10 @@ export type NetworkMapLegendProps = {
   closingSoon: boolean;
   expanded: boolean;
   onToggleExpanded: () => void;
-  onAlertClick: () => void;
-  onDelayClick: () => void;
-  onReducedSpeedZoneClick: () => void;
-  onClosureClick: () => void;
+  onAlertClick: (lineId: string) => void;
+  onDelayClick: (lineId: string) => void;
+  onReducedSpeedZoneClick: (lineId: string) => void;
+  onClosureClick: (lineId: string) => void;
 };
 
 export function NetworkMapLegend({

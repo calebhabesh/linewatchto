@@ -135,6 +135,7 @@ import { popViewHistory, pushViewHistory } from "../app/view-navigation";
 
 
 type ActiveView = "map" | "menu" | "search" | "status" | "alerts" | "delays" | "reduced-speed-zones" | "closures" | "commutes" | "notifications" | "analytics" | "more" | "my-stations" | "accessibility-outages" | "surface-notices" | "alert-history" | "feedback" | "privacy-acknowledgements" | "release-notes";
+type ImpactCategoryView = "alerts" | "delays" | "reduced-speed-zones" | "closures";
 type AccountDialogMode = "auth-choice" | "login" | "register" | "forgot-password" | "reset-password" | "link-google";
 type AccountEntryIntent = "login" | "register";
 type SavedStationNotice = {
@@ -312,6 +313,7 @@ export function LineWatchShell({
   const [visualPreferencesReady, setVisualPreferencesReady] = useState(false);
   const mobilePerformanceMode = useMobilePerformanceMode();
   const [activeView, setActiveView] = useState<ActiveView>("map");
+  const [impactListLaunch, setImpactListLaunch] = useState({ lineId: null as string | null, requestId: 0 });
   const [navDirection, setNavDirection] = useState<"root" | "forward" | "back">("root");
   const [menuPinned, setMenuPinned] = useState(false);
   const [menuPinPreferenceReady, setMenuPinPreferenceReady] = useState(false);
@@ -510,6 +512,19 @@ export function LineWatchShell({
   }, [setActiveView]);
 
   useEffect(() => {
+    if (
+      activeView !== "alerts"
+      && activeView !== "delays"
+      && activeView !== "reduced-speed-zones"
+      && activeView !== "closures"
+    ) {
+      // The line focus is navigation context, not a saved filter preference.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setImpactListLaunch((current) => current.lineId === null ? current : { ...current, lineId: null });
+    }
+  }, [activeView]);
+
+  useEffect(() => {
     if (!isMobile && mapPresentationMode !== "standard") {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setMapPresentationMode("standard");
@@ -552,6 +567,18 @@ export function LineWatchShell({
 
   // Interactive linking state
   const [selection, setSelection] = useState<ImpactSelection>(null);
+  const openImpactCategory = useCallback((view: ImpactCategoryView, lineId?: string) => {
+    setImpactListLaunch((current) => ({
+      lineId: lineId ?? null,
+      requestId: current.requestId + 1,
+    }));
+    setSelection(null);
+    navigateForward(view);
+  }, [navigateForward, setSelection]);
+  const openLegendImpactCategory = useCallback((view: ImpactCategoryView, lineId: string) => {
+    navigateForward("menu");
+    openImpactCategory(view, lineId);
+  }, [navigateForward, openImpactCategory]);
   const [ttcStationSummaries, setTtcStationSummaries] = useState<StationSummary[]>(fallbackStationSummaries.stations);
   const stationCatalogs = useMemo(
     () => ({
@@ -2025,7 +2052,16 @@ export function LineWatchShell({
             pollText={pollText}
             dataSource={displayData.dataSource}
             networkId={selectedNetwork}
-            onOpenCategory={(view) => {
+            onOpenCategory={(view, lineId) => {
+              if (
+                view === "alerts"
+                || view === "delays"
+                || view === "reduced-speed-zones"
+                || view === "closures"
+              ) {
+                openImpactCategory(view, lineId);
+                return;
+              }
               setSelection(null);
               navigateForward(view);
             }}
@@ -2039,41 +2075,49 @@ export function LineWatchShell({
       case "alerts":
         return (
           <ActiveAlertsPanel
+            key={`alerts-${impactListLaunch.requestId}`}
             selection={selection}
             onSelectImpact={handleMapSelectImpact}
             onBack={handleSubmenuBack}
             onClose={handleClosePanel}
             onFocusMap={isMobile ? () => setActiveView("map") : undefined}
+            initialLineId={impactListLaunch.lineId}
           />
         );
       case "delays":
         return (
           <DelaysPanel
+            key={`delays-${impactListLaunch.requestId}`}
             selection={selection}
             onSelectImpact={handleMapSelectImpact}
             onBack={handleSubmenuBack}
             onClose={handleClosePanel}
             onFocusMap={isMobile ? () => setActiveView("map") : undefined}
+            initialLineId={impactListLaunch.lineId}
           />
         );
       case "reduced-speed-zones":
         return (
           <ReducedSpeedZonesPanel
+            key={`reduced-speed-zones-${impactListLaunch.requestId}`}
             selection={selection}
             onSelectImpact={handleMapSelectImpact}
             onBack={handleSubmenuBack}
             onClose={handleClosePanel}
             onFocusMap={isMobile ? () => setActiveView("map") : undefined}
+            initialLineId={impactListLaunch.lineId}
           />
         );
       case "closures":
         return (
           <PlannedClosuresPanel
+            key={`closures-${impactListLaunch.requestId}`}
             selection={selection}
             onSelectImpact={handleMapSelectImpact}
             onBack={handleSubmenuBack}
             onClose={handleClosePanel}
             onFocusMap={isMobile ? () => setActiveView("map") : undefined}
+            initialLineId={impactListLaunch.lineId}
           />
         );
       case "commutes":
@@ -2676,7 +2720,7 @@ export function LineWatchShell({
                  <button
                    ref={registerMenuAction(actionIndex++)}
                    role="menuitem"
-                   onClick={() => navigateForward("alerts")}
+                   onClick={() => openImpactCategory("alerts")}
                    aria-current={activeView === "alerts" ? "page" : undefined}
                    className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
                  >
@@ -2692,7 +2736,7 @@ export function LineWatchShell({
                  <button
                    ref={registerMenuAction(actionIndex++)}
                    role="menuitem"
-                   onClick={() => navigateForward("delays")}
+                   onClick={() => openImpactCategory("delays")}
                    aria-current={activeView === "delays" ? "page" : undefined}
                    className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
                  >
@@ -2708,7 +2752,7 @@ export function LineWatchShell({
                  {selectedNetwork === "ttc" ? <button
                    ref={registerMenuAction(actionIndex++)}
                    role="menuitem"
-                   onClick={() => navigateForward("reduced-speed-zones")}
+                   onClick={() => openImpactCategory("reduced-speed-zones")}
                    aria-current={activeView === "reduced-speed-zones" ? "page" : undefined}
                    className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
                  >
@@ -2724,7 +2768,7 @@ export function LineWatchShell({
                  <button
                    ref={registerMenuAction(actionIndex++)}
                    role="menuitem"
-                   onClick={() => navigateForward("closures")}
+                   onClick={() => openImpactCategory("closures")}
                    aria-current={activeView === "closures" ? "page" : undefined}
                    className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
                  >
@@ -3193,22 +3237,10 @@ export function LineWatchShell({
           legendProps={{
             expanded: legendExpanded,
             onToggleExpanded: () => setLegendExpanded(!legendExpanded),
-            onAlertClick: () => {
-              navigateForward("alerts");
-              setSelection(null);
-            },
-            onDelayClick: () => {
-              navigateForward("delays");
-              setSelection(null);
-            },
-            onReducedSpeedZoneClick: () => {
-              navigateForward("reduced-speed-zones");
-              setSelection(null);
-            },
-            onClosureClick: () => {
-              navigateForward("closures");
-              setSelection(null);
-            },
+            onAlertClick: (lineId) => openLegendImpactCategory("alerts", lineId),
+            onDelayClick: (lineId) => openLegendImpactCategory("delays", lineId),
+            onReducedSpeedZoneClick: (lineId) => openLegendImpactCategory("reduced-speed-zones", lineId),
+            onClosureClick: (lineId) => openLegendImpactCategory("closures", lineId),
           }}
           selection={selection}
           selectedStationId={selectedStationId}
@@ -3354,10 +3386,7 @@ export function LineWatchShell({
             <button
               type="button"
               className="desktop-status-chip desktop-status-chip--alerts"
-              onClick={() => {
-                setSelection(null);
-                navigateForward("alerts");
-              }}
+              onClick={() => openImpactCategory("alerts")}
               aria-label={`${activeAlerts.length} ${activeAlerts.length === 1 ? "active alert" : "active alerts"}`}
               title={`${activeAlerts.length} ${activeAlerts.length === 1 ? "Active Alert" : "Active Alerts"}`}
             >
@@ -3370,10 +3399,7 @@ export function LineWatchShell({
             <button
               type="button"
               className="desktop-status-chip desktop-status-chip--delays"
-              onClick={() => {
-                setSelection(null);
-                navigateForward("delays");
-              }}
+              onClick={() => openImpactCategory("delays")}
               aria-label={`${delays.length} ${delays.length === 1 ? "delay" : "delays"}`}
               title={`${delays.length} ${delays.length === 1 ? "Delay" : "Delays"}`}
             >
@@ -3386,10 +3412,7 @@ export function LineWatchShell({
             {selectedNetwork === "ttc" ? <button
               type="button"
               className="desktop-status-chip desktop-status-chip--reduced-speed-zone"
-              onClick={() => {
-                setSelection(null);
-                navigateForward("reduced-speed-zones");
-              }}
+              onClick={() => openImpactCategory("reduced-speed-zones")}
               aria-label={`${reducedSpeedZones.length} ${reducedSpeedZones.length === 1 ? "reduced speed zone" : "reduced speed zones"}`}
               title={`${reducedSpeedZones.length} ${reducedSpeedZones.length === 1 ? "Reduced Speed Zone" : "Reduced Speed Zones"}`}
             >
@@ -3404,10 +3427,7 @@ export function LineWatchShell({
             <button
               type="button"
               className="desktop-status-chip desktop-status-chip--closures"
-              onClick={() => {
-                setSelection(null);
-                navigateForward("closures");
-              }}
+              onClick={() => openImpactCategory("closures")}
               aria-label={`${plannedClosures.length} ${plannedClosures.length === 1 ? "planned closure" : "planned closures"}`}
               title={`${plannedClosures.length} ${plannedClosures.length === 1 ? "Planned Closure" : "Planned Closures"}`}
             >

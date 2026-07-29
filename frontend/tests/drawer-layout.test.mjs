@@ -19,6 +19,7 @@ const reliabilitySource = readFileSync(new URL("../src/components/ReliabilityPan
 const dashboardDataSource = readFileSync(new URL("../src/app/dashboard-data.ts", import.meta.url), "utf8");
 const linewatchDataSource = readFileSync(new URL("../src/app/linewatch-data.ts", import.meta.url), "utf8");
 const mobileImpactInspectorSource = readFileSync(new URL("../src/components/MobileImpactInspector.tsx", import.meta.url), "utf8");
+const mobileStatusSheetSource = readFileSync(new URL("../src/components/MobileStatusSheet.tsx", import.meta.url), "utf8");
 const globalCss = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
 const subwayClosedSource = readFileSync(new URL("../src/components/SubwayClosedScreen.tsx", import.meta.url), "utf8");
 const subwayHoursSource = readFileSync(new URL("../src/app/subway-hours.ts", import.meta.url), "utf8");
@@ -28,6 +29,20 @@ const selectedImpactScrollSource = readFileSync(new URL("../src/hooks/useScrollS
 
 
 describe("floating menu layout", () => {
+  it("opens alert submenus with a temporary line focus from desktop and mobile line status", () => {
+    assert.match(shellSource, /openImpactCategory\(view,\s*lineId\)/);
+    assert.match(shellSource, /openLegendImpactCategory[\s\S]*navigateForward\("menu"\);[\s\S]*openImpactCategory\(view, lineId\)/);
+    assert.match(shellSource, /initialLineId=\{impactListLaunch\.lineId\}/);
+    assert.match(lineLegendSource, /onReducedSpeedZoneClick\?\.\(dataLineId\)/);
+    assert.match(mobileStatusSheetSource, /onOpenCategory\("reduced-speed-zones",\s*line\.id\)/);
+    assert.match(mobileStatusSheetSource, /onOpenCategory\("closures",\s*line\.id\)/);
+    assert.match(activeAlertsSource, /useState\(initialLineId \?\? "all"\)/);
+    assert.match(delaysPanelSource, /useState\(initialLineId \?\? "all"\)/);
+    assert.match(reducedSpeedZonesSource, /useState\(initialLineId \?\? "all"\)/);
+    assert.match(plannedClosuresSource, /useState\(initialLineId \?\? "all"\)/);
+    assert.match(shellSource, /activeView !== "alerts"[\s\S]*setImpactListLaunch\(\(current\) => current\.lineId === null \? current : \{ \.\.\.current, lineId: null \}\)/);
+  });
+
   it("keeps the desktop panel chrome stable while animating keyed view content", () => {
     assert.match(shellSource, /<FloatingPanelShell key="desktop-panel" panel=\{activeView\}/);
     assert.match(shellSource, /<div key=\{activeView\} className="desktop-view-content-wrapper"/);

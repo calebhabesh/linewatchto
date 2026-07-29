@@ -107,6 +107,7 @@ export function MapOverlapIndicator({
   isOpen,
   visualScale = 1,
   collisionAvoided = true,
+  isolatePointerDown = false,
   onActivate,
   onHoverChange,
   shouldSuppressMapClick = () => false,
@@ -120,6 +121,7 @@ export function MapOverlapIndicator({
   isOpen?: boolean;
   visualScale?: number;
   collisionAvoided?: boolean;
+  isolatePointerDown?: boolean;
   onActivate: () => void;
   onHoverChange?: (hovered: boolean) => void;
   shouldSuppressMapClick?: () => boolean;
@@ -153,6 +155,7 @@ export function MapOverlapIndicator({
       className={`overlap-indicator-group ${isOpen ? "open" : ""}`}
       data-overlap-segment-id={markerId}
       data-overlap-collision-avoided={collisionAvoided ? "true" : "false"}
+      onPointerDown={isolatePointerDown ? (event) => event.stopPropagation() : undefined}
       onClick={(event) => {
         if (shouldSuppressMapClick()) return;
         event.stopPropagation();

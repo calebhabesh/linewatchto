@@ -49,7 +49,7 @@ public class ReliabilityRepository {
                 from lifecycle o
                 where o.active = true and (o.previous_active is null or o.previous_active = false)
             )
-            select l.id, l.number, l.name,
+            select l.id, l.number, l.name as label,
                    count(e.alert_id) filter (where coalesce(e.cleared_at, :until) >= :since) incidents,
                    count(e.alert_id) filter (where e.cleared_at is null and e.opened_at < :until) active_incidents,
                    percentile_cont(0.5) within group (
@@ -106,7 +106,7 @@ public class ReliabilityRepository {
                         where c.alert_id = o.alert_id and c.snapshot_time > o.snapshot_time and c.active = false) cleared_at
                 from lifecycle o where o.active = true and (o.previous_active is null or o.previous_active = false)
             )
-            select l.id, l.number, l.name,
+            select l.id, l.number, l.name as label,
                    count(e.alert_id) filter (where coalesce(e.cleared_at, :until) >= :since) incidents,
                    count(e.alert_id) filter (where e.cleared_at is null) active_incidents,
                    percentile_cont(0.5) within group (order by extract(epoch from (e.cleared_at-e.opened_at))/60)

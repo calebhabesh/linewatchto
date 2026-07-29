@@ -73,7 +73,8 @@ const REGIONAL_DELAY_GLYPH_SPACING = 96;
 // units are about 175 / 102 larger for the equivalent corridor stroke.
 const REGIONAL_DELAY_TRAVEL_UNITS_PER_SECOND = (160 / 12) * (175 / 102);
 const REGIONAL_OVERLAP_INDICATOR_SCALE = 2;
-const REGIONAL_OVERLAP_INDICATOR_OFFSET = 135;
+const REGIONAL_OVERLAP_INDICATOR_EDGE_GAP = 88;
+const REGIONAL_OVERLAP_CHOOSER_GAP = 24;
 const REGIONAL_MAP_VIEWBOX = {
   x: -200,
   y: -200,
@@ -85,8 +86,14 @@ type RegionalOverlapBadge = {
   markerId: string;
   label: string;
   impacts: MapImpact[];
+  anchor: SvgPoint;
   position: SvgPoint;
   size: MapOverlapIndicatorSize;
+};
+
+type RegionalOverlapBadgePlacement = {
+  anchor: SvgPoint;
+  position: SvgPoint;
 };
 
 function regionalImpactColor(kind: ImpactKind) {
@@ -643,7 +650,8 @@ function regionalOverlapBadgeGroups(segments: NetworkSegment[]) {
 function regionalOverlapBadgeAnchor(
   documentNode: Document,
   segment: NetworkSegment,
-): SvgPoint | null {
+  size: MapOverlapIndicatorSize,
+): RegionalOverlapBadgePlacement | null {
   const stationsLayer = documentNode.getElementById("regional-stations-layer") as SVGElement | null;
   const mapCenter = {
     x: REGIONAL_MAP_VIEWBOX.x + REGIONAL_MAP_VIEWBOX.width / 2,
@@ -663,15 +671,23 @@ function regionalOverlapBadgeAnchor(
         x: -(after.y - before.y) / tangentLength,
         y: (after.x - before.x) / tangentLength,
       };
+      const renderedBadgeHalfExtent = (
+        Math.abs(normal.x) * size.width / 2
+        + Math.abs(normal.y) * size.height / 2
+      ) * REGIONAL_OVERLAP_INDICATOR_SCALE;
+      const offset = REGIONAL_IMPACT_OVERLAY_WIDTH / 2
+        + renderedBadgeHalfExtent
+        + REGIONAL_OVERLAP_INDICATOR_EDGE_GAP;
       const candidates = [1, -1].map((direction) => ({
-        x: midpoint.x + normal.x * REGIONAL_OVERLAP_INDICATOR_OFFSET * direction,
-        y: midpoint.y + normal.y * REGIONAL_OVERLAP_INDICATOR_OFFSET * direction,
+        x: midpoint.x + normal.x * offset * direction,
+        y: midpoint.y + normal.y * offset * direction,
       }));
-      return candidates.sort((left, right) => {
+      const position = candidates.sort((left, right) => {
         const leftRoot = pointInSvgRootCoordinates(stationsLayer, left);
         const rightRoot = pointInSvgRootCoordinates(stationsLayer, right);
         return squaredPointDistance(leftRoot, mapCenter) - squaredPointDistance(rightRoot, mapCenter);
       })[0];
+      return { anchor: midpoint, position };
     } catch {
       // Fall through to the authored station anchors.
     }
@@ -684,18 +700,27 @@ function regionalOverlapBadgeAnchor(
     x: (start.x + end.x) / 2,
     y: (start.y + end.y) / 2,
   };
-  if (!stationsLayer) return midpoint;
+  if (!stationsLayer) return { anchor: midpoint, position: midpoint };
   const rootMidpoint = pointInSvgRootCoordinates(stationsLayer, midpoint);
   const distanceToCenter = Math.hypot(
     mapCenter.x - rootMidpoint.x,
     mapCenter.y - rootMidpoint.y,
   ) || 1;
-  return pointFromSvgRootCoordinates(stationsLayer, {
+  const position = pointFromSvgRootCoordinates(stationsLayer, {
     x: rootMidpoint.x
-      + (mapCenter.x - rootMidpoint.x) / distanceToCenter * REGIONAL_OVERLAP_INDICATOR_OFFSET,
+      + (mapCenter.x - rootMidpoint.x) / distanceToCenter * (
+        REGIONAL_IMPACT_OVERLAY_WIDTH / 2
+        + Math.max(size.width, size.height) * REGIONAL_OVERLAP_INDICATOR_SCALE / 2
+        + REGIONAL_OVERLAP_INDICATOR_EDGE_GAP
+      ),
     y: rootMidpoint.y
-      + (mapCenter.y - rootMidpoint.y) / distanceToCenter * REGIONAL_OVERLAP_INDICATOR_OFFSET,
+      + (mapCenter.y - rootMidpoint.y) / distanceToCenter * (
+        REGIONAL_IMPACT_OVERLAY_WIDTH / 2
+        + Math.max(size.width, size.height) * REGIONAL_OVERLAP_INDICATOR_SCALE / 2
+        + REGIONAL_OVERLAP_INDICATOR_EDGE_GAP
+      ),
   });
+  return position ? { anchor: midpoint, position } : null;
 }
 
 function regionalOverlapBadges(
@@ -704,27 +729,14 @@ function regionalOverlapBadges(
 ): RegionalOverlapBadge[] {
   const stationsLayer = documentNode.getElementById("regional-stations-layer") as SVGElement | null;
   return regionalOverlapBadgeGroups(segments).flatMap((group) => {
-    const anchorSegment = group.segments[Math.floor(group.segments.length / 2)];
-    const position = anchorSegment
-      ? regionalOverlapBadgeAnchor(documentNode, anchorSegment)
-      : null;
-    if (!position || !stationsLayer) return [];
     const size = mapOverlapIndicatorSize(group.impacts);
-    const rootPosition = pointInSvgRootCoordinates(stationsLayer, position);
-    const horizontalMargin = size.width * REGIONAL_OVERLAP_INDICATOR_SCALE / 2 + 60;
-    const verticalMargin = size.height * REGIONAL_OVERLAP_INDICATOR_SCALE / 2 + 60;
-    const clampedRootPosition = {
-      x: Math.min(
-        REGIONAL_MAP_VIEWBOX.x + REGIONAL_MAP_VIEWBOX.width - horizontalMargin,
-        Math.max(REGIONAL_MAP_VIEWBOX.x + horizontalMargin, rootPosition.x),
-      ),
-      y: Math.min(
-        REGIONAL_MAP_VIEWBOX.y + REGIONAL_MAP_VIEWBOX.height - verticalMargin,
-        Math.max(REGIONAL_MAP_VIEWBOX.y + verticalMargin, rootPosition.y),
-      ),
-    };
-    const clampedPosition = pointFromSvgRootCoordinates(stationsLayer, clampedRootPosition);
-    if (!clampedPosition) return [];
+    const anchorSegment = group.segments[Math.floor(group.segments.length / 2)];
+    const placement = anchorSegment
+      ? regionalOverlapBadgeAnchor(documentNode, anchorSegment, size)
+      : null;
+    if (!placement || !stationsLayer) return [];
+    const rootAnchor = pointInSvgRootCoordinates(stationsLayer, placement.anchor);
+    const rootPosition = pointInSvgRootCoordinates(stationsLayer, placement.position);
     const firstSegment = group.segments[0];
     const lastSegment = group.segments.at(-1) ?? firstSegment;
     const startLabel = firstSegment.label.split(" to ")[0];
@@ -733,7 +745,8 @@ function regionalOverlapBadges(
       markerId: `regional-overlap-${group.signature}`,
       label: `${startLabel} to ${endLabel}`,
       impacts: group.impacts,
-      position: clampedPosition,
+      anchor: rootAnchor,
+      position: rootPosition,
       size,
     }];
   });
@@ -883,6 +896,77 @@ const RegionalSvgMarkup = memo(function RegionalSvgMarkup({ markup }: { markup: 
   return <div dangerouslySetInnerHTML={{ __html: markup }} className="w-full h-full" />;
 });
 
+function regionalOverlapMarker(
+  root: ParentNode,
+  markerId: string,
+): SVGGElement | null {
+  const markerGroup = Array.from(
+    root.querySelectorAll<SVGGElement>("[data-overlap-segment-id]"),
+  ).find((candidate) => candidate.dataset.overlapSegmentId === markerId);
+  return markerGroup?.querySelector<SVGGElement>(".overlap-indicator") ?? null;
+}
+
+function regionalOverlapChooserLayout({
+  markerCenter,
+  markerSize,
+  alertAnchor,
+  chooserSize,
+  viewportSize,
+}: {
+  markerCenter: SvgPoint;
+  markerSize: { width: number; height: number };
+  alertAnchor: SvgPoint;
+  chooserSize: { width: number; height: number };
+  viewportSize: { width: number; height: number };
+}): MapOverlapChooserLayout {
+  const margin = 16;
+  const outwardLength = Math.hypot(
+    markerCenter.x - alertAnchor.x,
+    markerCenter.y - alertAnchor.y,
+  ) || 1;
+  const outward = {
+    x: (markerCenter.x - alertAnchor.x) / outwardLength,
+    y: (markerCenter.y - alertAnchor.y) / outwardLength,
+  };
+  const centerForDirection = (direction: SvgPoint) => {
+    const markerExtent = Math.abs(direction.x) * markerSize.width / 2
+      + Math.abs(direction.y) * markerSize.height / 2;
+    const chooserExtent = Math.abs(direction.x) * chooserSize.width / 2
+      + Math.abs(direction.y) * chooserSize.height / 2;
+    const distance = markerExtent + REGIONAL_OVERLAP_CHOOSER_GAP + chooserExtent;
+    return {
+      x: markerCenter.x + direction.x * distance,
+      y: markerCenter.y + direction.y * distance,
+    };
+  };
+  const fitsViewport = (center: SvgPoint) =>
+    center.x - chooserSize.width / 2 >= margin
+    && center.x + chooserSize.width / 2 <= viewportSize.width - margin
+    && center.y - chooserSize.height / 2 >= margin
+    && center.y + chooserSize.height / 2 <= viewportSize.height - margin;
+  const outwardCenter = centerForDirection(outward);
+  const inwardCenter = centerForDirection({ x: -outward.x, y: -outward.y });
+  const proposedCenter = [outwardCenter, inwardCenter].find(fitsViewport) ?? outwardCenter;
+  const center = {
+    x: Math.min(
+      viewportSize.width - margin - chooserSize.width / 2,
+      Math.max(margin + chooserSize.width / 2, proposedCenter.x),
+    ),
+    y: Math.min(
+      viewportSize.height - margin - chooserSize.height / 2,
+      Math.max(margin + chooserSize.height / 2, proposedCenter.y),
+    ),
+  };
+  const left = center.x - chooserSize.width / 2;
+  const top = center.y - chooserSize.height / 2;
+  return {
+    left,
+    top,
+    anchorOffsetX: markerCenter.x - left,
+    anchorOffsetY: markerCenter.y - top,
+  };
+}
+
 function snapCameraToDevicePixels(camera: Camera): Camera {
   return snapTransformToDevicePixels(camera, currentDevicePixelRatio());
 }
@@ -940,7 +1024,6 @@ function InteractiveRegionalMapComponent({
   } | null>(null);
   const [svgMarkup, setSvgMarkup] = useState("");
   const [overlapBadges, setOverlapBadges] = useState<RegionalOverlapBadge[]>([]);
-  const [overlapLayerTransform, setOverlapLayerTransform] = useState("");
   const [expandedOverlapBadgeId, setExpandedOverlapBadgeId] = useState<string | null>(null);
   const [overlapChooserLayout, setOverlapChooserLayout] = useState<MapOverlapChooserLayout | null>(null);
   const [overlapChooserSize, setOverlapChooserSize] = useState<{ width: number; height: number } | null>(null);
@@ -1459,9 +1542,6 @@ function InteractiveRegionalMapComponent({
         root.setAttribute("aria-label", "GO and UP regional rail schematic");
         root.setAttribute("role", "img");
         setOverlapBadges(regionalOverlapBadges(documentNode, networkSegments));
-        setOverlapLayerTransform(
-          documentNode.getElementById("regional-stations-layer")?.getAttribute("transform") ?? "",
-        );
         setSvgMarkup(new XMLSerializer().serializeToString(root));
       })
       .catch(() => setLoadError(true));
@@ -1479,49 +1559,6 @@ function InteractiveRegionalMapComponent({
       initializeMapCamera();
     }
   }, [completeStagedEntrance, deferInitialEntrance, initializeMapCamera, stageInitialEntrance]);
-
-  useLayoutEffect(() => {
-    if (!cameraReady || !svgMarkup) return;
-    const frame = window.requestAnimationFrame(() => {
-      const viewport = viewportRef.current;
-      const overlaySvg = mapStageRef.current?.querySelector<SVGSVGElement>(":scope > svg");
-      if (!viewport || !overlaySvg) return;
-      const viewportRect = viewport.getBoundingClientRect();
-      const overlayRect = overlaySvg.getBoundingClientRect();
-      if (overlayRect.width <= 0) return;
-      const authoredUnitsPerPixel = REGIONAL_MAP_VIEWBOX.width / overlayRect.width;
-      const padding = 16;
-
-      setOverlapBadges((current) => current.map((badge) => {
-        const marker = viewport.querySelector<SVGGElement>(
-          `[data-overlap-segment-id="${CSS.escape(badge.markerId)}"]`,
-        );
-        const markerRect = marker?.getBoundingClientRect();
-        if (!markerRect) return badge;
-        let deltaX = 0;
-        let deltaY = 0;
-        if (markerRect.left < viewportRect.left + padding) {
-          deltaX = viewportRect.left + padding - markerRect.left;
-        } else if (markerRect.right > viewportRect.right - padding) {
-          deltaX = viewportRect.right - padding - markerRect.right;
-        }
-        if (markerRect.top < viewportRect.top + padding) {
-          deltaY = viewportRect.top + padding - markerRect.top;
-        } else if (markerRect.bottom > viewportRect.bottom - padding) {
-          deltaY = viewportRect.bottom - padding - markerRect.bottom;
-        }
-        if (Math.abs(deltaX) < 0.5 && Math.abs(deltaY) < 0.5) return badge;
-        return {
-          ...badge,
-          position: {
-            x: badge.position.x + deltaX * authoredUnitsPerPixel,
-            y: badge.position.y + deltaY * authoredUnitsPerPixel,
-          },
-        };
-      }));
-    });
-    return () => window.cancelAnimationFrame(frame);
-  }, [camera, cameraReady, svgMarkup]);
 
   useEffect(() => {
     if (deferInitialEntrance || !svgMarkup || !cameraInitializedRef.current || readyNotifiedRef.current) return;
@@ -2044,9 +2081,7 @@ function InteractiveRegionalMapComponent({
 
   const openRegionalOverlapChooser = useCallback((badge: RegionalOverlapBadge) => {
     const viewport = viewportRef.current;
-    const marker = viewport?.querySelector<SVGGElement>(
-      `[data-overlap-segment-id="${CSS.escape(badge.markerId)}"] .overlap-indicator`,
-    );
+    const marker = viewport ? regionalOverlapMarker(viewport, badge.markerId) : null;
     if (!viewport || !marker) return;
     const viewportRect = viewport.getBoundingClientRect();
     const markerRect = marker.getBoundingClientRect();
@@ -2062,21 +2097,31 @@ function InteractiveRegionalMapComponent({
       x: markerRect.left - viewportRect.left + markerRect.width / 2,
       y: markerRect.top - viewportRect.top + markerRect.height / 2,
     };
-    const margin = 16;
-    const preferredLeft = markerCenter.x + markerRect.width / 2 + 20;
-    const left = preferredLeft + width <= viewportRect.width - margin
-      ? preferredLeft
-      : Math.max(margin, markerCenter.x - markerRect.width / 2 - 20 - width);
-    const top = Math.min(
-      viewportRect.height - margin - height,
-      Math.max(margin, markerCenter.y - height / 2),
-    );
-    setOverlapChooserLayout({
-      left,
-      top,
-      anchorOffsetX: markerCenter.x - left,
-      anchorOffsetY: markerCenter.y - top,
-    });
+    const svg = marker.ownerSVGElement;
+    const screenMatrix = svg?.getScreenCTM();
+    const anchorPoint = svg?.createSVGPoint();
+    if (anchorPoint) {
+      anchorPoint.x = badge.anchor.x;
+      anchorPoint.y = badge.anchor.y;
+    }
+    const screenAnchor = anchorPoint && screenMatrix
+      ? anchorPoint.matrixTransform(screenMatrix)
+      : null;
+    setOverlapChooserLayout(regionalOverlapChooserLayout({
+      markerCenter,
+      markerSize: markerRect,
+      alertAnchor: screenAnchor
+        ? {
+            x: screenAnchor.x - viewportRect.left,
+            y: screenAnchor.y - viewportRect.top,
+          }
+        : markerCenter,
+      chooserSize: { width, height },
+      viewportSize: {
+        width: viewportRect.width,
+        height: viewportRect.height,
+      },
+    }));
     setOverlapChooserSize({ width, height });
     setExpandedOverlapBadgeId(badge.markerId);
     setRegionalOverlapImpactsHovered(badge.impacts, false);
@@ -2120,11 +2165,8 @@ function InteractiveRegionalMapComponent({
     closeRegionalOverlapChooser();
     if (!restoreFocus || !markerId) return;
     window.requestAnimationFrame(() => {
-      viewportRef.current
-        ?.querySelector<SVGGElement>(
-          `[data-overlap-segment-id="${CSS.escape(markerId)}"] .overlap-indicator`,
-        )
-        ?.focus();
+      const viewport = viewportRef.current;
+      if (viewport) regionalOverlapMarker(viewport, markerId)?.focus();
     });
   }, [closeRegionalOverlapChooser, expandedOverlapBadge]);
 
@@ -2190,30 +2232,29 @@ function InteractiveRegionalMapComponent({
               />
             </g>
             <g aria-label="Overlapping alert badges">
-              <g transform={overlapLayerTransform || undefined}>
-                {overlapBadges.map((badge) => (
-                  <MapOverlapIndicator
-                    key={badge.markerId}
-                    markerId={badge.markerId}
-                    label={badge.label}
-                    impacts={badge.impacts}
-                    position={badge.position}
-                    size={badge.size}
-                    selection={selection}
-                    isOpen={expandedOverlapBadgeId === badge.markerId}
-                    visualScale={REGIONAL_OVERLAP_INDICATOR_SCALE}
-                    onActivate={() => {
-                      if (expandedOverlapBadgeId === badge.markerId) {
-                        closeRegionalOverlapChooser();
-                      } else {
-                        openRegionalOverlapChooser(badge);
-                      }
-                    }}
-                    onHoverChange={(hovered) =>
-                      setRegionalOverlapImpactsHovered(badge.impacts, hovered)}
-                  />
-                ))}
-              </g>
+              {overlapBadges.map((badge) => (
+                <MapOverlapIndicator
+                  key={badge.markerId}
+                  markerId={badge.markerId}
+                  label={badge.label}
+                  impacts={badge.impacts}
+                  position={badge.position}
+                  size={badge.size}
+                  selection={selection}
+                  isOpen={expandedOverlapBadgeId === badge.markerId}
+                  visualScale={REGIONAL_OVERLAP_INDICATOR_SCALE}
+                  isolatePointerDown
+                  onActivate={() => {
+                    if (expandedOverlapBadgeId === badge.markerId) {
+                      closeRegionalOverlapChooser();
+                    } else {
+                      openRegionalOverlapChooser(badge);
+                    }
+                  }}
+                  onHoverChange={(hovered) =>
+                    setRegionalOverlapImpactsHovered(badge.impacts, hovered)}
+                />
+              ))}
             </g>
           </svg>
         </div>
