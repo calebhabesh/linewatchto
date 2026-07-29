@@ -351,6 +351,220 @@ function fallbackSegmentPath(
   return start && end ? `M ${start.x},${start.y} L ${end.x},${end.y}` : null;
 }
 
+type RegionalRouteMetric = {
+  path: SVGPathElement;
+  length: number;
+  pointAt: (distance: number) => SvgPoint;
+};
+
+function regionalRoutePathIds(lineId: string) {
+  const routeCode = lineId.replace("regional-", "");
+  return routeCode === "lw"
+    ? ["regional-route-lw-main-path", "regional-route-lw-branch-path"]
+    : [`regional-route-${routeCode}-path`];
+}
+
+function pointInSvgRootCoordinates(element: SVGElement, point: SvgPoint) {
+  let next = point;
+  let current: SVGElement | null = element;
+  while (current && current.tagName.toLowerCase() !== "svg") {
+    next = applySvgTransform(next, current.getAttribute("transform"));
+    current = current.parentElement as SVGElement | null;
+  }
+  return next;
+}
+
+function pointFromSvgRootCoordinates(element: SVGElement, point: SvgPoint): SvgPoint | null {
+  const origin = pointInSvgRootCoordinates(element, { x: 0, y: 0 });
+  const xBasis = pointInSvgRootCoordinates(element, { x: 1, y: 0 });
+  const yBasis = pointInSvgRootCoordinates(element, { x: 0, y: 1 });
+  const a = xBasis.x - origin.x;
+  const b = xBasis.y - origin.y;
+  const c = yBasis.x - origin.x;
+  const d = yBasis.y - origin.y;
+  const determinant = a * d - b * c;
+  if (Math.abs(determinant) < 1e-9) return null;
+  const offsetX = point.x - origin.x;
+  const offsetY = point.y - origin.y;
+  return {
+    x: (d * offsetX - c * offsetY) / determinant,
+    y: (-b * offsetX + a * offsetY) / determinant,
+  };
+}
+
+function pointInRegionalStationsCoordinates(
+  point: SvgPoint,
+  source: SVGElement,
+  stationsLayer: SVGElement,
+): SvgPoint | null {
+  return pointFromSvgRootCoordinates(
+    stationsLayer,
+    pointInSvgRootCoordinates(source, point),
+  );
+}
+
+function regionalRouteMetric(
+  path: SVGPathElement,
+  stationsLayer: SVGGraphicsElement,
+): RegionalRouteMetric | null {
+  try {
+    const length = path.getTotalLength();
+    if (length <= 0) return null;
+    return {
+      path,
+      length,
+      pointAt: (distance) => {
+        const localPoint = path.getPointAtLength(Math.max(0, Math.min(length, distance)));
+        return pointInRegionalStationsCoordinates(
+          { x: localPoint.x, y: localPoint.y },
+          path,
+          stationsLayer,
+        )
+          ?? { x: localPoint.x, y: localPoint.y };
+      },
+    };
+  } catch {
+    return null;
+  }
+}
+
+function squaredPointDistance(a: SvgPoint, b: SvgPoint) {
+  return (a.x - b.x) ** 2 + (a.y - b.y) ** 2;
+}
+
+function closestRouteDistance(metric: RegionalRouteMetric, target: SvgPoint) {
+  const sampleCount = Math.max(2, Math.ceil(metric.length / 24));
+  let closestDistance = 0;
+  let closestDistanceSquared = Number.POSITIVE_INFINITY;
+  for (let index = 0; index <= sampleCount; index += 1) {
+    const distance = metric.length * index / sampleCount;
+    const distanceSquared = squaredPointDistance(metric.pointAt(distance), target);
+    if (distanceSquared < closestDistanceSquared) {
+      closestDistance = distance;
+      closestDistanceSquared = distanceSquared;
+    }
+  }
+
+  let step = metric.length / sampleCount;
+  for (let iteration = 0; iteration < 10; iteration += 1) {
+    const before = Math.max(0, closestDistance - step);
+    const after = Math.min(metric.length, closestDistance + step);
+    for (const candidate of [before, after]) {
+      const distanceSquared = squaredPointDistance(metric.pointAt(candidate), target);
+      if (distanceSquared < closestDistanceSquared) {
+        closestDistance = candidate;
+        closestDistanceSquared = distanceSquared;
+      }
+    }
+    step /= 2;
+  }
+  return { distance: closestDistance, distanceSquared: closestDistanceSquared };
+}
+
+function routePointsBetween(metric: RegionalRouteMetric, start: number, end: number) {
+  const sampleCount = Math.max(1, Math.ceil(Math.abs(end - start) / 24));
+  return Array.from({ length: sampleCount + 1 }, (_unused, index) =>
+    metric.pointAt(start + (end - start) * index / sampleCount));
+}
+
+function pathDataForPoints(points: SvgPoint[]) {
+  return points.length >= 2
+    ? points.map((point, index) => `${index === 0 ? "M" : "L"} ${point.x},${point.y}`).join(" ")
+    : null;
+}
+
+function corridorSegmentPath(
+  documentNode: Document,
+  segment: NetworkSegment,
+) {
+  const stationsLayer = documentNode.getElementById("regional-stations-layer") as SVGGraphicsElement | null;
+  const start = svgAnchorPoint(documentNode, segment.stationAAnchorId);
+  const end = svgAnchorPoint(documentNode, segment.stationBAnchorId);
+  if (!stationsLayer || !start || !end) return null;
+
+  const metrics = regionalRoutePathIds(segment.lineId)
+    .map((pathId) => documentNode.getElementById(pathId) as SVGPathElement | null)
+    .filter((path): path is SVGPathElement => Boolean(path))
+    .map((path) => regionalRouteMetric(path, stationsLayer))
+    .filter((metric): metric is RegionalRouteMetric => Boolean(metric));
+  if (metrics.length === 0) return null;
+
+  const startProjections = metrics.map((metric) => closestRouteDistance(metric, start));
+  const endProjections = metrics.map((metric) => closestRouteDistance(metric, end));
+  const startMetricIndex = startProjections.reduce(
+    (best, projection, index) =>
+      projection.distanceSquared < startProjections[best].distanceSquared ? index : best,
+    0,
+  );
+  const endMetricIndex = endProjections.reduce(
+    (best, projection, index) =>
+      projection.distanceSquared < endProjections[best].distanceSquared ? index : best,
+    0,
+  );
+
+  if (startMetricIndex === endMetricIndex) {
+    return pathDataForPoints(routePointsBetween(
+      metrics[startMetricIndex],
+      startProjections[startMetricIndex].distance,
+      endProjections[endMetricIndex].distance,
+    ));
+  }
+
+  // Split corridor artwork (currently Lakeshore West) is treated as one route
+  // graph. Join paths only at the authored LW branch junction so all three
+  // pairwise-adjacent Aldershot/West Harbour/Hamilton links follow the shared
+  // T-shaped rail geometry instead of drawing station-centre chords.
+  const startMetric = metrics[startMetricIndex];
+  const endMetric = metrics[endMetricIndex];
+  const connections = [0, endMetric.length].map((endPathDistance) => {
+    const endPathPoint = endMetric.pointAt(endPathDistance);
+    const startPathProjection = closestRouteDistance(startMetric, endPathPoint);
+    return {
+      startPathDistance: startPathProjection.distance,
+      endPathDistance,
+      gapSquared: squaredPointDistance(
+        startMetric.pointAt(startPathProjection.distance),
+        endPathPoint,
+      ),
+    };
+  });
+  const connection = connections.reduce((best, candidate) =>
+    candidate.gapSquared < best.gapSquared ? candidate : best);
+  if (connection.gapSquared > 4) return null;
+
+  const firstPoints = routePointsBetween(
+    startMetric,
+    startProjections[startMetricIndex].distance,
+    connection.startPathDistance,
+  );
+  const secondPoints = routePointsBetween(
+    endMetric,
+    connection.endPathDistance,
+    endProjections[endMetricIndex].distance,
+  );
+  return pathDataForPoints([...firstPoints, ...secondPoints.slice(1)]);
+}
+
+function authoredRegionalCorridorPathData(documentNode: Document, lineId: string) {
+  const stationsLayer = documentNode.getElementById("regional-stations-layer") as SVGGraphicsElement | null;
+  if (!stationsLayer) return null;
+  const pathData = regionalRoutePathIds(lineId)
+    .map((pathId) => documentNode.getElementById(pathId) as SVGPathElement | null)
+    .filter((path): path is SVGPathElement => Boolean(path))
+    .map((path) => regionalRouteMetric(path, stationsLayer))
+    .filter((metric): metric is RegionalRouteMetric => Boolean(metric))
+    .map((metric) => pathDataForPoints(routePointsBetween(metric, 0, metric.length)))
+    .filter((pathD): pathD is string => Boolean(pathD));
+  return pathData.length > 0 ? pathData.join(" ") : null;
+}
+
+function resolvedRegionalSegmentPath(documentNode: Document, segment: NetworkSegment) {
+  const guide = documentNode.getElementById(segment.guidePathId ?? "") as SVGPathElement | null;
+  return guide?.getAttribute("d")
+    ?? corridorSegmentPath(documentNode, segment)
+    ?? fallbackSegmentPath(documentNode, segment.stationAAnchorId, segment.stationBAnchorId);
+}
+
 type RegionalOverlayPiece = {
   segment: NetworkSegment;
   impact: MapImpact;
@@ -366,12 +580,11 @@ type RegionalOverlayRun = {
   pathD: string;
 };
 
-function appendConnectedPathData(pathD: string, nextPathD: string) {
-  const nextWithoutMove = nextPathD.replace(
-    /^\s*[Mm]\s*[-+]?(?:\d*\.?\d+)(?:[eE][-+]?\d+)?\s*,?\s*[-+]?(?:\d*\.?\d+)(?:[eE][-+]?\d+)?/,
-    "",
-  );
-  return `${pathD.trim()} ${nextWithoutMove.trim()}`.trim();
+function regionalSegmentsAreAdjacent(a: NetworkSegment, b: NetworkSegment) {
+  return a.stationAId === b.stationAId
+    || a.stationAId === b.stationBId
+    || a.stationBId === b.stationAId
+    || a.stationBId === b.stationBId;
 }
 
 function regionalOverlayRuns(pieces: RegionalOverlayPiece[]): RegionalOverlayRun[] {
@@ -388,23 +601,30 @@ function regionalOverlayRuns(pieces: RegionalOverlayPiece[]): RegionalOverlayRun
 
   const runs: RegionalOverlayRun[] = [];
   for (const groupPieces of grouped.values()) {
-    let current: RegionalOverlayRun | null = null;
-    for (const piece of groupPieces) {
-      const previous = current?.segments.at(-1);
-      if (!current || previous?.stationBId !== piece.segment.stationAId) {
-        current = {
-          impact: piece.impact,
-          impactIndex: piece.impactIndex,
-          lineId: piece.segment.lineId,
-          segments: [piece.segment],
-          pathD: piece.pathD,
-        };
-        runs.push(current);
-        continue;
+    const remaining = new Set(groupPieces);
+    while (remaining.size > 0) {
+      const firstPiece = remaining.values().next().value as RegionalOverlayPiece;
+      const componentPieces: RegionalOverlayPiece[] = [];
+      const pending = [firstPiece];
+      remaining.delete(firstPiece);
+      while (pending.length > 0) {
+        const current = pending.shift()!;
+        componentPieces.push(current);
+        for (const candidate of remaining) {
+          if (!regionalSegmentsAreAdjacent(current.segment, candidate.segment)) continue;
+          remaining.delete(candidate);
+          pending.push(candidate);
+        }
       }
-      current.segments.push(piece.segment);
-      current.pathD = appendConnectedPathData(current.pathD, piece.pathD);
-      current.impactIndex = Math.min(current.impactIndex, piece.impactIndex);
+      runs.push({
+        impact: firstPiece.impact,
+        impactIndex: Math.min(...componentPieces.map((piece) => piece.impactIndex)),
+        lineId: firstPiece.segment.lineId,
+        segments: componentPieces.map((piece) => piece.segment),
+        // Keep one subpath per graph edge. This preserves a single interactive
+        // overlay group even when the connected component branches or cycles.
+        pathD: componentPieces.map((piece) => piece.pathD.trim()).join(" "),
+      });
     }
   }
   return runs;
@@ -831,44 +1051,47 @@ function InteractiveRegionalMapComponent({
           element.after(selectedIndicator);
           element.classList.add("regional-station-visual");
         }
-        for (const alert of activeAlerts.filter((item) => item.affectedSegmentIds.length === 0)) {
-          const routeCode = alert.lineId.replace("regional-", "");
-          const pathIds = routeCode === "lw"
-            ? ["regional-route-lw-main-path", "regional-route-lw-branch-path"]
-            : [`regional-route-${routeCode}-path`];
-          for (const pathId of pathIds) {
-            const routePath = documentNode.getElementById(pathId) as SVGPathElement | null;
-            if (!routePath) continue;
-            const kind = alert.severity === "planned" ? "planned-closure" : alert.severity;
-            routePath.after(regionalImpactGroup(documentNode, routePath, {
-              impactId: alert.id,
-              kind,
-              label: `${alert.lineNumber} ${alert.title}`,
-              reducedMotion,
-            }));
-          }
-        }
         const stationsLayer = documentNode.getElementById("regional-stations-layer");
+        for (const alert of activeAlerts.filter((item) => item.affectedSegmentIds.length === 0)) {
+          const pathD = authoredRegionalCorridorPathData(documentNode, alert.lineId);
+          if (!stationsLayer || !pathD) continue;
+          const overlaySource = documentNode.createElementNS(SVG_NAMESPACE, "path");
+          overlaySource.setAttribute("style", "display:inline");
+          overlaySource.setAttribute("d", pathD);
+          const kind = alert.severity === "planned" ? "planned-closure" : alert.severity;
+          const overlay = regionalImpactGroup(documentNode, overlaySource, {
+            impactId: alert.id,
+            kind,
+            label: `${alert.lineNumber} ${alert.title}`,
+            reducedMotion,
+          });
+          const firstStationTarget = stationsLayer.querySelector(".regional-station-hit-target");
+          stationsLayer.insertBefore(overlay, firstStationTarget);
+        }
         const overlayPieces: RegionalOverlayPiece[] = [];
         for (const segment of networkSegments.filter((item) => (item.impacts?.length ?? 0) > 0)) {
-          const guide = documentNode.getElementById(segment.guidePathId ?? "") as SVGPathElement | null;
-          const fallbackPathD = fallbackSegmentPath(
-            documentNode,
-            segment.stationAAnchorId,
-            segment.stationBAnchorId,
-          );
-          if ((!guide && !fallbackPathD) || !stationsLayer) continue;
+          const resolvedPathD = resolvedRegionalSegmentPath(documentNode, segment);
+          if (!resolvedPathD || !stationsLayer) continue;
           for (const [impactIndex, impact] of (segment.impacts ?? []).entries()) {
-            const pathD = guide?.getAttribute("d") ?? fallbackPathD;
-            if (!pathD) continue;
-            overlayPieces.push({ segment, impact, impactIndex, pathD });
+            overlayPieces.push({ segment, impact, impactIndex, pathD: resolvedPathD });
           }
         }
         for (const run of regionalOverlayRuns(overlayPieces)) {
           if (!stationsLayer) break;
           const overlaySource = documentNode.createElementNS(SVG_NAMESPACE, "path");
           overlaySource.setAttribute("style", "display:inline");
-          overlaySource.setAttribute("d", run.pathD);
+          const allLineSegmentIds = networkSegments
+            .filter((segment) => segment.lineId === run.lineId)
+            .map((segment) => segment.id);
+          const runSegmentIds = new Set(run.segments.map((segment) => segment.id));
+          const coversFullCorridor = allLineSegmentIds.length === run.segments.length
+            && allLineSegmentIds.every((segmentId) => runSegmentIds.has(segmentId));
+          overlaySource.setAttribute(
+            "d",
+            coversFullCorridor
+              ? authoredRegionalCorridorPathData(documentNode, run.lineId) ?? run.pathD
+              : run.pathD,
+          );
           const firstSegment = run.segments[0];
           const lastSegment = run.segments.at(-1) ?? firstSegment;
           const startLabel = firstSegment.label.split(" to ")[0];
@@ -919,12 +1142,7 @@ function InteractiveRegionalMapComponent({
           for (const segmentId of commutePathPreview.segmentIds) {
             const segment = networkSegments.find((item) => item.id === segmentId);
             if (!segment) continue;
-            const guide = documentNode.getElementById(segment.guidePathId ?? "") as SVGPathElement | null;
-            const pathD = guide?.getAttribute("d") ?? fallbackSegmentPath(
-              documentNode,
-              segment.stationAAnchorId,
-              segment.stationBAnchorId,
-            );
+            const pathD = resolvedRegionalSegmentPath(documentNode, segment);
             if (!pathD) continue;
             const glow = documentNode.createElementNS(SVG_NAMESPACE, "path");
             glow.setAttribute("d", pathD);
@@ -1467,6 +1685,42 @@ function InteractiveRegionalMapComponent({
     }
   }, [onSelectImpact, onSelectStationId]);
 
+  const setLinkedImpactHover = useCallback((target: EventTarget | null, hovered: boolean) => {
+    if (!(target instanceof Element)) return;
+    const impact = target.closest<SVGElement>("[data-regional-impact-kind][data-regional-impact-id]");
+    const kind = impact?.dataset.regionalImpactKind;
+    const id = impact?.dataset.regionalImpactId;
+    const root = viewportRef.current;
+    if (!root || !kind || !id) return;
+    root.querySelectorAll(
+      `[data-regional-impact-kind="${kind}"][data-regional-impact-id="${CSS.escape(id)}"]`,
+    ).forEach((element) => {
+      if (hovered) {
+        element.setAttribute("data-regional-impact-hovered", "true");
+      } else {
+        element.removeAttribute("data-regional-impact-hovered");
+      }
+    });
+  }, []);
+
+  const onLinkedImpactPointerOver = useCallback((event: PointerEvent<HTMLDivElement>) => {
+    setLinkedImpactHover(event.target, true);
+  }, [setLinkedImpactHover]);
+
+  const onLinkedImpactPointerOut = useCallback((event: PointerEvent<HTMLDivElement>) => {
+    const currentImpact = event.target instanceof Element
+      ? event.target.closest<SVGElement>("[data-regional-impact-kind][data-regional-impact-id]")
+      : null;
+    const nextImpact = event.relatedTarget instanceof Element
+      ? event.relatedTarget.closest<SVGElement>("[data-regional-impact-kind][data-regional-impact-id]")
+      : null;
+    if (
+      currentImpact?.dataset.regionalImpactKind === nextImpact?.dataset.regionalImpactKind
+      && currentImpact?.dataset.regionalImpactId === nextImpact?.dataset.regionalImpactId
+    ) return;
+    setLinkedImpactHover(event.target, false);
+  }, [setLinkedImpactHover]);
+
   const onKeyDown = useCallback((event: KeyboardEvent<HTMLDivElement>) => {
     if (event.key !== "Enter" && event.key !== " ") return;
     event.preventDefault();
@@ -1490,6 +1744,10 @@ function InteractiveRegionalMapComponent({
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
         onPointerCancel={onPointerUp}
+        onPointerOver={onLinkedImpactPointerOver}
+        onPointerOut={onLinkedImpactPointerOut}
+        onFocus={(event) => setLinkedImpactHover(event.target, true)}
+        onBlur={(event) => setLinkedImpactHover(event.target, false)}
         onClick={(event) => {
           if (suppressNextClickRef.current) {
             suppressNextClickRef.current = false;

@@ -188,13 +188,56 @@ public final class RegionalNetworkCatalog {
         if (indexes.size() < 2) {
             return List.of();
         }
-        int first = indexes.getFirst();
-        int last = indexes.getLast();
         List<String> ids = new ArrayList<>();
-        for (int index = first; index < last; index++) {
-            ids.add(segmentId(route.number(), route.stationIds().get(index), route.stationIds().get(index + 1)));
+        for (int index = 0; index < indexes.size() - 1; index++) {
+            String fromStationId = route.stationIds().get(indexes.get(index));
+            String toStationId = route.stationIds().get(indexes.get(index + 1));
+            for (Segment segment : shortestSegmentPath(lineId, fromStationId, toStationId)) {
+                if (!ids.contains(segment.id())) {
+                    ids.add(segment.id());
+                }
+            }
         }
         return List.copyOf(ids);
+    }
+
+    private static List<Segment> shortestSegmentPath(String lineId, String fromStationId, String toStationId) {
+        if (fromStationId.equals(toStationId)) {
+            return List.of();
+        }
+        List<String> pending = new ArrayList<>();
+        Map<String, Segment> previousSegment = new LinkedHashMap<>();
+        pending.add(fromStationId);
+        previousSegment.put(fromStationId, null);
+        for (int cursor = 0; cursor < pending.size(); cursor++) {
+            String stationId = pending.get(cursor);
+            for (Segment segment : SEGMENTS) {
+                if (!segment.lineId().equals(lineId)) continue;
+                String adjacentStationId = segment.stationAId().equals(stationId)
+                    ? segment.stationBId()
+                    : segment.stationBId().equals(stationId) ? segment.stationAId() : null;
+                if (adjacentStationId == null || previousSegment.containsKey(adjacentStationId)) continue;
+                previousSegment.put(adjacentStationId, segment);
+                pending.add(adjacentStationId);
+                if (adjacentStationId.equals(toStationId)) {
+                    cursor = pending.size();
+                    break;
+                }
+            }
+        }
+        if (!previousSegment.containsKey(toStationId)) {
+            return List.of();
+        }
+        List<Segment> reversed = new ArrayList<>();
+        String stationId = toStationId;
+        while (!stationId.equals(fromStationId)) {
+            Segment segment = previousSegment.get(stationId);
+            reversed.add(segment);
+            stationId = segment.stationAId().equals(stationId)
+                ? segment.stationBId()
+                : segment.stationAId();
+        }
+        return reversed.reversed();
     }
 
     private static Route route(String id, String number, String name, String color, String... stationIds) {
@@ -229,9 +272,9 @@ public final class RegionalNetworkCatalog {
     private static List<Segment> buildSegments() {
         List<Segment> segments = new ArrayList<>();
         for (Route route : ROUTES) {
-            for (int index = 0; index < route.stationIds().size() - 1; index++) {
-                String stationAId = route.stationIds().get(index);
-                String stationBId = route.stationIds().get(index + 1);
+            for (List<String> link : routeLinks(route)) {
+                String stationAId = link.get(0);
+                String stationBId = link.get(1);
                 String code = route.number().toLowerCase(Locale.CANADA);
                 segments.add(new Segment(
                     segmentId(route.number(), stationAId, stationBId),
@@ -246,6 +289,25 @@ public final class RegionalNetworkCatalog {
             }
         }
         return List.copyOf(segments);
+    }
+
+    private static List<List<String>> routeLinks(Route route) {
+        List<List<String>> links = new ArrayList<>();
+        int linearLinkCount = "LW".equals(route.number())
+            ? route.stationIds().indexOf("aldershot")
+            : route.stationIds().size() - 1;
+        for (int index = 0; index < linearLinkCount; index++) {
+            links.add(List.of(route.stationIds().get(index), route.stationIds().get(index + 1)));
+        }
+        if ("LW".equals(route.number())) {
+            links.add(List.of("aldershot", "west-harbour"));
+            links.add(List.of("aldershot", "hamilton"));
+            links.add(List.of("west-harbour", "hamilton"));
+            links.add(List.of("west-harbour", "confederation"));
+            links.add(List.of("confederation", "st-catharines"));
+            links.add(List.of("st-catharines", "niagara-falls"));
+        }
+        return links;
     }
 
     private static String stationAnchorId(String stationId, String routeNumber) {

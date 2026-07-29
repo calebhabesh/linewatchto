@@ -49,6 +49,34 @@ export const REGIONAL_ROUTE_STATIONS: Record<RegionalRouteCode, readonly string[
   UP: ["union", "bloor", "mount-dennis", "weston", "pearson-airport"],
 };
 
+function adjacentRegionalLinks(stationIds: readonly string[]) {
+  return stationIds.slice(0, -1).map(
+    (stationAId, index) => [stationAId, stationIds[index + 1]] as const,
+  );
+}
+
+// Lakeshore West has one non-linear junction: Aldershot, West Harbour, and
+// Hamilton are pairwise adjacent. The three graph edges share the authored
+// T-shaped rail geometry even though the topology is a triangle.
+export const REGIONAL_ROUTE_LINKS: Record<RegionalRouteCode, readonly (readonly [string, string])[]> = {
+  BR: adjacentRegionalLinks(REGIONAL_ROUTE_STATIONS.BR),
+  KI: adjacentRegionalLinks(REGIONAL_ROUTE_STATIONS.KI),
+  LE: adjacentRegionalLinks(REGIONAL_ROUTE_STATIONS.LE),
+  LW: [
+    ...adjacentRegionalLinks(REGIONAL_ROUTE_STATIONS.LW.slice(0, 11)),
+    ["aldershot", "west-harbour"],
+    ["aldershot", "hamilton"],
+    ["west-harbour", "hamilton"],
+    ["west-harbour", "confederation"],
+    ["confederation", "st-catharines"],
+    ["st-catharines", "niagara-falls"],
+  ],
+  MI: adjacentRegionalLinks(REGIONAL_ROUTE_STATIONS.MI),
+  RH: adjacentRegionalLinks(REGIONAL_ROUTE_STATIONS.RH),
+  ST: adjacentRegionalLinks(REGIONAL_ROUTE_STATIONS.ST),
+  UP: adjacentRegionalLinks(REGIONAL_ROUTE_STATIONS.UP),
+};
+
 // Keep logical station selection separate from the route-specific SVG dots used
 // for overlay attachment at the shared Kitchener/UP approach.
 export const REGIONAL_JUNCTION_ANCHORS: Record<string, { KI: string; UP: string }> = {
@@ -135,10 +163,9 @@ function regionalSegmentId(routeCode: RegionalRouteCode, stationAId: string, sta
 }
 
 export const regionalSegments: NetworkSegment[] = Object.entries(REGIONAL_ROUTE_STATIONS)
-  .flatMap(([rawRouteCode, stationIds]) => {
+  .flatMap(([rawRouteCode]) => {
     const routeCode = rawRouteCode as RegionalRouteCode;
-    return stationIds.slice(0, -1).map((stationAId, index) => {
-      const stationBId = stationIds[index + 1];
+    return REGIONAL_ROUTE_LINKS[routeCode].map(([stationAId, stationBId]) => {
       const id = regionalSegmentId(routeCode, stationAId, stationBId);
       return {
         id,
@@ -315,6 +342,9 @@ export function regionalDashboardDataForScenario(
     regionalSegmentId("LE", "pickering", "ajax"),
     regionalSegmentId("LE", "ajax", "whitby"),
   ];
+  const lwCorridorSegmentIds = REGIONAL_ROUTE_LINKS.LW.map(
+    ([stationAId, stationBId]) => regionalSegmentId("LW", stationAId, stationBId),
+  );
   const suspensionSegmentId = regionalSegmentId("KI", "mount-dennis", "weston");
   const delay: DelayAlert = {
     id: "regional-demo-delay",
@@ -324,6 +354,16 @@ export function regionalDashboardDataForScenario(
     location: "Pickering to Whitby",
     description: "Synthetic regional scenario data for interface verification.",
     affectedSegmentIds: delaySegmentIds,
+    source: "Synthetic regional fixture",
+  };
+  const lwCorridorDelay: DelayAlert = {
+    id: "regional-demo-lw-corridor-delay",
+    lineId: "regional-lw",
+    lineNumber: "LW",
+    title: "Synthetic delay across Lakeshore West",
+    location: "Entire Lakeshore West corridor",
+    description: "Synthetic regional scenario data for full branched-corridor overlay verification.",
+    affectedSegmentIds: lwCorridorSegmentIds,
     source: "Synthetic regional fixture",
   };
   const suspension = scenarioActiveAlert({
@@ -365,8 +405,17 @@ export function regionalDashboardDataForScenario(
       location: delay.location,
       affectedSegmentIds: delay.affectedSegmentIds,
     }),
+    scenarioActiveAlert({
+      id: lwCorridorDelay.id,
+      lineId: lwCorridorDelay.lineId,
+      lineNumber: lwCorridorDelay.lineNumber,
+      title: lwCorridorDelay.title,
+      severity: "delay",
+      location: lwCorridorDelay.location,
+      affectedSegmentIds: lwCorridorDelay.affectedSegmentIds,
+    }),
   ];
-  data.delays = [delay];
+  data.delays = [delay, lwCorridorDelay];
   data.plannedClosures = [plannedClosure];
   data.stationNodeImpacts = [stationImpact];
   data.networkSegments = data.networkSegments.map((segment) => {
@@ -377,6 +426,14 @@ export function regionalDashboardDataForScenario(
         cardId: delay.id,
         travelDirection: "forward" as const,
         sourceAlertIds: [delay.id],
+      });
+    }
+    if (lwCorridorSegmentIds.includes(segment.id)) {
+      impacts.push({
+        kind: "delay" as const,
+        cardId: lwCorridorDelay.id,
+        travelDirection: "bidirectional" as const,
+        sourceAlertIds: [lwCorridorDelay.id],
       });
     }
     if (segment.id === suspensionSegmentId) {

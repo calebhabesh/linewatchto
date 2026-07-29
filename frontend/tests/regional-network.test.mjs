@@ -6,6 +6,7 @@ import {
   DEFAULT_NETWORK_ID,
   REGIONAL_JUNCTION_ANCHORS,
   REGIONAL_ROUTE_CARDINAL_DIRECTIONS,
+  REGIONAL_ROUTE_LINKS,
   REGIONAL_ROUTE_STATIONS,
   regionalDashboardData,
   regionalDashboardDataFromApi,
@@ -287,9 +288,9 @@ describe("network-scoped regional dashboard", () => {
   });
 
   it("indexes every adjacent station pair with network-safe route topology", () => {
-    const expectedSegmentCount = Object.values(REGIONAL_ROUTE_STATIONS)
-      .reduce((total, stationIds) => total + stationIds.length - 1, 0);
-    assert.equal(expectedSegmentCount, 74);
+    const expectedSegmentCount = Object.values(REGIONAL_ROUTE_LINKS)
+      .reduce((total, links) => total + links.length, 0);
+    assert.equal(expectedSegmentCount, 75);
     assert.equal(regionalDashboardData.networkSegments.length, expectedSegmentCount);
     assert.equal(
       new Set(regionalDashboardData.networkSegments.map((segment) => segment.id)).size,
@@ -302,6 +303,29 @@ describe("network-scoped regional dashboard", () => {
       && segment.stationBAnchorId
       && segment.guidePathId
     ));
+    assert.deepEqual(
+      REGIONAL_ROUTE_LINKS.LW.slice(-6),
+      [
+        ["aldershot", "west-harbour"],
+        ["aldershot", "hamilton"],
+        ["west-harbour", "hamilton"],
+        ["west-harbour", "confederation"],
+        ["confederation", "st-catharines"],
+        ["st-catharines", "niagara-falls"],
+      ],
+    );
+    assert.deepEqual(
+      regionalDashboardData.networkSegments
+        .filter((segment) =>
+          ["aldershot", "west-harbour", "hamilton"].includes(segment.stationAId)
+          && ["aldershot", "west-harbour", "hamilton"].includes(segment.stationBId))
+        .map((segment) => [segment.stationAId, segment.stationBId]),
+      [
+        ["aldershot", "west-harbour"],
+        ["aldershot", "hamilton"],
+        ["west-harbour", "hamilton"],
+      ],
+    );
   });
 
   it("keeps map station data scoped while exposing both catalogs to global search", () => {
@@ -386,9 +410,18 @@ describe("network-scoped regional dashboard", () => {
     assert.match(regionalMapSource, /item\.affectedSegmentIds\.length === 0/);
     assert.match(regionalMapSource, /segment\.guidePathId/);
     assert.match(regionalMapSource, /stationNodeImpacts/);
+    assert.match(regionalMapSource, /corridorSegmentPath\(documentNode, segment\)/);
+    assert.match(regionalMapSource, /regionalRoutePathIds\(segment\.lineId\)/);
+    assert.match(regionalMapSource, /routeCode === "lw"[\s\S]*regional-route-lw-main-path[\s\S]*regional-route-lw-branch-path/);
+    assert.match(regionalMapSource, /pointInSvgRootCoordinates\(source, point\)/);
+    assert.match(regionalMapSource, /pointFromSvgRootCoordinates\([\s\S]*stationsLayer/);
+    assert.doesNotMatch(regionalMapSource, /source\.getCTM\(\)/);
+    assert.match(regionalMapSource, /connection\.gapSquared > 4/);
+    assert.match(regionalMapSource, /resolvedRegionalSegmentPath\(documentNode, segment\)/);
     assert.match(regionalMapSource, /regionalOverlayRuns\(overlayPieces\)/);
-    assert.match(regionalMapSource, /previous\?\.stationBId !== piece\.segment\.stationAId/);
-    assert.match(regionalMapSource, /appendConnectedPathData\(current\.pathD, piece\.pathD\)/);
+    assert.match(regionalMapSource, /regionalSegmentsAreAdjacent/);
+    assert.match(regionalMapSource, /componentPieces\.map\(\(piece\) => piece\.pathD\.trim\(\)\)\.join\(" "\)/);
+    assert.match(regionalMapSource, /authoredRegionalCorridorPathData/);
     assert.match(regionalMapSource, /group\.dataset\.regionalImpactSegmentCount = String\(segmentCount\)/);
   });
 
@@ -408,11 +441,19 @@ describe("network-scoped regional dashboard", () => {
   it("provides source-honest synthetic scenarios without changing the default fixture", () => {
     const scenario = regionalDashboardDataForScenario("all-impact-types");
     assert.equal(regionalDashboardData.activeAlerts.length, 0);
-    assert.equal(scenario.activeAlerts.length, 2);
-    assert.equal(scenario.delays.length, 1);
+    assert.equal(scenario.activeAlerts.length, 3);
+    assert.equal(scenario.delays.length, 2);
     assert.equal(scenario.plannedClosures.length, 1);
     assert.equal(scenario.stationNodeImpacts.length, 1);
     assert.ok(scenario.networkSegments.some((segment) => (segment.impacts?.length ?? 0) > 0));
+    const fullLwImpactSegmentIds = scenario.networkSegments
+      .filter((segment) => segment.impacts?.some(
+        (impact) => impact.cardId === "regional-demo-lw-corridor-delay"))
+      .map((segment) => segment.id);
+    assert.equal(fullLwImpactSegmentIds.length, 16);
+    assert.ok(fullLwImpactSegmentIds.includes("segment-lw-aldershot-west-harbour"));
+    assert.ok(fullLwImpactSegmentIds.includes("segment-lw-aldershot-hamilton"));
+    assert.ok(fullLwImpactSegmentIds.includes("segment-lw-west-harbour-hamilton"));
     assert.ok(scenario.activeAlerts.every((alert) => /Synthetic regional fixture/.test(alert.source)));
   });
 
@@ -424,6 +465,15 @@ describe("network-scoped regional dashboard", () => {
     assert.match(regionalMapSource, /"station-selected-indicator", "regional-station-selected-indicator"/);
     assert.match(regionalMapSource, /"map-segment-hit-target", "regional-impact-hit-target"/);
     assert.match(regionalMapSource, /"asset-alert-path-hover-boundary", visualState, "regional-impact-hover-boundary"/);
+    assert.match(regionalMapSource, /setLinkedImpactHover/);
+    assert.match(regionalMapSource, /data-regional-impact-hovered/);
+    assert.match(regionalMapSource, /onPointerOver=\{onLinkedImpactPointerOver\}/);
+    assert.match(regionalMapSource, /onPointerOut=\{onLinkedImpactPointerOut\}/);
+    assert.match(globalsCss, /data-regional-impact-hovered="true"[^}]*regional-impact-glow/);
+    assert.match(
+      globalsCss,
+      /#regional-station-labels-layer :is\(text, tspan\)\s*\{[^}]*pointer-events:\s*none/s,
+    );
     assert.match(regionalMapSource, /createElementNS\(SVG_NAMESPACE, "title"\)/);
     assert.match(globalsCss, /\.map-selection-attention\s*\{[^}]*--selection-intro-name:\s*none/s);
     assert.match(regionalMapSource, /"map-selection-attention", "station-selected-indicator", "regional-station-selected-indicator"/);

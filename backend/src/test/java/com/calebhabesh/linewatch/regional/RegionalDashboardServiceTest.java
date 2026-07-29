@@ -64,7 +64,7 @@ class RegionalDashboardServiceTest {
                     assertThat(impact.travelDirection()).isEqualTo("bidirectional");
                 });
             });
-        assertThat(dashboard.map().segments()).hasSize(74);
+        assertThat(dashboard.map().segments()).hasSize(75);
     }
 
     @Test

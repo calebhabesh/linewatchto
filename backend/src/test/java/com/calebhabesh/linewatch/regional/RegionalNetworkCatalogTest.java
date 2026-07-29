@@ -41,6 +41,24 @@ class RegionalNetworkCatalogTest {
             "segment-ki-bloor-mount-dennis",
             "segment-ki-mount-dennis-weston"
         );
-        assertThat(RegionalNetworkCatalog.segments()).hasSize(74);
+        assertThat(RegionalNetworkCatalog.segmentBetween(
+            "regional-lw", "west-harbour", "confederation"
+        )).isPresent();
+        assertThat(RegionalNetworkCatalog.segmentBetween(
+            "regional-lw", "aldershot", "hamilton"
+        )).isPresent();
+        assertThat(RegionalNetworkCatalog.segmentBetween(
+            "regional-lw", "west-harbour", "hamilton"
+        )).isPresent();
+        assertThat(RegionalNetworkCatalog.segmentBetween(
+            "regional-lw", "confederation", "hamilton"
+        )).isEmpty();
+        assertThat(RegionalNetworkCatalog.segmentIds(
+            "regional-lw",
+            java.util.List.of("aldershot", "hamilton")
+        )).containsExactly(
+            "segment-lw-aldershot-hamilton"
+        );
+        assertThat(RegionalNetworkCatalog.segments()).hasSize(75);
     }
 }

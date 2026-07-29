@@ -303,6 +303,7 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
 .regional-map-stage #regional-station-labels-layer :is(text, tspan) {
   font-family: "TeX Gyre Heros", Arial, Helvetica, sans-serif !important;
   font-weight: 700 !important;
+  pointer-events: none;
 }
 
 .dark .regional-map-stage #regional-station-labels-layer :is(text, tspan),
@@ -511,6 +512,7 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
 .regional-overlay-segment-group:has(.regional-impact-hit-target:hover) .regional-impact-glow,
 .regional-overlay-segment-group:has(.regional-impact-hit-target:focus-visible) .regional-impact-glow,
 .regional-overlay-segment-group:has(.regional-impact-hit-target:active) .regional-impact-glow,
+.regional-overlay-segment-group[data-regional-impact-hovered="true"] .regional-impact-glow,
 .regional-overlay-segment-group[data-regional-impact-selected="true"] .regional-impact-glow {
   opacity: 0.55;
   filter: blur(18px);
@@ -554,7 +556,8 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
 
 .regional-overlay-segment-group:has(.regional-impact-hit-target:hover) .regional-impact-hover-boundary,
 .regional-overlay-segment-group:has(.regional-impact-hit-target:focus-visible) .regional-impact-hover-boundary,
-.regional-overlay-segment-group:has(.regional-impact-hit-target:active) .regional-impact-hover-boundary {
+.regional-overlay-segment-group:has(.regional-impact-hit-target:active) .regional-impact-hover-boundary,
+.regional-overlay-segment-group[data-regional-impact-hovered="true"] .regional-impact-hover-boundary {
   opacity: 0.94;
 }
 

@@ -344,13 +344,30 @@ test("renders fresh Metrolinx impacts in regional mode", async ({ page, request,
   await expect(page.getByRole("button", { name: "Pickering to Whitby delay impact" })).toBeAttached();
   await expect(page.getByText("Last Polled: regional fixture mode", { exact: true })).toHaveCount(0);
 
-  const delayOverlay = page.locator('.regional-overlay-segment-group[data-regional-impact-kind="delay"]');
+  const delayOverlay = page.locator(
+    '.regional-overlay-segment-group[data-regional-impact-kind="delay"][data-regional-impact-id="regional-demo-delay"]',
+  );
   await expect(delayOverlay).toHaveCount(1);
   await expect(delayOverlay).toHaveAttribute("data-regional-impact-segment-count", "2");
   await expect(delayOverlay.locator(".delay-static-base")).toBeAttached();
   await expect(delayOverlay.locator('[data-regional-delay-direction="forward"]')).toBeAttached();
   await expect(delayOverlay.locator(".regional-delay-glyph--hourglass").first()).toBeAttached();
   await expect(delayOverlay.locator(".regional-delay-glyph--arrow").first()).toBeAttached();
+
+  const lwCorridorOverlay = page.locator(
+    '.regional-overlay-segment-group[data-regional-impact-kind="delay"][data-regional-impact-id="regional-demo-lw-corridor-delay"]',
+  );
+  await expect(lwCorridorOverlay).toHaveCount(1);
+  await expect(lwCorridorOverlay).toHaveAttribute("data-regional-impact-segment-count", "16");
+  const lwCorridorPaths = await lwCorridorOverlay.locator(".regional-impact-path").evaluateAll(
+    (paths) => paths.map((path) => path.getAttribute("d") ?? ""),
+  );
+  expect(lwCorridorPaths).toHaveLength(1);
+  expect((lwCorridorPaths[0].match(/\bM\b/g) ?? []).length).toBe(2);
+  expect((lwCorridorPaths[0].match(/\bL\b/g) ?? []).length).toBeGreaterThan(16);
+
+  await lwCorridorOverlay.locator(".regional-impact-hit-target").dispatchEvent("pointerover");
+  await expect(lwCorridorOverlay).toHaveAttribute("data-regional-impact-hovered", "true");
 
   const pickeringStation = page.locator('[data-regional-station-id="pickering"]');
   await pickeringStation.press("Enter");

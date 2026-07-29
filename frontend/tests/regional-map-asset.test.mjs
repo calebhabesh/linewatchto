@@ -57,6 +57,10 @@ describe("regional application map asset", () => {
     );
     assert.match(svg, /id="segment-guide-up-bloor-mount-dennis"/);
     assert.match(svg, /id="segment-guide-up-weston-pearson-airport"/);
+    // Other corridors intentionally resolve adjacent stations against their
+    // authored route paths at runtime instead of falling back to straight
+    // station-center chords.
+    assert.doesNotMatch(svg, /id="segment-guide-lw-/);
     assert.doesNotMatch(svg, /id="segment-guide-le-pickering-ajax"/);
   });
 
