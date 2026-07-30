@@ -66,7 +66,137 @@ export function LineLegend({
     const delay = delays.find((a) => a.lineId === dataLineId);
     const rsz = isRegional ? undefined : reducedSpeedZones.find((a) => a.lineId === dataLineId);
     const closure = plannedClosures.find((c) => c.lineId === dataLineId);
-    const hasImpact = !!(alert || delay || rsz || closure);
+
+    const buttons: React.ReactNode[] = [];
+
+    if (alert) {
+      buttons.push(
+        <button
+          key="alert"
+          onClick={(e) => {
+            e.stopPropagation();
+            onAlertClick?.(dataLineId);
+          }}
+          className={`pointer-events-auto cursor-pointer text-red-500 bg-white/95 dark:bg-[#12151c] rounded-full shadow-lg border border-red-500/30 hover:bg-red-50 dark:hover:bg-red-950/30 hover:scale-110 transition-all flex items-center justify-center ${
+            isRegional ? "w-7 h-7 shrink-0" : "p-2"
+          }`}
+          title={`View Alert for ${line.name}`}
+          aria-label={`View Alert for ${line.name}`}
+        >
+          <ImpactTypeIcon kind="suspension" size={isRegional ? 17 : 20} />
+        </button>
+      );
+    }
+
+    if (delay) {
+      buttons.push(
+        <button
+          key="delay"
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelayClick?.(dataLineId);
+          }}
+          className={`legend-delay-button pointer-events-auto cursor-pointer bg-white/95 dark:bg-[#12151c] rounded-full shadow-lg border hover:scale-110 transition-all flex items-center justify-center ${
+            isRegional ? "w-7 h-7 shrink-0" : "p-2"
+          }`}
+          title={`View delay for ${line.name}`}
+          aria-label={`View delay for ${line.name}`}
+        >
+          <ImpactTypeIcon kind="delay" size={isRegional ? 17 : 20} />
+        </button>
+      );
+    }
+
+    if (rsz) {
+      buttons.push(
+        <button
+          key="rsz"
+          onClick={(e) => {
+            e.stopPropagation();
+            onReducedSpeedZoneClick?.(dataLineId);
+          }}
+          className={`legend-rsz-button pointer-events-auto cursor-pointer bg-white/95 dark:bg-[#12151c] rounded-full shadow-lg border hover:scale-110 transition-all flex items-center justify-center ${
+            isRegional ? "w-7 h-7 shrink-0" : "p-2"
+          }`}
+          title={`View reduced speed zone for ${line.name}`}
+          aria-label={`View reduced speed zone for ${line.name}`}
+        >
+          <ImpactTypeIcon kind="reduced-speed-zone" size={isRegional ? 17 : 20} />
+        </button>
+      );
+    }
+
+    if (closure) {
+      buttons.push(
+        <button
+          key="closure"
+          onClick={(e) => {
+            e.stopPropagation();
+            onClosureClick?.(dataLineId);
+          }}
+          className={`pointer-events-auto cursor-pointer text-blue-500 bg-white/95 dark:bg-[#12151c] rounded-full shadow-lg border border-blue-500/30 hover:bg-blue-50 dark:hover:bg-blue-950/30 hover:scale-110 transition-all flex items-center justify-center ${
+            isRegional ? "w-7 h-7 shrink-0" : "p-2"
+          }`}
+          title={`View Closure for ${line.name}`}
+          aria-label={`View Closure for ${line.name}`}
+        >
+          <ImpactTypeIcon kind="planned-closure" size={isRegional ? 17 : 20} />
+        </button>
+      );
+    }
+
+    const renderIconsContainer = () => {
+      if (!isRegional) {
+        return (
+          <div className="w-28 h-[44px] flex items-center gap-2 shrink-0 justify-end">
+            {buttons}
+          </div>
+        );
+      }
+
+      const count = buttons.length;
+      if (count === 0) {
+        return <div className="w-[58px] h-[58px] shrink-0" aria-hidden="true" />;
+      }
+
+      if (count === 1) {
+        return (
+          <div className="w-[58px] h-[58px] flex items-center justify-end shrink-0">
+            {buttons[0]}
+          </div>
+        );
+      }
+
+      if (count === 2) {
+        return (
+          <div className="w-[58px] h-[58px] flex flex-col justify-center items-end gap-0.5 shrink-0">
+            {buttons[0]}
+            {buttons[1]}
+          </div>
+        );
+      }
+
+      if (count === 3) {
+        return (
+          <div className="w-[58px] h-[58px] grid grid-cols-2 gap-0.5 items-center justify-items-center shrink-0">
+            <div className="col-span-2 flex justify-center">
+              {buttons[0]}
+            </div>
+            <div>{buttons[1]}</div>
+            <div>{buttons[2]}</div>
+          </div>
+        );
+      }
+
+      return (
+        <div className="w-[58px] h-[58px] grid grid-cols-2 gap-0.5 items-center justify-items-center shrink-0">
+          <div>{buttons[0]}</div>
+          <div>{buttons[1]}</div>
+          <div>{buttons[2]}</div>
+          <div>{buttons[3]}</div>
+        </div>
+      );
+    };
 
     return (
       <div
@@ -75,66 +205,7 @@ export function LineLegend({
           isRegional ? "gap-2.5 min-w-0" : "gap-3.5"
         }`}
       >
-        <div
-          className={`flex items-center gap-2 shrink-0 justify-end ${
-            isRegional
-              ? hasImpact ? "h-[52px]" : "hidden"
-              : "w-28 h-[44px]"
-          }`}
-        >
-          {alert && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onAlertClick?.(dataLineId);
-              }}
-              className="pointer-events-auto cursor-pointer text-red-500 bg-white/95 dark:bg-[#12151c] p-2 rounded-full shadow-lg border border-red-500/30 hover:bg-red-50 dark:hover:bg-red-950/30 hover:scale-110 transition-all"
-              title={`View Alert for ${line.name}`}
-              aria-label={`View Alert for ${line.name}`}
-            >
-              <ImpactTypeIcon kind="suspension" size={20} />
-            </button>
-          )}
-          {delay && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onDelayClick?.(dataLineId);
-              }}
-              className="legend-delay-button pointer-events-auto cursor-pointer bg-white/95 dark:bg-[#12151c] p-2 rounded-full shadow-lg border hover:scale-110 transition-all"
-              title={`View delay for ${line.name}`}
-              aria-label={`View delay for ${line.name}`}
-            >
-              <ImpactTypeIcon kind="delay" size={20} />
-            </button>
-          )}
-          {rsz && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onReducedSpeedZoneClick?.(dataLineId);
-              }}
-              className="legend-rsz-button pointer-events-auto cursor-pointer bg-white/95 dark:bg-[#12151c] p-2 rounded-full shadow-lg border hover:scale-110 transition-all"
-              title={`View reduced speed zone for ${line.name}`}
-              aria-label={`View reduced speed zone for ${line.name}`}
-            >
-              <ImpactTypeIcon kind="reduced-speed-zone" size={20} />
-            </button>
-          )}
-          {closure && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onClosureClick?.(dataLineId);
-              }}
-              className="pointer-events-auto cursor-pointer text-blue-500 bg-white/95 dark:bg-[#12151c] p-2 rounded-full shadow-lg border border-blue-500/30 hover:bg-blue-50 dark:hover:bg-blue-950/30 hover:scale-110 transition-all"
-              title={`View Closure for ${line.name}`}
-              aria-label={`View Closure for ${line.name}`}
-            >
-              <ImpactTypeIcon kind="planned-closure" size={20} />
-            </button>
-          )}
-        </div>
+        {renderIconsContainer()}
 
         {isRegional && (
           <div
@@ -196,6 +267,7 @@ export function LineLegend({
 
   const renderLimitedServiceItem = () => (
     <div key="limited-service" className="flex items-center gap-2.5 min-w-0">
+      <div className="w-[58px] shrink-0" aria-hidden="true" />
       <div
         className="legend-line-segment relative shrink-0 flex items-center justify-center rounded-none overflow-hidden"
         style={{
@@ -229,6 +301,7 @@ export function LineLegend({
 
   const renderRegularServiceItem = () => (
     <div key="regular-service" className="flex items-center gap-2.5 min-w-0">
+      <div className="w-[58px] shrink-0" aria-hidden="true" />
       <div
         className="legend-line-segment relative shrink-0 flex items-center justify-center rounded-none overflow-hidden"
         style={{
@@ -255,7 +328,7 @@ export function LineLegend({
     <div
       className={`select-none pointer-events-none ${
         isRegional
-          ? "grid grid-cols-2 gap-x-6 gap-y-4"
+          ? "grid grid-cols-[max-content_max-content] gap-x-4 gap-y-4"
           : "flex flex-col gap-4"
       }`}
     >

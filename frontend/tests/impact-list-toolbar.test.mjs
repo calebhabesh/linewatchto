@@ -7,11 +7,11 @@ const globalCss = readFileSync(new URL("../src/app/globals.css", import.meta.url
 
 describe("impact list toolbar", () => {
   it("labels transit line filters with a numbered route badge and line name", () => {
-    assert.match(toolbarSource, /import Image from "next\/image"/);
+    assert.match(toolbarSource, /import \{ TransitLineBadge \} from "\.\/TransitLineBadge"/);
     assert.match(toolbarSource, /Yonge-University/);
     assert.match(toolbarSource, /Bloor-Danforth/);
-    assert.match(toolbarSource, /line-1-legend\.svg/);
-    assert.match(toolbarSource, /impact-list-line-badge/);
+    assert.match(toolbarSource, /Kitchener/);
+    assert.match(toolbarSource, /UP Express/);
     assert.match(toolbarSource, /option\.lineId/);
   });
 

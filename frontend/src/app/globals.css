@@ -10302,6 +10302,14 @@ img.transit-line-badge {
   z-index: 50;
 }
 
+@media (min-width: 768px) {
+  .saved-commute-sort-options {
+    max-height: min(280px, calc(70vh - 160px));
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+}
+
 .dark .saved-commute-sort-options {
   background: rgba(15, 23, 42, 0.98);
   border-color: rgba(255, 255, 255, 0.14);
@@ -17714,7 +17722,8 @@ img.transit-line-badge {
   .station-detail-scroll,
   .surface-notices-scroll,
   .release-notes-content,
-  .privacy-acknowledgements-scroll {
+  .privacy-acknowledgements-scroll,
+  .saved-commute-sort-options {
     scrollbar-width: thin !important; /* Firefox */
     scrollbar-color: #303641 transparent !important; /* Firefox */
     -ms-overflow-style: auto !important; /* IE 10+ */
@@ -17736,7 +17745,8 @@ img.transit-line-badge {
   .station-detail-scroll::-webkit-scrollbar,
   .surface-notices-scroll::-webkit-scrollbar,
   .release-notes-content::-webkit-scrollbar,
-  .privacy-acknowledgements-scroll::-webkit-scrollbar {
+  .privacy-acknowledgements-scroll::-webkit-scrollbar,
+  .saved-commute-sort-options::-webkit-scrollbar {
     display: block !important;
     width: 8px !important;
     height: 8px !important;
@@ -17758,7 +17768,8 @@ img.transit-line-badge {
   .station-detail-scroll::-webkit-scrollbar-track,
   .surface-notices-scroll::-webkit-scrollbar-track,
   .release-notes-content::-webkit-scrollbar-track,
-  .privacy-acknowledgements-scroll::-webkit-scrollbar-track {
+  .privacy-acknowledgements-scroll::-webkit-scrollbar-track,
+  .saved-commute-sort-options::-webkit-scrollbar-track {
     background: transparent !important;
   }
 
@@ -17778,7 +17789,8 @@ img.transit-line-badge {
   .station-detail-scroll::-webkit-scrollbar-thumb,
   .surface-notices-scroll::-webkit-scrollbar-thumb,
   .release-notes-content::-webkit-scrollbar-thumb,
-  .privacy-acknowledgements-scroll::-webkit-scrollbar-thumb {
+  .privacy-acknowledgements-scroll::-webkit-scrollbar-thumb,
+  .saved-commute-sort-options::-webkit-scrollbar-thumb {
     background: #303641 !important;
     border-radius: 999px !important;
     border: 1px solid transparent !important;
@@ -17800,7 +17812,8 @@ img.transit-line-badge {
   .station-detail-scroll::-webkit-scrollbar-thumb:hover,
   .surface-notices-scroll::-webkit-scrollbar-thumb:hover,
   .release-notes-content::-webkit-scrollbar-thumb:hover,
-  .privacy-acknowledgements-scroll::-webkit-scrollbar-thumb:hover {
+  .privacy-acknowledgements-scroll::-webkit-scrollbar-thumb:hover,
+  .saved-commute-sort-options::-webkit-scrollbar-thumb:hover {
     background: #4d5667 !important;
   }
 

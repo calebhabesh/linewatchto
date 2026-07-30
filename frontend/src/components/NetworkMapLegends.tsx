@@ -23,9 +23,14 @@ export function NetworkMapLegend({
   onReducedSpeedZoneClick,
   onClosureClick,
 }: NetworkMapLegendProps) {
+  const isRegional = mode === "regional";
   return (
     <>
-      <aside className="desktop-map-legend absolute bottom-10 right-6 z-20 pointer-events-none">
+      <aside
+        className={`desktop-map-legend absolute right-6 z-20 pointer-events-none ${
+          isRegional ? "bottom-3" : "bottom-10"
+        }`}
+      >
         <LineLegend
           mode={mode}
           onAlertClick={onAlertClick}

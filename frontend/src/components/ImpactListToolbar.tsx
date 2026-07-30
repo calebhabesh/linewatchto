@@ -1,10 +1,10 @@
 "use client";
 
-import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { Check, ChevronDown, LayoutList, PanelsTopLeft, Search } from "lucide-react";
 import type { ImpactListSort } from "../app/impact-list-controls";
 import type { ImpactListView } from "../hooks/useImpactListView";
+import { TransitLineBadge } from "./TransitLineBadge";
 
 type SortOption = {
   value: ImpactListSort;
@@ -33,30 +33,53 @@ type Props = {
   onViewModeChange?: (viewMode: ImpactListView) => void;
 };
 
-const LINE_FILTER_DETAILS: Record<string, { number: string; name: string; icon: string }> = {
-  "line-1": { number: "1", name: "Yonge-University", icon: "/assets/linewatch/line-1-legend.svg?v=2" },
-  "line-2": { number: "2", name: "Bloor-Danforth", icon: "/assets/linewatch/line-2-legend.svg?v=2" },
-  "line-4": { number: "4", name: "Sheppard", icon: "/assets/linewatch/line-4-legend.svg?v=2" },
-  "line-5": { number: "5", name: "Eglinton Crosstown", icon: "/assets/linewatch/line-5-legend.svg?v=2" },
-  "line-6": { number: "6", name: "Finch West", icon: "/assets/linewatch/line-6-legend.svg?v=2" },
+const LINE_FILTER_DETAILS: Record<string, { number: string; name: string }> = {
+  "line-1": { number: "1", name: "Yonge-University" },
+  "line-2": { number: "2", name: "Bloor-Danforth" },
+  "line-4": { number: "4", name: "Sheppard" },
+  "line-5": { number: "5", name: "Eglinton Crosstown" },
+  "line-6": { number: "6", name: "Finch West" },
+  "regional-br": { number: "BR", name: "Barrie" },
+  "regional-ki": { number: "KI", name: "Kitchener" },
+  "regional-le": { number: "LE", name: "Lakeshore East" },
+  "regional-lw": { number: "LW", name: "Lakeshore West" },
+  "regional-mi": { number: "MI", name: "Milton" },
+  "regional-rh": { number: "RH", name: "Richmond Hill" },
+  "regional-st": { number: "ST", name: "Stouffville" },
+  "regional-up": { number: "UP", name: "UP Express" },
+  "go-br": { number: "BR", name: "Barrie" },
+  "go-ki": { number: "KI", name: "Kitchener" },
+  "go-le": { number: "LE", name: "Lakeshore East" },
+  "go-lw": { number: "LW", name: "Lakeshore West" },
+  "go-mi": { number: "MI", name: "Milton" },
+  "go-rh": { number: "RH", name: "Richmond Hill" },
+  "go-st": { number: "ST", name: "Stouffville" },
+  "up-express": { number: "UP", name: "UP Express" },
 };
 
 function lineLabel(lineId: string) {
-  return LINE_FILTER_DETAILS[lineId]?.name ?? `Line ${lineId.replace("line-", "")}`;
+  if (LINE_FILTER_DETAILS[lineId]) {
+    return LINE_FILTER_DETAILS[lineId].name;
+  }
+  if (lineId.startsWith("regional-")) {
+    const code = lineId.replace("regional-", "").toUpperCase();
+    return `${code} Line`;
+  }
+  if (lineId.startsWith("line-")) {
+    return `Line ${lineId.replace("line-", "")}`;
+  }
+  return lineId;
 }
 
 function SelectOptionLabel({ option }: { option: ToolbarSelectOption<string> }) {
-  const line = option.lineId ? LINE_FILTER_DETAILS[option.lineId] : null;
   return (
     <span className="impact-list-option-label">
-      {line ? (
-        <Image
-          className="impact-list-line-badge"
-          src={line.icon}
-          alt=""
-          width={22}
-          height={22}
-          aria-hidden="true"
+      {option.lineId ? (
+        <TransitLineBadge
+          lineId={option.lineId}
+          size={22}
+          className="impact-list-line-badge shrink-0"
+          decorative
         />
       ) : null}
       <span>{option.label}</span>
@@ -133,7 +156,13 @@ export function ToolbarSelectMenu<T extends string>({
                 type="button"
                 role="option"
                 aria-selected={selected}
-                aria-label={line ? `Line ${line.number} ${line.name}` : option.label}
+                aria-label={
+                  line
+                    ? line.number.length <= 2 && !isNaN(Number(line.number))
+                      ? `Line ${line.number} ${line.name}`
+                      : `${line.name} Line`
+                    : option.label
+                }
                 className={`saved-commute-sort-option${selected ? " selected" : ""}`}
                 onClick={() => {
                   onChange(option.value);

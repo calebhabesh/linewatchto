@@ -270,6 +270,14 @@ describe("floating menu layout", () => {
     assert.match(lineLegendSource, /limited-service/);
   });
 
+  it("LineLegend formats alert icons compactly depending on count in regional mode (vertical stack for 2, triangle for 3, 2x2 grid for 4)", () => {
+    assert.match(lineLegendSource, /count === 2/);
+    assert.match(lineLegendSource, /flex-col justify-center/);
+    assert.match(lineLegendSource, /count === 3/);
+    assert.match(lineLegendSource, /col-span-2 flex justify-center/);
+    assert.match(lineLegendSource, /w-\[58px\]/);
+  });
+
   it("Card actions are renamed properly", () => {
     assert.doesNotMatch(activeAlertsSource, /Preview on Map|Hide Map Preview/);
     assert.doesNotMatch(reducedSpeedZonesSource, /Preview Reduced Speed Zone|Hide Map Preview/);
