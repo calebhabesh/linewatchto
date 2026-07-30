@@ -508,11 +508,15 @@ describe("network-scoped regional dashboard", () => {
     assert.match(regionalMapSource, /"asset-alert-path-hover-boundary", visualState, "regional-impact-hover-boundary"/);
     assert.match(regionalMapSource, /setLinkedImpactHover/);
     assert.match(regionalMapSource, /data-regional-impact-hovered/);
-    assert.match(regionalMapSource, /document\.addEventListener\("pointerover", handlePointerOver\)/);
-    assert.match(regionalMapSource, /document\.addEventListener\("pointerout", handlePointerOut\)/);
+    assert.match(regionalMapSource, /function regionalSegmentImpactAtClientPoint\(/);
+    assert.match(regionalMapSource, /function regionalStationImpactAtClientPoint\(/);
+    assert.match(regionalMapSource, /hitTarget\.isPointInStroke\(point\.matrixTransform\(screenMatrix\.inverse\(\)\)\)/);
+    assert.match(regionalMapSource, /document\.addEventListener\("pointermove", handlePointerMove\)/);
+    assert.doesNotMatch(regionalMapSource, /document\.addEventListener\("pointerover"/);
+    assert.doesNotMatch(regionalMapSource, /document\.addEventListener\("pointerout"/);
     assert.doesNotMatch(regionalMapSource, /onLinkedImpactPointerOver/);
     assert.doesNotMatch(regionalMapSource, /onLinkedImpactPointerOut/);
-    assert.match(globalsCss, /data-regional-impact-hovered="true"[^}]*regional-impact-glow/);
+    assert.match(globalsCss, /data-regional-impact-hovered="true"[^}]*regional-impact-hover-boundary/);
     assert.match(
       globalsCss,
       /#regional-station-labels-layer :is\(text, tspan\)\s*\{[^}]*pointer-events:\s*none/s,
@@ -532,6 +536,7 @@ describe("network-scoped regional dashboard", () => {
     assert.match(regionalMapSource, /lane\.dataset\.regionalDelayDirection = travelDirection/);
     assert.match(regionalMapSource, /travelDirection === "bidirectional" \|\| index % 2 === 0/);
     assert.match(regionalMapSource, /REGIONAL_IMPACT_OVERLAY_WIDTH = 196/);
+    assert.match(regionalMapSource, /REGIONAL_IMPACT_HIT_TARGET_WIDTH = REGIONAL_IMPACT_OVERLAY_WIDTH \+ 169/);
     assert.match(regionalMapSource, /REGIONAL_DELAY_GLYPH_SPACING = 96/);
     assert.match(regionalMapSource, /travelDirection === "bidirectional"[\s\S]*REGIONAL_DELAY_GLYPH_SPACING \* 1\.3[\s\S]*Math\.floor\(length \/ glyphSpacing\)/);
     assert.match(regionalMapSource, /REGIONAL_DELAY_TRAVEL_UNITS_PER_SECOND = \(160 \/ 12\) \* \(175 \/ 102\)/);
@@ -543,14 +548,21 @@ describe("network-scoped regional dashboard", () => {
     assert.match(globalsCss, /data-regional-impact-kind="reduced-speed-zone"[\s\S]*regional-chevron-slide/);
     assert.match(globalsCss, /\.regional-impact-aura\s*\{[^}]*animation:\s*aura-pulse 1\.2s infinite alternate ease-in-out;[^}]*animation-delay:\s*var\(--map-pulse-offset\)/s);
     assert.match(globalsCss, /regional-overlay-segment-group:not\(\[data-regional-impact-selected="true"\]\)[^}]*regional-impact-interactive-glow\s*\{[^}]*animation:\s*none\s*!important/s);
+    assert.match(globalsCss, /regional-overlay-segment-group:not\(\[data-regional-impact-selected="true"\]\)[^}]*regional-impact-interactive-glow\s*\{[^}]*opacity:\s*0\s*!important/s);
     assert.match(globalsCss, /data-regional-impact-kind="suspension"[\s\S]*regional-candy-pulse/);
     assert.match(globalsCss, /@keyframes regional-candy-pulse\s*\{[\s\S]*calc\(var\(--regional-impact-width\) \+ 23px\)/);
     assert.match(globalsCss, /regional-impact-hit-target:active[\s\S]*regional-impact-glow/);
+    assert.match(globalsCss, /regional-impact-hit-target\s*\{[^}]*stroke-width:\s*var\(--regional-impact-hit-target-width\)/s);
     assert.match(globalsCss, /regional-impact-width\) \+ 169px/);
     assert.match(globalsCss, /data-regional-impact-kind="planned-closure"[\s\S]*regional-impact-aura[\s\S]*display:\s*none/);
     assert.match(globalsCss, /data-regional-impact-selected="true"[\s\S]*regional-impact-interactive-glow[\s\S]*regional-selection-path-intro/);
+    assert.match(globalsCss, /regional-impact-interactive-glow\s*\{[^}]*filter:\s*drop-shadow\(0 0 12px/s);
+    assert.doesNotMatch(globalsCss, /regional-impact-interactive-glow\s*\{[^}]*filter:\s*blur/s);
     assert.match(globalsCss, /\.motion-paused \.regional-impact-aura/);
     assert.match(globalsCss, /prefers-reduced-motion:\s*reduce[\s\S]*\.regional-impact-aura/);
+    assert.match(regionalMapSource, /function appendRegionalSuspensionGlyph\([\s\S]*?const scale = 4\.2;/);
+    assert.match(regionalMapSource, /const glyphSpacing = travelDirection === "bidirectional" \? 165 : 145;/);
+    assert.match(regionalMapSource, /function appendRegionalPlannedClosureGlyph\([\s\S]*?const scale = 6;/);
   });
 
   it("exercises the unidirectional regional delay treatment in the authored scenario", () => {
@@ -604,6 +616,8 @@ describe("network-scoped regional dashboard", () => {
     assert.match(regionalMapSource, /for \(const \[impactIndex, impact\] of \(segment\.impacts \?\? \[\]\)\.entries\(\)\)/);
     assert.doesNotMatch(regionalMapSource, /const impact = segment\.impacts\?\.\[0\]/);
     assert.match(regionalMapSource, /const orderedOverlayRuns = regionalOverlayRuns\(overlayPieces\)\.sort/);
+    assert.match(regionalMapSource, /function continuousRegionalOverlayRunPath\(/);
+    assert.match(regionalMapSource, /continuousRegionalOverlayRunPath\(documentNode, run\) \?\? run\.pathD/);
     assert.match(regionalMapSource, /regionalImpactPriority\(left\.impact\.kind\) - regionalImpactPriority\(right\.impact\.kind\)/);
     assert.match(regionalMapSource, /case "delay":\s*return 0;[\s\S]*case "planned-closure":\s*return 2;[\s\S]*case "suspension":\s*return 3;/);
     assert.match(regionalMapSource, /`\$\{REGIONAL_IMPACT_OVERLAY_WIDTH\}px`/);
@@ -617,15 +631,24 @@ describe("network-scoped regional dashboard", () => {
     assert.match(regionalMapSource, /bringRegionalStationImpactToFront\(root, selection\.kind, selection\.id\)/);
     assert.match(regionalMapSource, /function setRegionalImpactHoverForeground\(/);
     assert.match(regionalMapSource, /regional-impact-hover-foreground-layer/);
-    assert.match(regionalMapSource, /regionalSegmentHoverForeground\(source\)/);
+    assert.match(regionalMapSource, /regionalSegmentHoverForeground\(source, index\)/);
     assert.doesNotMatch(regionalMapSource, /regionalStationHoverForeground\(source\)/);
     assert.match(regionalMapSource, /function setRegionalStationImpactHover\(/);
     assert.match(regionalMapSource, /indicator\.dataset\.regionalStationImpactHovered = "true"/);
-    assert.match(regionalMapSource, /element\.classList\.contains\("regional-station-impact-ring"\)\) return/);
     assert.match(globalsCss, /regional-station-hover-indicator\[data-regional-station-impact-hovered="true"\]/);
     assert.doesNotMatch(globalsCss, /regional-station-impact-ring\[data-regional-impact-hovered="true"\][\s\S]*regional-station-impact-width\) \+ 12px/);
     assert.match(regionalMapSource, /foreground\.dataset\.regionalImpactHovered = "true"/);
-    assert.match(regionalMapSource, /foreground\.querySelectorAll\("\.regional-impact-hit-target, title"\)/);
+    assert.match(regionalMapSource, /if \(!element\.classList\.contains\("regional-impact-hover-boundary"\)\) element\.remove\(\)/);
+    assert.match(regionalMapSource, /REGIONAL_HIGHLIGHT_OUTLINE_WIDTH = REGIONAL_IMPACT_OVERLAY_WIDTH \+ 38/);
+    assert.match(regionalMapSource, /REGIONAL_HIGHLIGHT_INNER_WIDTH = REGIONAL_IMPACT_OVERLAY_WIDTH/);
+    assert.match(regionalMapSource, /maskStroke\("white", REGIONAL_HIGHLIGHT_OUTLINE_WIDTH\)/);
+    assert.match(regionalMapSource, /maskStroke\("black", REGIONAL_HIGHLIGHT_INNER_WIDTH\)/);
+    assert.match(regionalMapSource, /boundary\.setAttribute\("mask", `url\(#\$\{maskId\}\)`\)/);
+    assert.match(regionalMapSource, /regional-impact-interactive-glow"\)[\s\S]*setAttribute\("mask", `url\(#\$\{maskId\}\)`\)/);
+    assert.match(globalsCss, /data-regional-impact-selected="true"\] \.regional-impact-interactive-glow\s*\{[^}]*stroke:\s*rgba\(248, 250, 252, 0\.98\)/s);
+    assert.match(regionalMapSource, /foreground\.querySelectorAll\("title"\)/);
+    assert.match(globalsCss, /regional-impact-hover-foreground\[data-regional-impact-hovered="true"\] \.regional-impact-hover-boundary/);
+    assert.match(globalsCss, /not\(\.regional-impact-hover-foreground\):has\(\.regional-impact-hit-target:hover\) \.regional-impact-hover-boundary[\s\S]*opacity:\s*0\s*!important/s);
     assert.doesNotMatch(regionalMapSource, /foreground\.remove\(\)/);
     assert.doesNotMatch(regionalMapSource, /segmentLayer\.append\(foreground\)/);
   });
@@ -678,7 +701,13 @@ describe("network-scoped regional dashboard", () => {
     assert.match(regionalMapSource, /function regionalOverlapChooserLayout\(/);
     assert.match(regionalMapSource, /const REGIONAL_OVERLAP_CHOOSER_GAP = 24/);
     assert.match(regionalMapSource, /markerCenter\.x - alertAnchor\.x/);
-    assert.match(regionalMapSource, /const outwardCenter = centerForDirection\(outward\)/);
+    assert.match(regionalMapSource, /function regionalReferencedAlertCollisionBoxes\(/);
+    assert.match(regionalMapSource, /identityKeys\.has\(`\$\{kind\}:\$\{id\}`\)/);
+    assert.match(regionalMapSource, /alertCollisionBoxes:\s*regionalReferencedAlertCollisionBoxes\(/);
+    assert.match(regionalMapSource, /const preferredCenter = centerForDirection\(outward\)/);
+    assert.match(regionalMapSource, /const angleOffsets = Array\.from\(\{ length: 24 \}/);
+    assert.match(regionalMapSource, /const distanceScales = \[1, 1\.25, 1\.55, 1\.9, 2\.3\]/);
+    assert.match(regionalMapSource, /alertOverlapArea \* 1_000_000[\s\S]*markerOverlapArea \* 1_000_000/);
     assert.match(regionalMapSource, /anchorPoint\.matrixTransform\(screenMatrix\)/);
     assert.match(regionalMapSource, /setRegionalOverlapImpactsHovered\(badge\.impacts, hovered\)/);
     assert.match(regionalMapSource, /<MapOverlapChooser/);

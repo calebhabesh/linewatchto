@@ -86,6 +86,38 @@ async function clickSvgRingStroke(page: Page, name: RegExp) {
   throw new Error(`Could not find a clickable point on station impact ring ${name}`);
 }
 
+async function expectRegionalChooserToClearReferencedAlerts(page: Page) {
+  const overlapsReferencedAlert = await page.locator("[data-overlap-chooser]").evaluate((chooser) => {
+    const chooserRect = chooser.getBoundingClientRect();
+    const impactIds = new Set(
+      [...chooser.querySelectorAll<HTMLElement>("[data-overlap-choice-id]")]
+        .map((choice) => choice.dataset.overlapChoiceId),
+    );
+    return [...document.querySelectorAll<SVGPathElement>(
+      ".regional-overlay-segment-group .regional-impact-path",
+    )].some((path) => {
+      const group = path.closest<SVGElement>(".regional-overlay-segment-group");
+      if (!group?.dataset.regionalImpactId || !impactIds.has(group.dataset.regionalImpactId)) return false;
+      const matrix = path.getScreenCTM();
+      if (!matrix) return false;
+      const radius = Number.parseFloat(getComputedStyle(path).strokeWidth) / 2 * Math.max(
+        Math.hypot(matrix.a, matrix.b),
+        Math.hypot(matrix.c, matrix.d),
+      );
+      const length = path.getTotalLength();
+      const sampleCount = Math.max(12, Math.ceil(length / 80));
+      return Array.from({ length: sampleCount + 1 }, (_unused, index) => {
+        const point = path.getPointAtLength(length * index / sampleCount).matrixTransform(matrix);
+        return point.x >= chooserRect.left - radius
+          && point.x <= chooserRect.right + radius
+          && point.y >= chooserRect.top - radius
+          && point.y <= chooserRect.bottom + radius;
+      }).some(Boolean);
+    });
+  });
+  expect(overlapsReferencedAlert).toBe(false);
+}
+
 async function freezeBrowserTime(page: Page, isoTime: string) {
   await page.addInitScript(`
     {
@@ -349,6 +381,9 @@ test("renders fresh Metrolinx impacts in regional mode", async ({ page, request,
   );
   await expect(delayOverlay).toHaveCount(1);
   await expect(delayOverlay).toHaveAttribute("data-regional-impact-segment-count", "2");
+  expect(await delayOverlay.locator(".regional-impact-path").evaluate((path) => (
+    (path.getAttribute("d")?.match(/\bM\b/g) ?? []).length
+  ))).toBe(1);
   await expect(delayOverlay.locator(".delay-static-base")).toBeAttached();
   await expect(delayOverlay.locator('[data-regional-delay-direction="forward"]')).toBeAttached();
   await expect(delayOverlay.locator(".regional-delay-glyph--hourglass").first()).toBeAttached();
@@ -397,7 +432,18 @@ test("renders fresh Metrolinx impacts in regional mode", async ({ page, request,
   const bloorImpactRing = page.locator(
     '.regional-station-impact-ring[data-regional-impact-id="regional-demo-bloor-station-delay"]',
   );
-  await bloorImpactRing.dispatchEvent("pointerover");
+  const bloorImpactPoint = await bloorImpactRing.locator("circle, ellipse").evaluate((shape) => {
+    const geometry = shape as SVGCircleElement | SVGEllipseElement;
+    const centerX = Number(geometry.getAttribute("cx") ?? 0);
+    const centerY = Number(geometry.getAttribute("cy") ?? 0);
+    const radiusX = Number(geometry.getAttribute("r") ?? geometry.getAttribute("rx") ?? 0);
+    const point = geometry.ownerSVGElement!.createSVGPoint();
+    point.x = centerX + radiusX;
+    point.y = centerY;
+    const screenPoint = point.matrixTransform(geometry.getScreenCTM()!);
+    return { x: screenPoint.x, y: screenPoint.y };
+  });
+  await page.mouse.move(bloorImpactPoint.x, bloorImpactPoint.y);
   const bloorStationHover = page.locator(
     '.regional-station-hover-indicator[data-regional-station-hover-id="bloor"]',
   );
@@ -411,12 +457,17 @@ test("renders fresh Metrolinx impacts in regional mode", async ({ page, request,
   await expect(plannedOverlay).toHaveCount(1);
   await expect(plannedOverlay).toHaveCSS("--regional-impact-width", "196px");
   await expect(delayOverlay).toHaveCSS("--regional-impact-width", "196px");
+  await expect(delayOverlay.locator(".regional-impact-hit-target")).toHaveCSS("stroke-width", "365px");
   await expect(plannedOverlay).toHaveCSS("--map-pulse-offset", "0s");
   await expect(delayOverlay).toHaveCSS("--map-pulse-offset", "0s");
   const suspensionOverlay = page.locator(
     '.regional-overlay-segment-group[data-regional-impact-kind="suspension"][data-regional-impact-id="regional-demo-suspension"]',
   );
   await expect(suspensionOverlay).toHaveCount(1);
+  await expect(suspensionOverlay.locator(".regional-suspension-glyph--no-entry > g").first())
+    .toHaveAttribute("transform", /scale\(4\.2\)/);
+  await expect(plannedOverlay.locator(".regional-planned-closure-glyph--icon > g").first())
+    .toHaveAttribute("transform", /scale\(6\)/);
   expect(await delayOverlay.evaluate((delay, planned) => Boolean(
     delay.compareDocumentPosition(planned as Node) & Node.DOCUMENT_POSITION_FOLLOWING
   ), await plannedOverlay.elementHandle())).toBe(true);
@@ -487,11 +538,7 @@ test("renders fresh Metrolinx impacts in regional mode", async ({ page, request,
   await expect(lwOverlapChooser).toBeVisible();
   const lwChooserBox = await lwOverlapChooser.boundingBox();
   expect(lwChooserBox).not.toBeNull();
-  const markerSide = Math.sign(lwMarkerCenter.y - lwOverlapCenter.y);
-  const chooserCenterY = lwChooserBox!.y + lwChooserBox!.height / 2;
-  expect(Math.sign(chooserCenterY - lwOverlapCenter.y)).toBe(markerSide);
-  expect(Math.abs(chooserCenterY - lwOverlapCenter.y))
-    .toBeGreaterThan(Math.abs(lwMarkerCenter.y - lwOverlapCenter.y));
+  await expectRegionalChooserToClearReferencedAlerts(page);
   await lwOverlapChooser.getByRole("button", { name: "Close alert chooser" }).click();
   await expect(lwOverlapChooser).toHaveCount(0);
 
@@ -499,8 +546,14 @@ test("renders fresh Metrolinx impacts in regional mode", async ({ page, request,
     markerBox!.x + markerBox!.width / 2,
     markerBox!.y + markerBox!.height / 2,
   );
-  await expect(delayOverlay).toHaveAttribute("data-regional-impact-hovered", "true");
-  await expect(plannedOverlay).toHaveAttribute("data-regional-impact-hovered", "true");
+  const delayHoverForeground = page.locator(
+    '.regional-impact-hover-foreground[data-regional-hover-impact-id="regional-demo-delay"]',
+  );
+  const plannedHoverForeground = page.locator(
+    '.regional-impact-hover-foreground[data-regional-hover-impact-id="regional-demo-planned"]',
+  );
+  await expect(delayHoverForeground).toHaveAttribute("data-regional-impact-hovered", "true");
+  await expect(plannedHoverForeground).toHaveAttribute("data-regional-impact-hovered", "true");
   const hoverForegrounds = page.locator(
     '.regional-impact-hover-foreground-layer .regional-impact-hover-foreground[data-regional-impact-hovered="true"]',
   );
@@ -512,13 +565,14 @@ test("renders fresh Metrolinx impacts in regional mode", async ({ page, request,
   await regionalOverlapMarker.click();
   const regionalOverlapChooser = page.locator("[data-overlap-chooser]");
   await expect(regionalOverlapChooser).toBeVisible();
+  await expectRegionalChooserToClearReferencedAlerts(page);
   await expect(regionalOverlapChooser.getByText("Choose Alert", { exact: true })).toBeVisible();
   await expect(regionalOverlapChooser.locator(".overlap-chooser-choice")).toHaveCount(2);
   await regionalOverlapChooser
     .locator('[data-overlap-choice-id="regional-demo-delay"]')
     .hover();
-  await expect(delayOverlay).toHaveAttribute("data-regional-impact-hovered", "true");
-  await expect(plannedOverlay).not.toHaveAttribute("data-regional-impact-hovered");
+  await expect(delayHoverForeground).toHaveAttribute("data-regional-impact-hovered", "true");
+  await expect(plannedHoverForeground).not.toHaveAttribute("data-regional-impact-hovered");
   await regionalOverlapChooser
     .locator('[data-overlap-choice-id="regional-demo-delay"]')
     .click();
@@ -546,8 +600,38 @@ test("renders fresh Metrolinx impacts in regional mode", async ({ page, request,
   expect((lwCorridorPaths[0].match(/\bM\b/g) ?? []).length).toBe(2);
   expect((lwCorridorPaths[0].match(/\bL\b/g) ?? []).length).toBeGreaterThan(16);
 
-  await lwCorridorOverlay.locator(".regional-impact-hit-target").dispatchEvent("pointerover");
-  await expect(lwCorridorOverlay).toHaveAttribute("data-regional-impact-hovered", "true");
+  const delayHoverPoint = await delayOverlay.locator(".regional-impact-hit-target").evaluate((path) => {
+    const geometry = path as SVGPathElement;
+    const point = geometry.getPointAtLength(geometry.getTotalLength() * 0.85);
+    const screenPoint = point.matrixTransform(geometry.getScreenCTM()!);
+    return { x: screenPoint.x, y: screenPoint.y };
+  });
+  await page.mouse.move(delayHoverPoint.x, delayHoverPoint.y);
+  await expect(delayHoverForeground).toHaveAttribute("data-regional-impact-hovered", "true");
+  await expect(delayOverlay).not.toHaveAttribute("data-regional-impact-hovered");
+  await expect(delayHoverForeground.locator(".regional-impact-aura, .regional-impact-path, .regional-delay-glyph-lane"))
+    .toHaveCount(0);
+  await expect(delayHoverForeground.locator(".regional-impact-hover-boundary"))
+    .toHaveAttribute("mask", /regional-hover-boundary-mask-/);
+  await expect(delayHoverForeground.locator("mask path[stroke='white']"))
+    .toHaveAttribute("stroke-width", "234");
+  await expect(delayHoverForeground.locator("mask path[stroke='black']"))
+    .toHaveAttribute("stroke-width", "196");
+  await expect(delayOverlay.locator(".regional-impact-interactive-glow"))
+    .toHaveAttribute("mask", /regional-hover-boundary-mask-/);
+  await expect(delayOverlay.locator(".regional-impact-interactive-glow"))
+    .toHaveCSS("stroke", "rgba(248, 250, 252, 0.98)");
+  await expect(lwCorridorOverlay.locator(".regional-impact-interactive-glow")).toHaveCSS("opacity", "0");
+
+  // Station hit targets sit above the authored rails. Crossing one must keep
+  // the whole impact highlight on instead of briefly switching it off.
+  const whitbyBox = await page.locator('[data-regional-station-id="whitby"]').boundingBox();
+  expect(whitbyBox).not.toBeNull();
+  await page.mouse.move(
+    whitbyBox!.x + whitbyBox!.width / 2,
+    whitbyBox!.y + whitbyBox!.height / 2,
+  );
+  await expect(delayHoverForeground).toHaveAttribute("data-regional-impact-hovered", "true");
 
   const pickeringStation = page.locator('[data-regional-station-id="pickering"]');
   await pickeringStation.press("Enter");
