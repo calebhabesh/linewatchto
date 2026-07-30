@@ -2539,6 +2539,41 @@ test("signed-in riders save, browse, remove, undo, and reload My Stations", asyn
   await expect(page.locator(".my-stations-row-heading strong", { hasText: "Stub Station" })).toBeVisible();
 });
 
+test("My Stations shows regional disruptions, accessibility outages, and arrivals", async ({ page, request, isMobile }) => {
+  test.skip(isMobile, "regional My Stations integration is covered on desktop");
+  await setStubMode(request, "regional-live");
+  await page.goto("/");
+
+  await openDashboardMenu(page, isMobile);
+  await page.getByRole("menuitem", { name: "Demo account" }).click({ force: true });
+  await expect(page.getByRole("heading", { name: "My Commutes" })).toBeVisible();
+  await page.getByRole("button", { name: "Close", exact: true }).first().click();
+  await page.getByRole("group", { name: "Select transit network" })
+    .getByRole("button", { name: "GO/UP", exact: true })
+    .click();
+
+  await page.locator('[data-regional-station-id="pickering"]').press("Enter");
+  const stationPanel = page.getByRole("complementary", { name: "Pickering regional station details" });
+  await stationPanel.getByRole("button", { name: "Save Pickering to My Stations" }).click();
+  const saveNotice = page.getByRole("status").filter({ hasText: "Pickering added to" });
+  await saveNotice.getByRole("button", { name: "My Stations" }).click();
+
+  const panel = page.getByRole("region", { name: "My Stations" });
+  const pickeringRow = panel.locator(".saved-station-rich-row", { hasText: "Pickering" });
+  await expect(pickeringRow.getByText("Active Disruptions", { exact: true })).toBeVisible();
+  await expect(pickeringRow.getByText("Metrolinx GO Next Service", { exact: true })).toBeVisible();
+  await expect(pickeringRow.getByText("7 min", { exact: true })).toBeVisible();
+  await pickeringRow.getByText("Active Disruptions", { exact: true }).click();
+  await expect(pickeringRow.getByText(/Delay/).first()).toBeVisible();
+
+  await panel.getByRole("button", { name: "Add Station", exact: true }).click();
+  await panel.getByPlaceholder("Search All Stations...").fill("Eglinton");
+  await panel.getByRole("button", { name: "Save Eglinton to My Stations" }).click();
+  await panel.getByRole("button", { name: "Done adding stations" }).click();
+  const eglintonRow = panel.locator(".saved-station-rich-row", { hasText: "Eglinton" });
+  await expect(eglintonRow.locator(".saved-station-disruption-summary")).toContainText("1 Elevator Outage");
+});
+
 test("requests and confirms a password reset from the sign-in dialog", async ({ page, request, isMobile }) => {
   await setStubMode(request, "seeded");
   await page.goto("/");

@@ -1,5 +1,5 @@
 import { createServer } from "node:http";
-import { regionalDashboardDataForScenario } from "../../src/app/regional-data.ts";
+import { regionalDashboardDataForScenario, regionalStationSummaries } from "../../src/app/regional-data.ts";
 import {
   activeAlertsResponse,
   delaysResponse,
@@ -449,17 +449,19 @@ const server = createServer(async (request, response) => {
       return;
     }
     const stationId = decodeURIComponent(url.pathname.split("/").at(-1));
-    const station = stationSummariesResponse.stations.find((item) => item.id === stationId);
+    const networkId = url.searchParams.get("network") === "regional" ? "regional" : "ttc";
+    const stationCatalog = networkId === "regional" ? regionalStationSummaries : stationSummariesResponse;
+    const station = stationCatalog.stations.find((item) => item.id === stationId);
     if (!station) {
       sendJson(request, response, 404, { error: "unknown_station", message: "Station was not found." });
       return;
     }
-    const existing = demoSavedStations.find((item) => item.station.id === stationId);
+    const existing = demoSavedStations.find((item) => item.networkId === networkId && item.station.id === stationId);
     if (existing) {
       sendJson(request, response, 200, existing);
       return;
     }
-    const saved = { station, savedAt: "2026-07-23T14:30:00Z" };
+    const saved = { networkId, station, savedAt: "2026-07-23T14:30:00Z" };
     demoSavedStations = [saved, ...demoSavedStations];
     sendJson(request, response, 201, saved);
     return;
@@ -471,7 +473,8 @@ const server = createServer(async (request, response) => {
       return;
     }
     const stationId = decodeURIComponent(url.pathname.split("/").at(-1));
-    demoSavedStations = demoSavedStations.filter((item) => item.station.id !== stationId);
+    const networkId = url.searchParams.get("network") === "regional" ? "regional" : "ttc";
+    demoSavedStations = demoSavedStations.filter((item) => item.networkId !== networkId || item.station.id !== stationId);
     response.writeHead(204, corsHeaders(request));
     response.end();
     return;

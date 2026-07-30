@@ -19,6 +19,17 @@ import { getStationDetail, type StationDataResult, type StationDetail, type Stat
 import { stationImpactKindsByStation, stationImpactSelection, stationImpactSelectionsByStation } from "../app/station-impact-types";
 import { DataProvider, useDashboardData, type DashboardData } from "../app/DataContext";
 import { REGIONAL_ROUTE_DEFINITIONS, type NetworkId } from "../app/regional-data";
+import {
+  getRegionalStationArrivals,
+  groupRegionalStationArrivals,
+  regionalArrivalTimeDisplay,
+  type RegionalArrivalDataResult,
+} from "../app/regional-arrivals";
+import {
+  getAccessibilityOutages,
+  type AccessibilityOutageDetail,
+  type AccessibilityOutageResponse,
+} from "../app/accessibility-outage-data";
 import { useSubwayOperatingState } from "../hooks/useSubwayOperatingState";
 import { ToolbarSelectMenu, type ToolbarSelectOption } from "./ImpactListToolbar";
 import { ImpactTypeIcon } from "./ImpactTypeIcon";
@@ -201,6 +212,9 @@ function formatCondensedArrivalDirection(directionLabel: string) {
 function SavedStationRow({
   saved,
   detailResult,
+  regionalArrivalResult,
+  regionalAccessibilityOutages,
+  regionalDataLoaded,
   subwayClosed,
   arrivalTick,
   pending,
@@ -210,11 +224,13 @@ function SavedStationRow({
   disruptionExpanded,
   onDisruptionExpandedChange,
   onRemove,
-  regional,
   routeImpactSelections,
 }: {
   saved: AccountSavedStation;
   detailResult?: StationDataResult<StationDetail | null>;
+  regionalArrivalResult?: RegionalArrivalDataResult;
+  regionalAccessibilityOutages: AccessibilityOutageDetail[];
+  regionalDataLoaded: boolean;
   subwayClosed: boolean;
   arrivalTick: number;
   pending: boolean;
@@ -224,10 +240,10 @@ function SavedStationRow({
   disruptionExpanded: boolean;
   onDisruptionExpandedChange: (expanded: boolean) => void;
   onRemove: () => void;
-  regional: boolean;
   routeImpactSelections: NonNullable<ImpactSelection>[];
 }) {
   const dashboard = useDashboardData();
+  const regional = saved.networkId === "regional";
   const detail = detailResult?.data ?? null;
   const directlyLinkedImpacts = detail?.impacts.filter((impact) =>
     impact.type === "active-alert" || impact.type === "planned-closure"
@@ -246,7 +262,10 @@ function SavedStationRow({
         ?? (impact?.severity === "planned" ? "planned-closure" : impact?.severity)) as SavedStationDisruptionKind;
     return [selection ? `${selection.kind}|${selection.id}` : impactId, { impactId, kind, selection }] as const;
   })).values());
-  const accessOutages = detail?.access.outages ?? [];
+  const accessOutages = regional
+    ? regionalAccessibilityOutages.filter((outage): outage is AccessibilityOutageDetail & { assetType: "elevator" | "escalator" } =>
+        outage.assetType === "elevator" || outage.assetType === "escalator")
+    : detail?.access.outages ?? [];
   const disruptionCount = classifiedActiveImpacts.length + accessOutages.length;
   const displayedDisruptionCount = detail ? disruptionCount : stationState(saved.station).count;
   const disruptionSummary = (() => {
@@ -265,6 +284,11 @@ function SavedStationRow({
         includeEmptyDirections: hasLiveArrivals,
       })
     : [];
+  const regionalArrivalSnapshot = regionalArrivalResult?.data;
+  const regionalArrivalGroups = regionalArrivalSnapshot
+    ? groupRegionalStationArrivals(regionalArrivalSnapshot.arrivals, saved.station.id)
+    : [];
+  const regionalInformationReady = regionalDataLoaded && Boolean(regionalArrivalSnapshot);
 
   return (
     <article className={`my-stations-row saved-station-rich-row ${displayedDisruptionCount > 0 ? "is-affected" : "is-clear"}`}>
@@ -294,9 +318,141 @@ function SavedStationRow({
         </button>
       </div>
 
-      {regional ? (
-        <div className="saved-station-detail-loading">
-          Realtime arrivals and accessibility details are unavailable in regional demo mode.
+      {regional ? !regionalInformationReady ? (
+        <div className="saved-station-detail-loading" role="status">
+          <LoaderCircle size={15} aria-hidden="true" />
+          Loading station information...
+        </div>
+      ) : (
+        <div className="saved-station-rich-content">
+          <details
+            className={`saved-commute-impact-disclosure saved-station-disruption-disclosure${disruptionCount === 0 ? " is-clear" : ""}`}
+            open={disruptionExpanded}
+            onToggle={(event) => onDisruptionExpandedChange(event.currentTarget.open)}
+          >
+            <summary className="saved-commute-impact-summary saved-station-disruption-summary">
+              <span className="saved-commute-impact-summary-heading saved-station-disruption-heading">
+                {disruptionCount > 0 ? <AlertCircle className="saved-commute-impact-summary-icon" size={16} aria-hidden="true" /> : <span className="saved-station-clear-dot" aria-hidden="true" />}
+                <strong>{disruptionCount > 0 ? "Active Disruptions" : "No Active Disruptions"}</strong>
+                <span className="saved-commute-impact-total saved-station-disruption-total">{disruptionCount}</span>
+              </span>
+              {disruptionCount > 0 ? (
+                <span className="saved-commute-impact-summary-chips saved-station-disruption-chips">
+                  {disruptionSummary.map(({ kind, count }) => (
+                    <span key={kind} className={`saved-commute-impact-summary-chip kind-${disruptionKindClassName(kind)}`}>
+                      <DisruptionIcon kind={kind} size={14} />
+                      {disruptionKindCountLabel(kind, count)}
+                    </span>
+                  ))}
+                </span>
+              ) : null}
+              <span className="saved-commute-impact-summary-action saved-station-disruption-action">
+                <span className="saved-commute-impact-summary-action-collapsed">List View</span>
+                <span className="saved-commute-impact-summary-action-expanded">Hide List</span>
+                <ChevronDown className="saved-commute-impact-summary-chevron" size={15} aria-hidden="true" />
+              </span>
+            </summary>
+            {disruptionCount > 0 ? (
+              <ul className="saved-commute-impact-list saved-station-disruption-list">
+                {classifiedActiveImpacts.map(({ impactId, kind, selection }) => (
+                  <li key={selection ? `${selection.kind}-${selection.id}` : impactId} className={`kind-${disruptionKindClassName(kind)}`}>
+                    <span className="saved-commute-impact-icon" aria-hidden="true"><DisruptionIcon kind={kind} size={15} /></span>
+                    <div className="saved-commute-impact-copy">
+                      <div className="saved-commute-impact-details">
+                        <div className="saved-commute-impact-heading"><strong><span className="saved-commute-impact-kind-label">{disruptionKindLabel(kind)}</span></strong></div>
+                        <span>{stationImpactContext(selection?.id ?? impactId, saved.station.name, dashboard)}</span>
+                      </div>
+                      <div className="saved-commute-impact-action">
+                        <button
+                          type="button"
+                          className="saved-commute-map-action saved-commute-impact-map-button"
+                          onClick={() => selection ? onSelectImpactDetails(selection) : onOpen()}
+                          aria-label={`View ${saved.station.name} alert details`}
+                        >
+                          <FileText size={12} aria-hidden="true" /> View Details
+                        </button>
+                      </div>
+                    </div>
+                  </li>
+                ))}
+                {accessOutages.map((outage) => (
+                  <li key={outage.id} className={`kind-${disruptionKindClassName(outage.assetType)}`}>
+                    <span className="saved-commute-impact-icon" aria-hidden="true"><DisruptionIcon kind={outage.assetType} size={15} /></span>
+                    <div className="saved-commute-impact-copy">
+                      <div className="saved-commute-impact-details">
+                        <div className="saved-commute-impact-heading"><strong><span className="saved-commute-impact-kind-label">{disruptionKindLabel(outage.assetType)}</span></strong></div>
+                      </div>
+                      <div className="saved-commute-impact-action">
+                        <button
+                          type="button"
+                          className="saved-commute-map-action saved-commute-impact-map-button"
+                          onClick={() => onSelectAccessibilityOutageDetails(outage.assetType, saved.station.id)}
+                          aria-label={`View ${saved.station.name} ${outage.assetType} outage details`}
+                        >
+                          <FileText size={12} aria-hidden="true" /> View Details
+                        </button>
+                      </div>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            ) : <p className="saved-station-disruption-clear-copy">No directly linked service impacts or accessibility outages.</p>}
+          </details>
+
+          <section className="saved-station-arrivals" aria-label={`Arrivals at ${saved.station.name}`}>
+            <div className="station-arrival-line-divider saved-station-section-divider" aria-hidden="true" />
+            <div className="saved-station-arrivals-heading">
+              <span><Clock3 size={15} aria-hidden="true" /><strong>Arrivals</strong></span>
+              <small>{regionalArrivalSnapshot?.availability === "available"
+                ? regionalArrivalSnapshot.source
+                : regionalArrivalSnapshot?.availability === "no-service"
+                  ? "Published regional schedule"
+                  : "Regional arrivals unavailable"}</small>
+            </div>
+            {regionalArrivalSnapshot?.availability === "no-service" ? (
+              <p className="saved-station-arrivals-empty">No Scheduled Service</p>
+            ) : regionalArrivalSnapshot?.availability !== "available" ? (
+              <p className="saved-station-arrivals-empty">Arrival Data Unavailable</p>
+            ) : regionalArrivalGroups.length === 0 ? (
+              <p className="saved-station-arrivals-empty">No Arrivals Available</p>
+            ) : (
+              <div className="saved-station-arrival-groups">
+                {regionalArrivalGroups.map((group) => {
+                  const arrivals = group.platforms.flatMap((platform) => platform.arrivals).sort((left, right) => left.minutes - right.minutes).slice(0, 2);
+                  const hasLive = arrivals.some((arrival) => arrival.status === "live");
+                  const hasScheduled = arrivals.some((arrival) => arrival.status === "scheduled");
+                  const sourceLabel = hasLive && hasScheduled ? "Mixed" : hasLive ? "Live" : "Scheduled";
+                  return (
+                    <div className="saved-station-arrival-group" key={group.key}>
+                      <TransitLineBadge
+                        lineId={group.lineId}
+                        lineNumber={group.lineNumber}
+                        lineName={group.lineName}
+                        size={27}
+                        className="saved-station-arrival-line-badge"
+                      />
+                      <span className="saved-station-arrival-direction">
+                        <strong>{group.directionLabel}</strong>
+                        <span className="saved-station-arrival-destination">{group.destinationLabel}</span>
+                      </span>
+                      <span className={`saved-station-arrival-source source-${sourceLabel.toLowerCase()}`}>{sourceLabel}</span>
+                      <span className="saved-station-arrival-times">
+                        {arrivals.map((arrival) => {
+                          const timeDisplay = regionalArrivalTimeDisplay(arrival, arrivalTick);
+                          const due = arrival.minutes <= 0;
+                          return (
+                            <strong className={due ? "is-due" : undefined} key={`${arrival.tripNumber}:${arrival.predictedAt}`}>
+                              {timeDisplay.primary}
+                            </strong>
+                          );
+                        })}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </section>
         </div>
       ) : !detailResult ? (
         <div className="saved-station-detail-loading" role="status">
@@ -476,6 +632,8 @@ export function MyStationsPanel({
   const [sort, setSort] = useState<SavedStationSort>("attention");
   const [lastRemoved, setLastRemoved] = useState<{ saved: AccountSavedStation; index: number } | null>(null);
   const [stationDetails, setStationDetails] = useState<Record<string, StationDataResult<StationDetail | null>>>({});
+  const [regionalArrivalDetails, setRegionalArrivalDetails] = useState<Record<string, RegionalArrivalDataResult>>({});
+  const [regionalAccessibility, setRegionalAccessibility] = useState<AccessibilityOutageResponse | null>(null);
   const [arrivalTick, setArrivalTick] = useState(() => Date.now());
   const subwayOperatingState = useSubwayOperatingState();
   const modeButtonRef = useRef<HTMLButtonElement>(null);
@@ -564,6 +722,22 @@ export function MyStationsPanel({
     () => [...new Set(visible.filter((saved) => saved.networkId === "ttc").map((saved) => saved.station.id))].join(","),
     [visible],
   );
+  const visibleRegionalStationIds = useMemo(
+    () => [...new Set(visible.filter((saved) => saved.networkId === "regional").map((saved) => saved.station.id))].join(","),
+    [visible],
+  );
+  const regionalAccessibilityByStation = useMemo(() => {
+    const outagesByStation = new Map<string, Map<string, AccessibilityOutageDetail>>();
+    if (!regionalAccessibility?.fresh) return new Map<string, AccessibilityOutageDetail[]>();
+    for (const group of regionalAccessibility.groups) {
+      for (const station of group.stations) {
+        const outages = outagesByStation.get(station.stationId) ?? new Map<string, AccessibilityOutageDetail>();
+        for (const outage of station.outages) outages.set(outage.id, outage);
+        outagesByStation.set(station.stationId, outages);
+      }
+    }
+    return new Map([...outagesByStation].map(([stationId, outages]) => [stationId, [...outages.values()]]));
+  }, [regionalAccessibility]);
 
   useEffect(() => {
     if (mode !== "list" || !visibleTtcStationIds) return;
@@ -592,6 +766,38 @@ export function MyStationsPanel({
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, [mode, visibleTtcStationIds]);
+
+  useEffect(() => {
+    if (mode !== "list" || !visibleRegionalStationIds) return;
+    let cancelled = false;
+    const stationIds = visibleRegionalStationIds.split(",");
+
+    const refresh = async () => {
+      const [arrivalResults, accessibilityResult] = await Promise.all([
+        Promise.all(stationIds.map(async (stationId) => [stationId, await getRegionalStationArrivals(stationId)] as const)),
+        getAccessibilityOutages(undefined, { networkId: "regional" }),
+      ]);
+      if (!cancelled) {
+        setRegionalArrivalDetails((current) => ({ ...current, ...Object.fromEntries(arrivalResults) }));
+        setRegionalAccessibility(accessibilityResult.data);
+      }
+    };
+
+    void refresh();
+    const interval = window.setInterval(() => {
+      if (document.visibilityState === "visible") void refresh();
+    }, SAVED_STATION_DETAIL_REFRESH_MS);
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") void refresh();
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [mode, visibleRegionalStationIds]);
 
   useEffect(() => {
     const interval = window.setInterval(() => setArrivalTick(Date.now()), 3_000);
@@ -738,11 +944,13 @@ export function MyStationsPanel({
               </span>
             </button>
           </div>
-          <div className="account-network-filter" role="group" aria-label="Filter My Stations by network">
+          <div className="account-network-filter" data-network={networkFilter} data-options-count={ACCOUNT_NETWORK_OPTIONS.length} role="group" aria-label="Filter My Stations by network">
+            <div className="account-network-glider" aria-hidden="true" />
             {ACCOUNT_NETWORK_OPTIONS.map((option) => (
               <button
                 key={option.value}
                 type="button"
+                data-network={option.value}
                 aria-pressed={networkFilter === option.value}
                 onClick={() => {
                   setNetworkFilter(option.value);
@@ -856,8 +1064,10 @@ export function MyStationsPanel({
                   <SavedStationRow
                     saved={saved}
                     detailResult={stationDetails[`${saved.networkId}:${saved.station.id}`]}
+                    regionalArrivalResult={regionalArrivalDetails[saved.station.id]}
+                    regionalAccessibilityOutages={regionalAccessibilityByStation.get(saved.station.id) ?? []}
+                    regionalDataLoaded={saved.networkId !== "regional" || regionalAccessibility !== null}
                     subwayClosed={saved.networkId === "ttc" && subwayOperatingState.status === "closed"}
-                    regional={saved.networkId === "regional"}
                     routeImpactSelections={stationImpactSelections[saved.networkId].get(saved.station.id) ?? []}
                     arrivalTick={arrivalTick}
                     pending={pendingStationIds.has(saved.station.id)}

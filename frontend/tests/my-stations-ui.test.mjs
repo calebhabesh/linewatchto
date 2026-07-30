@@ -128,6 +128,13 @@ describe("My Stations UI", () => {
     assert.match(panel, /saved-station-arrivals/);
     assert.match(panel, /formatArrivalSourceSummary/);
     assert.match(panel, /groupStationArrivals/);
+    assert.match(panel, /getRegionalStationArrivals/);
+    assert.match(panel, /groupRegionalStationArrivals/);
+    assert.match(panel, /getAccessibilityOutages\(undefined, \{ networkId: "regional" \}\)/);
+    assert.match(panel, /regionalAccessibility\?\.fresh/);
+    assert.match(panel, /regionalArrivalSnapshot\.source/);
+    assert.match(panel, /Published regional schedule/);
+    assert.doesNotMatch(panel, /unavailable in regional demo mode/);
     assert.match(panel, /shouldUseDetailedArrivalCountdown/);
     assert.match(panel, /detailedCountdown: detailed/);
     assert.match(panel, /formatCondensedArrivalDirection/);

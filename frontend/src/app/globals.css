@@ -1236,10 +1236,16 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
   min-width: 0;
   padding: 10px 12px;
   text-align: left;
+  transition: transform 120ms cubic-bezier(0.2, 0, 0, 1), background-color 150ms ease;
+  cursor: pointer;
 }
 
 .my-stations-row-main:hover {
   background: rgba(14, 165, 233, 0.06);
+}
+
+.my-stations-row-main:active {
+  transform: scale(0.985);
 }
 
 .my-stations-row-copy {
@@ -20241,29 +20247,118 @@ img.transit-line-badge {
 /* Account-owned stations and commutes stay visible across both map modes. */
 .account-network-filter {
   align-items: center;
-  background: rgb(241 245 249 / 0.8);
+  background: rgb(241 245 249 / 0.85);
   border: 1px solid rgb(148 163 184 / 0.22);
-  border-radius: 7px;
+  border-radius: 9px;
   display: grid;
   gap: 3px;
   grid-auto-columns: 1fr;
   grid-auto-flow: column;
   padding: 3px;
+  position: relative;
+  user-select: none;
 }
 
 .dark .account-network-filter {
-  background: rgb(15 23 42 / 0.72);
+  background: rgb(15 23 42 / 0.75);
   border-color: rgb(255 255 255 / 0.1);
 }
 
+.account-network-glider {
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  left: 3px;
+  border-radius: 6px;
+  pointer-events: none;
+  z-index: 0;
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.2s ease, border-color 0.2s ease;
+  background: white;
+  box-shadow: 0 1px 3px rgb(15 23 42 / 0.14);
+}
+
+.dark .account-network-glider {
+  background: rgb(30 41 59);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+}
+
+/* 3-option grid positions (All | TTC | GO & UP) */
+.account-network-filter[data-options-count="3"] .account-network-glider {
+  width: calc((100% - 6px - 6px) / 3);
+}
+
+.account-network-filter[data-options-count="3"][data-network="all"] .account-network-glider {
+  transform: translateX(0);
+}
+
+.account-network-filter[data-options-count="3"][data-network="ttc"] .account-network-glider {
+  transform: translateX(calc(100% + 3px));
+  background: rgba(225, 29, 72, 0.12);
+  border: 1px solid rgba(225, 29, 72, 0.35);
+}
+
+.dark .account-network-filter[data-options-count="3"][data-network="ttc"] .account-network-glider {
+  background: rgba(244, 63, 94, 0.2);
+  border-color: rgba(244, 63, 94, 0.45);
+}
+
+.account-network-filter[data-options-count="3"][data-network="regional"] .account-network-glider {
+  transform: translateX(calc(200% + 6px));
+  background: rgba(5, 150, 105, 0.12);
+  border: 1px solid rgba(5, 150, 105, 0.35);
+}
+
+.dark .account-network-filter[data-options-count="3"][data-network="regional"] .account-network-glider {
+  background: rgba(16, 185, 129, 0.2);
+  border-color: rgba(16, 185, 129, 0.45);
+}
+
+/* 2-option grid positions (TTC | GO & UP) */
+.account-network-filter[data-options-count="2"] .account-network-glider {
+  width: calc((100% - 6px - 3px) / 2);
+}
+
+.account-network-filter[data-options-count="2"][data-network="ttc"] .account-network-glider {
+  transform: translateX(0);
+  background: rgba(225, 29, 72, 0.12);
+  border: 1px solid rgba(225, 29, 72, 0.35);
+}
+
+.dark .account-network-filter[data-options-count="2"][data-network="ttc"] .account-network-glider {
+  background: rgba(244, 63, 94, 0.2);
+  border-color: rgba(244, 63, 94, 0.45);
+}
+
+.account-network-filter[data-options-count="2"][data-network="regional"] .account-network-glider {
+  transform: translateX(calc(100% + 3px));
+  background: rgba(5, 150, 105, 0.12);
+  border: 1px solid rgba(5, 150, 105, 0.35);
+}
+
+.dark .account-network-filter[data-options-count="2"][data-network="regional"] .account-network-glider {
+  background: rgba(16, 185, 129, 0.2);
+  border-color: rgba(16, 185, 129, 0.45);
+}
+
 .account-network-filter button {
-  border-radius: 5px;
-  color: rgb(71 85 105);
-  font-size: 0.7rem;
+  position: relative;
+  z-index: 1;
+  background: transparent !important;
+  box-shadow: none !important;
+  border: none !important;
+  border-radius: 6px;
+  color: rgb(100 116 139);
+  font-size: 0.72rem;
   font-weight: 800;
   min-height: 34px;
   padding: 0.35rem 0.65rem;
-  transition: background-color 150ms ease, color 150ms ease, box-shadow 150ms ease;
+  transition: transform 120ms cubic-bezier(0.2, 0, 0, 1), color 200ms ease;
+  cursor: pointer;
+}
+
+.account-network-filter button:active {
+  transform: scale(0.94);
 }
 
 .dark .account-network-filter button {
@@ -20271,45 +20366,68 @@ img.transit-line-badge {
 }
 
 .account-network-filter button[aria-pressed="true"] {
-  background: white;
-  box-shadow: 0 1px 3px rgb(15 23 42 / 0.14);
   color: rgb(15 23 42);
+  font-weight: 900;
 }
 
 .dark .account-network-filter button[aria-pressed="true"] {
-  background: rgb(30 41 59);
   color: white;
+}
+
+.account-network-filter button[aria-pressed="true"][data-network="ttc"] {
+  color: #da291c;
+}
+
+.dark .account-network-filter button[aria-pressed="true"][data-network="ttc"] {
+  color: #fb7185;
+}
+
+.account-network-filter button[aria-pressed="true"][data-network="regional"] {
+  color: #047857;
+}
+
+.dark .account-network-filter button[aria-pressed="true"][data-network="regional"] {
+  color: #34d399;
 }
 
 .account-network-badge {
   align-items: center;
-  border: 1px solid currentColor;
   border-radius: 4px;
   display: inline-flex;
   flex: 0 0 auto;
-  font-size: 0.58rem;
-  font-weight: 850;
-  letter-spacing: 0.055em;
+  font-size: 0.6rem;
+  font-weight: 900;
+  letter-spacing: 0.05em;
   line-height: 1;
   min-height: 19px;
-  padding: 0.22rem 0.38rem;
+  padding: 0.2rem 0.42rem;
   text-transform: uppercase;
+  vertical-align: middle;
+  white-space: nowrap;
+  transition: transform 120ms cubic-bezier(0.2, 0, 0, 1), opacity 150ms ease;
+}
+
+button:active .account-network-badge,
+.account-network-badge:active {
+  transform: scale(0.94);
 }
 
 .account-network-badge.ttc {
-  background: rgb(71 85 105 / 0.09);
-  color: rgb(71 85 105);
+  background: #da291c;
+  color: #ffffff;
 }
 
 .account-network-badge.regional {
-  background: rgb(5 150 105 / 0.09);
-  color: rgb(4 120 87);
+  background: #00853f;
+  color: #ffffff;
 }
 
 .dark .account-network-badge.ttc {
-  color: rgb(203 213 225);
+  background: #d92626;
+  color: #ffffff;
 }
 
 .dark .account-network-badge.regional {
-  color: rgb(110 231 183);
+  background: #059669;
+  color: #ffffff;
 }

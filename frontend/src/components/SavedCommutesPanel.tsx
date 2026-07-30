@@ -1097,11 +1097,13 @@ export function SavedCommutesPanel({
                   <AccountNetworkBadge networkId={draftNetworkId} />
                 </div>
                 {!editingCommuteId ? (
-                  <div className="account-network-filter" role="group" aria-label="Choose commute network">
+                  <div className="account-network-filter" data-network={draftNetworkId} data-options-count={2} role="group" aria-label="Choose commute network">
+                    <div className="account-network-glider" aria-hidden="true" />
                     {ACCOUNT_NETWORK_OPTIONS.slice(1).map((option) => (
                       <button
                         key={option.value}
                         type="button"
+                        data-network={option.value}
                         aria-pressed={draftNetworkId === option.value}
                         onClick={() => {
                           setDraftNetworkId(option.value as NetworkId);
@@ -1216,11 +1218,13 @@ export function SavedCommutesPanel({
               </div>
             ) : (
               <div className={`flex flex-col gap-3 ${onBack ? "px-[6px] sm:px-[20px]" : ""}`}>
-                <div className="account-network-filter" role="group" aria-label="Filter My Commutes by network">
+                <div className="account-network-filter" data-network={networkFilter} data-options-count={ACCOUNT_NETWORK_OPTIONS.length} role="group" aria-label="Filter My Commutes by network">
+                  <div className="account-network-glider" aria-hidden="true" />
                   {ACCOUNT_NETWORK_OPTIONS.map((option) => (
                     <button
                       key={option.value}
                       type="button"
+                      data-network={option.value}
                       aria-pressed={networkFilter === option.value}
                       onClick={() => setNetworkFilter(option.value)}
                     >
