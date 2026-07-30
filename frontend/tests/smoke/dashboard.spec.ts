@@ -338,6 +338,52 @@ test("switches the complete dashboard to the fixture-backed regional network", a
   await expect(page.getByRole("region", { name: "Interactive GO and UP map" })).toBeHidden();
 });
 
+test("regional refresh, pan, zoom, and center preserve the authored SVG instance", async ({ page, request, isMobile }) => {
+  test.skip(isMobile, "desktop regional camera regression");
+  await setStubMode(request, "seeded");
+  await page.goto("/");
+
+  await page.getByRole("group", { name: "Select transit network" })
+    .getByRole("button", { name: "GO/UP", exact: true })
+    .click();
+
+  const regionalMap = page.locator(".regional-map");
+  const regionalViewport = regionalMap.locator(".regional-map-viewport");
+  const regionalStage = regionalMap.locator(".regional-map-stage");
+  const authoredSvg = regionalStage.locator('svg[aria-label="GO and UP regional rail schematic"]');
+  const authoredLines = authoredSvg.locator("#regional-lines-layer");
+  await expect(authoredSvg).toBeVisible();
+  await authoredSvg.evaluate((element) => element.setAttribute("data-smoke-stable", "regional-base"));
+  await authoredLines.evaluate((element) => element.setAttribute("data-smoke-stable", "regional-lines"));
+
+  // Force the same dashboard refresh path used by the 30-second poll. The
+  // dynamic impact layer should change without replacing the authored SVG.
+  await setStubMode(request, "regional-live");
+  await page.evaluate(() => document.dispatchEvent(new Event("visibilitychange")));
+  await expect(page.locator(
+    '.regional-overlay-segment-group[data-regional-impact-id="regional-demo-delay"]',
+  )).toBeAttached();
+  await expect(authoredSvg).toHaveAttribute("data-smoke-stable", "regional-base");
+  await expect(authoredLines).toHaveAttribute("data-smoke-stable", "regional-lines");
+
+  const viewportBox = await regionalViewport.boundingBox();
+  expect(viewportBox).not.toBeNull();
+  const pointerX = viewportBox!.x + viewportBox!.width * 0.22;
+  const pointerY = viewportBox!.y + viewportBox!.height * 0.24;
+  await page.mouse.move(pointerX, pointerY);
+  await page.mouse.down();
+  await page.mouse.move(pointerX + 90, pointerY + 55, { steps: 5 });
+  await page.mouse.up();
+  await page.mouse.wheel(0, -80);
+  await page.getByRole("button", { name: "Zoom in", exact: true }).click();
+  await page.getByRole("button", { name: "Fit regional network" }).click();
+  await expect(regionalMap).toHaveAttribute("data-regional-map-camera-moving", "false", { timeout: 2_000 });
+
+  await expect(authoredSvg).toHaveAttribute("data-smoke-stable", "regional-base");
+  await expect(authoredLines).toHaveAttribute("data-smoke-stable", "regional-lines");
+  expect(await regionalStage.evaluate((element) => getComputedStyle(element).willChange)).toBe("auto");
+});
+
 test("mobile preserves status and station interaction language across network switches", async ({ page, request, isMobile }) => {
   test.skip(!isMobile, "mobile-only cross-network parity smoke");
   await setStubMode(request, "seeded");

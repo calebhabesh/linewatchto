@@ -4,6 +4,7 @@ import com.calebhabesh.linewatch.alert.AlertHistoryResponses.AlertHistoryEventDt
 import com.calebhabesh.linewatch.alert.AlertHistoryResponses.AlertHistoryIncidentDto;
 import com.calebhabesh.linewatch.alert.AlertHistoryResponses.AlertHistoryResponse;
 import com.calebhabesh.linewatch.station.StationDisplayNameFormatter;
+import com.calebhabesh.linewatch.regional.RegionalNetworkCatalog;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.OffsetDateTime;
@@ -29,6 +30,11 @@ public class AlertHistoryService {
     }
 
     public AlertHistoryResponse history(String requestedPeriod, Integer requestedLimit) {
+        return history("ttc", requestedPeriod, requestedLimit);
+    }
+
+    public AlertHistoryResponse history(String requestedNetwork, String requestedPeriod, Integer requestedLimit) {
+        String network = "regional".equalsIgnoreCase(requestedNetwork) ? "regional" : "ttc";
         String period = normalizePeriod(requestedPeriod);
         OffsetDateTime until = OffsetDateTime.now(clock).atZoneSameInstant(TORONTO_ZONE).toOffsetDateTime();
         OffsetDateTime since = switch (period) {
@@ -37,9 +43,10 @@ public class AlertHistoryService {
             default -> until.toLocalDate().atStartOfDay(TORONTO_ZONE).toOffsetDateTime();
         };
         int limit = Math.max(1, Math.min(requestedLimit == null ? MAX_LIMIT : requestedLimit, MAX_LIMIT));
-        List<AlertHistoryRepository.AlertHistoryRow> rows =
-            repository.findLifecycleRows(since, until, limit);
-        return new AlertHistoryResponse(until, period, since, until, group(rows));
+        List<AlertHistoryRepository.AlertHistoryRow> rows = "regional".equals(network)
+            ? repository.findRegionalLifecycleRows(since, until, limit)
+            : repository.findLifecycleRows(since, until, limit);
+        return new AlertHistoryResponse(until, period, since, until, group(rows, network));
     }
 
     private String normalizePeriod(String period) {
@@ -52,18 +59,27 @@ public class AlertHistoryService {
         return "today";
     }
 
-    private List<AlertHistoryIncidentDto> group(List<AlertHistoryRepository.AlertHistoryRow> rows) {
+    private List<AlertHistoryIncidentDto> group(
+        List<AlertHistoryRepository.AlertHistoryRow> rows,
+        String network
+    ) {
         Map<String, List<AlertHistoryRepository.AlertHistoryRow>> byAlertId = new LinkedHashMap<>();
         for (AlertHistoryRepository.AlertHistoryRow row : rows) {
             byAlertId.computeIfAbsent(row.alertId(), ignored -> new ArrayList<>()).add(row);
         }
         return byAlertId.values().stream()
-            .map(this::incident)
+            .map(incidentRows -> incident(incidentRows, network))
             .toList();
     }
 
-    private AlertHistoryIncidentDto incident(List<AlertHistoryRepository.AlertHistoryRow> rows) {
+    private AlertHistoryIncidentDto incident(
+        List<AlertHistoryRepository.AlertHistoryRow> rows,
+        String network
+    ) {
         AlertHistoryRepository.AlertHistoryRow latest = rows.getFirst();
+        RegionalNetworkCatalog.Route regionalRoute = "regional".equals(network)
+            ? RegionalNetworkCatalog.route(latest.lineId()).orElse(null)
+            : null;
         OffsetDateTime firstSeenAt = rows.stream()
             .filter(row -> "opened".equals(row.lifecycleState()))
             .map(AlertHistoryRepository.AlertHistoryRow::snapshotTime)
@@ -91,8 +107,8 @@ public class AlertHistoryService {
             latest.alertId(),
             latest.sourceId(),
             latest.lineId(),
-            latest.lineNumber(),
-            latest.lineName(),
+            regionalRoute == null ? latest.lineNumber() : regionalRoute.number(),
+            regionalRoute == null ? latest.lineName() : regionalRoute.name(),
             eventType(latest),
             firstNonBlank(latest.title(), eventLabel(latest)),
             location(latest),
@@ -174,6 +190,9 @@ public class AlertHistoryService {
     }
 
     private String sourceLabel(String sourceAlertType) {
+        if (sourceAlertType != null && sourceAlertType.startsWith("metrolinx-")) {
+            return "Metrolinx Open API";
+        }
         if ("GTFS-RT".equalsIgnoreCase(sourceAlertType)) {
             return "TTC GTFS-RT";
         }

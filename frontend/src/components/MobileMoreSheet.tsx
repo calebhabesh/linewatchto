@@ -248,12 +248,12 @@ export function MobileMoreSheet({
           />
         </div>
 
-        {currentNetwork === "ttc" ? <div className="mobile-more-section">
+        <div className="mobile-more-section">
           <div className="flex items-center gap-2 px-0 pt-1.5 pb-0.5 select-none">
             <span className="w-1 h-4 rounded-full bg-logo-blue shrink-0 shadow-[0_0_4px_rgba(129,201,255,0.35)]" />
             <h3>Notifications</h3>
           </div>
-          <button type="button" className="mobile-more-row w-full flex items-center justify-between gap-[9px]" onClick={onOpenNotifications}>
+          {currentNetwork === "ttc" ? <button type="button" className="mobile-more-row w-full flex items-center justify-between gap-[9px]" onClick={onOpenNotifications}>
             <div className="flex items-center gap-[9px] min-w-0 flex-1">
               <div className="shrink-0">
                 <Bell size={18} className="text-slate-500 dark:text-slate-400" />
@@ -284,12 +284,12 @@ export function MobileMoreSheet({
                 </span>
               )}
             </div>
-          </button>
+          </button> : null}
           <button type="button" className="mobile-more-row" onClick={onOpenAlertHistory}>
             <History size={18} className="text-slate-500 dark:text-slate-400" />
             Alert History
           </button>
-        </div> : null}
+        </div>
 
         <div className="mobile-more-section">
           <div className="flex items-center gap-2 px-0 pt-1.5 pb-0.5 select-none">

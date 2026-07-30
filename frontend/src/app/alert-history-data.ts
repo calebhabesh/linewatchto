@@ -1,3 +1,5 @@
+import type { NetworkId } from "./regional-data";
+
 export type AlertHistoryPeriod = "today" | "7d" | "30d";
 export type AlertHistorySource = "backend" | "fallback";
 
@@ -57,10 +59,12 @@ export const emptyAlertHistory: AlertHistoryResponse = {
 
 export async function getAlertHistory(
   period: AlertHistoryPeriod = "today",
+  network: NetworkId = "ttc",
   limit = 5000,
 ): Promise<AlertHistoryResult> {
   const params = new URLSearchParams({
     period,
+    network,
     limit: String(limit),
   });
 

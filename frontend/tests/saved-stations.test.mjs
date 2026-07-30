@@ -26,6 +26,7 @@ const { filterAndSortSavedStations } = loadModule("src/app/saved-stations.ts");
 
 function saved(id, name, lineIds, options = {}) {
   return {
+    networkId: options.networkId ?? "ttc",
     station: {
       id, name, lineIds, mapX: 0, mapY: 0, interchange: lineIds.length > 1,
       hasActiveImpact: options.impact ?? false,
@@ -69,6 +70,18 @@ test("saved date and line sorts are deterministic", () => {
   assert.deepEqual(filterAndSortSavedStations(stations, "", "all", "line").map((item) => item.station.id), ["union", "kennedy"]);
 });
 
+test("line sort keeps TTC and regional routes in authored network order", () => {
+  const stations = [
+    saved("pearson-airport", "Pearson Airport", ["regional-up"], { networkId: "regional" }),
+    saved("allandale-waterfront", "Allandale Waterfront", ["regional-br"], { networkId: "regional" }),
+    saved("union", "Union", ["line-1"]),
+  ];
+  assert.deepEqual(
+    filterAndSortSavedStations(stations, "", "all", "line").map((item) => `${item.networkId}:${item.station.id}`),
+    ["ttc:union", "regional:allandale-waterfront", "regional:pearson-airport"],
+  );
+});
+
 test("saved station notice toast uses max-content width so mobile toasts remain single-line unless constrained", () => {
   const css = fs.readFileSync(path.join(root, "src/app/globals.css"), "utf8");
   const noticeRuleMatch = css.match(/\.saved-station-global-notice\s*\{([^}]+)\}/);
@@ -77,4 +90,3 @@ test("saved station notice toast uses max-content width so mobile toasts remain 
   assert.match(block, /width:\s*max-content;/, "toast specifies width: max-content");
   assert.match(block, /max-width:\s*calc\(100vw\s*-\s*24px\);/, "toast specifies max-width constraint");
 });
-

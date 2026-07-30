@@ -2,13 +2,15 @@
 
 import { ChevronLeft, X, History } from "lucide-react";
 import { AlertHistoryTimeline } from "./AlertHistoryTimeline";
+import type { NetworkId } from "../app/regional-data";
 
 type Props = {
   onBack: () => void;
   onClose: () => void;
+  network: NetworkId;
 };
 
-export function AlertHistoryPanel({ onBack, onClose }: Props) {
+export function AlertHistoryPanel({ onBack, onClose, network }: Props) {
   return (
     <section className="alert-history-panel panel min-w-0 border border-black/10 dark:border-white/10 rounded-lg shadow-xl" aria-label="Alert history panel">
       <div className="panel-heading @container border-b border-black/10 dark:border-white/10 px-4 py-3 flex items-center justify-between gap-3 min-w-0">
@@ -39,7 +41,7 @@ export function AlertHistoryPanel({ onBack, onClose }: Props) {
       </div>
 
       <div className="notification-settings-scroll">
-        <AlertHistoryTimeline />
+        <AlertHistoryTimeline network={network} />
       </div>
     </section>
   );

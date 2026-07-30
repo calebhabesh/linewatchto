@@ -17,8 +17,8 @@ import {
 } from "../app/station-arrivals";
 import { getStationDetail, type StationDataResult, type StationDetail, type StationSummary } from "../app/station-data";
 import { stationImpactKindsByStation, stationImpactSelection, stationImpactSelectionsByStation } from "../app/station-impact-types";
-import { useDashboardData } from "../app/DataContext";
-import { REGIONAL_ROUTE_DEFINITIONS } from "../app/regional-data";
+import { DataProvider, useDashboardData, type DashboardData } from "../app/DataContext";
+import { REGIONAL_ROUTE_DEFINITIONS, type NetworkId } from "../app/regional-data";
 import { useSubwayOperatingState } from "../hooks/useSubwayOperatingState";
 import { ToolbarSelectMenu, type ToolbarSelectOption } from "./ImpactListToolbar";
 import { ImpactTypeIcon } from "./ImpactTypeIcon";
@@ -29,15 +29,17 @@ import { StationOutageBadge } from "./StationOutageBadge";
 type Props = {
   accountState?: AccountState;
   savedStations: AccountSavedStation[];
-  stations: StationSummary[];
+  stationCatalogs: Record<NetworkId, StationSummary[]>;
+  dashboards: Record<NetworkId, DashboardData>;
+  activeNetwork: NetworkId;
   loading: boolean;
   error: string | null;
   pendingStationIds: Set<string>;
-  onSave: (stationId: string) => Promise<boolean>;
-  onRemove: (stationId: string) => Promise<boolean>;
-  onSelectStation: (stationId: string) => void;
-  onSelectImpactDetails: (selection: NonNullable<ImpactSelection>) => void;
-  onSelectAccessibilityOutageDetails: (assetType: "elevator" | "escalator", stationId: string) => void;
+  onSave: (stationId: string, networkId: NetworkId) => Promise<boolean>;
+  onRemove: (stationId: string, networkId: NetworkId) => Promise<boolean>;
+  onSelectStation: (stationId: string, networkId: NetworkId) => void;
+  onSelectImpactDetails: (selection: NonNullable<ImpactSelection>, networkId: NetworkId) => void;
+  onSelectAccessibilityOutageDetails: (assetType: "elevator" | "escalator", stationId: string, networkId: NetworkId) => void;
   expandedDisruptionStationIds: Set<string>;
   onDisruptionExpandedChange: (stationId: string, expanded: boolean) => void;
   onRetry: () => void;
@@ -46,6 +48,18 @@ type Props = {
   onRequestSignIn?: () => void;
   onRequestCreateAccount?: () => void;
 };
+
+type AccountNetworkFilter = "all" | NetworkId;
+
+const ACCOUNT_NETWORK_OPTIONS: Array<{ value: AccountNetworkFilter; label: string }> = [
+  { value: "all", label: "All" },
+  { value: "ttc", label: "TTC" },
+  { value: "regional", label: "GO & UP" },
+];
+
+function AccountNetworkBadge({ networkId }: { networkId: NetworkId }) {
+  return <span className={`account-network-badge ${networkId}`}>{networkId === "regional" ? "GO & UP" : "TTC"}</span>;
+}
 
 const LINES = [
   { id: "line-1", number: "1", name: "Yonge-University", color: "#F8C300", text: "#111827" },
@@ -259,6 +273,7 @@ function SavedStationRow({
           <span className="my-stations-row-copy">
             <span className="my-stations-row-heading">
               <strong>{saved.station.name}</strong>
+              <AccountNetworkBadge networkId={saved.networkId} />
               <StationLineBadges lineIds={saved.station.lineIds} />
             </span>
           </span>
@@ -434,7 +449,9 @@ function SavedStationRow({
 export function MyStationsPanel({
   accountState,
   savedStations,
-  stations,
+  stationCatalogs,
+  dashboards,
+  activeNetwork,
   loading,
   error,
   pendingStationIds,
@@ -452,38 +469,57 @@ export function MyStationsPanel({
   onRequestCreateAccount,
 }: Props) {
   const authenticated = accountState ? accountState.authenticated : true;
-  const dashboardData = useDashboardData();
   const [mode, setMode] = useState<"list" | "add">("list");
   const [query, setQuery] = useState("");
   const [lineId, setLineId] = useState("all");
+  const [networkFilter, setNetworkFilter] = useState<AccountNetworkFilter>("all");
   const [sort, setSort] = useState<SavedStationSort>("attention");
   const [lastRemoved, setLastRemoved] = useState<{ saved: AccountSavedStation; index: number } | null>(null);
   const [stationDetails, setStationDetails] = useState<Record<string, StationDataResult<StationDetail | null>>>({});
   const [arrivalTick, setArrivalTick] = useState(() => Date.now());
   const subwayOperatingState = useSubwayOperatingState();
   const modeButtonRef = useRef<HTMLButtonElement>(null);
-  const savedIds = useMemo(() => new Set(savedStations.map((saved) => saved.station.id)), [savedStations]);
+  const savedIds = useMemo(
+    () => new Set(savedStations.map((saved) => `${saved.networkId}:${saved.station.id}`)),
+    [savedStations],
+  );
   const stationImpactKinds = useMemo(
-    () => stationImpactKindsByStation(dashboardData),
-    [dashboardData],
+    () => ({
+      ttc: stationImpactKindsByStation(dashboards.ttc),
+      regional: stationImpactKindsByStation(dashboards.regional),
+    }),
+    [dashboards.ttc, dashboards.regional],
   );
   const stationImpactSelections = useMemo(
-    () => stationImpactSelectionsByStation(dashboardData),
-    [dashboardData],
+    () => ({
+      ttc: stationImpactSelectionsByStation(dashboards.ttc),
+      regional: stationImpactSelectionsByStation(dashboards.regional),
+    }),
+    [dashboards.ttc, dashboards.regional],
+  );
+  const pickerNetworks = useMemo<NetworkId[]>(
+    () => networkFilter === "all" ? ["ttc", "regional"] : [networkFilter],
+    [networkFilter],
+  );
+  const pickerCatalog = useMemo(
+    () => pickerNetworks.flatMap((networkId) => stationCatalogs[networkId].map((station) => ({ networkId, station }))),
+    [pickerNetworks, stationCatalogs],
   );
   const availableLines = useMemo(
-    () => LINES.filter((line) => stations.some((station) => station.lineIds.includes(line.id))),
-    [stations],
+    () => LINES.filter((line) => pickerCatalog.some(({ station }) => station.lineIds.includes(line.id))),
+    [pickerCatalog],
   );
   const lineOptions = useMemo<ToolbarSelectOption<string>[]>(() => [
     { value: "all", label: "All Lines" },
     ...availableLines.map((line) => ({ value: line.id, label: line.name, lineId: line.id })),
   ], [availableLines]);
   const savedStationsWithRouteImpacts = useMemo(
-    () => savedStations.map((saved) => stationImpactSelections.has(saved.station.id)
+    () => savedStations
+      .filter((saved) => networkFilter === "all" || saved.networkId === networkFilter)
+      .map((saved) => stationImpactSelections[saved.networkId].has(saved.station.id)
       ? { ...saved, station: { ...saved.station, hasActiveImpact: true } }
       : saved),
-    [savedStations, stationImpactSelections],
+    [networkFilter, savedStations, stationImpactSelections],
   );
   const visible = useMemo(
     () => filterAndSortSavedStations(savedStationsWithRouteImpacts, query, lineId, sort),
@@ -491,41 +527,51 @@ export function MyStationsPanel({
   );
   const pickerStations = useMemo(() => {
     const needle = query.trim().toLocaleLowerCase("en-CA");
-    return stations
-      .filter((station) => !needle || station.name.toLocaleLowerCase("en-CA").includes(needle))
-      .filter((station) => lineId === "all" || station.lineIds.includes(lineId))
+    return pickerCatalog
+      .filter(({ station }) => !needle || station.name.toLocaleLowerCase("en-CA").includes(needle))
+      .filter(({ station }) => lineId === "all" || station.lineIds.includes(lineId))
       .slice()
-      .sort((left, right) => left.name.localeCompare(right.name, "en-CA"));
-  }, [lineId, query, stations]);
+      .sort((left, right) => left.station.name.localeCompare(right.station.name, "en-CA"));
+  }, [lineId, pickerCatalog, query]);
   const pickerGroups = useMemo(() => {
     if (query.trim()) {
-      return [{ id: "search-results", label: "Search Results", line: null, stations: pickerStations }];
+      return pickerNetworks.map((networkId) => ({
+        id: `${networkId}-search-results`,
+        label: `${networkId === "regional" ? "GO & UP" : "TTC"} Search Results`,
+        line: null,
+        networkId,
+        stations: pickerStations.filter((entry) => entry.networkId === networkId).map((entry) => entry.station),
+      })).filter((group) => group.stations.length > 0);
     }
 
-    return availableLines
-      .filter((line) => lineId === "all" || line.id === lineId)
+    return pickerNetworks.flatMap((networkId) => availableLines
+      .filter((line) => (lineId === "all" || line.id === lineId)
+        && stationCatalogs[networkId].some((station) => station.lineIds.includes(line.id)))
       .map((line) => ({
-        id: line.id,
-        label: `Line ${line.number} ${line.name}`,
+        id: `${networkId}-${line.id}`,
+        label: `${networkId === "regional" ? "GO & UP" : "TTC"} · ${line.name}`,
         line,
-        stations: pickerStations.filter((station) => station.lineIds.includes(line.id)),
-      }))
+        networkId,
+        stations: pickerStations
+          .filter((entry) => entry.networkId === networkId && entry.station.lineIds.includes(line.id))
+          .map((entry) => entry.station),
+      })))
       .filter((group) => group.stations.length > 0);
-  }, [availableLines, lineId, pickerStations, query]);
+  }, [availableLines, lineId, pickerNetworks, pickerStations, query, stationCatalogs]);
   const compactEmpty = authenticated && mode === "list" && !loading && !error && savedStations.length === 0;
 
-  const visibleStationIds = useMemo(
-    () => visible.map((saved) => saved.station.id).join(","),
+  const visibleTtcStationIds = useMemo(
+    () => [...new Set(visible.filter((saved) => saved.networkId === "ttc").map((saved) => saved.station.id))].join(","),
     [visible],
   );
 
   useEffect(() => {
-    if (dashboardData.networkId === "regional" || mode !== "list" || !visibleStationIds) return;
+    if (mode !== "list" || !visibleTtcStationIds) return;
     let cancelled = false;
-    const stationIds = visibleStationIds.split(",");
+    const stationIds = visibleTtcStationIds.split(",");
 
     const refresh = async () => {
-      const results = await Promise.all(stationIds.map(async (stationId) => [stationId, await getStationDetail(stationId)] as const));
+      const results = await Promise.all(stationIds.map(async (stationId) => [`ttc:${stationId}`, await getStationDetail(stationId)] as const));
       if (!cancelled) {
         setStationDetails((current) => ({ ...current, ...Object.fromEntries(results) }));
       }
@@ -545,7 +591,7 @@ export function MyStationsPanel({
       window.clearInterval(interval);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, [dashboardData.networkId, mode, visibleStationIds]);
+  }, [mode, visibleTtcStationIds]);
 
   useEffect(() => {
     const interval = window.setInterval(() => setArrivalTick(Date.now()), 3_000);
@@ -554,14 +600,14 @@ export function MyStationsPanel({
 
   async function remove(saved: AccountSavedStation, index: number) {
     setLastRemoved({ saved, index });
-    if (!(await onRemove(saved.station.id))) {
+    if (!(await onRemove(saved.station.id, saved.networkId))) {
       setLastRemoved((current) => current?.saved.station.id === saved.station.id ? null : current);
     }
   }
 
   async function undoRemove() {
     if (!lastRemoved) return;
-    const restored = await onSave(lastRemoved.saved.station.id);
+    const restored = await onSave(lastRemoved.saved.station.id, lastRemoved.saved.networkId);
     if (restored) setLastRemoved(null);
   }
 
@@ -676,6 +722,7 @@ export function MyStationsPanel({
                   setMode("add");
                   setQuery("");
                   setLineId("all");
+                  setNetworkFilter(activeNetwork);
                 }
               }}
               aria-label={mode === "list" ? "Add Station" : "Done adding stations"}
@@ -690,6 +737,21 @@ export function MyStationsPanel({
                 ) : <span>Done</span>}
               </span>
             </button>
+          </div>
+          <div className="account-network-filter" role="group" aria-label="Filter My Stations by network">
+            {ACCOUNT_NETWORK_OPTIONS.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                aria-pressed={networkFilter === option.value}
+                onClick={() => {
+                  setNetworkFilter(option.value);
+                  setLineId("all");
+                }}
+              >
+                {option.label}
+              </button>
+            ))}
           </div>
           <div className="my-stations-selects">
             <ToolbarSelectMenu
@@ -730,22 +792,23 @@ export function MyStationsPanel({
                     <TransitLineBadge lineId={group.line.id} lineNumber={group.line.number} lineName={group.line.name} size={28} className="my-stations-picker-line-number" />
                   ) : null}
                   <span>{group.label}</span>
+                  <AccountNetworkBadge networkId={group.networkId} />
                   <span className="my-stations-picker-section-count">{group.stations.length}</span>
                 </h3>
                 <div className="my-stations-picker-section-rows">
                   {group.stations.map((station) => {
-                    const saved = savedIds.has(station.id);
+                    const saved = savedIds.has(`${group.networkId}:${station.id}`);
                     const pending = pendingStationIds.has(station.id);
                     return (
                       <div className="my-stations-picker-row" key={`${group.id}-${station.id}`}>
                         <span className="my-stations-row-copy">
                           <span className="my-stations-row-heading"><strong>{station.name}</strong><StationLineBadges lineIds={station.lineIds} /></span>
-                          <PickerStationConditions station={station} impactKinds={stationImpactKinds.get(station.id) ?? []} />
+                          <PickerStationConditions station={station} impactKinds={stationImpactKinds[group.networkId].get(station.id) ?? []} />
                         </span>
                         <button
                           type="button"
                           className={`my-stations-picker-action${saved ? " saved" : ""}`}
-                          onClick={() => saved ? void onRemove(station.id) : void onSave(station.id)}
+                          onClick={() => saved ? void onRemove(station.id, group.networkId) : void onSave(station.id, group.networkId)}
                           disabled={pending}
                           aria-pressed={saved}
                           aria-label={saved ? `Remove ${station.name} from My Stations` : `Save ${station.name} to My Stations`}
@@ -781,7 +844,7 @@ export function MyStationsPanel({
         ) : (
           <div className="my-stations-list" aria-label="Saved stations">
             {visible.map((saved, index) => (
-              <div className="saved-station-list-slot" key={saved.station.id}>
+              <div className="saved-station-list-slot" key={`${saved.networkId}:${saved.station.id}`}>
                 {lastRemoved?.index === index ? (
                   <div className="saved-station-inline-undo" role="status">
                     <span>{lastRemoved.saved.station.name} Removed</span>
@@ -789,21 +852,23 @@ export function MyStationsPanel({
                     <button type="button" onClick={() => setLastRemoved(null)} aria-label="Dismiss undo"><X size={15} /></button>
                   </div>
                 ) : null}
-                <SavedStationRow
-                  saved={saved}
-                  detailResult={stationDetails[saved.station.id]}
-                  subwayClosed={subwayOperatingState.status === "closed"}
-                  regional={dashboardData.networkId === "regional"}
-                  routeImpactSelections={stationImpactSelections.get(saved.station.id) ?? []}
-                  arrivalTick={arrivalTick}
-                  pending={pendingStationIds.has(saved.station.id)}
-                  onOpen={() => onSelectStation(saved.station.id)}
-                  onSelectImpactDetails={onSelectImpactDetails}
-                  onSelectAccessibilityOutageDetails={onSelectAccessibilityOutageDetails}
-                  disruptionExpanded={expandedDisruptionStationIds.has(saved.station.id)}
-                  onDisruptionExpandedChange={(expanded) => onDisruptionExpandedChange(saved.station.id, expanded)}
-                  onRemove={() => void remove(saved, index)}
-                />
+                <DataProvider data={dashboards[saved.networkId]}>
+                  <SavedStationRow
+                    saved={saved}
+                    detailResult={stationDetails[`${saved.networkId}:${saved.station.id}`]}
+                    subwayClosed={saved.networkId === "ttc" && subwayOperatingState.status === "closed"}
+                    regional={saved.networkId === "regional"}
+                    routeImpactSelections={stationImpactSelections[saved.networkId].get(saved.station.id) ?? []}
+                    arrivalTick={arrivalTick}
+                    pending={pendingStationIds.has(saved.station.id)}
+                    onOpen={() => onSelectStation(saved.station.id, saved.networkId)}
+                    onSelectImpactDetails={(selection) => onSelectImpactDetails(selection, saved.networkId)}
+                    onSelectAccessibilityOutageDetails={(assetType, stationId) => onSelectAccessibilityOutageDetails(assetType, stationId, saved.networkId)}
+                    disruptionExpanded={expandedDisruptionStationIds.has(`${saved.networkId}:${saved.station.id}`)}
+                    onDisruptionExpandedChange={(expanded) => onDisruptionExpandedChange(`${saved.networkId}:${saved.station.id}`, expanded)}
+                    onRemove={() => void remove(saved, index)}
+                  />
+                </DataProvider>
               </div>
             ))}
             {lastRemoved && lastRemoved.index >= visible.length ? (

@@ -293,13 +293,66 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
   inset: 0;
 }
 
-/* Regional alerts combine CSS effects with SVG animateMotion glyphs. Freeze
-   their current visual frame while the camera moves so the browser can
-   composite one stable map layer instead of repainting the SVG every frame. */
-.regional-map-camera-moving .regional-map-stage *,
-.regional-map[data-regional-map-camera-moving="true"] .regional-map-stage * {
-  animation-play-state: paused !important;
+/* Keep the large authored SVG in its normal paint layer. Promoting and then
+   demoting it at every pan/zoom invalidates Chromium's SVG tiles and is the
+   source of the most visible route redraws. Motion only simplifies the small,
+   refresh-owned effect layers; the rail/station/label artwork stays untouched. */
+.regional-map-camera-moving .regional-map-stage :is(
+  .regional-impact-aura,
+  .regional-impact-path,
+  .regional-impact-interactive-glow,
+  .regional-impact-glow,
+  .regional-delay-glyph,
+  .regional-suspension-glyph,
+  .regional-chevron-glyph,
+  .regional-planned-closure-glyph,
+  .regional-station-selected-indicator,
+  .regional-station-impact-ring,
+  .regional-station-impact-beacon-group,
+  .station-impact-dot-red-glow,
+  .station-impact-dot-red-ping,
+  .commute-path-preview-glow,
+  .commute-path-preview-path,
+  .estimated-train-marker
+),
+.regional-map[data-regional-map-camera-moving="true"] .regional-map-stage :is(
+  .regional-impact-aura,
+  .regional-impact-path,
+  .regional-impact-interactive-glow,
+  .regional-impact-glow,
+  .regional-delay-glyph,
+  .regional-suspension-glyph,
+  .regional-chevron-glyph,
+  .regional-planned-closure-glyph,
+  .regional-station-selected-indicator,
+  .regional-station-impact-ring,
+  .regional-station-impact-beacon-group,
+  .station-impact-dot-red-glow,
+  .station-impact-dot-red-ping,
+  .commute-path-preview-glow,
+  .commute-path-preview-path,
+  .estimated-train-marker
+) {
+  animation: none !important;
+  filter: none !important;
   transition: none !important;
+}
+
+/* SMIL motion is not controlled by CSS animation state. Hide only its glyph
+   lanes while the camera changes, leaving the alert rail itself visible. */
+.regional-map-camera-moving .regional-map-stage :is(
+  .regional-delay-glyph-lane,
+  .regional-suspension-glyph-lane,
+  .regional-chevron-glyph-lane,
+  .regional-planned-closure-glyph-lane
+),
+.regional-map[data-regional-map-camera-moving="true"] .regional-map-stage :is(
+  .regional-delay-glyph-lane,
+  .regional-suspension-glyph-lane,
+  .regional-chevron-glyph-lane,
+  .regional-planned-closure-glyph-lane
+) {
+  display: none !important;
 }
 
 .regional-map-stage > svg,
@@ -307,6 +360,16 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
   display: block;
   width: 100%;
   height: 100%;
+  shape-rendering: geometricPrecision;
+  text-rendering: geometricPrecision;
+}
+
+.regional-map-camera-moving .regional-map-stage > svg,
+.regional-map-camera-moving .regional-map-stage > div > svg,
+.regional-map[data-regional-map-camera-moving="true"] .regional-map-stage > svg,
+.regional-map[data-regional-map-camera-moving="true"] .regional-map-stage > div > svg {
+  shape-rendering: auto;
+  text-rendering: optimizeLegibility;
 }
 
 .regional-map-stage #regional-station-labels-layer :is(text, tspan) {
@@ -17015,6 +17078,8 @@ img.transit-line-badge {
 }
 
 .map-gesture-active .ttc-svg-container svg,
+.map-gesture-active .regional-map-stage > svg,
+.map-gesture-active .regional-map-stage > div > svg,
 .map-gesture-active .asset-alert-path,
 .map-gesture-active .asset-alert-path-glow {
   shape-rendering: auto;
@@ -20172,4 +20237,79 @@ img.transit-line-badge {
     scroll-behavior: auto !important;
     transition: none !important;
   }
+}
+/* Account-owned stations and commutes stay visible across both map modes. */
+.account-network-filter {
+  align-items: center;
+  background: rgb(241 245 249 / 0.8);
+  border: 1px solid rgb(148 163 184 / 0.22);
+  border-radius: 7px;
+  display: grid;
+  gap: 3px;
+  grid-auto-columns: 1fr;
+  grid-auto-flow: column;
+  padding: 3px;
+}
+
+.dark .account-network-filter {
+  background: rgb(15 23 42 / 0.72);
+  border-color: rgb(255 255 255 / 0.1);
+}
+
+.account-network-filter button {
+  border-radius: 5px;
+  color: rgb(71 85 105);
+  font-size: 0.7rem;
+  font-weight: 800;
+  min-height: 34px;
+  padding: 0.35rem 0.65rem;
+  transition: background-color 150ms ease, color 150ms ease, box-shadow 150ms ease;
+}
+
+.dark .account-network-filter button {
+  color: rgb(148 163 184);
+}
+
+.account-network-filter button[aria-pressed="true"] {
+  background: white;
+  box-shadow: 0 1px 3px rgb(15 23 42 / 0.14);
+  color: rgb(15 23 42);
+}
+
+.dark .account-network-filter button[aria-pressed="true"] {
+  background: rgb(30 41 59);
+  color: white;
+}
+
+.account-network-badge {
+  align-items: center;
+  border: 1px solid currentColor;
+  border-radius: 4px;
+  display: inline-flex;
+  flex: 0 0 auto;
+  font-size: 0.58rem;
+  font-weight: 850;
+  letter-spacing: 0.055em;
+  line-height: 1;
+  min-height: 19px;
+  padding: 0.22rem 0.38rem;
+  text-transform: uppercase;
+}
+
+.account-network-badge.ttc {
+  background: rgb(71 85 105 / 0.09);
+  color: rgb(71 85 105);
+}
+
+.account-network-badge.regional {
+  background: rgb(5 150 105 / 0.09);
+  color: rgb(4 120 87);
+}
+
+.dark .account-network-badge.ttc {
+  color: rgb(203 213 225);
+}
+
+.dark .account-network-badge.regional {
+  color: rgb(110 231 183);
 }

@@ -36,7 +36,7 @@ describe("regional estimated train marker rendering", () => {
     assert.doesNotMatch(regionalMapSource, /markerLayer\.replaceChildren\(\)/);
     assert.match(
       regionalMapSource,
-      /\}, \[activeAlerts, commutePathPreview, delays, networkSegments, plannedClosures, reducedMotion, reducedSpeedZones, stationNodeImpacts\]\);/,
+      /\}, \[estimatedTrainMarkers, estimatedTrainsEnabled, networkSegments, svgMarkup\]\);/,
     );
     assert.doesNotMatch(
       regionalMapSource,

@@ -8,11 +8,22 @@ const regionalMapSource = readFileSync(new URL("../src/components/InteractiveReg
 const accountDataSource = readFileSync(new URL("../src/app/account-data.ts", import.meta.url), "utf8");
 
 describe("regional My Commutes UI boundary", () => {
-  it("scopes route lists, counts, and creation to the selected network", () => {
+  it("shows an account-wide route list while keeping route creation network-specific", () => {
     assert.match(shellSource, /networkId=\{selectedNetwork\}/);
-    assert.match(panelSource, /commute\.networkId \?\? "ttc"\) === networkId/);
-    assert.match(panelSource, /networkId,\s*originStationId/);
+    assert.match(panelSource, /type AccountNetworkFilter = "all" \| NetworkId/);
+    assert.match(panelSource, /accountCommutes\.filter\([\s\S]*networkFilter === "all"/);
+    assert.doesNotMatch(panelSource, /const networkCommutes/);
+    assert.match(panelSource, /networkId: draftNetworkId,\s*originStationId/);
+    assert.match(panelSource, /stationCatalogs\[draftNetworkId\]/);
+    assert.match(panelSource, /aria-label="Filter My Commutes by network"/);
+    assert.match(panelSource, /GO & UP/);
     assert.match(accountDataSource, /networkId\?: NetworkId/);
+  });
+
+  it("switches to a commute's network before opening its map path or impact", () => {
+    assert.match(shellSource, /const commuteNetwork = commute\.networkId \?\? "ttc"/);
+    assert.match(shellSource, /setSelectedNetwork\(commuteNetwork\)/);
+    assert.match(panelSource, /account-network-badge/);
   });
 
   it("supports route review and endpoint, label, and return-leg editing", () => {

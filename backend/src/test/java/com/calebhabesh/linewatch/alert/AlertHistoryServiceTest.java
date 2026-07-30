@@ -3,6 +3,7 @@ package com.calebhabesh.linewatch.alert;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.verify;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -68,6 +69,37 @@ class AlertHistoryServiceTest {
 
         assertThat(service.history("7d", 300).period()).isEqualTo("7d");
         assertThat(service.history("30d", 300).period()).isEqualTo("30d");
+    }
+
+    @Test
+    void readsRegionalSnapshotsAndAddsGoCorridorIdentity() {
+        when(repository.findRegionalLifecycleRows(
+            OffsetDateTime.parse("2026-06-23T00:00:00-04:00"),
+            OffsetDateTime.parse("2026-06-23T12:30:00-04:00"),
+            300
+        )).thenReturn(List.of(
+            new AlertHistoryRepository.AlertHistoryRow(
+                1L, "regional-alert-1", "source-1", "regional-le", null, null,
+                "Lakeshore East service adjustment", "Trains are delayed between stations.",
+                OffsetDateTime.parse("2026-06-23T12:05:00-04:00"), true,
+                OffsetDateTime.parse("2026-06-23T12:05:00-04:00"), "delay", "metrolinx-go-service-alerts",
+                "delay", "union", "pickering", null, "operational issue", null, "opened"
+            )
+        ));
+
+        AlertHistoryResponses.AlertHistoryResponse response = service.history("regional", "today", 300);
+
+        assertThat(response.incidents()).singleElement().satisfies(incident -> {
+            assertThat(incident.lineNumber()).isEqualTo("LE");
+            assertThat(incident.lineName()).isEqualTo("Lakeshore East");
+            assertThat(incident.location()).isEqualTo("Union to Pickering");
+            assertThat(incident.source()).isEqualTo("Metrolinx Open API");
+        });
+        verify(repository).findRegionalLifecycleRows(
+            OffsetDateTime.parse("2026-06-23T00:00:00-04:00"),
+            OffsetDateTime.parse("2026-06-23T12:30:00-04:00"),
+            300
+        );
     }
 
     @Test

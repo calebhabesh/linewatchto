@@ -797,10 +797,8 @@ export function LineWatchShell({
   }, [notificationStatusLabel]);
 
   const { clear: commuteClearCount, affectedNow: commuteAffectedCount } = useMemo(
-    () => summarizeSavedCommuteStatuses(
-      accountCommutes.filter((commute) => (commute.networkId ?? "ttc") === selectedNetwork)
-    ),
-    [accountCommutes, selectedNetwork]
+    () => summarizeSavedCommuteStatuses(accountCommutes),
+    [accountCommutes]
   );
 
   useEffect(() => {
@@ -1378,6 +1376,12 @@ export function LineWatchShell({
     const preview = commutePathPreviewFromCommute(commute, legId);
     if (!preview) return;
 
+    const commuteNetwork = commute.networkId ?? "ttc";
+    if (commuteNetwork !== selectedNetwork) {
+      setClosedScreenAcknowledged(true);
+      setClosedMapPeek(true);
+      setSelectedNetwork(commuteNetwork);
+    }
     setCommutePathPreview(preview);
     setSelection(null);
     setSelectedStationId(null);
@@ -1392,12 +1396,19 @@ export function LineWatchShell({
     const preview = commutePathPreviewFromCommute(commute, legId);
     if (!preview) return;
 
+    const commuteNetwork = commute.networkId ?? "ttc";
+    const commuteDashboard = commuteNetwork === "regional" ? regionalData : ttcData;
+    if (commuteNetwork !== selectedNetwork) {
+      setClosedScreenAcknowledged(true);
+      setClosedMapPeek(true);
+      setSelectedNetwork(commuteNetwork);
+    }
     const impactSelection = { kind: impact.kind, id: impact.id } satisfies NonNullable<ImpactSelection>;
     setCommutePathPreview(preview);
     setSelection(impactSelection);
     setSelectedStationId(null);
     setMobileInspectorDetent("details-focus");
-    setActiveView(isMobile ? "map" : viewForSavedCommuteImpact(impact, activeAlerts));
+    setActiveView(isMobile ? "map" : viewForSavedCommuteImpact(impact, commuteDashboard.activeAlerts));
   };
 
   const handleClearCommutePathPreview = useCallback((commuteIdOrEvent?: string | unknown) => {
@@ -1860,24 +1871,43 @@ export function LineWatchShell({
     navigateForward("surface-notices");
   }, [navigateForward]);
 
-  const handleMyStationsSelectImpactDetails = useCallback((nextSelection: NonNullable<ImpactSelection>) => {
+  const handleMyStationsSelectImpactDetails = useCallback((
+    nextSelection: NonNullable<ImpactSelection>,
+    networkId: NetworkId,
+  ) => {
+    const targetDashboard = networkId === "regional" ? regionalData : ttcData;
+    if (networkId !== selectedNetwork) {
+      setClosedScreenAcknowledged(true);
+      setClosedMapPeek(true);
+      setSelectedNetwork(networkId);
+    }
     setSelectedStationId(null);
     setCommutePathPreview(null);
     setSelection(nextSelection);
     setMobileInspectorDetent("details-focus");
-    navigateForward(viewForImpactSelection(nextSelection));
-  }, [navigateForward, setCommutePathPreview, setMobileInspectorDetent, setSelectedStationId, setSelection, viewForImpactSelection]);
+    const targetView = nextSelection.kind === "planned-closure"
+      && targetDashboard.activeAlerts.some((alert) => alert.id === nextSelection.id)
+      ? "alerts"
+      : viewForImpactKind(nextSelection.kind);
+    navigateForward(targetView);
+  }, [navigateForward, regionalData, selectedNetwork, setCommutePathPreview, setMobileInspectorDetent, setSelectedStationId, setSelection, ttcData, viewForImpactKind]);
 
   const handleMyStationsSelectAccessibilityOutageDetails = useCallback((
     assetType: AccessibilityOutageTarget["assetType"],
     stationId: string,
+    networkId: NetworkId,
   ) => {
+    if (networkId !== selectedNetwork) {
+      setClosedScreenAcknowledged(true);
+      setClosedMapPeek(true);
+      setSelectedNetwork(networkId);
+    }
     setSelection(null);
     setSelectedStationId(null);
     setCommutePathPreview(null);
     setAccessibilityOutageTarget({ assetType, stationId });
     navigateForward("accessibility-outages");
-  }, [navigateForward, setCommutePathPreview, setSelectedStationId, setSelection]);
+  }, [navigateForward, selectedNetwork, setCommutePathPreview, setSelectedStationId, setSelection]);
 
   const handleMyStationsDisruptionExpandedChange = useCallback((stationId: string, expanded: boolean) => {
     setExpandedMyStationDisruptionIds((current) => {
@@ -2129,7 +2159,7 @@ export function LineWatchShell({
             accountState={accountState}
             accountCommutes={accountCommutes}
             setAccountCommutes={setAccountCommutes}
-            stationSummaries={stationSummaries}
+            stationCatalogs={stationCatalogs}
             networkId={selectedNetwork}
             viewedCommuteId={commutePathPreview?.id ?? null}
             onViewPath={handleViewCommutePath}
@@ -2149,16 +2179,16 @@ export function LineWatchShell({
         return (
           <MyStationsPanel
             accountState={accountState}
-            savedStations={currentSavedStations}
-            stations={stationSummaries}
+            savedStations={savedStations}
+            stationCatalogs={stationCatalogs}
+            dashboards={{ ttc: ttcData, regional: regionalData }}
+            activeNetwork={selectedNetwork}
             loading={savedStationsLoading}
             error={savedStationsError}
             pendingStationIds={pendingSavedStationIds}
             onSave={handleSaveStation}
             onRemove={handleRemoveSavedStation}
-            onSelectStation={(stationId) => {
-              handleSelectStationId(stationId);
-            }}
+            onSelectStation={handleSearchSelectStation}
             onSelectImpactDetails={handleMyStationsSelectImpactDetails}
             onSelectAccessibilityOutageDetails={handleMyStationsSelectAccessibilityOutageDetails}
             expandedDisruptionStationIds={expandedMyStationDisruptionIds}
@@ -2230,7 +2260,7 @@ export function LineWatchShell({
             onOpenNotifications={() => navigateForward("notifications")}
             onOpenCommutes={() => navigateForward("commutes")}
             onOpenMyStations={() => navigateForward("my-stations")}
-            savedStationCount={currentSavedStations.length}
+            savedStationCount={savedStations.length}
             defaultNetwork={defaultNetworkPreference}
             currentNetwork={selectedNetwork}
             onDefaultNetworkChange={handleDefaultNetworkChange}
@@ -2284,6 +2314,7 @@ export function LineWatchShell({
           <AlertHistoryPanel
             onBack={handleSubmenuBack}
             onClose={handleClosePanel}
+            network={selectedNetwork}
           />
         );
       default:
@@ -2618,9 +2649,9 @@ export function LineWatchShell({
                           <Bookmark size={18} className="text-slate-500 dark:text-slate-400" />
                           My Stations
                         </span>
-                        {currentSavedStations.length > 0 ? (
-                          <span className="flex h-6 min-w-6 items-center justify-center rounded-full bg-sky-500/15 px-2 text-[11px] font-bold text-sky-700 dark:text-sky-300" aria-label={`${currentSavedStations.length} saved stations`}>
-                            {currentSavedStations.length}
+                        {savedStations.length > 0 ? (
+                          <span className="flex h-6 min-w-6 items-center justify-center rounded-full bg-sky-500/15 px-2 text-[11px] font-bold text-sky-700 dark:text-sky-300" aria-label={`${savedStations.length} saved stations`}>
+                            {savedStations.length}
                           </span>
                         ) : null}
                       </button>
@@ -2691,9 +2722,9 @@ export function LineWatchShell({
                           <Bookmark size={18} className="text-slate-500 dark:text-slate-400" />
                           My Stations
                         </span>
-                        {currentSavedStations.length > 0 ? (
-                          <span className="flex h-6 min-w-6 items-center justify-center rounded-full bg-sky-500/15 px-2 text-[11px] font-bold text-sky-700 dark:text-sky-300" aria-label={`${currentSavedStations.length} saved stations`}>
-                            {currentSavedStations.length}
+                        {savedStations.length > 0 ? (
+                          <span className="flex h-6 min-w-6 items-center justify-center rounded-full bg-sky-500/15 px-2 text-[11px] font-bold text-sky-700 dark:text-sky-300" aria-label={`${savedStations.length} saved stations`}>
+                            {savedStations.length}
                           </span>
                         ) : null}
                       </button>
@@ -2834,12 +2865,12 @@ export function LineWatchShell({
                </div>
 
                {/* Notifications */}
-               {selectedNetwork === "ttc" ? <div className="flex flex-col px-2 py-2 border-b border-black/10 dark:border-white/10 gap-0.5">
+               <div className="flex flex-col px-2 py-2 border-b border-black/10 dark:border-white/10 gap-0.5">
                  <div className="flex items-center gap-2 px-3 pt-2 pb-1 select-none">
                    <span className="w-1 h-4 rounded-full bg-logo-blue shrink-0 shadow-[0_0_4px_rgba(129,201,255,0.35)]" />
                    <span className="text-[12px] uppercase font-bold text-slate-700 dark:text-slate-300 tracking-wider">Notifications</span>
                  </div>
-                 <button
+                 {selectedNetwork === "ttc" ? <button
                    ref={registerMenuAction(actionIndex++)}
                    role="menuitem"
                    onClick={() => navigateForward("notifications")}
@@ -2847,7 +2878,7 @@ export function LineWatchShell({
                    className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
                  >
                    <Bell size={18} className="text-slate-500 dark:text-slate-400" /> Notifications
-                 </button>
+                 </button> : null}
                  <button
                    ref={registerMenuAction(actionIndex++)}
                    role="menuitem"
@@ -2857,7 +2888,7 @@ export function LineWatchShell({
                  >
                    <History size={18} className="text-slate-500 dark:text-slate-400" /> Alert History
                  </button>
-               </div> : null}
+               </div>
 
                {/* Operations */}
                {selectedNetwork === "ttc" ? <div className="flex flex-col px-2 py-2 border-b border-black/10 dark:border-white/10 gap-0.5">

@@ -55,12 +55,33 @@ describe("alert history data adapter", () => {
       };
     };
 
-    const result = await getAlertHistory("today");
+    const result = await getAlertHistory("today", "ttc");
 
-    assert.equal(calls[0].url, "/api/alert-history?period=today&limit=5000");
+    assert.equal(calls[0].url, "/api/alert-history?period=today&network=ttc&limit=5000");
     assert.equal(calls[0].options.credentials, "include");
     assert.equal(result.source, "backend");
     assert.equal(result.data.incidents[0].durationMinutes, 15);
+  });
+
+  it("requests regional lifecycle history for GO/UP map mode", async () => {
+    const calls = [];
+    global.fetch = async (url) => {
+      calls.push(url);
+      return {
+        ok: true,
+        json: async () => ({
+          generatedAt: "2026-07-30T12:30:00-04:00",
+          period: "7d",
+          since: "2026-07-23T12:30:00-04:00",
+          until: "2026-07-30T12:30:00-04:00",
+          incidents: [],
+        }),
+      };
+    };
+
+    await getAlertHistory("7d", "regional");
+
+    assert.equal(calls[0], "/api/alert-history?period=7d&network=regional&limit=5000");
   });
 
   it("falls back to an empty history when the backend is unavailable", async () => {

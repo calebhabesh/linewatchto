@@ -99,7 +99,7 @@ interface Props {
   accountState: AccountState;
   accountCommutes: AccountSavedCommute[];
   setAccountCommutes: (commutes: AccountSavedCommute[]) => void;
-  stationSummaries: StationSummary[];
+  stationCatalogs: Record<NetworkId, StationSummary[]>;
   networkId: NetworkId;
   viewedCommuteId?: string | null;
   onViewPath: (commute: AccountSavedCommute, legId?: AccountCommuteLegId) => void;
@@ -115,6 +115,22 @@ interface Props {
   };
   activeView?: "create" | "saved";
   onActiveViewChange?: (view: "create" | "saved") => void;
+}
+
+type AccountNetworkFilter = "all" | NetworkId;
+
+const ACCOUNT_NETWORK_OPTIONS: Array<{ value: AccountNetworkFilter; label: string }> = [
+  { value: "all", label: "All" },
+  { value: "ttc", label: "TTC" },
+  { value: "regional", label: "GO & UP" },
+];
+
+function AccountNetworkBadge({ networkId }: { networkId: NetworkId }) {
+  return (
+    <span className={`account-network-badge ${networkId}`}>
+      {networkId === "regional" ? "GO & UP" : "TTC"}
+    </span>
+  );
 }
 
 function severityPriority(severity: AccountCommuteImpact["severity"]) {
@@ -711,7 +727,7 @@ export function SavedCommutesPanel({
   accountState,
   accountCommutes,
   setAccountCommutes,
-  stationSummaries,
+  stationCatalogs,
   networkId,
   viewedCommuteId,
   onViewPath,
@@ -750,6 +766,8 @@ export function SavedCommutesPanel({
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [toastKey, setToastKey] = useState(0);
   const [sortBy, setSortBy] = useState<SavedCommuteSort>("impact");
+  const [networkFilter, setNetworkFilter] = useState<AccountNetworkFilter>("all");
+  const [draftNetworkId, setDraftNetworkId] = useState<NetworkId>(networkId);
   const [sortDropdownOpen, setSortDropdownOpen] = useState(false);
   const sortDropdownRef = useRef<HTMLDivElement>(null);
   const deleteConfirmationRef = useRef<HTMLDivElement>(null);
@@ -805,27 +823,24 @@ export function SavedCommutesPanel({
     return () => window.cancelAnimationFrame(frame);
   }, [deletingCommuteId]);
 
-  const stationById = useMemo(() => {
-    return new Map(stationSummaries.map((station) => [station.id, station]));
-  }, [stationSummaries]);
-
-  const networkCommutes = useMemo(
-    () => accountCommutes.filter((commute) => (commute.networkId ?? "ttc") === networkId),
-    [accountCommutes, networkId]
+  const stationSummaries = stationCatalogs[draftNetworkId];
+  const visibleCommutes = useMemo(
+    () => accountCommutes.filter((commute) => networkFilter === "all" || (commute.networkId ?? "ttc") === networkFilter),
+    [accountCommutes, networkFilter]
   );
 
   const { clear: commuteClearCount, affectedNow: commuteAffectedCount } = useMemo(
-    () => summarizeSavedCommuteStatuses(networkCommutes),
-    [networkCommutes]
+    () => summarizeSavedCommuteStatuses(visibleCommutes),
+    [visibleCommutes]
   );
 
   const sortedCommutes = useMemo(
-    () => sortSavedCommutes(networkCommutes, sortBy),
-    [networkCommutes, sortBy]
+    () => sortSavedCommutes(visibleCommutes, sortBy),
+    [visibleCommutes, sortBy]
   );
 
-  function stationNameFor(stationId: string) {
-    return stationById.get(stationId)?.name ?? stationId;
+  function stationNameFor(stationId: string, commuteNetworkId: NetworkId) {
+    return stationCatalogs[commuteNetworkId].find((station) => station.id === stationId)?.name ?? stationId;
   }
 
   const resetRouteDraft = () => {
@@ -834,6 +849,14 @@ export function SavedCommutesPanel({
     setDestinationStationId("");
     setWatchReturnTrip(true);
     setEditingCommuteId(null);
+    setDraftNetworkId(networkId);
+  };
+
+  const startCreatingCommute = () => {
+    resetRouteDraft();
+    setDraftNetworkId(networkId);
+    setCommuteError(null);
+    setActiveView("create");
   };
 
   const handleSaveCommute = async () => {
@@ -856,7 +879,7 @@ export function SavedCommutesPanel({
         ? await updateSavedCommute(editingCommuteId, { label: newLabel, originStationId, destinationStationId, watchReturnTrip })
         : await createSavedCommute({
             label: newLabel,
-            networkId,
+            networkId: draftNetworkId,
             originStationId,
             destinationStationId,
             watchReturnTrip,
@@ -883,6 +906,7 @@ export function SavedCommutesPanel({
     setOriginStationId(commute.originStationId);
     setDestinationStationId(commute.destinationStationId);
     setWatchReturnTrip(commute.watchReturnTrip);
+    setDraftNetworkId(commute.networkId ?? "ttc");
     setCommuteError(null);
     setActiveView("create");
   };
@@ -1070,10 +1094,27 @@ export function SavedCommutesPanel({
               <div className="saved-commute-form">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <h3 className="text-sm font-bold text-slate-900 dark:text-white">{editingCommuteId ? "Edit Route" : "Create a Route"}</h3>
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                    {networkId === "regional" ? "GO & UP" : "TTC"}
-                  </span>
+                  <AccountNetworkBadge networkId={draftNetworkId} />
                 </div>
+                {!editingCommuteId ? (
+                  <div className="account-network-filter" role="group" aria-label="Choose commute network">
+                    {ACCOUNT_NETWORK_OPTIONS.slice(1).map((option) => (
+                      <button
+                        key={option.value}
+                        type="button"
+                        aria-pressed={draftNetworkId === option.value}
+                        onClick={() => {
+                          setDraftNetworkId(option.value as NetworkId);
+                          setOriginStationId("");
+                          setDestinationStationId("");
+                          setActivePicker(null);
+                        }}
+                      >
+                        {option.label}
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
                 <input value={newLabel} onChange={(event) => setNewLabel(event.target.value)} placeholder="Enter a Commute Label (e.g. Work)" aria-label="Commute label" />
                 <div className="saved-commute-station-grid">
                   <SavedCommuteStationPicker
@@ -1120,7 +1161,7 @@ export function SavedCommutesPanel({
                     <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${showNotificationSettings ? "rotate-180" : ""}`} />
                   </button> : null}
 
-                {networkId === "regional" ? (
+                {draftNetworkId === "regional" ? (
                   <p className="text-xs text-slate-500 dark:text-slate-400">
                     Travel times are low-confidence planning estimates. Notification matching uses only fresh dashboard-visible Metrolinx corridor, segment, and station impacts.
                   </p>
@@ -1168,20 +1209,32 @@ export function SavedCommutesPanel({
                 </div>
                 {commuteError ? <p className="text-xs font-semibold text-red-600 dark:text-red-300">{commuteError}</p> : null}
 
-                {networkId === "ttc" ? <SavedCommuteNotificationSummary
+                <SavedCommuteNotificationSummary
                     onOpenNotificationSettings={onOpenNotificationSettings}
                     notificationSummary={notificationSummary}
-                  /> : null}
+                  />
               </div>
             ) : (
               <div className={`flex flex-col gap-3 ${onBack ? "px-[6px] sm:px-[20px]" : ""}`}>
+                <div className="account-network-filter" role="group" aria-label="Filter My Commutes by network">
+                  {ACCOUNT_NETWORK_OPTIONS.map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      aria-pressed={networkFilter === option.value}
+                      onClick={() => setNetworkFilter(option.value)}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
                 <div className="saved-commute-list-toolbar flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between mb-1">
                   <div className="flex flex-col gap-1 min-w-0">
                     <div className="flex items-baseline gap-1.5">
                       <span className="text-base font-bold text-slate-800 dark:text-slate-100">Your Routes</span>
-                      <span className="text-sm font-semibold text-slate-500 dark:text-slate-400">({networkCommutes.length})</span>
+                      <span className="text-sm font-semibold text-slate-500 dark:text-slate-400">({visibleCommutes.length})</span>
                     </div>
-                    {networkCommutes.length > 0 && (
+                    {visibleCommutes.length > 0 && (
                       <div className="flex items-center gap-1.5 mt-0.5" data-testid="commute-status-badges">
                         {commuteAffectedCount > 0 && (
                           <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-amber-500/10 dark:bg-amber-500/20 text-[10px] font-bold text-amber-700 dark:text-amber-400 border border-amber-500/20">
@@ -1196,7 +1249,7 @@ export function SavedCommutesPanel({
                       </div>
                     )}
                   </div>
-                  {networkCommutes.length > 0 ? (
+                  {visibleCommutes.length > 0 ? (
                     <div className="saved-commute-list-actions flex items-end gap-2 sm:shrink-0">
                       <div className="saved-commute-sort-control" ref={sortDropdownRef}>
                         <span>Sort by</span>
@@ -1262,7 +1315,7 @@ export function SavedCommutesPanel({
                       <button
                         type="button"
                         className="saved-commute-add-btn flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition-colors shadow-sm cursor-pointer shrink-0"
-                        onClick={() => setActiveView("create")}
+                        onClick={startCreatingCommute}
                       >
                         + Add Route
                       </button>
@@ -1270,13 +1323,15 @@ export function SavedCommutesPanel({
                   ) : null}
                 </div>
 
-                {networkCommutes.length === 0 ? (
+                {visibleCommutes.length === 0 ? (
                   <div className="flex flex-col items-center justify-center pt-3 pb-10 sm:py-10 text-center">
-                    <p className="text-sm font-semibold text-slate-400 dark:text-slate-500 mb-4">No {networkId === "regional" ? "GO/UP" : "TTC"} Commutes Yet</p>
+                    <p className="text-sm font-semibold text-slate-400 dark:text-slate-500 mb-4">
+                      {accountCommutes.length === 0 ? "No Commutes Yet" : "No Commutes Match This Network"}
+                    </p>
                     <button
                       type="button"
                       className="saved-commute-add-btn flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition-colors shadow-sm cursor-pointer"
-                      onClick={() => setActiveView("create")}
+                      onClick={startCreatingCommute}
                     >
                       + Add Route
                     </button>
@@ -1312,6 +1367,7 @@ export function SavedCommutesPanel({
                           <h3 className="min-w-0 text-sm font-bold text-slate-800 dark:text-white whitespace-normal break-words">
                             {toTitleCase(commute.label.replace(/\bto\b/g, "->"))}
                           </h3>
+                          <AccountNetworkBadge networkId={commute.networkId ?? "ttc"} />
                           <span className={`status-pill ${commuteTone(commute)}`}>{toTitleCase(commuteStatusLabel(commute))}</span>
                         </div>
                         {(() => {
@@ -1629,7 +1685,7 @@ export function SavedCommutesPanel({
                           {routeStops.map((stationId, index) => (
                             <li key={`${commute.id}-${stationId}-${index}`}>
                               <span className="commute-route-stop-index">{index + 1}</span>
-                              <span>{stationNameFor(stationId)}</span>
+                              <span>{stationNameFor(stationId, commute.networkId ?? "ttc")}</span>
                               {selectedLeg.path.transferStationIds.includes(stationId) ? (
                                 <strong>Transfer</strong>
                               ) : null}

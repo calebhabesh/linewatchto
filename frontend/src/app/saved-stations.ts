@@ -2,7 +2,11 @@ import type { AccountSavedStation } from "./saved-station-data.ts";
 
 export type SavedStationSort = "attention" | "name" | "recent" | "oldest" | "line";
 
-const LINE_ORDER = ["line-1", "line-2", "line-4", "line-5", "line-6"];
+const LINE_ORDER = [
+  "line-1", "line-2", "line-4", "line-5", "line-6",
+  "regional-br", "regional-ki", "regional-le", "regional-lw",
+  "regional-mi", "regional-rh", "regional-st", "regional-up",
+];
 
 function normalized(value: string) {
   return value.trim().toLocaleLowerCase("en-CA");

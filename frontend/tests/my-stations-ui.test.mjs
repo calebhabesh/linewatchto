@@ -60,6 +60,19 @@ describe("My Stations UI", () => {
     assert.match(styles, /\.my-stations-panel\s*\{[^}]*transition:\s*min-height 280ms cubic-bezier\(0\.16, 1, 0\.3, 1\);/s);
   });
 
+  it("shows account-wide stations with network-qualified actions and filtering", () => {
+    assert.match(panel, /type AccountNetworkFilter = "all" \| NetworkId/);
+    assert.match(panel, /aria-label="Filter My Stations by network"/);
+    assert.match(panel, /saved\.networkId === networkFilter/);
+    assert.match(panel, /stationCatalogs\[networkId\]/);
+    assert.match(panel, /dashboards\[saved\.networkId\]/);
+    assert.match(panel, /`\$\{saved\.networkId\}:\$\{saved\.station\.id\}`/);
+    assert.match(panel, /onSelectStation\(saved\.station\.id, saved\.networkId\)/);
+    assert.match(panel, /account-network-badge/);
+    assert.match(shell, /savedStations=\{savedStations\}/);
+    assert.match(shell, /savedStationCount=\{savedStations\.length\}/);
+  });
+
   it("animates add mode and nudges its shared submenu search field", () => {
     assert.match(panel, /my-stations-mode-action/);
     assert.match(panel, /my-stations-mode-action-content/);

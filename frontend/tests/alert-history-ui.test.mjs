@@ -14,6 +14,14 @@ const panelSource = readFileSync(
   new URL("../src/components/AlertHistoryPanel.tsx", import.meta.url),
   "utf8",
 );
+const shellSource = readFileSync(
+  new URL("../src/components/LineWatchShell.tsx", import.meta.url),
+  "utf8",
+);
+const moreSheetSource = readFileSync(
+  new URL("../src/components/MobileMoreSheet.tsx", import.meta.url),
+  "utf8",
+);
 const cssSource = readFileSync(
   new URL("../src/app/globals.css", import.meta.url),
   "utf8",
@@ -34,6 +42,19 @@ describe("alert history timeline UI", () => {
     assert.match(timelineSource, /AlertHistoryPeriod/);
     assert.match(timelineSource, /durationMinutes/);
     assert.match(timelineSource, /clearedAt/);
+  });
+
+  it("loads the history for the active TTC or GO/UP map mode", () => {
+    assert.match(panelSource, /network: NetworkId/);
+    assert.match(panelSource, /<AlertHistoryTimeline network=\{network\}/);
+    assert.match(timelineSource, /getAlertHistory\(period, network\)/);
+    assert.match(shellSource, /<AlertHistoryPanel[\s\S]*network=\{selectedNetwork\}/);
+  });
+
+  it("offers Alert History in mobile and desktop menus for either map mode", () => {
+    assert.doesNotMatch(moreSheetSource, /currentNetwork === "ttc" \? <div className="mobile-more-section">[\s\S]*?<h3>Notifications<\/h3>/);
+    assert.match(moreSheetSource, /<h3>Notifications<\/h3>[\s\S]*?Alert History/);
+    assert.match(shellSource, /<span[^>]*>Notifications<\/span>[\s\S]*?Alert History/);
   });
 
   it("is mounted inside the custom alert history panel", () => {

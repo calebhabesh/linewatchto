@@ -9,6 +9,7 @@ import {
 } from "../app/alert-history-data";
 import { normalizeDashboardSourceLabel } from "../app/dashboard-source-label";
 import { formatFullImpactTimestamp, formatImpactTimestamp } from "../app/impact-time";
+import type { NetworkId } from "../app/regional-data";
 import { CompactImpactLocation, formatCause } from "./ImpactCardFields";
 import { DelayIcon } from "./DelayIcon";
 import { PlannedClosureIcon } from "./PlannedClosureIcon";
@@ -54,7 +55,7 @@ function renderSortOptionIcon(value: string) {
   return <AlertTriangle size={14} className="text-slate-400 shrink-0" aria-hidden="true" />;
 }
 
-export function AlertHistoryTimeline() {
+export function AlertHistoryTimeline({ network }: { network: NetworkId }) {
   const [period, setPeriod] = useState<AlertHistoryPeriod>("today");
   const [filter, setFilter] = useState<AlertHistoryLifecycleFilter>("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -63,6 +64,7 @@ export function AlertHistoryTimeline() {
   const [isLineDropdownOpen, setIsLineDropdownOpen] = useState(false);
   const [isSortDropdownOpen, setIsSortDropdownOpen] = useState(false);
   const [history, setHistory] = useState<AlertHistoryIncident[]>([]);
+  const [loadedQuery, setLoadedQuery] = useState<string | null>(null);
   const lineDropdownRef = useRef<HTMLDivElement>(null);
   const sortDropdownRef = useRef<HTMLDivElement>(null);
 
@@ -82,23 +84,29 @@ export function AlertHistoryTimeline() {
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
-  const [loading, setLoading] = useState(true);
   const [source, setSource] = useState<"backend" | "fallback">("fallback");
+  const requestedQuery = `${network}:${period}`;
 
   useEffect(() => {
     let cancelled = false;
-    getAlertHistory(period).then((result) => {
+    getAlertHistory(period, network).then((result) => {
       if (cancelled) return;
       setHistory(result.data.incidents);
       setSource(result.source);
-      setLoading(false);
+      setLoadedQuery(requestedQuery);
     });
     return () => {
       cancelled = true;
     };
-  }, [period]);
+  }, [network, period, requestedQuery]);
 
-  const lineOptions = useMemo(() => buildAlertHistoryLineOptions(history), [history]);
+  const loading = loadedQuery !== requestedQuery;
+
+  const lineOptions = useMemo(() => buildAlertHistoryLineOptions(history).map((option) => (
+    network === "regional" && option.value === ALL_LINES_VALUE
+      ? { ...option, label: "All Corridors" }
+      : option
+  )), [history, network]);
   const sortOptions = useMemo(() => buildAlertHistorySortOptions(history), [history]);
 
   if (selectedLineId !== ALL_LINES_VALUE && !lineOptions.some((option) => option.value === selectedLineId)) {
@@ -134,10 +142,7 @@ export function AlertHistoryTimeline() {
               key={option.value}
               type="button"
               className={`alert-history-period-chip ${period === option.value ? "active" : ""}`}
-              onClick={() => {
-                setLoading(true);
-                setPeriod(option.value);
-              }}
+              onClick={() => setPeriod(option.value)}
               aria-pressed={period === option.value}
             >
               {option.label}
@@ -172,7 +177,7 @@ export function AlertHistoryTimeline() {
           </label>
           <div className="alert-history-selects-row">
             <div className="alert-history-line-filter relative" ref={lineDropdownRef}>
-              <span className="alert-history-control-prefix">Line</span>
+              <span className="alert-history-control-prefix">{network === "regional" ? "Corridor" : "Line"}</span>
               <button
                 type="button"
                 className="alert-history-line-filter-trigger"
