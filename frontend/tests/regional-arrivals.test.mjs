@@ -160,8 +160,53 @@ describe("regional station arrivals adapter", () => {
     assert.deepEqual(
       groups.map((group) => [group.directionLabel, group.destinationLabel]),
       [
-        ["Westbound", "To Milton GO"],
         ["Eastbound", "To Union Station GO"],
+        ["Westbound", "To Milton GO"],
+      ],
+    );
+  });
+
+  it("groups and sorts arrival direction groups by transit line order and direction", () => {
+    const kiBase = {
+      lineId: "regional-ki",
+      lineNumber: "KI",
+      lineName: "Kitchener",
+      predictedAt: "2026-07-29T17:30:00-04:00",
+      scheduledAt: "2026-07-29T17:30:00-04:00",
+      delayMinutes: 0,
+      platform: "2",
+      source: "Metrolinx GO Next Service",
+      status: "live",
+    };
+    const upBase = {
+      lineId: "regional-up",
+      lineNumber: "UP",
+      lineName: "Union Pearson Express",
+      predictedAt: "2026-07-29T17:30:00-04:00",
+      scheduledAt: "2026-07-29T17:30:00-04:00",
+      delayMinutes: 0,
+      platform: "",
+      source: "Metrolinx UP Express GTFS-RT TripUpdates",
+      status: "live",
+    };
+
+    // Intermixed input: KI Eastbound, UP Westbound, UP Eastbound, KI Westbound
+    const arrivals = [
+      { ...kiBase, direction: "KI - Union Station", tripNumber: "KI100", minutes: 2 },
+      { ...upBase, direction: "UP - Pearson Airport", tripNumber: "UP200", minutes: 4 },
+      { ...upBase, direction: "UP - Union Station", tripNumber: "UP100", minutes: 10 },
+      { ...kiBase, direction: "KI - Mount Pleasant GO", tripNumber: "KI200", minutes: 11 },
+    ];
+
+    const groups = groupRegionalStationArrivals(arrivals, "weston");
+    assert.equal(groups.length, 4);
+    assert.deepEqual(
+      groups.map((g) => [g.lineNumber, g.directionLabel]),
+      [
+        ["KI", "Eastbound"],
+        ["KI", "Westbound"],
+        ["UP", "Eastbound"],
+        ["UP", "Westbound"],
       ],
     );
   });

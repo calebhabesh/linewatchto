@@ -2,7 +2,7 @@
 
 import { AlertCircle, AlertTriangle, BadgeInfo, Check, ChevronDown, Clock3, Construction, ExternalLink, FileText, LoaderCircle } from "lucide-react";
 import Image from "next/image";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { useDashboardData } from "../app/DataContext";
 import type { ImpactKind, ImpactSelection } from "../app/linewatch-data";
 import { isRegionalStationWheelchairAccessible, REGIONAL_ROUTE_CARDINAL_DIRECTIONS, REGIONAL_ROUTE_DEFINITIONS } from "../app/regional-data";
@@ -478,84 +478,96 @@ export function RegionalStationDetailPanel({
                   </div>
                 ) : arrivalSnapshot.availability === "available" && arrivalGroups.length > 0 ? (
                   <div className="mt-3 flex flex-col gap-3" aria-label="Upcoming regional train arrivals">
-                    {arrivalGroups.map((group) => (
-                      <article
-                        key={group.key}
-                        data-regional-arrival-direction={group.directionLabel}
-                        className="rounded-md border border-black/10 bg-white/80 p-3 text-sm shadow-sm dark:border-white/10 dark:bg-[#12151c]/80"
-                      >
-                        <div className="flex min-w-0 items-start gap-3">
-                          <TransitLineBadge
-                            lineId={group.lineId}
-                            lineNumber={group.lineNumber}
-                            lineName={group.lineName}
-                            size={28}
-                            className="shrink-0"
-                          />
-                          <div className="flex min-w-0 flex-col leading-tight">
-                            <strong className="min-w-0 break-words font-black text-slate-900 dark:text-white">
-                              {group.directionLabel}
-                            </strong>
-                            <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
-                              {group.destinationLabel}
-                            </span>
-                          </div>
-                          <span className="ml-auto inline-flex h-5 shrink-0 items-center rounded border border-emerald-500/35 bg-emerald-500/10 px-1.5 text-[10px] font-black uppercase tracking-wide text-emerald-700 dark:text-emerald-200">
-                            {group.platforms.flatMap((platform) => platform.arrivals).some((arrival) => arrival.status === "live")
-                              ? group.platforms.flatMap((platform) => platform.arrivals).some((arrival) => arrival.status === "scheduled")
-                                ? "Mixed"
-                                : "Live"
-                              : "Scheduled"}
-                          </span>
-                        </div>
-
-                        <div className="mt-3 flex flex-col gap-3">
-                          {group.platforms.map((platform) => (
-                            <div key={platform.key} data-regional-arrival-platform={platform.key}>
-                              <div className="mb-2 flex items-center justify-between gap-2">
-                                <h4 className="text-[11px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                                  {platform.label}
-                                </h4>
-                                <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400">
-                                  {platform.arrivals.some((arrival) => arrival.status === "live" && arrival.delayMinutes > 0)
-                                    ? "Delayed estimate"
-                                    : platform.arrivals.some((arrival) => arrival.status === "live")
-                                      ? "On schedule"
-                                      : "Published schedule"}
+                    {arrivalGroups.map((group, groupIndex) => {
+                      const showLineDivider = groupIndex > 0 && arrivalGroups[groupIndex - 1]?.lineId !== group.lineId;
+                      return (
+                        <Fragment key={group.key}>
+                          {showLineDivider && (
+                            <div
+                              aria-hidden="true"
+                              className="station-arrival-line-divider"
+                              data-arrival-line-divider
+                            />
+                          )}
+                          <article
+                            data-regional-arrival-direction={group.directionLabel}
+                            className="rounded-md border border-black/10 bg-white/80 p-3 text-sm shadow-sm dark:border-white/10 dark:bg-[#12151c]/80"
+                          >
+                            <div className="flex min-w-0 items-start gap-3">
+                              <TransitLineBadge
+                                lineId={group.lineId}
+                                lineNumber={group.lineNumber}
+                                lineName={group.lineName}
+                                size={28}
+                                className="shrink-0"
+                              />
+                              <div className="flex min-w-0 flex-col leading-tight">
+                                <strong className="min-w-0 break-words font-black text-slate-900 dark:text-white">
+                                  {group.directionLabel}
+                                </strong>
+                                <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                                  {group.destinationLabel}
                                 </span>
                               </div>
-                              <div className="grid grid-cols-3 gap-2">
-                                {platform.arrivals.map((arrival) => {
-                                  const due = arrival.minutes <= 0;
-                                  const timeDisplay = regionalArrivalTimeDisplay(arrival);
-                                  return (
-                                    <div
-                                      key={`${arrival.tripNumber}:${arrival.predictedAt}`}
-                                      className={[
-                                        "flex min-h-[66px] flex-col items-center justify-center rounded-md border px-2 py-2 text-center",
-                                        due
-                                          ? "border-red-400/80 bg-red-900/85 text-red-50 shadow-[0_0_0_1px_rgba(248,113,113,0.25)]"
-                                          : "border-black/10 bg-slate-950/[0.03] text-slate-900 dark:border-white/10 dark:bg-[#0f1117] dark:text-white",
-                                      ].join(" ")}
-                                    >
-                                      <strong className="text-base font-black leading-none">
-                                        {timeDisplay.primary}
-                                      </strong>
-                                      <span className={due
-                                        ? "mt-1 text-xs font-semibold text-red-100/80"
-                                        : "mt-1 text-xs font-semibold text-slate-500 dark:text-slate-400"}
-                                      >
-                                        {timeDisplay.secondary}
-                                      </span>
-                                    </div>
-                                  );
-                                })}
-                              </div>
+                              <span className="ml-auto inline-flex h-5 shrink-0 items-center rounded border border-emerald-500/35 bg-emerald-500/10 px-1.5 text-[10px] font-black uppercase tracking-wide text-emerald-700 dark:text-emerald-200">
+                                {group.platforms.flatMap((platform) => platform.arrivals).some((arrival) => arrival.status === "live")
+                                  ? group.platforms.flatMap((platform) => platform.arrivals).some((arrival) => arrival.status === "scheduled")
+                                    ? "Mixed"
+                                    : "Live"
+                                  : "Scheduled"}
+                              </span>
                             </div>
-                          ))}
-                        </div>
-                      </article>
-                    ))}
+
+                            <div className="mt-3 flex flex-col gap-3">
+                              {group.platforms.map((platform) => (
+                                <div key={platform.key} data-regional-arrival-platform={platform.key}>
+                                  <div className="mb-2 flex items-center justify-between gap-2">
+                                    <h4 className="text-[11px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                                      {platform.label}
+                                    </h4>
+                                    <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400">
+                                      {platform.arrivals.some((arrival) => arrival.status === "live" && arrival.delayMinutes > 0)
+                                        ? "Delayed estimate"
+                                        : platform.arrivals.some((arrival) => arrival.status === "live")
+                                          ? "On schedule"
+                                          : "Published schedule"}
+                                    </span>
+                                  </div>
+                                  <div className="grid grid-cols-3 gap-2">
+                                    {platform.arrivals.map((arrival) => {
+                                      const due = arrival.minutes <= 0;
+                                      const timeDisplay = regionalArrivalTimeDisplay(arrival);
+                                      return (
+                                        <div
+                                          key={`${arrival.tripNumber}:${arrival.predictedAt}`}
+                                          className={[
+                                            "flex min-h-[66px] flex-col items-center justify-center rounded-md border px-2 py-2 text-center",
+                                            due
+                                              ? "border-red-400/80 bg-red-900/85 text-red-50 shadow-[0_0_0_1px_rgba(248,113,113,0.25)]"
+                                              : "border-black/10 bg-slate-950/[0.03] text-slate-900 dark:border-white/10 dark:bg-[#0f1117] dark:text-white",
+                                          ].join(" ")}
+                                        >
+                                          <strong className="text-base font-black leading-none tracking-tight">
+                                            {timeDisplay.primary}
+                                          </strong>
+                                          <span
+                                            className={due
+                                              ? "mt-1 text-xs font-semibold text-red-100/80"
+                                              : "mt-1 text-xs font-semibold text-slate-500 dark:text-slate-400"}
+                                          >
+                                            {timeDisplay.secondary}
+                                          </span>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </article>
+                        </Fragment>
+                      );
+                    })}
                   </div>
                 ) : (
                   <div className="mt-3 rounded-md border border-black/10 bg-white/60 px-3 py-4 text-center dark:border-white/10 dark:bg-black/10">

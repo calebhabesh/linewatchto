@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { AlertCircle, Bookmark, ChevronDown, ChevronLeft, ChevronRight, Clock3, FileText, LoaderCircle, Plus, Search, X } from "lucide-react";
 import type { AccountSavedStation } from "../app/saved-station-data";
@@ -417,37 +417,43 @@ function SavedStationRow({
               <p className="saved-station-arrivals-empty">No Arrivals Available</p>
             ) : (
               <div className="saved-station-arrival-groups">
-                {regionalArrivalGroups.map((group) => {
+                {regionalArrivalGroups.map((group, groupIndex) => {
+                  const showLineDivider = groupIndex > 0 && regionalArrivalGroups[groupIndex - 1]?.lineId !== group.lineId;
                   const arrivals = group.platforms.flatMap((platform) => platform.arrivals).sort((left, right) => left.minutes - right.minutes).slice(0, 2);
                   const hasLive = arrivals.some((arrival) => arrival.status === "live");
                   const hasScheduled = arrivals.some((arrival) => arrival.status === "scheduled");
                   const sourceLabel = hasLive && hasScheduled ? "Mixed" : hasLive ? "Live" : "Scheduled";
                   return (
-                    <div className="saved-station-arrival-group" key={group.key}>
-                      <TransitLineBadge
-                        lineId={group.lineId}
-                        lineNumber={group.lineNumber}
-                        lineName={group.lineName}
-                        size={27}
-                        className="saved-station-arrival-line-badge"
-                      />
-                      <span className="saved-station-arrival-direction">
-                        <strong>{group.directionLabel}</strong>
-                        <span className="saved-station-arrival-destination">{group.destinationLabel}</span>
-                      </span>
-                      <span className={`saved-station-arrival-source source-${sourceLabel.toLowerCase()}`}>{sourceLabel}</span>
-                      <span className="saved-station-arrival-times">
-                        {arrivals.map((arrival) => {
-                          const timeDisplay = regionalArrivalTimeDisplay(arrival, arrivalTick);
-                          const due = arrival.minutes <= 0;
-                          return (
-                            <strong className={due ? "is-due" : undefined} key={`${arrival.tripNumber}:${arrival.predictedAt}`}>
-                              {timeDisplay.primary}
-                            </strong>
-                          );
-                        })}
-                      </span>
-                    </div>
+                    <Fragment key={group.key}>
+                      {showLineDivider && (
+                        <div className="station-arrival-line-divider my-1" aria-hidden="true" />
+                      )}
+                      <div className="saved-station-arrival-group">
+                        <TransitLineBadge
+                          lineId={group.lineId}
+                          lineNumber={group.lineNumber}
+                          lineName={group.lineName}
+                          size={27}
+                          className="saved-station-arrival-line-badge"
+                        />
+                        <span className="saved-station-arrival-direction">
+                          <strong>{group.directionLabel}</strong>
+                          <span className="saved-station-arrival-destination">{group.destinationLabel}</span>
+                        </span>
+                        <span className={`saved-station-arrival-source source-${sourceLabel.toLowerCase()}`}>{sourceLabel}</span>
+                        <span className="saved-station-arrival-times">
+                          {arrivals.map((arrival) => {
+                            const timeDisplay = regionalArrivalTimeDisplay(arrival, arrivalTick);
+                            const due = arrival.minutes <= 0;
+                            return (
+                              <strong className={due ? "is-due" : undefined} key={`${arrival.tripNumber}:${arrival.predictedAt}`}>
+                                {timeDisplay.primary}
+                              </strong>
+                            );
+                          })}
+                        </span>
+                      </div>
+                    </Fragment>
                   );
                 })}
               </div>
@@ -554,42 +560,48 @@ function SavedStationRow({
               <p className="saved-station-arrivals-empty">No Arrivals Available</p>
             ) : (
               <div className="saved-station-arrival-groups">
-                {arrivalGroups.map((group) => {
+                {arrivalGroups.map((group, groupIndex) => {
+                  const showLineDivider = groupIndex > 0 && arrivalGroups[groupIndex - 1]?.lineId !== group.lineId;
                   const sourceLabel = formatArrivalSourceBadgeLabel(group.arrivals, {
                     emptyLiveDirection: hasLiveArrivals && group.arrivals.length === 0,
                   });
                   const direction = formatCondensedArrivalDirection(group.directionLabel);
                   return (
-                    <div className="saved-station-arrival-group" key={group.key}>
-                      <TransitLineBadge
-                        lineId={group.lineId}
-                        lineNumber={group.lineNumber}
-                        lineName={group.line?.name}
-                        size={27}
-                        className="saved-station-arrival-line-badge"
-                      />
-                      <span className="saved-station-arrival-direction">
-                        <strong>{direction.direction}</strong>
-                        {direction.destination ? <span className="saved-station-arrival-destination">{direction.destination}</span> : null}
-                      </span>
-                      <span className={`saved-station-arrival-source source-${sourceLabel.toLowerCase().replaceAll(" ", "-")}`}>{sourceLabel}</span>
-                      <span className="saved-station-arrival-times">
-                        {group.arrivals.length > 0
-                          ? group.arrivals.map((arrival, index) => {
-                              const detailed = index === 0 && shouldUseDetailedArrivalCountdown(arrival, arrivalTick);
-                              const due = isArrivalDue(arrival, arrivalTick);
-                              return (
-                                <strong
-                                  className={[detailed ? "is-detailed is-soon" : "", due ? "is-due" : ""].filter(Boolean).join(" ") || undefined}
-                                  key={`${arrival.predictedAt ?? arrival.label}-${index}`}
-                                >
-                                  {formatArrivalTileLabel(arrival, { detailedCountdown: detailed, now: arrivalTick })}
-                                </strong>
-                              );
-                            })
-                          : <em>—</em>}
-                      </span>
-                    </div>
+                    <Fragment key={group.key}>
+                      {showLineDivider && (
+                        <div className="station-arrival-line-divider my-1" aria-hidden="true" />
+                      )}
+                      <div className="saved-station-arrival-group">
+                        <TransitLineBadge
+                          lineId={group.lineId}
+                          lineNumber={group.lineNumber}
+                          lineName={group.line?.name}
+                          size={27}
+                          className="saved-station-arrival-line-badge"
+                        />
+                        <span className="saved-station-arrival-direction">
+                          <strong>{direction.direction}</strong>
+                          {direction.destination ? <span className="saved-station-arrival-destination">{direction.destination}</span> : null}
+                        </span>
+                        <span className={`saved-station-arrival-source source-${sourceLabel.toLowerCase().replaceAll(" ", "-")}`}>{sourceLabel}</span>
+                        <span className="saved-station-arrival-times">
+                          {group.arrivals.length > 0
+                            ? group.arrivals.map((arrival, index) => {
+                                const detailed = index === 0 && shouldUseDetailedArrivalCountdown(arrival, arrivalTick);
+                                const due = isArrivalDue(arrival, arrivalTick);
+                                return (
+                                  <strong
+                                    className={[detailed ? "is-detailed is-soon" : "", due ? "is-due" : ""].filter(Boolean).join(" ") || undefined}
+                                    key={`${arrival.predictedAt ?? arrival.label}-${index}`}
+                                  >
+                                    {formatArrivalTileLabel(arrival, { detailedCountdown: detailed, now: arrivalTick })}
+                                  </strong>
+                                );
+                              })
+                            : <em>—</em>}
+                        </span>
+                      </div>
+                    </Fragment>
                   );
                 })}
               </div>

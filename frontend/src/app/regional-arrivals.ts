@@ -1,6 +1,7 @@
 import { apiUrl } from "./api-client.ts";
 import {
   REGIONAL_ROUTE_CARDINAL_DIRECTIONS,
+  REGIONAL_ROUTE_DEFINITIONS,
   REGIONAL_ROUTE_STATIONS,
   regionalStations,
   type RegionalRouteCode,
@@ -180,6 +181,33 @@ function regionalTravelDirection(arrival: RegionalArrival, stationId: string) {
   return destinationName === "union" ? inwardDirection : outwardDirection;
 }
 
+const REGIONAL_ROUTE_INDEX = new Map<string, number>(
+  REGIONAL_ROUTE_DEFINITIONS.map((route, index) => [route.number.toUpperCase(), index]),
+);
+
+function regionalLineRank(lineNumber: string, lineId: string): number {
+  const code = (lineNumber || "").trim().toUpperCase();
+  if (REGIONAL_ROUTE_INDEX.has(code)) {
+    return REGIONAL_ROUTE_INDEX.get(code)!;
+  }
+  const cleanId = (lineId || "").toLowerCase().replace(/^(regional|line|go)-/, "");
+  const foundIndex = REGIONAL_ROUTE_DEFINITIONS.findIndex(
+    (route) => route.id.toLowerCase().endsWith(cleanId) || route.number.toLowerCase() === cleanId
+  );
+  if (foundIndex !== -1) {
+    return foundIndex;
+  }
+  return 999;
+}
+
+function regionalDirectionRank(directionLabel: string): number {
+  if (/^Northbound/i.test(directionLabel)) return 0;
+  if (/^Eastbound/i.test(directionLabel)) return 1;
+  if (/^Southbound/i.test(directionLabel)) return 2;
+  if (/^Westbound/i.test(directionLabel)) return 3;
+  return 4;
+}
+
 export function groupRegionalStationArrivals(
   arrivals: RegionalArrival[],
   stationId: string,
@@ -218,25 +246,43 @@ export function groupRegionalStationArrivals(
     platform.arrivals.push(arrival);
   }
 
-  return [...groups.values()].map((group) => {
-    const destinations = [...new Set(group.platforms
-      .flatMap((platform) => platform.arrivals)
-      .map((arrival) => cleanRegionalDestination(
-        arrival.direction,
-        arrival.lineNumber.toUpperCase() as RegionalRouteCode,
-      ))
-      .filter(Boolean))];
-    return {
-      ...group,
-      destinationLabel: destinations.length > 1
-        ? `Destinations: ${destinations.join(" / ")}`
-        : `To ${destinations[0] ?? group.lineName}`,
-      platforms: group.platforms.map((platform) => ({
-        ...platform,
-        arrivals: [...platform.arrivals].sort((a, b) => a.minutes - b.minutes),
-      })),
-    };
-  });
+  return [...groups.values()]
+    .map((group) => {
+      const destinations = [...new Set(group.platforms
+        .flatMap((platform) => platform.arrivals)
+        .map((arrival) => cleanRegionalDestination(
+          arrival.direction,
+          arrival.lineNumber.toUpperCase() as RegionalRouteCode,
+        ))
+        .filter(Boolean))];
+      return {
+        ...group,
+        destinationLabel: destinations.length > 1
+          ? `Destinations: ${destinations.join(" / ")}`
+          : `To ${destinations[0] ?? group.lineName}`,
+        platforms: group.platforms.map((platform) => ({
+          ...platform,
+          arrivals: [...platform.arrivals].sort((a, b) => a.minutes - b.minutes),
+        })),
+      };
+    })
+    .sort((groupA, groupB) => {
+      const lineRankA = regionalLineRank(groupA.lineNumber, groupA.lineId);
+      const lineRankB = regionalLineRank(groupB.lineNumber, groupB.lineId);
+      if (lineRankA !== lineRankB) {
+        return lineRankA - lineRankB;
+      }
+
+      const dirRankA = regionalDirectionRank(groupA.directionLabel);
+      const dirRankB = regionalDirectionRank(groupB.directionLabel);
+      if (dirRankA !== dirRankB) {
+        return dirRankA - dirRankB;
+      }
+
+      const firstArrivalA = groupA.platforms[0]?.arrivals[0]?.minutes ?? Number.MAX_SAFE_INTEGER;
+      const firstArrivalB = groupB.platforms[0]?.arrivals[0]?.minutes ?? Number.MAX_SAFE_INTEGER;
+      return firstArrivalA - firstArrivalB;
+    });
 }
 
 export function formatRegionalArrivalClockTime(value: string, now: Date | number = Date.now()) {
