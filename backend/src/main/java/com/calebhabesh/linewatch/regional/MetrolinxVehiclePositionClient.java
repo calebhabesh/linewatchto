@@ -56,8 +56,11 @@ public class MetrolinxVehiclePositionClient {
             RegionalNetworkCatalog.Route route = RegionalNetworkCatalog.route(lineId).orElse(null);
             if (route == null) continue;
             int directionId = trip.path("direction_id").asInt(0);
+            boolean inbound = directionId == route.inboundDirectionId();
             int nextIndex = route.stationIds().indexOf(nextStationId);
-            int previousIndex = directionId == 1 ? nextIndex + 1 : nextIndex - 1;
+            // The reviewed catalog stores each route from Union to its outer terminus.
+            // Metrolinx's direction ID for the Union-bound trip varies by corridor.
+            int previousIndex = inbound ? nextIndex + 1 : nextIndex - 1;
             if (nextIndex < 0 || previousIndex < 0 || previousIndex >= route.stationIds().size()) continue;
             String fromStationId = route.stationIds().get(previousIndex);
             RegionalNetworkCatalog.Segment segment = RegionalNetworkCatalog.segmentBetween(
@@ -75,10 +78,10 @@ public class MetrolinxVehiclePositionClient {
             OffsetDateTime predictedAt = updatedAt == null ? null : updatedAt.plusSeconds(
                 Math.max(1, Math.round((1 - progress) * segmentTravelSeconds))
             );
-            String direction = directionId == 1 ? "Inbound" : "Outbound";
+            String direction = inbound ? "Inbound" : "Outbound";
             markers.add(new RegionalTrainMarkerRecord(
                 preferred(entity.path("id").asText(""), lineId + ":" + tripId + ":" + vehicleId),
-                lineId, direction, directionId == 1 ? "reverse" : "forward", segment.id(),
+                lineId, direction, inbound ? "reverse" : "forward", segment.id(),
                 fromStationId, nextStationId, nextStationId, progress, segmentTravelSeconds, predictedAt,
                 moving, vehicleId, tripId, updatedAt, source
             ));

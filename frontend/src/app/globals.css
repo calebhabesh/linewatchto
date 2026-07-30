@@ -293,6 +293,15 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
   inset: 0;
 }
 
+/* Regional alerts combine CSS effects with SVG animateMotion glyphs. Freeze
+   their current visual frame while the camera moves so the browser can
+   composite one stable map layer instead of repainting the SVG every frame. */
+.regional-map-camera-moving .regional-map-stage *,
+.regional-map[data-regional-map-camera-moving="true"] .regional-map-stage * {
+  animation-play-state: paused !important;
+  transition: none !important;
+}
+
 .regional-map-stage > svg,
 .regional-map-stage > div > svg {
   display: block;

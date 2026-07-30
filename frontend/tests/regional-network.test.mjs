@@ -868,6 +868,30 @@ describe("network-scoped regional dashboard", () => {
     assert.match(regionalMapSource, /if \(animateInitialEntrance && shouldAnimateProgrammaticTransform\) \{[\s\S]*entryCamera[\s\S]*animateCameraTo/);
   });
 
+  it("keeps animated regional alert artwork stable while the camera is moving", () => {
+    assert.match(regionalMapSource, /const regionalMapRef = useRef<HTMLElement>\(null\)/);
+    assert.match(regionalMapSource, /root\.classList\.toggle\("regional-map-camera-moving", active\)/);
+    assert.match(regionalMapSource, /svg\.pauseAnimations\(\)/);
+    assert.match(regionalMapSource, /svg\.unpauseAnimations\(\)/);
+    assert.match(regionalMapSource, /beginCameraMotion\(\)/);
+    assert.match(regionalMapSource, /endCameraMotion\(\)/);
+    assert.match(regionalMapSource, /clearProgrammaticAnimation[\s\S]*wheelCommitTimeoutRef\.current = null/);
+    assert.match(
+      globalsCss,
+      /\.regional-map-camera-moving \.regional-map-stage \*,[\s\S]*?\{[^}]*animation-play-state:\s*paused\s*!important;[^}]*transition:\s*none\s*!important;/s,
+    );
+  });
+
+  it("updates regional button zoom imperatively before its deferred React commit", () => {
+    const zoomButtonBlock = regionalMapSource.match(
+      /const zoomAtCenter = useCallback\([\s\S]*?\n  const zoomToScale/,
+    )?.[0] ?? "";
+    assert.match(zoomButtonBlock, /const current = cameraRef\.current/);
+    assert.match(zoomButtonBlock, /writeMapTransform\(nextCamera\)/);
+    assert.match(zoomButtonBlock, /scheduleCameraCommit\(\)/);
+    assert.doesNotMatch(zoomButtonBlock, /setCamera\(\(current\)/);
+  });
+
   it("does not move or zoom the initialized camera when the dashboard viewport resizes", () => {
     assert.doesNotMatch(regionalMapSource, /new ResizeObserver\(fitNetwork\)/);
     const resizeObserverBody = regionalMapSource.match(/const observer = new ResizeObserver\(\(\) => \{([\s\S]*?)\n    \}\);/)?.[1] ?? "";

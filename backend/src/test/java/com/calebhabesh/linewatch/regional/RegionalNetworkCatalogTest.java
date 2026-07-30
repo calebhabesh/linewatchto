@@ -1,6 +1,7 @@
 package com.calebhabesh.linewatch.regional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.tuple;
 
 import org.junit.jupiter.api.Test;
 
@@ -14,6 +15,22 @@ class RegionalNetworkCatalogTest {
             assertThat(station.lineIds()).contains("regional-br", "regional-up");
         });
         assertThat(RegionalNetworkCatalog.station("finch")).isEmpty();
+    }
+
+    @Test
+    void recordsEachCorridorsMetrolinxUnionBoundDirectionId() {
+        assertThat(RegionalNetworkCatalog.routes())
+            .extracting(RegionalNetworkCatalog.Route::number, RegionalNetworkCatalog.Route::inboundDirectionId)
+            .containsExactly(
+                tuple("BR", 1),
+                tuple("KI", 0),
+                tuple("LE", 1),
+                tuple("LW", 0),
+                tuple("MI", 0),
+                tuple("RH", 1),
+                tuple("ST", 1),
+                tuple("UP", 0)
+            );
     }
 
     @Test

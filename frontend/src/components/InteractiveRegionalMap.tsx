@@ -1970,6 +1970,7 @@ function InteractiveRegionalMapComponent({
   onClearCommutePathPreview?: () => void;
 }) {
   const { activeAlerts, delays, reducedSpeedZones, plannedClosures, networkSegments, stationNodeImpacts } = useDashboardData();
+  const regionalMapRef = useRef<HTMLElement>(null);
   const viewportRef = useRef<HTMLDivElement>(null);
   const mapStageRef = useRef<HTMLDivElement>(null);
   const cameraInitializedRef = useRef(false);
@@ -2027,6 +2028,28 @@ function InteractiveRegionalMapComponent({
     }
   }, []);
 
+  const setCameraMotionActive = useCallback((active: boolean) => {
+    const root = regionalMapRef.current;
+    if (!root) return;
+    root.classList.toggle("regional-map-camera-moving", active);
+    root.dataset.regionalMapCameraMoving = active ? "true" : "false";
+    root.querySelectorAll<SVGSVGElement>(".regional-map-stage svg").forEach((svg) => {
+      if (active) {
+        svg.pauseAnimations();
+      } else {
+        svg.unpauseAnimations();
+      }
+    });
+  }, []);
+
+  const beginCameraMotion = useCallback(() => {
+    setCameraMotionActive(true);
+  }, [setCameraMotionActive]);
+
+  const endCameraMotion = useCallback(() => {
+    setCameraMotionActive(false);
+  }, [setCameraMotionActive]);
+
   const clearProgrammaticAnimation = useCallback(() => {
     if (programmaticAnimationFrameRef.current !== null) {
       window.cancelAnimationFrame(programmaticAnimationFrameRef.current);
@@ -2035,6 +2058,10 @@ function InteractiveRegionalMapComponent({
     if (animTimeoutRef.current !== null) {
       window.clearTimeout(animTimeoutRef.current);
       animTimeoutRef.current = null;
+    }
+    if (wheelCommitTimeoutRef.current !== null) {
+      window.clearTimeout(wheelCommitTimeoutRef.current);
+      wheelCommitTimeoutRef.current = null;
     }
   }, []);
 
@@ -2065,9 +2092,11 @@ function InteractiveRegionalMapComponent({
       writeMapTransform(targetCamera);
       if (nextFitScale !== undefined) setFitScale(nextFitScale);
       setCamera(targetCamera);
+      endCameraMotion();
       return;
     }
 
+    beginCameraMotion();
     setMapTransition("transform 0.8s cubic-bezier(0.25, 1, 0.5, 1)");
     programmaticAnimationFrameRef.current = window.requestAnimationFrame(() => {
       programmaticAnimationFrameRef.current = null;
@@ -2079,8 +2108,9 @@ function InteractiveRegionalMapComponent({
       setMapTransition("none");
       if (nextFitScale !== undefined) setFitScale(nextFitScale);
       setCamera({ ...cameraRef.current });
+      endCameraMotion();
     }, 850);
-  }, [clearProgrammaticAnimation, setMapTransition, shouldAnimateProgrammaticTransform, writeMapTransform]);
+  }, [beginCameraMotion, clearProgrammaticAnimation, endCameraMotion, setMapTransition, shouldAnimateProgrammaticTransform, writeMapTransform]);
 
   useEffect(() => {
     return () => {
@@ -2091,8 +2121,9 @@ function InteractiveRegionalMapComponent({
       if (wheelCommitTimeoutRef.current !== null) {
         window.clearTimeout(wheelCommitTimeoutRef.current);
       }
+      endCameraMotion();
     };
-  }, [clearProgrammaticAnimation]);
+  }, [clearProgrammaticAnimation, endCameraMotion]);
 
   useLayoutEffect(() => {
     const viewport = viewportRef.current;
@@ -2884,43 +2915,58 @@ function InteractiveRegionalMapComponent({
     svgMarkup,
   ]);
 
+  const scheduleCameraCommit = useCallback(() => {
+    if (wheelCommitTimeoutRef.current !== null) {
+      window.clearTimeout(wheelCommitTimeoutRef.current);
+    }
+    wheelCommitTimeoutRef.current = window.setTimeout(() => {
+      wheelCommitTimeoutRef.current = null;
+      setCamera({ ...cameraRef.current });
+      endCameraMotion();
+    }, 140);
+  }, [endCameraMotion]);
+
   const zoomAtCenter = useCallback((factor: number) => {
     const viewport = viewportRef.current;
     if (!viewport) return;
+    clearProgrammaticAnimation();
+    beginCameraMotion();
     setMapTransition(shouldAnimateProgrammaticTransform ? "transform 0.1s ease-out" : "none");
     const centerX = viewport.clientWidth / 2;
     const centerY = viewport.clientHeight / 2;
-    setCamera((current) => {
-      const nextScale = clampPanZoomScale(current.scale * factor, fitScale);
-      const ratio = nextScale / current.scale;
-      const nextCamera = snapCameraToDevicePixels({
-        x: centerX - (centerX - current.x) * ratio,
-        y: centerY - (centerY - current.y) * ratio,
-        scale: nextScale,
-      });
-      cameraRef.current = nextCamera;
-      return nextCamera;
+    const current = cameraRef.current;
+    const nextScale = clampPanZoomScale(current.scale * factor, fitScale);
+    const ratio = nextScale / current.scale;
+    const nextCamera = snapCameraToDevicePixels({
+      x: centerX - (centerX - current.x) * ratio,
+      y: centerY - (centerY - current.y) * ratio,
+      scale: nextScale,
     });
-  }, [fitScale, setMapTransition, shouldAnimateProgrammaticTransform]);
+    cameraRef.current = nextCamera;
+    writeMapTransform(nextCamera);
+    scheduleCameraCommit();
+  }, [beginCameraMotion, clearProgrammaticAnimation, fitScale, scheduleCameraCommit, setMapTransition, shouldAnimateProgrammaticTransform, writeMapTransform]);
 
   const zoomToScale = useCallback((targetRelativeScale: number) => {
     const viewport = viewportRef.current;
     if (!viewport) return;
+    clearProgrammaticAnimation();
+    beginCameraMotion();
     setMapTransition(shouldAnimateProgrammaticTransform ? "transform 0.1s ease-out" : "none");
     const centerX = viewport.clientWidth / 2;
     const centerY = viewport.clientHeight / 2;
-    setCamera((current) => {
-      const nextScale = clampPanZoomScale(targetRelativeScale * fitScale, fitScale);
-      const ratio = nextScale / current.scale;
-      const nextCamera = snapCameraToDevicePixels({
-        x: centerX - (centerX - current.x) * ratio,
-        y: centerY - (centerY - current.y) * ratio,
-        scale: nextScale,
-      });
-      cameraRef.current = nextCamera;
-      return nextCamera;
+    const current = cameraRef.current;
+    const nextScale = clampPanZoomScale(targetRelativeScale * fitScale, fitScale);
+    const ratio = nextScale / current.scale;
+    const nextCamera = snapCameraToDevicePixels({
+      x: centerX - (centerX - current.x) * ratio,
+      y: centerY - (centerY - current.y) * ratio,
+      scale: nextScale,
     });
-  }, [fitScale, setMapTransition, shouldAnimateProgrammaticTransform]);
+    cameraRef.current = nextCamera;
+    writeMapTransform(nextCamera);
+    scheduleCameraCommit();
+  }, [beginCameraMotion, clearProgrammaticAnimation, fitScale, scheduleCameraCommit, setMapTransition, shouldAnimateProgrammaticTransform, writeMapTransform]);
 
   const onWheel = useCallback((event: WheelEvent<HTMLDivElement>) => {
     event.preventDefault();
@@ -2928,6 +2974,7 @@ function InteractiveRegionalMapComponent({
     if (!viewport) return;
 
     clearProgrammaticAnimation();
+    beginCameraMotion();
     setMapTransition("none");
 
     const pointer = clientPointToLogicalViewportPoint(
@@ -2956,8 +3003,9 @@ function InteractiveRegionalMapComponent({
     wheelCommitTimeoutRef.current = window.setTimeout(() => {
       wheelCommitTimeoutRef.current = null;
       setCamera({ ...cameraRef.current });
+      endCameraMotion();
     }, 80);
-  }, [clearProgrammaticAnimation, fitScale, setMapTransition, viewportOrientation, writeMapTransform]);
+  }, [beginCameraMotion, clearProgrammaticAnimation, endCameraMotion, fitScale, setMapTransition, viewportOrientation, writeMapTransform]);
 
   const applyActiveGesture = useCallback(() => {
     const pointers = [...activePointersRef.current.values()];
@@ -2997,6 +3045,7 @@ function InteractiveRegionalMapComponent({
   const onPointerDown = useCallback((event: PointerEvent<HTMLDivElement>) => {
     if (event.pointerType === "mouse" && event.button !== 0) return;
     cancelCameraAnimation();
+    beginCameraMotion();
     const point = clientPointToLogicalViewportPoint(
       { x: event.clientX, y: event.clientY },
       event.currentTarget.getBoundingClientRect(),
@@ -3040,7 +3089,7 @@ function InteractiveRegionalMapComponent({
       dragMovedRef.current = true;
     }
     setIsGestureActive(true);
-  }, [cancelCameraAnimation, selection, viewportOrientation]);
+  }, [beginCameraMotion, cancelCameraAnimation, selection, viewportOrientation]);
 
   const onPointerMove = useCallback((event: PointerEvent<HTMLDivElement>) => {
     if (!activePointersRef.current.has(event.pointerId)) return;
@@ -3115,7 +3164,8 @@ function InteractiveRegionalMapComponent({
     }
     setCamera({ ...cameraRef.current });
     setIsGestureActive(false);
-  }, [applyActiveGesture, onSelectImpact, onSelectStationId]);
+    endCameraMotion();
+  }, [applyActiveGesture, endCameraMotion, onSelectImpact, onSelectStationId]);
 
   const activateTarget = useCallback((target: EventTarget | null) => {
     if (!(target instanceof Element)) return;
@@ -3312,6 +3362,7 @@ function InteractiveRegionalMapComponent({
 
   return (
     <section
+      ref={regionalMapRef}
       className={`regional-map ${isGestureActive ? "map-gesture-active" : ""}`}
       data-map-gesture-active={isGestureActive ? "true" : "false"}
       aria-label="Interactive GO and UP map"

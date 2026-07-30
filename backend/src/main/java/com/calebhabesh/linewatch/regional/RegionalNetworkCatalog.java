@@ -12,7 +12,14 @@ import java.util.Set;
 public final class RegionalNetworkCatalog {
     public static final String NETWORK_ID = "regional";
 
-    public record Route(String id, String number, String name, String color, List<String> stationIds) {
+    public record Route(
+        String id,
+        String number,
+        String name,
+        String color,
+        int inboundDirectionId,
+        List<String> stationIds
+    ) {
     }
 
     public record Segment(
@@ -27,29 +34,29 @@ public final class RegionalNetworkCatalog {
     ) {}
 
     private static final List<Route> ROUTES = List.of(
-        route("regional-br", "BR", "Barrie", "#155ba0",
+        route("regional-br", "BR", "Barrie", "#155ba0", 1,
             "union", "downsview-park", "rutherford", "maple", "king-city", "aurora", "newmarket",
             "east-gwillimbury", "bradford", "barrie-south", "allandale-waterfront"),
-        route("regional-ki", "KI", "Kitchener", "#138336",
+        route("regional-ki", "KI", "Kitchener", "#138336", 0,
             "union", "bloor", "mount-dennis", "weston", "etobicoke-north", "malton", "bramalea",
             "brampton-innovation-district", "mount-pleasant", "georgetown", "acton", "guelph-central",
             "kitchener", "stratford"),
-        route("regional-le", "LE", "Lakeshore East", "#ee2722",
+        route("regional-le", "LE", "Lakeshore East", "#ee2722", 1,
             "union", "danforth", "scarborough", "eglinton", "guildwood", "rouge-hill", "pickering",
             "ajax", "whitby", "durham-college-oshawa"),
-        route("regional-lw", "LW", "Lakeshore West", "#8b0a31",
+        route("regional-lw", "LW", "Lakeshore West", "#8b0a31", 0,
             "union", "exhibition", "mimico", "long-branch", "port-credit", "clarkson", "oakville",
             "bronte", "appleby", "burlington", "aldershot", "west-harbour", "hamilton",
             "confederation", "st-catharines", "niagara-falls"),
-        route("regional-mi", "MI", "Milton", "#f47216",
+        route("regional-mi", "MI", "Milton", "#f47216", 0,
             "union", "kipling", "dixie", "cooksville", "erindale", "streetsville", "meadowvale",
             "lisgar", "milton"),
-        route("regional-rh", "RH", "Richmond Hill", "#27adea",
+        route("regional-rh", "RH", "Richmond Hill", "#27adea", 1,
             "union", "oriole", "old-cummer", "langstaff", "richmond-hill", "gormley", "bloomington"),
-        route("regional-st", "ST", "Stouffville", "#774111",
+        route("regional-st", "ST", "Stouffville", "#774111", 1,
             "union", "kennedy", "agincourt", "milliken", "unionville", "centennial", "markham",
             "mount-joy", "stouffville", "old-elm"),
-        route("regional-up", "UP", "Union Pearson Express", "#4084cd",
+        route("regional-up", "UP", "Union Pearson Express", "#4084cd", 0,
             "union", "bloor", "mount-dennis", "weston", "pearson-airport")
     );
 
@@ -240,8 +247,15 @@ public final class RegionalNetworkCatalog {
         return reversed.reversed();
     }
 
-    private static Route route(String id, String number, String name, String color, String... stationIds) {
-        return new Route(id, number, name, color, List.of(stationIds));
+    private static Route route(
+        String id,
+        String number,
+        String name,
+        String color,
+        int inboundDirectionId,
+        String... stationIds
+    ) {
+        return new Route(id, number, name, color, inboundDirectionId, List.of(stationIds));
     }
 
     private static Map<String, StationResponses.StationSummaryResponse> buildStations() {

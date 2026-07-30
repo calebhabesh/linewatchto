@@ -28,7 +28,7 @@ class MetrolinxVehiclePositionClientTest {
     }
 
     @Test
-    void mapsVersionedGoRailRouteIdToAdjacentSchematicSegmentAndRejectsBusRoute() {
+    void mapsVersionedGoRailRouteIdToInboundAdjacentSchematicSegmentAndRejectsBusRoute() {
         server.expect(requestTo("https://api.example.test/OpenDataAPI/api/V1/Gtfs/Feed/VehiclePosition?key=secret"))
             .andRespond(withSuccess("""
                 {"header":{"gtfs_realtime_version":"2.0","incrementality":"FULL_DATASET","timestamp":1785268043},
@@ -45,12 +45,61 @@ class MetrolinxVehiclePositionClientTest {
         assertThat(feed.sourceUpdatedAt()).isEqualTo(OffsetDateTime.parse("2026-07-28T19:47:23Z"));
         assertThat(feed.markers()).singleElement().satisfies(marker -> {
             assertThat(marker.lineId()).isEqualTo("regional-ki");
-            assertThat(marker.segmentId()).isEqualTo("segment-ki-mount-dennis-weston");
-            assertThat(marker.fromStationId()).isEqualTo("mount-dennis");
+            assertThat(marker.segmentId()).isEqualTo("segment-ki-weston-etobicoke-north");
+            assertThat(marker.fromStationId()).isEqualTo("etobicoke-north");
             assertThat(marker.nextStationId()).isEqualTo("weston");
-            assertThat(marker.direction()).isEqualTo("Outbound");
+            assertThat(marker.direction()).isEqualTo("Inbound");
+            assertThat(marker.travelDirection()).isEqualTo("reverse");
             assertThat(marker.progress()).isEqualTo(0.5);
             assertThat(marker.vehicleId()).isEqualTo("cab-3775");
+        });
+        server.verify();
+    }
+
+    @Test
+    void mapsOutboundMiltonVehicleTowardOuterTerminus() {
+        server.expect(requestTo("https://api.example.test/OpenDataAPI/api/V1/Gtfs/Feed/VehiclePosition?key=secret"))
+            .andRespond(withSuccess("""
+                {"header":{"incrementality":"FULL_DATASET","timestamp":1785268043},
+                 "entity":[
+                   {"id":"mi-201","vehicle":{"trip":{"trip_id":"201","route_id":"MI","direction_id":1},
+                     "vehicle":{"id":"cab-201"},"current_status":"IN_TRANSIT_TO","stop_id":"SR","timestamp":1785268040}}
+                 ]}
+                """, MediaType.APPLICATION_JSON));
+
+        RegionalTrainMarkerFeed feed = client.fetchGo();
+
+        assertThat(feed.markers()).singleElement().satisfies(marker -> {
+            assertThat(marker.lineId()).isEqualTo("regional-mi");
+            assertThat(marker.segmentId()).isEqualTo("segment-mi-erindale-streetsville");
+            assertThat(marker.fromStationId()).isEqualTo("erindale");
+            assertThat(marker.nextStationId()).isEqualTo("streetsville");
+            assertThat(marker.direction()).isEqualTo("Outbound");
+            assertThat(marker.travelDirection()).isEqualTo("forward");
+        });
+        server.verify();
+    }
+
+    @Test
+    void mapsInboundLakeshoreEastVehicleTowardUnion() {
+        server.expect(requestTo("https://api.example.test/OpenDataAPI/api/V1/Gtfs/Feed/VehiclePosition?key=secret"))
+            .andRespond(withSuccess("""
+                {"header":{"incrementality":"FULL_DATASET","timestamp":1785268043},
+                 "entity":[
+                   {"id":"le-901","vehicle":{"trip":{"trip_id":"901","route_id":"LE","direction_id":1},
+                     "vehicle":{"id":"cab-901"},"current_status":"IN_TRANSIT_TO","stop_id":"SC","timestamp":1785268040}}
+                 ]}
+                """, MediaType.APPLICATION_JSON));
+
+        RegionalTrainMarkerFeed feed = client.fetchGo();
+
+        assertThat(feed.markers()).singleElement().satisfies(marker -> {
+            assertThat(marker.lineId()).isEqualTo("regional-le");
+            assertThat(marker.segmentId()).isEqualTo("segment-le-scarborough-eglinton");
+            assertThat(marker.fromStationId()).isEqualTo("eglinton");
+            assertThat(marker.nextStationId()).isEqualTo("scarborough");
+            assertThat(marker.direction()).isEqualTo("Inbound");
+            assertThat(marker.travelDirection()).isEqualTo("reverse");
         });
         server.verify();
     }
