@@ -22,6 +22,8 @@ import { REGIONAL_ROUTE_DEFINITIONS, type NetworkId } from "../app/regional-data
 import {
   getRegionalStationArrivals,
   groupRegionalStationArrivals,
+  isRegionalArrivalDue,
+  isRegionalArrivalSoon,
   regionalArrivalTimeDisplay,
   type RegionalArrivalDataResult,
 } from "../app/regional-arrivals";
@@ -444,9 +446,13 @@ function SavedStationRow({
                         <span className="saved-station-arrival-times">
                           {arrivals.map((arrival) => {
                             const timeDisplay = regionalArrivalTimeDisplay(arrival, arrivalTick);
-                            const due = arrival.minutes <= 0;
+                            const due = isRegionalArrivalDue(arrival, arrivalTick);
+                            const soon = !due && isRegionalArrivalSoon(arrival, arrivalTick);
                             return (
-                              <strong className={due ? "is-due" : undefined} key={`${arrival.tripNumber}:${arrival.predictedAt}`}>
+                              <strong
+                                className={[soon ? "is-soon" : "", due ? "is-due" : ""].filter(Boolean).join(" ") || undefined}
+                                key={`${arrival.tripNumber}:${arrival.predictedAt}`}
+                              >
                                 {timeDisplay.primary}
                               </strong>
                             );

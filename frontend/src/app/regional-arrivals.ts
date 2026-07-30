@@ -102,6 +102,52 @@ export function regionalArrivalMinuteLabel(minutes: number) {
   return `${minutes} min`;
 }
 
+function toMillis(value: Date | number | string | undefined): number {
+  if (value instanceof Date) {
+    const dateMillis = value.getTime();
+    return Number.isNaN(dateMillis) ? Date.now() : dateMillis;
+  }
+  if (typeof value === "number") {
+    return Number.isNaN(value) ? Date.now() : value;
+  }
+  if (typeof value === "string") {
+    const parsed = Date.parse(value);
+    return Number.isNaN(parsed) ? Date.now() : parsed;
+  }
+  return Date.now();
+}
+
+export function getRegionalArrivalMinutes(
+  arrival: Pick<RegionalArrival, "minutes"> & Partial<Pick<RegionalArrival, "predictedAt">>,
+  now: Date | number | string = Date.now(),
+): number {
+  if (arrival.predictedAt) {
+    const predictedMs = Date.parse(arrival.predictedAt);
+    if (!Number.isNaN(predictedMs)) {
+      const nowMs = toMillis(now);
+      return Math.floor((predictedMs - nowMs) / 60_000);
+    }
+  }
+  return arrival.minutes;
+}
+
+export function isRegionalArrivalDue(
+  arrival: Pick<RegionalArrival, "minutes"> & Partial<Pick<RegionalArrival, "predictedAt">>,
+  now?: Date | number | string,
+): boolean {
+  const minutes = getRegionalArrivalMinutes(arrival, now);
+  return minutes <= 0;
+}
+
+export function isRegionalArrivalSoon(
+  arrival: Pick<RegionalArrival, "minutes"> & Partial<Pick<RegionalArrival, "predictedAt">>,
+  now?: Date | number | string,
+  thresholdMinutes = 5,
+): boolean {
+  const minutes = getRegionalArrivalMinutes(arrival, now);
+  return minutes > 0 && minutes <= thresholdMinutes;
+}
+
 export type RegionalArrivalTimeDisplay = {
   primary: string;
   secondary: string;
@@ -111,10 +157,11 @@ export function regionalArrivalTimeDisplay(
   arrival: Pick<RegionalArrival, "minutes" | "predictedAt">,
   now: Date | number = Date.now(),
 ): RegionalArrivalTimeDisplay {
+  const minutes = getRegionalArrivalMinutes(arrival, now);
   const clock = formatRegionalArrivalClockTime(arrival.predictedAt, now);
-  if (arrival.minutes < 60 || !clock) {
+  if (minutes < 60 || !clock) {
     return {
-      primary: regionalArrivalMinuteLabel(arrival.minutes),
+      primary: regionalArrivalMinuteLabel(minutes),
       secondary: clock,
     };
   }

@@ -10,6 +10,8 @@ import {
   emptyRegionalArrivalSnapshot,
   getRegionalStationArrivals,
   groupRegionalStationArrivals,
+  isRegionalArrivalDue,
+  isRegionalArrivalSoon,
   regionalArrivalTimeDisplay,
   type RegionalArrivalSnapshot,
 } from "../app/regional-arrivals";
@@ -198,10 +200,16 @@ export function RegionalStationDetailPanel({
 }: Props) {
   const dashboard = useDashboardData();
   const [isClosing, setIsClosing] = useState(false);
+  const [arrivalTick, setArrivalTick] = useState(() => Date.now());
   const [arrivalState, setArrivalState] = useState<{
     stationId: string;
     snapshot: RegionalArrivalSnapshot;
   }>(() => ({ stationId: "", snapshot: emptyRegionalArrivalSnapshot(station.id) }));
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setArrivalTick(Date.now()), 3000);
+    return () => window.clearInterval(timer);
+  }, []);
   const [noticesState, setNoticesState] = useState<{
     loading: boolean;
     notices: SurfaceNoticeDetail[];
@@ -535,25 +543,32 @@ export function RegionalStationDetailPanel({
                                   </div>
                                   <div className="grid grid-cols-3 gap-2">
                                     {platform.arrivals.map((arrival) => {
-                                      const due = arrival.minutes <= 0;
-                                      const timeDisplay = regionalArrivalTimeDisplay(arrival);
+                                      const due = isRegionalArrivalDue(arrival, arrivalTick);
+                                      const soon = !due && isRegionalArrivalSoon(arrival, arrivalTick);
+                                      const timeDisplay = regionalArrivalTimeDisplay(arrival, arrivalTick);
                                       return (
                                         <div
                                           key={`${arrival.tripNumber}:${arrival.predictedAt}`}
                                           className={[
-                                            "flex min-h-[66px] flex-col items-center justify-center rounded-md border px-2 py-2 text-center",
+                                            "flex min-h-[66px] flex-col items-center justify-center rounded-md border px-2 py-2 text-center transition-colors",
                                             due
                                               ? "border-red-400/80 bg-red-900/85 text-red-50 shadow-[0_0_0_1px_rgba(248,113,113,0.25)]"
-                                              : "border-black/10 bg-slate-950/[0.03] text-slate-900 dark:border-white/10 dark:bg-[#0f1117] dark:text-white",
+                                              : soon
+                                                ? "border-emerald-400/35 bg-emerald-500/10 text-slate-900 shadow-[0_0_0_1px_rgba(52,211,153,0.12)] dark:border-emerald-400/25 dark:bg-emerald-400/10 dark:text-white"
+                                                : "border-black/10 bg-slate-950/[0.03] text-slate-900 dark:border-white/10 dark:bg-[#0f1117] dark:text-white",
                                           ].join(" ")}
                                         >
                                           <strong className="text-base font-black leading-none tracking-tight">
                                             {timeDisplay.primary}
                                           </strong>
                                           <span
-                                            className={due
-                                              ? "mt-1 text-xs font-semibold text-red-100/80"
-                                              : "mt-1 text-xs font-semibold text-slate-500 dark:text-slate-400"}
+                                            className={
+                                              due
+                                                ? "mt-1 text-xs font-semibold text-red-100/80"
+                                                : soon
+                                                  ? "mt-1 text-xs font-semibold text-emerald-700 dark:text-emerald-300"
+                                                  : "mt-1 text-xs font-semibold text-slate-500 dark:text-slate-400"
+                                            }
                                           >
                                             {timeDisplay.secondary}
                                           </span>

@@ -4,8 +4,11 @@ import { describe, it } from "node:test";
 import {
   emptyRegionalArrivalSnapshot,
   formatRegionalArrivalClockTime,
+  getRegionalArrivalMinutes,
   getRegionalStationArrivals,
   groupRegionalStationArrivals,
+  isRegionalArrivalDue,
+  isRegionalArrivalSoon,
   regionalArrivalMinuteLabel,
   regionalArrivalTimeDisplay,
 } from "../src/app/regional-arrivals.ts";
@@ -57,6 +60,23 @@ describe("regional station arrivals adapter", () => {
     assert.equal(regionalArrivalMinuteLabel(0), "Due");
     assert.equal(regionalArrivalMinuteLabel(1), "1 min");
     assert.equal(regionalArrivalMinuteLabel(12), "12 min");
+  });
+
+  it("evaluates due and soon arrival thresholds based on predicted time or minute count", () => {
+    const now = new Date("2026-07-29T12:00:00-04:00");
+    const dueArrival = { minutes: 0, predictedAt: "2026-07-29T12:00:00-04:00" };
+    const soonArrival = { minutes: 3, predictedAt: "2026-07-29T12:03:00-04:00" };
+    const distantArrival = { minutes: 15, predictedAt: "2026-07-29T12:15:00-04:00" };
+
+    assert.equal(getRegionalArrivalMinutes(soonArrival, now), 3);
+    assert.equal(isRegionalArrivalDue(dueArrival, now), true);
+    assert.equal(isRegionalArrivalSoon(dueArrival, now), false);
+
+    assert.equal(isRegionalArrivalDue(soonArrival, now), false);
+    assert.equal(isRegionalArrivalSoon(soonArrival, now), true);
+
+    assert.equal(isRegionalArrivalDue(distantArrival, now), false);
+    assert.equal(isRegionalArrivalSoon(distantArrival, now), false);
   });
 
   it("switches hour-away arrivals from large minute counts to clock times", () => {

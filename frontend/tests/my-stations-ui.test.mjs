@@ -130,6 +130,8 @@ describe("My Stations UI", () => {
     assert.match(panel, /groupStationArrivals/);
     assert.match(panel, /getRegionalStationArrivals/);
     assert.match(panel, /groupRegionalStationArrivals/);
+    assert.match(panel, /isRegionalArrivalDue/);
+    assert.match(panel, /isRegionalArrivalSoon/);
     assert.match(panel, /getAccessibilityOutages\(undefined, \{ networkId: "regional" \}\)/);
     assert.match(panel, /regionalAccessibility\?\.fresh/);
     assert.match(panel, /regionalArrivalSnapshot\.source/);
