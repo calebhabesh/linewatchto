@@ -1,4 +1,5 @@
 import { apiUrl } from "./api-client.ts";
+import { isRegionalStationWheelchairAccessible } from "./regional-data.ts";
 
 export type StationAccessStatus = "normal" | "advisory" | "outage";
 export type StationImpactType = "active-alert" | "planned-closure";
@@ -1669,7 +1670,10 @@ export async function getStationDetail(
   }
 }
 
-export function isStationWheelchairAccessible(stationId: string, lineIds: string[]): boolean {
+export function isStationWheelchairAccessible(stationId: string, lineIds: string[], networkId?: string): boolean {
+  if (networkId === "regional" || lineIds.some((id) => id.startsWith("regional-"))) {
+    return isRegionalStationWheelchairAccessible(stationId);
+  }
   return lineIds.some((lineId) => !FALLBACK_NOT_WHEELCHAIR_ACCESSIBLE.has(`${stationId}:${lineId}`));
 }
 

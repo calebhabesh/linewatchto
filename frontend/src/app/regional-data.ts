@@ -118,6 +118,16 @@ export const regionalRouteIdsByStation = Object.entries(REGIONAL_ROUTE_STATIONS)
 
 const allRegionalStationIds = [...new Set(Object.values(REGIONAL_ROUTE_STATIONS).flat())];
 
+export const REGIONAL_NOT_WHEELCHAIR_ACCESSIBLE = new Set([
+  "long-branch",
+  "mimico",
+  "oriole",
+]);
+
+export function isRegionalStationWheelchairAccessible(stationId: string): boolean {
+  return !REGIONAL_NOT_WHEELCHAIR_ACCESSIBLE.has(stationId);
+}
+
 export const regionalStations: Station[] = allRegionalStationIds.map((id) => ({
   id,
   name: stationName(id),

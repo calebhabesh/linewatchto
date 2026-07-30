@@ -469,7 +469,7 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
           {station.lines.map((line) => (
             <div
               key={line.id}
-              className="grid min-h-[76px] grid-cols-[minmax(0,1fr)_auto] items-center gap-4 rounded-md border border-black/10 bg-slate-50 p-3 dark:border-white/10 dark:bg-white/5"
+              className="grid min-h-[76px] grid-cols-[minmax(0,1fr)_auto] items-center gap-4 rounded-md border border-black/10 bg-slate-50 px-4 py-3.5 dark:border-white/10 dark:bg-white/5"
             >
               <div className="min-w-0">
                 <span
@@ -485,18 +485,18 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
                 </p>
               </div>
 
-              <div className="flex shrink-0 items-center justify-end gap-4 pl-2">
+              <div className="flex shrink-0 items-center justify-end gap-3 pl-2 pr-1">
                 {line.wheelchairAccessible && (
                   <span
-                    className="flex items-center justify-center"
+                    className="flex items-center justify-center p-0.5"
                     title="Wheelchair accessible"
                   >
                     <Image
                       src="/assets/linewatch/wheel-chair-symbol.svg"
                       alt="Wheelchair accessible"
-                      width={36}
-                      height={36}
-                      className="w-[36px] h-[36px] rounded-md drop-shadow-[0_0_3px_rgba(0,103,167,0.5)] dark:drop-shadow-[0_0_4px_rgba(0,103,167,0.7)]"
+                      width={34}
+                      height={34}
+                      className="w-[34px] h-[34px] rounded-md drop-shadow-[0_0_3px_rgba(0,103,167,0.5)] dark:drop-shadow-[0_0_4px_rgba(0,103,167,0.7)]"
                     />
                   </span>
                 )}

@@ -401,7 +401,7 @@ describe("network-scoped regional dashboard", () => {
     assert.doesNotMatch(regionalStationDetailSource, /No active elevator or escalator outages/);
     assert.doesNotMatch(regionalStationDetailSource, /Regional accessibility outage data is disabled/);
     assert.doesNotMatch(regionalStationDetailSource, /Accessibility and platform-condition details are unavailable/);
-    assert.doesNotMatch(regionalStationDetailSource, /wheel-chair-symbol|elevator-icon/);
+    assert.match(regionalStationDetailSource, /wheel-chair-symbol/);
   });
 
   it("uses cardinal directions consistently for every regional rail corridor", () => {

@@ -1,11 +1,11 @@
 "use client";
 
-import { AlertCircle, AlertTriangle, BadgeInfo, ChevronDown, Clock3, Construction, ExternalLink, FileText, LoaderCircle } from "lucide-react";
+import { AlertCircle, AlertTriangle, BadgeInfo, Check, ChevronDown, Clock3, Construction, ExternalLink, FileText, LoaderCircle } from "lucide-react";
 import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useDashboardData } from "../app/DataContext";
 import type { ImpactKind, ImpactSelection } from "../app/linewatch-data";
-import { REGIONAL_ROUTE_CARDINAL_DIRECTIONS, REGIONAL_ROUTE_DEFINITIONS } from "../app/regional-data";
+import { isRegionalStationWheelchairAccessible, REGIONAL_ROUTE_CARDINAL_DIRECTIONS, REGIONAL_ROUTE_DEFINITIONS } from "../app/regional-data";
 import {
   emptyRegionalArrivalSnapshot,
   getRegionalStationArrivals,
@@ -280,6 +280,8 @@ export function RegionalStationDetailPanel({
   }, [station.id]);
 
 
+  const isWheelchairAccessible = isRegionalStationWheelchairAccessible(station.id);
+
   const toggleSaved = () => {
     if (!authenticated) {
       onRequestSignIn();
@@ -373,6 +375,15 @@ export function RegionalStationDetailPanel({
           key={station.id}
           className="station-detail-content-swap flex-1 min-h-0 flex flex-col"
         >
+          {isWheelchairAccessible && (
+            <div className="mt-2.5 flex flex-wrap gap-1.5 shrink-0">
+              <span className="inline-flex items-center gap-1 shrink-0 text-[9px] sm:text-[10px] font-bold text-slate-800 dark:text-slate-200 px-2 py-0.5 rounded-[4px] border border-black/15 dark:border-white/15 uppercase tracking-wider bg-slate-100 dark:bg-white/5 whitespace-nowrap">
+                <Check size={11} className="text-emerald-600 dark:text-emerald-400 stroke-[3.5] shrink-0" />
+                Wheelchair Accessible
+              </span>
+            </div>
+          )}
+
           <div className="flex-1 min-h-0 overflow-y-auto mt-3 pr-4 -mr-4 station-detail-scroll">
             <div className="flex flex-col gap-2" data-station-header-line-details aria-label="Regional rail corridors">
           {Object.entries(
@@ -385,23 +396,41 @@ export function RegionalStationDetailPanel({
           ).map(([direction, directionRoutes]) => (
             <div
               key={direction}
-              className="flex flex-col gap-3 rounded-md border border-black/10 bg-slate-50 p-3 dark:border-white/10 dark:bg-white/5"
+              className="grid min-h-[76px] grid-cols-[minmax(0,1fr)_auto] items-center gap-4 rounded-md border border-black/10 bg-slate-50 px-4 py-3.5 dark:border-white/10 dark:bg-white/5"
             >
-              <div className="flex flex-wrap gap-2">
-                {directionRoutes.map((route) => (
-                  <span
-                    key={route.id}
-                    className="regional-route-pill inline-flex min-h-8 max-w-full min-w-0 items-center gap-2 rounded-full border border-black/10 px-3 py-1 text-xs font-black dark:border-white/10"
-                    style={transitLineBadgeColors(route.id)}
-                  >
-                    <span>{route.number}</span>
-                    <span className="min-w-0 truncate">{route.name}</span>
-                  </span>
-                ))}
+              <div className="min-w-0">
+                <div className="flex flex-wrap gap-2">
+                  {directionRoutes.map((route) => (
+                    <span
+                      key={route.id}
+                      className="regional-route-pill inline-flex min-h-8 max-w-full min-w-0 items-center gap-2 rounded-full border border-black/10 px-3 py-1 text-xs font-black dark:border-white/10"
+                      style={transitLineBadgeColors(route.id)}
+                    >
+                      <span>{route.number}</span>
+                      <span className="min-w-0 truncate">{route.name}</span>
+                    </span>
+                  ))}
+                </div>
+                <p className="mt-2 break-words text-xs font-semibold text-slate-500 dark:text-slate-400">
+                  {direction}
+                </p>
               </div>
-              <p className="break-words text-xs font-semibold text-slate-500 dark:text-slate-400">
-                {direction}
-              </p>
+              {isWheelchairAccessible && (
+                <div className="flex shrink-0 items-center justify-end pl-2 pr-1">
+                  <span
+                    className="flex items-center justify-center p-0.5"
+                    title="Wheelchair accessible"
+                  >
+                    <Image
+                      src="/assets/linewatch/wheel-chair-symbol.svg"
+                      alt="Wheelchair accessible"
+                      width={34}
+                      height={34}
+                      className="w-[34px] h-[34px] rounded-md drop-shadow-[0_0_3px_rgba(0,103,167,0.5)] dark:drop-shadow-[0_0_4px_rgba(0,103,167,0.7)]"
+                    />
+                  </span>
+                </div>
+              )}
             </div>
           ))}
           {ttcLines.length > 0 && (
@@ -614,7 +643,6 @@ export function RegionalStationDetailPanel({
                 className="station-notices-details rounded-lg border border-black/10 bg-slate-50 p-3 dark:border-white/10 dark:bg-white/5"
                 data-station-section="notices"
                 aria-label="Regional station notices"
-                open={linkedNotices.length > 0}
               >
                 <summary
                   onClick={handleNoticesSummaryClick}

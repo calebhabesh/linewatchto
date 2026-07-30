@@ -208,7 +208,7 @@ function StationButton({
     .map((lineId) => lineById(lineId))
     .filter((line): line is StationSearchLine => Boolean(line));
 
-  const isWheelchair = networkId === "ttc" && isStationWheelchairAccessible(station.id, station.lineIds);
+  const isWheelchair = isStationWheelchairAccessible(station.id, station.lineIds, networkId);
   const hasElevator = networkId === "ttc" && isStationElevatorAccessible(station.id, station.lineIds);
 
   let accessibilityLabel = "";
