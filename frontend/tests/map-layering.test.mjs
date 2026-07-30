@@ -8,6 +8,7 @@ const interactiveMapSource = readFileSync(new URL("../src/components/Interactive
 const overlapIndicatorSource = readFileSync(new URL("../src/components/MapOverlapIndicator.tsx", import.meta.url), "utf8");
 const plannedClosureIconSource = readFileSync(new URL("../src/components/PlannedClosureIcon.tsx", import.meta.url), "utf8");
 const mapImpactNormalizationSource = readFileSync(new URL("../src/components/map-impact-normalization.ts", import.meta.url), "utf8");
+const stationImpactDirectionSource = readFileSync(new URL("../src/components/station-impact-direction.ts", import.meta.url), "utf8");
 
 function cssBlockFor(selector) {
   const start = globalCss.indexOf(`${selector} {`);
@@ -248,15 +249,15 @@ describe("asset-backed map layering", () => {
     assert.match(interactiveMapSource, /return isLargeStation \? 40 : 24;/);
     assert.match(interactiveMapSource, /stationImpactRingRadius\(isLarge\)/);
     assert.match(interactiveMapSource, /return isLargeStation \? 56 : 38;/);
-    assert.match(interactiveMapSource, /FOUR_WAY_STATION_IMPACT_ARROW_SCALE = 0\.94/);
-    assert.match(interactiveMapSource, /direction === "four-way" \? radius \* FOUR_WAY_STATION_IMPACT_ARROW_SCALE : radius/);
-    assert.match(interactiveMapSource, /stationImpactDirectionMetrics\(pathMetricsRadius\)/);
-    assert.match(interactiveMapSource, /Math\.round\(radius \* 0\.75\)/);
-    assert.match(interactiveMapSource, /stationImpactDirectionCenteredPartPath/);
-    assert.match(interactiveMapSource, /stationImpactDirectionSpokePartPath/);
-    assert.match(interactiveMapSource, /metrics\.extent/);
-    assert.match(interactiveMapSource, /metrics\.headInset/);
-    assert.match(interactiveMapSource, /direction === "four-way"/);
+    assert.match(stationImpactDirectionSource, /FOUR_WAY_STATION_IMPACT_ARROW_SCALE = 0\.94/);
+    assert.match(stationImpactDirectionSource, /direction === "four-way" \? radius \* FOUR_WAY_STATION_IMPACT_ARROW_SCALE : radius/);
+    assert.match(stationImpactDirectionSource, /stationImpactDirectionMetrics\(pathMetricsRadius\)/);
+    assert.match(stationImpactDirectionSource, /Math\.round\(radius \* 0\.75\)/);
+    assert.match(stationImpactDirectionSource, /stationImpactDirectionCenteredPartPath/);
+    assert.match(stationImpactDirectionSource, /stationImpactDirectionSpokePartPath/);
+    assert.match(stationImpactDirectionSource, /metrics\.extent/);
+    assert.match(stationImpactDirectionSource, /metrics\.headInset/);
+    assert.match(stationImpactDirectionSource, /direction === "four-way"/);
     assert.match(globalCss, /\.station-impact-direction-badge/);
     assert.match(globalCss, /\.station-impact-direction-arrow/);
     assert.match(interactiveMapSource, /feTurbulence/);

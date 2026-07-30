@@ -26,6 +26,40 @@ describe("station impact map direction arrows", () => {
     );
   });
 
+  it("maps bidirectional regional corridor alerts to readable station-dot arrows", () => {
+    for (const lineId of ["regional-ki", "regional-le", "regional-lw", "regional-mi", "regional-up"]) {
+      assert.equal(
+        stationImpactDirectionArrow(lineId, "Both directions")?.direction,
+        "horizontal-bidirectional",
+      );
+    }
+    for (const lineId of ["regional-br", "regional-rh", "regional-st"]) {
+      assert.equal(
+        stationImpactDirectionArrow(lineId, "Both directions")?.direction,
+        "vertical-bidirectional",
+      );
+    }
+  });
+
+  it("uses a source-honest bidirectional fallback for regional station impacts", () => {
+    const details = stationImpactDirectionForImpact(
+      { stationId: "bloor", kind: "delay", cardId: "regional-bloor-delay" },
+      {
+        activeAlerts: [],
+        delays: [{
+          id: "regional-bloor-delay",
+          lineId: "regional-up",
+          displayDirection: null,
+        }],
+        reducedSpeedZones: [],
+        plannedClosures: [],
+      },
+    );
+
+    assert.equal(details?.displayDirection, "Both directions");
+    assert.equal(details?.arrow.direction, "horizontal-bidirectional");
+  });
+
   it("uses the linked alert card direction for station-node impacts", () => {
     const details = stationImpactDirectionForImpact(
       {

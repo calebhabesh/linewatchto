@@ -353,13 +353,76 @@ test("renders fresh Metrolinx impacts in regional mode", async ({ page, request,
   await expect(delayOverlay.locator('[data-regional-delay-direction="forward"]')).toBeAttached();
   await expect(delayOverlay.locator(".regional-delay-glyph--hourglass").first()).toBeAttached();
   await expect(delayOverlay.locator(".regional-delay-glyph--arrow").first()).toBeAttached();
+  await expect(page.locator(".regional-station-impact-beacon-group")).toHaveCount(1);
+  await expect(page.locator(".regional-station-impact-direction-glyph")).toHaveCount(1);
+  const bloorBeacon = page.locator(
+    '.regional-station-impact-beacon-group[data-regional-station-impact-anchor-id="station-bloor-up"]',
+  );
+  await expect(bloorBeacon).toBeVisible();
+  await expect(page.locator(
+    '.regional-station-impact-ring[data-regional-impact-id="regional-demo-bloor-station-delay"] :is(circle, ellipse)',
+  )).toHaveCount(1);
+  await expect(
+    page.locator(".regional-station-impact-direction-glyph .station-impact-direction-arrow"),
+  ).toBeAttached();
+  const [bloorDotBox, bloorBeaconBox, bloorArrowBox] = await Promise.all([
+    page.locator("#station-bloor-up").boundingBox(),
+    bloorBeacon.boundingBox(),
+    page.locator(
+      '.regional-station-impact-direction-glyph[data-regional-station-impact-anchor-id="station-bloor-up"]',
+    ).boundingBox(),
+  ]);
+  expect(bloorDotBox).not.toBeNull();
+  expect(bloorBeaconBox).not.toBeNull();
+  expect(bloorArrowBox).not.toBeNull();
+  const center = (box: NonNullable<typeof bloorDotBox>) => ({
+    x: box.x + box.width / 2,
+    y: box.y + box.height / 2,
+  });
+  const bloorDotCenter = center(bloorDotBox!);
+  for (const effectBox of [bloorBeaconBox!, bloorArrowBox!]) {
+    const effectCenter = center(effectBox);
+    expect(Math.abs(effectCenter.x - bloorDotCenter.x)).toBeLessThan(3);
+    expect(Math.abs(effectCenter.y - bloorDotCenter.y)).toBeLessThan(3);
+  }
+  expect(bloorArrowBox!.width).toBeLessThan(bloorDotBox!.width * 0.9);
+  expect(bloorArrowBox!.height).toBeLessThan(bloorDotBox!.height * 0.9);
+  expect(await page.locator(
+    '.regional-station-impact-ring[data-regional-impact-id="regional-demo-bloor-station-delay"] :is(circle, ellipse)',
+  ).evaluate((shape) => getComputedStyle(shape).stroke)).toBe("rgba(0, 0, 0, 0)");
+  expect(await page.locator(".regional-station-impact-effects-layer").evaluate((effects) => {
+    return effects.parentElement?.querySelector(".regional-station-impact-hover-foreground-layer") === null;
+  })).toBe(true);
+
+  const bloorImpactRing = page.locator(
+    '.regional-station-impact-ring[data-regional-impact-id="regional-demo-bloor-station-delay"]',
+  );
+  await bloorImpactRing.dispatchEvent("pointerover");
+  const bloorStationHover = page.locator(
+    '.regional-station-hover-indicator[data-regional-station-hover-id="bloor"]',
+  );
+  await expect(bloorStationHover).toHaveAttribute("data-regional-station-impact-hovered", "true");
+  await expect(bloorStationHover).toHaveCSS("opacity", "1");
+  await expect(bloorImpactRing).not.toHaveAttribute("data-regional-impact-hovered");
 
   const plannedOverlay = page.locator(
     '.regional-overlay-segment-group[data-regional-impact-kind="planned-closure"][data-regional-impact-id="regional-demo-planned"]',
   );
   await expect(plannedOverlay).toHaveCount(1);
-  await expect(plannedOverlay).toHaveCSS("--regional-impact-width", "168px");
+  await expect(plannedOverlay).toHaveCSS("--regional-impact-width", "196px");
   await expect(delayOverlay).toHaveCSS("--regional-impact-width", "196px");
+  await expect(plannedOverlay).toHaveCSS("--map-pulse-offset", "0s");
+  await expect(delayOverlay).toHaveCSS("--map-pulse-offset", "0s");
+  const suspensionOverlay = page.locator(
+    '.regional-overlay-segment-group[data-regional-impact-kind="suspension"][data-regional-impact-id="regional-demo-suspension"]',
+  );
+  await expect(suspensionOverlay).toHaveCount(1);
+  expect(await delayOverlay.evaluate((delay, planned) => Boolean(
+    delay.compareDocumentPosition(planned as Node) & Node.DOCUMENT_POSITION_FOLLOWING
+  ), await plannedOverlay.elementHandle())).toBe(true);
+  expect(await plannedOverlay.evaluate((planned, suspension) => Boolean(
+    planned.compareDocumentPosition(suspension as Node) & Node.DOCUMENT_POSITION_FOLLOWING
+  ), await suspensionOverlay.elementHandle())).toBe(true);
 
   const regionalOverlapMarker = page.locator('[data-overlap-segment-id^="regional-overlap-"]').first();
   await expect(regionalOverlapMarker).toBeVisible();
@@ -371,6 +434,25 @@ test("renders fresh Metrolinx impacts in regional mode", async ({ page, request,
   expect(markerBox!.y).toBeGreaterThanOrEqual(0);
   expect(markerBox!.x + markerBox!.width).toBeLessThanOrEqual(viewport!.width);
   expect(markerBox!.y + markerBox!.height).toBeLessThanOrEqual(viewport!.height);
+
+  const visibleOverlapBoxes = await page.locator('[data-overlap-segment-id^="regional-overlap-"]:visible')
+    .evaluateAll((markers) => markers.map((marker) => marker.getBoundingClientRect().toJSON()));
+  const visibleMapTextBoxes = await page.locator(
+    'svg[aria-label="GO and UP regional rail schematic"] text:visible',
+  ).evaluateAll((labels) => labels.map((label) => label.getBoundingClientRect().toJSON()));
+  for (const overlapBox of visibleOverlapBoxes) {
+    for (const textBox of visibleMapTextBoxes) {
+      const overlapsText = overlapBox.x < textBox.x + textBox.width
+        && overlapBox.x + overlapBox.width > textBox.x
+        && overlapBox.y < textBox.y + textBox.height
+        && overlapBox.y + overlapBox.height > textBox.y;
+      expect(overlapsText).toBe(false);
+    }
+  }
+  await page.waitForTimeout(250);
+  const settledOverlapBoxes = await page.locator('[data-overlap-segment-id^="regional-overlap-"]:visible')
+    .evaluateAll((markers) => markers.map((marker) => marker.getBoundingClientRect().toJSON()));
+  expect(settledOverlapBoxes).toEqual(visibleOverlapBoxes);
 
   const lwOverlapMarker = page.getByRole("button", {
     name: /Overlapping alerts: Delay x2 on Union to Niagara Falls/,
@@ -419,6 +501,13 @@ test("renders fresh Metrolinx impacts in regional mode", async ({ page, request,
   );
   await expect(delayOverlay).toHaveAttribute("data-regional-impact-hovered", "true");
   await expect(plannedOverlay).toHaveAttribute("data-regional-impact-hovered", "true");
+  const hoverForegrounds = page.locator(
+    '.regional-impact-hover-foreground-layer .regional-impact-hover-foreground[data-regional-impact-hovered="true"]',
+  );
+  await expect(hoverForegrounds).toHaveCount(2);
+  await expect(
+    page.locator(".regional-impact-hover-foreground-layer .regional-impact-hit-target"),
+  ).toHaveCount(0);
 
   await regionalOverlapMarker.click();
   const regionalOverlapChooser = page.locator("[data-overlap-chooser]");

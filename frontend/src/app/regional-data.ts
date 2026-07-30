@@ -354,6 +354,7 @@ export function regionalDashboardDataForScenario(
     location: "Pickering to Whitby",
     description: "Synthetic regional scenario data for interface verification.",
     affectedSegmentIds: delaySegmentIds,
+    displayDirection: "Both directions",
     source: "Synthetic regional fixture",
   };
   const lwCorridorDelay: DelayAlert = {
@@ -397,10 +398,21 @@ export function regionalDashboardDataForScenario(
     shuttle: false,
     source: "Synthetic regional fixture",
   };
+  const stationDelay: DelayAlert = {
+    id: "regional-demo-bloor-station-delay",
+    lineId: "regional-up",
+    lineNumber: "UP",
+    title: "Synthetic station-specific delay at Bloor",
+    location: "Bloor GO/UP",
+    description: "Synthetic regional scenario data for grouped station-impact verification.",
+    affectedSegmentIds: [],
+    displayDirection: "Both directions",
+    source: "Synthetic regional fixture",
+  };
   const stationImpact: StationNodeImpact = {
-    stationId: scenario === "shared-station" ? "bloor" : "union",
+    stationId: "bloor",
     kind: "delay",
-    cardId: delay.id,
+    cardId: stationDelay.id,
     title: "Synthetic station impact",
   };
 
@@ -433,8 +445,18 @@ export function regionalDashboardDataForScenario(
       location: lwOverlappingDelay.location,
       affectedSegmentIds: lwOverlappingDelay.affectedSegmentIds,
     }),
+    scenarioActiveAlert({
+      id: stationDelay.id,
+      lineId: stationDelay.lineId,
+      lineNumber: stationDelay.lineNumber,
+      title: stationDelay.title,
+      severity: "delay",
+      location: stationDelay.location,
+      affectedSegmentIds: [],
+      displayDirection: stationDelay.displayDirection,
+    }),
   ];
-  data.delays = [delay, lwCorridorDelay, lwOverlappingDelay];
+  data.delays = [delay, lwCorridorDelay, lwOverlappingDelay, stationDelay];
   data.plannedClosures = [plannedClosure];
   data.stationNodeImpacts = [stationImpact];
   data.networkSegments = data.networkSegments.map((segment) => {

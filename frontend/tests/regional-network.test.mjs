@@ -477,10 +477,12 @@ describe("network-scoped regional dashboard", () => {
   it("provides source-honest synthetic scenarios without changing the default fixture", () => {
     const scenario = regionalDashboardDataForScenario("all-impact-types");
     assert.equal(regionalDashboardData.activeAlerts.length, 0);
-    assert.equal(scenario.activeAlerts.length, 4);
-    assert.equal(scenario.delays.length, 3);
+    assert.equal(scenario.activeAlerts.length, 5);
+    assert.equal(scenario.delays.length, 4);
     assert.equal(scenario.plannedClosures.length, 1);
     assert.equal(scenario.stationNodeImpacts.length, 1);
+    assert.equal(scenario.stationNodeImpacts[0].stationId, "bloor");
+    assert.equal(scenario.stationNodeImpacts[0].cardId, "regional-demo-bloor-station-delay");
     assert.ok(scenario.networkSegments.some((segment) => (segment.impacts?.length ?? 0) > 0));
     const fullLwImpactSegmentIds = scenario.networkSegments
       .filter((segment) => segment.impacts?.some(
@@ -506,8 +508,10 @@ describe("network-scoped regional dashboard", () => {
     assert.match(regionalMapSource, /"asset-alert-path-hover-boundary", visualState, "regional-impact-hover-boundary"/);
     assert.match(regionalMapSource, /setLinkedImpactHover/);
     assert.match(regionalMapSource, /data-regional-impact-hovered/);
-    assert.match(regionalMapSource, /onPointerOver=\{onLinkedImpactPointerOver\}/);
-    assert.match(regionalMapSource, /onPointerOut=\{onLinkedImpactPointerOut\}/);
+    assert.match(regionalMapSource, /document\.addEventListener\("pointerover", handlePointerOver\)/);
+    assert.match(regionalMapSource, /document\.addEventListener\("pointerout", handlePointerOut\)/);
+    assert.doesNotMatch(regionalMapSource, /onLinkedImpactPointerOver/);
+    assert.doesNotMatch(regionalMapSource, /onLinkedImpactPointerOut/);
     assert.match(globalsCss, /data-regional-impact-hovered="true"[^}]*regional-impact-glow/);
     assert.match(
       globalsCss,
@@ -599,18 +603,57 @@ describe("network-scoped regional dashboard", () => {
   it("renders every layered segment impact instead of discarding overlaps", () => {
     assert.match(regionalMapSource, /for \(const \[impactIndex, impact\] of \(segment\.impacts \?\? \[\]\)\.entries\(\)\)/);
     assert.doesNotMatch(regionalMapSource, /const impact = segment\.impacts\?\.\[0\]/);
-    assert.match(regionalMapSource, /function regionalImpactLayerIndex\(impact: MapImpact, impacts: MapImpact\[\]\)/);
-    assert.match(regionalMapSource, /regionalImpactPriority\(left\.kind\) - regionalImpactPriority\(right\.kind\)/);
-    assert.match(regionalMapSource, /layerIndex: regionalImpactLayerIndex\(run\.impact, overlappingImpacts\)/);
-    assert.doesNotMatch(regionalMapSource, /layerIndex: run\.impactIndex/);
+    assert.match(regionalMapSource, /const orderedOverlayRuns = regionalOverlayRuns\(overlayPieces\)\.sort/);
+    assert.match(regionalMapSource, /regionalImpactPriority\(left\.impact\.kind\) - regionalImpactPriority\(right\.impact\.kind\)/);
+    assert.match(regionalMapSource, /case "delay":\s*return 0;[\s\S]*case "planned-closure":\s*return 2;[\s\S]*case "suspension":\s*return 3;/);
+    assert.match(regionalMapSource, /`\$\{REGIONAL_IMPACT_OVERLAY_WIDTH\}px`/);
+    assert.doesNotMatch(regionalMapSource, /REGIONAL_IMPACT_OVERLAY_WIDTH - layerIndex/);
   });
 
-  it("repaints linked regional selections above overlapping map layers without moving focused hit targets", () => {
+  it("repaints completed regional selections while hover uses a non-interactive foreground copy", () => {
     assert.match(regionalMapSource, /function bringRegionalImpactToFront\(/);
     assert.match(regionalMapSource, /element\.parentElement\?\.insertBefore\(element, firstStationTarget\)/);
     assert.match(regionalMapSource, /bringRegionalImpactToFront\(root, selection\.kind, selection\.id\)/);
     assert.match(regionalMapSource, /bringRegionalStationImpactToFront\(root, selection\.kind, selection\.id\)/);
-    assert.doesNotMatch(regionalMapSource, /if \(hovered\) \{[\s\S]*bringRegionalImpactToFront/);
+    assert.match(regionalMapSource, /function setRegionalImpactHoverForeground\(/);
+    assert.match(regionalMapSource, /regional-impact-hover-foreground-layer/);
+    assert.match(regionalMapSource, /regionalSegmentHoverForeground\(source\)/);
+    assert.doesNotMatch(regionalMapSource, /regionalStationHoverForeground\(source\)/);
+    assert.match(regionalMapSource, /function setRegionalStationImpactHover\(/);
+    assert.match(regionalMapSource, /indicator\.dataset\.regionalStationImpactHovered = "true"/);
+    assert.match(regionalMapSource, /element\.classList\.contains\("regional-station-impact-ring"\)\) return/);
+    assert.match(globalsCss, /regional-station-hover-indicator\[data-regional-station-impact-hovered="true"\]/);
+    assert.doesNotMatch(globalsCss, /regional-station-impact-ring\[data-regional-impact-hovered="true"\][\s\S]*regional-station-impact-width\) \+ 12px/);
+    assert.match(regionalMapSource, /foreground\.dataset\.regionalImpactHovered = "true"/);
+    assert.match(regionalMapSource, /foreground\.querySelectorAll\("\.regional-impact-hit-target, title"\)/);
+    assert.doesNotMatch(regionalMapSource, /foreground\.remove\(\)/);
+    assert.doesNotMatch(regionalMapSource, /segmentLayer\.append\(foreground\)/);
+  });
+
+  it("keeps station-specific alert arrows and radar beacons inside station dots", () => {
+    assert.match(regionalMapSource, /regional-station-impact-beacon-group/);
+    assert.match(regionalMapSource, /station-impact-dot-red-glow/);
+    assert.match(regionalMapSource, /station-impact-dot-red-ping/);
+    assert.match(regionalMapSource, /station-impact-dot-red-beacon/);
+    assert.match(regionalMapSource, /regional-station-impact-direction-glyph/);
+    assert.match(regionalMapSource, /station-impact-direction-badge/);
+    assert.match(regionalMapSource, /station-impact-direction-arrow/);
+    assert.match(regionalMapSource, /REGIONAL_STATION_IMPACT_EFFECT_RADIUS_RATIO = 0\.9/);
+    assert.match(regionalMapSource, /REGIONAL_STATION_IMPACT_BADGE_RADIUS_RATIO = 0\.72/);
+    assert.match(regionalMapSource, /badgeRadius = stationDotRadius \* REGIONAL_STATION_IMPACT_BADGE_RADIUS_RATIO/);
+    assert.match(globalsCss, /\.regional-station-impact-ring\s*\{[\s\S]*stroke:\s*transparent/);
+    assert.match(regionalMapSource, /stationImpactBeaconLayer\.append\(beaconGroup\)/);
+    assert.match(regionalMapSource, /stationImpactDirectionLayer\.append\(glyphGroup\)/);
+    assert.match(regionalMapSource, /stationImpactEffectsLayer\.append\(stationImpactBeaconLayer, stationImpactDirectionLayer\)/);
+    assert.match(regionalMapSource, /regionalStationImpactAnchors\(stationVisual, impactDirection\?\.lineId\)/);
+    assert.match(regionalMapSource, /shape\.id\.endsWith\(`-\$\{routeCode\}`\)/);
+    assert.match(regionalMapSource, /stationsLayer\.append\(stationImpactEffectsLayer\)/);
+  });
+
+  it("keeps every regional disruption pulse on one shared phase", () => {
+    assert.match(regionalMapSource, /--regional-map-pulse-offset", "0s"/);
+    assert.match(regionalMapSource, /--map-pulse-offset", "0s"/);
+    assert.doesNotMatch(regionalMapSource, /layerIndex \* 0\.4/);
   });
 
   it("cycles pointer activation through overlapping regional segment and station impacts", () => {
@@ -644,6 +687,7 @@ describe("network-scoped regional dashboard", () => {
     assert.match(regionalMapSource, /const rootPosition = pointInSvgRootCoordinates\(stationsLayer, placement\.position\)/);
     assert.match(regionalMapSource, /anchor: rootAnchor/);
     assert.match(regionalMapSource, /position: rootPosition/);
+    assert.match(regionalMapSource, /preferredVector:\s*\{[\s\S]*rootPosition\.x - rootAnchor\.x/);
     assert.doesNotMatch(regionalMapSource, /overlapLayerTransform/);
     assert.doesNotMatch(regionalMapSource, /clampedRootPosition/);
     assert.match(regionalMapSource, /const candidates = \[1, -1\]\.map/);
@@ -651,7 +695,16 @@ describe("network-scoped regional dashboard", () => {
     assert.match(regionalMapSource, /const REGIONAL_OVERLAP_INDICATOR_EDGE_GAP = 88/);
     assert.match(regionalMapSource, /const renderedBadgeHalfExtent = \(/);
     assert.match(regionalMapSource, /REGIONAL_IMPACT_OVERLAY_WIDTH \/ 2[\s\S]*renderedBadgeHalfExtent[\s\S]*REGIONAL_OVERLAP_INDICATOR_EDGE_GAP/);
-    assert.doesNotMatch(regionalMapSource, /setOverlapBadges\(\(current\) => current\.map/);
+    assert.match(regionalMapSource, /function regionalCollisionAdjustedOverlapBadges\(/);
+    assert.match(regionalMapSource, /querySelectorAll<SVGGraphicsElement>\("text"\)/);
+    assert.match(regionalMapSource, /\.regional-overlay-segment-group \.regional-impact-path/);
+    assert.match(regionalMapSource, /#regional-lines-layer path\[id\^="regional-route-"\]/);
+    assert.match(regionalMapSource, /function regionalPathCorridorCollisionBoxes\(/);
+    assert.match(regionalMapSource, /regionalOverlapBadgePositionCandidates\(badge\)/);
+    assert.match(regionalMapSource, /hardOverlapArea \* 1_000_000[\s\S]*transitLineOverlapArea \* 10_000[\s\S]*anchorDistance/);
+    assert.match(regionalMapSource, /regionalCollisionAdjustedOverlapBadges\(svg, current\)/);
+    assert.match(regionalMapSource, /overlapBadgePositionsRef\.current\.get\(badge\.markerId\) \?\? badge\.position/);
+    assert.doesNotMatch(regionalMapSource, /const animationFrame = window\.requestAnimationFrame/);
     assert.doesNotMatch(regionalMapSource, /badge\.position\.x \+ deltaX \* authoredUnitsPerPixel/);
     assert.match(overlapIndicatorSource, /const isSingleKindOverlap = kindCounts\.length === 1/);
     assert.match(overlapIndicatorSource, /<OverlapKindCountBadge count=\{count\} large=\{isSingleKindOverlap\}/);

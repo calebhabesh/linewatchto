@@ -18,6 +18,10 @@ import {
   type MapOverlapIndicatorSize,
 } from "./MapOverlapIndicator";
 import {
+  stationImpactDirectionForImpact,
+  stationImpactDirectionPath,
+} from "./station-impact-direction";
+import {
   MapOverlapChooser,
   type MapOverlapChooserLayout,
 } from "./MapOverlapChooser";
@@ -81,6 +85,8 @@ const REGIONAL_DELAY_TRAVEL_UNITS_PER_SECOND = (160 / 12) * (175 / 102);
 const REGIONAL_OVERLAP_INDICATOR_SCALE = 2;
 const REGIONAL_OVERLAP_INDICATOR_EDGE_GAP = 88;
 const REGIONAL_OVERLAP_CHOOSER_GAP = 24;
+const REGIONAL_STATION_IMPACT_EFFECT_RADIUS_RATIO = 0.9;
+const REGIONAL_STATION_IMPACT_BADGE_RADIUS_RATIO = 0.72;
 const REGIONAL_MAP_VIEWBOX = {
   x: -200,
   y: -200,
@@ -94,7 +100,15 @@ type RegionalOverlapBadge = {
   impacts: MapImpact[];
   anchor: SvgPoint;
   position: SvgPoint;
+  preferredVector: SvgPoint;
   size: MapOverlapIndicatorSize;
+};
+
+type RegionalCollisionBox = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
 };
 
 type RegionalOverlapBadgePlacement = {
@@ -138,27 +152,15 @@ function regionalImpactVisualState(kind: ImpactKind) {
 
 function regionalImpactPriority(kind: ImpactKind) {
   switch (kind) {
-    case "suspension":
-      return 0;
     case "delay":
-      return 1;
+      return 0;
     case "reduced-speed-zone":
-      return 2;
+      return 1;
     case "planned-closure":
+      return 2;
+    case "suspension":
       return 3;
   }
-}
-
-function regionalImpactLayerIndex(impact: MapImpact, impacts: MapImpact[]) {
-  const ordered = [...new Map(
-    impacts.map((candidate) => [`${candidate.kind}:${candidate.cardId}`, candidate]),
-  ).values()].sort((left, right) =>
-    regionalImpactPriority(left.kind) - regionalImpactPriority(right.kind)
-      || left.cardId.localeCompare(right.cardId)
-  );
-  return Math.max(0, ordered.findIndex(
-    (candidate) => candidate.kind === impact.kind && candidate.cardId === impact.cardId,
-  ));
 }
 
 function removeDescendantIds(element: SVGElement) {
@@ -276,6 +278,293 @@ function regionalDelayGlyphLane(
   return lane;
 }
 
+function appendRegionalSuspensionGlyph(
+  documentNode: Document,
+  parent: SVGGElement,
+  kind: "no-entry" | "bar",
+) {
+  const glyph = documentNode.createElementNS(SVG_NAMESPACE, "g");
+  glyph.classList.add("regional-suspension-glyph", `regional-suspension-glyph--${kind}`);
+
+  if (kind === "no-entry") {
+    // Replicate TTC's exact SuspensionNoEntryGlyph (white circle with diagonal prohibitory slash)
+    // scaled for regional map units (196px stroke width).
+    const scale = 3.6;
+    const artwork = documentNode.createElementNS(SVG_NAMESPACE, "g");
+    artwork.setAttribute("transform", `translate(${-12 * scale} ${-12 * scale}) scale(${scale})`);
+    artwork.setAttribute("stroke", "#ffffff");
+    artwork.setAttribute("fill", "none");
+    artwork.setAttribute("stroke-width", "3.2");
+
+    const circle = documentNode.createElementNS(SVG_NAMESPACE, "circle");
+    circle.setAttribute("cx", "12");
+    circle.setAttribute("cy", "12");
+    circle.setAttribute("r", "10.5");
+
+    const slash = documentNode.createElementNS(SVG_NAMESPACE, "line");
+    slash.setAttribute("x1", "19.64");
+    slash.setAttribute("y1", "4.36");
+    slash.setAttribute("x2", "4.36");
+    slash.setAttribute("y2", "19.64");
+
+    artwork.append(circle, slash);
+    glyph.append(artwork);
+  } else {
+    const arrow = documentNode.createElementNS(SVG_NAMESPACE, "path");
+    arrow.setAttribute("d", "M -14 -12 L 10 0 L -14 12");
+    arrow.setAttribute("fill", "none");
+    arrow.setAttribute("stroke", "#ffffff");
+    arrow.setAttribute("stroke-width", "4.5");
+    arrow.setAttribute("stroke-linecap", "round");
+    arrow.setAttribute("stroke-linejoin", "round");
+    glyph.append(arrow);
+  }
+
+  parent.append(glyph);
+  return glyph;
+}
+
+function regionalSuspensionGlyphLane(
+  documentNode: Document,
+  sourcePath: SVGPathElement,
+  travelDirection: TravelDirection,
+  reducedMotion: boolean,
+) {
+  const lane = documentNode.createElementNS(SVG_NAMESPACE, "g");
+  lane.classList.add("regional-suspension-glyph-lane");
+  lane.setAttribute("aria-hidden", "true");
+
+  let length = 0;
+  try {
+    length = sourcePath.getTotalLength();
+  } catch {
+    return lane;
+  }
+  if (length <= 0) return lane;
+
+  const glyphSpacing = travelDirection === "bidirectional" ? 115 : 95;
+  const count = Math.max(1, Math.floor(length / glyphSpacing));
+  const durationSeconds = Math.max(10, length / REGIONAL_DELAY_TRAVEL_UNITS_PER_SECOND);
+  const pathD = sourcePath.getAttribute("d") ?? "";
+
+  for (let index = 0; index < count; index += 1) {
+    const glyphKind = travelDirection === "bidirectional" || index % 2 === 0
+      ? "no-entry"
+      : "bar";
+    const glyph = appendRegionalSuspensionGlyph(documentNode, lane, glyphKind);
+    const progress = (index + 0.5) / count;
+
+    if (reducedMotion || travelDirection === "bidirectional" || !pathD) {
+      const distance = travelDirection === "reverse"
+        ? length * (1 - progress)
+        : length * progress;
+      const point = sourcePath.getPointAtLength(distance);
+      const before = sourcePath.getPointAtLength(Math.max(0, distance - 2));
+      const after = sourcePath.getPointAtLength(Math.min(length, distance + 2));
+      const angle = Math.atan2(after.y - before.y, after.x - before.x) * 180 / Math.PI
+        + (travelDirection === "reverse" ? 180 : 0);
+      const transform = glyphKind === "no-entry"
+        ? `translate(${point.x} ${point.y})`
+        : `translate(${point.x} ${point.y}) rotate(${angle})`;
+      glyph.setAttribute("transform", transform);
+      continue;
+    }
+
+    const motion = documentNode.createElementNS(SVG_NAMESPACE, "animateMotion");
+    motion.setAttribute("path", pathD);
+    motion.setAttribute("dur", `${durationSeconds}s`);
+    motion.setAttribute("begin", `${-(durationSeconds * progress)}s`);
+    motion.setAttribute("repeatCount", "indefinite");
+    motion.setAttribute("calcMode", "linear");
+    motion.setAttribute("keyTimes", "0;1");
+    motion.setAttribute("keyPoints", travelDirection === "reverse" ? "1;0" : "0;1");
+    motion.setAttribute("rotate", glyphKind === "no-entry" ? "0" : (travelDirection === "reverse" ? "auto-reverse" : "auto"));
+    glyph.append(motion);
+  }
+
+  return lane;
+}
+
+function appendRegionalChevronGlyph(documentNode: Document, parent: SVGGElement) {
+  const glyph = documentNode.createElementNS(SVG_NAMESPACE, "g");
+  glyph.classList.add("regional-chevron-glyph");
+
+  const arrow = documentNode.createElementNS(SVG_NAMESPACE, "path");
+  arrow.setAttribute("d", "M -16 -14 L 10 0 L -16 14");
+  arrow.setAttribute("fill", "none");
+  arrow.setAttribute("stroke", "#f8fafc");
+  arrow.setAttribute("stroke-width", "5");
+  arrow.setAttribute("stroke-linecap", "round");
+  arrow.setAttribute("stroke-linejoin", "round");
+  glyph.append(arrow);
+
+  parent.append(glyph);
+  return glyph;
+}
+
+function regionalChevronGlyphLane(
+  documentNode: Document,
+  sourcePath: SVGPathElement,
+  travelDirection: TravelDirection,
+  reducedMotion: boolean,
+) {
+  const lane = documentNode.createElementNS(SVG_NAMESPACE, "g");
+  lane.classList.add("regional-chevron-glyph-lane");
+  lane.setAttribute("aria-hidden", "true");
+
+  let length = 0;
+  try {
+    length = sourcePath.getTotalLength();
+  } catch {
+    return lane;
+  }
+  if (length <= 0) return lane;
+
+  const glyphSpacing = 100;
+  const count = Math.max(1, Math.floor(length / glyphSpacing));
+  const durationSeconds = Math.max(8, length / (REGIONAL_DELAY_TRAVEL_UNITS_PER_SECOND * 1.2));
+  const pathD = sourcePath.getAttribute("d") ?? "";
+
+  for (let index = 0; index < count; index += 1) {
+    const glyph = appendRegionalChevronGlyph(documentNode, lane);
+    const progress = (index + 0.5) / count;
+
+    if (reducedMotion || !pathD) {
+      const distance = travelDirection === "reverse"
+        ? length * (1 - progress)
+        : length * progress;
+      const point = sourcePath.getPointAtLength(distance);
+      const before = sourcePath.getPointAtLength(Math.max(0, distance - 2));
+      const after = sourcePath.getPointAtLength(Math.min(length, distance + 2));
+      const angle = Math.atan2(after.y - before.y, after.x - before.x) * 180 / Math.PI
+        + (travelDirection === "reverse" ? 180 : 0);
+      glyph.setAttribute("transform", `translate(${point.x} ${point.y}) rotate(${angle})`);
+      continue;
+    }
+
+    const motion = documentNode.createElementNS(SVG_NAMESPACE, "animateMotion");
+    motion.setAttribute("path", pathD);
+    motion.setAttribute("dur", `${durationSeconds}s`);
+    motion.setAttribute("begin", `${-(durationSeconds * progress)}s`);
+    motion.setAttribute("repeatCount", "indefinite");
+    motion.setAttribute("calcMode", "linear");
+    motion.setAttribute("keyTimes", "0;1");
+    motion.setAttribute("keyPoints", travelDirection === "reverse" ? "1;0" : "0;1");
+    motion.setAttribute("rotate", travelDirection === "reverse" ? "auto-reverse" : "auto");
+    glyph.append(motion);
+  }
+
+  return lane;
+}
+
+function appendRegionalPlannedClosureGlyph(
+  documentNode: Document,
+  parent: SVGGElement,
+  kind: "icon" | "chevron",
+) {
+  const glyph = documentNode.createElementNS(SVG_NAMESPACE, "g");
+  glyph.classList.add("regional-planned-closure-glyph", `regional-planned-closure-glyph--${kind}`);
+
+  if (kind === "icon") {
+    // Replicate TTC map mode's PlannedClosureIcon (blue outline calendar icon on white rail)
+    // scaled for regional map units (196px stroke width).
+    const scale = 5.4;
+    const artwork = documentNode.createElementNS(SVG_NAMESPACE, "g");
+    artwork.setAttribute("transform", `translate(${-12 * scale} ${-12 * scale}) scale(${scale})`);
+    artwork.setAttribute("stroke", "var(--planned-preview-ink, #087fff)");
+    artwork.setAttribute("fill", "none");
+    artwork.setAttribute("stroke-width", "2.5");
+
+    const card = documentNode.createElementNS(SVG_NAMESPACE, "rect");
+    card.setAttribute("x", "3");
+    card.setAttribute("y", "5");
+    card.setAttribute("width", "18");
+    card.setAttribute("height", "16");
+    card.setAttribute("rx", "3");
+
+    const inner = documentNode.createElementNS(SVG_NAMESPACE, "path");
+    inner.setAttribute("d", "M3 9H21M12 12V15M12 18H12.01M7 3V5M17 3V5");
+    inner.setAttribute("stroke-linecap", "round");
+    inner.setAttribute("stroke-linejoin", "round");
+
+    artwork.append(card, inner);
+    glyph.append(artwork);
+  } else {
+    const arrow = documentNode.createElementNS(SVG_NAMESPACE, "path");
+    arrow.setAttribute("d", "M -20 -18 L 14 0 L -20 18");
+    arrow.setAttribute("fill", "none");
+    arrow.setAttribute("stroke", "var(--planned-preview-ink, #087fff)");
+    arrow.setAttribute("stroke-width", "6.5");
+    arrow.setAttribute("stroke-linecap", "round");
+    arrow.setAttribute("stroke-linejoin", "round");
+    glyph.append(arrow);
+  }
+
+  parent.append(glyph);
+  return glyph;
+}
+
+function regionalPlannedClosureIconLane(
+  documentNode: Document,
+  sourcePath: SVGPathElement,
+  travelDirection: TravelDirection,
+  reducedMotion: boolean,
+) {
+  const lane = documentNode.createElementNS(SVG_NAMESPACE, "g");
+  lane.classList.add("regional-planned-closure-glyph-lane");
+  lane.setAttribute("aria-hidden", "true");
+
+  let length = 0;
+  try {
+    length = sourcePath.getTotalLength();
+  } catch {
+    return lane;
+  }
+  if (length <= 0) return lane;
+
+  const glyphSpacing = travelDirection === "bidirectional" ? 190 : 165;
+  const count = Math.max(1, Math.floor(length / glyphSpacing));
+  const durationSeconds = Math.max(12, length / REGIONAL_DELAY_TRAVEL_UNITS_PER_SECOND);
+  const pathD = sourcePath.getAttribute("d") ?? "";
+
+  for (let index = 0; index < count; index += 1) {
+    const glyphKind = travelDirection === "bidirectional" || index % 2 === 0
+      ? "icon"
+      : "chevron";
+    const glyph = appendRegionalPlannedClosureGlyph(documentNode, lane, glyphKind);
+    const progress = (index + 0.5) / count;
+
+    if (reducedMotion || travelDirection === "bidirectional" || !pathD) {
+      const distance = travelDirection === "reverse"
+        ? length * (1 - progress)
+        : length * progress;
+      const point = sourcePath.getPointAtLength(distance);
+      const before = sourcePath.getPointAtLength(Math.max(0, distance - 2));
+      const after = sourcePath.getPointAtLength(Math.min(length, distance + 2));
+      const angle = Math.atan2(after.y - before.y, after.x - before.x) * 180 / Math.PI
+        + (travelDirection === "reverse" ? 180 : 0);
+      const transform = glyphKind === "icon"
+        ? `translate(${point.x} ${point.y})`
+        : `translate(${point.x} ${point.y}) rotate(${angle})`;
+      glyph.setAttribute("transform", transform);
+      continue;
+    }
+
+    const motion = documentNode.createElementNS(SVG_NAMESPACE, "animateMotion");
+    motion.setAttribute("path", pathD);
+    motion.setAttribute("dur", `${durationSeconds}s`);
+    motion.setAttribute("begin", `${-(durationSeconds * progress)}s`);
+    motion.setAttribute("repeatCount", "indefinite");
+    motion.setAttribute("calcMode", "linear");
+    motion.setAttribute("keyTimes", "0;1");
+    motion.setAttribute("keyPoints", travelDirection === "reverse" ? "1;0" : "0;1");
+    motion.setAttribute("rotate", glyphKind === "icon" ? "0" : (travelDirection === "reverse" ? "auto-reverse" : "auto"));
+    glyph.append(motion);
+  }
+
+  return lane;
+}
+
 function regionalImpactGroup(
   documentNode: Document,
   sourcePath: SVGPathElement,
@@ -283,7 +572,6 @@ function regionalImpactGroup(
     impactId,
     kind,
     label,
-    layerIndex = 0,
     segmentCount = 1,
     segmentIds = [],
     travelDirection = "bidirectional",
@@ -292,7 +580,6 @@ function regionalImpactGroup(
     impactId: string;
     kind: ImpactKind;
     label: string;
-    layerIndex?: number;
     segmentCount?: number;
     segmentIds?: string[];
     travelDirection?: TravelDirection;
@@ -310,9 +597,11 @@ function regionalImpactGroup(
   group.style.setProperty("--regional-impact-color", regionalImpactColor(kind));
   group.style.setProperty(
     "--regional-impact-width",
-    `${Math.max(88, REGIONAL_IMPACT_OVERLAY_WIDTH - layerIndex * 28)}px`,
+    `${REGIONAL_IMPACT_OVERLAY_WIDTH}px`,
   );
   group.style.setProperty("--regional-impact-dasharray", regionalImpactDashArray(kind));
+  group.style.setProperty("--regional-map-pulse-offset", "0s");
+  group.style.setProperty("--map-pulse-offset", "0s");
 
   const aura = sourcePath.cloneNode(false) as SVGPathElement;
   removeDescendantIds(aura);
@@ -345,6 +634,12 @@ function regionalImpactGroup(
   group.append(aura, interactiveGlow, boundary, visiblePath);
   if (kind === "delay") {
     group.append(regionalDelayGlyphLane(documentNode, sourcePath, travelDirection, reducedMotion));
+  } else if (kind === "suspension") {
+    group.append(regionalSuspensionGlyphLane(documentNode, sourcePath, travelDirection, reducedMotion));
+  } else if (kind === "reduced-speed-zone") {
+    group.append(regionalChevronGlyphLane(documentNode, sourcePath, travelDirection, reducedMotion));
+  } else if (kind === "planned-closure") {
+    group.append(regionalPlannedClosureIconLane(documentNode, sourcePath, travelDirection, reducedMotion));
   }
   group.append(hitTarget);
   return group;
@@ -409,6 +704,69 @@ function svgAnchorPoint(documentNode: Document, anchorId: string | undefined) {
     });
   }
   return null;
+}
+
+type RegionalStationVisualAnchor = {
+  id: string;
+  point: SvgPoint;
+  radius: number;
+};
+
+function regionalStationVisualAnchors(stationVisual: SVGElement): RegionalStationVisualAnchor[] {
+  const shapes = stationVisual.matches("circle, ellipse, rect")
+    ? [stationVisual]
+    : [...stationVisual.querySelectorAll<SVGElement>("circle, ellipse, rect")]
+        .filter((shape) => shape.getAttribute("inkscape:label") !== "join-rectangle");
+  return shapes.flatMap((shape) => {
+    if (shape.matches("circle, ellipse")) {
+      const center = {
+        x: Number(shape.getAttribute("cx") ?? 0),
+        y: Number(shape.getAttribute("cy") ?? 0),
+      };
+      const radiusX = Number(shape.getAttribute("r") ?? shape.getAttribute("rx") ?? 0);
+      const radiusY = Number(shape.getAttribute("r") ?? shape.getAttribute("ry") ?? 0);
+      const point = pointInRegionalStationsLayer(shape, center);
+      const xEdge = pointInRegionalStationsLayer(shape, { x: center.x + radiusX, y: center.y });
+      const yEdge = pointInRegionalStationsLayer(shape, { x: center.x, y: center.y + radiusY });
+      return [{
+        id: shape.id || stationVisual.id,
+        point,
+        radius: Math.min(
+          Math.hypot(xEdge.x - point.x, xEdge.y - point.y),
+          Math.hypot(yEdge.x - point.x, yEdge.y - point.y),
+        ),
+      }];
+    }
+    if (shape.matches("rect")) {
+      const x = Number(shape.getAttribute("x") ?? 0);
+      const y = Number(shape.getAttribute("y") ?? 0);
+      return [{
+        id: shape.id || stationVisual.id,
+        point: pointInRegionalStationsLayer(shape, {
+          x: x + Number(shape.getAttribute("width") ?? 0) / 2,
+          y: y + Number(shape.getAttribute("height") ?? 0) / 2,
+        }),
+        radius: Math.min(
+          Number(shape.getAttribute("width") ?? 0),
+          Number(shape.getAttribute("height") ?? 0),
+        ) / 2,
+      }];
+    }
+    return [];
+  });
+}
+
+function regionalStationImpactAnchors(
+  stationVisual: SVGElement,
+  lineId: string | null | undefined,
+) {
+  const anchors = regionalStationVisualAnchors(stationVisual);
+  const routeCode = lineId?.startsWith("regional-")
+    ? lineId.slice("regional-".length)
+    : null;
+  if (!routeCode) return anchors;
+  const matching = anchors.filter((anchor) => anchor.id.endsWith(`-${routeCode}`));
+  return matching.length > 0 ? matching : anchors;
 }
 
 function fallbackSegmentPath(
@@ -814,8 +1172,244 @@ function regionalOverlapBadges(
       impacts: group.impacts,
       anchor: rootAnchor,
       position: rootPosition,
+      preferredVector: {
+        x: rootPosition.x - rootAnchor.x,
+        y: rootPosition.y - rootAnchor.y,
+      },
       size,
     }];
+  });
+}
+
+function regionalCollisionBoxForElement(
+  svg: SVGSVGElement,
+  element: SVGGraphicsElement,
+): RegionalCollisionBox | null {
+  const elementScreenMatrix = element.getScreenCTM();
+  const rootScreenMatrix = svg.getScreenCTM();
+  if (!elementScreenMatrix || !rootScreenMatrix) return null;
+  const rootInverseMatrix = rootScreenMatrix.inverse();
+  const bounds = element.getBBox();
+  const corners = [
+    new DOMPoint(bounds.x, bounds.y),
+    new DOMPoint(bounds.x + bounds.width, bounds.y),
+    new DOMPoint(bounds.x, bounds.y + bounds.height),
+    new DOMPoint(bounds.x + bounds.width, bounds.y + bounds.height),
+  ].map((point) => point
+    .matrixTransform(elementScreenMatrix)
+    .matrixTransform(rootInverseMatrix));
+  const xValues = corners.map((point) => point.x);
+  const yValues = corners.map((point) => point.y);
+  const x = Math.min(...xValues);
+  const y = Math.min(...yValues);
+  return {
+    x,
+    y,
+    width: Math.max(...xValues) - x,
+    height: Math.max(...yValues) - y,
+  };
+}
+
+function regionalPointInSvgRoot(
+  svg: SVGSVGElement,
+  element: SVGGraphicsElement,
+  point: SvgPoint,
+): SvgPoint | null {
+  const elementScreenMatrix = element.getScreenCTM();
+  const rootScreenMatrix = svg.getScreenCTM();
+  if (!elementScreenMatrix || !rootScreenMatrix) return null;
+  const transformed = new DOMPoint(point.x, point.y)
+    .matrixTransform(elementScreenMatrix)
+    .matrixTransform(rootScreenMatrix.inverse());
+  return { x: transformed.x, y: transformed.y };
+}
+
+function regionalPathCorridorCollisionBoxes(
+  svg: SVGSVGElement,
+  path: SVGPathElement,
+  radius: number,
+): RegionalCollisionBox[] {
+  try {
+    const length = path.getTotalLength();
+    if (length <= 0) return [];
+    const sampleCount = Math.max(2, Math.ceil(length / Math.max(32, radius * 0.65)));
+    return Array.from({ length: sampleCount + 1 }, (_unused, index) => {
+      const localPoint = path.getPointAtLength(length * index / sampleCount);
+      const point = regionalPointInSvgRoot(svg, path, localPoint);
+      if (!point) return null;
+      return {
+        x: point.x - radius,
+        y: point.y - radius,
+        width: radius * 2,
+        height: radius * 2,
+      };
+    }).filter((box): box is RegionalCollisionBox => Boolean(box));
+  } catch {
+    return [];
+  }
+}
+
+function expandedRegionalCollisionBox(
+  box: RegionalCollisionBox,
+  padding: number,
+): RegionalCollisionBox {
+  return {
+    x: box.x - padding,
+    y: box.y - padding,
+    width: box.width + padding * 2,
+    height: box.height + padding * 2,
+  };
+}
+
+function regionalBadgeCollisionBox(
+  position: SvgPoint,
+  size: MapOverlapIndicatorSize,
+): RegionalCollisionBox {
+  const width = size.width * REGIONAL_OVERLAP_INDICATOR_SCALE;
+  const height = size.height * REGIONAL_OVERLAP_INDICATOR_SCALE;
+  return {
+    x: position.x - width / 2,
+    y: position.y - height / 2,
+    width,
+    height,
+  };
+}
+
+function regionalCollisionIntersectionArea(
+  left: RegionalCollisionBox,
+  right: RegionalCollisionBox,
+) {
+  const width = Math.max(
+    0,
+    Math.min(left.x + left.width, right.x + right.width) - Math.max(left.x, right.x),
+  );
+  const height = Math.max(
+    0,
+    Math.min(left.y + left.height, right.y + right.height) - Math.max(left.y, right.y),
+  );
+  return width * height;
+}
+
+function clampRegionalOverlapBadgePosition(
+  position: SvgPoint,
+  size: MapOverlapIndicatorSize,
+): SvgPoint {
+  const halfWidth = size.width * REGIONAL_OVERLAP_INDICATOR_SCALE / 2;
+  const halfHeight = size.height * REGIONAL_OVERLAP_INDICATOR_SCALE / 2;
+  return {
+    x: Math.min(
+      REGIONAL_MAP_VIEWBOX.x + REGIONAL_MAP_VIEWBOX.width - halfWidth,
+      Math.max(REGIONAL_MAP_VIEWBOX.x + halfWidth, position.x),
+    ),
+    y: Math.min(
+      REGIONAL_MAP_VIEWBOX.y + REGIONAL_MAP_VIEWBOX.height - halfHeight,
+      Math.max(REGIONAL_MAP_VIEWBOX.y + halfHeight, position.y),
+    ),
+  };
+}
+
+function regionalOverlapBadgePositionCandidates(badge: RegionalOverlapBadge): SvgPoint[] {
+  const preferredDistance = Math.hypot(badge.preferredVector.x, badge.preferredVector.y) || 1;
+  const preferredAngle = Math.atan2(badge.preferredVector.y, badge.preferredVector.x);
+  const angleOffsets = Array.from({ length: 24 }, (_unused, index) => {
+    const step = Math.ceil(index / 2) * Math.PI / 12;
+    return index === 0 ? 0 : index % 2 === 1 ? step : -step;
+  });
+  const distanceScales = [1, 1.2, 1.45, 1.75, 2.1, 2.5];
+  return distanceScales.flatMap((distanceScale) => angleOffsets.map((angleOffset) => ({
+    x: badge.anchor.x + Math.cos(preferredAngle + angleOffset) * preferredDistance * distanceScale,
+    y: badge.anchor.y + Math.sin(preferredAngle + angleOffset) * preferredDistance * distanceScale,
+  })));
+}
+
+function regionalCollisionAdjustedOverlapBadges(
+  svg: SVGSVGElement,
+  badges: RegionalOverlapBadge[],
+): RegionalOverlapBadge[] {
+  const labelBoxes = Array.from(
+    svg.querySelectorAll<SVGGraphicsElement>("text"),
+  ).flatMap((element) => {
+    try {
+      const box = regionalCollisionBoxForElement(svg, element);
+      return box ? [expandedRegionalCollisionBox(box, 24)] : [];
+    } catch {
+      return [];
+    }
+  });
+  const alertOverlayBoxes = Array.from(
+    svg.querySelectorAll<SVGPathElement>(
+      ".regional-overlay-segment-group .regional-impact-path",
+    ),
+  ).flatMap((path) => regionalPathCorridorCollisionBoxes(
+    svg,
+    path,
+    REGIONAL_IMPACT_OVERLAY_WIDTH / 2 + 28,
+  ));
+  const stationAlertBoxes = Array.from(
+    svg.querySelectorAll<SVGGraphicsElement>(
+      ".regional-station-impact-beacon-group, .regional-station-impact-direction-glyph",
+    ),
+  ).flatMap((element) => {
+    try {
+      const box = regionalCollisionBoxForElement(svg, element);
+      return box ? [expandedRegionalCollisionBox(box, 24)] : [];
+    } catch {
+      return [];
+    }
+  });
+  const transitLineBoxes = Array.from(
+    svg.querySelectorAll<SVGPathElement>(
+      '#regional-lines-layer path[id^="regional-route-"]',
+    ),
+  ).flatMap((path) => regionalPathCorridorCollisionBoxes(svg, path, 112));
+  const occupiedBoxes = [...labelBoxes];
+
+  return badges.map((badge) => {
+    const preferredPosition = {
+      x: badge.anchor.x + badge.preferredVector.x,
+      y: badge.anchor.y + badge.preferredVector.y,
+    };
+    const position = regionalOverlapBadgePositionCandidates(badge)
+      .map((candidate) => clampRegionalOverlapBadgePosition(candidate, badge.size))
+      .map((candidate) => {
+        const box = expandedRegionalCollisionBox(
+          regionalBadgeCollisionBox(candidate, badge.size),
+          18,
+        );
+        const hardCollisionBoxes = [
+          ...occupiedBoxes,
+          ...alertOverlayBoxes,
+          ...stationAlertBoxes,
+        ];
+        const hardOverlapArea = hardCollisionBoxes.reduce(
+          (total, occupied) => total + regionalCollisionIntersectionArea(box, occupied),
+          0,
+        );
+        const transitLineOverlapArea = transitLineBoxes.reduce(
+          (total, transitLine) => total + regionalCollisionIntersectionArea(box, transitLine),
+          0,
+        );
+        const preferredDeviation = Math.hypot(
+          candidate.x - preferredPosition.x,
+          candidate.y - preferredPosition.y,
+        );
+        const anchorDistance = Math.hypot(
+          candidate.x - badge.anchor.x,
+          candidate.y - badge.anchor.y,
+        );
+        return {
+          candidate,
+          box,
+          score: hardOverlapArea * 1_000_000
+            + transitLineOverlapArea * 10_000
+            + anchorDistance
+            + preferredDeviation * 0.05,
+        };
+      })
+      .sort((left, right) => left.score - right.score)[0];
+    if (!position) return badge;
+    occupiedBoxes.push(position.box);
+    return { ...badge, position: position.candidate };
   });
 }
 
@@ -913,6 +1507,73 @@ function bringRegionalStationImpactToFront(
       : null;
     stationVisual?.before(element);
   });
+}
+
+function regionalImpactIdentity(target: EventTarget | null) {
+  if (!(target instanceof Element)) return null;
+  const impact = target.closest<HTMLElement | SVGElement>(
+    "[data-regional-impact-kind][data-regional-impact-id], [data-impact-kind][data-impact-id]",
+  );
+  const kind = (impact?.dataset.regionalImpactKind ?? impact?.dataset.impactKind) as ImpactKind | undefined;
+  const id = impact?.dataset.regionalImpactId ?? impact?.dataset.impactId;
+  return kind && id ? { kind, id } : null;
+}
+
+function setRegionalImpactHoverForeground(
+  root: HTMLElement,
+  kind: ImpactKind,
+  id: string,
+  hovered: boolean,
+) {
+  root.querySelectorAll<SVGElement>("[data-regional-hover-impact-kind][data-regional-hover-impact-id]")
+    .forEach((foreground) => {
+      if (
+        foreground.dataset.regionalHoverImpactKind !== kind
+        || foreground.dataset.regionalHoverImpactId !== id
+      ) return;
+      if (hovered) {
+        foreground.dataset.regionalImpactHovered = "true";
+      } else {
+        foreground.removeAttribute("data-regional-impact-hovered");
+      }
+  });
+}
+
+function setRegionalStationImpactHover(
+  root: HTMLElement,
+  kind: ImpactKind,
+  id: string,
+  hovered: boolean,
+) {
+  root.querySelectorAll<SVGElement>(
+    `.regional-station-impact-ring[data-regional-impact-kind="${kind}"][data-regional-impact-id="${CSS.escape(id)}"]`,
+  ).forEach((ring) => {
+    const stationId = ring.dataset.regionalStationImpactStationId;
+    if (!stationId) return;
+    root.querySelectorAll<SVGElement>(
+      `.regional-station-hover-indicator[data-regional-station-hover-id="${CSS.escape(stationId)}"]`,
+    ).forEach((indicator) => {
+      if (hovered) {
+        indicator.dataset.regionalStationImpactHovered = "true";
+      } else {
+        indicator.removeAttribute("data-regional-station-impact-hovered");
+      }
+    });
+  });
+}
+
+function regionalSegmentHoverForeground(source: SVGElement) {
+  const foreground = source.cloneNode(true) as SVGElement;
+  removeDescendantIds(foreground);
+  foreground.dataset.regionalHoverImpactKind = source.dataset.regionalImpactKind ?? "";
+  foreground.dataset.regionalHoverImpactId = source.dataset.regionalImpactId ?? "";
+  foreground.removeAttribute("data-regional-impact-id");
+  foreground.removeAttribute("data-regional-impact-selected");
+  foreground.classList.add("regional-impact-hover-foreground");
+  foreground.querySelectorAll(".regional-impact-hit-target, title").forEach((element) => element.remove());
+  foreground.setAttribute("aria-hidden", "true");
+  foreground.setAttribute("pointer-events", "none");
+  return foreground;
 }
 
 function nextRegionalPointerImpactSelection(
@@ -1077,7 +1738,7 @@ function InteractiveRegionalMapComponent({
   commutePathPreview?: AccountCommutePathPreview | null;
   onClearCommutePathPreview?: () => void;
 }) {
-  const { activeAlerts, networkSegments, stationNodeImpacts } = useDashboardData();
+  const { activeAlerts, delays, reducedSpeedZones, plannedClosures, networkSegments, stationNodeImpacts } = useDashboardData();
   const viewportRef = useRef<HTMLDivElement>(null);
   const mapStageRef = useRef<HTMLDivElement>(null);
   const cameraInitializedRef = useRef(false);
@@ -1091,6 +1752,7 @@ function InteractiveRegionalMapComponent({
   } | null>(null);
   const [svgMarkup, setSvgMarkup] = useState("");
   const [overlapBadges, setOverlapBadges] = useState<RegionalOverlapBadge[]>([]);
+  const overlapBadgePositionsRef = useRef(new Map<string, SvgPoint>());
   const [expandedOverlapBadgeId, setExpandedOverlapBadgeId] = useState<string | null>(null);
   const [overlapChooserLayout, setOverlapChooserLayout] = useState<MapOverlapChooserLayout | null>(null);
   const [overlapChooserSize, setOverlapChooserSize] = useState<{ width: number; height: number } | null>(null);
@@ -1379,6 +2041,7 @@ function InteractiveRegionalMapComponent({
 
           const hoverIndicator = element.cloneNode(true) as SVGElement;
           removeDescendantIds(hoverIndicator);
+          hoverIndicator.dataset.regionalStationHoverId = stationId;
           hoverIndicator.classList.add("station-hover-indicator", "regional-station-hover-indicator");
           if (isLarge) hoverIndicator.classList.add("large-terminal");
           hoverIndicator.setAttribute("aria-hidden", "true");
@@ -1454,6 +2117,16 @@ function InteractiveRegionalMapComponent({
           element.classList.add("regional-station-visual");
         }
         const stationsLayer = documentNode.getElementById("regional-stations-layer");
+        const stationImpactEffectsLayer = documentNode.createElementNS(SVG_NAMESPACE, "g");
+        stationImpactEffectsLayer.classList.add("regional-station-impact-effects-layer");
+        stationImpactEffectsLayer.setAttribute("aria-label", "Station alert beacons and directions");
+        stationImpactEffectsLayer.setAttribute("pointer-events", "none");
+        stationImpactEffectsLayer.style.setProperty("--map-pulse-offset", "0s");
+        const stationImpactBeaconLayer = documentNode.createElementNS(SVG_NAMESPACE, "g");
+        stationImpactBeaconLayer.classList.add("regional-station-impact-beacon-layer");
+        const stationImpactDirectionLayer = documentNode.createElementNS(SVG_NAMESPACE, "g");
+        stationImpactDirectionLayer.classList.add("regional-station-impact-direction-layer");
+        stationImpactEffectsLayer.append(stationImpactBeaconLayer, stationImpactDirectionLayer);
         const stationOnlyImpactIds = new Set(stationNodeImpacts.map((impact) => impact.cardId));
         for (const alert of activeAlerts.filter(
           (item) => item.affectedSegmentIds.length === 0 && !stationOnlyImpactIds.has(item.id)
@@ -1481,7 +2154,11 @@ function InteractiveRegionalMapComponent({
             overlayPieces.push({ segment, impact, impactIndex, pathD: resolvedPathD });
           }
         }
-        for (const run of regionalOverlayRuns(overlayPieces)) {
+        const orderedOverlayRuns = regionalOverlayRuns(overlayPieces).sort((left, right) => (
+          regionalImpactPriority(left.impact.kind) - regionalImpactPriority(right.impact.kind)
+          || left.impact.cardId.localeCompare(right.impact.cardId)
+        ));
+        for (const run of orderedOverlayRuns) {
           if (!stationsLayer) break;
           const overlaySource = documentNode.createElementNS(SVG_NAMESPACE, "path");
           overlaySource.setAttribute("style", "display:inline");
@@ -1501,14 +2178,10 @@ function InteractiveRegionalMapComponent({
           const lastSegment = run.segments.at(-1) ?? firstSegment;
           const startLabel = firstSegment.label.split(" to ")[0];
           const endLabel = lastSegment.label.split(" to ").at(-1) ?? lastSegment.label;
-          const overlappingImpacts = networkSegments
-            .filter((segment) => runSegmentIds.has(segment.id))
-            .flatMap((segment) => segment.impacts ?? []);
           const overlay = regionalImpactGroup(documentNode, overlaySource, {
             impactId: run.impact.cardId,
             kind: run.impact.kind,
             label: `${startLabel} to ${endLabel} ${run.impact.kind} impact`,
-            layerIndex: regionalImpactLayerIndex(run.impact, overlappingImpacts),
             segmentCount: run.segments.length,
             segmentIds: run.segments.map((segment) => segment.id),
             travelDirection: run.impact.travelDirection,
@@ -1520,14 +2193,21 @@ function InteractiveRegionalMapComponent({
         for (const [impactIndex, impact] of stationNodeImpacts.entries()) {
           const stationVisual = documentNode.getElementById(`station-${impact.stationId}`) as SVGElement | null;
           if (!stationVisual) continue;
+          const directionData = { activeAlerts, delays, reducedSpeedZones, plannedClosures };
+          const impactDirection = stationImpactDirectionForImpact(impact, directionData);
+          const impactAnchors = regionalStationImpactAnchors(stationVisual, impactDirection?.lineId);
+          const routeCode = impactDirection?.lineId.startsWith("regional-")
+            ? impactDirection.lineId.slice("regional-".length)
+            : null;
+
           const ring = stationVisual.cloneNode(true) as SVGElement;
-          removeDescendantIds(ring);
           ring.dataset.regionalImpactKind = impact.kind;
           ring.dataset.regionalImpactId = impact.cardId;
           ring.dataset.regionalStationImpactStationId = impact.stationId;
           ring.classList.add("station-impact-ring", "regional-station-impact-ring", "map-selection-attention", `regional-station-impact-ring--${impact.kind}`);
           ring.style.setProperty("--regional-impact-color", regionalImpactColor(impact.kind));
           ring.style.setProperty("--regional-station-impact-width", `${65 + impactIndex * 20}px`);
+          ring.style.setProperty("--map-pulse-offset", "0s");
           ring.setAttribute("role", "button");
           ring.setAttribute("tabindex", "0");
           ring.setAttribute("aria-label", impact.title);
@@ -1537,12 +2217,76 @@ function InteractiveRegionalMapComponent({
               shape.remove();
               continue;
             }
+            if (
+              routeCode
+              && shape.id.startsWith("station-")
+              && shape.id !== stationVisual.id
+              && !shape.id.endsWith(`-${routeCode}`)
+            ) {
+              shape.remove();
+              continue;
+            }
             shape.setAttribute(
               "style",
               "fill:transparent;pointer-events:stroke",
             );
           }
+          removeDescendantIds(ring);
           stationVisual.before(ring);
+
+          for (const { id: anchorId, point: anchorPoint, radius: stationDotRadius } of impactAnchors) {
+            const effectRadius = stationDotRadius * REGIONAL_STATION_IMPACT_EFFECT_RADIUS_RATIO;
+            const badgeRadius = stationDotRadius * REGIONAL_STATION_IMPACT_BADGE_RADIUS_RATIO;
+
+            const beaconGroup = documentNode.createElementNS(SVG_NAMESPACE, "g");
+            beaconGroup.classList.add("regional-station-impact-beacon-group");
+            beaconGroup.dataset.regionalStationImpactKind = impact.kind;
+            beaconGroup.dataset.regionalStationImpactId = impact.cardId;
+            beaconGroup.dataset.regionalStationImpactAnchorId = anchorId;
+            beaconGroup.setAttribute("pointer-events", "none");
+
+            const glowCircle = documentNode.createElementNS(SVG_NAMESPACE, "circle");
+            glowCircle.classList.add("station-impact-dot-red-glow", "regional-station-impact-beacon-glow");
+            glowCircle.setAttribute("cx", String(anchorPoint.x));
+            glowCircle.setAttribute("cy", String(anchorPoint.y));
+            glowCircle.setAttribute("r", String(effectRadius));
+
+            const pingCircle = documentNode.createElementNS(SVG_NAMESPACE, "circle");
+            pingCircle.classList.add("station-impact-dot-red-ping", "regional-station-impact-beacon-ping");
+            pingCircle.setAttribute("cx", String(anchorPoint.x));
+            pingCircle.setAttribute("cy", String(anchorPoint.y));
+            pingCircle.setAttribute("r", String(effectRadius));
+
+            const beaconCircle = documentNode.createElementNS(SVG_NAMESPACE, "circle");
+            beaconCircle.classList.add("station-impact-dot-red-beacon", "regional-station-impact-beacon-core");
+            beaconCircle.setAttribute("cx", String(anchorPoint.x));
+            beaconCircle.setAttribute("cy", String(anchorPoint.y));
+            beaconCircle.setAttribute("r", String(effectRadius));
+
+            beaconGroup.append(glowCircle, pingCircle, beaconCircle);
+            stationImpactBeaconLayer.append(beaconGroup);
+
+            if (impactDirection?.arrow) {
+              const glyphGroup = documentNode.createElementNS(SVG_NAMESPACE, "g");
+              glyphGroup.classList.add("station-impact-direction-glyph", "regional-station-impact-direction-glyph");
+              glyphGroup.dataset.regionalStationImpactKind = impact.kind;
+              glyphGroup.dataset.regionalStationImpactId = impact.cardId;
+              glyphGroup.dataset.regionalStationImpactAnchorId = anchorId;
+              glyphGroup.setAttribute("pointer-events", "none");
+              glyphGroup.setAttribute("transform", `translate(${anchorPoint.x} ${anchorPoint.y})`);
+
+              const badgeCircle = documentNode.createElementNS(SVG_NAMESPACE, "circle");
+              badgeCircle.classList.add("station-impact-direction-badge");
+              badgeCircle.setAttribute("r", String(badgeRadius));
+
+              const arrowPath = documentNode.createElementNS(SVG_NAMESPACE, "path");
+              arrowPath.classList.add("station-impact-direction-arrow");
+              arrowPath.setAttribute("d", stationImpactDirectionPath(impactDirection.arrow.direction, badgeRadius));
+
+              glyphGroup.append(badgeCircle, arrowPath);
+              stationImpactDirectionLayer.append(glyphGroup);
+            }
+          }
         }
         if (commutePathPreview && stationsLayer) {
           const previewLayer = documentNode.createElementNS(SVG_NAMESPACE, "g");
@@ -1566,11 +2310,23 @@ function InteractiveRegionalMapComponent({
           stationsLayer.insertBefore(previewLayer, firstStationTarget);
         }
         if (stationsLayer) {
+          const firstStationTarget = stationsLayer.querySelector(".regional-station-hit-target");
+          const hoverForegroundLayer = documentNode.createElementNS(SVG_NAMESPACE, "g");
+          hoverForegroundLayer.classList.add("regional-impact-hover-foreground-layer");
+          hoverForegroundLayer.setAttribute("aria-hidden", "true");
+          hoverForegroundLayer.setAttribute("pointer-events", "none");
+          stationsLayer.querySelectorAll<SVGElement>(".regional-overlay-segment-group")
+            .forEach((source) => hoverForegroundLayer.append(regionalSegmentHoverForeground(source)));
+          stationsLayer.insertBefore(hoverForegroundLayer, firstStationTarget);
+        }
+        if (stationsLayer) {
           const markerLayer = documentNode.createElementNS(SVG_NAMESPACE, "g");
           markerLayer.classList.add("estimated-train-marker-layer", "regional-estimated-train-marker-layer");
           markerLayer.setAttribute("aria-label", "Estimated regional train markers");
           markerLayer.setAttribute("pointer-events", "none");
           stationsLayer.append(markerLayer);
+
+          stationsLayer.append(stationImpactEffectsLayer);
         }
         const root = documentNode.documentElement;
         root.removeAttribute("width");
@@ -1578,12 +2334,34 @@ function InteractiveRegionalMapComponent({
         root.setAttribute("preserveAspectRatio", "xMidYMid meet");
         root.setAttribute("aria-label", "GO and UP regional rail schematic");
         root.setAttribute("role", "img");
-        setOverlapBadges(regionalOverlapBadges(documentNode, networkSegments));
+        setOverlapBadges(regionalOverlapBadges(documentNode, networkSegments).map((badge) => ({
+          ...badge,
+          position: overlapBadgePositionsRef.current.get(badge.markerId) ?? badge.position,
+        })));
         setSvgMarkup(new XMLSerializer().serializeToString(root));
       })
       .catch(() => setLoadError(true));
     return () => { cancelled = true; };
-  }, [activeAlerts, commutePathPreview, networkSegments, reducedMotion, stationNodeImpacts]);
+  }, [activeAlerts, commutePathPreview, delays, networkSegments, plannedClosures, reducedMotion, reducedSpeedZones, stationNodeImpacts]);
+
+  useLayoutEffect(() => {
+    if (!svgMarkup) return;
+    const svg = viewportRef.current?.querySelector<SVGSVGElement>(
+      'svg[aria-label="GO and UP regional rail schematic"]',
+    );
+    if (!svg) return;
+    setOverlapBadges((current) => {
+      const adjusted = regionalCollisionAdjustedOverlapBadges(svg, current);
+      overlapBadgePositionsRef.current = new Map(
+        adjusted.map((badge) => [badge.markerId, badge.position]),
+      );
+      const changed = adjusted.some((badge, index) => (
+        badge.position.x !== current[index]?.position.x
+        || badge.position.y !== current[index]?.position.y
+      ));
+      return changed ? adjusted : current;
+    });
+  }, [svgMarkup]);
 
   useLayoutEffect(() => {
     const markerLayer = viewportRef.current?.querySelector<SVGGElement>(
@@ -2119,15 +2897,16 @@ function InteractiveRegionalMapComponent({
   }, [onSelectImpact, onSelectStationId]);
 
   const setLinkedImpactHover = useCallback((target: EventTarget | null, hovered: boolean) => {
-    if (!(target instanceof Element)) return;
-    const impact = target.closest<SVGElement>("[data-regional-impact-kind][data-regional-impact-id]");
-    const kind = impact?.dataset.regionalImpactKind;
-    const id = impact?.dataset.regionalImpactId;
+    const impact = regionalImpactIdentity(target);
     const root = viewportRef.current;
-    if (!root || !kind || !id) return;
+    if (!root || !impact) return;
+    const { kind, id } = impact;
+    setRegionalImpactHoverForeground(root, kind, id, hovered);
+    setRegionalStationImpactHover(root, kind, id, hovered);
     root.querySelectorAll(
       `[data-regional-impact-kind="${kind}"][data-regional-impact-id="${CSS.escape(id)}"]`,
     ).forEach((element) => {
+      if (element.classList.contains("regional-station-impact-ring")) return;
       if (hovered) {
         element.setAttribute("data-regional-impact-hovered", "true");
       } else {
@@ -2143,9 +2922,12 @@ function InteractiveRegionalMapComponent({
     const root = viewportRef.current;
     if (!root) return;
     for (const impact of impacts) {
+      setRegionalImpactHoverForeground(root, impact.kind, impact.cardId, hovered);
+      setRegionalStationImpactHover(root, impact.kind, impact.cardId, hovered);
       root.querySelectorAll(
         `[data-regional-impact-kind="${impact.kind}"][data-regional-impact-id="${CSS.escape(impact.cardId)}"]`,
       ).forEach((element) => {
+        if (element.classList.contains("regional-station-impact-ring")) return;
         if (hovered) {
           element.setAttribute("data-regional-impact-hovered", "true");
         } else {
@@ -2154,6 +2936,43 @@ function InteractiveRegionalMapComponent({
       });
     }
   }, []);
+
+  useEffect(() => {
+    const handlePointerOver = (event: globalThis.PointerEvent) => {
+      setLinkedImpactHover(event.target, true);
+    };
+    const handlePointerOut = (event: globalThis.PointerEvent) => {
+      const currentImpact = regionalImpactIdentity(event.target);
+      const nextImpact = regionalImpactIdentity(event.relatedTarget);
+      if (
+        currentImpact?.kind === nextImpact?.kind
+        && currentImpact?.id === nextImpact?.id
+      ) return;
+      setLinkedImpactHover(event.target, false);
+    };
+    const handleFocusIn = (event: FocusEvent) => {
+      setLinkedImpactHover(event.target, true);
+    };
+    const handleFocusOut = (event: FocusEvent) => {
+      const currentImpact = regionalImpactIdentity(event.target);
+      const nextImpact = regionalImpactIdentity(event.relatedTarget);
+      if (
+        currentImpact?.kind === nextImpact?.kind
+        && currentImpact?.id === nextImpact?.id
+      ) return;
+      setLinkedImpactHover(event.target, false);
+    };
+    document.addEventListener("pointerover", handlePointerOver);
+    document.addEventListener("pointerout", handlePointerOut);
+    document.addEventListener("focusin", handleFocusIn);
+    document.addEventListener("focusout", handleFocusOut);
+    return () => {
+      document.removeEventListener("pointerover", handlePointerOver);
+      document.removeEventListener("pointerout", handlePointerOut);
+      document.removeEventListener("focusin", handleFocusIn);
+      document.removeEventListener("focusout", handleFocusOut);
+    };
+  }, [setLinkedImpactHover]);
 
   const closeRegionalOverlapChooser = useCallback(() => {
     const badge = overlapBadges.find((candidate) => candidate.markerId === expandedOverlapBadgeId);
@@ -2211,24 +3030,6 @@ function InteractiveRegionalMapComponent({
     setRegionalOverlapImpactsHovered(badge.impacts, false);
   }, [setRegionalOverlapImpactsHovered]);
 
-  const onLinkedImpactPointerOver = useCallback((event: PointerEvent<HTMLDivElement>) => {
-    setLinkedImpactHover(event.target, true);
-  }, [setLinkedImpactHover]);
-
-  const onLinkedImpactPointerOut = useCallback((event: PointerEvent<HTMLDivElement>) => {
-    const currentImpact = event.target instanceof Element
-      ? event.target.closest<SVGElement>("[data-regional-impact-kind][data-regional-impact-id]")
-      : null;
-    const nextImpact = event.relatedTarget instanceof Element
-      ? event.relatedTarget.closest<SVGElement>("[data-regional-impact-kind][data-regional-impact-id]")
-      : null;
-    if (
-      currentImpact?.dataset.regionalImpactKind === nextImpact?.dataset.regionalImpactKind
-      && currentImpact?.dataset.regionalImpactId === nextImpact?.dataset.regionalImpactId
-    ) return;
-    setLinkedImpactHover(event.target, false);
-  }, [setLinkedImpactHover]);
-
   const onKeyDown = useCallback((event: KeyboardEvent<HTMLDivElement>) => {
     if (event.key !== "Enter" && event.key !== " ") return;
     event.preventDefault();
@@ -2269,10 +3070,6 @@ function InteractiveRegionalMapComponent({
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
         onPointerCancel={onPointerUp}
-        onPointerOver={onLinkedImpactPointerOver}
-        onPointerOut={onLinkedImpactPointerOut}
-        onFocus={(event) => setLinkedImpactHover(event.target, true)}
-        onBlur={(event) => setLinkedImpactHover(event.target, false)}
         onClick={(event) => {
           if (suppressNextClickRef.current) {
             suppressNextClickRef.current = false;

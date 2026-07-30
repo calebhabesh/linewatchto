@@ -54,33 +54,51 @@ export type StationImpactDirectionSummary = {
 
 type CardinalDirection = "left" | "right" | "up" | "down";
 
-const HORIZONTAL_LINE_IDS = new Set(["line-2", "line-4", "line-5", "line-6"]);
-const VERTICAL_LINE_IDS = new Set(["line-1"]);
+const HORIZONTAL_LINE_IDS = new Set([
+  "line-2",
+  "line-4",
+  "line-5",
+  "line-6",
+  "regional-ki",
+  "regional-le",
+  "regional-lw",
+  "regional-mi",
+  "regional-up",
+]);
+const VERTICAL_LINE_IDS = new Set([
+  "line-1",
+  "regional-br",
+  "regional-rh",
+  "regional-st",
+]);
 
 export function stationImpactDirectionForImpact(
   impact: Pick<StationNodeImpact, "stationId" | "kind" | "cardId">,
   data: StationImpactDirectionData,
 ): StationImpactDirectionDetails | null {
   const source = stationImpactDirectionSource(impact, data);
-  if (!source?.displayDirection) return null;
+  if (!source) return null;
+  const displayDirection = source.displayDirection
+    ?? (source.lineId.startsWith("regional-") ? "Both directions" : null);
+  if (!displayDirection) return null;
 
   if (isUnionLineOneStationImpact(impact, source.lineId)) {
-    const unionArrow = unionStationImpactDirectionArrow(source.displayDirection);
+    const unionArrow = unionStationImpactDirectionArrow(displayDirection);
     if (!unionArrow) return null;
 
     return {
       lineId: source.lineId,
-      displayDirection: source.displayDirection,
+      displayDirection,
       arrow: unionArrow,
     };
   }
 
-  const arrow = stationImpactDirectionArrow(source.lineId, source.displayDirection);
+  const arrow = stationImpactDirectionArrow(source.lineId, displayDirection);
   if (!arrow) return null;
 
   return {
     lineId: source.lineId,
-    displayDirection: source.displayDirection,
+    displayDirection,
     arrow,
   };
 }
@@ -319,4 +337,164 @@ function arrow(
     direction,
     ariaLabel: `${displayDirection} station impact`,
   };
+}
+
+const FOUR_WAY_STATION_IMPACT_ARROW_SCALE = 0.94;
+
+export function stationImpactDirectionPath(direction: StationImpactArrowDirection, radius: number): string {
+  const parts = stationImpactDirectionParts(direction);
+  const pathMetricsRadius =
+    direction === "four-way" ? radius * FOUR_WAY_STATION_IMPACT_ARROW_SCALE : radius;
+  const metrics = stationImpactDirectionMetrics(pathMetricsRadius);
+
+  if (parts.length === 1) {
+    return stationImpactDirectionCenteredPartPath(parts[0], metrics);
+  }
+
+  if (
+    direction === "up-right" ||
+    direction === "up-left" ||
+    direction === "down-right" ||
+    direction === "down-left"
+  ) {
+    const cx = Math.round(pathMetricsRadius * 0.52);
+    const cy = Math.round(pathMetricsRadius * 0.52);
+    const offX = Math.round(metrics.headHalf * 0.38);
+    const offY = Math.round(metrics.headHalf * 0.38);
+
+    const isUp = direction === "up-right" || direction === "up-left";
+    const isRight = direction === "up-right" || direction === "down-right";
+
+    const cornerX = (isRight ? -cx : cx) + (isRight ? offX : -offX);
+    const cornerY = (isUp ? cy : -cy) + (isUp ? -offY : offY);
+
+    const verticalTipY = (isUp ? -cy : cy) + (isUp ? -offY : offY);
+    const horizontalTipX = (isRight ? cx : -cx) + (isRight ? offX : -offX);
+
+    const headInset = metrics.headInset;
+    const headHalf = metrics.headHalf;
+
+    const upDownHeadDir = isUp ? -1 : 1;
+    const rightLeftHeadDir = isRight ? 1 : -1;
+
+    return [
+      `M ${cornerX} ${cornerY} V ${verticalTipY}`,
+      `M ${cornerX - headHalf} ${verticalTipY - upDownHeadDir * headInset} L ${cornerX} ${verticalTipY} L ${cornerX + headHalf} ${verticalTipY - upDownHeadDir * headInset}`,
+      `M ${cornerX} ${cornerY} H ${horizontalTipX}`,
+      `M ${horizontalTipX - rightLeftHeadDir * headInset} ${cornerY - headHalf} L ${horizontalTipX} ${cornerY} L ${horizontalTipX - rightLeftHeadDir * headInset} ${cornerY + headHalf}`,
+    ].join(" ");
+  }
+
+  if (direction === "horizontal-bidirectional") {
+    return [
+      `M -${metrics.extent} 0 H ${metrics.extent}`,
+      `M -${metrics.extent - metrics.headInset} -${metrics.headHalf} L -${metrics.extent} 0 L -${metrics.extent - metrics.headInset} ${metrics.headHalf}`,
+      `M ${metrics.extent - metrics.headInset} -${metrics.headHalf} L ${metrics.extent} 0 L ${metrics.extent - metrics.headInset} ${metrics.headHalf}`,
+    ].join(" ");
+  }
+
+  if (direction === "vertical-bidirectional") {
+    return [
+      `M 0 -${metrics.extent} V ${metrics.extent}`,
+      `M -${metrics.headHalf} -${metrics.extent - metrics.headInset} L 0 -${metrics.extent} L ${metrics.headHalf} -${metrics.extent - metrics.headInset}`,
+      `M -${metrics.headHalf} ${metrics.extent - metrics.headInset} L 0 ${metrics.extent} L ${metrics.headHalf} ${metrics.extent - metrics.headInset}`,
+    ].join(" ");
+  }
+
+  if (direction === "four-way") {
+    return [
+      `M -${metrics.extent} 0 H ${metrics.extent}`,
+      `M 0 -${metrics.extent} V ${metrics.extent}`,
+      `M -${metrics.extent - metrics.headInset} -${metrics.headHalf} L -${metrics.extent} 0 L -${metrics.extent - metrics.headInset} ${metrics.headHalf}`,
+      `M ${metrics.extent - metrics.headInset} -${metrics.headHalf} L ${metrics.extent} 0 L ${metrics.extent - metrics.headInset} ${metrics.headHalf}`,
+      `M -${metrics.headHalf} -${metrics.extent - metrics.headInset} L 0 -${metrics.extent} L ${metrics.headHalf} -${metrics.extent - metrics.headInset}`,
+      `M -${metrics.headHalf} ${metrics.extent - metrics.headInset} L 0 ${metrics.extent} L ${metrics.headHalf} ${metrics.extent - metrics.headInset}`,
+    ].join(" ");
+  }
+
+  return parts
+    .map((part) => stationImpactDirectionSpokePartPath(part, metrics))
+    .join(" ");
+}
+
+function stationImpactDirectionParts(direction: StationImpactArrowDirection): Array<"left" | "right" | "up" | "down"> {
+  switch (direction) {
+    case "left":
+      return ["left"];
+    case "right":
+      return ["right"];
+    case "up":
+      return ["up"];
+    case "down":
+      return ["down"];
+    case "up-left":
+      return ["left", "up"];
+    case "up-right":
+      return ["right", "up"];
+    case "down-left":
+      return ["left", "down"];
+    case "down-right":
+      return ["right", "down"];
+    case "horizontal-bidirectional":
+      return ["left", "right"];
+    case "vertical-bidirectional":
+      return ["up", "down"];
+    case "three-way-no-left":
+      return ["right", "up", "down"];
+    case "three-way-no-right":
+      return ["left", "up", "down"];
+    case "three-way-no-up":
+      return ["left", "right", "down"];
+    case "three-way-no-down":
+      return ["left", "right", "up"];
+    case "four-way":
+      return ["left", "right", "up", "down"];
+  }
+}
+
+function stationImpactDirectionMetrics(radius: number): {
+  extent: number;
+  gap: number;
+  headInset: number;
+  headHalf: number;
+} {
+  const extent = Math.round(radius * 0.75);
+  return {
+    extent,
+    gap: Math.max(4, Math.round(radius * 0.17)),
+    headInset: Math.max(8, Math.round(extent * 0.42)),
+    headHalf: Math.max(8, Math.round(radius * 0.25)),
+  };
+}
+
+function stationImpactDirectionCenteredPartPath(
+  direction: "left" | "right" | "up" | "down",
+  metrics: ReturnType<typeof stationImpactDirectionMetrics>,
+): string {
+  switch (direction) {
+    case "left":
+      return `M ${metrics.extent} 0 H -${metrics.extent} M -${metrics.extent - metrics.headInset} -${metrics.headHalf} L -${metrics.extent} 0 L -${metrics.extent - metrics.headInset} ${metrics.headHalf}`;
+    case "right":
+      return `M -${metrics.extent} 0 H ${metrics.extent} M ${metrics.extent - metrics.headInset} -${metrics.headHalf} L ${metrics.extent} 0 L ${metrics.extent - metrics.headInset} ${metrics.headHalf}`;
+    case "up":
+      return `M 0 ${metrics.extent} V -${metrics.extent} M -${metrics.headHalf} -${metrics.extent - metrics.headInset} L 0 -${metrics.extent} L ${metrics.headHalf} -${metrics.extent - metrics.headInset}`;
+    case "down":
+      return `M 0 -${metrics.extent} V ${metrics.extent} M -${metrics.headHalf} ${metrics.extent - metrics.headInset} L 0 ${metrics.extent} L ${metrics.headHalf} ${metrics.extent - metrics.headInset}`;
+  }
+}
+
+function stationImpactDirectionSpokePartPath(
+  direction: "left" | "right" | "up" | "down",
+  metrics: ReturnType<typeof stationImpactDirectionMetrics>,
+): string {
+  switch (direction) {
+    case "left":
+      return `M 0 0 H -${metrics.extent} M -${metrics.extent - metrics.headInset} -${metrics.headHalf} L -${metrics.extent} 0 L -${metrics.extent - metrics.headInset} ${metrics.headHalf}`;
+    case "right":
+      return `M 0 0 H ${metrics.extent} M ${metrics.extent - metrics.headInset} -${metrics.headHalf} L ${metrics.extent} 0 L ${metrics.extent - metrics.headInset} ${metrics.headHalf}`;
+    case "up":
+      return `M 0 0 V -${metrics.extent} M -${metrics.headHalf} -${metrics.extent - metrics.headInset} L 0 -${metrics.extent} L ${metrics.headHalf} -${metrics.extent - metrics.headInset}`;
+    case "down":
+      return `M 0 0 V ${metrics.extent} M -${metrics.headHalf} ${metrics.extent - metrics.headInset} L 0 ${metrics.extent} L ${metrics.headHalf} ${metrics.extent - metrics.headInset}`;
+  }
 }

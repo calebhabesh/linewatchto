@@ -366,14 +366,17 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
 }
 
 .regional-station-hit-target:hover + .regional-station-hover-indicator,
-.regional-station-hit-target:focus-visible + .regional-station-hover-indicator {
+.regional-station-hit-target:focus-visible + .regional-station-hover-indicator,
+.regional-station-hover-indicator[data-regional-station-impact-hovered="true"] {
   opacity: 1;
 }
 
 .regional-station-hit-target:hover + .regional-station-hover-indicator :is(circle, rect, ellipse),
 .regional-station-hit-target:hover + .regional-station-hover-indicator:is(circle, rect, ellipse),
 .regional-station-hit-target:focus-visible + .regional-station-hover-indicator :is(circle, rect, ellipse),
-.regional-station-hit-target:focus-visible + .regional-station-hover-indicator:is(circle, rect, ellipse) {
+.regional-station-hit-target:focus-visible + .regional-station-hover-indicator:is(circle, rect, ellipse),
+.regional-station-hover-indicator[data-regional-station-impact-hovered="true"] :is(circle, rect, ellipse),
+.regional-station-hover-indicator[data-regional-station-impact-hovered="true"]:is(circle, rect, ellipse) {
   fill: rgb(var(--station-selection-accent-rgb) / 30%) !important;
   stroke: var(--station-selection-accent) !important;
   stroke-width: 16px !important;
@@ -407,6 +410,32 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
   --regional-impact-color: var(--delay);
   --regional-impact-dasharray: none;
   --regional-impact-width: 104px;
+}
+
+.regional-impact-hover-foreground-layer,
+.regional-impact-hover-foreground,
+.regional-station-impact-effects-layer,
+.regional-station-impact-hover-foreground-layer,
+.regional-station-impact-hover-foreground {
+  pointer-events: none;
+}
+
+.regional-impact-hover-foreground {
+  display: none;
+}
+
+.regional-impact-hover-foreground[data-regional-impact-hovered="true"] {
+  display: inline;
+  animation: hover-priority-glow-in 240ms ease-out both;
+}
+
+.regional-station-impact-hover-foreground {
+  display: none;
+}
+
+.regional-station-impact-hover-foreground[data-regional-impact-hovered="true"] {
+  display: inline;
+  animation: hover-priority-boundary-in 180ms ease-out both;
 }
 
 .regional-impact-path,
@@ -487,13 +516,21 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
 }
 
 .regional-overlay-segment-group[data-regional-impact-kind="planned-closure"] .regional-impact-path {
-  opacity: 0.6;
-  stroke-dasharray: 120 70;
+  opacity: 1;
+  stroke: var(--planned-preview-rail, #ffffff) !important;
+  stroke-dasharray: none;
+  stroke-width: var(--regional-impact-width);
+  animation: regional-candy-pulse 1.2s infinite alternate ease-in-out;
+  animation-delay: var(--regional-map-pulse-offset, var(--map-pulse-offset, 0s));
 }
 
 @keyframes regional-candy-pulse {
-  from { stroke-width: var(--regional-impact-width); }
-  to { stroke-width: calc(var(--regional-impact-width) + 23px); }
+  from {
+    stroke-width: var(--regional-impact-width);
+  }
+  to {
+    stroke-width: calc(var(--regional-impact-width) + 23px);
+  }
 }
 
 @keyframes regional-chevron-slide {
@@ -502,11 +539,11 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
 }
 
 .regional-overlay-segment-group .regional-impact-hover-boundary {
-  stroke-width: calc(var(--regional-impact-width) + 35px);
+  stroke-width: calc(var(--regional-impact-width) + 65px);
 }
 
 .regional-overlay-segment-group .regional-impact-hit-target {
-  stroke-width: max(120px, calc(var(--regional-impact-width) + 28px));
+  stroke-width: max(130px, calc(var(--regional-impact-width) + 55px));
 }
 
 .regional-overlay-segment-group:has(.regional-impact-hit-target:hover) .regional-impact-glow,
@@ -566,19 +603,20 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
 }
 
 .regional-station-impact-ring {
-  stroke: var(--regional-impact-color);
+  stroke: transparent;
   stroke-width: var(--regional-station-impact-width);
 }
 
 .regional-station-impact-ring :is(circle, rect, ellipse),
 .regional-station-impact-ring:is(circle, rect, ellipse) {
   fill: transparent !important;
-  stroke: var(--regional-impact-color) !important;
+  stroke: transparent !important;
   stroke-width: var(--regional-station-impact-width) !important;
 }
 
 .regional-station-impact-ring:hover,
 .regional-station-impact-ring:focus-visible,
+.regional-station-impact-ring[data-regional-impact-hovered="true"],
 .regional-station-impact-ring[data-regional-impact-selected="true"] {
   filter: drop-shadow(0 0 12px var(--regional-impact-color)) drop-shadow(0 0 20px rgb(255 255 255 / 35%));
 }
@@ -593,6 +631,21 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
   fill: rgb(var(--station-selection-accent-rgb) / 28%) !important;
   stroke: var(--station-selection-accent) !important;
   filter: drop-shadow(0 0 12px rgb(var(--station-selection-accent-rgb) / 95%));
+}
+
+.regional-station-impact-direction-glyph .station-impact-direction-badge {
+  fill: #ffffff;
+  stroke: rgba(127, 29, 29, 0.9);
+  stroke-width: 6;
+  filter: drop-shadow(0 0 12px rgba(0, 0, 0, 0.55));
+}
+
+.regional-station-impact-direction-glyph .station-impact-direction-arrow {
+  fill: none;
+  stroke: #111827;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 14;
 }
 
 @keyframes regional-selection-ring-intro {
@@ -620,6 +673,11 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
 .motion-paused .regional-station-selected-indicator[data-regional-station-selected="true"],
 .motion-paused .regional-station-hover-indicator,
 .motion-paused .regional-station-impact-ring,
+.motion-paused .regional-station-impact-beacon-group,
+.motion-paused .regional-station-impact-beacon-group .station-impact-dot-red-glow,
+.motion-paused .regional-station-impact-beacon-group .station-impact-dot-red-ping,
+.motion-paused .regional-impact-hover-foreground,
+.motion-paused .regional-station-impact-hover-foreground,
 .motion-paused .regional-impact-aura,
 .motion-paused .regional-impact-path,
 .motion-paused .regional-delay-glyph,
@@ -633,7 +691,12 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
   .regional-impact-path,
   .regional-delay-glyph,
   .regional-impact-interactive-glow,
-  .regional-station-selected-indicator {
+  .regional-station-selected-indicator,
+  .regional-station-impact-beacon-group,
+  .regional-station-impact-beacon-group .station-impact-dot-red-glow,
+  .regional-station-impact-beacon-group .station-impact-dot-red-ping,
+  .regional-impact-hover-foreground,
+  .regional-station-impact-hover-foreground {
     animation: none !important;
     transition: none !important;
   }
