@@ -317,32 +317,70 @@ public class StationService {
         Map<String, String> plannedClosureTitlesById = alerts.stream().anyMatch(this::isPlannedClosure)
             ? alertDashboardService.dashboardVisiblePlannedClosureTitlesById()
             : Map.of();
-        return toDistinctLiveImpactResponses(alerts, plannedClosureTitlesById);
+        return toDistinctLiveImpactResponses(
+            alerts,
+            plannedClosureTitlesById,
+            alertDashboardService.reducedSpeedZones()
+        );
     }
 
     private List<StationResponses.StationImpactResponse> toDistinctLiveImpactResponses(
         List<StationLiveReadRepository.LinkedAlert> alerts,
-        Map<String, String> plannedClosureTitlesById
+        Map<String, String> plannedClosureTitlesById,
+        List<AlertDashboardService.ReducedSpeedZoneDto> reducedSpeedZones
     ) {
+        Map<String, AlertDashboardService.ReducedSpeedZoneDto> reducedSpeedZoneBySourceAlertId =
+            reducedSpeedZones.stream()
+                .flatMap(zone -> zone.sourceAlertIds().stream().map(sourceAlertId -> Map.entry(sourceAlertId, zone)))
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
         Map<String, StationResponses.StationImpactResponse> impactsByIdentity = new LinkedHashMap<>();
         for (StationLiveReadRepository.LinkedAlert alert : alerts) {
             if (isPlannedClosure(alert) && !plannedClosureTitlesById.containsKey(alert.id())) {
                 continue;
             }
+            AlertDashboardService.ReducedSpeedZoneDto reducedSpeedZone =
+                reducedSpeedZoneBySourceAlertId.get(alert.id());
             StationResponses.StationImpactResponse response = toImpactResponse(
                 alert,
                 plannedClosureTitlesById.get(alert.id())
             );
-            impactsByIdentity.putIfAbsent(stationImpactIdentity(response), response);
+            if (reducedSpeedZone != null) {
+                response = toReducedSpeedZoneImpactResponse(response, reducedSpeedZone);
+            }
+            impactsByIdentity.putIfAbsent(stationImpactIdentity(response, reducedSpeedZone), response);
         }
         return List.copyOf(impactsByIdentity.values());
+    }
+
+    private StationResponses.StationImpactResponse toReducedSpeedZoneImpactResponse(
+        StationResponses.StationImpactResponse sourceImpact,
+        AlertDashboardService.ReducedSpeedZoneDto reducedSpeedZone
+    ) {
+        return new StationResponses.StationImpactResponse(
+            reducedSpeedZone.id(),
+            sourceImpact.type(),
+            sourceImpact.severity(),
+            sourceImpact.title(),
+            sourceImpact.summary(),
+            sourceImpact.updatedAgo(),
+            reducedSpeedZone.updatedAt() == null ? sourceImpact.updatedAt() : reducedSpeedZone.updatedAt(),
+            reducedSpeedZone.source() == null || reducedSpeedZone.source().isBlank()
+                ? sourceImpact.source()
+                : reducedSpeedZone.source()
+        );
     }
 
     private boolean isPlannedClosure(StationLiveReadRepository.LinkedAlert alert) {
         return "planned-closure".equals(alert.type());
     }
 
-    private String stationImpactIdentity(StationResponses.StationImpactResponse impact) {
+    private String stationImpactIdentity(
+        StationResponses.StationImpactResponse impact,
+        AlertDashboardService.ReducedSpeedZoneDto reducedSpeedZone
+    ) {
+        if (reducedSpeedZone != null) {
+            return "reduced-speed-zone|" + reducedSpeedZone.id();
+        }
         if (impact.type().equals("planned-closure")) {
             String title = normalizedImpactText(impact.title());
             String fallbackSummary = normalizedImpactText(impact.summary());

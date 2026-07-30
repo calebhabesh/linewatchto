@@ -16,7 +16,7 @@ describe("surface notices panel and routing source verification", () => {
 
   it("verifies SurfaceNoticesPanel includes search input, category controls, and compact route groups", () => {
     assert.match(panelSource, /type="text"/);
-    assert.match(panelSource, /placeholder="Search route, stop, or notice"/);
+    assert.match(panelSource, /Search route, stop, or notice/);
     assert.match(panelSource, /setCategory/);
     assert.match(panelSource, /groupSurfaceNoticesByRoute/);
     assert.match(panelSource, /surface-notice-route-group/);
@@ -72,5 +72,22 @@ describe("surface notices panel and routing source verification", () => {
     assert.match(panelSource, /networkId/);
     assert.match(panelSource, /GO \/ UP Notices/);
     assert.match(shellSource, /networkId=\{selectedNetwork\}/);
+    assert.match(panelSource, /Metrolinx notices/);
+    assert.match(panelSource, /Search line, station, or notice/);
+    assert.match(panelSource, /REGIONAL_STATION_SEARCH_LINES/);
+    assert.match(panelSource, /visibleCategories/);
+    assert.match(panelSource, /regional-line-identity/);
+    assert.match(panelSource, /aria-hidden="true">·<\/span>/);
+    assert.doesNotMatch(panelSource, /regional-line-identity[^\n]+rounded border/);
+    assert.match(panelSource, /Station \/ Lines Affected/);
+    assert.match(panelSource, /displayRouteGroups/);
+    assert.match(panelSource, /notices: \[notice\]/);
+    assert.match(panelSource, /group\.routeType !== "GO Bus"/);
+    assert.match(panelSource, /GO Bus \{routeId\}/);
+    assert.match(panelSource, /regional \? "pt-3" : ""/);
+    assert.match(panelSource, /Filter GO \/ UP notices by service/);
+    assert.match(panelSource, /\["train", "Train"\]/);
+    assert.match(panelSource, /\["bus", "Bus"\]/);
+    assert.match(panelSource, /notice\.routeType === "GO Bus"/);
   });
 });

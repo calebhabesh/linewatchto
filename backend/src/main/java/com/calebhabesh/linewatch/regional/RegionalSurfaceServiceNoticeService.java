@@ -23,7 +23,7 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class RegionalSurfaceServiceNoticeService {
-    private static final String SOURCE = "Metrolinx GO information + marketing alerts";
+    private static final String SOURCE = "Metrolinx GO information, marketing + GTFS-RT bus alerts";
     private static final List<String> CATEGORIES = List.of("service-change", "bypass", "detour", "no-service", "notice");
     private static final DateTimeFormatter SOURCE_TIME = DateTimeFormatter.ofPattern("uuuu-MM-dd HH:mm:ss", Locale.CANADA);
     private static final ZoneId TORONTO = ZoneId.of("America/Toronto");
@@ -80,12 +80,21 @@ public class RegionalSurfaceServiceNoticeService {
     private NoticeDetail normalize(SourceRecord record) {
         try {
             JsonNode message = objectMapper.readTree(record.rawPayload());
+            if (MetrolinxSourceSystem.GO_GTFS_ALERTS.equals(record.sourceSystem())) {
+                return normalizeGtfsBusNotice(record, message);
+            }
             String title = text(message, "SubjectEnglish");
             String description = text(message, "BodyEnglish");
             if (title.isBlank() && description.isBlank()) return null;
-            List<String> routes = values(message.path("Lines"), "Code");
+            List<String> routes = values(message.path("Lines"), "Code").stream()
+                .map(this::canonicalRouteCode)
+                .distinct()
+                .toList();
             List<StopDetail> stops = elements(message.path("Stops")).stream()
-                .map(stop -> new StopDetail(text(stop, "Code"), firstNonBlank(text(stop, "Name"), text(stop, "Code"))))
+                .map(stop -> {
+                    String code = text(stop, "Code");
+                    return new StopDetail(code, riderFacingStopName(code, text(stop, "Name")));
+                })
                 .filter(stop -> !stop.stopId().isBlank() || !stop.stopName().isBlank())
                 .toList();
             String sourceId = firstNonBlank(text(message, "Code"), record.sourceId());
@@ -102,6 +111,35 @@ public class RegionalSurfaceServiceNoticeService {
         } catch (Exception ignored) {
             return null;
         }
+    }
+
+    private NoticeDetail normalizeGtfsBusNotice(SourceRecord record, JsonNode entity) {
+        JsonNode alert = entity.path("alert");
+        if (entity.path("is_deleted").asBoolean(false) || !alert.isObject()) return null;
+        List<String> routes = elements(alert.path("informed_entity")).stream()
+            .map(node -> busRouteId(text(node, "route_id")))
+            .filter(java.util.Objects::nonNull)
+            .distinct()
+            .toList();
+        if (routes.isEmpty()) return null;
+
+        List<JsonNode> periods = elements(alert.path("active_period"));
+        OffsetDateTime startsAt = periods.stream().map(period -> epoch(period.get("start")))
+            .filter(java.util.Objects::nonNull).min(OffsetDateTime::compareTo).orElse(null);
+        OffsetDateTime endsAt = periods.stream().map(period -> epoch(period.get("end")))
+            .filter(java.util.Objects::nonNull).max(OffsetDateTime::compareTo).orElse(null);
+        if (endsAt != null && !endsAt.isAfter(OffsetDateTime.now(clock))) return null;
+
+        String title = translation(alert.path("header_text"), "GO Bus service notice");
+        String description = translation(alert.path("description_text"), title);
+        String effect = text(alert, "effect");
+        String cause = firstNonBlank(humanize(text(alert, "cause")), humanize(effect));
+        String searchable = String.join(" ", title, description, effect, cause).toLowerCase(Locale.CANADA);
+        return new NoticeDetail(
+            "regional-notice-" + safeId(record.sourceId()), classify(searchable), "GO Bus", routes,
+            title, description, "", List.of(), List.of(), null, cause,
+            startsAt, endsAt, record.lastSeenAt(), null, SOURCE
+        );
     }
 
     private String validateCategory(String value) {
@@ -174,6 +212,53 @@ public class RegionalSurfaceServiceNoticeService {
 
     private String firstNonBlank(String first, String fallback) {
         return first == null || first.isBlank() ? fallback : first;
+    }
+
+    private String canonicalRouteCode(String sourceCode) {
+        return RegionalNetworkCatalog.lineIdForSourceCode(sourceCode)
+            .flatMap(RegionalNetworkCatalog::route)
+            .map(RegionalNetworkCatalog.Route::number)
+            .orElse(sourceCode);
+    }
+
+    private String busRouteId(String sourceRouteId) {
+        if (sourceRouteId == null || sourceRouteId.isBlank()) return null;
+        java.util.regex.Matcher matcher = java.util.regex.Pattern
+            .compile("(?:^|[-_:])(\\d{1,3}[A-Za-z]?)$")
+            .matcher(sourceRouteId.trim());
+        return matcher.find() ? matcher.group(1).toUpperCase(Locale.CANADA) : null;
+    }
+
+    private OffsetDateTime epoch(JsonNode value) {
+        if (value == null || !value.canConvertToLong()) return null;
+        return OffsetDateTime.ofInstant(java.time.Instant.ofEpochSecond(value.asLong()), java.time.ZoneOffset.UTC);
+    }
+
+    private String translation(JsonNode translated, String fallback) {
+        List<JsonNode> translations = elements(translated.path("translation"));
+        return translations.stream()
+            .filter(value -> "en".equalsIgnoreCase(text(value, "language")))
+            .map(value -> text(value, "text"))
+            .filter(value -> !value.isBlank())
+            .findFirst()
+            .orElseGet(() -> translations.stream().map(value -> text(value, "text"))
+                .filter(value -> !value.isBlank()).findFirst().orElse(fallback));
+    }
+
+    private String humanize(String value) {
+        if (value == null || value.isBlank()) return "";
+        String normalized = value.trim().replace('_', ' ').toLowerCase(Locale.CANADA);
+        return normalized.substring(0, 1).toUpperCase(Locale.CANADA) + normalized.substring(1);
+    }
+
+    private String riderFacingStopName(String stopCode, String sourceName) {
+        if (sourceName != null && !sourceName.isBlank() && !sourceName.equalsIgnoreCase(stopCode)) {
+            return sourceName;
+        }
+        return RegionalNetworkCatalog.stationIdForStopCode(stopCode)
+            .flatMap(RegionalNetworkCatalog::station)
+            .map(station -> station.name() + " GO")
+            .orElse(firstNonBlank(sourceName, stopCode));
     }
 
     private String safeId(String value) {

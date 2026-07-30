@@ -249,6 +249,16 @@ describe("network-scoped regional dashboard", () => {
 
 
 
+  it("renders a Notices section attached to station-linked train notices in regional station submenus", () => {
+    assert.match(regionalStationDetailSource, /FileText size=\{20\}/);
+    assert.match(regionalStationDetailSource, /data-station-section="notices"/);
+    assert.match(regionalStationDetailSource, /isNoticeLinkedToRegionalStation/);
+    assert.match(regionalStationDetailSource, /getSurfaceNotices\(\{ networkId: "regional" \}\)/);
+    assert.match(globalsCss, /\.station-notices-details/);
+    assert.match(globalsCss, /\.station-notices-chevron/);
+    assert.match(globalsCss, /\.station-notices-content-wrapper/);
+  });
+
   it("provides all eight corridors and all 72 logical stations as fallback demo data", () => {
     assert.deepEqual(regionalDashboardData.lineStatuses.map((line) => line.number), ["BR", "KI", "LE", "LW", "MI", "RH", "ST", "UP"]);
     assert.equal(regionalDashboardData.stations.length, 72);
@@ -601,7 +611,9 @@ describe("network-scoped regional dashboard", () => {
     assert.match(regionalMapSource, /const selectedScaleFactor = isLarge \? 1 : 1\.2/);
     assert.doesNotMatch(regionalMapSource, /stationId === "union" \? 104/);
     assert.match(regionalMapSource, /element\.before\(hitTarget, hoverIndicator\)/);
-    assert.match(regionalMapSource, /element\.after\(selectedIndicator\)/);
+    assert.match(regionalMapSource, /element\.after\(selectedIndicatorContainer \?\? selectedIndicator\)/);
+    assert.match(regionalMapSource, /selectedIndicator\.removeAttribute\("transform"\)/);
+    assert.match(regionalMapSource, /selectedIndicatorContainer\?\.setAttribute\("transform", authoredTransform\)/);
     assert.match(
       globalsCss,
       /regional-impact-interactive-glow\s*\{[\s\S]*stroke:\s*var\(--station-selection-accent\)/,
@@ -897,6 +909,11 @@ describe("network-scoped regional dashboard", () => {
     );
     assert.match(globalsCss, /\.regional-map-camera-moving \.regional-map-stage :is\([\s\S]*?\.regional-delay-glyph-lane[\s\S]*?display:\s*none\s*!important;/s);
     assert.doesNotMatch(globalsCss, /\.regional-map-camera-moving \.regional-map-stage \*/);
+    const cameraMotionSimplification = globalsCss.slice(
+      globalsCss.indexOf(".regional-map-camera-moving .regional-map-stage :is("),
+      globalsCss.indexOf("/* SMIL motion is not controlled by CSS animation state."),
+    );
+    assert.doesNotMatch(cameraMotionSimplification, /regional-station-selected-indicator/);
   });
 
   it("keeps the authored regional SVG mounted while refreshing isolated dynamic layers", () => {

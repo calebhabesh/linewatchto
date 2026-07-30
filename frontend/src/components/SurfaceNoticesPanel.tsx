@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import Image from "next/image";
 import { ArrowRight, ArrowUpDown, CalendarClock, ChevronDown, ChevronLeft, CircleAlert, ExternalLink, Info, MapPin, Search, X, Bus } from "lucide-react";
 import {
   getSurfaceNotices,
@@ -10,6 +11,7 @@ import {
 import { groupSurfaceNoticesByRoute, SurfaceNoticeGroupItem } from "../app/surface-notice-groups";
 import { formatImpactTimestamp, formatOperationalDateTime } from "../app/impact-time";
 import type { NetworkId } from "../app/regional-data";
+import { REGIONAL_STATION_SEARCH_LINES } from "../app/station-search";
 
 interface Props {
   onBack: () => void;
@@ -21,6 +23,7 @@ interface Props {
 export function SurfaceNoticesPanel({ onBack, onClose, initialQuery = "", networkId = "ttc" }: Props) {
   const regional = networkId === "regional";
   const [category, setCategory] = useState<SurfaceNoticeCategory | "all">("all");
+  const [serviceType, setServiceType] = useState<"all" | "train" | "bus">("all");
   const [searchQuery, setSearchQuery] = useState(initialQuery);
   const [debouncedQuery, setDebouncedQuery] = useState(initialQuery);
   const [data, setData] = useState<SurfaceNoticeResponse | null>(null);
@@ -109,9 +112,24 @@ export function SurfaceNoticesPanel({ onBack, onClose, initialQuery = "", networ
   };
 
   const totalCount = data ? data.categories.reduce((sum, c) => sum + c.count, 0) : 0;
+  const visibleCategories = regional
+    ? (["service-change", "bypass", "detour", "no-service", "notice"] as SurfaceNoticeCategory[]).filter((cat) => getCategoryCount(cat) > 0)
+    : (["service-change", "bypass", "detour"] as SurfaceNoticeCategory[]);
 
   const isFallback = data?.source?.toLowerCase().includes("fixture") || false;
-  const routeGroups = data ? groupSurfaceNoticesByRoute(data.notices) : [];
+  const serviceFilteredNotices = data?.notices.filter((notice) => {
+    if (!regional || serviceType === "all") return true;
+    const busNotice = notice.routeType === "GO Bus";
+    return serviceType === "bus" ? busNotice : !busNotice;
+  }) ?? [];
+  const routeGroups = groupSurfaceNoticesByRoute(serviceFilteredNotices);
+  const displayRouteGroups = regional
+    ? routeGroups.flatMap((group) => group.notices.map((notice) => ({
+        ...group,
+        key: `${group.key}:${notice.id}`,
+        notices: [notice],
+      })))
+    : routeGroups;
 
   const toggleNotice = (noticeId: string) => {
     setExpandedNoticeIds((current) => ({
@@ -200,6 +218,53 @@ export function SurfaceNoticesPanel({ onBack, onClose, initialQuery = "", networ
     );
   };
 
+  const regionalLine = (routeId: string) => {
+    const canonicalCode = routeId.toUpperCase() === "GT" ? "KI" : routeId.toUpperCase();
+    return REGIONAL_STATION_SEARCH_LINES.find((line) => line.number === canonicalCode);
+  };
+
+  const renderRouteBadge = (routeId: string) => {
+    const line = regional ? regionalLine(routeId) : null;
+    if (line) {
+      return (
+        <span
+          key={routeId}
+          className="regional-line-identity inline-flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-200"
+        >
+          <Image src={line.icon} alt="" width={16} height={16} className="h-4 w-4 shrink-0" aria-hidden="true" />
+          {line.name}
+        </span>
+      );
+    }
+    if (regional) {
+      return (
+        <span key={routeId} className="regional-line-identity inline-flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-200">
+          <Bus className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
+          GO Bus {routeId}
+        </span>
+      );
+    }
+    return (
+      <span
+        key={routeId}
+        className="inline-flex items-center justify-center rounded bg-red-600 px-2 py-0.5 text-xs font-black text-white"
+      >
+        {routeId}
+      </span>
+    );
+  };
+
+  const renderRegionalRouteList = (routeIds: string[]) => (
+    routeIds.map((routeId, index) => (
+      <React.Fragment key={routeId}>
+        {index > 0 ? (
+          <span className="text-slate-400 dark:text-slate-500" aria-hidden="true">·</span>
+        ) : null}
+        {renderRouteBadge(routeId)}
+      </React.Fragment>
+    ))
+  );
+
   return (
     <section className="panel min-w-0 border border-black/10 dark:border-white/10 rounded-lg shadow-xl flex flex-col h-full bg-white dark:bg-[#0a0c10]">
       {/* Panel Header */}
@@ -220,7 +285,7 @@ export function SurfaceNoticesPanel({ onBack, onClose, initialQuery = "", networ
         <div className="flex items-center gap-2 shrink-0">
           {data?.source && (
             <span className="text-[9px] sm:text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-wider font-semibold whitespace-nowrap">
-              {data.source}
+              {regional ? "Metrolinx notices" : data.source}
             </span>
           )}
           <button
@@ -237,17 +302,48 @@ export function SurfaceNoticesPanel({ onBack, onClose, initialQuery = "", networ
       <div className="surface-notices-body flex-1 flex flex-col min-h-0 min-w-0">
         {/* Search Bar */}
         <div className="px-3 pt-3 sm:px-4 sm:pt-4 shrink-0">
-          <form onSubmit={handleSearchSubmit} className="relative w-full">
-            <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400 dark:text-slate-500" />
+          <form onSubmit={handleSearchSubmit} className="relative w-full flex items-center">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none text-slate-400 dark:text-slate-500" />
             <input
               type="text"
-              className="submenu-search-input w-full pl-9 pr-4 py-2 rounded-lg border border-black/15 dark:border-white/15 bg-slate-50 dark:bg-[#12151c] text-sm text-slate-950 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-              placeholder="Search route, stop, or notice"
+              className="submenu-search-input w-full pl-9 pr-4 h-10 rounded-lg border border-black/15 dark:border-white/15 bg-slate-50 dark:bg-[#12151c] text-sm text-slate-950 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+              placeholder={regional ? "Search line, station, or notice" : "Search route, stop, or notice"}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </form>
         </div>
+
+        {regional ? (
+          <div
+            className="px-3 pt-3 sm:px-4 sm:pt-3 flex gap-1.5 overflow-x-auto no-scrollbar shrink-0"
+            role="group"
+            aria-label="Filter GO / UP notices by service"
+          >
+            {([
+              ["all", "All services"],
+              ["train", "Train"],
+              ["bus", "Bus"],
+            ] as const).map(([value, label]) => {
+              const active = serviceType === value;
+              return (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => setServiceType(value)}
+                  aria-pressed={active}
+                  className={`px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap border cursor-pointer transition-all ${
+                    active
+                      ? "bg-slate-900 dark:bg-white text-white dark:text-slate-950 border-transparent"
+                      : "bg-slate-100 dark:bg-white/5 text-slate-700 dark:text-slate-300 border-black/10 dark:border-white/10 hover:bg-slate-200 dark:hover:bg-white/10"
+                  }`}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+        ) : null}
 
         {/* Segmented Category Buttons */}
         <div className="px-3 pt-3 pb-3 sm:px-4 sm:pt-3 sm:pb-3 flex gap-1.5 overflow-x-auto no-scrollbar shrink-0">
@@ -261,7 +357,7 @@ export function SurfaceNoticesPanel({ onBack, onClose, initialQuery = "", networ
           >
             All {totalCount > 0 && `(${totalCount})`}
           </button>
-          {(["service-change", "bypass", "detour"] as SurfaceNoticeCategory[]).map((cat) => {
+          {visibleCategories.map((cat) => {
             const active = category === cat;
             const count = getCategoryCount(cat);
             return (
@@ -290,13 +386,13 @@ export function SurfaceNoticesPanel({ onBack, onClose, initialQuery = "", networ
             <div className="text-center py-8 text-slate-500 dark:text-slate-400 text-sm">
               {regional ? "GO / UP notices" : "Streetcar & Bus notices"} are unavailable in fixture mode.
             </div>
-          ) : !data || data.notices.length === 0 ? (
+          ) : !data || serviceFilteredNotices.length === 0 ? (
             <div className="text-center py-8 text-slate-500 dark:text-slate-400 text-sm">
-              No active {regional ? "GO / UP" : "streetcar & bus"} notices found matching your filters.
+              No active {regional && serviceType !== "all" ? `${serviceType} ` : regional ? "GO / UP " : "streetcar & bus "}notices found matching your filters.
             </div>
           ) : (
             <div className="flex flex-col gap-3">
-              {routeGroups.map((group) => (
+              {displayRouteGroups.map((group) => (
                 <section
                   key={group.key}
                   className="surface-notice-route-group overflow-hidden rounded-lg border border-black/10 bg-slate-50 dark:border-white/10 dark:bg-[#12151c]"
@@ -304,24 +400,33 @@ export function SurfaceNoticesPanel({ onBack, onClose, initialQuery = "", networ
                   <div className="flex items-start justify-between gap-2 border-b border-black/10 px-3.5 py-3 dark:border-white/10">
                     <div className="min-w-0 flex flex-col gap-1">
                       <p className="text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                        Routes Affected
+                        {regional && group.routeType !== "GO Bus" ? "Station / Lines Affected" : "Routes Affected"}
                       </p>
-                      <div className="min-w-0 flex flex-wrap items-center gap-1.5">
-                        <div className="flex shrink-0 flex-wrap gap-1">
-                          {group.routeIds.map((routeId) => (
-                            <span
-                              key={routeId}
-                              className={`inline-flex items-center justify-center rounded px-2 py-0.5 text-xs font-black text-white ${regional ? "bg-emerald-700" : "bg-red-600"}`}
-                            >
-                              {routeId}
-                            </span>
-                          ))}
+                      {regional ? (
+                        <>
+                          {group.routeType !== "GO Bus" ? (
+                            <div className="min-w-0 text-sm font-semibold text-slate-900 dark:text-white">
+                              {renderStopDisplay(group.notices[0])}
+                            </div>
+                          ) : null}
+                          <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+                            {renderRegionalRouteList(group.routeIds)}
+                          </div>
+                          <p className="text-xs font-semibold leading-snug text-slate-600 dark:text-slate-300">
+                            {group.notices[0].title}
+                          </p>
+                        </>
+                      ) : (
+                        <div className="min-w-0 flex flex-wrap items-center gap-1.5">
+                          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                            {group.routeIds.map(renderRouteBadge)}
+                          </div>
+                          <span className="text-[9px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                            {group.routeType}
+                          </span>
                         </div>
-                        <span className="text-[9px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500">
-                          {group.routeType}
-                        </span>
-                      </div>
-                      {group.routeName ? (
+                      )}
+                      {!regional && group.routeName ? (
                         <p className="truncate text-xs font-semibold text-slate-600 dark:text-slate-300">
                           {group.routeName}
                         </p>
@@ -341,14 +446,16 @@ export function SurfaceNoticesPanel({ onBack, onClose, initialQuery = "", networ
                       const detailsPanelId = `surface-notice-details-${notice.id}`;
                       return (
                         <article key={notice.id} className="surface-notice-stop-row">
-                          <div className="flex w-full items-center justify-between gap-3 px-3.5 py-3 text-left">
-                            <span className="min-w-0 flex items-center gap-2">
-                              {renderStopDisplay(notice)}
-                            </span>
-                          </div>
+                          {!regional ? (
+                            <div className="flex w-full flex-wrap items-center gap-x-2 gap-y-1.5 px-3.5 py-3 text-left">
+                              <span className="min-w-0 flex items-center gap-2">
+                                {renderStopDisplay(notice)}
+                              </span>
+                            </div>
+                          ) : null}
 
-                          <dl className="grid grid-cols-1 gap-3 px-3.5 pb-3 sm:grid-cols-2">
-                            {renderCompactField(stopFieldHeading(notice), stopFieldLabel(notice), <MapPin size={13} />)}
+                          <dl className={`grid grid-cols-1 gap-3 px-3.5 pb-3 sm:grid-cols-2 ${regional ? "pt-3" : ""}`}>
+                            {!regional ? renderCompactField(stopFieldHeading(notice), stopFieldLabel(notice), <MapPin size={13} />) : null}
                             {renderCompactField("Active", activeTimeLabel(notice), <CalendarClock size={13} />)}
                             {renderCompactField("Updated", formatImpactTimestamp(notice.updatedAt), <CalendarClock size={13} />)}
                             {renderCompactField("Direction", notice.compactDirection, <ArrowUpDown size={13} />)}

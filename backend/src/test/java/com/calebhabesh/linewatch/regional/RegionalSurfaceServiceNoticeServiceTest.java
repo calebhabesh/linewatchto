@@ -39,14 +39,31 @@ class RegionalSurfaceServiceNoticeServiceTest {
                 {"Code":"M0000520000","PostedDateTime":"2026-07-29 10:00:00",
                  "SubjectEnglish":"Weekend service information","BodyEnglish":"Plan ahead for weekend travel.",
                  "Category":"Marketing","Lines":[{"Code":"LW"}],"Stops":[]}
+                """),
+            record(MetrolinxSourceSystem.GO_INFORMATION_ALERTS, "M0000520001", """
+                {"Code":"M0000520001","PostedDateTime":"2026-07-29 11:00:00",
+                 "SubjectEnglish":"Old Cummer station notice","BodyEnglish":"Use the south entrance.",
+                 "Category":"General Information","Lines":[{"Code":"GT"},{"Code":"RH"}],
+                 "Stops":[{"Name":"OL","Code":"OL"}]}
+                """),
+            record(MetrolinxSourceSystem.GO_GTFS_ALERTS, "GO-BUS-31", """
+                {"id":"GO-BUS-31","alert":{"cause":"CONSTRUCTION","effect":"DETOUR",
+                 "header_text":{"translation":[{"text":"Route 31 buses are detouring","language":"en"}]},
+                 "description_text":{"translation":[{"text":"Use temporary stops.","language":"en"}]},
+                 "informed_entity":[{"route_id":"06260926-31"}]}}
+                """),
+            record(MetrolinxSourceSystem.GO_GTFS_ALERTS, "GO-RAIL-KI", """
+                {"id":"GO-RAIL-KI","alert":{"effect":"SIGNIFICANT_DELAYS",
+                 "header_text":{"translation":[{"text":"Kitchener train delay","language":"en"}]},
+                 "informed_entity":[{"route_id":"06260926-KI"}]}}
                 """)));
 
         RegionalSurfaceServiceNoticeService service = service();
         SurfaceServiceNoticesResponse response = service.getSurfaceNotices(null, null, null);
 
         assertThat(response.fresh()).isTrue();
-        assertThat(response.source()).isEqualTo("Metrolinx GO information + marketing alerts");
-        assertThat(response.notices()).hasSize(2);
+        assertThat(response.source()).isEqualTo("Metrolinx GO information, marketing + GTFS-RT bus alerts");
+        assertThat(response.notices()).hasSize(4);
         assertThat(response.notices()).anySatisfy(notice -> {
             assertThat(notice.id()).isEqualTo("regional-notice-M0000508515");
             assertThat(notice.routeIds()).containsExactly("MI");
@@ -54,6 +71,24 @@ class RegionalSurfaceServiceNoticeServiceTest {
             assertThat(notice.location()).isEqualTo("Cooksville GO");
             assertThat(notice.category()).isEqualTo("service-change");
         });
+        assertThat(response.notices()).anySatisfy(notice -> {
+            assertThat(notice.id()).isEqualTo("regional-notice-M0000520001");
+            assertThat(notice.routeIds()).containsExactly("KI", "RH");
+            assertThat(notice.location()).isEqualTo("Old Cummer GO");
+            assertThat(notice.stops()).singleElement().satisfies(stop -> {
+                assertThat(stop.stopId()).isEqualTo("OL");
+                assertThat(stop.stopName()).isEqualTo("Old Cummer GO");
+            });
+        });
+        assertThat(response.notices()).anySatisfy(notice -> {
+            assertThat(notice.id()).isEqualTo("regional-notice-GO-BUS-31");
+            assertThat(notice.routeType()).isEqualTo("GO Bus");
+            assertThat(notice.routeIds()).containsExactly("31");
+            assertThat(notice.title()).isEqualTo("Route 31 buses are detouring");
+            assertThat(notice.category()).isEqualTo("detour");
+        });
+        assertThat(response.notices()).extracting(notice -> notice.id())
+            .doesNotContain("regional-notice-GO-RAIL-KI");
     }
 
     @Test

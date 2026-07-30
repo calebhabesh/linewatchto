@@ -2339,7 +2339,20 @@ function InteractiveRegionalMapComponent({
             }
           }
 
+          // Junction groups can carry authored transforms (Bloor is rotated,
+          // Mount Dennis is translated). Keep that authored transform on an
+          // inert outer wrapper so the animated inner artwork retains the exact
+          // local geometry and intro motion used by the original station marker.
+          const selectedIndicatorContainer = element.matches("g")
+            ? documentNode.createElementNS(SVG_NAMESPACE, "g")
+            : null;
           const selectedIndicator = element.cloneNode(true) as SVGElement;
+          if (element.matches("g")) {
+            const authoredTransform = selectedIndicator.getAttribute("transform");
+            selectedIndicator.removeAttribute("transform");
+            if (authoredTransform) selectedIndicatorContainer?.setAttribute("transform", authoredTransform);
+            selectedIndicatorContainer?.append(selectedIndicator);
+          }
           removeDescendantIds(selectedIndicator);
           selectedIndicator.dataset.regionalStationSelectionId = stationId;
           selectedIndicator.classList.add("map-selection-attention", "station-selected-indicator", "regional-station-selected-indicator");
@@ -2375,7 +2388,7 @@ function InteractiveRegionalMapComponent({
           }
 
           element.before(hitTarget, hoverIndicator);
-          element.after(selectedIndicator);
+          element.after(selectedIndicatorContainer ?? selectedIndicator);
           element.classList.add("regional-station-visual");
         }
         // The authored map and station interaction geometry are immutable after

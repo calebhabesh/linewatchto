@@ -30,6 +30,23 @@ type StationImpactSelectionData = {
 
 type StationImpactRouteData = StationImpactTypeData & StationImpactSelectionData;
 
+export function distinctStationImpacts<T extends { id: string }>(
+  impacts: T[],
+  data: StationImpactSelectionData,
+): T[] {
+  const impactsByCanonicalSelection = new Map<string, T>();
+  for (const impact of impacts) {
+    const selection = stationImpactSelection(impact.id, data);
+    const identity = selection
+      ? `${selection.kind}|${selection.id}`
+      : `source-alert|${impact.id}`;
+    if (!impactsByCanonicalSelection.has(identity)) {
+      impactsByCanonicalSelection.set(identity, impact);
+    }
+  }
+  return [...impactsByCanonicalSelection.values()];
+}
+
 export function stationImpactSelection(
   impactId: string,
   data: StationImpactSelectionData,

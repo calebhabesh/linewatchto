@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 
 import {
+  distinctStationImpacts,
   stationImpactKindsByStation,
   stationImpactSelection,
   stationImpactSelectionsByStation,
@@ -45,6 +46,30 @@ describe("station impact type badges", () => {
     });
 
     assert.deepEqual(selection, { kind: "planned-closure", id: "closure-active-child" });
+  });
+
+  it("deduplicates station rows that resolve to one canonical impact", () => {
+    const impacts = [
+      { id: "rsz-source-south", title: "Southbound reduced speed" },
+      { id: "rsz-source-north", title: "Northbound reduced speed" },
+      { id: "delay-east", title: "Separate delay" },
+      { id: "delay-west", title: "Separate delay" },
+    ];
+    const distinct = distinctStationImpacts(impacts, {
+      activeAlerts: [],
+      delays: [{ id: "delay-east" }, { id: "delay-west" }],
+      plannedClosures: [],
+      reducedSpeedZones: [{
+        id: "rsz-group",
+        sourceAlertIds: ["rsz-source-south", "rsz-source-north"],
+      }],
+    });
+
+    assert.deepEqual(distinct.map((impact) => impact.id), [
+      "rsz-source-south",
+      "delay-east",
+      "delay-west",
+    ]);
   });
 
   it("derives ordered, deduplicated impact kinds from station nodes and adjacent segments", () => {

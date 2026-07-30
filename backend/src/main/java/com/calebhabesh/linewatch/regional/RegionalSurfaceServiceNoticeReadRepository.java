@@ -26,7 +26,8 @@ public class RegionalSurfaceServiceNoticeReadRepository {
             order by last_seen_at desc, source_system, source_id
             """, new MapSqlParameterSource("sourceSystems", List.of(
                 MetrolinxSourceSystem.GO_INFORMATION_ALERTS,
-                MetrolinxSourceSystem.GO_MARKETING_ALERTS
+                MetrolinxSourceSystem.GO_MARKETING_ALERTS,
+                MetrolinxSourceSystem.GO_GTFS_ALERTS
             )).addValue("seenAfter", seenAfter), (resultSet, rowNumber) -> new SourceRecord(
                 resultSet.getString("source_system"),
                 resultSet.getString("source_id"),

@@ -306,6 +306,67 @@ class StationServiceTest {
     }
 
     @Test
+    void freshStationDetailCollapsesGroupedReducedSpeedZoneSourcesWithoutMergingOtherAlerts() {
+        OffsetDateTime updatedAt = OffsetDateTime.parse("2026-07-22T10:00:00-04:00");
+        StationEntity cedarvale = new StationEntity("cedarvale", "Cedarvale", 2936, 1810, true, 40, null);
+        TransitLineEntity line = new TransitLineEntity("line-1", "1", "Yonge-University", "#F8C300", 1);
+        StationLineEntity stationLine = new StationLineEntity(
+            1L, "cedarvale", "line-1", "Northbound / Southbound", 1, true, true
+        );
+
+        when(stationRepository.findById("cedarvale")).thenReturn(Optional.of(cedarvale));
+        when(stationLineRepository.findByStationIdOrderBySortOrderAsc("cedarvale")).thenReturn(List.of(stationLine));
+        when(transitLineRepository.findAllById(List.of("line-1"))).thenReturn(List.of(line));
+        when(ingestionFreshness.isDashboardFresh()).thenReturn(true);
+        when(liveReadRepository.findActiveOutagesByStationId("cedarvale")).thenReturn(List.of());
+        when(liveReadRepository.findActiveAlertsByStationId("cedarvale")).thenReturn(List.of(
+            linkedAlert("ttc-route-rsz-south-1", "delay", "Subway trains will move slower than usual.", updatedAt),
+            linkedAlert("ttc-route-rsz-south-2", "delay", "Subway trains will move slower than usual.", updatedAt.minusMinutes(1)),
+            linkedAlert("ttc-route-rsz-north", "delay", "Subway trains will move slower than usual.", updatedAt.minusMinutes(2)),
+            linkedAlert("ttc-route-delay-east", "delay", "Separate Line 5 delay.", updatedAt.minusMinutes(3)),
+            linkedAlert("ttc-route-delay-west", "delay", "Separate Line 5 delay.", updatedAt.minusMinutes(4))
+        ));
+        when(alertDashboardService.reducedSpeedZones()).thenReturn(List.of(
+            new AlertDashboardService.ReducedSpeedZoneDto(
+                "reduced-speed-zone-cedarvale",
+                "line-1",
+                "1",
+                "Reduced Speed Zone",
+                "Cedarvale to St Clair West",
+                "Northbound & Southbound",
+                "TTC reports reduced speeds on this corridor.",
+                updatedAt.minusWeeks(1),
+                updatedAt,
+                List.of("line-1-cedarvale-st-clair-west"),
+                List.of("ttc-route-rsz-south-1", "ttc-route-rsz-south-2", "ttc-route-rsz-north"),
+                List.of(),
+                "TTC Live Alerts",
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null
+            )
+        ));
+        when(arrivalService.arrivalsFor(any(), any())).thenReturn(List.of(
+            ArrivalPrediction.scheduled(
+                "line-1", "Northbound to Vaughan Metropolitan Centre", 4, OffsetDateTime.now(), "TTC scheduled service"
+            )
+        ));
+
+        StationResponses.StationDetailResponse response = stationService.stationDetail("cedarvale");
+
+        assertThat(response.impacts()).extracting(StationResponses.StationImpactResponse::id)
+            .containsExactly(
+                "reduced-speed-zone-cedarvale",
+                "ttc-route-delay-east",
+                "ttc-route-delay-west"
+            );
+    }
+
+    @Test
     void freshStationSummariesUseLinkedOutageAndAlertStationIds() {
         StationEntity union = new StationEntity("union", "Union", 4311, 3597, true, 10, null);
         StationLineEntity stationLine = new StationLineEntity(
@@ -328,6 +389,23 @@ class StationServiceTest {
         assertThat(summary.accessOutageCounts().elevator()).isEqualTo(2);
         assertThat(summary.accessOutageCounts().escalator()).isEqualTo(1);
         assertThat(summary.hasActiveImpact()).isTrue();
+    }
+
+    private StationLiveReadRepository.LinkedAlert linkedAlert(
+        String id,
+        String severity,
+        String description,
+        OffsetDateTime updatedAt
+    ) {
+        return new StationLiveReadRepository.LinkedAlert(
+            id,
+            "active-alert",
+            severity,
+            description,
+            description,
+            updatedAt,
+            "Live Alerts"
+        );
     }
 
     @Test

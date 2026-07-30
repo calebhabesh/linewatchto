@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertCircle, AlertTriangle, BadgeInfo, ChevronDown, Clock3, Construction, ExternalLink, LoaderCircle } from "lucide-react";
+import { AlertCircle, AlertTriangle, BadgeInfo, ChevronDown, Clock3, Construction, ExternalLink, FileText, LoaderCircle } from "lucide-react";
 import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useDashboardData } from "../app/DataContext";
@@ -18,6 +18,7 @@ import { STATION_LINE_DEFINITIONS, STATION_LINE_STATION_IDS } from "../app/stati
 import type { AccessibilityOutageDetail } from "../app/accessibility-outage-data";
 import { formatImpactTimestamp } from "../app/impact-time";
 import { normalizeDashboardSourceLabel } from "../app/dashboard-source-label";
+import { getSurfaceNotices, type SurfaceNoticeDetail } from "../app/surface-notice-data";
 import { StationDetailHeader } from "./StationDetailHeader";
 import { TransitLineBadge, transitLineBadgeColors } from "./TransitLineBadge";
 import { DelayIcon } from "./DelayIcon";
@@ -79,6 +80,111 @@ function RegionalStationImpactIcon({ impact }: { impact: RegionalStationImpact }
   return <AlertTriangle size={26} className="shrink-0 text-red-500" />;
 }
 
+const REGIONAL_STOP_CODE_TO_STATION_ID: Record<string, string> = {
+  AC: "acton", AD: "allandale-waterfront", AG: "agincourt", AJ: "ajax",
+  AL: "aldershot", AP: "appleby", AU: "aurora", BA: "barrie-south",
+  BD: "bradford", BE: "bramalea", BL: "bloor", BM: "bloomington",
+  BO: "bronte", BR: "brampton-innovation-district", BU: "burlington",
+  CE: "centennial", CF: "confederation", CL: "clarkson", CO: "cooksville",
+  DA: "danforth", DI: "dixie", DW: "downsview-park", EA: "east-gwillimbury",
+  EG: "eglinton", ER: "erindale", ET: "etobicoke-north", EX: "exhibition",
+  GE: "georgetown", GL: "guelph-central", GO: "gormley", GU: "guildwood",
+  HA: "hamilton", KC: "king-city", KE: "kennedy", KI: "kitchener",
+  KP: "kipling", LA: "langstaff", LI: "lisgar", LO: "long-branch",
+  MA: "maple", MD: "mount-dennis", ME: "meadowvale", MI: "mimico",
+  MK: "markham", ML: "malton", MO: "mount-joy", MP: "mount-pleasant",
+  MQ: "milliken", MT: "milton", NF: "niagara-falls", NM: "newmarket",
+  OR: "oriole", OS: "durham-college-oshawa", PA: "pearson-airport",
+  PC: "port-credit", PK: "pickering", RH: "richmond-hill", RO: "rouge-hill",
+  RU: "rutherford", SC: "scarborough", SR: "stratford", ST: "stouffville",
+  SV: "streetsville", TH: "st-catharines", UN: "union", UI: "unionville",
+  WH: "west-harbour", WR: "whitby", WS: "weston",
+};
+
+function matchesStationStopCode(code: string, targetStationId: string): boolean {
+  const upper = code.trim().toUpperCase();
+  return REGIONAL_STOP_CODE_TO_STATION_ID[upper] === targetStationId;
+}
+
+function isNoticeLinkedToRegionalStation(
+  notice: SurfaceNoticeDetail,
+  stationId: string,
+  stationName: string,
+): boolean {
+  if (notice.routeType === "GO Bus") {
+    return false;
+  }
+
+  const targetId = stationId.toLowerCase();
+  const targetName = stationName.toLowerCase();
+  const targetNameGo = `${targetName} go`;
+
+  if (notice.stopIds && notice.stopIds.some((id) => {
+    const lower = id.trim().toLowerCase();
+    return lower === targetId || lower === targetName || matchesStationStopCode(lower, targetId);
+  })) {
+    return true;
+  }
+
+  if (notice.stops && notice.stops.some((stop) => {
+    const idLower = (stop.stopId || "").trim().toLowerCase();
+    const nameLower = (stop.stopName || "").trim().toLowerCase();
+    if (idLower === targetId || matchesStationStopCode(idLower, targetId)) {
+      return true;
+    }
+    if (nameLower.includes(targetName) || targetName.includes(nameLower.replace(/\s+go$/, ""))) {
+      return true;
+    }
+    return false;
+  })) {
+    return true;
+  }
+
+  if (notice.location) {
+    const locLower = notice.location.trim().toLowerCase();
+    if (locLower.includes(targetName) || locLower.includes(targetId)) {
+      return true;
+    }
+  }
+
+  const text = `${notice.title || ""} ${notice.description || ""}`.toLowerCase();
+  if (text.includes(targetNameGo) || text.includes(`${targetName} station`)) {
+    return true;
+  }
+
+  return false;
+}
+
+function noticeCategoryBadgeColor(cat: string) {
+  switch (cat.toLowerCase()) {
+    case "bypass":
+      return "bg-amber-500/20 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300 border border-amber-500/40 dark:border-amber-500/30";
+    case "no-service":
+      return "bg-red-500/20 text-red-700 dark:bg-red-500/20 dark:text-red-300 border border-red-500/40 dark:border-red-500/30";
+    case "detour":
+      return "bg-purple-500/20 text-purple-700 dark:bg-purple-500/20 dark:text-purple-300 border border-purple-500/40 dark:border-purple-500/30";
+    case "service-change":
+      return "bg-blue-500/20 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300 border border-blue-500/40 dark:border-blue-500/30";
+    default:
+      return "bg-slate-500/20 text-slate-700 dark:bg-slate-500/20 dark:text-slate-300 border border-slate-500/40 dark:border-slate-500/30";
+  }
+}
+
+function noticeCategoryLabel(cat: string) {
+  switch (cat.toLowerCase()) {
+    case "bypass":
+      return "Bypass";
+    case "no-service":
+      return "No Service";
+    case "detour":
+      return "Detour";
+    case "service-change":
+      return "Service Change";
+    default:
+      return "Notice";
+  }
+}
+
 export function RegionalStationDetailPanel({
   station,
   onClose,
@@ -96,6 +202,11 @@ export function RegionalStationDetailPanel({
     stationId: string;
     snapshot: RegionalArrivalSnapshot;
   }>(() => ({ stationId: "", snapshot: emptyRegionalArrivalSnapshot(station.id) }));
+  const [noticesState, setNoticesState] = useState<{
+    loading: boolean;
+    notices: SurfaceNoticeDetail[];
+  }>({ loading: true, notices: [] });
+  const noticesDetailsRef = useRef<HTMLDetailsElement>(null);
   const arrivalsLoading = arrivalState.stationId !== station.id;
   const arrivalSnapshot = arrivalsLoading
     ? emptyRegionalArrivalSnapshot(station.id)
@@ -192,6 +303,48 @@ export function RegionalStationDetailPanel({
     }).catch(() => undefined);
     return () => controller.abort();
   }, [station.id]);
+
+  useEffect(() => {
+    let active = true;
+    async function fetchNotices() {
+      try {
+        const result = await getSurfaceNotices({ networkId: "regional" });
+        if (active) {
+          setNoticesState({ loading: false, notices: result.data?.notices ?? [] });
+        }
+      } catch {
+        if (active) {
+          setNoticesState({ loading: false, notices: [] });
+        }
+      }
+    }
+    void fetchNotices();
+    return () => {
+      active = false;
+    };
+  }, [station.id]);
+
+  const linkedNotices = useMemo(
+    () =>
+      noticesState.notices.filter((notice) =>
+        isNoticeLinkedToRegionalStation(notice, station.id, station.name),
+      ),
+    [noticesState.notices, station.id, station.name],
+  );
+
+  const handleNoticesSummaryClick = (e: React.MouseEvent<HTMLElement>) => {
+    const detailsElement = noticesDetailsRef.current;
+    if (!detailsElement) return;
+
+    if (detailsElement.open) {
+      e.preventDefault();
+      detailsElement.classList.add("collapsing");
+      setTimeout(() => {
+        detailsElement.open = false;
+        detailsElement.classList.remove("collapsing");
+      }, 150);
+    }
+  };
 
   const handleClose = () => {
     setIsClosing(true);
@@ -455,6 +608,123 @@ export function RegionalStationDetailPanel({
                   </div>
                 ) : null}
               </section>
+
+              <details
+                ref={noticesDetailsRef}
+                className="station-notices-details rounded-lg border border-black/10 bg-slate-50 p-3 dark:border-white/10 dark:bg-white/5"
+                data-station-section="notices"
+                aria-label="Regional station notices"
+                open={linkedNotices.length > 0}
+              >
+                <summary
+                  onClick={handleNoticesSummaryClick}
+                  className="station-notices-summary flex cursor-pointer list-none items-center gap-2.5 text-lg font-black"
+                >
+                  <span className="flex min-w-0 items-center gap-2.5">
+                    <FileText size={20} className="shrink-0 text-slate-700 dark:text-slate-300" />
+                    <span className="min-w-0 truncate">Notices</span>
+                    <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-slate-200 px-1.5 py-0.5 text-xs font-bold text-slate-800 dark:bg-white/10 dark:text-slate-200">
+                      {linkedNotices.length}
+                    </span>
+                  </span>
+                  <ChevronDown
+                    size={18}
+                    aria-hidden="true"
+                    className="station-notices-chevron ml-auto shrink-0 text-slate-500 dark:text-slate-300"
+                  />
+                </summary>
+                <div className="station-notices-content-wrapper">
+                  <div className="station-notices-content pt-3 flex flex-col gap-3">
+                    <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                      Metrolinx Open API
+                    </p>
+                    {noticesState.loading ? (
+                      <div className="flex min-h-16 items-center justify-center rounded-md border border-black/10 bg-white/60 dark:border-white/10 dark:bg-black/10">
+                        <LoaderCircle size={18} className="animate-spin text-slate-500" aria-label="Loading station notices" />
+                      </div>
+                    ) : linkedNotices.length > 0 ? (
+                      <div className="flex flex-col gap-2">
+                        {linkedNotices.map((notice) => (
+                          <div
+                            key={notice.id}
+                            className="flex flex-col gap-2 rounded-md border border-black/10 bg-white/80 p-3 text-sm shadow-sm dark:border-white/10 dark:bg-[#12151c]/80"
+                          >
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="flex flex-wrap items-center gap-1.5 min-w-0">
+                                {notice.routeIds?.map((routeCode) => {
+                                  const route = REGIONAL_ROUTE_DEFINITIONS.find(
+                                    (r) => r.number === routeCode || r.id === routeCode,
+                                  );
+                                  if (route) {
+                                    return (
+                                      <TransitLineBadge
+                                        key={routeCode}
+                                        lineId={route.id}
+                                        lineNumber={route.number}
+                                        lineName={route.name}
+                                        size={22}
+                                        className="shrink-0"
+                                      />
+                                    );
+                                  }
+                                  return (
+                                    <span
+                                      key={routeCode}
+                                      className="rounded bg-slate-200 px-1.5 py-0.5 text-xs font-bold text-slate-800 dark:bg-white/10 dark:text-slate-200"
+                                    >
+                                      {routeCode}
+                                    </span>
+                                  );
+                                })}
+                              </div>
+                              <span
+                                className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-black uppercase tracking-wider ${noticeCategoryBadgeColor(notice.category)}`}
+                              >
+                                {noticeCategoryLabel(notice.category)}
+                              </span>
+                            </div>
+
+                            <div className="min-w-0">
+                              <strong className="block font-bold text-slate-900 dark:text-white">
+                                {notice.title}
+                              </strong>
+                              {notice.description && notice.description !== notice.title ? (
+                                <p className="mt-1 text-xs leading-relaxed text-slate-600 dark:text-slate-300">
+                                  {notice.description}
+                                </p>
+                              ) : null}
+                            </div>
+
+                            <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-black/5 dark:border-white/5 text-[11px] text-slate-500 dark:text-slate-400">
+                              {notice.updatedAt ? (
+                                <span>Updated {formatImpactTimestamp(notice.updatedAt)}</span>
+                              ) : null}
+                              {notice.cause ? (
+                                <span>Cause: {notice.cause}</span>
+                              ) : null}
+                            </div>
+
+                            {notice.url ? (
+                              <a
+                                href={notice.url}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="mt-1 inline-flex items-center gap-1 text-xs font-bold text-blue-600 hover:underline dark:text-blue-400"
+                              >
+                                Metrolinx details <ExternalLink size={12} />
+                              </a>
+                            ) : null}
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+                        No active GO / UP notices for this station.
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </details>
 
               <details
                 className="station-accessibility-details rounded-lg border border-black/10 bg-slate-50 p-3 dark:border-white/10 dark:bg-white/5"

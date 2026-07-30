@@ -433,7 +433,18 @@ test("opens fresh regional notices from desktop and mobile navigation", async ({
 
   await expect(page.getByRole("heading", { name: "GO / UP Notices" })).toBeVisible();
   await expect(page.getByText("Barrie station construction notice", { exact: true })).toBeVisible();
-  await expect(page.getByText("Metrolinx GO information + marketing alerts", { exact: true })).toBeVisible();
+  await expect(page.getByText("Metrolinx notices", { exact: true })).toBeVisible();
+  await expect(page.locator(".surface-notice-route-group").getByText("Barrie", { exact: true }).first()).toBeVisible();
+  await expect(page.getByText("GO Bus 31", { exact: true })).toBeVisible();
+  await expect(page.getByText("Route 31 buses are detouring", { exact: true })).toBeVisible();
+
+  const serviceFilter = page.getByRole("group", { name: "Filter GO / UP notices by service" });
+  await serviceFilter.getByRole("button", { name: "Bus", exact: true }).click();
+  await expect(page.getByText("Route 31 buses are detouring", { exact: true })).toBeVisible();
+  await expect(page.getByText("Barrie station construction notice", { exact: true })).toHaveCount(0);
+  await serviceFilter.getByRole("button", { name: "Train", exact: true }).click();
+  await expect(page.getByText("Barrie station construction notice", { exact: true })).toBeVisible();
+  await expect(page.getByText("Route 31 buses are detouring", { exact: true })).toHaveCount(0);
 });
 
 test("renders fresh Metrolinx impacts in regional mode", async ({ page, request, isMobile }) => {
@@ -715,6 +726,50 @@ test("renders fresh Metrolinx impacts in regional mode", async ({ page, request,
   await expect(stationPanel.getByText("7 min", { exact: true })).toBeVisible();
   await expect(stationPanel.getByRole("heading", { name: "Platform 11" })).toBeVisible();
   await expect(stationPanel.getByText("Delayed estimate", { exact: true })).toBeVisible();
+});
+
+test("keeps transformed regional junction selection aligned with its station dots", async ({ page, request, isMobile }) => {
+  test.skip(isMobile, "network selection is desktop-only");
+  await setStubMode(request, "seeded");
+
+  await page.goto("/");
+  await page.getByRole("group", { name: "Select transit network" })
+    .getByRole("button", { name: "GO/UP", exact: true })
+    .click();
+
+  const bloorTarget = page.locator('[data-regional-station-id="bloor"]');
+  await expect(bloorTarget).toBeVisible();
+  await bloorTarget.click();
+
+  const bloorSelection = page.locator(
+    '[data-regional-station-selection-id="bloor"][data-regional-station-selected="true"]',
+  );
+  await expect(bloorSelection).toBeVisible();
+  await expect(page.locator(".regional-map")).toHaveAttribute(
+    "data-regional-map-camera-moving",
+    "true",
+  );
+  await expect.poll(() => bloorSelection.evaluate(
+    (element) => getComputedStyle(element).animationName,
+  )).toContain("map-selection-station-intro");
+  await page.waitForTimeout(850);
+
+  const [dotCenters, selectionCenters] = await Promise.all([
+    page.locator("#station-bloor > :is(circle, ellipse)").evaluateAll((shapes) => shapes.map((shape) => {
+      const bounds = shape.getBoundingClientRect();
+      return { x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height / 2 };
+    }).sort((left, right) => left.x - right.x)),
+    bloorSelection.locator(":scope > :is(circle, ellipse)").evaluateAll((shapes) => shapes.map((shape) => {
+      const bounds = shape.getBoundingClientRect();
+      return { x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height / 2 };
+    }).sort((left, right) => left.x - right.x)),
+  ]);
+
+  expect(selectionCenters).toHaveLength(dotCenters.length);
+  for (let index = 0; index < dotCenters.length; index += 1) {
+    expect(Math.abs(selectionCenters[index].x - dotCenters[index].x)).toBeLessThan(3);
+    expect(Math.abs(selectionCenters[index].y - dotCenters[index].y)).toBeLessThan(3);
+  }
 });
 
 test("renders regional accessibility outages in the global and station views", async ({ page, request, isMobile }) => {

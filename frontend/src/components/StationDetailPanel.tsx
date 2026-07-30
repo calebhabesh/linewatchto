@@ -17,6 +17,7 @@ import {
   shouldUseDetailedArrivalCountdown,
 } from "../app/station-arrivals";
 import type { StationArrival, StationDataResult, StationDetail, StationImpact } from "../app/station-data";
+import { distinctStationImpacts } from "../app/station-impact-types";
 import { useDashboardData } from "../app/DataContext";
 import { useSubwayOperatingState } from "../hooks/useSubwayOperatingState";
 import { TransitLineBadge } from "./TransitLineBadge";
@@ -278,6 +279,9 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
   const subwayOperatingState = useSubwayOperatingState();
   const station = stationResult?.data ?? null;
   const source = stationResult?.source;
+  const distinctImpacts = station
+    ? distinctStationImpacts(station.impacts, { activeAlerts, delays, reducedSpeedZones, plannedClosures })
+    : [];
   const hasArrivalCountdownTicker = station?.arrivals.some(
     (arrival) => arrival.status !== "unavailable" && arrival.predictedAt
   ) ?? false;
@@ -604,9 +608,9 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
                       <AlertCircle size={15} className="shrink-0 text-amber-600 dark:text-amber-400" />
                       <span>Schedule May Be Disrupted:</span>
                     </div>
-                    {station.impacts.length > 0 && (
+                    {distinctImpacts.length > 0 && (
                       <div className="station-impact-jump-actions">
-                        {station.impacts.map((impact) => {
+                        {distinctImpacts.map((impact) => {
                           const target = getStationImpactDetailsTarget(
                             impact,
                             activeAlerts,
@@ -765,11 +769,11 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
 	              <AlertCircle size={20} className="shrink-0" />
 	              <span>Station Impacts</span>
 	            </h3>
-	            {station.impacts.length === 0 ? (
+	            {distinctImpacts.length === 0 ? (
 	              <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">No active impacts for this station.</p>
 	            ) : (
 	              <div className="mt-2 flex flex-col gap-2">
-	                {station.impacts.map((impact) => {
+	                {distinctImpacts.map((impact) => {
 	                  const detailsTarget = getStationImpactDetailsTarget(
 	                    impact,
 	                    activeAlerts,
