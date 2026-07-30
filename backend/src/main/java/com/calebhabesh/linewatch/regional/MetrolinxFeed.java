@@ -7,5 +7,14 @@ import java.util.Map;
 public record MetrolinxFeed(
     OffsetDateTime sourceUpdatedAt,
     List<MetrolinxFetchedRecord> records,
-    Map<String, Boolean> completeSources
-) {}
+    Map<String, Boolean> completeSources,
+    Map<String, OffsetDateTime> sourceUpdatedAts
+) {
+    public MetrolinxFeed(
+        OffsetDateTime sourceUpdatedAt,
+        List<MetrolinxFetchedRecord> records,
+        Map<String, Boolean> completeSources
+    ) {
+        this(sourceUpdatedAt, records, completeSources, Map.of());
+    }
+}

@@ -399,6 +399,7 @@ test("mobile preserves status and station interaction language across network sw
   await expect(statusSheet).toContainText("GO & UP regional rail");
   await expect(statusSheet).toContainText("Regional demo data — not live service information.");
   await expect(statusSheet.getByRole("button", { name: /Accessibility Outages/ })).toBeVisible();
+  await expect(statusSheet.getByRole("button", { name: /GO \/ UP Notices/ })).toBeVisible();
   await expect(statusSheet.getByRole("button", { name: /Reduced Speed Zones/ })).toHaveCount(0);
 
   await statusSheet.getByRole("button", { name: "Close status" }).click();
@@ -407,6 +408,32 @@ test("mobile preserves status and station interaction language across network sw
   const stationPanel = page.getByRole("complementary", { name: "Weston regional station details" });
   await expect(stationPanel.getByRole("button", { name: "Save Weston to My Stations" })).toBeVisible();
   await expect(stationPanel.getByRole("button", { name: "Close station details" })).toBeVisible();
+});
+
+test("opens fresh regional notices from desktop and mobile navigation", async ({ page, request, isMobile }) => {
+  await setStubMode(request, "regional-live");
+  await page.goto("/");
+
+  if (isMobile) {
+    await page.locator(".mobile-network-selector-slot")
+      .getByRole("group", { name: "Select transit network" })
+      .getByRole("button", { name: "GO/UP", exact: true })
+      .click();
+    await page.getByRole("button", { name: "Status", exact: true }).click();
+    await page.getByRole("region", { name: "Current service status" })
+      .getByRole("button", { name: /GO \/ UP Notices/ })
+      .click();
+  } else {
+    await page.getByRole("group", { name: "Select transit network" })
+      .getByRole("button", { name: "GO/UP", exact: true })
+      .click();
+    await page.getByRole("button", { name: /Toggle menu/ }).click();
+    await page.getByRole("menuitem", { name: "GO / UP Notices" }).click();
+  }
+
+  await expect(page.getByRole("heading", { name: "GO / UP Notices" })).toBeVisible();
+  await expect(page.getByText("Barrie station construction notice", { exact: true })).toBeVisible();
+  await expect(page.getByText("Metrolinx GO information + marketing alerts", { exact: true })).toBeVisible();
 });
 
 test("renders fresh Metrolinx impacts in regional mode", async ({ page, request, isMobile }) => {

@@ -94,13 +94,13 @@ export function MobileStatusSheet({ pollText, dataSource, onOpenCategory, onClos
               {accessibilityOutageCount}
             </span>
           </button>
-          {!regional ? <button type="button" className="mobile-status-btn-surface flex items-center justify-between" onClick={() => onOpenCategory("surface-notices")}>
+          <button type="button" className="mobile-status-btn-surface flex items-center justify-between" onClick={() => onOpenCategory("surface-notices")}>
             <Bus size={16} className="text-slate-500 dark:text-slate-400 shrink-0" />
-            <span className="mobile-status-btn-text">Streetcar & Bus Notices</span>
+            <span className="mobile-status-btn-text">{regional ? "GO / UP Notices" : "Streetcar & Bus Notices"}</span>
             <span className="mobile-status-btn-circle">
               {surfaceNoticeCount}
             </span>
-          </button> : null}
+          </button>
         </div>
 
         <div className="mobile-line-status-list">

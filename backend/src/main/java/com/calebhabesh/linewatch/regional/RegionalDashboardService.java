@@ -55,7 +55,13 @@ public class RegionalDashboardService {
         return new DashboardResponses.DashboardResponse(
             RegionalNetworkCatalog.NETWORK_ID,
             fresh ? "available" : "unavailable",
-            List.of(MetrolinxSourceSystem.GO_SERVICE_ALERTS, MetrolinxSourceSystem.UP_GTFS_ALERTS),
+            List.of(
+                MetrolinxSourceSystem.GO_SERVICE_ALERTS,
+                MetrolinxSourceSystem.GO_INFORMATION_ALERTS,
+                MetrolinxSourceSystem.GO_MARKETING_ALERTS,
+                MetrolinxSourceSystem.GO_GTFS_ALERTS,
+                MetrolinxSourceSystem.UP_GTFS_ALERTS
+            ),
             message(fresh, latest),
             map(alerts),
             status(alerts, sourceUpdatedAt, fresh),

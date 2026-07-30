@@ -4,9 +4,12 @@ import com.calebhabesh.linewatch.ingestion.FeedApplicationCounts;
 import com.calebhabesh.linewatch.ingestion.IngestionRunSnapshot;
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.stereotype.Repository;
 
 @Repository
@@ -53,6 +56,34 @@ public class RegionalIngestionRunStore {
                 .addValue("completedAt", completedAt).addValue("errorMessage", errorMessage));
     }
 
+    public void replaceSourceStatuses(long runId, MetrolinxFeed feed) {
+        Map<String, Long> counts = feed.records().stream().collect(Collectors.groupingBy(
+            MetrolinxFetchedRecord::sourceSystem,
+            Collectors.counting()
+        ));
+        SqlParameterSource[] rows = MetrolinxSourceSystem.descriptors().stream()
+            .map(descriptor -> new MapSqlParameterSource()
+                .addValue("runId", runId)
+                .addValue("sourceSystem", descriptor.sourceSystem())
+                .addValue("required", descriptor.required())
+                .addValue("complete", Boolean.TRUE.equals(feed.completeSources().get(descriptor.sourceSystem())))
+                .addValue("recordsFetched", counts.getOrDefault(descriptor.sourceSystem(), 0L))
+                .addValue("sourceUpdatedAt", feed.sourceUpdatedAts().get(descriptor.sourceSystem())))
+            .toArray(SqlParameterSource[]::new);
+        jdbc.batchUpdate("""
+            insert into metrolinx_ingestion_source_runs (
+                run_id, source_system, required, complete, records_fetched, source_feed_updated_at
+            ) values (
+                :runId, :sourceSystem, :required, :complete, :recordsFetched, :sourceUpdatedAt
+            )
+            on conflict (run_id, source_system) do update set
+                required = excluded.required,
+                complete = excluded.complete,
+                records_fetched = excluded.records_fetched,
+                source_feed_updated_at = excluded.source_feed_updated_at
+            """, rows);
+    }
+
     public Optional<IngestionRunSnapshot> findLatest() {
         List<IngestionRunSnapshot> rows = jdbc.query("""
             select id, status, started_at, completed_at, records_fetched, records_staged,
@@ -69,4 +100,25 @@ public class RegionalIngestionRunStore {
             ));
         return rows.stream().findFirst();
     }
+
+    public List<SourceStatus> findSourceStatuses(long runId) {
+        return jdbc.query("""
+            select source_system, complete, records_fetched, source_feed_updated_at
+            from metrolinx_ingestion_source_runs
+            where run_id = :runId
+            order by source_system
+            """, Map.of("runId", runId), (resultSet, rowNumber) -> new SourceStatus(
+            resultSet.getString("source_system"),
+            resultSet.getBoolean("complete"),
+            resultSet.getInt("records_fetched"),
+            resultSet.getObject("source_feed_updated_at", OffsetDateTime.class)
+        ));
+    }
+
+    public record SourceStatus(
+        String sourceSystem,
+        boolean complete,
+        int recordsFetched,
+        OffsetDateTime sourceUpdatedAt
+    ) {}
 }

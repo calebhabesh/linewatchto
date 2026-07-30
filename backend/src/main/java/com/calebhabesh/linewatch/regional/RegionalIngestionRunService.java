@@ -24,8 +24,9 @@ public class RegionalIngestionRunService {
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void succeed(long id, FeedApplicationCounts counts, OffsetDateTime sourceUpdatedAt) {
-        store.markSuccess(id, now(), counts, sourceUpdatedAt);
+    public void succeed(long id, FeedApplicationCounts counts, MetrolinxFeed feed) {
+        store.markSuccess(id, now(), counts, feed.sourceUpdatedAt());
+        store.replaceSourceStatuses(id, feed);
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)

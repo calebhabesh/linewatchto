@@ -700,6 +700,43 @@ const server = createServer(async (request, response) => {
     return;
   }
 
+  if (request.method === "GET" && url.pathname === "/api/surface-notices") {
+    const regional = url.searchParams.get("network") === "regional";
+    const fresh = regional ? mode === "regional-live" : mode !== "unavailable";
+    const notices = fresh && regional ? [{
+      id: "regional-notice-smoke",
+      category: "service-change",
+      routeType: "GO / UP",
+      routeIds: ["BR"],
+      title: "Barrie station construction notice",
+      description: "Use the temporary station entrance during construction.",
+      location: "Aurora GO",
+      stopIds: ["AU"],
+      stops: [{ stopId: "AU", stopName: "Aurora GO" }],
+      direction: null,
+      cause: "Station General Information",
+      startAt: null,
+      endAt: null,
+      updatedAt: "2026-07-30T13:55:00Z",
+      url: null,
+      source: "Metrolinx GO information + marketing alerts",
+    }] : [];
+    sendJson(request, response, 200, {
+      generatedAt: "2026-07-30T14:00:00Z",
+      fresh,
+      source: regional ? "Metrolinx GO information + marketing alerts" : "TTC Live Alerts + GTFS-RT",
+      categories: [
+        { category: "service-change", label: "Service changes", count: notices.length },
+        { category: "bypass", label: "Bypasses", count: 0 },
+        { category: "detour", label: "Detours", count: 0 },
+        { category: "no-service", label: "No service", count: 0 },
+        { category: "notice", label: "Notices", count: 0 },
+      ],
+      notices: url.searchParams.get("limit") === "0" ? [] : notices,
+    });
+    return;
+  }
+
   if (request.method === "GET" && url.pathname === "/api/regional/trains") {
     sendJson(request, response, 200, regionalEstimatedTrainsResponse);
     return;

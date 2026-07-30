@@ -56,14 +56,21 @@ describe("surface notices panel and routing source verification", () => {
     assert.doesNotMatch(panelSource, /const formatAbsoluteTime/);
   });
 
-  it("verifies View TTC details links use target='_blank' and rel='noreferrer'", () => {
+  it("verifies source detail links use target='_blank' and rel='noreferrer'", () => {
     assert.match(panelSource, /target="_blank"/);
     assert.match(panelSource, /rel="noreferrer"/);
-    assert.match(panelSource, /View TTC details/);
+    assert.match(panelSource, /View \{regional \? "Metrolinx" : "TTC"\} details/);
   });
 
   it("verifies MobileStatusSheet includes surface notices entry", () => {
     assert.match(statusSheetSource, /"surface-notices"/);
     assert.match(statusSheetSource, /mobile-status-btn-surface/);
+    assert.doesNotMatch(statusSheetSource, /!regional \? <button[^>]+mobile-status-btn-surface/);
+  });
+
+  it("uses network-aware regional notice labels and requests", () => {
+    assert.match(panelSource, /networkId/);
+    assert.match(panelSource, /GO \/ UP Notices/);
+    assert.match(shellSource, /networkId=\{selectedNetwork\}/);
   });
 });

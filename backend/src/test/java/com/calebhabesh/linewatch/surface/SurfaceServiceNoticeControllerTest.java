@@ -16,12 +16,16 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import static org.mockito.ArgumentMatchers.any;
 import com.calebhabesh.linewatch.cache.DashboardCacheProperties;
 import com.calebhabesh.linewatch.cache.DashboardCacheService;
+import com.calebhabesh.linewatch.regional.RegionalSurfaceServiceNoticeService;
 
 @ExtendWith(MockitoExtension.class)
 class SurfaceServiceNoticeControllerTest {
 
     @Mock
     private SurfaceServiceNoticeService service;
+
+    @Mock
+    private RegionalSurfaceServiceNoticeService regionalService;
 
     @Mock
     private DashboardCacheService cache;
@@ -48,7 +52,7 @@ class SurfaceServiceNoticeControllerTest {
         );
         when(service.getSurfaceNotices(null, null, null)).thenReturn(dummyResponse);
 
-        SurfaceServiceNoticesResponse response = controller.surfaceNotices(null, null, null);
+        SurfaceServiceNoticesResponse response = controller.surfaceNotices("ttc", null, null, null);
 
         assertThat(response.fresh()).isTrue();
         assertThat(response.generatedAt()).isEqualTo(now);
@@ -63,9 +67,23 @@ class SurfaceServiceNoticeControllerTest {
         );
         when(service.getSurfaceNotices("bypass", "509", 50)).thenReturn(dummyResponse);
 
-        SurfaceServiceNoticesResponse response = controller.surfaceNotices("bypass", "509", 50);
+        SurfaceServiceNoticesResponse response = controller.surfaceNotices("ttc", "bypass", "509", 50);
 
         assertThat(response.fresh()).isTrue();
         verify(service).getSurfaceNotices("bypass", "509", 50);
+    }
+
+    @Test
+    void regionalNetworkUsesRegionalNoticeService() {
+        OffsetDateTime now = OffsetDateTime.now();
+        SurfaceServiceNoticesResponse dummyResponse = new SurfaceServiceNoticesResponse(
+            now, true, "Metrolinx GO information + marketing alerts", List.of(), List.of()
+        );
+        when(regionalService.getSurfaceNotices(null, null, null)).thenReturn(dummyResponse);
+
+        SurfaceServiceNoticesResponse response = controller.surfaceNotices("regional", null, null, null);
+
+        assertThat(response.source()).startsWith("Metrolinx");
+        verify(regionalService).getSurfaceNotices(null, null, null);
     }
 }

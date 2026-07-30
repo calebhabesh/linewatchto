@@ -54,6 +54,25 @@ describe("surface notice data adapter", () => {
     assert.equal(requests[0], "/api/surface-notices?category=bypass&query=509");
   });
 
+  it("requests the regional notice collection when GO/UP mode is active", async () => {
+    const requests = [];
+    await getSurfaceNotices({
+      networkId: "regional",
+      fetcher: async (input) => {
+        requests.push(input);
+        return new Response(JSON.stringify({
+          generatedAt: "2026-07-30T14:00:00Z",
+          fresh: true,
+          source: "Metrolinx GO information + marketing alerts",
+          categories: [],
+          notices: [],
+        }), { status: 200, headers: { "content-type": "application/json" } });
+      },
+    });
+
+    assert.equal(requests[0], "/api/surface-notices?network=regional");
+  });
+
   it("falls back empty when fetch throws", async () => {
     const response = await getSurfaceNotices({
       fetcher: async () => {

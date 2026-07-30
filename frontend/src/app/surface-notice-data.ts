@@ -1,4 +1,5 @@
 import { apiUrl } from "./api-client.ts";
+import type { NetworkId } from "./regional-data.ts";
 
 export type SurfaceNoticeCategory = "service-change" | "bypass" | "detour" | "no-service" | "notice";
 
@@ -51,6 +52,7 @@ export type SurfaceNoticeFetchOptions = {
   category?: SurfaceNoticeCategory | "all";
   query?: string;
   limit?: number;
+  networkId?: NetworkId;
 };
 
 export const fallbackSurfaceNotices: SurfaceNoticeResponse = {
@@ -67,6 +69,9 @@ export async function getSurfaceNotices(
   const fetcher = options.fetcher ?? fetch;
 
   const params = new URLSearchParams();
+  if (options.networkId === "regional") {
+    params.append("network", "regional");
+  }
   if (options.category && options.category !== "all") {
     params.append("category", options.category);
   }

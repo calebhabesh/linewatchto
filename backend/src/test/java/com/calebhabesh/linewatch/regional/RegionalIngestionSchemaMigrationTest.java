@@ -24,5 +24,15 @@ class RegionalIngestionSchemaMigrationTest {
             StandardCharsets.UTF_8
         );
         assertThat(runTypeMigration).contains("'metrolinx-alerts'");
+
+        String operationalCoverageMigration = new String(
+            getClass().getResourceAsStream("/db/migration/V54__metrolinx_operational_source_coverage.sql").readAllBytes(),
+            StandardCharsets.UTF_8
+        );
+        assertThat(operationalCoverageMigration).contains("create table metrolinx_operational_source_records");
+        assertThat(operationalCoverageMigration).contains("primary key (source_system, source_id)");
+        assertThat(operationalCoverageMigration).contains("create table metrolinx_ingestion_source_runs");
+        assertThat(operationalCoverageMigration).contains("primary key (run_id, source_system)");
+        assertThat(operationalCoverageMigration).contains("source_feed_updated_at timestamptz");
     }
 }

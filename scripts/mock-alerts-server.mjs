@@ -21,6 +21,18 @@ const activeScenarioFeed = buildScenarioFeed(scenario, { now: new Date() });
 const activeRegionalScenarioFeed = scenario === "all-alert-types"
   ? buildRegionalScenario("all-alert-types", { now: new Date() })
   : null;
+const emptyRegionalRestAlerts = activeRegionalScenarioFeed == null ? null : {
+  Metadata: activeRegionalScenarioFeed.go.Metadata,
+  Messages: { Message: [] },
+};
+const emptyRegionalGtfsAlerts = activeRegionalScenarioFeed == null ? null : {
+  header: activeRegionalScenarioFeed.up.header,
+  entity: [],
+};
+const emptyRegionalTrainExceptions = activeRegionalScenarioFeed == null ? null : {
+  Metadata: activeRegionalScenarioFeed.go.Metadata,
+  Trip: [],
+};
 
 function sendJson(response, status, body) {
   response.writeHead(status, {
@@ -57,6 +69,39 @@ const server = createServer((request, response) => {
     && activeRegionalScenarioFeed != null
   ) {
     sendJson(response, 200, activeRegionalScenarioFeed.up);
+    return;
+  }
+
+  if (
+    request.method === "GET"
+    && [
+      "/OpenDataAPI/api/V1/ServiceUpdate/InformationAlert/All",
+      "/OpenDataAPI/api/V1/ServiceUpdate/MarketingAlert/All",
+    ].includes(url.pathname)
+    && emptyRegionalRestAlerts != null
+  ) {
+    sendJson(response, 200, emptyRegionalRestAlerts);
+    return;
+  }
+
+  if (
+    request.method === "GET"
+    && [
+      "/OpenDataAPI/api/V1/Gtfs/Feed/Alerts",
+      "/OpenDataAPI/api/V1/Gtfs/Feed/TripUpdates",
+    ].includes(url.pathname)
+    && emptyRegionalGtfsAlerts != null
+  ) {
+    sendJson(response, 200, emptyRegionalGtfsAlerts);
+    return;
+  }
+
+  if (
+    request.method === "GET"
+    && url.pathname === "/OpenDataAPI/api/V1/ServiceUpdate/Exceptions/Train"
+    && emptyRegionalTrainExceptions != null
+  ) {
+    sendJson(response, 200, emptyRegionalTrainExceptions);
     return;
   }
 

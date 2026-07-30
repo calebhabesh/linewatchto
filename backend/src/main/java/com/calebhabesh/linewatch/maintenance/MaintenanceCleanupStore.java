@@ -56,4 +56,20 @@ public class MaintenanceCleanupStore {
               and last_seen_at < :cutoff
             """, new MapSqlParameterSource("cutoff", cutoff));
     }
+
+    public int deleteOldInactiveMetrolinxAlertSourceRecords(OffsetDateTime cutoff) {
+        return jdbc.update("""
+            delete from metrolinx_alert_source_records
+            where active = false
+              and last_seen_at < :cutoff
+            """, new MapSqlParameterSource("cutoff", cutoff));
+    }
+
+    public int deleteOldInactiveMetrolinxOperationalSourceRecords(OffsetDateTime cutoff) {
+        return jdbc.update("""
+            delete from metrolinx_operational_source_records
+            where active = false
+              and last_seen_at < :cutoff
+            """, new MapSqlParameterSource("cutoff", cutoff));
+    }
 }

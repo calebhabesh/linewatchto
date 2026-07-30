@@ -9,14 +9,17 @@ import {
 } from "../app/surface-notice-data";
 import { groupSurfaceNoticesByRoute, SurfaceNoticeGroupItem } from "../app/surface-notice-groups";
 import { formatImpactTimestamp, formatOperationalDateTime } from "../app/impact-time";
+import type { NetworkId } from "../app/regional-data";
 
 interface Props {
   onBack: () => void;
   onClose: () => void;
   initialQuery?: string;
+  networkId?: NetworkId;
 }
 
-export function SurfaceNoticesPanel({ onBack, onClose, initialQuery = "" }: Props) {
+export function SurfaceNoticesPanel({ onBack, onClose, initialQuery = "", networkId = "ttc" }: Props) {
+  const regional = networkId === "regional";
   const [category, setCategory] = useState<SurfaceNoticeCategory | "all">("all");
   const [searchQuery, setSearchQuery] = useState(initialQuery);
   const [debouncedQuery, setDebouncedQuery] = useState(initialQuery);
@@ -48,6 +51,7 @@ export function SurfaceNoticesPanel({ onBack, onClose, initialQuery = "" }: Prop
     async function load() {
       setLoading(true);
       const res = await getSurfaceNotices({
+        networkId,
         category: category === "all" ? undefined : category,
         query: debouncedQuery,
       });
@@ -60,7 +64,7 @@ export function SurfaceNoticesPanel({ onBack, onClose, initialQuery = "" }: Prop
     return () => {
       active = false;
     };
-  }, [category, debouncedQuery]);
+  }, [category, debouncedQuery, networkId]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -210,7 +214,7 @@ export function SurfaceNoticesPanel({ onBack, onClose, initialQuery = "" }: Prop
           </button>
           <h2 className="text-[clamp(14px,4.5cqw,18px)] font-bold text-slate-900 dark:text-white whitespace-nowrap flex items-center gap-2">
             <Bus className="w-5 h-5 sm:w-6 sm:h-6 shrink-0 text-slate-700 dark:text-slate-300" />
-            <span>Streetcar & Bus Notices</span>
+            <span>{regional ? "GO / UP Notices" : "Streetcar & Bus Notices"}</span>
           </h2>
         </div>
         <div className="flex items-center gap-2 shrink-0">
@@ -284,11 +288,11 @@ export function SurfaceNoticesPanel({ onBack, onClose, initialQuery = "" }: Prop
             </div>
           ) : isFallback ? (
             <div className="text-center py-8 text-slate-500 dark:text-slate-400 text-sm">
-              Streetcar & Bus notices are unavailable in fixture mode.
+              {regional ? "GO / UP notices" : "Streetcar & Bus notices"} are unavailable in fixture mode.
             </div>
           ) : !data || data.notices.length === 0 ? (
             <div className="text-center py-8 text-slate-500 dark:text-slate-400 text-sm">
-              No active streetcar & bus notices found matching your filters.
+              No active {regional ? "GO / UP" : "streetcar & bus"} notices found matching your filters.
             </div>
           ) : (
             <div className="flex flex-col gap-3">
@@ -307,7 +311,7 @@ export function SurfaceNoticesPanel({ onBack, onClose, initialQuery = "" }: Prop
                           {group.routeIds.map((routeId) => (
                             <span
                               key={routeId}
-                              className="inline-flex items-center justify-center rounded bg-red-600 px-2 py-0.5 text-xs font-black text-white"
+                              className={`inline-flex items-center justify-center rounded px-2 py-0.5 text-xs font-black text-white ${regional ? "bg-emerald-700" : "bg-red-600"}`}
                             >
                               {routeId}
                             </span>
@@ -388,7 +392,7 @@ export function SurfaceNoticesPanel({ onBack, onClose, initialQuery = "" }: Prop
                                   rel="noreferrer"
                                   className="mt-3 inline-flex items-center gap-1 text-[11px] font-bold text-blue-600 hover:underline dark:text-blue-400"
                                 >
-                                  View TTC details
+                                  View {regional ? "Metrolinx" : "TTC"} details
                                   <ExternalLink size={11} />
                                 </a>
                               ) : null}

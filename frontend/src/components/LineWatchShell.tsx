@@ -1511,18 +1511,16 @@ export function LineWatchShell({
 
   const fetchSurfaceNoticesCount = useCallback(async () => {
     try {
-      const res = await getSurfaceNotices({ limit: 0 });
+      const res = await getSurfaceNotices({ limit: 0, networkId: selectedNetwork });
       if (res.source === "backend" && res.data.fresh) {
-        const scCount = res.data.categories.find(c => c.category === "service-change")?.count ?? 0;
-        const bpCount = res.data.categories.find(c => c.category === "bypass")?.count ?? 0;
-        setSurfaceNoticeCount(scCount + bpCount);
+        setSurfaceNoticeCount(res.data.categories.reduce((total, category) => total + category.count, 0));
       } else {
         setSurfaceNoticeCount(null);
       }
     } catch (err) {
       console.error("Failed to fetch surface notices count:", err);
     }
-  }, []);
+  }, [selectedNetwork]);
 
   useEffect(() => {
     if (selectedNetwork === "ttc" && subwayOperatingState.status === "closed" && !closedMapPeek) {
@@ -1539,7 +1537,7 @@ export function LineWatchShell({
 
       if (selectedNetwork === "ttc") router.refresh();
       fetchAccessibilityOutages();
-      if (selectedNetwork === "ttc") fetchSurfaceNoticesCount();
+      fetchSurfaceNoticesCount();
     };
 
     const interval = window.setInterval(refreshDashboardData, dashboardRefreshIntervalMs());
@@ -1547,7 +1545,7 @@ export function LineWatchShell({
       if (document.visibilityState === "visible") {
         if (selectedNetwork === "ttc") router.refresh();
         fetchAccessibilityOutages();
-        if (selectedNetwork === "ttc") fetchSurfaceNoticesCount();
+        fetchSurfaceNoticesCount();
       }
     };
 
@@ -1568,6 +1566,7 @@ export function LineWatchShell({
       setAccessibilityOutageState(null);
       setSurfaceNoticeCount(null);
       fetchAccessibilityOutages();
+      fetchSurfaceNoticesCount();
       return () => { cancelled = true; };
     }
 
@@ -2072,7 +2071,7 @@ export function LineWatchShell({
       case "privacy-acknowledgements": return "Privacy & Acknowledgements";
       case "release-notes": return "What's New";
       case "accessibility-outages": return "Accessibility outages";
-      case "surface-notices": return "Streetcar & Bus Notices";
+      case "surface-notices": return selectedNetwork === "regional" ? "GO / UP Notices" : "Streetcar & Bus Notices";
       default: return "";
     }
   };
@@ -2233,6 +2232,7 @@ export function LineWatchShell({
         return (
           <SurfaceNoticesPanel
             initialQuery={surfaceNoticeInitialQuery}
+            networkId={selectedNetwork}
             onBack={handleSubmenuBack}
             /* setActiveView(isMobile ? "status" : "menu") */
             onClose={handleClosePanel}
@@ -2846,7 +2846,7 @@ export function LineWatchShell({
                      </span>
                    )}
                  </button>
-                 {selectedNetwork === "ttc" ? <button
+                 <button
                    ref={registerMenuAction(actionIndex++)}
                    role="menuitem"
                    onClick={() => navigateForward("surface-notices")}
@@ -2854,14 +2854,14 @@ export function LineWatchShell({
                    className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
                  >
                    <div className="flex items-center gap-3">
-                     <Bus size={18} className="text-slate-500 dark:text-slate-400" /> Streetcar & Bus Notices
+                     <Bus size={18} className="text-slate-500 dark:text-slate-400" /> {selectedNetwork === "regional" ? "GO / UP Notices" : "Streetcar & Bus Notices"}
                    </div>
                    {surfaceNoticeCount !== null && surfaceNoticeCount > 0 && (
                      <span className="flex h-6 min-w-[24px] items-center justify-center rounded-full bg-blue-500/20 px-2 text-[11px] font-bold text-blue-600 dark:text-blue-400">
                        {surfaceNoticeCount}
                      </span>
                    )}
-                 </button> : null}
+                 </button>
                </div>
 
                {/* Notifications */}
@@ -3087,7 +3087,7 @@ export function LineWatchShell({
               setAccountError(null);
             }}
             savedCommutes={accountCommutes}
-            surfaceSearchEnabled={selectedNetwork === "ttc"}
+            surfaceSearchEnabled
             onOpenDestination={(view) => {
               if (view === "commutes") {
                 setCommutesActiveTab("saved");

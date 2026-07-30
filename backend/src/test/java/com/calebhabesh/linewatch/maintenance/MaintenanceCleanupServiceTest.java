@@ -31,6 +31,8 @@ class MaintenanceCleanupServiceTest {
         verify(store).deleteOldInactiveGtfsImports(1);
         verify(store).deleteOldIngestionRuns(cutoff);
         verify(store).deleteOldInactiveAlertSourceRecords(cutoff);
+        verify(store).deleteOldInactiveMetrolinxAlertSourceRecords(cutoff);
+        verify(store).deleteOldInactiveMetrolinxOperationalSourceRecords(cutoff);
         verifyNoMoreInteractions(store);
     }
 
@@ -54,6 +56,8 @@ class MaintenanceCleanupServiceTest {
         verify(store).deleteOldInactiveGtfsImports(2);
         verify(store).deleteOldIngestionRuns(OffsetDateTime.parse("2026-06-08T12:00:00Z"));
         verify(store).deleteOldInactiveAlertSourceRecords(OffsetDateTime.parse("2026-06-24T12:00:00Z"));
+        verify(store).deleteOldInactiveMetrolinxAlertSourceRecords(OffsetDateTime.parse("2026-06-24T12:00:00Z"));
+        verify(store).deleteOldInactiveMetrolinxOperationalSourceRecords(OffsetDateTime.parse("2026-06-24T12:00:00Z"));
     }
 
     @Test
@@ -66,5 +70,7 @@ class MaintenanceCleanupServiceTest {
         OffsetDateTime defaultCutoff = OffsetDateTime.parse("2026-04-09T12:00:00Z");
         verify(store).deleteOldIngestionRuns(defaultCutoff);
         verify(store).deleteOldInactiveAlertSourceRecords(defaultCutoff);
+        verify(store).deleteOldInactiveMetrolinxAlertSourceRecords(defaultCutoff);
+        verify(store).deleteOldInactiveMetrolinxOperationalSourceRecords(defaultCutoff);
     }
 }

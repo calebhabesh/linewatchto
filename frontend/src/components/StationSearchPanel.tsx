@@ -348,7 +348,7 @@ export function StationSearchPanel({
     [query, savedCommutes],
   );
   const [surfaceNotices, setSurfaceNotices] = useState<SurfaceNoticeDetail[]>([]);
-  const surfaceNoticesRequestedRef = useRef(false);
+  const surfaceNoticesRequestedNetworkRef = useRef<NetworkId | null>(null);
   const surfaceNoticeResults = useMemo(
     () => searchSurfaceNotices(surfaceNotices, query),
     [query, surfaceNotices],
@@ -376,18 +376,18 @@ export function StationSearchPanel({
   const [viewportHeight, setViewportHeight] = useState<number | null>(null);
 
   useEffect(() => {
-    if (!open || !surfaceSearchEnabled || surfaceNoticesRequestedRef.current) return;
+    if (!open || !surfaceSearchEnabled || surfaceNoticesRequestedNetworkRef.current === currentNetwork) return;
 
     let active = true;
-    surfaceNoticesRequestedRef.current = true;
-    void getSurfaceNotices({ limit: 100 }).then((result) => {
+    surfaceNoticesRequestedNetworkRef.current = currentNetwork;
+    void getSurfaceNotices({ limit: 100, networkId: currentNetwork }).then((result) => {
       if (!active) return;
       setSurfaceNotices(result.data.fresh ? result.data.notices : []);
     });
     return () => {
       active = false;
     };
-  }, [open, surfaceSearchEnabled]);
+  }, [currentNetwork, open, surfaceSearchEnabled]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -867,7 +867,7 @@ export function StationSearchPanel({
                 {surfaceNoticeResults.length > 0 ? (
                   <section className="global-search-group" aria-labelledby="global-search-surface-heading">
                     <div className="global-search-group-heading">
-                      <h3 id="global-search-surface-heading">Streetcar & Bus Notices</h3>
+                      <h3 id="global-search-surface-heading">{currentNetwork === "regional" ? "GO / UP Notices" : "Streetcar & Bus Notices"}</h3>
                       <button type="button" onClick={() => onOpenDestination("surface-notices")}>View all</button>
                     </div>
                     {surfaceNoticeResults.map(({ notice }) => {

@@ -35,8 +35,11 @@ public class MaintenanceCleanupService {
             store.deleteOldInactiveGtfsImports(properties.getRetainInactiveGtfsImports());
         int ingestionRunsDeleted =
             store.deleteOldIngestionRuns(now.minus(retention(properties.getIngestionRunRetention())));
+        OffsetDateTime alertSourceCutoff = now.minus(retention(properties.getAlertSourceRecordRetention()));
         int alertSourceRecordsDeleted =
-            store.deleteOldInactiveAlertSourceRecords(now.minus(retention(properties.getAlertSourceRecordRetention())));
+            store.deleteOldInactiveAlertSourceRecords(alertSourceCutoff)
+                + store.deleteOldInactiveMetrolinxAlertSourceRecords(alertSourceCutoff)
+                + store.deleteOldInactiveMetrolinxOperationalSourceRecords(alertSourceCutoff);
         CleanupResult result = new CleanupResult(
             gtfsImportsDeleted,
             ingestionRunsDeleted,

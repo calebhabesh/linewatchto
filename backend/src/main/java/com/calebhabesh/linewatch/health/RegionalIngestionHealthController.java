@@ -2,10 +2,15 @@ package com.calebhabesh.linewatch.health;
 
 import com.calebhabesh.linewatch.ingestion.IngestionRunSnapshot;
 import com.calebhabesh.linewatch.regional.MetrolinxProperties;
+import com.calebhabesh.linewatch.regional.MetrolinxSourceSystem;
 import com.calebhabesh.linewatch.regional.RegionalIngestionFreshness;
 import com.calebhabesh.linewatch.regional.RegionalIngestionRunStore;
 import java.time.OffsetDateTime;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -31,6 +36,15 @@ public class RegionalIngestionHealthController {
     public RegionalIngestionHealthResponse health() {
         Optional<IngestionRunSnapshot> latest = runStore.findLatest();
         IngestionRunSnapshot run = latest.orElse(null);
+        Map<String, RegionalIngestionRunStore.SourceStatus> sourceStatuses = run == null
+            ? Map.of()
+            : runStore.findSourceStatuses(run.id()).stream().collect(Collectors.toMap(
+                RegionalIngestionRunStore.SourceStatus::sourceSystem,
+                Function.identity()
+            ));
+        List<CollectionHealth> collections = MetrolinxSourceSystem.descriptors().stream()
+            .map(descriptor -> collectionHealth(descriptor, sourceStatuses.get(descriptor.sourceSystem()), run))
+            .toList();
         return new RegionalIngestionHealthResponse(
             "Metrolinx Open API",
             properties.isEnabled(),
@@ -42,7 +56,28 @@ public class RegionalIngestionHealthController {
             run == null ? null : run.sourceFeedUpdatedAt(),
             run == null ? 0 : run.recordsFetched(),
             run == null ? 0 : run.recordsNormalized(),
+            collections,
             run == null ? null : run.errorMessage()
+        );
+    }
+
+    private CollectionHealth collectionHealth(
+        MetrolinxSourceSystem.Descriptor descriptor,
+        RegionalIngestionRunStore.SourceStatus sourceStatus,
+        IngestionRunSnapshot run
+    ) {
+        String status = sourceStatus != null
+            ? sourceStatus.complete() ? "complete" : "unavailable"
+            : run == null ? "not-run"
+            : !"success".equals(run.status()) ? "not-evaluated" : "unknown";
+        return new CollectionHealth(
+            descriptor.sourceSystem(),
+            descriptor.label(),
+            descriptor.kind(),
+            descriptor.required(),
+            status,
+            sourceStatus == null ? 0 : sourceStatus.recordsFetched(),
+            sourceStatus == null ? null : sourceStatus.sourceUpdatedAt()
         );
     }
 
@@ -57,6 +92,17 @@ public class RegionalIngestionHealthController {
         OffsetDateTime sourceUpdatedAt,
         int recordsFetched,
         int recordsNormalized,
+        List<CollectionHealth> collections,
         String errorMessage
+    ) {}
+
+    public record CollectionHealth(
+        String sourceSystem,
+        String label,
+        String kind,
+        boolean required,
+        String status,
+        int recordsFetched,
+        OffsetDateTime sourceUpdatedAt
     ) {}
 }

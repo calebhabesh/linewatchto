@@ -33,7 +33,7 @@ public class MetrolinxIngestionService {
             MetrolinxFeed feed = client.fetchAlerts();
             List<RegionalNormalizedAlert> alerts = normalizer.normalize(feed);
             FeedApplicationCounts counts = applicationService.apply(feed, alerts);
-            runService.succeed(runId, counts, feed.sourceUpdatedAt());
+            runService.succeed(runId, counts, feed);
             cache.evictDashboard();
             return counts;
         } catch (RuntimeException exception) {
