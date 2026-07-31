@@ -17818,6 +17818,55 @@ img.transit-line-badge {
   .mobile-legend-pill {
     left: calc(var(--mobile-safe-left) + var(--mobile-edge-inset)) !important;
     top: calc(var(--mobile-safe-top) + var(--mobile-edge-inset)) !important;
+    width: max-content !important;
+    max-width: 36px;
+    transition: max-width 450ms cubic-bezier(0.25, 1, 0.5, 1),
+                padding-right 450ms cubic-bezier(0.25, 1, 0.5, 1),
+                top 300ms ease,
+                left 300ms ease,
+                background-color 300ms ease,
+                border-color 300ms ease,
+                box-shadow 300ms ease !important;
+    will-change: max-width, padding-right;
+  }
+
+  .mobile-legend-pill--regional {
+    max-width: 40px;
+  }
+
+  .mobile-legend-pill--expanded {
+    max-width: min(215px, calc(100vw - 32px)) !important;
+    transition: max-width 450ms cubic-bezier(0.25, 1, 0.5, 1),
+                padding-right 450ms cubic-bezier(0.25, 1, 0.5, 1),
+                top 300ms ease,
+                left 300ms ease !important;
+  }
+
+  .mobile-legend-pill div {
+    transition: gap 450ms cubic-bezier(0.25, 1, 0.5, 1) !important;
+  }
+
+  .mobile-legend-pill .legend-line-name {
+    width: auto !important;
+    transition: max-width 450ms cubic-bezier(0.25, 1, 0.5, 1),
+                opacity 450ms cubic-bezier(0.25, 1, 0.5, 1),
+                transform 450ms cubic-bezier(0.25, 1, 0.5, 1) !important;
+    will-change: max-width, opacity, transform;
+  }
+
+  .mobile-legend-pill--expanded .legend-line-name {
+    transition: max-width 450ms cubic-bezier(0.25, 1, 0.5, 1),
+                opacity 450ms cubic-bezier(0.25, 1, 0.5, 1),
+                transform 450ms cubic-bezier(0.25, 1, 0.5, 1) !important;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .mobile-legend-pill,
+    .mobile-legend-pill--expanded,
+    .mobile-legend-pill .legend-line-name {
+      transition-duration: 0.01ms !important;
+      transition-delay: 0ms !important;
+    }
   }
 
   .mobile-legend-pill--announcement {

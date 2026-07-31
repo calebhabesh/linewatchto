@@ -37,7 +37,7 @@ export function MobileLegend({
   return (
     <div
       onClick={onToggleExpanded}
-      className={`mobile-legend-pill fixed left-4 flex flex-col gap-1.5 p-2 bg-white/95 dark:bg-[#0a0c10]/95 border border-black/10 dark:border-white/10 rounded-xl shadow-xl overflow-hidden transition-all duration-300 ease-in-out cursor-pointer select-none md:hidden ${
+      className={`mobile-legend-pill fixed left-4 flex flex-col gap-1.5 p-2 bg-white/95 dark:bg-[#0a0c10]/95 border border-black/10 dark:border-white/10 rounded-xl shadow-xl overflow-hidden cursor-pointer select-none md:hidden ${
         closingSoon ? "mobile-legend-pill--announcement" : "top-4"
       } ${
         isRegional ? "mobile-legend-pill--regional" : ""
@@ -70,7 +70,7 @@ export function MobileLegend({
               />
             </div>
             <span
-              className={`legend-line-name font-subway text-[13px] leading-tight font-bold tracking-normal text-slate-800 dark:text-slate-200 overflow-hidden whitespace-nowrap transition-all duration-300 ease-in-out ${
+              className={`legend-line-name font-subway text-[13px] leading-tight font-bold tracking-normal text-slate-800 dark:text-slate-200 overflow-hidden whitespace-nowrap ${
                 expanded
                   ? "opacity-100 translate-x-0 max-w-[165px]"
                   : "w-0 max-w-0 opacity-0 translate-x-1 pointer-events-none"
