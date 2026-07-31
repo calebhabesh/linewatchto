@@ -45,6 +45,7 @@ public class AlertDashboardService {
     private static final DateTimeFormatter WINDOW_DATE_WITH_YEAR_FORMATTER =
         DateTimeFormatter.ofPattern("EEE, MMM d, uuuu", Locale.ENGLISH);
     private static final Duration MAX_SINGLE_CLOSURE_WINDOW = Duration.ofHours(18);
+    private static final Duration MAX_PUBLICATION_START_SKEW = Duration.ofMinutes(5);
     private static final Pattern TRUNCATED_CLOSURE_START = Pattern.compile(
         "(?i)[,\\s]+starting(?:\\s+at)?\\s+\\d{1,2}\\s*$"
     );
@@ -191,7 +192,7 @@ public class AlertDashboardService {
         Set<String> linkedChildSourceIds = new LinkedHashSet<>();
         for (List<AlertActivePeriodRepository.AlertPeriod> periods : periodsByAlertId.values()) {
             for (AlertActivePeriodRepository.AlertPeriod period : periods) {
-                if (isReliableClosureWindow(period)
+                if (isStructurallyValidClosureWindow(period)
                     && !isParentPeriod(period)
                     && alertsBySourceId.containsKey(period.sourcePeriodId())) {
                     linkedChildSourceIds.add(period.sourcePeriodId());
@@ -381,13 +382,14 @@ public class AlertDashboardService {
                 0
             ));
         List<AlertActivePeriodRepository.AlertPeriod> reliablePeriods = usablePeriods.stream()
-            .filter(this::isReliableClosureWindow)
+            .filter(period -> isReliableClosureWindow(alert, period))
             .toList();
         boolean nightly = isNightly(reliablePeriods) || recurringParentWindow;
         String windowHours = closureWindowHours(reliablePeriods);
         String windowDates = closureWindowDates(reliablePeriods, nightly, now);
 
         Optional<AlertActivePeriodRepository.AlertPeriod> active = reliablePeriods.stream()
+            .filter(period -> !isParentPeriod(period))
             .filter(period -> startsAtOrBefore(period.startsAt(), now))
             .filter(period -> endsAfter(period.endsAt(), now))
             .findFirst();
@@ -418,7 +420,26 @@ public class AlertDashboardService {
             null, null, null, null, null, null, windowHours, windowDates, null);
     }
 
-    private boolean isReliableClosureWindow(AlertActivePeriodRepository.AlertPeriod period) {
+    private boolean isReliableClosureWindow(
+        AlertEntity alert,
+        AlertActivePeriodRepository.AlertPeriod period
+    ) {
+        if (!isStructurallyValidClosureWindow(period)) {
+            return false;
+        }
+        if (!isParentPeriod(period)) {
+            return true;
+        }
+        OffsetDateTime publishedAt = sourceUpdatedAt(alert);
+        if (publishedAt == null) {
+            return false;
+        }
+        return period.startsAt().isAfter(publishedAt.plus(MAX_PUBLICATION_START_SKEW));
+    }
+
+    private boolean isStructurallyValidClosureWindow(
+        AlertActivePeriodRepository.AlertPeriod period
+    ) {
         return period != null
             && period.startsAt() != null
             && period.endsAt() != null

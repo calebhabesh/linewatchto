@@ -794,6 +794,60 @@ class AlertDashboardServiceTest {
     }
 
     @Test
+    void parentOnlyPublicationEnvelopeDoesNotBecomeAnActiveImpact() {
+        when(ingestionFreshness.isDashboardFresh()).thenReturn(true);
+        AlertEntity closure = withLine(alert(
+            "ttc-route-73251-parent-only",
+            "planned-closure",
+            "planned",
+            "On Monday, August 3, LRT service between Finch West and Humber College stations will start by 4 p.m.",
+            "Shuttle buses will operate.",
+            "finch-west",
+            "humber-college",
+            OffsetDateTime.parse("2026-06-01T11:45:00Z"),
+            "Will Operate"
+        ), "line-6", "6");
+        ReflectionTestUtils.setField(
+            closure,
+            "activePeriodStart",
+            OffsetDateTime.parse("2026-06-01T11:45:00Z")
+        );
+        ReflectionTestUtils.setField(
+            closure,
+            "activePeriodEnd",
+            OffsetDateTime.parse("2026-06-04T04:00:00Z")
+        );
+
+        when(alertRepository.findByActiveTrueAndType("planned-closure"))
+            .thenReturn(List.of(closure));
+        when(alertRepository.findByActiveTrueAndType("active-alert"))
+            .thenReturn(List.of());
+        when(lineSegmentRepository.findAllByOrderBySortOrderAsc()).thenReturn(List.of(
+            segment("line-6-finch-west-humber-college", "line-6", "finch-west", "humber-college", 10)
+        ));
+        AlertActivePeriodRepository.AlertPeriod publicationEnvelope =
+            new AlertActivePeriodRepository.AlertPeriod(
+                "ttc-route-73251-parent-only",
+                "parent",
+                OffsetDateTime.parse("2026-06-01T11:45:00Z"),
+                OffsetDateTime.parse("2026-06-04T04:00:00Z"),
+                0
+            );
+        when(alertActivePeriodRepository.findByAlertIds(List.of("ttc-route-73251-parent-only")))
+            .thenReturn(Map.of("ttc-route-73251-parent-only", List.of(publicationEnvelope)));
+
+        assertThat(service.plannedClosures()).singleElement().satisfies(dto -> {
+            assertThat(dto.activeNow()).isFalse();
+            assertThat(dto.timingStatus()).isEqualTo("unknown");
+            assertThat(dto.window()).isEqualTo("Closure timing unavailable");
+        });
+        assertThat(service.activeAlerts()).isEmpty();
+        assertThat(service.activePlannedClosures()).isEmpty();
+        assertThat(service.activeSegmentImpacts())
+            .doesNotContainKey("line-6-finch-west-humber-college");
+    }
+
+    @Test
     void linkedOperationalClosureChildUsesCanonicalParentWithoutDuplicateImpacts() {
         when(ingestionFreshness.isDashboardFresh()).thenReturn(true);
         AlertEntity parentClosure = withLine(alert(
