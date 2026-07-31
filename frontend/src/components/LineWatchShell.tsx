@@ -2000,7 +2000,7 @@ export function LineWatchShell({
 
   const mobileImpactInspectorOpen =
     isMobile &&
-    (mapPresentationMode === "standard" || selectedNetwork === "regional") &&
+    mapPresentationMode === "standard" &&
     activeView === "map" &&
     Boolean(selection) &&
     !selectedStationId &&
@@ -2009,7 +2009,7 @@ export function LineWatchShell({
 
   const mobileStationInspectorOpen =
     isMobile &&
-    (mapPresentationMode === "standard" || selectedNetwork === "regional") &&
+    mapPresentationMode === "standard" &&
     activeView === "map" &&
     Boolean(selectedStationId) &&
     !accountDialogMode &&
@@ -3369,7 +3369,7 @@ export function LineWatchShell({
         />
       )}
 
-      {!showClosedScreen && selectedNetwork === "regional" && selectedStationId ? (
+      {!showClosedScreen && !rotatedMapMode && selectedNetwork === "regional" && selectedStationId ? (
         <RegionalStationDetailPanel
           key={`${selectedStationId}:${stationPanelActivationKey}`}
           station={stationSummaries.find((station) => station.id === selectedStationId) ?? regionalStationSummaries.stations[0]}

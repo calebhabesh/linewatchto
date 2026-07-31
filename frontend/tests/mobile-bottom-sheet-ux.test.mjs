@@ -350,11 +350,10 @@ describe("mobile bottom sheet UX", () => {
     assert.match(globalCss, /\.linewatch-shell\.mobile-map-rotated \.mobile-legend-pill/);
   });
 
-  it("keeps a rotated preview available while allowing regional split inspectors", () => {
+  it("keeps a rotated preview HUD available for selected map items in both networks", () => {
     assert.match(shellSource, /RotatedMapSelectionCard/);
     assert.match(shellSource, /rotated-map-hud/);
     assert.match(shellSource, /rotatedSelectionVisible && !mobileInspectorOpen/);
-    assert.match(globalCss, /mobile-map-rotated\.mobile-map-inspector\[data-network="regional"\]/);
     assert.match(globalCss, /\.rotated-map-selection-card/);
   });
 });

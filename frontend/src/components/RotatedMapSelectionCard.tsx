@@ -8,6 +8,7 @@ import type { ImpactKind, ImpactSelection } from "../app/linewatch-data";
 import type { StationSummary } from "../app/station-data";
 import { getSelectedImpactDetails } from "./MobileImpactInspector";
 import { STATION_LINE_DEFINITIONS } from "../app/station-data";
+import { REGIONAL_ROUTE_DEFINITIONS } from "../app/regional-data";
 import { ImpactTypeIcon } from "./ImpactTypeIcon";
 import { PhoneRotateLandscapeIcon } from "./MobileMapControls";
 import { TransitLineBadge } from "./TransitLineBadge";
@@ -25,6 +26,28 @@ type StationPreviewImpact = {
   cardId: string;
   title: string;
 };
+
+export function getLineDefinition(lineId: string) {
+  const ttcLine = STATION_LINE_DEFINITIONS[lineId];
+  if (ttcLine) {
+    return {
+      id: ttcLine.id,
+      number: ttcLine.number,
+      name: ttcLine.name,
+      label: `Line ${ttcLine.number} ${ttcLine.name}`,
+    };
+  }
+  const regionalLine = REGIONAL_ROUTE_DEFINITIONS.find((r) => r.id === lineId);
+  if (regionalLine) {
+    return {
+      id: regionalLine.id,
+      number: regionalLine.number,
+      name: regionalLine.name,
+      label: regionalLine.id === "regional-up" ? regionalLine.name : `${regionalLine.name} Line`,
+    };
+  }
+  return null;
+}
 
 function MoreDetailsIcon({ size = 15 }: { size?: number }) {
   return (
@@ -89,13 +112,16 @@ function toTitleCase(str: string | null | undefined): string {
     .replace(/\bAn\b/g, "an");
 }
 
-function LineBadge({ lineId, number, name }: { lineId: string; number: string; name?: string }) {
-  const lineName = name || STATION_LINE_DEFINITIONS[lineId]?.name || "";
+function LineBadge({ lineId, number, name, label }: { lineId: string; number?: string; name?: string; label?: string }) {
+  const def = getLineDefinition(lineId);
+  const lineNumber = number || def?.number || "";
+  const lineName = name || def?.name || "";
+  const displayLabel = label || def?.label || (lineName ? `Line ${lineNumber} ${lineName}` : `Line ${lineNumber}`);
 
   return (
     <span className="inline-flex min-h-8 max-w-full min-w-0 items-center gap-2 text-xs font-black">
-      <TransitLineBadge lineId={lineId} lineNumber={number} lineName={lineName} size={32} />
-      {lineName ? <span className="min-w-0 truncate">Line {number} {lineName}</span> : null}
+      <TransitLineBadge lineId={lineId} lineNumber={lineNumber} lineName={lineName} size={32} />
+      <span className="min-w-0 truncate">{displayLabel}</span>
     </span>
   );
 }
@@ -203,7 +229,7 @@ export function RotatedMapSelectionCard({
 
           <div className="flex flex-col gap-1.5">
             <div className="rotated-map-selection-card-meta">
-              <LineBadge lineId={details.lineId} number={details.lineNumber} name={STATION_LINE_DEFINITIONS[details.lineId]?.name} />
+              <LineBadge lineId={details.lineId} number={details.lineNumber} name={getLineDefinition(details.lineId)?.name} />
             </div>
             <div className="rotated-map-selection-card-direction flex items-center gap-1.5 mt-0.5">
               <span aria-hidden="true"><ImpactTypeIcon kind={selection.kind} size={14} /></span>
@@ -248,7 +274,7 @@ export function RotatedMapSelectionCard({
 
           <div className="rotated-map-selection-card-meta flex-wrap gap-2">
             {station.lineIds.map((lineId) => {
-              const lineDef = STATION_LINE_DEFINITIONS[lineId];
+              const lineDef = getLineDefinition(lineId);
               if (!lineDef) return null;
               return (
                 <LineBadge
@@ -256,6 +282,7 @@ export function RotatedMapSelectionCard({
                   lineId={lineId}
                   number={lineDef.number}
                   name={lineDef.name}
+                  label={lineDef.label}
                 />
               );
             })}

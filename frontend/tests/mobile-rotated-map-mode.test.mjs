@@ -173,11 +173,11 @@ describe("mobile rotated map mode", () => {
     assert.match(rotatedSelectionSource, /getSelectedImpactDetails\(\{ kind: impact\.kind, id: impact\.cardId \}/);
   });
 
-  it("keeps regional detail surfaces visible in an even split while rotated mode is active", () => {
-    assert.match(shellSource, /!showClosedScreen && selectedNetwork === "regional" && selectedStationId/);
+  it("hides portrait detail panels for both TTC and GO/UP regional mode while rotated mode is active", () => {
+    assert.match(shellSource, /!showClosedScreen && !rotatedMapMode && selectedNetwork === "ttc" && selectedStationId/);
+    assert.match(shellSource, /!showClosedScreen && !rotatedMapMode && selectedNetwork === "regional" && selectedStationId/);
     assert.match(shellSource, /rotatedSelectionVisible && !mobileInspectorOpen/);
-    assert.match(globalCss, /mobile-map-rotated\.mobile-map-inspector\[data-network="regional"\] > main/);
-    assert.match(globalCss, /mobile-map-rotated\.mobile-map-inspector\[data-network="regional"\] \.mobile-impact-inspector/);
+    assert.doesNotMatch(shellSource, /mapPresentationMode === "standard" \|\| selectedNetwork === "regional"/);
   });
 
   it("hides the portrait train toggle while rotated mode is active", () => {

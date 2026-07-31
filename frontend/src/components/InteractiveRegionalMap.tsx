@@ -2944,11 +2944,16 @@ function InteractiveRegionalMapComponent({
       Math.min(preferredTargetScale, selectionFit.scale),
       fitScale,
     );
-    const { focusX, focusY } = computeInsetViewportFocus(
+    const { focusX: baseFocusX, focusY: baseFocusY } = computeInsetViewportFocus(
       viewport.clientWidth,
       viewport.clientHeight,
       focusInsets,
     );
+    const focusX = baseFocusX;
+    const focusY =
+      viewportOrientation === "rotated-landscape"
+        ? viewport.clientHeight * 0.34
+        : baseFocusY;
 
     animateCameraTo(snapCameraToDevicePixels({
       x: focusX - mapX * targetScale,

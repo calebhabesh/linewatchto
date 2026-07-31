@@ -94,9 +94,8 @@ describe("network-scoped regional dashboard", () => {
     assert.match(regionalMapSource, /setAttribute\("data-regional-station-selected", "true"\)/);
   });
 
-  it("keeps regional selections in an even mobile split in standard and rotated map modes", () => {
+  it("keeps regional selections in an even mobile split in standard mode and supports rotated preview mode", () => {
     assert.match(globalsCss, /mobile-map-inspector\[data-network="regional"\][\s\S]*--mobile-inspector-total-height:\s*50dvh/);
-    assert.match(globalsCss, /mobile-map-rotated\.mobile-map-inspector\[data-network="regional"\] > main[\s\S]*top:\s*25dvh;[\s\S]*width:\s*50dvh/);
     assert.match(shellSource, /rotatedSelectionVisible && !mobileInspectorOpen/);
     assert.match(networkMapSource, /layoutResetSignal=\{props\.layoutResetSignal\}/);
     assert.match(regionalMapSource, /`\$\{layoutResetSignal \?\? 0\}:\$\{desktopMenuPinned \? "pinned" : "free"\}[\s\S]*:\$\{viewportOrientation\}`/);

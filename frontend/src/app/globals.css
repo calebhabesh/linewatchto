@@ -17380,13 +17380,6 @@ img.transit-line-badge {
     z-index: 55;
   }
 
-  .linewatch-shell.mobile-map-rotated.mobile-map-inspector[data-network="regional"] > main {
-    bottom: auto !important;
-    height: 100vw;
-    top: 25dvh;
-    width: 50dvh;
-  }
-
   .linewatch-shell.mobile-map-rotated .map-control-rail {
     display: none !important;
   }
@@ -17784,13 +17777,6 @@ img.transit-line-badge {
   .dark .rotated-map-selection-disruption,
   .high-contrast .rotated-map-selection-disruption {
     color: #ffffff;
-  }
-}
-
-@media (max-width: 767px) {
-  .linewatch-shell.mobile-map-rotated.mobile-map-inspector[data-network="regional"] .station-detail-panel,
-  .linewatch-shell.mobile-map-rotated.mobile-map-inspector[data-network="regional"] .mobile-impact-inspector {
-    display: flex;
   }
 }
 
