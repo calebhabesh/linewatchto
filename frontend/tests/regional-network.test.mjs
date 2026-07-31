@@ -914,12 +914,16 @@ describe("network-scoped regional dashboard", () => {
       globalsCss,
       /\.regional-map-camera-moving \.regional-map-stage :is\([\s\S]*?\.regional-impact-path[\s\S]*?\)\s*,[\s\S]*?animation:\s*none\s*!important;[\s\S]*?filter:\s*none\s*!important;/s,
     );
-    assert.match(globalsCss, /\.regional-map-camera-moving \.regional-map-stage :is\([\s\S]*?\.regional-delay-glyph-lane[\s\S]*?display:\s*none\s*!important;/s);
     assert.doesNotMatch(globalsCss, /\.regional-map-camera-moving \.regional-map-stage \*/);
     const cameraMotionSimplification = globalsCss.slice(
       globalsCss.indexOf(".regional-map-camera-moving .regional-map-stage :is("),
-      globalsCss.indexOf("/* SMIL motion is not controlled by CSS animation state."),
+      globalsCss.indexOf(".regional-map-stage > svg,"),
     );
+    assert.doesNotMatch(
+      cameraMotionSimplification,
+      /regional-(?:delay|suspension|chevron|planned-closure)-glyph-lane/,
+    );
+    assert.doesNotMatch(cameraMotionSimplification, /display:\s*none\s*!important/);
     assert.doesNotMatch(cameraMotionSimplification, /regional-station-selected-indicator/);
   });
 

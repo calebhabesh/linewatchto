@@ -336,23 +336,6 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
   transition: none !important;
 }
 
-/* SMIL motion is not controlled by CSS animation state. Hide only its glyph
-   lanes while the camera changes, leaving the alert rail itself visible. */
-.regional-map-camera-moving .regional-map-stage :is(
-  .regional-delay-glyph-lane,
-  .regional-suspension-glyph-lane,
-  .regional-chevron-glyph-lane,
-  .regional-planned-closure-glyph-lane
-),
-.regional-map[data-regional-map-camera-moving="true"] .regional-map-stage :is(
-  .regional-delay-glyph-lane,
-  .regional-suspension-glyph-lane,
-  .regional-chevron-glyph-lane,
-  .regional-planned-closure-glyph-lane
-) {
-  display: none !important;
-}
-
 .regional-map-stage > svg,
 .regional-map-stage > div > svg {
   display: block;
