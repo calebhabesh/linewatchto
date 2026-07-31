@@ -57,16 +57,18 @@ public class MetrolinxVehiclePositionClient {
             if (route == null) continue;
             int directionId = trip.path("direction_id").asInt(0);
             boolean inbound = directionId == route.inboundDirectionId();
-            int nextIndex = route.stationIds().indexOf(nextStationId);
-            // The reviewed catalog stores each route from Union to its outer terminus.
-            // Metrolinx's direction ID for the Union-bound trip varies by corridor.
-            int previousIndex = inbound ? nextIndex + 1 : nextIndex - 1;
-            if (nextIndex < 0 || previousIndex < 0 || previousIndex >= route.stationIds().size()) continue;
-            String fromStationId = route.stationIds().get(previousIndex);
+            // Metrolinx's Union-bound direction ID varies by corridor. Resolve the
+            // unique adjacent approach on the correct side of the topology instead
+            // of assuming the flat station-list neighbor is physically connected.
+            String fromStationId = RegionalNetworkCatalog.approachingFromStation(
+                lineId, nextStationId, inbound
+            ).orElse(null);
+            if (fromStationId == null) continue;
             RegionalNetworkCatalog.Segment segment = RegionalNetworkCatalog.segmentBetween(
                 lineId, fromStationId, nextStationId
             ).orElse(null);
             if (segment == null) continue;
+            String travelDirection = segment.stationAId().equals(fromStationId) ? "forward" : "reverse";
             String vehicleId = preferred(vehicle.path("vehicle").path("id").asText(""), entity.path("id").asText(""));
             String tripId = trip.path("trip_id").asText("").trim();
             String status = vehicle.path("current_status").asText("").toUpperCase(Locale.CANADA);
@@ -81,7 +83,7 @@ public class MetrolinxVehiclePositionClient {
             String direction = inbound ? "Inbound" : "Outbound";
             markers.add(new RegionalTrainMarkerRecord(
                 preferred(entity.path("id").asText(""), lineId + ":" + tripId + ":" + vehicleId),
-                lineId, direction, inbound ? "reverse" : "forward", segment.id(),
+                lineId, direction, travelDirection, segment.id(),
                 fromStationId, nextStationId, nextStationId, progress, segmentTravelSeconds, predictedAt,
                 moving, vehicleId, tripId, updatedAt, source
             ));

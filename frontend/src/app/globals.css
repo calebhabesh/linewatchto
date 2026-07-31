@@ -300,8 +300,6 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
 .regional-map-camera-moving .regional-map-stage :is(
   .regional-impact-aura,
   .regional-impact-path,
-  .regional-impact-interactive-glow,
-  .regional-impact-glow,
   .regional-delay-glyph,
   .regional-suspension-glyph,
   .regional-chevron-glyph,
@@ -317,8 +315,6 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
 .regional-map[data-regional-map-camera-moving="true"] .regional-map-stage :is(
   .regional-impact-aura,
   .regional-impact-path,
-  .regional-impact-interactive-glow,
-  .regional-impact-glow,
   .regional-delay-glyph,
   .regional-suspension-glyph,
   .regional-chevron-glyph,
@@ -609,23 +605,23 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
    the source overlay at its resting state even when a child hit target owns
    :hover; otherwise stations and overlapping SVG children produce competing
    partial hover treatments. */
-.regional-overlay-segment-group:not(.regional-impact-hover-foreground):has(.regional-impact-hit-target:hover) .regional-impact-glow,
-.regional-overlay-segment-group:not(.regional-impact-hover-foreground):has(.regional-impact-hit-target:focus-visible) .regional-impact-glow,
-.regional-overlay-segment-group:not(.regional-impact-hover-foreground):has(.regional-impact-hit-target:active) .regional-impact-glow {
+.regional-overlay-segment-group:not(.regional-impact-hover-foreground):not([data-regional-impact-selected="true"]):has(.regional-impact-hit-target:hover) .regional-impact-glow,
+.regional-overlay-segment-group:not(.regional-impact-hover-foreground):not([data-regional-impact-selected="true"]):has(.regional-impact-hit-target:focus-visible) .regional-impact-glow,
+.regional-overlay-segment-group:not(.regional-impact-hover-foreground):not([data-regional-impact-selected="true"]):has(.regional-impact-hit-target:active) .regional-impact-glow {
   filter: blur(16px) !important;
   opacity: 0.4 !important;
   stroke-width: calc(var(--regional-impact-width) + 102px) !important;
 }
 
-.regional-overlay-segment-group:not(.regional-impact-hover-foreground):has(.regional-impact-hit-target:hover) .regional-impact-interactive-glow,
-.regional-overlay-segment-group:not(.regional-impact-hover-foreground):has(.regional-impact-hit-target:focus-visible) .regional-impact-interactive-glow,
-.regional-overlay-segment-group:not(.regional-impact-hover-foreground):has(.regional-impact-hit-target:active) .regional-impact-interactive-glow {
+.regional-overlay-segment-group:not(.regional-impact-hover-foreground):not([data-regional-impact-selected="true"]):has(.regional-impact-hit-target:hover) .regional-impact-interactive-glow,
+.regional-overlay-segment-group:not(.regional-impact-hover-foreground):not([data-regional-impact-selected="true"]):has(.regional-impact-hit-target:focus-visible) .regional-impact-interactive-glow,
+.regional-overlay-segment-group:not(.regional-impact-hover-foreground):not([data-regional-impact-selected="true"]):has(.regional-impact-hit-target:active) .regional-impact-interactive-glow {
   opacity: 0 !important;
 }
 
-.regional-overlay-segment-group:not(.regional-impact-hover-foreground):has(.regional-impact-hit-target:hover) .regional-impact-hover-boundary,
-.regional-overlay-segment-group:not(.regional-impact-hover-foreground):has(.regional-impact-hit-target:focus-visible) .regional-impact-hover-boundary,
-.regional-overlay-segment-group:not(.regional-impact-hover-foreground):has(.regional-impact-hit-target:active) .regional-impact-hover-boundary {
+.regional-overlay-segment-group:not(.regional-impact-hover-foreground):not([data-regional-impact-selected="true"]):has(.regional-impact-hit-target:hover) .regional-impact-hover-boundary,
+.regional-overlay-segment-group:not(.regional-impact-hover-foreground):not([data-regional-impact-selected="true"]):has(.regional-impact-hit-target:focus-visible) .regional-impact-hover-boundary,
+.regional-overlay-segment-group:not(.regional-impact-hover-foreground):not([data-regional-impact-selected="true"]):has(.regional-impact-hit-target:active) .regional-impact-hover-boundary {
   opacity: 0 !important;
 }
 
@@ -637,22 +633,33 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
 .regional-overlay-segment-group[data-regional-impact-selected="true"] .regional-impact-interactive-glow {
   --selection-intro-name: regional-selection-path-intro;
   --selection-breathe-name: regional-selection-path-breathe;
-  stroke: rgba(248, 250, 252, 0.98);
+  /* The base alert aura uses an animation shorthand later in this stylesheet.
+     Reassert the complete selection lifecycle at the selected-state specificity
+     so segment selections match station selections: four quick flashes, then
+     an indefinite slower breathe. */
+  animation-name: var(--selection-intro-name), var(--selection-breathe-name);
+  animation-duration: var(--selection-intro-duration), var(--selection-breathe-duration);
+  animation-delay: 0s, var(--selection-intro-duration);
+  animation-timing-function: ease-in-out, ease-in-out;
+  animation-iteration-count: 1, infinite;
+  animation-direction: normal, alternate;
+  animation-fill-mode: both, none;
+  stroke: #0284c7;
   stroke-width: calc(var(--regional-impact-width) + 38px);
-  filter: drop-shadow(0 0 12px rgba(248, 250, 252, 0.9));
-  opacity: 0.72 !important;
+  filter: drop-shadow(0 0 12px rgba(2, 132, 199, 0.9));
+  transition: none;
 }
 
 @keyframes regional-selection-path-intro {
   0%, 25%, 50%, 75%, 100% {
     opacity: 0.4;
     stroke-width: calc(var(--regional-impact-width) + 38px);
-    filter: drop-shadow(0 0 8px rgba(248, 250, 252, 0.45));
+    filter: drop-shadow(0 0 8px rgba(2, 132, 199, 0.45));
   }
   12.5%, 37.5%, 62.5%, 87.5% {
     opacity: 1;
     stroke-width: calc(var(--regional-impact-width) + 72px);
-    filter: drop-shadow(0 0 20px rgba(248, 250, 252, 0.95));
+    filter: drop-shadow(0 0 20px rgba(2, 132, 199, 0.95));
   }
 }
 
@@ -660,12 +667,12 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
   from {
     opacity: 0.4;
     stroke-width: calc(var(--regional-impact-width) + 38px);
-    filter: drop-shadow(0 0 8px rgba(248, 250, 252, 0.45));
+    filter: drop-shadow(0 0 8px rgba(2, 132, 199, 0.45));
   }
   to {
     opacity: 0.92;
     stroke-width: calc(var(--regional-impact-width) + 54px);
-    filter: drop-shadow(0 0 20px rgba(248, 250, 252, 0.95));
+    filter: drop-shadow(0 0 20px rgba(2, 132, 199, 0.95));
   }
 }
 

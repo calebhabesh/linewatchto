@@ -55,9 +55,8 @@ function adjacentRegionalLinks(stationIds: readonly string[]) {
   );
 }
 
-// Lakeshore West has one non-linear junction: Aldershot, West Harbour, and
-// Hamilton are pairwise adjacent. The three graph edges share the authored
-// T-shaped rail geometry even though the topology is a triangle.
+// Lakeshore West branches after Aldershot: Hamilton is one terminal branch,
+// while West Harbour continues toward Confederation and Niagara Falls.
 export const REGIONAL_ROUTE_LINKS: Record<RegionalRouteCode, readonly (readonly [string, string])[]> = {
   BR: adjacentRegionalLinks(REGIONAL_ROUTE_STATIONS.BR),
   KI: adjacentRegionalLinks(REGIONAL_ROUTE_STATIONS.KI),
@@ -66,7 +65,6 @@ export const REGIONAL_ROUTE_LINKS: Record<RegionalRouteCode, readonly (readonly 
     ...adjacentRegionalLinks(REGIONAL_ROUTE_STATIONS.LW.slice(0, 11)),
     ["aldershot", "west-harbour"],
     ["aldershot", "hamilton"],
-    ["west-harbour", "hamilton"],
     ["west-harbour", "confederation"],
     ["confederation", "st-catharines"],
     ["st-catharines", "niagara-falls"],

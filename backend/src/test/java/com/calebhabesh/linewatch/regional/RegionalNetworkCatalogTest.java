@@ -66,9 +66,18 @@ class RegionalNetworkCatalogTest {
         )).isPresent();
         assertThat(RegionalNetworkCatalog.segmentBetween(
             "regional-lw", "west-harbour", "hamilton"
-        )).isPresent();
+        )).isEmpty();
         assertThat(RegionalNetworkCatalog.segmentBetween(
             "regional-lw", "confederation", "hamilton"
+        )).isEmpty();
+        assertThat(RegionalNetworkCatalog.approachingFromStation(
+            "regional-lw", "west-harbour", true
+        )).contains("confederation");
+        assertThat(RegionalNetworkCatalog.approachingFromStation(
+            "regional-lw", "west-harbour", false
+        )).contains("aldershot");
+        assertThat(RegionalNetworkCatalog.approachingFromStation(
+            "regional-lw", "aldershot", true
         )).isEmpty();
         assertThat(RegionalNetworkCatalog.segmentIds(
             "regional-lw",
@@ -76,6 +85,6 @@ class RegionalNetworkCatalogTest {
         )).containsExactly(
             "segment-lw-aldershot-hamilton"
         );
-        assertThat(RegionalNetworkCatalog.segments()).hasSize(75);
+        assertThat(RegionalNetworkCatalog.segments()).hasSize(74);
     }
 }

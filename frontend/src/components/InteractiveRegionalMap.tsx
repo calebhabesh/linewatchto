@@ -649,7 +649,7 @@ function regionalImpactGroup(
   title.textContent = label;
   hitTarget.prepend(title);
 
-  group.append(aura, interactiveGlow, boundary, visiblePath);
+  group.append(aura, boundary, visiblePath);
   if (kind === "delay") {
     group.append(regionalDelayGlyphLane(documentNode, sourcePath, travelDirection, reducedMotion));
   } else if (kind === "suspension") {
@@ -659,7 +659,10 @@ function regionalImpactGroup(
   } else if (kind === "planned-closure") {
     group.append(regionalPlannedClosureIconLane(documentNode, sourcePath, travelDirection, reducedMotion));
   }
-  group.append(hitTarget);
+  // Match TTC selection layering: the attention stroke belongs above the
+  // authored alert treatment and its moving glyphs, while the transparent hit
+  // target remains the top interactive element.
+  group.append(interactiveGlow, hitTarget);
   return group;
 }
 
@@ -1754,8 +1757,6 @@ function regionalSegmentHoverForeground(source: SVGElement, maskIndex: number) {
     definitions.append(mask);
     foreground.prepend(definitions);
     boundary.setAttribute("mask", `url(#${maskId})`);
-    source.querySelector<SVGPathElement>(".regional-impact-interactive-glow")
-      ?.setAttribute("mask", `url(#${maskId})`);
   }
   foreground.setAttribute("aria-hidden", "true");
   foreground.setAttribute("pointer-events", "none");
@@ -2837,7 +2838,7 @@ function InteractiveRegionalMapComponent({
     }
   }, [selectedStationId, svgMarkup]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const root = viewportRef.current;
     root?.querySelectorAll("[data-regional-impact-selected]").forEach((element) => element.removeAttribute("data-regional-impact-selected"));
     if (selection) {

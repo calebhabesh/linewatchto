@@ -447,6 +447,89 @@ test("opens fresh regional notices from desktop and mobile navigation", async ({
   await expect(page.getByText("Route 31 buses are detouring", { exact: true })).toHaveCount(0);
 });
 
+test("regional segment selections flash quickly then breathe", async ({ page, request, isMobile }) => {
+  test.skip(isMobile, "network selection is desktop-only");
+  await setStubMode(request, "regional-live");
+
+  await page.goto("/");
+  await page.getByRole("group", { name: "Select transit network" })
+    .getByRole("button", { name: "GO/UP", exact: true })
+    .click();
+
+  const delayOverlay = page.locator(
+    '.regional-overlay-segment-group[data-regional-impact-kind="delay"][data-regional-impact-id="regional-demo-delay"]',
+  );
+  await expect(delayOverlay).toHaveCount(1);
+  const delayHitTarget = delayOverlay.locator(".regional-impact-hit-target");
+  await delayHitTarget.dispatchEvent("click");
+  await expect(delayOverlay).toHaveAttribute("data-regional-impact-selected", "true");
+
+  const selectedDelayGlow = delayOverlay.locator(".regional-impact-interactive-glow");
+  await expect(page.locator(".regional-map")).toHaveAttribute(
+    "data-regional-map-camera-moving",
+    "true",
+  );
+  expect(await selectedDelayGlow.evaluate(
+    (element) => getComputedStyle(element).animationName,
+  )).toBe("regional-selection-path-intro, regional-selection-path-breathe");
+  await expect.poll(() => selectedDelayGlow.evaluate((element) => {
+    const style = getComputedStyle(element);
+    return {
+      animationName: style.animationName,
+      animationDuration: style.animationDuration,
+      animationDelay: style.animationDelay,
+      transitionDuration: style.transitionDuration,
+    };
+  })).toEqual({
+    animationName: "regional-selection-path-intro, regional-selection-path-breathe",
+    animationDuration: "2.4s, 1.2s",
+    animationDelay: "0s, 2.4s",
+    transitionDuration: "0s",
+  });
+  await expect(selectedDelayGlow).not.toHaveAttribute("mask");
+  await expect(selectedDelayGlow).toHaveCSS("stroke", "rgb(2, 132, 199)");
+  expect(Number(await selectedDelayGlow.evaluate(
+    (element) => getComputedStyle(element).opacity,
+  ))).toBeGreaterThan(0);
+  expect(await delayOverlay.evaluate((group) => {
+    const visiblePath = group.querySelector(".regional-impact-path");
+    const selectionPath = group.querySelector(".regional-impact-interactive-glow");
+    const hitTarget = group.querySelector(".regional-impact-hit-target");
+    if (!visiblePath || !selectionPath || !hitTarget) return false;
+    return Boolean(
+      visiblePath.compareDocumentPosition(selectionPath) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ) && Boolean(
+      selectionPath.compareDocumentPosition(hitTarget) & Node.DOCUMENT_POSITION_FOLLOWING,
+    );
+  })).toBe(true);
+  const introSamples = await selectedDelayGlow.evaluate((element) => {
+    const intro = element.getAnimations().find(
+      (animation) => animation instanceof CSSAnimation
+        && animation.animationName === "regional-selection-path-intro",
+    );
+    if (!intro) return null;
+    intro.pause();
+    intro.currentTime = 0;
+    const restingStyle = getComputedStyle(element);
+    const resting = {
+      opacity: Number(restingStyle.opacity),
+      strokeWidth: Number.parseFloat(restingStyle.strokeWidth),
+    };
+    intro.currentTime = 300;
+    const flashingStyle = getComputedStyle(element);
+    return {
+      resting,
+      flashing: {
+        opacity: Number(flashingStyle.opacity),
+        strokeWidth: Number.parseFloat(flashingStyle.strokeWidth),
+      },
+    };
+  });
+  expect(introSamples).not.toBeNull();
+  expect(introSamples!.flashing.opacity).toBeGreaterThan(introSamples!.resting.opacity + 0.4);
+  expect(introSamples!.flashing.strokeWidth).toBeGreaterThan(introSamples!.resting.strokeWidth + 20);
+});
+
 test("renders fresh Metrolinx impacts in regional mode", async ({ page, request, isMobile }) => {
   test.skip(isMobile, "network selection is desktop-only");
   await setStubMode(request, "regional-live");
@@ -706,9 +789,9 @@ test("renders fresh Metrolinx impacts in regional mode", async ({ page, request,
   await expect(delayHoverForeground.locator("mask path[stroke='black']"))
     .toHaveAttribute("stroke-width", "196");
   await expect(delayOverlay.locator(".regional-impact-interactive-glow"))
-    .toHaveAttribute("mask", /regional-hover-boundary-mask-/);
+    .not.toHaveAttribute("mask");
   await expect(delayOverlay.locator(".regional-impact-interactive-glow"))
-    .toHaveCSS("stroke", "rgba(248, 250, 252, 0.98)");
+    .toHaveCSS("stroke", "rgb(2, 132, 199)");
   await expect(lwCorridorOverlay.locator(".regional-impact-interactive-glow")).toHaveCSS("opacity", "0");
 
   // Station hit targets sit above the authored rails. Crossing one must keep

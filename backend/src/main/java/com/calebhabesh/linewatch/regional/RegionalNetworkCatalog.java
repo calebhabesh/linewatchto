@@ -1,6 +1,7 @@
 package com.calebhabesh.linewatch.regional;
 
 import com.calebhabesh.linewatch.station.StationResponses;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -156,6 +157,33 @@ public final class RegionalNetworkCatalog {
             .findFirst();
     }
 
+    public static Optional<String> approachingFromStation(
+        String lineId,
+        String nextStationId,
+        boolean inbound
+    ) {
+        Route route = route(lineId).orElse(null);
+        if (route == null || !route.stationIds().contains(nextStationId)) return Optional.empty();
+
+        Map<String, Integer> unionDistances = topologyDistancesFrom(lineId, "union");
+        Integer nextDistance = unionDistances.get(nextStationId);
+        if (nextDistance == null) return Optional.empty();
+
+        List<String> candidates = SEGMENTS.stream()
+            .filter(segment -> segment.lineId().equals(lineId))
+            .map(segment -> segment.stationAId().equals(nextStationId)
+                ? segment.stationBId()
+                : segment.stationBId().equals(nextStationId) ? segment.stationAId() : null)
+            .filter(java.util.Objects::nonNull)
+            .filter(stationId -> {
+                Integer distance = unionDistances.get(stationId);
+                return distance != null && (inbound ? distance > nextDistance : distance < nextDistance);
+            })
+            .distinct()
+            .toList();
+        return candidates.size() == 1 ? Optional.of(candidates.getFirst()) : Optional.empty();
+    }
+
     public static Optional<String> stationIdForStopCode(String stopCode) {
         if (stopCode == null) {
             return Optional.empty();
@@ -247,6 +275,27 @@ public final class RegionalNetworkCatalog {
         return reversed.reversed();
     }
 
+    private static Map<String, Integer> topologyDistancesFrom(String lineId, String originStationId) {
+        Map<String, Integer> distances = new LinkedHashMap<>();
+        ArrayDeque<String> pending = new ArrayDeque<>();
+        distances.put(originStationId, 0);
+        pending.add(originStationId);
+        while (!pending.isEmpty()) {
+            String stationId = pending.removeFirst();
+            int distance = distances.get(stationId);
+            for (Segment segment : SEGMENTS) {
+                if (!segment.lineId().equals(lineId)) continue;
+                String adjacentStationId = segment.stationAId().equals(stationId)
+                    ? segment.stationBId()
+                    : segment.stationBId().equals(stationId) ? segment.stationAId() : null;
+                if (adjacentStationId == null || distances.containsKey(adjacentStationId)) continue;
+                distances.put(adjacentStationId, distance + 1);
+                pending.addLast(adjacentStationId);
+            }
+        }
+        return distances;
+    }
+
     private static Route route(
         String id,
         String number,
@@ -316,7 +365,6 @@ public final class RegionalNetworkCatalog {
         if ("LW".equals(route.number())) {
             links.add(List.of("aldershot", "west-harbour"));
             links.add(List.of("aldershot", "hamilton"));
-            links.add(List.of("west-harbour", "hamilton"));
             links.add(List.of("west-harbour", "confederation"));
             links.add(List.of("confederation", "st-catharines"));
             links.add(List.of("st-catharines", "niagara-falls"));

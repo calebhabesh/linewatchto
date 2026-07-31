@@ -105,6 +105,30 @@ class MetrolinxVehiclePositionClientTest {
     }
 
     @Test
+    void mapsInboundLakeshoreWestVehicleFromConfederationTowardWestHarbour() {
+        server.expect(requestTo("https://api.example.test/OpenDataAPI/api/V1/Gtfs/Feed/VehiclePosition?key=secret"))
+            .andRespond(withSuccess("""
+                {"header":{"incrementality":"FULL_DATASET","timestamp":1785268043},
+                 "entity":[
+                   {"id":"lw-1201","vehicle":{"trip":{"trip_id":"1201","route_id":"LW","direction_id":0},
+                     "vehicle":{"id":"cab-1201"},"current_status":"IN_TRANSIT_TO","stop_id":"WR","timestamp":1785268040}}
+                 ]}
+                """, MediaType.APPLICATION_JSON));
+
+        RegionalTrainMarkerFeed feed = client.fetchGo();
+
+        assertThat(feed.markers()).singleElement().satisfies(marker -> {
+            assertThat(marker.lineId()).isEqualTo("regional-lw");
+            assertThat(marker.segmentId()).isEqualTo("segment-lw-west-harbour-confederation");
+            assertThat(marker.fromStationId()).isEqualTo("confederation");
+            assertThat(marker.nextStationId()).isEqualTo("west-harbour");
+            assertThat(marker.direction()).isEqualTo("Inbound");
+            assertThat(marker.travelDirection()).isEqualTo("reverse");
+        });
+        server.verify();
+    }
+
+    @Test
     void dropsVehiclesWhoseReportedStopCannotBeMapped() {
         server.expect(requestTo("https://api.example.test/OpenDataAPI/api/V1/UP/Gtfs/Feed/VehiclePosition?key=secret"))
             .andRespond(withSuccess("""

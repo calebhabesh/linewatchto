@@ -318,7 +318,7 @@ describe("network-scoped regional dashboard", () => {
   it("indexes every adjacent station pair with network-safe route topology", () => {
     const expectedSegmentCount = Object.values(REGIONAL_ROUTE_LINKS)
       .reduce((total, links) => total + links.length, 0);
-    assert.equal(expectedSegmentCount, 75);
+    assert.equal(expectedSegmentCount, 74);
     assert.equal(regionalDashboardData.networkSegments.length, expectedSegmentCount);
     assert.equal(
       new Set(regionalDashboardData.networkSegments.map((segment) => segment.id)).size,
@@ -332,11 +332,10 @@ describe("network-scoped regional dashboard", () => {
       && segment.guidePathId
     ));
     assert.deepEqual(
-      REGIONAL_ROUTE_LINKS.LW.slice(-6),
+      REGIONAL_ROUTE_LINKS.LW.slice(-5),
       [
         ["aldershot", "west-harbour"],
         ["aldershot", "hamilton"],
-        ["west-harbour", "hamilton"],
         ["west-harbour", "confederation"],
         ["confederation", "st-catharines"],
         ["st-catharines", "niagara-falls"],
@@ -351,7 +350,6 @@ describe("network-scoped regional dashboard", () => {
       [
         ["aldershot", "west-harbour"],
         ["aldershot", "hamilton"],
-        ["west-harbour", "hamilton"],
       ],
     );
   });
@@ -501,10 +499,9 @@ describe("network-scoped regional dashboard", () => {
       .filter((segment) => segment.impacts?.some(
         (impact) => impact.cardId === "regional-demo-lw-corridor-delay"))
       .map((segment) => segment.id);
-    assert.equal(fullLwImpactSegmentIds.length, 16);
+    assert.equal(fullLwImpactSegmentIds.length, 15);
     assert.ok(fullLwImpactSegmentIds.includes("segment-lw-aldershot-west-harbour"));
     assert.ok(fullLwImpactSegmentIds.includes("segment-lw-aldershot-hamilton"));
-    assert.ok(fullLwImpactSegmentIds.includes("segment-lw-west-harbour-hamilton"));
     assert.ok(scenario.networkSegments
       .filter((segment) => segment.lineId === "regional-lw")
       .every((segment) => segment.impacts?.filter((impact) => impact.kind === "delay").length === 2));
@@ -565,6 +562,10 @@ describe("network-scoped regional dashboard", () => {
     assert.match(globalsCss, /data-regional-impact-kind="suspension"[\s\S]*regional-candy-pulse/);
     assert.match(globalsCss, /@keyframes regional-candy-pulse\s*\{[\s\S]*calc\(var\(--regional-impact-width\) \+ 23px\)/);
     assert.match(globalsCss, /regional-impact-hit-target:active[\s\S]*regional-impact-glow/);
+    assert.match(
+      globalsCss,
+      /regional-overlay-segment-group:not\(\.regional-impact-hover-foreground\):not\(\[data-regional-impact-selected="true"\]\):has\(\.regional-impact-hit-target:hover\) \.regional-impact-interactive-glow/,
+    );
     assert.match(globalsCss, /regional-impact-hit-target\s*\{[^}]*stroke-width:\s*var\(--regional-impact-hit-target-width\)/s);
     assert.match(globalsCss, /regional-impact-width\) \+ 169px/);
     assert.match(globalsCss, /data-regional-impact-kind="planned-closure"[\s\S]*regional-impact-aura[\s\S]*display:\s*none/);
@@ -606,8 +607,27 @@ describe("network-scoped regional dashboard", () => {
     assert.match(regionalMapSource, /"station-impact-ring", "regional-station-impact-ring", "map-selection-attention"/);
     assert.match(globalsCss, /\.map-selection-attention\s*\{[^}]*animation-delay:\s*0s,\s*var\(--selection-intro-duration\)/s);
     assert.match(globalsCss, /regional-station-selected-indicator\[data-regional-station-selected="true"\][\s\S]*--selection-intro-name:\s*map-selection-station-intro/);
-    assert.match(globalsCss, /regional-impact-interactive-glow[\s\S]*--selection-intro-name:\s*regional-selection-path-intro/);
+    assert.match(
+      globalsCss,
+      /regional-overlay-segment-group\[data-regional-impact-selected="true"\] \.regional-impact-interactive-glow\s*\{[^}]*--selection-intro-name:\s*regional-selection-path-intro;[^}]*animation-name:\s*var\(--selection-intro-name\),\s*var\(--selection-breathe-name\);[^}]*animation-duration:\s*var\(--selection-intro-duration\),\s*var\(--selection-breathe-duration\);[^}]*animation-delay:\s*0s,\s*var\(--selection-intro-duration\)/s,
+    );
     assert.match(globalsCss, /regional-station-impact-ring[\s\S]*--selection-intro-name:\s*regional-selection-ring-intro/);
+    const selectedPathBlock = globalsCss.match(
+      /\.regional-overlay-segment-group\[data-regional-impact-selected="true"\] \.regional-impact-interactive-glow\s*\{[^}]*\}/s,
+    )?.[0] ?? "";
+    assert.match(selectedPathBlock, /stroke:\s*#0284c7/);
+    assert.match(selectedPathBlock, /transition:\s*none/);
+    assert.doesNotMatch(selectedPathBlock, /opacity:[^;]*!important/);
+    assert.match(regionalMapSource, /group\.append\(aura, boundary, visiblePath\)/);
+    assert.match(regionalMapSource, /group\.append\(interactiveGlow, hitTarget\)/);
+    assert.match(
+      regionalMapSource,
+      /useLayoutEffect\(\(\) => \{\s*const root = viewportRef\.current;\s*root\?\.querySelectorAll\("\[data-regional-impact-selected\]"\)/,
+    );
+    assert.doesNotMatch(
+      regionalMapSource,
+      /regional-impact-interactive-glow"\)[\s\S]*setAttribute\("mask"/,
+    );
   });
 
   it("fits terminal selections to their authored shape and slightly enlarges regular station dots", () => {
@@ -663,11 +683,11 @@ describe("network-scoped regional dashboard", () => {
     assert.match(regionalMapSource, /mask\.setAttribute\("x", String\(maskBounds\.x\)\)/);
     assert.match(regionalMapSource, /background\.setAttribute\("x", String\(maskBounds\.x\)\)/);
     assert.match(regionalMapSource, /boundary\.setAttribute\("mask", `url\(#\$\{maskId\}\)`\)/);
-    assert.match(regionalMapSource, /regional-impact-interactive-glow"\)[\s\S]*setAttribute\("mask", `url\(#\$\{maskId\}\)`\)/);
-    assert.match(globalsCss, /data-regional-impact-selected="true"\] \.regional-impact-interactive-glow\s*\{[^}]*stroke:\s*rgba\(248, 250, 252, 0\.98\)/s);
+    assert.doesNotMatch(regionalMapSource, /regional-impact-interactive-glow"\)[\s\S]*setAttribute\("mask"/);
+    assert.match(globalsCss, /data-regional-impact-selected="true"\] \.regional-impact-interactive-glow\s*\{[^}]*stroke:\s*#0284c7/s);
     assert.match(regionalMapSource, /foreground\.querySelectorAll\("title"\)/);
     assert.match(globalsCss, /regional-impact-hover-foreground\[data-regional-impact-hovered="true"\] \.regional-impact-hover-boundary/);
-    assert.match(globalsCss, /not\(\.regional-impact-hover-foreground\):has\(\.regional-impact-hit-target:hover\) \.regional-impact-hover-boundary[\s\S]*opacity:\s*0\s*!important/s);
+    assert.match(globalsCss, /not\(\.regional-impact-hover-foreground\):not\(\[data-regional-impact-selected="true"\]\):has\(\.regional-impact-hit-target:hover\) \.regional-impact-hover-boundary[\s\S]*opacity:\s*0\s*!important/s);
     assert.doesNotMatch(regionalMapSource, /foreground\.remove\(\)/);
     assert.doesNotMatch(regionalMapSource, /segmentLayer\.append\(foreground\)/);
   });
@@ -919,6 +939,7 @@ describe("network-scoped regional dashboard", () => {
       globalsCss.indexOf(".regional-map-camera-moving .regional-map-stage :is("),
       globalsCss.indexOf(".regional-map-stage > svg,"),
     );
+    assert.doesNotMatch(cameraMotionSimplification, /regional-impact-interactive-glow/);
     assert.doesNotMatch(
       cameraMotionSimplification,
       /regional-(?:delay|suspension|chevron|planned-closure)-glyph-lane/,
