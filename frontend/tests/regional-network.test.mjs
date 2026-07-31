@@ -388,6 +388,9 @@ describe("network-scoped regional dashboard", () => {
     assert.match(regionalStationDetailSource, /data-regional-arrival-direction/);
     assert.match(regionalStationDetailSource, /data-regional-arrival-platform/);
     assert.match(regionalStationDetailSource, /regionalArrivalTimeDisplay/);
+    assert.match(regionalStationDetailSource, /shouldUseDetailedRegionalArrivalCountdown/);
+    assert.match(regionalStationDetailSource, /detailedCountdown/);
+    assert.match(regionalStationDetailSource, /data-arrival-due/);
     assert.match(regionalStationDetailSource, /Realtime estimates can change/);
     assert.match(regionalStationDetailSource, />Station Impacts</);
     assert.doesNotMatch(regionalStationDetailSource, /Station Conditions/);

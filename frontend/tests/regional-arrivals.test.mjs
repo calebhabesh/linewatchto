@@ -11,6 +11,7 @@ import {
   isRegionalArrivalSoon,
   regionalArrivalMinuteLabel,
   regionalArrivalTimeDisplay,
+  shouldUseDetailedRegionalArrivalCountdown,
 } from "../src/app/regional-arrivals.ts";
 
 describe("regional station arrivals adapter", () => {
@@ -77,6 +78,43 @@ describe("regional station arrivals adapter", () => {
 
     assert.equal(isRegionalArrivalDue(distantArrival, now), false);
     assert.equal(isRegionalArrivalSoon(distantArrival, now), false);
+  });
+
+  it("uses a ticking range for the nearest live or scheduled arrival inside two minutes", () => {
+    const now = new Date("2026-07-29T12:00:00-04:00");
+    const liveArrival = { minutes: 1, predictedAt: "2026-07-29T12:00:42-04:00" };
+    const scheduledArrival = { minutes: 1, predictedAt: "2026-07-29T12:01:51-04:00" };
+
+    assert.equal(isRegionalArrivalDue(liveArrival, now), false);
+    assert.equal(isRegionalArrivalSoon(liveArrival, now), true);
+    assert.equal(shouldUseDetailedRegionalArrivalCountdown(liveArrival, now), true);
+    assert.deepEqual(
+      regionalArrivalTimeDisplay(liveArrival, now, { detailedCountdown: true }),
+      { primary: "0:42 - 1:42", secondary: "12:00 PM" },
+    );
+    assert.equal(shouldUseDetailedRegionalArrivalCountdown(scheduledArrival, now), true);
+    assert.deepEqual(
+      regionalArrivalTimeDisplay(scheduledArrival, now, { detailedCountdown: true }),
+      { primary: "1:51 - 2:51", secondary: "12:01 PM" },
+    );
+  });
+
+  it("keeps countdowns to the final two minutes and marks passed predictions due", () => {
+    const now = new Date("2026-07-29T12:00:00-04:00");
+    assert.equal(
+      shouldUseDetailedRegionalArrivalCountdown(
+        { predictedAt: "2026-07-29T12:02:00-04:00" },
+        now,
+      ),
+      false,
+    );
+    assert.equal(
+      isRegionalArrivalDue(
+        { minutes: 1, predictedAt: "2026-07-29T11:59:59-04:00" },
+        now,
+      ),
+      true,
+    );
   });
 
   it("switches hour-away arrivals from large minute counts to clock times", () => {

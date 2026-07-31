@@ -13,6 +13,7 @@ import {
   isRegionalArrivalDue,
   isRegionalArrivalSoon,
   regionalArrivalTimeDisplay,
+  shouldUseDetailedRegionalArrivalCountdown,
   type RegionalArrivalSnapshot,
 } from "../app/regional-arrivals";
 import type { StationSummary } from "../app/station-data";
@@ -542,13 +543,16 @@ export function RegionalStationDetailPanel({
                                     </span>
                                   </div>
                                   <div className="grid grid-cols-3 gap-2">
-                                    {platform.arrivals.map((arrival) => {
+                                    {platform.arrivals.map((arrival, index) => {
                                       const due = isRegionalArrivalDue(arrival, arrivalTick);
                                       const soon = !due && isRegionalArrivalSoon(arrival, arrivalTick);
-                                      const timeDisplay = regionalArrivalTimeDisplay(arrival, arrivalTick);
+                                      const detailedCountdown = index === 0
+                                        && shouldUseDetailedRegionalArrivalCountdown(arrival, arrivalTick);
+                                      const timeDisplay = regionalArrivalTimeDisplay(arrival, arrivalTick, { detailedCountdown });
                                       return (
                                         <div
                                           key={`${arrival.tripNumber}:${arrival.predictedAt}`}
+                                          data-arrival-due={due ? "true" : "false"}
                                           className={[
                                             "flex min-h-[66px] flex-col items-center justify-center rounded-md border px-2 py-2 text-center transition-colors",
                                             due
@@ -558,7 +562,10 @@ export function RegionalStationDetailPanel({
                                                 : "border-black/10 bg-slate-950/[0.03] text-slate-900 dark:border-white/10 dark:bg-[#0f1117] dark:text-white",
                                           ].join(" ")}
                                         >
-                                          <strong className="text-base font-black leading-none tracking-tight">
+                                          <strong className={detailedCountdown
+                                            ? "whitespace-nowrap text-xs font-black leading-none tabular-nums sm:text-lg"
+                                            : "text-base font-black leading-none tracking-tight"}
+                                          >
                                             {timeDisplay.primary}
                                           </strong>
                                           <span

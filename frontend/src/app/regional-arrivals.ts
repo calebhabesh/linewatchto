@@ -135,6 +135,12 @@ export function isRegionalArrivalDue(
   arrival: Pick<RegionalArrival, "minutes"> & Partial<Pick<RegionalArrival, "predictedAt">>,
   now?: Date | number | string,
 ): boolean {
+  if (arrival.predictedAt) {
+    const predictedAt = Date.parse(arrival.predictedAt);
+    if (!Number.isNaN(predictedAt)) {
+      return predictedAt <= toMillis(now);
+    }
+  }
   const minutes = getRegionalArrivalMinutes(arrival, now);
   return minutes <= 0;
 }
@@ -144,6 +150,13 @@ export function isRegionalArrivalSoon(
   now?: Date | number | string,
   thresholdMinutes = 5,
 ): boolean {
+  if (arrival.predictedAt) {
+    const predictedAt = Date.parse(arrival.predictedAt);
+    if (!Number.isNaN(predictedAt)) {
+      const millisUntilArrival = predictedAt - toMillis(now);
+      return millisUntilArrival > 0 && millisUntilArrival <= thresholdMinutes * 60_000;
+    }
+  }
   const minutes = getRegionalArrivalMinutes(arrival, now);
   return minutes > 0 && minutes <= thresholdMinutes;
 }
@@ -153,10 +166,25 @@ export type RegionalArrivalTimeDisplay = {
   secondary: string;
 };
 
+type RegionalArrivalTimeDisplayOptions = {
+  detailedCountdown?: boolean;
+};
+
+const DETAILED_COUNTDOWN_THRESHOLD_SECONDS = 120;
+
 export function regionalArrivalTimeDisplay(
   arrival: Pick<RegionalArrival, "minutes" | "predictedAt">,
   now: Date | number = Date.now(),
+  options: RegionalArrivalTimeDisplayOptions = {},
 ): RegionalArrivalTimeDisplay {
+  if (options.detailedCountdown && shouldUseDetailedRegionalArrivalCountdown(arrival, now)) {
+    const predictedAt = Date.parse(arrival.predictedAt);
+    const secondsUntilArrival = Math.ceil((predictedAt - toMillis(now)) / 1000);
+    return {
+      primary: `${formatCountdownDuration(secondsUntilArrival)} - ${formatCountdownDuration(secondsUntilArrival + 60)}`,
+      secondary: formatRegionalArrivalClockTime(arrival.predictedAt, now),
+    };
+  }
   const minutes = getRegionalArrivalMinutes(arrival, now);
   const clock = formatRegionalArrivalClockTime(arrival.predictedAt, now);
   if (minutes < 60 || !clock) {
@@ -174,6 +202,24 @@ export function regionalArrivalTimeDisplay(
     primary: clock.slice(separator + 2),
     secondary: clock.slice(0, separator),
   };
+}
+
+export function shouldUseDetailedRegionalArrivalCountdown(
+  arrival: Pick<RegionalArrival, "predictedAt">,
+  now?: Date | number | string,
+): boolean {
+  const predictedAt = Date.parse(arrival.predictedAt);
+  if (Number.isNaN(predictedAt)) {
+    return false;
+  }
+  const secondsUntilArrival = Math.ceil((predictedAt - toMillis(now)) / 1000);
+  return secondsUntilArrival > 0 && secondsUntilArrival < DETAILED_COUNTDOWN_THRESHOLD_SECONDS;
+}
+
+function formatCountdownDuration(totalSeconds: number): string {
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${minutes}:${String(seconds).padStart(2, "0")}`;
 }
 
 const REGIONAL_OUTWARD_DIRECTIONS: Record<RegionalRouteCode, string> = {

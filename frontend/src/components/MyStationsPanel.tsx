@@ -25,6 +25,7 @@ import {
   isRegionalArrivalDue,
   isRegionalArrivalSoon,
   regionalArrivalTimeDisplay,
+  shouldUseDetailedRegionalArrivalCountdown,
   type RegionalArrivalDataResult,
 } from "../app/regional-arrivals";
 import {
@@ -444,13 +445,15 @@ function SavedStationRow({
                         </span>
                         <span className={`saved-station-arrival-source source-${sourceLabel.toLowerCase()}`}>{sourceLabel}</span>
                         <span className="saved-station-arrival-times">
-                          {arrivals.map((arrival) => {
-                            const timeDisplay = regionalArrivalTimeDisplay(arrival, arrivalTick);
+                          {arrivals.map((arrival, index) => {
                             const due = isRegionalArrivalDue(arrival, arrivalTick);
                             const soon = !due && isRegionalArrivalSoon(arrival, arrivalTick);
+                            const detailed = index === 0
+                              && shouldUseDetailedRegionalArrivalCountdown(arrival, arrivalTick);
+                            const timeDisplay = regionalArrivalTimeDisplay(arrival, arrivalTick, { detailedCountdown: detailed });
                             return (
                               <strong
-                                className={[soon ? "is-soon" : "", due ? "is-due" : ""].filter(Boolean).join(" ") || undefined}
+                                className={[detailed ? "is-detailed" : "", soon ? "is-soon" : "", due ? "is-due" : ""].filter(Boolean).join(" ") || undefined}
                                 key={`${arrival.tripNumber}:${arrival.predictedAt}`}
                               >
                                 {timeDisplay.primary}
