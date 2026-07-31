@@ -116,6 +116,12 @@ services:
     networks:
       - linewatch-net
     logging: *default-logging
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:80/api/health >/dev/null || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
 
   cloudflared:
     image: cloudflare/cloudflared:latest
@@ -131,8 +137,7 @@ services:
         "${LINEWATCH_CLOUDFLARED_TUNNEL_TOKEN:-}"
       ]
     depends_on:
-      caddy:
-        condition: service_healthy
+      - caddy
     networks:
       - linewatch-net
     logging: *default-logging
