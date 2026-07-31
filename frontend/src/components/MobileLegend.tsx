@@ -37,29 +37,23 @@ export function MobileLegend({
   return (
     <div
       onClick={onToggleExpanded}
-      className={`mobile-legend-pill fixed left-4 flex flex-col gap-1.5 p-2 bg-white/95 dark:bg-[#0a0c10]/95 border border-black/10 dark:border-white/10 rounded-xl shadow-xl transition-all duration-300 ease-in-out cursor-pointer select-none md:hidden ${
+      className={`mobile-legend-pill fixed left-4 flex flex-col gap-1.5 p-2 bg-white/95 dark:bg-[#0a0c10]/95 border border-black/10 dark:border-white/10 rounded-xl shadow-xl overflow-hidden transition-all duration-300 ease-in-out cursor-pointer select-none md:hidden ${
         closingSoon ? "mobile-legend-pill--announcement" : "top-4"
       } ${
         isRegional ? "mobile-legend-pill--regional" : ""
       } ${
         expanded
-          ? "w-fit max-w-[calc(100vw-32px)] pr-3.5 mobile-legend-pill--expanded"
+          ? "w-max max-w-[calc(100vw-32px)] pr-3.5 mobile-legend-pill--expanded"
           : isRegional
-            ? "w-[40px]"
-            : "w-[36px]"
+            ? "w-[40px] max-w-[40px]"
+            : "w-[36px] max-w-[36px]"
       }`}
       style={{ zIndex: expanded ? 41 : 35 }}
       role="button"
       aria-expanded={expanded}
       aria-label="Transit line legend"
     >
-      <div
-        className={
-          expanded && isRegional
-            ? "grid grid-cols-[max-content_max-content] gap-x-4 gap-y-1.5"
-            : "flex flex-col gap-1.5"
-        }
-      >
+      <div className="flex flex-col gap-1.5">
         {lines.map((line) => (
           <div
             key={line.id}
@@ -67,7 +61,7 @@ export function MobileLegend({
               expanded ? "gap-2" : "w-full justify-center gap-0"
             }`}
           >
-            <div className="w-[20px] h-[20px] flex items-center justify-center shrink-0">
+            <div className="w-[20px] h-[20px] flex items-center justify-center shrink-0 relative z-10">
               <TransitLineBadge
                 lineId={line.id}
                 lineNumber={line.number}
@@ -76,10 +70,10 @@ export function MobileLegend({
               />
             </div>
             <span
-              className={`legend-line-name font-subway text-[13px] leading-tight font-bold tracking-normal text-slate-800 dark:text-slate-200 transition-all duration-300 ${
+              className={`legend-line-name font-subway text-[13px] leading-tight font-bold tracking-normal text-slate-800 dark:text-slate-200 overflow-hidden whitespace-nowrap transition-all duration-300 ${
                 expanded
-                  ? "opacity-100 translate-x-0 whitespace-nowrap"
-                  : "w-0 opacity-0 -translate-x-2 pointer-events-none"
+                  ? "opacity-100 translate-x-0 max-w-[220px]"
+                  : "w-0 max-w-0 opacity-0 translate-x-1 pointer-events-none"
               }`}
             >
               {line.name}
