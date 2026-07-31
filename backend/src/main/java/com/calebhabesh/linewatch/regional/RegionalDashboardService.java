@@ -7,6 +7,7 @@ import com.calebhabesh.linewatch.map.MapController;
 import com.calebhabesh.linewatch.performance.TtcPerformanceResponses;
 import com.calebhabesh.linewatch.status.StatusController;
 import java.time.Clock;
+import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -64,7 +65,7 @@ public class RegionalDashboardService {
             ),
             message(fresh, latest),
             map(alerts),
-            status(alerts, sourceUpdatedAt, fresh),
+            status(alerts, sourceUpdatedAt, latest.orElse(null), fresh),
             activeAlerts(alerts),
             delays(alerts),
             List.of(),
@@ -121,17 +122,36 @@ public class RegionalDashboardService {
     private StatusController.StatusResponse status(
         List<RegionalNormalizedAlert> alerts,
         OffsetDateTime sourceUpdatedAt,
+        IngestionRunSnapshot latestRun,
         boolean fresh
     ) {
         OffsetDateTime displayTime = sourceUpdatedAt == null ? OffsetDateTime.now(clock) : sourceUpdatedAt;
         var toronto = displayTime.atZoneSameInstant(TORONTO_ZONE);
         StatusController.GeneratedAtDto generated = fresh
-            ? new StatusController.GeneratedAtDto(TIME.format(toronto), DATE.format(toronto), true, "latest Metrolinx poll succeeded")
+            ? new StatusController.GeneratedAtDto(
+                TIME.format(toronto), DATE.format(toronto), true,
+                "succeeded " + relativeAge(latestRun == null ? null : latestRun.completedAt())
+            )
             : new StatusController.GeneratedAtDto("Unavailable", "Regional source unavailable", false, "not configured or stale");
         List<StatusController.LineStatusDto> lines = RegionalNetworkCatalog.routes().stream()
             .map(route -> lineStatus(route, alerts, fresh))
             .toList();
         return new StatusController.StatusResponse(generated, lines);
+    }
+
+    private String relativeAge(OffsetDateTime timestamp) {
+        if (timestamp == null) {
+            return "recently";
+        }
+        long minutes = Math.max(0, Duration.between(timestamp, OffsetDateTime.now(clock)).toMinutes());
+        if (minutes == 0) return "just now";
+        if (minutes == 1) return "1 min ago";
+        if (minutes < 60) return minutes + " min ago";
+        long hours = minutes / 60;
+        if (hours == 1) return "1 hr ago";
+        if (hours < 24) return hours + " hr ago";
+        long days = hours / 24;
+        return days == 1 ? "1 day ago" : days + " days ago";
     }
 
     private StatusController.LineStatusDto lineStatus(

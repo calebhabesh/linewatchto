@@ -94,6 +94,18 @@ describe("network-scoped regional dashboard", () => {
     assert.match(regionalMapSource, /setAttribute\("data-regional-station-selected", "true"\)/);
   });
 
+  it("keeps regional selections in an even mobile split in standard and rotated map modes", () => {
+    assert.match(globalsCss, /mobile-map-inspector\[data-network="regional"\][\s\S]*--mobile-inspector-total-height:\s*50dvh/);
+    assert.match(globalsCss, /mobile-map-rotated\.mobile-map-inspector\[data-network="regional"\] > main[\s\S]*top:\s*25dvh;[\s\S]*width:\s*50dvh/);
+    assert.match(shellSource, /rotatedSelectionVisible && !mobileInspectorOpen/);
+    assert.match(networkMapSource, /layoutResetSignal=\{props\.layoutResetSignal\}/);
+    assert.match(regionalMapSource, /`\$\{layoutResetSignal \?\? 0\}:\$\{desktopMenuPinned \? "pinned" : "free"\}[\s\S]*:\$\{viewportOrientation\}`/);
+  });
+
+  it("preserves the authored regional corridor overlay width in mobile performance mode", () => {
+    assert.match(globalsCss, /mobile-performance-mode\[data-network="regional"\] \.regional-impact-path[\s\S]*stroke-width:\s*var\(--regional-impact-width\) !important/);
+  });
+
   it("renders one legend for the selected map scene", () => {
     assert.match(networkMapSource, /<NetworkMapLegend[\s\S]*mode=\{network\}/);
     assert.match(networkMapSource, /closingSoon=\{mobileAnnouncementVisible\}/);
@@ -618,6 +630,10 @@ describe("network-scoped regional dashboard", () => {
     assert.match(selectedPathBlock, /stroke:\s*#0284c7/);
     assert.match(selectedPathBlock, /transition:\s*none/);
     assert.doesNotMatch(selectedPathBlock, /opacity:[^;]*!important/);
+    assert.match(
+      globalsCss,
+      /regional-overlay-segment-group\[data-regional-impact-selected="true"\] \.regional-impact-path\s*\{[^}]*filter:\s*none;/s,
+    );
     assert.match(regionalMapSource, /group\.append\(aura, boundary, visiblePath\)/);
     assert.match(regionalMapSource, /group\.append\(interactiveGlow, hitTarget\)/);
     assert.match(

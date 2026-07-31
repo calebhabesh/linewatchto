@@ -712,6 +712,88 @@ class AlertDashboardServiceTest {
     }
 
     @Test
+    void publicationEnvelopeAndMalformedPlannedPeriodsDoNotBecomeActiveImpacts() {
+        when(ingestionFreshness.isDashboardFresh()).thenReturn(true);
+        AlertEntity closure = withLine(alert(
+            "ttc-route-73251",
+            "planned-closure",
+            "planned",
+            "On Monday, August 3, LRT service between Finch West and Humber College stations will start by 4 p.m.",
+            "Shuttle buses will operate.",
+            "finch-west",
+            "humber-college",
+            OffsetDateTime.parse("2026-06-01T11:45:00Z"),
+            "Will Operate"
+        ), "line-6", "6");
+        ReflectionTestUtils.setField(
+            closure,
+            "activePeriodStart",
+            OffsetDateTime.parse("2026-06-01T11:45:00Z")
+        );
+        ReflectionTestUtils.setField(
+            closure,
+            "activePeriodEnd",
+            OffsetDateTime.parse("2026-06-04T04:00:00Z")
+        );
+
+        when(alertRepository.findByActiveTrueAndType("planned-closure"))
+            .thenReturn(List.of(closure));
+        when(alertRepository.findByActiveTrueAndType("active-alert"))
+            .thenReturn(List.of());
+        when(lineSegmentRepository.findAllByOrderBySortOrderAsc()).thenReturn(List.of(
+            segment("line-6-finch-west-humber-college", "line-6", "finch-west", "humber-college", 10)
+        ));
+        AlertActivePeriodRepository.AlertPeriod publicationEnvelope =
+            new AlertActivePeriodRepository.AlertPeriod(
+                "ttc-route-73251",
+                "parent",
+                OffsetDateTime.parse("2026-06-01T11:45:00Z"),
+                OffsetDateTime.parse("2026-06-04T04:00:00Z"),
+                0
+            );
+        AlertActivePeriodRepository.AlertPeriod openEndedChild =
+            new AlertActivePeriodRepository.AlertPeriod(
+                "ttc-route-73251",
+                "child-open-ended",
+                OffsetDateTime.parse("2026-06-01T11:45:00Z"),
+                null,
+                1
+            );
+        AlertActivePeriodRepository.AlertPeriod missingStart =
+            new AlertActivePeriodRepository.AlertPeriod(
+                "ttc-route-73251",
+                "child-missing-start",
+                null,
+                OffsetDateTime.parse("2026-06-01T13:00:00Z"),
+                2
+            );
+        AlertActivePeriodRepository.AlertPeriod reversedWindow =
+            new AlertActivePeriodRepository.AlertPeriod(
+                "ttc-route-73251",
+                "child-reversed",
+                OffsetDateTime.parse("2026-06-01T13:00:00Z"),
+                OffsetDateTime.parse("2026-06-01T11:00:00Z"),
+                3
+            );
+        when(alertActivePeriodRepository.findByAlertIds(List.of("ttc-route-73251")))
+            .thenReturn(Map.of(
+                "ttc-route-73251",
+                List.of(publicationEnvelope, openEndedChild, missingStart, reversedWindow)
+            ));
+
+        assertThat(service.plannedClosures()).singleElement().satisfies(dto -> {
+            assertThat(dto.id()).isEqualTo("ttc-route-73251");
+            assertThat(dto.activeNow()).isFalse();
+            assertThat(dto.timingStatus()).isEqualTo("unknown");
+            assertThat(dto.window()).isEqualTo("Closure timing unavailable");
+        });
+        assertThat(service.activeAlerts()).isEmpty();
+        assertThat(service.activePlannedClosures()).isEmpty();
+        assertThat(service.activeSegmentImpacts())
+            .doesNotContainKey("line-6-finch-west-humber-college");
+    }
+
+    @Test
     void linkedOperationalClosureChildUsesCanonicalParentWithoutDuplicateImpacts() {
         when(ingestionFreshness.isDashboardFresh()).thenReturn(true);
         AlertEntity parentClosure = withLine(alert(

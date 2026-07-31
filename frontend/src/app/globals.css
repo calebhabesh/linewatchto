@@ -681,7 +681,7 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
 }
 
 .regional-overlay-segment-group[data-regional-impact-selected="true"] .regional-impact-path {
-  filter: drop-shadow(0 0 14px rgba(248, 250, 252, 0.75));
+  filter: none;
 }
 
 .regional-station-impact-ring {
@@ -4510,6 +4510,12 @@ button {
 .linewatch-shell.mobile-performance-mode .asset-alert-path.suspension-candy,
 .linewatch-shell.mobile-performance-mode .asset-alert-path.delay-static-base {
   stroke-width: 112;
+}
+
+/* Regional corridors use a wider authored rail stroke than the TTC map. Keep
+   mobile paint simplification from narrowing the alert below its corridor. */
+.linewatch-shell.mobile-performance-mode[data-network="regional"] .regional-impact-path {
+  stroke-width: var(--regional-impact-width) !important;
 }
 
 .linewatch-shell.mobile-performance-mode .delay-hourglass-mask-path,
@@ -15808,6 +15814,15 @@ img.transit-line-badge {
     --mobile-inspector-height: clamp(360px, 55dvh, 540px);
   }
 
+  .linewatch-shell.mobile-map-inspector[data-network="regional"] {
+    --mobile-inspector-height: calc(50dvh - var(--mobile-safe-bottom));
+    --mobile-inspector-total-height: 50dvh;
+  }
+
+  .linewatch-shell.mobile-map-inspector[data-network="regional"] > main {
+    bottom: 50dvh;
+  }
+
   .linewatch-shell.mobile-map-inspector > main {
     bottom: var(--mobile-inspector-total-height);
     transition: bottom 180ms cubic-bezier(0.22, 1, 0.36, 1);
@@ -17366,6 +17381,13 @@ img.transit-line-badge {
     z-index: 55;
   }
 
+  .linewatch-shell.mobile-map-rotated.mobile-map-inspector[data-network="regional"] > main {
+    bottom: auto !important;
+    height: 100vw;
+    top: 25dvh;
+    width: 50dvh;
+  }
+
   .linewatch-shell.mobile-map-rotated .map-control-rail {
     display: none !important;
   }
@@ -17767,9 +17789,9 @@ img.transit-line-badge {
 }
 
 @media (max-width: 767px) {
-  .linewatch-shell.mobile-map-rotated .station-detail-panel,
-  .linewatch-shell.mobile-map-rotated .mobile-impact-inspector {
-    display: none !important;
+  .linewatch-shell.mobile-map-rotated.mobile-map-inspector[data-network="regional"] .station-detail-panel,
+  .linewatch-shell.mobile-map-rotated.mobile-map-inspector[data-network="regional"] .mobile-impact-inspector {
+    display: flex;
   }
 }
 

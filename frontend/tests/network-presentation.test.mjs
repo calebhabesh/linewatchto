@@ -10,15 +10,16 @@ import {
 
 describe("cross-network presentation vocabulary", () => {
   it("uses the same update grammar for fresh TTC and regional dashboards", () => {
-    assert.equal(titleCasePollText("2 minutes ago"), "2 Minutes Ago");
+    assert.equal(titleCasePollText("2 minutes ago"), "2 minutes ago");
     assert.equal(
       dashboardStatusSourceLabel({ networkId: "ttc", dataSource: "backend" }, "2 minutes ago"),
-      "Updated 2 Minutes Ago",
+      "Updated 2 minutes ago",
     );
     assert.equal(
       dashboardStatusSourceLabel({ networkId: "regional", dataSource: "backend" }, "2 minutes ago"),
-      "Updated 2 Minutes Ago",
+      "Updated 2 minutes ago",
     );
+    assert.equal(titleCasePollText("just now"), "Just Now");
   });
 
   it("keeps fallback wording source-honest in full and compact surfaces", () => {

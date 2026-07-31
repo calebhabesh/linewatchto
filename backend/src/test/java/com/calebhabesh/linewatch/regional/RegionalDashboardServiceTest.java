@@ -49,6 +49,7 @@ class RegionalDashboardServiceTest {
 
         assertThat(dashboard.availability()).isEqualTo("available");
         assertThat(dashboard.status().generatedAt().live()).isTrue();
+        assertThat(dashboard.status().generatedAt().lastPoll()).isEqualTo("succeeded 2 min ago");
         assertThat(dashboard.delays()).singleElement().satisfies(delay -> {
             assertThat(delay.lineNumber()).isEqualTo("KI");
             assertThat(delay.location()).isEqualTo("Bloor ↔ Weston");

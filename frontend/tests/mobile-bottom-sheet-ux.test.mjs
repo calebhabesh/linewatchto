@@ -350,10 +350,11 @@ describe("mobile bottom sheet UX", () => {
     assert.match(globalCss, /\.linewatch-shell\.mobile-map-rotated \.mobile-legend-pill/);
   });
 
-  it("keeps rotated-map selections in a rotated preview instead of portrait sheets", () => {
+  it("keeps a rotated preview available while allowing regional split inspectors", () => {
     assert.match(shellSource, /RotatedMapSelectionCard/);
     assert.match(shellSource, /rotated-map-hud/);
-    assert.match(shellSource, /!rotatedMapMode && selectedNetwork === "ttc" && selectedStationId/);
+    assert.match(shellSource, /rotatedSelectionVisible && !mobileInspectorOpen/);
+    assert.match(globalCss, /mobile-map-rotated\.mobile-map-inspector\[data-network="regional"\]/);
     assert.match(globalCss, /\.rotated-map-selection-card/);
   });
 });

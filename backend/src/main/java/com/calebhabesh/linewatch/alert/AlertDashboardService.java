@@ -191,7 +191,9 @@ public class AlertDashboardService {
         Set<String> linkedChildSourceIds = new LinkedHashSet<>();
         for (List<AlertActivePeriodRepository.AlertPeriod> periods : periodsByAlertId.values()) {
             for (AlertActivePeriodRepository.AlertPeriod period : periods) {
-                if (!isParentPeriod(period) && alertsBySourceId.containsKey(period.sourcePeriodId())) {
+                if (isReliableClosureWindow(period)
+                    && !isParentPeriod(period)
+                    && alertsBySourceId.containsKey(period.sourcePeriodId())) {
                     linkedChildSourceIds.add(period.sourcePeriodId());
                 }
             }
@@ -204,7 +206,6 @@ public class AlertDashboardService {
                 WindowState ws = windowState(alert, periods);
                 return new AlertWithWindowState(alert, ws);
             })
-            .filter(aw -> "active-now".equals(aw.ws.timingStatus()) || "upcoming".equals(aw.ws.timingStatus()))
             .map(aw -> new PlannedClosureView(
                 toPlannedClosure(aw.alert, segments, aw.ws),
                 aw.ws.activeSourcePeriodId() == null
@@ -378,11 +379,14 @@ public class AlertDashboardService {
                 alert.getActivePeriodEnd(),
                 0
             ));
-        boolean nightly = isNightly(usablePeriods) || recurringParentWindow;
-        String windowHours = closureWindowHours(usablePeriods);
-        String windowDates = closureWindowDates(usablePeriods, nightly, now);
+        List<AlertActivePeriodRepository.AlertPeriod> reliablePeriods = usablePeriods.stream()
+            .filter(this::isReliableClosureWindow)
+            .toList();
+        boolean nightly = isNightly(reliablePeriods) || recurringParentWindow;
+        String windowHours = closureWindowHours(reliablePeriods);
+        String windowDates = closureWindowDates(reliablePeriods, nightly, now);
 
-        Optional<AlertActivePeriodRepository.AlertPeriod> active = usablePeriods.stream()
+        Optional<AlertActivePeriodRepository.AlertPeriod> active = reliablePeriods.stream()
             .filter(period -> startsAtOrBefore(period.startsAt(), now))
             .filter(period -> endsAfter(period.endsAt(), now))
             .findFirst();
@@ -394,11 +398,11 @@ public class AlertDashboardService {
                 null, null, null, windowHours, windowDates, period.sourcePeriodId());
         }
 
-        Optional<AlertActivePeriodRepository.AlertPeriod> next = usablePeriods.stream()
-            .filter(period -> period.startsAt() == null || period.startsAt().isAfter(now))
+        Optional<AlertActivePeriodRepository.AlertPeriod> next = reliablePeriods.stream()
+            .filter(period -> period.startsAt().isAfter(now))
             .min(Comparator.comparing(
                 AlertActivePeriodRepository.AlertPeriod::startsAt,
-                Comparator.nullsLast(Comparator.naturalOrder())
+                Comparator.naturalOrder()
             ));
 
         if (next.isPresent()) {
@@ -411,6 +415,13 @@ public class AlertDashboardService {
 
         return new WindowState(false, "unknown", nightly,
             null, null, null, null, null, null, windowHours, windowDates, null);
+    }
+
+    private boolean isReliableClosureWindow(AlertActivePeriodRepository.AlertPeriod period) {
+        return period != null
+            && period.startsAt() != null
+            && period.endsAt() != null
+            && period.endsAt().isAfter(period.startsAt());
     }
 
     private String closureWindowHours(List<AlertActivePeriodRepository.AlertPeriod> periods) {
@@ -829,6 +840,9 @@ public class AlertDashboardService {
     private String displayWindow(AlertEntity alert, WindowState ws) {
         if (ws.nightly()) {
             return "Nightly closure windows";
+        }
+        if ("unknown".equals(ws.timingStatus())) {
+            return "Closure timing unavailable";
         }
         return window(alert.getActivePeriodStart(), alert.getActivePeriodEnd());
     }

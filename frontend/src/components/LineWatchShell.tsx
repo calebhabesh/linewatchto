@@ -2000,7 +2000,7 @@ export function LineWatchShell({
 
   const mobileImpactInspectorOpen =
     isMobile &&
-    mapPresentationMode === "standard" &&
+    (mapPresentationMode === "standard" || selectedNetwork === "regional") &&
     activeView === "map" &&
     Boolean(selection) &&
     !selectedStationId &&
@@ -2009,7 +2009,7 @@ export function LineWatchShell({
 
   const mobileStationInspectorOpen =
     isMobile &&
-    mapPresentationMode === "standard" &&
+    (mapPresentationMode === "standard" || selectedNetwork === "regional") &&
     activeView === "map" &&
     Boolean(selectedStationId) &&
     !accountDialogMode &&
@@ -3308,7 +3308,7 @@ export function LineWatchShell({
                 onRecenter={() => setRecenterSignal((prev) => prev + 1)}
               />
             </div>
-            {rotatedSelectionVisible ? (
+            {rotatedSelectionVisible && !mobileInspectorOpen ? (
               <div className={rotatedMapSelectionHudClassName} aria-label="Selected rotated map item">
                 <RotatedMapSelectionCard
                   selection={selection}
@@ -3369,7 +3369,7 @@ export function LineWatchShell({
         />
       )}
 
-      {!showClosedScreen && !rotatedMapMode && selectedNetwork === "regional" && selectedStationId ? (
+      {!showClosedScreen && selectedNetwork === "regional" && selectedStationId ? (
         <RegionalStationDetailPanel
           key={`${selectedStationId}:${stationPanelActivationKey}`}
           station={stationSummaries.find((station) => station.id === selectedStationId) ?? regionalStationSummaries.stations[0]}

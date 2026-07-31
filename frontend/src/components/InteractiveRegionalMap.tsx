@@ -1976,6 +1976,7 @@ function InteractiveRegionalMapComponent({
   onSelectStationId,
   reducedMotion,
   mobilePerformanceMode = false,
+  layoutResetSignal,
   recenterSignal,
   isDark = true,
   animateInitialEntrance = true,
@@ -1995,6 +1996,7 @@ function InteractiveRegionalMapComponent({
   onSelectStationId: (id: string | null) => void;
   reducedMotion: boolean;
   mobilePerformanceMode?: boolean;
+  layoutResetSignal?: number;
   recenterSignal?: number;
   isDark?: boolean;
   animateInitialEntrance?: boolean;
@@ -2972,7 +2974,7 @@ function InteractiveRegionalMapComponent({
 
   useEffect(() => {
     if (!cameraInitializedRef.current || !svgMarkup) return;
-    const layoutKey = `${desktopMenuPinned ? "pinned" : "free"}:${desktopMapTopInset}:${desktopMapBottomInset}`;
+    const layoutKey = `${layoutResetSignal ?? 0}:${desktopMenuPinned ? "pinned" : "free"}:${desktopMapTopInset}:${desktopMapBottomInset}:${viewportOrientation}`;
 
     if (!focusTargetKey) {
       if (lastFocusedTargetKeyRef.current !== null) {
@@ -3005,8 +3007,10 @@ function InteractiveRegionalMapComponent({
     fitNetwork,
     focusSelectedMapElements,
     focusTargetKey,
+    layoutResetSignal,
     preserveCameraOnSelectionClear,
     svgMarkup,
+    viewportOrientation,
   ]);
 
   const scheduleCameraCommit = useCallback(() => {
