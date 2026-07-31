@@ -1348,6 +1348,12 @@ test("station detail shows accessibility facilities and active outage warning", 
   await expect(arrivalsSection.getByText("3m")).toBeVisible();
   await expect(arrivalsSection.getByText("Scheduled arrivals use TTC timetable data and are not live train predictions.")).toBeVisible();
   await expect(arrivalsSection.getByText(/demo placeholders/)).toHaveCount(0);
+  const lineOnePinButtons = arrivalsSection.getByRole("button", { name: "Pin Line 1 arrivals at Stub Station" });
+  await expect(lineOnePinButtons).toHaveCount(2);
+  await lineOnePinButtons.first().click();
+  await expect(arrivalsSection.getByRole("button", { name: "Unpin Line 1 arrivals at Stub Station" })).toHaveCount(2);
+  await expect.poll(() => page.evaluate(() => window.localStorage.getItem("linewatch-arrival-line-pins-v1")))
+    .toContain('"lineId":"line-1"');
 
   const activeClosureImpact = stationPanel.locator("#station-impact-stub-closure-line-1");
   await expect(activeClosureImpact.getByText("Active Closure", { exact: true })).toBeVisible();

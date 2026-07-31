@@ -39,6 +39,9 @@ import { ImpactTypeIcon } from "./ImpactTypeIcon";
 import { TransitLineBadge } from "./TransitLineBadge";
 import { StationImpactTypeBadges } from "./StationImpactTypeBadges";
 import { StationOutageBadge } from "./StationOutageBadge";
+import { ArrivalLinePinButton } from "./ArrivalLinePinButton";
+import { sortArrivalGroupsByPinnedLine } from "../app/arrival-pins";
+import { useArrivalLinePins } from "../hooks/useArrivalLinePins";
 
 type Props = {
   accountState?: AccountState;
@@ -247,6 +250,8 @@ function SavedStationRow({
 }) {
   const dashboard = useDashboardData();
   const regional = saved.networkId === "regional";
+  const { pinnedLineIds, togglePin } = useArrivalLinePins(saved.networkId, saved.station.id);
+  const [hoveredPinLineId, setHoveredPinLineId] = useState<string | null>(null);
   const detail = detailResult?.data ?? null;
   const directlyLinkedImpacts = detail?.impacts.filter((impact) =>
     impact.type === "active-alert" || impact.type === "planned-closure"
@@ -280,17 +285,17 @@ function SavedStationRow({
   })();
   const hasUnavailableArrivals = detail?.arrivals.some((arrival) => arrival.status === "unavailable") ?? false;
   const hasLiveArrivals = detail?.arrivals.some((arrival) => arrival.status === "live") ?? false;
-  const arrivalGroups = detail && !hasUnavailableArrivals
+  const arrivalGroups = sortArrivalGroupsByPinnedLine(detail && !hasUnavailableArrivals
     ? groupStationArrivals(detail.arrivals, detail.lines, {
         stationId: detail.id,
         maxArrivalsPerDirection: 2,
         includeEmptyDirections: hasLiveArrivals,
       })
-    : [];
+    : [], pinnedLineIds);
   const regionalArrivalSnapshot = regionalArrivalResult?.data;
-  const regionalArrivalGroups = regionalArrivalSnapshot
+  const regionalArrivalGroups = sortArrivalGroupsByPinnedLine(regionalArrivalSnapshot
     ? groupRegionalStationArrivals(regionalArrivalSnapshot.arrivals, saved.station.id)
-    : [];
+    : [], pinnedLineIds);
   const regionalInformationReady = regionalDataLoaded && Boolean(regionalArrivalSnapshot);
 
   return (
@@ -426,12 +431,14 @@ function SavedStationRow({
                   const hasLive = arrivals.some((arrival) => arrival.status === "live");
                   const hasScheduled = arrivals.some((arrival) => arrival.status === "scheduled");
                   const sourceLabel = hasLive && hasScheduled ? "Mixed" : hasLive ? "Live" : "Scheduled";
+                  const isPinned = pinnedLineIds.includes(group.lineId);
+                  const isHoveredPin = hoveredPinLineId === group.lineId;
                   return (
                     <Fragment key={group.key}>
                       {showLineDivider && (
                         <div className="station-arrival-line-divider my-1" aria-hidden="true" />
                       )}
-                      <div className="saved-station-arrival-group">
+                      <div className={`saved-station-arrival-group${isPinned || isHoveredPin ? " is-pinned" : ""}`}>
                         <TransitLineBadge
                           lineId={group.lineId}
                           lineNumber={group.lineNumber}
@@ -444,6 +451,15 @@ function SavedStationRow({
                           <span className="saved-station-arrival-destination">{group.destinationLabel}</span>
                         </span>
                         <span className={`saved-station-arrival-source source-${sourceLabel.toLowerCase()}`}>{sourceLabel}</span>
+                        <ArrivalLinePinButton
+                          pinned={isPinned}
+                          hovered={isHoveredPin}
+                          onHoverChange={(hovered) => setHoveredPinLineId(hovered ? group.lineId : null)}
+                          lineLabel={group.lineNumber}
+                          stationName={saved.station.name}
+                          onToggle={() => togglePin(group.lineId)}
+                          compact
+                        />
                         <span className="saved-station-arrival-times">
                           {arrivals.map((arrival, index) => {
                             const due = isRegionalArrivalDue(arrival, arrivalTick);
@@ -575,12 +591,14 @@ function SavedStationRow({
                     emptyLiveDirection: hasLiveArrivals && group.arrivals.length === 0,
                   });
                   const direction = formatCondensedArrivalDirection(group.directionLabel);
+                  const isPinned = pinnedLineIds.includes(group.lineId);
+                  const isHoveredPin = hoveredPinLineId === group.lineId;
                   return (
                     <Fragment key={group.key}>
                       {showLineDivider && (
                         <div className="station-arrival-line-divider my-1" aria-hidden="true" />
                       )}
-                      <div className="saved-station-arrival-group">
+                      <div className={`saved-station-arrival-group${isPinned || isHoveredPin ? " is-pinned" : ""}`}>
                         <TransitLineBadge
                           lineId={group.lineId}
                           lineNumber={group.lineNumber}
@@ -593,6 +611,15 @@ function SavedStationRow({
                           {direction.destination ? <span className="saved-station-arrival-destination">{direction.destination}</span> : null}
                         </span>
                         <span className={`saved-station-arrival-source source-${sourceLabel.toLowerCase().replaceAll(" ", "-")}`}>{sourceLabel}</span>
+                        <ArrivalLinePinButton
+                          pinned={isPinned}
+                          hovered={isHoveredPin}
+                          onHoverChange={(hovered) => setHoveredPinLineId(hovered ? group.lineId : null)}
+                          lineLabel={`Line ${group.lineNumber}`}
+                          stationName={saved.station.name}
+                          onToggle={() => togglePin(group.lineId)}
+                          compact
+                        />
                         <span className="saved-station-arrival-times">
                           {group.arrivals.length > 0
                             ? group.arrivals.map((arrival, index) => {

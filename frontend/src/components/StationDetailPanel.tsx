@@ -16,6 +16,7 @@ import {
   isArrivalDue,
   shouldUseDetailedArrivalCountdown,
 } from "../app/station-arrivals";
+import { sortArrivalGroupsByPinnedLine } from "../app/arrival-pins";
 import type { StationArrival, StationDataResult, StationDetail, StationImpact } from "../app/station-data";
 import { distinctStationImpacts } from "../app/station-impact-types";
 import { useDashboardData } from "../app/DataContext";
@@ -32,6 +33,8 @@ import type {
 import { DelayIcon } from "./DelayIcon";
 import { PlannedClosureIcon } from "./PlannedClosureIcon";
 import { StationDetailHeader } from "./StationDetailHeader";
+import { ArrivalLinePinButton } from "./ArrivalLinePinButton";
+import { useArrivalLinePins } from "../hooks/useArrivalLinePins";
 
 type Props = {
   stationResult: StationDataResult<StationDetail | null> | null;
@@ -250,7 +253,7 @@ function stationImpactButtonClassName(tone: StationImpactDetailsTarget["tone"]) 
 }
 
 function arrivalSourceBadgeClassName(label: string) {
-  const base = "ml-auto inline-flex h-5 shrink-0 items-center rounded border px-1.5 text-[10px] font-black uppercase tracking-wide";
+  const base = "inline-flex h-[22px] shrink-0 items-center rounded border px-2 text-[10.5px] font-black uppercase tracking-wide leading-none";
   if (label === "Live") {
     return `${base} border-emerald-500/35 bg-emerald-500/10 text-emerald-700 dark:text-emerald-200`;
   }
@@ -278,6 +281,8 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
   const { activeAlerts, delays, reducedSpeedZones, plannedClosures } = useDashboardData();
   const subwayOperatingState = useSubwayOperatingState();
   const station = stationResult?.data ?? null;
+  const { pinnedLineIds, togglePin } = useArrivalLinePins("ttc", station?.id ?? null);
+  const [hoveredPinLineId, setHoveredPinLineId] = useState<string | null>(null);
   const source = stationResult?.source;
   const distinctImpacts = station
     ? distinctStationImpacts(station.impacts, { activeAlerts, delays, reducedSpeedZones, plannedClosures })
@@ -574,12 +579,12 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
             const arrivalsDisrupted = station.arrivalContext ? station.arrivalContext.scheduleMayBeDisrupted : false;
             const hasUnavailableArrivals = station.arrivals.some((arrival) => arrival.status === "unavailable");
             const hasLiveArrivals = station.arrivals.some((arrival) => arrival.status === "live");
-            const arrivalGroups = hasUnavailableArrivals
+            const arrivalGroups = sortArrivalGroupsByPinnedLine(hasUnavailableArrivals
               ? []
               : groupStationArrivals(station.arrivals, station.lines, {
                 stationId: station.id,
                 includeEmptyDirections: hasLiveArrivals,
-              });
+              }), pinnedLineIds);
             const arrivalDisclaimer = formatArrivalDisclaimer(station.arrivals, station.disclaimer);
             const arrivalSectionClassName = [
               "rounded-lg border p-3 transition-colors",
@@ -651,6 +656,8 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
                     </p>
                   ) : arrivalGroups.map((group, groupIndex) => {
                     const showLineDivider = groupIndex > 0 && arrivalGroups[groupIndex - 1]?.lineId !== group.lineId;
+                    const isPinned = pinnedLineIds.includes(group.lineId);
+                    const isHoveredPin = hoveredPinLineId === group.lineId;
                     const emptyLiveDirection = hasLiveArrivals && group.arrivals.length === 0;
                     const groupSourceLabel = formatArrivalSourceBadgeLabel(group.arrivals, { emptyLiveDirection });
                     const groupSourceTitle = emptyLiveDirection
@@ -671,9 +678,14 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
                         )}
                         <div
                           data-arrival-group={group.key}
-                          className="rounded-md border border-black/10 bg-white/80 p-3 text-sm shadow-sm dark:border-white/10 dark:bg-[#12151c]/80"
+                          data-pinned-line={isPinned ? "true" : "false"}
+                          className={`rounded-md border p-3 text-sm shadow-sm transition-colors duration-150 ${
+                            isPinned || isHoveredPin
+                              ? "border-amber-400/60 bg-amber-400/[0.06] dark:border-amber-400/50 dark:bg-amber-400/[0.08]"
+                              : "border-black/10 bg-white/80 dark:border-white/10 dark:bg-[#12151c]/80"
+                          }`}
                         >
-                          <div className="flex min-w-0 items-start gap-3">
+                          <div className="flex min-w-0 items-center gap-3">
                             <TransitLineBadge lineId={group.lineId} lineNumber={group.lineNumber} lineName={group.line?.name} size={28} className="shrink-0" />
                             {(() => {
                               const match = group.directionLabel.match(/^(Northbound|Southbound|Eastbound|Westbound)\s+to\s+(.+)$/i);
@@ -697,14 +709,24 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
                                 </strong>
                               );
                             })()}
-                            <span
-                              className={arrivalSourceBadgeClassName(groupSourceLabel)}
-                              data-arrival-source={groupSourceLabel.toLowerCase()}
-                              title={groupSourceTitle}
-                              aria-label={groupSourceTitle}
-                            >
-                              {groupSourceLabel}
-                            </span>
+                            <div className="ml-auto flex shrink-0 items-center gap-2 self-center">
+                              <span
+                                className={arrivalSourceBadgeClassName(groupSourceLabel)}
+                                data-arrival-source={groupSourceLabel.toLowerCase()}
+                                title={groupSourceTitle}
+                                aria-label={groupSourceTitle}
+                              >
+                                {groupSourceLabel}
+                              </span>
+                              <ArrivalLinePinButton
+                                pinned={isPinned}
+                                hovered={isHoveredPin}
+                                onHoverChange={(hovered) => setHoveredPinLineId(hovered ? group.lineId : null)}
+                                lineLabel={`Line ${group.lineNumber}`}
+                                stationName={station.name}
+                                onToggle={() => togglePin(group.lineId)}
+                              />
+                            </div>
                           </div>
                           {group.arrivals.length === 0 ? (
                             <p className="mt-2 text-center text-xs font-semibold text-slate-500 dark:text-slate-400">

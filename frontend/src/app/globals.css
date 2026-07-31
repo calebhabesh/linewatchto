@@ -1782,9 +1782,125 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
   border-radius: 5px;
   display: grid;
   gap: 7px;
-  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  grid-template-columns: auto minmax(0, 1fr) auto auto auto;
   min-height: 44px;
   padding: 7px 8px;
+  transition: background-color 150ms ease, border-color 150ms ease;
+}
+
+.saved-station-arrival-group.is-pinned {
+  background: rgba(245, 158, 11, 0.06);
+  border-color: rgba(245, 158, 11, 0.5);
+}
+
+.dark .saved-station-arrival-group.is-pinned {
+  background: rgba(251, 191, 36, 0.08);
+  border-color: rgba(251, 191, 36, 0.5);
+}
+
+.arrival-line-pin {
+  align-items: center;
+  background: transparent !important;
+  border: none;
+  border-radius: 4px;
+  color: rgb(148, 163, 184);
+  display: inline-flex;
+  flex: 0 0 auto;
+  height: 28px;
+  justify-content: center;
+  margin-left: 2px;
+  padding: 0;
+  transition: color 150ms ease, transform 150ms ease;
+  width: 28px;
+}
+
+.arrival-line-pin svg {
+  transition: fill 150ms ease, stroke 150ms ease, transform 150ms ease;
+}
+
+.arrival-line-pin.is-hovered,
+.arrival-line-pin:hover {
+  background: transparent !important;
+  color: rgb(245, 158, 11);
+}
+
+.arrival-line-pin.is-hovered svg,
+.arrival-line-pin.is-hovered svg polygon,
+.arrival-line-pin.is-hovered svg path,
+.arrival-line-pin:hover svg,
+.arrival-line-pin:hover svg polygon,
+.arrival-line-pin:hover svg path {
+  fill: rgba(245, 158, 11, 0.3) !important;
+  stroke: rgb(245, 158, 11) !important;
+}
+
+.arrival-line-pin:active {
+  transform: scale(0.92);
+}
+
+.arrival-line-pin:focus-visible {
+  outline: 2px solid rgb(14, 165, 233);
+  outline-offset: 1px;
+}
+
+.arrival-line-pin.is-pinned {
+  background: transparent !important;
+  color: rgb(245, 158, 11);
+}
+
+.arrival-line-pin.is-pinned svg,
+.arrival-line-pin.is-pinned svg polygon,
+.arrival-line-pin.is-pinned svg path {
+  fill: currentColor !important;
+  stroke: currentColor !important;
+}
+
+.arrival-line-pin.is-pinned:hover {
+  background: transparent !important;
+  color: rgb(217, 119, 6);
+}
+
+.arrival-line-pin.is-compact {
+  height: 24px;
+  margin-left: 0;
+  width: 24px;
+}
+
+.dark .arrival-line-pin {
+  color: rgb(148, 163, 184);
+}
+
+.dark .arrival-line-pin.is-hovered,
+.dark .arrival-line-pin:hover {
+  background: transparent !important;
+  color: rgb(251, 191, 36);
+}
+
+.dark .arrival-line-pin.is-hovered svg,
+.dark .arrival-line-pin.is-hovered svg polygon,
+.dark .arrival-line-pin.is-hovered svg path,
+.dark .arrival-line-pin:hover svg,
+.dark .arrival-line-pin:hover svg polygon,
+.dark .arrival-line-pin:hover svg path {
+  fill: rgba(251, 191, 36, 0.35) !important;
+  stroke: rgb(251, 191, 36) !important;
+}
+
+.dark .arrival-line-pin.is-pinned {
+  background: transparent !important;
+  color: rgb(251, 191, 36);
+}
+
+.dark .arrival-line-pin.is-pinned svg,
+.dark .arrival-line-pin.is-pinned svg polygon,
+.dark .arrival-line-pin.is-pinned svg path {
+  fill: currentColor !important;
+  stroke: currentColor !important;
+}
+
+.dark .arrival-line-pin.is-pinned:hover {
+  background: transparent !important;
+  color: rgb(253, 224, 71);
 }
 
 .saved-station-arrival-line-badge {
