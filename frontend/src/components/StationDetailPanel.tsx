@@ -654,132 +654,188 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
                     <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">
                       {hasLiveArrivals ? "Refreshing Live Arrivals" : "No Arrivals Available"}
                     </p>
-                  ) : arrivalGroups.map((group, groupIndex) => {
-                    const showLineDivider = groupIndex > 0 && arrivalGroups[groupIndex - 1]?.lineId !== group.lineId;
-                    const isPinned = pinnedLineIds.includes(group.lineId);
-                    const isHoveredPin = hoveredPinLineId === group.lineId;
-                    const emptyLiveDirection = hasLiveArrivals && group.arrivals.length === 0;
-                    const groupSourceLabel = formatArrivalSourceBadgeLabel(group.arrivals, { emptyLiveDirection });
-                    const groupSourceTitle = emptyLiveDirection
-                      ? "Live source checked; no prediction for this direction"
-                      : arrivalSourceTitle(group.arrivals);
-                    const groupEmptyMessage = emptyLiveDirection
-                      ? "No live ETA for this direction right now. Live updates may appear at any moment."
-                      : "No Arrivals Available";
+                  ) : (() => {
+                    const arrivalLineSections: {
+                      lineId: string;
+                      lineNumber: string;
+                      lineName?: string;
+                      groups: typeof arrivalGroups;
+                    }[] = [];
+                    for (const group of arrivalGroups) {
+                      let section = arrivalLineSections.find((s) => s.lineId === group.lineId);
+                      if (!section) {
+                        section = {
+                          lineId: group.lineId,
+                          lineNumber: group.lineNumber,
+                          lineName: group.line?.name,
+                          groups: [],
+                        };
+                        arrivalLineSections.push(section);
+                      }
+                      section.groups.push(group);
+                    }
 
-                    return (
-                      <Fragment key={group.key}>
-                        {showLineDivider && (
+                    return arrivalLineSections.map((section, sectionIndex) => {
+                      const showLineDivider = sectionIndex > 0;
+                      const isPinned = pinnedLineIds.includes(section.lineId);
+                      const isHoveredPin = hoveredPinLineId === section.lineId;
+
+                      return (
+                        <Fragment key={section.lineId}>
+                          {showLineDivider && (
+                            <div
+                              aria-hidden="true"
+                              className="station-arrival-line-divider"
+                              data-arrival-line-divider
+                            />
+                          )}
                           <div
-                            aria-hidden="true"
-                            className="station-arrival-line-divider"
-                            data-arrival-line-divider
-                          />
-                        )}
-                        <div
-                          data-arrival-group={group.key}
-                          data-pinned-line={isPinned ? "true" : "false"}
-                          className={`rounded-md border p-3 text-sm shadow-sm transition-colors duration-150 ${
-                            isPinned || isHoveredPin
-                              ? "border-amber-400/60 bg-amber-400/[0.06] dark:border-amber-400/50 dark:bg-amber-400/[0.08]"
-                              : "border-black/10 bg-white/80 dark:border-white/10 dark:bg-[#12151c]/80"
-                          }`}
-                        >
-                          <div className="flex min-w-0 items-center gap-3">
-                            <TransitLineBadge lineId={group.lineId} lineNumber={group.lineNumber} lineName={group.line?.name} size={28} className="shrink-0" />
-                            {(() => {
-                              const match = group.directionLabel.match(/^(Northbound|Southbound|Eastbound|Westbound)\s+to\s+(.+)$/i);
-                              if (match) {
-                                const directionPart = match[1];
-                                const destinationPart = `To ${match[2]}`;
-                                return (
-                                  <div className="flex flex-col min-w-0 leading-tight">
-                                    <strong className="min-w-0 break-words font-black text-slate-900 dark:text-white">
-                                      {directionPart}
-                                    </strong>
-                                    <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
-                                      {destinationPart}
-                                    </span>
-                                  </div>
-                                );
-                              }
-                              return (
-                                <strong className="min-w-0 break-words font-black text-slate-900 dark:text-white">
-                                  {group.directionLabel}
-                                </strong>
-                              );
-                            })()}
-                            <div className="ml-auto flex shrink-0 items-center gap-2 self-center">
-                              <span
-                                className={arrivalSourceBadgeClassName(groupSourceLabel)}
-                                data-arrival-source={groupSourceLabel.toLowerCase()}
-                                title={groupSourceTitle}
-                                aria-label={groupSourceTitle}
-                              >
-                                {groupSourceLabel}
-                              </span>
+                            data-arrival-line-section={section.lineId}
+                            data-pinned-line={isPinned ? "true" : "false"}
+                            className="flex flex-col gap-2"
+                          >
+                            <div className="flex items-center justify-between px-1 py-1">
+                              <div className="flex items-center gap-2.5 min-w-0">
+                                <TransitLineBadge
+                                  lineId={section.lineId}
+                                  lineNumber={section.lineNumber}
+                                  lineName={section.lineName}
+                                  size={26}
+                                  className="shrink-0"
+                                />
+                                <span className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-white truncate">
+                                  {section.lineName ? `Line ${section.lineNumber} - ${section.lineName}` : `Line ${section.lineNumber}`}
+                                </span>
+                              </div>
                               <ArrivalLinePinButton
                                 pinned={isPinned}
                                 hovered={isHoveredPin}
-                                onHoverChange={(hovered) => setHoveredPinLineId(hovered ? group.lineId : null)}
-                                lineLabel={`Line ${group.lineNumber}`}
+                                onHoverChange={(hovered) => setHoveredPinLineId(hovered ? section.lineId : null)}
+                                lineLabel={`Line ${section.lineNumber}`}
                                 stationName={station.name}
-                                onToggle={() => togglePin(group.lineId)}
+                                onToggle={() => togglePin(section.lineId)}
                               />
                             </div>
-                          </div>
-                          {group.arrivals.length === 0 ? (
-                            <p className="mt-2 text-center text-xs font-semibold text-slate-500 dark:text-slate-400">
-                              {groupEmptyMessage}
-                            </p>
-                          ) : group.arrivals.length === 1 && group.arrivals[0].label.toLowerCase() === "no scheduled service" ? (
-                            <p className="mt-2 text-center text-xs font-semibold text-slate-500 dark:text-slate-400">
-                              No Scheduled Service
-                            </p>
-                          ) : (
-                            <div className="mt-3 grid grid-cols-3 gap-2">
-                              {group.arrivals.map((arrival, index) => {
-                                const detailedCountdown = index === 0 && shouldUseDetailedArrivalCountdown(arrival, arrivalTick);
-                                const due = isArrivalDue(arrival, arrivalTick);
-                                const clockTime = formatArrivalClockTime(arrival.predictedAt);
-                                const arrivalLabelClassName = detailedCountdown && !due
-                                  ? "whitespace-nowrap text-xs sm:text-lg font-black leading-none tabular-nums"
-                                  : "text-base sm:text-lg font-black leading-none";
-                                const arrivalTileClassName = [
-                                  "flex min-h-[66px] flex-col items-center justify-center rounded-md border px-2 py-2 text-center transition-colors",
-                                  due
-                                    ? "border-red-400/80 bg-red-900/85 text-red-50 shadow-[0_0_0_1px_rgba(248,113,113,0.25)]"
-                                    : detailedCountdown
-                                      ? "border-emerald-400/35 bg-emerald-500/10 text-slate-900 shadow-[0_0_0_1px_rgba(52,211,153,0.12)] dark:border-emerald-400/25 dark:bg-emerald-400/10 dark:text-white"
-                                      : "border-black/10 bg-slate-950/[0.03] text-slate-900 dark:border-white/10 dark:bg-[#0f1117] dark:text-white",
-                                ].join(" ");
+                            <div className="flex flex-col gap-2">
+                              {section.groups.map((group) => {
+                                const emptyLiveDirection = hasLiveArrivals && group.arrivals.length === 0;
+                                const groupSourceLabel = formatArrivalSourceBadgeLabel(group.arrivals, { emptyLiveDirection });
+                                const groupSourceTitle = emptyLiveDirection
+                                  ? "Live source checked; no prediction for this direction"
+                                  : arrivalSourceTitle(group.arrivals);
+                                const groupEmptyMessage = emptyLiveDirection
+                                  ? "No live ETA for this direction right now. Live updates may appear at any moment."
+                                  : "No Arrivals Available";
 
                                 return (
                                   <div
-                                    key={`${arrival.lineId}-${arrival.direction}-${arrival.predictedAt ?? arrival.label}-${index}`}
-                                    data-arrival-due={due ? "true" : "false"}
-                                    className={arrivalTileClassName}
+                                    key={group.key}
+                                    data-arrival-group={group.key}
+                                    data-pinned-line={isPinned ? "true" : "false"}
+                                    className={`rounded-md border p-3 text-sm shadow-sm transition-colors duration-150 ${
+                                      isPinned || isHoveredPin
+                                        ? "border-amber-400/60 bg-amber-400/[0.06] dark:border-amber-400/50 dark:bg-amber-400/[0.08]"
+                                        : "border-black/10 bg-white/80 dark:border-white/10 dark:bg-[#12151c]/80"
+                                    }`}
                                   >
-                                    <strong className={arrivalLabelClassName}>
-                                      {formatArrivalTileLabel(arrival, { detailedCountdown, now: arrivalTick })}
-                                    </strong>
-                                    {clockTime && (
-                                      <span className={due
-                                        ? "mt-1 text-xs font-semibold text-red-100/80"
-                                        : "mt-1 text-xs font-semibold text-slate-500 dark:text-slate-400"}
-                                      >
-                                        {clockTime}
-                                      </span>
+                                    <div className="flex min-w-0 items-center gap-3">
+                                      <TransitLineBadge
+                                        lineId={section.lineId}
+                                        lineNumber={section.lineNumber}
+                                        lineName={section.lineName}
+                                        size={28}
+                                        className="shrink-0"
+                                      />
+                                      {(() => {
+                                        const match = group.directionLabel.match(/^(Northbound|Southbound|Eastbound|Westbound)\s+to\s+(.+)$/i);
+                                        if (match) {
+                                          const directionPart = match[1];
+                                          const destinationPart = `To ${match[2]}`;
+                                          return (
+                                            <div className="flex flex-col min-w-0 leading-tight">
+                                              <strong className="min-w-0 break-words font-black text-slate-900 dark:text-white">
+                                                {directionPart}
+                                              </strong>
+                                              <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                                                {destinationPart}
+                                              </span>
+                                            </div>
+                                          );
+                                        }
+                                        return (
+                                          <strong className="min-w-0 break-words font-black text-slate-900 dark:text-white">
+                                            {group.directionLabel}
+                                          </strong>
+                                        );
+                                      })()}
+                                      <div className="ml-auto flex shrink-0 items-center gap-2 self-center">
+                                        <span
+                                          className={arrivalSourceBadgeClassName(groupSourceLabel)}
+                                          data-arrival-source={groupSourceLabel.toLowerCase()}
+                                          title={groupSourceTitle}
+                                          aria-label={groupSourceTitle}
+                                        >
+                                          {groupSourceLabel}
+                                        </span>
+                                      </div>
+                                    </div>
+                                    {group.arrivals.length === 0 ? (
+                                      <p className="mt-2 text-center text-xs font-semibold text-slate-500 dark:text-slate-400">
+                                        {groupEmptyMessage}
+                                      </p>
+                                    ) : group.arrivals.length === 1 && group.arrivals[0].label.toLowerCase() === "no scheduled service" ? (
+                                      <p className="mt-2 text-center text-xs font-semibold text-slate-500 dark:text-slate-400">
+                                        No Scheduled Service
+                                      </p>
+                                    ) : (
+                                      <div className="mt-3 grid grid-cols-3 gap-2">
+                                        {group.arrivals.map((arrival, index) => {
+                                          const detailedCountdown = index === 0 && shouldUseDetailedArrivalCountdown(arrival, arrivalTick);
+                                          const due = isArrivalDue(arrival, arrivalTick);
+                                          const clockTime = formatArrivalClockTime(arrival.predictedAt);
+                                          const arrivalLabelClassName = detailedCountdown && !due
+                                            ? "whitespace-nowrap text-xs sm:text-lg font-black leading-none tabular-nums"
+                                            : "text-base sm:text-lg font-black leading-none";
+                                          const arrivalTileClassName = [
+                                            "flex min-h-[66px] flex-col items-center justify-center rounded-md border px-2 py-2 text-center transition-colors",
+                                            due
+                                              ? "border-red-400/80 bg-red-900/85 text-red-50 shadow-[0_0_0_1px_rgba(248,113,113,0.25)]"
+                                              : detailedCountdown
+                                                ? "border-emerald-400/35 bg-emerald-500/10 text-slate-900 shadow-[0_0_0_1px_rgba(52,211,153,0.12)] dark:border-emerald-400/25 dark:bg-emerald-400/10 dark:text-white"
+                                                : "border-black/10 bg-slate-950/[0.03] text-slate-900 dark:border-white/10 dark:bg-[#0f1117] dark:text-white",
+                                          ].join(" ");
+
+                                          return (
+                                            <div
+                                              key={`${arrival.lineId}-${arrival.direction}-${arrival.predictedAt ?? arrival.label}-${index}`}
+                                              data-arrival-due={due ? "true" : "false"}
+                                              className={arrivalTileClassName}
+                                            >
+                                              <strong className={arrivalLabelClassName}>
+                                                {formatArrivalTileLabel(arrival, { detailedCountdown, now: arrivalTick })}
+                                              </strong>
+                                              {clockTime && (
+                                                <span className={due
+                                                  ? "mt-1 text-xs font-semibold text-red-100/80"
+                                                  : "mt-1 text-xs font-semibold text-slate-500 dark:text-slate-400"}
+                                                >
+                                                  {clockTime}
+                                                </span>
+                                              )}
+                                            </div>
+                                          );
+                                        })}
+                                      </div>
                                     )}
                                   </div>
                                 );
                               })}
                             </div>
-                          )}
-                        </div>
-                      </Fragment>
-                    );
-                  })}
+                          </div>
+                        </Fragment>
+                      );
+                    });
+                  })()}
                 </div>
                 <p className="mt-2 text-[11px] text-slate-500">{arrivalDisclaimer}</p>
 	              </section>

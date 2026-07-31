@@ -82,7 +82,7 @@ describe("station detail panel layout", () => {
   it("separates transfer-station arrival groups only when the transit line changes", () => {
     assert.match(panelSource, /station-arrival-line-divider/);
     assert.match(panelSource, /data-arrival-line-divider/);
-    assert.match(panelSource, /arrivalGroups\[groupIndex - 1\]\?\.lineId !== group\.lineId/);
+    assert.match(panelSource, /showLineDivider = sectionIndex > 0/);
     assert.match(globalCss, /\.station-arrival-line-divider\s*\{[^}]*height:\s*3px;/s);
     assert.match(globalCss, /\.station-arrival-line-divider\s*\{[^}]*linear-gradient/s);
     assert.doesNotMatch(panelSource, /border-t.*data-arrival-group/);
