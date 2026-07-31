@@ -150,6 +150,42 @@ class RegionalArrivalServiceTest {
     }
 
     @Test
+    void fillsTheMissingUpDirectionFromScheduleAtPearsonTerminal() {
+        MetrolinxArrivalClient client = mock(MetrolinxArrivalClient.class);
+        RegionalScheduledArrivalProvider scheduled = mock(RegionalScheduledArrivalProvider.class);
+        RegionalArrivalProperties properties = new RegionalArrivalProperties();
+        properties.setEnabled(true);
+        properties.setScheduleEnabled(true);
+        OffsetDateTime updatedAt = OffsetDateTime.parse("2026-07-28T19:47:43Z");
+        when(client.fetchUpTripUpdates("PA")).thenReturn(new RegionalArrivalFeed(updatedAt, List.of(
+            arrival("regional-up", "Pearson Airport", "2026-07-28T19:50:00Z")
+        )));
+        when(scheduled.arrivals("pearson-airport", List.of("regional-up"))).thenReturn(List.of(
+            regionalScheduledArrival(
+                "regional-up", "Pearson Airport", "2026-07-28T20:00:00Z", "UP200"
+            ),
+            regionalScheduledArrival(
+                "regional-up", "Union Station", "2026-07-28T19:55:00Z", "UP101"
+            )
+        ));
+        when(scheduled.hasActiveSchedule(List.of("regional-up"))).thenReturn(true);
+        RegionalArrivalService service = new RegionalArrivalService(client, scheduled, properties, CLOCK);
+
+        RegionalArrivalResponses.SnapshotResponse response = service.arrivals("pearson-airport");
+
+        assertThat(response.arrivals())
+            .extracting(
+                RegionalArrivalResponses.ArrivalResponse::direction,
+                RegionalArrivalResponses.ArrivalResponse::status
+            )
+            .containsExactly(
+                org.assertj.core.groups.Tuple.tuple("Pearson Airport", "live"),
+                org.assertj.core.groups.Tuple.tuple("Union Station", "scheduled")
+            );
+        assertThat(response.message()).isEqualTo("Fresh estimates with published schedule fallback.");
+    }
+
+    @Test
     void deduplicatesRepeatedRealtimeRowsBeforeBoundingDirections() {
         MetrolinxArrivalClient client = mock(MetrolinxArrivalClient.class);
         RegionalScheduledArrivalProvider scheduled = mock(RegionalScheduledArrivalProvider.class);

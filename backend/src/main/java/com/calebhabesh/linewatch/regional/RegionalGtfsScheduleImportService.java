@@ -61,7 +61,7 @@ public class RegionalGtfsScheduleImportService {
                     serviceIds.add(serviceId);
                     trips.put(row.value("trip_id"), new TripInfo(
                         route.lineId(), serviceId,
-                        firstNonBlank(row.value("trip_headsign"), route.name())
+                        tripDirection(sourceSystem, route, row)
                     ));
                 }
             });
@@ -178,6 +178,17 @@ public class RegionalGtfsScheduleImportService {
 
     private String firstNonBlank(String first, String second) {
         return first == null || first.isBlank() ? second == null ? "" : second : first;
+    }
+
+    private String tripDirection(String sourceSystem, RouteInfo route, GtfsCsvReader.Row row) {
+        if ("up".equals(sourceSystem)) {
+            return switch (row.value("direction_id").trim()) {
+                case "0" -> "Union Station";
+                case "1" -> "Pearson Airport";
+                default -> firstNonBlank(row.value("trip_headsign"), route.name());
+            };
+        }
+        return firstNonBlank(row.value("trip_headsign"), route.name());
     }
 
     private record RouteInfo(String lineId, String name) {}

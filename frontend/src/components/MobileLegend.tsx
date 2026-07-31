@@ -43,7 +43,7 @@ export function MobileLegend({
         isRegional ? "mobile-legend-pill--regional" : ""
       } ${
         expanded
-          ? "w-max max-w-[calc(100vw-32px)] pr-3.5 mobile-legend-pill--expanded"
+          ? "w-max max-w-[215px] pr-3.5 mobile-legend-pill--expanded"
           : isRegional
             ? "w-[40px] max-w-[40px]"
             : "w-[36px] max-w-[36px]"
@@ -70,9 +70,9 @@ export function MobileLegend({
               />
             </div>
             <span
-              className={`legend-line-name font-subway text-[13px] leading-tight font-bold tracking-normal text-slate-800 dark:text-slate-200 overflow-hidden whitespace-nowrap transition-all duration-300 ${
+              className={`legend-line-name font-subway text-[13px] leading-tight font-bold tracking-normal text-slate-800 dark:text-slate-200 overflow-hidden whitespace-nowrap transition-all duration-300 ease-in-out ${
                 expanded
-                  ? "opacity-100 translate-x-0 max-w-[220px]"
+                  ? "opacity-100 translate-x-0 max-w-[165px]"
                   : "w-0 max-w-0 opacity-0 translate-x-1 pointer-events-none"
               }`}
             >

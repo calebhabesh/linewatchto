@@ -81,6 +81,40 @@ class GtfsRtSubwayArrivalProviderTest {
     }
 
     @Test
+    void fillsTheMissingDirectionFromScheduleAtATerminalStation() {
+        OffsetDateTime now = OffsetDateTime.now(clock);
+        cache.replace(new GtfsRtSubwayArrivalSnapshot(now.minusSeconds(20), now.minusSeconds(18), List.of(
+            new GtfsRtSubwayStationArrival(
+                "finch",
+                "line-1",
+                "Northbound",
+                now.plusMinutes(2),
+                "101",
+                "trip-live",
+                "finch-stop"
+            )
+        )));
+        when(scheduledArrivalProvider.arrivalsFor(eq("finch"), any())).thenReturn(List.of(
+            ArrivalPrediction.scheduled(
+                "line-1", "Northbound to Finch", 5, now.plusMinutes(5), "TTC scheduled service"
+            ),
+            ArrivalPrediction.scheduled(
+                "line-1", "Southbound to Vaughan Metropolitan Centre", 6, now.plusMinutes(6),
+                "TTC scheduled service"
+            )
+        ));
+
+        List<ArrivalPrediction> predictions = provider.arrivalsFor("finch", List.of(line1));
+
+        assertThat(predictions)
+            .extracting(ArrivalPrediction::direction, ArrivalPrediction::status)
+            .containsExactly(
+                org.assertj.core.groups.Tuple.tuple("Northbound", "live"),
+                org.assertj.core.groups.Tuple.tuple("Southbound to Vaughan Metropolitan Centre", "scheduled")
+            );
+    }
+
+    @Test
     void usesScheduledLine5HeadsignRowsForThePlatformMissingLivePredictions() {
         OffsetDateTime now = OffsetDateTime.now(clock);
         cache.replace(new GtfsRtSubwayArrivalSnapshot(now.minusSeconds(20), now.minusSeconds(18), List.of(

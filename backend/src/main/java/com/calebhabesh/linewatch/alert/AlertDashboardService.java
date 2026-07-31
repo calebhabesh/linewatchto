@@ -368,8 +368,9 @@ public class AlertDashboardService {
         boolean recurringParentWindow = (!hasStoredPeriods || parentOnlyRecurringWindow)
             && isRecurringClosureParentWindow(alert);
         boolean hasUsablePeriods = hasStoredPeriods && !parentOnlyRecurringWindow;
+        boolean hasChildPeriods = hasStoredPeriods && periods.stream().anyMatch(p -> !isParentPeriod(p));
         List<AlertActivePeriodRepository.AlertPeriod> usablePeriods = hasUsablePeriods
-            ? periods
+            ? (hasChildPeriods ? periods.stream().filter(p -> !isParentPeriod(p)).toList() : periods)
             : recurringParentWindow
                 ? List.of()
                 : List.of(new AlertActivePeriodRepository.AlertPeriod(

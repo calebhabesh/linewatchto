@@ -17889,7 +17889,7 @@ img.transit-line-badge {
   }
 
   .mobile-legend-pill--expanded {
-    max-width: calc(100vw - 32px) !important;
+    max-width: min(215px, calc(100vw - 32px)) !important;
     z-index: 55 !important;
   }
 }
