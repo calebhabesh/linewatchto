@@ -3863,6 +3863,12 @@ button {
   pointer-events: auto;
   position: fixed;
   z-index: 80;
+  animation: opening-disclaimer-backdrop-enter 300ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.opening-disclaimer-backdrop--exiting {
+  animation: opening-disclaimer-backdrop-exit 180ms ease-out forwards;
+  pointer-events: none !important;
 }
 
 .opening-disclaimer-panel {
@@ -3876,6 +3882,14 @@ button {
   overflow-x: hidden;
   overflow-y: auto;
   width: min(100%, 580px);
+  animation: opening-disclaimer-modal-enter 320ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+}
+
+.opening-disclaimer-panel--exiting {
+  animation: opening-disclaimer-modal-exit 180ms cubic-bezier(0.4, 0, 1, 1) forwards;
+  pointer-events: none !important;
 }
 
 .opening-disclaimer-strip {
@@ -7214,7 +7228,7 @@ img.transit-line-badge {
   position: fixed;
   z-index: 35;
   cursor: pointer;
-  animation: subway-closed-backdrop-enter 220ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: subway-closed-backdrop-enter 300ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 .subway-closed-backdrop--exiting {
@@ -7248,7 +7262,7 @@ img.transit-line-badge {
   padding: 32px;
   width: min(100%, 640px);
   pointer-events: auto;
-  animation: subway-closed-modal-enter 200ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: subway-closed-modal-enter 320ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
   will-change: transform, opacity;
   backface-visibility: hidden;
 }
@@ -7765,6 +7779,38 @@ img.transit-line-badge {
   pointer-events: none !important;
 }
 
+@keyframes opening-disclaimer-backdrop-enter {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes opening-disclaimer-backdrop-exit {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+@keyframes opening-disclaimer-modal-enter {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 20px, 0) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes opening-disclaimer-modal-exit {
+  from {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translate3d(0, 12px, 0) scale(0.97);
+  }
+}
+
 @keyframes subway-closed-backdrop-enter {
   from { opacity: 0; }
   to { opacity: 1; }
@@ -7778,7 +7824,7 @@ img.transit-line-badge {
 @keyframes subway-closed-modal-enter {
   from {
     opacity: 0;
-    transform: translate3d(0, 16px, 0) scale(0.95);
+    transform: translate3d(0, 20px, 0) scale(0.96);
   }
   to {
     opacity: 1;

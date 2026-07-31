@@ -24,6 +24,7 @@ function storeDisclaimerAcknowledgement() {
 
 export function OpeningDisclaimer({ onVisibilityChange }: { onVisibilityChange?: (visible: boolean) => void }) {
   const [visible, setVisible] = useState(false);
+  const [isExiting, setIsExiting] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -49,20 +50,34 @@ export function OpeningDisclaimer({ onVisibilityChange }: { onVisibilityChange?:
 
   const handleAcknowledge = () => {
     storeDisclaimerAcknowledgement();
-    setVisible(false);
-    if (onVisibilityChange) {
-      onVisibilityChange(false);
+    setIsExiting(true);
+  };
+
+  const handleAnimationEnd = (event: React.AnimationEvent<HTMLElement>) => {
+    if (
+      isExiting &&
+      event.target === event.currentTarget &&
+      event.animationName === "opening-disclaimer-modal-exit"
+    ) {
+      setVisible(false);
+      if (onVisibilityChange) {
+        onVisibilityChange(false);
+      }
     }
   };
 
   return (
-    <div className="opening-disclaimer-backdrop" role="presentation">
+    <div
+      className={`opening-disclaimer-backdrop ${isExiting ? "opening-disclaimer-backdrop--exiting" : ""}`}
+      role="presentation"
+    >
       <section
         aria-describedby="opening-disclaimer-copy"
         aria-label="Unofficial dashboard"
         aria-modal="true"
-        className="opening-disclaimer-panel"
+        className={`opening-disclaimer-panel ${isExiting ? "opening-disclaimer-panel--exiting" : ""}`}
         role="dialog"
+        onAnimationEnd={handleAnimationEnd}
       >
         <div className="linewatch-transit-accent-strip opening-disclaimer-strip" aria-hidden="true">
           <span />
