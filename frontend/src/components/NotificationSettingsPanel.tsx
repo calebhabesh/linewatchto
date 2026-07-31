@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import {
   AlertTriangle,
   Bell,
@@ -12,6 +12,7 @@ import {
   X,
 } from "lucide-react";
 import type { AccountState } from "../app/account-data";
+import type { NetworkId } from "../app/regional-data";
 import { type UsePushNotificationSettingsResult } from "../hooks/usePushNotificationSettings";
 import { DelayIcon } from "./DelayIcon";
 import { PlannedClosureIcon } from "./PlannedClosureIcon";
@@ -19,6 +20,7 @@ import { TransitLineBadge } from "./TransitLineBadge";
 
 type Props = {
   accountState: AccountState;
+  networkId: NetworkId;
   pushSettings: UsePushNotificationSettingsResult;
   onBack?: () => void;
   onClose?: () => void;
@@ -55,12 +57,14 @@ function NotificationSwitch({
 
 export function NotificationSettingsPanel({
   accountState,
+  networkId,
   pushSettings,
   onBack,
   onClose,
   onRequestSignIn,
   onRequestCreateAccount,
 }: Props) {
+  const [subscriptionNetwork, setSubscriptionNetwork] = useState<NetworkId>(networkId);
   const {
     supported,
     config,
@@ -102,18 +106,13 @@ export function NotificationSettingsPanel({
         return null;
     }
   }, [message, deviceSetupState, deviceNotificationsEnabled]);
-  const lineSubscriptionGroups = [
-    {
-      id: "ttc",
-      label: "TTC Subway & LRT",
-      lines: preferences.lineSubscriptions.lines.filter((line) => !line.lineId.startsWith("regional-")),
-    },
-    {
-      id: "regional",
-      label: "GO & UP Corridors",
-      lines: preferences.lineSubscriptions.lines.filter((line) => line.lineId.startsWith("regional-")),
-    },
-  ];
+  const visibleLineSubscriptions = preferences.lineSubscriptions.lines.filter((line) =>
+    subscriptionNetwork === "regional"
+      ? line.lineId.startsWith("regional-")
+      : !line.lineId.startsWith("regional-")
+  );
+  const enabledVisibleSubscriptionCount = visibleLineSubscriptions.filter((line) => line.subscribed).length;
+  const regionalSubscriptionsVisible = subscriptionNetwork === "regional";
 
   return (
     <section className="notification-settings-panel panel min-w-0 border border-black/10 dark:border-white/10 rounded-lg shadow-xl" aria-label="Notification settings">
@@ -178,7 +177,7 @@ export function NotificationSettingsPanel({
                 <span className="text-xs text-emerald-600 dark:text-emerald-400 font-bold mt-0.5">✓</span>
                 <div className="text-xs">
                   <span className="font-bold text-slate-800 dark:text-slate-200 block">Planned Closure Reminders</span>
-                  <span className="text-slate-500 dark:text-slate-400">Receive advance heads-up notifications for scheduled weekend subway closures and service updates.</span>
+                  <span className="text-slate-500 dark:text-slate-400">Receive advance heads-up notifications for supported TTC and GO/UP planned closures and service updates.</span>
                 </div>
               </div>
 
@@ -271,7 +270,7 @@ export function NotificationSettingsPanel({
                     </span>
                     <div>
                       <strong>Current Disruptions Affecting My Commutes</strong>
-                      <em>Delays, suspensions, Reduced Speed Zones, and cleared updates only when they affect a saved route.</em>
+                      <em>Delays, suspensions, planned closures, TTC Reduced Speed Zones, and cleared updates only when they affect a saved route.</em>
                       {!subscribed && accountNotificationsDesired ? (
                         <p className="notification-settings-muted-warning text-xs text-slate-400 dark:text-slate-500 italic mt-1.5">
                           Account notifications are on. Enable this device to receive pushes here.
@@ -345,64 +344,90 @@ export function NotificationSettingsPanel({
 
             <div className="notification-settings-section">
               <div className="notification-settings-section-header">
-                <h3>Line Subscriptions & GO/UP Corridors</h3>
-                <span>Active</span>
+                <h3>Line &amp; Corridor Subscriptions</h3>
+                <span>{enabledVisibleSubscriptionCount}/{visibleLineSubscriptions.length} On</span>
               </div>
-              <div className="notification-settings-list" aria-label="Line and corridor notification subscriptions">
-                {lineSubscriptionGroups.map((group) => (
-                  <div key={group.id}>
-                    <p className="px-1 pt-2 pb-1 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                      {group.label}
-                    </p>
-                    {group.lines.map((line) => {
-                      const regional = line.lineId.startsWith("regional-");
-                      const identity = regional ? line.lineNumber : `Line ${line.lineNumber}`;
-                      return (
-                        <div className="notification-settings-row flex items-center justify-between py-2 border-b border-black/5 dark:border-white/5 last:border-b-0" key={line.lineId}>
-                          <div className="flex items-center gap-2.5 min-w-0">
-                            <TransitLineBadge lineId={line.lineId} lineNumber={line.lineNumber} lineName={line.label} size={26} className="notification-line-badge shrink-0" />
-                            <span className="notification-settings-row-label min-w-0 truncate">
-                              <strong>{identity}</strong>
-                              <em>{line.label}</em>
-                            </span>
-                          </div>
-                          <div className="notification-settings-row-actions">
-                            <NotificationSwitch
-                              checked={line.subscribed}
-                              disabled={busy || !preferencesLoaded}
-                              label={`Subscribe to ${identity} ${line.label}`}
-                              onChange={(checked) => {
-                                const updatedLines = preferences.lineSubscriptions.lines.map((item) =>
-                                  item.lineId === line.lineId ? { ...item, subscribed: checked } : item
-                                );
-                                updatePreferences({
-                                  ...preferences,
-                                  lineSubscriptions: {
-                                    ...preferences.lineSubscriptions,
-                                    lines: updatedLines,
-                                  },
-                                });
-                              }}
-                            />
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                ))}
+              <div
+                className="account-network-filter notification-network-filter"
+                data-network={subscriptionNetwork}
+                data-options-count="2"
+                role="group"
+                aria-label="Notification subscription network"
+              >
+                <span className="account-network-glider" aria-hidden="true" />
+                <button
+                  type="button"
+                  aria-pressed={subscriptionNetwork === "ttc"}
+                  onClick={() => setSubscriptionNetwork("ttc")}
+                >
+                  TTC
+                </button>
+                <button
+                  type="button"
+                  aria-pressed={subscriptionNetwork === "regional"}
+                  onClick={() => setSubscriptionNetwork("regional")}
+                >
+                  GO &amp; UP
+                </button>
+              </div>
+              <p className="notification-settings-note notification-network-note">
+                {regionalSubscriptionsVisible
+                  ? "Corridor alerts use fresh, supported GO/UP service disruptions. Trip changes, arrivals, accessibility outages, and service notices do not send corridor pushes."
+                  : "Line alerts use fresh, dashboard-visible subway and LRT disruptions. Accessibility outages and streetcar or bus notices do not send line pushes."}
+              </p>
+              <div
+                className="notification-settings-list"
+                aria-label={regionalSubscriptionsVisible ? "GO and UP corridor notification subscriptions" : "TTC line notification subscriptions"}
+              >
+                {visibleLineSubscriptions.map((line) => {
+                  const identity = regionalSubscriptionsVisible ? line.lineNumber : `Line ${line.lineNumber}`;
+                  return (
+                    <div className="notification-settings-row flex items-center justify-between py-2 border-b border-black/5 dark:border-white/5 last:border-b-0" key={line.lineId}>
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <TransitLineBadge lineId={line.lineId} lineNumber={line.lineNumber} lineName={line.label} size={26} className="notification-line-badge shrink-0" />
+                        <span className="notification-settings-row-label min-w-0 truncate">
+                          <strong>{identity}</strong>
+                          <em>{line.label}</em>
+                        </span>
+                      </div>
+                      <div className="notification-settings-row-actions">
+                        <NotificationSwitch
+                          checked={line.subscribed}
+                          disabled={busy || !preferencesLoaded}
+                          label={`Subscribe to ${identity} ${line.label}`}
+                          onChange={(checked) => {
+                            const updatedLines = preferences.lineSubscriptions.lines.map((item) =>
+                              item.lineId === line.lineId ? { ...item, subscribed: checked } : item
+                            );
+                            updatePreferences({
+                              ...preferences,
+                              lineSubscriptions: {
+                                ...preferences.lineSubscriptions,
+                                lines: updatedLines,
+                              },
+                            });
+                          }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
 
             <div className="notification-settings-section">
               <div className="notification-settings-section-header">
                 <h3>Event Types</h3>
-                <span>Filters</span>
+                <span>Shared Filters</span>
               </div>
+              <p className="notification-settings-note">
+                These filters apply to My Commutes and every subscribed TTC line or GO/UP corridor. Reduced Speed Zones are TTC-only.
+              </p>
               <div className="notification-event-type-grid border border-black/10 dark:border-white/10 rounded-lg overflow-hidden bg-slate-50 dark:bg-black/25">
                 <div className="notification-event-type-header grid grid-cols-[1fr_80px_80px] gap-2 px-3 py-2 items-end border-b border-black/10 dark:border-white/10 font-bold text-xs text-slate-700 dark:text-slate-300">
                   <span>Event Type</span>
                   <span className="text-center">My Commutes</span>
-                  <span className="text-center">Line Subs</span>
+                  <span className="text-center">{regionalSubscriptionsVisible ? "Corridor Subs" : "Line Subs"}</span>
                 </div>
 
                 {[

@@ -11570,6 +11570,14 @@ img.transit-line-badge {
   min-width: 0;
 }
 
+.notification-network-filter {
+  width: 100%;
+}
+
+.notification-network-note {
+  padding: 0 0.15rem;
+}
+
 .notification-settings-section-header {
   align-items: center;
   display: flex;

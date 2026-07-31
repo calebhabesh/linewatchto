@@ -2932,6 +2932,11 @@ test("manages push notification preferences on mobile", async ({ page, request, 
   await setStubMode(request, "seeded");
   await page.goto("/");
   await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
+  await page.locator(".mobile-network-selector-slot")
+    .getByRole("group", { name: "Select transit network" })
+    .getByRole("button", { name: "GO/UP", exact: true })
+    .click();
+  await expect(page.getByRole("region", { name: "Interactive GO and UP map" })).toBeVisible();
 
   await page.getByRole("button", { name: "More", exact: true }).click();
   await expect(page.getByRole("heading", { name: "More" })).toBeVisible();
@@ -2946,7 +2951,13 @@ test("manages push notification preferences on mobile", async ({ page, request, 
   await expect(page.getByText("Device Notifications")).toBeVisible();
   await expect(page.getByText(/Push for this browser|This Device|Enable on This Device/)).toBeVisible();
   await expect(page.getByText(/Account notifications are on|This device is receiving notifications|Push not configured/).first()).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Line subscriptions" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Line & Corridor Subscriptions" })).toBeVisible();
+  const subscriptionNetwork = page.getByRole("group", { name: "Notification subscription network" });
+  await expect(subscriptionNetwork.getByRole("button", { name: "GO & UP", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByText(/Corridor alerts use fresh, supported GO\/UP service disruptions/)).toBeVisible();
+  await expect(page.getByLabel("Subscribe to LW Lakeshore West")).toBeAttached();
+  await subscriptionNetwork.getByRole("button", { name: "TTC", exact: true }).click();
+  await expect(subscriptionNetwork.getByRole("button", { name: "TTC", exact: true })).toHaveAttribute("aria-pressed", "true");
   await expect(page.getByRole("heading", { name: "Planned Closure Follow-ups" })).toBeVisible();
   const smartFollowUp = page.getByRole("radio", { name: /^Smart/ });
   await expect(smartFollowUp).toBeChecked();

@@ -2202,7 +2202,9 @@ export function LineWatchShell({
       case "notifications":
         return (
           <NotificationSettingsPanel
+            key={selectedNetwork}
             accountState={accountState}
+            networkId={selectedNetwork}
             pushSettings={pushSettings}
             onBack={handleSubmenuBack}
             onClose={handleClosePanel}

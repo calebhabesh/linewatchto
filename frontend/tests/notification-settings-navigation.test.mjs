@@ -40,7 +40,7 @@ describe("notification settings navigation", () => {
     assert.match(notificationPanelSource, /My Commute Alerts/);
     assert.match(notificationPanelSource, /Current Disruptions Affecting My Commutes/);
     assert.match(notificationPanelSource, /Planned Closure Reminders/);
-    assert.match(notificationPanelSource, /Line Subscriptions/);
+    assert.match(notificationPanelSource, /Line &amp; Corridor Subscriptions/);
     assert.match(notificationPanelSource, /TransitLineBadge/);
     assert.match(notificationPanelSource, /lineId=\{line\.lineId\}/);
     assert.match(notificationPanelSource, /lineNumber=\{line\.lineNumber\}/);
@@ -50,6 +50,13 @@ describe("notification settings navigation", () => {
     assert.match(notificationPanelSource, /Reduced Speed Zones/);
     assert.match(notificationPanelSource, /Planned Closures/);
     assert.match(notificationPanelSource, /Service Restored Updates/);
+    assert.match(shellSource, /networkId=\{selectedNetwork\}/);
+    assert.match(notificationPanelSource, /Notification subscription network/);
+    assert.match(notificationPanelSource, /GO &amp; UP/);
+    assert.match(notificationPanelSource, /fresh, supported GO\/UP service disruptions/);
+    assert.match(notificationPanelSource, /Trip changes, arrivals, accessibility outages, and service notices do not send corridor pushes/);
+    assert.match(notificationPanelSource, /Reduced Speed Zones are TTC-only/);
+    assert.match(notificationPanelSource, /Corridor Subs/);
     assert.match(notificationPanelSource, /Planned Closure Follow-ups/);
     assert.match(notificationPanelSource, /Smart/);
     assert.match(notificationPanelSource, /Within 24 Hours/);
