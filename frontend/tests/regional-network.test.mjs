@@ -658,6 +658,10 @@ describe("network-scoped regional dashboard", () => {
     assert.match(regionalMapSource, /REGIONAL_HIGHLIGHT_INNER_WIDTH = REGIONAL_IMPACT_OVERLAY_WIDTH/);
     assert.match(regionalMapSource, /maskStroke\("white", REGIONAL_HIGHLIGHT_OUTLINE_WIDTH\)/);
     assert.match(regionalMapSource, /maskStroke\("black", REGIONAL_HIGHLIGHT_INNER_WIDTH\)/);
+    assert.match(regionalMapSource, /function regionalHoverMaskBounds\(source: SVGElement\)/);
+    assert.match(regionalMapSource, /pointFromSvgRootCoordinates\(source, point\)/);
+    assert.match(regionalMapSource, /mask\.setAttribute\("x", String\(maskBounds\.x\)\)/);
+    assert.match(regionalMapSource, /background\.setAttribute\("x", String\(maskBounds\.x\)\)/);
     assert.match(regionalMapSource, /boundary\.setAttribute\("mask", `url\(#\$\{maskId\}\)`\)/);
     assert.match(regionalMapSource, /regional-impact-interactive-glow"\)[\s\S]*setAttribute\("mask", `url\(#\$\{maskId\}\)`\)/);
     assert.match(globalsCss, /data-regional-impact-selected="true"\] \.regional-impact-interactive-glow\s*\{[^}]*stroke:\s*rgba\(248, 250, 252, 0\.98\)/s);

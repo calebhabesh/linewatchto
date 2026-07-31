@@ -683,6 +683,10 @@ test("renders fresh Metrolinx impacts in regional mode", async ({ page, request,
   expect(lwCorridorPaths).toHaveLength(1);
   expect((lwCorridorPaths[0].match(/\bM\b/g) ?? []).length).toBe(2);
   expect((lwCorridorPaths[0].match(/\bL\b/g) ?? []).length).toBeGreaterThan(16);
+  const lwHoverMaskX = await page.locator(
+    '.regional-impact-hover-foreground[data-regional-hover-impact-id="regional-demo-lw-corridor-delay"] mask',
+  ).getAttribute("x");
+  expect(Number(lwHoverMaskX)).toBeLessThan(-330);
 
   const delayHoverPoint = await delayOverlay.locator(".regional-impact-hit-target").evaluate((path) => {
     const geometry = path as SVGPathElement;

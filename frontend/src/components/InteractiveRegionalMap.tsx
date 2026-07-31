@@ -1661,6 +1661,43 @@ function setRegionalStationImpactHover(
   });
 }
 
+function regionalHoverMaskBounds(source: SVGElement) {
+  // Hover foregrounds live inside the translated stations layer. Mask bounds
+  // are therefore expressed in that layer's local coordinates, not in the
+  // root SVG viewBox coordinates. Using the root values directly clipped the
+  // west side of Lakeshore West's T-shaped corridor near West Harbour.
+  const rootCorners = [
+    { x: REGIONAL_MAP_VIEWBOX.x, y: REGIONAL_MAP_VIEWBOX.y },
+    { x: REGIONAL_MAP_VIEWBOX.x + REGIONAL_MAP_VIEWBOX.width, y: REGIONAL_MAP_VIEWBOX.y },
+    { x: REGIONAL_MAP_VIEWBOX.x, y: REGIONAL_MAP_VIEWBOX.y + REGIONAL_MAP_VIEWBOX.height },
+    {
+      x: REGIONAL_MAP_VIEWBOX.x + REGIONAL_MAP_VIEWBOX.width,
+      y: REGIONAL_MAP_VIEWBOX.y + REGIONAL_MAP_VIEWBOX.height,
+    },
+  ];
+  const localCorners = rootCorners
+    .map((point) => pointFromSvgRootCoordinates(source, point))
+    .filter((point): point is SvgPoint => Boolean(point));
+  if (localCorners.length !== rootCorners.length) {
+    return {
+      x: REGIONAL_MAP_VIEWBOX.x - REGIONAL_MAP_VIEWBOX.width,
+      y: REGIONAL_MAP_VIEWBOX.y - REGIONAL_MAP_VIEWBOX.height,
+      width: REGIONAL_MAP_VIEWBOX.width * 3,
+      height: REGIONAL_MAP_VIEWBOX.height * 3,
+    };
+  }
+  const xValues = localCorners.map((point) => point.x);
+  const yValues = localCorners.map((point) => point.y);
+  const x = Math.min(...xValues);
+  const y = Math.min(...yValues);
+  return {
+    x,
+    y,
+    width: Math.max(...xValues) - x,
+    height: Math.max(...yValues) - y,
+  };
+}
+
 function regionalSegmentHoverForeground(source: SVGElement, maskIndex: number) {
   const foreground = source.cloneNode(true) as SVGElement;
   removeDescendantIds(foreground);
@@ -1678,20 +1715,22 @@ function regionalSegmentHoverForeground(source: SVGElement, maskIndex: number) {
   foreground.querySelectorAll("title").forEach((element) => element.remove());
   const boundary = foreground.querySelector<SVGPathElement>(".regional-impact-hover-boundary");
   if (boundary) {
+    const sourceBoundary = source.querySelector<SVGPathElement>(".regional-impact-hover-boundary");
+    const maskBounds = regionalHoverMaskBounds(sourceBoundary ?? source);
     const maskId = `regional-hover-boundary-mask-${maskIndex}`;
     const mask = boundary.ownerDocument.createElementNS(SVG_NAMESPACE, "mask");
     mask.id = maskId;
     mask.setAttribute("maskUnits", "userSpaceOnUse");
-    mask.setAttribute("x", String(REGIONAL_MAP_VIEWBOX.x));
-    mask.setAttribute("y", String(REGIONAL_MAP_VIEWBOX.y));
-    mask.setAttribute("width", String(REGIONAL_MAP_VIEWBOX.width));
-    mask.setAttribute("height", String(REGIONAL_MAP_VIEWBOX.height));
+    mask.setAttribute("x", String(maskBounds.x));
+    mask.setAttribute("y", String(maskBounds.y));
+    mask.setAttribute("width", String(maskBounds.width));
+    mask.setAttribute("height", String(maskBounds.height));
 
     const background = boundary.ownerDocument.createElementNS(SVG_NAMESPACE, "rect");
-    background.setAttribute("x", String(REGIONAL_MAP_VIEWBOX.x));
-    background.setAttribute("y", String(REGIONAL_MAP_VIEWBOX.y));
-    background.setAttribute("width", String(REGIONAL_MAP_VIEWBOX.width));
-    background.setAttribute("height", String(REGIONAL_MAP_VIEWBOX.height));
+    background.setAttribute("x", String(maskBounds.x));
+    background.setAttribute("y", String(maskBounds.y));
+    background.setAttribute("width", String(maskBounds.width));
+    background.setAttribute("height", String(maskBounds.height));
     background.setAttribute("fill", "black");
 
     const maskStroke = (color: "white" | "black", width: number) => {
