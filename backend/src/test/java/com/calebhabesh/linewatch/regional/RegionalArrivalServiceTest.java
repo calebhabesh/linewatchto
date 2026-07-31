@@ -180,9 +180,98 @@ class RegionalArrivalServiceTest {
             )
             .containsExactly(
                 org.assertj.core.groups.Tuple.tuple("Pearson Airport", "live"),
-                org.assertj.core.groups.Tuple.tuple("Union Station", "scheduled")
+                org.assertj.core.groups.Tuple.tuple("Union Station", "scheduled"),
+                org.assertj.core.groups.Tuple.tuple("Pearson Airport", "scheduled")
             );
         assertThat(response.message()).isEqualTo("Fresh estimates with published schedule fallback.");
+    }
+
+    @Test
+    void fillsAWorkingUpDirectionToItsTileLimitWithLaterScheduledTrips() {
+        MetrolinxArrivalClient client = mock(MetrolinxArrivalClient.class);
+        RegionalScheduledArrivalProvider scheduled = mock(RegionalScheduledArrivalProvider.class);
+        RegionalArrivalProperties properties = new RegionalArrivalProperties();
+        properties.setEnabled(true);
+        properties.setScheduleEnabled(true);
+        properties.setMaxArrivalsPerLine(4);
+        OffsetDateTime updatedAt = OffsetDateTime.parse("2026-07-28T19:47:43Z");
+        when(client.fetchUpTripUpdates("PA")).thenReturn(new RegionalArrivalFeed(updatedAt, List.of(
+            regionalLiveArrival(
+                "regional-up", "Union Station", "2026-07-28T19:50:00Z",
+                "2026-07-28T19:49:00Z", "UP100"
+            )
+        )));
+        when(scheduled.arrivals("pearson-airport", List.of("regional-up"))).thenReturn(List.of(
+            regionalScheduledArrival(
+                "regional-up", "Union Station", "2026-07-28T19:49:00Z", "UP100"
+            ),
+            regionalScheduledArrival(
+                "regional-up", "Union Station", "2026-07-28T20:05:00Z", "UP102"
+            ),
+            regionalScheduledArrival(
+                "regional-up", "Union Station", "2026-07-28T20:20:00Z", "UP104"
+            ),
+            regionalScheduledArrival(
+                "regional-up", "Union Station", "2026-07-28T20:35:00Z", "UP106"
+            )
+        ));
+        when(scheduled.hasActiveSchedule(List.of("regional-up"))).thenReturn(true);
+        RegionalArrivalService service = new RegionalArrivalService(client, scheduled, properties, CLOCK);
+
+        RegionalArrivalResponses.SnapshotResponse response = service.arrivals("pearson-airport");
+
+        assertThat(response.arrivals())
+            .extracting(
+                RegionalArrivalResponses.ArrivalResponse::tripNumber,
+                RegionalArrivalResponses.ArrivalResponse::status
+            )
+            .containsExactly(
+                org.assertj.core.groups.Tuple.tuple("UP100", "live"),
+                org.assertj.core.groups.Tuple.tuple("UP102", "scheduled"),
+                org.assertj.core.groups.Tuple.tuple("UP104", "scheduled"),
+                org.assertj.core.groups.Tuple.tuple("UP106", "scheduled")
+            );
+    }
+
+    @Test
+    void fillsAGoDirectionWithLaterSchedulesWithoutDuplicatingTheLiveTrip() {
+        MetrolinxArrivalClient client = mock(MetrolinxArrivalClient.class);
+        RegionalScheduledArrivalProvider scheduled = mock(RegionalScheduledArrivalProvider.class);
+        RegionalArrivalProperties properties = new RegionalArrivalProperties();
+        properties.setEnabled(true);
+        properties.setScheduleEnabled(true);
+        properties.setMaxArrivalsPerLine(3);
+        OffsetDateTime updatedAt = OffsetDateTime.parse("2026-07-28T19:47:43Z");
+        when(client.fetchGoNextService("WE")).thenReturn(new RegionalArrivalFeed(updatedAt, List.of(
+            arrival("regional-ki", "Union Station GO", "2026-07-28T19:55:00Z")
+        )));
+        when(client.fetchUpTripUpdates("WE")).thenReturn(new RegionalArrivalFeed(updatedAt, List.of()));
+        when(scheduled.arrivals("weston", List.of("regional-ki", "regional-up"))).thenReturn(List.of(
+            regionalScheduledArrival(
+                "regional-ki", "KI - Union Station GO", "2026-07-28T19:55:00Z", "KI100"
+            ),
+            regionalScheduledArrival(
+                "regional-ki", "KI - Union Station GO", "2026-07-28T20:25:00Z", "KI102"
+            ),
+            regionalScheduledArrival(
+                "regional-ki", "KI - Union Station GO", "2026-07-28T20:55:00Z", "KI104"
+            )
+        ));
+        when(scheduled.hasActiveSchedule(List.of("regional-ki", "regional-up"))).thenReturn(true);
+        RegionalArrivalService service = new RegionalArrivalService(client, scheduled, properties, CLOCK);
+
+        RegionalArrivalResponses.SnapshotResponse response = service.arrivals("weston");
+
+        assertThat(response.arrivals())
+            .extracting(
+                RegionalArrivalResponses.ArrivalResponse::tripNumber,
+                RegionalArrivalResponses.ArrivalResponse::status
+            )
+            .containsExactly(
+                org.assertj.core.groups.Tuple.tuple("1234", "live"),
+                org.assertj.core.groups.Tuple.tuple("KI102", "scheduled"),
+                org.assertj.core.groups.Tuple.tuple("KI104", "scheduled")
+            );
     }
 
     @Test
@@ -228,6 +317,19 @@ class RegionalArrivalServiceTest {
         OffsetDateTime time = OffsetDateTime.parse(predictedAt);
         return new RegionalArrivalRecord(
             lineId, direction, time.minusMinutes(1), time, "", "1234", "Metrolinx test feed", "live"
+        );
+    }
+
+    private RegionalArrivalRecord regionalLiveArrival(
+        String lineId,
+        String direction,
+        String predictedAt,
+        String scheduledAt,
+        String tripNumber
+    ) {
+        return new RegionalArrivalRecord(
+            lineId, direction, OffsetDateTime.parse(scheduledAt), OffsetDateTime.parse(predictedAt),
+            "", tripNumber, "Metrolinx test feed", "live"
         );
     }
 }

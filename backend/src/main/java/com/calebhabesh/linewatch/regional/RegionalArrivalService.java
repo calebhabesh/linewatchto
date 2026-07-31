@@ -12,14 +12,13 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 
 @Service
 public class RegionalArrivalService {
     private static final Duration PAST_TOLERANCE = Duration.ofMinutes(1);
+    private static final Duration SCHEDULE_MATCH_TOLERANCE = Duration.ofMinutes(2);
 
     private record CachedSnapshot(OffsetDateTime expiresAt, RegionalArrivalResponses.SnapshotResponse response) {
     }
@@ -146,23 +145,39 @@ public class RegionalArrivalService {
         List<RegionalArrivalRecord> realtime,
         List<RegionalArrivalRecord> scheduled
     ) {
-        Set<String> liveDirectionKeys = realtime.stream()
-            .map(arrival -> directionKey(stationId, arrival))
-            .filter(key -> !key.endsWith(":"))
-            .collect(Collectors.toSet());
-        Set<String> liveLineIds = realtime.stream()
-            .map(RegionalArrivalRecord::lineId)
-            .collect(Collectors.toSet());
         List<RegionalArrivalRecord> result = new ArrayList<>(realtime);
         for (RegionalArrivalRecord candidate : scheduled) {
-            String directionKey = directionKey(stationId, candidate);
-            boolean hasDirection = !directionKey.endsWith(":");
-            if ((hasDirection && !liveDirectionKeys.contains(directionKey))
-                || (!hasDirection && !liveLineIds.contains(candidate.lineId()))) {
+            boolean replacedByRealtime = realtime.stream()
+                .anyMatch(live -> representsSameTrip(stationId, candidate, live));
+            if (!replacedByRealtime) {
                 result.add(candidate);
             }
         }
         return List.copyOf(result);
+    }
+
+    private boolean representsSameTrip(
+        String stationId,
+        RegionalArrivalRecord scheduled,
+        RegionalArrivalRecord realtime
+    ) {
+        if (!scheduled.lineId().equals(realtime.lineId())) return false;
+
+        String scheduledTrip = normalize(scheduled.tripNumber());
+        String realtimeTrip = normalize(realtime.tripNumber());
+        if (!scheduledTrip.isBlank() && scheduledTrip.equals(realtimeTrip)) return true;
+
+        String scheduledDirection = directionFamily(stationId, scheduled);
+        String realtimeDirection = directionFamily(stationId, realtime);
+        boolean sameDirection = !scheduledDirection.isBlank() && !realtimeDirection.isBlank()
+            ? scheduledDirection.equals(realtimeDirection)
+            : normalize(scheduled.direction()).equals(normalize(realtime.direction()));
+        if (!sameDirection || scheduled.scheduledAt() == null || realtime.scheduledAt() == null) {
+            return false;
+        }
+
+        Duration difference = Duration.between(scheduled.scheduledAt(), realtime.scheduledAt()).abs();
+        return difference.compareTo(SCHEDULE_MATCH_TOLERANCE) <= 0;
     }
 
     private List<RegionalArrivalRecord> deduplicate(List<RegionalArrivalRecord> arrivals) {
@@ -175,10 +190,6 @@ public class RegionalArrivalService {
             unique.putIfAbsent(key, arrival);
         }
         return List.copyOf(unique.values());
-    }
-
-    private String directionKey(String stationId, RegionalArrivalRecord arrival) {
-        return arrival.lineId() + ":" + directionFamily(stationId, arrival);
     }
 
     private String directionFamily(String stationId, RegionalArrivalRecord arrival) {
