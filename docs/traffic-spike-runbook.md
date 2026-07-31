@@ -84,6 +84,7 @@ Browser TTL: Respect origin
 Expression:
 
 ```text
+(http.request.method in {"GET" "HEAD"}) and
 (
   http.request.uri.path in {
     "/api/dashboard"
@@ -96,9 +97,14 @@ Expression:
     "/api/surface-notices"
     "/api/stations"
     "/api/alert-history"
+    "/api/reliability/lines"
+    "/api/regional/trains"
+    "/api/regional/trip-changes"
+    "/api/regional/alerts/raw"
   }
-) or (
-  starts_with(http.request.uri.path, "/api/stations/")
+  or starts_with(http.request.uri.path, "/api/stations/")
+  or starts_with(http.request.uri.path, "/api/reliability/stations/")
+  or starts_with(http.request.uri.path, "/api/regional/stations/")
 )
 ```
 
@@ -106,7 +112,7 @@ Action:
 
 ```text
 Cache eligibility: Eligible for cache
-Edge TTL: 30 seconds
+Edge TTL: Use Cache-Control header if present (Respect origin)
 Browser TTL: Respect origin
 Cache key: include query string
 ```

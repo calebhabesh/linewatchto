@@ -117,6 +117,26 @@ services:
       - linewatch-net
     logging: *default-logging
 
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    profiles:
+      - tunnel
+    command:
+      [
+        "tunnel",
+        "--no-autoupdate",
+        "run",
+        "--token",
+        "${LINEWATCH_CLOUDFLARED_TUNNEL_TOKEN:-}"
+      ]
+    depends_on:
+      caddy:
+        condition: service_healthy
+    networks:
+      - linewatch-net
+    logging: *default-logging
+
   alloy:
     image: grafana/alloy:latest
     restart: unless-stopped
