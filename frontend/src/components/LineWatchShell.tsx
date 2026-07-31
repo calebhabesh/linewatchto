@@ -642,7 +642,7 @@ export function LineWatchShell({
       setMapPresentationMode("standard");
       setMobileInspectorDetent("map-focus");
       setAccessibilityOutageTarget(null);
-    }, reducedMotion ? 0 : 200);
+    }, reducedMotion ? 0 : 380);
   }, [isClosingPanel, reducedMotion, setActiveView, setSelection, setSelectedStationId, setMapPresentationMode, setMobileInspectorDetent]);
 
   const [isGoingBack, setIsGoingBack] = useState(false);
@@ -673,7 +673,7 @@ export function LineWatchShell({
       setIsGoingBack(false);
       setSelection(null);
       setAccessibilityOutageTarget(null);
-    }, reducedMotion ? 0 : 180);
+    }, reducedMotion ? 0 : 380);
   }, [activeView, isMobile, reducedMotion, setActiveView, setSelection]);
 
   const [accountState, setAccountState] = useState<AccountState>({

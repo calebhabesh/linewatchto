@@ -384,7 +384,7 @@ export function RegionalStationDetailPanel({
     closeTimeoutRef.current = window.setTimeout(() => {
       closeTimeoutRef.current = null;
       onClose();
-    }, 200);
+    }, 380);
   };
 
   return (

@@ -384,7 +384,7 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
       closeTimeoutRef.current = null;
       onClose();
       setIsClosing(false);
-    }, 200);
+    }, 380);
   };
 
   return (

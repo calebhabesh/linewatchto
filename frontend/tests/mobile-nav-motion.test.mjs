@@ -27,8 +27,7 @@ describe("mobile navigation motion", () => {
     assert.match(globalCss, /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.mobile-bottom-nav::before/);
     assert.match(globalCss, /\.motion-paused \*,\s*\.motion-paused \*::before,\s*\.motion-paused \*::after\s*\{[^}]*animation:\s*none !important;[^}]*transition:\s*none !important;/s);
     assert.match(globalCss, /@media \(prefers-reduced-motion: reduce\)\s*\{[\s\S]*\.linewatch-shell \*::after\s*\{[^}]*animation:\s*none !important;[^}]*transition:\s*none !important;/s);
-    assert.match(shellSource, /reducedMotion \? 0 : 200/);
-    assert.match(shellSource, /reducedMotion \? 0 : 180/);
+    assert.match(shellSource, /reducedMotion \? 0 : 380/);
   });
 
   it("distinguishes root navigation, forward drill-ins, reverse Back, and Close", () => {
