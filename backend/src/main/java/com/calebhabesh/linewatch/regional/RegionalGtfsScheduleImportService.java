@@ -60,7 +60,7 @@ public class RegionalGtfsScheduleImportService {
                     String serviceId = row.value("service_id");
                     serviceIds.add(serviceId);
                     trips.put(row.value("trip_id"), new TripInfo(
-                        route.lineId(), serviceId,
+                        route.lineId(), serviceId, row.value("trip_short_name"),
                         tripDirection(sourceSystem, route, row)
                     ));
                 }
@@ -100,8 +100,9 @@ public class RegionalGtfsScheduleImportService {
                 String departureTime = firstNonBlank(row.value("departure_time"), row.value("arrival_time"));
                 if (departureTime.isBlank()) return;
                 departures.add(new RegionalGtfsScheduleImport.Departure(
-                    stationId, trip.lineId(), trip.serviceId(), row.value("trip_id"),
-                    trip.direction(), GtfsCsvReader.seconds(departureTime), stop.platform()
+                    stationId, trip.lineId(), trip.serviceId(), row.value("trip_id"), trip.shortName(),
+                    trip.direction(), GtfsCsvReader.seconds(departureTime), stop.platform(),
+                    integer(row.value("stop_sequence"))
                 ));
             });
         }
@@ -180,6 +181,14 @@ public class RegionalGtfsScheduleImportService {
         return first == null || first.isBlank() ? second == null ? "" : second : first;
     }
 
+    private Integer integer(String value) {
+        try {
+            return value == null || value.isBlank() ? null : Integer.valueOf(value.trim());
+        } catch (NumberFormatException ignored) {
+            return null;
+        }
+    }
+
     private String tripDirection(String sourceSystem, RouteInfo route, GtfsCsvReader.Row row) {
         if ("up".equals(sourceSystem)) {
             return switch (row.value("direction_id").trim()) {
@@ -192,7 +201,7 @@ public class RegionalGtfsScheduleImportService {
     }
 
     private record RouteInfo(String lineId, String name) {}
-    private record TripInfo(String lineId, String serviceId, String direction) {}
+    private record TripInfo(String lineId, String serviceId, String shortName, String direction) {}
     private record StopInfo(String code, String parentId, String platform) {}
     public record ImportSummary(
         long importId, String sourceSystem, int routes, int trips, int departures,

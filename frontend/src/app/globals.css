@@ -15686,9 +15686,9 @@ img.transit-line-badge {
 
 
 
-  /* Allow full "TTC LIVE ALERTS + GTFS-RT" to show (general rule clips at 105px) */
+  /* Allow full source label to show without capping */
   .mobile-view-content-wrapper[data-active-view="surface-notices"] .panel-heading span.whitespace-nowrap {
-    max-width: 140px !important;
+    max-width: none !important;
   }
 
   /* Center-align source label for surface-notices and accessibility-outages on mobile */
@@ -15745,18 +15745,17 @@ img.transit-line-badge {
     line-height: 1 !important;
   }
 
-  /* Shrink the source label */
+  /* Ensure source label fits its entire text on mobile without clipping */
   .floating-panel-shell .panel-heading span.whitespace-nowrap {
     font-size: clamp(5.5px, 1.8cqw, 7.5px) !important;
     padding: 1px 3.5px !important;
-    max-width: 105px !important;
-    overflow: hidden !important;
-    text-overflow: clip !important;
+    max-width: none !important;
+    overflow: visible !important;
     white-space: nowrap !important;
-    display: block !important;
+    display: inline-flex !important;
   }
 
-  /* "Source: TTC Service Advisory" needs slightly more room than the generic cap. */
+  /* "Source: TTC Service Advisory" and regional source labels fit without clipping */
   .mobile-view-content-wrapper[data-active-view="closures"] .panel-heading span.whitespace-nowrap {
     max-width: none !important;
     overflow: visible !important;

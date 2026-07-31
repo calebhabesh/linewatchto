@@ -12,6 +12,8 @@ import { groupSurfaceNoticesByRoute, SurfaceNoticeGroupItem } from "../app/surfa
 import { formatImpactTimestamp, formatOperationalDateTime } from "../app/impact-time";
 import type { NetworkId } from "../app/regional-data";
 import { REGIONAL_STATION_SEARCH_LINES } from "../app/station-search";
+import { getRegionalTripChanges, type RegionalTripChangeResponse } from "../app/regional-trip-changes";
+import { RegionalTripChangesList } from "./RegionalTripChangesList";
 
 interface Props {
   onBack: () => void;
@@ -24,11 +26,20 @@ export function SurfaceNoticesPanel({ onBack, onClose, initialQuery = "", networ
   const regional = networkId === "regional";
   const [category, setCategory] = useState<SurfaceNoticeCategory | "all">("all");
   const [serviceType, setServiceType] = useState<"all" | "train" | "bus">("all");
+  const [regionalContent, setRegionalContent] = useState<"notices" | "trip-changes">("notices");
   const [searchQuery, setSearchQuery] = useState(initialQuery);
   const [debouncedQuery, setDebouncedQuery] = useState(initialQuery);
   const [data, setData] = useState<SurfaceNoticeResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [expandedNoticeIds, setExpandedNoticeIds] = useState<Record<string, boolean>>({});
+  const [tripChangesState, setTripChangesState] = useState<{
+    query: string;
+    response: RegionalTripChangeResponse;
+  } | null>(null);
+  const tripChanges = tripChangesState?.query === debouncedQuery ? tripChangesState.response : null;
+  const tripChangesLoading = regional
+    && regionalContent === "trip-changes"
+    && tripChangesState?.query !== debouncedQuery;
 
   useEffect(() => {
     if (!initialQuery) return;
@@ -52,6 +63,7 @@ export function SurfaceNoticesPanel({ onBack, onClose, initialQuery = "", networ
   useEffect(() => {
     let active = true;
     async function load() {
+      if (regional && regionalContent === "trip-changes") return;
       setLoading(true);
       const res = await getSurfaceNotices({
         networkId,
@@ -67,7 +79,18 @@ export function SurfaceNoticesPanel({ onBack, onClose, initialQuery = "", networ
     return () => {
       active = false;
     };
-  }, [category, debouncedQuery, networkId]);
+  }, [category, debouncedQuery, networkId, regional, regionalContent]);
+
+  useEffect(() => {
+    if (!regional || regionalContent !== "trip-changes") return;
+    let active = true;
+    void getRegionalTripChanges({ query: debouncedQuery }).then((result) => {
+      if (active) {
+        setTripChangesState({ query: debouncedQuery, response: result.data });
+      }
+    });
+    return () => { active = false; };
+  }, [debouncedQuery, regional, regionalContent]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -307,7 +330,9 @@ export function SurfaceNoticesPanel({ onBack, onClose, initialQuery = "", networ
             <input
               type="text"
               className="submenu-search-input w-full pl-9 pr-4 h-10 rounded-lg border border-black/15 dark:border-white/15 bg-slate-50 dark:bg-[#12151c] text-sm text-slate-950 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-              placeholder={regional ? "Search line, station, or notice" : "Search route, stop, or notice"}
+              placeholder={regionalContent === "trip-changes"
+                ? "Search train, corridor, or station"
+                : regional ? "Search line, station, or notice" : "Search route, stop, or notice"}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
@@ -315,6 +340,30 @@ export function SurfaceNoticesPanel({ onBack, onClose, initialQuery = "", networ
         </div>
 
         {regional ? (
+          <div className="px-3 pt-3 sm:px-4" role="group" aria-label="GO / UP notice content">
+            <div className="grid grid-cols-2 gap-1 rounded-lg border border-black/10 bg-slate-100 p-1 dark:border-white/10 dark:bg-white/5">
+              {([[
+                "notices", "Service Notices",
+              ], [
+                "trip-changes", "Trip Changes",
+              ]] as const).map(([value, label]) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => setRegionalContent(value)}
+                  aria-pressed={regionalContent === value}
+                  className={`min-h-9 rounded-md px-2 text-xs font-black transition-colors ${regionalContent === value
+                    ? "bg-white text-slate-950 shadow-sm dark:bg-slate-800 dark:text-white"
+                    : "text-slate-600 hover:bg-white/60 dark:text-slate-300 dark:hover:bg-white/5"}`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : null}
+
+        {regional && regionalContent === "notices" ? (
           <div
             className="px-3 pt-3 sm:px-4 sm:pt-3 flex gap-1.5 overflow-x-auto no-scrollbar shrink-0"
             role="group"
@@ -346,7 +395,7 @@ export function SurfaceNoticesPanel({ onBack, onClose, initialQuery = "", networ
         ) : null}
 
         {/* Segmented Category Buttons */}
-        <div className="px-3 pt-3 pb-3 sm:px-4 sm:pt-3 sm:pb-3 flex gap-1.5 overflow-x-auto no-scrollbar shrink-0">
+        {(!regional || regionalContent === "notices") ? <div className="px-3 pt-3 pb-3 sm:px-4 sm:pt-3 sm:pb-3 flex gap-1.5 overflow-x-auto no-scrollbar shrink-0">
           <button
             onClick={() => setCategory("all")}
             className={`px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap border cursor-pointer transition-all ${
@@ -374,11 +423,13 @@ export function SurfaceNoticesPanel({ onBack, onClose, initialQuery = "", networ
               </button>
             );
           })}
-        </div>
+        </div> : null}
 
         {/* Notices Content */}
         <div className="flex-1 overflow-y-auto min-w-0 p-3 sm:p-4 surface-notices-scroll">
-          {loading ? (
+          {regional && regionalContent === "trip-changes" ? (
+            <RegionalTripChangesList data={tripChanges} loading={tripChangesLoading} />
+          ) : loading ? (
             <div className="flex flex-col items-center justify-center py-12 text-slate-500 dark:text-slate-400">
               <span className="text-sm">Loading notices...</span>
             </div>

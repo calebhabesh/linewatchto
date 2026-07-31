@@ -754,6 +754,48 @@ const server = createServer(async (request, response) => {
     return;
   }
 
+  if (request.method === "GET" && url.pathname === "/api/regional/trip-changes") {
+    const fresh = mode === "regional-live";
+    const stationId = url.searchParams.get("stationId");
+    const query = (url.searchParams.get("query") ?? "").toLowerCase();
+    const change = {
+      id: "regional-trip-change-2026-06-04-BR681-cancellation",
+      kind: "cancellation",
+      tripId: "BR681",
+      tripNumber: "681",
+      lineId: "regional-br",
+      lineNumber: "BR",
+      lineName: "Barrie",
+      destination: "Allandale Waterfront GO",
+      serviceDate: "2026-06-04",
+      scheduledStartAt: "2026-06-04T16:03:00Z",
+      updatedAt: "2026-06-04T15:58:00Z",
+      sourceSystems: ["metrolinx-go-train-exceptions", "metrolinx-go-gtfs-trip-updates"],
+      affectedStops: [{
+        stationId: "union",
+        stationName: "Union Station",
+        kind: "cancellation",
+        scheduledAt: "2026-06-04T16:03:00Z",
+        platform: "4",
+      }],
+    };
+    const matchesStation = !stationId || change.affectedStops.some((stop) => stop.stationId === stationId);
+    const matchesQuery = !query || [
+      change.tripNumber,
+      change.lineName,
+      change.destination,
+      ...change.affectedStops.map((stop) => stop.stationName),
+    ].join(" ").toLowerCase().includes(query);
+    sendJson(request, response, 200, {
+      generatedAt: "2026-06-04T16:00:00Z",
+      fresh,
+      source: "Metrolinx GO operational trip updates",
+      sourceUpdatedAt: fresh ? "2026-06-04T15:58:00Z" : null,
+      changes: fresh && matchesStation && matchesQuery ? [change] : [],
+    });
+    return;
+  }
+
   if (request.method === "GET" && url.pathname === "/api/regional/trains") {
     sendJson(request, response, 200, regionalEstimatedTrainsResponse);
     return;

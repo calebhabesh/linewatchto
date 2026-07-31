@@ -5,10 +5,35 @@ import { Terminal, Copy, Check, ChevronDown, ChevronUp, AlertCircle, RefreshCw, 
 import { mockRawAlerts, RawAlert } from "../app/mock-raw-alerts";
 import { apiUrl } from "../app/api-client.ts";
 import type { NetworkId } from "../app/regional-data";
+import { formatImpactTimestamp } from "../app/impact-time";
 
 type Props = {
   isMobileMore?: boolean;
   network?: NetworkId;
+};
+
+type RegionalCollectionHealth = {
+  sourceSystem: string;
+  label: string;
+  kind: "rider-alert" | "operational";
+  required: boolean;
+  status: "complete" | "unavailable" | "unknown" | "not-evaluated" | "not-run";
+  recordsFetched: number;
+  sourceUpdatedAt: string | null;
+};
+
+type RegionalIngestionHealth = {
+  fresh: boolean;
+  status: string;
+  collections: RegionalCollectionHealth[];
+};
+
+type RegionalScheduleHealth = {
+  status: string;
+  scheduleActive: boolean;
+  lookaheadCovered: boolean;
+  requiredThrough: string;
+  mappedStationLines: number;
 };
 
 export function LogsDropdown({ isMobileMore = false, network = "ttc" }: Props) {
@@ -20,6 +45,8 @@ export function LogsDropdown({ isMobileMore = false, network = "ttc" }: Props) {
   const [showActiveOnly, setShowActiveOnly] = useState(true);
   const [expandedIds, setExpandedIds] = useState<Record<string, boolean>>({});
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [regionalHealth, setRegionalHealth] = useState<RegionalIngestionHealth | null>(null);
+  const [regionalScheduleHealth, setRegionalScheduleHealth] = useState<RegionalScheduleHealth | null>(null);
   
   const dropdownRef = useRef<HTMLDivElement>(null);
   const closeTimerRef = useRef<number | null>(null);
@@ -99,6 +126,26 @@ export function LogsDropdown({ isMobileMore = false, network = "ttc" }: Props) {
       });
     }
   }, [fetchRawAlerts, isOpen]);
+
+  useEffect(() => {
+    if (!isOpen || network !== "regional") return;
+    let active = true;
+    Promise.allSettled([
+      fetch(apiUrl("/api/health/regional-ingestion"), { cache: "no-store" }).then((response) => {
+        if (!response.ok) throw new Error("Regional ingestion health unavailable");
+        return response.json() as Promise<RegionalIngestionHealth>;
+      }),
+      fetch(apiUrl("/api/health/regional-schedule"), { cache: "no-store" }).then((response) => {
+        if (!response.ok) throw new Error("Regional schedule health unavailable");
+        return response.json() as Promise<RegionalScheduleHealth>;
+      }),
+    ]).then(([ingestion, schedule]) => {
+      if (!active) return;
+      setRegionalHealth(ingestion.status === "fulfilled" ? ingestion.value : null);
+      setRegionalScheduleHealth(schedule.status === "fulfilled" ? schedule.value : null);
+    });
+    return () => { active = false; };
+  }, [isOpen, network]);
 
   const toggleExpand = (id: string) => {
     setExpandedIds(prev => ({
@@ -296,6 +343,52 @@ export function LogsDropdown({ isMobileMore = false, network = "ttc" }: Props) {
 
           {/* Alert List Container */}
           <div className="max-h-[60vh] overflow-y-auto p-4 flex flex-col gap-4">
+            {network === "regional" ? (
+              <div className="rounded-lg border border-black/10 bg-slate-50 p-3 dark:border-white/10 dark:bg-white/5" data-regional-data-coverage>
+                <div className="flex items-center justify-between gap-2">
+                  <h3 className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-200">Data Coverage</h3>
+                  <span className={`rounded-full px-2 py-0.5 text-[9px] font-black uppercase tracking-wider ${regionalHealth?.fresh
+                    ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300"
+                    : "bg-amber-500/15 text-amber-700 dark:text-amber-300"}`}
+                  >
+                    {regionalHealth?.fresh ? "Fresh" : regionalHealth ? "Not fresh" : "Unavailable"}
+                  </span>
+                </div>
+                {regionalHealth ? (
+                  <div className="mt-2 flex flex-col gap-1.5">
+                    {regionalHealth.collections.map((collection) => (
+                      <div key={collection.sourceSystem} className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-2 rounded border border-black/5 bg-white/70 px-2.5 py-2 text-[11px] dark:border-white/5 dark:bg-black/10">
+                        <div className="min-w-0">
+                          <strong className="block truncate text-slate-800 dark:text-slate-100">{collection.label}</strong>
+                          <span className="text-slate-500 dark:text-slate-400">
+                            {collection.kind === "operational" ? "Trip-level audit" : collection.required ? "Required rider feed" : "Supplemental rider feed"}
+                            {collection.sourceUpdatedAt ? ` · ${formatImpactTimestamp(collection.sourceUpdatedAt)}` : ""}
+                          </span>
+                        </div>
+                        <div className="text-right">
+                          <strong className={collection.status === "complete" ? "text-emerald-700 dark:text-emerald-300" : "text-amber-700 dark:text-amber-300"}>
+                            {collection.status.replaceAll("-", " ")}
+                          </strong>
+                          <span className="block text-slate-500 dark:text-slate-400">{collection.recordsFetched} records</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">Detailed collection health is unavailable.</p>
+                )}
+                <div className="mt-2 rounded border border-black/5 bg-white/70 px-2.5 py-2 text-[11px] dark:border-white/5 dark:bg-black/10">
+                  <strong className="text-slate-800 dark:text-slate-100">Published schedule coverage</strong>
+                  <p className="mt-0.5 text-slate-500 dark:text-slate-400">
+                    {regionalScheduleHealth
+                      ? regionalScheduleHealth.scheduleActive && regionalScheduleHealth.lookaheadCovered
+                        ? `Active across ${regionalScheduleHealth.mappedStationLines} station-corridor pairs through ${regionalScheduleHealth.requiredThrough}.`
+                        : `Coverage is ${regionalScheduleHealth.status}; required through ${regionalScheduleHealth.requiredThrough}.`
+                      : "Schedule lookahead health is unavailable."}
+                  </p>
+                </div>
+              </div>
+            ) : null}
             {loading && rawAlerts.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-8 gap-2">
                 <RefreshCw className="w-6 h-6 animate-spin text-slate-400" />

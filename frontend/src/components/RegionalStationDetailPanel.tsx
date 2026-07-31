@@ -22,6 +22,13 @@ import type { AccessibilityOutageDetail } from "../app/accessibility-outage-data
 import { formatImpactTimestamp } from "../app/impact-time";
 import { normalizeDashboardSourceLabel } from "../app/dashboard-source-label";
 import { getSurfaceNotices, type SurfaceNoticeDetail } from "../app/surface-notice-data";
+import {
+  emptyRegionalTripChangeResponse,
+  findRegionalArrivalTripChange,
+  getRegionalTripChanges,
+  regionalTripChangeLabel,
+  type RegionalTripChangeResponse,
+} from "../app/regional-trip-changes";
 import { StationDetailHeader } from "./StationDetailHeader";
 import { TransitLineBadge, transitLineBadgeColors } from "./TransitLineBadge";
 import { DelayIcon } from "./DelayIcon";
@@ -29,6 +36,7 @@ import { PlannedClosureIcon } from "./PlannedClosureIcon";
 import { ArrivalLinePinButton } from "./ArrivalLinePinButton";
 import { sortArrivalGroupsByPinnedLine } from "../app/arrival-pins";
 import { useArrivalLinePins } from "../hooks/useArrivalLinePins";
+import { RegionalTripChangesList } from "./RegionalTripChangesList";
 
 type Props = {
   station: StationSummary;
@@ -234,8 +242,14 @@ export function RegionalStationDetailPanel({
     loading: boolean;
     notices: SurfaceNoticeDetail[];
   }>({ loading: true, notices: [] });
+  const [tripChangesState, setTripChangesState] = useState<{
+    stationId: string;
+    response: RegionalTripChangeResponse;
+  }>(() => ({ stationId: "", response: emptyRegionalTripChangeResponse }));
   const noticesDetailsRef = useRef<HTMLDetailsElement>(null);
   const arrivalsLoading = arrivalState.stationId !== station.id;
+  const tripChangesLoading = tripChangesState.stationId !== station.id;
+  const tripChanges = tripChangesLoading ? emptyRegionalTripChangeResponse : tripChangesState.response;
   const arrivalSnapshot = arrivalsLoading
     ? emptyRegionalArrivalSnapshot(station.id)
     : arrivalState.snapshot;
@@ -336,6 +350,17 @@ export function RegionalStationDetailPanel({
     }).catch(() => undefined);
     return () => controller.abort();
   }, [station.id]);
+
+  useEffect(() => {
+    if (!station.lineIds.some((lineId) => lineId !== "regional-up")) return;
+    const controller = new AbortController();
+    void getRegionalTripChanges({ stationId: station.id, signal: controller.signal }).then((result) => {
+      if (!controller.signal.aborted) {
+        setTripChangesState({ stationId: station.id, response: result.data });
+      }
+    }).catch(() => undefined);
+    return () => controller.abort();
+  }, [station.id, station.lineIds]);
 
   useEffect(() => {
     let active = true;
@@ -635,6 +660,11 @@ export function RegionalStationDetailPanel({
                                             {platform.arrivals.map((arrival, index) => {
                                               const due = isRegionalArrivalDue(arrival, arrivalTick);
                                               const soon = !due && isRegionalArrivalSoon(arrival, arrivalTick);
+                                              const tripChange = findRegionalArrivalTripChange(
+                                                arrival,
+                                                tripChanges.changes,
+                                                station.id,
+                                              );
                                               const detailedCountdown = index === 0
                                                 && shouldUseDetailedRegionalArrivalCountdown(arrival, arrivalTick);
                                               const timeDisplay = regionalArrivalTimeDisplay(
@@ -649,7 +679,11 @@ export function RegionalStationDetailPanel({
                                                   data-regional-arrival-due={due ? "true" : "false"}
                                                   className={[
                                                     "flex min-h-[66px] flex-col items-center justify-center rounded-md border px-2 py-2 text-center transition-colors",
-                                                    due
+                                                    tripChange?.kind === "cancellation" || tripChange?.kind === "skipped-stop"
+                                                      ? "border-red-500/70 bg-red-500/15 text-red-900 shadow-[0_0_0_1px_rgba(239,68,68,0.16)] dark:text-red-50"
+                                                      : tripChange?.kind === "added-stop"
+                                                        ? "border-blue-500/60 bg-blue-500/10 text-blue-900 dark:text-blue-50"
+                                                    : due
                                                       ? "border-red-400/80 bg-red-900/85 text-red-50 shadow-[0_0_0_1px_rgba(248,113,113,0.25)]"
                                                       : soon
                                                         ? "border-emerald-400/35 bg-emerald-500/10 text-slate-900 shadow-[0_0_0_1px_rgba(52,211,153,0.12)] dark:border-emerald-400/25 dark:bg-emerald-400/10 dark:text-white"
@@ -660,7 +694,7 @@ export function RegionalStationDetailPanel({
                                                     ? "whitespace-nowrap text-xs font-black leading-none tabular-nums sm:text-lg"
                                                     : "text-base font-black leading-none tracking-tight"}
                                                   >
-                                                    {timeDisplay.primary}
+                                                    {tripChange ? regionalTripChangeLabel(tripChange.kind) : timeDisplay.primary}
                                                   </strong>
                                                   <span
                                                     className={
@@ -671,8 +705,13 @@ export function RegionalStationDetailPanel({
                                                           : "mt-1 text-xs font-semibold text-slate-500 dark:text-slate-400"
                                                     }
                                                   >
-                                                    {timeDisplay.secondary}
+                                                    {tripChange ? `Train ${arrival.tripNumber}` : timeDisplay.secondary}
                                                   </span>
+                                                  {tripChange ? (
+                                                    <span className="mt-1 text-[9px] font-black uppercase tracking-wider opacity-75">
+                                                      Scheduled {timeDisplay.secondary}
+                                                    </span>
+                                                  ) : null}
                                                 </div>
                                               );
                                             })}
@@ -723,6 +762,33 @@ export function RegionalStationDetailPanel({
                   ) : null}
                 </div>
               </section>
+
+              {station.lineIds.some((lineId) => lineId !== "regional-up") ? <section
+                className="rounded-lg border border-black/10 bg-slate-50 p-3 dark:border-white/10 dark:bg-white/5"
+                data-station-section="trip-changes"
+                aria-label="Upcoming GO train changes"
+              >
+                <h3 className="flex items-center gap-2.5 text-lg font-black text-slate-900 dark:text-white">
+                  <AlertTriangle size={20} className="shrink-0 text-amber-500" />
+                  <span>Upcoming Trip Changes</span>
+                  {!tripChangesLoading && tripChanges.changes.length > 0 ? (
+                    <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-amber-500/15 px-1.5 text-xs font-black text-amber-800 dark:text-amber-200">
+                      {tripChanges.changes.length}
+                    </span>
+                  ) : null}
+                </h3>
+                <p className="mt-1 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                  GO operational feeds · published schedule matched
+                </p>
+                <div className="mt-2">
+                  <RegionalTripChangesList
+                    data={tripChanges}
+                    loading={tripChangesLoading}
+                    compact
+                    emptyLabel="No upcoming GO train changes matched to this station."
+                  />
+                </div>
+              </section> : null}
 
               <section
                 className="rounded-lg border border-black/10 bg-slate-50 p-3 dark:border-white/10 dark:bg-white/5"

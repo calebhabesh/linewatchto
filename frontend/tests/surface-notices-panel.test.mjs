@@ -90,4 +90,12 @@ describe("surface notices panel and routing source verification", () => {
     assert.match(panelSource, /\["bus", "Bus"\]/);
     assert.match(panelSource, /notice\.routeType === "GO Bus"/);
   });
+
+  it("keeps GO trip changes inside the existing regional notices destination", () => {
+    assert.match(panelSource, /Service Notices/);
+    assert.match(panelSource, /Trip Changes/);
+    assert.match(panelSource, /getRegionalTripChanges/);
+    assert.match(panelSource, /Search train, corridor, or station/);
+    assert.match(panelSource, /<RegionalTripChangesList/);
+  });
 });

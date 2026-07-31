@@ -445,6 +445,14 @@ test("opens fresh regional notices from desktop and mobile navigation", async ({
   await serviceFilter.getByRole("button", { name: "Train", exact: true }).click();
   await expect(page.getByText("Barrie station construction notice", { exact: true })).toBeVisible();
   await expect(page.getByText("Route 31 buses are detouring", { exact: true })).toHaveCount(0);
+
+  await page.getByRole("group", { name: "GO / UP notice content" })
+    .getByRole("button", { name: /Trip changes/i })
+    .click();
+  await expect(page.getByText("Train 681", { exact: true })).toBeVisible();
+  await expect(page.getByText("Cancelled", { exact: true })).toBeVisible();
+  await expect(page.getByText("Union Station", { exact: true })).toBeVisible();
+  await expect(page.getByText(/confidently matched to the published GO schedule/)).toBeVisible();
 });
 
 test("regional segment selections flash quickly then breathe", async ({ page, request, isMobile }) => {

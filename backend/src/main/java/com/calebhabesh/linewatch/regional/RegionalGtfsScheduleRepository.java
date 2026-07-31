@@ -68,18 +68,19 @@ public class RegionalGtfsScheduleRepository {
                 schedule.departures().subList(start, Math.min(start + 1000, schedule.departures().size()));
             batch("""
                 insert into regional_gtfs_departures (
-                    import_id, station_id, line_id, service_id, trip_id, direction,
-                    departure_seconds, platform
+                    import_id, station_id, line_id, service_id, trip_id, trip_short_name, direction,
+                    departure_seconds, platform, stop_sequence
                 ) values (
-                    :importId, :stationId, :lineId, :serviceId, :tripId, :direction,
-                    :departureSeconds, :platform
+                    :importId, :stationId, :lineId, :serviceId, :tripId, :tripShortName, :direction,
+                    :departureSeconds, :platform, :stopSequence
                 ) on conflict do nothing
                 """, rows.stream().map(row -> new MapSqlParameterSource()
                 .addValue("importId", importId).addValue("stationId", row.stationId())
                 .addValue("lineId", row.lineId()).addValue("serviceId", row.serviceId())
-                .addValue("tripId", row.tripId()).addValue("direction", row.direction())
+                .addValue("tripId", row.tripId()).addValue("tripShortName", row.tripShortName())
+                .addValue("direction", row.direction())
                 .addValue("departureSeconds", row.departureSeconds())
-                .addValue("platform", row.platform())).toList());
+                .addValue("platform", row.platform()).addValue("stopSequence", row.stopSequence())).toList());
         }
 
         jdbc.update("""
@@ -175,6 +176,54 @@ public class RegionalGtfsScheduleRepository {
             ));
     }
 
+    public List<MatchedDeparture> findActiveTrip(String identity, LocalDate serviceDate) {
+        if (identity == null || identity.isBlank() || serviceDate == null) return List.of();
+        return jdbc.query("""
+            with active_services as (
+                select service.import_id, service.service_id
+                from regional_gtfs_services service
+                where service.start_date <= :serviceDate
+                  and service.end_date >= :serviceDate
+                  and case extract(isodow from cast(:serviceDate as date))
+                        when 1 then service.monday when 2 then service.tuesday
+                        when 3 then service.wednesday when 4 then service.thursday
+                        when 5 then service.friday when 6 then service.saturday
+                        when 7 then service.sunday end = true
+                  and not exists (
+                      select 1 from regional_gtfs_service_exceptions service_exception
+                      where service_exception.import_id = service.import_id
+                        and service_exception.service_id = service.service_id
+                        and service_exception.service_date = :serviceDate
+                        and service_exception.exception_type = 2
+                  )
+                union
+                select service_exception.import_id, service_exception.service_id
+                from regional_gtfs_service_exceptions service_exception
+                where service_exception.service_date = :serviceDate
+                  and service_exception.exception_type = 1
+            )
+            select departure.line_id, departure.direction, departure.trip_id,
+                   departure.trip_short_name, departure.station_id, departure.stop_sequence,
+                   departure.departure_seconds, departure.platform
+            from regional_gtfs_departures departure
+            join regional_gtfs_schedule_imports import
+              on import.id = departure.import_id and import.active = true and import.source_system = 'go'
+            where (departure.trip_id = :identity or departure.trip_short_name = :identity)
+              and exists (
+                  select 1 from active_services active_service
+                  where active_service.import_id = departure.import_id
+                    and active_service.service_id = departure.service_id
+              )
+            order by departure.trip_id, departure.stop_sequence nulls last, departure.departure_seconds
+            """, new MapSqlParameterSource("identity", identity).addValue("serviceDate", serviceDate),
+            (rs, row) -> new MatchedDeparture(
+                rs.getString("line_id"), rs.getString("direction"), rs.getString("trip_id"),
+                rs.getString("trip_short_name"), rs.getString("station_id"),
+                rs.getObject("stop_sequence", Integer.class), rs.getInt("departure_seconds"),
+                rs.getString("platform"), serviceDate
+            ));
+    }
+
     public Optional<ActiveImport> activeImport(String sourceSystem) {
         return jdbc.query("""
             select id, source_system, source_url, imported_at, service_start, service_end
@@ -197,6 +246,11 @@ public class RegionalGtfsScheduleRepository {
         String tripId, LocalDate serviceDate, OffsetDateTime importedAt
     ) {}
     public record Coverage(String lineId, String stationId, long departureCount) {}
+    public record MatchedDeparture(
+        String lineId, String direction, String tripId, String tripShortName,
+        String stationId, Integer stopSequence, int departureSeconds, String platform,
+        LocalDate serviceDate
+    ) {}
     public record ActiveImport(
         long id, String sourceSystem, String sourceUrl, OffsetDateTime importedAt,
         LocalDate serviceStart, LocalDate serviceEnd

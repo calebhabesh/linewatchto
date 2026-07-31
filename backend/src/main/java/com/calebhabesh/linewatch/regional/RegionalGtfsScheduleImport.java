@@ -26,7 +26,7 @@ public record RegionalGtfsScheduleImport(
     ) {}
     public record ServiceException(String serviceId, LocalDate serviceDate, int exceptionType) {}
     public record Departure(
-        String stationId, String lineId, String serviceId, String tripId,
-        String direction, int departureSeconds, String platform
+        String stationId, String lineId, String serviceId, String tripId, String tripShortName,
+        String direction, int departureSeconds, String platform, Integer stopSequence
     ) {}
 }

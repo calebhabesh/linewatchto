@@ -31,9 +31,9 @@ class RegionalGtfsScheduleImportServiceTest {
                 BUS,21,Milton Bus,3
                 """);
             entry(output, "trips.txt", """
-                route_id,service_id,trip_id,trip_headsign
-                MI,WKD,MI100,Union Station
-                BUS,WKD,BUS100,Union Station
+                route_id,service_id,trip_id,trip_headsign,trip_short_name
+                MI,WKD,MI100,Union Station,681
+                BUS,WKD,BUS100,Union Station,21B
                 """);
             entry(output, "stops.txt", """
                 stop_id,stop_code,stop_name,parent_station,platform_code
@@ -70,6 +70,12 @@ class RegionalGtfsScheduleImportServiceTest {
         assertThat(captured.getValue().departures())
             .extracting(RegionalGtfsScheduleImport.Departure::lineId)
             .containsOnly("regional-mi");
+        assertThat(captured.getValue().departures())
+            .extracting(RegionalGtfsScheduleImport.Departure::tripShortName)
+            .containsOnly("681");
+        assertThat(captured.getValue().departures())
+            .extracting(RegionalGtfsScheduleImport.Departure::stopSequence)
+            .containsExactly(1, 2);
     }
 
     @Test
@@ -81,9 +87,9 @@ class RegionalGtfsScheduleImportServiceTest {
                 UP,UP,Union Pearson Express,2
                 """);
             entry(output, "trips.txt", """
-                route_id,service_id,trip_id,trip_headsign,direction_id
-                UP,DAILY,UP100,Union Pearson Express,0
-                UP,DAILY,UP200,Union Pearson Express,1
+                route_id,service_id,trip_id,trip_headsign,direction_id,trip_short_name
+                UP,DAILY,UP100,Union Pearson Express,0,100
+                UP,DAILY,UP200,Union Pearson Express,1,200
                 """);
             entry(output, "stops.txt", """
                 stop_id,stop_code,stop_name,parent_station,platform_code
