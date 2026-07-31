@@ -17819,7 +17819,7 @@ img.transit-line-badge {
     left: calc(var(--mobile-safe-left) + var(--mobile-edge-inset)) !important;
     top: calc(var(--mobile-safe-top) + var(--mobile-edge-inset)) !important;
     width: max-content !important;
-    max-width: 36px;
+    max-width: 38px;
     transition: max-width 450ms cubic-bezier(0.25, 1, 0.5, 1),
                 padding-right 450ms cubic-bezier(0.25, 1, 0.5, 1),
                 top 300ms ease,
@@ -17843,6 +17843,7 @@ img.transit-line-badge {
   }
 
   .mobile-legend-pill div {
+    justify-content: flex-start !important;
     transition: gap 450ms cubic-bezier(0.25, 1, 0.5, 1) !important;
   }
 

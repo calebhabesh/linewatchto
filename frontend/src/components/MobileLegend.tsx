@@ -46,7 +46,7 @@ export function MobileLegend({
           ? "w-max max-w-[215px] pr-3.5 mobile-legend-pill--expanded"
           : isRegional
             ? "w-[40px] max-w-[40px]"
-            : "w-[36px] max-w-[36px]"
+            : "w-[38px] max-w-[38px]"
       }`}
       style={{ zIndex: expanded ? 41 : 35 }}
       role="button"
