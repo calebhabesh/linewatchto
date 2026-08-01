@@ -32,4 +32,17 @@ class RegionalGtfsScheduleMigrationTest {
             assertThat(sql).contains("idx_regional_gtfs_trip_identity");
         }
     }
+
+    @Test
+    void v56CorrectsPersistedUpExpressDirections() throws Exception {
+        try (var input = getClass().getResourceAsStream(
+            "/db/migration/V56__correct_up_express_directions.sql"
+        )) {
+            assertThat(input).isNotNull();
+            String sql = new String(input.readAllBytes(), StandardCharsets.UTF_8);
+            assertThat(sql).contains("where line_id = 'regional-up'");
+            assertThat(sql).contains("when 'Union Station' then 'Pearson Airport'");
+            assertThat(sql).contains("when 'Pearson Airport' then 'Union Station'");
+        }
+    }
 }

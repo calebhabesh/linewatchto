@@ -96,9 +96,14 @@ public class MetrolinxArrivalClient {
             String tripNumber = tripUpdate.path("trip").path("trip_id").asText(entity.path("id").asText("")).trim();
             String direction = destination(tripUpdate.path("vehicle").path("label").asText(""));
             if (direction.isBlank()) {
-                direction = tripUpdate.path("trip").path("direction_id").asInt(0) == 1
-                    ? "Pearson Airport" : "Union Station";
+                JsonNode directionValue = tripUpdate.path("trip").get("direction_id");
+                direction = directionValue == null || !directionValue.canConvertToInt()
+                    ? ""
+                    : RegionalNetworkCatalog.directionDestination(
+                        "regional-up", directionValue.asInt()
+                    ).orElse("");
             }
+            if (direction.isBlank()) continue;
             for (JsonNode update : array(tripUpdate.path("stop_time_update"))) {
                 if (!stopCode.equalsIgnoreCase(update.path("stop_id").asText(""))) {
                     continue;

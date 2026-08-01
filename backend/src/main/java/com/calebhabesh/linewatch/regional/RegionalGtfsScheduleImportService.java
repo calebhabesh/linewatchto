@@ -191,11 +191,13 @@ public class RegionalGtfsScheduleImportService {
 
     private String tripDirection(String sourceSystem, RouteInfo route, GtfsCsvReader.Row row) {
         if ("up".equals(sourceSystem)) {
-            return switch (row.value("direction_id").trim()) {
-                case "0" -> "Union Station";
-                case "1" -> "Pearson Airport";
-                default -> firstNonBlank(row.value("trip_headsign"), route.name());
-            };
+            Integer directionId = integer(row.value("direction_id"));
+            if (directionId != null) {
+                String destination = RegionalNetworkCatalog.directionDestination(
+                    route.lineId(), directionId
+                ).orElse(null);
+                if (destination != null) return destination;
+            }
         }
         return firstNonBlank(row.value("trip_headsign"), route.name());
     }

@@ -48,7 +48,7 @@ class MetrolinxVehiclePositionClientTest {
             assertThat(marker.segmentId()).isEqualTo("segment-ki-weston-etobicoke-north");
             assertThat(marker.fromStationId()).isEqualTo("etobicoke-north");
             assertThat(marker.nextStationId()).isEqualTo("weston");
-            assertThat(marker.direction()).isEqualTo("Inbound");
+            assertThat(marker.direction()).isEqualTo("Eastbound");
             assertThat(marker.travelDirection()).isEqualTo("reverse");
             assertThat(marker.progress()).isEqualTo(0.5);
             assertThat(marker.vehicleId()).isEqualTo("cab-3775");
@@ -74,7 +74,7 @@ class MetrolinxVehiclePositionClientTest {
             assertThat(marker.segmentId()).isEqualTo("segment-mi-erindale-streetsville");
             assertThat(marker.fromStationId()).isEqualTo("erindale");
             assertThat(marker.nextStationId()).isEqualTo("streetsville");
-            assertThat(marker.direction()).isEqualTo("Outbound");
+            assertThat(marker.direction()).isEqualTo("Westbound");
             assertThat(marker.travelDirection()).isEqualTo("forward");
         });
         server.verify();
@@ -98,7 +98,7 @@ class MetrolinxVehiclePositionClientTest {
             assertThat(marker.segmentId()).isEqualTo("segment-le-scarborough-eglinton");
             assertThat(marker.fromStationId()).isEqualTo("eglinton");
             assertThat(marker.nextStationId()).isEqualTo("scarborough");
-            assertThat(marker.direction()).isEqualTo("Inbound");
+            assertThat(marker.direction()).isEqualTo("Westbound");
             assertThat(marker.travelDirection()).isEqualTo("reverse");
         });
         server.verify();
@@ -122,8 +122,56 @@ class MetrolinxVehiclePositionClientTest {
             assertThat(marker.segmentId()).isEqualTo("segment-lw-west-harbour-confederation");
             assertThat(marker.fromStationId()).isEqualTo("confederation");
             assertThat(marker.nextStationId()).isEqualTo("west-harbour");
-            assertThat(marker.direction()).isEqualTo("Inbound");
+            assertThat(marker.direction()).isEqualTo("Eastbound");
             assertThat(marker.travelDirection()).isEqualTo("reverse");
+        });
+        server.verify();
+    }
+
+    @Test
+    void mapsDirectionOneUpVehicleInboundTowardUnion() {
+        server.expect(requestTo("https://api.example.test/OpenDataAPI/api/V1/UP/Gtfs/Feed/VehiclePosition?key=secret"))
+            .andRespond(withSuccess("""
+                {"header":{"incrementality":"FULL_DATASET","timestamp":1785268043},
+                 "entity":[
+                   {"id":"up-4322","vehicle":{"trip":{"trip_id":"4322","route_id":"UP","direction_id":1},
+                     "vehicle":{"id":"cab-4322"},"current_status":"IN_TRANSIT_TO","stop_id":"WE","timestamp":1785268040}}
+                 ]}
+                """, MediaType.APPLICATION_JSON));
+
+        RegionalTrainMarkerFeed feed = client.fetchUp();
+
+        assertThat(feed.markers()).singleElement().satisfies(marker -> {
+            assertThat(marker.lineId()).isEqualTo("regional-up");
+            assertThat(marker.segmentId()).isEqualTo("segment-up-weston-pearson-airport");
+            assertThat(marker.fromStationId()).isEqualTo("pearson-airport");
+            assertThat(marker.nextStationId()).isEqualTo("weston");
+            assertThat(marker.direction()).isEqualTo("Eastbound");
+            assertThat(marker.travelDirection()).isEqualTo("reverse");
+        });
+        server.verify();
+    }
+
+    @Test
+    void mapsDirectionZeroUpVehicleWestboundTowardPearsonAtMountDennis() {
+        server.expect(requestTo("https://api.example.test/OpenDataAPI/api/V1/UP/Gtfs/Feed/VehiclePosition?key=secret"))
+            .andRespond(withSuccess("""
+                {"header":{"incrementality":"FULL_DATASET","timestamp":1785268043},
+                 "entity":[
+                   {"id":"up-4323","vehicle":{"trip":{"trip_id":"4323","route_id":"UP","direction_id":0},
+                     "vehicle":{"id":"cab-4323"},"current_status":"IN_TRANSIT_TO","stop_id":"MD","timestamp":1785268040}}
+                 ]}
+                """, MediaType.APPLICATION_JSON));
+
+        RegionalTrainMarkerFeed feed = client.fetchUp();
+
+        assertThat(feed.markers()).singleElement().satisfies(marker -> {
+            assertThat(marker.lineId()).isEqualTo("regional-up");
+            assertThat(marker.segmentId()).isEqualTo("segment-up-bloor-mount-dennis");
+            assertThat(marker.fromStationId()).isEqualTo("bloor");
+            assertThat(marker.nextStationId()).isEqualTo("mount-dennis");
+            assertThat(marker.direction()).isEqualTo("Westbound");
+            assertThat(marker.travelDirection()).isEqualTo("forward");
         });
         server.verify();
     }
@@ -134,6 +182,21 @@ class MetrolinxVehiclePositionClientTest {
             .andRespond(withSuccess("""
                 {"header":{"incrementality":"FULL_DATASET","timestamp":1785268043},
                  "entity":[{"id":"up-1","vehicle":{"trip":{"trip_id":"up-1","route_id":"UP"},"stop_id":"unknown"}}]}
+                """, MediaType.APPLICATION_JSON));
+
+        assertThat(client.fetchUp().markers()).isEmpty();
+        server.verify();
+    }
+
+    @Test
+    void dropsVehicleWhenDirectionIsMissingRatherThanInventingOutboundTravel() {
+        server.expect(requestTo("https://api.example.test/OpenDataAPI/api/V1/UP/Gtfs/Feed/VehiclePosition?key=secret"))
+            .andRespond(withSuccess("""
+                {"header":{"incrementality":"FULL_DATASET","timestamp":1785268043},
+                 "entity":[
+                   {"id":"up-unknown","vehicle":{"trip":{"trip_id":"unknown","route_id":"UP"},
+                     "current_status":"IN_TRANSIT_TO","stop_id":"MD","timestamp":1785268040}}
+                 ]}
                 """, MediaType.APPLICATION_JSON));
 
         assertThat(client.fetchUp().markers()).isEmpty();

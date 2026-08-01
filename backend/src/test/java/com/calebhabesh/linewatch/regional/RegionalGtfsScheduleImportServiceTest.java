@@ -122,10 +122,10 @@ class RegionalGtfsScheduleImportServiceTest {
         assertThat(captured.getValue().departures())
             .extracting(RegionalGtfsScheduleImport.Departure::tripId, RegionalGtfsScheduleImport.Departure::direction)
             .containsExactly(
-                org.assertj.core.groups.Tuple.tuple("UP100", "Union Station"),
-                org.assertj.core.groups.Tuple.tuple("UP100", "Union Station"),
-                org.assertj.core.groups.Tuple.tuple("UP200", "Pearson Airport"),
-                org.assertj.core.groups.Tuple.tuple("UP200", "Pearson Airport")
+                org.assertj.core.groups.Tuple.tuple("UP100", "Pearson Airport"),
+                org.assertj.core.groups.Tuple.tuple("UP100", "Pearson Airport"),
+                org.assertj.core.groups.Tuple.tuple("UP200", "Union Station"),
+                org.assertj.core.groups.Tuple.tuple("UP200", "Union Station")
             );
     }
 

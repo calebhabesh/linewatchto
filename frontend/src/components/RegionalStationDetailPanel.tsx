@@ -63,6 +63,8 @@ type RegionalStationImpact = {
   tone: "active" | "delay" | "planned" | "reduced-speed-zone";
 };
 
+const REGIONAL_ARRIVAL_REFRESH_MS = 15_000;
+
 function stationImpactCardClassName(tone: RegionalStationImpact["tone"]) {
   const base = "flex flex-col gap-2.5 rounded-lg border border-black/10 bg-slate-50 p-3 text-sm border-l-2 dark:border-white/10 dark:bg-white/5 transition-all";
   if (tone === "active") {
@@ -342,13 +344,40 @@ export function RegionalStationDetailPanel({
   }, []);
 
   useEffect(() => {
-    const controller = new AbortController();
-    void getRegionalStationArrivals(station.id, { signal: controller.signal }).then((result) => {
-      if (!controller.signal.aborted) {
-        setArrivalState({ stationId: station.id, snapshot: result.data });
+    let active = true;
+    let requestId = 0;
+    let controller: AbortController | null = null;
+
+    const refreshArrivals = () => {
+      controller?.abort();
+      controller = new AbortController();
+      const activeRequestId = ++requestId;
+      void getRegionalStationArrivals(station.id, { signal: controller.signal }).then((result) => {
+        if (active && activeRequestId === requestId) {
+          setArrivalState({ stationId: station.id, snapshot: result.data });
+        }
+      }).catch(() => undefined);
+    };
+
+    refreshArrivals();
+    const interval = window.setInterval(() => {
+      if (document.visibilityState === "visible") {
+        refreshArrivals();
       }
-    }).catch(() => undefined);
-    return () => controller.abort();
+    }, REGIONAL_ARRIVAL_REFRESH_MS);
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        refreshArrivals();
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      active = false;
+      controller?.abort();
+      window.clearInterval(interval);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
   }, [station.id]);
 
   useEffect(() => {

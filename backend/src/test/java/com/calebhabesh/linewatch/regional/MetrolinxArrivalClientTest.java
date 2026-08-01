@@ -65,7 +65,7 @@ class MetrolinxArrivalClientTest {
             .andRespond(withSuccess("""
                 {"header":{"gtfs_realtime_version":"2.0","incrementality":"FULL_DATASET","timestamp":1785268043},
                  "entity":[{"id":"20260728-4323","trip_update":{
-                   "trip":{"trip_id":"20260728-4323","route_id":"UP","direction_id":1},
+                   "trip":{"trip_id":"20260728-4323","route_id":"UP","direction_id":0},
                    "vehicle":{"label":"UP - Pearson Airport"},
                    "stop_time_update":[
                      {"stop_id":"BL","departure":{"delay":58,"time":1785268438}},
@@ -83,6 +83,26 @@ class MetrolinxArrivalClientTest {
             assertThat(arrival.predictedAt()).isEqualTo(OffsetDateTime.parse("2026-07-28T19:53:58Z"));
             assertThat(arrival.scheduledAt()).isEqualTo(OffsetDateTime.parse("2026-07-28T19:53:00Z"));
         });
+        server.verify();
+    }
+
+    @Test
+    void derivesUnionDestinationFromUpDirectionOneWhenVehicleLabelIsMissing() {
+        server.expect(requestTo("https://api.example.test/OpenDataAPI/api/V1/UP/Gtfs/Feed/TripUpdates?key=" + KEY))
+            .andRespond(withSuccess("""
+                {"header":{"gtfs_realtime_version":"2.0","incrementality":"FULL_DATASET","timestamp":1785268043},
+                 "entity":[{"id":"20260728-4322","trip_update":{
+                   "trip":{"trip_id":"20260728-4322","route_id":"UP","direction_id":1},
+                   "stop_time_update":[
+                     {"stop_id":"PA","departure":{"delay":0,"time":1785268438}}
+                   ]}}]}
+                """, MediaType.APPLICATION_JSON));
+
+        RegionalArrivalFeed feed = client.fetchUpTripUpdates("PA");
+
+        assertThat(feed.arrivals()).singleElement().satisfies(arrival ->
+            assertThat(arrival.direction()).isEqualTo("Union Station")
+        );
         server.verify();
     }
 }

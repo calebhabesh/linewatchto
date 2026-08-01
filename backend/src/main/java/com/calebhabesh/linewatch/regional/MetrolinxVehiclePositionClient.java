@@ -55,8 +55,12 @@ public class MetrolinxVehiclePositionClient {
             if (lineId == null || nextStationId == null) continue;
             RegionalNetworkCatalog.Route route = RegionalNetworkCatalog.route(lineId).orElse(null);
             if (route == null) continue;
-            int directionId = trip.path("direction_id").asInt(0);
-            boolean inbound = directionId == route.inboundDirectionId();
+            JsonNode directionValue = trip.get("direction_id");
+            if (directionValue == null || !directionValue.canConvertToInt()) continue;
+            int directionId = directionValue.asInt();
+            Boolean inbound = RegionalNetworkCatalog.isInboundDirection(lineId, directionId).orElse(null);
+            String direction = RegionalNetworkCatalog.directionLabel(lineId, directionId).orElse(null);
+            if (inbound == null || direction == null) continue;
             // Metrolinx's Union-bound direction ID varies by corridor. Resolve the
             // unique adjacent approach on the correct side of the topology instead
             // of assuming the flat station-list neighbor is physically connected.
@@ -80,7 +84,6 @@ public class MetrolinxVehiclePositionClient {
             OffsetDateTime predictedAt = updatedAt == null ? null : updatedAt.plusSeconds(
                 Math.max(1, Math.round((1 - progress) * segmentTravelSeconds))
             );
-            String direction = inbound ? "Inbound" : "Outbound";
             markers.add(new RegionalTrainMarkerRecord(
                 preferred(entity.path("id").asText(""), lineId + ":" + tripId + ":" + vehicleId),
                 lineId, direction, travelDirection, segment.id(),

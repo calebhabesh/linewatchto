@@ -57,7 +57,7 @@ public final class RegionalNetworkCatalog {
         route("regional-st", "ST", "Stouffville", "#774111", 1,
             "union", "kennedy", "agincourt", "milliken", "unionville", "centennial", "markham",
             "mount-joy", "stouffville", "old-elm"),
-        route("regional-up", "UP", "Union Pearson Express", "#4084cd", 0,
+        route("regional-up", "UP", "Union Pearson Express", "#4084cd", 1,
             "union", "bloor", "mount-dennis", "weston", "pearson-airport")
     );
 
@@ -140,6 +140,43 @@ public final class RegionalNetworkCatalog {
 
     public static Optional<Route> route(String lineId) {
         return ROUTES.stream().filter(route -> route.id().equals(lineId)).findFirst();
+    }
+
+    public static Optional<Boolean> isInboundDirection(String lineId, int directionId) {
+        if (directionId != 0 && directionId != 1) return Optional.empty();
+        return route(lineId).map(route -> directionId == route.inboundDirectionId());
+    }
+
+    public static Optional<String> directionDestination(String lineId, int directionId) {
+        Route route = route(lineId).orElse(null);
+        if (route == null || !"UP".equals(route.number()) || directionId < 0 || directionId > 1) {
+            return Optional.empty();
+        }
+        String stationId = directionId == route.inboundDirectionId()
+            ? "union"
+            : route.stationIds().getLast();
+        return station(stationId).map(destination -> "union".equals(stationId)
+            ? "Union Station"
+            : destination.name());
+    }
+
+    public static Optional<String> directionLabel(String lineId, int directionId) {
+        Route route = route(lineId).orElse(null);
+        Boolean inbound = isInboundDirection(lineId, directionId).orElse(null);
+        if (route == null || inbound == null) return Optional.empty();
+        String outward = switch (route.number()) {
+            case "BR", "RH", "ST" -> "Northbound";
+            case "LE" -> "Eastbound";
+            case "KI", "LW", "MI", "UP" -> "Westbound";
+            default -> null;
+        };
+        if (outward == null || !inbound) return Optional.ofNullable(outward);
+        return Optional.of(switch (outward) {
+            case "Northbound" -> "Southbound";
+            case "Eastbound" -> "Westbound";
+            case "Westbound" -> "Eastbound";
+            default -> throw new IllegalStateException("Unsupported regional direction " + outward);
+        });
     }
 
     public static Optional<String> lineIdForSourceCode(String sourceCode) {

@@ -1092,10 +1092,7 @@ export function SavedCommutesPanel({
           <>
             {activeView === "create" ? (
               <div className="saved-commute-form">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <h3 className="text-sm font-bold text-slate-900 dark:text-white">{editingCommuteId ? "Edit Route" : "Create a Route"}</h3>
-                  <AccountNetworkBadge networkId={draftNetworkId} />
-                </div>
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white">{editingCommuteId ? "Edit Route" : "Create a Route"}</h3>
                 {!editingCommuteId ? (
                   <div className="account-network-filter" data-network={draftNetworkId} data-options-count={2} role="group" aria-label="Choose commute network">
                     <div className="account-network-glider" aria-hidden="true" />
