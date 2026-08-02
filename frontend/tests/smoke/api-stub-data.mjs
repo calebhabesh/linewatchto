@@ -721,15 +721,15 @@ export const estimatedTrainsResponse = {
 export const regionalEstimatedTrainsResponse = {
   fresh: true,
   availability: "available",
-  source: "Metrolinx GO GTFS-RT VehiclePosition / Metrolinx UP Express GTFS-RT VehiclePosition",
+  source: "Metrolinx GO GTFS-RT VehiclePosition / Metrolinx UP Express GTFS-RT VehiclePosition reconciled with TripUpdates",
   message: "Fresh schematic regional train markers.",
-  disclaimer: "Estimated regional train markers are schematic placements derived from Metrolinx GTFS-RT vehicle positions and LineWatchTO topology. They are not exact physical train locations.",
+  disclaimer: "Estimated regional train markers are schematic placements derived from Metrolinx GTFS-RT vehicle positions and LineWatchTO topology. UP Express direction and station timing are reconciled with the matching TripUpdates trip. Markers are not exact physical train locations.",
   feedCreatedAt: "2026-07-28T19:47:43Z",
   generatedAt: "2026-07-28T19:48:00Z",
   markers: [{
     id: "go-3775",
     lineId: "regional-ki",
-    direction: "Outbound",
+    direction: "Westbound",
     travelDirection: "forward",
     segmentId: "segment-ki-mount-dennis-weston",
     fromStationId: "mount-dennis",

@@ -3,11 +3,9 @@ package com.calebhabesh.linewatch.regional;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.net.URI;
-import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
-import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
@@ -22,7 +20,7 @@ public class MetrolinxArrivalClient {
     static final String GO_SOURCE = "Metrolinx GO Next Service";
     static final String UP_SOURCE = "Metrolinx UP Express GTFS-RT TripUpdates";
     private static final String GO_NEXT_SERVICE_PATH = "api/V1/Stop/NextService/";
-    private static final String UP_TRIP_UPDATES_PATH = "api/V1/UP/Gtfs/Feed/TripUpdates";
+    static final String UP_TRIP_UPDATES_PATH = "api/V1/UP/Gtfs/Feed/TripUpdates";
     private static final ZoneId TORONTO_ZONE = ZoneId.of("America/Toronto");
     private static final DateTimeFormatter METROLINX_DATE_TIME =
         DateTimeFormatter.ofPattern("uuuu-MM-dd HH:mm:ss", Locale.CANADA);
@@ -40,15 +38,18 @@ public class MetrolinxArrivalClient {
     private final RestClient restClient;
     private final ObjectMapper objectMapper;
     private final MetrolinxProperties properties;
+    private final MetrolinxUpTripUpdateParser upTripUpdateParser;
 
     public MetrolinxArrivalClient(
         RestClient metrolinxRestClient,
         ObjectMapper objectMapper,
-        MetrolinxProperties properties
+        MetrolinxProperties properties,
+        MetrolinxUpTripUpdateParser upTripUpdateParser
     ) {
         this.restClient = metrolinxRestClient;
         this.objectMapper = objectMapper;
         this.properties = properties;
+        this.upTripUpdateParser = upTripUpdateParser;
     }
 
     public RegionalArrivalFeed fetchGoNextService(String stopCode) {
@@ -85,41 +86,19 @@ public class MetrolinxArrivalClient {
     }
 
     public RegionalArrivalFeed fetchUpTripUpdates(String stopCode) {
-        JsonNode root = fetch(UP_TRIP_UPDATES_PATH, "UP Express trip updates");
-        if (!"FULL_DATASET".equalsIgnoreCase(root.path("header").path("incrementality").asText(""))
-            || !root.path("entity").isArray()) {
-            throw new MetrolinxClientException("Metrolinx UP trip-update response was not a full dataset");
-        }
+        UpTripUpdateFeed feed = fetchUpTripUpdateFeed();
         List<RegionalArrivalRecord> arrivals = new ArrayList<>();
-        for (JsonNode entity : array(root.path("entity"))) {
-            JsonNode tripUpdate = entity.path("trip_update");
-            String tripNumber = tripUpdate.path("trip").path("trip_id").asText(entity.path("id").asText("")).trim();
-            String direction = destination(tripUpdate.path("vehicle").path("label").asText(""));
-            if (direction.isBlank()) {
-                JsonNode directionValue = tripUpdate.path("trip").get("direction_id");
-                direction = directionValue == null || !directionValue.canConvertToInt()
-                    ? ""
-                    : RegionalNetworkCatalog.directionDestination(
-                        "regional-up", directionValue.asInt()
-                    ).orElse("");
-            }
-            if (direction.isBlank()) continue;
-            for (JsonNode update : array(tripUpdate.path("stop_time_update"))) {
-                if (!stopCode.equalsIgnoreCase(update.path("stop_id").asText(""))) {
-                    continue;
-                }
-                JsonNode event = update.path("departure").isObject()
-                    ? update.path("departure") : update.path("arrival");
-                OffsetDateTime predictedAt = epoch(event.get("time"));
-                if (predictedAt != null) {
-                    OffsetDateTime scheduledAt = predictedAt.minusSeconds(Math.max(0, event.path("delay").asLong(0)));
-                    arrivals.add(new RegionalArrivalRecord(
-                        "regional-up", direction, scheduledAt, predictedAt, "", tripNumber, UP_SOURCE, "live"
-                    ));
-                }
-            }
+        for (UpTripUpdateFeed.Trip trip : feed.trips()) {
+            trip.stopTime(stopCode).ifPresent(stopTime -> arrivals.add(new RegionalArrivalRecord(
+                "regional-up", trip.destination(), stopTime.scheduledAt(), stopTime.predictedAt(), "",
+                trip.tripId(), UP_SOURCE, "live"
+            )));
         }
-        return new RegionalArrivalFeed(epoch(root.path("header").get("timestamp")), List.copyOf(arrivals));
+        return new RegionalArrivalFeed(feed.sourceUpdatedAt(), List.copyOf(arrivals));
+    }
+
+    public UpTripUpdateFeed fetchUpTripUpdateFeed() {
+        return upTripUpdateParser.parse(fetch(UP_TRIP_UPDATES_PATH, "UP Express trip updates"));
     }
 
     private JsonNode fetch(String path, String label) {
@@ -160,11 +139,6 @@ public class MetrolinxArrivalClient {
         } catch (Exception ignored) {
             return null;
         }
-    }
-
-    private OffsetDateTime epoch(JsonNode value) {
-        return value == null || !value.canConvertToLong()
-            ? null : OffsetDateTime.ofInstant(Instant.ofEpochSecond(value.asLong()), ZoneOffset.UTC);
     }
 
     private String normalize(String value) {

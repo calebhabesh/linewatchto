@@ -905,7 +905,7 @@ test("renders regional estimated train markers from the network-scoped endpoint"
   await page.getByRole("button", { name: /Toggle estimated train markers/ }).click();
 
   await expect(page.locator(".regional-estimated-train-marker-layer")).toBeAttached();
-  const marker = page.locator('[data-marker-key="regional-ki:outbound:3775:cab-3775"]');
+  const marker = page.locator('[data-marker-key="regional-ki:westbound:3775:cab-3775"]');
   await expect(page.locator(".estimated-train-marker-regional-ki")).toHaveCount(1);
   await expect(marker).toBeAttached();
   await expect(marker.locator(".estimated-train-marker-outline")).toHaveCount(1);

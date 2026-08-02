@@ -37,10 +37,13 @@ find_free_port() {
 }
 
 REQUESTED_SERVER_PORT="${SERVER_PORT:-${LINEWATCH_BACKEND_PORT:-8080}}"
-SERVER_PORT=$(find_free_port "$REQUESTED_SERVER_PORT")
-if [ "$SERVER_PORT" != "$REQUESTED_SERVER_PORT" ]; then
-  echo "Notice: Backend server port $REQUESTED_SERVER_PORT is currently in use. Automatically switching to next free port $SERVER_PORT."
+AVAILABLE_SERVER_PORT=$(find_free_port "$REQUESTED_SERVER_PORT")
+if [ "$AVAILABLE_SERVER_PORT" != "$REQUESTED_SERVER_PORT" ]; then
+  echo "Error: Backend server port $REQUESTED_SERVER_PORT is already in use. Refusing to start on $AVAILABLE_SERVER_PORT because the live frontend would continue calling $REQUESTED_SERVER_PORT." >&2
+  echo "Stop the existing backend, or set SERVER_PORT and LINEWATCH_BACKEND_URL to the same explicit port." >&2
+  exit 1
 fi
+SERVER_PORT="$REQUESTED_SERVER_PORT"
 export SERVER_PORT
 
 : "${LINEWATCH_AUTH_PASSWORD_RESET_DEV_LINKS:=true}"

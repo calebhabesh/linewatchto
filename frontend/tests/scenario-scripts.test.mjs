@@ -99,6 +99,8 @@ describe("alert scenario scripts", () => {
 
     assert.match(liveBackendScript, /LINEWATCH_AUTH_DEV_ACCOUNT_ENABLED:=true/);
     assert.match(liveBackendScript, /export LINEWATCH_AUTH_DEV_ACCOUNT_ENABLED/);
+    assert.match(liveBackendScript, /Refusing to start on \$AVAILABLE_SERVER_PORT because the live frontend would continue calling \$REQUESTED_SERVER_PORT/);
+    assert.doesNotMatch(liveBackendScript, /Backend server port[^\n]*Automatically switching/);
     assert.match(scenarioBackendScript, /LINEWATCH_AUTH_DEV_ACCOUNT_ENABLED:=true/);
     assert.match(scenarioBackendScript, /export LINEWATCH_AUTH_DEV_ACCOUNT_ENABLED/);
     assert.doesNotMatch(livePushBackendScript, /LINEWATCH_AUTH_DEV_ACCOUNT_ENABLED:=true/);

@@ -1,6 +1,10 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
+import {
+  orientedEstimatedTrainMarkerAngle,
+  resolveEstimatedTrainMarkerSegmentDirection,
+} from "../src/app/train-markers.ts";
 
 const regionalMapSource = readFileSync(
   new URL("../src/components/InteractiveRegionalMap.tsx", import.meta.url),
@@ -41,6 +45,39 @@ describe("regional estimated train marker rendering", () => {
     assert.doesNotMatch(
       regionalMapSource,
       /\}, \[activeAlerts, commutePathPreview, estimatedTrainMarkers, estimatedTrainsEnabled,/,
+    );
+  });
+
+  it("orients an UP marker only from a validated adjacent station pair", () => {
+    const segment = {
+      stationAId: "mount-dennis",
+      stationBId: "weston",
+      stationAAnchorId: "station-mount-dennis-up",
+      stationBAnchorId: "station-weston-up",
+    };
+    const eastbound = {
+      fromStationId: "weston",
+      toStationId: "mount-dennis",
+      nextStationId: "mount-dennis",
+    };
+
+    assert.deepEqual(
+      resolveEstimatedTrainMarkerSegmentDirection(eastbound, segment),
+      {
+        fromStationId: "weston",
+        toStationId: "mount-dennis",
+        fromAnchorId: "station-weston-up",
+        toAnchorId: "station-mount-dennis-up",
+      },
+    );
+    assert.equal(orientedEstimatedTrainMarkerAngle(32, true), 32);
+    assert.equal(orientedEstimatedTrainMarkerAngle(32, false), 212);
+    assert.equal(
+      resolveEstimatedTrainMarkerSegmentDirection(
+        { ...eastbound, toStationId: "weston" },
+        segment,
+      ),
+      null,
     );
   });
 });

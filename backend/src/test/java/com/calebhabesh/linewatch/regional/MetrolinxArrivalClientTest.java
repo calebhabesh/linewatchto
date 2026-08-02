@@ -28,7 +28,8 @@ class MetrolinxArrivalClientTest {
         client = new MetrolinxArrivalClient(
             builder.build(),
             new ObjectMapper().findAndRegisterModules(),
-            properties
+            properties,
+            new MetrolinxUpTripUpdateParser()
         );
     }
 

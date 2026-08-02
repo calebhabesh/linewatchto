@@ -10,7 +10,7 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class RegionalTrainMarkerService {
-    public static final String DISCLAIMER = "Estimated regional train markers are schematic placements derived from Metrolinx GTFS-RT vehicle positions and LineWatchTO topology. They are not exact physical train locations.";
+    public static final String DISCLAIMER = "Estimated regional train markers are schematic placements derived from Metrolinx GTFS-RT vehicle positions and LineWatchTO topology. UP Express direction and station timing are reconciled with the matching TripUpdates trip. Markers are not exact physical train locations.";
 
     private record Cached(OffsetDateTime expiresAt, Snapshot snapshot) {}
     public record Snapshot(boolean fresh, String availability, String source, String message,

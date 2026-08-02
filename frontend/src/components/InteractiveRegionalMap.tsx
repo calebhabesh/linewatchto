@@ -6,6 +6,8 @@ import type { ImpactKind, ImpactSelection, MapImpact, NetworkSegment, TravelDire
 import type { AccountCommutePathPreview } from "../app/account-data";
 import {
   estimatedTrainMarkerRenderKey,
+  orientedEstimatedTrainMarkerAngle,
+  resolveEstimatedTrainMarkerSegmentDirection,
   TRAIN_MARKER_ARROW_PATH,
   TRAIN_MARKER_BODY_PATH,
   TRAIN_MARKER_WINDOWS,
@@ -1020,10 +1022,9 @@ function regionalTrainMarkerFrame(
   marker: EstimatedTrainMarker,
 ) {
   const pathD = resolvedRegionalSegmentPath(documentNode, segment);
-  const fromAnchorId = marker.fromStationId === segment.stationAId
-    ? segment.stationAAnchorId
-    : segment.stationBAnchorId;
-  const from = svgAnchorPoint(documentNode, fromAnchorId);
+  const direction = resolveEstimatedTrainMarkerSegmentDirection(marker, segment);
+  if (!direction) return null;
+  const from = svgAnchorPoint(documentNode, direction.fromAnchorId);
   if (!pathD || !from) return null;
 
   const markerPath = documentNode.createElementNS(SVG_NAMESPACE, "path");
@@ -1045,7 +1046,7 @@ function regionalTrainMarkerFrame(
     const pathAngle = Math.atan2(after.y - before.y, after.x - before.x) * 180 / Math.PI;
     return {
       point,
-      angle: pathStartsAtFrom ? pathAngle : pathAngle + 180,
+      angle: orientedEstimatedTrainMarkerAngle(pathAngle, pathStartsAtFrom),
     };
   } catch {
     return null;

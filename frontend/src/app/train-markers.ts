@@ -40,6 +40,20 @@ export type EstimatedTrainFetchOptions = {
   network?: "ttc" | "regional";
 };
 
+export type EstimatedTrainMarkerSegment = {
+  stationAId?: string;
+  stationBId?: string;
+  stationAAnchorId?: string;
+  stationBAnchorId?: string;
+};
+
+export type EstimatedTrainMarkerSegmentDirection = {
+  fromStationId: string;
+  toStationId: string;
+  fromAnchorId: string;
+  toAnchorId: string;
+};
+
 export const TRAIN_MARKER_BODY_PATH =
   "M -21 -15 H 14 L 36 0 L 14 15 H -21 A 15 15 0 0 1 -36 0 A 15 15 0 0 1 -21 -15 Z";
 export const TRAIN_MARKER_ARROW_PATH = "M 13 -8 L 27 0 L 13 8 Z";
@@ -64,7 +78,7 @@ export const EMPTY_REGIONAL_TRAIN_SNAPSHOT: EstimatedTrainSnapshot = {
   availability: "unavailable",
   source: "Metrolinx GTFS-RT vehicle positions",
   message: "Regional estimated train markers are unavailable.",
-  disclaimer: "Estimated regional train markers are schematic placements derived from Metrolinx GTFS-RT vehicle positions and LineWatchTO topology. They are not exact physical train locations.",
+  disclaimer: "Estimated regional train markers are schematic placements derived from Metrolinx GTFS-RT vehicle positions and LineWatchTO topology. UP Express direction and station timing are reconciled with the matching TripUpdates trip. Markers are not exact physical train locations.",
   feedCreatedAt: null,
   generatedAt: null,
   markers: [],
@@ -96,6 +110,36 @@ export function estimatedTrainMarkerRenderKey(marker: EstimatedTrainMarker) {
   const direction = normalizedMarkerText(marker.direction).replace(/\s+/g, "-") || "unknown-direction";
 
   return `${marker.lineId}:${direction}:${trainIdentity}`;
+}
+
+export function resolveEstimatedTrainMarkerSegmentDirection(
+  marker: Pick<EstimatedTrainMarker, "fromStationId" | "toStationId" | "nextStationId">,
+  segment: EstimatedTrainMarkerSegment,
+): EstimatedTrainMarkerSegmentDirection | null {
+  if (!segment.stationAId || !segment.stationBId
+    || !segment.stationAAnchorId || !segment.stationBAnchorId) return null;
+  if (marker.toStationId !== marker.nextStationId) return null;
+  if (marker.fromStationId === segment.stationAId && marker.nextStationId === segment.stationBId) {
+    return {
+      fromStationId: segment.stationAId,
+      toStationId: segment.stationBId,
+      fromAnchorId: segment.stationAAnchorId,
+      toAnchorId: segment.stationBAnchorId,
+    };
+  }
+  if (marker.fromStationId === segment.stationBId && marker.nextStationId === segment.stationAId) {
+    return {
+      fromStationId: segment.stationBId,
+      toStationId: segment.stationAId,
+      fromAnchorId: segment.stationBAnchorId,
+      toAnchorId: segment.stationAAnchorId,
+    };
+  }
+  return null;
+}
+
+export function orientedEstimatedTrainMarkerAngle(pathAngle: number, pathStartsAtFrom: boolean) {
+  return pathStartsAtFrom ? pathAngle : pathAngle + 180;
 }
 
 function normalizedMarkerText(value: string | null | undefined) {

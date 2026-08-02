@@ -24,7 +24,9 @@ class MetrolinxVehiclePositionClientTest {
         MetrolinxProperties properties = new MetrolinxProperties();
         properties.setBaseUrl(URI.create("https://api.example.test/OpenDataAPI/"));
         properties.setApiKey("secret");
-        client = new MetrolinxVehiclePositionClient(builder.build(), new ObjectMapper(), properties);
+        client = new MetrolinxVehiclePositionClient(
+            builder.build(), new ObjectMapper(), properties, new MetrolinxUpTripUpdateParser()
+        );
     }
 
     @Test
@@ -129,15 +131,25 @@ class MetrolinxVehiclePositionClientTest {
     }
 
     @Test
-    void mapsDirectionOneUpVehicleInboundTowardUnion() {
+    void mapsMatchedUnionBoundUpTripTowardUnionEvenWhenDirectionIdDisagrees() {
         server.expect(requestTo("https://api.example.test/OpenDataAPI/api/V1/UP/Gtfs/Feed/VehiclePosition?key=secret"))
             .andRespond(withSuccess("""
                 {"header":{"incrementality":"FULL_DATASET","timestamp":1785268043},
                  "entity":[
-                   {"id":"up-4322","vehicle":{"trip":{"trip_id":"4322","route_id":"UP","direction_id":1},
+                   {"id":"up-4322","vehicle":{"trip":{"trip_id":"4322","route_id":"UP","direction_id":0},
                      "vehicle":{"id":"cab-4322"},"current_status":"IN_TRANSIT_TO","stop_id":"WE","timestamp":1785268040}}
                  ]}
                 """, MediaType.APPLICATION_JSON));
+        expectUpTripUpdates("""
+            {"header":{"incrementality":"FULL_DATASET","timestamp":1785268043},
+             "entity":[{"id":"20260728-4322","trip_update":{
+               "trip":{"trip_id":"20260728-4322","route_id":"UP","direction_id":0},
+               "vehicle":{"id":"cab-4322","label":"UP - Union Station"},
+               "stop_time_update":[
+                 {"stop_id":"PA","departure":{"time":1785267800}},
+                 {"stop_id":"WE","departure":{"time":1785268100}}
+               ]}}]}
+            """);
 
         RegionalTrainMarkerFeed feed = client.fetchUp();
 
@@ -148,6 +160,9 @@ class MetrolinxVehiclePositionClientTest {
             assertThat(marker.nextStationId()).isEqualTo("weston");
             assertThat(marker.direction()).isEqualTo("Eastbound");
             assertThat(marker.travelDirection()).isEqualTo("reverse");
+            assertThat(marker.tripId()).isEqualTo("20260728-4322");
+            assertThat(marker.predictedAt()).isEqualTo(OffsetDateTime.parse("2026-07-28T19:48:20Z"));
+            assertThat(marker.progress()).isEqualTo(0.8);
         });
         server.verify();
     }
@@ -162,6 +177,16 @@ class MetrolinxVehiclePositionClientTest {
                      "vehicle":{"id":"cab-4323"},"current_status":"IN_TRANSIT_TO","stop_id":"MD","timestamp":1785268040}}
                  ]}
                 """, MediaType.APPLICATION_JSON));
+        expectUpTripUpdates("""
+            {"header":{"incrementality":"FULL_DATASET","timestamp":1785268043},
+             "entity":[{"id":"20260728-4323","trip_update":{
+               "trip":{"trip_id":"20260728-4323","route_id":"UP","direction_id":0},
+               "vehicle":{"id":"cab-4323","label":"UP - Pearson Airport"},
+               "stop_time_update":[
+                 {"stop_id":"BL","departure":{"time":1785267860}},
+                 {"stop_id":"MD","departure":{"time":1785268160}}
+               ]}}]}
+            """);
 
         RegionalTrainMarkerFeed feed = client.fetchUp();
 
@@ -172,6 +197,8 @@ class MetrolinxVehiclePositionClientTest {
             assertThat(marker.nextStationId()).isEqualTo("mount-dennis");
             assertThat(marker.direction()).isEqualTo("Westbound");
             assertThat(marker.travelDirection()).isEqualTo("forward");
+            assertThat(marker.predictedAt()).isEqualTo(OffsetDateTime.parse("2026-07-28T19:49:20Z"));
+            assertThat(marker.progress()).isEqualTo(0.6);
         });
         server.verify();
     }
@@ -183,13 +210,20 @@ class MetrolinxVehiclePositionClientTest {
                 {"header":{"incrementality":"FULL_DATASET","timestamp":1785268043},
                  "entity":[{"id":"up-1","vehicle":{"trip":{"trip_id":"up-1","route_id":"UP"},"stop_id":"unknown"}}]}
                 """, MediaType.APPLICATION_JSON));
+        expectUpTripUpdates("""
+            {"header":{"incrementality":"FULL_DATASET","timestamp":1785268043},
+             "entity":[{"id":"up-1","trip_update":{
+               "trip":{"trip_id":"up-1","route_id":"UP","direction_id":0},
+               "vehicle":{"label":"UP - Pearson Airport"},
+               "stop_time_update":[{"stop_id":"PA","departure":{"time":1785268160}}]}}]}
+            """);
 
         assertThat(client.fetchUp().markers()).isEmpty();
         server.verify();
     }
 
     @Test
-    void dropsVehicleWhenDirectionIsMissingRatherThanInventingOutboundTravel() {
+    void usesMatchedTripUpdateDirectionWhenVehiclePositionDirectionIsMissing() {
         server.expect(requestTo("https://api.example.test/OpenDataAPI/api/V1/UP/Gtfs/Feed/VehiclePosition?key=secret"))
             .andRespond(withSuccess("""
                 {"header":{"incrementality":"FULL_DATASET","timestamp":1785268043},
@@ -198,8 +232,52 @@ class MetrolinxVehiclePositionClientTest {
                      "current_status":"IN_TRANSIT_TO","stop_id":"MD","timestamp":1785268040}}
                  ]}
                 """, MediaType.APPLICATION_JSON));
+        expectUpTripUpdates("""
+            {"header":{"incrementality":"FULL_DATASET","timestamp":1785268043},
+             "entity":[{"id":"unknown","trip_update":{
+               "trip":{"trip_id":"unknown","route_id":"UP","direction_id":0},
+               "vehicle":{"label":"UP - Pearson Airport"},
+               "stop_time_update":[
+                 {"stop_id":"BL","departure":{"time":1785267860}},
+                 {"stop_id":"MD","departure":{"time":1785268160}}
+               ]}}]}
+            """);
+
+        assertThat(client.fetchUp().markers()).singleElement().satisfies(marker -> {
+            assertThat(marker.direction()).isEqualTo("Westbound");
+            assertThat(marker.fromStationId()).isEqualTo("bloor");
+            assertThat(marker.nextStationId()).isEqualTo("mount-dennis");
+        });
+        server.verify();
+    }
+
+    @Test
+    void dropsUpVehicleWhenTripUpdateDirectionEvidenceConflicts() {
+        server.expect(requestTo("https://api.example.test/OpenDataAPI/api/V1/UP/Gtfs/Feed/VehiclePosition?key=secret"))
+            .andRespond(withSuccess("""
+                {"header":{"incrementality":"FULL_DATASET","timestamp":1785268043},
+                 "entity":[
+                   {"id":"up-conflict","vehicle":{"trip":{"trip_id":"conflict","route_id":"UP","direction_id":1},
+                     "current_status":"IN_TRANSIT_TO","stop_id":"WE","timestamp":1785268040}}
+                 ]}
+                """, MediaType.APPLICATION_JSON));
+        expectUpTripUpdates("""
+            {"header":{"incrementality":"FULL_DATASET","timestamp":1785268043},
+             "entity":[{"id":"conflict","trip_update":{
+               "trip":{"trip_id":"conflict","route_id":"UP","direction_id":1},
+               "vehicle":{"label":"UP - Pearson Airport"},
+               "stop_time_update":[
+                 {"stop_id":"PA","departure":{"time":1785267800}},
+                 {"stop_id":"WE","departure":{"time":1785268100}}
+               ]}}]}
+            """);
 
         assertThat(client.fetchUp().markers()).isEmpty();
         server.verify();
+    }
+
+    private void expectUpTripUpdates(String body) {
+        server.expect(requestTo("https://api.example.test/OpenDataAPI/api/V1/UP/Gtfs/Feed/TripUpdates?key=secret"))
+            .andRespond(withSuccess(body, MediaType.APPLICATION_JSON));
     }
 }
