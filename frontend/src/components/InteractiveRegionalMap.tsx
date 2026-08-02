@@ -1,7 +1,7 @@
 "use client";
 
 import { memo, useCallback, useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent, type PointerEvent, type WheelEvent } from "react";
-import { Locate, X, ZoomIn, ZoomOut } from "lucide-react";
+import { Locate, ZoomIn, ZoomOut } from "lucide-react";
 import type { ImpactKind, ImpactSelection, MapImpact, NetworkSegment, TravelDirection } from "../app/linewatch-data";
 import type { AccountCommutePathPreview } from "../app/account-data";
 import {
@@ -2682,6 +2682,36 @@ function InteractiveRegionalMapComponent({
         path.classList.add("asset-alert-path", "commute-path-preview-path");
         previewLayer.append(glow, path);
       }
+      const endpointStationIds = [
+        commutePathPreview.stationIds[0],
+        commutePathPreview.stationIds.at(-1),
+      ].filter((stationId): stationId is string => Boolean(stationId));
+      for (const [index, stationId] of endpointStationIds.entries()) {
+        const endpointSegment = commutePathPreview.segmentIds
+          .map((segmentId) => networkSegments.find((item) => item.id === segmentId))
+          .find((segment) => segment?.stationAId === stationId || segment?.stationBId === stationId);
+        const anchorId = endpointSegment?.stationAId === stationId
+          ? endpointSegment.stationAAnchorId
+          : endpointSegment?.stationBAnchorId;
+        const anchorElement = anchorId
+          ? documentNode.getElementById(anchorId) as SVGElement | null
+          : null;
+        const anchor = anchorElement
+          ? regionalStationVisualAnchors(anchorElement)[0]
+          : null;
+        const point = anchor?.point ?? svgAnchorPoint(documentNode, anchorId);
+        if (!point) continue;
+        const endpoint = documentNode.createElementNS(SVG_NAMESPACE, "circle");
+        endpoint.classList.add(
+          "station-commute-green-flash",
+          "regional-commute-path-preview-endpoint",
+        );
+        endpoint.dataset.commutePathEndpoint = index === 0 ? "origin" : "destination";
+        endpoint.setAttribute("cx", String(point.x));
+        endpoint.setAttribute("cy", String(point.y));
+        endpoint.setAttribute("r", String(Math.max(72, Math.min(110, (anchor?.radius ?? 52) * 1.15))));
+        previewLayer.append(endpoint);
+      }
       commuteLayer.append(previewLayer);
     }
 
@@ -3567,9 +3597,11 @@ function InteractiveRegionalMapComponent({
       ) : null}
       {commutePathPreview ? (
         <div className="commute-path-preview-chip" role="status" aria-live="polite">
-          <span>Viewing <strong>{commutePathPreview.routeLabel}</strong></span>
+          <span>
+            Viewing <strong>{commutePathPreview.routeLabel}</strong>
+          </span>
           <button type="button" onClick={onClearCommutePathPreview} aria-label="Back to My Commutes">
-            <X size={15} aria-hidden="true" />
+            Back
           </button>
         </div>
       ) : null}

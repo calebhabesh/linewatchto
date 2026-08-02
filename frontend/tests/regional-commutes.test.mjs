@@ -6,6 +6,7 @@ const panelSource = readFileSync(new URL("../src/components/SavedCommutesPanel.t
 const shellSource = readFileSync(new URL("../src/components/LineWatchShell.tsx", import.meta.url), "utf8");
 const regionalMapSource = readFileSync(new URL("../src/components/InteractiveRegionalMap.tsx", import.meta.url), "utf8");
 const accountDataSource = readFileSync(new URL("../src/app/account-data.ts", import.meta.url), "utf8");
+const globalCss = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
 
 describe("regional My Commutes UI boundary", () => {
   it("shows an account-wide route list while keeping route creation network-specific", () => {
@@ -36,6 +37,13 @@ describe("regional My Commutes UI boundary", () => {
   it("renders regional path previews and regional route notification controls", () => {
     assert.match(regionalMapSource, /regional-commute-path-preview-layer/);
     assert.match(regionalMapSource, /commutePathPreview\.segmentIds/);
+    assert.match(regionalMapSource, /regional-commute-path-preview-endpoint/);
+    assert.match(regionalMapSource, /dataset\.commutePathEndpoint/);
+    assert.match(regionalMapSource, /station-commute-green-flash/);
+    assert.match(globalCss, /@keyframes regional-commute-path-pulse/);
+    assert.match(globalCss, /\.regional-map \.regional-commute-path-preview-layer \.commute-path-preview-path\s*\{[^}]*animation-name:\s*regional-commute-path-pulse;[^}]*stroke-width:\s*245px !important;/s);
+    assert.match(globalCss, /\.regional-map \.regional-commute-path-preview-layer \.commute-path-preview-glow\s*\{[^}]*stroke-linecap:\s*butt;/s);
+    assert.match(globalCss, /\.regional-map \.regional-commute-path-preview-layer \.commute-path-preview-path\s*\{[^}]*stroke-linecap:\s*butt;/s);
     assert.match(panelSource, /Route Notifications:/);
     assert.doesNotMatch(panelSource, /Regional Notifications: Not available yet/);
     assert.doesNotMatch(panelSource, /excluded from TTC push matching/);

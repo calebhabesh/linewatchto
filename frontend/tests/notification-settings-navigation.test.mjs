@@ -23,6 +23,8 @@ describe("notification settings navigation", () => {
     assert.match(moreSheetSource, />\s*Notifications\s*</);
     assert.match(moreSheetSource, /!accountState\.authenticated/);
     assert.match(moreSheetSource, />\s*Sign In\s*</);
+    assert.doesNotMatch(moreSheetSource, /currentNetwork === "ttc" \? <button[^>]*onClick=\{onOpenNotifications\}/);
+    assert.match(shellSource, /role="menuitem"[\s\S]*?navigateForward\("notifications"\)[\s\S]*?<Bell[^>]*> Notifications/s);
 
     assert.match(savedCommutesSource, /onOpenNotificationSettings/);
     assert.match(savedCommutesSource, /Notifications:/);
@@ -52,6 +54,7 @@ describe("notification settings navigation", () => {
     assert.match(notificationPanelSource, /Service Restored Updates/);
     assert.match(shellSource, /networkId=\{selectedNetwork\}/);
     assert.match(notificationPanelSource, /Notification subscription network/);
+    assert.match(notificationPanelSource, /useState<NetworkId>\(networkId\)/);
     assert.match(notificationPanelSource, /GO &amp; UP/);
     assert.match(notificationPanelSource, /fresh, supported GO\/UP service disruptions/);
     assert.match(notificationPanelSource, /Trip changes, arrivals, accessibility outages, and service notices do not send corridor pushes/);

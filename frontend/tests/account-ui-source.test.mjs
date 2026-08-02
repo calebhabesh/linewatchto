@@ -130,6 +130,8 @@ describe("account UI source", () => {
     assert.match(savedCommutesSource, /View path on map/);
     assert.match(savedCommutesSource, /<Trash2 size=\{22\} aria-hidden="true"/);
     assert.match(globalCss, /\.commute-route-delete-button svg\s*\{[^}]*height:\s*22px;[^}]*width:\s*22px;/s);
+    assert.match(globalCss, /@media \(max-width:\s*30rem\)\s*\{[\s\S]*?\.commute-card\s*\{(?=[^}]*max-width:\s*100%;)(?=[^}]*overflow-x:\s*hidden;)(?=[^}]*width:\s*100%;)[^}]*\}/s);
+    assert.match(globalCss, /@media \(max-width:\s*30rem\)\s*\{[\s\S]*?\.commute-route-delete-button\s*\{[^}]*margin-top:\s*0\.35rem;/s);
     assert.match(savedCommutesSource, /aria-label=\{`Delete commute \$\{commute\.label\}`\}/);
     assert.match(
       globalCss,

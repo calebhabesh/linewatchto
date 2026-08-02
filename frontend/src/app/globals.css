@@ -12859,6 +12859,50 @@ img.transit-line-badge {
   stroke-width: 12;
 }
 
+@keyframes regional-commute-path-pulse {
+  0% {
+    stroke-width: 245;
+  }
+  100% {
+    stroke-width: 274;
+  }
+}
+
+.regional-map .regional-commute-path-preview-layer .commute-path-preview-glow {
+  filter: blur(26px);
+  stroke-linecap: butt;
+  stroke-width: 360px !important;
+}
+
+.regional-map .regional-commute-path-preview-layer .commute-path-preview-path {
+  animation-name: regional-commute-path-pulse;
+  stroke-linecap: butt;
+  stroke-width: 245px !important;
+}
+
+.regional-map .regional-commute-path-preview-endpoint {
+  stroke-width: 18px !important;
+}
+
+.linewatch-shell.mobile-performance-mode[data-network="regional"]
+  .regional-commute-path-preview-layer .commute-path-preview-glow {
+  stroke-width: 320px !important;
+}
+
+.linewatch-shell.mobile-performance-mode[data-network="regional"]
+  .regional-commute-path-preview-layer .commute-path-preview-path,
+.motion-paused .regional-map .regional-commute-path-preview-layer .commute-path-preview-path {
+  animation: none !important;
+  stroke-width: 245px !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .regional-map .regional-commute-path-preview-layer .commute-path-preview-path {
+    animation: none !important;
+    stroke-width: 245px !important;
+  }
+}
+
 .commute-path-preview-chip {
   align-items: center;
   background: rgba(248, 250, 252, 0.94);
@@ -12873,6 +12917,7 @@ img.transit-line-badge {
   max-width: min(680px, calc(100vw - 2rem));
   min-height: 64px;
   min-width: min(560px, calc(100vw - 2rem));
+  width: min(680px, calc(100vw - 2rem));
   padding: 0.85rem 1rem;
   position: absolute;
   transform: translateX(-50%);
@@ -12928,6 +12973,7 @@ img.transit-line-badge {
     left: 1rem;
     max-width: none;
     min-width: 0;
+    width: auto;
     position: fixed;
     right: 1rem;
     transform: none;
@@ -13140,6 +13186,27 @@ img.transit-line-badge {
 }
 
 @media (max-width: 30rem) {
+  .commute-card {
+    max-width: 100%;
+    overflow-x: hidden;
+    width: 100%;
+  }
+
+  .saved-commute-card-header {
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .saved-commute-card-identity {
+    flex: 1 1 100%;
+    flex-wrap: wrap;
+  }
+
+  .saved-commute-current-impact-badge {
+    max-width: 100%;
+  }
+
   .commute-route-actions {
     gap: 0.25rem;
   }
@@ -13169,6 +13236,10 @@ img.transit-line-badge {
 
   .commute-route-delete-confirmation .commute-route-delete-confirm-button {
     margin-left: auto !important;
+  }
+
+  .commute-route-delete-button {
+    margin-top: 0.35rem;
   }
 }
 
@@ -19599,6 +19670,11 @@ img.transit-line-badge {
   padding: 4px 1px !important;
   transition: background-color 0.2s ease-in-out, border-color 0.2s ease-in-out, color 0.2s ease-in-out, transform 0.2s ease-in-out;
   width: var(--mobile-top-action-button-size) !important;
+}
+
+.mobile-my-stations-shortcut-icon {
+  color: rgb(14, 165, 233);
+  fill: currentColor;
 }
 
 .mobile-my-stations-shortcut:hover,

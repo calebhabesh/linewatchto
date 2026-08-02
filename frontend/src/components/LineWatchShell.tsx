@@ -2921,7 +2921,7 @@ export function LineWatchShell({
                    <span className="w-1 h-4 rounded-full bg-logo-blue shrink-0 shadow-[0_0_4px_rgba(129,201,255,0.35)]" />
                    <span className="text-[12px] uppercase font-bold text-slate-700 dark:text-slate-300 tracking-wider">Notifications</span>
                  </div>
-                 {selectedNetwork === "ttc" ? <button
+                 <button
                    ref={registerMenuAction(actionIndex++)}
                    role="menuitem"
                    onClick={() => navigateForward("notifications")}
@@ -2929,7 +2929,7 @@ export function LineWatchShell({
                    className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
                  >
                    <Bell size={18} className="text-slate-500 dark:text-slate-400" /> Notifications
-                 </button> : null}
+                 </button>
                  <button
                    ref={registerMenuAction(actionIndex++)}
                    role="menuitem"
@@ -3295,7 +3295,7 @@ export function LineWatchShell({
                 aria-label="Open My Stations"
                 title="My Stations"
               >
-                <Bookmark size={19} aria-hidden="true" />
+                <Bookmark className="mobile-my-stations-shortcut-icon" size={19} aria-hidden="true" />
               </button>
             ) : null}
           </div>

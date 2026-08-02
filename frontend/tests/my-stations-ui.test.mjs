@@ -227,6 +227,11 @@ describe("My Stations UI", () => {
     assert.match(stationSearch, /station-search-bookmark/);
   });
 
+  it("gives the mobile map shortcut a persistent solid My Stations icon", () => {
+    assert.match(shell, /className="mobile-my-stations-shortcut-icon"/);
+    assert.match(styles, /\.mobile-my-stations-shortcut-icon\s*\{[^}]*color:\s*rgb\(14, 165, 233\);[^}]*fill:\s*currentColor;/s);
+  });
+
   it("uses neutral menu icons and shared alert-panel heading typography", () => {
     assert.match(shell, /<Bookmark size=\{18\} className="text-slate-500 dark:text-slate-400" \/>/);
     assert.match(mobileMore, /<Bookmark size=\{18\} className="text-slate-500 dark:text-slate-400" \/>/);
