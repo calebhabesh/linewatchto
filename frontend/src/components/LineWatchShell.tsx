@@ -2127,7 +2127,6 @@ export function LineWatchShell({
               accessibilityOutageResult?.assetTypes.reduce((acc, curr) => acc + curr.count, 0) ?? 0
             }
             surfaceNoticeCount={surfaceNoticeCount ?? 0}
-            announcementCount={announcementCount ?? 0}
           />
         );
       case "alerts":

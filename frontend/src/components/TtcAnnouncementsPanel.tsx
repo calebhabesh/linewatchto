@@ -70,7 +70,7 @@ export function TtcAnnouncementsPanel({ onBack, onClose }: Props) {
       </div>
 
       <div className="notification-settings-scroll flex-1 overflow-y-auto p-3 sm:p-4">
-        <div className="mb-3.5 flex flex-col gap-2">
+        <div className="mb-2.5 flex flex-col gap-2.5">
           <p className="flex items-start gap-1.5 text-xs leading-relaxed text-slate-600 dark:text-slate-300">
             <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-500 dark:text-slate-400" aria-hidden="true" />
             <span>Official TTC updates and active system messages. Informational only.</span>
@@ -89,17 +89,17 @@ export function TtcAnnouncementsPanel({ onBack, onClose }: Props) {
         </div>
 
         {loading ? (
-          <p className="py-8 text-center text-sm text-slate-500">Loading TTC announcements…</p>
+          <p className="py-6 text-center text-sm text-slate-500">Loading TTC announcements…</p>
         ) : !data?.fresh ? (
           <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-900 dark:text-amber-200">
             Neither a fresh TTC Live Alerts run nor the official TTC.ca Updates listing is currently available.
           </div>
         ) : visibleAnnouncements.length === 0 ? (
-          <div className="rounded-lg border border-black/10 bg-slate-50 p-4 text-sm text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
+          <div className="rounded-lg border border-black/10 bg-slate-50 p-3.5 text-sm text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
             {normalizedQuery ? "No TTC announcements match this search." : "TTC is not publishing any active system messages or Updates entries right now."}
           </div>
         ) : (
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-2.5">
             {visibleAnnouncements.map((announcement) => {
               const externalUrl = safeExternalUrl(announcement.url);
               return (
@@ -132,7 +132,7 @@ export function TtcAnnouncementsPanel({ onBack, onClose }: Props) {
           </div>
         )}
 
-        {data?.fresh ? <p className="mt-4 text-[10px] font-semibold uppercase tracking-wide text-slate-500">Source: {data.source}</p> : null}
+        {data?.fresh ? <p className="mt-2.5 text-[10px] font-semibold uppercase tracking-wide text-slate-500">Source: {data.source}</p> : null}
       </div>
     </section>
   );

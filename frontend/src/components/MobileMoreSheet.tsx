@@ -287,14 +287,14 @@ export function MobileMoreSheet({
               )}
             </div>
           </button> : null}
-          {currentNetwork === "ttc" ? <button type="button" className="mobile-more-row" onClick={onOpenAnnouncements}>
-            <Megaphone size={18} className="text-slate-500 dark:text-slate-400" />
-            TTC Announcements
-          </button> : null}
           <button type="button" className="mobile-more-row" onClick={onOpenAlertHistory}>
             <History size={18} className="text-slate-500 dark:text-slate-400" />
             Alert History
           </button>
+          {currentNetwork === "ttc" ? <button type="button" className="mobile-more-row" onClick={onOpenAnnouncements}>
+            <Megaphone size={18} className="text-slate-500 dark:text-slate-400" />
+            TTC Announcements
+          </button> : null}
         </div>
 
         <div className="mobile-more-section">
