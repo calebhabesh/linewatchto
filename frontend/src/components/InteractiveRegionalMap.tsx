@@ -482,7 +482,7 @@ function appendRegionalPlannedClosureGlyph(
   if (kind === "icon") {
     // Replicate TTC map mode's PlannedClosureIcon (blue outline calendar icon on white rail)
     // scaled for regional map units (196px stroke width).
-    const scale = 6;
+    const scale = 4.9;
     const artwork = documentNode.createElementNS(SVG_NAMESPACE, "g");
     artwork.setAttribute("transform", `translate(${-12 * scale} ${-12 * scale}) scale(${scale})`);
     artwork.setAttribute("stroke", "var(--planned-preview-ink, #087fff)");
@@ -536,7 +536,7 @@ function regionalPlannedClosureIconLane(
   }
   if (length <= 0) return lane;
 
-  const glyphSpacing = travelDirection === "bidirectional" ? 190 : 165;
+  const glyphSpacing = travelDirection === "bidirectional" ? 176 : 148;
   const count = Math.max(1, Math.floor(length / glyphSpacing));
   const durationSeconds = Math.max(12, length / REGIONAL_DELAY_TRAVEL_UNITS_PER_SECOND);
   const pathD = sourcePath.getAttribute("d") ?? "";

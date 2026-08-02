@@ -2,7 +2,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { BarChart3, Bell, BatteryCharging, Bookmark, Download, FileText, LogIn, LogOut, MessageSquareText, Navigation, RefreshCcw, Contrast, Pause, Share2, ShieldCheck, Sparkles, TriangleAlert, UserPlus, UserRound, X, History, Map as MapIcon } from "lucide-react";
+import { BarChart3, Bell, BatteryCharging, Bookmark, Download, FileText, LogIn, LogOut, Megaphone, MessageSquareText, Navigation, RefreshCcw, Contrast, Pause, Share2, ShieldCheck, Sparkles, TriangleAlert, UserPlus, UserRound, X, History, Map as MapIcon } from "lucide-react";
 import Image from "next/image";
 import type { AccountState } from "../app/account-data";
 import { BACKGROUND_PREFERENCE_LABEL } from "../app/background-preference";
@@ -46,6 +46,7 @@ type Props = {
   currentNetwork: NetworkId;
   onDefaultNetworkChange: (network: NetworkId) => void;
   onOpenAlertHistory: () => void;
+  onOpenAnnouncements?: () => void;
   onOpenAnalytics: () => void;
   onOpenFeedback: () => void;
   onOpenPrivacyAcknowledgements: () => void;
@@ -85,6 +86,7 @@ export function MobileMoreSheet({
   currentNetwork,
   onDefaultNetworkChange,
   onOpenAlertHistory,
+  onOpenAnnouncements,
   onOpenAnalytics,
   onOpenFeedback,
   onOpenPrivacyAcknowledgements,
@@ -284,6 +286,10 @@ export function MobileMoreSheet({
                 </span>
               )}
             </div>
+          </button> : null}
+          {currentNetwork === "ttc" ? <button type="button" className="mobile-more-row" onClick={onOpenAnnouncements}>
+            <Megaphone size={18} className="text-slate-500 dark:text-slate-400" />
+            TTC Announcements
           </button> : null}
           <button type="button" className="mobile-more-row" onClick={onOpenAlertHistory}>
             <History size={18} className="text-slate-500 dark:text-slate-400" />

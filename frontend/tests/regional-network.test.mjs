@@ -586,8 +586,8 @@ describe("network-scoped regional dashboard", () => {
     assert.match(globalsCss, /\.motion-paused \.regional-impact-aura/);
     assert.match(globalsCss, /prefers-reduced-motion:\s*reduce[\s\S]*\.regional-impact-aura/);
     assert.match(regionalMapSource, /function appendRegionalSuspensionGlyph\([\s\S]*?const scale = 4\.2;/);
-    assert.match(regionalMapSource, /const glyphSpacing = travelDirection === "bidirectional" \? 165 : 145;/);
-    assert.match(regionalMapSource, /function appendRegionalPlannedClosureGlyph\([\s\S]*?const scale = 6;/);
+    assert.match(regionalMapSource, /const glyphSpacing = travelDirection === "bidirectional" \? 176 : 148;/);
+    assert.match(regionalMapSource, /function appendRegionalPlannedClosureGlyph\([\s\S]*?const scale = 4\.9;/);
   });
 
   it("exercises the unidirectional regional delay treatment in the authored scenario", () => {

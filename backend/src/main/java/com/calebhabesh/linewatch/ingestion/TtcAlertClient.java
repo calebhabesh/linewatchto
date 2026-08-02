@@ -48,7 +48,13 @@ public class TtcAlertClient {
 
             List<TtcFetchedRecord> routes = new ArrayList<>(feed.routes());
             routes.addAll(gtfsRtServiceAlerts);
-            return new TtcAlertFeed(feed.lastUpdated(), List.copyOf(routes), feed.accessibility());
+            return new TtcAlertFeed(
+                feed.lastUpdated(),
+                List.copyOf(routes),
+                feed.accessibility(),
+                feed.siteWideAnnouncements(),
+                feed.generalAnnouncements()
+            );
         } catch (TtcAlertClientException exception) {
             throw exception;
         } catch (Exception exception) {
@@ -65,7 +71,12 @@ public class TtcAlertClient {
             return new TtcAlertFeed(
                 parseOptionalTimestamp(root.get("lastUpdated")),
                 parseSection(root, "routes"),
-                parseSection(root, "accessibility")
+                parseSection(root, "accessibility"),
+                combine(
+                    parseOptionalSection(root, "siteWide"),
+                    parseOptionalSection(root, "siteWideCustom")
+                ),
+                parseOptionalSection(root, "generalCustom")
             );
         } catch (TtcAlertClientException exception) {
             throw exception;
@@ -87,6 +98,42 @@ public class TtcAlertClient {
             ));
         }
         return List.copyOf(parsed);
+    }
+
+    private List<TtcFetchedRecord> parseOptionalSection(JsonNode root, String section) throws Exception {
+        JsonNode records = root.get(section);
+        if (records == null || records.isNull()) {
+            return List.of();
+        }
+        if (records.isObject()) {
+            return List.of(parseRecord(records));
+        }
+        if (!records.isArray()) {
+            throw new TtcAlertClientException(
+                "TTC Live Alerts optional section must be an object, array, or null: " + section
+            );
+        }
+        List<TtcFetchedRecord> parsed = new ArrayList<>();
+        for (JsonNode node : records) {
+            parsed.add(parseRecord(node));
+        }
+        return List.copyOf(parsed);
+    }
+
+    private TtcFetchedRecord parseRecord(JsonNode node) throws Exception {
+        return new TtcFetchedRecord(
+            objectMapper.treeToValue(node, TtcAlertRecord.class),
+            objectMapper.writeValueAsString(node)
+        );
+    }
+
+    private List<TtcFetchedRecord> combine(
+        List<TtcFetchedRecord> first,
+        List<TtcFetchedRecord> second
+    ) {
+        List<TtcFetchedRecord> combined = new ArrayList<>(first);
+        combined.addAll(second);
+        return List.copyOf(combined);
     }
 
     private OffsetDateTime parseOptionalTimestamp(JsonNode node) {

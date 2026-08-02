@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { AlertTriangle, Construction, X, Bus } from "lucide-react";
+import { AlertTriangle, Construction, X, Bus, Megaphone } from "lucide-react";
 import { PlannedClosureIcon } from "./PlannedClosureIcon";
 import { useDashboardData } from "../app/DataContext";
 import { DelayIcon } from "./DelayIcon";
@@ -13,7 +13,7 @@ import {
   networkStatusKicker,
 } from "../app/network-presentation";
 
-type StatusCategory = "alerts" | "delays" | "reduced-speed-zones" | "closures" | "accessibility-outages" | "surface-notices";
+type StatusCategory = "alerts" | "delays" | "reduced-speed-zones" | "closures" | "accessibility-outages" | "surface-notices" | "announcements";
 
 type Props = {
   pollText: string;
@@ -22,10 +22,11 @@ type Props = {
   onClose: () => void;
   accessibilityOutageCount?: number;
   surfaceNoticeCount?: number;
+  announcementCount?: number;
   networkId?: NetworkId;
 };
 
-export function MobileStatusSheet({ pollText, dataSource, onOpenCategory, onClose, accessibilityOutageCount = 0, surfaceNoticeCount = 0, networkId = "ttc" }: Props) {
+export function MobileStatusSheet({ pollText, dataSource, onOpenCategory, onClose, accessibilityOutageCount = 0, surfaceNoticeCount = 0, announcementCount = 0, networkId = "ttc" }: Props) {
   const { activeAlerts, delays, reducedSpeedZones, plannedClosures, lineStatuses } = useDashboardData();
   const regional = networkId === "regional";
   const presentationState = { networkId, dataSource } as const;
@@ -101,6 +102,13 @@ export function MobileStatusSheet({ pollText, dataSource, onOpenCategory, onClos
               {surfaceNoticeCount}
             </span>
           </button>
+          {!regional ? <button type="button" className="mobile-status-btn-announcements flex items-center justify-between" onClick={() => onOpenCategory("announcements")}>
+            <Megaphone size={16} className="text-slate-500 dark:text-slate-400 shrink-0" />
+            <span className="mobile-status-btn-text">TTC Announcements</span>
+            <span className="mobile-status-btn-circle">
+              {announcementCount}
+            </span>
+          </button> : null}
         </div>
 
         <div className="mobile-line-status-list">

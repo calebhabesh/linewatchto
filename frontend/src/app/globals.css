@@ -18003,19 +18003,23 @@ img.transit-line-badge {
 
 /* Surface Notices/Service Changes status button hover/active states */
 @media (hover: hover) {
-  .mobile-status-actions button.mobile-status-btn-surface:hover {
+  .mobile-status-actions button.mobile-status-btn-surface:hover,
+  .mobile-status-actions button.mobile-status-btn-announcements:hover {
     background: #e2e8f0 !important;
   }
 }
-.mobile-status-actions button.mobile-status-btn-surface:active {
+.mobile-status-actions button.mobile-status-btn-surface:active,
+.mobile-status-actions button.mobile-status-btn-announcements:active {
   background: #e2e8f0 !important;
 }
 @media (hover: hover) {
-  .dark .mobile-status-actions button.mobile-status-btn-surface:hover {
+  .dark .mobile-status-actions button.mobile-status-btn-surface:hover,
+  .dark .mobile-status-actions button.mobile-status-btn-announcements:hover {
     background: #334155 !important;
   }
 }
-.dark .mobile-status-actions button.mobile-status-btn-surface:active {
+.dark .mobile-status-actions button.mobile-status-btn-surface:active,
+.dark .mobile-status-actions button.mobile-status-btn-announcements:active {
   background: #334155 !important;
 }
 

@@ -1,5 +1,8 @@
 package com.calebhabesh.linewatch.ingestion;
 
+import com.calebhabesh.linewatch.announcement.TtcAnnouncementNormalizer;
+import com.calebhabesh.linewatch.announcement.TtcAnnouncementStore;
+import com.calebhabesh.linewatch.announcement.TtcAnnouncement;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -11,6 +14,7 @@ import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -30,6 +34,8 @@ class TtcAlertFeedApplicationServiceTest {
         mock(com.calebhabesh.linewatch.surface.SurfaceServiceNoticeNormalizer.class);
     private final com.calebhabesh.linewatch.surface.SurfaceServiceNoticeStore surfaceStore =
         mock(com.calebhabesh.linewatch.surface.SurfaceServiceNoticeStore.class);
+    private final TtcAnnouncementNormalizer announcementNormalizer = mock(TtcAnnouncementNormalizer.class);
+    private final TtcAnnouncementStore announcementStore = mock(TtcAnnouncementStore.class);
     private final TtcFetchedRecord route = new TtcFetchedRecord(
         TestAlertRecords.route("route-source"),
         "{\"id\":\"route-source\"}"
@@ -64,6 +70,8 @@ class TtcAlertFeedApplicationServiceTest {
             duplicateMatcher,
             surfaceNormalizer,
             surfaceStore,
+            announcementNormalizer,
+            announcementStore,
             CLOCK
         );
         when(store.upsertSource("routes", route, NOW)).thenReturn("routes:route-source");
@@ -175,6 +183,41 @@ class TtcAlertFeedApplicationServiceTest {
 
         verify(store).upsertRouteAlert(gtfsProjection, NOW);
         verify(store).deactivateMissingAlerts(Set.of("gtfsrt-source"), NOW);
+        assertThat(counts).isEqualTo(new FeedApplicationCounts(1, 1, 1, 0));
+    }
+
+    @Test
+    void stagesAndPersistsInformationalAnnouncementsSeparately() {
+        TtcFetchedRecord announcementRecord = fetchedRoute("banner-1");
+        TtcAnnouncement announcement = new TtcAnnouncement(
+            "ttc-announcement-site-wide-banner-1",
+            "site-wide:banner-1",
+            "site-wide",
+            "System announcement",
+            "Station entrance closed.",
+            null,
+            NOW,
+            null,
+            NOW,
+            announcementRecord.rawPayload()
+        );
+        TtcAlertFeed announcementFeed = new TtcAlertFeed(
+            feed.lastUpdated(),
+            List.of(),
+            List.of(),
+            List.of(announcementRecord),
+            List.of()
+        );
+        when(store.upsertSource("site-wide-announcements", announcementRecord, NOW))
+            .thenReturn("site-wide-announcements:banner-1");
+        when(announcementNormalizer.normalize(announcementRecord, "site-wide"))
+            .thenReturn(Optional.of(announcement));
+
+        FeedApplicationCounts counts = service.apply(announcementFeed);
+
+        verify(announcementStore).upsert(announcement, NOW);
+        verify(announcementStore).deactivateMissing(Set.of("site-wide:banner-1"), NOW);
+        verify(store).deactivateMissingSources(Set.of("site-wide-announcements:banner-1"));
         assertThat(counts).isEqualTo(new FeedApplicationCounts(1, 1, 1, 0));
     }
 

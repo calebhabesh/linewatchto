@@ -1,5 +1,8 @@
 package com.calebhabesh.linewatch.ingestion;
 
+import com.calebhabesh.linewatch.announcement.TtcAnnouncement;
+import com.calebhabesh.linewatch.announcement.TtcAnnouncementNormalizer;
+import com.calebhabesh.linewatch.announcement.TtcAnnouncementStore;
 import com.calebhabesh.linewatch.surface.SurfaceServiceNotice;
 import com.calebhabesh.linewatch.surface.SurfaceServiceNoticeNormalizer;
 import com.calebhabesh.linewatch.surface.SurfaceServiceNoticeStore;
@@ -20,6 +23,8 @@ public class TtcAlertFeedApplicationService {
     private final RapidTransitAlertDuplicateMatcher duplicateMatcher;
     private final SurfaceServiceNoticeNormalizer surfaceNormalizer;
     private final SurfaceServiceNoticeStore surfaceStore;
+    private final TtcAnnouncementNormalizer announcementNormalizer;
+    private final TtcAnnouncementStore announcementStore;
     private final Clock clock;
 
     public TtcAlertFeedApplicationService(
@@ -28,6 +33,8 @@ public class TtcAlertFeedApplicationService {
         RapidTransitAlertDuplicateMatcher duplicateMatcher,
         SurfaceServiceNoticeNormalizer surfaceNormalizer,
         SurfaceServiceNoticeStore surfaceStore,
+        TtcAnnouncementNormalizer announcementNormalizer,
+        TtcAnnouncementStore announcementStore,
         Clock clock
     ) {
         this.store = store;
@@ -35,6 +42,8 @@ public class TtcAlertFeedApplicationService {
         this.duplicateMatcher = duplicateMatcher;
         this.surfaceNormalizer = surfaceNormalizer;
         this.surfaceStore = surfaceStore;
+        this.announcementNormalizer = announcementNormalizer;
+        this.announcementStore = announcementStore;
         this.clock = clock;
     }
 
@@ -45,6 +54,7 @@ public class TtcAlertFeedApplicationService {
         Set<String> seenAlertSourceIds = new HashSet<>();
         Set<String> seenOutageSourceIds = new HashSet<>();
         Set<String> seenNoticeSourceIds = new HashSet<>();
+        Set<String> seenAnnouncementSourceIds = new HashSet<>();
         List<NormalizedRouteAlert> routeCandidates = new ArrayList<>();
         int normalized = 0;
         int unmatched = 0;
@@ -101,10 +111,28 @@ public class TtcAlertFeedApplicationService {
             }
         }
 
+        normalized += applyAnnouncements(
+            feed.siteWideAnnouncements(),
+            "site-wide",
+            "site-wide-announcements",
+            seenSourceKeys,
+            seenAnnouncementSourceIds,
+            now
+        );
+        normalized += applyAnnouncements(
+            feed.generalAnnouncements(),
+            "general",
+            "general-announcements",
+            seenSourceKeys,
+            seenAnnouncementSourceIds,
+            now
+        );
+
         store.deactivateMissingSources(seenSourceKeys);
         store.deactivateMissingAlerts(seenAlertSourceIds, now);
         store.deactivateMissingAccessibilityOutages(seenOutageSourceIds, now);
         surfaceStore.deactivateMissingNotices(seenNoticeSourceIds, now);
+        announcementStore.deactivateMissing(seenAnnouncementSourceIds, now);
 
         return new FeedApplicationCounts(
             feed.fetchedCount(),
@@ -112,6 +140,28 @@ public class TtcAlertFeedApplicationService {
             normalized,
             unmatched
         );
+    }
+
+    private int applyAnnouncements(
+        List<TtcFetchedRecord> records,
+        String scope,
+        String sourceSection,
+        Set<String> seenSourceKeys,
+        Set<String> seenAnnouncementSourceIds,
+        OffsetDateTime now
+    ) {
+        int normalized = 0;
+        for (TtcFetchedRecord fetched : records) {
+            seenSourceKeys.add(store.upsertSource(sourceSection, fetched, now));
+            Optional<TtcAnnouncement> result = announcementNormalizer.normalize(fetched, scope);
+            if (result.isPresent()) {
+                TtcAnnouncement announcement = result.orElseThrow();
+                announcementStore.upsert(announcement, now);
+                seenAnnouncementSourceIds.add(announcement.sourceId());
+                normalized++;
+            }
+        }
+        return normalized;
     }
 
     private boolean isGtfsRt(NormalizedRouteAlert alert) {

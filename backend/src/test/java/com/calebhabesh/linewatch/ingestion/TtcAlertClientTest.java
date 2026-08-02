@@ -53,6 +53,13 @@ class TtcAlertClientTest {
             .contains("\"id\":\"synthetic-planned-line-1\"")
             .doesNotContain("futureUnknownField");
         assertThat(feed.accessibility().getFirst().record().elevatorCode()).isEqualTo("TEST-E1");
+        assertThat(feed.siteWideAnnouncements()).hasSize(1);
+        assertThat(feed.siteWideAnnouncements().getFirst().record().id()).isEqualTo("site-70100");
+        assertThat(feed.siteWideAnnouncements().getFirst().record().customHeaderText())
+            .isEqualTo("A station entrance is temporarily closed due to construction.");
+        assertThat(feed.generalAnnouncements()).hasSize(1);
+        assertThat(feed.generalAnnouncements().getFirst().record().title()).isEqualTo("Fare system update");
+        assertThat(feed.fetchedCount()).isEqualTo(6);
         server.verify();
     }
 

@@ -89,5 +89,30 @@
       "escalatorCode": "TEST-S1",
       "childAlerts": []
     }
-  ]
+  ],
+  "siteWide": null,
+  "siteWideCustom": [
+    {
+      "id": "site-70100",
+      "alertType": "SiteWide",
+      "lastUpdated": "2026-06-01T11:45:00Z",
+      "activePeriod": {
+        "start": "2026-06-01T11:30:00Z",
+        "end": "2026-06-02T11:30:00Z"
+      },
+      "title": "WEBSITE_BANNER",
+      "description": "A station entrance is temporarily closed due to construction.",
+      "customHeaderText": "A station entrance is temporarily closed due to construction."
+    }
+  ],
+  "generalCustom": [
+    {
+      "id": "general-70101",
+      "alertType": "General",
+      "lastUpdated": "2026-06-01T11:40:00Z",
+      "title": "Fare system update",
+      "description": "Some fare vending machines are temporarily unavailable."
+    }
+  ],
+  "stops": []
 }

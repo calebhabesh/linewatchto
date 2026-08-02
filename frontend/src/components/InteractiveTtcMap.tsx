@@ -3837,7 +3837,7 @@ function PlannedClosureIconLane({
       if (length <= 0) return { length: 0, points: [] };
 
       const isDirectional = travelDirection !== "bidirectional";
-      const count = Math.max(1, isDirectional ? Math.round(length / 128) : Math.floor(length / 112));
+      const count = Math.max(1, isDirectional ? Math.round(length / 124) : Math.floor(length / 112));
       const step = length / count;
       return {
         length,
@@ -3876,10 +3876,10 @@ function PlannedClosureIconLane({
             <PlannedClosureIcon
               key={`${point.x}-${point.y}-${index}`}
               className="planned-closure-map-icon planned-closure-map-icon--static"
-              x={point.x - 44}
-              y={point.y - 44}
-              width={88}
-              height={88}
+              x={point.x - 36}
+              y={point.y - 36}
+              width={72}
+              height={72}
               strokeWidth={2.25}
             />
           );
@@ -3913,10 +3913,10 @@ function PlannedClosureIconLane({
               ) : null}
               <PlannedClosureIcon
                 className="planned-closure-map-icon"
-                x={-44}
-                y={-44}
-                width={88}
-                height={88}
+                x={-36}
+                y={-36}
+                width={72}
+                height={72}
                 strokeWidth={2.25}
               />
             </g>

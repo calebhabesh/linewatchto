@@ -48,6 +48,8 @@ import {
 import { AccessibilityOutagesPanel, type AccessibilityOutageTarget } from "./AccessibilityOutagesPanel";
 import { getSurfaceNotices, type SurfaceNoticeDetail } from "../app/surface-notice-data";
 import { SurfaceNoticesPanel } from "./SurfaceNoticesPanel";
+import { getTtcAnnouncements } from "../app/announcement-data";
+import { TtcAnnouncementsPanel } from "./TtcAnnouncementsPanel";
 import {
   fallbackStationSummaries,
   getStationDetail,
@@ -67,7 +69,7 @@ import {
 import { useTorontoClock } from "../hooks/useTorontoClock";
 import { useMobilePerformanceMode } from "../hooks/useMobilePerformanceMode";
 import { usePushNotificationSettings } from "../hooks/usePushNotificationSettings";
-import { Menu, X, Map as MapIcon, Train, AlertTriangle, Bookmark, Navigation, ShieldCheck, BarChart3, Bell, Construction, Search, LogIn, LogOut, UserPlus, UserRound, Sun, Moon, Bus, Mail, Contrast, Pause, History, MessageSquareText, FileText, Sparkles, Pin, PinOff } from "lucide-react";
+import { Menu, X, Map as MapIcon, Train, AlertTriangle, Bookmark, Navigation, ShieldCheck, BarChart3, Bell, Construction, Search, LogIn, LogOut, UserPlus, UserRound, Sun, Moon, Bus, Mail, Contrast, Pause, History, MessageSquareText, FileText, Sparkles, Pin, PinOff, Megaphone } from "lucide-react";
 import { SubwayClosedScreen } from "./SubwayClosedScreen";
 import { useSubwayOperatingState } from "../hooks/useSubwayOperatingState";
 import { GoUpClosedScreen } from "./GoUpClosedScreen";
@@ -134,7 +136,7 @@ import { apiUrl } from "../app/api-client";
 import { popViewHistory, pushViewHistory } from "../app/view-navigation";
 
 
-type ActiveView = "map" | "menu" | "search" | "status" | "alerts" | "delays" | "reduced-speed-zones" | "closures" | "commutes" | "notifications" | "analytics" | "more" | "my-stations" | "accessibility-outages" | "surface-notices" | "alert-history" | "feedback" | "privacy-acknowledgements" | "release-notes";
+type ActiveView = "map" | "menu" | "search" | "status" | "alerts" | "delays" | "reduced-speed-zones" | "closures" | "commutes" | "notifications" | "analytics" | "more" | "my-stations" | "accessibility-outages" | "surface-notices" | "announcements" | "alert-history" | "feedback" | "privacy-acknowledgements" | "release-notes";
 type ImpactCategoryView = "alerts" | "delays" | "reduced-speed-zones" | "closures";
 type AccountDialogMode = "auth-choice" | "login" | "register" | "forgot-password" | "reset-password" | "link-google";
 type AccountEntryIntent = "login" | "register";
@@ -605,6 +607,7 @@ export function LineWatchShell({
   const [accessibilityOutageTarget, setAccessibilityOutageTarget] = useState<AccessibilityOutageTarget | null>(null);
   const [expandedMyStationDisruptionIds, setExpandedMyStationDisruptionIds] = useState<Set<string>>(() => new Set());
   const [surfaceNoticeCount, setSurfaceNoticeCount] = useState<number | null>(null);
+  const [announcementCount, setAnnouncementCount] = useState<number | null>(null);
   const [surfaceNoticeInitialQuery, setSurfaceNoticeInitialQuery] = useState("");
 
   useEffect(() => {
@@ -1522,6 +1525,23 @@ export function LineWatchShell({
     }
   }, [selectedNetwork]);
 
+  const fetchAnnouncementCount = useCallback(async () => {
+    if (selectedNetwork !== "ttc") {
+      setAnnouncementCount(null);
+      return;
+    }
+    try {
+      const res = await getTtcAnnouncements({ limit: 0 });
+      if (res.source === "backend" && res.data.fresh) {
+        setAnnouncementCount(res.data.announcements.length);
+      } else {
+        setAnnouncementCount(null);
+      }
+    } catch (err) {
+      console.error("Failed to fetch TTC announcements count:", err);
+    }
+  }, [selectedNetwork]);
+
   useEffect(() => {
     if (selectedNetwork === "ttc" && subwayOperatingState.status === "closed" && !closedMapPeek) {
       return;
@@ -1538,6 +1558,7 @@ export function LineWatchShell({
       if (selectedNetwork === "ttc") router.refresh();
       fetchAccessibilityOutages();
       fetchSurfaceNoticesCount();
+      fetchAnnouncementCount();
     };
 
     const interval = window.setInterval(refreshDashboardData, dashboardRefreshIntervalMs());
@@ -1546,6 +1567,7 @@ export function LineWatchShell({
         if (selectedNetwork === "ttc") router.refresh();
         fetchAccessibilityOutages();
         fetchSurfaceNoticesCount();
+        fetchAnnouncementCount();
       }
     };
 
@@ -1555,7 +1577,7 @@ export function LineWatchShell({
       window.clearInterval(interval);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, [closedMapPeek, router, selectedNetwork, subwayOperatingState.status, regionalRailOperatingState.status, fetchAccessibilityOutages, fetchSurfaceNoticesCount]);
+  }, [closedMapPeek, router, selectedNetwork, subwayOperatingState.status, regionalRailOperatingState.status, fetchAccessibilityOutages, fetchSurfaceNoticesCount, fetchAnnouncementCount]);
 
 
   useEffect(() => {
@@ -1565,6 +1587,7 @@ export function LineWatchShell({
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setAccessibilityOutageState(null);
       setSurfaceNoticeCount(null);
+      setAnnouncementCount(null);
       fetchAccessibilityOutages();
       fetchSurfaceNoticesCount();
       return () => { cancelled = true; };
@@ -1578,11 +1601,12 @@ export function LineWatchShell({
 
     fetchAccessibilityOutages();
     fetchSurfaceNoticesCount();
+    fetchAnnouncementCount();
 
     return () => {
       cancelled = true;
     };
-  }, [selectedNetwork, fetchAccessibilityOutages, fetchSurfaceNoticesCount]);
+  }, [selectedNetwork, fetchAccessibilityOutages, fetchSurfaceNoticesCount, fetchAnnouncementCount]);
 
   useEffect(() => {
     let cancelled = false;
@@ -2072,6 +2096,7 @@ export function LineWatchShell({
       case "release-notes": return "What's New";
       case "accessibility-outages": return "Accessibility outages";
       case "surface-notices": return selectedNetwork === "regional" ? "GO / UP Notices" : "Streetcar & Bus Notices";
+      case "announcements": return "TTC Announcements";
       default: return "";
     }
   };
@@ -2102,6 +2127,7 @@ export function LineWatchShell({
               accessibilityOutageResult?.assetTypes.reduce((acc, curr) => acc + curr.count, 0) ?? 0
             }
             surfaceNoticeCount={surfaceNoticeCount ?? 0}
+            announcementCount={announcementCount ?? 0}
           />
         );
       case "alerts":
@@ -2240,6 +2266,13 @@ export function LineWatchShell({
             onClose={handleClosePanel}
           />
         );
+      case "announcements":
+        return (
+          <TtcAnnouncementsPanel
+            onBack={handleSubmenuBack}
+            onClose={handleClosePanel}
+          />
+        );
       case "more":
         return (
           <MobileMoreSheet
@@ -2268,6 +2301,7 @@ export function LineWatchShell({
             onDefaultNetworkChange={handleDefaultNetworkChange}
             onOpenAnalytics={() => navigateForward("analytics")}
             onOpenAlertHistory={() => navigateForward("alert-history")}
+            onOpenAnnouncements={() => navigateForward("announcements")}
             onOpenFeedback={() => navigateForward("feedback")}
             onOpenPrivacyAcknowledgements={() => navigateForward("privacy-acknowledgements")}
             onOpenReleaseNotes={() => navigateForward("release-notes")}
@@ -2864,6 +2898,22 @@ export function LineWatchShell({
                      </span>
                    )}
                  </button>
+                 {selectedNetwork === "ttc" ? <button
+                    ref={registerMenuAction(actionIndex++)}
+                    role="menuitem"
+                    onClick={() => navigateForward("announcements")}
+                    aria-current={activeView === "announcements" ? "page" : undefined}
+                    className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <Megaphone size={18} className="text-slate-500 dark:text-slate-400" /> TTC Announcements
+                    </div>
+                    {announcementCount !== null && announcementCount > 0 && (
+                      <span className="flex h-6 min-w-[24px] items-center justify-center rounded-full bg-sky-500/20 px-2 text-[11px] font-bold text-sky-700 dark:text-sky-300">
+                        {announcementCount}
+                      </span>
+                    )}
+                  </button> : null}
                </div>
 
                {/* Notifications */}

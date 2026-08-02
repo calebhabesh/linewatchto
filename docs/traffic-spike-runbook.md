@@ -95,6 +95,7 @@ Expression:
     "/api/performance"
     "/api/accessibility-outages"
     "/api/surface-notices"
+    "/api/announcements"
     "/api/stations"
     "/api/alert-history"
     "/api/reliability/lines"
@@ -118,6 +119,7 @@ Cache key: include query string
 ```
 
 `/api/alerts?type=delay`, `/api/alerts?type=slowdown`, and `/api/alerts?type=planned` share the same path but must remain distinct by query string.
+`/api/announcements` also supports query parameters. Keep the query string in the cache key for direct API consumers; the LineWatchTO panel and menu count share one unfiltered read, and the panel searches that result locally to avoid creating an edge-cache entry for every search term.
 
 ## WAF And Rate Limiting Rules
 
@@ -160,6 +162,7 @@ Expression:
     "/api/performance"
     "/api/accessibility-outages"
     "/api/surface-notices"
+    "/api/announcements"
     "/api/stations"
     "/api/alert-history"
   }
@@ -245,6 +248,8 @@ curl -I https://linewatchto.ca/api/stations/union
 curl -I https://linewatchto.ca/api/stations/union
 curl -I https://linewatchto.ca/api/alert-history
 curl -I https://linewatchto.ca/api/alert-history
+curl -I https://linewatchto.ca/api/announcements
+curl -I https://linewatchto.ca/api/announcements
 curl -I https://linewatchto.ca/assets/linewatch/ttc-subway-map-edited.svg
 curl -I https://linewatchto.ca/assets/linewatch/ttc-subway-map-edited.svg
 ```
