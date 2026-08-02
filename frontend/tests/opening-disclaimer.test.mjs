@@ -31,6 +31,8 @@ describe("opening disclaimer", () => {
     assert.match(disclaimerSource, /local fixture data/);
     assert.match(disclaimerSource, /opening-disclaimer-nudge/);
     assert.match(disclaimerSource, /free account/);
+    assert.match(disclaimerSource, /opening-disclaimer-account-link/);
+    assert.match(disclaimerSource, /handleCreateAccountClick/);
     assert.match(disclaimerSource, /Google/i);
     assert.doesNotMatch(disclaimerSource, /Personal project disclaimer/);
     assert.doesNotMatch(disclaimerSource, /not an official TTC source/);
@@ -39,6 +41,7 @@ describe("opening disclaimer", () => {
 
   it("mounts the disclaimer above the dashboard with centered branded styling", () => {
     assert.match(shellSource, /OpeningDisclaimer/);
+    assert.match(shellSource, /onOpenCreateAccount=/);
     assert.match(globalCss, /\.opening-disclaimer-backdrop/);
     assert.match(globalCss, /\.opening-disclaimer-panel/);
     assert.match(globalCss, /align-items:\s*center/);
@@ -52,12 +55,13 @@ describe("opening disclaimer", () => {
     assert.match(globalCss, /\.opening-disclaimer-nudge/);
     assert.match(globalCss, /\.opening-disclaimer-nudge-mobile/);
     assert.match(globalCss, /\.opening-disclaimer-nudge-desktop/);
+    assert.match(globalCss, /\.opening-disclaimer-account-link/);
     assert.match(globalCss, /\.station-arrival-line-divider/);
     assert.match(globalCss, /\.opening-disclaimer-panel\s*\{[^}]*background:\s*var\(--panel\);/s);
     assert.match(globalCss, /\.opening-disclaimer-divider\s*\{[^}]*border-radius:\s*999px;[^}]*overflow:\s*hidden;/s);
     assert.match(globalCss, /\.opening-disclaimer-highlight/);
-    assert.match(globalCss, /\.opening-disclaimer-panel button\s*\{[^}]*background:\s*#facc15;/s);
-    assert.match(globalCss, /\.opening-disclaimer-panel button\s*\{[^}]*color:\s*#111827;/s);
+    assert.match(globalCss, /\.opening-disclaimer-ack-button\s*\{[^}]*background:\s*#facc15;/s);
+    assert.match(globalCss, /\.opening-disclaimer-ack-button\s*\{[^}]*color:\s*#111827;/s);
     assert.match(globalCss, /@media \(max-width:\s*640px\)\s*\{[\s\S]*?\.opening-disclaimer-panel\s*\{[^}]*width:\s*min\(94vw, 380px\);/);
     assert.match(globalCss, /@media \(max-width:\s*640px\)\s*\{[\s\S]*?\.opening-disclaimer-logo\s*\{[^}]*height:\s*76px;[^}]*width:\s*76px;/);
   });

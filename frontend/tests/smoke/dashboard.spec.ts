@@ -164,7 +164,6 @@ test("requires a first-visit personal project disclaimer acknowledgement", async
   const disclaimer = disclaimerPage.getByRole("dialog", { name: "Unofficial dashboard" });
   await expect(disclaimer).toBeVisible();
   await expect(disclaimer).toContainText("LineWatchTO is a personal project that is not affiliated with, endorsed by, or operated by the TTC.");
-  await expect(disclaimer).toContainText("I am not affiliated with the TTC in any capacity.");
   await expect(disclaimer).toContainText("Service alerts are fetched from TTC's public Live Alerts endpoint when live polling is enabled, with local fixture data used for offline demos and fallback mode.");
 
   await disclaimerPage.getByRole("button", { name: "I Understand" }).click();

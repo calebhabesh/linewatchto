@@ -22,7 +22,13 @@ function storeDisclaimerAcknowledgement() {
   }
 }
 
-export function OpeningDisclaimer({ onVisibilityChange }: { onVisibilityChange?: (visible: boolean) => void }) {
+export function OpeningDisclaimer({
+  onVisibilityChange,
+  onOpenCreateAccount,
+}: {
+  onVisibilityChange?: (visible: boolean) => void;
+  onOpenCreateAccount?: () => void;
+}) {
   const [visible, setVisible] = useState(false);
   const [isExiting, setIsExiting] = useState(false);
 
@@ -51,6 +57,15 @@ export function OpeningDisclaimer({ onVisibilityChange }: { onVisibilityChange?:
   const handleAcknowledge = () => {
     storeDisclaimerAcknowledgement();
     setIsExiting(true);
+  };
+
+  const handleCreateAccountClick = (event: React.MouseEvent) => {
+    event.preventDefault();
+    storeDisclaimerAcknowledgement();
+    setIsExiting(true);
+    if (onOpenCreateAccount) {
+      onOpenCreateAccount();
+    }
   };
 
   const handleAnimationEnd = (event: React.AnimationEvent<HTMLElement>) => {
@@ -103,10 +118,24 @@ export function OpeningDisclaimer({ onVisibilityChange }: { onVisibilityChange?:
             <p>Toronto rapid transit service information, all in one place.</p>
             <div className="opening-disclaimer-nudge">
               <p className="opening-disclaimer-nudge-desktop">
-                Create a <strong>free account</strong> to access <strong>all features at no cost</strong>, including real-time commute tracking and push notifications. Sign up with your Google account via the top-left <Menu size={16} className="inline-block align-middle mx-1 text-blue-600 dark:text-blue-400" /> icon. Click the <Info size={16} className="inline-block align-middle mx-0.5 text-blue-600 dark:text-blue-400" /> info button in the top-right of your screen to find out how to use and navigate the app.
+                <button
+                  type="button"
+                  className="opening-disclaimer-account-link"
+                  onClick={handleCreateAccountClick}
+                >
+                  <span>Create a free account</span>
+                </button>{" "}
+                to access <strong>all features at no cost</strong>, including real-time commute tracking and push notifications. Sign up with your Google account via the top-left <Menu size={16} className="inline-block align-middle mx-1 text-blue-600 dark:text-blue-400" /> icon or click above. Click the <Info size={16} className="inline-block align-middle mx-0.5 text-blue-600 dark:text-blue-400" /> info button in the top-right of your screen to find out how to use and navigate the app.
               </p>
               <p className="opening-disclaimer-nudge-mobile">
-                Create a <strong>free account</strong> to access <strong>all features at no cost</strong>, including real-time commute tracking and push notifications. Sign up with your Google account via the bottom-right More (<MoreHorizontal size={16} className="inline-block align-middle mx-0.5 text-blue-600 dark:text-blue-400" />) button. Click the <Info size={16} className="inline-block align-middle mx-0.5 text-blue-600 dark:text-blue-400" /> info button in the top-right of your screen to find out how to use and navigate the app.
+                <button
+                  type="button"
+                  className="opening-disclaimer-account-link"
+                  onClick={handleCreateAccountClick}
+                >
+                  <span>Create a free account</span>
+                </button>{" "}
+                to access <strong>all features at no cost</strong>, including real-time commute tracking and push notifications. Sign up with your Google account via the bottom-right More (<MoreHorizontal size={16} className="inline-block align-middle mx-0.5 text-blue-600 dark:text-blue-400" />) button or click above. Click the <Info size={16} className="inline-block align-middle mx-0.5 text-blue-600 dark:text-blue-400" /> info button in the top-right of your screen to find out how to use and navigate the app.
               </p>
             </div>
           </header>
@@ -116,7 +145,7 @@ export function OpeningDisclaimer({ onVisibilityChange }: { onVisibilityChange?:
             <span>Unofficial dashboard</span>
           </div>
           <p id="opening-disclaimer-copy">
-            LineWatchTO is a <strong className="opening-disclaimer-highlight">personal project</strong> that is <strong className="opening-disclaimer-highlight">not affiliated with, endorsed by, or operated by the TTC</strong>. I am not affiliated with the TTC in any capacity. Service alerts are fetched from TTC&apos;s public Live Alerts endpoint when live polling is enabled, with local fixture data used for offline demos and fallback mode.
+            LineWatchTO is a <strong className="opening-disclaimer-highlight">personal project</strong> that is <strong className="opening-disclaimer-highlight">not affiliated with, endorsed by, or operated by the TTC</strong>. Service alerts are fetched from TTC&apos;s public Live Alerts endpoint when live polling is enabled, with local fixture data used for offline demos and fallback mode.
           </p>
           <button type="button" onClick={handleAcknowledge}>
             I Understand

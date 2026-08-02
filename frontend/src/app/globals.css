@@ -3964,7 +3964,8 @@ button {
   font-weight: 800;
 }
 
-.opening-disclaimer-panel button {
+.opening-disclaimer-panel button:not(.opening-disclaimer-account-link),
+.opening-disclaimer-ack-button {
   align-items: center;
   background: #facc15;
   border: 1px solid rgba(0, 0, 0, 0.2);
@@ -3979,7 +3980,8 @@ button {
   width: 100%;
 }
 
-.opening-disclaimer-panel button:hover {
+.opening-disclaimer-panel button:not(.opening-disclaimer-account-link):hover,
+.opening-disclaimer-ack-button:hover {
   background: #eab308;
 }
 
@@ -4017,6 +4019,49 @@ button {
 .opening-disclaimer-nudge strong {
   color: var(--planned);
   font-weight: 750;
+}
+
+.opening-disclaimer-account-link {
+  appearance: none !important;
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  color: #2563eb !important;
+  cursor: pointer;
+  display: inline !important;
+  font-family: inherit !important;
+  font-size: inherit !important;
+  font-weight: 750 !important;
+  line-height: inherit !important;
+  margin: 0 !important;
+  min-height: 0 !important;
+  padding: 0 !important;
+  text-decoration: none !important;
+  transition: color 150ms ease, opacity 150ms ease;
+  width: auto !important;
+}
+
+.opening-disclaimer-account-link:hover,
+.opening-disclaimer-account-link:focus-visible {
+  background: transparent !important;
+  color: #1d4ed8 !important;
+  outline: none;
+  text-decoration: none !important;
+}
+
+.dark .opening-disclaimer-account-link {
+  color: #60a5fa !important;
+}
+
+.dark .opening-disclaimer-account-link:hover,
+.dark .opening-disclaimer-account-link:focus-visible {
+  color: #93c5fd !important;
+  text-decoration: none !important;
+}
+
+.high-contrast .opening-disclaimer-account-link {
+  color: #93c5fd !important;
 }
 
 
