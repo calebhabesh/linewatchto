@@ -20,6 +20,7 @@ import {
 
 const hookSource = readFileSync(new URL("../src/hooks/usePanZoom.ts", import.meta.url), "utf8");
 const mapSource = readFileSync(new URL("../src/components/InteractiveTtcMap.tsx", import.meta.url), "utf8");
+const regionalMapSource = readFileSync(new URL("../src/components/InteractiveRegionalMap.tsx", import.meta.url), "utf8");
 const shellSource = readFileSync(new URL("../src/components/LineWatchShell.tsx", import.meta.url), "utf8");
 const globalCss = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
 
@@ -65,7 +66,7 @@ describe("pan zoom behavior guardrails", () => {
     );
   });
 
-  it("frames pinned-menu selections inside the unobscured desktop map viewport", () => {
+  it("frames selections inside the unobscured desktop map viewport", () => {
     assert.deepEqual(
       computeInsetViewportFocus(1536, 864, { left: 720 }),
       { focusX: 1128, focusY: 432 },
@@ -73,8 +74,22 @@ describe("pan zoom behavior guardrails", () => {
     assert.match(mapSource, /desktopMenuPinned/);
     assert.match(mapSource, /#linewatch-main-menu/);
     assert.match(mapSource, /\.floating-panel-shell/);
-    assert.match(mapSource, /viewportInsets: pinnedDesktopFocusInsets/);
+    assert.match(
+      mapSource,
+      /selectionFocusInsets\.left = Math\.max\(selectionFocusInsets\.left, Math\.min/,
+    );
+    assert.match(mapSource, /viewportInsets: selectionFocusInsets/);
     assert.match(shellSource, /desktopMenuPinned=\{menuPinned\}/);
+  });
+
+  it("fits the complete selected overlay within the unobscured viewport", () => {
+    assert.match(hookSource, /const zoomToBounds = useCallback/);
+    assert.match(hookSource, /targetAbsoluteScale = Math\.min\([\s\S]*clampPanZoomScale\(preferredAbsoluteScale[\s\S]*fittingScale/);
+    assert.match(mapSource, /pathCorridorCollisionBoxes\(pathD, 80\)/);
+    assert.match(mapSource, /zoomToBounds\(\{/);
+    assert.match(regionalMapSource, /const selectionFit = computeBoundedMapFrame/);
+    assert.match(regionalMapSource, /REGIONAL_SELECTION_FIT_COMFORT_RATIO = 0\.82/);
+    assert.match(regionalMapSource, /targetScale = Math\.min\([\s\S]*clampPanZoomScale\(preferredTargetScale[\s\S]*selectionFit\.scale \* REGIONAL_SELECTION_FIT_COMFORT_RATIO/);
   });
 
   it("keeps small pointer jitter as a tap and promotes deliberate movement to navigation", () => {
@@ -246,7 +261,7 @@ describe("pan zoom behavior guardrails", () => {
     assert.match(mapSource, /const rotatedPreviewFocusRatio/);
     assert.match(mapSource, /viewportOrientation === "rotated-landscape"/);
     assert.equal(
-      Array.from(mapSource.matchAll(/\.\.\.focusViewportOptions/g)).length,
+      Array.from(mapSource.matchAll(/\}, targetScale, focusViewportOptions\)/g)).length,
       3,
     );
   });

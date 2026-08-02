@@ -78,6 +78,11 @@ const REGIONAL_LARGE_TERMINAL_IDS = new Set([
 // 4% of vertical letterbox room in the fitted frame. Stay below that limit so
 // the tighter default never crosses the console or impact-badge bounds.
 const REGIONAL_MAP_DEFAULT_FRAME_SCALE = 1.04;
+// Route-wide selections need breathing room beyond a technically exact fit so
+// station labels and the authored corridor shape do not crowd the visible map
+// space beside an open desktop panel. Short selections still use the preferred
+// close zoom because their fitted scale remains above that cap.
+const REGIONAL_SELECTION_FIT_COMFORT_RATIO = 0.82;
 const SVG_NAMESPACE = "http://www.w3.org/2000/svg";
 const REGIONAL_IMPACT_OVERLAY_WIDTH = 196;
 // Keep the interactive stroke as wide as the fully expanded hover aura. A
@@ -2971,9 +2976,9 @@ function InteractiveRegionalMapComponent({
       mapBounds,
       focusInsets,
     );
-    const targetScale = clampPanZoomScale(
-      Math.min(preferredTargetScale, selectionFit.scale),
-      fitScale,
+    const targetScale = Math.min(
+      clampPanZoomScale(preferredTargetScale, fitScale),
+      selectionFit.scale * REGIONAL_SELECTION_FIT_COMFORT_RATIO,
     );
     const { focusX: baseFocusX, focusY: baseFocusY } = computeInsetViewportFocus(
       viewport.clientWidth,

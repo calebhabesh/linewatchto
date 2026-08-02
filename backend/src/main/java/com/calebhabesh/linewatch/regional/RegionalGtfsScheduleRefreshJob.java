@@ -9,6 +9,8 @@ import java.net.http.HttpResponse;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.time.Clock;
+import java.time.Duration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -23,16 +25,22 @@ public class RegionalGtfsScheduleRefreshJob implements ApplicationRunner {
 
     private final RegionalArrivalProperties properties;
     private final RegionalGtfsScheduleImportService importService;
+    private final RegionalGtfsScheduleRepository repository;
     private final HttpClient httpClient;
+    private final Clock clock;
 
     public RegionalGtfsScheduleRefreshJob(
         RegionalArrivalProperties properties,
         RegionalGtfsScheduleImportService importService,
-        @Qualifier("regionalScheduleHttpClient") HttpClient httpClient
+        RegionalGtfsScheduleRepository repository,
+        @Qualifier("regionalScheduleHttpClient") HttpClient httpClient,
+        Clock clock
     ) {
         this.properties = properties;
         this.importService = importService;
+        this.repository = repository;
         this.httpClient = httpClient;
+        this.clock = clock;
     }
 
     @Override
@@ -54,6 +62,7 @@ public class RegionalGtfsScheduleRefreshJob implements ApplicationRunner {
 
     private void importConfiguredPath(String source, String configuredPath, URI sourceUrl) {
         if (configuredPath == null || configuredPath.isBlank()) return;
+        if (!importDue(source)) return;
         try {
             importService.importZip(Path.of(configuredPath), source, sourceUrl.toString());
         } catch (Exception exception) {
@@ -62,6 +71,7 @@ public class RegionalGtfsScheduleRefreshJob implements ApplicationRunner {
     }
 
     private void downloadAndImport(String source, URI sourceUrl) {
+        if (!importDue(source)) return;
         Path temporary = null;
         try {
             temporary = Files.createTempFile("linewatch-" + source + "-gtfs-", ".zip");
@@ -97,6 +107,15 @@ public class RegionalGtfsScheduleRefreshJob implements ApplicationRunner {
                 }
             }
         }
+    }
+
+    private boolean importDue(String source) {
+        return repository.activeImport(source)
+            .map(active -> {
+                Duration age = Duration.between(active.importedAt().toInstant(), clock.instant());
+                return age.compareTo(properties.getScheduleRefreshFixedDelay()) >= 0;
+            })
+            .orElse(true);
     }
 
     static URI normalizeSourceUri(URI sourceUrl) {

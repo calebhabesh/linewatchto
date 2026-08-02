@@ -39,6 +39,8 @@ type ZoomToPointOptions = {
   viewportInsets?: ViewportInsets;
 };
 
+type ZoomToBoundsOptions = ZoomToPointOptions;
+
 export function usePanZoom({
   reducedMotion = false,
   viewportOrientation = "standard",
@@ -742,6 +744,54 @@ export function usePanZoom({
     animateTransformTo({ x: newX, y: newY, scale: targetAbsoluteScale });
   }, [animateTransformTo, defaultTransformForViewport, logicalViewportSize]);
 
+  const zoomToBounds = useCallback((
+    bounds: MapContentBounds,
+    preferredRelativeScale = 1.5,
+    options?: ZoomToBoundsOptions,
+  ) => {
+    if (!containerRef.current || bounds.width <= 0 || bounds.height <= 0) return;
+    const { width, height } = logicalViewportSize();
+    if (width <= 0 || height <= 0) return;
+
+    const insets = options?.viewportInsets;
+    const insetFocus = computeInsetViewportFocus(width, height, insets);
+    const focusX = options?.viewportFocusRatio
+      ? width * options.viewportFocusRatio.x
+      : insetFocus.focusX;
+    const focusY = options?.viewportFocusRatio
+      ? height * options.viewportFocusRatio.y
+      : insetFocus.focusY;
+    const left = Math.min(Math.max(insets?.left ?? 0, 0), width);
+    const right = Math.min(Math.max(insets?.right ?? 0, 0), Math.max(width - left, 0));
+    const top = Math.min(Math.max(insets?.top ?? 0, 0), height);
+    const bottom = Math.min(Math.max(insets?.bottom ?? 0, 0), Math.max(height - top, 0));
+    const halfBoundsWidth = Math.max(bounds.width / 2, 0.5);
+    const halfBoundsHeight = Math.max(bounds.height / 2, 0.5);
+    const fittingScale = Math.max(0, Math.min(
+      (focusX - left) / halfBoundsWidth,
+      (width - right - focusX) / halfBoundsWidth,
+      (focusY - top) / halfBoundsHeight,
+      (height - bottom - focusY) / halfBoundsHeight,
+    ));
+
+    // Match zoomToPoint's live fit-scale measurement so a first selection can
+    // frame correctly before ResizeObserver commits the fitted scale.
+    const currentFitScale = defaultTransformForViewport(width, height).scale;
+    const preferredAbsoluteScale = preferredRelativeScale * currentFitScale;
+    const targetAbsoluteScale = Math.min(
+      clampPanZoomScale(preferredAbsoluteScale, currentFitScale),
+      fittingScale,
+    );
+    const mapCenterX = bounds.x + bounds.width / 2;
+    const mapCenterY = bounds.y + bounds.height / 2;
+
+    animateTransformTo({
+      x: focusX - mapCenterX * targetAbsoluteScale,
+      y: focusY - mapCenterY * targetAbsoluteScale,
+      scale: targetAbsoluteScale,
+    });
+  }, [animateTransformTo, defaultTransformForViewport, logicalViewportSize]);
+
   // Compute the current user-facing relative zoom level (e.g. 1.0 = 100%)
   const relativeScale = transform.scale / (fitScale || 1);
 
@@ -767,6 +817,7 @@ export function usePanZoom({
     zoomOut,
     zoomToScale,
     zoomToPoint,
+    zoomToBounds,
     cancelAnimation,
     shouldSuppressMapClick,
   };

@@ -815,7 +815,8 @@ describe("network-scoped regional dashboard", () => {
     assert.match(regionalMapSource, /if \(!isMobile\)[\s\S]*desktopMenuPinned[\s\S]*\.floating-panel-shell/);
     assert.match(regionalMapSource, /focusInsets\.left = Math\.max\(focusInsets\.left, insetLeft\)/);
     assert.match(regionalMapSource, /const selectionFit = computeBoundedMapFrame\(/);
-    assert.match(regionalMapSource, /const targetScale = clampPanZoomScale\([\s\S]*Math\.min\(preferredTargetScale, selectionFit\.scale\)/);
+    assert.match(regionalMapSource, /REGIONAL_SELECTION_FIT_COMFORT_RATIO = 0\.82/);
+    assert.match(regionalMapSource, /const targetScale = Math\.min\([\s\S]*clampPanZoomScale\(preferredTargetScale, fitScale\)[\s\S]*selectionFit\.scale \* REGIONAL_SELECTION_FIT_COMFORT_RATIO/);
     assert.match(regionalMapSource, /computeInsetViewportFocus\([\s\S]*focusInsets/);
     assert.match(regionalMapSource, /focusX - mapX \* targetScale/);
     assert.match(regionalMapSource, /focusY - mapY \* targetScale/);
