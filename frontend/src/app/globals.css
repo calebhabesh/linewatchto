@@ -3914,12 +3914,21 @@ button {
   overflow-x: hidden;
   overflow-y: auto;
   width: min(100%, 660px);
-  animation: opening-disclaimer-modal-enter 320ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
   will-change: transform, opacity;
   backface-visibility: hidden;
 }
 
-.opening-disclaimer-panel--exiting {
+.opening-welcome-panel {
+  opacity: 0;
+  transform: translate3d(0, 16px, 0) scale(0.975);
+}
+
+.opening-welcome-panel--entrance-ready {
+  animation: opening-welcome-card-enter 620ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.opening-disclaimer-panel--exiting,
+.opening-welcome-panel.opening-disclaimer-panel--exiting {
   animation: opening-disclaimer-modal-exit 180ms cubic-bezier(0.4, 0, 1, 1) forwards;
   pointer-events: none !important;
 }
@@ -4379,6 +4388,11 @@ button {
   animation: none;
 }
 
+.motion-paused .opening-welcome-panel {
+  opacity: 1;
+  transform: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .opening-disclaimer-backdrop,
   .opening-disclaimer-panel,
@@ -4386,6 +4400,11 @@ button {
   .opening-welcome-dot {
     animation: none;
     transition: none;
+  }
+
+  .opening-welcome-panel {
+    opacity: 1;
+    transform: none;
   }
 }
 
@@ -8299,10 +8318,10 @@ img.transit-line-badge {
   to { opacity: 0; }
 }
 
-@keyframes opening-disclaimer-modal-enter {
+@keyframes opening-welcome-card-enter {
   from {
     opacity: 0;
-    transform: translate3d(0, 20px, 0) scale(0.96);
+    transform: translate3d(0, 16px, 0) scale(0.975);
   }
   to {
     opacity: 1;

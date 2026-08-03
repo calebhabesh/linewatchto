@@ -47,6 +47,10 @@ describe("first-visit welcome experience", () => {
     assert.match(globalCss, /\.opening-welcome-personal-grid\s*\{[^}]*grid-template-columns:\s*repeat\(2,/s);
     assert.match(globalCss, /\.opening-welcome-image-frame--mobile\s*\{[^}]*aspect-ratio:\s*4 \/ 3;/s);
     assert.match(globalCss, /\.opening-welcome-carousel--desktop\s*\{[^}]*display:\s*none;/s);
+    assert.match(onboardingSource, /requestAnimationFrame/);
+    assert.match(onboardingSource, /opening-welcome-panel--entrance-ready/);
+    assert.match(globalCss, /animation:\s*opening-welcome-card-enter 620ms/);
+    assert.match(globalCss, /@keyframes opening-welcome-card-enter\s*\{/);
     assert.match(globalCss, /\.opening-unofficial-notice\s*\{[^}]*align-items:\s*center;/s);
     assert.match(globalCss, /\.opening-unofficial-notice--exiting\s*\{/);
     assert.match(globalCss, /@keyframes opening-unofficial-notice-exit\s*\{/);

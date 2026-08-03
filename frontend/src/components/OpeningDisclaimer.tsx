@@ -278,6 +278,7 @@ export function OpeningDisclaimer({
   hideNoticeOnMobile?: boolean;
 }) {
   const [welcomeVisible, setWelcomeVisible] = useState(true);
+  const [welcomeEntranceReady, setWelcomeEntranceReady] = useState(false);
   const [noticeVisible, setNoticeVisible] = useState(false);
   const [isWelcomeExiting, setIsWelcomeExiting] = useState(false);
   const [isNoticeExiting, setIsNoticeExiting] = useState(false);
@@ -314,6 +315,22 @@ export function OpeningDisclaimer({
       cancelled = true;
     };
   }, [onVisibilityChange]);
+
+  useEffect(() => {
+    if (!welcomeVisible || isWelcomeExiting) return;
+
+    let secondFrame = 0;
+    const firstFrame = window.requestAnimationFrame(() => {
+      secondFrame = window.requestAnimationFrame(() => {
+        setWelcomeEntranceReady(true);
+      });
+    });
+
+    return () => {
+      window.cancelAnimationFrame(firstFrame);
+      if (secondFrame) window.cancelAnimationFrame(secondFrame);
+    };
+  }, [isWelcomeExiting, welcomeVisible]);
 
   const finishWelcome = () => {
     storeValue(WELCOME_SEEN_STORAGE_KEY);
@@ -377,7 +394,7 @@ export function OpeningDisclaimer({
           <section
             aria-label="Welcome to LineWatchTO"
             aria-modal="true"
-            className={`opening-disclaimer-panel opening-welcome-panel ${isWelcomeExiting ? "opening-disclaimer-panel--exiting" : ""}`}
+            className={`opening-disclaimer-panel opening-welcome-panel ${welcomeEntranceReady ? "opening-welcome-panel--entrance-ready" : ""} ${isWelcomeExiting ? "opening-disclaimer-panel--exiting" : ""}`}
             role="dialog"
             onAnimationEnd={handleWelcomeAnimationEnd}
           >
