@@ -4,6 +4,7 @@ import { describe, it } from "node:test";
 
 const shellSource = readFileSync(new URL("../src/components/LineWatchShell.tsx", import.meta.url), "utf8");
 const savedCommutesSource = readFileSync(new URL("../src/components/SavedCommutesPanel.tsx", import.meta.url), "utf8");
+const mobileMoreSource = readFileSync(new URL("../src/components/MobileMoreSheet.tsx", import.meta.url), "utf8");
 
 function impact(status) {
   return {
@@ -105,6 +106,14 @@ describe("saved commute menu counts", () => {
     assert.match(shellSource, /getSavedCommutes/);
     assert.match(shellSource, /setAccountCommutes\(result\.commutes\)/);
     assert.doesNotMatch(savedCommutesSource, /getSavedCommutes/);
+  });
+
+  it("passes the desktop commute status counts through to the mobile More menu badges", () => {
+    assert.match(shellSource, /commuteClearCount=\{commuteClearCount\}/);
+    assert.match(shellSource, /commuteAffectedCount=\{commuteAffectedCount\}/);
+    assert.match(mobileMoreSource, /mobile-commute-status-badges/);
+    assert.match(mobileMoreSource, /aria-label=\{`\$\{commuteClearCount\} clear commutes`\}/);
+    assert.match(mobileMoreSource, /aria-label=\{`\$\{commuteAffectedCount\} affected commutes`\}/);
   });
 
   it("counts one affected-now route when either monitored commute leg is affected", async () => {

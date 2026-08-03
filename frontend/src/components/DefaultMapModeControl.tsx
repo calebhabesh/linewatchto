@@ -14,7 +14,7 @@ export function DefaultMapModeControl({ value, onChange, compact = false }: Prop
         <MapPinCheck size={18} aria-hidden="true" className="default-map-mode-icon" />
         <div className="default-map-mode-text">
           <strong>Default Map</strong>
-          <small>Loaded on launch</small>
+          <small>Loaded on Launch</small>
         </div>
       </div>
       <div className="default-map-mode-options" role="group" aria-label="Default map" data-network={value}>

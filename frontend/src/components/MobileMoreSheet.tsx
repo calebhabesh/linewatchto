@@ -40,6 +40,8 @@ type Props = {
   onToggleDotBackground: () => void;
   onOpenNotifications: () => void;
   onOpenCommutes: () => void;
+  commuteClearCount: number;
+  commuteAffectedCount: number;
   onOpenMyStations: () => void;
   savedStationCount: number;
   defaultNetwork: NetworkId;
@@ -80,6 +82,8 @@ export function MobileMoreSheet({
   onToggleDotBackground,
   onOpenNotifications,
   onOpenCommutes,
+  commuteClearCount,
+  commuteAffectedCount,
   onOpenMyStations,
   savedStationCount,
   defaultNetwork,
@@ -196,9 +200,21 @@ export function MobileMoreSheet({
                   </button>
                 )
               ) : null}
-              {currentNetwork === "ttc" ? <button type="button" className="mobile-more-row" onClick={onOpenCommutes}>
-                <Navigation size={18} className="text-slate-500 dark:text-slate-400" />
-                My Commutes
+              {currentNetwork === "ttc" ? <button type="button" className="mobile-more-row w-full flex items-center justify-between" onClick={onOpenCommutes}>
+                <span className="flex items-center gap-[9px]">
+                  <Navigation size={18} className="text-slate-500 dark:text-slate-400" />
+                  My Commutes
+                </span>
+                {commuteClearCount + commuteAffectedCount > 0 ? (
+                  <span className="flex items-center gap-1.5 shrink-0" data-testid="mobile-commute-status-badges">
+                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500/20 text-[11px] font-bold text-emerald-600 dark:text-emerald-400" aria-label={`${commuteClearCount} clear commutes`}>
+                      {commuteClearCount}
+                    </span>
+                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-amber-500/20 text-[11px] font-bold text-amber-700 dark:text-amber-400" aria-label={`${commuteAffectedCount} affected commutes`}>
+                      {commuteAffectedCount}
+                    </span>
+                  </span>
+                ) : null}
               </button> : null}
               <button type="button" className="mobile-more-row w-full flex items-center justify-between" onClick={onOpenMyStations}>
                 <span className="flex items-center gap-[9px]">
@@ -226,9 +242,21 @@ export function MobileMoreSheet({
                 <UserRound size={18} />
                 Demo Account
               </button>
-              {currentNetwork === "ttc" ? <button type="button" className="mobile-more-row" onClick={onOpenCommutes}>
-                <Navigation size={18} className="text-slate-500 dark:text-slate-400" />
-                My Commutes
+              {currentNetwork === "ttc" ? <button type="button" className="mobile-more-row w-full flex items-center justify-between" onClick={onOpenCommutes}>
+                <span className="flex items-center gap-[9px]">
+                  <Navigation size={18} className="text-slate-500 dark:text-slate-400" />
+                  My Commutes
+                </span>
+                {commuteClearCount + commuteAffectedCount > 0 ? (
+                  <span className="flex items-center gap-1.5 shrink-0" data-testid="mobile-commute-status-badges">
+                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500/20 text-[11px] font-bold text-emerald-600 dark:text-emerald-400" aria-label={`${commuteClearCount} clear commutes`}>
+                      {commuteClearCount}
+                    </span>
+                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-amber-500/20 text-[11px] font-bold text-amber-700 dark:text-amber-400" aria-label={`${commuteAffectedCount} affected commutes`}>
+                      {commuteAffectedCount}
+                    </span>
+                  </span>
+                ) : null}
               </button> : null}
               <button type="button" className="mobile-more-row w-full flex items-center justify-between" onClick={onOpenMyStations}>
                 <span className="flex items-center gap-[9px]">

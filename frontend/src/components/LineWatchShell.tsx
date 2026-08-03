@@ -2293,6 +2293,8 @@ export function LineWatchShell({
             onToggleDotBackground={handleToggleDotBackground}
             onOpenNotifications={() => navigateForward("notifications")}
             onOpenCommutes={() => navigateForward("commutes")}
+            commuteClearCount={commuteClearCount}
+            commuteAffectedCount={commuteAffectedCount}
             onOpenMyStations={() => navigateForward("my-stations")}
             savedStationCount={savedStations.length}
             defaultNetwork={defaultNetworkPreference}
