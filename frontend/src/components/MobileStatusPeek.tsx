@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import { AlertTriangle, Construction, Locate, ArrowRight } from "lucide-react";
 import { PlannedClosureIcon } from "./PlannedClosureIcon";
 import { DelayIcon } from "./DelayIcon";
@@ -49,6 +50,7 @@ export function MobileStatusPeek({
   onOpenCategory,
   onRecenter,
 }: Props) {
+  const containerRef = useRef<HTMLDivElement>(null);
   const impactCount = activeAlertCount + delayCount + reducedSpeedZoneCount + plannedClosureCount;
   const categoryCount = [activeAlertCount, delayCount, reducedSpeedZoneCount, plannedClosureCount]
     .filter((count) => count > 0).length;
@@ -58,12 +60,42 @@ export function MobileStatusPeek({
     "compact",
   );
 
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    const updateHeight = () => {
+      const height = el.getBoundingClientRect().height;
+      if (height > 0) {
+        document.documentElement.style.setProperty(
+          "--mobile-status-peek-actual-height",
+          `${Math.round(height)}px`
+        );
+      }
+    };
+
+    updateHeight();
+
+    let resizeObserver: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== "undefined") {
+      resizeObserver = new ResizeObserver(() => {
+        updateHeight();
+      });
+      resizeObserver.observe(el);
+    }
+
+    return () => {
+      resizeObserver?.disconnect();
+      document.documentElement.style.removeProperty("--mobile-status-peek-actual-height");
+    };
+  }, [categoryCount, impactCount]);
+
   const titleText = impactCount > 0
     ? `${impactCount} Current Impact${impactCount === 1 ? "" : "s"}`
     : "No Current Impacts";
 
   return (
-    <div className="mobile-status-peek" data-category-count={categoryCount}>
+    <div ref={containerRef} className="mobile-status-peek" data-category-count={categoryCount}>
       <div
         className="mobile-status-peek-info-btn"
         role="button"

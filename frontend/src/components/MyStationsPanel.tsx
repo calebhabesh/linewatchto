@@ -214,6 +214,11 @@ function formatCondensedArrivalDirection(directionLabel: string) {
   if (!match) return { direction: directionLabel, destination: null };
   return { direction: match[1], destination: `To ${match[2]}` };
 }
+function formatArrivalLineHeaderLabel(lineNumber: string, lineName?: string): string {
+  if (!lineName) return `Line ${lineNumber}`;
+  if (!isNaN(Number(lineNumber))) return `Line ${lineNumber} - ${lineName}`;
+  return lineName;
+}
 
 function SavedStationRow({
   saved,
@@ -298,6 +303,46 @@ function SavedStationRow({
     : [], pinnedLineIds);
   const regionalInformationReady = regionalDataLoaded && Boolean(regionalArrivalSnapshot);
 
+  const arrivalLineSections: {
+    lineId: string;
+    lineNumber: string;
+    lineName?: string;
+    groups: typeof arrivalGroups;
+  }[] = [];
+  for (const group of arrivalGroups) {
+    let section = arrivalLineSections.find((s) => s.lineId === group.lineId);
+    if (!section) {
+      section = {
+        lineId: group.lineId,
+        lineNumber: group.lineNumber,
+        lineName: group.line?.name,
+        groups: [],
+      };
+      arrivalLineSections.push(section);
+    }
+    section.groups.push(group);
+  }
+
+  const regionalLineSections: {
+    lineId: string;
+    lineNumber: string;
+    lineName?: string;
+    groups: typeof regionalArrivalGroups;
+  }[] = [];
+  for (const group of regionalArrivalGroups) {
+    let section = regionalLineSections.find((s) => s.lineId === group.lineId);
+    if (!section) {
+      section = {
+        lineId: group.lineId,
+        lineNumber: group.lineNumber,
+        lineName: group.lineName,
+        groups: [],
+      };
+      regionalLineSections.push(section);
+    }
+    section.groups.push(group);
+  };
+
   return (
     <article className={`my-stations-row saved-station-rich-row ${displayedDisruptionCount > 0 ? "is-affected" : "is-clear"}`}>
       <div className="saved-station-rich-heading">
@@ -305,8 +350,10 @@ function SavedStationRow({
           <span className="my-stations-row-copy">
             <span className="my-stations-row-heading">
               <strong>{saved.station.name}</strong>
-              <AccountNetworkBadge networkId={saved.networkId} />
               <StationLineBadges lineIds={saved.station.lineIds} />
+            </span>
+            <span className="my-stations-row-badges">
+              <AccountNetworkBadge networkId={saved.networkId} />
             </span>
           </span>
           <span className="saved-station-open-action">
@@ -425,60 +472,82 @@ function SavedStationRow({
               <p className="saved-station-arrivals-empty">No Arrivals Available</p>
             ) : (
               <div className="saved-station-arrival-groups">
-                {regionalArrivalGroups.map((group, groupIndex) => {
-                  const showLineDivider = groupIndex > 0 && regionalArrivalGroups[groupIndex - 1]?.lineId !== group.lineId;
-                  const arrivals = group.platforms.flatMap((platform) => platform.arrivals).sort((left, right) => left.minutes - right.minutes).slice(0, 2);
-                  const hasLive = arrivals.some((arrival) => arrival.status === "live");
-                  const hasScheduled = arrivals.some((arrival) => arrival.status === "scheduled");
-                  const sourceLabel = hasLive && hasScheduled ? "Mixed" : hasLive ? "Live" : "Scheduled";
-                  const isPinned = pinnedLineIds.includes(group.lineId);
-                  const isHoveredPin = hoveredPinLineId === group.lineId;
+                {regionalLineSections.map((section, sectionIndex) => {
+                  const showLineDivider = sectionIndex > 0;
+                  const isPinned = pinnedLineIds.includes(section.lineId);
+                  const isHoveredPin = hoveredPinLineId === section.lineId;
+                  const lineLabel = section.lineName ? (isNaN(Number(section.lineNumber)) ? section.lineName : `Line ${section.lineNumber}`) : section.lineNumber;
+
                   return (
-                    <Fragment key={group.key}>
+                    <div key={section.lineId} className="saved-station-arrival-line-section" data-arrival-line-section={section.lineId} data-pinned-line={isPinned ? "true" : "false"}>
                       {showLineDivider && (
                         <div className="station-arrival-line-divider my-1" aria-hidden="true" />
                       )}
-                      <div className={`saved-station-arrival-group${isPinned || isHoveredPin ? " is-pinned" : ""}`}>
-                        <TransitLineBadge
-                          lineId={group.lineId}
-                          lineNumber={group.lineNumber}
-                          lineName={group.lineName}
-                          size={27}
-                          className="saved-station-arrival-line-badge"
-                        />
-                        <span className="saved-station-arrival-direction">
-                          <strong>{group.directionLabel}</strong>
-                          <span className="saved-station-arrival-destination">{group.destinationLabel}</span>
-                        </span>
-                        <span className={`saved-station-arrival-source source-${sourceLabel.toLowerCase()}`}>{sourceLabel}</span>
+                      <div className="saved-station-arrival-line-header flex items-center justify-between px-1 py-1">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <TransitLineBadge
+                            lineId={section.lineId}
+                            lineNumber={section.lineNumber}
+                            lineName={section.lineName}
+                            size={28}
+                            className="shrink-0"
+                          />
+                          <span className="text-xs sm:text-sm font-extrabold text-slate-900 dark:text-white truncate">
+                            {formatArrivalLineHeaderLabel(section.lineNumber, section.lineName)}
+                          </span>
+                        </div>
                         <ArrivalLinePinButton
                           pinned={isPinned}
                           hovered={isHoveredPin}
-                          onHoverChange={(hovered) => setHoveredPinLineId(hovered ? group.lineId : null)}
-                          lineLabel={group.lineNumber}
+                          onHoverChange={(hovered) => setHoveredPinLineId(hovered ? section.lineId : null)}
+                          lineLabel={lineLabel}
                           stationName={saved.station.name}
-                          onToggle={() => togglePin(group.lineId)}
-                          compact
+                          onToggle={() => togglePin(section.lineId)}
                         />
-                        <span className="saved-station-arrival-times">
-                          {arrivals.map((arrival, index) => {
-                            const due = isRegionalArrivalDue(arrival, arrivalTick);
-                            const soon = !due && isRegionalArrivalSoon(arrival, arrivalTick);
-                            const detailed = index === 0
-                              && shouldUseDetailedRegionalArrivalCountdown(arrival, arrivalTick);
-                            const timeDisplay = regionalArrivalTimeDisplay(arrival, arrivalTick, { detailedCountdown: detailed });
-                            return (
-                              <strong
-                                className={[detailed ? "is-detailed" : "", soon ? "is-soon" : "", due ? "is-due" : ""].filter(Boolean).join(" ") || undefined}
-                                key={`${arrival.tripNumber}:${arrival.predictedAt}`}
-                              >
-                                {timeDisplay.primary}
-                              </strong>
-                            );
-                          })}
-                        </span>
                       </div>
-                    </Fragment>
+                      <div className="flex flex-col gap-1.5 mt-0.5">
+                        {section.groups.map((group) => {
+                          const arrivals = group.platforms.flatMap((platform) => platform.arrivals).sort((left, right) => left.minutes - right.minutes).slice(0, 2);
+                          const hasLive = arrivals.some((arrival) => arrival.status === "live");
+                          const hasScheduled = arrivals.some((arrival) => arrival.status === "scheduled");
+                          const sourceLabel = hasLive && hasScheduled ? "Mixed" : hasLive ? "Live" : "Scheduled";
+
+                          return (
+                            <div key={group.key} className={`saved-station-arrival-group${isPinned || isHoveredPin ? " is-pinned" : ""}`}>
+                              <TransitLineBadge
+                                lineId={group.lineId}
+                                lineNumber={group.lineNumber}
+                                lineName={group.lineName}
+                                size={22}
+                                className="saved-station-arrival-line-badge"
+                              />
+                              <span className="saved-station-arrival-direction">
+                                <strong>{group.directionLabel}</strong>
+                                <span className="saved-station-arrival-destination">{group.destinationLabel}</span>
+                              </span>
+                              <span className={`saved-station-arrival-source source-${sourceLabel.toLowerCase()}`}>{sourceLabel}</span>
+                              <span className="saved-station-arrival-times">
+                                {arrivals.map((arrival, index) => {
+                                  const due = isRegionalArrivalDue(arrival, arrivalTick);
+                                  const soon = !due && isRegionalArrivalSoon(arrival, arrivalTick);
+                                  const detailed = index === 0
+                                    && shouldUseDetailedRegionalArrivalCountdown(arrival, arrivalTick);
+                                  const timeDisplay = regionalArrivalTimeDisplay(arrival, arrivalTick, { detailedCountdown: detailed });
+                                  return (
+                                    <strong
+                                      className={[detailed ? "is-detailed" : "", soon ? "is-soon" : "", due ? "is-due" : ""].filter(Boolean).join(" ") || undefined}
+                                      key={`${arrival.tripNumber}:${arrival.predictedAt}`}
+                                    >
+                                      {timeDisplay.primary}
+                                    </strong>
+                                  );
+                                })}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
                   );
                 })}
               </div>
@@ -585,59 +654,81 @@ function SavedStationRow({
               <p className="saved-station-arrivals-empty">No Arrivals Available</p>
             ) : (
               <div className="saved-station-arrival-groups">
-                {arrivalGroups.map((group, groupIndex) => {
-                  const showLineDivider = groupIndex > 0 && arrivalGroups[groupIndex - 1]?.lineId !== group.lineId;
-                  const sourceLabel = formatArrivalSourceBadgeLabel(group.arrivals, {
-                    emptyLiveDirection: hasLiveArrivals && group.arrivals.length === 0,
-                  });
-                  const direction = formatCondensedArrivalDirection(group.directionLabel);
-                  const isPinned = pinnedLineIds.includes(group.lineId);
-                  const isHoveredPin = hoveredPinLineId === group.lineId;
+                {arrivalLineSections.map((section, sectionIndex) => {
+                  const showLineDivider = sectionIndex > 0;
+                  const isPinned = pinnedLineIds.includes(section.lineId);
+                  const isHoveredPin = hoveredPinLineId === section.lineId;
+                  const lineLabel = `Line ${section.lineNumber}`;
+
                   return (
-                    <Fragment key={group.key}>
+                    <div key={section.lineId} className="saved-station-arrival-line-section" data-arrival-line-section={section.lineId} data-pinned-line={isPinned ? "true" : "false"}>
                       {showLineDivider && (
                         <div className="station-arrival-line-divider my-1" aria-hidden="true" />
                       )}
-                      <div className={`saved-station-arrival-group${isPinned || isHoveredPin ? " is-pinned" : ""}`}>
-                        <TransitLineBadge
-                          lineId={group.lineId}
-                          lineNumber={group.lineNumber}
-                          lineName={group.line?.name}
-                          size={27}
-                          className="saved-station-arrival-line-badge"
-                        />
-                        <span className="saved-station-arrival-direction">
-                          <strong>{direction.direction}</strong>
-                          {direction.destination ? <span className="saved-station-arrival-destination">{direction.destination}</span> : null}
-                        </span>
-                        <span className={`saved-station-arrival-source source-${sourceLabel.toLowerCase().replaceAll(" ", "-")}`}>{sourceLabel}</span>
+                      <div className="saved-station-arrival-line-header flex items-center justify-between px-1 py-1">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <TransitLineBadge
+                            lineId={section.lineId}
+                            lineNumber={section.lineNumber}
+                            lineName={section.lineName}
+                            size={28}
+                            className="shrink-0"
+                          />
+                          <span className="text-xs sm:text-sm font-extrabold text-slate-900 dark:text-white truncate">
+                            {formatArrivalLineHeaderLabel(section.lineNumber, section.lineName)}
+                          </span>
+                        </div>
                         <ArrivalLinePinButton
                           pinned={isPinned}
                           hovered={isHoveredPin}
-                          onHoverChange={(hovered) => setHoveredPinLineId(hovered ? group.lineId : null)}
-                          lineLabel={`Line ${group.lineNumber}`}
+                          onHoverChange={(hovered) => setHoveredPinLineId(hovered ? section.lineId : null)}
+                          lineLabel={lineLabel}
                           stationName={saved.station.name}
-                          onToggle={() => togglePin(group.lineId)}
-                          compact
+                          onToggle={() => togglePin(section.lineId)}
                         />
-                        <span className="saved-station-arrival-times">
-                          {group.arrivals.length > 0
-                            ? group.arrivals.map((arrival, index) => {
-                                const detailed = index === 0 && shouldUseDetailedArrivalCountdown(arrival, arrivalTick);
-                                const due = isArrivalDue(arrival, arrivalTick);
-                                return (
-                                  <strong
-                                    className={[detailed ? "is-detailed is-soon" : "", due ? "is-due" : ""].filter(Boolean).join(" ") || undefined}
-                                    key={`${arrival.predictedAt ?? arrival.label}-${index}`}
-                                  >
-                                    {formatArrivalTileLabel(arrival, { detailedCountdown: detailed, now: arrivalTick })}
-                                  </strong>
-                                );
-                              })
-                            : <em>—</em>}
-                        </span>
                       </div>
-                    </Fragment>
+                      <div className="flex flex-col gap-1.5 mt-0.5">
+                        {section.groups.map((group) => {
+                          const sourceLabel = formatArrivalSourceBadgeLabel(group.arrivals, {
+                            emptyLiveDirection: hasLiveArrivals && group.arrivals.length === 0,
+                          });
+                          const direction = formatCondensedArrivalDirection(group.directionLabel);
+
+                          return (
+                            <div key={group.key} className={`saved-station-arrival-group${isPinned || isHoveredPin ? " is-pinned" : ""}`}>
+                              <TransitLineBadge
+                                lineId={group.lineId}
+                                lineNumber={group.lineNumber}
+                                lineName={group.line?.name}
+                                size={22}
+                                className="saved-station-arrival-line-badge"
+                              />
+                              <span className="saved-station-arrival-direction">
+                                <strong>{direction.direction}</strong>
+                                {direction.destination ? <span className="saved-station-arrival-destination">{direction.destination}</span> : null}
+                              </span>
+                              <span className={`saved-station-arrival-source source-${sourceLabel.toLowerCase().replaceAll(" ", "-")}`}>{sourceLabel}</span>
+                              <span className="saved-station-arrival-times">
+                                {group.arrivals.length > 0
+                                  ? group.arrivals.map((arrival, index) => {
+                                      const detailed = index === 0 && shouldUseDetailedArrivalCountdown(arrival, arrivalTick);
+                                      const due = isArrivalDue(arrival, arrivalTick);
+                                      return (
+                                        <strong
+                                          className={[detailed ? "is-detailed is-soon" : "", due ? "is-due" : ""].filter(Boolean).join(" ") || undefined}
+                                          key={`${arrival.predictedAt ?? arrival.label}-${index}`}
+                                        >
+                                          {formatArrivalTileLabel(arrival, { detailedCountdown: detailed, now: arrivalTick })}
+                                        </strong>
+                                      );
+                                    })
+                                  : <em>—</em>}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
                   );
                 })}
               </div>

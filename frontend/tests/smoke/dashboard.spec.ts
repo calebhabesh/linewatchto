@@ -2,7 +2,8 @@ import { expect, test, type APIRequestContext, type Page } from "@playwright/tes
 
 const appUrl = "http://127.0.0.1:4173";
 const stubUrl = "http://127.0.0.1:4174";
-const disclaimerStorageKey = "linewatch-disclaimer-ack-v1";
+const welcomeStorageKey = "linewatch-welcome-seen-v1";
+const disclaimerStorageKey = "linewatch-unofficial-notice-ack-v1";
 
 async function setStubMode(request: APIRequestContext, mode: "seeded" | "unavailable" | "map-authoritative-overlap" | "regional-live") {
   const response = await request.post(`${stubUrl}/__test/mode`, {
@@ -146,34 +147,56 @@ test.beforeEach(async ({ page }) => {
   page.on('console', msg => console.log('BROWSER CONSOLE:', msg.type(), msg.text()));
   page.on('pageerror', err => console.log('BROWSER ERROR:', err.message));
   await freezeBrowserTime(page, "2026-06-04T12:00:00-04:00");
-  await page.addInitScript((storageKey) => {
-    window.localStorage.setItem(storageKey, "true");
+  await page.addInitScript(({ disclaimerKey, welcomeKey }) => {
+    window.localStorage.setItem(welcomeKey, "true");
+    window.localStorage.setItem(disclaimerKey, "true");
     // Suppress the PWA install nudge during smoke tests to avoid UI layout conflicts
     window.localStorage.setItem("linewatch-pwa-install-dismissed-at-v1", String(Date.now()));
-  }, disclaimerStorageKey);
+  }, { disclaimerKey: disclaimerStorageKey, welcomeKey: welcomeStorageKey });
 });
 
-test("requires a first-visit personal project disclaimer acknowledgement", async ({ browser, request }) => {
+test("introduces first-time riders before showing the unofficial-project notice", async ({ page, request, isMobile }) => {
   await setStubMode(request, "seeded");
-  const context = await browser.newContext();
-  const disclaimerPage = await context.newPage();
-  await freezeBrowserTime(disclaimerPage, "2026-06-04T12:00:00-04:00");
+  await page.addInitScript(({ disclaimerKey, welcomeKey }) => {
+    if (!window.sessionStorage.getItem("linewatch-onboarding-smoke-initialized")) {
+      window.localStorage.removeItem(welcomeKey);
+      window.localStorage.removeItem(disclaimerKey);
+      window.sessionStorage.setItem("linewatch-onboarding-smoke-initialized", "true");
+    }
+  }, { disclaimerKey: disclaimerStorageKey, welcomeKey: welcomeStorageKey });
 
-  await disclaimerPage.goto(appUrl);
+  await page.goto(appUrl);
 
-  const disclaimer = disclaimerPage.getByRole("dialog", { name: "Unofficial dashboard" });
-  await expect(disclaimer).toBeVisible();
-  await expect(disclaimer).toContainText("LineWatchTO is a personal project that is not affiliated with, endorsed by, or operated by the TTC.");
-  await expect(disclaimer).toContainText("Service alerts are fetched from TTC's public Live Alerts endpoint when live polling is enabled, with local fixture data used for offline demos and fallback mode.");
+  const welcome = page.getByRole("dialog", { name: "Welcome to LineWatchTO" });
+  await expect(welcome).toBeVisible();
+  await expect(welcome).toContainText("Read the live map");
 
-  await disclaimerPage.getByRole("button", { name: "I Understand" }).click();
-  await expect(disclaimer).toHaveCount(0);
+  const carousel = welcome.locator(isMobile
+    ? ".opening-welcome-carousel--mobile"
+    : ".opening-welcome-carousel--desktop");
+  await carousel.getByRole("button", { name: "Next" }).click();
+  await expect(carousel).toContainText(isMobile ? "Tap for alert details" : "Explore an impact");
+  await carousel.getByRole("button", { name: "Next" }).click();
+  await expect(carousel).toContainText(isMobile ? "Plan with My Commutes" : "Make it yours");
+  await expect(carousel.getByAltText(/My Commutes route/)).toBeVisible();
+  if (isMobile) {
+    await carousel.getByRole("button", { name: "Next" }).click();
+    await expect(carousel).toContainText("Watch My Stations");
+  }
+  await expect(carousel.getByAltText(/My Stations panel/)).toBeVisible();
+  await carousel.getByRole("button", { name: "Explore dashboard" }).click();
+  await expect(welcome).toHaveCount(0);
 
-  await disclaimerPage.reload();
-  await expect(disclaimerPage.getByRole("dialog", { name: "Unofficial dashboard" })).toHaveCount(0);
-  await expect(disclaimerPage.getByRole("button", { name: "Center map view" })).toBeVisible();
+  const notice = page.getByRole("region", { name: "Unofficial dashboard notice" });
+  await expect(notice).toBeVisible();
+  await expect(notice).toContainText("LineWatchTO is not affiliated with, endorsed by, or operated by the TTC or Metrolinx.");
+  await page.getByRole("button", { name: "Got it" }).click();
+  await expect(notice).toHaveCount(0);
 
-  await context.close();
+  await page.reload();
+  await expect(page.getByRole("dialog", { name: "Welcome to LineWatchTO" })).toHaveCount(0);
+  await expect(page.getByRole("region", { name: "Unofficial dashboard notice" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
 });
 
 test("shows a subway closing soon countdown before overnight closure", async ({ page, request }) => {

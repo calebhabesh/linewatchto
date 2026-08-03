@@ -3916,6 +3916,7 @@ export function LineWatchShell({
       <OpeningDisclaimer
         onVisibilityChange={setDisclaimerVisible}
         onOpenCreateAccount={() => openAuthChoice("register")}
+        onOpenSignIn={() => openAuthChoice("login")}
       />
     </div>
     </DataProvider>

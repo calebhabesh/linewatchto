@@ -1365,11 +1365,15 @@ export function SavedCommutesPanel({
                     <div className="min-w-0">
                       <div className="saved-commute-card-header">
                         <div className="saved-commute-card-identity">
-                          <h3 className="min-w-0 text-sm font-bold text-slate-800 dark:text-white whitespace-normal break-words">
-                            {toTitleCase(commute.label.replace(/\bto\b/g, "->"))}
-                          </h3>
-                          <AccountNetworkBadge networkId={commute.networkId ?? "ttc"} />
-                          <span className={`status-pill ${commuteTone(commute)}`}>{toTitleCase(commuteStatusLabel(commute))}</span>
+                          <div className="min-w-0 flex-1">
+                            <h3 className="min-w-0 text-sm font-bold text-slate-800 dark:text-white whitespace-normal break-words">
+                              {toTitleCase(commute.label.replace(/\bto\b/g, "->"))}
+                            </h3>
+                            <div className="mt-1 flex items-center gap-1.5 flex-wrap">
+                              <AccountNetworkBadge networkId={commute.networkId ?? "ttc"} />
+                              <span className={`status-pill ${commuteTone(commute)}`}>{toTitleCase(commuteStatusLabel(commute))}</span>
+                            </div>
+                          </div>
                         </div>
                         {(() => {
                           const currentImpactsCount = currentImpactCount(legs);

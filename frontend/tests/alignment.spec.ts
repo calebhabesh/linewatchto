@@ -3,9 +3,10 @@ import { test } from '@playwright/test';
 test('check alignment', async ({ page }) => {
   await page.goto('http://localhost:3000');
   
-  // Accept disclaimer if present
+  // Skip first-visit onboarding and acknowledge the notice if present
   try {
-    await page.getByRole('button', { name: 'I Understand' }).click({ timeout: 5000 });
+    await page.getByRole('button', { name: 'Skip' }).first().click({ timeout: 5000 });
+    await page.getByRole('button', { name: 'Got it' }).click({ timeout: 5000 });
   } catch {
     // ignore if not present
   }

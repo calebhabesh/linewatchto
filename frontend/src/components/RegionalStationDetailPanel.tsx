@@ -609,7 +609,7 @@ export function RegionalStationDetailPanel({
                                     lineId={section.lineId}
                                     lineNumber={section.lineNumber}
                                     lineName={section.lineName}
-                                    size={26}
+                                    size={32}
                                     className="shrink-0"
                                   />
                                   <span className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-white truncate">
@@ -643,7 +643,7 @@ export function RegionalStationDetailPanel({
                                         lineId={section.lineId}
                                         lineNumber={section.lineNumber}
                                         lineName={section.lineName}
-                                        size={28}
+                                        size={27}
                                         className="shrink-0"
                                       />
                                       <div className="flex min-w-0 flex-col leading-tight">

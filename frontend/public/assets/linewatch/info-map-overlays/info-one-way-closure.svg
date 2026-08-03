@@ -8,12 +8,12 @@
     </g>
     <path id="planned-closure-chevron" d="M0 3L8 9L0 15"/>
   </defs>
-  <g fill="none" stroke="#3b82f6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-    <use href="#planned-closure-icon" transform="translate(4 4.762106) scale(1.05)"/>
-    <use href="#planned-closure-chevron" transform="translate(37 5.762106)"/>
-    <use href="#planned-closure-icon" transform="translate(52 4.762106) scale(1.05)"/>
-    <use href="#planned-closure-chevron" transform="translate(85 5.762106)"/>
-    <use href="#planned-closure-icon" transform="translate(100 4.762106) scale(1.05)"/>
-    <use href="#planned-closure-chevron" transform="translate(133 5.762106)"/>
+  <g fill="none" stroke="#3b82f6" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+    <use href="#planned-closure-icon" transform="translate(4 4.262106) scale(1.05)"/>
+    <use href="#planned-closure-chevron" transform="translate(37 8.912106)"/>
+    <use href="#planned-closure-icon" transform="translate(52 4.262106) scale(1.05)"/>
+    <use href="#planned-closure-chevron" transform="translate(85 8.912106)"/>
+    <use href="#planned-closure-icon" transform="translate(100 4.262106) scale(1.05)"/>
+    <use href="#planned-closure-chevron" transform="translate(133 8.912106)"/>
   </g>
 </svg>

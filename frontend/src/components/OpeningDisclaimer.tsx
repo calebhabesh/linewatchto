@@ -2,47 +2,189 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
-import { AlertTriangle, Info, Menu, MoreHorizontal } from "lucide-react";
+import { AlertTriangle, ChevronLeft, ChevronRight } from "lucide-react";
 
-export const DISCLAIMER_ACK_STORAGE_KEY = "linewatch-disclaimer-ack-v1";
+export const WELCOME_SEEN_STORAGE_KEY = "linewatch-welcome-seen-v1";
+export const DISCLAIMER_ACK_STORAGE_KEY = "linewatch-unofficial-notice-ack-v1";
 
-function hasAcknowledgedDisclaimer() {
+const DESKTOP_SLIDE_COUNT = 3;
+const MOBILE_SLIDE_COUNT = 4;
+
+function hasStoredValue(key: string) {
   try {
-    return window.localStorage.getItem(DISCLAIMER_ACK_STORAGE_KEY) === "true";
+    return window.localStorage.getItem(key) === "true";
   } catch {
     return false;
   }
 }
 
-function storeDisclaimerAcknowledgement() {
+function storeValue(key: string) {
   try {
-    window.localStorage.setItem(DISCLAIMER_ACK_STORAGE_KEY, "true");
+    window.localStorage.setItem(key, "true");
   } catch {
-    // The acknowledgement still dismisses for this page view if storage is unavailable.
+    // The current page can still advance when storage is unavailable.
   }
+}
+
+function MapOverlayLegend() {
+  return (
+    <ul className="opening-welcome-map-legend" aria-label="Live map overlay guide">
+      <li>
+        <Image
+          src="/assets/linewatch/info-map-overlays/1-way-delay.svg"
+          alt=""
+          aria-hidden="true"
+          width={72}
+          height={24}
+          className="opening-welcome-legend-asset"
+        />
+        <span>Delay</span>
+      </li>
+      <li>
+        <Image
+          src="/assets/linewatch/info-map-overlays/1-way-active-alert.svg"
+          alt=""
+          aria-hidden="true"
+          width={72}
+          height={24}
+          className="opening-welcome-legend-asset"
+        />
+        <span>Suspended or Closed</span>
+      </li>
+      <li>
+        <Image
+          src="/assets/linewatch/info-map-overlays/1-way-rsz.svg"
+          alt=""
+          aria-hidden="true"
+          width={72}
+          height={24}
+          className="opening-welcome-legend-asset"
+        />
+        <span>Reduced Speed Zone</span>
+      </li>
+      <li>
+        <Image
+          src="/assets/linewatch/info-map-overlays/info-one-way-closure.svg"
+          alt=""
+          aria-hidden="true"
+          width={72}
+          height={24}
+          className="opening-welcome-legend-asset"
+        />
+        <span>Planned Closure</span>
+      </li>
+      <li>
+        <Image
+          src="/assets/linewatch/info-map-overlays/station-ring-arrow.svg"
+          alt=""
+          aria-hidden="true"
+          width={28}
+          height={28}
+          className="opening-welcome-legend-asset opening-welcome-legend-asset--station"
+        />
+        <span>Station or Facility Impact</span>
+      </li>
+    </ul>
+  );
+}
+
+function SlideDots({
+  activeSlide,
+  count,
+  onSelect,
+}: {
+  activeSlide: number;
+  count: number;
+  onSelect: (slide: number) => void;
+}) {
+  return (
+    <div className="opening-welcome-dots" aria-label="Choose an introduction slide" role="group">
+      {Array.from({ length: count }, (_, index) => (
+        <button
+          type="button"
+          className={index === activeSlide ? "opening-welcome-dot opening-welcome-dot--active" : "opening-welcome-dot"}
+          aria-label={`Go to slide ${index + 1} of ${count}`}
+          aria-current={index === activeSlide ? "step" : undefined}
+          key={index}
+          onClick={() => onSelect(index)}
+        />
+      ))}
+    </div>
+  );
+}
+
+function SlideControls({
+  activeSlide,
+  count,
+  onBack,
+  onFinish,
+  onNext,
+  onSelect,
+}: {
+  activeSlide: number;
+  count: number;
+  onBack: () => void;
+  onFinish: () => void;
+  onNext: () => void;
+  onSelect: (slide: number) => void;
+}) {
+  const isLastSlide = activeSlide === count - 1;
+
+  return (
+    <div className="opening-welcome-controls">
+      <div className="opening-welcome-control-row">
+        <button
+          type="button"
+          className="opening-welcome-secondary-button"
+          disabled={activeSlide === 0}
+          onClick={onBack}
+        >
+          <ChevronLeft aria-hidden="true" size={16} />
+          Back
+        </button>
+        <SlideDots activeSlide={activeSlide} count={count} onSelect={onSelect} />
+        <button type="button" className="opening-welcome-skip-button" onClick={onFinish}>
+          Skip
+        </button>
+      </div>
+      <button
+        type="button"
+        className="opening-welcome-primary-button"
+        onClick={isLastSlide ? onFinish : onNext}
+      >
+        {isLastSlide ? "Explore dashboard" : "Next"}
+        {!isLastSlide ? <ChevronRight aria-hidden="true" size={17} /> : null}
+      </button>
+    </div>
+  );
 }
 
 export function OpeningDisclaimer({
   onVisibilityChange,
   onOpenCreateAccount,
+  onOpenSignIn,
 }: {
   onVisibilityChange?: (visible: boolean) => void;
   onOpenCreateAccount?: () => void;
+  onOpenSignIn?: () => void;
 }) {
-  const [visible, setVisible] = useState(false);
-  const [isExiting, setIsExiting] = useState(false);
+  const [welcomeVisible, setWelcomeVisible] = useState(true);
+  const [noticeVisible, setNoticeVisible] = useState(false);
+  const [isWelcomeExiting, setIsWelcomeExiting] = useState(false);
+  const [isNoticeExiting, setIsNoticeExiting] = useState(false);
+  const [desktopSlide, setDesktopSlide] = useState(0);
+  const [mobileSlide, setMobileSlide] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
 
     Promise.resolve().then(() => {
-      if (!cancelled) {
-        const show = !hasAcknowledgedDisclaimer();
-        setVisible(show);
-        if (onVisibilityChange) {
-          onVisibilityChange(show);
-        }
-      }
+      if (cancelled) return;
+
+      const showWelcome = !hasStoredValue(WELCOME_SEEN_STORAGE_KEY);
+      setWelcomeVisible(showWelcome);
+      setNoticeVisible(!showWelcome && !hasStoredValue(DISCLAIMER_ACK_STORAGE_KEY));
+      onVisibilityChange?.(showWelcome);
     });
 
     return () => {
@@ -50,108 +192,237 @@ export function OpeningDisclaimer({
     };
   }, [onVisibilityChange]);
 
-  if (!visible) {
-    return null;
-  }
-
-  const handleAcknowledge = () => {
-    storeDisclaimerAcknowledgement();
-    setIsExiting(true);
+  const finishWelcome = () => {
+    storeValue(WELCOME_SEEN_STORAGE_KEY);
+    setIsWelcomeExiting(true);
+    window.setTimeout(() => {
+      setWelcomeVisible(false);
+      setNoticeVisible(!hasStoredValue(DISCLAIMER_ACK_STORAGE_KEY));
+      onVisibilityChange?.(false);
+    }, 220);
   };
 
   const handleCreateAccountClick = (event: React.MouseEvent) => {
     event.preventDefault();
-    storeDisclaimerAcknowledgement();
-    setIsExiting(true);
-    if (onOpenCreateAccount) {
-      onOpenCreateAccount();
+    finishWelcome();
+    onOpenCreateAccount?.();
+  };
+
+  const handleSignInClick = (event: React.MouseEvent) => {
+    event.preventDefault();
+    finishWelcome();
+    onOpenSignIn?.();
+  };
+
+  const handleWelcomeAnimationEnd = (event: React.AnimationEvent<HTMLElement>) => {
+    if (
+      isWelcomeExiting
+      && event.target === event.currentTarget
+      && event.animationName === "opening-disclaimer-modal-exit"
+    ) {
+      setWelcomeVisible(false);
+      setNoticeVisible(!hasStoredValue(DISCLAIMER_ACK_STORAGE_KEY));
+      onVisibilityChange?.(false);
     }
   };
 
-  const handleAnimationEnd = (event: React.AnimationEvent<HTMLElement>) => {
+  const dismissNotice = () => {
+    storeValue(DISCLAIMER_ACK_STORAGE_KEY);
+    setIsNoticeExiting(true);
+    window.setTimeout(() => {
+      setNoticeVisible(false);
+    }, 220);
+  };
+
+  const handleNoticeAnimationEnd = (event: React.AnimationEvent<HTMLElement>) => {
     if (
-      isExiting &&
-      event.target === event.currentTarget &&
-      event.animationName === "opening-disclaimer-modal-exit"
+      isNoticeExiting
+      && event.target === event.currentTarget
+      && (event.animationName === "opening-unofficial-notice-exit" || event.animationName.includes("exit"))
     ) {
-      setVisible(false);
-      if (onVisibilityChange) {
-        onVisibilityChange(false);
-      }
+      setNoticeVisible(false);
     }
   };
 
   return (
-    <div
-      className={`opening-disclaimer-backdrop ${isExiting ? "opening-disclaimer-backdrop--exiting" : ""}`}
-      role="presentation"
-    >
-      <section
-        aria-describedby="opening-disclaimer-copy"
-        aria-label="Unofficial dashboard"
-        aria-modal="true"
-        className={`opening-disclaimer-panel ${isExiting ? "opening-disclaimer-panel--exiting" : ""}`}
-        role="dialog"
-        onAnimationEnd={handleAnimationEnd}
-      >
-        <div className="linewatch-transit-accent-strip opening-disclaimer-strip" aria-hidden="true">
-          <span />
-          <span />
-          <span />
-          <span />
-          <span />
-        </div>
-        <div className="opening-disclaimer-content">
-          <header className="opening-disclaimer-welcome">
-            <Image
-              className="opening-disclaimer-logo"
-              src="/assets/linewatch/logo.svg"
-              alt=""
-              width={112}
-              height={112}
-              priority
-            />
-            <h1>
-              <span>Welcome to</span>{" "}
-              <strong>LineWatchTO</strong>
-            </h1>
-            <p>Toronto rapid transit service information, all in one place.</p>
-            <div className="opening-disclaimer-nudge">
-              <p className="opening-disclaimer-nudge-desktop">
-                <button
-                  type="button"
-                  className="opening-disclaimer-account-link"
-                  onClick={handleCreateAccountClick}
-                >
-                  <span>Create a free account</span>
+    <>
+      {welcomeVisible ? (
+        <div
+          className={`opening-disclaimer-backdrop ${isWelcomeExiting ? "opening-disclaimer-backdrop--exiting" : ""}`}
+          role="presentation"
+        >
+          <section
+            aria-label="Welcome to LineWatchTO"
+            aria-modal="true"
+            className={`opening-disclaimer-panel opening-welcome-panel ${isWelcomeExiting ? "opening-disclaimer-panel--exiting" : ""}`}
+            role="dialog"
+            onAnimationEnd={handleWelcomeAnimationEnd}
+          >
+            <div className="linewatch-transit-accent-strip opening-disclaimer-strip" aria-hidden="true">
+              <span />
+              <span />
+              <span />
+              <span />
+              <span />
+            </div>
+            <div className="opening-disclaimer-content opening-welcome-content">
+              <header className="opening-disclaimer-welcome">
+                <Image
+                  className="opening-disclaimer-logo"
+                  src="/assets/linewatch/logo.svg"
+                  alt=""
+                  width={88}
+                  height={88}
+                  priority
+                />
+                <h1><span>Welcome to</span> <strong>LineWatchTO</strong></h1>
+                <p>Toronto &amp; GTA rapid transit service information, all in one place.</p>
+              </header>
+
+              <div className="station-arrival-line-divider opening-welcome-divider" aria-hidden="true" />
+
+              <div className="opening-welcome-carousel opening-welcome-carousel--desktop" aria-label="LineWatchTO introduction">
+                {desktopSlide === 0 ? (
+                  <article className="opening-welcome-slide" aria-labelledby="opening-desktop-slide-1">
+                    <div className="opening-welcome-image-frame opening-welcome-image-frame--wide">
+                      <Image src="/assets/linewatch/onboarding/desktop-map-guide.png" alt="LineWatchTO map with delays, closures, Reduced Speed Zones, planned previews, and station impacts" fill sizes="520px" priority />
+                    </div>
+                    <div className="opening-welcome-slide-heading">
+                      <h2 id="opening-desktop-slide-1">Read the Live Map</h2>
+                      <p>Colours and patterns show the type of service impact.</p>
+                    </div>
+                    <MapOverlayLegend />
+                  </article>
+                ) : null}
+                {desktopSlide === 1 ? (
+                  <article className="opening-welcome-slide" aria-labelledby="opening-desktop-slide-2">
+                    <div className="opening-welcome-image-frame opening-welcome-image-frame--wide">
+                      <Image src="/assets/linewatch/onboarding/desktop-impact-details.png" alt="A selected Reduced Speed Zone card shown beside its highlighted map segment" fill sizes="520px" />
+                    </div>
+                    <div className="opening-welcome-slide-heading">
+                      <h2 id="opening-desktop-slide-2">Explore an Impact</h2>
+                      <p>Click a highlighted segment, station, or alert card to see the affected area and details.</p>
+                    </div>
+                  </article>
+                ) : null}
+                {desktopSlide === 2 ? (
+                  <article className="opening-welcome-slide" aria-labelledby="opening-desktop-slide-3">
+                    <div className="opening-welcome-personal-grid">
+                      <figure>
+                        <div className="opening-welcome-portrait-frame">
+                          <Image src="/assets/linewatch/onboarding/desktop-my-commutes.png" alt="My Commutes route with current impact and planning-time details" fill sizes="250px" />
+                        </div>
+                        <figcaption>My Commutes</figcaption>
+                      </figure>
+                      <figure>
+                        <div className="opening-welcome-portrait-frame">
+                          <Image src="/assets/linewatch/onboarding/desktop-my-stations.png" alt="My Stations panel with a saved station and upcoming arrivals" fill sizes="250px" />
+                        </div>
+                        <figcaption>My Stations</figcaption>
+                      </figure>
+                    </div>
+                    <div className="opening-welcome-slide-heading">
+                      <h2 id="opening-desktop-slide-3">Make It Yours</h2>
+                      <p>Save the routes and stations you check most often.</p>
+                    </div>
+                  </article>
+                ) : null}
+                <SlideControls
+                  activeSlide={desktopSlide}
+                  count={DESKTOP_SLIDE_COUNT}
+                  onBack={() => setDesktopSlide((current) => Math.max(0, current - 1))}
+                  onFinish={finishWelcome}
+                  onNext={() => setDesktopSlide((current) => Math.min(DESKTOP_SLIDE_COUNT - 1, current + 1))}
+                  onSelect={setDesktopSlide}
+                />
+              </div>
+
+              <div className="opening-welcome-carousel opening-welcome-carousel--mobile" aria-label="LineWatchTO introduction">
+                {mobileSlide === 0 ? (
+                  <article className="opening-welcome-slide" aria-labelledby="opening-mobile-slide-1">
+                    <div className="opening-welcome-image-frame opening-welcome-image-frame--mobile">
+                      <Image src="/assets/linewatch/onboarding/mobile-map-guide.png" alt="Mobile map showing a delay, Reduced Speed Zone, and station impact" fill sizes="340px" priority />
+                    </div>
+                    <div className="opening-welcome-slide-heading">
+                      <h2 id="opening-mobile-slide-1">Read the Live Map</h2>
+                      <p>Colours and patterns show the type of service impact.</p>
+                    </div>
+                    <MapOverlayLegend />
+                  </article>
+                ) : null}
+                {mobileSlide === 1 ? (
+                  <article className="opening-welcome-slide" aria-labelledby="opening-mobile-slide-2">
+                    <div className="opening-welcome-image-frame opening-welcome-image-frame--mobile">
+                      <Image src="/assets/linewatch/onboarding/mobile-impact-details.png" alt="Mobile Reduced Speed Zone details for a selected map impact" fill sizes="340px" />
+                    </div>
+                    <div className="opening-welcome-slide-heading">
+                      <h2 id="opening-mobile-slide-2">Tap for Alert Details</h2>
+                      <p>Tap a highlighted segment or station to open its alert.</p>
+                    </div>
+                  </article>
+                ) : null}
+                {mobileSlide === 2 ? (
+                  <article className="opening-welcome-slide" aria-labelledby="opening-mobile-slide-3">
+                    <div className="opening-welcome-image-frame opening-welcome-image-frame--mobile">
+                      <Image src="/assets/linewatch/onboarding/mobile-my-commutes.png" alt="Mobile My Commutes route with a current service impact" fill sizes="340px" />
+                    </div>
+                    <div className="opening-welcome-slide-heading">
+                      <h2 id="opening-mobile-slide-3">Plan with My Commutes</h2>
+                      <p>Review how current disruptions affect a saved route.</p>
+                    </div>
+                  </article>
+                ) : null}
+                {mobileSlide === 3 ? (
+                  <article className="opening-welcome-slide" aria-labelledby="opening-mobile-slide-4">
+                    <div className="opening-welcome-image-frame opening-welcome-image-frame--mobile">
+                      <Image src="/assets/linewatch/onboarding/mobile-my-stations.png" alt="Mobile My Stations panel showing a saved station" fill sizes="340px" />
+                    </div>
+                    <div className="opening-welcome-slide-heading">
+                      <h2 id="opening-mobile-slide-4">Watch My Stations</h2>
+                      <p>Keep arrivals and current station impacts close at hand.</p>
+                    </div>
+                  </article>
+                ) : null}
+                <SlideControls
+                  activeSlide={mobileSlide}
+                  count={MOBILE_SLIDE_COUNT}
+                  onBack={() => setMobileSlide((current) => Math.max(0, current - 1))}
+                  onFinish={finishWelcome}
+                  onNext={() => setMobileSlide((current) => Math.min(MOBILE_SLIDE_COUNT - 1, current + 1))}
+                  onSelect={setMobileSlide}
+                />
+              </div>
+
+              <p className="opening-welcome-account-copy">
+                <button type="button" className="opening-disclaimer-account-link" onClick={handleCreateAccountClick}>
+                  Create a free account
                 </button>{" "}
-                to access <strong>all features at no cost</strong>, including real-time commute tracking and push notifications. Sign up with your Google account via the top-left <Menu size={16} className="inline-block align-middle mx-1 text-blue-600 dark:text-blue-400" /> icon or click above. Click the <Info size={16} className="inline-block align-middle mx-0.5 text-blue-600 dark:text-blue-400" /> info button in the top-right of your screen to find out how to use and navigate the app.
-              </p>
-              <p className="opening-disclaimer-nudge-mobile">
-                <button
-                  type="button"
-                  className="opening-disclaimer-account-link"
-                  onClick={handleCreateAccountClick}
-                >
-                  <span>Create a free account</span>
+                or{" "}
+                <button type="button" className="opening-disclaimer-account-link" onClick={handleSignInClick}>
+                  sign in
                 </button>{" "}
-                to access <strong>all features at no cost</strong>, including real-time commute tracking and push notifications. Sign up with your Google account via the bottom-right More (<MoreHorizontal size={16} className="inline-block align-middle mx-0.5 text-blue-600 dark:text-blue-400" />) button or click above. Click the <Info size={16} className="inline-block align-middle mx-0.5 text-blue-600 dark:text-blue-400" /> info button in the top-right of your screen to find out how to use and navigate the app.
+                to save stations, commutes, and configure push notifications. All features are free.
               </p>
             </div>
-          </header>
-          <div className="station-arrival-line-divider opening-disclaimer-divider" aria-hidden="true" />
-          <div className="opening-disclaimer-kicker">
-            <AlertTriangle aria-hidden="true" size={18} strokeWidth={2.4} />
-            <span>Unofficial dashboard</span>
-          </div>
-          <p id="opening-disclaimer-copy">
-            LineWatchTO is a <strong className="opening-disclaimer-highlight">personal project</strong> that is <strong className="opening-disclaimer-highlight">not affiliated with, endorsed by, or operated by the TTC</strong>. Service alerts are fetched from TTC&apos;s public Live Alerts endpoint when live polling is enabled, with local fixture data used for offline demos and fallback mode.
-          </p>
-          <button type="button" onClick={handleAcknowledge}>
-            I Understand
-          </button>
+          </section>
         </div>
-      </section>
-    </div>
+      ) : null}
+
+      {noticeVisible ? (
+        <aside
+          className={`opening-unofficial-notice ${isNoticeExiting ? "opening-unofficial-notice--exiting" : ""}`}
+          aria-label="Unofficial dashboard notice"
+          role="region"
+          onAnimationEnd={handleNoticeAnimationEnd}
+        >
+          <AlertTriangle aria-hidden="true" size={19} strokeWidth={2.4} />
+          <div>
+            <strong>Unofficial Personal Project</strong>
+            <p>LineWatchTO is not affiliated with, endorsed by, or operated by the TTC or Metrolinx. Information may be delayed or unavailable.</p>
+          </div>
+          <button type="button" onClick={dismissNotice}>Got it</button>
+        </aside>
+      ) : null}
+    </>
   );
 }
