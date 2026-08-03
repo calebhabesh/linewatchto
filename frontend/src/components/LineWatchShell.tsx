@@ -2411,6 +2411,8 @@ export function LineWatchShell({
     selectedStationId,
   ]);
 
+  const showMobileStatusPeek = !showClosedScreen && !rotatedMapMode && !showPwaInstallNudge && activeView === "map" && !selection && !selectedStationId && !accountDialogMode && !commutePathPreview;
+
   let actionIndex = 0;
   return (
     <DataProvider data={displayData}>
@@ -3575,7 +3577,7 @@ export function LineWatchShell({
         }}
       />
 
-      {!showClosedScreen && !rotatedMapMode && !showPwaInstallNudge && activeView === "map" && !selection && !selectedStationId && !accountDialogMode && !commutePathPreview ? (
+      {showMobileStatusPeek ? (
         <MobileStatusPeek
           lineStatuses={lineStatuses}
           activeAlertCount={activeAlerts.length}
@@ -3917,6 +3919,7 @@ export function LineWatchShell({
         onVisibilityChange={setDisclaimerVisible}
         onOpenCreateAccount={() => openAuthChoice("register")}
         onOpenSignIn={() => openAuthChoice("login")}
+        hideNoticeOnMobile={isMobile && !showMobileStatusPeek}
       />
     </div>
     </DataProvider>

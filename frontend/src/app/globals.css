@@ -4002,10 +4002,39 @@ button {
   display: none;
 }
 
+.opening-welcome-carousel-viewport {
+  cursor: grab;
+  overflow: hidden;
+  position: relative;
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-user-select: none;
+  width: 100%;
+}
+
+.opening-welcome-carousel-viewport:active,
+.opening-welcome-carousel-viewport--dragging {
+  cursor: grabbing;
+}
+
+.opening-welcome-track {
+  display: flex;
+  width: 100%;
+  will-change: transform;
+}
+
 .opening-welcome-slide {
   display: grid;
+  flex-shrink: 0;
   gap: 10px;
   min-height: 372px;
+  width: 100%;
+}
+
+.opening-welcome-slide img {
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-drag: none;
 }
 
 .opening-welcome-slide-heading {
@@ -4449,6 +4478,10 @@ button {
     justify-self: end;
     min-height: 32px;
     padding: 5px 12px;
+  }
+
+  .opening-unofficial-notice--mobile-hidden {
+    display: none !important;
   }
 }
 
