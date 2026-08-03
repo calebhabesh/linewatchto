@@ -4003,7 +4003,9 @@ button {
 }
 
 .opening-welcome-carousel-viewport {
+  box-sizing: border-box;
   cursor: grab;
+  max-width: 100%;
   overflow: hidden;
   position: relative;
   touch-action: pan-y;
@@ -4017,16 +4019,18 @@ button {
   cursor: grabbing;
 }
 
-.opening-welcome-track {
-  display: flex;
+.opening-welcome-slide-wrapper {
+  box-sizing: border-box;
+  max-width: 100%;
   width: 100%;
   will-change: transform;
 }
 
 .opening-welcome-slide {
+  box-sizing: border-box;
   display: grid;
-  flex-shrink: 0;
   gap: 10px;
+  max-width: 100%;
   min-height: 372px;
   width: 100%;
 }
@@ -4350,18 +4354,19 @@ button {
     padding: 12px 18px 14px;
   }
 }
-
 @media (max-width: 767px) {
   .opening-disclaimer-backdrop {
     padding: 18px;
   }
 
   .opening-disclaimer-panel {
+    box-sizing: border-box;
     max-height: calc(100dvh - 36px);
     width: min(94vw, 380px);
   }
 
   .opening-disclaimer-content {
+    box-sizing: border-box;
     gap: 10px;
     padding: 12px 12px 14px;
   }
@@ -4379,9 +4384,6 @@ button {
 
   .opening-disclaimer-welcome p {
     font-size: 0.78rem;
-  }
-
-  .opening-disclaimer-welcome p {
     margin-top: 5px;
   }
 
@@ -4398,7 +4400,9 @@ button {
   }
 
   .opening-welcome-slide {
+    box-sizing: border-box;
     gap: 8px;
+    max-width: 100%;
     min-height: 365px;
   }
 
@@ -4417,6 +4421,8 @@ button {
 
   .opening-welcome-image-frame--mobile {
     aspect-ratio: 4 / 3;
+    box-sizing: border-box;
+    width: 100%;
   }
 
   .opening-welcome-map-legend {
@@ -4450,6 +4456,15 @@ button {
 
   .opening-welcome-controls {
     margin-top: 8px;
+  }
+
+  .opening-welcome-control-row {
+    align-items: center;
+    box-sizing: border-box;
+    display: grid;
+    gap: 4px;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    width: 100%;
   }
 
   .opening-welcome-primary-button {
