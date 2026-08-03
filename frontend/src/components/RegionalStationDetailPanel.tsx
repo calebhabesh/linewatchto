@@ -8,6 +8,7 @@ import type { ImpactKind, ImpactSelection } from "../app/linewatch-data";
 import { isRegionalStationWheelchairAccessible, REGIONAL_ROUTE_CARDINAL_DIRECTIONS, REGIONAL_ROUTE_DEFINITIONS } from "../app/regional-data";
 import {
   emptyRegionalArrivalSnapshot,
+  formatRegionalArrivalSourceSummary,
   getRegionalStationArrivals,
   groupRegionalStationArrivals,
   isRegionalArrivalDue,
@@ -552,7 +553,7 @@ export function RegionalStationDetailPanel({
                   {arrivalsLoading
                     ? "Checking Metrolinx arrivals"
                     : arrivalSnapshot.availability === "available"
-                      ? arrivalSnapshot.source
+                      ? formatRegionalArrivalSourceSummary(arrivalSnapshot.arrivals)
                       : arrivalSnapshot.availability === "no-service"
                         ? "Published regional schedule"
                         : "Regional arrivals unavailable"}

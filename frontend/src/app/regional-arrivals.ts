@@ -40,6 +40,32 @@ export type RegionalArrivalDataResult = {
   data: RegionalArrivalSnapshot;
 };
 
+export function formatRegionalArrivalSourceSummary(
+  arrivals: Pick<RegionalArrival, "lineId" | "status">[],
+): string {
+  const liveArrivals = arrivals.filter((arrival) => arrival.status === "live");
+  const hasLive = liveArrivals.length > 0;
+  const hasScheduled = arrivals.some((arrival) => arrival.status === "scheduled");
+
+  if (hasLive && hasScheduled) {
+    return "Metrolinx live estimates + published schedule";
+  }
+  if (hasLive) {
+    const hasUp = liveArrivals.some((arrival) => arrival.lineId === "regional-up");
+    const hasGo = liveArrivals.some((arrival) => arrival.lineId !== "regional-up");
+    if (hasGo && hasUp) {
+      return "Metrolinx GO + UP Express live estimates";
+    }
+    return hasUp
+      ? "Metrolinx UP Express live estimates"
+      : "Metrolinx GO live estimates";
+  }
+  if (hasScheduled) {
+    return "Metrolinx published schedule";
+  }
+  return "Metrolinx regional arrivals";
+}
+
 export type RegionalArrivalPlatformGroup = {
   key: string;
   label: string;

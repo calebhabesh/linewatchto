@@ -18,7 +18,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 @Component
 public class MetrolinxArrivalClient {
     static final String GO_SOURCE = "Metrolinx GO Next Service";
-    static final String UP_SOURCE = "Metrolinx UP Express GTFS-RT TripUpdates";
+    static final String UP_SOURCE = "Metrolinx UP Express GTFS-RT Trip Updates";
     private static final String GO_NEXT_SERVICE_PATH = "api/V1/Stop/NextService/";
     static final String UP_TRIP_UPDATES_PATH = "api/V1/UP/Gtfs/Feed/TripUpdates";
     private static final ZoneId TORONTO_ZONE = ZoneId.of("America/Toronto");

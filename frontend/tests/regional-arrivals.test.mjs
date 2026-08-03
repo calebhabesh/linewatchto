@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 
 import {
   emptyRegionalArrivalSnapshot,
+  formatRegionalArrivalSourceSummary,
   formatRegionalArrivalClockTime,
   getRegionalArrivalMinutes,
   getRegionalStationArrivals,
@@ -61,6 +62,25 @@ describe("regional station arrivals adapter", () => {
     assert.equal(regionalArrivalMinuteLabel(0), "Due");
     assert.equal(regionalArrivalMinuteLabel(1), "1 min");
     assert.equal(regionalArrivalMinuteLabel(12), "12 min");
+  });
+
+  it("formats clear rider-facing source summaries", () => {
+    const goLive = { lineId: "regional-ki", status: "live" };
+    const upLive = { lineId: "regional-up", status: "live" };
+    const scheduled = { lineId: "regional-ki", status: "scheduled" };
+
+    assert.equal(formatRegionalArrivalSourceSummary([goLive]), "Metrolinx GO live estimates");
+    assert.equal(formatRegionalArrivalSourceSummary([upLive]), "Metrolinx UP Express live estimates");
+    assert.equal(
+      formatRegionalArrivalSourceSummary([goLive, upLive]),
+      "Metrolinx GO + UP Express live estimates",
+    );
+    assert.equal(
+      formatRegionalArrivalSourceSummary([goLive, upLive, scheduled]),
+      "Metrolinx live estimates + published schedule",
+    );
+    assert.equal(formatRegionalArrivalSourceSummary([scheduled]), "Metrolinx published schedule");
+    assert.equal(formatRegionalArrivalSourceSummary([]), "Metrolinx regional arrivals");
   });
 
   it("evaluates due and soon arrival thresholds based on predicted time or minute count", () => {
@@ -244,7 +264,7 @@ describe("regional station arrivals adapter", () => {
       scheduledAt: "2026-07-29T17:30:00-04:00",
       delayMinutes: 0,
       platform: "",
-      source: "Metrolinx UP Express GTFS-RT TripUpdates",
+      source: "Metrolinx UP Express GTFS-RT Trip Updates",
       status: "live",
     };
 
