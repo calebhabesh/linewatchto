@@ -489,7 +489,10 @@ export function OpeningDisclaimer({
                         </div>
                         <div className="opening-welcome-slide-heading">
                           <h2 id="opening-desktop-slide-3">Make It Yours</h2>
-                          <p>Save the routes and stations you check most often.</p>
+                          <p>
+                            My Commutes is designed to monitor routes within the transit systems LineWatchTO covers. It is not a
+                            journey planner or wayfinder such as Google Maps.
+                          </p>
                         </div>
                       </article>
                     </div>
@@ -561,8 +564,11 @@ export function OpeningDisclaimer({
                           <Image src="/assets/linewatch/onboarding/mobile-my-commutes.png" alt="Mobile My Commutes route with a current service impact" fill sizes="340px" draggable={false} />
                         </div>
                         <div className="opening-welcome-slide-heading">
-                          <h2 id="opening-mobile-slide-3">Plan with My Commutes</h2>
-                          <p>Review how current disruptions affect a saved route.</p>
+                          <h2 id="opening-mobile-slide-3">Monitor My Commutes</h2>
+                          <p>
+                            Monitor disruptions on routes within the transit systems LineWatchTO covers. My Commutes is not a journey
+                            planner or wayfinder such as Google Maps.
+                          </p>
                         </div>
                       </article>
                     </div>

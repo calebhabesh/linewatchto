@@ -759,6 +759,7 @@ export function SavedCommutesPanel({
   };
   const [newNotificationRule, setNewNotificationRule] = useState<AccountSavedCommuteNotificationRule>(() => cloneNotificationRule(defaultSavedCommuteNotificationRule));
   const [showNotificationSettings, setShowNotificationSettings] = useState(false);
+  const [showRoutingDisclaimer, setShowRoutingDisclaimer] = useState(false);
   const [editingNotificationCommuteId, setEditingNotificationCommuteId] = useState<string | null>(null);
   const [notificationDrafts, setNotificationDrafts] = useState<Record<string, AccountSavedCommuteNotificationRule>>({});
   const [savingNotificationRuleId, setSavingNotificationRuleId] = useState<string | null>(null);
@@ -850,6 +851,7 @@ export function SavedCommutesPanel({
     setWatchReturnTrip(true);
     setEditingCommuteId(null);
     setDraftNetworkId(networkId);
+    setShowRoutingDisclaimer(false);
   };
 
   const startCreatingCommute = () => {
@@ -1212,6 +1214,39 @@ export function SavedCommutesPanel({
                     onOpenNotificationSettings={onOpenNotificationSettings}
                     notificationSummary={notificationSummary}
                   />
+                {!editingCommuteId ? (
+                  <div className="saved-commute-routing-boundary-disclosure">
+                    <button
+                      type="button"
+                      className="saved-commute-routing-boundary-trigger"
+                      aria-expanded={showRoutingDisclaimer}
+                      aria-controls="saved-commute-routing-disclaimer"
+                      onClick={() => setShowRoutingDisclaimer((current) => !current)}
+                      style={{
+                        alignItems: "center",
+                        display: "grid",
+                        gridTemplateColumns: "minmax(0, 1fr) auto",
+                        width: "100%",
+                      }}
+                    >
+                      <span
+                        className="saved-commute-routing-boundary-label"
+                        style={{ alignItems: "center", display: "inline-flex" }}
+                      >
+                        <Info size={11} aria-hidden="true" />
+                        <span>Monitored Routes Disclaimer</span>
+                      </span>
+                      <ChevronDown className={showRoutingDisclaimer ? "is-open" : undefined} size={12} aria-hidden="true" />
+                    </button>
+                    {showRoutingDisclaimer ? (
+                      <p id="saved-commute-routing-disclaimer">
+                        My Commutes monitors the TTC or GO/UP rail route you intend to take. If you use both systems, save one route for
+                        each so you can review both in this list. It evaluates only the selected rail networks, so it may not identify
+                        the fastest route across every travel scenario or account for buses, walking transfers, and alternatives.
+                      </p>
+                    ) : null}
+                  </div>
+                ) : null}
               </div>
             ) : (
               <div className={`flex flex-col gap-3 ${onBack ? "px-[6px] sm:px-[20px]" : ""}`}>
@@ -1402,7 +1437,11 @@ export function SavedCommutesPanel({
                         })()}
                       </div>
                       <p className="mt-1 text-xs font-semibold text-slate-500 dark:text-slate-400">{routeLabel}</p>
-                      <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] font-semibold">
+                      <p className="saved-commute-route-purpose">
+                        <Info size={11} aria-hidden="true" />
+                        <span>Monitoring the rail route you selected. It may not be the fastest or more optimal route in every scenario.</span>
+                      </p>
+                      <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] font-semibold">
                         <div>
                           <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mr-1">Origin:</span>
                           <span className="text-slate-800 dark:text-white">{commute.originStationName}</span>

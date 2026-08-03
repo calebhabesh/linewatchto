@@ -13,6 +13,7 @@ import {
   MousePointer2,
   MoreHorizontal,
   MoreVertical,
+  Navigation,
   Newspaper,
   Search,
   Smartphone,
@@ -377,6 +378,11 @@ export function SiteGuideDropdown({ onOpenChange }: { onOpenChange?: (open: bool
                   text="Tap any line overlay to view its active alert or closure card."
                 />
                 <GuideActionRow icon={<MapIcon size={14} />} label="Click a Station" text="Tap a station dot to view accessibility status, alerts, arrivals, or select it as an origin or destination in My Commutes." />
+                <GuideActionRow
+                  icon={<Navigation size={14} />}
+                  label="Monitor My Commutes"
+                  text="Choose the TTC or GO/UP rail route you intend to take. LineWatchTO checks that route for disruptions; it does not find the fastest journey or account for buses, walking, and transfer time. For a mixed-network commute, save one route for each system."
+                />
                 <GuideActionRow icon={<Search size={14} />} label="Station & Alert Search" text="Use the search icon on the left to quickly jump to any station or find active alerts." />
                 {!isMobile && (
                   <GuideActionRow icon={<Menu size={14} />} label="Main Menu" text="Use the menu icon at the top left to create an account and access lists, commutes, analytics, contrast, and motion controls." />

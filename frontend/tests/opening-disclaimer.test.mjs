@@ -26,7 +26,7 @@ describe("first-visit welcome experience", () => {
     assert.match(onboardingSource, /Read the Live Map/);
     assert.match(onboardingSource, /Explore an Impact/);
     assert.match(onboardingSource, /Make It Yours/);
-    assert.match(onboardingSource, /Plan with My Commutes/);
+    assert.match(onboardingSource, /Monitor My Commutes/);
     assert.match(onboardingSource, /Watch My Stations/);
     assert.match(onboardingSource, /desktop-map-guide\.png/);
     assert.match(onboardingSource, /desktop-impact-details\.png/);

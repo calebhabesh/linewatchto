@@ -44,7 +44,7 @@ export const dataPracticeSections: NoticeSection[] = [
   },
   {
     title: "My Commutes",
-    body: "My Commutes stores the stations, directions, optional return trip, and route preferences needed to check whether your rapid-transit route is affected by dashboard-visible disruptions.",
+    body: "My Commutes stores the stations, network, directions, optional return trip, and route preferences needed to check whether the TTC or GO/UP rail route you intend to take is affected by dashboard-visible disruptions. It does not calculate a fastest cross-network journey or include buses, walking transfers, or alternate routes.",
   },
   {
     title: "Push Notifications",

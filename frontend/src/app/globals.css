@@ -20471,6 +20471,84 @@ img.transit-line-badge {
 }
 
 /* Redesigned My Commutes CTA and Cancel Actions */
+.saved-commute-routing-boundary-disclosure {
+  color: var(--quiet);
+  display: block;
+  font-size: 0.62rem;
+  font-weight: 600;
+  line-height: 1.4;
+  margin: -0.15rem 0 0;
+  padding: 0 0.15rem;
+}
+
+.saved-commute-routing-boundary-trigger {
+  align-items: center;
+  background: transparent !important;
+  border: 0 !important;
+  color: inherit !important;
+  cursor: pointer;
+  display: grid !important;
+  gap: 0.32rem !important;
+  grid-template-columns: minmax(0, 1fr) auto !important;
+  justify-content: flex-start !important;
+  line-height: 1;
+  margin: 0 !important;
+  min-height: 24px;
+  padding: 0 !important;
+  text-align: left;
+  width: 100% !important;
+}
+
+.saved-commute-routing-boundary-trigger > svg {
+  align-self: center;
+  flex: 0 0 auto;
+}
+
+.saved-commute-routing-boundary-label {
+  align-items: center !important;
+  display: inline-flex !important;
+  flex-direction: row !important;
+  gap: 0.32rem !important;
+  line-height: 1.2;
+  min-width: 0;
+  white-space: nowrap;
+}
+
+.saved-commute-routing-boundary-label > svg {
+  flex: 0 0 auto;
+}
+
+.saved-commute-routing-boundary-trigger > svg:last-child {
+  transform: rotate(0deg);
+}
+
+.saved-commute-routing-boundary-trigger > svg:last-child.is-open {
+  transform: rotate(180deg);
+}
+
+.saved-commute-routing-boundary-disclosure > p {
+  margin: 0.2rem 0 0;
+  padding-left: 1rem;
+}
+
+.commute-card .saved-commute-route-purpose {
+  align-items: flex-start;
+  display: flex;
+  gap: 0.32rem;
+  margin: 0.38rem 0;
+  color: var(--quiet);
+  font-size: 0.64rem;
+  font-weight: 500 !important;
+  letter-spacing: normal !important;
+  line-height: 1.35;
+  text-transform: none !important;
+}
+
+.saved-commute-route-purpose > svg {
+  flex: 0 0 auto;
+  margin-top: 0.08rem;
+}
+
 .saved-commute-add-btn {
   background-color: #10b981; /* Tailwind emerald-500 */
   color: #ffffff !important;
