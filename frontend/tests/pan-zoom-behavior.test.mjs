@@ -186,7 +186,24 @@ describe("pan zoom behavior guardrails", () => {
     assert.match(noTargetBranch, /lastFocusedTargetKeyRef\.current = null/);
     assert.match(mapSource, /preserveCameraOnSelectionClear/);
     assert.match(noTargetBranch, /if \(!preserveCameraOnSelectionClear\) \{[\s\S]*recenter\(\)/);
-    assert.match(shellSource, /preserveCameraOnSelectionClear=\{isMobile\}/);
+    assert.match(shellSource, /preserveCameraOnSelectionClear\s/);
+  });
+
+  it("uses camera-preserving close paths for standard and rotated mobile selections", () => {
+    const standardCloseHandler = shellSource.match(
+      /const handleClearMobileImpactSelection = useCallback\(\(\) => \{([\s\S]*?)\n  \},/,
+    )?.[1] ?? "";
+    const rotatedCloseHandler = shellSource.match(
+      /const handleClearRotatedSelection = useCallback\(\(\) => \{([\s\S]*?)\n  \},/,
+    )?.[1] ?? "";
+
+    assert.match(standardCloseHandler, /setSelection\(null\)/);
+    assert.match(rotatedCloseHandler, /setSelection\(null\)/);
+    assert.match(rotatedCloseHandler, /setSelectedStationId\(null\)/);
+    assert.doesNotMatch(standardCloseHandler, /setRecenterSignal/);
+    assert.doesNotMatch(rotatedCloseHandler, /setRecenterSignal/);
+    assert.match(shellSource, /onUnfocus=\{handleClearMobileImpactSelection\}/);
+    assert.match(shellSource, /onClearSelection=\{handleClearRotatedSelection\}/);
   });
 
   it("computes two-pointer pinch geometry without DOM access", () => {

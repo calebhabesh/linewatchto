@@ -2011,6 +2011,11 @@ export function LineWatchShell({
     }, 60);
   }, [setActiveView, setMapLayoutSignal, setMobileInspectorDetent, setMapPresentationMode]);
 
+  const handleClearMobileImpactSelection = useCallback(() => {
+    setSelection(null);
+    setMobileInspectorDetent("map-focus");
+  }, [setMobileInspectorDetent, setSelection]);
+
   const handleClearRotatedSelection = useCallback(() => {
     setSelection(null);
     setSelectedStationId(null);
@@ -3344,7 +3349,7 @@ export function LineWatchShell({
           reducedMotion={reducedMotion}
           mobilePerformanceMode={mobilePerformanceMode}
           desktopMenuPinned={menuPinned}
-          preserveCameraOnSelectionClear={isMobile}
+          preserveCameraOnSelectionClear
           commutePathPreview={commutePathPreview}
           onClearCommutePathPreview={handleClearCommutePathPreview}
           viewportOrientation={rotatedMapMode ? "rotated-landscape" : "standard"}
@@ -3540,11 +3545,7 @@ export function LineWatchShell({
           selection={selection}
           detent={mobileInspectorDetent}
           onChangeDetent={setMobileInspectorDetent}
-          onUnfocus={() => {
-            setSelection(null);
-            setMobileInspectorDetent("map-focus");
-            setRecenterSignal((current) => current + 1);
-          }}
+          onUnfocus={handleClearMobileImpactSelection}
           onViewFullDetails={() => setActiveView(viewForImpactSelection(selection))}
           onSelectImpact={handleMapSelectImpact}
         />

@@ -1355,7 +1355,34 @@ test("mobile closing station details preserves the focused map camera", async ({
     .toBe(focusedTransform);
 });
 
-test("desktop closing station details returns to the centered map camera", async ({ page, request, isMobile }) => {
+test("mobile closing impact details preserves the focused map camera", async ({ page, request, isMobile }) => {
+  test.skip(!isMobile, "mobile-only impact camera behavior");
+  await setStubMode(request, "seeded");
+  await page.goto("/");
+  await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
+
+  const mapLayer = page.locator(".absolute.top-0.left-0.w-full.h-full.origin-top-left").first();
+  const defaultTransform = await mapLayer.evaluate((element) => element.style.transform);
+
+  await page.getByRole("button", { name: "delay: Sheppard-Yonge to Don Mills" }).dispatchEvent("click");
+  const inspector = page.locator("[data-mobile-impact-inspector]");
+  await expect(inspector).toBeVisible();
+  await expect
+    .poll(async () => mapLayer.evaluate((element) => element.style.transform))
+    .not.toBe(defaultTransform);
+
+  const focusedTransform = await mapLayer.evaluate((element) => element.style.transform);
+
+  await inspector.getByRole("button", { name: "Unfocus impact" }).click();
+  await expect(inspector).toHaveCount(0);
+  await page.waitForTimeout(500);
+
+  await expect
+    .poll(async () => mapLayer.evaluate((element) => element.style.transform))
+    .toBe(focusedTransform);
+});
+
+test("desktop closing station details preserves the focused map camera", async ({ page, request, isMobile }) => {
   test.skip(isMobile, "desktop-only station camera behavior");
   await setStubMode(request, "seeded");
   await page.goto("/");
@@ -1370,12 +1397,42 @@ test("desktop closing station details returns to the centered map camera", async
     .poll(async () => mapLayer.evaluate((element) => element.style.transform))
     .not.toBe(defaultTransform);
 
+  const focusedTransform = await mapLayer.evaluate((element) => element.style.transform);
+
   await page.getByRole("button", { name: "Close station details" }).click();
   await expect(page.getByRole("complementary", { name: "Stub Station station details" })).toHaveCount(0);
+  await page.waitForTimeout(500);
 
   await expect
     .poll(async () => mapLayer.evaluate((element) => element.style.transform))
-    .toBe(defaultTransform);
+    .toBe(focusedTransform);
+});
+
+test("desktop closing impact details preserves the focused map camera", async ({ page, request, isMobile }) => {
+  test.skip(isMobile, "desktop-only impact camera behavior");
+  await setStubMode(request, "seeded");
+  await page.goto("/");
+  await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
+
+  const mapLayer = page.locator(".absolute.top-0.left-0.w-full.h-full.origin-top-left").first();
+  const defaultTransform = await mapLayer.evaluate((element) => element.style.transform);
+
+  await page.getByRole("button", { name: "delay: Sheppard-Yonge to Don Mills" }).click();
+  const delayPanel = page.locator(".floating-panel-shell");
+  await expect(delayPanel.getByRole("heading", { name: "Delays" })).toBeVisible();
+  await expect
+    .poll(async () => mapLayer.evaluate((element) => element.style.transform))
+    .not.toBe(defaultTransform);
+
+  const focusedTransform = await mapLayer.evaluate((element) => element.style.transform);
+
+  await delayPanel.getByRole("button", { name: "Close" }).click();
+  await expect(delayPanel).toHaveCount(0);
+  await page.waitForTimeout(500);
+
+  await expect
+    .poll(async () => mapLayer.evaluate((element) => element.style.transform))
+    .toBe(focusedTransform);
 });
 
 test("mobile rotated map mode keeps station and impact selections in the rotated HUD", async ({ page, request, isMobile }) => {
@@ -1424,6 +1481,18 @@ test("mobile rotated map mode keeps station and impact selections in the rotated
   await expect(page.locator("[data-rotated-map-selection-card]")).toContainText("Selected Service Impact");
   await expect(page.locator("[data-rotated-map-selection-card]")).toContainText("Sheppard-Yonge");
 
+  const rotatedMapLayer = page.locator(".absolute.top-0.left-0.w-full.h-full.origin-top-left").first();
+  const rotatedFocusedTransform = await rotatedMapLayer.evaluate((element) => element.style.transform);
+  await page.locator("[data-rotated-map-selection-card]").getByRole("button", { name: "Clear selected map item" }).click();
+  await expect(page.locator("[data-rotated-map-selection-card]")).toHaveCount(0);
+  await page.waitForTimeout(500);
+  await expect
+    .poll(async () => rotatedMapLayer.evaluate((element) => element.style.transform))
+    .toBe(rotatedFocusedTransform);
+
+  await page.getByRole("button", { name: "delay: Sheppard-Yonge to Don Mills" }).dispatchEvent("click");
+  await expect(page.locator("[data-rotated-map-selection-card]")).toBeVisible();
+
   await page.locator("[data-rotated-map-selection-card]").getByRole("button", { name: "Details" }).click();
   await expect(shell).not.toHaveClass(/mobile-map-rotated/);
   const inspector = page.locator("[data-mobile-impact-inspector]");
@@ -1432,7 +1501,7 @@ test("mobile rotated map mode keeps station and impact selections in the rotated
 
   await inspector.getByRole("button", { name: "Unfocus impact" }).click();
   await page.getByRole("button", { name: "Rotate map" }).click();
-  await page.getByRole("button", { name: "Stub Station station details" }).click();
+  await page.getByRole("button", { name: "Stub Station station details" }).dispatchEvent("click");
   await expect(page.locator("[data-rotated-map-selection-card]")).toBeVisible();
   await expect(page.locator(".rotated-map-selection-hud")).toHaveClass(/rotated-map-selection-hud-station-selection/);
   await expect(page.locator("[data-rotated-map-selection-card]")).toContainText("Station");
