@@ -412,6 +412,7 @@ export function formatRegionalArrivalClockTime(value: string, now: Date | number
     timeZone: "America/Toronto",
     hour: "numeric",
     minute: "2-digit",
+    hour12: true,
   }).format(parsed);
   const dateKey = (date: Date) => new Intl.DateTimeFormat("en-CA", {
     timeZone: "America/Toronto",

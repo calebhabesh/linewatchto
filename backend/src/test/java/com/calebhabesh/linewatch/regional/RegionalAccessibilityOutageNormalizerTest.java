@@ -15,7 +15,7 @@ class RegionalAccessibilityOutageNormalizerTest {
             {
               "Code":"LW-SCENARIO-AG-ELEVATOR",
               "SubjectEnglish":"Elevator out of service",
-              "BodyEnglish":"Synthetic scenario: the station elevator is unavailable.",
+              "BodyEnglish":"The elevators are unavailable from 20:00 to 24:00.",
               "Category":"Amenity",
               "SubCategory":"Elevator-Escalator Disruption",
               "PostedDateTime":"2026-07-27 08:50:33",
@@ -27,6 +27,9 @@ class RegionalAccessibilityOutageNormalizerTest {
         assertThat(normalizer.normalize(records)).singleElement().satisfies(outage -> {
             assertThat(outage.id()).isEqualTo("regional-accessibility-lw-scenario-ag-elevator");
             assertThat(outage.assetType()).isEqualTo("elevator");
+            assertThat(outage.description()).isEqualTo(
+                "The elevators are unavailable from 8:00 PM to 12:00 AM."
+            );
             assertThat(outage.stationIds()).containsExactly("agincourt");
             assertThat(outage.lineIds()).containsExactly("regional-st");
             assertThat(outage.restoration()).isFalse();

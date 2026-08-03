@@ -31,7 +31,7 @@ class RegionalSurfaceServiceNoticeServiceTest {
             record(MetrolinxSourceSystem.GO_INFORMATION_ALERTS, "M0000508515", """
                 {"Code":"M0000508515","PostedDateTime":"2026-07-28 09:00:00",
                  "SubjectEnglish":"Platform construction underway",
-                 "BodyEnglish":"Use the temporary platform while construction continues.",
+                 "BodyEnglish":"Use the temporary platform from 06:30 to 15:30.",
                  "Category":"General Information","SubCategory":"Station General Information",
                  "Lines":[{"Code":"MI"}],"Stops":[{"Name":"Cooksville GO","Code":"CO"}]}
                 """),
@@ -68,6 +68,9 @@ class RegionalSurfaceServiceNoticeServiceTest {
             assertThat(notice.id()).isEqualTo("regional-notice-M0000508515");
             assertThat(notice.routeIds()).containsExactly("MI");
             assertThat(notice.title()).isEqualTo("Platform construction underway");
+            assertThat(notice.description()).isEqualTo(
+                "Use the temporary platform from 6:30 AM to 3:30 PM."
+            );
             assertThat(notice.location()).isEqualTo("Cooksville GO");
             assertThat(notice.category()).isEqualTo("service-change");
         });

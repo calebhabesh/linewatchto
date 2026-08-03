@@ -186,6 +186,29 @@ class PushNotificationFormatterTest {
     }
 
     @Test
+    void convertsSourceClockTimesToTwelveHourPushCopy() {
+        FormattedPushNotification result = formatter.formatActive(new PushNotificationFacts(
+            "regional-ki",
+            "KI",
+            "delay",
+            "on-change",
+            "Bramalea to Union",
+            null,
+            false,
+            null,
+            null,
+            Instant.parse("2026-08-03T19:00:00Z"),
+            null,
+            "Kitchener service update",
+            "Trains will operate hourly from 15:30 to 23:00."
+        ));
+
+        assertThat(result.body()).isEqualTo("""
+            Trains will operate hourly from 3:30 PM to 11:00 PM.
+            🕗 Aug 3, 3:00 PM""");
+    }
+
+    @Test
     void prioritizesGroupedReducedSpeedZoneStationRangeOverGenericDescription() {
         FormattedPushNotification result = formatter.formatActive(new PushNotificationFacts(
             "line-1",

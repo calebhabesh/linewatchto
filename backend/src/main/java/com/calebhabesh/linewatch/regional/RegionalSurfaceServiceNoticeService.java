@@ -102,7 +102,8 @@ public class RegionalSurfaceServiceNoticeService {
             OffsetDateTime updatedAt = parseTime(text(message, "PostedDateTime"), record.lastSeenAt());
             return new NoticeDetail(
                 "regional-notice-" + safeId(sourceId), classify(searchable), "GO / UP", routes,
-                firstNonBlank(title, "Metrolinx notice"), description,
+                EnglishClockTextFormatter.toTwelveHourClock(firstNonBlank(title, "Metrolinx notice")),
+                EnglishClockTextFormatter.toTwelveHourClock(description),
                 stops.stream().map(StopDetail::stopName).filter(value -> !value.isBlank()).distinct().reduce((a, b) -> a + " to " + b).orElse(""),
                 stops.stream().map(StopDetail::stopId).filter(value -> !value.isBlank()).toList(), stops,
                 null, firstNonBlank(text(message, "SubCategory"), text(message, "Category")),
@@ -137,7 +138,9 @@ public class RegionalSurfaceServiceNoticeService {
         String searchable = String.join(" ", title, description, effect, cause).toLowerCase(Locale.CANADA);
         return new NoticeDetail(
             "regional-notice-" + safeId(record.sourceId()), classify(searchable), "GO Bus", routes,
-            title, description, "", List.of(), List.of(), null, cause,
+            EnglishClockTextFormatter.toTwelveHourClock(title),
+            EnglishClockTextFormatter.toTwelveHourClock(description),
+            "", List.of(), List.of(), null, cause,
             startsAt, endsAt, record.lastSeenAt(), null, SOURCE
         );
     }

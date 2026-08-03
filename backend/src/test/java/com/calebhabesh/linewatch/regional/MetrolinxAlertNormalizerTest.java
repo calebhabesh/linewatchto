@@ -26,7 +26,7 @@ class MetrolinxAlertNormalizerTest {
               "Status":"UPD",
               "PostedDateTime":"2026-07-28 05:01:00",
               "SubjectEnglish":"Kitchener line service adjustment",
-              "BodyEnglish":"Synthetic scenario: test trains are five minutes later than usual.",
+              "BodyEnglish":"Trips are operating five minutes later than usual from 15:30 to 18:45.",
               "Category":"Service Disruption",
               "SubCategory":"Modified Trip",
               "Lines":[{"Code":"GT"}],
@@ -61,6 +61,9 @@ class MetrolinxAlertNormalizerTest {
             assertThat(alert.sourceSystem()).isEqualTo(MetrolinxSourceSystem.GO_SERVICE_ALERTS);
             assertThat(alert.lineId()).isEqualTo("regional-ki");
             assertThat(alert.impactKind()).isEqualTo("delay");
+            assertThat(alert.description()).isEqualTo(
+                "Trips are operating five minutes later than usual from 3:30 PM to 6:45 PM."
+            );
             assertThat(alert.stationIds()).containsExactly("bloor", "mount-dennis", "weston");
             assertThat(alert.affectedSegmentIds()).containsExactly(
                 "segment-ki-bloor-mount-dennis",

@@ -89,8 +89,10 @@ public class RegionalAccessibilityOutageNormalizer {
             "regional-accessibility-" + safeId(record.sourceId()),
             record.sourceId(),
             assetType,
-            title.isBlank() ? humanizeAsset(assetType) + " service update" : title,
-            description,
+            EnglishClockTextFormatter.toTwelveHourClock(
+                title.isBlank() ? humanizeAsset(assetType) + " service update" : title
+            ),
+            EnglishClockTextFormatter.toTwelveHourClock(description),
             text(message, "SubCategory"),
             parseTimestamp(text(message, "PostedDateTime"), record.lastSeenAt()),
             List.copyOf(new LinkedHashSet<>(stationIds)),

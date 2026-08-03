@@ -1,5 +1,6 @@
 package com.calebhabesh.linewatch.push;
 
+import com.calebhabesh.linewatch.regional.EnglishClockTextFormatter;
 import com.calebhabesh.linewatch.station.StationDisplayNameFormatter;
 import java.time.Instant;
 import java.time.ZoneId;
@@ -460,7 +461,9 @@ public class PushNotificationFormatter {
     }
 
     private String sourceDescription(String value) {
-        String description = stripLinePrefix(normalizeText(value));
+        String description = EnglishClockTextFormatter.toTwelveHourClock(
+            stripLinePrefix(normalizeText(value))
+        );
         if (description.isEmpty() || wordCount(description) < 4) {
             return "";
         }
