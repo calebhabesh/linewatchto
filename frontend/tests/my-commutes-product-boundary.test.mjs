@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 
 const panel = readFileSync(new URL("../src/components/SavedCommutesPanel.tsx", import.meta.url), "utf8");
+const styles = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
 const guide = readFileSync(new URL("../src/components/SiteGuideDropdown.tsx", import.meta.url), "utf8");
 const onboarding = readFileSync(new URL("../src/components/OpeningDisclaimer.tsx", import.meta.url), "utf8");
 const privacy = readFileSync(new URL("../src/app/privacy-acknowledgements-data.ts", import.meta.url), "utf8");
@@ -14,6 +15,7 @@ describe("My Commutes launch product boundary", () => {
     assert.match(panel, /Monitoring the rail route you selected\. It may not be the fastest or more optimal route in every scenario\./);
     assert.match(panel, /saved-commute-route-purpose[\s\S]*<Info size=\{11\}/);
     assert.match(panel, /className="saved-commute-routing-boundary-trigger"[\s\S]*gridTemplateColumns: "minmax\(0, 1fr\) auto"[\s\S]*saved-commute-routing-boundary-label[\s\S]*<Info size=\{11\}[\s\S]*Monitored Routes Disclaimer/);
+    assert.match(styles, /\.saved-commute-routing-boundary-disclosure\s*\{[^}]*--saved-commute-disclaimer-bottom-space:\s*0\.3rem;[^}]*padding:\s*0 0\.15rem var\(--saved-commute-disclaimer-bottom-space\);/s);
     assert.match(onboarding, /My Commutes is designed to monitor routes[\s\S]*It is not a[\s\S]*journey planner or wayfinder such as Google Maps/);
     assert.match(onboarding, /Monitor disruptions on routes within the transit systems LineWatchTO covers[\s\S]*My Commutes is not a journey[\s\S]*planner or wayfinder such as Google Maps/);
     assert.match(guide, /LineWatchTO checks that route for disruptions/);

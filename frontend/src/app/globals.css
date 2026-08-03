@@ -20472,13 +20472,14 @@ img.transit-line-badge {
 
 /* Redesigned My Commutes CTA and Cancel Actions */
 .saved-commute-routing-boundary-disclosure {
+  --saved-commute-disclaimer-bottom-space: 0.3rem;
   color: var(--quiet);
   display: block;
   font-size: 0.62rem;
   font-weight: 600;
   line-height: 1.4;
   margin: -0.15rem 0 0;
-  padding: 0 0.15rem;
+  padding: 0 0.15rem var(--saved-commute-disclaimer-bottom-space);
 }
 
 .saved-commute-routing-boundary-trigger {
