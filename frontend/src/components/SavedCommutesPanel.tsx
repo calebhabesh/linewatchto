@@ -426,6 +426,48 @@ function SavedCommuteNotificationSummary({
   );
 }
 
+function MonitoredRoutesDisclaimer({
+  expanded,
+  onToggle,
+  contentId,
+  message,
+}: {
+  expanded: boolean;
+  onToggle: () => void;
+  contentId: string;
+  message: string;
+}) {
+  return (
+    <div className="saved-commute-routing-boundary-disclosure">
+      <button
+        type="button"
+        className="saved-commute-routing-boundary-trigger"
+        aria-expanded={expanded}
+        aria-controls={contentId}
+        onClick={onToggle}
+        style={{
+          alignItems: "center",
+          display: "grid",
+          gridTemplateColumns: "minmax(0, 1fr) auto",
+          width: "100%",
+        }}
+      >
+        <span
+          className="saved-commute-routing-boundary-label"
+          style={{ alignItems: "center", display: "inline-flex" }}
+        >
+          <Info size={11} aria-hidden="true" />
+          <span>Monitored Routes Disclaimer</span>
+        </span>
+        <ChevronDown className={expanded ? "is-open" : undefined} size={12} aria-hidden="true" />
+      </button>
+      {expanded ? (
+        <p id={contentId}>{message}</p>
+      ) : null}
+    </div>
+  );
+}
+
 const NOTIFICATION_DAY_OPTIONS = [
   { bit: 2, label: "Mon" },
   { bit: 4, label: "Tue" },
@@ -1215,37 +1257,12 @@ export function SavedCommutesPanel({
                     notificationSummary={notificationSummary}
                   />
                 {!editingCommuteId ? (
-                  <div className="saved-commute-routing-boundary-disclosure">
-                    <button
-                      type="button"
-                      className="saved-commute-routing-boundary-trigger"
-                      aria-expanded={showRoutingDisclaimer}
-                      aria-controls="saved-commute-routing-disclaimer"
-                      onClick={() => setShowRoutingDisclaimer((current) => !current)}
-                      style={{
-                        alignItems: "center",
-                        display: "grid",
-                        gridTemplateColumns: "minmax(0, 1fr) auto",
-                        width: "100%",
-                      }}
-                    >
-                      <span
-                        className="saved-commute-routing-boundary-label"
-                        style={{ alignItems: "center", display: "inline-flex" }}
-                      >
-                        <Info size={11} aria-hidden="true" />
-                        <span>Monitored Routes Disclaimer</span>
-                      </span>
-                      <ChevronDown className={showRoutingDisclaimer ? "is-open" : undefined} size={12} aria-hidden="true" />
-                    </button>
-                    {showRoutingDisclaimer ? (
-                      <p id="saved-commute-routing-disclaimer">
-                        My Commutes monitors the TTC or GO/UP rail route you intend to take. If you use both systems, save one route for
-                        each so you can review both in this list. It evaluates only the selected rail networks, so it may not identify
-                        the fastest route across every travel scenario or account for buses, walking transfers, and alternatives.
-                      </p>
-                    ) : null}
-                  </div>
+                  <MonitoredRoutesDisclaimer
+                    expanded={showRoutingDisclaimer}
+                    onToggle={() => setShowRoutingDisclaimer((current) => !current)}
+                    contentId="create-commute-routing-disclaimer"
+                    message="My Commutes monitors the TTC or GO/UP rail routes you select. If you use both systems, save one route for each so you can review both in this list. LineWatchTO evaluates only the selected rail networks, so the monitored routes may not be the fastest or more optimal choices across every travel scenario or account for buses, walking transfers, and alternatives."
+                  />
                 ) : null}
               </div>
             ) : (
@@ -1437,11 +1454,7 @@ export function SavedCommutesPanel({
                         })()}
                       </div>
                       <p className="mt-1 text-xs font-semibold text-slate-500 dark:text-slate-400">{routeLabel}</p>
-                      <p className="saved-commute-route-purpose">
-                        <Info size={11} aria-hidden="true" />
-                        <span>Monitoring the rail route you selected. It may not be the fastest or more optimal route in every scenario.</span>
-                      </p>
-                      <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] font-semibold">
+                      <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] font-semibold">
                         <div>
                           <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mr-1">Origin:</span>
                           <span className="text-slate-800 dark:text-white">{commute.originStationName}</span>
@@ -1742,6 +1755,10 @@ export function SavedCommutesPanel({
                 );
               })
             )}
+                <p className="saved-commute-routing-boundary-static" role="note">
+                  <Info size={11} aria-hidden="true" />
+                  <span>Monitoring the rail routes you selected. They may not be the fastest or more optimal routes in every scenario.</span>
+                </p>
           </div>
         )}
       </>

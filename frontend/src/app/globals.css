@@ -20472,14 +20472,19 @@ img.transit-line-badge {
 
 /* Redesigned My Commutes CTA and Cancel Actions */
 .saved-commute-routing-boundary-disclosure {
-  --saved-commute-disclaimer-bottom-space: 0.3rem;
   color: var(--quiet);
   display: block;
   font-size: 0.62rem;
   font-weight: 600;
   line-height: 1.4;
-  margin: -0.15rem 0 0;
-  padding: 0 0.15rem var(--saved-commute-disclaimer-bottom-space);
+  margin: -0.125rem 0 -0.25rem;
+  padding: 0 0.15rem;
+}
+
+@media (max-width: 767px) {
+  .saved-commute-routing-boundary-disclosure {
+    margin-bottom: -0.375rem;
+  }
 }
 
 .saved-commute-routing-boundary-trigger {
@@ -20494,7 +20499,7 @@ img.transit-line-badge {
   justify-content: flex-start !important;
   line-height: 1;
   margin: 0 !important;
-  min-height: 24px;
+  min-height: 18px;
   padding: 0 !important;
   text-align: left;
   width: 100% !important;
@@ -20532,22 +20537,27 @@ img.transit-line-badge {
   padding-left: 1rem;
 }
 
-.commute-card .saved-commute-route-purpose {
+.saved-commute-routing-boundary-static {
   align-items: flex-start;
-  display: flex;
-  gap: 0.32rem;
-  margin: 0.38rem 0;
   color: var(--quiet);
-  font-size: 0.64rem;
-  font-weight: 500 !important;
-  letter-spacing: normal !important;
-  line-height: 1.35;
-  text-transform: none !important;
+  display: flex;
+  font-size: 0.62rem;
+  font-weight: 600;
+  gap: 0.32rem;
+  line-height: 1.4;
+  margin: 0;
+  padding: 0 0.15rem;
 }
 
-.saved-commute-route-purpose > svg {
+.saved-commute-routing-boundary-static > svg {
   flex: 0 0 auto;
   margin-top: 0.08rem;
+}
+
+@media (max-width: 767px) {
+  .saved-commute-routing-boundary-static {
+    margin-bottom: -0.1875rem;
+  }
 }
 
 .saved-commute-add-btn {

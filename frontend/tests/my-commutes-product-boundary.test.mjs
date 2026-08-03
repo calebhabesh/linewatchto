@@ -10,12 +10,16 @@ const privacy = readFileSync(new URL("../src/app/privacy-acknowledgements-data.t
 
 describe("My Commutes launch product boundary", () => {
   it("describes routes as rider-selected disruption monitors rather than journey recommendations", () => {
-    assert.match(panel, /My Commutes monitors the TTC or GO\/UP rail route you intend to take/);
-    assert.match(panel, /My Commutes monitors[\s\S]*it may not identify[\s\S]*the fastest route across every travel scenario/);
-    assert.match(panel, /Monitoring the rail route you selected\. It may not be the fastest or more optimal route in every scenario\./);
-    assert.match(panel, /saved-commute-route-purpose[\s\S]*<Info size=\{11\}/);
+    assert.match(panel, /My Commutes monitors the TTC or GO\/UP rail routes you select/);
+    assert.match(panel, /the monitored routes may not be the[\s\S]*fastest or more optimal choices across every travel scenario/);
+    assert.doesNotMatch(panel, /saved-commute-route-purpose/);
     assert.match(panel, /className="saved-commute-routing-boundary-trigger"[\s\S]*gridTemplateColumns: "minmax\(0, 1fr\) auto"[\s\S]*saved-commute-routing-boundary-label[\s\S]*<Info size=\{11\}[\s\S]*Monitored Routes Disclaimer/);
-    assert.match(styles, /\.saved-commute-routing-boundary-disclosure\s*\{[^}]*--saved-commute-disclaimer-bottom-space:\s*0\.3rem;[^}]*padding:\s*0 0\.15rem var\(--saved-commute-disclaimer-bottom-space\);/s);
+    assert.doesNotMatch(panel, /contentId="saved-commutes-routing-disclaimer"/);
+    assert.match(panel, /className="saved-commute-routing-boundary-static"[\s\S]*Monitoring the rail routes you selected\. They may not be the fastest or more optimal routes in every scenario\./);
+    assert.match(styles, /\.saved-commute-routing-boundary-disclosure\s*\{[^}]*margin:\s*-0\.125rem 0 -0\.25rem;/s);
+    assert.match(styles, /@media \(max-width:\s*767px\)[\s\S]*?\.saved-commute-routing-boundary-disclosure\s*\{[^}]*margin-bottom:\s*-0\.375rem;/s);
+    assert.match(styles, /@media \(max-width:\s*767px\)[\s\S]*?\.saved-commute-routing-boundary-static\s*\{[^}]*margin-bottom:\s*-0\.1875rem;/s);
+    assert.match(styles, /\.saved-commute-routing-boundary-trigger\s*\{[^}]*min-height:\s*18px;/s);
     assert.match(onboarding, /My Commutes is designed to monitor routes[\s\S]*It is not a[\s\S]*journey planner or wayfinder such as Google Maps/);
     assert.match(onboarding, /Monitor disruptions on routes within the transit systems LineWatchTO covers[\s\S]*My Commutes is not a journey[\s\S]*planner or wayfinder such as Google Maps/);
     assert.match(guide, /LineWatchTO checks that route for disruptions/);
