@@ -165,6 +165,7 @@ public class SavedCommutePushPlanner {
         String eventType,
         String reminderBucket
     ) {
+        boolean regional = "regional".equals(commute.getNetworkId());
         boolean plannedClosure = "planned-closure".equals(eventType);
         OffsetDateTime eventTime = plannedClosure ? match.eventStartAt() : match.startedAt();
         Instant sourceEventAt = eventTime == null ? null : eventTime.toInstant();
@@ -211,9 +212,9 @@ public class SavedCommutePushPlanner {
 
         String url = ("regional".equals(commute.getNetworkId()) ? "/?network=regional&" : "/?")
             + "panel=commutes&commute=" + commute.getId();
-        String updateFingerprint = PushNotificationUpdateFingerprint.forCandidate(
-            match.updatedAt(), eventType, notification, url
-        );
+        String updateFingerprint = regional
+            ? PushNotificationUpdateFingerprint.forRegionalCandidate(eventType, notification, url)
+            : PushNotificationUpdateFingerprint.forCandidate(match.updatedAt(), eventType, notification, url);
         String dedupeKey = String.join(
             "|",
             commute.getAccount().getId(),

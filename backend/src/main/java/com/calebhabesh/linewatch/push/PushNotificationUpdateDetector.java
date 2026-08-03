@@ -21,6 +21,23 @@ final class PushNotificationUpdateDetector {
             existingDisplayDirection,
             candidate
         );
+        if (regional(candidate.lineId())) {
+            if (structuredIdentityChanged) {
+                return true;
+            }
+            String candidateFingerprint = candidate.updateFingerprint();
+            if (candidateFingerprint == null
+                || !candidateFingerprint.startsWith(PushNotificationUpdateFingerprint.REGIONAL_CONTENT_PREFIX)) {
+                return false;
+            }
+            if (existingFingerprint == null
+                || !existingFingerprint.startsWith(PushNotificationUpdateFingerprint.REGIONAL_CONTENT_PREFIX)) {
+                // Establish the content-based baseline without re-notifying active regional
+                // incidents created under the former feed-timestamp fingerprint.
+                return false;
+            }
+            return !Objects.equals(existingFingerprint, candidateFingerprint);
+        }
         if ("line-current".equals(normalize(candidate.category()))
             && "reduced-speed-zone".equals(normalize(candidate.eventType()))) {
             return structuredIdentityChanged;
@@ -54,6 +71,10 @@ final class PushNotificationUpdateDetector {
         }
 
         return true;
+    }
+
+    private static boolean regional(String lineId) {
+        return normalize(lineId).startsWith("regional-");
     }
 
     private static boolean structuredIdentityChanged(

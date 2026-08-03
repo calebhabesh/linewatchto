@@ -85,6 +85,65 @@ class PushNotificationUpdateDetectorTest {
         )).isTrue();
     }
 
+    @Test
+    void ignoresRegionalFeedTimestampChangesWhenRiderVisibleContentIsUnchanged() {
+        PushNotificationCandidate original = regionalCandidate(
+            "Aurora GO to Union Station",
+            Instant.parse("2026-08-03T19:20:00Z")
+        );
+        PushNotificationCandidate refreshedFeed = regionalCandidate(
+            "Aurora GO to Union Station",
+            Instant.parse("2026-08-03T19:25:00Z")
+        );
+
+        assertThat(PushNotificationUpdateDetector.hasMeaningfulUpdate(
+            original.updateFingerprint(),
+            original.sourceUpdatedAt(),
+            original.eventType(),
+            original.eventLocation(),
+            original.displayDirection(),
+            refreshedFeed
+        )).isFalse();
+    }
+
+    @Test
+    void detectsRegionalRiderVisibleContentChangeWithoutDependingOnFeedTimestamp() {
+        PushNotificationCandidate original = regionalCandidate(
+            "Aurora GO to Union Station",
+            Instant.parse("2026-08-03T19:20:00Z")
+        );
+        PushNotificationCandidate changed = regionalCandidate(
+            "Maple GO to Union Station",
+            Instant.parse("2026-08-03T19:20:00Z")
+        );
+
+        assertThat(PushNotificationUpdateDetector.hasMeaningfulUpdate(
+            original.updateFingerprint(),
+            original.sourceUpdatedAt(),
+            original.eventType(),
+            original.eventLocation(),
+            original.displayDirection(),
+            changed
+        )).isTrue();
+    }
+
+    @Test
+    void establishesRegionalContentBaselineWithoutCatchUpPush() {
+        PushNotificationCandidate candidate = regionalCandidate(
+            "Aurora GO to Union Station",
+            Instant.parse("2026-08-03T19:25:00Z")
+        );
+
+        assertThat(PushNotificationUpdateDetector.hasMeaningfulUpdate(
+            "legacy-feed-timestamp-fingerprint",
+            Instant.parse("2026-08-03T19:20:00Z"),
+            candidate.eventType(),
+            candidate.eventLocation(),
+            candidate.displayDirection(),
+            candidate
+        )).isFalse();
+    }
+
     private PushNotificationCandidate candidate(String fingerprint, Instant sourceUpdatedAt) {
         return candidate("reduced-speed-zone", fingerprint, sourceUpdatedAt);
     }
@@ -118,6 +177,45 @@ class PushNotificationUpdateDetectorTest {
             "dedupe-key",
             notification,
             "/?panel=reduced-speed-zones",
+            fingerprint,
+            true,
+            sourceUpdatedAt
+        );
+    }
+
+    private PushNotificationCandidate regionalCandidate(String location, Instant sourceUpdatedAt) {
+        FormattedPushNotification notification = new PushNotificationFormatter().formatActive(
+            new PushNotificationFacts(
+                "regional-br",
+                "BR",
+                "delay",
+                "on-change",
+                location,
+                "Southbound",
+                false,
+                "Allandale to Oshawa",
+                "outbound",
+                Instant.parse("2026-08-03T19:05:00Z")
+            )
+        );
+        String url = "/?network=regional&panel=commutes&commute=commute_regional";
+        String fingerprint = PushNotificationUpdateFingerprint.forRegionalCandidate(
+            "delay", notification, url
+        );
+        return new PushNotificationCandidate(
+            "user_1",
+            "commute_regional",
+            "outbound",
+            "regional-br",
+            "BR",
+            "saved-commute-current",
+            "delay",
+            "on-change",
+            "saved-commute-current|commute_regional|outbound|regional-alert-br",
+            "saved-commute-current|commute_regional|outbound|delay|regional-alert-br",
+            "dedupe|" + fingerprint,
+            notification,
+            url,
             fingerprint,
             true,
             sourceUpdatedAt

@@ -56,4 +56,42 @@ class RegionalLineSubscriptionPushPlannerTest {
             "user_1", List.of("regional-lw"), PlannedClosureFollowUpPolicy.SMART
         )).isEmpty();
     }
+
+    @Test
+    void feedTimestampRefreshDoesNotChangeRegionalNotificationIdentity() {
+        RegionalNormalizedAlert firstPoll = alertWithSourceUpdatedAt("2026-08-03T19:20:00Z");
+        RegionalNormalizedAlert secondPoll = alertWithSourceUpdatedAt("2026-08-03T19:25:00Z");
+        when(freshness.isFresh()).thenReturn(true);
+        when(alertStore.findActiveAlerts()).thenReturn(List.of(firstPoll), List.of(secondPoll));
+
+        PushNotificationCandidate first = planner.candidatesFor(
+            "user_1", List.of("regional-br"), PlannedClosureFollowUpPolicy.SMART
+        ).getFirst();
+        PushNotificationCandidate second = planner.candidatesFor(
+            "user_1", List.of("regional-br"), PlannedClosureFollowUpPolicy.SMART
+        ).getFirst();
+
+        assertThat(second.sourceUpdatedAt()).isNotEqualTo(first.sourceUpdatedAt());
+        assertThat(second.updateFingerprint()).isEqualTo(first.updateFingerprint());
+        assertThat(second.dedupeKey()).isEqualTo(first.dedupeKey());
+    }
+
+    private RegionalNormalizedAlert alertWithSourceUpdatedAt(String sourceUpdatedAt) {
+        return new RegionalNormalizedAlert(
+            "regional-alert-br",
+            "metrolinx-go-service-alerts",
+            "br-123",
+            "regional-br",
+            "delay",
+            "Barrie train delay",
+            "The Aurora GO train will begin at Maple GO due to an earlier signal issue.",
+            "signal issue",
+            OffsetDateTime.parse("2026-08-03T15:05:00-04:00"),
+            null,
+            OffsetDateTime.parse(sourceUpdatedAt),
+            List.of("aurora", "maple", "union"),
+            List.of(),
+            "{}"
+        );
+    }
 }

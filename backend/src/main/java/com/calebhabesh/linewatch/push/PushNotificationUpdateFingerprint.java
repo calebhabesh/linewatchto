@@ -7,6 +7,8 @@ import java.time.OffsetDateTime;
 import java.util.HexFormat;
 
 final class PushNotificationUpdateFingerprint {
+    static final String REGIONAL_CONTENT_PREFIX = "regional-content-v1:";
+
     private PushNotificationUpdateFingerprint() {}
 
     static String forCandidate(
@@ -31,6 +33,21 @@ final class PushNotificationUpdateFingerprint {
     ) {
         return fingerprint(
             normalize(sourceUpdatedAt == null ? null : sourceUpdatedAt.toString()),
+            normalize(eventType),
+            normalize(notification == null ? null : notification.title()),
+            normalize(notification == null ? null : notification.body()),
+            normalize(notification == null ? null : notification.eventLocation()),
+            normalize(notification == null ? null : notification.displayDirection()),
+            normalize(url)
+        );
+    }
+
+    static String forRegionalCandidate(
+        String eventType,
+        FormattedPushNotification notification,
+        String url
+    ) {
+        return REGIONAL_CONTENT_PREFIX + fingerprint(
             normalize(eventType),
             normalize(notification == null ? null : notification.title()),
             normalize(notification == null ? null : notification.body()),

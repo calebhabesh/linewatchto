@@ -91,8 +91,8 @@ public class RegionalLineSubscriptionPushPlanner {
         ));
         String sourceIncidentKey = String.join("|", category, alert.lineId(), alert.id());
         String notificationKey = String.join("|", category, alert.lineId(), eventType, alert.id());
-        String updateFingerprint = PushNotificationUpdateFingerprint.forCandidate(
-            alert.sourceUpdatedAt(), eventType, notification, url
+        String updateFingerprint = PushNotificationUpdateFingerprint.forRegionalCandidate(
+            eventType, notification, url
         );
         String dedupeKey = String.join(
             "|", accountId, "line", alert.lineId(), eventType, reminderBucket,
