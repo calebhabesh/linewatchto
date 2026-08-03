@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { AlertTriangle, ChevronLeft, ChevronRight } from "lucide-react";
 
@@ -241,6 +241,31 @@ function useSwipeableCarousel({
   };
 }
 
+function useActiveSlideHeight(activeSlide: number, viewportId: string) {
+  useLayoutEffect(() => {
+    const viewport = document.getElementById(viewportId);
+    const activeItem = viewport?.querySelector<HTMLElement>(
+      `.opening-welcome-slide-item[data-slide-index="${activeSlide}"]`,
+    );
+    if (!viewport || !activeItem) return;
+
+    const updateHeight = () => {
+      const renderedHeight = activeItem.getBoundingClientRect().height;
+      viewport.style.height = `${Math.ceil(Math.max(renderedHeight, activeItem.scrollHeight))}px`;
+    };
+
+    updateHeight();
+    const observer = new ResizeObserver(updateHeight);
+    observer.observe(activeItem);
+    window.addEventListener("resize", updateHeight);
+
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", updateHeight);
+    };
+  }, [activeSlide, viewportId]);
+}
+
 export function OpeningDisclaimer({
   onVisibilityChange,
   onOpenCreateAccount,
@@ -258,6 +283,8 @@ export function OpeningDisclaimer({
   const [isNoticeExiting, setIsNoticeExiting] = useState(false);
   const [desktopSlide, setDesktopSlide] = useState(0);
   const [mobileSlide, setMobileSlide] = useState(0);
+  useActiveSlideHeight(desktopSlide, "opening-welcome-desktop-viewport");
+  useActiveSlideHeight(mobileSlide, "opening-welcome-mobile-viewport");
 
   const desktopSwipe = useSwipeableCarousel({
     slideCount: DESKTOP_SLIDE_COUNT,
@@ -380,16 +407,21 @@ export function OpeningDisclaimer({
               <div className="opening-welcome-carousel opening-welcome-carousel--desktop" aria-label="LineWatchTO introduction">
                 <div
                   className={`opening-welcome-carousel-viewport ${desktopSwipe.isDragging ? "opening-welcome-carousel-viewport--dragging" : ""}`}
+                  id="opening-welcome-desktop-viewport"
                   {...desktopSwipe.bind}
                 >
                   <div
                     className="opening-welcome-slide-wrapper"
                     style={{
-                      transform: `translateX(${desktopSwipe.dragOffset}px)`,
-                      transition: desktopSwipe.isDragging ? "none" : "transform 220ms ease-out",
+                      transform: `translateX(calc(-${desktopSlide * 100}% + ${desktopSwipe.dragOffset}px))`,
+                      transition: desktopSwipe.isDragging ? "none" : "transform 380ms cubic-bezier(0.16, 1, 0.3, 1)",
                     }}
                   >
-                    {desktopSlide === 0 ? (
+                    <div
+                      className={`opening-welcome-slide-item ${desktopSlide === 0 ? "opening-welcome-slide-item--active" : ""}`}
+                      aria-hidden={desktopSlide !== 0}
+                      data-slide-index="0"
+                    >
                       <article className="opening-welcome-slide" aria-labelledby="opening-desktop-slide-1">
                         <div className="opening-welcome-image-frame opening-welcome-image-frame--wide">
                           <Image src="/assets/linewatch/onboarding/desktop-map-guide.png" alt="LineWatchTO map with delays, closures, Reduced Speed Zones, planned previews, and station impacts" fill sizes="520px" priority draggable={false} />
@@ -400,8 +432,13 @@ export function OpeningDisclaimer({
                         </div>
                         <MapOverlayLegend />
                       </article>
-                    ) : null}
-                    {desktopSlide === 1 ? (
+                    </div>
+
+                    <div
+                      className={`opening-welcome-slide-item ${desktopSlide === 1 ? "opening-welcome-slide-item--active" : ""}`}
+                      aria-hidden={desktopSlide !== 1}
+                      data-slide-index="1"
+                    >
                       <article className="opening-welcome-slide" aria-labelledby="opening-desktop-slide-2">
                         <div className="opening-welcome-image-frame opening-welcome-image-frame--wide">
                           <Image src="/assets/linewatch/onboarding/desktop-impact-details.png" alt="A selected Reduced Speed Zone card shown beside its highlighted map segment" fill sizes="520px" draggable={false} />
@@ -411,8 +448,13 @@ export function OpeningDisclaimer({
                           <p>Click a highlighted segment, station, or alert card to see the affected area and details.</p>
                         </div>
                       </article>
-                    ) : null}
-                    {desktopSlide === 2 ? (
+                    </div>
+
+                    <div
+                      className={`opening-welcome-slide-item ${desktopSlide === 2 ? "opening-welcome-slide-item--active" : ""}`}
+                      aria-hidden={desktopSlide !== 2}
+                      data-slide-index="2"
+                    >
                       <article className="opening-welcome-slide" aria-labelledby="opening-desktop-slide-3">
                         <div className="opening-welcome-personal-grid">
                           <figure>
@@ -433,7 +475,7 @@ export function OpeningDisclaimer({
                           <p>Save the routes and stations you check most often.</p>
                         </div>
                       </article>
-                    ) : null}
+                    </div>
                   </div>
                 </div>
                 <SlideControls
@@ -449,16 +491,21 @@ export function OpeningDisclaimer({
               <div className="opening-welcome-carousel opening-welcome-carousel--mobile" aria-label="LineWatchTO introduction">
                 <div
                   className={`opening-welcome-carousel-viewport ${mobileSwipe.isDragging ? "opening-welcome-carousel-viewport--dragging" : ""}`}
+                  id="opening-welcome-mobile-viewport"
                   {...mobileSwipe.bind}
                 >
                   <div
                     className="opening-welcome-slide-wrapper"
                     style={{
-                      transform: `translateX(${mobileSwipe.dragOffset}px)`,
-                      transition: mobileSwipe.isDragging ? "none" : "transform 220ms ease-out",
+                      transform: `translateX(calc(-${mobileSlide * 100}% + ${mobileSwipe.dragOffset}px))`,
+                      transition: mobileSwipe.isDragging ? "none" : "transform 380ms cubic-bezier(0.16, 1, 0.3, 1)",
                     }}
                   >
-                    {mobileSlide === 0 ? (
+                    <div
+                      className={`opening-welcome-slide-item ${mobileSlide === 0 ? "opening-welcome-slide-item--active" : ""}`}
+                      aria-hidden={mobileSlide !== 0}
+                      data-slide-index="0"
+                    >
                       <article className="opening-welcome-slide" aria-labelledby="opening-mobile-slide-1">
                         <div className="opening-welcome-image-frame opening-welcome-image-frame--mobile">
                           <Image src="/assets/linewatch/onboarding/mobile-map-guide.png" alt="Mobile map showing a delay, Reduced Speed Zone, and station impact" fill sizes="340px" priority draggable={false} />
@@ -469,8 +516,13 @@ export function OpeningDisclaimer({
                         </div>
                         <MapOverlayLegend />
                       </article>
-                    ) : null}
-                    {mobileSlide === 1 ? (
+                    </div>
+
+                    <div
+                      className={`opening-welcome-slide-item ${mobileSlide === 1 ? "opening-welcome-slide-item--active" : ""}`}
+                      aria-hidden={mobileSlide !== 1}
+                      data-slide-index="1"
+                    >
                       <article className="opening-welcome-slide" aria-labelledby="opening-mobile-slide-2">
                         <div className="opening-welcome-image-frame opening-welcome-image-frame--mobile">
                           <Image src="/assets/linewatch/onboarding/mobile-impact-details.png" alt="Mobile Reduced Speed Zone details for a selected map impact" fill sizes="340px" draggable={false} />
@@ -480,8 +532,13 @@ export function OpeningDisclaimer({
                           <p>Tap a highlighted segment or station to open its alert.</p>
                         </div>
                       </article>
-                    ) : null}
-                    {mobileSlide === 2 ? (
+                    </div>
+
+                    <div
+                      className={`opening-welcome-slide-item ${mobileSlide === 2 ? "opening-welcome-slide-item--active" : ""}`}
+                      aria-hidden={mobileSlide !== 2}
+                      data-slide-index="2"
+                    >
                       <article className="opening-welcome-slide" aria-labelledby="opening-mobile-slide-3">
                         <div className="opening-welcome-image-frame opening-welcome-image-frame--mobile">
                           <Image src="/assets/linewatch/onboarding/mobile-my-commutes.png" alt="Mobile My Commutes route with a current service impact" fill sizes="340px" draggable={false} />
@@ -491,8 +548,13 @@ export function OpeningDisclaimer({
                           <p>Review how current disruptions affect a saved route.</p>
                         </div>
                       </article>
-                    ) : null}
-                    {mobileSlide === 3 ? (
+                    </div>
+
+                    <div
+                      className={`opening-welcome-slide-item ${mobileSlide === 3 ? "opening-welcome-slide-item--active" : ""}`}
+                      aria-hidden={mobileSlide !== 3}
+                      data-slide-index="3"
+                    >
                       <article className="opening-welcome-slide" aria-labelledby="opening-mobile-slide-4">
                         <div className="opening-welcome-image-frame opening-welcome-image-frame--mobile">
                           <Image src="/assets/linewatch/onboarding/mobile-my-stations.png" alt="Mobile My Stations panel showing a saved station" fill sizes="340px" draggable={false} />
@@ -502,7 +564,7 @@ export function OpeningDisclaimer({
                           <p>Keep arrivals and current station impacts close at hand.</p>
                         </div>
                       </article>
-                    ) : null}
+                    </div>
                   </div>
                 </div>
                 <SlideControls

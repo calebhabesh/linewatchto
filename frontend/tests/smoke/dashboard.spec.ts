@@ -1,4 +1,4 @@
-import { expect, test, type APIRequestContext, type Page } from "@playwright/test";
+import { expect, test, type APIRequestContext, type Locator, type Page } from "@playwright/test";
 
 const appUrl = "http://127.0.0.1:4173";
 const stubUrl = "http://127.0.0.1:4174";
@@ -51,6 +51,25 @@ async function openServiceCategory(page: Page, isMobile: boolean, name: RegExp |
     }
     await page.getByRole("menuitem", { name }).click();
   }
+}
+
+async function expectActiveWelcomeSlideToFit(carousel: Locator) {
+  await expect.poll(async () => carousel.evaluate((element) => {
+    const viewport = element.querySelector<HTMLElement>(".opening-welcome-carousel-viewport");
+    const activeSlide = element.querySelector<HTMLElement>(".opening-welcome-slide-item--active");
+    const controls = element.querySelector<HTMLElement>(".opening-welcome-controls");
+    const legend = activeSlide?.querySelector<HTMLElement>(".opening-welcome-map-legend");
+    if (!viewport || !activeSlide || !controls) return false;
+
+    const viewportRect = viewport.getBoundingClientRect();
+    const activeSlideRect = activeSlide.getBoundingClientRect();
+    const controlsRect = controls.getBoundingClientRect();
+    const legendRect = legend?.getBoundingClientRect();
+    return activeSlideRect.top >= viewportRect.top - 1
+      && activeSlideRect.bottom <= viewportRect.bottom + 1
+      && (!legendRect || legendRect.bottom <= viewportRect.bottom + 1)
+      && controlsRect.top >= viewportRect.bottom;
+  })).toBe(true);
 }
 
 async function clickSvgRingStroke(page: Page, name: RegExp) {
@@ -157,6 +176,9 @@ test.beforeEach(async ({ page }) => {
 
 test("introduces first-time riders before showing the unofficial-project notice", async ({ page, request, isMobile }) => {
   await setStubMode(request, "seeded");
+  if (!isMobile) {
+    await page.setViewportSize({ width: 900, height: 846 });
+  }
   await page.addInitScript(({ disclaimerKey, welcomeKey }) => {
     if (!window.sessionStorage.getItem("linewatch-onboarding-smoke-initialized")) {
       window.localStorage.removeItem(welcomeKey);
@@ -169,19 +191,24 @@ test("introduces first-time riders before showing the unofficial-project notice"
 
   const welcome = page.getByRole("dialog", { name: "Welcome to LineWatchTO" });
   await expect(welcome).toBeVisible();
-  await expect(welcome).toContainText("Read the live map");
+  await expect(welcome).toContainText(/Read the live map/i);
 
   const carousel = welcome.locator(isMobile
     ? ".opening-welcome-carousel--mobile"
     : ".opening-welcome-carousel--desktop");
+  const activeSlide = carousel.locator(".opening-welcome-slide-item--active");
+  await expectActiveWelcomeSlideToFit(carousel);
   await carousel.getByRole("button", { name: "Next" }).click();
-  await expect(carousel).toContainText(isMobile ? "Tap for alert details" : "Explore an impact");
+  await expect(activeSlide).toContainText(isMobile ? /Tap for alert details/i : /Explore an impact/i);
+  await expectActiveWelcomeSlideToFit(carousel);
   await carousel.getByRole("button", { name: "Next" }).click();
-  await expect(carousel).toContainText(isMobile ? "Plan with My Commutes" : "Make it yours");
+  await expect(activeSlide).toContainText(isMobile ? /Plan with My Commutes/i : /Make it yours/i);
+  await expectActiveWelcomeSlideToFit(carousel);
   await expect(carousel.getByAltText(/My Commutes route/)).toBeVisible();
   if (isMobile) {
     await carousel.getByRole("button", { name: "Next" }).click();
-    await expect(carousel).toContainText("Watch My Stations");
+    await expect(activeSlide).toContainText(/Watch My Stations/i);
+    await expectActiveWelcomeSlideToFit(carousel);
   }
   await expect(carousel.getByAltText(/My Stations panel/)).toBeVisible();
   await carousel.getByRole("button", { name: "Explore dashboard" }).click();

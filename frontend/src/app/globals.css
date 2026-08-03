@@ -4009,6 +4009,7 @@ button {
   overflow: hidden;
   position: relative;
   touch-action: pan-y;
+  transition: height 380ms cubic-bezier(0.16, 1, 0.3, 1);
   user-select: none;
   -webkit-user-select: none;
   width: 100%;
@@ -4020,10 +4021,26 @@ button {
 }
 
 .opening-welcome-slide-wrapper {
+  align-items: flex-start;
   box-sizing: border-box;
+  display: flex;
   max-width: 100%;
   width: 100%;
   will-change: transform;
+}
+
+.opening-welcome-slide-item {
+  box-sizing: border-box;
+  flex: 0 0 100%;
+  min-width: 100%;
+  opacity: 0.3;
+  transition: opacity 380ms cubic-bezier(0.16, 1, 0.3, 1);
+  width: 100%;
+  will-change: transform, opacity;
+}
+
+.opening-welcome-slide-item--active {
+  opacity: 1;
 }
 
 .opening-welcome-slide {
@@ -4069,6 +4086,13 @@ button {
   border-radius: 6px;
   overflow: hidden;
   position: relative;
+  transition: border-color 380ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 380ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.opening-welcome-slide-item--active .opening-welcome-image-frame,
+.opening-welcome-slide-item--active .opening-welcome-portrait-frame {
+  border-color: rgba(250, 204, 21, 0.28);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
 }
 
 .opening-welcome-image-frame {
@@ -4155,8 +4179,10 @@ button {
 
 .opening-welcome-control-row {
   align-items: center;
+  box-sizing: border-box;
   display: grid;
-  grid-template-columns: 86px minmax(0, 1fr) 86px;
+  grid-template-columns: 64px minmax(0, 1fr) 64px;
+  width: 100%;
 }
 
 .opening-welcome-secondary-button,
@@ -4191,6 +4217,13 @@ button {
   color: var(--text);
 }
 
+.opening-welcome-dots-wrapper {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+
 .opening-welcome-dots {
   align-items: center;
   display: flex;
@@ -4202,15 +4235,29 @@ button {
   background: var(--border-strong);
   border: 0;
   border-radius: 999px;
+  cursor: pointer;
   height: 8px;
   padding: 0;
-  transition: background-color 150ms ease, width 150ms ease;
+  transition: background-color 250ms ease, width 320ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 250ms ease;
   width: 8px;
+}
+
+.opening-welcome-dot:hover {
+  background: var(--muted);
 }
 
 .opening-welcome-dot--active {
   background: #facc15;
-  width: 22px;
+  box-shadow: 0 0 8px rgba(250, 204, 21, 0.4);
+  width: 24px;
+}
+
+.opening-welcome-step-counter {
+  color: var(--muted);
+  font-size: 0.68rem;
+  font-weight: 750;
+  letter-spacing: 0.04em;
+  opacity: 0.85;
 }
 
 .opening-welcome-account-copy {
@@ -4362,6 +4409,8 @@ button {
   .opening-disclaimer-panel {
     box-sizing: border-box;
     max-height: calc(100dvh - 36px);
+    overflow-x: hidden;
+    overflow-y: auto;
     width: min(94vw, 380px);
   }
 
@@ -4399,16 +4448,40 @@ button {
     display: block;
   }
 
+  .opening-welcome-carousel-viewport {
+    box-sizing: border-box;
+    max-width: 100%;
+    overflow: hidden;
+    position: relative;
+    width: 100%;
+  }
+
+  .opening-welcome-slide-wrapper {
+    align-items: flex-start;
+    box-sizing: border-box;
+    display: flex;
+    width: 100%;
+    will-change: transform;
+  }
+
+  .opening-welcome-slide-item {
+    box-sizing: border-box;
+    flex: 0 0 100%;
+    min-width: 100%;
+    width: 100%;
+  }
+
   .opening-welcome-slide {
     box-sizing: border-box;
     gap: 8px;
     max-width: 100%;
-    min-height: 365px;
+    min-height: 0;
+    width: 100%;
   }
 
   .opening-welcome-slide-heading {
     margin-top: 8px;
-    min-height: 45px;
+    min-height: 0;
   }
 
   .opening-welcome-slide-heading h2 {
@@ -4428,9 +4501,13 @@ button {
   .opening-welcome-map-legend {
     background: transparent;
     border: 0;
+    box-sizing: border-box;
     gap: 5px 10px;
     grid-template-columns: repeat(2, minmax(0, 1fr));
+    max-width: 100%;
+    overflow: hidden;
     padding: 2px 4px 0;
+    width: 100%;
   }
 
   .opening-welcome-map-legend li {
@@ -4442,10 +4519,12 @@ button {
   }
 
   .opening-welcome-legend-asset {
+    flex-shrink: 0;
     max-width: 56px;
   }
 
   .opening-welcome-legend-asset--station {
+    flex-shrink: 0;
     max-width: 22px;
   }
 
@@ -4463,8 +4542,27 @@ button {
     box-sizing: border-box;
     display: grid;
     gap: 4px;
-    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-columns: 60px minmax(0, 1fr) 60px;
     width: 100%;
+  }
+
+  .opening-welcome-secondary-button,
+  .opening-welcome-skip-button {
+    font-size: 0.75rem;
+    padding: 3px 4px;
+  }
+
+  .opening-welcome-dots {
+    gap: 7px;
+  }
+
+  .opening-welcome-dot {
+    height: 8px;
+    width: 8px;
+  }
+
+  .opening-welcome-dot--active {
+    width: 22px;
   }
 
   .opening-welcome-primary-button {
