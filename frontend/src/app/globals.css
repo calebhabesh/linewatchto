@@ -11902,12 +11902,139 @@ img.transit-line-badge {
 .saved-commute-notification-rule,
 .saved-commute-rule-editor {
   display: grid;
-  gap: 0.62rem;
+  gap: 0.75rem;
   min-width: 0;
 }
 
 .saved-commute-notification-master {
   margin: 0 !important;
+}
+
+.saved-commute-notification-master-row {
+  align-items: center;
+  display: flex;
+  gap: 0.75rem;
+  justify-content: space-between;
+  min-width: 0;
+  padding: 0.1rem 0 0.15rem;
+}
+
+.saved-commute-notification-master-copy {
+  align-items: center;
+  display: flex;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.saved-commute-notification-master-copy > svg {
+  color: rgb(5, 150, 105);
+  flex: 0 0 auto;
+}
+
+.saved-commute-notification-master-copy > span,
+.saved-commute-notification-section-heading {
+  display: grid;
+  gap: 0.08rem;
+  min-width: 0;
+}
+
+.saved-commute-notification-master-copy strong,
+.saved-commute-notification-section-heading strong {
+  color: rgb(15, 23, 42);
+  font-size: 0.78rem;
+  font-weight: 900;
+  line-height: 1.2;
+}
+
+.saved-commute-notification-master-copy em,
+.saved-commute-notification-section-heading em {
+  color: rgb(100, 116, 139);
+  font-size: 0.66rem;
+  font-style: normal;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.saved-commute-schedule-list {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.saved-commute-schedule {
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  border-radius: 8px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.saved-commute-schedule[data-enabled="false"] {
+  opacity: 0.7;
+}
+
+.saved-commute-schedule-header {
+  align-items: center;
+  display: grid;
+  gap: 0.35rem;
+  grid-template-columns: 24px minmax(0, 1fr);
+  min-height: 44px;
+  padding: 0.45rem 0.55rem;
+}
+
+.saved-commute-schedule-header .saved-commute-notification-leg-toggle {
+  align-items: center;
+  display: flex;
+  justify-content: center;
+  margin: 0;
+  min-height: 30px;
+  width: 24px;
+}
+
+.saved-commute-schedule-disclosure {
+  align-items: center;
+  background: transparent;
+  color: rgb(71, 85, 105);
+  display: flex;
+  font-size: 0.73rem;
+  font-weight: 750;
+  gap: 0.35rem;
+  justify-content: flex-end;
+  min-height: 30px;
+  min-width: 0;
+  padding: 0.2rem 0;
+  text-align: right;
+  width: 100%;
+}
+
+.saved-commute-schedule-copy {
+  align-items: center;
+  display: flex;
+  flex: 1 1 auto;
+  gap: 0.75rem;
+  justify-content: space-between;
+  min-width: 0;
+}
+
+.saved-commute-schedule-summary {
+  color: rgb(3, 105, 161);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.saved-commute-schedule-disclosure svg {
+  flex: 0 0 auto;
+  transition: transform 180ms ease;
+}
+
+.saved-commute-schedule-disclosure svg.is-open {
+  transform: rotate(180deg);
+}
+
+.saved-commute-schedule-controls {
+  border-top: 1px solid rgba(15, 23, 42, 0.1);
+  display: grid;
+  gap: 0.65rem;
+  padding: 0.65rem;
 }
 
 .saved-commute-notification-block {
@@ -11931,10 +12058,8 @@ img.transit-line-badge {
   color: rgb(51, 65, 85);
   column-gap: 0.4rem;
   display: grid;
-  font-size: 0.76rem;
   font-family: inherit;
-  font-weight: 800;
-  grid-template-columns: 14px max-content;
+  grid-template-columns: 14px;
   letter-spacing: normal;
   line-height: 1.25;
   min-height: 18px;
@@ -11956,6 +12081,30 @@ img.transit-line-badge {
 .saved-commute-notification-leg-toggle[aria-disabled="true"] {
   cursor: not-allowed;
   opacity: 0.55;
+}
+
+.saved-commute-route-label,
+.saved-commute-notification-event-label {
+  align-items: center;
+  display: inline-flex;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.saved-commute-route-label {
+  color: rgb(51, 65, 85);
+  font-size: 0.84rem;
+  font-weight: 800;
+  line-height: 1.25;
+}
+
+.saved-commute-route-label > svg,
+.saved-commute-notification-event-label > svg {
+  flex: 0 0 auto;
+}
+
+.saved-commute-route-label > svg {
+  color: rgb(5, 150, 105);
 }
 
 .saved-commute-day-grid {
@@ -11994,8 +12143,12 @@ img.transit-line-badge {
 }
 
 .saved-commute-day-button:disabled,
-.saved-commute-notification-segmented button:disabled,
-.saved-commute-notification-checks input:disabled + span {
+.saved-commute-notification-segmented button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.saved-commute-notification-checks label:has(input:disabled) {
   cursor: not-allowed;
   opacity: 0.55;
 }
@@ -12003,7 +12156,30 @@ img.transit-line-badge {
 .saved-commute-notification-segmented {
   display: grid;
   gap: 0.35rem;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.saved-commute-notification-segmented button {
+  gap: 0.3rem;
+}
+
+.saved-commute-notification-segmented button svg {
+  flex: 0 0 auto;
+}
+
+.saved-commute-custom-schedule {
+  border-left: 2px solid rgba(16, 185, 129, 0.38);
+  display: grid;
+  gap: 0.55rem;
+  padding-left: 0.65rem;
+}
+
+.saved-commute-custom-schedule > strong {
+  color: rgb(71, 85, 105);
+  font-size: 0.64rem;
+  font-weight: 900;
+  line-height: 1;
+  text-transform: uppercase;
 }
 
 .saved-commute-time-window {
@@ -12042,12 +12218,50 @@ img.transit-line-badge {
 
 .saved-commute-notification-checks label {
   align-items: center;
+  align-self: start;
+  background: rgb(255, 255, 255);
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  border-radius: 8px;
   color: rgb(51, 65, 85);
   display: flex;
-  font-size: 0.7rem;
+  font-size: 0.72rem;
   font-weight: 800;
   gap: 0.38rem;
+  justify-content: space-between;
+  min-height: 36px;
   min-width: 0;
+  padding: 0.45rem 0.55rem;
+}
+
+.saved-commute-notification-checks label:has(input:checked) {
+  background: rgb(236, 253, 245);
+  border-color: rgba(16, 185, 129, 0.3);
+}
+
+.saved-commute-event-types {
+  container-type: inline-size;
+}
+
+@container (min-width: 34rem) {
+  .saved-commute-notification-checks label[data-event-type="suspensions"] {
+    order: 1;
+  }
+
+  .saved-commute-notification-checks label[data-event-type="delays"] {
+    order: 2;
+  }
+
+  .saved-commute-notification-checks label[data-event-type="reducedSpeedZones"] {
+    order: 3;
+  }
+
+  .saved-commute-notification-checks label[data-event-type="plannedClosures"] {
+    order: 4;
+  }
+
+  .saved-commute-notification-checks label[data-event-type="serviceRestored"] {
+    order: 5;
+  }
 }
 
 .saved-commute-notification-checks input {
@@ -12056,6 +12270,7 @@ img.transit-line-badge {
   border: 0;
   flex: 0 0 auto;
   height: 14px;
+  margin-left: auto;
   min-height: 0;
   padding: 0;
   width: 14px;
@@ -12063,6 +12278,22 @@ img.transit-line-badge {
 
 .saved-commute-notification-checks label span {
   min-width: 0;
+}
+
+.saved-commute-notification-event-label {
+  flex: 1 1 auto;
+}
+
+.notification-event-icon.suspension-tone {
+  color: rgb(239, 68, 68);
+}
+
+.notification-event-icon.planned-closure-tone {
+  color: rgb(59, 130, 246);
+}
+
+.notification-event-icon.service-restored-tone {
+  color: rgb(16, 185, 129);
 }
 
 .saved-commute-notification-note {
@@ -12080,6 +12311,87 @@ img.transit-line-badge {
 .saved-commute-notification-note svg {
   flex: 0 0 auto;
   margin-top: 0.05rem;
+}
+
+.saved-commute-event-types {
+  border-top: 1px solid rgba(15, 23, 42, 0.1);
+  gap: 0.55rem;
+  padding-top: 0.7rem;
+}
+
+.saved-commute-notification-help {
+  color: rgb(71, 85, 105);
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+.saved-commute-notification-help summary {
+  align-items: center;
+  cursor: pointer;
+  display: flex;
+  gap: 0.35rem;
+  list-style: none;
+  min-height: 28px;
+  width: 100%;
+}
+
+.saved-commute-notification-help-chevron {
+  flex: 0 0 auto;
+  margin-left: auto;
+  transition: transform 180ms ease;
+}
+
+.saved-commute-notification-help[open] .saved-commute-notification-help-chevron {
+  transform: rotate(180deg);
+}
+
+.saved-commute-notification-help summary::-webkit-details-marker {
+  display: none;
+}
+
+.saved-commute-notification-help ul {
+  display: grid;
+  gap: 0.3rem;
+  list-style-position: outside;
+  list-style-type: disc;
+  line-height: 1.4;
+  margin: 0.25rem 0 0;
+  padding-left: 1.9rem;
+}
+
+.saved-commute-notification-help li::marker {
+  color: rgb(16, 185, 129);
+}
+
+@media (max-width: 30rem) {
+  .saved-commute-notification-segmented {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .saved-commute-schedule-header {
+    align-items: center;
+    gap: 0.4rem;
+    grid-template-columns: 24px minmax(0, 1fr);
+  }
+
+  .saved-commute-schedule-disclosure {
+    align-items: center;
+    padding-left: 0;
+    text-align: left;
+  }
+
+  .saved-commute-schedule-copy {
+    align-items: start;
+    display: grid;
+    gap: 0.18rem;
+    justify-content: stretch;
+    text-align: center;
+  }
+
+  .saved-commute-schedule-copy .saved-commute-route-label {
+    justify-content: center;
+  }
+
 }
 
 .saved-commute-rule-summary {
@@ -12427,10 +12739,16 @@ img.transit-line-badge {
 .high-contrast .saved-commute-notification-summary strong,
 .dark .saved-commute-rule-summary strong,
 .high-contrast .saved-commute-rule-summary strong,
+.dark .saved-commute-notification-master-copy strong,
+.high-contrast .saved-commute-notification-master-copy strong,
+.dark .saved-commute-notification-section-heading strong,
+.high-contrast .saved-commute-notification-section-heading strong,
 .dark .saved-commute-notification-block > strong,
 .high-contrast .saved-commute-notification-block > strong,
 .dark .saved-commute-notification-leg-toggle,
 .high-contrast .saved-commute-notification-leg-toggle,
+.dark .saved-commute-route-label,
+.high-contrast .saved-commute-route-label,
 .dark .notification-settings-section-header h3,
 .high-contrast .notification-settings-section-header h3,
 .dark .notification-settings-row-main strong,
@@ -12448,6 +12766,16 @@ img.transit-line-badge {
 .dark .saved-commute-rule-summary em,
 .high-contrast .saved-commute-rule-summary span,
 .high-contrast .saved-commute-rule-summary em,
+.dark .saved-commute-notification-master-copy em,
+.high-contrast .saved-commute-notification-master-copy em,
+.dark .saved-commute-notification-section-heading em,
+.high-contrast .saved-commute-notification-section-heading em,
+.dark .saved-commute-schedule-disclosure,
+.high-contrast .saved-commute-schedule-disclosure,
+.dark .saved-commute-custom-schedule > strong,
+.high-contrast .saved-commute-custom-schedule > strong,
+.dark .saved-commute-notification-help,
+.high-contrast .saved-commute-notification-help,
 .dark .saved-commute-notification-note,
 .high-contrast .saved-commute-notification-note,
 .dark .saved-commute-time-window label span,
@@ -12463,6 +12791,14 @@ img.transit-line-badge {
 .dark .notification-settings-prompt span,
 .high-contrast .notification-settings-prompt span {
   color: rgb(203, 213, 225);
+}
+
+.dark .saved-commute-schedule-summary {
+  color: rgb(125, 211, 252);
+}
+
+.high-contrast .saved-commute-schedule-summary {
+  color: rgb(255, 255, 255);
 }
 
 .dark .notification-settings-card,
@@ -12546,7 +12882,28 @@ img.transit-line-badge {
 
 .dark .saved-commute-notification-checks label,
 .high-contrast .saved-commute-notification-checks label {
+  background: rgb(15, 23, 42);
+  border-color: rgba(255, 255, 255, 0.14);
   color: rgb(226, 232, 240);
+}
+
+.dark .saved-commute-notification-checks label:has(input:checked) {
+  background: rgb(18, 69, 55);
+  border-color: rgba(16, 185, 129, 0.44);
+}
+
+.high-contrast .saved-commute-notification-checks label:has(input:checked) {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: currentColor;
+}
+
+.dark .saved-commute-schedule,
+.high-contrast .saved-commute-schedule,
+.dark .saved-commute-schedule-controls,
+.high-contrast .saved-commute-schedule-controls,
+.dark .saved-commute-event-types,
+.high-contrast .saved-commute-event-types {
+  border-color: rgba(255, 255, 255, 0.14);
 }
 
 .dark .saved-commute-time-window input,

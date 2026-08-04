@@ -2495,11 +2495,29 @@ test("demo account shows account-backed saved commutes", async ({ page, request,
   await expect(page.getByText("Stub Station <-> Union")).toBeVisible();
   await expect(page.getByRole("button", { name: "Edit Alerts" })).toBeVisible();
   await page.getByRole("button", { name: "Edit Alerts" }).click();
-  await expect(page.getByRole("group", { name: "Outbound Route notification window" })
-    .getByRole("button", { name: "AM Rush" })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.locator(".saved-commute-notification-checks > label")).toHaveCount(5);
+  const eventTypeVisualOrder = await page.locator(".saved-commute-notification-checks > label")
+    .evaluateAll((labels) => labels
+      .sort((left, right) => Number.parseInt(getComputedStyle(left).order) - Number.parseInt(getComputedStyle(right).order))
+      .map((label) => label.textContent?.trim().replace(/\s+/g, " ")));
+  expect(eventTypeVisualOrder).toEqual(isMobile
+    ? ["Suspensions", "Delays", "Planned Closures", "Service Restored", "Reduced Speed Zones"]
+    : ["Suspensions", "Delays", "Reduced Speed Zones", "Planned Closures", "Service Restored"]);
+  const outboundWindow = page.getByRole("group", { name: "Outbound Route notification window" });
+  await expect(outboundWindow.getByRole("button", { name: "AM Rush" })).toHaveAttribute("aria-pressed", "true");
+  await outboundWindow.getByRole("button", { name: "Custom" }).click();
+  await expect(outboundWindow.getByRole("button", { name: "Custom" })).toHaveAttribute("aria-pressed", "true");
+  await expect(outboundWindow.getByRole("button", { name: "AM Rush" })).toHaveAttribute("aria-pressed", "false");
+  await expect(page.getByRole("group", { name: "Outbound Route notification days" })).toBeVisible();
+  await expect(page.getByLabel("Outbound Route start time")).toBeEnabled();
+  await expect(page.getByLabel("Outbound Route end time")).toBeEnabled();
+  await page.getByLabel("Outbound Route start time").fill("07:15");
+  await expect(page.getByLabel("Outbound Route start time")).toHaveValue("07:15");
+  await page.getByRole("button", { name: "Configure Return Route schedule" }).click();
   await expect(page.getByRole("group", { name: "Return Route notification window" })
     .getByRole("button", { name: "PM Rush" })).toHaveAttribute("aria-pressed", "true");
-  await expect(page.getByText(/Overnight windows belong to the day they start/)).toBeVisible();
+  await page.getByText("How Scheduling Works", { exact: true }).click();
+  await expect(page.getByText(/If a time window continues past midnight/)).toBeVisible();
   await page.locator(".saved-commute-rule-summary").getByRole("button", { name: "Close", exact: true }).click();
   await expect(page.getByText("Outbound Affected", { exact: true })).toBeVisible();
   await expect(page.getByRole("tab", { name: "To Union" })).toHaveAttribute("aria-selected", "true");
@@ -2753,6 +2771,67 @@ test("demo account shows account-backed saved commutes", async ({ page, request,
   await expect(page.getByRole("status").filter({ hasText: "Viewing" })).toBeVisible();
   await page.getByRole("button", { name: "Back" }).click({ force: true });
   await expect(page.locator("[data-commute-path-preview]")).toHaveCount(0);
+});
+
+test("custom commute notification schedules are non-blocking", async ({ page, request, isMobile }) => {
+  await setStubMode(request, "seeded");
+  if (isMobile) {
+    await page.goto("/");
+    await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
+    await page.getByRole("button", { name: "More", exact: true }).click();
+    await page.getByRole("button", { name: "Demo Account" }).click();
+  } else {
+    await openDashboardMenu(page, isMobile);
+    await page.getByRole("menuitem", { name: "Demo account" }).click({ force: true });
+    await page.getByRole("button", { name: "Toggle menu" }).click({ force: true });
+    await page.getByRole("menuitem", { name: "My Commutes" }).click({ force: true });
+  }
+
+  await page.getByRole("button", { name: "Edit Alerts" }).click();
+  const outboundWindow = page.getByRole("group", { name: "Outbound Route notification window" });
+  await outboundWindow.getByRole("button", { name: "Custom" }).click();
+  await expect(outboundWindow.getByRole("button", { name: "Custom" })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByRole("group", { name: "Outbound Route notification days" })).toBeVisible();
+  await page.getByRole("group", { name: "Outbound Route notification days" }).getByRole("button", { name: "Sat" }).click();
+  await expect(page.getByRole("group", { name: "Outbound Route notification days" }).getByRole("button", { name: "Sat" })).toHaveAttribute("aria-pressed", "true");
+  await page.getByRole("group", { name: "Outbound Route notification days" }).getByRole("button", { name: "Sun" }).click();
+  await page.getByLabel("Outbound Route start time").fill("07:15");
+  await expect(page.getByLabel("Outbound Route start time")).toHaveValue("07:15");
+  await expect(page.getByRole("button", { name: "Configure Outbound Route schedule" })).toContainText("Every Day · 7:15 AM-9:30 AM");
+  await page.getByRole("button", { name: "Configure Return Route schedule" }).click();
+  await expect(outboundWindow).toBeVisible();
+  const returnWindow = page.getByRole("group", { name: "Return Route notification window" });
+  await expect(returnWindow).toBeVisible();
+  await returnWindow.getByRole("button", { name: "Every Day" }).click();
+  await expect(returnWindow.getByRole("button", { name: "Every Day" })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByRole("button", { name: "Configure Return Route schedule" })).toContainText("Every Day · All Day");
+  await expect(page.getByRole("button", { name: "Save Alerts" })).toBeEnabled();
+});
+
+test("regional commute notifications omit TTC-only event types", async ({ page, request, isMobile }) => {
+  await setStubMode(request, "seeded");
+  if (isMobile) {
+    await page.goto("/");
+    await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
+    await page.getByRole("button", { name: "More", exact: true }).click();
+    await page.getByRole("button", { name: "Demo Account" }).click();
+  } else {
+    await openDashboardMenu(page, isMobile);
+    await page.getByRole("menuitem", { name: "Demo account" }).click({ force: true });
+    await page.getByRole("button", { name: "Toggle menu" }).click({ force: true });
+    await page.getByRole("menuitem", { name: "My Commutes" }).click({ force: true });
+  }
+
+  const commutePanel = page.locator(".commute-panel");
+  await commutePanel.getByRole("button", { name: "+ Add Route" }).click();
+  await commutePanel.getByRole("button", { name: "Customize Commute Notifications" }).click();
+  await expect(commutePanel.getByText("Reduced Speed Zones", { exact: true })).toBeVisible();
+  await commutePanel.getByRole("button", { name: "GO & UP", exact: true }).click();
+  await expect(commutePanel.getByText("Reduced Speed Zones", { exact: true })).toHaveCount(0);
+  await expect(commutePanel.getByText("Suspensions", { exact: true })).toBeVisible();
+  await expect(commutePanel.getByText("Delays", { exact: true })).toBeVisible();
+  await expect(commutePanel.getByText("Planned Closures", { exact: true })).toBeVisible();
+  await expect(commutePanel.getByText("Service Restored", { exact: true })).toBeVisible();
 });
 
 test("signed-in riders save, browse, remove, undo, and reload My Stations", async ({ page, request, isMobile }) => {

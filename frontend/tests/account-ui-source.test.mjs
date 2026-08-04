@@ -257,11 +257,22 @@ describe("account UI source", () => {
 
   it("renders saved-commute granular notification controls inside the commute feature", () => {
     assert.match(savedCommutesSource, /updateSavedCommuteNotificationRule/);
-    assert.match(savedCommutesSource, /Notify Me For This Route/);
+    assert.match(savedCommutesSource, /Route Notifications/);
+    assert.match(savedCommutesSource, /How Scheduling Works/);
     assert.match(savedCommutesSource, /outboundSchedule/);
     assert.match(savedCommutesSource, /returnSchedule/);
     assert.match(savedCommutesSource, /AM Rush/);
     assert.match(savedCommutesSource, /PM Rush/);
+    assert.match(savedCommutesSource, /Every Day/);
+    assert.match(savedCommutesSource, /ArrowUpRight/);
+    assert.match(savedCommutesSource, /ArrowDownLeft/);
+    assert.match(savedCommutesSource, /Sunrise/);
+    assert.match(savedCommutesSource, /Sunset/);
+    assert.match(savedCommutesSource, /SlidersHorizontal/);
+    assert.match(savedCommutesSource, /NotificationEventIcon/);
+    assert.match(savedCommutesSource, /notificationEventOptionsForNetwork/);
+    assert.match(savedCommutesSource, /scopeNotificationRuleToNetwork/);
+    assert.match(savedCommutesSource, /expandedSchedules/);
     assert.match(savedCommutesSource, /Toronto time/);
     assert.doesNotMatch(savedCommutesSource, /Route Section|Whole Route|Selected Section/);
     assert.match(savedCommutesSource, /Mon/);
@@ -271,6 +282,8 @@ describe("account UI source", () => {
     assert.match(savedCommutesSource, /notificationRule/);
     assert.match(globalCss, /\.saved-commute-notification-rule/);
     assert.match(globalCss, /\.saved-commute-day-button/);
+    assert.match(globalCss, /\.saved-commute-notification-help-chevron/);
+    assert.match(globalCss, /@container \(min-width:\s*34rem\)[\s\S]*label\[data-event-type="reducedSpeedZones"\]\s*\{[^}]*order:\s*3;[\s\S]*label\[data-event-type="plannedClosures"\]\s*\{[^}]*order:\s*4;[\s\S]*label\[data-event-type="serviceRestored"\]\s*\{[^}]*order:\s*5;/s);
     assert.doesNotMatch(globalCss, /\.saved-commute-section-(grid|select)/);
   });
 

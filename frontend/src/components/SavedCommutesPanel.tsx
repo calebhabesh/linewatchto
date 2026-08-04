@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Navigation, ChevronDown, ChevronLeft, Loader2, MapPinned, Pencil, Trash2, X, AlertTriangle, Construction, Clock, Bell, Check, Info } from "lucide-react";
+import { Navigation, ChevronDown, ChevronLeft, Loader2, MapPinned, Pencil, Trash2, X, AlertTriangle, Construction, Clock, Bell, Check, CheckCircle2, Info, ArrowUpRight, ArrowDownLeft, Sunrise, Sunset, Sun, SlidersHorizontal } from "lucide-react";
 import {
   createSavedCommute,
   defaultSavedCommuteNotificationRule,
@@ -484,10 +484,61 @@ const NOTIFICATION_EVENT_OPTIONS: Array<{
 }> = [
   { key: "suspensions", label: "Suspensions" },
   { key: "delays", label: "Delays" },
-  { key: "reducedSpeedZones", label: "Reduced Speed Zones" },
   { key: "plannedClosures", label: "Planned Closures" },
   { key: "serviceRestored", label: "Service Restored" },
+  { key: "reducedSpeedZones", label: "Reduced Speed Zones" },
 ];
+
+function notificationEventOptionsForNetwork(networkId: NetworkId) {
+  return networkId === "regional"
+    ? NOTIFICATION_EVENT_OPTIONS.filter((eventType) => eventType.key !== "reducedSpeedZones")
+    : NOTIFICATION_EVENT_OPTIONS;
+}
+
+function scopeNotificationRuleToNetwork(
+  rule: AccountSavedCommuteNotificationRule,
+  networkId: NetworkId,
+) {
+  const normalized = normalizeSavedCommuteNotificationRule(rule);
+  return networkId === "regional" ? {
+    ...normalized,
+    eventTypes: {
+      ...normalized.eventTypes,
+      reducedSpeedZones: false,
+    },
+  } : normalized;
+}
+
+type NotificationScheduleKey = "outboundSchedule" | "returnSchedule";
+type NotificationScheduleMode = "am-rush" | "pm-rush" | "all-day" | "custom";
+
+function notificationScheduleMode(schedule: AccountSavedCommuteNotificationSchedule): NotificationScheduleMode {
+  if (schedule.dayMask === 62 && schedule.startMinute === 6 * 60 + 30 && schedule.endMinute === 9 * 60 + 30) {
+    return "am-rush";
+  }
+  if (schedule.dayMask === 62 && schedule.startMinute === 15 * 60 && schedule.endMinute === 19 * 60) {
+    return "pm-rush";
+  }
+  if (schedule.dayMask === 127 && schedule.startMinute === null && schedule.endMinute === null) {
+    return "all-day";
+  }
+  return "custom";
+}
+
+function NotificationEventIcon({ eventType }: { eventType: keyof AccountSavedCommuteNotificationRule["eventTypes"] }) {
+  switch (eventType) {
+    case "suspensions":
+      return <AlertTriangle className="notification-event-icon suspension-tone" size={15} aria-hidden="true" />;
+    case "delays":
+      return <DelayIcon className="notification-event-icon delay-tone" size={15} filled={false} />;
+    case "reducedSpeedZones":
+      return <Construction className="notification-event-icon rsz-tone" size={15} aria-hidden="true" />;
+    case "plannedClosures":
+      return <PlannedClosureIcon className="notification-event-icon planned-closure-tone" size={15} />;
+    case "serviceRestored":
+      return <CheckCircle2 className="notification-event-icon service-restored-tone" size={15} aria-hidden="true" />;
+  }
+}
 
 function cloneNotificationRule(rule: AccountSavedCommuteNotificationRule | null | undefined) {
   return normalizeSavedCommuteNotificationRule(rule);
@@ -522,7 +573,7 @@ function formatMinuteLabel(minute: number | null | undefined) {
 }
 
 function formatDayMask(dayMask: number) {
-  if (dayMask === 127) return "Any Day";
+  if (dayMask === 127) return "Every Day";
   if (dayMask === 62) return "Weekdays";
   if (dayMask === 65) return "Weekends";
   const labels = NOTIFICATION_DAY_OPTIONS.filter((day) => (dayMask & day.bit) !== 0).map((day) => day.label);
@@ -537,6 +588,13 @@ function formatWindow(schedule: AccountSavedCommuteNotificationSchedule) {
     return "Custom";
   }
   return `${formatMinuteLabel(schedule.startMinute)}-${formatMinuteLabel(schedule.endMinute)}`;
+}
+
+function formatScheduleSummary(schedule: AccountSavedCommuteNotificationSchedule) {
+  if (schedule.dayMask === 127 && schedule.startMinute === null && schedule.endMinute === null) {
+    return "Every Day · All Day";
+  }
+  return `${formatDayMask(schedule.dayMask)} · ${formatWindow(schedule)}`;
 }
 
 function formatLegSchedule(
@@ -560,9 +618,10 @@ function hasInvalidNotificationSchedule(rule: AccountSavedCommuteNotificationRul
   });
 }
 
-function formatEventTypes(rule: AccountSavedCommuteNotificationRule) {
-  const labels = NOTIFICATION_EVENT_OPTIONS.filter((eventType) => rule.eventTypes[eventType.key]).map((eventType) => eventType.label);
-  if (labels.length === NOTIFICATION_EVENT_OPTIONS.length) return "All Events";
+function formatEventTypes(rule: AccountSavedCommuteNotificationRule, networkId: NetworkId) {
+  const availableEventTypes = notificationEventOptionsForNetwork(networkId);
+  const labels = availableEventTypes.filter((eventType) => rule.eventTypes[eventType.key]).map((eventType) => eventType.label);
+  if (labels.length === availableEventTypes.length) return "All Events";
   if (labels.length === 0) return "No Events";
   return labels.join(", ");
 }
@@ -575,47 +634,56 @@ function SavedCommuteNotificationRuleEditor({
   rule,
   onChange,
   allowReturnLeg,
+  networkId,
 }: {
   rule: AccountSavedCommuteNotificationRule;
   onChange: (rule: AccountSavedCommuteNotificationRule) => void;
   allowReturnLeg: boolean;
+  networkId: NetworkId;
 }) {
+  const [scheduleModes, setScheduleModes] = useState<Record<NotificationScheduleKey, NotificationScheduleMode>>(() => ({
+    outboundSchedule: notificationScheduleMode(rule.outboundSchedule),
+    returnSchedule: notificationScheduleMode(rule.returnSchedule),
+  }));
+  const [expandedSchedules, setExpandedSchedules] = useState<Record<NotificationScheduleKey, boolean>>({
+    outboundSchedule: true,
+    returnSchedule: false,
+  });
+
   function updateRule(patch: Partial<AccountSavedCommuteNotificationRule>) {
-    onChange(normalizeSavedCommuteNotificationRule({
+    onChange(scopeNotificationRuleToNetwork(normalizeSavedCommuteNotificationRule({
       ...rule,
       ...patch,
       eventTypes: {
         ...rule.eventTypes,
         ...(patch.eventTypes ?? {}),
       },
-    }));
+    }), networkId));
   }
 
   function updateSchedule(
-    key: "outboundSchedule" | "returnSchedule",
+    key: NotificationScheduleKey,
     patch: Partial<AccountSavedCommuteNotificationSchedule>,
   ) {
-    onChange(normalizeSavedCommuteNotificationRule({
+    onChange(scopeNotificationRuleToNetwork(normalizeSavedCommuteNotificationRule({
       ...rule,
       [key]: {
         ...rule[key],
         ...patch,
       },
-    }));
+    }), networkId));
   }
 
   function renderLegSchedule(
-    key: "outboundSchedule" | "returnSchedule",
+    key: NotificationScheduleKey,
     label: string,
     enabled: boolean,
     available: boolean,
   ) {
     const schedule = rule[key];
     const controlsEnabled = rule.enabled && enabled && available;
-    const morningRush = schedule.dayMask === 62 && schedule.startMinute === 6 * 60 + 30 && schedule.endMinute === 9 * 60 + 30;
-    const eveningRush = schedule.dayMask === 62 && schedule.startMinute === 15 * 60 && schedule.endMinute === 19 * 60;
-    const allDay = schedule.startMinute === null && schedule.endMinute === null;
-    const customWindow = schedule.startMinute !== null && schedule.endMinute !== null;
+    const mode = scheduleModes[key];
+    const expanded = expandedSchedules[key];
 
     const setEnabled = (checked: boolean) => {
       updateRule(key === "outboundSchedule" ? { outboundEnabled: checked } : { returnEnabled: checked });
@@ -624,124 +692,165 @@ function SavedCommuteNotificationRuleEditor({
       const nextMask = (schedule.dayMask & bit) !== 0 ? schedule.dayMask & ~bit : schedule.dayMask | bit;
       updateSchedule(key, { dayMask: nextMask });
     };
+    const selectMode = (nextMode: NotificationScheduleMode) => {
+      setScheduleModes((current) => ({ ...current, [key]: nextMode }));
+      if (nextMode === "am-rush") {
+        updateSchedule(key, { dayMask: 62, startMinute: 6 * 60 + 30, endMinute: 9 * 60 + 30 });
+      } else if (nextMode === "pm-rush") {
+        updateSchedule(key, { dayMask: 62, startMinute: 15 * 60, endMinute: 19 * 60 });
+      } else if (nextMode === "all-day") {
+        updateSchedule(key, { dayMask: 127, startMinute: null, endMinute: null });
+      } else {
+        updateSchedule(key, {
+          dayMask: schedule.dayMask || 62,
+          startMinute: schedule.startMinute ?? (key === "outboundSchedule" ? 6 * 60 + 30 : 15 * 60),
+          endMinute: schedule.endMinute ?? (key === "outboundSchedule" ? 9 * 60 + 30 : 19 * 60),
+        });
+      }
+    };
 
     return (
-      <div className="saved-commute-notification-block" key={key}>
-        <label className="saved-commute-notification-leg-toggle" aria-disabled={!available}>
-          <input
-            type="checkbox"
-            checked={enabled && available}
-            disabled={!rule.enabled || !available}
-            onChange={(event) => setEnabled(event.target.checked)}
-          />
-          {label}
-        </label>
-        <div className="saved-commute-notification-segmented" role="group" aria-label={`${label} notification window`}>
+      <section className="saved-commute-schedule" data-enabled={controlsEnabled} key={key}>
+        <div className="saved-commute-schedule-header">
+          <label className="saved-commute-notification-leg-toggle" aria-disabled={!available}>
+            <input
+              type="checkbox"
+              aria-label={`${label} notifications`}
+              checked={enabled && available}
+              disabled={!rule.enabled || !available}
+              onChange={(event) => setEnabled(event.target.checked)}
+            />
+          </label>
           <button
             type="button"
-            aria-pressed={morningRush}
-            disabled={!controlsEnabled}
-            onClick={() => updateSchedule(key, { dayMask: 62, startMinute: 6 * 60 + 30, endMinute: 9 * 60 + 30 })}
+            className="saved-commute-schedule-disclosure"
+            aria-label={`Configure ${label} schedule`}
+            aria-expanded={expanded}
+            aria-controls={`${key}-notification-controls`}
+            onClick={() => setExpandedSchedules((current) => ({ ...current, [key]: !current[key] }))}
           >
-            AM Rush
-          </button>
-          <button
-            type="button"
-            aria-pressed={eveningRush}
-            disabled={!controlsEnabled}
-            onClick={() => updateSchedule(key, { dayMask: 62, startMinute: 15 * 60, endMinute: 19 * 60 })}
-          >
-            PM Rush
-          </button>
-          <button
-            type="button"
-            aria-pressed={allDay}
-            disabled={!controlsEnabled}
-            onClick={() => updateSchedule(key, { startMinute: null, endMinute: null })}
-          >
-            All Day
-          </button>
-          <button
-            type="button"
-            aria-pressed={customWindow && !morningRush && !eveningRush}
-            disabled={!controlsEnabled}
-            onClick={() => updateSchedule(key, {
-              dayMask: allDay ? 62 : schedule.dayMask,
-              startMinute: schedule.startMinute ?? (key === "outboundSchedule" ? 6 * 60 + 30 : 15 * 60),
-              endMinute: schedule.endMinute ?? (key === "outboundSchedule" ? 9 * 60 + 30 : 19 * 60),
-            })}
-          >
-            Custom
+            <span className="saved-commute-schedule-copy">
+              <span className="saved-commute-route-label">
+                {key === "outboundSchedule"
+                  ? <ArrowUpRight size={17} aria-hidden="true" />
+                  : <ArrowDownLeft size={17} aria-hidden="true" />}
+                <span>{label}</span>
+              </span>
+              <span className="saved-commute-schedule-summary">
+                {enabled && available ? formatScheduleSummary(schedule) : "Off"}
+              </span>
+            </span>
+            <ChevronDown className={expanded ? "is-open" : undefined} size={17} strokeWidth={2.5} aria-hidden="true" />
           </button>
         </div>
-        <div className="saved-commute-day-grid" role="group" aria-label={`${label} notification days`}>
-          {NOTIFICATION_DAY_OPTIONS.map((day) => (
-            <button
-              key={day.bit}
-              type="button"
-              className="saved-commute-day-button"
-              aria-pressed={(schedule.dayMask & day.bit) !== 0}
-              disabled={!controlsEnabled}
-              onClick={() => setDay(day.bit)}
-            >
-              {day.label}
-            </button>
-          ))}
-        </div>
-        {customWindow ? (
-          <div className="saved-commute-time-window">
-            <label>
-              <span>Start</span>
-              <input
-                type="time"
-                value={minuteToTimeValue(schedule.startMinute)}
-                disabled={!controlsEnabled}
-                onChange={(event) => updateSchedule(key, { startMinute: timeValueToMinute(event.target.value) })}
-              />
-            </label>
-            <label>
-              <span>End</span>
-              <input
-                type="time"
-                value={minuteToTimeValue(schedule.endMinute)}
-                disabled={!controlsEnabled}
-                onChange={(event) => updateSchedule(key, { endMinute: timeValueToMinute(event.target.value) })}
-              />
-            </label>
+        {expanded ? (
+          <div className="saved-commute-schedule-controls" id={`${key}-notification-controls`}>
+            <div className="saved-commute-notification-segmented" role="group" aria-label={`${label} notification window`}>
+              {([
+                ["am-rush", "AM Rush", Sunrise],
+                ["pm-rush", "PM Rush", Sunset],
+                ["all-day", "Every Day", Sun],
+                ["custom", "Custom", SlidersHorizontal],
+              ] as const).map(([value, optionLabel, OptionIcon]) => (
+                <button
+                  key={value}
+                  type="button"
+                  aria-pressed={mode === value}
+                  disabled={!controlsEnabled}
+                  onClick={() => selectMode(value)}
+                >
+                  <OptionIcon size={14} aria-hidden="true" />
+                  <span>{optionLabel}</span>
+                </button>
+              ))}
+            </div>
+            {mode === "custom" ? (
+              <div className="saved-commute-custom-schedule">
+                <strong>Days</strong>
+                <div className="saved-commute-day-grid" role="group" aria-label={`${label} notification days`}>
+                  {NOTIFICATION_DAY_OPTIONS.map((day) => (
+                    <button
+                      key={day.bit}
+                      type="button"
+                      className="saved-commute-day-button"
+                      aria-pressed={(schedule.dayMask & day.bit) !== 0}
+                      disabled={!controlsEnabled}
+                      onClick={() => setDay(day.bit)}
+                    >
+                      {day.label}
+                    </button>
+                  ))}
+                </div>
+                <div className="saved-commute-time-window">
+                  <label>
+                    <span>Start</span>
+                    <input
+                      type="time"
+                      aria-label={`${label} start time`}
+                      value={minuteToTimeValue(schedule.startMinute)}
+                      disabled={!controlsEnabled}
+                      onChange={(event) => updateSchedule(key, { startMinute: timeValueToMinute(event.target.value) })}
+                    />
+                  </label>
+                  <label>
+                    <span>End</span>
+                    <input
+                      type="time"
+                      aria-label={`${label} end time`}
+                      value={minuteToTimeValue(schedule.endMinute)}
+                      disabled={!controlsEnabled}
+                      onChange={(event) => updateSchedule(key, { endMinute: timeValueToMinute(event.target.value) })}
+                    />
+                  </label>
+                </div>
+              </div>
+            ) : null}
           </div>
         ) : null}
-      </div>
+      </section>
     );
   }
 
   return (
-    <div className="saved-commute-notification-rule flex flex-col gap-3">
-      <label className="saved-commute-return-toggle saved-commute-notification-master">
-        <div className="saved-commute-switch">
-          <input
-            type="checkbox"
-            checked={rule.enabled}
-            onChange={(event) => updateRule({ enabled: event.target.checked })}
-          />
-          <span className="saved-commute-slider"></span>
+    <div className="saved-commute-notification-rule">
+      <div className="saved-commute-notification-master-row">
+        <div className="saved-commute-notification-master-copy">
+          <Bell size={16} aria-hidden="true" />
+          <span>
+            <strong>Route Notifications</strong>
+            <em>Get alerts for impacts along this commute.</em>
+          </span>
         </div>
-        <span>Notify Me For This Route</span>
-      </label>
-
-      {renderLegSchedule("outboundSchedule", "Outbound Route", rule.outboundEnabled, true)}
-      <div className="station-arrival-line-divider" aria-hidden="true" />
-      {renderLegSchedule("returnSchedule", "Return Route", rule.returnEnabled, allowReturnLeg)}
-      <div className="station-arrival-line-divider" aria-hidden="true" />
-      <div className="saved-commute-notification-note">
-        <Info size={13} aria-hidden="true" />
-        <span>Toronto time (ET). Overnight windows belong to the day they start. Existing impacts notify once when a normal window opens; changing a rule does not send catch-up alerts.</span>
+        <label className="saved-commute-return-toggle saved-commute-notification-master">
+          <div className="saved-commute-switch">
+            <input
+              type="checkbox"
+              checked={rule.enabled}
+              aria-label="Route notifications"
+              onChange={(event) => updateRule({ enabled: event.target.checked })}
+            />
+            <span className="saved-commute-slider"></span>
+          </div>
+        </label>
       </div>
 
-      <div className="saved-commute-notification-block">
-        <strong>Event Types</strong>
+      <div className="saved-commute-schedule-list">
+        {renderLegSchedule("outboundSchedule", "Outbound Route", rule.outboundEnabled, true)}
+        {renderLegSchedule("returnSchedule", "Return Route", rule.returnEnabled, allowReturnLeg)}
+      </div>
+
+      <div className="saved-commute-notification-block saved-commute-event-types">
+        <span className="saved-commute-notification-section-heading">
+          <strong>Notify Me About</strong>
+          <em>Select every event type you want to receive.</em>
+        </span>
         <div className="saved-commute-notification-checks">
-          {NOTIFICATION_EVENT_OPTIONS.map((eventType) => (
-            <label key={eventType.key}>
+          {notificationEventOptionsForNetwork(networkId).map((eventType) => (
+            <label key={eventType.key} data-event-type={eventType.key}>
+              <span className="saved-commute-notification-event-label">
+                <NotificationEventIcon eventType={eventType.key} />
+                <span>{eventType.label}</span>
+              </span>
               <input
                 type="checkbox"
                 checked={rule.eventTypes[eventType.key]}
@@ -753,11 +862,24 @@ function SavedCommuteNotificationRuleEditor({
                   },
                 })}
               />
-              <span>{eventType.label}</span>
             </label>
           ))}
         </div>
       </div>
+
+      <details className="saved-commute-notification-help">
+        <summary>
+          <Info size={13} aria-hidden="true" />
+          <span>How Scheduling Works</span>
+          <ChevronDown className="saved-commute-notification-help-chevron" size={14} aria-hidden="true" />
+        </summary>
+        <ul>
+          <li>All times use Toronto time (ET).</li>
+          <li>If a time window continues past midnight, it counts as part of the day it started.</li>
+          <li>If a disruption starts outside your selected hours, you may be notified when your next notification window opens.</li>
+          <li>Changing these settings will not send an immediate notification for disruptions that are already active.</li>
+        </ul>
+      </details>
 
     </div>
   );
@@ -927,7 +1049,7 @@ export function SavedCommutesPanel({
             originStationId,
             destinationStationId,
             watchReturnTrip,
-            notificationRule: newNotificationRule,
+            notificationRule: scopeNotificationRuleToNetwork(newNotificationRule, draftNetworkId),
           });
       setAccountCommutes(editingCommuteId
         ? accountCommutes.map((commute) => commute.id === saved.id ? saved : commute)
@@ -983,7 +1105,10 @@ export function SavedCommutesPanel({
   }
 
   async function saveNotificationRule(commute: AccountSavedCommute) {
-    const draft = notificationDrafts[commute.id] ?? ruleForCommute(commute);
+    const draft = scopeNotificationRuleToNetwork(
+      notificationDrafts[commute.id] ?? ruleForCommute(commute),
+      commute.networkId ?? "ttc",
+    );
     if (hasInvalidNotificationSchedule(draft)) {
       setNotificationRuleError("Choose different start and end times for each custom notification window.");
       return;
@@ -1216,6 +1341,7 @@ export function SavedCommutesPanel({
                       rule={newNotificationRule}
                       onChange={setNewNotificationRule}
                       allowReturnLeg={watchReturnTrip}
+                      networkId={draftNetworkId}
                     />
                   </div>
                 ) : null}
@@ -1625,7 +1751,7 @@ export function SavedCommutesPanel({
                                 {commute.watchReturnTrip ? (
                                   <li>{formatLegSchedule("Return", notificationRule.returnEnabled, notificationRule.returnSchedule)}</li>
                                 ) : null}
-                                <li>{formatEventTypes(notificationRule)}</li>
+                                <li>{formatEventTypes(notificationRule, commute.networkId ?? "ttc")}</li>
                               </>
                             ) : (
                               <li>Notifications are disabled for this commute.</li>
@@ -1647,6 +1773,7 @@ export function SavedCommutesPanel({
                             rule={notificationDraft}
                             onChange={(rule) => updateNotificationDraft(commute.id, rule)}
                             allowReturnLeg={commute.watchReturnTrip}
+                            networkId={commute.networkId ?? "ttc"}
                           />
                           {notificationRuleError ? <p className="text-xs font-semibold text-red-600 dark:text-red-300">{notificationRuleError}</p> : null}
                           <div className="saved-commute-rule-actions">
