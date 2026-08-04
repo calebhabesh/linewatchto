@@ -11916,7 +11916,7 @@ img.transit-line-badge {
   gap: 0.75rem;
   justify-content: space-between;
   min-width: 0;
-  padding: 0.1rem 0 0.15rem;
+  padding: 0.25rem 0;
 }
 
 .saved-commute-notification-master-copy {
@@ -12314,9 +12314,13 @@ img.transit-line-badge {
 }
 
 .saved-commute-event-types {
-  border-top: 1px solid rgba(15, 23, 42, 0.1);
+  border: 0;
   gap: 0.55rem;
-  padding-top: 0.7rem;
+  padding-top: 0;
+}
+
+.saved-commute-notification-divider {
+  margin: 0 2px 0.1rem;
 }
 
 .saved-commute-notification-help {
@@ -12900,9 +12904,7 @@ img.transit-line-badge {
 .dark .saved-commute-schedule,
 .high-contrast .saved-commute-schedule,
 .dark .saved-commute-schedule-controls,
-.high-contrast .saved-commute-schedule-controls,
-.dark .saved-commute-event-types,
-.high-contrast .saved-commute-event-types {
+.high-contrast .saved-commute-schedule-controls {
   border-color: rgba(255, 255, 255, 0.14);
 }
 

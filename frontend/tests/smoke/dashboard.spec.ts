@@ -2513,7 +2513,6 @@ test("demo account shows account-backed saved commutes", async ({ page, request,
   await expect(page.getByLabel("Outbound Route end time")).toBeEnabled();
   await page.getByLabel("Outbound Route start time").fill("07:15");
   await expect(page.getByLabel("Outbound Route start time")).toHaveValue("07:15");
-  await page.getByRole("button", { name: "Configure Return Route schedule" }).click();
   await expect(page.getByRole("group", { name: "Return Route notification window" })
     .getByRole("button", { name: "PM Rush" })).toHaveAttribute("aria-pressed", "true");
   await page.getByText("How Scheduling Works", { exact: true }).click();
@@ -2788,6 +2787,8 @@ test("custom commute notification schedules are non-blocking", async ({ page, re
   }
 
   await page.getByRole("button", { name: "Edit Alerts" }).click();
+  await expect(page.getByRole("button", { name: "Configure Outbound Route schedule" })).toHaveAttribute("aria-expanded", "true");
+  await expect(page.getByRole("button", { name: "Configure Return Route schedule" })).toHaveAttribute("aria-expanded", "true");
   const outboundWindow = page.getByRole("group", { name: "Outbound Route notification window" });
   await outboundWindow.getByRole("button", { name: "Custom" }).click();
   await expect(outboundWindow.getByRole("button", { name: "Custom" })).toHaveAttribute("aria-pressed", "true");
@@ -2798,7 +2799,6 @@ test("custom commute notification schedules are non-blocking", async ({ page, re
   await page.getByLabel("Outbound Route start time").fill("07:15");
   await expect(page.getByLabel("Outbound Route start time")).toHaveValue("07:15");
   await expect(page.getByRole("button", { name: "Configure Outbound Route schedule" })).toContainText("Every Day · 7:15 AM-9:30 AM");
-  await page.getByRole("button", { name: "Configure Return Route schedule" }).click();
   await expect(outboundWindow).toBeVisible();
   const returnWindow = page.getByRole("group", { name: "Return Route notification window" });
   await expect(returnWindow).toBeVisible();

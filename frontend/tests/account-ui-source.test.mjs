@@ -256,6 +256,10 @@ describe("account UI source", () => {
   });
 
   it("renders saved-commute granular notification controls inside the commute feature", () => {
+    const eventTypesIndex = savedCommutesSource.indexOf('className="saved-commute-notification-block saved-commute-event-types"');
+    const masterToggleIndex = savedCommutesSource.indexOf('className="saved-commute-notification-master-row"');
+    const schedulingHelpIndex = savedCommutesSource.indexOf('className="saved-commute-notification-help"');
+
     assert.match(savedCommutesSource, /updateSavedCommuteNotificationRule/);
     assert.match(savedCommutesSource, /Route Notifications/);
     assert.match(savedCommutesSource, /How Scheduling Works/);
@@ -283,6 +287,11 @@ describe("account UI source", () => {
     assert.match(globalCss, /\.saved-commute-notification-rule/);
     assert.match(globalCss, /\.saved-commute-day-button/);
     assert.match(globalCss, /\.saved-commute-notification-help-chevron/);
+    assert.match(savedCommutesSource, /station-arrival-line-divider saved-commute-notification-divider/);
+    assert.match(globalCss, /\.saved-commute-event-types\s*\{[^}]*border:\s*0;/s);
+    assert.ok(eventTypesIndex < masterToggleIndex);
+    assert.ok(masterToggleIndex < schedulingHelpIndex);
+    assert.match(globalCss, /\.saved-commute-notification-master-row\s*\{[^}]*padding:\s*0\.25rem 0;/s);
     assert.match(globalCss, /@container \(min-width:\s*34rem\)[\s\S]*label\[data-event-type="reducedSpeedZones"\]\s*\{[^}]*order:\s*3;[\s\S]*label\[data-event-type="plannedClosures"\]\s*\{[^}]*order:\s*4;[\s\S]*label\[data-event-type="serviceRestored"\]\s*\{[^}]*order:\s*5;/s);
     assert.doesNotMatch(globalCss, /\.saved-commute-section-(grid|select)/);
   });

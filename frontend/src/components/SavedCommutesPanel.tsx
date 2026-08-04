@@ -647,7 +647,7 @@ function SavedCommuteNotificationRuleEditor({
   }));
   const [expandedSchedules, setExpandedSchedules] = useState<Record<NotificationScheduleKey, boolean>>({
     outboundSchedule: true,
-    returnSchedule: false,
+    returnSchedule: true,
   });
 
   function updateRule(patch: Partial<AccountSavedCommuteNotificationRule>) {
@@ -813,33 +813,16 @@ function SavedCommuteNotificationRuleEditor({
 
   return (
     <div className="saved-commute-notification-rule">
-      <div className="saved-commute-notification-master-row">
-        <div className="saved-commute-notification-master-copy">
-          <Bell size={16} aria-hidden="true" />
-          <span>
-            <strong>Route Notifications</strong>
-            <em>Get alerts for impacts along this commute.</em>
-          </span>
-        </div>
-        <label className="saved-commute-return-toggle saved-commute-notification-master">
-          <div className="saved-commute-switch">
-            <input
-              type="checkbox"
-              checked={rule.enabled}
-              aria-label="Route notifications"
-              onChange={(event) => updateRule({ enabled: event.target.checked })}
-            />
-            <span className="saved-commute-slider"></span>
-          </div>
-        </label>
-      </div>
-
       <div className="saved-commute-schedule-list">
         {renderLegSchedule("outboundSchedule", "Outbound Route", rule.outboundEnabled, true)}
         {renderLegSchedule("returnSchedule", "Return Route", rule.returnEnabled, allowReturnLeg)}
       </div>
 
       <div className="saved-commute-notification-block saved-commute-event-types">
+        <div
+          className="station-arrival-line-divider saved-commute-notification-divider"
+          aria-hidden="true"
+        />
         <span className="saved-commute-notification-section-heading">
           <strong>Notify Me About</strong>
           <em>Select every event type you want to receive.</em>
@@ -865,6 +848,27 @@ function SavedCommuteNotificationRuleEditor({
             </label>
           ))}
         </div>
+      </div>
+
+      <div className="saved-commute-notification-master-row">
+        <div className="saved-commute-notification-master-copy">
+          <Bell size={16} aria-hidden="true" />
+          <span>
+            <strong>Route Notifications</strong>
+            <em>Get alerts for impacts along this commute.</em>
+          </span>
+        </div>
+        <label className="saved-commute-return-toggle saved-commute-notification-master">
+          <div className="saved-commute-switch">
+            <input
+              type="checkbox"
+              checked={rule.enabled}
+              aria-label="Route notifications"
+              onChange={(event) => updateRule({ enabled: event.target.checked })}
+            />
+            <span className="saved-commute-slider"></span>
+          </div>
+        </label>
       </div>
 
       <details className="saved-commute-notification-help">
