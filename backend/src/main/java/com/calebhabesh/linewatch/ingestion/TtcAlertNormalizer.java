@@ -1,5 +1,6 @@
 package com.calebhabesh.linewatch.ingestion;
 
+import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
@@ -27,6 +28,7 @@ public class TtcAlertNormalizer {
     );
     private static final Pattern ACCESSIBILITY_STATION =
         Pattern.compile("^\\s*([^:]+):\\s+.+$");
+    private static final Duration MAX_RECURRING_CLOSURE_WINDOW = Duration.ofHours(18);
 
     private final StationAliasResolver stationAliasResolver;
     private final AlertDirectionParser directionParser;
@@ -358,7 +360,59 @@ public class TtcAlertNormalizer {
                 ));
             }
         }
-        return List.copyOf(periods);
+        return stabilizeRecurringClosurePeriods(record, periods);
+    }
+
+    private List<NormalizedAlertPeriod> stabilizeRecurringClosurePeriods(
+        TtcAlertRecord record,
+        List<NormalizedAlertPeriod> periods
+    ) {
+        if (!isRecurringPlannedClosure(record) || periods.isEmpty()) {
+            return List.copyOf(periods);
+        }
+
+        return periods.stream()
+            .map(this::collapseRecurringClosureExpiryEnvelope)
+            .toList();
+    }
+
+    private NormalizedAlertPeriod collapseRecurringClosureExpiryEnvelope(
+        NormalizedAlertPeriod period
+    ) {
+        if (period.startsAt() == null || period.endsAt() == null) {
+            return period;
+        }
+
+        OffsetDateTime canonicalEnd = period.endsAt();
+        // TTC recurring child rows can use the following day's removal envelope while
+        // retaining the nightly start date. Peel off those envelope days so dashboard
+        // gating uses the authored nightly occurrence rather than a 24+ hour span.
+        while (Duration.between(period.startsAt(), canonicalEnd)
+            .compareTo(MAX_RECURRING_CLOSURE_WINDOW) > 0) {
+            OffsetDateTime previousDay = canonicalEnd.minusDays(1);
+            if (!previousDay.isAfter(period.startsAt())) {
+                break;
+            }
+            canonicalEnd = previousDay;
+        }
+        return canonicalEnd.equals(period.endsAt())
+            ? period
+            : new NormalizedAlertPeriod(
+                period.sourcePeriodId(),
+                period.startsAt(),
+                canonicalEnd,
+                period.sortOrder()
+            );
+    }
+
+    private boolean isRecurringPlannedClosure(TtcAlertRecord record) {
+        if (!isPlannedClosure(record)) {
+            return false;
+        }
+        String text = sourceText(record);
+        return text.contains("nightly")
+            || text.contains("closure windows")
+            || text.contains("early access");
     }
 
     private OffsetDateTime sourceTime(TtcAlertRecord record, OffsetDateTime value) {

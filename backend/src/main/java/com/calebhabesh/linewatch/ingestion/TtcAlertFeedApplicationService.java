@@ -81,10 +81,12 @@ public class TtcAlertFeedApplicationService {
             }
         }
 
-        List<NormalizedRouteAlert> liveAlerts = routeCandidates.stream()
+        List<NormalizedRouteAlert> reconciledRouteCandidates =
+            TtcPlannedClosureWindowReconciler.reconcile(routeCandidates, now);
+        List<NormalizedRouteAlert> liveAlerts = reconciledRouteCandidates.stream()
             .filter(alert -> !isGtfsRt(alert))
             .toList();
-        for (NormalizedRouteAlert alert : routeCandidates) {
+        for (NormalizedRouteAlert alert : reconciledRouteCandidates) {
             boolean duplicateGtfsRt = isGtfsRt(alert)
                 && liveAlerts.stream().anyMatch(
                     live -> duplicateMatcher.isGtfsRtDuplicateOfLive(alert, live)

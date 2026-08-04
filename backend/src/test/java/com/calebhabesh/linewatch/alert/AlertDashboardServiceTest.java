@@ -11,6 +11,7 @@ import com.calebhabesh.linewatch.ingestion.IngestionFreshness;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
@@ -981,6 +982,162 @@ class AlertDashboardServiceTest {
     }
 
     @Test
+    void recurringClosureTransitionsFromPlannedToActiveAndBackDespiteRestorationChild() {
+        MutableClock lifecycleClock = new MutableClock(
+            Instant.parse("2026-08-04T04:59:00Z"),
+            ZoneOffset.UTC
+        );
+        AlertDashboardService lifecycleService = new AlertDashboardService(
+            alertRepository,
+            lineSegmentRepository,
+            new AlertSegmentMatcher(),
+            new ReducedSpeedZoneProjector(
+                new AlertSegmentMatcher(),
+                new com.calebhabesh.linewatch.ingestion.AlertDirectionParser()
+            ),
+            ingestionFreshness,
+            alertActivePeriodRepository,
+            ttcAlertStore,
+            lifecycleClock
+        );
+        when(ingestionFreshness.isDashboardFresh()).thenReturn(true);
+
+        AlertEntity parent = withLine(alert(
+            "ttc-route-73253",
+            "planned-closure",
+            "planned",
+            "Nightly closure between Lawrence West and St George",
+            "Shuttle buses will operate.",
+            "lawrence-west",
+            "st-george",
+            OffsetDateTime.parse("2026-07-31T12:56:46.83Z"),
+            "Will Operate"
+        ), "line-1", "1");
+        ReflectionTestUtils.setField(
+            parent,
+            "activePeriodStart",
+            OffsetDateTime.parse("2026-07-31T12:56:46.83Z")
+        );
+        ReflectionTestUtils.setField(
+            parent,
+            "activePeriodEnd",
+            OffsetDateTime.parse("2026-08-06T05:00:00Z")
+        );
+
+        AlertEntity child = withLine(alert(
+            "ttc-route-73254",
+            "planned-closure",
+            "planned",
+            "There is no subway service between Lawrence West and St George stations",
+            "Shuttle buses are running.",
+            "lawrence-west",
+            "st-george",
+            OffsetDateTime.parse("2026-08-04T05:00:01Z"),
+            "Running"
+        ), "line-1", "1");
+        ReflectionTestUtils.setField(child, "effect", "NO_SERVICE");
+        ReflectionTestUtils.setField(child, "effectDescription", "No Service");
+
+        List<AlertActivePeriodRepository.AlertPeriod> periods = List.of(
+            new AlertActivePeriodRepository.AlertPeriod(
+                "ttc-route-73253",
+                "73254",
+                OffsetDateTime.parse("2026-08-04T05:00:00Z"),
+                OffsetDateTime.parse("2026-08-04T07:30:00Z"),
+                0
+            ),
+            new AlertActivePeriodRepository.AlertPeriod(
+                "ttc-route-73253",
+                "73255",
+                OffsetDateTime.parse("2026-08-05T05:00:00Z"),
+                OffsetDateTime.parse("2026-08-05T07:30:00Z"),
+                1
+            )
+        );
+        when(alertRepository.findByActiveTrueAndType("planned-closure"))
+            .thenReturn(List.of(parent, child));
+        when(alertRepository.findByActiveTrueAndType("active-alert"))
+            .thenReturn(List.of());
+        when(lineSegmentRepository.findAllByOrderBySortOrderAsc()).thenReturn(List.of(
+            segment(
+                "line-1-lawrence-west-st-george",
+                "line-1",
+                "lawrence-west",
+                "st-george",
+                10
+            )
+        ));
+        when(alertActivePeriodRepository.findByAlertIds(List.of(
+            "ttc-route-73253",
+            "ttc-route-73254"
+        ))).thenReturn(Map.of("ttc-route-73253", periods));
+
+        assertThat(lifecycleService.plannedClosures()).singleElement().satisfies(closure -> {
+            assertThat(closure.activeNow()).isFalse();
+            assertThat(closure.timingStatus()).isEqualTo("upcoming");
+        });
+        assertThat(lifecycleService.activeAlerts()).isEmpty();
+        assertThat(lifecycleService.activeSegmentImpacts())
+            .doesNotContainKey("line-1-lawrence-west-st-george");
+
+        lifecycleClock.advanceTo("2026-08-04T05:01:00Z");
+
+        assertThat(lifecycleService.plannedClosures()).singleElement().satisfies(closure -> {
+            assertThat(closure.activeNow()).isTrue();
+            assertThat(closure.timingStatus()).isEqualTo("active-now");
+        });
+        assertThat(lifecycleService.activeAlerts()).singleElement().satisfies(active -> {
+            assertThat(active.id()).isEqualTo("ttc-route-73254");
+            assertThat(active.relatedPlannedClosureId()).isEqualTo("ttc-route-73253");
+        });
+        assertThat(lifecycleService.activeSegmentImpacts()
+            .get("line-1-lawrence-west-st-george")).singleElement().satisfies(impact -> {
+                assertThat(impact.kind()).isEqualTo("suspension");
+                assertThat(impact.cardId()).isEqualTo("ttc-route-73254");
+            });
+
+        lifecycleClock.advanceTo("2026-08-04T05:26:00Z");
+        ReflectionTestUtils.setField(child, "effect", "NO_EFFECT");
+        ReflectionTestUtils.setField(child, "effectDescription", "Regular service");
+        ReflectionTestUtils.setField(child, "severity", "Regular");
+        ReflectionTestUtils.setField(
+            child,
+            "title",
+            "Regular service has resumed between Lawrence West and St George stations."
+        );
+
+        assertThat(lifecycleService.plannedClosures()).singleElement().satisfies(closure -> {
+            assertThat(closure.activeNow()).isTrue();
+            assertThat(closure.activeWindowEnd())
+                .isEqualTo(OffsetDateTime.parse("2026-08-04T07:30:00Z"));
+        });
+        assertThat(lifecycleService.activeAlerts()).singleElement().satisfies(active -> {
+            assertThat(active.id()).isEqualTo("ttc-route-73253");
+            assertThat(active.title()).isEqualTo(
+                "Nightly closure between Lawrence West and St George"
+            );
+            assertThat(active.relatedPlannedClosureId()).isNull();
+        });
+        assertThat(lifecycleService.activeSegmentImpacts()
+            .get("line-1-lawrence-west-st-george")).singleElement().satisfies(impact -> {
+                assertThat(impact.kind()).isEqualTo("suspension");
+                assertThat(impact.cardId()).isEqualTo("ttc-route-73253");
+            });
+
+        lifecycleClock.advanceTo("2026-08-04T07:31:00Z");
+
+        assertThat(lifecycleService.plannedClosures()).singleElement().satisfies(closure -> {
+            assertThat(closure.activeNow()).isFalse();
+            assertThat(closure.timingStatus()).isEqualTo("upcoming");
+            assertThat(closure.nextWindowStart())
+                .isEqualTo(OffsetDateTime.parse("2026-08-05T05:00:00Z"));
+        });
+        assertThat(lifecycleService.activeAlerts()).isEmpty();
+        assertThat(lifecycleService.activeSegmentImpacts())
+            .doesNotContainKey("line-1-lawrence-west-st-george");
+    }
+
+    @Test
     void recurringClosureDoesNotUseMultiDayParentWindowAsActiveMapImpact() {
         Clock fridayAfternoon = Clock.fixed(
             Instant.parse("2026-06-05T17:37:00Z"),
@@ -1645,5 +1802,34 @@ class AlertDashboardServiceTest {
             null,
             null
         );
+    }
+
+    private static final class MutableClock extends Clock {
+        private Instant instant;
+        private final ZoneId zone;
+
+        private MutableClock(Instant instant, ZoneId zone) {
+            this.instant = instant;
+            this.zone = zone;
+        }
+
+        private void advanceTo(String instant) {
+            this.instant = Instant.parse(instant);
+        }
+
+        @Override
+        public ZoneId getZone() {
+            return zone;
+        }
+
+        @Override
+        public Clock withZone(ZoneId zone) {
+            return new MutableClock(instant, zone);
+        }
+
+        @Override
+        public Instant instant() {
+            return instant;
+        }
     }
 }

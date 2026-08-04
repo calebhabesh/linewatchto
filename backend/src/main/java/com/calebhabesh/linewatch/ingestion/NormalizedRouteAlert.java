@@ -36,4 +36,15 @@ public record NormalizedRouteAlert(
     List<String> stationIds,
     List<NormalizedAlertPeriod> periods,
     String fingerprint
-) {}
+) {
+    public NormalizedRouteAlert withPeriods(List<NormalizedAlertPeriod> periods) {
+        return new NormalizedRouteAlert(
+            id, sourceId, lineId, type, severity, title, description, sourceAlertType,
+            effect, effectDescription, direction, cause, causeDescription, targetRemoval,
+            impactKind, rszLength, stationDistance, trackPercent, reducedSpeed, averageSpeed,
+            startStationId, endStationId, activePeriodStart, activePeriodEnd, sourceUpdatedAt,
+            shuttleType, shuttleStart, shuttleEnd, rawPayload, stationIds, List.copyOf(periods),
+            fingerprint
+        );
+    }
+}

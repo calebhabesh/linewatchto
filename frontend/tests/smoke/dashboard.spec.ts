@@ -2480,7 +2480,15 @@ test("demo account shows account-backed saved commutes", async ({ page, request,
   await expect(page.getByText("Major Disruption on Route", { exact: true })).toBeVisible();
   await expect(page.getByText("Travel Time", { exact: true })).toBeVisible();
   await expect(page.locator('[data-travel-time-severity="severe"]')).toBeVisible();
-  await expect(page.getByText("Major disruption on this route; travel time is not reliable.")).toBeVisible();
+  await expect(page.getByText("Major Disruption on Route — Travel Time Not Reliable", { exact: true })).toBeVisible();
+  await expect(page.getByText("Typical 13 min", { exact: true })).toBeVisible();
+  await expect(page.getByText("Confidence: Low", { exact: true })).toBeVisible();
+  await expect(page.locator(".saved-commute-time-status-value").filter({ hasText: "13 min" })).toHaveCSS("color", "rgb(255, 255, 255)");
+  await expect(page.locator(".saved-commute-time-status-value").filter({ hasText: "Low" })).toHaveCSS("text-transform", "none");
+  const unreliableMetadata = page.locator(".saved-commute-time-estimate.unreliable p");
+  await expect(unreliableMetadata.locator(":scope > strong")).toHaveCSS("font-size", "16px");
+  await expect(unreliableMetadata.locator(":scope > span")).toHaveCSS("font-size", "16px");
+  await expect(unreliableMetadata.locator(":scope > span")).toHaveCSS("text-transform", "none");
   await expect(page.getByText("Route Notifications: On", { exact: true })).toBeVisible();
   await expect(page.getByText("Outbound: Weekdays · 6:30 AM-9:30 AM", { exact: true })).toBeVisible();
   await expect(page.getByText("Return: Weekdays · 3:00 PM-7:00 PM", { exact: true })).toBeVisible();

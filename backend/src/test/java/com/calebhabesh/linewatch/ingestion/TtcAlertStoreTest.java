@@ -3,6 +3,7 @@ package com.calebhabesh.linewatch.ingestion;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.OffsetDateTime;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -95,5 +96,82 @@ class TtcAlertStoreTest {
         assertThat(params.getValue("active")).isEqualTo(true);
         assertThat(params.getValue("sourceUpdatedAt")).isEqualTo(alert.sourceUpdatedAt());
     }
-}
 
+    @Test
+    void preservesStartedCanonicalClosureWindowAcrossShortRestorationUpdate() {
+        OffsetDateTime now = OffsetDateTime.parse("2026-08-04T05:26:52Z");
+        NormalizedAlertPeriod canonical = new NormalizedAlertPeriod(
+            "73254",
+            OffsetDateTime.parse("2026-08-04T05:00:00Z"),
+            OffsetDateTime.parse("2026-08-04T07:30:00Z"),
+            0
+        );
+        NormalizedAlertPeriod restorationMutation = new NormalizedAlertPeriod(
+            "73254",
+            OffsetDateTime.parse("2026-08-04T05:00:00Z"),
+            OffsetDateTime.parse("2026-08-04T05:24:44.85Z"),
+            0
+        );
+
+        assertThat(TtcAlertStore.reconcilePlannedClosurePeriods(
+            List.of(canonical),
+            List.of(restorationMutation),
+            now,
+            true
+        )).containsExactly(canonical);
+    }
+
+    @Test
+    void acceptsFutureScheduleChangesAndRetainsTemporarilyMissingActiveWindow() {
+        OffsetDateTime now = OffsetDateTime.parse("2026-08-04T05:26:52Z");
+        NormalizedAlertPeriod active = new NormalizedAlertPeriod(
+            "active-child",
+            OffsetDateTime.parse("2026-08-04T05:00:00Z"),
+            OffsetDateTime.parse("2026-08-04T07:30:00Z"),
+            0
+        );
+        NormalizedAlertPeriod oldFuture = new NormalizedAlertPeriod(
+            "future-child",
+            OffsetDateTime.parse("2026-08-05T05:00:00Z"),
+            OffsetDateTime.parse("2026-08-05T07:30:00Z"),
+            1
+        );
+        NormalizedAlertPeriod revisedFuture = new NormalizedAlertPeriod(
+            "future-child",
+            OffsetDateTime.parse("2026-08-05T06:00:00Z"),
+            OffsetDateTime.parse("2026-08-05T08:00:00Z"),
+            1
+        );
+
+        assertThat(TtcAlertStore.reconcilePlannedClosurePeriods(
+            List.of(active, oldFuture),
+            List.of(revisedFuture),
+            now,
+            true
+        )).containsExactly(active, revisedFuture);
+    }
+
+    @Test
+    void replacesStartedExpiryEnvelopeWithNormalizedCanonicalWindow() {
+        OffsetDateTime now = OffsetDateTime.parse("2026-08-04T05:10:00Z");
+        NormalizedAlertPeriod expiryEnvelope = new NormalizedAlertPeriod(
+            "active-child",
+            OffsetDateTime.parse("2026-08-04T05:00:00Z"),
+            OffsetDateTime.parse("2026-08-05T07:30:00Z"),
+            0
+        );
+        NormalizedAlertPeriod canonical = new NormalizedAlertPeriod(
+            "active-child",
+            OffsetDateTime.parse("2026-08-04T05:00:00Z"),
+            OffsetDateTime.parse("2026-08-04T07:30:00Z"),
+            0
+        );
+
+        assertThat(TtcAlertStore.reconcilePlannedClosurePeriods(
+            List.of(expiryEnvelope),
+            List.of(canonical),
+            now,
+            true
+        )).containsExactly(canonical);
+    }
+}

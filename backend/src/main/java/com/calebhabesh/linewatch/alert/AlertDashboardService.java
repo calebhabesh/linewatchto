@@ -7,6 +7,7 @@ import com.calebhabesh.linewatch.station.TransitLineEntity;
 import com.calebhabesh.linewatch.ingestion.AlertDirection;
 import com.calebhabesh.linewatch.ingestion.IngestionFreshness;
 import com.calebhabesh.linewatch.ingestion.TtcAlertStore;
+import com.calebhabesh.linewatch.ingestion.TtcServiceState;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.LocalDate;
@@ -211,9 +212,21 @@ public class AlertDashboardService {
                 toPlannedClosure(aw.alert, segments, aw.ws),
                 aw.ws.activeSourcePeriodId() == null
                     ? null
-                    : alertsBySourceId.get(aw.ws.activeSourcePeriodId())
+                    : currentClosureSourceAlert(
+                        alertsBySourceId.get(aw.ws.activeSourcePeriodId())
+                    )
             ))
             .toList();
+    }
+
+    private AlertEntity currentClosureSourceAlert(AlertEntity alert) {
+        return alert == null || TtcServiceState.isRestoration(
+            alert.getEffect(),
+            alert.getSeverity(),
+            alert.getTitle(),
+            alert.getDescription(),
+            alert.getEffectDescription()
+        ) ? null : alert;
     }
 
     public List<PlannedClosureDto> activePlannedClosures() {

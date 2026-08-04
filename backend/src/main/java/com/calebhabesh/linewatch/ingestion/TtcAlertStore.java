@@ -1,8 +1,13 @@
 package com.calebhabesh.linewatch.ingestion;
 
 import com.calebhabesh.linewatch.alert.RawAlertDto;
+import java.time.Duration;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -12,6 +17,9 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public class TtcAlertStore {
+    private static final Duration MAX_RECURRING_CLOSURE_WINDOW = Duration.ofHours(18);
+    private static final Duration MIN_RECURRING_CLOSURE_WINDOW = Duration.ofHours(1);
+
     private final NamedParameterJdbcTemplate jdbc;
 
     public TtcAlertStore(NamedParameterJdbcTemplate jdbc) {
@@ -123,7 +131,7 @@ public class TtcAlertStore {
             """, params);
 
         replaceAlertStations(alert);
-        replaceAlertPeriods(alert);
+        replaceAlertPeriods(alert, now);
         if (shouldAppendActiveSnapshot(
             existingAlert == null ? null : existingAlert.fingerprint(),
             existingAlert == null ? null : existingAlert.active(),
@@ -343,7 +351,16 @@ public class TtcAlertStore {
                 .toList());
     }
 
-    private void replaceAlertPeriods(NormalizedRouteAlert alert) {
+    private void replaceAlertPeriods(NormalizedRouteAlert alert, OffsetDateTime now) {
+        List<NormalizedAlertPeriod> existingPeriods = findAlertPeriods(alert.id());
+        boolean preserveStartedWindows = alert.impactKind() == AlertImpactKind.PLANNED_CLOSURE
+            && (hasChildPeriods(alert.periods()) || hasChildPeriods(existingPeriods));
+        List<NormalizedAlertPeriod> periods = reconcilePlannedClosurePeriods(
+            existingPeriods,
+            alert.periods(),
+            now,
+            preserveStartedWindows
+        );
         jdbc.update(
             "delete from alert_active_periods where alert_id = :alertId",
             new MapSqlParameterSource("alertId", alert.id())
@@ -354,7 +371,7 @@ public class TtcAlertStore {
             ) values (
                 :alertId, :sourcePeriodId, :startsAt, :endsAt, :sortOrder
             )
-            """, alert.periods().stream()
+            """, periods.stream()
                 .map(period -> new MapSqlParameterSource()
                     .addValue("alertId", alert.id())
                     .addValue("sourcePeriodId", period.sourcePeriodId())
@@ -362,6 +379,139 @@ public class TtcAlertStore {
                     .addValue("endsAt", period.endsAt())
                     .addValue("sortOrder", period.sortOrder()))
                 .toList());
+    }
+
+    private List<NormalizedAlertPeriod> findAlertPeriods(String alertId) {
+        return jdbc.query("""
+            select source_period_id, starts_at, ends_at, sort_order
+            from alert_active_periods
+            where alert_id = :alertId
+            order by sort_order asc
+            """, new MapSqlParameterSource("alertId", alertId), (rs, rowNum) ->
+            new NormalizedAlertPeriod(
+                rs.getString("source_period_id"),
+                rs.getObject("starts_at", OffsetDateTime.class),
+                rs.getObject("ends_at", OffsetDateTime.class),
+                rs.getInt("sort_order")
+            )
+        );
+    }
+
+    static List<NormalizedAlertPeriod> reconcilePlannedClosurePeriods(
+        List<NormalizedAlertPeriod> existingPeriods,
+        List<NormalizedAlertPeriod> incomingPeriods,
+        OffsetDateTime now,
+        boolean preserveStartedWindows
+    ) {
+        if (!preserveStartedWindows || existingPeriods == null || existingPeriods.isEmpty()) {
+            return incomingPeriods == null ? List.of() : List.copyOf(incomingPeriods);
+        }
+
+        // Once an authored occurrence starts, a mutable child lifecycle must not
+        // shorten or temporarily remove it. Future occurrences remain fully editable.
+        Map<String, NormalizedAlertPeriod> existingBySourceId = new LinkedHashMap<>();
+        for (NormalizedAlertPeriod period : existingPeriods) {
+            existingBySourceId.put(period.sourcePeriodId(), period);
+        }
+
+        List<NormalizedAlertPeriod> reconciled = new ArrayList<>();
+        Set<String> incomingSourceIds = new java.util.LinkedHashSet<>();
+        List<NormalizedAlertPeriod> suppliedPeriods = incomingPeriods == null
+            ? List.of()
+            : incomingPeriods;
+        for (NormalizedAlertPeriod incoming : suppliedPeriods) {
+            incomingSourceIds.add(incoming.sourcePeriodId());
+            NormalizedAlertPeriod existing = existingBySourceId.get(incoming.sourcePeriodId());
+            reconciled.add(shouldPreserveStartedWindow(existing, incoming, now)
+                ? preserveCanonicalWindow(existing, incoming)
+                : incoming);
+        }
+
+        for (NormalizedAlertPeriod existing : existingPeriods) {
+            if (!incomingSourceIds.contains(existing.sourcePeriodId())
+                && isActiveWindow(existing, now)) {
+                reconciled.add(existing);
+            }
+        }
+
+        return reconciled.stream()
+            .sorted(Comparator.comparingInt(NormalizedAlertPeriod::sortOrder)
+                .thenComparing(NormalizedAlertPeriod::sourcePeriodId))
+            .toList();
+    }
+
+    private static boolean hasChildPeriods(List<NormalizedAlertPeriod> periods) {
+        return periods != null && periods.stream()
+            .anyMatch(period -> !"parent".equalsIgnoreCase(period.sourcePeriodId()));
+    }
+
+    private static boolean shouldPreserveStartedWindow(
+        NormalizedAlertPeriod existing,
+        NormalizedAlertPeriod incoming,
+        OffsetDateTime now
+    ) {
+        OffsetDateTime start = existing == null ? null : existing.startsAt();
+        if (start == null && incoming != null) {
+            start = incoming.startsAt();
+        }
+        return existing != null
+            && start != null
+            && !start.isAfter(now)
+            && !incomingCorrectsExpiryEnvelope(existing, incoming);
+    }
+
+    private static boolean incomingCorrectsExpiryEnvelope(
+        NormalizedAlertPeriod existing,
+        NormalizedAlertPeriod incoming
+    ) {
+        Duration existingDuration = duration(existing);
+        Duration incomingDuration = duration(incoming);
+        return existingDuration != null
+            && existingDuration.compareTo(MAX_RECURRING_CLOSURE_WINDOW) > 0
+            && incomingDuration != null
+            && incomingDuration.compareTo(MIN_RECURRING_CLOSURE_WINDOW) >= 0
+            && incomingDuration.compareTo(MAX_RECURRING_CLOSURE_WINDOW) <= 0;
+    }
+
+    private static Duration duration(NormalizedAlertPeriod period) {
+        if (period == null || period.startsAt() == null || period.endsAt() == null
+            || !period.endsAt().isAfter(period.startsAt())) {
+            return null;
+        }
+        return Duration.between(period.startsAt(), period.endsAt());
+    }
+
+    private static NormalizedAlertPeriod preserveCanonicalWindow(
+        NormalizedAlertPeriod existing,
+        NormalizedAlertPeriod incoming
+    ) {
+        OffsetDateTime startsAt = earlier(existing.startsAt(), incoming.startsAt());
+        OffsetDateTime endsAt = later(existing.endsAt(), incoming.endsAt());
+        return new NormalizedAlertPeriod(
+            incoming.sourcePeriodId(),
+            startsAt,
+            endsAt,
+            incoming.sortOrder()
+        );
+    }
+
+    private static boolean isActiveWindow(NormalizedAlertPeriod period, OffsetDateTime now) {
+        return period.startsAt() != null
+            && !period.startsAt().isAfter(now)
+            && period.endsAt() != null
+            && period.endsAt().isAfter(now);
+    }
+
+    private static OffsetDateTime earlier(OffsetDateTime first, OffsetDateTime second) {
+        if (first == null) return second;
+        if (second == null) return first;
+        return first.isBefore(second) ? first : second;
+    }
+
+    private static OffsetDateTime later(OffsetDateTime first, OffsetDateTime second) {
+        if (first == null) return second;
+        if (second == null) return first;
+        return first.isAfter(second) ? first : second;
     }
 
     private MapSqlParameterSource routeSnapshotParams(

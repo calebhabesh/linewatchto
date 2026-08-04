@@ -13386,7 +13386,7 @@ img.transit-line-badge {
   display: grid;
   gap: 0.25rem;
   justify-items: center;
-  padding: 0.15rem 0.5rem 0.2rem;
+  padding: 0.35rem 0.5rem;
   text-align: center;
 }
 
@@ -13394,6 +13394,29 @@ img.transit-line-badge {
 .saved-commute-time-estimate.unreliable p span {
   margin-top: 0;
   max-width: 34rem;
+}
+
+.saved-commute-time-estimate.unreliable p > strong,
+.saved-commute-time-estimate.unreliable p > span {
+  font-size: 1rem !important;
+  font-weight: 850;
+  text-transform: none !important;
+}
+
+.saved-commute-time-estimate.unreliable .saved-commute-time-verdict {
+  text-align: center;
+  width: 100%;
+}
+
+.saved-commute-time-estimate .saved-commute-time-status-value {
+  color: rgb(9, 9, 11);
+  font: inherit;
+  text-transform: none;
+}
+
+.dark .saved-commute-time-estimate .saved-commute-time-status-value,
+.high-contrast .saved-commute-time-estimate .saved-commute-time-status-value {
+  color: #fff;
 }
 
 .saved-commute-time-estimate.severity-good .saved-commute-time-verdict,

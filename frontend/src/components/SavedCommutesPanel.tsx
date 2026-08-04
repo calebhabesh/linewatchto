@@ -383,11 +383,17 @@ function TravelTimeEstimateBlock({ leg }: { leg: AccountCommuteLeg }) {
         <strong>Travel Time</strong>
       </div>
       <p>
-        <strong>Typical {formatEstimateDuration(estimate.baselineSeconds)}</strong>
+        <strong>
+          Typical <b className="saved-commute-time-status-value">{formatEstimateDuration(estimate.baselineSeconds)}</b>
+        </strong>
         <em className="saved-commute-time-verdict">
-          {estimate.summary || "Major disruption on this route; travel time is not reliable."}
+          {estimate.status === "unreliable"
+            ? "Major Disruption on Route — Travel Time Not Reliable"
+            : "Travel Time Estimate Unavailable"}
         </em>
-        <span>Confidence: {formatConfidenceLabel(estimate.confidence)}</span>
+        <span>
+          Confidence: <b className="saved-commute-time-status-value">{formatConfidenceLabel(estimate.confidence)}</b>
+        </span>
       </p>
     </div>
   );

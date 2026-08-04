@@ -82,6 +82,96 @@ class TtcAlertNormalizerTest {
     }
 
     @Test
+    void collapsesRecurringClosureExpiryEnvelopesToTheirNightlyWindow() {
+        TtcAlertRecord record = new TtcAlertRecord(
+            "73253",
+            "Planned",
+            OffsetDateTime.parse("2026-07-31T08:56:46.83Z"),
+            new TtcAlertActivePeriod(
+                OffsetDateTime.parse("2026-07-31T08:56:46.83Z"),
+                OffsetDateTime.parse("2026-08-06T01:00:00Z")
+            ),
+            List.of("Current"),
+            "1",
+            "Subway",
+            "Lawrence West",
+            "St George",
+            List.of(
+                "Lawrence West",
+                "Glencairn",
+                "Cedarvale",
+                "St Clair West",
+                "Dupont",
+                "Spadina",
+                "St George"
+            ),
+            "There will be no subway service between Lawrence West and St George stations, "
+                + "starting 1 a.m., nightly Tuesday, August 4 to Wednesday, August 5, "
+                + "due to planned track work.",
+            "",
+            "Line 1: nightly planned closure",
+            "REDUCED_SERVICE",
+            "Subway Closure - Early Access",
+            "Both ways",
+            "MAINTENANCE",
+            "CLOSURE - Planned Track Work",
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            "Will Operate",
+            null,
+            null,
+            null,
+            null,
+            List.of(
+                new TtcAlertChildPeriod(
+                    "73254",
+                    OffsetDateTime.parse("2026-08-04T01:00:00Z"),
+                    OffsetDateTime.parse("2026-08-04T01:24:44.85Z")
+                ),
+                new TtcAlertChildPeriod(
+                    "73255",
+                    OffsetDateTime.parse("2026-08-05T01:00:00Z"),
+                    OffsetDateTime.parse("2026-08-06T03:30:00Z")
+                ),
+                new TtcAlertChildPeriod(
+                    "73256",
+                    OffsetDateTime.parse("2026-08-06T01:00:00Z"),
+                    OffsetDateTime.parse("2026-08-07T03:30:00Z")
+                )
+            )
+        );
+
+        NormalizedRouteAlert alert = normalizer.normalizeRoute(fetched(record))
+            .projection()
+            .orElseThrow();
+
+        assertThat(alert.periods()).containsExactly(
+            new NormalizedAlertPeriod(
+                "73254",
+                OffsetDateTime.parse("2026-08-04T05:00:00Z"),
+                OffsetDateTime.parse("2026-08-04T05:24:44.85Z"),
+                0
+            ),
+            new NormalizedAlertPeriod(
+                "73255",
+                OffsetDateTime.parse("2026-08-05T05:00:00Z"),
+                OffsetDateTime.parse("2026-08-05T07:30:00Z"),
+                1
+            ),
+            new NormalizedAlertPeriod(
+                "73256",
+                OffsetDateTime.parse("2026-08-06T05:00:00Z"),
+                OffsetDateTime.parse("2026-08-06T07:30:00Z"),
+                2
+            )
+        );
+    }
+
+    @Test
     void normalizesPlannedTypedMedicalEmergencyNoServiceAsActiveSuspension() {
         TtcAlertRecord record = fetchedRecord("2", "Subway", "NO_SERVICE").record();
         record = new TtcAlertRecord(
