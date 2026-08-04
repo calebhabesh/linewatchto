@@ -165,7 +165,7 @@ describe("account UI source", () => {
     assert.match(savedCommutesSource, /View on Map/);
     assert.match(shellSource, /handleViewCommuteImpactOnPath/);
     assert.match(shellSource, /viewForSavedCommuteImpact/);
-    assert.match(shellSource, /isMobile \? "map" : viewForSavedCommuteImpact\(impact, commuteDashboard\.activeAlerts\)/);
+    assert.match(shellSource, /resolveCommuteImpactMapSelection\([\s\S]*?impact,[\s\S]*?commuteDashboard\.activeAlerts,[\s\S]*?commuteNetwork,/);
     assert.match(globalCss, /\.saved-commute-map-action/);
   });
 

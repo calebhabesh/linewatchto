@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 import {
   buildActiveClosureImpactCardIds,
   normalizeActiveClosureMapImpact,
+  resolveCommuteImpactMapSelection,
 } from "../src/components/map-impact-normalization.ts";
 
 const baseImpact = {
@@ -24,6 +25,43 @@ const baseActiveAlert = {
 };
 
 describe("active closure map impact normalization", () => {
+  it("selects the current active-alert child when a commute impact still uses its closure parent", () => {
+    const childAlert = {
+      ...baseActiveAlert,
+      id: "closure-child",
+      relatedPlannedClosureId: "closure-parent",
+    };
+
+    assert.deepEqual(
+      resolveCommuteImpactMapSelection(
+        { kind: "planned-closure", id: "closure-parent" },
+        [childAlert],
+      ),
+      { kind: "suspension", id: "closure-child" },
+    );
+  });
+
+  it("keeps an inactive commute closure on its planned preview", () => {
+    assert.deepEqual(
+      resolveCommuteImpactMapSelection(
+        { kind: "planned-closure", id: "closure-parent" },
+        [],
+      ),
+      { kind: "planned-closure", id: "closure-parent" },
+    );
+  });
+
+  it("preserves the regional map's planned-closure visual identity", () => {
+    assert.deepEqual(
+      resolveCommuteImpactMapSelection(
+        { kind: "planned-closure", id: "closure-parent" },
+        [baseActiveAlert],
+        "regional",
+      ),
+      { kind: "planned-closure", id: "closure-parent" },
+    );
+  });
+
   it("uses the active-alert icon identity for a projected canonical closure", () => {
     const cardIds = buildActiveClosureImpactCardIds(
       [baseActiveAlert],

@@ -5583,14 +5583,6 @@ button {
   }
 }
 
-[data-selected-commute-impact-overlay] .asset-alert-path-glow.interactive-glow.planned-preview.selected {
-  display: block;
-  stroke: #f8fafc;
-  filter: blur(6px);
-  opacity: 0.9;
-  stroke-width: 142;
-}
-
 @keyframes chevron-slide {
   0% {
     transform: translate(calc(-0.5 * var(--chevron-step, 56px)), 0);

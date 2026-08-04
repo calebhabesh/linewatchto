@@ -427,9 +427,9 @@ describe("asset-backed map layering", () => {
       globalCss,
       /\[data-selected-commute-impact-overlay\] \.asset-alert-path\.planned-preview\.selected\s*\{/,
     );
-    assert.match(
+    assert.doesNotMatch(
       globalCss,
-      /\[data-selected-commute-impact-overlay\] \.asset-alert-path-glow\.interactive-glow\.planned-preview\.selected\s*\{[^}]*display:\s*block;[^}]*stroke:\s*#f8fafc;[^}]*filter:\s*blur\(6px\);/,
+      /\[data-selected-commute-impact-overlay\] \.asset-alert-path-glow\.interactive-glow\.planned-preview\.selected/,
     );
     assert.match(
       globalCss,

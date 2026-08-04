@@ -2780,6 +2780,41 @@ test("demo account shows account-backed saved commutes", async ({ page, request,
   await expect(page.locator("[data-commute-path-preview]")).toHaveCount(0);
 });
 
+test("saved commute active closure focuses its current active-alert overlay", async ({ page, request, isMobile }) => {
+  await setStubMode(request, "seeded");
+  if (isMobile) {
+    await page.goto("/");
+    await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
+    await page.getByRole("button", { name: "More", exact: true }).click();
+    await page.getByRole("button", { name: "Demo Account" }).click();
+  } else {
+    await openDashboardMenu(page, isMobile);
+    await page.getByRole("menuitem", { name: "Demo account" }).click({ force: true });
+    await page.getByRole("button", { name: "Toggle menu" }).click({ force: true });
+    await page.getByRole("menuitem", { name: "My Commutes" }).click({ force: true });
+  }
+
+  const impactDisclosure = page.locator(".saved-commute-impact-disclosure").first();
+  await impactDisclosure.locator("summary").click();
+  await page.getByRole("button", { name: /View Active Closure on the map for Morning commute/ }).click();
+
+  const activeClosureOverlay = page.locator(
+    '[data-selected-commute-impact-overlay="stub-active-closure-child-line-1"]',
+  );
+  await expect(activeClosureOverlay).toBeAttached();
+  await expect(activeClosureOverlay.locator(".suspension-candy")).toBeVisible();
+  await expect(page.locator('[data-selected-commute-impact-overlay] .planned-preview.selected')).toHaveCount(0);
+
+  if (isMobile) {
+    const inspector = page.getByRole("complementary", { name: "Selected map impact details" });
+    await expect(inspector).toContainText("Active Alert");
+    await expect(inspector).toContainText("Seeded active planned closure for browser verification.");
+  } else {
+    await expect(page.getByRole("heading", { name: "Active Alerts" })).toBeVisible();
+    await expect(page.locator('[data-impact-card-id="stub-active-closure-child-line-1"]')).toBeVisible();
+  }
+});
+
 test("custom commute notification schedules are non-blocking", async ({ page, request, isMobile }) => {
   await setStubMode(request, "seeded");
   if (isMobile) {

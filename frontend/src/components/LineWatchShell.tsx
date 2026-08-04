@@ -115,6 +115,7 @@ import { getCurrentPushSubscription } from "../app/push-browser-state";
 import { hasReleaseNotes } from "../app/release-notes";
 import { lineWatchAppVersionLabel } from "../app/app-build";
 import { clearServiceStatusLabel } from "../app/network-presentation";
+import { resolveCommuteImpactMapSelection } from "./map-impact-normalization";
 import {
   buildVisualPreferencesCookie,
   defaultVisualPreferences,
@@ -1406,12 +1407,19 @@ export function LineWatchShell({
       setClosedMapPeek(true);
       setSelectedNetwork(commuteNetwork);
     }
-    const impactSelection = { kind: impact.kind, id: impact.id } satisfies NonNullable<ImpactSelection>;
+    const impactSelection = resolveCommuteImpactMapSelection(
+      impact,
+      commuteDashboard.activeAlerts,
+      commuteNetwork,
+    );
     setCommutePathPreview(preview);
     setSelection(impactSelection);
     setSelectedStationId(null);
     setMobileInspectorDetent("details-focus");
-    setActiveView(isMobile ? "map" : viewForSavedCommuteImpact(impact, commuteDashboard.activeAlerts));
+    setActiveView(isMobile ? "map" : viewForSavedCommuteImpact(
+      { ...impact, kind: impactSelection.kind, id: impactSelection.id },
+      commuteDashboard.activeAlerts,
+    ));
   };
 
   const handleClearCommutePathPreview = useCallback((commuteIdOrEvent?: string | unknown) => {
