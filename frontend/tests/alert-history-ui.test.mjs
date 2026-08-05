@@ -90,6 +90,26 @@ describe("alert history timeline UI", () => {
     assert.match(cssSource, /\.alert-history-status-label\s*\{[^}]*min-height:\s*1\.5rem;/s);
   });
 
+  it("labels every history card with its alert type and matching icon", () => {
+    assert.match(timelineSource, /<HistoryAlertType eventType=\{incident\.eventType\}/);
+    assert.match(timelineSource, /formatAlertTypeName\(normalizedType\)/);
+    assert.match(timelineSource, /renderSortOptionIcon\(normalizedType\)/);
+    assert.match(cssSource, /\.alert-history-type-label/);
+    assert.match(cssSource, /\.alert-history-type-suspension/);
+    assert.match(cssSource, /\.alert-history-type-delay/);
+    assert.match(cssSource, /\.alert-history-type-reduced-speed-zone/);
+    assert.match(cssSource, /\.alert-history-type-planned-closure/);
+  });
+
+  it("uses the site-wide alert palette for history type badges", () => {
+    assert.match(cssSource, /\.alert-history-type-delay\s*\{[^}]*rgba\(254, 236, 65,[^}]*#a16207;/s);
+    assert.match(cssSource, /\.dark \.alert-history-type-delay\s*\{[^}]*#FEEC41;/s);
+    assert.match(cssSource, /\.high-contrast \.alert-history-type-delay\s*\{[^}]*background:\s*#FEEC41;[^}]*color:\s*#000000;/s);
+    assert.match(cssSource, /\.alert-history-type-suspension\s*\{[^}]*var\(--danger\);/s);
+    assert.match(cssSource, /\.alert-history-type-reduced-speed-zone\s*\{[^}]*var\(--impact-rsz-soft\);[^}]*var\(--impact-rsz-border\);/s);
+    assert.match(cssSource, /\.alert-history-type-planned-closure\s*\{[^}]*var\(--planned\);/s);
+  });
+
   it("formats alert event labels in title case", () => {
     assert.match(timelineSource, /formatHistoryStatusLabel\(displayEvent\?\.label\)/);
     assert.doesNotMatch(timelineSource, /displayEvent\?\.label\s+\?\?\s+"Active"/);

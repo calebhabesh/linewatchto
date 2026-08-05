@@ -19589,6 +19589,7 @@ img.transit-line-badge {
 }
 
 .alert-history-card-heading time,
+.alert-history-type-label,
 .alert-history-status-label,
 .alert-history-details {
   color: rgb(100, 116, 139);
@@ -19598,6 +19599,87 @@ img.transit-line-badge {
 .alert-history-status-label {
   font-size: 0.67rem;
   font-weight: 900;
+}
+
+.alert-history-type-label {
+  align-items: center;
+  background: rgba(100, 116, 139, 0.09);
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  color: rgb(71, 85, 105);
+  display: inline-flex;
+  font-size: 0.67rem;
+  font-weight: 900;
+  gap: 0.25rem;
+  min-height: 1.5rem;
+  padding: 0.22rem 0.48rem;
+  white-space: nowrap;
+}
+
+.alert-history-type-suspension {
+  background: rgba(255, 69, 69, 0.1);
+  border-color: rgba(255, 69, 69, 0.35);
+  color: var(--danger);
+}
+
+.alert-history-type-delay {
+  background: rgba(254, 236, 65, 0.1);
+  border-color: rgba(254, 236, 65, 0.32);
+  color: #a16207;
+}
+
+.alert-history-type-reduced-speed-zone {
+  background: var(--impact-rsz-soft);
+  border-color: var(--impact-rsz-border);
+  color: var(--impact-rsz-ink);
+}
+
+.alert-history-type-planned-closure {
+  background: rgba(59, 130, 246, 0.1);
+  border-color: rgba(59, 130, 246, 0.35);
+  color: var(--planned);
+}
+
+.dark .alert-history-type-label,
+.high-contrast .alert-history-type-label {
+  color: rgb(203, 213, 225);
+}
+
+.dark .alert-history-type-suspension,
+.high-contrast .alert-history-type-suspension {
+  color: var(--danger);
+}
+
+.dark .alert-history-type-delay {
+  background: rgba(254, 236, 65, 0.14);
+  color: #FEEC41;
+}
+
+.high-contrast .alert-history-type-delay {
+  background: #FEEC41;
+  border-color: #FEEC41;
+  color: #000000;
+}
+
+.dark .alert-history-type-reduced-speed-zone,
+.high-contrast .alert-history-type-reduced-speed-zone {
+  color: var(--impact-rsz);
+}
+
+.dark .alert-history-type-planned-closure,
+.high-contrast .alert-history-type-planned-closure {
+  color: var(--planned);
+}
+
+.alert-history-type-label svg {
+  color: currentColor;
+  height: 0.78rem;
+  width: 0.78rem;
+}
+
+.dark .alert-history-type-label svg,
+.high-contrast .alert-history-type-label svg {
+  color: currentColor;
 }
 
 .alert-history-status-label svg {

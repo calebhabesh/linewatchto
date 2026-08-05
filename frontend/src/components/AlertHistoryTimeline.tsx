@@ -19,6 +19,7 @@ import {
   buildAlertHistoryLineOptions,
   buildAlertHistorySortOptions,
   filterAndSortAlertHistory,
+  formatAlertTypeName,
   MOST_RECENT_SORT_VALUE,
   type AlertHistoryLifecycleFilter,
   type AlertHistoryViewItem,
@@ -313,6 +314,7 @@ function HistoryIncident({ item }: { item: AlertHistoryViewItem }) {
         <div className="alert-history-card-heading">
           <div className="alert-history-line-status">
             <HistoryLineIdentity incident={incident} />
+            <HistoryAlertType eventType={incident.eventType} />
             <span className="alert-history-status-label">
               {cleared ? <Check size={12} aria-hidden="true" /> : <AlertTriangle size={13} aria-hidden="true" />}
               {statusLabel}
@@ -358,6 +360,25 @@ function HistoryIncident({ item }: { item: AlertHistoryViewItem }) {
       </div>
     </li>
   );
+}
+
+function HistoryAlertType({ eventType }: { eventType: string }) {
+  const normalizedType = eventType.trim().toLowerCase();
+  const tone = historyAlertTypeTone(normalizedType);
+
+  return (
+    <span className={`alert-history-type-label alert-history-type-${tone}`}>
+      {renderSortOptionIcon(normalizedType)}
+      {formatAlertTypeName(normalizedType)}
+    </span>
+  );
+}
+
+function historyAlertTypeTone(eventType: string) {
+  if (["suspension", "delay", "reduced-speed-zone", "planned-closure"].includes(eventType)) {
+    return eventType;
+  }
+  return "other";
 }
 
 function HistoryTimestamp({ timestamp }: { timestamp: string }) {
