@@ -170,19 +170,19 @@ public class AlertDashboardService {
     }
 
     private List<PlannedClosureView> plannedClosureViews(List<LineSegmentEntity> segments) {
-        List<AlertEntity> alerts = alertRepository.findByActiveTrueAndType(PLANNED_CLOSURE_TYPE).stream()
+        List<AlertEntity> sourceAlerts = alertRepository.findByActiveTrueAndType(PLANNED_CLOSURE_TYPE).stream()
             .filter(alert -> hasImpactKind(alert, PLANNED_CLOSURE_KIND))
             .filter(this::isCurrentOrFuture)
             .toList();
 
-        if (alerts.isEmpty()) {
+        if (sourceAlerts.isEmpty()) {
             return List.of();
         }
 
-        List<String> alertIds = alerts.stream().map(AlertEntity::getId).toList();
+        List<String> alertIds = sourceAlerts.stream().map(AlertEntity::getId).toList();
         Map<String, List<AlertActivePeriodRepository.AlertPeriod>> periodsByAlertId =
             periodRepository.findByAlertIds(alertIds);
-        Map<String, AlertEntity> alertsBySourceId = alerts.stream()
+        Map<String, AlertEntity> alertsBySourceId = sourceAlerts.stream()
             .filter(alert -> !isBlank(alert.getSourceId()))
             .collect(java.util.stream.Collectors.toMap(
                 AlertEntity::getSourceId,
@@ -201,7 +201,8 @@ public class AlertDashboardService {
             }
         }
 
-        return alerts.stream()
+        return sourceAlerts.stream()
+            .filter(alert -> !isRestoration(alert))
             .filter(alert -> !linkedChildSourceIds.contains(alert.getSourceId()))
             .map(alert -> {
                 List<AlertActivePeriodRepository.AlertPeriod> periods = periodsByAlertId.get(alert.getId());
@@ -220,13 +221,17 @@ public class AlertDashboardService {
     }
 
     private AlertEntity currentClosureSourceAlert(AlertEntity alert) {
-        return alert == null || TtcServiceState.isRestoration(
+        return alert == null || isRestoration(alert) ? null : alert;
+    }
+
+    private boolean isRestoration(AlertEntity alert) {
+        return TtcServiceState.isRestoration(
             alert.getEffect(),
             alert.getSeverity(),
             alert.getTitle(),
             alert.getDescription(),
             alert.getEffectDescription()
-        ) ? null : alert;
+        );
     }
 
     public List<PlannedClosureDto> activePlannedClosures() {

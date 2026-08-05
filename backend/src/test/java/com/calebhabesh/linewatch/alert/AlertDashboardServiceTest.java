@@ -1138,6 +1138,61 @@ class AlertDashboardServiceTest {
     }
 
     @Test
+    void omitsStandaloneRestorationWhenTheFeedNoLongerLinksItToItsPlannedClosure() {
+        when(ingestionFreshness.isDashboardFresh()).thenReturn(true);
+
+        AlertEntity closure = withLine(alert(
+            "ttc-route-73253",
+            "planned-closure",
+            "planned",
+            "There will be no subway service between Lawrence West and St George stations nightly.",
+            "Shuttle buses will operate.",
+            "lawrence-west",
+            "st-george",
+            OffsetDateTime.parse("2026-06-01T11:00:00Z"),
+            "Will Operate"
+        ), "line-1", "1");
+        ReflectionTestUtils.setField(
+            closure,
+            "activePeriodEnd",
+            OffsetDateTime.parse("2026-06-02T08:00:00Z")
+        );
+
+        AlertEntity restoration = withLine(alert(
+            "ttc-route-73492",
+            "planned-closure",
+            "planned",
+            "Regular service has resumed between Lawrence West and St George stations.",
+            "",
+            "lawrence-west",
+            "st-george",
+            OffsetDateTime.parse("2026-06-01T11:30:00Z"),
+            "Will Operate"
+        ), "line-1", "1");
+        ReflectionTestUtils.setField(restoration, "effect", "NO_EFFECT");
+        ReflectionTestUtils.setField(restoration, "effectDescription", "Regular service");
+        ReflectionTestUtils.setField(
+            restoration,
+            "activePeriodEnd",
+            OffsetDateTime.parse("2026-06-01T12:15:00Z")
+        );
+
+        when(alertRepository.findByActiveTrueAndType("planned-closure"))
+            .thenReturn(List.of(closure, restoration));
+        when(alertActivePeriodRepository.findByAlertIds(List.of(
+            "ttc-route-73253",
+            "ttc-route-73492"
+        )))
+            .thenReturn(Map.of());
+
+        assertThat(service.plannedClosures())
+            .extracting(AlertDashboardService.PlannedClosureDto::id)
+            .containsExactly("ttc-route-73253");
+        assertThat(service.dashboardVisiblePlannedClosureIds())
+            .containsExactly("ttc-route-73253");
+    }
+
+    @Test
     void recurringClosureDoesNotUseMultiDayParentWindowAsActiveMapImpact() {
         Clock fridayAfternoon = Clock.fixed(
             Instant.parse("2026-06-05T17:37:00Z"),
