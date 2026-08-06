@@ -966,7 +966,7 @@ describe("network-scoped regional dashboard", () => {
 
   it("keeps the authored regional SVG mounted while refreshing isolated dynamic layers", () => {
     assert.equal((regionalMapSource.match(/setSvgMarkup\(/g) ?? []).length, 1);
-    assert.match(regionalMapSource, /fetch\("\/assets\/linewatch\/regional-rail-map\.svg"\)[\s\S]*?\n  \}, \[\]\);/s);
+    assert.match(regionalMapSource, /fetch\(`\/assets\/linewatch\/regional-rail-map\.svg\?v=\$\{lineWatchBuildLabel\}`\)[\s\S]*?\n  \}, \[\]\);/s);
     assert.match(regionalMapSource, /REGIONAL_DYNAMIC_SEGMENT_LAYER_ID = "regional-dynamic-segment-layer"/);
     assert.match(regionalMapSource, /REGIONAL_DYNAMIC_STATION_RING_LAYER_ID = "regional-dynamic-station-ring-layer"/);
     assert.match(regionalMapSource, /REGIONAL_DYNAMIC_COMMUTE_LAYER_ID = "regional-dynamic-commute-layer"/);

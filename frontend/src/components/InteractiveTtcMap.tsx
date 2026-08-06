@@ -22,6 +22,7 @@ import {
   type MapContentBounds,
   type MapViewportOrientation,
 } from "../hooks/panZoomMath";
+import { lineWatchBuildLabel } from "../app/app-build";
 import { ZoomIn, ZoomOut, Locate, Sun, Moon, X } from "lucide-react";
 import { useDashboardData } from "../app/DataContext";
 import type {
@@ -406,7 +407,7 @@ function InteractiveTtcMapComponent({
     let cancelled = false;
     async function loadMap() {
       try {
-        const response = await fetch("/assets/linewatch/ttc-subway-map-edited.svg");
+        const response = await fetch(`/assets/linewatch/ttc-subway-map-edited.svg?v=${lineWatchBuildLabel}`);
         if (!response.ok) throw new Error("Map load failed");
         const text = await response.text();
 

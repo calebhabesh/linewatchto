@@ -14,6 +14,7 @@ import {
   type EstimatedTrainMarker,
 } from "../app/train-markers";
 import { useDashboardData } from "../app/DataContext";
+import { lineWatchBuildLabel } from "../app/app-build";
 import {
   MapOverlapIndicator,
   mapOverlapIndicatorSize,
@@ -2320,7 +2321,7 @@ function InteractiveRegionalMapComponent({
 
   useEffect(() => {
     let cancelled = false;
-    fetch("/assets/linewatch/regional-rail-map.svg")
+    fetch(`/assets/linewatch/regional-rail-map.svg?v=${lineWatchBuildLabel}`)
       .then((response) => {
         if (!response.ok) throw new Error("Regional map unavailable");
         return response.text();
