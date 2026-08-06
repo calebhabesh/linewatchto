@@ -10306,7 +10306,7 @@ img.transit-line-badge {
 
 .map-attribution-notice {
   position: absolute;
-  right: 30px;
+  right: 16px;
   bottom: 0px;
   z-index: 28;
   max-width: min(520px, calc(100vw - 32px));
@@ -10314,10 +10314,10 @@ img.transit-line-badge {
   border-radius: 6px;
   background: rgba(255, 255, 255, 0.78);
   color: rgba(15, 23, 42, 0.82);
-  font-size: 18px;
+  font-size: 15px;
   font-weight: 600;
-  line-height: 1.25;
-  padding: 5px 8px;
+  line-height: 1.2;
+  padding: 2px 0px 2px 6px;
   pointer-events: none;
   text-align: right;
   text-wrap: nowrap;
