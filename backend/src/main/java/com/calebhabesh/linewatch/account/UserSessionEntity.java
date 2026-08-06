@@ -43,4 +43,5 @@ public class UserSessionEntity {
     public String getTokenHash() { return tokenHash; }
     public Instant getCreatedAt() { return createdAt; }
     public Instant getExpiresAt() { return expiresAt; }
+    public void setExpiresAt(Instant expiresAt) { this.expiresAt = expiresAt; }
 }

@@ -330,7 +330,7 @@ public class AccountService {
         return new AccountResponses.AuthResponse(true, toUserResponse(account, true));
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public AccountResponses.AuthResponse currentUser(String rawSessionToken) {
         if (rawSessionToken == null || rawSessionToken.isBlank()) {
             return new AccountResponses.AuthResponse(false, null);
@@ -338,7 +338,10 @@ public class AccountService {
         String tokenHash = tokenService.hashToken(rawSessionToken);
         return sessionRepository.findByTokenHash(tokenHash)
             .filter(session -> session.getExpiresAt().isAfter(clock.instant()))
-            .map(session -> new AccountResponses.AuthResponse(true, toUserResponse(session.getAccount())))
+            .map(session -> {
+                extendSessionIfNecessary(session);
+                return new AccountResponses.AuthResponse(true, toUserResponse(session.getAccount()));
+            })
             .orElse(new AccountResponses.AuthResponse(false, null));
     }
 
@@ -350,7 +353,7 @@ public class AccountService {
         sessionRepository.deleteByTokenHash(tokenService.hashToken(rawSessionToken));
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public AccountEntity requireAccount(String rawSessionToken) {
         if (rawSessionToken == null || rawSessionToken.isBlank()) {
             throw new AccountException(HttpStatus.UNAUTHORIZED, "not_authenticated", "Sign in to use account features.");
@@ -359,11 +362,21 @@ public class AccountService {
         UserSessionEntity session = sessionRepository.findByTokenHash(tokenHash)
             .filter(candidate -> candidate.getExpiresAt().isAfter(clock.instant()))
             .orElseThrow(() -> new AccountException(HttpStatus.UNAUTHORIZED, "not_authenticated", "Sign in to use account features."));
+        extendSessionIfNecessary(session);
         return session.getAccount();
     }
 
     public Duration sessionTtl() {
         return SESSION_TTL;
+    }
+
+    private void extendSessionIfNecessary(UserSessionEntity session) {
+        Instant now = clock.instant();
+        Instant halfway = now.plus(SESSION_TTL.dividedBy(2));
+        if (session.getExpiresAt().isBefore(halfway)) {
+            session.setExpiresAt(now.plus(SESSION_TTL));
+            sessionRepository.save(session);
+        }
     }
 
     private AccountResponses.AuthSession createSession(AccountEntity account, Instant now) {
