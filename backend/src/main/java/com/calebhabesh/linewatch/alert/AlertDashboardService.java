@@ -407,7 +407,7 @@ public class AlertDashboardService {
         String windowDates = closureWindowDates(reliablePeriods, nightly, now);
 
         Optional<AlertActivePeriodRepository.AlertPeriod> active = reliablePeriods.stream()
-            .filter(period -> !isParentPeriod(period))
+            .filter(period -> !isParentPeriod(period) || isBoundedSingleWindow(period))
             .filter(period -> startsAtOrBefore(period.startsAt(), now))
             .filter(period -> endsAfter(period.endsAt(), now))
             .findFirst();
@@ -445,7 +445,7 @@ public class AlertDashboardService {
         if (!isStructurallyValidClosureWindow(period)) {
             return false;
         }
-        if (!isParentPeriod(period)) {
+        if (!isParentPeriod(period) || isBoundedSingleWindow(period)) {
             return true;
         }
         OffsetDateTime publishedAt = sourceUpdatedAt(alert);
@@ -462,6 +462,11 @@ public class AlertDashboardService {
             && period.startsAt() != null
             && period.endsAt() != null
             && period.endsAt().isAfter(period.startsAt());
+    }
+
+    private boolean isBoundedSingleWindow(AlertActivePeriodRepository.AlertPeriod period) {
+        return isStructurallyValidClosureWindow(period)
+            && Duration.between(period.startsAt(), period.endsAt()).compareTo(MAX_SINGLE_CLOSURE_WINDOW) <= 0;
     }
 
     private String closureWindowHours(List<AlertActivePeriodRepository.AlertPeriod> periods) {
