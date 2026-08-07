@@ -15,6 +15,7 @@ public class PushEvaluationHealthEntity {
     private int consecutiveFailures;
     private int lastAccountsEvaluated;
     private int lastAccountsFailed;
+    @jakarta.persistence.Column(columnDefinition = "text")
     private String lastError;
     private Instant updatedAt;
 
@@ -39,7 +40,8 @@ public class PushEvaluationHealthEntity {
         } else {
             lastFailedAt = now;
             consecutiveFailures++;
-            lastError = result.lastError();
+            String rawError = result.lastError();
+            lastError = rawError != null && rawError.length() > 950 ? rawError.substring(0, 950) : rawError;
         }
     }
 
