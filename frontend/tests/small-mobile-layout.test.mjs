@@ -34,4 +34,11 @@ describe("compact phone layout", () => {
       /\.mobile-bottom-nav-item\s*\{[^}]*min-height:\s*46px/s,
     );
   });
+
+  it("centers the nav bar selection highlight over entries on narrow phones", () => {
+    assert.match(
+      globalCss,
+      /\.mobile-bottom-nav::before\s*\{[^}]*width:\s*calc\(\(100% - 14px\) \/ 5\);/s,
+    );
+  });
 });
