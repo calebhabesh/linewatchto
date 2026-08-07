@@ -70,4 +70,17 @@ class PushSavedCommuteEventObservationSchemaMigrationTest {
             assertThat(sql).doesNotContain("not null");
         }
     }
+    @Test
+    void v58ExpandsUpdateFingerprintColumnLength() throws IOException {
+        try (var input = getClass().getResourceAsStream(
+            "/db/migration/V58__expand_push_observation_update_fingerprint.sql"
+        )) {
+            assertThat(input).isNotNull();
+            String sql = new String(input.readAllBytes(), StandardCharsets.UTF_8).toLowerCase();
+
+            assertThat(sql).contains("alter table push_line_event_observations");
+            assertThat(sql).contains("alter table push_saved_commute_event_observations");
+            assertThat(sql).contains("alter column update_fingerprint type varchar(120)");
+        }
+    }
 }

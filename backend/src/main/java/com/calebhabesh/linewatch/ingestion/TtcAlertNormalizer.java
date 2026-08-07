@@ -204,7 +204,16 @@ public class TtcAlertNormalizer {
     }
 
     private boolean isDegradedService(TtcAlertRecord record) {
-        return equalsIgnoreCase(record.effect(), "SIGNIFICANT_DELAYS");
+        if (equalsIgnoreCase(record.effect(), "SIGNIFICANT_DELAYS")
+            || equalsIgnoreCase(record.effect(), "DELAYS")
+            || equalsIgnoreCase(record.effect(), "MODERATE_DELAYS")
+            || equalsIgnoreCase(record.effect(), "MINOR_DELAYS")
+            || equalsIgnoreCase(record.effectDesc(), "Delay")
+            || equalsIgnoreCase(record.effectDesc(), "Delays")) {
+            return true;
+        }
+        String text = sourceText(record);
+        return text.contains("delay") || text.contains("delays") || text.contains("slowdown");
     }
 
     private boolean hasRszMetadata(TtcAlertRecord record) {

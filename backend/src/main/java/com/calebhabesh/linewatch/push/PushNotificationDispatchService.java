@@ -228,31 +228,35 @@ public class PushNotificationDispatchService {
             List<PushNotificationCandidate> currentLineCandidates = new java.util.ArrayList<>();
 
             for (PushNotificationCandidate candidate : allowedCandidates) {
-                if ("line-current".equals(candidate.category())) {
-                    currentLineNotificationKeys.add(candidate.notificationKey());
-                    currentLineSourceIncidentKeys.add(candidate.sourceIncidentKey());
-                    currentLineCandidates.add(candidate);
-                    Instant observedAt = clock.instant();
-                    PushLineEventObservationService.ObservationDecision decision =
-                        lineEventObservationService.observe(candidate, preferences, observedAt);
-                    if (decision.shouldSendActive()
-                        && candidate.deliveryAllowed()
-                        && lineCurrentDeliveryIsTimely(candidate, observedAt)) {
+                try {
+                    if ("line-current".equals(candidate.category())) {
+                        currentLineNotificationKeys.add(candidate.notificationKey());
+                        currentLineSourceIncidentKeys.add(candidate.sourceIncidentKey());
+                        currentLineCandidates.add(candidate);
+                        Instant observedAt = clock.instant();
+                        PushLineEventObservationService.ObservationDecision decision =
+                            lineEventObservationService.observe(candidate, preferences, observedAt);
+                        if (decision.shouldSendActive()
+                            && candidate.deliveryAllowed()
+                            && lineCurrentDeliveryIsTimely(candidate, observedAt)) {
+                            sendableCandidates.add(candidate);
+                        }
+                    } else if (savedCurrentCategories.contains(candidate.category())) {
+                        PushSavedCommuteEventObservationService.ObservationDecision decision =
+                            savedCommuteObservationService.observe(
+                                candidate,
+                                commutesById.get(candidate.commuteId()),
+                                preferences,
+                                clock.instant()
+                            );
+                        if (decision.shouldSendActive() && candidate.deliveryAllowed()) {
+                            sendableCandidates.add(candidate);
+                        }
+                    } else if (candidate.deliveryAllowed()) {
                         sendableCandidates.add(candidate);
                     }
-                } else if (savedCurrentCategories.contains(candidate.category())) {
-                    PushSavedCommuteEventObservationService.ObservationDecision decision =
-                        savedCommuteObservationService.observe(
-                            candidate,
-                            commutesById.get(candidate.commuteId()),
-                            preferences,
-                            clock.instant()
-                        );
-                    if (decision.shouldSendActive() && candidate.deliveryAllowed()) {
-                        sendableCandidates.add(candidate);
-                    }
-                } else if (candidate.deliveryAllowed()) {
-                    sendableCandidates.add(candidate);
+                } catch (RuntimeException exception) {
+                    log.warn("Failed to evaluate candidate {} for account {}", candidate.dedupeKey(), accountId, exception);
                 }
             }
 
