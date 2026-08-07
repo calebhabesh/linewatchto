@@ -419,7 +419,9 @@ public class PushNotificationDispatchService {
             if (hasEquivalentCurrentCandidate(activeEvent, currentCandidates)) {
                 continue;
             }
-            if (eventRepository.existsByNotificationKeyAndNotificationState(activeEvent.getNotificationKey(), CLEARED_STATE)) {
+            String clearedDedupeKey = activeEvent.getDedupeKey() + "|cleared";
+            if (eventRepository.existsByDedupeKey(clearedDedupeKey)
+                || eventRepository.existsByNotificationKeyAndNotificationState(activeEvent.getNotificationKey(), CLEARED_STATE)) {
                 continue;
             }
 
@@ -520,18 +522,24 @@ public class PushNotificationDispatchService {
                 continue;
             }
 
-            if (!preferences.isLineRestoredEnabled()) {
-                lineEventObservationService.markCleared(observation, now);
-                continue;
-            }
-
-            PushNotificationEventEntity clearedEvent = eventRepository.save(PushNotificationEventEntity.clearedFromObservation(
+            PushNotificationEventEntity candidateClearedEvent = PushNotificationEventEntity.clearedFromObservation(
                 nextId("push_event"),
                 observation,
                 sourceClearedAt(observation.getSourceIncidentKey(), observation.getNotificationKey(), now),
                 now,
                 formatter
-            ));
+            );
+            if (eventRepository.existsByDedupeKey(candidateClearedEvent.getDedupeKey())) {
+                lineEventObservationService.markCleared(observation, now);
+                continue;
+            }
+
+            if (!preferences.isLineRestoredEnabled()) {
+                lineEventObservationService.markCleared(observation, now);
+                continue;
+            }
+
+            PushNotificationEventEntity clearedEvent = eventRepository.save(candidateClearedEvent);
             sendEventToSubscriptions(clearedEvent, now);
             lineEventObservationService.markCleared(observation, now);
         }
