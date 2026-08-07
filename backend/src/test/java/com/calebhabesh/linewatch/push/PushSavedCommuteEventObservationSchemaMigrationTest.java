@@ -80,7 +80,7 @@ class PushSavedCommuteEventObservationSchemaMigrationTest {
 
             assertThat(sql).contains("alter table push_line_event_observations");
             assertThat(sql).contains("alter table push_saved_commute_event_observations");
-            assertThat(sql).contains("alter column update_fingerprint type varchar(120)");
+            assertThat(sql).contains("alter column update_fingerprint type varchar(255)");
         }
     }
 }
