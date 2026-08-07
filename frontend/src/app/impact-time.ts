@@ -112,7 +112,7 @@ export function formatImpactTimestamp(
   const timeZone = options.timeZone ?? DEFAULT_TIME_ZONE;
   const anchor = isSameZonedDay(date, now, timeZone)
     ? formatClockTime(date, timeZone)
-    : formatDateAnchor(date, now, timeZone);
+    : `${formatDateAnchor(date, now, timeZone)}, ${formatClockTime(date, timeZone)}`;
 
   return `${anchor} (${formatCompactAge(date, now)})`;
 }

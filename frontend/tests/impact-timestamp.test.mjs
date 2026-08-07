@@ -13,15 +13,15 @@ describe("impact timestamp formatting", () => {
     );
     assert.equal(
       formatImpactTimestamp("2026-06-25T07:00:00-04:00", now),
-      "Jun 25 (5d ago)",
+      "Jun 25, 7:00 AM (5d ago)",
     );
     assert.equal(
       formatImpactTimestamp("2025-06-25T07:00:00-04:00", now),
-      "Jun 25, 2025 (1y ago)",
+      "Jun 25, 2025, 7:00 AM (1y ago)",
     );
     assert.equal(
       formatImpactTimestamp("2026-07-06T23:00:00-04:00", now),
-      "Jul 6 (in 6d)",
+      "Jul 6, 11:00 PM (in 6d)",
     );
   });
 
