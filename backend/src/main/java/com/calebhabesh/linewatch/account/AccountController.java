@@ -193,11 +193,6 @@ public class AccountController {
         @CookieValue(name = AuthCookieFactory.COOKIE_NAME, required = false) String rawSessionToken
     ) {
         AccountResponses.AuthResponse response = accountService.currentUser(rawSessionToken);
-        if (response.authenticated() && rawSessionToken != null && !rawSessionToken.isBlank()) {
-            return ResponseEntity.ok()
-                .header(HttpHeaders.SET_COOKIE, cookieFactory.sessionCookie(rawSessionToken, accountService.sessionTtl()).toString())
-                .body(response);
-        }
         return ResponseEntity.ok(response);
     }
 

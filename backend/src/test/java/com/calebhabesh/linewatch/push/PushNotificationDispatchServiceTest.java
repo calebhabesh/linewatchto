@@ -957,6 +957,34 @@ class PushNotificationDispatchServiceTest {
     }
 
     @Test
+    void candidateEvaluationFailureIsReportedWithoutAbortingTheAccount() {
+        PushNotificationPreferenceEntity preferences = PushNotificationPreferenceEntity.create(account, clock.instant());
+        PushNotificationCandidate candidate = candidate(
+            null, null, "line-1", "1", "line-current", "delay", "on-change",
+            "line-current|line-1|delay|alert-1", "dedupe-failing-candidate",
+            "Finch to Union", null, clock.instant(), "/?panel=delays"
+        );
+        when(subscriptionRepository.findEnabledAccountIds()).thenReturn(List.of("user_1"));
+        when(preferenceService.preferenceEntityForAccountId("user_1")).thenReturn(preferences);
+        when(preferenceService.subscribedLineIds("user_1")).thenReturn(List.of("line-1"));
+        when(lineSubscriptionPushPlanner.candidatesFor("user_1", List.of("line-1")))
+            .thenReturn(List.of(candidate));
+        when(preferenceService.allows(preferences, candidate)).thenReturn(true);
+        when(lineEventObservationService.observe(eq(candidate), eq(preferences), any(Instant.class)))
+            .thenThrow(new IllegalStateException("observation write failed"));
+
+        PushNotificationDispatchService.PushEvaluationResult result =
+            service.evaluateSavedCommuteNotifications();
+
+        assertThat(result.accountsEvaluated()).isEqualTo(1);
+        assertThat(result.accountsFailed()).isEqualTo(1);
+        assertThat(result.lastError())
+            .contains("dedupe-failing-candidate")
+            .contains("observation write failed");
+        verify(eventRepository, never()).save(any(PushNotificationEventEntity.class));
+    }
+
+    @Test
     void lineWideReducedSpeedZoneDoesNotSendByDefault() {
         PushNotificationPreferenceEntity preferences = PushNotificationPreferenceEntity.create(account, clock.instant());
         when(preferenceService.preferenceEntityForAccountId("user_1")).thenReturn(preferences);

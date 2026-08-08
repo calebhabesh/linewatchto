@@ -33,7 +33,11 @@ public final class TtcServiceState {
         ).toLowerCase(Locale.ROOT);
         return text.contains("service has resumed")
             || text.contains("service is restored")
-            || text.contains("regular service");
+            || text.contains("regular service")
+            || text.contains("delays have cleared")
+            || text.contains("delays are cleared")
+            || text.contains("delays cleared")
+            || text.contains("no delays");
     }
 
     private static String nullToEmpty(String value) {

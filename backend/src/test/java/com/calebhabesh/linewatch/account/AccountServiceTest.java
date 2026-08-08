@@ -27,6 +27,7 @@ class AccountServiceTest {
     private final AccountAuthIdentityRepository authIdentityRepository = mock(AccountAuthIdentityRepository.class);
     private final SavedCommuteRepository savedCommuteRepository = mock(SavedCommuteRepository.class);
     private final GoogleIdentityVerifier googleIdentityVerifier = mock(GoogleIdentityVerifier.class);
+    private final AccountSessionRequestContext sessionRequestContext = mock(AccountSessionRequestContext.class);
     private final GoogleAuthProperties googleAuthProperties = googleProperties();
     private final PasswordHasher passwordHasher = new PasswordHasher();
     private final SessionTokenService tokenService = new SessionTokenService();
@@ -44,6 +45,7 @@ class AccountServiceTest {
         savedCommuteRepository,
         googleIdentityVerifier,
         googleAuthProperties,
+        sessionRequestContext,
         clock,
         true
     );
@@ -193,6 +195,59 @@ class AccountServiceTest {
     }
 
     @Test
+    void currentUserRenewsSessionAfterHalfItsTtlAndMarksCookieForRenewal() {
+        AccountEntity account = AccountEntity.create(
+            "user_test",
+            "rider@example.com",
+            "Rider",
+            passwordHasher.hash("correct horse battery staple"),
+            false,
+            Instant.parse("2026-06-05T14:00:00Z")
+        );
+        UserSessionEntity session = UserSessionEntity.create(
+            "session_test",
+            account,
+            tokenService.hashToken("raw-token"),
+            Instant.parse("2026-05-27T14:30:00Z"),
+            Instant.parse("2026-06-10T14:30:00Z")
+        );
+        when(sessionRepository.findByTokenHash(tokenService.hashToken("raw-token")))
+            .thenReturn(Optional.of(session));
+
+        assertThat(service.currentUser("raw-token").authenticated()).isTrue();
+
+        assertThat(session.getExpiresAt()).isEqualTo(Instant.parse("2026-06-19T14:30:00Z"));
+        verify(sessionRepository).save(session);
+        verify(sessionRequestContext).markValidated(true);
+    }
+
+    @Test
+    void protectedAccountActivityDoesNotRenewFreshSessionOrCookieEarly() {
+        AccountEntity account = AccountEntity.create(
+            "user_test",
+            "rider@example.com",
+            "Rider",
+            passwordHasher.hash("correct horse battery staple"),
+            false,
+            Instant.parse("2026-06-05T14:00:00Z")
+        );
+        UserSessionEntity session = UserSessionEntity.create(
+            "session_test",
+            account,
+            tokenService.hashToken("raw-token"),
+            Instant.parse("2026-06-05T14:00:00Z"),
+            Instant.parse("2026-06-19T14:00:00Z")
+        );
+        when(sessionRepository.findByTokenHash(tokenService.hashToken("raw-token")))
+            .thenReturn(Optional.of(session));
+
+        assertThat(service.requireAccount("raw-token")).isSameAs(account);
+
+        verify(sessionRepository, never()).save(any(UserSessionEntity.class));
+        verify(sessionRequestContext).markValidated(false);
+    }
+
+    @Test
     void demoLoginCreatesSeedAccountWhenMissing() {
         when(accountRepository.findByEmail(AccountService.DEMO_EMAIL)).thenReturn(Optional.empty());
         when(accountRepository.save(any(AccountEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
@@ -286,6 +341,7 @@ class AccountServiceTest {
             savedCommuteRepository,
             googleIdentityVerifier,
             googleAuthProperties,
+            sessionRequestContext,
             clock,
             false
         );

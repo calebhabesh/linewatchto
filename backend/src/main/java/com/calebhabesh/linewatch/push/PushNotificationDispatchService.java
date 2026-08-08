@@ -175,7 +175,11 @@ public class PushNotificationDispatchService {
         for (String accountId : subscriptionRepository.findEnabledAccountIds()) {
             accountsEvaluated++;
             try {
-                evaluateAccount(accountId);
+                AccountEvaluationResult accountResult = evaluateAccount(accountId);
+                if (accountResult.candidatesFailed() > 0) {
+                    accountsFailed++;
+                    lastError = accountResult.lastError();
+                }
             } catch (RuntimeException exception) {
                 accountsFailed++;
                 lastError = exception.getMessage();
@@ -187,7 +191,9 @@ public class PushNotificationDispatchService {
 
     public record PushEvaluationResult(int accountsEvaluated, int accountsFailed, String lastError) {}
 
-    void evaluateAccount(String accountId) {
+    record AccountEvaluationResult(int candidatesFailed, String lastError) {}
+
+    AccountEvaluationResult evaluateAccount(String accountId) {
             PushNotificationPreferenceEntity preferences = preferenceService.preferenceEntityForAccountId(accountId);
             
             List<SavedCommuteEntity> commutes = savedCommuteRepository.findByAccountIdOrderByCreatedAtAsc(accountId);
@@ -226,6 +232,8 @@ public class PushNotificationDispatchService {
             Set<String> currentLineNotificationKeys = new java.util.HashSet<>();
             Set<String> currentLineSourceIncidentKeys = new java.util.HashSet<>();
             List<PushNotificationCandidate> currentLineCandidates = new java.util.ArrayList<>();
+            int candidatesFailed = 0;
+            String lastCandidateError = null;
 
             for (PushNotificationCandidate candidate : allowedCandidates) {
                 try {
@@ -256,6 +264,8 @@ public class PushNotificationDispatchService {
                         sendableCandidates.add(candidate);
                     }
                 } catch (RuntimeException exception) {
+                    candidatesFailed++;
+                    lastCandidateError = "Candidate " + candidate.dedupeKey() + ": " + exceptionMessage(exception);
                     log.warn("Failed to evaluate candidate {} for account {}", candidate.dedupeKey(), accountId, exception);
                 }
             }
@@ -292,6 +302,12 @@ public class PushNotificationDispatchService {
                 subscribedLineIdSet,
                 clock.instant()
             );
+            return new AccountEvaluationResult(candidatesFailed, lastCandidateError);
+    }
+
+    private String exceptionMessage(RuntimeException exception) {
+        String message = exception.getMessage();
+        return message == null || message.isBlank() ? exception.getClass().getSimpleName() : message;
     }
 
     private List<PushNotificationCandidate> savedCommuteCandidatesFor(

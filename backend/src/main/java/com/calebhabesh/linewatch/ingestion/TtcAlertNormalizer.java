@@ -28,6 +28,8 @@ public class TtcAlertNormalizer {
     );
     private static final Pattern ACCESSIBILITY_STATION =
         Pattern.compile("^\\s*([^:]+):\\s+.+$");
+    private static final Pattern DEGRADED_SERVICE_TEXT =
+        Pattern.compile("\\b(?:delays?|slowdowns?)\\b");
     private static final Duration MAX_RECURRING_CLOSURE_WINDOW = Duration.ofHours(18);
 
     private final StationAliasResolver stationAliasResolver;
@@ -204,6 +206,15 @@ public class TtcAlertNormalizer {
     }
 
     private boolean isDegradedService(TtcAlertRecord record) {
+        if (TtcServiceState.isRestoration(
+            record.effect(),
+            null,
+            record.title(),
+            record.description(),
+            record.effectDesc()
+        )) {
+            return false;
+        }
         if (equalsIgnoreCase(record.effect(), "SIGNIFICANT_DELAYS")
             || equalsIgnoreCase(record.effect(), "DELAYS")
             || equalsIgnoreCase(record.effect(), "MODERATE_DELAYS")
@@ -213,7 +224,7 @@ public class TtcAlertNormalizer {
             return true;
         }
         String text = sourceText(record);
-        return text.contains("delay") || text.contains("delays") || text.contains("slowdown");
+        return DEGRADED_SERVICE_TEXT.matcher(text).find();
     }
 
     private boolean hasRszMetadata(TtcAlertRecord record) {

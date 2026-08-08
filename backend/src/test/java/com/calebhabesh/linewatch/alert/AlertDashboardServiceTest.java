@@ -644,6 +644,43 @@ class AlertDashboardServiceTest {
     }
 
     @Test
+    void boundedSingleParentPeriodActivatesOneTimePlannedClosure() {
+        when(ingestionFreshness.isDashboardFresh()).thenReturn(true);
+        AlertEntity alert = withLine(alert(
+            "planned-closure-single-window",
+            "planned-closure",
+            "planned",
+            "One-time closure",
+            "No subway service between Finch and Eglinton.",
+            "finch",
+            "eglinton",
+            OffsetDateTime.parse("2026-06-01T10:00:00Z"),
+            null
+        ), "line-1", "1");
+        ReflectionTestUtils.setField(alert, "activePeriodStart", OffsetDateTime.parse("2026-06-01T11:00:00Z"));
+        ReflectionTestUtils.setField(alert, "activePeriodEnd", OffsetDateTime.parse("2026-06-01T13:00:00Z"));
+        when(alertRepository.findByActiveTrueAndType("planned-closure")).thenReturn(List.of(alert));
+        when(alertActivePeriodRepository.findByAlertIds(List.of("planned-closure-single-window")))
+            .thenReturn(Map.of("planned-closure-single-window", List.of(
+                new AlertActivePeriodRepository.AlertPeriod(
+                    "planned-closure-single-window",
+                    "parent",
+                    OffsetDateTime.parse("2026-06-01T11:00:00Z"),
+                    OffsetDateTime.parse("2026-06-01T13:00:00Z"),
+                    0
+                )
+            )));
+
+        assertThat(service.plannedClosures()).singleElement().satisfies(closure -> {
+            assertThat(closure.activeNow()).isTrue();
+            assertThat(closure.timingStatus()).isEqualTo("active-now");
+            assertThat(closure.activeWindowStart()).isEqualTo(OffsetDateTime.parse("2026-06-01T11:00:00Z"));
+            assertThat(closure.activeWindowEnd()).isEqualTo(OffsetDateTime.parse("2026-06-01T13:00:00Z"));
+            assertThat(closure.nightly()).isFalse();
+        });
+    }
+
+    @Test
     void activeNightlyClosureRemainsScheduledAndAlsoDrivesCurrentImpactViews() {
         when(ingestionFreshness.isDashboardFresh()).thenReturn(true);
         AlertEntity alert = withLine(alert(

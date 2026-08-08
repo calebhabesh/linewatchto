@@ -41,6 +41,7 @@ public class AccountService {
     private final SavedCommuteRepository savedCommuteRepository;
     private final GoogleIdentityVerifier googleIdentityVerifier;
     private final GoogleAuthProperties googleAuthProperties;
+    private final AccountSessionRequestContext sessionRequestContext;
     private final Clock clock;
     private final boolean passwordResetDevLinks;
 
@@ -57,6 +58,7 @@ public class AccountService {
         SavedCommuteRepository savedCommuteRepository,
         GoogleIdentityVerifier googleIdentityVerifier,
         GoogleAuthProperties googleAuthProperties,
+        AccountSessionRequestContext sessionRequestContext,
         @org.springframework.beans.factory.annotation.Value("${linewatch.auth.password-reset.dev-links:false}") boolean passwordResetDevLinks
     ) {
         this(
@@ -71,6 +73,7 @@ public class AccountService {
             savedCommuteRepository,
             googleIdentityVerifier,
             googleAuthProperties,
+            sessionRequestContext,
             Clock.systemUTC(),
             passwordResetDevLinks
         );
@@ -88,6 +91,7 @@ public class AccountService {
         SavedCommuteRepository savedCommuteRepository,
         GoogleIdentityVerifier googleIdentityVerifier,
         GoogleAuthProperties googleAuthProperties,
+        AccountSessionRequestContext sessionRequestContext,
         Clock clock,
         boolean passwordResetDevLinks
     ) {
@@ -102,6 +106,7 @@ public class AccountService {
         this.savedCommuteRepository = savedCommuteRepository;
         this.googleIdentityVerifier = googleIdentityVerifier;
         this.googleAuthProperties = googleAuthProperties;
+        this.sessionRequestContext = sessionRequestContext;
         this.clock = clock;
         this.passwordResetDevLinks = passwordResetDevLinks;
     }
@@ -339,7 +344,7 @@ public class AccountService {
         return sessionRepository.findByTokenHash(tokenHash)
             .filter(session -> session.getExpiresAt().isAfter(clock.instant()))
             .map(session -> {
-                extendSessionIfNecessary(session);
+                sessionRequestContext.markValidated(extendSessionIfNecessary(session));
                 return new AccountResponses.AuthResponse(true, toUserResponse(session.getAccount()));
             })
             .orElse(new AccountResponses.AuthResponse(false, null));
@@ -362,7 +367,7 @@ public class AccountService {
         UserSessionEntity session = sessionRepository.findByTokenHash(tokenHash)
             .filter(candidate -> candidate.getExpiresAt().isAfter(clock.instant()))
             .orElseThrow(() -> new AccountException(HttpStatus.UNAUTHORIZED, "not_authenticated", "Sign in to use account features."));
-        extendSessionIfNecessary(session);
+        sessionRequestContext.markValidated(extendSessionIfNecessary(session));
         return session.getAccount();
     }
 
@@ -370,13 +375,15 @@ public class AccountService {
         return SESSION_TTL;
     }
 
-    private void extendSessionIfNecessary(UserSessionEntity session) {
+    private boolean extendSessionIfNecessary(UserSessionEntity session) {
         Instant now = clock.instant();
         Instant halfway = now.plus(SESSION_TTL.dividedBy(2));
         if (session.getExpiresAt().isBefore(halfway)) {
             session.setExpiresAt(now.plus(SESSION_TTL));
             sessionRepository.save(session);
+            return true;
         }
+        return false;
     }
 
     private AccountResponses.AuthSession createSession(AccountEntity account, Instant now) {

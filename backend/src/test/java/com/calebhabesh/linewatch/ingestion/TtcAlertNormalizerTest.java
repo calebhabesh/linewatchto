@@ -249,6 +249,39 @@ class TtcAlertNormalizerTest {
     }
 
     @Test
+    void recognizesDelayWordingWhenTheStructuredEffectIsMissing() {
+        TtcAlertRecord record = copyServiceState(
+            fetchedRecord("1", "Subway", null).record(),
+            "Line 1: Minor delays between Eglinton and Davisville",
+            "Allow extra travel time.",
+            null,
+            null
+        );
+
+        NormalizedRouteAlert alert = normalizer.normalizeRoute(fetched(record))
+            .projection()
+            .orElseThrow();
+
+        assertThat(alert.impactKind()).isEqualTo(AlertImpactKind.DELAY);
+    }
+
+    @Test
+    void doesNotTurnClearedDelayWordingBackIntoAnActiveDelay() {
+        TtcAlertRecord record = copyServiceState(
+            fetchedRecord("1", "Subway", null).record(),
+            "Line 1 delays have cleared",
+            "Service is operating normally.",
+            "NO_EFFECT",
+            "Delays have cleared"
+        );
+
+        NormalizationResult<NormalizedRouteAlert> result = normalizer.normalizeRoute(fetched(record));
+
+        assertThat(result.shouldPersist()).isFalse();
+        assertThat(result.status()).isEqualTo(NormalizationStatus.UNMATCHED);
+    }
+
+    @Test
     void ignoresRoutesWithoutRapidTransitType() {
         NormalizationResult<NormalizedRouteAlert> result =
             normalizer.normalizeRoute(fetchedRecord("1", null, "SIGNIFICANT_DELAYS"));
@@ -881,6 +914,25 @@ class TtcAlertNormalizerTest {
             record.reducedSpeed(), record.averageSpeed(), record.shuttleType(), record.shuttleStart(),
             record.shuttleEnd(),
             record.elevatorCode(), record.escalatorCode(), record.childAlerts()
+        );
+    }
+
+    private TtcAlertRecord copyServiceState(
+        TtcAlertRecord record,
+        String title,
+        String description,
+        String effect,
+        String effectDescription
+    ) {
+        return new TtcAlertRecord(
+            record.id(), record.alertType(), record.lastUpdated(), record.activePeriod(),
+            record.activePeriodGroup(), record.route(), record.routeType(),
+            record.stopStart(), record.stopEnd(), record.stopIDList(),
+            title, description, title, effect,
+            effectDescription, record.direction(), record.cause(), record.causeDescription(),
+            record.targetRemoval(), record.rszLength(), record.distance(), record.trackPercent(),
+            record.reducedSpeed(), record.averageSpeed(), record.shuttleType(), record.shuttleStart(),
+            record.shuttleEnd(), record.elevatorCode(), record.escalatorCode(), record.childAlerts()
         );
     }
 
