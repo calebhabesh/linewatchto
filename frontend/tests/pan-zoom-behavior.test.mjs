@@ -150,6 +150,16 @@ describe("pan zoom behavior guardrails", () => {
     assert.match(hookSource, /programmaticAnimationFrameRef\.current = window\.requestAnimationFrame/);
   });
 
+  it("refits an untouched TTC map after resize but preserves manual camera changes", () => {
+    assert.match(hookSource, /const cameraAdjustedByUserRef = useRef\(false\)/);
+    assert.match(hookSource, /const refitIfCameraUntouched = useCallback/);
+    assert.match(hookSource, /if \(!cameraInitializedRef\.current \|\| cameraAdjustedByUserRef\.current\) return/);
+    assert.match(mapSource, /automaticResizeRefitBlockedRef\.current = Boolean\(selection \|\| selectedStationId \|\| commutePathPreview\)/);
+    assert.match(mapSource, /const handleWindowResize = \(\) => \{[\s\S]*?!automaticResizeRefitBlockedRef\.current[\s\S]*?refitIfCameraUntouched\(\)/);
+    assert.match(hookSource, /const handleWheel[\s\S]*?cameraAdjustedByUserRef\.current = true/);
+    assert.match(hookSource, /const recenter[\s\S]*?cameraAdjustedByUserRef\.current = false/);
+  });
+
   it("stages a covered map at the zoomed-out entrance before completing it", () => {
     assert.match(hookSource, /const stageInitialEntrance = useCallback/);
     assert.match(hookSource, /computeFittedCameraFlyInStart\(fittedTransform, width, height\)/);

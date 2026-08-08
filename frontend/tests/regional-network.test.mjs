@@ -1004,12 +1004,13 @@ describe("network-scoped regional dashboard", () => {
     );
   });
 
-  it("does not move or zoom the initialized camera when the dashboard viewport resizes", () => {
-    assert.doesNotMatch(regionalMapSource, /new ResizeObserver\(fitNetwork\)/);
+  it("refits an untouched camera on resize and preserves a user-adjusted camera", () => {
     const resizeObserverBody = regionalMapSource.match(/const observer = new ResizeObserver\(\(\) => \{([\s\S]*?)\n    \}\);/)?.[1] ?? "";
-    assert.match(resizeObserverBody, /if \(cameraInitializedRef\.current\) return/);
-    assert.doesNotMatch(resizeObserverBody, /setCamera/);
-    assert.doesNotMatch(resizeObserverBody, /setFitScale/);
+    assert.match(resizeObserverBody, /if \(!cameraInitializedRef\.current\)/);
+    assert.doesNotMatch(resizeObserverBody, /refitUntouchedNetwork\(\)/);
+    assert.match(regionalMapSource, /const handleWindowResize = \(\) => \{\s*if \(automaticResizeRefitBlockedRef\.current\) return;\s*refitUntouchedNetwork\(\)/s);
+    assert.match(regionalMapSource, /if \(!cameraInitializedRef\.current \|\| cameraAdjustedByUserRef\.current\) return/);
+    assert.match(regionalMapSource, /cameraAdjustedByUserRef\.current = true/);
   });
 
   it("does not replay a stale recenter command after a remount or refresh", () => {

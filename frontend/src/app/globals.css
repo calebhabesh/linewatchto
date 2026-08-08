@@ -3402,6 +3402,7 @@ button {
 .desktop-status-capsule-anchor {
   justify-content: center;
   max-width: min(1320px, calc(100vw - 320px));
+  transform: translateX(-50%);
   width: max-content;
 }
 
@@ -3599,9 +3600,9 @@ button {
 }
 
 .desktop-header-impact-chips .desktop-status-chip {
-  width: 56px;
+  width: 72px;
   height: 56px;
-  border-radius: 50%;
+  border-radius: 999px;
   padding: 0;
   font-size: 14px;
   gap: 4px;
@@ -3850,12 +3851,6 @@ button {
   .linewatch-shell[data-active-view="search"] .desktop-status-capsule-anchor {
     opacity: 0;
     pointer-events: none;
-  }
-}
-
-@media (max-width: 1023px) {
-  .desktop-status-chip-row {
-    display: none;
   }
 }
 
@@ -22586,5 +22581,73 @@ button:active .account-network-badge,
 
   .account-provider-stack {
     gap: 8px;
+  }
+}
+
+/* Narrow desktop windows (for example, a browser snapped to half a monitor)
+   keep desktop navigation while reflowing the dense top chrome into two rows. */
+@media (min-width: 768px) and (max-width: 1099px) {
+  .linewatch-shell > header {
+    padding: 16px !important;
+  }
+
+  .desktop-status-capsule-anchor {
+    flex-direction: column;
+    gap: 6px !important;
+    left: 50% !important;
+    max-width: calc(100vw - 32px);
+    top: 104px !important;
+    transform: translateX(-50%);
+    width: min(680px, calc(100vw - 32px));
+  }
+
+  .desktop-status-capsule,
+  .desktop-status-stack,
+  .desktop-status-primary-row {
+    max-width: 100%;
+  }
+
+  .desktop-status-primary-row {
+    gap: 7px;
+  }
+
+  .desktop-status-primary-row > div:first-child,
+  .desktop-status-primary-row > .desktop-status-divider:first-of-type,
+  .desktop-status-time,
+  .desktop-status-time + .desktop-status-divider {
+    display: none;
+  }
+
+  .linewatch-shell:not([data-active-view="map"]) .desktop-status-capsule-anchor {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .desktop-map-control-rail {
+    top: 176px !important;
+  }
+
+  .floating-panel-shell {
+    width: min(680px, 72vw, calc(100vw - 48px));
+  }
+
+  .linewatch-shell[data-menu-pinned="true"] .floating-panel-shell {
+    left: 392px;
+    width: min(680px, calc(100vw - 408px));
+  }
+}
+
+@media (min-width: 768px) and (max-width: 899px) {
+  .header-search-bar {
+    width: clamp(220px, 34vw, 270px);
+  }
+
+  .header-search-bar:focus-within,
+  .header-search-bar[data-active="true"] {
+    width: min(var(--desktop-global-search-width), calc(100vw - 240px));
+  }
+
+  .desktop-status-capsule {
+    padding-inline: 8px;
   }
 }

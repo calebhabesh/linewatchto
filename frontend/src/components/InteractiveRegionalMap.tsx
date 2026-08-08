@@ -2022,7 +2022,10 @@ function InteractiveRegionalMapComponent({
   const viewportRef = useRef<HTMLDivElement>(null);
   const mapStageRef = useRef<HTMLDivElement>(null);
   const cameraInitializedRef = useRef(false);
+  const cameraAdjustedByUserRef = useRef(false);
   const lastRecenterSignalRef = useRef(recenterSignal);
+  const lastViewportOrientationRef = useRef(viewportOrientation);
+  const automaticResizeRefitBlockedRef = useRef(false);
   const dragRef = useRef<{ pointerId: number; x: number; y: number; camera: Camera } | null>(null);
   const activePointersRef = useRef(new Map<number, { x: number; y: number }>());
   const pinchGestureRef = useRef<{
@@ -2043,6 +2046,10 @@ function InteractiveRegionalMapComponent({
   const [fitScale, setFitScale] = useState(0.35);
   const [desktopMapTopInset, setDesktopMapTopInset] = useState(0);
   const [desktopMapBottomInset, setDesktopMapBottomInset] = useState(0);
+
+  useEffect(() => {
+    automaticResizeRefitBlockedRef.current = Boolean(selection || selectedStationId || commutePathPreview);
+  }, [commutePathPreview, selectedStationId, selection]);
   const animTimeoutRef = useRef<number | null>(null);
   const programmaticAnimationFrameRef = useRef<number | null>(null);
   const dragAnimationFrameRef = useRef<number | null>(null);
@@ -2259,6 +2266,23 @@ function InteractiveRegionalMapComponent({
     cameraInitializedRef.current = true;
     animateCameraTo(fitted.camera, fitted.scale);
   }, [animateCameraTo, fittedCamera]);
+
+  const refitUntouchedNetwork = useCallback(() => {
+    if (!cameraInitializedRef.current || cameraAdjustedByUserRef.current) return;
+    const fitted = fittedCamera();
+    if (!fitted) return;
+    clearProgrammaticAnimation();
+    setMapTransition("none");
+    cameraRef.current = fitted.camera;
+    writeMapTransform(fitted.camera);
+    setFitScale(fitted.scale);
+    setCamera(fitted.camera);
+  }, [clearProgrammaticAnimation, fittedCamera, setMapTransition, writeMapTransform]);
+
+  const handleFitNetwork = useCallback(() => {
+    cameraAdjustedByUserRef.current = false;
+    fitNetwork();
+  }, [fitNetwork]);
 
   const stageInitialEntrance = useCallback(() => {
     if (!svgMarkup) return;
@@ -2844,27 +2868,41 @@ function InteractiveRegionalMapComponent({
     // never replay an old Center request that is still stored by the shell.
     if (recenterSignal === undefined || recenterSignal === lastRecenterSignalRef.current) return;
     lastRecenterSignalRef.current = recenterSignal;
-    fitNetwork();
-  }, [fitNetwork, recenterSignal]);
+    handleFitNetwork();
+  }, [handleFitNetwork, recenterSignal]);
 
   useEffect(() => {
+    if (lastViewportOrientationRef.current === viewportOrientation) return;
+    lastViewportOrientationRef.current = viewportOrientation;
     if (!cameraInitializedRef.current) return;
-    const frame = window.requestAnimationFrame(fitNetwork);
+    cameraAdjustedByUserRef.current = false;
+    const frame = window.requestAnimationFrame(handleFitNetwork);
     return () => window.cancelAnimationFrame(frame);
-  }, [fitNetwork, viewportOrientation]);
+  }, [handleFitNetwork, viewportOrientation]);
 
   useEffect(() => {
     const viewport = viewportRef.current;
     if (!viewport) return;
     const observer = new ResizeObserver(() => {
-      if (cameraInitializedRef.current) return;
-      initializeMapCamera();
+      if (!cameraInitializedRef.current) {
+        initializeMapCamera();
+        return;
+      }
     });
     observer.observe(viewport);
     const mapSurface = viewport.closest<HTMLElement>(".network-map-transition-surface");
     if (mapSurface) observer.observe(mapSurface);
     return () => observer.disconnect();
   }, [initializeMapCamera]);
+
+  useEffect(() => {
+    const handleWindowResize = () => {
+      if (automaticResizeRefitBlockedRef.current) return;
+      refitUntouchedNetwork();
+    };
+    window.addEventListener("resize", handleWindowResize);
+    return () => window.removeEventListener("resize", handleWindowResize);
+  }, [refitUntouchedNetwork]);
 
   useEffect(() => {
     const root = viewportRef.current;
@@ -3069,6 +3107,7 @@ function InteractiveRegionalMapComponent({
   const zoomAtCenter = useCallback((factor: number) => {
     const viewport = viewportRef.current;
     if (!viewport) return;
+    cameraAdjustedByUserRef.current = true;
     clearProgrammaticAnimation();
     beginCameraMotion();
     setMapTransition(shouldAnimateProgrammaticTransform ? "transform 0.1s ease-out" : "none");
@@ -3090,6 +3129,7 @@ function InteractiveRegionalMapComponent({
   const zoomToScale = useCallback((targetRelativeScale: number) => {
     const viewport = viewportRef.current;
     if (!viewport) return;
+    cameraAdjustedByUserRef.current = true;
     clearProgrammaticAnimation();
     beginCameraMotion();
     setMapTransition(shouldAnimateProgrammaticTransform ? "transform 0.1s ease-out" : "none");
@@ -3112,6 +3152,7 @@ function InteractiveRegionalMapComponent({
     event.preventDefault();
     const viewport = viewportRef.current;
     if (!viewport) return;
+    cameraAdjustedByUserRef.current = true;
 
     clearProgrammaticAnimation();
     beginCameraMotion();
@@ -3217,6 +3258,7 @@ function InteractiveRegionalMapComponent({
     pendingDragPointRef.current = point;
 
     if (activePointersRef.current.size >= 2) {
+      cameraAdjustedByUserRef.current = true;
       const [first, second] = [...activePointersRef.current.values()];
       const midpoint = midpointBetweenPoints(first, second);
       pinchGestureRef.current = {
@@ -3243,6 +3285,7 @@ function InteractiveRegionalMapComponent({
 
     const drag = dragRef.current;
     if (drag && drag.pointerId === event.pointerId && (Math.abs(point.x - drag.x) > 3 || Math.abs(point.y - drag.y) > 3)) {
+      cameraAdjustedByUserRef.current = true;
       dragMovedRef.current = true;
       pointerActivationRef.current = null;
     }
@@ -3616,7 +3659,7 @@ function InteractiveRegionalMapComponent({
         <div className="map-control-recenter-container">
           <button
             type="button"
-            onClick={fitNetwork}
+            onClick={handleFitNetwork}
             className="map-control-button group"
             title="Fit regional network"
             aria-label="Fit regional network"

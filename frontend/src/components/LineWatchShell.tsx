@@ -3171,7 +3171,7 @@ export function LineWatchShell({
         </div>
 
         {/* Floating Desktop Status Capsule (Top Center) */}
-        <div className="desktop-status-capsule-anchor hidden sm:flex absolute top-6 left-1/2 -translate-x-1/2 z-20 pointer-events-auto items-center gap-3">
+        <div className="desktop-status-capsule-anchor hidden sm:flex absolute top-6 left-1/2 z-20 pointer-events-auto items-center gap-3">
           <div className="desktop-status-stack">
             <div className="desktop-status-capsule desktop-top-chrome" aria-label="Current dashboard status summary">
               <div className="desktop-status-primary-row">

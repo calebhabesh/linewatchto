@@ -321,6 +321,7 @@ function InteractiveTtcMapComponent({
     zoomToBounds,
     shouldSuppressMapClick,
     replayEntrance,
+    refitIfCameraUntouched,
   } = usePanZoom({
     reducedMotion,
     viewportOrientation,
@@ -330,6 +331,11 @@ function InteractiveTtcMapComponent({
   });
   const [mapViewportSize, setMapViewportSize] = useState({ width: 392, height: 720 });
   const [chooserKeepoutBoxes, setChooserKeepoutBoxes] = useState<SvgBounds[]>([]);
+  const automaticResizeRefitBlockedRef = useRef(false);
+
+  useEffect(() => {
+    automaticResizeRefitBlockedRef.current = Boolean(selection || selectedStationId || commutePathPreview);
+  }, [commutePathPreview, selectedStationId, selection]);
 
   useLayoutEffect(() => {
     const root = mapRootRef.current;
@@ -365,11 +371,21 @@ function InteractiveTtcMapComponent({
     const updateSize = () => {
       setMapViewportSize({ width: viewport.clientWidth, height: viewport.clientHeight });
     };
+    const handleWindowResize = () => {
+      updateSize();
+      if (!automaticResizeRefitBlockedRef.current) {
+        refitIfCameraUntouched();
+      }
+    };
     updateSize();
     const observer = new ResizeObserver(updateSize);
     observer.observe(viewport);
-    return () => observer.disconnect();
-  }, [containerRef]);
+    window.addEventListener("resize", handleWindowResize);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", handleWindowResize);
+    };
+  }, [containerRef, refitIfCameraUntouched]);
 
   useLayoutEffect(() => {
     const viewport = containerRef.current;

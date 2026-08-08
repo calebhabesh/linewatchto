@@ -75,6 +75,7 @@ export function usePanZoom({
   const suppressMapClickRef = useRef(false);
   const dragPointerTypeRef = useRef<string | null>(null);
   const cameraInitializedRef = useRef(false);
+  const cameraAdjustedByUserRef = useRef(false);
 
   const shouldAnimateProgrammaticTransform = !reducedMotion && !disableProgrammaticMotion;
 
@@ -422,6 +423,7 @@ export function usePanZoom({
     pointerStartPointsRef.current.set(e.pointerId, point);
 
     if (activePointersRef.current.size >= 2) {
+      cameraAdjustedByUserRef.current = true;
       gestureMovedRef.current = true;
       suppressMapClickRef.current = true;
       captureActivePointers(e.currentTarget);
@@ -463,6 +465,7 @@ export function usePanZoom({
       if (!exceedsMapTapMovement(startPoint, point)) return;
 
       gestureMovedRef.current = true;
+      cameraAdjustedByUserRef.current = true;
       suppressMapClickRef.current = true;
       captureActivePointers(e.currentTarget);
       if (dragPointerTypeRef.current === "mouse") {
@@ -564,6 +567,7 @@ export function usePanZoom({
 
   const handleWheel = useCallback((e: WheelEvent<HTMLDivElement>) => {
     if (!containerRef.current) return;
+    cameraAdjustedByUserRef.current = true;
     
     const { x: mouseX, y: mouseY } = pointFromClientPoint(e.clientX, e.clientY);
 
@@ -656,7 +660,13 @@ export function usePanZoom({
   }, [moveToDefaultCamera]);
 
   const recenter = useCallback(() => {
+    cameraAdjustedByUserRef.current = false;
     moveToDefaultCamera(true, true);
+  }, [moveToDefaultCamera]);
+
+  const refitIfCameraUntouched = useCallback(() => {
+    if (!cameraInitializedRef.current || cameraAdjustedByUserRef.current) return;
+    moveToDefaultCamera(false, false);
   }, [moveToDefaultCamera]);
 
   const replayEntrance = useCallback(() => {
@@ -666,6 +676,7 @@ export function usePanZoom({
 
   const zoomIn = useCallback(() => {
     if (!containerRef.current) return;
+    cameraAdjustedByUserRef.current = true;
     const { width, height } = logicalViewportSize();
     if (width <= 0 || height <= 0) return;
     const centerX = width / 2;
@@ -683,6 +694,7 @@ export function usePanZoom({
 
   const zoomOut = useCallback(() => {
     if (!containerRef.current) return;
+    cameraAdjustedByUserRef.current = true;
     const { width, height } = logicalViewportSize();
     if (width <= 0 || height <= 0) return;
     const centerX = width / 2;
@@ -700,6 +712,7 @@ export function usePanZoom({
 
   const zoomToScale = useCallback((relativeScale: number) => {
     if (!containerRef.current) return;
+    cameraAdjustedByUserRef.current = true;
     const { width, height } = logicalViewportSize();
     if (width <= 0 || height <= 0) return;
     const centerX = width / 2;
@@ -813,6 +826,7 @@ export function usePanZoom({
     stageInitialEntrance,
     completeStagedEntrance,
     replayEntrance,
+    refitIfCameraUntouched,
     zoomIn,
     zoomOut,
     zoomToScale,

@@ -237,6 +237,44 @@ test("shows a subway closing soon countdown before overnight closure", async ({ 
   await expect(page.getByRole("heading", { name: "Subway Closed" })).toHaveCount(0);
 });
 
+test("reflows desktop chrome after resizing to a half-screen window", async ({ page, request, isMobile }) => {
+  test.skip(isMobile, "desktop-only responsive layout");
+  await setStubMode(request, "seeded");
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/");
+  await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
+
+  await page.setViewportSize({ width: 900, height: 900 });
+  await page.evaluate(() => new Promise<void>((resolve) => {
+    requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+  }));
+
+  const viewportWidth = page.viewportSize()!.width;
+  const [searchBox, utilityBox, statusBox, mapControlsBox] = await Promise.all([
+    page.locator(".header-search-bar").boundingBox(),
+    page.locator("header .map-utility-cluster").boundingBox(),
+    page.locator(".desktop-status-capsule").boundingBox(),
+    page.locator(".desktop-map-control-rail").boundingBox(),
+  ]);
+  for (const box of [searchBox, utilityBox, statusBox, mapControlsBox]) {
+    expect(box).not.toBeNull();
+    expect(box!.x).toBeGreaterThanOrEqual(0);
+    expect(box!.x + box!.width).toBeLessThanOrEqual(viewportWidth + 1);
+  }
+  expect(utilityBox!.x).toBeGreaterThanOrEqual(searchBox!.x + searchBox!.width);
+  expect(statusBox!.y).toBeGreaterThanOrEqual(searchBox!.y + searchBox!.height);
+  expect(mapControlsBox!.y).toBeGreaterThanOrEqual(statusBox!.y + statusBox!.height);
+
+  await page.getByRole("button", { name: "Toggle menu" }).click();
+  await page.getByRole("menuitem", { name: "Active Alerts" }).click();
+  const floatingPanel = page.locator('.floating-panel-shell[data-floating-panel="alerts"]');
+  await expect(floatingPanel).toBeVisible();
+  const panelBox = await floatingPanel.boundingBox();
+  expect(panelBox).not.toBeNull();
+  expect(panelBox!.x + panelBox!.width).toBeLessThanOrEqual(viewportWidth + 1);
+  await expect(page.locator(".desktop-status-capsule-anchor")).toHaveCSS("opacity", "0");
+});
+
 test("shows subway closed screen overnight and lets riders peek at the map", async ({ page, request, isMobile }) => {
   await setStubMode(request, "seeded");
   await freezeBrowserTime(page, "2026-06-04T03:20:00-04:00");
@@ -360,8 +398,22 @@ test("switches the complete dashboard to the fixture-backed regional network", a
   await page.evaluate(() => new Promise<void>((resolve) => {
     requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
   }));
-  await expect.poll(() => regionalStage.evaluate((element) => (element as HTMLElement).style.transform)).toBe(initialCamera);
+  await expect.poll(() => regionalStage.evaluate((element) => (element as HTMLElement).style.transform)).not.toBe(initialCamera);
   await expect(regionalStage.locator(":scope > svg")).toHaveAttribute("viewBox", initialViewBox!);
+  const resizedCamera = await regionalStage.evaluate((element) => (element as HTMLElement).style.transform);
+
+  await regionalStage.hover();
+  await page.mouse.wheel(0, -180);
+  await expect.poll(() => regionalStage.evaluate((element) => (element as HTMLElement).style.transform)).not.toBe(resizedCamera);
+  const adjustedCamera = await regionalStage.evaluate((element) => (element as HTMLElement).style.transform);
+  await page.setViewportSize({
+    width: Math.min(page.viewportSize()!.width + 40, initialViewport!.width),
+    height: page.viewportSize()!.height,
+  });
+  await page.evaluate(() => new Promise<void>((resolve) => {
+    requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+  }));
+  await expect.poll(() => regionalStage.evaluate((element) => (element as HTMLElement).style.transform)).toBe(adjustedCamera);
 
   const weston = page.locator('[data-regional-station-id="weston"]');
   await expect(weston).toHaveAttribute("tabindex", "0");
