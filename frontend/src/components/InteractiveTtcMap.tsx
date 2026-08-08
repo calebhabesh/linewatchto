@@ -4226,7 +4226,10 @@ function OverlayInteractionTarget({
       d={segment.pathD}
       data-overlay-interaction-target={targetId}
       onClick={(event) => {
-        if (exiting || shouldSuppressMapClick()) return;
+        // Pointer activation is owned by pointerup below. A map-camera commit or
+        // the desktop panel opening can otherwise retarget/drop the later
+        // synthesized click after the user has visibly pressed this path.
+        if (exiting || event.detail !== 0 || shouldSuppressMapClick()) return;
         event.stopPropagation();
         selectCurrentImpact();
       }}
@@ -4242,6 +4245,19 @@ function OverlayInteractionTarget({
       onPointerLeave={(event) => {
         if (event.pointerType !== "mouse") return;
         onHoverHighlightChange(null);
+      }}
+      onPointerDown={(event) => {
+        if (exiting || (event.pointerType === "mouse" && event.button !== 0)) return;
+        try {
+          event.currentTarget.setPointerCapture(event.pointerId);
+        } catch {
+          // Pointer capture can fail if the browser ended the pointer first.
+        }
+      }}
+      onPointerUp={(event) => {
+        if (exiting || (event.pointerType === "mouse" && event.button !== 0)) return;
+        if (shouldSuppressMapClick()) return;
+        selectCurrentImpact();
       }}
       pointerEvents={exiting ? "none" : "stroke"}
       role="button"

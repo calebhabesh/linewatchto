@@ -2011,7 +2011,7 @@ test("nonlinear guide-backed overlays open their corresponding cards", async ({ 
   await page.goto("/");
   await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
 
-  await page.getByRole("button", { name: "reduced-speed-zone: King to Union" }).dispatchEvent("click");
+  await page.getByRole("button", { name: "reduced-speed-zone: King to Union" }).click();
   if (isMobile) {
     const inspector = page.locator('[data-mobile-impact-inspector]');
     await expect(inspector).toBeVisible();

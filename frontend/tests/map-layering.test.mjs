@@ -660,6 +660,21 @@ describe("asset-backed map layering", () => {
     assert.match(interactiveMapSource, /if \(event\.detail !== 0 \|\| shouldSuppressMapClick\(\)\) return;/);
   });
 
+  it("owns segment-overlay pointer activation before the first panel opening can retarget the click", () => {
+    assert.match(
+      interactiveMapSource,
+      /function OverlayInteractionTarget[\s\S]*?onPointerDown=\{\(event\) => \{[\s\S]*?setPointerCapture\(event\.pointerId\)/,
+    );
+    assert.match(
+      interactiveMapSource,
+      /function OverlayInteractionTarget[\s\S]*?onPointerUp=\{\(event\) => \{[\s\S]*?selectCurrentImpact\(\)/,
+    );
+    assert.match(
+      interactiveMapSource,
+      /function OverlayInteractionTarget[\s\S]*?event\.detail !== 0 \|\| shouldSuppressMapClick\(\)/,
+    );
+  });
+
   it("keeps the overlap chooser open when a map pan produces a click", () => {
     assert.match(
       interactiveMapSource,
