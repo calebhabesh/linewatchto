@@ -157,6 +157,7 @@ describe("station detail panel layout", () => {
     assert.doesNotMatch(panelSource, /elevator-icon\.svg/);
     assert.match(panelSource, /Wheelchair accessible/);
     assert.match(panelSource, /Elevator available/);
+    assert.match(panelSource, /width=\{37\}[\s\S]*height=\{37\}[\s\S]*w-\[37px\] h-\[37px\]/);
     assert.equal(
       panelSource.match(/drop-shadow-\[0_0_1\.5px_rgba\(0,130,201,0\.28\)\] dark:drop-shadow-\[0_0_2px_rgba\(0,130,201,0\.38\)\]/g)?.length,
       2,

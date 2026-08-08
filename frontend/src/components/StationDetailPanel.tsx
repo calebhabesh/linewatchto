@@ -514,9 +514,9 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
                     <Image
                       src="/assets/linewatch/outages/elevator.svg"
                       alt={hasElevatorOutage ? "Elevator available, outage reported" : "Elevator available"}
-                      width={40}
-                      height={40}
-                      className="w-[40px] h-[40px] drop-shadow-[0_0_1.5px_rgba(0,130,201,0.28)] dark:drop-shadow-[0_0_2px_rgba(0,130,201,0.38)]"
+                      width={37}
+                      height={37}
+                      className="w-[37px] h-[37px] drop-shadow-[0_0_1.5px_rgba(0,130,201,0.28)] dark:drop-shadow-[0_0_2px_rgba(0,130,201,0.38)]"
                     />
                   </span>
                 )}
