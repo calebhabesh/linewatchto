@@ -153,9 +153,14 @@ describe("station detail panel layout", () => {
 
   it("renders authored accessibility icons with accessible warning state labels", () => {
     assert.match(panelSource, /wheel-chair-symbol\.svg/);
-    assert.match(panelSource, /elevator-icon\.svg/);
+    assert.match(panelSource, /\/assets\/linewatch\/outages\/elevator\.svg/);
+    assert.doesNotMatch(panelSource, /elevator-icon\.svg/);
     assert.match(panelSource, /Wheelchair accessible/);
     assert.match(panelSource, /Elevator available/);
+    assert.equal(
+      panelSource.match(/drop-shadow-\[0_0_1\.5px_rgba\(0,130,201,0\.28\)\] dark:drop-shadow-\[0_0_2px_rgba\(0,130,201,0\.38\)\]/g)?.length,
+      2,
+    );
     assert.match(panelSource, /data-facility-warning/);
     assert.doesNotMatch(panelSource, /opacity-60 grayscale/);
     assert.match(panelSource, /<details[^>]+data-station-section="accessibility"/);

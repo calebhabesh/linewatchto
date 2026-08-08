@@ -236,18 +236,18 @@ function StationButton({
                 alt="Wheelchair accessible"
                 width={14}
                 height={14}
-                className="h-[14px] w-[14px] rounded-[2px] drop-shadow-[0_0_1px_rgba(0,103,167,0.4)] dark:drop-shadow-[0_0_1.5px_rgba(0,103,167,0.6)]"
+                className="h-[14px] w-[14px] rounded-[2px] drop-shadow-[0_0_1px_rgba(0,130,201,0.22)] dark:drop-shadow-[0_0_1.5px_rgba(0,130,201,0.3)]"
               />
             </span>
           )}
           {hasElevator && (
             <span className="inline-flex items-center justify-center shrink-0" title="Elevator available">
               <Image
-                src="/assets/linewatch/elevator-icon.svg"
+                src="/assets/linewatch/outages/elevator.svg"
                 alt="Elevator available"
                 width={14}
                 height={14}
-                className="h-[14px] w-[14px] drop-shadow-[0_0_1px_rgba(0,130,201,0.4)] dark:drop-shadow-[0_0_1.5px_rgba(0,130,201,0.6)]"
+                className="h-[14px] w-[14px] drop-shadow-[0_0_1px_rgba(0,130,201,0.22)] dark:drop-shadow-[0_0_1.5px_rgba(0,130,201,0.3)]"
               />
             </span>
           )}

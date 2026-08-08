@@ -501,7 +501,7 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
                       alt="Wheelchair accessible"
                       width={34}
                       height={34}
-                      className="w-[34px] h-[34px] rounded-md drop-shadow-[0_0_3px_rgba(0,103,167,0.5)] dark:drop-shadow-[0_0_4px_rgba(0,103,167,0.7)]"
+                      className="w-[34px] h-[34px] rounded-md drop-shadow-[0_0_1.5px_rgba(0,130,201,0.28)] dark:drop-shadow-[0_0_2px_rgba(0,130,201,0.38)]"
                     />
                   </span>
                 )}
@@ -512,11 +512,11 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
                     title={hasElevatorOutage ? "Elevator available, outage reported" : "Elevator available"}
                   >
                     <Image
-                      src="/assets/linewatch/elevator-icon.svg"
+                      src="/assets/linewatch/outages/elevator.svg"
                       alt={hasElevatorOutage ? "Elevator available, outage reported" : "Elevator available"}
                       width={40}
                       height={40}
-                      className="w-[40px] h-[40px] drop-shadow-[0_0_3px_rgba(0,130,201,0.5)] dark:drop-shadow-[0_0_4px_rgba(0,130,201,0.7)]"
+                      className="w-[40px] h-[40px] drop-shadow-[0_0_1.5px_rgba(0,130,201,0.28)] dark:drop-shadow-[0_0_2px_rgba(0,130,201,0.38)]"
                     />
                   </span>
                 )}
