@@ -61,6 +61,26 @@ class RegionalCommuteImpactServiceTest {
         assertThat(impact.travelTimeEstimate().confidence()).isEqualTo("low");
     }
 
+    @Test
+    void carriesDateOnlyServiceWindowIntoTheNotificationSeam() {
+        var path = pathService.path("allandale-waterfront", "union");
+        when(freshness.isFresh()).thenReturn(true);
+        when(alertStore.findActiveAlerts()).thenReturn(List.of(new RegionalNormalizedAlert(
+            "regional-go-123-br", MetrolinxSourceSystem.GO_SERVICE_ALERTS, "M00123", "regional-br",
+            "planned-closure", "Aug. 15–16 closure", "No GO train service on the Barrie line.",
+            "construction", OffsetDateTime.parse("2026-08-15T00:00:00-04:00"),
+            OffsetDateTime.parse("2026-08-17T00:00:00-04:00"),
+            OffsetDateTime.parse("2026-08-07T12:00:00-04:00"), List.of(), List.of(),
+            "text-date-range", "{}"
+        )));
+
+        var match = service.impactFor(path).matchedImpacts().getFirst();
+
+        assertThat(match.closureDates()).isEqualTo("Aug 15–16");
+        assertThat(match.notificationServiceEndAt())
+            .isEqualTo(OffsetDateTime.parse("2026-08-17T00:00:00-04:00"));
+    }
+
     private RegionalNormalizedAlert alert(String id, String kind, List<String> stationIds, List<String> segments) {
         return new RegionalNormalizedAlert(
             id, MetrolinxSourceSystem.GO_SERVICE_ALERTS, id, "regional-ki", kind,

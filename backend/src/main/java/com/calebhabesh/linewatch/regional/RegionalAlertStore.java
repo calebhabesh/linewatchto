@@ -49,11 +49,12 @@ public class RegionalAlertStore {
             insert into regional_alerts (
                 id, source_system, source_id, line_id, impact_kind, title, description,
                 cause, active_period_start, active_period_end, source_updated_at,
-                station_ids, affected_segment_ids, active, created_at, updated_at
+                station_ids, affected_segment_ids, active_period_basis, active, created_at, updated_at
             ) values (
                 :id, :sourceSystem, :sourceId, :lineId, :impactKind, :title, :description,
                 :cause, :activePeriodStart, :activePeriodEnd, :sourceUpdatedAt,
-                cast(:stationIds as jsonb), cast(:affectedSegmentIds as jsonb), true, :now, :now
+                cast(:stationIds as jsonb), cast(:affectedSegmentIds as jsonb), :activePeriodBasis,
+                true, :now, :now
             )
             on conflict (id) do update set
                 source_system = excluded.source_system,
@@ -68,6 +69,7 @@ public class RegionalAlertStore {
                 source_updated_at = excluded.source_updated_at,
                 station_ids = excluded.station_ids,
                 affected_segment_ids = excluded.affected_segment_ids,
+                active_period_basis = excluded.active_period_basis,
                 active = true,
                 updated_at = excluded.updated_at
             """, new MapSqlParameterSource()
@@ -84,6 +86,7 @@ public class RegionalAlertStore {
                 .addValue("sourceUpdatedAt", alert.sourceUpdatedAt())
                 .addValue("stationIds", json(alert.stationIds()))
                 .addValue("affectedSegmentIds", json(alert.affectedSegmentIds()))
+                .addValue("activePeriodBasis", alert.activePeriodBasis())
                 .addValue("now", now));
         snapshotIfChanged(alert.id(), now);
     }
@@ -177,7 +180,7 @@ public class RegionalAlertStore {
         return jdbc.query("""
             select id, source_system, source_id, line_id, impact_kind, title, description,
                    cause, active_period_start, active_period_end, source_updated_at,
-                   station_ids::text, affected_segment_ids::text
+                   station_ids::text, affected_segment_ids::text, active_period_basis
             from regional_alerts
             where active = true
             order by source_updated_at desc nulls last, id
@@ -195,6 +198,7 @@ public class RegionalAlertStore {
                 resultSet.getObject("source_updated_at", OffsetDateTime.class),
                 strings(resultSet.getString("station_ids")),
                 strings(resultSet.getString("affected_segment_ids")),
+                resultSet.getString("active_period_basis"),
                 ""
             ));
     }

@@ -45,5 +45,14 @@ class RegionalIngestionSchemaMigrationTest {
         assertThat(classificationMigration).contains("deterministic_classification jsonb");
         assertThat(classificationMigration)
             .contains("drop constraint regional_alerts_source_system_source_id_line_id_key");
+
+        String activePeriodBasisMigration = new String(
+            getClass().getResourceAsStream(
+                "/db/migration/V61__regional_alert_active_period_basis.sql"
+            ).readAllBytes(),
+            StandardCharsets.UTF_8
+        );
+        assertThat(activePeriodBasisMigration).contains("active_period_basis varchar(32) not null");
+        assertThat(activePeriodBasisMigration).contains("default 'source-active-period'");
     }
 }

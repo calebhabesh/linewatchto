@@ -167,8 +167,9 @@ public class SavedCommutePushPlanner {
     ) {
         boolean regional = "regional".equals(commute.getNetworkId());
         boolean plannedClosure = "planned-closure".equals(eventType);
+        boolean dateOnlyServiceWindow = regional && match.notificationServiceEndAt() != null;
         OffsetDateTime eventTime = plannedClosure ? match.eventStartAt() : match.startedAt();
-        Instant sourceEventAt = eventTime == null ? null : eventTime.toInstant();
+        Instant sourceEventAt = eventTime == null || dateOnlyServiceWindow ? null : eventTime.toInstant();
 
         FormattedPushNotification notification = formatter.formatActive(new PushNotificationFacts(
             match.lineId(),
@@ -267,7 +268,14 @@ public class SavedCommutePushPlanner {
             return false;
         }
         if ("planned".equals(match.status()) && match.eventStartAt() != null) {
-            if (!SavedCommuteNotificationSchedule.matches(commute, legId, match.eventStartAt().toInstant())) {
+            boolean dateOnlyServiceWindow = "regional".equals(commute.getNetworkId())
+                && match.notificationServiceEndAt() != null;
+            boolean relevantToLeg = dateOnlyServiceWindow
+                ? SavedCommuteNotificationSchedule.overlapsServiceDates(
+                    commute, legId, match.eventStartAt(), match.notificationServiceEndAt()
+                )
+                : SavedCommuteNotificationSchedule.matches(commute, legId, match.eventStartAt().toInstant());
+            if (!relevantToLeg) {
                 return false;
             }
         }

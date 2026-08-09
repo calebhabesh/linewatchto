@@ -61,11 +61,16 @@ public class RegionalCommuteImpactService {
             RegionalNetworkCatalog.Route route = RegionalNetworkCatalog.route(alert.lineId()).orElse(null);
             String lineNumber = route == null ? "" : route.number();
             String location = location(alert, routeWide);
+            String closureDates = alert.hasDateOnlyServiceWindow()
+                ? RegionalServiceDateFormatter.format(alert.activePeriodStart(), alert.activePeriodEnd())
+                : null;
             matches.add(new CommuteResponses.MatchedImpactResponse(
                 alert.id(), alert.impactKind(), planned ? "planned" : "current", severity,
                 alert.title(), alert.lineId(), lineNumber, location, null, alert.description(), source(alert),
                 matchedSegments, matchedStations, alert.activePeriodStart(), alert.sourceUpdatedAt(),
-                planned ? "Upcoming" : "Now", planned ? "scheduled" : "active", alert.activePeriodStart()
+                planned ? "Upcoming" : "Now", planned ? "scheduled" : "active", alert.activePeriodStart(),
+                null, closureDates, false, alert.title(), alert.cause(), false,
+                alert.hasDateOnlyServiceWindow() ? alert.activePeriodEnd() : null
             ));
         }
         matches.sort(Comparator.comparing(CommuteResponses.MatchedImpactResponse::kind)

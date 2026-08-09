@@ -2102,6 +2102,116 @@ class PushNotificationDispatchServiceTest {
     }
 
     @Test
+    void regionalCurrentToPlannedCorrectionClosesObservationWithoutServiceRestoredPush() {
+        PushNotificationDispatchService regionalService = new PushNotificationDispatchService(
+            savedCommuteRepository, planner, eventRepository, subscriptionRepository, deliveryRepository,
+            clientEventRepository, webPushClient, preferenceService, lineSubscriptionPushPlanner,
+            regionalLineSubscriptionPushPlanner, lineEventObservationService, savedCommuteObservationService,
+            formatter, receiptTokenService, ingestionFreshness, regionalIngestionFreshness,
+            alertHistoryRepository, pushProperties, clock, null
+        );
+        PushNotificationPreferenceEntity preferences = spy(
+            PushNotificationPreferenceEntity.create(account, clock.instant())
+        );
+        when(preferences.isLineRestoredEnabled()).thenReturn(true);
+        PushNotificationCandidate current = candidate(
+            null, null, "regional-br", "BR", "line-current", "suspension", "on-change",
+            "line-current|regional-br|suspension|regional-go-123-br",
+            "current-dedupe", "Barrie corridor", null,
+            Instant.parse("2026-06-05T04:00:00Z"), "/?network=regional&panel=alerts"
+        );
+        PushLineEventObservationEntity observation = PushLineEventObservationEntity.create(
+            "regional_observation", current, Instant.parse("2026-06-05T14:30:00Z")
+        );
+        FormattedPushNotification plannedNotification = formatter.formatActive(new PushNotificationFacts(
+            "regional-br", "BR", "planned-closure", "on-change", "Barrie corridor",
+            null, false, null, null, null, "construction", "Aug. 15–16 closure",
+            "No GO train service on the Barrie line.", null, "Aug 15–16"
+        ));
+        PushNotificationCandidate planned = new PushNotificationCandidate(
+            "user_1", null, null, "regional-br", "BR", "line-planned", "planned-closure",
+            "on-change", "line-planned|regional-br|regional-go-123-br",
+            "line-planned|regional-br|planned-closure|regional-go-123-br", "planned-dedupe",
+            plannedNotification, "/?network=regional&panel=closures", true
+        );
+
+        when(regionalIngestionFreshness.isFresh()).thenReturn(true);
+        when(preferenceService.preferenceEntityForAccountId("user_1")).thenReturn(preferences);
+        when(preferenceService.subscribedLineIds("user_1")).thenReturn(List.of("regional-br"));
+        when(preferenceService.allows(preferences, planned)).thenReturn(true);
+        when(subscriptionRepository.findEnabledAccountIds()).thenReturn(List.of("user_1"));
+        when(regionalLineSubscriptionPushPlanner.candidatesFor(
+            "user_1", List.of("regional-br"), PlannedClosureFollowUpPolicy.SMART
+        )).thenReturn(List.of(planned));
+        when(eventRepository.existsByDedupeKey("planned-dedupe")).thenReturn(true);
+        when(lineEventObservationService.activeObservations("user_1")).thenReturn(List.of(observation));
+
+        regionalService.evaluateSavedCommuteNotifications();
+
+        verify(lineEventObservationService).markCleared(observation, clock.instant());
+        verify(eventRepository, never()).save(argThat(event -> "CLEARED".equals(event.getNotificationState())));
+        verify(webPushClient, never()).send(any(), anyString(), any(WebPushPayload.class));
+    }
+
+    @Test
+    void regionalCommuteCurrentToPlannedCorrectionReclassifiesActiveLifecycle() {
+        PushNotificationDispatchService regionalService = new PushNotificationDispatchService(
+            savedCommuteRepository, planner, eventRepository, subscriptionRepository, deliveryRepository,
+            clientEventRepository, webPushClient, preferenceService, lineSubscriptionPushPlanner,
+            regionalLineSubscriptionPushPlanner, lineEventObservationService, savedCommuteObservationService,
+            formatter, receiptTokenService, ingestionFreshness, regionalIngestionFreshness,
+            alertHistoryRepository, pushProperties, clock, null
+        );
+        SavedCommuteEntity commute = SavedCommuteEntity.create(
+            "commute_regional", account, "Barrie commute", "regional", "allandale-waterfront", "union",
+            false, Instant.parse("2026-06-01T14:00:00Z")
+        );
+        PushNotificationPreferenceEntity preferences = PushNotificationPreferenceEntity.create(account, clock.instant());
+        PushNotificationCandidate current = candidate(
+            "commute_regional", "outbound", "regional-br", "BR", "saved-commute-current",
+            "suspension", "on-change",
+            "saved-commute-current|commute_regional|outbound|suspension|regional-go-123-br",
+            "current-commute-dedupe", "Barrie corridor", null, "Barrie commute",
+            Instant.parse("2026-06-05T04:00:00Z"), "/?network=regional&panel=commutes"
+        );
+        PushNotificationCandidate planned = candidate(
+            "commute_regional", "outbound", "regional-br", "BR", "saved-commute-planned",
+            "planned-closure", "on-change",
+            "saved-commute-planned|commute_regional|outbound|planned-closure|regional-go-123-br",
+            "planned-commute-dedupe", "Barrie corridor", null, "Barrie commute",
+            null, "/?network=regional&panel=commutes"
+        );
+        PushNotificationEventEntity activeEvent = PushNotificationEventEntity.create(
+            "active_regional_commute", current, Instant.parse("2026-06-05T14:30:00Z")
+        );
+        PushSavedCommuteEventObservationEntity observation = PushSavedCommuteEventObservationEntity.create(
+            "regional_commute_observation", current, Instant.parse("2026-06-05T14:30:00Z")
+        );
+
+        when(regionalIngestionFreshness.isFresh()).thenReturn(true);
+        when(preferenceService.preferenceEntityForAccountId("user_1")).thenReturn(preferences);
+        when(preferenceService.subscribedLineIds("user_1")).thenReturn(List.of());
+        when(preferenceService.allows(preferences, planned)).thenReturn(true);
+        when(subscriptionRepository.findEnabledAccountIds()).thenReturn(List.of("user_1"));
+        when(savedCommuteRepository.findByAccountIdOrderByCreatedAtAsc("user_1")).thenReturn(List.of(commute));
+        when(planner.candidatesFor(commute)).thenReturn(List.of(planned));
+        when(eventRepository.existsByDedupeKey("planned-commute-dedupe")).thenReturn(true);
+        when(eventRepository.findByAccountIdAndCategoryInAndNotificationState(
+            "user_1", List.of("saved-commute-current", "saved-commute-impact"), "ACTIVE"
+        )).thenReturn(List.of(activeEvent));
+        when(eventRepository.save(activeEvent)).thenReturn(activeEvent);
+        when(savedCommuteObservationService.activeObservations("user_1")).thenReturn(List.of(observation));
+
+        regionalService.evaluateSavedCommuteNotifications();
+
+        assertThat(activeEvent.getNotificationState()).isEqualTo("RECLASSIFIED");
+        verify(eventRepository).save(activeEvent);
+        verify(savedCommuteObservationService).markCleared(observation, clock.instant());
+        verify(eventRepository, never()).save(argThat(event -> "CLEARED".equals(event.getNotificationState())));
+        verify(webPushClient, never()).send(any(), anyString(), any(WebPushPayload.class));
+    }
+
+    @Test
     void topicsDifferForActiveAndClearedDisplayTagsOfTheSameLifecycleKey() {
         String lifecycleKey = "line-current|line-1|delay|delay-1";
 

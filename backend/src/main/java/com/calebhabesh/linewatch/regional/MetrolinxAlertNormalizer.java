@@ -329,6 +329,7 @@ public class MetrolinxAlertNormalizer {
             firstNonBlank(humanize(classification.cause()), "Metrolinx service update"),
             classification.activePeriodStart(), classification.activePeriodEnd(), sourceUpdatedAt,
             stationIds, RegionalNetworkCatalog.segmentIds(route.id(), stationIds),
+            classification.activePeriodBasis(),
             classification.primaryRawPayload()
         );
     }

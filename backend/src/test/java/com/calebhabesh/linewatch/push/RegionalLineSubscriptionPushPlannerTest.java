@@ -76,6 +76,29 @@ class RegionalLineSubscriptionPushPlannerTest {
         assertThat(second.dedupeKey()).isEqualTo(first.dedupeKey());
     }
 
+    @Test
+    void formatsDateOnlyPlannedClosureWithoutAFalseMidnightStart() {
+        RegionalNormalizedAlert closure = new RegionalNormalizedAlert(
+            "regional-go-123-br", "metrolinx-go-service-alerts", "M00123", "regional-br",
+            "planned-closure", "Aug. 30–31 closure", "No GO train service on the Barrie line.",
+            "construction", OffsetDateTime.parse("2026-08-30T00:00:00-04:00"),
+            OffsetDateTime.parse("2026-09-01T00:00:00-04:00"),
+            OffsetDateTime.parse("2026-08-07T12:00:00-04:00"), List.of(), List.of(),
+            "text-date-range", "{}"
+        );
+        when(freshness.isFresh()).thenReturn(true);
+        when(alertStore.findActiveAlerts()).thenReturn(List.of(closure));
+
+        PushNotificationCandidate candidate = planner.candidatesFor(
+            "user_1", List.of("regional-br"), PlannedClosureFollowUpPolicy.SMART
+        ).getFirst();
+
+        assertThat(candidate.category()).isEqualTo("line-planned");
+        assertThat(candidate.body()).contains("Closure dates: Aug 30–31.");
+        assertThat(candidate.body()).doesNotContain("12:00 AM").doesNotContain("Closure starts");
+        assertThat(candidate.sourceEventAt()).isNull();
+    }
+
     private RegionalNormalizedAlert alertWithSourceUpdatedAt(String sourceUpdatedAt) {
         return new RegionalNormalizedAlert(
             "regional-alert-br",

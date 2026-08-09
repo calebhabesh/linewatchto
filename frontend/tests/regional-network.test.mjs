@@ -742,6 +742,7 @@ describe("network-scoped regional dashboard", () => {
   });
 
   it("reuses the TTC overlap indicator for regional same-type and mixed impacts", () => {
+    assert.match(regionalMapSource, /const REGIONAL_OVERLAP_INDICATOR_SCALE = 2\.5;/);
     assert.match(regionalMapSource, /function regionalOverlapBadgeGroups\(segments: NetworkSegment\[\]\)/);
     assert.match(regionalMapSource, /hasOverlappingImpacts\(impacts\)/);
     assert.match(regionalMapSource, /overlapBadgeSignature\(impacts\)/);

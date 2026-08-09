@@ -13,6 +13,7 @@ import com.calebhabesh.linewatch.commute.CommutePathService;
 import com.calebhabesh.linewatch.commute.CommuteResponses;
 import com.calebhabesh.linewatch.regional.RegionalCommuteImpactService;
 import com.calebhabesh.linewatch.regional.RegionalCommutePathService;
+import java.time.Clock;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -603,6 +604,49 @@ class SavedCommutePushPlannerTest {
         });
         verify(commutePathService, never()).path("bloor", "pearson-airport");
         verify(commutePathService, never()).path("pearson-airport", "bloor");
+    }
+
+    @Test
+    void dateOnlyRegionalClosureMatchesTheCommuteServiceDateWithoutInventingMidnight() {
+        RegionalCommutePathService regionalPathService = mock(RegionalCommutePathService.class);
+        RegionalCommuteImpactService regionalImpactService = mock(RegionalCommuteImpactService.class);
+        Clock mondayMorning = Clock.fixed(Instant.parse("2026-08-10T12:00:00Z"), java.time.ZoneOffset.UTC);
+        SavedCommutePushPlanner regionalPlanner = new SavedCommutePushPlanner(
+            commutePathService, commuteImpactService, regionalPathService, regionalImpactService,
+            mondayMorning, formatter
+        );
+        SavedCommuteEntity commute = SavedCommuteEntity.create(
+            "commute_barrie", account, "Barrie commute", "regional", "allandale-waterfront", "union",
+            false, Instant.parse("2026-08-01T12:00:00Z")
+        );
+        commute.updateNotificationRule(
+            true, 2, 7 * 60, 9 * 60, true, true,
+            true, true, true, true, true, Instant.parse("2026-08-01T12:01:00Z")
+        );
+        CommuteResponses.PathResponse regionalPath = new CommuteResponses.PathResponse(
+            "available", List.of("allandale-waterfront", "union"), List.of("segment-br-allandale-union"),
+            List.of(), List.of("regional-br"), List.of(), 3600,
+            "regional-topology-estimate", "Low-confidence regional planning estimate"
+        );
+        OffsetDateTime start = OffsetDateTime.parse("2026-08-17T00:00:00-04:00");
+        OffsetDateTime end = OffsetDateTime.parse("2026-08-19T00:00:00-04:00");
+        when(regionalPathService.path("allandale-waterfront", "union")).thenReturn(regionalPath);
+        when(regionalImpactService.impactFor(regionalPath)).thenReturn(impactWith(
+            new CommuteResponses.MatchedImpactResponse(
+                "regional-go-123-br", "planned-closure", "planned", "planned", "Aug. 17–18 closure",
+                "regional-br", "BR", "Full corridor", null, "No GO train service on the Barrie line.",
+                "Metrolinx Open API", List.of("segment-br-allandale-union"), List.of(), start,
+                OffsetDateTime.parse("2026-08-07T12:00:00-04:00"), "Upcoming", "scheduled", start,
+                null, "Aug 17–18", false, "Aug. 17–18 closure", "construction", false, end
+            )
+        ));
+
+        PushNotificationCandidate candidate = regionalPlanner.candidatesFor(commute).getFirst();
+
+        assertThat(candidate.deliveryAllowed()).isTrue();
+        assertThat(candidate.body()).contains("Closure dates: Aug 17–18.");
+        assertThat(candidate.body()).doesNotContain("12:00 AM").doesNotContain("Closure starts");
+        assertThat(candidate.sourceEventAt()).isNull();
     }
 
     private CommuteResponses.PathResponse path(String fromStationId, String toStationId, String segmentId) {

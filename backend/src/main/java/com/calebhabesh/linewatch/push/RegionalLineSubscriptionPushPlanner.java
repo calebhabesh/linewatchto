@@ -4,6 +4,7 @@ import com.calebhabesh.linewatch.regional.RegionalAlertStore;
 import com.calebhabesh.linewatch.regional.RegionalIngestionFreshness;
 import com.calebhabesh.linewatch.regional.RegionalNetworkCatalog;
 import com.calebhabesh.linewatch.regional.RegionalNormalizedAlert;
+import com.calebhabesh.linewatch.regional.RegionalServiceDateFormatter;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -68,7 +69,8 @@ public class RegionalLineSubscriptionPushPlanner {
         RegionalNetworkCatalog.Route route = RegionalNetworkCatalog.route(alert.lineId()).orElse(null);
         String lineNumber = route == null ? "" : route.number();
         String location = location(alert, route);
-        Instant sourceEventAt = alert.activePeriodStart() == null ? null : alert.activePeriodStart().toInstant();
+        Instant sourceEventAt = alert.activePeriodStart() == null || alert.hasDateOnlyServiceWindow()
+            ? null : alert.activePeriodStart().toInstant();
         String eventType = alert.impactKind();
         String url = "/?network=regional&panel=" + panel(eventType)
             + "&impactKind=" + eventType + "&impactId=" + alert.id();
@@ -87,7 +89,9 @@ public class RegionalLineSubscriptionPushPlanner {
             alert.title(),
             alert.description(),
             null,
-            null
+            alert.hasDateOnlyServiceWindow()
+                ? RegionalServiceDateFormatter.format(alert.activePeriodStart(), alert.activePeriodEnd())
+                : null
         ));
         String sourceIncidentKey = String.join("|", category, alert.lineId(), alert.id());
         String notificationKey = String.join("|", category, alert.lineId(), eventType, alert.id());

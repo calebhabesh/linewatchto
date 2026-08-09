@@ -255,6 +255,11 @@ public class PushNotificationEventEntity {
         return event;
     }
 
+    public void markReclassified() {
+        this.notificationState = "RECLASSIFIED";
+        this.deliveryAllowed = false;
+    }
+
     public String getId() { return id; }
     public String getAccountId() { return accountId; }
     public String getCommuteId() { return commuteId; }

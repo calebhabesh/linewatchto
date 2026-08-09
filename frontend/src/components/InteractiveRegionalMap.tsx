@@ -96,7 +96,7 @@ const REGIONAL_DELAY_GLYPH_SPACING = 96;
 // TTC's lane advances 160 SVG units over 12 seconds. Regional authored map
 // units are about 175 / 102 larger for the equivalent corridor stroke.
 const REGIONAL_DELAY_TRAVEL_UNITS_PER_SECOND = (160 / 12) * (175 / 102);
-const REGIONAL_OVERLAP_INDICATOR_SCALE = 2;
+const REGIONAL_OVERLAP_INDICATOR_SCALE = 2.5;
 const REGIONAL_OVERLAP_INDICATOR_EDGE_GAP = 88;
 const REGIONAL_OVERLAP_CHOOSER_GAP = 24;
 const REGIONAL_STATION_IMPACT_EFFECT_RADIUS_RATIO = 0.9;

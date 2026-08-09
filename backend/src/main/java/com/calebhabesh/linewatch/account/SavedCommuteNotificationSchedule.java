@@ -2,6 +2,7 @@ package com.calebhabesh.linewatch.account;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 
@@ -50,6 +51,33 @@ public final class SavedCommuteNotificationSchedule {
         }
         if (minute < endMinute) {
             return includes(dayMask, local.toLocalDate().minusDays(1));
+        }
+        return false;
+    }
+
+    /**
+     * Matches an imprecise, all-day service-date range against the configured leg days.
+     * The range end is exclusive, matching normalized alert active periods.
+     */
+    public static boolean overlapsServiceDates(
+        SavedCommuteEntity commute,
+        String legId,
+        OffsetDateTime startInclusive,
+        OffsetDateTime endExclusive
+    ) {
+        if (commute == null || startInclusive == null || endExclusive == null) {
+            return false;
+        }
+        int dayMask = "return".equals(legId)
+            ? commute.getNotificationReturnDayMask()
+            : commute.getNotificationOutboundDayMask();
+        LocalDate date = startInclusive.atZoneSameInstant(TORONTO_ZONE).toLocalDate();
+        LocalDate end = endExclusive.atZoneSameInstant(TORONTO_ZONE).toLocalDate();
+        while (date.isBefore(end)) {
+            if (includes(dayMask, date)) {
+                return true;
+            }
+            date = date.plusDays(1);
         }
         return false;
     }

@@ -95,8 +95,43 @@ public final class CommuteResponses {
         boolean ignoredByRule,
         @com.fasterxml.jackson.annotation.JsonIgnore String notificationTitle,
         @com.fasterxml.jackson.annotation.JsonIgnore String notificationCause,
-        @com.fasterxml.jackson.annotation.JsonIgnore boolean notificationShuttle
+        @com.fasterxml.jackson.annotation.JsonIgnore boolean notificationShuttle,
+        @com.fasterxml.jackson.annotation.JsonIgnore OffsetDateTime notificationServiceEndAt
     ) {
+        public MatchedImpactResponse(
+            String id,
+            String kind,
+            String status,
+            String severity,
+            String title,
+            String lineId,
+            String lineNumber,
+            String location,
+            String displayDirection,
+            String description,
+            String source,
+            List<String> matchedSegmentIds,
+            List<String> matchedStationIds,
+            OffsetDateTime startedAt,
+            OffsetDateTime updatedAt,
+            String window,
+            String timingStatus,
+            OffsetDateTime eventStartAt,
+            String closureHours,
+            String closureDates,
+            boolean ignoredByRule,
+            String notificationTitle,
+            String notificationCause,
+            boolean notificationShuttle
+        ) {
+            this(
+                id, kind, status, severity, title, lineId, lineNumber, location, displayDirection,
+                description, source, matchedSegmentIds, matchedStationIds, startedAt, updatedAt,
+                window, timingStatus, eventStartAt, closureHours, closureDates, ignoredByRule,
+                notificationTitle, notificationCause, notificationShuttle, null
+            );
+        }
+
         public MatchedImpactResponse(
             String id,
             String kind,
@@ -250,7 +285,8 @@ public final class CommuteResponses {
                 ignoredByRule,
                 notificationTitle,
                 notificationCause,
-                notificationShuttle
+                notificationShuttle,
+                notificationServiceEndAt
             );
         }
     }

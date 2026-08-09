@@ -140,6 +140,15 @@ public record PushNotificationCandidate(
         return "service-restored".equals(eventType);
     }
 
+    /** Stable incident identity across current/planned notification category changes. */
+    public String canonicalIncidentKey() {
+        if (sourceIncidentKey == null) {
+            return "";
+        }
+        int separator = sourceIncidentKey.indexOf('|');
+        return separator < 0 ? sourceIncidentKey : sourceIncidentKey.substring(separator + 1);
+    }
+
     public String title() {
         return notification.title();
     }

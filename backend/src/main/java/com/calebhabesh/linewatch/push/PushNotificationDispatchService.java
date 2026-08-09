@@ -280,12 +280,13 @@ public class PushNotificationDispatchService {
                 commutesById,
                 savedCurrentNotificationKeys,
                 savedCurrentSourceIncidentKeys,
-                savedCurrentCandidates
+                savedCommuteCandidates
             );
             clearStaleSavedCommuteObservations(
                 accountId,
                 savedCurrentNotificationKeys,
-                savedCurrentSourceIncidentKeys
+                savedCurrentSourceIncidentKeys,
+                savedCommuteCandidates
             );
             sendClearedLineObservationNotifications(
                 accountId,
@@ -293,7 +294,7 @@ public class PushNotificationDispatchService {
                 subscribedLineIdSet,
                 currentLineNotificationKeys,
                 currentLineSourceIncidentKeys,
-                currentLineCandidates
+                lineCandidates
             );
             retryRecentClearedLifecycleNotifications(
                 accountId,
@@ -408,7 +409,7 @@ public class PushNotificationDispatchService {
         java.util.Map<String, SavedCommuteEntity> commutesById,
         Set<String> currentNotificationKeys,
         Set<String> currentSourceIncidentKeys,
-        List<PushNotificationCandidate> currentCandidates
+        List<PushNotificationCandidate> allSavedCommuteCandidates
     ) {
         Instant now = clock.instant();
         List<String> currentCategories = List.of("saved-commute-current", "saved-commute-impact");
@@ -432,7 +433,12 @@ public class PushNotificationDispatchService {
             if (containsNonBlank(currentSourceIncidentKeys, activeEvent.getSourceIncidentKey())) {
                 continue;
             }
-            if (hasEquivalentCurrentCandidate(activeEvent, currentCandidates)) {
+            if (hasReclassifiedCandidate(activeEvent, allSavedCommuteCandidates)) {
+                activeEvent.markReclassified();
+                eventRepository.save(activeEvent);
+                continue;
+            }
+            if (hasEquivalentCurrentCandidate(activeEvent, allSavedCommuteCandidates)) {
                 continue;
             }
             String clearedDedupeKey = activeEvent.getDedupeKey() + "|cleared";
@@ -492,7 +498,8 @@ public class PushNotificationDispatchService {
     private void clearStaleSavedCommuteObservations(
         String accountId,
         Set<String> currentNotificationKeys,
-        Set<String> currentSourceIncidentKeys
+        Set<String> currentSourceIncidentKeys,
+        List<PushNotificationCandidate> allSavedCommuteCandidates
     ) {
         Instant now = clock.instant();
         for (PushSavedCommuteEventObservationEntity observation : savedCommuteObservationService.activeObservations(accountId)) {
@@ -505,6 +512,10 @@ public class PushNotificationDispatchService {
             if (containsNonBlank(currentSourceIncidentKeys, observation.getSourceIncidentKey())) {
                 continue;
             }
+            if (hasCanonicalCandidate(observation.getSourceIncidentKey(), allSavedCommuteCandidates)) {
+                savedCommuteObservationService.markCleared(observation, now);
+                continue;
+            }
             savedCommuteObservationService.markCleared(observation, now);
         }
     }
@@ -515,7 +526,7 @@ public class PushNotificationDispatchService {
         Set<String> subscribedLineIds,
         Set<String> currentLineNotificationKeys,
         Set<String> currentLineSourceIncidentKeys,
-        List<PushNotificationCandidate> currentLineCandidates
+        List<PushNotificationCandidate> allLineCandidates
     ) {
         Instant now = clock.instant();
 
@@ -533,7 +544,8 @@ public class PushNotificationDispatchService {
                 lineEventObservationService.markCleared(observation, now);
                 continue;
             }
-            if (hasEquivalentLineCandidate(observation, currentLineCandidates)) {
+            if (hasCanonicalCandidate(observation.getSourceIncidentKey(), allLineCandidates)
+                || hasEquivalentLineCandidate(observation, allLineCandidates)) {
                 lineEventObservationService.markCleared(observation, now);
                 continue;
             }
@@ -616,6 +628,38 @@ public class PushNotificationDispatchService {
         return currentCandidates.stream()
             .filter(candidate -> !candidate.notificationKey().equals(activeEvent.getNotificationKey()))
             .anyMatch(candidate -> equivalentLifecycleEvent(activeEvent, candidate));
+    }
+
+    private boolean hasReclassifiedCandidate(
+        PushNotificationEventEntity activeEvent,
+        List<PushNotificationCandidate> candidates
+    ) {
+        return candidates.stream().anyMatch(candidate ->
+            !sameCurrentCategoryFamily(activeEvent.getCategory(), candidate.category())
+                && same(activeEvent.getLineId(), candidate.lineId())
+                && sameScope(activeEvent, candidate)
+                && sameCanonicalIncident(activeEvent.getSourceIncidentKey(), candidate.canonicalIncidentKey())
+        );
+    }
+
+    private boolean hasCanonicalCandidate(
+        String sourceIncidentKey,
+        List<PushNotificationCandidate> candidates
+    ) {
+        String canonical = canonicalIncidentKey(sourceIncidentKey);
+        return !canonical.isBlank() && candidates.stream()
+            .anyMatch(candidate -> canonical.equals(normalize(candidate.canonicalIncidentKey())));
+    }
+
+    private boolean sameCanonicalIncident(String sourceIncidentKey, String candidateCanonicalKey) {
+        String canonical = canonicalIncidentKey(sourceIncidentKey);
+        return !canonical.isBlank() && canonical.equals(normalize(candidateCanonicalKey));
+    }
+
+    private String canonicalIncidentKey(String sourceIncidentKey) {
+        String normalized = normalize(sourceIncidentKey);
+        int separator = normalized.indexOf('|');
+        return separator < 0 ? normalized : normalized.substring(separator + 1);
     }
 
     private boolean equivalentLifecycleEvent(
