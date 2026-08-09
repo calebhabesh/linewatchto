@@ -1363,9 +1363,11 @@ function regionalCollisionAdjustedOverlapBadges(
   svg: SVGSVGElement,
   badges: RegionalOverlapBadge[],
 ): RegionalOverlapBadge[] {
-  const labelBoxes = Array.from(
-    svg.querySelectorAll<SVGGraphicsElement>("text"),
-  ).flatMap((element) => {
+  const labelElements = [
+    ...svg.querySelectorAll<SVGGraphicsElement>("text"),
+    ...svg.querySelectorAll<SVGGraphicsElement>(".map-connection-label"),
+  ];
+  const labelBoxes = labelElements.flatMap((element) => {
     try {
       const box = regionalCollisionBoxForElement(svg, element);
       return box ? [expandedRegionalCollisionBox(box, 24)] : [];
@@ -2484,6 +2486,18 @@ function InteractiveRegionalMapComponent({
           element.style.removeProperty("shape-rendering");
           element.style.removeProperty("text-rendering");
           element.style.removeProperty("image-rendering");
+        }
+        for (const element of documentNode.querySelectorAll<SVGElement>("g")) {
+          const authoredLabel = element.getAttributeNS(
+            "http://www.inkscape.org/namespaces/inkscape",
+            "label",
+          ) ?? element.getAttribute("inkscape:label") ?? "";
+          if (authoredLabel.startsWith("via-rail-") || authoredLabel.endsWith("airport-icon")) {
+            element.classList.add("map-connection-label");
+          }
+          if (authoredLabel.endsWith("airport-icon")) {
+            element.classList.add("map-connection-airport");
+          }
         }
         const stationsLayer = documentNode.getElementById("regional-stations-layer");
         if (!stationsLayer) throw new Error("Regional station layer unavailable");

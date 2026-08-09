@@ -383,6 +383,135 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
   stroke: none !important;
 }
 
+.dark .regional-map-stage .map-connection-airport,
+.high-contrast .regional-map-stage .map-connection-airport {
+  filter: invert(1);
+}
+
+.dark .ttc-svg-container svg :is(
+  [inkscape\:label="union-up"],
+  [inkscape\:label="dundas-west-up"],
+  [inkscape\:label="mount-dennis-up"]
+) path,
+.high-contrast .ttc-svg-container svg :is(
+  [inkscape\:label="union-up"],
+  [inkscape\:label="dundas-west-up"],
+  [inkscape\:label="mount-dennis-up"]
+) path {
+  fill: #75b843 !important;
+}
+
+.station-connections-card {
+  margin-bottom: 8px;
+  border: 1px solid rgba(15, 23, 42, 0.16);
+  border-radius: 6px;
+  background: #f8fafc;
+  padding: 12px;
+  color: #1e293b;
+}
+
+.station-connections-title {
+  margin: 0 0 9px;
+  color: #64748b;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.station-connection-list {
+  display: grid;
+  gap: 7px;
+}
+
+.station-connection-row {
+  display: flex;
+  min-height: 48px;
+  align-items: center;
+  gap: 11px;
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  border-radius: 5px;
+  background: #ffffff;
+  padding: 7px 10px;
+}
+
+.station-connection-logo-frame {
+  display: flex;
+  width: 48px;
+  min-width: 48px;
+  height: 30px;
+  align-items: center;
+  justify-content: center;
+}
+
+.station-connection-copy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.station-connection-copy strong {
+  color: #0f172a;
+  font-size: 12px;
+  font-weight: 850;
+  line-height: 1.15;
+}
+
+.station-connection-copy small {
+  color: #64748b;
+  font-size: 10px;
+  font-weight: 650;
+  line-height: 1.25;
+}
+
+.station-connection-icon {
+  display: block;
+  max-width: 44px;
+  width: auto;
+  height: 24px;
+  object-fit: contain;
+}
+
+.station-connection-row--airport .station-connection-icon {
+  width: 24px;
+}
+
+.dark .station-connections-card,
+.high-contrast .station-connections-card {
+  border-color: rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.dark .station-connection-row,
+.high-contrast .station-connection-row {
+  border-color: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.dark .station-connections-title,
+.high-contrast .station-connections-title,
+.dark .station-connection-copy small,
+.high-contrast .station-connection-copy small {
+  color: #94a3b8;
+}
+
+.dark .station-connection-copy strong,
+.high-contrast .station-connection-copy strong {
+  color: #f8fafc;
+}
+
+.dark .station-connection-row--up .station-connection-icon,
+.high-contrast .station-connection-row--up .station-connection-icon {
+  filter: brightness(0) saturate(100%) invert(68%) sepia(46%) saturate(725%) hue-rotate(42deg) brightness(91%) contrast(88%);
+}
+
+.dark .station-connection-row--airport .station-connection-icon,
+.high-contrast .station-connection-row--airport .station-connection-icon {
+  filter: invert(1);
+}
+
 .regional-station-hit-target {
   cursor: pointer;
   outline: none;

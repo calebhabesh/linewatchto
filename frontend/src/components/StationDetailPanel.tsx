@@ -35,6 +35,8 @@ import { PlannedClosureIcon } from "./PlannedClosureIcon";
 import { StationDetailHeader } from "./StationDetailHeader";
 import { ArrivalLinePinButton } from "./ArrivalLinePinButton";
 import { useArrivalLinePins } from "../hooks/useArrivalLinePins";
+import { ttcStationConnections } from "../app/station-connections";
+import { StationConnectionBadges } from "./StationConnectionBadges";
 
 type Props = {
   stationResult: StationDataResult<StationDetail | null> | null;
@@ -310,6 +312,7 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
 
   const isWheelchairAccessible = station?.lines.some((line) => line.wheelchairAccessible) ?? false;
   const hasElevator = station?.lines.some((line) => line.hasElevator) ?? false;
+  const connections = station ? ttcStationConnections(station.id) : [];
 
   const accessibilityDetailsRef = useRef<HTMLDetailsElement>(null);
 
@@ -469,6 +472,7 @@ export function StationDetailPanel({ stationResult, loading, updating, selectedS
           )}
 
           <div className="flex-1 min-h-0 overflow-y-auto mt-3 pr-4 -mr-4 station-detail-scroll">
+      {station && <StationConnectionBadges connections={connections} />}
       {station && (
         <div className="flex flex-col gap-2" data-station-header-line-details>
           {station.lines.map((line) => (

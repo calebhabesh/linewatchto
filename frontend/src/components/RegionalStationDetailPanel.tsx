@@ -38,6 +38,8 @@ import { ArrivalLinePinButton } from "./ArrivalLinePinButton";
 import { sortArrivalGroupsByPinnedLine } from "../app/arrival-pins";
 import { useArrivalLinePins } from "../hooks/useArrivalLinePins";
 import { RegionalTripChangesList } from "./RegionalTripChangesList";
+import { regionalStationConnections, ttcStationIdForRegionalStation } from "../app/station-connections";
+import { StationConnectionBadges } from "./StationConnectionBadges";
 
 type Props = {
   station: StationSummary;
@@ -322,13 +324,15 @@ export function RegionalStationDetailPanel({
   );
 
   const ttcLines = useMemo(() => {
+    const ttcStationId = ttcStationIdForRegionalStation(station.id);
     return Object.values(STATION_LINE_DEFINITIONS).filter((line) =>
-      STATION_LINE_STATION_IDS[line.id]?.includes(station.id)
+      STATION_LINE_STATION_IDS[line.id]?.includes(ttcStationId)
     );
   }, [station.id]);
 
 
   const isWheelchairAccessible = isRegionalStationWheelchairAccessible(station.id);
+  const connections = regionalStationConnections(station.id);
 
   const toggleSaved = () => {
     if (!authenticated) {
@@ -471,6 +475,7 @@ export function RegionalStationDetailPanel({
           )}
 
           <div className="flex-1 min-h-0 overflow-y-auto mt-3 pr-4 -mr-4 station-detail-scroll">
+            <StationConnectionBadges connections={connections} />
             <div className="flex flex-col gap-2" data-station-header-line-details aria-label="Regional rail corridors">
           {Object.entries(
             routes.reduce((acc, route) => {

@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="31.446806mm"
+   height="14.208006mm"
+   viewBox="0 0 31.446806 14.208006"
+   version="1.1"
+   id="svg1"
+   inkscape:version="1.4.4 (dcaf3e7d9e, 2026-05-05)"
+   sodipodi:docname="go-logo.svg"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview1"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:document-units="mm"
+     inkscape:zoom="1.0503157"
+     inkscape:cx="-160.90401"
+     inkscape:cy="132.81721"
+     inkscape:window-width="2560"
+     inkscape:window-height="1363"
+     inkscape:window-x="0"
+     inkscape:window-y="0"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="layer1" />
+  <defs
+     id="defs1" />
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1"
+     transform="translate(-147.63753,-113.24169)">
+    <g
+       id="g1-8"
+       inkscape:label="dundas-west-go-logo"
+       transform="matrix(0.87706985,0,0,0.87706985,-4413.1257,-2621.4621)"
+       style="clip-rule:evenodd;display:inline;fill-rule:evenodd;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision">
+      <path
+         style="fill:#00a859;fill-opacity:1;stroke-width:0.150247"
+         d="m 5225.4513,3134.0034 c -3.4279,-0.7578 -5.8524,-3.2273 -6.603,-6.7257 l -0.089,-0.4132 h 8.5476 8.5475 l -0.1213,0.6495 c -0.464,2.4837 -2.3715,4.8383 -4.7981,5.923 -1.6851,0.7532 -3.6984,0.9612 -5.484,0.5664 z"
+         id="path7037-8-8-6-8-6" />
+      <path
+         style="fill:#00a859;fill-opacity:1;stroke-width:0.150247"
+         d="m 5219.0078,3124.2868 c 0.3251,-1.3937 1.0482,-2.6285 2.2321,-3.8119 1.6918,-1.6911 3.6204,-2.4749 6.0895,-2.4749 2.4364,0 4.3913,0.7941 6.1015,2.4786 1.1828,1.165 2.0852,2.778 2.2575,4.035 l 0.096,0.6982 h -8.4961 -8.496 z"
+         id="path7039-9-7-7-0-0" />
+      <path
+         style="fill:#00a859;fill-opacity:1;stroke-width:0.150247"
+         d="m 5209.2998,3121.6059 c 0,-4.0946 -0.1372,-3.7658 1.4057,-3.3678 2.4007,0.6194 4.425,2.2583 5.4805,4.4371 0.3357,0.6928 0.6535,1.5469 0.7065,1.8981 l 0.096,0.6385 h -3.8445 -3.8445 z"
+         id="path7041-3-6-1-4-4" />
+      <path
+         style="fill:#00a859;fill-opacity:1;stroke-width:0.150247"
+         d="m 5206.5954,3133.9798 c -3.0664,-0.6219 -5.7522,-3.1978 -6.4593,-6.195 -0.2661,-1.1281 -0.1258,-3.3235 0.2801,-4.3759 0.7703,-1.9979 2.4382,-3.745 4.4513,-4.6626 0.9159,-0.4174 2.5691,-0.8566 2.7067,-0.719 0.042,0.042 0.058,3.6924 0.038,8.113 l -0.039,8.0376 z"
+         id="path7043-0-1-7-1-8" />
+      <path
+         style="fill:#00a859;fill-opacity:1;stroke-width:0.744654"
+         d="m 5209.4219,3130.558 v -3.6407 h 3.8074 3.8078 v 3.6407 3.6409 h -3.8078 -3.8074 z"
+         id="path16978-6-71-7-8-8" />
+    </g>
+  </g>
+</svg>
