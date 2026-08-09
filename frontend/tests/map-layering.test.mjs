@@ -5,6 +5,7 @@ import { describe, it } from "node:test";
 const transitMapSource = readFileSync(new URL("../src/app/transit-map.tsx", import.meta.url), "utf8");
 const globalCss = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
 const interactiveMapSource = readFileSync(new URL("../src/components/InteractiveTtcMap.tsx", import.meta.url), "utf8");
+const interactiveRegionalMapSource = readFileSync(new URL("../src/components/InteractiveRegionalMap.tsx", import.meta.url), "utf8");
 const overlapIndicatorSource = readFileSync(new URL("../src/components/MapOverlapIndicator.tsx", import.meta.url), "utf8");
 const plannedClosureIconSource = readFileSync(new URL("../src/components/PlannedClosureIcon.tsx", import.meta.url), "utf8");
 const mapImpactNormalizationSource = readFileSync(new URL("../src/components/map-impact-normalization.ts", import.meta.url), "utf8");
@@ -719,6 +720,14 @@ describe("asset-backed map layering", () => {
     assert.match(globalCss, /@keyframes map-selection-path-breathe/);
     assert.match(globalCss, /@keyframes map-selection-station-intro/);
     assert.match(globalCss, /@keyframes map-selection-station-breathe/);
+    assert.match(globalCss, /\.map-gesture-active \.map-selection-attention\s*\{[^}]*animation-play-state:\s*paused !important;/s);
+    assert.doesNotMatch(
+      globalCss,
+      /\.map-gesture-active \.asset-alert-path\.map-selection-flash[^}]*animation:\s*none/s,
+    );
+    assert.match(interactiveRegionalMapSource, /selectionIntroCompletedRef/);
+    assert.match(interactiveRegionalMapSource, /markCompletedSelectionIntro\(svg\)/);
+    assert.match(globalCss, /\.map-selection-attention\.selection-intro-complete\s*\{[^}]*animation-name:\s*var\(--selection-breathe-name\) !important;/s);
     assert.match(interactiveMapSource, /aria-label="Station impact foreground highlights"/);
     assert.match(interactiveMapSource, /data-station-impact-selection-id=\{impact\.cardId\}/);
     assert.match(interactiveMapSource, /data-station-impact-hover-id=\{impact\.cardId\}/);

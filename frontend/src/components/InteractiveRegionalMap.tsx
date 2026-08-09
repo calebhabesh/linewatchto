@@ -113,6 +113,15 @@ const REGIONAL_DYNAMIC_COMMUTE_LAYER_ID = "regional-dynamic-commute-layer";
 const REGIONAL_DYNAMIC_HOVER_LAYER_ID = "regional-dynamic-hover-layer";
 const REGIONAL_DYNAMIC_EFFECTS_LAYER_ID = "regional-dynamic-effects-layer";
 const REGIONAL_TRAIN_MARKER_LAYER_ID = "regional-train-marker-layer";
+const SELECTION_INTRO_DURATION_MS = 2400;
+
+function markCompletedSelectionIntro(root: ParentNode) {
+  root.querySelectorAll<SVGElement>(
+    '[data-regional-station-selected="true"], '
+      + '[data-regional-impact-selected="true"] .regional-impact-interactive-glow, '
+      + '.regional-station-impact-ring[data-regional-impact-selected="true"]',
+  ).forEach((element) => element.classList.add("selection-intro-complete"));
+}
 
 type RegionalOverlapBadge = {
   markerId: string;
@@ -2065,6 +2074,9 @@ function InteractiveRegionalMapComponent({
   const cameraRef = useRef(camera);
   const selectionRef = useRef(selection);
   const selectedStationIdRef = useRef(selectedStationId);
+  const selectionAttentionKeyRef = useRef<string | null>(null);
+  const selectionIntroCompletedRef = useRef(false);
+  const selectionIntroTimerRef = useRef<number | null>(null);
   const hoveredMapImpactRef = useRef<ReturnType<typeof regionalImpactIdentity>>(null);
   const externallyHoveredImpactKeysRef = useRef(new Set<string>());
   const readyNotifiedRef = useRef(false);
@@ -2764,6 +2776,9 @@ function InteractiveRegionalMapComponent({
         bringRegionalStationImpactToFront(viewport, currentSelection.kind, currentSelection.id);
       }
     }
+    if (selectionIntroCompletedRef.current) {
+      markCompletedSelectionIntro(svg);
+    }
 
     const badges = regionalOverlapBadges(documentNode, networkSegments).map((badge) => ({
       ...badge,
@@ -2913,6 +2928,9 @@ function InteractiveRegionalMapComponent({
       );
       indicator?.setAttribute("data-regional-station-selected", "true");
     }
+    if (root && selectionIntroCompletedRef.current) {
+      markCompletedSelectionIntro(root);
+    }
   }, [selectedStationId, svgMarkup]);
 
   useLayoutEffect(() => {
@@ -2926,9 +2944,47 @@ function InteractiveRegionalMapComponent({
       if (root) {
         bringRegionalImpactToFront(root, selection.kind, selection.id);
         bringRegionalStationImpactToFront(root, selection.kind, selection.id);
+        if (selectionIntroCompletedRef.current) {
+          markCompletedSelectionIntro(root);
+        }
       }
     }
   }, [selection, svgMarkup]);
+
+  useLayoutEffect(() => {
+    const nextKey = selection
+      ? `${selection.kind}:${selection.id}`
+      : selectedStationId
+        ? `station:${selectedStationId}`
+        : null;
+    if (selectionAttentionKeyRef.current === nextKey) return;
+
+    selectionAttentionKeyRef.current = nextKey;
+    selectionIntroCompletedRef.current = false;
+    if (selectionIntroTimerRef.current !== null) {
+      window.clearTimeout(selectionIntroTimerRef.current);
+      selectionIntroTimerRef.current = null;
+    }
+
+    const root = viewportRef.current;
+    root?.querySelectorAll(".selection-intro-complete")
+      .forEach((element) => element.classList.remove("selection-intro-complete"));
+    if (!nextKey) return;
+
+    selectionIntroTimerRef.current = window.setTimeout(() => {
+      selectionIntroTimerRef.current = null;
+      if (selectionAttentionKeyRef.current !== nextKey) return;
+      selectionIntroCompletedRef.current = true;
+      const currentRoot = viewportRef.current;
+      if (currentRoot) markCompletedSelectionIntro(currentRoot);
+    }, SELECTION_INTRO_DURATION_MS);
+  }, [selectedStationId, selection]);
+
+  useEffect(() => () => {
+    if (selectionIntroTimerRef.current !== null) {
+      window.clearTimeout(selectionIntroTimerRef.current);
+    }
+  }, []);
 
   const selectedMapElements = useCallback(() => {
     const root = viewportRef.current;

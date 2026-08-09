@@ -7379,6 +7379,19 @@ img.transit-line-badge {
   animation-fill-mode: both, none;
 }
 
+/* Dynamic regional alert layers are rebuilt when fresh dashboard data arrives.
+   Once a selection has finished its one-time intro, recreated SVG nodes must
+   join the breathing phase instead of replaying the fast flashes. */
+.map-selection-attention.selection-intro-complete {
+  animation-name: var(--selection-breathe-name) !important;
+  animation-duration: var(--selection-breathe-duration) !important;
+  animation-delay: 0s !important;
+  animation-timing-function: ease-in-out !important;
+  animation-iteration-count: infinite !important;
+  animation-direction: alternate !important;
+  animation-fill-mode: none !important;
+}
+
 @keyframes map-selection-path-intro {
   0%, 25%, 50%, 75%, 100% {
     opacity: 0.4;
@@ -18258,28 +18271,33 @@ img.transit-line-badge {
    Gesture-active overlay simplification
    Pauses expensive animated effects while touch gestures are live
    ============================================================ */
-.map-gesture-active .asset-alert-path-glow,
-.map-gesture-active .interactive-glow,
+.map-gesture-active .asset-alert-path-glow:not(.map-selection-attention),
+.map-gesture-active .interactive-glow:not(.map-selection-attention),
 .map-gesture-active .asset-alert-path.delay-candy,
 .map-gesture-active .asset-alert-path.suspension-candy,
 .map-gesture-active .asset-alert-path.delay-static-base,
 .map-gesture-active .delay-hourglass-mask-path,
 .map-gesture-active .suspension-mask-path,
 .map-gesture-active .delay-static-path,
-.map-gesture-active .station-impact-ring,
+.map-gesture-active .station-impact-ring:not(.map-selection-attention),
 .map-gesture-active .station-impact-dot-red-glow,
 .map-gesture-active .station-impact-dot-red-ping,
 .map-gesture-active .station-commute-green-flash,
 .map-gesture-active .commute-path-preview-glow,
 .map-gesture-active .commute-path-preview-path,
-.map-gesture-active .asset-alert-path.map-selection-flash,
-.map-gesture-active .station-selection-flash,
 .map-gesture-active .regional-impact-aura,
 .map-gesture-active .regional-impact-path,
-.map-gesture-active .regional-impact-interactive-glow,
-.map-gesture-active .regional-station-selected-indicator,
-.map-gesture-active .regional-station-impact-ring {
+.map-gesture-active .regional-impact-interactive-glow:not(.map-selection-attention) {
   animation: none !important;
+  filter: none !important;
+  transition: none !important;
+}
+
+/* Replacing a running selection animation with `animation: none` makes the
+   browser start its fast intro again when a pan/zoom gesture ends. Pausing the
+   existing timeline preserves whether it is in the intro or breathing phase. */
+.map-gesture-active .map-selection-attention {
+  animation-play-state: paused !important;
   filter: none !important;
   transition: none !important;
 }
