@@ -46,25 +46,25 @@ const REGIONAL_AIRPORT_CONNECTIONS: Readonly<Record<string, StationConnection>> 
   "pearson-airport": {
     kind: "airport",
     label: "Pearson Airport",
-    detail: "Airport terminal connection",
+    detail: "Airport Terminal Connection",
   },
   union: {
     kind: "airport",
     label: "Billy Bishop Airport",
-    detail: "Nearby airport connection",
+    detail: "Nearby Airport Connection",
   },
 };
 
 const SERVICE_PRESENTATION: Record<"go" | "up", StationConnection> = {
-  go: { kind: "go", label: "GO Transit", detail: "Regional rail connection" },
-  up: { kind: "up", label: "UP Express", detail: "Airport rail connection" },
+  go: { kind: "go", label: "GO Transit", detail: "Regional Rail Connection" },
+  up: { kind: "up", label: "UP Express", detail: "Airport Rail Connection" },
 };
 
 export function ttcStationConnections(stationId: string): StationConnection[] {
   const link = INTER_NETWORK_CONNECTIONS.find((connection) => connection.ttcStationId === stationId);
   const connections = link?.services.map((service) => SERVICE_PRESENTATION[service]) ?? [];
   if (stationId === "union") {
-    connections.splice(1, 0, { kind: "via", label: "VIA Rail", detail: "Intercity rail connection" });
+    connections.splice(1, 0, { kind: "via", label: "VIA Rail", detail: "Intercity Rail Connection" });
   }
   return connections;
 }
@@ -72,7 +72,7 @@ export function ttcStationConnections(stationId: string): StationConnection[] {
 export function regionalStationConnections(stationId: string): StationConnection[] {
   const connections: StationConnection[] = [];
   if (VIA_STATION_IDS.has(stationId)) {
-    connections.push({ kind: "via", label: "VIA Rail", detail: "Intercity rail connection" });
+    connections.push({ kind: "via", label: "VIA Rail", detail: "Intercity Rail Connection" });
   }
   const airport = REGIONAL_AIRPORT_CONNECTIONS[stationId];
   if (airport) connections.push(airport);

@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { GitMerge } from "lucide-react";
 
 import type { StationConnection } from "../app/station-connections";
 
@@ -12,9 +13,14 @@ const CONNECTION_ICON: Record<StationConnection["kind"], string> = {
 export function StationConnectionBadges({ connections }: { connections: readonly StationConnection[] }) {
   if (connections.length === 0) return null;
 
+  const heading = connections.length === 1 ? "Connected Network" : "Connected Networks";
+
   return (
     <section className="station-connections-card" aria-labelledby="station-connections-title">
-      <h3 id="station-connections-title" className="station-connections-title">Connected Networks</h3>
+      <h3 id="station-connections-title" className="station-connections-title">
+        <GitMerge size={14} aria-hidden="true" />
+        <span>{heading}</span>
+      </h3>
       <div className="station-connection-list">
         {connections.map((connection) => (
           <div

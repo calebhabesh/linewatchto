@@ -270,6 +270,11 @@ describe("floating menu layout", () => {
     assert.match(lineLegendSource, /limited-service/);
   });
 
+  it("uses larger lettering inside fixed-size GO and UP legend badges", () => {
+    assert.match(lineLegendSource, /h-\[52px\] w-\[52px\][^"\n]*text-\[26px\]/);
+    assert.match(lineLegendSource, /backgroundColor: LINE_COLORS\[line\.id\]/);
+  });
+
   it("LineLegend formats alert icons compactly depending on count in regional mode (vertical stack for 2, triangle for 3, 2x2 grid for 4)", () => {
     assert.match(lineLegendSource, /count === 2/);
     assert.match(lineLegendSource, /flex-col justify-center/);

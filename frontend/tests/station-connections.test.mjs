@@ -29,6 +29,14 @@ const regionalStationPanel = readFileSync(
   new URL("../src/components/RegionalStationDetailPanel.tsx", import.meta.url),
   "utf8",
 );
+const connectionBadges = readFileSync(
+  new URL("../src/components/StationConnectionBadges.tsx", import.meta.url),
+  "utf8",
+);
+const upExpressLogo = readFileSync(
+  new URL("../public/assets/linewatch/connections/up-express-logo.svg", import.meta.url),
+  "utf8",
+);
 const css = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
 
 describe("station connection metadata and map labels", () => {
@@ -81,9 +89,28 @@ describe("station connection metadata and map labels", () => {
   it("integrates connection badges into both station panels and both themes", () => {
     assert.match(ttcStationPanel, /<StationConnectionBadges connections=\{connections\}/);
     assert.match(regionalStationPanel, /<StationConnectionBadges connections=\{connections\}/);
+    assert.match(ttcStationPanel, /station-detail-section-stack/);
+    assert.match(regionalStationPanel, /station-detail-section-stack/);
+    assert.match(ttcStationPanel, /flex flex-1 min-h-0 flex-col gap-3[^"\n]*mt-3 pb-3/);
+    assert.match(regionalStationPanel, /flex flex-1 min-h-0 flex-col gap-3[^"\n]*mt-3 pb-3/);
     assert.match(css, /\.station-connections-title/);
-    assert.match(css, /\.dark \.station-connection-row--up \.station-connection-icon/);
-    assert.match(css, /\.dark \.station-connection-row--airport \.station-connection-icon/);
+    assert.match(connectionBadges, /GitMerge/);
+    assert.match(connectionBadges, /connections\.length === 1 \? "Connected Network" : "Connected Networks"/);
+    assert.doesNotMatch(css, /\.station-connections-card[^}]*?(?:border|background|padding):/s);
+    assert.match(css, /\.dark \.station-connections-title,[\s\S]*?color: #f8fafc/);
+    assert.match(css, /\.station-connections-card[^}]*gap: 6px/s);
+    assert.match(css, /\.station-connections-title[^}]*margin: 0;/s);
+    assert.match(css, /\.station-connection-list[^}]*display: flex;[^}]*width: 100%;[^}]*flex-wrap: wrap;/s);
+    assert.match(css, /\.station-connection-row[^}]*border: 1px solid/s);
+    assert.match(css, /\.station-connection-row[^}]*width: max-content;[^}]*max-width: 100%/s);
+    assert.match(css, /\.dark \.station-connection-row,[\s\S]*?background: rgba\(255, 255, 255, 0\.035\)/);
+    assert.doesNotMatch(css, /map-connection-airport[^}]*filter:/s);
+    assert.match(css, /map-connection-airport :is\(text, tspan\)[\s\S]*?fill: #f8fafc !important/);
+    assert.match(upExpressLogo, /fill:#4084cd/g);
+    assert.match(ttcMap, /id="path40-9-51"[\s\S]*?style="fill:#4084cd"/);
+    assert.match(ttcMap, /id="path40-9-5"[\s\S]*?style="fill:#4084cd"/);
+    assert.match(ttcMap, /id="path40-9"[\s\S]*?style="fill:#4084cd"/);
+    assert.match(css, /\[inkscape\\:label="mount-dennis-up"\][\s\S]*?fill: #4084cd !important/);
     assert.match(css, /\[inkscape\\:label="mount-dennis-up"\]/);
     assert.match(
       regionalMap,

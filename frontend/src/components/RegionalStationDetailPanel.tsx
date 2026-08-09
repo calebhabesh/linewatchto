@@ -474,7 +474,7 @@ export function RegionalStationDetailPanel({
             </div>
           )}
 
-          <div className="flex-1 min-h-0 overflow-y-auto mt-3 pr-4 -mr-4 station-detail-scroll">
+          <div className="flex flex-1 min-h-0 flex-col gap-3 overflow-y-auto mt-3 pb-3 pr-4 -mr-4 station-detail-scroll station-detail-section-stack">
             <StationConnectionBadges connections={connections} />
             <div className="flex flex-col gap-2" data-station-header-line-details aria-label="Regional rail corridors">
           {Object.entries(
@@ -545,7 +545,7 @@ export function RegionalStationDetailPanel({
           )}
             </div>
 
-            <div className="mt-4 flex flex-col gap-4">
+            <div className="flex flex-col gap-3">
               <section
                 className="rounded-lg border border-black/10 bg-slate-50 p-3 dark:border-white/10 dark:bg-white/5"
                 data-station-section="arrivals"

@@ -245,12 +245,22 @@ export function LineLegend({
           </div>
         )}
 
-        <TransitLineBadge
-          lineId={line.id}
-          lineNumber={line.number}
-          size={isRegional ? 52 : 44}
-          className="opacity-95 shrink-0"
-        />
+        {isRegional ? (
+          <span
+            className="flex h-[52px] w-[52px] shrink-0 items-center justify-center rounded-[5px] text-[26px] font-extrabold leading-none text-white opacity-95"
+            style={{ backgroundColor: LINE_COLORS[line.id] ?? "#64748b" }}
+            aria-hidden="true"
+          >
+            {line.number}
+          </span>
+        ) : (
+          <TransitLineBadge
+            lineId={line.id}
+            lineNumber={line.number}
+            size={44}
+            className="opacity-95 shrink-0"
+          />
+        )}
         <span
           className={`legend-line-name font-subway text-black dark:text-white drop-shadow-md font-bold tracking-normal whitespace-nowrap ${
             isRegional ? "text-[24px]" : "text-[22px]"
