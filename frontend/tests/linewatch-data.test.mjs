@@ -34,8 +34,8 @@ describe("LineWatch dashboard fixture data", () => {
     assert.equal(findAlertBySegmentId("line-1-finch-eglinton"), undefined);
   });
 
-  it("uses the edited TTC SVG asset as the map base", () => {
-    assert.equal(mapAsset.src, "/assets/linewatch/ttc-subway-map-edited.svg");
+  it("uses the custom TTC SVG asset as the map base", () => {
+    assert.equal(mapAsset.src, "/assets/linewatch/ttc-subway-map-custom.svg");
     assert.deepEqual(mapAsset.viewBox, [0, 0, 8250, 4000]);
     assert.ok(mapAsset.legendIcons["line-1"].endsWith("line-1-legend.svg"));
     assert.ok(mapAsset.legendIcons["line-6"].endsWith("line-6-legend.svg"));

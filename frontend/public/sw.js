@@ -27,7 +27,7 @@ const APP_SHELL_URLS = [
   NOTIFICATION_BADGE_URL,
   "/assets/linewatch/pwa/offline-icon-512.png",
   "/assets/linewatch/logo.svg",
-  "/assets/linewatch/ttc-subway-map-edited.svg",
+  "/assets/linewatch/ttc-subway-map-custom.svg",
 ];
 
 self.addEventListener("install", (event) => {

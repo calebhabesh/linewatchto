@@ -1958,6 +1958,27 @@ test("Spadina uses two visual dots for one station selection", async ({ page, re
   }
 });
 
+test("station names share hover and selection behavior with station dots", async ({ page, request, isMobile }) => {
+  await setStubMode(request, "unavailable");
+  await page.goto("/");
+  await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
+
+  await expect(page.locator("[data-station-label-id]")).toHaveCount(109);
+  await expect(page.locator("[data-station-id]")).toHaveCount(110);
+  const labelTarget = page.locator('[data-station-label-id="kipling"]');
+  await expect(labelTarget).toHaveCount(1);
+
+  if (!isMobile) {
+    await labelTarget.hover();
+    await expect(page.locator('[data-station-hover-id="kipling"]')).toHaveClass(/active/);
+  }
+
+  await labelTarget.click();
+  await expect(
+    page.getByRole("complementary", { name: "Kipling station details" }),
+  ).toBeVisible();
+});
+
 test("uses map overlap metadata for active-alert and sibling submenu overlap refs", async ({ page, request, isMobile }) => {
   await setStubMode(request, "map-authoritative-overlap");
   await page.goto("/");

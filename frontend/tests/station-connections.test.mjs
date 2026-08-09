@@ -10,7 +10,7 @@ import {
 } from "../src/app/station-connections.ts";
 
 const ttcMap = readFileSync(
-  new URL("../public/assets/linewatch/ttc-subway-map-edited.svg", import.meta.url),
+  new URL("../public/assets/linewatch/ttc-subway-map-custom.svg", import.meta.url),
   "utf8",
 );
 const regionalMap = readFileSync(
@@ -107,9 +107,9 @@ describe("station connection metadata and map labels", () => {
     assert.doesNotMatch(css, /map-connection-airport[^}]*filter:/s);
     assert.match(css, /map-connection-airport :is\(text, tspan\)[\s\S]*?fill: #f8fafc !important/);
     assert.match(upExpressLogo, /fill:#4084cd/g);
-    assert.match(ttcMap, /id="path40-9-51"[\s\S]*?style="fill:#4084cd"/);
-    assert.match(ttcMap, /id="path40-9-5"[\s\S]*?style="fill:#4084cd"/);
-    assert.match(ttcMap, /id="path40-9"[\s\S]*?style="fill:#4084cd"/);
+    assert.match(ttcMap, /id="path40-9-51"[\s\S]*?style="fill:#4084cd/);
+    assert.match(ttcMap, /id="path40-9-5"[\s\S]*?style="fill:#4084cd/);
+    assert.match(ttcMap, /id="path40-9"[\s\S]*?style="fill:#4084cd/);
     assert.match(css, /\[inkscape\\:label="mount-dennis-up"\][\s\S]*?fill: #4084cd !important/);
     assert.match(css, /\[inkscape\\:label="mount-dennis-up"\]/);
     assert.match(

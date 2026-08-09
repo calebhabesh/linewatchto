@@ -250,8 +250,8 @@ curl -I https://linewatchto.ca/api/alert-history
 curl -I https://linewatchto.ca/api/alert-history
 curl -I https://linewatchto.ca/api/announcements
 curl -I https://linewatchto.ca/api/announcements
-curl -I https://linewatchto.ca/assets/linewatch/ttc-subway-map-edited.svg
-curl -I https://linewatchto.ca/assets/linewatch/ttc-subway-map-edited.svg
+curl -I https://linewatchto.ca/assets/linewatch/ttc-subway-map-custom.svg
+curl -I https://linewatchto.ca/assets/linewatch/ttc-subway-map-custom.svg
 ```
 
 Check headers:

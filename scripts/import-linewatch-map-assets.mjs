@@ -2,6 +2,7 @@
 
 import { copyFileSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { execFileSync } from "node:child_process";
 
 const repositoryRoot = resolve(import.meta.dirname, "..");
 const sourceRoot = process.argv[2]
@@ -13,7 +14,7 @@ const airportSource = process.argv[3]
 const assetRoot = resolve(repositoryRoot, "frontend/public/assets/linewatch");
 const connectionsRoot = resolve(assetRoot, "connections");
 
-const TTC_SOURCE = resolve(sourceRoot, "TTC_Subway_Map_Edited.svg");
+const TTC_SOURCE = resolve(sourceRoot, "TTC_Subway_Map_Custom_Edited.svg");
 const REGIONAL_SOURCE = resolve(sourceRoot, "Metrolinx_Custom_Map.svg");
 
 const LAYER_IDS = new Map([
@@ -53,6 +54,10 @@ function replaceElementId(tag, id) {
 
 function normalizeExportWhitespace(source) {
   return `${source.replace(/[ \t]+$/gm, "").trimEnd()}\n`;
+}
+
+function normalizeUpExpressLogo(source) {
+  return normalizeExportWhitespace(source.replaceAll("fill:#000000", "fill:#4084cd"));
 }
 
 function normalizeRegionalMap(source) {
@@ -103,29 +108,22 @@ function normalizeRegionalMap(source) {
   return normalizeExportWhitespace(normalized);
 }
 
-function normalizeTtcMap(source) {
-  const wrapperAt = source.indexOf('inkscape:label="go-up-logo-mount-dennis"');
-  const upGroupAt = source.indexOf('id="g3"', wrapperAt);
-  if (wrapperAt < 0 || upGroupAt < 0) {
-    throw new Error("Mount Dennis UP artwork is unavailable in the TTC map");
-  }
-  return normalizeExportWhitespace(
-    `${source.slice(0, upGroupAt)}id="g3" inkscape:label="mount-dennis-up"${source.slice(upGroupAt + 'id="g3"'.length)}`,
-  );
-}
-
 mkdirSync(connectionsRoot, { recursive: true });
-writeFileSync(
-  resolve(assetRoot, "ttc-subway-map-edited.svg"),
-  normalizeTtcMap(readFileSync(TTC_SOURCE, "utf8")),
-);
+execFileSync(process.execPath, [
+  resolve(repositoryRoot, "scripts/prepare-ttc-map-asset.mjs"),
+  TTC_SOURCE,
+  resolve(assetRoot, "ttc-subway-map-custom.svg"),
+], { stdio: "inherit" });
 writeFileSync(
   resolve(assetRoot, "regional-rail-map.svg"),
   normalizeRegionalMap(readFileSync(REGIONAL_SOURCE, "utf8")),
 );
 copyFileSync(resolve(sourceRoot, "via-rail-logo.svg"), resolve(connectionsRoot, "via-rail-logo.svg"));
 copyFileSync(resolve(sourceRoot, "go-logo.svg"), resolve(connectionsRoot, "go-logo.svg"));
-copyFileSync(resolve(sourceRoot, "up-express-logo.svg"), resolve(connectionsRoot, "up-express-logo.svg"));
+writeFileSync(
+  resolve(connectionsRoot, "up-express-logo.svg"),
+  normalizeUpExpressLogo(readFileSync(resolve(sourceRoot, "up-express-logo.svg"), "utf8")),
+);
 copyFileSync(airportSource, resolve(connectionsRoot, "airport.svg"));
 
 console.log(`Imported and normalized LineWatchTO maps from ${sourceRoot}`);

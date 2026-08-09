@@ -52,6 +52,14 @@ describe("asset-backed map layering", () => {
     );
   });
 
+  it("derives pointer targets from authored station text bounds", () => {
+    assert.match(interactiveMapSource, /readSvgStationLabelBounds/);
+    assert.match(interactiveMapSource, /data-station-label-id=\{station\.id\}/);
+    assert.match(interactiveMapSource, /className="station-label-hit-target"/);
+    assert.match(interactiveMapSource, /onPointerUp=\{\(event\) => \{[\s\S]*?onSelectStationId\(station\.id\)/);
+    assert.match(globalCss, /\.station-label-hit-target\s*\{[^}]*cursor:\s*pointer;[^}]*fill:\s*transparent;/s);
+  });
+
   it("uses explicit SVG hit testing for station touch targets", () => {
     assert.match(
       interactiveMapSource,
@@ -188,7 +196,7 @@ describe("asset-backed map layering", () => {
     assert.match(interactiveMapSource, /onHoverHighlightChange=\{setHoveredOverlayHighlight\}/);
     assert.match(
       interactiveMapSource,
-      /<g aria-hidden="true" className="hover-priority-overlay">[\s\S]*?data-hover-foreground-impact[\s\S]*?<OverlaySegment[\s\S]*?hover-priority-glow[\s\S]*?hover-priority-boundary[\s\S]*?Top Layer: Stations/,
+      /<g aria-hidden="true" className="hover-priority-overlay">[\s\S]*?data-hover-foreground-impact[\s\S]*?<OverlaySegment[\s\S]*?hover-priority-glow[\s\S]*?hover-priority-boundary[\s\S]*?Top Layer: custom-map station labels/,
     );
     assert.match(
       interactiveMapSource,
@@ -914,7 +922,7 @@ describe("asset-backed map layering", () => {
 
     const overlayIndex = interactiveMapSource.indexOf('aria-label="Disruption overlays"');
     const trainIndex = interactiveMapSource.indexOf('aria-label="Estimated train markers"');
-    const stationLayerIndex = interactiveMapSource.indexOf("{/* Top Layer: Stations (layer6) and text */}");
+    const stationLayerIndex = interactiveMapSource.indexOf("{/* Top Layer: custom-map station labels, dots, badges, and connections */}");
     const badgeIndex = interactiveMapSource.indexOf('aria-label="Overlapping alert badges"');
 
     assert.ok(overlayIndex > -1);

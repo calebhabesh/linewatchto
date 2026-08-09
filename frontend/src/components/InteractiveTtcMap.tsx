@@ -6,6 +6,7 @@ import {
   pathCorridorCollisionBoxes,
   pathMidpointFrame,
   readSvgGeometry,
+  readSvgStationLabelBounds,
   readSvgStationCenters,
   resolveNetworkSegmentPath,
   transformBoundsToRootCoordinates,
@@ -85,12 +86,12 @@ import {
 
 const SVG_TO_RENDERED_MAP_SCALE = 4500 / 8250;
 const DESKTOP_MAP_HORIZONTAL_INSET_RATIO = 0.025;
-// Authored visible-art bounds, extended through x=7900 to include the compass.
+// Custom-map visible-art bounds, extended through x=7900 to include the compass.
 const DESKTOP_MAP_CONTENT_BOUNDS: MapContentBounds = {
-  x: 190 * SVG_TO_RENDERED_MAP_SCALE,
-  y: 184.343 * SVG_TO_RENDERED_MAP_SCALE,
-  width: (7900 - 190) * SVG_TO_RENDERED_MAP_SCALE,
-  height: (3743.003 - 184.343) * SVG_TO_RENDERED_MAP_SCALE,
+  x: 65 * SVG_TO_RENDERED_MAP_SCALE,
+  y: 120 * SVG_TO_RENDERED_MAP_SCALE,
+  width: (7900 - 65) * SVG_TO_RENDERED_MAP_SCALE,
+  height: (3820 - 120) * SVG_TO_RENDERED_MAP_SCALE,
 };
 
 const RSZ_IMPACT_COLOR = "#F59E0B";
@@ -102,6 +103,63 @@ type RetainedLayer<T> = {
 };
 
 const MAP_PULSE_CYCLE_MS = 1200;
+
+type TtcMapMarkupParts = {
+  part1: string;
+  part2: string;
+};
+
+function parseTtcMapMarkup(text: string): TtcMapMarkupParts {
+  const documentNode = new DOMParser().parseFromString(text, "image/svg+xml");
+  if (documentNode.querySelector("parsererror")) {
+    throw new Error("Invalid TTC map SVG");
+  }
+
+  const svg = documentNode.documentElement;
+  const mapRoot = svg.querySelector<SVGGElement>("#ttc-map-root");
+  if (!mapRoot) throw new Error("Missing TTC map root");
+
+  const requiredLayerIds = [
+    "ttc-tracks-layer",
+    "non-linear-guides-layer",
+    "ttc-station-labels-layer",
+    "ttc-stations-layer",
+    "ttc-line-badges-layer",
+    "ttc-connection-labels-layer",
+  ] as const;
+  const layers = new Map(requiredLayerIds.map((id) => {
+    const layer = mapRoot.querySelector<SVGGElement>(`:scope > #${id}`);
+    if (!layer) throw new Error(`Missing TTC map layer ${id}`);
+    return [id, layer] as const;
+  }));
+  const serializer = new XMLSerializer();
+  const sharedMarkup = Array.from(svg.children)
+    .filter((element) => element.localName === "defs" || element.localName === "style")
+    .map((element) => serializer.serializeToString(element))
+    .join("");
+
+  const serializeLayers = (id: string, layerIds: readonly (typeof requiredLayerIds)[number][]) => {
+    const wrapper = documentNode.createElementNS("http://www.w3.org/2000/svg", "g");
+    wrapper.setAttribute("id", id);
+    for (const layerId of layerIds) {
+      wrapper.append(layers.get(layerId)!.cloneNode(true));
+    }
+    return serializer.serializeToString(wrapper);
+  };
+
+  return {
+    part1: sharedMarkup + serializeLayers("ttc-map-base-root", [
+      "ttc-tracks-layer",
+      "non-linear-guides-layer",
+    ]),
+    part2: serializeLayers("ttc-map-foreground-root", [
+      "ttc-station-labels-layer",
+      "ttc-stations-layer",
+      "ttc-line-badges-layer",
+      "ttc-connection-labels-layer",
+    ]),
+  };
+}
 
 function useRetainedMapLayers<T>(
   items: T[],
@@ -246,8 +304,8 @@ function InteractiveTtcMapComponent({
   deferInitialEntrance?: boolean;
   onReady?: () => void;
 }) {
-  const { networkSegments, activeAlerts, delays, reducedSpeedZones, plannedClosures, stationNodeImpacts, stations: mapStations } = useDashboardData();
-  const [svgParts, setSvgParts] = useState<{ part1: string; part2: string } | null>(null);
+  const { networkSegments, activeAlerts, delays, reducedSpeedZones, plannedClosures, stationNodeImpacts, stations: mapStations, mapAsset } = useDashboardData();
+  const [svgParts, setSvgParts] = useState<TtcMapMarkupParts | null>(null);
   const [loadState, setLoadState] = useState<"loading" | "ready" | "error">("loading");
   const [hoveredStationId, setHoveredStationId] = useState<string | null>(null);
   const [hoveredOverlayHighlight, setHoveredOverlayHighlight] = useState<HoveredOverlayHighlight | null>(null);
@@ -266,6 +324,7 @@ function InteractiveTtcMapComponent({
   const [anchorPoints, setAnchorPoints] = useState(new Map<string, MapPoint>());
   const [guidePaths, setGuidePaths] = useState(new Map<string, string>());
   const [stationCenterPoints, setStationCenterPoints] = useState(new Map<string, MapPoint>());
+  const [stationLabelBounds, setStationLabelBounds] = useState(new Map<string, MapBounds>());
   const [mapCollisionBoxes, setMapCollisionBoxes] = useState<SvgBounds[]>([]);
 
   useLayoutEffect(() => {
@@ -275,6 +334,9 @@ function InteractiveTtcMapComponent({
     setGuidePaths(geometry.guidePaths);
     setStationCenterPoints(
       readSvgStationCenters(mapSvgRef.current, stationVisualCenterIds(stations)),
+    );
+    setStationLabelBounds(
+      readSvgStationLabelBounds(mapSvgRef.current, stations.map((station) => station.id)),
     );
     setMapCollisionBoxes([
       ...collectMapCollisionBoxes(mapSvgRef.current),
@@ -423,19 +485,15 @@ function InteractiveTtcMapComponent({
     let cancelled = false;
     async function loadMap() {
       try {
-        const response = await fetch(`/assets/linewatch/ttc-subway-map-edited.svg?v=${lineWatchBuildLabel}`);
+        setLoadState("loading");
+        const separator = mapAsset.src.includes("?") ? "&" : "?";
+        const response = await fetch(`${mapAsset.src}${separator}v=${lineWatchBuildLabel}`);
         if (!response.ok) throw new Error("Map load failed");
         const text = await response.text();
 
         if (!cancelled) {
-          const innerMatch = text.match(/<svg[^>]*>([\s\S]*?)<\/svg>/i);
-          if (innerMatch) {
-            const splitMatch = innerMatch[1].match(/([\s\S]*?)(<g\s+id="layer6"[\s\S]*)/);
-            if (splitMatch) {
-              setSvgParts({ part1: splitMatch[1], part2: splitMatch[2] });
-              setLoadState("ready");
-            } else throw new Error("Missing layer6");
-          } else throw new Error("Missing svg");
+          setSvgParts(parseTtcMapMarkup(text));
+          setLoadState("ready");
         }
       } catch {
         if (!cancelled) setLoadState("error");
@@ -445,7 +503,7 @@ function InteractiveTtcMapComponent({
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [mapAsset.src]);
 
   // Prevent default wheel scrolling on the container
   useEffect(() => {
@@ -1466,16 +1524,11 @@ function InteractiveTtcMapComponent({
                   fill: #f1f5f9 !important;
                 }
 
-                /* Keep all standard station dot outer borders black (targets all dots inside stations-layer) */
-                .dark .ttc-svg-container svg #layer6 .fil6,
-                .dark .ttc-svg-container svg #layer6 [fill="#000000"],
-                .dark .ttc-svg-container svg #layer6 [style*="fill:#000000"],
-                .dark .ttc-svg-container svg #layer6 [style*="fill:black"] {
-                  fill: #000000 !important;
-                }
-
-                /* Keep Spadina transfer capsule connector inner black */
-                .dark .ttc-svg-container svg #path770 {
+                /* Keep authored station interiors and Spadina's connector black. */
+                .dark .ttc-svg-container svg #ttc-stations-layer [inkscape\\:label="inner-pill"],
+                .dark .ttc-svg-container svg #ttc-stations-layer [fill="#000000"],
+                .dark .ttc-svg-container svg #ttc-stations-layer [style*="fill:#000000"],
+                .dark .ttc-svg-container svg #ttc-stations-layer [style*="fill:black"] {
                   fill: #000000 !important;
                 }
 
@@ -1687,7 +1740,7 @@ function InteractiveTtcMapComponent({
                   })}
                 </g>
 
-                {/* Top Layer: Stations (layer6) and text */}
+                {/* Top Layer: custom-map station labels, dots, badges, and connections */}
                 <g dangerouslySetInnerHTML={{ __html: svgParts?.part2 ?? "" }} />
 
                 <g aria-label="Estimated train markers">
@@ -1800,6 +1853,7 @@ function InteractiveTtcMapComponent({
                   const showStationHover =
                     hoveredStationId === station.id &&
                     !selected;
+                  const labelBounds = stationLabelBounds.get(station.id);
 
                   return (
                     <g
@@ -1819,6 +1873,39 @@ function InteractiveTtcMapComponent({
                         setHoveredStationId((current) => current === station.id ? null : current);
                       }}
                     >
+                      {labelBounds ? (
+                        <rect
+                          aria-hidden="true"
+                          data-station-label-id={station.id}
+                          className="station-label-hit-target"
+                          x={labelBounds.x - 12}
+                          y={labelBounds.y - 12}
+                          width={labelBounds.width + 24}
+                          height={labelBounds.height + 24}
+                          rx={8}
+                          onPointerDown={(event) => {
+                            if (event.pointerType === "mouse" && event.button !== 0) return;
+                            try {
+                              event.currentTarget.setPointerCapture(event.pointerId);
+                            } catch {
+                              // Pointer capture can fail if the browser ended the pointer first.
+                            }
+                          }}
+                          onPointerUp={(event) => {
+                            if (event.pointerType === "mouse" && event.button !== 0) return;
+                            if (shouldSuppressMapClick()) return;
+                            onSelectStationId(station.id);
+                          }}
+                          onClick={(event) => {
+                            if (event.detail !== 0 || shouldSuppressMapClick()) return;
+                            event.stopPropagation();
+                            onSelectStationId(station.id);
+                          }}
+                          pointerEvents="all"
+                          tabIndex={-1}
+                          vectorEffect="non-scaling-stroke"
+                        />
+                      ) : null}
                       {visualAnchors.map(({ id: anchorId, point }, anchorIndex) => (
                         <g key={`${station.id}:${anchorId}`}>
                           <circle

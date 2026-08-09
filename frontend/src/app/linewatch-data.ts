@@ -282,7 +282,7 @@ export const mapAsset: {
   viewBox: readonly [number, number, number, number];
   legendIcons: Record<string, string>;
 } = {
-  src: "/assets/linewatch/ttc-subway-map-edited.svg",
+  src: "/assets/linewatch/ttc-subway-map-custom.svg",
   viewBox: [0, 0, 8250, 4000] as const,
   legendIcons: {
     "line-1": "/assets/linewatch/line-1-legend.svg",

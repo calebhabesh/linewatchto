@@ -7255,6 +7255,13 @@ img.transit-line-badge {
   transition: all 0.2s ease-in-out;
 }
 
+.station-label-hit-target {
+  cursor: pointer;
+  fill: transparent;
+  pointer-events: all;
+  stroke: none;
+}
+
 .station-hit-target:hover,
 .station-hit-target:focus-visible {
   fill: transparent;

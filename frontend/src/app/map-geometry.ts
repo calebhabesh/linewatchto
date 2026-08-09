@@ -659,3 +659,35 @@ export function readSvgStationCenters(
 
   return centers;
 }
+
+export function readSvgStationLabelBounds(
+  root: SVGSVGElement,
+  stationIds: string[],
+): Map<string, MapBounds> {
+  const expectedIds = new Set(stationIds);
+  const boundsByStationId = new Map<string, MapBounds>();
+  const rootMatrix = root.getScreenCTM();
+
+  for (const element of root.querySelectorAll<SVGGraphicsElement>(
+    "#ttc-station-labels-layer [data-station-label-for]",
+  )) {
+    const stationId = element.dataset.stationLabelFor;
+    if (!stationId || !expectedIds.has(stationId)) continue;
+
+    try {
+      const box = element.getBBox();
+      const bounds = transformBoundsToRootCoordinates(
+        { x: box.x, y: box.y, width: box.width, height: box.height },
+        element.getScreenCTM(),
+        rootMatrix,
+      );
+      if (bounds && bounds.width > 0 && bounds.height > 0) {
+        boundsByStationId.set(stationId, bounds);
+      }
+    } catch {
+      // A temporarily hidden or not-yet-laid-out SVG label has no usable box.
+    }
+  }
+
+  return boundsByStationId;
+}

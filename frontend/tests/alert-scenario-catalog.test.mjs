@@ -5,7 +5,7 @@ import { describe, it } from "node:test";
 const scenarioRoot = new URL("../../backend/src/test/resources/fixtures/ttc-alert-scenarios/", import.meta.url);
 const index = JSON.parse(readFileSync(new URL("scenario-index.json", scenarioRoot), "utf8"));
 const svg = readFileSync(
-  new URL("../public/assets/linewatch/ttc-subway-map-edited.svg", import.meta.url),
+  new URL("../public/assets/linewatch/ttc-subway-map-custom.svg", import.meta.url),
   "utf8",
 );
 
@@ -165,7 +165,7 @@ describe("alert scenario catalog", () => {
     assert.deepEqual(feed.accessibility.map((record) => record.routeType).sort(), ["Elevator", "Escalator"]);
   });
 
-  it("references nonlinear guide paths that exist in the edited TTC SVG", () => {
+  it("references nonlinear guide paths that exist in the custom TTC SVG", () => {
     const guideIds = index.scenarios.flatMap((scenario) => scenario.guidePathIds);
     assert.deepEqual(
       [...new Set(guideIds)].sort(),
