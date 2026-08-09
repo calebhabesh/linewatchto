@@ -34,7 +34,9 @@ public class RegionalAlertStore {
             on conflict (source_system, source_id) do update set
                 payload = excluded.payload,
                 active = true,
-                last_seen_at = excluded.last_seen_at
+                last_seen_at = excluded.last_seen_at,
+                canonical_event_id = null,
+                deterministic_classification = null
             """, new MapSqlParameterSource()
                 .addValue("sourceSystem", record.sourceSystem())
                 .addValue("sourceId", record.sourceId())
@@ -53,8 +55,10 @@ public class RegionalAlertStore {
                 :cause, :activePeriodStart, :activePeriodEnd, :sourceUpdatedAt,
                 cast(:stationIds as jsonb), cast(:affectedSegmentIds as jsonb), true, :now, :now
             )
-            on conflict (source_system, source_id, line_id) do update set
-                id = excluded.id,
+            on conflict (id) do update set
+                source_system = excluded.source_system,
+                source_id = excluded.source_id,
+                line_id = excluded.line_id,
                 impact_kind = excluded.impact_kind,
                 title = excluded.title,
                 description = excluded.description,
@@ -82,6 +86,22 @@ public class RegionalAlertStore {
                 .addValue("affectedSegmentIds", json(alert.affectedSegmentIds()))
                 .addValue("now", now));
         snapshotIfChanged(alert.id(), now);
+    }
+
+    public void updateSourceClassification(
+        RegionalAlertClassification.SourceReference source,
+        RegionalAlertClassification classification
+    ) {
+        jdbc.update("""
+            update metrolinx_alert_source_records
+            set canonical_event_id = :canonicalEventId,
+                deterministic_classification = cast(:classification as jsonb)
+            where source_system = :sourceSystem and source_id = :sourceId
+            """, new MapSqlParameterSource()
+                .addValue("canonicalEventId", classification.canonicalEventId())
+                .addValue("classification", json(classification))
+                .addValue("sourceSystem", source.sourceSystem())
+                .addValue("sourceId", source.sourceId()));
     }
 
     public void deactivateMissingSources(String sourceSystem, Set<String> sourceIds) {
@@ -206,8 +226,12 @@ public class RegionalAlertStore {
     }
 
     private String json(List<String> values) {
+        return json((Object) values);
+    }
+
+    private String json(Object value) {
         try {
-            return objectMapper.writeValueAsString(values);
+            return objectMapper.writeValueAsString(value);
         } catch (Exception exception) {
             throw new IllegalArgumentException("Unable to serialize regional alert topology", exception);
         }

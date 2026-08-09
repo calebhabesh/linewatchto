@@ -119,7 +119,7 @@ class MetrolinxAlertNormalizerTest {
     }
 
     @Test
-    void mapsFutureUpAlertsToPlannedChanges() throws Exception {
+    void keepsVagueFutureUpChangesOutOfTheClosureBucket() throws Exception {
         MetrolinxFetchedRecord future = upAlert("up-future", """
             {
               "id":"up-future",
@@ -135,11 +135,217 @@ class MetrolinxAlertNormalizerTest {
             }
             """);
 
-        assertThat(normalizer.normalize(new MetrolinxFeed(
+        MetrolinxFeed feed = new MetrolinxFeed(
             OffsetDateTime.parse("2026-07-28T18:12:32Z"),
             List.of(future),
             java.util.Map.of(MetrolinxSourceSystem.UP_GTFS_ALERTS, true)
-        ))).singleElement().extracting(RegionalNormalizedAlert::impactKind).isEqualTo("planned-closure");
+        );
+
+        assertThat(normalizer.classify(feed)).singleElement().satisfies(classification -> {
+            assertThat(classification.timing()).isEqualTo("planned");
+            assertThat(classification.serviceEffect()).isEqualTo("service-adjustment");
+            assertThat(classification.cause()).isEqualTo("construction");
+            assertThat(classification.scope()).isEqualTo("unknown");
+        });
+        assertThat(normalizer.normalize(feed)).isEmpty();
+    }
+
+    @Test
+    void correlatesBarrieRestAndGtfsRecordsAndTreatsStopsAsReplacementContext() throws Exception {
+        MetrolinxFetchedRecord rest = new MetrolinxFetchedRecord(
+            MetrolinxSourceSystem.GO_INFORMATION_ALERTS,
+            "M0000521190",
+            """
+                {
+                  "Code":"M0000521190",
+                  "PostedDateTime":"2026-07-28 10:00:00",
+                  "SubjectEnglish":"Barrie weekend service adjustment",
+                  "BodyEnglish":"No GO train service on the Barrie line due to planned construction. GO buses replace trains at Rutherford, Maple, King City, Aurora, Newmarket, East Gwillimbury, Bradford, Barrie South and Allandale Waterfront. Buses will not serve Union Station or Downsview Park GO.",
+                  "Category":"General Information",
+                  "SubCategory":"E-Ticket",
+                  "Lines":[{"Code":"BR"}],
+                  "Stops":[{"Code":"RU"},{"Code":"MP"},{"Code":"KC"},{"Code":"AU"},{"Code":"NE"},{"Code":"EA"},{"Code":"BD"},{"Code":"BA"},{"Code":"AD"}]
+                }
+                """
+        );
+        MetrolinxFetchedRecord gtfs = new MetrolinxFetchedRecord(
+            MetrolinxSourceSystem.GO_GTFS_ALERTS,
+            "521190",
+            """
+                {
+                  "id":"521190",
+                  "alert":{
+                    "active_period":[{"start":1785348000,"end":1785434400}],
+                    "cause":"CONSTRUCTION",
+                    "effect":"OTHER_EFFECT",
+                    "header_text":{"translation":[{"text":"Barrie service change","language":"en"}]},
+                    "description_text":{"translation":[{"text":"No GO train service on the Barrie line.","language":"en"}]},
+                    "informed_entity":[{"stop_id":"RU"},{"stop_id":"AD"}]
+                  }
+                }
+                """
+        );
+        MetrolinxFeed feed = feed(rest, gtfs);
+
+        assertThat(normalizer.classify(feed)).singleElement().satisfies(classification -> {
+            assertThat(classification.canonicalEventId()).isEqualTo("go-521190");
+            assertThat(classification.sources()).extracting(RegionalAlertClassification.SourceReference::sourceSystem)
+                .containsExactly(MetrolinxSourceSystem.GO_INFORMATION_ALERTS, MetrolinxSourceSystem.GO_GTFS_ALERTS);
+            assertThat(classification.timing()).isEqualTo("planned");
+            assertThat(classification.serviceEffect()).isEqualTo("no-service");
+            assertThat(classification.scope()).isEqualTo("corridor");
+            assertThat(classification.cause()).isEqualTo("construction");
+            assertThat(classification.replacementService()).isEqualTo("go-bus");
+            assertThat(classification.stationRoles())
+                .containsEntry("rutherford", "replacement-served")
+                .containsEntry("union", "replacement-excluded")
+                .containsEntry("downsview-park", "replacement-excluded");
+            assertThat(classification.fieldSources().get("activePeriod"))
+                .containsExactly(MetrolinxSourceSystem.GO_GTFS_ALERTS + ":521190");
+        });
+        assertThat(normalizer.normalize(feed)).singleElement().satisfies(alert -> {
+            assertThat(alert.impactKind()).isEqualTo("planned-closure");
+            assertThat(alert.stationIds()).isEmpty();
+            assertThat(alert.affectedSegmentIds()).hasSize(10);
+        });
+
+        MetrolinxAlertNormalizer activeWindowNormalizer = new MetrolinxAlertNormalizer(Clock.fixed(
+            Instant.parse("2026-07-29T20:00:00Z"), ZoneOffset.UTC
+        ));
+        assertThat(activeWindowNormalizer.normalize(feed)).singleElement()
+            .extracting(RegionalNormalizedAlert::impactKind).isEqualTo("suspension");
+    }
+
+    @Test
+    void bucketsReducedSpeedDelayAndExtractsTextSpanAndMaximumDelay() throws Exception {
+        MetrolinxFetchedRecord record = serviceAlert("""
+            {
+              "Code":"M0000522000",
+              "PostedDateTime":"2026-07-28 12:00:00",
+              "SubjectEnglish":"Reduced speeds on the Kitchener line",
+              "BodyEnglish":"Trains are operating at reduced speeds between Kitchener GO and Stratford GO. Delays of up to 20 minutes.",
+              "Category":"Service Disruption",
+              "SubCategory":"Modified Trip",
+              "Lines":[{"Code":"GT"}],
+              "Stops":[]
+            }
+            """);
+        MetrolinxFeed feed = feed(record);
+
+        assertThat(normalizer.classify(feed)).singleElement().satisfies(classification -> {
+            assertThat(classification.timing()).isEqualTo("current");
+            assertThat(classification.serviceEffect()).isEqualTo("delay");
+            assertThat(classification.operatingChange()).isEqualTo("reduced-speed");
+            assertThat(classification.scope()).isEqualTo("segment-span");
+            assertThat(classification.spanStationIds()).containsExactly("kitchener", "stratford");
+            assertThat(classification.maximumDelayMinutes()).isEqualTo(20);
+        });
+        assertThat(normalizer.normalize(feed)).singleElement().satisfies(alert -> {
+            assertThat(alert.impactKind()).isEqualTo("delay");
+            assertThat(alert.stationIds()).containsExactly("kitchener", "stratford");
+            assertThat(alert.affectedSegmentIds()).containsExactly("segment-ki-kitchener-stratford");
+        });
+    }
+
+    @Test
+    void bucketsVaguePlannedLakeshoreAdjustmentWithoutInventingAClosure() throws Exception {
+        MetrolinxFetchedRecord record = new MetrolinxFetchedRecord(
+            MetrolinxSourceSystem.GO_INFORMATION_ALERTS,
+            "M0000523000",
+            """
+                {
+                  "Code":"M0000523000",
+                  "SubjectEnglish":"Lakeshore West service adjusted this weekend",
+                  "BodyEnglish":"Service adjusted at Oakville and Bronte due to planned construction.",
+                  "Category":"General Information",
+                  "Lines":[{"Code":"LW"}],
+                  "Stops":[{"Code":"OA"},{"Code":"BO"}]
+                }
+                """
+        );
+        MetrolinxFeed feed = feed(record);
+
+        assertThat(normalizer.classify(feed)).singleElement().satisfies(classification -> {
+            assertThat(classification.timing()).isEqualTo("planned");
+            assertThat(classification.serviceEffect()).isEqualTo("service-adjustment");
+            assertThat(classification.scope()).isEqualTo("listed-stations");
+            assertThat(classification.stationIds()).containsExactly("oakville", "bronte");
+        });
+        assertThat(normalizer.normalize(feed)).isEmpty();
+    }
+
+    @Test
+    void explicitServiceDatesOverrideAContradictoryGtfsNoticeVisibilityPeriod() {
+        MetrolinxFetchedRecord rest = new MetrolinxFetchedRecord(
+            MetrolinxSourceSystem.GO_INFORMATION_ALERTS,
+            "M0000521190",
+            """
+                {
+                  "Code":"M0000521190",
+                  "PostedDateTime":"2026-08-07 00:01:43",
+                  "SubjectEnglish":"Barrie line service adjustments Aug. 15- 16",
+                  "BodyEnglish":"No GO train service on the Barrie line due to planned construction. GO buses replace trains at all stations except Downsview Park GO and Union Station.",
+                  "Category":"General Information",
+                  "Lines":[{"Code":"BR"}],
+                  "Stops":[{"Code":"RU"},{"Code":"AD"}]
+                }
+                """
+        );
+        MetrolinxFetchedRecord gtfs = new MetrolinxFetchedRecord(
+            MetrolinxSourceSystem.GO_GTFS_ALERTS,
+            "521190",
+            """
+                {
+                  "id":"521190",
+                  "alert":{
+                    "active_period":[{"start":1786075260,"end":1786310233}],
+                    "effect":"OTHER_EFFECT",
+                    "header_text":{"translation":[{"text":"Barrie line service adjustments Aug. 15- 16","language":"en"}]},
+                    "description_text":{"translation":[{"text":"No GO train service on the Barrie line due to planned construction.","language":"en"}]},
+                    "informed_entity":[{"stop_id":"RU"},{"stop_id":"AD"}]
+                  }
+                }
+                """
+        );
+        MetrolinxFeed feed = feed(rest, gtfs);
+        MetrolinxAlertNormalizer augustEighth = new MetrolinxAlertNormalizer(Clock.fixed(
+            Instant.parse("2026-08-08T16:00:00Z"), ZoneOffset.UTC
+        ));
+
+        assertThat(augustEighth.classify(feed)).singleElement().satisfies(classification -> {
+            assertThat(classification.timing()).isEqualTo("planned");
+            assertThat(classification.activePeriodBasis()).isEqualTo("text-date-range");
+            assertThat(classification.activePeriodStart())
+                .isEqualTo(OffsetDateTime.parse("2026-08-15T00:00:00-04:00"));
+            assertThat(classification.activePeriodEnd())
+                .isEqualTo(OffsetDateTime.parse("2026-08-17T00:00:00-04:00"));
+            assertThat(classification.sourceActivePeriodStart())
+                .isEqualTo(OffsetDateTime.parse("2026-08-07T04:01:00Z"));
+            assertThat(classification.sourceActivePeriodEnd())
+                .isEqualTo(OffsetDateTime.parse("2026-08-09T21:17:13Z"));
+            assertThat(classification.fieldSources()).containsKey("serviceDateRange");
+        });
+        assertThat(augustEighth.normalize(feed)).singleElement()
+            .extracting(RegionalNormalizedAlert::impactKind).isEqualTo("planned-closure");
+
+        MetrolinxAlertNormalizer duringClosure = new MetrolinxAlertNormalizer(Clock.fixed(
+            Instant.parse("2026-08-15T16:00:00Z"), ZoneOffset.UTC
+        ));
+        assertThat(duringClosure.normalize(feed)).singleElement()
+            .extracting(RegionalNormalizedAlert::impactKind).isEqualTo("suspension");
+
+        MetrolinxAlertNormalizer afterClosure = new MetrolinxAlertNormalizer(Clock.fixed(
+            Instant.parse("2026-08-17T04:00:00Z"), ZoneOffset.UTC
+        ));
+        assertThat(afterClosure.normalize(feed)).isEmpty();
+    }
+
+    private MetrolinxFeed feed(MetrolinxFetchedRecord... records) {
+        return new MetrolinxFeed(
+            OffsetDateTime.parse("2026-07-28T18:12:32Z"),
+            List.of(records),
+            java.util.Map.of()
+        );
     }
 
     private MetrolinxFetchedRecord serviceAlert(String json) throws Exception {

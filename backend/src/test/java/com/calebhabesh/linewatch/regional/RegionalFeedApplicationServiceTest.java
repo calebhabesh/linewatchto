@@ -38,6 +38,15 @@ class RegionalFeedApplicationServiceTest {
             "regional-go-M1-ki", MetrolinxSourceSystem.GO_SERVICE_ALERTS, "M1", "regional-ki", "delay",
             "Kitchener delay", "Delayed", "service-disruption", NOW, null, NOW, List.of(), List.of(), ""
         );
+        RegionalAlertClassification classification = new RegionalAlertClassification(
+            "go-1",
+            List.of(new RegionalAlertClassification.SourceReference(
+                MetrolinxSourceSystem.GO_SERVICE_ALERTS, "M1"
+            )),
+            List.of("regional-ki"), "current", "delay", null, "unknown", null, null, null,
+            "Kitchener delay", "Delayed", null, null, "unknown", null, null, NOW,
+            List.of(), List.of(), Map.of(), Map.of(), ""
+        );
         MetrolinxFeed feed = new MetrolinxFeed(
             NOW,
             List.of(alertRecord, exceptionRecord, tripUpdateRecord),
@@ -53,9 +62,10 @@ class RegionalFeedApplicationServiceTest {
             MetrolinxSourceSystem.GO_GTFS_TRIP_UPDATES, Set.of("TU-1")
         ));
 
-        FeedApplicationCounts counts = service.apply(feed, List.of(alert));
+        FeedApplicationCounts counts = service.apply(feed, List.of(alert), List.of(classification));
 
         verify(alertStore).upsertSource(alertRecord, NOW);
+        verify(alertStore).updateSourceClassification(classification.sources().getFirst(), classification);
         verify(operationalStore).upsertAll(List.of(exceptionRecord, tripUpdateRecord), NOW);
         verify(alertStore).deactivateMissingSources(MetrolinxSourceSystem.GO_SERVICE_ALERTS, Set.of("M1"));
         verify(operationalStore).deactivateMissing(MetrolinxSourceSystem.GO_TRAIN_EXCEPTIONS, Set.of("EX-1"));

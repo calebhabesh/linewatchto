@@ -34,5 +34,16 @@ class RegionalIngestionSchemaMigrationTest {
         assertThat(operationalCoverageMigration).contains("create table metrolinx_ingestion_source_runs");
         assertThat(operationalCoverageMigration).contains("primary key (run_id, source_system)");
         assertThat(operationalCoverageMigration).contains("source_feed_updated_at timestamptz");
+
+        String classificationMigration = new String(
+            getClass().getResourceAsStream(
+                "/db/migration/V60__regional_alert_deterministic_classification.sql"
+            ).readAllBytes(),
+            StandardCharsets.UTF_8
+        );
+        assertThat(classificationMigration).contains("canonical_event_id varchar(255)");
+        assertThat(classificationMigration).contains("deterministic_classification jsonb");
+        assertThat(classificationMigration)
+            .contains("drop constraint regional_alerts_source_system_source_id_line_id_key");
     }
 }

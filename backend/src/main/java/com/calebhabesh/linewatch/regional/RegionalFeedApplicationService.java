@@ -28,6 +28,15 @@ public class RegionalFeedApplicationService {
 
     @Transactional
     public FeedApplicationCounts apply(MetrolinxFeed feed, List<RegionalNormalizedAlert> alerts) {
+        return apply(feed, alerts, List.of());
+    }
+
+    @Transactional
+    public FeedApplicationCounts apply(
+        MetrolinxFeed feed,
+        List<RegionalNormalizedAlert> alerts,
+        List<RegionalAlertClassification> classifications
+    ) {
         OffsetDateTime now = OffsetDateTime.now(clock);
         List<MetrolinxFetchedRecord> operationalRecords = feed.records().stream()
             .filter(record -> MetrolinxSourceSystem.isOperational(record.sourceSystem()))
@@ -36,6 +45,9 @@ public class RegionalFeedApplicationService {
         feed.records().stream()
             .filter(record -> !MetrolinxSourceSystem.isOperational(record.sourceSystem()))
             .forEach(record -> store.upsertSource(record, now));
+        classifications.forEach(classification -> classification.sources().forEach(source ->
+            store.updateSourceClassification(source, classification)
+        ));
         alerts.forEach(alert -> store.upsertAlert(alert, now));
 
         Map<String, Set<String>> sourceIds = store.sourceIdsBySystem(feed);

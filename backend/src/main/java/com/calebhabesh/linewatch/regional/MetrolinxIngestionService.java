@@ -31,8 +31,9 @@ public class MetrolinxIngestionService {
         long runId = runService.start();
         try {
             MetrolinxFeed feed = client.fetchAlerts();
-            List<RegionalNormalizedAlert> alerts = normalizer.normalize(feed);
-            FeedApplicationCounts counts = applicationService.apply(feed, alerts);
+            List<RegionalAlertClassification> classifications = normalizer.classify(feed);
+            List<RegionalNormalizedAlert> alerts = normalizer.normalize(feed, classifications);
+            FeedApplicationCounts counts = applicationService.apply(feed, alerts, classifications);
             runService.succeed(runId, counts, feed);
             cache.evictDashboard();
             return counts;

@@ -37,10 +37,10 @@ class RegionalAlertScenarioCatalogTest {
 
     static Stream<Arguments> scenarios() {
         return Stream.of(
-            Arguments.of("all-alert-types.json", 12, 3),
+            Arguments.of("all-alert-types.json", 11, 3),
             Arguments.of("go-corridor-overlap.json", 3, 0),
             Arguments.of("go-station-and-accessibility.json", 1, 3),
-            Arguments.of("up-service-alerts.json", 3, 0)
+            Arguments.of("up-service-alerts.json", 2, 0)
         );
     }
 
@@ -116,7 +116,7 @@ class RegionalAlertScenarioCatalogTest {
 
         assertThat(dashboard.activeAlerts()).hasSize(2);
         assertThat(dashboard.delays()).hasSize(8);
-        assertThat(dashboard.plannedClosures()).hasSize(2);
+        assertThat(dashboard.plannedClosures()).hasSize(1);
         assertThat(dashboard.map().stationNodeImpacts()).hasSize(2);
         assertThat(dashboard.map().segments())
             .anySatisfy(segment -> assertThat(segment.impacts())
