@@ -197,6 +197,30 @@ function removeDescendantIds(element: SVGElement) {
   element.querySelectorAll("[id]").forEach((child) => child.removeAttribute("id"));
 }
 
+function normalizedRegionalStationLabel(value: string) {
+  return value
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "");
+}
+
+function setRegionalStationLabelHover(root: ParentNode, stationId: string | null) {
+  root.querySelectorAll<SVGElement>(
+    "#regional-station-labels-layer .station-label-hover-effect-active",
+  ).forEach((effect) => effect.classList.remove("station-label-hover-effect-active"));
+  root.querySelectorAll<SVGElement>(
+    "#regional-station-labels-layer .regional-station-label-hovered",
+  ).forEach((label) => label.classList.remove("regional-station-label-hovered"));
+  if (!stationId) return;
+  const label = root.querySelector<SVGElement>(
+    `#regional-station-labels-layer [data-regional-station-label-for="${CSS.escape(stationId)}"]`,
+  );
+  label?.classList.add("regional-station-label-hovered");
+  label?.closest(".station-label-hover-effect")
+    ?.classList.add("station-label-hover-effect-active");
+}
+
 function appendRegionalDelayGlyph(
   documentNode: Document,
   parent: SVGGElement,
@@ -2478,6 +2502,35 @@ function InteractiveRegionalMapComponent({
           element.after(selectedIndicatorContainer ?? selectedIndicator);
           element.classList.add("regional-station-visual");
         }
+        const regionalStationIds = new Map<string, string>();
+        for (const element of documentNode.querySelectorAll<SVGElement>("[id^='station-']")) {
+          if (element.id.endsWith("-ki") || element.id.endsWith("-up")) continue;
+          const stationId = element.id.replace(/^station-/, "");
+          regionalStationIds.set(normalizedRegionalStationLabel(stationId), stationId);
+        }
+        const stationLabelsLayer = documentNode.getElementById("regional-station-labels-layer");
+        for (const label of stationLabelsLayer?.querySelectorAll<SVGTextElement>(":scope > text") ?? []) {
+          const stationId = regionalStationIds.get(normalizedRegionalStationLabel(label.textContent ?? ""));
+          if (!stationId) continue;
+
+          label.dataset.regionalStationLabelFor = stationId;
+
+          const hoverEffect = documentNode.createElementNS(SVG_NAMESPACE, "g");
+          hoverEffect.classList.add("station-label-hover-effect");
+
+          const hitTarget = label.cloneNode(true) as SVGTextElement;
+          removeDescendantIds(hitTarget);
+          hitTarget.removeAttribute("data-regional-station-label-for");
+          hitTarget.dataset.regionalStationId = stationId;
+          hitTarget.dataset.regionalStationLabelId = stationId;
+          hitTarget.classList.add("regional-station-label-hit-target");
+          hitTarget.setAttribute("role", "button");
+          hitTarget.setAttribute("tabindex", "0");
+          hitTarget.setAttribute("aria-label", `${(label.textContent ?? stationId).trim()} station details`);
+          label.before(hoverEffect);
+          hoverEffect.append(label);
+          hoverEffect.after(hitTarget);
+        }
         // The authored map and station interaction geometry are immutable after
         // this preparation pass. Dashboard refreshes update only the purpose-built
         // dynamic layers below, so Chromium never has to discard and reraster the
@@ -3497,8 +3550,11 @@ function InteractiveRegionalMapComponent({
       const target = event.target instanceof Element ? event.target : null;
       if (!root || !target || !root.contains(target) || target.closest(".overlap-indicator")) {
         setHoveredMapImpact(null);
+        if (root) setRegionalStationLabelHover(root, null);
         return;
       }
+      const station = target.closest<SVGElement>("[data-regional-station-id]");
+      setRegionalStationLabelHover(root, station?.dataset.regionalStationId ?? null);
       setHoveredMapImpact(
         regionalStationImpactAtClientPoint(root, event.clientX, event.clientY)
           ?? regionalSegmentImpactAtClientPoint(root, event.clientX, event.clientY),
@@ -3506,8 +3562,25 @@ function InteractiveRegionalMapComponent({
     };
     const handleFocusIn = (event: FocusEvent) => {
       setLinkedImpactHover(event.target, true);
+      const station = event.target instanceof Element
+        ? event.target.closest<SVGElement>("[data-regional-station-id]")
+        : null;
+      if (station?.dataset.regionalStationId) {
+        const root = viewportRef.current;
+        if (root) setRegionalStationLabelHover(root, station.dataset.regionalStationId);
+      }
     };
     const handleFocusOut = (event: FocusEvent) => {
+      const currentStation = event.target instanceof Element
+        ? event.target.closest<SVGElement>("[data-regional-station-id]")
+        : null;
+      const nextStation = event.relatedTarget instanceof Element
+        ? event.relatedTarget.closest<SVGElement>("[data-regional-station-id]")
+        : null;
+      if (currentStation?.dataset.regionalStationId !== nextStation?.dataset.regionalStationId) {
+        const root = viewportRef.current;
+        if (root) setRegionalStationLabelHover(root, nextStation?.dataset.regionalStationId ?? null);
+      }
       const currentImpact = regionalImpactIdentity(event.target);
       const nextImpact = regionalImpactIdentity(event.relatedTarget);
       if (

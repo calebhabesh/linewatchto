@@ -415,7 +415,7 @@ test("switches the complete dashboard to the fixture-backed regional network", a
   }));
   await expect.poll(() => regionalStage.evaluate((element) => (element as HTMLElement).style.transform)).toBe(adjustedCamera);
 
-  const weston = page.locator('[data-regional-station-id="weston"]');
+  const weston = page.locator('.regional-station-hit-target[data-regional-station-id="weston"]');
   await expect(weston).toHaveAttribute("tabindex", "0");
   await weston.press("Enter");
   const westonPanel = page.getByRole("complementary", { name: "Weston regional station details" });
@@ -485,6 +485,32 @@ test("regional refresh, pan, zoom, and center preserve the authored SVG instance
   expect(await regionalStage.evaluate((element) => getComputedStyle(element).willChange)).toBe("auto");
 });
 
+test("regional station names share the TTC hover glow and station selection", async ({ page, request, isMobile }) => {
+  test.skip(isMobile, "desktop hover behavior");
+  await setStubMode(request, "seeded");
+  await page.goto("/");
+
+  await page.getByRole("group", { name: "Select transit network" })
+    .getByRole("button", { name: "GO/UP", exact: true })
+    .click();
+
+  const authoredLabel = page.locator('[data-regional-station-label-for="kipling"]');
+  const hoverEffect = authoredLabel.locator("..");
+  const labelTarget = page.locator('[data-regional-station-label-id="kipling"]');
+  await expect(authoredLabel).toHaveCount(1);
+  await expect(labelTarget).toHaveCount(1);
+
+  await labelTarget.hover();
+  await expect(authoredLabel).toHaveClass(/regional-station-label-hovered/);
+  await expect(hoverEffect).toHaveClass(/station-label-hover-effect-active/);
+  await expect(hoverEffect).toHaveCSS("transition-duration", "0.28s, 0.28s");
+  await expect(hoverEffect).toHaveCSS("transition-delay", "0.06s");
+  await expect(hoverEffect).toHaveCSS("animation-name", "none");
+
+  await labelTarget.click();
+  await expect(page.getByRole("complementary", { name: "Kipling regional station details" })).toBeVisible();
+});
+
 test("mobile preserves status and station interaction language across network switches", async ({ page, request, isMobile }) => {
   test.skip(!isMobile, "mobile-only cross-network parity smoke");
   await setStubMode(request, "seeded");
@@ -504,7 +530,7 @@ test("mobile preserves status and station interaction language across network sw
   await expect(statusSheet.getByRole("button", { name: /Reduced Speed Zones/ })).toHaveCount(0);
 
   await statusSheet.getByRole("button", { name: "Close status" }).click();
-  const weston = page.locator('[data-regional-station-id="weston"]');
+  const weston = page.locator('.regional-station-hit-target[data-regional-station-id="weston"]');
   await weston.press("Enter");
   const stationPanel = page.getByRole("complementary", { name: "Weston regional station details" });
   await expect(stationPanel.getByRole("button", { name: "Save Weston to My Stations" })).toBeVisible();
@@ -787,8 +813,8 @@ test("renders fresh Metrolinx impacts in regional mode", async ({ page, request,
   await expect(lwOverlapMarker).toBeVisible();
   const [lwMarkerBox, applebyBox, burlingtonBox] = await Promise.all([
     lwOverlapMarker.boundingBox(),
-    page.locator('[data-regional-station-id="appleby"]').boundingBox(),
-    page.locator('[data-regional-station-id="burlington"]').boundingBox(),
+    page.locator('.regional-station-hit-target[data-regional-station-id="appleby"]').boundingBox(),
+    page.locator('.regional-station-hit-target[data-regional-station-id="burlington"]').boundingBox(),
   ]);
   expect(lwMarkerBox).not.toBeNull();
   expect(applebyBox).not.toBeNull();
@@ -905,7 +931,7 @@ test("renders fresh Metrolinx impacts in regional mode", async ({ page, request,
 
   // Station hit targets sit above the authored rails. Crossing one must keep
   // the whole impact highlight on instead of briefly switching it off.
-  const whitbyBox = await page.locator('[data-regional-station-id="whitby"]').boundingBox();
+  const whitbyBox = await page.locator('.regional-station-hit-target[data-regional-station-id="whitby"]').boundingBox();
   expect(whitbyBox).not.toBeNull();
   await page.mouse.move(
     whitbyBox!.x + whitbyBox!.width / 2,
@@ -913,7 +939,7 @@ test("renders fresh Metrolinx impacts in regional mode", async ({ page, request,
   );
   await expect(delayHoverForeground).toHaveAttribute("data-regional-impact-hovered", "true");
 
-  const pickeringStation = page.locator('[data-regional-station-id="pickering"]');
+  const pickeringStation = page.locator('.regional-station-hit-target[data-regional-station-id="pickering"]');
   await pickeringStation.press("Enter");
   const stationPanel = page.getByRole("complementary", { name: "Pickering regional station details" });
   await expect(stationPanel).toBeVisible();
@@ -933,7 +959,7 @@ test("keeps transformed regional junction selection aligned with its station dot
     .getByRole("button", { name: "GO/UP", exact: true })
     .click();
 
-  const bloorTarget = page.locator('[data-regional-station-id="bloor"]');
+  const bloorTarget = page.locator('.regional-station-hit-target[data-regional-station-id="bloor"]');
   await expect(bloorTarget).toBeVisible();
   await bloorTarget.click();
 
@@ -1970,34 +1996,27 @@ test("station names share hover and selection behavior with station dots", async
 
   if (!isMobile) {
     const authoredLabel = page.locator('[data-station-label-for="kipling"]');
-    const hoverClone = page.locator('[data-station-label-hover-clone-for="kipling"]');
+    const hoverEffect = authoredLabel.locator("..");
     const authoredFontSize = await authoredLabel.evaluate((element) => getComputedStyle(element).fontSize);
-    await expect(hoverClone).toHaveCount(1);
     await labelTarget.hover();
     await expect(authoredLabel).toHaveClass(/station-label-hovered/);
-    await expect(hoverClone).toHaveClass(/station-label-hover-clone-active/);
-    await expect(hoverClone).toHaveCSS("transition-duration", "0.9s");
-    await expect(hoverClone).toHaveCSS(
-      "transition-timing-function",
-      "ease-in-out",
-    );
-    await expect(hoverClone).toHaveCSS("font-size", authoredFontSize);
-    await expect(hoverClone).toHaveCSS("opacity", "1");
+    await expect(hoverEffect).toHaveCSS("transition-duration", "0.28s, 0.28s");
+    await expect(hoverEffect).toHaveCSS("transition-delay", "0.06s");
+    await expect(hoverEffect).toHaveCSS("animation-name", "none");
     await expect(authoredLabel).toHaveCSS("font-size", authoredFontSize);
     await expect(page.locator('[data-station-hover-id="kipling"]')).not.toHaveClass(/active/);
     await expect(labelTarget).toHaveCSS("outline-style", "none");
 
     const angledLabel = page.locator('[data-station-label-for="islington"]');
-    const angledHoverClone = page.locator('[data-station-label-hover-clone-for="islington"]');
     const angledLabelTarget = page.locator('[data-station-label-id="islington"]');
     const authoredAngledTransform = await angledLabel.getAttribute("transform");
     await angledLabelTarget.hover();
     await expect(angledLabel).toHaveClass(/station-label-hovered/);
     await expect(angledLabel).toHaveAttribute("transform", authoredAngledTransform ?? "");
-    await expect(angledHoverClone).toHaveAttribute("transform", authoredAngledTransform ?? "");
     await page.locator('[data-station-label-id="royal-york"]').hover();
     await expect(authoredLabel).not.toHaveClass(/station-label-hovered/);
-    await expect(hoverClone).toHaveCSS("opacity", "0");
+    await expect(hoverEffect).toHaveCSS("animation-name", "none");
+    await expect(hoverEffect).toHaveCSS("opacity", "1");
   }
 
   await labelTarget.click();
@@ -3075,7 +3094,7 @@ test("My Stations shows regional disruptions, accessibility outages, and arrival
     .getByRole("button", { name: "GO/UP", exact: true })
     .click();
 
-  await page.locator('[data-regional-station-id="pickering"]').press("Enter");
+  await page.locator('.regional-station-hit-target[data-regional-station-id="pickering"]').press("Enter");
   const stationPanel = page.getByRole("complementary", { name: "Pickering regional station details" });
   await stationPanel.getByRole("button", { name: "Save Pickering to My Stations" }).click();
   const saveNotice = page.getByRole("status").filter({ hasText: "Pickering added to" });

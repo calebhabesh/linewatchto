@@ -138,14 +138,10 @@ function parseTtcMapMarkup(text: string): TtcMapMarkupParts {
     const stationId = label.dataset.stationLabelFor;
     if (!stationId) continue;
 
-    const hoverClone = label.cloneNode(true) as SVGGraphicsElement;
-    hoverClone.removeAttribute("id");
-    hoverClone.removeAttribute("data-station-label-for");
-    hoverClone.querySelectorAll("[id]").forEach((descendant) => descendant.removeAttribute("id"));
-    hoverClone.setAttribute("data-station-label-hover-clone-for", stationId);
-    hoverClone.classList.add("station-label-hover-clone");
-    hoverClone.setAttribute("aria-hidden", "true");
-    label.after(hoverClone);
+    const hoverEffect = documentNode.createElementNS("http://www.w3.org/2000/svg", "g");
+    hoverEffect.classList.add("station-label-hover-effect");
+    label.before(hoverEffect);
+    hoverEffect.append(label);
   }
   const serializer = new XMLSerializer();
   const sharedMarkup = Array.from(svg.children)
@@ -367,18 +363,13 @@ function InteractiveTtcMapComponent({
     for (const label of root.querySelectorAll<SVGGraphicsElement>(
       "#ttc-station-labels-layer [data-station-label-for]",
     )) {
+      const active = label.dataset.stationLabelFor === hoveredStationLabelId;
       label.classList.toggle(
         "station-label-hovered",
-        label.dataset.stationLabelFor === hoveredStationLabelId,
+        active,
       );
-    }
-    for (const clone of root.querySelectorAll<SVGGraphicsElement>(
-      "#ttc-station-labels-layer [data-station-label-hover-clone-for]",
-    )) {
-      clone.classList.toggle(
-        "station-label-hover-clone-active",
-        clone.dataset.stationLabelHoverCloneFor === hoveredStationLabelId,
-      );
+      label.closest(".station-label-hover-effect")
+        ?.classList.toggle("station-label-hover-effect-active", active);
     }
   }, [hoveredStationLabelId, svgParts]);
 

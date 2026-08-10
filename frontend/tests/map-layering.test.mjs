@@ -62,28 +62,37 @@ describe("asset-backed map layering", () => {
     assert.match(interactiveMapSource, /onPointerUp=\{\(event\) => \{[\s\S]*?onSelectStationId\(station\.id\)/);
     assert.match(globalCss, /\.station-label-hit-target\s*\{[^}]*cursor:\s*pointer;[^}]*fill:\s*transparent;[^}]*outline:\s*none;[^}]*stroke:\s*transparent;/s);
     assert.match(interactiveMapSource, /station-label-hovered/);
-    assert.match(interactiveMapSource, /station-label-hover-clone/);
+    assert.match(interactiveMapSource, /station-label-hover-effect/);
+    assert.doesNotMatch(interactiveMapSource, /station-label-hover-clone/);
     assert.doesNotMatch(interactiveMapSource, /authoredFontSize \* 1\.025/);
-    assert.match(
-      globalCss,
-      /\.station-label-hover-clone\s*\{[^}]*filter:\s*drop-shadow\([^}]*opacity:\s*0;[^}]*pointer-events:\s*none;[^}]*stroke-width:\s*3px\s*!important;[^}]*transition:\s*opacity 900ms cubic-bezier\(0\.42, 0, 0\.58, 1\);/s,
-    );
-    assert.match(
-      globalCss,
-      /\.station-label-hover-clone-active\s*\{[^}]*opacity:\s*1;/s,
-    );
+    assert.match(globalCss, /\.station-label-hover-effect\s*\{[^}]*pointer-events:\s*none;[^}]*transform-box:\s*fill-box;/s);
     assert.match(
       globalCss,
       /#ttc-station-labels-layer \[data-station-label-for\]\s*\{[^}]*stroke:\s*#000000\s*!important;[^}]*stroke-width:\s*2px\s*!important;/s,
     );
     assert.match(
       globalCss,
-      /\.dark \.ttc-svg-container #ttc-station-labels-layer \[data-station-label-for\],[^{]*\.station-label-hover-clone\s*\{[^}]*stroke:\s*#ffffff\s*!important;/s,
+      /\.dark \.ttc-svg-container #ttc-station-labels-layer \[data-station-label-for\]\s*\{[^}]*stroke:\s*#ffffff\s*!important;/s,
     );
     assert.doesNotMatch(
       globalCss,
       /#ttc-station-labels-layer \[data-station-label-for\][^{]*\{[^}]*(?:scale|transform-(?:box|origin)):/s,
     );
+  });
+
+  it("gives regional station names the TTC hover glow and gradual reveal", () => {
+    assert.match(interactiveRegionalMapSource, /dataset\.regionalStationLabelFor = stationId/);
+    assert.match(interactiveRegionalMapSource, /station-label-hover-effect/);
+    assert.doesNotMatch(interactiveRegionalMapSource, /regional-station-label-hover-clone/);
+    assert.match(interactiveRegionalMapSource, /dataset\.regionalStationId = stationId/);
+    assert.match(interactiveRegionalMapSource, /setRegionalStationLabelHover/);
+    assert.match(
+      globalCss,
+      /\.station-label-hover-effect-active,[\s\S]*?\{[^}]*filter:\s*drop-shadow\(0 0 6px[^}]*transform:\s*scale\(1\.045\);/s,
+    );
+    assert.match(globalCss, /\.station-label-hover-effect\s*\{[^}]*transition:[^}]*filter 280ms ease-in-out[^}]*transform 280ms ease-in-out/s);
+    assert.match(globalCss, /\.station-label-hover-effect-active,[\s\S]*?\{[^}]*transition-delay:\s*60ms;/s);
+    assert.doesNotMatch(globalCss, /@keyframes station-label-selection-(?:intro|breathe)/);
   });
 
   it("uses explicit SVG hit testing for station touch targets", () => {

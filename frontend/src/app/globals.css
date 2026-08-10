@@ -363,6 +363,27 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
   pointer-events: none;
 }
 
+.regional-map-stage #regional-station-labels-layer [data-regional-station-label-for] {
+  stroke: #000000 !important;
+  stroke-width: 2px !important;
+}
+
+.regional-map-stage #regional-station-labels-layer .regional-station-label-hit-target {
+  cursor: pointer;
+  opacity: 0;
+  outline: none;
+  pointer-events: all !important;
+}
+
+.regional-map-stage #regional-station-labels-layer .regional-station-label-hit-target tspan {
+  pointer-events: all !important;
+}
+
+.dark .regional-map-stage #regional-station-labels-layer [data-regional-station-label-for],
+.high-contrast .regional-map-stage #regional-station-labels-layer [data-regional-station-label-for] {
+  stroke: #ffffff !important;
+}
+
 .dark .regional-map-stage #regional-station-labels-layer :is(text, tspan),
 .high-contrast .regional-map-stage #regional-station-labels-layer :is(text, tspan) {
   fill: #f8fafc !important;
@@ -7283,31 +7304,50 @@ img.transit-line-badge {
   stroke-width: 2px !important;
 }
 
-.ttc-svg-container #ttc-station-labels-layer .station-label-hover-clone {
-  filter: drop-shadow(0 0 6px rgb(var(--station-selection-accent-rgb) / 76%));
-  opacity: 0;
-  pointer-events: none;
-  stroke: #000000 !important;
-  stroke-width: 3px !important;
-  transition: opacity 900ms cubic-bezier(0.42, 0, 0.58, 1);
-}
-
-.dark .ttc-svg-container #ttc-station-labels-layer [data-station-label-for],
-.dark .ttc-svg-container #ttc-station-labels-layer .station-label-hover-clone {
+.dark .ttc-svg-container #ttc-station-labels-layer [data-station-label-for] {
   stroke: #ffffff !important;
 }
 
-.ttc-svg-container #ttc-station-labels-layer .station-label-hover-clone-active {
-  opacity: 1;
+.station-label-hover-effect {
+  pointer-events: none;
+  transform-box: fill-box;
+  transform-origin: center;
+  transition:
+    filter 280ms ease-in-out,
+    transform 280ms ease-in-out;
 }
 
-.motion-paused .ttc-svg-container #ttc-station-labels-layer .station-label-hover-clone {
+.station-label-hover-effect-active,
+.station-label-hover-effect:has(.station-label-hovered),
+.station-label-hover-effect:has(.regional-station-label-hovered) {
+  filter: drop-shadow(0 0 6px rgb(var(--station-selection-accent-rgb) / 72%));
+  transform: scale(1.045);
+  transition-delay: 60ms;
+}
+
+.motion-paused .station-label-hover-effect {
+  animation: none;
   transition: none;
 }
 
+.motion-paused .station-label-hover-effect-active,
+.motion-paused .station-label-hover-effect:has(.station-label-hovered),
+.motion-paused .station-label-hover-effect:has(.regional-station-label-hovered) {
+  filter: drop-shadow(0 0 6px rgb(var(--station-selection-accent-rgb) / 72%));
+  transform: scale(1.045);
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .ttc-svg-container #ttc-station-labels-layer .station-label-hover-clone {
+  .station-label-hover-effect {
+    animation: none;
     transition: none;
+  }
+
+  .station-label-hover-effect-active,
+  .station-label-hover-effect:has(.station-label-hovered),
+  .station-label-hover-effect:has(.regional-station-label-hovered) {
+    filter: drop-shadow(0 0 6px rgb(var(--station-selection-accent-rgb) / 72%));
+    transform: scale(1.045);
   }
 }
 
