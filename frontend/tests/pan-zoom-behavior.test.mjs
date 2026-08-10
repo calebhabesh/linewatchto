@@ -210,16 +210,28 @@ describe("pan zoom behavior guardrails", () => {
 
   it("simplifies TTC decorative effects without changing authored paint during camera motion", () => {
     assert.match(mapSource, /data-map-camera-moving="false"/);
+    assert.match(mapSource, /data-map-zoom-active="false"/);
     assert.match(hookSource, /containerRef\.current\.dataset\.mapCameraMoving = active \? "true" : "false"/);
+    assert.match(hookSource, /containerRef\.current\.dataset\.mapZoomActive = active \? "true" : "false"/);
     assert.match(hookSource, /setProgrammaticCameraMotion\(true\);[\s\S]*setMapTransition\("transform 0\.8s cubic-bezier/);
     assert.match(hookSource, /setTransform\(\{ \.\.\.transformRef\.current \}\);[\s\S]*setProgrammaticCameraMotion\(false\)/);
     assert.match(
       globalCss,
-      /\[data-map-camera-moving="true"\] \.asset-alert-path-glow:not\(\.map-selection-attention\)[\s\S]*?animation:\s*none\s*!important;[\s\S]*?filter:\s*none\s*!important;/s,
+      /\[data-map-camera-moving="true"\] \.asset-alert-path-glow:not\(\.map-selection-attention\)[\s\S]*?animation-play-state:\s*paused\s*!important;[\s\S]*?transition:\s*none\s*!important;/s,
     );
+    const programmaticCameraRules = globalCss.slice(
+      globalCss.indexOf('/* Programmatic camera flights, including Center'),
+      globalCss.indexOf('/* ============================================================\n   Mobile map controls'),
+    );
+    assert.doesNotMatch(programmaticCameraRules, /filter:\s*none\s*!important/);
+    assert.doesNotMatch(programmaticCameraRules, /\.asset-alert-path-glow[^}]*opacity:\s*0\s*!important/s);
     assert.match(
       globalCss,
-      /\.map-gesture-active \.asset-alert-path-glow:not\(\.map-selection-attention\)[\s\S]*?animation:\s*none\s*!important;[\s\S]*?filter:\s*none\s*!important;/s,
+      /:is\(\.map-gesture-active, \[data-map-zoom-active="true"\]\) \.asset-alert-path-glow:not\(\.map-selection-attention\)[\s\S]*?:is\(\.map-gesture-active, \[data-map-zoom-active="true"\]\) \.asset-alert-path\.planned-preview,[\s\S]*?animation-play-state:\s*paused\s*!important;[\s\S]*?transition:\s*none\s*!important;/s,
+    );
+    assert.doesNotMatch(
+      globalCss,
+      /:is\(\.map-gesture-active, \[data-map-zoom-active="true"\]\) \.asset-alert-path-glow:not\(\.map-selection-attention\)[^{]*\{[^}]*filter:\s*none\s*!important;/s,
     );
     assert.doesNotMatch(
       globalCss,
@@ -241,11 +253,18 @@ describe("pan zoom behavior guardrails", () => {
       globalCss,
       /\.map-gesture-active \.ttc-svg-container svg(?:\s*,|\s*\{)/,
     );
-    assert.match(
+    assert.doesNotMatch(
       globalCss,
-      /\[data-map-camera-moving="true"\] \.asset-alert-path-glow:not\(\.map-selection-attention\)\s*\{[^}]*opacity:\s*0\s*!important;/s,
+      /:is\(\.map-gesture-active, \[data-map-zoom-active="true"\]\) \.asset-alert-path-glow:not\(\.map-selection-attention\)\s*\{[^}]*opacity:\s*0\s*!important;/s,
     );
     assert.doesNotMatch(globalCss, /\[data-map-camera-moving="true"\] \.ttc-map-stage[^{]*\{[^}]*will-change:\s*transform/s);
+  });
+
+  it("keeps TTC zoom glows visible while pausing overlay pulses", () => {
+    assert.match(hookSource, /setUserZoomMotion\(true\)/);
+    assert.match(hookSource, /setUserZoomMotion\(false\)/);
+    assert.match(hookSource, /const scheduleUserZoomMotionEnd = useCallback/);
+    assert.match(globalCss, /\[data-map-zoom-active="true"\]/);
   });
 
   it("does not toggle compositor promotion on the huge SVG map layer during gestures", () => {

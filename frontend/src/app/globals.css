@@ -303,8 +303,9 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
 
 /* Keep the large authored SVG in its normal paint layer. Promoting and then
    demoting it at every pan/zoom invalidates Chromium's SVG tiles and is the
-   source of the most visible route redraws. Motion only simplifies the small,
-   refresh-owned effect layers; the rail/station/label artwork stays untouched. */
+   source of the most visible route redraws. Motion only pauses the small,
+   refresh-owned effect layers; their authored glow remains visible while the
+   rail/station/label artwork stays untouched. */
 .regional-map-camera-moving .regional-map-stage :is(
   .regional-impact-aura,
   .regional-impact-path,
@@ -335,8 +336,7 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
   .commute-path-preview-path,
   .estimated-train-marker
 ) {
-  animation: none !important;
-  filter: none !important;
+  animation-play-state: paused !important;
   transition: none !important;
 }
 
@@ -664,7 +664,7 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
 }
 
 .regional-impact-aura {
-  animation: aura-pulse 1.2s infinite alternate ease-in-out;
+  animation: aura-pulse var(--map-overlay-pulse-half-cycle) infinite alternate var(--map-overlay-pulse-easing);
   animation-delay: var(--map-pulse-offset);
 }
 
@@ -682,7 +682,7 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
 }
 
 .regional-overlay-segment-group[data-regional-impact-kind="delay"] .regional-impact-path {
-  animation: regional-candy-pulse 1.2s infinite alternate ease-in-out;
+  animation: map-overlay-rail-pulse var(--map-overlay-pulse-half-cycle) infinite alternate var(--map-overlay-pulse-easing);
   animation-delay: var(--map-pulse-offset);
   stroke: #0ea5e9 !important;
   stroke-dasharray: none;
@@ -704,12 +704,13 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
 }
 
 .regional-overlay-segment-group[data-regional-impact-kind="reduced-speed-zone"] .regional-impact-path {
-  stroke-dasharray: 35 45;
-  animation: regional-chevron-slide 850ms linear infinite;
+  stroke-dasharray: none;
+  animation: map-overlay-rail-pulse var(--map-overlay-pulse-half-cycle) infinite alternate var(--map-overlay-pulse-easing);
+  animation-delay: var(--map-pulse-offset);
 }
 
 .regional-overlay-segment-group[data-regional-impact-kind="suspension"] .regional-impact-path {
-  animation: regional-candy-pulse 1.2s infinite alternate ease-in-out;
+  animation: map-overlay-rail-pulse var(--map-overlay-pulse-half-cycle) infinite alternate var(--map-overlay-pulse-easing);
   animation-delay: var(--map-pulse-offset);
 }
 
@@ -718,22 +719,17 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
   stroke: var(--planned-preview-rail, #ffffff) !important;
   stroke-dasharray: none;
   stroke-width: var(--regional-impact-width);
-  animation: regional-candy-pulse 1.2s infinite alternate ease-in-out;
+  animation: map-overlay-rail-pulse var(--map-overlay-pulse-half-cycle) infinite alternate var(--map-overlay-pulse-easing);
   animation-delay: var(--regional-map-pulse-offset, var(--map-pulse-offset, 0s));
 }
 
-@keyframes regional-candy-pulse {
+@keyframes map-overlay-rail-pulse {
   from {
-    stroke-width: var(--regional-impact-width);
+    stroke-width: var(--map-overlay-rail-width);
   }
   to {
-    stroke-width: calc(var(--regional-impact-width) + 23px);
+    stroke-width: var(--map-overlay-rail-pulse-width);
   }
-}
-
-@keyframes regional-chevron-slide {
-  from { stroke-dashoffset: 0; }
-  to { stroke-dashoffset: -80px; }
 }
 
 .regional-overlay-segment-group .regional-impact-hover-boundary {
@@ -2509,6 +2505,10 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
 :root {
   color-scheme: light dark;
   --map-pulse-offset: 0ms;
+  --map-overlay-pulse-half-cycle: 1.2s;
+  --map-overlay-pulse-easing: cubic-bezier(0.37, 0, 0.63, 1);
+  --map-overlay-rail-width: 102px;
+  --map-overlay-rail-pulse-width: 114px;
   --station-selection-accent: var(--color-logo-blue);
   --station-selection-accent-rgb: 129 201 255;
   --mobile-announcement-chip-height: 40px;
@@ -5326,23 +5326,14 @@ button {
   }
 }
 
-@keyframes candy-pulse {
-  0% {
-    stroke-width: 102;
-  }
-  100% {
-    stroke-width: 114;
-  }
-}
-
 .asset-alert-path-glow.suspension {
   stroke: rgba(239, 68, 68, 0.7); /* Red aura for suspensions */
-  animation: aura-pulse 1.2s infinite alternate ease-in-out;
+  animation: aura-pulse var(--map-overlay-pulse-half-cycle) infinite alternate var(--map-overlay-pulse-easing);
 }
 
 .asset-alert-path.suspension-candy {
-  stroke-width: 102;
-  animation: candy-pulse 1.2s infinite alternate ease-in-out;
+  stroke-width: var(--map-overlay-rail-width);
+  animation: map-overlay-rail-pulse var(--map-overlay-pulse-half-cycle) infinite alternate var(--map-overlay-pulse-easing);
   animation-delay: var(--map-pulse-offset);
   transition: none !important;
 }
@@ -5358,17 +5349,17 @@ button {
 
 .asset-alert-path-glow.delay {
   stroke: rgba(254, 236, 65, 0.7); /* Orange aura for delays */
-  animation: aura-pulse 1.2s infinite alternate ease-in-out;
+  animation: aura-pulse var(--map-overlay-pulse-half-cycle) infinite alternate var(--map-overlay-pulse-easing);
 }
 
 .asset-alert-path-glow.reduced-speed-zone {
   stroke: var(--impact-rsz);
-  animation: aura-pulse 1.2s infinite alternate ease-in-out;
+  animation: aura-pulse var(--map-overlay-pulse-half-cycle) infinite alternate var(--map-overlay-pulse-easing);
 }
 
 .asset-alert-path-glow.delay-static {
   stroke: rgba(14, 165, 233, 0.7); /* Frozen blue aura for delays */
-  animation: aura-pulse 1.2s infinite alternate ease-in-out;
+  animation: aura-pulse var(--map-overlay-pulse-half-cycle) infinite alternate var(--map-overlay-pulse-easing);
 }
 
 /* The subtype animation shorthands above reset animation-delay. Reapply the
@@ -5382,8 +5373,8 @@ button {
 }
 
 .asset-alert-path.delay-candy {
-  stroke-width: 102;
-  animation: candy-pulse 1.2s infinite alternate ease-in-out;
+  stroke-width: var(--map-overlay-rail-width);
+  animation: map-overlay-rail-pulse var(--map-overlay-pulse-half-cycle) infinite alternate var(--map-overlay-pulse-easing);
   animation-delay: var(--map-pulse-offset);
   transition: none !important;
 }
@@ -5553,8 +5544,8 @@ button {
 
 .asset-alert-path.delay-static-base {
   stroke: rgba(14, 165, 233, 0.88); /* Frozen blue base */
-  stroke-width: 102;
-  animation: candy-pulse 1.2s infinite alternate ease-in-out;
+  stroke-width: var(--map-overlay-rail-width);
+  animation: map-overlay-rail-pulse var(--map-overlay-pulse-half-cycle) infinite alternate var(--map-overlay-pulse-easing);
   animation-delay: var(--map-pulse-offset);
   transition: none !important;
 }
@@ -5580,9 +5571,7 @@ button {
   fill: none;
   stroke-linecap: round;
   stroke-linejoin: round;
-  stroke-width: 102;
-  animation: mask-size-pulse 1.2s infinite alternate ease-in-out;
-  animation-delay: var(--map-pulse-offset);
+  stroke-width: var(--map-overlay-rail-width);
 }
 
 .motion-paused .delay-hourglass-mask-path,
@@ -5603,8 +5592,8 @@ button {
   opacity: 1;
   stroke: var(--planned-preview-rail);
   stroke-dasharray: none;
-  stroke-width: 102;
-  animation: candy-pulse 1.2s infinite alternate ease-in-out;
+  stroke-width: var(--map-overlay-rail-width);
+  animation: map-overlay-rail-pulse var(--map-overlay-pulse-half-cycle) infinite alternate var(--map-overlay-pulse-easing);
   animation-delay: var(--map-pulse-offset);
   transition: none;
 }
@@ -5746,15 +5735,6 @@ button {
   }
   100% {
     transform: translate(calc(0.5 * var(--chevron-step, 56px)), 0);
-  }
-}
-
-@keyframes mask-size-pulse {
-  0% {
-    stroke-width: 102;
-  }
-  100% {
-    stroke-width: 114;
   }
 }
 
@@ -7443,7 +7423,7 @@ img.transit-line-badge {
   stroke-width: 4;
   filter: drop-shadow(0 0 6px rgba(250, 204, 21, 0.8));
   transition: opacity 0.2s ease, stroke-width 0.2s ease, stroke 0.2s ease;
-  animation: gold-ring-pulse 2.4s infinite alternate ease-in-out;
+  animation: gold-ring-pulse var(--map-overlay-pulse-half-cycle) infinite alternate var(--map-overlay-pulse-easing);
   animation-delay: var(--map-pulse-offset);
 }
 
@@ -7474,7 +7454,7 @@ img.transit-line-badge {
   transform-origin: center;
   transform-box: fill-box;
   filter: drop-shadow(0 0 6px rgba(255, 59, 48, 0.9));
-  animation: station-radar-core 2.4s infinite alternate ease-in-out;
+  animation: station-radar-core var(--map-overlay-pulse-half-cycle) infinite alternate var(--map-overlay-pulse-easing);
   animation-delay: var(--map-pulse-offset);
 }
 
@@ -7484,7 +7464,7 @@ img.transit-line-badge {
   stroke-width: 1.5;
   transform-origin: center;
   transform-box: fill-box;
-  animation: station-radar-ping 1.6s infinite cubic-bezier(0.1, 0.8, 0.25, 1);
+  animation: station-radar-ping 2.4s infinite var(--map-overlay-pulse-easing);
   animation-delay: var(--map-pulse-offset);
 }
 
@@ -13952,7 +13932,7 @@ img.transit-line-badge {
 }
 
 .commute-path-preview-glow {
-  animation: aura-pulse 1.2s infinite alternate ease-in-out;
+  animation: aura-pulse var(--map-overlay-pulse-half-cycle) infinite alternate var(--map-overlay-pulse-easing);
   animation-delay: var(--map-pulse-offset);
   filter: blur(16px);
   opacity: 0.4;
@@ -13961,7 +13941,7 @@ img.transit-line-badge {
 }
 
 .commute-path-preview-path {
-  animation: candy-pulse 1.2s infinite alternate ease-in-out;
+  animation: map-overlay-rail-pulse var(--map-overlay-pulse-half-cycle) infinite alternate var(--map-overlay-pulse-easing);
   animation-delay: var(--map-pulse-offset);
   opacity: 0.72;
   stroke: #1d4ed8;
@@ -18497,69 +18477,64 @@ img.transit-line-badge {
 
 
 /* ============================================================
-   Gesture-active overlay simplification
-   Pauses expensive animated effects while touch gestures are live
+   Direct pan and user-zoom overlay simplification
+   Freeze animated effects at their current frame without dropping glows
    ============================================================ */
-.map-gesture-active .asset-alert-path-glow:not(.map-selection-attention),
-.map-gesture-active .interactive-glow:not(.map-selection-attention),
-.map-gesture-active .asset-alert-path.delay-candy,
-.map-gesture-active .asset-alert-path.suspension-candy,
-.map-gesture-active .asset-alert-path.delay-static-base,
-.map-gesture-active .delay-hourglass-mask-path,
-.map-gesture-active .suspension-mask-path,
-.map-gesture-active .delay-static-path,
-.map-gesture-active .station-impact-ring:not(.map-selection-attention),
-.map-gesture-active .station-impact-dot-red-glow,
-.map-gesture-active .station-impact-dot-red-ping,
-.map-gesture-active .station-commute-green-flash,
-.map-gesture-active .commute-path-preview-glow,
-.map-gesture-active .commute-path-preview-path,
-.map-gesture-active .regional-impact-aura,
-.map-gesture-active .regional-impact-path,
-.map-gesture-active .regional-impact-interactive-glow:not(.map-selection-attention) {
-  animation: none !important;
-  filter: none !important;
-  transition: none !important;
-}
-
-/* The base impact rail remains visible during navigation. Hide its decorative
-   aura completely so removing the blur cannot expose a wide translucent
-   outline around the rail. */
-.map-gesture-active .asset-alert-path-glow:not(.map-selection-attention) {
-  opacity: 0 !important;
-}
-
-/* Replacing a running selection animation with `animation: none` makes the
-   browser start its fast intro again when a pan/zoom gesture ends. Pausing the
-   existing timeline preserves whether it is in the intro or breathing phase. */
-.map-gesture-active .map-selection-attention {
+:is(.map-gesture-active, [data-map-zoom-active="true"]) .asset-alert-path-glow:not(.map-selection-attention),
+:is(.map-gesture-active, [data-map-zoom-active="true"]) .interactive-glow:not(.map-selection-attention),
+:is(.map-gesture-active, [data-map-zoom-active="true"]) .asset-alert-path.delay-candy,
+:is(.map-gesture-active, [data-map-zoom-active="true"]) .asset-alert-path.suspension-candy,
+:is(.map-gesture-active, [data-map-zoom-active="true"]) .asset-alert-path.delay-static-base,
+:is(.map-gesture-active, [data-map-zoom-active="true"]) .asset-alert-path.planned-preview,
+:is(.map-gesture-active, [data-map-zoom-active="true"]) .delay-hourglass-mask-path,
+:is(.map-gesture-active, [data-map-zoom-active="true"]) .suspension-mask-path,
+:is(.map-gesture-active, [data-map-zoom-active="true"]) .delay-static-path,
+:is(.map-gesture-active, [data-map-zoom-active="true"]) .station-impact-ring:not(.map-selection-attention),
+:is(.map-gesture-active, [data-map-zoom-active="true"]) .station-impact-dot-red-glow,
+:is(.map-gesture-active, [data-map-zoom-active="true"]) .station-impact-dot-red-ping,
+:is(.map-gesture-active, [data-map-zoom-active="true"]) .station-commute-green-flash,
+:is(.map-gesture-active, [data-map-zoom-active="true"]) .commute-path-preview-glow,
+:is(.map-gesture-active, [data-map-zoom-active="true"]) .commute-path-preview-path,
+:is(.map-gesture-active, [data-map-zoom-active="true"]) .regional-impact-aura,
+:is(.map-gesture-active, [data-map-zoom-active="true"]) .regional-impact-path,
+:is(.map-gesture-active, [data-map-zoom-active="true"]) .regional-delay-glyph,
+:is(.map-gesture-active, [data-map-zoom-active="true"]) .regional-suspension-glyph,
+:is(.map-gesture-active, [data-map-zoom-active="true"]) .regional-chevron-glyph,
+:is(.map-gesture-active, [data-map-zoom-active="true"]) .regional-planned-closure-glyph,
+:is(.map-gesture-active, [data-map-zoom-active="true"]) .regional-impact-interactive-glow:not(.map-selection-attention) {
   animation-play-state: paused !important;
-  filter: none !important;
   transition: none !important;
 }
 
-.map-gesture-active .interactive-glow.selected {
+/* Freeze selection attention at its current frame too. Keeping filters and
+   opacity untouched preserves every authored glow during a pan or zoom. */
+:is(.map-gesture-active, [data-map-zoom-active="true"]) .map-selection-attention {
+  animation-play-state: paused !important;
+  transition: none !important;
+}
+
+:is(.map-gesture-active, [data-map-zoom-active="true"]) .interactive-glow.selected {
   opacity: 0.36;
   stroke-width: 138;
 }
 
-.map-gesture-active .regional-map-stage > svg,
-.map-gesture-active .regional-map-stage > div > svg,
-.map-gesture-active .asset-alert-path,
-.map-gesture-active .asset-alert-path-glow {
+:is(.map-gesture-active, [data-map-zoom-active="true"]) .regional-map-stage > svg,
+:is(.map-gesture-active, [data-map-zoom-active="true"]) .regional-map-stage > div > svg,
+:is(.map-gesture-active, [data-map-zoom-active="true"]) .asset-alert-path,
+:is(.map-gesture-active, [data-map-zoom-active="true"]) .asset-alert-path-glow {
   shape-rendering: auto;
   text-rendering: optimizeLegibility;
 }
 
-/* Programmatic TTC camera flights use the same bounded-paint contract as the
-   regional map. Keep the authored rail/station/label artwork in its normal
-   paint layer with stable rendering hints, but hide decorative auras and
-   suspend the heavier rail/mask effects until the camera settles. */
+/* Programmatic camera flights, including Center, follow the same visual
+   contract as direct pan and zoom: freeze pulse motion at the current frame,
+   but retain every authored glow while the camera settles. */
 [data-map-camera-moving="true"] .asset-alert-path-glow:not(.map-selection-attention),
 [data-map-camera-moving="true"] .interactive-glow:not(.map-selection-attention),
 [data-map-camera-moving="true"] .asset-alert-path.delay-candy,
 [data-map-camera-moving="true"] .asset-alert-path.suspension-candy,
 [data-map-camera-moving="true"] .asset-alert-path.delay-static-base,
+[data-map-camera-moving="true"] .asset-alert-path.planned-preview,
 [data-map-camera-moving="true"] .delay-hourglass-mask-path,
 [data-map-camera-moving="true"] .suspension-mask-path,
 [data-map-camera-moving="true"] .delay-static-path,
@@ -18569,13 +18544,8 @@ img.transit-line-badge {
 [data-map-camera-moving="true"] .station-commute-green-flash,
 [data-map-camera-moving="true"] .commute-path-preview-glow,
 [data-map-camera-moving="true"] .commute-path-preview-path {
-  animation: none !important;
-  filter: none !important;
+  animation-play-state: paused !important;
   transition: none !important;
-}
-
-[data-map-camera-moving="true"] .asset-alert-path-glow:not(.map-selection-attention) {
-  opacity: 0 !important;
 }
 
 [data-map-camera-moving="true"] .asset-alert-path,

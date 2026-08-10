@@ -88,6 +88,7 @@ const REGIONAL_MAP_DEFAULT_FRAME_SCALE = 1.04;
 const REGIONAL_SELECTION_FIT_COMFORT_RATIO = 0.82;
 const SVG_NAMESPACE = "http://www.w3.org/2000/svg";
 const REGIONAL_IMPACT_OVERLAY_WIDTH = 196;
+const MAP_OVERLAY_PULSE_SCALE = 114 / 102;
 // Keep the interactive stroke as wide as the fully expanded hover aura. A
 // narrower target lets the visible highlight grow into an inert strip and
 // then disappear while the pointer is still visibly over the overlay.
@@ -116,6 +117,32 @@ const REGIONAL_DYNAMIC_HOVER_LAYER_ID = "regional-dynamic-hover-layer";
 const REGIONAL_DYNAMIC_EFFECTS_LAYER_ID = "regional-dynamic-effects-layer";
 const REGIONAL_TRAIN_MARKER_LAYER_ID = "regional-train-marker-layer";
 const SELECTION_INTRO_DURATION_MS = 2400;
+const REGIONAL_MAP_PULSE_CYCLE_MS = 2400;
+const REGIONAL_SYNCHRONIZED_OVERLAY_PULSE_NAMES = new Set([
+  "aura-pulse",
+  "map-overlay-rail-pulse",
+  "gold-ring-pulse",
+  "station-radar-core",
+  "station-radar-ping",
+  "station-selected-pulse",
+]);
+
+function synchronizeRegionalOverlayPulses(root: SVGSVGElement) {
+  const pulseClockMs = Number(document.timeline.currentTime ?? performance.now());
+  const pulsePhaseMs = pulseClockMs % REGIONAL_MAP_PULSE_CYCLE_MS;
+  const pulseCycleStartMs = pulseClockMs - pulsePhaseMs;
+  root.style.setProperty("--map-pulse-offset", "0ms");
+  root.style.setProperty("--regional-map-pulse-offset", "0ms");
+  for (const animation of root.getAnimations({ subtree: true })) {
+    const animationName = "animationName" in animation
+      ? String(animation.animationName)
+      : "";
+    if (REGIONAL_SYNCHRONIZED_OVERLAY_PULSE_NAMES.has(animationName)) {
+      animation.currentTime = pulsePhaseMs;
+      animation.startTime = pulseCycleStartMs;
+    }
+  }
+}
 
 function markCompletedSelectionIntro(root: ParentNode) {
   root.querySelectorAll<SVGElement>(
@@ -164,7 +191,6 @@ function regionalImpactColor(kind: ImpactKind) {
 
 function regionalImpactDashArray(kind: ImpactKind) {
   if (kind === "planned-closure") return "120 70";
-  if (kind === "reduced-speed-zone") return "35 45";
   return "none";
 }
 
@@ -656,6 +682,11 @@ function regionalImpactGroup(
   group.style.setProperty(
     "--regional-impact-width",
     `${REGIONAL_IMPACT_OVERLAY_WIDTH}px`,
+  );
+  group.style.setProperty("--map-overlay-rail-width", `${REGIONAL_IMPACT_OVERLAY_WIDTH}px`);
+  group.style.setProperty(
+    "--map-overlay-rail-pulse-width",
+    `${REGIONAL_IMPACT_OVERLAY_WIDTH * MAP_OVERLAY_PULSE_SCALE}px`,
   );
   group.style.setProperty(
     "--regional-impact-hit-target-width",
@@ -2194,6 +2225,12 @@ function InteractiveRegionalMapComponent({
     setCameraMotionActive(false);
   }, [setCameraMotionActive]);
 
+  const setUserZoomMotion = useCallback((active: boolean) => {
+    const root = regionalMapRef.current;
+    if (!root) return;
+    root.dataset.mapZoomActive = active ? "true" : "false";
+  }, []);
+
   const clearProgrammaticAnimation = useCallback(() => {
     if (programmaticAnimationFrameRef.current !== null) {
       window.cancelAnimationFrame(programmaticAnimationFrameRef.current);
@@ -2220,16 +2257,18 @@ function InteractiveRegionalMapComponent({
   const cancelCameraAnimation = useCallback(() => {
     const renderedCamera = currentRenderedCamera();
     clearProgrammaticAnimation();
+    setUserZoomMotion(false);
     setMapTransition(shouldAnimateProgrammaticTransform ? "transform 0.1s ease-out" : "none");
     if (!renderedCamera) return;
     cameraRef.current = renderedCamera;
     writeMapTransform(renderedCamera);
     setCamera(renderedCamera);
-  }, [clearProgrammaticAnimation, currentRenderedCamera, setMapTransition, shouldAnimateProgrammaticTransform, writeMapTransform]);
+  }, [clearProgrammaticAnimation, currentRenderedCamera, setMapTransition, setUserZoomMotion, shouldAnimateProgrammaticTransform, writeMapTransform]);
 
   const animateCameraTo = useCallback((targetCamera: Camera, nextFitScale?: number) => {
     cameraRef.current = targetCamera;
     clearProgrammaticAnimation();
+    setUserZoomMotion(false);
 
     if (!mapStageRef.current || !shouldAnimateProgrammaticTransform) {
       setMapTransition("none");
@@ -2253,7 +2292,7 @@ function InteractiveRegionalMapComponent({
         endCameraMotion();
       }, 850);
     });
-  }, [beginCameraMotion, clearProgrammaticAnimation, endCameraMotion, setMapTransition, shouldAnimateProgrammaticTransform, writeMapTransform]);
+  }, [beginCameraMotion, clearProgrammaticAnimation, endCameraMotion, setMapTransition, setUserZoomMotion, shouldAnimateProgrammaticTransform, writeMapTransform]);
 
   useEffect(() => {
     return () => {
@@ -2265,8 +2304,9 @@ function InteractiveRegionalMapComponent({
         window.clearTimeout(wheelCommitTimeoutRef.current);
       }
       endCameraMotion();
+      setUserZoomMotion(false);
     };
-  }, [clearProgrammaticAnimation, endCameraMotion]);
+  }, [clearProgrammaticAnimation, endCameraMotion, setUserZoomMotion]);
 
   useLayoutEffect(() => {
     const viewport = viewportRef.current;
@@ -2898,6 +2938,13 @@ function InteractiveRegionalMapComponent({
       markCompletedSelectionIntro(svg);
     }
 
+    synchronizeRegionalOverlayPulses(svg);
+    let settledPulseFrame: number | null = null;
+    const pulseFrame = window.requestAnimationFrame(() => {
+      synchronizeRegionalOverlayPulses(svg);
+      settledPulseFrame = window.requestAnimationFrame(() => synchronizeRegionalOverlayPulses(svg));
+    });
+
     const badges = regionalOverlapBadges(documentNode, networkSegments).map((badge) => {
       const stablePosition = overlapBadgePositionsRef.current.get(badge.markerId);
       return {
@@ -2911,6 +2958,10 @@ function InteractiveRegionalMapComponent({
       adjusted.map((badge) => [badge.markerId, badge.position]),
     );
     setOverlapBadges(adjusted);
+    return () => {
+      window.cancelAnimationFrame(pulseFrame);
+      if (settledPulseFrame !== null) window.cancelAnimationFrame(settledPulseFrame);
+    };
   }, [
     activeAlerts,
     commutePathPreview,
@@ -3278,16 +3329,17 @@ function InteractiveRegionalMapComponent({
     wheelCommitTimeoutRef.current = window.setTimeout(() => {
       wheelCommitTimeoutRef.current = null;
       setCamera({ ...cameraRef.current });
-      endCameraMotion();
+      setUserZoomMotion(false);
     }, 140);
-  }, [endCameraMotion]);
+  }, [setUserZoomMotion]);
 
   const zoomAtCenter = useCallback((factor: number) => {
     const viewport = viewportRef.current;
     if (!viewport) return;
     cameraAdjustedByUserRef.current = true;
     clearProgrammaticAnimation();
-    beginCameraMotion();
+    endCameraMotion();
+    setUserZoomMotion(true);
     setMapTransition(shouldAnimateProgrammaticTransform ? "transform 0.1s ease-out" : "none");
     const centerX = viewport.clientWidth / 2;
     const centerY = viewport.clientHeight / 2;
@@ -3302,14 +3354,15 @@ function InteractiveRegionalMapComponent({
     cameraRef.current = nextCamera;
     writeMapTransform(nextCamera);
     scheduleCameraCommit();
-  }, [beginCameraMotion, clearProgrammaticAnimation, fitScale, scheduleCameraCommit, setMapTransition, shouldAnimateProgrammaticTransform, writeMapTransform]);
+  }, [clearProgrammaticAnimation, endCameraMotion, fitScale, scheduleCameraCommit, setMapTransition, setUserZoomMotion, shouldAnimateProgrammaticTransform, writeMapTransform]);
 
   const zoomToScale = useCallback((targetRelativeScale: number) => {
     const viewport = viewportRef.current;
     if (!viewport) return;
     cameraAdjustedByUserRef.current = true;
     clearProgrammaticAnimation();
-    beginCameraMotion();
+    endCameraMotion();
+    setUserZoomMotion(true);
     setMapTransition(shouldAnimateProgrammaticTransform ? "transform 0.1s ease-out" : "none");
     const centerX = viewport.clientWidth / 2;
     const centerY = viewport.clientHeight / 2;
@@ -3324,7 +3377,7 @@ function InteractiveRegionalMapComponent({
     cameraRef.current = nextCamera;
     writeMapTransform(nextCamera);
     scheduleCameraCommit();
-  }, [beginCameraMotion, clearProgrammaticAnimation, fitScale, scheduleCameraCommit, setMapTransition, shouldAnimateProgrammaticTransform, writeMapTransform]);
+  }, [clearProgrammaticAnimation, endCameraMotion, fitScale, scheduleCameraCommit, setMapTransition, setUserZoomMotion, shouldAnimateProgrammaticTransform, writeMapTransform]);
 
   const onWheel = useCallback((event: WheelEvent<HTMLDivElement>) => {
     event.preventDefault();
@@ -3333,7 +3386,8 @@ function InteractiveRegionalMapComponent({
     cameraAdjustedByUserRef.current = true;
 
     clearProgrammaticAnimation();
-    beginCameraMotion();
+    endCameraMotion();
+    setUserZoomMotion(true);
     // Interpolate coarse mouse-wheel notches while keeping the direct DOM write
     // path used by high-frequency wheels and trackpads.
     setMapTransition(shouldAnimateProgrammaticTransform ? "transform 0.1s ease-out" : "none");
@@ -3364,9 +3418,9 @@ function InteractiveRegionalMapComponent({
     wheelCommitTimeoutRef.current = window.setTimeout(() => {
       wheelCommitTimeoutRef.current = null;
       setCamera({ ...cameraRef.current });
-      endCameraMotion();
+      setUserZoomMotion(false);
     }, 80);
-  }, [beginCameraMotion, clearProgrammaticAnimation, endCameraMotion, fitScale, setMapTransition, shouldAnimateProgrammaticTransform, viewportOrientation, writeMapTransform]);
+  }, [clearProgrammaticAnimation, endCameraMotion, fitScale, setMapTransition, setUserZoomMotion, shouldAnimateProgrammaticTransform, viewportOrientation, writeMapTransform]);
 
   const applyActiveGesture = useCallback(() => {
     const pointers = [...activePointersRef.current.values()];
@@ -3406,7 +3460,10 @@ function InteractiveRegionalMapComponent({
   const onPointerDown = useCallback((event: PointerEvent<HTMLDivElement>) => {
     if (event.pointerType === "mouse" && event.button !== 0) return;
     cancelCameraAnimation();
-    beginCameraMotion();
+    // Direct manipulation uses the shared gesture-active paint contract. Do
+    // not apply the stronger programmatic-flight simplification, which removes
+    // alert glows while a rider is simply dragging the map.
+    endCameraMotion();
     const point = clientPointToLogicalViewportPoint(
       { x: event.clientX, y: event.clientY },
       event.currentTarget.getBoundingClientRect(),
@@ -3434,7 +3491,12 @@ function InteractiveRegionalMapComponent({
     }
 
     activePointersRef.current.set(event.pointerId, point);
-    event.currentTarget.setPointerCapture(event.pointerId);
+    try {
+      event.currentTarget.setPointerCapture(event.pointerId);
+    } catch {
+      // Capture can fail when the pointer has already been released. The
+      // map gesture state still needs to pause overlay motion.
+    }
     pendingDragPointRef.current = point;
 
     if (activePointersRef.current.size >= 2) {
@@ -3451,7 +3513,7 @@ function InteractiveRegionalMapComponent({
       dragMovedRef.current = true;
     }
     setIsGestureActive(true);
-  }, [beginCameraMotion, cancelCameraAnimation, selection, viewportOrientation]);
+  }, [cancelCameraAnimation, endCameraMotion, selection, viewportOrientation]);
 
   const onPointerMove = useCallback((event: PointerEvent<HTMLDivElement>) => {
     if (!activePointersRef.current.has(event.pointerId)) return;

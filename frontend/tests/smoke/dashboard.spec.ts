@@ -452,6 +452,7 @@ test("regional refresh, pan, zoom, and center preserve the authored SVG instance
   await page.getByRole("group", { name: "Select transit network" })
     .getByRole("button", { name: "GO/UP", exact: true })
     .click();
+  await expect(page.locator("html")).not.toHaveAttribute("data-network-transition-direction");
 
   const regionalMap = page.locator(".regional-map");
   const regionalViewport = regionalMap.locator(".regional-map-viewport");
@@ -1497,10 +1498,13 @@ test("desktop TTC station focus keeps one camera target while the SVG settles", 
   )).toContain("map-selection-station-intro");
   expect(await decorativeOverlayGlow.evaluate(
     (element) => getComputedStyle(element).filter,
-  )).toBe("none");
+  )).toContain("blur");
   expect(await decorativeOverlayGlow.evaluate(
     (element) => getComputedStyle(element).animationName,
-  )).toBe("none");
+  )).toContain("aura-pulse");
+  expect(await decorativeOverlayGlow.evaluate(
+    (element) => getComputedStyle(element).animationPlayState,
+  )).toContain("paused");
   await expect(mapStage.locator(".ttc-svg-container > svg")).toHaveCSS("shape-rendering", "geometricprecision");
   const authoredTrack = mapStage.locator("#ttc-tracks-layer path").first();
   await expect(authoredTrack).toHaveCSS("shape-rendering", "geometricprecision");
@@ -1513,6 +1517,9 @@ test("desktop TTC station focus keeps one camera target while the SVG settles", 
   expect(await decorativeOverlayGlow.evaluate(
     (element) => getComputedStyle(element).filter,
   )).toContain("blur");
+  expect(await decorativeOverlayGlow.evaluate(
+    (element) => getComputedStyle(element).animationPlayState,
+  )).not.toContain("paused");
 });
 
 test("desktop TTC overlay press arms the camera before the next frame", async ({ page, request, isMobile }) => {
@@ -1565,7 +1572,7 @@ test("desktop TTC overlay press arms the camera before the next frame", async ({
   )).not.toContain("paused");
 });
 
-test("desktop TTC gesture hides the animated decorative glow", async ({ page, request, isMobile }) => {
+test("desktop map gestures pause every overlay pulse while preserving glows", async ({ page, request, isMobile }) => {
   test.skip(isMobile, "desktop map gesture paint behavior");
   await setStubMode(request, "seeded");
   await page.goto("/");
@@ -1576,7 +1583,9 @@ test("desktop TTC gesture hides the animated decorative glow", async ({ page, re
   const glow = page.locator(
     ".overlay-segment-group .asset-alert-path-glow:is(.delay, .suspension, .reduced-speed-zone, .delay-static):not(.interactive-glow)",
   ).first();
+  const plannedPath = page.locator(".overlay-segment-group .asset-alert-path.planned-preview").first();
   await expect(glow).toBeAttached();
+  await expect(plannedPath).toBeAttached();
   const viewportBox = await viewport.boundingBox();
   if (!viewportBox) throw new Error("Missing TTC map viewport bounds");
   const gesturePoint = {
@@ -1593,9 +1602,12 @@ test("desktop TTC gesture hides the animated decorative glow", async ({ page, re
     isPrimary: true,
   });
   await expect(page.locator("[data-map-gesture-active=true]")).toBeAttached();
-  expect(await glow.evaluate((element) => getComputedStyle(element).filter)).toBe("none");
-  expect(await glow.evaluate((element) => getComputedStyle(element).animationName)).toBe("none");
-  expect(await glow.evaluate((element) => getComputedStyle(element).opacity)).toBe("0");
+  expect(await glow.evaluate((element) => getComputedStyle(element).filter)).toContain("blur");
+  expect(await glow.evaluate((element) => getComputedStyle(element).animationName)).toBe("aura-pulse");
+  expect(await glow.evaluate((element) => getComputedStyle(element).animationPlayState)).toBe("paused");
+  expect(Number(await glow.evaluate((element) => getComputedStyle(element).opacity))).toBeGreaterThan(0);
+  expect(await plannedPath.evaluate((element) => getComputedStyle(element).animationName)).toBe("map-overlay-rail-pulse");
+  expect(await plannedPath.evaluate((element) => getComputedStyle(element).animationPlayState)).toBe("paused");
 
   await viewport.dispatchEvent("pointerup", {
     ...gesturePoint,
@@ -1607,6 +1619,224 @@ test("desktop TTC gesture hides the animated decorative glow", async ({ page, re
   });
   await expect(page.locator("[data-map-gesture-active=true]")).toHaveCount(0);
   expect(await glow.evaluate((element) => getComputedStyle(element).filter)).toContain("blur");
+  expect(await glow.evaluate((element) => getComputedStyle(element).animationPlayState)).toBe("running");
+  expect(await plannedPath.evaluate((element) => getComputedStyle(element).animationPlayState)).toBe("running");
+
+  await page.getByRole("button", { name: "Zoom in", exact: true }).click();
+  const ttcZoomPaint = await viewport.evaluate((root) => {
+    const zoomGlow = root.querySelector<SVGElement>(
+      ".overlay-segment-group .asset-alert-path-glow:is(.delay, .suspension, .reduced-speed-zone, .delay-static):not(.interactive-glow)",
+    );
+    const zoomPlannedPath = root.querySelector<SVGElement>(
+      ".overlay-segment-group .asset-alert-path.planned-preview",
+    );
+    if (!zoomGlow || !zoomPlannedPath) throw new Error("Missing TTC zoom overlays");
+    return {
+      zoomActive: root.dataset.mapZoomActive,
+      cameraMoving: root.dataset.mapCameraMoving,
+      glowFilter: getComputedStyle(zoomGlow).filter,
+      glowPlayState: getComputedStyle(zoomGlow).animationPlayState,
+      plannedPlayState: getComputedStyle(zoomPlannedPath).animationPlayState,
+    };
+  });
+  expect(ttcZoomPaint).toMatchObject({
+    zoomActive: "true",
+    cameraMoving: "false",
+    glowPlayState: "paused",
+    plannedPlayState: "paused",
+  });
+  expect(ttcZoomPaint.glowFilter).toContain("blur");
+  await expect(viewport).toHaveAttribute("data-map-zoom-active", "false");
+  expect(await glow.evaluate((element) => getComputedStyle(element).animationPlayState)).toBe("running");
+  expect(await plannedPath.evaluate((element) => getComputedStyle(element).animationPlayState)).toBe("running");
+
+  await page.getByRole("button", { name: "Center map view" }).click();
+  await expect(viewport).toHaveAttribute("data-map-camera-moving", "true");
+  expect(await glow.evaluate((element) => getComputedStyle(element).filter)).toContain("blur");
+  expect(Number(await glow.evaluate((element) => getComputedStyle(element).opacity))).toBeGreaterThan(0);
+  expect(await glow.evaluate((element) => getComputedStyle(element).animationPlayState)).toBe("paused");
+  expect(await plannedPath.evaluate((element) => getComputedStyle(element).animationPlayState)).toBe("paused");
+  await expect(viewport).toHaveAttribute("data-map-camera-moving", "false", { timeout: 2_000 });
+  expect(await glow.evaluate((element) => getComputedStyle(element).filter)).toContain("blur");
+  expect(await glow.evaluate((element) => getComputedStyle(element).animationPlayState)).toBe("running");
+
+  await setStubMode(request, "regional-live");
+  await page.getByRole("group", { name: "Select transit network" })
+    .getByRole("button", { name: "GO/UP", exact: true })
+    .click();
+
+  const regionalMap = page.locator(".regional-map");
+  const regionalViewport = regionalMap.locator(".regional-map-viewport");
+  const regionalGlow = regionalMap.locator(
+    '.regional-overlay-segment-group[data-regional-impact-id="regional-demo-delay"] .regional-impact-aura',
+  );
+  const regionalPlannedPath = regionalMap.locator(
+    '.regional-overlay-segment-group[data-regional-impact-id="regional-demo-planned"] .regional-impact-path',
+  );
+  await expect(regionalGlow).toBeAttached();
+  await expect(regionalPlannedPath).toBeAttached();
+  const regionalViewportBox = await regionalViewport.boundingBox();
+  if (!regionalViewportBox) throw new Error("Missing regional map viewport bounds");
+  const regionalGesturePoint = {
+    // This authored-map coordinate is also used by the regional stability
+    // smoke test and reliably reaches the viewport's drag handler.
+    x: regionalViewportBox.x + regionalViewportBox.width * 0.22,
+    y: regionalViewportBox.y + regionalViewportBox.height * 0.24,
+  };
+  await regionalViewport.dispatchEvent("pointerdown", {
+    clientX: regionalGesturePoint.x,
+    clientY: regionalGesturePoint.y,
+    pointerId: 42,
+    pointerType: "mouse",
+    button: 0,
+    buttons: 1,
+    isPrimary: true,
+  });
+  await expect(regionalMap).toHaveAttribute("data-map-gesture-active", "true");
+  await expect(regionalMap).toHaveAttribute("data-regional-map-camera-moving", "false");
+  expect(await regionalGlow.evaluate((element) => getComputedStyle(element).filter)).toContain("blur");
+  expect(await regionalGlow.evaluate((element) => getComputedStyle(element).animationName)).toBe("aura-pulse");
+  expect(await regionalGlow.evaluate((element) => getComputedStyle(element).animationPlayState)).toBe("paused");
+  expect(await regionalPlannedPath.evaluate((element) => getComputedStyle(element).animationName)).toBe("map-overlay-rail-pulse");
+  expect(await regionalPlannedPath.evaluate((element) => getComputedStyle(element).animationPlayState)).toBe("paused");
+
+  await regionalViewport.dispatchEvent("pointerup", {
+    clientX: regionalGesturePoint.x,
+    clientY: regionalGesturePoint.y,
+    pointerId: 42,
+    pointerType: "mouse",
+    button: 0,
+    buttons: 0,
+    isPrimary: true,
+  });
+  await expect(regionalMap).toHaveAttribute("data-map-gesture-active", "false");
+  expect(await regionalGlow.evaluate((element) => getComputedStyle(element).filter)).toContain("blur");
+  expect(await regionalGlow.evaluate((element) => getComputedStyle(element).animationPlayState)).toBe("running");
+  expect(await regionalPlannedPath.evaluate((element) => getComputedStyle(element).animationPlayState)).toBe("running");
+
+  await page.getByRole("button", { name: "Zoom in", exact: true }).click();
+  const regionalZoomPaint = await regionalMap.evaluate((root) => {
+    const zoomGlow = root.querySelector<SVGElement>(
+      '.regional-overlay-segment-group[data-regional-impact-id="regional-demo-delay"] .regional-impact-aura',
+    );
+    const zoomPlannedPath = root.querySelector<SVGElement>(
+      '.regional-overlay-segment-group[data-regional-impact-id="regional-demo-planned"] .regional-impact-path',
+    );
+    if (!zoomGlow || !zoomPlannedPath) throw new Error("Missing regional zoom overlays");
+    return {
+      zoomActive: root.dataset.mapZoomActive,
+      cameraMoving: root.dataset.regionalMapCameraMoving,
+      glowFilter: getComputedStyle(zoomGlow).filter,
+      glowPlayState: getComputedStyle(zoomGlow).animationPlayState,
+      plannedPlayState: getComputedStyle(zoomPlannedPath).animationPlayState,
+    };
+  });
+  expect(regionalZoomPaint).toMatchObject({
+    zoomActive: "true",
+    cameraMoving: "false",
+    glowPlayState: "paused",
+    plannedPlayState: "paused",
+  });
+  expect(regionalZoomPaint.glowFilter).toContain("blur");
+  await expect(regionalMap).toHaveAttribute("data-map-zoom-active", "false");
+  expect(await regionalGlow.evaluate((element) => getComputedStyle(element).animationPlayState)).toBe("running");
+  expect(await regionalPlannedPath.evaluate((element) => getComputedStyle(element).animationPlayState)).toBe("running");
+
+  await page.getByRole("button", { name: "Fit regional network" }).click();
+  await expect(regionalMap).toHaveAttribute("data-regional-map-camera-moving", "true");
+  expect(await regionalGlow.evaluate((element) => getComputedStyle(element).filter)).toContain("blur");
+  expect(Number(await regionalGlow.evaluate((element) => getComputedStyle(element).opacity))).toBeGreaterThan(0);
+  expect(await regionalGlow.evaluate((element) => getComputedStyle(element).animationPlayState)).toBe("paused");
+  expect(await regionalPlannedPath.evaluate((element) => getComputedStyle(element).animationPlayState)).toBe("paused");
+  await expect(regionalMap).toHaveAttribute("data-regional-map-camera-moving", "false", { timeout: 2_000 });
+  expect(await regionalGlow.evaluate((element) => getComputedStyle(element).filter)).toContain("blur");
+  expect(await regionalGlow.evaluate((element) => getComputedStyle(element).animationPlayState)).toBe("running");
+});
+
+test("overlapping alert rails share one pulse cadence and size across both maps", async ({ page, request, isMobile }) => {
+  test.skip(isMobile, "desktop ambient overlay pulse verification");
+  await setStubMode(request, "map-authoritative-overlap");
+  await page.goto("/");
+  await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
+  await page.waitForTimeout(900);
+
+  const ttcPulse = await page.locator('g[aria-label="Disruption overlays"]').evaluate((root) => {
+    const planned = root.querySelector<SVGPathElement>(
+      '[data-map-impact-id="stub-active-closure-child-line-1"] .asset-alert-path.suspension-candy',
+    );
+    const plannedPreview = root.querySelector<SVGPathElement>(".asset-alert-path.planned-preview");
+    const rsz = root.querySelector<SVGPathElement>(
+      '[data-map-impact-kind="reduced-speed-zone"] .asset-alert-path.delay-candy',
+    );
+    const closureMask = root.querySelector<SVGPathElement>(
+      '[data-map-impact-id="stub-active-closure-child-line-1"] .suspension-mask-path',
+    );
+    if (!planned || !plannedPreview || !rsz || !closureMask) {
+      throw new Error("Missing overlapping TTC current closure, closure preview, and RSZ rails");
+    }
+    const pulseProgress = (element: Element, name: string) => {
+      const animation = element.getAnimations().find((candidate) =>
+        "animationName" in candidate && candidate.animationName === name);
+      if (!animation?.effect) throw new Error(`Missing ${name} animation`);
+      const timing = animation.effect.getComputedTiming();
+      return {
+        progress: timing.progress,
+        duration: timing.duration,
+      };
+    };
+    return {
+      planned: pulseProgress(planned, "map-overlay-rail-pulse"),
+      plannedPreview: pulseProgress(plannedPreview, "map-overlay-rail-pulse"),
+      rsz: pulseProgress(rsz, "map-overlay-rail-pulse"),
+      plannedWidth: getComputedStyle(planned).strokeWidth,
+      plannedPreviewWidth: getComputedStyle(plannedPreview).strokeWidth,
+      rszWidth: getComputedStyle(rsz).strokeWidth,
+      closureMaskAnimation: getComputedStyle(closureMask).animationName,
+      closureMaskWidth: getComputedStyle(closureMask).strokeWidth,
+    };
+  });
+  expect(ttcPulse.planned.duration).toBe(1200);
+  expect(ttcPulse.plannedPreview.duration).toBe(1200);
+  expect(ttcPulse.rsz.duration).toBe(1200);
+  expect(Math.abs((ttcPulse.planned.progress ?? 0) - (ttcPulse.rsz.progress ?? 0))).toBeLessThan(0.02);
+  expect(Math.abs((ttcPulse.plannedPreview.progress ?? 0) - (ttcPulse.rsz.progress ?? 0))).toBeLessThan(0.02);
+  expect(ttcPulse.plannedWidth).toBe(ttcPulse.rszWidth);
+  expect(ttcPulse.plannedPreviewWidth).toBe(ttcPulse.rszWidth);
+  expect(ttcPulse.closureMaskAnimation).toBe("none");
+  expect(ttcPulse.closureMaskWidth).toBe("102px");
+
+  await setStubMode(request, "regional-live");
+  await page.getByRole("group", { name: "Select transit network" })
+    .getByRole("button", { name: "GO/UP", exact: true })
+    .click();
+  await expect(page.locator("html")).not.toHaveAttribute("data-network-transition-direction");
+
+  const regionalPulse = await page.locator(".regional-map").evaluate((root) => {
+    const delay = root.querySelector<SVGPathElement>(
+      '.regional-overlay-segment-group[data-regional-impact-id="regional-demo-delay"] .regional-impact-path',
+    );
+    const planned = root.querySelector<SVGPathElement>(
+      '.regional-overlay-segment-group[data-regional-impact-id="regional-demo-planned"] .regional-impact-path',
+    );
+    if (!delay || !planned) throw new Error("Missing overlapping regional delay and planned-closure rails");
+    const pulseProgress = (element: Element) => {
+      const animation = element.getAnimations().find((candidate) =>
+        "animationName" in candidate && candidate.animationName === "map-overlay-rail-pulse");
+      if (!animation?.effect) throw new Error("Missing regional pulse animation");
+      const timing = animation.effect.getComputedTiming();
+      return { progress: timing.progress, duration: timing.duration };
+    };
+    return {
+      delay: pulseProgress(delay),
+      planned: pulseProgress(planned),
+      delayWidth: getComputedStyle(delay).strokeWidth,
+      plannedWidth: getComputedStyle(planned).strokeWidth,
+    };
+  });
+  expect(regionalPulse.delay.duration).toBe(1200);
+  expect(regionalPulse.planned.duration).toBe(1200);
+  expect(Math.abs((regionalPulse.delay.progress ?? 0) - (regionalPulse.planned.progress ?? 0))).toBeLessThan(0.02);
+  expect(regionalPulse.delayWidth).toBe(regionalPulse.plannedWidth);
 });
 
 test("mobile closing impact details preserves the focused map camera", async ({ page, request, isMobile }) => {
@@ -2949,7 +3179,7 @@ test("demo account shows account-backed saved commutes", async ({ page, request,
     expect(commuteBeaconStyle.animationName).toBe("none");
     expect(selectedImpactGlowStyle.display).toBe("none");
   } else {
-    expect(commutePathStyle.animationName).toBe("candy-pulse");
+    expect(commutePathStyle.animationName).toBe("map-overlay-rail-pulse");
     expect(commutePathStyle.strokeWidth).toBeGreaterThanOrEqual(102);
     expect(commuteGlowStyle.animationName).toBe("aura-pulse");
     expect(commuteGlowStyle.strokeWidth).toBe(155);

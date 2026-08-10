@@ -110,8 +110,11 @@ type RetainedLayer<T> = {
 const MAP_PULSE_CYCLE_MS = 2400;
 const SYNCHRONIZED_OVERLAY_PULSE_NAMES = new Set([
   "aura-pulse",
-  "candy-pulse",
-  "mask-size-pulse",
+  "map-overlay-rail-pulse",
+  "gold-ring-pulse",
+  "station-radar-core",
+  "station-radar-ping",
+  "station-selected-pulse",
 ]);
 
 type TtcMapMarkupParts = {
@@ -1157,35 +1160,50 @@ function InteractiveTtcMapComponent({
   }, [commutePathPreview, stations, visualAnchorsForStation]);
 
   const pulseSyncSignature = useMemo(() => {
-    const plannedKeys = plannedPreviewLayers
-      .map(({ closure, segment }) => `${segment.id}:${closure.id}`)
+    const plannedKeys = retainedPlannedPreviewLayers
+      .map(({ item: { closure, segment }, exiting }) => `${segment.id}:${closure.id}:${exiting}`)
       .join("|");
-    const impactKeys = renderedImpactLayers
-      .map(({ segment, impact }) => `${segment.id}:${impact.kind}:${impact.cardId}:${impact.travelDirection}`)
+    const impactKeys = retainedImpactLayers
+      .map(({ item: { segment, impact }, exiting }) => `${segment.id}:${impact.kind}:${impact.cardId}:${impact.travelDirection}:${exiting}`)
       .join("|");
-    const stationKeys = stationNodeImpacts
-      .map((impact) => `${impact.kind}:${impact.cardId}:${impact.stationId}`)
+    const stationKeys = retainedStationNodeImpacts
+      .map(({ item: impact, exiting }) => `${impact.kind}:${impact.cardId}:${impact.stationId}:${exiting}`)
       .join("|");
     return `${plannedKeys}::${impactKeys}::${stationKeys}`;
-  }, [plannedPreviewLayers, renderedImpactLayers, stationNodeImpacts]);
+  }, [retainedImpactLayers, retainedPlannedPreviewLayers, retainedStationNodeImpacts]);
 
   useLayoutEffect(() => {
     const mapRoot = mapRootRef.current;
     if (!mapRoot) return;
-    const pulsePhaseMs = performance.now() % MAP_PULSE_CYCLE_MS;
-    mapRoot.style.setProperty(
-      "--map-pulse-offset",
-      `-${Math.round(pulsePhaseMs)}ms`,
-    );
-    for (const animation of mapRoot.getAnimations({ subtree: true })) {
-      const animationName = "animationName" in animation
-        ? String(animation.animationName)
-        : "";
-      if (SYNCHRONIZED_OVERLAY_PULSE_NAMES.has(animationName)) {
-        animation.currentTime = pulsePhaseMs;
+    const synchronizePulseAnimations = () => {
+      const pulseClockMs = Number(document.timeline.currentTime ?? performance.now());
+      const pulsePhaseMs = pulseClockMs % MAP_PULSE_CYCLE_MS;
+      const pulseCycleStartMs = pulseClockMs - pulsePhaseMs;
+      // All alert pulses use one document-timeline origin. This is stronger
+      // than assigning the same currentTime sequentially because animations
+      // can be instantiated on different rendering frames.
+      mapRoot.style.setProperty("--map-pulse-offset", "0ms");
+      for (const animation of mapRoot.getAnimations({ subtree: true })) {
+        const animationName = "animationName" in animation
+          ? String(animation.animationName)
+          : "";
+        if (SYNCHRONIZED_OVERLAY_PULSE_NAMES.has(animationName)) {
+          animation.currentTime = pulsePhaseMs;
+          animation.startTime = pulseCycleStartMs;
+        }
       }
-    }
-  }, [pulseSyncSignature]);
+    };
+    synchronizePulseAnimations();
+    let settledPulseFrame: number | null = null;
+    const pulseFrame = window.requestAnimationFrame(() => {
+      synchronizePulseAnimations();
+      settledPulseFrame = window.requestAnimationFrame(synchronizePulseAnimations);
+    });
+    return () => {
+      window.cancelAnimationFrame(pulseFrame);
+      if (settledPulseFrame !== null) window.cancelAnimationFrame(settledPulseFrame);
+    };
+  }, [loadState, pulseSyncSignature]);
 
   const collisionBoxesByImpact = useMemo(() => {
     const boxesByImpact = new Map<string, SvgBounds[]>();
@@ -1595,6 +1613,7 @@ function InteractiveTtcMapComponent({
         ref={containerRef}
         data-map-pan-zoom-viewport
         data-map-camera-moving="false"
+        data-map-zoom-active="false"
         className={`relative w-full h-full overflow-hidden select-none touch-none ${
           isDragging ? "cursor-grabbing" : "cursor-grab"
         }`}
@@ -4643,6 +4662,8 @@ function OverlaySegment({
   return (
     <g
       className={`overlay-segment-group ${connectedClass} ${exiting ? "map-layer-exiting" : "map-layer-current"}`.trim()}
+      data-map-impact-id={impact?.cardId ?? plannedClosure?.id}
+      data-map-impact-kind={impact?.kind ?? "planned-closure"}
       onPointerEnter={renderInteractionTarget ? (event) => {
         if (event.pointerType !== "mouse" || exiting) return;
         onHoverHighlightChange?.({

@@ -216,14 +216,20 @@ describe("mobile performance guardrails", () => {
     assert.match(panZoomSource, /e\.pointerType !== "mouse"/);
   });
 
-  it("pauses expensive overlay paint effects only while map gestures are active", () => {
-    assert.match(globalCss, /\.map-gesture-active \.asset-alert-path-glow/);
-    assert.match(globalCss, /\.map-gesture-active \.interactive-glow/);
-    assert.match(globalCss, /\.map-gesture-active \.station-impact-ring/);
-    assert.match(globalCss, /\.map-gesture-active \.station-impact-dot-red-glow/);
-    assert.match(globalCss, /\.map-gesture-active \.station-impact-dot-red-ping/);
-    assert.match(globalCss, /animation:\s*none\s*!important/);
+  it("pauses every overlay pulse without removing glows while map gestures are active", () => {
+    const interactionSelector = /:is\(\.map-gesture-active, \[data-map-zoom-active="true"\]\)/;
+    assert.match(globalCss, interactionSelector);
+    assert.match(globalCss, /\) \.asset-alert-path-glow/);
+    assert.match(globalCss, /\) \.interactive-glow/);
+    assert.match(globalCss, /\) \.station-impact-ring/);
+    assert.match(globalCss, /\) \.station-impact-dot-red-glow/);
+    assert.match(globalCss, /\) \.station-impact-dot-red-ping/);
+    assert.match(globalCss, /\) \.asset-alert-path\.planned-preview/);
+    assert.match(globalCss, /animation-play-state:\s*paused\s*!important/);
     assert.match(globalCss, /transition:\s*none\s*!important/);
-    assert.match(globalCss, /filter:\s*none\s*!important/);
+    assert.doesNotMatch(
+      globalCss,
+      /:is\(\.map-gesture-active, \[data-map-zoom-active="true"\]\) \.asset-alert-path-glow:not\(\.map-selection-attention\)[^{]*\{[^}]*filter:\s*none\s*!important;/s,
+    );
   });
 });

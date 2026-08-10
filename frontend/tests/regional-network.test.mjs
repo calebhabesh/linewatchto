@@ -571,12 +571,12 @@ describe("network-scoped regional dashboard", () => {
     assert.match(regionalMapSource, /impact\.travelDirection/);
     assert.match(globalsCss, /data-regional-impact-kind="delay"[\s\S]*stroke:\s*#0ea5e9[\s\S]*stroke-width:\s*var\(--regional-impact-width\)/);
     assert.doesNotMatch(globalsCss, /regional-delay-static-shift/);
-    assert.match(globalsCss, /data-regional-impact-kind="reduced-speed-zone"[\s\S]*regional-chevron-slide/);
-    assert.match(globalsCss, /\.regional-impact-aura\s*\{[^}]*animation:\s*aura-pulse 1\.2s infinite alternate ease-in-out;[^}]*animation-delay:\s*var\(--map-pulse-offset\)/s);
+    assert.match(globalsCss, /data-regional-impact-kind="reduced-speed-zone"[^}]*regional-impact-path\s*\{[^}]*stroke-dasharray:\s*none;[^}]*map-overlay-rail-pulse/s);
+    assert.match(globalsCss, /\.regional-impact-aura\s*\{[^}]*animation:\s*aura-pulse var\(--map-overlay-pulse-half-cycle\) infinite alternate var\(--map-overlay-pulse-easing\);[^}]*animation-delay:\s*var\(--map-pulse-offset\)/s);
     assert.match(globalsCss, /regional-overlay-segment-group:not\(\[data-regional-impact-selected="true"\]\)[^}]*regional-impact-interactive-glow\s*\{[^}]*animation:\s*none\s*!important/s);
     assert.match(globalsCss, /regional-overlay-segment-group:not\(\[data-regional-impact-selected="true"\]\)[^}]*regional-impact-interactive-glow\s*\{[^}]*opacity:\s*0\s*!important/s);
-    assert.match(globalsCss, /data-regional-impact-kind="suspension"[\s\S]*regional-candy-pulse/);
-    assert.match(globalsCss, /@keyframes regional-candy-pulse\s*\{[\s\S]*calc\(var\(--regional-impact-width\) \+ 23px\)/);
+    assert.match(globalsCss, /data-regional-impact-kind="suspension"[\s\S]*map-overlay-rail-pulse/);
+    assert.match(regionalMapSource, /--map-overlay-rail-pulse-width/);
     assert.match(globalsCss, /regional-impact-hit-target:active[\s\S]*regional-impact-glow/);
     assert.match(
       globalsCss,
@@ -587,7 +587,7 @@ describe("network-scoped regional dashboard", () => {
     assert.match(globalsCss, /data-regional-impact-kind="planned-closure"[\s\S]*regional-impact-aura[\s\S]*display:\s*none/);
     assert.match(
       globalsCss,
-      /data-regional-impact-kind="planned-closure"[^}]*regional-impact-path\s*\{[^}]*animation:\s*regional-candy-pulse 1\.2s infinite alternate ease-in-out/s,
+      /data-regional-impact-kind="planned-closure"[^}]*regional-impact-path\s*\{[^}]*animation:\s*map-overlay-rail-pulse var\(--map-overlay-pulse-half-cycle\) infinite alternate var\(--map-overlay-pulse-easing\)/s,
     );
     assert.match(globalsCss, /data-regional-impact-selected="true"[\s\S]*regional-impact-interactive-glow[\s\S]*regional-selection-path-intro/);
     assert.match(globalsCss, /regional-impact-interactive-glow\s*\{[^}]*filter:\s*drop-shadow\(0 0 12px/s);
@@ -740,6 +740,15 @@ describe("network-scoped regional dashboard", () => {
     assert.match(regionalMapSource, /--regional-map-pulse-offset", "0s"/);
     assert.match(regionalMapSource, /--map-pulse-offset", "0s"/);
     assert.doesNotMatch(regionalMapSource, /layerIndex \* 0\.4/);
+    assert.match(regionalMapSource, /REGIONAL_SYNCHRONIZED_OVERLAY_PULSE_NAMES/);
+    assert.match(regionalMapSource, /synchronizeRegionalOverlayPulses\(svg\)/);
+    assert.match(regionalMapSource, /animation\.currentTime = pulsePhaseMs/);
+    assert.match(regionalMapSource, /animation\.startTime = pulseCycleStartMs/);
+    assert.match(regionalMapSource, /requestAnimationFrame\(\(\) => synchronizeRegionalOverlayPulses\(svg\)\)/);
+    assert.match(
+      globalsCss,
+      /data-regional-impact-kind="reduced-speed-zone"[^}]*regional-impact-path\s*\{[^}]*stroke-dasharray:\s*none;[^}]*map-overlay-rail-pulse/s,
+    );
   });
 
   it("cycles pointer activation through overlapping regional segment and station impacts", () => {
@@ -851,6 +860,11 @@ describe("network-scoped regional dashboard", () => {
       regionalMapSource,
       /const onPointerMove[\s\S]*?setCamera\(snapCameraToDevicePixels/,
     );
+    const pointerDownHandler = regionalMapSource.match(
+      /const onPointerDown = useCallback\(\(event:[\s\S]*?\n  \}, \[[^\]]*\]\);/,
+    )?.[0] ?? "";
+    assert.match(pointerDownHandler, /endCameraMotion\(\)/);
+    assert.doesNotMatch(pointerDownHandler, /beginCameraMotion\(\)/);
   });
 
   it("applies the TTC mobile performance contract to the regional camera and overlays", () => {
@@ -955,8 +969,16 @@ describe("network-scoped regional dashboard", () => {
     )?.[1] ?? "";
 
     assert.match(wheelHandler, /setMapTransition\(shouldAnimateProgrammaticTransform \? "transform 0\.1s ease-out" : "none"\)/);
+    assert.match(wheelHandler, /setUserZoomMotion\(true\)/);
+    assert.doesNotMatch(wheelHandler, /beginCameraMotion\(\)/);
     assert.match(wheelHandler, /cameraRef\.current = nextCamera;[\s\S]*writeMapTransform\(nextCamera\)/);
     assert.match(wheelHandler, /window\.setTimeout\(\(\) => \{[\s\S]*setCamera\(\{ \.\.\.cameraRef\.current \}\)/);
+  });
+
+  it("preserves regional overlay glows while user zoom is active", () => {
+    assert.match(regionalMapSource, /root\.dataset\.mapZoomActive = active \? "true" : "false"/);
+    assert.match(regionalMapSource, /const setUserZoomMotion = useCallback/);
+    assert.match(globalsCss, /\[data-map-zoom-active="true"\]/);
   });
 
   it("keeps animated regional alert artwork stable while the camera is moving", () => {
@@ -969,7 +991,7 @@ describe("network-scoped regional dashboard", () => {
     assert.match(regionalMapSource, /clearProgrammaticAnimation[\s\S]*wheelCommitTimeoutRef\.current = null/);
     assert.match(
       globalsCss,
-      /\.regional-map-camera-moving \.regional-map-stage :is\([\s\S]*?\.regional-impact-path[\s\S]*?\)\s*,[\s\S]*?animation:\s*none\s*!important;[\s\S]*?filter:\s*none\s*!important;/s,
+      /\.regional-map-camera-moving \.regional-map-stage :is\([\s\S]*?\.regional-impact-path[\s\S]*?\)\s*,[\s\S]*?animation-play-state:\s*paused\s*!important;[\s\S]*?transition:\s*none\s*!important;/s,
     );
     assert.doesNotMatch(globalsCss, /\.regional-map-camera-moving \.regional-map-stage \*/);
     const cameraMotionSimplification = globalsCss.slice(
@@ -982,6 +1004,7 @@ describe("network-scoped regional dashboard", () => {
       /regional-(?:delay|suspension|chevron|planned-closure)-glyph-lane/,
     );
     assert.doesNotMatch(cameraMotionSimplification, /display:\s*none\s*!important/);
+    assert.doesNotMatch(cameraMotionSimplification, /filter:\s*none\s*!important/);
     assert.doesNotMatch(cameraMotionSimplification, /regional-station-selected-indicator/);
   });
 

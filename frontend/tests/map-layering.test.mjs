@@ -210,7 +210,7 @@ describe("asset-backed map layering", () => {
     assert.match(globalCss, /--planned-preview-ink:\s*#087fff;/);
     assert.match(
       globalCss,
-      /\.asset-alert-path\.planned-preview\s*\{[^}]*opacity:\s*1;[^}]*stroke:\s*var\(--planned-preview-rail\);[^}]*stroke-width:\s*102;/s,
+      /\.asset-alert-path\.planned-preview\s*\{[^}]*opacity:\s*1;[^}]*stroke:\s*var\(--planned-preview-rail\);[^}]*stroke-width:\s*var\(--map-overlay-rail-width\);/s,
     );
     assert.match(
       globalCss,
@@ -279,7 +279,7 @@ describe("asset-backed map layering", () => {
     assert.match(interactiveMapSource, /className="asset-alert-path suspension-candy suspension-solid pointer-events-none"/);
     assert.match(globalCss, /@keyframes station-selected-pulse/);
     assert.match(globalCss, /@keyframes aura-pulse/);
-    assert.match(globalCss, /\.asset-alert-path-glow\.delay\s*\{[^}]*animation:\s*aura-pulse 1\.2s infinite alternate ease-in-out;/s);
+    assert.match(globalCss, /\.asset-alert-path-glow\.delay\s*\{[^}]*animation:\s*aura-pulse var\(--map-overlay-pulse-half-cycle\) infinite alternate var\(--map-overlay-pulse-easing\);/s);
     assert.match(globalCss, /\.linewatch-shell\.mobile-performance-mode \.asset-alert-path-glow,[\s\S]*animation:\s*none\s*!important;/s);
 
     const mapGeometrySource = readFileSync(new URL("../src/app/map-geometry.ts", import.meta.url), "utf8");
@@ -367,6 +367,9 @@ describe("asset-backed map layering", () => {
   });
 
   it("keeps all pulse and glow animations on one shared phase", () => {
+    assert.match(globalCss, /--map-overlay-pulse-half-cycle:\s*1\.2s/);
+    assert.match(globalCss, /--map-overlay-pulse-easing:\s*cubic-bezier\(0\.37, 0, 0\.63, 1\)/);
+    assert.match(globalCss, /@keyframes map-overlay-rail-pulse\s*\{[\s\S]*var\(--map-overlay-rail-width\)[\s\S]*var\(--map-overlay-rail-pulse-width\)/);
     assert.match(globalCss, /--map-pulse-offset/);
     assert.match(globalCss, /\.asset-alert-path-glow\s*\{[^}]*animation-delay:\s*var\(--map-pulse-offset\);/s);
     assert.match(
@@ -375,10 +378,16 @@ describe("asset-backed map layering", () => {
     );
     assert.match(interactiveMapSource, /SYNCHRONIZED_OVERLAY_PULSE_NAMES/);
     assert.match(interactiveMapSource, /mapRoot\.getAnimations\(\{ subtree: true \}\)/);
+    assert.match(interactiveMapSource, /document\.timeline\.currentTime/);
+    assert.match(interactiveMapSource, /--map-pulse-offset", "0ms"/);
     assert.match(interactiveMapSource, /animation\.currentTime = pulsePhaseMs/);
+    assert.match(interactiveMapSource, /animation\.startTime = pulseCycleStartMs/);
+    assert.match(interactiveMapSource, /requestAnimationFrame\(synchronizePulseAnimations\)/);
+    assert.match(interactiveMapSource, /\}, \[loadState, pulseSyncSignature\]\);/);
     assert.match(globalCss, /\.asset-alert-path\.delay-candy\s*\{[^}]*animation-delay:\s*var\(--map-pulse-offset\);/s);
     assert.match(globalCss, /\.asset-alert-path\.suspension-candy\s*\{[^}]*animation-delay:\s*var\(--map-pulse-offset\);/s);
-    assert.match(globalCss, /\.delay-hourglass-mask-path,\s*\.suspension-mask-path\s*\{[^}]*animation-delay:\s*var\(--map-pulse-offset\);/s);
+    assert.match(globalCss, /\.delay-hourglass-mask-path,\s*\.suspension-mask-path\s*\{[^}]*stroke-width:\s*var\(--map-overlay-rail-width\);/s);
+    assert.doesNotMatch(globalCss, /@keyframes mask-size-pulse/);
     assert.match(globalCss, /\.station-impact-ring\s*\{[^}]*animation-delay:\s*var\(--map-pulse-offset\);/s);
     assert.match(globalCss, /\.station-impact-dot-red-glow\s*\{[^}]*animation-delay:\s*var\(--map-pulse-offset\);/s);
   });
@@ -517,8 +526,8 @@ describe("asset-backed map layering", () => {
     assert.match(interactiveMapSource, /plannedPreviewSegmentIds/);
     assert.match(interactiveMapSource, /shouldRenderPlannedPreviewLayer\(segment, closure\)/);
     assert.match(globalCss, /\.asset-alert-path\.planned-preview\s*\{[^}]*opacity:\s*(?:0\.\d+|1(?:\.0)?);/s);
-    assert.match(globalCss, /\.asset-alert-path\.planned-preview\s*\{[^}]*stroke:\s*var\(--planned-preview-rail\);[^}]*stroke-dasharray:\s*none;[^}]*stroke-width:\s*102;/s);
-    assert.match(globalCss, /\.asset-alert-path\.planned-preview\s*\{[^}]*animation:\s*candy-pulse 1\.2s infinite alternate ease-in-out;/s);
+    assert.match(globalCss, /\.asset-alert-path\.planned-preview\s*\{[^}]*stroke:\s*var\(--planned-preview-rail\);[^}]*stroke-dasharray:\s*none;[^}]*stroke-width:\s*var\(--map-overlay-rail-width\);/s);
+    assert.match(globalCss, /\.asset-alert-path\.planned-preview\s*\{[^}]*animation:\s*map-overlay-rail-pulse var\(--map-overlay-pulse-half-cycle\) infinite alternate var\(--map-overlay-pulse-easing\);/s);
     assert.match(globalCss, /\.motion-paused \.asset-alert-path\.planned-preview/);
     assert.doesNotMatch(globalCss, /\.asset-alert-path\.planned-preview\.selected\s*\{[^}]*stroke-width:\s*118;/s);
   });
@@ -795,7 +804,7 @@ describe("asset-backed map layering", () => {
     assert.match(globalCss, /@keyframes map-selection-path-breathe/);
     assert.match(globalCss, /@keyframes map-selection-station-intro/);
     assert.match(globalCss, /@keyframes map-selection-station-breathe/);
-    assert.match(globalCss, /\.map-gesture-active \.map-selection-attention\s*\{[^}]*animation-play-state:\s*paused !important;/s);
+    assert.match(globalCss, /:is\(\.map-gesture-active, \[data-map-zoom-active="true"\]\) \.map-selection-attention\s*\{[^}]*animation-play-state:\s*paused !important;/s);
     assert.doesNotMatch(
       globalCss,
       /\.map-gesture-active \.asset-alert-path\.map-selection-flash[^}]*animation:\s*none/s,
@@ -856,11 +865,11 @@ describe("asset-backed map layering", () => {
     assert.match(globalCss, /\.commute-path-preview-chip/);
     assert.match(
       globalCss,
-      /\n\.commute-path-preview-path\s*\{(?=[^}]*stroke-width:\s*102;)(?=[^}]*opacity:\s*0\.72;)(?=[^}]*animation:\s*candy-pulse 1\.2s infinite alternate ease-in-out;)[^}]*\}/s,
+      /\n\.commute-path-preview-path\s*\{(?=[^}]*stroke-width:\s*102;)(?=[^}]*opacity:\s*0\.72;)(?=[^}]*animation:\s*map-overlay-rail-pulse var\(--map-overlay-pulse-half-cycle\) infinite alternate var\(--map-overlay-pulse-easing\);)[^}]*\}/s,
     );
     assert.match(
       globalCss,
-      /\n\.commute-path-preview-glow\s*\{(?=[^}]*stroke-width:\s*155;)(?=[^}]*animation:\s*aura-pulse 1\.2s infinite alternate ease-in-out;)[^}]*\}/s,
+      /\n\.commute-path-preview-glow\s*\{(?=[^}]*stroke-width:\s*155;)(?=[^}]*animation:\s*aura-pulse var\(--map-overlay-pulse-half-cycle\) infinite alternate var\(--map-overlay-pulse-easing\);)[^}]*\}/s,
     );
     assert.match(
       globalCss,

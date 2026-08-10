@@ -133,6 +133,12 @@ export function usePanZoom({
     }
   }, []);
 
+  const setUserZoomMotion = useCallback((active: boolean) => {
+    if (containerRef.current) {
+      containerRef.current.dataset.mapZoomActive = active ? "true" : "false";
+    }
+  }, []);
+
   const restoreIdleMapTransition = useCallback(() => {
     setMapTransition(shouldAnimateProgrammaticTransform ? "transform 0.1s ease-out" : "none");
   }, [setMapTransition, shouldAnimateProgrammaticTransform]);
@@ -190,12 +196,13 @@ export function usePanZoom({
     clearProgrammaticAnimation();
     restoreIdleMapTransition();
     setProgrammaticCameraMotion(false);
+    setUserZoomMotion(false);
 
     if (renderedTransform) {
       transformRef.current = renderedTransform;
       writeMapTransform(renderedTransform);
     }
-  }, [clearProgrammaticAnimation, currentRenderedTransform, restoreIdleMapTransition, setProgrammaticCameraMotion, writeMapTransform]);
+  }, [clearProgrammaticAnimation, currentRenderedTransform, restoreIdleMapTransition, setProgrammaticCameraMotion, setUserZoomMotion, writeMapTransform]);
 
   const animateTransformTo = useCallback((next: PanZoomTransform, nextFitScale?: number, animate = true) => {
     if (isGestureActiveRef.current) {
@@ -206,6 +213,7 @@ export function usePanZoom({
     transformRef.current = snapped;
 
     clearProgrammaticAnimation();
+    setUserZoomMotion(false);
 
     if (nextFitScale !== undefined) {
       fitScaleRef.current = nextFitScale;
@@ -246,6 +254,7 @@ export function usePanZoom({
     restoreIdleMapTransition,
     setMapTransition,
     setProgrammaticCameraMotion,
+    setUserZoomMotion,
     snapTransform,
     writeMapTransform,
   ]);
@@ -277,9 +286,10 @@ export function usePanZoom({
         window.clearTimeout(wheelCommitTimeoutRef.current);
       }
       setProgrammaticCameraMotion(false);
+      setUserZoomMotion(false);
       isGestureActiveRef.current = false;
     };
-  }, [setProgrammaticCameraMotion]);
+  }, [setProgrammaticCameraMotion, setUserZoomMotion]);
 
   const lastDimensions = useRef({ width: 0, height: 0 });
 
@@ -597,7 +607,7 @@ export function usePanZoom({
     if (wheelCommitTimeoutRef.current === null) {
       cancelAnimation();
       setMapTransition(shouldAnimateProgrammaticTransform ? "transform 0.1s ease-out" : "none");
-      setProgrammaticCameraMotion(true);
+      setUserZoomMotion(true);
     }
     
     const { x: mouseX, y: mouseY } = pointFromClientPoint(e.clientX, e.clientY);
@@ -619,7 +629,7 @@ export function usePanZoom({
       wheelCommitTimeoutRef.current = null;
       setTransform({ ...transformRef.current });
       restoreIdleMapTransition();
-      setProgrammaticCameraMotion(false);
+      setUserZoomMotion(false);
     }, 100);
   }, [
     cancelAnimation,
@@ -628,7 +638,7 @@ export function usePanZoom({
     pointFromClientPoint,
     restoreIdleMapTransition,
     setMapTransition,
-    setProgrammaticCameraMotion,
+    setUserZoomMotion,
     shouldAnimateProgrammaticTransform,
   ]);
 
@@ -720,6 +730,17 @@ export function usePanZoom({
     recenter();
   }, [recenter]);
 
+  const scheduleUserZoomMotionEnd = useCallback(() => {
+    if (wheelCommitTimeoutRef.current !== null) {
+      window.clearTimeout(wheelCommitTimeoutRef.current);
+    }
+    setUserZoomMotion(true);
+    wheelCommitTimeoutRef.current = window.setTimeout(() => {
+      wheelCommitTimeoutRef.current = null;
+      setUserZoomMotion(false);
+    }, 140);
+  }, [setUserZoomMotion]);
+
   const zoomIn = useCallback(() => {
     if (!containerRef.current) return;
     cancelAnimation();
@@ -734,8 +755,9 @@ export function usePanZoom({
     const scaleRatio = newScale / current.scale;
     const newX = centerX - (centerX - current.x) * scaleRatio;
     const newY = centerY - (centerY - current.y) * scaleRatio;
+    scheduleUserZoomMotionEnd();
     commitTransform({ x: newX, y: newY, scale: newScale });
-  }, [cancelAnimation, commitTransform, fitScale, logicalViewportSize]);
+  }, [cancelAnimation, commitTransform, fitScale, logicalViewportSize, scheduleUserZoomMotionEnd]);
 
   const zoomOut = useCallback(() => {
     if (!containerRef.current) return;
@@ -751,8 +773,9 @@ export function usePanZoom({
     const scaleRatio = newScale / current.scale;
     const newX = centerX - (centerX - current.x) * scaleRatio;
     const newY = centerY - (centerY - current.y) * scaleRatio;
+    scheduleUserZoomMotionEnd();
     commitTransform({ x: newX, y: newY, scale: newScale });
-  }, [cancelAnimation, commitTransform, fitScale, logicalViewportSize]);
+  }, [cancelAnimation, commitTransform, fitScale, logicalViewportSize, scheduleUserZoomMotionEnd]);
 
   const zoomToScale = useCallback((relativeScale: number) => {
     if (!containerRef.current) return;
@@ -769,8 +792,9 @@ export function usePanZoom({
     const scaleRatio = clampedScale / current.scale;
     const newX = centerX - (centerX - current.x) * scaleRatio;
     const newY = centerY - (centerY - current.y) * scaleRatio;
+    scheduleUserZoomMotionEnd();
     commitTransform({ x: newX, y: newY, scale: clampedScale });
-  }, [cancelAnimation, commitTransform, fitScale, logicalViewportSize]);
+  }, [cancelAnimation, commitTransform, fitScale, logicalViewportSize, scheduleUserZoomMotionEnd]);
 
   const zoomToPoint = useCallback((
     mapX: number,
