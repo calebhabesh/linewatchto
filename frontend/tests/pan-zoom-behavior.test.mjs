@@ -208,7 +208,19 @@ describe("pan zoom behavior guardrails", () => {
     assert.doesNotMatch(mapSource, /isAnimating/);
   });
 
-  it("simplifies TTC decorative effects without changing authored paint during camera motion", () => {
+  it("sizes the transformed TTC stage to the authored canvas like the regional map", () => {
+    const ttcStage = mapSource.match(
+      /className="ttc-map-stage([^\"]*)"[\s\S]*?style=\{\{([\s\S]*?)\}\}/,
+    );
+
+    assert.ok(ttcStage);
+    assert.doesNotMatch(ttcStage[1], /\bw-full\b|\bh-full\b/);
+    assert.match(ttcStage[2], /width:\s*"4500px"/);
+    assert.match(ttcStage[2], /height:\s*"2181\.8px"/);
+    assert.match(regionalMapSource, /className="regional-map-stage relative"[\s\S]*?width:\s*`\$\{MAP_WIDTH\}px`[\s\S]*?height:\s*`\$\{MAP_HEIGHT\}px`/);
+  });
+
+  it("simplifies TTC rendering without dropping authored effects during camera motion", () => {
     assert.match(mapSource, /data-map-camera-moving="false"/);
     assert.match(mapSource, /data-map-zoom-active="false"/);
     assert.match(hookSource, /containerRef\.current\.dataset\.mapCameraMoving = active \? "true" : "false"/);
@@ -245,13 +257,21 @@ describe("pan zoom behavior guardrails", () => {
       globalCss,
       /\.map-gesture-active \.ttc-svg-container svg \*\s*\{/,
     );
-    assert.doesNotMatch(
+    assert.match(
       globalCss,
-      /\[data-map-camera-moving="true"\] \.ttc-svg-container svg(?:\s*,|\s*\{)/,
+      /\[data-map-camera-moving="true"\] \.ttc-svg-container svg,[\s\S]*?shape-rendering:\s*auto;[\s\S]*?text-rendering:\s*optimizeLegibility;/,
     );
-    assert.doesNotMatch(
+    assert.match(
       globalCss,
-      /\.map-gesture-active \.ttc-svg-container svg(?:\s*,|\s*\{)/,
+      /:is\(\.map-gesture-active, \[data-map-zoom-active="true"\]\) \.ttc-svg-container svg,[\s\S]*?shape-rendering:\s*auto;[\s\S]*?text-rendering:\s*optimizeLegibility;/,
+    );
+    assert.match(
+      globalCss,
+      /:is\(\.map-gesture-active, \[data-map-zoom-active="true"\]\) \.ttc-svg-container :is\([\s\S]*?#ttc-map-base-root \*[\s\S]*?#ttc-map-foreground-root \*[\s\S]*?shape-rendering:\s*auto !important;[\s\S]*?text-rendering:\s*optimizeLegibility !important;/,
+    );
+    assert.match(
+      globalCss,
+      /\[data-map-camera-moving="true"\] \.ttc-svg-container :is\([\s\S]*?#ttc-map-base-root \*[\s\S]*?#ttc-map-foreground-root \*[\s\S]*?shape-rendering:\s*auto !important;[\s\S]*?text-rendering:\s*optimizeLegibility !important;/,
     );
     assert.doesNotMatch(
       globalCss,

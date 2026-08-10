@@ -1278,7 +1278,7 @@ test("affected segment targets distinguish dragging from selection", async ({ pa
   await expect(target).toHaveCSS("stroke-width", "96px");
   await page.waitForTimeout(900);
 
-  const mapElement = page.locator(".absolute.top-0.left-0.w-full.h-full.origin-top-left").first();
+  const mapElement = page.locator(".ttc-map-stage").first();
   const initialTransform = await mapElement.evaluate((element) => element.style.transform);
   const start = await target.evaluate((element) => {
     const path = element as SVGPathElement;
@@ -1444,7 +1444,7 @@ test("mobile closing station details preserves the focused map camera", async ({
   await page.goto("/");
   await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
 
-  const mapLayer = page.locator(".absolute.top-0.left-0.w-full.h-full.origin-top-left").first();
+  const mapLayer = page.locator(".ttc-map-stage").first();
   const defaultTransform = await mapLayer.evaluate((element) => element.style.transform);
 
   await page.getByRole("button", { name: "Stub Station station details" }).click();
@@ -1472,6 +1472,12 @@ test("desktop TTC station focus keeps one camera target while the SVG settles", 
 
   const viewport = page.locator("[data-map-pan-zoom-viewport]");
   const mapStage = viewport.locator(".ttc-map-stage");
+  const authoredMap = mapStage.locator(".ttc-svg-container > svg");
+  await expect(mapStage).toHaveCSS("width", "4500px");
+  await expect(mapStage).toHaveCSS("height", "2181.8px");
+  await authoredMap.evaluate((element) => {
+    element.dataset.cameraTestIdentity = "stable-authored-map";
+  });
   await page.getByRole("button", { name: "Zoom in", exact: true }).click();
   await page.getByRole("button", { name: "Zoom in", exact: true }).click();
   await page.waitForTimeout(150);
@@ -1505,15 +1511,19 @@ test("desktop TTC station focus keeps one camera target while the SVG settles", 
   expect(await decorativeOverlayGlow.evaluate(
     (element) => getComputedStyle(element).animationPlayState,
   )).toContain("paused");
-  await expect(mapStage.locator(".ttc-svg-container > svg")).toHaveCSS("shape-rendering", "geometricprecision");
+  await expect(authoredMap).toHaveCSS("shape-rendering", "auto");
+  await expect(authoredMap).toHaveCSS("text-rendering", "optimizelegibility");
   const authoredTrack = mapStage.locator("#ttc-tracks-layer path").first();
-  await expect(authoredTrack).toHaveCSS("shape-rendering", "geometricprecision");
-  await expect(authoredTrack).toHaveCSS("text-rendering", "geometricprecision");
+  await expect(authoredTrack).toHaveCSS("shape-rendering", "auto");
+  await expect(authoredTrack).toHaveCSS("text-rendering", "optimizelegibility");
 
   await page.waitForTimeout(160);
   expect(await mapStage.evaluate((element) => (element as HTMLElement).style.transform)).toBe(focusTarget);
   await expect(viewport).toHaveAttribute("data-map-camera-moving", "false", { timeout: 2_000 });
   expect(await mapStage.evaluate((element) => (element as HTMLElement).style.transform)).toBe(focusTarget);
+  await expect(authoredMap).toHaveAttribute("data-camera-test-identity", "stable-authored-map");
+  await expect(authoredMap).toHaveCSS("shape-rendering", "geometricprecision");
+  await expect(authoredMap).toHaveCSS("text-rendering", "geometricprecision");
   expect(await decorativeOverlayGlow.evaluate(
     (element) => getComputedStyle(element).filter,
   )).toContain("blur");
@@ -1845,7 +1855,7 @@ test("mobile closing impact details preserves the focused map camera", async ({ 
   await page.goto("/");
   await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
 
-  const mapLayer = page.locator(".absolute.top-0.left-0.w-full.h-full.origin-top-left").first();
+  const mapLayer = page.locator(".ttc-map-stage").first();
   const defaultTransform = await mapLayer.evaluate((element) => element.style.transform);
 
   await page.getByRole("button", { name: "delay: Sheppard-Yonge to Don Mills" }).dispatchEvent("click");
@@ -1872,7 +1882,7 @@ test("desktop closing station details preserves the focused map camera", async (
   await page.goto("/");
   await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
 
-  const mapLayer = page.locator(".absolute.top-0.left-0.w-full.h-full.origin-top-left").first();
+  const mapLayer = page.locator(".ttc-map-stage").first();
   const defaultTransform = await mapLayer.evaluate((element) => element.style.transform);
 
   await page.getByRole("button", { name: "Stub Station station details" }).click();
@@ -1898,7 +1908,7 @@ test("desktop closing impact details preserves the focused map camera", async ({
   await page.goto("/");
   await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
 
-  const mapLayer = page.locator(".absolute.top-0.left-0.w-full.h-full.origin-top-left").first();
+  const mapLayer = page.locator(".ttc-map-stage").first();
   const defaultTransform = await mapLayer.evaluate((element) => element.style.transform);
 
   await page.getByRole("button", { name: "delay: Sheppard-Yonge to Don Mills" }).click();
@@ -1965,7 +1975,7 @@ test("mobile rotated map mode keeps station and impact selections in the rotated
   await expect(page.locator("[data-rotated-map-selection-card]")).toContainText("Selected Service Impact");
   await expect(page.locator("[data-rotated-map-selection-card]")).toContainText("Sheppard-Yonge");
 
-  const rotatedMapLayer = page.locator(".absolute.top-0.left-0.w-full.h-full.origin-top-left").first();
+  const rotatedMapLayer = page.locator(".ttc-map-stage").first();
   const rotatedFocusedTransform = await rotatedMapLayer.evaluate((element) => element.style.transform);
   await page.locator("[data-rotated-map-selection-card]").getByRole("button", { name: "Clear selected map item" }).click();
   await expect(page.locator("[data-rotated-map-selection-card]")).toHaveCount(0);
@@ -2885,7 +2895,7 @@ test("drag after focus zoom cancels animation and retains transform", async ({ p
   await page.waitForTimeout(100); // let it start animating
 
   // Locate the map wrapper
-  const mapElement = page.locator(".absolute.top-0.left-0.w-full.h-full.origin-top-left").first();
+  const mapElement = page.locator(".ttc-map-stage").first();
 
   // Get initial transform style
   const initialTransform = await mapElement.evaluate((el) => el.style.transform);
@@ -2916,7 +2926,7 @@ test("desktop wheel zoom keeps the main-map compositor topology and updates smoo
   await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
 
   const mapSurface = page.locator(".network-map-transition-surface");
-  const mapElement = mapSurface.locator(".absolute.top-0.left-0.w-full.h-full.origin-top-left");
+  const mapElement = mapSurface.locator(".ttc-map-stage");
   const viewport = mapSurface.locator(".cursor-grab").first();
   const viewportBox = await viewport.boundingBox();
   expect(viewportBox).not.toBeNull();

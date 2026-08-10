@@ -18520,10 +18520,25 @@ img.transit-line-badge {
 
 :is(.map-gesture-active, [data-map-zoom-active="true"]) .regional-map-stage > svg,
 :is(.map-gesture-active, [data-map-zoom-active="true"]) .regional-map-stage > div > svg,
+:is(.map-gesture-active, [data-map-zoom-active="true"]) .ttc-svg-container svg,
 :is(.map-gesture-active, [data-map-zoom-active="true"]) .asset-alert-path,
 :is(.map-gesture-active, [data-map-zoom-active="true"]) .asset-alert-path-glow {
   shape-rendering: auto;
   text-rendering: optimizeLegibility;
+}
+
+/* The TTC asset authors precision hints directly onto its label nodes, so an
+   outer-svg hint alone cannot reduce their repaint cost. Override only the two
+   static authored groups during motion; React-owned overlays retain their own
+   rendering contract. */
+:is(.map-gesture-active, [data-map-zoom-active="true"]) .ttc-svg-container :is(
+  #ttc-map-base-root,
+  #ttc-map-base-root *,
+  #ttc-map-foreground-root,
+  #ttc-map-foreground-root *
+) {
+  shape-rendering: auto !important;
+  text-rendering: optimizeLegibility !important;
 }
 
 /* Programmatic camera flights, including Center, follow the same visual
@@ -18548,10 +18563,21 @@ img.transit-line-badge {
   transition: none !important;
 }
 
+[data-map-camera-moving="true"] .ttc-svg-container svg,
 [data-map-camera-moving="true"] .asset-alert-path,
 [data-map-camera-moving="true"] .asset-alert-path-glow {
   shape-rendering: auto;
   text-rendering: optimizeLegibility;
+}
+
+[data-map-camera-moving="true"] .ttc-svg-container :is(
+  #ttc-map-base-root,
+  #ttc-map-base-root *,
+  #ttc-map-foreground-root,
+  #ttc-map-foreground-root *
+) {
+  shape-rendering: auto !important;
+  text-rendering: optimizeLegibility !important;
 }
 
 /* ============================================================

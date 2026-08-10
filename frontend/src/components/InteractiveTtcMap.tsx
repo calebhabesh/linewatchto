@@ -1641,8 +1641,15 @@ function InteractiveTtcMapComponent({
         {loadState === "ready" && (
           <div
             ref={mapRef}
-            className="ttc-map-stage absolute top-0 left-0 w-full h-full origin-top-left"
+            className="ttc-map-stage absolute top-0 left-0 origin-top-left"
             style={{
+              // Match the transformed layer box to the authored map canvas.
+              // A viewport-sized parent with this artwork overflowing it makes
+              // Chromium repeatedly invalidate SVG and text tiles while zooming.
+              // The regional map avoids that churn by transforming a stage with
+              // the full intrinsic map dimensions.
+              width: "4500px",
+              height: "2181.8px",
               transformOrigin: "0 0",
             }}
           >
