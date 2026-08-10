@@ -19,6 +19,7 @@ function pathElementForLabel(label) {
 describe("map SVG guide asset", () => {
   it("preserves the hidden nonlinear segment guide paths used by runtime overlays", () => {
     assert.match(svg, /inkscape:label="non-linear-guides-layer"/);
+    assert.match(svg, /id="non-linear-guides-layer"[\s\S]*?style="[^"]*display:none/);
     assert.match(svg, /inkscape:label="seg-line-1-union-king"/);
     assert.match(svg, /inkscape:label="seg-line-1-st-andrew-union"/);
     assert.match(svg, /inkscape:label="seg-line-1-st-george-spadina"/);
@@ -41,8 +42,8 @@ describe("map SVG guide asset", () => {
     assert.doesNotMatch(pathD, /(^|[\s,])[zZ]($|[\s,])/);
     assert.equal(
       pathD,
-      "M 4074.3926 2620.5984 V 2538.1018 H 3736.3127",
-      "the runtime guide should preserve the authored station-aligned coordinates without displacement",
+      "m 4075.8197,2622.9729 v -82.4966 h -338.0799",
+      "the runtime guide should preserve the latest authored station-aligned coordinates without displacement",
     );
   });
 

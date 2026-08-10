@@ -4,6 +4,7 @@ export type MapPoint = { x: number; y: number };
 export type MapBounds = { x: number; y: number; width: number; height: number };
 export type MapPolygon = [MapPoint, MapPoint, MapPoint, MapPoint];
 export type PathFrame = { point: MapPoint; tangent: MapPoint; normal: MapPoint };
+type MeasurableSvgPath = Pick<SVGPathElement, "getPointAtLength">;
 export type MapMatrix = {
   a: number;
   b: number;
@@ -111,6 +112,45 @@ export function samplePath(pathD: string, spacing: number = 56): SampledPath {
     console.error("Error sampling SVG path:", e);
     return { points: [], step: spacing };
   }
+}
+
+export function extrapolatedPathFrame(
+  path: MeasurableSvgPath,
+  length: number,
+  distance: number,
+  tangentSampleDistance = 1,
+): PathFrame | null {
+  if (length <= 0) return null;
+
+  const resolvedDistance = Math.max(0, Math.min(length, distance));
+  const sampleDistance = Math.max(Number.EPSILON, Math.min(length, tangentSampleDistance));
+  const beforeDistance = resolvedDistance <= 0
+    ? 0
+    : Math.max(0, resolvedDistance - sampleDistance);
+  const afterDistance = resolvedDistance >= length
+    ? length
+    : Math.min(length, resolvedDistance + sampleDistance);
+  const before = path.getPointAtLength(beforeDistance);
+  const after = path.getPointAtLength(afterDistance);
+  const magnitude = Math.hypot(after.x - before.x, after.y - before.y);
+  if (magnitude <= Number.EPSILON) return null;
+
+  const tangent = {
+    x: (after.x - before.x) / magnitude,
+    y: (after.y - before.y) / magnitude,
+  };
+  const anchor = path.getPointAtLength(resolvedDistance);
+  const overflowDistance = distance - resolvedDistance;
+  const point = {
+    x: anchor.x + tangent.x * overflowDistance,
+    y: anchor.y + tangent.y * overflowDistance,
+  };
+
+  return {
+    point,
+    tangent,
+    normal: { x: -tangent.y, y: tangent.x },
+  };
 }
 
 export function pathCenter(pathD: string): MapPoint | null {
@@ -253,7 +293,14 @@ function pathToPolylinePoints(pathD: string): MapPoint[] {
   if (!pathD) {
     return [];
   }
+  if (isLinearPathData(pathD)) {
+    return parsedPathPoints(pathD);
+  }
   return measuredPathPoints(pathD) ?? parsedPathPoints(pathD);
+}
+
+function isLinearPathData(pathD: string): boolean {
+  return !/[acqst]/i.test(pathD);
 }
 
 function measuredPathPoints(pathD: string, spacing: number = 32): MapPoint[] | null {
@@ -264,16 +311,33 @@ function measuredPathPoints(pathD: string, spacing: number = 32): MapPoint[] | n
     const length = path.getTotalLength();
     if (length <= 0) return [];
 
-    const count = Math.max(1, Math.ceil(length / spacing));
     const points: MapPoint[] = [];
-    for (let i = 0; i <= count; i++) {
-      const point = path.getPointAtLength((length * i) / count);
+    for (const distance of pathSamplingDistances(length, spacing)) {
+      const point = path.getPointAtLength(distance);
       points.push({ x: point.x, y: point.y });
     }
     return points;
   } catch {
     return null;
   }
+}
+
+export function pathSamplingDistances(
+  length: number,
+  spacing: number,
+  endpointTangentSample = 1,
+): number[] {
+  if (length <= 0) return [];
+
+  const count = Math.max(1, Math.ceil(length / Math.max(Number.EPSILON, spacing)));
+  const tangentDistance = Math.min(length / 2, Math.max(Number.EPSILON, endpointTangentSample));
+  return Array.from(new Set([
+    0,
+    tangentDistance,
+    ...Array.from({ length: count + 1 }, (_unused, index) => length * index / count),
+    length - tangentDistance,
+    length,
+  ])).sort((a, b) => a - b);
 }
 
 function parsedPathPoints(pathD: string): MapPoint[] {
@@ -657,11 +721,12 @@ function pathDataInRootCoordinates(path: SVGPathElement, root: SVGSVGElement): s
       : pathMatrix;
     if (!relativeMatrix) return authoredPathD;
 
-    const count = Math.max(1, Math.ceil(length / 24));
-    const points = Array.from({ length: count + 1 }, (_unused, index) => {
-      const point = path.getPointAtLength(length * index / count);
-      return transformPoint({ x: point.x, y: point.y }, relativeMatrix);
-    });
+    const points = isLinearPathData(authoredPathD)
+      ? parsedPathPoints(authoredPathD).map((point) => transformPoint(point, relativeMatrix))
+      : pathSamplingDistances(length, 24).map((distance) => {
+          const point = path.getPointAtLength(distance);
+          return transformPoint({ x: point.x, y: point.y }, relativeMatrix);
+        });
     return pointsToPath(dedupePoints(points));
   } catch {
     return authoredPathD;

@@ -3,6 +3,7 @@
 import { memo, useEffect, useState, useMemo, useLayoutEffect, useRef, useCallback } from "react";
 import {
   composeNetworkSegmentPath,
+  extrapolatedPathFrame,
   pathCorridorCollisionBoxes,
   pathMidpointFrame,
   readSvgGeometry,
@@ -3560,13 +3561,10 @@ function AnimatedChevronLane({
         }
 
         try {
-          const p = path.getPointAtLength(Math.max(0, Math.min(length, dist)));
-          const delta = 1;
-          const pAhead = path.getPointAtLength(Math.min(length, dist + delta));
-          const pBehind = path.getPointAtLength(Math.max(0, dist - delta));
-          const dx = pAhead.x - pBehind.x;
-          const dyTangent = pAhead.y - pBehind.y;
-          let angle = Math.atan2(dyTangent, dx) * (180 / Math.PI);
+          const frame = extrapolatedPathFrame(path, length, dist);
+          if (!frame) return;
+          const p = frame.point;
+          let angle = Math.atan2(frame.tangent.y, frame.tangent.x) * (180 / Math.PI);
 
           if (direction === "reverse") {
             angle += 180;
@@ -3717,16 +3715,10 @@ function AnimatedSuspensionLane({
         }
 
         try {
-          const pDist = Math.max(0, Math.min(length, dist));
-          const p = path.getPointAtLength(pDist);
-          const delta = 1;
-          const pAheadDist = Math.min(length, pDist + delta);
-          const pBehindDist = Math.max(0, pDist - delta);
-          const pAhead = path.getPointAtLength(pAheadDist);
-          const pBehind = path.getPointAtLength(pBehindDist);
-          const dx = pAhead.x - pBehind.x;
-          const dyTangent = pAhead.y - pBehind.y;
-          const angle = Math.atan2(dyTangent, dx) * (180 / Math.PI);
+          const frame = extrapolatedPathFrame(path, length, dist);
+          if (!frame) return;
+          const p = frame.point;
+          const angle = Math.atan2(frame.tangent.y, frame.tangent.x) * (180 / Math.PI);
 
           const angleForward = direction === "reverse" ? angle - 180 : angle;
           const angleForwardRad = (angleForward * Math.PI) / 180;
@@ -3963,13 +3955,10 @@ function AnimatedHourglassLane({
         }
 
         try {
-          const p = path.getPointAtLength(Math.max(0, Math.min(length, dist)));
-          const delta = 1;
-          const pAhead = path.getPointAtLength(Math.min(length, dist + delta));
-          const pBehind = path.getPointAtLength(Math.max(0, dist - delta));
-          const dx = pAhead.x - pBehind.x;
-          const dyTangent = pAhead.y - pBehind.y;
-          let angle = Math.atan2(dyTangent, dx) * (180 / Math.PI);
+          const frame = extrapolatedPathFrame(path, length, dist);
+          if (!frame) return;
+          const p = frame.point;
+          let angle = Math.atan2(frame.tangent.y, frame.tangent.x) * (180 / Math.PI);
 
           if (direction === "reverse") {
             angle += 180;

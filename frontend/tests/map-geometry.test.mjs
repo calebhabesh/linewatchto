@@ -5,12 +5,39 @@ import * as geometry from "../src/app/map-geometry.ts";
 
 const {
   composeNetworkSegmentPath,
+  extrapolatedPathFrame,
   pathCorridorCollisionBoxes,
   pathMidpointFrame,
+  pathSamplingDistances,
   resolveNetworkSegmentPath,
   visualTravelDirection,
   samplePath,
 } = geometry;
+
+function polylinePath(points) {
+  const lengths = points.slice(1).map((point, index) =>
+    Math.hypot(point.x - points[index].x, point.y - points[index].y));
+  const totalLength = lengths.reduce((sum, length) => sum + length, 0);
+  return {
+    length: totalLength,
+    getPointAtLength(distance) {
+      const target = Math.max(0, Math.min(totalLength, distance));
+      let walked = 0;
+      for (let index = 1; index < points.length; index++) {
+        const segmentLength = lengths[index - 1];
+        if (walked + segmentLength >= target) {
+          const progress = segmentLength <= 0 ? 0 : (target - walked) / segmentLength;
+          return {
+            x: points[index - 1].x + (points[index].x - points[index - 1].x) * progress,
+            y: points[index - 1].y + (points[index].y - points[index - 1].y) * progress,
+          };
+        }
+        walked += segmentLength;
+      }
+      return points.at(-1);
+    },
+  };
+}
 
 const stations = [
   { id: "eglinton", name: "Eglinton", x: 4547, y: 1808 },
@@ -150,6 +177,60 @@ describe("map overlay geometry", () => {
     const result = samplePath("M 0 0 L 100 0");
     assert.deepEqual(result.points, []);
     assert.equal(result.step, 56);
+  });
+
+  it("continues moving glyph frames through both ends of a nonlinear guide", () => {
+    const guide = polylinePath([
+      { x: 0, y: 0 },
+      { x: 0, y: 80 },
+      { x: 60, y: 100 },
+    ]);
+
+    const before = extrapolatedPathFrame(guide, guide.length, -12);
+    const after = extrapolatedPathFrame(guide, guide.length, guide.length + 12);
+
+    assert.deepEqual(before.point, { x: 0, y: -12 });
+    assert.ok(after.point.x > 71 && after.point.x < 72);
+    assert.ok(after.point.y > 103 && after.point.y < 104);
+    assert.ok(after.tangent.x > 0.94 && after.tangent.y > 0.31);
+  });
+
+  it("samples a composed path continuously across a nonlinear guide subset boundary", () => {
+    const corridor = polylinePath([
+      { x: 0, y: 0 },
+      { x: 0, y: 80 },
+      { x: 60, y: 100 },
+      { x: 120, y: 120 },
+    ]);
+    const guideBoundary = 80 + Math.hypot(60, 20);
+
+    const frame = extrapolatedPathFrame(corridor, corridor.length, guideBoundary);
+
+    assert.ok(Math.abs(frame.point.x - 60) < 0.001);
+    assert.ok(Math.abs(frame.point.y - 100) < 0.001);
+    assert.ok(frame.tangent.x > 0.94 && frame.tangent.y > 0.31);
+  });
+
+  it("preserves endpoint tangents when flattening whole guides and guide subsets", () => {
+    const distances = pathSamplingDistances(237, 32);
+
+    assert.deepEqual(distances.slice(0, 2), [0, 1]);
+    assert.deepEqual(distances.slice(-2), [236, 237]);
+    assert.ok(distances.some((distance) => distance > 1 && distance < 236));
+  });
+
+  it("preserves the exact corner of a linear nonlinear guide", () => {
+    const corridor = composeNetworkSegmentPath([
+      {
+        id: "line-1-st-george-spadina",
+        pathD: "m 4075.8197,2622.9729 v -82.4966 h -338.0799",
+      },
+    ]);
+
+    assert.equal(
+      corridor.pathD,
+      "M 4075.82 2622.973 L 4075.82 2540.476 L 3737.74 2540.476",
+    );
   });
 
   it("samples collision boxes along each overlay path corridor", () => {

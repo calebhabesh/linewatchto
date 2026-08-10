@@ -139,6 +139,11 @@ const guideLabels = new Map([
   ["seg-line-6-humber-college-westmore", "seg-line-6-humber-college-westmore"],
 ]);
 
+svg = svg.replace(
+  /(id="non-linear-guides-layer"[\s\S]*?style="[^"]*)display:inline/,
+  "$1display:none",
+);
+
 svg = replaceSection(svg, 'id="non-linear-guides-layer"', "</g></g>\n</svg>", (section) => {
   return section.replace(/<path\b[\s\S]*?\/>/g, (pathElement) => {
     const authoredLabel = pathElement.match(/inkscape:label="([^"]+)"/)?.[1];

@@ -23,15 +23,15 @@
    inkscape:pageopacity="0.0"
    inkscape:pagecheckerboard="0"
    inkscape:deskcolor="#d1d1d1"
-   inkscape:zoom="0.7071068"
-   inkscape:cx="3455.6307"
-   inkscape:cy="1050.0535"
+   inkscape:zoom="1"
+   inkscape:cx="668.49998"
+   inkscape:cy="902.49998"
    inkscape:window-width="2560"
    inkscape:window-height="1363"
    inkscape:window-x="0"
    inkscape:window-y="0"
    inkscape:window-maximized="1"
-   inkscape:current-layer="layer4" />
+   inkscape:current-layer="Layer_x0020_1" />
  <defs
    id="defs1"><inkscape:path-effect
    effect="fillet_chamfer"
@@ -3528,17 +3528,17 @@
      id="path12"
      style="clip-rule:evenodd;display:inline;opacity:1;fill:none;fill-rule:evenodd;stroke:#00f812;stroke-width:80.0887;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
      inkscape:label="seg-line-1-st-andrew-union"
-     d="M 4074.3926 3342.5529 V 3357.8967 C 4074.3928 3489.9253 4181.6663 3596.9555 4313.995 3596.9555" /><path
+     d="m 4074.3926,3342.5529 v 15.3438 c 2e-4,132.0286 107.2737,239.0588 239.6024,239.0588" /><path
      id="path15"
      style="clip-rule:evenodd;display:inline;opacity:1;fill:none;fill-rule:evenodd;stroke:#00f812;stroke-width:80.0887;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
      inkscape:label="seg-line-1-union-king"
-     d="M 4313.995 3596.9555 C 4445.6017 3596.5301 4551.9451 3489.4971 4551.5197 3357.8911 V 3342.5467" /><path
+     d="m 4313.995,3596.9555 c 131.6067,-0.4254 237.9501,-107.4584 237.5247,-239.0644 v -15.3444" /><path
      id="path33"
      style="clip-rule:evenodd;display:inline;opacity:1;fill:none;fill-rule:evenodd;stroke:#00f812;stroke-width:80.0887;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
      inkscape:label="seg-line-1-st-george-spadina"
-     d="M 4074.3926 2620.5984 V 2538.1018 H 3736.3127" /><path
+     d="m 4075.8197,2622.9729 v -82.4966 h -338.0799" /><path
      id="path35"
      style="clip-rule:evenodd;display:inline;opacity:1;fill:none;fill-rule:evenodd;stroke:#00f812;stroke-width:80;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
      inkscape:label="seg-line-6-humber-college-westmore"
-     d="M 153.61046 1238.3356 V 1066.297 C 153.61046 1034.1845 179.6428 1008.1522 211.7553 1008.1522 H 299.97406" /></g></g>
+     d="M 153.61046,1238.3356 V 1066.297 c 0,-32.1125 26.03234,-58.1448 58.14484,-58.1448 h 88.21876" /></g></g>
 </svg>
