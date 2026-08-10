@@ -551,7 +551,7 @@ function InteractiveTtcMapComponent({
   }, [containerRef]);
 
   // Center map automatically when SVG loads and container dimensions are resolved
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (loadState !== "ready") return;
     if (readyNotifiedRef.current) return;
 
@@ -1507,6 +1507,7 @@ function InteractiveTtcMapComponent({
       <div
         ref={containerRef}
         data-map-pan-zoom-viewport
+        data-map-camera-moving="false"
         className={`relative w-full h-full overflow-hidden select-none touch-none ${
           isDragging ? "cursor-grabbing" : "cursor-grab"
         }`}
@@ -1533,15 +1534,9 @@ function InteractiveTtcMapComponent({
         {loadState === "ready" && (
           <div
             ref={mapRef}
-            className="absolute top-0 left-0 w-full h-full origin-top-left"
+            className="ttc-map-stage absolute top-0 left-0 w-full h-full origin-top-left"
             style={{
-              transform: `translate(${transform.x}px, ${transform.y}px) scale(${transform.scale})`,
               transformOrigin: "0 0",
-              transition: reducedMotion || mobilePerformanceMode
-                ? "none"
-                : isDragging
-                  ? "none"
-                  : "transform 0.1s ease-out",
             }}
           >
             <style>

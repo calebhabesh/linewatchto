@@ -18540,6 +18540,42 @@ img.transit-line-badge {
   text-rendering: optimizeLegibility;
 }
 
+/* Programmatic TTC camera flights use the same bounded-paint contract as the
+   regional map. Keep the authored rail/station/label artwork in its normal
+   paint layer, but suspend expensive refresh-owned effects until the camera
+   settles so Chromium does not flash partially repainted SVG tiles. */
+[data-map-camera-moving="true"] .asset-alert-path-glow:not(.map-selection-attention),
+[data-map-camera-moving="true"] .interactive-glow:not(.map-selection-attention),
+[data-map-camera-moving="true"] .asset-alert-path.delay-candy,
+[data-map-camera-moving="true"] .asset-alert-path.suspension-candy,
+[data-map-camera-moving="true"] .asset-alert-path.delay-static-base,
+[data-map-camera-moving="true"] .delay-hourglass-mask-path,
+[data-map-camera-moving="true"] .suspension-mask-path,
+[data-map-camera-moving="true"] .delay-static-path,
+[data-map-camera-moving="true"] .station-impact-ring:not(.map-selection-attention),
+[data-map-camera-moving="true"] .station-impact-dot-red-glow,
+[data-map-camera-moving="true"] .station-impact-dot-red-ping,
+[data-map-camera-moving="true"] .station-commute-green-flash,
+[data-map-camera-moving="true"] .commute-path-preview-glow,
+[data-map-camera-moving="true"] .commute-path-preview-path {
+  animation: none !important;
+  filter: none !important;
+  transition: none !important;
+}
+
+[data-map-camera-moving="true"] .map-selection-attention {
+  animation-play-state: paused !important;
+  filter: none !important;
+  transition: none !important;
+}
+
+[data-map-camera-moving="true"] .ttc-svg-container svg,
+[data-map-camera-moving="true"] .asset-alert-path,
+[data-map-camera-moving="true"] .asset-alert-path-glow {
+  shape-rendering: auto;
+  text-rendering: optimizeLegibility;
+}
+
 /* ============================================================
    Mobile map controls (rotate, exit, center, details)
    ============================================================ */

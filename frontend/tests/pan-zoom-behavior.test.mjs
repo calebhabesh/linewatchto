@@ -126,6 +126,21 @@ describe("pan zoom behavior guardrails", () => {
     assert.match(hookSource, /cancelAnimation\(\);.*startGestureInteraction\(e\.pointerType\)/s);
   });
 
+  it("continues wheel and button zoom from the rendered point of an interrupted camera flight", () => {
+    const wheelHandler = hookSource.match(
+      /const handleWheel = useCallback\(([\s\S]*?)\n  \}, \[[^\]]*\]\);/,
+    )?.[1] ?? "";
+    const zoomInHandler = hookSource.match(
+      /const zoomIn = useCallback\(([\s\S]*?)\n  \}, \[[^\]]*\]\);/,
+    )?.[1] ?? "";
+
+    assert.match(wheelHandler, /cancelAnimation\(\)/);
+    assert.match(wheelHandler, /const current = transformRef\.current/);
+    assert.match(wheelHandler, /commitTransform\(\{ x: newX, y: newY, scale: newScale \}\)/);
+    assert.match(zoomInHandler, /cancelAnimation\(\)/);
+    assert.match(zoomInHandler, /const current = transformRef\.current/);
+  });
+
   it("commits programmatic transforms to the ref synchronously", () => {
     assert.match(hookSource, /function commitTransform|const commitTransform = useCallback/);
     assert.match(hookSource, /const snapped = snapTransform\(next\)/);
@@ -167,9 +182,31 @@ describe("pan zoom behavior guardrails", () => {
     assert.match(hookSource, /moveToDefaultCamera\(true, false\)/);
   });
 
-  it("dragging disables transform transitions without React animation state", () => {
-    assert.match(mapSource, /isDragging\s*\?\s*"none"\s*:\s*"transform 0\.1s ease-out"/s);
+  it("keeps the TTC camera transform outside React render reconciliation", () => {
+    const ttcStage = mapSource.match(
+      /className="ttc-map-stage[\s\S]*?style=\{\{([\s\S]*?)\}\}/,
+    )?.[1] ?? "";
+
+    assert.doesNotMatch(ttcStage, /transform:/);
+    assert.doesNotMatch(ttcStage, /transition:/);
+    assert.match(hookSource, /useLayoutEffect\(\(\) => \{[\s\S]*writeMapTransform\(transform\)/);
     assert.doesNotMatch(mapSource, /isAnimating/);
+  });
+
+  it("simplifies TTC overlay paint for the full programmatic camera flight", () => {
+    assert.match(mapSource, /data-map-camera-moving="false"/);
+    assert.match(hookSource, /containerRef\.current\.dataset\.mapCameraMoving = active \? "true" : "false"/);
+    assert.match(hookSource, /setProgrammaticCameraMotion\(true\);[\s\S]*setMapTransition\("transform 0\.8s cubic-bezier/);
+    assert.match(hookSource, /setTransform\(\{ \.\.\.transformRef\.current \}\);[\s\S]*setProgrammaticCameraMotion\(false\)/);
+    assert.match(
+      globalCss,
+      /\[data-map-camera-moving="true"\] \.asset-alert-path-glow:not\(\.map-selection-attention\)[\s\S]*?animation:\s*none\s*!important;[\s\S]*?filter:\s*none\s*!important;/s,
+    );
+    assert.match(
+      globalCss,
+      /\[data-map-camera-moving="true"\] \.map-selection-attention\s*\{[^}]*animation-play-state:\s*paused\s*!important;[^}]*filter:\s*none\s*!important;/s,
+    );
+    assert.doesNotMatch(globalCss, /\[data-map-camera-moving="true"\] \.ttc-map-stage[^{]*\{[^}]*will-change:\s*transform/s);
   });
 
   it("does not toggle compositor promotion on the huge SVG map layer during gestures", () => {

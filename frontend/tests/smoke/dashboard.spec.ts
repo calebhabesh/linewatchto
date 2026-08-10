@@ -1457,6 +1457,39 @@ test("mobile closing station details preserves the focused map camera", async ({
     .toBe(focusedTransform);
 });
 
+test("desktop TTC station focus keeps one camera target while the SVG settles", async ({ page, request, isMobile }) => {
+  test.skip(isMobile, "desktop programmatic camera flight");
+  await setStubMode(request, "seeded");
+  await page.goto("/");
+  await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
+
+  const viewport = page.locator("[data-map-pan-zoom-viewport]");
+  const mapStage = viewport.locator(".ttc-map-stage");
+  await page.getByRole("button", { name: "Zoom in", exact: true }).click();
+  await page.getByRole("button", { name: "Zoom in", exact: true }).click();
+  await page.waitForTimeout(150);
+  const zoomedTransform = await mapStage.evaluate((element) => (element as HTMLElement).style.transform);
+
+  await page.getByRole("button", { name: "Stub Station station details" }).dispatchEvent("click");
+  await expect(viewport).toHaveAttribute("data-map-camera-moving", "true");
+  await expect.poll(
+    () => mapStage.evaluate((element) => (element as HTMLElement).style.transform),
+  ).not.toBe(zoomedTransform);
+
+  const focusTarget = await mapStage.evaluate((element) => (element as HTMLElement).style.transform);
+  const stationAttention = page.locator(".station-selection-flash.map-selection-attention").first();
+  await expect(stationAttention).toBeAttached();
+  expect(await stationAttention.evaluate(
+    (element) => getComputedStyle(element).animationPlayState,
+  )).toContain("paused");
+  await expect(mapStage.locator(".ttc-svg-container > svg")).toHaveCSS("shape-rendering", "auto");
+
+  await page.waitForTimeout(300);
+  expect(await mapStage.evaluate((element) => (element as HTMLElement).style.transform)).toBe(focusTarget);
+  await expect(viewport).toHaveAttribute("data-map-camera-moving", "false", { timeout: 2_000 });
+  expect(await mapStage.evaluate((element) => (element as HTMLElement).style.transform)).toBe(focusTarget);
+});
+
 test("mobile closing impact details preserves the focused map camera", async ({ page, request, isMobile }) => {
   test.skip(!isMobile, "mobile-only impact camera behavior");
   await setStubMode(request, "seeded");
@@ -2760,6 +2793,11 @@ test("demo account shows account-backed saved commutes", async ({ page, request,
       return Boolean(routePath && (routePath.compareDocumentPosition(overlay) & Node.DOCUMENT_POSITION_FOLLOWING));
     }),
   ).toBe(true);
+  await expect(page.locator("[data-map-pan-zoom-viewport]")).toHaveAttribute(
+    "data-map-camera-moving",
+    "false",
+    { timeout: 2_000 },
+  );
   const commutePathStyle = await page.locator(".commute-path-preview-path").evaluate((path) => {
     const style = getComputedStyle(path);
     return {
