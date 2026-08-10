@@ -23,15 +23,15 @@
    inkscape:pageopacity="0.0"
    inkscape:pagecheckerboard="0"
    inkscape:deskcolor="#d1d1d1"
-   inkscape:zoom="0.25"
-   inkscape:cx="2936"
-   inkscape:cy="1958"
+   inkscape:zoom="0.25000001"
+   inkscape:cx="3813.9999"
+   inkscape:cy="1134"
    inkscape:window-width="2560"
    inkscape:window-height="1363"
    inkscape:window-x="0"
    inkscape:window-y="0"
    inkscape:window-maximized="1"
-   inkscape:current-layer="Layer_x0020_1" />
+   inkscape:current-layer="layer3" />
  <defs
    id="defs1"><inkscape:path-effect
    effect="fillet_chamfer"
@@ -248,42 +248,6 @@
    style="shape-rendering:geometricPrecision;text-rendering:geometricPrecision;image-rendering:optimizeQuality;fill-rule:evenodd;clip-rule:evenodd;display:inline"><text
      xml:space="preserve"
      style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:100px;font-family:'TeX Gyre Heros';-inkscape-font-specification:'TeX Gyre Heros, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;writing-mode:lr-tb;direction:ltr;clip-rule:evenodd;display:inline;fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:none;stroke-width:0;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
-     x="1954.8588"
-     y="249.54468" id="station-label-vaughan-metropolitan-centre" data-station-label-for="vaughan-metropolitan-centre" inkscape:label="station-label-vaughan-metropolitan-centre"><tspan
-       sodipodi:role="line"
-       id="tspan35-5"
-       x="1954.8588"
-       y="249.54468">Vaughan Metropolitan Centre</tspan></text><text
-     xml:space="preserve"
-     style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:100px;font-family:'TeX Gyre Heros';-inkscape-font-specification:'TeX Gyre Heros, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;writing-mode:lr-tb;direction:ltr;clip-rule:evenodd;display:inline;fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:none;stroke-width:0;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
-     x="1163.9138"
-     y="1846.8" id="station-label-mount-dennis" data-station-label-for="mount-dennis" inkscape:label="station-label-mount-dennis"><tspan
-       sodipodi:role="line"
-       id="tspan35-5-1"
-       x="1163.9138"
-       y="1846.8">Mount Dennis</tspan></text><text
-     xml:space="preserve"
-     style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:100px;font-family:'TeX Gyre Heros';-inkscape-font-specification:'TeX Gyre Heros, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;writing-mode:lr-tb;direction:ltr;clip-rule:evenodd;display:inline;fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:none;stroke-width:0;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
-     x="243.95638"
-     y="1201.3855" id="station-label-humber-college" data-station-label-for="humber-college" inkscape:label="station-label-humber-college"><tspan
-       sodipodi:role="line"
-       id="tspan35-5-1-0"
-       x="243.95638"
-       y="1201.3855">Humber</tspan><tspan
-       sodipodi:role="line"
-       x="243.95638"
-       y="1326.3855"
-       id="tspan11">College</tspan></text><text
-     xml:space="preserve"
-     style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:100px;font-family:'TeX Gyre Heros';-inkscape-font-specification:'TeX Gyre Heros, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;writing-mode:lr-tb;direction:ltr;clip-rule:evenodd;display:inline;fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:none;stroke-width:0;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
-     x="592.60016"
-     y="2646.9485" id="station-label-kipling" data-station-label-for="kipling" inkscape:label="station-label-kipling"><tspan
-       sodipodi:role="line"
-       id="tspan35-5-8"
-       x="592.60016"
-       y="2646.9485">Kipling</tspan></text><text
-     xml:space="preserve"
-     style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:100px;font-family:'TeX Gyre Heros';-inkscape-font-specification:'TeX Gyre Heros, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;writing-mode:lr-tb;direction:ltr;clip-rule:evenodd;display:inline;fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:none;stroke-width:0;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
      x="2572.6003"
      y="768.04321" id="station-label-finch-west" data-station-label-for="finch-west" inkscape:label="station-label-finch-west"><tspan
        sodipodi:role="line"
@@ -292,20 +256,20 @@
        y="768.04321">Finch West</tspan></text><text
      xml:space="preserve"
      style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:100px;font-family:'TeX Gyre Heros';-inkscape-font-specification:'TeX Gyre Heros, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;writing-mode:lr-tb;direction:ltr;clip-rule:evenodd;display:inline;fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:none;stroke-width:0;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
-     x="5786.6616"
-     y="989.55371" id="station-label-don-mills" data-station-label-for="don-mills" inkscape:label="station-label-don-mills"><tspan
-       sodipodi:role="line"
-       id="tspan35-5-5-4"
-       x="5786.6616"
-       y="989.55371">Don Mills</tspan></text><text
-     xml:space="preserve"
-     style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:100px;font-family:'TeX Gyre Heros';-inkscape-font-specification:'TeX Gyre Heros, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;writing-mode:lr-tb;direction:ltr;clip-rule:evenodd;display:inline;fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:none;stroke-width:0;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
-     x="4672.6001"
+     x="4646.4985"
      y="724.55322" id="station-label-finch" data-station-label-for="finch" inkscape:label="station-label-finch"><tspan
        sodipodi:role="line"
-       id="tspan35-5-5-3"
-       x="4672.6001"
+       id="tspan35-5-5-9"
+       x="4646.4985"
        y="724.55322">Finch</tspan></text><text
+     xml:space="preserve"
+     style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:100px;font-family:'TeX Gyre Heros';-inkscape-font-specification:'TeX Gyre Heros, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;writing-mode:lr-tb;direction:ltr;clip-rule:evenodd;display:inline;fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:none;stroke-width:0;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
+     x="1954.7576"
+     y="236.55376" id="station-label-vaughan-metropolitan-centre" data-station-label-for="vaughan-metropolitan-centre" inkscape:label="station-label-vaughan-metropolitan-centre"><tspan
+       sodipodi:role="line"
+       id="tspan35-5-5-5"
+       x="1954.7576"
+       y="236.55376">Vaughan Metropolitan Centre</tspan></text><text
      xml:space="preserve"
      style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:100px;font-family:'TeX Gyre Heros';-inkscape-font-specification:'TeX Gyre Heros, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;writing-mode:lr-tb;direction:ltr;clip-rule:evenodd;display:inline;fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:none;stroke-width:0;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
      x="3668.4045"
@@ -714,14 +678,6 @@
        id="tspan1-6-7-4-4-0"
        x="4627.4141"
        y="2468.9685">Rosedale</tspan></text><text
-     xml:space="preserve"
-     style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:100px;font-family:'TeX Gyre Heros';-inkscape-font-specification:'TeX Gyre Heros, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;writing-mode:lr-tb;direction:ltr;clip-rule:evenodd;display:inline;fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:none;stroke-width:0;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
-     x="7494.2529"
-     y="1835.4999" id="station-label-kennedy" data-station-label-for="kennedy" inkscape:label="station-label-kennedy"><tspan
-       sodipodi:role="line"
-       id="tspan35-5-5-4-4"
-       x="7494.2529"
-       y="1835.4999">Kennedy</tspan></text><text
      xml:space="preserve"
      style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:80px;font-family:'TeX Gyre Heros';-inkscape-font-specification:'TeX Gyre Heros, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;writing-mode:lr-tb;direction:ltr;clip-rule:evenodd;display:inline;fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
      x="4081.8625"
@@ -1232,7 +1188,51 @@
        sodipodi:role="line"
        id="tspan1-6-7-6-6-1-8-0-3-0-9-0-5-0-2-7-3"
        x="86.821571"
-       y="2227.6086">Jane and Finch</tspan></text></g><g
+       y="2227.6086">Jane and Finch</tspan></text><text
+     xml:space="preserve"
+     style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:100px;font-family:'TeX Gyre Heros';-inkscape-font-specification:'TeX Gyre Heros, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;writing-mode:lr-tb;direction:ltr;clip-rule:evenodd;display:inline;fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:none;stroke-width:0;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
+     x="242.60004"
+     y="1201.3855" id="station-label-humber-college" data-station-label-for="humber-college" inkscape:label="station-label-humber-college"><tspan
+       sodipodi:role="line"
+       id="tspan35-5-5-2"
+       x="242.60004"
+       y="1201.3855">Humber</tspan><tspan
+       sodipodi:role="line"
+       x="242.60004"
+       y="1326.3855"
+       id="tspan1">College</tspan></text><text
+     xml:space="preserve"
+     style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:100px;font-family:'TeX Gyre Heros';-inkscape-font-specification:'TeX Gyre Heros, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;writing-mode:lr-tb;direction:ltr;clip-rule:evenodd;display:inline;fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:none;stroke-width:0;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
+     x="592.60052"
+     y="2646.9485" id="station-label-kipling" data-station-label-for="kipling" inkscape:label="station-label-kipling"><tspan
+       sodipodi:role="line"
+       id="tspan35-5-5-7"
+       x="592.60052"
+       y="2646.9485">Kipling</tspan></text><text
+     xml:space="preserve"
+     style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:100px;font-family:'TeX Gyre Heros';-inkscape-font-specification:'TeX Gyre Heros, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;writing-mode:lr-tb;direction:ltr;clip-rule:evenodd;display:inline;fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:none;stroke-width:0;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
+     x="1163.9138"
+     y="1846.8" id="station-label-mount-dennis" data-station-label-for="mount-dennis" inkscape:label="station-label-mount-dennis"><tspan
+       sodipodi:role="line"
+       id="tspan35-5-5-6"
+       x="1163.9138"
+       y="1846.8">Mount Dennis</tspan></text><text
+     xml:space="preserve"
+     style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:100px;font-family:'TeX Gyre Heros';-inkscape-font-specification:'TeX Gyre Heros, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;writing-mode:lr-tb;direction:ltr;clip-rule:evenodd;display:inline;fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:none;stroke-width:0;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
+     x="5786.6616"
+     y="989.55371" id="station-label-don-mills" data-station-label-for="don-mills" inkscape:label="station-label-don-mills"><tspan
+       sodipodi:role="line"
+       id="tspan35-5-5-4"
+       x="5786.6616"
+       y="989.55371">Don Mills</tspan></text><text
+     xml:space="preserve"
+     style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:100px;font-family:'TeX Gyre Heros';-inkscape-font-specification:'TeX Gyre Heros, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;writing-mode:lr-tb;direction:ltr;clip-rule:evenodd;display:inline;fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:none;stroke-width:0;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
+     x="7494.2529"
+     y="1835.4999" id="station-label-kennedy" data-station-label-for="kennedy" inkscape:label="station-label-kennedy"><tspan
+       sodipodi:role="line"
+       id="tspan35-5-5-4-4"
+       x="7494.2529"
+       y="1835.4999">Kennedy</tspan></text></g><g
    inkscape:groupmode="layer"
    id="ttc-tracks-layer"
    inkscape:label="tracks"
@@ -3467,7 +3467,7 @@
          style="fill:#4084cd;fill-opacity:1" /></g></g><g
      id="g1-85-2"
      inkscape:label="go-logo-main-street"
-     transform="matrix(3.3149097,0,0,3.3149097,-10732.583,-7646.495)"
+     transform="matrix(3.3149097,0,0,3.3149097,-10732.583,-7637.8954)"
      style="clip-rule:evenodd;display:inline;fill-rule:evenodd;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"><path
        style="fill:#00a859;fill-opacity:1;stroke-width:0.150247"
        d="m 5225.4513,3134.0034 c -3.4279,-0.7578 -5.8524,-3.2273 -6.603,-6.7257 l -0.089,-0.4132 h 8.5476 8.5475 l -0.1213,0.6495 c -0.464,2.4837 -2.3715,4.8383 -4.7981,5.923 -1.6851,0.7532 -3.6984,0.9612 -5.484,0.5664 z"
@@ -3486,7 +3486,7 @@
        id="path16978-6-71-7-8-5-1" /></g><g
      id="g1-85-3"
      inkscape:label="go-logo-kennedy"
-     transform="matrix(3.3149097,0,0,3.3149097,-9590.0046,-8459.7445)"
+     transform="matrix(3.3149097,0,0,3.3149097,-9590.0046,-8466.1444)"
      style="clip-rule:evenodd;display:inline;fill-rule:evenodd;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"><path
        style="fill:#00a859;fill-opacity:1;stroke-width:0.150247"
        d="m 5225.4513,3134.0034 c -3.4279,-0.7578 -5.8524,-3.2273 -6.603,-6.7257 l -0.089,-0.4132 h 8.5476 8.5475 l -0.1213,0.6495 c -0.464,2.4837 -2.3715,4.8383 -4.7981,5.923 -1.6851,0.7532 -3.6984,0.9612 -5.484,0.5664 z"
@@ -3505,7 +3505,7 @@
        id="path16978-6-71-7-8-5-5" /></g><g
      id="g1-85-6"
      inkscape:label="go-logo-leslie"
-     transform="matrix(3.3149097,0,0,3.3149097,-11665.782,-9365.1187)"
+     transform="matrix(3.3149097,0,0,3.3149097,-11665.782,-9380.0497)"
      style="clip-rule:evenodd;display:inline;fill-rule:evenodd;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"><path
        style="fill:#00a859;fill-opacity:1;stroke-width:0.150247"
        d="m 5225.4513,3134.0034 c -3.4279,-0.7578 -5.8524,-3.2273 -6.603,-6.7257 l -0.089,-0.4132 h 8.5476 8.5475 l -0.1213,0.6495 c -0.464,2.4837 -2.3715,4.8383 -4.7981,5.923 -1.6851,0.7532 -3.6984,0.9612 -5.484,0.5664 z"
