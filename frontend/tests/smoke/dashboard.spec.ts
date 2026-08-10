@@ -1497,31 +1497,16 @@ test("desktop TTC station focus keeps one camera target while the SVG settles", 
   )).toContain("map-selection-station-intro");
   expect(await decorativeOverlayGlow.evaluate(
     (element) => getComputedStyle(element).filter,
-  )).toContain("blur");
-  const overlayGlowPulseTimes = await page.locator(
-    ".overlay-segment-group .asset-alert-path-glow:is(.delay, .suspension, .reduced-speed-zone, .delay-static):not(.interactive-glow)",
-  ).evaluateAll((elements) => elements.flatMap((element) => {
-    const pulse = element.getAnimations().find((animation) => (
-      "animationName" in animation && animation.animationName === "aura-pulse"
-    ));
-    return typeof pulse?.currentTime === "number" ? [pulse.currentTime] : [];
-  }));
-  expect(overlayGlowPulseTimes.length).toBeGreaterThan(1);
-  expect(Math.max(...overlayGlowPulseTimes) - Math.min(...overlayGlowPulseTimes)).toBeLessThan(20);
-  const glowAnimationTimeBefore = await decorativeOverlayGlow.evaluate((element) => (
-    element.getAnimations().find((animation) => (
-      "animationName" in animation && animation.animationName === "aura-pulse"
-    ))?.currentTime ?? 0
-  ));
+  )).toBe("none");
+  expect(await decorativeOverlayGlow.evaluate(
+    (element) => getComputedStyle(element).animationName,
+  )).toBe("none");
   await expect(mapStage.locator(".ttc-svg-container > svg")).toHaveCSS("shape-rendering", "auto");
+  const authoredTrack = mapStage.locator("#ttc-tracks-layer path").first();
+  await expect(authoredTrack).toHaveCSS("shape-rendering", "auto");
+  await expect(authoredTrack).toHaveCSS("text-rendering", "optimizespeed");
 
   await page.waitForTimeout(160);
-  const glowAnimationTimeAfter = await decorativeOverlayGlow.evaluate((element) => (
-    element.getAnimations().find((animation) => (
-      "animationName" in animation && animation.animationName === "aura-pulse"
-    ))?.currentTime ?? 0
-  ));
-  expect(Number(glowAnimationTimeAfter)).toBeGreaterThan(Number(glowAnimationTimeBefore) + 80);
   expect(await mapStage.evaluate((element) => (element as HTMLElement).style.transform)).toBe(focusTarget);
   await expect(viewport).toHaveAttribute("data-map-camera-moving", "false", { timeout: 2_000 });
   expect(await mapStage.evaluate((element) => (element as HTMLElement).style.transform)).toBe(focusTarget);
@@ -1580,8 +1565,8 @@ test("desktop TTC overlay press arms the camera before the next frame", async ({
   )).not.toContain("paused");
 });
 
-test("desktop TTC glow keeps animating during a direct map gesture", async ({ page, request, isMobile }) => {
-  test.skip(isMobile, "desktop animated glow behavior");
+test("desktop TTC gesture substitutes a static rail for the animated glow", async ({ page, request, isMobile }) => {
+  test.skip(isMobile, "desktop map gesture paint behavior");
   await setStubMode(request, "seeded");
   await page.goto("/");
   await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
@@ -1608,19 +1593,9 @@ test("desktop TTC glow keeps animating during a direct map gesture", async ({ pa
     isPrimary: true,
   });
   await expect(page.locator("[data-map-gesture-active=true]")).toBeAttached();
-  expect(await glow.evaluate((element) => getComputedStyle(element).filter)).toContain("blur");
-  const pulseTimeBefore = await glow.evaluate((element) => (
-    element.getAnimations().find((animation) => (
-      "animationName" in animation && animation.animationName === "aura-pulse"
-    ))?.currentTime ?? 0
-  ));
-  await page.waitForTimeout(160);
-  const pulseTimeAfter = await glow.evaluate((element) => (
-    element.getAnimations().find((animation) => (
-      "animationName" in animation && animation.animationName === "aura-pulse"
-    ))?.currentTime ?? 0
-  ));
-  expect(Number(pulseTimeAfter)).toBeGreaterThan(Number(pulseTimeBefore) + 80);
+  expect(await glow.evaluate((element) => getComputedStyle(element).filter)).toBe("none");
+  expect(await glow.evaluate((element) => getComputedStyle(element).animationName)).toBe("none");
+  expect(await glow.evaluate((element) => getComputedStyle(element).opacity)).toBe("0.14");
 
   await viewport.dispatchEvent("pointerup", {
     ...gesturePoint,
@@ -1630,6 +1605,8 @@ test("desktop TTC glow keeps animating during a direct map gesture", async ({ pa
     buttons: 0,
     isPrimary: true,
   });
+  await expect(page.locator("[data-map-gesture-active=true]")).toHaveCount(0);
+  expect(await glow.evaluate((element) => getComputedStyle(element).filter)).toContain("blur");
 });
 
 test("mobile closing impact details preserves the focused map camera", async ({ page, request, isMobile }) => {

@@ -208,22 +208,30 @@ describe("pan zoom behavior guardrails", () => {
     assert.doesNotMatch(mapSource, /isAnimating/);
   });
 
-  it("simplifies TTC rail paint while preserving glow during the full camera flight", () => {
+  it("simplifies TTC authored paint and decorative glows during the full camera flight", () => {
     assert.match(mapSource, /data-map-camera-moving="false"/);
     assert.match(hookSource, /containerRef\.current\.dataset\.mapCameraMoving = active \? "true" : "false"/);
     assert.match(hookSource, /setProgrammaticCameraMotion\(true\);[\s\S]*setMapTransition\("transform 0\.8s cubic-bezier/);
     assert.match(hookSource, /setTransform\(\{ \.\.\.transformRef\.current \}\);[\s\S]*setProgrammaticCameraMotion\(false\)/);
-    assert.doesNotMatch(
+    assert.match(
       globalCss,
-      /\[data-map-camera-moving="true"\] \.asset-alert-path-glow:not\(\.map-selection-attention\)/,
+      /\[data-map-camera-moving="true"\] \.asset-alert-path-glow:not\(\.map-selection-attention\)[\s\S]*?animation:\s*none\s*!important;[\s\S]*?filter:\s*none\s*!important;/s,
     );
-    assert.doesNotMatch(
+    assert.match(
       globalCss,
-      /\.map-gesture-active \.asset-alert-path-glow:not\(\.map-selection-attention\)/,
+      /\.map-gesture-active \.asset-alert-path-glow:not\(\.map-selection-attention\)[\s\S]*?animation:\s*none\s*!important;[\s\S]*?filter:\s*none\s*!important;/s,
     );
     assert.doesNotMatch(
       globalCss,
       /\[data-map-camera-moving="true"\] \.map-selection-attention\s*\{/,
+    );
+    assert.match(
+      globalCss,
+      /\[data-map-camera-moving="true"\] \.ttc-svg-container svg \*\s*\{[^}]*image-rendering:\s*auto\s*!important;[^}]*shape-rendering:\s*auto\s*!important;[^}]*text-rendering:\s*optimizeSpeed\s*!important;/s,
+    );
+    assert.match(
+      globalCss,
+      /\.map-gesture-active \.ttc-svg-container svg \*\s*\{[^}]*image-rendering:\s*auto\s*!important;[^}]*shape-rendering:\s*auto\s*!important;[^}]*text-rendering:\s*optimizeSpeed\s*!important;/s,
     );
     assert.doesNotMatch(globalCss, /\[data-map-camera-moving="true"\] \.ttc-map-stage[^{]*\{[^}]*will-change:\s*transform/s);
   });

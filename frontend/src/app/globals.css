@@ -18500,6 +18500,7 @@ img.transit-line-badge {
    Gesture-active overlay simplification
    Pauses expensive animated effects while touch gestures are live
    ============================================================ */
+.map-gesture-active .asset-alert-path-glow:not(.map-selection-attention),
 .map-gesture-active .interactive-glow:not(.map-selection-attention),
 .map-gesture-active .asset-alert-path.delay-candy,
 .map-gesture-active .asset-alert-path.suspension-candy,
@@ -18519,6 +18520,12 @@ img.transit-line-badge {
   animation: none !important;
   filter: none !important;
   transition: none !important;
+}
+
+/* Keep disruption context visible without asking Chromium to continuously
+   rerasterize a large blurred SVG surface while the camera is moving. */
+.map-gesture-active .asset-alert-path-glow:not(.map-selection-attention) {
+  opacity: 0.14 !important;
 }
 
 /* Replacing a running selection animation with `animation: none` makes the
@@ -18544,10 +18551,20 @@ img.transit-line-badge {
   text-rendering: optimizeLegibility;
 }
 
+/* The optimized Inkscape asset authors rendering hints on its individual
+   nodes. A hint on the outer SVG cannot override those declarations, so apply
+   the motion-only mode to the authored descendants as well. */
+.map-gesture-active .ttc-svg-container svg * {
+  image-rendering: auto !important;
+  shape-rendering: auto !important;
+  text-rendering: optimizeSpeed !important;
+}
+
 /* Programmatic TTC camera flights use the same bounded-paint contract as the
-   regional map. Keep the authored rail/station/label artwork and its filtered
-   glow in their normal paint layers, but suspend the heavier rail/mask effects
-   until the camera settles. */
+   regional map. Keep the authored rail/station/label artwork in its normal
+   paint layer, but replace blurred decorative auras with cheap static context
+   and suspend the heavier rail/mask effects until the camera settles. */
+[data-map-camera-moving="true"] .asset-alert-path-glow:not(.map-selection-attention),
 [data-map-camera-moving="true"] .interactive-glow:not(.map-selection-attention),
 [data-map-camera-moving="true"] .asset-alert-path.delay-candy,
 [data-map-camera-moving="true"] .asset-alert-path.suspension-candy,
@@ -18566,11 +18583,21 @@ img.transit-line-badge {
   transition: none !important;
 }
 
+[data-map-camera-moving="true"] .asset-alert-path-glow:not(.map-selection-attention) {
+  opacity: 0.14 !important;
+}
+
 [data-map-camera-moving="true"] .ttc-svg-container svg,
 [data-map-camera-moving="true"] .asset-alert-path,
 [data-map-camera-moving="true"] .asset-alert-path-glow {
   shape-rendering: auto;
   text-rendering: optimizeLegibility;
+}
+
+[data-map-camera-moving="true"] .ttc-svg-container svg * {
+  image-rendering: auto !important;
+  shape-rendering: auto !important;
+  text-rendering: optimizeSpeed !important;
 }
 
 /* ============================================================
