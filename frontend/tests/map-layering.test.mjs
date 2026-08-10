@@ -54,6 +54,7 @@ describe("asset-backed map layering", () => {
 
   it("derives pointer targets from authored station text bounds", () => {
     assert.match(interactiveMapSource, /readSvgStationLabelPolygons/);
+    assert.match(interactiveMapSource, /readSvgStationLabelPolygons\(mapSvgRef\.current, stations\.map\(\(station\) => station\.id\), 24\)/);
     assert.match(interactiveMapSource, /data-station-label-id=\{station\.id\}/);
     assert.match(interactiveMapSource, /<polygon/);
     assert.match(interactiveMapSource, /points=\{labelPolygon\.map/);
@@ -63,6 +64,11 @@ describe("asset-backed map layering", () => {
     assert.match(globalCss, /\.station-label-hit-target\s*\{[^}]*cursor:\s*pointer;[^}]*fill:\s*transparent;[^}]*outline:\s*none;[^}]*stroke:\s*transparent;/s);
     assert.match(interactiveMapSource, /station-label-hovered/);
     assert.match(interactiveMapSource, /station-label-hover-effect/);
+    assert.ok(
+      interactiveMapSource.indexOf('aria-label="Station impact rings"') <
+        interactiveMapSource.indexOf('aria-label="Station label hit targets"'),
+      "station-name targets must remain above station dots and impact rings",
+    );
     assert.doesNotMatch(interactiveMapSource, /station-label-hover-clone/);
     assert.doesNotMatch(interactiveMapSource, /authoredFontSize \* 1\.025/);
     assert.match(globalCss, /\.station-label-hover-effect\s*\{[^}]*pointer-events:\s*none;[^}]*transform-box:\s*fill-box;/s);
@@ -86,6 +92,11 @@ describe("asset-backed map layering", () => {
     assert.doesNotMatch(interactiveRegionalMapSource, /regional-station-label-hover-clone/);
     assert.match(interactiveRegionalMapSource, /dataset\.regionalStationId = stationId/);
     assert.match(interactiveRegionalMapSource, /setRegionalStationLabelHover/);
+    assert.match(
+      globalCss,
+      /\.regional-station-label-hit-target\s*\{[^}]*pointer-events:\s*bounding-box\s*!important;/s,
+      "regional station names should use their complete text bounds instead of individual glyph outlines",
+    );
     assert.match(
       globalCss,
       /\.station-label-hover-effect-active,[\s\S]*?\{[^}]*filter:\s*drop-shadow\(0 0 6px[^}]*transform:\s*scale\(1\.045\);/s,

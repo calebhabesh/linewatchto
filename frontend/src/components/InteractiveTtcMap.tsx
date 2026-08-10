@@ -348,7 +348,7 @@ function InteractiveTtcMapComponent({
       readSvgStationCenters(mapSvgRef.current, stationVisualCenterIds(stations)),
     );
     setStationLabelPolygons(
-      readSvgStationLabelPolygons(mapSvgRef.current, stations.map((station) => station.id), 12),
+      readSvgStationLabelPolygons(mapSvgRef.current, stations.map((station) => station.id), 24),
     );
     setMapCollisionBoxes([
       ...collectMapCollisionBoxes(mapSvgRef.current),
@@ -1885,8 +1885,6 @@ function InteractiveTtcMapComponent({
                     hoveredStationId === station.id &&
                     hoveredStationLabelId !== station.id &&
                     !selected;
-                  const labelPolygon = stationLabelPolygons.get(station.id);
-
                   return (
                     <g
                       key={station.id}
@@ -1916,35 +1914,6 @@ function InteractiveTtcMapComponent({
                         setHoveredStationLabelId((current) => current === station.id ? null : current);
                       }}
                     >
-                      {labelPolygon ? (
-                        <polygon
-                          aria-hidden="true"
-                          data-station-label-id={station.id}
-                          className="station-label-hit-target"
-                          points={labelPolygon.map((point) => `${point.x},${point.y}`).join(" ")}
-                          focusable="false"
-                          onPointerDown={(event) => {
-                            if (event.pointerType === "mouse" && event.button !== 0) return;
-                            try {
-                              event.currentTarget.setPointerCapture(event.pointerId);
-                            } catch {
-                              // Pointer capture can fail if the browser ended the pointer first.
-                            }
-                          }}
-                          onPointerUp={(event) => {
-                            if (event.pointerType === "mouse" && event.button !== 0) return;
-                            if (shouldSuppressMapClick()) return;
-                            onSelectStationId(station.id);
-                          }}
-                          onClick={(event) => {
-                            if (event.detail !== 0 || shouldSuppressMapClick()) return;
-                            event.stopPropagation();
-                            onSelectStationId(station.id);
-                          }}
-                          pointerEvents="all"
-                          vectorEffect="non-scaling-stroke"
-                        />
-                      ) : null}
                       {visualAnchors.map(({ id: anchorId, point }, anchorIndex) => (
                         <g key={`${station.id}:${anchorId}`}>
                           <circle
@@ -2144,6 +2113,56 @@ function InteractiveTtcMapComponent({
                         </g>
                       ))}
                     </g>
+                  );
+                })}
+              </g>
+              {/* Keep names in one foreground interaction plane. When label targets
+                  are interleaved with station dots, a later invisible dot or impact
+                  corridor can steal hover from part of the rendered text. */}
+              <g aria-label="Station label hit targets">
+                {stations.map((station) => {
+                  const labelPolygon = stationLabelPolygons.get(station.id);
+                  if (!labelPolygon) return null;
+
+                  return (
+                    <polygon
+                      key={`station-label-target:${station.id}`}
+                      aria-hidden="true"
+                      data-station-label-id={station.id}
+                      className="station-label-hit-target"
+                      points={labelPolygon.map((point) => `${point.x},${point.y}`).join(" ")}
+                      focusable="false"
+                      onPointerEnter={(event) => {
+                        if (event.pointerType !== "mouse") return;
+                        setHoveredStationId(station.id);
+                        setHoveredStationLabelId(station.id);
+                      }}
+                      onPointerLeave={(event) => {
+                        if (event.pointerType !== "mouse") return;
+                        setHoveredStationId((current) => current === station.id ? null : current);
+                        setHoveredStationLabelId((current) => current === station.id ? null : current);
+                      }}
+                      onPointerDown={(event) => {
+                        if (event.pointerType === "mouse" && event.button !== 0) return;
+                        try {
+                          event.currentTarget.setPointerCapture(event.pointerId);
+                        } catch {
+                          // Pointer capture can fail if the browser ended the pointer first.
+                        }
+                      }}
+                      onPointerUp={(event) => {
+                        if (event.pointerType === "mouse" && event.button !== 0) return;
+                        if (shouldSuppressMapClick()) return;
+                        onSelectStationId(station.id);
+                      }}
+                      onClick={(event) => {
+                        if (event.detail !== 0 || shouldSuppressMapClick()) return;
+                        event.stopPropagation();
+                        onSelectStationId(station.id);
+                      }}
+                      pointerEvents="all"
+                      vectorEffect="non-scaling-stroke"
+                    />
                   );
                 })}
               </g>

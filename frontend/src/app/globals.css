@@ -372,11 +372,14 @@ html[data-network-transition-direction="back"]::view-transition-new(network-map)
   cursor: pointer;
   opacity: 0;
   outline: none;
-  pointer-events: all !important;
+  /* Text with `pointer-events: all` is hit-tested against individual glyphs,
+     which leaves dead seams inside and between letters. Use the full label box
+     so the complete name and its whitespace behave as one confident target. */
+  pointer-events: bounding-box !important;
 }
 
 .regional-map-stage #regional-station-labels-layer .regional-station-label-hit-target tspan {
-  pointer-events: all !important;
+  pointer-events: bounding-box !important;
 }
 
 .dark .regional-map-stage #regional-station-labels-layer [data-regional-station-label-for],
