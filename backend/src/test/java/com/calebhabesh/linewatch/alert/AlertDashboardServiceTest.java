@@ -607,8 +607,8 @@ class AlertDashboardServiceTest {
         assertThat(closures).singleElement().satisfies(dto -> {
             assertThat(dto.id()).isEqualTo("planned-closure-nightly");
             assertThat(dto.title()).isEqualTo(
-                "There will be no subway service between Finch and Eglinton stations overnight from "
-                    + "Sunday, May 31 through Monday, June 1. Each nightly closure runs from "
+                "There will be no subway service between Finch and Eglinton stations overnight on "
+                    + "Sunday, May 31 and Monday, June 1. Each nightly closure runs from "
                     + "11:59 PM until 3:30 AM the following morning."
             );
             assertThat(dto.notificationTitle()).isEqualTo(
@@ -616,13 +616,32 @@ class AlertDashboardServiceTest {
             );
             assertThat(dto.window()).isEqualTo("Nightly closure windows");
             assertThat(dto.windowHours()).isEqualTo("11:59 PM – 3:30 AM");
-            assertThat(dto.windowDates()).isEqualTo("Sun, May 31 – Mon, Jun 1");
+            assertThat(dto.windowDates()).isEqualTo("Sun, May 31; Mon, Jun 1");
             assertThat(dto.nightly()).isTrue();
             assertThat(dto.activeNow()).isFalse();
             assertThat(dto.timingStatus()).isEqualTo("upcoming");
             assertThat(dto.nextWindowStart()).isEqualTo(OffsetDateTime.parse("2026-06-02T03:59:00Z"));
             assertThat(dto.nextWindowEnd()).isEqualTo(OffsetDateTime.parse("2026-06-02T07:30:00Z"));
         });
+    }
+
+    @Test
+    void recurringClosureTitleNamesNonconsecutiveOccurrencesWithoutImplyingRange() {
+        String title = ReflectionTestUtils.invokeMethod(
+            service,
+            "closureDisplayTitle",
+            "There will be no subway service between Lawrence West and St George stations, starting 11",
+            "11:59 PM – 3:30 AM",
+            "Mon, Aug 10; Thu, Aug 13",
+            true,
+            true
+        );
+
+        assertThat(title).isEqualTo(
+            "There will be no subway service between Lawrence West and St George stations overnight on "
+                + "Monday, August 10 and Thursday, August 13. Each nightly closure runs from "
+                + "11:59 PM until 3:30 AM the following morning."
+        );
     }
 
     @Test

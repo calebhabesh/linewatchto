@@ -524,18 +524,9 @@ public class AlertDashboardService {
         if (dates.size() == 1) {
             return formattedClosureDate(dates.getFirst(), now);
         }
-        boolean consecutive = true;
-        for (int index = 1; index < dates.size(); index++) {
-            if (!dates.get(index - 1).plusDays(1).equals(dates.get(index))) {
-                consecutive = false;
-                break;
-            }
-        }
-        if (consecutive) {
-            return formattedClosureDate(dates.getFirst(), now)
-                + " – "
-                + formattedClosureDate(dates.getLast(), now);
-        }
+        // Child periods are discrete authored closure occurrences. Keep them as a
+        // list even when dates happen to be consecutive; a range could imply an
+        // unreported continuous closure or interpolate a missing nightly window.
         return dates.stream()
             .map(date -> formattedClosureDate(date, now))
             .collect(java.util.stream.Collectors.joining("; "));
@@ -819,13 +810,17 @@ public class AlertDashboardService {
         String baseTitle = matcher.replaceFirst("").replaceFirst("[\\s,;:.]+$", "").trim();
         String hours = naturalClosureHours(windowHours);
         String dates = naturalClosureDates(windowDates);
+        boolean discreteOccurrences = windowDates != null && windowDates.contains(";");
         if (hours == null && dates == null) {
             return baseTitle;
         }
 
         StringBuilder titleBuilder = new StringBuilder(baseTitle);
         if (dates != null) {
-            titleBuilder.append(overnight ? " overnight from " : " from ").append(dates);
+            titleBuilder.append(overnight
+                ? discreteOccurrences ? " overnight on " : " overnight from "
+                : discreteOccurrences ? " on " : " from ")
+                .append(dates);
         } else if (overnight) {
             titleBuilder.append(" overnight");
         }
@@ -868,7 +863,22 @@ public class AlertDashboardService {
         if (isBlank(windowDates)) {
             return null;
         }
-        String natural = windowDates.replace(" – ", " through ").replace("; ", ", ");
+        List<String> occurrences = java.util.Arrays.stream(windowDates.split(";\\s*"))
+            .map(this::expandedClosureDateNames)
+            .toList();
+        if (occurrences.size() == 2) {
+            return occurrences.getFirst() + " and " + occurrences.getLast();
+        }
+        if (occurrences.size() > 2) {
+            return String.join(", ", occurrences.subList(0, occurrences.size() - 1))
+                + ", and "
+                + occurrences.getLast();
+        }
+        return occurrences.getFirst();
+    }
+
+    private String expandedClosureDateNames(String windowDate) {
+        String natural = windowDate.replace(" – ", " through ");
         String[][] names = {
             {"Mon", "Monday"}, {"Tue", "Tuesday"}, {"Wed", "Wednesday"},
             {"Thu", "Thursday"}, {"Fri", "Friday"}, {"Sat", "Saturday"}, {"Sun", "Sunday"},

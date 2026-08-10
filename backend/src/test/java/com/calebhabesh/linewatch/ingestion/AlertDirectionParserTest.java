@@ -18,6 +18,26 @@ class AlertDirectionParserTest {
     }
 
     @Test
+    void undirectedNoServiceBetweenTextOverridesContradictoryStructuredDirection() {
+        assertThat(parser.parse(
+            "Southbound From Vaughan",
+            "There will be no subway service between Lawrence West and St George stations.",
+            "Line 1: There will be no subway service between Lawrence West and St George stations.",
+            ""
+        )).isEqualTo(AlertDirection.BIDIRECTIONAL);
+    }
+
+    @Test
+    void explicitDirectionInNoServiceTextRemainsDirectional() {
+        assertThat(parser.parse(
+            "Southbound From Vaughan",
+            "There will be no subway service southbound between Lawrence West and St George stations.",
+            "",
+            ""
+        )).isEqualTo(AlertDirection.SOUTHBOUND);
+    }
+
+    @Test
     void readsTtcStructuredDirectionPhrases() {
         assertThat(parser.parse("Northbound To Vaughan", "", "", ""))
             .isEqualTo(AlertDirection.NORTHBOUND);

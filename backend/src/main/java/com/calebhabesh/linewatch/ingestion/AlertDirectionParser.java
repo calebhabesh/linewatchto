@@ -8,6 +8,12 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class AlertDirectionParser {
+    private static final Pattern CARDINAL_DIRECTION = Pattern.compile(
+        "\\b(?:northbound|southbound|eastbound|westbound)\\b"
+    );
+    private static final Pattern UNDIRECTED_NO_SERVICE_BETWEEN = Pattern.compile(
+        "\\bno\\s+(?:(?:subway|lrt|train)\\s+)?service\\s+between\\b"
+    );
 
     public AlertDirection parse(
         String structuredDirection,
@@ -15,6 +21,15 @@ public class AlertDirectionParser {
         String headerText,
         String description
     ) {
+        // TTC occasionally publishes a directional metadata value for a full segment
+        // closure. Rider-facing "no ... service between ..." wording is an explicit
+        // statement about the whole corridor unless that wording names a cardinal
+        // direction of its own, so reconcile that contradiction before consulting the
+        // structured field.
+        if (hasUndirectedNoServiceBetween(title, headerText, description)) {
+            return AlertDirection.BIDIRECTIONAL;
+        }
+
         for (String value : new String[] { structuredDirection, title, headerText, description }) {
             AlertDirection parsed = parseField(value);
             if (parsed != AlertDirection.UNKNOWN) {
@@ -22,6 +37,14 @@ public class AlertDirectionParser {
             }
         }
         return AlertDirection.UNKNOWN;
+    }
+
+    private boolean hasUndirectedNoServiceBetween(String... riderFacingFields) {
+        String text = String.join(" ", java.util.Arrays.stream(riderFacingFields)
+            .filter(value -> value != null && !value.isBlank())
+            .toList()).toLowerCase(Locale.ROOT);
+        return UNDIRECTED_NO_SERVICE_BETWEEN.matcher(text).find()
+            && !CARDINAL_DIRECTION.matcher(text).find();
     }
 
     private AlertDirection parseField(String value) {

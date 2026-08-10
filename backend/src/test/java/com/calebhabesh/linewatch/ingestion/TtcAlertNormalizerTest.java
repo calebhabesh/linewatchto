@@ -112,7 +112,7 @@ class TtcAlertNormalizerTest {
             "Line 1: nightly planned closure",
             "REDUCED_SERVICE",
             "Subway Closure - Early Access",
-            "Both ways",
+            "Southbound From Vaughan",
             "MAINTENANCE",
             "CLOSURE - Planned Track Work",
             null,
@@ -149,6 +149,7 @@ class TtcAlertNormalizerTest {
             .projection()
             .orElseThrow();
 
+        assertThat(alert.direction()).isEqualTo(AlertDirection.BIDIRECTIONAL);
         assertThat(alert.periods()).containsExactly(
             new NormalizedAlertPeriod(
                 "73254",
