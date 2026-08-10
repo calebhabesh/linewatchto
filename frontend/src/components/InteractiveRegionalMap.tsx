@@ -3334,7 +3334,9 @@ function InteractiveRegionalMapComponent({
 
     clearProgrammaticAnimation();
     beginCameraMotion();
-    setMapTransition("none");
+    // Interpolate coarse mouse-wheel notches while keeping the direct DOM write
+    // path used by high-frequency wheels and trackpads.
+    setMapTransition(shouldAnimateProgrammaticTransform ? "transform 0.1s ease-out" : "none");
 
     const pointer = clientPointToLogicalViewportPoint(
       { x: event.clientX, y: event.clientY },
@@ -3364,7 +3366,7 @@ function InteractiveRegionalMapComponent({
       setCamera({ ...cameraRef.current });
       endCameraMotion();
     }, 80);
-  }, [beginCameraMotion, clearProgrammaticAnimation, endCameraMotion, fitScale, setMapTransition, viewportOrientation, writeMapTransform]);
+  }, [beginCameraMotion, clearProgrammaticAnimation, endCameraMotion, fitScale, setMapTransition, shouldAnimateProgrammaticTransform, viewportOrientation, writeMapTransform]);
 
   const applyActiveGesture = useCallback(() => {
     const pointers = [...activePointersRef.current.values()];

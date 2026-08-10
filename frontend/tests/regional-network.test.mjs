@@ -949,6 +949,16 @@ describe("network-scoped regional dashboard", () => {
     );
   });
 
+  it("smooths coarse regional wheel notches while retaining direct camera writes", () => {
+    const wheelHandler = regionalMapSource.match(
+      /const onWheel = useCallback\(([\s\S]*?)\n  \}, \[[^\]]*\]\);/,
+    )?.[1] ?? "";
+
+    assert.match(wheelHandler, /setMapTransition\(shouldAnimateProgrammaticTransform \? "transform 0\.1s ease-out" : "none"\)/);
+    assert.match(wheelHandler, /cameraRef\.current = nextCamera;[\s\S]*writeMapTransform\(nextCamera\)/);
+    assert.match(wheelHandler, /window\.setTimeout\(\(\) => \{[\s\S]*setCamera\(\{ \.\.\.cameraRef\.current \}\)/);
+  });
+
   it("keeps animated regional alert artwork stable while the camera is moving", () => {
     assert.match(regionalMapSource, /const regionalMapRef = useRef<HTMLElement>\(null\)/);
     assert.match(regionalMapSource, /root\.classList\.toggle\("regional-map-camera-moving", active\)/);

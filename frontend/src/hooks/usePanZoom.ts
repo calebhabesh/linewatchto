@@ -250,8 +250,8 @@ export function usePanZoom({
     writeMapTransform,
   ]);
 
-  // State drives controls and discrete wheel/button updates, while the DOM owns
-  // an in-flight camera animation. Writing only when the state itself changes
+  // State drives controls and button updates, while the DOM owns wheel gestures
+  // and in-flight camera animation. Writing only when the state itself changes
   // prevents unrelated React renders from resetting a CSS interpolation to a
   // stale transform partway through a station or impact focus.
   useLayoutEffect(() => {
@@ -591,11 +591,12 @@ export function usePanZoom({
 
     // Interrupt a camera flight once at the start of a wheel gesture. Reading
     // the computed transform on every wheel tick forces synchronous style work
-    // and repeatedly restarts the idle easing transition, which makes zooming
-    // visibly lag behind the wheel.
+    // on every tick makes zooming visibly lag behind the wheel. Keep the short
+    // transform easing, though, so coarse mouse-wheel notches interpolate rather
+    // than appearing as ratcheting jumps.
     if (wheelCommitTimeoutRef.current === null) {
       cancelAnimation();
-      setMapTransition("none");
+      setMapTransition(shouldAnimateProgrammaticTransform ? "transform 0.1s ease-out" : "none");
       setProgrammaticCameraMotion(true);
     }
     
@@ -628,6 +629,7 @@ export function usePanZoom({
     restoreIdleMapTransition,
     setMapTransition,
     setProgrammaticCameraMotion,
+    shouldAnimateProgrammaticTransform,
   ]);
 
   const moveToDefaultCamera = useCallback((animate: boolean, playEntrance: boolean, entranceDelayMs = 0) => {
