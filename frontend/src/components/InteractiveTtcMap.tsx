@@ -1868,51 +1868,6 @@ function InteractiveTtcMapComponent({
                   />
                 </g>
 
-                <g aria-label="Overlapping alert badges">
-                  {overlapBadges
-                    .filter((badge) => badge.segmentId !== expandedOverlapBadgeId)
-                    .map((badge) => (
-                      <OverlapIndicatorMarker
-                        key={badge.segmentId}
-                        badge={badge}
-                        selection={selection}
-                        isOpen={false}
-                        onToggle={() => {
-                          setHoveredOverlayHighlight(null);
-                          setHoveredOverlayForeground(null);
-                          setHoveredStationImpact(null);
-                          setHoveredOverlapChooserImpact(null);
-                          setExpandedOverlapBadgeId(badge.segmentId);
-                        }}
-                        onHoverChange={(hovered) => setHoveredOverlapBadgeId((current) =>
-                          hovered ? badge.segmentId : current === badge.segmentId ? null : current
-                        )}
-                        shouldSuppressMapClick={shouldSuppressMapClick}
-                      />
-                    ))}
-                  {overlapBadges
-                    .filter((badge) => badge.segmentId === expandedOverlapBadgeId)
-                    .map((badge) => (
-                      <OverlapIndicatorMarker
-                        key={badge.segmentId}
-                        badge={badge}
-                        selection={selection}
-                        isOpen
-                        onToggle={() => {
-                          setHoveredOverlayHighlight(null);
-                          setHoveredOverlayForeground(null);
-                          setHoveredStationImpact(null);
-                          setHoveredOverlapChooserImpact(null);
-                          setExpandedOverlapBadgeId(null);
-                        }}
-                        onHoverChange={(hovered) => setHoveredOverlapBadgeId((current) =>
-                          hovered ? badge.segmentId : current === badge.segmentId ? null : current
-                        )}
-                        shouldSuppressMapClick={shouldSuppressMapClick}
-                      />
-                    ))}
-                </g>
-
                 {/* Cardinal North Compass fixed to map */}
                 <g aria-label="Cardinal North Compass" transform="translate(7600, 2300) scale(4)">
                   <image href="/assets/linewatch/cardinal-north.svg" width="75" height="100" className="opacity-90" style={{ filter: isDark ? "invert(1)" : "none" }} />
@@ -2349,6 +2304,50 @@ function InteractiveTtcMapComponent({
                   );
                 })}
               </g>
+              <g aria-label="Overlapping alert badges">
+                {overlapBadges
+                  .filter((badge) => badge.segmentId !== expandedOverlapBadgeId)
+                  .map((badge) => (
+                    <OverlapIndicatorMarker
+                      key={badge.segmentId}
+                      badge={badge}
+                      selection={selection}
+                      isOpen={false}
+                      onToggle={() => {
+                        setHoveredOverlayHighlight(null);
+                        setHoveredOverlayForeground(null);
+                        setHoveredStationImpact(null);
+                        setHoveredOverlapChooserImpact(null);
+                        setExpandedOverlapBadgeId(badge.segmentId);
+                      }}
+                      onHoverChange={(hovered) => setHoveredOverlapBadgeId((current) =>
+                        hovered ? badge.segmentId : current === badge.segmentId ? null : current
+                      )}
+                      shouldSuppressMapClick={shouldSuppressMapClick}
+                    />
+                  ))}
+                {overlapBadges
+                  .filter((badge) => badge.segmentId === expandedOverlapBadgeId)
+                  .map((badge) => (
+                    <OverlapIndicatorMarker
+                      key={badge.segmentId}
+                      badge={badge}
+                      selection={selection}
+                      isOpen
+                      onToggle={() => {
+                        setHoveredOverlayHighlight(null);
+                        setHoveredOverlayForeground(null);
+                        setHoveredStationImpact(null);
+                        setHoveredOverlapChooserImpact(null);
+                        setExpandedOverlapBadgeId(null);
+                      }}
+                      onHoverChange={(hovered) => setHoveredOverlapBadgeId((current) =>
+                        hovered ? badge.segmentId : current === badge.segmentId ? null : current
+                      )}
+                      shouldSuppressMapClick={shouldSuppressMapClick}
+                    />
+                  ))}
+              </g>
             </svg>
           </div>
         )}
@@ -2483,7 +2482,7 @@ const OVERLAP_BADGE_EDGE_GAP = 8;
 const OVERLAP_BADGE_SIBLING_CLEARANCE = 36;
 const OVERLAP_BADGE_ALIGNMENT_MAX_ANCHOR_DISTANCE = 260;
 const OVERLAP_BADGE_MAP_COMPONENT_PADDING = 18;
-const OVERLAP_BADGE_TEXT_PADDING = 30;
+const OVERLAP_BADGE_TEXT_PADDING = 18;
 // Overlap markers are a primary alert-discovery control. Keep their collision
 // footprint in step with the rendered SVG scale so the larger desktop and
 // mobile targets still clear nearby map content.

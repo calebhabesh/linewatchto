@@ -1976,15 +1976,12 @@ test("shows a compact map hint when multiple alert types overlap", async ({ page
   await expect(overlapMarker).toHaveAttribute("data-overlap-collision-avoided", "true");
   await expect(overlapMarker.locator('[data-overlap-kind="suspension"]')).toBeVisible();
   await expect(overlapMarker.locator('[data-overlap-kind="planned-closure"]')).toBeVisible();
-  const overlapMarkerBox = await overlapMarker.boundingBox();
 
-  if (!isMobile && overlapMarkerBox) {
-    await page.mouse.move(
-      overlapMarkerBox.x + overlapMarkerBox.width / 2,
-      overlapMarkerBox.y + overlapMarkerBox.height / 2,
-    );
+  if (!isMobile) {
+    await overlapMarker.hover();
     await expect.poll(() => page.locator("[data-hover-priority-impact]").count()).toBeGreaterThan(0);
   }
+  const overlapMarkerBox = await overlapMarker.boundingBox();
 
   await overlapMarker.dispatchEvent("click");
   await expect(page.locator("[data-hover-priority-impact]")).toHaveCount(0);
