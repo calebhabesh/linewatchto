@@ -194,7 +194,7 @@ describe("asset-backed map layering", () => {
     assert.match(globalCss, /--planned-preview-ink:\s*#087fff;/);
     assert.match(
       globalCss,
-      /\.asset-alert-path\.planned-preview\s*\{[^}]*opacity:\s*1;[^}]*stroke:\s*var\(--planned-preview-rail\);[^}]*stroke-width:\s*82;/s,
+      /\.asset-alert-path\.planned-preview\s*\{[^}]*opacity:\s*1;[^}]*stroke:\s*var\(--planned-preview-rail\);[^}]*stroke-width:\s*102;/s,
     );
     assert.match(
       globalCss,
@@ -236,12 +236,12 @@ describe("asset-backed map layering", () => {
     );
     assert.match(
       interactiveMapSource,
-      /id=\{maskId\}[\s\S]*?stroke="white"[\s\S]*?style=\{\{ strokeWidth: highlight\.visualState === "planned-preview" \? 100 : 120 \}\}[\s\S]*?stroke="black"[\s\S]*?strokeWidth=\{highlight\.visualState === "planned-preview" \? 82 : 102\}/,
+      /id=\{maskId\}[\s\S]*?stroke="white"[\s\S]*?style=\{\{ strokeWidth: 120 \}\}[\s\S]*?stroke="black"[\s\S]*?strokeWidth=\{102\}/,
     );
     assert.match(interactiveMapSource, /mask=\{`url\(#\$\{maskId\}\)`\}/);
     assert.match(
       interactiveMapSource,
-      /className=\{`asset-alert-path-hover-boundary hover-priority-boundary \$\{highlight\.visualState\}`\}[\s\S]*?style=\{\{ strokeWidth: highlight\.visualState === "planned-preview" \? 100 : 120 \}\}/,
+      /className=\{`asset-alert-path-hover-boundary hover-priority-boundary \$\{highlight\.visualState\}`\}[\s\S]*?style=\{\{ strokeWidth: 120 \}\}/,
     );
     assert.match(interactiveMapSource, /event\.pointerType !== "mouse" \|\| exiting/);
     assert.match(
@@ -273,6 +273,8 @@ describe("asset-backed map layering", () => {
     assert.match(mapGeometrySource, /segment\.travelDirection \?\? "bidirectional"/);
     assert.match(mapGeometrySource, /segment\.guidePathReversed/);
     assert.match(mapGeometrySource, /getAttribute\("inkscape:label"\) === "non-linear-guides-layer"/);
+    assert.match(mapGeometrySource, /pathDataInRootCoordinates\(path, root\)/);
+    assert.match(mapGeometrySource, /multiplyMatrix\(invertMatrix\(rootMatrix\), pathMatrix\)/);
     assert.match(interactiveMapSource, /travelDirection !== "reverse"/);
     assert.match(interactiveMapSource, /travelDirection !== "forward"/);
     assert.match(interactiveMapSource, /reducedMotion \? null : \(/);
@@ -486,14 +488,15 @@ describe("asset-backed map layering", () => {
     );
   });
 
-  it("keeps upcoming closure previews persistent and static", () => {
+  it("keeps upcoming closure previews persistent with direction-independent pulsing", () => {
     assert.match(interactiveMapSource, /plannedClosures\.map\(\(closure\) =>/);
     assert.doesNotMatch(interactiveMapSource, /if \(!selectedClosure\) return \[\];/);
     assert.match(interactiveMapSource, /plannedPreviewSegmentIds/);
     assert.match(interactiveMapSource, /shouldRenderPlannedPreviewLayer\(segment, closure\)/);
     assert.match(globalCss, /\.asset-alert-path\.planned-preview\s*\{[^}]*opacity:\s*(?:0\.\d+|1(?:\.0)?);/s);
-    assert.match(globalCss, /\.asset-alert-path\.planned-preview\s*\{[^}]*stroke:\s*var\(--planned-preview-rail\);[^}]*stroke-dasharray:\s*none;[^}]*stroke-width:\s*82;/s);
-    assert.doesNotMatch(globalCss, /\.asset-alert-path\.planned-preview\s*\{[^}]*animation:/s);
+    assert.match(globalCss, /\.asset-alert-path\.planned-preview\s*\{[^}]*stroke:\s*var\(--planned-preview-rail\);[^}]*stroke-dasharray:\s*none;[^}]*stroke-width:\s*102;/s);
+    assert.match(globalCss, /\.asset-alert-path\.planned-preview\s*\{[^}]*animation:\s*candy-pulse 1\.2s infinite alternate ease-in-out;/s);
+    assert.match(globalCss, /\.motion-paused \.asset-alert-path\.planned-preview/);
     assert.doesNotMatch(globalCss, /\.asset-alert-path\.planned-preview\.selected\s*\{[^}]*stroke-width:\s*118;/s);
   });
 

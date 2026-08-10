@@ -5380,6 +5380,7 @@ button {
 }
 
 .motion-paused .asset-alert-path-glow,
+.motion-paused .asset-alert-path.planned-preview,
 .motion-paused .asset-alert-path.delay-candy,
 .motion-paused .asset-alert-path.suspension-candy,
 .motion-paused .asset-alert-path.delay-static-base,
@@ -5589,7 +5590,9 @@ button {
   opacity: 1;
   stroke: var(--planned-preview-rail);
   stroke-dasharray: none;
-  stroke-width: 82;
+  stroke-width: 102;
+  animation: candy-pulse 1.2s infinite alternate ease-in-out;
+  animation-delay: var(--map-pulse-offset);
   transition: none;
 }
 

@@ -63,19 +63,18 @@ function prepareRegionalMap(source) {
   prepared = replaceElementIdForLabel(prepared, "LW-2", "regional-route-lw-branch-path", "path");
   prepared = replaceElementIdForLabel(prepared, "LW-DIV", "regional-route-lw-div");
   prepared = prepared.replace('inkscape:label="service-pattern-st-limited"', 'inkscape:label="service-pattern-stouffville-limited"');
+  prepared = prepared.replace('inkscape:label="up-accent-path"', 'inkscape:label="up-accent-pattern"');
 
-  const segmentGuides = `<g id="regional-segment-guides-layer" style="display:none">
-    <path id="segment-guide-ki-bloor-mount-dennis" d="M 4531.3117,3677.5021 L 4529.7746,2913.8344 L 4131.9047,2682.7025" />
-    <path id="segment-guide-ki-weston-etobicoke-north" d="M 3428.5664,2278.2556 L 2987.0609,2023.1482 H 2845.6543" />
-    <path id="segment-guide-up-bloor-mount-dennis" d="M 4261.9824,3678.6078 L 4263.2112,3122.3055 L 3962.0964,2953.3683" />
-    <path id="segment-guide-up-weston-pearson-airport" d="M 3263.5664,2559.7402 L 2850.3846,2326.7284 H 2606.1017 L 1672.8678,2913.9392" />
-  </g>`;
+  // Segment overlays are projected from the freshly imported route paths at
+  // runtime. Keep the layer marker for the asset contract, but never inject
+  // coordinate snapshots from a previous authored map revision.
+  const segmentGuides = `<g id="regional-segment-guides-layer" style="display:none" />`;
   prepared = prepared.replace(
     /(<g\s+inkscape:groupmode="layer"\s+id="regional-stations-layer"[^>]*>)/,
     `$1${segmentGuides}`,
   );
-  if (!prepared.includes('id="segment-guide-ki-bloor-mount-dennis"')) {
-    throw new Error("Could not inject regional segment guide paths.");
+  if (!prepared.includes('id="regional-segment-guides-layer"')) {
+    throw new Error("Could not inject the regional segment guide layer marker.");
   }
 
   prepared = prepared.replace(

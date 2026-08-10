@@ -6,6 +6,10 @@ const svg = readFileSync(
   new URL("../public/assets/linewatch/ttc-subway-map-custom.svg", import.meta.url),
   "utf8",
 );
+const ttcImportSource = readFileSync(
+  new URL("../../scripts/prepare-ttc-map-asset.mjs", import.meta.url),
+  "utf8",
+);
 
 function pathElementForLabel(label) {
   const paths = svg.match(/<path\b[\s\S]*?\/>/g) ?? [];
@@ -22,6 +26,11 @@ describe("map SVG guide asset", () => {
     assert.match(svg, /inkscape:label="seg-line-6-humber-college-westmore"/);
   });
 
+  it("preserves newly authored TTC guide coordinates during future map imports", () => {
+    assert.match(ttcImportSource, /const guideLabels = new Map/);
+    assert.doesNotMatch(ttcImportSource, /guideDefinitions|\bd:\s*"M 4074/);
+  });
+
   it("keeps St George to Spadina as an open stroked centerline guide", () => {
     const guidePath = pathElementForLabel("seg-line-1-st-george-spadina");
     const pathD = guidePath.match(/\sd="([^"]+)"/)?.[1] ?? "";
@@ -30,6 +39,11 @@ describe("map SVG guide asset", () => {
     assert.match(guidePath, /fill:none/);
     assert.match(guidePath, /stroke:/);
     assert.doesNotMatch(pathD, /(^|[\s,])[zZ]($|[\s,])/);
+    assert.equal(
+      pathD,
+      "M 4074.3926 2620.5984 V 2538.1018 H 3736.3127",
+      "the runtime guide should preserve the authored station-aligned coordinates without displacement",
+    );
   });
 
   it("preserves station anchors needed for straight fallback and station detail clicks", () => {

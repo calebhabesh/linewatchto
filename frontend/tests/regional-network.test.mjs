@@ -557,6 +557,11 @@ describe("network-scoped regional dashboard", () => {
     assert.match(regionalMapSource, /lane\.dataset\.regionalDelayDirection = travelDirection/);
     assert.match(regionalMapSource, /travelDirection === "bidirectional" \|\| index % 2 === 0/);
     assert.match(regionalMapSource, /REGIONAL_IMPACT_OVERLAY_WIDTH = 196/);
+    assert.match(
+      regionalMapSource,
+      /--regional-impact-width",\s*`\$\{REGIONAL_IMPACT_OVERLAY_WIDTH\}px`/,
+      "regional planned closures should retain the same full-coverage rail width as other disruption overlays",
+    );
     assert.match(regionalMapSource, /REGIONAL_IMPACT_HIT_TARGET_WIDTH = REGIONAL_IMPACT_OVERLAY_WIDTH \+ 169/);
     assert.match(regionalMapSource, /REGIONAL_DELAY_GLYPH_SPACING = 96/);
     assert.match(regionalMapSource, /travelDirection === "bidirectional"[\s\S]*REGIONAL_DELAY_GLYPH_SPACING \* 1\.3[\s\S]*Math\.floor\(length \/ glyphSpacing\)/);
@@ -580,14 +585,18 @@ describe("network-scoped regional dashboard", () => {
     assert.match(globalsCss, /regional-impact-hit-target\s*\{[^}]*stroke-width:\s*var\(--regional-impact-hit-target-width\)/s);
     assert.match(globalsCss, /regional-impact-width\) \+ 169px/);
     assert.match(globalsCss, /data-regional-impact-kind="planned-closure"[\s\S]*regional-impact-aura[\s\S]*display:\s*none/);
+    assert.match(
+      globalsCss,
+      /data-regional-impact-kind="planned-closure"[^}]*regional-impact-path\s*\{[^}]*animation:\s*regional-candy-pulse 1\.2s infinite alternate ease-in-out/s,
+    );
     assert.match(globalsCss, /data-regional-impact-selected="true"[\s\S]*regional-impact-interactive-glow[\s\S]*regional-selection-path-intro/);
     assert.match(globalsCss, /regional-impact-interactive-glow\s*\{[^}]*filter:\s*drop-shadow\(0 0 12px/s);
     assert.doesNotMatch(globalsCss, /regional-impact-interactive-glow\s*\{[^}]*filter:\s*blur/s);
     assert.match(globalsCss, /\.motion-paused \.regional-impact-aura/);
     assert.match(globalsCss, /prefers-reduced-motion:\s*reduce[\s\S]*\.regional-impact-aura/);
-    assert.match(regionalMapSource, /function appendRegionalSuspensionGlyph\([\s\S]*?const scale = 4\.2;/);
+    assert.match(regionalMapSource, /function appendRegionalSuspensionGlyph\([\s\S]*?const scale = 5;/);
     assert.match(regionalMapSource, /const glyphSpacing = travelDirection === "bidirectional" \? 176 : 148;/);
-    assert.match(regionalMapSource, /function appendRegionalPlannedClosureGlyph\([\s\S]*?const scale = 4\.9;/);
+    assert.match(regionalMapSource, /function appendRegionalPlannedClosureGlyph\([\s\S]*?const scale = 6\.2;/);
   });
 
   it("exercises the unidirectional regional delay treatment in the authored scenario", () => {

@@ -767,9 +767,33 @@ test("renders fresh Metrolinx impacts in regional mode", async ({ page, request,
   );
   await expect(suspensionOverlay).toHaveCount(1);
   await expect(suspensionOverlay.locator(".regional-suspension-glyph--no-entry > g").first())
-    .toHaveAttribute("transform", /scale\(4\.2\)/);
+    .toHaveAttribute("transform", /scale\(5\)/);
   await expect(plannedOverlay.locator(".regional-planned-closure-glyph--icon > g").first())
-    .toHaveAttribute("transform", /scale\(6\)/);
+    .toHaveAttribute("transform", /scale\(6\.2\)/);
+  const authoredRouteGap = await suspensionOverlay.locator(".regional-impact-path").evaluate((overlay) => {
+    if (!(overlay instanceof SVGPathElement)) return Number.POSITIVE_INFINITY;
+    const route = overlay.ownerSVGElement?.querySelector<SVGPathElement>("#regional-route-ki-path");
+    if (!route) return Number.POSITIVE_INFINITY;
+    const overlayLength = overlay.getTotalLength();
+    const routeLength = route.getTotalLength();
+    const overlayMatrix = overlay.getCTM();
+    const routeMatrix = route.getCTM();
+    if (!overlayMatrix || !routeMatrix) return Number.POSITIVE_INFINITY;
+    const routePointCount = Math.ceil(routeLength / 8) + 1;
+    const routePoints = Array.from({ length: routePointCount }, (_unused, index) => {
+      const point = route.getPointAtLength(routeLength * index / Math.max(1, routePointCount - 1));
+      return new DOMPoint(point.x, point.y).matrixTransform(routeMatrix);
+    });
+    return Math.max(...Array.from({ length: 17 }, (_unused, index) => {
+      const localPoint = overlay.getPointAtLength(overlayLength * index / 16);
+      const point = new DOMPoint(localPoint.x, localPoint.y).matrixTransform(overlayMatrix);
+      return Math.min(...routePoints.map((routePoint) => Math.hypot(
+        routePoint.x - point.x,
+        routePoint.y - point.y,
+      )));
+    }));
+  });
+  expect(authoredRouteGap).toBeLessThan(12);
   expect(await delayOverlay.evaluate((delay, planned) => Boolean(
     delay.compareDocumentPosition(planned as Node) & Node.DOCUMENT_POSITION_FOLLOWING
   ), await plannedOverlay.elementHandle())).toBe(true);

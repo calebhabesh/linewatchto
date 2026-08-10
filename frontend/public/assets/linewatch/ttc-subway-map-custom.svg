@@ -23,15 +23,15 @@
    inkscape:pageopacity="0.0"
    inkscape:pagecheckerboard="0"
    inkscape:deskcolor="#d1d1d1"
-   inkscape:zoom="1.4142136"
-   inkscape:cx="3068.8434"
-   inkscape:cy="1201.0208"
+   inkscape:zoom="0.25"
+   inkscape:cx="2936"
+   inkscape:cy="1958"
    inkscape:window-width="2560"
    inkscape:window-height="1363"
    inkscape:window-x="0"
    inkscape:window-y="0"
    inkscape:window-maximized="1"
-   inkscape:current-layer="layer3" />
+   inkscape:current-layer="Layer_x0020_1" />
  <defs
    id="defs1"><inkscape:path-effect
    effect="fillet_chamfer"
@@ -368,14 +368,14 @@
        y="931.73517">Downsview Park</tspan></text><text
      xml:space="preserve"
      style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:80px;font-family:'TeX Gyre Heros';-inkscape-font-specification:'TeX Gyre Heros, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;writing-mode:lr-tb;direction:ltr;clip-rule:evenodd;display:inline;fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
-     x="3017.1499"
+     x="2997.5457"
      y="1077.3164" id="station-label-sheppard-west" data-station-label-for="sheppard-west" inkscape:label="station-label-sheppard-west"><tspan
        sodipodi:role="line"
        id="tspan1-6-1-6-9"
-       x="3017.1499"
+       x="2997.5457"
        y="1077.3164">Sheppard</tspan><tspan
        sodipodi:role="line"
-       x="3017.1499"
+       x="2997.5457"
        y="1177.3164"
        id="tspan5">West</tspan></text><text
      xml:space="preserve"
@@ -3524,7 +3524,7 @@
        id="path16978-6-71-7-8-5-0" /></g></g><g
    id="non-linear-guides-layer"
    inkscape:label="non-linear-guides-layer"
-   style="clip-rule:evenodd;display:inline;fill-rule:evenodd;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"><path
+   style="clip-rule:evenodd;display:none;fill-rule:evenodd;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"><path
      id="path12"
      style="clip-rule:evenodd;display:inline;opacity:1;fill:none;fill-rule:evenodd;stroke:#00f812;stroke-width:80.0887;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
      inkscape:label="seg-line-1-st-andrew-union"

@@ -342,7 +342,7 @@ function appendRegionalSuspensionGlyph(
   if (kind === "no-entry") {
     // Replicate TTC's exact SuspensionNoEntryGlyph (white circle with diagonal prohibitory slash)
     // scaled for regional map units (196px stroke width).
-    const scale = 4.2;
+    const scale = 5;
     const artwork = documentNode.createElementNS(SVG_NAMESPACE, "g");
     artwork.setAttribute("transform", `translate(${-12 * scale} ${-12 * scale}) scale(${scale})`);
     artwork.setAttribute("stroke", "#ffffff");
@@ -523,7 +523,7 @@ function appendRegionalPlannedClosureGlyph(
   if (kind === "icon") {
     // Replicate TTC map mode's PlannedClosureIcon (blue outline calendar icon on white rail)
     // scaled for regional map units (196px stroke width).
-    const scale = 4.9;
+    const scale = 6.2;
     const artwork = documentNode.createElementNS(SVG_NAMESPACE, "g");
     artwork.setAttribute("transform", `translate(${-12 * scale} ${-12 * scale}) scale(${scale})`);
     artwork.setAttribute("stroke", "var(--planned-preview-ink, #087fff)");

@@ -48,20 +48,13 @@ describe("regional application map asset", () => {
     }
   });
 
-  it("contains explicit route-specific guide geometry for supported fixture segments", () => {
+  it("derives segment overlays from the current authored route paths instead of stale imported guides", () => {
     assert.match(svg, /id="regional-segment-guides-layer"[^>]*display:none/);
-    assert.match(svg, /id="segment-guide-ki-bloor-mount-dennis"/);
+    assert.doesNotMatch(svg, /id="segment-guide-/);
     assert.match(
-      svg,
-      /id="segment-guide-ki-weston-etobicoke-north" d="M 3428\.5664,2278\.2556 L 2987\.0609,2023\.1482 H 2845\.6543"/,
+      readFileSync(new URL("../../scripts/prepare-regional-map.mjs", import.meta.url), "utf8"),
+      /never inject[\s\S]*coordinate snapshots from a previous authored map revision/,
     );
-    assert.match(svg, /id="segment-guide-up-bloor-mount-dennis"/);
-    assert.match(svg, /id="segment-guide-up-weston-pearson-airport"/);
-    // Other corridors intentionally resolve adjacent stations against their
-    // authored route paths at runtime instead of falling back to straight
-    // station-center chords.
-    assert.doesNotMatch(svg, /id="segment-guide-lw-/);
-    assert.doesNotMatch(svg, /id="segment-guide-le-pickering-ajax"/);
   });
 
   it("loads the authored TeX Gyre Heros Regular and Bold faces in the browser", () => {

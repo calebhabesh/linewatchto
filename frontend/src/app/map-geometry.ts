@@ -636,10 +636,36 @@ export function readSvgGeometry(
   );
   for (const path of guideLayer?.querySelectorAll<SVGPathElement>("path") ?? []) {
     const label = path.getAttribute("inkscape:label");
-    const pathD = path.getAttribute("d");
+    const pathD = pathDataInRootCoordinates(path, root);
     if (label && pathD) guidePaths.set(label, pathD);
   }
   return { anchorPoints, guidePaths };
+}
+
+function pathDataInRootCoordinates(path: SVGPathElement, root: SVGSVGElement): string {
+  const authoredPathD = path.getAttribute("d") ?? "";
+  if (!authoredPathD) return "";
+
+  try {
+    const length = path.getTotalLength();
+    if (length <= 0) return authoredPathD;
+
+    const pathMatrix = path.getCTM();
+    const rootMatrix = root.getCTM();
+    const relativeMatrix = pathMatrix && rootMatrix
+      ? multiplyMatrix(invertMatrix(rootMatrix), pathMatrix)
+      : pathMatrix;
+    if (!relativeMatrix) return authoredPathD;
+
+    const count = Math.max(1, Math.ceil(length / 24));
+    const points = Array.from({ length: count + 1 }, (_unused, index) => {
+      const point = path.getPointAtLength(length * index / count);
+      return transformPoint({ x: point.x, y: point.y }, relativeMatrix);
+    });
+    return pointsToPath(dedupePoints(points));
+  } catch {
+    return authoredPathD;
+  }
 }
 
 export function readSvgStationCenters(

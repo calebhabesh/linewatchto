@@ -132,38 +132,21 @@ for (const [authoredId, contractId] of layerIds) {
 }
 svg = svg.replace('id="ttc-stations-layer"\n   inkscape:label="stations"', 'id="ttc-stations-layer"\n   inkscape:label="stations-layer"');
 
-const guideDefinitions = new Map([
-  ["seg-line-1-union-st-andrew", {
-    label: "seg-line-1-st-andrew-union",
-    d: "M 4074.3926 3342.5529 V 3357.8967 C 4074.3928 3489.9253 4181.6663 3596.9555 4313.995 3596.9555",
-  }],
-  ["seg-line-1-union-king", {
-    label: "seg-line-1-union-king",
-    d: "M 4313.995 3596.9555 C 4445.6017 3596.5301 4551.9451 3489.4971 4551.5197 3357.8911 V 3342.5467",
-  }],
-  ["seg-line-1-spadina-st-george", {
-    label: "seg-line-1-st-george-spadina",
-    d: "M 4074.3926 2620.5984 V 2538.1018 H 3736.3127",
-  }],
-  ["seg-line-6-humber-college-westmore", {
-    label: "seg-line-6-humber-college-westmore",
-    d: "M 153.61046 1238.3356 V 1066.297 C 153.61046 1034.1845 179.6428 1008.1522 211.7553 1008.1522 H 299.97406",
-  }],
+const guideLabels = new Map([
+  ["seg-line-1-union-st-andrew", "seg-line-1-st-andrew-union"],
+  ["seg-line-1-union-king", "seg-line-1-union-king"],
+  ["seg-line-1-spadina-st-george", "seg-line-1-st-george-spadina"],
+  ["seg-line-6-humber-college-westmore", "seg-line-6-humber-college-westmore"],
 ]);
 
 svg = replaceSection(svg, 'id="non-linear-guides-layer"', "</g></g>\n</svg>", (section) => {
-  let rewritten = section.replace(/\s+transform="translate\(-102\.46067,-8\.4910944e-5\)"/, "");
-  rewritten = rewritten.replace(/<path\b[\s\S]*?\/>/g, (pathElement) => {
+  return section.replace(/<path\b[\s\S]*?\/>/g, (pathElement) => {
     const authoredLabel = pathElement.match(/inkscape:label="([^"]+)"/)?.[1];
-    const guide = authoredLabel ? guideDefinitions.get(authoredLabel) : undefined;
-    if (!guide) return pathElement;
+    const label = authoredLabel ? guideLabels.get(authoredLabel) : undefined;
+    if (!label) return pathElement;
     return pathElement
-      .replace(/\sd="[^"]+"/, ` d="${guide.d}"`)
-      .replace(/\sinkscape:label="[^"]+"/, ` inkscape:label="${guide.label}"`)
-      .replace(/\s+transform="[^"]+"/, "")
-      .replace(/\s+sodipodi:nodetypes="[^"]+"/, "");
+      .replace(/\sinkscape:label="[^"]+"/, ` inkscape:label="${label}"`);
   });
-  return rewritten;
 });
 
 // Preserve the UP Express blue and the semantic Mount Dennis selector that the

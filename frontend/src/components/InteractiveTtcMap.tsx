@@ -1742,7 +1742,7 @@ function InteractiveTtcMapComponent({
                             stroke="white"
                             strokeLinecap="round"
                             strokeLinejoin="round"
-                            style={{ strokeWidth: highlight.visualState === "planned-preview" ? 100 : 120 }}
+                            style={{ strokeWidth: 120 }}
                           />
                           <path
                             d={highlight.pathD}
@@ -1750,7 +1750,7 @@ function InteractiveTtcMapComponent({
                             stroke="black"
                             strokeLinecap="round"
                             strokeLinejoin="round"
-                            strokeWidth={highlight.visualState === "planned-preview" ? 82 : 102}
+                            strokeWidth={102}
                           />
                         </mask>
                       </defs>
@@ -1762,7 +1762,7 @@ function InteractiveTtcMapComponent({
                         className={`asset-alert-path-hover-boundary hover-priority-boundary ${highlight.visualState}`}
                         d={highlight.pathD}
                         mask={`url(#${maskId})`}
-                        style={{ strokeWidth: highlight.visualState === "planned-preview" ? 100 : 120 }}
+                        style={{ strokeWidth: 120 }}
                       />
                       </g>
                     );

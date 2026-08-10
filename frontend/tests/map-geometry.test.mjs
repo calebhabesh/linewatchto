@@ -240,15 +240,20 @@ describe("map overlay geometry", () => {
       {
         id: "line-1-spadina-st-george",
         guidePathReversed: true,
-        pathD: "M 300 100 L 0 100",
+        pathD: "M 300 200 V 150 C 300 122.386 277.614 100 250 100 H 0",
       },
       {
         id: "line-1-st-george-museum",
-        pathD: "M 300 100 L 300 200",
+        pathD: "M 300 200 L 300 300",
       },
     ]);
 
-    assert.equal(result.pathD, "M 0 0 L 0 100 L 300 100 L 300 200");
+    assert.match(result.pathD, /^M 0 0 L 0 100 L 250 100/);
+    assert.match(result.pathD, /L 300 150 L 300 200 L 300 300$/);
+    assert.ok(
+      (result.pathD.match(/\bL\b/g) ?? []).length > 6,
+      "the composed multi-link corridor should retain sampled guide curvature",
+    );
     assert.equal((result.pathD.match(/\bM\b/g) ?? []).length, 1);
   });
 

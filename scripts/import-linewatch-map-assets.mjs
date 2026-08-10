@@ -40,12 +40,9 @@ const ROUTE_IDS = new Map([
 
 const JUNCTION_IDS = new Set(["station-weston", "station-mount-dennis", "station-bloor"]);
 
-const REGIONAL_SEGMENT_GUIDES = `<g id="regional-segment-guides-layer" style="display:none">
-    <path id="segment-guide-ki-bloor-mount-dennis" d="M 4531.3117,3677.5021 L 4529.7746,2913.8344 L 4131.9047,2682.7025" />
-    <path id="segment-guide-ki-weston-etobicoke-north" d="M 3428.5664,2278.2556 L 2987.0609,2023.1482 H 2845.6543" />
-    <path id="segment-guide-up-bloor-mount-dennis" d="M 4261.9824,3678.6078 L 4263.2112,3122.3055 L 3962.0964,2953.3683" />
-    <path id="segment-guide-up-weston-pearson-airport" d="M 3263.5664,2559.7402 L 2850.3846,2326.7284 H 2606.1017 L 1672.8678,2913.9392" />
-  </g>`;
+// Runtime projection reads the freshly imported route paths. An empty marker
+// preserves the SVG contract without freezing geometry from an older export.
+const REGIONAL_SEGMENT_GUIDES = `<g id="regional-segment-guides-layer" style="display:none" />`;
 
 function replaceElementId(tag, id) {
   if (/\bid="[^"]+"/.test(tag)) return tag.replace(/\bid="[^"]+"/, `id="${id}"`);
