@@ -55,6 +55,7 @@ export function usePanZoom({
   const animTimeoutRef = useRef<number | null>(null);
   const initialEntranceTimeoutRef = useRef<number | null>(null);
   const programmaticAnimationFrameRef = useRef<number | null>(null);
+  const wheelCommitTimeoutRef = useRef<number | null>(null);
   const startPos = useRef({ x: 0, y: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<HTMLDivElement>(null);
@@ -178,6 +179,10 @@ export function usePanZoom({
       window.clearTimeout(animTimeoutRef.current);
       animTimeoutRef.current = null;
     }
+    if (wheelCommitTimeoutRef.current !== null) {
+      window.clearTimeout(wheelCommitTimeoutRef.current);
+      wheelCommitTimeoutRef.current = null;
+    }
   }, []);
 
   const cancelAnimation = useCallback(() => {
@@ -267,6 +272,9 @@ export function usePanZoom({
       }
       if (programmaticAnimationFrameRef.current !== null) {
         cancelAnimationFrame(programmaticAnimationFrameRef.current);
+      }
+      if (wheelCommitTimeoutRef.current !== null) {
+        window.clearTimeout(wheelCommitTimeoutRef.current);
       }
       setProgrammaticCameraMotion(false);
       isGestureActiveRef.current = false;
@@ -578,8 +586,18 @@ export function usePanZoom({
 
   const handleWheel = useCallback((e: WheelEvent<HTMLDivElement>) => {
     if (!containerRef.current) return;
-    cancelAnimation();
+    e.preventDefault();
     cameraAdjustedByUserRef.current = true;
+
+    // Interrupt a camera flight once at the start of a wheel gesture. Reading
+    // the computed transform on every wheel tick forces synchronous style work
+    // and repeatedly restarts the idle easing transition, which makes zooming
+    // visibly lag behind the wheel.
+    if (wheelCommitTimeoutRef.current === null) {
+      cancelAnimation();
+      setMapTransition("none");
+      setProgrammaticCameraMotion(true);
+    }
     
     const { x: mouseX, y: mouseY } = pointFromClientPoint(e.clientX, e.clientY);
 
@@ -591,8 +609,26 @@ export function usePanZoom({
     const newX = mouseX - (mouseX - current.x) * scaleRatio;
     const newY = mouseY - (mouseY - current.y) * scaleRatio;
 
-    commitTransform({ x: newX, y: newY, scale: newScale });
-  }, [cancelAnimation, commitTransform, fitScale, pointFromClientPoint]);
+    commitTransformRef({ x: newX, y: newY, scale: newScale });
+
+    if (wheelCommitTimeoutRef.current !== null) {
+      window.clearTimeout(wheelCommitTimeoutRef.current);
+    }
+    wheelCommitTimeoutRef.current = window.setTimeout(() => {
+      wheelCommitTimeoutRef.current = null;
+      setTransform({ ...transformRef.current });
+      restoreIdleMapTransition();
+      setProgrammaticCameraMotion(false);
+    }, 100);
+  }, [
+    cancelAnimation,
+    commitTransformRef,
+    fitScale,
+    pointFromClientPoint,
+    restoreIdleMapTransition,
+    setMapTransition,
+    setProgrammaticCameraMotion,
+  ]);
 
   const moveToDefaultCamera = useCallback((animate: boolean, playEntrance: boolean, entranceDelayMs = 0) => {
     if (!containerRef.current) return;

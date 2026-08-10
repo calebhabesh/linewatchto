@@ -136,9 +136,21 @@ describe("pan zoom behavior guardrails", () => {
 
     assert.match(wheelHandler, /cancelAnimation\(\)/);
     assert.match(wheelHandler, /const current = transformRef\.current/);
-    assert.match(wheelHandler, /commitTransform\(\{ x: newX, y: newY, scale: newScale \}\)/);
+    assert.match(wheelHandler, /commitTransformRef\(\{ x: newX, y: newY, scale: newScale \}\)/);
     assert.match(zoomInHandler, /cancelAnimation\(\)/);
     assert.match(zoomInHandler, /const current = transformRef\.current/);
+  });
+
+  it("keeps continuous TTC wheel zoom DOM-owned and free of idle easing", () => {
+    const wheelHandler = hookSource.match(
+      /const handleWheel = useCallback\(([\s\S]*?)\n  \}, \[[\s\S]*?\n  \]\);/,
+    )?.[1] ?? "";
+
+    assert.match(wheelHandler, /if \(wheelCommitTimeoutRef\.current === null\) \{[\s\S]*?cancelAnimation\(\)/);
+    assert.match(wheelHandler, /setMapTransition\("none"\)/);
+    assert.match(wheelHandler, /commitTransformRef\(\{ x: newX, y: newY, scale: newScale \}\)/);
+    assert.match(wheelHandler, /window\.setTimeout\(\(\) => \{[\s\S]*?setTransform\(\{ \.\.\.transformRef\.current \}\)/);
+    assert.doesNotMatch(wheelHandler, /commitTransform\(/);
   });
 
   it("commits programmatic transforms to the ref synchronously", () => {
