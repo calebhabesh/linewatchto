@@ -2,6 +2,7 @@ import type { NetworkSegment, Station } from "./linewatch-data";
 
 export type MapPoint = { x: number; y: number };
 export type MapBounds = { x: number; y: number; width: number; height: number };
+export type MapPolygon = [MapPoint, MapPoint, MapPoint, MapPoint];
 export type PathFrame = { point: MapPoint; tangent: MapPoint; normal: MapPoint };
 export type MapMatrix = {
   a: number;
@@ -185,17 +186,9 @@ export function transformBoundsToRootCoordinates(
   elementMatrix: MapMatrix | null | undefined,
   rootMatrix?: MapMatrix | null,
 ): MapBounds | null {
-  const relativeMatrix = rootMatrix && elementMatrix
-    ? multiplyMatrix(invertMatrix(rootMatrix), elementMatrix)
-    : elementMatrix ?? identityMatrix();
-  if (!relativeMatrix) return null;
+  const points = transformBoundsToRootPolygon(bounds, elementMatrix, rootMatrix);
+  if (!points) return null;
 
-  const points = [
-    transformPoint({ x: bounds.x, y: bounds.y }, relativeMatrix),
-    transformPoint({ x: bounds.x + bounds.width, y: bounds.y }, relativeMatrix),
-    transformPoint({ x: bounds.x + bounds.width, y: bounds.y + bounds.height }, relativeMatrix),
-    transformPoint({ x: bounds.x, y: bounds.y + bounds.height }, relativeMatrix),
-  ];
   const xs = points.map((point) => point.x);
   const ys = points.map((point) => point.y);
   const minX = Math.min(...xs);
@@ -209,6 +202,27 @@ export function transformBoundsToRootCoordinates(
     width: normalizeBoundsNumber(maxX - minX),
     height: normalizeBoundsNumber(maxY - minY),
   };
+}
+
+export function transformBoundsToRootPolygon(
+  bounds: MapBounds,
+  elementMatrix: MapMatrix | null | undefined,
+  rootMatrix?: MapMatrix | null,
+): MapPolygon | null {
+  const relativeMatrix = rootMatrix && elementMatrix
+    ? multiplyMatrix(invertMatrix(rootMatrix), elementMatrix)
+    : elementMatrix ?? identityMatrix();
+  if (!relativeMatrix) return null;
+
+  return [
+    transformPoint({ x: bounds.x, y: bounds.y }, relativeMatrix),
+    transformPoint({ x: bounds.x + bounds.width, y: bounds.y }, relativeMatrix),
+    transformPoint({ x: bounds.x + bounds.width, y: bounds.y + bounds.height }, relativeMatrix),
+    transformPoint({ x: bounds.x, y: bounds.y + bounds.height }, relativeMatrix),
+  ].map((point) => ({
+    x: normalizeBoundsNumber(point.x),
+    y: normalizeBoundsNumber(point.y),
+  })) as MapPolygon;
 }
 
 export function composeNetworkSegmentPath(
@@ -660,12 +674,13 @@ export function readSvgStationCenters(
   return centers;
 }
 
-export function readSvgStationLabelBounds(
+export function readSvgStationLabelPolygons(
   root: SVGSVGElement,
   stationIds: string[],
-): Map<string, MapBounds> {
+  padding = 0,
+): Map<string, MapPolygon> {
   const expectedIds = new Set(stationIds);
-  const boundsByStationId = new Map<string, MapBounds>();
+  const polygonsByStationId = new Map<string, MapPolygon>();
   const rootMatrix = root.getScreenCTM();
 
   for (const element of root.querySelectorAll<SVGGraphicsElement>(
@@ -676,18 +691,23 @@ export function readSvgStationLabelBounds(
 
     try {
       const box = element.getBBox();
-      const bounds = transformBoundsToRootCoordinates(
-        { x: box.x, y: box.y, width: box.width, height: box.height },
+      const polygon = transformBoundsToRootPolygon(
+        {
+          x: box.x - padding,
+          y: box.y - padding,
+          width: box.width + padding * 2,
+          height: box.height + padding * 2,
+        },
         element.getScreenCTM(),
         rootMatrix,
       );
-      if (bounds && bounds.width > 0 && bounds.height > 0) {
-        boundsByStationId.set(stationId, bounds);
+      if (polygon) {
+        polygonsByStationId.set(stationId, polygon);
       }
     } catch {
       // A temporarily hidden or not-yet-laid-out SVG label has no usable box.
     }
   }
 
-  return boundsByStationId;
+  return polygonsByStationId;
 }

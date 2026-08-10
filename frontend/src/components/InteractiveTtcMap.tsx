@@ -6,7 +6,7 @@ import {
   pathCorridorCollisionBoxes,
   pathMidpointFrame,
   readSvgGeometry,
-  readSvgStationLabelBounds,
+  readSvgStationLabelPolygons,
   readSvgStationCenters,
   resolveNetworkSegmentPath,
   transformBoundsToRootCoordinates,
@@ -14,6 +14,7 @@ import {
   samplePath,
   type MapBounds,
   type MapPoint,
+  type MapPolygon,
   type PathFrame,
 } from "../app/map-geometry";
 import { usePanZoom } from "../hooks/usePanZoom";
@@ -308,6 +309,7 @@ function InteractiveTtcMapComponent({
   const [svgParts, setSvgParts] = useState<TtcMapMarkupParts | null>(null);
   const [loadState, setLoadState] = useState<"loading" | "ready" | "error">("loading");
   const [hoveredStationId, setHoveredStationId] = useState<string | null>(null);
+  const [hoveredStationLabelId, setHoveredStationLabelId] = useState<string | null>(null);
   const [hoveredOverlayHighlight, setHoveredOverlayHighlight] = useState<HoveredOverlayHighlight | null>(null);
   const [hoveredOverlayForeground, setHoveredOverlayForeground] = useState<HoveredOverlayForeground | null>(null);
   const [hoveredStationImpact, setHoveredStationImpact] = useState<ImpactSelection>(null);
@@ -324,7 +326,7 @@ function InteractiveTtcMapComponent({
   const [anchorPoints, setAnchorPoints] = useState(new Map<string, MapPoint>());
   const [guidePaths, setGuidePaths] = useState(new Map<string, string>());
   const [stationCenterPoints, setStationCenterPoints] = useState(new Map<string, MapPoint>());
-  const [stationLabelBounds, setStationLabelBounds] = useState(new Map<string, MapBounds>());
+  const [stationLabelPolygons, setStationLabelPolygons] = useState(new Map<string, MapPolygon>());
   const [mapCollisionBoxes, setMapCollisionBoxes] = useState<SvgBounds[]>([]);
 
   useLayoutEffect(() => {
@@ -335,14 +337,28 @@ function InteractiveTtcMapComponent({
     setStationCenterPoints(
       readSvgStationCenters(mapSvgRef.current, stationVisualCenterIds(stations)),
     );
-    setStationLabelBounds(
-      readSvgStationLabelBounds(mapSvgRef.current, stations.map((station) => station.id)),
+    setStationLabelPolygons(
+      readSvgStationLabelPolygons(mapSvgRef.current, stations.map((station) => station.id), 12),
     );
     setMapCollisionBoxes([
       ...collectMapCollisionBoxes(mapSvgRef.current),
       ...collectBaseRouteCollisionBoxes(networkSegments, mapStations, geometry.anchorPoints, geometry.guidePaths),
     ]);
   }, [loadState, mapStations, networkSegments, stations]);
+
+  useLayoutEffect(() => {
+    const root = mapSvgRef.current;
+    if (!root) return;
+
+    for (const label of root.querySelectorAll<SVGGraphicsElement>(
+      "#ttc-station-labels-layer [data-station-label-for]",
+    )) {
+      label.classList.toggle(
+        "station-label-hovered",
+        label.dataset.stationLabelFor === hoveredStationLabelId,
+      );
+    }
+  }, [hoveredStationLabelId, svgParts]);
 
   const stationPointFor = useCallback((station: { id: string; mapX: number; mapY: number }): MapPoint => {
     return stationCenterPoints.get(station.id) ?? { x: station.mapX, y: station.mapY };
@@ -1844,16 +1860,16 @@ function InteractiveTtcMapComponent({
                   const isLarge = isStationVisuallyLarge(station);
                   const visualAnchors = visualAnchorsForStation(station);
                   const hasMultipleVisualAnchors = visualAnchors.length > 1;
-                  const hitRadius = selection
-                    ? hasMultipleVisualAnchors ? 34 : isLarge ? 46 : 32
-                    : hasMultipleVisualAnchors ? 45 : isLarge ? 66 : 41;
-                  const usesIndependentSpadinaHover = station.id === "spadina" && visualAnchors.length === 2;
-                  const hoverRadius = usesIndependentSpadinaHover ? 34 : isLarge ? 72 : 48;
+                  // Match the authored dot outlines. Alert paths retain their own
+                  // screen-space interaction corridors below these exact targets.
+                  const hitRadius = hasMultipleVisualAnchors ? 34 : isLarge ? 67 : 37;
+                  const hoverRadius = hitRadius;
                   const highlightRadius = hasMultipleVisualAnchors ? 33 : isLarge ? 48 : 38;
                   const showStationHover =
                     hoveredStationId === station.id &&
+                    hoveredStationLabelId !== station.id &&
                     !selected;
-                  const labelBounds = stationLabelBounds.get(station.id);
+                  const labelPolygon = stationLabelPolygons.get(station.id);
 
                   return (
                     <g
@@ -1862,27 +1878,35 @@ function InteractiveTtcMapComponent({
                         if (event.pointerType !== "mouse") return;
                         setHoveredStationId(station.id);
                       }}
+                      onPointerOver={(event) => {
+                        if (event.pointerType !== "mouse") return;
+                        const labelTarget = (event.target as Element).closest?.(".station-label-hit-target");
+                        setHoveredStationLabelId(
+                          labelTarget?.getAttribute("data-station-label-id") === station.id
+                            ? station.id
+                            : null,
+                        );
+                      }}
                       onPointerLeave={(event) => {
                         if (event.pointerType !== "mouse") return;
                         setHoveredStationId((current) => current === station.id ? null : current);
+                        setHoveredStationLabelId((current) => current === station.id ? null : current);
                       }}
                       onFocus={() => {
                         setHoveredStationId(station.id);
                       }}
                       onBlur={() => {
                         setHoveredStationId((current) => current === station.id ? null : current);
+                        setHoveredStationLabelId((current) => current === station.id ? null : current);
                       }}
                     >
-                      {labelBounds ? (
-                        <rect
+                      {labelPolygon ? (
+                        <polygon
                           aria-hidden="true"
                           data-station-label-id={station.id}
                           className="station-label-hit-target"
-                          x={labelBounds.x - 12}
-                          y={labelBounds.y - 12}
-                          width={labelBounds.width + 24}
-                          height={labelBounds.height + 24}
-                          rx={8}
+                          points={labelPolygon.map((point) => `${point.x},${point.y}`).join(" ")}
+                          focusable="false"
                           onPointerDown={(event) => {
                             if (event.pointerType === "mouse" && event.button !== 0) return;
                             try {
@@ -1902,7 +1926,6 @@ function InteractiveTtcMapComponent({
                             onSelectStationId(station.id);
                           }}
                           pointerEvents="all"
-                          tabIndex={-1}
                           vectorEffect="non-scaling-stroke"
                         />
                       ) : null}

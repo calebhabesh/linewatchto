@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 
 const svg = readFileSync(new URL("../public/assets/linewatch/regional-rail-map.svg", import.meta.url), "utf8");
@@ -64,7 +64,10 @@ describe("regional application map asset", () => {
     assert.doesNotMatch(svg, /id="segment-guide-le-pickering-ajax"/);
   });
 
-  it("loads the authored TeX Gyre Heros Bold face in the browser", () => {
+  it("loads the authored TeX Gyre Heros Regular and Bold faces in the browser", () => {
+    assert.ok(existsSync(new URL("../public/assets/fonts/texgyreheros-regular.woff2", import.meta.url)));
+    assert.ok(existsSync(new URL("../public/assets/fonts/texgyreheros-bold.woff2", import.meta.url)));
+    assert.match(css, /@font-face\s*{[^}]*font-family:\s*"TeX Gyre Heros"[^}]*texgyreheros-regular\.woff2[^}]*font-weight:\s*400/s);
     assert.match(css, /@font-face\s*{[^}]*font-family:\s*"TeX Gyre Heros"[^}]*texgyreheros-bold\.woff2[^}]*font-weight:\s*700/s);
   });
 

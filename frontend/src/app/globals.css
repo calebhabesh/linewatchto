@@ -9,6 +9,14 @@
 
 @font-face {
   font-family: "TeX Gyre Heros";
+  src: url("/assets/fonts/texgyreheros-regular.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "TeX Gyre Heros";
   src: url("/assets/fonts/texgyreheros-bold.woff2") format("woff2");
   font-style: normal;
   font-weight: 700;
@@ -7258,8 +7266,41 @@ img.transit-line-badge {
 .station-label-hit-target {
   cursor: pointer;
   fill: transparent;
+  outline: none;
   pointer-events: all;
-  stroke: none;
+  stroke: transparent;
+  stroke-width: 0;
+}
+
+.station-label-hit-target:focus,
+.station-label-hit-target:focus-visible {
+  outline: none;
+  stroke: transparent;
+}
+
+.ttc-svg-container #ttc-station-labels-layer [data-station-label-for] {
+  stroke: #000000 !important;
+  stroke-width: 2px !important;
+  transition: filter 140ms ease-out, font-size 140ms ease-out;
+}
+
+.dark .ttc-svg-container #ttc-station-labels-layer [data-station-label-for] {
+  stroke: #ffffff !important;
+}
+
+.ttc-svg-container #ttc-station-labels-layer [data-station-label-for].station-label-hovered {
+  filter: drop-shadow(0 0 4px rgb(var(--station-selection-accent-rgb) / 68%));
+  font-size: 82px !important;
+}
+
+.motion-paused .ttc-svg-container #ttc-station-labels-layer [data-station-label-for] {
+  transition: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ttc-svg-container #ttc-station-labels-layer [data-station-label-for] {
+    transition: none;
+  }
 }
 
 .station-hit-target:hover,

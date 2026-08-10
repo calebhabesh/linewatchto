@@ -1275,7 +1275,7 @@ test("affected segment targets distinguish dragging from selection", async ({ pa
   await target.click();
   await expect(target).toHaveClass(/selection-context/);
   await expect(target).toHaveCSS("stroke-width", "190px");
-  await expect(page.locator('[data-station-id="stub-station"]')).toHaveAttribute("r", "32");
+  await expect(page.locator('[data-station-id="stub-station"]')).toHaveAttribute("r", "37");
   if (isMobile) {
     await expect(page.locator('[data-mobile-impact-inspector]')).toBeVisible();
   } else {
@@ -1970,7 +1970,9 @@ test("station names share hover and selection behavior with station dots", async
 
   if (!isMobile) {
     await labelTarget.hover();
-    await expect(page.locator('[data-station-hover-id="kipling"]')).toHaveClass(/active/);
+    await expect(page.locator('[data-station-label-for="kipling"]')).toHaveClass(/station-label-hovered/);
+    await expect(page.locator('[data-station-hover-id="kipling"]')).not.toHaveClass(/active/);
+    await expect(labelTarget).toHaveCSS("outline-style", "none");
   }
 
   await labelTarget.click();

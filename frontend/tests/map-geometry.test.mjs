@@ -195,6 +195,22 @@ describe("map overlay geometry", () => {
     assert.deepEqual(bounds, { x: 1100, y: 600, width: 200, height: 80 });
   });
 
+  it("preserves rotated SVG bounds as a four-corner interaction polygon", () => {
+    assert.equal(typeof geometry.transformBoundsToRootPolygon, "function");
+
+    const polygon = geometry.transformBoundsToRootPolygon(
+      { x: 0, y: 0, width: 100, height: 20 },
+      { a: 0, b: 1, c: -1, d: 0, e: 200, f: 300 },
+    );
+
+    assert.deepEqual(polygon, [
+      { x: 200, y: 300 },
+      { x: 200, y: 400 },
+      { x: 180, y: 400 },
+      { x: 180, y: 300 },
+    ]);
+  });
+
   it("composes adjacent links into one continuous corridor path", () => {
     const result = composeNetworkSegmentPath([
       {
