@@ -356,6 +356,11 @@ function InteractiveTtcMapComponent({
     ]);
   }, [loadState, mapStations, networkSegments, stations]);
 
+  // The authored labels live inside dangerouslySetInnerHTML while estimated
+  // markers are ordinary React children of the same SVG. Marker polling can
+  // commit that sibling tree without changing the logical hover id, so always
+  // reconcile the imperative SVG classes after a render. This keeps a pointer
+  // held over a station name highlighted through marker refreshes.
   useLayoutEffect(() => {
     const root = mapSvgRef.current;
     if (!root) return;
@@ -371,7 +376,7 @@ function InteractiveTtcMapComponent({
       label.closest(".station-label-hover-effect")
         ?.classList.toggle("station-label-hover-effect-active", active);
     }
-  }, [hoveredStationLabelId, svgParts]);
+  });
 
   const stationPointFor = useCallback((station: { id: string; mapX: number; mapY: number }): MapPoint => {
     return stationCenterPoints.get(station.id) ?? { x: station.mapX, y: station.mapY };
@@ -4830,6 +4835,7 @@ function EstimatedTrainMarkerLayer({
           data-train-marker-segment-id={marker.segmentId}
           data-train-marker-travel-direction={visualDirection}
           transform={`translate(${frame.point.x} ${frame.point.y}) rotate(${frame.angle})`}
+          pointerEvents="none"
         >
           <title>{`${lineLabelForTrainMarker(marker.lineId)} ${marker.direction} estimated train near ${marker.nextStationId}`}</title>
           <TrainMarkerGlyph />

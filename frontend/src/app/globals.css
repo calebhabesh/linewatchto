@@ -20910,7 +20910,13 @@ img.transit-line-badge {
 
 .estimated-train-marker-layer {
   opacity: 1;
+  pointer-events: none !important;
   transition: opacity 160ms ease;
+}
+
+.estimated-train-marker-layer *,
+.estimated-train-marker {
+  pointer-events: none !important;
 }
 
 .estimated-train-marker-layer[data-muted="true"] {

@@ -64,6 +64,11 @@ describe("asset-backed map layering", () => {
     assert.match(globalCss, /\.station-label-hit-target\s*\{[^}]*cursor:\s*pointer;[^}]*fill:\s*transparent;[^}]*outline:\s*none;[^}]*stroke:\s*transparent;/s);
     assert.match(interactiveMapSource, /station-label-hovered/);
     assert.match(interactiveMapSource, /station-label-hover-effect/);
+    assert.match(
+      interactiveMapSource,
+      /Marker polling can[\s\S]*?useLayoutEffect\(\(\) => \{[\s\S]*?station-label-hover-effect-active[\s\S]*?\n  \}\);/,
+      "station label hover classes should be reconciled after marker-driven React commits",
+    );
     assert.ok(
       interactiveMapSource.indexOf('aria-label="Station impact rings"') <
         interactiveMapSource.indexOf('aria-label="Station label hit targets"'),
@@ -961,6 +966,9 @@ describe("asset-backed map layering", () => {
     assert.match(globalCss, /\.estimated-train-marker-core/);
     assert.match(globalCss, /\.estimated-train-marker-arrow/);
     assert.match(globalCss, /\.estimated-train-marker-layer\[data-muted="true"\]/);
+    assert.match(globalCss, /\.estimated-train-marker-layer\s*\{[^}]*pointer-events:\s*none\s*!important;/s);
+    assert.match(globalCss, /\.estimated-train-marker-layer \*,[\s\S]*?\.estimated-train-marker\s*\{[^}]*pointer-events:\s*none\s*!important;/s);
+    assert.match(interactiveMapSource, /data-train-marker-travel-direction=\{visualDirection\}[\s\S]*?pointerEvents="none"/);
     assert.match(globalCss, /\.linewatch-shell\.mobile-performance-mode \.estimated-train-marker-halo/);
     assert.match(interactiveMapSource, /pathMetricCache/);
     assert.doesNotMatch(interactiveMapSource, /estimated-train-marker-mobile-dot/);
