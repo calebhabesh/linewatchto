@@ -23,15 +23,15 @@
    inkscape:pageopacity="0.0"
    inkscape:pagecheckerboard="0"
    inkscape:deskcolor="#d1d1d1"
-   inkscape:zoom="1.4142136"
-   inkscape:cx="3241.0238"
-   inkscape:cy="1663.4687"
+   inkscape:zoom="0.7071068"
+   inkscape:cx="3455.6307"
+   inkscape:cy="1050.0535"
    inkscape:window-width="2560"
    inkscape:window-height="1363"
    inkscape:window-x="0"
    inkscape:window-y="0"
    inkscape:window-maximized="1"
-   inkscape:current-layer="layer3" />
+   inkscape:current-layer="layer4" />
  <defs
    id="defs1"><inkscape:path-effect
    effect="fillet_chamfer"
@@ -264,12 +264,12 @@
        y="724.55322">Finch</tspan></text><text
      xml:space="preserve"
      style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:100px;font-family:'TeX Gyre Heros';-inkscape-font-specification:'TeX Gyre Heros, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;writing-mode:lr-tb;direction:ltr;clip-rule:evenodd;display:inline;fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:none;stroke-width:0;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
-     x="1954.7576"
-     y="236.55376" id="station-label-vaughan-metropolitan-centre" data-station-label-for="vaughan-metropolitan-centre" inkscape:label="station-label-vaughan-metropolitan-centre"><tspan
+     x="1984.0562"
+     y="243.75397" id="station-label-vaughan-metropolitan-centre" data-station-label-for="vaughan-metropolitan-centre" inkscape:label="station-label-vaughan-metropolitan-centre"><tspan
        sodipodi:role="line"
        id="tspan35-5-5-5"
-       x="1954.7576"
-       y="236.55376">Vaughan Metropolitan Centre</tspan></text><text
+       x="1984.0562"
+       y="243.75397">Vaughan Metropolitan Centre</tspan></text><text
      xml:space="preserve"
      style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:100px;font-family:'TeX Gyre Heros';-inkscape-font-specification:'TeX Gyre Heros, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;writing-mode:lr-tb;direction:ltr;clip-rule:evenodd;display:inline;fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:none;stroke-width:0;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
      x="3668.4045"
@@ -3215,7 +3215,7 @@
   </g><g
      id="_1615690580544-2"
      style="clip-rule:evenodd;display:inline;fill-rule:evenodd;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
-     transform="translate(-50.809704,0.34093094)"
+     transform="translate(-67.91,-10.059)"
      inkscape:label="line-4">
    
    <path
