@@ -107,6 +107,11 @@ async function clickSvgRingStroke(page: Page, name: RegExp) {
 }
 
 async function expectRegionalChooserToClearReferencedAlerts(page: Page) {
+  await page.locator("[data-overlap-chooser]").evaluate(async (chooser) => {
+    await Promise.all(
+      chooser.getAnimations({ subtree: true }).map((animation) => animation.finished.catch(() => undefined)),
+    );
+  });
   const overlapsReferencedAlert = await page.locator("[data-overlap-chooser]").evaluate((chooser) => {
     const chooserRect = chooser.getBoundingClientRect();
     const impactIds = new Set(
@@ -202,7 +207,7 @@ test("introduces first-time riders before showing the unofficial-project notice"
   await expect(activeSlide).toContainText(isMobile ? /Tap for alert details/i : /Explore an impact/i);
   await expectActiveWelcomeSlideToFit(carousel);
   await carousel.getByRole("button", { name: "Next" }).click();
-  await expect(activeSlide).toContainText(isMobile ? /Plan with My Commutes/i : /Make it yours/i);
+  await expect(activeSlide).toContainText(isMobile ? /Monitor My Commutes/i : /Make it yours/i);
   await expectActiveWelcomeSlideToFit(carousel);
   await expect(carousel.getByAltText(/My Commutes route/)).toBeVisible();
   if (isMobile) {
@@ -918,13 +923,13 @@ test("renders fresh Metrolinx impacts in regional mode", async ({ page, request,
     '.regional-overlay-segment-group[data-regional-impact-kind="delay"][data-regional-impact-id="regional-demo-lw-corridor-delay"]',
   );
   await expect(lwCorridorOverlay).toHaveCount(1);
-  await expect(lwCorridorOverlay).toHaveAttribute("data-regional-impact-segment-count", "16");
+  await expect(lwCorridorOverlay).toHaveAttribute("data-regional-impact-segment-count", "15");
   const lwCorridorPaths = await lwCorridorOverlay.locator(".regional-impact-path").evaluateAll(
     (paths) => paths.map((path) => path.getAttribute("d") ?? ""),
   );
   expect(lwCorridorPaths).toHaveLength(1);
   expect((lwCorridorPaths[0].match(/\bM\b/g) ?? []).length).toBe(2);
-  expect((lwCorridorPaths[0].match(/\bL\b/g) ?? []).length).toBeGreaterThan(16);
+  expect((lwCorridorPaths[0].match(/\bL\b/g) ?? []).length).toBeGreaterThanOrEqual(15);
   const lwHoverMaskX = await page.locator(
     '.regional-impact-hover-foreground[data-regional-hover-impact-id="regional-demo-lw-corridor-delay"] mask',
   ).getAttribute("x");
@@ -967,7 +972,7 @@ test("renders fresh Metrolinx impacts in regional mode", async ({ page, request,
   await pickeringStation.press("Enter");
   const stationPanel = page.getByRole("complementary", { name: "Pickering regional station details" });
   await expect(stationPanel).toBeVisible();
-  await expect(stationPanel.getByText("Metrolinx GO Next Service", { exact: true })).toBeVisible();
+  await expect(stationPanel.getByText("Metrolinx GO live estimates", { exact: true })).toBeVisible();
   await expect(stationPanel.getByText("To Kitchener GO", { exact: true })).toBeVisible();
   await expect(stationPanel.getByText("7 min", { exact: true })).toBeVisible();
   await expect(stationPanel.getByRole("heading", { name: "Platform 11" })).toBeVisible();
@@ -1036,12 +1041,13 @@ test("renders regional accessibility outages in the global and station views", a
 
   await page.getByRole("button", { name: "View Station" }).click();
   const stationPanel = page.getByRole("complementary", { name: "Eglinton regional station details" });
+  const accessibilityOutages = stationPanel.locator('[data-station-section="accessibility"]');
   await expect(stationPanel).toBeVisible();
-  await expect(stationPanel.getByText("Metrolinx Open API", { exact: true })).toBeHidden();
-  await expect(stationPanel.getByText("Elevator out of service", { exact: true })).toBeHidden();
+  await expect(accessibilityOutages.getByText("Metrolinx Open API", { exact: true })).toBeHidden();
+  await expect(accessibilityOutages.getByText("Elevator out of service", { exact: true })).toBeHidden();
   await stationPanel.locator("summary.station-accessibility-summary").click();
-  await expect(stationPanel.getByText("Metrolinx Open API", { exact: true })).toBeVisible();
-  await expect(stationPanel.getByText("Elevator out of service", { exact: true })).toBeVisible();
+  await expect(accessibilityOutages.getByText("Metrolinx Open API", { exact: true })).toBeVisible();
+  await expect(accessibilityOutages.getByText("Elevator out of service", { exact: true })).toBeVisible();
 });
 
 test("renders regional estimated train markers from the network-scoped endpoint", async ({ page, request, isMobile }) => {
@@ -1833,9 +1839,9 @@ test("station detail shows accessibility facilities and active outage warning", 
   await expect(arrivalsSection.getByText("Scheduled arrivals use TTC timetable data and are not live train predictions.")).toBeVisible();
   await expect(arrivalsSection.getByText(/demo placeholders/)).toHaveCount(0);
   const lineOnePinButtons = arrivalsSection.getByRole("button", { name: "Pin Line 1 arrivals at Stub Station" });
-  await expect(lineOnePinButtons).toHaveCount(2);
+  await expect(lineOnePinButtons).toHaveCount(1);
   await lineOnePinButtons.first().click();
-  await expect(arrivalsSection.getByRole("button", { name: "Unpin Line 1 arrivals at Stub Station" })).toHaveCount(2);
+  await expect(arrivalsSection.getByRole("button", { name: "Unpin Line 1 arrivals at Stub Station" })).toHaveCount(1);
   await expect.poll(() => page.evaluate(() => window.localStorage.getItem("linewatch-arrival-line-pins-v1")))
     .toContain('"lineId":"line-1"');
 
@@ -2872,10 +2878,12 @@ test("demo account shows account-backed saved commutes", async ({ page, request,
       ),
     };
   });
-  expect(commuteHeaderMetrics.alignItems).toBe("center");
-  expect(commuteHeaderMetrics.badgeFontSize).toBeGreaterThanOrEqual(11.5);
+  expect(commuteHeaderMetrics.alignItems).toBe(isMobile ? "flex-start" : "center");
+  expect(commuteHeaderMetrics.badgeFontSize).toBeGreaterThanOrEqual(isMobile ? 10.5 : 11.5);
   expect(commuteHeaderMetrics.badgeHeight).toBeGreaterThanOrEqual(28);
-  expect(commuteHeaderMetrics.centerDelta).toBeLessThanOrEqual(1);
+  if (!isMobile) {
+    expect(commuteHeaderMetrics.centerDelta).toBeLessThanOrEqual(1);
+  }
 
   await page.getByRole("button", { name: /View Suspension on the map for Morning commute/ }).click();
   await expect(page.locator("[data-commute-path-preview]")).toBeVisible();

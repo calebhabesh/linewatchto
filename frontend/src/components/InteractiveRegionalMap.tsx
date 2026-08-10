@@ -29,8 +29,10 @@ import {
   type MapOverlapChooserLayout,
 } from "./MapOverlapChooser";
 import {
+  alignedOverlapBadgePositionCandidates,
   hasOverlappingImpacts,
   overlapBadgeSignature,
+  type PlacedOverlapBadge,
 } from "./map-overlap-badges";
 import {
   clampPanZoomScale,
@@ -131,6 +133,7 @@ type RegionalOverlapBadge = {
   position: SvgPoint;
   preferredVector: SvgPoint;
   size: MapOverlapIndicatorSize;
+  hasStablePosition?: boolean;
 };
 
 type RegionalCollisionBox = {
@@ -1130,7 +1133,13 @@ function regionalOverlapBadgeGroups(segments: NetworkSegment[]) {
       groups.set(signature, { segments: [segment], impacts });
     }
   }
-  return [...groups.entries()].map(([signature, group]) => ({ signature, ...group }));
+  return [...groups.entries()]
+    .map(([signature, group]) => ({ signature, ...group }))
+    .sort((a, b) => {
+      const aSegmentId = a.segments[0]?.id ?? "";
+      const bSegmentId = b.segments[0]?.id ?? "";
+      return aSegmentId.localeCompare(bSegmentId) || a.signature.localeCompare(b.signature);
+    });
 }
 
 function regionalOverlapBadgeAnchor(
@@ -1394,7 +1403,7 @@ function regionalCollisionAdjustedOverlapBadges(
   const labelBoxes = labelElements.flatMap((element) => {
     try {
       const box = regionalCollisionBoxForElement(svg, element);
-      return box ? [expandedRegionalCollisionBox(box, 24)] : [];
+      return box ? [expandedRegionalCollisionBox(box, 36)] : [];
     } catch {
       return [];
     }
@@ -1426,15 +1435,44 @@ function regionalCollisionAdjustedOverlapBadges(
     ),
   ).flatMap((path) => regionalPathCorridorCollisionBoxes(svg, path, 112));
   const occupiedBoxes = [...labelBoxes];
+  const placedBadges: PlacedOverlapBadge[] = [];
 
   return badges.map((badge) => {
     const preferredPosition = {
       x: badge.anchor.x + badge.preferredVector.x,
       y: badge.anchor.y + badge.preferredVector.y,
     };
-    const position = regionalOverlapBadgePositionCandidates(badge)
-      .map((candidate) => clampRegionalOverlapBadgePosition(candidate, badge.size))
-      .map((candidate) => {
+    const renderedSize = {
+      width: badge.size.width * REGIONAL_OVERLAP_INDICATOR_SCALE,
+      height: badge.size.height * REGIONAL_OVERLAP_INDICATOR_SCALE,
+    };
+    const alignedCandidates = alignedOverlapBadgePositionCandidates({
+      anchor: badge.anchor,
+      size: renderedSize,
+      placedBadges,
+      gap: 32,
+      maxAnchorDistance: 900,
+      centerSpacing: 290 * REGIONAL_OVERLAP_INDICATOR_SCALE,
+    });
+    const candidateKeys = new Set<string>();
+    const candidates = [
+      ...(badge.hasStablePosition ? [{ candidate: badge.position, stable: true, aligned: false }] : []),
+      ...alignedCandidates.map((candidate) => ({ candidate, stable: false, aligned: true })),
+      ...regionalOverlapBadgePositionCandidates(badge)
+        .map((candidate) => ({ candidate, stable: false, aligned: false })),
+    ].filter(({ candidate }) => {
+      const key = `${Math.round(candidate.x)}:${Math.round(candidate.y)}`;
+      if (candidateKeys.has(key)) return false;
+      candidateKeys.add(key);
+      return true;
+    });
+    const scoredPositions = candidates
+      .map(({ candidate, stable, aligned }) => ({
+        candidate: clampRegionalOverlapBadgePosition(candidate, badge.size),
+        stable,
+        aligned,
+      }))
+      .map(({ candidate, stable, aligned }) => {
         const box = expandedRegionalCollisionBox(
           regionalBadgeCollisionBox(candidate, badge.size),
           18,
@@ -1463,15 +1501,28 @@ function regionalCollisionAdjustedOverlapBadges(
         return {
           candidate,
           box,
+          hardOverlapArea,
+          stable,
+          aligned,
           score: hardOverlapArea * 1_000_000
             + transitLineOverlapArea * 10_000
             + anchorDistance
             + preferredDeviation * 0.05,
         };
-      })
-      .sort((left, right) => left.score - right.score)[0];
+      });
+    const position = scoredPositions.find((candidate) => (
+      candidate.stable && candidate.hardOverlapArea === 0
+    )) ?? scoredPositions.find((candidate) => (
+      candidate.aligned && candidate.hardOverlapArea === 0
+    ))
+      ?? scoredPositions.sort((left, right) => left.score - right.score)[0];
     if (!position) return badge;
     occupiedBoxes.push(position.box);
+    placedBadges.push({
+      anchor: badge.anchor,
+      position: position.candidate,
+      size: renderedSize,
+    });
     return { ...badge, position: position.candidate };
   });
 }
@@ -2847,10 +2898,14 @@ function InteractiveRegionalMapComponent({
       markCompletedSelectionIntro(svg);
     }
 
-    const badges = regionalOverlapBadges(documentNode, networkSegments).map((badge) => ({
-      ...badge,
-      position: overlapBadgePositionsRef.current.get(badge.markerId) ?? badge.position,
-    }));
+    const badges = regionalOverlapBadges(documentNode, networkSegments).map((badge) => {
+      const stablePosition = overlapBadgePositionsRef.current.get(badge.markerId);
+      return {
+        ...badge,
+        position: stablePosition ?? badge.position,
+        hasStablePosition: Boolean(stablePosition),
+      };
+    });
     const adjusted = regionalCollisionAdjustedOverlapBadges(svg, badges);
     overlapBadgePositionsRef.current = new Map(
       adjusted.map((badge) => [badge.markerId, badge.position]),

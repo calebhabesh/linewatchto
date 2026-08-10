@@ -559,6 +559,11 @@ describe("asset-backed map layering", () => {
     assert.doesNotMatch(interactiveMapSource, /if \(impactKinds\.length <= 1\) continue;/);
     assert.match(interactiveMapSource, /chooseNonIntersectingBadgePosition/);
     assert.match(interactiveMapSource, /alignedOverlapBadgePositionCandidates/);
+    assert.match(interactiveMapSource, /const measuredGeometrySignatureRef = useRef<string \| null>\(null\)/);
+    assert.match(interactiveMapSource, /measuredGeometrySignatureRef\.current === geometryMeasurementSignature/);
+    assert.match(interactiveMapSource, /const OVERLAP_BADGE_ALIGNMENT_MAX_ANCHOR_DISTANCE = 260;/);
+    assert.match(interactiveMapSource, /organizeOverlapBadgeClusters/);
+    assert.match(interactiveMapSource, /gap: OVERLAP_BADGE_SIBLING_CLEARANCE/);
     assert.match(interactiveMapSource, /collectMapCollisionBoxes/);
     assert.match(interactiveMapSource, /pathCorridorCollisionBoxes/);
     assert.match(interactiveMapSource, /pathMidpointFrame/);

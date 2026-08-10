@@ -10,9 +10,48 @@ const {
   overlapBadgeKindCounts,
   overlapBadgeSignature,
   chooseOverlapChooserPosition,
+  organizeOverlapBadgeClusters,
 } = overlapBadges;
 
+function badgeEdgeGap(first, second) {
+  const horizontalGap = Math.max(
+    Math.abs(first.position.x - second.position.x) - (first.size.width + second.size.width) / 2,
+    0,
+  );
+  const verticalGap = Math.max(
+    Math.abs(first.position.y - second.position.y) - (first.size.height + second.size.height) / 2,
+    0,
+  );
+  return Math.hypot(horizontalGap, verticalGap);
+}
+
 describe("map overlap badge grouping", () => {
+  it("uses stable geometry tie-breaks for equally near alignment lanes", () => {
+    const placedBadges = [
+      {
+        anchor: { x: 400, y: 500 },
+        position: { x: 300, y: 500 },
+        size: { width: 100, height: 100 },
+      },
+      {
+        anchor: { x: 600, y: 500 },
+        position: { x: 700, y: 500 },
+        size: { width: 100, height: 100 },
+      },
+    ];
+    const options = {
+      anchor: { x: 500, y: 500 },
+      size: { width: 100, height: 100 },
+      gap: 20,
+      maxAnchorDistance: 200,
+    };
+
+    assert.deepEqual(
+      alignedOverlapBadgePositionCandidates({ ...options, placedBadges }),
+      alignedOverlapBadgePositionCandidates({ ...options, placedBadges: [...placedBadges].reverse() }),
+    );
+  });
+
   it("keeps nearby badges on one vertical lane by separating them along that lane", () => {
     const candidates = alignedOverlapBadgePositionCandidates({
       anchor: { x: 2937, y: 1381 },
@@ -29,6 +68,209 @@ describe("map overlap badge grouping", () => {
     });
 
     assert.deepEqual(candidates[0], { x: 3150, y: 1414 });
+  });
+
+  it("preserves natural anchor spacing when it already exceeds the minimum gap", () => {
+    const candidates = alignedOverlapBadgePositionCandidates({
+      anchor: { x: 2950, y: 1486 },
+      size: { width: 220, height: 132 },
+      placedBadges: [
+        {
+          anchor: { x: 2936, y: 1246 },
+          position: { x: 3150, y: 1246 },
+          size: { width: 132, height: 132 },
+        },
+      ],
+      gap: 36,
+      maxAnchorDistance: 440,
+    });
+
+    assert.deepEqual(candidates[0], { x: 3150, y: 1486 });
+    const firstBottom = 1246 + 132 / 2;
+    const secondTop = candidates[0].y - 132 / 2;
+    assert.equal(secondTop - firstBottom, 108);
+  });
+
+  it("preserves fixed-center spacing for regional three-badge formations", () => {
+    const centerSpacing = 290;
+    const candidates = alignedOverlapBadgePositionCandidates({
+      anchor: { x: 3350, y: 1361 },
+      size: { width: 132, height: 132 },
+      placedBadges: [
+        {
+          anchor: { x: 2936, y: 1246 },
+          position: { x: 3150, y: 1246 },
+          size: { width: 132, height: 132 },
+        },
+        {
+          anchor: { x: 2950, y: 1486 },
+          position: { x: 3150, y: 1536 },
+          size: { width: 255, height: 132 },
+        },
+      ],
+      gap: 36,
+      maxAnchorDistance: 500,
+      centerSpacing,
+    });
+
+    const trianglePoint = candidates[0];
+    assert.ok(Math.abs(Math.hypot(trianglePoint.x - 3150, trianglePoint.y - 1246) - centerSpacing) < 0.001);
+    assert.ok(Math.abs(Math.hypot(trianglePoint.x - 3150, trianglePoint.y - 1536) - centerSpacing) < 0.001);
+  });
+
+  it("jointly arranges a pill and two round badges with equal visual edge gaps", () => {
+    const badges = [
+      {
+        id: "top",
+        anchor: { x: 400, y: 300 },
+        position: { x: 650, y: 330 },
+        size: { width: 132, height: 132 },
+      },
+      {
+        id: "combined",
+        anchor: { x: 410, y: 470 },
+        position: { x: 650, y: 498 },
+        size: { width: 255, height: 132 },
+      },
+      {
+        id: "right",
+        anchor: { x: 610, y: 385 },
+        position: { x: 910, y: 414 },
+        size: { width: 132, height: 132 },
+      },
+    ];
+    const options = {
+      blockedBoxes: [],
+      mapBounds: { x: 0, y: 0, width: 1400, height: 900 },
+      gap: 36,
+      maxAnchorDistance: 260,
+    };
+    const arranged = organizeOverlapBadgeClusters({ badges, ...options });
+    const arrangedById = new Map(arranged.map((badge) => [badge.id, badge.position]));
+    const reversedById = new Map(
+      organizeOverlapBadgeClusters({ badges: [...badges].reverse(), ...options })
+        .map((badge) => [badge.id, badge.position]),
+    );
+    const gaps = arranged.flatMap((first, firstIndex) => (
+      arranged.slice(firstIndex + 1).map((second) => badgeEdgeGap(first, second))
+    ));
+
+    assert.ok(gaps.every((gap) => Math.abs(gap - options.gap) < 0.001), JSON.stringify(gaps));
+    assert.deepEqual(arrangedById, reversedById);
+  });
+
+  it("searches outward from alert anchors before retaining a distant fallback cluster", () => {
+    const badges = [
+      {
+        id: "top",
+        anchor: { x: 400, y: 300 },
+        position: { x: 1400, y: 300 },
+        size: { width: 132, height: 132 },
+      },
+      {
+        id: "combined",
+        anchor: { x: 410, y: 470 },
+        position: { x: 1400, y: 590 },
+        size: { width: 255, height: 132 },
+      },
+      {
+        id: "right",
+        anchor: { x: 610, y: 385 },
+        position: { x: 1650, y: 445 },
+        size: { width: 132, height: 132 },
+      },
+    ];
+    const arranged = organizeOverlapBadgeClusters({
+      badges,
+      blockedBoxes: [{ x: 330, y: 0, width: 280, height: 900 }],
+      mapBounds: { x: 0, y: 0, width: 2400, height: 900 },
+      gap: 36,
+      maxAnchorDistance: 440,
+    });
+    const arrangedCenter = {
+      x: arranged.reduce((sum, badge) => sum + badge.position.x, 0) / arranged.length,
+      y: arranged.reduce((sum, badge) => sum + badge.position.y, 0) / arranged.length,
+    };
+    const anchorCenter = {
+      x: badges.reduce((sum, badge) => sum + badge.anchor.x, 0) / badges.length,
+      y: badges.reduce((sum, badge) => sum + badge.anchor.y, 0) / badges.length,
+    };
+    const fallbackCenter = {
+      x: badges.reduce((sum, badge) => sum + badge.position.x, 0) / badges.length,
+      y: badges.reduce((sum, badge) => sum + badge.position.y, 0) / badges.length,
+    };
+
+    assert.ok(
+      Math.hypot(arrangedCenter.x - anchorCenter.x, arrangedCenter.y - anchorCenter.y) < 500,
+      `expected cluster near alert anchors, got ${JSON.stringify(arrangedCenter)}`,
+    );
+    assert.ok(
+      Math.hypot(arrangedCenter.x - anchorCenter.x, arrangedCenter.y - anchorCenter.y)
+        < Math.hypot(fallbackCenter.x - anchorCenter.x, fallbackCenter.y - anchorCenter.y),
+    );
+  });
+
+  it("keeps station labels as hard obstacles while preserving equal visual gaps", () => {
+    const badges = [
+      {
+        id: "wilson",
+        anchor: { x: 2932, y: 1234 },
+        position: { x: 3787, y: 1353 },
+        size: { width: 132, height: 132 },
+      },
+      {
+        id: "yorkdale",
+        anchor: { x: 2932, y: 1371 },
+        position: { x: 3712, y: 1633 },
+        size: { width: 132, height: 132 },
+      },
+      {
+        id: "lawrence-west",
+        anchor: { x: 2932, y: 1507 },
+        position: { x: 3507, y: 1428 },
+        size: { width: 255, height: 132 },
+      },
+    ];
+    const labelBoxes = [
+      { x: 2996, y: 955, width: 407, height: 275 },
+      { x: 2996, y: 1055, width: 239, height: 175 },
+      { x: 2965, y: 1584, width: 425, height: 175 },
+    ];
+    const arranged = organizeOverlapBadgeClusters({
+      badges,
+      blockedBoxes: [
+        { x: 2868, y: 1040, width: 128, height: 660 },
+        ...labelBoxes,
+      ],
+      mapBounds: { x: 0, y: 0, width: 8250, height: 4000 },
+      gap: 36,
+      maxAnchorDistance: 440,
+    });
+    const arrangedCenterX = arranged.reduce((sum, badge) => sum + badge.position.x, 0) / arranged.length;
+    const fallbackCenterX = badges.reduce((sum, badge) => sum + badge.position.x, 0) / badges.length;
+
+    assert.ok(
+      arrangedCenterX < fallbackCenterX - 300,
+      `expected the label-aware formation to move left toward its alerts, got ${arrangedCenterX}`,
+    );
+    assert.ok(
+      arranged.every((badge) => Math.hypot(
+        badge.position.x - badge.anchor.x,
+        badge.position.y - badge.anchor.y,
+      ) < 650),
+    );
+    assert.ok(arranged.every((badge) => labelBoxes.every((label) => {
+      const badgeBox = {
+        x: badge.position.x - badge.size.width / 2 - 10,
+        y: badge.position.y - badge.size.height / 2 - 10,
+        width: badge.size.width + 20,
+        height: badge.size.height + 20,
+      };
+      return badgeBox.x + badgeBox.width <= label.x
+        || badgeBox.x >= label.x + label.width
+        || badgeBox.y + badgeBox.height <= label.y
+        || badgeBox.y >= label.y + label.height;
+    })));
   });
 
   it("places the chooser on the clearest nearby side of its badge", () => {

@@ -103,7 +103,8 @@ export function MapOverlapChooser({
     y: layout.anchorOffsetY,
   });
   const orderedImpacts = [...impacts].sort(
-    (a, b) => impactPriority(b.kind) - impactPriority(a.kind),
+    (a, b) => impactPriority(b.kind) - impactPriority(a.kind)
+      || a.cardId.localeCompare(b.cardId),
   );
   const chooserId = `overlap-chooser-${markerId.replace(/[^a-zA-Z0-9_-]/g, "-")}`;
   const stopChooserPointerDown = (event: PointerEvent<HTMLDivElement>) => {

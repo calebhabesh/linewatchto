@@ -796,7 +796,8 @@ describe("network-scoped regional dashboard", () => {
     assert.match(regionalMapSource, /regionalOverlapBadgePositionCandidates\(badge\)/);
     assert.match(regionalMapSource, /hardOverlapArea \* 1_000_000[\s\S]*transitLineOverlapArea \* 10_000[\s\S]*anchorDistance/);
     assert.match(regionalMapSource, /regionalCollisionAdjustedOverlapBadges\(svg, badges\)/);
-    assert.match(regionalMapSource, /overlapBadgePositionsRef\.current\.get\(badge\.markerId\) \?\? badge\.position/);
+    assert.match(regionalMapSource, /const stablePosition = overlapBadgePositionsRef\.current\.get\(badge\.markerId\)/);
+    assert.match(regionalMapSource, /hasStablePosition: Boolean\(stablePosition\)/);
     assert.doesNotMatch(regionalMapSource, /const animationFrame = window\.requestAnimationFrame/);
     assert.doesNotMatch(regionalMapSource, /badge\.position\.x \+ deltaX \* authoredUnitsPerPixel/);
     assert.match(overlapIndicatorSource, /const isSingleKindOverlap = kindCounts\.length === 1/);

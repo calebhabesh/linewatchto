@@ -42,6 +42,8 @@ export type PlacedOverlapBadge = {
   size: OverlapChooserSize;
 };
 
+export type ClusteredOverlapBadge = PlacedOverlapBadge & { id: string };
+
 export type SegmentOverlapBadgeCoverageGroup = {
   signature: string;
   impacts: Pick<MapImpact, "kind" | "cardId">[];
@@ -56,21 +58,53 @@ export function alignedOverlapBadgePositionCandidates({
   placedBadges,
   gap,
   maxAnchorDistance,
+  centerSpacing,
 }: {
   anchor: OverlapChooserPoint;
   size: OverlapChooserSize;
   placedBadges: PlacedOverlapBadge[];
   gap: number;
   maxAnchorDistance: number;
+  centerSpacing?: number;
 }): OverlapChooserPoint[] {
-  return placedBadges
+  const nearbyBadges = placedBadges
     .map((badge) => ({
       badge,
       anchorDistance: Math.hypot(anchor.x - badge.anchor.x, anchor.y - badge.anchor.y),
     }))
     .filter(({ anchorDistance }) => anchorDistance > 0 && anchorDistance <= maxAnchorDistance)
-    .sort((a, b) => a.anchorDistance - b.anchorDistance)
-    .map(({ badge }) => {
+    .sort((a, b) => a.anchorDistance - b.anchorDistance
+      || a.badge.anchor.y - b.badge.anchor.y
+      || a.badge.anchor.x - b.badge.anchor.x
+      || a.badge.position.y - b.badge.position.y
+      || a.badge.position.x - b.badge.position.x);
+
+  const formationCandidates = centerSpacing
+    ? nearbyBadges.flatMap(({ badge: first }, firstIndex) => (
+        nearbyBadges.slice(firstIndex + 1).flatMap(({ badge: second }) => {
+          const dx = second.position.x - first.position.x;
+          const dy = second.position.y - first.position.y;
+          const pairDistance = Math.hypot(dx, dy);
+          if (pairDistance <= 0 || Math.abs(pairDistance - centerSpacing) > 2) return [];
+
+          const midpoint = {
+            x: (first.position.x + second.position.x) / 2,
+            y: (first.position.y + second.position.y) / 2,
+          };
+          const height = Math.sqrt(Math.max(0, centerSpacing ** 2 - (pairDistance / 2) ** 2));
+          const perpendicular = { x: -dy / pairDistance, y: dx / pairDistance };
+          return [1, -1]
+            .map((direction) => ({
+              x: midpoint.x + perpendicular.x * height * direction,
+              y: midpoint.y + perpendicular.y * height * direction,
+            }))
+            .sort((a, b) => Math.hypot(a.x - anchor.x, a.y - anchor.y)
+              - Math.hypot(b.x - anchor.x, b.y - anchor.y));
+        })
+      ))
+    : [];
+
+  const axisCandidates = nearbyBadges.map(({ badge }) => {
       const deltaX = anchor.x - badge.anchor.x;
       const deltaY = anchor.y - badge.anchor.y;
       const followsVerticalLane = Math.abs(deltaY) >= Math.abs(deltaX);
@@ -78,21 +112,224 @@ export function alignedOverlapBadgePositionCandidates({
       if (followsVerticalLane) {
         const direction = deltaY < 0 ? -1 : 1;
         const naturalY = badge.position.y + deltaY;
-        const minimumY = badge.position.y + direction * (badge.size.height / 2 + size.height / 2 + gap);
+        const minimumDistance = badge.size.height / 2 + size.height / 2 + gap;
+        const minimumY = badge.position.y + direction * (centerSpacing ?? minimumDistance);
         return {
           x: badge.position.x,
-          y: direction < 0 ? Math.min(naturalY, minimumY) : Math.max(naturalY, minimumY),
+          y: centerSpacing == null
+            ? direction < 0 ? Math.min(naturalY, minimumY) : Math.max(naturalY, minimumY)
+            : minimumY,
         };
       }
 
       const direction = deltaX < 0 ? -1 : 1;
       const naturalX = badge.position.x + deltaX;
-      const minimumX = badge.position.x + direction * (badge.size.width / 2 + size.width / 2 + gap);
+      const minimumDistance = badge.size.width / 2 + size.width / 2 + gap;
+      const minimumX = badge.position.x + direction * (centerSpacing ?? minimumDistance);
       return {
-        x: direction < 0 ? Math.min(naturalX, minimumX) : Math.max(naturalX, minimumX),
+        x: centerSpacing == null
+          ? direction < 0 ? Math.min(naturalX, minimumX) : Math.max(naturalX, minimumX)
+          : minimumX,
         y: badge.position.y,
       };
     });
+
+  const seen = new Set<string>();
+  return [...formationCandidates, ...axisCandidates].filter((candidate) => {
+    const key = `${Math.round(candidate.x)}:${Math.round(candidate.y)}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function pointAverage(points: OverlapChooserPoint[]): OverlapChooserPoint {
+  return {
+    x: points.reduce((sum, point) => sum + point.x, 0) / points.length,
+    y: points.reduce((sum, point) => sum + point.y, 0) / points.length,
+  };
+}
+
+function overlapBadgeComponents(
+  badges: ClusteredOverlapBadge[],
+  maxAnchorDistance: number,
+): number[][] {
+  const remaining = new Set(badges.map((_badge, index) => index));
+  const components: number[][] = [];
+
+  while (remaining.size > 0) {
+    const first = Math.min(...remaining);
+    remaining.delete(first);
+    const component = [first];
+    const queue = [first];
+
+    while (queue.length > 0) {
+      const current = queue.shift()!;
+      for (const candidate of [...remaining]) {
+        const distance = Math.hypot(
+          badges[current].anchor.x - badges[candidate].anchor.x,
+          badges[current].anchor.y - badges[candidate].anchor.y,
+        );
+        if (distance > maxAnchorDistance) continue;
+        remaining.delete(candidate);
+        component.push(candidate);
+        queue.push(candidate);
+      }
+    }
+
+    components.push(component.sort((a, b) => badges[a].id.localeCompare(badges[b].id)));
+  }
+
+  return components.sort((a, b) => badges[a[0]].id.localeCompare(badges[b[0]].id));
+}
+
+function sizeAwareThreeBadgeFormation(
+  cluster: ClusteredOverlapBadge[],
+  gap: number,
+  sideDirection: -1 | 1,
+): OverlapChooserPoint[] | null {
+  const widestIndex = cluster.reduce((widest, badge, index) => (
+    badge.size.width > cluster[widest].size.width ? index : widest
+  ), 0);
+  const compactIndexes = cluster
+    .map((_badge, index) => index)
+    .filter((index) => index !== widestIndex)
+    .sort((left, right) => (
+      cluster[left].anchor.y - cluster[right].anchor.y
+      || cluster[left].anchor.x - cluster[right].anchor.x
+      || cluster[left].id.localeCompare(cluster[right].id)
+    ));
+  if (compactIndexes.length !== 2) return null;
+
+  const widest = cluster[widestIndex];
+  const firstCompact = cluster[compactIndexes[0]];
+  const secondCompact = cluster[compactIndexes[1]];
+  if (widest.size.width <= Math.max(firstCompact.size.width, secondCompact.size.width) + 20) {
+    return null;
+  }
+
+  const compactSeparation = firstCompact.size.height / 2
+    + secondCompact.size.height / 2
+    + gap;
+  const sideOffset = Math.max(firstCompact.size.width, secondCompact.size.width) / 2
+    + widest.size.width / 2
+    + gap;
+  const localPositions: OverlapChooserPoint[] = cluster.map(() => ({ x: 0, y: 0 }));
+  localPositions[compactIndexes[0]] = { x: 0, y: -compactSeparation / 2 };
+  localPositions[compactIndexes[1]] = { x: 0, y: compactSeparation / 2 };
+  localPositions[widestIndex] = { x: sideDirection * sideOffset, y: 0 };
+  const localCenter = pointAverage(localPositions);
+
+  return localPositions.map((position) => ({
+    x: position.x - localCenter.x,
+    y: position.y - localCenter.y,
+  }));
+}
+
+export function organizeOverlapBadgeClusters({
+  badges,
+  blockedBoxes,
+  mapBounds,
+  gap,
+  maxAnchorDistance,
+}: {
+  badges: ClusteredOverlapBadge[];
+  blockedBoxes: OverlapChooserBounds[];
+  mapBounds: OverlapChooserBounds;
+  gap: number;
+  maxAnchorDistance: number;
+}): ClusteredOverlapBadge[] {
+  const arranged = badges.map((badge) => ({ ...badge, position: { ...badge.position } }));
+  const components = overlapBadgeComponents(arranged, maxAnchorDistance);
+
+  for (const component of components) {
+    if (component.length !== 3) continue;
+    const cluster = component.map((index) => arranged[index]);
+    const currentCenter = pointAverage(cluster.map((badge) => badge.position));
+    const anchorCenter = pointAverage(cluster.map((badge) => badge.anchor));
+    const formations = ([1, -1] as const)
+      .map((sideDirection) => sizeAwareThreeBadgeFormation(cluster, gap, sideDirection))
+      .filter((formation): formation is OverlapChooserPoint[] => Boolean(formation));
+    if (formations.length === 0) continue;
+    const translationCenters: OverlapChooserPoint[] = [];
+    const seenTranslationCenters = new Set<string>();
+    const addTranslationCenter = (center: OverlapChooserPoint) => {
+      const key = `${center.x.toFixed(3)}:${center.y.toFixed(3)}`;
+      if (seenTranslationCenters.has(key)) return;
+      seenTranslationCenters.add(key);
+      translationCenters.push(center);
+    };
+    addTranslationCenter(anchorCenter);
+    addTranslationCenter(currentCenter);
+    for (const origin of [anchorCenter, currentCenter]) {
+      for (const radius of [40, 80, 120, 160, 200, 240, 280, 320, 360, 400, 480, 560, 640, 720, 800]) {
+        for (let degrees = 0; degrees < 360; degrees += 15) {
+          const radians = degrees * Math.PI / 180;
+          addTranslationCenter({
+            x: origin.x + Math.cos(radians) * radius,
+            y: origin.y + Math.sin(radians) * radius,
+          });
+        }
+      }
+    }
+
+    const componentSet = new Set(component);
+    const outsideBadgeBoxes = arranged.flatMap((badge, index) => componentSet.has(index)
+      ? []
+      : [expandedChooserBounds(chooserBounds(badge.position, badge.size), 12)]);
+    const obstacles = [...blockedBoxes, ...outsideBadgeBoxes];
+    let best: { positions: OverlapChooserPoint[]; score: number; order: number } | null = null;
+    let order = 0;
+
+    for (const center of translationCenters) {
+      for (const formation of formations) {
+        order += 1;
+        const positions = formation.map((position) => ({
+          x: center.x + position.x,
+          y: center.y + position.y,
+        }));
+        const boxes = positions.map((position, index) => (
+          expandedChooserBounds(chooserBounds(position, cluster[index].size), 10)
+        ));
+        const staysInsideMap = boxes.every((box) => (
+          box.x >= mapBounds.x
+          && box.y >= mapBounds.y
+          && box.x + box.width <= mapBounds.x + mapBounds.width
+          && box.y + box.height <= mapBounds.y + mapBounds.height
+        ));
+        const clearsObstacles = boxes.every((box) => obstacles.every(
+          (obstacle) => chooserIntersectionArea(box, obstacle) === 0,
+        ));
+        const clearsSiblings = boxes.every((box, index) => boxes.slice(index + 1).every(
+          (sibling) => chooserIntersectionArea(box, sibling) === 0,
+        ));
+        if (!staysInsideMap || !clearsObstacles || !clearsSiblings) continue;
+
+        const anchorDistance = positions.reduce((sum, position, index) => sum + Math.hypot(
+          position.x - cluster[index].anchor.x,
+          position.y - cluster[index].anchor.y,
+        ), 0);
+        const movementDistance = positions.reduce((sum, position, index) => sum + Math.hypot(
+          position.x - cluster[index].position.x,
+          position.y - cluster[index].position.y,
+        ), 0);
+        const score = anchorDistance + movementDistance * 0.05;
+        if (!best || score < best.score || (score === best.score && order < best.order)) {
+          best = { positions, score, order };
+        }
+      }
+    }
+
+    if (!best) continue;
+    component.forEach((badgeIndex, index) => {
+      arranged[badgeIndex] = {
+        ...arranged[badgeIndex],
+        position: best.positions[index],
+      };
+    });
+  }
+
+  return arranged;
 }
 
 function getImpactPriority(kind: MapImpactKind): number {
@@ -419,5 +656,6 @@ export function buildStationOverlapBadgeGroups({
         impactKinds,
       };
     })
-    .filter((group): group is StationOverlapBadgeGroup => Boolean(group));
+    .filter((group): group is StationOverlapBadgeGroup => Boolean(group))
+    .sort((a, b) => a.stationId.localeCompare(b.stationId) || a.signature.localeCompare(b.signature));
 }
