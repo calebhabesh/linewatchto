@@ -1969,10 +1969,35 @@ test("station names share hover and selection behavior with station dots", async
   await expect(labelTarget).toHaveCount(1);
 
   if (!isMobile) {
+    const authoredLabel = page.locator('[data-station-label-for="kipling"]');
+    const hoverClone = page.locator('[data-station-label-hover-clone-for="kipling"]');
+    const authoredFontSize = await authoredLabel.evaluate((element) => getComputedStyle(element).fontSize);
+    await expect(hoverClone).toHaveCount(1);
     await labelTarget.hover();
-    await expect(page.locator('[data-station-label-for="kipling"]')).toHaveClass(/station-label-hovered/);
+    await expect(authoredLabel).toHaveClass(/station-label-hovered/);
+    await expect(hoverClone).toHaveClass(/station-label-hover-clone-active/);
+    await expect(hoverClone).toHaveCSS("transition-duration", "0.9s");
+    await expect(hoverClone).toHaveCSS(
+      "transition-timing-function",
+      "ease-in-out",
+    );
+    await expect(hoverClone).toHaveCSS("font-size", authoredFontSize);
+    await expect(hoverClone).toHaveCSS("opacity", "1");
+    await expect(authoredLabel).toHaveCSS("font-size", authoredFontSize);
     await expect(page.locator('[data-station-hover-id="kipling"]')).not.toHaveClass(/active/);
     await expect(labelTarget).toHaveCSS("outline-style", "none");
+
+    const angledLabel = page.locator('[data-station-label-for="islington"]');
+    const angledHoverClone = page.locator('[data-station-label-hover-clone-for="islington"]');
+    const angledLabelTarget = page.locator('[data-station-label-id="islington"]');
+    const authoredAngledTransform = await angledLabel.getAttribute("transform");
+    await angledLabelTarget.hover();
+    await expect(angledLabel).toHaveClass(/station-label-hovered/);
+    await expect(angledLabel).toHaveAttribute("transform", authoredAngledTransform ?? "");
+    await expect(angledHoverClone).toHaveAttribute("transform", authoredAngledTransform ?? "");
+    await page.locator('[data-station-label-id="royal-york"]').hover();
+    await expect(authoredLabel).not.toHaveClass(/station-label-hovered/);
+    await expect(hoverClone).toHaveCSS("opacity", "0");
   }
 
   await labelTarget.click();

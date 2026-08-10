@@ -133,6 +133,20 @@ function parseTtcMapMarkup(text: string): TtcMapMarkupParts {
     if (!layer) throw new Error(`Missing TTC map layer ${id}`);
     return [id, layer] as const;
   }));
+  const stationLabelsLayer = layers.get("ttc-station-labels-layer")!;
+  for (const label of stationLabelsLayer.querySelectorAll<SVGGraphicsElement>("[data-station-label-for]")) {
+    const stationId = label.dataset.stationLabelFor;
+    if (!stationId) continue;
+
+    const hoverClone = label.cloneNode(true) as SVGGraphicsElement;
+    hoverClone.removeAttribute("id");
+    hoverClone.removeAttribute("data-station-label-for");
+    hoverClone.querySelectorAll("[id]").forEach((descendant) => descendant.removeAttribute("id"));
+    hoverClone.setAttribute("data-station-label-hover-clone-for", stationId);
+    hoverClone.classList.add("station-label-hover-clone");
+    hoverClone.setAttribute("aria-hidden", "true");
+    label.after(hoverClone);
+  }
   const serializer = new XMLSerializer();
   const sharedMarkup = Array.from(svg.children)
     .filter((element) => element.localName === "defs" || element.localName === "style")
@@ -356,6 +370,14 @@ function InteractiveTtcMapComponent({
       label.classList.toggle(
         "station-label-hovered",
         label.dataset.stationLabelFor === hoveredStationLabelId,
+      );
+    }
+    for (const clone of root.querySelectorAll<SVGGraphicsElement>(
+      "#ttc-station-labels-layer [data-station-label-hover-clone-for]",
+    )) {
+      clone.classList.toggle(
+        "station-label-hover-clone-active",
+        clone.dataset.stationLabelHoverCloneFor === hoveredStationLabelId,
       );
     }
   }, [hoveredStationLabelId, svgParts]);
@@ -1863,7 +1885,10 @@ function InteractiveTtcMapComponent({
                   // Match the authored dot outlines. Alert paths retain their own
                   // screen-space interaction corridors below these exact targets.
                   const hitRadius = hasMultipleVisualAnchors ? 34 : isLarge ? 67 : 37;
-                  const hoverRadius = hitRadius;
+                  // Let the hover wash fully surround the authored marker instead
+                  // of tracing its edge. Keep multi-anchor stations tighter so the
+                  // two Spadina highlights remain visually distinct.
+                  const hoverRadius = hasMultipleVisualAnchors ? 42 : isLarge ? 78 : 46;
                   const highlightRadius = hasMultipleVisualAnchors ? 33 : isLarge ? 48 : 38;
                   const showStationHover =
                     hoveredStationId === station.id &&

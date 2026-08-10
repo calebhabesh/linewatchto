@@ -62,9 +62,15 @@ describe("asset-backed map layering", () => {
     assert.match(interactiveMapSource, /onPointerUp=\{\(event\) => \{[\s\S]*?onSelectStationId\(station\.id\)/);
     assert.match(globalCss, /\.station-label-hit-target\s*\{[^}]*cursor:\s*pointer;[^}]*fill:\s*transparent;[^}]*outline:\s*none;[^}]*stroke:\s*transparent;/s);
     assert.match(interactiveMapSource, /station-label-hovered/);
+    assert.match(interactiveMapSource, /station-label-hover-clone/);
+    assert.doesNotMatch(interactiveMapSource, /authoredFontSize \* 1\.025/);
     assert.match(
       globalCss,
-      /\[data-station-label-for\]\.station-label-hovered\s*\{[^}]*filter:\s*drop-shadow\([^}]*font-size:\s*82px\s*!important;/s,
+      /\.station-label-hover-clone\s*\{[^}]*filter:\s*drop-shadow\([^}]*opacity:\s*0;[^}]*pointer-events:\s*none;[^}]*stroke-width:\s*3px\s*!important;[^}]*transition:\s*opacity 900ms cubic-bezier\(0\.42, 0, 0\.58, 1\);/s,
+    );
+    assert.match(
+      globalCss,
+      /\.station-label-hover-clone-active\s*\{[^}]*opacity:\s*1;/s,
     );
     assert.match(
       globalCss,
@@ -72,9 +78,12 @@ describe("asset-backed map layering", () => {
     );
     assert.match(
       globalCss,
-      /\.dark \.ttc-svg-container #ttc-station-labels-layer \[data-station-label-for\]\s*\{[^}]*stroke:\s*#ffffff\s*!important;/s,
+      /\.dark \.ttc-svg-container #ttc-station-labels-layer \[data-station-label-for\],[^{]*\.station-label-hover-clone\s*\{[^}]*stroke:\s*#ffffff\s*!important;/s,
     );
-    assert.doesNotMatch(globalCss, /#ttc-station-labels-layer \[data-station-label-for\][^{]*\{[^}]*transform-(?:box|origin):/s);
+    assert.doesNotMatch(
+      globalCss,
+      /#ttc-station-labels-layer \[data-station-label-for\][^{]*\{[^}]*(?:scale|transform-(?:box|origin)):/s,
+    );
   });
 
   it("uses explicit SVG hit testing for station touch targets", () => {
@@ -98,13 +107,16 @@ describe("asset-backed map layering", () => {
     assert.doesNotMatch(interactiveMapSource, /const hitRadius = selection/);
   });
 
-  it("keeps the station-dot hover halo aligned with its clickable outline", () => {
-    assert.match(interactiveMapSource, /const hoverRadius = hitRadius;/);
+  it("pads the station-dot hover halo beyond its clickable outline", () => {
+    assert.match(
+      interactiveMapSource,
+      /const hoverRadius = hasMultipleVisualAnchors \? 42 : isLarge \? 78 : 46;/,
+    );
     assert.match(interactiveMapSource, /className=\{`station-hover-indicator/);
     assert.match(interactiveMapSource, /r=\{hoverRadius\}/);
     assert.match(
       globalCss,
-      /\.station-hover-indicator\.active\s*\{[^}]*fill:\s*rgb\(var\(--station-selection-accent-rgb\)\s*\/\s*30%\);[^}]*stroke:\s*var\(--station-selection-accent\);[^}]*stroke-width:\s*8;/s,
+      /\.station-hover-indicator\.active\s*\{[^}]*fill:\s*rgb\(var\(--station-selection-accent-rgb\)\s*\/\s*30%\);[^}]*stroke:\s*var\(--station-selection-accent\);[^}]*stroke-width:\s*10;/s,
     );
     assert.match(globalCss, /--station-selection-accent:\s*var\(--color-logo-blue\);/);
     assert.match(globalCss, /--station-selection-accent-rgb:\s*129 201 255;/);
@@ -886,7 +898,7 @@ describe("asset-backed map layering", () => {
 
   it("renders separate non-intersecting hover highlights over Spadina's two visual anchors", () => {
     assert.match(interactiveMapSource, /const hitRadius = hasMultipleVisualAnchors \? 34/);
-    assert.match(interactiveMapSource, /const hoverRadius = hitRadius;/);
+    assert.match(interactiveMapSource, /const hoverRadius = hasMultipleVisualAnchors \? 42/);
     assert.doesNotMatch(interactiveMapSource, /data-station-hover-capsule-id/);
   });
 

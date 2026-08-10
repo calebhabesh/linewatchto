@@ -7281,24 +7281,32 @@ img.transit-line-badge {
 .ttc-svg-container #ttc-station-labels-layer [data-station-label-for] {
   stroke: #000000 !important;
   stroke-width: 2px !important;
-  transition: filter 140ms ease-out, font-size 140ms ease-out;
 }
 
-.dark .ttc-svg-container #ttc-station-labels-layer [data-station-label-for] {
+.ttc-svg-container #ttc-station-labels-layer .station-label-hover-clone {
+  filter: drop-shadow(0 0 6px rgb(var(--station-selection-accent-rgb) / 76%));
+  opacity: 0;
+  pointer-events: none;
+  stroke: #000000 !important;
+  stroke-width: 3px !important;
+  transition: opacity 900ms cubic-bezier(0.42, 0, 0.58, 1);
+}
+
+.dark .ttc-svg-container #ttc-station-labels-layer [data-station-label-for],
+.dark .ttc-svg-container #ttc-station-labels-layer .station-label-hover-clone {
   stroke: #ffffff !important;
 }
 
-.ttc-svg-container #ttc-station-labels-layer [data-station-label-for].station-label-hovered {
-  filter: drop-shadow(0 0 4px rgb(var(--station-selection-accent-rgb) / 68%));
-  font-size: 82px !important;
+.ttc-svg-container #ttc-station-labels-layer .station-label-hover-clone-active {
+  opacity: 1;
 }
 
-.motion-paused .ttc-svg-container #ttc-station-labels-layer [data-station-label-for] {
+.motion-paused .ttc-svg-container #ttc-station-labels-layer .station-label-hover-clone {
   transition: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .ttc-svg-container #ttc-station-labels-layer [data-station-label-for] {
+  .ttc-svg-container #ttc-station-labels-layer .station-label-hover-clone {
     transition: none;
   }
 }
@@ -7330,7 +7338,7 @@ img.transit-line-badge {
 .station-hover-indicator.active {
   fill: rgb(var(--station-selection-accent-rgb) / 30%);
   stroke: var(--station-selection-accent);
-  stroke-width: 8;
+  stroke-width: 10;
 }
 
 .station-hit-target.multi-anchor:hover,
