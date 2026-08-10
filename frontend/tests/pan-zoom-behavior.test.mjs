@@ -151,7 +151,10 @@ describe("pan zoom behavior guardrails", () => {
   it("animates recenter without an immediate React transform render", () => {
     assert.match(hookSource, /const animateTransformTo = useCallback/);
     assert.match(hookSource, /setMapTransition\("transform 0\.8s cubic-bezier\(0\.25, 1, 0\.5, 1\)"\)/);
-    assert.match(hookSource, /programmaticAnimationFrameRef\.current = requestAnimationFrame/);
+    const animateTransformHandler = hookSource.match(
+      /const animateTransformTo = useCallback\(([\s\S]*?)\n  \}, \[/,
+    )?.[1] ?? "";
+    assert.doesNotMatch(animateTransformHandler, /requestAnimationFrame/);
     assert.match(hookSource, /writeMapTransform\(snapped\)/);
     assert.match(hookSource, /window\.setTimeout\(\(\) => \{[\s\S]*setTransform\(\{ \.\.\.transformRef\.current \}\)/);
     assert.doesNotMatch(hookSource, /commitTransform\(\{ x, y, scale \}\);\s*setFitScale\(scale\);\s*startAnimation\(\);/);
@@ -193,18 +196,22 @@ describe("pan zoom behavior guardrails", () => {
     assert.doesNotMatch(mapSource, /isAnimating/);
   });
 
-  it("simplifies TTC overlay paint for the full programmatic camera flight", () => {
+  it("simplifies TTC rail paint while preserving glow during the full camera flight", () => {
     assert.match(mapSource, /data-map-camera-moving="false"/);
     assert.match(hookSource, /containerRef\.current\.dataset\.mapCameraMoving = active \? "true" : "false"/);
     assert.match(hookSource, /setProgrammaticCameraMotion\(true\);[\s\S]*setMapTransition\("transform 0\.8s cubic-bezier/);
     assert.match(hookSource, /setTransform\(\{ \.\.\.transformRef\.current \}\);[\s\S]*setProgrammaticCameraMotion\(false\)/);
-    assert.match(
+    assert.doesNotMatch(
       globalCss,
-      /\[data-map-camera-moving="true"\] \.asset-alert-path-glow:not\(\.map-selection-attention\)[\s\S]*?animation:\s*none\s*!important;[\s\S]*?filter:\s*none\s*!important;/s,
+      /\[data-map-camera-moving="true"\] \.asset-alert-path-glow:not\(\.map-selection-attention\)/,
     );
-    assert.match(
+    assert.doesNotMatch(
       globalCss,
-      /\[data-map-camera-moving="true"\] \.map-selection-attention\s*\{[^}]*animation-play-state:\s*paused\s*!important;[^}]*filter:\s*none\s*!important;/s,
+      /\.map-gesture-active \.asset-alert-path-glow:not\(\.map-selection-attention\)/,
+    );
+    assert.doesNotMatch(
+      globalCss,
+      /\[data-map-camera-moving="true"\] \.map-selection-attention\s*\{/,
     );
     assert.doesNotMatch(globalCss, /\[data-map-camera-moving="true"\] \.ttc-map-stage[^{]*\{[^}]*will-change:\s*transform/s);
   });
@@ -220,6 +227,8 @@ describe("pan zoom behavior guardrails", () => {
   });
 
   it("guards focus zoom by selected target key instead of every data refresh", () => {
+    assert.match(mapSource, /useLayoutEffect\(\(\) => \{[\s\S]*const currentLayoutKey =/);
+    assert.match(mapSource, /const focusBoxesBySegmentId = useMemo/);
     assert.match(mapSource, /lastFocusedTargetKeyRef/);
     assert.match(mapSource, /focusTargetKey/);
     assert.match(mapSource, /lastFocusedTargetKeyRef\.current === focusTargetKey/);

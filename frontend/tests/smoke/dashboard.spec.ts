@@ -1478,16 +1478,152 @@ test("desktop TTC station focus keeps one camera target while the SVG settles", 
 
   const focusTarget = await mapStage.evaluate((element) => (element as HTMLElement).style.transform);
   const stationAttention = page.locator(".station-selection-flash.map-selection-attention").first();
+  const decorativeOverlayGlow = page.locator(
+    ".overlay-segment-group .asset-alert-path-glow:is(.delay, .suspension, .reduced-speed-zone, .delay-static):not(.interactive-glow)",
+  ).first();
   await expect(stationAttention).toBeAttached();
+  await expect(decorativeOverlayGlow).toBeAttached();
   expect(await stationAttention.evaluate(
     (element) => getComputedStyle(element).animationPlayState,
-  )).toContain("paused");
+  )).not.toContain("paused");
+  expect(await stationAttention.evaluate(
+    (element) => getComputedStyle(element).animationName,
+  )).toContain("map-selection-station-intro");
+  expect(await decorativeOverlayGlow.evaluate(
+    (element) => getComputedStyle(element).filter,
+  )).toContain("blur");
+  const overlayGlowPulseTimes = await page.locator(
+    ".overlay-segment-group .asset-alert-path-glow:is(.delay, .suspension, .reduced-speed-zone, .delay-static):not(.interactive-glow)",
+  ).evaluateAll((elements) => elements.flatMap((element) => {
+    const pulse = element.getAnimations().find((animation) => (
+      "animationName" in animation && animation.animationName === "aura-pulse"
+    ));
+    return typeof pulse?.currentTime === "number" ? [pulse.currentTime] : [];
+  }));
+  expect(overlayGlowPulseTimes.length).toBeGreaterThan(1);
+  expect(Math.max(...overlayGlowPulseTimes) - Math.min(...overlayGlowPulseTimes)).toBeLessThan(20);
+  const glowAnimationTimeBefore = await decorativeOverlayGlow.evaluate((element) => (
+    element.getAnimations().find((animation) => (
+      "animationName" in animation && animation.animationName === "aura-pulse"
+    ))?.currentTime ?? 0
+  ));
   await expect(mapStage.locator(".ttc-svg-container > svg")).toHaveCSS("shape-rendering", "auto");
 
-  await page.waitForTimeout(300);
+  await page.waitForTimeout(160);
+  const glowAnimationTimeAfter = await decorativeOverlayGlow.evaluate((element) => (
+    element.getAnimations().find((animation) => (
+      "animationName" in animation && animation.animationName === "aura-pulse"
+    ))?.currentTime ?? 0
+  ));
+  expect(Number(glowAnimationTimeAfter)).toBeGreaterThan(Number(glowAnimationTimeBefore) + 80);
   expect(await mapStage.evaluate((element) => (element as HTMLElement).style.transform)).toBe(focusTarget);
   await expect(viewport).toHaveAttribute("data-map-camera-moving", "false", { timeout: 2_000 });
   expect(await mapStage.evaluate((element) => (element as HTMLElement).style.transform)).toBe(focusTarget);
+  expect(await decorativeOverlayGlow.evaluate(
+    (element) => getComputedStyle(element).filter,
+  )).toContain("blur");
+});
+
+test("desktop TTC overlay press arms the camera before the next frame", async ({ page, request, isMobile }) => {
+  test.skip(isMobile, "desktop animated camera behavior");
+  await setStubMode(request, "seeded");
+  await page.goto("/");
+  await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
+
+  const viewport = page.locator("[data-map-pan-zoom-viewport]");
+  const target = page.getByRole("button", { name: "delay: Sheppard-Yonge to Don Mills" });
+  await expect(target).toBeVisible();
+  await page.waitForTimeout(900);
+
+  await page.evaluate(() => {
+    const viewportElement = document.querySelector<HTMLElement>("[data-map-pan-zoom-viewport]");
+    const mapStage = document.querySelector<HTMLElement>(".ttc-map-stage");
+    const overlayTarget = document.querySelector<SVGPathElement>(
+      '[aria-label="delay: Sheppard-Yonge to Don Mills"]',
+    );
+    if (!viewportElement || !mapStage || !overlayTarget) {
+      throw new Error("Missing TTC map timing elements");
+    }
+
+    const initialTransform = mapStage.style.transform;
+    let nextFrameStarted = false;
+    overlayTarget.addEventListener("click", () => {
+      window.requestAnimationFrame(() => {
+        nextFrameStarted = true;
+      });
+    }, { capture: true, once: true });
+
+    const observer = new MutationObserver(() => {
+      if (mapStage.style.transform === initialTransform) return;
+      observer.disconnect();
+      viewportElement.dataset.cameraArmedBeforeNextFrame = String(!nextFrameStarted);
+    });
+    observer.observe(mapStage, { attributes: true, attributeFilter: ["style"] });
+  });
+
+  await target.dispatchEvent("click");
+  await expect(viewport).toHaveAttribute("data-camera-armed-before-next-frame", "true");
+  await expect(viewport).toHaveAttribute("data-map-camera-moving", "true");
+  const selectedOverlay = page.locator('[data-selected-impact-emphasis="stub-delay-line-4"]');
+  await expect(selectedOverlay).toBeAttached();
+  expect(await selectedOverlay.evaluate(
+    (element) => getComputedStyle(element).animationName,
+  )).toContain("map-selection-path-intro");
+  expect(await selectedOverlay.evaluate(
+    (element) => getComputedStyle(element).animationPlayState,
+  )).not.toContain("paused");
+});
+
+test("desktop TTC glow keeps animating during a direct map gesture", async ({ page, request, isMobile }) => {
+  test.skip(isMobile, "desktop animated glow behavior");
+  await setStubMode(request, "seeded");
+  await page.goto("/");
+  await expect(page.getByRole("button", { name: "Center map view" })).toBeVisible();
+  await page.waitForTimeout(900);
+
+  const viewport = page.locator("[data-map-pan-zoom-viewport]");
+  const glow = page.locator(
+    ".overlay-segment-group .asset-alert-path-glow:is(.delay, .suspension, .reduced-speed-zone, .delay-static):not(.interactive-glow)",
+  ).first();
+  await expect(glow).toBeAttached();
+  const viewportBox = await viewport.boundingBox();
+  if (!viewportBox) throw new Error("Missing TTC map viewport bounds");
+  const gesturePoint = {
+    clientX: viewportBox.x + viewportBox.width * 0.75,
+    clientY: viewportBox.y + viewportBox.height * 0.75,
+  };
+
+  await viewport.dispatchEvent("pointerdown", {
+    ...gesturePoint,
+    pointerId: 41,
+    pointerType: "mouse",
+    button: 0,
+    buttons: 1,
+    isPrimary: true,
+  });
+  await expect(page.locator("[data-map-gesture-active=true]")).toBeAttached();
+  expect(await glow.evaluate((element) => getComputedStyle(element).filter)).toContain("blur");
+  const pulseTimeBefore = await glow.evaluate((element) => (
+    element.getAnimations().find((animation) => (
+      "animationName" in animation && animation.animationName === "aura-pulse"
+    ))?.currentTime ?? 0
+  ));
+  await page.waitForTimeout(160);
+  const pulseTimeAfter = await glow.evaluate((element) => (
+    element.getAnimations().find((animation) => (
+      "animationName" in animation && animation.animationName === "aura-pulse"
+    ))?.currentTime ?? 0
+  ));
+  expect(Number(pulseTimeAfter)).toBeGreaterThan(Number(pulseTimeBefore) + 80);
+
+  await viewport.dispatchEvent("pointerup", {
+    ...gesturePoint,
+    pointerId: 41,
+    pointerType: "mouse",
+    button: 0,
+    buttons: 0,
+    isPrimary: true,
+  });
 });
 
 test("mobile closing impact details preserves the focused map camera", async ({ page, request, isMobile }) => {

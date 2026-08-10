@@ -369,6 +369,13 @@ describe("asset-backed map layering", () => {
   it("keeps all pulse and glow animations on one shared phase", () => {
     assert.match(globalCss, /--map-pulse-offset/);
     assert.match(globalCss, /\.asset-alert-path-glow\s*\{[^}]*animation-delay:\s*var\(--map-pulse-offset\);/s);
+    assert.match(
+      globalCss,
+      /\.asset-alert-path-glow\.suspension,[\s\S]*?\.asset-alert-path-glow\.delay-static\s*\{[^}]*animation-delay:\s*var\(--map-pulse-offset\);/s,
+    );
+    assert.match(interactiveMapSource, /SYNCHRONIZED_OVERLAY_PULSE_NAMES/);
+    assert.match(interactiveMapSource, /mapRoot\.getAnimations\(\{ subtree: true \}\)/);
+    assert.match(interactiveMapSource, /animation\.currentTime = pulsePhaseMs/);
     assert.match(globalCss, /\.asset-alert-path\.delay-candy\s*\{[^}]*animation-delay:\s*var\(--map-pulse-offset\);/s);
     assert.match(globalCss, /\.asset-alert-path\.suspension-candy\s*\{[^}]*animation-delay:\s*var\(--map-pulse-offset\);/s);
     assert.match(globalCss, /\.delay-hourglass-mask-path,\s*\.suspension-mask-path\s*\{[^}]*animation-delay:\s*var\(--map-pulse-offset\);/s);

@@ -5371,6 +5371,16 @@ button {
   animation: aura-pulse 1.2s infinite alternate ease-in-out;
 }
 
+/* The subtype animation shorthands above reset animation-delay. Reapply the
+   shared clock after them so glows added by later alert snapshots cannot drift
+   away from the already-rendered overlay rails. */
+.asset-alert-path-glow.suspension,
+.asset-alert-path-glow.delay,
+.asset-alert-path-glow.reduced-speed-zone,
+.asset-alert-path-glow.delay-static {
+  animation-delay: var(--map-pulse-offset);
+}
+
 .asset-alert-path.delay-candy {
   stroke-width: 102;
   animation: candy-pulse 1.2s infinite alternate ease-in-out;
@@ -18490,7 +18500,6 @@ img.transit-line-badge {
    Gesture-active overlay simplification
    Pauses expensive animated effects while touch gestures are live
    ============================================================ */
-.map-gesture-active .asset-alert-path-glow:not(.map-selection-attention),
 .map-gesture-active .interactive-glow:not(.map-selection-attention),
 .map-gesture-active .asset-alert-path.delay-candy,
 .map-gesture-active .asset-alert-path.suspension-candy,
@@ -18521,11 +18530,6 @@ img.transit-line-badge {
   transition: none !important;
 }
 
-.map-gesture-active .asset-alert-path-glow {
-  opacity: 0.22;
-  stroke-width: 118;
-}
-
 .map-gesture-active .interactive-glow.selected {
   opacity: 0.36;
   stroke-width: 138;
@@ -18541,10 +18545,9 @@ img.transit-line-badge {
 }
 
 /* Programmatic TTC camera flights use the same bounded-paint contract as the
-   regional map. Keep the authored rail/station/label artwork in its normal
-   paint layer, but suspend expensive refresh-owned effects until the camera
-   settles so Chromium does not flash partially repainted SVG tiles. */
-[data-map-camera-moving="true"] .asset-alert-path-glow:not(.map-selection-attention),
+   regional map. Keep the authored rail/station/label artwork and its filtered
+   glow in their normal paint layers, but suspend the heavier rail/mask effects
+   until the camera settles. */
 [data-map-camera-moving="true"] .interactive-glow:not(.map-selection-attention),
 [data-map-camera-moving="true"] .asset-alert-path.delay-candy,
 [data-map-camera-moving="true"] .asset-alert-path.suspension-candy,
@@ -18559,12 +18562,6 @@ img.transit-line-badge {
 [data-map-camera-moving="true"] .commute-path-preview-glow,
 [data-map-camera-moving="true"] .commute-path-preview-path {
   animation: none !important;
-  filter: none !important;
-  transition: none !important;
-}
-
-[data-map-camera-moving="true"] .map-selection-attention {
-  animation-play-state: paused !important;
   filter: none !important;
   transition: none !important;
 }

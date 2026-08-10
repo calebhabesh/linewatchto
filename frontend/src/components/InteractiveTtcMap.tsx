@@ -103,7 +103,15 @@ type RetainedLayer<T> = {
   exiting: boolean;
 };
 
-const MAP_PULSE_CYCLE_MS = 1200;
+// Pulse keyframes alternate over 1.2 seconds, so their complete visual cycle
+// is 2.4 seconds. Use the full cycle when phase-locking layers mounted by
+// separate dashboard snapshots.
+const MAP_PULSE_CYCLE_MS = 2400;
+const SYNCHRONIZED_OVERLAY_PULSE_NAMES = new Set([
+  "aura-pulse",
+  "candy-pulse",
+  "mask-size-pulse",
+]);
 
 type TtcMapMarkupParts = {
   part1: string;
@@ -637,6 +645,18 @@ function InteractiveTtcMapComponent({
     return reducedSpeedZones.find((zone) => zone.id === selection.id)?.affectedSegmentIds ?? [];
   }, [activeAlerts, delays, plannedClosures, reducedSpeedZones, selection]);
 
+  // Resolve and sample focus geometry when the SVG topology changes, not on
+  // the overlay-press render. The selected impact can then frame itself with
+  // inexpensive map lookups in the pre-paint layout effect below.
+  const focusBoxesBySegmentId = useMemo(() => {
+    return new Map(networkSegments.flatMap((segment) => {
+      const pathD = resolveNetworkSegmentPath(segment, mapStations, anchorPoints, guidePaths);
+      return pathD
+        ? [[segment.id, pathCorridorCollisionBoxes(pathD, 80)] as const]
+        : [];
+    }));
+  }, [anchorPoints, guidePaths, mapStations, networkSegments]);
+
   const commuteFlashStationIds = useMemo(() => {
     if (!commutePathPreview || commutePathPreview.stationIds.length === 0) {
       return [];
@@ -667,7 +687,7 @@ function InteractiveTtcMapComponent({
     return () => window.clearTimeout(resetTimer);
   }, [layoutResetSignal, loadState, recenter, focusTargetKey]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (loadState !== "ready") return;
 
     const currentLayoutKey = `${layoutResetSignal ?? 0}:${desktopMenuPinned ? "pinned" : "free"}:${viewportOrientation}`;
@@ -763,12 +783,9 @@ function InteractiveTtcMapComponent({
           }
         }
       } else {
-        const svgBounds = boundsContainingBoxes(selectedSegmentIds.flatMap((segmentId) => {
-          const segment = networkSegments.find((candidate) => candidate.id === segmentId);
-          if (!segment) return [];
-          const pathD = resolveNetworkSegmentPath(segment, mapStations, anchorPoints, guidePaths);
-          return pathD ? pathCorridorCollisionBoxes(pathD, 80) : [];
-        }));
+        const svgBounds = boundsContainingBoxes(
+          selectedSegmentIds.flatMap((segmentId) => focusBoxesBySegmentId.get(segmentId) ?? []),
+        );
         if (svgBounds) {
           const targetScale = isMobile ? 3.8 : 1.8;
           zoomToBounds({
@@ -806,10 +823,7 @@ function InteractiveTtcMapComponent({
     selection,
     selectedStationId,
     selectedSegmentIds,
-    networkSegments,
-    mapStations,
-    anchorPoints,
-    guidePaths,
+    focusBoxesBySegmentId,
     zoomToBounds,
     loadState,
     preserveCameraOnSelectionClear,
@@ -1132,11 +1146,22 @@ function InteractiveTtcMapComponent({
     return `${plannedKeys}::${impactKeys}::${stationKeys}`;
   }, [plannedPreviewLayers, renderedImpactLayers, stationNodeImpacts]);
 
-  useEffect(() => {
-    mapRootRef.current?.style.setProperty(
+  useLayoutEffect(() => {
+    const mapRoot = mapRootRef.current;
+    if (!mapRoot) return;
+    const pulsePhaseMs = performance.now() % MAP_PULSE_CYCLE_MS;
+    mapRoot.style.setProperty(
       "--map-pulse-offset",
-      `-${Math.round(performance.now() % MAP_PULSE_CYCLE_MS)}ms`,
+      `-${Math.round(pulsePhaseMs)}ms`,
     );
+    for (const animation of mapRoot.getAnimations({ subtree: true })) {
+      const animationName = "animationName" in animation
+        ? String(animation.animationName)
+        : "";
+      if (SYNCHRONIZED_OVERLAY_PULSE_NAMES.has(animationName)) {
+        animation.currentTime = pulsePhaseMs;
+      }
+    }
   }, [pulseSyncSignature]);
 
   const collisionBoxesByImpact = useMemo(() => {

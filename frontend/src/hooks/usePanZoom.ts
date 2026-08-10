@@ -219,10 +219,11 @@ export function usePanZoom({
 
     setProgrammaticCameraMotion(true);
     setMapTransition("transform 0.8s cubic-bezier(0.25, 1, 0.5, 1)");
-    programmaticAnimationFrameRef.current = requestAnimationFrame(() => {
-      programmaticAnimationFrameRef.current = null;
-      writeMapTransform(snapped);
-    });
+    // This path only runs after the map has an established transform, so the
+    // browser can transition directly from that committed value. Deferring the
+    // write to another animation frame adds a perceptible dead frame after an
+    // overlay press without improving transition setup.
+    writeMapTransform(snapped);
 
     animTimeoutRef.current = window.setTimeout(() => {
       animTimeoutRef.current = null;
