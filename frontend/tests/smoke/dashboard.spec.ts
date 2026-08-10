@@ -1501,10 +1501,10 @@ test("desktop TTC station focus keeps one camera target while the SVG settles", 
   expect(await decorativeOverlayGlow.evaluate(
     (element) => getComputedStyle(element).animationName,
   )).toBe("none");
-  await expect(mapStage.locator(".ttc-svg-container > svg")).toHaveCSS("shape-rendering", "auto");
+  await expect(mapStage.locator(".ttc-svg-container > svg")).toHaveCSS("shape-rendering", "geometricprecision");
   const authoredTrack = mapStage.locator("#ttc-tracks-layer path").first();
-  await expect(authoredTrack).toHaveCSS("shape-rendering", "auto");
-  await expect(authoredTrack).toHaveCSS("text-rendering", "optimizespeed");
+  await expect(authoredTrack).toHaveCSS("shape-rendering", "geometricprecision");
+  await expect(authoredTrack).toHaveCSS("text-rendering", "geometricprecision");
 
   await page.waitForTimeout(160);
   expect(await mapStage.evaluate((element) => (element as HTMLElement).style.transform)).toBe(focusTarget);
@@ -1565,7 +1565,7 @@ test("desktop TTC overlay press arms the camera before the next frame", async ({
   )).not.toContain("paused");
 });
 
-test("desktop TTC gesture substitutes a static rail for the animated glow", async ({ page, request, isMobile }) => {
+test("desktop TTC gesture hides the animated decorative glow", async ({ page, request, isMobile }) => {
   test.skip(isMobile, "desktop map gesture paint behavior");
   await setStubMode(request, "seeded");
   await page.goto("/");
@@ -1595,7 +1595,7 @@ test("desktop TTC gesture substitutes a static rail for the animated glow", asyn
   await expect(page.locator("[data-map-gesture-active=true]")).toBeAttached();
   expect(await glow.evaluate((element) => getComputedStyle(element).filter)).toBe("none");
   expect(await glow.evaluate((element) => getComputedStyle(element).animationName)).toBe("none");
-  expect(await glow.evaluate((element) => getComputedStyle(element).opacity)).toBe("0.14");
+  expect(await glow.evaluate((element) => getComputedStyle(element).opacity)).toBe("0");
 
   await viewport.dispatchEvent("pointerup", {
     ...gesturePoint,
