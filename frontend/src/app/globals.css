@@ -20530,7 +20530,9 @@ img.transit-line-badge {
 /* Subtle outlines for main map page elements */
 .mobile-legend-pill,
 .mobile-train-toggle,
+.mobile-alert-history-shortcut,
 .mobile-my-stations-shortcut,
+.alert-history-shortcut,
 .theme-toggle-btn,
 .rotate-map-btn,
 .site-guide-trigger,
@@ -20542,7 +20544,9 @@ img.transit-line-badge {
 
 .dark .mobile-legend-pill,
 .dark .mobile-train-toggle,
+.dark .mobile-alert-history-shortcut,
 .dark .mobile-my-stations-shortcut,
+.dark .alert-history-shortcut,
 .dark .theme-toggle-btn,
 .dark .rotate-map-btn,
 .dark .site-guide-trigger,
@@ -20554,7 +20558,9 @@ img.transit-line-badge {
 
 .high-contrast .mobile-legend-pill,
 .high-contrast .mobile-train-toggle,
+.high-contrast .mobile-alert-history-shortcut,
 .high-contrast .mobile-my-stations-shortcut,
+.high-contrast .alert-history-shortcut,
 .high-contrast .theme-toggle-btn,
 .high-contrast .rotate-map-btn,
 .high-contrast .site-guide-trigger,
@@ -20641,6 +20647,7 @@ img.transit-line-badge {
 @media (max-width: 767px) {
   .mobile-legend-pill,
   .mobile-train-toggle,
+  .mobile-alert-history-shortcut,
   .mobile-my-stations-shortcut,
   .theme-toggle-btn,
   .rotate-map-btn,
@@ -20662,6 +20669,7 @@ img.transit-line-badge {
   /* Handle active state for the buttons on mobile */
   .theme-toggle-btn:active,
   .mobile-train-toggle:active,
+  .mobile-alert-history-shortcut:active,
   .mobile-my-stations-shortcut:active,
   .rotate-map-btn:active,
   .site-guide-trigger:active {
@@ -20853,6 +20861,7 @@ img.transit-line-badge {
   cursor: not-allowed;
 }
 
+.mobile-alert-history-shortcut,
 .mobile-my-stations-shortcut {
   align-items: center !important;
   background: var(--mobile-chrome-background) !important;
@@ -20866,6 +20875,27 @@ img.transit-line-badge {
   padding: 4px 1px !important;
   transition: background-color 0.2s ease-in-out, border-color 0.2s ease-in-out, color 0.2s ease-in-out, transform 0.2s ease-in-out;
   width: var(--mobile-top-action-button-size) !important;
+}
+
+.mobile-alert-history-shortcut:hover,
+.mobile-alert-history-shortcut:focus-visible {
+  border-color: #2563eb !important;
+  color: #2563eb !important;
+  outline: 2px solid rgba(37, 99, 235, 0.45);
+  outline-offset: 2px;
+}
+
+.dark .mobile-alert-history-shortcut:hover,
+.dark .mobile-alert-history-shortcut:focus-visible {
+  border-color: #60a5fa !important;
+  color: #93c5fd !important;
+}
+
+.high-contrast .mobile-alert-history-shortcut:hover,
+.high-contrast .mobile-alert-history-shortcut:focus-visible {
+  background: #ffffff !important;
+  color: #000000 !important;
+  outline-color: #ffffff;
 }
 
 .mobile-my-stations-shortcut-icon {
@@ -20894,12 +20924,17 @@ img.transit-line-badge {
   outline-color: #ffffff;
 }
 
+.mobile-alert-history-shortcut:active,
 .mobile-my-stations-shortcut:active {
   transform: translateY(1px) scale(0.97);
 }
 
 @media (min-width: 768px) {
   .mobile-my-stations-shortcut {
+    display: none !important;
+  }
+
+  .mobile-alert-history-shortcut {
     display: none !important;
   }
 }

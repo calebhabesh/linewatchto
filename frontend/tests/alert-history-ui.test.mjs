@@ -57,6 +57,14 @@ describe("alert history timeline UI", () => {
     assert.match(shellSource, /<span[^>]*>Notifications<\/span>[\s\S]*?Alert History/);
   });
 
+  it("offers front-facing Alert History shortcuts without displacing the mobile edge shortcut", () => {
+    assert.match(shellSource, /<LogsDropdown network=\{selectedNetwork\} \/>[\s\S]*?className="alert-history-shortcut[\s\S]*?aria-label="Open Alert History"[\s\S]*?aria-label="Toggle theme"/);
+    assert.match(shellSource, /className="mobile-network-selector-slot"[\s\S]*?className="mobile-alert-history-shortcut md:hidden"[\s\S]*?className="mobile-my-stations-shortcut md:hidden"/);
+    assert.match(cssSource, /\.mobile-alert-history-shortcut,[\s\S]*?\.mobile-my-stations-shortcut\s*\{[^}]*height:\s*var\(--mobile-top-action-button-size\) !important;/s);
+    assert.match(panelSource, /<History className="[^"]*text-emerald-500[^"]*"/);
+    assert.equal((shellSource.match(/alert-history-shortcut-icon text-emerald-500/g) ?? []).length, 2);
+  });
+
   it("is mounted inside the custom alert history panel", () => {
     assert.match(panelSource, /AlertHistoryTimeline/);
   });

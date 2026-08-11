@@ -3437,6 +3437,15 @@ export function LineWatchShell({
         <div className="map-utility-cluster pointer-events-auto flex items-center gap-2">
           <LogsDropdown network={selectedNetwork} />
           <button
+            type="button"
+            onClick={() => navigateForward("alert-history")}
+            className="alert-history-shortcut panel hidden md:flex items-center justify-center w-14 h-14 rounded-xl border border-black/10 dark:border-white/10 shadow-lg hover:!bg-slate-200 dark:hover:!bg-[#1a1e28] hover:scale-105 active:scale-95 outline-none focus-visible:ring-4 focus-visible:ring-black/10 dark:focus-visible:ring-white/10 transition-all cursor-pointer bg-white dark:bg-[#0a0c10]"
+            aria-label="Open Alert History"
+            title="Alert History"
+          >
+            <History className="alert-history-shortcut-icon text-emerald-500" size={23} aria-hidden="true" />
+          </button>
+          <button
             onClick={handleToggleTheme}
             className="theme-toggle-btn panel flex items-center justify-center w-10 sm:w-14 h-10 sm:h-14 rounded-xl border border-black/10 dark:border-white/10 shadow-lg hover:!bg-slate-200 dark:hover:!bg-[#1a1e28] hover:scale-105 active:scale-95 outline-none focus-visible:ring-4 focus-visible:ring-black/10 dark:focus-visible:ring-white/10 transition-all cursor-pointer bg-white dark:bg-[#0a0c10]"
             aria-label="Toggle theme"
@@ -3470,15 +3479,26 @@ export function LineWatchShell({
               />
             </div>
             {activeView === "map" && !selection && !selectedStationId && !accountDialogMode && !commutePathPreview ? (
-              <button
-                type="button"
-                onClick={openMyStations}
-                className="mobile-my-stations-shortcut md:hidden"
-                aria-label="Open My Stations"
-                title="My Stations"
-              >
-                <Bookmark className="mobile-my-stations-shortcut-icon" size={19} aria-hidden="true" />
-              </button>
+              <>
+                <button
+                  type="button"
+                  onClick={() => navigateForward("alert-history")}
+                  className="mobile-alert-history-shortcut md:hidden"
+                  aria-label="Open Alert History"
+                  title="Alert History"
+                >
+                  <History className="alert-history-shortcut-icon text-emerald-500" size={19} aria-hidden="true" />
+                </button>
+                <button
+                  type="button"
+                  onClick={openMyStations}
+                  className="mobile-my-stations-shortcut md:hidden"
+                  aria-label="Open My Stations"
+                  title="My Stations"
+                >
+                  <Bookmark className="mobile-my-stations-shortcut-icon" size={19} aria-hidden="true" />
+                </button>
+              </>
             ) : null}
           </div>
         </div>
