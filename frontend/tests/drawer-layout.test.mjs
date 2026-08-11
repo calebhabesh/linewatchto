@@ -133,9 +133,10 @@ describe("floating menu layout", () => {
   });
 
   it("shows the combined alert-category total on the hamburger badge", () => {
+    assert.match(shellSource, /const reducedSpeedZoneCount = countReducedSpeedZones\(reducedSpeedZones\);/);
     assert.match(
       shellSource,
-      /const totalAlertCount =\s*activeAlerts\.length\s*\+ delays\.length\s*\+ reducedSpeedZones\.length\s*\+ plannedClosures\.length;/,
+      /const totalAlertCount =\s*activeAlerts\.length\s*\+ delays\.length\s*\+ reducedSpeedZoneCount\s*\+ plannedClosures\.length;/,
     );
     assert.match(shellSource, /\{totalAlertCount > 0 && !menuVisible && \(/);
     assert.match(shellSource, /\{totalAlertCount\}/);

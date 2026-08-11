@@ -10,6 +10,7 @@ import { getOverlappingImpactRefs, OverlappingImpactRefs } from "./ImpactOverlap
 import { filterAndSortImpacts, type ImpactListSort } from "../app/impact-list-controls";
 import { ImpactListToolbar } from "./ImpactListToolbar";
 import { dashboardImpactSourceLabel } from "../app/dashboard-source-label";
+import { countReducedSpeedZones } from "../app/reduced-speed-zone-count";
 import { CompactImpactListItem, CompactImpactTimeValue } from "./CompactImpactListItem";
 import { useImpactListView } from "../hooks/useImpactListView";
 
@@ -41,6 +42,7 @@ export function ReducedSpeedZonesPanel({
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<ImpactListSort>("line");
   const { viewMode, setViewMode } = useImpactListView();
+  const zoneCount = countReducedSpeedZones(reducedSpeedZones);
   const visibleZones = useMemo(() => filterAndSortImpacts(reducedSpeedZones, { lineId, query, sort }), [reducedSpeedZones, lineId, query, sort]);
   const lineIds = useMemo(() => [...new Set(reducedSpeedZones.map((zone) => zone.lineId))].sort(), [reducedSpeedZones]);
   useScrollSelectedImpactCard(selection, "reduced-speed-zone");
@@ -80,7 +82,8 @@ export function ReducedSpeedZonesPanel({
         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           <div className="flex flex-col items-end gap-1 mt-0.5 min-w-0">
             <span className="rsz-count-badge shrink-0 text-[9px] sm:text-xs px-1.5 sm:px-2 py-0.5 rounded-full font-bold">
-              {reducedSpeedZones.length} {reducedSpeedZones.length === 1 ? "Zone" : "Zones"}
+              {zoneCount} {zoneCount === 1 ? "Zone" : "Zones"}
+              {zoneCount !== reducedSpeedZones.length ? ` · ${reducedSpeedZones.length} Locations` : ""}
             </span>
             <CardSource source={dashboardImpactSourceLabel(dashboard, reducedSpeedZones[0]?.source)} />
           </div>
@@ -123,6 +126,7 @@ export function ReducedSpeedZonesPanel({
           </div>
         ) : (
           visibleZones.map((zone) => {
+            const zonesAtLocation = countReducedSpeedZones([zone]);
             const isActive = selection?.kind === "reduced-speed-zone" && selection.id === zone.id;
             const overlappingImpacts = getOverlappingImpactRefs(
               { kind: "reduced-speed-zone", id: zone.id, segmentIds: zone.affectedSegmentIds ?? [] },
@@ -135,7 +139,7 @@ export function ReducedSpeedZonesPanel({
                   impactId={zone.id}
                   lineId={zone.lineId}
                   lineNumber={zone.lineNumber}
-                  title={zone.title}
+                  title={zonesAtLocation > 1 ? `${zone.title} (${zonesAtLocation})` : zone.title}
                   location={zone.location}
                   direction={zone.displayDirection}
                   facts={[
@@ -190,6 +194,7 @@ export function ReducedSpeedZonesPanel({
                       updatedAt={zone.updatedAt}
                       updatedAgo={zone.updatedAgo} 
                       extraRows={[
+                        { label: "Zones here", value: zonesAtLocation > 1 ? String(zonesAtLocation) : null },
                         { label: "Reduced speed", value: formatSpeed(zone.reducedSpeed) },
                         { label: "Typical speed", value: formatSpeed(zone.averageSpeed) },
                       ]}

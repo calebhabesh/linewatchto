@@ -7,6 +7,7 @@ import { useDashboardData } from "../app/DataContext";
 import { DelayIcon } from "./DelayIcon";
 import { TransitLineBadge } from "./TransitLineBadge";
 import type { NetworkId } from "../app/regional-data";
+import { countReducedSpeedZones } from "../app/reduced-speed-zone-count";
 import {
   clearServiceStatusLabel,
   dashboardStatusSourceLabel,
@@ -28,6 +29,7 @@ type Props = {
 export function MobileStatusSheet({ pollText, dataSource, onOpenCategory, onClose, accessibilityOutageCount = 0, surfaceNoticeCount = 0, networkId = "ttc" }: Props) {
   const { activeAlerts, delays, reducedSpeedZones, plannedClosures, lineStatuses } = useDashboardData();
   const regional = networkId === "regional";
+  const reducedSpeedZoneCount = countReducedSpeedZones(reducedSpeedZones);
   const presentationState = { networkId, dataSource } as const;
   const sourceLabel = dashboardStatusSourceLabel(presentationState, pollText);
 
@@ -71,7 +73,7 @@ export function MobileStatusSheet({ pollText, dataSource, onOpenCategory, onClos
             <Construction size={16} className="text-amber-600 dark:text-amber-400 shrink-0" />
             <span className="mobile-status-btn-text">Reduced Speed Zones</span>
             <span className="mobile-status-btn-circle">
-              {reducedSpeedZones.length}
+              {reducedSpeedZoneCount}
             </span>
           </button> : null}
           <button type="button" className="mobile-status-btn-closures" onClick={() => onOpenCategory("closures")}>
@@ -115,6 +117,7 @@ export function MobileStatusSheet({ pollText, dataSource, onOpenCategory, onClos
             const lineAlerts = activeAlerts.filter((alert) => alert.lineId === line.id);
             const lineDelays = delays.filter((delay) => delay.lineId === line.id);
             const lineRsz = reducedSpeedZones.filter((zone) => zone.lineId === line.id);
+            const lineRszCount = countReducedSpeedZones(lineRsz);
             const lineClosures = plannedClosures.filter((closure) => closure.lineId === line.id);
             const clear = lineAlerts.length === 0 && lineDelays.length === 0 && lineRsz.length === 0 && lineClosures.length === 0;
 
@@ -141,7 +144,7 @@ export function MobileStatusSheet({ pollText, dataSource, onOpenCategory, onClos
                       {lineRsz.length > 0 ? (
                         <button type="button" className="mobile-line-status-btn-rsz" onClick={() => onOpenCategory("reduced-speed-zones", line.id)}>
                           <Construction size={12} className="text-amber-600 dark:text-amber-400 shrink-0" />
-                          <span><span className="mobile-line-status-impact-count">{lineRsz.length}</span>{lineRsz.length === 1 ? "Reduced Speed Zone" : "Reduced Speed Zones"}</span>
+                          <span><span className="mobile-line-status-impact-count">{lineRszCount}</span>{lineRszCount === 1 ? "Reduced Speed Zone" : "Reduced Speed Zones"}</span>
                         </button>
                       ) : null}
                       {lineClosures.length > 0 ? (

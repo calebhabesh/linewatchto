@@ -41,6 +41,7 @@ import { SiteGuideDropdown } from "./SiteGuideDropdown";
 import { ScrollOverflowAffordances } from "./ScrollOverflowAffordances";
 import { DataProvider, DashboardData } from "../app/DataContext";
 import type { ImpactKind, ImpactSelection } from "../app/linewatch-data";
+import { countReducedSpeedZones } from "../app/reduced-speed-zone-count";
 import {
   type AccessibilityOutageResponse,
   getAccessibilityOutages,
@@ -302,10 +303,11 @@ export function LineWatchShell({
     ingestionHealth,
     plannedClosures,
   } = displayData;
+  const reducedSpeedZoneCount = countReducedSpeedZones(reducedSpeedZones);
   const totalAlertCount =
     activeAlerts.length
     + delays.length
-    + reducedSpeedZones.length
+    + reducedSpeedZoneCount
     + plannedClosures.length;
   const pollText = generatedAt.lastPoll.replace(/succeeded\s*/i, "");
   const [isDark, setIsDark] = useState(initialVisualPreferences.theme === "dark");
@@ -2848,7 +2850,7 @@ export function LineWatchShell({
                    </div>
                    {reducedSpeedZones.length > 0 && (
                      <span className="flex h-6 min-w-[24px] items-center justify-center rounded-full rsz-count-badge px-2 text-[11px] font-bold">
-                       {reducedSpeedZones.length}
+                       {reducedSpeedZoneCount}
                      </span>
                    )}
                  </button> : null}
@@ -3518,15 +3520,15 @@ export function LineWatchShell({
               type="button"
               className="desktop-status-chip desktop-status-chip--reduced-speed-zone"
               onClick={() => openImpactCategory("reduced-speed-zones")}
-              aria-label={`${reducedSpeedZones.length} ${reducedSpeedZones.length === 1 ? "reduced speed zone" : "reduced speed zones"}`}
-              title={`${reducedSpeedZones.length} ${reducedSpeedZones.length === 1 ? "Reduced Speed Zone" : "Reduced Speed Zones"}`}
+              aria-label={`${reducedSpeedZoneCount} ${reducedSpeedZoneCount === 1 ? "reduced speed zone" : "reduced speed zones"}`}
+              title={`${reducedSpeedZoneCount} ${reducedSpeedZoneCount === 1 ? "Reduced Speed Zone" : "Reduced Speed Zones"}`}
             >
               <Construction size={18} aria-hidden="true" />
-              <span className="desktop-status-chip-count" data-digit-count={reducedSpeedZones.length >= 10 ? "multiple" : "single"}>
-                <span className="desktop-status-chip-count-value">{reducedSpeedZones.length}</span>
+              <span className="desktop-status-chip-count" data-digit-count={reducedSpeedZoneCount >= 10 ? "multiple" : "single"}>
+                <span className="desktop-status-chip-count-value">{reducedSpeedZoneCount}</span>
               </span>
               <span className="desktop-status-chip-label">
-                {reducedSpeedZones.length === 1 ? "Reduced Speed Zone" : "Reduced Speed Zones"}
+                {reducedSpeedZoneCount === 1 ? "Reduced Speed Zone" : "Reduced Speed Zones"}
               </span>
             </button> : null}
             <button
@@ -3593,7 +3595,7 @@ export function LineWatchShell({
           lineStatuses={lineStatuses}
           activeAlertCount={activeAlerts.length}
           delayCount={delays.length}
-          reducedSpeedZoneCount={reducedSpeedZones.length}
+          reducedSpeedZoneCount={reducedSpeedZoneCount}
           plannedClosureCount={plannedClosures.length}
           pollText={pollText}
           dataSource={displayData.dataSource}
@@ -3613,7 +3615,7 @@ export function LineWatchShell({
           activeKey={mobileNavKey}
           alertCount={activeAlerts.length}
           delayCount={delays.length}
-          reducedSpeedZoneCount={reducedSpeedZones.length}
+          reducedSpeedZoneCount={reducedSpeedZoneCount}
           commuteAffectedCount={commuteAffectedCount}
           onSelect={onMobileNavSelect}
         />
