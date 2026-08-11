@@ -85,11 +85,10 @@ export function filterAndSortAlertHistory(
 
   return filtered.sort((a, b) => {
     if (sortBy !== MOST_RECENT_SORT_VALUE) {
-      const aType = (a.incident.eventType || "").toLowerCase();
-      const bType = (b.incident.eventType || "").toLowerCase();
-      const targetType = sortBy.toLowerCase();
-      const aMatches = aType === targetType;
-      const bMatches = bType === targetType;
+      const aType = a.incident.eventType || "";
+      const bType = b.incident.eventType || "";
+      const aMatches = isSameEventType(aType, sortBy);
+      const bMatches = isSameEventType(bType, sortBy);
       if (aMatches && !bMatches) return -1;
       if (!aMatches && bMatches) return 1;
     }
@@ -165,26 +164,29 @@ export function buildAlertHistorySortOptions(
     { value: MOST_RECENT_SORT_VALUE, label: "Most Recent", eventType: null },
   ];
 
-  const seenTypes = new Set<string>();
+  const seenLabels = new Set<string>();
 
   for (const type of STANDARD_ALERT_TYPES) {
-    seenTypes.add(type);
+    const label = formatAlertTypeName(type);
+    seenLabels.add(label.toLowerCase());
     options.push({
       value: type,
-      label: formatAlertTypeName(type),
+      label,
       eventType: type,
     });
   }
 
   for (const incident of incidents) {
     if (incident.eventType) {
-      const normalized = incident.eventType.toLowerCase();
-      if (!seenTypes.has(normalized)) {
-        seenTypes.add(normalized);
+      const label = formatAlertTypeName(incident.eventType);
+      const normalizedLabel = label.toLowerCase();
+      if (!seenLabels.has(normalizedLabel)) {
+        seenLabels.add(normalizedLabel);
+        const normalizedValue = incident.eventType.toLowerCase();
         options.push({
-          value: normalized,
-          label: formatAlertTypeName(normalized),
-          eventType: normalized,
+          value: normalizedValue,
+          label,
+          eventType: normalizedValue,
         });
       }
     }
@@ -193,8 +195,61 @@ export function buildAlertHistorySortOptions(
   return options;
 }
 
+export function normalizeEventTypeKey(eventType: string): string {
+  const normalized = (eventType || "").trim().toLowerCase();
+  if (
+    normalized === "suspension" ||
+    normalized === "active-alert" ||
+    normalized === "active_alert"
+  ) {
+    return "suspension";
+  }
+  if (
+    normalized === "reduced-speed-zone" ||
+    normalized === "reduced_speed_zone"
+  ) {
+    return "reduced-speed-zone";
+  }
+  if (
+    normalized === "planned-closure" ||
+    normalized === "planned_closure" ||
+    normalized === "closure"
+  ) {
+    return "planned-closure";
+  }
+  return normalized;
+}
+
+export function isSameEventType(typeA: string, typeB: string): boolean {
+  return normalizeEventTypeKey(typeA) === normalizeEventTypeKey(typeB);
+}
+
 export function formatAlertTypeName(eventType: string): string {
   if (!eventType) return "Alert";
+  const normalized = eventType.trim().toLowerCase();
+  if (
+    normalized === "suspension" ||
+    normalized === "active-alert" ||
+    normalized === "active_alert"
+  ) {
+    return "Active Alert";
+  }
+  if (normalized === "delay") {
+    return "Delay";
+  }
+  if (
+    normalized === "reduced-speed-zone" ||
+    normalized === "reduced_speed_zone"
+  ) {
+    return "Reduced Speed Zone";
+  }
+  if (
+    normalized === "planned-closure" ||
+    normalized === "planned_closure" ||
+    normalized === "closure"
+  ) {
+    return "Planned Closure";
+  }
   return eventType
     .split(/[-_\s]+/)
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
@@ -205,6 +260,7 @@ function incidentMatchesSearch(
   incident: AlertHistoryIncident,
   normalizedQuery: string,
 ): boolean {
+  const eventTypeLabel = formatAlertTypeName(incident.eventType ?? "");
   const searchable = normalizeSearchText([
     incident.alertId,
     incident.sourceId,
@@ -212,6 +268,7 @@ function incidentMatchesSearch(
     incident.lineNumber,
     incident.lineName,
     incident.eventType,
+    eventTypeLabel,
     incident.title,
     incident.location,
     incident.displayDirection,

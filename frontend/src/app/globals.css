@@ -17276,6 +17276,11 @@ img.transit-line-badge {
     text-transform: uppercase;
   }
 
+  .mobile-impact-inspector-badge.nightly {
+    background: rgba(148, 163, 184, 0.14);
+    color: #94a3b8;
+  }
+
   .mobile-impact-inspector-badge.shuttle {
     background: rgba(59, 130, 246, 0.12);
     color: #60a5fa;
@@ -19842,7 +19847,8 @@ img.transit-line-badge {
   white-space: nowrap;
 }
 
-.alert-history-type-suspension {
+.alert-history-type-suspension,
+.alert-history-type-active-alert {
   background: rgba(255, 69, 69, 0.1);
   border-color: rgba(255, 69, 69, 0.35);
   color: var(--danger);
@@ -19872,7 +19878,9 @@ img.transit-line-badge {
 }
 
 .dark .alert-history-type-suspension,
-.high-contrast .alert-history-type-suspension {
+.dark .alert-history-type-active-alert,
+.high-contrast .alert-history-type-suspension,
+.high-contrast .alert-history-type-active-alert {
   color: var(--danger);
 }
 

@@ -5,6 +5,7 @@ import { describe, it } from "node:test";
 const globalCss = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
 const mapSource = readFileSync(new URL("../src/components/InteractiveTtcMap.tsx", import.meta.url), "utf8");
 const rszPanelSource = readFileSync(new URL("../src/components/ReducedSpeedZonesPanel.tsx", import.meta.url), "utf8");
+const directionalZoneCountSource = readFileSync(new URL("../src/components/DirectionalZoneCount.tsx", import.meta.url), "utf8");
 const impactCardFieldsSource = readFileSync(new URL("../src/components/ImpactCardFields.tsx", import.meta.url), "utf8");
 const shellSource = readFileSync(new URL("../src/components/LineWatchShell.tsx", import.meta.url), "utf8");
 const legendSource = readFileSync(new URL("../src/components/LineLegend.tsx", import.meta.url), "utf8");
@@ -34,29 +35,29 @@ describe("Reduced Speed Zone amber color", () => {
 
   it("stacks grouped directional zone counts as plain rows", () => {
     assert.match(
-      rszPanelSource,
+      directionalZoneCountSource,
       /className="rsz-zone-direction-breakdown"[\s\S]*?flexDirection:\s*"column"/,
     );
     assert.match(
-      rszPanelSource,
+      directionalZoneCountSource,
       /className="rsz-zone-direction-row"[\s\S]*?flexDirection:\s*"row"/,
     );
-    assert.doesNotMatch(rszPanelSource, /rsz-zone-direction-row[\s\S]{0,400}(?:border|background)/);
+    assert.doesNotMatch(directionalZoneCountSource, /rsz-zone-direction-row[\s\S]{0,400}(?:border|background)/);
     assert.match(
-      rszPanelSource,
+      directionalZoneCountSource,
       /className="rsz-zone-direction-label"[\s\S]*?color:\s*"var\(--quiet\)"/,
     );
     assert.match(
-      rszPanelSource,
+      directionalZoneCountSource,
       /className="rsz-zone-direction-label"[\s\S]*?fontWeight:\s*400[\s\S]*?opacity:\s*0\.78[\s\S]*?marginInlineStart:\s*3/,
     );
-    assert.match(rszPanelSource, /className="rsz-zone-direction-label"[\s\S]*?\{label\}/);
-    assert.doesNotMatch(rszPanelSource, /\(to \{destination\}\)/);
+    assert.match(directionalZoneCountSource, /className="rsz-zone-direction-label"[\s\S]*?\{label\}/);
+    assert.doesNotMatch(directionalZoneCountSource, /\(to \{destination\}\)/);
     assert.match(rszPanelSource, /className="rsz-zone-count-label-separator"> - <\/span>/);
     assert.match(rszPanelSource, /className="rsz-zone-count-label-total">\{zonesAtLocation\}<\/span>/);
     assert.match(globalCss, /\.rsz-zone-count-label-separator\s*\{[^}]*color:\s*var\(--quiet\)/s);
     assert.match(globalCss, /\.dark \.rsz-zone-count-label-total,[\s\S]*?color:\s*#b8a66f/);
-    assert.doesNotMatch(rszPanelSource, /rsz-zone-count-total-badge/);
+    assert.doesNotMatch(directionalZoneCountSource, /rsz-zone-count-total-badge/);
     assert.doesNotMatch(globalCss, /\.rsz-zone-count-total-badge/);
     assert.match(impactCardFieldsSource, /<dt>\{label\}\{labelSuffix\}<\/dt>/);
   });

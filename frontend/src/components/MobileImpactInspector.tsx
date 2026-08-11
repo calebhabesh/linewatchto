@@ -1,13 +1,16 @@
 "use client";
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { AlertTriangle, ChevronDown, ChevronUp, Construction, ExternalLink, X } from "lucide-react";
+import { AlertTriangle, ArrowRight, ChevronDown, ChevronUp, Construction, ExternalLink, X } from "lucide-react";
 import type { DashboardData } from "../app/DataContext";
 import { useDashboardData } from "../app/DataContext";
 import type { ImpactKind, ImpactSelection } from "../app/linewatch-data";
 import { DelayIcon } from "./DelayIcon";
 import { PlannedClosureIcon } from "./PlannedClosureIcon";
+import { ImpactTypeIcon } from "./ImpactTypeIcon";
 import { CardSource, ImpactRouteHeader, LineBadge, MetadataGrid, RelatedPlannedClosureButton } from "./ImpactCardFields";
+import { countReducedSpeedZones } from "../app/reduced-speed-zone-count";
+import { DirectionalZoneCount } from "./DirectionalZoneCount";
 import { getOverlappingImpactRefs, OverlappingImpactRefs } from "./ImpactOverlapRefs";
 
 export type MobileInspectorDetent = "map-focus" | "details-focus";
@@ -26,6 +29,7 @@ type SelectedImpactDetails = {
   description?: string;
   source: string;
   shuttle?: boolean;
+  nightly?: boolean;
   activeNow?: boolean;
   window?: string;
   startedAt?: string | null;
@@ -36,7 +40,9 @@ type SelectedImpactDetails = {
   reason?: string | null;
   targetRemoval?: string | null;
   relatedPlannedClosureId?: string | null;
-  extraRows?: Array<{ label: string; value?: ReactNode }>;
+  leadingRows?: Array<{ label: string; value?: string | null }>;
+  extraRows?: Array<{ label: string; labelSuffix?: ReactNode; value?: ReactNode }>;
+  trailingRows?: Array<{ label: string; value?: ReactNode }>;
   segmentIds: string[];
 };
 
@@ -54,6 +60,12 @@ function formatSpeed(value: string | null | undefined): string | null {
   return value.toLowerCase().includes("km/h") ? value : `${value} km/h`;
 }
 
+function formatClosureScheduleValue(value: string) {
+  return value
+    .replace(/\s*[–—]\s*/g, " – ")
+    .replace(/\s+-\s+/g, " – ");
+}
+
 function fallbackLineNumber(lineId: string) {
   return lineId.replace("line-", "");
 }
@@ -61,6 +73,7 @@ function fallbackLineNumber(lineId: string) {
 export function getSelectedImpactDetails(
   selection: NonNullable<ImpactSelection>,
   data: Pick<DashboardData, "activeAlerts" | "delays" | "reducedSpeedZones" | "plannedClosures">,
+  onSelectImpact?: (selection: ImpactSelection) => void,
 ): SelectedImpactDetails | null {
   if (selection.kind === "suspension") {
     const alert = data.activeAlerts.find((item) => item.id === selection.id);
@@ -144,6 +157,7 @@ export function getSelectedImpactDetails(
   if (selection.kind === "reduced-speed-zone") {
     const zone = data.reducedSpeedZones.find((item) => item.id === selection.id);
     if (!zone) return null;
+    const zonesAtLocation = countReducedSpeedZones([zone]);
     return {
       id: zone.id,
       kind: "reduced-speed-zone",
@@ -165,6 +179,16 @@ export function getSelectedImpactDetails(
       reason: zone.reason,
       targetRemoval: zone.targetRemoval,
       extraRows: [
+        {
+          label: "Zone Count",
+          labelSuffix: (
+            <>
+              <span className="rsz-zone-count-label-separator"> - </span>
+              <span className="rsz-zone-count-label-total">{zonesAtLocation}</span>
+            </>
+          ),
+          value: zonesAtLocation > 1 ? <DirectionalZoneCount zone={zone} /> : null,
+        },
         { label: "Reduced speed", value: formatSpeed(zone.reducedSpeed) },
         { label: "Typical speed", value: formatSpeed(zone.averageSpeed) },
       ],
@@ -174,6 +198,17 @@ export function getSelectedImpactDetails(
 
   const activeClosure = data.activeAlerts.find((item) => item.id === selection.id);
   if (activeClosure) {
+    const closure = data.plannedClosures.find(
+      (c) => c.id === activeClosure.id || c.id === activeClosure.relatedPlannedClosureId,
+    );
+    const specificWindowLabel = closure?.activeNow
+      ? closure.activeWindowLabel
+      : closure?.nextWindowLabel;
+    const specificWindowHeading = closure?.activeNow ? "Current window" : "Next window";
+    const hasScheduleDetails = Boolean(
+      closure?.windowHours || closure?.windowDates || specificWindowLabel,
+    );
+
     return {
       id: activeClosure.id,
       kind: "planned-closure",
@@ -188,6 +223,9 @@ export function getSelectedImpactDetails(
       description: activeClosure.description,
       source: activeClosure.source,
       shuttle: activeClosure.shuttle,
+      nightly: closure?.nightly,
+      activeNow: true,
+      window: closure?.window,
       startedAt: activeClosure.startedAt,
       updatedAt: activeClosure.updatedAt,
       updatedAgo: activeClosure.updatedAgo,
@@ -195,12 +233,54 @@ export function getSelectedImpactDetails(
       resolution: activeClosure.resolution,
       reason: activeClosure.reason,
       targetRemoval: activeClosure.targetRemoval,
+      leadingRows: closure ? [
+        {
+          label: "Closure dates",
+          value: closure.windowDates ? formatClosureScheduleValue(closure.windowDates) : null,
+        },
+        {
+          label: "Closure hours",
+          value: closure.windowHours ? formatClosureScheduleValue(closure.windowHours) : null,
+        },
+        {
+          label: specificWindowHeading,
+          value: specificWindowLabel ? formatClosureScheduleValue(specificWindowLabel) : null,
+        },
+        {
+          label: "Closure window",
+          value: hasScheduleDetails ? null : closure.window,
+        },
+      ] : undefined,
+      trailingRows: [
+        {
+          label: "Status",
+          value: (
+            <span className="planned-closure-status-active">
+              Active Now
+            </span>
+          ),
+        },
+      ],
       segmentIds: activeClosure.affectedSegmentIds ?? [],
     };
   }
 
   const closure = data.plannedClosures.find((item) => item.id === selection.id);
   if (!closure) return null;
+
+  const activeAlert = data.activeAlerts.find(
+    (alert) => alert.relatedPlannedClosureId === closure.id || (
+      closure.activeNow && alert.id === closure.id
+    ),
+  );
+  const specificWindowLabel = closure.activeNow
+    ? closure.activeWindowLabel
+    : closure.nextWindowLabel;
+  const specificWindowHeading = closure.activeNow ? "Current window" : "Next window";
+  const hasScheduleDetails = Boolean(
+    closure.windowHours || closure.windowDates || specificWindowLabel,
+  );
+
   return {
     id: closure.id,
     kind: "planned-closure",
@@ -215,6 +295,7 @@ export function getSelectedImpactDetails(
     description: closure.description,
     source: closure.source,
     shuttle: closure.shuttle,
+    nightly: closure.nightly,
     activeNow: closure.activeNow,
     window: closure.window,
     startedAt: closure.startedAt,
@@ -224,6 +305,45 @@ export function getSelectedImpactDetails(
     resolution: closure.resolution,
     reason: closure.reason,
     targetRemoval: closure.targetRemoval,
+    leadingRows: [
+      {
+        label: "Closure dates",
+        value: closure.windowDates ? formatClosureScheduleValue(closure.windowDates) : null,
+      },
+      {
+        label: "Closure hours",
+        value: closure.windowHours ? formatClosureScheduleValue(closure.windowHours) : null,
+      },
+      {
+        label: specificWindowHeading,
+        value: specificWindowLabel ? formatClosureScheduleValue(specificWindowLabel) : null,
+      },
+      {
+        label: "Closure window",
+        value: hasScheduleDetails ? null : closure.window,
+      },
+    ],
+    trailingRows: [
+      {
+        label: "Status",
+        value: activeAlert && onSelectImpact ? (
+          <button
+            type="button"
+            className="planned-closure-status-button"
+            onClick={() => onSelectImpact({ kind: "suspension", id: activeAlert.id })}
+            aria-label="View active alert"
+          >
+            <ImpactTypeIcon kind="suspension" size={13} />
+            <span>Active Now</span>
+            <ArrowRight size={13} aria-hidden="true" />
+          </button>
+        ) : (
+          <span className="planned-closure-status-inactive">
+            {closure.activeNow ? "Active Now" : "Currently Inactive"}
+          </span>
+        ),
+      },
+    ],
     segmentIds: closure.previewSegmentIds ?? [],
   };
 }
@@ -251,7 +371,7 @@ export function MobileImpactInspector({
 }: Props) {
   const data = useDashboardData();
   const inspectorRef = useRef<HTMLElement | null>(null);
-  const details = getSelectedImpactDetails(selection, data);
+  const details = getSelectedImpactDetails(selection, data, onSelectImpact);
   const expanded = detent === "details-focus";
   const showDetailedMetadata = expanded;
   const selectedDetailKey = details ? `${details.kind}:${details.id}` : "";
@@ -332,16 +452,13 @@ export function MobileImpactInspector({
       <div className="mobile-impact-inspector-scroll">
         <ImpactRouteHeader location={details.location} direction={details.displayDirection} />
 
-        {details.window ? (
-          <p className="mobile-impact-inspector-window">{details.window}</p>
-        ) : null}
-
         {details.description ? (
           <p className="mobile-impact-inspector-description">{details.description}</p>
         ) : null}
 
         <div className="mobile-impact-inspector-badges">
           <CardSource source={details.source} />
+          {details.nightly ? <span className="mobile-impact-inspector-badge nightly">Nightly</span> : null}
           {details.shuttle ? <span className="mobile-impact-inspector-badge shuttle">Shuttle</span> : null}
           {details.activeNow ? <span className="mobile-impact-inspector-badge active-now">Active Now</span> : null}
         </div>
@@ -362,6 +479,7 @@ export function MobileImpactInspector({
             startedAt={details.startedAt}
             updatedAt={details.updatedAt}
             updatedAgo={details.updatedAgo}
+            leadingRows={details.leadingRows}
             extraRows={[
               ...(details.relatedPlannedClosureId ? [{
                 label: "Planned Closure",
@@ -373,6 +491,7 @@ export function MobileImpactInspector({
               }] : []),
               ...(details.extraRows ?? []),
             ]}
+            trailingRows={details.trailingRows}
           />
         ) : null}
       </div>

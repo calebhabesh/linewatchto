@@ -20,6 +20,7 @@ import {
   buildAlertHistorySortOptions,
   filterAndSortAlertHistory,
   formatAlertTypeName,
+  normalizeEventTypeKey,
   MOST_RECENT_SORT_VALUE,
   type AlertHistoryLifecycleFilter,
   type AlertHistoryViewItem,
@@ -41,16 +42,17 @@ function renderSortOptionIcon(value: string) {
   if (value === MOST_RECENT_SORT_VALUE) {
     return <Clock3 size={14} className="text-slate-400 shrink-0" aria-hidden="true" />;
   }
-  if (value === "suspension") {
+  const key = normalizeEventTypeKey(value);
+  if (key === "suspension") {
     return <AlertTriangle size={14} className="text-red-500 shrink-0" aria-hidden="true" />;
   }
-  if (value === "delay") {
+  if (key === "delay") {
     return <DelayIcon size={14} className="text-amber-500 dark:text-amber-400 shrink-0" aria-hidden="true" />;
   }
-  if (value === "reduced-speed-zone") {
+  if (key === "reduced-speed-zone") {
     return <Construction size={14} className="rsz-tone shrink-0" aria-hidden="true" />;
   }
-  if (value === "planned-closure") {
+  if (key === "planned-closure") {
     return <PlannedClosureIcon size={14} className="text-blue-500 dark:text-blue-400 shrink-0" aria-hidden="true" />;
   }
   return <AlertTriangle size={14} className="text-slate-400 shrink-0" aria-hidden="true" />;
@@ -375,8 +377,9 @@ function HistoryAlertType({ eventType }: { eventType: string }) {
 }
 
 function historyAlertTypeTone(eventType: string) {
-  if (["suspension", "delay", "reduced-speed-zone", "planned-closure"].includes(eventType)) {
-    return eventType;
+  const key = normalizeEventTypeKey(eventType);
+  if (["suspension", "delay", "reduced-speed-zone", "planned-closure"].includes(key)) {
+    return key;
   }
   return "other";
 }

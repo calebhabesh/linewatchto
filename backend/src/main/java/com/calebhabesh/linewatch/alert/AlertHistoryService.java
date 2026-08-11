@@ -147,7 +147,18 @@ public class AlertHistoryService {
         String line = row.lineNumber() == null || row.lineNumber().isBlank()
             ? "TTC"
             : "Line " + row.lineNumber();
-        return line + " " + titleCase(eventType(row).replace("-", " "));
+        return line + " " + canonicalEventTypeName(eventType(row));
+    }
+
+    private String canonicalEventTypeName(String eventType) {
+        if (eventType == null) return "Alert";
+        return switch (eventType.trim().toLowerCase(java.util.Locale.ROOT)) {
+            case "suspension", "active-alert", "active_alert" -> "Active Alert";
+            case "delay" -> "Delay";
+            case "reduced-speed-zone", "reduced_speed_zone" -> "Reduced Speed Zone";
+            case "planned-closure", "planned_closure" -> "Planned Closure";
+            default -> titleCase(eventType.replace("-", " "));
+        };
     }
 
     private String eventStateLabel(String state) {

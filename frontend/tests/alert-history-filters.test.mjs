@@ -5,6 +5,7 @@ import {
   buildAlertHistoryLineOptions,
   buildAlertHistorySortOptions,
   filterAndSortAlertHistory,
+  formatAlertTypeName,
   selectDisplayEvent,
 } from "../src/components/alert-history-filters.ts";
 
@@ -177,7 +178,7 @@ describe("alert history filtering", () => {
     );
   });
 
-  it("builds sort options starting with Most Recent followed by title case alert types", () => {
+  it("builds sort options starting with Most Recent followed by canonical alert type names", () => {
     const options = buildAlertHistorySortOptions([
       activeLine5Incident,
       clearedLine2Incident,
@@ -185,10 +186,18 @@ describe("alert history filtering", () => {
 
     assert.equal(options[0].value, "most-recent");
     assert.equal(options[0].label, "Most Recent");
-    assert.ok(options.some((o) => o.value === "suspension" && o.label === "Suspension"));
+    assert.ok(options.some((o) => o.value === "suspension" && o.label === "Active Alert"));
     assert.ok(options.some((o) => o.value === "delay" && o.label === "Delay"));
     assert.ok(options.some((o) => o.value === "reduced-speed-zone" && o.label === "Reduced Speed Zone"));
     assert.ok(options.some((o) => o.value === "planned-closure" && o.label === "Planned Closure"));
+  });
+
+  it("formats canonical alert type names consistently", () => {
+    assert.equal(formatAlertTypeName("suspension"), "Active Alert");
+    assert.equal(formatAlertTypeName("active-alert"), "Active Alert");
+    assert.equal(formatAlertTypeName("delay"), "Delay");
+    assert.equal(formatAlertTypeName("reduced-speed-zone"), "Reduced Speed Zone");
+    assert.equal(formatAlertTypeName("planned-closure"), "Planned Closure");
   });
 
   it("sorts incidents matching selected alert type to top", () => {

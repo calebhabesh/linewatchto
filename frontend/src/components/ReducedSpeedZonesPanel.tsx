@@ -2,19 +2,16 @@
 
 import { useMemo, useState } from "react";
 import { useDashboardData } from "../app/DataContext";
-import { ArrowDown, ArrowLeft, ArrowLeftRight, ArrowRight, ArrowUp, ArrowUpDown, Construction, ChevronLeft, X } from "lucide-react";
-import type { ImpactSelection, ReducedSpeedZone } from "../app/linewatch-data";
+import { DirectionalZoneCount } from "./DirectionalZoneCount";
+import { Construction, ChevronLeft, X } from "lucide-react";
+import type { ImpactSelection } from "../app/linewatch-data";
 import { useScrollSelectedImpactCard } from "../hooks/useScrollSelectedImpactCard";
 import { LineBadge, ImpactRouteHeader, MetadataGrid, CardSource, JumpToLocationIcon } from "./ImpactCardFields";
 import { getOverlappingImpactRefs, OverlappingImpactRefs } from "./ImpactOverlapRefs";
 import { filterAndSortImpacts, type ImpactListSort } from "../app/impact-list-controls";
 import { ImpactListToolbar } from "./ImpactListToolbar";
 import { dashboardImpactSourceLabel } from "../app/dashboard-source-label";
-import {
-  countReducedSpeedZones,
-  countReducedSpeedZonesByDirection,
-  type ReducedSpeedZoneDirection,
-} from "../app/reduced-speed-zone-count";
+import { countReducedSpeedZones } from "../app/reduced-speed-zone-count";
 import { CompactImpactListItem, CompactImpactTimeValue } from "./CompactImpactListItem";
 import { useImpactListView } from "../hooks/useImpactListView";
 
@@ -23,86 +20,7 @@ const formatSpeed = (val: string | null | undefined): string | null => {
   return val.toLowerCase().includes("km/h") ? val : `${val} km/h`;
 };
 
-const DIRECTION_LABELS: Record<ReducedSpeedZoneDirection, string> = {
-  northbound: "Northbound",
-  southbound: "Southbound",
-  eastbound: "Eastbound",
-  westbound: "Westbound",
-  bidirectional: "Both directions",
-  unknown: "Direction not specified",
-};
 
-const LINE_DIRECTION_COLORS: Record<string, string> = {
-  "line-1": "#F8C300",
-  "line-2": "#00923F",
-  "line-4": "#A21A68",
-  "line-5": "#EB8738",
-  "line-6": "#969594",
-};
-
-function DirectionCountArrow({
-  direction,
-  verticalLine,
-}: {
-  direction: ReducedSpeedZoneDirection;
-  verticalLine: boolean;
-}) {
-  const props = { size: 14, strokeWidth: 3, "aria-hidden": true } as const;
-  if (direction === "northbound") return <ArrowUp {...props} />;
-  if (direction === "southbound") return <ArrowDown {...props} />;
-  if (direction === "eastbound") return <ArrowRight {...props} />;
-  if (direction === "westbound") return <ArrowLeft {...props} />;
-  if (direction === "bidirectional") {
-    return verticalLine ? <ArrowUpDown {...props} /> : <ArrowLeftRight {...props} />;
-  }
-  return <span aria-hidden="true">?</span>;
-}
-
-function DirectionalZoneCount({ zone }: { zone: ReducedSpeedZone }) {
-  const directionCounts = countReducedSpeedZonesByDirection(zone);
-  const verticalLine = zone.lineId === "line-1";
-  const directionOrder: ReducedSpeedZoneDirection[] = verticalLine
-    ? ["northbound", "southbound", "bidirectional", "unknown", "eastbound", "westbound"]
-    : ["eastbound", "westbound", "bidirectional", "unknown", "northbound", "southbound"];
-  const sortedCounts = [...directionCounts].sort(
-    (left, right) => directionOrder.indexOf(left.direction) - directionOrder.indexOf(right.direction),
-  );
-  const arrowColor = LINE_DIRECTION_COLORS[zone.lineId] ?? "#F59E0B";
-
-  return (
-    <span
-      className="rsz-zone-direction-breakdown"
-      style={{ display: "inline-flex", flexDirection: "column", alignItems: "flex-start", gap: 2 }}
-    >
-      {sortedCounts.map(({ direction, count, destination }) => {
-        const label = DIRECTION_LABELS[direction];
-        const destinationLabel = destination ? ` to ${destination}` : "";
-        return (
-          <span
-            key={direction}
-            className="rsz-zone-direction-row"
-            role="img"
-            aria-label={`${label}: ${count} ${count === 1 ? "zone" : "zones"}${destinationLabel}`}
-            title={`${label}: ${count} ${count === 1 ? "zone" : "zones"}${destinationLabel}`}
-            style={{ display: "inline-flex", flexDirection: "row", alignItems: "center", gap: 3, whiteSpace: "nowrap" }}
-          >
-            <span style={{ color: arrowColor, display: "inline-flex", alignItems: "center" }}>
-              <DirectionCountArrow direction={direction} verticalLine={verticalLine} />
-            </span>
-            <strong aria-hidden="true">{count}</strong>
-            <span
-              className="rsz-zone-direction-label"
-              style={{ color: "var(--quiet)", fontWeight: 400, opacity: 0.78, marginInlineStart: 3 }}
-              aria-hidden="true"
-            >
-              {label}
-            </span>
-          </span>
-        );
-      })}
-    </span>
-  );
-}
 
 interface Props {
   selection: ImpactSelection;
